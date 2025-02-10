@@ -3,19 +3,23 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
+  --background: #f4f4f4;
   --foreground: #171717;
+  --texture-url: url('/texture-light.png');
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #303030;
     --foreground: #ededed;
+    --texture-url: url('/texture-dark.png');
   }
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+
+  background: var(--background) var(--texture-url) repeat;
+  background-size: 100px 100px;
 }

@@ -1,0 +1,53 @@
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Query {
+  globalRank(id: ID!): RankGlobal!
+  globalRanks(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS_OWNED): [RankGlobal!]!
+}
+
+type RankGlobal {
+  _id: String!
+  contributedStars: Int!
+  contributedStarsD: Int
+  contributedStarsM: Int
+  contributedStarsY: Int
+  followersCount: Int!
+  followersCountD: Int
+  followersCountM: Int
+  followersCountY: Int
+  githubId: ID!
+  ownedStars: Int!
+  ownedStarsD: Int
+  ownedStarsM: Int
+  ownedStarsY: Int
+  user: User
+}
+
+enum RankOrder {
+  FOLLOWERS_COUNT
+  STARS_CONTRIBUTED
+  STARS_OWNED
+}
+
+type User {
+  _id: String!
+  avatarUrl: String
+  contributedStars: Int
+  createdAt: DateTime!
+  fetchingStartedAt: Int
+  fetchingStatus: UserFetchingStatus
+  followersCount: Int
+  githubId: ID!
+  location: String
+  login: String!
+  ownedStars: Int
+  updatedAt: DateTime!
+}
+
+enum UserFetchingStatus {
+  ACTIVE
+  COMPLETED
+}

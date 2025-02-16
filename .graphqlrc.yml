@@ -1,0 +1,4 @@
+projects:
+  web:
+    schema: './generated/schema.graphql'
+    documents: '**/*.gql'

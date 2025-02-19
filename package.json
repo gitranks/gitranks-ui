@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "codegen": "dotenv -e .env.local graphql-codegen"
+    "codegen": "dotenv -e .env.local graphql-codegen",
+    "standalone": "dotenv -e .env.local node .next/standalone/server.js"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.7.4",

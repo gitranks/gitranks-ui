@@ -1,0 +1,76 @@
+name: Deploy ui
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_and_deploy:
+    if: github.actor == 'maslianok'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      # 1. Check out the code
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Node (v18) and install pnpm
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          corepack prepare pnpm@10 --activate
+
+      # 4. Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          file: ./Dockerfile
+          push: true
+          tags: ghcr.io/maslianok/gitranks-ui:latest
+          build-args: |
+            EXAMPLE_BUILD_VAR=aaa
+
+      # 4. SSH to droplet and deploy
+      - name: SSH to droplet and deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ vars.DO_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u maslianok --password-stdin
+
+            docker pull ghcr.io/maslianok/gitranks-ui:latest
+
+            docker stop gitranks-ui || true
+            docker rm gitranks-ui || true
+
+            docker run -d \
+              --restart=always \
+              --name gitranks-ui \
+              -e MONGODB_URI_AUTH='${{ secrets.MONGODB_URI_AUTH }}' \
+              -e GRAPHQL_URI='${{ secrets.GRAPHQL_URI }}' \
+              -e AUTH_SECRET='${{ secrets.AUTH_SECRET }}' \
+              -e AUTH_GITHUB_SECRET='${{ secrets.AUTH_GITHUB_SECRET }}' \
+              -e GRAPHQL_SECRET_KEY='${{ secrets.GRAPHQL_SECRET_KEY }}' \
+              -e AUTH_GITHUB_ID='${{ vars.AUTH_GITHUB_ID }}' \
+              -e URI='${{ vars.URI }}' \
+              -e AUTH_TRUST_HOST=true \
+              -p 3000:3000 \
+              ghcr.io/maslianok/gitranks-ui:latest

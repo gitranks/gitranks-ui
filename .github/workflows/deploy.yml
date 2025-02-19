@@ -45,9 +45,9 @@ jobs:
           push: true
           tags: ghcr.io/maslianok/gitranks-ui:latest
           build-args: |
-            GRAPHQL_URI='${{ secrets.GRAPHQL_URI }}' \
-            GRAPHQL_SECRET_KEY='${{ secrets.GRAPHQL_SECRET_KEY }}' \
-            MONGODB_URI_AUTH='${{ secrets.MONGODB_URI_AUTH }}' \
+            GRAPHQL_URI='${{ secrets.GRAPHQL_URI }}'
+            GRAPHQL_SECRET_KEY='${{ secrets.GRAPHQL_SECRET_KEY }}'
+            MONGODB_URI_AUTH='${{ secrets.MONGODB_URI_AUTH }}'
             URI='${{ vars.URI }}'
 
       # 4. SSH to droplet and deploy

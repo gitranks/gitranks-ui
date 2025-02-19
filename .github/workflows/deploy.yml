@@ -45,7 +45,7 @@ jobs:
           push: true
           tags: ghcr.io/maslianok/gitranks-ui:latest
           build-args: |
-            MONGODB_URI_AUTH="mongodb://localhost:27020/auth"
+            MONGODB_URI_AUTH=mongodb://localhost:27020/auth
 
       # 4. SSH to droplet and deploy
       - name: SSH to droplet and deploy

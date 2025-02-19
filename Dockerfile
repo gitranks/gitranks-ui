@@ -1,5 +1,19 @@
 FROM node:22-alpine AS base
 
+# 1. Declare build arguments
+# 2. Convert build arguments into environment variables
+ARG GRAPHQL_URI
+ENV GRAPHQL_URI=$GRAPHQL_URI
+
+ARG GRAPHQL_SECRET_KEY
+ENV GRAPHQL_SECRET_KEY=$GRAPHQL_SECRET_KEY
+
+ARG MONGODB_URI_AUTH
+ENV MONGODB_URI_AUTH=$MONGODB_URI_AUTH
+
+ARG URI
+ENV URI=$URI
+
 FROM base AS deps
 RUN apk update && apk add --no-cache libc6-compat
 WORKDIR /app

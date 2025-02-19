@@ -1,8 +1,6 @@
 // This approach is taken from https://github.com/vercel/next.js/tree/canary/examples/with-mongodb
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
-console.log('88888888888aaaaaaaaaaaaaa', process.env.MONGODB_URI_AUTH);
-
 if (!process.env.MONGODB_URI_AUTH) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI_AUTH"');
 }

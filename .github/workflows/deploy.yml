@@ -57,7 +57,7 @@ jobs:
           script: |
             echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u maslianok --password-stdin
 
-            docker pull ghcr.io/maslianok/gitranks-ui:latest
+            docker pull ghcr.io/gitranks/gitranks-ui:latest
 
             docker stop gitranks-ui || true
             docker rm gitranks-ui || true
@@ -74,4 +74,4 @@ jobs:
               -e URI='${{ vars.URI }}' \
               -e AUTH_TRUST_HOST=true \
               -p 3000:3000 \
-              ghcr.io/maslianok/gitranks-ui:latest
+              ghcr.io/gitranks/gitranks-ui:latest

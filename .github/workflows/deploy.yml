@@ -6,7 +6,7 @@ on:
 jobs:
   build_and_deploy:
     if: github.actor == 'maslianok'
-    environment: main
+    environment: production
     runs-on: ubuntu-latest
     permissions:
       contents: read

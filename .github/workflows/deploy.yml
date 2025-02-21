@@ -45,7 +45,7 @@ jobs:
           push: true
           tags: ghcr.io/gitranks/gitranks-ui:latest
           build-args: |
-            MONGODB_URI_AUTH=${{ secrets.MONGODB_URI_AUTH }}
+            EXAMPLE_BUILD_VAR=aaa
 
       # 4. SSH to droplet and deploy
       - name: SSH to droplet and deploy

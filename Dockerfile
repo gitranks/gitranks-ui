@@ -1,9 +1,6 @@
 FROM node:22-alpine AS base
 
-# 1. Declare build arguments
-# 2. Convert build arguments into environment variables
-ARG MONGODB_URI_AUTH
-ENV MONGODB_URI_AUTH=$MONGODB_URI_AUTH
+ENV MONGODB_URI_AUTH=mongodb://localhost:27020/auth
 
 FROM base AS deps
 RUN apk update && apk add --no-cache libc6-compat

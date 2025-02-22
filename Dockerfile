@@ -1,5 +1,9 @@
 FROM node:22-alpine AS base
 
+# For some reason nextjs tries to run the /lib/mongo-client.ts file at build time
+# and the build fails because this variable is not set
+# this must be understood and fixed in the future
+# for now just make nextjs happy by setting this variable
 ENV MONGODB_URI_AUTH=mongodb://localhost:27020/auth
 
 FROM base AS deps

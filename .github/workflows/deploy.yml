@@ -72,6 +72,7 @@ jobs:
               -e GRAPHQL_SECRET_KEY='${{ secrets.GRAPHQL_SECRET_KEY }}' \
               -e AUTH_GITHUB_ID='${{ vars.AUTH_GITHUB_ID }}' \
               -e URI='${{ vars.URI }}' \
+              -e AUTH_URL='${{ vars.AUTH_URL }}' \
               -e AUTH_TRUST_HOST=true \
               -p 3000:3000 \
               ghcr.io/gitranks/gitranks-ui:latest

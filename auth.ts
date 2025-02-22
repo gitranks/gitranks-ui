@@ -2,7 +2,6 @@ import { MongoDBAdapter } from '@auth/mongodb-adapter';
 import NextAuth from 'next-auth';
 import authConfig from './auth.config';
 import mongoClientPromise from './lib/mongo-client';
-import { ObjectId } from 'mongodb';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: MongoDBAdapter(mongoClientPromise),
@@ -21,10 +20,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         await db
           .collection('accounts')
-          .updateOne(
-            { userId: new ObjectId(user.id) },
-            { $set: { githubId: profile?.node_id, githubLogin: profile?.login } },
-          );
+          .updateOne({ userId: user.id }, { $set: { githubId: profile?.node_id, githubLogin: profile?.login } });
       }
       return true;
     },

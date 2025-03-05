@@ -4,8 +4,8 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 scalar DateTime
 
 type Query {
-  globalRank(id: ID!): RankGlobal!
   globalRanks(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS_OWNED): [RankGlobal!]!
+  rankByLogin(login: String!): RankGlobal
 }
 
 type RankGlobal {

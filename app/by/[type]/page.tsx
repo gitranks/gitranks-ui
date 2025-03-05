@@ -1,5 +1,5 @@
 import { graphqlRequest } from '@/lib/graphql-request';
-import { RankOrder, StarsRankingDocument } from '@/types/generated/graphql';
+import { GlobalRanksDocument, RankOrder } from '@/types/generated/graphql';
 import Image from 'next/image';
 import {
   Pagination,
@@ -54,7 +54,7 @@ export default async function GlobalRanking({
   const [queryOrder, rankPropName] = getConfigByType(type);
   const page = Number((await searchParams)?.page) || 1;
   const offset = (page - 1) * ITEMS_PER_PAGE;
-  const data = await graphqlRequest(StarsRankingDocument, { order: queryOrder, offset });
+  const data = await graphqlRequest(GlobalRanksDocument, { order: queryOrder, offset });
 
   return (
     <>

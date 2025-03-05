@@ -1,0 +1,19 @@
+query GlobalRanks($order: RankOrder, $offset: Int) {
+  globalRanks(order: $order, offset: $offset) {
+    githubId
+    contributedStars
+    contributedStarsM
+    followersCount
+    followersCountM
+    ownedStars
+    ownedStarsM
+    user {
+      login
+      avatarUrl
+      ownedStars
+      contributedStars
+      followersCount
+      location
+    }
+  }
+}

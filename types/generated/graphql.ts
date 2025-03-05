@@ -18,13 +18,8 @@ export type Scalars = {
 
 export type Query = {
   __typename?: 'Query';
-  globalRank: RankGlobal;
   globalRanks: Array<RankGlobal>;
-};
-
-
-export type QueryGlobalRankArgs = {
-  id: Scalars['ID']['input'];
+  rankByLogin?: Maybe<RankGlobal>;
 };
 
 
@@ -32,6 +27,11 @@ export type QueryGlobalRanksArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
   order?: RankOrder;
+};
+
+
+export type QueryRankByLoginArgs = {
+  login: Scalars['String']['input'];
 };
 
 export type RankGlobal = {
@@ -80,13 +80,21 @@ export enum UserFetchingStatus {
   Completed = 'COMPLETED'
 }
 
-export type StarsRankingQueryVariables = Exact<{
+export type RankByLoginQueryVariables = Exact<{
+  login: Scalars['String']['input'];
+}>;
+
+
+export type RankByLoginQuery = { __typename?: 'Query', rankByLogin?: { __typename?: 'RankGlobal', githubId: string, contributedStars: number, contributedStarsM?: number | null, followersCount: number, followersCountM?: number | null, ownedStars: number, ownedStarsM?: number | null, user?: { __typename?: 'User', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null } | null };
+
+export type GlobalRanksQueryVariables = Exact<{
   order?: InputMaybe<RankOrder>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
 
-export type StarsRankingQuery = { __typename?: 'Query', globalRanks: Array<{ __typename?: 'RankGlobal', githubId: string, contributedStars: number, contributedStarsM?: number | null, followersCount: number, followersCountM?: number | null, ownedStars: number, ownedStarsM?: number | null, user?: { __typename?: 'User', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null }> };
+export type GlobalRanksQuery = { __typename?: 'Query', globalRanks: Array<{ __typename?: 'RankGlobal', githubId: string, contributedStars: number, contributedStarsM?: number | null, followersCount: number, followersCountM?: number | null, ownedStars: number, ownedStarsM?: number | null, user?: { __typename?: 'User', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null }> };
 
 
-export const StarsRankingDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"StarsRanking"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"order"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"RankOrder"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"offset"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"globalRanks"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"order"},"value":{"kind":"Variable","name":{"kind":"Name","value":"order"}}},{"kind":"Argument","name":{"kind":"Name","value":"offset"},"value":{"kind":"Variable","name":{"kind":"Name","value":"offset"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"followersCountM"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"login"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"location"}}]}}]}}]}}]} as unknown as DocumentNode<StarsRankingQuery, StarsRankingQueryVariables>;
+export const RankByLoginDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"RankByLogin"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"login"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"rankByLogin"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"login"},"value":{"kind":"Variable","name":{"kind":"Name","value":"login"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"followersCountM"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"login"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"location"}}]}}]}}]}}]} as unknown as DocumentNode<RankByLoginQuery, RankByLoginQueryVariables>;
+export const GlobalRanksDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GlobalRanks"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"order"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"RankOrder"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"offset"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"globalRanks"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"order"},"value":{"kind":"Variable","name":{"kind":"Name","value":"order"}}},{"kind":"Argument","name":{"kind":"Name","value":"offset"},"value":{"kind":"Variable","name":{"kind":"Name","value":"offset"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"followersCountM"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"login"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"location"}}]}}]}}]}}]} as unknown as DocumentNode<GlobalRanksQuery, GlobalRanksQueryVariables>;

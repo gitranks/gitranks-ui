@@ -1,5 +1,5 @@
-query StarsRanking($order: RankOrder, $offset: Int) {
-  globalRanks(order: $order, offset: $offset) {
+query RankByLogin($login: String!) {
+  rankByLogin(login: $login) {
     githubId
     contributedStars
     contributedStarsM

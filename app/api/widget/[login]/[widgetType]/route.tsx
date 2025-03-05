@@ -39,7 +39,8 @@ export async function GET(req: NextRequest, { params }: Props) {
           fontWeight: 600,
         }}
       >
-        <img src={user?.avatarUrl} width={100} height={100} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {!!user?.avatarUrl && <img src={user?.avatarUrl} width={100} height={100} alt="user avatar" />}
         <div style={{ marginTop: 40 }}>{`${user?.login}: #${ownedStars} with ${user?.ownedStars} stars`}</div>
       </div>
     ),

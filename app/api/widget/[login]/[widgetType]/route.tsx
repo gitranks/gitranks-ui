@@ -12,7 +12,7 @@ type Props = {
 };
 
 export async function GET(req: NextRequest, { params }: Props) {
-  const { login, widgetType } = await params;
+  const { login } = await params;
 
   const { rankByLogin } = await graphqlRequest(RankByLoginDocument, { login });
 

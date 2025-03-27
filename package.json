@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "codegen": "dotenv -e .env.local graphql-codegen",
-    "standalone": "dotenv -e .env.local node .next/standalone/server.js"
+    "standalone": "dotenv -e .env.local node .next/standalone/server.js",
+    "icons": "pnpm dlx @svgr/cli --out-dir components/icons --filename-case kebab --typescript --no-dimensions --replace-attr-values \"#000=currentColor\" -- public/icons",
+    "figma:icons": "tsc lib/figma/download-icons.ts --outDir dist && dotenv -e .env.local node dist/download-icons.js && pnpm run icons"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.7.4",
@@ -21,6 +23,7 @@
     "next-auth": "5.0.0-beta.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "satori": "^0.12.1",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7"
   },
@@ -28,6 +31,7 @@
     "@eslint/eslintrc": "^3",
     "@graphql-codegen/cli": "^5.0.5",
     "@graphql-codegen/typed-document-node": "^5.0.13",
+    "@svgr/cli": "^8.1.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^20",
     "@types/react": "^19",

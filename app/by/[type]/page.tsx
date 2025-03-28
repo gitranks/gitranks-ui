@@ -90,7 +90,7 @@ export default async function GlobalRanking({
                 </td>
                 <td>{user?.login}</td>
                 <td>{user?.location}</td>
-                <td>{user?.[rankPropName]}</td>
+                <td>{user?.[rankPropName]?.toLocaleString('en-US')}</td>
               </tr>
             );
           })}

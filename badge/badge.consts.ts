@@ -1,0 +1,1 @@
+export const GITHUB_TOTAL_USERS = 100_000_000;

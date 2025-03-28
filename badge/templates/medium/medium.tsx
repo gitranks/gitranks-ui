@@ -30,7 +30,7 @@ export const BadgeMedium: FC<BadgeMediumProps> = ({ theme, type, data }) => {
     return null;
   }
 
-  const entityName = type === 'followers' ? 'followers' : 'stars';
+  const entityName = type === 'followers' ? 'followers' : 'total stars';
 
   return (
     <div
@@ -63,7 +63,7 @@ export const BadgeMedium: FC<BadgeMediumProps> = ({ theme, type, data }) => {
           </div>
         </div>
         <div style={metaItemStyles}>
-          <div style={subtitleStyles}>total {entityName}</div>
+          <div style={subtitleStyles}>{entityName}</div>
           <div style={{ display: 'flex', fontSize: 14, fontWeight: 600 }}>
             {(!value ? 0 : value).toLocaleString('en-US')}
           </div>

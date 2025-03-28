@@ -40,7 +40,7 @@ export const BadgeMedium: FC<BadgeMediumProps> = ({ theme, type, data }) => {
         backgroundColor: colors.surface.primary,
       }}
     >
-      <div style={{ display: 'flex', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 12, width: '100%' }}>
         <BadgeIcon type={type} size={32} />
         <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 600 }}>{title}</div>

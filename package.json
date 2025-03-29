@@ -21,6 +21,8 @@
     "mongodb": "^6.13.0",
     "next": "15.1.6",
     "next-auth": "5.0.0-beta.25",
+    "posthog-js": "^1.234.1",
+    "posthog-node": "^4.11.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "satori": "^0.12.1",

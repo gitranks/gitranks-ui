@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { BadgeTemplateType, BadgeType, ThemeType } from '@/badge/badge.types';
 import { renderSmallBadge } from '@/badge/templates/small/small.render';
 import { renderMediumBadge } from '@/badge/templates/medium/medium.render';
+import { posthog } from '@/lib/posthog/posthog-node-client';
 
 type Props = { params: Promise<{ login: string }> };
 
@@ -20,8 +21,14 @@ export async function GET(req: NextRequest, { params }: Props) {
 
   const searchParams = req.nextUrl.searchParams;
   const type = searchParams.get('type') as BadgeType;
-  const template = searchParams.get('template') as BadgeTemplateType;
+  const template = (searchParams.get('template') ?? 'medium') as BadgeTemplateType;
   const theme = (searchParams.get('theme') ?? 'light') as ThemeType;
+
+  posthog.capture({
+    distinctId: login,
+    event: 'badge_rendered',
+    properties: { type, template, theme },
+  });
 
   const svg = await getRendererByTemplate(template)({ theme, login, type });
 

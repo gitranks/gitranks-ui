@@ -1,19 +1,9 @@
+import { appRouteReject } from '@/utils/app-route-reject';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  const isProd = process.env.NODE_ENV === 'production';
-
-  if (isProd) {
-    const origin = req.headers.get('origin') || req.headers.get('referer');
-    const host = req.headers.get('host');
-    const protocol = req.headers.get('x-forwarded-proto') || 'https';
-    const expectedOrigin = `${protocol}://${host}`;
-
-    console.log('origin', origin, expectedOrigin);
-
-    //   if (!origin || !origin.startsWith(expectedOrigin)) {
-    //     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    //   }
+  if (appRouteReject(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {

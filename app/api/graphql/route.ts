@@ -9,9 +9,11 @@ export async function POST(req: NextRequest) {
     const protocol = req.headers.get('x-forwarded-proto') || 'https';
     const expectedOrigin = `${protocol}://${host}`;
 
-    if (!origin || !origin.startsWith(expectedOrigin)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    console.log('origin', origin, expectedOrigin);
+
+    //   if (!origin || !origin.startsWith(expectedOrigin)) {
+    //     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    //   }
   }
 
   try {

@@ -5,7 +5,7 @@ https://gitranks.com/
 ## Small badge with user rank
 
 ```html
-<img src="https://gitranks.com/api/widget/<GITHUB_LOGIN>?type=<WIDGET_TYPE>&template=small" />
+<img src="https://gitranks.com/api/badge/<GITHUB_LOGIN>?type=<WIDGET_TYPE>&template=small" />
 ```
 
 <img src="https://gitranks.com/api/badge/maslianok?type=stars&template=small" /> <img src="https://gitranks.com/api/badge/maslianok?type=stars&template=small&theme=dark" />
@@ -17,7 +17,7 @@ https://gitranks.com/
 ## Medium badge with user rank
 
 ```html
-<img src="https://gitranks.com/api/widget/<GITHUB_LOGIN>?type=<WIDGET_TYPE>" />
+<img src="https://gitranks.com/api/badge/<GITHUB_LOGIN>?type=<WIDGET_TYPE>" />
 ```
 
 <img src="https://gitranks.com/api/badge/maslianok?type=stars" /> <img src="https://gitranks.com/api/badge/maslianok?type=stars&theme=dark" />

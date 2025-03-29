@@ -45,7 +45,7 @@ jobs:
           push: true
           tags: ghcr.io/gitranks/gitranks-ui:latest
           build-args: |
-            EXAMPLE_BUILD_VAR=aaa
+            NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
 
       # 4. SSH to droplet and deploy
       - name: SSH to droplet and deploy

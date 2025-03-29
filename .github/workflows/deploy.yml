@@ -74,5 +74,6 @@ jobs:
               -e URI='${{ vars.URI }}' \
               -e AUTH_URL='${{ vars.AUTH_URL }}' \
               -e AUTH_TRUST_HOST=true \
+              -e NEXT_PUBLIC_POSTHOG_KEY='${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}' \
               -p 3000:3000 \
               ghcr.io/gitranks/gitranks-ui:latest

@@ -6,6 +6,9 @@ FROM node:22-alpine AS base
 # for now just make nextjs happy by setting this variable
 ENV MONGODB_URI_AUTH=mongodb://localhost:27020/auth
 
+ARG NEXT_PUBLIC_POSTHOG_KEY
+ENV NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY
+
 FROM base AS deps
 RUN apk update && apk add --no-cache libc6-compat
 WORKDIR /app

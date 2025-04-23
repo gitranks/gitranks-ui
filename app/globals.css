@@ -5,7 +5,6 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --texture-url: url('/texture-light.png');
   --background: hsl(0 0% 100%);
   --foreground: hsl(240 10% 3.9%);
   --card: hsl(0 0% 100%);
@@ -31,25 +30,7 @@
   --chart-4: hsl(43 74% 66%);
   --chart-5: hsl(27 87% 67%);
   --radius: 0.6rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --texture-url: url('/texture-dark.png');
-  }
-}
-
-@theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-}
-
-@layer base {
-}
-
-body {
-  background: var(--background) var(--texture-url) repeat;
-  background-size: 100px 100px;
+  --landing-page-gradient-start-color: #e0f2fe;
 }
 
 .dark {
@@ -77,6 +58,7 @@ body {
   --chart-3: hsl(30 80% 55%);
   --chart-4: hsl(280 65% 60%);
   --chart-5: hsl(340 75% 55%);
+  --landing-page-gradient-start-color: #0f172a;
 }
 
 @theme inline {
@@ -104,6 +86,7 @@ body {
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-landing-page-gradient-start-color: var(--landing-page-gradient-start-color);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -112,6 +95,6 @@ body {
 
 @layer base {
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground border-border;
   }
 }

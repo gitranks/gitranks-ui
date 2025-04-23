@@ -1,4 +1,5 @@
 import { RankByLoginQuery } from '@/types/generated/graphql';
+
 import { BadgeType, DeltaSentimentType } from '../badge.types';
 
 type RankByTypeResult = { rank?: number; delta?: number; sentiment?: DeltaSentimentType; value?: number | null };

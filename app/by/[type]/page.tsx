@@ -1,6 +1,5 @@
-import { graphqlRequest } from '@/lib/graphql-request';
-import { GlobalRanksDocument, RankOrder } from '@/types/generated/graphql';
-import Image from 'next/image';
+import { Page } from '@/components/page/page';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Pagination,
   PaginationContent,
@@ -8,6 +7,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { graphqlRequest } from '@/lib/graphql-request';
+import { GlobalRanksDocument, RankOrder } from '@/types/generated/graphql';
+import { getInitials } from '@/utils/get-initials';
 
 const ITEMS_PER_PAGE = 100;
 
@@ -23,24 +26,36 @@ function getRankIcon(ownedStars: number, ownedStarsM: number | null | undefined)
 function getConfigByType(rankingType: string) {
   let propName: 'contributedStars' | 'followersCount' | 'ownedStars';
   let queryOrder: RankOrder;
+  let title: string;
+  let subtitle: string;
+  let rankingBaseEntity: string;
 
   switch (rankingType) {
-    case 'contributed-stars':
+    case 'contributions':
       queryOrder = RankOrder.StarsContributed;
       propName = 'contributedStars';
+      title = 'Contribution ranking';
+      subtitle = "Rank is based on the stars from repositories where you've merged pull requests — excluding your own.";
+      rankingBaseEntity = 'Stars';
       break;
     case 'followers':
       queryOrder = RankOrder.FollowersCount;
       propName = 'followersCount';
+      title = 'Followers ranking';
+      subtitle = 'Rank is based on the number of followers the user has on GitHub.';
+      rankingBaseEntity = 'Followers';
       break;
-    case 'owned-stars':
+    case 'stars':
     default:
       queryOrder = RankOrder.StarsOwned;
       propName = 'ownedStars';
+      title = 'Star ranking';
+      subtitle = 'Rank is based on the total number of stars across repositories owned by a user.';
+      rankingBaseEntity = 'Stars';
       break;
   }
 
-  return [queryOrder, propName] as const;
+  return [queryOrder, propName, title, subtitle, rankingBaseEntity] as const;
 }
 
 export default async function GlobalRanking({
@@ -51,51 +66,53 @@ export default async function GlobalRanking({
   params: Promise<{ type: string }>;
 }) {
   const { type } = await params;
-  const [queryOrder, rankPropName] = getConfigByType(type);
+  const [queryOrder, rankPropName, title, subtitle, rankingBaseEntity] = getConfigByType(type);
   const page = Number((await searchParams)?.page) || 1;
   const offset = (page - 1) * ITEMS_PER_PAGE;
   const data = await graphqlRequest(GlobalRanksDocument, { order: queryOrder, offset });
 
   return (
-    <>
-      <table className="table-auto mx-auto my-6">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th></th>
-            <th>Login</th>
-            <th>Location</th>
-            <th>⭐</th>
-          </tr>
-        </thead>
-        <tbody>
+    <Page className="max-w-5xl gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        <div>{`${subtitle} Login or Search to see your rank.`}</div>
+      </div>
+
+      <Table>
+        <TableHeader className="[&_tr]:border-b-0">
+          <TableRow>
+            <TableHead className="w-[100px]">#</TableHead>
+            <TableHead>Login</TableHead>
+            <TableHead className="hidden sm:table-cell">Location</TableHead>
+            <TableHead className="text-right">{rankingBaseEntity}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {data.globalRanks.map((item) => {
             const { githubId, user } = item;
             return (
-              <tr key={githubId}>
-                <td>
+              <TableRow key={githubId} className="border-b-0">
+                <TableCell className="font-medium">
                   {item[rankPropName]}
                   {getRankIcon(item[rankPropName], item[`${rankPropName}M`])}
-                </td>
-                <td>
+                </TableCell>
+                <TableCell className="flex items-center gap-2">
                   {!!user?.avatarUrl && (
-                    <Image
-                      src={user.avatarUrl}
-                      width={36}
-                      height={36}
-                      className="rounded-full m-2"
-                      alt={`${user?.login}'s avatar`}
-                    />
+                    <Avatar>
+                      <AvatarImage src={user.avatarUrl} className="rounded-full" width={36} height={36} />
+                      <AvatarFallback>{getInitials(user?.login)}</AvatarFallback>
+                    </Avatar>
                   )}
-                </td>
-                <td>{user?.login}</td>
-                <td>{user?.location}</td>
-                <td>{user?.[rankPropName]?.toLocaleString('en-US')}</td>
-              </tr>
+                  {user?.login}
+                </TableCell>
+                <TableCell className="hidden sm:table-cell">{user?.location}</TableCell>
+                <TableCell className="text-right">{user?.[rankPropName]?.toLocaleString('en-US')}</TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
+
       <Pagination>
         <PaginationContent>
           {page > 1 && (
@@ -108,6 +125,6 @@ export default async function GlobalRanking({
           </PaginationItem>
         </PaginationContent>
       </Pagination>
-    </>
+    </Page>
   );
 }

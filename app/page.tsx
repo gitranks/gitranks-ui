@@ -84,7 +84,7 @@ export default function Home() {
             among millions of developers.
           </div>
           <div>
-            <Button>Generate a badge</Button>
+            <Button>Create a badge</Button>
           </div>
         </div>
       </Page>

@@ -9,19 +9,11 @@ import {
 } from '@/components/ui/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { graphqlRequest } from '@/lib/graphql-request';
+import { cn } from '@/lib/utils';
 import { GlobalRanksDocument, RankOrder } from '@/types/generated/graphql';
 import { getInitials } from '@/utils/get-initials';
 
 const ITEMS_PER_PAGE = 100;
-
-function getRankIcon(ownedStars: number, ownedStarsM: number | null | undefined): string {
-  if (!ownedStarsM) {
-    return '';
-  }
-
-  const difference = ownedStars - ownedStarsM;
-  return difference > 0 ? '+' : difference < 0 ? '-' : '';
-}
 
 function getConfigByType(rankingType: string) {
   let propName: 'contributedStars' | 'followersCount' | 'ownedStars';
@@ -58,6 +50,26 @@ function getConfigByType(rankingType: string) {
   return [queryOrder, propName, title, subtitle, rankingBaseEntity] as const;
 }
 
+const getDelta = (ownedStars: number, ownedStarsM: number | null | undefined) => {
+  if (!ownedStarsM) {
+    return '';
+  }
+
+  const difference = ownedStarsM - ownedStars;
+
+  if (difference === 0) {
+    return '';
+  }
+
+  const isPositive = difference > 0;
+
+  return (
+    <div className={cn('text-xs', { 'text-positive': isPositive, 'text-negative': !isPositive })}>{`${
+      isPositive ? '+' : ''
+    }${difference}`}</div>
+  );
+};
+
 export default async function GlobalRanking({
   searchParams,
   params,
@@ -93,8 +105,10 @@ export default async function GlobalRanking({
             return (
               <TableRow key={githubId} className="border-b-0">
                 <TableCell className="font-medium">
-                  {item[rankPropName]}
-                  {getRankIcon(item[rankPropName], item[`${rankPropName}M`])}
+                  <div className="flex items-end gap-1">
+                    {item[rankPropName]}
+                    {getDelta(item[rankPropName], item[`${rankPropName}M`])}
+                  </div>
                 </TableCell>
                 <TableCell className="flex items-center gap-2">
                   {!!user?.avatarUrl && (

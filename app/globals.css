@@ -31,6 +31,8 @@
   --chart-5: hsl(27 87% 67%);
   --radius: 0.6rem;
   --landing-page-gradient-start-color: #e0f2fe;
+  --positive: #15803d;
+  --negative: #b91c1c;
 }
 
 .dark {
@@ -59,6 +61,8 @@
   --chart-4: hsl(280 65% 60%);
   --chart-5: hsl(340 75% 55%);
   --landing-page-gradient-start-color: #0f172a;
+  --positive: #22c55e;
+  --negative: #ef4444;
 }
 
 @theme inline {
@@ -87,6 +91,8 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
   --color-landing-page-gradient-start-color: var(--landing-page-gradient-start-color);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

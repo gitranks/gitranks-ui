@@ -1,21 +1,23 @@
 import { FC } from 'react';
+
+import { RankingType } from '@/types/ranking.types';
+
 import { BadgeIconProps } from './badge-icon.types';
 import { Follower, PullRequest, Star } from '../icons';
-import { BadgeType } from '../../badge/badge.types';
 
-const getIconByType = (type: BadgeType) => {
-  switch (type) {
-    case 'stars':
+const getIconByRankingType = (rankingType: RankingType) => {
+  switch (rankingType) {
+    case RankingType.Star:
       return Star;
-    case 'contributions':
+    case RankingType.Contribution:
       return PullRequest;
-    case 'followers':
+    case RankingType.Follower:
       return Follower;
   }
 };
 
-export const BadgeIcon: FC<BadgeIconProps> = ({ size, type }) => {
-  const Icon = getIconByType(type);
+export const BadgeIcon: FC<BadgeIconProps> = ({ size, rankingType }) => {
+  const Icon = getIconByRankingType(rankingType);
 
   if (!Icon) {
     return null;

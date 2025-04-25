@@ -7,11 +7,7 @@ export const metadata: Metadata = {
   description: 'GitHub profile ranks',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
       <Header />

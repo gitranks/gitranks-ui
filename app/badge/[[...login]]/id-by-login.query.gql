@@ -1,0 +1,5 @@
+query IdByLogin($login: String!) {
+  rankByLogin(login: $login) {
+    githubId
+  }
+}

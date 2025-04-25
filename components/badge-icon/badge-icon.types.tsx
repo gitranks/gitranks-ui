@@ -1,6 +1,6 @@
-import { BadgeType } from '../../badge/badge.types';
+import { RankingType } from '@/types/ranking.types';
 
 export type BadgeIconProps = {
   size: number;
-  type: BadgeType;
+  rankingType: RankingType;
 };

@@ -1,36 +1,38 @@
 import { FC } from 'react';
-import { BadgeIcon } from '@/components/badge-icon/badge-icon';
-import { figmaVariables } from '@/badge/utils/figma-variables-mapping';
-import { BadgeMediumProps } from './medium.types';
-import { getRankByType } from '@/badge/utils/get-rank-by-type';
-import { getTitleByType } from '@/badge/utils/get-title-by-type';
-import { BadgeType } from '@/badge/badge.types';
-import { containerStyles, metaItemStyles, rankDeltaStyles, rankStyles, subtitleStyles } from './medium.styles';
-import { getUsersBehindMe } from '@/badge/utils/users-behind-me';
 
-const getSubtitleByType = (type: BadgeType) => {
-  switch (type) {
-    case 'stars':
+import { figmaVariables } from '@/badge/utils/figma-variables-mapping';
+import { getRankByRankingType } from '@/badge/utils/get-rank-by-ranking-type';
+import { getTitleByRankingType } from '@/badge/utils/get-title-by-ranking-type';
+import { getUsersBehindMe } from '@/badge/utils/users-behind-me';
+import { BadgeIcon } from '@/components/badge-icon/badge-icon';
+import { RankingType } from '@/types/ranking.types';
+
+import { containerStyles, metaItemStyles, rankDeltaStyles, rankStyles, subtitleStyles } from './medium.styles';
+import { BadgeMediumProps } from './medium.types';
+
+const getSubtitleByRankingType = (rankingType: RankingType) => {
+  switch (rankingType) {
+    case RankingType.Star:
       return 'based on stars from repos owned by the user';
-    case 'contributions':
+    case RankingType.Contribution:
       return 'based on stars from repos the user contributed to';
-    case 'followers':
+    case RankingType.Follower:
       return 'based on the number of followers the user has';
   }
 };
 
-export const BadgeMedium: FC<BadgeMediumProps> = ({ theme, type, data }) => {
+export const BadgeMedium: FC<BadgeMediumProps> = ({ theme, rankingType, data }) => {
   const { colors } = figmaVariables[theme];
 
-  const { rank, delta = 0, value, sentiment } = getRankByType(data, type);
-  const title = getTitleByType(type);
-  const subtitle = getSubtitleByType(type);
+  const { rank, delta = 0, value, sentiment } = getRankByRankingType(data, rankingType);
+  const title = getTitleByRankingType(rankingType);
+  const subtitle = getSubtitleByRankingType(rankingType);
 
   if (!rank || !sentiment) {
     return null;
   }
 
-  const entityName = type === 'followers' ? 'followers' : 'total stars';
+  const entityName = rankingType === 'follower' ? 'followers' : 'total stars';
 
   return (
     <div
@@ -41,7 +43,7 @@ export const BadgeMedium: FC<BadgeMediumProps> = ({ theme, type, data }) => {
       }}
     >
       <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-        <BadgeIcon type={type} size={32} />
+        <BadgeIcon rankingType={rankingType} size={32} />
         <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 600 }}>{title}</div>
           <div style={subtitleStyles}>{subtitle}</div>

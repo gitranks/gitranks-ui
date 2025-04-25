@@ -1,8 +1,9 @@
 import { RankByLoginQuery } from '@/types/generated/graphql';
-import { BadgeType, ThemeType } from '../../badge.types';
+import { RankingType } from '@/types/ranking.types';
+import { ThemeType } from '@/types/theme.types';
 
 export type BadgeSmallProps = {
-  type: BadgeType;
+  rankingType: RankingType;
   theme: ThemeType;
   data: RankByLoginQuery['rankByLogin'];
 };

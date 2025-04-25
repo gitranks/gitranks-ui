@@ -1,5 +1,6 @@
-import { appRouteReject } from '@/utils/app-route-reject';
 import { NextRequest, NextResponse } from 'next/server';
+
+import { appRouteReject } from '@/utils/app-route-reject';
 
 export async function POST(req: NextRequest) {
   if (appRouteReject(req)) {

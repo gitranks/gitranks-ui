@@ -1,16 +1,18 @@
 import { FC } from 'react';
-import { BadgeIcon } from '@/components/badge-icon/badge-icon';
-import { figmaVariables } from '@/badge/utils/figma-variables-mapping';
-import { getRankByType } from '@/badge/utils/get-rank-by-type';
-import { getTitleByType } from '@/badge/utils/get-title-by-type';
-import { BadgeSmallProps } from './small.types';
-import { SMALL_BADGE_HEIGHT, SMALL_BADGE_WIDTH } from './small.consts';
 
-export const BadgeSmall: FC<BadgeSmallProps> = ({ theme, type, data }) => {
+import { figmaVariables } from '@/badge/utils/figma-variables-mapping';
+import { getRankByRankingType } from '@/badge/utils/get-rank-by-ranking-type';
+import { getTitleByRankingType } from '@/badge/utils/get-title-by-ranking-type';
+import { BadgeIcon } from '@/components/badge-icon/badge-icon';
+
+import { SMALL_BADGE_HEIGHT, SMALL_BADGE_WIDTH } from './small.consts';
+import { BadgeSmallProps } from './small.types';
+
+export const BadgeSmall: FC<BadgeSmallProps> = ({ theme, rankingType, data }) => {
   const { colors } = figmaVariables[theme];
 
-  const { rank, delta, sentiment } = getRankByType(data, type);
-  const title = getTitleByType(type);
+  const { rank, delta, sentiment } = getRankByRankingType(data, rankingType);
+  const title = getTitleByRankingType(rankingType);
 
   if (!rank || !sentiment) {
     return null;
@@ -32,7 +34,7 @@ export const BadgeSmall: FC<BadgeSmallProps> = ({ theme, type, data }) => {
         borderRadius: 8,
       }}
     >
-      <BadgeIcon type={type} size={32} />
+      <BadgeIcon rankingType={rankingType} size={32} />
 
       <div
         style={{

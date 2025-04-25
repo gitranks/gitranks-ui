@@ -1,10 +1,14 @@
 import { RankByLoginQuery } from '@/types/generated/graphql';
+import { RankingType } from '@/types/ranking.types';
 
-import { BadgeType, DeltaSentimentType } from '../badge.types';
+import { DeltaSentimentType } from '../badge.types';
 
 type RankByTypeResult = { rank?: number; delta?: number; sentiment?: DeltaSentimentType; value?: number | null };
 
-export const getRankByType = (data: RankByLoginQuery['rankByLogin'], type: BadgeType): RankByTypeResult => {
+export const getRankByRankingType = (
+  data: RankByLoginQuery['rankByLogin'],
+  rankingType: RankingType,
+): RankByTypeResult => {
   let rank;
   let monthlyRank;
   let value;
@@ -13,18 +17,18 @@ export const getRankByType = (data: RankByLoginQuery['rankByLogin'], type: Badge
     return {};
   }
 
-  switch (type) {
-    case 'stars':
+  switch (rankingType) {
+    case RankingType.Star:
       rank = data.ownedStars;
       monthlyRank = data.ownedStarsM;
       value = data.user?.ownedStars;
       break;
-    case 'contributions':
+    case RankingType.Contribution:
       rank = data.contributedStars;
       monthlyRank = data.contributedStarsM;
       value = data.user?.contributedStars;
       break;
-    case 'followers':
+    case RankingType.Follower:
       rank = data.followersCount;
       monthlyRank = data.followersCountM;
       value = data.user?.followersCount;

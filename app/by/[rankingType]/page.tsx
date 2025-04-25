@@ -15,7 +15,7 @@ import { getInitials } from '@/utils/get-initials';
 
 const ITEMS_PER_PAGE = 100;
 
-function getConfigByType(rankingType: string) {
+function getConfigByRankingType(rankingType: string) {
   let propName: 'contributedStars' | 'followersCount' | 'ownedStars';
   let queryOrder: RankOrder;
   let title: string;
@@ -75,10 +75,10 @@ export default async function GlobalRanking({
   params,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-  params: Promise<{ type: string }>;
+  params: Promise<{ rankingType: string }>;
 }) {
-  const { type } = await params;
-  const [queryOrder, rankPropName, title, subtitle, rankingBaseEntity] = getConfigByType(type);
+  const { rankingType } = await params;
+  const [queryOrder, rankPropName, title, subtitle, rankingBaseEntity] = getConfigByRankingType(rankingType);
   const page = Number((await searchParams)?.page) || 1;
   const offset = (page - 1) * ITEMS_PER_PAGE;
   const data = await graphqlRequest(GlobalRanksDocument, { order: queryOrder, offset });
@@ -131,11 +131,11 @@ export default async function GlobalRanking({
         <PaginationContent>
           {page > 1 && (
             <PaginationItem>
-              <PaginationPrevious href={`/by/${type}?page=${page - 1}`} />
+              <PaginationPrevious href={`/by/${rankingType}?page=${page - 1}`} />
             </PaginationItem>
           )}
           <PaginationItem>
-            <PaginationNext href={`/by/${type}?page=${page + 1}`} />
+            <PaginationNext href={`/by/${rankingType}?page=${page + 1}`} />
           </PaginationItem>
         </PaginationContent>
       </Pagination>

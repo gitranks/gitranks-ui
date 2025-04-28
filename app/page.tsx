@@ -1,11 +1,12 @@
 import { Search } from 'lucide-react';
-import Link from 'next/link';
 
 import { Header } from '@/components/header/header';
+import { Link } from '@/components/link/link';
 import { Page } from '@/components/page/page';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import MainImage from './main-image';
 
@@ -23,10 +24,19 @@ export default function Home() {
               <div>Just one repo with 5 stars puts you ahead of 95% of developers. See where you rank:</div>
               <div className="flex gap-4">
                 <Input placeholder="GitHub login" />
-                <Button>
-                  <Search className="size-4" />
-                  Search
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button>
+                        <Search className="size-4" />
+                        Search
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Coming soon</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
             <div className="flex flex-grow items-center justify-center w-full md:w-auto min-w-xs">
@@ -84,7 +94,7 @@ export default function Home() {
             among millions of developers.
           </div>
           <div>
-            <Button>Create a badge</Button>
+            <Link href="/badge">Create a badge</Link>
           </div>
         </div>
       </Page>

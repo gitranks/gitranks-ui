@@ -1,8 +1,12 @@
 import { Page } from '@/components/page/page';
+import { Separator } from '@/components/ui/separator';
 import { graphqlRequest } from '@/lib/graphql-request';
 import { IdByLoginDocument } from '@/types/generated/graphql';
 
-import { BadgeGenerator } from './badge-generator';
+import { BadgeForm } from './components/badge-form';
+import { IntegrationCode } from './components/integration-code';
+import { LoginForm } from './components/login-form';
+import { Preview } from './components/preview';
 
 export default async function Badge({ params }: { params: Promise<{ login?: string[] }> }) {
   const { login } = await params;
@@ -12,17 +16,25 @@ export default async function Badge({ params }: { params: Promise<{ login?: stri
   if (githubLogin) {
     const data = await graphqlRequest(IdByLoginDocument, { login: githubLogin });
     githubId = data.rankByLogin?.githubId;
-    console.log('data', data.rankByLogin?.githubId);
   }
 
   return (
-    <Page>
+    <Page className="gap-6">
       <div>
         <h1 className="text-2xl font-semibold">Profile badge</h1>
         <div>Create a custom profile badge to showcase on your GitHub portfolio or anywhere you like!</div>
       </div>
 
-      <BadgeGenerator githubLogin={githubLogin} githubId={githubId} />
+      <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start">
+        <div className="flex flex-col gap-6 min-w-2xs max-w-md flex-grow">
+          <LoginForm githubLogin={githubLogin} githubId={githubId} />
+          <Separator />
+          <BadgeForm />
+          <Separator />
+          <IntegrationCode githubLogin={githubLogin} githubId={githubId} />
+        </div>
+        <Preview githubLogin={githubLogin} githubId={githubId} />
+      </div>
     </Page>
   );
 }

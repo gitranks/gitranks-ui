@@ -33,6 +33,7 @@
   --landing-page-gradient-start-color: #e0f2fe;
   --positive: #15803d;
   --negative: #b91c1c;
+  --link: #0969da;
 }
 
 .dark {
@@ -63,6 +64,7 @@
   --landing-page-gradient-start-color: #0f172a;
   --positive: #22c55e;
   --negative: #ef4444;
+  --link: #478be6;
 }
 
 @theme inline {
@@ -93,6 +95,7 @@
   --color-landing-page-gradient-start-color: var(--landing-page-gradient-start-color);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
+  --color-link: var(--link);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

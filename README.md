@@ -8,11 +8,11 @@ https://gitranks.com/
 <img src="https://gitranks.com/api/badge/<GITHUB_LOGIN>?type=<WIDGET_TYPE>&template=small" />
 ```
 
-<img src="https://gitranks.com/api/badge/maslianok?type=stars&template=small" /> <img src="https://gitranks.com/api/badge/maslianok?type=stars&template=small&theme=dark" />
+<img src="https://gitranks.com/api/badge/maslianok?rankingType=star&template=small" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=star&template=small&theme=dark" />
 
-<img src="https://gitranks.com/api/badge/maslianok?type=contributions&template=small" /> <img src="https://gitranks.com/api/badge/maslianok?type=contributions&template=small&theme=dark" />
+<img src="https://gitranks.com/api/badge/maslianok?rankingType=contribution&template=small" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=contribution&template=small&theme=dark" />
 
-<img src="https://gitranks.com/api/badge/maslianok?type=followers&template=small" /> <img src="https://gitranks.com/api/badge/maslianok?type=followers&template=small&theme=dark" />
+<img src="https://gitranks.com/api/badge/maslianok?rankingType=follower&template=small" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=follower&template=small&theme=dark" />
 
 ## Medium badge with user rank
 
@@ -20,9 +20,9 @@ https://gitranks.com/
 <img src="https://gitranks.com/api/badge/<GITHUB_LOGIN>?type=<WIDGET_TYPE>" />
 ```
 
-<img src="https://gitranks.com/api/badge/maslianok?type=stars" /> <img src="https://gitranks.com/api/badge/maslianok?type=stars&theme=dark" />
+<img src="https://gitranks.com/api/badge/maslianok?rankingType=star" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=star&theme=dark" />
 
-<img src="https://gitranks.com/api/badge/maslianok?type=contributions" /> <img src="https://gitranks.com/api/badge/maslianok?type=contributions&theme=dark" />
+<img src="https://gitranks.com/api/badge/maslianok?rankingType=contribution" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=contribution&theme=dark" />
 
-<img src="https://gitranks.com/api/badge/maslianok?type=followers" /> <img src="https://gitranks.com/api/badge/maslianok?type=followers&theme=dark" />
+<img src="https://gitranks.com/api/badge/maslianok?rankingType=follower" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=follower&theme=dark" />
 

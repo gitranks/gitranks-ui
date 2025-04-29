@@ -66,7 +66,7 @@ const getDelta = (ownedStars: number, ownedStarsM: number | null | undefined) =>
   return (
     <div className={cn('text-xs', { 'text-positive': isPositive, 'text-negative': !isPositive })}>{`${
       isPositive ? '+' : ''
-    }${difference}`}</div>
+    }${difference?.toLocaleString('en-US')}`}</div>
   );
 };
 
@@ -119,7 +119,7 @@ export default async function GlobalRanking({
                   )}
                   {user?.login}
                 </TableCell>
-                <TableCell className="hidden sm:table-cell">{user?.location}</TableCell>
+                <TableCell className="hidden sm:table-cell break-all whitespace-normal">{user?.location}</TableCell>
                 <TableCell className="text-right">{user?.[rankPropName]?.toLocaleString('en-US')}</TableCell>
               </TableRow>
             );

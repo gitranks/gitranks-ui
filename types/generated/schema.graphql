@@ -1,14 +1,39 @@
+type Contribution {
+  prsCount: Int!
+  repoId: String
+  repository: Repository
+  year: Int!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
 
-type Query {
-  globalRanks(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS_OWNED): [RankGlobal!]!
-  rankByLogin(login: String!): RankGlobal
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+type LanguageEntity {
+  id: String!
+  size: Int!
 }
 
-type RankGlobal {
+type Organization {
+  avatarUrl: String
+  githubId: String!
+  login: String!
+  name: String
+}
+
+type Query {
+  rankByLogin(login: String!): Rank
+  rankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS_OWNED): [Rank!]!
+  user(login: String!): User!
+}
+
+type Rank {
   _id: String!
   contributedStars: Int!
   contributedStarsD: Int
@@ -23,7 +48,7 @@ type RankGlobal {
   ownedStarsD: Int
   ownedStarsM: Int
   ownedStarsY: Int
-  user: User
+  user: UserBasic
 }
 
 enum RankOrder {
@@ -32,19 +57,98 @@ enum RankOrder {
   STARS_OWNED
 }
 
+type RankWithoutUser {
+  _id: String!
+  contributedStars: Int!
+  contributedStarsD: Int
+  contributedStarsM: Int
+  contributedStarsY: Int
+  followersCount: Int!
+  followersCountD: Int
+  followersCountM: Int
+  followersCountY: Int
+  githubId: ID!
+  ownedStars: Int!
+  ownedStarsD: Int
+  ownedStarsM: Int
+  ownedStarsY: Int
+}
+
+type Repository {
+  createdAt: DateTime
+  forkCount: Int!
+  githubId: String!
+  isArchived: Boolean!
+  languages: RepositoryLanguagesEntity
+  name: String
+  pushedAt: DateTime
+  releasesCount: Int
+  stargazerCount: Int!
+  url: String!
+}
+
+type RepositoryLanguagesEntity {
+  nodes: [LanguageEntity!]!
+  totalCount: Int!
+  totalSize: Int!
+}
+
+type SocialAccount {
+  nodes: [SocialAccountNodeEntity!]
+  totalCount: Int!
+}
+
+type SocialAccountNodeEntity {
+  displayName: String
+  provider: String!
+  url: String!
+}
+
+type Timeline {
+  changes: JSON!
+  createdAt: DateTime!
+}
+
 type User {
   _id: String!
   avatarUrl: String
+  company: String
   contributedStars: Int
+  contributions: [Contribution!]
   createdAt: DateTime!
+  email: String
   fetchingStartedAt: Int
   fetchingStatus: UserFetchingStatus
   followersCount: Int
+  followingCount: Int
+  githubCreatedAt: DateTime
+  githubFetchedAt: DateTime
   githubId: ID!
+  githubServiceFetchedAt: DateTime
+  githubUpdatedAt: DateTime
+  isHireable: Boolean
+  location: String
+  login: String!
+  name: String
+  organizations: [Organization!]
+  ownedStars: Int
+  rank: RankWithoutUser
+  repositories: [Repository!]
+  socialAccounts: SocialAccount
+  timeline: [Timeline!]
+  twitterUsername: String
+  updatedAt: DateTime!
+  websiteUrl: String
+}
+
+type UserBasic {
+  avatarUrl: String
+  contributedStars: Int
+  followersCount: Int
+  githubId: String!
   location: String
   login: String!
   ownedStars: Int
-  updatedAt: DateTime!
 }
 
 enum UserFetchingStatus {

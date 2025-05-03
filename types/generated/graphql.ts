@@ -14,19 +14,36 @@ export type Scalars = {
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
   DateTime: { input: any; output: any; }
+  JSON: { input: any; output: any; }
+};
+
+export type Contribution = {
+  __typename?: 'Contribution';
+  prsCount: Scalars['Int']['output'];
+  repoId?: Maybe<Scalars['String']['output']>;
+  repository?: Maybe<Repository>;
+  year: Scalars['Int']['output'];
+};
+
+export type LanguageEntity = {
+  __typename?: 'LanguageEntity';
+  id: Scalars['String']['output'];
+  size: Scalars['Int']['output'];
+};
+
+export type Organization = {
+  __typename?: 'Organization';
+  avatarUrl?: Maybe<Scalars['String']['output']>;
+  githubId: Scalars['String']['output'];
+  login: Scalars['String']['output'];
+  name?: Maybe<Scalars['String']['output']>;
 };
 
 export type Query = {
   __typename?: 'Query';
-  globalRanks: Array<RankGlobal>;
-  rankByLogin?: Maybe<RankGlobal>;
-};
-
-
-export type QueryGlobalRanksArgs = {
-  limit?: Scalars['Int']['input'];
-  offset?: Scalars['Int']['input'];
-  order?: RankOrder;
+  rankByLogin?: Maybe<Rank>;
+  rankings: Array<Rank>;
+  user: User;
 };
 
 
@@ -34,8 +51,20 @@ export type QueryRankByLoginArgs = {
   login: Scalars['String']['input'];
 };
 
-export type RankGlobal = {
-  __typename?: 'RankGlobal';
+
+export type QueryRankingsArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+  order?: RankOrder;
+};
+
+
+export type QueryUserArgs = {
+  login: Scalars['String']['input'];
+};
+
+export type Rank = {
+  __typename?: 'Rank';
   _id: Scalars['String']['output'];
   contributedStars: Scalars['Int']['output'];
   contributedStarsD?: Maybe<Scalars['Int']['output']>;
@@ -50,7 +79,7 @@ export type RankGlobal = {
   ownedStarsD?: Maybe<Scalars['Int']['output']>;
   ownedStarsM?: Maybe<Scalars['Int']['output']>;
   ownedStarsY?: Maybe<Scalars['Int']['output']>;
-  user?: Maybe<User>;
+  user?: Maybe<UserBasic>;
 };
 
 export enum RankOrder {
@@ -59,20 +88,106 @@ export enum RankOrder {
   StarsOwned = 'STARS_OWNED'
 }
 
+export type RankWithoutUser = {
+  __typename?: 'RankWithoutUser';
+  _id: Scalars['String']['output'];
+  contributedStars: Scalars['Int']['output'];
+  contributedStarsD?: Maybe<Scalars['Int']['output']>;
+  contributedStarsM?: Maybe<Scalars['Int']['output']>;
+  contributedStarsY?: Maybe<Scalars['Int']['output']>;
+  followersCount: Scalars['Int']['output'];
+  followersCountD?: Maybe<Scalars['Int']['output']>;
+  followersCountM?: Maybe<Scalars['Int']['output']>;
+  followersCountY?: Maybe<Scalars['Int']['output']>;
+  githubId: Scalars['ID']['output'];
+  ownedStars: Scalars['Int']['output'];
+  ownedStarsD?: Maybe<Scalars['Int']['output']>;
+  ownedStarsM?: Maybe<Scalars['Int']['output']>;
+  ownedStarsY?: Maybe<Scalars['Int']['output']>;
+};
+
+export type Repository = {
+  __typename?: 'Repository';
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
+  forkCount: Scalars['Int']['output'];
+  githubId: Scalars['String']['output'];
+  isArchived: Scalars['Boolean']['output'];
+  languages?: Maybe<RepositoryLanguagesEntity>;
+  name?: Maybe<Scalars['String']['output']>;
+  pushedAt?: Maybe<Scalars['DateTime']['output']>;
+  releasesCount?: Maybe<Scalars['Int']['output']>;
+  stargazerCount: Scalars['Int']['output'];
+  url: Scalars['String']['output'];
+};
+
+export type RepositoryLanguagesEntity = {
+  __typename?: 'RepositoryLanguagesEntity';
+  nodes: Array<LanguageEntity>;
+  totalCount: Scalars['Int']['output'];
+  totalSize: Scalars['Int']['output'];
+};
+
+export type SocialAccount = {
+  __typename?: 'SocialAccount';
+  nodes?: Maybe<Array<SocialAccountNodeEntity>>;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type SocialAccountNodeEntity = {
+  __typename?: 'SocialAccountNodeEntity';
+  displayName?: Maybe<Scalars['String']['output']>;
+  provider: Scalars['String']['output'];
+  url: Scalars['String']['output'];
+};
+
+export type Timeline = {
+  __typename?: 'Timeline';
+  changes: Scalars['JSON']['output'];
+  createdAt: Scalars['DateTime']['output'];
+};
+
 export type User = {
   __typename?: 'User';
   _id: Scalars['String']['output'];
   avatarUrl?: Maybe<Scalars['String']['output']>;
+  company?: Maybe<Scalars['String']['output']>;
   contributedStars?: Maybe<Scalars['Int']['output']>;
+  contributions?: Maybe<Array<Contribution>>;
   createdAt: Scalars['DateTime']['output'];
+  email?: Maybe<Scalars['String']['output']>;
   fetchingStartedAt?: Maybe<Scalars['Int']['output']>;
   fetchingStatus?: Maybe<UserFetchingStatus>;
   followersCount?: Maybe<Scalars['Int']['output']>;
+  followingCount?: Maybe<Scalars['Int']['output']>;
+  githubCreatedAt?: Maybe<Scalars['DateTime']['output']>;
+  githubFetchedAt?: Maybe<Scalars['DateTime']['output']>;
   githubId: Scalars['ID']['output'];
+  githubServiceFetchedAt?: Maybe<Scalars['DateTime']['output']>;
+  githubUpdatedAt?: Maybe<Scalars['DateTime']['output']>;
+  isHireable?: Maybe<Scalars['Boolean']['output']>;
+  location?: Maybe<Scalars['String']['output']>;
+  login: Scalars['String']['output'];
+  name?: Maybe<Scalars['String']['output']>;
+  organizations?: Maybe<Array<Organization>>;
+  ownedStars?: Maybe<Scalars['Int']['output']>;
+  rank?: Maybe<RankWithoutUser>;
+  repositories?: Maybe<Array<Repository>>;
+  socialAccounts?: Maybe<SocialAccount>;
+  timeline?: Maybe<Array<Timeline>>;
+  twitterUsername?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  websiteUrl?: Maybe<Scalars['String']['output']>;
+};
+
+export type UserBasic = {
+  __typename?: 'UserBasic';
+  avatarUrl?: Maybe<Scalars['String']['output']>;
+  contributedStars?: Maybe<Scalars['Int']['output']>;
+  followersCount?: Maybe<Scalars['Int']['output']>;
+  githubId: Scalars['String']['output'];
   location?: Maybe<Scalars['String']['output']>;
   login: Scalars['String']['output'];
   ownedStars?: Maybe<Scalars['Int']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
 };
 
 export enum UserFetchingStatus {
@@ -85,24 +200,42 @@ export type IdByLoginQueryVariables = Exact<{
 }>;
 
 
-export type IdByLoginQuery = { __typename?: 'Query', rankByLogin?: { __typename?: 'RankGlobal', githubId: string } | null };
+export type IdByLoginQuery = { __typename?: 'Query', rankByLogin?: { __typename?: 'Rank', githubId: string } | null };
 
-export type GlobalRanksQueryVariables = Exact<{
+export type RankingsQueryVariables = Exact<{
   order?: InputMaybe<RankOrder>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
 
-export type GlobalRanksQuery = { __typename?: 'Query', globalRanks: Array<{ __typename?: 'RankGlobal', githubId: string, contributedStars: number, contributedStarsM?: number | null, followersCount: number, followersCountM?: number | null, ownedStars: number, ownedStarsM?: number | null, user?: { __typename?: 'User', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null }> };
+export type RankingsQuery = { __typename?: 'Query', rankings: Array<{ __typename?: 'Rank', githubId: string, contributedStars: number, contributedStarsM?: number | null, followersCount: number, followersCountM?: number | null, ownedStars: number, ownedStarsM?: number | null, user?: { __typename?: 'UserBasic', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null }> };
+
+export type ProfileForMetadataQueryVariables = Exact<{
+  login: Scalars['String']['input'];
+}>;
+
+
+export type ProfileForMetadataQuery = { __typename?: 'Query', rankByLogin?: { __typename?: 'Rank', githubId: string, contributedStars: number, followersCount: number, ownedStars: number, user?: { __typename?: 'UserBasic', avatarUrl?: string | null } | null } | null };
+
+export type RepositoryFieldsFragment = { __typename?: 'Repository', createdAt?: any | null, pushedAt?: any | null, url: string, forkCount: number, isArchived: boolean, name?: string | null, releasesCount?: number | null, stargazerCount: number, languages?: { __typename?: 'RepositoryLanguagesEntity', totalCount: number, totalSize: number, nodes: Array<{ __typename?: 'LanguageEntity', id: string, size: number }> } | null };
+
+export type UserQueryVariables = Exact<{
+  login: Scalars['String']['input'];
+}>;
+
+
+export type UserQuery = { __typename?: 'Query', user: { __typename?: 'User', githubId: string, githubFetchedAt?: any | null, githubServiceFetchedAt?: any | null, login: string, avatarUrl?: string | null, location?: string | null, followersCount?: number | null, ownedStars?: number | null, contributedStars?: number | null, company?: string | null, email?: string | null, followingCount?: number | null, githubCreatedAt?: any | null, isHireable?: boolean | null, name?: string | null, twitterUsername?: string | null, websiteUrl?: string | null, socialAccounts?: { __typename?: 'SocialAccount', totalCount: number, nodes?: Array<{ __typename?: 'SocialAccountNodeEntity', displayName?: string | null, provider: string, url: string }> | null } | null, organizations?: Array<{ __typename?: 'Organization', githubId: string, login: string, avatarUrl?: string | null, name?: string | null }> | null, contributions?: Array<{ __typename?: 'Contribution', repoId?: string | null, year: number, prsCount: number, repository?: { __typename?: 'Repository', createdAt?: any | null, pushedAt?: any | null, url: string, forkCount: number, isArchived: boolean, name?: string | null, releasesCount?: number | null, stargazerCount: number, languages?: { __typename?: 'RepositoryLanguagesEntity', totalCount: number, totalSize: number, nodes: Array<{ __typename?: 'LanguageEntity', id: string, size: number }> } | null } | null }> | null, repositories?: Array<{ __typename?: 'Repository', createdAt?: any | null, pushedAt?: any | null, url: string, forkCount: number, isArchived: boolean, name?: string | null, releasesCount?: number | null, stargazerCount: number, languages?: { __typename?: 'RepositoryLanguagesEntity', totalCount: number, totalSize: number, nodes: Array<{ __typename?: 'LanguageEntity', id: string, size: number }> } | null }> | null, timeline?: Array<{ __typename?: 'Timeline', changes: any, createdAt: any }> | null } };
 
 export type RankByLoginQueryVariables = Exact<{
   login: Scalars['String']['input'];
 }>;
 
 
-export type RankByLoginQuery = { __typename?: 'Query', rankByLogin?: { __typename?: 'RankGlobal', githubId: string, contributedStars: number, contributedStarsM?: number | null, followersCount: number, followersCountM?: number | null, ownedStars: number, ownedStarsM?: number | null, user?: { __typename?: 'User', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null } | null };
+export type RankByLoginQuery = { __typename?: 'Query', rankByLogin?: { __typename?: 'Rank', githubId: string, contributedStars: number, contributedStarsM?: number | null, followersCount: number, followersCountM?: number | null, ownedStars: number, ownedStarsM?: number | null, user?: { __typename?: 'UserBasic', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null } | null };
 
-
+export const RepositoryFieldsFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"RepositoryFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Repository"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"pushedAt"}},{"kind":"Field","name":{"kind":"Name","value":"url"}},{"kind":"Field","name":{"kind":"Name","value":"forkCount"}},{"kind":"Field","name":{"kind":"Name","value":"isArchived"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"releasesCount"}},{"kind":"Field","name":{"kind":"Name","value":"stargazerCount"}},{"kind":"Field","name":{"kind":"Name","value":"languages"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"totalSize"}},{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"size"}}]}}]}}]}}]} as unknown as DocumentNode<RepositoryFieldsFragment, unknown>;
 export const IdByLoginDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"IdByLogin"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"login"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"rankByLogin"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"login"},"value":{"kind":"Variable","name":{"kind":"Name","value":"login"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}}]}}]}}]} as unknown as DocumentNode<IdByLoginQuery, IdByLoginQueryVariables>;
-export const GlobalRanksDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GlobalRanks"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"order"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"RankOrder"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"offset"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"globalRanks"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"order"},"value":{"kind":"Variable","name":{"kind":"Name","value":"order"}}},{"kind":"Argument","name":{"kind":"Name","value":"offset"},"value":{"kind":"Variable","name":{"kind":"Name","value":"offset"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"followersCountM"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"login"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"location"}}]}}]}}]}}]} as unknown as DocumentNode<GlobalRanksQuery, GlobalRanksQueryVariables>;
+export const RankingsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Rankings"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"order"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"RankOrder"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"offset"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"rankings"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"order"},"value":{"kind":"Variable","name":{"kind":"Name","value":"order"}}},{"kind":"Argument","name":{"kind":"Name","value":"offset"},"value":{"kind":"Variable","name":{"kind":"Name","value":"offset"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"followersCountM"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"login"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"location"}}]}}]}}]}}]} as unknown as DocumentNode<RankingsQuery, RankingsQueryVariables>;
+export const ProfileForMetadataDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ProfileForMetadata"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"login"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"rankByLogin"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"login"},"value":{"kind":"Variable","name":{"kind":"Name","value":"login"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}}]}}]}}]}}]} as unknown as DocumentNode<ProfileForMetadataQuery, ProfileForMetadataQueryVariables>;
+export const UserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"User"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"login"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"user"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"login"},"value":{"kind":"Variable","name":{"kind":"Name","value":"login"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}},{"kind":"Field","name":{"kind":"Name","value":"githubFetchedAt"}},{"kind":"Field","name":{"kind":"Name","value":"githubServiceFetchedAt"}},{"kind":"Field","name":{"kind":"Name","value":"login"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"location"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"company"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"followingCount"}},{"kind":"Field","name":{"kind":"Name","value":"githubCreatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"isHireable"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"twitterUsername"}},{"kind":"Field","name":{"kind":"Name","value":"websiteUrl"}},{"kind":"Field","name":{"kind":"Name","value":"socialAccounts"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"provider"}},{"kind":"Field","name":{"kind":"Name","value":"url"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"organizations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}},{"kind":"Field","name":{"kind":"Name","value":"login"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"contributions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"repoId"}},{"kind":"Field","name":{"kind":"Name","value":"year"}},{"kind":"Field","name":{"kind":"Name","value":"prsCount"}},{"kind":"Field","name":{"kind":"Name","value":"repository"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"RepositoryFields"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"repositories"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"RepositoryFields"}}]}},{"kind":"Field","name":{"kind":"Name","value":"timeline"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"changes"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"RepositoryFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Repository"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"pushedAt"}},{"kind":"Field","name":{"kind":"Name","value":"url"}},{"kind":"Field","name":{"kind":"Name","value":"forkCount"}},{"kind":"Field","name":{"kind":"Name","value":"isArchived"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"releasesCount"}},{"kind":"Field","name":{"kind":"Name","value":"stargazerCount"}},{"kind":"Field","name":{"kind":"Name","value":"languages"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"totalSize"}},{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"size"}}]}}]}}]}}]} as unknown as DocumentNode<UserQuery, UserQueryVariables>;
 export const RankByLoginDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"RankByLogin"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"login"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"rankByLogin"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"login"},"value":{"kind":"Variable","name":{"kind":"Name","value":"login"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"followersCountM"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStarsM"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"login"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"ownedStars"}},{"kind":"Field","name":{"kind":"Name","value":"contributedStars"}},{"kind":"Field","name":{"kind":"Name","value":"followersCount"}},{"kind":"Field","name":{"kind":"Name","value":"location"}}]}}]}}]}}]} as unknown as DocumentNode<RankByLoginQuery, RankByLoginQueryVariables>;

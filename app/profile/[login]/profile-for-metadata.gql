@@ -1,0 +1,11 @@
+query ProfileForMetadata($login: String!) {
+  rankByLogin(login: $login) {
+    githubId
+    contributedStars
+    followersCount
+    ownedStars
+    user {
+      avatarUrl
+    }
+  }
+}

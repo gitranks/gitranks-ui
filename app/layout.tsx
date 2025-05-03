@@ -12,8 +12,9 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'GitRanks · Discover your developer superpower',
-  description: 'GitHub profile ranks',
+  title: 'GitRanks · GitHub Profile Analytics & Rankings',
+  description:
+    'Explore ranks based on stars, followers, contributions, and more. Dive into dynamic leaderboards and find out how you measure up against developers worldwide.',
 };
 
 export default function RootLayout({

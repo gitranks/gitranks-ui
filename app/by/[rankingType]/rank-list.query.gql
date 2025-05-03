@@ -1,5 +1,5 @@
-query GlobalRanks($order: RankOrder, $offset: Int) {
-  globalRanks(order: $order, offset: $offset) {
+query Rankings($order: RankOrder, $offset: Int) {
+  rankings(order: $order, offset: $offset) {
     githubId
     contributedStars
     contributedStarsM

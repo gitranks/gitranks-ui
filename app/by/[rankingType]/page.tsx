@@ -10,7 +10,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { graphqlRequest } from '@/lib/graphql-request';
 import { cn } from '@/lib/utils';
-import { GlobalRanksDocument, RankOrder } from '@/types/generated/graphql';
+import { RankingsDocument, RankOrder } from '@/types/generated/graphql';
 import { getInitials } from '@/utils/get-initials';
 
 const ITEMS_PER_PAGE = 100;
@@ -81,7 +81,7 @@ export default async function GlobalRanking({
   const [queryOrder, rankPropName, title, subtitle, rankingBaseEntity] = getConfigByRankingType(rankingType);
   const page = Number((await searchParams)?.page) || 1;
   const offset = (page - 1) * ITEMS_PER_PAGE;
-  const data = await graphqlRequest(GlobalRanksDocument, { order: queryOrder, offset });
+  const data = await graphqlRequest(RankingsDocument, { order: queryOrder, offset });
 
   return (
     <Page className="max-w-5xl gap-6">
@@ -100,7 +100,7 @@ export default async function GlobalRanking({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.globalRanks.map((item) => {
+          {data.rankings.map((item) => {
             const { githubId, user } = item;
             return (
               <TableRow key={githubId} className="border-b-0">

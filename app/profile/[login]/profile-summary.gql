@@ -1,0 +1,69 @@
+fragment RepositoryFields on Repository {
+  createdAt
+  pushedAt
+  url
+  forkCount
+  isArchived
+  name
+  releasesCount
+  stargazerCount
+  languages {
+    totalCount
+    totalSize
+    nodes {
+      id
+      size
+    }
+  }
+}
+
+query User($login: String!) {
+  user(login: $login) {
+    githubId
+    githubFetchedAt
+    githubServiceFetchedAt
+    login
+    avatarUrl
+    location
+    followersCount
+    ownedStars
+    contributedStars
+    company
+    email
+    followingCount
+    githubCreatedAt
+    isHireable
+    name
+    twitterUsername
+    websiteUrl
+    socialAccounts {
+      totalCount
+      nodes {
+        displayName
+        provider
+        url
+      }
+    }
+    organizations {
+      githubId
+      login
+      avatarUrl
+      name
+    }
+    contributions {
+      repoId
+      year
+      prsCount
+      repository {
+        ...RepositoryFields
+      }
+    }
+    repositories {
+      ...RepositoryFields
+    }
+    timeline {
+      changes
+      createdAt
+    }
+  }
+}

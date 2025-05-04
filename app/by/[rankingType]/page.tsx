@@ -1,4 +1,7 @@
+import Link from 'next/link';
+
 import { Page } from '@/components/page/page';
+import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Pagination,
@@ -9,7 +12,6 @@ import {
 } from '@/components/ui/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { graphqlRequest } from '@/lib/graphql-request';
-import { cn } from '@/lib/utils';
 import { RankingsDocument, RankOrder } from '@/types/generated/graphql';
 import { getInitials } from '@/utils/get-initials';
 
@@ -50,26 +52,6 @@ function getConfigByRankingType(rankingType: string) {
   return [queryOrder, propName, title, subtitle, rankingBaseEntity] as const;
 }
 
-const getDelta = (ownedStars: number, ownedStarsM: number | null | undefined) => {
-  if (!ownedStarsM) {
-    return '';
-  }
-
-  const difference = ownedStarsM - ownedStars;
-
-  if (difference === 0) {
-    return '';
-  }
-
-  const isPositive = difference > 0;
-
-  return (
-    <div className={cn('text-xs', { 'text-positive': isPositive, 'text-negative': !isPositive })}>{`${
-      isPositive ? '+' : ''
-    }${difference?.toLocaleString('en-US')}`}</div>
-  );
-};
-
 export default async function GlobalRanking({
   searchParams,
   params,
@@ -107,7 +89,7 @@ export default async function GlobalRanking({
                 <TableCell className="font-medium">
                   <div className="flex items-end gap-1">
                     {item[rankPropName]}
-                    {getDelta(item[rankPropName], item[`${rankPropName}M`])}
+                    <RankDelta current={item[rankPropName]} previous={item[`${rankPropName}M`]} />
                   </div>
                 </TableCell>
                 <TableCell className="flex items-center gap-2">
@@ -117,7 +99,7 @@ export default async function GlobalRanking({
                       <AvatarFallback>{getInitials(user?.login)}</AvatarFallback>
                     </Avatar>
                   )}
-                  {user?.login}
+                  <Link href={`/profile/${user?.login}`}>{user?.login}</Link>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell break-all whitespace-normal">{user?.location}</TableCell>
                 <TableCell className="text-right">{user?.[rankPropName]?.toLocaleString('en-US')}</TableCell>

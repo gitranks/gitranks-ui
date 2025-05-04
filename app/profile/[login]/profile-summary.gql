@@ -1,4 +1,5 @@
 fragment RepositoryFields on Repository {
+  githubId
   createdAt
   pushedAt
   url
@@ -51,7 +52,6 @@ query User($login: String!) {
       name
     }
     contributions {
-      repoId
       year
       prsCount
       repository {
@@ -64,6 +64,14 @@ query User($login: String!) {
     timeline {
       changes
       createdAt
+    }
+    rank {
+      ownedStars
+      ownedStarsM
+      contributedStars
+      contributedStarsM
+      followersCount
+      followersCountM
     }
   }
 }

@@ -15,6 +15,8 @@ import { graphqlRequest } from '@/lib/graphql-request';
 import { RankingsDocument, RankOrder } from '@/types/generated/graphql';
 import { getInitials } from '@/utils/get-initials';
 
+import { ClickableRow } from './components/clickale-row';
+
 const ITEMS_PER_PAGE = 100;
 
 function getConfigByRankingType(rankingType: string) {
@@ -85,7 +87,7 @@ export default async function GlobalRanking({
           {data.rankings.map((item) => {
             const { githubId, user } = item;
             return (
-              <TableRow key={githubId} className="border-b-0">
+              <ClickableRow key={githubId} className="border-b-0" href={`/profile/${user?.login}`}>
                 <TableCell className="font-medium">
                   <div className="flex items-end gap-1">
                     {item[rankPropName]}
@@ -103,7 +105,7 @@ export default async function GlobalRanking({
                 </TableCell>
                 <TableCell className="hidden sm:table-cell break-all whitespace-normal">{user?.location}</TableCell>
                 <TableCell className="text-right">{user?.[rankPropName]?.toLocaleString('en-US')}</TableCell>
-              </TableRow>
+              </ClickableRow>
             );
           })}
         </TableBody>

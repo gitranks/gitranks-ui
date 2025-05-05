@@ -58,6 +58,7 @@ export const SearchProfile = () => {
           value={login}
           onChange={(event) => setLogin(event.target.value)}
           disabled={loading}
+          autoCapitalize="none"
         />
         <Button onClick={onSearch} disabled={loading} className="w-[96px]">
           {loading ? <ClipLoader loading={loading} size={16} /> : <Search className="size-4" />}

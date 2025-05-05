@@ -119,6 +119,7 @@ type User {
   email: String
   fetchingStartedAt: Int
   fetchingStatus: UserFetchingStatus
+  firstSeenAt: DateTime
   followersCount: Int
   followingCount: Int
   githubCreatedAt: DateTime

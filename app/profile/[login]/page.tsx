@@ -23,6 +23,7 @@ import { graphqlRequest } from '@/lib/graphql-request';
 import { ProfileForMetadataDocument, UserDocument } from '@/types/generated/graphql';
 
 import { ProfileListItem } from './components/profile-list-item';
+import { ProfileTimeline } from './components/profile-timeline';
 import { RanksOverview } from './components/ranks-overview';
 import { RepositoriesOverview } from './components/repositories-overiview';
 import { getSocialIcon } from './utils/get-social-icon';
@@ -149,7 +150,9 @@ export default async function Profile({ params }: { params: Promise<{ login: str
             contributedStars={user.contributedStars}
           />
         </div>
-        <div>Feed</div>
+        <div>
+          <ProfileTimeline timeline={user.timeline} firstSeenAt={user.firstSeenAt} />
+        </div>
       </div>
     </Page>
   );

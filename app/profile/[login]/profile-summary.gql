@@ -37,6 +37,7 @@ query User($login: String!) {
     name
     twitterUsername
     websiteUrl
+    firstSeenAt
     socialAccounts {
       totalCount
       nodes {

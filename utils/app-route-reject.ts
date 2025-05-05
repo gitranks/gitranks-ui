@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 export const appRouteReject = (req: NextRequest) => {
   const origin = req.headers.get('origin') || req.headers.get('referer');
   const host = req.headers.get('host');
-  const expectedHost = process.env.URI!;
+  const expectedHost = process.env.NEXT_PUBLIC_URI!;
 
   // Block if:
   // - No origin/referer (i.e., not from browser)

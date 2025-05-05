@@ -8,7 +8,7 @@ export async function graphqlRequest<TData, TVariables>(
 ): Promise<TData> {
   const query = print(document);
 
-  const res = await fetch(`${process.env.URI}/api/graphql`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_URI}/api/graphql`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables }),

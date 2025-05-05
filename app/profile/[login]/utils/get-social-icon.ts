@@ -1,8 +1,8 @@
 import { FaMastodon } from 'react-icons/fa';
-import { FaBluesky, FaXTwitter, FaInstagram, FaLinkedinIn, FaStackOverflow } from 'react-icons/fa6';
+import { FaBluesky, FaXTwitter, FaInstagram, FaLinkedinIn, FaStackOverflow, FaNpm } from 'react-icons/fa6';
 import { IoShareSocialOutline } from 'react-icons/io5';
 
-export const getSocialIcon = (provider: string) => {
+export const getSocialIcon = (provider: string, url: string = '') => {
   switch (provider) {
     case 'TWITTER':
       return FaXTwitter;
@@ -14,10 +14,17 @@ export const getSocialIcon = (provider: string) => {
       return FaInstagram;
     case 'LINKEDIN':
       return FaLinkedinIn;
-    case 'STACKOVERFLOW':
-      return FaStackOverflow;
     case 'GENERIC':
-    default:
+    default: {
+      if (url.indexOf('npmjs.com') > -1) {
+        return FaNpm;
+      }
+
+      if (url.indexOf('stackoverflow.com') > -1) {
+        return FaStackOverflow;
+      }
+
       return IoShareSocialOutline;
+    }
   }
 };

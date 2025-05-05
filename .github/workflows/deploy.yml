@@ -46,6 +46,7 @@ jobs:
           tags: ghcr.io/gitranks/gitranks-ui:latest
           build-args: |
             NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
+            NEXT_PUBLIC_URI=${{ vars.NEXT_PUBLIC_URI }}
 
       # 4. SSH to droplet and deploy
       - name: SSH to droplet and deploy
@@ -71,9 +72,9 @@ jobs:
               -e AUTH_GITHUB_SECRET='${{ secrets.AUTH_GITHUB_SECRET }}' \
               -e GRAPHQL_SECRET_KEY='${{ secrets.GRAPHQL_SECRET_KEY }}' \
               -e AUTH_GITHUB_ID='${{ vars.AUTH_GITHUB_ID }}' \
-              -e URI='${{ vars.URI }}' \
               -e AUTH_URL='${{ vars.AUTH_URL }}' \
               -e AUTH_TRUST_HOST=true \
+              -e NEXT_PUBLIC_URI='${{ vars.NEXT_PUBLIC_URI }}' \
               -e NEXT_PUBLIC_POSTHOG_KEY='${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}' \
               -p 3000:3000 \
               ghcr.io/gitranks/gitranks-ui:latest

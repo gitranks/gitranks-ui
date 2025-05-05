@@ -5,8 +5,10 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 
 import { Footer } from '@/components/footer/footer';
 import { ThemeProvider } from '@/components/theme-provider/theme-provider';
+import { Toaster } from '@/components/ui/sonner';
 
 import { PostHogProvider } from '../lib/posthog/post-hog-provider';
+
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -33,6 +35,7 @@ export default function RootLayout({
                   <div className="flex-grow">{children}</div>
                   <Footer />
                 </div>
+                <Toaster richColors position="top-right" />
               </ThemeProvider>
             </NuqsAdapter>
           </PostHogProvider>

@@ -98,13 +98,14 @@ export default async function Profile({ params }: { params: Promise<{ login: str
           {showContact && (
             <div className="flex flex-col gap-1.5">
               <h4 className="text-lg font-semibold">Contacts</h4>
-              <ProfileListItem value={user.email} Icon={Mail} />
-              <ProfileListItem value={user.websiteUrl} Icon={Link2} />
+              <ProfileListItem value={user.email} url={`mailto:${user.email}`} Icon={Mail} />
+              <ProfileListItem value={user.websiteUrl} url={user.websiteUrl!} Icon={Link2} />
               {user.socialAccounts?.nodes?.map((account) => (
                 <ProfileListItem
                   key={account.displayName}
                   value={account.displayName}
-                  Icon={getSocialIcon(account.provider)}
+                  url={account.url}
+                  Icon={getSocialIcon(account.provider, account.url)}
                 />
               ))}
             </div>

@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { Page } from '@/components/page/page';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,6 +14,7 @@ import { RankingsDocument, RankOrder } from '@/types/generated/graphql';
 import { getInitials } from '@/utils/get-initials';
 
 import { ClickableRow } from './components/clickale-row';
+import { LinkWithStopPropagation } from './components/link-with-stop-propagation';
 
 const ITEMS_PER_PAGE = 100;
 
@@ -101,7 +100,7 @@ export default async function GlobalRanking({
                       <AvatarFallback>{getInitials(user?.login)}</AvatarFallback>
                     </Avatar>
                   )}
-                  <Link href={`/profile/${user?.login}`}>{user?.login}</Link>
+                  <LinkWithStopPropagation href={`/profile/${user?.login}`}>{user?.login}</LinkWithStopPropagation>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell break-all whitespace-normal">{user?.location}</TableCell>
                 <TableCell className="text-right">{user?.[rankPropName]?.toLocaleString('en-US')}</TableCell>

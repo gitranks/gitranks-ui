@@ -1,15 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
-import {
-  BriefcaseBusiness,
-  ExternalLink,
-  Hourglass,
-  Link2,
-  Mail,
-  MapPin,
-  RefreshCw,
-  Timer,
-  UsersRound,
-} from 'lucide-react';
+import { BriefcaseBusiness, ExternalLink, Hourglass, Link2, Mail, MapPin, Timer, UsersRound } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -25,6 +15,7 @@ import { ProfileForMetadataDocument, UserDocument } from '@/types/generated/grap
 import { ProfileListItem } from './components/profile-list-item';
 import { ProfileTimeline } from './components/profile-timeline';
 import { RanksOverview } from './components/ranks-overview';
+import { RefreshButton } from './components/refresh-button';
 import { RepositoriesOverview } from './components/repositories-overiview';
 import { getSocialIcon } from './utils/get-social-icon';
 
@@ -71,10 +62,7 @@ export default async function Profile({ params }: { params: Promise<{ login: str
           </div>
         </div>
         <div className="flex flex-row md:flex-col gap-4">
-          <Button size="sm" className="flex-grow">
-            Refresh
-            <RefreshCw className="size-4" />
-          </Button>
+          <RefreshButton />
           <Button size="sm" variant="secondary" className="flex-grow" asChild>
             <Link href={`https://github.com/${user.login}`} target="_blank" rel="noopener noreferrer">
               Open GitHub

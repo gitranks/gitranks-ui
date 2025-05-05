@@ -49,14 +49,16 @@ const ProfileTimelineDescription: FC<ProfileTimelineDescriptionProps> = ({ type,
   const after = parseChangesetItem(changeset.a);
 
   return (
-    <div className="flex items-center gap-2">
-      {splitCamelCase(type)}:{' '}
-      {!!before && (
-        <span className="opacity-50">
-          {before} {!after && '(removed)'}
-        </span>
-      )}{' '}
-      {!!before && !!after && <ArrowRight size={12} />} {after}
+    <div className="flex gap-2">
+      <span className="shrink-0">{`${splitCamelCase(type)}:`}</span>
+      <span>
+        {!!before && (
+          <span className="opacity-50">
+            {before} {!after && '(removed)'}
+          </span>
+        )}
+        {!!before && !!after && <ArrowRight size={12} className="inline" />} {after}
+      </span>
     </div>
   );
 };
@@ -69,7 +71,7 @@ export const ProfileTimeline: FC<ProfileTimelineProps> = ({ timeline, firstSeenA
   const sortedTimeline = timeline.sort((a, b) => compareDesc(parseISO(a.createdAt), parseISO(b.createdAt)));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 max-w-2xl">
       <h2 className="text-xl font-semibold">Timeline</h2>
       <Timeline>
         {sortedTimeline.map((item) => (

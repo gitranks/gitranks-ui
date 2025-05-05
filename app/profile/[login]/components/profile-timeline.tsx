@@ -48,6 +48,15 @@ const ProfileTimelineDescription: FC<ProfileTimelineDescriptionProps> = ({ type,
   const before = parseChangesetItem(changeset.b);
   const after = parseChangesetItem(changeset.a);
 
+  if (type === 'avatarUrl') {
+    return (
+      <div className="flex gap-2">
+        <span>Avatar:</span>
+        <span>changed</span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-2">
       <span className="shrink-0">{`${splitCamelCase(type)}:`}</span>

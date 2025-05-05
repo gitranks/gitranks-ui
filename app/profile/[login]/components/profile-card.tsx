@@ -9,10 +9,10 @@ type ProfileCardProps = {
 
 export const ProfileCard: FC<ProfileCardProps> = ({ title, children }) => {
   return (
-    <Card className="border-border p-4 min-w-xs flex-grow basis-0">
-      <CardContent className="p-0 flex flex-col gap-4">
+    <Card className="border-0 md:border-2 border-border p-0 md:p-4 min-w-xs flex-grow basis-0">
+      <CardContent className="p-0 flex flex-col gap-1.5 md:gap-4">
         <h4 className="text-lg font-semibold">{title}</h4>
-        <div className="flex flex-col gap-2">{children}</div>
+        <div className="flex flex-col gap-1.5">{children}</div>
       </CardContent>
     </Card>
   );

@@ -54,25 +54,27 @@ export default async function Profile({ params }: { params: Promise<{ login: str
   const showContact = !!user?.email || !!user?.websiteUrl || !!user?.socialAccounts?.nodes?.length;
 
   return (
-    <Page className="gap-6 flex-row">
-      <div className="w-3xs xl:w-2xs flex flex-col gap-4">
-        <div className="flex flex-col gap-4">
-          <AspectRatio ratio={1}>
-            <Avatar className="w-full h-full rounded-full" asChild>
-              <AvatarImage src={user.avatarUrl!} />
-            </Avatar>
-          </AspectRatio>
+    <Page className="gap-6 flex-col md:flex-row">
+      <div className="w-full md:w-3xs xl:w-2xs flex flex-col shrink-0 gap-4">
+        <div className="flex flex-row md:flex-col items-center md:items-start gap-4">
+          <div className="w-[64] sm:w-[128] md:w-full">
+            <AspectRatio ratio={1}>
+              <Avatar className="w-full h-full rounded-full" asChild>
+                <AvatarImage src={user.avatarUrl!} />
+              </Avatar>
+            </AspectRatio>
+          </div>
           <div>
             <h1 className="font-semibold text-2xl">{user.name}</h1>
             <h2 className="text-muted-foreground">@{user.login}</h2>
           </div>
         </div>
-        <div className="flex flex-col gap-4">
-          <Button className="w-full">
+        <div className="flex flex-row md:flex-col gap-4">
+          <Button size="sm" className="flex-grow">
             Refresh
             <RefreshCw className="size-4" />
           </Button>
-          <Button variant="secondary" className="w-full" asChild>
+          <Button size="sm" variant="secondary" className="flex-grow" asChild>
             <Link href={`https://github.com/${user.login}`} target="_blank" rel="noopener noreferrer">
               Open GitHub
               <ExternalLink className="size-4" />
@@ -138,7 +140,7 @@ export default async function Profile({ params }: { params: Promise<{ login: str
         </div>
       </div>
       <div className="flex-grow flex flex-col gap-6">
-        <div className="flex flex-wrap gap-6">
+        <div className="flex flex-col md:flex-row flex-wrap gap-6">
           <RanksOverview ranksData={user.rank} />
           <RepositoriesOverview
             repositories={user.repositories}

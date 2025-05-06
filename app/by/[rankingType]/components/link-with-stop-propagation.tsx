@@ -10,7 +10,7 @@ type LinkWithStopPropagationProps = {
 
 export const LinkWithStopPropagation: FC<LinkWithStopPropagationProps> = ({ children, href }) => {
   return (
-    <Link href={href} onClick={(event) => event.stopPropagation()}>
+    <Link href={href} onClick={(event) => event.stopPropagation()} prefetch={false}>
       {children}
     </Link>
   );

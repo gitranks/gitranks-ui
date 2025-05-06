@@ -21,6 +21,9 @@ RUN corepack enable && corepack prepare pnpm@10 --activate
 RUN pnpm i --frozen-lockfile
 
 FROM base AS builder
+ARG GRAPHQL_SECRET_KEY
+ENV GRAPHQL_SECRET_KEY=$GRAPHQL_SECRET_KEY
+
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

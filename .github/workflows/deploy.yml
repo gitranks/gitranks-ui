@@ -47,6 +47,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
             NEXT_PUBLIC_URI=${{ vars.NEXT_PUBLIC_URI }}
+            GRAPHQL_SECRET_KEY=${{ secrets.GRAPHQL_SECRET_KEY }}
 
       # 4. SSH to droplet and deploy
       - name: SSH to droplet and deploy

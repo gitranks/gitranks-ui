@@ -2,14 +2,14 @@ import satori from 'satori';
 
 import { BadgeServiceProps } from '@/badge/badge.types';
 import { getSatoriConfig } from '@/badge/utils/get-satori-config';
-import { graphqlRequest } from '@/lib/graphql-request';
+import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { RankByLoginDocument } from '@/types/generated/graphql';
 
 import { BadgeSmall } from './small';
 import { SMALL_BADGE_HEIGHT, SMALL_BADGE_WIDTH } from './small.consts';
 
 export async function renderSmallBadge({ theme, login, rankingType }: BadgeServiceProps) {
-  const { rankByLogin } = await graphqlRequest(RankByLoginDocument, { login });
+  const { rankByLogin } = await graphqlDirect(RankByLoginDocument, { login });
 
   if (!rankByLogin) {
     return;

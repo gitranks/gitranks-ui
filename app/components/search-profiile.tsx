@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { graphqlRequest } from '@/lib/graphql-request';
+import { graphqlClient } from '@/lib/graphql/graphql-client';
 import { IdByLoginDocument } from '@/types/generated/graphql';
 
 export const SearchProfile = () => {
@@ -24,7 +24,7 @@ export const SearchProfile = () => {
     }
 
     setLoading(true);
-    const data = await graphqlRequest(IdByLoginDocument, { login });
+    const data = await graphqlClient(IdByLoginDocument, { login });
 
     const profileFound = data.rankByLogin?.githubId;
 

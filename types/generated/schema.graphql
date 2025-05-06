@@ -17,7 +17,7 @@ scalar JSON
 
 type LanguageEntity {
   id: String!
-  size: Int!
+  size: Float!
 }
 
 type Organization {
@@ -90,7 +90,7 @@ type Repository {
 type RepositoryLanguagesEntity {
   nodes: [LanguageEntity!]!
   totalCount: Int!
-  totalSize: Int!
+  totalSize: Float!
 }
 
 type SocialAccount {

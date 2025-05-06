@@ -9,7 +9,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { graphqlRequest } from '@/lib/graphql-request';
+import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { RankingsDocument, RankOrder } from '@/types/generated/graphql';
 import { getInitials } from '@/utils/get-initials';
 
@@ -64,7 +64,7 @@ export default async function GlobalRanking({
   const [queryOrder, rankPropName, title, subtitle, rankingBaseEntity] = getConfigByRankingType(rankingType);
   const page = Number((await searchParams)?.page) || 1;
   const offset = (page - 1) * ITEMS_PER_PAGE;
-  const data = await graphqlRequest(RankingsDocument, { order: queryOrder, offset });
+  const data = await graphqlDirect(RankingsDocument, { order: queryOrder, offset });
 
   return (
     <Page className="max-w-5xl gap-6">

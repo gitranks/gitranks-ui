@@ -1,0 +1,17 @@
+query TopRanks {
+  byStars: rankings(order: STARS_OWNED) {
+    user {
+      login
+    }
+  }
+  byContribution: rankings(order: STARS_CONTRIBUTED) {
+    user {
+      login
+    }
+  }
+  byFollowers: rankings(order: FOLLOWERS_COUNT) {
+    user {
+      login
+    }
+  }
+}

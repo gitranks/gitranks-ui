@@ -1,6 +1,6 @@
 import { Page } from '@/components/page/page';
 import { Separator } from '@/components/ui/separator';
-import { graphqlRequest } from '@/lib/graphql-request';
+import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { IdByLoginDocument } from '@/types/generated/graphql';
 
 import { BadgeForm } from './components/badge-form';
@@ -14,7 +14,7 @@ export default async function Badge({ params }: { params: Promise<{ login?: stri
   let githubId: string | undefined;
 
   if (githubLogin) {
-    const data = await graphqlRequest(IdByLoginDocument, { login: githubLogin });
+    const data = await graphqlDirect(IdByLoginDocument, { login: githubLogin });
     githubId = data.rankByLogin?.githubId;
   }
 

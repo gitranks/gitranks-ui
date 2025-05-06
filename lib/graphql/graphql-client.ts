@@ -2,7 +2,7 @@ import { print } from 'graphql';
 
 import DocumentNode from '@/types/typed-document-node';
 
-export async function graphqlRequest<TData, TVariables>(
+export async function graphqlClient<TData, TVariables>(
   document: DocumentNode<TData, TVariables>,
   variables?: TVariables,
 ): Promise<TData> {
@@ -16,10 +16,5 @@ export async function graphqlRequest<TData, TVariables>(
 
   const json = await res.json();
 
-  // If your API returns `{"data": ... }`, cast `json.data` to TData
-  if (json.errors) {
-    throw new Error(JSON.stringify(json.errors));
-  }
-
-  return json.data as TData;
+  return json as TData;
 }

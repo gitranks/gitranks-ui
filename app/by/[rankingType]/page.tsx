@@ -1,6 +1,5 @@
 import { Page } from '@/components/page/page';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Pagination,
   PaginationContent,
@@ -15,6 +14,7 @@ import { getInitials } from '@/utils/get-initials';
 
 import { ClickableRow } from './components/clickale-row';
 import { LinkWithStopPropagation } from './components/link-with-stop-propagation';
+import { ProfileAvatar } from './components/profile-avatar';
 
 const ITEMS_PER_PAGE = 100;
 
@@ -93,14 +93,11 @@ export default async function GlobalRanking({
                     <RankDelta current={item[rankPropName]} previous={item[`${rankPropName}M`]} />
                   </div>
                 </TableCell>
-                <TableCell className="flex items-center gap-2">
-                  {!!user?.avatarUrl && (
-                    <Avatar>
-                      <AvatarImage src={user.avatarUrl} className="rounded-full" width={36} height={36} />
-                      <AvatarFallback>{getInitials(user?.login)}</AvatarFallback>
-                    </Avatar>
-                  )}
-                  <LinkWithStopPropagation href={`/profile/${user?.login}`}>{user?.login}</LinkWithStopPropagation>
+                <TableCell>
+                  <LinkWithStopPropagation href={`/profile/${user?.login}`}>
+                    <ProfileAvatar url={user?.avatarUrl} initials={getInitials(user?.login)} />
+                    {user?.login}
+                  </LinkWithStopPropagation>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell break-all whitespace-normal">{user?.location}</TableCell>
                 <TableCell className="text-right">{user?.[rankPropName]?.toLocaleString('en-US')}</TableCell>

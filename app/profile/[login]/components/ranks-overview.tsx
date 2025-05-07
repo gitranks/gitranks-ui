@@ -6,7 +6,7 @@ import { UserQuery } from '@/types/generated/graphql';
 import { ProfileCard } from './profile-card';
 
 type RanksOverviewProps = {
-  ranksData: UserQuery['user']['rank'];
+  ranksData: NonNullable<UserQuery['user']>['rank'];
 };
 
 export const RanksOverview: FC<RanksOverviewProps> = ({ ranksData }) => {

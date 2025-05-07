@@ -1,3 +1,5 @@
+import 'server-only';
+
 export async function request(query: string, variables?: Record<string, unknown>) {
   const response = await fetch(process.env.GRAPHQL_URI!, {
     method: 'POST',

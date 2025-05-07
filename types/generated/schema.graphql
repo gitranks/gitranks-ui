@@ -30,7 +30,7 @@ type Organization {
 type Query {
   rankByLogin(login: String!): Rank
   rankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS_OWNED): [Rank!]!
-  user(login: String!): User!
+  user(login: String!): User
 }
 
 type Rank {

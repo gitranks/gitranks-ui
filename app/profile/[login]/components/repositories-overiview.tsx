@@ -4,11 +4,13 @@ import { UserQuery } from '@/types/generated/graphql';
 
 import { ProfileCard } from './profile-card';
 
+type User = NonNullable<UserQuery['user']>;
+
 type RepositoriesOverviewProps = {
-  repositories: UserQuery['user']['repositories'];
-  contributions: UserQuery['user']['contributions'];
-  ownedStars: UserQuery['user']['ownedStars'];
-  contributedStars: UserQuery['user']['contributedStars'];
+  repositories: User['repositories'];
+  contributions: User['contributions'];
+  ownedStars: User['ownedStars'];
+  contributedStars: User['contributedStars'];
 };
 
 export const RepositoriesOverview: FC<RepositoriesOverviewProps> = ({

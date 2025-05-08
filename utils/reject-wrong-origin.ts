@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 
-export const appRouteReject = (req: NextRequest) => {
+export const rejectWrongOrigin = (req: NextRequest) => {
   const origin = req.headers.get('origin') || req.headers.get('referer');
   const host = req.headers.get('host');
   const expectedHost = process.env.NEXT_PUBLIC_URI!;

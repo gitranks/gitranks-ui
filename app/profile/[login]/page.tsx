@@ -15,8 +15,11 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
     return { title: 'GitHub Profile Analytics & Rankings · GitRanks' };
   }
 
+  const { ownedStars, contributedStars, followersCount } = user.rank ?? {};
+
   return {
     title: `${login} – GitHub Profile Analytics & Rankings · GitRanks`,
+    description: `Explore GitHub analytics for ${login} – ranked #${ownedStars} by stars, #${contributedStars} by contributions, and #${followersCount} by followers. See how your code impacts the world and where you stand in the global developer community with GitRanks.`,
     openGraph: {
       images: [user.avatarUrl!],
     },

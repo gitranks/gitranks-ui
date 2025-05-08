@@ -33,8 +33,7 @@ export const RankCard: FC<RankCardProps> = ({ rank, rankM, rankY, title, entityV
             Trend:{' '}
             {rank !== rankM && (
               <>
-                <RankDelta current={rank} previous={rankM} className="text-base" />
-                this month,
+                <RankDelta current={rank} previous={rankM} className="text-base" /> this month;
               </>
             )}{' '}
             {rank !== rankY && (

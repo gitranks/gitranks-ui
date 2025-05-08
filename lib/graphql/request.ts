@@ -1,6 +1,10 @@
 import 'server-only';
 
-export async function request(query: string, variables?: Record<string, unknown>) {
+export async function request(
+  query: string,
+  variables?: Record<string, unknown>,
+  params?: { revalidate?: number },
+): Promise<{ data: unknown; status: number }> {
   const response = await fetch(process.env.GRAPHQL_URI!, {
     method: 'POST',
     headers: {
@@ -10,6 +14,7 @@ export async function request(query: string, variables?: Record<string, unknown>
       'nextjs-build-phase': String(process.env.NEXT_PHASE === 'phase-production-build'),
     },
     body: JSON.stringify({ query, variables }),
+    next: { revalidate: params?.revalidate },
   });
 
   if (!response.ok) {

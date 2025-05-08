@@ -38,12 +38,13 @@ export default async function Profile({ params }: { params: Promise<{ login: str
     <LayoutLeftColumn user={user}>
       <div className="flex-grow flex flex-col gap-6">
         <div className="flex flex-col md:flex-row flex-wrap gap-6">
-          <RanksOverview ranksData={user.rank} />
+          <RanksOverview ranksData={user.rank} login={login} />
           <RepositoriesOverview
             repositories={user.repositories}
             contributions={user.contributions}
             ownedStars={user.ownedStars}
             contributedStars={user.contributedStars}
+            login={login}
           />
         </div>
         <div>

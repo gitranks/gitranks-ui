@@ -2,13 +2,14 @@ import { formatDistanceToNow } from 'date-fns';
 import { BriefcaseBusiness, ExternalLink, Hourglass, Link2, Mail, MapPin, Timer, UsersRound } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 
 import { Page } from '@/components/page/page';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { UserQuery } from '@/types/generated/graphql';
 
 import { ProfileListItem } from './profile-list-item';
@@ -17,10 +18,11 @@ import { getSocialIcon } from '../utils/get-social-icon';
 
 type LayoutLeftColumnProps = Readonly<{
   user: UserQuery['user'];
-  children: React.ReactNode;
+  children: ReactNode;
+  className?: string;
 }>;
 
-export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children }) => {
+export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, className }) => {
   const showContact = !!user?.email || !!user?.websiteUrl || !!user?.socialAccounts?.nodes?.length;
 
   if (!user) {
@@ -28,7 +30,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children }) 
   }
 
   return (
-    <Page className="gap-6 flex-col md:flex-row">
+    <Page className={cn('gap-6 flex-col md:flex-row', className)}>
       <div className="w-full md:w-3xs xl:w-2xs flex flex-col shrink-0 gap-4">
         <div className="flex flex-row md:flex-col items-center md:items-start gap-4">
           <div className="w-[64] sm:w-[128] md:w-full">

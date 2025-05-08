@@ -1,5 +1,6 @@
 import { FC } from 'react';
 
+import { Link } from '@/components/link/link';
 import { UserQuery } from '@/types/generated/graphql';
 
 import { ProfileCard } from './profile-card';
@@ -11,6 +12,7 @@ type RepositoriesOverviewProps = {
   contributions: User['contributions'];
   ownedStars: User['ownedStars'];
   contributedStars: User['contributedStars'];
+  login: string;
 };
 
 export const RepositoriesOverview: FC<RepositoriesOverviewProps> = ({
@@ -18,6 +20,7 @@ export const RepositoriesOverview: FC<RepositoriesOverviewProps> = ({
   contributions,
   ownedStars,
   contributedStars,
+  login,
 }) => {
   const topRepoStars = repositories?.reduce((topStars, repo) => {
     if (repo.stargazerCount > topStars) {
@@ -43,6 +46,9 @@ export const RepositoriesOverview: FC<RepositoriesOverviewProps> = ({
         🤝&nbsp;&nbsp;Contributed to {contributedRepoCount} repos
         {!!contributedRepoCount && ` • ⭐ ${contributedStars?.toLocaleString('en-US')} total`}
       </p>
+      <Link href={`/profile/${login}/repositories`} className="mt-1">
+        View Details
+      </Link>
     </ProfileCard>
   );
 };

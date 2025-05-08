@@ -1,17 +1,48 @@
+import { HomeIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { FC } from 'react';
+
+import { cn } from '@/lib/utils';
 
 import SigninButton from '../signin-button/signin-button';
+import { MainMenu } from './components/main-menu';
 
-export const Header = () => {
+type HeaderProps = {
+  login?: string;
+};
+
+export const Header: FC<HeaderProps> = ({ login }) => {
   return (
     <header className="flex items-center justify-between p-4">
-      <Link href="/">
-        <Image src="/logo-light.svg" alt="Logo Light" className="block dark:hidden" priority width={100} height={20} />
-        <Image src="/logo-dark.svg" alt="Logo Dark" className="hidden dark:block" priority width={100} height={20} />
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link href="/" className="shrink-0">
+          <Image
+            src="/logo-light.svg"
+            alt="Logo Light"
+            className={cn('dark:hidden sm:light:block', { 'light:hidden': login, 'light:block': !login })}
+            priority
+            width={100}
+            height={20}
+          />
+          <Image
+            src="/logo-dark.svg"
+            alt="Logo Dark"
+            className={cn('light:hidden sm:dark:block', { 'dark:hidden': login, 'dark:block': !login })}
+            priority
+            width={100}
+            height={20}
+          />
+          {!!login && <HomeIcon className="sm:hidden" />}
+        </Link>
+        {!!login && <span className="text-xl font-semibold">/</span>}
+        <span className="text-xl font-semibold leading-none -mt-[3]">{login}</span>
+      </div>
 
-      <SigninButton />
+      <div className="flex items-center gap-3">
+        <MainMenu className={cn('sm:block', { hidden: login, block: !login })} />
+        <SigninButton />
+      </div>
     </header>
   );
 };

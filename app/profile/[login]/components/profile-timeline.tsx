@@ -1,4 +1,4 @@
-import { compareDesc, parseISO } from 'date-fns';
+import { compareDesc, format, parseISO } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
 import { FC } from 'react';
 
@@ -83,21 +83,24 @@ export const ProfileTimeline: FC<ProfileTimelineProps> = ({ timeline, firstSeenA
     <div className="flex flex-col gap-6 max-w-2xl">
       <h2 className="text-xl font-semibold">Timeline</h2>
       <Timeline>
-        {sortedTimeline.map((item) => (
-          <TimelineItem key={item.createdAt}>
-            <TimelineTime isoDate={item.createdAt} />
-            <TimelineDescription>
-              {Object.entries(item.changes)
-                .filter(([, changeset]) => !!changeset.a || !!changeset.b)
-                .map(([type, changeset]) => (
-                  <ProfileTimelineDescription key={type} type={type} changeset={changeset} />
-                ))}
-            </TimelineDescription>
-          </TimelineItem>
-        ))}
+        {sortedTimeline.map((item) => {
+          const formatted = format(parseISO(item.createdAt), 'dd MMM yyyy');
+          return (
+            <TimelineItem key={item.createdAt}>
+              <TimelineTime>{formatted}</TimelineTime>
+              <TimelineDescription>
+                {Object.entries(item.changes)
+                  .filter(([, changeset]) => !!changeset.a || !!changeset.b)
+                  .map(([type, changeset]) => (
+                    <ProfileTimelineDescription key={type} type={type} changeset={changeset} />
+                  ))}
+              </TimelineDescription>
+            </TimelineItem>
+          );
+        })}
         {!!firstSeenAt && (
           <TimelineItem>
-            <TimelineTime isoDate={firstSeenAt} />
+            <TimelineTime>{format(parseISO(firstSeenAt), 'dd MMM yyyy')}</TimelineTime>
             <TimelineDescription>First seen</TimelineDescription>
           </TimelineItem>
         )}

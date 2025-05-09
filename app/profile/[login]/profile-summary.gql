@@ -38,6 +38,8 @@ query User($login: String!) {
     twitterUsername
     websiteUrl
     firstSeenAt
+    repositoriesCount
+    contributedRepoCount
     socialAccounts {
       totalCount
       nodes {

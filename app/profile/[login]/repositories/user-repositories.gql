@@ -1,0 +1,15 @@
+query UserRepositories($login: String!) {
+  user(login: $login) {
+    repositories(offset: 10, limit: 200) {
+      githubId
+      createdAt
+      pushedAt
+      url
+      forkCount
+      isArchived
+      name
+      releasesCount
+      stargazerCount
+    }
+  }
+}

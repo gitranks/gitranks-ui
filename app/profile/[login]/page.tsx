@@ -40,8 +40,9 @@ export default async function Profile({ params }: { params: Promise<{ login: str
         <div className="flex flex-col md:flex-row flex-wrap gap-6">
           <RanksOverview ranksData={user.rank} login={login} />
           <RepositoriesOverview
-            repositories={user.repositories}
-            contributions={user.contributions}
+            topRepoStars={user.repositories?.[0]?.stargazerCount ?? 0}
+            contributedRepoCount={user.contributedRepoCount}
+            repositoriesCount={user.repositoriesCount}
             ownedStars={user.ownedStars}
             contributedStars={user.contributedStars}
             login={login}

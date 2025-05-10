@@ -20,7 +20,7 @@ export const UserContriutionsList: FC<UserContriutionsListProps> = ({ contributi
 
   return (
     <>
-      <h2 className="text-xl font-semibold">Contributions</h2>
+      <h2 className="text-xl font-semibold mt-6">Contributions</h2>
       <Timeline>
         {sortedContributions.map((contribution) => (
           <TimelineItem key={contribution.year}>
@@ -33,6 +33,9 @@ export const UserContriutionsList: FC<UserContriutionsListProps> = ({ contributi
                   key={item.repository?.githubId}
                   repository={item.repository}
                   prsCount={item.prsCount}
+                  mergedPrsCount={item.mergedPrsCount}
+                  linesAdded={item.linesAdded}
+                  linesRemoved={item.linesRemoved}
                   login={login}
                 />
               ))}

@@ -57,6 +57,9 @@ query User($login: String!) {
     contributions {
       year
       prsCount
+      mergedPrsCount
+      linesAdded
+      linesRemoved
       repository {
         ...RepositoryFields
       }

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FC, ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { Repository } from '@/types/generated/graphql';
 
 import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '../../components/profile-card';
@@ -29,7 +30,7 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
 
   const { name, url, pushedAt, createdAt, stargazerCount, forkCount, releasesCount, isArchived } = repository;
 
-  const titleUrl = type === 'repository' ? url : `${url}/pulls?q=is%3Apr+author%3A${login}`;
+  const titleUrl = type === 'repository' ? url : `${url}/pulls?q=is%3Apr+is%3Amerged+author%3A${login}`;
 
   const getMeta = () => {
     if (meta) {
@@ -44,7 +45,9 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
   };
 
   return (
-    <ProfileCard className={className}>
+    <ProfileCard
+      className={cn('border-b-1 last:border-b-0 md:last:border-b rounded-none md:rounded-xl pb-4', className)}
+    >
       <ProfileCardHeader meta={getMeta()}>
         <Link href={titleUrl} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap">
           {name}

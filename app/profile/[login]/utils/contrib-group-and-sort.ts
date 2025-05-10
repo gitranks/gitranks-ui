@@ -14,8 +14,11 @@ export const groupAndSortContributions = (contributions: Contribution[]) => {
     .map(([year, data]) => ({
       year: Number(year),
       data: data.sort((a, b) => {
-        // Primary: prsCount DESC, Secondary: stargazersCount DESC
-        if (b.prsCount !== a.prsCount) return b.prsCount - a.prsCount;
+        // Primary: mergedPrsCount DESC, Secondary: stargazersCount DESC
+        if (b.mergedPrsCount !== a.mergedPrsCount) {
+          return b.mergedPrsCount - a.mergedPrsCount;
+        }
+
         return (b.repository?.stargazerCount ?? 0) - (a.repository?.stargazerCount ?? 0);
       }),
     }))

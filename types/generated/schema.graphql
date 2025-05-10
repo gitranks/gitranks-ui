@@ -1,5 +1,8 @@
 type Contribution {
-  prsCount: Int!
+  linesAdded: Int
+  linesRemoved: Int
+  mergedPrsCount: Int
+  prsCount: Int
   repoId: String
   repository: Repository
   year: Int!

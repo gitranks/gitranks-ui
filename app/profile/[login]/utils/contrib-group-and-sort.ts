@@ -16,7 +16,7 @@ export const groupAndSortContributions = (contributions: Contribution[]) => {
       data: data.sort((a, b) => {
         // Primary: mergedPrsCount DESC, Secondary: stargazersCount DESC
         if (b.mergedPrsCount !== a.mergedPrsCount) {
-          return b.mergedPrsCount - a.mergedPrsCount;
+          return (b.mergedPrsCount ?? 0) - (a.mergedPrsCount ?? 0);
         }
 
         return (b.repository?.stargazerCount ?? 0) - (a.repository?.stargazerCount ?? 0);

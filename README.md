@@ -1,28 +1,28 @@
-# WIP
+# GitRanks UI
 
-https://gitranks.com/
+[gitranks.com](https://gitranks.com) is the first web application that reveals **GitHub profile rankings** across three core dimensions:
 
-## Small badge with user rank
+- ⭐ **Owned repositories** by total stars
+- 🧑‍💻 **Contributions** to external repositories
+- 🧲 **Followers** compared to other developers
 
-```html
-<img src="https://gitranks.com/api/badge/<GITHUB_LOGIN>?type=<WIDGET_TYPE>&template=small" />
-```
+It was built to provide meaningful insights into a developer's impact on GitHub — going beyond simple contribution graphs and surfacing how you rank globally in each area. Whether you're an open-source maintainer, a prolific contributor, or growing your audience — **GitRanks gives your work the visibility it deserves**.
 
-<img src="https://gitranks.com/api/badge/maslianok?rankingType=star&template=small" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=star&template=small&theme=dark" />
+## 🎖️ Badges
 
-<img src="https://gitranks.com/api/badge/maslianok?rankingType=contribution&template=small" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=contribution&template=small&theme=dark" />
+Generate a GitHub badge for your profile at [gitranks.com/badge](https://gitranks.com/badge) and showcase your rank in stars, contributions, or followers — perfect for your README or portfolio.
 
-<img src="https://gitranks.com/api/badge/maslianok?rankingType=follower&template=small" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=follower&template=small&theme=dark" />
+## 🧰 Tech Stack
 
-## Medium badge with user rank
+- ⚡ Next.js 15
+- 🎨 Tailwind CSS
+- 🧱 Shadcn UI
 
-```html
-<img src="https://gitranks.com/api/badge/<GITHUB_LOGIN>?type=<WIDGET_TYPE>" />
-```
+## 📂 Data
 
-<img src="https://gitranks.com/api/badge/maslianok?rankingType=star" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=star&theme=dark" />
+All the data used by GitRanks is publicly available on GitHub.
+If you're building something cool with GitHub data and want access to what we’ve collected — just reach out. I'm happy to share it for free.
 
-<img src="https://gitranks.com/api/badge/maslianok?rankingType=contribution" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=contribution&theme=dark" />
+## 🛠️ Contribution
 
-<img src="https://gitranks.com/api/badge/maslianok?rankingType=follower" /> <img src="https://gitranks.com/api/badge/maslianok?rankingType=follower&theme=dark" />
-
+Spotted something weird or thought of a cool feature? Open an issue — GitRanks gets better with your input!

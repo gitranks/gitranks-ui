@@ -84,7 +84,9 @@ export default async function GlobalRanking({ params }: { params: Promise<{ rank
                 <TableCell className="font-medium">
                   <div className="flex items-end gap-1">
                     {item[rankPropName]}
-                    <RankDelta current={item[rankPropName]} previous={item[`${rankPropName}M`]} />
+                    {rankingType !== 'contributions' && ( // TODO remove this condition when contributions is fixed
+                      <RankDelta current={item[rankPropName]} previous={item[`${rankPropName}M`]} />
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>

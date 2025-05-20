@@ -57,8 +57,8 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
 
           <RankCard
             rank={contributedStars}
-            rankM={contributedStarsM}
-            rankY={contributedStarsY}
+            rankM={contributedStars} // TODO: change to contributedStarsM when ranks are fully fetched
+            rankY={contributedStars} // TODO: change to contributedStarsY when ranks are fully fetched
             title="Contributor rank"
             entityValue={user.contributedStars}
             entityName="stars"

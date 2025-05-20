@@ -22,7 +22,7 @@ export const RanksOverview: FC<RanksOverviewProps> = ({ ranksData, login }) => {
         </p>
         <p>
           🔀&nbsp;&nbsp;Contributor rank: {ranksData?.contributedStars?.toLocaleString('en-US')}{' '}
-          <RankDelta current={ranksData?.contributedStars} previous={ranksData?.contributedStarsM} />
+          {false && <RankDelta current={ranksData?.contributedStars} previous={ranksData?.contributedStarsM} />}
         </p>
         <p>
           👥&nbsp;&nbsp;Followers rank: {ranksData?.followersCount?.toLocaleString('en-US')}{' '}

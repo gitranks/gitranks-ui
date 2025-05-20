@@ -14,7 +14,7 @@ type RepositoryCardProps = {
   login: string;
 };
 
-const PR_FETCH_LIMIT = 20;
+const PR_FETCH_LIMIT = 10;
 
 export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
   repository,

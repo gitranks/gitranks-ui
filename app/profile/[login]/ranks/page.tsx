@@ -17,17 +17,8 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
     notFound();
   }
 
-  const {
-    ownedStars,
-    contributedStars,
-    followersCount,
-    ownedStarsM,
-    contributedStarsM,
-    followersCountM,
-    ownedStarsY,
-    contributedStarsY,
-    followersCountY,
-  } = user.rank ?? {};
+  const { ownedStars, contributedStars, followersCount, ownedStarsM, followersCountM, ownedStarsY, followersCountY } =
+    user.rank ?? {};
 
   const bestRankType = getBestRankType({ ownedStars, contributedStars, followersCount });
 

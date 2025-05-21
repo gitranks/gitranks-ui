@@ -1,8 +1,9 @@
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
+import { ObjectId } from 'mongodb';
 import NextAuth from 'next-auth';
+
 import authConfig from './auth.config';
 import mongoClientPromise from './lib/mongo-client';
-import { ObjectId } from 'mongodb';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: MongoDBAdapter(mongoClientPromise),
@@ -26,14 +27,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, profile, account }) {
       if (profile && account?.provider === 'github') {
-        token.githubId = profile.node_id;
+        token.githubLogin = profile.login;
       }
       return token;
     },
 
     async session({ session, token }) {
-      if (token?.githubId) {
-        session.user.githubId = token.githubId as string;
+      if (token?.githubLogin) {
+        session.user.githubLogin = token.githubLogin as string;
       }
       return session;
     },

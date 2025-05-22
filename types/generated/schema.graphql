@@ -30,10 +30,15 @@ type Organization {
   name: String
 }
 
+type ProfileForSitemap {
+  avatarUrl: String
+  login: String!
+}
+
 type Query {
+  profilesForSitemap: [ProfileForSitemap!]!
   rankByLogin(login: String!): Rank
   rankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS_OWNED): [Rank!]!
-  rankingsForSitemap: [Rank!]!
   user(login: String!): User
 }
 

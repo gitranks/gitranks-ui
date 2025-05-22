@@ -1,8 +1,5 @@
 query ProfilesForSitemap {
-  rankingsForSitemap {
-    githubId
-    user {
-      login
-    }
+  profilesForSitemap {
+    login
   }
 }

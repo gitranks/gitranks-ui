@@ -1,4 +1,4 @@
-import 'server-only';
+'use server';
 import { signedFetch } from '../signed-fetch';
 
 export async function request(

@@ -1,15 +1,15 @@
 import 'server-only';
+import { signedFetch } from '../signed-fetch';
 
 export async function request(
   query: string,
   variables?: Record<string, unknown>,
   params?: { revalidate?: number },
 ): Promise<{ data: unknown; status: number }> {
-  const response = await fetch(process.env.GRAPHQL_URI!, {
+  const response = await signedFetch('/graphql', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': process.env.GRAPHQL_SECRET_KEY!,
       // Skip rate limit if custom header is present
       'nextjs-build-phase': String(process.env.NEXT_PHASE === 'phase-production-build'),
     },

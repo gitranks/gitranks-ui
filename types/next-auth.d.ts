@@ -2,7 +2,7 @@ import { DefaultSession } from 'next-auth';
 
 declare module 'next-auth' {
   interface User {
-    githubId?: string;
+    githubLogin?: string;
   }
 
   interface Session extends DefaultSession {
@@ -14,6 +14,6 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
   interface JWT extends DefaultJWT {
-    githubId?: string;
+    githubLogin?: string;
   }
 }

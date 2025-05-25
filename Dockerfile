@@ -21,11 +21,11 @@ RUN corepack enable && corepack prepare pnpm@10 --activate
 RUN pnpm i --frozen-lockfile
 
 FROM base AS builder
-ARG GRAPHQL_SECRET_KEY
-ENV GRAPHQL_SECRET_KEY=$GRAPHQL_SECRET_KEY
+ARG INTERNAL_JWT_SECRET
+ENV INTERNAL_JWT_SECRET=$INTERNAL_JWT_SECRET
 
-ARG GRAPHQL_URI
-ENV GRAPHQL_URI=$GRAPHQL_URI
+ARG URI_GITRANKS
+ENV URI_GITRANKS=$URI_GITRANKS
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules

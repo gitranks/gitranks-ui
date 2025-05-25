@@ -47,8 +47,8 @@ jobs:
           build-args: |
             NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
             NEXT_PUBLIC_URI=${{ vars.NEXT_PUBLIC_URI }}
-            GRAPHQL_URI=${{ secrets.GRAPHQL_URI }}
-            GRAPHQL_SECRET_KEY=${{ secrets.GRAPHQL_SECRET_KEY }}
+            INTERNAL_JWT_SECRET=${{ secrets.INTERNAL_JWT_SECRET }}
+            URI_GITRANKS=${{ vars.URI_GITRANKS }}
 
       # 4. SSH to droplet and deploy
       - name: SSH to droplet and deploy
@@ -69,10 +69,10 @@ jobs:
               --restart=always \
               --name gitranks-ui \
               -e MONGODB_URI_AUTH='${{ secrets.MONGODB_URI_AUTH }}' \
-              -e GRAPHQL_URI='${{ secrets.GRAPHQL_URI }}' \
+              -e INTERNAL_JWT_SECRET='${{ secrets.INTERNAL_JWT_SECRET }}' \
               -e AUTH_SECRET='${{ secrets.AUTH_SECRET }}' \
               -e AUTH_GITHUB_SECRET='${{ secrets.AUTH_GITHUB_SECRET }}' \
-              -e GRAPHQL_SECRET_KEY='${{ secrets.GRAPHQL_SECRET_KEY }}' \
+              -e URI_GITRANKS='${{ vars.URI_GITRANKS }}' \
               -e AUTH_GITHUB_ID='${{ vars.AUTH_GITHUB_ID }}' \
               -e AUTH_URL='${{ vars.AUTH_URL }}' \
               -e AUTH_TRUST_HOST=true \

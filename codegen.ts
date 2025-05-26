@@ -1,20 +1,21 @@
 import { CodegenConfig } from '@graphql-codegen/cli';
+import jwt from 'jsonwebtoken';
+
+const token = jwt.sign({ sub: 'codegen', typ: 'access' }, process.env.INTERNAL_JWT_SECRET!, { expiresIn: '1h' });
 
 const config: CodegenConfig = {
   schema: {
-    [process.env.GRAPHQL_URI!]: {
+    [`${process.env.URI_GITRANKS!}/graphql`]: {
       headers: {
-        'x-api-key': process.env.GRAPHQL_SECRET_KEY!,
+        Authorization: `Bearer ${token}`,
       },
     },
   },
   documents: ['**/*.gql'],
-  // ignoreNoDocuments: true, // for better experience with the watcher
   generates: {
     './types/generated/graphql.ts': {
       plugins: ['typescript', 'typescript-operations', 'typed-document-node'],
       config: {
-        // Instruct Codegen to import your custom TypedDocumentNode
         documentNodeImport: '../typed-document-node',
       },
     },

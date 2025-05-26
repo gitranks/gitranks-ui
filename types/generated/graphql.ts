@@ -75,17 +75,17 @@ export type QueryUserArgs = {
 
 export type Rank = {
   __typename?: 'Rank';
-  _id: Scalars['String']['output'];
-  contributedStars: Scalars['Int']['output'];
+  contributedStars?: Maybe<Scalars['Int']['output']>;
   contributedStarsD?: Maybe<Scalars['Int']['output']>;
   contributedStarsM?: Maybe<Scalars['Int']['output']>;
   contributedStarsY?: Maybe<Scalars['Int']['output']>;
-  followersCount: Scalars['Int']['output'];
+  followersCount?: Maybe<Scalars['Int']['output']>;
   followersCountD?: Maybe<Scalars['Int']['output']>;
   followersCountM?: Maybe<Scalars['Int']['output']>;
   followersCountY?: Maybe<Scalars['Int']['output']>;
   githubId: Scalars['ID']['output'];
-  ownedStars: Scalars['Int']['output'];
+  isProvisional?: Maybe<Scalars['Boolean']['output']>;
+  ownedStars?: Maybe<Scalars['Int']['output']>;
   ownedStarsD?: Maybe<Scalars['Int']['output']>;
   ownedStarsM?: Maybe<Scalars['Int']['output']>;
   ownedStarsY?: Maybe<Scalars['Int']['output']>;
@@ -100,17 +100,17 @@ export enum RankOrder {
 
 export type RankWithoutUser = {
   __typename?: 'RankWithoutUser';
-  _id: Scalars['String']['output'];
-  contributedStars: Scalars['Int']['output'];
+  contributedStars?: Maybe<Scalars['Int']['output']>;
   contributedStarsD?: Maybe<Scalars['Int']['output']>;
   contributedStarsM?: Maybe<Scalars['Int']['output']>;
   contributedStarsY?: Maybe<Scalars['Int']['output']>;
-  followersCount: Scalars['Int']['output'];
+  followersCount?: Maybe<Scalars['Int']['output']>;
   followersCountD?: Maybe<Scalars['Int']['output']>;
   followersCountM?: Maybe<Scalars['Int']['output']>;
   followersCountY?: Maybe<Scalars['Int']['output']>;
   githubId: Scalars['ID']['output'];
-  ownedStars: Scalars['Int']['output'];
+  isProvisional?: Maybe<Scalars['Boolean']['output']>;
+  ownedStars?: Maybe<Scalars['Int']['output']>;
   ownedStarsD?: Maybe<Scalars['Int']['output']>;
   ownedStarsM?: Maybe<Scalars['Int']['output']>;
   ownedStarsY?: Maybe<Scalars['Int']['output']>;
@@ -167,7 +167,6 @@ export type Timeline = {
 
 export type User = {
   __typename?: 'User';
-  _id: Scalars['String']['output'];
   avatarUrl?: Maybe<Scalars['String']['output']>;
   company?: Maybe<Scalars['String']['output']>;
   contributedRepoCount?: Maybe<Scalars['Int']['output']>;
@@ -182,7 +181,7 @@ export type User = {
   followingCount?: Maybe<Scalars['Int']['output']>;
   githubCreatedAt?: Maybe<Scalars['DateTime']['output']>;
   githubFetchedAt?: Maybe<Scalars['DateTime']['output']>;
-  githubId: Scalars['ID']['output'];
+  githubId?: Maybe<Scalars['ID']['output']>;
   githubServiceFetchedAt?: Maybe<Scalars['DateTime']['output']>;
   githubUpdatedAt?: Maybe<Scalars['DateTime']['output']>;
   isHireable?: Maybe<Scalars['Boolean']['output']>;
@@ -215,15 +214,15 @@ export type UserBasic = {
   avatarUrl?: Maybe<Scalars['String']['output']>;
   contributedStars?: Maybe<Scalars['Int']['output']>;
   followersCount?: Maybe<Scalars['Int']['output']>;
-  githubId: Scalars['String']['output'];
+  githubId: Scalars['ID']['output'];
   location?: Maybe<Scalars['String']['output']>;
   login: Scalars['String']['output'];
   ownedStars?: Maybe<Scalars['Int']['output']>;
 };
 
 export enum UserFetchingStatus {
-  Active = 'ACTIVE',
-  Completed = 'COMPLETED'
+  Completed = 'COMPLETED',
+  Fetching = 'FETCHING'
 }
 
 export type IdByLoginQueryVariables = Exact<{
@@ -239,7 +238,7 @@ export type RankingsQueryVariables = Exact<{
 }>;
 
 
-export type RankingsQuery = { __typename?: 'Query', rankings: Array<{ __typename?: 'Rank', githubId: string, contributedStars: number, contributedStarsM?: number | null, followersCount: number, followersCountM?: number | null, ownedStars: number, ownedStarsM?: number | null, user?: { __typename?: 'UserBasic', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null }> };
+export type RankingsQuery = { __typename?: 'Query', rankings: Array<{ __typename?: 'Rank', githubId: string, contributedStars?: number | null, contributedStarsM?: number | null, followersCount?: number | null, followersCountM?: number | null, ownedStars?: number | null, ownedStarsM?: number | null, user?: { __typename?: 'UserBasic', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null }> };
 
 export type RepositoryFieldsFragment = { __typename?: 'Repository', githubId: string, createdAt?: any | null, pushedAt?: any | null, url: string, forkCount: number, isArchived: boolean, name?: string | null, releasesCount?: number | null, stargazerCount: number, languages?: { __typename?: 'RepositoryLanguagesEntity', totalCount: number, totalSize: number, nodes: Array<{ __typename?: 'LanguageEntity', id: string, size: number }> } | null };
 
@@ -248,7 +247,7 @@ export type UserQueryVariables = Exact<{
 }>;
 
 
-export type UserQuery = { __typename?: 'Query', user?: { __typename?: 'User', githubId: string, githubFetchedAt?: any | null, githubServiceFetchedAt?: any | null, login: string, avatarUrl?: string | null, location?: string | null, followersCount?: number | null, ownedStars?: number | null, contributedStars?: number | null, company?: string | null, email?: string | null, followingCount?: number | null, githubCreatedAt?: any | null, isHireable?: boolean | null, name?: string | null, twitterUsername?: string | null, websiteUrl?: string | null, firstSeenAt?: any | null, repositoriesCount?: number | null, contributedRepoCount?: number | null, socialAccounts?: { __typename?: 'SocialAccount', totalCount: number, nodes?: Array<{ __typename?: 'SocialAccountNodeEntity', displayName?: string | null, provider: string, url: string }> | null } | null, organizations?: Array<{ __typename?: 'Organization', githubId: string, login: string, avatarUrl?: string | null, name?: string | null }> | null, contributions?: Array<{ __typename?: 'Contribution', year: number, prsCount?: number | null, mergedPrsCount?: number | null, linesAdded?: number | null, linesRemoved?: number | null, repository?: { __typename?: 'Repository', githubId: string, createdAt?: any | null, pushedAt?: any | null, url: string, forkCount: number, isArchived: boolean, name?: string | null, releasesCount?: number | null, stargazerCount: number, languages?: { __typename?: 'RepositoryLanguagesEntity', totalCount: number, totalSize: number, nodes: Array<{ __typename?: 'LanguageEntity', id: string, size: number }> } | null } | null }> | null, repositories?: Array<{ __typename?: 'Repository', githubId: string, createdAt?: any | null, pushedAt?: any | null, url: string, forkCount: number, isArchived: boolean, name?: string | null, releasesCount?: number | null, stargazerCount: number, languages?: { __typename?: 'RepositoryLanguagesEntity', totalCount: number, totalSize: number, nodes: Array<{ __typename?: 'LanguageEntity', id: string, size: number }> } | null }> | null, timeline?: Array<{ __typename?: 'Timeline', changes: any, createdAt: any }> | null, rank?: { __typename?: 'RankWithoutUser', ownedStars: number, ownedStarsM?: number | null, ownedStarsY?: number | null, contributedStars: number, contributedStarsM?: number | null, contributedStarsY?: number | null, followersCount: number, followersCountM?: number | null, followersCountY?: number | null } | null } | null };
+export type UserQuery = { __typename?: 'Query', user?: { __typename?: 'User', githubId?: string | null, githubFetchedAt?: any | null, githubServiceFetchedAt?: any | null, login: string, avatarUrl?: string | null, location?: string | null, followersCount?: number | null, ownedStars?: number | null, contributedStars?: number | null, company?: string | null, email?: string | null, followingCount?: number | null, githubCreatedAt?: any | null, isHireable?: boolean | null, name?: string | null, twitterUsername?: string | null, websiteUrl?: string | null, firstSeenAt?: any | null, repositoriesCount?: number | null, contributedRepoCount?: number | null, socialAccounts?: { __typename?: 'SocialAccount', totalCount: number, nodes?: Array<{ __typename?: 'SocialAccountNodeEntity', displayName?: string | null, provider: string, url: string }> | null } | null, organizations?: Array<{ __typename?: 'Organization', githubId: string, login: string, avatarUrl?: string | null, name?: string | null }> | null, contributions?: Array<{ __typename?: 'Contribution', year: number, prsCount?: number | null, mergedPrsCount?: number | null, linesAdded?: number | null, linesRemoved?: number | null, repository?: { __typename?: 'Repository', githubId: string, createdAt?: any | null, pushedAt?: any | null, url: string, forkCount: number, isArchived: boolean, name?: string | null, releasesCount?: number | null, stargazerCount: number, languages?: { __typename?: 'RepositoryLanguagesEntity', totalCount: number, totalSize: number, nodes: Array<{ __typename?: 'LanguageEntity', id: string, size: number }> } | null } | null }> | null, repositories?: Array<{ __typename?: 'Repository', githubId: string, createdAt?: any | null, pushedAt?: any | null, url: string, forkCount: number, isArchived: boolean, name?: string | null, releasesCount?: number | null, stargazerCount: number, languages?: { __typename?: 'RepositoryLanguagesEntity', totalCount: number, totalSize: number, nodes: Array<{ __typename?: 'LanguageEntity', id: string, size: number }> } | null }> | null, timeline?: Array<{ __typename?: 'Timeline', changes: any, createdAt: any }> | null, rank?: { __typename?: 'RankWithoutUser', ownedStars?: number | null, ownedStarsM?: number | null, ownedStarsY?: number | null, contributedStars?: number | null, contributedStarsM?: number | null, contributedStarsY?: number | null, followersCount?: number | null, followersCountM?: number | null, followersCountY?: number | null } | null } | null };
 
 export type ProfilesForSitemapQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -272,7 +271,7 @@ export type RankByLoginQueryVariables = Exact<{
 }>;
 
 
-export type RankByLoginQuery = { __typename?: 'Query', rankByLogin?: { __typename?: 'Rank', githubId: string, contributedStars: number, contributedStarsM?: number | null, followersCount: number, followersCountM?: number | null, ownedStars: number, ownedStarsM?: number | null, user?: { __typename?: 'UserBasic', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null } | null };
+export type RankByLoginQuery = { __typename?: 'Query', rankByLogin?: { __typename?: 'Rank', githubId: string, contributedStars?: number | null, contributedStarsM?: number | null, followersCount?: number | null, followersCountM?: number | null, ownedStars?: number | null, ownedStarsM?: number | null, user?: { __typename?: 'UserBasic', login: string, avatarUrl?: string | null, ownedStars?: number | null, contributedStars?: number | null, followersCount?: number | null, location?: string | null } | null } | null };
 
 export const RepositoryFieldsFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"RepositoryFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Repository"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"pushedAt"}},{"kind":"Field","name":{"kind":"Name","value":"url"}},{"kind":"Field","name":{"kind":"Name","value":"forkCount"}},{"kind":"Field","name":{"kind":"Name","value":"isArchived"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"releasesCount"}},{"kind":"Field","name":{"kind":"Name","value":"stargazerCount"}},{"kind":"Field","name":{"kind":"Name","value":"languages"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"totalSize"}},{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"size"}}]}}]}}]}}]} as unknown as DocumentNode<RepositoryFieldsFragment, unknown>;
 export const IdByLoginDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"IdByLogin"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"login"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"rankByLogin"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"login"},"value":{"kind":"Variable","name":{"kind":"Name","value":"login"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"githubId"}}]}}]}}]} as unknown as DocumentNode<IdByLoginQuery, IdByLoginQueryVariables>;

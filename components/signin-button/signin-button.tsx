@@ -7,10 +7,13 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import { getInitials } from '@/utils/get-initials';
 
 import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 
 export default function SigninButton() {
   const { data: session } = useSession();
+
+  console.log('session', session);
 
   return (
     <div>
@@ -34,6 +37,23 @@ export default function SigninButton() {
           <LogIn className="size-4" />
         </Button>
       )}
+
+      <Dialog open={session?.error === 'RefreshTokenError'}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Oops, Token Timeout!</DialogTitle>
+            <DialogDescription>
+              Your GitHub access token decided to take a break. Sign in again to get back to business.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => signOut()}>
+              Maybe later
+            </Button>
+            <Button onClick={() => signIn('github')}>Sign in again</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

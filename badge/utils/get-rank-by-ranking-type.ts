@@ -19,23 +19,23 @@ export const getRankByRankingType = (
 
   switch (rankingType) {
     case RankingType.Star:
-      rank = data.ownedStars;
+      rank = data.ownedStars || 0;
       monthlyRank = data.ownedStarsM;
       value = data.user?.ownedStars;
       break;
     case RankingType.Contribution:
-      rank = data.contributedStars;
+      rank = data.contributedStars || 0;
       monthlyRank = data.contributedStarsM;
       value = data.user?.contributedStars;
       break;
     case RankingType.Follower:
-      rank = data.followersCount;
+      rank = data.followersCount || 0;
       monthlyRank = data.followersCountM;
       value = data.user?.followersCount;
       break;
   }
 
-  const delta = (monthlyRank ?? rank) - rank;
+  const delta = monthlyRank && rank ? monthlyRank - rank : 0;
 
   return { rank, value, delta, sentiment: delta > 0 ? 'positive' : 'negative' };
 };

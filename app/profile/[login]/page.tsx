@@ -5,6 +5,7 @@ import { LayoutLeftColumn } from './components/layout-left-column';
 import { ProfileTimeline } from './components/profile-timeline';
 import { RanksOverview } from './components/ranks-overview';
 import { RepositoriesOverview } from './components/repositories-overiview';
+import NotFound from './not-found';
 import { fetchProfileData } from './utils/fetch-profile-data';
 
 export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
@@ -31,7 +32,13 @@ export default async function Profile({ params }: { params: Promise<{ login: str
   const { user } = await fetchProfileData(login);
 
   if (!user) {
+    // nextjs not found page
     notFound();
+  }
+
+  if (user.fetchingStatus === 'FETCHING' && !user.rank) {
+    // user is being fetched for the first time
+    return <NotFound fetchingStatus={user.fetchingStatus} fetchingUpdatedAt={user.fetchingUpdatedAt} />;
   }
 
   return (

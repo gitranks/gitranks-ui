@@ -135,8 +135,8 @@ type User {
   contributions: [Contribution!]
   createdAt: DateTime!
   email: String
-  fetchingStartedAt: Int
   fetchingStatus: UserFetchingStatus
+  fetchingUpdatedAt: Float
   firstSeenAt: DateTime
   followersCount: Int
   followingCount: Int

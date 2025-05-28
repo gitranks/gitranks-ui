@@ -4,16 +4,22 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { FC, ReactNode } from 'react';
 
-import { Page } from '@/components/page/page';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 import { UserQuery } from '@/types/generated/graphql';
 
+import { FetchUserButtonForProfilePage } from './fetch-user-button';
 import { ProfileListItem } from './profile-list-item';
-import { RefreshButton } from './refresh-button';
+import {
+  ActionsContainer,
+  AvatarAndNameContainer,
+  AvatarContainer,
+  DetailsContainer,
+  LeftColumnContainer,
+  NameContainer,
+  PageContainer,
+} from './profile-page-backbone';
 import { getSocialIcon } from '../utils/get-social-icon';
 
 type LayoutLeftColumnProps = Readonly<{
@@ -30,31 +36,32 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
   }
 
   return (
-    <Page className={cn('gap-6 flex-col md:flex-row', className)}>
-      <div className="w-full md:w-3xs xl:w-2xs flex flex-col shrink-0 gap-4">
-        <div className="flex flex-row md:flex-col items-center md:items-start gap-4">
-          <div className="w-[64] sm:w-[128] md:w-full">
-            <AspectRatio ratio={1}>
-              <Avatar className="w-full h-full rounded-full" asChild>
-                <AvatarImage src={user.avatarUrl!} />
-              </Avatar>
-            </AspectRatio>
-          </div>
-          <div>
+    <PageContainer className={className}>
+      <LeftColumnContainer>
+        <AvatarAndNameContainer>
+          <AvatarContainer>
+            <Avatar className="w-full h-full rounded-full" asChild>
+              <AvatarImage src={user.avatarUrl!} />
+            </Avatar>
+          </AvatarContainer>
+          <NameContainer>
             <h1 className="font-semibold text-2xl">{user.name}</h1>
             <h2 className="text-muted-foreground">@{user.login}</h2>
-          </div>
-        </div>
-        <div className="flex flex-row md:flex-col gap-4">
-          <RefreshButton />
+          </NameContainer>
+        </AvatarAndNameContainer>
+        <ActionsContainer>
+          <FetchUserButtonForProfilePage
+            fetchingStatus={user.fetchingStatus}
+            fetchingUpdatedAt={user.fetchingUpdatedAt}
+          />
           <Button size="sm" variant="secondary" className="flex-grow" asChild>
             <Link href={`https://github.com/${user.login}`} target="_blank" rel="noopener noreferrer">
               Open GitHub
               <ExternalLink className="size-4" />
             </Link>
           </Button>
-        </div>
-        <div className="flex flex-col gap-6">
+        </ActionsContainer>
+        <DetailsContainer>
           <div className="flex flex-col gap-1.5">
             <ProfileListItem value={user.location} Icon={MapPin} />
             <ProfileListItem value={user.company} Icon={BriefcaseBusiness} />
@@ -110,9 +117,9 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </DetailsContainer>
+      </LeftColumnContainer>
       {children}
-    </Page>
+    </PageContainer>
   );
 };

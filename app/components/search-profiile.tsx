@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { usePostHog } from 'posthog-js/react';
 import { useState } from 'react';
 import { ClipLoader } from 'react-spinners';
-import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,15 +32,7 @@ export const SearchProfile = () => {
       profileFound,
     });
 
-    if (profileFound) {
-      return router.push(`/profile/${login}`);
-    }
-
-    setLoading(false);
-    toast.error('User not found', {
-      description:
-        'Our database currently includes only users who own or have contributed to repositories with more than 5 stars.',
-    });
+    return router.push(`/profile/${login}`);
   };
 
   return (

@@ -40,6 +40,8 @@ query User($login: String!) {
     firstSeenAt
     repositoriesCount
     contributedRepoCount
+    fetchingStatus
+    fetchingUpdatedAt
     socialAccounts {
       totalCount
       nodes {

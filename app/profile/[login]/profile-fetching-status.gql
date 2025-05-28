@@ -1,0 +1,6 @@
+query ProfileFetchingStatus($login: String!) {
+  user(login: $login) {
+    fetchingStatus
+    fetchingUpdatedAt
+  }
+}

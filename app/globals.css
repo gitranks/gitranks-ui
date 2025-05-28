@@ -100,9 +100,30 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  --animate-avatar-entry: avatarEntry 4s ease-out forwards;
+
+  @keyframes avatarEntry {
+    0% {
+      transform: translate(-100%, 100%);
+    }
+    25% {
+      transform: translate(-50%, 50%);
+    }
+    75% {
+      transform: translate(-50%, 50%);
+    }
+    100% {
+      transform: translate(0, 0);
+    }
+  }
 }
 
 @layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
   body {
     @apply bg-background text-foreground;
   }

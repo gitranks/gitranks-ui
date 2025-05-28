@@ -1,17 +1,20 @@
 import { RankingType } from '@/types/ranking.types';
 
 export function getBestRankType(params: {
-  ownedStars?: number;
-  contributedStars?: number;
-  followersCount?: number;
+  ownedStars?: number | null;
+  contributedStars?: number | null;
+  followersCount?: number | null;
 }): RankingType {
-  const { ownedStars = Infinity, contributedStars = Infinity, followersCount = Infinity } = params;
+  const { ownedStars, contributedStars, followersCount } = params;
 
-  if (ownedStars < contributedStars && ownedStars < followersCount) {
+  if (
+    (ownedStars || Infinity) < (contributedStars || Infinity) &&
+    (ownedStars || Infinity) < (followersCount || Infinity)
+  ) {
     return RankingType.Star;
   }
 
-  if (contributedStars < followersCount) {
+  if ((contributedStars || Infinity) < (followersCount || Infinity)) {
     return RankingType.Contribution;
   }
 

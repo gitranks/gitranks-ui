@@ -13,8 +13,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 export default function SigninButton() {
   const { data: session } = useSession();
 
-  console.log('session', session);
-
   return (
     <div>
       {session ? (

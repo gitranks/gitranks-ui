@@ -17,8 +17,20 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
     notFound();
   }
 
-  const { ownedStars, contributedStars, followersCount, ownedStarsM, followersCountM, ownedStarsY, followersCountY } =
-    user.rank ?? {};
+  const {
+    ownedStars,
+    contributedStars,
+    contributedStarsM,
+    contributedStarsY,
+    followersCount,
+    ownedStarsProvisional,
+    contributedStarsProvisional,
+    followersCountProvisional,
+    ownedStarsM,
+    followersCountM,
+    ownedStarsY,
+    followersCountY,
+  } = user.rank ?? {};
 
   const bestRankType = getBestRankType({ ownedStars, contributedStars, followersCount });
 
@@ -30,6 +42,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
             rank={ownedStars}
             rankM={ownedStarsM}
             rankY={ownedStarsY}
+            rankProvisional={ownedStarsProvisional}
             title="Stars rank"
             entityValue={user.ownedStars}
             entityName="stars"
@@ -40,6 +53,8 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
             rank={followersCount}
             rankM={followersCountM}
             rankY={followersCountY}
+            rankProvisional={followersCountProvisional}
+            showDelta={false}
             title="Followers rank"
             entityValue={user.followersCount}
             entityName="followers"
@@ -48,8 +63,9 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
 
           <RankCard
             rank={contributedStars}
-            rankM={contributedStars} // TODO: change to contributedStarsM when ranks are fully fetched
-            rankY={contributedStars} // TODO: change to contributedStarsY when ranks are fully fetched
+            rankM={contributedStarsM}
+            rankY={contributedStarsY}
+            rankProvisional={contributedStarsProvisional}
             title="Contributor rank"
             entityValue={user.contributedStars}
             entityName="stars"

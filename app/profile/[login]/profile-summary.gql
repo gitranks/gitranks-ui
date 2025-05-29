@@ -75,12 +75,15 @@ query User($login: String!) {
     }
     rank {
       ownedStars
+      ownedStarsProvisional
       ownedStarsM
       ownedStarsY
       contributedStars
+      contributedStarsProvisional
       contributedStarsM
       contributedStarsY
       followersCount
+      followersCountProvisional
       followersCountM
       followersCountY
     }

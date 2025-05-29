@@ -21,7 +21,7 @@ export const ProfileAvatar: FC<ProfileAvatarProps> = ({ url, initials }) => {
   return (
     <Avatar>
       <AvatarImage src={url} className={cn('rounded-full', { 'animate-spin': pending })} width={36} height={36} />
-      <AvatarFallback>{initials}</AvatarFallback>
+      <AvatarFallback className="flex items-center justify-center">{initials}</AvatarFallback>
     </Avatar>
   );
 };

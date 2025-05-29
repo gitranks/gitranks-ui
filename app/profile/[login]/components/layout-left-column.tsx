@@ -8,6 +8,7 @@ import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { UserQuery } from '@/types/generated/graphql';
+import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 
 import { FetchUserButtonForProfilePage } from './fetch-user-button';
 import { ProfileListItem } from './profile-list-item';
@@ -81,7 +82,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
             <div className="flex flex-col gap-1.5">
               <h4 className="text-lg font-semibold">Contacts</h4>
               <ProfileListItem value={user.email} url={`mailto:${user.email}`} Icon={Mail} />
-              <ProfileListItem value={user.websiteUrl} url={user.websiteUrl!} Icon={Link2} />
+              <ProfileListItem value={user.websiteUrl} url={ensureLinkProtocol(user.websiteUrl)} Icon={Link2} />
               {user.socialAccounts?.nodes?.map((account) => (
                 <ProfileListItem
                   key={`${account.provider}${account.displayName}`}

@@ -22,7 +22,7 @@ type ProfileTimelineDescriptionProps = {
   changeset: ChangeSetItemType;
 };
 
-const parseChangesetItem = (changesetItem: ChangeItemType) => {
+const parseChangesetItem = (changesetItem: ChangeItemType, type: ChangeItemType) => {
   if (isObject<NonNullable<SocialAccountChangeItem>>(changesetItem)) {
     if (!changesetItem.totalCount) {
       return null;
@@ -31,6 +31,10 @@ const parseChangesetItem = (changesetItem: ChangeItemType) => {
     return changesetItem.nodes
       ?.map((account) => `${account.provider?.toLowerCase()}: ${account.displayName}`)
       .join('; ');
+  }
+
+  if (Array.isArray(changesetItem) && type === 'repoRemoved') {
+    return changesetItem.map((repo) => `${repo.name} ★${repo.stargazers.toLocaleString('en-US')}`).join('; ');
   }
 
   if (typeof changesetItem === 'number') {
@@ -45,8 +49,8 @@ const parseChangesetItem = (changesetItem: ChangeItemType) => {
 };
 
 const ProfileTimelineDescription: FC<ProfileTimelineDescriptionProps> = ({ type, changeset }) => {
-  const before = parseChangesetItem(changeset.b);
-  const after = parseChangesetItem(changeset.a);
+  const before = parseChangesetItem(changeset.b, type);
+  const after = parseChangesetItem(changeset.a, type);
 
   if (type === 'avatarUrl') {
     return (
@@ -63,7 +67,7 @@ const ProfileTimelineDescription: FC<ProfileTimelineDescriptionProps> = ({ type,
       <span>
         {!!before && (
           <span className="opacity-50">
-            {before} {!after && '(removed)'}
+            {before} {!after && type !== 'repoRemoved' && '(removed)'}
           </span>
         )}
         {!!before && !!after && <ArrowRight size={12} className="inline" />} {after}

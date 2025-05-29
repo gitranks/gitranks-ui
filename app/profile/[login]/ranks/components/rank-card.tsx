@@ -2,6 +2,7 @@ import { Star, TrendingUp, Trophy } from 'lucide-react';
 import { FC } from 'react';
 
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { RankNumber } from '@/components/rank-number/rank-number';
 import { getPercentileRank } from '@/utils/get-percentile-rank';
 
 import { RankCardItem } from './rank-card-item';
@@ -11,24 +12,38 @@ type RankCardProps = {
   rank?: number | null;
   rankM?: number | null;
   rankY?: number | null;
+  rankProvisional?: number | null;
+  showDelta?: boolean;
   title: string;
   entityValue?: number | null;
   entityName: string;
   description: string;
 };
 
-export const RankCard: FC<RankCardProps> = ({ rank, rankM, rankY, title, entityValue, entityName, description }) => {
+export const RankCard: FC<RankCardProps> = ({
+  rank,
+  rankProvisional,
+  rankM,
+  rankY,
+  title,
+  entityValue,
+  entityName,
+  showDelta,
+  description,
+}) => {
   const rankPercentile = getPercentileRank(rank);
 
   return (
     <ProfileCard>
       <ProfileCardHeader>{title}</ProfileCardHeader>
       <ProfileCardContent>
-        <h2 className="text-3xl font-semibold mb-4">#{rank?.toLocaleString('en-US')}</h2>
+        <h2 className="text-3xl font-semibold mb-4 flex">
+          #<RankNumber rank={rank} rankProvisional={rankProvisional} showDelta={false} className="items-start" />
+        </h2>
         {!!rankPercentile && (
           <RankCardItem Icon={Trophy}>You&apos;re in the top {rankPercentile}% of all users!</RankCardItem>
         )}
-        {(rank !== rankM || rank !== rankY) && (
+        {(rank !== rankM || rank !== rankY) && showDelta !== false && (
           <RankCardItem Icon={TrendingUp}>
             <span>
               Trend:{' '}

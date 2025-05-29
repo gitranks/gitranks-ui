@@ -46,16 +46,18 @@ type Rank {
   contributedStars: Int
   contributedStarsD: Int
   contributedStarsM: Int
+  contributedStarsProvisional: Int
   contributedStarsY: Int
   followersCount: Int
   followersCountD: Int
   followersCountM: Int
+  followersCountProvisional: Int
   followersCountY: Int
   githubId: ID!
-  isProvisional: Boolean
   ownedStars: Int
   ownedStarsD: Int
   ownedStarsM: Int
+  ownedStarsProvisional: Int
   ownedStarsY: Int
   user: UserBasic
 }
@@ -70,16 +72,18 @@ type RankWithoutUser {
   contributedStars: Int
   contributedStarsD: Int
   contributedStarsM: Int
+  contributedStarsProvisional: Int
   contributedStarsY: Int
   followersCount: Int
   followersCountD: Int
   followersCountM: Int
+  followersCountProvisional: Int
   followersCountY: Int
   githubId: ID!
-  isProvisional: Boolean
   ownedStars: Int
   ownedStarsD: Int
   ownedStarsM: Int
+  ownedStarsProvisional: Int
   ownedStarsY: Int
 }
 

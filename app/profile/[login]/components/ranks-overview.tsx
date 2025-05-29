@@ -1,7 +1,7 @@
 import { FC } from 'react';
 
 import { Link } from '@/components/link/link';
-import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { RankNumber } from '@/components/rank-number/rank-number';
 import { UserQuery } from '@/types/generated/graphql';
 
 import { ProfileCard, ProfileCardActions, ProfileCardContent, ProfileCardHeader } from './profile-card';
@@ -16,18 +16,31 @@ export const RanksOverview: FC<RanksOverviewProps> = ({ ranksData, login }) => {
     <ProfileCard>
       <ProfileCardHeader>Ranks</ProfileCardHeader>
       <ProfileCardContent>
-        <p>
-          ⭐&nbsp;&nbsp;Stars rank: {ranksData?.ownedStars?.toLocaleString('en-US')}{' '}
-          <RankDelta current={ranksData?.ownedStars} previous={ranksData?.ownedStarsM} />
-        </p>
-        <p>
-          🔀&nbsp;&nbsp;Contributor rank: {ranksData?.contributedStars?.toLocaleString('en-US')}{' '}
-          {false && <RankDelta current={ranksData?.contributedStars} previous={ranksData?.contributedStarsM} />}
-        </p>
-        <p>
-          👥&nbsp;&nbsp;Followers rank: {ranksData?.followersCount?.toLocaleString('en-US')}{' '}
-          <RankDelta current={ranksData?.followersCount} previous={ranksData?.followersCountM} />
-        </p>
+        <div className="flex items-center">
+          ⭐&nbsp;&nbsp;Stars rank:&nbsp;
+          <RankNumber
+            rank={ranksData?.ownedStars}
+            rankPrevious={ranksData?.ownedStarsM}
+            rankProvisional={ranksData?.ownedStarsProvisional}
+          />
+        </div>
+        <div className="flex items-center">
+          🔀&nbsp;&nbsp;Contributor rank:&nbsp;
+          <RankNumber
+            rank={ranksData?.contributedStars}
+            rankPrevious={ranksData?.contributedStarsM}
+            rankProvisional={ranksData?.contributedStarsProvisional}
+            showDelta={false}
+          />
+        </div>
+        <div className="flex items-center">
+          👥&nbsp;&nbsp;Followers rank:&nbsp;
+          <RankNumber
+            rank={ranksData?.followersCount}
+            rankPrevious={ranksData?.followersCountM}
+            rankProvisional={ranksData?.followersCountProvisional}
+          />
+        </div>
       </ProfileCardContent>
       <ProfileCardActions>
         <Link href={`/profile/${login}/ranks`}>View Details</Link>

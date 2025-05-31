@@ -72,7 +72,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
               Icon={Timer}
             />
             <ProfileListItem
-              value={`${user.followersCount?.toLocaleString('en-US')} followers • ${user.followingCount?.toLocaleString(
+              value={`${user.f?.toLocaleString('en-US')} followers • ${user.followingCount?.toLocaleString(
                 'en-US',
               )} following`}
               Icon={UsersRound}

@@ -11,7 +11,6 @@ import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '../../compon
 type RankCardProps = {
   rank?: number | null;
   rankM?: number | null;
-  rankY?: number | null;
   rankProvisional?: number | null;
   showDelta?: boolean;
   title: string;
@@ -24,7 +23,6 @@ export const RankCard: FC<RankCardProps> = ({
   rank,
   rankProvisional,
   rankM,
-  rankY,
   title,
   entityValue,
   entityName,
@@ -43,18 +41,13 @@ export const RankCard: FC<RankCardProps> = ({
         {!!rankPercentile && (
           <RankCardItem Icon={Trophy}>You&apos;re in the top {rankPercentile}% of all users!</RankCardItem>
         )}
-        {(rank !== rankM || rank !== rankY) && showDelta !== false && (
+        {rank !== rankM && showDelta !== false && (
           <RankCardItem Icon={TrendingUp}>
             <span>
               Trend:{' '}
               {rank !== rankM && (
                 <>
                   <RankDelta current={rank} previous={rankM} className="text-base" /> this month;
-                </>
-              )}{' '}
-              {rank !== rankY && (
-                <>
-                  <RankDelta current={rank} previous={rankY} className="text-base" /> this year
                 </>
               )}
             </span>

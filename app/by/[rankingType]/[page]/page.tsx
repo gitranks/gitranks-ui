@@ -19,7 +19,7 @@ import { ProfileAvatar } from './components/profile-avatar';
 const ITEMS_PER_PAGE = 100;
 
 function getConfigByRankingType(rankingType: string) {
-  let propName: 'contributedStars' | 'followersCount' | 'ownedStars';
+  let propName: 'c' | 'f' | 's';
   let queryOrder: RankOrder;
   let title: string;
   let subtitle: string;
@@ -27,23 +27,23 @@ function getConfigByRankingType(rankingType: string) {
 
   switch (rankingType) {
     case 'contributions':
-      queryOrder = RankOrder.StarsContributed;
-      propName = 'contributedStars';
+      queryOrder = RankOrder.Contributions;
+      propName = 'c';
       title = 'Contribution ranking';
       subtitle = "Rank is based on the stars from repositories where you've merged pull requests — excluding your own.";
       rankingBaseEntity = 'Stars';
       break;
     case 'followers':
-      queryOrder = RankOrder.FollowersCount;
-      propName = 'followersCount';
+      queryOrder = RankOrder.Followers;
+      propName = 'f';
       title = 'Followers ranking';
       subtitle = 'Rank is based on the number of followers the user has on GitHub.';
       rankingBaseEntity = 'Followers';
       break;
     case 'stars':
     default:
-      queryOrder = RankOrder.StarsOwned;
-      propName = 'ownedStars';
+      queryOrder = RankOrder.Stars;
+      propName = 's';
       title = 'Star ranking';
       subtitle = 'Rank is based on the total number of stars across repositories owned by a user.';
       rankingBaseEntity = 'Stars';

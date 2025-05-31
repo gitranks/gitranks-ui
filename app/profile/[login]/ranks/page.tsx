@@ -17,57 +17,41 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
     notFound();
   }
 
-  const {
-    ownedStars,
-    contributedStars,
-    contributedStarsM,
-    contributedStarsY,
-    followersCount,
-    ownedStarsProvisional,
-    contributedStarsProvisional,
-    followersCountProvisional,
-    ownedStarsM,
-    followersCountM,
-    ownedStarsY,
-    followersCountY,
-  } = user.rank ?? {};
+  const { s, c, cM, f, sProvisional, cProvisional, fProvisional, sM, fM } = user.rank ?? {};
 
-  const bestRankType = getBestRankType({ ownedStars, contributedStars, followersCount });
+  const bestRankType = getBestRankType({ s, c, f });
 
   return (
     <LayoutLeftColumn user={user}>
       <div>
         <div className="flex flex-col md:flex-row flex-wrap gap-6">
           <RankCard
-            rank={ownedStars}
-            rankM={ownedStarsM}
-            rankY={ownedStarsY}
-            rankProvisional={ownedStarsProvisional}
+            rank={s}
+            rankM={sM}
+            rankProvisional={sProvisional}
             title="Stars rank"
-            entityValue={user.ownedStars}
+            entityValue={user.s}
             entityName="stars"
             description="Rank is based on the total number of stars across repositories owned by the user."
           />
 
           <RankCard
-            rank={followersCount}
-            rankM={followersCountM}
-            rankY={followersCountY}
-            rankProvisional={followersCountProvisional}
+            rank={f}
+            rankM={fM}
+            rankProvisional={fProvisional}
             showDelta={false}
             title="Followers rank"
-            entityValue={user.followersCount}
+            entityValue={user.f}
             entityName="followers"
             description="Rank is based on the number of followers the user has on GitHub."
           />
 
           <RankCard
-            rank={contributedStars}
-            rankM={contributedStarsM}
-            rankY={contributedStarsY}
-            rankProvisional={contributedStarsProvisional}
+            rank={c}
+            rankM={cM}
+            rankProvisional={cProvisional}
             title="Contributor rank"
-            entityValue={user.contributedStars}
+            entityValue={user.c}
             entityName="stars"
             description="Rank is based on the total number of stars across repositories where the user has merged pull requests —
               excluding their own repositories."

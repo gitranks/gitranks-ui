@@ -18,28 +18,20 @@ export const RanksOverview: FC<RanksOverviewProps> = ({ ranksData, login }) => {
       <ProfileCardContent>
         <div className="flex items-center">
           ⭐&nbsp;&nbsp;Stars rank:&nbsp;
-          <RankNumber
-            rank={ranksData?.ownedStars}
-            rankPrevious={ranksData?.ownedStarsM}
-            rankProvisional={ranksData?.ownedStarsProvisional}
-          />
+          <RankNumber rank={ranksData?.s} rankPrevious={ranksData?.sM} rankProvisional={ranksData?.sProvisional} />
         </div>
         <div className="flex items-center">
           🔀&nbsp;&nbsp;Contributor rank:&nbsp;
           <RankNumber
-            rank={ranksData?.contributedStars}
-            rankPrevious={ranksData?.contributedStarsM}
-            rankProvisional={ranksData?.contributedStarsProvisional}
+            rank={ranksData?.c}
+            rankPrevious={ranksData?.cM}
+            rankProvisional={ranksData?.cProvisional}
             showDelta={false}
           />
         </div>
         <div className="flex items-center">
           👥&nbsp;&nbsp;Followers rank:&nbsp;
-          <RankNumber
-            rank={ranksData?.followersCount}
-            rankPrevious={ranksData?.followersCountM}
-            rankProvisional={ranksData?.followersCountProvisional}
-          />
+          <RankNumber rank={ranksData?.f} rankPrevious={ranksData?.fM} rankProvisional={ranksData?.fProvisional} />
         </div>
       </ProfileCardContent>
       <ProfileCardActions>

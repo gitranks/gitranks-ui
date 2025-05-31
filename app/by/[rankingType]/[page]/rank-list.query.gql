@@ -1,18 +1,18 @@
 query Rankings($order: RankOrder, $offset: Int) {
   rankings(order: $order, offset: $offset) {
     githubId
-    contributedStars
-    contributedStarsM
-    followersCount
-    followersCountM
-    ownedStars
-    ownedStarsM
+    c
+    cM
+    f
+    fM
+    s
+    sM
     user {
       login
       avatarUrl
-      ownedStars
-      contributedStars
-      followersCount
+      s
+      c
+      f
       location
     }
   }

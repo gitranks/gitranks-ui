@@ -19,19 +19,19 @@ export const getRankByRankingType = (
 
   switch (rankingType) {
     case RankingType.Star:
-      rank = data.ownedStars || 0;
-      monthlyRank = data.ownedStarsM;
-      value = data.user?.ownedStars;
+      rank = data.s || 0;
+      monthlyRank = data.sM;
+      value = data.user?.s;
       break;
     case RankingType.Contribution:
-      rank = data.contributedStars || 0;
-      monthlyRank = data.contributedStarsM;
-      value = data.user?.contributedStars;
+      rank = data.c || 0;
+      monthlyRank = data.cM;
+      value = data.user?.c;
       break;
     case RankingType.Follower:
-      rank = data.followersCount || 0;
-      monthlyRank = data.followersCountM;
-      value = data.user?.followersCount;
+      rank = data.f || 0;
+      monthlyRank = data.fM;
+      value = data.user?.f;
       break;
   }
 

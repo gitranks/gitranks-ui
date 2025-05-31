@@ -38,53 +38,49 @@ type ProfileForSitemap {
 type Query {
   profilesForSitemap: [ProfileForSitemap!]!
   rankByLogin(login: String!): Rank
-  rankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS_OWNED): [Rank!]!
+  rankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [Rank!]!
   user(login: String!): User
 }
 
 type Rank {
-  contributedStars: Int
-  contributedStarsD: Int
-  contributedStarsM: Int
-  contributedStarsProvisional: Int
-  contributedStarsY: Int
-  followersCount: Int
-  followersCountD: Int
-  followersCountM: Int
-  followersCountProvisional: Int
-  followersCountY: Int
+  c: Int
+  cD: Int
+  cM: Int
+  cProvisional: Int
+  f: Int
+  fD: Int
+  fM: Int
+  fProvisional: Int
   githubId: ID!
-  ownedStars: Int
-  ownedStarsD: Int
-  ownedStarsM: Int
-  ownedStarsProvisional: Int
-  ownedStarsY: Int
+  s: Int
+  sD: Int
+  sM: Int
+  sProvisional: Int
+  snapshots: JSON
   user: UserBasic
 }
 
 enum RankOrder {
-  FOLLOWERS_COUNT
-  STARS_CONTRIBUTED
-  STARS_OWNED
+  CONTRIBUTIONS
+  FOLLOWERS
+  STARS
 }
 
 type RankWithoutUser {
-  contributedStars: Int
-  contributedStarsD: Int
-  contributedStarsM: Int
-  contributedStarsProvisional: Int
-  contributedStarsY: Int
-  followersCount: Int
-  followersCountD: Int
-  followersCountM: Int
-  followersCountProvisional: Int
-  followersCountY: Int
+  c: Int
+  cD: Int
+  cM: Int
+  cProvisional: Int
+  f: Int
+  fD: Int
+  fM: Int
+  fProvisional: Int
   githubId: ID!
-  ownedStars: Int
-  ownedStarsD: Int
-  ownedStarsM: Int
-  ownedStarsProvisional: Int
-  ownedStarsY: Int
+  s: Int
+  sD: Int
+  sM: Int
+  sProvisional: Int
+  snapshots: JSON
 }
 
 type Repository {
@@ -133,12 +129,13 @@ type Timeline {
 
 type User {
   avatarUrl: String
+  c: Int
   company: String
   contributedRepoCount: Int
-  contributedStars: Int
   contributions: [Contribution!]
   createdAt: DateTime!
   email: String
+  f: Int
   fetchingStatus: UserFetchingStatus
   fetchingUpdatedAt: Float
   firstSeenAt: DateTime
@@ -154,10 +151,11 @@ type User {
   login: String!
   name: String
   organizations: [Organization!]
-  ownedStars: Int
   rank: RankWithoutUser
-  repositories(limit: Int! = 10, offset: Int! = 0, order: RankOrder! = STARS_OWNED, sortBy: RepositorySortField! = STARGAZERS, sortDirection: SortDirection! = DESC): [Repository!]
+  repositories(limit: Int! = 10, offset: Int! = 0, order: RankOrder! = STARS, sortBy: RepositorySortField! = STARGAZERS, sortDirection: SortDirection! = DESC): [Repository!]
   repositoriesCount: Int
+  s: Int
+  snapshots: JSON
   socialAccounts: SocialAccount
   timeline: [Timeline!]
   twitterUsername: String
@@ -167,12 +165,13 @@ type User {
 
 type UserBasic {
   avatarUrl: String
-  contributedStars: Int
+  c: Int
+  f: Int
   followersCount: Int
   githubId: ID!
   location: String
   login: String!
-  ownedStars: Int
+  s: Int
 }
 
 enum UserFetchingStatus {

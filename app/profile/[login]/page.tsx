@@ -16,11 +16,11 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
     return { title: 'GitHub Profile Analytics & Rankings · GitRanks' };
   }
 
-  const { ownedStars, contributedStars, followersCount } = user.rank ?? {};
+  const { s, c, f } = user.rank ?? {};
 
   return {
     title: `${login} – GitHub Profile Analytics & Rankings · GitRanks`,
-    description: `Explore GitHub analytics for ${login} – ranked #${ownedStars} by stars, #${contributedStars} by contributions, and #${followersCount} by followers. See how your code impacts the world and where you stand in the global developer community with GitRanks.`,
+    description: `Explore GitHub analytics for ${login} – ranked #${s} by stars, #${c} by contributions, and #${f} by followers. See how your code impacts the world and where you stand in the global developer community with GitRanks.`,
     openGraph: {
       images: [user.avatarUrl!],
     },
@@ -50,8 +50,8 @@ export default async function Profile({ params }: { params: Promise<{ login: str
             topRepoStars={user.repositories?.[0]?.stargazerCount ?? 0}
             contributedRepoCount={user.contributedRepoCount}
             repositoriesCount={user.repositoriesCount}
-            ownedStars={user.ownedStars}
-            contributedStars={user.contributedStars}
+            s={user.s}
+            c={user.c}
             login={login}
           />
         </div>

@@ -11,8 +11,8 @@ type RepositoriesOverviewProps = {
   topRepoStars?: number;
   contributedRepoCount?: number | null;
   repositoriesCount?: number | null;
-  ownedStars: User['ownedStars'];
-  contributedStars: User['contributedStars'];
+  s: User['s'];
+  c: User['c'];
   login: string;
 };
 
@@ -20,8 +20,8 @@ export const RepositoriesOverview: FC<RepositoriesOverviewProps> = ({
   topRepoStars,
   repositoriesCount,
   contributedRepoCount,
-  ownedStars,
-  contributedStars,
+  s,
+  c,
   login,
 }) => {
   return (
@@ -30,7 +30,7 @@ export const RepositoriesOverview: FC<RepositoriesOverviewProps> = ({
       <ProfileCardContent>
         <p>
           📦&nbsp;&nbsp;Owns {repositoriesCount ?? 0} repos
-          {!!ownedStars && ` • ⭐ ${ownedStars?.toLocaleString('en-US')} total`}
+          {!!s && ` • ⭐ ${s?.toLocaleString('en-US')} total`}
         </p>
         <p>
           🏆&nbsp;&nbsp;Top repository
@@ -38,7 +38,7 @@ export const RepositoriesOverview: FC<RepositoriesOverviewProps> = ({
         </p>
         <p>
           🤝&nbsp;&nbsp;Contributed to {contributedRepoCount} repos
-          {!!contributedRepoCount && ` • ⭐ ${contributedStars?.toLocaleString('en-US')} total`}
+          {!!contributedRepoCount && ` • ⭐ ${c?.toLocaleString('en-US')} total`}
         </p>
       </ProfileCardContent>
       <ProfileCardActions>

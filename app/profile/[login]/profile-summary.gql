@@ -26,9 +26,9 @@ query User($login: String!) {
     login
     avatarUrl
     location
-    followersCount
-    ownedStars
-    contributedStars
+    f
+    s
+    c
     company
     email
     followingCount
@@ -74,18 +74,15 @@ query User($login: String!) {
       createdAt
     }
     rank {
-      ownedStars
-      ownedStarsProvisional
-      ownedStarsM
-      ownedStarsY
-      contributedStars
-      contributedStarsProvisional
-      contributedStarsM
-      contributedStarsY
-      followersCount
-      followersCountProvisional
-      followersCountM
-      followersCountY
+      s
+      sProvisional
+      sM
+      c
+      cProvisional
+      cM
+      f
+      fProvisional
+      fM
     }
   }
 }

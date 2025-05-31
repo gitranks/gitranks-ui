@@ -80,6 +80,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       fetchAttempt.current += 1;
       setLoadingLabel(FETCH_MESSAGES[fetchAttempt.current % FETCH_MESSAGES.length]);
     } else {
+      await fetch(`/api/revalidate?path=${encodeURIComponent(`/profile/${login}`)}`);
       window.location.reload();
     }
   }, [login]);

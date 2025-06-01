@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
     return { title: 'GitHub Profile Analytics & Rankings · GitRanks' };
   }
 
-  const { s, c, f } = user.rank ?? {};
+  const { s, c, f } = user.rankGlobal ?? {};
 
   return {
     title: `${login} – GitHub Profile Analytics & Rankings · GitRanks`,
@@ -36,7 +36,7 @@ export default async function Profile({ params }: { params: Promise<{ login: str
     notFound();
   }
 
-  if (user.fetchingStatus === 'FETCHING' && !user.rank) {
+  if (user.fetchingStatus === 'FETCHING' && !user.rankGlobal) {
     // user is being fetched for the first time
     return <NotFound fetchingStatus={user.fetchingStatus} fetchingUpdatedAt={user.fetchingUpdatedAt} />;
   }
@@ -45,7 +45,7 @@ export default async function Profile({ params }: { params: Promise<{ login: str
     <LayoutLeftColumn user={user}>
       <div className="flex-grow flex flex-col gap-6">
         <div className="flex flex-col md:flex-row flex-wrap gap-6">
-          <RanksOverview ranksData={user.rank} login={login} />
+          <RanksOverview ranksData={user.rankGlobal} login={login} />
           <RepositoriesOverview
             topRepoStars={user.repositories?.[0]?.stargazerCount ?? 0}
             contributedRepoCount={user.contributedRepoCount}

@@ -17,7 +17,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
     notFound();
   }
 
-  const { s, c, cM, f, sProvisional, cProvisional, fProvisional, sM, fM } = user.rank ?? {};
+  const { s, c, cM, f, sProvisional, cProvisional, fProvisional, sM, fM } = user.rankGlobal ?? {};
 
   const bestRankType = getBestRankType({ s, c, f });
 

@@ -73,7 +73,7 @@ query User($login: String!) {
       changes
       createdAt
     }
-    rank {
+    rankGlobal {
       s
       sProvisional
       sM

@@ -15,7 +15,7 @@ export default async function Badge({ params }: { params: Promise<{ login?: stri
 
   if (githubLogin) {
     const data = await graphqlDirect(IdByLoginDocument, { login: githubLogin });
-    githubId = data.rankByLogin?.githubId;
+    githubId = data.globalRankByLogin?.githubId;
   }
 
   return (

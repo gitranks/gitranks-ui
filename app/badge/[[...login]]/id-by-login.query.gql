@@ -1,5 +1,5 @@
 query IdByLogin($login: String!) {
-  rankByLogin(login: $login) {
+  globalRankByLogin(login: $login) {
     githubId
   }
 }

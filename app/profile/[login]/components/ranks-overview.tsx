@@ -7,7 +7,7 @@ import { UserQuery } from '@/types/generated/graphql';
 import { ProfileCard, ProfileCardActions, ProfileCardContent, ProfileCardHeader } from './profile-card';
 
 type RanksOverviewProps = {
-  ranksData: NonNullable<UserQuery['user']>['rank'];
+  ranksData: NonNullable<UserQuery['user']>['rankGlobal'];
   login: string;
 };
 

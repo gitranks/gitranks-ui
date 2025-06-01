@@ -8,6 +8,22 @@ type Contribution {
   year: Int!
 }
 
+type Country {
+  """Alternative country spellings"""
+  altSpellings: [String!]!
+
+  """Area in square kilometers"""
+  area: Float!
+  code: String!
+  flag: String!
+  name: String!
+  population: Int!
+  states: [String!]!
+
+  """Top 5 biggest cities by population"""
+  topCities: [String!]!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -36,13 +52,54 @@ type ProfileForSitemap {
 }
 
 type Query {
+  """List of countries"""
+  country: [Country!]
+  countryRankByLogin(login: String!): RankCountry
+  countryRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankCountry!]!
+  globalRankByLogin(login: String!): RankGlobal
+  globalRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankGlobal!]!
   profilesForSitemap: [ProfileForSitemap!]!
-  rankByLogin(login: String!): Rank
-  rankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [Rank!]!
   user(login: String!): User
 }
 
-type Rank {
+type RankCountry {
+  c: Int
+  cD: Int
+  cM: Int
+  cProvisional: Int
+  country: ID!
+  f: Int
+  fD: Int
+  fM: Int
+  fProvisional: Int
+  githubId: ID!
+  s: Int
+  sD: Int
+  sM: Int
+  sProvisional: Int
+  snapshots: JSON
+  user: UserBasic
+}
+
+type RankCountryWithoutUser {
+  c: Int
+  cD: Int
+  cM: Int
+  cProvisional: Int
+  country: ID!
+  f: Int
+  fD: Int
+  fM: Int
+  fProvisional: Int
+  githubId: ID!
+  s: Int
+  sD: Int
+  sM: Int
+  sProvisional: Int
+  snapshots: JSON
+}
+
+type RankGlobal {
   c: Int
   cD: Int
   cM: Int
@@ -60,13 +117,7 @@ type Rank {
   user: UserBasic
 }
 
-enum RankOrder {
-  CONTRIBUTIONS
-  FOLLOWERS
-  STARS
-}
-
-type RankWithoutUser {
+type RankGlobalWithoutUser {
   c: Int
   cD: Int
   cM: Int
@@ -81,6 +132,12 @@ type RankWithoutUser {
   sM: Int
   sProvisional: Int
   snapshots: JSON
+}
+
+enum RankOrder {
+  CONTRIBUTIONS
+  FOLLOWERS
+  STARS
 }
 
 type Repository {
@@ -133,6 +190,7 @@ type User {
   company: String
   contributedRepoCount: Int
   contributions: [Contribution!]
+  country: String
   createdAt: DateTime!
   email: String
   f: Int
@@ -143,7 +201,7 @@ type User {
   followingCount: Int
   githubCreatedAt: DateTime
   githubFetchedAt: DateTime
-  githubId: ID
+  githubId: ID!
   githubServiceFetchedAt: DateTime
   githubUpdatedAt: DateTime
   isHireable: Boolean
@@ -151,7 +209,8 @@ type User {
   login: String!
   name: String
   organizations: [Organization!]
-  rank: RankWithoutUser
+  rankCountry: RankCountryWithoutUser
+  rankGlobal: RankGlobalWithoutUser
   repositories(limit: Int! = 10, offset: Int! = 0, order: RankOrder! = STARS, sortBy: RepositorySortField! = STARGAZERS, sortDirection: SortDirection! = DESC): [Repository!]
   repositoriesCount: Int
   s: Int

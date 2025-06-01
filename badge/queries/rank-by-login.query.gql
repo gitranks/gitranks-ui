@@ -1,5 +1,5 @@
-query RankByLogin($login: String!) {
-  rankByLogin(login: $login) {
+query GlobalRankByLogin($login: String!) {
+  globalRankByLogin(login: $login) {
     githubId
     c
     cM

@@ -25,7 +25,7 @@ export const SearchProfile = () => {
     setLoading(true);
     const data = await graphqlClient(IdByLoginDocument, { login });
 
-    const profileFound = data.rankByLogin?.githubId;
+    const profileFound = data.globalRankByLogin?.githubId;
 
     posthog.capture('landingPage.search', {
       login,

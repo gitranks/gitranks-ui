@@ -1,15 +1,15 @@
 query TopRanks {
-  byStars: rankings(order: STARS) {
+  byStars: globalRankings(order: STARS) {
     user {
       login
     }
   }
-  byContribution: rankings(order: CONTRIBUTIONS) {
+  byContribution: globalRankings(order: CONTRIBUTIONS) {
     user {
       login
     }
   }
-  byFollowers: rankings(order: FOLLOWERS) {
+  byFollowers: globalRankings(order: FOLLOWERS) {
     user {
       login
     }

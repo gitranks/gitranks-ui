@@ -1,4 +1,7 @@
+'use cache';
+
 import { Metadata } from 'next';
+import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { LayoutLeftColumn } from './components/layout-left-column';
@@ -29,6 +32,9 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
 
 export default async function Profile({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;
+  cacheLife('hours');
+  cacheTag(`profile:${login}`);
+
   const { user } = await fetchProfileData(login);
 
   if (!user) {

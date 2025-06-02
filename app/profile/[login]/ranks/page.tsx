@@ -1,4 +1,7 @@
+'use cache';
+
 import { ChevronRight } from 'lucide-react';
+import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -11,6 +14,9 @@ import { getBestRankType } from './utils/get-best-rank-type';
 
 export default async function ProfileRanks({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;
+  cacheLife('hours');
+  cacheTag(`profile:${login}`);
+
   const { user } = await fetchProfileData(login);
 
   if (!user) {

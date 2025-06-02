@@ -1,3 +1,6 @@
+'use cache';
+
+import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { LayoutLeftColumn } from '../components/layout-left-column';
@@ -7,6 +10,9 @@ import { UserRepositoriesList } from './components/user-repositories-list';
 
 export default async function ProfileRepositories({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;
+  cacheLife('hours');
+  cacheTag(`profile:${login}`);
+
   const { user } = await fetchProfileData(login);
 
   if (!user) {

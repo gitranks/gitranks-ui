@@ -12,6 +12,7 @@ import {
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -53,15 +54,27 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 }) => {
   const { data: session } = useSession();
   const { login } = useParams<{ login: string }>();
-  const now = Date.now();
   const posthog = usePostHog();
   const fetchAttempt = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [loadingLabel, setLoadingLabel] = useState(FETCH_MESSAGES[fetchAttempt.current]);
-  const initialFetchingDuration = now - (fetchingUpdatedAt || now);
-  const [fetchingDuration, setFetchingDuration] = useState(
-    fetchingStatus === 'FETCHING' && initialFetchingDuration < REFRESH_TIMEOUT ? initialFetchingDuration : null,
-  );
+  const [fetchingDuration, setFetchingDuration] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (fetchingStatus !== 'FETCHING') {
+      return;
+    }
+
+    const now = Date.now();
+    const initialFetchingDuration = now - (fetchingUpdatedAt || now);
+
+    if (initialFetchingDuration >= REFRESH_TIMEOUT) {
+      return;
+    }
+    // You can determine when and how often to update
+    // the time here. In this example we update it only once
+    setFetchingDuration(initialFetchingDuration);
+  }, [fetchingStatus, fetchingUpdatedAt]);
 
   const checkFetchingStatus = useCallback(async () => {
     setLoadingLabel('Checking…');
@@ -80,7 +93,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       fetchAttempt.current += 1;
       setLoadingLabel(FETCH_MESSAGES[fetchAttempt.current % FETCH_MESSAGES.length]);
     } else {
-      await fetch(`/api/revalidate?path=${encodeURIComponent(`/profile/${login}`)}`);
+      await fetch(`/api/revalidate?tag=${encodeURIComponent(`profile:${login}`)}`);
       window.location.reload();
     }
   }, [login]);
@@ -94,6 +107,9 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 
     if (!res.ok) {
       toast.error('Failed to fetch user profile');
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
       setFetchingDuration(null);
     }
   };

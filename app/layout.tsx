@@ -6,8 +6,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Footer } from '@/components/footer/footer';
 import { ThemeProvider } from '@/components/theme-provider/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
-
-import { PostHogProvider } from '../lib/posthog/post-hog-provider';
+import { PostHogClientOnlyProvider } from '@/lib/posthog/post-hog-client-only';
 
 import './globals.css';
 
@@ -19,16 +18,12 @@ export const metadata: Metadata = {
     'Explore ranks based on stars, followers, contributions, and more. Dive into dynamic leaderboards and find out how you measure up against developers worldwide.',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
         <SessionProvider>
-          <PostHogProvider>
+          <PostHogClientOnlyProvider>
             <NuqsAdapter>
               <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
                 <div className="flex flex-col min-h-screen">
@@ -38,7 +33,7 @@ export default function RootLayout({
                 <Toaster richColors position="top-right" />
               </ThemeProvider>
             </NuqsAdapter>
-          </PostHogProvider>
+          </PostHogClientOnlyProvider>
         </SessionProvider>
       </body>
     </html>

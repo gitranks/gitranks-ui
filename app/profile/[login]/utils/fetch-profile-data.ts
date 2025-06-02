@@ -1,11 +1,14 @@
+import { unstable_cacheTag as cacheTag } from 'next/cache';
 import { cache } from 'react';
 
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { UserDocument } from '@/types/generated/graphql';
 
 export const fetchProfileData = cache(async (login: string) => {
-  // Set the revalidation to 3 seconds to prevent multiple fetches caused by tab prefetching
-  const { user } = (await graphqlDirect(UserDocument, { login }, { revalidate: 3 })) ?? {};
+  'use cache';
+  cacheTag(`profile:${login}`);
+
+  const { user } = (await graphqlDirect(UserDocument, { login })) ?? {};
 
   if (!user) {
     return {};

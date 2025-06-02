@@ -8,9 +8,6 @@ export const metadata: Metadata = {
     'Explore ranks based on stars, followers, contributions, and more. Dive into dynamic leaderboards and find out how you measure up against developers worldwide.',
 };
 
-export const revalidate = 10800;
-export const dynamicParams = true;
-
 export async function generateStaticParams() {
   const page = '1';
   return [
@@ -20,7 +17,7 @@ export async function generateStaticParams() {
   ];
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RankingListLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
       <Header />

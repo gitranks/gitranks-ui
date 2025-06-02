@@ -1,3 +1,7 @@
+'use cache';
+
+import { unstable_cacheLife as cacheLife } from 'next/cache';
+
 import { Page } from '@/components/page/page';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import {
@@ -54,6 +58,8 @@ function getConfigByRankingType(rankingType: string) {
 }
 
 export default async function GlobalRanking({ params }: { params: Promise<{ rankingType: string; page: string }> }) {
+  cacheLife('hours');
+
   const { rankingType, page: pageParam } = await params;
   const page = parseInt(pageParam, 10);
   const [queryOrder, rankPropName, title, subtitle, rankingBaseEntity] = getConfigByRankingType(rankingType);

@@ -1,19 +1,14 @@
+import { Suspense } from 'react';
+
 import { Header } from '@/components/header/header';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { TopRanksDocument } from '@/types/generated/graphql';
 
+import Loading from './loading';
+
 type ProfileLayoutProps = Readonly<{ children: React.ReactNode; params: Promise<{ login: string }> }>;
-
-// Next.js will invalidate the cache when a
-// request comes in, at most once every 3 hours.
-export const revalidate = 10800; // 3 hours
-
-// We'll prerender only the params from `generateStaticParams` at build time.
-// If a request comes in for a path that hasn't been generated,
-// Next.js will server-render the page on-demand.
-export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const { byStars, byContribution, byFollowers } = (await graphqlDirect(TopRanksDocument)) ?? {};
@@ -30,7 +25,16 @@ export async function generateStaticParams() {
   return [...uniqueLogins].map((login) => ({ login }));
 }
 
-export default async function ProfileLayout({ children, params }: ProfileLayoutProps) {
+function LayoutLoading() {
+  return (
+    <>
+      <Header />
+      <Loading />
+    </>
+  );
+}
+
+async function ProfileLayoutAwaitParams({ children, params }: ProfileLayoutProps) {
   const { login } = await params;
 
   return (
@@ -45,5 +49,13 @@ export default async function ProfileLayout({ children, params }: ProfileLayoutP
       </TabsBar>
       {children}
     </>
+  );
+}
+
+export default async function ProfileLayout({ children, params }: ProfileLayoutProps) {
+  return (
+    <Suspense fallback={<LayoutLoading />}>
+      <ProfileLayoutAwaitParams params={params}>{children}</ProfileLayoutAwaitParams>
+    </Suspense>
   );
 }

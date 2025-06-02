@@ -1,3 +1,4 @@
+'use client';
 import { FC, lazy, LazyExoticComponent, ReactNode, Suspense, SVGProps, useMemo } from 'react';
 
 // map each index to a dynamic-import factory

@@ -18,7 +18,7 @@ fragment RepositoryFields on Repository {
   }
 }
 
-query User($login: String!) {
+query ProfileSummary($login: String!) {
   user(login: $login) {
     githubId
     githubFetchedAt

@@ -1,0 +1,19 @@
+query CountryRankings($order: RankOrder, $offset: Int, $country: String!) {
+  countryRankings(order: $order, offset: $offset, country: $country) {
+    githubId
+    c
+    cM
+    f
+    fM
+    s
+    sM
+    user {
+      login
+      avatarUrl
+      s
+      c
+      f
+      location
+    }
+  }
+}

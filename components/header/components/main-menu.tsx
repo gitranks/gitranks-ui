@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 
 export function MainMenu({ className }: { className?: string }) {
   return (
-    <NavigationMenu className={className} viewport={false}>
+    <NavigationMenu className={className}>
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuTrigger className="bg-transparent">Rankings</NavigationMenuTrigger>

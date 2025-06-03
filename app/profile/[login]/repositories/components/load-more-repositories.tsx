@@ -4,7 +4,7 @@ import { FC, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
-import { Repository, UserRepositoriesDocument } from '@/types/generated/graphql';
+import { Repository, ProfileRepositoriesDocument } from '@/types/generated/graphql';
 
 import { RepositoryCard } from './repository-card';
 
@@ -29,7 +29,7 @@ export const LoadMoreRepositories: FC<LoadMoreRepositoriesProps> = ({ login, rep
     setLoadingState(LoadingState.LOADING);
 
     try {
-      const { user } = (await graphqlClient(UserRepositoriesDocument, { login })) ?? {};
+      const { user } = (await graphqlClient(ProfileRepositoriesDocument, { login })) ?? {};
 
       setRepositories(user?.repositories ?? []);
       setLoadingState(LoadingState.LOADED);

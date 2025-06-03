@@ -9,7 +9,7 @@ import { ClipLoader } from 'react-spinners';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
-import { IdByLoginDocument } from '@/types/generated/graphql';
+import { ProfileIdByLoginDocument } from '@/types/generated/graphql';
 
 export const SearchProfile = () => {
   const [login, setLogin] = useState('');
@@ -23,7 +23,7 @@ export const SearchProfile = () => {
     }
 
     setLoading(true);
-    const data = await graphqlClient(IdByLoginDocument, { login });
+    const data = await graphqlClient(ProfileIdByLoginDocument, { login });
 
     const profileFound = data.globalRankByLogin?.githubId;
 

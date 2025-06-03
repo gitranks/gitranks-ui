@@ -4,14 +4,14 @@ import { Header } from '@/components/header/header';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { TopRanksDocument } from '@/types/generated/graphql';
+import { TopGlobalRankingsDocument } from '@/types/generated/graphql';
 
 import Loading from './loading';
 
 type ProfileLayoutProps = Readonly<{ children: React.ReactNode; params: Promise<{ login: string }> }>;
 
 export async function generateStaticParams() {
-  const { byStars, byContribution, byFollowers } = (await graphqlDirect(TopRanksDocument)) ?? {};
+  const { byStars, byContribution, byFollowers } = (await graphqlDirect(TopGlobalRankingsDocument)) ?? {};
   const mergedRanks = [...byStars, ...byContribution, ...byFollowers];
 
   const uniqueLogins = new Set<string>();

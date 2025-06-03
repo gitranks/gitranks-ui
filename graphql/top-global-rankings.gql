@@ -1,4 +1,4 @@
-query TopRanks {
+query TopGlobalRankings {
   byStars: globalRankings(order: STARS) {
     user {
       login

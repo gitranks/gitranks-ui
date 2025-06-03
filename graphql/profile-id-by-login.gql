@@ -1,4 +1,4 @@
-query IdByLogin($login: String!) {
+query ProfileIdByLogin($login: String!) {
   globalRankByLogin(login: $login) {
     githubId
   }

@@ -55,7 +55,7 @@ type Query {
   """List of countries"""
   country: [Country!]
   countryRankByLogin(login: String!): RankCountry
-  countryRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankCountry!]!
+  countryRankings(country: String!, limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankCountry!]!
   globalRankByLogin(login: String!): RankGlobal
   globalRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankGlobal!]!
   profilesForSitemap: [ProfileForSitemap!]!

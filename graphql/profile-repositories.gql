@@ -1,4 +1,4 @@
-query UserRepositories($login: String!) {
+query ProfileRepositories($login: String!) {
   user(login: $login) {
     repositories(offset: 10, limit: 200) {
       githubId

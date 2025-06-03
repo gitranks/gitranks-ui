@@ -4,7 +4,7 @@ import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from '
 
 import { Separator } from '@/components/ui/separator';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { IdByLoginDocument } from '@/types/generated/graphql';
+import { ProfileIdByLoginDocument } from '@/types/generated/graphql';
 
 import { BadgeForm } from './components/badge-form';
 import { IntegrationCode } from './components/integration-code';
@@ -21,7 +21,7 @@ export default async function Badge({ params }: { params: Promise<{ login?: stri
   if (githubLogin) {
     cacheTag(`profile:${githubLogin}`);
 
-    const data = await graphqlDirect(IdByLoginDocument, { login: githubLogin });
+    const data = await graphqlDirect(ProfileIdByLoginDocument, { login: githubLogin });
     githubId = data.globalRankByLogin?.githubId;
   }
 

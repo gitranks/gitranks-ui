@@ -2,12 +2,12 @@ import { FC } from 'react';
 
 import { Link } from '@/components/link/link';
 import { RankNumber } from '@/components/rank-number/rank-number';
-import { UserQuery } from '@/types/generated/graphql';
+import { ProfileSummaryQuery } from '@/types/generated/graphql';
 
 import { ProfileCard, ProfileCardActions, ProfileCardContent, ProfileCardHeader } from './profile-card';
 
 type RanksOverviewProps = {
-  ranksData: NonNullable<UserQuery['user']>['rankGlobal'];
+  ranksData: NonNullable<ProfileSummaryQuery['user']>['rankGlobal'];
   login: string;
 };
 

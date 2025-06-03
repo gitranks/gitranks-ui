@@ -1,6 +1,6 @@
-import { UserQuery } from './generated/graphql';
+import { ProfileSummaryQuery } from './generated/graphql';
 
-export type SocialAccountChangeItem = NonNullable<UserQuery['user']>['socialAccounts'];
+export type SocialAccountChangeItem = NonNullable<ProfileSummaryQuery['user']>['socialAccounts'];
 
 export type ChangeItemType = string | number | boolean | SocialAccountChangeItem;
 

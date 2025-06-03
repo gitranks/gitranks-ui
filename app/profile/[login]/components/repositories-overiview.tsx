@@ -1,11 +1,11 @@
 import { FC } from 'react';
 
 import { Link } from '@/components/link/link';
-import { UserQuery } from '@/types/generated/graphql';
+import { ProfileSummaryQuery } from '@/types/generated/graphql';
 
 import { ProfileCard, ProfileCardActions, ProfileCardContent, ProfileCardHeader } from './profile-card';
 
-type User = NonNullable<UserQuery['user']>;
+type User = NonNullable<ProfileSummaryQuery['user']>;
 
 type RepositoriesOverviewProps = {
   topRepoStars?: number;

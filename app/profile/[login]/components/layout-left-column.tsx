@@ -7,7 +7,7 @@ import { FC, ReactNode } from 'react';
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { UserQuery } from '@/types/generated/graphql';
+import { ProfileSummaryQuery } from '@/types/generated/graphql';
 import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 
 import { FetchUserButtonForProfilePage } from './fetch-user-button';
@@ -24,7 +24,7 @@ import {
 import { getSocialIcon } from '../utils/get-social-icon';
 
 type LayoutLeftColumnProps = Readonly<{
-  user: UserQuery['user'];
+  user: ProfileSummaryQuery['user'];
   children: ReactNode;
   className?: string;
 }>;

@@ -9,7 +9,7 @@ import { ProfileTimeline } from './components/profile-timeline';
 import { RanksOverview } from './components/ranks-overview';
 import { RepositoriesOverview } from './components/repositories-overiview';
 import NotFound from './not-found';
-import { fetchProfileData } from './utils/fetch-profile-data';
+import { fetchProfileData } from '../../../graphql/helpers/fetch-profile-data';
 
 export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
   const { login } = await params;

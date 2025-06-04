@@ -12,6 +12,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { fetchCountryList } from '@/graphql/helpers/fetch-countries';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { GlobalRankingsDocument, RankOrder } from '@/types/generated/graphql';
 import { getInitials } from '@/utils/get-initials';
@@ -19,6 +20,7 @@ import { getInitials } from '@/utils/get-initials';
 import { ClickableRow } from './components/clickale-row';
 import { LinkWithStopPropagation } from './components/link-with-stop-propagation';
 import { ProfileAvatar } from './components/profile-avatar';
+import { getCountryFlag } from './utils/get-country-flag';
 
 const ITEMS_PER_PAGE = 100;
 
@@ -64,7 +66,10 @@ export default async function GlobalRanking({ params }: { params: Promise<{ rank
   const page = parseInt(pageParam, 10);
   const [queryOrder, rankPropName, title, subtitle, rankingBaseEntity] = getConfigByRankingType(rankingType);
   const offset = (page - 1) * ITEMS_PER_PAGE;
-  const data = await graphqlDirect(GlobalRankingsDocument, { order: queryOrder, offset });
+  const [{ globalRankings }, countries] = await Promise.all([
+    graphqlDirect(GlobalRankingsDocument, { order: queryOrder, offset }),
+    fetchCountryList(),
+  ]);
 
   return (
     <Page className="max-w-5xl gap-6">
@@ -83,7 +88,7 @@ export default async function GlobalRanking({ params }: { params: Promise<{ rank
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.globalRankings.map((item) => {
+          {globalRankings.map((item) => {
             const { githubId, user } = item;
             return (
               <ClickableRow key={githubId} className="border-b-0" href={`/profile/${user?.login}`}>
@@ -101,7 +106,9 @@ export default async function GlobalRanking({ params }: { params: Promise<{ rank
                     {user?.login}
                   </LinkWithStopPropagation>
                 </TableCell>
-                <TableCell className="hidden sm:table-cell break-all whitespace-normal">{user?.location}</TableCell>
+                <TableCell className="hidden sm:table-cell break-all whitespace-normal">
+                  {getCountryFlag(countries, user?.country)} {user?.location}
+                </TableCell>
                 <TableCell className="text-right">{user?.[rankPropName]?.toLocaleString('en-US')}</TableCell>
               </ClickableRow>
             );

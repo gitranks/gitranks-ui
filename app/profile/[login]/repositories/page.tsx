@@ -3,10 +3,10 @@
 import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 
-import { LayoutLeftColumn } from '../components/layout-left-column';
-import { fetchProfileData } from '../utils/fetch-profile-data';
 import { UserContriutionsList } from './components/user-contriutions-list';
 import { UserRepositoriesList } from './components/user-repositories-list';
+import { fetchProfileData } from '../../../../graphql/helpers/fetch-profile-data';
+import { LayoutLeftColumn } from '../components/layout-left-column';
 
 export default async function ProfileRepositories({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;

@@ -7,10 +7,10 @@ import { notFound } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 
-import { LayoutLeftColumn } from '../components/layout-left-column';
-import { fetchProfileData } from '../utils/fetch-profile-data';
 import { RankCard } from './components/rank-card';
 import { getBestRankType } from './utils/get-best-rank-type';
+import { fetchProfileData } from '../../../../graphql/helpers/fetch-profile-data';
+import { LayoutLeftColumn } from '../components/layout-left-column';
 
 export default async function ProfileRanks({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;

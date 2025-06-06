@@ -53,12 +53,12 @@ export type CountryBasic = {
 
 export type CountrySummary = {
   __typename?: 'CountrySummary';
-  c: Scalars['Int']['output'];
+  c: Scalars['Float']['output'];
   country: Scalars['String']['output'];
   countryData: CountryBasic;
   date: Scalars['String']['output'];
-  f: Scalars['Int']['output'];
-  s: Scalars['Int']['output'];
+  f: Scalars['Float']['output'];
+  s: Scalars['Float']['output'];
   topUsers?: Maybe<CountryTopUsers>;
   usersCount: Scalars['Int']['output'];
 };

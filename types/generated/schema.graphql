@@ -32,12 +32,12 @@ type CountryBasic {
 }
 
 type CountrySummary {
-  c: Int!
+  c: Float!
   country: String!
   countryData: CountryBasic!
   date: String!
-  f: Int!
-  s: Int!
+  f: Float!
+  s: Float!
   topUsers: CountryTopUsers
   usersCount: Int!
 }

@@ -1,8 +1,9 @@
 import { Header } from '@/components/header/header';
-import { Link } from '@/components/link/link';
 import { Page } from '@/components/page/page';
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
+import { BadgeSection } from './components/badge-section';
+import { CountryRankingSection } from './components/country-ranking-section';
+import { GlobalRankingSection } from './components/global-ranking-section';
 import { SearchProfile } from './components/search-profiile';
 import MainImage from './main-image';
 
@@ -26,58 +27,10 @@ export default function Home() {
           </div>
         </Page>
       </div>
-      <Page>
-        <div className="flex flex-col gap-4 grow py-8">
-          <h2 className="text-2xl font-semibold">Discover Your Developer Superpower</h2>
-          <div>
-            Curious about where you excel? Explore ranks based on stars, followers, contributions, and more. Dive into
-            dynamic leaderboards and find out how you measure up against developers worldwide.
-          </div>
-          <div className="flex flex-col md:flex-row gap-4">
-            <Card className="flex-grow border-border gap-4">
-              <CardHeader>
-                <CardTitle>Star ranking</CardTitle>
-                <CardDescription>
-                  Rank is based on the total number of stars across repositories owned by a user
-                </CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <Link href="/by/stars">View</Link>
-              </CardFooter>
-            </Card>
-            <Card className="flex-grow border-border gap-4">
-              <CardHeader>
-                <CardTitle>Contribution ranking</CardTitle>
-                <CardDescription>
-                  Rank is based on the stars from repositories where you&apos;ve merged pull requests — excluding your
-                  own
-                </CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <Link href="/by/contributions">View</Link>
-              </CardFooter>
-            </Card>
-            <Card className="flex-grow border-border gap-4">
-              <CardHeader>
-                <CardTitle>Follower ranking</CardTitle>
-                <CardDescription>Rank is based on the number of followers the user has on GitHub</CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <Link href="/by/followers">View</Link>
-              </CardFooter>
-            </Card>
-          </div>
-        </div>
-        <div className="flex flex-col gap-4 grow py-8">
-          <h2 className="text-2xl font-semibold">Put Your GitHub Rank on Display</h2>
-          <div>
-            Show off your coding achievements with a dynamic GitHub badge. Let the world see exactly where you stand
-            among millions of developers.
-          </div>
-          <div>
-            <Link href="/badge">Create a badge</Link>
-          </div>
-        </div>
+      <Page className="gap-4">
+        <GlobalRankingSection />
+        <CountryRankingSection />
+        <BadgeSection />
       </Page>
     </>
   );

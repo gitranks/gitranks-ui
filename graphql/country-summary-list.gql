@@ -1,0 +1,29 @@
+query CountrySummary($order: CountrySummaryOrder) {
+  countrySummary(order: $order) {
+    country
+    usersCount
+    date
+    s
+    c
+    f
+    topUsers {
+      s {
+        login
+        avatarUrl
+      }
+      c {
+        login
+        avatarUrl
+      }
+      f {
+        login
+        avatarUrl
+      }
+    }
+    countryData {
+      code
+      name
+      flag
+    }
+  }
+}

@@ -20,11 +20,10 @@ export function MainMenu({ className }: { className?: string }) {
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuTrigger className="bg-transparent">Rankings</NavigationMenuTrigger>
-          <NavigationMenuContent className="border-border">
-            <ul>
-              <ListItem href="/by/stars/1">Stars</ListItem>
-              <ListItem href="/by/contributions/1">Contributions</ListItem>
-              <ListItem href="/by/followers/1">Followers</ListItem>
+          <NavigationMenuContent>
+            <ul className="w-36">
+              <ListItem href="/by/stars/1">Global Rankings</ListItem>
+              <ListItem href="/countries/stars/1">Country Rankings</ListItem>
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>

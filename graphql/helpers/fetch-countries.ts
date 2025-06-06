@@ -1,10 +1,9 @@
 import { unstable_cacheLife as cacheLife } from 'next/cache';
-import { cache } from 'react';
 
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { CountryDocument } from '@/types/generated/graphql';
 
-export const fetchCountryList = cache(async () => {
+export const fetchCountries = async () => {
   'use cache';
   cacheLife('max');
 
@@ -15,4 +14,4 @@ export const fetchCountryList = cache(async () => {
   }
 
   return country;
-});
+};

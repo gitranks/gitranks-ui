@@ -1,6 +1,12 @@
 import { redirect } from 'next/navigation';
 
-export default async function RankingsPage({ params }: { params: Promise<{ rankingType: string }> }) {
+import { RankingTypeClient } from '@/types/ranking.types';
+
+type RankingsPageProps = {
+  params: Promise<{ rankingType: RankingTypeClient; page: string }>;
+};
+
+export default async function RankingsPage({ params }: RankingsPageProps) {
   const { rankingType } = await params;
   redirect(`/by/${rankingType}/1`);
 }

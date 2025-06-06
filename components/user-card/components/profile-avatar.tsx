@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils';
 type ProfileAvatarProps = {
   url?: string | null;
   initials?: string | null;
+  className?: string;
 };
 
-export const ProfileAvatar: FC<ProfileAvatarProps> = ({ url, initials }) => {
+export const ProfileAvatar: FC<ProfileAvatarProps> = ({ url, initials, className }) => {
   const { pending } = useLinkStatus();
 
   if (!url) {
@@ -19,8 +20,8 @@ export const ProfileAvatar: FC<ProfileAvatarProps> = ({ url, initials }) => {
   }
 
   return (
-    <Avatar>
-      <AvatarImage src={url} className={cn('rounded-full', { 'animate-spin': pending })} width={36} height={36} />
+    <Avatar className={className}>
+      <AvatarImage src={url} className={cn('rounded-full', { 'animate-spin': pending })} />
       <AvatarFallback className="flex items-center justify-center">{initials}</AvatarFallback>
     </Avatar>
   );

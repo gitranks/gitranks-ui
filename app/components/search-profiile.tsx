@@ -45,7 +45,7 @@ export const SearchProfile = () => {
         className="flex gap-4"
       >
         <Input
-          placeholder="GitHub login"
+          placeholder="e.g. torvalds, gaearon, theprimeagen"
           value={login}
           onChange={(event) => setLogin(event.target.value)}
           disabled={loading}

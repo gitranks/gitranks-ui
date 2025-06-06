@@ -19,12 +19,30 @@ type Country {
   name: String!
   population: Int!
   states: [String!]!
+  summary: CountrySummaryBasic
 
   """Top 5 biggest cities by population"""
   topCities: [String!]!
 }
 
+type CountryBasic {
+  code: String!
+  flag: String!
+  name: String!
+}
+
 type CountrySummary {
+  c: Int!
+  country: String!
+  countryData: CountryBasic!
+  date: String!
+  f: Int!
+  s: Int!
+  topUsers: CountryTopUsers
+  usersCount: Int!
+}
+
+type CountrySummaryBasic {
   c: Int!
   country: String!
   date: String!
@@ -32,6 +50,13 @@ type CountrySummary {
   s: Int!
   topUsers: CountryTopUsers
   usersCount: Int!
+}
+
+enum CountrySummaryOrder {
+  CONTRIBUTIONS
+  FOLLOWERS
+  STARS
+  USERS
 }
 
 type CountryTopUsers {
@@ -72,7 +97,7 @@ type Query {
   country: [Country!]
   countryRankByLogin(login: String!): RankCountry
   countryRankings(country: String!, limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankCountry!]!
-  countrySummary(date: String): [CountrySummary!]!
+  countrySummary(date: String, order: CountrySummaryOrder! = STARS): [CountrySummary!]!
   globalRankByLogin(login: String!): RankGlobal
   globalRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankGlobal!]!
   profilesForSitemap: [ProfileForSitemap!]!

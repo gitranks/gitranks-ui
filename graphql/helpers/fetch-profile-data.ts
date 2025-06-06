@@ -1,10 +1,9 @@
 import { unstable_cacheTag as cacheTag } from 'next/cache';
-import { cache } from 'react';
 
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { ProfileSummaryDocument } from '@/types/generated/graphql';
 
-export const fetchProfileData = cache(async (login: string) => {
+export const fetchProfileData = async (login: string) => {
   'use cache';
   cacheTag(`profile:${login}`);
 
@@ -15,4 +14,4 @@ export const fetchProfileData = cache(async (login: string) => {
   }
 
   return { user };
-});
+};

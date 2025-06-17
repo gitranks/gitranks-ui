@@ -26,6 +26,7 @@ query ProfileSummary($login: String!) {
     login
     avatarUrl
     location
+    country
     f
     s
     c
@@ -74,6 +75,17 @@ query ProfileSummary($login: String!) {
       createdAt
     }
     rankGlobal {
+      s
+      sProvisional
+      sM
+      c
+      cProvisional
+      cM
+      f
+      fProvisional
+      fM
+    }
+    rankCountry {
       s
       sProvisional
       sM

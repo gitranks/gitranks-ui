@@ -11,6 +11,8 @@ import { RankCard } from './components/rank-card';
 import { getBestRankType } from './utils/get-best-rank-type';
 import { fetchProfileData } from '../../../../graphql/helpers/fetch-profile-data';
 import { LayoutLeftColumn } from '../components/layout-left-column';
+import { ProfileRankingSwitcher } from './components/profile-ranking-switcher';
+import { ProfileCardsGrid } from '../components/profile-card';
 
 export default async function ProfileRanks({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;
@@ -29,8 +31,9 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
 
   return (
     <LayoutLeftColumn user={user}>
-      <div>
-        <div className="flex flex-col md:flex-row flex-wrap gap-6">
+      <div className="flex flex-col gap-4">
+        <ProfileRankingSwitcher login={login} ranking="global" />
+        <ProfileCardsGrid>
           <RankCard
             rank={s}
             rankM={sM}
@@ -40,7 +43,6 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
             entityName="stars"
             description="Rank is based on the total number of stars across repositories owned by the user."
           />
-
           <RankCard
             rank={f}
             rankM={fM}
@@ -51,7 +53,6 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
             entityName="followers"
             description="Rank is based on the number of followers the user has on GitHub."
           />
-
           <RankCard
             rank={c}
             rankM={cM}
@@ -62,7 +63,6 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
             description="Rank is based on the total number of stars across repositories where the user has merged pull requests —
               excluding their own repositories."
           />
-
           <div className="flex p-0 md:p-4 min-w-xs flex-grow basis-0 shrink-0 items-center justify-center">
             <div className="flex flex-col gap-2 items-start">
               <div className="font-semibold">Put Your Rank on Display</div>
@@ -79,7 +79,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
               </Button>
             </div>
           </div>
-        </div>
+        </ProfileCardsGrid>
         {/* <div className="text-sm text-muted-foreground mt-6 italic">
           User ranks show how a user compare to other GitHub users across different metrics — like repository stars,
           contribution activity, and more. Ranks are recalculated daily.

@@ -10,7 +10,7 @@ export const GlobalRankingSection = () => {
         dynamic leaderboards and find out how you measure up against developers worldwide.
       </div>
       <div className="flex flex-col md:flex-row gap-4">
-        <Card className="flex-grow border-border gap-4">
+        <Card className="flex-grow gap-4">
           <CardHeader>
             <CardTitle>Star ranking</CardTitle>
             <CardDescription>
@@ -21,7 +21,7 @@ export const GlobalRankingSection = () => {
             <Link href="/by/stars/1">View</Link>
           </CardFooter>
         </Card>
-        <Card className="flex-grow border-border gap-4">
+        <Card className="flex-grow gap-4">
           <CardHeader>
             <CardTitle>Contribution ranking</CardTitle>
             <CardDescription>
@@ -32,7 +32,7 @@ export const GlobalRankingSection = () => {
             <Link href="/by/contributions/1">View</Link>
           </CardFooter>
         </Card>
-        <Card className="flex-grow border-border gap-4">
+        <Card className="flex-grow gap-4">
           <CardHeader>
             <CardTitle>Follower ranking</CardTitle>
             <CardDescription>Rank is based on the number of followers the user has on GitHub</CardDescription>

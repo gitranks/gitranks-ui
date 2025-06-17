@@ -45,7 +45,7 @@ async function ProfileLayoutAwaitParams({ children, params }: ProfileLayoutProps
     <>
       <Header login={login} />
       <TabsBar className="mb-4">
-        <Tab href={`/profile/${login}`} active>
+        <Tab href={`/profile/${login}`} exact>
           Overview
         </Tab>
         <Tab href={`/profile/${login}/ranks`}>Ranks</Tab>

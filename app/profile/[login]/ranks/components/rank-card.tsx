@@ -17,6 +17,7 @@ type RankCardProps = {
   entityValue?: number | null;
   entityName: string;
   description: string;
+  usersCount?: number;
 };
 
 export const RankCard: FC<RankCardProps> = ({
@@ -28,8 +29,9 @@ export const RankCard: FC<RankCardProps> = ({
   entityName,
   showDelta,
   description,
+  usersCount,
 }) => {
-  const rankPercentile = getPercentileRank(rank);
+  const rankPercentile = getPercentileRank(rankProvisional ?? rank, usersCount);
 
   return (
     <ProfileCard>

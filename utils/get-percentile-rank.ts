@@ -1,4 +1,4 @@
-const TOTAL_AMOUNT_OF_GITHUB_USERS = 50_000_000;
+const TOTAL_AMOUNT_OF_GITHUB_USERS = 10_000_000;
 
 type Bin = {
   upper: number;
@@ -30,12 +30,12 @@ export function normalizeValue(value: number): number | null {
   return 0.0001;
 }
 
-export const getPercentileRank = (rank?: number | null): number | null => {
+export const getPercentileRank = (rank?: number | null, amountOfUsers?: number): number | null => {
   if (!rank) {
     return null;
   }
 
-  const percentileRank = (rank / TOTAL_AMOUNT_OF_GITHUB_USERS) * 100;
+  const percentileRank = (rank / (amountOfUsers ?? TOTAL_AMOUNT_OF_GITHUB_USERS)) * 100;
 
   return normalizeValue(percentileRank);
 };

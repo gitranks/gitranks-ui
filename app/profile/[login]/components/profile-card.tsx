@@ -1,7 +1,11 @@
-import { FC, ReactNode } from 'react';
+import { FC, PropsWithChildren, ReactNode } from 'react';
 
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+
+export const ProfileCardsGrid: FC<PropsWithChildren> = ({ children }) => {
+  return <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">{children}</div>;
+};
 
 type ProfileCardProps = {
   title?: string | null;
@@ -11,16 +15,7 @@ type ProfileCardProps = {
 };
 
 export const ProfileCard: FC<ProfileCardProps> = ({ children, className }) => {
-  return (
-    <Card
-      className={cn(
-        'border-0 md:border-2 border-border p-0 md:p-4 min-w-xs flex-grow basis-0 shadow-none md:shadow-sm gap-4',
-        className,
-      )}
-    >
-      {children}
-    </Card>
-  );
+  return <Card className={cn('w-full border-2 p-3 md:p-4 shadow-none md:shadow-sm gap-4', className)}>{children}</Card>;
 };
 
 type ProfileCardHeaderProps = {

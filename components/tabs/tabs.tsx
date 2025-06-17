@@ -9,12 +9,12 @@ import { cn } from '@/lib/utils';
 type TabProps = {
   href: string;
   children: ReactNode;
-  active?: boolean;
+  exact?: boolean;
 };
 
-export const Tab: FC<TabProps> = ({ href, children }) => {
+export const Tab: FC<TabProps> = ({ href, children, exact }) => {
   const pathname = usePathname();
-  const active = pathname === href;
+  const active = exact ? pathname === href : pathname.startsWith(href);
 
   return (
     <li className="me-2">

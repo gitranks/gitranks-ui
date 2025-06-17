@@ -5,6 +5,7 @@ import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from '
 import { notFound } from 'next/navigation';
 
 import { LayoutLeftColumn } from './components/layout-left-column';
+import { ProfileCardsGrid } from './components/profile-card';
 import { ProfileTimeline } from './components/profile-timeline';
 import { RanksOverview } from './components/ranks-overview';
 import { RepositoriesOverview } from './components/repositories-overiview';
@@ -50,8 +51,15 @@ export default async function Profile({ params }: { params: Promise<{ login: str
   return (
     <LayoutLeftColumn user={user}>
       <div className="flex-grow flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row flex-wrap gap-6">
-          <RanksOverview ranksData={user.rankGlobal} login={login} />
+        <ProfileCardsGrid>
+          <RanksOverview title="Global Ranks" ranksData={user.rankGlobal} detailsLink={`/profile/${login}/ranks`} />
+          {user.rankCountry && (
+            <RanksOverview
+              title={`Ranks in ${user.country}`}
+              ranksData={user.rankCountry}
+              detailsLink={`/profile/${login}/ranks/country`}
+            />
+          )}
           <RepositoriesOverview
             topRepoStars={user.repositories?.[0]?.stargazerCount ?? 0}
             contributedRepoCount={user.contributedRepoCount}
@@ -60,7 +68,7 @@ export default async function Profile({ params }: { params: Promise<{ login: str
             c={user.c}
             login={login}
           />
-        </div>
+        </ProfileCardsGrid>
         <div>
           <ProfileTimeline timeline={user.timeline} firstSeenAt={user.firstSeenAt} />
         </div>

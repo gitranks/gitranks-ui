@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     useCache: true,
     dynamicIO: true,
     // redefine the stock 'hours' profile in dev so its TTL = 0
-    // cacheLife: isDev ? { hours: { stale: 0, revalidate: 1, expire: 1 } } : undefined,
+    cacheLife: isDev ? { hours: { stale: 0, revalidate: 1, expire: 1 } } : undefined,
   },
   images: {
     remotePatterns: [

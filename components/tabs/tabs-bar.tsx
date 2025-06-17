@@ -9,7 +9,7 @@ type TabsBarProps = {
 
 export const TabsBar: FC<TabsBarProps> = ({ children, className }) => {
   return (
-    <div className={cn('text-sm text-center text-muted-foreground border-b border-border', className)}>
+    <div className={cn('text-sm text-center text-muted-foreground border-b', className)}>
       <ul className="flex flex-wrap -mb-px">{children}</ul>
     </div>
   );

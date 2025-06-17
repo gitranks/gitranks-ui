@@ -27,7 +27,7 @@ export const CountryCard: FC<{ countrySummary: CountrySummaryQuery['countrySumma
   } = countrySummary;
 
   return (
-    <Card className="flex-grow border-border gap-4">
+    <Card className="flex-grow gap-4">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           <div>

@@ -10,7 +10,7 @@ export const Preview: FC<LoginFormProps> = ({ githubLogin, githubId }) => {
 
   return (
     <div className="flex flex-grow items-start justify-center">
-      <div className="flex flex-col max-w-lg min-w-xs border-border border-1 rounded-lg p-6 gap-3">
+      <div className="flex flex-col max-w-lg min-w-xs border-1 rounded-lg p-6 gap-3">
         <p className="text-xs">devwizard/README.md</p>
         <p className="text-lg font-semibold">Hi, I&apos;m devwizard 👋</p>
         <p>

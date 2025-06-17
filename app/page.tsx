@@ -10,7 +10,7 @@ import MainImage from './main-image';
 export default function Home() {
   return (
     <>
-      <div className="border-b border-border bg-linear-45 from-background to-80% to-landing-page-gradient-start-color">
+      <div className="border-b bg-linear-45 from-background to-80% to-landing-page-gradient-start-color">
         <Header />
         <Page>
           <div className="flex flex-col md:flex-row gap-4 grow items-center">

@@ -7,14 +7,17 @@ import { ProfileSummaryQuery } from '@/types/generated/graphql';
 import { ProfileCard, ProfileCardActions, ProfileCardContent, ProfileCardHeader } from './profile-card';
 
 type RanksOverviewProps = {
-  ranksData: NonNullable<ProfileSummaryQuery['user']>['rankGlobal'];
-  login: string;
+  ranksData:
+    | NonNullable<ProfileSummaryQuery['user']>['rankGlobal']
+    | NonNullable<ProfileSummaryQuery['user']>['rankCountry'];
+  title: string;
+  detailsLink: string;
 };
 
-export const RanksOverview: FC<RanksOverviewProps> = ({ ranksData, login }) => {
+export const RanksOverview: FC<RanksOverviewProps> = ({ ranksData, title, detailsLink }) => {
   return (
     <ProfileCard>
-      <ProfileCardHeader>Ranks</ProfileCardHeader>
+      <ProfileCardHeader>{title}</ProfileCardHeader>
       <ProfileCardContent>
         <div className="flex items-center">
           ⭐&nbsp;&nbsp;Stars rank:&nbsp;
@@ -35,7 +38,7 @@ export const RanksOverview: FC<RanksOverviewProps> = ({ ranksData, login }) => {
         </div>
       </ProfileCardContent>
       <ProfileCardActions>
-        <Link href={`/profile/${login}/ranks`}>View Details</Link>
+        <Link href={detailsLink}>View Details</Link>
       </ProfileCardActions>
     </ProfileCard>
   );

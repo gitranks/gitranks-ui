@@ -1,5 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 
+import { ProfileCardsGrid } from './components/profile-card';
 import {
   AvatarAndNameContainer,
   AvatarContainer,
@@ -28,10 +29,10 @@ export default function Loading() {
         </DetailsContainer>
       </LeftColumnContainer>
       <div className="flex-grow flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row flex-wrap gap-6">
-          <Skeleton className="h-[150px] grow min-w-xs rounded-xl" />
-          <Skeleton className="h-[150px] grow min-w-xs rounded-xl" />
-        </div>
+        <ProfileCardsGrid>
+          <Skeleton className="h-[150px] rounded-xl" />
+          <Skeleton className="h-[150px] rounded-xl" />
+        </ProfileCardsGrid>
       </div>
     </PageContainer>
   );

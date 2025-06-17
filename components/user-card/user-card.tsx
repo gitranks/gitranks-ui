@@ -14,7 +14,7 @@ export const UserCard: FC<UserCardProps> = ({ login, avatarUrl, avatarClassName 
   return (
     <LinkWithStopPropagation href={`/profile/${login}`}>
       <ProfileAvatar url={avatarUrl} initials={getInitials(login)} className={avatarClassName} />
-      {login}
+      <span translate="no">{login}</span>
     </LinkWithStopPropagation>
   );
 };

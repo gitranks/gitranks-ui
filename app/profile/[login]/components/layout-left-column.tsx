@@ -46,8 +46,12 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
             </Avatar>
           </AvatarContainer>
           <NameContainer>
-            <h1 className="font-semibold text-2xl">{user.name}</h1>
-            <h2 className="text-muted-foreground">@{user.login}</h2>
+            <h1 className="font-semibold text-2xl" translate="no">
+              {user.name}
+            </h1>
+            <h2 className="text-muted-foreground" translate="no">
+              @{user.login}
+            </h2>
           </NameContainer>
         </AvatarAndNameContainer>
         <ActionsContainer>

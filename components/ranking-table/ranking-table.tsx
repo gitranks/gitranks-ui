@@ -45,7 +45,7 @@ export const RankingTable: FC<RankingTableProps> = ({ rankingType, data, countri
                 <UserCard login={user?.login} avatarUrl={user?.avatarUrl} />
               </TableCell>
               <TableCell className="hidden sm:table-cell break-all whitespace-normal">
-                {getCountryFlag(countries, user?.country)} {user?.location}
+                {getCountryFlag(countries, user?.country)} <span translate="no">{user?.location}</span>
               </TableCell>
               <TableCell className="text-right">{user?.[rankPropName]?.toLocaleString('en-US')}</TableCell>
             </ClickableRow>

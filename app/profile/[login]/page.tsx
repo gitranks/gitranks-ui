@@ -5,6 +5,7 @@ import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from '
 import { notFound } from 'next/navigation';
 
 import { LayoutLeftColumn } from './components/layout-left-column';
+import { MessengerIntegration } from './components/messenger-integration';
 import { ProfileCardsGrid } from './components/profile-card';
 import { ProfileTimeline } from './components/profile-timeline';
 import { RanksOverview } from './components/ranks-overview';
@@ -49,8 +50,9 @@ export default async function Profile({ params }: { params: Promise<{ login: str
   }
 
   return (
-    <LayoutLeftColumn user={user}>
-      <div className="flex-grow flex flex-col gap-6">
+    <LayoutLeftColumn user={user} className="gap-6">
+      <>
+        <MessengerIntegration login={user.login} />
         <ProfileCardsGrid>
           <RanksOverview title="Global Ranks" ranksData={user.rankGlobal} detailsLink={`/profile/${login}/ranks`} />
           {user.rankCountry && (
@@ -72,7 +74,7 @@ export default async function Profile({ params }: { params: Promise<{ login: str
         <div>
           <ProfileTimeline timeline={user.timeline} firstSeenAt={user.firstSeenAt} />
         </div>
-      </div>
+      </>
     </LayoutLeftColumn>
   );
 }

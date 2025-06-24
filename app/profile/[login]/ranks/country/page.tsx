@@ -26,13 +26,13 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
   if (!user.country) {
     return (
       <LayoutLeftColumn user={user}>
-        <div className="flex flex-col gap-4">
+        <>
           <ProfileRankingSwitcher login={login} ranking="country" />
           <div className="text-muted-foreground">
             No country data found. To show up in country rankings, add a{' '}
             <Link href="/countries/stars/1">country name</Link> to your GitHub profile’s location and hit Refresh.
           </div>
-        </div>
+        </>
       </LayoutLeftColumn>
     );
   }
@@ -44,7 +44,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
 
   return (
     <LayoutLeftColumn user={user}>
-      <div className="flex flex-col gap-4">
+      <>
         <ProfileRankingSwitcher login={login} ranking="country" />
         <ProfileCardsGrid>
           <RankCard
@@ -80,7 +80,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
             usersCount={usersCount}
           />
         </ProfileCardsGrid>
-      </div>
+      </>
     </LayoutLeftColumn>
   );
 }

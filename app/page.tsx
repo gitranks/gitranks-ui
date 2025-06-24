@@ -4,6 +4,7 @@ import { Page } from '@/components/page/page';
 import { BadgeSection } from './components/badge-section';
 import { CountryRankingSection } from './components/country-ranking-section';
 import { GlobalRankingSection } from './components/global-ranking-section';
+import { MessengerIntegrationSection } from './components/messenger-integration-section';
 import { SearchProfile } from './components/search-profiile';
 import MainImage from './main-image';
 
@@ -30,6 +31,7 @@ export default function Home() {
       <Page className="gap-4">
         <GlobalRankingSection />
         <CountryRankingSection />
+        <MessengerIntegrationSection />
         <BadgeSection />
       </Page>
     </>

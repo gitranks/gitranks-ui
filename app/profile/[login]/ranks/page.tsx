@@ -31,7 +31,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
 
   return (
     <LayoutLeftColumn user={user}>
-      <div className="flex flex-col gap-4">
+      <>
         <ProfileRankingSwitcher login={login} ranking="global" />
         <ProfileCardsGrid>
           <RankCard
@@ -84,7 +84,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
           User ranks show how a user compare to other GitHub users across different metrics — like repository stars,
           contribution activity, and more. Ranks are recalculated daily.
         </div> */}
-      </div>
+      </>
     </LayoutLeftColumn>
   );
 }

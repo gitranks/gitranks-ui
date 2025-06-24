@@ -7,6 +7,7 @@ import { FC, ReactNode } from 'react';
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { ProfileSummaryQuery } from '@/types/generated/graphql';
 import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 
@@ -37,7 +38,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
   }
 
   return (
-    <PageContainer className={className}>
+    <PageContainer>
       <LeftColumnContainer>
         <AvatarAndNameContainer>
           <AvatarContainer>
@@ -124,7 +125,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
           )}
         </DetailsContainer>
       </LeftColumnContainer>
-      {children}
+      <div className={cn('flex flex-col gap-4 w-full', className)}>{children}</div>
     </PageContainer>
   );
 };

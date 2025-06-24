@@ -23,10 +23,10 @@ export default async function ProfileRepositories({ params }: { params: Promise<
 
   return (
     <LayoutLeftColumn user={user}>
-      <div className="flex flex-col gap-4 w-full">
+      <>
         <UserRepositoriesList repositories={repositories} login={login} repositoriesCount={repositoriesCount} />
         <UserContriutionsList contributions={contributions} login={login} />
-      </div>
+      </>
     </LayoutLeftColumn>
   );
 }

@@ -1,0 +1,22 @@
+query ProfileContributions($login: String!) {
+  user(login: $login) {
+    contributions {
+      year
+      prsCount
+      mergedPrsCount
+      linesAdded
+      linesRemoved
+      repository {
+        githubId
+        createdAt
+        pushedAt
+        url
+        forkCount
+        isArchived
+        name
+        releasesCount
+        stargazerCount
+      }
+    }
+  }
+}

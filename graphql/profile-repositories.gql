@@ -1,6 +1,7 @@
-query ProfileRepositories($login: String!) {
+query ProfileRepositories($login: String!, $offset: Int, $limit: Int) {
   user(login: $login) {
-    repositories(offset: 10, limit: 200) {
+    repositoriesCount
+    repositories(offset: $offset, limit: $limit) {
       githubId
       createdAt
       pushedAt

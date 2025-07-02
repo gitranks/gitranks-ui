@@ -101,7 +101,12 @@ type Query {
   globalRankByLogin(login: String!): RankGlobal
   globalRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankGlobal!]!
   profilesForSitemap: [ProfileForSitemap!]!
+  rankTiersByName(name: String!): RankTier
+
+  """List of rank tiers for a user"""
+  rankTiersForLogin(login: String!): [RankTier!]
   user(login: String!): User
+  users(logins: [String!]!): [User!]
 }
 
 type RankCountry {
@@ -182,6 +187,17 @@ enum RankOrder {
   STARS
 }
 
+type RankTier {
+  cTiers: [Tier!]!
+  cUsers: Int!
+  entityName: String!
+  entityType: String!
+  fTiers: [Tier!]!
+  fUsers: Int!
+  sTiers: [Tier!]!
+  sUsers: Int!
+}
+
 type Repository {
   createdAt: DateTime
   forkCount: Int!
@@ -219,6 +235,14 @@ type SocialAccountNodeEntity {
 enum SortDirection {
   ASC
   DESC
+}
+
+type Tier {
+  level: Int!
+  maxRank: Int!
+  minRank: Int!
+  minValue: Int!
+  tier: Int!
 }
 
 type Timeline {

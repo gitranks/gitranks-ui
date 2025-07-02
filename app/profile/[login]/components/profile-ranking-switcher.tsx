@@ -11,10 +11,10 @@ export const ProfileRankingSwitcher: FC<ProfileRankingSwitcherProps> = ({ login,
   return (
     <div className="text-sm">
       <LinkGroup>
-        <LinkGroupItem href={`/profile/${login}/ranks`} active={ranking === 'global'}>
+        <LinkGroupItem href={`/profile/${login}`} active={ranking === 'global'}>
           Global
         </LinkGroupItem>
-        <LinkGroupItem href={`/profile/${login}/ranks/country`} active={ranking === 'country'}>
+        <LinkGroupItem href={`/profile/${login}/country`} active={ranking === 'country'}>
           Country
         </LinkGroupItem>
       </LinkGroup>

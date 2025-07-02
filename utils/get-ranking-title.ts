@@ -1,3 +1,4 @@
+import { RANK_DESCRIPTIONS } from '@/app/app.consts';
 import { RankingTypeClient } from '@/types/ranking.types';
 
 export function getRankingTitle(rankingType: RankingTypeClient, countryName?: string) {
@@ -8,17 +9,17 @@ export function getRankingTitle(rankingType: RankingTypeClient, countryName?: st
 
   switch (rankingType) {
     case RankingTypeClient.Contribution:
-      title = `${prefix}Contribution Ranking`;
-      subtitle = 'Ranks use stars from repos a developer contributed to — excluding their own repos.';
+      title = `${prefix}${RANK_DESCRIPTIONS.c.title}ing`;
+      subtitle = RANK_DESCRIPTIONS.c.descriptionList;
       break;
     case RankingTypeClient.Follower:
-      title = `${prefix}Followers Ranking`;
-      subtitle = 'Rank is based on the number of followers the user has on GitHub.';
+      title = `${prefix}${RANK_DESCRIPTIONS.f.title}ing`;
+      subtitle = RANK_DESCRIPTIONS.f.descriptionList;
       break;
     case RankingTypeClient.Star:
     default:
-      title = `${prefix}Star Ranking`;
-      subtitle = 'Rank is based on the total number of stars across repositories owned by a user.';
+      title = `${prefix}${RANK_DESCRIPTIONS.s.title}ing`;
+      subtitle = RANK_DESCRIPTIONS.s.descriptionList;
       break;
   }
 

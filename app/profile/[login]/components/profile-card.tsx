@@ -27,7 +27,7 @@ type ProfileCardHeaderProps = {
 export const ProfileCardHeader: FC<ProfileCardHeaderProps> = ({ children, meta, className }) => {
   return (
     <CardHeader className={cn('p-0 flex flex-row items-center gap-2', className)}>
-      <CardTitle className="text-lg">{children}</CardTitle>
+      <CardTitle className="text-lg font-normal">{children}</CardTitle>
       {!!meta ? meta : null}
     </CardHeader>
   );
@@ -39,7 +39,7 @@ type ProfileCardContentProps = {
 };
 
 export const ProfileCardContent: FC<ProfileCardContentProps> = ({ children, className }) => {
-  return <CardContent className={cn('p-0 flex flex-col gap-1.5', className)}>{children}</CardContent>;
+  return <CardContent className={cn('p-0 flex grow flex-col gap-1.5', className)}>{children}</CardContent>;
 };
 
 type ProfileCardActionsProps = {

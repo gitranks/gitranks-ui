@@ -1,3 +1,5 @@
+export type UserRankProps = 's' | 'c' | 'f';
+
 export enum RankingType {
   Star = 'star',
   Contribution = 'contribution',

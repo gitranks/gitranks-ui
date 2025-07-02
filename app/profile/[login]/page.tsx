@@ -1,38 +1,25 @@
 'use cache';
 
-import { Metadata } from 'next';
 import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
+
+import { fetchProfileData } from '@/graphql/helpers/fetch-profile-data';
+import { fetchRankTiers } from '@/graphql/helpers/fetch-rank-tiers';
 
 import { LayoutLeftColumn } from './components/layout-left-column';
 import { MessengerIntegration } from './components/messenger-integration';
 import { ProfileCardsGrid } from './components/profile-card';
-import { ProfileTimeline } from './components/profile-timeline';
-import { RanksOverview } from './components/ranks-overview';
-import { RepositoriesOverview } from './components/repositories-overiview';
-import NotFound from './not-found';
-import { fetchProfileData } from '../../../graphql/helpers/fetch-profile-data';
+import { ProfileCharts } from './components/profile-charts';
+import { ProfileRankingSwitcher } from './components/profile-ranking-switcher';
+import { RankBreakdownTooltip } from './components/rank-breakdown-tooltip';
+import { NotFound } from './not-found';
+import { calculateTiers } from './utils/calculate-tiers/calculate-tiers';
+import { RankCard } from '../../../components/rank-card/rank-card';
 
-export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
-  const { login } = await params;
-  const { user } = await fetchProfileData(login);
+// DRAWERS FOR TIER DETAILS
+// PROVISIONAL TAGS
 
-  if (!user) {
-    return { title: 'GitHub Profile Analytics & Rankings · GitRanks' };
-  }
-
-  const { s, c, f } = user.rankGlobal ?? {};
-
-  return {
-    title: `${login} – GitHub Profile Analytics & Rankings · GitRanks`,
-    description: `Explore GitHub analytics for ${login} – ranked #${s} by stars, #${c} by contributions, and #${f} by followers. See how your code impacts the world and where you stand in the global developer community with GitRanks.`,
-    openGraph: {
-      images: [user.avatarUrl!],
-    },
-  };
-}
-
-export default async function Profile({ params }: { params: Promise<{ login: string }> }) {
+export default async function ProfileRanks({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);
@@ -40,7 +27,6 @@ export default async function Profile({ params }: { params: Promise<{ login: str
   const { user } = await fetchProfileData(login);
 
   if (!user) {
-    // nextjs not found page
     notFound();
   }
 
@@ -49,31 +35,77 @@ export default async function Profile({ params }: { params: Promise<{ login: str
     return <NotFound fetchingStatus={user.fetchingStatus} fetchingUpdatedAt={user.fetchingUpdatedAt} />;
   }
 
+  const { rankTiers } = await fetchRankTiers('global');
+  const { s, c, f, sM, cM, fM, sProvisional, cProvisional, fProvisional } = user.rankGlobal ?? {};
+
+  const { sTier, cTier, fTier, bestTier } = calculateTiers(user.rankGlobal, rankTiers);
+
   return (
-    <LayoutLeftColumn user={user} className="gap-6">
+    <LayoutLeftColumn user={user}>
       <>
-        <MessengerIntegration login={user.login} />
+        <ProfileRankingSwitcher login={login} ranking="global" />
+        <ProfileCharts
+          rankChartTitle="Global Rank"
+          tiers={rankTiers?.sTiers || rankTiers?.cTiers || rankTiers?.fTiers}
+          sTier={sTier}
+          cTier={cTier}
+          fTier={fTier}
+          bestTier={bestTier}
+        />
+
+        <MessengerIntegration login={login} />
+        <h2 className="text-xl mt-4 flex items-center gap-2">
+          Rank breakdown <RankBreakdownTooltip />
+        </h2>
         <ProfileCardsGrid>
-          <RanksOverview title="Global Ranks" ranksData={user.rankGlobal} detailsLink={`/profile/${login}/ranks`} />
-          {user.rankCountry && (
-            <RanksOverview
-              title={`Ranks in ${user.country}`}
-              ranksData={user.rankCountry}
-              detailsLink={`/profile/${login}/ranks/country`}
-            />
-          )}
-          <RepositoriesOverview
-            topRepoStars={user.repositories?.[0]?.stargazerCount ?? 0}
-            contributedRepoCount={user.contributedRepoCount}
-            repositoriesCount={user.repositoriesCount}
-            s={user.s}
-            c={user.c}
+          <RankCard
+            tiers={rankTiers?.sTiers}
+            tierData={sTier}
+            rankType="s"
+            rank={s}
+            rankM={sM}
+            rankProvisional={sProvisional}
+            score={user.s}
             login={login}
           />
+          <RankCard
+            tiers={rankTiers?.cTiers}
+            tierData={cTier}
+            rankType="c"
+            rank={c}
+            rankM={cM}
+            rankProvisional={cProvisional}
+            score={user.c}
+            login={login}
+          />
+          <RankCard
+            tiers={rankTiers?.fTiers}
+            tierData={fTier}
+            rankType="f"
+            rank={f}
+            rankM={fM}
+            rankProvisional={fProvisional}
+            score={user.f}
+            login={login}
+          />
+
+          {/* <div className="flex p-0 md:p-4 min-w-xs flex-grow basis-0 shrink-0 items-center justify-center">
+            <div className="flex flex-col gap-2 items-start">
+              <div className="font-semibold">Put Your Rank on Display</div> */}
+          {}
+          {/* <img
+                src={`/api/badge/${login}?rankingType=${bestRankType}&template=small&theme=light`}
+                alt="github badge"
+              />
+              <Button asChild className="mt-2">
+                <Link href={`/badge/${login}?rankingType=${bestRankType}&template=small`}>
+                  Get a Badge
+                  <ChevronRight />
+                </Link>
+              </Button>
+            </div>
+          </div> */}
         </ProfileCardsGrid>
-        <div>
-          <ProfileTimeline timeline={user.timeline} firstSeenAt={user.firstSeenAt} />
-        </div>
       </>
     </LayoutLeftColumn>
   );

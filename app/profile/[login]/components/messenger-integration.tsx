@@ -3,7 +3,6 @@ import { FaWhatsapp } from 'react-icons/fa';
 import { FaTelegramPlane } from 'react-icons/fa';
 
 import { Link as LinkUnderlined } from '@/components/link/link';
-import { NewBadge } from '@/components/new-badge/new-badge';
 
 type LayoutLeftColumnProps = Readonly<{
   login: string;
@@ -12,9 +11,7 @@ type LayoutLeftColumnProps = Readonly<{
 export const MessengerIntegration: FC<LayoutLeftColumnProps> = ({ login }) => {
   return (
     <div className="flex items-center gap-2 flex-wrap text-sm justify-between px-4 py-4 rounded-xl border-1">
-      <div className="flex items-center gap-2">
-        <NewBadge /> Subscribe to {login}’s GitHub rank updates in your messenger
-      </div>
+      <div className="flex items-center gap-2">Subscribe to {login}’s GitHub rank updates in your messenger</div>
       <div className="flex items-center gap-4">
         <LinkUnderlined
           className="flex items-center gap-2"

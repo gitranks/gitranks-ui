@@ -45,11 +45,11 @@ async function ProfileLayoutAwaitParams({ children, params }: ProfileLayoutProps
     <>
       <Header login={login} />
       <TabsBar className="mb-4">
-        <Tab href={`/profile/${login}`} exact>
-          Overview
+        <Tab href={`/profile/${login}`} pathnames={[`/profile/${login}`, `/profile/${login}/country`]}>
+          Ranks
         </Tab>
-        <Tab href={`/profile/${login}/ranks`}>Ranks</Tab>
         <Tab href={`/profile/${login}/repositories`}>Repositories</Tab>
+        <Tab href={`/profile/${login}/timeline`}>Timeline</Tab>
       </TabsBar>
       {children}
     </>

@@ -4,13 +4,17 @@ import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from '
 import { notFound } from 'next/navigation';
 
 import { Link } from '@/components/link/link';
-import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
 import { fetchProfileData } from '@/graphql/helpers/fetch-profile-data';
+import { fetchRankTiers } from '@/graphql/helpers/fetch-rank-tiers';
 
-import { LayoutLeftColumn } from '../../components/layout-left-column';
-import { ProfileCardsGrid } from '../../components/profile-card';
+import { RankCard } from '../../../../components/rank-card/rank-card';
+import { LayoutLeftColumn } from '../components/layout-left-column';
+import { MessengerIntegration } from '../components/messenger-integration';
+import { ProfileCardsGrid } from '../components/profile-card';
+import { ProfileCharts } from '../components/profile-charts';
 import { ProfileRankingSwitcher } from '../components/profile-ranking-switcher';
-import { RankCard } from '../components/rank-card';
+import { RankBreakdownTooltip } from '../components/rank-breakdown-tooltip';
+import { calculateTiers } from '../utils/calculate-tiers/calculate-tiers';
 
 export default async function ProfileRanks({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;
@@ -37,47 +41,55 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
     );
   }
 
-  const countrySummaries = await fetchCountrySummaries();
-  const usersCount = countrySummaries.find((summary) => summary.country === user.country)?.usersCount;
-
+  const { rankTiers } = await fetchRankTiers(user.country);
   const { s, c, cM, f, sProvisional, cProvisional, fProvisional, sM, fM } = user.rankCountry ?? {};
+  const { sTier, cTier, fTier, bestTier } = calculateTiers(user.rankCountry, rankTiers);
 
   return (
     <LayoutLeftColumn user={user}>
       <>
         <ProfileRankingSwitcher login={login} ranking="country" />
+        <ProfileCharts
+          rankChartTitle={`Rank in ${user.country}`}
+          tiers={rankTiers?.sTiers || rankTiers?.cTiers || rankTiers?.fTiers}
+          sTier={sTier}
+          cTier={cTier}
+          fTier={fTier}
+          bestTier={bestTier}
+        />
+
+        <MessengerIntegration login={login} />
+        <h2 className="text-xl mt-4 flex items-center gap-2">
+          Rank breakdown <RankBreakdownTooltip />
+        </h2>
         <ProfileCardsGrid>
           <RankCard
+            tierData={sTier}
+            rankType="s"
             rank={s}
             rankM={sM}
             rankProvisional={sProvisional}
-            title="Stars rank"
-            entityValue={user.s}
-            entityName="stars"
-            description="Rank is based on the total number of stars across repositories owned by the user."
-            usersCount={usersCount}
+            score={user.s}
+            login={login}
           />
+
           <RankCard
-            rank={f}
-            rankM={fM}
-            rankProvisional={fProvisional}
-            showDelta={false}
-            title="Followers rank"
-            entityValue={user.f}
-            entityName="followers"
-            description="Rank is based on the number of followers the user has on GitHub."
-            usersCount={usersCount}
-          />
-          <RankCard
+            tierData={cTier}
+            rankType="c"
             rank={c}
             rankM={cM}
             rankProvisional={cProvisional}
-            title="Contributor rank"
-            entityValue={user.c}
-            entityName="stars"
-            description="Rank is based on the total number of stars across repositories where the user has merged pull requests —
-              excluding their own repositories."
-            usersCount={usersCount}
+            score={user.c}
+            login={login}
+          />
+          <RankCard
+            tierData={fTier}
+            rankType="f"
+            rank={f}
+            rankM={fM}
+            rankProvisional={fProvisional}
+            score={user.f}
+            login={login}
           />
         </ProfileCardsGrid>
       </>

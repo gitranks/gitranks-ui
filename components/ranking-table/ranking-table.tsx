@@ -22,7 +22,7 @@ export const RankingTable: FC<RankingTableProps> = ({ rankingType, data, countri
     <Table>
       <TableHeader className="[&_tr]:border-b-0">
         <TableRow>
-          <TableHead className="w-[100px]">#</TableHead>
+          <TableHead className="w-[100px]">Rank</TableHead>
           <TableHead>Login</TableHead>
           <TableHead className="hidden sm:table-cell">Location</TableHead>
           <TableHead className="text-right">{rankingBaseEntity}</TableHead>

@@ -29,7 +29,7 @@ export const LoadMoreRepositories: FC<LoadMoreRepositoriesProps> = ({ login, rep
     setLoadingState(LoadingState.LOADING);
 
     try {
-      const { user } = (await graphqlClient(ProfileRepositoriesDocument, { login })) ?? {};
+      const { user } = (await graphqlClient(ProfileRepositoriesDocument, { login, limit: 200, offset: 10 })) ?? {};
 
       setRepositories(user?.repositories ?? []);
       setLoadingState(LoadingState.LOADED);

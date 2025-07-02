@@ -41,8 +41,8 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
       repository={repository}
       meta={
         <Badge variant="secondary">
-          {badgeLabel} <span className="text-positive">+{linesAdded}</span>
-          <span className="text-negative">-{linesRemoved}</span>
+          {badgeLabel} <span className="text-positive">+{linesAdded?.toLocaleString('en-US')}</span>
+          <span className="text-negative">-{linesRemoved?.toLocaleString('en-US')}</span>
         </Badge>
       }
       login={login}

@@ -14,41 +14,6 @@ export const metadata: Metadata = {
     'Explore ranks based on stars, followers, contributions, and more. Dive into dynamic leaderboards and find out how you measure up against developers worldwide.',
 };
 
-// function LayoutLoading() {
-//   return (
-//     <>
-//       <Header />
-//       <Loading />
-//     </>
-//   );
-// }
-
-// async function ProfileLayoutAwaitParams({ children, params }: ProfileLayoutProps) {
-//   const { login } = await params;
-
-//   return (
-//     <>
-//       <Header login={login} />
-//       <TabsBar className="mb-4">
-//         <Tab href={`/profile/${login}`} active>
-//           Overview
-//         </Tab>
-//         <Tab href={`/profile/${login}/ranks`}>Ranks</Tab>
-//         <Tab href={`/profile/${login}/repositories`}>Repositories</Tab>
-//       </TabsBar>
-//       {children}
-//     </>
-//   );
-// }
-
-// export default async function ProfileLayout({ children, params }: ProfileLayoutProps) {
-//   return (
-//     <Suspense fallback={<LayoutLoading />}>
-//       <ProfileLayoutAwaitParams params={params}>{children}</ProfileLayoutAwaitParams>
-//     </Suspense>
-//   );
-// }
-
 type CountriesLayoutProps = Readonly<{ children: React.ReactNode; params: Promise<{ orderBy: CountrySummaryOrder }> }>;
 
 export default async function CountriesLayout({ children, params }: CountriesLayoutProps) {

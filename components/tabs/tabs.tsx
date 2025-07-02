@@ -10,11 +10,20 @@ type TabProps = {
   href: string;
   children: ReactNode;
   exact?: boolean;
+  pathnames?: string[];
 };
 
-export const Tab: FC<TabProps> = ({ href, children, exact }) => {
+export const Tab: FC<TabProps> = ({ href, children, exact, pathnames }) => {
   const pathname = usePathname();
-  const active = exact ? pathname === href : pathname.startsWith(href);
+  let active = false;
+
+  if (exact) {
+    active = pathname === href;
+  } else if (pathnames && pathnames.length > 0) {
+    active = pathnames.some((path) => pathname === path);
+  } else {
+    active = pathname.startsWith(href);
+  }
 
   return (
     <li className="me-2">

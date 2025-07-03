@@ -15,7 +15,7 @@ type ProfileCardProps = {
 };
 
 export const ProfileCard: FC<ProfileCardProps> = ({ children, className }) => {
-  return <Card className={cn('w-full border-2 p-3 md:p-4 shadow-none md:shadow-sm gap-4', className)}>{children}</Card>;
+  return <Card className={cn('w-full border-2 p-3 md:p-4 shadow-sm gap-4', className)}>{children}</Card>;
 };
 
 type ProfileCardHeaderProps = {

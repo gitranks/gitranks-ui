@@ -46,7 +46,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
         </Badge>
       }
       login={login}
-      className="md:border-0 md:border-b-1 last:md:border-b-0 p-4 pl-0 md:pl-0 md:rounded-none"
+      className="border-0 border-b-1 last:border-b-0 p-4 pl-0 md:pl-0 rounded-none shadow-none"
     />
   );
 };

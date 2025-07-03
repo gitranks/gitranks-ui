@@ -21,7 +21,8 @@ export function getNextTierThreshold({ tiers, currentTier, score }: GetNextTierT
   const nextHigher = tiers[index - 1];
 
   // Positive gap means more stars needed; 0 means they already qualify
-  const threshold = Math.max(0, nextHigher.minValue - score);
+  // +1 because the current last place could have the same score as the lower tier top profiles
+  const threshold = Math.max(0, nextHigher.minValue - score + 1);
 
   return { threshold, nextTier: nextHigher };
 }

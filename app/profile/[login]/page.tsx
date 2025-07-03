@@ -16,9 +16,11 @@ import { NotFound } from './not-found';
 import { calculateTiers } from './utils/calculate-tiers/calculate-tiers';
 import { RankCard } from '../../../components/rank-card/rank-card';
 
-// DRAWERS FOR TIER DETAILS
 // PROVISIONAL TAGS
+// contributions padding and border
 
+// badges - tiers
+// messenger bots - tiers
 export default async function ProfileRanks({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;
   cacheLife('hours');
@@ -46,10 +48,9 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
         <ProfileRankingSwitcher login={login} ranking="global" />
         <ProfileCharts
           rankChartTitle="Global Rank"
-          tiers={rankTiers?.sTiers || rankTiers?.cTiers || rankTiers?.fTiers}
-          sTier={sTier}
-          cTier={cTier}
-          fTier={fTier}
+          sTier={sTier.data}
+          cTier={cTier.data}
+          fTier={fTier.data}
           bestTier={bestTier}
         />
 

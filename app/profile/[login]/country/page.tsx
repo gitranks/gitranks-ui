@@ -51,10 +51,9 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
         <ProfileRankingSwitcher login={login} ranking="country" />
         <ProfileCharts
           rankChartTitle={`Rank in ${user.country}`}
-          tiers={rankTiers?.sTiers || rankTiers?.cTiers || rankTiers?.fTiers}
-          sTier={sTier}
-          cTier={cTier}
-          fTier={fTier}
+          sTier={sTier.data}
+          cTier={cTier.data}
+          fTier={fTier.data}
           bestTier={bestTier}
         />
 
@@ -64,6 +63,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
         </h2>
         <ProfileCardsGrid>
           <RankCard
+            tiers={rankTiers?.sTiers}
             tierData={sTier}
             rankType="s"
             rank={s}
@@ -74,6 +74,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
           />
 
           <RankCard
+            tiers={rankTiers?.cTiers}
             tierData={cTier}
             rankType="c"
             rank={c}
@@ -83,6 +84,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
             login={login}
           />
           <RankCard
+            tiers={rankTiers?.fTiers}
             tierData={fTier}
             rankType="f"
             rank={f}

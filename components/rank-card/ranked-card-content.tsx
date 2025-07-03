@@ -23,9 +23,7 @@ export const RankedCardContent: FC<RankCardProps> = ({
   return (
     <>
       <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} />
-      {!!rankPercentile && (
-        <RankCardItem Icon={Trophy}>You&apos;re in the top {rankPercentile}% of all ranked profiles!</RankCardItem>
-      )}
+      {!!rankPercentile && <RankCardItem Icon={Trophy}>Top {rankPercentile}% of all ranked profiles!</RankCardItem>}
       {rankToDisplay !== rankM && (
         <RankCardItem Icon={rankToDisplay > (rankM || 0) ? TrendingDown : TrendingUp}>
           <span>

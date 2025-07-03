@@ -5,6 +5,8 @@ import { RadarChart, Radar, PolarAngleAxis, PolarRadiusAxis, PolarGrid } from 'r
 import { Tier } from '@/types/generated/graphql';
 import { PersonaType } from '@/types/persona.types';
 
+import { LEVELS_PER_TIER } from '../rank-chart/rank-chart.consts';
+
 export interface PersonaChartProps {
   sTier?: Tier;
   cTier?: Tier;
@@ -16,7 +18,7 @@ const RADIUS = SIZE / 2;
 const CHART_RADIUS = RADIUS - 8;
 const FILL = '#00A8E8';
 
-const calculateRank = (tier?: Tier) => (tier ? (tier.tier - 1) * 5 + tier.level : 0);
+const calculateRank = (tier?: Tier) => (tier ? (tier.tier - 1) * LEVELS_PER_TIER + tier.level : 0);
 
 export const PersonaChart: React.FC<PersonaChartProps> = ({ sTier, cTier, fTier }) => {
   const ranks = useMemo(

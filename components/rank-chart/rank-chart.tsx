@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useId, useMemo } from 'react';
+import { useCallback, useId } from 'react';
 import { PieChart, Pie, Cell } from 'recharts';
 
 import { TIER_NAMES } from '@/app/app.consts';
@@ -14,6 +14,7 @@ import {
   GAP_BETWEEN_TIERS,
   INNER_RADIUS,
   LABEL_RADIUS,
+  LEVELS_PER_TIER,
   RADIUS,
   START_END_GAP,
   WEDGE_DEG,
@@ -21,26 +22,15 @@ import {
 import { ChartItemType, RankChartProps } from './rank-chart.types';
 import { toXY } from './rank-chart.utils';
 
-export function RankChart({ progress, tiers = [], colors = DEFAULT_COLORS, debug = false }: RankChartProps) {
-  const pieData = useMemo(() => {
-    let currentTier: number | undefined;
-    return tiers
-      ?.reduce<ChartItemType[]>((acc, item) => {
-        if (item.tier !== currentTier) {
-          if (currentTier) {
-            // gap before new tier
-            acc.push({ value: 0, tier: currentTier, level: -1, isGap: true });
-          }
-          currentTier = item.tier;
-        }
+const PIE_DATA = TIER_NAMES?.reduce<ChartItemType[]>((acc, _, index) => {
+  return [
+    ...acc,
+    ...Array.from({ length: LEVELS_PER_TIER }, (_, level) => ({ value: 1, tier: index + 1, level, isGap: false })),
+    { value: 0, tier: index + 1, level: -1, isGap: true },
+  ];
+}, []);
 
-        acc.push({ value: 1, tier: item.tier, level: item.level, isGap: false });
-        return acc;
-      }, [])
-      .reverse();
-  }, [tiers]);
-
-  /* ───────── map progress → active rule ─── */
+export function RankChart({ progress, colors = DEFAULT_COLORS, debug = false }: RankChartProps) {
   const isActive = useCallback(
     (item: ChartItemType) => {
       if (item.isGap || !progress) {
@@ -65,15 +55,11 @@ export function RankChart({ progress, tiers = [], colors = DEFAULT_COLORS, debug
 
   const idBase = useId();
 
-  if (!pieData) {
-    return null;
-  }
-
   return (
     <div style={{ position: 'relative', width: CANVAS_SIZE, height: CANVAS_SIZE }}>
       <PieChart width={CANVAS_SIZE} height={CANVAS_SIZE} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
         <Pie
-          data={pieData}
+          data={PIE_DATA}
           dataKey="value"
           cx={CANVAS_MID}
           cy={CANVAS_MID}
@@ -85,7 +71,7 @@ export function RankChart({ progress, tiers = [], colors = DEFAULT_COLORS, debug
           stroke="none"
           isAnimationActive={false}
         >
-          {pieData.map((d, i) =>
+          {PIE_DATA.map((d, i) =>
             d.isGap ? (
               <Cell key={i} fill="transparent" />
             ) : (

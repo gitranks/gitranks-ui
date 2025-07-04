@@ -45,7 +45,7 @@ export const SearchProfile = () => {
         className="flex gap-4"
       >
         <Input
-          placeholder="e.g. torvalds, gaearon, theprimeagen"
+          placeholder="e.g. torvalds, sindresorhus"
           value={login}
           onChange={(event) => setLogin(event.target.value)}
           disabled={loading}

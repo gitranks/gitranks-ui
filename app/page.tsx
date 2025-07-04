@@ -19,8 +19,10 @@ export default function Home() {
               <h1 className="text-3xl sm:text-4xl font-semibold">
                 Your GitHub Profile is More Impressive Than You Think
               </h1>
-              <div>Just one repo with 5 stars puts you ahead of 95% of developers. See where you rank:</div>
-              <SearchProfile />
+              <div className="flex flex-col gap-1">
+                See where you rank:
+                <SearchProfile />
+              </div>
             </div>
             <div className="flex flex-grow items-center justify-center w-full md:w-auto min-w-xs">
               <MainImage />

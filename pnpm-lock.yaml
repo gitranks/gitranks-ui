@@ -59,6 +59,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      country-flag-emoji-polyfill:
+        specifier: ^0.1.8
+        version: 0.1.8
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -2019,6 +2022,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  country-flag-emoji-polyfill@0.1.8:
+    resolution: {integrity: sha512-Mbah52sADS3gshUYhK5142gtUuJpHYOXlXtLFI3Ly4RqgkmPMvhX9kMZSTqDM8P7UqtSW99eHKFphhQSGXA3Cg==}
 
   cross-fetch@3.2.0:
     resolution: {integrity: sha512-Q+xVJLoGOeIMXZmbUK4HYk+69cQH6LudR0Vu/pRm2YlU/hDV9CiS0gKUMaWY5f2NeUH9C1nV3bsTlCo0FsTV1Q==}
@@ -6325,6 +6331,8 @@ snapshots:
       parse-json: 5.2.0
     optionalDependencies:
       typescript: 5.8.3
+
+  country-flag-emoji-polyfill@0.1.8: {}
 
   cross-fetch@3.2.0:
     dependencies:

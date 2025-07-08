@@ -8,6 +8,8 @@ import { ThemeProvider } from '@/components/theme-provider/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { PostHogClientOnlyProvider } from '@/lib/posthog/post-hog-client-only';
 
+import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
+
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -21,11 +23,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`}>
+      <body
+        className="antialiased"
+        style={{ ...inter.style, fontFamily: `'Twemoji Country Flags', ${inter.style.fontFamily}` }}
+      >
         <SessionProvider>
           <PostHogClientOnlyProvider>
             <NuqsAdapter>
               <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+                <FlagEmojiPolyfill />
                 <div className="flex flex-col min-h-screen">
                   <div className="flex-grow">{children}</div>
                   <Footer />

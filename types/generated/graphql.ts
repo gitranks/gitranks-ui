@@ -332,6 +332,7 @@ export type User = {
   __typename?: 'User';
   avatarUrl?: Maybe<Scalars['String']['output']>;
   c?: Maybe<Scalars['Int']['output']>;
+  cD?: Maybe<Scalars['Int']['output']>;
   company?: Maybe<Scalars['String']['output']>;
   contributedRepoCount?: Maybe<Scalars['Int']['output']>;
   contributions?: Maybe<Array<Contribution>>;
@@ -339,6 +340,7 @@ export type User = {
   createdAt: Scalars['DateTime']['output'];
   email?: Maybe<Scalars['String']['output']>;
   f?: Maybe<Scalars['Int']['output']>;
+  fD?: Maybe<Scalars['Int']['output']>;
   fetchingStatus?: Maybe<UserFetchingStatus>;
   fetchingUpdatedAt?: Maybe<Scalars['Float']['output']>;
   firstSeenAt?: Maybe<Scalars['DateTime']['output']>;
@@ -359,6 +361,7 @@ export type User = {
   repositories?: Maybe<Array<Repository>>;
   repositoriesCount?: Maybe<Scalars['Int']['output']>;
   s?: Maybe<Scalars['Int']['output']>;
+  sD?: Maybe<Scalars['Int']['output']>;
   snapshots?: Maybe<Scalars['JSON']['output']>;
   socialAccounts?: Maybe<SocialAccount>;
   timeline?: Maybe<Array<Timeline>>;

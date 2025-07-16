@@ -253,6 +253,7 @@ type Timeline {
 type User {
   avatarUrl: String
   c: Int
+  cD: Int
   company: String
   contributedRepoCount: Int
   contributions: [Contribution!]
@@ -260,6 +261,7 @@ type User {
   createdAt: DateTime!
   email: String
   f: Int
+  fD: Int
   fetchingStatus: UserFetchingStatus
   fetchingUpdatedAt: Float
   firstSeenAt: DateTime
@@ -280,6 +282,7 @@ type User {
   repositories(limit: Int! = 10, offset: Int! = 0, order: RankOrder! = STARS, sortBy: RepositorySortField! = STARGAZERS, sortDirection: SortDirection! = DESC): [Repository!]
   repositoriesCount: Int
   s: Int
+  sD: Int
   snapshots: JSON
   socialAccounts: SocialAccount
   timeline: [Timeline!]

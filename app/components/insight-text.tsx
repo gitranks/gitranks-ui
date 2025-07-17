@@ -24,7 +24,6 @@ const rankingPattern = Object.values(RANK_DESCRIPTIONS)
   .join('|');
 
 const InsightText: React.FC<InsightTextProps> = ({ insight }) => {
-  console.log('render');
   const { text, data } = insight;
   const login = data?.user?.login;
 

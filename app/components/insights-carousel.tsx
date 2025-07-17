@@ -67,7 +67,7 @@ const InsightsCarousel = () => {
 
   if (loading) {
     return (
-      <div className="flex w-full h-[180px] flex-col gap-3">
+      <div className="flex w-full h-[132px] flex-col gap-3 mt-3">
         <Skeleton className="w-full h-[16px]" />
         <Skeleton className="w-full h-[16px]" />
         <Skeleton className="w-full h-[16px]" />

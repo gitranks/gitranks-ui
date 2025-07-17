@@ -1,0 +1,9 @@
+query Insights {
+  insights {
+    category
+    data
+    createdAt
+    updatedAt
+    text
+  }
+}

@@ -70,6 +70,29 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type Insight {
+  category: InsightCategory!
+  createdAt: DateTime!
+  data: JSON
+  text: String!
+  updatedAt: DateTime!
+}
+
+enum InsightCategory {
+  COUNTRY_SCORE_PER_PROFILE
+  COUNTRY_TRENDS
+  DOMINATING_COUNTRY
+  DOMINATING_GLOBAL
+  HOT_SPOT
+  MIN_SCORE
+  MONTHLY_SCORE_CHANGE
+  RANKED_COUNT_GLOBAL
+  RANK_CHANGE
+  SCORE_MILESTONE
+  TIER_MILESTONE
+  UNBALANCED_PROFILE
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -100,6 +123,7 @@ type Query {
   countrySummary(date: String, order: CountrySummaryOrder! = STARS): [CountrySummary!]!
   globalRankByLogin(login: String!): RankGlobal
   globalRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankGlobal!]!
+  insights: [Insight!]
   profilesForSitemap: [ProfileForSitemap!]!
   rankTiersByName(name: String!): RankTier
 

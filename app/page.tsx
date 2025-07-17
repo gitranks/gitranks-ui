@@ -4,18 +4,18 @@ import { Page } from '@/components/page/page';
 import { BadgeSection } from './components/badge-section';
 import { CountryRankingSection } from './components/country-ranking-section';
 import { GlobalRankingSection } from './components/global-ranking-section';
+import InsightsCarousel from './components/insights-carousel';
 import { MessengerIntegrationSection } from './components/messenger-integration-section';
 import { SearchProfile } from './components/search-profiile';
-import MainImage from './main-image';
 
 export default function Home() {
   return (
     <>
       <div className="border-b bg-linear-45 from-background to-80% to-landing-page-gradient-start-color">
         <Header />
-        <Page>
-          <div className="flex flex-col md:flex-row gap-4 grow items-center">
-            <div className="flex flex-col gap-4 md:max-w-lg">
+        <Page className="p-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y">
+            <div className="flex flex-col gap-4 p-4 pb-5 md:pb-4">
               <h1 className="text-3xl sm:text-4xl font-semibold">
                 Your GitHub Profile is More Impressive Than You Think
               </h1>
@@ -24,8 +24,9 @@ export default function Home() {
                 <SearchProfile />
               </div>
             </div>
-            <div className="flex flex-grow items-center justify-center w-full md:w-auto min-w-xs">
-              <MainImage />
+            <div className="flex flex-col justify-center md:ml-10 p-4 pt-5 md:pt-4">
+              <h2 className="text-2xl md:text-3xl font-semibold z-1 relative">Top Insights</h2>
+              <InsightsCarousel />
             </div>
           </div>
         </Page>

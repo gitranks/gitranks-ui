@@ -1,6 +1,6 @@
 import { parse, OperationDefinitionNode, visit, FieldNode } from 'graphql';
 
-const ALLOWED_ROOT_FIELDS = new Set(['globalRankByLogin', 'user']);
+const ALLOWED_ROOT_FIELDS = new Set(['globalRankByLogin', 'user', 'insights']);
 
 export function rejectNotAllowedGraphqlOperations(query: string): boolean {
   try {

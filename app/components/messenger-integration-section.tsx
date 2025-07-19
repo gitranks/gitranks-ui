@@ -18,7 +18,7 @@ export const MessengerIntegrationSection = () => {
         <Button asChild variant="outline" size="sm">
           <a
             className="flex items-center gap-2"
-            href="https://wa.me/15551234567?text=%2Fmenu"
+            href="https://wa.me/48730654976?text=%2Fmenu"
             target="_blank"
             rel="noopener"
           >

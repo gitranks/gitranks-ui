@@ -75,7 +75,7 @@ export function RankChart({ progress, colors = DEFAULT_COLORS, debug = false }: 
             d.isGap ? (
               <Cell key={i} fill="transparent" />
             ) : (
-              <Cell key={i} fill={colors[d.tier % colors.length]} fillOpacity={isActive(d) ? 1 : DIM_OPACITY} />
+              <Cell key={i} fill={colors[(d.tier - 1) % colors.length]} fillOpacity={isActive(d) ? 1 : DIM_OPACITY} />
             ),
           )}
         </Pie>

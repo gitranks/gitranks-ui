@@ -16,9 +16,6 @@ import { NotFound } from './not-found';
 import { calculateTiers } from './utils/calculate-tiers/calculate-tiers';
 import { RankCard } from '../../../components/rank-card/rank-card';
 
-// PROVISIONAL TAGS
-// contributions padding and border
-
 // badges - tiers
 // messenger bots - tiers
 export default async function ProfileRanks({ params }: { params: Promise<{ login: string }> }) {

@@ -25,7 +25,12 @@ import { toXY } from './rank-chart.utils';
 const PIE_DATA = TIER_NAMES?.reduce<ChartItemType[]>((acc, _, index) => {
   return [
     ...acc,
-    ...Array.from({ length: LEVELS_PER_TIER }, (_, level) => ({ value: 1, tier: index + 1, level, isGap: false })),
+    ...Array.from({ length: LEVELS_PER_TIER }, (_, level) => ({
+      value: 1,
+      tier: index + 1,
+      level: level + 1,
+      isGap: false,
+    })),
     { value: 0, tier: index + 1, level: -1, isGap: true },
   ];
 }, []);

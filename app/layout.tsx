@@ -17,7 +17,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'GitRanks · GitHub Profile Analytics & Rankings',
   description:
-    'Explore ranks based on stars, followers, contributions, and more. Dive into dynamic leaderboards and find out how you measure up against developers worldwide.',
+    'Explore rankings based on stars, contributions, and followers. Dive into dynamic leaderboards to see how you rank against developers worldwide and within your own country.',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

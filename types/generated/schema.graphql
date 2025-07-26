@@ -70,10 +70,17 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type Entities {
+  links: JSON
+  mentions: JSON
+}
+
 type Insight {
   category: InsightCategory!
   createdAt: DateTime!
   data: JSON
+  entities: Entities!
+  segments: [Segment!]!
   text: String!
   updatedAt: DateTime!
 }
@@ -243,6 +250,19 @@ type RepositoryLanguagesEntity {
 
 enum RepositorySortField {
   STARGAZERS
+}
+
+type Segment {
+  display: String
+  entityKey: String
+  text: String
+  type: SegmentType!
+}
+
+enum SegmentType {
+  LINK
+  MENTION
+  TEXT
 }
 
 type SocialAccount {

@@ -1,9 +1,14 @@
 query Insights {
   insights {
     category
-    data
-    createdAt
-    updatedAt
-    text
+    segments {
+      type
+      text
+      entityKey
+    }
+    entities {
+      mentions
+      links
+    }
   }
 }

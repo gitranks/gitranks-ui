@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/carousel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchInsights } from '@/graphql/helpers/fetch-insights';
-import { Insight, InsightCategory } from '@/types/generated/graphql';
+import { InsightCategory, InsightsQuery } from '@/types/generated/graphql';
 
 import InsightText from './insight-text';
 
@@ -36,7 +36,7 @@ const InsightsCarousel = () => {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
-  const [insights, setInsights] = useState<Insight[]>([]);
+  const [insights, setInsights] = useState<InsightsQuery['insights']>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -85,7 +85,7 @@ const InsightsCarousel = () => {
       <div className="relative mb-4">
         <div className="hidden md:block absolute inset-0 rotate-[-6deg] scale-y-[1.6] -translate-x-10 pointer-events-none bg-landing-page-gradient-start-color rounded-[100%]" />
         <CarouselContent>
-          {insights.map((insight, index) => (
+          {insights?.map((insight, index) => (
             <CarouselItem key={index} className="flex items-center">
               <Card className="bg-transparent border-0 shadow-none py-0">
                 <CardContent className="flex flex-col justify-center px-0">

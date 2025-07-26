@@ -1,61 +1,41 @@
 import { memo } from 'react';
 
 import { Link } from '@/components/link/link';
-import { Insight } from '@/types/generated/graphql';
-
-import { RANK_DESCRIPTIONS } from '../app.consts';
+import { InsightsQuery, SegmentType } from '@/types/generated/graphql';
 
 type InsightTextProps = {
-  insight: Insight;
+  insight: NonNullable<InsightsQuery['insights']>[number];
 };
 
-const DEFAULT_RANKING_LINKS = {
-  [`${RANK_DESCRIPTIONS.s.title.toLowerCase()}ing`]: '/by/stars/1',
-  [`${RANK_DESCRIPTIONS.c.title.toLowerCase()}ing`]: '/by/contributions/1',
-  [`${RANK_DESCRIPTIONS.f.title.toLowerCase()}ing`]: '/by/followers/1',
-} as const;
-
-/** Escapes RegExp metacharacters so the username is treated literally */
-const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-// stars ranking|contributor ranking|followers ranking
-const rankingPattern = Object.values(RANK_DESCRIPTIONS)
-  .map((data) => `${data.title.toLowerCase()}ing`)
-  .join('|');
-
 const InsightText: React.FC<InsightTextProps> = ({ insight }) => {
-  const { text, data } = insight;
-  const login = data?.user?.login;
+  const { segments, entities } = insight;
 
-  let combinedRegex: RegExp;
-  if (login) {
-    combinedRegex = new RegExp(`\\b(${escapeRegExp(login)}|${rankingPattern})\\b`, 'gi');
-  } else {
-    combinedRegex = new RegExp(`\\b(${rankingPattern})\\b`, 'gi');
-  }
-  const pieces = text.split(combinedRegex);
+  return segments.map((segment) => {
+    if (!segment) return null;
 
-  return pieces.map((piece, idx) => {
-    if (!piece) return null;
-
-    if (login && login === piece) {
+    if (segment.type === SegmentType.Mention) {
+      const githubHandle = entities.mentions[segment.entityKey!]?.handles?.github;
       return (
-        <Link key={idx} href={`/profile/${login}`} className="text-foreground hover:text-foreground/80">
-          {piece}
+        <Link key={segment.text} href={`/profile/${githubHandle}`} className="text-foreground hover:text-foreground/80">
+          {segment.text}
         </Link>
       );
     }
 
-    const key = piece.toLowerCase();
-    if (key in DEFAULT_RANKING_LINKS) {
+    if (segment.type === SegmentType.Link) {
+      const link = entities.links[segment.entityKey!]?.url;
       return (
-        <Link key={idx} href={DEFAULT_RANKING_LINKS[key]!} className="text-foreground hover:text-foreground/80">
-          {piece}
+        <Link key={segment.text} href={link} className="text-foreground hover:text-foreground/80">
+          {segment.text}
         </Link>
       );
     }
 
-    return piece;
+    if (segment.type === SegmentType.Text) {
+      return segment.text;
+    }
+
+    return null;
   });
 };
 

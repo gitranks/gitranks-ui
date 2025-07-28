@@ -79,7 +79,7 @@ type Insight {
   category: InsightCategory!
   createdAt: DateTime!
   data: JSON
-  entities: Entities!
+  entities: Entities
   segments: [Segment!]!
   text: String!
   updatedAt: DateTime!

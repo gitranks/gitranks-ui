@@ -99,7 +99,7 @@ export type Insight = {
   category: InsightCategory;
   createdAt: Scalars['DateTime']['output'];
   data?: Maybe<Scalars['JSON']['output']>;
-  entities: Entities;
+  entities?: Maybe<Entities>;
   segments: Array<Segment>;
   text: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
@@ -483,7 +483,7 @@ export type GlobalRankingsQuery = { __typename?: 'Query', globalRankings: Array<
 export type InsightsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type InsightsQuery = { __typename?: 'Query', insights?: Array<{ __typename?: 'Insight', category: InsightCategory, segments: Array<{ __typename?: 'Segment', type: SegmentType, text?: string | null, entityKey?: string | null }>, entities: { __typename?: 'Entities', mentions?: any | null, links?: any | null } }> | null };
+export type InsightsQuery = { __typename?: 'Query', insights?: Array<{ __typename?: 'Insight', category: InsightCategory, segments: Array<{ __typename?: 'Segment', type: SegmentType, text?: string | null, entityKey?: string | null }>, entities?: { __typename?: 'Entities', mentions?: any | null, links?: any | null } | null }> | null };
 
 export type ProfileContributionsQueryVariables = Exact<{
   login: Scalars['String']['input'];

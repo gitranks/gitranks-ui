@@ -44,7 +44,7 @@ type FetchUserButtonProps = {
 const REFRESH_INTERVAL = 1_000;
 const CHECK_STATUS_INTERVAL = 20_000;
 const REFRESH_TIMEOUT = 10 * 60 * 1_000;
-const FETCH_MESSAGES = ['Fetching…', 'Still fetching 😐', '👀 👀 👀', 'Ping! Still not ready…'];
+const FETCH_MESSAGES = ['Fetching…', '🚬 Still fetching', '👀 👀 👀', 'Ping! Still not ready…'];
 
 export const FetchUserButton: FC<FetchUserButtonProps> = ({
   fetchingStatus,
@@ -71,10 +71,13 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     if (initialFetchingDuration >= REFRESH_TIMEOUT) {
       return;
     }
-    // You can determine when and how often to update
-    // the time here. In this example we update it only once
+
+    // invalidate the cache every time the page loads with fetching status
+    // so the next time the user updates the profile, the latest data is fetched
+    fetch(`/api/revalidate?tag=${encodeURIComponent(`profile:${login}`)}`);
+
     setFetchingDuration(initialFetchingDuration);
-  }, [fetchingStatus, fetchingUpdatedAt]);
+  }, [fetchingStatus, fetchingUpdatedAt, login]);
 
   const checkFetchingStatus = useCallback(async () => {
     setLoadingLabel('Checking…');
@@ -93,6 +96,11 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       fetchAttempt.current += 1;
       setLoadingLabel(FETCH_MESSAGES[fetchAttempt.current % FETCH_MESSAGES.length]);
     } else {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      setLoadingLabel('Reloading…');
+
       await fetch(`/api/revalidate?tag=${encodeURIComponent(`profile:${login}`)}`);
       window.location.reload();
     }
@@ -102,6 +110,9 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     setFetchingDuration(0);
 
     posthog.capture('profile.fetch', { login });
+
+    // immediately invalidate the cache, so if the user reloads the page, the latest data is fetched
+    fetch(`/api/revalidate?tag=${encodeURIComponent(`profile:${login}`)}`);
 
     const res = await fetch(`/api/profile/${login}`, { method: 'POST' });
 
@@ -184,7 +195,9 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     <div className={cn('flex flex-col gap-2', className)}>
       {attachDialogIfNeeded()}
       {fetchingDuration !== null && (
-        <div className="text-xs text-muted-foreground">Time passed: {Math.floor(fetchingDuration / 1000)}s</div>
+        <div className="text-xs text-muted-foreground">
+          Next check in {Math.floor((CHECK_STATUS_INTERVAL - (fetchingDuration % CHECK_STATUS_INTERVAL)) / 1000)} s
+        </div>
       )}
     </div>
   );

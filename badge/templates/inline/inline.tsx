@@ -1,26 +1,42 @@
-import { FC } from 'react';
+import { INLINE_BADGE_HEIGHT } from './inline.consts';
 
-import { BadgeInlineProps } from './inline.types';
-
-export const BadgeInline: FC<BadgeInlineProps> = () => {
+export const BadgeInline = () => {
   return (
     <div
       style={{
         display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 12,
-        padding: 2,
-        color: 'white',
-        backgroundColor: 'black',
-        fontFamily: 'Inter',
-        width: 100,
-        height: 20,
-        borderRadius: 4,
+        fontWeight: 400,
+        fontSize: 12,
+        height: INLINE_BADGE_HEIGHT,
+        borderRadius: 3,
+        overflow: 'hidden',
+        letterSpacing: '-0.015em',
       }}
     >
-      <div style={{ fontWeight: 400, fontSize: 11, letterSpacing: '0.5px' }}>OOO</div>
-      <div style={{ fontWeight: 600, fontSize: 18 }}>11,234</div>
+      <span
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          backgroundColor: '#5c5c5c',
+          color: 'white',
+          padding: '0 4px 0 6px',
+          fontSize: '0.95em',
+        }}
+      >
+        any textT
+      </span>
+      <span
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          backgroundColor: '#2282c2',
+          color: 'white',
+          padding: '0 6px 0 4px',
+          fontSize: '0.95em',
+        }}
+      >
+        11,234
+      </span>
     </div>
   );
 };

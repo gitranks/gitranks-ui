@@ -37,15 +37,13 @@ export async function GET(req: NextRequest, { params }: Props) {
 
   console.log({ userAgent, referer });
 
-  const { ranking, context, type, positionType, tierType, label, leftColor, rightColor } = validationResult.data;
-
   // posthog.capture({
   //   distinctId: login,
   //   event: 'badge_rendered',
   //   properties: { rankingType, template, theme },
   // });
 
-  const svg = await renderInlineBadge({ theme, login, rankingType });
+  const svg = await renderInlineBadge({ login, params: validationResult.data });
 
   if (!svg) {
     return redirect('/404');

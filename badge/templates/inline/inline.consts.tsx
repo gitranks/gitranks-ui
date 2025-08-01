@@ -1,2 +1,1 @@
-export const SMALL_BADGE_WIDTH = 200;
-export const SMALL_BADGE_HEIGHT = 52;
+export const INLINE_BADGE_HEIGHT = 20;

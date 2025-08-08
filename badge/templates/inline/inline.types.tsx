@@ -1,7 +1,18 @@
-import { GlobalRankByLoginQuery } from '@/types/generated/graphql';
-import { RankingType } from '@/types/ranking.types';
+import { ProfileTierType } from '@/app/profile/[login]/utils/calculate-tiers/calculate-tiers.types';
+import { Tier } from '@/types/generated/graphql';
 
 export type BadgeInlineProps = {
-  rankingType: RankingType;
-  data: GlobalRankByLoginQuery['globalRankByLogin'];
+  label?: string;
+  value?: string;
+  meta?: string;
+};
+
+export type BadgeFetchedData = {
+  position: number;
+  score: number;
+  positionM?: number | null;
+  scoreM?: number;
+  tiers?: Tier[];
+  tierData?: ProfileTierType;
+  country?: string | null;
 };

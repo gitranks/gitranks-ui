@@ -1,9 +1,20 @@
-import { ProfileSummaryQuery, RankTiersByNameQuery, Tier } from '@/types/generated/graphql';
+import { RankTiersByNameQuery, Tier } from '@/types/generated/graphql';
 import { UserRankProps } from '@/types/ranking.types';
 
-export type RankGlobalType =
-  | NonNullable<ProfileSummaryQuery['user']>['rankGlobal']
-  | NonNullable<ProfileSummaryQuery['user']>['rankCountry'];
+export type RanksType =
+  | {
+      s?: number | null;
+      sProvisional?: number | null;
+      sM?: number | null;
+      c?: number | null;
+      cProvisional?: number | null;
+      cM?: number | null;
+      f?: number | null;
+      fProvisional?: number | null;
+      fM?: number | null;
+    }
+  | null
+  | undefined;
 export type TiersDataType = RankTiersByNameQuery['rankTiersByName'];
 
 export type ProfileTierType = {

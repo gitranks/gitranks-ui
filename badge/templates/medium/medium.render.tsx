@@ -18,11 +18,7 @@ export async function renderMediumBadge({ theme, login, rankingType }: BadgeServ
   return satori(
     <BadgeMedium theme={theme} rankingType={rankingType} data={globalRankByLogin} />,
     await getSatoriConfig({
-      fontOptions: [
-        { style: 'normal', weight: 400 },
-        { style: 'normal', weight: 600 },
-        { style: 'normal', weight: 700 },
-      ],
+      fontOptions: [{ weight: 400 }, { weight: 600 }, { weight: 700 }],
       width: MEDIUM_BADGE_WIDTH,
       height: MEDIUM_BADGE_HEIGHT,
     }),

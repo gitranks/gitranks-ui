@@ -1,3 +1,4 @@
+import { TIER_NAMES } from '@/app/app.consts';
 import { Tier } from '@/types/generated/graphql';
 import { UserRankProps } from '@/types/ranking.types';
 
@@ -5,7 +6,7 @@ import {
   BestTierResult,
   ProfileTierType,
   ProfileTierWithData,
-  RankGlobalType,
+  RanksType,
   TiersDataType,
 } from './calculate-tiers.types';
 
@@ -75,14 +76,18 @@ const findTier = (
   return tiers?.find((tier) => tier.maxRank >= (rank || Number.MAX_SAFE_INTEGER));
 };
 
-const getRankingTierData = (propName: UserRankProps, profileRank: RankGlobalType, rankTiers: TiersDataType) => {
-  const rankedCount = rankTiers?.[`${propName}Users`] ?? 0;
-  if (!rankTiers?.[`${propName}Tiers`]?.length) {
+export const getRankingTierData = (
+  propName: UserRankProps,
+  profileRanks: RanksType,
+  rankedCount: number,
+  tiers?: Tier[],
+): ProfileTierType => {
+  if (!tiers?.length) {
     return { notAvailable: true, rankedCount };
   }
 
-  const tierData = findTier(rankTiers[`${propName}Tiers`], profileRank?.[propName]);
-  const provisionalTierData = findTier(rankTiers[`${propName}Tiers`], profileRank?.[`${propName}Provisional`]);
+  const tierData = findTier(tiers, profileRanks?.[propName]);
+  const provisionalTierData = findTier(tiers, profileRanks?.[`${propName}Provisional`]);
 
   if (!tierData && !provisionalTierData) {
     return { notRanked: true, rankedCount };
@@ -93,15 +98,20 @@ const getRankingTierData = (propName: UserRankProps, profileRank: RankGlobalType
   return {
     data: tierMerged,
     isProvisional,
-    dataM: findTier(rankTiers[`${propName}Tiers`], profileRank?.[`${propName}M`]),
+    dataM: findTier(tiers, profileRanks?.[`${propName}M`]),
     rankedCount,
     key: propName,
   };
 };
 
-export const calculateTiers = (profileRank: RankGlobalType, rankTiers: TiersDataType) => {
+export const calculateTiers = (profileRanks: RanksType, rankTiers: TiersDataType) => {
   const profileTiers = BUCKETS.reduce((acc, propName) => {
-    acc[`${propName}Tier`] = getRankingTierData(propName, profileRank, rankTiers);
+    acc[`${propName}Tier`] = getRankingTierData(
+      propName,
+      profileRanks,
+      rankTiers?.[`${propName}Users`] ?? 0,
+      rankTiers?.[`${propName}Tiers`],
+    );
     return acc;
   }, {} as Record<`${UserRankProps}Tier`, ProfileTierType>);
 
@@ -109,4 +119,20 @@ export const calculateTiers = (profileRank: RankGlobalType, rankTiers: TiersData
   const bestTier = getBestProfileTier(tiersWithData);
 
   return { ...profileTiers, bestTier };
+};
+
+export const getTierName = (tierData?: ProfileTierType): string => {
+  if (!tierData || tierData.notAvailable) {
+    return 'N/A';
+  }
+
+  if (tierData.notRanked) {
+    return 'Not Ranked';
+  }
+
+  if (!hasTierData(tierData)) {
+    return '';
+  }
+
+  return `${TIER_NAMES[tierData.data?.tier - 1]} ${tierData.data?.level}`;
 };

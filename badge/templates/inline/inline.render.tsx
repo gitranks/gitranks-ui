@@ -1,143 +1,22 @@
 import satori from 'satori';
 
-import { getRankingTierData } from '@/app/profile/[login]/utils/calculate-tiers/calculate-tiers';
-import { ProfileTierType } from '@/app/profile/[login]/utils/calculate-tiers/calculate-tiers.types';
-import { BadgeServiceProps, BadgeV2Params } from '@/badge/badge.types';
-import { getLatestSnapshot } from '@/badge/utils/get-latest-snapshot';
+import { TIER_NAMES } from '@/app/app.consts';
+import {
+  InvalidCountryError,
+  InvalidScoreError,
+  NotFoundError,
+  RanksAreNotAvailableError,
+  TiersAreNotAvailableError,
+} from '@/badge/badge.errors';
+import { badgeDataLoader } from '@/badge/badge.loader';
+import { BadgeFetchedData, BadgeV2ServiceProps, BadgeV2Params } from '@/badge/badge.types';
 import { getSatoriConfig } from '@/badge/utils/get-satori-config';
-import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { RankContext, RankMeta, RankType } from '@/types/badge.types';
-import { BadgeProfileWithRanksDocument, BadgeTiersDocument } from '@/types/generated/graphql';
+import { RankMeta, RankType } from '@/types/badge.types';
 import { getNextTierThreshold } from '@/utils/get-next-tier-threshold';
 import { getPercentileRank } from '@/utils/get-percentile-rank';
 
 import { BadgeInline } from './inline';
 import { INLINE_BADGE_HEIGHT, TOP_PERCENTILE_TIER_IDX } from './inline.consts';
-import { BadgeFetchedData } from './inline.types';
-
-const BADGE_TYPES_TO_LOAD_TIERS = [RankType.Percentile, RankType.Tier];
-
-const BADGE_META_TO_LOAD_TIERS = [
-  RankMeta.Percentile,
-  RankMeta.GoalNextTier,
-  RankMeta.GoalTop1,
-  RankMeta.GoalTop10,
-  RankMeta.GoalTop25,
-];
-
-const fetchProfileWithRanks = async (login: string, context: RankContext) => {
-  const { user } = await graphqlDirect(BadgeProfileWithRanksDocument, {
-    login,
-    includeRankGlobal: context === RankContext.Global,
-    includeRankCountry: context === RankContext.Country,
-  });
-
-  return user;
-};
-
-const fetchTiers = async (params: BadgeV2Params, country?: string | null) => {
-  const { ranking: rankingProp, context, meta, type } = params;
-
-  if (!BADGE_META_TO_LOAD_TIERS.includes(meta) && !BADGE_TYPES_TO_LOAD_TIERS.includes(type)) {
-    return {};
-  }
-
-  const tiersName = context === RankContext.Global ? 'global' : country!;
-
-  const { rankTiersByName } = await graphqlDirect(BadgeTiersDocument, {
-    tiersName,
-    includeSTiers: rankingProp === 's',
-    includeCTiers: rankingProp === 'c',
-    includeFTiers: rankingProp === 'f',
-  });
-
-  const tiers = rankTiersByName?.[`${rankingProp}Tiers`];
-
-  if (!tiers) {
-    throw new TiersAreNotAvailableError();
-  }
-
-  const rankedCount = rankTiersByName[`${rankingProp}Users`] ?? 0;
-
-  return { tiers, rankedCount };
-};
-
-class NotFoundError extends Error {
-  constructor(message?: string) {
-    super(message);
-    this.name = 'NotFoundError';
-  }
-}
-
-class InvalidScoreError extends Error {
-  constructor(message?: string) {
-    super(message);
-    this.name = 'InvalidScoreError';
-  }
-}
-
-class InvalidCountryError extends Error {
-  constructor(message?: string) {
-    super(message);
-    this.name = 'InvalidCountryError';
-  }
-}
-
-class RanksAreNotAvailableError extends Error {
-  constructor(message?: string) {
-    super(message);
-    this.name = 'RanksAreNotAvailableError';
-  }
-}
-
-class TiersAreNotAvailableError extends Error {
-  constructor(message?: string) {
-    super(message);
-    this.name = 'TiersAreNotAvailableError';
-  }
-}
-
-const loadBadgeData = async (login: string, params: BadgeV2Params): Promise<BadgeFetchedData> => {
-  const { ranking: rankingProp, context } = params;
-
-  const user = await fetchProfileWithRanks(login, context);
-
-  if (!user) {
-    throw new NotFoundError();
-  }
-
-  const score = user[rankingProp];
-
-  if (!score || score < 5) {
-    throw new InvalidScoreError();
-  }
-
-  const { country, snapshots } = user;
-
-  if (context === RankContext.Country && !country) {
-    throw new InvalidCountryError();
-  }
-
-  const rankings = user[context === RankContext.Country ? 'rankCountry' : 'rankGlobal'];
-  const position = rankings?.[rankingProp];
-
-  if (!rankings || !position) {
-    throw new RanksAreNotAvailableError();
-  }
-
-  const { tiers, rankedCount } = await fetchTiers(params, country);
-
-  let tierData: ProfileTierType | undefined;
-  if (tiers && rankedCount) {
-    tierData = getRankingTierData(rankingProp, rankings, rankedCount, tiers);
-  }
-
-  const latestSnapshot = getLatestSnapshot(snapshots);
-  const scoreM = latestSnapshot?.[rankingProp];
-  const positionM = rankings?.[`${rankingProp}M`];
-
-  return { country, position, positionM, score, scoreM, tiers, tierData };
-};
 
 const getBadgeLabel = (params: BadgeV2Params) => {
   return params.label;
@@ -155,11 +34,11 @@ const getBadgeValue = (params: BadgeV2Params, data: BadgeFetchedData) => {
         return 'N/A';
       }
 
-      if (tierData.notRanked) {
+      if (tierData.notRanked || !tierData.data) {
         return 'Not Ranked';
       }
 
-      return `${tierData.data?.tier} ${tierData.data?.level}`;
+      return `${TIER_NAMES[tierData.data.tier - 1]} ${tierData.data.level}`;
     }
     case RankType.Percentile: {
       const rankPercentile = getPercentileRank(position, tierData?.rankedCount ?? 0);
@@ -217,7 +96,7 @@ const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
     const { threshold, nextTier } = getNextTierThreshold({ tiers, currentTier: tierData.data, score });
 
     if (threshold) {
-      return `★${threshold} to ${nextTier.tier} ${nextTier.level}`;
+      return `★${threshold} to ${TIER_NAMES[nextTier.tier]} ${nextTier.level}`;
     }
 
     return;
@@ -234,7 +113,7 @@ const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
     const threshold = tierData?.minValue - score;
 
     if (threshold > 0) {
-      return `★${threshold} to ${metaInfo.label}`;
+      return `★${threshold.toLocaleString('en-US')} to ${metaInfo.label}`;
     }
   }
 };
@@ -247,9 +126,9 @@ const getBadgeParts = (params: BadgeV2Params, data: BadgeFetchedData) => {
   return { label, value, meta };
 };
 
-const getTextByParams = async ({ login, params }: BadgeServiceProps) => {
+const getTextByParams = async ({ login, params }: BadgeV2ServiceProps) => {
   try {
-    const data = await loadBadgeData(login, params);
+    const data = await badgeDataLoader(login, params);
 
     return getBadgeParts(params, data);
   } catch (error) {
@@ -277,7 +156,7 @@ const getTextByParams = async ({ login, params }: BadgeServiceProps) => {
   }
 };
 
-export async function renderInlineBadge(props: BadgeServiceProps) {
+export async function renderInlineBadge(props: BadgeV2ServiceProps) {
   const { leftColor, rightColor } = props.params;
 
   const parts = await getTextByParams(props);

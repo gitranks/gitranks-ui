@@ -1,8 +1,8 @@
 import { FC, ReactNode } from 'react';
 
-import { ProfileTierType } from '@/app/profile/[login]/utils/calculate-tiers/calculate-tiers.types';
 import { Tier } from '@/types/generated/graphql';
 import { UserRankProps } from '@/types/ranking.types';
+import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
 export type RankCardProps = {
   tiers?: Tier[];

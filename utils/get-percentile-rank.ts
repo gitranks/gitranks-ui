@@ -6,13 +6,11 @@ type Bin = {
 };
 
 const bins: Bin[] = [
-  { upper: 0.0001, round: () => 0.0001 },
-  { upper: 0.001, round: () => 0.001 },
-  { upper: 0.01, round: () => 0.01 },
-  { upper: 0.1, round: () => 0.1 },
-  { upper: 0.5, round: () => 0.5 },
-  { upper: 10, round: (n) => Math.ceil(n) },
-  { upper: 50, round: (n) => Math.ceil(n / 5) * 5 },
+  { upper: 0.0001, round: (n) => Math.ceil(n * 10000) / 10000 },
+  { upper: 0.1, round: (n) => Math.ceil(n * 1000) / 1000 },
+  { upper: 1, round: (n) => Math.ceil(n * 100) / 100 },
+  { upper: 10, round: (n) => Math.ceil(n * 10) / 10 },
+  { upper: 50, round: (n) => Math.ceil(n) },
 ];
 
 export function normalizeValue(value: number): number | null {

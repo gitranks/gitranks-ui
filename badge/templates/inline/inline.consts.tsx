@@ -4,10 +4,10 @@ export const INLINE_BADGE_HEIGHT = 20;
 export const BORDER_RADIUS = 3;
 export const FONT_SIZE = 12;
 export const FONT_SCALE = 0.93;
-export const BOX_SHADOW = '0 1px 0 rgba(0, 0, 0, 0.3)';
+export const META_SCALE = 0.85;
 
 export const PADDING_EDGE = 6;
-export const PADDING_SIDE = 4;
+export const PADDING_SIDE = 6;
 
 export const TOP_PERCENTILE_TIER_IDX = {
   [RankMeta.GoalTop1]: { index: 4, label: 'top 1%' },

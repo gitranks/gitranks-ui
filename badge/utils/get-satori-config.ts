@@ -5,8 +5,9 @@ import { FontWeight, SatoriOptions } from 'satori';
 
 import { emojiMapping } from './emoji-mapping';
 
-async function loadFont(fontName: string, fontWeight: string): Promise<Buffer> {
-  return fs.readFile(path.join(process.cwd(), 'public', 'fonts', `${fontName}-${fontWeight}.ttf`));
+async function loadFont(fontName: string, fontWeight: string, fontStyle: string): Promise<Buffer> {
+  const fontFileName = `${fontName}-${fontWeight}${fontStyle}.ttf`;
+  return fs.readFile(path.join(process.cwd(), 'public', 'fonts', fontFileName));
 }
 
 const fontWeightToName: Record<number, string> = {
@@ -36,9 +37,10 @@ export async function getSatoriConfig({ fontOptions, width, height }: SatoriPara
         throw new Error(`No font mapping found for weight ${weight}`);
       }
 
-      const fontKey = `${name}-${weight}`;
+      const fontStyle = style === 'normal' ? '' : `${style.charAt(0).toUpperCase() + style.slice(1)}`;
+      const fontKey = `${name}-${weight}${fontStyle}`;
 
-      fontCache[fontKey] ??= await loadFont(name, fontWeightToName[weight]);
+      fontCache[fontKey] ??= await loadFont(name, fontWeightToName[weight], fontStyle);
 
       return {
         name,

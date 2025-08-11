@@ -19,11 +19,12 @@ export const BadgeV2ZodSchema = z.object({
   type: z.enum(RankType).default(RankType.Position),
   meta: z.enum(RankMeta).default(RankMeta.None),
   label: z.string().optional(),
-  leftColor: z
+  cornerStyle: z.enum(['squared', 'rounded']).default('rounded'),
+  labelBgColor: z
     .string()
     .regex(/^#([0-9A-F]{3}|[0-9A-F]{6})$/i)
     .optional(),
-  rightColor: z
+  valueBgColor: z
     .string()
     .regex(/^#([0-9A-F]{3}|[0-9A-F]{6})$/i)
     .optional(),

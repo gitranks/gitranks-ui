@@ -28,7 +28,7 @@ const getBadgeValue = (params: BadgeV2Params, data: BadgeFetchedData) => {
 
   switch (type) {
     case RankType.Position:
-      return position.toLocaleString('en-US');
+      return `#${position.toLocaleString('en-US')}`;
     case RankType.Tier: {
       if (!tierData || tierData.notAvailable) {
         return 'N/A';
@@ -63,16 +63,22 @@ const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
   }
 
   if (meta === RankMeta.MonthlyChange) {
-    if (type === RankType.Position) {
-      if (positionM && positionM !== position) {
-        const delta = positionM - position;
-        return `${delta > 0 ? '+' : ''}${delta.toLocaleString('en-US')}`;
-      }
-    } else if (type === RankType.Score) {
-      if (scoreM && scoreM !== score) {
-        const delta = score - scoreM;
-        return `${delta > 0 ? '+' : ''}${delta.toLocaleString('en-US')}`;
-      }
+    let delta: number | undefined;
+    switch (type) {
+      case RankType.Position:
+        if (positionM && positionM !== position) {
+          delta = positionM - position;
+        }
+        break;
+      case RankType.Score:
+        if (scoreM && scoreM !== score) {
+          delta = score - scoreM;
+        }
+        break;
+    }
+
+    if (delta) {
+      return `${delta > 0 ? '+' : ''}${delta.toLocaleString('en-US')} this month`;
     }
 
     return;
@@ -157,7 +163,7 @@ const getTextByParams = async ({ login, params }: BadgeV2ServiceProps) => {
 };
 
 export async function renderInlineBadge(props: BadgeV2ServiceProps) {
-  const { leftColor, rightColor } = props.params;
+  const { labelBgColor, valueBgColor, cornerStyle } = props.params;
 
   const parts = await getTextByParams(props);
 
@@ -175,7 +181,14 @@ export async function renderInlineBadge(props: BadgeV2ServiceProps) {
   }
 
   return satori(
-    <BadgeInline label={label} value={value} meta={meta} />,
+    <BadgeInline
+      label={label}
+      value={value}
+      meta={meta}
+      labelBgColor={labelBgColor}
+      valueBgColor={valueBgColor}
+      cornerStyle={cornerStyle}
+    />,
     await getSatoriConfig({
       fontOptions: [{ name: 'Verdana', weight: 400 }],
       height: INLINE_BADGE_HEIGHT,

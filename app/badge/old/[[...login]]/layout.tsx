@@ -16,8 +16,8 @@ export default function BadgeLayout({ children }: Readonly<{ children: React.Rea
 
       <Page className="gap-6">
         <div>
-          <h1 className="text-2xl font-semibold">Profile badge</h1>
-          <div>Create a custom profile badge to showcase on your GitHub portfolio or anywhere you like!</div>
+          <h1 className="text-2xl font-semibold">Dynamic Badges</h1>
+          <div>Create a badge to showcase your GitHub rank in portfolio or anywhere you like!</div>
         </div>
 
         {children}

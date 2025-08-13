@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { BadgeNuqsSchema } from '@/badge/badge.nuqs';
 import { BadgeV2ZodSchema } from '@/badge/badge.zod';
+import { LABEL_BG, VALUE_BG } from '@/badge/templates/inline/inline.consts';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -173,9 +174,19 @@ export function BadgeForm() {
           )}
         />
 
-        <ColorPickerField name="labelBgColor" label="Label Background Color" placeholder="#hex" />
+        <ColorPickerField
+          name="labelBgColor"
+          label="Label Background Color"
+          placeholder="#hex"
+          defaultValue={LABEL_BG}
+        />
 
-        <ColorPickerField name="valueBgColor" label="Value Background Color" placeholder="#hex" />
+        <ColorPickerField
+          name="valueBgColor"
+          label="Value Background Color"
+          placeholder="#hex"
+          defaultValue={VALUE_BG}
+        />
       </Form>
     </div>
   );

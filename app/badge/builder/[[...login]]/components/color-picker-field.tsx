@@ -1,6 +1,6 @@
 import { hsvaToHex, hexToHsva } from '@uiw/color-convert';
 import Colorful from '@uiw/react-color-colorful';
-import * as React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useFormContext, useController } from 'react-hook-form';
 
 import { isValidHex } from '@/badge/utils/is-valid-hex';
@@ -10,9 +10,10 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 
 type Props = {
-  name: string; // "labelBgColor"
-  label?: string; // "Label Background Color"
-  placeholder?: string; // "#hex"
+  name: string;
+  label?: string;
+  placeholder?: string;
+  defaultValue: string;
 };
 
 const normalizeHex = (v: string) => {
@@ -20,20 +21,22 @@ const normalizeHex = (v: string) => {
   return t.startsWith('#') ? t : `#${t}`;
 };
 
-export function ColorPickerField({ name, label, placeholder = '#hex' }: Props) {
+export function ColorPickerField({ name, label, placeholder, defaultValue }: Props) {
   const { control } = useFormContext();
   const { field, fieldState } = useController({ name, control });
 
-  const hex = typeof field.value === 'string' && field.value ? field.value : '#000000';
-  const [open, setOpen] = React.useState(false);
-  const [hsva, setHsva] = React.useState(() => {
-    return isValidHex(hex) ? hexToHsva(normalizeHex(hex)) : hexToHsva('#000000');
-  });
+  const hex = field.value;
+  const selectedHex = useMemo(
+    () => (isValidHex(hex) ? normalizeHex(hex) : normalizeHex(defaultValue)),
+    [hex, defaultValue],
+  );
+  const [open, setOpen] = useState(false);
+  const [hsva, setHsva] = useState(() => hexToHsva(selectedHex));
 
   // синхронізуємо локальний hsva, якщо значення поля змінюється ззовні
-  React.useEffect(() => {
-    if (isValidHex(hex)) setHsva(hexToHsva(normalizeHex(hex)));
-  }, [hex]);
+  useEffect(() => {
+    setHsva(hexToHsva(selectedHex));
+  }, [selectedHex]);
 
   return (
     <FormItem>
@@ -59,7 +62,7 @@ export function ColorPickerField({ name, label, placeholder = '#hex' }: Props) {
             <span
               aria-hidden
               className={cn('absolute left-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded border')}
-              style={{ background: isValidHex(hex) ? normalizeHex(hex) : '#000000' }}
+              style={{ background: selectedHex }}
               onClick={() => setOpen(true)}
             />
           </div>

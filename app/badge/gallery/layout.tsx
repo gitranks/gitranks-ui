@@ -1,7 +1,10 @@
+import { Info } from 'lucide-react';
 import type { Metadata } from 'next';
 
 import { Header } from '@/components/header/header';
+import { Link } from '@/components/link/link';
 import { Page } from '@/components/page/page';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 
 export const metadata: Metadata = {
   title: 'Badge Gallery · GitRanks',
@@ -17,13 +20,15 @@ export default function BadgeGalleryLayout({ children }: Readonly<{ children: Re
       <Page className="gap-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold">Badge Gallery</h1>
-          <div>
-            Browse the complete collection of GitRanks badges. See design examples, colors, and styles you can use to
-            showcase your GitHub achievements.
-          </div>
         </div>
 
-        <div>click on any badge to get it for your profile or visit our builder for more options</div>
+        <Alert variant="default">
+          <Info />
+          <AlertTitle className="line-clamp-none">
+            Click any badge to open it in the builder, or <Link href="/badge/builder">visit the builder</Link> directly
+            for more customization options.
+          </AlertTitle>
+        </Alert>
 
         {children}
       </Page>

@@ -7,13 +7,22 @@ import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
 import { BadgeV2ZodSchema } from './badge.zod';
 
+/**
+ * @deprecated This enum will be removed in a future version
+ */
 export enum BadgeTemplateType {
   Small = 'small',
   Medium = 'medium',
 }
 
+/**
+ * @deprecated This type will be removed in a future version
+ */
 export type DeltaSentimentType = 'positive' | 'negative';
 
+/**
+ * @deprecated This type will be removed in a future version
+ */
 export type BadgeServiceProps = {
   theme: ThemeType;
   login: string;

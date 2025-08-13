@@ -11,7 +11,7 @@ import {
 import { badgeDataLoader } from '@/badge/badge.loader';
 import { BadgeFetchedData, BadgeV2ServiceProps, BadgeV2Params } from '@/badge/badge.types';
 import { getSatoriConfig } from '@/badge/utils/get-satori-config';
-import { RankMeta, RankType } from '@/types/badge.types';
+import { BadgeMeta, BadgeType } from '@/types/badge.types';
 import { getNextTierThreshold } from '@/utils/get-next-tier-threshold';
 import { getPercentileRank } from '@/utils/get-percentile-rank';
 
@@ -27,9 +27,9 @@ const getBadgeValue = (params: BadgeV2Params, data: BadgeFetchedData) => {
   const { position, score, tierData } = data;
 
   switch (type) {
-    case RankType.Position:
+    case BadgeType.Position:
       return `#${position.toLocaleString('en-US')}`;
-    case RankType.Tier: {
+    case BadgeType.Tier: {
       if (!tierData || tierData.notAvailable) {
         return 'N/A';
       }
@@ -40,7 +40,7 @@ const getBadgeValue = (params: BadgeV2Params, data: BadgeFetchedData) => {
 
       return `${TIER_NAMES[tierData.data.tier - 1]} ${tierData.data.level}`;
     }
-    case RankType.Percentile: {
+    case BadgeType.Percentile: {
       const rankPercentile = getPercentileRank(position, tierData?.rankedCount ?? 0);
       if (rankPercentile) {
         return `Top ${rankPercentile}%`;
@@ -48,29 +48,30 @@ const getBadgeValue = (params: BadgeV2Params, data: BadgeFetchedData) => {
 
       return 'N/A';
     }
-    case RankType.Score:
+    case BadgeType.Score:
     default:
       return score.toLocaleString('en-US');
   }
 };
 
 const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
-  const { type, meta } = params;
+  const { ranking, type, meta } = params;
   const { position, positionM, score, scoreM, tierData, tiers } = data;
+  const emoji = ranking === 's' ? '⭐' : '👤';
 
-  if (meta === RankMeta.None) {
+  if (meta === BadgeMeta.None) {
     return;
   }
 
-  if (meta === RankMeta.MonthlyChange) {
+  if (meta === BadgeMeta.MonthlyChange) {
     let delta: number | undefined;
     switch (type) {
-      case RankType.Position:
+      case BadgeType.Position:
         if (positionM && positionM !== position) {
           delta = positionM - position;
         }
         break;
-      case RankType.Score:
+      case BadgeType.Score:
         if (scoreM && scoreM !== score) {
           delta = score - scoreM;
         }
@@ -84,7 +85,7 @@ const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
     return;
   }
 
-  if (meta === RankMeta.Percentile) {
+  if (meta === BadgeMeta.Percentile) {
     const rankPercentile = getPercentileRank(position, tierData?.rankedCount ?? 0);
 
     if (rankPercentile) {
@@ -94,7 +95,7 @@ const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
     return;
   }
 
-  if (meta === RankMeta.GoalNextTier) {
+  if (meta === BadgeMeta.GoalNextTier) {
     if (!tierData) {
       return;
     }
@@ -102,13 +103,13 @@ const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
     const { threshold, nextTier } = getNextTierThreshold({ tiers, currentTier: tierData.data, score });
 
     if (threshold) {
-      return `★${threshold} to ${TIER_NAMES[nextTier.tier]} ${nextTier.level}`;
+      return `${emoji}${threshold} to ${TIER_NAMES[nextTier.tier]} ${nextTier.level}`;
     }
 
     return;
   }
 
-  if ([RankMeta.GoalTop1, RankMeta.GoalTop10, RankMeta.GoalTop25].includes(meta)) {
+  if ([BadgeMeta.GoalTop1, BadgeMeta.GoalTop10, BadgeMeta.GoalTop25].includes(meta)) {
     const metaInfo = TOP_PERCENTILE_TIER_IDX[meta];
     const tierData = tiers?.[metaInfo.index];
 
@@ -119,7 +120,7 @@ const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
     const threshold = tierData?.minValue - score;
 
     if (threshold > 0) {
-      return `★${threshold.toLocaleString('en-US')} to ${metaInfo.label}`;
+      return `${emoji}${threshold.toLocaleString('en-US')} to ${metaInfo.label}`;
     }
   }
 };

@@ -14,7 +14,7 @@ export const IntegrationCode: FC<LoginFormProps> = ({ githubLogin, githubId }) =
   return (
     <div className="flex flex-col gap-4">
       <StepTitle>Step 3. Copy the Code to Your GitHub README</StepTitle>
-      <Textarea readOnly value={githubId ? `<img src="${url}" />` : ''}></Textarea>
+      <Textarea className="max-w-full break-all" readOnly value={githubId ? `<img src="${url}" />` : ''}></Textarea>
     </div>
   );
 };

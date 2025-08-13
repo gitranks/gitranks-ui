@@ -1,5 +1,5 @@
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { RankContext } from '@/types/badge.types';
+import { BadgeContext } from '@/types/badge.types';
 import { BadgeProfileWithRanksDocument, BadgeTiersDocument } from '@/types/generated/graphql';
 import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
 import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
@@ -15,11 +15,11 @@ import { BadgeFetchedData, BadgeV2Params } from './badge.types';
 import { BADGE_META_TO_LOAD_TIERS, BADGE_TYPES_TO_LOAD_TIERS } from './templates/inline/inline.consts';
 import { getLatestSnapshot } from './utils/get-latest-snapshot';
 
-export const fetchProfileWithRanks = async (login: string, context: RankContext) => {
+export const fetchProfileWithRanks = async (login: string, context: BadgeContext) => {
   const { user } = await graphqlDirect(BadgeProfileWithRanksDocument, {
     login,
-    includeRankGlobal: context === RankContext.Global,
-    includeRankCountry: context === RankContext.Country,
+    includeRankGlobal: context === BadgeContext.Global,
+    includeRankCountry: context === BadgeContext.Country,
   });
 
   return user;
@@ -32,7 +32,7 @@ export const fetchTiers = async (params: BadgeV2Params, country?: string | null)
     return {};
   }
 
-  const tiersName = context === RankContext.Global ? 'global' : country!;
+  const tiersName = context === BadgeContext.Global ? 'global' : country!;
 
   const { rankTiersByName } = await graphqlDirect(BadgeTiersDocument, {
     tiersName,
@@ -69,11 +69,11 @@ export const badgeDataLoader = async (login: string, params: BadgeV2Params): Pro
 
   const { country, snapshots } = user;
 
-  if (context === RankContext.Country && !country) {
+  if (context === BadgeContext.Country && !country) {
     throw new InvalidCountryError();
   }
 
-  const rankings = user[context === RankContext.Country ? 'rankCountry' : 'rankGlobal'];
+  const rankings = user[context === BadgeContext.Country ? 'rankCountry' : 'rankGlobal'];
   const position = rankings?.[rankingProp];
 
   if (!rankings || !position) {

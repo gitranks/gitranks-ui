@@ -27,7 +27,7 @@ export default async function Badge({ params }: { params: Promise<{ login?: stri
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start">
-      <div className="flex flex-col gap-6 min-w-2xs max-w-md flex-grow">
+      <div className="flex flex-col gap-6 min-w-2xs max-w-md flex-grow mb-[80px]">
         <LoginForm githubLogin={githubLogin} githubId={githubId} />
         <Separator />
         <BadgeForm />

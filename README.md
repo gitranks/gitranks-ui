@@ -1,4 +1,4 @@
-# GitRanks UI
+# GitRanks
 
 [gitranks.com](https://gitranks.com/)
 

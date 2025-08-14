@@ -33,7 +33,6 @@ export function ColorPickerField({ name, label, placeholder, defaultValue }: Pro
   const [open, setOpen] = useState(false);
   const [hsva, setHsva] = useState(() => hexToHsva(selectedHex));
 
-  // синхронізуємо локальний hsva, якщо значення поля змінюється ззовні
   useEffect(() => {
     setHsva(hexToHsva(selectedHex));
   }, [selectedHex]);
@@ -79,7 +78,7 @@ export function ColorPickerField({ name, label, placeholder, defaultValue }: Pro
           />
         </PopoverContent>
       </Popover>
-      <FormControl /> {/* сумісність із shadcn Form API; можна прибрати якщо не потрібно */}
+      <FormControl />
       <FormMessage>{fieldState.error?.message}</FormMessage>
     </FormItem>
   );

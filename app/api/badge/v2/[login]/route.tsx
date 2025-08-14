@@ -7,15 +7,6 @@ import { posthog } from '@/lib/posthog/posthog-node-client';
 
 type Props = { params: Promise<{ login: string }> };
 
-// ranking = stars / contributions / followers
-// context = global / country
-// type = position / tier / percentile
-// position-type = none / monthly-change / percentile
-// tier-type = none / goal
-// label = text
-// left-color = hex
-// right-color = hex
-
 export async function GET(req: NextRequest, { params }: Props) {
   const { login } = await params;
 

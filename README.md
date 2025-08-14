@@ -8,17 +8,21 @@ GitRanks turns public GitHub activity into an easy "developer scoreboard". See h
 
 https://www.youtube.com/watch?v=CayzB5VQyPY
 
-<img width="460" alt="1-profile-analytics" src="https://github.com/user-attachments/assets/6a8d1f48-14d0-4f92-a508-e4ece286753e" />
+<img width="410" alt="1-profile-analytics" src="https://github.com/user-attachments/assets/6a8d1f48-14d0-4f92-a508-e4ece286753e" />
 
-<img width="460" alt="2-global-rankings" src="https://github.com/user-attachments/assets/496c3c06-aad6-4ea6-b64c-ba43881c3cad" />
+<img width="410" alt="2-global-rankings" src="https://github.com/user-attachments/assets/496c3c06-aad6-4ea6-b64c-ba43881c3cad" />
 
-<img width="460" alt="3-country-rankings" src="https://github.com/user-attachments/assets/775cf261-7f4c-485a-8229-acdef202aa9a" />
+<img width="410" alt="3-country-rankings" src="https://github.com/user-attachments/assets/775cf261-7f4c-485a-8229-acdef202aa9a" />
 
-<img width="460" alt="4-chat-integrations" src="https://github.com/user-attachments/assets/9bb090b9-c5dc-4c4a-a4e3-b0094e374d73" />
+<img width="410" alt="4-chat-integrations" src="https://github.com/user-attachments/assets/9bb090b9-c5dc-4c4a-a4e3-b0094e374d73" />
 
 ## 🥇 Profile Badges
 
-<img src="https://gitranks.com/badges/s__global__position__none__rounded.svg" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://gitranks.com/badges/c__global__score__none__rounded_vb-1e3a8a.svg" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://gitranks.com/badges/c__global__percentile__none__rounded_vb-7f5539.svg" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://gitranks.com/badges/s__global__position__monthly-change__rounded.svg" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://gitranks.com/badges/f__global__position__percentile__rounded_vb-1e3a8a.svg" />
+<img src="https://gitranks.com/badges/s__global__position__none__rounded.svg" />
+<img src="https://gitranks.com/badges/c__global__score__none__rounded_vb-1e3a8a.svg" />
+<img src="https://gitranks.com/badges/c__global__percentile__none__rounded_vb-7f5539.svg" />
+<img src="https://gitranks.com/badges/s__global__position__monthly-change__rounded.svg" />
+<img src="https://gitranks.com/badges/f__global__position__percentile__rounded_vb-1e3a8a.svg" />
 
 [View Badge Gallery](https://gitranks.com/badge/gallery) 
 

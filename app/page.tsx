@@ -34,8 +34,8 @@ export default function Home() {
       <Page className="gap-4">
         <GlobalRankingSection />
         <CountryRankingSection />
-        <MessengerIntegrationSection />
         <BadgeSection />
+        <MessengerIntegrationSection />
       </Page>
     </>
   );

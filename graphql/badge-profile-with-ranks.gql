@@ -1,0 +1,31 @@
+query BadgeProfileWithRanks(
+  $login: String!
+  $includeRankGlobal: Boolean! = true
+  $includeRankCountry: Boolean! = true
+) {
+  user(login: $login) {
+    githubId
+    avatarUrl
+    country
+    f
+    s
+    c
+    snapshots
+    rankGlobal @include(if: $includeRankGlobal) {
+      s
+      sM
+      c
+      cM
+      f
+      fM
+    }
+    rankCountry @include(if: $includeRankCountry) {
+      s
+      sM
+      c
+      cM
+      f
+      fM
+    }
+  }
+}

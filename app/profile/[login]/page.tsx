@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 
 import { fetchProfileData } from '@/graphql/helpers/fetch-profile-data';
 import { fetchRankTiers } from '@/graphql/helpers/fetch-rank-tiers';
+import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 
 import { LayoutLeftColumn } from './components/layout-left-column';
 import { MessengerIntegration } from './components/messenger-integration';
@@ -13,7 +14,6 @@ import { ProfileCharts } from './components/profile-charts';
 import { ProfileRankingSwitcher } from './components/profile-ranking-switcher';
 import { RankBreakdownTooltip } from './components/rank-breakdown-tooltip';
 import { NotFound } from './not-found';
-import { calculateTiers } from './utils/calculate-tiers/calculate-tiers';
 import { RankCard } from '../../../components/rank-card/rank-card';
 
 // badges - tiers

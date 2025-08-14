@@ -1,0 +1,33 @@
+query BadgeTiers(
+  $tiersName: String!
+  $includeSTiers: Boolean! = true
+  $includeCTiers: Boolean! = true
+  $includeFTiers: Boolean! = true
+) {
+  rankTiersByName(name: $tiersName) {
+    sUsers
+    cUsers
+    fUsers
+    sTiers @include(if: $includeSTiers) {
+      tier
+      level
+      minRank
+      maxRank
+      minValue
+    }
+    fTiers @include(if: $includeFTiers) {
+      tier
+      level
+      minRank
+      maxRank
+      minValue
+    }
+    cTiers @include(if: $includeCTiers) {
+      tier
+      level
+      minRank
+      maxRank
+      minValue
+    }
+  }
+}

@@ -1,10 +1,13 @@
-import path from 'path';
 import { promises as fs } from 'fs';
+import path from 'path';
+
 import { FontWeight, SatoriOptions } from 'satori';
+
 import { emojiMapping } from './emoji-mapping';
 
-async function loadFont(fontWeight: string): Promise<Buffer> {
-  return fs.readFile(path.join(process.cwd(), 'public', 'fonts', `Inter-${fontWeight}.ttf`));
+async function loadFont(fontName: string, fontWeight: string, fontStyle: string): Promise<Buffer> {
+  const fontFileName = `${fontName}-${fontWeight}${fontStyle}.ttf`;
+  return fs.readFile(path.join(process.cwd(), 'public', 'fonts', fontFileName));
 }
 
 const fontWeightToName: Record<number, string> = {
@@ -13,31 +16,40 @@ const fontWeightToName: Record<number, string> = {
   700: 'Bold',
 };
 
-const fontCache: Partial<Record<FontWeight, Buffer>> = {};
+const fontCache: Record<string, Buffer> = {};
+
+type FontOption = {
+  name?: 'Inter' | 'Verdana';
+  style?: 'normal' | 'italic';
+  weight: FontWeight;
+};
 
 type SatoriParams = {
-  fontOptions: { style: 'normal' | 'italic'; weight: FontWeight }[];
-  width: number;
+  fontOptions: FontOption[];
+  width?: number;
   height: number;
 };
 
 export async function getSatoriConfig({ fontOptions, width, height }: SatoriParams): Promise<SatoriOptions> {
-  const fontPromises = fontOptions.map<Promise<SatoriOptions['fonts'][number]>>(async ({ style, weight }) => {
-    if (!fontWeightToName[weight]) {
-      throw new Error(`No font mapping found for weight ${weight}`);
-    }
+  const fontPromises = fontOptions.map<Promise<SatoriOptions['fonts'][number]>>(
+    async ({ name = 'Inter', style = 'normal', weight = 400 }) => {
+      if (!fontWeightToName[weight]) {
+        throw new Error(`No font mapping found for weight ${weight}`);
+      }
 
-    if (!fontCache[weight]) {
-      fontCache[weight] = await loadFont(fontWeightToName[weight]);
-    }
+      const fontStyle = style === 'normal' ? '' : `${style.charAt(0).toUpperCase() + style.slice(1)}`;
+      const fontKey = `${name}-${weight}${fontStyle}`;
 
-    return {
-      name: 'Inter',
-      data: fontCache[weight],
-      weight,
-      style,
-    };
-  });
+      fontCache[fontKey] ??= await loadFont(name, fontWeightToName[weight], fontStyle);
+
+      return {
+        name,
+        data: fontCache[fontKey],
+        weight,
+        style,
+      };
+    },
+  );
 
   const fonts = await Promise.all(fontPromises);
 

@@ -7,9 +7,8 @@ import { TiersExplanation } from '@/components/tiers-explanation/tiers-explanati
 import { cn } from '@/lib/utils';
 import { Tier } from '@/types/generated/graphql';
 import { UserRankProps } from '@/types/ranking.types';
-
-import { hasTierData } from '../utils/calculate-tiers/calculate-tiers';
-import { ProfileTierType } from '../utils/calculate-tiers/calculate-tiers.types';
+import { hasTierData } from '@/utils/calculate-tiers/calculate-tiers';
+import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
 type TierValueProps = {
   tierData?: ProfileTierType;

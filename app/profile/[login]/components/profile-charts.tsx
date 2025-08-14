@@ -5,10 +5,10 @@ import { PersonaChart } from '@/components/persona-chart/persona-chart';
 import { RankChart } from '@/components/rank-chart/rank-chart';
 import { Tier } from '@/types/generated/graphql';
 import { PersonaType } from '@/types/persona.types';
+import { BestTierResult } from '@/utils/calculate-tiers/calculate-tiers.types';
 
 import { ProfileCardsGrid } from './profile-card';
 import { ProfileChartCard, ProfileChartDataSlot, ProfileChartSlot } from './profile-chart-card';
-import { BestTierResult } from '../utils/calculate-tiers/calculate-tiers.types';
 
 type ProfileChartsProps = {
   rankChartTitle: string;

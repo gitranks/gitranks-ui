@@ -1,7 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Search } from 'lucide-react';
+import { Edit, Search } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FC } from 'react';
 import { useForm } from 'react-hook-form';
@@ -25,17 +26,11 @@ export const LoginForm: FC<LoginFormProps> = ({ githubLogin = '', githubId }) =>
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: { login: githubLogin },
-    errors: {
-      login: {
-        type: 'custom',
-        message:
-          githubLogin && !githubId ? 'Oops! We looked everywhere but found no trace of that GitHuber' : undefined,
-      },
-    },
   });
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
-    router.push(`/badge/${data.login}?${searchParams.toString()}`);
+    const url = `/badge/builder${githubId ? '' : `/${data.login}`}?${searchParams.toString()}`;
+    router.push(url);
   }
 
   return (
@@ -49,14 +44,24 @@ export const LoginForm: FC<LoginFormProps> = ({ githubLogin = '', githubId }) =>
             render={({ field }) => (
               <FormItem>
                 <div className="flex gap-4">
-                  <Input {...field} placeholder="GitHub login" className="flex-grow min-w-3xs" />
-
+                  <Input {...field} placeholder="GitHub login" className="flex-grow min-w-3xs" disabled={!!githubId} />
                   <Button type="submit">
-                    <Search className="size-4" />
-                    Search
+                    {githubId ? <Edit className="size-4" /> : <Search className="size-4" />}
+                    {githubId ? 'Edit' : 'Search'}
                   </Button>
                 </div>
-                <FormMessage className="text-negative" />
+                <FormMessage className="text-negative">
+                  {githubLogin && !githubId && (
+                    <>
+                      We couldn&apos;t find this GitHub login in our database - check the spelling, and if it&apos;s
+                      correct, visit the{' '}
+                      <Link href={`/profile/${githubLogin}`} className="underline">
+                        GitRanks profile page
+                      </Link>{' '}
+                      to fetch it from GitHub manually.
+                    </>
+                  )}
+                </FormMessage>
               </FormItem>
             )}
           />

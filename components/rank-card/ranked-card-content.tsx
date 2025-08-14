@@ -18,7 +18,7 @@ export const RankedCardContent: FC<RankCardProps> = ({
 }) => {
   const { rankedCount } = tierData;
   const rankToDisplay = (rankProvisional ?? rank) || 0;
-  const rankPercentile = getPercentileRank(rankToDisplay, tierData.rankedCount);
+  const rankPercentile = getPercentileRank(rankToDisplay, rankedCount);
 
   return (
     <>

@@ -12,6 +12,7 @@ export function getNextTierThreshold({ tiers, currentTier, score }: GetNextTierT
   }
 
   const index = tiers.findIndex((t) => t.tier === currentTier?.tier && t.level === currentTier?.level);
+
   if (!index || index === -1) {
     // Index 0 is the absolute top (tier 7-level 5), so nothing higher exists
     return {};

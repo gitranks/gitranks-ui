@@ -9,7 +9,7 @@ export const BadgeSection = () => {
         millions of developers.
       </div>
       <div>
-        <Link href="/badge">Create a badge</Link>
+        <Link href="/badge/gallery">Create a badge</Link>
       </div>
     </div>
   );

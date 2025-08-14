@@ -29,7 +29,7 @@ export function MainMenu({ className }: { className?: string }) {
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), 'bg-transparent')} asChild>
-            <Link href="/badge">Badges</Link>
+            <Link href="/badge/gallery">Badges</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>

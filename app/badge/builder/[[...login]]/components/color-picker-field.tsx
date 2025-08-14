@@ -39,7 +39,7 @@ export function ColorPickerField({ name, label, placeholder, defaultValue }: Pro
   }, [selectedHex]);
 
   return (
-    <FormItem>
+    <FormItem className="flex-grow">
       {label && <FormLabel>{label}</FormLabel>}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>

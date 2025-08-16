@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { useDebounceCallback } from 'usehooks-ts';
 import { z } from 'zod';
 
+import { RANK_NAME } from '@/badge/badge.consts';
 import { BadgeNuqsSchema } from '@/badge/badge.nuqs';
 import { BadgeV2ZodSchema } from '@/badge/badge.zod';
 import { LABEL_BG, VALUE_BG } from '@/badge/templates/inline/inline.consts';
@@ -14,7 +15,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeRanking, BadgeType } from '@/types/badge.types';
+import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
+import { UserRankProp } from '@/types/ranking.types';
 
 import { ColorPickerField } from './color-picker-field';
 import { StepTitle } from './step-title';
@@ -28,27 +30,19 @@ const BadgeFormItem: FC<PropsWithChildren> = ({ children }) => {
 };
 
 // Helper function to generate label based on ranking and type
-const generateLabel = (ranking?: string, type?: string): string => {
+const generateLabel = (ranking?: UserRankProp, type?: string): string => {
   if (type === BadgeType.Score) {
     switch (ranking) {
-      case BadgeRanking.s:
+      case UserRankProp.s:
         return 'Total Stars';
-      case BadgeRanking.c:
+      case UserRankProp.c:
         return 'Contribution Score';
-      case BadgeRanking.f:
+      case UserRankProp.f:
         return 'Total Followers';
     }
   }
 
-  switch (ranking) {
-    case BadgeRanking.c:
-      return 'Contributor Rank';
-    case BadgeRanking.f:
-      return 'Followers Rank';
-    case BadgeRanking.s:
-    default:
-      return 'Stars Rank';
-  }
+  return RANK_NAME[ranking ?? UserRankProp.s];
 };
 
 export function BadgeForm() {
@@ -96,9 +90,9 @@ export function BadgeForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={BadgeRanking.s}>Stars Ranking</SelectItem>
-                    <SelectItem value={BadgeRanking.c}>Contributor Ranking</SelectItem>
-                    <SelectItem value={BadgeRanking.f}>Followers Ranking</SelectItem>
+                    <SelectItem value={UserRankProp.s}>{`${RANK_NAME[UserRankProp.s]}ing`}</SelectItem>
+                    <SelectItem value={UserRankProp.c}>{`${RANK_NAME[UserRankProp.c]}ing`}</SelectItem>
+                    <SelectItem value={UserRankProp.f}>{`${RANK_NAME[UserRankProp.f]}ing`}</SelectItem>
                   </SelectContent>
                 </Select>
               </BadgeFormItem>

@@ -6,7 +6,7 @@ import { TagProvisional } from '@/components/tag-provisional/tag-provisional';
 import { TiersExplanation } from '@/components/tiers-explanation/tiers-explanation';
 import { cn } from '@/lib/utils';
 import { Tier } from '@/types/generated/graphql';
-import { UserRankProps } from '@/types/ranking.types';
+import { UserRankProp } from '@/types/ranking.types';
 import { hasTierData } from '@/utils/calculate-tiers/calculate-tiers';
 import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
@@ -16,7 +16,7 @@ type TierValueProps = {
   className?: string;
   tiers?: Tier[];
   rankedCount?: number;
-  rankType: UserRankProps;
+  rankType: UserRankProp;
 };
 
 const getTierName = (tierData?: ProfileTierType): string => {

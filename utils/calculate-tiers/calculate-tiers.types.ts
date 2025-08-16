@@ -1,5 +1,5 @@
 import { RankTiersByNameQuery, Tier } from '@/types/generated/graphql';
-import { UserRankProps } from '@/types/ranking.types';
+import { UserRankProp } from '@/types/ranking.types';
 
 export type RanksType =
   | {
@@ -24,18 +24,18 @@ export type ProfileTierType = {
   rankedCount: number; // number of users in this tier, if available
   notAvailable?: boolean; // true if the tier is not available
   notRanked?: boolean; // true if the user is not ranked in this tier
-  key?: UserRankProps; // the key of the tier, e.g. 's', 'c', 'f'
+  key?: UserRankProp; // the key of the tier, e.g. 's', 'c', 'f'
 };
 
 export type ProfileTierWithData = Omit<ProfileTierType, 'data' | 'key' | 'notAvailable' | 'notRanked'> & {
   data: Tier;
-  key: UserRankProps;
+  key: UserRankProp;
   notAvailable?: false;
   notRanked?: false;
 };
 
 export type BestTierResult = {
   data: Tier; // the best {tier, level} itself
-  source: UserRankProps[]; // which bucket(s) it came from
+  source: UserRankProp[]; // which bucket(s) it came from
   isProvisional: boolean; // true if every winning bucket was provisional
 };

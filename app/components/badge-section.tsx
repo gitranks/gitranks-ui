@@ -1,5 +1,7 @@
+import { RANK_NAME } from '@/badge/badge.consts';
 import { Link } from '@/components/link/link';
-import { BadgeMeta, BadgeRanking, BadgeType } from '@/types/badge.types';
+import { BadgeMeta, BadgeType } from '@/types/badge.types';
+import { UserRankProp } from '@/types/ranking.types';
 
 import BadgeExample from '../badge/gallery/components/badge-example';
 
@@ -12,23 +14,18 @@ export const BadgeSection = () => {
         millions of developers.
       </div>
       <div className="flex gap-3">
-        <BadgeExample label="Stars Rank" />
+        <BadgeExample label={RANK_NAME.s} />
         <BadgeExample
           label="Contribution Score"
-          ranking={BadgeRanking.c}
+          ranking={UserRankProp.c}
           type={BadgeType.Score}
           valueBgColor="#1e3a8a"
         />
-        <BadgeExample
-          label="Contributor Rank"
-          ranking={BadgeRanking.c}
-          type={BadgeType.Percentile}
-          valueBgColor="#7f5539"
-        />
-        <BadgeExample label="Stars Rank" meta={BadgeMeta.MonthlyChange} />
+        <BadgeExample label={RANK_NAME.c} ranking={UserRankProp.c} type={BadgeType.Percentile} valueBgColor="#7f5539" />
+        <BadgeExample label={RANK_NAME.s} meta={BadgeMeta.MonthlyChange} />
         <BadgeExample
           label="Total Followers"
-          ranking={BadgeRanking.f}
+          ranking={UserRankProp.f}
           meta={BadgeMeta.Percentile}
           valueBgColor="#1e3a8a"
         />

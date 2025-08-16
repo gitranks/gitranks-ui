@@ -1,9 +1,3 @@
-export enum BadgeRanking {
-  s = 's',
-  c = 'c',
-  f = 'f',
-}
-
 export enum BadgeContext {
   Global = 'global',
   Country = 'country',

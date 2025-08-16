@@ -2,14 +2,14 @@ import React from 'react';
 
 import { RANK_DESCRIPTIONS, TIER_FRACTIONS, TIER_NAMES, TOP_LEVEL_FRACTIONS } from '@/app/app.consts';
 import { Tier } from '@/types/generated/graphql';
-import { UserRankProps } from '@/types/ranking.types';
+import { UserRankProp } from '@/types/ranking.types';
 
 import { Separator } from '../ui/separator';
 
 type TiersExplanationProps = {
   rankedCount?: number;
   tiers?: Tier[];
-  rankType: UserRankProps;
+  rankType: UserRankProp;
   tierData?: Tier;
 };
 

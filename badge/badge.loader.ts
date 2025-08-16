@@ -1,6 +1,7 @@
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { BadgeContext } from '@/types/badge.types';
 import { BadgeProfileWithRanksDocument, BadgeTiersDocument } from '@/types/generated/graphql';
+import { UserRankProp } from '@/types/ranking.types';
 import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
 import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
@@ -36,9 +37,9 @@ export const fetchTiers = async (params: BadgeV2Params, country?: string | null)
 
   const { rankTiersByName } = await graphqlDirect(BadgeTiersDocument, {
     tiersName,
-    includeSTiers: rankingProp === 's',
-    includeCTiers: rankingProp === 'c',
-    includeFTiers: rankingProp === 'f',
+    includeSTiers: rankingProp === UserRankProp.s,
+    includeCTiers: rankingProp === UserRankProp.c,
+    includeFTiers: rankingProp === UserRankProp.f,
   });
 
   const tiers = rankTiersByName?.[`${rankingProp}Tiers`];

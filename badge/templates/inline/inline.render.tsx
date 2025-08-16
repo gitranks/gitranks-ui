@@ -12,6 +12,7 @@ import { badgeDataLoader } from '@/badge/badge.loader';
 import { BadgeFetchedData, BadgeV2ServiceProps, BadgeV2Params } from '@/badge/badge.types';
 import { getSatoriConfig } from '@/badge/utils/get-satori-config';
 import { BadgeMeta, BadgeType } from '@/types/badge.types';
+import { UserRankProp } from '@/types/ranking.types';
 import { getNextTierThreshold } from '@/utils/get-next-tier-threshold';
 import { getPercentileRank } from '@/utils/get-percentile-rank';
 
@@ -57,7 +58,7 @@ const getBadgeValue = (params: BadgeV2Params, data: BadgeFetchedData) => {
 const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
   const { ranking, type, meta } = params;
   const { position, positionM, score, scoreM, tierData, tiers } = data;
-  const emoji = ranking === 's' ? '⭐' : '👤';
+  const emoji = ranking === UserRankProp.f ? '👤' : '⭐';
 
   if (meta === BadgeMeta.None) {
     return;

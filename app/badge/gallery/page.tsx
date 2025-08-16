@@ -2,7 +2,9 @@
 
 import { unstable_cacheLife as cacheLife } from 'next/cache';
 
-import { BadgeCornerStyle, BadgeContext, BadgeMeta, BadgeType, BadgeRanking } from '@/types/badge.types';
+import { RANK_NAME } from '@/badge/badge.consts';
+import { BadgeCornerStyle, BadgeContext, BadgeMeta, BadgeType } from '@/types/badge.types';
+import { UserRankProp } from '@/types/ranking.types';
 
 import BadgeExample from './components/badge-example';
 import { BadgeContainer, BadgeDescription, BadgeExamplesWrapper, BadgeTitle } from './components/badge-helpers';
@@ -22,9 +24,9 @@ export default async function BadgeGallery() {
         </BadgeDescription>
 
         <BadgeExamplesWrapper>
-          <BadgeExample label="Stars Rank" />
-          <BadgeExample label="Contributor Rank" ranking={BadgeRanking.c} />
-          <BadgeExample label="Followers Rank" ranking={BadgeRanking.f} />
+          <BadgeExample label={RANK_NAME.s} />
+          <BadgeExample label={RANK_NAME.c} ranking={UserRankProp.c} />
+          <BadgeExample label={RANK_NAME.f} ranking={UserRankProp.f} />
         </BadgeExamplesWrapper>
       </BadgeContainer>
 
@@ -39,13 +41,13 @@ export default async function BadgeGallery() {
           <BadgeExample label="Total Stars" type={BadgeType.Score} valueBgColor="#1e3a8a" />
           <BadgeExample
             label="Contribution Score"
-            ranking={BadgeRanking.c}
+            ranking={UserRankProp.c}
             type={BadgeType.Score}
             valueBgColor="#1e3a8a"
           />
           <BadgeExample
             label="Total Followers"
-            ranking={BadgeRanking.f}
+            ranking={UserRankProp.f}
             type={BadgeType.Score}
             valueBgColor="#1e3a8a"
           />
@@ -61,14 +63,9 @@ export default async function BadgeGallery() {
           tier name on your profile page.
         </BadgeDescription>
         <BadgeExamplesWrapper>
-          <BadgeExample label="Stars Rank" type={BadgeType.Tier} valueBgColor="#7c3aed" />
-          <BadgeExample
-            label="Contributor Rank"
-            ranking={BadgeRanking.c}
-            type={BadgeType.Tier}
-            valueBgColor="#7c3aed"
-          />
-          <BadgeExample label="Followers Rank" ranking={BadgeRanking.f} type={BadgeType.Tier} valueBgColor="#7c3aed" />
+          <BadgeExample label={RANK_NAME.s} type={BadgeType.Tier} valueBgColor="#7c3aed" />
+          <BadgeExample label={RANK_NAME.c} ranking={UserRankProp.c} type={BadgeType.Tier} valueBgColor="#7c3aed" />
+          <BadgeExample label={RANK_NAME.f} ranking={UserRankProp.f} type={BadgeType.Tier} valueBgColor="#7c3aed" />
         </BadgeExamplesWrapper>
       </BadgeContainer>
 
@@ -80,16 +77,16 @@ export default async function BadgeGallery() {
           having 5+ followers.
         </BadgeDescription>
         <BadgeExamplesWrapper>
-          <BadgeExample label="Stars Rank" type={BadgeType.Percentile} valueBgColor="#7f5539" />
+          <BadgeExample label={RANK_NAME.s} type={BadgeType.Percentile} valueBgColor="#7f5539" />
           <BadgeExample
-            label="Contributor Rank"
-            ranking={BadgeRanking.c}
+            label={RANK_NAME.c}
+            ranking={UserRankProp.c}
             type={BadgeType.Percentile}
             valueBgColor="#7f5539"
           />
           <BadgeExample
-            label="Followers Rank"
-            ranking={BadgeRanking.f}
+            label={RANK_NAME.f}
+            ranking={UserRankProp.f}
             type={BadgeType.Percentile}
             valueBgColor="#7f5539"
           />
@@ -103,18 +100,18 @@ export default async function BadgeGallery() {
           detect your country from your profile location, ranking you only against developers from that country.
         </BadgeDescription>
         <BadgeExamplesWrapper>
-          <BadgeExample label="USA Stars Rank" context={BadgeContext.Country} />
+          <BadgeExample label={`USA ${RANK_NAME.s}`} context={BadgeContext.Country} />
           <BadgeExample
-            label="Ukraine Followers Rank"
+            label={`Ukraine ${RANK_NAME.f}`}
             context={BadgeContext.Country}
-            ranking={BadgeRanking.f}
+            ranking={UserRankProp.f}
             type={BadgeType.Tier}
             valueBgColor="#7c3aed"
           />
           <BadgeExample
-            label="India Stars Rank"
+            label={`India ${RANK_NAME.s}`}
             context={BadgeContext.Country}
-            ranking={BadgeRanking.s}
+            ranking={UserRankProp.s}
             type={BadgeType.Percentile}
             valueBgColor="#7f5539"
           />
@@ -128,22 +125,22 @@ export default async function BadgeGallery() {
           rank change, monthly score change, or how much more you need to reach the next tier or top percentile.
         </BadgeDescription>
         <BadgeExamplesWrapper>
-          <BadgeExample label="Stars Rank" meta={BadgeMeta.MonthlyChange} />
+          <BadgeExample label={RANK_NAME.s} meta={BadgeMeta.MonthlyChange} />
           <BadgeExample
             label="Total Followers"
-            ranking={BadgeRanking.f}
+            ranking={UserRankProp.f}
             meta={BadgeMeta.Percentile}
             valueBgColor="#1e3a8a"
           />
-          <BadgeExample label="Stars Rank" ranking={BadgeRanking.s} meta={BadgeMeta.GoalTop10} />
+          <BadgeExample label={RANK_NAME.s} ranking={UserRankProp.s} meta={BadgeMeta.GoalTop10} />
         </BadgeExamplesWrapper>
       </BadgeContainer>
 
       <BadgeContainer>
         <BadgeTitle>Badge Variants</BadgeTitle>
         <BadgeExamplesWrapper>
-          <BadgeExample label="Stars Rank" />
-          <BadgeExample label="Stars Rank" cornerStyle={BadgeCornerStyle.Squared} />
+          <BadgeExample label={RANK_NAME.s} />
+          <BadgeExample label={RANK_NAME.s} cornerStyle={BadgeCornerStyle.Squared} />
         </BadgeExamplesWrapper>
       </BadgeContainer>
     </div>

@@ -2,6 +2,7 @@ import { FC } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Repository } from '@/types/generated/graphql';
+import { pluralize } from '@/utils/pluralize';
 
 import { RepositoryCard } from './repository-card';
 
@@ -33,7 +34,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
   const badgeLabel =
     (prsCount ?? 0) > PR_FETCH_LIMIT && (mergedPrsCount ?? 0) >= PR_FETCH_LIMIT / 2
       ? `~${prsCount} PRs`
-      : `${mergedPrsCount} PR${(mergedPrsCount ?? 0) > 1 ? 's' : ''}`;
+      : `${mergedPrsCount} ${pluralize('PR', mergedPrsCount ?? 0)}`;
 
   return (
     <RepositoryCard

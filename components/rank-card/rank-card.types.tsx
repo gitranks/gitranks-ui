@@ -1,13 +1,13 @@
 import { FC, ReactNode } from 'react';
 
 import { Tier } from '@/types/generated/graphql';
-import { UserRankProps } from '@/types/ranking.types';
+import { UserRankProp } from '@/types/ranking.types';
 import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
 export type RankCardProps = {
   tiers?: Tier[];
   tierData: ProfileTierType;
-  rankType: UserRankProps;
+  rankType: UserRankProp;
   rank?: number | null;
   rankM?: number | null;
   rankProvisional?: number | null;
@@ -26,6 +26,6 @@ export type RankCardPositionProps = {
 };
 export type RankCardTotalValueProps = {
   score?: number | null;
-  rankType: UserRankProps;
+  rankType: UserRankProp;
   login: string;
 };

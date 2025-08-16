@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { BadgeCornerStyle, BadgeContext, BadgeMeta, BadgeType, BadgeRanking } from '@/types/badge.types';
-import { RankingType } from '@/types/ranking.types';
+import { BadgeCornerStyle, BadgeContext, BadgeMeta, BadgeType } from '@/types/badge.types';
+import { RankingType, UserRankProp } from '@/types/ranking.types';
 import { ThemeType } from '@/types/theme.types';
 
 import { BadgeTemplateType } from './badge.types';
@@ -13,7 +13,7 @@ export const BadgeZodSchema = z.object({
 });
 
 export const BadgeV2ZodSchema = z.object({
-  ranking: z.enum(BadgeRanking).default(BadgeRanking.s),
+  ranking: z.enum(UserRankProp).default(UserRankProp.s),
   context: z.enum(BadgeContext).default(BadgeContext.Global),
   type: z.enum(BadgeType).default(BadgeType.Position),
   meta: z.enum(BadgeMeta).default(BadgeMeta.None),

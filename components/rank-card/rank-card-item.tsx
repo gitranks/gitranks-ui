@@ -3,6 +3,7 @@ import { FC } from 'react';
 
 import { RANK_DESCRIPTIONS } from '@/app/app.consts';
 import { cn } from '@/lib/utils';
+import { UserRankProp } from '@/types/ranking.types';
 import { formatNumberShort } from '@/utils/format-number-short';
 
 import { RankCardItemProps, RankCardPositionProps, RankCardTotalValueProps } from './rank-card.types';
@@ -32,9 +33,9 @@ export const RankCardTotalProfilesRanked: FC<{ rankedCount?: number }> = ({ rank
 
 export const RankCardTotalValue: FC<RankCardTotalValueProps> = ({ score, rankType, login }) => {
   let linkText: string | undefined;
-  if (rankType === 's') {
+  if (rankType === UserRankProp.s) {
     linkText = 'repositories';
-  } else if (rankType === 'c') {
+  } else if (rankType === UserRankProp.c) {
     linkText = 'contributions';
   }
 

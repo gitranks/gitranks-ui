@@ -1,6 +1,6 @@
 import { TIER_NAMES } from '@/app/app.consts';
 import { Tier } from '@/types/generated/graphql';
-import { UserRankProps } from '@/types/ranking.types';
+import { UserRankProp } from '@/types/ranking.types';
 
 import {
   BestTierResult,
@@ -10,7 +10,7 @@ import {
   TiersDataType,
 } from './calculate-tiers.types';
 
-const BUCKETS: UserRankProps[] = ['s', 'c', 'f'];
+const BUCKETS: UserRankProp[] = [UserRankProp.s, UserRankProp.c, UserRankProp.f];
 
 /**
  * ─────────────────────────────────────────────────────────────
@@ -70,14 +70,14 @@ function getBestProfileTier(profileTiers: ProfileTierWithData[]): BestTierResult
 }
 
 const findTier = (
-  tiers: NonNullable<TiersDataType>[`${UserRankProps}Tiers`],
+  tiers: NonNullable<TiersDataType>[`${keyof typeof UserRankProp}Tiers`],
   rank?: number | null,
 ): Tier | undefined => {
   return tiers?.find((tier) => tier.maxRank >= (rank || Number.MAX_SAFE_INTEGER));
 };
 
 export const getRankingTierData = (
-  propName: UserRankProps,
+  propName: UserRankProp,
   profileRanks: RanksType,
   rankedCount: number,
   tiers?: Tier[],
@@ -113,7 +113,7 @@ export const calculateTiers = (profileRanks: RanksType, rankTiers: TiersDataType
       rankTiers?.[`${propName}Tiers`],
     );
     return acc;
-  }, {} as Record<`${UserRankProps}Tier`, ProfileTierType>);
+  }, {} as Record<`${keyof typeof UserRankProp}Tier`, ProfileTierType>);
 
   const tiersWithData = Object.values(profileTiers).filter(hasTierData) as ProfileTierWithData[];
   const bestTier = getBestProfileTier(tiersWithData);

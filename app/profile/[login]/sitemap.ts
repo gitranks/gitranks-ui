@@ -1,13 +1,17 @@
 import { startOfMonth } from 'date-fns';
+import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
+import { RANK_NAME } from '@/badge/badge.consts';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { ProfilesForSitemapDocument } from '@/types/generated/graphql';
-import { RankingType } from '@/types/ranking.types';
+import { UserRankProp } from '@/types/ranking.types';
 
 export default async function sitemap() {
+  cacheLife('hours');
+
   const { profilesForSitemap } = (await graphqlDirect(ProfilesForSitemapDocument)) ?? {};
   const startOfMonthDate = startOfMonth(new Date());
-  const rankingTypes: RankingType[] = Object.values(RankingType) as RankingType[];
+  const rankingTypes = Object.values(UserRankProp);
 
   return profilesForSitemap.map((profile) => ({
     url: `${process.env.NEXT_PUBLIC_URI}/profile/${profile.login}`,
@@ -15,7 +19,7 @@ export default async function sitemap() {
     changeFrequency: 'monthly',
     images: rankingTypes.map(
       (rankingType) =>
-        `${process.env.NEXT_PUBLIC_URI}/api/badge/${profile.login}?rankingType=${rankingType}&amp;template=medium`,
+        `${process.env.NEXT_PUBLIC_URI}/api/badge/v2/${profile.login}?ranking=${rankingType}&context=global&type=position&meta=none&label=${RANK_NAME[rankingType]}`,
     ),
     priority: 0.95,
   }));

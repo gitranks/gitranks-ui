@@ -1,9 +1,16 @@
-export type UserRankProps = 's' | 'c' | 'f';
-
+/**
+ * @deprecated This enum will be removed in a future version
+ */
 export enum RankingType {
   Star = 'star',
   Contribution = 'contribution',
   Follower = 'follower',
+}
+
+export enum UserRankProp {
+  s = 's',
+  c = 'c',
+  f = 'f',
 }
 
 // this is used in the URL

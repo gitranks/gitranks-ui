@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 
 import { fetchProfileData } from '@/graphql/helpers/fetch-profile-data';
 import { fetchRankTiers } from '@/graphql/helpers/fetch-rank-tiers';
+import { UserRankProp } from '@/types/ranking.types';
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 
 import { LayoutLeftColumn } from './components/layout-left-column';
@@ -59,7 +60,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
           <RankCard
             tiers={rankTiers?.sTiers}
             tierData={sTier}
-            rankType="s"
+            rankType={UserRankProp.s}
             rank={s}
             rankM={sM}
             rankProvisional={sProvisional}
@@ -69,7 +70,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
           <RankCard
             tiers={rankTiers?.cTiers}
             tierData={cTier}
-            rankType="c"
+            rankType={UserRankProp.c}
             rank={c}
             rankM={cM}
             rankProvisional={cProvisional}
@@ -79,7 +80,7 @@ export default async function ProfileRanks({ params }: { params: Promise<{ login
           <RankCard
             tiers={rankTiers?.fTiers}
             tierData={fTier}
-            rankType="f"
+            rankType={UserRankProp.f}
             rank={f}
             rankM={fM}
             rankProvisional={fProvisional}

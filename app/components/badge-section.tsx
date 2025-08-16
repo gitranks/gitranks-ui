@@ -13,7 +13,7 @@ export const BadgeSection = () => {
         Show off your coding achievements with a dynamic GitHub badge. Let the world see exactly where you stand among
         millions of developers.
       </div>
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <BadgeExample label={RANK_NAME.s} />
         <BadgeExample
           label="Contribution Score"

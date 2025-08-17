@@ -27,6 +27,16 @@ export async function generateMetadata({ params }: CountriesLayoutProps): Promis
   };
 }
 
+export async function generateStaticParams() {
+  const page = '1';
+  return [
+    { orderBy: 'contributions', page },
+    { orderBy: 'followers', page },
+    { orderBy: 'stars', page },
+    { orderBy: 'users', page },
+  ];
+}
+
 export default async function CountriesLayout({ children, params }: CountriesLayoutProps) {
   const { orderBy } = await params;
 

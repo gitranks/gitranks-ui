@@ -11,7 +11,8 @@
     "codegen": "dotenv -e .env.local graphql-codegen",
     "standalone": "dotenv -e .env.local node .next/standalone/server.js",
     "icons": "pnpm dlx @svgr/cli --out-dir components/icons --filename-case kebab --typescript --no-dimensions --replace-attr-values \"#000=currentColor\" -- public/icons",
-    "figma:icons": "tsc lib/figma/download-icons.ts --outDir dist && dotenv -e .env.local node dist/download-icons.js && pnpm run icons"
+    "figma:icons": "tsc lib/figma/download-icons.ts --outDir dist && dotenv -e .env.local node dist/download-icons.js && pnpm run icons",
+    "indexnow": "tsx lib/indexnow/indexnow-submit.ts --sitemap=https://gitranks.com/profile/login/sitemap.xml --host=gitranks.com --key=ef3b3dfb08554fce864bebfc1702134c --keyLocation=https://gitranks.com/ef3b3dfb08554fce864bebfc1702134c.txt"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",
@@ -71,6 +72,7 @@
     "@types/node": "^24.1.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/xml2js": "^0.4.14",
     "dotenv-cli": "^9.0.0",
     "eslint": "^9.32.0",
     "eslint-config-next": "15.4.0-canary.51",
@@ -79,7 +81,9 @@
     "graphql": "^16.11.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.11",
-    "typescript": "^5.8.3"
+    "tsx": "^4.20.4",
+    "typescript": "^5.8.3",
+    "xml2js": "^0.6.2"
   },
   "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92"
 }

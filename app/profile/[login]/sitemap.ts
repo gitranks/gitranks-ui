@@ -1,3 +1,5 @@
+'use cache';
+
 import { startOfMonth } from 'date-fns';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
@@ -19,7 +21,11 @@ export default async function sitemap() {
     changeFrequency: 'monthly',
     images: rankingTypes.map(
       (rankingType) =>
-        `${process.env.NEXT_PUBLIC_URI}/api/badge/v2/${profile.login}?ranking=${rankingType}&context=global&type=position&meta=none&label=${RANK_NAME[rankingType]}`,
+        `${process.env.NEXT_PUBLIC_URI}/api/badge/v2/${
+          profile.login
+        }?ranking=${rankingType}&amp;context=global&amp;type=position&amp;meta=none&amp;label=${encodeURIComponent(
+          RANK_NAME[rankingType],
+        )}`,
     ),
     priority: 0.95,
   }));

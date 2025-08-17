@@ -4,9 +4,9 @@ import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 
 export const metadata: Metadata = {
-  title: 'GitRanks · GitHub Profile Analytics & Rankings',
+  title: 'Badge Builder · GitRanks',
   description:
-    'Explore ranks based on stars, followers, contributions, and more. Dive into dynamic leaderboards and find out how you measure up against developers worldwide.',
+    'Generate custom GitHub badges with GitRanks. Show your global and country rankings, percentile, monthly changes, and progress toward the next tier.',
 };
 
 export default function BadgeLayout({ children }: Readonly<{ children: React.ReactNode }>) {

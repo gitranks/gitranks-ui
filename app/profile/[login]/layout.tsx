@@ -25,8 +25,8 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
   const { s, c, f } = user.rankGlobal ?? {};
 
   return {
-    title: `${login} · GitHub Profile Analytics · GitRanks`,
-    description: `Explore GitHub profile analytics for ${login} – ranked #${s} by stars, #${c} by contributions, and #${f} by followers.`,
+    title: `${login} · GitRanks · GitHub Profile Analytics`,
+    description: `Explore GitHub profile analytics for ${login} - ranked #${s} by stars, #${c} by contributions, and #${f} by followers.`,
     openGraph: {
       images: [user.avatarUrl!],
     },

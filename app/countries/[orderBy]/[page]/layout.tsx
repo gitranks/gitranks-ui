@@ -1,20 +1,31 @@
 import { FlameIcon } from 'lucide-react';
 import type { Metadata } from 'next';
 
+import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { Badge } from '@/components/ui/badge';
 import { CountrySummaryOrder } from '@/types/generated/graphql';
+import { UserRankProp } from '@/types/ranking.types';
 
 import { CountryOrderSwitcher } from './components/country-order-switcher';
 
-export const metadata: Metadata = {
-  title: 'Country Rankings · GitRanks · GitHub Profile Analytics & Rankings',
-  description:
-    'Explore ranks based on stars, followers, contributions, and more. Dive into dynamic leaderboards and find out how you measure up against developers worldwide.',
+type CountriesLayoutProps = {
+  children: React.ReactNode;
+  params: Promise<{ orderBy: CountrySummaryOrder; page: string }>;
 };
 
-type CountriesLayoutProps = Readonly<{ children: React.ReactNode; params: Promise<{ orderBy: CountrySummaryOrder }> }>;
+export async function generateMetadata({ params }: CountriesLayoutProps): Promise<Metadata> {
+  const { orderBy, page } = await params;
+
+  const rankProp = orderBy.slice(0, 1) as UserRankProp;
+
+  return {
+    title: `Country ${RANK_NAME[rankProp]}ing · Page ${page} · GitRanks`,
+    description:
+      'Discover GitHub country rankings. Compare stars, contributions, and followers by nation, updated monthly. See where your country ranks.',
+  };
+}
 
 export default async function CountriesLayout({ children, params }: CountriesLayoutProps) {
   const { orderBy } = await params;
@@ -41,13 +52,13 @@ export default async function CountriesLayout({ children, params }: CountriesLay
             </p>
             <ul className="list-disc pl-6 mb-4">
               <li>
-                ⭐ <strong>User Stars</strong> – stars on repos owned by developers from this country
+                ⭐ <strong>User Stars</strong> - stars on repos owned by developers from this country
               </li>
               <li>
-                🔀 <strong>Contrib Stars</strong> – stars on external repos where they’ve merged PRs
+                🔀 <strong>Contrib Stars</strong> - stars on external repos where they’ve merged PRs
               </li>
               <li>
-                👥 <strong>Followers</strong> – combined GitHub followers of those developers
+                👥 <strong>Followers</strong> - combined GitHub followers of those developers
               </li>
             </ul>
             <p>

@@ -12,7 +12,7 @@
     "standalone": "dotenv -e .env.local node .next/standalone/server.js",
     "icons": "pnpm dlx @svgr/cli --out-dir components/icons --filename-case kebab --typescript --no-dimensions --replace-attr-values \"#000=currentColor\" -- public/icons",
     "figma:icons": "tsc lib/figma/download-icons.ts --outDir dist && dotenv -e .env.local node dist/download-icons.js && pnpm run icons",
-    "indexnow:profile": "tsx lib/indexnow/indexnow-submit.ts"
+    "indexnow": "dotenv -e .env.local -- tsx lib/indexnow/indexnow-submit.ts"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",

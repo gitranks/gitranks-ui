@@ -6,13 +6,11 @@ import { CountryRankingSection } from './components/country-ranking-section';
 import { GlobalRankingSection } from './components/global-ranking-section';
 import InsightsCarousel from './components/insights-carousel';
 import { MessengerIntegrationSection } from './components/messenger-integration-section';
-import { PhAnnouncement } from './components/ph-announcement';
 import { SearchProfile } from './components/search-profiile';
 
 export default function Home() {
   return (
     <>
-      <PhAnnouncement />
       <div className="border-b bg-linear-45 from-background to-80% to-landing-page-gradient-start-color">
         <Header />
         <Page className="p-0">

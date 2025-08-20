@@ -16,7 +16,7 @@ const BgHelper: FC<{ className?: string }> = ({ className }) => {
   );
 };
 
-export const PhAnnouncement = () => {
+export const Announcement = () => {
   return (
     <div className="relative isolate flex items-center justify-center flex-wrap gap-x-4 gap-y-1 overflow-hidden bg-gray-50 dark:bg-gray-800/50 px-2 py-2.5 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-white/10">
       <BgHelper className="left-[max(-7rem,calc(50%-52rem))]" />

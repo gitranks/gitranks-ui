@@ -43,11 +43,11 @@ type CountrySummary {
 }
 
 type CountrySummaryBasic {
-  c: Int!
+  c: Float!
   country: String!
   date: String!
-  f: Int!
-  s: Int!
+  f: Float!
+  s: Float!
   topUsers: CountryTopUsers
   usersCount: Int!
 }
@@ -105,14 +105,34 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://
 """
 scalar JSON
 
+type Language {
+  color: String!
+  name: String!
+}
+
 type LanguageEntity {
   id: String!
   size: Float!
 }
 
+type LanguageSummary {
+  date: String!
+  language: String!
+  languageData: Language
+  score: Float!
+  size: Float!
+  topUser: UserBasic
+  usersCount: Int!
+}
+
+enum LanguageSummaryOrder {
+  SCORE
+  SIZE
+  USERS
+}
+
 type Organization {
   avatarUrl: String
-  githubId: String!
   login: String!
   name: String
 }
@@ -131,6 +151,7 @@ type Query {
   globalRankByLogin(login: String!): RankGlobal
   globalRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankGlobal!]!
   insights: [Insight!]
+  languageSummary(date: String, order: LanguageSummaryOrder! = SCORE): [LanguageSummary!]!
   profilesForSitemap: [ProfileForSitemap!]!
   rankTiersByName(name: String!): RankTier
 
@@ -317,6 +338,7 @@ type User {
   githubServiceFetchedAt: DateTime
   githubUpdatedAt: DateTime
   isHireable: Boolean
+  languages: [UserLanguage!]
   location: String
   login: String!
   name: String
@@ -342,6 +364,7 @@ type UserBasic {
   f: Int
   followersCount: Int
   githubId: ID!
+  languages: [UserLanguage!]
   location: String
   login: String!
   s: Int
@@ -350,4 +373,11 @@ type UserBasic {
 enum UserFetchingStatus {
   COMPLETED
   FETCHING
+}
+
+type UserLanguage {
+  color: String!
+  name: String!
+  score: Int!
+  size: Float!
 }

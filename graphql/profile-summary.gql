@@ -31,7 +31,6 @@ query ProfileSummary($login: String!) {
       }
     }
     organizations {
-      githubId
       login
       avatarUrl
       name

@@ -1,10 +1,15 @@
-import { FC, PropsWithChildren, ReactNode } from 'react';
+import { FC, ReactNode } from 'react';
 
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-export const ProfileCardsGrid: FC<PropsWithChildren> = ({ children }) => {
-  return <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">{children}</div>;
+type ProfileCardsGridProps = {
+  children: ReactNode;
+  className?: string;
+};
+
+export const ProfileCardsGrid: FC<ProfileCardsGridProps> = ({ children, className }) => {
+  return <div className={cn(`grid gap-6 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]`, className)}>{children}</div>;
 };
 
 type ProfileCardProps = {

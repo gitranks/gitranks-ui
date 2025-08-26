@@ -4,17 +4,15 @@ import { Metadata } from 'next';
 import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 
-import { fetchProfileData } from '@/graphql/helpers/fetch-profile-data';
-import { fetchProfileSeo } from '@/graphql/helpers/fetch-profile-seo';
-import { fetchRankTiers } from '@/graphql/helpers/fetch-rank-tiers';
+import { JsonLd } from '@/components/json-ld/json-ld';
+import { fetchProfileOverview } from '@/graphql/helpers/fetch-profile-overview';
 import { UserRankProp } from '@/types/ranking.types';
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 
 import { LayoutLeftColumn } from './components/layout-left-column';
 import { MessengerIntegration } from './components/messenger-integration';
-import { ProfileCardsGrid } from './components/profile-card';
+import { ProfileCard, ProfileCardContent, ProfileCardHeader, ProfileCardsGrid } from './components/profile-card';
 import { ProfileCharts } from './components/profile-charts';
-import { ProfileRankingSwitcher } from './components/profile-ranking-switcher';
 import { RankBreakdownTooltip } from './components/rank-breakdown-tooltip';
 import { NotFound } from './not-found';
 import { buildProfileTabSEO } from './seo';
@@ -22,7 +20,7 @@ import { RankCard } from '../../../components/rank-card/rank-card';
 
 export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
   const { login } = await params;
-  const user = await fetchProfileSeo(login);
+  const user = await fetchProfileOverview(login);
 
   if (!user) {
     return {};
@@ -36,7 +34,7 @@ export default async function ProfileOverviewPage({ params }: Readonly<{ params:
   cacheLife('hours');
   cacheTag(`profile:${login}`);
 
-  const { user } = await fetchProfileData(login);
+  const user = await fetchProfileOverview(login);
 
   if (!user) {
     notFound();
@@ -47,15 +45,52 @@ export default async function ProfileOverviewPage({ params }: Readonly<{ params:
     return <NotFound fetchingStatus={user.fetchingStatus} fetchingUpdatedAt={user.fetchingUpdatedAt} />;
   }
 
-  const { rankTiers } = await fetchRankTiers('global');
-  const { s, c, f, sM, cM, fM, sProvisional, cProvisional, fProvisional } = user.rankGlobal ?? {};
+  const { jsonLd } = buildProfileTabSEO('overview', user);
 
-  const { sTier, cTier, fTier, bestTier } = calculateTiers(user.rankGlobal, rankTiers);
+  const { rankGlobal, globalTiers } = user;
+  const { s, c, f, sM, cM, fM, sProvisional, cProvisional, fProvisional } = rankGlobal ?? {};
+  const { sTier, cTier, fTier, bestTier } = calculateTiers(rankGlobal, globalTiers);
+
+  console.log(bestTier);
 
   return (
     <LayoutLeftColumn user={user}>
+      <JsonLd payloads={jsonLd} />
       <>
-        <ProfileRankingSwitcher login={login} ranking="global" />
+        <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(360px,1fr))]">
+          <ProfileCard className="gap-0 w-auto">
+            <div className="flex">
+              <div className="grow">
+                <ProfileCardHeader>Global Rank</ProfileCardHeader>
+                <div>Legend 4 in Contributor Ranking</div>
+              </div>
+              <span>Global | Country</span>
+            </div>
+
+            <ProfileCardContent className="mt-4">
+              <div>Stars Rank: 123/1.3M (top 0.1%)</div>
+              <div>Contributor Rank: 2/2.3M (top 0.1%)</div>
+              <div>Followers Rank: 456/2.1M (top 3%)</div>
+            </ProfileCardContent>
+            <div>chart line</div>
+          </ProfileCard>
+          <ProfileCard className="gap-0 w-auto">
+            <div className="flex">
+              <div className="grow">
+                <ProfileCardHeader>Language Rank</ProfileCardHeader>
+                <div>Elite 1 in JavaScript</div>
+              </div>
+            </div>
+
+            <ProfileCardContent className="mt-4">
+              <div>JavaScript: 123/800K (top 0.1%)</div>
+              <div>TypeScript: 276/534.2K (top 2%)</div>
+              <div>HTML: N/A</div>
+            </ProfileCardContent>
+            <div>chart line</div>
+          </ProfileCard>
+        </ProfileCardsGrid>
+
         <ProfileCharts
           rankChartTitle="Global Rank"
           sTier={sTier.data}
@@ -70,7 +105,7 @@ export default async function ProfileOverviewPage({ params }: Readonly<{ params:
         </h2>
         <ProfileCardsGrid>
           <RankCard
-            tiers={rankTiers?.sTiers}
+            tiers={globalTiers?.sTiers}
             tierData={sTier}
             rankType={UserRankProp.s}
             rank={s}
@@ -80,7 +115,7 @@ export default async function ProfileOverviewPage({ params }: Readonly<{ params:
             login={login}
           />
           <RankCard
-            tiers={rankTiers?.cTiers}
+            tiers={globalTiers?.cTiers}
             tierData={cTier}
             rankType={UserRankProp.c}
             rank={c}
@@ -90,7 +125,7 @@ export default async function ProfileOverviewPage({ params }: Readonly<{ params:
             login={login}
           />
           <RankCard
-            tiers={rankTiers?.fTiers}
+            tiers={globalTiers?.fTiers}
             tierData={fTier}
             rankType={UserRankProp.f}
             rank={f}

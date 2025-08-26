@@ -1,0 +1,7 @@
+fragment UserSeo on User {
+  s
+  c
+  f
+  repositoriesCount
+  contributedRepoCount
+}

@@ -40,13 +40,15 @@ function buildTitle(tab: Tab, name: string): string {
   return titles[tab];
 }
 
-function getBestRank(ranks?: NonNullable<DataType>['ranks']): number | undefined {
-  return [ranks?.s, ranks?.c, ranks?.f].filter((x): x is number => typeof x === 'number').sort((a, b) => a - b)[0];
+function getBestRank(rankGlobal?: NonNullable<DataType>['rankGlobal']): number | undefined {
+  return [rankGlobal?.s, rankGlobal?.c, rankGlobal?.f]
+    .filter((x): x is number => typeof x === 'number')
+    .sort((a, b) => a - b)[0];
 }
 
 function buildOverviewDescription(stats: DataType): string {
-  const { s, c, f, ranks, repositories } = stats ?? {};
-  const bestRank = getBestRank(ranks);
+  const { s, c, f, rankGlobal, repositories } = stats ?? {};
+  const bestRank = getBestRank(rankGlobal);
   const topRepo = repositories?.[0];
 
   const parts = [
@@ -62,11 +64,11 @@ function buildOverviewDescription(stats: DataType): string {
   return clip(parts.filter(Boolean).join(' '));
 }
 
-function buildRanksDescription(ranks?: NonNullable<DataType>['ranks']): string {
+function buildRanksDescription(rankGlobal?: NonNullable<DataType>['rankGlobal']): string {
   const parts = [
-    ranks?.s != null ? `${RANK_NAME.s} ${ord(ranks.s)}.` : undefined,
-    ranks?.c != null ? `${RANK_NAME.c} ${ord(ranks.c)}.` : undefined,
-    ranks?.f != null ? `${RANK_NAME.f} ${ord(ranks.f)}.` : undefined,
+    rankGlobal?.s != null ? `${RANK_NAME.s} ${ord(rankGlobal.s)}.` : undefined,
+    rankGlobal?.c != null ? `${RANK_NAME.c} ${ord(rankGlobal.c)}.` : undefined,
+    rankGlobal?.f != null ? `${RANK_NAME.f} ${ord(rankGlobal.f)}.` : undefined,
   ].filter(Boolean);
 
   return clip('Ranks: ' + (parts.length ? parts.join(' ') : 'Not Ranked'));
@@ -104,7 +106,7 @@ function buildDescription(tab: Tab, stats: DataType): string {
     case 'overview':
       return buildOverviewDescription(stats);
     case 'ranks':
-      return buildRanksDescription(stats?.ranks);
+      return buildRanksDescription(stats?.rankGlobal);
     case 'repositories':
       return buildRepositoriesDescription(stats);
     case 'languages':
@@ -137,10 +139,9 @@ function buildBreadcrumbs(name: string, base: string, tab: Tab, url: string) {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: process.env.NEXT_PUBLIC_URI },
-      { '@type': 'ListItem', position: 2, name: 'Profile', item: `${process.env.NEXT_PUBLIC_URI}/profile` },
-      { '@type': 'ListItem', position: 3, name, item: base },
+      { '@type': 'ListItem', position: 2, name, item: base },
       tab !== 'overview'
-        ? { '@type': 'ListItem', position: 4, name: tab[0].toUpperCase() + tab.slice(1), item: url }
+        ? { '@type': 'ListItem', position: 3, name: tab[0].toUpperCase() + tab.slice(1), item: url }
         : undefined,
     ].filter(Boolean),
   };
@@ -179,9 +180,15 @@ function buildTabSpecificJsonLd(
           '@type': 'Dataset',
           name: `${name} — Rank Dataset`,
           variableMeasured: [
-            stats?.ranks?.s ? { '@type': 'PropertyValue', name: RANK_NAME.s, value: stats.ranks.s } : undefined,
-            stats?.ranks?.c != null ? { '@type': 'PropertyValue', name: RANK_NAME.c, value: stats.ranks.c } : undefined,
-            stats?.ranks?.f != null ? { '@type': 'PropertyValue', name: RANK_NAME.f, value: stats.ranks.f } : undefined,
+            stats?.rankGlobal?.s
+              ? { '@type': 'PropertyValue', name: RANK_NAME.s, value: stats.rankGlobal.s }
+              : undefined,
+            stats?.rankGlobal?.c
+              ? { '@type': 'PropertyValue', name: RANK_NAME.c, value: stats.rankGlobal.c }
+              : undefined,
+            stats?.rankGlobal?.f
+              ? { '@type': 'PropertyValue', name: RANK_NAME.f, value: stats.rankGlobal.f }
+              : undefined,
           ].filter(Boolean),
         },
       };

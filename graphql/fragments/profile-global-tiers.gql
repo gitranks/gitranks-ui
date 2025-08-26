@@ -1,0 +1,16 @@
+fragment UserGlobalTiers on User {
+  globalTiers {
+    sUsers
+    cUsers
+    fUsers
+    sTiers {
+      ...TierFields
+    }
+    fTiers {
+      ...TierFields
+    }
+    cTiers {
+      ...TierFields
+    }
+  }
+}

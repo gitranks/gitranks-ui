@@ -2,10 +2,12 @@ query ProfileSeo($login: String!) {
   user(login: $login) {
     login
     name
-    f
     s
     c
-    ranks: rankGlobal {
+    f
+    repositoriesCount
+    contributedRepoCount
+    rankGlobal {
       s
       c
       f
@@ -14,9 +16,6 @@ query ProfileSeo($login: String!) {
       name
       stargazerCount
       url
-      languages {
-        name
-      }
     }
     languages(limit: 3) {
       name
@@ -26,7 +25,5 @@ query ProfileSeo($login: String!) {
         s
       }
     }
-    repositoriesCount
-    contributedRepoCount
   }
 }

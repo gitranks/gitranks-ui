@@ -1,0 +1,4 @@
+fragment UserFetchingStatus on User {
+  fetchingStatus
+  fetchingUpdatedAt
+}

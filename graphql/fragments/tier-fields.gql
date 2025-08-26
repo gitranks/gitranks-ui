@@ -1,0 +1,7 @@
+fragment TierFields on Tier {
+  tier
+  level
+  minRank
+  maxRank
+  minValue
+}

@@ -1,0 +1,50 @@
+query ProfileOverview($login: String!) {
+  user(login: $login) {
+    ...UserBaseFields
+    ...UserFetchingStatus
+    ...UserSeo
+    ...UserGlobalTiers
+    ...UserCountryTiers
+    rankGlobal {
+      s
+      sProvisional
+      sM
+      c
+      cProvisional
+      cM
+      f
+      fProvisional
+      fM
+    }
+    rankCountry {
+      s
+      sProvisional
+      sM
+      c
+      cProvisional
+      cM
+      f
+      fProvisional
+      fM
+    }
+    languages(limit: 3) {
+      name
+      color
+      size
+      score
+      rank {
+        s
+      }
+      tiers {
+        sTiers {
+          tier
+          level
+          minRank
+          maxRank
+          minValue
+        }
+        sUsers
+      }
+    }
+  }
+}

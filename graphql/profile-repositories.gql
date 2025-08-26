@@ -11,6 +11,11 @@ query ProfileRepositories($login: String!, $offset: Int, $limit: Int) {
       name
       releasesCount
       stargazerCount
+      languages {
+        name
+        size
+        color
+      }
     }
   }
 }

@@ -10,9 +10,6 @@ query CountryRankings($order: RankOrder, $offset: Int, $country: String!) {
     user {
       login
       avatarUrl
-      s
-      c
-      f
       location
       country
     }

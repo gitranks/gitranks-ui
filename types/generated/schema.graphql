@@ -111,7 +111,8 @@ type Language {
 }
 
 type LanguageEntity {
-  id: String!
+  color: String!
+  name: String!
   size: Float!
 }
 
@@ -233,6 +234,15 @@ type RankGlobalWithoutUser {
   snapshots: JSON
 }
 
+type RankLanguage {
+  githubId: String!
+  language: String!
+  s: Int
+  sD: Int
+  sM: Int
+  snapshots: JSON
+}
+
 enum RankOrder {
   CONTRIBUTIONS
   FOLLOWERS
@@ -255,22 +265,12 @@ type Repository {
   forkCount: Int!
   githubId: String!
   isArchived: Boolean!
-  languages: RepositoryLanguagesEntity
+  languages: [LanguageEntity!]
   name: String
   pushedAt: DateTime
   releasesCount: Int
   stargazerCount: Int!
   url: String!
-}
-
-type RepositoryLanguagesEntity {
-  nodes: [LanguageEntity!]!
-  totalCount: Int!
-  totalSize: Float!
-}
-
-enum RepositorySortField {
-  STARGAZERS
 }
 
 type Segment {
@@ -297,11 +297,6 @@ type SocialAccountNodeEntity {
   url: String!
 }
 
-enum SortDirection {
-  ASC
-  DESC
-}
-
 type Tier {
   level: Int!
   maxRank: Int!
@@ -321,8 +316,9 @@ type User {
   cD: Int
   company: String
   contributedRepoCount: Int
-  contributions: [Contribution!]
+  contributions(limit: Int, offset: Int! = 0): [Contribution!]
   country: String
+  countryTiers: RankTier
   createdAt: DateTime!
   email: String
   f: Int
@@ -337,21 +333,22 @@ type User {
   githubId: ID!
   githubServiceFetchedAt: DateTime
   githubUpdatedAt: DateTime
+  globalTiers: RankTier
   isHireable: Boolean
-  languages: [UserLanguage!]
+  languages(limit: Int, offset: Int! = 0): [UserLanguage!]
   location: String
   login: String!
   name: String
   organizations: [Organization!]
   rankCountry: RankCountryWithoutUser
   rankGlobal: RankGlobalWithoutUser
-  repositories(limit: Int! = 10, offset: Int! = 0, order: RankOrder! = STARS, sortBy: RepositorySortField! = STARGAZERS, sortDirection: SortDirection! = DESC): [Repository!]
+  repositories(limit: Int, offset: Int! = 0): [Repository!]
   repositoriesCount: Int
   s: Int
   sD: Int
   snapshots: JSON
   socialAccounts: SocialAccount
-  timeline: [Timeline!]
+  timeline(limit: Int, offset: Int! = 0): [Timeline!]
   twitterUsername: String
   updatedAt: DateTime!
   websiteUrl: String
@@ -378,6 +375,8 @@ enum UserFetchingStatus {
 type UserLanguage {
   color: String!
   name: String!
+  rank: RankLanguage
   score: Int!
   size: Float!
+  tiers: RankTier
 }

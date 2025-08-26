@@ -57,5 +57,24 @@ query ProfileSummary($login: String!) {
       fProvisional
       fM
     }
+    languages(limit: 3) {
+      name
+      color
+      size
+      score
+      rank {
+        s
+      }
+      tiers {
+        sTiers {
+          tier
+          level
+          minRank
+          maxRank
+          minValue
+        }
+        sUsers
+      }
+    }
   }
 }

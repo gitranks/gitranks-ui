@@ -1,24 +1,24 @@
 'use cache';
 
-import { Metadata } from 'next';
 import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
+import { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 import { notFound } from 'next/navigation';
 
+import { RankCard } from '@/components/rank-card/rank-card';
 import { fetchProfileData } from '@/graphql/helpers/fetch-profile-data';
 import { fetchProfileSeo } from '@/graphql/helpers/fetch-profile-seo';
 import { fetchRankTiers } from '@/graphql/helpers/fetch-rank-tiers';
 import { UserRankProp } from '@/types/ranking.types';
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 
-import { LayoutLeftColumn } from './components/layout-left-column';
-import { MessengerIntegration } from './components/messenger-integration';
-import { ProfileCardsGrid } from './components/profile-card';
-import { ProfileCharts } from './components/profile-charts';
-import { ProfileRankingSwitcher } from './components/profile-ranking-switcher';
-import { RankBreakdownTooltip } from './components/rank-breakdown-tooltip';
-import { NotFound } from './not-found';
-import { buildProfileTabSEO } from './seo';
-import { RankCard } from '../../../components/rank-card/rank-card';
+import { LayoutLeftColumn } from '../components/layout-left-column';
+import { MessengerIntegration } from '../components/messenger-integration';
+import { ProfileCardsGrid } from '../components/profile-card';
+import { ProfileCharts } from '../components/profile-charts';
+import { ProfileRankingSwitcher } from '../components/profile-ranking-switcher';
+import { RankBreakdownTooltip } from '../components/rank-breakdown-tooltip';
+import { NotFound } from '../not-found';
+import { buildProfileTabSEO } from '../seo';
 
 export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
   const { login } = await params;
@@ -28,10 +28,10 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
     return {};
   }
 
-  return buildProfileTabSEO('overview', user);
+  return buildProfileTabSEO('ranks', user);
 }
 
-export default async function ProfileOverviewPage({ params }: Readonly<{ params: Promise<{ login: string }> }>) {
+export default async function ProfileRanks({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);

@@ -16,6 +16,11 @@ query ProfileContributions($login: String!) {
         name
         releasesCount
         stargazerCount
+        languages {
+          name
+          size
+          color
+        }
       }
     }
   }

@@ -10,9 +10,6 @@ query GlobalRankings($order: RankOrder, $offset: Int) {
     user {
       login
       avatarUrl
-      s
-      c
-      f
       location
       country
     }

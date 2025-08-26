@@ -1,0 +1,32 @@
+query ProfileSeo($login: String!) {
+  user(login: $login) {
+    login
+    name
+    f
+    s
+    c
+    ranks: rankGlobal {
+      s
+      c
+      f
+    }
+    repositories(limit: 1) {
+      name
+      stargazerCount
+      url
+      languages {
+        name
+      }
+    }
+    languages(limit: 3) {
+      name
+      score
+      size
+      rank {
+        s
+      }
+    }
+    repositoriesCount
+    contributedRepoCount
+  }
+}

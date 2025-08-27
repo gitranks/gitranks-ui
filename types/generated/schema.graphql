@@ -31,6 +31,17 @@ type CountryBasic {
   name: String!
 }
 
+type CountryLanguageSummary {
+  country: String!
+  date: String!
+  language: String!
+  languageData: Language
+  score: Float!
+  size: Float!
+  topUser: UserBasic
+  usersCount: Int!
+}
+
 type CountrySummary {
   c: Float!
   country: String!
@@ -146,6 +157,7 @@ type ProfileForSitemap {
 type Query {
   """List of countries"""
   country: [Country!]
+  countryLanguageSummary(date: String, order: LanguageSummaryOrder! = SCORE): [CountryLanguageSummary!]!
   countryRankByLogin(login: String!): RankCountry
   countryRankings(country: String!, limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankCountry!]!
   countrySummary(date: String, order: CountrySummaryOrder! = STARS): [CountrySummary!]!

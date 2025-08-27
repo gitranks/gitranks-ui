@@ -1,6 +1,6 @@
 import { FC } from 'react';
 
-import { LinkGroup, LinkGroupItem } from '@/components/link-group/link-group';
+import { ButtonGroup, LinkGroupItem } from '@/components/button-group/button-group';
 
 type ProfileRankingSwitcherProps = {
   login: string;
@@ -10,14 +10,14 @@ type ProfileRankingSwitcherProps = {
 export const ProfileRankingSwitcher: FC<ProfileRankingSwitcherProps> = ({ login, ranking }) => {
   return (
     <div className="text-sm">
-      <LinkGroup>
+      <ButtonGroup>
         <LinkGroupItem href={`/profile/${login}`} active={ranking === 'global'}>
           Global
         </LinkGroupItem>
         <LinkGroupItem href={`/profile/${login}/country`} active={ranking === 'country'}>
           Country
         </LinkGroupItem>
-      </LinkGroup>
+      </ButtonGroup>
     </div>
   );
 };

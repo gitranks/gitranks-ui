@@ -51,6 +51,18 @@ export type CountryBasic = {
   name: Scalars['String']['output'];
 };
 
+export type CountryLanguageSummary = {
+  __typename?: 'CountryLanguageSummary';
+  country: Scalars['String']['output'];
+  date: Scalars['String']['output'];
+  language: Scalars['String']['output'];
+  languageData?: Maybe<Language>;
+  score: Scalars['Float']['output'];
+  size: Scalars['Float']['output'];
+  topUser?: Maybe<UserBasic>;
+  usersCount: Scalars['Int']['output'];
+};
+
 export type CountrySummary = {
   __typename?: 'CountrySummary';
   c: Scalars['Float']['output'];
@@ -167,6 +179,7 @@ export type Query = {
   __typename?: 'Query';
   /** List of countries */
   country?: Maybe<Array<Country>>;
+  countryLanguageSummary: Array<CountryLanguageSummary>;
   countryRankByLogin?: Maybe<RankCountry>;
   countryRankings: Array<RankCountry>;
   countrySummary: Array<CountrySummary>;
@@ -180,6 +193,12 @@ export type Query = {
   rankTiersForLogin?: Maybe<Array<RankTier>>;
   user?: Maybe<User>;
   users?: Maybe<Array<User>>;
+};
+
+
+export type QueryCountryLanguageSummaryArgs = {
+  date?: InputMaybe<Scalars['String']['input']>;
+  order?: LanguageSummaryOrder;
 };
 
 

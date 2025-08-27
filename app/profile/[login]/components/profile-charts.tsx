@@ -27,7 +27,7 @@ export const ProfileCharts: FC<ProfileChartsProps> = ({ rankChartTitle, sTier, c
     <ProfileCardsGrid>
       <ProfileChartCard>
         <ProfileChartSlot>
-          <RankChart progress={bestTier?.data} />
+          <RankChart progress={bestTier.data} />
         </ProfileChartSlot>
         <ProfileChartDataSlot
           tooltip={

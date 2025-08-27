@@ -11,8 +11,11 @@ import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 
 import { LayoutLeftColumn } from './components/layout-left-column';
 import { MessengerIntegration } from './components/messenger-integration';
-import { ProfileCard, ProfileCardContent, ProfileCardHeader, ProfileCardsGrid } from './components/profile-card';
-import { ProfileCharts } from './components/profile-charts';
+import { OverviewCardsContainer } from './components/overview-cards/overview-cards';
+import { ProfileLanguageCard } from './components/overview-cards/overview-language-card';
+import { ProfileRankCard } from './components/overview-cards/overview-rank-card';
+import { RankCardSwitcher } from './components/overview-cards/rank-card-switcher';
+import { ProfileCardsGrid } from './components/profile-card';
 import { RankBreakdownTooltip } from './components/rank-breakdown-tooltip';
 import { NotFound } from './not-found';
 import { buildProfileTabSEO } from './seo';
@@ -47,57 +50,22 @@ export default async function ProfileOverviewPage({ params }: Readonly<{ params:
 
   const { jsonLd } = buildProfileTabSEO('overview', user);
 
-  const { rankGlobal, globalTiers } = user;
+  const { rankGlobal, globalTiers, languages } = user;
   const { s, c, f, sM, cM, fM, sProvisional, cProvisional, fProvisional } = rankGlobal ?? {};
   const { sTier, cTier, fTier, bestTier } = calculateTiers(rankGlobal, globalTiers);
-
-  console.log(bestTier);
 
   return (
     <LayoutLeftColumn user={user}>
       <JsonLd payloads={jsonLd} />
       <>
-        <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(360px,1fr))]">
-          <ProfileCard className="gap-0 w-auto">
-            <div className="flex">
-              <div className="grow">
-                <ProfileCardHeader>Global Rank</ProfileCardHeader>
-                <div>Legend 4 in Contributor Ranking</div>
-              </div>
-              <span>Global | Country</span>
-            </div>
+        <h2 className="text-xl mt-4 flex items-center justify-between">
+          Ranks overview <RankCardSwitcher />
+        </h2>
 
-            <ProfileCardContent className="mt-4">
-              <div>Stars Rank: 123/1.3M (top 0.1%)</div>
-              <div>Contributor Rank: 2/2.3M (top 0.1%)</div>
-              <div>Followers Rank: 456/2.1M (top 3%)</div>
-            </ProfileCardContent>
-            <div>chart line</div>
-          </ProfileCard>
-          <ProfileCard className="gap-0 w-auto">
-            <div className="flex">
-              <div className="grow">
-                <ProfileCardHeader>Language Rank</ProfileCardHeader>
-                <div>Elite 1 in JavaScript</div>
-              </div>
-            </div>
-
-            <ProfileCardContent className="mt-4">
-              <div>JavaScript: 123/800K (top 0.1%)</div>
-              <div>TypeScript: 276/534.2K (top 2%)</div>
-              <div>HTML: N/A</div>
-            </ProfileCardContent>
-            <div>chart line</div>
-          </ProfileCard>
-        </ProfileCardsGrid>
-
-        <ProfileCharts
-          rankChartTitle="Global Rank"
-          sTier={sTier.data}
-          cTier={cTier.data}
-          fTier={fTier.data}
-          bestTier={bestTier}
-        />
+        <OverviewCardsContainer>
+          <ProfileRankCard login={login} bestTier={bestTier} />
+          <ProfileLanguageCard login={login} languages={languages} />
+        </OverviewCardsContainer>
 
         <MessengerIntegration login={login} />
         <h2 className="text-xl mt-4 flex items-center gap-2">

@@ -21,7 +21,7 @@ query ProfileSeo($login: String!) {
       name
       score
       size
-      rank {
+      rankGlobal {
         s
       }
     }

@@ -1,4 +1,4 @@
-import { FC, ReactNode } from 'react';
+import { FC } from 'react';
 import { FiGitPullRequest, FiStar, FiUsers, FiArrowRight } from 'react-icons/fi';
 
 import { Link } from '@/components/link/link';
@@ -7,7 +7,7 @@ import { RankChart } from '@/components/rank-chart/rank-chart';
 import { ProfileCard } from '../profile-card';
 
 type ProfileRankCardProps = {
-  children: ReactNode;
+  login: string;
 };
 
 export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, bestTier }) => {
@@ -30,7 +30,7 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, bestTier }) =
           </div>
         </div>
       </div>
-      <div className="h-12 flex items-center justify-between border-t-1 border-muted py-2">
+      <div className="h-12 flex items-center justify-between border-t-1 border-muted py-2 overflow-hidden">
         <div className="grid grid-cols-3">
           <div className="flex flex-col items-center text-sm border-r-1 px-3 text-muted-foreground min-w-[60px]">
             <FiStar /> #234,234
@@ -43,8 +43,8 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, bestTier }) =
           </div>
         </div>
 
-        <Link href={`/profile/${login}/ranks`} className="flex items-center justify-center px-3 min-w-[140px] gap-1">
-          View Details <FiArrowRight />
+        <Link href={`/profile/${login}/ranks`} className="flex items-center justify-center px-3 min-w-[140px] gap-x-1">
+          Explore Ranks <FiArrowRight />
         </Link>
       </div>
     </ProfileCard>

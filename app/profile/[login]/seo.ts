@@ -5,8 +5,8 @@ import { formatNumberShort } from '@/utils/format-number-short';
 type Tab = 'overview' | 'ranks' | 'repositories' | 'languages';
 type DataType = NonNullable<ProfileSeoQuery['user']>;
 
-const ord = (k?: number) => {
-  if (k == null) return undefined;
+const ord = (k?: number | null) => {
+  if (!k) return undefined;
   const s = ['th', 'st', 'nd', 'rd'],
     v = k % 100;
   return k.toLocaleString('en-US') + (s[(v - 20) % 10] || s[v] || s[0]);
@@ -95,8 +95,8 @@ function buildLanguagesDescription(languages?: NonNullable<DataType>['languages'
   const languageParts =
     languages
       ?.slice(0, 3)
-      .filter((l) => l.rank?.s)
-      .map((l) => `${l.name} ${ord(l.rank!.s!)} (${l.score})`) ?? [];
+      .filter((l) => l.rankGlobal?.s)
+      .map((l) => `${l.name} ${ord(l.rankGlobal!.s)} (${l.score})`) ?? [];
 
   return languageParts.length ? clip('Language Ranks: ' + languageParts.join(', ')) : '';
 }
@@ -223,7 +223,7 @@ function buildTabSpecificJsonLd(
             '@type': 'ListItem',
             position: i + 1,
             name: l.name,
-            description: l.rank?.s ? `Rank ${l.rank.s}` : undefined,
+            description: l.rankGlobal?.s ? `Rank ${l.rankGlobal.s}` : undefined,
           })),
         },
       };

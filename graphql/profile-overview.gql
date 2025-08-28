@@ -1,11 +1,11 @@
-query ProfileOverview($login: String!) {
+query ProfileOverview($login: String!, $rankGlobal: Boolean! = true) {
   user(login: $login) {
     ...UserBaseFields
     ...UserFetchingStatus
     ...UserSeo
-    ...UserGlobalTiers
-    ...UserCountryTiers
-    rankGlobal {
+    ...UserGlobalTiers @include(if: $rankGlobal)
+    ...UserCountryTiers @skip(if: $rankGlobal)
+    rankGlobal @include(if: $rankGlobal) {
       s
       sProvisional
       sM
@@ -16,7 +16,7 @@ query ProfileOverview($login: String!) {
       fProvisional
       fM
     }
-    rankCountry {
+    rankCountry @skip(if: $rankGlobal) {
       s
       sProvisional
       sM
@@ -32,19 +32,24 @@ query ProfileOverview($login: String!) {
       color
       size
       score
-      rank {
-        s
-      }
-      tiers {
-        sTiers {
-          tier
-          level
-          minRank
-          maxRank
-          minValue
-        }
-        sUsers
-      }
+      # rankGlobal @include(if: $rankGlobal) {
+      #   s
+      # }
+      # tiersGlobal @include(if: $rankGlobal) {
+      #   sTiers {
+      #     ...TierFields
+      #   }
+      #   sUsers
+      # }
+      # rankCountry @skip(if: $rankGlobal) {
+      #   s
+      # }
+      # tiersCountry @skip(if: $rankGlobal) {
+      #   sTiers {
+      #     ...TierFields
+      #   }
+      #   sUsers
+      # }
     }
   }
 }

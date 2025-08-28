@@ -28,7 +28,7 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-export const ChartLanguages = ({ languages }) => {
+export const PieChartLanguages = ({ languages }) => {
   const data = useMemo(() => {
     if (!languages?.length) return [];
 

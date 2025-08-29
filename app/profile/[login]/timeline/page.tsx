@@ -9,7 +9,7 @@ import { fetchProfileTimeline } from '@/graphql/helpers/fetch-profile-timeline';
 import { LayoutLeftColumn } from '../components/layout-left-column';
 import { ProfileTimeline } from './components/profile-timeline';
 
-export default async function Timeline({ params }: { params: Promise<{ login: string }> }) {
+export default async function Timeline({ params }: PageProps<'/profile/[login]/timeline'>) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);

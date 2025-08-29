@@ -7,16 +7,11 @@ import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { CountryRankingsDocument } from '@/types/generated/graphql';
-import { RankingTypeClient } from '@/types/ranking.types';
 import { getRankingOrder } from '@/utils/get-ranking-config-by-type';
 
 const ITEMS_PER_PAGE = 100;
 
-type CountryRankingProps = {
-  params: Promise<{ name: string; rankingType: RankingTypeClient; page: string }>;
-};
-
-export default async function CountryRanking({ params }: CountryRankingProps) {
+export default async function CountryRanking({ params }: PageProps<'/country/[name]/[rankingType]/[page]'>) {
   cacheLife('hours');
 
   const { name, rankingType, page: pageParam } = await params;

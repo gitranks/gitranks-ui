@@ -1,22 +1,22 @@
 import { FlameIcon } from 'lucide-react';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { Badge } from '@/components/ui/badge';
-import { CountrySummaryOrder } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
 
 import { CountryOrderSwitcher } from './components/country-order-switcher';
+import { isCountrySummaryOrder } from './utils/is-country-summary-order';
 
-type CountriesLayoutProps = {
-  children: React.ReactNode;
-  params: Promise<{ orderBy: CountrySummaryOrder; page: string }>;
-};
-
-export async function generateMetadata({ params }: CountriesLayoutProps): Promise<Metadata> {
+export async function generateMetadata({ params }: LayoutProps<'/countries/[orderBy]/[page]'>): Promise<Metadata> {
   const { orderBy, page } = await params;
+
+  if (!isCountrySummaryOrder(orderBy)) {
+    throw new Error(`Invalid order by: ${orderBy}`);
+  }
 
   const rankProp = orderBy.slice(0, 1) as UserRankProp;
 
@@ -37,8 +37,12 @@ export async function generateStaticParams() {
   ];
 }
 
-export default async function CountriesLayout({ children, params }: CountriesLayoutProps) {
+export default async function CountriesLayout({ children, params }: LayoutProps<'/countries/[orderBy]/[page]'>) {
   const { orderBy } = await params;
+
+  if (!isCountrySummaryOrder(orderBy)) {
+    return notFound();
+  }
 
   return (
     <>

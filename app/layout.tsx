@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     'Explore rankings based on stars, contributions, and followers. Dive into dynamic leaderboards to see how you rank against developers worldwide and within your own country.',
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body

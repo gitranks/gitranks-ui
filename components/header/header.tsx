@@ -20,18 +20,18 @@ export const Header: FC<HeaderProps> = ({ login }) => {
           <Image
             src="/logo-light.svg"
             alt="Logo Light"
-            className={cn('dark:hidden sm:block', { hidden: login, block: !login })}
+            className={cn('dark:hidden sm:block mt-1', { hidden: login, block: !login })}
             priority
-            width={100}
-            height={20}
+            width={96}
+            height={21}
           />
           <Image
             src="/logo-dark.svg"
             alt="Logo Dark"
-            className={cn('hidden dark:block sm:dark:block', { 'dark:hidden': login, 'dark:block': !login })}
+            className={cn('hidden dark:block sm:dark:block mt-1', { 'dark:hidden': login, 'dark:block': !login })}
             priority
-            width={100}
-            height={20}
+            width={96}
+            height={21}
           />
           {!!login && <HomeIcon className="sm:hidden" />}
         </Link>

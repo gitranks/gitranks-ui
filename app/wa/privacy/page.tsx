@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { Header } from '@/components/header/header';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy – GitRanks Chatbot (Sole Proprietor Vitalii Maslianok)',
+  title: 'Privacy Policy - GitRanks Chatbot (Sole Proprietor Vitalii Maslianok)',
   description: 'Privacy Policy for the WhatsApp chatbot operated by sole proprietor Vitalii Maslianok.',
 };
 

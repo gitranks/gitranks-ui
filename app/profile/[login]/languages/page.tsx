@@ -9,7 +9,7 @@ import { fetchProfileSeo } from '@/graphql/helpers/fetch-profile-seo';
 import { buildProfileTabSEO } from '../seo';
 import { LanguagesPage } from './components/languages-page';
 
-export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<'/profile/[login]/languages'>): Promise<Metadata> {
   const { login } = await params;
   const user = await fetchProfileSeo(login);
 
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
   return buildProfileTabSEO('languages', user);
 }
 
-export default async function ProfileLanguages({ params }: Readonly<{ params: Promise<{ login: string }> }>) {
+export default async function ProfileLanguages({ params }: PageProps<'/profile/[login]/languages'>) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);

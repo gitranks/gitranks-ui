@@ -11,7 +11,7 @@ import { IntegrationCode } from './components/integration-code';
 import { LoginForm } from './components/login-form';
 import { Preview } from './components/preview';
 
-export default async function Badge({ params }: { params: Promise<{ login?: string[] }> }) {
+export default async function Badge({ params }: PageProps<'/badge/builder/[[...login]]'>) {
   cacheLife('hours');
 
   const { login } = await params;

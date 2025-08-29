@@ -36,7 +36,7 @@ function LayoutLoading() {
   );
 }
 
-async function ProfileLayoutAwaitParams({ children, params }: ProfileLayoutProps) {
+async function ProfileLayoutAwaitParams({ children, params }: LayoutProps<'/profile/[login]'>) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);

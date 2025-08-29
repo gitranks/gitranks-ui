@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
   return buildProfileTabSEO('overview', user);
 }
 
-export default async function ProfileOverviewPage({ params }: Readonly<{ params: Promise<{ login: string }> }>) {
+export default async function ProfileOverviewPage({ params }: PageProps<'/profile/[login]'>) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);

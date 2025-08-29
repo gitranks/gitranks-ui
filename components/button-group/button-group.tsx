@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import Link from 'next/link';
 import { FC, ReactNode } from 'react';
 
@@ -30,7 +31,7 @@ type LinkGroupItemProps = {
 
 export const LinkGroupItem: FC<LinkGroupItemProps> = ({ href, active, children }) => {
   return (
-    <Link href={href} data-state={active ? 'active' : undefined} className={ITEM_CLASSNAME}>
+    <Link href={href as Route} data-state={active ? 'active' : undefined} className={ITEM_CLASSNAME}>
       {children}
     </Link>
   );

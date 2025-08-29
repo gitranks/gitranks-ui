@@ -2,6 +2,7 @@
 
 import type { Metadata } from 'next';
 import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { notFound } from 'next/navigation';
 
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
@@ -9,14 +10,19 @@ import { Page } from '@/components/page/page';
 import { RankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
 import { RankingTypeClient } from '@/types/ranking.types';
 import { getRankPropByType } from '@/utils/get-rank-prop-by-ranking-type';
+import { isRankingType } from '@/utils/is-ranking-type';
 
 type GlobalRankingProps = {
   children: React.ReactNode;
   params: Promise<{ rankingType: RankingTypeClient; page: string }>;
 };
 
-export async function generateMetadata({ params }: GlobalRankingProps): Promise<Metadata> {
+export async function generateMetadata({ params }: LayoutProps<'/by/[rankingType]/[page]'>): Promise<Metadata> {
   const { rankingType, page: pageParam } = await params;
+
+  if (!isRankingType(rankingType)) {
+    throw new Error(`Invalid ranking type: ${rankingType}`);
+  }
 
   const rankProp = getRankPropByType(rankingType);
   const rankName = RANK_NAME[rankProp];
@@ -38,9 +44,13 @@ export async function generateStaticParams() {
   ];
 }
 
-export default async function RankingListLayout({ children, params }: GlobalRankingProps) {
+export default async function RankingListLayout({ children, params }: LayoutProps<'/by/[rankingType]/[page]'>) {
   cacheLife('hours');
   const { rankingType } = await params;
+
+  if (!isRankingType(rankingType)) {
+    return notFound();
+  }
 
   return (
     <>

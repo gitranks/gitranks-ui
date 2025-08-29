@@ -9,7 +9,7 @@ import { fetchProfileSeo } from '@/graphql/helpers/fetch-profile-seo';
 import { buildProfileTabSEO } from '../seo';
 import { RanksPage } from './components/ranks-page';
 
-export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: LayoutProps<'/profile/[login]'>): Promise<Metadata> {
   const { login } = await params;
   const user = await fetchProfileSeo(login);
 
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
   return buildProfileTabSEO('ranks', user);
 }
 
-export default async function ProfileRanks({ params }: Readonly<{ params: Promise<{ login: string }> }>) {
+export default async function ProfileRanks({ params }: PageProps<'/profile/[login]/ranks'>) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);

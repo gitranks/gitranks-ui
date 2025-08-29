@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     'Browse the complete collection of GitRanks badges. See design examples, colors, and styles you can use to showcase your GitHub achievements.',
 };
 
-export default function BadgeGalleryLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function BadgeGalleryLayout({ children }: LayoutProps<'/badge/gallery'>) {
   return (
     <>
       <Header />

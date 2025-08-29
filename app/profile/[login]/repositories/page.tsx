@@ -13,7 +13,7 @@ import { LayoutLeftColumn } from '../components/layout-left-column';
 import NotFound from '../not-found';
 import { buildProfileTabSEO } from '../seo';
 
-export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<'/profile/[login]/repositories'>): Promise<Metadata> {
   const { login } = await params;
   const user = await fetchProfileSeo(login);
 
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
   return buildProfileTabSEO('repositories', user);
 }
 
-export default async function ProfileRepositories({ params }: Readonly<{ params: Promise<{ login: string }> }>) {
+export default async function ProfileRepositories({ params }: PageProps<'/profile/[login]/repositories'>) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);

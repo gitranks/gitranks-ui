@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import { FC, ReactNode } from 'react';
 
@@ -52,7 +53,7 @@ const ListItem: FC<ListItemProps> = ({ className, children, href }) => {
             'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
             className,
           )}
-          href={href}
+          href={href as Route}
         >
           {children}
         </Link>

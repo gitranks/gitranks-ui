@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Edit, Search } from 'lucide-react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FC } from 'react';
@@ -29,8 +30,13 @@ export const LoginForm: FC<LoginFormProps> = ({ githubLogin = '', githubId }) =>
   });
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
-    const url = `/badge/builder${githubId ? '' : `/${data.login}`}?${searchParams.toString()}`;
-    router.push(url);
+    const qs = searchParams.toString();
+
+    if (githubId) {
+      router.push(`/badge/builder?${qs}` as Route);
+    } else {
+      router.push(`/badge/builder/${data.login}?${qs}` as Route);
+    }
   }
 
   return (

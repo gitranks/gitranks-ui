@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { NextRequest } from 'next/server';
 
 import { BadgeV2ZodSchema } from '@/badge/badge.zod';
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, { params }: Props) {
   const svg = await renderInlineBadge({ login, params: validationResult.data });
 
   if (!svg) {
-    return redirect('/404');
+    return notFound();
   }
 
   return new Response(svg, {

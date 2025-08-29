@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from 'date-fns';
 import { Clock, Package, Split, Star } from 'lucide-react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { FC, ReactNode } from 'react';
 
@@ -50,7 +51,12 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
     <ProfileCard className={cn(className, 'flex-col md:flex-row gap-x-2 justify-between flex-wrap')}>
       <div className="flex flex-col gap-2">
         <ProfileCardHeader meta={getMeta()}>
-          <Link href={titleUrl} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap font-semibold">
+          <Link
+            href={titleUrl as Route}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="whitespace-nowrap font-semibold"
+          >
             {name}
           </Link>
         </ProfileCardHeader>

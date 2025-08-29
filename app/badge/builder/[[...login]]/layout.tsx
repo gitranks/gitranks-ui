@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     'Generate custom GitHub badges with GitRanks. Show your global and country rankings, percentile, monthly changes, and progress toward the next tier.',
 };
 
-export default function BadgeLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function BadgeLayout({ children }: LayoutProps<'/badge/builder/[[...login]]'>) {
   return (
     <>
       <Header />

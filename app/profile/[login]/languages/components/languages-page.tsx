@@ -1,10 +1,8 @@
 import { notFound } from 'next/navigation';
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 
 import { LanguageRankCard } from '@/components/rank-card/language-rank-card';
-import { PageProfileLanguagesQuery } from '@/types/generated/graphql';
-import { UserRankProp } from '@/types/ranking.types';
-import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
+import { PageProfileLanguagesQuery, UserLanguage } from '@/types/generated/graphql';
 
 import { LayoutLeftColumn } from '../../components/layout-left-column';
 import { ProfileCardsGrid } from '../../components/profile-card';
@@ -21,47 +19,46 @@ export const LanguagesPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) 
     notFound();
   }
 
+  const langsWithScore = useMemo(() => {
+    return user.languages?.filter((lang) => lang.score);
+  }, [user]);
+
+  const ranksAreNotReady = useMemo(() => {
+    const rankProp = isGlobalContext ? 'rankGlobal' : 'rankCountry';
+    const langsWithRank = langsWithScore?.filter((lang) => lang[rankProp]);
+
+    return langsWithScore?.length && !langsWithRank?.length;
+  }, [langsWithScore, isGlobalContext]);
+
   if (user.fetchingStatus === 'FETCHING' && !user.avatarUrl) {
     // user is being fetched for the first time
     return <NotFound fetchingStatus={user.fetchingStatus} fetchingUpdatedAt={user.fetchingUpdatedAt} />;
   }
-
-  const { languages, login, country } = user;
 
   return (
     <LayoutLeftColumn user={user}>
       <>
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Language Ranks Breakdown</h2>
-          <ProfileRankingSwitcher countryName={country} />
+          <ProfileRankingSwitcher countryName={user.country} />
         </div>
 
+        {ranksAreNotReady && (
+          <p>
+            Your language rankings aren&apos;t ready yet! We&apos;ve just discovered your profile, and language rankings
+            are recalculated every other day. Check back soon to see your results.
+          </p>
+        )}
+
         <ProfileCardsGrid>
-          {languages
-            ?.filter((language) => language.score)
-            .map((language) => {
-              const { rankGlobal, rankCountry, tiersGlobal, tiersCountry } = language;
-              const ranks = isGlobalContext ? rankGlobal : rankCountry;
-              const tiers = isGlobalContext ? tiersGlobal : tiersCountry;
-
-              const sTier = getRankingTierData(UserRankProp.s, ranks, tiers?.sUsers, tiers?.sTiers);
-              const { s, sM } = ranks ?? {};
-
-              return (
-                <LanguageRankCard
-                  key={language.name}
-                  languageName={language.name}
-                  languageColor={language.color}
-                  tiers={tiers?.sTiers}
-                  tierData={sTier}
-                  rankType={UserRankProp.s}
-                  rank={s}
-                  rankM={sM}
-                  score={user.s}
-                  login={login}
-                />
-              );
-            })}
+          {langsWithScore?.map((language) => (
+            <LanguageRankCard
+              key={language.name}
+              language={language as UserLanguage}
+              isGlobalContext={isGlobalContext}
+              country={user.country}
+            />
+          ))}
         </ProfileCardsGrid>
       </>
     </LayoutLeftColumn>

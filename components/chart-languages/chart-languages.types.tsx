@@ -1,7 +1,7 @@
 import { SVGProps } from 'react';
 import { LabelProps } from 'recharts';
 
-import { PageProfileOverviewQuery } from '@/types/generated/graphql';
+import { PageProfileLanguagesQuery } from '@/types/generated/graphql';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type CustomTooltipProps = { active?: boolean; payload?: any[] };
@@ -10,7 +10,7 @@ export type ValueLabelProps = Omit<SVGProps<SVGTextElement>, 'viewBox'> & LabelP
 
 export type CartesianViewBox = { x: number; y: number; width: number; height: number };
 
-export type BarChartLanguagesProps = {
-  languages: NonNullable<PageProfileOverviewQuery['user']>['languages'];
+export type ChartLanguagesProps = {
+  languages: NonNullable<PageProfileLanguagesQuery['user']>['languages'];
   className?: string;
 };

@@ -35,7 +35,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
   const { languages, country, login, repositories, contributions, timeline, repositoriesCount, firstSeenAt } = user;
 
   const ranks = isGlobalContext ? user.rankGlobal : user.rankCountry;
-  const tiers = isGlobalContext ? user.tiersGlobal : user.countryTiers;
+  const tiers = isGlobalContext ? user.tiersGlobal : user.tiersCountry;
 
   return (
     <LayoutLeftColumn user={user} className="gap-6">

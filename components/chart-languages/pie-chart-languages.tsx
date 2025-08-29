@@ -1,34 +1,18 @@
 'use client';
-import { useMemo } from 'react';
+import { FC, useMemo } from 'react';
 import { Cell, Pie, PieChart, Tooltip } from 'recharts';
 
-import { TIER_NAMES } from '@/app/app.consts';
-import { formatBytes } from '@/utils/format-bytes';
+import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
 import { lightenColor } from '@/utils/lighten-color';
+
+import { ChartLanguagesProps } from './chart-languages.types';
+import { CustomTooltip } from './custom-tooltip';
 
 const RADIUS = 70;
 const MIN_RADIUS_FACTOR = 0.6;
 const MIN_CELL_PERCENTAGE = 0.04;
 
-const CustomTooltip = ({ active, payload }) => {
-  if (active && payload?.length) {
-    const { name, tier, size } = payload[0].payload ?? {};
-    return (
-      <div className="flex flex-col rounded-lg bg-background p-2 text-sm shadow-lg">
-        <div className="font-medium">{name}</div>
-        {!!tier && (
-          <div>
-            Rank: {TIER_NAMES[tier.tier - 1]} {tier.level}
-          </div>
-        )}
-        <div>Size: {formatBytes(size)}</div>
-      </div>
-    );
-  }
-  return null;
-};
-
-export const PieChartLanguages = ({ languages }) => {
+export const PieChartLanguages: FC<ChartLanguagesProps> = ({ languages }) => {
   const data = useMemo(() => {
     if (!languages?.length) return [];
 
@@ -62,8 +46,8 @@ export const PieChartLanguages = ({ languages }) => {
     });
 
     // Now, continue with the rest of the logic, but use adjustedSize
-    const languagesWithTier = adjusted.map(({ tiers, rank, adjustedSize, ...rest }) => {
-      const tier = tiers.sTiers.find((t) => t.minValue <= rest.score);
+    const languagesWithTier = adjusted.map(({ tiersGlobal, adjustedSize, ...rest }) => {
+      const tier = tiersGlobal?.sTiers.find((t) => t.minValue <= rest.score);
       return {
         ...rest,
         tier,
@@ -109,12 +93,16 @@ export const PieChartLanguages = ({ languages }) => {
         nameKey="name"
         cx="50%"
         cy="50%"
-        outerRadius={(entry: any) => entry.outerRadius}
+        outerRadius={(entry) => entry.outerRadius}
         startAngle={90}
         endAngle={-270}
       >
         {data.map((entry, i) => (
-          <Cell key={`slice-${entry.name}-${i}`} fill={entry.color} stroke={lightenColor(entry.color, 0.4)} />
+          <Cell
+            key={`slice-${entry.name}-${i}`}
+            fill={entry.color ?? DEFAULT_LANGUAGE_COLOR}
+            stroke={lightenColor(entry.color ?? DEFAULT_LANGUAGE_COLOR, 0.4)}
+          />
         ))}
       </Pie>
 

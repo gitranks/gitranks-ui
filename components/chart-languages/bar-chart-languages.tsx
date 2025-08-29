@@ -4,24 +4,12 @@ import dynamic from 'next/dynamic';
 import { FC } from 'react';
 import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
+import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
 import { formatBytes } from '@/utils/format-bytes';
 import { formatNumberShort } from '@/utils/format-number-short';
 
-import { BarChartLanguagesProps, CartesianViewBox, CustomTooltipProps, ValueLabelProps } from './chart-languages.types';
-
-const CustomTooltip: FC<CustomTooltipProps> = ({ active, payload }) => {
-  if (active && payload?.length) {
-    const { name, score, size } = payload[0].payload ?? {};
-    return (
-      <div className="flex flex-col rounded-lg bg-background p-2 text-sm shadow-lg">
-        <div className="font-medium">{name}</div>
-        {!!score && <div>Score: {score.toLocaleString('en-US')} stars</div>}
-        <div>Size: {formatBytes(size)}</div>
-      </div>
-    );
-  }
-  return null;
-};
+import { ChartLanguagesProps, CartesianViewBox, ValueLabelProps } from './chart-languages.types';
+import { CustomTooltip } from './custom-tooltip';
 
 const RightValueLabel: FC<ValueLabelProps> = ({ value, viewBox, formatter }) => {
   const { x = 0, y = 0, width = 0, height = 0 } = (viewBox ?? {}) as CartesianViewBox;
@@ -45,7 +33,7 @@ const RightValueLabel: FC<ValueLabelProps> = ({ value, viewBox, formatter }) => 
   );
 };
 
-const BarChartLanguages: FC<BarChartLanguagesProps> = ({ languages, className }) => {
+const BarChartLanguages: FC<ChartLanguagesProps> = ({ languages, className }) => {
   if (!languages?.length) {
     return null;
   }
@@ -76,7 +64,12 @@ const BarChartLanguages: FC<BarChartLanguagesProps> = ({ languages, className })
 
         <Bar dataKey="score" xAxisId="score" name="Score" activeBar={false}>
           {languages.map((l) => (
-            <Cell key={`score-${l.name}`} fill={l.color} stroke={l.color} strokeWidth={1} />
+            <Cell
+              key={`score-${l.name}`}
+              fill={l.color ?? DEFAULT_LANGUAGE_COLOR}
+              stroke={l.color ?? DEFAULT_LANGUAGE_COLOR}
+              strokeWidth={1}
+            />
           ))}
           <LabelList
             dataKey="score"
@@ -88,7 +81,13 @@ const BarChartLanguages: FC<BarChartLanguagesProps> = ({ languages, className })
 
         <Bar dataKey="size" xAxisId="size" name="Size" fillOpacity={0} activeBar={false}>
           {languages.map((l) => (
-            <Cell key={`size-${l.name}`} fill={l.color} fillOpacity={0.3} stroke={l.color} strokeWidth={1} />
+            <Cell
+              key={`size-${l.name}`}
+              fill={l.color ?? DEFAULT_LANGUAGE_COLOR}
+              fillOpacity={0.3}
+              stroke={l.color ?? DEFAULT_LANGUAGE_COLOR}
+              strokeWidth={1}
+            />
           ))}
           <LabelList dataKey="size" position="right" content={<RightValueLabel formatter={(v) => formatBytes(v)} />} />
         </Bar>

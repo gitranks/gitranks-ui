@@ -1,4 +1,4 @@
-export function JsonLd({ payloads }: { payloads: any[] }) {
+export function JsonLd({ payloads }: Readonly<{ payloads: unknown[] }>) {
   return (
     <>
       {payloads.map((obj, i) => (

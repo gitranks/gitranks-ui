@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { FC } from 'react';
 
+import { RANK_DESCRIPTIONS } from '@/app/app.consts';
 import { RankCard } from '@/components/rank-card/rank-card';
 import { PageProfileRanksQuery } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
@@ -36,6 +37,12 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
   const { sTier, cTier, fTier, bestTier } = calculateTiers(ranks, tiers);
   const { s, c, f, sM, cM, fM, sProvisional, cProvisional, fProvisional } = ranks ?? {};
 
+  const getRankingName = (rankType: UserRankProp) => {
+    const { title } = RANK_DESCRIPTIONS[rankType];
+
+    return `${title}ing${isGlobalContext ? '' : ` in ${shortenCountryName(country)}`}`;
+  };
+
   return (
     <LayoutLeftColumn user={user}>
       <>
@@ -64,6 +71,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
             rankProvisional={sProvisional}
             score={user.s}
             login={login}
+            rankingName={getRankingName(UserRankProp.s)}
           />
           <RankCard
             tiers={tiers?.cTiers}
@@ -74,6 +82,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
             rankProvisional={cProvisional}
             score={user.c}
             login={login}
+            rankingName={getRankingName(UserRankProp.c)}
           />
           <RankCard
             tiers={tiers?.fTiers}
@@ -84,6 +93,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
             rankProvisional={fProvisional}
             score={user.f}
             login={login}
+            rankingName={getRankingName(UserRankProp.f)}
           />
         </ProfileCardsGrid>
       </>

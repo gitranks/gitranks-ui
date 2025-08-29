@@ -395,7 +395,7 @@ enum UserFetchingStatus {
 }
 
 type UserLanguage {
-  color: String!
+  color: String
   name: String!
   rankCountry: RankCountryLanguage
   rankGlobal: RankLanguage

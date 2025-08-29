@@ -41,7 +41,7 @@ export const RepositoryLanguages: FC<RepositoryLanguageProps> = ({ languages }) 
             className="h-full"
             style={{
               width: `${l.percent}%`,
-              backgroundColor: l.color,
+              backgroundColor: l.color!,
               minWidth: l.percent > 0 ? 2 : 0,
             }}
           />
@@ -53,7 +53,7 @@ export const RepositoryLanguages: FC<RepositoryLanguageProps> = ({ languages }) 
           <div key={l.name} className="flex items-center gap-1">
             <span
               className="inline-block h-2 w-2 rounded-full ring-1 ring-black/10 dark:ring-white/20 shrink-0"
-              style={{ backgroundColor: l.color }}
+              style={{ backgroundColor: l.color! }}
               aria-hidden
             />
             <span className="">{l.name}</span>

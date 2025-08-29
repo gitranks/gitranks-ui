@@ -32,6 +32,9 @@ const CardFooterRank: FC<PropsWithChildren> = ({ children }) => {
 
 export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers, country }) => {
   const { sTier, cTier, fTier, bestTier } = calculateTiers(ranks, tiers);
+  const sRank = ranks?.s ?? ranks?.sProvisional ?? 0;
+  const cRank = ranks?.c ?? ranks?.cProvisional ?? 0;
+  const fRank = ranks?.f ?? ranks?.fProvisional ?? 0;
 
   const getCardContent = () => {
     if (sTier?.notAvailable && cTier?.notAvailable && fTier?.notAvailable) {
@@ -92,13 +95,13 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers,
       <div className="h-12 flex items-center justify-between border-t-1 border-muted py-2 overflow-hidden">
         <div className="grid grid-cols-3">
           <CardFooterRank>
-            <FiStar /> {ranks?.s ? `#${ranks?.s?.toLocaleString('en-US')}` : 'N/A'}
+            <FiStar /> {sRank ? `#${sRank?.toLocaleString('en-US')}` : 'N/A'}
           </CardFooterRank>
           <CardFooterRank>
-            <FiGitPullRequest /> {ranks?.c ? `#${ranks?.c?.toLocaleString('en-US')}` : 'N/A'}
+            <FiGitPullRequest /> {cRank ? `#${cRank?.toLocaleString('en-US')}` : 'N/A'}
           </CardFooterRank>
           <CardFooterRank>
-            <FiUsers /> {ranks?.f ? `#${ranks?.f?.toLocaleString('en-US')}` : 'N/A'}
+            <FiUsers /> {fRank ? `#${fRank?.toLocaleString('en-US')}` : 'N/A'}
           </CardFooterRank>
         </div>
 

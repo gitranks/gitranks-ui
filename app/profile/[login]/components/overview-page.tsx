@@ -38,7 +38,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
   const tiers = isGlobalContext ? user.tiersGlobal : user.tiersCountry;
 
   return (
-    <LayoutLeftColumn user={user} className="gap-6">
+    <LayoutLeftColumn user={user} className="gap-10">
       <JsonLd payloads={buildProfileTabSEO('overview', user).jsonLd} />
 
       <div className="flex flex-col gap-3">
@@ -58,10 +58,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
           <h3 className="text-xl font-semibold">{repositoriesCount > 5 ? 'Top 5 Repositories' : 'Repositories'}</h3>
           <UserRepositoriesList repositories={repositories} login={login} loadMore={false} />
           {repositoriesCount > 5 && (
-            <Link
-              className="self-end"
-              href={`/profile/${login}/repositories`}
-            >{`View all ${repositoriesCount} repositories`}</Link>
+            <Link href={`/profile/${login}/repositories`}>{`View all ${repositoriesCount} repositories`}</Link>
           )}
         </div>
       )}
@@ -70,9 +67,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
         <div className="flex flex-col gap-3">
           <h3 className="text-xl font-semibold">Last Contributions</h3>
           <UserContributionsList contributions={contributions} login={login} contributionCount={false} />
-          <Link className="self-end" href={`/profile/${login}/repositories`}>
-            View all contributions
-          </Link>
+          <Link href={`/profile/${login}/repositories`}>View all contributions</Link>
         </div>
       )}
 

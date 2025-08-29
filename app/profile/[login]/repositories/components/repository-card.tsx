@@ -10,6 +10,7 @@ import { Repository } from '@/types/generated/graphql';
 
 import { RepositoryDetail } from './repository-detail';
 import { RepositoryLanguages } from './repository-languages';
+import { RepositoryTopLanguage } from './repository-top-language';
 import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '../../components/profile-card';
 
 type RepositoryCardProps = {
@@ -64,6 +65,7 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
         <ProfileCardContent>
           <div className="flex gap-x-4 gap-y-2 flex-wrap">
             <div className="flex gap-4">
+              {type === 'contribution' && <RepositoryTopLanguage languages={repository.languages} />}
               <RepositoryDetail Icon={Star} value={stargazerCount} />
               <RepositoryDetail Icon={Split} value={forkCount} />
               {!!releasesCount && <RepositoryDetail Icon={Package} value={releasesCount} />}
@@ -80,7 +82,7 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
           </div>
         </ProfileCardContent>
       </div>
-      <RepositoryLanguages languages={repository.languages} />
+      {type === 'repository' && <RepositoryLanguages languages={repository.languages} />}
     </ProfileCard>
   );
 };

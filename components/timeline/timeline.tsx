@@ -8,7 +8,7 @@ export const Timeline = ({ children }: { children: ReactNode }) => {
 
 export const TimelineItem = ({ children }: { children: ReactNode }) => {
   return (
-    <li className="mb-10 ms-4 last:mb-0">
+    <li className="mb-6 ms-4 last:mb-0">
       <div className="absolute w-3 h-3 bg-border rounded-full mt-1.5 -start-1.5 border"></div>
       {children}
     </li>

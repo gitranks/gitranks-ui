@@ -1,23 +1,32 @@
+'use client';
+import { usePathname } from 'next/navigation';
 import { FC } from 'react';
 
-import { LinkGroup, LinkGroupItem } from '@/components/link-group/link-group';
+import { ButtonGroup, LinkGroupItem } from '@/components/button-group/button-group';
 
 type ProfileRankingSwitcherProps = {
-  login: string;
-  ranking: 'global' | 'country';
+  countryName?: string | null;
+  className?: string;
 };
 
-export const ProfileRankingSwitcher: FC<ProfileRankingSwitcherProps> = ({ login, ranking }) => {
+export const ProfileRankingSwitcher: FC<ProfileRankingSwitcherProps> = ({ countryName, className }) => {
+  const pathname = usePathname();
+
+  if (!countryName) {
+    return null;
+  }
+
+  const isCountry = pathname.endsWith('/country');
+  const basePath = pathname.replace(/\/country$/, '');
+
   return (
-    <div className="text-sm">
-      <LinkGroup>
-        <LinkGroupItem href={`/profile/${login}`} active={ranking === 'global'}>
-          Global
-        </LinkGroupItem>
-        <LinkGroupItem href={`/profile/${login}/country`} active={ranking === 'country'}>
-          Country
-        </LinkGroupItem>
-      </LinkGroup>
-    </div>
+    <ButtonGroup className={className}>
+      <LinkGroupItem href={basePath} active={!isCountry}>
+        Global
+      </LinkGroupItem>
+      <LinkGroupItem href={`${basePath}/country`} active={isCountry}>
+        {countryName}
+      </LinkGroupItem>
+    </ButtonGroup>
   );
 };

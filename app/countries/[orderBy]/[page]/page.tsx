@@ -1,20 +1,23 @@
 'use cache';
 import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { notFound } from 'next/navigation';
 
 import { CountryCard } from '@/components/country-card/country-card';
 import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
-import { CountrySummaryOrder } from '@/types/generated/graphql';
 
-type CountriesPageProps = {
-  params: Promise<{ orderBy: CountrySummaryOrder; page: string }>;
-};
+import { isCountrySummaryOrder } from './utils/is-country-summary-order';
 
 const ITEMS_PER_PAGE = 24;
 
-export default async function CountriesPage({ params }: CountriesPageProps) {
+export default async function CountriesPage({ params }: PageProps<'/countries/[orderBy]/[page]'>) {
   cacheLife('hours');
   const { orderBy, page: pageParam } = await params;
+
+  if (!isCountrySummaryOrder(orderBy)) {
+    return notFound();
+  }
+
   const countrySummaries = await fetchCountrySummaries(orderBy);
   const page = parseInt(pageParam, 10);
 

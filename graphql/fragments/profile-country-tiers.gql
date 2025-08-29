@@ -1,0 +1,16 @@
+fragment UserTiersCountry on User {
+  tiersCountry {
+    sUsers
+    cUsers
+    fUsers
+    sTiers {
+      ...TierFields
+    }
+    fTiers {
+      ...TierFields
+    }
+    cTiers {
+      ...TierFields
+    }
+  }
+}

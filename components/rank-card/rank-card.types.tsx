@@ -1,6 +1,6 @@
 import { FC, ReactNode } from 'react';
 
-import { Tier } from '@/types/generated/graphql';
+import { Tier, UserLanguage } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
 import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
@@ -13,6 +13,13 @@ export type RankCardProps = {
   rankProvisional?: number | null;
   score?: number | null;
   login: string;
+  rankingName: string;
+};
+
+export type LanguageRankCardProps = {
+  language: UserLanguage;
+  country?: string | null;
+  isGlobalContext?: boolean;
 };
 
 export type RankCardItemProps = {
@@ -20,12 +27,21 @@ export type RankCardItemProps = {
   children: ReactNode;
   className?: string;
 };
+
 export type RankCardPositionProps = {
   rank?: number | null;
   rankedCount?: number;
 };
+
 export type RankCardTotalValueProps = {
   score?: number | null;
   rankType: UserRankProp;
   login: string;
+};
+
+export type NextTierThresholdProps = {
+  tiers?: Tier[];
+  tierData: ProfileTierType;
+  rankType: UserRankProp;
+  score?: number | null;
 };

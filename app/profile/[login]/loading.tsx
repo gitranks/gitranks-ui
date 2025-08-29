@@ -30,8 +30,8 @@ export default function Loading() {
       </LeftColumnContainer>
       <div className="flex-grow flex flex-col gap-6">
         <ProfileCardsGrid>
-          <Skeleton className="h-[150px] rounded-xl" />
-          <Skeleton className="h-[150px] rounded-xl" />
+          <Skeleton className="h-[180px] rounded-xl" />
+          <Skeleton className="h-[180px] rounded-xl" />
         </ProfileCardsGrid>
       </div>
     </PageContainer>

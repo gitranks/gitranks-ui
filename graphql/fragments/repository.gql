@@ -1,0 +1,13 @@
+fragment RepositoryFields on Repository {
+  name
+  url
+  createdAt
+  pushedAt
+  releasesCount
+  stargazerCount
+  isArchived
+  forkCount
+  languages {
+    ...RepositoryLanguageFields
+  }
+}

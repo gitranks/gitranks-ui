@@ -1,15 +1,15 @@
 query TopGlobalRankings {
-  byStars: globalRankings(order: STARS) {
+  byStars: globalRankings(order: STARS, limit: 50) {
     user {
       login
     }
   }
-  byContribution: globalRankings(order: CONTRIBUTIONS) {
+  byContribution: globalRankings(order: CONTRIBUTIONS, limit: 20) {
     user {
       login
     }
   }
-  byFollowers: globalRankings(order: FOLLOWERS) {
+  byFollowers: globalRankings(order: FOLLOWERS, limit: 20) {
     user {
       login
     }

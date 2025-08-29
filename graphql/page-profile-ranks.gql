@@ -1,0 +1,31 @@
+query PageProfileRanks($login: String!, $isGlobalContext: Boolean! = true) {
+  user(login: $login) {
+    ...UserBaseFields
+    ...UserFetchingStatus
+    ...UserSeo
+    ...UserTiersGlobal @include(if: $isGlobalContext)
+    ...UserTiersCountry @skip(if: $isGlobalContext)
+    rankGlobal @include(if: $isGlobalContext) {
+      s
+      sProvisional
+      sM
+      c
+      cProvisional
+      cM
+      f
+      fProvisional
+      fM
+    }
+    rankCountry @skip(if: $isGlobalContext) {
+      s
+      sProvisional
+      sM
+      c
+      cProvisional
+      cM
+      f
+      fProvisional
+      fM
+    }
+  }
+}

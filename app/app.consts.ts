@@ -34,3 +34,5 @@ export const RANK_DESCRIPTIONS = {
     notRankedMessage: `A profile needs at least ${MIN_VALUE} followers to be ranked.`,
   },
 };
+
+export const DEFAULT_LANGUAGE_COLOR = '#64748B';

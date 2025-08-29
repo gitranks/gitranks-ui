@@ -1,33 +1,33 @@
 import { FC } from 'react';
 
-import { Repository } from '@/types/generated/graphql';
+import { PageProfileRepositoriesQuery, Repository } from '@/types/generated/graphql';
 
 import { LoadMoreRepositories } from './load-more-repositories';
 import { RepositoryCard } from './repository-card';
-import { ProfileCardsGrid } from '../../components/profile-card';
 
 type UserRepositoriesListProps = {
-  repositories: Repository[] | null | undefined;
+  repositories?: NonNullable<PageProfileRepositoriesQuery['user']>['repositories'] | null;
   login: string;
-  repositoriesCount: number | null | undefined;
+  repositoriesCount?: number | null;
+  loadMore?: boolean;
 };
 
-export const UserRepositoriesList: FC<UserRepositoriesListProps> = ({ login, repositories, repositoriesCount }) => {
+export const UserRepositoriesList: FC<UserRepositoriesListProps> = ({
+  login,
+  repositories,
+  repositoriesCount,
+  loadMore,
+}) => {
   if (!repositories?.length) {
     return null;
   }
 
   return (
-    <>
-      <h2 className="text-xl font-semibold">Repositories</h2>
-      <div className="flex flex-col gap-6">
-        <ProfileCardsGrid>
-          {repositories?.map((repo) => (
-            <RepositoryCard key={repo.githubId} repository={repo} login={login} />
-          ))}
-        </ProfileCardsGrid>
-        <LoadMoreRepositories login={login} repositoriesCount={repositoriesCount} />
-      </div>
-    </>
+    <div className="flex flex-col gap-3">
+      {repositories?.map((repo) => (
+        <RepositoryCard key={repo.name} repository={repo as Repository} login={login} />
+      ))}
+      {loadMore && <LoadMoreRepositories login={login} repositoriesCount={repositoriesCount} />}
+    </div>
   );
 };

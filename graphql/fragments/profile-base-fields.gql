@@ -1,0 +1,28 @@
+fragment UserBaseFields on User {
+  githubId
+  login
+  name
+  avatarUrl
+  location
+  country
+  company
+  email
+  f
+  followingCount
+  githubCreatedAt
+  githubFetchedAt
+  websiteUrl
+  socialAccounts {
+    totalCount
+    nodes {
+      displayName
+      provider
+      url
+    }
+  }
+  organizations {
+    login
+    avatarUrl
+    name
+  }
+}

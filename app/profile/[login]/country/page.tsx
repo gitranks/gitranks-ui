@@ -1,101 +1,30 @@
 'use cache';
 
+import { Metadata } from 'next';
 import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
-import { notFound } from 'next/navigation';
 
-import { Link } from '@/components/link/link';
-import { fetchProfileData } from '@/graphql/helpers/fetch-profile-data';
-import { fetchRankTiers } from '@/graphql/helpers/fetch-rank-tiers';
-import { UserRankProp } from '@/types/ranking.types';
-import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
+import { fetchProfilePageOverview } from '@/graphql/helpers/fetch-profile-page-overview';
 
-import { RankCard } from '../../../../components/rank-card/rank-card';
-import { LayoutLeftColumn } from '../components/layout-left-column';
-import { MessengerIntegration } from '../components/messenger-integration';
-import { ProfileCardsGrid } from '../components/profile-card';
-import { ProfileCharts } from '../components/profile-charts';
-import { ProfileRankingSwitcher } from '../components/profile-ranking-switcher';
-import { RankBreakdownTooltip } from '../components/rank-breakdown-tooltip';
+import { OverviewPage } from '../components/overview-page';
+import { buildProfileTabSEO } from '../seo';
 
-export default async function ProfileRanks({ params }: { params: Promise<{ login: string }> }) {
+export async function generateMetadata({ params }: PageProps<'/profile/[login]/country'>): Promise<Metadata> {
+  const { login } = await params;
+  const user = await fetchProfilePageOverview(login);
+
+  if (!user) {
+    return {};
+  }
+
+  return buildProfileTabSEO('overview', user);
+}
+
+export default async function ProfileOverviewPage({ params }: PageProps<'/profile/[login]/country'>) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);
 
-  const { user } = await fetchProfileData(login);
+  const user = await fetchProfilePageOverview(login, 'country');
 
-  if (!user) {
-    notFound();
-  }
-
-  if (!user.country) {
-    return (
-      <LayoutLeftColumn user={user}>
-        <>
-          <ProfileRankingSwitcher login={login} ranking="country" />
-          <div className="text-muted-foreground">
-            No country data found. To show up in country rankings, add a{' '}
-            <Link href="/countries/stars/1">country name</Link> to your GitHub profile’s location and hit Refresh.
-          </div>
-        </>
-      </LayoutLeftColumn>
-    );
-  }
-
-  const { rankTiers } = await fetchRankTiers(user.country);
-  const { s, c, cM, f, sProvisional, cProvisional, fProvisional, sM, fM } = user.rankCountry ?? {};
-  const { sTier, cTier, fTier, bestTier } = calculateTiers(user.rankCountry, rankTiers);
-
-  return (
-    <LayoutLeftColumn user={user}>
-      <>
-        <ProfileRankingSwitcher login={login} ranking="country" />
-        <ProfileCharts
-          rankChartTitle={`Rank in ${user.country}`}
-          sTier={sTier.data}
-          cTier={cTier.data}
-          fTier={fTier.data}
-          bestTier={bestTier}
-        />
-
-        <MessengerIntegration login={login} />
-        <h2 className="text-xl mt-4 flex items-center gap-2">
-          Rank breakdown <RankBreakdownTooltip />
-        </h2>
-        <ProfileCardsGrid>
-          <RankCard
-            tiers={rankTiers?.sTiers}
-            tierData={sTier}
-            rankType={UserRankProp.s}
-            rank={s}
-            rankM={sM}
-            rankProvisional={sProvisional}
-            score={user.s}
-            login={login}
-          />
-
-          <RankCard
-            tiers={rankTiers?.cTiers}
-            tierData={cTier}
-            rankType={UserRankProp.c}
-            rank={c}
-            rankM={cM}
-            rankProvisional={cProvisional}
-            score={user.c}
-            login={login}
-          />
-          <RankCard
-            tiers={rankTiers?.fTiers}
-            tierData={fTier}
-            rankType={UserRankProp.f}
-            rank={f}
-            rankM={fM}
-            rankProvisional={fProvisional}
-            score={user.f}
-            login={login}
-          />
-        </ProfileCardsGrid>
-      </>
-    </LayoutLeftColumn>
-  );
+  return <OverviewPage user={user} />;
 }

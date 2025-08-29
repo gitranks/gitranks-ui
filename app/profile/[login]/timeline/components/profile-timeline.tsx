@@ -84,8 +84,8 @@ export const ProfileTimeline: FC<ProfileTimelineProps> = ({ timeline, firstSeenA
   const sortedTimeline = timeline.sort((a, b) => compareDesc(parseISO(a.createdAt), parseISO(b.createdAt)));
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
-      <h2 className="text-xl font-semibold">Timeline</h2>
+    <div className="flex flex-col gap-3 max-w-2xl">
+      <h3 className="text-xl font-semibold">Latest Updates</h3>
       <Timeline>
         {sortedTimeline.map((item) => {
           const formatted = format(parseISO(item.createdAt), 'dd MMM yyyy');

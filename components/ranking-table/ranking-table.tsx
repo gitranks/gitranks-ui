@@ -36,9 +36,7 @@ export const RankingTable: FC<RankingTableProps> = ({ rankingType, data, countri
               <TableCell className="font-medium">
                 <div className="flex items-end gap-1">
                   {item[rankPropName]}
-                  {rankingType !== 'contributions' && ( // TODO remove this condition when contributions is fixed
-                    <RankDelta current={item[rankPropName]} previous={item[`${rankPropName}M`]} />
-                  )}
+                  <RankDelta current={item[rankPropName]} previous={item[`${rankPropName}M`]} />
                 </div>
               </TableCell>
               <TableCell>

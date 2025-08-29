@@ -10,8 +10,8 @@ type LayoutLeftColumnProps = Readonly<{
 
 export const MessengerIntegration: FC<LayoutLeftColumnProps> = ({ login }) => {
   return (
-    <div className="flex items-center gap-2 flex-wrap text-sm justify-between px-4 py-4 rounded-xl border-1">
-      <div className="flex items-center gap-2">Subscribe to {login}’s GitHub rank updates in your messenger</div>
+    <div className="flex items-center gap-2 flex-wrap text-sm justify-between px-4 py-4 rounded-xl border-1 mt-8">
+      <div className="flex items-center gap-2">Subscribe to {login}&apos;s GitHub rank updates in your messenger</div>
       <div className="flex items-center gap-4">
         <LinkUnderlined
           className="flex items-center gap-2"

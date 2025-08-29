@@ -14,8 +14,10 @@ export const WEDGE_DEG = (360 - TIERS_COUNT * GAP_BETWEEN_TIERS - START_END_GAP)
 export const FONT_SIZE = 12; // default font size for labels
 export const LABEL_OFFSET = 8;
 export const DIM_OPACITY = 0.2;
-export const RADIUS = 70; // outer radius of the pie chart
-export const INNER_RADIUS = 50; // inner radius of the pie chart
+export const RADIUS = 60; // outer radius of the pie chart
+export const INNER_RADIUS = 45; // inner radius of the pie chart
 export const LABEL_RADIUS = RADIUS + LABEL_OFFSET; // radius for label positioning
 export const CANVAS_MID = LABEL_RADIUS + FONT_SIZE * 1.5; // size of the canvas for the chart
 export const CANVAS_SIZE = CANVAS_MID * 2;
+
+export const ANIMATION_DELAY = 100; // ms

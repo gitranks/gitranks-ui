@@ -1,37 +1,16 @@
 'use cache';
-import { Metadata } from 'next';
 import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
 import { Suspense } from 'react';
 
 import { Header } from '@/components/header/header';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
-import { fetchProfileData } from '@/graphql/helpers/fetch-profile-data';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { TopGlobalRankingsDocument } from '@/types/generated/graphql';
 
 import Loading from './loading';
 
 type ProfileLayoutProps = Readonly<{ children: React.ReactNode; params: Promise<{ login: string }> }>;
-
-export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
-  const { login } = await params;
-  const { user } = await fetchProfileData(login);
-
-  if (!user) {
-    return { title: 'GitHub Profile Analytics & Rankings · GitRanks' };
-  }
-
-  const { s, c, f } = user.rankGlobal ?? {};
-
-  return {
-    title: `${login} · GitRanks · GitHub Profile Analytics`,
-    description: `Explore GitHub profile analytics for ${login} - ranked #${s} by stars, #${c} by contributions, and #${f} by followers.`,
-    openGraph: {
-      images: [user.avatarUrl!],
-    },
-  };
-}
 
 export async function generateStaticParams() {
   const { byStars, byContribution, byFollowers } = (await graphqlDirect(TopGlobalRankingsDocument)) ?? {};
@@ -57,7 +36,7 @@ function LayoutLoading() {
   );
 }
 
-async function ProfileLayoutAwaitParams({ children, params }: ProfileLayoutProps) {
+async function ProfileLayoutAwaitParams({ children, params }: LayoutProps<'/profile/[login]'>) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);
@@ -67,10 +46,11 @@ async function ProfileLayoutAwaitParams({ children, params }: ProfileLayoutProps
       <Header login={login} />
       <TabsBar className="mb-4">
         <Tab href={`/profile/${login}`} pathnames={[`/profile/${login}`, `/profile/${login}/country`]}>
-          Ranks
+          Overview
         </Tab>
+        <Tab href={`/profile/${login}/ranks`}>Ranks</Tab>
         <Tab href={`/profile/${login}/repositories`}>Repositories</Tab>
-        <Tab href={`/profile/${login}/timeline`}>Timeline</Tab>
+        <Tab href={`/profile/${login}/languages`}>Languages</Tab>
       </TabsBar>
       {children}
     </>

@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useId } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { PieChart, Pie, Cell } from 'recharts';
 
 import { TIER_NAMES } from '@/app/app.consts';
 
 import {
+  ANIMATION_DELAY,
   CANVAS_MID,
   CANVAS_SIZE,
   DEFAULT_COLORS,
@@ -60,6 +61,34 @@ export function RankChart({ progress, colors = DEFAULT_COLORS, debug = false }: 
 
   const idBase = useId();
 
+  // Determine how many sectors should be active
+  const activeCount = PIE_DATA.filter((d) => !d.isGap && isActive(d)).length;
+
+  // Animation state: which sectors are currently activated
+  const [activated, setActivated] = useState<boolean[]>(() => PIE_DATA.map(() => false));
+
+  useEffect(() => {
+    // Animate activation one by one
+    const timeoutIds: NodeJS.Timeout[] = [];
+    setActivated(PIE_DATA.map(() => false)); // Reset all to inactive first
+
+    for (let i = 0, j = 0; i < PIE_DATA.length; i++) {
+      if (PIE_DATA[i].isGap) continue;
+      if (j >= activeCount) break;
+      timeoutIds.push(
+        setTimeout(() => {
+          setActivated((prev) => {
+            const next = [...prev];
+            next[i] = true;
+            return next;
+          });
+        }, j * ANIMATION_DELAY),
+      );
+      j++;
+    }
+    return () => timeoutIds.forEach(clearTimeout);
+  }, [activeCount]);
+
   return (
     <div style={{ position: 'relative', width: CANVAS_SIZE, height: CANVAS_SIZE }}>
       <PieChart width={CANVAS_SIZE} height={CANVAS_SIZE} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
@@ -80,7 +109,12 @@ export function RankChart({ progress, colors = DEFAULT_COLORS, debug = false }: 
             d.isGap ? (
               <Cell key={i} fill="transparent" />
             ) : (
-              <Cell key={i} fill={colors[(d.tier - 1) % colors.length]} fillOpacity={isActive(d) ? 1 : DIM_OPACITY} />
+              <Cell
+                key={i}
+                fill={colors[(d.tier - 1) % colors.length]}
+                fillOpacity={activated[i] ? 1 : DIM_OPACITY}
+                style={{ transition: 'fill-opacity 0.3s' }}
+              />
             ),
           )}
         </Pie>

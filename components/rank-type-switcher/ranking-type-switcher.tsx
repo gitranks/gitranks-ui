@@ -2,7 +2,7 @@ import { FC } from 'react';
 
 import { RankingTypeClient } from '@/types/ranking.types';
 
-import { LinkGroup, LinkGroupItem } from '../link-group/link-group';
+import { ButtonGroup, LinkGroupItem } from '../button-group/button-group';
 
 type RankingTypeSwitcherProps = {
   rankingType: RankingTypeClient;
@@ -13,7 +13,7 @@ export const RankingTypeSwitcher: FC<RankingTypeSwitcherProps> = ({ rankingType,
   return (
     <div className="text-sm flex flex-col gap-1">
       Rank By:
-      <LinkGroup>
+      <ButtonGroup>
         <LinkGroupItem href={`${urlPrefix}/stars/1`} active={rankingType === RankingTypeClient.Star}>
           Stars
         </LinkGroupItem>
@@ -23,7 +23,7 @@ export const RankingTypeSwitcher: FC<RankingTypeSwitcherProps> = ({ rankingType,
         <LinkGroupItem href={`${urlPrefix}/followers/1`} active={rankingType === RankingTypeClient.Follower}>
           Followers
         </LinkGroupItem>
-      </LinkGroup>
+      </ButtonGroup>
     </div>
   );
 };

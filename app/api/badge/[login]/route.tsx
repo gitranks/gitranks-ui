@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { NextRequest } from 'next/server';
 
 import { BadgeTemplateType } from '@/badge/badge.types';
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest, { params }: Props) {
   const svg = await getRendererByTemplate(template)({ theme, login, rankingType });
 
   if (!svg) {
-    return redirect('/404');
+    return notFound();
   }
 
   return new Response(svg, {

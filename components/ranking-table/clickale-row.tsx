@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { FC } from 'react';
 
@@ -15,7 +16,7 @@ export const ClickableRow: FC<ClickableRowProps> = ({ children, href, className 
   const router = useRouter();
 
   const onClick = () => {
-    router.push(href);
+    router.push(href as Route);
   };
 
   return (

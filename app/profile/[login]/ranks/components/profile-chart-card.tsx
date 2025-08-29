@@ -2,7 +2,7 @@ import { FC, PropsWithChildren, ReactNode } from 'react';
 
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 
-import { ProfileCard, ProfileCardContent } from './profile-card';
+import { ProfileCard, ProfileCardContent } from '../../components/profile-card';
 
 type ProfileChartDataSlotProps = {
   title: string;

@@ -1,6 +1,6 @@
 import { FC } from 'react';
 
-import { LinkGroup, LinkGroupItem } from '@/components/link-group/link-group';
+import { ButtonGroup, LinkGroupItem } from '@/components/button-group/button-group';
 import { CountrySummaryOrder } from '@/types/generated/graphql';
 
 type CountryOrderSwitcherProps = {
@@ -13,7 +13,7 @@ export const CountryOrderSwitcher: FC<CountryOrderSwitcherProps> = ({ orderBy })
   return (
     <div className="text-sm flex flex-col gap-1">
       Order By:
-      <LinkGroup>
+      <ButtonGroup>
         <LinkGroupItem href="/countries/stars/1" active={orderByUpper === CountrySummaryOrder.Stars}>
           Stars
         </LinkGroupItem>
@@ -26,7 +26,7 @@ export const CountryOrderSwitcher: FC<CountryOrderSwitcherProps> = ({ orderBy })
         <LinkGroupItem href="/countries/users/1" active={orderByUpper === CountrySummaryOrder.Users}>
           User count
         </LinkGroupItem>
-      </LinkGroup>
+      </ButtonGroup>
     </div>
   );
 };

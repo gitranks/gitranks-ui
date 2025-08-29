@@ -2,6 +2,7 @@
 
 import { Metadata } from 'next';
 import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { notFound } from 'next/navigation';
 
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
@@ -10,14 +11,16 @@ import { RankingHeaderSection } from '@/components/ranking-header-section/rankin
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { RankingTypeClient } from '@/types/ranking.types';
 import { getRankPropByType } from '@/utils/get-rank-prop-by-ranking-type';
+import { isRankingType } from '@/utils/is-ranking-type';
 
-type CountryRankingProps = {
-  children: React.ReactNode;
-  params: Promise<{ name: string; rankingType: RankingTypeClient; page: string }>;
-};
-
-export async function generateMetadata({ params }: CountryRankingProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: LayoutProps<'/country/[name]/[rankingType]/[page]'>): Promise<Metadata> {
   const { rankingType, page: pageParam, name } = await params;
+
+  if (!isRankingType(rankingType)) {
+    throw new Error(`Invalid ranking type: ${rankingType}`);
+  }
 
   const rankProp = getRankPropByType(rankingType);
   const rankName = RANK_NAME[rankProp];
@@ -43,10 +46,17 @@ export async function generateStaticParams() {
   });
 }
 
-export default async function RankingListLayout({ children, params }: CountryRankingProps) {
+export default async function RankingListLayout({
+  children,
+  params,
+}: LayoutProps<'/country/[name]/[rankingType]/[page]'>) {
   cacheLife('hours');
   const { rankingType, name } = await params;
   const countryName = decodeURIComponent(name);
+
+  if (!isRankingType(rankingType)) {
+    return notFound();
+  }
 
   return (
     <>

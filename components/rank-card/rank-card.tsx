@@ -8,11 +8,11 @@ import { NotRankedCardContent } from './not-ranked-card-content';
 import { RankCardItem } from './rank-card-item';
 import { RankCardProps } from './rank-card.types';
 import { RankedCardContent } from './ranked-card-content';
+import { TierValue } from './tier-value';
 import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '../../app/profile/[login]/components/profile-card';
-import { TierValue } from '../../app/profile/[login]/components/tier-value';
 
 export const RankCard: FC<RankCardProps> = (props) => {
-  const { tierData, rankType, tiers } = props;
+  const { tierData, rankType, tiers, rankingName } = props;
   const { title, descriptionProfile } = RANK_DESCRIPTIONS[rankType];
   const { notRanked, notAvailable } = tierData;
   const hasData = !notRanked && !notAvailable && tierData.data !== undefined;
@@ -22,7 +22,13 @@ export const RankCard: FC<RankCardProps> = (props) => {
       <div className="flex">
         <div className="grow">
           <ProfileCardHeader>{title}</ProfileCardHeader>
-          <TierValue tierData={tierData} tiers={tiers} rankedCount={tierData.rankedCount} rankType={rankType} />
+          <TierValue
+            tierData={tierData}
+            tiers={tiers}
+            rankedCount={tierData.rankedCount}
+            rankType={rankType}
+            rankingName={rankingName}
+          />
         </div>
         <NextTierThreshold {...props} />
       </div>

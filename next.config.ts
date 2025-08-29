@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   experimental: {
     useCache: true,
-    dynamicIO: true,
+    cacheComponents: true,
     // redefine the stock 'hours' profile in dev so its TTL = 0
     cacheLife: isDev ? { hours: { stale: 0, revalidate: 1, expire: 1 } } : undefined,
   },
@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
     ];
   },
   skipTrailingSlashRedirect: true,
+  typedRoutes: true,
 };
 
 export default nextConfig;

@@ -8,7 +8,8 @@ import { Repository, ProfileRepositoriesDocument } from '@/types/generated/graph
 
 import { RepositoryCard } from './repository-card';
 
-const LAODED_BY_DEFAULT = 10;
+const LOADED_BY_DEFAULT = 10;
+const CHUNK_SIZE = 20;
 
 type LoadMoreRepositoriesProps = {
   repositoriesCount?: number | null;
@@ -25,13 +26,17 @@ export const LoadMoreRepositories: FC<LoadMoreRepositoriesProps> = ({ login, rep
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.INITIAL);
   const [repositories, setRepositories] = useState<Repository[]>([]);
 
+  const loadedCount = repositories.length + LOADED_BY_DEFAULT;
+
   const handleLoadMore = async () => {
     setLoadingState(LoadingState.LOADING);
 
     try {
-      const { user } = (await graphqlClient(ProfileRepositoriesDocument, { login, limit: 200, offset: 10 })) ?? {};
+      const { user } =
+        (await graphqlClient(ProfileRepositoriesDocument, { login, limit: CHUNK_SIZE, offset: loadedCount })) ?? {};
+      const newRepositories = (user?.repositories ?? []) as Repository[];
 
-      setRepositories(user?.repositories ?? []);
+      setRepositories((prev) => [...prev, ...newRepositories]);
       setLoadingState(LoadingState.LOADED);
     } catch (error) {
       console.error('Error loading more repositories:', error);
@@ -39,30 +44,26 @@ export const LoadMoreRepositories: FC<LoadMoreRepositoriesProps> = ({ login, rep
     }
   };
 
-  if (!repositoriesCount || repositoriesCount <= LAODED_BY_DEFAULT) {
-    return null;
-  }
-
-  if (loadingState === LoadingState.INITIAL || loadingState === LoadingState.LOADING) {
-    return (
-      <Button
-        disabled={loadingState === LoadingState.LOADING}
-        onClick={handleLoadMore}
-        variant="outline"
-        className="flex-grow-0 self-start"
-      >
-        {loadingState === LoadingState.LOADING
-          ? 'Loading...'
-          : `Load all remaining ${repositoriesCount - LAODED_BY_DEFAULT} repositories`}
-      </Button>
-    );
-  }
+  const hasLoadMoreButton = !!repositoriesCount && repositoriesCount > loadedCount;
 
   return (
-    <div className="flex flex-col md:flex-row flex-wrap gap-6">
+    <>
       {repositories?.map((repo) => (
         <RepositoryCard key={repo.githubId} repository={repo} login={login} />
       ))}
-    </div>
+
+      {hasLoadMoreButton && (
+        <Button
+          disabled={loadingState === LoadingState.LOADING}
+          onClick={handleLoadMore}
+          variant="outline"
+          className="flex-grow-0 self-start"
+        >
+          {loadingState === LoadingState.LOADING
+            ? 'Loading...'
+            : `Show more - ${loadedCount} of ${repositoriesCount} shown`}
+        </Button>
+      )}
+    </>
   );
 };

@@ -1,6 +1,10 @@
 import { Contribution } from '@/types/generated/graphql';
 
-export const groupAndSortContributions = (contributions: Contribution[]) => {
+export const groupAndSortContributions = (contributions?: Contribution[]) => {
+  if (!contributions) {
+    return [];
+  }
+
   const grouped = contributions.reduce<Record<number, Omit<Contribution, 'year'>[]>>((acc, { year, ...data }) => {
     if (!acc[year]) {
       acc[year] = [];
@@ -13,14 +17,15 @@ export const groupAndSortContributions = (contributions: Contribution[]) => {
   const sorted = Object.entries(grouped)
     .map(([year, data]) => ({
       year: Number(year),
-      data: data.sort((a, b) => {
-        // Primary: mergedPrsCount DESC, Secondary: stargazersCount DESC
-        if (b.mergedPrsCount !== a.mergedPrsCount) {
-          return (b.mergedPrsCount ?? 0) - (a.mergedPrsCount ?? 0);
-        }
+      data,
+      // data: data.toSorted((a, b) => {
+      //   // Primary: mergedPrsCount DESC, Secondary: stargazersCount DESC
+      //   if (b.mergedPrsCount !== a.mergedPrsCount) {
+      //     return (b.mergedPrsCount ?? 0) - (a.mergedPrsCount ?? 0);
+      //   }
 
-        return (b.repository?.stargazerCount ?? 0) - (a.repository?.stargazerCount ?? 0);
-      }),
+      //   return (b.repository?.stargazerCount ?? 0) - (a.repository?.stargazerCount ?? 0);
+      // }),
     }))
     .sort((a, b) => b.year - a.year);
 

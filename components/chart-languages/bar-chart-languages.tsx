@@ -1,12 +1,15 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { FC } from 'react';
 import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { formatBytes } from '@/utils/format-bytes';
 import { formatNumberShort } from '@/utils/format-number-short';
 
-const CustomTooltip = ({ active, payload }) => {
+import { BarChartLanguagesProps, CartesianViewBox, CustomTooltipProps, ValueLabelProps } from './chart-languages.types';
+
+const CustomTooltip: FC<CustomTooltipProps> = ({ active, payload }) => {
   if (active && payload?.length) {
     const { name, score, size } = payload[0].payload ?? {};
     return (
@@ -20,50 +23,12 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-// const BarChartLanguages = ({ languages }) => {
-//   return (
-//     <ResponsiveContainer height={140} width="100%">
-//       <BarChart data={languages} barCategoryGap="30%" barGap={4}>
-//         {/* <CartesianGrid strokeDasharray="3 3" /> */}
-//         <XAxis dataKey="name" />
-//         {/* Separate axes */}
-//         {/* <YAxis yAxisId="left" />
-//         <YAxis yAxisId="right" orientation="right" /> */}
-//         <Tooltip content={<CustomTooltip />} />
+const RightValueLabel: FC<ValueLabelProps> = ({ value, viewBox, formatter }) => {
+  const { x = 0, y = 0, width = 0, height = 0 } = (viewBox ?? {}) as CartesianViewBox;
 
-//         {/* SCORE: filled bars, per-language color */}
-//         <Bar dataKey="score" yAxisId="left" name="Score">
-//           {languages.map((l) => (
-//             <Cell key={`score-${l.name}`} fill={l.color} />
-//           ))}
-//         </Bar>
-
-//         {/* SIZE: outlined bars, no fill, colored stroke */}
-//         <Bar
-//           dataKey="size"
-//           yAxisId="right"
-//           name="Size"
-//           fillOpacity={0}
-//           // keep a minimal transparent fill so bars render, stroke provided per Cell
-//           isAnimationActive
-//         >
-//           {languages.map((l) => (
-//             <Cell key={`size-${l.name}`} fill="transparent" stroke={l.color} strokeWidth={1} />
-//           ))}
-//         </Bar>
-//       </BarChart>
-//     </ResponsiveContainer>
-//   );
-// };
-
-const RightValueLabel = (props: any) => {
-  const { value, viewBox } = props;
-  const { x = 0, y = 0, width = 0, height = 0 } = viewBox || {};
-
-  // handle negative / zero widths too
   const rightEdge = width >= 0 ? x + width : x;
-  const cx = rightEdge + 6; // gap to the right of bar
-  const cy = y + height / 2; // vertically center on the bar
+  const cx = rightEdge + 6;
+  const cy = y + height / 2;
 
   return (
     <text
@@ -75,16 +40,26 @@ const RightValueLabel = (props: any) => {
       fontWeight={400}
       className="fill-gray-900 dark:fill-gray-100"
     >
-      {props.formatter ? props.formatter(value) : value}
+      {formatter ? formatter(value) : value}
     </text>
   );
 };
 
-const BarChartLanguages = ({ languages }) => {
-  console.log(languages);
+const BarChartLanguages: FC<BarChartLanguagesProps> = ({ languages, className }) => {
+  if (!languages?.length) {
+    return null;
+  }
+
   return (
-    <ResponsiveContainer height={120} width="100%">
-      <BarChart data={languages} barCategoryGap="10%" barGap={1} margin={{ right: 44 }} layout="vertical">
+    <ResponsiveContainer height={120} width="100%" className={className}>
+      <BarChart
+        data={languages}
+        barCategoryGap="10%"
+        barGap={1}
+        margin={{ right: 55 }}
+        layout="vertical"
+        maxBarSize={20}
+      >
         <YAxis
           dataKey="name"
           type="category"
@@ -115,14 +90,13 @@ const BarChartLanguages = ({ languages }) => {
           {languages.map((l) => (
             <Cell key={`size-${l.name}`} fill={l.color} fillOpacity={0.3} stroke={l.color} strokeWidth={1} />
           ))}
-          <LabelList dataKey="size" position="right" content={<RightValueLabel formatter={formatBytes} />} />
+          <LabelList dataKey="size" position="right" content={<RightValueLabel formatter={(v) => formatBytes(v)} />} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 };
 
-// 👇 correct dynamic export
 export default dynamic(() => Promise.resolve(BarChartLanguages), {
   ssr: false,
 });

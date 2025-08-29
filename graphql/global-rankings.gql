@@ -12,6 +12,9 @@ query GlobalRankings($order: RankOrder, $offset: Int) {
       avatarUrl
       location
       country
+      s
+      c
+      f
     }
   }
 }

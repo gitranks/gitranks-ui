@@ -2,20 +2,7 @@ query ProfileRepositories($login: String!, $offset: Int, $limit: Int) {
   user(login: $login) {
     repositoriesCount
     repositories(offset: $offset, limit: $limit) {
-      githubId
-      createdAt
-      pushedAt
-      url
-      forkCount
-      isArchived
-      name
-      releasesCount
-      stargazerCount
-      languages {
-        name
-        size
-        color
-      }
+      ...RepositoryFields
     }
   }
 }

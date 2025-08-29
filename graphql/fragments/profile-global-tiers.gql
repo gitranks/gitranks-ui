@@ -1,5 +1,5 @@
-fragment UserGlobalTiers on User {
-  globalTiers {
+fragment UserTiersGlobal on User {
+  tiersGlobal {
     sUsers
     cUsers
     fUsers

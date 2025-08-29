@@ -1,0 +1,5 @@
+fragment RepositoryLanguageFields on LanguageEntity {
+  name
+  color
+  size
+}

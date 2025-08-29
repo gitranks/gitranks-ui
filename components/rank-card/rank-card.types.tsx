@@ -15,6 +15,18 @@ export type RankCardProps = {
   login: string;
 };
 
+export type LanguageRankCardProps = {
+  languageName: string;
+  tiers?: Tier[];
+  tierData: ProfileTierType;
+  rankType: UserRankProp;
+  rank?: number | null;
+  rankM?: number | null;
+  rankProvisional?: number | null;
+  score?: number | null;
+  login: string;
+};
+
 export type RankCardItemProps = {
   Icon?: FC<{ size: number; className?: string }>;
   children: ReactNode;

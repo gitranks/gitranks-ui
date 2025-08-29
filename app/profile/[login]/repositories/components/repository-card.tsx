@@ -4,8 +4,11 @@ import Link from 'next/link';
 import { FC, ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { Repository } from '@/types/generated/graphql';
 
+import { RepositoryDetail } from './repository-detail';
+import { RepositoryLanguages } from './repository-languages';
 import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '../../components/profile-card';
 
 type RepositoryCardProps = {
@@ -44,38 +47,34 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
   };
 
   return (
-    <ProfileCard className={className}>
-      <ProfileCardHeader meta={getMeta()}>
-        <Link href={titleUrl} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap">
-          {name}
-        </Link>
-      </ProfileCardHeader>
-      <ProfileCardContent>
-        {type === 'repository' && (
-          <div className="flex gap-2">
-            <Clock size={20} className="inline" />
-            <span className="text-sm">
-              updated {formatDistanceToNow(pushedAt, { addSuffix: true })} • age {formatDistanceToNow(createdAt)}
-            </span>
+    <ProfileCard className={cn(className, 'flex-col md:flex-row gap-x-2 justify-between flex-wrap')}>
+      <div className="flex flex-col gap-2">
+        <ProfileCardHeader meta={getMeta()}>
+          <Link href={titleUrl} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap font-semibold">
+            {name}
+          </Link>
+        </ProfileCardHeader>
+
+        <ProfileCardContent>
+          <div className="flex gap-x-4 gap-y-2 flex-wrap">
+            <div className="flex gap-4">
+              <RepositoryDetail Icon={Star} value={stargazerCount} />
+              <RepositoryDetail Icon={Split} value={forkCount} />
+              {!!releasesCount && <RepositoryDetail Icon={Package} value={releasesCount} />}
+            </div>
+
+            {type === 'repository' && (
+              <div className="flex gap-1 items-center text-muted-foreground">
+                <Clock size={16} className="inline" />
+                <span className="text-sm">
+                  updated {formatDistanceToNow(pushedAt, { addSuffix: true })} • age {formatDistanceToNow(createdAt)}
+                </span>
+              </div>
+            )}
           </div>
-        )}
-        <div className="flex gap-4">
-          <span className="flex gap-2">
-            <Star size={20} className="inline" />
-            <span className="text-sm">{stargazerCount?.toLocaleString('en-US')}</span>
-          </span>
-          <span className="flex gap-2">
-            <Split size={20} className="inline" />
-            <span className="text-sm">{forkCount?.toLocaleString('en-US')}</span>
-          </span>
-          {!!releasesCount && (
-            <span className="flex gap-2">
-              <Package size={20} className="inline" />
-              <span className="text-sm">{releasesCount?.toLocaleString('en-US')}</span>
-            </span>
-          )}
-        </div>
-      </ProfileCardContent>
+        </ProfileCardContent>
+      </div>
+      <RepositoryLanguages languages={repository.languages} />
     </ProfileCard>
   );
 };

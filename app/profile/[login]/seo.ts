@@ -1,16 +1,10 @@
 import { RANK_NAME } from '@/badge/badge.consts';
 import { ProfileSeoQuery } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
+import { formatOrdinal } from '@/utils/format-ordinal';
 
 type Tab = 'overview' | 'ranks' | 'repositories' | 'languages';
 type DataType = NonNullable<ProfileSeoQuery['user']>;
-
-const ord = (k?: number | null) => {
-  if (!k) return undefined;
-  const s = ['th', 'st', 'nd', 'rd'],
-    v = k % 100;
-  return k.toLocaleString('en-US') + (s[(v - 20) % 10] || s[v] || s[0]);
-};
 
 const clip = (t: string, max = 158) => {
   if (t.length <= max) return t;
@@ -52,7 +46,7 @@ function buildOverviewDescription(stats: DataType): string {
   const topRepo = repositories?.[0];
 
   const parts = [
-    bestRank ? `Global rank: ${ord(bestRank)}.` : undefined,
+    bestRank ? `Global rank: ${formatOrdinal(bestRank)}.` : undefined,
     s != null ? `⭐${formatNumberShort(s)} owned.` : undefined,
     c != null ? `⭐${formatNumberShort(c)} contributed.` : undefined,
     f != null ? `👥${formatNumberShort(f)} followers.` : undefined,
@@ -66,9 +60,9 @@ function buildOverviewDescription(stats: DataType): string {
 
 function buildRanksDescription(rankGlobal?: NonNullable<DataType>['rankGlobal']): string {
   const parts = [
-    rankGlobal?.s != null ? `${RANK_NAME.s} ${ord(rankGlobal.s)}.` : undefined,
-    rankGlobal?.c != null ? `${RANK_NAME.c} ${ord(rankGlobal.c)}.` : undefined,
-    rankGlobal?.f != null ? `${RANK_NAME.f} ${ord(rankGlobal.f)}.` : undefined,
+    rankGlobal?.s != null ? `${RANK_NAME.s} ${formatOrdinal(rankGlobal.s)}.` : undefined,
+    rankGlobal?.c != null ? `${RANK_NAME.c} ${formatOrdinal(rankGlobal.c)}.` : undefined,
+    rankGlobal?.f != null ? `${RANK_NAME.f} ${formatOrdinal(rankGlobal.f)}.` : undefined,
   ].filter(Boolean);
 
   return clip('Ranks: ' + (parts.length ? parts.join(' ') : 'Not Ranked'));
@@ -96,7 +90,7 @@ function buildLanguagesDescription(languages?: NonNullable<DataType>['languages'
     languages
       ?.slice(0, 3)
       .filter((l) => l.rankGlobal?.s)
-      .map((l) => `${l.name} ${ord(l.rankGlobal!.s)} (${l.score})`) ?? [];
+      .map((l) => `${l.name} ${formatOrdinal(l.rankGlobal!.s)} (${l.score})`) ?? [];
 
   return languageParts.length ? clip('Language Ranks: ' + languageParts.join(', ')) : '';
 }

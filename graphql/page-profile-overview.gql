@@ -1,11 +1,12 @@
-query ProfileOverview($login: String!, $rankGlobal: Boolean! = true) {
+query PageProfileOverview($login: String!, $isGlobalContext: Boolean! = true) {
   user(login: $login) {
+    firstSeenAt
     ...UserBaseFields
     ...UserFetchingStatus
     ...UserSeo
-    ...UserGlobalTiers @include(if: $rankGlobal)
-    ...UserCountryTiers @skip(if: $rankGlobal)
-    rankGlobal @include(if: $rankGlobal) {
+    ...UserTiersGlobal @include(if: $isGlobalContext)
+    ...UserTiersCountry @skip(if: $isGlobalContext)
+    rankGlobal @include(if: $isGlobalContext) {
       s
       sProvisional
       sM
@@ -16,7 +17,7 @@ query ProfileOverview($login: String!, $rankGlobal: Boolean! = true) {
       fProvisional
       fM
     }
-    rankCountry @skip(if: $rankGlobal) {
+    rankCountry @skip(if: $isGlobalContext) {
       s
       sProvisional
       sM
@@ -50,6 +51,16 @@ query ProfileOverview($login: String!, $rankGlobal: Boolean! = true) {
       #   }
       #   sUsers
       # }
+    }
+    repositories(limit: 5) {
+      ...RepositoryFields
+    }
+    contributions(limit: 5) {
+      ...ContributionFields
+    }
+    timeline(limit: 5) {
+      changes
+      createdAt
     }
   }
 }

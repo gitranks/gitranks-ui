@@ -1,0 +1,34 @@
+query PageProfileLanguages($login: String!, $isGlobalContext: Boolean! = true) {
+  user(login: $login) {
+    firstSeenAt
+    ...UserBaseFields
+    ...UserFetchingStatus
+    ...UserSeo
+    languages(limit: 10) {
+      name
+      color
+      size
+      score
+      rankGlobal @include(if: $isGlobalContext) {
+        s
+        sM
+      }
+      tiersGlobal @include(if: $isGlobalContext) {
+        sTiers {
+          ...TierFields
+        }
+        sUsers
+      }
+      rankCountry @skip(if: $isGlobalContext) {
+        s
+        sM
+      }
+      tiersCountry @skip(if: $isGlobalContext) {
+        sTiers {
+          ...TierFields
+        }
+        sUsers
+      }
+    }
+  }
+}

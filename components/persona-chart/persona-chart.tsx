@@ -13,7 +13,7 @@ export interface PersonaChartProps {
   fTier?: Tier;
 }
 
-const SIZE = 200;
+const SIZE = 172;
 const RADIUS = SIZE / 2;
 const CHART_RADIUS = RADIUS - 8;
 const FILL = '#00A8E8';

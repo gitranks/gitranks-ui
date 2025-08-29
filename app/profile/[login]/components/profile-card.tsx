@@ -13,9 +13,7 @@ export const ProfileCardsGrid: FC<ProfileCardsGridProps> = ({ children, classNam
 };
 
 type ProfileCardProps = {
-  title?: string | null;
   children: ReactNode;
-  href?: string | null;
   className?: string;
 };
 
@@ -33,7 +31,7 @@ export const ProfileCardHeader: FC<ProfileCardHeaderProps> = ({ children, meta, 
   return (
     <CardHeader className={cn('p-0 flex flex-row items-center gap-2', className)}>
       <CardTitle className="text-lg font-normal">{children}</CardTitle>
-      {!!meta ? meta : null}
+      {meta ?? null}
     </CardHeader>
   );
 };

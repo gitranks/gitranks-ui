@@ -1,27 +1,7 @@
-query ProfileContributions($login: String!) {
+query ProfileContributions($login: String!, $offset: Int, $limit: Int) {
   user(login: $login) {
-    contributions {
-      year
-      prsCount
-      mergedPrsCount
-      linesAdded
-      linesRemoved
-      repository {
-        githubId
-        createdAt
-        pushedAt
-        url
-        forkCount
-        isArchived
-        name
-        releasesCount
-        stargazerCount
-        languages {
-          name
-          size
-          color
-        }
-      }
+    contributions(offset: $offset, limit: $limit) {
+      ...ContributionFields
     }
   }
 }

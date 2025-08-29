@@ -125,7 +125,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
           )}
         </DetailsContainer>
       </LeftColumnContainer>
-      <div className={cn('flex flex-col gap-4 w-full', className)}>{children}</div>
+      <section className={cn('flex flex-col gap-4 w-full', className)}>{children}</section>
     </PageContainer>
   );
 };

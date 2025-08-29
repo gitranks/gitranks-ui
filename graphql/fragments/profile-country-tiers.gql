@@ -1,5 +1,5 @@
-fragment UserCountryTiers on User {
-  countryTiers {
+fragment UserTiersCountry on User {
+  tiersCountry {
     sUsers
     cUsers
     fUsers

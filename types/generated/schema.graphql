@@ -122,7 +122,7 @@ type Language {
 }
 
 type LanguageEntity {
-  color: String!
+  color: String
   name: String!
   size: Float!
 }
@@ -340,7 +340,6 @@ type User {
   contributedRepoCount: Int
   contributions(limit: Int, offset: Int! = 0): [Contribution!]
   country: String
-  countryTiers: RankTier
   createdAt: DateTime!
   email: String
   f: Int
@@ -355,7 +354,6 @@ type User {
   githubId: ID!
   githubServiceFetchedAt: DateTime
   githubUpdatedAt: DateTime
-  globalTiers: RankTier
   isHireable: Boolean
   languages(limit: Int, offset: Int! = 0): [UserLanguage!]
   location: String
@@ -370,6 +368,8 @@ type User {
   sD: Int
   snapshots: JSON
   socialAccounts: SocialAccount
+  tiersCountry: RankTier
+  tiersGlobal: RankTier
   timeline(limit: Int, offset: Int! = 0): [Timeline!]
   twitterUsername: String
   updatedAt: DateTime!

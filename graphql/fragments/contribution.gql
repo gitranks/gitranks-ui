@@ -1,0 +1,10 @@
+fragment ContributionFields on Contribution {
+  year
+  prsCount
+  mergedPrsCount
+  linesAdded
+  linesRemoved
+  repository {
+    ...RepositoryFields
+  }
+}

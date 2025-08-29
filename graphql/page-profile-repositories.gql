@@ -1,0 +1,14 @@
+query PageProfileRepositories($login: String!) {
+  user(login: $login) {
+    ...UserBaseFields
+    ...UserFetchingStatus
+    ...UserSeo
+    repositoriesCount
+    repositories(limit: 10) {
+      ...RepositoryFields
+    }
+    contributions(limit: 10) {
+      ...ContributionFields
+    }
+  }
+}

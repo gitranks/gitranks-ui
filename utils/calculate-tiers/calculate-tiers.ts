@@ -78,7 +78,7 @@ const findTier = (
 
 export const getRankingTierData = (
   propName: UserRankProp,
-  profileRanks: RanksType,
+  profileRanks: RanksType | undefined,
   rankedCount: number,
   tiers?: Tier[],
 ): ProfileTierType => {
@@ -104,7 +104,7 @@ export const getRankingTierData = (
   };
 };
 
-export const calculateTiers = (profileRanks: RanksType, rankTiers: TiersDataType) => {
+export const calculateTiers = (profileRanks?: RanksType, rankTiers?: TiersDataType) => {
   const profileTiers = BUCKETS.reduce((acc, propName) => {
     acc[`${propName}Tier`] = getRankingTierData(
       propName,
@@ -115,7 +115,7 @@ export const calculateTiers = (profileRanks: RanksType, rankTiers: TiersDataType
     return acc;
   }, {} as Record<`${keyof typeof UserRankProp}Tier`, ProfileTierType>);
 
-  const tiersWithData = Object.values(profileTiers).filter(hasTierData) as ProfileTierWithData[];
+  const tiersWithData = Object.values(profileTiers).filter(hasTierData);
   const bestTier = getBestProfileTier(tiersWithData);
 
   return { ...profileTiers, bestTier };

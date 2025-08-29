@@ -1,4 +1,7 @@
-export function formatBytes(bytes: number, decimals = 2): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function formatBytes(bytes?: any, decimals = 2): string {
+  if (typeof bytes !== 'number') return '';
+
   if (bytes === 0) return '0 Bytes';
 
   const k = 1024; // size in bytes

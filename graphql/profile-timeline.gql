@@ -1,8 +1,0 @@
-query ProfileTimeline($login: String!) {
-  user(login: $login) {
-    timeline {
-      changes
-      createdAt
-    }
-  }
-}

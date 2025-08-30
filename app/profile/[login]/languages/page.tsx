@@ -4,14 +4,13 @@ import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from '
 import { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 
 import { fetchProfilePageLanguages } from '@/graphql/helpers/fetch-profile-page-languages';
-import { fetchProfileSeo } from '@/graphql/helpers/fetch-profile-seo';
 
 import { buildProfileTabSEO } from '../seo';
 import { LanguagesPage } from './components/languages-page';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/languages'>): Promise<Metadata> {
   const { login } = await params;
-  const user = await fetchProfileSeo(login);
+  const user = await fetchProfilePageLanguages(login);
 
   if (!user) {
     return {};

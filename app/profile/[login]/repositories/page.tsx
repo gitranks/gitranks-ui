@@ -5,7 +5,6 @@ import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from '
 import { notFound } from 'next/navigation';
 
 import { fetchProfilePageRepositories } from '@/graphql/helpers/fetch-profile-page-repositories';
-import { fetchProfileSeo } from '@/graphql/helpers/fetch-profile-seo';
 
 import { UserContributionsList } from './components/user-contriutions-list';
 import { UserRepositoriesList } from './components/user-repositories-list';
@@ -15,7 +14,7 @@ import { buildProfileTabSEO } from '../seo';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/repositories'>): Promise<Metadata> {
   const { login } = await params;
-  const user = await fetchProfileSeo(login);
+  const user = await fetchProfilePageRepositories(login);
 
   if (!user) {
     return {};

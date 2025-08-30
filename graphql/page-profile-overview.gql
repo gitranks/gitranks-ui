@@ -33,24 +33,6 @@ query PageProfileOverview($login: String!, $isGlobalContext: Boolean! = true) {
       color
       size
       score
-      # rankGlobal @include(if: $rankGlobal) {
-      #   s
-      # }
-      # tiersGlobal @include(if: $rankGlobal) {
-      #   sTiers {
-      #     ...TierFields
-      #   }
-      #   sUsers
-      # }
-      # rankCountry @skip(if: $rankGlobal) {
-      #   s
-      # }
-      # tiersCountry @skip(if: $rankGlobal) {
-      #   sTiers {
-      #     ...TierFields
-      #   }
-      #   sUsers
-      # }
     }
     repositories(limit: 5) {
       ...RepositoryFields

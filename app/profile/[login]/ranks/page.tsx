@@ -4,14 +4,13 @@ import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from '
 import { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 
 import { fetchProfilePageRanks } from '@/graphql/helpers/fetch-profile-page-ranks';
-import { fetchProfileSeo } from '@/graphql/helpers/fetch-profile-seo';
 
 import { buildProfileTabSEO } from '../seo';
 import { RanksPage } from './components/ranks-page';
 
 export async function generateMetadata({ params }: LayoutProps<'/profile/[login]'>): Promise<Metadata> {
   const { login } = await params;
-  const user = await fetchProfileSeo(login);
+  const user = await fetchProfilePageRanks(login);
 
   if (!user) {
     return {};

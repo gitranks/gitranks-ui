@@ -1,5 +1,5 @@
-query CountryLanguageSummary($country: String!, $order: LanguageSummaryOrder) {
-  countryLanguageSummary(order: $order, country: $country) {
+query CountryLanguageSummary($country: String!, $order: LanguageSummaryOrder, $offset: Int = 0, $limit: Int = 24) {
+  countryLanguageSummary(order: $order, offset: $offset, limit: $limit, country: $country) {
     language
     country
     date

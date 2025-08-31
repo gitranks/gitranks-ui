@@ -1,4 +1,4 @@
-import { RankTiersByNameQuery, Tier } from '@/types/generated/graphql';
+import { Tier } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
 
 export type RanksType =
@@ -15,7 +15,6 @@ export type RanksType =
     }
   | null
   | undefined;
-export type TiersDataType = RankTiersByNameQuery['rankTiersByName'];
 
 export type ProfileTierType = {
   data?: Tier;

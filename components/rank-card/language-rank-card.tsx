@@ -58,7 +58,9 @@ export const LanguageRankCard: FC<LanguageRankCardProps> = ({ language, country,
         <RankCardItem>{NOT_AVAILABLE}</RankCardItem>
         <RankCardItem Icon={Star}>Language Score: {(score || 0).toLocaleString('en-US')}</RankCardItem>
         {hasRank && <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} rankingLink={rankingLink} />}
-        {!hasRank && !!rankedCount && <RankCardTotalProfilesRanked rankedCount={rankedCount} />}
+        {!hasRank && !!rankedCount && (
+          <RankCardTotalProfilesRanked rankedCount={rankedCount} rankingLink={rankingLink} />
+        )}
       </>
     );
   };

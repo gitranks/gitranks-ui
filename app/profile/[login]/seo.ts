@@ -1,10 +1,11 @@
 import { RANK_NAME } from '@/badge/badge.consts';
-import { ProfileSeoQuery } from '@/types/generated/graphql';
+import { PageProfileLanguagesQuery, PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
 import { formatOrdinal } from '@/utils/format-ordinal';
 
 type Tab = 'overview' | 'ranks' | 'repositories' | 'languages';
-type DataType = NonNullable<ProfileSeoQuery['user']>;
+type DataType = NonNullable<PageProfileOverviewQuery['user']>;
+type LanguagesType = NonNullable<PageProfileLanguagesQuery['user']>['languages'];
 
 const clip = (t: string, max = 158) => {
   if (t.length <= max) return t;
@@ -85,7 +86,7 @@ function buildRepositoriesDescription(stats: DataType): string {
   return clip(parts.filter(Boolean).join(' '));
 }
 
-function buildLanguagesDescription(languages?: NonNullable<DataType>['languages']): string {
+function buildLanguagesDescription(languages?: LanguagesType): string {
   const languageParts =
     languages
       ?.slice(0, 3)
@@ -213,7 +214,7 @@ function buildTabSpecificJsonLd(
         about: { '@type': 'Person', name, url: base },
         mainEntity: {
           '@type': 'ItemList',
-          itemListElement: (stats.languages ?? []).slice(0, 3).map((l, i) => ({
+          itemListElement: ((stats.languages as LanguagesType) ?? []).slice(0, 3).map((l, i) => ({
             '@type': 'ListItem',
             position: i + 1,
             name: l.name,

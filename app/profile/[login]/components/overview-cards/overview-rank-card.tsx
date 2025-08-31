@@ -5,7 +5,7 @@ import { TIER_NAMES } from '@/app/app.consts';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 import { Link } from '@/components/link/link';
 import { RankChart } from '@/components/rank-chart/rank-chart';
-import { PageProfileOverviewQuery } from '@/types/generated/graphql';
+import { PageProfileOverviewQuery, RankTier } from '@/types/generated/graphql';
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 import { shortenCountryName } from '@/utils/country-name-shortener';
 import { getPersonaType } from '@/utils/get-persona-type';
@@ -31,7 +31,7 @@ const CardFooterRank: FC<PropsWithChildren> = ({ children }) => {
 };
 
 export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers, country }) => {
-  const { sTier, cTier, fTier, bestTier } = calculateTiers(ranks, tiers);
+  const { sTier, cTier, fTier, bestTier } = calculateTiers(ranks, tiers as RankTier);
   const sRank = ranks?.s ?? ranks?.sProvisional ?? 0;
   const cRank = ranks?.c ?? ranks?.cProvisional ?? 0;
   const fRank = ranks?.f ?? ranks?.fProvisional ?? 0;

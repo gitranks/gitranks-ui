@@ -3,7 +3,7 @@ import { FC } from 'react';
 
 import { RANK_DESCRIPTIONS } from '@/app/app.consts';
 import { RankCard } from '@/components/rank-card/rank-card';
-import { PageProfileRanksQuery } from '@/types/generated/graphql';
+import { PageProfileRanksQuery, RankTier } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 import { shortenCountryName } from '@/utils/country-name-shortener';
@@ -35,7 +35,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
 
   const ranks = isGlobalContext ? rankGlobal : rankCountry;
   const tiers = isGlobalContext ? tiersGlobal : tiersCountry;
-  const { sTier, cTier, fTier, bestTier } = calculateTiers(ranks, tiers);
+  const { sTier, cTier, fTier, bestTier } = calculateTiers(ranks, tiers as RankTier);
   const { s, c, f, sM, cM, fM, sProvisional, cProvisional, fProvisional } = ranks ?? {};
 
   const getRankingName = (rankType: UserRankProp) => {

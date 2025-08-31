@@ -14,7 +14,7 @@ import { isLanguageSummaryOrder } from './utils/is-language-summary-order';
 export async function generateMetadata({
   params,
 }: LayoutProps<'/languages/[country]/[orderBy]/[page]'>): Promise<Metadata> {
-  const { orderBy, page, country } = await params;
+  const { page, orderBy, country } = await params;
 
   if (!isLanguageSummaryOrder(orderBy)) {
     throw new Error(`Invalid order by: ${orderBy}`);
@@ -28,14 +28,15 @@ export async function generateMetadata({
 
 export async function generateStaticParams() {
   const page = '1';
+  const country = 'global';
   return [
-    { orderBy: 'score', page },
-    { orderBy: 'size', page },
-    { orderBy: 'users', page },
+    { orderBy: 'score', country, page },
+    { orderBy: 'size', country, page },
+    { orderBy: 'users', country, page },
   ];
 }
 
-export default async function CountriesLayout({
+export default async function LanguagesSummaryLayout({
   children,
   params,
 }: LayoutProps<'/languages/[country]/[orderBy]/[page]'>) {

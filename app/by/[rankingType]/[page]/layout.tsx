@@ -8,14 +8,8 @@ import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { RankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
-import { RankingTypeClient } from '@/types/ranking.types';
 import { getRankPropByType } from '@/utils/get-rank-prop-by-ranking-type';
 import { isRankingType } from '@/utils/is-ranking-type';
-
-type GlobalRankingProps = {
-  children: React.ReactNode;
-  params: Promise<{ rankingType: RankingTypeClient; page: string }>;
-};
 
 export async function generateMetadata({ params }: LayoutProps<'/by/[rankingType]/[page]'>): Promise<Metadata> {
   const { rankingType, page: pageParam } = await params;

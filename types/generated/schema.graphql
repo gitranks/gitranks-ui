@@ -117,7 +117,7 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://
 scalar JSON
 
 type Language {
-  color: String!
+  color: String
   name: String!
 }
 
@@ -157,14 +157,16 @@ type ProfileForSitemap {
 type Query {
   """List of countries"""
   country: [Country!]
-  countryLanguageSummary(date: String, order: LanguageSummaryOrder! = SCORE): [CountryLanguageSummary!]!
+  countryLanguageRankings(country: String!, language: String!, limit: Int! = 100, offset: Int! = 0): [RankCountryLanguageWithUser!]!
+  countryLanguageSummary(country: String!, date: String, limit: Int! = 100, offset: Int! = 0, order: LanguageSummaryOrder! = SCORE): [CountryLanguageSummary!]!
   countryRankByLogin(login: String!): RankCountry
   countryRankings(country: String!, limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankCountry!]!
   countrySummary(date: String, order: CountrySummaryOrder! = STARS): [CountrySummary!]!
   globalRankByLogin(login: String!): RankGlobal
   globalRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankGlobal!]!
   insights: [Insight!]
-  languageSummary(date: String, order: LanguageSummaryOrder! = SCORE): [LanguageSummary!]!
+  languageRankings(language: String!, limit: Int! = 100, offset: Int! = 0): [RankLanguageWithUser!]!
+  languageSummary(date: String, limit: Int! = 100, offset: Int! = 0, order: LanguageSummaryOrder! = SCORE): [LanguageSummary!]!
   profilesForSitemap: [ProfileForSitemap!]!
   rankTiersByName(name: String!): RankTier
 
@@ -201,6 +203,17 @@ type RankCountryLanguage {
   sD: Int
   sM: Int
   snapshots: JSON
+}
+
+type RankCountryLanguageWithUser {
+  country: String!
+  githubId: String!
+  language: String!
+  s: Int
+  sD: Int
+  sM: Int
+  snapshots: JSON
+  user: UserWithLanguageScore
 }
 
 type RankCountryWithoutUser {
@@ -263,6 +276,16 @@ type RankLanguage {
   sD: Int
   sM: Int
   snapshots: JSON
+}
+
+type RankLanguageWithUser {
+  githubId: String!
+  language: String!
+  s: Int
+  sD: Int
+  sM: Int
+  snapshots: JSON
+  user: UserWithLanguageScore
 }
 
 enum RankOrder {
@@ -383,7 +406,7 @@ type UserBasic {
   f: Int
   followersCount: Int
   githubId: ID!
-  languages: [UserLanguage!]
+  languages: [UserLanguageBasic!]
   location: String
   login: String!
   s: Int
@@ -403,4 +426,19 @@ type UserLanguage {
   size: Float!
   tiersCountry: RankTier
   tiersGlobal: RankTier
+}
+
+type UserLanguageBasic {
+  color: String
+  name: String!
+  score: Int!
+  size: Float!
+}
+
+type UserWithLanguageScore {
+  avatarUrl: String
+  country: String
+  languageScore: Int
+  location: String
+  login: String!
 }

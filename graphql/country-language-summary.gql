@@ -1,0 +1,18 @@
+query CountryLanguageSummary($country: String!, $order: LanguageSummaryOrder) {
+  countryLanguageSummary(order: $order, country: $country) {
+    language
+    country
+    date
+    usersCount
+    score
+    size
+    topUser {
+      login
+      avatarUrl
+      country
+    }
+    languageData {
+      color
+    }
+  }
+}

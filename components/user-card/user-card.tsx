@@ -6,13 +6,13 @@ import { LinkWithStopPropagation } from './components/link-with-stop-propagation
 import { ProfileAvatar } from './components/profile-avatar';
 import { UserCardProps } from './user-card.types';
 
-export const UserCard: FC<UserCardProps> = ({ login, avatarUrl, avatarClassName }) => {
+export const UserCard: FC<UserCardProps> = ({ login, avatarUrl, avatarClassName, className }) => {
   if (!login) {
     return null;
   }
 
   return (
-    <LinkWithStopPropagation href={`/profile/${login}`}>
+    <LinkWithStopPropagation href={`/profile/${login}`} className={className}>
       <ProfileAvatar url={avatarUrl} initials={getInitials(login)} className={avatarClassName} />
       <span translate="no">{login}</span>
     </LinkWithStopPropagation>

@@ -13,9 +13,6 @@ export const CountryRankingLink = ({
   return (
     <Card className="flex-grow gap-4">
       <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-grow items-center">
-          <Link href="/countries/stars/1">Browse All Countries</Link>
-        </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(2.25rem,1fr))] auto-rows-[2.25rem] gap-1 overflow-hidden h-[calc(2.25rem*3+0.25rem*2)]">
           {countrySummaries.slice(2, 44).map((countrySummary) => {
             const {
@@ -34,6 +31,9 @@ export const CountryRankingLink = ({
               </Tooltip>
             );
           })}
+        </div>
+        <div className="flex flex-grow items-center justify-end">
+          <Link href="/countries/stars/1">Browse All Countries</Link>
         </div>
       </CardContent>
     </Card>

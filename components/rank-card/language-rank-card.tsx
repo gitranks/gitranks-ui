@@ -27,6 +27,7 @@ export const LanguageRankCard: FC<LanguageRankCardProps> = ({ language, country,
   }
 
   const hasData = !notRanked && !notAvailable && data !== undefined;
+  const rankingLink = `/language/${name}/${isGlobalContext ? 'global' : country}/1`;
 
   const getCardContent = () => {
     const rankToDisplay = s || 0;
@@ -34,7 +35,7 @@ export const LanguageRankCard: FC<LanguageRankCardProps> = ({ language, country,
 
     return (
       <>
-        <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} />
+        <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} rankingLink={rankingLink} />
         <RankCardItem Icon={Star}>Language Score: {(score || 0).toLocaleString('en-US')}</RankCardItem>
         {!!rankPercentile && <RankCardItem Icon={Trophy}>Top {rankPercentile}% of all ranked profiles</RankCardItem>}
         {rankToDisplay !== sM && (
@@ -56,7 +57,7 @@ export const LanguageRankCard: FC<LanguageRankCardProps> = ({ language, country,
       <>
         <RankCardItem>{NOT_AVAILABLE}</RankCardItem>
         <RankCardItem Icon={Star}>Language Score: {(score || 0).toLocaleString('en-US')}</RankCardItem>
-        {hasRank && <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} />}
+        {hasRank && <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} rankingLink={rankingLink} />}
         {!hasRank && !!rankedCount && <RankCardTotalProfilesRanked rankedCount={rankedCount} />}
       </>
     );

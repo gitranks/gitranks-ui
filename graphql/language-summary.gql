@@ -1,0 +1,17 @@
+query LanguageSummary($order: LanguageSummaryOrder, $offset: Int = 0, $limit: Int = 24) {
+  languageSummary(order: $order, offset: $offset, limit: $limit) {
+    language
+    date
+    usersCount
+    score
+    size
+    topUser {
+      login
+      avatarUrl
+      country
+    }
+    languageData {
+      color
+    }
+  }
+}

@@ -32,14 +32,14 @@ export const ProfileLanguageCard: FC<ProfileLanguageCardProps> = ({ login, langu
     <AdaptiveTooltip trigger={<InfoIcon size={20} />}>
       <div className="max-w-80 text-sm">
         <div>
-          Each of your repos has stars and a language breakdown. We calculate language stars by multiplying the
-          repo&apos;s stars by the share of a language in that repo.
+          Every repo has stars and a language breakdown. We calculate language stars by multiplying the repo&apos;s
+          stars by the share of a language in that repo.
         </div>
         <div className="mt-1">
           <b>Example:</b> A repo with 100 stars that&apos;s 60% JavaScript gives JavaScript 60 stars.
         </div>
         <div className="mt-1">
-          We do this for all your public repos, add them up, and rank your languages by their total stars.
+          We do this for all public repos, add them up, and rank all languages by their total stars.
         </div>
       </div>
     </AdaptiveTooltip>

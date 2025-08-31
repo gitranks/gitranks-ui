@@ -36,3 +36,15 @@ export const RANK_DESCRIPTIONS = {
 };
 
 export const DEFAULT_LANGUAGE_COLOR = '#64748B';
+
+export const LANGUAGE = {
+  description:
+    'See which programming languages are the most popular worldwide. Browse detailed summaries by stars and code size - and dive into rankings for each language, globally or by country.',
+  order: {
+    stars:
+      "Calculated from repository stars, weighted by each repo's language breakdown. For example, if a repo has 100 stars and is 60% JavaScript, then JavaScript receives 60 stars from that repo. We aggregate this across all public repos with 5+ stars",
+    size: 'The total code size of the language, summed across all public repositories with 5+ stars.',
+    users:
+      'How many users with at least one public repo with 5+ stars have this language in their public repositories.',
+  },
+};

@@ -13,6 +13,7 @@ export const NotAvailableCardContent: FC<RankCardProps> = ({
   rankProvisional,
   score,
   login,
+  rankingLink,
 }) => {
   const { rankedCount } = tierData;
   const rankToDisplay = (rankProvisional ?? rank) || 0;
@@ -21,8 +22,8 @@ export const NotAvailableCardContent: FC<RankCardProps> = ({
   return (
     <>
       <RankCardItem>{NOT_AVAILABLE}</RankCardItem>
-      {hasRank && <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} />}
-      {!hasRank && <RankCardTotalProfilesRanked rankedCount={rankedCount} />}
+      {hasRank && <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} rankingLink={rankingLink} />}
+      {!hasRank && <RankCardTotalProfilesRanked rankedCount={rankedCount} rankingLink={rankingLink} />}
       <RankCardTotalValue score={score} login={login} rankType={rankType} />
     </>
   );

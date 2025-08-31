@@ -3,6 +3,7 @@ import { unstable_cacheLife as cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { CountryCard } from '@/components/country-card/country-card';
+import { PageGrid } from '@/components/grid/grid';
 import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
 
@@ -25,11 +26,11 @@ export default async function CountriesPage({ params }: PageProps<'/countries/[o
 
   return (
     <>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(364px,1fr))] gap-4">
+      <PageGrid>
         {data.map((item) => (
           <CountryCard key={item.country} countrySummary={item} />
         ))}
-      </div>
+      </PageGrid>
       <Pagination
         prev={page > 1 ? `/countries/${orderBy}/${page - 1}` : undefined}
         next={`/countries/${orderBy}/${page + 1}`}

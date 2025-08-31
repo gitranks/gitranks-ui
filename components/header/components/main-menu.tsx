@@ -3,6 +3,9 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 import { FC, ReactNode } from 'react';
+import { FaCode } from 'react-icons/fa6';
+import { GrLocation } from 'react-icons/gr';
+import { VscGlobe } from 'react-icons/vsc';
 
 import {
   NavigationMenu,
@@ -22,9 +25,16 @@ export function MainMenu({ className }: { className?: string }) {
         <NavigationMenuItem>
           <NavigationMenuTrigger className="bg-transparent">Rankings</NavigationMenuTrigger>
           <NavigationMenuContent>
-            <ul className="w-36">
-              <ListItem href="/by/stars/1">Global Rankings</ListItem>
-              <ListItem href="/countries/stars/1">Country Rankings</ListItem>
+            <ul className="w-48">
+              <ListItem href="/by/stars/1">
+                <VscGlobe /> Global Rankings
+              </ListItem>
+              <ListItem href="/languages/global/score/1">
+                <FaCode /> Language Rankings
+              </ListItem>
+              <ListItem href="/countries/stars/1">
+                <GrLocation /> Country Rankings
+              </ListItem>
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>
@@ -55,7 +65,7 @@ const ListItem: FC<ListItemProps> = ({ className, children, href }) => {
           )}
           href={href as Route}
         >
-          {children}
+          <div className="flex gap-2 items-center">{children}</div>
         </Link>
       </NavigationMenuLink>
     </li>

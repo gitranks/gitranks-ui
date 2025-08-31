@@ -14,6 +14,7 @@ export type RankCardProps = {
   score?: number | null;
   login: string;
   rankingName: string;
+  rankingLink: string;
 };
 
 export type LanguageRankCardProps = {
@@ -31,7 +32,10 @@ export type RankCardItemProps = {
 export type RankCardPositionProps = {
   rank?: number | null;
   rankedCount?: number;
+  rankingLink: string;
 };
+
+export type RankCardTotalProfilesRankedProps = { rankedCount?: number; rankingLink: string };
 
 export type RankCardTotalValueProps = {
   score?: number | null;

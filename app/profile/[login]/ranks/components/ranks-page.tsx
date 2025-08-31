@@ -7,6 +7,7 @@ import { PageProfileRanksQuery } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 import { shortenCountryName } from '@/utils/country-name-shortener';
+import { getTypeByRankProp } from '@/utils/get-rank-prop-by-ranking-type';
 
 import { ProfileRankCharts } from './profile-rank-charts';
 import { RankBreakdownTooltip } from './rank-breakdown-tooltip';
@@ -43,6 +44,14 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
     return `${title}ing${isGlobalContext ? '' : ` in ${shortenCountryName(country)}`}`;
   };
 
+  const getRankingLink = (rankType: UserRankProp) => {
+    if (isGlobalContext) {
+      return `/by/${getTypeByRankProp(rankType)}/1`;
+    } else {
+      return `/country/${country}/${getTypeByRankProp(rankType)}/1`;
+    }
+  };
+
   return (
     <LayoutLeftColumn user={user}>
       <>
@@ -72,6 +81,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
             score={user.s}
             login={login}
             rankingName={getRankingName(UserRankProp.s)}
+            rankingLink={getRankingLink(UserRankProp.s)}
           />
           <RankCard
             tiers={tiers?.cTiers}
@@ -83,6 +93,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
             score={user.c}
             login={login}
             rankingName={getRankingName(UserRankProp.c)}
+            rankingLink={getRankingLink(UserRankProp.c)}
           />
           <RankCard
             tiers={tiers?.fTiers}
@@ -94,6 +105,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
             score={user.f}
             login={login}
             rankingName={getRankingName(UserRankProp.f)}
+            rankingLink={getRankingLink(UserRankProp.f)}
           />
         </ProfileCardsGrid>
       </>

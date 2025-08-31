@@ -5,6 +5,7 @@ import { BadgeSection } from './components/badge-section';
 import { CountryRankingSection } from './components/country-ranking-section';
 import { GlobalRankingSection } from './components/global-ranking-section';
 import InsightsCarousel from './components/insights-carousel';
+import { LanguageRankingSection } from './components/language-ranking-section';
 import { MessengerIntegrationSection } from './components/messenger-integration-section';
 import { SearchProfile } from './components/search-profiile';
 
@@ -34,6 +35,7 @@ export default function Home() {
 
       <Page className="gap-4">
         <GlobalRankingSection />
+        <LanguageRankingSection />
         <CountryRankingSection />
         <BadgeSection />
         <MessengerIntegrationSection />

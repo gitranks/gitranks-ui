@@ -6,7 +6,12 @@ import { cn } from '@/lib/utils';
 import { UserRankProp } from '@/types/ranking.types';
 import { formatNumberShort } from '@/utils/format-number-short';
 
-import { RankCardItemProps, RankCardPositionProps, RankCardTotalValueProps } from './rank-card.types';
+import {
+  RankCardItemProps,
+  RankCardPositionProps,
+  RankCardTotalProfilesRankedProps,
+  RankCardTotalValueProps,
+} from './rank-card.types';
 import { Link } from '../link/link';
 
 export const RankCardItem: FC<RankCardItemProps> = ({ Icon, children, className }) => {
@@ -18,17 +23,29 @@ export const RankCardItem: FC<RankCardItemProps> = ({ Icon, children, className 
   );
 };
 
-export const RankCardPosition: FC<RankCardPositionProps> = ({ rank, rankedCount }) => {
+export const RankCardPosition: FC<RankCardPositionProps> = ({ rank, rankedCount, rankingLink }) => {
   return (
     <RankCardItem Icon={Medal}>
       Position: {rank?.toLocaleString('en-US')}{' '}
-      <span className="text-muted-foreground text-xs">/ {formatNumberShort(rankedCount)}</span>
+      <span className="text-muted-foreground text-xs">
+        /{' '}
+        <Link href={rankingLink} title="View Ranking">
+          {formatNumberShort(rankedCount)}
+        </Link>
+      </span>
     </RankCardItem>
   );
 };
 
-export const RankCardTotalProfilesRanked: FC<{ rankedCount?: number }> = ({ rankedCount }) => {
-  return <RankCardItem Icon={UserRound}>Profiles ranked: {rankedCount?.toLocaleString('en-US')}</RankCardItem>;
+export const RankCardTotalProfilesRanked: FC<RankCardTotalProfilesRankedProps> = ({ rankedCount, rankingLink }) => {
+  return (
+    <RankCardItem Icon={UserRound}>
+      Profiles ranked:{' '}
+      <Link href={rankingLink} title="View Ranking">
+        {rankedCount?.toLocaleString('en-US')}
+      </Link>
+    </RankCardItem>
+  );
 };
 
 export const RankCardTotalValue: FC<RankCardTotalValueProps> = ({ score, rankType, login }) => {

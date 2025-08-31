@@ -1,11 +1,9 @@
-import { FlameIcon } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
-import { Badge } from '@/components/ui/badge';
 import { UserRankProp } from '@/types/ranking.types';
 
 import { CountryOrderSwitcher } from './components/country-order-switcher';
@@ -50,13 +48,7 @@ export default async function CountriesLayout({ children, params }: LayoutProps<
       <Page className="gap-8">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              Country Rankings
-              <Badge variant="secondary" className="bg-blue-500 text-white dark:bg-blue-600">
-                <FlameIcon />
-                NEW
-              </Badge>
-            </h2>
+            <h2 className="text-2xl font-semibold flex items-center gap-2">Country Rankings</h2>
             <CountryOrderSwitcher orderBy={orderBy} />
           </div>
           <div>
@@ -66,13 +58,13 @@ export default async function CountriesLayout({ children, params }: LayoutProps<
             </p>
             <ul className="list-disc pl-6 mb-4">
               <li>
-                ⭐ <strong>User Stars</strong> - stars on repos owned by developers from this country
+                <strong>User Stars:</strong> stars on repos owned by developers from this country
               </li>
               <li>
-                🔀 <strong>Contrib Stars</strong> - stars on external repos where they’ve merged PRs
+                <strong>Contrib Stars:</strong> stars on external repos where they&apos;ve merged PRs
               </li>
               <li>
-                👥 <strong>Followers</strong> - combined GitHub followers of those developers
+                <strong>Followers:</strong> combined GitHub followers of those developers
               </li>
             </ul>
             <p>

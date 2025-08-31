@@ -1,4 +1,5 @@
 import { FC } from 'react';
+import { FiStar, FiGitPullRequest, FiUsers } from 'react-icons/fi';
 
 import { CountrySummaryQuery } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
@@ -39,9 +40,9 @@ export const CountryCard: FC<{ countrySummary: CountrySummaryQuery['countrySumma
           <div className="text-sm text-muted-foreground">{formatNumberShort(usersCount)} users</div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-3 divide-x">
+      <CardContent className="grid grid-cols-3 divide-x px-2">
         <CountryCardStat
-          emoji="⭐"
+          Icon={FiStar}
           value={s}
           label="user stars"
           topUserLabel="Rockstar"
@@ -49,7 +50,7 @@ export const CountryCard: FC<{ countrySummary: CountrySummaryQuery['countrySumma
           tooltip={TOOLTIPS.s}
         />
         <CountryCardStat
-          emoji="🔀"
+          Icon={FiGitPullRequest}
           value={c}
           label="contrib stars"
           topUserLabel="Contributor"
@@ -57,7 +58,7 @@ export const CountryCard: FC<{ countrySummary: CountrySummaryQuery['countrySumma
           tooltip={TOOLTIPS.c}
         />
         <CountryCardStat
-          emoji="👥"
+          Icon={FiUsers}
           value={f}
           label="followers"
           topUserLabel="Influencer"

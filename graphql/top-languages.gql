@@ -1,0 +1,5 @@
+query TopLanguages($limit: Int = 10) {
+  languageSummary(limit: $limit) {
+    language
+  }
+}

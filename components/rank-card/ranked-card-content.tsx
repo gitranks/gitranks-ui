@@ -15,6 +15,7 @@ export const RankedCardContent: FC<RankCardProps> = ({
   rankM,
   score,
   login,
+  rankingLink,
 }) => {
   const { rankedCount } = tierData;
   const rankToDisplay = (rankProvisional ?? rank) || 0;
@@ -22,8 +23,8 @@ export const RankedCardContent: FC<RankCardProps> = ({
 
   return (
     <>
-      <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} />
-      {!!rankPercentile && <RankCardItem Icon={Trophy}>Top {rankPercentile}% of all ranked profiles!</RankCardItem>}
+      <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} rankingLink={rankingLink} />
+      {!!rankPercentile && <RankCardItem Icon={Trophy}>Top {rankPercentile}% of all ranked profiles</RankCardItem>}
       {rankToDisplay !== rankM && (
         <RankCardItem Icon={rankToDisplay > (rankM || 0) ? TrendingDown : TrendingUp}>
           <span>

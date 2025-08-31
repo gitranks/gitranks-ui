@@ -1,0 +1,14 @@
+query CountryLanguageRanking($offset: Int, $language: String!, $country: String!) {
+  countryLanguageRankings(language: $language, country: $country, offset: $offset) {
+    githubId
+    s
+    sM
+    user {
+      s: languageScore
+      login
+      avatarUrl
+      location
+      country
+    }
+  }
+}

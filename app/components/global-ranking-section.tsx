@@ -1,3 +1,5 @@
+import { VscGlobe } from 'react-icons/vsc';
+
 import { Link } from '@/components/link/link';
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -6,7 +8,9 @@ import { RANK_DESCRIPTIONS } from '../app.consts';
 export const GlobalRankingSection = () => {
   return (
     <div className="flex flex-col gap-4 grow py-8">
-      <h2 className="text-2xl md:text-3xl font-semibold">Global Rankings</h2>
+      <h2 className="text-2xl md:text-3xl font-semibold flex gap-4 items-center">
+        <VscGlobe /> Global Rankings
+      </h2>
       <div>
         Discover your developer superpower! Explore ranks based on stars, followers, contributions, and more. Dive into
         dynamic leaderboards and find out how you measure up against developers worldwide.

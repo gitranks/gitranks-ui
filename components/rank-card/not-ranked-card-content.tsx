@@ -6,14 +6,14 @@ import { RankCardItem, RankCardTotalProfilesRanked, RankCardTotalValue } from '.
 import { RankCardProps } from './rank-card.types';
 
 // always 3 rows
-export const NotRankedCardContent: FC<RankCardProps> = ({ tierData, rankType, score, login }) => {
+export const NotRankedCardContent: FC<RankCardProps> = ({ tierData, rankType, score, login, rankingLink }) => {
   const { rankedCount } = tierData;
   const { notRankedMessage } = RANK_DESCRIPTIONS[rankType];
 
   return (
     <>
       <RankCardItem>{notRankedMessage}</RankCardItem>
-      <RankCardTotalProfilesRanked rankedCount={rankedCount} />
+      <RankCardTotalProfilesRanked rankedCount={rankedCount} rankingLink={rankingLink} />
       <RankCardTotalValue score={score} login={login} rankType={rankType} />
     </>
   );

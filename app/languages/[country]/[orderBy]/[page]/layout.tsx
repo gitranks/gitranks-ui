@@ -41,6 +41,7 @@ export default async function LanguagesSummaryLayout({
   params,
 }: LayoutProps<'/languages/[country]/[orderBy]/[page]'>) {
   const { country, orderBy } = await params;
+  const countryName = decodeURIComponent(country);
   const orderByUpper = orderBy.toUpperCase();
 
   if (!isLanguageSummaryOrder(orderByUpper)) {
@@ -63,12 +64,12 @@ export default async function LanguagesSummaryLayout({
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <h2 className="text-2xl font-semibold flex items-center gap-2">
-              {isGlobal ? 'Global' : country} Language Rankings
+              {isGlobal ? 'Global' : countryName} Language Rankings
               <NewBadge />
             </h2>
             <div className="flex items-center gap-6 flex-wrap">
-              <LanguageCountrySelect value={country} countries={countryNames} />
-              <LanguageOrderSwitcher orderBy={orderByUpper} country={country} />
+              <LanguageCountrySelect value={countryName} countries={countryNames} />
+              <LanguageOrderSwitcher orderBy={orderByUpper} country={countryName} />
             </div>
           </div>
           <div>

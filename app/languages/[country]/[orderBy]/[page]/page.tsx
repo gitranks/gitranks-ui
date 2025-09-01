@@ -16,16 +16,18 @@ export default async function LanguagesPage({ params }: PageProps<'/languages/[c
   cacheLife('hours');
   const { orderBy, page: pageParam, country } = await params;
 
+  const countryName = decodeURIComponent(country);
+
   const orderByUpper = orderBy.toUpperCase();
   if (!isLanguageSummaryOrder(orderByUpper)) {
     return notFound();
   }
 
-  const method = country === 'global' ? fetchLanguageSummaries : fetchCountryLanguageSummaries;
+  const method = countryName === 'global' ? fetchLanguageSummaries : fetchCountryLanguageSummaries;
 
   const page = parseInt(pageParam, 10);
   const offset = (page - 1) * ITEMS_PER_PAGE;
-  const data = await method({ order: orderByUpper, offset, limit: ITEMS_PER_PAGE, country });
+  const data = await method({ order: orderByUpper, offset, limit: ITEMS_PER_PAGE, country: countryName });
 
   return (
     <>

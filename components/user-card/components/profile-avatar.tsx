@@ -1,28 +1,35 @@
 'use client';
-import { AvatarFallback } from '@radix-ui/react-avatar';
+import Image from 'next/image';
 import { useLinkStatus } from 'next/link';
 import { FC } from 'react';
 
-import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 type ProfileAvatarProps = {
   url?: string | null;
-  initials?: string | null;
-  className?: string;
+  login?: string;
+  size?: number;
 };
 
-export const ProfileAvatar: FC<ProfileAvatarProps> = ({ url, initials, className }) => {
+export const ProfileAvatar: FC<ProfileAvatarProps> = ({ url, login, size = 32 }) => {
   const { pending } = useLinkStatus();
 
   if (!url) {
     return null;
   }
 
+  // for retina displays
+  const sourceSize = size * 2;
+
   return (
-    <Avatar className={className}>
-      <AvatarImage src={url} className={cn('rounded-full', { 'animate-spin': pending })} />
-      <AvatarFallback className="flex items-center justify-center">{initials}</AvatarFallback>
-    </Avatar>
+    <Image
+      src={`${url}&s=${sourceSize}`}
+      alt={`${login} avatar`}
+      className={cn('rounded-full', { 'animate-spin': pending })}
+      width={size}
+      height={size}
+      loading="lazy"
+      decoding="async"
+    />
   );
 };

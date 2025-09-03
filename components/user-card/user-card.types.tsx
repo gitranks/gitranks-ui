@@ -1,6 +1,6 @@
 export type UserCardProps = {
   login?: string;
   avatarUrl?: string | null;
-  avatarClassName?: string;
+  size?: number;
   className?: string;
 };

@@ -1,5 +1,4 @@
-import { FaWhatsapp } from 'react-icons/fa';
-import { FaTelegramPlane } from 'react-icons/fa';
+import { FaWhatsapp, FaTelegramPlane } from 'react-icons/fa';
 
 import { Button } from '@/components/ui/button';
 

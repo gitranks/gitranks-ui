@@ -35,7 +35,7 @@ export const CountryCardStat: FC<CountryCardStatProps> = ({ Icon, value, label, 
         <div className="flex flex-col gap-1 text-xs items-center max-w-full overflow-hidden">
           <span>{topUserLabel}</span>
           <div className="font-semibold max-w-full">
-            <UserCard login={topUser?.login} avatarUrl={topUser?.avatarUrl} avatarClassName="size-5" />
+            <UserCard login={topUser?.login} avatarUrl={topUser?.avatarUrl} size={20} />
           </div>
         </div>
       )}

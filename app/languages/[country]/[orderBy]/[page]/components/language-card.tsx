@@ -60,7 +60,7 @@ export const LanguageCard: FC<LanguageCardProps> = ({ data, country }) => {
             <UserCard
               login={topUser?.login}
               avatarUrl={topUser?.avatarUrl}
-              avatarClassName="size-5"
+              size={20}
               className="font-semibold text-sm"
             />
           }

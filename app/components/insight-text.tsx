@@ -16,7 +16,11 @@ const InsightText: React.FC<InsightTextProps> = ({ insight }) => {
     if (segment.type === SegmentType.Mention) {
       const githubHandle = entities?.mentions[segment.entityKey!]?.handles?.github;
       return (
-        <Link key={segment.text} href={`/profile/${githubHandle}`} className="text-foreground hover:text-foreground/80">
+        <Link
+          key={`${segment.type}-${segment.entityKey}`}
+          href={`/profile/${githubHandle}`}
+          className="text-foreground hover:text-foreground/80"
+        >
           {segment.text}
         </Link>
       );
@@ -25,7 +29,11 @@ const InsightText: React.FC<InsightTextProps> = ({ insight }) => {
     if (segment.type === SegmentType.Link) {
       const link = entities?.links[segment.entityKey!]?.url;
       return (
-        <Link key={segment.text} href={link} className="text-foreground hover:text-foreground/80">
+        <Link
+          key={`${segment.type}-${segment.entityKey}`}
+          href={link}
+          className="text-foreground hover:text-foreground/80"
+        >
           {segment.text}
         </Link>
       );

@@ -4,7 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { FC, ReactNode } from 'react';
 
-import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -30,6 +29,8 @@ type LayoutLeftColumnProps = Readonly<{
   className?: string;
 }>;
 
+const AVATAR_SIZE = 288;
+
 export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, className }) => {
   const showContact = !!user?.email || !!user?.websiteUrl || !!user?.socialAccounts?.nodes?.length;
 
@@ -42,9 +43,15 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
       <LeftColumnContainer>
         <AvatarAndNameContainer>
           <AvatarContainer>
-            <Avatar className="w-full h-full rounded-full" asChild>
-              <AvatarImage src={user.avatarUrl!} />
-            </Avatar>
+            <Image
+              src={`${user.avatarUrl}`}
+              alt={`${user.login} avatar`}
+              className="rounded-full w-full h-full"
+              width={AVATAR_SIZE}
+              height={AVATAR_SIZE}
+              loading="eager"
+              fetchPriority="high"
+            />
           </AvatarContainer>
           <NameContainer>
             <h1 className="font-semibold text-2xl" translate="no">

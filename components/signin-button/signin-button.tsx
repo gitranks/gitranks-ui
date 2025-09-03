@@ -1,14 +1,14 @@
 'use client';
-import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import { LogIn } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { signIn, signOut, useSession } from 'next-auth/react';
-
-import { getInitials } from '@/utils/get-initials';
 
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+
+const AVATAR_SIZE = 32;
 
 export default function SigninButton() {
   const { data: session } = useSession();
@@ -18,10 +18,15 @@ export default function SigninButton() {
       {session ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Avatar className="cursor-pointer">
-              <AvatarImage src={session.user.image!} className="rounded-full" width={32} height={32} />
-              <AvatarFallback>{getInitials(session.user.name!)}</AvatarFallback>
-            </Avatar>
+            <Image
+              src={`${session.user.image}&s=${AVATAR_SIZE * 2}`}
+              alt={`${session.user.name} avatar`}
+              className="rounded-full"
+              width={AVATAR_SIZE}
+              height={AVATAR_SIZE}
+              loading="lazy"
+              decoding="async"
+            />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem asChild>

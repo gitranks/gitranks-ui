@@ -15,6 +15,18 @@
     "figma:icons": "tsc lib/figma/download-icons.ts --outDir dist && dotenv -e .env.local node dist/download-icons.js && pnpm run icons",
     "indexnow": "dotenv -e .env.local -- tsx lib/indexnow/indexnow-submit.ts"
   },
+  "browserslist": {
+    "production": [
+      "supports es6-module",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",
     "@hookform/resolvers": "^5.2.0",

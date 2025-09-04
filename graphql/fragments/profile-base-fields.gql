@@ -5,6 +5,7 @@ fragment UserBaseFields on User {
   avatarUrl
   location
   country
+  countryFlag
   company
   email
   f

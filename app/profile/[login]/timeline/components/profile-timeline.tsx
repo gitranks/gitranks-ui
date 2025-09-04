@@ -24,13 +24,15 @@ type ProfileTimelineDescriptionProps = {
 
 const parseChangesetItem = (changesetItem: ChangeItemType, type: ChangeItemType) => {
   if (isObject<NonNullable<SocialAccountChangeItem>>(changesetItem)) {
-    if (!changesetItem.totalCount) {
-      return null;
+    if (changesetItem.totalCount) {
+      return changesetItem.nodes
+        ?.map((account) => `${account.provider?.toLowerCase()}: ${account.displayName}`)
+        .join('; ');
     }
 
-    return changesetItem.nodes
-      ?.map((account) => `${account.provider?.toLowerCase()}: ${account.displayName}`)
-      .join('; ');
+    if ('name' in changesetItem) {
+      return `${changesetItem.name}`;
+    }
   }
 
   if (Array.isArray(changesetItem) && type === 'repoRemoved') {

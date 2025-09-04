@@ -27,8 +27,10 @@ export const LanguagesPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) 
     const rankProp = isGlobalContext ? 'rankGlobal' : 'rankCountry';
     const langsWithRank = langsWithScore?.filter((lang) => lang[rankProp]);
 
-    return langsWithScore?.length && !langsWithRank?.length;
+    return !!langsWithScore?.length && !langsWithRank?.length;
   }, [langsWithScore, isGlobalContext]);
+
+  const ranksAreNotAvailable = !langsWithScore?.length;
 
   if (user.fetchingStatus === 'FETCHING' && !user.avatarUrl) {
     // user is being fetched for the first time
@@ -50,16 +52,23 @@ export const LanguagesPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) 
           </p>
         )}
 
-        <ProfileCardsGrid>
-          {langsWithScore?.map((language) => (
-            <LanguageRankCard
-              key={language.name}
-              language={language as UserLanguage}
-              isGlobalContext={isGlobalContext}
-              country={user.country}
-            />
-          ))}
-        </ProfileCardsGrid>
+        {ranksAreNotAvailable ? (
+          <p>
+            No language rankings yet! We parsed languages from your public repositories, but none have enough stars to
+            generate rankings. Once your projects gain stars, we&apos;ll show your top languages here.
+          </p>
+        ) : (
+          <ProfileCardsGrid>
+            {langsWithScore?.map((language) => (
+              <LanguageRankCard
+                key={language.name}
+                language={language as UserLanguage}
+                isGlobalContext={isGlobalContext}
+                country={user.country}
+              />
+            ))}
+          </ProfileCardsGrid>
+        )}
       </>
     </LayoutLeftColumn>
   );

@@ -76,7 +76,10 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
         </ActionsContainer>
         <DetailsContainer>
           <div className="flex flex-col gap-1.5">
-            <ProfileListItem value={user.location} Icon={MapPin} />
+            <ProfileListItem
+              value={`${user.countryFlag ? `${user.countryFlag} ` : ''}${user.location}`}
+              Icon={MapPin}
+            />
             <ProfileListItem value={user.company} Icon={BriefcaseBusiness} />
             <ProfileListItem value={'Profile age: ' + formatDistanceToNow(user.githubCreatedAt)} Icon={Hourglass} />
             <ProfileListItem

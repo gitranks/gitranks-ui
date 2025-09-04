@@ -363,6 +363,7 @@ type User {
   contributedRepoCount: Int
   contributions(limit: Int, offset: Int! = 0): [Contribution!]
   country: String
+  countryFlag: String
   createdAt: DateTime!
   email: String
   f: Int

@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/navigation-menu';
 import { cn } from '@/lib/utils';
 
-export function MainMenu({ className }: { className?: string }) {
+export function MainMenu({ className }: Readonly<{ className?: string }>) {
   return (
     <NavigationMenu className={className}>
       <NavigationMenuList>

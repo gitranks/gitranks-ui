@@ -2,20 +2,16 @@
 
 import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { usePostHog } from 'posthog-js/react';
 import { useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { graphqlClient } from '@/lib/graphql/graphql-client';
-import { ProfileIdByLoginDocument } from '@/types/generated/graphql';
 
 export const SearchProfile = () => {
   const [login, setLogin] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const posthog = usePostHog();
 
   const onSearch = async () => {
     if (!login) {
@@ -23,14 +19,12 @@ export const SearchProfile = () => {
     }
 
     setLoading(true);
-    const data = await graphqlClient(ProfileIdByLoginDocument, { login });
-
-    const profileFound = data.globalRankByLogin?.githubId;
-
-    posthog.capture('landingPage.search', {
-      login,
-      profileFound,
-    });
+    // const data = await graphqlClient(ProfileIdByLoginDocument, { login });
+    // const profileFound = data.globalRankByLogin?.githubId;
+    // capture('landingPage.search', {
+    //   login,
+    //   profileFound,
+    // });
 
     return router.push(`/profile/${login}`);
   };

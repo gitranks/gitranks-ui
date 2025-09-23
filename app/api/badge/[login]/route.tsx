@@ -5,7 +5,6 @@ import { BadgeTemplateType } from '@/badge/badge.types';
 import { BadgeZodSchema } from '@/badge/badge.zod';
 import { renderMediumBadge } from '@/badge/templates/medium/medium.render';
 import { renderSmallBadge } from '@/badge/templates/small/small.render';
-import { posthog } from '@/lib/posthog/posthog-node-client';
 
 type Props = { params: Promise<{ login: string }> };
 
@@ -36,12 +35,6 @@ export async function GET(req: NextRequest, { params }: Props) {
   }
 
   const { rankingType, template, theme } = validationResult.data;
-
-  posthog.capture({
-    distinctId: login,
-    event: 'badge_rendered',
-    properties: { rankingType, template, theme },
-  });
 
   const svg = await getRendererByTemplate(template)({ theme, login, rankingType });
 

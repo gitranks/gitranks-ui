@@ -3,7 +3,6 @@ import { NextRequest } from 'next/server';
 
 import { BadgeV2ZodSchema } from '@/badge/badge.zod';
 import { renderInlineBadge } from '@/badge/templates/inline/inline.render';
-import { posthog } from '@/lib/posthog/posthog-node-client';
 
 type Props = { params: Promise<{ login: string }> };
 
@@ -24,14 +23,14 @@ export async function GET(req: NextRequest, { params }: Props) {
     });
   }
 
-  const userAgent = req.headers.get('user-agent');
-  const referer = req.headers.get('referer');
+  // const userAgent = req.headers.get('user-agent');
+  // const referer = req.headers.get('referer');
 
-  posthog.capture({
-    distinctId: login,
-    event: 'badge_v2_rendered',
-    properties: { userAgent, referer },
-  });
+  // capture({
+  //   distinctId: login,
+  //   event: 'badge_v2_rendered',
+  //   properties: { userAgent, referer },
+  // });
 
   const svg = await renderInlineBadge({ login, params: validationResult.data });
 

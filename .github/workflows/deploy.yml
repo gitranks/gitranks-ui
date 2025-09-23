@@ -45,7 +45,6 @@ jobs:
           push: true
           tags: ghcr.io/gitranks/gitranks-ui:latest
           build-args: |
-            NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
             NEXT_PUBLIC_URI=${{ vars.NEXT_PUBLIC_URI }}
             INTERNAL_JWT_SECRET=${{ secrets.INTERNAL_JWT_SECRET }}
             URI_GITRANKS=${{ vars.URI_GITRANKS }}
@@ -77,6 +76,5 @@ jobs:
               -e AUTH_URL='${{ vars.AUTH_URL }}' \
               -e AUTH_TRUST_HOST=true \
               -e NEXT_PUBLIC_URI='${{ vars.NEXT_PUBLIC_URI }}' \
-              -e NEXT_PUBLIC_POSTHOG_KEY='${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}' \
               -p 3000:3000 \
               ghcr.io/gitranks/gitranks-ui:latest

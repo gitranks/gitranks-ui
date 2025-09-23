@@ -3,7 +3,6 @@
 import { RefreshCw } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
-import { usePostHog } from 'posthog-js/react';
 import {
   Children,
   cloneElement,
@@ -54,7 +53,6 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 }) => {
   const { data: session } = useSession();
   const { login } = useParams<{ login: string }>();
-  const posthog = usePostHog();
   const fetchAttempt = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [loadingLabel, setLoadingLabel] = useState(FETCH_MESSAGES[fetchAttempt.current]);
@@ -109,7 +107,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   const fetchUser = async () => {
     setFetchingDuration(0);
 
-    posthog.capture('profile.fetch', { login });
+    // capture('profile.fetch', { login });
 
     // immediately invalidate the cache, so if the user reloads the page, the latest data is fetched
     fetch(`/api/revalidate?tag=${encodeURIComponent(`profile:${login}`)}`);

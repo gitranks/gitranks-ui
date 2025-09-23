@@ -15,22 +15,6 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 20, 24, 32, 40],
     minimumCacheTTL: 60 * 60 * 24,
   },
-  async rewrites() {
-    return [
-      {
-        source: '/ingest/static/:path*',
-        destination: 'https://eu-assets.i.posthog.com/static/:path*',
-      },
-      {
-        source: '/ingest/:path*',
-        destination: 'https://eu.i.posthog.com/:path*',
-      },
-      {
-        source: '/ingest/decide',
-        destination: 'https://eu.i.posthog.com/decide',
-      },
-    ];
-  },
   skipTrailingSlashRedirect: true,
   typedRoutes: true,
 };

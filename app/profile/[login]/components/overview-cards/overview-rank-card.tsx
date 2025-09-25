@@ -32,9 +32,9 @@ const CardFooterRank: FC<PropsWithChildren> = ({ children }) => {
 
 export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers, country }) => {
   const { sTier, cTier, fTier, bestTier } = calculateTiers(ranks, tiers as RankTier);
-  const sRank = sTier?.notRanked || sTier?.notAvailable ? 0 : ranks?.s ?? ranks?.sProvisional ?? 0;
-  const cRank = cTier?.notRanked || cTier?.notAvailable ? 0 : ranks?.c ?? ranks?.cProvisional ?? 0;
-  const fRank = fTier?.notRanked || fTier?.notAvailable ? 0 : ranks?.f ?? ranks?.fProvisional ?? 0;
+  const sRank = sTier?.notRanked || sTier?.notAvailable ? 0 : (ranks?.s ?? ranks?.sProvisional ?? 0);
+  const cRank = cTier?.notRanked || cTier?.notAvailable ? 0 : (ranks?.c ?? ranks?.cProvisional ?? 0);
+  const fRank = fTier?.notRanked || fTier?.notAvailable ? 0 : (ranks?.f ?? ranks?.fProvisional ?? 0);
 
   const getCardContent = () => {
     if (sTier?.notAvailable && cTier?.notAvailable && fTier?.notAvailable) {

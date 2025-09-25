@@ -99,15 +99,18 @@ export const getRankingTierData = (
 };
 
 export const calculateTiers = (profileRanks?: RanksType, rankTiers?: RankTier | null) => {
-  const profileTiers = BUCKETS.reduce((acc, propName) => {
-    acc[`${propName}Tier`] = getRankingTierData(
-      propName,
-      profileRanks,
-      rankTiers?.[`${propName}Users`] ?? 0,
-      rankTiers?.[`${propName}Tiers`],
-    );
-    return acc;
-  }, {} as Record<`${keyof typeof UserRankProp}Tier`, ProfileTierType>);
+  const profileTiers = BUCKETS.reduce(
+    (acc, propName) => {
+      acc[`${propName}Tier`] = getRankingTierData(
+        propName,
+        profileRanks,
+        rankTiers?.[`${propName}Users`] ?? 0,
+        rankTiers?.[`${propName}Tiers`],
+      );
+      return acc;
+    },
+    {} as Record<`${keyof typeof UserRankProp}Tier`, ProfileTierType>,
+  );
 
   const tiersWithData = Object.values(profileTiers).filter(hasTierData);
   const bestTier = getBestProfileTier(tiersWithData);

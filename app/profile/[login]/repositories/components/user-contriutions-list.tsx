@@ -1,14 +1,17 @@
 'use client';
 
-import { FC, useMemo, useState } from 'react';
+import { type FC, useMemo, useState } from 'react';
 
 import { Timeline, TimelineDescription, TimelineItem, TimelineTime } from '@/components/timeline/timeline';
 import { Button } from '@/components/ui/button';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
-import { Contribution, PageProfileRepositoriesQuery, ProfileContributionsDocument } from '@/types/generated/graphql';
-
-import { ContributionRepositoryCard } from './contribution-repository-card';
+import {
+  type Contribution,
+  type PageProfileRepositoriesQuery,
+  ProfileContributionsDocument,
+} from '@/types/generated/graphql';
 import { groupAndSortContributions } from '../../utils/contrib-group-and-sort';
+import { ContributionRepositoryCard } from './contribution-repository-card';
 
 type UserContributionsListProps = {
   contributions?: NonNullable<PageProfileRepositoriesQuery['user']>['contributions'] | null;

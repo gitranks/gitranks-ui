@@ -74,7 +74,7 @@ async function withRetries<T>(fn: () => Promise<T>, shouldRetry: (e: any, status
       attempt++;
       const status = typeof e.status === 'number' ? e.status : undefined;
       if (attempt >= tries || !shouldRetry(e, status)) throw e;
-      const backoff = Math.min(3000, 400 * Math.pow(2, attempt - 1)) + Math.random() * 250;
+      const backoff = Math.min(3000, 400 * 2 ** (attempt - 1)) + Math.random() * 250;
       await delay(backoff);
     }
   }
@@ -188,7 +188,7 @@ async function main() {
             if (status === 403) return false;
             if (status === 429) return true;
             if (status && status >= 500) return true;
-            const msg = (err && err.message) || '';
+            const msg = err?.message || '';
             return /ENOTFOUND|ECONNRESET|ETIMEDOUT|fetch failed/i.test(msg);
           },
           3,

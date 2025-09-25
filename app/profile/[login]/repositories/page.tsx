@@ -1,16 +1,15 @@
 'use cache';
 
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { fetchProfilePageRepositories } from '@/graphql/helpers/fetch-profile-page-repositories';
-
-import { UserContributionsList } from './components/user-contriutions-list';
-import { UserRepositoriesList } from './components/user-repositories-list';
 import { LayoutLeftColumn } from '../components/layout-left-column';
 import NotFound from '../not-found';
 import { buildProfileTabSEO } from '../seo';
+import { UserContributionsList } from './components/user-contriutions-list';
+import { UserRepositoriesList } from './components/user-repositories-list';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/repositories'>): Promise<Metadata> {
   const { login } = await params;

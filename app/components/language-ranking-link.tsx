@@ -2,7 +2,7 @@ import LinkNext from 'next/link';
 
 import { Link } from '@/components/link/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { LanguageSummaryQuery } from '@/types/generated/graphql';
+import type { LanguageSummaryQuery } from '@/types/generated/graphql';
 
 import { DEFAULT_LANGUAGE_COLOR } from '../app.consts';
 

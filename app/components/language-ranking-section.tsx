@@ -4,9 +4,8 @@ import { PageGrid } from '@/components/grid/grid';
 import { NewBadge } from '@/components/new-badge/new-badge';
 import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary';
 import { LanguageSummaryOrder } from '@/types/generated/graphql';
-
-import { LanguageRankingLink } from './language-ranking-link';
 import { LanguageCard } from '../languages/[country]/[orderBy]/[page]/components/language-card';
+import { LanguageRankingLink } from './language-ranking-link';
 
 export const LanguageRankingSection = async () => {
   const languageSummaries = await fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, offset: 0, limit: 8 });

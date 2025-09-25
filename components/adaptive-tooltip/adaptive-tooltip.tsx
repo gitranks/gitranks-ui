@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useMediaQuery } from 'usehooks-ts';
 
 import { cn } from '@/lib/utils';

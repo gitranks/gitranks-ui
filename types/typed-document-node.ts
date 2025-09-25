@@ -1,4 +1,4 @@
-import { DocumentNode as DocumentNodeDefault } from 'graphql';
+import type { DocumentNode as DocumentNodeDefault } from 'graphql';
 
 /**
  * A minimal definition for a typed DocumentNode.

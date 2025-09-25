@@ -1,7 +1,14 @@
-import * as React from 'react';
 import type { SVGProps } from 'react';
+
 const SvgMonster1 = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" overflow="visible" viewBox="35.6 34 106.8 104.444" {...props}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    overflow="visible"
+    viewBox="35.6 34 106.8 104.444"
+    aria-hidden="true"
+    {...props}
+  >
     <path
       fill="#020303"
       fillRule="evenodd"

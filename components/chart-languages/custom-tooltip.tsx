@@ -1,8 +1,8 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { formatBytes } from '@/utils/format-bytes';
 
-import { CustomTooltipProps } from './chart-languages.types';
+import type { CustomTooltipProps } from './chart-languages.types';
 
 export const CustomTooltip: FC<CustomTooltipProps> = ({ active, payload }) => {
   if (active && payload?.length) {

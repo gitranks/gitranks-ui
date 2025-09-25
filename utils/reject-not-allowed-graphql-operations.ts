@@ -1,4 +1,4 @@
-import { parse, OperationDefinitionNode, visit, FieldNode } from 'graphql';
+import { type FieldNode, type OperationDefinitionNode, parse, visit } from 'graphql';
 
 const ALLOWED_ROOT_FIELDS = new Set(['globalRankByLogin', 'user', 'insights']);
 

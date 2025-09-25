@@ -1,7 +1,7 @@
 import { unstable_cacheLife as cacheLife } from 'next/cache';
 
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { CountryLanguageSummaryDocument, CountryLanguageSummaryQueryVariables } from '@/types/generated/graphql';
+import { CountryLanguageSummaryDocument, type CountryLanguageSummaryQueryVariables } from '@/types/generated/graphql';
 
 export const fetchCountryLanguageSummaries = async (props: CountryLanguageSummaryQueryVariables) => {
   'use cache';

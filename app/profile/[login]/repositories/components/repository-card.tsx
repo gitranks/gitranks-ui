@@ -2,16 +2,15 @@ import { formatDistanceToNow } from 'date-fns';
 import { Clock, Package, Split, Star } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Repository } from '@/types/generated/graphql';
-
+import type { Repository } from '@/types/generated/graphql';
+import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '../../components/profile-card';
 import { RepositoryDetail } from './repository-detail';
 import { RepositoryLanguages } from './repository-languages';
 import { RepositoryTopLanguage } from './repository-top-language';
-import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '../../components/profile-card';
 
 type RepositoryCardProps = {
   repository?: Repository | null;

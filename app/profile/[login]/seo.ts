@@ -1,5 +1,5 @@
 import { RANK_NAME } from '@/badge/badge.consts';
-import { PageProfileLanguagesQuery, PageProfileOverviewQuery } from '@/types/generated/graphql';
+import type { PageProfileLanguagesQuery, PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
 import { formatOrdinal } from '@/utils/format-ordinal';
 
@@ -11,7 +11,7 @@ const clip = (t: string, max = 158) => {
   if (t.length <= max) return t;
   const cut = t.slice(0, max - 1);
   const i = cut.lastIndexOf(' ');
-  return (i > 80 ? cut.slice(0, i) : cut) + '…';
+  return `${i > 80 ? cut.slice(0, i) : cut}…`;
 };
 
 function buildUrl(tab: Tab, base: string): string {
@@ -66,7 +66,7 @@ function buildRanksDescription(rankGlobal?: NonNullable<DataType>['rankGlobal'])
     rankGlobal?.f != null ? `${RANK_NAME.f} ${formatOrdinal(rankGlobal.f)}.` : undefined,
   ].filter(Boolean);
 
-  return clip('Ranks: ' + (parts.length ? parts.join(' ') : 'Not Ranked'));
+  return clip(`Ranks: ${parts.length ? parts.join(' ') : 'Not Ranked'}`);
 }
 
 function buildRepositoriesDescription(stats: DataType): string {
@@ -93,7 +93,7 @@ function buildLanguagesDescription(languages?: LanguagesType): string {
       .filter((l) => l.rankGlobal?.s)
       .map((l) => `${l.name} ${formatOrdinal(l.rankGlobal!.s)} (${l.score})`) ?? [];
 
-  return languageParts.length ? clip('Language Ranks: ' + languageParts.join(', ')) : '';
+  return languageParts.length ? clip(`Language Ranks: ${languageParts.join(', ')}`) : '';
 }
 
 function buildDescription(tab: Tab, stats: DataType): string {

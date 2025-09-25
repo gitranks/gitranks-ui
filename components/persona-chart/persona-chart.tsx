@@ -1,8 +1,9 @@
 'use client';
-import React, { useMemo } from 'react';
-import { RadarChart, Radar, PolarAngleAxis, PolarRadiusAxis, PolarGrid } from 'recharts';
+import type React from 'react';
+import { useMemo } from 'react';
+import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart } from 'recharts';
 
-import { Tier } from '@/types/generated/graphql';
+import type { Tier } from '@/types/generated/graphql';
 import { PersonaType } from '@/types/persona.types';
 
 import { LEVELS_PER_TIER } from '../rank-chart/rank-chart.consts';

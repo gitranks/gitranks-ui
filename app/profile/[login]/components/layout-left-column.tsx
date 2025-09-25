@@ -2,14 +2,14 @@ import { formatDistanceToNow } from 'date-fns';
 import { BriefcaseBusiness, ExternalLink, Hourglass, Link2, Mail, MapPin, Timer, UsersRound } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { PageProfileOverviewQuery } from '@/types/generated/graphql';
+import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
-
+import { getSocialIcon } from '../utils/get-social-icon';
 import { FetchUserButtonForProfilePage } from './fetch-user-button';
 import { ProfileListItem } from './profile-list-item';
 import {
@@ -21,7 +21,6 @@ import {
   NameContainer,
   PageContainer,
 } from './profile-page-backbone';
-import { getSocialIcon } from '../utils/get-social-icon';
 
 type LayoutLeftColumnProps = Readonly<{
   user: PageProfileOverviewQuery['user'];
@@ -81,9 +80,9 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
               Icon={MapPin}
             />
             <ProfileListItem value={user.company} Icon={BriefcaseBusiness} />
-            <ProfileListItem value={'Profile age: ' + formatDistanceToNow(user.githubCreatedAt)} Icon={Hourglass} />
+            <ProfileListItem value={`Profile age: ${formatDistanceToNow(user.githubCreatedAt)}`} Icon={Hourglass} />
             <ProfileListItem
-              value={'Updated ' + formatDistanceToNow(user.githubFetchedAt, { addSuffix: true })}
+              value={`Updated ${formatDistanceToNow(user.githubFetchedAt, { addSuffix: true })}`}
               Icon={Timer}
             />
             <ProfileListItem

@@ -3,7 +3,7 @@
 import { unstable_cacheLife as cacheLife } from 'next/cache';
 
 import { RANK_NAME } from '@/badge/badge.consts';
-import { BadgeCornerStyle, BadgeContext, BadgeMeta, BadgeType } from '@/types/badge.types';
+import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
 
 import BadgeExample from './components/badge-example';

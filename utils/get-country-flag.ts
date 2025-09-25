@@ -1,4 +1,4 @@
-import { CountryQuery } from '@/types/generated/graphql';
+import type { CountryQuery } from '@/types/generated/graphql';
 
 export const getCountryFlag = (countryList: CountryQuery['country'], country?: string | null) => {
   if (!country || !countryList?.length) {

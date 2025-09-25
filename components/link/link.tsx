@@ -1,10 +1,10 @@
 import type { Route } from 'next';
 import NextLink from 'next/link';
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { cn } from '@/lib/utils';
 
-import { LinkProps } from './link.types';
+import type { LinkProps } from './link.types';
 
 export const Link: FC<LinkProps> = ({ children, className, href, ...props }) => {
   return (

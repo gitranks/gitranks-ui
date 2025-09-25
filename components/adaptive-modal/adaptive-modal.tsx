@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, ReactNode, useState } from 'react';
+import { type FC, type ReactNode, useState } from 'react';
 import { useMediaQuery } from 'usehooks-ts';
 
 import { Button } from '@/components/ui/button';

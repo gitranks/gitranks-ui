@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
-import { UserRankProp } from '@/types/ranking.types';
+import type { UserRankProp } from '@/types/ranking.types';
 
 import { CountryOrderSwitcher } from './components/country-order-switcher';
 import { isCountrySummaryOrder } from './utils/is-country-summary-order';

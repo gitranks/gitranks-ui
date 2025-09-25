@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 import { request } from '@/lib/graphql/request';
 import { rejectNotAllowedGraphqlOperations } from '@/utils/reject-not-allowed-graphql-operations';

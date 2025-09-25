@@ -1,7 +1,7 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { getContainerStyles, getLabelStyles, getMetaStyles, getValueStyles } from './inline.styles';
-import { BadgeInlineProps } from './inline.types';
+import type { BadgeInlineProps } from './inline.types';
 
 export const BadgeInline: FC<BadgeInlineProps> = ({ label, value, meta, cornerStyle, labelBgColor, valueBgColor }) => {
   return (

@@ -5,10 +5,10 @@ import { useParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import {
   Children,
+  type ComponentProps,
   cloneElement,
-  ComponentProps,
-  FC,
-  ReactElement,
+  type FC,
+  type ReactElement,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dialog';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
 import { cn } from '@/lib/utils';
-import { ProfileFetchingStatusDocument, UserFetchingStatus } from '@/types/generated/graphql';
+import { ProfileFetchingStatusDocument, type UserFetchingStatus } from '@/types/generated/graphql';
 
 type FetchUserButtonProps = {
   className?: string;

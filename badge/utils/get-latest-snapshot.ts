@@ -1,4 +1,4 @@
-import { User } from '@/types/generated/graphql';
+import type { User } from '@/types/generated/graphql';
 
 export const getLatestSnapshot = (snapshots: User['snapshots']): User['snapshots'][string] | null => {
   const dates = Object.keys(snapshots);

@@ -1,21 +1,21 @@
 import { notFound } from 'next/navigation';
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { Link } from '@/components/link/link';
-import { PageProfileOverviewQuery } from '@/types/generated/graphql';
+import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 
 import NotFound from '../not-found';
+import { UserContributionsList } from '../repositories/components/user-contriutions-list';
+import { UserRepositoriesList } from '../repositories/components/user-repositories-list';
 import { buildProfileTabSEO } from '../seo';
+import { ProfileTimeline } from '../timeline/components/profile-timeline';
 import { LayoutLeftColumn } from './layout-left-column';
 import { MessengerIntegration } from './messenger-integration';
 import { OverviewCardsContainer } from './overview-cards/overview-cards';
 import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { ProfileRankingSwitcher } from './profile-ranking-switcher';
-import { UserContributionsList } from '../repositories/components/user-contriutions-list';
-import { UserRepositoriesList } from '../repositories/components/user-repositories-list';
-import { ProfileTimeline } from '../timeline/components/profile-timeline';
 
 type OverviewPageProps = {
   user: PageProfileOverviewQuery['user'];

@@ -1,6 +1,6 @@
-import { FC, useMemo } from 'react';
+import { type FC, useMemo } from 'react';
 
-import { LanguageEntity } from '@/types/generated/graphql';
+import type { LanguageEntity } from '@/types/generated/graphql';
 
 type RepositoryLanguageProps = {
   languages?: LanguageEntity[] | null;
@@ -32,6 +32,7 @@ export const RepositoryLanguages: FC<RepositoryLanguageProps> = ({ languages }) 
     <div className="flex flex-col gap-2 w-full max-w-[256px] shrink-0 rounded overflow-hidden">
       <div
         className="flex h-2 w-full overflow-hidden rounded-full ring-1 ring-black/5 dark:ring-white/10"
+        role="img"
         aria-label="Language usage chart"
         title={items.map((i) => `${i.name} ${fmt(i.percent)}`).join(' • ')}
       >

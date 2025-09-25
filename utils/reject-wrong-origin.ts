@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 export const rejectWrongOrigin = (req: NextRequest) => {
   const origin = req.headers.get('origin') || req.headers.get('referer');

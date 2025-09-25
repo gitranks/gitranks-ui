@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useState } from 'react';
-import { PieChart, Pie, Cell } from 'recharts';
+import { Cell, Pie, PieChart } from 'recharts';
 
 import { TIER_NAMES } from '@/app/app.consts';
 
@@ -20,7 +20,7 @@ import {
   START_END_GAP,
   WEDGE_DEG,
 } from './rank-chart.consts';
-import { ChartItemType, RankChartProps } from './rank-chart.types';
+import type { ChartItemType, RankChartProps } from './rank-chart.types';
 import { toXY } from './rank-chart.utils';
 
 const PIE_DATA = TIER_NAMES?.reduce<ChartItemType[]>((acc, _, index) => {
@@ -121,7 +121,12 @@ export function RankChart({ progress, colors = DEFAULT_COLORS, debug = false }: 
       </PieChart>
 
       {/* label overlay */}
-      <svg width={CANVAS_SIZE} height={CANVAS_SIZE} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      <svg
+        width={CANVAS_SIZE}
+        height={CANVAS_SIZE}
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+        aria-hidden="true"
+      >
         {debug && (
           <>
             <circle cx={CANVAS_MID} cy={CANVAS_MID} r={LABEL_RADIUS} fill="none" stroke="#8884" strokeDasharray="4 3" />

@@ -1,12 +1,11 @@
-import { FC } from 'react';
-import { FiStar, FiGitPullRequest, FiUsers } from 'react-icons/fi';
+import type { FC } from 'react';
+import { FiGitPullRequest, FiStar, FiUsers } from 'react-icons/fi';
 
-import { CountrySummaryQuery } from '@/types/generated/graphql';
+import type { CountrySummaryQuery } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
-
+import { Link } from '../link/link';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { CountryCardStat } from './components/country-card-stat';
-import { Link } from '../link/link';
 
 const TOOLTIPS = {
   s: 'Stars on repos owned by developers from this country',

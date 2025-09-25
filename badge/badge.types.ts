@@ -1,11 +1,11 @@
-import z from 'zod';
+import type z from 'zod';
 
-import { Tier } from '@/types/generated/graphql';
-import { RankingType } from '@/types/ranking.types';
-import { ThemeType } from '@/types/theme.types';
-import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
+import type { Tier } from '@/types/generated/graphql';
+import type { RankingType } from '@/types/ranking.types';
+import type { ThemeType } from '@/types/theme.types';
+import type { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
-import { BadgeV2ZodSchema } from './badge.zod';
+import type { BadgeV2ZodSchema } from './badge.zod';
 
 /**
  * @deprecated This enum will be removed in a future version

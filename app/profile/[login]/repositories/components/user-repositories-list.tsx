@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
-import { PageProfileRepositoriesQuery, Repository } from '@/types/generated/graphql';
+import type { PageProfileRepositoriesQuery, Repository } from '@/types/generated/graphql';
 
 import { LoadMoreRepositories } from './load-more-repositories';
 import { RepositoryCard } from './repository-card';

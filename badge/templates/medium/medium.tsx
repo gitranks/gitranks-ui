@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { figmaVariables } from '@/badge/utils/figma-variables-mapping';
 import { getRankByRankingType } from '@/badge/utils/get-rank-by-ranking-type';
@@ -8,7 +8,7 @@ import { BadgeIcon } from '@/components/badge-icon/badge-icon';
 import { RankingType } from '@/types/ranking.types';
 
 import { containerStyles, metaItemStyles, rankDeltaStyles, rankStyles, subtitleStyles } from './medium.styles';
-import { BadgeMediumProps } from './medium.types';
+import type { BadgeMediumProps } from './medium.types';
 
 const getSubtitleByRankingType = (rankingType: RankingType) => {
   switch (rankingType) {

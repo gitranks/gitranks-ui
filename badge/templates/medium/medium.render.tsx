@@ -1,6 +1,6 @@
 import satori from 'satori';
 
-import { BadgeServiceProps } from '@/badge/badge.types';
+import type { BadgeServiceProps } from '@/badge/badge.types';
 import { getSatoriConfig } from '@/badge/utils/get-satori-config';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { GlobalRankByLoginDocument } from '@/types/generated/graphql';

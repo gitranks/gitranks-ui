@@ -1,7 +1,7 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { Repository } from '@/types/generated/graphql';
+import type { Repository } from '@/types/generated/graphql';
 import { pluralize } from '@/utils/pluralize';
 
 import { RepositoryCard } from './repository-card';

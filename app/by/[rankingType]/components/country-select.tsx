@@ -1,8 +1,8 @@
 'use client';
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CountryQuery } from '@/types/generated/graphql';
+import type { CountryQuery } from '@/types/generated/graphql';
 
 type CountrySelectProps = {
   options?: CountryQuery['country'];

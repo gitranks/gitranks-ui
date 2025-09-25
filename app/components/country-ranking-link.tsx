@@ -3,7 +3,7 @@ import LinkNext from 'next/link';
 import { Link } from '@/components/link/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CountrySummaryQuery } from '@/types/generated/graphql';
+import type { CountrySummaryQuery } from '@/types/generated/graphql';
 
 export const CountryRankingLink = ({
   countrySummaries,

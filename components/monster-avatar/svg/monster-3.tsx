@@ -1,11 +1,12 @@
-import * as React from 'react';
 import type { SVGProps } from 'react';
+
 const SvgMonster3 = (props: SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     overflow="visible"
     viewBox="35.6 18.444 109.025 122.222"
+    aria-hidden="true"
     {...props}
   >
     <path

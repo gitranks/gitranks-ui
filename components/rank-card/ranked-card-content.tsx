@@ -1,11 +1,10 @@
 import { TrendingDown, TrendingUp, Trophy } from 'lucide-react';
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { getPercentileRank } from '@/utils/get-percentile-rank';
-
-import { RankCardItem, RankCardPosition, RankCardTotalValue } from './rank-card-item';
-import { RankCardProps } from './rank-card.types';
 import { RankDelta } from '../rank-delta/rank-delta';
+import type { RankCardProps } from './rank-card.types';
+import { RankCardItem, RankCardPosition, RankCardTotalValue } from './rank-card-item';
 
 export const RankedCardContent: FC<RankCardProps> = ({
   tierData,

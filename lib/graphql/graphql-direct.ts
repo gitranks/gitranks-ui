@@ -1,6 +1,6 @@
 import { print } from 'graphql';
 
-import DocumentNode from '@/types/typed-document-node';
+import type DocumentNode from '@/types/typed-document-node';
 
 import { request } from './request';
 

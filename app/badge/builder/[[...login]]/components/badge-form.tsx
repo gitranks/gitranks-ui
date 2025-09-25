@@ -2,10 +2,10 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryStates } from 'nuqs';
-import { FC, PropsWithChildren, useEffect } from 'react';
+import { type FC, type PropsWithChildren, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDebounceCallback } from 'usehooks-ts';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 import { RANK_NAME } from '@/badge/badge.consts';
 import { BadgeNuqsSchema } from '@/badge/badge.nuqs';

@@ -1,5 +1,5 @@
 'use client';
-import { FC, lazy, LazyExoticComponent, ReactNode, Suspense, SVGProps, useMemo } from 'react';
+import { type FC, type LazyExoticComponent, lazy, type ReactNode, Suspense, type SVGProps, useMemo } from 'react';
 
 // map each index to a dynamic-import factory
 const AvatarMap: Record<number, LazyExoticComponent<(props: SVGProps<SVGSVGElement>) => ReactNode>> = {

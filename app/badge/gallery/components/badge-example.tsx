@@ -1,7 +1,7 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 import { memo, useMemo } from 'react';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 import { BadgeV2ZodSchema } from '@/badge/badge.zod';
 import { INLINE_BADGE_HEIGHT } from '@/badge/templates/inline/inline.consts';

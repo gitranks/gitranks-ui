@@ -1,11 +1,11 @@
 'use client';
-import { FC, useMemo } from 'react';
+import { type FC, useMemo } from 'react';
 import { Cell, Pie, PieChart, Tooltip } from 'recharts';
 
 import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
 import { lightenColor } from '@/utils/lighten-color';
 
-import { ChartLanguagesProps } from './chart-languages.types';
+import type { ChartLanguagesProps } from './chart-languages.types';
 import { CustomTooltip } from './custom-tooltip';
 
 const RADIUS = 70;

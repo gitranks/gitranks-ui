@@ -1,4 +1,4 @@
-import { PageProfileOverviewQuery } from './generated/graphql';
+import type { PageProfileOverviewQuery } from './generated/graphql';
 
 export type SocialAccountChangeItem = NonNullable<PageProfileOverviewQuery['user']>['socialAccounts'];
 export type OrganizationChangeItem = { name?: string; login?: string };

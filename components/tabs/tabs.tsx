@@ -3,7 +3,7 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 

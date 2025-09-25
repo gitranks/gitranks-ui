@@ -1,8 +1,8 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { LinkWithStopPropagation } from './components/link-with-stop-propagation';
 import { ProfileAvatar } from './components/profile-avatar';
-import { UserCardProps } from './user-card.types';
+import type { UserCardProps } from './user-card.types';
 
 export const UserCard: FC<UserCardProps> = ({ login, avatarUrl, size, className }) => {
   if (!login) {

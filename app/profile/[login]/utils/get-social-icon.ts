@@ -1,13 +1,13 @@
-import { FaMastodon, FaYoutube, FaTwitch } from 'react-icons/fa';
+import { FaMastodon, FaTwitch, FaYoutube } from 'react-icons/fa';
 import {
   FaBluesky,
-  FaXTwitter,
+  FaGithub,
+  FaGitlab,
   FaInstagram,
   FaLinkedinIn,
-  FaStackOverflow,
   FaNpm,
-  FaGitlab,
-  FaGithub,
+  FaStackOverflow,
+  FaXTwitter,
 } from 'react-icons/fa6';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { SiBinance } from 'react-icons/si';

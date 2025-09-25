@@ -9,7 +9,7 @@ import {
   TiersAreNotAvailableError,
 } from '@/badge/badge.errors';
 import { badgeDataLoader } from '@/badge/badge.loader';
-import { BadgeFetchedData, BadgeV2ServiceProps, BadgeV2Params } from '@/badge/badge.types';
+import type { BadgeFetchedData, BadgeV2Params, BadgeV2ServiceProps } from '@/badge/badge.types';
 import { getSatoriConfig } from '@/badge/utils/get-satori-config';
 import { BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';

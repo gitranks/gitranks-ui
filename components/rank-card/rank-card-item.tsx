@@ -1,18 +1,17 @@
 import { Medal, Star, UserRound, UsersRound } from 'lucide-react';
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { RANK_DESCRIPTIONS } from '@/app/app.consts';
 import { cn } from '@/lib/utils';
 import { UserRankProp } from '@/types/ranking.types';
 import { formatNumberShort } from '@/utils/format-number-short';
-
-import {
+import { Link } from '../link/link';
+import type {
   RankCardItemProps,
   RankCardPositionProps,
   RankCardTotalProfilesRankedProps,
   RankCardTotalValueProps,
 } from './rank-card.types';
-import { Link } from '../link/link';
 
 export const RankCardItem: FC<RankCardItemProps> = ({ Icon, children, className }) => {
   return (

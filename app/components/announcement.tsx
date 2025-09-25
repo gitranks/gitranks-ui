@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -27,6 +27,7 @@ export const Announcement = () => {
       <a
         href="https://www.producthunt.com/products/gitranks?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-gitranks"
         target="_blank"
+        rel="noopener"
       >
         <img
           src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=988220&theme=light&t=1755193761436"

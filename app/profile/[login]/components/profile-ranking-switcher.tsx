@@ -1,6 +1,6 @@
 'use client';
 import { usePathname } from 'next/navigation';
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { ButtonGroup, LinkGroupItem } from '@/components/button-group/button-group';
 

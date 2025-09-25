@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 import { BadgeTemplateType } from '@/badge/badge.types';
 import { BadgeZodSchema } from '@/badge/badge.zod';

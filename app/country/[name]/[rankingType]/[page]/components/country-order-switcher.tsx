@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { ButtonGroup, LinkGroupItem } from '@/components/button-group/button-group';
 import { CountrySummaryOrder } from '@/types/generated/graphql';

@@ -1,6 +1,6 @@
 import { print } from 'graphql';
 
-import DocumentNode from '@/types/typed-document-node';
+import type DocumentNode from '@/types/typed-document-node';
 
 export async function graphqlClient<TData, TVariables>(
   document: DocumentNode<TData, TVariables>,

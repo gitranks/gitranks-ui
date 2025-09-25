@@ -3,7 +3,7 @@ import { BadgeContext } from '@/types/badge.types';
 import { BadgeProfileWithRanksDocument, BadgeTiersDocument } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
 import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
-import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
+import type { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
 import {
   InvalidCountryError,
@@ -12,7 +12,7 @@ import {
   RanksAreNotAvailableError,
   TiersAreNotAvailableError,
 } from './badge.errors';
-import { BadgeFetchedData, BadgeV2Params } from './badge.types';
+import type { BadgeFetchedData, BadgeV2Params } from './badge.types';
 import { BADGE_META_TO_LOAD_TIERS, BADGE_TYPES_TO_LOAD_TIERS } from './templates/inline/inline.consts';
 import { getLatestSnapshot } from './utils/get-latest-snapshot';
 

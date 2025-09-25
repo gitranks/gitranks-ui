@@ -13,6 +13,20 @@
       "a11y": { "recommended": true },
       "style": {
         "noNonNullAssertion": "off"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "off",
+        "noExplicitAny": "off"
+      },
+      "performance": {
+        "noImgElement": "off",
+        "noAccumulatingSpread": "off"
+      },
+      "complexity": {
+        "noUselessSwitchCase": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
       }
     }
   },

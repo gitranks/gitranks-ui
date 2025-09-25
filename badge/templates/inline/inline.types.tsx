@@ -1,4 +1,4 @@
-import { BadgeCornerStyle } from '@/types/badge.types';
+import type { BadgeCornerStyle } from '@/types/badge.types';
 
 export type BadgeInlineProps = {
   label?: string;

@@ -1,11 +1,10 @@
 'use client';
 
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { Link } from '@/components/link/link';
-
-import { LoginFormProps } from './login-form.types';
 import { useBadgeUrl } from '../hooks/useBadgeUrl';
+import type { LoginFormProps } from './login-form.types';
 
 export const Preview: FC<LoginFormProps> = ({ githubLogin, githubId }) => {
   const url = useBadgeUrl(githubLogin, githubId);

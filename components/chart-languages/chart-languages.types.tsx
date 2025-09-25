@@ -1,7 +1,7 @@
-import { SVGProps } from 'react';
-import { LabelProps } from 'recharts';
+import type { SVGProps } from 'react';
+import type { LabelProps } from 'recharts';
 
-import { PageProfileLanguagesQuery } from '@/types/generated/graphql';
+import type { PageProfileLanguagesQuery } from '@/types/generated/graphql';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type CustomTooltipProps = { active?: boolean; payload?: any[] };

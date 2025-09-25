@@ -7,7 +7,7 @@ import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchCountryLanguageRankings } from '@/graphql/helpers/fetch-country-language-rankings';
 import { fetchLanguageRankings } from '@/graphql/helpers/fetch-language-rankings';
-import { GlobalRankingsQuery } from '@/types/generated/graphql';
+import type { GlobalRankingsQuery } from '@/types/generated/graphql';
 import { RankingTypeClient } from '@/types/ranking.types';
 
 const ITEMS_PER_PAGE = 100;

@@ -1,7 +1,7 @@
 'use client';
 import Image from 'next/image';
 import { useLinkStatus } from 'next/link';
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { cn } from '@/lib/utils';
 

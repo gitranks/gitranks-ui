@@ -1,14 +1,13 @@
 'use client';
 
 import { Check, Clipboard } from 'lucide-react';
-import { FC, useRef, useState } from 'react';
+import { type FC, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-
-import { LoginFormProps } from './login-form.types';
-import { StepTitle } from './step-title';
 import { useBadgeUrl } from '../hooks/useBadgeUrl';
+import type { LoginFormProps } from './login-form.types';
+import { StepTitle } from './step-title';
 
 export const IntegrationCode: FC<LoginFormProps> = ({ githubLogin, githubId }) => {
   const url = useBadgeUrl(githubLogin, githubId);

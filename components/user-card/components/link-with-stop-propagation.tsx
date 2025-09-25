@@ -2,7 +2,7 @@
 
 import type { Route } from 'next';
 import Link from 'next/link';
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 

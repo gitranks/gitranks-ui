@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
-import { RankingTypeClient } from '@/types/ranking.types';
+import type { RankingTypeClient } from '@/types/ranking.types';
 import { getRankingTitle } from '@/utils/get-ranking-title';
 
 import { LinkToProfile } from '../link-to-profile/link-to-profile';

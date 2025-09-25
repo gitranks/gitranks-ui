@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import type { Session } from 'next-auth';
 
 import { auth } from '@/auth';
@@ -6,7 +6,7 @@ import { signedFetch } from '@/lib/signed-fetch';
 
 export type AuthRequest = NextRequest & { auth: Session | null };
 
-export const POST = auth(async function POST(req: AuthRequest, { params }) {
+export const POST = auth(async function POST(_req: AuthRequest, { params }) {
   const { login } = await params;
 
   const response = await signedFetch('/user/generate-description', {

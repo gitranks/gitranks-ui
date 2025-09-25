@@ -1,7 +1,7 @@
 import { memo } from 'react';
 
 import { Link } from '@/components/link/link';
-import { InsightsQuery, SegmentType } from '@/types/generated/graphql';
+import { type InsightsQuery, SegmentType } from '@/types/generated/graphql';
 
 type InsightTextProps = {
   insight: NonNullable<InsightsQuery['insights']>[number];

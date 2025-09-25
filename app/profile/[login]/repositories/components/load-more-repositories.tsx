@@ -1,10 +1,10 @@
 'use client';
 
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
-import { Repository, ProfileRepositoriesDocument } from '@/types/generated/graphql';
+import { ProfileRepositoriesDocument, type Repository } from '@/types/generated/graphql';
 
 import { RepositoryCard } from './repository-card';
 

@@ -1,9 +1,9 @@
 import { compareDesc, format, parseISO } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { Timeline, TimelineDescription, TimelineItem, TimelineTime } from '@/components/timeline/timeline';
-import {
+import type {
   ChangeItemType,
   ChangeSetItemType,
   SocialAccountChangeItem,

@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { LanguageCountrySelect } from '@/app/languages/[country]/[orderBy]/[page]/components/language-country-select';
 

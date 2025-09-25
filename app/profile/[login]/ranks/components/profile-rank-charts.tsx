@@ -1,15 +1,14 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { TIER_NAMES } from '@/app/app.consts';
 import { PersonaChart } from '@/components/persona-chart/persona-chart';
 import { RankChart } from '@/components/rank-chart/rank-chart';
-import { Tier } from '@/types/generated/graphql';
-import { BestTierResult } from '@/utils/calculate-tiers/calculate-tiers.types';
+import type { Tier } from '@/types/generated/graphql';
+import type { BestTierResult } from '@/utils/calculate-tiers/calculate-tiers.types';
 import { getPersonaType } from '@/utils/get-persona-type';
-
-import { ProfileChartCard, ProfileChartDataSlot, ProfileChartSlot } from './profile-chart-card';
 import { ProfileCardsGrid } from '../../components/profile-card';
 import { GlobalRankTooltip, PersonaTooltip } from '../../components/tooltips';
+import { ProfileChartCard, ProfileChartDataSlot, ProfileChartSlot } from './profile-chart-card';
 
 type ProfileChartsProps = {
   rankChartTitle: string;

@@ -1,7 +1,7 @@
-import { GlobalRankByLoginQuery } from '@/types/generated/graphql';
+import type { GlobalRankByLoginQuery } from '@/types/generated/graphql';
 import { RankingType } from '@/types/ranking.types';
 
-import { DeltaSentimentType } from '../badge.types';
+import type { DeltaSentimentType } from '../badge.types';
 
 type RankByTypeResult = { rank?: number; delta?: number; sentiment?: DeltaSentimentType; value?: number | null };
 
@@ -9,9 +9,9 @@ export const getRankByRankingType = (
   data: GlobalRankByLoginQuery['globalRankByLogin'],
   rankingType: RankingType,
 ): RankByTypeResult => {
-  let rank;
-  let monthlyRank;
-  let value;
+  let rank: number | undefined;
+  let monthlyRank: number | undefined | null;
+  let value: number | undefined | null;
 
   if (!data) {
     return {};

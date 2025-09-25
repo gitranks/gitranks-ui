@@ -1,6 +1,5 @@
-import { FC } from 'react';
-import { FaWhatsapp } from 'react-icons/fa';
-import { FaTelegramPlane } from 'react-icons/fa';
+import type { FC } from 'react';
+import { FaTelegramPlane, FaWhatsapp } from 'react-icons/fa';
 
 import { Link as LinkUnderlined } from '@/components/link/link';
 

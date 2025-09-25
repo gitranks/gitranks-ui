@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { BadgeCornerStyle, BadgeContext, BadgeMeta, BadgeType } from '@/types/badge.types';
+import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
 import { RankingType, UserRankProp } from '@/types/ranking.types';
 import { ThemeType } from '@/types/theme.types';
 

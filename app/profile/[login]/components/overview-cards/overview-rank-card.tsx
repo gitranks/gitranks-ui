@@ -1,11 +1,11 @@
-import { FC, PropsWithChildren } from 'react';
-import { FiGitPullRequest, FiStar, FiUsers, FiArrowRight } from 'react-icons/fi';
+import type { FC, PropsWithChildren } from 'react';
+import { FiArrowRight, FiGitPullRequest, FiStar, FiUsers } from 'react-icons/fi';
 
 import { TIER_NAMES } from '@/app/app.consts';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 import { Link } from '@/components/link/link';
 import { RankChart } from '@/components/rank-chart/rank-chart';
-import { PageProfileOverviewQuery, RankTier } from '@/types/generated/graphql';
+import type { PageProfileOverviewQuery, RankTier } from '@/types/generated/graphql';
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 import { shortenCountryName } from '@/utils/country-name-shortener';
 import { getPersonaType } from '@/utils/get-persona-type';

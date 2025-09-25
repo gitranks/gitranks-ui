@@ -1,14 +1,14 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
 import { formatBytes } from '@/utils/format-bytes';
 import { formatNumberShort } from '@/utils/format-number-short';
 
-import { ChartLanguagesProps, CartesianViewBox, ValueLabelProps } from './chart-languages.types';
+import type { CartesianViewBox, ChartLanguagesProps, ValueLabelProps } from './chart-languages.types';
 import { CustomTooltip } from './custom-tooltip';
 
 const RightValueLabel: FC<ValueLabelProps> = ({ value, viewBox, formatter }) => {

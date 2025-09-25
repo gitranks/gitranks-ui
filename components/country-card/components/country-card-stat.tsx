@@ -1,4 +1,4 @@
-import { ElementType, FC } from 'react';
+import type { ElementType, FC } from 'react';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { UserCard } from '@/components/user-card/user-card';

@@ -1,5 +1,5 @@
-import { Tier } from '@/types/generated/graphql';
-import { UserRankProp } from '@/types/ranking.types';
+import type { Tier } from '@/types/generated/graphql';
+import type { UserRankProp } from '@/types/ranking.types';
 
 export type RanksType =
   | {

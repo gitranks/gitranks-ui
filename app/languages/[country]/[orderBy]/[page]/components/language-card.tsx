@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { FiStar } from 'react-icons/fi';
 import { PiPackage } from 'react-icons/pi';
 
@@ -6,7 +6,7 @@ import { DEFAULT_LANGUAGE_COLOR, LANGUAGE } from '@/app/app.consts';
 import { Link } from '@/components/link/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserCard } from '@/components/user-card/user-card';
-import { CountryLanguageSummaryQuery, LanguageSummaryQuery } from '@/types/generated/graphql';
+import type { CountryLanguageSummaryQuery, LanguageSummaryQuery } from '@/types/generated/graphql';
 import { formatBytes } from '@/utils/format-bytes';
 import { formatNumberShort } from '@/utils/format-number-short';
 

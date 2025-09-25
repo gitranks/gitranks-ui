@@ -1,4 +1,4 @@
-import { FC, PropsWithChildren, ReactNode } from 'react';
+import type { FC, PropsWithChildren, ReactNode } from 'react';
 
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 

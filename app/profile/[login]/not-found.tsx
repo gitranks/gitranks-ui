@@ -1,7 +1,7 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import RandomMonsterAvatar from '@/components/monster-avatar/monster-avatar';
-import { UserFetchingStatus } from '@/types/generated/graphql';
+import type { UserFetchingStatus } from '@/types/generated/graphql';
 
 import { FetchUserButtonForNotFoundPage } from './components/fetch-user-button';
 import { ProfileLoginFromUrl } from './components/profile-login-from-url';

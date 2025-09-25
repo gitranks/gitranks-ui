@@ -3,7 +3,7 @@ import { signIn, useSession } from 'next-auth/react';
 
 import { Link } from '@/components/link/link';
 
-export const LinkToProfile = ({}) => {
+export const LinkToProfile = () => {
   const { data: session } = useSession();
 
   if (!session) {

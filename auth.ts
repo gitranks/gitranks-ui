@@ -22,7 +22,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const client = await mongoClientPromise;
         const db = client.db('auth').collection('accounts');
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // biome-ignore lint/correctness/noUnusedVariables: This variable is intentionally unused
         const { expires_in, refresh_token_expires_in, ...accountData } = account;
 
         await db.updateOne(

@@ -1,6 +1,6 @@
-import { FC, useMemo } from 'react';
+import { type FC, useMemo } from 'react';
 
-import { LanguageEntity } from '@/types/generated/graphql';
+import type { LanguageEntity } from '@/types/generated/graphql';
 
 type RepositoryTopLanguageProps = {
   languages?: LanguageEntity[] | null;

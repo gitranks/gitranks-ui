@@ -5,7 +5,7 @@ import { memo, useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Carousel,
-  CarouselApi,
+  type CarouselApi,
   CarouselContent,
   CarouselItem,
   CarouselNext,
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/carousel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchInsights } from '@/graphql/helpers/fetch-insights';
-import { InsightCategory, InsightsQuery } from '@/types/generated/graphql';
+import { InsightCategory, type InsightsQuery } from '@/types/generated/graphql';
 
 import InsightText from './insight-text';
 

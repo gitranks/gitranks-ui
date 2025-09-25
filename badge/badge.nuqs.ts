@@ -2,7 +2,7 @@
 
 import { createParser, parseAsString, parseAsStringEnum } from 'nuqs';
 
-import { BadgeCornerStyle, BadgeContext, BadgeMeta, BadgeType } from '@/types/badge.types';
+import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
 
 import { RANK_NAME } from './badge.consts';

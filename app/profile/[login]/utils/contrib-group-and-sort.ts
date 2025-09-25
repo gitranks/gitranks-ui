@@ -1,4 +1,4 @@
-import { Contribution } from '@/types/generated/graphql';
+import type { Contribution } from '@/types/generated/graphql';
 
 export const groupAndSortContributions = (contributions?: Contribution[]) => {
   if (!contributions) {

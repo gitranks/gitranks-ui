@@ -1,14 +1,14 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { TIER_NAMES } from '@/app/app.consts';
 import { AdaptiveModal } from '@/components/adaptive-modal/adaptive-modal';
 import { TagProvisional } from '@/components/tag-provisional/tag-provisional';
 import { TiersExplanation } from '@/components/tiers-explanation/tiers-explanation';
 import { cn } from '@/lib/utils';
-import { Tier } from '@/types/generated/graphql';
-import { UserRankProp } from '@/types/ranking.types';
+import type { Tier } from '@/types/generated/graphql';
+import type { UserRankProp } from '@/types/ranking.types';
 import { hasTierData } from '@/utils/calculate-tiers/calculate-tiers';
-import { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
+import type { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
 type TierValueProps = {
   tierData?: ProfileTierType;

@@ -1,8 +1,8 @@
-import React from 'react';
+import type React from 'react';
 
 import { RANK_DESCRIPTIONS, TIER_FRACTIONS, TIER_NAMES, TOP_LEVEL_FRACTIONS } from '@/app/app.consts';
-import { Tier } from '@/types/generated/graphql';
-import { UserRankProp } from '@/types/ranking.types';
+import type { Tier } from '@/types/generated/graphql';
+import type { UserRankProp } from '@/types/ranking.types';
 
 import { Separator } from '../ui/separator';
 

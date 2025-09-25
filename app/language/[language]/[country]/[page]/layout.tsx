@@ -1,6 +1,6 @@
 'use cache';
 
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { unstable_cacheLife as cacheLife } from 'next/cache';
 
 import { Header } from '@/components/header/header';
@@ -20,7 +20,7 @@ export async function generateMetadata({
 
   return {
     title: `${isGlobal ? 'Global' : country} ${language} Language Ranking${
-      page > 1 ? ' · Page ${page}' : ''
+      page > 1 ? ` · Page ${page}` : ''
     } · GitRanks`,
     description: `Explore the ${language} language ranking${
       isGlobal ? '' : ` in ${country}`

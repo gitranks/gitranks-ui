@@ -1,7 +1,7 @@
 import { unstable_cacheLife as cacheLife } from 'next/cache';
 
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { LanguageRankingDocument, LanguageRankingQueryVariables } from '@/types/generated/graphql';
+import { LanguageRankingDocument, type LanguageRankingQueryVariables } from '@/types/generated/graphql';
 
 export const fetchLanguageRankings = async (props: LanguageRankingQueryVariables) => {
   'use cache';

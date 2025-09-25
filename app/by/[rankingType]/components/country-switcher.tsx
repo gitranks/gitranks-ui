@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 
-import { CountryQuery } from '@/types/generated/graphql';
+import type { CountryQuery } from '@/types/generated/graphql';
 
 import { CountrySelect } from './country-select';
 

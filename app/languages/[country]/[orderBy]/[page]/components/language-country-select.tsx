@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 

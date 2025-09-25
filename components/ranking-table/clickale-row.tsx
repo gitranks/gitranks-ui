@@ -2,7 +2,7 @@
 
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
-import { FC } from 'react';
+import type { FC } from 'react';
 
 import { TableRow } from '@/components/ui/table';
 

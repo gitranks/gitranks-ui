@@ -1,4 +1,4 @@
-import { Tier } from '@/types/generated/graphql';
+import type { Tier } from '@/types/generated/graphql';
 
 type GetNextTierThresholdParams = {
   tiers?: Tier[]; // Optional array of tiers

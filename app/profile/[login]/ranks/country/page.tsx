@@ -1,7 +1,7 @@
 'use cache';
 
 import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
-import { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
+import type { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 
 import { fetchProfilePageRanks } from '@/graphql/helpers/fetch-profile-page-ranks';
 

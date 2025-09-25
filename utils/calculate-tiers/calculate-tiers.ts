@@ -1,8 +1,8 @@
 import { TIER_NAMES } from '@/app/app.consts';
-import { RankTier, Tier } from '@/types/generated/graphql';
+import type { RankTier, Tier } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
 
-import { BestTierResult, ProfileTierType, ProfileTierWithData, RanksType } from './calculate-tiers.types';
+import type { BestTierResult, ProfileTierType, ProfileTierWithData, RanksType } from './calculate-tiers.types';
 
 const BUCKETS: UserRankProp[] = [UserRankProp.s, UserRankProp.c, UserRankProp.f];
 

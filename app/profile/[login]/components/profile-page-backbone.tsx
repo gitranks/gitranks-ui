@@ -1,4 +1,4 @@
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 
 import { Page } from '@/components/page/page';
 import { AspectRatio } from '@/components/ui/aspect-ratio';

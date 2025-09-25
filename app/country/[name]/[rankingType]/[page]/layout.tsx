@@ -1,6 +1,6 @@
 'use cache';
 
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { unstable_cacheLife as cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 

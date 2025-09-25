@@ -1,4 +1,4 @@
-import { CodegenConfig } from '@graphql-codegen/cli';
+import type { CodegenConfig } from '@graphql-codegen/cli';
 import jwt from 'jsonwebtoken';
 
 const token = jwt.sign({ sub: 'codegen', typ: 'access' }, process.env.INTERNAL_JWT_SECRET!, { expiresIn: '1h' });

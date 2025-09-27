@@ -44,5 +44,18 @@
   "files": {
     "ignoreUnknown": false,
     "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "!components/ui", "!types/generated"]
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [":NODE:", ":BLANK_LINE:", ":PACKAGE:", ":BLANK_LINE:", ":PATH:"]
+          }
+        }
+      }
+    }
   }
 }

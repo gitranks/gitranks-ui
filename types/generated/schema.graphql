@@ -307,9 +307,9 @@ type RankTier {
 
 type Repository {
   createdAt: DateTime
-  forkCount: Int!
+  forkCount: Int
   githubId: String!
-  isArchived: Boolean!
+  isArchived: Boolean
   languages: [LanguageEntity!]
   name: String
   pushedAt: DateTime
@@ -395,7 +395,6 @@ type User {
   tiersCountry: RankTier
   tiersGlobal: RankTier
   timeline(limit: Int, offset: Int! = 0): [Timeline!]
-  twitterUsername: String
   updatedAt: DateTime!
   websiteUrl: String
 }

@@ -4,13 +4,13 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
 
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import type { Repository } from '@/types/generated/graphql';
 import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '../../components/profile-card';
 import { RepositoryDetail } from './repository-detail';
 import { RepositoryLanguages } from './repository-languages';
 import { RepositoryTopLanguage } from './repository-top-language';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import type { Repository } from '@/types/generated/graphql';
 
 type RepositoryCardProps = {
   repository?: Repository | null;
@@ -66,7 +66,7 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
             <div className="flex gap-4">
               {type === 'contribution' && <RepositoryTopLanguage languages={repository.languages} />}
               <RepositoryDetail Icon={Star} value={stargazerCount} />
-              <RepositoryDetail Icon={Split} value={forkCount} />
+              <RepositoryDetail Icon={Split} value={forkCount ?? 0} />
               {!!releasesCount && <RepositoryDetail Icon={Package} value={releasesCount} />}
             </div>
 

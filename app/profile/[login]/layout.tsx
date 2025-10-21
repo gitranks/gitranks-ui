@@ -1,5 +1,5 @@
 'use cache';
-import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
+import { cacheLife, cacheTag } from 'next/cache';
 import { Suspense } from 'react';
 
 import { Header } from '@/components/header/header';

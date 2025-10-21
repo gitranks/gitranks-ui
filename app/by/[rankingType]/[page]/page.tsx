@@ -1,6 +1,6 @@
 'use cache';
 
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 import { Pagination } from '@/components/pagination/pagination';
 import { RankingTable } from '@/components/ranking-table/ranking-table';

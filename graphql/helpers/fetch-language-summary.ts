@@ -1,4 +1,4 @@
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { LanguageSummaryDocument, type LanguageSummaryQueryVariables } from '@/types/generated/graphql';

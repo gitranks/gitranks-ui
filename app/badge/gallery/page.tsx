@@ -1,6 +1,6 @@
 'use cache';
 
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 import { RANK_NAME } from '@/badge/badge.consts';
 import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';

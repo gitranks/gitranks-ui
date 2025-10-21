@@ -1,7 +1,7 @@
 'use cache';
 
 import type { Metadata } from 'next';
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';

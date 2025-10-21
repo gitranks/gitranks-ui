@@ -1,5 +1,5 @@
 'use cache';
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { CountryCard } from '@/components/country-card/country-card';

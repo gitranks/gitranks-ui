@@ -1,4 +1,4 @@
-import { unstable_cacheTag as cacheTag } from 'next/cache';
+import { cacheTag } from 'next/cache';
 
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { PageProfileRanksDocument } from '@/types/generated/graphql';

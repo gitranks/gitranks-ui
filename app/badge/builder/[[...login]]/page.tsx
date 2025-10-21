@@ -1,6 +1,6 @@
 'use cache';
 
-import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache';
+import { cacheLife, cacheTag } from 'next/cache';
 
 import { Separator } from '@/components/ui/separator';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';

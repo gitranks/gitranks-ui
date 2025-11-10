@@ -8,7 +8,7 @@ import { fetchProfilePageRepositories } from '@/graphql/helpers/fetch-profile-pa
 import { LayoutLeftColumn } from '../components/layout-left-column';
 import NotFound from '../not-found';
 import { buildProfileTabSEO } from '../seo';
-import { UserContributionsList } from './components/user-contriutions-list';
+import { UserContributionsList } from './components/user-contributions-list';
 import { UserRepositoriesList } from './components/user-repositories-list';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/repositories'>): Promise<Metadata> {

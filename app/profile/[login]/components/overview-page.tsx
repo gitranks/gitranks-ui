@@ -6,7 +6,7 @@ import { Link } from '@/components/link/link';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 
 import NotFound from '../not-found';
-import { UserContributionsList } from '../repositories/components/user-contriutions-list';
+import { UserContributionsList } from '../repositories/components/user-contributions-list';
 import { UserRepositoriesList } from '../repositories/components/user-repositories-list';
 import { buildProfileTabSEO } from '../seo';
 import { ProfileTimeline } from '../timeline/components/profile-timeline';

@@ -19,7 +19,7 @@ export const PersonaTooltip = () => (
 
 export const GlobalRankTooltip = () => (
   <div className="max-w-72">
-    This is your <b>highest rank</b> among {RANK_NAME.s}, {RANK_NAME.c}, and {RANK_NAME.f}. Go to the <b>Ranks</b> tab
+    This is their <b>highest rank</b> among {RANK_NAME.s}, {RANK_NAME.c}, and {RANK_NAME.f}. Go to the <b>Ranks</b> tab
     to see detailed explanations of each ranking.
   </div>
 );

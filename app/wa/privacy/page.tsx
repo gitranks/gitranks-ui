@@ -95,7 +95,7 @@ export default function PrivacyPolicy() {
         <section className="space-y-4">
           <h2 className="text-2xl font-bold">5. How we store and protect data</h2>
           <p>
-            Data is stored on <span className="font-medium">Digital Ocean Amsterdam Datacentr-3</span>
+            Data is stored on <span className="font-medium">Digital Ocean Amsterdam Datacenter-3</span>
             &nbsp;in encrypted databases and is never sold. Access is restricted to authorised personnel only.
           </p>
         </section>

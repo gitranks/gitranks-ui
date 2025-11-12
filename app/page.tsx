@@ -7,7 +7,7 @@ import { GlobalRankingSection } from './components/global-ranking-section';
 import InsightsCarousel from './components/insights-carousel';
 import { LanguageRankingSection } from './components/language-ranking-section';
 import { MessengerIntegrationSection } from './components/messenger-integration-section';
-import { SearchProfile } from './components/search-profiile';
+import { SearchProfile } from './components/search-profile';
 
 export default function Home() {
   return (

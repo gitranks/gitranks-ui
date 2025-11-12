@@ -6,7 +6,7 @@ import { getCountryFlag } from '@/utils/get-country-flag';
 import { getRankingConfigByType } from '@/utils/get-ranking-config-by-type';
 import { RankDelta } from '../rank-delta/rank-delta';
 import { UserCard } from '../user-card/user-card';
-import { ClickableRow } from './clickale-row';
+import { ClickableRow } from './clickable-row';
 
 type RankingTableProps = {
   rankingType: string;

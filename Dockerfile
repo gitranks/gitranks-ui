@@ -54,4 +54,4 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["node", "--trace-gc", "--inspect=0.0.0.0:9229", "--max-old-space-size=1800", "server.js"]

@@ -77,4 +77,5 @@ jobs:
               -e AUTH_TRUST_HOST=true \
               -e NEXT_PUBLIC_URI='${{ vars.NEXT_PUBLIC_URI }}' \
               -p 3000:3000 \
+              -p 127.0.0.1:9229:9229 \
               ghcr.io/gitranks/gitranks-ui:latest

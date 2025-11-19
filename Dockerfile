@@ -49,9 +49,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3000 9229
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-CMD ["node", "--trace-gc", "--inspect=0.0.0.0:9229", "--max-old-space-size=1800", "server.js"]
+ENV NODE_OPTIONS="--trace-gc --max-old-space-size=1800"
+
+CMD ["node", "--inspect=127.0.0.1:9229", "server.js"]

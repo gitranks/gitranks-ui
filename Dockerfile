@@ -47,6 +47,10 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy and set up the profile cache cleaner script
+COPY --chown=nextjs:nodejs lib/shell/profile-cache-cleaner.sh /app/lib/shell/profile-cache-cleaner.sh
+RUN chmod +x /app/lib/shell/profile-cache-cleaner.sh
+
 USER nextjs
 
 EXPOSE 3000
@@ -54,4 +58,6 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-CMD ["node", "--max-old-space-size=1800", "server.js"]
+# Start both the cache cleaner (in background) and the node server (in foreground)
+# Background process output will appear in docker logs
+CMD ["sh", "-c", "/app/lib/shell/profile-cache-cleaner.sh 2>&1 & exec node server.js"]

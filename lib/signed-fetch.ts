@@ -1,4 +1,5 @@
 'use server';
+
 import jwt from 'jsonwebtoken';
 
 export async function signedFetch(path: string, init: RequestInit = {}) {

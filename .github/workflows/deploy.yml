@@ -48,6 +48,7 @@ jobs:
             NEXT_PUBLIC_URI=${{ vars.NEXT_PUBLIC_URI }}
             INTERNAL_JWT_SECRET=${{ secrets.INTERNAL_JWT_SECRET }}
             URI_GITRANKS=${{ vars.URI_GITRANKS }}
+            URI_GITRANKS_BUILD=${{ secrets.URI_GITRANKS_BUILD }}
 
       # 4. SSH to droplet and deploy
       - name: SSH to droplet and deploy

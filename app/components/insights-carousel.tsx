@@ -57,7 +57,8 @@ const InsightsCarousel = () => {
       return;
     }
 
-    setCount(api.scrollSnapList().length);
+    const scrollSnapList = api.scrollSnapList();
+    setCount(scrollSnapList?.length ?? 0);
     setCurrent(api.selectedScrollSnap() + 1);
 
     api.on('select', () => {

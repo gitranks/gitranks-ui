@@ -8,7 +8,7 @@ type DataType = NonNullable<PageProfileOverviewQuery['user']>;
 type LanguagesType = NonNullable<PageProfileLanguagesQuery['user']>['languages'];
 
 const clip = (t: string, max = 158) => {
-  if (t.length <= max) return t;
+  if (!t || t.length <= max) return t;
   const cut = t.slice(0, max - 1);
   const i = cut.lastIndexOf(' ');
   return `${i > 80 ? cut.slice(0, i) : cut}…`;

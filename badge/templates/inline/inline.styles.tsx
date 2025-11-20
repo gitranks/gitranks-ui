@@ -32,18 +32,18 @@ const getCommonStyles = (backgroundColor: string) => ({
   textShadow: getTextShadow(backgroundColor),
 });
 
-export const getLabelStyles = (backgroundColor = LABEL_BG) => ({
-  ...getCommonStyles(backgroundColor),
+export const getLabelStyles = (backgroundColor?: string) => ({
+  ...getCommonStyles(backgroundColor ?? LABEL_BG),
   fontSize: `${FONT_SCALE}em`,
 });
 
-export const getValueStyles = (backgroundColor = VALUE_BG) => ({
-  ...getCommonStyles(backgroundColor),
+export const getValueStyles = (backgroundColor?: string) => ({
+  ...getCommonStyles(backgroundColor ?? VALUE_BG),
   fontSize: `${FONT_SCALE}em`,
 });
 
-export const getMetaStyles = (backgroundColor = VALUE_BG) => ({
-  ...getCommonStyles(backgroundColor),
+export const getMetaStyles = (backgroundColor?: string) => ({
+  ...getCommonStyles(backgroundColor ?? VALUE_BG),
   opacity: 0.9,
   fontSize: `${META_SCALE}em`,
   borderLeft: '1px solid rgba(255, 255, 255, 0.3)',

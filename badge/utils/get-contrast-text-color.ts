@@ -1,4 +1,9 @@
 export function getContrastTextColor(bgColor: string): 'black' | 'white' {
+  // Handle undefined/null/empty values
+  if (!bgColor || typeof bgColor !== 'string') {
+    return 'black'; // Default to black text on white background
+  }
+
   // Remove '#' if present
   let hex = bgColor.replace('#', '');
 

@@ -67,10 +67,10 @@ export const UserContributionsList: FC<UserContributionsListProps> = ({
           <TimelineItem key={contribution.year}>
             <TimelineTime>
               {contribution.year}
-              {contributionCount ? ` • ${contribution.data.length} repositories` : ''}
+              {contributionCount ? ` • ${contribution.data?.length ?? 0} repositories` : ''}
             </TimelineTime>
             <TimelineDescription>
-              {contribution.data.map((item) => (
+              {contribution.data?.map((item) => (
                 <ContributionRepositoryCard
                   key={item.repository?.name}
                   repository={item.repository}

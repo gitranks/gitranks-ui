@@ -7,5 +7,8 @@ export async function signedFetch(path: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
   headers.set('Authorization', `Bearer ${token}`);
 
-  return fetch(`${process.env.URI_GITRANKS}${path}`, { ...init, headers });
+  const apiUrl =
+    process.env.NEXT_PHASE === 'phase-production-build' ? process.env.URI_GITRANKS_BUILD! : process.env.URI_GITRANKS!;
+
+  return fetch(`${apiUrl}${path}`, { ...init, headers });
 }

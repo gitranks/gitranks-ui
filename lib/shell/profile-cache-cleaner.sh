@@ -1,8 +1,8 @@
 #!/bin/sh
 
 PROFILE_DIR="/app/.next/server/app/profile"
-MAX_DIRS=30000    # change as needed
-INTERVAL=600     # 10 minutes
+MAX_DIRS=20000    # change as needed
+INTERVAL=3600     # 1 hour
 
 echo "Starting profile cache cleaner. Dir: $PROFILE_DIR, max dirs: $MAX_DIRS, interval: ${INTERVAL}s"
 
@@ -15,11 +15,9 @@ while true; do
 
     if [ "$COUNT" -gt "$MAX_DIRS" ]; then
       EXTRA=$((COUNT - MAX_DIRS))
-      echo "$(date) [profile-cache-cleaner] Need to remove $EXTRA oldest dirs"
 
       ls -dt "$PROFILE_DIR"/*/ 2>/dev/null | tail -n "$EXTRA" | while read DIR; do
         if [ -n "$DIR" ]; then
-          echo "  removing $DIR"
           rm -rf "$DIR"
         fi
       done

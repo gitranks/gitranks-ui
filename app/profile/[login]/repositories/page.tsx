@@ -4,12 +4,12 @@ import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 
-import { fetchProfilePageRepositories } from '@/graphql/helpers/fetch-profile-page-repositories';
 import { LayoutLeftColumn } from '../components/layout-left-column';
 import NotFound from '../not-found';
 import { buildProfileTabSEO } from '../seo';
 import { UserContributionsList } from './components/user-contributions-list';
 import { UserRepositoriesList } from './components/user-repositories-list';
+import { fetchProfilePageRepositories } from '@/graphql/helpers/fetch-profile-page-repositories';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/repositories'>): Promise<Metadata> {
   const { login } = await params;
@@ -44,7 +44,7 @@ export default async function ProfileRepositories({ params }: PageProps<'/profil
     <LayoutLeftColumn user={user}>
       <div className="flex flex-col gap-10">
         <div className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold">Repositories</h2>
+          {!!repositories?.length && <h2 className="text-xl font-semibold">Repositories</h2>}
           <UserRepositoriesList
             repositories={repositories}
             login={login}
@@ -53,8 +53,8 @@ export default async function ProfileRepositories({ params }: PageProps<'/profil
           />
         </div>
         <div className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold">Contributions</h2>
-          <UserContributionsList contributions={contributions} login={login} loadMore />
+          {!!contributions?.length && <h2 className="text-xl font-semibold">Contributions</h2>}
+          {!!contributions?.length && <UserContributionsList contributions={contributions} login={login} loadMore />}
         </div>
       </div>
     </LayoutLeftColumn>

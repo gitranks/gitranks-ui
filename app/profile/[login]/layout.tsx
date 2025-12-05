@@ -1,16 +1,14 @@
 'use cache';
+
 import { cacheLife, cacheTag } from 'next/cache';
 import { Suspense } from 'react';
 
+import Loading from './loading';
 import { Header } from '@/components/header/header';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { TopGlobalRankingsDocument } from '@/types/generated/graphql';
-
-import Loading from './loading';
-
-type ProfileLayoutProps = Readonly<{ children: React.ReactNode; params: Promise<{ login: string }> }>;
 
 export async function generateStaticParams() {
   const { byStars, byContribution, byFollowers } = (await graphqlDirect(TopGlobalRankingsDocument)) ?? {};
@@ -36,13 +34,13 @@ function LayoutLoading() {
   );
 }
 
-async function ProfileLayoutAwaitParams({ children, params }: LayoutProps<'/profile/[login]'>) {
+export default async function ProfileLayout({ children, params }: LayoutProps<'/profile/[login]'>) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);
 
   return (
-    <>
+    <Suspense fallback={<LayoutLoading />}>
       <Header login={login} />
       <TabsBar className="mb-4">
         <Tab href={`/profile/${login}`} pathnames={[`/profile/${login}`, `/profile/${login}/country`]}>
@@ -53,14 +51,6 @@ async function ProfileLayoutAwaitParams({ children, params }: LayoutProps<'/prof
         <Tab href={`/profile/${login}/languages`}>Languages</Tab>
       </TabsBar>
       {children}
-    </>
-  );
-}
-
-export default async function ProfileLayout({ children, params }: ProfileLayoutProps) {
-  return (
-    <Suspense fallback={<LayoutLoading />}>
-      <ProfileLayoutAwaitParams params={params}>{children}</ProfileLayoutAwaitParams>
     </Suspense>
   );
 }

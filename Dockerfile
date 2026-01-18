@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM node:25-alpine AS base
 
 # For some reason nextjs tries to run the /lib/mongo-client.ts file at build time
 # and the build fails because this variable is not set

@@ -11,7 +11,7 @@ export const POST = auth(async function POST(req: AuthRequest, { params }) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
   }
 
-  const { login } = await params!;
+  const { login } = await params;
   const { user } = req.auth;
 
   const response = await signedFetch('/user/fetch', {

@@ -3,10 +3,9 @@
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 
-import { fetchProfilePageOverview } from '@/graphql/helpers/fetch-profile-page-overview';
-
 import { OverviewPage } from './components/overview-page';
 import { buildProfileTabSEO } from './seo';
+import { fetchProfilePageOverview } from '@/graphql/helpers/fetch-profile-page-overview';
 
 export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
   const { login } = await params;

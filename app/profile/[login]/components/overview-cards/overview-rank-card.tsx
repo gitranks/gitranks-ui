@@ -1,6 +1,8 @@
 import type { FC, PropsWithChildren } from 'react';
 import { FiArrowRight, FiGitPullRequest, FiStar, FiUsers } from 'react-icons/fi';
 
+import { ProfileCard } from '../profile-card';
+import { GlobalRankTooltip, PersonaTooltip } from '../tooltips';
 import { TIER_NAMES } from '@/app/app.consts';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 import { Link } from '@/components/link/link';
@@ -9,9 +11,6 @@ import type { PageProfileOverviewQuery, RankTier } from '@/types/generated/graph
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 import { shortenCountryName } from '@/utils/country-name-shortener';
 import { getPersonaType } from '@/utils/get-persona-type';
-
-import { ProfileCard } from '../profile-card';
-import { GlobalRankTooltip, PersonaTooltip } from '../tooltips';
 
 type User = NonNullable<PageProfileOverviewQuery['user']>;
 

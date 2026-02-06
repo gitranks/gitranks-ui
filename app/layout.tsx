@@ -4,11 +4,10 @@ import { Inter } from 'next/font/google';
 import { SessionProvider } from 'next-auth/react';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 
+import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
 import { Footer } from '@/components/footer/footer';
 import { ThemeProvider } from '@/components/theme-provider/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
-
-import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
 
 import './globals.css';
 

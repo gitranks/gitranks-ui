@@ -15,7 +15,7 @@ export default async function GlobalRanking({ params }: PageProps<'/by/[rankingT
   cacheLife('hours');
 
   const { rankingType, page: pageParam } = await params;
-  const page = parseInt(pageParam, 10);
+  const page = Number.parseInt(pageParam, 10);
   const queryOrder = getRankingOrder(rankingType);
   const offset = (page - 1) * ITEMS_PER_PAGE;
   const [{ globalRankings }, countries] = await Promise.all([

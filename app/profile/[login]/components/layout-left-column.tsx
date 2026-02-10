@@ -4,11 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
-import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 import { getSocialIcon } from '../utils/get-social-icon';
 import { FetchUserButtonForProfilePage } from './fetch-user-button';
 import { ProfileListItem } from './profile-list-item';
@@ -21,6 +16,11 @@ import {
   NameContainer,
   PageContainer,
 } from './profile-page-backbone';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
+import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 
 type LayoutLeftColumnProps = Readonly<{
   user: PageProfileOverviewQuery['user'];
@@ -75,10 +75,12 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
         </ActionsContainer>
         <DetailsContainer>
           <div className="flex flex-col gap-1.5">
-            <ProfileListItem
-              value={`${user.countryFlag ? `${user.countryFlag} ` : ''}${user.location}`}
-              Icon={MapPin}
-            />
+            {!!user.location && (
+              <ProfileListItem
+                value={`${user.countryFlag ? `${user.countryFlag} ` : ''}${user.location}`}
+                Icon={MapPin}
+              />
+            )}
             <ProfileListItem value={user.company} Icon={BriefcaseBusiness} />
             <ProfileListItem value={`Profile age: ${formatDistanceToNow(user.githubCreatedAt)}`} Icon={Hourglass} />
             <ProfileListItem

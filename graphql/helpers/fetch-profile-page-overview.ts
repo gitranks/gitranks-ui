@@ -8,6 +8,8 @@ export const fetchProfilePageOverview = async (login: string, context: string = 
   cacheTag(`profile:${login}`);
 
   const isGlobalContext = context === 'global';
+
+  console.log('fetchProfilePageOverview', login);
   const { user } = (await graphqlDirect(PageProfileOverviewDocument, { login, isGlobalContext })) ?? {};
 
   return user;

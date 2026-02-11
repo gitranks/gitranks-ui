@@ -1,10 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { FC } from 'react';
 
-import { JsonLd } from '@/components/json-ld/json-ld';
-import { Link } from '@/components/link/link';
-import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
-
 import NotFound from '../not-found';
 import { UserContributionsList } from '../repositories/components/user-contributions-list';
 import { UserRepositoriesList } from '../repositories/components/user-repositories-list';
@@ -16,6 +12,9 @@ import { OverviewCardsContainer } from './overview-cards/overview-cards';
 import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { ProfileRankingSwitcher } from './profile-ranking-switcher';
+import { JsonLd } from '@/components/json-ld/json-ld';
+import { Link } from '@/components/link/link';
+import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 
 type OverviewPageProps = {
   user: PageProfileOverviewQuery['user'];

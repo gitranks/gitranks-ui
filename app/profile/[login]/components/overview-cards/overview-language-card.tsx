@@ -2,12 +2,11 @@ import { InfoIcon } from 'lucide-react';
 import type { FC } from 'react';
 import { FiArrowRight } from 'react-icons/fi';
 
+import { ProfileCard, ProfileCardHeader } from '../profile-card';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 import BarChartLanguages from '@/components/chart-languages/bar-chart-languages';
 import { Link } from '@/components/link/link';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
-
-import { ProfileCard, ProfileCardHeader } from '../profile-card';
 
 type ProfileLanguageCardProps = {
   login: string;

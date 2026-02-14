@@ -120,7 +120,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
                         <Link href={`https://github.com/${org.login}`} target="_blank" rel="noopener noreferrer">
                           <Image
                             src={org.avatarUrl!}
-                            alt={org.login}
+                            alt={org.login ?? ''}
                             width={32}
                             height={32}
                             className="rounded-sm bg-secondary"

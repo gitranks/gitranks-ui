@@ -145,8 +145,22 @@ enum LanguageSummaryOrder {
 
 type Organization {
   avatarUrl: String
-  login: String!
+  country: String
+  createdAt: DateTime!
+  email: String
+  githubCreatedAt: DateTime
+  githubId: ID!
+  githubUpdatedAt: DateTime
+  isVerified: Boolean
+  location: String
+  login: String
   name: String
+  reposCount: Int
+  s: Int
+  twitterUsername: String
+  updatedAt: DateTime!
+  usersCount: Int
+  websiteUrl: String
 }
 
 type ProfileForSitemap {

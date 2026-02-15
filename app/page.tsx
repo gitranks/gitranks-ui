@@ -1,6 +1,3 @@
-import { Header } from '@/components/header/header';
-import { Page } from '@/components/page/page';
-
 import { BadgeSection } from './components/badge-section';
 import { CountryRankingSection } from './components/country-ranking-section';
 import { GlobalRankingSection } from './components/global-ranking-section';
@@ -8,6 +5,8 @@ import InsightsCarousel from './components/insights-carousel';
 import { LanguageRankingSection } from './components/language-ranking-section';
 import { MessengerIntegrationSection } from './components/messenger-integration-section';
 import { SearchProfile } from './components/search-profile';
+import { Header } from '@/components/header/header';
+import { Page } from '@/components/page/page';
 
 export default function Home() {
   return (
@@ -17,11 +16,11 @@ export default function Home() {
         <Page className="p-0">
           <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0">
             <div className="flex flex-col gap-4 p-4 pb-5 md:pb-16 md:pt-16">
-              <h1 className="text-3xl sm:text-4xl font-semibold">
-                Your GitHub Profile is More Impressive Than You Think
-              </h1>
+              <h1 className="text-3xl sm:text-4xl font-semibold">GitHub Analytics and Rankings</h1>
               <div className="flex flex-col gap-1">
-                See where you rank:
+                <h2>
+                  The most complete and accurate rankings of developers across the GitHub ecosystem. See where you rank:
+                </h2>
                 <SearchProfile />
               </div>
             </div>

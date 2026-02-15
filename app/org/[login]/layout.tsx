@@ -5,13 +5,14 @@ import { Suspense } from 'react';
 
 import Loading from '@/app/profile/[login]/loading';
 import { Header } from '@/components/header/header';
-import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { OrgRankingsDocument } from '@/types/generated/graphql';
 
-export async function generateStaticParams() {
-  const { orgRankings } = (await graphqlDirect(OrgRankingsDocument, { offset: 0 })) ?? {};
-  return orgRankings?.map((ranking) => ({ login: ranking.organization?.login })) ?? [];
-}
+// import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+// import { OrgRankingsDocument } from '@/types/generated/graphql';
+
+// export async function generateStaticParams() {
+//   const { orgRankings } = (await graphqlDirect(OrgRankingsDocument, { offset: 0 })) ?? {};
+//   return orgRankings?.map((ranking) => ({ login: ranking.organization?.login })) ?? [];
+// }
 
 function LayoutLoading() {
   return (

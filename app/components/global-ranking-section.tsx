@@ -1,9 +1,8 @@
 import { VscGlobe } from 'react-icons/vsc';
 
+import { RANK_DESCRIPTIONS } from '../app.consts';
 import { Link } from '@/components/link/link';
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-
-import { RANK_DESCRIPTIONS } from '../app.consts';
 
 export const GlobalRankingSection = () => {
   return (
@@ -16,7 +15,7 @@ export const GlobalRankingSection = () => {
         dynamic leaderboards and find out how you measure up against developers worldwide.
       </div>
       <div className="flex flex-col md:flex-row gap-4">
-        <Card className="flex-grow gap-4">
+        <Card className="grow gap-4">
           <CardHeader>
             <CardTitle>{RANK_DESCRIPTIONS.s.title}ing</CardTitle>
             <CardDescription>{RANK_DESCRIPTIONS.s.descriptionList}</CardDescription>
@@ -25,7 +24,7 @@ export const GlobalRankingSection = () => {
             <Link href="/by/stars/1">View</Link>
           </CardFooter>
         </Card>
-        <Card className="flex-grow gap-4">
+        <Card className="grow gap-4">
           <CardHeader>
             <CardTitle>{RANK_DESCRIPTIONS.c.title}ing</CardTitle>
             <CardDescription>{RANK_DESCRIPTIONS.c.descriptionList}</CardDescription>
@@ -34,7 +33,7 @@ export const GlobalRankingSection = () => {
             <Link href="/by/contributions/1">View</Link>
           </CardFooter>
         </Card>
-        <Card className="flex-grow gap-4">
+        <Card className="grow gap-4">
           <CardHeader>
             <CardTitle>{RANK_DESCRIPTIONS.f.title}ing</CardTitle>
             <CardDescription>{RANK_DESCRIPTIONS.f.descriptionList}</CardDescription>

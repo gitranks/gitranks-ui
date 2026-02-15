@@ -1,0 +1,5 @@
+query OrgIdByLogin($login: String!) {
+  organization(login: $login) {
+    githubId
+  }
+}

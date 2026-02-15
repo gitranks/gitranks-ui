@@ -1,17 +1,25 @@
 'use client';
 
 import { Search } from 'lucide-react';
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { graphqlClient } from '@/lib/graphql/graphql-client';
+import { OrgIdByLoginDocument } from '@/types/generated/graphql';
 
 export const SearchProfile = () => {
   const [login, setLogin] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setLoading(false);
+    setLogin('');
+  }, []);
 
   const onSearch = async () => {
     if (!login) {
@@ -19,12 +27,12 @@ export const SearchProfile = () => {
     }
 
     setLoading(true);
-    // const data = await graphqlClient(ProfileIdByLoginDocument, { login });
-    // const profileFound = data.globalRankByLogin?.githubId;
-    // capture('landingPage.search', {
-    //   login,
-    //   profileFound,
-    // });
+    const data = await graphqlClient(OrgIdByLoginDocument, { login });
+    const orgFound = data.organization?.githubId;
+
+    if (orgFound) {
+      return router.push(`/org/${login}` as Route);
+    }
 
     return router.push(`/profile/${login}`);
   };

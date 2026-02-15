@@ -1,0 +1,16 @@
+query OrgRankings($offset: Int) {
+  orgRankings(offset: $offset) {
+    githubId
+    s
+    sM
+    organization {
+      login
+      name
+      avatarUrl
+      location
+      country
+      isVerified
+      s
+    }
+  }
+}

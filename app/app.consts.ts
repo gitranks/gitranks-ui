@@ -6,7 +6,7 @@ export const TIER_NAMES = ['Beginner', 'Adept', 'Advanced', 'Expert', 'Master', 
 export const TIER_FRACTIONS = [0.5, 0.25, 0.13, 0.06, 0.03, 0.02, 0.01] as const;
 export const TOP_LEVEL_FRACTIONS = [0.5, 0.3, 0.15, 0.04, 0.01] as const;
 
-const MIN_VALUE = 5;
+export const MIN_VALUE = 5;
 const MIN_PROFILES_THRESHOLD = 100;
 
 export const NOT_AVAILABLE = `Tiers are available for rankings with over ${MIN_PROFILES_THRESHOLD} profiles.`;

@@ -1,10 +1,9 @@
 import type { FC } from 'react';
 
-import type { RankingTypeClient } from '@/types/ranking.types';
-import { getRankingTitle } from '@/utils/get-ranking-title';
-
 import { LinkToProfile } from '../link-to-profile/link-to-profile';
 import { RankingTypeSwitcher } from '../rank-type-switcher/ranking-type-switcher';
+import type { RankingTypeClient } from '@/types/ranking.types';
+import { getRankingTitle } from '@/utils/get-ranking-title';
 
 type RankingHeaderSectionProps = {
   rankingType: RankingTypeClient;

@@ -7,4 +7,5 @@ export const RANK_NAME = {
   [UserRankProp.c]: 'Contributor Rank',
   [UserRankProp.f]: 'Followers Rank',
   u: 'Users Rank',
+  o: 'Organizations Rank',
 };

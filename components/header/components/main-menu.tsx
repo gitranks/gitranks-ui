@@ -3,6 +3,7 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
+import { FaRegBuilding } from 'react-icons/fa';
 import { FaCode } from 'react-icons/fa6';
 import { GrLocation } from 'react-icons/gr';
 import { VscGlobe } from 'react-icons/vsc';
@@ -34,6 +35,9 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
               </ListItem>
               <ListItem href="/countries/stars/1">
                 <GrLocation /> Country Rankings
+              </ListItem>
+              <ListItem href="/orgs/1">
+                <FaRegBuilding /> Org Rankings
               </ListItem>
             </ul>
           </NavigationMenuContent>

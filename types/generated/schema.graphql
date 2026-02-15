@@ -146,6 +146,7 @@ enum LanguageSummaryOrder {
 type Organization {
   avatarUrl: String
   country: String
+  countryFlag: String
   createdAt: DateTime!
   email: String
   githubCreatedAt: DateTime
@@ -155,12 +156,23 @@ type Organization {
   location: String
   login: String
   name: String
+  rankOrg: RankOrgWithoutOrganization
   reposCount: Int
   s: Int
   twitterUsername: String
   updatedAt: DateTime!
   usersCount: Int
   websiteUrl: String
+}
+
+type OrganizationBasic {
+  avatarUrl: String
+  country: String
+  isVerified: Boolean
+  location: String
+  login: String
+  name: String
+  s: Int
 }
 
 type ProfileForSitemap {
@@ -181,6 +193,8 @@ type Query {
   insights: [Insight!]
   languageRankings(language: String!, limit: Int! = 100, offset: Int! = 0): [RankLanguageWithUser!]!
   languageSummary(date: String, limit: Int! = 100, offset: Int! = 0, order: LanguageSummaryOrder! = SCORE): [LanguageSummary!]!
+  orgRankings(limit: Int! = 100, offset: Int! = 0): [RankOrg!]!
+  organization(login: String!): Organization
   profilesForSitemap: [ProfileForSitemap!]!
   rankTiersByName(name: String!): RankTier
 
@@ -306,6 +320,23 @@ enum RankOrder {
   CONTRIBUTIONS
   FOLLOWERS
   STARS
+}
+
+type RankOrg {
+  githubId: String!
+  organization: OrganizationBasic
+  s: Int
+  sD: Int
+  sM: Int
+  snapshots: JSON
+}
+
+type RankOrgWithoutOrganization {
+  githubId: String!
+  s: Int
+  sD: Int
+  sM: Int
+  snapshots: JSON
 }
 
 type RankTier {

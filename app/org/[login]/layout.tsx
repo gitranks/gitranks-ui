@@ -36,7 +36,7 @@ async function OrgLayoutContent({ children, params }: LayoutProps<'/org/[login]'
   );
 }
 
-export default function OrgLayout({ children, params }: LayoutProps<'/org/[login]'>) {
+export default async function OrgLayout({ children, params }: LayoutProps<'/org/[login]'>) {
   return (
     <Suspense fallback={<LayoutLoading />}>
       <OrgLayoutContent params={params}>{children}</OrgLayoutContent>

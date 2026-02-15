@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { SessionProvider } from 'next-auth/react';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import { Suspense } from 'react';
 
 import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
 import { Announcement } from '@/components/announcement/announcement';
@@ -35,7 +36,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
               <FlagEmojiPolyfill />
               <div className="flex flex-col min-h-screen">
-                <div className="grow">{children}</div>
+                <div className="grow">
+                  <Suspense fallback={null}>{children}</Suspense>
+                </div>
                 <Footer />
               </div>
               <Announcement />

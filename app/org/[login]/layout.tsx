@@ -23,15 +23,23 @@ function LayoutLoading() {
   );
 }
 
-export default async function OrgLayout({ children, params }: LayoutProps<'/org/[login]'>) {
+async function OrgLayoutContent({ children, params }: LayoutProps<'/org/[login]'>) {
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`org:${login}`);
 
   return (
-    <Suspense fallback={<LayoutLoading />}>
+    <>
       <Header login={login} />
       {children}
+    </>
+  );
+}
+
+export default function OrgLayout({ children, params }: LayoutProps<'/org/[login]'>) {
+  return (
+    <Suspense fallback={<LayoutLoading />}>
+      <OrgLayoutContent params={params}>{children}</OrgLayoutContent>
     </Suspense>
   );
 }

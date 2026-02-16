@@ -3,6 +3,8 @@ import { ExternalLink, Hourglass, Link2, Mail, MapPin, Timer } from 'lucide-reac
 import Image from 'next/image';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
+import { MdOutlineVerified } from 'react-icons/md';
+import { PiUsersThree } from 'react-icons/pi';
 
 import { ProfileListItem } from '@/app/profile/[login]/components/profile-list-item';
 import {
@@ -48,8 +50,8 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ org, children }) =
             />
           </AvatarContainer>
           <NameContainer>
-            <h1 className="font-semibold text-2xl" translate="no">
-              {org.name}
+            <h1 className="font-semibold text-2xl flex items-center gap-1" translate="no">
+              {org.name} {org.isVerified && <MdOutlineVerified className="size-5 fill-positive" />}
             </h1>
             <h2 className="text-muted-foreground" translate="no">
               @{org.login}
@@ -74,6 +76,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ org, children }) =
               value={`Updated ${formatDistanceToNow(org.updatedAt, { addSuffix: true })}`}
               Icon={Timer}
             />
+            <ProfileListItem value={`Members: ${org.usersCount?.toLocaleString('en-US')}`} Icon={PiUsersThree} />
           </div>
           {showContact && (
             <div className="flex flex-col gap-1.5">

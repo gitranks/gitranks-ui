@@ -65,8 +65,8 @@ export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {
             )}
             {hasData && (
               <>
-                <RankCardPosition rank={rank.s} rankingLink="orgs/1" />
-                {rank.s !== rank.sM && (
+                <RankCardPosition rank={rank.s} rankingLink="/orgs/1" rankedCount={800000} />
+                {!!rank.sM && rank.s !== rank.sM && (
                   <RankCardItem Icon={(rank.s ?? 0) > (rank.sM ?? 0) ? TrendingDown : TrendingUp}>
                     <span>
                       This month change:{' '}

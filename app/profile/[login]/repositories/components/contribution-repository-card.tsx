@@ -1,10 +1,9 @@
 import type { FC } from 'react';
 
+import { RepositoryCard } from './repository-card';
 import { Badge } from '@/components/ui/badge';
 import type { Repository } from '@/types/generated/graphql';
 import { pluralize } from '@/utils/pluralize';
-
-import { RepositoryCard } from './repository-card';
 
 type RepositoryCardProps = {
   repository?: Repository | null;
@@ -47,7 +46,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
         </Badge>
       }
       login={login}
-      className="border-0 border-b-1 last:border-b-0 p-4 pl-0 md:pl-0 rounded-none shadow-none"
+      className="border-0 p-4 pl-0 md:pl-0 rounded-none shadow-none bg-transparent"
     />
   );
 };

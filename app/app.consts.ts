@@ -9,6 +9,9 @@ export const TOP_LEVEL_FRACTIONS = [0.5, 0.3, 0.15, 0.04, 0.01] as const;
 export const MIN_VALUE = 5;
 const MIN_PROFILES_THRESHOLD = 100;
 
+export const ITEMS_PER_PAGE = 100;
+export const MAX_PAGES = 50;
+
 export const NOT_AVAILABLE = `Tiers are available for rankings with over ${MIN_PROFILES_THRESHOLD} profiles.`;
 
 export const RANK_DESCRIPTIONS = {

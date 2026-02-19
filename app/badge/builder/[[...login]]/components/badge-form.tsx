@@ -7,6 +7,8 @@ import { useForm } from 'react-hook-form';
 import { useDebounceCallback } from 'usehooks-ts';
 import type { z } from 'zod';
 
+import { ColorPickerField } from './color-picker-field';
+import { StepTitle } from './step-title';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { BadgeNuqsSchema } from '@/badge/badge.nuqs';
 import { BadgeV2ZodSchema } from '@/badge/badge.zod';
@@ -17,9 +19,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
-
-import { ColorPickerField } from './color-picker-field';
-import { StepTitle } from './step-title';
 
 const BadgeFormRow: FC<PropsWithChildren> = ({ children }) => {
   return <div className="flex flex-wrap justify-between gap-4 lg:gap-8">{children}</div>;

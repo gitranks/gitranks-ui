@@ -3,12 +3,11 @@
 import { cacheLife } from 'next/cache';
 
 import { OrgRankingTable } from '../components/org-ranking-table';
+import { ITEMS_PER_PAGE, MAX_PAGES } from '@/app/app.consts';
 import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { OrgRankingsDocument } from '@/types/generated/graphql';
-
-const ITEMS_PER_PAGE = 100;
 
 export default async function OrgRanking({ params }: PageProps<'/orgs/[page]'>) {
   cacheLife('hours');
@@ -26,7 +25,7 @@ export default async function OrgRanking({ params }: PageProps<'/orgs/[page]'>) 
       <OrgRankingTable data={orgRankings} countries={countries} />
       <Pagination
         prev={page > 1 ? `/orgs/${page - 1}` : undefined}
-        next={orgRankings?.length === ITEMS_PER_PAGE ? `/orgs/${page + 1}` : undefined}
+        next={orgRankings?.length === ITEMS_PER_PAGE && page < MAX_PAGES ? `/orgs/${page + 1}` : undefined}
       />
     </>
   );

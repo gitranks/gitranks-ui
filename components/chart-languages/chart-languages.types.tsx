@@ -11,6 +11,6 @@ export type ValueLabelProps = Omit<SVGProps<SVGTextElement>, 'viewBox'> & LabelP
 export type CartesianViewBox = { x: number; y: number; width: number; height: number };
 
 export type ChartLanguagesProps = {
-  languages: NonNullable<PageProfileLanguagesQuery['user']>['languages'];
+  languages: NonNullable<PageProfileLanguagesQuery['user']>['sLangs'];
   className?: string;
 };

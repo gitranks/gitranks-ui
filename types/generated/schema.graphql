@@ -424,7 +424,6 @@ type User {
   githubServiceFetchedAt: DateTime
   githubUpdatedAt: DateTime
   isHireable: Boolean
-  languages(limit: Int, offset: Int! = 0): [UserLanguage!]
   location: String
   login: String!
   name: String
@@ -435,6 +434,7 @@ type User {
   repositoriesCount: Int
   s: Int
   sD: Int
+  sLangs(limit: Int, offset: Int! = 0): [UserLanguage!]
   snapshots: JSON
   socialAccounts: SocialAccount
   tiersCountry: RankTier
@@ -451,10 +451,10 @@ type UserBasic {
   f: Int
   followersCount: Int
   githubId: ID!
-  languages: [UserLanguageBasic!]
   location: String
   login: String!
   s: Int
+  sLangs: [UserLanguageBasic!]
 }
 
 enum UserFetchingStatus {
@@ -469,6 +469,7 @@ type UserLanguage {
   rankGlobal: RankLanguage
   score: Int!
   size: Float!
+  sources: [UserLanguageSource!]
   tiersCountry: RankTier
   tiersGlobal: RankTier
 }
@@ -478,6 +479,14 @@ type UserLanguageBasic {
   name: String!
   score: Int!
   size: Float!
+  sources: [UserLanguageSource!]
+}
+
+type UserLanguageSource {
+  githubId: String!
+  name: String!
+  percentage: Float!
+  stargazerCount: Int!
 }
 
 type UserWithLanguageScore {

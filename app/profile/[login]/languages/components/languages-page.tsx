@@ -20,7 +20,7 @@ export const LanguagesPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) 
   }
 
   const langsWithScore = useMemo(() => {
-    return user.languages?.filter((lang) => lang.score);
+    return user.sLangs?.filter((lang) => lang.score);
   }, [user]);
 
   const ranksAreNotReady = useMemo(() => {

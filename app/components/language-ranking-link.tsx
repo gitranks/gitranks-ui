@@ -1,10 +1,9 @@
 import LinkNext from 'next/link';
 
+import { DEFAULT_LANGUAGE_COLOR } from '../app.consts';
 import { Link } from '@/components/link/link';
 import { Card, CardContent } from '@/components/ui/card';
 import type { LanguageSummaryQuery } from '@/types/generated/graphql';
-
-import { DEFAULT_LANGUAGE_COLOR } from '../app.consts';
 
 export const LanguageRankingLink = ({
   languageSummaries,
@@ -12,7 +11,7 @@ export const LanguageRankingLink = ({
   languageSummaries: LanguageSummaryQuery['languageSummary'];
 }) => {
   return (
-    <Card className="flex-grow gap-4">
+    <Card className="grow gap-4">
       <CardContent className="flex flex-col grow gap-4">
         <div className="grid grid-cols-3 gap-1 grow">
           {languageSummaries.slice(2).map(({ language, languageData }) => {

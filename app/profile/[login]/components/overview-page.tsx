@@ -31,7 +31,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
     return <NotFound fetchingStatus={user.fetchingStatus} fetchingUpdatedAt={user.fetchingUpdatedAt} />;
   }
 
-  const { languages, country, login, repositories, contributions, timeline, repositoriesCount, firstSeenAt } = user;
+  const { sLangs, country, login, repositories, contributions, timeline, repositoriesCount, firstSeenAt } = user;
 
   const ranks = isGlobalContext ? user.rankGlobal : user.rankCountry;
   const tiers = isGlobalContext ? user.tiersGlobal : user.tiersCountry;
@@ -48,7 +48,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
 
         <OverviewCardsContainer>
           <ProfileRankCard login={login} ranks={ranks} tiers={tiers} country={isGlobalContext ? null : country} />
-          <ProfileLanguageCard login={login} languages={languages} />
+          <ProfileLanguageCard login={login} languages={sLangs} />
         </OverviewCardsContainer>
       </div>
 

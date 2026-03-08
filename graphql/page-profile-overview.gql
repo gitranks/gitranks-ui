@@ -28,7 +28,7 @@ query PageProfileOverview($login: String!, $isGlobalContext: Boolean! = true) {
       fProvisional
       fM
     }
-    languages(limit: 3) {
+    sLangs(limit: 3) {
       name
       color
       size

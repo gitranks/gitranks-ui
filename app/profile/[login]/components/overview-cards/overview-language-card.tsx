@@ -10,7 +10,7 @@ import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 
 type ProfileLanguageCardProps = {
   login: string;
-  languages?: NonNullable<PageProfileOverviewQuery['user']>['languages'];
+  languages?: NonNullable<PageProfileOverviewQuery['user']>['sLangs'];
 };
 
 export const ProfileLanguageCard: FC<ProfileLanguageCardProps> = ({ login, languages }) => {

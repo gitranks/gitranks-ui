@@ -197,9 +197,6 @@ type Query {
   organization(login: String!): Organization
   profilesForSitemap: [ProfileForSitemap!]!
   rankTiersByName(name: String!): RankTier
-
-  """List of rank tiers for a user"""
-  rankTiersForLogin(login: String!): [RankTier!]
   user(login: String!): User
   users(logins: [String!]!): [User!]
 }
@@ -404,6 +401,7 @@ type User {
   avatarUrl: String
   c: Int
   cD: Int
+  cLangs(limit: Int, offset: Int! = 0): [UserLanguage!]
   company: String
   contributedRepoCount: Int
   contributions(limit: Int, offset: Int! = 0): [Contribution!]
@@ -435,7 +433,7 @@ type User {
   s: Int
   sD: Int
   sLangs(limit: Int, offset: Int! = 0): [UserLanguage!]
-  snapshots: JSON
+  snapshots(limit: Int, offset: Int! = 0): JSON
   socialAccounts: SocialAccount
   tiersCountry: RankTier
   tiersGlobal: RankTier
@@ -447,6 +445,7 @@ type User {
 type UserBasic {
   avatarUrl: String
   c: Int
+  cLangs: [UserLanguageBasic!]
   country: String
   f: Int
   followersCount: Int
@@ -484,9 +483,14 @@ type UserLanguageBasic {
 
 type UserLanguageSource {
   githubId: String!
+  linesAdded: Int
+  linesRemoved: Int
   name: String!
   percentage: Float!
+  prsCount: Int
   stargazerCount: Int!
+  url: String
+  year: Int
 }
 
 type UserWithLanguageScore {

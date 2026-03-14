@@ -28,12 +28,34 @@ query PageProfileOverview($login: String!, $isGlobalContext: Boolean! = true) {
       fProvisional
       fM
     }
-    sLangs(limit: 3) {
+    sLangs(limit: 4) {
       name
       color
       size
       score
+      sources {
+        name
+        stargazerCount
+        percentage
+        year
+      }
     }
+    cLangs(limit: 4) {
+      name
+      color
+      size
+      sources {
+        name
+        stargazerCount
+        percentage
+        year
+        linesAdded
+        linesRemoved
+        prsCount
+        url
+      }
+    }
+    snapshots
     repositories(limit: 5) {
       ...RepositoryFields
     }

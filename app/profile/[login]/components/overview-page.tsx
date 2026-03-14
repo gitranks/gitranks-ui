@@ -8,9 +8,11 @@ import { buildProfileTabSEO } from '../seo';
 import { ProfileTimeline } from '../timeline/components/profile-timeline';
 import { LayoutLeftColumn } from './layout-left-column';
 import { MessengerIntegration } from './messenger-integration';
+import { OsContributionsCard } from './overview-cards/os-contributions-card';
 import { OverviewCardsContainer } from './overview-cards/overview-cards';
 import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
+import { OwnProjectsCard } from './overview-cards/own-projects-card';
 import { ProfileRankingSwitcher } from './profile-ranking-switcher';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { Link } from '@/components/link/link';
@@ -31,7 +33,21 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
     return <NotFound fetchingStatus={user.fetchingStatus} fetchingUpdatedAt={user.fetchingUpdatedAt} />;
   }
 
-  const { sLangs, country, login, repositories, contributions, timeline, repositoriesCount, firstSeenAt } = user;
+  const {
+    s,
+    c,
+    sLangs,
+    cLangs,
+    country,
+    login,
+    repositories,
+    contributions,
+    timeline,
+    repositoriesCount,
+    contributedRepoCount,
+    firstSeenAt,
+    snapshots,
+  } = user;
 
   const ranks = isGlobalContext ? user.rankGlobal : user.rankCountry;
   const tiers = isGlobalContext ? user.tiersGlobal : user.tiersCountry;
@@ -49,6 +65,24 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
         <OverviewCardsContainer>
           <ProfileRankCard login={login} ranks={ranks} tiers={tiers} country={isGlobalContext ? null : country} />
           <ProfileLanguageCard login={login} languages={sLangs} />
+          <OwnProjectsCard
+            login={login}
+            repoCount={repositoriesCount ?? 0}
+            repoStars={s ?? 0}
+            languages={sLangs}
+            snapshots={snapshots}
+            totalRankedUsers={tiers?.sUsers ?? 0}
+            userRank={ranks?.sProvisional || ranks?.s}
+          />
+          <OsContributionsCard
+            login={login}
+            repoCount={contributedRepoCount ?? 0}
+            repoStars={c ?? 0}
+            languages={cLangs}
+            snapshots={snapshots}
+            totalRankedUsers={tiers?.cUsers ?? 0}
+            userRank={ranks?.sProvisional || ranks?.s}
+          />
         </OverviewCardsContainer>
       </div>
 

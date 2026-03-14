@@ -3,10 +3,9 @@
 import { cacheLife, cacheTag } from 'next/cache';
 import type { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 
-import { fetchProfilePageRanks } from '@/graphql/helpers/fetch-profile-page-ranks';
-
 import { buildProfileTabSEO } from '../seo';
 import { RanksPage } from './components/ranks-page';
+import { fetchProfilePageRanks } from '@/graphql/helpers/fetch-profile-page-ranks';
 
 export async function generateMetadata({ params }: LayoutProps<'/profile/[login]'>): Promise<Metadata> {
   const { login } = await params;

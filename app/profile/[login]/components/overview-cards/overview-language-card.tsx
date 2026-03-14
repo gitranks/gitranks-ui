@@ -18,28 +18,26 @@ export const ProfileLanguageCard: FC<ProfileLanguageCardProps> = ({ login, langu
     if (!languages?.length) {
       return (
         <div className="flex grow items-center p-3 md:p-4">
-          No languages to show yet! Looks like your profile doesn&apos;t have any public repos with code. Once you share
-          some, we&apos;ll chart your top languages here.
+          No languages to show yet. This profile has no public repos with code. Once there are some, we&apos;ll show
+          their top languages here.
         </div>
       );
     }
 
-    return <BarChartLanguages languages={languages} className="px-3 md:px-4" />;
+    return <BarChartLanguages languages={languages.slice(0, 3)} className="px-3 md:px-4" />;
   };
 
   const getTooltip = () => (
     <AdaptiveTooltip trigger={<InfoIcon size={20} />}>
       <div className="max-w-80 text-sm">
         <div>
-          Every repo has stars and a language breakdown. We calculate language stars by multiplying the repo&apos;s
-          stars by the share of a language in that repo.
+          Each repo has stars and a language breakdown. We get &quot;language stars&quot; by multiplying the repo&apos;s
+          stars by that language&apos;s share in the repo.
         </div>
         <div className="mt-1">
           <b>Example:</b> A repo with 100 stars that&apos;s 60% JavaScript gives JavaScript 60 stars.
         </div>
-        <div className="mt-1">
-          We do this for all public repos, add them up, and rank all languages by their total stars.
-        </div>
+        <div className="mt-1">We do this for all public repos, sum the totals, and rank languages by total stars.</div>
       </div>
     </AdaptiveTooltip>
   );
@@ -47,7 +45,7 @@ export const ProfileLanguageCard: FC<ProfileLanguageCardProps> = ({ login, langu
   return (
     <ProfileCard className="gap-2 p-0 md:p-0">
       <ProfileCardHeader meta={getTooltip()} className="p-3 md:p-4 pb-0 md:pb-0">
-        Top 3 Languages By Stars
+        Top 3 Languages by Stars
       </ProfileCardHeader>
       {getCardContent()}
       <Link

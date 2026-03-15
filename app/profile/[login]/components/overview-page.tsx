@@ -13,7 +13,6 @@ import { OverviewCardsContainer } from './overview-cards/overview-cards';
 import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { OwnProjectsCard } from './overview-cards/own-projects-card';
-import { ProfileRankingSwitcher } from './profile-ranking-switcher';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { Link } from '@/components/link/link';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
@@ -57,10 +56,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
       <JsonLd payloads={buildProfileTabSEO('overview', user).jsonLd} />
 
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Profile Overview</h2>
-          <ProfileRankingSwitcher countryName={country} />
-        </div>
+        <h2 className="text-xl font-semibold">Profile Overview</h2>
 
         <OverviewCardsContainer>
           <ProfileRankCard login={login} ranks={ranks} tiers={tiers} country={isGlobalContext ? null : country} />
@@ -107,24 +103,6 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
       {!!timeline?.length && <ProfileTimeline timeline={timeline} firstSeenAt={firstSeenAt} />}
 
       <MessengerIntegration login={login} />
-
-      {/* <div className="flex p-0 md:p-4 min-w-xs flex-grow basis-0 shrink-0 items-center justify-center">
-            <div className="flex flex-col gap-2 items-start">
-              <div className="font-semibold">Put Your Rank on Display</div> */}
-      {}
-      {/* <img
-                src={`/api/badge/${login}?rankingType=${bestRankType}&template=small&theme=light`}
-                alt="github badge"
-              />
-              <Button asChild className="mt-2">
-                <Link href={`/badge/${login}?rankingType=${bestRankType}&template=small`}>
-                  Get a Badge
-                  <ChevronRight />
-                </Link>
-              </Button>
-            </div>
-          </div> */}
-      {/* </ProfileCardsGrid> */}
     </LayoutLeftColumn>
   );
 };

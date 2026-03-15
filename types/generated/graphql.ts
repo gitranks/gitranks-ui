@@ -122,13 +122,11 @@ export enum InsightCategory {
   CountryTrends = 'COUNTRY_TRENDS',
   DominatingCountry = 'DOMINATING_COUNTRY',
   DominatingGlobal = 'DOMINATING_GLOBAL',
-  HotSpot = 'HOT_SPOT',
   MinScore = 'MIN_SCORE',
   MonthlyScoreChange = 'MONTHLY_SCORE_CHANGE',
   RankedCountGlobal = 'RANKED_COUNT_GLOBAL',
   RankChange = 'RANK_CHANGE',
   ScoreMilestone = 'SCORE_MILESTONE',
-  TierMilestone = 'TIER_MILESTONE',
   UnbalancedProfile = 'UNBALANCED_PROFILE'
 }
 

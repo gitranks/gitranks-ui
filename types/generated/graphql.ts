@@ -118,16 +118,14 @@ export type Insight = {
 };
 
 export enum InsightCategory {
-  CountryScorePerProfile = 'COUNTRY_SCORE_PER_PROFILE',
+  CountryAnalysis = 'COUNTRY_ANALYSIS',
   CountryTrends = 'COUNTRY_TRENDS',
-  DominatingCountry = 'DOMINATING_COUNTRY',
-  DominatingGlobal = 'DOMINATING_GLOBAL',
-  MinScore = 'MIN_SCORE',
-  MonthlyScoreChange = 'MONTHLY_SCORE_CHANGE',
-  RankedCountGlobal = 'RANKED_COUNT_GLOBAL',
-  RankChange = 'RANK_CHANGE',
+  LanguageAnalysis = 'LANGUAGE_ANALYSIS',
+  LanguageTrends = 'LANGUAGE_TRENDS',
+  OrgScoreChange = 'ORG_SCORE_CHANGE',
+  ProfileScoreChange = 'PROFILE_SCORE_CHANGE',
   ScoreMilestone = 'SCORE_MILESTONE',
-  UnbalancedProfile = 'UNBALANCED_PROFILE'
+  TopStarGainers = 'TOP_STAR_GAINERS'
 }
 
 export type Language = {
@@ -177,6 +175,7 @@ export type Organization = {
   rankOrg?: Maybe<RankOrgWithoutOrganization>;
   reposCount?: Maybe<Scalars['Int']['output']>;
   s?: Maybe<Scalars['Int']['output']>;
+  snapshots?: Maybe<Scalars['JSON']['output']>;
   twitterUsername?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTime']['output'];
   usersCount?: Maybe<Scalars['Int']['output']>;

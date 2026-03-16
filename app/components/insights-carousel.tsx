@@ -18,16 +18,14 @@ import { fetchInsights } from '@/graphql/helpers/fetch-insights';
 import { InsightCategory, type InsightsQuery } from '@/types/generated/graphql';
 
 const InsightCategoryTitle: Record<InsightCategory, string> = {
-  [InsightCategory.CountryScorePerProfile]: 'Country Score',
   [InsightCategory.CountryTrends]: 'Country Trends',
-  [InsightCategory.DominatingCountry]: 'Country Leader',
-  [InsightCategory.DominatingGlobal]: 'Global Leader',
-  [InsightCategory.MinScore]: 'Min Score',
-  [InsightCategory.MonthlyScoreChange]: 'Monthly Change',
-  [InsightCategory.RankedCountGlobal]: 'Ranked Count',
-  [InsightCategory.RankChange]: 'Rank Change',
+  [InsightCategory.LanguageTrends]: 'Language Trends',
+  [InsightCategory.CountryAnalysis]: 'Country Analysis',
+  [InsightCategory.LanguageAnalysis]: 'Language Analysis',
+  [InsightCategory.ProfileScoreChange]: 'Profile Score Change',
+  [InsightCategory.OrgScoreChange]: 'Org Score Change',
+  [InsightCategory.TopStarGainers]: 'Top Star Gainer',
   [InsightCategory.ScoreMilestone]: 'Score Milestone',
-  [InsightCategory.UnbalancedProfile]: 'Rank Imbalance',
 };
 
 const InsightsCarousel = () => {
@@ -82,7 +80,7 @@ const InsightsCarousel = () => {
       setApi={setApi}
     >
       <div className="relative mb-4">
-        <div className="hidden md:block absolute inset-0 rotate-[-6deg] scale-y-[1.6] -translate-x-10 pointer-events-none bg-landing-page-gradient-start-color rounded-[100%]" />
+        <div className="hidden md:block absolute inset-0 -rotate-6 scale-y-[1.6] -translate-x-10 pointer-events-none bg-landing-page-gradient-start-color rounded-[100%]" />
         <CarouselContent>
           {insights?.map((insight, index) => (
             <CarouselItem key={index} className="flex items-center">

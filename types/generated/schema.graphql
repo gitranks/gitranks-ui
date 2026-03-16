@@ -97,16 +97,14 @@ type Insight {
 }
 
 enum InsightCategory {
-  COUNTRY_SCORE_PER_PROFILE
+  COUNTRY_ANALYSIS
   COUNTRY_TRENDS
-  DOMINATING_COUNTRY
-  DOMINATING_GLOBAL
-  MIN_SCORE
-  MONTHLY_SCORE_CHANGE
-  RANKED_COUNT_GLOBAL
-  RANK_CHANGE
+  LANGUAGE_ANALYSIS
+  LANGUAGE_TRENDS
+  ORG_SCORE_CHANGE
+  PROFILE_SCORE_CHANGE
   SCORE_MILESTONE
-  UNBALANCED_PROFILE
+  TOP_STAR_GAINERS
 }
 
 """
@@ -157,6 +155,7 @@ type Organization {
   rankOrg: RankOrgWithoutOrganization
   reposCount: Int
   s: Int
+  snapshots: JSON
   twitterUsername: String
   updatedAt: DateTime!
   usersCount: Int

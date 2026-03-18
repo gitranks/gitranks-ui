@@ -88,12 +88,11 @@ type Entities {
 
 type Insight {
   category: InsightCategory!
-  createdAt: DateTime!
   data: JSON
   entities: Entities
   segments: [Segment!]!
   text: String!
-  updatedAt: DateTime!
+  tone: InsightTone!
 }
 
 enum InsightCategory {
@@ -105,6 +104,12 @@ enum InsightCategory {
   PROFILE_SCORE_CHANGE
   SCORE_MILESTONE
   TOP_STAR_GAINERS
+}
+
+enum InsightTone {
+  CELEBRATORY
+  INSIGHTFUL
+  MOMENTUM
 }
 
 """

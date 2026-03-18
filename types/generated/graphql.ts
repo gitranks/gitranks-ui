@@ -109,12 +109,11 @@ export type Entities = {
 export type Insight = {
   __typename?: 'Insight';
   category: InsightCategory;
-  createdAt: Scalars['DateTime']['output'];
   data?: Maybe<Scalars['JSON']['output']>;
   entities?: Maybe<Entities>;
   segments: Array<Segment>;
   text: Scalars['String']['output'];
-  updatedAt: Scalars['DateTime']['output'];
+  tone: InsightTone;
 };
 
 export enum InsightCategory {
@@ -126,6 +125,12 @@ export enum InsightCategory {
   ProfileScoreChange = 'PROFILE_SCORE_CHANGE',
   ScoreMilestone = 'SCORE_MILESTONE',
   TopStarGainers = 'TOP_STAR_GAINERS'
+}
+
+export enum InsightTone {
+  Celebratory = 'CELEBRATORY',
+  Insightful = 'INSIGHTFUL',
+  Momentum = 'MOMENTUM'
 }
 
 export type Language = {

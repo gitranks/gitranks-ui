@@ -7,6 +7,7 @@ type FetchInsightsOptions = {
 };
 
 export const fetchInsights = async ({ skip = 0, limit = 20 }: FetchInsightsOptions = {}) => {
+  console.time('fetchInsights');
   const { insights } =
     (await graphqlClient(InsightsDocument, { skip, limit }, { cache: 'force-cache', next: { revalidate: 60 } })) ?? {};
 

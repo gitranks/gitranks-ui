@@ -5,7 +5,7 @@ import { rejectNotAllowedGraphqlOperations } from '@/utils/reject-not-allowed-gr
 import { rejectWrongOrigin } from '@/utils/reject-wrong-origin';
 
 export async function POST(req: NextRequest) {
-  console.log('graphql client route');
+  console.log('graphql api POST');
   if (rejectWrongOrigin(req)) {
     console.log('rejectWrongOrigin');
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

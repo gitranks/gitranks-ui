@@ -1,14 +1,59 @@
-query Insights {
-  insights {
+query Insights($skip: Int!, $limit: Int!) {
+  insights(skip: $skip, limit: $limit) {
+    id
     category
+    createdAt
     segments {
       type
       text
       entityKey
+      display
     }
     entities {
       mentions
       links
+    }
+    replies {
+      segments {
+        type
+        text
+        entityKey
+        display
+      }
+      entities {
+        mentions
+        links
+      }
+    }
+  }
+}
+
+query Insight($id: ID!) {
+  insight(id: $id) {
+    id
+    category
+    createdAt
+    segments {
+      type
+      text
+      entityKey
+      display
+    }
+    entities {
+      mentions
+      links
+    }
+    replies {
+      segments {
+        type
+        text
+        entityKey
+        display
+      }
+      entities {
+        mentions
+        links
+      }
     }
   }
 }

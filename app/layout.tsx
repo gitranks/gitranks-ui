@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { SessionProvider } from 'next-auth/react';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
 import { CtaClickTracker } from './components/cta-click-tracker';
 import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
@@ -22,7 +22,12 @@ export const metadata: Metadata = {
     'Explore rankings based on stars, contributions, and followers. Dive into dynamic leaderboards to see how you rank against developers worldwide and within your own country.',
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+type RootLayoutProps = {
+  children: ReactNode;
+  modal: ReactNode;
+};
+
+export default function RootLayout({ children, modal }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -43,6 +48,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
                 </div>
                 <Footer />
               </div>
+              {modal}
               <Announcement />
               <Toaster richColors position="top-right" />
             </ThemeProvider>

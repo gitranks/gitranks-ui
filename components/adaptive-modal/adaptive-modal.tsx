@@ -23,16 +23,27 @@ import {
 } from '@/components/ui/drawer';
 
 type AdaptiveModalProps = {
-  trigger: ReactNode;
+  trigger?: ReactNode;
   children: ReactNode;
   title?: string;
   description?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
-export const AdaptiveModal: FC<AdaptiveModalProps> = ({ trigger, children, title, description }) => {
-  const [open, setOpen] = useState(false);
+export const AdaptiveModal: FC<AdaptiveModalProps> = ({
+  trigger,
+  children,
+  title,
+  description,
+  open: controlledOpen,
+  onOpenChange,
+}) => {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const open = controlledOpen ?? uncontrolledOpen;
+  const handleOpenChange = onOpenChange ?? setUncontrolledOpen;
 
   useEffect(() => {
     setMounted(true);
@@ -41,8 +52,8 @@ export const AdaptiveModal: FC<AdaptiveModalProps> = ({ trigger, children, title
   // Always render Drawer on server and initial client render to avoid hydration mismatch
   if (!mounted || !isDesktop) {
     return (
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+      <Drawer open={open} onOpenChange={handleOpenChange}>
+        {trigger ? <DrawerTrigger asChild>{trigger}</DrawerTrigger> : null}
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>{title}</DrawerTitle>
@@ -62,8 +73,8 @@ export const AdaptiveModal: FC<AdaptiveModalProps> = ({ trigger, children, title
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent className="max-h-3/4 overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

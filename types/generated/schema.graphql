@@ -86,15 +86,6 @@ type Entities {
   mentions: JSON
 }
 
-type Insight {
-  category: InsightCategory!
-  data: JSON
-  entities: Entities
-  segments: [Segment!]!
-  text: String!
-  tone: InsightTone!
-}
-
 enum InsightCategory {
   COUNTRY_ANALYSIS
   COUNTRY_TRENDS
@@ -106,10 +97,18 @@ enum InsightCategory {
   TOP_STAR_GAINERS
 }
 
-enum InsightTone {
-  CELEBRATORY
-  INSIGHTFUL
-  MOMENTUM
+type InsightPost {
+  category: InsightCategory!
+  createdAt: DateTime!
+  entities: Entities
+  id: ID!
+  replies: [InsightReply!]!
+  segments: [Segment!]!
+}
+
+type InsightReply {
+  entities: Entities
+  segments: [Segment!]!
 }
 
 """
@@ -192,7 +191,14 @@ type Query {
   countrySummary(date: String, order: CountrySummaryOrder! = STARS): [CountrySummary!]!
   globalRankByLogin(login: String!): RankGlobal
   globalRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankGlobal!]!
-  insights: [Insight!]
+
+  """Single top-level scheduled insight post with replies by id"""
+  insight(id: ID!): InsightPost
+
+  """
+  List of top-level scheduled insights (posts) with their replies, where scheduleFor <= now
+  """
+  insights(limit: Int! = 20, skip: Int! = 0): [InsightPost!]!
   languageRankings(language: String!, limit: Int! = 100, offset: Int! = 0): [RankLanguageWithUser!]!
   languageSummary(date: String, limit: Int! = 100, offset: Int! = 0, order: LanguageSummaryOrder! = SCORE): [LanguageSummary!]!
   orgRankings(limit: Int! = 100, offset: Int! = 0): [RankOrg!]!

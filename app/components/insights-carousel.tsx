@@ -1,43 +1,27 @@
 'use client';
 
+import { format } from 'date-fns';
 import Autoplay from 'embla-carousel-autoplay';
 import { memo, useEffect, useState } from 'react';
 
 import InsightText from './insight-text';
+import { Link } from '@/components/link/link';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  Carousel,
-  type CarouselApi,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from '@/components/ui/carousel';
+import { Carousel, type CarouselApi, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchInsights } from '@/graphql/helpers/fetch-insights';
-import { InsightCategory, type InsightsQuery } from '@/types/generated/graphql';
-
-const InsightCategoryTitle: Record<InsightCategory, string> = {
-  [InsightCategory.CountryTrends]: 'Country Trends',
-  [InsightCategory.LanguageTrends]: 'Language Trends',
-  [InsightCategory.CountryAnalysis]: 'Country Analysis',
-  [InsightCategory.LanguageAnalysis]: 'Language Analysis',
-  [InsightCategory.ProfileScoreChange]: 'Profile Score Change',
-  [InsightCategory.OrgScoreChange]: 'Org Score Change',
-  [InsightCategory.TopStarGainers]: 'Top Star Gainer',
-  [InsightCategory.ScoreMilestone]: 'Score Milestone',
-};
+import type { InsightsQuery } from '@/types/generated/graphql';
 
 const InsightsCarousel = () => {
-  const [api, setApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
-  const [count, setCount] = useState(0);
+  const [, setApi] = useState<CarouselApi>();
+  // const [current, setCurrent] = useState(0);
+  // const [count, setCount] = useState(0);
   const [insights, setInsights] = useState<InsightsQuery['insights']>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      const { insights: insightsData } = await fetchInsights();
+      const { insights: insightsData } = await fetchInsights({ skip: 0, limit: 5 });
 
       if (insightsData?.length) {
         setInsights(insightsData);
@@ -48,19 +32,19 @@ const InsightsCarousel = () => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    if (!api) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (!api) {
+  //     return;
+  //   }
 
-    const scrollSnapList = api.scrollSnapList();
-    setCount(scrollSnapList?.length ?? 0);
-    setCurrent(api.selectedScrollSnap() + 1);
+  //   const scrollSnapList = api.scrollSnapList();
+  //   setCount(scrollSnapList?.length ?? 0);
+  //   setCurrent(api.selectedScrollSnap() + 1);
 
-    api.on('select', () => {
-      setCurrent(api.selectedScrollSnap() + 1);
-    });
-  }, [api]);
+  //   api.on('select', () => {
+  //     setCurrent(api.selectedScrollSnap() + 1);
+  //   });
+  // }, [api]);
 
   if (loading) {
     return (
@@ -68,6 +52,14 @@ const InsightsCarousel = () => {
         <Skeleton className="w-full h-[16px]" />
         <Skeleton className="w-full h-[16px]" />
         <Skeleton className="w-full h-[16px]" />
+      </div>
+    );
+  }
+
+  if (insights?.length) {
+    return (
+      <div className="flex w-full py-6 justify-center text-sm text-muted-foreground">
+        We are reworking insights and we will have new insights soon.
       </div>
     );
   }
@@ -82,14 +74,21 @@ const InsightsCarousel = () => {
       <div className="relative mb-4">
         <div className="hidden md:block absolute inset-0 -rotate-6 scale-y-[1.6] -translate-x-10 pointer-events-none bg-landing-page-gradient-start-color rounded-[100%]" />
         <CarouselContent>
-          {insights?.map((insight, index) => (
-            <CarouselItem key={index} className="flex items-center">
+          {insights?.map((insight) => (
+            <CarouselItem key={insight.id} className="flex items-center">
               <Card className="bg-transparent border-0 shadow-none py-0">
-                <CardContent className="flex flex-col justify-center px-0">
-                  <span>
-                    <span className="font-semibold">{InsightCategoryTitle[insight.category]}:</span>{' '}
-                    <InsightText insight={insight} />
-                  </span>
+                <CardContent className="flex flex-col justify-center px-0 gap-1.5">
+                  <InsightText insight={insight} />
+                  <div className="flex justify-between items-center gap-2 text-sm text-muted-foreground">
+                    {insight.replies.length > 0 ? (
+                      <Link href={`/insights/${insight.id}`} className="text-sm text-muted-foreground">
+                        Show {insight.replies.length} replies
+                      </Link>
+                    ) : (
+                      <div />
+                    )}
+                    <div>{format(new Date(insight.createdAt), "MMM d',' h:mm a")}</div>
+                  </div>
                 </CardContent>
               </Card>
             </CarouselItem>
@@ -97,7 +96,7 @@ const InsightsCarousel = () => {
         </CarouselContent>
       </div>
 
-      <div className="flex items-center justify-between relative z-1">
+      {/* <div className="flex items-center justify-between relative z-1">
         <div className="flex items-center gap-2">
           <CarouselPrevious className="static translate-none" />
           <CarouselNext className="static translate-none" />
@@ -105,7 +104,7 @@ const InsightsCarousel = () => {
         <div className="text-sm text-muted-foreground">
           {current} / {count}
         </div>
-      </div>
+      </div> */}
     </Carousel>
   );
 };

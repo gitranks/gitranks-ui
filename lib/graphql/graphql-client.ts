@@ -22,8 +22,6 @@ export async function graphqlClient<TData, TVariables>(
   const query = print(document);
   const url = resolveGraphqlProxyUrl();
 
-  console.log('graphql client fetch', url);
-
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

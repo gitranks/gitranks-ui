@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { InsightPostCard } from '../components/insight-post-card';
 import { Button } from '@/components/ui/button';
-import { fetchInsights } from '@/graphql/helpers/fetch-insights';
+import { fetchInsightsClient } from '@/graphql/helpers/fetch-insights-client';
 import type { InsightsQuery } from '@/types/generated/graphql';
 
 const PAGE_SIZE = 20;
@@ -21,7 +21,7 @@ export const InsightsList = ({ initialInsights }: InsightsListProps) => {
   const handleShowMore = async () => {
     setLoading(true);
 
-    const { insights: nextInsights = [] } = await fetchInsights({ skip: insights.length, limit: PAGE_SIZE });
+    const { insights: nextInsights = [] } = await fetchInsightsClient({ skip: insights.length, limit: PAGE_SIZE });
 
     setInsights((current) => [...current, ...nextInsights]);
     setHasMore(nextInsights.length === PAGE_SIZE);

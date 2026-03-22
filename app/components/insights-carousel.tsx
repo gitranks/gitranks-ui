@@ -9,7 +9,7 @@ import { Link } from '@/components/link/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, type CarouselApi, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import { Skeleton } from '@/components/ui/skeleton';
-import { fetchInsights } from '@/graphql/helpers/fetch-insights';
+import { fetchInsightsClient } from '@/graphql/helpers/fetch-insights-client';
 import type { InsightsQuery } from '@/types/generated/graphql';
 
 const InsightsCarousel = () => {
@@ -21,7 +21,7 @@ const InsightsCarousel = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { insights: insightsData } = await fetchInsights({ skip: 0, limit: 5 });
+      const { insights: insightsData } = await fetchInsightsClient({ skip: 0, limit: 5 });
 
       if (insightsData?.length) {
         setInsights(insightsData);

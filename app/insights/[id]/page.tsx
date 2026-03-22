@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { InsightDetailContent } from '@/app/components/insight-detail-content';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
-import { fetchInsight } from '@/graphql/helpers/fetch-insights';
+import { fetchInsightServer } from '@/graphql/helpers/fetch-insights-server';
 
 type InsightDetailsPageProps = {
   params: Promise<{ id: string }>;
@@ -11,7 +11,7 @@ type InsightDetailsPageProps = {
 
 export default async function InsightDetailsPage({ params }: InsightDetailsPageProps) {
   const { id } = await params;
-  const { insight } = await fetchInsight(id);
+  const { insight } = await fetchInsightServer(id);
 
   if (!insight) {
     notFound();

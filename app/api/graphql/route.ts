@@ -5,9 +5,7 @@ import { rejectNotAllowedGraphqlOperations } from '@/utils/reject-not-allowed-gr
 import { rejectWrongOrigin } from '@/utils/reject-wrong-origin';
 
 export async function POST(req: NextRequest) {
-  console.log('graphql api POST');
   if (rejectWrongOrigin(req)) {
-    console.log('rejectWrongOrigin');
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -15,7 +13,6 @@ export async function POST(req: NextRequest) {
     const { query, variables } = await req.json();
 
     if (rejectNotAllowedGraphqlOperations(query)) {
-      console.log('rejectNotAllowedGraphqlOperations');
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

@@ -1,10 +1,10 @@
 import { InsightsList } from './insights-list';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
-import { fetchInsights } from '@/graphql/helpers/fetch-insights';
+import { fetchInsightsServer } from '@/graphql/helpers/fetch-insights-server';
 
 export default async function InsightsPage() {
-  const { insights = [] } = await fetchInsights({ skip: 0, limit: 20 });
+  const { insights = [] } = await fetchInsightsServer({ skip: 0, limit: 20 });
 
   return (
     <>

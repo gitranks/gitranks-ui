@@ -48,7 +48,7 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
                 </div>
                 <Footer />
               </div>
-              {modal}
+              <Suspense fallback={null}>{modal}</Suspense>
               <Announcement />
               <Toaster richColors position="top-right" />
             </ThemeProvider>

@@ -56,7 +56,7 @@ const InsightsCarousel = () => {
     );
   }
 
-  if (insights?.length) {
+  if (!insights?.length) {
     return (
       <div className="flex w-full py-6 justify-center text-sm text-muted-foreground">
         We are reworking insights and we will have new insights soon.

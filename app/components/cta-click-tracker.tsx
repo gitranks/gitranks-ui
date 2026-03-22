@@ -2,13 +2,13 @@
 
 import { useEffect } from 'react';
 
-const TOKEN_QUERY_PARAM = 't';
-const TRACKED_TOKENS_KEY = 'tracked_cta_tokens_v1';
+const SHORT_ID_QUERY_PARAM = 't';
+const TRACKED_SHORT_IDS_KEY = 'tracked_cta_short_ids_v1';
 const MAX_TRACKED_TOKENS = 50;
 
-function getTrackedTokens(): string[] {
+function getTrackedShortIds(): string[] {
   try {
-    const raw = window.sessionStorage.getItem(TRACKED_TOKENS_KEY);
+    const raw = window.sessionStorage.getItem(TRACKED_SHORT_IDS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : [];
@@ -17,9 +17,9 @@ function getTrackedTokens(): string[] {
   }
 }
 
-function setTrackedTokens(tokens: string[]) {
+function setTrackedShortIds(tokens: string[]) {
   try {
-    window.sessionStorage.setItem(TRACKED_TOKENS_KEY, JSON.stringify(tokens.slice(-MAX_TRACKED_TOKENS)));
+    window.sessionStorage.setItem(TRACKED_SHORT_IDS_KEY, JSON.stringify(tokens.slice(-MAX_TRACKED_TOKENS)));
   } catch {
     // Ignore storage errors in private browsing modes.
   }
@@ -27,15 +27,15 @@ function setTrackedTokens(tokens: string[]) {
 
 function removeTrackingTokenFromUrl() {
   const url = new URL(window.location.href);
-  if (!url.searchParams.has(TOKEN_QUERY_PARAM)) {
+  if (!url.searchParams.has(SHORT_ID_QUERY_PARAM)) {
     return;
   }
-  url.searchParams.delete(TOKEN_QUERY_PARAM);
+  url.searchParams.delete(SHORT_ID_QUERY_PARAM);
   window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
 }
 
-async function sendClickLog(token: string) {
-  const payload = JSON.stringify({ token });
+async function sendClickLog(shortId: string) {
+  const payload = JSON.stringify({ shortId });
 
   if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
     const blob = new Blob([payload], { type: 'application/json' });
@@ -56,19 +56,19 @@ async function sendClickLog(token: string) {
 export function CtaClickTracker() {
   useEffect(() => {
     const url = new URL(window.location.href);
-    const token = url.searchParams.get(TOKEN_QUERY_PARAM);
-    if (!token) {
+    const shortId = url.searchParams.get(SHORT_ID_QUERY_PARAM);
+    if (!shortId) {
       return;
     }
 
-    const trackedTokens = getTrackedTokens();
-    if (trackedTokens.includes(token)) {
+    const trackedShortIds = getTrackedShortIds();
+    if (trackedShortIds.includes(shortId)) {
       removeTrackingTokenFromUrl();
       return;
     }
 
-    void sendClickLog(token);
-    setTrackedTokens([...trackedTokens, token]);
+    void sendClickLog(shortId);
+    setTrackedShortIds([...trackedShortIds, shortId]);
     removeTrackingTokenFromUrl();
   }, []);
 

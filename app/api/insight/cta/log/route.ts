@@ -3,9 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { signedFetch } from '@/lib/signed-fetch';
 
 export async function POST(req: NextRequest) {
-  const { token } = (await req.json()) as { token?: string };
-  if (!token) {
-    return NextResponse.json({ message: 'Token is required' }, { status: 400 });
+  const { shortId } = (await req.json()) as { shortId?: string };
+  if (!shortId) {
+    return NextResponse.json({ message: 'shortId is required' }, { status: 400 });
   }
 
   const forwardedFor = req.headers.get('x-forwarded-for');
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const response = await signedFetch('/insight/cta/log', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, ip, userAgent, referer }),
+    body: JSON.stringify({ shortId, ip, userAgent, referer }),
     cache: 'no-store',
   });
 

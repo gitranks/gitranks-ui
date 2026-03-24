@@ -17,7 +17,7 @@ export default async function InsightsPage() {
     <>
       <Header />
       <Page className="gap-4">
-        <h1 className="text-2xl font-semibold">Insights</h1>
+        <h1 className="text-2xl font-semibold">Social Media Posts</h1>
         <InsightsList initialInsights={insights} />
       </Page>
     </>

@@ -82,7 +82,7 @@ const InsightsCarousel = () => {
                   <div className="flex justify-between items-center gap-2 text-sm text-muted-foreground">
                     {insight.replies.length > 0 ? (
                       <Link href={`/insights/${insight.id}`} className="text-sm text-muted-foreground">
-                        Show {insight.replies.length} replies
+                        Details
                       </Link>
                     ) : (
                       <div />

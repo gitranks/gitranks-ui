@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { InsightDetailModal } from '@/app/components/insight-detail-modal';
+import { InsightDetailModal } from '@/components/insight/insight-detail-modal';
 import { fetchInsightServer } from '@/graphql/helpers/fetch-insights-server';
 
 type InsightModalPageProps = {

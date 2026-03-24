@@ -1,5 +1,6 @@
+import { InsightContainer } from './insight-container';
+import { InsightHeader } from './insight-header';
 import InsightText from './insight-text';
-import { Card, CardContent } from '@/components/ui/card';
 import type { InsightQuery, InsightsQuery } from '@/types/generated/graphql';
 
 type ListedInsightReply = InsightsQuery['insights'][number]['replies'][number];
@@ -17,11 +18,10 @@ export const InsightRepliesList = ({ replies }: InsightRepliesListProps) => {
   return (
     <div className="flex flex-col gap-3 ml-6">
       {replies.map((reply, index) => (
-        <Card key={index}>
-          <CardContent>
-            <InsightText insight={reply} />
-          </CardContent>
-        </Card>
+        <InsightContainer key={index}>
+          <InsightHeader createdAt={new Date(reply.createdAt)} socialPosts={reply.socialPosts} />
+          <InsightText insight={reply} />
+        </InsightContainer>
       ))}
     </div>
   );

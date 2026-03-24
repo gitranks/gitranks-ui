@@ -24,7 +24,10 @@ query Insights($skip: Int!, $limit: Int!) {
         mentions
         links
       }
+      createdAt
+      socialPosts
     }
+    socialPosts
   }
 }
 
@@ -54,6 +57,9 @@ query Insight($id: ID!) {
         mentions
         links
       }
+      createdAt
+      socialPosts
     }
+    socialPosts
   }
 }

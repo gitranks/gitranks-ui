@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { InsightPostCard } from '../components/insight-post-card';
+import { InsightPostCard } from '@/components/insight/insight-post-card';
 import { Button } from '@/components/ui/button';
 import { fetchInsightsClient } from '@/graphql/helpers/fetch-insights-client';
 import type { InsightsQuery } from '@/types/generated/graphql';

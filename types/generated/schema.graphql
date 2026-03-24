@@ -104,11 +104,14 @@ type InsightPost {
   id: ID!
   replies: [InsightReply!]!
   segments: [Segment!]!
+  socialPosts: JSON
 }
 
 type InsightReply {
+  createdAt: DateTime!
   entities: Entities
   segments: [Segment!]!
+  socialPosts: JSON
 }
 
 """

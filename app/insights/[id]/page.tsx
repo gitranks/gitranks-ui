@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { InsightDetailContent } from '@/app/components/insight-detail-content';
+import { InsightDetailContent } from '@/components/insight/insight-detail-content';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { fetchInsightServer } from '@/graphql/helpers/fetch-insights-server';

@@ -1,17 +1,18 @@
 import { Star, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import type { FC } from 'react';
 
-import { DEFAULT_LANGUAGE_COLOR, NOT_AVAILABLE } from '@/app/app.consts';
-import { UserRankProp } from '@/types/ranking.types';
-import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
-import { shortenCountryName } from '@/utils/country-name-shortener';
-import { getPercentileRank } from '@/utils/get-percentile-rank';
 import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '../../app/profile/[login]/components/profile-card';
 import { RankDelta } from '../rank-delta/rank-delta';
 import { NextTierThreshold } from './next-tier-threshold';
 import type { LanguageRankCardProps } from './rank-card.types';
 import { RankCardItem, RankCardPosition, RankCardTotalProfilesRanked } from './rank-card-item';
 import { TierValue } from './tier-value';
+import { DEFAULT_LANGUAGE_COLOR, NOT_AVAILABLE } from '@/app/app.consts';
+import { UserRankProp } from '@/types/ranking.types';
+import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
+import { shortenCountryName } from '@/utils/country-name-shortener';
+import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
+import { getPercentileRank } from '@/utils/get-percentile-rank';
 
 export const LanguageRankCard: FC<LanguageRankCardProps> = ({ language, country, isGlobalContext }) => {
   const { rankGlobal, rankCountry, tiersGlobal, tiersCountry, name, color, score } = language ?? {};
@@ -21,12 +22,12 @@ export const LanguageRankCard: FC<LanguageRankCardProps> = ({ language, country,
   const { s, sM } = ranks ?? {};
   const { notRanked, notAvailable, rankedCount, data } = tierData ?? {};
 
-  if (notRanked) {
+  if (notRanked || !name) {
     return null;
   }
 
   const hasData = !notRanked && !notAvailable && data !== undefined;
-  const rankingLink = `/language/${name}/${isGlobalContext ? 'global' : country}/1`;
+  const rankingLink = getLanguageRankingPath(name, isGlobalContext ? 'global' : (country ?? 'global'));
 
   const getCardContent = () => {
     const rankToDisplay = s || 0;

@@ -4,6 +4,7 @@ import { useParams, usePathname, useRouter } from 'next/navigation';
 import type { FC } from 'react';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 
 type LanguageCountrySelectProps = {
   countries: string[];
@@ -21,7 +22,7 @@ export const LanguageCountrySelect: FC<LanguageCountrySelectProps> = ({ value, c
     if (isSummaryPage) {
       router.push(`/languages/${newValue}/${orderBy}/1`);
     } else {
-      router.push(`/language/${language}/${newValue}/1`);
+      router.push(getLanguageRankingPath(String(language), newValue));
     }
   };
 

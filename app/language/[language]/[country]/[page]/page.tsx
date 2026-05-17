@@ -9,6 +9,7 @@ import { fetchCountryLanguageRankings } from '@/graphql/helpers/fetch-country-la
 import { fetchLanguageRankings } from '@/graphql/helpers/fetch-language-rankings';
 import type { GlobalRankingsQuery } from '@/types/generated/graphql';
 import { RankingTypeClient } from '@/types/ranking.types';
+import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 
 const ITEMS_PER_PAGE = 100;
 
@@ -22,7 +23,7 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
 
   const method = country === 'global' ? fetchLanguageRankings : fetchCountryLanguageRankings;
 
-  const page = parseInt(pageParam, 10);
+  const page = Number.parseInt(pageParam, 10);
   const offset = (page - 1) * ITEMS_PER_PAGE;
   const [data, countries] = await Promise.all([
     method({ language: languageName, country: countryName, offset }),
@@ -38,8 +39,8 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
         countries={countries}
       />
       <Pagination
-        prev={page > 1 ? `/language/${encodeURIComponent(languageName)}/${countryName}/${page - 1}` : undefined}
-        next={data?.length === ITEMS_PER_PAGE ? `/language/${encodeURIComponent(languageName)}/${countryName}/${page + 1}` : undefined}
+        prev={page > 1 ? getLanguageRankingPath(languageName, countryName, page - 1) : undefined}
+        next={data?.length === ITEMS_PER_PAGE ? getLanguageRankingPath(languageName, countryName, page + 1) : undefined}
       />
     </>
   );

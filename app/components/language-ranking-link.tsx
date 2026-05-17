@@ -4,6 +4,7 @@ import { DEFAULT_LANGUAGE_COLOR } from '../app.consts';
 import { Link } from '@/components/link/link';
 import { Card, CardContent } from '@/components/ui/card';
 import type { LanguageSummaryQuery } from '@/types/generated/graphql';
+import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 
 export const LanguageRankingLink = ({
   languageSummaries,
@@ -16,7 +17,11 @@ export const LanguageRankingLink = ({
         <div className="grid grid-cols-3 gap-1 grow">
           {languageSummaries.slice(2).map(({ language, languageData }) => {
             return (
-              <LinkNext key={language} href={`/language/${language}/global/1`} className="flex items-center gap-2">
+              <LinkNext
+                key={language}
+                href={getLanguageRankingPath(language, 'global')}
+                className="flex items-center gap-2"
+              >
                 <div
                   className="h-3 w-3 rounded-full"
                   style={{ backgroundColor: languageData?.color ?? DEFAULT_LANGUAGE_COLOR }}

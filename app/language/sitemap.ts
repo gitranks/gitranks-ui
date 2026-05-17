@@ -1,5 +1,6 @@
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchTopLanguages } from '@/graphql/helpers/top-languages';
+import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 
 export default async function sitemap() {
   const pagesToParse = 2;
@@ -13,7 +14,7 @@ export default async function sitemap() {
     const priority = 0.9 - (page / pagesToParse) * 0.5;
     return countryNames.flatMap((country) => {
       return languageNames.map((language) => ({
-        url: `${process.env.NEXT_PUBLIC_URI}/language/${language}/${country}/${page}`,
+        url: `${process.env.NEXT_PUBLIC_URI}${getLanguageRankingPath(language, country, page)}`,
         changeFrequency: 'monthly',
         priority,
       }));

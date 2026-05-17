@@ -2,6 +2,7 @@ import type { FC } from 'react';
 import { FiStar } from 'react-icons/fi';
 import { PiPackage } from 'react-icons/pi';
 
+import { LanguageCardStat } from './language-card-stat';
 import { DEFAULT_LANGUAGE_COLOR, LANGUAGE } from '@/app/app.consts';
 import { Link } from '@/components/link/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,8 +10,7 @@ import { UserCard } from '@/components/user-card/user-card';
 import type { CountryLanguageSummaryQuery, LanguageSummaryQuery } from '@/types/generated/graphql';
 import { formatBytes } from '@/utils/format-bytes';
 import { formatNumberShort } from '@/utils/format-number-short';
-
-import { LanguageCardStat } from './language-card-stat';
+import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 
 type LanguageCardProps = {
   data: LanguageSummaryQuery['languageSummary'][number] | CountryLanguageSummaryQuery['countryLanguageSummary'][number];
@@ -22,12 +22,12 @@ export const LanguageCard: FC<LanguageCardProps> = ({ data, country }) => {
   const { color } = languageData ?? {};
 
   return (
-    <Card className="flex-grow gap-4">
+    <Card className="grow gap-4">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full" style={{ backgroundColor: color || DEFAULT_LANGUAGE_COLOR }}></div>
-            <Link href={`/language/${language}/${country}/1`} prefetch={false}>
+            <Link href={getLanguageRankingPath(language, country ?? 'global')} prefetch={false}>
               {language}
             </Link>
           </div>

@@ -3,8 +3,11 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { SessionProvider } from 'next-auth/react';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import { Suspense, type ReactNode } from 'react';
 
+import { CtaClickTracker } from './components/cta-click-tracker';
 import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
+import { Announcement } from '@/components/announcement/announcement';
 import { Footer } from '@/components/footer/footer';
 import { ThemeProvider } from '@/components/theme-provider/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
@@ -19,7 +22,12 @@ export const metadata: Metadata = {
     'Explore rankings based on stars, contributions, and followers. Dive into dynamic leaderboards to see how you rank against developers worldwide and within your own country.',
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+type RootLayoutProps = {
+  children: ReactNode;
+  modal: ReactNode;
+};
+
+export default function RootLayout({ children, modal }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -33,10 +41,15 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           <NuqsAdapter>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
               <FlagEmojiPolyfill />
+              <CtaClickTracker />
               <div className="flex flex-col min-h-screen">
-                <div className="flex-grow">{children}</div>
+                <div className="grow">
+                  <Suspense fallback={null}>{children}</Suspense>
+                </div>
                 <Footer />
               </div>
+              <Suspense fallback={null}>{modal}</Suspense>
+              <Announcement />
               <Toaster richColors position="top-right" />
             </ThemeProvider>
           </NuqsAdapter>

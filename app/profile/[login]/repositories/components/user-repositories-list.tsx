@@ -1,9 +1,8 @@
 import type { FC } from 'react';
 
-import type { PageProfileRepositoriesQuery, Repository } from '@/types/generated/graphql';
-
 import { LoadMoreRepositories } from './load-more-repositories';
 import { RepositoryCard } from './repository-card';
+import type { PageProfileRepositoriesQuery, Repository } from '@/types/generated/graphql';
 
 type UserRepositoriesListProps = {
   repositories?: NonNullable<PageProfileRepositoriesQuery['user']>['repositories'] | null;

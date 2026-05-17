@@ -41,6 +41,7 @@ export type RankCardTotalValueProps = {
   score?: number | null;
   rankType: UserRankProp;
   login: string;
+  showLink?: boolean;
 };
 
 export type NextTierThresholdProps = {

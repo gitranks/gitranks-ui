@@ -1,7 +1,7 @@
 'use cache';
 
 import { startOfMonth } from 'date-fns';
-import { cacheLife } from 'next/dist/server/use-cache/cache-life';
+import { cacheLife } from 'next/cache';
 
 import { RANK_NAME } from '@/badge/badge.consts';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';

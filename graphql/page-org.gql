@@ -1,0 +1,24 @@
+query PageOrg($login: String!) {
+  organization(login: $login) {
+    login
+    name
+    rankOrg {
+      s
+      sM
+    }
+    githubId
+    avatarUrl
+    email
+    location
+    countryFlag
+    twitterUsername
+    websiteUrl
+    isVerified
+    githubCreatedAt
+    githubUpdatedAt
+    s
+    reposCount
+    usersCount
+    updatedAt
+  }
+}

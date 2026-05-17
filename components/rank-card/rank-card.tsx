@@ -1,6 +1,5 @@
 import type { FC } from 'react';
 
-import { RANK_DESCRIPTIONS } from '@/app/app.consts';
 import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '../../app/profile/[login]/components/profile-card';
 import { NextTierThreshold } from './next-tier-threshold';
 import { NotAvailableCardContent } from './not-available-card-content';
@@ -9,6 +8,7 @@ import type { RankCardProps } from './rank-card.types';
 import { RankCardItem } from './rank-card-item';
 import { RankedCardContent } from './ranked-card-content';
 import { TierValue } from './tier-value';
+import { RANK_DESCRIPTIONS } from '@/app/app.consts';
 
 export const RankCard: FC<RankCardProps> = (props) => {
   const { tierData, rankType, tiers, rankingName } = props;

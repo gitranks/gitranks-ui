@@ -86,29 +86,32 @@ type Entities {
   mentions: JSON
 }
 
-type Insight {
-  category: InsightCategory!
-  createdAt: DateTime!
-  data: JSON
-  entities: Entities
-  segments: [Segment!]!
-  text: String!
-  updatedAt: DateTime!
+enum InsightCategory {
+  COUNTRY_ANALYSIS
+  COUNTRY_TRENDS
+  LANGUAGE_ANALYSIS
+  LANGUAGE_TRENDS
+  ORG_SCORE_CHANGE
+  PROFILE_SCORE_CHANGE
+  SCORE_MILESTONE
+  TOP_STAR_GAINERS
 }
 
-enum InsightCategory {
-  COUNTRY_SCORE_PER_PROFILE
-  COUNTRY_TRENDS
-  DOMINATING_COUNTRY
-  DOMINATING_GLOBAL
-  HOT_SPOT
-  MIN_SCORE
-  MONTHLY_SCORE_CHANGE
-  RANKED_COUNT_GLOBAL
-  RANK_CHANGE
-  SCORE_MILESTONE
-  TIER_MILESTONE
-  UNBALANCED_PROFILE
+type InsightPost {
+  category: InsightCategory!
+  createdAt: DateTime!
+  entities: Entities
+  id: ID!
+  replies: [InsightReply!]!
+  segments: [Segment!]!
+  socialPosts: JSON
+}
+
+type InsightReply {
+  createdAt: DateTime!
+  entities: Entities
+  segments: [Segment!]!
+  socialPosts: JSON
 }
 
 """
@@ -145,8 +148,35 @@ enum LanguageSummaryOrder {
 
 type Organization {
   avatarUrl: String
-  login: String!
+  country: String
+  countryFlag: String
+  createdAt: DateTime!
+  email: String
+  githubCreatedAt: DateTime
+  githubId: ID!
+  githubUpdatedAt: DateTime
+  isVerified: Boolean
+  location: String
+  login: String
   name: String
+  rankOrg: RankOrgWithoutOrganization
+  reposCount: Int
+  s: Int
+  snapshots: JSON
+  twitterUsername: String
+  updatedAt: DateTime!
+  usersCount: Int
+  websiteUrl: String
+}
+
+type OrganizationBasic {
+  avatarUrl: String
+  country: String
+  isVerified: Boolean
+  location: String
+  login: String
+  name: String
+  s: Int
 }
 
 type ProfileForSitemap {
@@ -164,14 +194,20 @@ type Query {
   countrySummary(date: String, order: CountrySummaryOrder! = STARS): [CountrySummary!]!
   globalRankByLogin(login: String!): RankGlobal
   globalRankings(limit: Int! = 100, offset: Int! = 0, order: RankOrder! = STARS): [RankGlobal!]!
-  insights: [Insight!]
+
+  """Single top-level scheduled insight post with replies by id"""
+  insight(id: ID!): InsightPost
+
+  """
+  List of top-level scheduled insights (posts) with their replies, where scheduleFor <= now
+  """
+  insights(limit: Int! = 20, skip: Int! = 0): [InsightPost!]!
   languageRankings(language: String!, limit: Int! = 100, offset: Int! = 0): [RankLanguageWithUser!]!
   languageSummary(date: String, limit: Int! = 100, offset: Int! = 0, order: LanguageSummaryOrder! = SCORE): [LanguageSummary!]!
+  orgRankings(limit: Int! = 100, offset: Int! = 0): [RankOrg!]!
+  organization(login: String!): Organization
   profilesForSitemap: [ProfileForSitemap!]!
   rankTiersByName(name: String!): RankTier
-
-  """List of rank tiers for a user"""
-  rankTiersForLogin(login: String!): [RankTier!]
   user(login: String!): User
   users(logins: [String!]!): [User!]
 }
@@ -294,6 +330,23 @@ enum RankOrder {
   STARS
 }
 
+type RankOrg {
+  githubId: String!
+  organization: OrganizationBasic
+  s: Int
+  sD: Int
+  sM: Int
+  snapshots: JSON
+}
+
+type RankOrgWithoutOrganization {
+  githubId: String!
+  s: Int
+  sD: Int
+  sM: Int
+  snapshots: JSON
+}
+
 type RankTier {
   cTiers: [Tier!]!
   cUsers: Int!
@@ -359,6 +412,7 @@ type User {
   avatarUrl: String
   c: Int
   cD: Int
+  cLangs(limit: Int, offset: Int! = 0): [UserLanguage!]
   company: String
   contributedRepoCount: Int
   contributions(limit: Int, offset: Int! = 0): [Contribution!]
@@ -379,7 +433,6 @@ type User {
   githubServiceFetchedAt: DateTime
   githubUpdatedAt: DateTime
   isHireable: Boolean
-  languages(limit: Int, offset: Int! = 0): [UserLanguage!]
   location: String
   login: String!
   name: String
@@ -390,7 +443,8 @@ type User {
   repositoriesCount: Int
   s: Int
   sD: Int
-  snapshots: JSON
+  sLangs(limit: Int, offset: Int! = 0): [UserLanguage!]
+  snapshots(limit: Int, offset: Int! = 0): JSON
   socialAccounts: SocialAccount
   tiersCountry: RankTier
   tiersGlobal: RankTier
@@ -402,14 +456,15 @@ type User {
 type UserBasic {
   avatarUrl: String
   c: Int
+  cLangs: [UserLanguageBasic!]
   country: String
   f: Int
   followersCount: Int
   githubId: ID!
-  languages: [UserLanguageBasic!]
   location: String
   login: String!
   s: Int
+  sLangs: [UserLanguageBasic!]
 }
 
 enum UserFetchingStatus {
@@ -424,6 +479,7 @@ type UserLanguage {
   rankGlobal: RankLanguage
   score: Int!
   size: Float!
+  sources: [UserLanguageSource!]
   tiersCountry: RankTier
   tiersGlobal: RankTier
 }
@@ -433,6 +489,19 @@ type UserLanguageBasic {
   name: String!
   score: Int!
   size: Float!
+  sources: [UserLanguageSource!]
+}
+
+type UserLanguageSource {
+  githubId: String!
+  linesAdded: Int
+  linesRemoved: Int
+  name: String!
+  percentage: Float!
+  prsCount: Int
+  stargazerCount: Int!
+  url: String
+  year: Int
 }
 
 type UserWithLanguageScore {

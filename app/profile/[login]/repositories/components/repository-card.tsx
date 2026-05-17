@@ -11,6 +11,7 @@ import { RepositoryTopLanguage } from './repository-top-language';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Repository } from '@/types/generated/graphql';
+import { getRepoName } from '@/utils/repositories';
 
 type RepositoryCardProps = {
   repository?: Repository | null;
@@ -33,6 +34,7 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
 
   const { name, url, pushedAt, createdAt, stargazerCount, forkCount, releasesCount, isArchived } = repository;
 
+  const title = type === 'repository' ? name : getRepoName({ name: name ?? '', url });
   const titleUrl = type === 'repository' ? url : `${url}/pulls?q=is%3Apr+is%3Amerged+author%3A${login}`;
 
   const getMeta = () => {
@@ -57,7 +59,7 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
             rel="noopener noreferrer"
             className="whitespace-nowrap font-semibold"
           >
-            {name}
+            {title}
           </Link>
         </ProfileCardHeader>
 

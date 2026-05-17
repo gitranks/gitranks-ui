@@ -4,7 +4,7 @@ query PageProfileLanguages($login: String!, $isGlobalContext: Boolean! = true) {
     ...UserBaseFields
     ...UserFetchingStatus
     ...UserSeo
-    languages(limit: 10) {
+    sLangs(limit: 10) {
       name
       color
       size

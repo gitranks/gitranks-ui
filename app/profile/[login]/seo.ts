@@ -5,7 +5,7 @@ import { formatOrdinal } from '@/utils/format-ordinal';
 
 type Tab = 'overview' | 'ranks' | 'repositories' | 'languages';
 type DataType = NonNullable<PageProfileOverviewQuery['user']>;
-type LanguagesType = NonNullable<PageProfileLanguagesQuery['user']>['languages'];
+type LanguagesType = NonNullable<PageProfileLanguagesQuery['user']>['sLangs'];
 
 const clip = (t: string, max = 158) => {
   if (!t || t.length <= max) return t;
@@ -105,7 +105,7 @@ function buildDescription(tab: Tab, stats: DataType): string {
     case 'repositories':
       return buildRepositoriesDescription(stats);
     case 'languages':
-      return buildLanguagesDescription(stats?.languages);
+      return buildLanguagesDescription(stats?.sLangs);
   }
 }
 
@@ -214,7 +214,7 @@ function buildTabSpecificJsonLd(
         about: { '@type': 'Person', name, url: base },
         mainEntity: {
           '@type': 'ItemList',
-          itemListElement: ((stats.languages as LanguagesType) ?? []).slice(0, 3).map((l, i) => ({
+          itemListElement: ((stats.sLangs as LanguagesType) ?? []).slice(0, 3).map((l, i) => ({
             '@type': 'ListItem',
             position: i + 1,
             name: l.name,

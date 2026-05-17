@@ -3,8 +3,10 @@ import { memo } from 'react';
 import { Link } from '@/components/link/link';
 import { type InsightsQuery, SegmentType } from '@/types/generated/graphql';
 
+type InsightTextData = Pick<InsightsQuery['insights'][number], 'segments' | 'entities'>;
+
 type InsightTextProps = {
-  insight: NonNullable<InsightsQuery['insights']>[number];
+  insight: InsightTextData;
 };
 
 const InsightText: React.FC<InsightTextProps> = ({ insight }) => {
@@ -14,7 +16,7 @@ const InsightText: React.FC<InsightTextProps> = ({ insight }) => {
     if (!segment) return null;
 
     if (segment.type === SegmentType.Mention) {
-      const githubHandle = entities?.mentions[segment.entityKey!]?.handles?.github;
+      const githubHandle = entities?.mentions[segment.entityKey!]?.github;
       return (
         <Link
           key={`${segment.type}-${segment.entityKey}`}

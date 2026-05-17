@@ -38,8 +38,8 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
         countries={countries}
       />
       <Pagination
-        prev={page > 1 ? `/language/${languageName}/${countryName}/${page - 1}` : undefined}
-        next={data?.length === ITEMS_PER_PAGE ? `/language/${languageName}/${countryName}/${page + 1}` : undefined}
+        prev={page > 1 ? `/language/${encodeURIComponent(languageName)}/${countryName}/${page - 1}` : undefined}
+        next={data?.length === ITEMS_PER_PAGE ? `/language/${encodeURIComponent(languageName)}/${countryName}/${page + 1}` : undefined}
       />
     </>
   );

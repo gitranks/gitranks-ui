@@ -27,7 +27,7 @@ export const LanguageCard: FC<LanguageCardProps> = ({ data, country }) => {
         <CardTitle className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full" style={{ backgroundColor: color || DEFAULT_LANGUAGE_COLOR }}></div>
-            <Link href={getLanguageRankingPath(language, country ?? 'global')} prefetch={false}>
+            <Link href={getLanguageRankingPath(language, country ?? 'global')}>
               {language}
             </Link>
           </div>

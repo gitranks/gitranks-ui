@@ -50,7 +50,7 @@ function BadgeExample(props: Readonly<BadgeExampleProps>) {
   }, [parsed]);
 
   return (
-    <Link href={builderUrl as Route} aria-label={parsed.label ?? 'Open badge builder'}>
+    <Link href={builderUrl as Route} prefetch={false} aria-label={parsed.label ?? 'Open badge builder'}>
       <img src={src} alt={parsed.label ?? 'Badge example'} height={INLINE_BADGE_HEIGHT} decoding="async" />
     </Link>
   );

@@ -1,11 +1,11 @@
 import type { FC } from 'react';
 import { FiGitPullRequest, FiStar, FiUsers } from 'react-icons/fi';
 
-import type { CountrySummaryQuery } from '@/types/generated/graphql';
-import { formatNumberShort } from '@/utils/format-number-short';
 import { Link } from '../link/link';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { CountryCardStat } from './components/country-card-stat';
+import type { CountrySummaryQuery } from '@/types/generated/graphql';
+import { formatNumberShort } from '@/utils/format-number-short';
 
 const TOOLTIPS = {
   s: 'Stars on repos owned by developers from this country',
@@ -27,14 +27,11 @@ export const CountryCard: FC<{ countrySummary: CountrySummaryQuery['countrySumma
   } = countrySummary;
 
   return (
-    <Card className="flex-grow gap-4">
+    <Card className="grow gap-4">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           <div>
-            {flag}{' '}
-            <Link href={`/country/${countryName}/stars/1`} prefetch={false}>
-              {countryName}
-            </Link>
+            {flag} <Link href={`/country/${countryName}/stars/1`}>{countryName}</Link>
           </div>
           <div className="text-sm text-muted-foreground">{formatNumberShort(usersCount)} users</div>
         </CardTitle>

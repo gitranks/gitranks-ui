@@ -44,7 +44,9 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), 'bg-transparent')} asChild>
-            <Link href="/badge/gallery">Badges</Link>
+            <Link href="/badge/gallery" prefetch>
+              Badges
+            </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>
@@ -68,6 +70,7 @@ const ListItem: FC<ListItemProps> = ({ className, children, href }) => {
             className,
           )}
           href={href as Route}
+          prefetch
         >
           <div className="flex gap-2 items-center">{children}</div>
         </Link>

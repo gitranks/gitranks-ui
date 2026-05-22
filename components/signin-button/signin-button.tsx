@@ -30,7 +30,9 @@ export default function SigninButton() {
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem asChild>
-              <Link href={`/profile/${session?.user?.githubLogin}`}>Profile</Link>
+              <Link href={`/profile/${session?.user?.githubLogin}`} prefetch={false}>
+                Profile
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => signOut()}>Sign Out</DropdownMenuItem>
           </DropdownMenuContent>

@@ -61,7 +61,7 @@ export const LoginForm: FC<LoginFormProps> = ({ githubLogin = '', githubId }) =>
                     <>
                       We couldn&apos;t find this GitHub login in our database - check the spelling, and if it&apos;s
                       correct, visit the{' '}
-                      <Link href={`/profile/${githubLogin}`} className="underline">
+                      <Link href={`/profile/${githubLogin}`} prefetch={false} className="underline">
                         GitRanks profile page
                       </Link>{' '}
                       to fetch it from GitHub manually.

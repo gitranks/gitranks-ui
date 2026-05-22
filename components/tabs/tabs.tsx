@@ -21,7 +21,7 @@ export const Tab: FC<TabProps> = ({ href, children, exact, pathnames }) => {
   if (exact) {
     active = pathname === href;
   } else if (pathnames && pathnames.length > 0) {
-    active = pathnames.some((path) => pathname === path);
+    active = pathnames.includes(pathname);
   } else {
     active = pathname.startsWith(href);
   }
@@ -30,6 +30,7 @@ export const Tab: FC<TabProps> = ({ href, children, exact, pathnames }) => {
     <li className="me-2">
       <Link
         href={href as Route}
+        prefetch={false}
         className={cn('inline-block p-4 pt-0 border-b-2 rounded-t-lg', {
           'border-transparent hover:border-muted-foreground': !active,
           'border-foreground text-foreground font-semibold': active,

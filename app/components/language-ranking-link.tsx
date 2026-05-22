@@ -20,6 +20,7 @@ export const LanguageRankingLink = ({
               <LinkNext
                 key={language}
                 href={getLanguageRankingPath(language, 'global')}
+                prefetch={false}
                 className="flex items-center gap-2"
               >
                 <div

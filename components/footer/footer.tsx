@@ -16,7 +16,7 @@ export const Footer = () => {
         <Link href="https://bsky.app/profile/gitranks.bsky.social" target="_blank" rel="noopener noreferrer">
           <FaBluesky className="h-5 w-5 text-gray-500" />
         </Link>
-        <Link href="https://mastodon.social/@gitranks" target="_blank" rel="noopener noreferrer">
+        <Link href="https://mastodon.social/@github_pulse" target="_blank" rel="me noopener noreferrer">
           <FaMastodon className="h-5 w-5 text-gray-500" />
         </Link>
       </div>

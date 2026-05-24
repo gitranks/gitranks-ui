@@ -1,21 +1,33 @@
 'use server';
 
+import { ORIGINAL_USER_AGENT_HEADER } from '@/app/app.consts';
+
 import { signedFetch } from '../signed-fetch';
+
+type RequestOptions = {
+  revalidate?: number;
+  originalUserAgent?: string;
+};
 
 export async function request(
   query: string,
   variables?: Record<string, unknown>,
-  params?: { revalidate?: number },
+  options?: RequestOptions,
 ): Promise<{ data: unknown; status: number }> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'nextjs-build-phase': String(process.env.NEXT_PHASE === 'phase-production-build'),
+  };
+
+  if (options?.originalUserAgent) {
+    headers[ORIGINAL_USER_AGENT_HEADER] = options.originalUserAgent;
+  }
+
   const response = await signedFetch('/graphql', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Skip rate limit if custom header is present
-      'nextjs-build-phase': String(process.env.NEXT_PHASE === 'phase-production-build'),
-    },
+    headers,
     body: JSON.stringify({ query, variables }),
-    next: { revalidate: params?.revalidate },
+    next: { revalidate: options?.revalidate },
   });
 
   if (!response.ok) {

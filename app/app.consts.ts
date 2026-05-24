@@ -38,8 +38,6 @@ export const RANK_DESCRIPTIONS = {
   },
 };
 
-export const DEFAULT_LANGUAGE_COLOR = '#64748B';
-
 export const LANGUAGE = {
   description:
     'See which programming languages are the most popular worldwide. Browse detailed summaries by stars and code size - and dive into rankings for each language, globally or by country.',
@@ -51,3 +49,6 @@ export const LANGUAGE = {
       'How many users with at least one public repo with 5+ stars have this language in their public repositories.',
   },
 };
+
+export const DEFAULT_LANGUAGE_COLOR = '#64748B';
+export const ORIGINAL_USER_AGENT_HEADER = 'x-original-user-agent';

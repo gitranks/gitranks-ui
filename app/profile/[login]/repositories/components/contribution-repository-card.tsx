@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { type FC, useMemo } from 'react';
 
 import { RepositoryCard } from './repository-card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ type RepositoryCardProps = {
   login: string;
 };
 
-const PR_FETCH_LIMIT = 5;
+const PR_FETCH_LIMIT = 3;
 
 export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
   repository,
@@ -24,16 +24,19 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
   linesRemoved,
   login,
 }) => {
+  const badgeLabel = useMemo(
+    () =>
+      (prsCount ?? 0) > PR_FETCH_LIMIT
+        ? `${prsCount} PRs`
+        : `${mergedPrsCount} ${pluralize('PR', mergedPrsCount ?? 0)}`,
+    [prsCount, mergedPrsCount],
+  );
+
+  const showLinesChanged = useMemo(() => (linesAdded ?? 0) > 0 || (linesRemoved ?? 0) > 0, [linesAdded, linesRemoved]);
+
   if (!repository) {
     return null;
   }
-
-  // total PRs count is greater than PR_FETCH_LIMIT
-  // and merged PRs count is greater than half of PR_FETCH_LIMIT
-  const badgeLabel =
-    (prsCount ?? 0) > PR_FETCH_LIMIT && (mergedPrsCount ?? 0) >= PR_FETCH_LIMIT / 2
-      ? `~${prsCount} PRs`
-      : `${mergedPrsCount} ${pluralize('PR', mergedPrsCount ?? 0)}`;
 
   return (
     <RepositoryCard
@@ -41,8 +44,13 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
       repository={repository}
       meta={
         <Badge variant="secondary">
-          {badgeLabel} <span className="text-positive">+{linesAdded?.toLocaleString('en-US')}</span>
-          <span className="text-negative">-{linesRemoved?.toLocaleString('en-US')}</span>
+          {badgeLabel}{' '}
+          {showLinesChanged && (
+            <>
+              <span className="text-positive">+{linesAdded?.toLocaleString('en-US')}</span>
+              <span className="text-negative">-{linesRemoved?.toLocaleString('en-US')}</span>
+            </>
+          )}
         </Badge>
       }
       login={login}

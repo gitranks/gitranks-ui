@@ -83,7 +83,7 @@ export const ProfileTimeline: FC<ProfileTimelineProps> = ({ timeline, firstSeenA
     return null;
   }
 
-  const sortedTimeline = timeline.sort((a, b) => compareDesc(parseISO(a.createdAt), parseISO(b.createdAt)));
+  const sortedTimeline = timeline.toSorted((a, b) => compareDesc(parseISO(a.createdAt), parseISO(b.createdAt)));
 
   return (
     <div className="flex flex-col gap-3 max-w-2xl">

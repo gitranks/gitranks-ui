@@ -32,7 +32,10 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
     [prsCount, mergedPrsCount],
   );
 
-  const showLinesChanged = useMemo(() => (linesAdded ?? 0) > 0 || (linesRemoved ?? 0) > 0, [linesAdded, linesRemoved]);
+  const showLinesChanged = useMemo(
+    () => (prsCount ?? 0) <= PR_FETCH_LIMIT && (mergedPrsCount ?? 0) > 0,
+    [prsCount, mergedPrsCount],
+  );
 
   if (!repository) {
     return null;

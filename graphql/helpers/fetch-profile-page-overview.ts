@@ -9,7 +9,6 @@ export const fetchProfilePageOverview = async (login: string, context: string = 
 
   const isGlobalContext = context === 'global';
 
-  console.log('fetchProfilePageOverview', login);
   const { user } = (await graphqlDirect(PageProfileOverviewDocument, { login, isGlobalContext })) ?? {};
 
   return user;

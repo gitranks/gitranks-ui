@@ -1,13 +1,70 @@
+# Search engines we want indexed (Google ignores Crawl-delay)
 User-agent: Googlebot
 Allow: /
+Disallow: /api/
+Disallow: /badge/
 
 User-agent: Bingbot
+Crawl-delay: 5
 Allow: /
+Disallow: /api/
+Disallow: /badge/
 
-# Generic rule for everyone else
+User-agent: DuckDuckBot
+Crawl-delay: 5
+Allow: /
+Disallow: /api/
+Disallow: /badge/
+
+User-agent: Applebot
+Crawl-delay: 10
+Allow: /
+Disallow: /api/
+Disallow: /badge/
+
+User-agent: YandexBot
+Crawl-delay: 10
+Allow: /
+Disallow: /api/
+Disallow: /badge/
+
+# SEO tooling — keep allowed, but crawl slowly
+User-agent: AhrefsBot
+Crawl-delay: 30
+Allow: /
+Disallow: /api/
+Disallow: /badge/
+
+# Scrapers / noisy bots — do not crawl (also blocked at Cloudflare WAF)
+User-agent: SleepBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: Amzn-SearchBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: SemrushBot-BA
+Disallow: /
+
+User-agent: ShapBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: Claude-SearchBot
+Disallow: /
+
+# Everyone else
 User-agent: *
 Crawl-delay: 10
 Disallow: /api/
+Disallow: /badge/
 Allow: /
 
 Sitemap: https://gitranks.com/profile/_/sitemap.xml

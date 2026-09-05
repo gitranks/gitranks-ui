@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     const originalUserAgent = req.headers.get(ORIGINAL_USER_AGENT_HEADER) ?? req.headers.get('user-agent') ?? undefined;
-    const { data, status } = await request(query, variables, { originalUserAgent });
+    const { data, status } = await request(query, variables, { originalUserAgent, source: 'client' });
 
     return NextResponse.json(data, { status });
   } catch {

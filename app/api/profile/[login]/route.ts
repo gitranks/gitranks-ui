@@ -14,14 +14,18 @@ export const POST = auth(async function POST(req: AuthRequest, { params }) {
   const { login } = await params;
   const { user } = req.auth;
 
-  const response = await signedFetch('/user/fetch', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userLogin: user.githubLogin,
-      loginToFetch: login,
-    }),
-  });
+  const response = await signedFetch(
+    '/user/fetch',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userLogin: user.githubLogin,
+        loginToFetch: login,
+      }),
+    },
+    'client',
+  );
 
   const responseData = await response.json();
 

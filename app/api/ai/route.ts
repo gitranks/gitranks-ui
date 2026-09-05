@@ -9,11 +9,15 @@ export type AuthRequest = NextRequest & { auth: Session | null };
 export const POST = auth(async function POST(_req: AuthRequest, { params }) {
   const { login } = await params;
 
-  const response = await signedFetch('/user/generate-description', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ login }),
-  });
+  const response = await signedFetch(
+    '/user/generate-description',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ login }),
+    },
+    'client',
+  );
 
   const responseData = await response.json();
 

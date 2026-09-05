@@ -1,12 +1,13 @@
 import { print } from 'graphql';
 
+import type { RequestSource } from '../signed-fetch';
 import { request } from './request';
 import type DocumentNode from '@/types/typed-document-node';
 
 export const graphqlDirect = async <TData, TVariables extends Record<string, unknown>>(
   document: DocumentNode<TData, TVariables>,
   variables?: TVariables,
-  params?: { revalidate?: number },
+  params?: { revalidate?: number; source?: RequestSource },
 ): Promise<TData> => {
   const query = print(document);
   const { data } = await request(query, variables, params);

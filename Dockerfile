@@ -24,6 +24,10 @@ ENV INTERNAL_JWT_SECRET=$INTERNAL_JWT_SECRET
 ARG URI_GITRANKS
 ENV URI_GITRANKS=$URI_GITRANKS
 
+# Build stage only; not present in the runtime image.
+ARG CF_BUILD_BYPASS_TOKEN
+ENV CF_BUILD_BYPASS_TOKEN=$CF_BUILD_BYPASS_TOKEN
+
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

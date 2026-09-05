@@ -13,12 +13,16 @@ export async function POST(req: NextRequest) {
   const userAgent = req.headers.get('user-agent') || undefined;
   const referer = req.headers.get('referer') || undefined;
 
-  const response = await signedFetch('/insight/cta/log', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ shortId, ip, userAgent, referer }),
-    cache: 'no-store',
-  });
+  const response = await signedFetch(
+    '/insight/cta/log',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shortId, ip, userAgent, referer }),
+      cache: 'no-store',
+    },
+    'client',
+  );
 
   if (!response.ok) {
     return NextResponse.json({ logged: false }, { status: response.status });

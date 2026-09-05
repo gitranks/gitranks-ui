@@ -1,10 +1,3 @@
-import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { BadgeContext } from '@/types/badge.types';
-import { BadgeProfileWithRanksDocument, BadgeTiersDocument } from '@/types/generated/graphql';
-import { UserRankProp } from '@/types/ranking.types';
-import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
-import type { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
-
 import {
   InvalidCountryError,
   InvalidScoreError,
@@ -15,13 +8,23 @@ import {
 import type { BadgeFetchedData, BadgeV2Params } from './badge.types';
 import { BADGE_META_TO_LOAD_TIERS, BADGE_TYPES_TO_LOAD_TIERS } from './templates/inline/inline.consts';
 import { getLatestSnapshot } from './utils/get-latest-snapshot';
+import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { BadgeContext } from '@/types/badge.types';
+import { BadgeProfileWithRanksDocument, BadgeTiersDocument } from '@/types/generated/graphql';
+import { UserRankProp } from '@/types/ranking.types';
+import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
+import type { ProfileTierType } from '@/utils/calculate-tiers/calculate-tiers.types';
 
 export const fetchProfileWithRanks = async (login: string, context: BadgeContext) => {
-  const { user } = await graphqlDirect(BadgeProfileWithRanksDocument, {
-    login,
-    includeRankGlobal: context === BadgeContext.Global,
-    includeRankCountry: context === BadgeContext.Country,
-  });
+  const { user } = await graphqlDirect(
+    BadgeProfileWithRanksDocument,
+    {
+      login,
+      includeRankGlobal: context === BadgeContext.Global,
+      includeRankCountry: context === BadgeContext.Country,
+    },
+    { source: 'badge' },
+  );
 
   return user;
 };
@@ -35,12 +38,16 @@ export const fetchTiers = async (params: BadgeV2Params, country?: string | null)
 
   const tiersName = context === BadgeContext.Global ? 'global' : country!;
 
-  const { rankTiersByName } = await graphqlDirect(BadgeTiersDocument, {
-    tiersName,
-    includeSTiers: rankingProp === UserRankProp.s,
-    includeCTiers: rankingProp === UserRankProp.c,
-    includeFTiers: rankingProp === UserRankProp.f,
-  });
+  const { rankTiersByName } = await graphqlDirect(
+    BadgeTiersDocument,
+    {
+      tiersName,
+      includeSTiers: rankingProp === UserRankProp.s,
+      includeCTiers: rankingProp === UserRankProp.c,
+      includeFTiers: rankingProp === UserRankProp.f,
+    },
+    { source: 'badge' },
+  );
 
   const tiers = rankTiersByName?.[`${rankingProp}Tiers`];
 

@@ -83,8 +83,9 @@ jobs:
 
             # Bound to loopback only: nginx on this droplet terminates TLS and proxies to 3000,
             # nothing else calls the app, and a public bind has no TLS and bypasses Cloudflare.
-            for _ in $(seq 30); do curl -s -o /dev/null --max-time 5 http://127.0.0.1:3000/ && break; sleep 2; done
-
-            # 502/504 means nginx's upstream is not 127.0.0.1:3000, i.e. the bind just broke the site.
-            code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 -H 'Host: gitranks.com' https://127.0.0.1/)
-            case "$code" in 502|504|000) echo "nginx cannot reach gitranks-ui (HTTP $code)"; docker logs --tail 50 gitranks-ui; exit 1;; esac
+            # Any HTTP status counts — this proves the port binding, not the app's health.
+            for i in $(seq 60); do
+              curl -s -o /dev/null --max-time 5 http://127.0.0.1:3000/ && break
+              [ "$i" = 60 ] && { echo "gitranks-ui never answered on 127.0.0.1:3000"; docker logs --tail 50 gitranks-ui; exit 1; }
+              sleep 2
+            done

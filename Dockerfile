@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:23-alpine AS base
 
 # For some reason nextjs tries to run the /lib/mongo-client.ts file at build time
@@ -18,22 +19,22 @@ RUN corepack enable && corepack prepare pnpm@10 --activate
 RUN pnpm i --frozen-lockfile
 
 FROM base AS builder
-ARG INTERNAL_JWT_SECRET
-ENV INTERNAL_JWT_SECRET=$INTERNAL_JWT_SECRET
-
 ARG URI_GITRANKS
 ENV URI_GITRANKS=$URI_GITRANKS
-
-# Build stage only; not present in the runtime image.
-ARG CF_BUILD_BYPASS_TOKEN
-ENV CF_BUILD_BYPASS_TOKEN=$CF_BUILD_BYPASS_TOKEN
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm install -g corepack@latest
 RUN corepack enable && corepack prepare pnpm@10 --activate
-RUN pnpm build
+
+# Secrets are mounted on a tmpfs and assigned inline so they reach `pnpm build`
+# (and its children) without being written into any image layer.
+RUN --mount=type=secret,id=internal_jwt_secret \
+    --mount=type=secret,id=cf_build_bypass_token \
+    INTERNAL_JWT_SECRET="$(cat /run/secrets/internal_jwt_secret)" \
+    CF_BUILD_BYPASS_TOKEN="$(cat /run/secrets/cf_build_bypass_token)" \
+    pnpm build
  
 FROM base AS runner
 WORKDIR /app

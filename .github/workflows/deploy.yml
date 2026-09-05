@@ -46,9 +46,12 @@ jobs:
           tags: ghcr.io/gitranks/gitranks-ui:latest
           build-args: |
             NEXT_PUBLIC_URI=${{ vars.NEXT_PUBLIC_URI }}
-            INTERNAL_JWT_SECRET=${{ secrets.INTERNAL_JWT_SECRET }}
             URI_GITRANKS=${{ secrets.URI_GITRANKS_BUILD }}
-            CF_BUILD_BYPASS_TOKEN=${{ secrets.CF_BUILD_BYPASS_TOKEN }}
+          # Build-time credentials go through BuildKit secrets, never build-args,
+          # so they are not persisted in image layers or the build cache.
+          secrets: |
+            internal_jwt_secret=${{ secrets.INTERNAL_JWT_SECRET }}
+            cf_build_bypass_token=${{ secrets.CF_BUILD_BYPASS_TOKEN }}
 
       # 4. SSH to droplet and deploy
       - name: SSH to droplet and deploy

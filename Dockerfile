@@ -29,9 +29,10 @@ RUN npm install -g corepack@latest
 RUN corepack enable && corepack prepare pnpm@10 --activate
 
 # Secrets are mounted on a tmpfs and assigned inline so they reach `pnpm build`
-# (and its children) without being written into any image layer.
-RUN --mount=type=secret,id=internal_jwt_secret \
-    --mount=type=secret,id=cf_build_bypass_token \
+# (and its children) without being written into any image layer. required=true
+# fails the build outright rather than letting it succeed with empty values.
+RUN --mount=type=secret,id=internal_jwt_secret,required=true \
+    --mount=type=secret,id=cf_build_bypass_token,required=true \
     INTERNAL_JWT_SECRET="$(cat /run/secrets/internal_jwt_secret)" \
     CF_BUILD_BYPASS_TOKEN="$(cat /run/secrets/cf_build_bypass_token)" \
     pnpm build

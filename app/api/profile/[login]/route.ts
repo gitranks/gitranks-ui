@@ -25,6 +25,7 @@ export const POST = auth(async function POST(req: AuthRequest, { params }) {
       }),
     },
     'client',
+    user.githubLogin,
   );
 
   const responseData = await response.json();

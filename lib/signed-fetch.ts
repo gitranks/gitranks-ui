@@ -2,8 +2,6 @@
 
 import jwt from 'jsonwebtoken';
 
-import { auth } from '@/auth';
-
 /** Which surface issued the call, so the API can bucket traffic. Defaults to page renders. */
 export type RequestSource = 'ssr' | 'client' | 'badge';
 
@@ -17,15 +15,21 @@ const isBuildPhase = () => process.env.NEXT_PHASE === 'phase-production-build';
 /** Sent during `next build` only; see internal deployment notes. */
 const CF_BUILD_BYPASS_HEADER = 'x-gitranks-build';
 
-const resolveClaims = async (source: RequestSource): Promise<InternalClaims> => {
+const resolveClaims = async (source: RequestSource, githubLogin?: string): Promise<InternalClaims> => {
   if (isBuildPhase()) {
     return { source: 'build' };
+  }
+
+  if (githubLogin) {
+    return { source, githubLogin };
   }
 
   const claims: InternalClaims = { source };
 
   // Throws outside a request scope (e.g. inside "use cache"), which is expected for ssr renders.
   try {
+    // Imported lazily so module init doesn't open the auth Mongo connection during `next build`.
+    const { auth } = await import('@/auth');
     const session = await auth();
     if (session?.user?.githubLogin && !session.error) claims.githubLogin = session.user.githubLogin;
   } catch {
@@ -35,8 +39,13 @@ const resolveClaims = async (source: RequestSource): Promise<InternalClaims> => 
   return claims;
 };
 
-export async function signedFetch(path: string, init: RequestInit = {}, source: RequestSource = 'ssr') {
-  const claims = await resolveClaims(source);
+export async function signedFetch(
+  path: string,
+  init: RequestInit = {},
+  source: RequestSource = 'ssr',
+  githubLogin?: string,
+) {
+  const claims = await resolveClaims(source, githubLogin);
   const token = jwt.sign(claims, process.env.INTERNAL_JWT_SECRET!, { expiresIn: '5m' });
 
   const headers = new Headers(init.headers);

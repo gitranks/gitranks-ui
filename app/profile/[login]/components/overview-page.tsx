@@ -13,6 +13,7 @@ import { OverviewCardsContainer } from './overview-cards/overview-cards';
 import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { OwnProjectsCard } from './overview-cards/own-projects-card';
+import { ProfileBadgesSection } from './profile-badges-section';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { Link } from '@/components/link/link';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
@@ -101,6 +102,8 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
       )}
 
       {!!timeline?.length && <ProfileTimeline timeline={timeline} firstSeenAt={firstSeenAt} />}
+
+      <ProfileBadgesSection login={login} />
 
       <MessengerIntegration login={login} />
     </LayoutLeftColumn>

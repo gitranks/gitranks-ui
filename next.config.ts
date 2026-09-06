@@ -17,6 +17,20 @@ const nextConfig: NextConfig = {
   },
   skipTrailingSlashRedirect: true,
   typedRoutes: true,
+  // satori/resvg load WASM/native binaries by filesystem path; bundling breaks that under Turbopack.
+  serverExternalPackages: ['@resvg/resvg-js', 'satori', 'harfbuzzjs', 'yoga-wasm-web'],
+  async redirects() {
+    return [
+      // Legacy sitemap locations. The old `app/**/sitemap.ts` routes answered on every
+      // dynamic segment, not just the `_` placeholder advertised in robots.txt, so match
+      // any segment — crawlers may have discovered `/by/stars/sitemap.xml` and friends.
+      { source: '/profile/:login/sitemap.xml', destination: '/sitemaps/profiles/sitemap.xml', permanent: true },
+      { source: '/by/:rankingType/sitemap.xml', destination: '/sitemaps/rankings/sitemap.xml', permanent: true },
+      { source: '/country/sitemap.xml', destination: '/sitemaps/countries/sitemap.xml', permanent: true },
+      { source: '/language/sitemap.xml', destination: '/sitemaps/languages/sitemap.xml', permanent: true },
+      { source: '/orgs/sitemap.xml', destination: '/sitemaps/orgs/sitemap.xml', permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

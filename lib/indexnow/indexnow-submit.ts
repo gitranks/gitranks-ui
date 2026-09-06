@@ -6,7 +6,8 @@ import { parseStringPromise } from 'xml2js';
 
 const INDEXNOW_API_KEY = process.env.INDEXNOW_API_KEY!;
 const host = 'gitranks.com';
-const sitemaps = ['sitemap.xml', 'country/sitemap.xml', 'by/type/sitemap.xml', 'profile/login/sitemap.xml'] as const;
+/** Discovery entry point only — the index expands to child sitemaps. */
+const sitemaps = ['sitemap.xml'] as const;
 
 /* ---------- HTTP helpers ---------- */
 async function fetchJson<T>(url: string): Promise<T> {
@@ -39,7 +40,19 @@ async function collectUrlsFromSitemap(sitemapUrl: string): Promise<string[]> {
   // <urlset>
   if (parsed.urlset?.url) {
     const items = Array.isArray(parsed.urlset.url) ? parsed.urlset.url : [parsed.urlset.url];
-    return items.map((u: { loc?: string }) => u.loc).filter(Boolean);
+    const locs: string[] = [];
+    for (const u of items) {
+      if (u?.loc) locs.push(u.loc);
+      // Next.js sitemap image extension: <image:image><image:loc>…</image:loc>
+      const images = u?.['image:image'] ?? u?.image;
+      if (!images) continue;
+      const imageItems = Array.isArray(images) ? images : [images];
+      for (const img of imageItems) {
+        const imageLoc = img?.['image:loc'] ?? img?.loc;
+        if (typeof imageLoc === 'string') locs.push(imageLoc);
+      }
+    }
+    return locs;
   }
   return [];
 }
@@ -151,17 +164,16 @@ async function main() {
   await preflightKey(keyLocation, INDEXNOW_API_KEY);
 
   console.log('\nCollecting URLs from sitemaps...');
+  // Badge PNGs already arrive as <image:loc> entries in the profiles sitemap, so there is
+  // nothing extra to expand here. The .svg variants are deliberately not submitted: they
+  // are not in any sitemap and Image Search does not index SVG.
   const allUrlsRaw = await collectAllUrlsFromSitemaps(sitemapUrls);
 
   // (Optional) guard: only submit URLs for this host
   const allowedPrefixes = [`https://${normalizedHost}/`, `http://${normalizedHost}/`];
   const allUrls = allUrlsRaw.filter((u) => allowedPrefixes.some((p) => u.startsWith(p)));
-  const dropped = allUrlsRaw.length - allUrls.length;
-  if (dropped > 0) {
-    console.warn(`Filtered out ${dropped} URL(s) not matching host ${normalizedHost}`);
-  }
 
-  console.log(`Found ${allUrls.length} URLs`);
+  console.log(`Found ${allUrls.length} URLs (pages + badge images)`);
   if (allUrls.length === 0) {
     console.error('No URLs found. Check your sitemaps/host.');
     process.exit(1);

@@ -164,7 +164,18 @@ const getTextByParams = async ({ login, params }: BadgeV2ServiceProps) => {
   }
 };
 
-export async function renderInlineBadge(props: BadgeV2ServiceProps) {
+export type InlineBadgeResult = {
+  svg: string;
+  /** Set when the badge renders the ERROR state instead of real data. */
+  error?: string;
+};
+
+/**
+ * Renders the badge and reports whether it fell back to the ERROR state.
+ * Callers that must not serve an error image (crawlable canonical badges)
+ * should branch on `error`; `renderInlineBadge` keeps the legacy svg-only shape.
+ */
+export async function renderInlineBadgeResult(props: BadgeV2ServiceProps): Promise<InlineBadgeResult> {
   const { labelBgColor, valueBgColor, cornerStyle } = props.params;
 
   const parts = await getTextByParams(props);
@@ -172,17 +183,19 @@ export async function renderInlineBadge(props: BadgeV2ServiceProps) {
   let label: string | undefined;
   let value: string;
   let meta: string | undefined;
+  let error: string | undefined;
 
   if ('error' in parts) {
     label = 'ERROR';
     value = parts.error;
+    error = parts.error;
   } else {
     label = parts.label;
     value = parts.value;
     meta = parts.meta;
   }
 
-  return satori(
+  const svg = await satori(
     <BadgeInline
       label={label}
       value={value}
@@ -196,4 +209,11 @@ export async function renderInlineBadge(props: BadgeV2ServiceProps) {
       height: INLINE_BADGE_HEIGHT,
     }),
   );
+
+  return { svg, error };
+}
+
+export async function renderInlineBadge(props: BadgeV2ServiceProps): Promise<string> {
+  const { svg } = await renderInlineBadgeResult(props);
+  return svg;
 }

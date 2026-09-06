@@ -1,5 +1,6 @@
 'use cache';
 
+import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { Separator } from '@/components/ui/separator';
@@ -10,6 +11,18 @@ import { BadgeForm } from './components/badge-form';
 import { IntegrationCode } from './components/integration-code';
 import { LoginForm } from './components/login-form';
 import { Preview } from './components/preview';
+
+/**
+ * Every `/badge/builder/<login>` renders the same tool with a prefilled login, so they
+ * all point at the bare builder. robots.txt blocks the sub-paths; this is the backstop
+ * for any that were already discovered.
+ */
+// async: the file-level `use cache` directive requires it.
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    alternates: { canonical: '/badge/builder' },
+  };
+}
 
 export default async function Badge({ params }: PageProps<'/badge/builder/[[...login]]'>) {
   cacheLife('hours');

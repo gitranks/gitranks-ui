@@ -1,39 +1,41 @@
+# `/badge/builder/` blocks only the thin per-login builder pages;
+# the bare `/badge/builder` and `/badge/gallery` stay crawlable.
 # Search engines we want indexed (Google ignores Crawl-delay)
 User-agent: Googlebot
 Allow: /
 Disallow: /api/
-Disallow: /badge/
+Disallow: /badge/builder/
 
 User-agent: Bingbot
 Crawl-delay: 5
 Allow: /
 Disallow: /api/
-Disallow: /badge/
+Disallow: /badge/builder/
 
 User-agent: DuckDuckBot
 Crawl-delay: 5
 Allow: /
 Disallow: /api/
-Disallow: /badge/
+Disallow: /badge/builder/
 
 User-agent: Applebot
 Crawl-delay: 10
 Allow: /
 Disallow: /api/
-Disallow: /badge/
+Disallow: /badge/builder/
 
 User-agent: YandexBot
 Crawl-delay: 10
 Allow: /
 Disallow: /api/
-Disallow: /badge/
+Disallow: /badge/builder/
 
 # SEO tooling — keep allowed, but crawl slowly
 User-agent: AhrefsBot
 Crawl-delay: 30
 Allow: /
 Disallow: /api/
-Disallow: /badge/
+Disallow: /badge/builder/
 
 # Scrapers / noisy bots — do not crawl (also blocked at Cloudflare WAF)
 User-agent: SleepBot
@@ -64,8 +66,7 @@ Disallow: /
 User-agent: *
 Crawl-delay: 10
 Disallow: /api/
-Disallow: /badge/
+Disallow: /badge/builder/
 Allow: /
 
-Sitemap: https://gitranks.com/profile/_/sitemap.xml
-Sitemap: https://gitranks.com/by/_/sitemap.xml
+Sitemap: https://gitranks.com/sitemap.xml

@@ -7,9 +7,6 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   // redefine the stock 'hours' profile in dev so its TTL = 0
   cacheLife: isDev ? { hours: { stale: 0, revalidate: 1, expire: 1 } } : undefined,
-  experimental: {
-    useCache: true,
-  },
   images: {
     remotePatterns: [{ protocol: 'https', hostname: 'avatars.githubusercontent.com' }],
     imageSizes: [16, 20, 24, 32, 40],

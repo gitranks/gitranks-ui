@@ -1,10 +1,18 @@
-import { notFound } from 'next/navigation';
 import type { NextRequest } from 'next/server';
 
 import { parseCanonicalBadgeFile } from '@/badge/canonical-badge';
 import { renderCanonicalBadge } from '@/badge/render-canonical-badge';
 
 type Props = { params: Promise<{ login: string; file: string }> };
+
+/** Badge data moves at most daily; keep it long at the edge, short in the browser. */
+const BADGE_CACHE_CONTROL = 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800';
+
+/**
+ * Cache misses at the edge too — otherwise every bogus login costs a GraphQL
+ * round-trip plus a satori (and resvg) render on origin.
+ */
+const NOT_FOUND_CACHE_CONTROL = 'public, max-age=300, s-maxage=86400';
 
 function decodeLoginParam(rawLogin: string): string | null {
   try {
@@ -15,24 +23,34 @@ function decodeLoginParam(rawLogin: string): string | null {
   }
 }
 
+function badgeNotFound(): Response {
+  return new Response('Badge not found', {
+    status: 404,
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': NOT_FOUND_CACHE_CONTROL,
+    },
+  });
+}
+
 export async function GET(_req: NextRequest, { params }: Props) {
   const { login: rawLogin, file } = await params;
   const login = decodeLoginParam(rawLogin);
   const parsed = parseCanonicalBadgeFile(file);
 
   if (!parsed || !login) {
-    notFound();
+    return badgeNotFound();
   }
 
   const result = await renderCanonicalBadge(login, parsed.variant, parsed.format);
   if (!result) {
-    notFound();
+    return badgeNotFound();
   }
 
-  return new Response(result.body instanceof Uint8Array ? Buffer.from(result.body) : result.body, {
+  return new Response(result.body, {
     headers: {
       'Content-Type': result.contentType,
-      'Cache-Control': 'public, max-age=300, s-maxage=300',
+      'Cache-Control': BADGE_CACHE_CONTROL,
     },
   });
 }

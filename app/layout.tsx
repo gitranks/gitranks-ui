@@ -16,7 +16,10 @@ import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const metadataBase = process.env.NEXT_PUBLIC_URI ? new URL(process.env.NEXT_PUBLIC_URI) : undefined;
+
 export const metadata: Metadata = {
+  metadataBase,
   title: 'GitRanks · GitHub Profile Analytics & Rankings',
   description:
     'Explore rankings based on stars, contributions, and followers. Dive into dynamic leaderboards to see how you rank against developers worldwide and within your own country.',

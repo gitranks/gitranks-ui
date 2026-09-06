@@ -1,11 +1,17 @@
+import { startOfMonth } from 'date-fns';
+
 import { SITEMAP_SEGMENTS, type SitemapSegment } from '@/lib/sitemap/sitemap.consts';
-import { absoluteSitemapUrl, getSitemapBaseUrl } from '@/lib/sitemap/sitemap-url';
+import { absoluteSitemapUrl } from '@/lib/sitemap/sitemap-url';
 
 export function childSitemapLoc(segment: SitemapSegment): string {
   return absoluteSitemapUrl(`/sitemaps/${segment}/sitemap.xml`);
 }
 
-export function buildSitemapIndexXml(lastModified = new Date()): string {
+/**
+ * `lastmod` must reflect real content change. Stamping request time on every fetch
+ * makes crawlers distrust the signal, so anchor it to the month like the child sitemaps.
+ */
+export function buildSitemapIndexXml(lastModified = startOfMonth(new Date())): string {
   const lastmod = lastModified.toISOString();
   const entries = SITEMAP_SEGMENTS.map(
     (segment) => `  <sitemap>
@@ -27,9 +33,7 @@ export function listChildSitemapUrls(): string[] {
 }
 
 export function sitemapIndexResponse(): Response {
-  // Touch base URL early so misconfig fails loudly in the index route.
-  getSitemapBaseUrl();
-
+  // buildSitemapIndexXml resolves the base URL per loc and throws on misconfig.
   return new Response(buildSitemapIndexXml(), {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',

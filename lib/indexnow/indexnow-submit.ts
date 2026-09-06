@@ -4,8 +4,6 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { parseStringPromise } from 'xml2js';
 
-import { CANONICAL_BADGE_VARIANTS } from '../../badge/canonical-badge';
-
 const INDEXNOW_API_KEY = process.env.INDEXNOW_API_KEY!;
 const host = 'gitranks.com';
 /** Discovery entry point only — the index expands to child sitemaps. */
@@ -57,27 +55,6 @@ async function collectUrlsFromSitemap(sitemapUrl: string): Promise<string[]> {
     return locs;
   }
   return [];
-}
-
-function expandCanonicalBadgeUrlsFromProfiles(pageUrls: string[], siteHost: string): string[] {
-  const prefix = `https://${siteHost}/profile/`;
-  const out: string[] = [];
-  for (const url of pageUrls) {
-    if (!url.startsWith(prefix)) continue;
-    const rawLogin = url.slice(prefix.length).split(/[?#]/)[0] ?? '';
-    let login: string;
-    try {
-      login = decodeURIComponent(rawLogin);
-    } catch {
-      continue;
-    }
-    if (!login) continue;
-    for (const variant of CANONICAL_BADGE_VARIANTS) {
-      out.push(`https://${siteHost}/badges/${encodeURIComponent(login)}/${variant}.png`);
-      out.push(`https://${siteHost}/badges/${encodeURIComponent(login)}/${variant}.svg`);
-    }
-  }
-  return out;
 }
 
 async function collectAllUrlsFromSitemaps(sitemapUrls: string[]): Promise<string[]> {
@@ -187,14 +164,14 @@ async function main() {
   await preflightKey(keyLocation, INDEXNOW_API_KEY);
 
   console.log('\nCollecting URLs from sitemaps...');
+  // Badge PNGs already arrive as <image:loc> entries in the profiles sitemap, so there is
+  // nothing extra to expand here. The .svg variants are deliberately not submitted: they
+  // are not in any sitemap and Image Search does not index SVG.
   const allUrlsRaw = await collectAllUrlsFromSitemaps(sitemapUrls);
-  const badgeUrls = expandCanonicalBadgeUrlsFromProfiles(allUrlsRaw, normalizedHost);
 
   // (Optional) guard: only submit URLs for this host
   const allowedPrefixes = [`https://${normalizedHost}/`, `http://${normalizedHost}/`];
-  const allUrls = [...new Set([...allUrlsRaw, ...badgeUrls])].filter((u) =>
-    allowedPrefixes.some((p) => u.startsWith(p)),
-  );
+  const allUrls = allUrlsRaw.filter((u) => allowedPrefixes.some((p) => u.startsWith(p)));
 
   console.log(`Found ${allUrls.length} URLs (pages + badge images)`);
   if (allUrls.length === 0) {

@@ -63,17 +63,19 @@ export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login }) =
           <div key={rankVariant} className="flex flex-col gap-2">
             {([rankVariant, scoreVariant] as const).map((variant) => {
               const title = getCanonicalBadgeTitle(variant);
-              const pngPath = getCanonicalBadgePath(login, variant, 'png');
+              // Display the SVG: no resvg rasterization per page view, and it stays sharp.
+              // The PNG variant exists for the sitemap image extension / Image Search.
+              const svgPath = getCanonicalBadgePath(login, variant, 'svg');
               return (
                 <a
                   key={variant}
-                  href={pngPath}
+                  href={svgPath}
                   onClick={(event) => onBadgeClick(event, variant)}
                   className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:opacity-90 transition-opacity"
                   title={`Copy ${title} embed URL`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- dynamic badge endpoint */}
-                  <img src={pngPath} alt={`${login} · ${title} · GitRanks`} height={20} className="h-5 w-auto" />
+                  <img src={svgPath} alt={`${login} · ${title} · GitRanks`} height={20} className="h-5 w-auto" />
                 </a>
               );
             })}

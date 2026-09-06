@@ -9,7 +9,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     sitemapEntry('/countries/contributions/1', { priority: 0.9 }),
     sitemapEntry('/countries/followers/1', { priority: 0.9 }),
     sitemapEntry('/countries/users/1', { priority: 0.9 }),
-    sitemapEntry('/orgs/1', { priority: 0.8 }),
     sitemapEntry('/insights', { priority: 0.7 }),
     sitemapEntry('/badge/gallery', { priority: 0.8 }),
     sitemapEntry('/badge/builder', { priority: 0.8 }),

@@ -1,8 +1,5 @@
 import type { FC } from 'react';
 
-import RandomMonsterAvatar from '@/components/monster-avatar/monster-avatar';
-import type { UserFetchingStatus } from '@/types/generated/graphql';
-
 import { FetchUserButtonForNotFoundPage } from './components/fetch-user-button';
 import { ProfileLoginFromUrl } from './components/profile-login-from-url';
 import {
@@ -12,6 +9,8 @@ import {
   NameContainer,
   PageContainer,
 } from './components/profile-page-backbone';
+import RandomMonsterAvatar from '@/components/monster-avatar/monster-avatar';
+import type { UserFetchingStatus } from '@/types/generated/graphql';
 
 type NotFoundProps = {
   fetchingStatus?: UserFetchingStatus | null;

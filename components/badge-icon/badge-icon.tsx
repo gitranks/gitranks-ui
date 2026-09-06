@@ -1,8 +1,8 @@
 import type { FC } from 'react';
 
-import { RankingType } from '@/types/ranking.types';
 import { Follower, PullRequest, Star } from '../icons';
 import type { BadgeIconProps } from './badge-icon.types';
+import { RankingType } from '@/types/ranking.types';
 
 const getIconByRankingType = (rankingType: RankingType) => {
   switch (rankingType) {

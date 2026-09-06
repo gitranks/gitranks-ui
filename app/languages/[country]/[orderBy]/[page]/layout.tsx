@@ -1,15 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { LanguageCountrySelect } from './components/language-country-select';
+import { LanguageOrderSwitcher } from './components/language-order-switcher';
+import { isLanguageSummaryOrder } from './utils/is-language-summary-order';
 import { LANGUAGE } from '@/app/app.consts';
 import { Header } from '@/components/header/header';
 import { NewBadge } from '@/components/new-badge/new-badge';
 import { Page } from '@/components/page/page';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
-
-import { LanguageCountrySelect } from './components/language-country-select';
-import { LanguageOrderSwitcher } from './components/language-order-switcher';
-import { isLanguageSummaryOrder } from './utils/is-language-summary-order';
 
 export async function generateMetadata({
   params,

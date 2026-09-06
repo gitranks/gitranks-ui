@@ -3,12 +3,11 @@
 import type { Metadata } from 'next';
 import { cacheLife } from 'next/cache';
 
+import { LanguageRankingHeader } from './components/language-ranking-header';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchTopLanguages } from '@/graphql/helpers/top-languages';
-
-import { LanguageRankingHeader } from './components/language-ranking-header';
 
 export async function generateMetadata({
   params,

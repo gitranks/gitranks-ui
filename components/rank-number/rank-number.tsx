@@ -1,11 +1,10 @@
 'use client';
 import type { FC } from 'react';
 
-import { cn } from '@/lib/utils';
-
 import { RankDelta } from '../rank-delta/rank-delta';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { cn } from '@/lib/utils';
 
 type RankNumberProps = {
   rank?: number | null;

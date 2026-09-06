@@ -1,8 +1,7 @@
 import type { FC } from 'react';
 
-import type { CountryQuery } from '@/types/generated/graphql';
-
 import { CountrySelect } from './country-select';
+import type { CountryQuery } from '@/types/generated/graphql';
 
 type CountrySwitcherProps = {
   options?: CountryQuery['country'];

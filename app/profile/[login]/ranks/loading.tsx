@@ -1,5 +1,3 @@
-import { Skeleton } from '@/components/ui/skeleton';
-
 import { ProfileCardsGrid } from '../components/profile-card';
 import {
   AvatarAndNameContainer,
@@ -9,6 +7,7 @@ import {
   NameContainer,
   PageContainer,
 } from '../components/profile-page-backbone';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Loading() {
   return (

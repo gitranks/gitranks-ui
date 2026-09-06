@@ -1,7 +1,6 @@
+import type { DeltaSentimentType } from '../badge.types';
 import type { GlobalRankByLoginQuery } from '@/types/generated/graphql';
 import { RankingType } from '@/types/ranking.types';
-
-import type { DeltaSentimentType } from '../badge.types';
 
 type RankByTypeResult = { rank?: number; delta?: number; sentiment?: DeltaSentimentType; value?: number | null };
 

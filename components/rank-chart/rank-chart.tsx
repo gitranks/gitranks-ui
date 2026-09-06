@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useId, useState } from 'react';
 import { Cell, Pie, PieChart } from 'recharts';
 
-import { TIER_NAMES } from '@/app/app.consts';
-
 import {
   ANIMATION_DELAY,
   CANVAS_MID,
@@ -22,6 +20,7 @@ import {
 } from './rank-chart.consts';
 import type { ChartItemType, RankChartProps } from './rank-chart.types';
 import { toXY } from './rank-chart.utils';
+import { TIER_NAMES } from '@/app/app.consts';
 
 const PIE_DATA = TIER_NAMES?.reduce<ChartItemType[]>((acc, _, index) => {
   return [

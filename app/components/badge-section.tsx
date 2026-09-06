@@ -1,9 +1,8 @@
+import BadgeExample from '../badge/gallery/components/badge-example';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Link } from '@/components/link/link';
 import { BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
-
-import BadgeExample from '../badge/gallery/components/badge-example';
 
 export const BadgeSection = () => {
   return (

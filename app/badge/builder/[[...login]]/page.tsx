@@ -3,14 +3,13 @@
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 
-import { Separator } from '@/components/ui/separator';
-import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { ProfileIdByLoginDocument } from '@/types/generated/graphql';
-
 import { BadgeForm } from './components/badge-form';
 import { IntegrationCode } from './components/integration-code';
 import { LoginForm } from './components/login-form';
 import { Preview } from './components/preview';
+import { Separator } from '@/components/ui/separator';
+import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { ProfileIdByLoginDocument } from '@/types/generated/graphql';
 
 /**
  * Every `/badge/builder/<login>` renders the same tool with a prefilled login, so they

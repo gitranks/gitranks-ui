@@ -2,11 +2,10 @@
 
 import { createParser, parseAsString, parseAsStringEnum } from 'nuqs';
 
-import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
-import { UserRankProp } from '@/types/ranking.types';
-
 import { RANK_NAME } from './badge.consts';
 import { LABEL_BG, VALUE_BG } from './templates/inline/inline.consts';
+import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
+import { UserRankProp } from '@/types/ranking.types';
 
 const parseAsHexColor = createParser<string>({
   parse(v) {

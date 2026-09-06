@@ -1,10 +1,9 @@
 import { z } from 'zod';
 
+import { BadgeTemplateType } from './badge.types';
 import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
 import { RankingType, UserRankProp } from '@/types/ranking.types';
 import { ThemeType } from '@/types/theme.types';
-
-import { BadgeTemplateType } from './badge.types';
 
 export const BadgeZodSchema = z.object({
   rankingType: z.enum(RankingType).default(RankingType.Star),

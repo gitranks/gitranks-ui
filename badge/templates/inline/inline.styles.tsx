@@ -1,6 +1,3 @@
-import { getContrastTextColor, getTextShadow } from '@/badge/utils/get-contrast-text-color';
-import { BadgeCornerStyle } from '@/types/badge.types';
-
 import {
   BORDER_RADIUS,
   FONT_SCALE,
@@ -12,6 +9,8 @@ import {
   PADDING_SIDE,
   VALUE_BG,
 } from './inline.consts';
+import { getContrastTextColor, getTextShadow } from '@/badge/utils/get-contrast-text-color';
+import { BadgeCornerStyle } from '@/types/badge.types';
 
 export const getContainerStyles = (cornerStyle: BadgeCornerStyle = BadgeCornerStyle.Rounded) => ({
   display: 'flex',

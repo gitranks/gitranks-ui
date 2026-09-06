@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -9,8 +9,8 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
-      "a11y": { "recommended": true },
+      "preset": "recommended",
+      "a11y": { "preset": "recommended" },
       "style": {
         "noNonNullAssertion": "off"
       },

@@ -1,6 +1,12 @@
 import { notFound } from 'next/navigation';
 import type { FC } from 'react';
 
+import { LayoutLeftColumn } from '../../components/layout-left-column';
+import { ProfileCardsGrid } from '../../components/profile-card';
+import { ProfileRankingSwitcher } from '../../components/profile-ranking-switcher';
+import NotFound from '../../not-found';
+import { ProfileRankCharts } from './profile-rank-charts';
+import { RankBreakdownTooltip } from './rank-breakdown-tooltip';
 import { RANK_DESCRIPTIONS } from '@/app/app.consts';
 import { RankCard } from '@/components/rank-card/rank-card';
 import type { PageProfileRanksQuery, RankTier } from '@/types/generated/graphql';
@@ -8,12 +14,6 @@ import { UserRankProp } from '@/types/ranking.types';
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 import { shortenCountryName } from '@/utils/country-name-shortener';
 import { getTypeByRankProp } from '@/utils/get-rank-prop-by-ranking-type';
-import { LayoutLeftColumn } from '../../components/layout-left-column';
-import { ProfileCardsGrid } from '../../components/profile-card';
-import { ProfileRankingSwitcher } from '../../components/profile-ranking-switcher';
-import NotFound from '../../not-found';
-import { ProfileRankCharts } from './profile-rank-charts';
-import { RankBreakdownTooltip } from './rank-breakdown-tooltip';
 
 type OverviewPageProps = {
   user: PageProfileRanksQuery['user'];

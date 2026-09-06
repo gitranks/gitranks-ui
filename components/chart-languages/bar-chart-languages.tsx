@@ -4,12 +4,11 @@ import dynamic from 'next/dynamic';
 import type { FC } from 'react';
 import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
+import type { CartesianViewBox, ChartLanguagesProps, ValueLabelProps } from './chart-languages.types';
+import { CustomTooltip } from './custom-tooltip';
 import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
 import { formatBytes } from '@/utils/format-bytes';
 import { formatNumberShort } from '@/utils/format-number-short';
-
-import type { CartesianViewBox, ChartLanguagesProps, ValueLabelProps } from './chart-languages.types';
-import { CustomTooltip } from './custom-tooltip';
 
 const RightValueLabel: FC<ValueLabelProps> = ({ value, viewBox, formatter }) => {
   const { x = 0, y = 0, width = 0, height = 0 } = (viewBox ?? {}) as CartesianViewBox;

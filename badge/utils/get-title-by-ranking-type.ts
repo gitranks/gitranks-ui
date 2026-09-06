@@ -1,6 +1,5 @@
-import { RankingType } from '@/types/ranking.types';
-
 import { RANK_NAME } from '../badge.consts';
+import { RankingType } from '@/types/ranking.types';
 
 export const getTitleByRankingType = (rankingType: RankingType) => {
   switch (rankingType) {

@@ -1,8 +1,8 @@
 import type { FC } from 'react';
 
-import { NOT_AVAILABLE } from '@/app/app.consts';
 import type { RankCardProps } from './rank-card.types';
 import { RankCardItem, RankCardPosition, RankCardTotalProfilesRanked, RankCardTotalValue } from './rank-card-item';
+import { NOT_AVAILABLE } from '@/app/app.consts';
 
 // always 3 rows
 export const NotAvailableCardContent: FC<RankCardProps> = ({

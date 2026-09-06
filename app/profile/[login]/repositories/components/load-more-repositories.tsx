@@ -2,11 +2,10 @@
 
 import { type FC, useState } from 'react';
 
+import { RepositoryCard } from './repository-card';
 import { Button } from '@/components/ui/button';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
 import { ProfileRepositoriesDocument, type Repository } from '@/types/generated/graphql';
-
-import { RepositoryCard } from './repository-card';
 
 const LOADED_BY_DEFAULT = 10;
 const CHUNK_SIZE = 20;

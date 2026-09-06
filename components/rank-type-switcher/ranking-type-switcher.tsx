@@ -1,8 +1,7 @@
 import type { FC } from 'react';
 
-import { RankingTypeClient } from '@/types/ranking.types';
-
 import { ButtonGroup, LinkGroupItem } from '../button-group/button-group';
+import { RankingTypeClient } from '@/types/ranking.types';
 
 type RankingTypeSwitcherProps = {
   rankingType: RankingTypeClient;

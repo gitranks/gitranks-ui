@@ -1,13 +1,12 @@
 import { notFound } from 'next/navigation';
 import { type FC, useMemo } from 'react';
 
-import { LanguageRankCard } from '@/components/rank-card/language-rank-card';
-import type { PageProfileLanguagesQuery, UserLanguage } from '@/types/generated/graphql';
-
 import { LayoutLeftColumn } from '../../components/layout-left-column';
 import { ProfileCardsGrid } from '../../components/profile-card';
 import { ProfileRankingSwitcher } from '../../components/profile-ranking-switcher';
 import NotFound from '../../not-found';
+import { LanguageRankCard } from '@/components/rank-card/language-rank-card';
+import type { PageProfileLanguagesQuery, UserLanguage } from '@/types/generated/graphql';
 
 type OverviewPageProps = {
   user: PageProfileLanguagesQuery['user'];

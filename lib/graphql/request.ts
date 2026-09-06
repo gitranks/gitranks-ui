@@ -1,4 +1,4 @@
-'use server';
+import 'server-only';
 
 import { type RequestSource, signedFetch } from '../signed-fetch';
 import { ORIGINAL_USER_AGENT_HEADER } from '@/app/app.consts';

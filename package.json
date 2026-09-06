@@ -68,6 +68,7 @@
     "react-spinners": "^0.17.0",
     "recharts": "^3.10.1",
     "satori": "^0.33.4",
+    "server-only": "^0.0.1",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",

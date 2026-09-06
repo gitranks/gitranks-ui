@@ -3,6 +3,11 @@ import type { NextRequest } from 'next/server';
 import { parseCanonicalBadgeFile } from '@/badge/canonical-badge';
 import { renderCanonicalBadge } from '@/badge/render-canonical-badge';
 
+// resvg is a native binding, so this route cannot run on the Edge runtime. Node is already
+// the default for route handlers; pinning it makes the deployment requirement explicit and
+// stops a future config change from silently breaking every badge URL.
+export const runtime = 'nodejs';
+
 type Props = { params: Promise<{ login: string; file: string }> };
 
 /** Badge data moves at most daily; keep it long at the edge, short in the browser. */

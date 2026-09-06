@@ -36,7 +36,10 @@ export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login }) =
   };
 
   const onBadgeClick = (event: MouseEvent<HTMLAnchorElement>, variant: CanonicalBadgeVariant) => {
-    // Keep href as a real image URL for crawlers / open-in-new-tab; click copies the SVG embed URL.
+    // Unmodified primary click copies the SVG embed URL; modified clicks keep normal link behavior.
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
     event.preventDefault();
     void copySvgUrl(variant);
   };

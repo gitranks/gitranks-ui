@@ -64,7 +64,13 @@ function expandCanonicalBadgeUrlsFromProfiles(pageUrls: string[], siteHost: stri
   const out: string[] = [];
   for (const url of pageUrls) {
     if (!url.startsWith(prefix)) continue;
-    const login = decodeURIComponent(url.slice(prefix.length).split(/[?#]/)[0] ?? '');
+    const rawLogin = url.slice(prefix.length).split(/[?#]/)[0] ?? '';
+    let login: string;
+    try {
+      login = decodeURIComponent(rawLogin);
+    } catch {
+      continue;
+    }
     if (!login) continue;
     for (const variant of CANONICAL_BADGE_VARIANTS) {
       out.push(`https://${siteHost}/badges/${encodeURIComponent(login)}/${variant}.png`);

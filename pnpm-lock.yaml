@@ -59,9 +59,6 @@ importers:
       '@resvg/resvg-js':
         specifier: ^2.6.2
         version: 2.6.2
-      '@resvg/resvg-js-win32-x64-msvc':
-        specifier: ^2.6.2
-        version: 2.6.2
       '@uiw/color-convert':
         specifier: ^2.10.3
         version: 2.10.3(@babel/runtime@7.29.2)
@@ -5873,7 +5870,8 @@ snapshots:
   '@resvg/resvg-js-win32-ia32-msvc@2.6.2':
     optional: true
 
-  '@resvg/resvg-js-win32-x64-msvc@2.6.2': {}
+  '@resvg/resvg-js-win32-x64-msvc@2.6.2':
+    optional: true
 
   '@resvg/resvg-js@2.6.2':
     optionalDependencies:

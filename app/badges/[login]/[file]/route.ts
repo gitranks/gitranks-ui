@@ -6,9 +6,18 @@ import { renderCanonicalBadge } from '@/badge/render-canonical-badge';
 
 type Props = { params: Promise<{ login: string; file: string }> };
 
+function decodeLoginParam(rawLogin: string): string | null {
+  try {
+    const login = decodeURIComponent(rawLogin);
+    return login || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(_req: NextRequest, { params }: Props) {
   const { login: rawLogin, file } = await params;
-  const login = decodeURIComponent(rawLogin);
+  const login = decodeLoginParam(rawLogin);
   const parsed = parseCanonicalBadgeFile(file);
 
   if (!parsed || !login) {

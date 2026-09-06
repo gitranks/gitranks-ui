@@ -1,14 +1,13 @@
 import type { FC } from 'react';
 
+import { containerStyles, metaItemStyles, rankDeltaStyles, rankStyles, subtitleStyles } from './medium.styles';
+import type { BadgeMediumProps } from './medium.types';
 import { figmaVariables } from '@/badge/utils/figma-variables-mapping';
 import { getRankByRankingType } from '@/badge/utils/get-rank-by-ranking-type';
 import { getTitleByRankingType } from '@/badge/utils/get-title-by-ranking-type';
 import { getUsersBehindMe } from '@/badge/utils/users-behind-me';
 import { BadgeIcon } from '@/components/badge-icon/badge-icon';
 import { RankingType } from '@/types/ranking.types';
-
-import { containerStyles, metaItemStyles, rankDeltaStyles, rankStyles, subtitleStyles } from './medium.styles';
-import type { BadgeMediumProps } from './medium.types';
 
 const getSubtitleByRankingType = (rankingType: RankingType) => {
   switch (rankingType) {

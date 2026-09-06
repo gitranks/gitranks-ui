@@ -2,9 +2,9 @@
 
 import type { FC } from 'react';
 
-import { Link } from '@/components/link/link';
 import { useBadgeUrl } from '../hooks/useBadgeUrl';
 import type { LoginFormProps } from './login-form.types';
+import { Link } from '@/components/link/link';
 
 export const Preview: FC<LoginFormProps> = ({ githubLogin, githubId }) => {
   const url = useBadgeUrl(githubLogin, githubId);

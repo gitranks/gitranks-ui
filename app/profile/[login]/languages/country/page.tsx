@@ -3,10 +3,9 @@
 import { cacheLife, cacheTag } from 'next/cache';
 import type { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 
-import { fetchProfilePageLanguages } from '@/graphql/helpers/fetch-profile-page-languages';
-
 import { buildProfileTabSEO } from '../../seo';
 import { LanguagesPage } from '../components/languages-page';
+import { fetchProfilePageLanguages } from '@/graphql/helpers/fetch-profile-page-languages';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/languages/country'>): Promise<Metadata> {
   const { login } = await params;

@@ -3,10 +3,9 @@ import type React from 'react';
 import { useMemo } from 'react';
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart } from 'recharts';
 
+import { LEVELS_PER_TIER } from '../rank-chart/rank-chart.consts';
 import type { Tier } from '@/types/generated/graphql';
 import { PersonaType } from '@/types/persona.types';
-
-import { LEVELS_PER_TIER } from '../rank-chart/rank-chart.consts';
 
 export interface PersonaChartProps {
   sTier?: Tier;

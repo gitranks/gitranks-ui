@@ -1,8 +1,8 @@
 import type { FC } from 'react';
 
-import { RANK_DESCRIPTIONS } from '@/app/app.consts';
 import type { RankCardProps } from './rank-card.types';
 import { RankCardItem, RankCardTotalProfilesRanked, RankCardTotalValue } from './rank-card-item';
+import { RANK_DESCRIPTIONS } from '@/app/app.consts';
 
 // always 3 rows
 export const NotRankedCardContent: FC<RankCardProps> = ({ tierData, rankType, score, login, rankingLink }) => {

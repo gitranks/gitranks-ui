@@ -2,6 +2,8 @@
 
 import { type FC, useMemo, useState } from 'react';
 
+import { groupAndSortContributions } from '../../utils/contrib-group-and-sort';
+import { ContributionRepositoryCard } from './contribution-repository-card';
 import { Timeline, TimelineDescription, TimelineItem, TimelineTime } from '@/components/timeline/timeline';
 import { Button } from '@/components/ui/button';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
@@ -10,8 +12,6 @@ import {
   type PageProfileRepositoriesQuery,
   ProfileContributionsDocument,
 } from '@/types/generated/graphql';
-import { groupAndSortContributions } from '../../utils/contrib-group-and-sort';
-import { ContributionRepositoryCard } from './contribution-repository-card';
 
 type UserContributionsListProps = {
   contributions?: NonNullable<PageProfileRepositoriesQuery['user']>['contributions'] | null;

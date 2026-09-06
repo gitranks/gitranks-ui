@@ -1,10 +1,9 @@
 import type { FC } from 'react';
 
+import type { NextTierThresholdProps } from './rank-card.types';
 import { RANK_DESCRIPTIONS, TIER_NAMES } from '@/app/app.consts';
 import { getNextTierThreshold } from '@/utils/get-next-tier-threshold';
 import { pluralize } from '@/utils/pluralize';
-
-import type { NextTierThresholdProps } from './rank-card.types';
 
 export const NextTierThreshold: FC<NextTierThresholdProps> = ({ tiers, tierData, rankType, score }) => {
   const { threshold, nextTier } = getNextTierThreshold({ tiers, currentTier: tierData.data, score });

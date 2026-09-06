@@ -2,13 +2,12 @@
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
+import { LanguageCard } from './components/language-card';
+import { isLanguageSummaryOrder } from './utils/is-language-summary-order';
 import { PageGrid } from '@/components/grid/grid';
 import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountryLanguageSummaries } from '@/graphql/helpers/fetch-country-language-summary';
 import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary';
-
-import { LanguageCard } from './components/language-card';
-import { isLanguageSummaryOrder } from './utils/is-language-summary-order';
 
 const ITEMS_PER_PAGE = 24;
 

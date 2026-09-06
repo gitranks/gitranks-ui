@@ -11,7 +11,10 @@ const normalizeHost = (value: string | null) => {
     return parsed.host.toLowerCase();
   } catch {
     // Handle plain hosts like "gitranks.com" or "gitranks.com/".
-    return value.replace(/^https?:\/\//, '').replace(/\/+$/, '').toLowerCase();
+    return value
+      .replace(/^https?:\/\//, '')
+      .replace(/\/+$/, '')
+      .toLowerCase();
   }
 };
 

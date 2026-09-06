@@ -9,12 +9,11 @@ import type { FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import type { LoginFormProps } from './login-form.types';
+import { StepTitle } from './step-title';
 import { Button } from '@/components/ui/button';
 import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-
-import type { LoginFormProps } from './login-form.types';
-import { StepTitle } from './step-title';
 
 const FormSchema = z.object({
   login: z.string().min(1, { message: 'GitHub login is required' }),

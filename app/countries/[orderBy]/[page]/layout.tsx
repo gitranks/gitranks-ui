@@ -1,13 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { CountryOrderSwitcher } from './components/country-order-switcher';
+import { isCountrySummaryOrder } from './utils/is-country-summary-order';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import type { UserRankProp } from '@/types/ranking.types';
-
-import { CountryOrderSwitcher } from './components/country-order-switcher';
-import { isCountrySummaryOrder } from './utils/is-country-summary-order';
 
 export async function generateMetadata({ params }: LayoutProps<'/countries/[orderBy]/[page]'>): Promise<Metadata> {
   const { orderBy, page } = await params;

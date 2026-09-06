@@ -2,12 +2,11 @@
 
 import { cacheLife } from 'next/cache';
 
+import BadgeExample from './components/badge-example';
+import { BadgeContainer, BadgeDescription, BadgeExamplesWrapper, BadgeTitle } from './components/badge-helpers';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
-
-import BadgeExample from './components/badge-example';
-import { BadgeContainer, BadgeDescription, BadgeExamplesWrapper, BadgeTitle } from './components/badge-helpers';
 
 export default async function BadgeGallery() {
   cacheLife('hours');

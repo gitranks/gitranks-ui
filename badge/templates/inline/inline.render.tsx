@@ -1,5 +1,7 @@
 import satori from 'satori';
 
+import { BadgeInline } from './inline';
+import { INLINE_BADGE_HEIGHT, TOP_PERCENTILE_TIER_IDX } from './inline.consts';
 import { TIER_NAMES } from '@/app/app.consts';
 import {
   InvalidCountryError,
@@ -15,9 +17,6 @@ import { BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
 import { getNextTierThreshold } from '@/utils/get-next-tier-threshold';
 import { getPercentileRank } from '@/utils/get-percentile-rank';
-
-import { BadgeInline } from './inline';
-import { INLINE_BADGE_HEIGHT, TOP_PERCENTILE_TIER_IDX } from './inline.consts';
 
 const getBadgeLabel = (params: BadgeV2Params) => {
   return params.label;

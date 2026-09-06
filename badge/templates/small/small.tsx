@@ -1,12 +1,11 @@
 import type { FC } from 'react';
 
+import { SMALL_BADGE_HEIGHT, SMALL_BADGE_WIDTH } from './small.consts';
+import type { BadgeSmallProps } from './small.types';
 import { figmaVariables } from '@/badge/utils/figma-variables-mapping';
 import { getRankByRankingType } from '@/badge/utils/get-rank-by-ranking-type';
 import { getTitleByRankingType } from '@/badge/utils/get-title-by-ranking-type';
 import { BadgeIcon } from '@/components/badge-icon/badge-icon';
-
-import { SMALL_BADGE_HEIGHT, SMALL_BADGE_WIDTH } from './small.consts';
-import type { BadgeSmallProps } from './small.types';
 
 export const BadgeSmall: FC<BadgeSmallProps> = ({ theme, rankingType, data }) => {
   const { colors } = figmaVariables[theme];

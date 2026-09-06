@@ -1,10 +1,9 @@
 import { GrLocation } from 'react-icons/gr';
 
+import { CountryRankingLink } from './country-ranking-link';
 import { CountryCard } from '@/components/country-card/country-card';
 import { PageGrid } from '@/components/grid/grid';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
-
-import { CountryRankingLink } from './country-ranking-link';
 
 export const CountryRankingSection = async () => {
   const countrySummaries = await fetchCountrySummaries();

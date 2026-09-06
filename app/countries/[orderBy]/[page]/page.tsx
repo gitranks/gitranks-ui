@@ -2,12 +2,11 @@
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
+import { isCountrySummaryOrder } from './utils/is-country-summary-order';
 import { CountryCard } from '@/components/country-card/country-card';
 import { PageGrid } from '@/components/grid/grid';
 import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
-
-import { isCountrySummaryOrder } from './utils/is-country-summary-order';
 
 const ITEMS_PER_PAGE = 24;
 

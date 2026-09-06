@@ -10,9 +10,9 @@ import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 import { ProfilesForSitemapDocument } from '@/types/generated/graphql';
 
 /**
- * Unchunked on purpose: `profilesForSitemap` is capped server-side at 500 logins per
- * rank order (stars + contributions, deduped), so ~1k urls — an order of magnitude under
- * the 50k url / 50MB sitemap limits. Raising that cap means adding `generateSitemaps`.
+ * Unchunked on purpose: `profilesForSitemap` is capped server-side at 1000 logins per
+ * rank order (stars + contributions, deduped), so ~2k urls at ~830 bytes each. Well under
+ * the 50k url / 50MB limits; past ~25k profiles this needs `generateSitemaps`.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   cacheLife('hours');

@@ -12,8 +12,7 @@
     "codegen": "dotenv -e .env.local graphql-codegen",
     "standalone": "dotenv -e .env.local node .next/standalone/server.js",
     "icons": "pnpm dlx @svgr/cli --out-dir components/icons --filename-case kebab --typescript --no-dimensions --replace-attr-values \"#000=currentColor\" -- public/icons",
-    "figma:icons": "tsc lib/figma/download-icons.ts --outDir dist && dotenv -e .env.local node dist/download-icons.js && pnpm run icons",
-    "indexnow": "dotenv -e .env.local -- tsx lib/indexnow/indexnow-submit.ts"
+    "figma:icons": "tsc lib/figma/download-icons.ts --outDir dist && dotenv -e .env.local node dist/download-icons.js && pnpm run icons"
   },
   "browserslist": {
     "production": [
@@ -86,14 +85,11 @@
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
-    "@types/xml2js": "^0.4.14",
     "dotenv-cli": "^11.0.0",
     "graphql": "^16.14.2",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.13",
-    "typescript": "^7.0.2",
-    "xml2js": "^0.6.2"
+    "typescript": "^7.0.2"
   },
   "packageManager": "pnpm@10.33.4"
 }

@@ -15,28 +15,18 @@ const isBuildPhase = () => process.env.NEXT_PHASE === 'phase-production-build';
 /** Sent during `next build` only; see internal deployment notes. */
 const CF_BUILD_BYPASS_HEADER = 'x-gitranks-build';
 
-const resolveClaims = async (source: RequestSource, githubLogin?: string): Promise<InternalClaims> => {
+/**
+ * `githubLogin` is always supplied by the caller, never read from the session here.
+ * Resolving it internally would mean calling `auth()` — and therefore `headers()` —
+ * on paths that run inside a "use cache" scope, which `cacheComponents` rejects.
+ * Callers that have a request scope read the session there and pass it down.
+ */
+const resolveClaims = (source: RequestSource, githubLogin?: string): InternalClaims => {
   if (isBuildPhase()) {
     return { source: 'build' };
   }
 
-  if (githubLogin) {
-    return { source, githubLogin };
-  }
-
-  const claims: InternalClaims = { source };
-
-  // Throws outside a request scope (e.g. inside "use cache"), which is expected for ssr renders.
-  try {
-    // Imported lazily so module init doesn't open the auth Mongo connection during `next build`.
-    const { auth } = await import('@/auth');
-    const session = await auth();
-    if (session?.user?.githubLogin && !session.error) claims.githubLogin = session.user.githubLogin;
-  } catch {
-    // no request scope
-  }
-
-  return claims;
+  return githubLogin ? { source, githubLogin } : { source };
 };
 
 export async function signedFetch(
@@ -45,7 +35,7 @@ export async function signedFetch(
   source: RequestSource = 'ssr',
   githubLogin?: string,
 ) {
-  const claims = await resolveClaims(source, githubLogin);
+  const claims = resolveClaims(source, githubLogin);
   const token = jwt.sign(claims, process.env.INTERNAL_JWT_SECRET!, { expiresIn: '5m' });
 
   const headers = new Headers(init.headers);

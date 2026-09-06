@@ -7,6 +7,8 @@ type RequestOptions = {
   revalidate?: number;
   originalUserAgent?: string;
   source?: RequestSource;
+  /** Read from the session by the caller, which must have a request scope. */
+  githubLogin?: string;
 };
 
 export async function request(
@@ -31,6 +33,7 @@ export async function request(
       next: { revalidate: options?.revalidate },
     },
     options?.source,
+    options?.githubLogin,
   );
 
   if (!response.ok) {

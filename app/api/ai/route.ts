@@ -6,8 +6,9 @@ import { signedFetch } from '@/lib/signed-fetch';
 
 export type AuthRequest = NextRequest & { auth: Session | null };
 
-export const POST = auth(async function POST(_req: AuthRequest, { params }) {
+export const POST = auth(async function POST(req: AuthRequest, { params }) {
   const { login } = await params;
+  const githubLogin = req.auth?.user?.githubLogin && !req.auth.error ? req.auth.user.githubLogin : undefined;
 
   const response = await signedFetch(
     '/user/generate-description',
@@ -17,6 +18,7 @@ export const POST = auth(async function POST(_req: AuthRequest, { params }) {
       body: JSON.stringify({ login }),
     },
     'client',
+    githubLogin,
   );
 
   const responseData = await response.json();

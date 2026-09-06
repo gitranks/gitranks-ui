@@ -4,9 +4,12 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { parseStringPromise } from 'xml2js';
 
+import { CANONICAL_BADGE_VARIANTS } from '../../badge/canonical-badge';
+
 const INDEXNOW_API_KEY = process.env.INDEXNOW_API_KEY!;
 const host = 'gitranks.com';
-const sitemaps = ['sitemap.xml', 'country/sitemap.xml', 'by/type/sitemap.xml', 'profile/login/sitemap.xml'] as const;
+/** Discovery entry point only — the index expands to child sitemaps. */
+const sitemaps = ['sitemap.xml'] as const;
 
 /* ---------- HTTP helpers ---------- */
 async function fetchJson<T>(url: string): Promise<T> {
@@ -39,9 +42,36 @@ async function collectUrlsFromSitemap(sitemapUrl: string): Promise<string[]> {
   // <urlset>
   if (parsed.urlset?.url) {
     const items = Array.isArray(parsed.urlset.url) ? parsed.urlset.url : [parsed.urlset.url];
-    return items.map((u: { loc?: string }) => u.loc).filter(Boolean);
+    const locs: string[] = [];
+    for (const u of items) {
+      if (u?.loc) locs.push(u.loc);
+      // Next.js sitemap image extension: <image:image><image:loc>…</image:loc>
+      const images = u?.['image:image'] ?? u?.image;
+      if (!images) continue;
+      const imageItems = Array.isArray(images) ? images : [images];
+      for (const img of imageItems) {
+        const imageLoc = img?.['image:loc'] ?? img?.loc;
+        if (typeof imageLoc === 'string') locs.push(imageLoc);
+      }
+    }
+    return locs;
   }
   return [];
+}
+
+function expandCanonicalBadgeUrlsFromProfiles(pageUrls: string[], siteHost: string): string[] {
+  const prefix = `https://${siteHost}/profile/`;
+  const out: string[] = [];
+  for (const url of pageUrls) {
+    if (!url.startsWith(prefix)) continue;
+    const login = decodeURIComponent(url.slice(prefix.length).split(/[?#]/)[0] ?? '');
+    if (!login) continue;
+    for (const variant of CANONICAL_BADGE_VARIANTS) {
+      out.push(`https://${siteHost}/badges/${encodeURIComponent(login)}/${variant}.png`);
+      out.push(`https://${siteHost}/badges/${encodeURIComponent(login)}/${variant}.svg`);
+    }
+  }
+  return out;
 }
 
 async function collectAllUrlsFromSitemaps(sitemapUrls: string[]): Promise<string[]> {
@@ -152,16 +182,15 @@ async function main() {
 
   console.log('\nCollecting URLs from sitemaps...');
   const allUrlsRaw = await collectAllUrlsFromSitemaps(sitemapUrls);
+  const badgeUrls = expandCanonicalBadgeUrlsFromProfiles(allUrlsRaw, normalizedHost);
 
   // (Optional) guard: only submit URLs for this host
   const allowedPrefixes = [`https://${normalizedHost}/`, `http://${normalizedHost}/`];
-  const allUrls = allUrlsRaw.filter((u) => allowedPrefixes.some((p) => u.startsWith(p)));
-  const dropped = allUrlsRaw.length - allUrls.length;
-  if (dropped > 0) {
-    console.warn(`Filtered out ${dropped} URL(s) not matching host ${normalizedHost}`);
-  }
+  const allUrls = [...new Set([...allUrlsRaw, ...badgeUrls])].filter((u) =>
+    allowedPrefixes.some((p) => u.startsWith(p)),
+  );
 
-  console.log(`Found ${allUrls.length} URLs`);
+  console.log(`Found ${allUrls.length} URLs (pages + badge images)`);
   if (allUrls.length === 0) {
     console.error('No URLs found. Check your sitemaps/host.');
     process.exit(1);

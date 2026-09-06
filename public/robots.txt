@@ -2,38 +2,32 @@
 User-agent: Googlebot
 Allow: /
 Disallow: /api/
-Disallow: /badge/
 
 User-agent: Bingbot
 Crawl-delay: 5
 Allow: /
 Disallow: /api/
-Disallow: /badge/
 
 User-agent: DuckDuckBot
 Crawl-delay: 5
 Allow: /
 Disallow: /api/
-Disallow: /badge/
 
 User-agent: Applebot
 Crawl-delay: 10
 Allow: /
 Disallow: /api/
-Disallow: /badge/
 
 User-agent: YandexBot
 Crawl-delay: 10
 Allow: /
 Disallow: /api/
-Disallow: /badge/
 
 # SEO tooling — keep allowed, but crawl slowly
 User-agent: AhrefsBot
 Crawl-delay: 30
 Allow: /
 Disallow: /api/
-Disallow: /badge/
 
 # Scrapers / noisy bots — do not crawl (also blocked at Cloudflare WAF)
 User-agent: SleepBot
@@ -64,8 +58,6 @@ Disallow: /
 User-agent: *
 Crawl-delay: 10
 Disallow: /api/
-Disallow: /badge/
 Allow: /
 
-Sitemap: https://gitranks.com/profile/_/sitemap.xml
-Sitemap: https://gitranks.com/by/_/sitemap.xml
+Sitemap: https://gitranks.com/sitemap.xml

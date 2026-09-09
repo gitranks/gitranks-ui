@@ -103,7 +103,7 @@ const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
     const { threshold, nextTier } = getNextTierThreshold({ tiers, currentTier: tierData.data, score });
 
     if (threshold) {
-      return `${emoji}${threshold} to ${TIER_NAMES[nextTier.tier]} ${nextTier.level}`;
+      return `${emoji}${threshold.toLocaleString('en-US')} to ${TIER_NAMES[nextTier.tier - 1]} ${nextTier.level}`;
     }
 
     return;

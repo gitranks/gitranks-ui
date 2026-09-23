@@ -1,0 +1,96 @@
+# Deploys the UI to the new server. deploy.yml (the DigitalOcean one) stays until the cutover.
+#
+# The image is built here as before; the server side is `octo-deploy`, which pins the commit SHA,
+# checks the environment file, waits for health, asserts the port bindings and rolls back on failure.
+# Ports, memory limits and service addresses live on the server, not here. Secrets travel on stdin
+# into a root-only file - never on a command line.
+#
+# Repository configuration: vars HZ_HOST_A (tailnet name of the server), HZ_KNOWN_HOSTS (its SSH host
+# key); secrets HZ_DEPLOY_SSH_KEY (the `deploy` user's key), TS_OAUTH_CLIENT_ID / TS_OAUTH_SECRET
+# (a Tailscale OAuth client for tag:ci), GHCR_PAT (lets the server pull the image).
+name: Deploy ui (new server)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_and_deploy:
+    if: github.actor == 'maslianok'
+    environment: production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/gitranks/gitranks-ui
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Log in to the container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image
+        uses: docker/build-push-action@v7
+        with:
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          build-args: |
+            NEXT_PUBLIC_URI=${{ vars.NEXT_PUBLIC_URI }}
+            URI_GITRANKS=${{ secrets.URI_GITRANKS_BUILD }}
+          secrets: |
+            internal_jwt_secret=${{ secrets.INTERNAL_JWT_SECRET }}
+            cf_build_bypass_token=${{ secrets.CF_BUILD_BYPASS_TOKEN }}
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Set up SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.HZ_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ vars.HZ_KNOWN_HOSTS }}
+          HOST: ${{ vars.HZ_HOST_A }}
+        run: |
+          [ -n "$HOST" ] || { echo "vars.HZ_HOST_A is not set"; exit 1; }
+          install -d -m 0700 ~/.ssh
+          (umask 077; printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key)
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'Host octo\n  HostName %s\n  User deploy\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n' "$HOST" > ~/.ssh/config
+
+      # Only what the app reads at runtime. The database connection string and the API address are
+      # set on the server.
+      - name: Send the environment file
+        env:
+          INTERNAL_JWT_SECRET: ${{ secrets.INTERNAL_JWT_SECRET }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_GITHUB_SECRET: ${{ secrets.AUTH_GITHUB_SECRET }}
+          AUTH_GITHUB_ID: ${{ vars.AUTH_GITHUB_ID }}
+          AUTH_URL: ${{ vars.AUTH_URL }}
+          NEXT_PUBLIC_URI: ${{ vars.NEXT_PUBLIC_URI }}
+        run: |
+          set -euo pipefail
+          for n in INTERNAL_JWT_SECRET AUTH_SECRET AUTH_GITHUB_SECRET AUTH_GITHUB_ID AUTH_URL NEXT_PUBLIC_URI; do
+            [ -n "${!n}" ] || { echo "$n is not set"; exit 1; }
+          done
+          printf 'INTERNAL_JWT_SECRET=%s\nAUTH_SECRET=%s\nAUTH_GITHUB_SECRET=%s\nAUTH_GITHUB_ID=%s\nAUTH_URL=%s\nNEXT_PUBLIC_URI=%s\n' \
+            "$INTERNAL_JWT_SECRET" "$AUTH_SECRET" "$AUTH_GITHUB_SECRET" "$AUTH_GITHUB_ID" "$AUTH_URL" "$NEXT_PUBLIC_URI" |
+            ssh octo 'umask 077; cat > /etc/octo/env/ui-gitranks.env.new && mv /etc/octo/env/ui-gitranks.env.new /etc/octo/env/ui-gitranks.env'
+
+      - name: Let the server pull the image
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+        run: printf '%s' "$GHCR_PAT" | ssh octo 'docker login ghcr.io -u maslianok --password-stdin' >/dev/null
+
+      - name: Deploy
+        run: ssh octo "octo-deploy ui-gitranks ${{ github.sha }}"

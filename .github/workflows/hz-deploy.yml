@@ -85,12 +85,12 @@ jobs:
           done
           printf 'INTERNAL_JWT_SECRET=%s\nAUTH_SECRET=%s\nAUTH_GITHUB_SECRET=%s\nAUTH_GITHUB_ID=%s\nAUTH_URL=%s\nNEXT_PUBLIC_URI=%s\n' \
             "$INTERNAL_JWT_SECRET" "$AUTH_SECRET" "$AUTH_GITHUB_SECRET" "$AUTH_GITHUB_ID" "$AUTH_URL" "$NEXT_PUBLIC_URI" |
-            ssh octo 'umask 077; cat > /etc/octo/env/ui-gitranks.env.new && mv /etc/octo/env/ui-gitranks.env.new /etc/octo/env/ui-gitranks.env'
+            ssh octo put-env ui-gitranks
 
       - name: Let the server pull the image
         env:
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
-        run: printf '%s' "$GHCR_PAT" | ssh octo 'docker login ghcr.io -u maslianok --password-stdin' >/dev/null
+        run: printf '%s' "$GHCR_PAT" | ssh octo docker-login
 
       - name: Deploy
-        run: ssh octo "octo-deploy ui-gitranks ${{ github.sha }}"
+        run: ssh octo "deploy ui-gitranks ${{ github.sha }}"

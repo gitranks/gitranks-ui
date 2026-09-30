@@ -92,5 +92,10 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   },
+  "pnpm": {
+    "overrides": {
+      "fflate@0.7.3": "0.7.5"
+    }
+  },
   "packageManager": "pnpm@10.33.4"
 }

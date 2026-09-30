@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:23-alpine AS base
+FROM node:26-alpine AS base
 
 # For some reason nextjs tries to run the /lib/mongo-client.ts file at build time
 # and the build fails because this variable is not set

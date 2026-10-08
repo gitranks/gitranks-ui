@@ -3,6 +3,7 @@ import { type FC, useMemo } from 'react';
 import { RepositoryCard } from './repository-card';
 import { Badge } from '@/components/ui/badge';
 import type { Repository } from '@/types/generated/graphql';
+import { hasLinesChanged } from '@/utils/has-lines-changed';
 import { pluralize } from '@/utils/pluralize';
 
 type RepositoryCardProps = {
@@ -33,8 +34,10 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
   );
 
   const showLinesChanged = useMemo(
-    () => (prsCount ?? 0) <= PR_FETCH_LIMIT && (mergedPrsCount ?? 0) > 0,
-    [prsCount, mergedPrsCount],
+    // The counts have to exist, not just be plausible: a row fetched without them renders `+ -` with
+    // nothing between it, which is what this guard is for.
+    () => hasLinesChanged(linesAdded, linesRemoved) && (prsCount ?? 0) <= PR_FETCH_LIMIT && (mergedPrsCount ?? 0) > 0,
+    [linesAdded, linesRemoved, prsCount, mergedPrsCount],
   );
 
   if (!repository) {

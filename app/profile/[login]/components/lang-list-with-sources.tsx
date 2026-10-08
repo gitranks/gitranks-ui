@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
+import { hasLinesChanged } from '@/utils/has-lines-changed';
 import { getPercentageIcon } from '@/utils/get-percentage-icon';
 import { getRepoName, getRepoUrl } from '@/utils/repositories';
 
@@ -18,8 +19,9 @@ export type RepoSource = {
 
 export type ContributionSource = RepoSource & {
   prsCount: number;
-  linesAdded: number;
-  linesRemoved: number;
+  /** Absent when the contributions fetch had to skip the diff stats — see `hasLinesChanged`. */
+  linesAdded?: number | null;
+  linesRemoved?: number | null;
   url: string;
 };
 
@@ -90,8 +92,12 @@ export const LangListWithSources: FC<LangListWithSourcesProps> = ({ languages, l
                   <>
                     <TableCell>{formatNumberShort(source.prsCount)}</TableCell>
                     <TableCell className="font-semibold gap-1">
-                      <span className="text-positive">+{formatNumberShort(source.linesAdded)}</span>&nbsp;
-                      <span className="text-negative">-{formatNumberShort(source.linesRemoved)}</span>
+                      {hasLinesChanged(source.linesAdded, source.linesRemoved) && (
+                        <>
+                          <span className="text-positive">+{formatNumberShort(source.linesAdded)}</span>&nbsp;
+                          <span className="text-negative">-{formatNumberShort(source.linesRemoved)}</span>
+                        </>
+                      )}
                     </TableCell>
                   </>
                 )}

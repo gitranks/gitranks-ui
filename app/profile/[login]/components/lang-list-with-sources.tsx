@@ -6,8 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
-import { hasLinesChanged } from '@/utils/has-lines-changed';
 import { getPercentageIcon } from '@/utils/get-percentage-icon';
+import { hasLinesChanged } from '@/utils/has-lines-changed';
 import { getRepoName, getRepoUrl } from '@/utils/repositories';
 
 export type RepoSource = {

@@ -158,10 +158,21 @@ export async function fetchStarsReviewOwnerState(login: string): Promise<StarsRe
       return 'public';
     }
 
-    return response.ok ? ((await response.json()) as StarsReviewOwnerState) : 'failed';
+    if (!response.ok) {
+      return 'failed';
+    }
+
+    const state = (await response.json()) as StarsReviewOwnerState | null;
+
+    return state && typeof state === 'object' ? state : 'failed';
   } catch {
     return 'failed';
   }
+}
+
+/** The owner's state after reading it again: a failed read keeps the state already loaded. */
+export function rereadOwnerState(previous: StarsReviewOwnerLoad, read: StarsReviewOwnerRead): StarsReviewOwnerLoad {
+  return read === 'failed' && typeof previous === 'object' ? previous : read;
 }
 
 /** Reads the owner's state for the owner only; null, with no request, for anyone else. */

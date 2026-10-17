@@ -4,6 +4,7 @@ import {
   fetchStarsReviewOwnerState,
   formatReviewDate,
   loadStarsReviewOwnerState,
+  rereadOwnerState,
   type StarsReviewOwnerState,
   sendStarsReviewReport,
   starsReviewNote,
@@ -208,6 +209,26 @@ describe('fetchStarsReviewOwnerState', () => {
     stubFetch(new TypeError('offline'));
 
     await expect(fetchStarsReviewOwnerState('octocat')).resolves.toBe('failed');
+  });
+
+  it('tells a failed read apart when a 200 carries no state', async () => {
+    stubFetch(jsonResponse(200, null));
+
+    await expect(fetchStarsReviewOwnerState('octocat')).resolves.toBe('failed');
+  });
+});
+
+describe('rereadOwnerState', () => {
+  it('keeps the state already loaded when the read fails', () => {
+    expect(rereadOwnerState(ownerState(), 'failed')).toEqual(ownerState());
+    expect(rereadOwnerState('loading', 'failed')).toBe('failed');
+  });
+
+  it('takes what the read found otherwise', () => {
+    const declined = ownerState({ reportable: false });
+
+    expect(rereadOwnerState(ownerState(), declined)).toEqual(declined);
+    expect(rereadOwnerState(ownerState(), 'public')).toBe('public');
   });
 });
 

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import {
   formatReviewDate,
   loadStarsReviewOwnerState,
+  rereadOwnerState,
   type StarsReviewOwnerLoad,
   type StarsReviewReportState,
   sendStarsReviewReport,
@@ -129,11 +130,11 @@ export const StarsReviewReport: FC<StarsReviewReportProps> = ({ login, reportabl
         return;
       }
 
-      setOwner(result.owner);
+      setOwner((previous) => rereadOwnerState(previous, result.owner));
       toast.error(
         result.outcome === 'failed'
           ? 'Could not send your request. Please try again later.'
-          : 'This review has changed. Reload the page to see it.',
+          : 'This review has changed since the page loaded.',
       );
     } finally {
       setPending(false);

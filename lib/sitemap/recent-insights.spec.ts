@@ -40,4 +40,27 @@ describe('recentInsightEntries', () => {
     expect(withReply.lastModified.toISOString()).toBe(daysAgo(2));
     expect(withoutReply.lastModified.toISOString()).toBe(daysAgo(6));
   });
+
+  it('lists a post that shows up twice only once', () => {
+    const posts = [post('a', daysAgo(1)), post('b', daysAgo(2)), post('b', daysAgo(2)), post('c', daysAgo(3))];
+
+    expect(recentInsightEntries(posts, now, { maxAgeDays: 90, maxPosts: 200 }).map((e) => e.id)).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+  });
+
+  it('skips a post whose date does not parse and ignores bad reply dates', () => {
+    const entries = recentInsightEntries(
+      [post('bad', 'not a date'), post('a', daysAgo(5), ['not a date', daysAgo(3)]), post('b', daysAgo(6), ['nope'])],
+      now,
+      { maxAgeDays: 90, maxPosts: 200 },
+    );
+
+    expect(entries.map((e) => [e.id, e.lastModified.toISOString()])).toEqual([
+      ['a', daysAgo(3)],
+      ['b', daysAgo(6)],
+    ]);
+  });
 });

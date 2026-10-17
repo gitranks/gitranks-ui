@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { clipText } from '@/lib/seo/clip-text';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 import type { PageOrgQuery } from '@/types/generated/graphql';
@@ -9,12 +10,7 @@ import { formatOrdinal } from '@/utils/format-ordinal';
 
 type DataType = NonNullable<PageOrgQuery['organization']>;
 
-const clip = (t: string, max = 158) => {
-  if (!t || t.length <= max) return t;
-  const cut = t.slice(0, max - 1);
-  const i = cut.lastIndexOf(' ');
-  return `${i > 80 ? cut.slice(0, i) : cut}…`;
-};
+const clip = (t: string) => clipText(t, 158);
 
 function buildOverviewDescription(stats: DataType): string {
   const { s, rankOrg } = stats ?? {};

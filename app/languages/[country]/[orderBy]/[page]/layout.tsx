@@ -9,18 +9,27 @@ import { Header } from '@/components/header/header';
 import { NewBadge } from '@/components/new-badge/new-badge';
 import { Page } from '@/components/page/page';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
-import { pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
+import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { LanguageSummaryOrder } from '@/types/generated/graphql';
 import { parsePageParam } from '@/utils/parse-page-param';
 import { GLOBAL_SCOPE, resolveCountryScope } from '@/utils/resolve-route-names';
 
-const ORDER_DESCRIPTIONS: Record<LanguageSummaryOrder, (where: string) => string> = {
-  [LanguageSummaryOrder.Score]: (where) =>
-    `Programming languages ranked by the stars of public GitHub repositories written in them${where}. Open a language to see its top developers.`,
-  [LanguageSummaryOrder.Size]: (where) =>
-    `Programming languages ranked by total code size across public GitHub repositories with 5+ stars${where}. Open a language to see its top developers.`,
-  [LanguageSummaryOrder.Users]: (where) =>
-    `Programming languages ranked by how many GitHub developers${where} use them in public repositories with 5+ stars.`,
+const OPEN_A_LANGUAGE = ' Open a language to see its top developers.';
+
+/** The description per order: the first sentence, which gets the page clause, then the rest. */
+const ORDER_DESCRIPTIONS: Record<LanguageSummaryOrder, (where: string) => [string, string]> = {
+  [LanguageSummaryOrder.Score]: (where) => [
+    `Programming languages ranked by the stars of public GitHub repositories written in them${where}`,
+    OPEN_A_LANGUAGE,
+  ],
+  [LanguageSummaryOrder.Size]: (where) => [
+    `Programming languages ranked by total code size across public GitHub repositories with 5+ stars${where}`,
+    OPEN_A_LANGUAGE,
+  ],
+  [LanguageSummaryOrder.Users]: (where) => [
+    `Programming languages ranked by how many GitHub developers${where} use them in public repositories with 5+ stars`,
+    '',
+  ],
 };
 
 export async function generateMetadata({
@@ -36,10 +45,11 @@ export async function generateMetadata({
 
   const isGlobal = countryName === GLOBAL_SCOPE;
   const order = orderBy.toUpperCase() as LanguageSummaryOrder;
+  const [sentence, rest] = ORDER_DESCRIPTIONS[order](isGlobal ? '' : ` in ${countryName}`);
 
   return pageMetadata({
     title: `${isGlobal ? 'Global' : countryName} Language Rankings${pageSuffix(page)}`,
-    description: ORDER_DESCRIPTIONS[order](isGlobal ? '' : ` in ${countryName}`),
+    description: `${sentence}${pageClause(page)}.${rest}`,
     path: `/languages/${encodeURIComponent(countryName)}/${order.toLowerCase()}/${page}`,
   });
 }

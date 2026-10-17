@@ -33,8 +33,8 @@ export async function generateMetadata({
 
   return pageMetadata({
     title: `${isGlobal ? 'Global' : countryName} ${languageName} Language Ranking${pageSuffix(page)}`,
-    description: `Explore the ${languageName} language ranking${
-      isGlobal ? '' : ` in ${countryName}`
+    description: `Explore the ${languageName} language ranking${isGlobal ? '' : ` in ${countryName}`}${
+      page > 1 ? `, page ${page},` : ''
     } on GitRanks. See how popular ${languageName} is among GitHub developers. Compare rankings globally or within your country.`,
     path: getLanguageRankingPath(languageName, countryName, page),
   });

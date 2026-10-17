@@ -7,7 +7,7 @@ import { notFound } from 'next/navigation';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { RankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
-import { pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
+import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { getRankingTitle } from '@/utils/get-ranking-title';
 import { isRankingType } from '@/utils/is-ranking-type';
 import { parsePageParam } from '@/utils/parse-page-param';
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: LayoutProps<'/by/[rankingType
 
   return pageMetadata({
     title: `${title}${pageSuffix(page)}`,
-    description: `${title} of GitHub developers worldwide${page > 1 ? `, page ${page}` : ''}. ${subtitle}`,
+    description: `${title} of GitHub developers worldwide${pageClause(page)}. ${subtitle}`,
     path: `/by/${rankingType}/${page}`,
   });
 }

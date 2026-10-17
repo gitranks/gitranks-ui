@@ -7,7 +7,7 @@ import { notFound } from 'next/navigation';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
-import { pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
+import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { parsePageParam } from '@/utils/parse-page-param';
 
 export async function generateMetadata({ params }: LayoutProps<'/orgs/[page]'>): Promise<Metadata> {
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: LayoutProps<'/orgs/[page]'>):
 
   return pageMetadata({
     title: `${RANK_NAME.o}ing${pageSuffix(page)}`,
-    description: `GitHub organizations ranked by the stars on the repositories they own${page > 1 ? `, page ${page}` : ''}.`,
+    description: `GitHub organizations ranked by the stars on the repositories they own${pageClause(page)}.`,
     path: `/orgs/${page}`,
   });
 }

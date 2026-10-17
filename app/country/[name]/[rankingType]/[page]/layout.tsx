@@ -8,7 +8,7 @@ import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { RankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
-import { pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
+import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { RankingTypeClient } from '@/types/ranking.types';
 import { getRankingTitle } from '@/utils/get-ranking-title';
 import { isRankingType } from '@/utils/is-ranking-type';
@@ -31,7 +31,7 @@ export async function generateMetadata({
 
   return pageMetadata({
     title: `${title}${pageSuffix(page)}`,
-    description: `${rankingName} of GitHub developers in ${countryName}${page > 1 ? `, page ${page}` : ''}. ${subtitle}`,
+    description: `${rankingName} of GitHub developers in ${countryName}${pageClause(page)}. ${subtitle}`,
     path: `/country/${encodeURIComponent(countryName)}/${rankingType}/${page}`,
   });
 }

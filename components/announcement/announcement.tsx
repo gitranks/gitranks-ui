@@ -34,6 +34,9 @@ const getContent = (state: AnnouncementState) => {
 
 export const Announcement = () => {
   const [dismissed, setDismissed] = useLocalStorage('announcement-dismissed', false);
+  // When the browser blocks site data, the storage setter swallows the error and leaves `dismissed`
+  // false. Keeping the dismissal in state too hides the banner until the next full page load.
+  const [dismissedThisVisit, setDismissedThisVisit] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [state, setState] = useState<AnnouncementState>('default');
   // The server knows neither the viewport nor localStorage, so it renders nothing; the hydration
@@ -41,7 +44,7 @@ export const Announcement = () => {
   // appears right after mount, and never flashes for someone who dismissed it.
   const isClient = useIsClient();
 
-  if (!isClient || dismissed || !isDesktop) {
+  if (!isClient || dismissed || dismissedThisVisit || !isDesktop) {
     return null;
   }
 
@@ -52,6 +55,7 @@ export const Announcement = () => {
     } else {
       sendGAEvent('event', 'announcement_dismiss');
       setDismissed(true);
+      setDismissedThisVisit(true);
     }
   };
 

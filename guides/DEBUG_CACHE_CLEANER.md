@@ -15,8 +15,8 @@ page number, mostly. A cached page is about 400 KB.
 Once an hour the script:
 
 - counts the **runtime pages**: those newer than `/app/.next/page-cache-build-marker`, a file the
-  `Dockerfile` touches after copying the build in. Pages prerendered at build time are never
-  touched;
+  `Dockerfile` touches after copying the build in. Pages prerendered at build time are not
+  counted, unless Next renders one again at runtime: the new copy is a runtime page like any other;
 - keeps the newest 20,000 (about 8–9 GB) and deletes the rest, oldest first, each page as a whole;
 - removes the folders those deletions left empty;
 - deletes any entry whose name contains a newline. A request for an encoded newline (`%0A`) can
@@ -25,8 +25,8 @@ Once an hour the script:
 A deleted page is a cache miss. Next renders it again on its next visit, just as it would after a
 deploy.
 
-Settings, all optional environment variables. The two numbers must be whole numbers; otherwise the
-script logs why and does not start.
+Settings, all optional environment variables. The two numbers must be whole numbers without a
+leading zero; otherwise the script logs why and does not start.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |

@@ -27,9 +27,10 @@ log() {
 }
 
 for SETTING in "MAX_PAGES=$MAX_PAGES" "INTERVAL=$INTERVAL"; do
+  # Digits only, and no leading zero: the shell would read 010 as octal and fail on 08.
   case ${SETTING#*=} in
-    '' | *[!0-9]*)
-      log "${SETTING%%=*} must be a whole number, got '${SETTING#*=}'; not starting"
+    '' | *[!0-9]* | 0[0-9]*)
+      log "PAGE_CACHE_${SETTING%%=*} must be a whole number, got '${SETTING#*=}'; not starting"
       exit 1
       ;;
   esac

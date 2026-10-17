@@ -5,9 +5,9 @@ import { useQueryStates } from 'nuqs';
 import { type FC, type PropsWithChildren, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDebounceCallback } from 'usehooks-ts';
-import type { z } from 'zod';
 
 import { getDefaultLabel } from '../utils/get-default-label';
+import { type BadgeFormValues, watchBadgeForm } from '../utils/watch-badge-form';
 import { ColorPickerField } from './color-picker-field';
 import type { BadgeBuilderProfileProps } from './login-form.types';
 import { StepTitle } from './step-title';
@@ -38,7 +38,7 @@ export function BadgeForm({ rankedIn, country }: BadgeFormProps) {
   const [params, saveValues] = useQueryStates(BadgeNuqsSchema);
   const debouncedSaveValues = useDebounceCallback(saveValues, 500);
 
-  const form = useForm<Partial<z.infer<typeof BadgeV2ZodSchema>>>({
+  const form = useForm<BadgeFormValues>({
     resolver: zodResolver(BadgeV2ZodSchema),
     defaultValues: { ...params, label: params.label ?? getDefaultLabel(params.ranking, params.type) },
   });
@@ -47,13 +47,7 @@ export function BadgeForm({ rankedIn, country }: BadgeFormProps) {
   const noCountryRanks = !!rankedIn && !rankedIn[BadgeContext.Country].length;
 
   useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      // A new ranking or type gets its own label; the user can still edit it afterwards.
-      if (name === 'ranking' || name === 'type') {
-        form.setValue('label', getDefaultLabel(value.ranking, value.type));
-      }
-      debouncedSaveValues(form.getValues());
-    });
+    const subscription = watchBadgeForm(form, debouncedSaveValues);
     return () => subscription.unsubscribe();
   }, [form, debouncedSaveValues]);
 

@@ -81,7 +81,7 @@ describe('badge builder for a country badge', () => {
     const html = render('?context=country&ranking=c', <Preview {...profile} />);
 
     expect(html).not.toContain('<img');
-    expect(html).toContain('newcomer has no Contributor Rank in USA yet. Choose Global.');
+    expect(html).toContain('newcomer has no Contributor Rank in USA yet. Choose Global or another ranking.');
     expect(render('?context=country&ranking=c', <IntegrationCode {...profile} />)).not.toContain('/api/badge/v2/');
   });
 
@@ -89,6 +89,31 @@ describe('badge builder for a country badge', () => {
     expect(render('?context=country&ranking=f', <Preview {...profile} />)).toContain(
       'newcomer is not in the Followers Ranking yet: it takes 5 followers. Choose another ranking.',
     );
+  });
+
+  it('points to Global alone when no ranking has a country rank', () => {
+    const noCountryRanks = {
+      ...profile,
+      rankedIn: { [BadgeContext.Global]: [UserRankProp.s], [BadgeContext.Country]: [] },
+      country: 'Ukraine',
+    };
+
+    expect(render('?context=country&ranking=s', <Preview {...noCountryRanks} />)).toContain(
+      'newcomer has no Stars Rank in Ukraine yet. Choose Global.',
+    );
+    expect(render('?context=country&ranking=f', <Preview {...noCountryRanks} />)).toContain(
+      'newcomer is not in the Followers Ranking yet: it takes 5 followers. Choose Global.',
+    );
+  });
+
+  it('does not call a profile ranked only in its country unranked', () => {
+    const countryOnly = {
+      ...profile,
+      rankedIn: { [BadgeContext.Global]: [], [BadgeContext.Country]: [UserRankProp.s] },
+    };
+
+    expect(render('?context=country&ranking=s', <Preview {...countryOnly} />)).toContain('<img');
+    expect(render('?context=country&ranking=c', <Preview {...countryOnly} />)).not.toContain('not in any ranking');
   });
 });
 

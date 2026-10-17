@@ -25,7 +25,11 @@ const explainUnranked = (
   ranking: UserRankProp,
   context: BadgeContext,
 ): string => {
-  if (!rankedIn?.[BadgeContext.Global].length) {
+  const global = rankedIn?.[BadgeContext.Global] ?? [];
+  // Another ranking works in this context; else only the other context has badges.
+  const hasOtherRanking = !!rankedIn?.[context].length;
+
+  if (!global.length && !rankedIn?.[BadgeContext.Country].length) {
     return `${githubLogin} is not in any ranking yet: it takes ${ANY_RANKING_ENTRY}.`;
   }
 
@@ -33,11 +37,14 @@ const explainUnranked = (
     return `${githubLogin} has no country rank: GitRanks could not detect a country from the profile location. Choose Global.`;
   }
 
-  if (!rankedIn[BadgeContext.Global].includes(ranking)) {
-    return `${githubLogin} is not in the ${RANK_NAME[ranking]}ing yet: it takes ${RANKING_ENTRY[ranking]}. Choose another ranking.`;
+  if (!global.includes(ranking)) {
+    const otherContext = context === BadgeContext.Global ? 'Country' : 'Global';
+    const next = hasOtherRanking ? 'Choose another ranking.' : `Choose ${otherContext}.`;
+    return `${githubLogin} is not in the ${RANK_NAME[ranking]}ing yet: it takes ${RANKING_ENTRY[ranking]}. ${next}`;
   }
 
-  return `${githubLogin} has no ${RANK_NAME[ranking]} in ${shortenCountryName(country)} yet. Choose Global.`;
+  const next = hasOtherRanking ? 'Choose Global or another ranking.' : 'Choose Global.';
+  return `${githubLogin} has no ${RANK_NAME[ranking]} in ${shortenCountryName(country)} yet. ${next}`;
 };
 
 export const Preview: FC<BadgeBuilderProfileProps> = (props) => {

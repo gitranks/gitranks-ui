@@ -20,4 +20,16 @@ describe('refresh messages', () => {
     expect(copy).not.toMatch(/\bfree refresh/);
     expect(REFRESH_LABELS.dailyAvailable.toLowerCase()).not.toContain('free');
   });
+
+  it('shows the photo, and signs, only the notes that read as from the maker', () => {
+    const withPhoto = Object.entries(REFRESH_MESSAGES)
+      .filter(([, message]) => 'photo' in message && message.photo)
+      .map(([kind]) => kind);
+    const signed = Object.entries(REFRESH_MESSAGES)
+      .filter(([, message]) => 'signature' in message)
+      .map(([kind]) => kind);
+
+    expect(withPhoto.sort()).toEqual(['needStar', 'signIn']);
+    expect(signed).toEqual(['needStar']);
+  });
 });

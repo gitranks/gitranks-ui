@@ -1,11 +1,19 @@
 import { useQueryStates } from 'nuqs';
 import { useLayoutEffect, useMemo, useState } from 'react';
 
+import type { BadgeBuilderProfileProps } from '../components/login-form.types';
 import { BadgeNuqsSchema } from '@/badge/badge.nuqs';
 import { isValidHex } from '@/badge/utils/is-valid-hex';
 import type { NonNull } from '@/types/generic.types';
+import type { UserRankProp } from '@/types/ranking.types';
 
-export const useBadgeUrl = (githubLogin: string | undefined, githubId: string | undefined) => {
+type BadgeUrlResult = {
+  url: string;
+  /** Set when the chosen ranking is one the profile is not in: its badge would only show an error. */
+  unrankedIn?: UserRankProp;
+};
+
+export const useBadgeUrl = ({ githubLogin, githubId, rankedIn }: BadgeBuilderProfileProps): BadgeUrlResult => {
   const [badgeParams] = useQueryStates(BadgeNuqsSchema);
 
   const values = useMemo(() => {
@@ -25,9 +33,13 @@ export const useBadgeUrl = (githubLogin: string | undefined, githubId: string | 
   }, []);
 
   if (!githubId) {
-    return '';
+    return { url: '' };
+  }
+
+  if (rankedIn && !rankedIn.includes(badgeParams.ranking)) {
+    return { url: '', unrankedIn: badgeParams.ranking };
   }
 
   const queryParams = new URLSearchParams(values).toString();
-  return `${origin}/api/badge/v2/${githubLogin}${(queryParams ? '?' : '') + queryParams}`;
+  return { url: `${origin}/api/badge/v2/${githubLogin}${(queryParams ? '?' : '') + queryParams}` };
 };

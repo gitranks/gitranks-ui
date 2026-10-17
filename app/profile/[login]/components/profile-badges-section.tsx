@@ -9,7 +9,9 @@ import {
   getCanonicalBadgePath,
   getCanonicalBadgeTitle,
   getCanonicalBadgeUrl,
+  isCanonicalBadgeAvailable,
 } from '@/badge/canonical-badge';
+import type { RankingScores } from '@/badge/utils/is-ranked-in';
 import { Link as LinkUnderlined } from '@/components/link/link';
 
 const BADGE_COLUMNS: [CanonicalBadgeVariant, CanonicalBadgeVariant][] = [
@@ -20,9 +22,12 @@ const BADGE_COLUMNS: [CanonicalBadgeVariant, CanonicalBadgeVariant][] = [
 
 type ProfileBadgesSectionProps = {
   login: string;
+  scores: RankingScores;
 };
 
-export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login }) => {
+export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login, scores }) => {
+  // Badges exist only for the rankings this profile is in; the rest would be broken images.
+  const columns = BADGE_COLUMNS.filter(([rankVariant]) => isCanonicalBadgeAvailable(rankVariant, scores));
   const builderHref = `/badge/builder/${encodeURIComponent(login)}` as Route;
 
   const copySvgUrl = async (variant: CanonicalBadgeVariant) => {
@@ -44,6 +49,10 @@ export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login }) =
     void copySvgUrl(variant);
   };
 
+  if (!columns.length) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-2 px-4 py-4 rounded-xl border-1 mt-8">
       <div className="flex items-start justify-between gap-x-4 gap-y-1 flex-wrap text-sm">
@@ -59,7 +68,7 @@ export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login }) =
       </div>
 
       <div className="flex flex-wrap gap-3">
-        {BADGE_COLUMNS.map(([rankVariant, scoreVariant]) => (
+        {columns.map(([rankVariant, scoreVariant]) => (
           <div key={rankVariant} className="flex flex-col gap-2">
             {([rankVariant, scoreVariant] as const).map((variant) => {
               const title = getCanonicalBadgeTitle(variant);

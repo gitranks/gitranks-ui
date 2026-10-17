@@ -1,3 +1,4 @@
+import { MIN_RANK_SCORE } from './badge.consts';
 import {
   InvalidCountryError,
   InvalidScoreError,
@@ -71,7 +72,7 @@ export const badgeDataLoader = async (login: string, params: BadgeV2Params): Pro
 
   const score = user[rankingProp];
 
-  if (!score || score < 5) {
+  if (!score || score < MIN_RANK_SCORE) {
     throw new InvalidScoreError();
   }
 
@@ -82,7 +83,9 @@ export const badgeDataLoader = async (login: string, params: BadgeV2Params): Pro
   }
 
   const rankings = user[context === BadgeContext.Country ? 'rankCountry' : 'rankGlobal'];
-  const position = rankings?.[rankingProp];
+  // Same fallback as the profile's rank card: a newly added profile only has a provisional rank
+  // until the next ranking update.
+  const position = rankings?.[rankingProp] ?? rankings?.[`${rankingProp}Provisional`];
 
   if (!rankings || !position) {
     throw new RanksAreNotAvailableError();

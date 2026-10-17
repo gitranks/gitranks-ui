@@ -36,6 +36,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
   const {
     s,
     c,
+    f,
     sLangs,
     cLangs,
     country,
@@ -103,7 +104,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
 
       {!!timeline?.length && <ProfileTimeline timeline={timeline} firstSeenAt={firstSeenAt} />}
 
-      <ProfileBadgesSection login={login} />
+      <ProfileBadgesSection login={login} scores={{ s, c, f }} />
 
       <MessengerIntegration login={login} />
     </LayoutLeftColumn>

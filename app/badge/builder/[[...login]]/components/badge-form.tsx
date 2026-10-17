@@ -44,7 +44,14 @@ const generateLabel = (ranking?: UserRankProp, type?: string): string => {
   return RANK_NAME[ranking ?? UserRankProp.s];
 };
 
-export function BadgeForm() {
+const RANKINGS = [UserRankProp.s, UserRankProp.c, UserRankProp.f];
+
+type BadgeFormProps = {
+  /** Rankings the chosen profile is in; unset until a profile is chosen. */
+  rankedIn?: UserRankProp[];
+};
+
+export function BadgeForm({ rankedIn }: BadgeFormProps) {
   const [defaultValues, saveValues] = useQueryStates(BadgeNuqsSchema);
   const debouncedSaveValues = useDebounceCallback(saveValues, 500);
 
@@ -89,9 +96,14 @@ export function BadgeForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={UserRankProp.s}>{`${RANK_NAME[UserRankProp.s]}ing`}</SelectItem>
-                    <SelectItem value={UserRankProp.c}>{`${RANK_NAME[UserRankProp.c]}ing`}</SelectItem>
-                    <SelectItem value={UserRankProp.f}>{`${RANK_NAME[UserRankProp.f]}ing`}</SelectItem>
+                    {RANKINGS.map((option) => {
+                      const notRanked = !!rankedIn && !rankedIn.includes(option);
+                      return (
+                        <SelectItem key={option} value={option} disabled={notRanked}>
+                          {`${RANK_NAME[option]}ing${notRanked ? ' (not ranked)' : ''}`}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </BadgeFormItem>

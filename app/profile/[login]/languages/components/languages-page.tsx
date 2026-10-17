@@ -49,7 +49,7 @@ export const LanguagesPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) 
       {ranksAreNotReady && (
         <p>
           Your language rankings aren&apos;t ready yet! We&apos;ve just discovered your profile, and language rankings
-          are recalculated every other day. Check back soon to see your results.
+          are recalculated about every fourth day. Check back soon to see your results.
         </p>
       )}
 

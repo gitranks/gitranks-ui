@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-import { MIN_VALUE, TIER_FRACTIONS, TIER_NAMES } from '@/app/app.consts';
+import { MIN_PROFILES_THRESHOLD, MIN_VALUE, TIER_FRACTIONS, TIER_NAMES } from '@/app/app.consts';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Link } from '@/components/link/link';
@@ -13,19 +13,19 @@ import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
 import { CountrySummaryOrder } from '@/types/generated/graphql';
 
 export const metadata: Metadata = pageMetadata({
-  title: 'How GitRanks Ranks GitHub Developers',
+  title: { absolute: 'How GitRanks Ranks GitHub Developers' },
   description: `How GitRanks computes its stars, contributor and followers rankings from public GitHub data: what each one counts, who is included (${MIN_VALUE}+ stars or followers), and how often ranks are recalculated.`,
   path: '/methodology',
 });
 
 const formatNumber = (value: number) => value.toLocaleString('en-US');
 
-/** `2026-10-01` → `1 October 2026`; anything else as it came. */
+/** `2026-10-01` → `October 1, 2026`; anything else as it came. */
 const formatSummaryDate = (date: string) => {
   const parsed = new Date(`${date}T00:00:00Z`);
   return Number.isNaN(parsed.getTime())
     ? date
-    : parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    : parsed.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 };
 
 const formatShare = (fraction: number) => `${Math.round(fraction * 100)}%`;
@@ -50,9 +50,12 @@ const Table = ({ head, rows }: { head: string[]; rows: ReactNode[][] }) => (
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => (
-          <tr key={String(row[0])}>
-            {row.map((cell, index) => (
+        {rows.map(([first, ...rest], rowIndex) => (
+          <tr key={rowIndex}>
+            <th scope="row" className="border-b p-2 align-top font-normal">
+              {first}
+            </th>
+            {rest.map((cell, index) => (
               <td key={index} className="border-b p-2 align-top">
                 {cell}
               </td>
@@ -64,7 +67,7 @@ const Table = ({ head, rows }: { head: string[]; rows: ReactNode[][] }) => (
   </div>
 );
 
-/** Live counts, in sentences a reader can quote. Left out when the data is unavailable. */
+/** Live counts, in sentences a reader can quote. Left out when the data is empty. */
 const InNumbers = async () => {
   const [counts, countries] = await Promise.all([
     fetchGlobalRankedCounts(),
@@ -89,7 +92,7 @@ const InNumbers = async () => {
       {!!largest.length && (
         <p>
           The country summary of {formatSummaryDate(largest[0].date)} covers {formatNumber(countries.length)} countries.
-          The largest communities of ranked developers are{' '}
+          The countries with the most developers on GitRanks are{' '}
           {largest.map((country, index) => (
             <span key={country.country}>
               {index > 0 && (index === largest.length - 1 ? ' and ' : ', ')}
@@ -139,7 +142,7 @@ export default function MethodologyPage() {
                   {RANK_NAME.c}
                 </Link>,
                 'Stars on repositories owned by other accounts, organizations included, where the developer has merged pull requests; each repository counts once',
-                `Developers with merged pull requests in a repository with ${MIN_VALUE}+ stars`,
+                `Developers with ${MIN_VALUE}+ stars in total across the repositories they contributed to`,
               ],
               [
                 <Link key="f" href="/by/followers/1">
@@ -159,8 +162,9 @@ export default function MethodologyPage() {
 
         <Section title="Countries, languages and organizations">
           <p>
-            <strong>Country rankings</strong> use the location on the developer&apos;s GitHub profile: GitRanks takes
-            the first country it names. A developer without a recognizable location is ranked worldwide only.{' '}
+            <strong>Country rankings</strong> use the location on the developer&apos;s GitHub profile. GitRanks
+            recognizes country names as well as regions and cities, so &quot;Berlin&quot; counts as Germany, and a
+            country name wins over a city. A developer without a recognizable location is ranked worldwide only.{' '}
             <Link href="/countries/stars/1">Browse country rankings</Link>.
           </p>
           <p>
@@ -177,8 +181,8 @@ export default function MethodologyPage() {
 
         <Section title="Tiers">
           <p>
-            Every ranking with more than 100 profiles is split into {TIER_NAMES.length} tiers. Each tier holds a fixed
-            share of the ranked profiles, so the shares stay the same as more developers join:
+            Every ranking with at least {MIN_PROFILES_THRESHOLD} profiles is split into {TIER_NAMES.length} tiers. Each
+            tier holds a fixed share of the ranked profiles, so the shares stay the same as more developers join:
           </p>
           <Table
             head={['Tier', 'Share of ranked profiles']}
@@ -194,19 +198,19 @@ export default function MethodologyPage() {
                 'GitHub profile data',
                 'Every few weeks: a profile is re-read from GitHub no more often than every 2 weeks, its pull-request history no more often than every 45 days. Signed-in visitors can also refresh a profile on request.',
               ],
-              ['Worldwide ranks', 'Every second day'],
-              ['Organization ranks', 'Every second day'],
-              ['Country ranks', 'Every fourth day'],
-              ['Language ranks, worldwide and by country', 'Every fourth day'],
-              ['Tiers', 'Weekly'],
+              ['Worldwide ranks', 'About every second day'],
+              ['Organization ranks', 'About every second day'],
+              ['Country ranks', 'About every fourth day'],
+              ['Language ranks, worldwide and by country', 'About every fourth day'],
+              ['Tiers', 'Weekly; monthly for language rankings within a country'],
               ['Monthly change', 'Measured against a snapshot taken on the 1st of each month'],
               ['Country and language summaries', 'On the 1st of each month'],
             ]}
           />
           <p>
             A profile fetched on request gets a <strong>provisional</strong> worldwide and country rank at once: it is
-            placed just above the closest profile with a lower score. The next recalculation replaces it, within 2 days
-            worldwide and 4 days in the country.
+            placed just above the closest profile with a lower score. The next recalculation replaces it, usually within
+            2 days worldwide and 4 days in the country.
           </p>
         </Section>
 

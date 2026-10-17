@@ -29,6 +29,7 @@ export default async function Badge({ params }: PageProps<'/badge/builder/[[...l
 
   const { login } = await params;
   const githubLogin = login?.[0];
+  let storedLogin: string | undefined;
   let githubId: string | undefined;
   let rankedIn: RankedIn | undefined;
   let country: string | null | undefined;
@@ -44,10 +45,12 @@ export default async function Badge({ params }: PageProps<'/badge/builder/[[...l
     if (profile) {
       rankedIn = getRankedIn(profile, ranks, data.countryRankByLogin ?? null);
       country = profile.country;
+      storedLogin = profile.login;
     }
   }
 
-  const profileProps = { githubLogin, githubId, rankedIn, country };
+  // The login as GitHub spells it, so the badge and the profile it links to use the profile's canonical URL.
+  const profileProps = { githubLogin: storedLogin ?? githubLogin, githubId, rankedIn, country };
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start">

@@ -8,6 +8,7 @@ query ProfileIdByLogin($login: String!) {
     f
     fProvisional
     user {
+      login
       s
       c
       f

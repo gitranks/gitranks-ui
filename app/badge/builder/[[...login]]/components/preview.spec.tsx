@@ -154,6 +154,10 @@ describe('badge builder embed code', () => {
     expect(code).toMatch(/ alt="GitRanks badge for newcomer" \/><\/a>$/);
   });
 
+  it('links a country badge to the country tab', () => {
+    expect(codeOf('?context=country')).toMatch(/^<a href="\/profile\/newcomer\/country"><img /);
+  });
+
   it('is empty when there is no badge to embed', () => {
     expect(codeOf('?ranking=f')).toBe('');
   });

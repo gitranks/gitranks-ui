@@ -5,13 +5,13 @@ import type { BadgeBuilderProfileProps } from '../components/login-form.types';
 import { getDefaultLabel } from '../utils/get-default-label';
 import { BadgeNuqsSchema } from '@/badge/badge.nuqs';
 import { isValidHex } from '@/badge/utils/is-valid-hex';
-import type { BadgeContext } from '@/types/badge.types';
+import { BadgeContext } from '@/types/badge.types';
 import type { NonNull } from '@/types/generic.types';
 import type { UserRankProp } from '@/types/ranking.types';
 
 type BadgeUrlResult = {
   url: string;
-  /** The profile page the embedded badge links to; set together with `url`. */
+  /** The profile tab the embedded badge links to, global or country like the badge; set together with `url`. */
   profileUrl?: string;
   /** Set when the profile is not in the chosen ranking in the chosen context: its badge would only show an error. */
   unranked?: { ranking: UserRankProp; context: BadgeContext };
@@ -49,6 +49,6 @@ export const useBadgeUrl = ({ githubLogin, githubId, rankedIn }: BadgeBuilderPro
   const queryParams = new URLSearchParams(values).toString();
   return {
     url: `${origin}/api/badge/v2/${githubLogin}${(queryParams ? '?' : '') + queryParams}`,
-    profileUrl: `${origin}/profile/${githubLogin}`,
+    profileUrl: `${origin}/profile/${githubLogin}${context === BadgeContext.Country ? '/country' : ''}`,
   };
 };

@@ -53,9 +53,10 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy and set up the profile cache cleaner script
-COPY --chown=nextjs:nodejs lib/shell/profile-cache-cleaner.sh /app/lib/shell/profile-cache-cleaner.sh
-RUN chmod +x /app/lib/shell/profile-cache-cleaner.sh
+# Copy and set up the page cache cleaner script. The marker is touched after every COPY of the
+# build, so the cleaner can tell pages written at runtime (newer) from build output (not newer).
+COPY --chown=nextjs:nodejs lib/shell/page-cache-cleaner.sh /app/lib/shell/page-cache-cleaner.sh
+RUN chmod +x /app/lib/shell/page-cache-cleaner.sh && touch /app/.next/page-cache-build-marker
 
 USER nextjs
 
@@ -66,4 +67,4 @@ ENV HOSTNAME=0.0.0.0
 
 # Start both the cache cleaner (in background) and the node server (in foreground)
 # Background process output will appear in docker logs
-CMD ["sh", "-c", "/app/lib/shell/profile-cache-cleaner.sh 2>&1 & exec node server.js"]
+CMD ["sh", "-c", "/app/lib/shell/page-cache-cleaner.sh 2>&1 & exec node server.js"]

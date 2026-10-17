@@ -1,112 +1,67 @@
-# Debugging Profile Cache Cleaner
+# Page Cache Cleaner
 
-## How to Verify It's Running
+`lib/shell/page-cache-cleaner.sh` runs in the background of the container, next to `node server.js`
+(see the `CMD` in the `Dockerfile`). In the commands below, `<container>` is the name of the running
+app container.
 
-### 1. Check if the process is running inside the container
+## What it does
 
-SSH to your server and run:
+Next.js keeps every page it renders on demand in its page cache under `/app/.next/server/app`, with
+no eviction. Each page there is a `.html` file, a `.meta` file, a `.segments` folder and sometimes a
+`.rsc` file. A new container starts from the image and drops them. Between deploys, though, they keep
+piling up for as long as visitors and crawlers find new URLs: ranking pages by country, language and
+page number, mostly. A cached page is about 400 KB.
 
-```bash
-docker exec gitranks-ui ps aux | grep profile-cache-cleaner
-```
+Once an hour the script:
 
-You should see the script process running.
+- counts the **runtime pages**: those newer than `/app/.next/page-cache-build-marker`, a file the
+  `Dockerfile` touches after copying the build in. Pages prerendered at build time are not
+  counted, unless Next renders one again at runtime: the new copy is a runtime page like any other;
+- keeps the newest 20,000 (about 8–9 GB) and deletes the rest, oldest first, each page as a whole;
+- removes the folders those deletions left empty;
+- deletes any entry whose name contains a newline. A request for an encoded newline (`%0A`) can
+  create one, and the line-based listing can't parse it.
 
-### 2. View Docker Logs
+A deleted page is a cache miss. Next renders it again on its next visit, just as it would after a
+deploy.
 
-The script logs to stdout/stderr, which Docker captures. View logs with:
+Settings, all optional environment variables. The two numbers must be whole numbers without a
+leading zero; otherwise the script logs why and does not start.
 
-```bash
-# View all logs
-docker logs gitranks-ui
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `PAGE_CACHE_MAX_PAGES` | `20000` | Runtime pages to keep |
+| `PAGE_CACHE_INTERVAL` | `3600` | Seconds between passes; `0` runs one pass and exits |
+| `PAGE_CACHE_DIR` | `/app/.next/server/app` | The page cache |
+| `PAGE_CACHE_BUILD_MARKER` | `/app/.next/page-cache-build-marker` | Anything newer counts as written at runtime |
 
-# Follow logs in real-time
-docker logs -f gitranks-ui
-
-# View only the last 100 lines
-docker logs --tail 100 gitranks-ui
-
-# Filter logs for cache cleaner messages
-docker logs gitranks-ui 2>&1 | grep "profile-cache-cleaner"
-```
-
-### 3. Verify It Runs Every 10 Minutes
-
-The script logs every time it runs (every 600 seconds). Check timestamps:
-
-```bash
-docker logs gitranks-ui 2>&1 | grep "profile-cache-cleaner" | tail -20
-```
-
-You should see log entries approximately every 10 minutes with timestamps like:
-```
-Mon Jan 20 10:00:00 UTC 2025 [profile-cache-cleaner] Found 15000 profile dirs
-Mon Jan 20 10:10:00 UTC 2025 [profile-cache-cleaner] Found 15000 profile dirs
-Mon Jan 20 10:20:00 UTC 2025 [profile-cache-cleaner] Found 15000 profile dirs
-```
-
-### 4. Check Script Execution Directly
-
-Execute the script manually inside the container to test:
+## Checking it
 
 ```bash
-docker exec gitranks-ui /app/lib/shell/profile-cache-cleaner.sh
+# The process
+docker exec <container> ps -o pid,args | grep page-cache-cleaner
+
+# Its log lines, one per pass
+docker logs <container> 2>&1 | grep "page-cache-cleaner" | tail -5
+
+# How many runtime pages there are right now
+docker exec <container> sh -c 'find /app/.next/server/app -type f -name "*.html" -newer /app/.next/page-cache-build-marker | wc -l'
+
+# One pass now, without waiting for the hour
+docker exec -e PAGE_CACHE_INTERVAL=0 <container> /app/lib/shell/page-cache-cleaner.sh
 ```
 
-(Note: This will run in foreground - press Ctrl+C to stop)
-
-### 5. Verify the Script File Exists and is Executable
-
-```bash
-docker exec gitranks-ui ls -la /app/lib/shell/profile-cache-cleaner.sh
-docker exec gitranks-ui test -x /app/lib/shell/profile-cache-cleaner.sh && echo "Executable" || echo "Not executable"
-```
-
-### 6. Check if Profile Directory Exists
-
-```bash
-docker exec gitranks-ui ls -la /app/.next/server/app/profile
-docker exec gitranks-ui ls -d /app/.next/server/app/profile/*/ 2>/dev/null | wc -l
-```
-
-## Expected Log Output
-
-When working correctly, you should see logs like:
+Expected log output:
 
 ```
-Starting profile cache cleaner. Dir: /app/.next/server/app/profile, max dirs: 30000, interval: 600s
-Mon Jan 20 10:00:00 UTC 2025 [profile-cache-cleaner] Found 15000 profile dirs
-Mon Jan 20 10:10:00 UTC 2025 [profile-cache-cleaner] Found 15200 profile dirs
-Mon Jan 20 10:20:00 UTC 2025 [profile-cache-cleaner] Found 15100 profile dirs
+Sat Oct 17 12:00:00 UTC 2026 [page-cache-cleaner] Starting. Dir: /app/.next/server/app, cap: 20000 runtime pages, interval: 3600s
+Sat Oct 17 12:00:00 UTC 2026 [page-cache-cleaner] Found 47 runtime pages (cap 20000)
+Sat Oct 24 12:00:00 UTC 2026 [page-cache-cleaner] Found 20113 runtime pages, removed the oldest 113 (cap 20000)
 ```
 
-If the directory doesn't exist yet:
-```
-Mon Jan 20 10:00:00 UTC 2025 [profile-cache-cleaner] Directory /app/.next/server/app/profile does not exist
-```
+What other messages mean:
 
-If cleanup is needed:
-```
-Mon Jan 20 10:00:00 UTC 2025 [profile-cache-cleaner] Found 35000 profile dirs
-Mon Jan 20 10:00:00 UTC 2025 [profile-cache-cleaner] Need to remove 5000 oldest dirs
-  removing /app/.next/server/app/profile/abc123/
-  removing /app/.next/server/app/profile/def456/
-  ...
-```
-
-## Troubleshooting
-
-### Script not running?
-1. Check container logs: `docker logs gitranks-ui`
-2. Check if process exists: `docker exec gitranks-ui ps aux | grep profile`
-3. Verify script permissions: `docker exec gitranks-ui ls -la /app/lib/shell/profile-cache-cleaner.sh`
-
-### No logs appearing?
-1. The script might be failing silently - check with: `docker exec gitranks-ui sh -c "/app/lib/shell/profile-cache-cleaner.sh"` (run manually)
-2. Check if the script has proper shebang: `docker exec gitranks-ui head -1 /app/lib/shell/profile-cache-cleaner.sh`
-
-### Script runs but no cleanup happens?
-1. Check if directory exists: `docker exec gitranks-ui test -d /app/.next/server/app/profile && echo "Exists" || echo "Missing"`
-2. Check current count: `docker exec gitranks-ui ls -d /app/.next/server/app/profile/*/ 2>/dev/null | wc -l`
-3. Verify MAX_DIRS threshold (currently 30000) - if count is below this, no cleanup will occur
-
+- `Missing /app/.next/server/app or /app/.next/page-cache-build-marker, nothing to do`: the build no
+  longer puts the page cache or the marker where the script expects them. Check the `Dockerfile`.
+- `PAGE_CACHE_MAX_PAGES must be a whole number, got '…'; not starting`: fix the variable and restart.
+- `Cannot create a temporary file, skipping this pass`: `/tmp` isn't writable in the container.

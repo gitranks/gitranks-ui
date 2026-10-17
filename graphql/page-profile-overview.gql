@@ -57,6 +57,12 @@ query PageProfileOverview($login: String!, $isGlobalContext: Boolean! = true) {
       }
     }
     snapshots
+    starsReview {
+      status
+      stars
+      repositories
+      reportable
+    }
     repositories(limit: 5) {
       ...RepositoryFields
     }

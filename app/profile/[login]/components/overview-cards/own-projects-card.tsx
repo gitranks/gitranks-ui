@@ -2,6 +2,7 @@ import type { FC } from 'react';
 
 import { LangListWithSources } from '../lang-list-with-sources';
 import { ProfileCard, ProfileCardHeader } from '../profile-card';
+import { StarsReviewNote } from '../stars-review-note';
 import ChartStarsSnapshot from '@/components/chart-stars-snapshot/chart-stars-snapshot';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
@@ -14,6 +15,7 @@ type OwnProjectsCardProps = {
   repoStars: number;
   languages: NonNullable<PageProfileOverviewQuery['user']>['cLangs'];
   snapshots: NonNullable<PageProfileOverviewQuery['user']>['snapshots'];
+  starsReview?: NonNullable<PageProfileOverviewQuery['user']>['starsReview'];
 };
 
 export const OwnProjectsCard: FC<OwnProjectsCardProps> = ({
@@ -24,6 +26,7 @@ export const OwnProjectsCard: FC<OwnProjectsCardProps> = ({
   snapshots,
   totalRankedUsers,
   userRank,
+  starsReview,
 }) => {
   const getTopRankedMessage = () => {
     if (!totalRankedUsers || !userRank) {
@@ -61,6 +64,7 @@ export const OwnProjectsCard: FC<OwnProjectsCardProps> = ({
             )}
           </div>
           {getTopRankedMessage()}
+          <StarsReviewNote login={login} starsReview={starsReview} />
           {!!languages?.length && (
             <div className="flex gap-2 flex-wrap leading-tight">
               Languages:

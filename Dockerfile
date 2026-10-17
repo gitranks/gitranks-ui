@@ -53,9 +53,10 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy and set up the page cache cleaner script
+# Copy and set up the page cache cleaner script. The marker is touched after every COPY of the
+# build, so the cleaner can tell pages written at runtime (newer) from build output (not newer).
 COPY --chown=nextjs:nodejs lib/shell/page-cache-cleaner.sh /app/lib/shell/page-cache-cleaner.sh
-RUN chmod +x /app/lib/shell/page-cache-cleaner.sh
+RUN chmod +x /app/lib/shell/page-cache-cleaner.sh && touch /app/.next/page-cache-build-marker
 
 USER nextjs
 

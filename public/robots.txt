@@ -2,41 +2,48 @@
 # the bare `/badge/builder` and `/badge/gallery` stay crawlable.
 #
 # Crawl-delay is the pause, in seconds, between two requests from one crawler.
-# Google ignores it; the other crawlers below honour it. 2 seconds caps a
-# crawler at about 43,000 pages a day.
+# Bing, Anthropic and Ahrefs honour it; Google, Apple, Amazon and Yandex ignore
+# it; the others don't say. 2 seconds caps a crawler that honours it at about
+# 43,000 pages a day. Crawlers that ignore it are capped by the server instead.
+#
+# In every group the specific rules come first and `Allow: /` last, so parsers
+# that take the first matching rule read it the same way as RFC 9309 parsers.
+#
+# Content-Signal repeats the site-wide usage signal for the AI groups: a crawler
+# that matches a named group never reads the `*` groups.
 
 # Search engines (Google ignores Crawl-delay)
 User-agent: Googlebot
-Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
 User-agent: Bingbot
 User-agent: DuckDuckBot
 Crawl-delay: 2
-Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
 User-agent: Applebot
 Crawl-delay: 5
-Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
 User-agent: YandexBot
 Crawl-delay: 10
-Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
 # AI search crawlers: they index pages so AI assistants can cite and link them
 User-agent: OAI-SearchBot
@@ -44,31 +51,34 @@ User-agent: Claude-SearchBot
 User-agent: PerplexityBot
 User-agent: DuckAssistBot
 User-agent: Amzn-SearchBot
+Content-Signal: search=yes,ai-train=no,use=reference
 Crawl-delay: 2
-Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
 # AI assistants fetching a page because a person asked about it right now
 User-agent: ChatGPT-User
 User-agent: Claude-User
 User-agent: Perplexity-User
-Allow: /
+User-agent: Amzn-User
+Content-Signal: search=yes,ai-train=no,use=reference
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
 # SEO tooling: allowed, but crawls slowly
 User-agent: AhrefsBot
 Crawl-delay: 30
-Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
 # Scrapers and SEO crawlers: do not crawl
 User-agent: SleepBot

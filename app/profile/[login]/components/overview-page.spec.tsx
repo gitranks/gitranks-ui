@@ -81,9 +81,13 @@ describe('OverviewPage text', () => {
   it('sets the summary as muted small text right below the four cards, links in its color', () => {
     const markup = renderToStaticMarkup(<OverviewPage user={ranked} isGlobalContext />);
     const summary = markup.indexOf('data-testid="profile-summary"');
+    const lastCard = markup.indexOf('Open Source Contributions');
+    const repositories = markup.indexOf('>Repositories</h3>');
 
-    expect(summary).toBeGreaterThan(markup.indexOf('Open Source Contributions'));
-    expect(summary).toBeLessThan(markup.indexOf('>Repositories</h3>'));
+    expect(lastCard).toBeGreaterThan(-1);
+    expect(repositories).toBeGreaterThan(-1);
+    expect(summary).toBeGreaterThan(lastCard);
+    expect(summary).toBeLessThan(repositories);
     expect(markup).toContain('<p class="text-sm text-muted-foreground" data-testid="profile-summary">');
     const linkClasses = [...markup.slice(summary, markup.indexOf('</p>', summary)).matchAll(/<a class="([^"]*)"/g)].map(
       ([, classes]) => classes.split(' '),
@@ -91,8 +95,8 @@ describe('OverviewPage text', () => {
 
     expect(linkClasses.length).toBeGreaterThan(0);
     for (const classes of linkClasses) {
-      expect(classes).toEqual(expect.arrayContaining(['text-inherit', 'underline']));
-      expect(classes).not.toContain('text-link');
+      expect(classes).toEqual(expect.arrayContaining(['text-inherit', 'hover:text-foreground', 'underline']));
+      expect(classes.filter((name) => name.includes('text-link'))).toEqual([]);
     }
   });
 

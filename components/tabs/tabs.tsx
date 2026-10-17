@@ -17,7 +17,9 @@ type TabProps = {
 
 /**
  * Underlines the clicked tab at once and shows the progress bar while its page loads: tab pages
- * have no loading.tsx, so the current page stays on screen until the next one is ready.
+ * have no loading.tsx, so the current page stays on screen until the next one is ready. The
+ * underline takes the active colour, since the pointer is usually still over the tab and the
+ * hover border would hide a muted one.
  */
 const TabPendingHint: FC = () => {
   const { pending } = useLinkStatus();
@@ -27,7 +29,7 @@ const TabPendingHint: FC = () => {
     <span
       aria-hidden
       className={cn(
-        'absolute inset-x-0 -bottom-0.5 h-0.5 bg-muted-foreground opacity-0 transition-opacity',
+        'absolute inset-x-0 -bottom-0.5 h-0.5 bg-foreground opacity-0 transition-opacity',
         pending && 'opacity-100',
       )}
     />

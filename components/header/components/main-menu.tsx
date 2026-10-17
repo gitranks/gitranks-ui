@@ -20,12 +20,14 @@ import {
 import { cn } from '@/lib/utils';
 
 export function MainMenu({ className }: Readonly<{ className?: string }>) {
+  // The shared viewport mounts menu content on the client only. Without it, `forceMount` keeps the
+  // links in the server HTML, so crawlers find them; the closed menu is just hidden.
   return (
-    <NavigationMenu className={className}>
+    <NavigationMenu className={className} viewport={false}>
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuTrigger className="bg-transparent">Rankings</NavigationMenuTrigger>
-          <NavigationMenuContent>
+          <NavigationMenuContent forceMount className="absolute w-auto z-50 data-[state=closed]:hidden">
             <ul className="w-48">
               <ListItem href="/by/stars/1">
                 <VscGlobe /> Global Rankings

@@ -54,7 +54,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
           </AvatarContainer>
           <NameContainer>
             <h1 className="font-semibold text-2xl" translate="no">
-              {user.name}
+              {user.name || user.login}
             </h1>
             <h2 className="text-muted-foreground" translate="no">
               @{user.login}
@@ -78,6 +78,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
             {!!user.location && (
               <ProfileListItem
                 value={`${user.countryFlag ? `${user.countryFlag} ` : ''}${user.location}`}
+                url={user.country ? `/country/${encodeURIComponent(user.country)}/stars/1` : undefined}
                 Icon={MapPin}
               />
             )}
@@ -117,7 +118,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
                   <TooltipProvider key={org.login}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Link href={`https://github.com/${org.login}`} target="_blank" rel="noopener noreferrer">
+                        <Link href={`/org/${org.login}`} prefetch={false}>
                           <Image
                             src={org.avatarUrl!}
                             alt={org.login ?? ''}

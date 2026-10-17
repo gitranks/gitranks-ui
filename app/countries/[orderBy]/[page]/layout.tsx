@@ -60,7 +60,7 @@ export default async function CountriesLayout({ children, params }: LayoutProps<
       <Page className="gap-8">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <h2 className="text-2xl font-semibold flex items-center gap-2">Country Rankings</h2>
+            <h1 className="text-2xl font-semibold flex items-center gap-2">Country Rankings</h1>
             <CountryOrderSwitcher orderBy={orderBy} />
           </div>
           <div>

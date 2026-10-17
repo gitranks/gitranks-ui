@@ -4,7 +4,7 @@
 # Crawl-delay is the pause, in seconds, between two requests from one crawler.
 # Bing, Anthropic and Ahrefs honour it; Google, Apple, Amazon and Yandex ignore
 # it; the others don't say. 2 seconds caps a crawler that honours it at about
-# 43,000 pages a day. Crawlers that ignore it are capped by the server instead.
+# 43,000 pages a day. Crawlers that ignore it need a rate limit outside this file.
 #
 # In every group the specific rules come first and `Allow: /` last, so parsers
 # that take the first matching rule read it the same way as RFC 9309 parsers.

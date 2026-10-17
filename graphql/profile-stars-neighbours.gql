@@ -1,9 +1,0 @@
-query ProfileStarsNeighbours($offset: Int!, $limit: Int!) {
-  globalRankings(order: STARS, offset: $offset, limit: $limit) {
-    s
-    user {
-      login
-      s
-    }
-  }
-}

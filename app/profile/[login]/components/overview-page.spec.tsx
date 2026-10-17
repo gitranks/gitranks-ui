@@ -78,13 +78,34 @@ describe('OverviewPage text', () => {
     expect(text).not.toContain('Rank History');
   });
 
-  it('opens with the summary, citing the ranked counts it was given', () => {
+  it('sets the summary as muted small text right below the four cards, links in its color', () => {
+    const markup = renderToStaticMarkup(<OverviewPage user={ranked} isGlobalContext />);
+    const summary = markup.indexOf('data-testid="profile-summary"');
+    const lastCard = markup.indexOf('Open Source Contributions');
+    const repositories = markup.indexOf('>Repositories</h3>');
+
+    expect(lastCard).toBeGreaterThan(-1);
+    expect(repositories).toBeGreaterThan(-1);
+    expect(summary).toBeGreaterThan(lastCard);
+    expect(summary).toBeLessThan(repositories);
+    expect(markup).toContain('<p class="text-sm text-muted-foreground" data-testid="profile-summary">');
+    const linkClasses = [...markup.slice(summary, markup.indexOf('</p>', summary)).matchAll(/<a class="([^"]*)"/g)].map(
+      ([, classes]) => classes.split(' '),
+    );
+
+    expect(linkClasses.length).toBeGreaterThan(0);
+    for (const classes of linkClasses) {
+      expect(classes).toEqual(expect.arrayContaining(['text-inherit', 'hover:text-foreground', 'underline']));
+      expect(classes.filter((name) => name.includes('text-link'))).toEqual([]);
+    }
+  });
+
+  it('summarizes the profile, citing the ranked counts it was given', () => {
     const text = pageText({
       user: ranked,
       extras: {
         rankedGlobal: { sUsers: 1000, cUsers: 0, fUsers: 0 },
         rankedCountry: { sUsers: 100, cUsers: 0, fUsers: 0 },
-        starsNeighbours: [],
         complete: true,
       },
       isGlobalContext: true,

@@ -1,26 +1,21 @@
 import { fetchRankedCounts } from './fetch-ranked-counts';
-import { fetchStarsNeighbours, type StarsNeighbour } from './fetch-stars-neighbours';
 
 type RankedCounts = Awaited<ReturnType<typeof fetchRankedCounts>>;
 
 export type ProfileOverviewExtras = {
   rankedGlobal: RankedCounts;
   rankedCountry: RankedCounts;
-  starsNeighbours: StarsNeighbour[];
   /** False when a read failed and the page renders without its part, so it is cached briefly. */
   complete: boolean;
 };
 
-type ProfileForExtras = { country?: string | null; rankGlobal?: { s?: number | null } | null } | null | undefined;
+type ProfileForExtras = { country?: string | null } | null | undefined;
 
 /**
- * What the overview adds to the profile's own data: the ranked counts the summary cites and, when
- * asked, the neighbours in the worldwide Stars Rank. Each is optional; the page renders without any.
+ * What the overview adds to the profile's own data: the ranked counts the summary cites, worldwide and in
+ * the profile's country. Each is optional; the page renders without them.
  */
-export const fetchProfileOverviewExtras = async (
-  user: ProfileForExtras,
-  { neighbours }: { neighbours: boolean },
-): Promise<ProfileOverviewExtras> => {
+export const fetchProfileOverviewExtras = async (user: ProfileForExtras): Promise<ProfileOverviewExtras> => {
   let complete = true;
   const optional = <T>(read: Promise<T>, fallback: T) =>
     read.catch(() => {
@@ -28,14 +23,10 @@ export const fetchProfileOverviewExtras = async (
       return fallback;
     });
 
-  // Only a ranked position has neighbours to list: a provisional rank is not in the ranking yet.
-  const starsRank = neighbours ? user?.rankGlobal?.s : undefined;
-
-  const [rankedGlobal, rankedCountry, starsNeighbours] = await Promise.all([
+  const [rankedGlobal, rankedCountry] = await Promise.all([
     user ? optional(fetchRankedCounts('global'), null) : null,
     user?.country ? optional(fetchRankedCounts(user.country), null) : null,
-    starsRank ? optional(fetchStarsNeighbours(starsRank), []) : [],
   ]);
 
-  return { rankedGlobal, rankedCountry, starsNeighbours, complete };
+  return { rankedGlobal, rankedCountry, complete };
 };

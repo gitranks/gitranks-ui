@@ -1,5 +1,3 @@
-'use cache';
-
 import { cacheLife, cacheTag } from 'next/cache';
 import { Suspense } from 'react';
 
@@ -23,15 +21,26 @@ function LayoutLoading() {
   );
 }
 
-export default async function OrgLayout({ children, params }: LayoutProps<'/org/[login]'>) {
+async function OrgLayoutContent({ children, params }: LayoutProps<'/org/[login]'>) {
+  'use cache';
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`org:${login}`);
 
   return (
-    <Suspense fallback={<LayoutLoading />}>
+    <>
       <Header login={login} />
       {children}
+    </>
+  );
+}
+
+// The boundary sits outside the cached content: for a login that is not known at build time,
+// the cached part cannot run, so the boundary's fallback becomes this route's static shell.
+export default function OrgLayout({ children, params }: LayoutProps<'/org/[login]'>) {
+  return (
+    <Suspense fallback={<LayoutLoading />}>
+      <OrgLayoutContent params={params}>{children}</OrgLayoutContent>
     </Suspense>
   );
 }

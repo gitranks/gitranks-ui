@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 import { cache } from 'react';
 
 import { buildInsightSEO } from './seo';
@@ -13,8 +14,16 @@ type InsightDetailsPageProps = {
   params: Promise<{ id: string }>;
 };
 
-// Metadata and the page read the same post; fetch it once per request.
-const getInsight = cache(async (id: string) => (await fetchInsightServer(id)).insight);
+// No post is known at build time, so the page renders on request and without a Suspense
+// fallback: the post is in the server HTML instead of a segment streamed after the footer.
+export const instant = false;
+
+// Metadata and the page read the same post; fetch it once per request. The fetch is not cached,
+// so `connection()` keeps it out of prerendering.
+const getInsight = cache(async (id: string) => {
+  await connection();
+  return (await fetchInsightServer(id)).insight;
+});
 
 export async function generateMetadata({ params }: InsightDetailsPageProps): Promise<Metadata> {
   const { id } = await params;

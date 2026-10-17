@@ -10,6 +10,7 @@ import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
 import { Announcement } from '@/components/announcement/announcement';
 import { Footer } from '@/components/footer/footer';
 import { JsonLd } from '@/components/json-ld/json-ld';
+import { NavigationProgress } from '@/components/navigation-progress/navigation-progress';
 import { ThemeProvider } from '@/components/theme-provider/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { buildSiteJsonLd } from '@/lib/seo/json-ld';
@@ -61,12 +62,14 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
         <SessionProvider>
           <NuqsAdapter>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+              <NavigationProgress />
               <FlagEmojiPolyfill />
               <CtaClickTracker />
               <div className="flex flex-col min-h-screen">
-                <div className="grow">
-                  <Suspense fallback={null}>{children}</Suspense>
-                </div>
+                {/* No Suspense around the page: React streams a large finished boundary into a hidden
+                    segment after the footer, and a fallback here would also turn every notFound()
+                    into a 200. Routes that need a fallback add their own boundary. */}
+                <div className="grow">{children}</div>
                 <Footer />
               </div>
               <Suspense fallback={null}>{modal}</Suspense>

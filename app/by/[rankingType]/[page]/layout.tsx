@@ -12,6 +12,10 @@ import { getRankingTitle } from '@/utils/get-ranking-title';
 import { isRankingType } from '@/utils/is-ranking-type';
 import { parsePageParam } from '@/utils/parse-page-param';
 
+// Params not listed in generateStaticParams render on request as a whole page, which is then
+// cached; there is no fallback shell, so the route is allowed to block. The page says the same.
+export const instant = false;
+
 export async function generateMetadata({ params }: LayoutProps<'/by/[rankingType]/[page]'>): Promise<Metadata> {
   const { rankingType, page: pageParam } = await params;
   const page = parsePageParam(pageParam);

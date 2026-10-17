@@ -2,6 +2,7 @@ import LinkNext from 'next/link';
 
 import { DEFAULT_LANGUAGE_COLOR } from '../app.consts';
 import { Link } from '@/components/link/link';
+import { LinkPendingStatus } from '@/components/navigation-progress/navigation-progress';
 import { Card, CardContent } from '@/components/ui/card';
 import type { LanguageSummaryQuery } from '@/types/generated/graphql';
 import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
@@ -28,6 +29,7 @@ export const LanguageRankingLink = ({
                   style={{ backgroundColor: languageData?.color ?? DEFAULT_LANGUAGE_COLOR }}
                 />
                 {language}
+                <LinkPendingStatus />
               </LinkNext>
             );
           })}

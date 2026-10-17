@@ -24,6 +24,13 @@ const htmlLimitedBots = new RegExp(`${HTML_LIMITED_BOT_UA_RE.source}|${AI_HTML_B
 const nextConfig: NextConfig = {
   output: 'standalone',
   cacheComponents: true,
+  experimental: {
+    // Dev-only instant-navigation checks run only for segments that export `instant`. By default
+    // any page or default segment without one turns them on for the whole route, and the empty
+    // modal slot is in every route, so the ranking routes' `instant = false` was overridden.
+    // The build's own check for uncached data outside Suspense is not affected.
+    instantInsights: { validationLevel: 'manual-warning' },
+  },
   // redefine the stock 'hours' profile in dev so its TTL = 0
   cacheLife: isDev ? { hours: { stale: 0, revalidate: 1, expire: 1 } } : undefined,
   images: {
@@ -38,6 +45,12 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@resvg/resvg-js', 'satori', 'harfbuzzjs', 'yoga-wasm-web'],
   async redirects() {
     return [
+      // A ranking without a page number opens its first page. Unknown types fall through to a 404.
+      {
+        source: '/by/:rankingType(stars|contributions|followers)',
+        destination: '/by/:rankingType/1',
+        permanent: false,
+      },
       // Legacy sitemap locations. The old `app/**/sitemap.ts` routes answered on every
       // dynamic segment, not just the `_` placeholder advertised in robots.txt, so match
       // any segment — crawlers may have discovered `/by/stars/sitemap.xml` and friends.

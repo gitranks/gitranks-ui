@@ -27,9 +27,9 @@ const isPage = (value: string, maxPage = Number.MAX_SAFE_INTEGER) => {
 /**
  * True for a ranking URL whose type, order or page number can never render a ranking.
  *
- * Pages stream, so a `notFound()` thrown while rendering answers 200 with a noindex tag. The
- * proxy checks these cases up front to answer a real 404. Lookups that need data (an unknown
- * country, a page past the last entry) are still left to the page.
+ * The proxy answers these with a 404 before anything renders, so they cost no render and leave no
+ * cached page behind. Lookups that need data (an unknown country, a page past the last entry) are
+ * left to the page, whose `notFound()` also answers 404.
  */
 export function isInvalidRankingPath(pathname: string): boolean {
   const [section, ...rest] = pathname.split('/').filter(Boolean);

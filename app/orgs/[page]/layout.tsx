@@ -10,6 +10,10 @@ import { Page } from '@/components/page/page';
 import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { parsePageParam } from '@/utils/parse-page-param';
 
+// Params not listed in generateStaticParams render on request as a whole page, which is then
+// cached; there is no fallback shell, so the route is allowed to block. The page says the same.
+export const instant = false;
+
 export async function generateMetadata({ params }: LayoutProps<'/orgs/[page]'>): Promise<Metadata> {
   const { page: pageParam } = await params;
   const page = parsePageParam(pageParam);

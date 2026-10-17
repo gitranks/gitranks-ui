@@ -1,8 +1,9 @@
 'use client';
 
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import type { FC } from 'react';
+import { type FC, useTransition } from 'react';
 
+import { useReportPendingNavigation } from '@/components/navigation-progress/navigation-progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 
@@ -15,15 +16,19 @@ export const LanguageCountrySelect: FC<LanguageCountrySelectProps> = ({ value, c
   const router = useRouter();
   const pathname = usePathname();
   const { orderBy, language } = useParams();
+  const [isPending, startTransition] = useTransition();
+  useReportPendingNavigation(isPending);
 
   const isSummaryPage = pathname.startsWith('/languages/');
 
   const onValueChange = (newValue: string) => {
-    if (isSummaryPage) {
-      router.push(`/languages/${newValue}/${orderBy}/1`);
-    } else {
-      router.push(getLanguageRankingPath(String(language), newValue));
-    }
+    startTransition(() => {
+      if (isSummaryPage) {
+        router.push(`/languages/${newValue}/${orderBy}/1`);
+      } else {
+        router.push(getLanguageRankingPath(String(language), newValue));
+      }
+    });
   };
 
   return (

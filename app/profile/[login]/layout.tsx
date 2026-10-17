@@ -1,5 +1,3 @@
-'use cache';
-
 import { cacheLife, cacheTag } from 'next/cache';
 import { Suspense } from 'react';
 
@@ -34,13 +32,14 @@ function LayoutLoading() {
   );
 }
 
-export default async function ProfileLayout({ children, params }: LayoutProps<'/profile/[login]'>) {
+async function ProfileLayoutContent({ children, params }: LayoutProps<'/profile/[login]'>) {
+  'use cache';
   const { login } = await params;
   cacheLife('hours');
   cacheTag(`profile:${login}`);
 
   return (
-    <Suspense fallback={<LayoutLoading />}>
+    <>
       <Header login={login} />
       <TabsBar className="mb-4">
         <Tab href={`/profile/${login}`} pathnames={[`/profile/${login}`, `/profile/${login}/country`]}>
@@ -51,6 +50,16 @@ export default async function ProfileLayout({ children, params }: LayoutProps<'/
         <Tab href={`/profile/${login}/languages`}>Languages</Tab>
       </TabsBar>
       {children}
+    </>
+  );
+}
+
+// The boundary sits outside the cached content: for a login that is not known at build time,
+// the cached part cannot run, so the boundary's fallback becomes this route's static shell.
+export default function ProfileLayout({ children, params }: LayoutProps<'/profile/[login]'>) {
+  return (
+    <Suspense fallback={<LayoutLoading />}>
+      <ProfileLayoutContent params={params}>{children}</ProfileLayoutContent>
     </Suspense>
   );
 }

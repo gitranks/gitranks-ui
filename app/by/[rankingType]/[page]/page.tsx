@@ -18,6 +18,9 @@ import { getRankingTitle } from '@/utils/get-ranking-title';
 import { isRankingType } from '@/utils/is-ranking-type';
 import { parsePageParam } from '@/utils/parse-page-param';
 
+// Allowed to block for unlisted params, like the layout.
+export const instant = false;
+
 export default async function GlobalRanking({ params }: PageProps<'/by/[rankingType]/[page]'>) {
   cacheLife('hours');
 

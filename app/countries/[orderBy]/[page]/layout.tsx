@@ -11,6 +11,10 @@ import { CountrySummaryOrder } from '@/types/generated/graphql';
 import type { UserRankProp } from '@/types/ranking.types';
 import { parsePageParam } from '@/utils/parse-page-param';
 
+// Params not listed in generateStaticParams render on request as a whole page, which is then
+// cached; there is no fallback shell, so the route is allowed to block. The page says the same.
+export const instant = false;
+
 const ORDER_DESCRIPTIONS: Record<CountrySummaryOrder, string> = {
   [CountrySummaryOrder.Stars]: 'Countries ranked by the stars on GitHub repositories owned by their developers',
   [CountrySummaryOrder.Contributions]:

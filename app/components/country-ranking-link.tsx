@@ -1,6 +1,7 @@
 import LinkNext from 'next/link';
 
 import { Link } from '@/components/link/link';
+import { LinkPendingStatus } from '@/components/navigation-progress/navigation-progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { CountrySummaryQuery } from '@/types/generated/graphql';
@@ -29,6 +30,7 @@ export const CountryRankingLink = ({
                     className="flex items-center justify-center"
                   >
                     {flag}
+                    <LinkPendingStatus />
                   </LinkNext>
                 </TooltipTrigger>
                 <TooltipContent>{countryName}</TooltipContent>

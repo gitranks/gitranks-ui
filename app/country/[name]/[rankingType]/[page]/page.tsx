@@ -18,6 +18,9 @@ import { isRankingType } from '@/utils/is-ranking-type';
 import { parsePageParam } from '@/utils/parse-page-param';
 import { resolveCountryName } from '@/utils/resolve-route-names';
 
+// Allowed to block for unlisted params, like the layout.
+export const instant = false;
+
 const ITEMS_PER_PAGE = 100;
 
 export default async function CountryRanking({ params }: PageProps<'/country/[name]/[rankingType]/[page]'>) {

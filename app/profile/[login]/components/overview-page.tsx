@@ -48,6 +48,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
     contributedRepoCount,
     firstSeenAt,
     snapshots,
+    starsReview,
   } = user;
 
   const ranks = isGlobalContext ? user.rankGlobal : user.rankCountry;
@@ -71,6 +72,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
             snapshots={snapshots}
             totalRankedUsers={tiers?.sUsers ?? 0}
             userRank={ranks?.sProvisional || ranks?.s}
+            starsReview={starsReview}
           />
           <OsContributionsCard
             login={login}

@@ -25,6 +25,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 
 const BUTTON_LABEL = 'This is a mistake';
 
@@ -77,7 +78,8 @@ export const StarsReviewReportView: FC<StarsReviewReportViewProps> = ({ view, lo
     );
   }
 
-  const onClick = { wait: undefined, signIn: () => signIn('github'), report: onReport }[view.action];
+  // A report only needs to know who the owner is: the light sign-in, no token.
+  const onClick = { wait: undefined, signIn: () => signIn(IDENTITY_PROVIDER), report: onReport }[view.action];
 
   return (
     <Button size="sm" variant="outline" onClick={onClick} disabled={view.action === 'wait'}>

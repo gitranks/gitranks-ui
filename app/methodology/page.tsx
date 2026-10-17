@@ -7,7 +7,7 @@ import { Header } from '@/components/header/header';
 import { Link } from '@/components/link/link';
 import { Page } from '@/components/page/page';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
-import { fetchGlobalRankedCounts } from '@/graphql/helpers/fetch-ranked-counts';
+import { fetchRankedCounts } from '@/graphql/helpers/fetch-ranked-counts';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
 import { CountrySummaryOrder } from '@/types/generated/graphql';
@@ -70,7 +70,7 @@ const Table = ({ head, rows }: { head: string[]; rows: ReactNode[][] }) => (
 /** Live counts, in sentences a reader can quote. Left out when the data is empty. */
 const InNumbers = async () => {
   const [counts, countries] = await Promise.all([
-    fetchGlobalRankedCounts(),
+    fetchRankedCounts('global'),
     fetchCountrySummaries(CountrySummaryOrder.Users),
   ]);
 

@@ -2,7 +2,7 @@
 
 import type { Route } from 'next';
 import Link from 'next/link';
-import type { FC, ReactNode } from 'react';
+import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { FaRegBuilding } from 'react-icons/fa';
 import { FaCode } from 'react-icons/fa6';
 import { GrLocation } from 'react-icons/gr';
@@ -20,14 +20,25 @@ import {
 import { cn } from '@/lib/utils';
 
 export function MainMenu({ className }: Readonly<{ className?: string }>) {
-  // The shared viewport mounts menu content on the client only. Without it, `forceMount` keeps the
-  // links in the server HTML, so crawlers find them; the closed menu is just hidden.
+  // The shared viewport mounts menu content on the client only, so the menu runs without it.
+  // `forceMount` puts the links in the server HTML for crawlers (hidden while closed). After
+  // hydration it is dropped and the closed menu unmounts as usual: a mounted one keeps its
+  // dismiss layer listening and swallows Escape on every page.
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   return (
     <NavigationMenu className={className} viewport={false}>
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuTrigger className="bg-transparent">Rankings</NavigationMenuTrigger>
-          <NavigationMenuContent forceMount className="absolute w-auto z-50 data-[state=closed]:hidden">
+          <NavigationMenuContent
+            forceMount={hydrated ? undefined : true}
+            className="absolute w-auto z-50 data-[state=closed]:hidden"
+          >
             <ul className="w-48">
               <ListItem href="/by/stars/1">
                 <VscGlobe /> Global Rankings

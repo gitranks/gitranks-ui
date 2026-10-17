@@ -73,7 +73,11 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
       />
       <Pagination
         prev={page > 1 ? getLanguageRankingPath(languageName, countryName, page - 1) : undefined}
-        next={data?.length === ITEMS_PER_PAGE ? getLanguageRankingPath(languageName, countryName, page + 1) : undefined}
+        next={
+          data.length === ITEMS_PER_PAGE && page < RANKING_MAX_PAGE.language
+            ? getLanguageRankingPath(languageName, countryName, page + 1)
+            : undefined
+        }
       />
     </>
   );

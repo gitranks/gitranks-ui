@@ -63,7 +63,11 @@ export default async function CountryRanking({ params }: PageProps<'/country/[na
       <RankingTable rankingType={rankingType} data={countryRankings} countries={countries} />
       <Pagination
         prev={page > 1 ? `${basePath}/${page - 1}` : undefined}
-        next={countryRankings?.length === ITEMS_PER_PAGE ? `${basePath}/${page + 1}` : undefined}
+        next={
+          countryRankings.length === ITEMS_PER_PAGE && page < RANKING_MAX_PAGE.country
+            ? `${basePath}/${page + 1}`
+            : undefined
+        }
       />
     </>
   );

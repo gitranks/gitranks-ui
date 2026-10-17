@@ -8,6 +8,7 @@ import { PageGrid } from '@/components/grid/grid';
 import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountryLanguageSummaries } from '@/graphql/helpers/fetch-country-language-summary';
 import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary';
+import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { parsePageParam } from '@/utils/parse-page-param';
 import { GLOBAL_SCOPE, resolveCountryScope } from '@/utils/resolve-route-names';
 
@@ -21,7 +22,7 @@ export default async function LanguagesPage({ params }: PageProps<'/languages/[c
   const page = parsePageParam(pageParam);
 
   const orderByUpper = orderBy.toUpperCase();
-  if (!isLanguageSummaryOrder(orderByUpper) || !countryName || !page) {
+  if (!isLanguageSummaryOrder(orderByUpper) || !countryName || !page || page > RANKING_MAX_PAGE.languageSummary) {
     return notFound();
   }
 
@@ -47,7 +48,11 @@ export default async function LanguagesPage({ params }: PageProps<'/languages/[c
       </PageGrid>
       <Pagination
         prev={page > 1 ? `${basePath}/${page - 1}` : undefined}
-        next={rows.length > ITEMS_PER_PAGE ? `${basePath}/${page + 1}` : undefined}
+        next={
+          rows.length > ITEMS_PER_PAGE && page < RANKING_MAX_PAGE.languageSummary
+            ? `${basePath}/${page + 1}`
+            : undefined
+        }
       />
     </>
   );

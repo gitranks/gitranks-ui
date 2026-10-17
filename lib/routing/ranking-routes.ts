@@ -9,6 +9,8 @@ export const RANKING_MAX_PAGE = {
   country: 1001,
   language: 51,
   org: 51,
+  /** The language summaries: far past the last language, and keeps the query offset in range. */
+  languageSummary: 1000,
 } as const;
 
 // Literal copies so the proxy does not load the generated GraphQL module; a spec keeps them in sync.
@@ -42,7 +44,10 @@ export function isInvalidRankingPath(pathname: string): boolean {
     case 'language':
       return rest.length === 3 && !isPage(rest[2], RANKING_MAX_PAGE.language);
     case 'languages':
-      return rest.length === 3 && !(LANGUAGE_SUMMARY_ORDERS.has(rest[1].toLowerCase()) && isPage(rest[2]));
+      return (
+        rest.length === 3 &&
+        !(LANGUAGE_SUMMARY_ORDERS.has(rest[1].toLowerCase()) && isPage(rest[2], RANKING_MAX_PAGE.languageSummary))
+      );
     case 'countries':
       return rest.length === 2 && !(COUNTRY_SUMMARY_ORDERS.has(rest[0].toLowerCase()) && isPage(rest[1]));
     case 'orgs':

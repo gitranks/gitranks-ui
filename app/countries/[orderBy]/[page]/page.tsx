@@ -29,6 +29,8 @@ export default async function CountriesPage({ params }: PageProps<'/countries/[o
     notFound();
   }
 
+  const basePath = `/countries/${orderBy.toLowerCase()}`;
+
   return (
     <>
       <PageGrid>
@@ -37,8 +39,8 @@ export default async function CountriesPage({ params }: PageProps<'/countries/[o
         ))}
       </PageGrid>
       <Pagination
-        prev={page > 1 ? `/countries/${orderBy}/${page - 1}` : undefined}
-        next={countrySummaries.length > page * ITEMS_PER_PAGE ? `/countries/${orderBy}/${page + 1}` : undefined}
+        prev={page > 1 ? `${basePath}/${page - 1}` : undefined}
+        next={countrySummaries.length > page * ITEMS_PER_PAGE ? `${basePath}/${page + 1}` : undefined}
       />
     </>
   );

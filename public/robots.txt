@@ -3,50 +3,50 @@
 # Search engines we want indexed (Google ignores Crawl-delay)
 User-agent: Googlebot
 Allow: /
-Disallow: /api/
 Allow: /api/avatar/
 Allow: /api/badge/
+Disallow: /api/
 Disallow: /badge/builder/
 
 User-agent: Bingbot
 Crawl-delay: 5
 Allow: /
-Disallow: /api/
 Allow: /api/avatar/
 Allow: /api/badge/
+Disallow: /api/
 Disallow: /badge/builder/
 
 User-agent: DuckDuckBot
 Crawl-delay: 5
 Allow: /
-Disallow: /api/
 Allow: /api/avatar/
 Allow: /api/badge/
+Disallow: /api/
 Disallow: /badge/builder/
 
 User-agent: Applebot
 Crawl-delay: 10
 Allow: /
-Disallow: /api/
 Allow: /api/avatar/
 Allow: /api/badge/
+Disallow: /api/
 Disallow: /badge/builder/
 
 User-agent: YandexBot
 Crawl-delay: 10
 Allow: /
-Disallow: /api/
 Allow: /api/avatar/
 Allow: /api/badge/
+Disallow: /api/
 Disallow: /badge/builder/
 
 # SEO tooling — keep allowed, but crawl slowly
 User-agent: AhrefsBot
 Crawl-delay: 30
 Allow: /
-Disallow: /api/
 Allow: /api/avatar/
 Allow: /api/badge/
+Disallow: /api/
 Disallow: /badge/builder/
 
 # Scrapers / noisy bots — do not crawl (also blocked at Cloudflare WAF)
@@ -77,9 +77,9 @@ Disallow: /
 # Everyone else
 User-agent: *
 Crawl-delay: 10
-Disallow: /api/
 Allow: /api/avatar/
 Allow: /api/badge/
+Disallow: /api/
 Disallow: /badge/builder/
 Allow: /
 

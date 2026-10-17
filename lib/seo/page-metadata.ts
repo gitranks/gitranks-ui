@@ -10,10 +10,11 @@ type PageMetadataInput = {
   path: string;
   /** Absolute image URLs for link previews. */
   images?: string[];
-  openGraphType?: 'website' | 'profile';
-  /** ISO date; makes the preview an `article` with this publish time. */
-  publishedTime?: string;
-};
+} & (
+  | { openGraphType?: 'website' | 'profile'; publishedTime?: never }
+  /** An article preview carries its publish time (ISO date). */
+  | { openGraphType: 'article'; publishedTime: string }
+);
 
 /**
  * Title, description, self-canonical and link-preview tags for one page.
@@ -43,7 +44,10 @@ export function pageMetadata({
     title,
     description,
     alternates: { canonical: path },
-    openGraph: publishedTime ? { ...openGraph, type: 'article', publishedTime } : { ...openGraph, type: openGraphType },
+    openGraph:
+      openGraphType === 'article'
+        ? { ...openGraph, type: 'article', publishedTime }
+        : { ...openGraph, type: openGraphType },
     twitter: {
       card: images?.length ? 'summary_large_image' : 'summary',
       site: SITE_X_HANDLE,

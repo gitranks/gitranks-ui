@@ -1,9 +1,9 @@
 'use client';
 
-import { format } from 'date-fns';
 import Autoplay from 'embla-carousel-autoplay';
 import { memo, useEffect, useState } from 'react';
 
+import { formatPostDateTime } from './format-insight-date';
 import InsightText from './insight-text';
 import { Link } from '@/components/link/link';
 import { Card, CardContent } from '@/components/ui/card';
@@ -83,7 +83,7 @@ const InsightsCarousel = () => {
                     <Link href={`/insights/${insight.id}`} className="text-sm text-muted-foreground">
                       Details
                     </Link>
-                    <div>{format(new Date(insight.createdAt), "MMM d',' h:mm a")}</div>
+                    <div>{formatPostDateTime(new Date(insight.createdAt))}</div>
                   </div>
                 </CardContent>
               </Card>

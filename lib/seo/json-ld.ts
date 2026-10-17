@@ -1,6 +1,7 @@
 import { absoluteUrl, SITE_DESCRIPTION, SITE_NAME, SITE_SAME_AS, SITE_URL } from './site';
 
-const ORGANIZATION_ID = `${SITE_URL}/#organization`;
+/** The site Organization node, emitted on every page; other nodes point at it by `@id`. */
+export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 
 export function buildSiteJsonLd() {
   return [

@@ -1,19 +1,17 @@
-import { format } from 'date-fns';
 import type { Metadata } from 'next';
 
+import { formatPostDate } from '@/components/insight/format-insight-date';
 import { InsightCategoryTitle } from '@/components/insight/insight-category-title';
+import { clipText } from '@/lib/seo/clip-text';
+import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
 import { pageMetadata } from '@/lib/seo/page-metadata';
-import { absoluteUrl, SITE_NAME, SITE_URL } from '@/lib/seo/site';
+import { absoluteUrl } from '@/lib/seo/site';
 import type { InsightQuery } from '@/types/generated/graphql';
 
 type Insight = NonNullable<InsightQuery['insight']>;
 
-const clip = (t: string, max: number) => {
-  if (t.length <= max) return t;
-  const cut = t.slice(0, max - 1);
-  const i = cut.lastIndexOf(' ');
-  return `${i > max / 2 ? cut.slice(0, i) : cut}…`;
-};
+/** The site writes every post and reply. */
+const SITE_ORGANIZATION = { '@id': ORGANIZATION_ID };
 
 /** The post as plain text, the way `InsightText` renders it. */
 const toPlainText = (post: Pick<Insight, 'segments'>) =>
@@ -26,32 +24,46 @@ const toPlainText = (post: Pick<Insight, 'segments'>) =>
 /** Metadata for a post page and the JSON-LD to render on it. */
 export function buildInsightSEO(insight: Insight): { metadata: Metadata; jsonLd: object[] } {
   const path = `/insights/${encodeURIComponent(insight.id)}`;
+  const url = absoluteUrl(path);
   const publishedAt = new Date(insight.createdAt);
+  const date = formatPostDate(publishedAt);
+  const category = InsightCategoryTitle[insight.category];
   const text = toPlainText(insight);
-  const title = text
-    ? clip(text, 70)
-    : `${InsightCategoryTitle[insight.category]} · ${format(publishedAt, 'MMM d, yyyy')}`;
-  const description = clip(`${format(publishedAt, 'MMM d, yyyy')}: ${text || title}`, 158);
+  const title = text ? clipText(text, 60) : `${category} · ${date}`;
+  const description = clipText(text ? `${date}: ${text}` : `${category} post from ${date}.`, 158);
+  const replies = insight.replies
+    .map((reply) => ({ text: toPlainText(reply), createdAt: new Date(reply.createdAt) }))
+    .filter((reply) => reply.text);
 
-  const posting = {
+  // An Article, not a SocialMediaPosting: the site authors these posts, and posting markup is
+  // meant for user-generated content.
+  const article = {
     '@context': 'https://schema.org',
-    '@type': 'SocialMediaPosting',
-    url: absoluteUrl(path),
+    '@type': 'Article',
+    url,
+    mainEntityOfPage: url,
     headline: title,
-    text,
+    ...(text && { articleBody: text }),
     datePublished: publishedAt.toISOString(),
-    author: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
-    commentCount: insight.replies.length,
-    comment: insight.replies.map((reply) => ({
+    author: SITE_ORGANIZATION,
+    publisher: SITE_ORGANIZATION,
+    commentCount: replies.length,
+    comment: replies.map((reply) => ({
       '@type': 'Comment',
-      text: toPlainText(reply),
-      datePublished: new Date(reply.createdAt).toISOString(),
-      author: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+      text: reply.text,
+      datePublished: reply.createdAt.toISOString(),
+      author: SITE_ORGANIZATION,
     })),
   };
 
   return {
-    metadata: pageMetadata({ title, description, path, publishedTime: publishedAt.toISOString() }),
-    jsonLd: [posting],
+    metadata: pageMetadata({
+      title,
+      description,
+      path,
+      openGraphType: 'article',
+      publishedTime: publishedAt.toISOString(),
+    }),
+    jsonLd: [article],
   };
 }

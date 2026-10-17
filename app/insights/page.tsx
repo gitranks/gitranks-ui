@@ -28,8 +28,8 @@ export default async function InsightsPage() {
 
   const { insights = [] } = await fetchInsightsServer({ skip: 0, limit: PAGE_SIZE });
 
-  // The first page renders on the server, where post dates read the current time inside this
-  // cache scope. In a Client Component that read made Next render the whole list in the browser.
+  // The first page renders on the server. Post dates read the current time only after mount
+  // (see `InsightCreatedAt`); a read during a client render made Next render this list in the browser.
   return (
     <>
       <Header />
@@ -39,7 +39,11 @@ export default async function InsightsPage() {
           {insights.map((insight) => (
             <InsightPostCard key={insight.id} insight={insight} />
           ))}
-          <InsightsLoadMore skip={insights.length} pageSize={PAGE_SIZE} hasMore={insights.length === PAGE_SIZE} />
+          <InsightsLoadMore
+            renderedIds={insights.map((insight) => insight.id)}
+            pageSize={PAGE_SIZE}
+            hasMore={insights.length === PAGE_SIZE}
+          />
         </div>
       </Page>
     </>

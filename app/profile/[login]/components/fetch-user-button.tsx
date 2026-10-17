@@ -78,8 +78,8 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       return;
     }
 
-    // invalidate the cache every time the page loads with fetching status
-    // so the next time the user updates the profile, the latest data is fetched
+    // the fetch may have finished before this page was served; if so, the server expires the cached
+    // pages, so the next load shows the fetched profile
     revalidateProfile(login);
 
     setFetchingDuration(initialFetchingDuration);

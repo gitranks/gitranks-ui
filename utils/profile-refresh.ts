@@ -30,26 +30,52 @@ export function recentRefreshState(user: FetchingState | null | undefined, now: 
 }
 
 /**
- * The fetch status each profile's cache was last expired at. Expiring it again at the same status
- * renders the same page, so every status is expired once. Only the most recent `limit` profiles are kept.
+ * A status expired this long ago may be expired again. A page render that started before the expiry can
+ * still be stored after it, holding the old status; the Refresh button checks every 20 s, so its next
+ * check replaces that page.
+ */
+export const REPEAT_EXPIRY_AFTER = 15 * 1_000;
+
+/**
+ * Profile URLs match logins in any letter case, and each spelling has its own cache tag. Real visits of
+ * one profile use one or two spellings, so a status is expired for at most this many.
+ */
+export const MAX_SPELLINGS_PER_STATUS = 3;
+
+type ExpiredStatus = { state: string; expiredAt: Map<string, number> };
+
+/**
+ * The fetch status each profile's cache was last expired at, and when, per spelling of the login.
+ * Expiring it again at the same status renders the same page, so a status is expired once, and again
+ * only after `REPEAT_EXPIRY_AFTER`. Only the most recent `limit` profiles are kept.
  */
 export class ExpiredRefreshStates {
-  private readonly states = new Map<string, string>();
+  private readonly profiles = new Map<string, ExpiredStatus>();
 
   constructor(private readonly limit = 1_000) {}
 
-  /** True when the cache of `login` was not yet expired at `state`; from then on it counts as expired. */
-  claim(login: string, state: string): boolean {
-    if (this.states.get(login) === state) {
+  /** True when the cache of `login` is due to be expired at `state`; from then on it counts as expired. */
+  claim(login: string, state: string, now: number): boolean {
+    const key = login.toLowerCase();
+    const known = this.profiles.get(key);
+    const status = known?.state === state ? known : { state, expiredAt: new Map<string, number>() };
+    const lastExpiredAt = status.expiredAt.get(login);
+
+    if (lastExpiredAt !== undefined && now - lastExpiredAt < REPEAT_EXPIRY_AFTER) {
       return false;
     }
 
-    this.states.delete(login);
-    this.states.set(login, state);
+    if (lastExpiredAt === undefined && status.expiredAt.size >= MAX_SPELLINGS_PER_STATUS) {
+      return false;
+    }
 
-    if (this.states.size > this.limit) {
-      const [oldest] = this.states.keys();
-      this.states.delete(oldest);
+    status.expiredAt.set(login, now);
+    this.profiles.delete(key);
+    this.profiles.set(key, status);
+
+    if (this.profiles.size > this.limit) {
+      const [oldest] = this.profiles.keys();
+      this.profiles.delete(oldest);
     }
 
     return true;

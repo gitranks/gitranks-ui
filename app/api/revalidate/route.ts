@@ -9,8 +9,8 @@ const expiredStates = new ExpiredRefreshStates();
 
 /**
  * Expires a profile's cached pages after a refresh of that profile started or finished. The fetch status
- * is read here rather than taken from the caller, and the cache is expired once per status, so a call
- * with no refresh behind it changes nothing.
+ * is read here rather than taken from the caller, and each status expires the cache once (again only after
+ * `REPEAT_EXPIRY_AFTER`), so a call with no refresh behind it changes nothing.
  */
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ revalidated: false }, { status: 403 });
   }
 
-  if (!expiredStates.claim(login, state)) {
+  if (!expiredStates.claim(login, state, Date.now())) {
     return NextResponse.json({ revalidated: false });
   }
 

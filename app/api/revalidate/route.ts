@@ -21,10 +21,12 @@ export async function POST(request: NextRequest) {
   }
 
   let state: string | null;
+  let storedLogin: string | undefined;
 
   try {
     const { user } = await graphqlDirect(ProfileFetchingStatusDocument, { login }, { source: 'client' });
     state = recentRefreshState(user, Date.now());
+    storedLogin = user?.login;
   } catch {
     return NextResponse.json({ revalidated: false }, { status: 500 });
   }
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ revalidated: false }, { status: 403 });
   }
 
-  if (!expiredStates.claim(login, state, Date.now())) {
+  if (!expiredStates.claim(login, state, Date.now(), storedLogin)) {
     return NextResponse.json({ revalidated: false });
   }
 

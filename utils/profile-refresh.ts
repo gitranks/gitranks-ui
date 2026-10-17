@@ -31,14 +31,15 @@ export function recentRefreshState(user: FetchingState | null | undefined, now: 
 
 /**
  * A status expired this long ago may be expired again. A page render that started before the expiry can
- * still be stored after it, holding the old status; the Refresh button checks every 20 s, so its next
- * check replaces that page.
+ * still be stored after it, holding the old status; the Refresh button checks every 20 s and reloads, so
+ * a call within its next two checks replaces that page.
  */
 export const REPEAT_EXPIRY_AFTER = 15 * 1_000;
 
 /**
- * Profile URLs match logins in any letter case, and each spelling has its own cache tag. Real visits of
- * one profile use one or two spellings, so a status is expired for at most this many.
+ * Profile URLs match logins in any letter case, and each spelling has its own cache tag. The stored
+ * spelling, which the site's own links use, is always expired; besides it, a status is expired for at
+ * most this many spellings.
  */
 export const MAX_SPELLINGS_PER_STATUS = 3;
 
@@ -54,8 +55,11 @@ export class ExpiredRefreshStates {
 
   constructor(private readonly limit = 1_000) {}
 
-  /** True when the cache of `login` is due to be expired at `state`; from then on it counts as expired. */
-  claim(login: string, state: string, now: number): boolean {
+  /**
+   * True when the cache of `login` is due to be expired at `state`; from then on it counts as expired.
+   * `storedLogin` is the profile's login as stored, which `MAX_SPELLINGS_PER_STATUS` does not limit.
+   */
+  claim(login: string, state: string, now: number, storedLogin?: string | null): boolean {
     const key = login.toLowerCase();
     const known = this.profiles.get(key);
     const status = known?.state === state ? known : { state, expiredAt: new Map<string, number>() };
@@ -65,8 +69,12 @@ export class ExpiredRefreshStates {
       return false;
     }
 
-    if (lastExpiredAt === undefined && status.expiredAt.size >= MAX_SPELLINGS_PER_STATUS) {
-      return false;
+    if (lastExpiredAt === undefined && login !== storedLogin) {
+      const otherSpellings = [...status.expiredAt.keys()].filter((spelling) => spelling !== storedLogin);
+
+      if (otherSpellings.length >= MAX_SPELLINGS_PER_STATUS) {
+        return false;
+      }
     }
 
     status.expiredAt.set(login, now);

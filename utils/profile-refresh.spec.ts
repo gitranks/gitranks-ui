@@ -95,6 +95,25 @@ describe('ExpiredRefreshStates', () => {
     expect(states.claim('oCTOCAT', 'COMPLETED@2', NOW + 2_000)).toBe(true);
   });
 
+  it('always claims the stored spelling, without counting it against the limit', () => {
+    const states = new ExpiredRefreshStates();
+    const others = ['octocat', 'OCTOCAT', 'oCTOCAT'];
+
+    expect(others.map((login) => states.claim(login, 'FETCHING@1', NOW, 'OctoCat'))).toEqual([true, true, true]);
+    expect(states.claim('octoCat', 'FETCHING@1', NOW, 'OctoCat')).toBe(false);
+    expect(states.claim('OctoCat', 'FETCHING@1', NOW, 'OctoCat')).toBe(true);
+    expect(states.claim('OctoCat', 'FETCHING@1', NOW + 1_000, 'OctoCat')).toBe(false);
+  });
+
+  it('counts the stored spelling claimed first as no other spelling', () => {
+    const states = new ExpiredRefreshStates();
+
+    expect(states.claim('OctoCat', 'FETCHING@1', NOW, 'OctoCat')).toBe(true);
+    expect(
+      ['octocat', 'OCTOCAT', 'oCTOCAT', 'octoCat'].map((login) => states.claim(login, 'FETCHING@1', NOW, 'OctoCat')),
+    ).toEqual([true, true, true, false]);
+  });
+
   it('forgets the profile claimed longest ago once over the limit', () => {
     const states = new ExpiredRefreshStates(2);
 

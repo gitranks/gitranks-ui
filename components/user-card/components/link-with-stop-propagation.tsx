@@ -4,6 +4,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
 
+import { LinkPendingStatus } from '@/components/navigation-progress/navigation-progress';
 import { cn } from '@/lib/utils';
 
 type LinkWithStopPropagationProps = {
@@ -21,6 +22,7 @@ export const LinkWithStopPropagation: FC<LinkWithStopPropagationProps> = ({ chil
       className={cn('flex items-center gap-2', className)}
     >
       {children}
+      <LinkPendingStatus />
     </Link>
   );
 };

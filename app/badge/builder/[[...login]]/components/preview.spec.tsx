@@ -137,3 +137,28 @@ describe('badge builder label', () => {
     expect(html).not.toContain('&amp;label=');
   });
 });
+
+describe('badge builder embed code', () => {
+  // The code as a reader copies it: the textarea value, unescaped.
+  const codeOf = (searchParams: string) =>
+    (render(searchParams, <IntegrationCode {...profile} />).match(/<textarea[^>]*>([^<]*)<\/textarea>/)?.[1] ?? '')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&amp;', '&');
+
+  it('links the badge to the profile it shows', () => {
+    const code = codeOf('?ranking=c');
+
+    expect(code).toMatch(/^<a href="\/profile\/newcomer"><img src="\/api\/badge\/v2\/newcomer\?ranking=c&[^"]+" /);
+    expect(code).toMatch(/ alt="GitRanks badge for newcomer" \/><\/a>$/);
+  });
+
+  it('links a country badge to the country tab', () => {
+    expect(codeOf('?context=country')).toMatch(/^<a href="\/profile\/newcomer\/country"><img /);
+  });
+
+  it('is empty when there is no badge to embed', () => {
+    expect(codeOf('?ranking=f')).toBe('');
+  });
+});

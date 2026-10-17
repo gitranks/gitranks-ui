@@ -1,62 +1,90 @@
 # `/badge/builder/` blocks only the thin per-login builder pages;
 # the bare `/badge/builder` and `/badge/gallery` stay crawlable.
-# Search engines we want indexed (Google ignores Crawl-delay)
+#
+# Crawl-delay is the pause, in seconds, between two requests from one crawler.
+# Bing, Anthropic and Ahrefs honour it; Google, Apple, Amazon and Yandex ignore
+# it; the others don't say. 2 seconds caps a crawler that honours it at about
+# 43,000 pages a day. Crawlers that ignore it need a rate limit outside this file.
+#
+# In every group the specific rules come first and `Allow: /` last, so parsers
+# that take the first matching rule read it the same way as RFC 9309 parsers.
+#
+# Content-Signal repeats the site-wide usage signal for the AI groups: a crawler
+# that matches a named group never reads the `*` groups.
+
+# Search engines (Google ignores Crawl-delay)
 User-agent: Googlebot
-Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
 User-agent: Bingbot
-Crawl-delay: 5
-Allow: /
-Allow: /api/avatar/
-Allow: /api/badge/
-Disallow: /api/
-Disallow: /badge/builder/
-
 User-agent: DuckDuckBot
-Crawl-delay: 5
-Allow: /
+Crawl-delay: 2
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
 User-agent: Applebot
-Crawl-delay: 10
-Allow: /
+Crawl-delay: 5
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
 User-agent: YandexBot
 Crawl-delay: 10
-Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
-# SEO tooling — keep allowed, but crawl slowly
+# AI search crawlers: they index pages so AI assistants can cite and link them
+User-agent: OAI-SearchBot
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: DuckAssistBot
+User-agent: Amzn-SearchBot
+Content-Signal: search=yes,ai-train=no,use=reference
+Crawl-delay: 2
+Allow: /api/avatar/
+Allow: /api/badge/
+Disallow: /api/
+Disallow: /badge/builder/
+Allow: /
+
+# AI assistants fetching a page because a person asked about it right now
+User-agent: ChatGPT-User
+User-agent: Claude-User
+User-agent: Perplexity-User
+User-agent: Amzn-User
+Content-Signal: search=yes,ai-train=no,use=reference
+Allow: /api/avatar/
+Allow: /api/badge/
+Disallow: /api/
+Disallow: /badge/builder/
+Allow: /
+
+# SEO tooling: allowed, but crawls slowly
 User-agent: AhrefsBot
 Crawl-delay: 30
-Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Allow: /
 
-# Scrapers / noisy bots — do not crawl
+# Scrapers and SEO crawlers: do not crawl
 User-agent: SleepBot
 Disallow: /
 
 User-agent: DataForSeoBot
-Disallow: /
-
-User-agent: Amzn-SearchBot
 Disallow: /
 
 User-agent: SemrushBot
@@ -69,9 +97,6 @@ User-agent: ShapBot
 Disallow: /
 
 User-agent: MJ12bot
-Disallow: /
-
-User-agent: Claude-SearchBot
 Disallow: /
 
 # Everyone else

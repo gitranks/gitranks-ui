@@ -11,6 +11,7 @@ const SITE_LINKS = [
   { href: '/orgs/1', label: 'Org Rankings' },
   { href: '/insights', label: 'Insights' },
   { href: '/badge/gallery', label: 'Badges' },
+  { href: '/methodology', label: 'How Rankings Work' },
 ];
 
 export const Footer = () => {

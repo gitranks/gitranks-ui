@@ -41,8 +41,8 @@ export const RankNumber: FC<RankNumberProps> = ({ rank, rankPrevious, rankProvis
           </TooltipTrigger>
           <TooltipContent>
             <p className="max-w-44">
-              Temporary estimate based on other users’ current ranks. A precise ranking replaces it after the next daily
-              calculation.
+              Temporary estimate based on other users’ current ranks. A precise ranking replaces it after the next
+              recalculation, within a few days.
             </p>
           </TooltipContent>
         </Tooltip>

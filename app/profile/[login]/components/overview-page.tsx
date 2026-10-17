@@ -6,6 +6,8 @@ import { UserContributionsList } from '../repositories/components/user-contribut
 import { UserRepositoriesList } from '../repositories/components/user-repositories-list';
 import { buildProfileTabSEO } from '../seo';
 import { ProfileTimeline } from '../timeline/components/profile-timeline';
+import { buildProfileSummary, countryInSentence } from '../utils/profile-summary';
+import { buildRankHistory } from '../utils/rank-history';
 import { LayoutLeftColumn } from './layout-left-column';
 import { MessengerIntegration } from './messenger-integration';
 import { OsContributionsCard } from './overview-cards/os-contributions-card';
@@ -14,16 +16,20 @@ import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { OwnProjectsCard } from './overview-cards/own-projects-card';
 import { ProfileBadgesSection } from './profile-badges-section';
+import { ProfileSummary } from './profile-summary';
+import { RankHistoryTable } from './rank-history-table';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { Link } from '@/components/link/link';
+import type { ProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 
 type OverviewPageProps = {
   user: PageProfileOverviewQuery['user'];
+  extras?: ProfileOverviewExtras;
   isGlobalContext?: boolean;
 };
 
-export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
+export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalContext }) => {
   if (!user) {
     notFound();
   }
@@ -48,10 +54,33 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
     contributedRepoCount,
     firstSeenAt,
     snapshots,
+    starsReview,
   } = user;
 
   const ranks = isGlobalContext ? user.rankGlobal : user.rankCountry;
   const tiers = isGlobalContext ? user.tiersGlobal : user.tiersCountry;
+  // The scope of `ranks`. A profile without a country has no country ranks, so the country tab has none.
+  const scope = isGlobalContext ? 'worldwide' : country ? `in ${countryInSentence(country)}` : undefined;
+
+  const summary = buildProfileSummary({
+    login,
+    name: user.name,
+    country,
+    scores: { s, c, f },
+    rankGlobal: user.rankGlobal,
+    rankCountry: user.rankCountry,
+    rankedGlobal: extras?.rankedGlobal,
+    rankedCountry: extras?.rankedCountry,
+    repositories,
+    languages: sLangs,
+    updatedAt: user.githubFetchedAt,
+  });
+  const rankHistory = buildRankHistory({
+    ranks,
+    scores: { s, c, f },
+    rankSnapshots: ranks?.snapshots,
+    scoreSnapshots: snapshots,
+  });
 
   return (
     <LayoutLeftColumn user={user} className="gap-10">
@@ -61,7 +90,13 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
         <h2 className="text-xl font-semibold">Profile Overview</h2>
 
         <OverviewCardsContainer>
-          <ProfileRankCard login={login} ranks={ranks} tiers={tiers} country={isGlobalContext ? null : country} />
+          <ProfileRankCard
+            login={login}
+            ranks={ranks}
+            tiers={tiers}
+            country={isGlobalContext ? null : country}
+            scope={scope}
+          />
           <ProfileLanguageCard login={login} languages={sLangs} />
           <OwnProjectsCard
             login={login}
@@ -71,6 +106,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
             snapshots={snapshots}
             totalRankedUsers={tiers?.sUsers ?? 0}
             userRank={ranks?.sProvisional || ranks?.s}
+            starsReview={starsReview}
           />
           <OsContributionsCard
             login={login}
@@ -79,9 +115,10 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
             languages={cLangs}
             snapshots={snapshots}
             totalRankedUsers={tiers?.cUsers ?? 0}
-            userRank={ranks?.sProvisional || ranks?.s}
+            userRank={ranks?.cProvisional || ranks?.c}
           />
         </OverviewCardsContainer>
+        <ProfileSummary parts={summary} />
       </div>
 
       {!!repositoriesCount && (
@@ -101,6 +138,8 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
           <Link href={`/profile/${login}/repositories`}>View all contributions</Link>
         </div>
       )}
+
+      {!!scope && <RankHistoryTable history={rankHistory} scope={scope} />}
 
       {!!timeline?.length && <ProfileTimeline timeline={timeline} firstSeenAt={firstSeenAt} />}
 

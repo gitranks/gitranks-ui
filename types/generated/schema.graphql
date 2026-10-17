@@ -398,6 +398,18 @@ type SocialAccountNodeEntity {
   url: String!
 }
 
+type StarsReview {
+  reportable: Boolean!
+  repositories: Int!
+  stars: Int!
+  status: StarsReviewStatus!
+}
+
+enum StarsReviewStatus {
+  NOT_COUNTED
+  REVIEWING
+}
+
 type Tier {
   level: Int!
   maxRank: Int!
@@ -449,6 +461,7 @@ type User {
   sLangs(limit: Int, offset: Int! = 0): [UserLanguage!]
   snapshots(limit: Int, offset: Int! = 0): JSON
   socialAccounts: SocialAccount
+  starsReview: StarsReview
   tiersCountry: RankTier
   tiersGlobal: RankTier
   timeline(limit: Int, offset: Int! = 0): [Timeline!]

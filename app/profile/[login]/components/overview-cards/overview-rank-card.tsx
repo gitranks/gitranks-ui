@@ -1,13 +1,16 @@
 import type { FC, PropsWithChildren } from 'react';
 import { FiArrowRight, FiGitPullRequest, FiStar, FiUsers } from 'react-icons/fi';
 
+import { rankInfo } from '../../utils/profile-summary';
 import { ProfileCard } from '../profile-card';
 import { GlobalRankTooltip, PersonaTooltip } from '../tooltips';
 import { TIER_NAMES } from '@/app/app.consts';
+import { RANK_NAME } from '@/badge/badge.consts';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 import { Link } from '@/components/link/link';
 import { RankChart } from '@/components/rank-chart/rank-chart';
 import type { PageProfileOverviewQuery, RankTier } from '@/types/generated/graphql';
+import { UserRankProp } from '@/types/ranking.types';
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
 import { shortenCountryName } from '@/utils/country-name-shortener';
 import { getPersonaType } from '@/utils/get-persona-type';
@@ -19,21 +22,36 @@ type ProfileRankCardProps = {
   ranks: User['rankGlobal'] | User['rankCountry'];
   tiers: User['tiersGlobal'] | User['tiersCountry'];
   country?: string | null;
+  /** The ranks' scope, "worldwide" or "in Germany"; left out of the labels when unknown. */
+  scope?: string;
 };
 
-const CardFooterRank: FC<PropsWithChildren> = ({ children }) => {
+type CardFooterRankProps = PropsWithChildren<{
+  /** The ranking and its scope, e.g. "Stars Rank worldwide": a tooltip, and text for readers of the HTML. */
+  label: string;
+}>;
+
+const CardFooterRank: FC<CardFooterRankProps> = ({ label, children }) => {
   return (
-    <div className="flex flex-col items-center text-sm border-r-1 px-3 text-muted-foreground min-w-[60px]">
+    <div
+      className="flex flex-col items-center text-sm border-r-1 px-3 text-muted-foreground min-w-[60px]"
+      title={label}
+    >
+      <span className="sr-only">{label}:</span>
       {children}
     </div>
   );
 };
 
-export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers, country }) => {
+export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers, country, scope }) => {
   const { sTier, cTier, fTier, bestTier } = calculateTiers(ranks, tiers as RankTier);
-  const sRank = sTier?.notRanked || sTier?.notAvailable ? 0 : (ranks?.s ?? ranks?.sProvisional ?? 0);
-  const cRank = cTier?.notRanked || cTier?.notAvailable ? 0 : (ranks?.c ?? ranks?.cProvisional ?? 0);
-  const fRank = fTier?.notRanked || fTier?.notAvailable ? 0 : (ranks?.f ?? ranks?.fProvisional ?? 0);
+  // The position shows whether or not the ranking has tiers yet, as on the ranks tab and in the summary.
+  const sRank = rankInfo(ranks, UserRankProp.s)?.rank;
+  const cRank = rankInfo(ranks, UserRankProp.c)?.rank;
+  const fRank = rankInfo(ranks, UserRankProp.f)?.rank;
+  // A provisional rank is marked in the label only; the footer looks as it did.
+  const labelOf = (prop: UserRankProp) =>
+    `${RANK_NAME[prop]}${scope ? ` ${scope}` : ''}${rankInfo(ranks, prop)?.provisional ? ' (provisional)' : ''}`;
 
   const getCardContent = () => {
     if (sTier?.notAvailable && cTier?.notAvailable && fTier?.notAvailable) {
@@ -93,14 +111,14 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers,
       </div>
       <div className="h-12 flex items-center justify-between border-t-1 border-muted py-2 overflow-hidden">
         <div className="grid grid-cols-3">
-          <CardFooterRank>
-            <FiStar /> {sRank ? `#${sRank?.toLocaleString('en-US')}` : 'N/A'}
+          <CardFooterRank label={labelOf(UserRankProp.s)}>
+            <FiStar aria-hidden /> {sRank ? `#${sRank?.toLocaleString('en-US')}` : 'N/A'}
           </CardFooterRank>
-          <CardFooterRank>
-            <FiGitPullRequest /> {cRank ? `#${cRank?.toLocaleString('en-US')}` : 'N/A'}
+          <CardFooterRank label={labelOf(UserRankProp.c)}>
+            <FiGitPullRequest aria-hidden /> {cRank ? `#${cRank?.toLocaleString('en-US')}` : 'N/A'}
           </CardFooterRank>
-          <CardFooterRank>
-            <FiUsers /> {fRank ? `#${fRank?.toLocaleString('en-US')}` : 'N/A'}
+          <CardFooterRank label={labelOf(UserRankProp.f)}>
+            <FiUsers aria-hidden /> {fRank ? `#${fRank?.toLocaleString('en-US')}` : 'N/A'}
           </CardFooterRank>
         </div>
 

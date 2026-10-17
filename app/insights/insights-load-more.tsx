@@ -7,29 +7,34 @@ import { Button } from '@/components/ui/button';
 import { fetchInsightsClient } from '@/graphql/helpers/fetch-insights-client';
 import type { InsightsQuery } from '@/types/generated/graphql';
 
-const PAGE_SIZE = 20;
-
-type InsightsListProps = {
-  initialInsights: InsightsQuery['insights'];
+type InsightsLoadMoreProps = {
+  /** How many posts the server already rendered above. */
+  skip: number;
+  pageSize: number;
+  hasMore: boolean;
 };
 
-export const InsightsList = ({ initialInsights }: InsightsListProps) => {
-  const [insights, setInsights] = useState(initialInsights);
+/** Posts past the server-rendered first page, fetched on demand. */
+export const InsightsLoadMore = ({ skip, pageSize, hasMore: initialHasMore }: InsightsLoadMoreProps) => {
+  const [insights, setInsights] = useState<InsightsQuery['insights']>([]);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(initialInsights.length === PAGE_SIZE);
+  const [hasMore, setHasMore] = useState(initialHasMore);
 
   const handleShowMore = async () => {
     setLoading(true);
 
-    const { insights: nextInsights = [] } = await fetchInsightsClient({ skip: insights.length, limit: PAGE_SIZE });
+    const { insights: nextInsights = [] } = await fetchInsightsClient({
+      skip: skip + insights.length,
+      limit: pageSize,
+    });
 
     setInsights((current) => [...current, ...nextInsights]);
-    setHasMore(nextInsights.length === PAGE_SIZE);
+    setHasMore(nextInsights.length === pageSize);
     setLoading(false);
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <>
       {insights.map((insight) => (
         <InsightPostCard key={insight.id} insight={insight} />
       ))}
@@ -39,6 +44,6 @@ export const InsightsList = ({ initialInsights }: InsightsListProps) => {
           {loading ? 'Loading...' : 'Show more'}
         </Button>
       )}
-    </div>
+    </>
   );
 };

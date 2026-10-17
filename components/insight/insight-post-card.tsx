@@ -19,13 +19,9 @@ export const InsightPostCard = ({ insight, showRepliesLink = true }: InsightPost
       <InsightText insight={insight} />
       {showRepliesLink && (
         <div className="flex justify-between items-center gap-2 text-sm text-muted-foreground">
-          {insight.replies.length > 0 ? (
-            <CustomLink href={`/insights/${insight.id}`} className="text-sm text-muted-foreground">
-              Details
-            </CustomLink>
-          ) : (
-            <div />
-          )}
+          <CustomLink href={`/insights/${insight.id}`} className="text-sm text-muted-foreground">
+            Details
+          </CustomLink>
         </div>
       )}
     </InsightContainer>

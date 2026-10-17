@@ -80,13 +80,9 @@ const InsightsCarousel = () => {
                 <CardContent className="flex flex-col justify-center px-0 gap-1.5">
                   <InsightText insight={insight} />
                   <div className="flex justify-between items-center gap-2 text-sm text-muted-foreground">
-                    {insight.replies.length > 0 ? (
-                      <Link href={`/insights/${insight.id}`} className="text-sm text-muted-foreground">
-                        Details
-                      </Link>
-                    ) : (
-                      <div />
-                    )}
+                    <Link href={`/insights/${insight.id}`} className="text-sm text-muted-foreground">
+                      Details
+                    </Link>
                     <div>{format(new Date(insight.createdAt), "MMM d',' h:mm a")}</div>
                   </div>
                 </CardContent>

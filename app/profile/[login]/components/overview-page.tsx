@@ -18,7 +18,6 @@ import { OwnProjectsCard } from './overview-cards/own-projects-card';
 import { ProfileBadgesSection } from './profile-badges-section';
 import { ProfileSummary } from './profile-summary';
 import { RankHistoryTable } from './rank-history-table';
-import { StarsRankNeighbours } from './stars-rank-neighbours';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { Link } from '@/components/link/link';
 import type { ProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
@@ -89,7 +88,6 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
 
       <div className="flex flex-col gap-3">
         <h2 className="text-xl font-semibold">Profile Overview</h2>
-        <ProfileSummary parts={summary} />
 
         <OverviewCardsContainer>
           <ProfileRankCard
@@ -120,6 +118,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
             userRank={ranks?.cProvisional || ranks?.c}
           />
         </OverviewCardsContainer>
+        <ProfileSummary parts={summary} />
       </div>
 
       {!!repositoriesCount && (
@@ -141,10 +140,6 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
       )}
 
       {!!scope && <RankHistoryTable history={rankHistory} scope={scope} />}
-
-      {isGlobalContext && (
-        <StarsRankNeighbours login={login} rank={user.rankGlobal?.s} neighbours={extras?.starsNeighbours ?? []} />
-      )}
 
       {!!timeline?.length && <ProfileTimeline timeline={timeline} firstSeenAt={firstSeenAt} />}
 

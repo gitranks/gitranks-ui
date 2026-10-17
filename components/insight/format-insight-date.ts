@@ -21,5 +21,9 @@ export const formatPostDay = (date: Date) => day.format(date);
 /** `Oct 16, 2026` */
 export const formatPostDate = (date: Date) => dayWithYear.format(date);
 
+// Newer Intl data puts a narrow no-break space before AM/PM; plain spaces keep the text the
+// same on every runtime.
+const plainSpaces = (text: string) => text.replace(/[\u00a0\u202f]/g, ' ');
+
 /** `Oct 16, 12:00 PM UTC` */
-export const formatPostDateTime = (date: Date) => `${dateTime.format(date)} UTC`;
+export const formatPostDateTime = (date: Date) => `${plainSpaces(dateTime.format(date))} UTC`;

@@ -9,5 +9,6 @@ describe('post date formatters', () => {
     expect(formatPostDay(date)).toBe('Oct 16');
     expect(formatPostDate(date)).toBe('Oct 16, 2026');
     expect(formatPostDateTime(date)).toBe('Oct 16, 11:30 PM UTC');
+    expect(formatPostDateTime(date)).not.toMatch(/[\u00a0\u202f]/);
   });
 });

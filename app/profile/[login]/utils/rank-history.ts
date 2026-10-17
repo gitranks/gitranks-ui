@@ -1,10 +1,9 @@
-import { rankOf } from './profile-summary';
+import { type Ranks, rankInfo } from './profile-summary';
 import { UserRankProp } from '@/types/ranking.types';
 
-type Ranks = Parameters<typeof rankOf>[0];
 type Snapshot = Partial<Record<UserRankProp, number>>;
 
-export type RankHistoryCell = { rank?: number; score?: number };
+export type RankHistoryCell = { rank?: number; score?: number; provisional?: boolean };
 
 export type RankHistoryRow = {
   /** `YYYY-MM-DD` of the monthly snapshot, or null for the current values. */
@@ -75,7 +74,11 @@ export function buildRankHistory({
     date: null,
     label: 'Current',
     cells: Object.fromEntries(
-      PROPS.map((prop) => [prop, { rank: rankOf(ranks, prop), score: positive(scores[prop]) }]),
+      PROPS.map((prop) => {
+        const info = rankInfo(ranks, prop);
+
+        return [prop, { rank: info?.rank, score: positive(scores[prop]), provisional: info?.provisional }];
+      }),
     ) as RankHistoryRow['cells'],
   };
 

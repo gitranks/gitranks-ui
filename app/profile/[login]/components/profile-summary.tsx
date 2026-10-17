@@ -7,7 +7,15 @@ import { Link } from '@/components/link/link';
 export const ProfileSummary: FC<{ parts: SummaryPart[] }> = ({ parts }) => (
   <p className="leading-relaxed" data-testid="profile-summary">
     {parts.map((part, i) => (
-      <Fragment key={i}>{typeof part === 'string' ? part : <Link href={part.href}>{part.text}</Link>}</Fragment>
+      <Fragment key={i}>
+        {typeof part === 'string' ? (
+          part
+        ) : (
+          <Link href={part.href} title={part.title}>
+            {part.text}
+          </Link>
+        )}
+      </Fragment>
     ))}
   </p>
 );

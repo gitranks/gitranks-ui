@@ -1,10 +1,11 @@
 import type { Route } from 'next';
 
+import { RANK_NAME } from '@/badge/badge.consts';
 import { UserRankProp } from '@/types/ranking.types';
 import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 import { getTypeByRankProp } from '@/utils/get-rank-prop-by-ranking-type';
 
-type Ranks = {
+export type Ranks = {
   s?: number | null;
   sProvisional?: number | null;
   c?: number | null;
@@ -16,7 +17,8 @@ type Ranks = {
 /** How many profiles a ranking holds, as the tiers report it. */
 export type RankedCounts = { sUsers?: number | null; cUsers?: number | null; fUsers?: number | null } | null;
 
-export type SummaryPart = string | { text: string; href: Route };
+/** Text, or a link whose `title` names the ranking it leads to. */
+export type SummaryPart = string | { text: string; href: Route; title?: string };
 
 export type ProfileSummaryInput = {
   login: string;
@@ -32,6 +34,8 @@ export type ProfileSummaryInput = {
   updatedAt?: unknown;
 };
 
+export type RankInfo = { rank: number; provisional: boolean };
+
 const RANKING_ORDER = [UserRankProp.s, UserRankProp.c, UserRankProp.f] as const;
 
 const CRITERIA: Record<UserRankProp, { by: string; unit: string }> = {
@@ -44,16 +48,24 @@ const DATE_FORMAT = new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZo
 
 const formatNumber = (n: number) => n.toLocaleString('en-US');
 
-/** The rank shown on the profile: the ranked position, or the provisional one a new profile gets first. */
-export const rankOf = (ranks: Ranks | undefined, prop: UserRankProp): number | undefined => {
-  const rank = ranks?.[prop] ?? ranks?.[`${prop}Provisional`];
+/**
+ * The rank shown on the profile: the ranked position, or else the provisional one a newly added
+ * profile gets until the next ranking update.
+ */
+export const rankInfo = (ranks: Ranks | undefined, prop: UserRankProp): RankInfo | undefined => {
+  const ranked = ranks?.[prop];
+  const provisional = ranks?.[`${prop}Provisional`];
 
-  return rank && rank > 0 ? rank : undefined;
+  if (ranked && ranked > 0) {
+    return { rank: ranked, provisional: false };
+  }
+
+  return provisional && provisional > 0 ? { rank: provisional, provisional: true } : undefined;
 };
 
 /** "the United States", "the Netherlands", "Germany". */
 export const countryInSentence = (country: string) =>
-  /^(United |Republic of )|( Islands| Republic)$|^(Netherlands|Caribbean Netherlands|Philippines|Bahamas|Gambia|Maldives|Comoros|Seychelles|British Indian Ocean Territory)$/.test(
+  /^(United |Republic of |Democratic Republic )|( Islands| Republic)$|^(Netherlands|Caribbean Netherlands|Philippines|Bahamas|Gambia|Maldives|Comoros|Seychelles|British Indian Ocean Territory)$/.test(
     country,
   )
     ? `the ${country}`
@@ -68,23 +80,35 @@ const joinList = (items: SummaryPart[]): SummaryPart[] =>
     return [i === items.length - 1 ? ' and ' : ', ', item];
   });
 
-/** "#12 of 1,000": the count is left out when it is missing or older than the rank. */
-const position = (rank: number, ranked?: number | null, noun = '') =>
-  `#${formatNumber(rank)}${ranked && ranked >= rank ? ` of ${formatNumber(ranked)}${noun}` : ''}`;
+/**
+ * "#12 of 1,000 developers". The count is left out when it is missing or older than the rank, and for
+ * a provisional rank, which is not in the ranked count yet.
+ */
+const position = ({ rank, provisional }: RankInfo, ranked?: number | null, noun = '') => {
+  if (provisional) {
+    return `#${formatNumber(rank)} (provisional)`;
+  }
+
+  return `#${formatNumber(rank)}${ranked && ranked >= rank ? ` of ${formatNumber(ranked)}${noun}` : ''}`;
+};
 
 const countryLink = (country: string, prop: UserRankProp): SummaryPart[] => {
-  const article = countryInSentence(country).startsWith('the ') ? 'the ' : '';
+  const inCountry = countryInSentence(country);
 
   return [
-    article,
-    { text: country, href: `/country/${encodeURIComponent(country)}/${getTypeByRankProp(prop)}/1` as Route },
+    inCountry.startsWith('the ') ? 'the ' : '',
+    {
+      text: country,
+      href: `/country/${encodeURIComponent(country)}/${getTypeByRankProp(prop)}/1` as Route,
+      title: `${RANK_NAME[prop]} in ${inCountry}`,
+    },
   ];
 };
 
 function rankingSentence(input: ProfileSummaryInput, prop: UserRankProp, subject: string): SummaryPart[] | null {
   const { country, scores, rankGlobal, rankCountry, rankedGlobal, rankedCountry } = input;
-  const globalRank = rankOf(rankGlobal, prop);
-  const countryRank = country ? rankOf(rankCountry, prop) : undefined;
+  const globalRank = rankInfo(rankGlobal, prop);
+  const countryRank = country ? rankInfo(rankCountry, prop) : undefined;
 
   if (!globalRank && !countryRank) {
     return null;
@@ -100,6 +124,7 @@ function rankingSentence(input: ProfileSummaryInput, prop: UserRankProp, subject
     parts.push(`${position(globalRank, rankedGlobal?.[`${prop}Users`], ' developers')} `, {
       text: 'worldwide',
       href: `/by/${getTypeByRankProp(prop)}/1` as Route,
+      title: `${RANK_NAME[prop]} worldwide`,
     });
     parts.push(` ${criterion}`);
 
@@ -162,10 +187,11 @@ function updatedSentence(updatedAt: unknown): SummaryPart[] | null {
 
 /**
  * A plain-language summary of a profile, from the data the overview page already has. Facts without
- * data are left out. Country and language names link to their rankings.
+ * data are left out. Ranking scopes and languages link to their rankings.
  */
 export function buildProfileSummary(input: ProfileSummaryInput): SummaryPart[] {
-  const { login, name } = input;
+  const { login } = input;
+  const name = input.name?.trim();
   const displayName = name && name !== login ? `${name} (@${login})` : `@${login}`;
 
   const rankings = RANKING_ORDER.reduce<SummaryPart[][]>((sentences, prop) => {
@@ -183,7 +209,3 @@ export function buildProfileSummary(input: ProfileSummaryInput): SummaryPart[] {
 
   return sentences.flatMap((sentence, i) => (i === 0 ? sentence : [' ', ...sentence]));
 }
-
-/** The summary as plain text, e.g. for a description. */
-export const summaryToText = (parts: SummaryPart[]) =>
-  parts.map((part) => (typeof part === 'string' ? part : part.text)).join('');

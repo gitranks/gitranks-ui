@@ -9,41 +9,66 @@ type StarsRankNeighboursProps = {
   neighbours: StarsNeighbour[];
 };
 
+export const NEIGHBOURS_EACH_SIDE = 5;
+
+const HEADING_ID = 'stars-neighbours-heading';
+
+/** The rows around the profile's own row, or none when the profile is not among them. */
+export function pickNeighbours(login: string, rows: StarsNeighbour[]): StarsNeighbour[] {
+  const self = rows.findIndex((row) => row.login.toLowerCase() === login.toLowerCase());
+
+  if (self < 0) {
+    return [];
+  }
+
+  const around = rows.slice(Math.max(0, self - NEIGHBOURS_EACH_SIDE), self + NEIGHBOURS_EACH_SIDE + 1);
+
+  return around.length > 1 ? around : [];
+}
+
 /** The developers ranked just above and below the profile worldwide by stars, linked to their profiles. */
 export const StarsRankNeighbours: FC<StarsRankNeighboursProps> = ({ login, neighbours }) => {
-  const isSelf = (neighbour: StarsNeighbour) => neighbour.login.toLowerCase() === login.toLowerCase();
+  const rows = pickNeighbours(login, neighbours);
 
-  if (neighbours.length < 2 || !neighbours.some(isSelf)) {
+  if (!rows.length) {
     return null;
   }
 
+  const isSelf = (row: StarsNeighbour) => row.login.toLowerCase() === login.toLowerCase();
+
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-xl font-semibold">Nearby in the Stars Rank</h3>
+      <h3 id={HEADING_ID} className="text-xl font-semibold">
+        Nearby in the Stars Rank
+      </h3>
       <p className="text-muted-foreground">
         Developers ranked just above and below @{login} worldwide by stars on their own repositories.{' '}
         <Link href="/by/stars/1">Full ranking</Link>
       </p>
-      <Table>
+      <Table aria-labelledby={HEADING_ID}>
         <TableHeader>
           <TableRow>
-            <TableHead>Rank</TableHead>
-            <TableHead>Developer</TableHead>
-            <TableHead>Stars</TableHead>
+            <TableHead scope="col">Rank</TableHead>
+            <TableHead scope="col">Developer</TableHead>
+            <TableHead scope="col">Stars</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {neighbours.map((neighbour) => (
-            <TableRow key={neighbour.login} className={isSelf(neighbour) ? 'bg-muted/50 font-semibold' : undefined}>
-              <TableCell>#{neighbour.rank.toLocaleString('en-US')}</TableCell>
+          {rows.map((row) => (
+            <TableRow
+              key={row.login}
+              aria-current={isSelf(row) ? 'true' : undefined}
+              className={isSelf(row) ? 'bg-muted/50 font-semibold' : undefined}
+            >
+              <TableCell>#{row.rank.toLocaleString('en-US')}</TableCell>
               <TableCell translate="no">
-                {isSelf(neighbour) ? (
-                  `@${neighbour.login}`
+                {isSelf(row) ? (
+                  `@${row.login}`
                 ) : (
-                  <Link href={`/profile/${encodeURIComponent(neighbour.login)}`}>@{neighbour.login}</Link>
+                  <Link href={`/profile/${encodeURIComponent(row.login)}`}>@{row.login}</Link>
                 )}
               </TableCell>
-              <TableCell>{neighbour.stars ? neighbour.stars.toLocaleString('en-US') : '–'}</TableCell>
+              <TableCell>{row.stars ? row.stars.toLocaleString('en-US') : '–'}</TableCell>
             </TableRow>
           ))}
         </TableBody>

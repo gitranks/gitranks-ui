@@ -21,11 +21,16 @@ export async function generateMetadata({ params }: PageProps<'/profile/[login]/c
 
 export default async function ProfileOverviewPage({ params }: PageProps<'/profile/[login]/country'>) {
   const { login } = await params;
-  cacheLife('hours');
   cacheTag(`profile:${login}`);
 
   const user = await fetchProfilePageOverview(login, 'country');
-  const extras = await fetchProfileOverviewExtras(user);
+  const extras = await fetchProfileOverviewExtras(user, { neighbours: false });
+  // A page that rendered without a part it could not read is kept briefly, so the part comes back soon.
+  if (extras.complete) {
+    cacheLife('hours');
+  } else {
+    cacheLife('minutes');
+  }
 
   return <OverviewPage user={user} extras={extras} />;
 }

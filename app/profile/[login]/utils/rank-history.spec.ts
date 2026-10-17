@@ -19,7 +19,7 @@ describe('buildRankHistory', () => {
       ['2026-10-01', 'Oct 1, 2026'],
       ['2026-09-01', 'Sep 1, 2026'],
     ]);
-    expect(rows[0].cells.s).toEqual({ rank: 10, score: 150 });
+    expect(rows[0].cells.s).toEqual({ rank: 10, score: 150, provisional: false });
     expect(rows[2].cells.c).toEqual({ rank: 210, score: 38 });
   });
 
@@ -67,6 +67,17 @@ describe('buildRankHistory', () => {
       [],
     );
     expect(buildRankHistory({ ranks: null, scores: {}, rankSnapshots: { '2026-10-01': {} } }).rows).toEqual([]);
+  });
+
+  it('marks a current rank that is only provisional', () => {
+    const { rows } = buildRankHistory({
+      ranks: { s: 10, cProvisional: 30 },
+      scores,
+      rankSnapshots: { '2026-10-01': { s: 11 } },
+    });
+
+    expect(rows[0].cells.s).toEqual({ rank: 10, score: 150, provisional: false });
+    expect(rows[0].cells.c).toEqual({ rank: 30, score: 40, provisional: true });
   });
 
   it('skips entries that are not dated snapshots', () => {

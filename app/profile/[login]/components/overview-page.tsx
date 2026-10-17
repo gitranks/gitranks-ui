@@ -60,6 +60,8 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
 
   const ranks = isGlobalContext ? user.rankGlobal : user.rankCountry;
   const tiers = isGlobalContext ? user.tiersGlobal : user.tiersCountry;
+  // The scope of `ranks`. A profile without a country has no country ranks, so the country tab has none.
+  const scope = isGlobalContext ? 'worldwide' : country ? `in ${countryInSentence(country)}` : undefined;
 
   const summary = buildProfileSummary({
     login,
@@ -90,7 +92,13 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
         <ProfileSummary parts={summary} />
 
         <OverviewCardsContainer>
-          <ProfileRankCard login={login} ranks={ranks} tiers={tiers} country={isGlobalContext ? null : country} />
+          <ProfileRankCard
+            login={login}
+            ranks={ranks}
+            tiers={tiers}
+            country={isGlobalContext ? null : country}
+            scope={scope}
+          />
           <ProfileLanguageCard login={login} languages={sLangs} />
           <OwnProjectsCard
             login={login}
@@ -132,10 +140,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
         </div>
       )}
 
-      <RankHistoryTable
-        history={rankHistory}
-        scope={isGlobalContext || !country ? 'worldwide' : `in ${countryInSentence(country)}`}
-      />
+      {!!scope && <RankHistoryTable history={rankHistory} scope={scope} />}
 
       {isGlobalContext && <StarsRankNeighbours login={login} neighbours={extras?.starsNeighbours ?? []} />}
 

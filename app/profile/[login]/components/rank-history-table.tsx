@@ -11,16 +11,24 @@ type RankHistoryTableProps = {
   scope: string;
 };
 
+const HEADING_ID = 'rank-history-heading';
+
 const UNITS: Record<UserRankProp, string> = {
   [UserRankProp.s]: 'stars',
   [UserRankProp.c]: 'stars',
   [UserRankProp.f]: 'followers',
 };
 
-const HistoryCell: FC<{ cell: RankHistoryCell; prop: UserRankProp }> = ({ cell: { rank, score }, prop }) => (
+const HistoryCell: FC<{ cell: RankHistoryCell; prop: UserRankProp }> = ({
+  cell: { rank, score, provisional },
+  prop,
+}) => (
   <TableCell>
     {rank ? (
-      <span className="font-medium">#{rank.toLocaleString('en-US')}</span>
+      <span className="font-medium">
+        #{rank.toLocaleString('en-US')}
+        {provisional && ' (provisional)'}
+      </span>
     ) : (
       <span className="text-muted-foreground">Not ranked</span>
     )}
@@ -41,21 +49,27 @@ export const RankHistoryTable: FC<RankHistoryTableProps> = ({ history: { columns
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-xl font-semibold">Rank History</h3>
+      <h3 id={HEADING_ID} className="text-xl font-semibold">
+        Rank History
+      </h3>
       <p className="text-muted-foreground">Ranks {scope} now and at the start of each month.</p>
-      <Table>
+      <Table aria-labelledby={HEADING_ID}>
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
+            <TableHead scope="col">Date</TableHead>
             {columns.map((prop) => (
-              <TableHead key={prop}>{RANK_NAME[prop]}</TableHead>
+              <TableHead key={prop} scope="col">
+                {RANK_NAME[prop]}
+              </TableHead>
             ))}
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.date ?? 'current'}>
-              <TableCell>{row.date ? <time dateTime={row.date}>{row.label}</time> : row.label}</TableCell>
+              <TableHead scope="row" className="font-normal">
+                {row.date ? <time dateTime={row.date}>{row.label}</time> : row.label}
+              </TableHead>
               {columns.map((prop) => (
                 <HistoryCell key={prop} cell={row.cells[prop]} prop={prop} />
               ))}

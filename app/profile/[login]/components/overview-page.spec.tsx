@@ -55,13 +55,21 @@ describe('OverviewPage text', () => {
     snapshots: { '2026-10-01': { s: 100, c: 30 } },
   };
 
-  it('labels each rank on the card with its ranking and scope', () => {
+  it('labels each rank on the card with its ranking and scope, tiers or not', () => {
     const text = pageText({ user: ranked, isGlobalContext: true });
 
-    expect(text).toContain('Stars Rank worldwide:');
-    expect(text).toContain('Contributor Rank worldwide:');
-    expect(text).toContain('Followers Rank worldwide:');
-    expect(pageText({ user: ranked })).toContain('Stars Rank in Germany:');
+    expect(text).toContain('Stars Rank worldwide: #50');
+    expect(text).toContain('Contributor Rank worldwide: #200');
+    expect(text).toContain('Followers Rank worldwide: #7');
+    expect(pageText({ user: ranked })).toContain('Stars Rank in Germany: #4');
+  });
+
+  it('names no scope on the country tab of a profile without a country', () => {
+    const text = pageText({ user: { ...ranked, country: null, rankCountry: null } });
+
+    expect(text).toContain('Stars Rank: N/A');
+    expect(text).not.toContain('worldwide:');
+    expect(text).not.toContain('Rank History');
   });
 
   it('opens with the summary, citing the ranked counts it was given', () => {
@@ -71,6 +79,7 @@ describe('OverviewPage text', () => {
         rankedGlobal: { sUsers: 1000, cUsers: 0, fUsers: 0 },
         rankedCountry: { sUsers: 100, cUsers: 0, fUsers: 0 },
         starsNeighbours: [],
+        complete: true,
       },
       isGlobalContext: true,
     });

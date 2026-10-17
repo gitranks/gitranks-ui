@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildProfileSummary, countryInSentence, type ProfileSummaryInput, summaryToText } from './profile-summary';
+import { buildProfileSummary, countryInSentence, type ProfileSummaryInput, type SummaryPart } from './profile-summary';
+
+const summaryToText = (parts: SummaryPart[]) =>
+  parts.map((part) => (typeof part === 'string' ? part : part.text)).join('');
 
 const input = (overrides: Partial<ProfileSummaryInput> = {}): ProfileSummaryInput => ({
   login: 'octocat',
@@ -44,12 +47,20 @@ describe('buildProfileSummary', () => {
 
   it('links the scopes to the matching leaderboards and the languages to theirs', () => {
     expect(links()).toEqual([
-      { text: 'worldwide', href: '/by/stars/1' },
-      { text: 'United States', href: '/country/United%20States/stars/1' },
-      { text: 'worldwide', href: '/by/contributions/1' },
-      { text: 'United States', href: '/country/United%20States/contributions/1' },
-      { text: 'worldwide', href: '/by/followers/1' },
-      { text: 'United States', href: '/country/United%20States/followers/1' },
+      { text: 'worldwide', href: '/by/stars/1', title: 'Stars Rank worldwide' },
+      { text: 'United States', href: '/country/United%20States/stars/1', title: 'Stars Rank in the United States' },
+      { text: 'worldwide', href: '/by/contributions/1', title: 'Contributor Rank worldwide' },
+      {
+        text: 'United States',
+        href: '/country/United%20States/contributions/1',
+        title: 'Contributor Rank in the United States',
+      },
+      { text: 'worldwide', href: '/by/followers/1', title: 'Followers Rank worldwide' },
+      {
+        text: 'United States',
+        href: '/country/United%20States/followers/1',
+        title: 'Followers Rank in the United States',
+      },
       { text: 'Python', href: '/language/Python/global/1' },
       { text: 'C++', href: '/language/C%2B%2B/global/1' },
     ]);
@@ -77,10 +88,18 @@ describe('buildProfileSummary', () => {
     );
   });
 
-  it('uses the provisional rank of a profile that has no ranked position yet', () => {
-    expect(text({ rankGlobal: { sProvisional: 42 }, rankCountry: null })).toContain(
-      'is ranked #42 of 1,000,000 developers worldwide by stars on their own repositories',
+  it('marks a provisional rank as such and gives no ranked count for it', () => {
+    expect(text({ rankGlobal: { sProvisional: 42 }, rankCountry: { s: 3, cProvisional: 7 } })).toContain(
+      'is ranked #42 (provisional) worldwide by stars on their own repositories (150,000 stars) and #3 of 250,000 in the United States.',
     );
+    expect(text({ rankGlobal: { s: 40, sProvisional: 42 } })).toContain('is ranked #40 of 1,000,000 developers');
+    expect(text({ rankGlobal: null, rankCountry: { cProvisional: 7 } })).toContain(
+      'is ranked #7 (provisional) in the United States by stars on repositories they contributed to',
+    );
+  });
+
+  it('ignores a blank name', () => {
+    expect(text({ name: '   ' })).toMatch(/^@octocat is ranked/);
   });
 
   it('starts from the country rank when there is no worldwide rank', () => {
@@ -129,6 +148,7 @@ describe('countryInSentence', () => {
     ['Philippines', 'the Philippines'],
     ['Czech Republic', 'the Czech Republic'],
     ['Cayman Islands', 'the Cayman Islands'],
+    ['Democratic Republic of the Congo', 'the Democratic Republic of the Congo'],
     ['Germany', 'Germany'],
     ['Isle of Man', 'Isle of Man'],
   ])('%s → %s', (country, expected) => {

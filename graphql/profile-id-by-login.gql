@@ -11,6 +11,15 @@ query ProfileIdByLogin($login: String!) {
       s
       c
       f
+      country
     }
+  }
+  countryRankByLogin(login: $login) {
+    s
+    sProvisional
+    c
+    cProvisional
+    f
+    fProvisional
   }
 }

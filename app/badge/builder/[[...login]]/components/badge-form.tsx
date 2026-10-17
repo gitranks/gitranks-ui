@@ -5,9 +5,11 @@ import { useQueryStates } from 'nuqs';
 import { type FC, type PropsWithChildren, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDebounceCallback } from 'usehooks-ts';
-import type { z } from 'zod';
 
+import { getDefaultLabel } from '../utils/get-default-label';
+import { type BadgeFormValues, watchBadgeForm } from '../utils/watch-badge-form';
 import { ColorPickerField } from './color-picker-field';
+import type { BadgeBuilderProfileProps } from './login-form.types';
 import { StepTitle } from './step-title';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { BadgeNuqsSchema } from '@/badge/badge.nuqs';
@@ -28,52 +30,24 @@ const BadgeFormItem: FC<PropsWithChildren> = ({ children }) => {
   return <FormItem className="flex-grow min-w-[224px]">{children}</FormItem>;
 };
 
-// Helper function to generate label based on ranking and type
-const generateLabel = (ranking?: UserRankProp, type?: string): string => {
-  if (type === BadgeType.Score) {
-    switch (ranking) {
-      case UserRankProp.s:
-        return 'Total Stars';
-      case UserRankProp.c:
-        return 'Contribution Score';
-      case UserRankProp.f:
-        return 'Total Followers';
-    }
-  }
-
-  return RANK_NAME[ranking ?? UserRankProp.s];
-};
-
 const RANKINGS = [UserRankProp.s, UserRankProp.c, UserRankProp.f];
 
-type BadgeFormProps = {
-  /** Rankings the chosen profile is in; unset until a profile is chosen. */
-  rankedIn?: UserRankProp[];
-};
+type BadgeFormProps = Pick<BadgeBuilderProfileProps, 'rankedIn' | 'country'>;
 
-export function BadgeForm({ rankedIn }: BadgeFormProps) {
-  const [defaultValues, saveValues] = useQueryStates(BadgeNuqsSchema);
+export function BadgeForm({ rankedIn, country }: BadgeFormProps) {
+  const [params, saveValues] = useQueryStates(BadgeNuqsSchema);
   const debouncedSaveValues = useDebounceCallback(saveValues, 500);
 
-  const form = useForm<Partial<z.infer<typeof BadgeV2ZodSchema>>>({
+  const form = useForm<BadgeFormValues>({
     resolver: zodResolver(BadgeV2ZodSchema),
-    defaultValues,
+    defaultValues: { ...params, label: params.label ?? getDefaultLabel(params.ranking, params.type) },
   });
 
-  // Watch for changes in ranking and type fields
-  const ranking = form.watch('ranking');
-  const type = form.watch('type');
-
-  // Update label when ranking or type changes
-  useEffect(() => {
-    const newLabel = generateLabel(ranking, type);
-    if (newLabel) {
-      form.setValue('label', newLabel);
-    }
-  }, [ranking, type, form]);
+  const context = form.watch('context') ?? BadgeContext.Global;
+  const noCountryRanks = !!rankedIn && !rankedIn[BadgeContext.Country].length;
 
   useEffect(() => {
-    const subscription = form.watch((value) => debouncedSaveValues(value));
+    const subscription = watchBadgeForm(form, debouncedSaveValues);
     return () => subscription.unsubscribe();
   }, [form, debouncedSaveValues]);
 
@@ -97,7 +71,7 @@ export function BadgeForm({ rankedIn }: BadgeFormProps) {
                   </FormControl>
                   <SelectContent>
                     {RANKINGS.map((option) => {
-                      const notRanked = !!rankedIn && !rankedIn.includes(option);
+                      const notRanked = !!rankedIn && !rankedIn[context].includes(option);
                       return (
                         <SelectItem key={option} value={option} disabled={notRanked}>
                           {`${RANK_NAME[option]}ing${notRanked ? ' (not ranked)' : ''}`}
@@ -126,9 +100,11 @@ export function BadgeForm({ rankedIn }: BadgeFormProps) {
                     </FormItem>
                     <FormItem className="flex items-center">
                       <FormControl>
-                        <RadioGroupItem value={BadgeContext.Country} />
+                        <RadioGroupItem value={BadgeContext.Country} disabled={noCountryRanks} />
                       </FormControl>
-                      <FormLabel className="font-normal">Country</FormLabel>
+                      <FormLabel className="font-normal">
+                        {`Country${noCountryRanks ? (country ? ' (not ranked)' : ' (not detected)') : ''}`}
+                      </FormLabel>
                     </FormItem>
                   </RadioGroup>
                 </FormControl>

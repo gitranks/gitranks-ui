@@ -2,22 +2,25 @@ import { useQueryStates } from 'nuqs';
 import { useLayoutEffect, useMemo, useState } from 'react';
 
 import type { BadgeBuilderProfileProps } from '../components/login-form.types';
+import { getDefaultLabel } from '../utils/get-default-label';
 import { BadgeNuqsSchema } from '@/badge/badge.nuqs';
 import { isValidHex } from '@/badge/utils/is-valid-hex';
+import type { BadgeContext } from '@/types/badge.types';
 import type { NonNull } from '@/types/generic.types';
 import type { UserRankProp } from '@/types/ranking.types';
 
 type BadgeUrlResult = {
   url: string;
-  /** Set when the chosen ranking is one the profile is not in: its badge would only show an error. */
-  unrankedIn?: UserRankProp;
+  /** Set when the profile is not in the chosen ranking in the chosen context: its badge would only show an error. */
+  unranked?: { ranking: UserRankProp; context: BadgeContext };
 };
 
 export const useBadgeUrl = ({ githubLogin, githubId, rankedIn }: BadgeBuilderProfileProps): BadgeUrlResult => {
   const [badgeParams] = useQueryStates(BadgeNuqsSchema);
 
   const values = useMemo(() => {
-    const entries = Object.entries(badgeParams).filter(([k, v]) => {
+    const label = badgeParams.label ?? getDefaultLabel(badgeParams.ranking, badgeParams.type);
+    const entries = Object.entries({ ...badgeParams, label }).filter(([k, v]) => {
       if (['labelBgColor', 'valueBgColor'].includes(k)) {
         return isValidHex(v);
       }
@@ -36,8 +39,9 @@ export const useBadgeUrl = ({ githubLogin, githubId, rankedIn }: BadgeBuilderPro
     return { url: '' };
   }
 
-  if (rankedIn && !rankedIn.includes(badgeParams.ranking)) {
-    return { url: '', unrankedIn: badgeParams.ranking };
+  const { ranking, context } = badgeParams;
+  if (rankedIn && !rankedIn[context].includes(ranking)) {
+    return { url: '', unranked: { ranking, context } };
   }
 
   const queryParams = new URLSearchParams(values).toString();

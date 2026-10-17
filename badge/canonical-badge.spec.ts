@@ -4,14 +4,14 @@ import { isCanonicalBadgeAvailable, listCanonicalBadgeImageUrls } from './canoni
 
 describe('isCanonicalBadgeAvailable', () => {
   it('offers a ranking badge only from the entry score up', () => {
-    expect(isCanonicalBadgeAvailable('followers-rank', { f: 4 })).toBe(false);
-    expect(isCanonicalBadgeAvailable('followers-score', { f: 4 })).toBe(false);
-    expect(isCanonicalBadgeAvailable('followers-rank', { f: 5 })).toBe(true);
+    expect(isCanonicalBadgeAvailable('followers-rank', { f: 4 }, undefined)).toBe(false);
+    expect(isCanonicalBadgeAvailable('followers-score', { f: 4 }, undefined)).toBe(false);
+    expect(isCanonicalBadgeAvailable('followers-rank', { f: 5 }, undefined)).toBe(true);
   });
 
   it('treats a missing score as not ranked', () => {
-    expect(isCanonicalBadgeAvailable('stars-rank', { s: null })).toBe(false);
-    expect(isCanonicalBadgeAvailable('contributions-score', {})).toBe(false);
+    expect(isCanonicalBadgeAvailable('stars-rank', { s: null }, undefined)).toBe(false);
+    expect(isCanonicalBadgeAvailable('contributions-score', {}, undefined)).toBe(false);
   });
 
   it('also needs a rank or a provisional one when the ranks are known', () => {

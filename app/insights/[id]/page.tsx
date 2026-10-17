@@ -13,6 +13,10 @@ type InsightDetailsPageProps = {
   params: Promise<{ id: string }>;
 };
 
+// No post is known at build time, so the page renders on request and without a Suspense
+// fallback: the post is in the server HTML instead of a segment streamed after the footer.
+export const instant = false;
+
 // Metadata and the page read the same post; fetch it once per request.
 const getInsight = cache(async (id: string) => (await fetchInsightServer(id)).insight);
 

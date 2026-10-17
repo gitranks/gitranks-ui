@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchStarsReviewOwnerState,
   formatReviewDate,
+  loadStarsReviewOwnerState,
   type StarsReviewOwnerState,
+  sendStarsReviewReport,
   starsReviewNote,
   starsReviewReportState,
   starsReviewViewer,
@@ -24,6 +26,22 @@ const ownerState = (patch: Partial<StarsReviewOwnerState> = {}): StarsReviewOwne
 
 const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+/** Answers each request with the next response, in order; an error is thrown instead. */
+const stubFetch = (...responses: (Response | Error)[]) => {
+  const fetch = vi.fn(async () => {
+    const next = responses.shift() ?? new Error('no response left');
+
+    if (next instanceof Error) {
+      throw next;
+    }
+
+    return next;
+  });
+
+  vi.stubGlobal('fetch', fetch);
+  return fetch;
+};
 
 describe('starsReviewNote', () => {
   it('says the stars do not count while the review runs', () => {
@@ -53,6 +71,10 @@ describe('formatReviewDate', () => {
     expect(formatReviewDate('2026-10-17T09:30:00.000Z')).toBe('17 Oct 2026');
     expect(formatReviewDate('2026-09-03T23:59:00.000Z')).toBe('3 Sep 2026');
   });
+
+  it('gives null for a value that is not a date', () => {
+    expect(formatReviewDate('soon')).toBeNull();
+  });
 });
 
 describe('starsReviewViewer', () => {
@@ -69,7 +91,14 @@ describe('starsReviewViewer', () => {
 
 describe('starsReviewReportState', () => {
   const state = (input: Partial<Parameters<typeof starsReviewReportState>[0]>) =>
-    starsReviewReportState({ reportable: true, viewer: 'anonymous', owner: 'loading', pending: false, ...input });
+    starsReviewReportState({
+      reportable: true,
+      viewer: 'anonymous',
+      owner: 'loading',
+      sentAt: null,
+      pending: false,
+      ...input,
+    });
 
   it('sends a signed-out visitor to sign in', () => {
     expect(state({ viewer: 'anonymous' })).toEqual({ kind: 'button', action: 'signIn' });
@@ -124,8 +153,32 @@ describe('starsReviewReportState', () => {
     });
   });
 
-  it('shows the owner the public view, without a button, when their state is not available', () => {
+  it('shows the owner the public view, without a button, when they have no state to see', () => {
     expect(state({ viewer: 'owner', owner: 'public' })).toEqual({ kind: 'none' });
+  });
+
+  it('leaves the cached page to decide when the owner state could not be read', () => {
+    expect(state({ viewer: 'owner', owner: 'failed' })).toEqual({ kind: 'button', action: 'report' });
+    expect(state({ viewer: 'owner', owner: 'failed', pending: true })).toEqual({ kind: 'button', action: 'wait' });
+    expect(state({ viewer: 'owner', owner: 'failed', reportable: false })).toEqual({ kind: 'none' });
+  });
+
+  it('shows the date of a report this page sent, whatever the owner state', () => {
+    for (const owner of ['loading', 'failed', ownerState()] as const) {
+      expect(state({ viewer: 'owner', owner, sentAt: '2026-10-17T09:30:00.000Z' })).toEqual({
+        kind: 'submitted',
+        submittedAt: '2026-10-17T09:30:00.000Z',
+      });
+    }
+  });
+
+  it('uses the owner state and the sent date for the owner only', () => {
+    const owner = ownerState({ report: { submittedAt: '2026-10-17T09:30:00.000Z' } });
+
+    expect(state({ viewer: 'other', owner, sentAt: '2026-10-17T09:30:00.000Z' })).toEqual({
+      kind: 'button',
+      action: 'switchAccount',
+    });
   });
 });
 
@@ -133,31 +186,48 @@ describe('fetchStarsReviewOwnerState', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('reads the owner state outside any cache', async () => {
-    const fetch = vi.fn(async () => jsonResponse(200, ownerState()));
-    vi.stubGlobal('fetch', fetch);
+    const fetch = stubFetch(jsonResponse(200, ownerState()));
 
     await expect(fetchStarsReviewOwnerState('OctoCat')).resolves.toEqual(ownerState());
     expect(fetch).toHaveBeenCalledWith('/api/profile/OctoCat/stars-review', { cache: 'no-store' });
   });
 
-  it.each([401, 403, 404, 500])('gives null on %i', async (status) => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => jsonResponse(status, { message: 'no' })),
-    );
+  it.each([403, 404])('gives the public view on %i', async (status) => {
+    stubFetch(jsonResponse(status, { message: 'no' }));
 
-    await expect(fetchStarsReviewOwnerState('octocat')).resolves.toBeNull();
+    await expect(fetchStarsReviewOwnerState('octocat')).resolves.toBe('public');
   });
 
-  it('gives null when the request fails', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
-        throw new TypeError('offline');
-      }),
-    );
+  it.each([401, 500])('tells a failed read apart on %i', async (status) => {
+    stubFetch(jsonResponse(status, { message: 'no' }));
 
-    await expect(fetchStarsReviewOwnerState('octocat')).resolves.toBeNull();
+    await expect(fetchStarsReviewOwnerState('octocat')).resolves.toBe('failed');
+  });
+
+  it('tells a failed read apart when the request fails', async () => {
+    stubFetch(new TypeError('offline'));
+
+    await expect(fetchStarsReviewOwnerState('octocat')).resolves.toBe('failed');
+  });
+});
+
+describe('loadStarsReviewOwnerState', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('makes no request for anyone but the owner', () => {
+    const fetch = stubFetch();
+
+    for (const viewer of ['loading', 'anonymous', 'other'] as const) {
+      expect(loadStarsReviewOwnerState(viewer, 'octocat')).toBeNull();
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('reads the owner state for the owner', async () => {
+    const fetch = stubFetch(jsonResponse(200, ownerState()));
+
+    await expect(loadStarsReviewOwnerState('owner', 'octocat')).resolves.toEqual(ownerState());
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -165,18 +235,14 @@ describe('submitStarsReviewReport', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('gives the date the report was stored', async () => {
-    const fetch = vi.fn(async () => jsonResponse(200, { submittedAt: '2026-10-17T09:30:00.000Z' }));
-    vi.stubGlobal('fetch', fetch);
+    const fetch = stubFetch(jsonResponse(200, { submittedAt: '2026-10-17T09:30:00.000Z' }));
 
     await expect(submitStarsReviewReport('octocat')).resolves.toBe('2026-10-17T09:30:00.000Z');
     expect(fetch).toHaveBeenCalledWith('/api/profile/octocat/stars-review', { method: 'POST' });
   });
 
   it('gives the stored date when the report had been sent before', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => jsonResponse(409, { submittedAt: '2026-10-16T08:00:00.000Z' })),
-    );
+    stubFetch(jsonResponse(409, { submittedAt: '2026-10-16T08:00:00.000Z' }));
 
     await expect(submitStarsReviewReport('octocat')).resolves.toBe('2026-10-16T08:00:00.000Z');
   });
@@ -187,11 +253,52 @@ describe('submitStarsReviewReport', () => {
     [404, { message: 'Not Found' }],
     [500, { message: 'Stars review request failed' }],
   ])('gives null on %i', async (status, body) => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => jsonResponse(status, body)),
-    );
+    stubFetch(jsonResponse(status, body));
 
     await expect(submitStarsReviewReport('octocat')).resolves.toBeNull();
+  });
+});
+
+describe('sendStarsReviewReport', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('gives the stored date, without reading the owner state again', async () => {
+    const fetch = stubFetch(jsonResponse(409, { submittedAt: '2026-10-16T08:00:00.000Z' }));
+
+    await expect(sendStarsReviewReport('octocat')).resolves.toEqual({
+      outcome: 'sent',
+      submittedAt: '2026-10-16T08:00:00.000Z',
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the owner try again when the report failed and the review is still open', async () => {
+    stubFetch(jsonResponse(500, {}), jsonResponse(200, ownerState()));
+
+    await expect(sendStarsReviewReport('octocat')).resolves.toEqual({ outcome: 'failed', owner: ownerState() });
+  });
+
+  it('lets the owner try again when the owner state could not be read either', async () => {
+    stubFetch(new TypeError('offline'), new TypeError('offline'));
+
+    await expect(sendStarsReviewReport('octocat')).resolves.toEqual({ outcome: 'failed', owner: 'failed' });
+  });
+
+  it.each([
+    [
+      'declined meanwhile',
+      jsonResponse(409, { submittedAt: null }),
+      jsonResponse(200, ownerState({ reportable: false })),
+    ],
+    [
+      'reported from elsewhere',
+      jsonResponse(500, {}),
+      jsonResponse(200, ownerState({ report: { submittedAt: '2026-10-16T08:00:00.000Z' } })),
+    ],
+    ['no longer held', jsonResponse(404, {}), jsonResponse(404, {})],
+  ])('closes the report when the review changed (%s)', async (_, post, read) => {
+    stubFetch(post, read);
+
+    await expect(sendStarsReviewReport('octocat')).resolves.toMatchObject({ outcome: 'closed' });
   });
 });

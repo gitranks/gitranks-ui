@@ -98,6 +98,10 @@ describe('StarsReviewReportView', () => {
 
     expect(html).toBe('<p>Your request was reviewed and declined on 18 Oct 2026.</p>');
   });
+
+  it('drops a date it cannot read instead of failing', () => {
+    expect(render({ kind: 'submitted', submittedAt: 'soon' })).toBe('<p>Your request was submitted.</p>');
+  });
 });
 
 describe('StarsReviewReport', () => {

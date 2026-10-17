@@ -16,8 +16,16 @@ export type StarsReviewOwnerState = {
 /** Who is looking at the profile; `loading` until the session is known. */
 export type StarsReviewViewer = 'loading' | 'anonymous' | 'other' | 'owner';
 
-/** The owner's state: `loading` until it arrives, `public` when it is not available to this visitor. */
-export type StarsReviewOwnerLoad = StarsReviewOwnerState | 'loading' | 'public';
+/** The owner's state as read: `public` when this visitor has none to see, `failed` when it could not be read. */
+export type StarsReviewOwnerRead = StarsReviewOwnerState | 'public' | 'failed';
+
+/** The owner's state, `loading` until it arrives. */
+export type StarsReviewOwnerLoad = StarsReviewOwnerRead | 'loading';
+
+export type StarsReviewReportResult =
+  | { outcome: 'sent'; submittedAt: string }
+  /** `failed`: the report can be sent again; `closed`: the review changed, so it can't. */
+  | { outcome: 'failed' | 'closed'; owner: StarsReviewOwnerRead };
 
 export type StarsReviewReportState =
   | { kind: 'none' }
@@ -52,9 +60,15 @@ const reviewDate = new Intl.DateTimeFormat('en-US', {
   timeZone: 'UTC',
 });
 
-/** `17 Oct 2026`, in UTC like the site's other dates. */
+/** `17 Oct 2026`, in UTC like the site's other dates; null for a value that is not a date. */
 export function formatReviewDate(iso: string) {
-  const parts = Object.fromEntries(reviewDate.formatToParts(new Date(iso)).map(({ type, value }) => [type, value]));
+  const date = new Date(iso);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const parts = Object.fromEntries(reviewDate.formatToParts(date).map(({ type, value }) => [type, value]));
   return `${parts.day} ${parts.month} ${parts.year}`;
 }
 
@@ -79,6 +93,8 @@ type ReportStateInput = {
   reportable: boolean;
   viewer: StarsReviewViewer;
   owner: StarsReviewOwnerLoad;
+  /** The date of a report this page sent. */
+  sentAt: string | null;
   /** A report is being sent. */
   pending: boolean;
 };
@@ -87,9 +103,22 @@ export function starsReviewReportState({
   reportable,
   viewer,
   owner,
+  sentAt,
   pending,
 }: ReportStateInput): StarsReviewReportState {
   if (viewer === 'owner') {
+    const state = typeof owner === 'object' ? owner : null;
+
+    if (state?.report && state.decision === 'declined' && state.decidedAt) {
+      return { kind: 'declined', decidedAt: state.decidedAt };
+    }
+
+    const submittedAt = sentAt ?? state?.report?.submittedAt;
+
+    if (submittedAt) {
+      return { kind: 'submitted', submittedAt };
+    }
+
     if (owner === 'public') {
       // Signed in under the profile's login, yet there is nothing this visitor can report.
       return { kind: 'none' };
@@ -99,15 +128,8 @@ export function starsReviewReportState({
       return reportable ? { kind: 'button', action: 'wait' } : { kind: 'none' };
     }
 
-    if (owner.report && owner.decision === 'declined' && owner.decidedAt) {
-      return { kind: 'declined', decidedAt: owner.decidedAt };
-    }
-
-    if (owner.report) {
-      return { kind: 'submitted', submittedAt: owner.report.submittedAt };
-    }
-
-    if (!owner.reportable) {
+    // A failed read leaves the cached page to decide.
+    if (!(state ? state.reportable : reportable)) {
       return { kind: 'none' };
     }
 
@@ -127,15 +149,24 @@ export function starsReviewReportState({
 
 const starsReviewPath = (login: string) => `/api/profile/${encodeURIComponent(login)}/stars-review`;
 
-/** The owner's state, or null when this visitor cannot see it (not the owner, nothing held, or a failure). */
-export async function fetchStarsReviewOwnerState(login: string): Promise<StarsReviewOwnerState | null> {
+/** The owner's state; `public` when this visitor is not the owner or nothing is held. */
+export async function fetchStarsReviewOwnerState(login: string): Promise<StarsReviewOwnerRead> {
   try {
     const response = await fetch(starsReviewPath(login), { cache: 'no-store' });
 
-    return response.ok ? ((await response.json()) as StarsReviewOwnerState) : null;
+    if (response.status === 403 || response.status === 404) {
+      return 'public';
+    }
+
+    return response.ok ? ((await response.json()) as StarsReviewOwnerState) : 'failed';
   } catch {
-    return null;
+    return 'failed';
   }
+}
+
+/** Reads the owner's state for the owner only; null, with no request, for anyone else. */
+export function loadStarsReviewOwnerState(viewer: StarsReviewViewer, login: string) {
+  return viewer === 'owner' ? fetchStarsReviewOwnerState(login) : null;
 }
 
 /** Sends the owner's report. The date it was stored, also when it had been sent before; null when it was not. */
@@ -153,4 +184,18 @@ export async function submitStarsReviewReport(login: string): Promise<string | n
   } catch {
     return null;
   }
+}
+
+/** Sends the owner's report; when it is not stored, reads the owner's state again, as the review may have changed. */
+export async function sendStarsReviewReport(login: string): Promise<StarsReviewReportResult> {
+  const submittedAt = await submitStarsReviewReport(login);
+
+  if (submittedAt) {
+    return { outcome: 'sent', submittedAt };
+  }
+
+  const owner = await fetchStarsReviewOwnerState(login);
+  const open = owner === 'failed' || (typeof owner === 'object' && owner.reportable && !owner.report);
+
+  return { outcome: open ? 'failed' : 'closed', owner };
 }

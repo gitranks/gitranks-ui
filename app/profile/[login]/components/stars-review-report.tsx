@@ -5,13 +5,13 @@ import { type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
-  fetchStarsReviewOwnerState,
   formatReviewDate,
+  loadStarsReviewOwnerState,
   type StarsReviewOwnerLoad,
   type StarsReviewReportState,
+  sendStarsReviewReport,
   starsReviewReportState,
   starsReviewViewer,
-  submitStarsReviewReport,
 } from '../utils/stars-review';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,11 @@ import {
 
 const BUTTON_LABEL = 'This is a mistake';
 
+const onDate = (iso: string) => {
+  const date = formatReviewDate(iso);
+  return date ? ` on ${date}` : '';
+};
+
 type StarsReviewReportViewProps = {
   view: StarsReviewReportState;
   login: string;
@@ -39,11 +44,11 @@ export const StarsReviewReportView: FC<StarsReviewReportViewProps> = ({ view, lo
   }
 
   if (view.kind === 'submitted') {
-    return <p>Your request was submitted on {formatReviewDate(view.submittedAt)}.</p>;
+    return <p>{`Your request was submitted${onDate(view.submittedAt)}.`}</p>;
   }
 
   if (view.kind === 'declined') {
-    return <p>Your request was reviewed and declined on {formatReviewDate(view.decidedAt)}.</p>;
+    return <p>{`Your request was reviewed and declined${onDate(view.decidedAt)}.`}</p>;
   }
 
   if (view.action === 'switchAccount') {
@@ -90,18 +95,21 @@ export const StarsReviewReport: FC<StarsReviewReportProps> = ({ login, reportabl
   const { data: session, status } = useSession();
   const viewer = starsReviewViewer(status, session?.user?.githubLogin, login);
   const [owner, setOwner] = useState<StarsReviewOwnerLoad>('loading');
+  const [sentAt, setSentAt] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   // Read outside the page cache, and only by the profile's owner.
   useEffect(() => {
-    if (viewer !== 'owner') {
+    const load = loadStarsReviewOwnerState(viewer, login);
+
+    if (!load) {
       return;
     }
 
     let current = true;
-    fetchStarsReviewOwnerState(login).then((state) => {
+    load.then((state) => {
       if (current) {
-        setOwner(state ?? 'public');
+        setOwner(state);
       }
     });
 
@@ -112,22 +120,29 @@ export const StarsReviewReport: FC<StarsReviewReportProps> = ({ login, reportabl
 
   const report = async () => {
     setPending(true);
-    const submittedAt = await submitStarsReviewReport(login);
 
-    if (submittedAt) {
-      setOwner((state) => (typeof state === 'object' ? { ...state, report: { submittedAt } } : state));
-    } else {
-      toast.error('Could not send your request. Please try again later.');
-      // The review may have changed since the page loaded.
-      setOwner((await fetchStarsReviewOwnerState(login)) ?? 'public');
+    try {
+      const result = await sendStarsReviewReport(login);
+
+      if (result.outcome === 'sent') {
+        setSentAt(result.submittedAt);
+        return;
+      }
+
+      setOwner(result.owner);
+      toast.error(
+        result.outcome === 'failed'
+          ? 'Could not send your request. Please try again later.'
+          : 'This review has changed. Reload the page to see it.',
+      );
+    } finally {
+      setPending(false);
     }
-
-    setPending(false);
   };
 
   return (
     <StarsReviewReportView
-      view={starsReviewReportState({ reportable, viewer, owner, pending })}
+      view={starsReviewReportState({ reportable, viewer, owner, sentAt, pending })}
       login={login}
       onReport={report}
     />

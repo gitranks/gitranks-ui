@@ -118,10 +118,13 @@ describe('stars review route', () => {
     await expect(response.json()).resolves.toEqual({ message: 'Stars review request failed' });
   });
 
-  it('refuses a login GitHub would not allow, without calling the API', async () => {
+  it.each([
+    ['GET', GET],
+    ['POST', POST],
+  ])('refuses %s for a login GitHub would not allow, without calling the API', async (method, handler) => {
     signIn('octocat');
 
-    const response = await call(GET, '..%2Fadmin');
+    const response = await call(handler, '..%2Fadmin', method);
 
     expect(response.status).toBe(400);
     expect(signedFetch).not.toHaveBeenCalled();

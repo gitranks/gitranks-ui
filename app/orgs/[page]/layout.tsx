@@ -2,21 +2,27 @@
 
 import type { Metadata } from 'next';
 import { cacheLife } from 'next/cache';
+import { notFound } from 'next/navigation';
 
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
+import { pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
+import { parsePageParam } from '@/utils/parse-page-param';
 
 export async function generateMetadata({ params }: LayoutProps<'/orgs/[page]'>): Promise<Metadata> {
   const { page: pageParam } = await params;
+  const page = parsePageParam(pageParam);
 
-  const rankName = RANK_NAME.o;
-  const page = parseInt(pageParam ?? '1', 10);
+  if (!page) {
+    notFound();
+  }
 
-  return {
-    title: `${rankName}ing · Page ${page} · GitRanks`,
-    description: 'Explore organizations ranked by their popularity on GitHub.',
-  };
+  return pageMetadata({
+    title: `${RANK_NAME.o}ing${pageSuffix(page)}`,
+    description: `GitHub organizations ranked by the stars on the repositories they own${page > 1 ? `, page ${page}` : ''}.`,
+    path: `/orgs/${page}`,
+  });
 }
 
 export async function generateStaticParams() {

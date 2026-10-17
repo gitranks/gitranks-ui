@@ -2,29 +2,42 @@
 
 import type { Metadata } from 'next';
 import { cacheLife } from 'next/cache';
+import { notFound } from 'next/navigation';
 
 import { LanguageRankingHeader } from './components/language-ranking-header';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchTopLanguages } from '@/graphql/helpers/top-languages';
+import { pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
+import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
+import { parsePageParam } from '@/utils/parse-page-param';
+import { GLOBAL_SCOPE, resolveCountryScope, resolveLanguageName } from '@/utils/resolve-route-names';
 
 export async function generateMetadata({
   params,
 }: LayoutProps<'/language/[language]/[country]/[page]'>): Promise<Metadata> {
   const { language, country, page: pageParam } = await params;
 
-  const page = parseInt(pageParam, 10);
-  const isGlobal = country === 'global';
+  const page = parsePageParam(pageParam);
+  const [languageName, countryName] = await Promise.all([
+    resolveLanguageName(decodeURIComponent(language)),
+    resolveCountryScope(decodeURIComponent(country)),
+  ]);
 
-  return {
-    title: `${isGlobal ? 'Global' : country} ${language} Language Ranking${
-      page > 1 ? ` · Page ${page}` : ''
-    } · GitRanks`,
-    description: `Explore the ${language} language ranking${
-      isGlobal ? '' : ` in ${country}`
-    } on GitRanks. See how popular ${language} is among GitHub developers. Compare rankings globally or within your country.`,
-  };
+  if (!page || !countryName) {
+    notFound();
+  }
+
+  const isGlobal = countryName === GLOBAL_SCOPE;
+
+  return pageMetadata({
+    title: `${isGlobal ? 'Global' : countryName} ${languageName} Language Ranking${pageSuffix(page)}`,
+    description: `Explore the ${languageName} language ranking${
+      isGlobal ? '' : ` in ${countryName}`
+    } on GitRanks. See how popular ${languageName} is among GitHub developers. Compare rankings globally or within your country.`,
+    path: getLanguageRankingPath(languageName, countryName, page),
+  });
 }
 
 export async function generateStaticParams() {
@@ -42,8 +55,14 @@ export default async function RankingListLayout({
 }: LayoutProps<'/language/[language]/[country]/[page]'>) {
   cacheLife('hours');
   const { language, country } = await params;
-  const countryName = decodeURIComponent(country);
-  const languageName = decodeURIComponent(language);
+  const [languageName, countryName] = await Promise.all([
+    resolveLanguageName(decodeURIComponent(language)),
+    resolveCountryScope(decodeURIComponent(country)),
+  ]);
+
+  if (!countryName) {
+    return notFound();
+  }
 
   const countries = await fetchCountries();
 

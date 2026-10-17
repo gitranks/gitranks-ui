@@ -8,6 +8,8 @@ import { PageGrid } from '@/components/grid/grid';
 import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountryLanguageSummaries } from '@/graphql/helpers/fetch-country-language-summary';
 import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary';
+import { parsePageParam } from '@/utils/parse-page-param';
+import { GLOBAL_SCOPE, resolveCountryScope } from '@/utils/resolve-route-names';
 
 const ITEMS_PER_PAGE = 24;
 
@@ -15,30 +17,29 @@ export default async function LanguagesPage({ params }: PageProps<'/languages/[c
   cacheLife('hours');
   const { orderBy, page: pageParam, country } = await params;
 
-  const countryName = decodeURIComponent(country);
+  const countryName = await resolveCountryScope(decodeURIComponent(country));
+  const page = parsePageParam(pageParam);
 
   const orderByUpper = orderBy.toUpperCase();
-  if (!isLanguageSummaryOrder(orderByUpper)) {
+  if (!isLanguageSummaryOrder(orderByUpper) || !countryName || !page) {
     return notFound();
   }
 
-  const method = countryName === 'global' ? fetchLanguageSummaries : fetchCountryLanguageSummaries;
+  const method = countryName === GLOBAL_SCOPE ? fetchLanguageSummaries : fetchCountryLanguageSummaries;
 
-  const page = parseInt(pageParam, 10);
   const offset = (page - 1) * ITEMS_PER_PAGE;
   const data = await method({ order: orderByUpper, offset, limit: ITEMS_PER_PAGE, country: countryName });
+
+  const basePath = `/languages/${encodeURIComponent(countryName)}/${orderByUpper.toLowerCase()}`;
 
   return (
     <>
       <PageGrid>
         {data.map((item) => (
-          <LanguageCard key={item.language} data={item} country={country} />
+          <LanguageCard key={item.language} data={item} country={countryName} />
         ))}
       </PageGrid>
-      <Pagination
-        prev={page > 1 ? `/languages/${country}/${orderBy}/${page - 1}` : undefined}
-        next={`/languages/${country}/${orderBy}/${page + 1}`}
-      />
+      <Pagination prev={page > 1 ? `${basePath}/${page - 1}` : undefined} next={`${basePath}/${page + 1}`} />
     </>
   );
 }

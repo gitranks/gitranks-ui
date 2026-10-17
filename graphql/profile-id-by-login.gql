@@ -1,5 +1,16 @@
 query ProfileIdByLogin($login: String!) {
   globalRankByLogin(login: $login) {
     githubId
+    s
+    sProvisional
+    c
+    cProvisional
+    f
+    fProvisional
+    user {
+      s
+      c
+      f
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { RANK_NAME } from '@/badge/badge.consts';
 import type { BadgeV2Params } from '@/badge/badge.types';
 import { LABEL_BG, VALUE_BG } from '@/badge/templates/inline/inline.consts';
+import { isRankedIn, type RankingRanks, type RankingScores } from '@/badge/utils/is-ranked-in';
 import { absoluteSitemapUrl } from '@/lib/sitemap/sitemap-url';
 import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
@@ -102,6 +103,18 @@ export function getCanonicalBadgeTitle(variant: CanonicalBadgeVariant): string {
   return VARIANT_CONFIG[variant].title;
 }
 
+/**
+ * The route 404s for a ranking the profile is not in, so only these badges may be shown or listed.
+ * Pass the global ranks when you have them; see `isRankedIn`.
+ */
+export function isCanonicalBadgeAvailable(
+  variant: CanonicalBadgeVariant,
+  scores: RankingScores,
+  ranks?: RankingRanks,
+): boolean {
+  return isRankedIn(VARIANT_CONFIG[variant].ranking, scores, ranks);
+}
+
 /** Path only, e.g. `/badges/maslianok/stars-rank.svg` */
 export function getCanonicalBadgePath(
   login: string,
@@ -120,7 +133,12 @@ export function getCanonicalBadgeUrl(
   return `${baseUrl}${getCanonicalBadgePath(login, variant, format)}`;
 }
 
-/** Absolute PNG locs for sitemap image extension / IndexNow. */
-export function listCanonicalBadgeImageUrls(login: string): string[] {
-  return CANONICAL_BADGE_VARIANTS.map((variant) => absoluteSitemapUrl(getCanonicalBadgePath(login, variant, 'png')));
+/**
+ * Absolute PNG locs for sitemap image extension / IndexNow. Scores only: a profile whose score
+ * reached the threshold since the last ranking update can be listed a day early.
+ */
+export function listCanonicalBadgeImageUrls(login: string, scores: RankingScores): string[] {
+  return CANONICAL_BADGE_VARIANTS.filter((variant) => isCanonicalBadgeAvailable(variant, scores)).map((variant) =>
+    absoluteSitemapUrl(getCanonicalBadgePath(login, variant, 'png')),
+  );
 }

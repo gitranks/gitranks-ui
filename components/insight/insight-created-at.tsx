@@ -1,24 +1,39 @@
-import { format, formatDistanceToNow } from 'date-fns';
+'use client';
 
+import { formatDistance } from 'date-fns';
+import { useEffect, useState } from 'react';
+
+import { formatPostDateTime, formatPostDay } from './format-insight-date';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 type InsightCreatedAtProps = {
   createdAt: Date;
 };
 
+/**
+ * The post date in UTC, as rendered on the server. After mount, posts from the last day switch to
+ * "3 hours ago". The current time is read in an effect: reading it during render would make Next
+ * render the surrounding page in the browser.
+ */
 export const InsightCreatedAt = ({ createdAt }: InsightCreatedAtProps) => {
-  const isWithinLast24Hours = Date.now() - createdAt.getTime() < 24 * 60 * 60 * 1000;
+  const [now, setNow] = useState<number | null>(null);
 
-  if (isWithinLast24Hours) {
-    return <div className="text-muted-foreground text-sm">{formatDistanceToNow(createdAt, { addSuffix: true })}</div>;
-  }
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
+
+  const isRecent = now !== null && now - createdAt.getTime() < DAY_MS;
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="text-muted-foreground text-sm">{format(createdAt, 'MMM d')}</div>
+        <time dateTime={createdAt.toISOString()} className="text-muted-foreground text-sm">
+          {isRecent ? formatDistance(createdAt, now, { addSuffix: true }) : formatPostDay(createdAt)}
+        </time>
       </TooltipTrigger>
-      <TooltipContent>{format(createdAt, "MMM d',' h:mm a")}</TooltipContent>
+      <TooltipContent>{formatPostDateTime(createdAt)}</TooltipContent>
     </Tooltip>
   );
 };

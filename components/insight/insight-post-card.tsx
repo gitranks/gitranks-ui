@@ -9,23 +9,19 @@ type DetailInsightPost = NonNullable<InsightQuery['insight']>;
 
 type InsightPostCardProps = {
   insight: ListedInsightPost | DetailInsightPost;
-  showRepliesLink?: boolean;
+  showDetailsLink?: boolean;
 };
 
-export const InsightPostCard = ({ insight, showRepliesLink = true }: InsightPostCardProps) => {
+export const InsightPostCard = ({ insight, showDetailsLink = true }: InsightPostCardProps) => {
   return (
     <InsightContainer>
       <InsightHeader createdAt={new Date(insight.createdAt)} socialPosts={insight.socialPosts} />
       <InsightText insight={insight} />
-      {showRepliesLink && (
+      {showDetailsLink && (
         <div className="flex justify-between items-center gap-2 text-sm text-muted-foreground">
-          {insight.replies.length > 0 ? (
-            <CustomLink href={`/insights/${insight.id}`} className="text-sm text-muted-foreground">
-              Details
-            </CustomLink>
-          ) : (
-            <div />
-          )}
+          <CustomLink href={`/insights/${insight.id}`} className="text-sm text-muted-foreground">
+            Details
+          </CustomLink>
         </div>
       )}
     </InsightContainer>

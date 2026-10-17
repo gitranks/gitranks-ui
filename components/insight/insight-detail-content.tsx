@@ -9,7 +9,7 @@ type InsightDetailContentProps = {
 export const InsightDetailContent = ({ insight }: InsightDetailContentProps) => {
   return (
     <div className="flex flex-col gap-3">
-      <InsightPostCard insight={insight} showRepliesLink={false} />
+      <InsightPostCard insight={insight} showDetailsLink={false} />
       <InsightRepliesList replies={insight.replies} />
     </div>
   );

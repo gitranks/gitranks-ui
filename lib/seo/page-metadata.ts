@@ -10,8 +10,11 @@ type PageMetadataInput = {
   path: string;
   /** Absolute image URLs for link previews. */
   images?: string[];
-  openGraphType?: 'website' | 'profile';
-};
+} & (
+  | { openGraphType?: 'website' | 'profile'; publishedTime?: never }
+  /** An article preview carries its publish time (ISO date). */
+  | { openGraphType: 'article'; publishedTime: string }
+);
 
 /**
  * Title, description, self-canonical and link-preview tags for one page.
@@ -25,22 +28,26 @@ export function pageMetadata({
   path,
   images,
   openGraphType = 'website',
+  publishedTime,
 }: PageMetadataInput): Metadata {
   const previewTitle = typeof title === 'string' ? title : title.absolute;
+  const openGraph = {
+    siteName: SITE_NAME,
+    locale: 'en_US',
+    url: path,
+    title: previewTitle,
+    description,
+    images,
+  };
 
   return {
     title,
     description,
     alternates: { canonical: path },
-    openGraph: {
-      type: openGraphType,
-      siteName: SITE_NAME,
-      locale: 'en_US',
-      url: path,
-      title: previewTitle,
-      description,
-      images,
-    },
+    openGraph:
+      openGraphType === 'article'
+        ? { ...openGraph, type: 'article', publishedTime }
+        : { ...openGraph, type: openGraphType },
     twitter: {
       card: images?.length ? 'summary_large_image' : 'summary',
       site: SITE_X_HANDLE,

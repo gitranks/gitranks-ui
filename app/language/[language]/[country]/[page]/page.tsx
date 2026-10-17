@@ -10,6 +10,7 @@ import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchCountryLanguageRankings } from '@/graphql/helpers/fetch-country-language-rankings';
 import { fetchLanguageRankings } from '@/graphql/helpers/fetch-language-rankings';
+import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { pageSuffix } from '@/lib/seo/page-metadata';
 import type { GlobalRankingsQuery } from '@/types/generated/graphql';
 import { RankingTypeClient } from '@/types/ranking.types';
@@ -31,7 +32,7 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
     resolveCountryScope(decodeURIComponent(country)),
   ]);
 
-  if (!page || !countryName) {
+  if (!page || page > RANKING_MAX_PAGE.language || !countryName) {
     notFound();
   }
 
@@ -43,6 +44,11 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
     method({ language: languageName, country: countryName, offset }),
     fetchCountries(),
   ]);
+
+  if (!data.length) {
+    notFound();
+  }
+
   // sorry, but I have to :)
   const rows = data as GlobalRankingsQuery['globalRankings'];
 
@@ -59,10 +65,19 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
           ),
         ]}
       />
-      <RankingTable rankingType={RankingTypeClient.Star} data={rows} countries={countries} />
+      <RankingTable
+        rankingType={RankingTypeClient.Star}
+        data={rows}
+        countries={countries}
+        getCountryHref={(rowCountry) => getLanguageRankingPath(languageName, rowCountry)}
+      />
       <Pagination
         prev={page > 1 ? getLanguageRankingPath(languageName, countryName, page - 1) : undefined}
-        next={data?.length === ITEMS_PER_PAGE ? getLanguageRankingPath(languageName, countryName, page + 1) : undefined}
+        next={
+          data.length === ITEMS_PER_PAGE && page < RANKING_MAX_PAGE.language
+            ? getLanguageRankingPath(languageName, countryName, page + 1)
+            : undefined
+        }
       />
     </>
   );

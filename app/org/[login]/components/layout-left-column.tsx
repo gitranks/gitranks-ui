@@ -51,7 +51,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ org, children }) =
           </AvatarContainer>
           <NameContainer>
             <h1 className="font-semibold text-2xl flex items-center gap-1" translate="no">
-              {org.name} {org.isVerified && <MdOutlineVerified className="size-5 fill-positive" />}
+              {org.name || org.login} {org.isVerified && <MdOutlineVerified className="size-5 fill-positive" />}
             </h1>
             <h2 className="text-muted-foreground" translate="no">
               @{org.login}

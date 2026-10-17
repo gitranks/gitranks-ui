@@ -3,30 +3,40 @@
 # Search engines we want indexed (Google ignores Crawl-delay)
 User-agent: Googlebot
 Allow: /
+Allow: /api/avatar/
+Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
 
 User-agent: Bingbot
 Crawl-delay: 5
 Allow: /
+Allow: /api/avatar/
+Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
 
 User-agent: DuckDuckBot
 Crawl-delay: 5
 Allow: /
+Allow: /api/avatar/
+Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
 
 User-agent: Applebot
 Crawl-delay: 10
 Allow: /
+Allow: /api/avatar/
+Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
 
 User-agent: YandexBot
 Crawl-delay: 10
 Allow: /
+Allow: /api/avatar/
+Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
 
@@ -34,6 +44,8 @@ Disallow: /badge/builder/
 User-agent: AhrefsBot
 Crawl-delay: 30
 Allow: /
+Allow: /api/avatar/
+Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
 
@@ -65,6 +77,8 @@ Disallow: /
 # Everyone else
 User-agent: *
 Crawl-delay: 10
+Allow: /api/avatar/
+Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
 Allow: /

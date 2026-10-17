@@ -8,6 +8,7 @@ import { PageGrid } from '@/components/grid/grid';
 import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountryLanguageSummaries } from '@/graphql/helpers/fetch-country-language-summary';
 import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary';
+import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { parsePageParam } from '@/utils/parse-page-param';
 import { GLOBAL_SCOPE, resolveCountryScope } from '@/utils/resolve-route-names';
 
@@ -21,14 +22,20 @@ export default async function LanguagesPage({ params }: PageProps<'/languages/[c
   const page = parsePageParam(pageParam);
 
   const orderByUpper = orderBy.toUpperCase();
-  if (!isLanguageSummaryOrder(orderByUpper) || !countryName || !page) {
+  if (!isLanguageSummaryOrder(orderByUpper) || !countryName || !page || page > RANKING_MAX_PAGE.languageSummary) {
     return notFound();
   }
 
   const method = countryName === GLOBAL_SCOPE ? fetchLanguageSummaries : fetchCountryLanguageSummaries;
 
   const offset = (page - 1) * ITEMS_PER_PAGE;
-  const data = await method({ order: orderByUpper, offset, limit: ITEMS_PER_PAGE, country: countryName });
+  // One extra row tells whether a next page exists.
+  const rows = await method({ order: orderByUpper, offset, limit: ITEMS_PER_PAGE + 1, country: countryName });
+  const data = rows.slice(0, ITEMS_PER_PAGE);
+
+  if (!data.length && page > 1) {
+    notFound();
+  }
 
   const basePath = `/languages/${encodeURIComponent(countryName)}/${orderByUpper.toLowerCase()}`;
 
@@ -39,7 +46,14 @@ export default async function LanguagesPage({ params }: PageProps<'/languages/[c
           <LanguageCard key={item.language} data={item} country={countryName} />
         ))}
       </PageGrid>
-      <Pagination prev={page > 1 ? `${basePath}/${page - 1}` : undefined} next={`${basePath}/${page + 1}`} />
+      <Pagination
+        prev={page > 1 ? `${basePath}/${page - 1}` : undefined}
+        next={
+          rows.length > ITEMS_PER_PAGE && page < RANKING_MAX_PAGE.languageSummary
+            ? `${basePath}/${page + 1}`
+            : undefined
+        }
+      />
     </>
   );
 }

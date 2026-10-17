@@ -5,6 +5,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 
 import { OverviewPage } from './components/overview-page';
 import { buildProfileTabSEO } from './seo';
+import { fetchProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
 import { fetchProfilePageOverview } from '@/graphql/helpers/fetch-profile-page-overview';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]'>): Promise<Metadata> {
@@ -24,6 +25,7 @@ export default async function ProfileOverviewPage({ params }: PageProps<'/profil
   cacheTag(`profile:${login}`);
 
   const user = await fetchProfilePageOverview(login);
+  const extras = await fetchProfileOverviewExtras(user);
 
-  return <OverviewPage user={user} isGlobalContext />;
+  return <OverviewPage user={user} extras={extras} isGlobalContext />;
 }

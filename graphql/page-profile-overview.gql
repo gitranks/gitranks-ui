@@ -6,7 +6,8 @@ query PageProfileOverview($login: String!, $isGlobalContext: Boolean! = true) {
     ...UserSeo
     ...UserTiersGlobal @include(if: $isGlobalContext)
     ...UserTiersCountry @skip(if: $isGlobalContext)
-    # Unconditional: the badges section needs the global ranks on the country tab too.
+    # Both unconditional: the summary names the worldwide and the country rank on either tab, and the
+    # badges section needs the global ranks on the country tab too.
     rankGlobal {
       s
       sProvisional
@@ -17,8 +18,9 @@ query PageProfileOverview($login: String!, $isGlobalContext: Boolean! = true) {
       f
       fProvisional
       fM
+      snapshots
     }
-    rankCountry @skip(if: $isGlobalContext) {
+    rankCountry {
       s
       sProvisional
       sM
@@ -28,6 +30,7 @@ query PageProfileOverview($login: String!, $isGlobalContext: Boolean! = true) {
       f
       fProvisional
       fM
+      snapshots
     }
     sLangs(limit: 4) {
       name

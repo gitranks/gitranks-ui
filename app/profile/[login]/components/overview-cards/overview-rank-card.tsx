@@ -1,9 +1,11 @@
 import type { FC, PropsWithChildren } from 'react';
 import { FiArrowRight, FiGitPullRequest, FiStar, FiUsers } from 'react-icons/fi';
 
+import { countryInSentence } from '../../utils/profile-summary';
 import { ProfileCard } from '../profile-card';
 import { GlobalRankTooltip, PersonaTooltip } from '../tooltips';
 import { TIER_NAMES } from '@/app/app.consts';
+import { RANK_NAME } from '@/badge/badge.consts';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 import { Link } from '@/components/link/link';
 import { RankChart } from '@/components/rank-chart/rank-chart';
@@ -21,9 +23,18 @@ type ProfileRankCardProps = {
   country?: string | null;
 };
 
-const CardFooterRank: FC<PropsWithChildren> = ({ children }) => {
+type CardFooterRankProps = PropsWithChildren<{
+  /** The ranking and its scope, e.g. "Stars Rank worldwide": a tooltip, and text for readers of the HTML. */
+  label: string;
+}>;
+
+const CardFooterRank: FC<CardFooterRankProps> = ({ label, children }) => {
   return (
-    <div className="flex flex-col items-center text-sm border-r-1 px-3 text-muted-foreground min-w-[60px]">
+    <div
+      className="flex flex-col items-center text-sm border-r-1 px-3 text-muted-foreground min-w-[60px]"
+      title={label}
+    >
+      <span className="sr-only">{label}:</span>
       {children}
     </div>
   );
@@ -34,6 +45,7 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers,
   const sRank = sTier?.notRanked || sTier?.notAvailable ? 0 : (ranks?.s ?? ranks?.sProvisional ?? 0);
   const cRank = cTier?.notRanked || cTier?.notAvailable ? 0 : (ranks?.c ?? ranks?.cProvisional ?? 0);
   const fRank = fTier?.notRanked || fTier?.notAvailable ? 0 : (ranks?.f ?? ranks?.fProvisional ?? 0);
+  const scope = country ? `in ${countryInSentence(country)}` : 'worldwide';
 
   const getCardContent = () => {
     if (sTier?.notAvailable && cTier?.notAvailable && fTier?.notAvailable) {
@@ -93,14 +105,14 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers,
       </div>
       <div className="h-12 flex items-center justify-between border-t-1 border-muted py-2 overflow-hidden">
         <div className="grid grid-cols-3">
-          <CardFooterRank>
-            <FiStar /> {sRank ? `#${sRank?.toLocaleString('en-US')}` : 'N/A'}
+          <CardFooterRank label={`${RANK_NAME.s} ${scope}`}>
+            <FiStar aria-hidden /> {sRank ? `#${sRank?.toLocaleString('en-US')}` : 'N/A'}
           </CardFooterRank>
-          <CardFooterRank>
-            <FiGitPullRequest /> {cRank ? `#${cRank?.toLocaleString('en-US')}` : 'N/A'}
+          <CardFooterRank label={`${RANK_NAME.c} ${scope}`}>
+            <FiGitPullRequest aria-hidden /> {cRank ? `#${cRank?.toLocaleString('en-US')}` : 'N/A'}
           </CardFooterRank>
-          <CardFooterRank>
-            <FiUsers /> {fRank ? `#${fRank?.toLocaleString('en-US')}` : 'N/A'}
+          <CardFooterRank label={`${RANK_NAME.f} ${scope}`}>
+            <FiUsers aria-hidden /> {fRank ? `#${fRank?.toLocaleString('en-US')}` : 'N/A'}
           </CardFooterRank>
         </div>
 

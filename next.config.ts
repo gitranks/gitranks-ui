@@ -5,7 +5,9 @@ const isDev = process.env.NODE_ENV === 'development';
 
 // Bots on this list get metadata blocking in <head> instead of streamed into <body>. Setting the
 // option replaces Next's default list, so extend it with AI crawlers and fetchers that read the
-// raw HTML without running scripts.
+// raw HTML without running scripts. The default comes from an internal path: re-check it when
+// upgrading Next (a move fails the build, not silently). Requests from these bots skip the
+// prerendered page and render on demand; cached data still applies.
 const AI_HTML_BOTS = [
   'GPTBot',
   'OAI-SearchBot',

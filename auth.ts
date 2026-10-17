@@ -1,31 +1,51 @@
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
-import { ObjectId } from 'mongodb';
 import NextAuth from 'next-auth';
+import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 
 import authConfig from './auth.config';
+import { authModeOf, IDENTITY_PROVIDER, TOKEN_PROVIDER } from './lib/auth-providers';
 import mongoClientPromise from './lib/mongo-client';
+
+const baseAdapter = MongoDBAdapter(mongoClientPromise);
+
+// The identity sign-in's token is never used, so none of it is stored.
+const withoutTokens = ({ access_token, refresh_token, id_token, expires_at, ...account }: AdapterAccount) => account;
+
+const adapter: Adapter = {
+  ...baseAdapter,
+  // Both sign-ins are the same GitHub account, with the same id. Someone who once gave us a token is that user when
+  // they come back through the light sign-in, so their session, and a later token sign-in, stay on one user.
+  getUserByAccount: async (account) =>
+    (await baseAdapter.getUserByAccount?.(account)) ??
+    (account.provider === IDENTITY_PROVIDER
+      ? ((await baseAdapter.getUserByAccount?.({ ...account, provider: TOKEN_PROVIDER })) ?? null)
+      : null),
+  linkAccount: (account) =>
+    baseAdapter.linkAccount?.(account.provider === IDENTITY_PROVIDER ? withoutTokens(account) : account),
+};
 
 // database but jwt ¯\_(ツ)_/¯
 // https://authjs.dev/guides/edge-compatibility#middleware
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: MongoDBAdapter(mongoClientPromise),
+  adapter,
   session: { strategy: 'jwt' },
   ...authConfig,
   events: {
-    signIn: async ({ account, user, profile }) => {
+    signIn: async ({ account, profile }) => {
       // profile - user entity from github
       // user - user entity from the database
       // account - OAuth account information
 
-      if (account) {
+      // Only the token sign-in's account row carries what refreshes run on.
+      if (account?.provider === TOKEN_PROVIDER) {
         const client = await mongoClientPromise;
         const db = client.db('auth').collection('accounts');
 
         const { expires_in, refresh_token_expires_in, ...accountData } = account;
 
         await db.updateOne(
-          { userId: new ObjectId(user.id), provider: 'github' },
+          { provider: TOKEN_PROVIDER, providerAccountId: account.providerAccountId },
           { $set: { ...accountData, githubId: profile?.node_id, githubLogin: profile?.login } },
         );
       }
@@ -42,14 +62,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       token.error = undefined;
 
       if (account && profile) {
+        if (account.provider === IDENTITY_PROVIDER) {
+          // Who the user is, nothing to refresh: refreshes run on our token, once a day
+          return {
+            ...token,
+            access_token: undefined,
+            expires_at: undefined,
+            refresh_token: undefined,
+            githubLogin: profile.login as string,
+            authMode: 'identity',
+          };
+        }
+
         // First-time login, save the `access_token`, its expiry and the `refresh_token`
         return {
           ...token,
           access_token: account.access_token,
           expires_at: account.expires_at,
           refresh_token: account.refresh_token,
-          githubLogin: profile.login,
+          githubLogin: profile.login as string,
+          authMode: 'token',
         };
+      } else if (authModeOf(token) === 'identity') {
+        return token;
       } else if (Date.now() < (token.expires_at as number) * 1000) {
         // Subsequent logins, but the `access_token` is still valid
         return token;
@@ -96,7 +131,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const client = await mongoClientPromise;
         const db = client.db('auth').collection('accounts');
 
-        await db.updateOne({ githubLogin: token.githubLogin, provider: 'github' }, { $set: newData });
+        await db.updateOne({ githubLogin: token.githubLogin, provider: TOKEN_PROVIDER }, { $set: newData });
 
         return { ...token, ...newData };
       } catch {
@@ -113,6 +148,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       session.error = token.error as string | undefined;
       session.user.githubLogin = token.githubLogin as string;
+      session.user.authMode = authModeOf(token);
       return session;
     },
   },

@@ -68,7 +68,8 @@ describe('StarsReviewReportView', () => {
 
     expect(render({ kind: 'button', action: 'signIn' })).not.toContain(' disabled=""');
     button?.props.onClick?.();
-    expect(signIn).toHaveBeenCalledWith('github');
+    // The light sign-in: a report needs only to know who the owner is.
+    expect(signIn).toHaveBeenCalledWith('github-basic');
   });
 
   it('tells another account to sign in as the owner', () => {

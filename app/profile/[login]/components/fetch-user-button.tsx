@@ -1,5 +1,6 @@
 'use client';
 
+import { sendGAEvent } from '@next/third-parties/google';
 import { RefreshCw } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
@@ -9,6 +10,7 @@ import {
   cloneElement,
   type FC,
   type ReactElement,
+  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -18,27 +20,34 @@ import {
 import { ClipLoader } from 'react-spinners';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
+import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-dialogs/refresh-dialog';
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+  REFRESH_LABELS,
+  REFRESH_MESSAGES,
+  REFRESH_TOASTS,
+  type RefreshDialogKind,
+  STAR_REPO_URL,
+} from '@/components/refresh-dialogs/refresh-messages';
+import { Button } from '@/components/ui/button';
+import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
 import { cn } from '@/lib/utils';
+import type { DailyRefreshResult, DailyRefreshStatus } from '@/types/daily-refresh.types';
 import { ProfileFetchingStatusDocument, type UserFetchingStatus } from '@/types/generated/graphql';
+import { timeLeftUntil } from '@/utils/format-time-left';
+import { refreshModeOf } from '@/utils/refresh-mode';
 
 type FetchUserButtonProps = {
   className?: string;
   fetchingStatus?: UserFetchingStatus | null;
   fetchingUpdatedAt?: number | null;
   children: ReactElement<ComponentProps<'button'>>;
+  /** The label on the user's own profile while today's refresh on our token is unused. */
+  dailyLabel?: ReactNode;
 };
+
+/** The dialog on screen; `until` fills its `{time}`. */
+type OpenDialog = { kind: RefreshDialogKind; until?: string } | null;
 
 const REFRESH_INTERVAL = 1_000;
 const CHECK_STATUS_INTERVAL = 20_000;
@@ -58,9 +67,15 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   fetchingUpdatedAt,
   className,
   children,
+  dailyLabel,
 }) => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { login } = useParams<{ login: string }>();
+  const mode = refreshModeOf(session, login, status);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [daily, setDaily] = useState<DailyRefreshStatus | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [dialog, setDialog] = useState<OpenDialog>(null);
   const fetchAttempt = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [loadingLabel, setLoadingLabel] = useState(FETCH_MESSAGES[fetchAttempt.current]);
@@ -130,6 +145,92 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   };
 
   useEffect(() => {
+    if (mode !== 'daily') {
+      return;
+    }
+
+    fetch('/api/daily-refresh')
+      .then((res) => (res.ok ? (res.json() as Promise<DailyRefreshStatus>) : null))
+      .then(setDaily)
+      .catch(() => setDaily(null));
+  }, [mode]);
+
+  const openDialog = (next: NonNullable<OpenDialog>) => {
+    sendGAEvent('event', 'refresh_dialog_open', { kind: next.kind });
+    setDialog(next);
+  };
+
+  /** Asks the server, which asks GitHub live, whether the star is there; never a remembered answer. */
+  const claimDailyRefresh = async () => {
+    setDialog(null);
+    setChecking(true);
+
+    try {
+      const res = await fetch('/api/daily-refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login }),
+      });
+
+      if (!res.ok) {
+        toast.error(REFRESH_TOASTS.checkFailed);
+        return;
+      }
+
+      const result = (await res.json()) as DailyRefreshResult;
+
+      switch (result.status) {
+        case 'started':
+          setDaily({ available: false, nextAt: result.nextAt });
+          toast.success(REFRESH_TOASTS.started);
+          setFetchingDuration(0);
+          break;
+        case 'fetching':
+          setFetchingDuration(0);
+          break;
+        case 'not_starred':
+          openDialog({ kind: 'needStar' });
+          break;
+        case 'blocked':
+          openDialog({ kind: 'blocked', until: result.until });
+          break;
+        case 'used':
+          setDaily({ available: false, nextAt: result.nextAt });
+          openDialog({ kind: 'used', until: result.nextAt });
+          break;
+        case 'not_own':
+          openDialog({ kind: 'otherProfile' });
+          break;
+        case 'busy':
+          toast.info(REFRESH_TOASTS.busy);
+          break;
+      }
+    } catch {
+      toast.error(REFRESH_TOASTS.checkFailed);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const onRefreshClick = () => {
+    switch (mode) {
+      case 'loading':
+        return;
+      case 'signed-out':
+        return openDialog({ kind: 'signIn' });
+      case 'other':
+        return openDialog({ kind: 'otherProfile' });
+      case 'token':
+        return fetchUser();
+      case 'daily':
+        if (daily?.nextAt && new Date(daily.nextAt).getTime() > Date.now()) {
+          return openDialog({ kind: 'used', until: daily.nextAt });
+        }
+        return claimDailyRefresh();
+    }
+  };
+
+  useEffect(() => {
     if (fetchingDuration === null) {
       return;
     }
@@ -151,53 +252,57 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   }, [fetchingDuration, checkFetchingStatus]);
 
   const child = Children.only(children);
+  const busyLabel = fetchingDuration !== null ? loadingLabel : checking ? REFRESH_LABELS.checking : null;
   const childWithOnClick = cloneElement(child, {
-    onClick: session?.user ? fetchUser : undefined,
-    disabled: fetchingDuration !== null,
+    onClick: onRefreshClick,
+    disabled: busyLabel !== null,
     children:
-      fetchingDuration !== null ? (
+      busyLabel !== null ? (
         <>
-          {loadingLabel}
+          {busyLabel}
           <ClipLoader loading size={16} />
         </>
+      ) : mode === 'daily' && daily?.available && dailyLabel ? (
+        dailyLabel
       ) : (
         child.props.children
       ),
   });
 
-  const attachDialogIfNeeded = () => {
-    if (session?.user) {
-      return childWithOnClick;
-    }
+  const cta = (kind: RefreshDialogKind, action: RefreshDialogAction): RefreshDialogAction => ({
+    ...action,
+    onClick: () => {
+      sendGAEvent('event', 'refresh_dialog_cta', { kind });
+      action.onClick?.();
+    },
+  });
 
-    return (
-      <Dialog>
-        <DialogTrigger asChild>{childWithOnClick}</DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Hold up — need your OK!</DialogTitle>
-            <DialogDescription>
-              Fetching a GitHub profile actually fires off around 20–30 GraphQL calls under the hood. That’s no biggie
-              for your personal token, but it’d blow through our shared quota.
-            </DialogDescription>
-            <DialogDescription>Mind signing in with GitHub so we can pull in that user on demand?</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="secondary">
-                Maybe later
-              </Button>
-            </DialogClose>
-            <Button onClick={() => signIn('github')}>Sign in with GitHub</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
+  const signInWithToken = () => signIn(TOKEN_PROVIDER);
+  const dialogActions: Record<RefreshDialogKind, { primary: RefreshDialogAction; secondary?: RefreshDialogAction }> = {
+    signIn: { primary: { onClick: () => signIn(IDENTITY_PROVIDER) } },
+    needStar: { primary: { href: STAR_REPO_URL }, secondary: { onClick: claimDailyRefresh } },
+    used: { primary: { onClick: signInWithToken } },
+    otherProfile: { primary: { onClick: signInWithToken } },
+    blocked: { primary: { href: STAR_REPO_URL } },
   };
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      {attachDialogIfNeeded()}
+    <div ref={containerRef} className={cn('flex flex-col gap-2', className)}>
+      {childWithOnClick}
+      {dialog && (
+        <RefreshDialog
+          open
+          onOpenChange={(open) => !open && setDialog(null)}
+          message={REFRESH_MESSAGES[dialog.kind]}
+          time={dialog.until ? timeLeftUntil(dialog.until) : undefined}
+          primary={cta(dialog.kind, dialogActions[dialog.kind].primary)}
+          secondary={dialogActions[dialog.kind].secondary}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            containerRef.current?.querySelector('button')?.focus();
+          }}
+        />
+      )}
       {fetchingDuration !== null && (
         <div className="text-xs text-muted-foreground">
           Next check in {Math.floor((CHECK_STATUS_INTERVAL - (fetchingDuration % CHECK_STATUS_INTERVAL)) / 1000)} s
@@ -217,7 +322,16 @@ export const FetchUserButtonForNotFoundPage: FC<Omit<FetchUserButtonProps, 'chil
 
 export const FetchUserButtonForProfilePage: FC<Omit<FetchUserButtonProps, 'children'>> = (props) => {
   return (
-    <FetchUserButton {...props} className={cn('flex-grow', props.className)}>
+    <FetchUserButton
+      {...props}
+      className={cn('flex-grow', props.className)}
+      dailyLabel={
+        <>
+          {REFRESH_LABELS.dailyAvailable}
+          <RefreshCw className="size-4" />
+        </>
+      }
+    >
       <Button size="sm" className="flex-grow">
         Refresh
         <RefreshCw className="size-4" />

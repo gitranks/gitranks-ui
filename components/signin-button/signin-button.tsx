@@ -7,6 +7,7 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
 
 const AVATAR_SIZE = 32;
 
@@ -38,7 +39,7 @@ export default function SigninButton() {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Button onClick={() => signIn('github')} variant="ghost" size="sm">
+        <Button onClick={() => signIn(IDENTITY_PROVIDER)} variant="ghost" size="sm">
           <LogIn className="size-4" />
         </Button>
       )}
@@ -55,7 +56,7 @@ export default function SigninButton() {
             <Button type="button" variant="secondary" onClick={() => signOut()}>
               Maybe later
             </Button>
-            <Button onClick={() => signIn('github')}>Sign in again</Button>
+            <Button onClick={() => signIn(TOKEN_PROVIDER)}>Sign in again</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

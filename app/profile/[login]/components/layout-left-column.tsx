@@ -17,6 +17,7 @@ import {
   NameContainer,
   PageContainer,
 } from './profile-page-backbone';
+import { LinkPendingStatus } from '@/components/navigation-progress/navigation-progress';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -125,6 +126,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
                               height={32}
                               className="rounded-sm bg-secondary"
                             />
+                            <LinkPendingStatus />
                           </Link>
                         </TooltipTrigger>
                         <TooltipContent>{org.login}</TooltipContent>

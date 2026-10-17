@@ -7,6 +7,7 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "biome check",
+    "test": "vitest run",
     "format": "biome format --write",
     "types": "next typegen && tsc --noEmit",
     "codegen": "dotenv -e .env.local graphql-codegen",
@@ -90,7 +91,8 @@
     "graphql": "^16.14.2",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "5.0.2"
   },
   "pnpm": {
     "overrides": {

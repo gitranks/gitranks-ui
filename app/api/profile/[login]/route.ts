@@ -13,6 +13,11 @@ export const POST = auth(async function POST(req: AuthRequest, { params }) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
   }
 
+  // An identity sign-in left us no token; its one refresh a day goes through /api/daily-refresh.
+  if (req.auth.user.authMode !== 'token') {
+    return NextResponse.json({ message: 'Your own GitHub token is needed' }, { status: 403 });
+  }
+
   const { login } = await params;
   const { user } = req.auth;
 

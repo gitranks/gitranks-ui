@@ -2,6 +2,7 @@
 import { signIn, useSession } from 'next-auth/react';
 
 import { Link } from '@/components/link/link';
+import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 
 export const LinkToProfile = () => {
   const { data: session } = useSession();
@@ -9,7 +10,7 @@ export const LinkToProfile = () => {
   if (!session) {
     return (
       <span>
-        <Link href="#" onClick={() => signIn('github')}>
+        <Link href="#" onClick={() => signIn(IDENTITY_PROVIDER)}>
           Login
         </Link>{' '}
         to see your rank.

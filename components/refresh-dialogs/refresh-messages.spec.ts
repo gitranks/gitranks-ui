@@ -32,4 +32,12 @@ describe('refresh messages', () => {
     expect(withPhoto.sort()).toEqual(['needStar', 'signIn']);
     expect(signed).toEqual(['needStar']);
   });
+
+  it("explains GitHub's consent screen only on someone else's profile", () => {
+    const noted = Object.entries(REFRESH_MESSAGES)
+      .filter(([, message]) => 'noteLink' in message)
+      .map(([kind]) => kind);
+
+    expect(noted).toEqual(['otherProfile']);
+  });
 });

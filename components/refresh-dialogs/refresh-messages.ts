@@ -74,7 +74,6 @@ export const REFRESH_MESSAGES = {
       'Your next refresh is in {time}.',
       'Too long? Use your own GitHub token and refresh any profile, any time. It runs on your GitHub limits, not ours, so there is no daily cap.',
     ],
-    ...TOKEN_NOTE,
     primary: 'Use my GitHub token',
     secondary: 'I’ll wait',
   },

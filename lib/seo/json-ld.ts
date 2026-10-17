@@ -1,4 +1,4 @@
-import { absoluteUrl, SITE_DESCRIPTION, SITE_NAME, SITE_SOCIAL_LINKS, SITE_URL } from './site';
+import { absoluteUrl, SITE_DESCRIPTION, SITE_NAME, SITE_SAME_AS, SITE_URL } from './site';
 
 const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 
@@ -21,7 +21,7 @@ export function buildSiteJsonLd() {
       name: SITE_NAME,
       url: SITE_URL,
       logo: absoluteUrl('/apple-icon.png'),
-      sameAs: Object.values(SITE_SOCIAL_LINKS),
+      sameAs: SITE_SAME_AS,
     },
   ];
 }
@@ -33,8 +33,12 @@ type RankingListItem = {
   path: string;
 };
 
-/** One ranking page as an `ItemList` of the profiles it lists, in table order. */
+/** One ranking page as an `ItemList` of the profiles it lists, in table order; `null` for an empty page. */
 export function buildRankingItemList(name: string, path: string, items: RankingListItem[]) {
+  if (!items.length) {
+    return null;
+  }
+
   return {
     '@context': 'https://schema.org',
     '@type': 'ItemList',

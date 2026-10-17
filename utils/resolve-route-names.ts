@@ -1,14 +1,9 @@
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchTopLanguages } from '@/graphql/helpers/top-languages';
+import { matchRouteName } from '@/utils/match-route-name';
 
 /** The `global` pseudo-country used by the language routes. */
 export const GLOBAL_SCOPE = 'global';
-
-function matchName(names: string[], name: string): string | undefined {
-  const lower = name.toLowerCase();
-
-  return names.find((n) => n === name) ?? names.find((n) => n.toLowerCase() === lower);
-}
 
 /**
  * The stored spelling of a country from the URL (`germany` → `Germany`), or `undefined` when
@@ -18,7 +13,7 @@ function matchName(names: string[], name: string): string | undefined {
 export async function resolveCountryName(name: string): Promise<string | undefined> {
   const countries = await fetchCountries();
 
-  return matchName(
+  return matchRouteName(
     countries.map((c) => c.name),
     name,
   );
@@ -37,7 +32,7 @@ export async function resolveLanguageName(name: string): Promise<string> {
   const languages = await fetchTopLanguages({ limit: 100 });
 
   return (
-    matchName(
+    matchRouteName(
       languages.map((l) => l.language),
       name,
     ) ?? name

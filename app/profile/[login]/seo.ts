@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { RANK_NAME } from '@/badge/badge.consts';
+import { clipText } from '@/lib/seo/clip-text';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 import type { PageProfileLanguagesQuery, PageProfileOverviewQuery } from '@/types/generated/graphql';
@@ -29,12 +30,7 @@ const TAB_CRUMBS: Record<Tab, string> = {
   languages: 'Languages',
 };
 
-const clip = (t: string, max = 158) => {
-  if (!t || t.length <= max) return t;
-  const cut = t.slice(0, max - 1);
-  const i = cut.lastIndexOf(' ');
-  return `${i > 80 ? cut.slice(0, i) : cut}…`;
-};
+const clip = (t: string) => clipText(t, 158);
 
 function buildPath(tab: Tab, base: string, scope: Scope): string {
   const tabPath = tab === 'overview' ? base : `${base}/${tab}`;
@@ -229,14 +225,15 @@ export function buildProfileTabSEO(
 
   const userName = `${login}${name ? ` (${name})` : ''}`;
   const basePath = `/profile/${encodeURIComponent(login)}`;
-  const path = buildPath(tab, basePath, scope);
+  // Without a country the variant shows the global tab's content, so it points at that tab.
+  const path = buildPath(tab, basePath, where ? scope : 'global');
   const base = absoluteUrl(basePath);
   const url = absoluteUrl(path);
   const title = `${userName} - ${TAB_TITLES[tab]}${where ? ` ${where}` : ''}`;
   const description =
     buildDescription(tab, data, scope, where) ||
     `${TAB_TITLES[tab]} of ${userName} on GitHub${where ? ` ${where}` : ''}.`;
-  const crumb = tab === 'overview' && scope === 'global' ? undefined : `${TAB_CRUMBS[tab]}${where ? ` ${where}` : ''}`;
+  const crumb = tab === 'overview' && !where ? undefined : `${TAB_CRUMBS[tab]}${where ? ` ${where}` : ''}`;
 
   const person = buildPerson(data, base, avatarUrl);
   const jsonLd = [

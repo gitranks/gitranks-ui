@@ -51,7 +51,12 @@ export function pageMetadata({
   };
 }
 
-/** ` · Page 3` for every page but the first. */
+/** ` · Page 3` for every page but the first: the title suffix. */
 export function pageSuffix(page: number): string {
   return page > 1 ? ` · Page ${page}` : '';
+}
+
+/** `, page 3` for every page but the first, so paginated descriptions differ. */
+export function pageClause(page: number): string {
+  return page > 1 ? `, page ${page}` : '';
 }

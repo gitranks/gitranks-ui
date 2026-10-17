@@ -10,10 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
 export const IntegrationCode: FC<BadgeBuilderProfileProps> = (props) => {
-  const { url } = useBadgeUrl(props);
+  const { url, profileUrl } = useBadgeUrl(props);
 
-  const code = url ? `<img src="${url}" />` : '';
-  // const code = githubId ? `![GitRanks Badge](${url})` : ""; // Markdown alternative
+  // Wrapped in a link so a click on the badge opens the profile it describes, not the image.
+  const code = url
+    ? `<a href="${profileUrl}"><img src="${url}" alt="GitRanks badge for ${props.githubLogin}" /></a>`
+    : '';
+  // const code = url ? `[![GitRanks badge](${url})](${profileUrl})` : ''; // Markdown alternative
 
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);

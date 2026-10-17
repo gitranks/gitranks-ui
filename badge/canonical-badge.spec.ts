@@ -13,6 +13,13 @@ describe('isCanonicalBadgeAvailable', () => {
     expect(isCanonicalBadgeAvailable('stars-rank', { s: null })).toBe(false);
     expect(isCanonicalBadgeAvailable('contributions-score', {})).toBe(false);
   });
+
+  it('also needs a rank or a provisional one when the ranks are known', () => {
+    expect(isCanonicalBadgeAvailable('stars-rank', { s: 9 }, { s: 120 })).toBe(true);
+    expect(isCanonicalBadgeAvailable('stars-score', { s: 9 }, { sProvisional: 130 })).toBe(true);
+    expect(isCanonicalBadgeAvailable('stars-score', { s: 9 }, { c: 40 })).toBe(false);
+    expect(isCanonicalBadgeAvailable('stars-rank', { s: 9 }, null)).toBe(false);
+  });
 });
 
 describe('listCanonicalBadgeImageUrls', () => {
@@ -25,11 +32,11 @@ describe('listCanonicalBadgeImageUrls', () => {
   });
 
   it('lists the badges of the rankings the profile is in and nothing else', () => {
-    expect(listCanonicalBadgeImageUrls('Dippp10-ally', { s: 12, c: 7, f: 4 })).toEqual([
-      'https://example.test/badges/Dippp10-ally/stars-rank.png',
-      'https://example.test/badges/Dippp10-ally/contributions-rank.png',
-      'https://example.test/badges/Dippp10-ally/stars-score.png',
-      'https://example.test/badges/Dippp10-ally/contributions-score.png',
+    expect(listCanonicalBadgeImageUrls('newcomer', { s: 12, c: 7, f: 4 })).toEqual([
+      'https://example.test/badges/newcomer/stars-rank.png',
+      'https://example.test/badges/newcomer/contributions-rank.png',
+      'https://example.test/badges/newcomer/stars-score.png',
+      'https://example.test/badges/newcomer/contributions-score.png',
     ]);
   });
 

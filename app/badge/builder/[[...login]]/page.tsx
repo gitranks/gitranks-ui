@@ -39,9 +39,10 @@ export default async function Badge({ params }: PageProps<'/badge/builder/[[...l
     const data = await graphqlDirect(ProfileIdByLoginDocument, { login: githubLogin });
     githubId = data.globalRankByLogin?.githubId;
 
-    const scores = data.globalRankByLogin?.user;
+    const ranks = data.globalRankByLogin;
+    const scores = ranks?.user;
     if (scores) {
-      rankedIn = Object.values(UserRankProp).filter((ranking) => isRankedIn(ranking, scores));
+      rankedIn = Object.values(UserRankProp).filter((ranking) => isRankedIn(ranking, scores, ranks));
     }
   }
 

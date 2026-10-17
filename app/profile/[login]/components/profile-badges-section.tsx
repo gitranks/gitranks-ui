@@ -11,7 +11,7 @@ import {
   getCanonicalBadgeUrl,
   isCanonicalBadgeAvailable,
 } from '@/badge/canonical-badge';
-import type { RankingScores } from '@/badge/utils/is-ranked-in';
+import type { RankingRanks, RankingScores } from '@/badge/utils/is-ranked-in';
 import { Link as LinkUnderlined } from '@/components/link/link';
 
 const BADGE_COLUMNS: [CanonicalBadgeVariant, CanonicalBadgeVariant][] = [
@@ -23,11 +23,13 @@ const BADGE_COLUMNS: [CanonicalBadgeVariant, CanonicalBadgeVariant][] = [
 type ProfileBadgesSectionProps = {
   login: string;
   scores: RankingScores;
+  /** Global ranks: badges are global whichever tab the profile is on. */
+  ranks: RankingRanks;
 };
 
-export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login, scores }) => {
+export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login, scores, ranks }) => {
   // Badges exist only for the rankings this profile is in; the rest would be broken images.
-  const columns = BADGE_COLUMNS.filter(([rankVariant]) => isCanonicalBadgeAvailable(rankVariant, scores));
+  const columns = BADGE_COLUMNS.filter(([rankVariant]) => isCanonicalBadgeAvailable(rankVariant, scores, ranks));
   const builderHref = `/badge/builder/${encodeURIComponent(login)}` as Route;
 
   const copySvgUrl = async (variant: CanonicalBadgeVariant) => {

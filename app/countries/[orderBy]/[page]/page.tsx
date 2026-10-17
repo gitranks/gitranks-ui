@@ -8,6 +8,9 @@ import { PageGrid } from '@/components/grid/grid';
 import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
 
+// Allowed to block for unlisted params, like the layout.
+export const instant = false;
+
 const ITEMS_PER_PAGE = 24;
 
 export default async function CountriesPage({ params }: PageProps<'/countries/[orderBy]/[page]'>) {

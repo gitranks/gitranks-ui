@@ -15,6 +15,9 @@ import { pageSuffix } from '@/lib/seo/page-metadata';
 import { OrgRankingsDocument } from '@/types/generated/graphql';
 import { parsePageParam } from '@/utils/parse-page-param';
 
+// Allowed to block for unlisted params, like the layout.
+export const instant = false;
+
 export default async function OrgRanking({ params }: PageProps<'/orgs/[page]'>) {
   cacheLife('hours');
 

@@ -17,6 +17,9 @@ import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 import { parsePageParam } from '@/utils/parse-page-param';
 import { GLOBAL_SCOPE, resolveCountryScope, resolveLanguageName } from '@/utils/resolve-route-names';
 
+// Allowed to block for unlisted params, like the layout.
+export const instant = false;
+
 const ITEMS_PER_PAGE = 100;
 
 export default async function LanguageRanking({ params }: PageProps<'/language/[language]/[country]/[page]'>) {

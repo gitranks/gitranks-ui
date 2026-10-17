@@ -58,9 +58,9 @@ export function NavigationProgress() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden animate-navigation-progress-reveal"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-0.5 overflow-hidden animate-navigation-progress-reveal"
     >
-      <div className="h-full w-1/3 bg-primary animate-navigation-progress" />
+      <div className="h-full w-1/3 bg-primary animate-navigation-progress motion-reduce:w-full motion-reduce:animate-none" />
     </div>
   );
 }

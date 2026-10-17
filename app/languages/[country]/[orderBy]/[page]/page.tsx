@@ -11,6 +11,9 @@ import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary
 import { parsePageParam } from '@/utils/parse-page-param';
 import { GLOBAL_SCOPE, resolveCountryScope } from '@/utils/resolve-route-names';
 
+// Allowed to block for unlisted params, like the layout.
+export const instant = false;
+
 const ITEMS_PER_PAGE = 24;
 
 export default async function LanguagesPage({ params }: PageProps<'/languages/[country]/[orderBy]/[page]'>) {

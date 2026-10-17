@@ -14,6 +14,10 @@ import { LanguageSummaryOrder } from '@/types/generated/graphql';
 import { parsePageParam } from '@/utils/parse-page-param';
 import { GLOBAL_SCOPE, resolveCountryScope } from '@/utils/resolve-route-names';
 
+// Params not listed in generateStaticParams render on request as a whole page, which is then
+// cached; there is no fallback shell, so the route is allowed to block. The page says the same.
+export const instant = false;
+
 const OPEN_A_LANGUAGE = ' Open a language to see its top developers.';
 
 /** The description per order: the first sentence, which gets the page clause, then the rest. */

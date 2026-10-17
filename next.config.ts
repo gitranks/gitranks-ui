@@ -38,6 +38,12 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@resvg/resvg-js', 'satori', 'harfbuzzjs', 'yoga-wasm-web'],
   async redirects() {
     return [
+      // A ranking without a page number opens its first page. Unknown types fall through to a 404.
+      {
+        source: '/by/:rankingType(stars|contributions|followers)',
+        destination: '/by/:rankingType/1',
+        permanent: false,
+      },
       // Legacy sitemap locations. The old `app/**/sitemap.ts` routes answered on every
       // dynamic segment, not just the `_` placeholder advertised in robots.txt, so match
       // any segment — crawlers may have discovered `/by/stars/sitemap.xml` and friends.

@@ -22,21 +22,19 @@ const user = (rankGlobal: User['rankGlobal']): User => ({
   tiersGlobal: { sUsers: 1000, cUsers: 2000, fUsers: 3000, sTiers: [], cTiers: [], fTiers: [] },
 });
 
-// The card's text from its title on, with React's text-node separators removed.
-const contributionsCard = (rankGlobal: User['rankGlobal']) =>
+// The first percentage line after the card's title, with React's text-node separators removed.
+const contributionsRankLine = (rankGlobal: User['rankGlobal']) =>
   renderToStaticMarkup(<OverviewPage user={user(rankGlobal)} isGlobalContext />)
     .replaceAll('<!-- -->', '')
-    .split('Open Source Contributions')[1];
+    .split('Open Source Contributions')[1]
+    ?.match(/(Top|Bottom) [\d.]+% of ranked profiles/)?.[0];
 
 describe('OverviewPage', () => {
   it('rates the contributions card by the contributions rank, not the stars rank', () => {
-    const card = contributionsCard({ s: 50, c: 200 });
-
-    expect(card).toContain('Top 10% of ranked profiles');
-    expect(card).not.toContain('Top 2.5%');
+    expect(contributionsRankLine({ s: 50, c: 200 })).toBe('Top 10% of ranked profiles');
   });
 
   it('prefers the provisional contributions rank, as the stars card does', () => {
-    expect(contributionsCard({ s: 50, c: 200, cProvisional: 300 })).toContain('Top 15% of ranked profiles');
+    expect(contributionsRankLine({ s: 50, c: 200, cProvisional: 300 })).toBe('Top 15% of ranked profiles');
   });
 });

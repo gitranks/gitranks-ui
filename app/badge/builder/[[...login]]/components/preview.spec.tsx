@@ -5,9 +5,24 @@ import { describe, expect, it } from 'vitest';
 
 import { IntegrationCode } from './integration-code';
 import { Preview } from './preview';
+import { BadgeContext } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
 
-const profile = { githubLogin: 'newcomer', githubId: 'U_1', rankedIn: [UserRankProp.s, UserRankProp.c] };
+const profile = {
+  githubLogin: 'newcomer',
+  githubId: 'U_1',
+  rankedIn: {
+    [BadgeContext.Global]: [UserRankProp.s, UserRankProp.c],
+    [BadgeContext.Country]: [UserRankProp.s],
+  },
+  country: 'United States',
+};
+
+const noCountry = {
+  ...profile,
+  rankedIn: { [BadgeContext.Global]: [UserRankProp.s, UserRankProp.c], [BadgeContext.Country]: [] },
+  country: null,
+};
 
 const render = (searchParams: string, node: ReactNode) =>
   renderToStaticMarkup(<NuqsTestingAdapter searchParams={searchParams}>{node}</NuqsTestingAdapter>);
@@ -34,10 +49,66 @@ describe('badge builder for a ranking the profile is not in', () => {
   });
 
   it('does not suggest another ranking to a profile that is in none', () => {
-    const html = render('', <Preview {...profile} rankedIn={[]} />);
+    const none = { [BadgeContext.Global]: [], [BadgeContext.Country]: [] };
 
+    for (const searchParams of ['', '?context=country']) {
+      expect(render(searchParams, <Preview {...profile} rankedIn={none} />)).toContain(
+        'newcomer is not in any ranking yet: it takes 5 stars, 5 followers, or a merged PR in a 5★ repo.',
+      );
+    }
+  });
+});
+
+describe('badge builder for a country badge', () => {
+  it('previews and embeds the country rankings the profile is in', () => {
+    const embed = '/api/badge/v2/newcomer?ranking=s&amp;context=country';
+
+    expect(render('?context=country', <Preview {...profile} />)).toContain(`<img src="${embed}`);
+    expect(render('?context=country', <IntegrationCode {...profile} />)).toContain(embed);
+  });
+
+  it('explains a profile with no country instead of previewing an error badge', () => {
+    const html = render('?context=country', <Preview {...noCountry} />);
+
+    expect(html).not.toContain('<img');
     expect(html).toContain(
-      'newcomer is not in any ranking yet: it takes 5 stars, 5 followers, or a merged PR in a 5★ repo.',
+      'newcomer has no country rank: GitRanks could not detect a country from the profile location. Choose Global.',
     );
+    expect(render('?context=country', <IntegrationCode {...noCountry} />)).not.toContain('/api/badge/v2/');
+  });
+
+  it('explains a ranking the profile is in globally but not in its country', () => {
+    const html = render('?context=country&ranking=c', <Preview {...profile} />);
+
+    expect(html).not.toContain('<img');
+    expect(html).toContain('newcomer has no Contributor Rank in USA yet. Choose Global.');
+    expect(render('?context=country&ranking=c', <IntegrationCode {...profile} />)).not.toContain('/api/badge/v2/');
+  });
+
+  it('explains a ranking the profile is in nowhere by its entry score', () => {
+    expect(render('?context=country&ranking=f', <Preview {...profile} />)).toContain(
+      'newcomer is not in the Followers Ranking yet: it takes 5 followers. Choose another ranking.',
+    );
+  });
+});
+
+describe('badge builder label', () => {
+  const embedOf = (searchParams: string) => render(searchParams, <IntegrationCode {...profile} />);
+
+  it('follows the ranking and the type when none is given', () => {
+    expect(embedOf('')).toContain('label=Stars+Rank');
+    expect(embedOf('?ranking=c')).toContain('label=Contributor+Rank');
+    expect(embedOf('?ranking=c&type=score')).toContain('label=Contribution+Score');
+  });
+
+  it('keeps a given label', () => {
+    expect(embedOf('?ranking=c&label=My+contributions')).toContain('label=My+contributions');
+  });
+
+  it('leaves out a label that was cleared', () => {
+    const html = embedOf('?ranking=c&label=');
+
+    expect(html).toContain('/api/badge/v2/newcomer?ranking=c');
+    expect(html).not.toContain('&amp;label=');
   });
 });

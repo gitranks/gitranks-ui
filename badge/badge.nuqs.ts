@@ -2,7 +2,6 @@
 
 import { createParser, parseAsString, parseAsStringEnum } from 'nuqs';
 
-import { RANK_NAME } from './badge.consts';
 import { LABEL_BG, VALUE_BG } from './templates/inline/inline.consts';
 import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
@@ -22,7 +21,8 @@ export const BadgeNuqsSchema = {
   context: parseAsStringEnum(Object.values(BadgeContext)).withDefault(BadgeContext.Global),
   type: parseAsStringEnum(Object.values(BadgeType)).withDefault(BadgeType.Position),
   meta: parseAsStringEnum(Object.values(BadgeMeta)).withDefault(BadgeMeta.None),
-  label: parseAsString.withDefault(RANK_NAME.s).withOptions({ clearOnDefault: false }),
+  // No default: a badge without a label gets one for its ranking and type.
+  label: parseAsString,
   cornerStyle: parseAsStringEnum(Object.values(BadgeCornerStyle)).withDefault(BadgeCornerStyle.Rounded),
   labelBgColor: parseAsHexColor.withDefault(LABEL_BG),
   valueBgColor: parseAsHexColor.withDefault(VALUE_BG),

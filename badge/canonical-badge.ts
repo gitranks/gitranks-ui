@@ -105,12 +105,12 @@ export function getCanonicalBadgeTitle(variant: CanonicalBadgeVariant): string {
 
 /**
  * The route 404s for a ranking the profile is not in, so only these badges may be shown or listed.
- * Pass the global ranks when you have them; see `isRankedIn`.
+ * Takes the global ranks, or `undefined` where they are not known; see `isRankedIn`.
  */
 export function isCanonicalBadgeAvailable(
   variant: CanonicalBadgeVariant,
   scores: RankingScores,
-  ranks?: RankingRanks,
+  ranks: RankingRanks | undefined,
 ): boolean {
   return isRankedIn(VARIANT_CONFIG[variant].ranking, scores, ranks);
 }
@@ -138,7 +138,7 @@ export function getCanonicalBadgeUrl(
  * reached the threshold since the last ranking update can be listed a day early.
  */
 export function listCanonicalBadgeImageUrls(login: string, scores: RankingScores): string[] {
-  return CANONICAL_BADGE_VARIANTS.filter((variant) => isCanonicalBadgeAvailable(variant, scores)).map((variant) =>
-    absoluteSitemapUrl(getCanonicalBadgePath(login, variant, 'png')),
+  return CANONICAL_BADGE_VARIANTS.filter((variant) => isCanonicalBadgeAvailable(variant, scores, undefined)).map(
+    (variant) => absoluteSitemapUrl(getCanonicalBadgePath(login, variant, 'png')),
   );
 }

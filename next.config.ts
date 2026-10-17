@@ -24,6 +24,13 @@ const htmlLimitedBots = new RegExp(`${HTML_LIMITED_BOT_UA_RE.source}|${AI_HTML_B
 const nextConfig: NextConfig = {
   output: 'standalone',
   cacheComponents: true,
+  experimental: {
+    // Dev-only instant-navigation checks run only for segments that export `instant`. By default
+    // any page or default segment without one turns them on for the whole route, and the empty
+    // modal slot is in every route, so the ranking routes' `instant = false` was overridden.
+    // The build's own check for uncached data outside Suspense is not affected.
+    instantInsights: { validationLevel: 'manual-warning' },
+  },
   // redefine the stock 'hours' profile in dev so its TTL = 0
   cacheLife: isDev ? { hours: { stale: 0, revalidate: 1, expire: 1 } } : undefined,
   images: {

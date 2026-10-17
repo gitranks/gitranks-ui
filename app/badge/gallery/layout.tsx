@@ -5,12 +5,14 @@ import { Header } from '@/components/header/header';
 import { Link } from '@/components/link/link';
 import { Page } from '@/components/page/page';
 import { Alert, AlertTitle } from '@/components/ui/alert';
+import { pageMetadata } from '@/lib/seo/page-metadata';
 
-export const metadata: Metadata = {
-  title: 'Badge Gallery · GitRanks',
+export const metadata: Metadata = pageMetadata({
+  title: 'Badge Gallery',
   description:
     'Browse the complete collection of GitRanks badges. See design examples, colors, and styles you can use to showcase your GitHub achievements.',
-};
+  path: '/badge/gallery',
+});
 
 export default function BadgeGalleryLayout({ children }: LayoutProps<'/badge/gallery'>) {
   return (

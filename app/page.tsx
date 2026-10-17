@@ -1,3 +1,5 @@
+import type { Metadata } from 'next';
+
 import { BadgeSection } from './components/badge-section';
 import { CountryRankingSection } from './components/country-ranking-section';
 import { GlobalRankingSection } from './components/global-ranking-section';
@@ -8,6 +10,14 @@ import { Header } from '@/components/header/header';
 import InsightsCarousel from '@/components/insight/insights-carousel';
 import { Link } from '@/components/link/link';
 import { Page } from '@/components/page/page';
+import { pageMetadata } from '@/lib/seo/page-metadata';
+import { SITE_DESCRIPTION, SITE_TITLE } from '@/lib/seo/site';
+
+export const metadata: Metadata = pageMetadata({
+  title: { absolute: SITE_TITLE },
+  description: SITE_DESCRIPTION,
+  path: '/',
+});
 
 export default function Home() {
   return (

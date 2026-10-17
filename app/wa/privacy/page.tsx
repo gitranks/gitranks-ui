@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 
 import { Header } from '@/components/header/header';
+import { pageMetadata } from '@/lib/seo/page-metadata';
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy - GitRanks Chatbot (Sole Proprietor Vitalii Maslianok)',
+export const metadata: Metadata = pageMetadata({
+  title: { absolute: 'Privacy Policy - GitRanks Chatbot (Sole Proprietor Vitalii Maslianok)' },
   description: 'Privacy Policy for the WhatsApp chatbot operated by sole proprietor Vitalii Maslianok.',
-};
+  path: '/wa/privacy',
+});
 
 export default function PrivacyPolicy() {
   return (

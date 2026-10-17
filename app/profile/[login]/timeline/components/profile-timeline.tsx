@@ -9,6 +9,7 @@ import type {
   SocialAccountChangeItem,
   TimelineItemType,
 } from '@/types/profile-timeline.types';
+import { describeRemovedRepos } from '@/utils/describe-removed-repos';
 import { isObject } from '@/utils/is-object';
 import { splitCamelCase } from '@/utils/split-camelcase';
 
@@ -22,7 +23,7 @@ type ProfileTimelineDescriptionProps = {
   changeset: ChangeSetItemType;
 };
 
-const parseChangesetItem = (changesetItem: ChangeItemType, type: ChangeItemType) => {
+const parseChangesetItem = (changesetItem: ChangeItemType) => {
   if (isObject<NonNullable<SocialAccountChangeItem>>(changesetItem)) {
     if (changesetItem.totalCount) {
       return changesetItem.nodes
@@ -33,10 +34,6 @@ const parseChangesetItem = (changesetItem: ChangeItemType, type: ChangeItemType)
     if ('name' in changesetItem) {
       return `${changesetItem.name}`;
     }
-  }
-
-  if (Array.isArray(changesetItem) && type === 'repoRemoved') {
-    return changesetItem.map((repo) => `${repo.name} ★${repo.stargazers.toLocaleString('en-US')}`).join('; ');
   }
 
   if (typeof changesetItem === 'number') {
@@ -51,8 +48,8 @@ const parseChangesetItem = (changesetItem: ChangeItemType, type: ChangeItemType)
 };
 
 const ProfileTimelineDescription: FC<ProfileTimelineDescriptionProps> = ({ type, changeset }) => {
-  const before = parseChangesetItem(changeset.b, type);
-  const after = parseChangesetItem(changeset.a, type);
+  const before = type === 'repoRemoved' ? describeRemovedRepos(changeset) : parseChangesetItem(changeset.b);
+  const after = parseChangesetItem(changeset.a);
 
   if (type === 'avatarUrl') {
     return (

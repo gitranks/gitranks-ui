@@ -45,6 +45,14 @@ const CHECK_STATUS_INTERVAL = 20_000;
 const REFRESH_TIMEOUT = 10 * 60 * 1_000;
 const FETCH_MESSAGES = ['Fetching…', '🚬 Still fetching', '👀 👀 👀', 'Ping! Still not ready…'];
 
+// The server expires the cache only when the profile's fetch status changed since it last did.
+const revalidateProfile = (login: string) =>
+  fetch('/api/revalidate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ login }),
+  });
+
 export const FetchUserButton: FC<FetchUserButtonProps> = ({
   fetchingStatus,
   fetchingUpdatedAt,
@@ -72,7 +80,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 
     // invalidate the cache every time the page loads with fetching status
     // so the next time the user updates the profile, the latest data is fetched
-    fetch(`/api/revalidate?tag=${encodeURIComponent(`profile:${login}`)}`);
+    revalidateProfile(login);
 
     setFetchingDuration(initialFetchingDuration);
   }, [fetchingStatus, fetchingUpdatedAt, login]);
@@ -99,7 +107,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       }
       setLoadingLabel('Reloading…');
 
-      await fetch(`/api/revalidate?tag=${encodeURIComponent(`profile:${login}`)}`);
+      await revalidateProfile(login);
       window.location.reload();
     }
   }, [login]);
@@ -109,9 +117,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 
     // capture('profile.fetch', { login });
 
-    // immediately invalidate the cache, so if the user reloads the page, the latest data is fetched
-    fetch(`/api/revalidate?tag=${encodeURIComponent(`profile:${login}`)}`);
-
+    // the cache is invalidated server-side once the fetch has started
     const res = await fetch(`/api/profile/${login}`, { method: 'POST' });
 
     if (!res.ok) {

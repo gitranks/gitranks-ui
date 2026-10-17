@@ -111,6 +111,8 @@ export const REFRESH_LABELS = {
 export const REFRESH_TOASTS = {
   started: 'Thanks for the star! ⭐ Refreshing your profile now.',
   checkFailed: 'GitHub didn’t answer. Please try again in a minute.',
+  /** Another tab is checking the star right now. */
+  busy: 'We are already checking. Try again in a moment.',
 } as const;
 
 export const fillTime = (text: string, time?: string) => (time ? text.replaceAll('{time}', time) : text);

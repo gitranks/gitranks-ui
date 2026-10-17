@@ -28,6 +28,8 @@ type RefreshDialogProps = {
   primary: RefreshDialogAction;
   /** Closes the dialog unless it has its own action. */
   secondary?: RefreshDialogAction;
+  /** Where focus goes on close: the dialog has no trigger of its own to return to. */
+  onCloseAutoFocus?: (event: Event) => void;
 };
 
 const withLink = (text: string, link?: RefreshMessage['noteLink']): ReactNode => {
@@ -65,12 +67,20 @@ const ActionButton: FC<{ action: RefreshDialogAction; label: string; variant: 'd
   );
 
 /** A short note from the maker, with his photo: what the Refresh button needs and why. */
-export const RefreshDialog: FC<RefreshDialogProps> = ({ open, onOpenChange, message, time, primary, secondary }) => {
+export const RefreshDialog: FC<RefreshDialogProps> = ({
+  open,
+  onOpenChange,
+  message,
+  time,
+  primary,
+  secondary,
+  onCloseAutoFocus,
+}) => {
   const [lead, ...rest] = message.paragraphs.map((paragraph) => fillTime(paragraph, time));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader className="flex-row items-center gap-3 text-left">
           <Image
             src={`${MAKER.avatarUrl}&s=${AVATAR_SIZE * 2}`}

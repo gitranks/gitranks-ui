@@ -69,9 +69,10 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   children,
   dailyLabel,
 }) => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { login } = useParams<{ login: string }>();
-  const mode = refreshModeOf(session, login);
+  const mode = refreshModeOf(session, login, status);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [daily, setDaily] = useState<DailyRefreshStatus | null>(null);
   const [checking, setChecking] = useState(false);
   const [dialog, setDialog] = useState<OpenDialog>(null);
@@ -201,6 +202,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
           openDialog({ kind: 'otherProfile' });
           break;
         case 'busy':
+          toast.info(REFRESH_TOASTS.busy);
           break;
       }
     } catch {
@@ -212,6 +214,8 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 
   const onRefreshClick = () => {
     switch (mode) {
+      case 'loading':
+        return;
       case 'signed-out':
         return openDialog({ kind: 'signIn' });
       case 'other':
@@ -283,7 +287,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   };
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
+    <div ref={containerRef} className={cn('flex flex-col gap-2', className)}>
       {childWithOnClick}
       {dialog && (
         <RefreshDialog
@@ -293,6 +297,10 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
           time={dialog.until ? timeLeftUntil(dialog.until) : undefined}
           primary={cta(dialog.kind, dialogActions[dialog.kind].primary)}
           secondary={dialogActions[dialog.kind].secondary}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            containerRef.current?.querySelector('button')?.focus();
+          }}
         />
       )}
       {fetchingDuration !== null && (

@@ -6,9 +6,13 @@ import { refreshModeOf } from './refresh-mode';
 const session = (user: Partial<Session['user']>) => ({ user, expires: '' }) as Session;
 
 describe('refreshModeOf', () => {
-  it('is signed-out without a session, or while it loads', () => {
-    expect(refreshModeOf(null, 'octo')).toBe('signed-out');
+  it('is signed-out without a session', () => {
+    expect(refreshModeOf(null, 'octo', 'unauthenticated')).toBe('signed-out');
     expect(refreshModeOf(undefined, 'octo')).toBe('signed-out');
+  });
+
+  it('waits while the session loads, so a token user is never offered the light sign-in', () => {
+    expect(refreshModeOf(undefined, 'octo', 'loading')).toBe('loading');
   });
 
   it('refreshes any profile on the visitor token', () => {

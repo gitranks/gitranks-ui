@@ -1,5 +1,4 @@
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
-import { ObjectId } from 'mongodb';
 import NextAuth from 'next-auth';
 import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 
@@ -14,6 +13,13 @@ const withoutTokens = ({ access_token, refresh_token, id_token, expires_at, ...a
 
 const adapter: Adapter = {
   ...baseAdapter,
+  // Both sign-ins are the same GitHub account, with the same id. Someone who once gave us a token is that user when
+  // they come back through the light sign-in, so their session, and a later token sign-in, stay on one user.
+  getUserByAccount: async (account) =>
+    (await baseAdapter.getUserByAccount?.(account)) ??
+    (account.provider === IDENTITY_PROVIDER
+      ? ((await baseAdapter.getUserByAccount?.({ ...account, provider: TOKEN_PROVIDER })) ?? null)
+      : null),
   linkAccount: (account) =>
     baseAdapter.linkAccount?.(account.provider === IDENTITY_PROVIDER ? withoutTokens(account) : account),
 };
@@ -26,7 +32,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: 'jwt' },
   ...authConfig,
   events: {
-    signIn: async ({ account, user, profile }) => {
+    signIn: async ({ account, profile }) => {
       // profile - user entity from github
       // user - user entity from the database
       // account - OAuth account information
@@ -39,7 +45,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const { expires_in, refresh_token_expires_in, ...accountData } = account;
 
         await db.updateOne(
-          { userId: new ObjectId(user.id), provider: TOKEN_PROVIDER },
+          { provider: TOKEN_PROVIDER, providerAccountId: account.providerAccountId },
           { $set: { ...accountData, githubId: profile?.node_id, githubLogin: profile?.login } },
         );
       }

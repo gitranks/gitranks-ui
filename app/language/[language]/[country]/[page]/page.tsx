@@ -1,15 +1,21 @@
 'use cache';
 
 import { cacheLife } from 'next/cache';
+import { notFound } from 'next/navigation';
 
+import { JsonLd } from '@/components/json-ld/json-ld';
 import { Pagination } from '@/components/pagination/pagination';
+import { buildUserRankingItemList } from '@/components/ranking-table/ranking-item-list';
 import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchCountryLanguageRankings } from '@/graphql/helpers/fetch-country-language-rankings';
 import { fetchLanguageRankings } from '@/graphql/helpers/fetch-language-rankings';
+import { pageSuffix } from '@/lib/seo/page-metadata';
 import type { GlobalRankingsQuery } from '@/types/generated/graphql';
 import { RankingTypeClient } from '@/types/ranking.types';
 import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
+import { parsePageParam } from '@/utils/parse-page-param';
+import { GLOBAL_SCOPE, resolveCountryScope, resolveLanguageName } from '@/utils/resolve-route-names';
 
 const ITEMS_PER_PAGE = 100;
 
@@ -18,26 +24,42 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
 
   const { language, country, page: pageParam } = await params;
 
-  const countryName = decodeURIComponent(country);
-  const languageName = decodeURIComponent(language);
+  const page = parsePageParam(pageParam);
+  // Case variants (`rust`, `germany`) render the stored spelling's ranking and canonicalize to it.
+  const [languageName, countryName] = await Promise.all([
+    resolveLanguageName(decodeURIComponent(language)),
+    resolveCountryScope(decodeURIComponent(country)),
+  ]);
 
-  const method = country === 'global' ? fetchLanguageRankings : fetchCountryLanguageRankings;
+  if (!page || !countryName) {
+    notFound();
+  }
 
-  const page = Number.parseInt(pageParam, 10);
+  const isGlobal = countryName === GLOBAL_SCOPE;
+  const method = isGlobal ? fetchLanguageRankings : fetchCountryLanguageRankings;
+
   const offset = (page - 1) * ITEMS_PER_PAGE;
   const [data, countries] = await Promise.all([
     method({ language: languageName, country: countryName, offset }),
     fetchCountries(),
   ]);
+  // sorry, but I have to :)
+  const rows = data as GlobalRankingsQuery['globalRankings'];
 
   return (
     <>
-      <RankingTable
-        rankingType={RankingTypeClient.Star}
-        // sorry, but I have to :)
-        data={data as GlobalRankingsQuery['globalRankings']}
-        countries={countries}
+      <JsonLd
+        payloads={[
+          buildUserRankingItemList(
+            `${isGlobal ? 'Global' : countryName} ${languageName} Language Ranking${pageSuffix(page)}`,
+            getLanguageRankingPath(languageName, countryName, page),
+            RankingTypeClient.Star,
+            rows,
+            offset,
+          ),
+        ]}
       />
+      <RankingTable rankingType={RankingTypeClient.Star} data={rows} countries={countries} />
       <Pagination
         prev={page > 1 ? getLanguageRankingPath(languageName, countryName, page - 1) : undefined}
         next={data?.length === ITEMS_PER_PAGE ? getLanguageRankingPath(languageName, countryName, page + 1) : undefined}

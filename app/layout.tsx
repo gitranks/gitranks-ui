@@ -9,8 +9,11 @@ import { CtaClickTracker } from './components/cta-click-tracker';
 import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
 import { Announcement } from '@/components/announcement/announcement';
 import { Footer } from '@/components/footer/footer';
+import { JsonLd } from '@/components/json-ld/json-ld';
 import { ThemeProvider } from '@/components/theme-provider/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { buildSiteJsonLd } from '@/lib/seo/json-ld';
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_X_HANDLE } from '@/lib/seo/site';
 
 import './globals.css';
 
@@ -18,11 +21,25 @@ const inter = Inter({ subsets: ['latin'] });
 
 const metadataBase = process.env.NEXT_PUBLIC_URI ? new URL(process.env.NEXT_PUBLIC_URI) : undefined;
 
+// No `alternates` here: children without their own would inherit the home page canonical.
 export const metadata: Metadata = {
   metadataBase,
-  title: 'GitRanks · GitHub Profile Analytics & Rankings',
-  description:
-    'Explore rankings based on stars, contributions, and followers. Dive into dynamic leaderboards to see how you rank against developers worldwide and within your own country.',
+  title: { default: SITE_TITLE, template: `%s | ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    locale: 'en_US',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: 'summary',
+    site: SITE_X_HANDLE,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 type RootLayoutProps = {
@@ -40,6 +57,7 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
         className="antialiased"
         style={{ ...inter.style, fontFamily: `'Twemoji Country Flags', ${inter.style.fontFamily}` }}
       >
+        <JsonLd payloads={buildSiteJsonLd()} />
         <SessionProvider>
           <NuqsAdapter>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

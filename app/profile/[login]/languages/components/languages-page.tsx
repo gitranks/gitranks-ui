@@ -5,6 +5,8 @@ import { LayoutLeftColumn } from '../../components/layout-left-column';
 import { ProfileCardsGrid } from '../../components/profile-card';
 import { ProfileRankingSwitcher } from '../../components/profile-ranking-switcher';
 import NotFound from '../../not-found';
+import { buildProfileTabSEO } from '../../seo';
+import { JsonLd } from '@/components/json-ld/json-ld';
 import { LanguageRankCard } from '@/components/rank-card/language-rank-card';
 import type { PageProfileLanguagesQuery, UserLanguage } from '@/types/generated/graphql';
 
@@ -38,6 +40,7 @@ export const LanguagesPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) 
 
   return (
     <LayoutLeftColumn user={user}>
+      <JsonLd payloads={buildProfileTabSEO('languages', user, isGlobalContext ? 'global' : 'country').jsonLd} />
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Language Ranks Breakdown</h2>
         <ProfileRankingSwitcher countryName={user.country} />

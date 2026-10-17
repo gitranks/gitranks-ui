@@ -9,6 +9,7 @@ import NotFound from '../not-found';
 import { buildProfileTabSEO } from '../seo';
 import { UserContributionsList } from './components/user-contributions-list';
 import { UserRepositoriesList } from './components/user-repositories-list';
+import { JsonLd } from '@/components/json-ld/json-ld';
 import { fetchProfilePageRepositories } from '@/graphql/helpers/fetch-profile-page-repositories';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/repositories'>): Promise<Metadata> {
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: PageProps<'/profile/[login]/r
     return {};
   }
 
-  return buildProfileTabSEO('repositories', user);
+  return buildProfileTabSEO('repositories', user).metadata;
 }
 
 export default async function ProfileRepositories({ params }: PageProps<'/profile/[login]/repositories'>) {
@@ -42,6 +43,7 @@ export default async function ProfileRepositories({ params }: PageProps<'/profil
 
   return (
     <LayoutLeftColumn user={user}>
+      <JsonLd payloads={buildProfileTabSEO('repositories', user).jsonLd} />
       <div className="flex flex-col gap-10">
         <div className="flex flex-col gap-3">
           {!!repositories?.length && <h2 className="text-xl font-semibold">Repositories</h2>}

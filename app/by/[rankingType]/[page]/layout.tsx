@@ -4,29 +4,29 @@ import type { Metadata } from 'next';
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
-import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { RankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
-import { getRankPropByType } from '@/utils/get-rank-prop-by-ranking-type';
+import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
+import { getRankingTitle } from '@/utils/get-ranking-title';
 import { isRankingType } from '@/utils/is-ranking-type';
+import { parsePageParam } from '@/utils/parse-page-param';
 
 export async function generateMetadata({ params }: LayoutProps<'/by/[rankingType]/[page]'>): Promise<Metadata> {
   const { rankingType, page: pageParam } = await params;
+  const page = parsePageParam(pageParam);
 
-  if (!isRankingType(rankingType)) {
-    throw new Error(`Invalid ranking type: ${rankingType}`);
+  if (!isRankingType(rankingType) || !page) {
+    notFound();
   }
 
-  const rankProp = getRankPropByType(rankingType);
-  const rankName = RANK_NAME[rankProp];
-  const page = parseInt(pageParam ?? '1', 10);
+  const [title, subtitle] = getRankingTitle(rankingType);
 
-  return {
-    title: `${rankName}ing · Page ${page} · GitRanks`,
-    description:
-      'Explore ranks based on stars, followers, contributions, and more. Dive into dynamic leaderboards and find out how you measure up against developers worldwide.',
-  };
+  return pageMetadata({
+    title: `${title}${pageSuffix(page)}`,
+    description: `${title} of GitHub developers worldwide${pageClause(page)}. ${subtitle}`,
+    path: `/by/${rankingType}/${page}`,
+  });
 }
 
 export async function generateStaticParams() {

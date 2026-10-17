@@ -9,13 +9,13 @@ import { fetchProfilePageOverview } from '@/graphql/helpers/fetch-profile-page-o
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/country'>): Promise<Metadata> {
   const { login } = await params;
-  const user = await fetchProfilePageOverview(login);
+  const user = await fetchProfilePageOverview(login, 'country');
 
   if (!user) {
     return {};
   }
 
-  return buildProfileTabSEO('overview', user);
+  return buildProfileTabSEO('overview', user, 'country').metadata;
 }
 
 export default async function ProfileOverviewPage({ params }: PageProps<'/profile/[login]/country'>) {

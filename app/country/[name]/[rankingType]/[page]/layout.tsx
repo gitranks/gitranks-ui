@@ -4,33 +4,36 @@ import type { Metadata } from 'next';
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
-import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { RankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
+import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { RankingTypeClient } from '@/types/ranking.types';
-import { getRankPropByType } from '@/utils/get-rank-prop-by-ranking-type';
+import { getRankingTitle } from '@/utils/get-ranking-title';
 import { isRankingType } from '@/utils/is-ranking-type';
+import { parsePageParam } from '@/utils/parse-page-param';
+import { resolveCountryName } from '@/utils/resolve-route-names';
 
 export async function generateMetadata({
   params,
 }: LayoutProps<'/country/[name]/[rankingType]/[page]'>): Promise<Metadata> {
   const { rankingType, page: pageParam, name } = await params;
+  const page = parsePageParam(pageParam);
+  const countryName = await resolveCountryName(decodeURIComponent(name));
 
-  if (!isRankingType(rankingType)) {
-    throw new Error(`Invalid ranking type: ${rankingType}`);
+  if (!isRankingType(rankingType) || !page || !countryName) {
+    notFound();
   }
 
-  const rankProp = getRankPropByType(rankingType);
-  const rankName = RANK_NAME[rankProp];
-  const page = parseInt(pageParam, 10);
+  const [title] = getRankingTitle(rankingType, countryName);
+  const [rankingName, subtitle] = getRankingTitle(rankingType);
 
-  return {
-    title: `${decodeURIComponent(name)} ${rankName}ing · Page ${page} · GitRanks`,
-    description:
-      'Discover GitHub profile rankings by country with GitRanks. See the top developers ranked by stars, contributions, and followers - refreshed daily.',
-  };
+  return pageMetadata({
+    title: `${title}${pageSuffix(page)}`,
+    description: `${rankingName} of GitHub developers in ${countryName}${pageClause(page)}. ${subtitle}`,
+    path: `/country/${encodeURIComponent(countryName)}/${rankingType}/${page}`,
+  });
 }
 
 export async function generateStaticParams() {
@@ -52,9 +55,9 @@ export default async function RankingListLayout({
 }: LayoutProps<'/country/[name]/[rankingType]/[page]'>) {
   cacheLife('hours');
   const { rankingType, name } = await params;
-  const countryName = decodeURIComponent(name);
+  const countryName = await resolveCountryName(decodeURIComponent(name));
 
-  if (!isRankingType(rankingType)) {
+  if (!isRankingType(rankingType) || !countryName) {
     return notFound();
   }
 

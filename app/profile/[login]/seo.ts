@@ -1,53 +1,53 @@
+import type { Metadata } from 'next';
+
 import { RANK_NAME } from '@/badge/badge.consts';
+import { clipText } from '@/lib/seo/clip-text';
+import { pageMetadata } from '@/lib/seo/page-metadata';
+import { absoluteUrl } from '@/lib/seo/site';
 import type { PageProfileLanguagesQuery, PageProfileOverviewQuery } from '@/types/generated/graphql';
+import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 import { formatNumberShort } from '@/utils/format-number-short';
 import { formatOrdinal } from '@/utils/format-ordinal';
 
 type Tab = 'overview' | 'ranks' | 'repositories' | 'languages';
+/** `country` is the `/country` variant of a tab: same layout, ranks within the user's country. */
+type Scope = 'global' | 'country';
 type DataType = NonNullable<PageProfileOverviewQuery['user']>;
+type Ranks = DataType['rankGlobal'] | DataType['rankCountry'];
 type LanguagesType = NonNullable<PageProfileLanguagesQuery['user']>['sLangs'];
 
-const clip = (t: string, max = 158) => {
-  if (!t || t.length <= max) return t;
-  const cut = t.slice(0, max - 1);
-  const i = cut.lastIndexOf(' ');
-  return `${i > 80 ? cut.slice(0, i) : cut}…`;
+const TAB_TITLES: Record<Tab, string> = {
+  overview: 'GitHub Analytics',
+  ranks: 'Ranks',
+  repositories: 'Repositories & Contributions',
+  languages: 'Language Ranks',
 };
 
-function buildUrl(tab: Tab, base: string): string {
-  switch (tab) {
-    case 'overview':
-      return base;
-    case 'ranks':
-    case 'repositories':
-    case 'languages':
-      return `${base}/${tab}`;
-  }
+const TAB_CRUMBS: Record<Tab, string> = {
+  overview: 'Overview',
+  ranks: 'Ranks',
+  repositories: 'Repositories',
+  languages: 'Languages',
+};
+
+const clip = (t: string) => clipText(t, 158);
+
+function buildPath(tab: Tab, base: string, scope: Scope): string {
+  const tabPath = tab === 'overview' ? base : `${base}/${tab}`;
+  return scope === 'country' ? `${tabPath}/country` : tabPath;
 }
 
-function buildTitle(tab: Tab, name: string): string {
-  const titles: Record<Tab, string> = {
-    overview: `${name} - GitHub Analytics | GitRanks`,
-    ranks: `${name} - Ranks | GitRanks`,
-    repositories: `${name} - Repositories & Contributions | GitRanks`,
-    languages: `${name} - Language Ranks | GitRanks`,
-  };
-  return titles[tab];
+function getBestRank(ranks?: Ranks): number | undefined {
+  return [ranks?.s, ranks?.c, ranks?.f].filter((x): x is number => typeof x === 'number').sort((a, b) => a - b)[0];
 }
 
-function getBestRank(rankGlobal?: NonNullable<DataType>['rankGlobal']): number | undefined {
-  return [rankGlobal?.s, rankGlobal?.c, rankGlobal?.f]
-    .filter((x): x is number => typeof x === 'number')
-    .sort((a, b) => a - b)[0];
-}
-
-function buildOverviewDescription(stats: DataType): string {
-  const { s, c, f, rankGlobal, repositories } = stats ?? {};
-  const bestRank = getBestRank(rankGlobal);
+function buildOverviewDescription(stats: DataType, ranks: Ranks, where: string): string {
+  const { s, c, f, repositories } = stats ?? {};
+  const bestRank = getBestRank(ranks);
   const topRepo = repositories?.[0];
 
   const parts = [
-    bestRank ? `Global rank: ${formatOrdinal(bestRank)}.` : undefined,
+    bestRank ? `${where ? `Rank ${where}` : 'Global rank'}: ${formatOrdinal(bestRank)}.` : undefined,
     s != null ? `⭐${formatNumberShort(s)} owned.` : undefined,
     c != null ? `⭐${formatNumberShort(c)} contributed.` : undefined,
     f != null ? `👥${formatNumberShort(f)} followers.` : undefined,
@@ -59,14 +59,14 @@ function buildOverviewDescription(stats: DataType): string {
   return clip(parts.filter(Boolean).join(' '));
 }
 
-function buildRanksDescription(rankGlobal?: NonNullable<DataType>['rankGlobal']): string {
+function buildRanksDescription(ranks: Ranks, where: string): string {
   const parts = [
-    rankGlobal?.s != null ? `${RANK_NAME.s} ${formatOrdinal(rankGlobal.s)}.` : undefined,
-    rankGlobal?.c != null ? `${RANK_NAME.c} ${formatOrdinal(rankGlobal.c)}.` : undefined,
-    rankGlobal?.f != null ? `${RANK_NAME.f} ${formatOrdinal(rankGlobal.f)}.` : undefined,
+    ranks?.s != null ? `${RANK_NAME.s} ${formatOrdinal(ranks.s)}.` : undefined,
+    ranks?.c != null ? `${RANK_NAME.c} ${formatOrdinal(ranks.c)}.` : undefined,
+    ranks?.f != null ? `${RANK_NAME.f} ${formatOrdinal(ranks.f)}.` : undefined,
   ].filter(Boolean);
 
-  return clip(`Ranks: ${parts.length ? parts.join(' ') : 'Not Ranked'}`);
+  return clip(`Ranks${where ? ` ${where}` : ''}: ${parts.length ? parts.join(' ') : 'Not Ranked'}`);
 }
 
 function buildRepositoriesDescription(stats: DataType): string {
@@ -86,173 +86,173 @@ function buildRepositoriesDescription(stats: DataType): string {
   return clip(parts.filter(Boolean).join(' '));
 }
 
-function buildLanguagesDescription(languages?: LanguagesType): string {
+function buildLanguagesDescription(languages: LanguagesType | undefined, scope: Scope, where: string): string {
+  const rankOf = (l: NonNullable<LanguagesType>[number]) => (scope === 'country' ? l.rankCountry?.s : l.rankGlobal?.s);
   const languageParts =
     languages
-      ?.slice(0, 3)
-      .filter((l) => l.rankGlobal?.s)
-      .map((l) => `${l.name} ${formatOrdinal(l.rankGlobal!.s)} (${l.score})`) ?? [];
+      ?.filter((l) => rankOf(l))
+      .slice(0, 3)
+      .map((l) => `${l.name} ${formatOrdinal(rankOf(l)!)} (${l.score})`) ?? [];
 
-  return languageParts.length ? clip(`Language Ranks: ${languageParts.join(', ')}`) : '';
+  return languageParts.length ? clip(`Language Ranks${where ? ` ${where}` : ''}: ${languageParts.join(', ')}`) : '';
 }
 
-function buildDescription(tab: Tab, stats: DataType): string {
+function buildDescription(tab: Tab, stats: DataType, scope: Scope, where: string): string {
+  const ranks = scope === 'country' ? stats?.rankCountry : stats?.rankGlobal;
+
   switch (tab) {
     case 'overview':
-      return buildOverviewDescription(stats);
+      return buildOverviewDescription(stats, ranks, where);
     case 'ranks':
-      return buildRanksDescription(stats?.rankGlobal);
+      return buildRanksDescription(ranks, where);
     case 'repositories':
       return buildRepositoriesDescription(stats);
     case 'languages':
-      return buildLanguagesDescription(stats?.sLangs);
+      return buildLanguagesDescription(stats?.sLangs as LanguagesType, scope, where);
   }
 }
 
-function buildOpenGraphAndTwitter(title: string, description: string, url: string, ogImage?: string) {
-  const openGraph = {
-    title,
-    description,
-    url,
-    type: 'profile' as const,
-    images: ogImage ? [{ url: ogImage }] : undefined,
-  };
+/** GitHub, the profile's website and its social accounts, as listed in the sidebar. */
+function buildSameAs(stats: DataType): string[] {
+  const urls = [
+    `https://github.com/${stats.login}`,
+    ensureLinkProtocol(stats.websiteUrl),
+    ...(stats.socialAccounts?.nodes?.map((account) => account.url) ?? []),
+  ];
 
-  const twitter = {
-    card: 'summary_large_image' as const,
-    title,
-    description,
-    images: ogImage ? [ogImage] : undefined,
-  };
-
-  return { openGraph, twitter };
+  return [...new Set(urls.filter((url): url is string => !!url && URL.canParse(url)))];
 }
 
-function buildBreadcrumbs(name: string, base: string, tab: Tab, url: string) {
+function buildPerson(stats: DataType, url: string, avatarUrl: string) {
+  return {
+    '@type': 'Person',
+    name: stats.name || stats.login,
+    alternateName: stats.login,
+    url,
+    image: avatarUrl,
+    sameAs: buildSameAs(stats),
+  };
+}
+
+function buildBreadcrumbs(name: string, base: string, crumb: string | undefined, url: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: process.env.NEXT_PUBLIC_URI },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: absoluteUrl('/') },
       { '@type': 'ListItem', position: 2, name, item: base },
-      tab !== 'overview'
-        ? { '@type': 'ListItem', position: 3, name: tab[0].toUpperCase() + tab.slice(1), item: url }
-        : undefined,
+      crumb ? { '@type': 'ListItem', position: 3, name: crumb, item: url } : undefined,
     ].filter(Boolean),
   };
 }
 
 function buildTabSpecificJsonLd(
   tab: Tab,
+  scope: Scope,
   url: string,
   title: string,
   description: string,
-  name: string,
-  base: string,
   stats: DataType,
-  avatarUrl?: string,
+  person: ReturnType<typeof buildPerson>,
 ) {
   switch (tab) {
     case 'overview':
+    case 'ranks':
       return {
         '@context': 'https://schema.org',
         '@type': 'ProfilePage',
         url,
         name: title,
         description,
-        mainEntity: { '@type': 'Person', name, url: base, image: avatarUrl },
+        mainEntity: person,
       };
 
-    case 'ranks':
-      return {
-        '@context': 'https://schema.org',
-        '@type': 'WebPage',
-        url,
-        name: title,
-        description,
-        about: { '@type': 'Person', name, url: base },
-        dataset: {
-          '@type': 'Dataset',
-          name: `${name} — Rank Dataset`,
-          variableMeasured: [
-            stats?.rankGlobal?.s
-              ? { '@type': 'PropertyValue', name: RANK_NAME.s, value: stats.rankGlobal.s }
-              : undefined,
-            stats?.rankGlobal?.c
-              ? { '@type': 'PropertyValue', name: RANK_NAME.c, value: stats.rankGlobal.c }
-              : undefined,
-            stats?.rankGlobal?.f
-              ? { '@type': 'PropertyValue', name: RANK_NAME.f, value: stats.rankGlobal.f }
-              : undefined,
-          ].filter(Boolean),
-        },
-      };
-
-    case 'repositories': {
-      const topRepo = stats?.repositories?.[0];
-
+    case 'repositories':
       return {
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
         url,
         name: title,
         description,
-        about: { '@type': 'Person', name, url: base },
+        about: person,
         mainEntity: {
           '@type': 'ItemList',
-          itemListElement: topRepo ? [{ '@type': 'ListItem', position: 1, name: topRepo.name, url: topRepo.url }] : [],
-        },
-      };
-    }
-    case 'languages':
-      return {
-        '@context': 'https://schema.org',
-        '@type': 'CollectionPage',
-        url,
-        name: title,
-        description,
-        about: { '@type': 'Person', name, url: base },
-        mainEntity: {
-          '@type': 'ItemList',
-          itemListElement: ((stats.sLangs as LanguagesType) ?? []).slice(0, 3).map((l, i) => ({
+          itemListElement: (stats?.repositories ?? []).map((repo, i) => ({
             '@type': 'ListItem',
             position: i + 1,
-            name: l.name,
-            description: l.rankGlobal?.s ? `Rank ${l.rankGlobal.s}` : undefined,
+            name: repo.name,
+            url: repo.url,
           })),
         },
       };
+
+    case 'languages': {
+      const languages = ((stats.sLangs as LanguagesType) ?? []).filter((l) => l.score);
+      const rankOf = (l: NonNullable<LanguagesType>[number]) =>
+        scope === 'country' ? l.rankCountry?.s : l.rankGlobal?.s;
+
+      return {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        url,
+        name: title,
+        description,
+        about: person,
+        mainEntity: {
+          '@type': 'ItemList',
+          itemListElement: languages.map((l, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            name: l.name,
+            description: rankOf(l) ? `Rank ${rankOf(l)}` : undefined,
+          })),
+        },
+      };
+    }
   }
 }
 
-export function buildProfileTabSEO(tab: Tab, data: DataType) {
-  const { login, name } = data;
-  const avatarUrl = `${process.env.NEXT_PUBLIC_URI}/api/avatar/${encodeURIComponent(login)}`;
+/** Metadata for a profile tab and the JSON-LD to render on it. */
+export function buildProfileTabSEO(
+  tab: Tab,
+  data: DataType,
+  scope: Scope = 'global',
+): { metadata: Metadata; jsonLd: object[] } {
+  const { login, name, country } = data;
+  const avatarUrl = absoluteUrl(`/api/avatar/${encodeURIComponent(login)}`);
+  // Only the overview, ranks and languages tabs have a country variant.
+  const where = scope === 'country' && country ? `in ${country}` : '';
 
   const userName = `${login}${name ? ` (${name})` : ''}`;
-  const base = `${process.env.NEXT_PUBLIC_URI}/profile/${encodeURIComponent(login)}`;
-  const url = buildUrl(tab, base);
-  const title = buildTitle(tab, userName);
-  const description = buildDescription(tab, data);
+  const basePath = `/profile/${encodeURIComponent(login)}`;
+  // A user without a country has no country ranking, so the variant's title and description
+  // fall back to the global tab's, and it canonicalizes there rather than duplicating it.
+  const path = buildPath(tab, basePath, where ? scope : 'global');
+  const base = absoluteUrl(basePath);
+  const url = absoluteUrl(path);
+  const title = `${userName} - ${TAB_TITLES[tab]}${where ? ` ${where}` : ''}`;
+  const description =
+    buildDescription(tab, data, scope, where) ||
+    `${TAB_TITLES[tab]} of ${userName} on GitHub${where ? ` ${where}` : ''}.`;
+  const crumb = tab === 'overview' && !where ? undefined : `${TAB_CRUMBS[tab]}${where ? ` ${where}` : ''}`;
 
-  const { openGraph, twitter } = buildOpenGraphAndTwitter(title, description, url, avatarUrl);
-
-  const breadcrumbs = buildBreadcrumbs(userName, base, tab, url);
-  const tabSpecificJsonLd = buildTabSpecificJsonLd(tab, url, title, description, userName, base, data, avatarUrl);
-  const jsonLd = [tabSpecificJsonLd, breadcrumbs];
+  const person = buildPerson(data, base, avatarUrl);
+  const jsonLd = [
+    buildTabSpecificJsonLd(tab, scope, url, title, description, data, person),
+    buildBreadcrumbs(userName, base, crumb, url),
+  ];
 
   return {
-    title,
-    description,
-    openGraph,
-    twitter,
-    robots: {
-      index: true,
-      follow: true,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-      'max-video-preview': -1,
-    } as const,
+    metadata: {
+      ...pageMetadata({ title, description, path, images: [avatarUrl], openGraphType: 'profile' }),
+      robots: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+        'max-video-preview': -1,
+      },
+    },
     jsonLd,
   };
 }

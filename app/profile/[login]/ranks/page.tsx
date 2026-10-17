@@ -1,13 +1,13 @@
 'use cache';
 
+import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
-import type { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 
 import { buildProfileTabSEO } from '../seo';
 import { RanksPage } from './components/ranks-page';
 import { fetchProfilePageRanks } from '@/graphql/helpers/fetch-profile-page-ranks';
 
-export async function generateMetadata({ params }: LayoutProps<'/profile/[login]'>): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<'/profile/[login]/ranks'>): Promise<Metadata> {
   const { login } = await params;
   const user = await fetchProfilePageRanks(login);
 
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: LayoutProps<'/profile/[login]
     return {};
   }
 
-  return buildProfileTabSEO('ranks', user);
+  return buildProfileTabSEO('ranks', user).metadata;
 }
 
 export default async function ProfileRanks({ params }: PageProps<'/profile/[login]/ranks'>) {

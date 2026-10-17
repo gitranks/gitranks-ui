@@ -6,22 +6,35 @@ import { isCountrySummaryOrder } from './utils/is-country-summary-order';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
+import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
+import { CountrySummaryOrder } from '@/types/generated/graphql';
 import type { UserRankProp } from '@/types/ranking.types';
+import { parsePageParam } from '@/utils/parse-page-param';
+
+const ORDER_DESCRIPTIONS: Record<CountrySummaryOrder, string> = {
+  [CountrySummaryOrder.Stars]: 'Countries ranked by the stars on GitHub repositories owned by their developers',
+  [CountrySummaryOrder.Contributions]:
+    'Countries ranked by the stars on external GitHub repositories where their developers have merged pull requests',
+  [CountrySummaryOrder.Followers]: 'Countries ranked by the combined GitHub followers of their developers',
+  [CountrySummaryOrder.Users]: 'Countries ranked by their number of ranked GitHub developers',
+};
 
 export async function generateMetadata({ params }: LayoutProps<'/countries/[orderBy]/[page]'>): Promise<Metadata> {
-  const { orderBy, page } = await params;
+  const { orderBy, page: pageParam } = await params;
+  const page = parsePageParam(pageParam);
 
-  if (!isCountrySummaryOrder(orderBy)) {
-    throw new Error(`Invalid order by: ${orderBy}`);
+  if (!isCountrySummaryOrder(orderBy) || !page) {
+    notFound();
   }
 
-  const rankProp = orderBy.slice(0, 1) as UserRankProp;
+  const order = orderBy.toUpperCase() as CountrySummaryOrder;
+  const rankProp = order.slice(0, 1).toLowerCase() as UserRankProp;
 
-  return {
-    title: `Country ${RANK_NAME[rankProp]}ing · Page ${page} · GitRanks`,
-    description:
-      'Discover GitHub country rankings. Compare stars, contributions, and followers by nation, updated monthly. See where your country ranks.',
-  };
+  return pageMetadata({
+    title: `Country ${RANK_NAME[rankProp]}ing${pageSuffix(page)}`,
+    description: `${ORDER_DESCRIPTIONS[order]}${pageClause(page)}. See where your country ranks.`,
+    path: `/countries/${order.toLowerCase()}/${page}`,
+  });
 }
 
 export async function generateStaticParams() {

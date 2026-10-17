@@ -34,7 +34,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "types/**/*",
-    "../octoscope/apps/gitranks/src/common/utils/build-profile-description-prompt.ts",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [

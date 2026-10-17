@@ -37,7 +37,7 @@ Allow: /
 Disallow: /api/
 Disallow: /badge/builder/
 
-# Scrapers / noisy bots — do not crawl (also blocked at Cloudflare WAF)
+# Scrapers / noisy bots — do not crawl
 User-agent: SleepBot
 Disallow: /
 

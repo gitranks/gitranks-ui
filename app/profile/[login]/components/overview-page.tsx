@@ -79,7 +79,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
             languages={cLangs}
             snapshots={snapshots}
             totalRankedUsers={tiers?.cUsers ?? 0}
-            userRank={ranks?.sProvisional || ranks?.s}
+            userRank={ranks?.cProvisional || ranks?.c}
           />
         </OverviewCardsContainer>
       </div>

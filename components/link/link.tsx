@@ -2,6 +2,7 @@ import type { Route } from 'next';
 import NextLink from 'next/link';
 import type { FC } from 'react';
 
+import { LinkPendingStatus } from '../navigation-progress/navigation-progress';
 import type { LinkProps } from './link.types';
 import { cn } from '@/lib/utils';
 
@@ -13,5 +14,6 @@ export const Link: FC<LinkProps> = ({ children, className, href, prefetch = fals
     {...props}
   >
     {children}
+    <LinkPendingStatus />
   </NextLink>
 );

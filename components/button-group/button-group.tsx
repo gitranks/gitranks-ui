@@ -2,6 +2,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
 
+import { LinkPendingStatus } from '../navigation-progress/navigation-progress';
 import { cn } from '@/lib/utils';
 
 const GROUP_CLASSNAME =
@@ -33,6 +34,7 @@ export const LinkGroupItem: FC<LinkGroupItemProps> = ({ href, active, children }
   return (
     <Link href={href as Route} prefetch={false} data-state={active ? 'active' : undefined} className={ITEM_CLASSNAME}>
       {children}
+      <LinkPendingStatus />
     </Link>
   );
 };

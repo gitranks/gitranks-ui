@@ -128,6 +128,27 @@
   --color-link: var(--link);
 
   --animate-avatar-entry: avatarEntry 4s ease-out forwards;
+  --animate-navigation-progress: navigationProgress 1.2s ease-in-out infinite;
+  /* The delay keeps the bar hidden for navigations that finish quickly. */
+  --animate-navigation-progress-reveal: navigationProgressReveal 0.2s ease-out 0.15s both;
+
+  @keyframes navigationProgress {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(300%);
+    }
+  }
+
+  @keyframes navigationProgressReveal {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
 
   @keyframes avatarEntry {
     0% {

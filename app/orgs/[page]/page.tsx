@@ -11,6 +11,7 @@ import { Pagination } from '@/components/pagination/pagination';
 import { buildOrgRankingItemList } from '@/components/ranking-table/ranking-item-list';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { pageSuffix } from '@/lib/seo/page-metadata';
 import { OrgRankingsDocument } from '@/types/generated/graphql';
 import { parsePageParam } from '@/utils/parse-page-param';
@@ -21,7 +22,7 @@ export default async function OrgRanking({ params }: PageProps<'/orgs/[page]'>) 
   const { page: pageParam } = await params;
   const page = parsePageParam(pageParam);
 
-  if (!page) {
+  if (!page || page > RANKING_MAX_PAGE.org) {
     notFound();
   }
 
@@ -30,6 +31,10 @@ export default async function OrgRanking({ params }: PageProps<'/orgs/[page]'>) 
     graphqlDirect(OrgRankingsDocument, { offset }),
     fetchCountries(),
   ]);
+
+  if (!orgRankings.length && page > 1) {
+    notFound();
+  }
 
   return (
     <>

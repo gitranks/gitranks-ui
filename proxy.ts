@@ -1,8 +1,19 @@
+import { NextResponse } from 'next/server';
 import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
+import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 
-const { auth: proxy } = NextAuth(authConfig);
+const { auth } = NextAuth(authConfig);
+
+/** Matches no route, so a rewrite here renders `app/not-found.tsx` with a 404 status. */
+const NOT_FOUND_PATH = '/_404';
+
+const proxy = auth((request) => {
+  if (isInvalidRankingPath(request.nextUrl.pathname)) {
+    return NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+  }
+});
 
 export default proxy;
 

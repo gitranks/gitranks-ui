@@ -7,6 +7,7 @@ import { CountryCard } from '@/components/country-card/country-card';
 import { PageGrid } from '@/components/grid/grid';
 import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
+import { parsePageParam } from '@/utils/parse-page-param';
 
 const ITEMS_PER_PAGE = 24;
 
@@ -14,14 +15,19 @@ export default async function CountriesPage({ params }: PageProps<'/countries/[o
   cacheLife('hours');
   const { orderBy, page: pageParam } = await params;
 
-  if (!isCountrySummaryOrder(orderBy)) {
+  const page = parsePageParam(pageParam);
+
+  if (!isCountrySummaryOrder(orderBy) || !page) {
     return notFound();
   }
 
   const countrySummaries = await fetchCountrySummaries(orderBy);
-  const page = parseInt(pageParam, 10);
 
   const data = countrySummaries.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  if (!data.length && page > 1) {
+    notFound();
+  }
 
   return (
     <>
@@ -32,7 +38,7 @@ export default async function CountriesPage({ params }: PageProps<'/countries/[o
       </PageGrid>
       <Pagination
         prev={page > 1 ? `/countries/${orderBy}/${page - 1}` : undefined}
-        next={`/countries/${orderBy}/${page + 1}`}
+        next={countrySummaries.length > page * ITEMS_PER_PAGE ? `/countries/${orderBy}/${page + 1}` : undefined}
       />
     </>
   );

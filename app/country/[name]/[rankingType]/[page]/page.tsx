@@ -9,6 +9,7 @@ import { buildUserRankingItemList } from '@/components/ranking-table/ranking-ite
 import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { pageSuffix } from '@/lib/seo/page-metadata';
 import { CountryRankingsDocument } from '@/types/generated/graphql';
 import { getRankingOrder } from '@/utils/get-ranking-config-by-type';
@@ -28,7 +29,7 @@ export default async function CountryRanking({ params }: PageProps<'/country/[na
   // Case variants (`germany`) render the stored spelling's ranking and canonicalize to it.
   const countryName = await resolveCountryName(decodeURIComponent(name));
 
-  if (!isRankingType(rankingType) || !page || !countryName) {
+  if (!isRankingType(rankingType) || !page || page > RANKING_MAX_PAGE.country || !countryName) {
     notFound();
   }
 
@@ -38,6 +39,10 @@ export default async function CountryRanking({ params }: PageProps<'/country/[na
     graphqlDirect(CountryRankingsDocument, { order: queryOrder, offset, country: countryName }),
     fetchCountries(),
   ]);
+
+  if (!countryRankings.length) {
+    notFound();
+  }
 
   const [title] = getRankingTitle(rankingType, countryName);
   const basePath = `/country/${encodeURIComponent(countryName)}/${rankingType}`;

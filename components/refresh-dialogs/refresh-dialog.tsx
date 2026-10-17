@@ -66,7 +66,7 @@ const ActionButton: FC<{ action: RefreshDialogAction; label: string; variant: 'd
     </Button>
   );
 
-/** A short note from the maker, with his photo: what the Refresh button needs and why. */
+/** A short note on what the Refresh button needs and why; the maker's own notes carry his photo. */
 export const RefreshDialog: FC<RefreshDialogProps> = ({
   open,
   onOpenChange,
@@ -82,15 +82,17 @@ export const RefreshDialog: FC<RefreshDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader className="flex-row items-center gap-3 text-left">
-          <Image
-            src={`${MAKER.avatarUrl}&s=${AVATAR_SIZE * 2}`}
-            alt={`${MAKER.name}, maker of GitRanks`}
-            className="rounded-full shrink-0"
-            width={AVATAR_SIZE}
-            height={AVATAR_SIZE}
-            // GitHub already serves it at 2× the size; the optimizer would fetch its smallest preset, 640 px.
-            unoptimized
-          />
+          {message.photo && (
+            <Image
+              src={`${MAKER.avatarUrl}&s=${AVATAR_SIZE * 2}`}
+              alt={`${MAKER.name}, maker of GitRanks`}
+              className="rounded-full shrink-0"
+              width={AVATAR_SIZE}
+              height={AVATAR_SIZE}
+              // GitHub already serves it at 2× the size; the optimizer would fetch its smallest preset, 640 px.
+              unoptimized
+            />
+          )}
           <DialogTitle className="text-lg leading-snug">{message.title}</DialogTitle>
         </DialogHeader>
 

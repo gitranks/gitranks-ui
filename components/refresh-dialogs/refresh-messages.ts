@@ -13,6 +13,8 @@ export const STAR_REPO_URL = 'https://github.com/gitranks/gitranks-ui';
 export const GITHUB_AUTHORIZATIONS_URL = 'https://github.com/settings/apps/authorizations';
 
 export type RefreshMessage = {
+  /** The maker's photo beside the title: on the notes that read as from him. */
+  photo?: boolean;
   title: string;
   paragraphs: string[];
   /** A numbered list after the paragraphs. */
@@ -22,7 +24,7 @@ export type RefreshMessage = {
   /** Small print after the steps. `noteLink` inside it becomes a link. */
   note?: string;
   noteLink?: { text: string; href: string };
-  /** Signed under the text; the photo is always at the top. */
+  /** Signed under the text. */
   signature?: string;
   primary: string;
   secondary: string;
@@ -36,6 +38,7 @@ const TOKEN_NOTE = {
 export const REFRESH_MESSAGES = {
   /** Not signed in, presses Refresh. */
   signIn: {
+    photo: true,
     title: 'Hi, I’m Vitalii 👋',
     paragraphs: [
       'I made GitRanks. Bots press this button a lot, and our GitHub limits are small.',
@@ -53,6 +56,7 @@ export const REFRESH_MESSAGES = {
 
   /** Signed in, own profile, the check found no star. */
   needStar: {
+    photo: true,
     title: 'Your refresh costs 1 star ⭐',
     paragraphs: [
       'That’s the full price. No card, no ads.',
@@ -70,8 +74,6 @@ export const REFRESH_MESSAGES = {
       'Your next refresh is in {time}.',
       'Too long? Use your own GitHub token and refresh any profile, any time. It runs on your GitHub limits, not ours, so there is no daily cap.',
     ],
-    ...TOKEN_NOTE,
-    signature: '— Vitalii',
     primary: 'Use my GitHub token',
     secondary: 'I’ll wait',
   },
@@ -84,7 +86,6 @@ export const REFRESH_MESSAGES = {
       'Use your own GitHub token to refresh any profile, any time. It runs on your GitHub limits, not ours.',
     ],
     ...TOKEN_NOTE,
-    signature: '— Vitalii',
     primary: 'Use my GitHub token',
     secondary: 'Maybe later',
   },

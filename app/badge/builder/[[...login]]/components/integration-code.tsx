@@ -4,15 +4,15 @@ import { Check, Clipboard } from 'lucide-react';
 import { type FC, useRef, useState } from 'react';
 
 import { useBadgeUrl } from '../hooks/useBadgeUrl';
-import type { LoginFormProps } from './login-form.types';
+import type { BadgeBuilderProfileProps } from './login-form.types';
 import { StepTitle } from './step-title';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
-export const IntegrationCode: FC<LoginFormProps> = ({ githubLogin, githubId }) => {
-  const url = useBadgeUrl(githubLogin, githubId);
+export const IntegrationCode: FC<BadgeBuilderProfileProps> = (props) => {
+  const { url } = useBadgeUrl(props);
 
-  const code = githubId ? `<img src="${url}" />` : '';
+  const code = url ? `<img src="${url}" />` : '';
   // const code = githubId ? `![GitRanks Badge](${url})` : ""; // Markdown alternative
 
   const [copied, setCopied] = useState(false);

@@ -1,5 +1,8 @@
 query ProfilesForSitemap {
   profilesForSitemap {
     login
+    s
+    c
+    f
   }
 }

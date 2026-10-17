@@ -9,3 +9,6 @@ export const RANK_NAME = {
   u: 'Users Rank',
   o: 'Organizations Rank',
 };
+
+/** A profile enters a ranking (and gets a badge for it) from this score up. */
+export const MIN_RANK_SCORE = 5;

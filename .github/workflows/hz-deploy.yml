@@ -65,15 +65,19 @@ jobs:
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_GITHUB_SECRET: ${{ secrets.AUTH_GITHUB_SECRET }}
           AUTH_GITHUB_ID: ${{ vars.AUTH_GITHUB_ID }}
+          AUTH_GITHUB_BASIC_SECRET: ${{ secrets.AUTH_GITHUB_BASIC_SECRET }}
+          AUTH_GITHUB_BASIC_ID: ${{ vars.AUTH_GITHUB_BASIC_ID }}
           AUTH_URL: ${{ vars.AUTH_URL }}
           NEXT_PUBLIC_URI: ${{ vars.NEXT_PUBLIC_URI }}
         run: |
           set -euo pipefail
-          for n in INTERNAL_JWT_SECRET AUTH_SECRET AUTH_GITHUB_SECRET AUTH_GITHUB_ID AUTH_URL NEXT_PUBLIC_URI; do
+          names="INTERNAL_JWT_SECRET AUTH_SECRET AUTH_GITHUB_SECRET AUTH_GITHUB_ID AUTH_GITHUB_BASIC_SECRET AUTH_GITHUB_BASIC_ID AUTH_URL NEXT_PUBLIC_URI"
+          for n in $names; do
             [ -n "${!n}" ] || { echo "$n is not set"; exit 1; }
           done
-          printf 'INTERNAL_JWT_SECRET=%s\nAUTH_SECRET=%s\nAUTH_GITHUB_SECRET=%s\nAUTH_GITHUB_ID=%s\nAUTH_URL=%s\nNEXT_PUBLIC_URI=%s\n' \
-            "$INTERNAL_JWT_SECRET" "$AUTH_SECRET" "$AUTH_GITHUB_SECRET" "$AUTH_GITHUB_ID" "$AUTH_URL" "$NEXT_PUBLIC_URI" |
+          for n in $names; do
+            printf '%s=%s\n' "$n" "${!n}"
+          done |
             ssh octo put-env ui-gitranks
 
       - name: Let the server pull the image

@@ -20,7 +20,7 @@ import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { fetchOrg } from '@/graphql/helpers/fetch-org';
 import { UserRankProp } from '@/types/ranking.types';
 
-export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<'/org/[login]'>): Promise<Metadata> {
   const { login } = await params;
   const org = await fetchOrg(login);
 
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
     return {};
   }
 
-  return buildOrgSEO(org);
+  return buildOrgSEO(org).metadata;
 }
 
 export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {

@@ -1,7 +1,7 @@
 'use cache';
 
+import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
-import type { Metadata } from 'next/dist/lib/metadata/types/metadata-interface';
 
 import { buildProfileTabSEO } from '../seo';
 import { LanguagesPage } from './components/languages-page';
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: PageProps<'/profile/[login]/l
     return {};
   }
 
-  return buildProfileTabSEO('languages', user);
+  return buildProfileTabSEO('languages', user).metadata;
 }
 
 export default async function ProfileLanguages({ params }: PageProps<'/profile/[login]/languages'>) {

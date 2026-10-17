@@ -5,9 +5,11 @@ import { LayoutLeftColumn } from '../../components/layout-left-column';
 import { ProfileCardsGrid } from '../../components/profile-card';
 import { ProfileRankingSwitcher } from '../../components/profile-ranking-switcher';
 import NotFound from '../../not-found';
+import { buildProfileTabSEO } from '../../seo';
 import { ProfileRankCharts } from './profile-rank-charts';
 import { RankBreakdownTooltip } from './rank-breakdown-tooltip';
 import { RANK_DESCRIPTIONS } from '@/app/app.consts';
+import { JsonLd } from '@/components/json-ld/json-ld';
 import { RankCard } from '@/components/rank-card/rank-card';
 import type { PageProfileRanksQuery, RankTier } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
@@ -53,6 +55,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
 
   return (
     <LayoutLeftColumn user={user}>
+      <JsonLd payloads={buildProfileTabSEO('ranks', user, isGlobalContext ? 'global' : 'country').jsonLd} />
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Profile Ranks</h2>
         <ProfileRankingSwitcher countryName={country} />

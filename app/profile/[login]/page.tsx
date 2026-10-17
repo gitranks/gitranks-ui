@@ -7,7 +7,7 @@ import { OverviewPage } from './components/overview-page';
 import { buildProfileTabSEO } from './seo';
 import { fetchProfilePageOverview } from '@/graphql/helpers/fetch-profile-page-overview';
 
-export async function generateMetadata({ params }: { params: Promise<{ login: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<'/profile/[login]'>): Promise<Metadata> {
   const { login } = await params;
   const user = await fetchProfilePageOverview(login);
 
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ login: st
     return {};
   }
 
-  return buildProfileTabSEO('overview', user);
+  return buildProfileTabSEO('overview', user).metadata;
 }
 
 export default async function ProfileOverviewPage({ params }: PageProps<'/profile/[login]'>) {

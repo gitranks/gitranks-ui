@@ -1,4 +1,9 @@
+import type { Metadata } from 'next';
+
+import { pageMetadata } from '@/lib/seo/page-metadata';
+import { absoluteUrl } from '@/lib/seo/site';
 import type { PageOrgQuery } from '@/types/generated/graphql';
+import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 import { formatNumberShort } from '@/utils/format-number-short';
 import { formatOrdinal } from '@/utils/format-ordinal';
 
@@ -22,37 +27,24 @@ function buildOverviewDescription(stats: DataType): string {
   return clip(parts.filter(Boolean).join(' '));
 }
 
-function buildOpenGraphAndTwitter(title: string, description: string, url: string, ogImage?: string) {
-  const openGraph = {
-    title,
-    description,
-    url,
-    type: 'profile' as const,
-    images: ogImage ? [{ url: ogImage }] : undefined,
-  };
-
-  const twitter = {
-    card: 'summary_large_image' as const,
-    title,
-    description,
-    images: ogImage ? [ogImage] : undefined,
-  };
-
-  return { openGraph, twitter };
-}
-
 function buildBreadcrumbs(name: string, url: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: process.env.NEXT_PUBLIC_URI },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: absoluteUrl('/') },
       { '@type': 'ListItem', position: 2, name, item: url },
     ],
   };
 }
 
-function buildTabSpecificJsonLd(url: string, title: string, description: string, name: string, avatarUrl?: string) {
+function buildTabSpecificJsonLd(data: DataType, url: string, title: string, description: string, avatarUrl: string) {
+  const { login, name, websiteUrl } = data;
+  // The links the sidebar shows: GitHub and the organization's website.
+  const sameAs = [`https://github.com/${login}`, ensureLinkProtocol(websiteUrl)].filter(
+    (link): link is string => !!link && URL.canParse(link),
+  );
+
   return {
     '@context': 'https://schema.org',
     '@type': 'ProfilePage',
@@ -61,45 +53,45 @@ function buildTabSpecificJsonLd(url: string, title: string, description: string,
     description,
     mainEntity: {
       '@type': 'Organization',
-      name,
+      name: name || login,
+      alternateName: login,
       url,
-      ...(avatarUrl && { image: avatarUrl }),
+      image: avatarUrl,
+      sameAs,
     },
   };
 }
 
-export function buildOrgSEO(data: DataType) {
+/** Metadata for an organization page and the JSON-LD to render on it. */
+export function buildOrgSEO(data: DataType): { metadata: Metadata; jsonLd: object[] } {
   const { login, name } = data;
 
   if (!login) {
-    return { jsonLd: [] };
+    return { metadata: {}, jsonLd: [] };
   }
 
-  const avatarUrl = `${process.env.NEXT_PUBLIC_URI}/api/avatar/${encodeURIComponent(login)}`;
+  const avatarUrl = absoluteUrl(`/api/avatar/${encodeURIComponent(login)}`);
 
   const userName = `${login}${name ? ` (${name})` : ''}`;
-  const url = `${process.env.NEXT_PUBLIC_URI}/org/${encodeURIComponent(login)}`;
-  const title = `${name} - GitHub Analytics | GitRanks`;
-  const description = buildOverviewDescription(data);
-
-  const { openGraph, twitter } = buildOpenGraphAndTwitter(title, description, url, avatarUrl);
+  const path = `/org/${encodeURIComponent(login)}`;
+  const url = absoluteUrl(path);
+  const title = `${name || login} - GitHub Analytics`;
+  const description = buildOverviewDescription(data) || `GitHub analytics for the ${name || login} organization.`;
 
   const breadcrumbs = buildBreadcrumbs(userName, url);
-  const tabSpecificJsonLd = buildTabSpecificJsonLd(url, title, description, userName, avatarUrl);
-  const jsonLd = [tabSpecificJsonLd, breadcrumbs];
+  const tabSpecificJsonLd = buildTabSpecificJsonLd(data, url, title, description, avatarUrl);
 
   return {
-    title,
-    description,
-    openGraph,
-    twitter,
-    robots: {
-      index: true,
-      follow: true,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-      'max-video-preview': -1,
-    } as const,
-    jsonLd,
+    metadata: {
+      ...pageMetadata({ title, description, path, images: [avatarUrl], openGraphType: 'profile' }),
+      robots: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+        'max-video-preview': -1,
+      },
+    },
+    jsonLd: [tabSpecificJsonLd, breadcrumbs],
   };
 }

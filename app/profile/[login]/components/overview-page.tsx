@@ -54,7 +54,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) =
 
   return (
     <LayoutLeftColumn user={user} className="gap-10">
-      <JsonLd payloads={buildProfileTabSEO('overview', user).jsonLd} />
+      <JsonLd payloads={buildProfileTabSEO('overview', user, isGlobalContext ? 'global' : 'country').jsonLd} />
 
       <div className="flex flex-col gap-3">
         <h2 className="text-xl font-semibold">Profile Overview</h2>

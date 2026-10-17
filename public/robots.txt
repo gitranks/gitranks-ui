@@ -1,6 +1,11 @@
 # `/badge/builder/` blocks only the thin per-login builder pages;
 # the bare `/badge/builder` and `/badge/gallery` stay crawlable.
-# Search engines we want indexed (Google ignores Crawl-delay)
+#
+# Crawl-delay is the pause, in seconds, between two requests from one crawler.
+# Google ignores it; the other crawlers below honour it. 2 seconds caps a
+# crawler at about 43,000 pages a day.
+
+# Search engines (Google ignores Crawl-delay)
 User-agent: Googlebot
 Allow: /
 Allow: /api/avatar/
@@ -9,15 +14,8 @@ Disallow: /api/
 Disallow: /badge/builder/
 
 User-agent: Bingbot
-Crawl-delay: 5
-Allow: /
-Allow: /api/avatar/
-Allow: /api/badge/
-Disallow: /api/
-Disallow: /badge/builder/
-
 User-agent: DuckDuckBot
-Crawl-delay: 5
+Crawl-delay: 2
 Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
@@ -25,7 +23,7 @@ Disallow: /api/
 Disallow: /badge/builder/
 
 User-agent: Applebot
-Crawl-delay: 10
+Crawl-delay: 5
 Allow: /
 Allow: /api/avatar/
 Allow: /api/badge/
@@ -40,7 +38,30 @@ Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
 
-# SEO tooling — keep allowed, but crawl slowly
+# AI search crawlers: they index pages so AI assistants can cite and link them
+User-agent: OAI-SearchBot
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: DuckAssistBot
+User-agent: Amzn-SearchBot
+Crawl-delay: 2
+Allow: /
+Allow: /api/avatar/
+Allow: /api/badge/
+Disallow: /api/
+Disallow: /badge/builder/
+
+# AI assistants fetching a page because a person asked about it right now
+User-agent: ChatGPT-User
+User-agent: Claude-User
+User-agent: Perplexity-User
+Allow: /
+Allow: /api/avatar/
+Allow: /api/badge/
+Disallow: /api/
+Disallow: /badge/builder/
+
+# SEO tooling: allowed, but crawls slowly
 User-agent: AhrefsBot
 Crawl-delay: 30
 Allow: /
@@ -49,14 +70,11 @@ Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
 
-# Scrapers / noisy bots — do not crawl
+# Scrapers and SEO crawlers: do not crawl
 User-agent: SleepBot
 Disallow: /
 
 User-agent: DataForSeoBot
-Disallow: /
-
-User-agent: Amzn-SearchBot
 Disallow: /
 
 User-agent: SemrushBot
@@ -69,9 +87,6 @@ User-agent: ShapBot
 Disallow: /
 
 User-agent: MJ12bot
-Disallow: /
-
-User-agent: Claude-SearchBot
 Disallow: /
 
 # Everyone else

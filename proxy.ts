@@ -15,7 +15,7 @@ const NOT_FOUND_PATH = '/_404';
 // `__Secure-` over HTTPS, bare in local dev; `.0`, `.1`… when the JWT is split across cookies.
 const SESSION_COOKIE = /^(__Secure-)?authjs\.session-token(\.\d+)?$/;
 
-export default function proxy(request: NextRequest, event: NextFetchEvent) {
+export default async function proxy(request: NextRequest, event: NextFetchEvent) {
   // Checked before Auth.js: its wrapper rebuilds the request on the configured auth URL's origin,
   // which would turn this rewrite into an external one. It also keeps session cookies off 404s.
   if (isInvalidRankingPath(request.nextUrl.pathname)) {
@@ -30,7 +30,11 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
-  return withAuth(request, event);
+  // A signed-in response carries the rotated session cookie: never let a shared cache keep it,
+  // whatever that cache decides about the request on its own.
+  const response = await withAuth(request, event);
+  response?.headers.set('Cache-Control', 'private, no-cache');
+  return response;
 }
 
 /** Static assets and the always-anonymous routes never need the proxy. */

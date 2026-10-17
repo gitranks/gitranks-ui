@@ -1,6 +1,23 @@
 import type { NextConfig } from 'next';
+import { HTML_LIMITED_BOT_UA_RE } from 'next/dist/shared/lib/router/utils/html-bots';
 
 const isDev = process.env.NODE_ENV === 'development';
+
+// Bots on this list get metadata blocking in <head> instead of streamed into <body>. Setting the
+// option replaces Next's default list, so extend it with AI crawlers and fetchers that read the
+// raw HTML without running scripts.
+const AI_HTML_BOTS = [
+  'GPTBot',
+  'OAI-SearchBot',
+  'ChatGPT-User',
+  'ClaudeBot',
+  'Claude-SearchBot',
+  'Claude-User',
+  'PerplexityBot',
+  'Perplexity-User',
+  'meta-externalagent',
+];
+const htmlLimitedBots = new RegExp(`${HTML_LIMITED_BOT_UA_RE.source}|${AI_HTML_BOTS.join('|')}`, 'i');
 
 const nextConfig: NextConfig = {
   output: 'standalone',
@@ -14,6 +31,7 @@ const nextConfig: NextConfig = {
   },
   skipTrailingSlashRedirect: true,
   typedRoutes: true,
+  htmlLimitedBots,
   // satori/resvg load WASM/native binaries by filesystem path; bundling breaks that under Turbopack.
   serverExternalPackages: ['@resvg/resvg-js', 'satori', 'harfbuzzjs', 'yoga-wasm-web'],
   async redirects() {

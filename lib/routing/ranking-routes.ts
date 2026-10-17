@@ -1,8 +1,9 @@
 import { parsePageParam } from '@/utils/parse-page-param';
 
 /**
- * Deepest page each ranking can serve at 100 rows a page: the rankings query takes offsets up to
- * 100,000 for the global and country rankings and up to 5,000 for languages and organizations.
+ * Deepest page each ranking can serve. The ranking tables show 100 rows a page, and the rankings
+ * query takes offsets up to 100,000 for the global and country rankings and up to 5,000 for
+ * languages and organizations. The language summaries (24 a page) get a ceiling of their own.
  */
 export const RANKING_MAX_PAGE = {
   global: 1001,

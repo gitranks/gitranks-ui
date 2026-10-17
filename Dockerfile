@@ -5,7 +5,7 @@ FROM node:26-alpine AS base
 # and the build fails because this variable is not set
 # this must be understood and fixed in the future
 # for now just make nextjs happy by setting this variable
-ENV MONGODB_URI_AUTH=mongodb://localhost:27020/auth
+ENV MONGODB_URI_AUTH=mongodb://localhost/placeholder
 
 ARG NEXT_PUBLIC_URI
 ENV NEXT_PUBLIC_URI=$NEXT_PUBLIC_URI

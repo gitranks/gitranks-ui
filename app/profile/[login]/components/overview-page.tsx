@@ -142,7 +142,9 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
 
       {!!scope && <RankHistoryTable history={rankHistory} scope={scope} />}
 
-      {isGlobalContext && <StarsRankNeighbours login={login} neighbours={extras?.starsNeighbours ?? []} />}
+      {isGlobalContext && (
+        <StarsRankNeighbours login={login} rank={user.rankGlobal?.s} neighbours={extras?.starsNeighbours ?? []} />
+      )}
 
       {!!timeline?.length && <ProfileTimeline timeline={timeline} firstSeenAt={firstSeenAt} />}
 

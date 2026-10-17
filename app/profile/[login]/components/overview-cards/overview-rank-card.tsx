@@ -49,7 +49,9 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers,
   const sRank = rankInfo(ranks, UserRankProp.s)?.rank;
   const cRank = rankInfo(ranks, UserRankProp.c)?.rank;
   const fRank = rankInfo(ranks, UserRankProp.f)?.rank;
-  const labelOf = (prop: UserRankProp) => `${RANK_NAME[prop]}${scope ? ` ${scope}` : ''}`;
+  // A provisional rank is marked in the label only; the footer looks as it did.
+  const labelOf = (prop: UserRankProp) =>
+    `${RANK_NAME[prop]}${scope ? ` ${scope}` : ''}${rankInfo(ranks, prop)?.provisional ? ' (provisional)' : ''}`;
 
   const getCardContent = () => {
     if (sTier?.notAvailable && cTier?.notAvailable && fTier?.notAvailable) {

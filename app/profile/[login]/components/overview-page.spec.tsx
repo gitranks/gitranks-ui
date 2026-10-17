@@ -64,6 +64,12 @@ describe('OverviewPage text', () => {
     expect(pageText({ user: ranked })).toContain('Stars Rank in Germany: #4');
   });
 
+  it('marks a provisional rank in the card label', () => {
+    expect(pageText({ user: { ...ranked, rankGlobal: { sProvisional: 42 } }, isGlobalContext: true })).toContain(
+      'Stars Rank worldwide (provisional): #42',
+    );
+  });
+
   it('names no scope on the country tab of a profile without a country', () => {
     const text = pageText({ user: { ...ranked, country: null, rankCountry: null } });
 

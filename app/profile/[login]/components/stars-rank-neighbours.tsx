@@ -6,6 +6,8 @@ import type { StarsNeighbour } from '@/graphql/helpers/fetch-stars-neighbours';
 
 type StarsRankNeighboursProps = {
   login: string;
+  /** The profile's own worldwide Stars Rank. */
+  rank?: number | null;
   neighbours: StarsNeighbour[];
 };
 
@@ -13,9 +15,12 @@ export const NEIGHBOURS_EACH_SIDE = 5;
 
 const HEADING_ID = 'stars-neighbours-heading';
 
-/** The rows around the profile's own row, or none when the profile is not among them. */
-export function pickNeighbours(login: string, rows: StarsNeighbour[]): StarsNeighbour[] {
-  const self = rows.findIndex((row) => row.login.toLowerCase() === login.toLowerCase());
+/**
+ * The rows around the profile's own row, or none when the profile is not among them at its current rank:
+ * a window read before the last ranking update would show it at its old place.
+ */
+export function pickNeighbours(login: string, rank: number | null | undefined, rows: StarsNeighbour[]) {
+  const self = rows.findIndex((row) => row.rank === rank && row.login.toLowerCase() === login.toLowerCase());
 
   if (self < 0) {
     return [];
@@ -27,8 +32,8 @@ export function pickNeighbours(login: string, rows: StarsNeighbour[]): StarsNeig
 }
 
 /** The developers ranked just above and below the profile worldwide by stars, linked to their profiles. */
-export const StarsRankNeighbours: FC<StarsRankNeighboursProps> = ({ login, neighbours }) => {
-  const rows = pickNeighbours(login, neighbours);
+export const StarsRankNeighbours: FC<StarsRankNeighboursProps> = ({ login, rank, neighbours }) => {
+  const rows = pickNeighbours(login, rank, neighbours);
 
   if (!rows.length) {
     return null;

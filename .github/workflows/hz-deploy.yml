@@ -1,13 +1,4 @@
-# Deploys the UI to the new server. deploy.yml (the DigitalOcean one) stays until the cutover.
-#
-# The image is built here as before; the server side is `octo-deploy`, which pins the commit SHA,
-# checks the environment file, waits for health, asserts the port bindings and rolls back on failure.
-# Ports, memory limits and service addresses live on the server, not here. Secrets travel on stdin
-# into a root-only file - never on a command line.
-#
-# Repository configuration: vars HZ_HOST_A (tailnet name of the server), HZ_KNOWN_HOSTS (its SSH host
-# key); secrets HZ_DEPLOY_SSH_KEY (the `deploy` user's key), TS_OAUTH_CLIENT_ID / TS_OAUTH_SECRET
-# (a Tailscale OAuth client for tag:ci), GHCR_PAT (lets the server pull the image).
+# Builds the image and deploys it; configuration lives in the repository settings.
 name: Deploy ui (new server)
 
 on:
@@ -68,8 +59,6 @@ jobs:
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           printf 'Host octo\n  HostName %s\n  User deploy\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n' "$HOST" > ~/.ssh/config
 
-      # Only what the app reads at runtime. The database connection string and the API address are
-      # set on the server.
       - name: Send the environment file
         env:
           INTERNAL_JWT_SECRET: ${{ secrets.INTERNAL_JWT_SECRET }}

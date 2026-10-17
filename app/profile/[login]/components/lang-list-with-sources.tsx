@@ -19,7 +19,7 @@ export type RepoSource = {
 
 export type ContributionSource = RepoSource & {
   prsCount: number;
-  /** Absent when the contributions fetch had to skip the diff stats — see `hasLinesChanged`. */
+  /** Can be missing — see `hasLinesChanged`. */
   linesAdded?: number | null;
   linesRemoved?: number | null;
   url: string;

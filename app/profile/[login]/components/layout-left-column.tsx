@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
-import { BriefcaseBusiness, ExternalLink, Hourglass, Link2, Mail, MapPin, Timer, UsersRound } from 'lucide-react';
+import { BriefcaseBusiness, ExternalLink, Hourglass, Link2, Mail, Timer, UsersRound } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
@@ -7,6 +7,7 @@ import type { FC, ReactNode } from 'react';
 import { getSocialIcon } from '../utils/get-social-icon';
 import { FetchUserButtonForProfilePage } from './fetch-user-button';
 import { ProfileListItem } from './profile-list-item';
+import { ProfileLocation } from './profile-location';
 import {
   ActionsContainer,
   AvatarAndNameContainer,
@@ -54,7 +55,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
           </AvatarContainer>
           <NameContainer>
             <h1 className="font-semibold text-2xl" translate="no">
-              {user.name}
+              {user.name || user.login}
             </h1>
             <h2 className="text-muted-foreground" translate="no">
               @{user.login}
@@ -76,10 +77,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
         <DetailsContainer>
           <div className="flex flex-col gap-1.5">
             {!!user.location && (
-              <ProfileListItem
-                value={`${user.countryFlag ? `${user.countryFlag} ` : ''}${user.location}`}
-                Icon={MapPin}
-              />
+              <ProfileLocation location={user.location} country={user.country} countryFlag={user.countryFlag} />
             )}
             <ProfileListItem value={user.company} Icon={BriefcaseBusiness} />
             <ProfileListItem value={`Profile age: ${formatDistanceToNow(user.githubCreatedAt)}`} Icon={Hourglass} />
@@ -113,24 +111,26 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
             <div className="flex flex-col gap-1.5">
               <h4 className="text-lg font-semibold">Organizations</h4>
               <div className="flex gap-1 flex-wrap">
-                {user.organizations?.map((org) => (
-                  <TooltipProvider key={org.login}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link href={`https://github.com/${org.login}`} target="_blank" rel="noopener noreferrer">
-                          <Image
-                            src={org.avatarUrl!}
-                            alt={org.login ?? ''}
-                            width={32}
-                            height={32}
-                            className="rounded-sm bg-secondary"
-                          />
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>{org.login}</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ))}
+                {user.organizations
+                  ?.filter((org) => org.login)
+                  .map((org) => (
+                    <TooltipProvider key={org.login}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link href={`/org/${org.login}`} prefetch={false}>
+                            <Image
+                              src={org.avatarUrl!}
+                              alt={org.login ?? ''}
+                              width={32}
+                              height={32}
+                              className="rounded-sm bg-secondary"
+                            />
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent>{org.login}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
               </div>
             </div>
           )}

@@ -10,6 +10,7 @@ import { buildUserRankingItemList } from '@/components/ranking-table/ranking-ite
 import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { pageSuffix } from '@/lib/seo/page-metadata';
 import { GlobalRankingsDocument } from '@/types/generated/graphql';
 import { getRankingOrder } from '@/utils/get-ranking-config-by-type';
@@ -26,7 +27,7 @@ export default async function GlobalRanking({ params }: PageProps<'/by/[rankingT
   const { rankingType, page: pageParam } = await params;
   const page = parsePageParam(pageParam);
 
-  if (!isRankingType(rankingType) || !page) {
+  if (!isRankingType(rankingType) || !page || page > RANKING_MAX_PAGE.global) {
     notFound();
   }
 
@@ -36,6 +37,10 @@ export default async function GlobalRanking({ params }: PageProps<'/by/[rankingT
     graphqlDirect(GlobalRankingsDocument, { order: queryOrder, offset }),
     fetchCountries(),
   ]);
+
+  if (!globalRankings.length && page > 1) {
+    notFound();
+  }
 
   const [title] = getRankingTitle(rankingType);
   const path = `/by/${rankingType}/${page}`;

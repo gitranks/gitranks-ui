@@ -13,18 +13,24 @@ query BadgeProfileWithRanks(
     snapshots
     rankGlobal @include(if: $includeRankGlobal) {
       s
+      sProvisional
       sM
       c
+      cProvisional
       cM
       f
+      fProvisional
       fM
     }
     rankCountry @include(if: $includeRankCountry) {
       s
+      sProvisional
       sM
       c
+      cProvisional
       cM
       f
+      fProvisional
       fM
     }
   }

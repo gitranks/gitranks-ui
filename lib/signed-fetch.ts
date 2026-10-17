@@ -12,7 +12,7 @@ type InternalClaims = {
 
 const isBuildPhase = () => process.env.NEXT_PHASE === 'phase-production-build';
 
-/** Sent during `next build` only; see internal deployment notes. */
+/** Sent during `next build` only. */
 const CF_BUILD_BYPASS_HEADER = 'x-gitranks-build';
 
 /**

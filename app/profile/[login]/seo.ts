@@ -225,7 +225,8 @@ export function buildProfileTabSEO(
 
   const userName = `${login}${name ? ` (${name})` : ''}`;
   const basePath = `/profile/${encodeURIComponent(login)}`;
-  // Without a country the variant shows the global tab's content, so it points at that tab.
+  // A user without a country has no country ranking, so the variant's title and description
+  // fall back to the global tab's, and it canonicalizes there rather than duplicating it.
   const path = buildPath(tab, basePath, where ? scope : 'global');
   const base = absoluteUrl(basePath);
   const url = absoluteUrl(path);

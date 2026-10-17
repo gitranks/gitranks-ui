@@ -181,7 +181,10 @@ type OrganizationBasic {
 
 type ProfileForSitemap {
   avatarUrl: String
+  c: Int
+  f: Int
   login: String!
+  s: Int
 }
 
 type Query {

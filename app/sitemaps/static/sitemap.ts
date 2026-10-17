@@ -12,5 +12,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     sitemapEntry('/insights', { priority: 0.7 }),
     sitemapEntry('/badge/gallery', { priority: 0.8 }),
     sitemapEntry('/badge/builder', { priority: 0.8 }),
+    sitemapEntry('/methodology', { priority: 0.6 }),
   ];
 }

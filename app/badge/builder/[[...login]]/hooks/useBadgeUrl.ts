@@ -11,6 +11,8 @@ import type { UserRankProp } from '@/types/ranking.types';
 
 type BadgeUrlResult = {
   url: string;
+  /** The profile page the embedded badge links to; set together with `url`. */
+  profileUrl?: string;
   /** Set when the profile is not in the chosen ranking in the chosen context: its badge would only show an error. */
   unranked?: { ranking: UserRankProp; context: BadgeContext };
 };
@@ -45,5 +47,8 @@ export const useBadgeUrl = ({ githubLogin, githubId, rankedIn }: BadgeBuilderPro
   }
 
   const queryParams = new URLSearchParams(values).toString();
-  return { url: `${origin}/api/badge/v2/${githubLogin}${(queryParams ? '?' : '') + queryParams}` };
+  return {
+    url: `${origin}/api/badge/v2/${githubLogin}${(queryParams ? '?' : '') + queryParams}`,
+    profileUrl: `${origin}/profile/${githubLogin}`,
+  };
 };

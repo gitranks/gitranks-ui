@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import type { LoginFormProps } from './login-form.types';
 import { StepTitle } from './step-title';
+import { LinkPendingStatus } from '@/components/navigation-progress/navigation-progress';
 import { Button } from '@/components/ui/button';
 import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -62,6 +63,7 @@ export const LoginForm: FC<LoginFormProps> = ({ githubLogin = '', githubId }) =>
                       correct, visit the{' '}
                       <Link href={`/profile/${githubLogin}`} prefetch={false} className="underline">
                         GitRanks profile page
+                        <LinkPendingStatus />
                       </Link>{' '}
                       to fetch it from GitHub manually.
                     </>

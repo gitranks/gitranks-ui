@@ -1,10 +1,11 @@
 'use client';
 
 import type { Route } from 'next';
-import Link from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { FC, ReactNode } from 'react';
 
+import { useReportPendingNavigation } from '@/components/navigation-progress/navigation-progress';
 import { cn } from '@/lib/utils';
 
 type TabProps = {
@@ -12,6 +13,27 @@ type TabProps = {
   children: ReactNode;
   exact?: boolean;
   pathnames?: string[];
+};
+
+/**
+ * Underlines the clicked tab at once and shows the progress bar while its page loads: tab pages
+ * have no loading.tsx, so the current page stays on screen until the next one is ready. The
+ * underline takes the active colour, since the pointer is usually still over the tab and the
+ * hover border would hide a muted one.
+ */
+const TabPendingHint: FC = () => {
+  const { pending } = useLinkStatus();
+  useReportPendingNavigation(pending);
+
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'absolute inset-x-0 -bottom-0.5 h-0.5 bg-foreground opacity-0 transition-opacity',
+        pending && 'opacity-100',
+      )}
+    />
+  );
 };
 
 export const Tab: FC<TabProps> = ({ href, children, exact, pathnames }) => {
@@ -31,12 +53,13 @@ export const Tab: FC<TabProps> = ({ href, children, exact, pathnames }) => {
       <Link
         href={href as Route}
         prefetch={false}
-        className={cn('inline-block p-4 pt-0 border-b-2 rounded-t-lg', {
+        className={cn('relative inline-block p-4 pt-0 border-b-2 rounded-t-lg', {
           'border-transparent hover:border-muted-foreground': !active,
           'border-foreground text-foreground font-semibold': active,
         })}
       >
         {children}
+        <TabPendingHint />
       </Link>
     </li>
   );

@@ -40,9 +40,9 @@ export function LinkPendingStatus() {
 }
 
 /**
- * A thin bar at the top of the page while a navigation is pending. Ranking routes have no
- * loading.tsx (its boundary would stream the table into a hidden segment after the footer), so
- * a page that is not cached yet keeps the previous page on screen until it is ready.
+ * A thin bar at the top of the page while a navigation is pending. Ranking, profile and org routes
+ * have no loading.tsx (its boundary would stream the page into a hidden segment after the footer),
+ * so a page that is not cached yet keeps the previous page on screen until it is ready.
  */
 export function NavigationProgress() {
   const pending = useSyncExternalStore(

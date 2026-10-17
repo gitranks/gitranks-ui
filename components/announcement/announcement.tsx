@@ -3,7 +3,7 @@
 import { sendGAEvent } from '@next/third-parties/google';
 import { StarIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useLocalStorage, useMediaQuery } from 'usehooks-ts';
+import { useIsClient, useLocalStorage, useMediaQuery } from 'usehooks-ts';
 
 import { Button } from '../ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -36,8 +36,12 @@ export const Announcement = () => {
   const [dismissed, setDismissed] = useLocalStorage('announcement-dismissed', false);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [state, setState] = useState<AnnouncementState>('default');
+  // The server knows neither the viewport nor localStorage, so it renders nothing; the hydration
+  // render must match it. Both hooks already hold the browser's values by then, so the banner
+  // appears right after mount, and never flashes for someone who dismissed it.
+  const isClient = useIsClient();
 
-  if (dismissed || !isDesktop) {
+  if (!isClient || dismissed || !isDesktop) {
     return null;
   }
 

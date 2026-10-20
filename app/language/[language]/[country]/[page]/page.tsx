@@ -11,9 +11,8 @@ import { buildUserRankingItemList } from '@/components/ranking-table/ranking-ite
 import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchCountryLanguageRankings } from '@/graphql/helpers/fetch-country-language-rankings';
-import { fetchCountryLanguageSummaries } from '@/graphql/helpers/fetch-country-language-summary';
+import { fetchCountryLanguageFacts, fetchLanguageFacts } from '@/graphql/helpers/fetch-language-facts';
 import { fetchLanguageRankings } from '@/graphql/helpers/fetch-language-rankings';
-import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary';
 import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { pageSuffix } from '@/lib/seo/page-metadata';
 import { type GlobalRankingsQuery, LanguageSummaryOrder } from '@/types/generated/graphql';
@@ -48,8 +47,7 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
 
   const offset = (page - 1) * ITEMS_PER_PAGE;
   const isFirstPage = page === 1;
-  // Every language's place by stars, to find this one's: the summary has no lookup by language. An extra
-  // fact for page one; the ranking still renders when it fails.
+  // Every language's place by stars, to find this one's: the summary has no lookup by language.
   const summaryOrder = { order: LanguageSummaryOrder.Score, limit: 100 };
   const [data, countries, summaries] = await Promise.all([
     method({ language: languageName, country: countryName, offset }),
@@ -57,8 +55,8 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
     !isFirstPage
       ? []
       : isGlobal
-        ? fetchLanguageSummaries(summaryOrder).catch(() => [])
-        : fetchCountryLanguageSummaries({ ...summaryOrder, country: countryName }).catch(() => []),
+        ? fetchLanguageFacts(summaryOrder)
+        : fetchCountryLanguageFacts({ ...summaryOrder, country: countryName }),
   ]);
 
   if (!data.length) {

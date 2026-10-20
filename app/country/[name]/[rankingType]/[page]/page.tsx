@@ -10,7 +10,7 @@ import { buildRankingStats } from '@/components/ranking-stats/ranking-stats.util
 import { buildUserRankingItemList } from '@/components/ranking-table/ranking-item-list';
 import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
-import { fetchCountryLanguageSummaries } from '@/graphql/helpers/fetch-country-language-summary';
+import { fetchCountryLanguageFacts } from '@/graphql/helpers/fetch-language-facts';
 import { fetchRankedCounts } from '@/graphql/helpers/fetch-ranked-counts';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
@@ -46,13 +46,8 @@ export default async function CountryRanking({ params }: PageProps<'/country/[na
   const [{ countryRankings }, countries, rankedCounts, languages] = await Promise.all([
     graphqlDirect(CountryRankingsDocument, { order: queryOrder, offset, country: countryName }),
     fetchCountries(),
-    // Extra facts for page one; the ranking still renders when one of them fails.
-    isFirstPage ? fetchRankedCounts(countryName).catch(() => null) : null,
-    isFirstPage
-      ? fetchCountryLanguageSummaries({ country: countryName, order: LanguageSummaryOrder.Score, limit: 3 }).catch(
-          () => [],
-        )
-      : [],
+    isFirstPage ? fetchRankedCounts(countryName) : null,
+    isFirstPage ? fetchCountryLanguageFacts({ country: countryName, order: LanguageSummaryOrder.Score, limit: 3 }) : [],
   ]);
 
   if (!countryRankings.length) {

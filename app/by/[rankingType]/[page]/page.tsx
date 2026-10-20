@@ -11,7 +11,7 @@ import { buildRankingStats } from '@/components/ranking-stats/ranking-stats.util
 import { buildUserRankingItemList } from '@/components/ranking-table/ranking-item-list';
 import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
-import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary';
+import { fetchLanguageFacts } from '@/graphql/helpers/fetch-language-facts';
 import { fetchRankedCounts } from '@/graphql/helpers/fetch-ranked-counts';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
@@ -41,9 +41,8 @@ export default async function GlobalRanking({ params }: PageProps<'/by/[rankingT
   const [{ globalRankings }, countries, rankedCounts, languages] = await Promise.all([
     graphqlDirect(GlobalRankingsDocument, { order: queryOrder, offset }),
     fetchCountries(),
-    // Extra facts for page one; the ranking still renders when one of them fails.
-    isFirstPage ? fetchRankedCounts('global').catch(() => null) : null,
-    isFirstPage ? fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, limit: 3 }).catch(() => []) : [],
+    isFirstPage ? fetchRankedCounts('global') : null,
+    isFirstPage ? fetchLanguageFacts({ order: LanguageSummaryOrder.Score, limit: 3 }) : [],
   ]);
 
   if (!globalRankings.length && page > 1) {

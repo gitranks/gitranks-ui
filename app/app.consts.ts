@@ -27,7 +27,7 @@ export const RANK_DESCRIPTIONS = {
     descriptionList: 'Ranks count stars from repos where a developer has merged PRs — excluding their own.',
     descriptionProfile: `Counts stars on repos owned by others with merged PRs from this profile. Listed only if those repos have ${MIN_VALUE}+ stars in total.`,
     entityName: 'star',
-    notRankedMessage: `Profiles need merged PRs in repos with ${MIN_VALUE}+ stars in total to be ranked.`,
+    notRankedMessage: `Profiles need ${MIN_VALUE}+ stars in total on others' repos they have merged PRs in to be ranked.`,
   },
   f: {
     title: RANK_NAME.f,
@@ -43,10 +43,9 @@ export const LANGUAGE = {
     'See which programming languages are the most popular worldwide. Browse detailed summaries by stars and code size - and dive into rankings for each language, globally or by country.',
   order: {
     stars:
-      "Calculated from repository stars, weighted by each repo's language breakdown. For example, if a repo has 100 stars and is 60% JavaScript, then JavaScript receives 60 stars from that repo. We aggregate this across all public repos with 5+ stars",
-    size: 'The total code size of the language, summed across all public repositories with 5+ stars.',
-    users:
-      'How many users with at least one public repo with 5+ stars have this language in their public repositories.',
+      "Calculated from repository stars, weighted by each repo's language breakdown. For example, if a repo has 100 stars and is 60% JavaScript, then JavaScript receives 60 stars from that repo. We aggregate this across the public repositories of developers on GitRanks.",
+    size: 'The total code size of the language, summed across the public repositories of developers on GitRanks.',
+    users: 'How many developers on GitRanks have this language among their top 5.',
   },
 };
 

@@ -65,8 +65,8 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers,
     if (!bestTier?.data?.tier) {
       return (
         <div className="flex grow items-center">
-          No rank yet! To unlock your spot you&apos;ll need 5 stars, 5 followers, or 5 stars on repos you&apos;ve
-          contributed to. You&apos;re just getting started - keep going!
+          No rank yet! To unlock your spot you&apos;ll need 5 stars on your own repos, 5 followers, or 5 stars on
+          others&apos; repos you&apos;ve contributed to. You&apos;re just getting started - keep going!
         </div>
       );
     }

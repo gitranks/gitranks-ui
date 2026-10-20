@@ -6,7 +6,7 @@ import { UserContributionsList } from '../repositories/components/user-contribut
 import { UserRepositoriesList } from '../repositories/components/user-repositories-list';
 import { buildProfileTabSEO } from '../seo';
 import { ProfileTimeline } from '../timeline/components/profile-timeline';
-import { buildProfileSummary, countryInSentence } from '../utils/profile-summary';
+import { buildProfileSummary } from '../utils/profile-summary';
 import { buildRankHistory } from '../utils/rank-history';
 import { LayoutLeftColumn } from './layout-left-column';
 import { MessengerIntegration } from './messenger-integration';
@@ -22,6 +22,7 @@ import { JsonLd } from '@/components/json-ld/json-ld';
 import { Link } from '@/components/link/link';
 import type { ProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
+import { countryInSentence } from '@/utils/country-in-sentence';
 
 type OverviewPageProps = {
   user: PageProfileOverviewQuery['user'];

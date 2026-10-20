@@ -11,6 +11,7 @@ import { fetchRankedCounts } from '@/graphql/helpers/fetch-ranked-counts';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
 import { CountrySummaryOrder } from '@/types/generated/graphql';
+import { formatSummaryDate } from '@/utils/format-summary-date';
 
 export const metadata: Metadata = pageMetadata({
   title: { absolute: 'How GitRanks Ranks GitHub Developers' },
@@ -19,14 +20,6 @@ export const metadata: Metadata = pageMetadata({
 });
 
 const formatNumber = (value: number) => value.toLocaleString('en-US');
-
-/** `2026-10-01` → `October 1, 2026`; anything else as it came. */
-const formatSummaryDate = (date: string) => {
-  const parsed = new Date(`${date}T00:00:00Z`);
-  return Number.isNaN(parsed.getTime())
-    ? date
-    : parsed.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-};
 
 const formatShare = (fraction: number) => `${Math.round(fraction * 100)}%`;
 

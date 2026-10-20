@@ -5,14 +5,18 @@ import { notFound } from 'next/navigation';
 
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { Pagination } from '@/components/pagination/pagination';
+import { RankingStats } from '@/components/ranking-stats/ranking-stats';
+import { buildLanguageRankingStats } from '@/components/ranking-stats/ranking-stats.utils';
 import { buildUserRankingItemList } from '@/components/ranking-table/ranking-item-list';
 import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchCountryLanguageRankings } from '@/graphql/helpers/fetch-country-language-rankings';
+import { fetchCountryLanguageSummaries } from '@/graphql/helpers/fetch-country-language-summary';
 import { fetchLanguageRankings } from '@/graphql/helpers/fetch-language-rankings';
+import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary';
 import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { pageSuffix } from '@/lib/seo/page-metadata';
-import type { GlobalRankingsQuery } from '@/types/generated/graphql';
+import { type GlobalRankingsQuery, LanguageSummaryOrder } from '@/types/generated/graphql';
 import { RankingTypeClient } from '@/types/ranking.types';
 import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 import { parsePageParam } from '@/utils/parse-page-param';
@@ -43,9 +47,17 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
   const method = isGlobal ? fetchLanguageRankings : fetchCountryLanguageRankings;
 
   const offset = (page - 1) * ITEMS_PER_PAGE;
-  const [data, countries] = await Promise.all([
+  const isFirstPage = page === 1;
+  // Every language's place by stars, to find this one's: the summary has no lookup by language.
+  const summaryOrder = { order: LanguageSummaryOrder.Score, limit: 100 };
+  const [data, countries, summaries] = await Promise.all([
     method({ language: languageName, country: countryName, offset }),
     fetchCountries(),
+    !isFirstPage
+      ? []
+      : isGlobal
+        ? fetchLanguageSummaries(summaryOrder)
+        : fetchCountryLanguageSummaries({ ...summaryOrder, country: countryName }),
   ]);
 
   if (!data.length) {
@@ -54,6 +66,17 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
 
   // sorry, but I have to :)
   const rows = data as GlobalRankingsQuery['globalRankings'];
+
+  const summaryIndex = summaries.findIndex(({ language: name }) => name === languageName);
+  const summary = summaries[summaryIndex];
+  const stats = isFirstPage
+    ? buildLanguageRankingStats({
+        language: languageName,
+        country: isGlobal ? undefined : countryName,
+        summary: summary ? { position: summaryIndex + 1, usersCount: summary.usersCount, date: summary.date } : null,
+        leaders: rows.flatMap((row) => (row.user ? [{ login: row.user.login, score: row.user.s }] : [])),
+      })
+    : [];
 
   return (
     <>
@@ -74,6 +97,7 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
         countries={countries}
         getCountryHref={(rowCountry) => getLanguageRankingPath(languageName, rowCountry)}
       />
+      <RankingStats parts={stats} />
       <Pagination
         prev={page > 1 ? getLanguageRankingPath(languageName, countryName, page - 1) : undefined}
         next={

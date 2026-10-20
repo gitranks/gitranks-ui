@@ -27,11 +27,11 @@ const ORDER_DESCRIPTIONS: Record<LanguageSummaryOrder, (where: string) => [strin
     OPEN_A_LANGUAGE,
   ],
   [LanguageSummaryOrder.Size]: (where) => [
-    `Programming languages ranked by total code size across public GitHub repositories with 5+ stars${where}`,
+    `Programming languages ranked by total code size across the public repositories of developers on GitRanks${where}`,
     OPEN_A_LANGUAGE,
   ],
   [LanguageSummaryOrder.Users]: (where) => [
-    `Programming languages ranked by how many GitHub developers${where} use them in public repositories with 5+ stars`,
+    `Programming languages ranked by how many developers on GitRanks${where} have them among their top 5`,
     '',
   ],
 };

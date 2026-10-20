@@ -53,7 +53,7 @@ describe('badge builder for a ranking the profile is not in', () => {
 
     for (const searchParams of ['', '?context=country']) {
       expect(render(searchParams, <Preview {...profile} rankedIn={none} />)).toContain(
-        'newcomer is not in any ranking yet: it takes 5 stars, 5 followers, or a merged PR in a 5★ repo.',
+        'newcomer is not in any ranking yet: it takes 5 stars on its own repos, 5 followers, or 5 stars on others&#x27; repos it contributed to.',
       );
     }
   });

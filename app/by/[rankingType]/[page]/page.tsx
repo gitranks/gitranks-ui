@@ -41,8 +41,9 @@ export default async function GlobalRanking({ params }: PageProps<'/by/[rankingT
   const [{ globalRankings }, countries, rankedCounts, languages] = await Promise.all([
     graphqlDirect(GlobalRankingsDocument, { order: queryOrder, offset }),
     fetchCountries(),
-    isFirstPage ? fetchRankedCounts('global') : null,
-    isFirstPage ? fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, limit: 3 }) : [],
+    // Extra facts for page one; the ranking still renders when one of them fails.
+    isFirstPage ? fetchRankedCounts('global').catch(() => null) : null,
+    isFirstPage ? fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, limit: 3 }).catch(() => []) : [],
   ]);
 
   if (!globalRankings.length && page > 1) {
@@ -56,9 +57,9 @@ export default async function GlobalRanking({ params }: PageProps<'/by/[rankingT
     ? buildRankingStats({
         rankingType,
         rankedCount: rankedCounts?.[`${rankProp}Users`],
-        leaders: globalRankings.flatMap((row) =>
-          row.user ? [{ login: row.user.login, score: row.user[rankProp] }] : [],
-        ),
+        leaders: globalRankings
+          .slice(0, 3)
+          .flatMap((row) => (row.user ? [{ login: row.user.login, score: row.user[rankProp] }] : [])),
         languages: languages.length
           ? { names: languages.map(({ language }) => language), date: languages[0].date }
           : null,

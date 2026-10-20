@@ -23,7 +23,7 @@ describe('buildRankingStats', () => {
     });
 
     expect(text(parts)).toBe(
-      'At the latest weekly count, 1,657,241 developers are in the worldwide stars ranking: everyone with 5+ stars on repositories they own. ' +
+      'At the latest weekly count, 1,657,241 developers are in the worldwide stars ranking. Entry takes 5+ stars on repositories the developer owns. ' +
         'The top three are @alice (264,651 stars), @bob (1 star) and @carol (900 stars). ' +
         'By stars, the leading languages on GitRanks are TypeScript, Python and Rust (summary of October 1, 2026). ' +
         'How rankings work.',
@@ -49,7 +49,7 @@ describe('buildRankingStats', () => {
     });
 
     expect(text(parts)).toContain(
-      '275,264 developers are in the contributor ranking for the United States: everyone with 5+ stars in total on other accounts',
+      '275,264 developers are in the contributor ranking for the United States. Entry takes 5+ stars in total on other accounts',
     );
     expect(text(parts)).toContain('The top two are @alice (264,651 stars) and @bob (1 star). ');
     expect(text(parts)).toContain('the leading languages among developers in the United States are C# ');
@@ -64,7 +64,7 @@ describe('buildRankingStats', () => {
     });
 
     expect(text(parts)).toBe(
-      'At the latest weekly count, 1 developer is in the worldwide followers ranking: everyone with 5+ followers. ' +
+      'At the latest weekly count, 1 developer is in the worldwide followers ranking. Entry takes 5+ followers. ' +
         'The top developer is @alice (7 followers). How rankings work.',
     );
   });
@@ -98,7 +98,7 @@ describe('buildLanguageRankingStats', () => {
 
     expect(text(parts)).toBe(
       'TypeScript is the #3 language by stars on GitRanks, and one of the top 5 languages of 123,456 developers (summary of October 1, 2026). ' +
-        'Developers are ranked by the TypeScript share of the stars on repositories they own. ' +
+        'Developers who have TypeScript among their top 5 languages are ranked by its share of the stars on repositories they own. ' +
         'The top three are @alice (264,651 TypeScript stars), @bob (1 TypeScript star) and @carol (900 TypeScript stars). ' +
         'How rankings work.',
     );
@@ -119,7 +119,7 @@ describe('buildLanguageRankingStats', () => {
     );
 
     expect(text(buildLanguageRankingStats({ language: 'Go', summary: null, leaders: [] }))).toBe(
-      'Developers are ranked by the Go share of the stars on repositories they own. How rankings work.',
+      'Developers who have Go among their top 5 languages are ranked by its share of the stars on repositories they own. How rankings work.',
     );
   });
 });

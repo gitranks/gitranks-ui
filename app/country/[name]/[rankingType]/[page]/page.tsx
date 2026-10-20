@@ -46,9 +46,12 @@ export default async function CountryRanking({ params }: PageProps<'/country/[na
   const [{ countryRankings }, countries, rankedCounts, languages] = await Promise.all([
     graphqlDirect(CountryRankingsDocument, { order: queryOrder, offset, country: countryName }),
     fetchCountries(),
-    isFirstPage ? fetchRankedCounts(countryName) : null,
+    // Extra facts for page one; the ranking still renders when one of them fails.
+    isFirstPage ? fetchRankedCounts(countryName).catch(() => null) : null,
     isFirstPage
-      ? fetchCountryLanguageSummaries({ country: countryName, order: LanguageSummaryOrder.Score, limit: 3 })
+      ? fetchCountryLanguageSummaries({ country: countryName, order: LanguageSummaryOrder.Score, limit: 3 }).catch(
+          () => [],
+        )
       : [],
   ]);
 
@@ -64,9 +67,9 @@ export default async function CountryRanking({ params }: PageProps<'/country/[na
         rankingType,
         country: countryName,
         rankedCount: rankedCounts?.[`${rankProp}Users`],
-        leaders: countryRankings.flatMap((row) =>
-          row.user ? [{ login: row.user.login, score: row.user[rankProp] }] : [],
-        ),
+        leaders: countryRankings
+          .slice(0, 3)
+          .flatMap((row) => (row.user ? [{ login: row.user.login, score: row.user[rankProp] }] : [])),
         languages: languages.length
           ? { names: languages.map(({ language }) => language), date: languages[0].date }
           : null,

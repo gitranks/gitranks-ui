@@ -48,7 +48,8 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
 
   const offset = (page - 1) * ITEMS_PER_PAGE;
   const isFirstPage = page === 1;
-  // Every language's place by stars, to find this one's: the summary has no lookup by language.
+  // Every language's place by stars, to find this one's: the summary has no lookup by language. An extra
+  // fact for page one; the ranking still renders when it fails.
   const summaryOrder = { order: LanguageSummaryOrder.Score, limit: 100 };
   const [data, countries, summaries] = await Promise.all([
     method({ language: languageName, country: countryName, offset }),
@@ -56,8 +57,8 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
     !isFirstPage
       ? []
       : isGlobal
-        ? fetchLanguageSummaries(summaryOrder)
-        : fetchCountryLanguageSummaries({ ...summaryOrder, country: countryName }),
+        ? fetchLanguageSummaries(summaryOrder).catch(() => [])
+        : fetchCountryLanguageSummaries({ ...summaryOrder, country: countryName }).catch(() => []),
   ]);
 
   if (!data.length) {
@@ -74,7 +75,7 @@ export default async function LanguageRanking({ params }: PageProps<'/language/[
         language: languageName,
         country: isGlobal ? undefined : countryName,
         summary: summary ? { position: summaryIndex + 1, usersCount: summary.usersCount, date: summary.date } : null,
-        leaders: rows.flatMap((row) => (row.user ? [{ login: row.user.login, score: row.user.s }] : [])),
+        leaders: rows.slice(0, 3).flatMap((row) => (row.user ? [{ login: row.user.login, score: row.user.s }] : [])),
       })
     : [];
 

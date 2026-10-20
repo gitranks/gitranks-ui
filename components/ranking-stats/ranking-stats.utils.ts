@@ -18,12 +18,12 @@ export type LanguageSummaryFacts = { names: string[]; date: string };
 const RANKINGS: Record<RankingTypeClient, { name: string; entry: string; unit: [string, string] }> = {
   [RankingTypeClient.Star]: {
     name: 'stars ranking',
-    entry: `${MIN_VALUE}+ stars on repositories they own`,
+    entry: `${MIN_VALUE}+ stars on repositories the developer owns`,
     unit: ['star', 'stars'],
   },
   [RankingTypeClient.Contribution]: {
     name: 'contributor ranking',
-    entry: `${MIN_VALUE}+ stars in total on other accounts' repositories they have merged pull requests into`,
+    entry: `${MIN_VALUE}+ stars in total on other accounts' repositories the developer has merged pull requests into`,
     unit: ['star', 'stars'],
   },
   [RankingTypeClient.Follower]: {
@@ -91,7 +91,7 @@ export function buildRankingStats({
   if (rankedCount) {
     const ranking = country ? `the ${name} for ${countryInSentence(country)}` : `the worldwide ${name}`;
     parts.push(
-      `At the latest weekly count, ${count(rankedCount, ['developer is', 'developers are'])} in ${ranking}: everyone with ${entry}. `,
+      `At the latest weekly count, ${count(rankedCount, ['developer is', 'developers are'])} in ${ranking}. Entry takes ${entry}. `,
     );
   }
 
@@ -139,7 +139,7 @@ export function buildLanguageRankingStats({
   }
 
   parts.push(
-    `Developers are ranked by the ${language} share of the stars on repositories they own. `,
+    `Developers who have ${language} among their top 5 languages are ranked by its share of the stars on repositories they own. `,
     ...leadersSentence(leaders, [`${language} star`, `${language} stars`]),
     METHODOLOGY,
     '.',

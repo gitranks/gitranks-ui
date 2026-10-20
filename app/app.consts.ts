@@ -12,22 +12,22 @@ export const MIN_PROFILES_THRESHOLD = 100;
 export const ITEMS_PER_PAGE = 100;
 export const MAX_PAGES = 50;
 
-export const NOT_AVAILABLE = `Tiers are available for rankings with over ${MIN_PROFILES_THRESHOLD} profiles.`;
+export const NOT_AVAILABLE = `Tiers are available for rankings with ${MIN_PROFILES_THRESHOLD} or more profiles.`;
 
 export const RANK_DESCRIPTIONS = {
   s: {
     title: RANK_NAME.s,
     descriptionList: `Rank is based on the total number of stars across repositories owned by a user.`,
-    descriptionProfile: `Counts stars on repositories owned by the profile. The ranking includes only profiles that have at least one repository with ${MIN_VALUE}+ stars.`,
+    descriptionProfile: `Counts stars on repositories owned by the profile. The ranking includes only profiles with ${MIN_VALUE}+ stars in total.`,
     entityName: 'star',
-    notRankedMessage: `A profile must own at least one repository with ${MIN_VALUE}+ stars to be ranked.`,
+    notRankedMessage: `A profile needs ${MIN_VALUE}+ stars on repositories it owns to be ranked.`,
   },
   c: {
     title: RANK_NAME.c,
     descriptionList: 'Ranks count stars from repos where a developer has merged PRs — excluding their own.',
-    descriptionProfile: `Counts stars on repos owned by others with merged PRs from this profile. Listed only if it has contributed to at least one repo with ${MIN_VALUE}+ stars.`,
+    descriptionProfile: `Counts stars on repos owned by others with merged PRs from this profile. Listed only if those repos have ${MIN_VALUE}+ stars in total.`,
     entityName: 'star',
-    notRankedMessage: `Profiles need a merged PR in a repo with ${MIN_VALUE}+ stars to be ranked.`,
+    notRankedMessage: `Profiles need merged PRs in repos with ${MIN_VALUE}+ stars in total to be ranked.`,
   },
   f: {
     title: RANK_NAME.f,

@@ -13,7 +13,7 @@ import { shortenCountryName } from '@/utils/country-name-shortener';
 // Same wording as the profile's rank card.
 const RANKING_ENTRY: Record<UserRankProp, string> = {
   [UserRankProp.s]: `${MIN_RANK_SCORE} stars`,
-  [UserRankProp.c]: `a merged PR in a ${MIN_RANK_SCORE}★ repo`,
+  [UserRankProp.c]: `${MIN_RANK_SCORE} stars on repos it contributed to`,
   [UserRankProp.f]: `${MIN_RANK_SCORE} followers`,
 };
 

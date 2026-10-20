@@ -17,9 +17,9 @@ export default async function BadgeGallery() {
         <BadgeTitle>GitHub Rank</BadgeTitle>
         <BadgeDescription>
           Shows your position among all GitHub profiles worldwide - <strong>GitHub Rank</strong> includes developers
-          with at least one repository having 5+ stars, <strong>Contributors Rank</strong> features those who&apos;ve
-          merged pull requests into such repositories, and <strong>Followers Rank</strong> highlights profiles with 5+
-          followers.
+          with 5+ stars on their own repositories, <strong>Contributors Rank</strong> features those who&apos;ve merged
+          pull requests into others&apos; repositories with 5+ stars in total, and <strong>Followers Rank</strong>{' '}
+          highlights profiles with 5+ followers.
         </BadgeDescription>
 
         <BadgeExamplesWrapper>
@@ -72,8 +72,8 @@ export default async function BadgeGallery() {
         <BadgeTitle>GitHub Percentile</BadgeTitle>
         <BadgeDescription>
           Shows your position in the GitHub community as a percentile - only profiles meeting the ranking criteria are
-          included, such as having 5+ stars on owned repositories, merging PRs into repositories with 5+ stars, or
-          having 5+ followers.
+          included, such as having 5+ stars on owned repositories, 5+ stars across repositories they&apos;ve merged PRs
+          into, or 5+ followers.
         </BadgeDescription>
         <BadgeExamplesWrapper>
           <BadgeExample label={RANK_NAME.s} type={BadgeType.Percentile} valueBgColor="#7f5539" />

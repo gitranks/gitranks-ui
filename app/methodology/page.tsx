@@ -158,6 +158,10 @@ export default function MethodologyPage() {
             ranks higher. A developer is listed in every ranking they qualify for: up to three worldwide ranks, and the
             same three in their country.
           </p>
+          <p>
+            Stars that don&apos;t look like organic interest in a project may be left out of the stars ranking, while
+            they are reviewed or for good; the developer&apos;s profile then says how many.
+          </p>
         </Section>
 
         <Section title="Countries, languages and organizations">

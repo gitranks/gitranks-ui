@@ -70,11 +70,14 @@ What other messages mean:
 
 Next writes two more caches at runtime, under `/app/.next/cache`. The script leaves both alone:
 
-- `images`: optimized images. Next caps this one itself: `images.maximumDiskCacheSize` in
-  `next.config.ts` (512 MB), least recently used deleted first.
-- `fetch-cache`: the bodies of `fetch` calls that ask to be cached (`next.revalidate`,
-  `cache: 'force-cache'`). Next never evicts it, so cache small responses only. The avatar route
-  fetches with `cache: 'no-store'` for this reason: crawlers walk it one login at a time.
+- `images`: optimized images. Next caps this one itself with `images.maximumDiskCacheSize` in
+  `next.config.ts` and deletes the least recently used first. The cap counts image bytes only;
+  each entry is also a folder, so `du` shows about 1.5 times the cap.
+- `fetch-cache`: the responses of `fetch` calls that ask to be cached (`next.revalidate`,
+  `cache: 'force-cache'`). Next never evicts it. The cache key is the whole request: URL, method,
+  every header and the body. A fetch whose key changes per call (a per-login URL, a freshly signed
+  token in a header) writes a new entry each time and never reads one back. Such fetches pass no
+  cache option at all: the avatar route and the insight requests are two of them.
 
 ```bash
 # Size of all three

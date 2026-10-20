@@ -1,0 +1,7 @@
+query CountryLanguageFacts($country: String!, $order: LanguageSummaryOrder, $limit: Int = 24) {
+  countryLanguageSummary(order: $order, limit: $limit, country: $country) {
+    language
+    date
+    usersCount
+  }
+}

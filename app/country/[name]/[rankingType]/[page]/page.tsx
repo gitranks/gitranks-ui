@@ -5,14 +5,18 @@ import { notFound } from 'next/navigation';
 
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { Pagination } from '@/components/pagination/pagination';
+import { RankingStats } from '@/components/ranking-stats/ranking-stats';
+import { buildRankingStats } from '@/components/ranking-stats/ranking-stats.utils';
 import { buildUserRankingItemList } from '@/components/ranking-table/ranking-item-list';
 import { RankingTable } from '@/components/ranking-table/ranking-table';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
+import { fetchCountryLanguageSummaries } from '@/graphql/helpers/fetch-country-language-summary';
+import { fetchRankedCounts } from '@/graphql/helpers/fetch-ranked-counts';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { pageSuffix } from '@/lib/seo/page-metadata';
-import { CountryRankingsDocument } from '@/types/generated/graphql';
-import { getRankingOrder } from '@/utils/get-ranking-config-by-type';
+import { CountryRankingsDocument, LanguageSummaryOrder } from '@/types/generated/graphql';
+import { getRankingConfigByType, getRankingOrder } from '@/utils/get-ranking-config-by-type';
 import { getRankingTitle } from '@/utils/get-ranking-title';
 import { isRankingType } from '@/utils/is-ranking-type';
 import { parsePageParam } from '@/utils/parse-page-param';
@@ -38,9 +42,17 @@ export default async function CountryRanking({ params }: PageProps<'/country/[na
 
   const queryOrder = getRankingOrder(rankingType);
   const offset = (page - 1) * ITEMS_PER_PAGE;
-  const [{ countryRankings }, countries] = await Promise.all([
+  const isFirstPage = page === 1;
+  const [{ countryRankings }, countries, rankedCounts, languages] = await Promise.all([
     graphqlDirect(CountryRankingsDocument, { order: queryOrder, offset, country: countryName }),
     fetchCountries(),
+    // Extra facts for page one; the ranking still renders when one of them fails.
+    isFirstPage ? fetchRankedCounts(countryName).catch(() => null) : null,
+    isFirstPage
+      ? fetchCountryLanguageSummaries({ country: countryName, order: LanguageSummaryOrder.Score, limit: 3 }).catch(
+          () => [],
+        )
+      : [],
   ]);
 
   if (!countryRankings.length) {
@@ -49,6 +61,20 @@ export default async function CountryRanking({ params }: PageProps<'/country/[na
 
   const [title] = getRankingTitle(rankingType, countryName);
   const basePath = `/country/${encodeURIComponent(countryName)}/${rankingType}`;
+  const [rankProp] = getRankingConfigByType(rankingType);
+  const stats = isFirstPage
+    ? buildRankingStats({
+        rankingType,
+        country: countryName,
+        rankedCount: rankedCounts?.[`${rankProp}Users`],
+        leaders: countryRankings
+          .slice(0, 3)
+          .flatMap((row) => (row.user ? [{ login: row.user.login, score: row.user[rankProp] }] : [])),
+        languages: languages.length
+          ? { names: languages.map(({ language }) => language), date: languages[0].date }
+          : null,
+      })
+    : [];
 
   return (
     <>
@@ -64,6 +90,7 @@ export default async function CountryRanking({ params }: PageProps<'/country/[na
         ]}
       />
       <RankingTable rankingType={rankingType} data={countryRankings} countries={countries} />
+      <RankingStats parts={stats} />
       <Pagination
         prev={page > 1 ? `${basePath}/${page - 1}` : undefined}
         next={

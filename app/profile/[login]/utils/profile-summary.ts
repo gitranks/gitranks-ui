@@ -2,6 +2,7 @@ import type { Route } from 'next';
 
 import { RANK_NAME } from '@/badge/badge.consts';
 import { UserRankProp } from '@/types/ranking.types';
+import { countryInSentence } from '@/utils/country-in-sentence';
 import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 import { getTypeByRankProp } from '@/utils/get-rank-prop-by-ranking-type';
 
@@ -62,14 +63,6 @@ export const rankInfo = (ranks: Ranks | undefined, prop: UserRankProp): RankInfo
 
   return provisional && provisional > 0 ? { rank: provisional, provisional: true } : undefined;
 };
-
-/** "the United States", "the Netherlands", "Germany". */
-export const countryInSentence = (country: string) =>
-  /^(United |Republic of |Democratic Republic )|( Islands| Republic)$|^(Netherlands|Caribbean Netherlands|Philippines|Bahamas|Gambia|Maldives|Comoros|Seychelles|British Indian Ocean Territory)$/.test(
-    country,
-  )
-    ? `the ${country}`
-    : country;
 
 const joinList = (items: SummaryPart[]): SummaryPart[] =>
   items.flatMap((item, i) => {

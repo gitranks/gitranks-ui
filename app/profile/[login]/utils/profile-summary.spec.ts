@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildProfileSummary, countryInSentence, type ProfileSummaryInput, type SummaryPart } from './profile-summary';
+import { buildProfileSummary, type ProfileSummaryInput, type SummaryPart } from './profile-summary';
 
 const summaryToText = (parts: SummaryPart[]) =>
   parts.map((part) => (typeof part === 'string' ? part : part.text)).join('');
@@ -137,21 +137,5 @@ describe('buildProfileSummary', () => {
 
   it('skips a date it cannot read', () => {
     expect(text({ updatedAt: 'not a date' })).not.toContain('Profile data updated');
-  });
-});
-
-describe('countryInSentence', () => {
-  it.each([
-    ['United States', 'the United States'],
-    ['United Kingdom', 'the United Kingdom'],
-    ['Netherlands', 'the Netherlands'],
-    ['Philippines', 'the Philippines'],
-    ['Czech Republic', 'the Czech Republic'],
-    ['Cayman Islands', 'the Cayman Islands'],
-    ['Democratic Republic of the Congo', 'the Democratic Republic of the Congo'],
-    ['Germany', 'Germany'],
-    ['Isle of Man', 'Isle of Man'],
-  ])('%s → %s', (country, expected) => {
-    expect(countryInSentence(country)).toBe(expected);
   });
 });

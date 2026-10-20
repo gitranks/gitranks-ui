@@ -7,13 +7,13 @@ type FetchInsightsOptions = {
 };
 
 export const fetchInsightsServer = async ({ skip = 0, limit = 20 }: FetchInsightsOptions = {}) => {
-  const { insights } = (await graphqlDirect(InsightsDocument, { skip, limit }, { revalidate: 60 })) ?? {};
+  const { insights } = (await graphqlDirect(InsightsDocument, { skip, limit })) ?? {};
 
   return { insights };
 };
 
 export const fetchInsightServer = async (id: string) => {
-  const { insight } = (await graphqlDirect(InsightDocument, { id }, { revalidate: 60 })) ?? {};
+  const { insight } = (await graphqlDirect(InsightDocument, { id })) ?? {};
 
   if (insight) {
     return { insight };

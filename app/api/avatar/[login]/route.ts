@@ -28,8 +28,10 @@ export async function GET(req: NextRequest, { params }: Props) {
       Accept: req.headers.get('accept') ?? 'image/*',
       // Never forward arbitrary user-provided headers
     },
-    // Let your platform/CDN cache it:
-    next: { revalidate: 60 * 60 * 24 }, // 1 day (app-level hint)
+    // No cache option on purpose. `next.revalidate` would store every avatar in Next's data cache
+    // on disk, which is never evicted, and crawlers ask for a new login almost every time.
+    // `cache: 'no-store'` would add no-cache headers to the upstream request. With neither, Next
+    // skips its data cache at request time. The Cache-Control this route sets below is unaffected.
   });
 
   // Pass through 304 to leverage browser/CDN cache

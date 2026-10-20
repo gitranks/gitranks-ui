@@ -10,14 +10,14 @@ Next.js keeps every page it renders on demand in its page cache under `/app/.nex
 no eviction. Each page there is a `.html` file, a `.meta` file, a `.segments` folder and sometimes a
 `.rsc` file. A new container starts from the image and drops them. Between deploys, though, they keep
 piling up for as long as visitors and crawlers find new URLs: ranking pages by country, language and
-page number, mostly. A cached page is about 400 KB.
+page number, mostly. A cached page is about 450 KB on disk.
 
 Once an hour the script:
 
 - counts the **runtime pages**: those newer than `/app/.next/page-cache-build-marker`, a file the
   `Dockerfile` touches after copying the build in. Pages prerendered at build time are not
   counted, unless Next renders one again at runtime: the new copy is a runtime page like any other;
-- keeps the newest 20,000 (about 8–9 GB) and deletes the rest, oldest first, each page as a whole;
+- keeps the newest 8,000 (about 3.5 GB) and deletes the rest, oldest first, each page as a whole;
 - removes the folders those deletions left empty;
 - deletes any entry whose name contains a newline. A request for an encoded newline (`%0A`) can
   create one, and the line-based listing can't parse it.
@@ -30,7 +30,7 @@ leading zero; otherwise the script logs why and does not start.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `PAGE_CACHE_MAX_PAGES` | `20000` | Runtime pages to keep |
+| `PAGE_CACHE_MAX_PAGES` | `8000` | Runtime pages to keep |
 | `PAGE_CACHE_INTERVAL` | `3600` | Seconds between passes; `0` runs one pass and exits |
 | `PAGE_CACHE_DIR` | `/app/.next/server/app` | The page cache |
 | `PAGE_CACHE_BUILD_MARKER` | `/app/.next/page-cache-build-marker` | Anything newer counts as written at runtime |
@@ -54,9 +54,9 @@ docker exec -e PAGE_CACHE_INTERVAL=0 <container> /app/lib/shell/page-cache-clean
 Expected log output:
 
 ```
-Sat Oct 17 12:00:00 UTC 2026 [page-cache-cleaner] Starting. Dir: /app/.next/server/app, cap: 20000 runtime pages, interval: 3600s
-Sat Oct 17 12:00:00 UTC 2026 [page-cache-cleaner] Found 47 runtime pages (cap 20000)
-Sat Oct 24 12:00:00 UTC 2026 [page-cache-cleaner] Found 20113 runtime pages, removed the oldest 113 (cap 20000)
+Sat Oct 17 12:00:00 UTC 2026 [page-cache-cleaner] Starting. Dir: /app/.next/server/app, cap: 8000 runtime pages, interval: 3600s
+Sat Oct 17 12:00:00 UTC 2026 [page-cache-cleaner] Found 47 runtime pages (cap 8000)
+Sat Oct 24 12:00:00 UTC 2026 [page-cache-cleaner] Found 8113 runtime pages, removed the oldest 113 (cap 8000)
 ```
 
 What other messages mean:

@@ -14,7 +14,7 @@
 
 CACHE_DIR="${PAGE_CACHE_DIR:-/app/.next/server/app}"
 BUILD_MARKER="${PAGE_CACHE_BUILD_MARKER:-/app/.next/page-cache-build-marker}"
-MAX_PAGES="${PAGE_CACHE_MAX_PAGES:-20000}"
+MAX_PAGES="${PAGE_CACHE_MAX_PAGES:-8000}"
 INTERVAL="${PAGE_CACHE_INTERVAL:-3600}" # seconds; 0 runs one pass and exits
 
 # Cache file names come from decoded URL paths, so a request for `%0A` leaves a name with a

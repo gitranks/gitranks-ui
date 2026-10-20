@@ -65,3 +65,18 @@ What other messages mean:
   longer puts the page cache or the marker where the script expects them. Check the `Dockerfile`.
 - `PAGE_CACHE_MAX_PAGES must be a whole number, got '…'; not starting`: fix the variable and restart.
 - `Cannot create a temporary file, skipping this pass`: `/tmp` isn't writable in the container.
+
+## The other runtime caches
+
+Next writes two more caches at runtime, under `/app/.next/cache`. The script leaves both alone:
+
+- `images`: optimized images. Next caps this one itself: `images.maximumDiskCacheSize` in
+  `next.config.ts` (512 MB), least recently used deleted first.
+- `fetch-cache`: the bodies of `fetch` calls that ask to be cached (`next.revalidate`,
+  `cache: 'force-cache'`). Next never evicts it, so cache small responses only. The avatar route
+  fetches with `cache: 'no-store'` for this reason: crawlers walk it one login at a time.
+
+```bash
+# Size of all three
+docker exec <container> du -sh /app/.next/server/app /app/.next/cache/images /app/.next/cache/fetch-cache
+```

@@ -28,8 +28,9 @@ export async function GET(req: NextRequest, { params }: Props) {
       Accept: req.headers.get('accept') ?? 'image/*',
       // Never forward arbitrary user-provided headers
     },
-    // Let your platform/CDN cache it:
-    next: { revalidate: 60 * 60 * 24 }, // 1 day (app-level hint)
+    // Kept out of Next's data cache: it writes every avatar to disk and never evicts, and crawlers
+    // ask for a different login almost every time. The response's Cache-Control still applies.
+    cache: 'no-store',
   });
 
   // Pass through 304 to leverage browser/CDN cache

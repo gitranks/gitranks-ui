@@ -37,6 +37,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ protocol: 'https', hostname: 'avatars.githubusercontent.com' }],
     imageSizes: [16, 20, 24, 32, 40],
     minimumCacheTTL: 60 * 60 * 24,
+    // Optimized images are kept on disk; without a cap Next allows them half the free disk space.
+    // Past this, the least recently used ones are deleted and optimized again when asked for.
+    maximumDiskCacheSize: 512 * 1024 * 1024,
   },
   skipTrailingSlashRedirect: true,
   typedRoutes: true,

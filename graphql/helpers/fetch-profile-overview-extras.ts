@@ -1,6 +1,6 @@
 import { fetchRankedCounts } from './fetch-ranked-counts';
 
-type RankedCounts = Awaited<ReturnType<typeof fetchRankedCounts>>;
+type RankedCounts = Exclude<Awaited<ReturnType<typeof fetchRankedCounts>>, undefined>;
 
 export type ProfileOverviewExtras = {
   rankedGlobal: RankedCounts;
@@ -17,15 +17,18 @@ type ProfileForExtras = { country?: string | null } | null | undefined;
  */
 export const fetchProfileOverviewExtras = async (user: ProfileForExtras): Promise<ProfileOverviewExtras> => {
   let complete = true;
-  const optional = <T>(read: Promise<T>, fallback: T) =>
-    read.catch(() => {
+  // A failed read comes back as `undefined` rather than as an error.
+  const optional = async (name: string): Promise<RankedCounts> => {
+    const counts = await fetchRankedCounts(name);
+    if (counts === undefined) {
       complete = false;
-      return fallback;
-    });
+    }
+    return counts ?? null;
+  };
 
   const [rankedGlobal, rankedCountry] = await Promise.all([
-    user ? optional(fetchRankedCounts('global'), null) : null,
-    user?.country ? optional(fetchRankedCounts(user.country), null) : null,
+    user ? optional('global') : null,
+    user?.country ? optional(user.country) : null,
   ]);
 
   return { rankedGlobal, rankedCountry, complete };

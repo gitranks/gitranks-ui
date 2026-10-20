@@ -5,8 +5,9 @@ import { BadgeTiersDocument } from '@/types/generated/graphql';
 
 /**
  * How many profiles each ranking holds, worldwide (`global`) or in one country. Shared by every profile.
- * An optional fact: a failed read gives `null` for a few minutes instead of failing the page, because an
- * error inside a cached function fails the page even when its caller catches it.
+ * `null` when there are no counts. An optional fact: a failed read gives `undefined` for a few minutes
+ * instead of throwing, because during prerender an error inside a cached function fails the page even when
+ * its caller catches it. Callers that cache themselves briefly after a failure check for `undefined`.
  */
 export const fetchRankedCounts = async (tiersName: string) => {
   'use cache';
@@ -31,6 +32,6 @@ export const fetchRankedCounts = async (tiersName: string) => {
     return { sUsers, cUsers, fUsers };
   } catch {
     cacheLife('minutes');
-    return null;
+    return undefined;
   }
 };

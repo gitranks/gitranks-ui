@@ -13,7 +13,7 @@ import {
  * out each language's top developer, which the full summaries need and these facts don't.
  *
  * An optional fact: a failed read gives an empty list for a few minutes instead of failing the page, because
- * an error inside a cached function fails the page even when its caller catches it.
+ * during prerender an error inside a cached function fails the page even when its caller catches it.
  */
 export const fetchLanguageFacts = async (props: LanguageFactsQueryVariables) => {
   'use cache';

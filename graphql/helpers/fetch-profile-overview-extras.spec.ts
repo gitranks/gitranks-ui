@@ -32,12 +32,22 @@ describe('fetchProfileOverviewExtras', () => {
   });
 
   it('renders without a part it could not read, and says so', async () => {
-    vi.mocked(fetchRankedCounts).mockRejectedValueOnce(new Error('down'));
+    vi.mocked(fetchRankedCounts).mockResolvedValueOnce(undefined);
 
     await expect(fetchProfileOverviewExtras({ country: 'Germany' })).resolves.toEqual({
       rankedGlobal: null,
       rankedCountry: counts(50),
       complete: false,
+    });
+  });
+
+  it('treats a ranking with no counts as a complete read', async () => {
+    vi.mocked(fetchRankedCounts).mockResolvedValueOnce(null);
+
+    await expect(fetchProfileOverviewExtras({ country: 'Germany' })).resolves.toEqual({
+      rankedGlobal: null,
+      rankedCountry: counts(50),
+      complete: true,
     });
   });
 

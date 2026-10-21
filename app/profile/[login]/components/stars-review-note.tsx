@@ -18,10 +18,9 @@ export const StarsReviewNote: FC<StarsReviewNoteProps> = ({ login, starsReview }
   return (
     <div className="flex gap-2 rounded-md bg-muted p-2 text-sm text-muted-foreground">
       <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
-      <div className="flex flex-col items-start gap-2">
-        <p>{starsReviewNote(starsReview)}</p>
-        <StarsReviewReport login={login} reportable={starsReview.reportable} />
-      </div>
+      <p>
+        {starsReviewNote(starsReview)} <StarsReviewReport login={login} reportable={starsReview.reportable} />
+      </p>
     </div>
   );
 };

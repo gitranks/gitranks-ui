@@ -47,22 +47,22 @@ const stubFetch = (...responses: (Response | Error)[]) => {
 describe('starsReviewNote', () => {
   it('says the stars do not count while the review runs', () => {
     expect(starsReviewNote({ status: StarsReviewStatus.Reviewing, stars: 1234, repositories: 801 })).toBe(
-      "We're reviewing an unusual starring pattern. Until we're done, 1,234 stars on 801 repositories don't count toward this ranking.",
+      "We're reviewing an unusual starring pattern. Until we're done, 1,234 stars on 801 of this profile's own repositories don't count toward the stars and language rankings.",
     );
   });
 
   it('says why the stars do not count once they are not counted', () => {
     expect(starsReviewNote({ status: StarsReviewStatus.NotCounted, stars: 12345, repositories: 1001 })).toBe(
-      "12,345 stars on 1,001 repositories don't count toward this ranking: they don't look like organic interest in the projects.",
+      "12,345 stars on 1,001 of this profile's own repositories don't count toward the stars and language rankings: they don't look like organic interest in the projects.",
     );
   });
 
   it('uses the singular for one star on one repository', () => {
     expect(starsReviewNote({ status: StarsReviewStatus.Reviewing, stars: 1, repositories: 1 })).toBe(
-      "We're reviewing an unusual starring pattern. Until we're done, 1 star on 1 repository doesn't count toward this ranking.",
+      "We're reviewing an unusual starring pattern. Until we're done, 1 star on 1 of this profile's own repositories doesn't count toward the stars and language rankings.",
     );
     expect(starsReviewNote({ status: StarsReviewStatus.NotCounted, stars: 1, repositories: 1 })).toBe(
-      "1 star on 1 repository doesn't count toward this ranking: it doesn't look like organic interest in the project.",
+      "1 star on 1 of this profile's own repositories doesn't count toward the stars and language rankings: it doesn't look like organic interest in the project.",
     );
   });
 });

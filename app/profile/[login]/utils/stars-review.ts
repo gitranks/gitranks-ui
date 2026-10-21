@@ -41,16 +41,16 @@ export function starsReviewNote({
   stars,
   repositories,
 }: Pick<StarsReview, 'status' | 'stars' | 'repositories'>) {
-  const held = `${count(stars, 'star', 'stars')} on ${count(repositories, 'repository', 'repositories')}`;
+  const held = `${count(stars, 'star', 'stars')} on ${repositories.toLocaleString('en-US')} of this profile's own repositories`;
   const verb = stars === 1 ? "doesn't" : "don't";
 
   if (status === StarsReviewStatus.NotCounted) {
     const reason = stars === 1 ? "it doesn't" : "they don't";
     const projects = repositories === 1 ? 'the project' : 'the projects';
-    return `${held} ${verb} count toward this ranking: ${reason} look like organic interest in ${projects}.`;
+    return `${held} ${verb} count toward the stars and language rankings: ${reason} look like organic interest in ${projects}.`;
   }
 
-  return `We're reviewing an unusual starring pattern. Until we're done, ${held} ${verb} count toward this ranking.`;
+  return `We're reviewing an unusual starring pattern. Until we're done, ${held} ${verb} count toward the stars and language rankings.`;
 }
 
 const reviewDate = new Intl.DateTimeFormat('en-US', {

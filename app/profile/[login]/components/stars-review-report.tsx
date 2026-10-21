@@ -29,6 +29,10 @@ import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 
 const BUTTON_LABEL = 'This is a mistake';
 
+// The trigger reads as a link at the end of the note's sentence.
+const LINK_CLASS =
+  'inline cursor-pointer underline underline-offset-2 decoration-muted-foreground/60 hover:text-foreground hover:decoration-foreground disabled:cursor-default disabled:opacity-60';
+
 const onDate = (iso: string) => {
   const date = formatReviewDate(iso);
   return date ? ` on ${date}` : '';
@@ -46,20 +50,20 @@ export const StarsReviewReportView: FC<StarsReviewReportViewProps> = ({ view, lo
   }
 
   if (view.kind === 'submitted') {
-    return <p>{`Your request was submitted${onDate(view.submittedAt)}.`}</p>;
+    return <span>{`Your request was submitted${onDate(view.submittedAt)}.`}</span>;
   }
 
   if (view.kind === 'declined') {
-    return <p>{`Your request was reviewed and declined${onDate(view.decidedAt)}.`}</p>;
+    return <span>{`Your request was reviewed and declined${onDate(view.decidedAt)}.`}</span>;
   }
 
   if (view.action === 'switchAccount') {
     return (
       <Dialog>
         <DialogTrigger asChild>
-          <Button size="sm" variant="outline">
+          <button type="button" className={LINK_CLASS}>
             {BUTTON_LABEL}
-          </Button>
+          </button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -82,9 +86,9 @@ export const StarsReviewReportView: FC<StarsReviewReportViewProps> = ({ view, lo
   const onClick = { wait: undefined, signIn: () => signIn(IDENTITY_PROVIDER), report: onReport }[view.action];
 
   return (
-    <Button size="sm" variant="outline" onClick={onClick} disabled={view.action === 'wait'}>
+    <button type="button" className={LINK_CLASS} onClick={onClick} disabled={view.action === 'wait'}>
       {BUTTON_LABEL}
-    </Button>
+    </button>
   );
 };
 

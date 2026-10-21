@@ -23,7 +23,7 @@ describe('StarsReviewNote', () => {
     const html = render({ status: StarsReviewStatus.Reviewing, stars: 1234, repositories: 801, reportable: true });
 
     expect(html).toContain(
-      "We're reviewing an unusual starring pattern. Until we're done, 1,234 stars on 801 repositories don't count toward this ranking.",
+      "We're reviewing an unusual starring pattern. Until we're done, 1,234 stars on 801 of this profile's own repositories don't count toward the stars and language rankings.",
     );
     expect(html).toContain('This is a mistake');
   });
@@ -32,14 +32,14 @@ describe('StarsReviewNote', () => {
     const html = render({ status: StarsReviewStatus.NotCounted, stars: 1234, repositories: 801, reportable: true });
 
     expect(html).toContain(
-      "1,234 stars on 801 repositories don't count toward this ranking: they don't look like organic interest in the projects.",
+      "1,234 stars on 801 of this profile's own repositories don't count toward the stars and language rankings: they don't look like organic interest in the projects.",
     );
   });
 
   it('keeps the note but drops the button when the review is not reportable', () => {
     const html = render({ status: StarsReviewStatus.NotCounted, stars: 1234, repositories: 801, reportable: false });
 
-    expect(html).toContain("don't count toward this ranking");
+    expect(html).toContain("don't count toward the stars and language rankings");
     expect(html).not.toContain('This is a mistake');
   });
 });

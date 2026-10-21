@@ -91,17 +91,17 @@ describe('StarsReviewReportView', () => {
   it('shows the owner the date of their request, with no button', () => {
     const html = render({ kind: 'submitted', submittedAt: '2026-10-17T09:30:00.000Z' });
 
-    expect(html).toBe('<p>Your request was submitted on 17 Oct 2026.</p>');
+    expect(html).toBe('<span>Your request was submitted on 17 Oct 2026.</span>');
   });
 
   it('shows the owner the date their request was declined, with no button', () => {
     const html = render({ kind: 'declined', decidedAt: '2026-10-18T12:00:00.000Z' });
 
-    expect(html).toBe('<p>Your request was reviewed and declined on 18 Oct 2026.</p>');
+    expect(html).toBe('<span>Your request was reviewed and declined on 18 Oct 2026.</span>');
   });
 
   it('drops a date it cannot read instead of failing', () => {
-    expect(render({ kind: 'submitted', submittedAt: 'soon' })).toBe('<p>Your request was submitted.</p>');
+    expect(render({ kind: 'submitted', submittedAt: 'soon' })).toBe('<span>Your request was submitted.</span>');
   });
 });
 

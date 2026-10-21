@@ -18,6 +18,7 @@ import { OwnProjectsCard } from './overview-cards/own-projects-card';
 import { ProfileBadgesSection } from './profile-badges-section';
 import { ProfileSummary } from './profile-summary';
 import { RankHistoryTable } from './rank-history-table';
+import { StarsReviewNote } from './stars-review-note';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { Link } from '@/components/link/link';
 import type { ProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
@@ -89,6 +90,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
 
       <div className="flex flex-col gap-3">
         <h2 className="text-xl font-semibold">Profile Overview</h2>
+        <StarsReviewNote login={login} starsReview={starsReview} />
 
         <OverviewCardsContainer>
           <ProfileRankCard
@@ -107,7 +109,6 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
             snapshots={snapshots}
             totalRankedUsers={tiers?.sUsers ?? 0}
             userRank={ranks?.sProvisional || ranks?.s}
-            starsReview={starsReview}
           />
           <OsContributionsCard
             login={login}

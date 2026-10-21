@@ -31,7 +31,7 @@ const BUTTON_LABEL = 'This is a mistake';
 
 // The trigger reads as a link at the end of the note's sentence.
 const LINK_CLASS =
-  'inline cursor-pointer underline underline-offset-2 decoration-muted-foreground/60 hover:text-foreground hover:decoration-foreground disabled:cursor-default disabled:opacity-60';
+  'inline cursor-pointer rounded-sm underline underline-offset-2 decoration-muted-foreground/60 enabled:hover:text-foreground enabled:hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-default disabled:opacity-60';
 
 const onDate = (iso: string) => {
   const date = formatReviewDate(iso);

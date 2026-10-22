@@ -1,0 +1,16 @@
+query OrgActivity($login: String!, $groupBy: OrgActivityGroupBy!) {
+  organization(login: $login) {
+    activity(groupBy: $groupBy) {
+      months
+      series {
+        label
+        shares
+      }
+      commits
+      lowVolume
+      otherUnknownShare
+      computedAt
+      scopeNote
+    }
+  }
+}

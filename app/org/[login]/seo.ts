@@ -91,3 +91,24 @@ export function buildOrgSEO(data: DataType): { metadata: Metadata; jsonLd: objec
     jsonLd: [tabSpecificJsonLd, breadcrumbs],
   };
 }
+
+/** Metadata for an organization's Pulse tab. Its chart loads in the browser, so it has no JSON-LD of its own. */
+export function buildOrgPulseMetadata(data: DataType): Metadata {
+  const { login, name } = data;
+
+  if (!login) {
+    return {};
+  }
+
+  const path = `/org/${encodeURIComponent(login)}/pulse`;
+
+  return pageMetadata({
+    title: `${name || login} - Pulse`,
+    description: clip(
+      `Activity by type for the ${name || login} organization: each month's share of changed files in its public repositories, by type, language or kind.`,
+    ),
+    path,
+    images: [absoluteUrl(`/api/avatar/${encodeURIComponent(login)}`)],
+    openGraphType: 'profile',
+  });
+}

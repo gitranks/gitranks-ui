@@ -46,7 +46,13 @@ type ButtonGroupItemProps = {
 };
 export const ButtonGroupItem: FC<ButtonGroupItemProps> = ({ onClick, active, children }) => {
   return (
-    <button onClick={onClick} data-state={active ? 'active' : undefined} className={ITEM_CLASSNAME} type="button">
+    <button
+      onClick={onClick}
+      data-state={active ? 'active' : undefined}
+      aria-pressed={!!active}
+      className={ITEM_CLASSNAME}
+      type="button"
+    >
       {children}
     </button>
   );

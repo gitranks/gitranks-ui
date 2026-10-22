@@ -4,11 +4,16 @@ import {
   formatMonth,
   formatMonthTick,
   formatShare,
+  formatUtcDay,
+  isolatedMonths,
   lowVolumeRanges,
+  monthDomain,
   monthHasData,
   monthTicks,
   type OrgActivityData,
   seriesColor,
+  seriesTopFirst,
+  stackedSegments,
   toChartRows,
 } from './org-activity.utils';
 
@@ -57,8 +62,68 @@ describe('lowVolumeRanges', () => {
     expect(lowVolumeRanges([true, true, true])).toEqual([{ x1: 0, x2: 2 }]);
   });
 
-  it('skips a single-month window, which has no width to shade', () => {
-    expect(lowVolumeRanges([true])).toEqual([]);
+  it('shades a single-month window across its half-step domain', () => {
+    expect(lowVolumeRanges([true])).toEqual([{ x1: -0.5, x2: 0.5 }]);
+    expect(lowVolumeRanges([false])).toEqual([]);
+  });
+});
+
+const withShares = (shares: number[][]): OrgActivityData => ({
+  ...chart,
+  months: shares[0].map((_, i) => `2025-${String(i + 1).padStart(2, '0')}`),
+  series: shares.map((s, i) => ({ label: `L${i}`, shares: s })),
+});
+
+describe('isolatedMonths', () => {
+  it('finds months with data whose neighbours have none, including at the edges', () => {
+    // 0 and 7 have the window's edge on one side and an empty month on the other; 2 sits between two empty months
+    expect(isolatedMonths(withShares([[1, 0, 0.5, 0, 1, 1, 0, 1]]))).toEqual([0, 2, 7]);
+  });
+
+  it('treats a one-month window as isolated', () => {
+    expect(isolatedMonths(withShares([[1]]))).toEqual([0]);
+  });
+
+  it('finds none when every month has a neighbour with data', () => {
+    expect(isolatedMonths(withShares([[1, 1, 0.5]]))).toEqual([]);
+    expect(isolatedMonths(withShares([[1, 1, 0, 1, 1]]))).toEqual([]);
+  });
+});
+
+describe('stackedSegments', () => {
+  it("stacks a month's bands bottom first and leaves out empty ones", () => {
+    expect(
+      stackedSegments(
+        withShares([
+          [0.5, 0],
+          [0, 0],
+          [0.25, 0],
+          [0.25, 0],
+        ]),
+        0,
+      ),
+    ).toEqual([
+      { index: 0, y1: 0, y2: 0.5 },
+      { index: 2, y1: 0.5, y2: 0.75 },
+      { index: 3, y1: 0.75, y2: 1 },
+    ]);
+  });
+});
+
+describe('monthDomain', () => {
+  it('gives a single month half a step either side', () => {
+    expect(monthDomain(1)).toEqual([-0.5, 0.5]);
+    expect(monthDomain(60)).toEqual([0, 59]);
+  });
+});
+
+describe('seriesTopFirst', () => {
+  it('lists the top band first, keeping each series index', () => {
+    expect(seriesTopFirst(chart).map(({ series, index }) => [series.label, index])).toEqual([
+      ['Other', 2],
+      ['Tests · TS', 1],
+      ['TypeScript', 0],
+    ]);
   });
 });
 
@@ -87,12 +152,20 @@ describe('formatting', () => {
     expect(formatShare(0.0001)).toBe('<0.1%');
     expect(formatShare(1)).toBe('100.0%');
   });
+
+  it('formats the update day in UTC, whatever the time zone', () => {
+    expect(formatUtcDay('2026-10-18T02:00:00.000Z')).toBe('Oct 18, 2026');
+    expect(formatUtcDay('2026-10-18T23:30:00.000Z')).toBe('Oct 18, 2026');
+    expect(formatUtcDay('not a date')).toBeNull();
+    expect(formatUtcDay(null)).toBeNull();
+  });
 });
 
 describe('seriesColor', () => {
-  it('colours by position and keeps "Other" grey', () => {
+  it('colours by position and gives "Other" and "Other / unknown" their own greys', () => {
     expect(seriesColor('TypeScript', 0)).toBe('var(--series-1)');
     expect(seriesColor('Docs', 7)).toBe('var(--series-8)');
     expect(seriesColor('Other', 8)).toBe('var(--series-other)');
+    expect(seriesColor('Other / unknown', 3)).toBe('var(--series-unknown)');
   });
 });

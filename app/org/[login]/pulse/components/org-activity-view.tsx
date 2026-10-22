@@ -1,15 +1,16 @@
-import { format } from 'date-fns';
 import type { FC, ReactNode } from 'react';
 
 import {
   formatMonth,
   formatShare,
+  formatUtcDay,
   GROUP_BY_OPTIONS,
   LOW_VOLUME_COMMITS,
   monthHasData,
   type OrgActivityData,
   OTHER_SERIES_LABEL,
   seriesColor,
+  seriesTopFirst,
 } from './org-activity.utils';
 import { OrgActivityAreaChart } from './org-activity-chart';
 import { ProfileCard, ProfileCardContent } from '@/app/profile/[login]/components/profile-card';
@@ -22,7 +23,8 @@ import type { OrgActivityGroupBy } from '@/types/generated/graphql';
 export type OrgActivityViewState =
   | { status: 'loading' }
   | { status: 'error' }
-  | { status: 'empty' }
+  /** `switchable` when another grouping of the org has data, so the switch stays. */
+  | { status: 'empty'; switchable?: boolean }
   /** `groupBy` is the chart's own grouping: while the next one loads, the last chart stays. */
   | { status: 'loaded'; chart: OrgActivityData; groupBy: OrgActivityGroupBy; refreshing?: boolean };
 
@@ -67,7 +69,7 @@ const LoadedChart: FC<{ chart: OrgActivityData; groupBy: OrgActivityGroupBy; ref
   const lastMonth = formatMonth(chart.months[lastIndex] ?? '');
   const hasOtherSeries = chart.series.some((series) => series.label === OTHER_SERIES_LABEL);
   const hasLowVolume = chart.lowVolume.some(Boolean);
-  const computedAt = chart.computedAt ? new Date(chart.computedAt) : null;
+  const updated = formatUtcDay(chart.computedAt);
   const chartLabel = `Activity by ${groupByLabel(groupBy).toLowerCase()}: a 100% stacked area chart of each month's share of changed files by ${groupByLabel(groupBy).toLowerCase()}, ${chart.months.length} months from ${firstMonth} to ${lastMonth}. The table below lists each series' share in the first and last month.`;
 
   return (
@@ -95,7 +97,7 @@ const LoadedChart: FC<{ chart: OrgActivityData; groupBy: OrgActivityGroupBy; ref
             </tr>
           </thead>
           <tbody>
-            {chart.series.map((series, s) => (
+            {seriesTopFirst(chart).map(({ series, index: s }) => (
               <tr key={series.label} className="border-t">
                 <th scope="row" className="text-left font-normal py-1">
                   <span className="flex items-center gap-2">
@@ -126,7 +128,7 @@ const LoadedChart: FC<{ chart: OrgActivityData; groupBy: OrgActivityGroupBy; ref
         </Note>
         <Note>
           Counted: {chart.scopeNote}. Bot commits are excluded.
-          {computedAt && !Number.isNaN(computedAt.getTime()) && <> Updated {format(computedAt, 'MMM d, yyyy')}.</>}
+          {updated && <> Updated {updated}.</>}
         </Note>
       </ul>
     </div>
@@ -135,7 +137,8 @@ const LoadedChart: FC<{ chart: OrgActivityData; groupBy: OrgActivityGroupBy; ref
 
 /** The Pulse tab's *Activity by type* card: data only, no headline or reading of the chart. */
 export const OrgActivityView: FC<OrgActivityViewProps> = ({ groupBy, state, onGroupByChange, onRetry }) => {
-  const showSwitch = state.status === 'loaded' || state.status === 'loading';
+  // Hidden only when the org has no data at all: after a failed or empty grouping, the switch is the way back.
+  const showSwitch = state.status !== 'empty' || !!state.switchable;
 
   return (
     <ProfileCard className="gap-3">
@@ -163,11 +166,17 @@ export const OrgActivityView: FC<OrgActivityViewProps> = ({ groupBy, state, onGr
       <ProfileCardContent className="gap-4">
         {state.status !== 'empty' && (
           <p className="text-sm text-muted-foreground">
-            Each month&apos;s share of changed files. A commit counts once, split evenly across the files it changed.
+            Each month&apos;s share of changed files. A commit counts once, split evenly across the counted files it
+            changed.
           </p>
         )}
 
-        {state.status === 'loading' && <Skeleton className="h-[280px] w-full" aria-label="Loading the chart" />}
+        {state.status === 'loading' && (
+          <output className="block">
+            <span className="sr-only">Loading the chart</span>
+            <Skeleton className="h-[280px] w-full" />
+          </output>
+        )}
 
         {state.status === 'error' && (
           <div className="flex flex-col items-start gap-3 py-6">
@@ -179,7 +188,9 @@ export const OrgActivityView: FC<OrgActivityViewProps> = ({ groupBy, state, onGr
         )}
 
         {state.status === 'empty' && (
-          <p className="py-6 text-sm text-muted-foreground">This organization isn&apos;t covered yet.</p>
+          <p className="py-6 text-sm text-muted-foreground">
+            {state.switchable ? 'No data for this grouping.' : "This organization isn't covered yet."}
+          </p>
         )}
 
         {state.status === 'loaded' && (

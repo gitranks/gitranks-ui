@@ -32,11 +32,25 @@ describe('OrgActivityView', () => {
     expect(html).not.toContain('Group by');
   });
 
-  it('offers a retry when the chart fails to load', () => {
-    const html = render({ status: 'error' });
+  it('offers a retry when the chart fails to load, and keeps the switch to go back', () => {
+    const html = render({ status: 'error' }, OrgActivityGroupBy.Language);
 
     expect(html).toContain("The chart couldn't load.");
     expect(html).toContain('Try again');
+    expect(html).toMatch(/<button[^>]*aria-pressed="false"[^>]*>Type<\/button>/);
+  });
+
+  it('keeps the switch on an empty grouping when another grouping has data', () => {
+    const html = render({ status: 'empty', switchable: true }, OrgActivityGroupBy.Kind);
+
+    expect(html).toContain('No data for this grouping.');
+    expect(html).toContain('<legend class="sr-only">Group by</legend>');
+  });
+
+  it('announces the loading state', () => {
+    expect(render({ status: 'loading' })).toContain(
+      '<output class="block"><span class="sr-only">Loading the chart</span>',
+    );
   });
 
   it('renders the group-by switch as pressed buttons', () => {
@@ -56,6 +70,10 @@ describe('OrgActivityView', () => {
     expect(html).toMatch(/<th scope="col"[^>]*>Nov 2024<\/th>/);
     expect(html).toMatch(/<th scope="col"[^>]*>Jan 2025<\/th>/);
     expect(html).toMatch(/TypeScript<\/span><\/th><td[^>]*>60\.0%<\/td><td[^>]*>50\.0%<\/td>/);
+    // The table reads like the tooltip: top band first.
+    expect(html.indexOf('>Other<')).toBeLessThan(html.indexOf('>Tests · TS<'));
+    expect(html.indexOf('>Tests · TS<')).toBeLessThan(html.indexOf('>TypeScript<'));
+    expect(html).toContain('split evenly across the counted files it changed');
     expect(html).toMatch(/Tests · TS<\/span><\/th><td[^>]*>30\.0%<\/td><td[^>]*>25\.0%<\/td>/);
     expect(html).toContain('Hatched: months with fewer than 30 commits.');
     expect(html).toContain('2.3%');

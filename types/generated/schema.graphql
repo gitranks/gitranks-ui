@@ -177,6 +177,7 @@ type Organization {
   githubCreatedAt: DateTime
   githubId: ID!
   githubUpdatedAt: DateTime
+  hasActivity: Boolean!
   isVerified: Boolean
   location: String
   login: String

@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: PageProps<'/org/[login]/pulse
   const { login } = await params;
   const org = await fetchOrg(login);
 
-  if (!org) {
+  if (!org?.hasActivity) {
     return {};
   }
 
@@ -29,7 +29,8 @@ export default async function OrgPulsePage({ params }: PageProps<'/org/[login]/p
 
   const org = await fetchOrg(login);
 
-  if (!org?.login) {
+  // Only orgs with Pulse data have this page; the Overview links to it only for them.
+  if (!org?.login || !org.hasActivity) {
     notFound();
   }
 

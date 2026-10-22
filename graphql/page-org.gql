@@ -20,5 +20,6 @@ query PageOrg($login: String!) {
     reposCount
     usersCount
     updatedAt
+    hasActivity
   }
 }

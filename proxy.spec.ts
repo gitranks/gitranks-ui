@@ -26,6 +26,7 @@ describe('proxy', () => {
 
     expect(withSession).not.toHaveBeenCalled();
     expect(response?.headers.get('set-cookie')).toBe('has-session=; Path=/; Max-Age=0; SameSite=Lax');
+    expect(response?.headers.get('cache-control')).toBe('private, no-store');
   });
 
   it('treats the CSRF and callback-url cookies every anonymous browser carries as no session', async () => {
@@ -43,7 +44,10 @@ describe('proxy', () => {
 
     expect(withSession).toHaveBeenCalledTimes(1);
     expect(response?.headers.get('cache-control')).toBe('private, no-cache');
-    expect(response?.headers.getSetCookie()).toEqual(['authjs.csrf-token=x', 'has-session=1; Path=/; SameSite=Lax']);
+    expect(response?.headers.getSetCookie()).toEqual([
+      'authjs.csrf-token=x',
+      'has-session=1; Path=/; Max-Age=2592000; SameSite=Lax',
+    ]);
   });
 
   it.each([undefined, 'authjs.session-token=t'])(

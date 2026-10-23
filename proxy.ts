@@ -32,15 +32,17 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
       return NextResponse.next();
     }
 
-    // Signed out or expired: drop the hint, so the page stops asking for a session.
+    // Signed out or expired: drop the hint, so the page stops asking for a session. A shared cache
+    // must not keep this response, or it would clear the hint for visitors who are signed in.
     const response = NextResponse.next();
+    response.headers.set('Cache-Control', 'private, no-store');
     response.headers.append('Set-Cookie', SESSION_HINT_CLEAR);
     return response;
   }
 
   // A signed-in response carries the rotated session cookie: never let a shared cache keep it,
   // whatever that cache decides about the request on its own. The hint tells the page to fetch
-  // the session; it is set on every signed-in response, so it never outlives a browser restart.
+  // the session; setting it on every signed-in response keeps its expiry in step with the session.
   const response = await withAuth(request, event);
   response?.headers.set('Cache-Control', 'private, no-cache');
   response?.headers.append('Set-Cookie', SESSION_HINT_SET);

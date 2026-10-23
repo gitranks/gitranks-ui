@@ -46,6 +46,15 @@ const nextConfig: NextConfig = {
   htmlLimitedBots,
   // satori/resvg load WASM/native binaries by filesystem path; bundling breaks that under Turbopack.
   serverExternalPackages: ['@resvg/resvg-js', 'satori', 'harfbuzzjs', 'yoga-wasm-web'],
+  async headers() {
+    return [
+      // Next serves the app icon with max-age=0, so a shared cache asks the server again on every request.
+      {
+        source: '/favicon.ico',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, s-maxage=604800' }],
+      },
+    ];
+  },
   async redirects() {
     return [
       // A ranking without a page number opens its first page. Unknown types fall through to a 404.

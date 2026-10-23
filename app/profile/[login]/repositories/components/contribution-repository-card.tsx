@@ -28,13 +28,12 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
   login,
   year,
 }) => {
-  // Past the limit the badge shows every PR of the year rather than the merged count, which older rows sampled from
-  // the 3 most recent PRs only. The link follows whichever count the badge shows.
-  const showsAllPrs = (prsCount ?? 0) > PR_FETCH_LIMIT;
-
   const badgeLabel = useMemo(
-    () => (showsAllPrs ? `${prsCount} PRs` : `${mergedPrsCount} ${pluralize('PR', mergedPrsCount ?? 0)}`),
-    [showsAllPrs, prsCount, mergedPrsCount],
+    () =>
+      (prsCount ?? 0) > PR_FETCH_LIMIT
+        ? `${prsCount} PRs`
+        : `${mergedPrsCount} ${pluralize('PR', mergedPrsCount ?? 0)}`,
+    [prsCount, mergedPrsCount],
   );
 
   const showLinesChanged = useMemo(
@@ -63,7 +62,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
           )}
         </Badge>
       }
-      contributionUrl={getContributionPrsUrl({ url: repository.url, login, year, mergedOnly: !showsAllPrs })}
+      contributionUrl={getContributionPrsUrl({ url: repository.url, login, year })}
       className="border-0 p-4 pl-0 md:pl-0 rounded-none shadow-none bg-transparent"
     />
   );

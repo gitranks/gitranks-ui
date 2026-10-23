@@ -48,7 +48,7 @@ export const LoadMoreRepositories: FC<LoadMoreRepositoriesProps> = ({ login, rep
   return (
     <>
       {repositories?.map((repo) => (
-        <RepositoryCard key={repo.githubId} repository={repo} login={login} />
+        <RepositoryCard key={repo.githubId} repository={repo} />
       ))}
 
       {hasLoadMoreButton && (

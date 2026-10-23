@@ -18,11 +18,12 @@ type RepositoryCardProps = {
   meta?: ReactNode;
   className?: string;
   type?: 'contribution' | 'repository';
-  login: string;
+  /** Where the title links to for a contribution; a repository links to itself. */
+  contributionUrl?: string;
 };
 
 export const RepositoryCard: FC<RepositoryCardProps> = ({
-  login,
+  contributionUrl,
   repository,
   meta,
   className,
@@ -35,7 +36,7 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
   const { name, url, pushedAt, createdAt, stargazerCount, forkCount, releasesCount, isArchived } = repository;
 
   const title = type === 'repository' ? name : getRepoName({ name: name ?? '', url });
-  const titleUrl = type === 'repository' ? url : `${url}/pulls?q=is%3Apr+is%3Amerged+author%3A${login}`;
+  const titleUrl = type === 'repository' ? url : (contributionUrl ?? url);
 
   const getMeta = () => {
     if (meta) {

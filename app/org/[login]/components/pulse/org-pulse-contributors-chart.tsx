@@ -93,7 +93,7 @@ export const ContributorsChartView: FC<{ state: ContributorsViewState; onRetry: 
   }
 
   if (state.status === 'empty') {
-    return null;
+    return <p className="py-4 text-sm text-muted-foreground">No monthly data yet.</p>;
   }
 
   return (

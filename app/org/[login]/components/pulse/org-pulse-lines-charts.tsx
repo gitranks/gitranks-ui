@@ -74,8 +74,8 @@ const InflowTooltip: FC<TooltipProps> = ({ active, payload, series }) => {
     <TooltipBox>
       <div className="font-semibold">{formatMonth(row.month)}</div>
       <div className="text-muted-foreground">
-        {formatCount(month.commits)} {month.commits === 1 ? 'commit' : 'commits'} · {formatCount(month.pullRequests)}{' '}
-        {month.pullRequests === 1 ? 'PR' : 'PRs'}
+        {formatCount(month.commits)} human {month.commits === 1 ? 'commit' : 'commits'} ·{' '}
+        {formatCount(month.pullRequests)} human {month.pullRequests === 1 ? 'PR' : 'PRs'}
       </div>
       {moved.length ? (
         <table className="mt-1.5 w-full">

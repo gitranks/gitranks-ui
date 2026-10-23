@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, type FC, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, type FC, type ReactNode, useContext, useEffect, useMemo, useReducer } from 'react';
 
 import { hasLines, type OrgPulseSeriesData } from './org-pulse.utils';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
@@ -117,25 +117,87 @@ type OrgPulseSeriesProviderProps = {
   children: ReactNode;
 };
 
+export type SeriesState = {
+  /** The grouping the switch shows as selected. */
+  groupBy: OrgActivityGroupBy;
+  /** The last grouping whose charts had lines: shown, dimmed, while another one loads. */
+  shownGroupBy: OrgActivityGroupBy;
+  results: SeriesResults;
+  /** Requests still on their way, by `resultKey`: never sent twice. */
+  inFlight: Partial<Record<string, true>>;
+};
+
+export type SeriesEvent =
+  | { type: 'select'; groupBy: OrgActivityGroupBy }
+  | { type: 'requested'; key: string }
+  | { type: 'settled'; key: string; groupBy: OrgActivityGroupBy; result: SeriesResult }
+  | { type: 'retry'; key: string };
+
+export const initialSeriesState: SeriesState = {
+  groupBy: OrgActivityGroupBy.Type,
+  shownGroupBy: OrgActivityGroupBy.Type,
+  results: {},
+  inFlight: {},
+};
+
+/**
+ * The series requests as a pure function of the state and one event. A response is kept under its
+ * own org and grouping whenever it lands, and moves the charts only if its grouping is still the
+ * selected one.
+ */
+export function seriesReducer(state: SeriesState, event: SeriesEvent): SeriesState {
+  switch (event.type) {
+    case 'select':
+      return { ...state, groupBy: event.groupBy };
+
+    case 'requested':
+      return { ...state, inFlight: { ...state.inFlight, [event.key]: true } };
+
+    case 'settled': {
+      const { [event.key]: _, ...inFlight } = state.inFlight;
+      const selected = event.groupBy === state.groupBy && hasLines(loadedSeries(event.result));
+      return {
+        ...state,
+        inFlight,
+        results: { ...state.results, [event.key]: event.result },
+        shownGroupBy: selected ? event.groupBy : state.shownGroupBy,
+      };
+    }
+
+    case 'retry': {
+      const result = state.results[event.key];
+      // Only a failed result is cleared, which runs its request again.
+      return result && 'error' in result ? { ...state, results: { ...state.results, [event.key]: undefined } } : state;
+    }
+  }
+}
+
+/** The request the selected grouping needs: none while its result is held or on its way. */
+export function seriesToRequest(state: SeriesState, login: string): string | null {
+  const key = resultKey(login, state.groupBy);
+  return state.results[key] || state.inFlight[key] ? null : key;
+}
+
+/** The grouping whose charts show: the selected one once it has lines, else the last one that had. */
+const shownOf = (state: SeriesState, login: string) =>
+  hasLines(loadedSeries(state.results[resultKey(login, state.groupBy)])) ? state.groupBy : state.shownGroupBy;
+
 /**
  * Loads the 60-month series in the browser, so the server-rendered page carries only the facts.
  * Each grouping is fetched once: a request still in flight when the user switches is kept, not repeated.
  */
 export const OrgPulseSeriesProvider: FC<OrgPulseSeriesProviderProps> = ({ login, children }) => {
-  const [groupBy, setGroupBy] = useState<OrgActivityGroupBy>(OrgActivityGroupBy.Type);
-  const [shownGroupBy, setShownGroupBy] = useState<OrgActivityGroupBy>(OrgActivityGroupBy.Type);
-  const [results, setResults] = useState<SeriesResults>({});
-  const inFlight = useRef(new Set<string>());
+  const [state, dispatch] = useReducer(seriesReducer, initialSeriesState);
+  const toRequest = seriesToRequest(state, login);
+  const { groupBy, results } = state;
 
-  const key = resultKey(login, groupBy);
-  const result = results[key];
-
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `toRequest` names the org and grouping
   useEffect(() => {
-    if (result || inFlight.current.has(key)) {
+    if (!toRequest) {
       return;
     }
 
-    inFlight.current.add(key);
+    dispatch({ type: 'requested', key: toRequest });
 
     graphqlClient(OrgPulseSeriesDocument, { login, groupBy })
       .then((data): SeriesResult => ({ series: data?.organization?.pulseSeries ?? null }))
@@ -143,28 +205,18 @@ export const OrgPulseSeriesProvider: FC<OrgPulseSeriesProviderProps> = ({ login,
         console.error('Error loading the org pulse series:', error);
         return { error: true };
       })
-      .then((next) => {
-        inFlight.current.delete(key);
-        setResults((prev) => ({ ...prev, [key]: next }));
-      });
-  }, [key, login, groupBy, result]);
-
-  useEffect(() => {
-    if (hasLines(loadedSeries(result))) {
-      setShownGroupBy(groupBy);
-    }
-  }, [result, groupBy]);
+      .then((result) => dispatch({ type: 'settled', key: toRequest, groupBy, result }));
+  }, [toRequest]);
 
   const value = useMemo<OrgPulseSeriesContextValue>(
     () => ({
       groupBy,
-      setGroupBy,
-      lines: linesViewState(results, login, groupBy, shownGroupBy),
+      setGroupBy: (next: OrgActivityGroupBy) => dispatch({ type: 'select', groupBy: next }),
+      lines: linesViewState(results, login, groupBy, shownOf(state, login)),
       contributors: contributorsViewState(results, login, groupBy),
-      // Clearing the failed result runs the request again.
-      retry: () => setResults((prev) => ({ ...prev, [key]: undefined })),
+      retry: () => dispatch({ type: 'retry', key: resultKey(login, groupBy) }),
     }),
-    [groupBy, results, login, shownGroupBy, key],
+    [state, groupBy, results, login],
   );
 
   return <OrgPulseSeriesContext.Provider value={value}>{children}</OrgPulseSeriesContext.Provider>;

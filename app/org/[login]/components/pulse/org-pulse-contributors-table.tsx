@@ -1,50 +1,45 @@
 'use client';
 
 import NextLink from 'next/link';
-import { type FC, useEffect, useId, useRef, useState } from 'react';
+import { type FC, useEffect, useId, useReducer } from 'react';
 
 import {
   avatarSrc,
-  CONTRIBUTORS_PAGE_SIZE,
   formatCount,
   type OrgPulseContributorRow,
   PERIOD_OPTIONS,
   plural,
   SORT_OPTIONS,
 } from './org-pulse.utils';
+import {
+  type ContributorsQuery,
+  type ContributorsTableState,
+  canShowMore,
+  contributorsTableReducer,
+  currentLabels,
+  initialTableState,
+  tableStatus,
+} from './org-pulse-contributors-table.state';
 import { useHydrated } from './use-hydrated';
 import { ButtonGroup, ButtonGroupItem } from '@/components/button-group/button-group';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
 import { cn } from '@/lib/utils';
-import { OrgPulseContributorSort, OrgPulseContributorsDocument, OrgPulsePeriod } from '@/types/generated/graphql';
+import { OrgPulseContributorSort, OrgPulseContributorsDocument, type OrgPulsePeriod } from '@/types/generated/graphql';
 
 const ALL_LABELS = '__all';
 const AVATAR_SIZE = 24;
 
-export type ContributorsQuery = { period: OrgPulsePeriod; sortBy: OrgPulseContributorSort; label: string | null };
-
-export type ContributorsTableData = {
-  items: OrgPulseContributorRow[];
-  /** Rows the API holds for the query; unknown until the first client request. */
-  total: number | null;
-  unlinkedAuthors: number;
-  /** The Language labels the period can be filtered by; unknown until the first client request. */
-  labels: string[] | null;
-};
-
 type ContributorsTableViewProps = {
-  query: ContributorsQuery;
-  data: ContributorsTableData;
-  /** How many of the loaded rows are shown. */
-  visible: number;
-  status: 'idle' | 'loading' | 'error';
-  /** False while the page is not hydrated yet: the controls are left out. */
+  state: ContributorsTableState;
+  /** False while the page is not hydrated yet: the controls are left out, their space kept. */
   interactive?: boolean;
   onQueryChange: (query: ContributorsQuery) => void;
   onShowMore: () => void;
   onRetry: () => void;
+  /** The Language select opened: its labels load then, unless known. */
+  onLabelsWanted: () => void;
 };
 
 const periodLong = (period: OrgPulsePeriod) => PERIOD_OPTIONS.find((option) => option.value === period)?.long ?? '';
@@ -65,6 +60,55 @@ const TABLE_CLASSNAME = cn(
   '[&_td:nth-child(6)]:hidden [&_th:nth-child(6)]:hidden sm:[&_td:nth-child(6)]:table-cell sm:[&_th:nth-child(6)]:table-cell',
 );
 
+/** The contributor's name: their gitranks profile when gitranks holds it, else their GitHub page (not followed). */
+const ContributorName: FC<{ row: OrgPulseContributorRow }> = ({ row }) => {
+  const content = (
+    <>
+      <img
+        src={avatarSrc(row.avatarUrl, AVATAR_SIZE)}
+        alt=""
+        width={AVATAR_SIZE}
+        height={AVATAR_SIZE}
+        loading="lazy"
+        className="rounded-full bg-muted"
+      />
+      {row.login}
+    </>
+  );
+
+  return row.hasProfile ? (
+    <NextLink
+      href={`/profile/${row.login}`}
+      prefetch={false}
+      className="inline-flex items-center gap-2 hover:underline"
+      translate="no"
+    >
+      {content}
+    </NextLink>
+  ) : (
+    <a
+      href={`https://github.com/${row.login}`}
+      rel="nofollow noopener"
+      className="inline-flex items-center gap-2 hover:underline"
+      translate="no"
+    >
+      {content}
+    </a>
+  );
+};
+
+/**
+ * Before hydration: the controls' rows, kept empty so nothing moves when they appear. The blocks are
+ * the controls' widths (period, sort, language), so they wrap the same way on a phone.
+ */
+const ControlsPlaceholder: FC = () => (
+  <div aria-hidden className="flex flex-wrap gap-x-4 gap-y-2 [&>div]:h-8 [&>div]:max-w-full">
+    <div className="w-[19.5rem]" />
+    <div className="w-[14.75rem]" />
+    <div className="w-[13.75rem]" />
+  </div>
+);
+
 /**
  * The top contributors: raw counts per account, in the API's order for the chosen sort. No rank
  * column and no score; unlinked authors are counted under the table, never listed. The controls
@@ -72,22 +116,25 @@ const TABLE_CLASSNAME = cn(
  * server-rendered page stays small.
  */
 export const ContributorsTableView: FC<ContributorsTableViewProps> = ({
-  query,
-  data,
-  visible,
-  status,
+  state,
   interactive = true,
   onQueryChange,
   onShowMore,
   onRetry,
+  onLabelsWanted,
 }) => {
   const labelId = useId();
+  const { query } = state;
   const { period, sortBy, label } = query;
-  const rows = data.items.slice(0, visible);
-  const known = data.total ?? data.items.length;
-  const canShowMore = visible < known || (data.total === null && data.items.length >= visible);
+  const status = tableStatus(state);
+  const labels = currentLabels(state);
+  // A row with no login has nothing to show or link to.
+  const rows = state.items.slice(0, state.visible).filter((row) => !!row.login);
   const sortedBy = label ? OrgPulseContributorSort.Lines : sortBy;
-  const sortOf = (column: OrgPulseContributorSort) => (sortedBy === column ? 'descending' : undefined);
+  // Lines are added + deleted, which no single column holds: the caption names that sort.
+  const sortOf = (column: OrgPulseContributorSort) =>
+    column !== OrgPulseContributorSort.Lines && sortedBy === column ? 'descending' : undefined;
+  const linesClassName = sortedBy === OrgPulseContributorSort.Lines ? 'text-foreground' : undefined;
   const caption = label
     ? `Contributors with the most ${label} lines (added + deleted), ${periodLong(period)}. Lines columns count ${label} only.`
     : `Contributors by ${sortLong(sortBy)}, ${periodLong(period)}.`;
@@ -128,30 +175,35 @@ export const ContributorsTableView: FC<ContributorsTableViewProps> = ({
               </ButtonGroup>
             </fieldset>
           )}
-          {!!data.labels?.length && (
-            <div className="flex items-center gap-2">
-              <span id={labelId}>Language</span>
-              <Select
-                value={label ?? ALL_LABELS}
-                onValueChange={(value) => onQueryChange({ ...query, label: value === ALL_LABELS ? null : value })}
-              >
-                <SelectTrigger size="sm" className="min-w-36" aria-labelledby={labelId}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_LABELS}>All languages</SelectItem>
-                  {data.labels.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <span id={labelId}>Language</span>
+            <Select
+              value={label ?? ALL_LABELS}
+              onValueChange={(value) => onQueryChange({ ...query, label: value === ALL_LABELS ? null : value })}
+              onOpenChange={(open) => open && onLabelsWanted()}
+            >
+              <SelectTrigger size="sm" className="min-w-36" aria-labelledby={labelId}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_LABELS}>All languages</SelectItem>
+                {labels?.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+                {label && !labels?.includes(label) && <SelectItem value={label}>{label}</SelectItem>}
+                {!labels && (
+                  <SelectItem value="__loading" disabled>
+                    {state.labelsStatus === 'error' ? "Languages couldn't load" : 'Loading languages…'}
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       ) : (
-        <div aria-hidden className="h-8" />
+        <ControlsPlaceholder />
       )}
 
       <div
@@ -163,10 +215,10 @@ export const ContributorsTableView: FC<ContributorsTableViewProps> = ({
           <thead>
             <tr>
               <th scope="col">Contributor</th>
-              <th scope="col" aria-sort={sortOf(OrgPulseContributorSort.Lines)}>
+              <th scope="col" className={linesClassName}>
                 Added
               </th>
-              <th scope="col" className={sortedBy === OrgPulseContributorSort.Lines ? 'text-foreground' : undefined}>
+              <th scope="col" className={linesClassName}>
                 Deleted
               </th>
               <th scope="col" aria-sort={sortOf(OrgPulseContributorSort.Commits)}>
@@ -182,22 +234,7 @@ export const ContributorsTableView: FC<ContributorsTableViewProps> = ({
             {rows.map((row) => (
               <tr key={row.githubId ?? row.login}>
                 <th scope="row">
-                  <NextLink
-                    href={`/profile/${row.login}`}
-                    prefetch={false}
-                    className="inline-flex items-center gap-2 hover:underline"
-                    translate="no"
-                  >
-                    <img
-                      src={avatarSrc(row.avatarUrl, AVATAR_SIZE)}
-                      alt=""
-                      width={AVATAR_SIZE}
-                      height={AVATAR_SIZE}
-                      loading="lazy"
-                      className="rounded-full bg-muted"
-                    />
-                    {row.login}
-                  </NextLink>
+                  <ContributorName row={row} />
                   {!!row.topLabels.length && (
                     <div className="pl-8 text-xs text-muted-foreground">{row.topLabels.join(', ')}</div>
                   )}
@@ -211,7 +248,7 @@ export const ContributorsTableView: FC<ContributorsTableViewProps> = ({
             ))}
           </tbody>
         </table>
-        {!rows.length && status !== 'loading' && status !== 'error' && (
+        {!rows.length && status === 'idle' && (
           <p className="py-4 text-sm text-muted-foreground">No linked contributors in this period.</p>
         )}
       </div>
@@ -227,12 +264,12 @@ export const ContributorsTableView: FC<ContributorsTableViewProps> = ({
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>
-          {data.unlinkedAuthors > 0
-            ? `${plural(data.unlinkedAuthors, 'unlinked author')} (no GitHub account found) not listed.`
+          {state.unlinkedAuthors > 0
+            ? `${plural(state.unlinkedAuthors, 'unlinked author')} (no GitHub account found) not listed.`
             : null}
         </span>
-        {interactive && canShowMore && status !== 'error' && (
-          <Button variant="outline" size="sm" onClick={onShowMore} disabled={status === 'loading'}>
+        {interactive && canShowMore(state) && status !== 'error' && (
+          <Button variant="outline" size="sm" onClick={onShowMore} disabled={state.live && !!state.pending}>
             Show more
           </Button>
         )}
@@ -248,109 +285,72 @@ type OrgPulseContributorsTableProps = {
   initialUnlinkedAuthors: number;
 };
 
-const DEFAULT_QUERY: ContributorsQuery = {
-  period: OrgPulsePeriod.Last_12Months,
-  sortBy: OrgPulseContributorSort.Lines,
-  label: null,
-};
+const fetchPage = (login: string, query: ContributorsQuery, offset: number, first: number) =>
+  graphqlClient(OrgPulseContributorsDocument, {
+    login,
+    period: query.period,
+    sortBy: query.sortBy,
+    label: query.label,
+    first,
+    offset,
+  }).then((response) => response?.organization?.pulseContributors ?? null);
 
 /**
- * Starts from the server-rendered rows, then loads the first page in the browser for the label list
- * and the row count. "Show more" adds a page at a time, up to what the API holds.
+ * Starts from the server-rendered rows and loads nothing until asked: a control or "Show more"
+ * loads a page, and opening the Language select loads its labels. The paging is
+ * `contributorsTableReducer`; this runs the requests it asks for.
  */
 export const OrgPulseContributorsTable: FC<OrgPulseContributorsTableProps> = ({
   login,
   initialItems,
   initialUnlinkedAuthors,
 }) => {
-  const [query, setQuery] = useState<ContributorsQuery>(DEFAULT_QUERY);
-  const [data, setData] = useState<ContributorsTableData>({
-    items: initialItems,
-    total: null,
-    unlinkedAuthors: initialUnlinkedAuthors,
-    labels: null,
-  });
-  const [visible, setVisible] = useState(initialItems.length || CONTRIBUTORS_PAGE_SIZE);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
-  const [failed, setFailed] = useState<{ query: ContributorsQuery; offset: number } | null>(null);
-  const request = useRef(0);
+  const [state, dispatch] = useReducer(contributorsTableReducer, undefined, () =>
+    initialTableState(initialItems, initialUnlinkedAuthors),
+  );
   const hydrated = useHydrated();
+  const { pending, labelsStatus } = state;
+  const period: OrgPulsePeriod = state.query.period;
 
-  const load = (next: ContributorsQuery, offset: number) => {
-    const id = ++request.current;
-    setStatus('loading');
-
-    graphqlClient(OrgPulseContributorsDocument, {
-      login,
-      period: next.period,
-      sortBy: next.sortBy,
-      label: next.label,
-      first: CONTRIBUTORS_PAGE_SIZE,
-      offset,
-    })
-      .then((response) => {
-        if (id !== request.current) {
-          return;
-        }
-
-        const page = response?.organization?.pulseContributors;
-        setData((prev) => ({
-          items: offset ? [...prev.items, ...(page?.items ?? [])] : (page?.items ?? []),
-          total: page?.total ?? 0,
-          unlinkedAuthors: page?.unlinkedAuthors ?? 0,
-          labels: page?.labels ?? prev.labels,
-        }));
-        setFailed(null);
-        setStatus('idle');
-      })
-      .catch((error: unknown) => {
-        if (id !== request.current) {
-          return;
-        }
-
-        console.error('Error loading the org contributors:', error);
-        setFailed({ query: next, offset });
-        setStatus('error');
-      });
-  };
-
-  // The first page: the label list and the row count the server-rendered rows lack.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: once per org
   useEffect(() => {
-    load(DEFAULT_QUERY, 0);
-  }, [login]);
-
-  const handleQueryChange = (next: ContributorsQuery) => {
-    setQuery(next);
-    setVisible(CONTRIBUTORS_PAGE_SIZE);
-    load(next, 0);
-  };
-
-  const handleShowMore = () => {
-    const nextVisible = visible + CONTRIBUTORS_PAGE_SIZE;
-    setVisible(nextVisible);
-
-    if (nextVisible > data.items.length && (data.total === null || data.items.length < data.total)) {
-      load(query, data.items.length);
+    if (!pending) {
+      return;
     }
-  };
 
-  const handleRetry = () => {
-    if (failed) {
-      load(failed.query, failed.offset);
+    fetchPage(login, pending.query, pending.offset, pending.first)
+      .then((page) =>
+        dispatch({
+          type: 'loaded',
+          id: pending.id,
+          page: page ?? { total: 0, unlinkedAuthors: 0, labels: [], items: [] },
+        }),
+      )
+      .catch((error: unknown) => {
+        console.error('Error loading the org contributors:', error);
+        dispatch({ type: 'failed', id: pending.id });
+      });
+  }, [login, pending]);
+
+  // The labels alone: a page of no rows. A failure shows only in the select.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: one request per labels load
+  useEffect(() => {
+    if (labelsStatus !== 'loading') {
+      return;
     }
-  };
+
+    fetchPage(login, { ...state.query, label: null }, 0, 0)
+      .then((page) => dispatch({ type: 'labelsLoaded', period, labels: page?.labels ?? [] }))
+      .catch(() => dispatch({ type: 'labelsFailed', period }));
+  }, [login, labelsStatus, period]);
 
   return (
     <ContributorsTableView
+      state={state}
       interactive={hydrated}
-      query={query}
-      data={data}
-      visible={visible}
-      status={status}
-      onQueryChange={handleQueryChange}
-      onShowMore={handleShowMore}
-      onRetry={handleRetry}
+      onQueryChange={(query) => dispatch({ type: 'query', query })}
+      onShowMore={() => dispatch({ type: 'showMore' })}
+      onRetry={() => dispatch({ type: 'retry' })}
+      onLabelsWanted={() => dispatch({ type: 'labelsRequested' })}
     />
   );
 };

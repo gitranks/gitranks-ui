@@ -14,6 +14,7 @@ query OrgPulseContributors(
       items {
         githubId
         login
+        hasProfile
         avatarUrl
         linesAdded
         linesDeleted

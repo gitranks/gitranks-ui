@@ -22,6 +22,7 @@ import { OrgPulseContributorsChart } from './org-pulse-contributors-chart';
 import { OrgPulseContributorsTable } from './org-pulse-contributors-table';
 import { OrgPulseSeriesProvider } from './org-pulse-series-provider';
 import { OrgPulseSharedGraph } from './org-pulse-shared-graph';
+import { useHydrated } from './use-hydrated';
 import { ProfileCard, ProfileCardContent, ProfileCardsGrid } from '@/app/profile/[login]/components/profile-card';
 import { cn } from '@/lib/utils';
 import { OrgPulseCountryGroup } from '@/types/generated/graphql';
@@ -161,7 +162,11 @@ const ContributorsSection: FC<{ login: string; pulse: OrgPulseFactsData }> = ({ 
 const countryKey = (row: OrgPulseCountryRow) => `${row.group}:${row.country ?? ''}`;
 
 const CountriesSection: FC<{ countries: OrgPulseCountryRow[] }> = ({ countries }) => {
-  const max = Math.max(1, ...countries.map((row) => row.contributors));
+  // Bars compare countries only: the two group rows have no bar, so a large one never shrinks them.
+  const max = Math.max(
+    1,
+    ...countries.filter((row) => row.group === OrgPulseCountryGroup.Country).map((row) => row.contributors),
+  );
 
   return (
     <Section id="org-pulse-countries" title="Contributors by country">
@@ -194,11 +199,7 @@ const CountriesSection: FC<{ countries: OrgPulseCountryRow[] }> = ({ countries }
                       </span>
                     )}
                     {countryRowLabel(row)}
-                    <i
-                      aria-hidden
-                      className={grouped ? 'opacity-40' : undefined}
-                      style={{ width: `${(100 * row.contributors) / max}%` }}
-                    />
+                    {!grouped && <i aria-hidden style={{ width: `${(100 * row.contributors) / max}%` }} />}
                   </th>
                   <td className="align-top">{formatCount(row.contributors)}</td>
                 </tr>
@@ -215,51 +216,60 @@ const SharedSection: FC<{ login: string; avatarUrl?: string | null; orgs: OrgPul
   login,
   avatarUrl,
   orgs,
-}) => (
-  <Section id="org-pulse-shared" title="Shared contributors">
-    <ProfileCardContent className="gap-3">
-      <p className="text-sm text-muted-foreground">
-        Organizations where this organization&apos;s contributors of the last 12 months (2 or more changes) also
-        contributed.
-      </p>
-      <div className="flex flex-col items-center gap-4">
-        <OrgPulseSharedGraph login={login} avatarUrl={avatarUrl} orgs={orgs} />
-        <ul className="flex w-full min-w-0 flex-1 flex-col gap-2" aria-labelledby="org-pulse-shared">
-          {orgs.map((org) => (
-            <li key={org.login} className="flex items-center gap-2 text-sm">
-              {org.organization?.avatarUrl ? (
-                <img
-                  src={avatarSrc(org.organization.avatarUrl, 28)}
-                  alt=""
-                  width={28}
-                  height={28}
-                  loading="lazy"
-                  className="rounded-full"
-                />
-              ) : (
-                <i aria-hidden className="size-7 shrink-0 rounded-full bg-muted" />
-              )}
-              <span className="flex min-w-0 flex-col">
-                <NextLink
-                  href={`/org/${org.login}`}
-                  prefetch={false}
-                  className="text-link hover:underline"
-                  translate="no"
-                >
-                  {org.organization?.name || org.login}
-                </NextLink>
-                <span className="text-xs text-muted-foreground">
-                  {plural(org.sharedContributors, 'shared contributor')} ({formatShare(org.share)} of this
-                  organization&apos;s)
+}) => {
+  // The graph is decorative (the list holds its numbers): drawn in the browser only, its square kept.
+  const hydrated = useHydrated();
+
+  return (
+    <Section id="org-pulse-shared" title="Shared contributors">
+      <ProfileCardContent className="gap-3">
+        <p className="text-sm text-muted-foreground">
+          Organizations where this organization&apos;s contributors of the last 12 months (2 or more changes) also
+          contributed.
+        </p>
+        <div className="flex flex-col items-center gap-4">
+          {hydrated ? (
+            <OrgPulseSharedGraph login={login} avatarUrl={avatarUrl} orgs={orgs} />
+          ) : (
+            <div aria-hidden className="aspect-square w-full max-w-52" />
+          )}
+          <ul className="flex w-full min-w-0 flex-1 flex-col gap-2" aria-labelledby="org-pulse-shared">
+            {orgs.map((org) => (
+              <li key={org.login} className="flex items-center gap-2 text-sm">
+                {org.organization?.avatarUrl ? (
+                  <img
+                    src={avatarSrc(org.organization.avatarUrl, 28)}
+                    alt=""
+                    width={28}
+                    height={28}
+                    loading="lazy"
+                    className="rounded-full"
+                  />
+                ) : (
+                  <i aria-hidden className="size-7 shrink-0 rounded-full bg-muted" />
+                )}
+                <span className="flex min-w-0 flex-col">
+                  <NextLink
+                    href={`/org/${org.login}`}
+                    prefetch={false}
+                    className="text-link hover:underline"
+                    translate="no"
+                  >
+                    {org.organization?.name || org.login}
+                  </NextLink>
+                  <span className="text-xs text-muted-foreground">
+                    {plural(org.sharedContributors, 'shared contributor')} ({formatShare(org.share)} of this
+                    organization&apos;s)
+                  </span>
                 </span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </ProfileCardContent>
-  </Section>
-);
+              </li>
+            ))}
+          </ul>
+        </div>
+      </ProfileCardContent>
+    </Section>
+  );
+};
 
 /**
  * Org Pulse on the org page: the facts are rendered on the server into the HTML (crawlable, small),

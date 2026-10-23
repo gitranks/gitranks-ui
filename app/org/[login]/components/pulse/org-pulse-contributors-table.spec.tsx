@@ -2,87 +2,99 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { facts } from './org-pulse.fixtures';
+import { ContributorsTableView } from './org-pulse-contributors-table';
 import {
-  type ContributorsQuery,
-  type ContributorsTableData,
-  ContributorsTableView,
-} from './org-pulse-contributors-table';
-import { OrgPulseContributorSort, OrgPulsePeriod } from '@/types/generated/graphql';
+  type ContributorsTableState,
+  contributorsTableReducer,
+  initialTableState,
+} from './org-pulse-contributors-table.state';
+import { OrgPulseContributorSort } from '@/types/generated/graphql';
 
-const query: ContributorsQuery = {
-  period: OrgPulsePeriod.Last_12Months,
-  sortBy: OrgPulseContributorSort.Lines,
-  label: null,
-};
+const base = initialTableState(facts.topContributors, 4);
+const page = { total: 2, unlinkedAuthors: 1, labels: ['TypeScript', 'Rust'], items: facts.topContributors };
+const live: ContributorsTableState = contributorsTableReducer(
+  { ...base, pending: { id: 1, query: base.query, offset: 0, first: 25, replace: true }, lastId: 1 },
+  { type: 'loaded', id: 1, page },
+);
 
-const data: ContributorsTableData = {
-  items: facts.topContributors,
-  total: 2,
-  unlinkedAuthors: 1,
-  labels: ['TypeScript', 'Rust'],
-};
-
-const render = (props: Partial<Parameters<typeof ContributorsTableView>[0]> = {}) =>
+const render = (state: ContributorsTableState, interactive = true) =>
   renderToStaticMarkup(
     <ContributorsTableView
-      query={query}
-      data={data}
-      visible={25}
-      status="idle"
+      state={state}
+      interactive={interactive}
       onQueryChange={() => {}}
       onShowMore={() => {}}
       onRetry={() => {}}
-      {...props}
+      onLabelsWanted={() => {}}
     />,
   ).replaceAll('&#x27;', "'");
 
 describe('ContributorsTableView', () => {
   it('renders period and sort as pressed buttons', () => {
-    const html = render({ query: { ...query, sortBy: OrgPulseContributorSort.Commits } });
+    const html = render({ ...live, query: { ...live.query, sortBy: OrgPulseContributorSort.Commits } });
 
     expect(html).toMatch(/<button[^>]*aria-pressed="true"[^>]*>12 months<\/button>/);
     expect(html).toMatch(/<button[^>]*aria-pressed="false"[^>]*>3 months<\/button>/);
     expect(html).toMatch(/<button[^>]*aria-pressed="true"[^>]*>Commits<\/button>/);
-    expect(html).toContain('aria-sort="descending"');
+    expect(html).toMatch(/<th scope="col" aria-sort="descending">Commits<\/th>/);
     expect(html).toContain('Contributors by commits, last 12 months.');
   });
 
+  it('marks no column as sorted for lines, which no single column holds', () => {
+    const html = render(live);
+
+    expect(html).not.toContain('aria-sort="');
+    expect(html).toContain('Contributors by lines (added + deleted), last 12 months.');
+  });
+
   it('shows raw counts with no rank column', () => {
-    const html = render();
+    const html = render(live);
 
     expect(html).toContain('>700<');
     expect(html).toContain('>200<');
     expect(html).not.toMatch(/>#<|Rank/);
   });
 
-  it('offers a label filter once labels are known', () => {
-    expect(render()).toContain('Language');
-    expect(render({ data: { ...data, labels: null } })).not.toContain('All languages');
+  it('links to a gitranks profile only when gitranks holds it, and to GitHub, not followed, otherwise', () => {
+    const html = render(live);
+
+    expect(html).toContain('href="/profile/octo-dev"');
+    expect(html).not.toContain('href="/profile/second-dev"');
+    expect(html).toMatch(/<a href="https:\/\/github.com\/second-dev" rel="nofollow noopener"/);
+  });
+
+  it('skips a row with no login', () => {
+    const html = render(live);
+
+    expect(html).not.toContain('href="/profile/"');
+    expect(html).not.toContain('href="https://github.com/"');
+    expect(html.match(/<tr>/g)).toHaveLength(3); // the header row and two contributors
   });
 
   it("sorts a label table by that label's lines only", () => {
-    const html = render({ query: { ...query, label: 'Rust' } });
+    const html = render({ ...live, query: { ...live.query, label: 'Rust' } });
 
     expect(html).not.toContain('<legend class="sr-only">Sort by</legend>');
     expect(html).toContain('Contributors with the most Rust lines');
   });
 
-  it('offers more rows only while the API holds more', () => {
-    expect(render({ visible: 1 })).toContain('Show more');
-    expect(render()).not.toContain('Show more');
-    expect(render({ data: { ...data, total: null }, visible: 2 })).toContain('Show more');
-  });
-
   it('leaves the controls out before hydration but keeps the rows', () => {
-    const html = render({ interactive: false, visible: 1 });
+    const html = render(base, false);
 
     expect(html).not.toContain('aria-pressed');
     expect(html).not.toContain('Show more');
     expect(html).toContain('href="/profile/octo-dev"');
   });
 
+  it('does not dim the server rows or show an error before any request', () => {
+    const html = render(base);
+
+    expect(html).toContain('aria-busy="false"');
+    expect(html).not.toContain("couldn't load");
+  });
+
   it('offers a retry when a page fails', () => {
-    const html = render({ status: 'error' });
+    const html = render({ ...live, failed: { id: 2, query: live.query, offset: 0, first: 25, replace: true } });
 
     expect(html).toContain("The contributors couldn't load.");
     expect(html).toContain('Try again');

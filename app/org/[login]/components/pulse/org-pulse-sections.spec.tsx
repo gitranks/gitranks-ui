@@ -82,6 +82,24 @@ describe('OrgPulseSections', () => {
     expect(html).toContain("6 shared contributors (25.0% of this organization's)");
   });
 
+  it('scales the country bars by countries only; the group rows get none', () => {
+    const html = render({
+      ...facts,
+      countries: facts.countries.map((row) => (row.country ? row : { ...row, contributors: 30 })),
+    });
+
+    expect(html.match(/<i aria-hidden="true" style="width:[^"]*"/g)).toEqual([
+      '<i aria-hidden="true" style="width:100%"',
+    ]);
+  });
+
+  it('draws the shared-org graph only in the browser, keeping its space', () => {
+    const html = render(shared);
+
+    expect(html).not.toContain('<svg viewBox="0 0 240 240"');
+    expect(html).toContain('aspect-square');
+  });
+
   it('draws no headline, score or rank: data only', () => {
     expect(render(shared)).not.toMatch(/\b(score|rank|best|top performer)\b/i);
   });

@@ -157,6 +157,7 @@ type OrgPulseContributor {
   avatarUrl: String!
   commits: Int!
   githubId: ID
+  hasProfile: Boolean!
   linesAdded: Float!
   linesDeleted: Float!
   login: String!

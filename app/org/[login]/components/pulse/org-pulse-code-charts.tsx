@@ -109,7 +109,13 @@ export const OrgPulseCodeCharts: FC = () => {
 
   // The series loads in the browser: the server-rendered page holds only the placeholder.
   if (!hydrated) {
-    return <ChartLoading label="Loading the lines charts" count={2} />;
+    return (
+      <div className="flex flex-col gap-4">
+        {/* The switch row's space, so nothing moves when it appears. */}
+        <div aria-hidden className="h-8" />
+        <ChartLoading label="Loading the lines charts" count={2} />
+      </div>
+    );
   }
 
   return <OrgPulseCodeChartsView groupBy={groupBy} state={lines} onGroupByChange={setGroupBy} onRetry={retry} />;

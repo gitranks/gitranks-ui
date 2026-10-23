@@ -146,29 +146,7 @@ enum LanguageSummaryOrder {
   USERS
 }
 
-type OrgActivityChart {
-  commits: [Int!]!
-  computedAt: DateTime!
-  lowVolume: [Boolean!]!
-  months: [String!]!
-  otherUnknownShare: Float!
-  scopeNote: String!
-  series: [OrgActivitySeries!]!
-}
-
-enum OrgActivityGroupBy {
-  KIND
-  LANGUAGE
-  TYPE
-}
-
-type OrgActivitySeries {
-  label: String!
-  shares: [Float!]!
-}
-
 type Organization {
-  activity(groupBy: OrgActivityGroupBy! = TYPE): OrgActivityChart
   avatarUrl: String
   country: String
   countryFlag: String
@@ -177,7 +155,6 @@ type Organization {
   githubCreatedAt: DateTime
   githubId: ID!
   githubUpdatedAt: DateTime
-  hasActivity: Boolean!
   isVerified: Boolean
   location: String
   login: String

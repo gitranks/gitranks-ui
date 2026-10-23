@@ -3,6 +3,7 @@ import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
+import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
 
 const { auth } = NextAuth(authConfig);
 
@@ -27,13 +28,22 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // their pages can be cached: sign-in gets its CSRF token from `/api/auth/csrf`, and the
   // session-aware API routes wrap their handlers in `auth()` themselves.
   if (!request.cookies.getAll().some(({ name }) => SESSION_COOKIE.test(name))) {
-    return NextResponse.next();
+    if (!request.cookies.has(SESSION_HINT_COOKIE)) {
+      return NextResponse.next();
+    }
+
+    // Signed out or expired: drop the hint, so the page stops asking for a session.
+    const response = NextResponse.next();
+    response.headers.append('Set-Cookie', SESSION_HINT_CLEAR);
+    return response;
   }
 
   // A signed-in response carries the rotated session cookie: never let a shared cache keep it,
-  // whatever that cache decides about the request on its own.
+  // whatever that cache decides about the request on its own. The hint tells the page to fetch
+  // the session; it is set on every signed-in response, so it never outlives a browser restart.
   const response = await withAuth(request, event);
   response?.headers.set('Cache-Control', 'private, no-cache');
+  response?.headers.append('Set-Cookie', SESSION_HINT_SET);
   return response;
 }
 

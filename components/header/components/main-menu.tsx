@@ -57,7 +57,8 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), 'bg-transparent')} asChild>
-            <Link href="/badge/gallery" prefetch>
+            {/* Not prefetched: the header is on every page, so a prefetch cost a request on every page view. */}
+            <Link href="/badge/gallery" prefetch={false}>
               Badges
             </Link>
           </NavigationMenuLink>

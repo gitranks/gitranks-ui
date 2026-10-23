@@ -21,6 +21,13 @@ describe('proxy', () => {
     expect(response?.headers.get('set-cookie')).toBeNull();
   });
 
+  it('clears a leftover session hint once the session is gone, without running Auth.js', async () => {
+    const response = await proxy(request('has-session=1'), event);
+
+    expect(withSession).not.toHaveBeenCalled();
+    expect(response?.headers.get('set-cookie')).toBe('has-session=; Path=/; Max-Age=0; SameSite=Lax');
+  });
+
   it('treats the CSRF and callback-url cookies every anonymous browser carries as no session', async () => {
     await proxy(request('__Host-authjs.csrf-token=x; __Secure-authjs.callback-url=https%3A%2F%2Fgitranks.com'), event);
 
@@ -36,6 +43,7 @@ describe('proxy', () => {
 
     expect(withSession).toHaveBeenCalledTimes(1);
     expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+    expect(response?.headers.getSetCookie()).toEqual(['authjs.csrf-token=x', 'has-session=1; Path=/; SameSite=Lax']);
   });
 
   it.each([undefined, 'authjs.session-token=t'])(

@@ -20,5 +20,54 @@ query PageOrg($login: String!) {
     reposCount
     usersCount
     updatedAt
+    hasActivity
+    pulse {
+      lastMonth
+      snapshot {
+        label
+        lines
+        share
+      }
+      last12 {
+        added
+        deleted
+        net
+        commits
+        pullRequests
+        activeContributors
+        newContributors
+      }
+      topContributors {
+        githubId
+        login
+        hasProfile
+        avatarUrl
+        linesAdded
+        linesDeleted
+        commits
+        pullRequests
+        activeMonths
+        topLabels
+      }
+      unlinkedAuthors12
+      countries {
+        group
+        country
+        flag
+        contributors
+      }
+      sharedContributorOrgs {
+        login
+        sharedContributors
+        share
+        organization {
+          login
+          name
+          avatarUrl
+        }
+      }
+      scopeNote
+      computedAt
+    }
   }
 }

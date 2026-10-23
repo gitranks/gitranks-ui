@@ -146,6 +146,108 @@ enum LanguageSummaryOrder {
   USERS
 }
 
+enum OrgActivityGroupBy {
+  KIND
+  LANGUAGE
+  TYPE
+}
+
+type OrgPulseContributor {
+  activeMonths: Int!
+  avatarUrl: String!
+  commits: Int!
+  githubId: ID
+  hasProfile: Boolean!
+  linesAdded: Float!
+  linesDeleted: Float!
+  login: String!
+  pullRequests: Int!
+  topLabels: [String!]!
+}
+
+type OrgPulseContributorPage {
+  items: [OrgPulseContributor!]!
+  labels: [String!]!
+  total: Int!
+  unlinkedAuthors: Int!
+}
+
+enum OrgPulseContributorSort {
+  COMMITS
+  LINES
+  PULL_REQUESTS
+}
+
+type OrgPulseCountry {
+  contributors: Int!
+  country: String
+  flag: String
+  group: OrgPulseCountryGroup!
+}
+
+enum OrgPulseCountryGroup {
+  COUNTRY
+  NOT_ON_GITRANKS
+  NO_LOCATION
+}
+
+type OrgPulseFacts {
+  computedAt: DateTime!
+  countries: [OrgPulseCountry!]!
+  last12: OrgPulseTotals!
+  lastMonth: String!
+  scopeNote: String!
+  sharedContributorOrgs: [OrgPulseSharedOrg!]!
+  snapshot: [OrgPulseLabelLines!]!
+  topContributors: [OrgPulseContributor!]!
+  unlinkedAuthors12: Int!
+}
+
+type OrgPulseLabelLines {
+  label: String!
+  lines: Float!
+  share: Float!
+}
+
+enum OrgPulsePeriod {
+  LAST_3_MONTHS
+  LAST_12_MONTHS
+  LAST_60_MONTHS
+}
+
+type OrgPulseSeries {
+  activeAnonymous: [Int!]!
+  activeLinked: [Int!]!
+  added: [[Float!]!]!
+  commits: [Int!]!
+  crossLines: [Float!]!
+  deleted: [[Float!]!]!
+  labels: [String!]!
+  largestChange: [Float!]!
+  largestChangeShare: [Float!]!
+  months: [String!]!
+  newContributors: [Int]!
+  pullRequests: [Int!]!
+  snapshot: [[Float!]!]!
+}
+
+type OrgPulseSharedOrg {
+  login: String!
+  organization: Organization
+  share: Float!
+  sharedContributors: Int!
+}
+
+type OrgPulseTotals {
+  activeContributors: Int!
+  added: Float!
+  commits: Int!
+  deleted: Float!
+  net: Float!
+  newContributors: Int!
+  pullRequests: Int!
+}
+
 type Organization {
   avatarUrl: String
   country: String
@@ -155,10 +257,14 @@ type Organization {
   githubCreatedAt: DateTime
   githubId: ID!
   githubUpdatedAt: DateTime
+  hasActivity: Boolean!
   isVerified: Boolean
   location: String
   login: String
   name: String
+  pulse: OrgPulseFacts
+  pulseContributors(first: Int! = 25, label: String, offset: Int! = 0, period: OrgPulsePeriod! = LAST_12_MONTHS, sortBy: OrgPulseContributorSort! = LINES): OrgPulseContributorPage
+  pulseSeries(groupBy: OrgActivityGroupBy! = TYPE): OrgPulseSeries
   rankOrg: RankOrgWithoutOrganization
   reposCount: Int
   s: Int

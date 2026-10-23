@@ -1,0 +1,19 @@
+query OrgPulseSeries($login: String!, $groupBy: OrgActivityGroupBy!) {
+  organization(login: $login) {
+    pulseSeries(groupBy: $groupBy) {
+      months
+      labels
+      snapshot
+      added
+      deleted
+      largestChange
+      largestChangeShare
+      crossLines
+      commits
+      pullRequests
+      activeLinked
+      activeAnonymous
+      newContributors
+    }
+  }
+}

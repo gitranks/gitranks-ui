@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Repository } from '@/types/generated/graphql';
 import { hasLinesChanged } from '@/utils/has-lines-changed';
 import { pluralize } from '@/utils/pluralize';
+import { getContributionPrsUrl } from '@/utils/repositories';
 
 type RepositoryCardProps = {
   repository?: Repository | null;
@@ -13,6 +14,7 @@ type RepositoryCardProps = {
   linesAdded?: number | null;
   linesRemoved?: number | null;
   login: string;
+  year: number;
 };
 
 const PR_FETCH_LIMIT = 3;
@@ -24,13 +26,15 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
   linesAdded,
   linesRemoved,
   login,
+  year,
 }) => {
+  // Past the limit the badge shows every PR of the year rather than the merged count, which older rows sampled from
+  // the 3 most recent PRs only. The link follows whichever count the badge shows.
+  const showsAllPrs = (prsCount ?? 0) > PR_FETCH_LIMIT;
+
   const badgeLabel = useMemo(
-    () =>
-      (prsCount ?? 0) > PR_FETCH_LIMIT
-        ? `${prsCount} PRs`
-        : `${mergedPrsCount} ${pluralize('PR', mergedPrsCount ?? 0)}`,
-    [prsCount, mergedPrsCount],
+    () => (showsAllPrs ? `${prsCount} PRs` : `${mergedPrsCount} ${pluralize('PR', mergedPrsCount ?? 0)}`),
+    [showsAllPrs, prsCount, mergedPrsCount],
   );
 
   const showLinesChanged = useMemo(
@@ -59,7 +63,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
           )}
         </Badge>
       }
-      login={login}
+      contributionUrl={getContributionPrsUrl({ url: repository.url, login, year, mergedOnly: !showsAllPrs })}
       className="border-0 p-4 pl-0 md:pl-0 rounded-none shadow-none bg-transparent"
     />
   );

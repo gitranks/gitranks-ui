@@ -79,6 +79,7 @@ export const UserContributionsList: FC<UserContributionsListProps> = ({
                   linesAdded={item.linesAdded}
                   linesRemoved={item.linesRemoved}
                   login={login}
+                  year={contribution.year}
                 />
               ))}
             </TimelineDescription>

@@ -24,7 +24,7 @@ export const UserRepositoriesList: FC<UserRepositoriesListProps> = ({
   return (
     <div className="flex flex-col gap-3">
       {repositories?.map((repo) => (
-        <RepositoryCard key={repo.name} repository={repo as Repository} login={login} />
+        <RepositoryCard key={repo.name} repository={repo as Repository} />
       ))}
       {loadMore && <LoadMoreRepositories login={login} repositoriesCount={repositoriesCount} />}
     </div>

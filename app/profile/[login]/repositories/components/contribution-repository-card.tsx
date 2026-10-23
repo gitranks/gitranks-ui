@@ -28,7 +28,8 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
   login,
   year,
 }) => {
-  // Past the fetch limit the merged count is only a sample, so the badge shows every PR of the year instead.
+  // Past the limit the badge shows every PR of the year rather than the merged count, which older rows sampled from
+  // the 3 most recent PRs only. The link follows whichever count the badge shows.
   const showsAllPrs = (prsCount ?? 0) > PR_FETCH_LIMIT;
 
   const badgeLabel = useMemo(

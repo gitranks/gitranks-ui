@@ -88,6 +88,17 @@ export const GithubAvatar: FC<{ url?: string | null; size?: number; className?: 
   );
 };
 
+/**
+ * A flag emoji in its own box. Kept out of the text it labels: iOS Safari paints the text after a
+ * flag in one of the flag's colours when both sit in one truncated (text-overflow) run.
+ */
+export const Flag: FC<{ flag?: string | null; className?: string }> = ({ flag, className }) =>
+  flag ? (
+    <span aria-hidden="true" className={cn('shrink-0', className)}>
+      {flag}
+    </span>
+  ) : null;
+
 /** A landing section: eyebrow, title, intro and an optional link on the right. */
 export const LandingSection: FC<{
   id: string;

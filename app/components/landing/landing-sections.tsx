@@ -9,7 +9,7 @@ import { BadgeSnippet } from './badge-snippet';
 import { type ExampleRank, HeroAside } from './hero-aside';
 import { HeroSignIn } from './hero-sign-in';
 import { FEATURED_ORG, LEADERBOARD_ROWS } from './landing-data';
-import { formatCompact, formatFull, GithubAvatar, LandingSection } from './landing-ui';
+import { Flag, formatCompact, formatFull, GithubAvatar, LandingSection } from './landing-ui';
 import { type Leaderboard, LeaderboardTabs } from './leaderboard-tabs';
 import { RANK_DESCRIPTIONS, TIER_FRACTIONS, TIER_NAMES } from '@/app/app.consts';
 import { seriesColor } from '@/app/org/[login]/components/pulse/org-pulse.utils';
@@ -220,8 +220,8 @@ export const OrganizationsSection: FC<{
                         className="flex min-w-0 items-center gap-2 font-medium hover:underline"
                       >
                         <GithubAvatar url={org.avatarUrl} size={24} className="rounded-md" />
+                        <Flag flag={flag} />
                         <span className="truncate" translate="no">
-                          {flag && <span className="mr-1">{flag}</span>}
                           {org.login}
                         </span>
                       </Link>
@@ -307,9 +307,10 @@ export const PlacesSection: FC<{ countries: CountryRow[]; languages: LanguageRow
               <Link
                 href={`/country/${country.country}/stars/1`}
                 prefetch={false}
-                className="min-w-0 truncate font-medium hover:underline"
+                className="flex min-w-0 items-center gap-2 font-medium hover:underline"
               >
-                {country.countryData.flag} {country.country}
+                <Flag flag={country.countryData.flag} />
+                <span className="truncate">{country.country}</span>
               </Link>
               <span className="flex shrink-0 items-center gap-4 text-muted-foreground">
                 <span className="hidden sm:inline">{formatCompact(country.usersCount)} developers</span>

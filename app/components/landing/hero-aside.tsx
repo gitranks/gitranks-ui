@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { formatFull, GithubAvatar, TierChip } from './landing-ui';
+import { Flag, formatFull, GithubAvatar, TierChip } from './landing-ui';
 import type { RankCardData, RankCardEntry, RankingKey } from './rank-card.types';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { Button } from '@/components/ui/button';
@@ -224,9 +224,15 @@ const ExampleCards: FC<{ examples: ExampleRank[] }> = ({ examples }) => {
         <GithubAvatar url={example.avatarUrl} size={44} eager />
         <div className="min-w-0">
           <div className="truncate font-semibold">{example.name || example.login}</div>
-          <div className="truncate text-xs text-muted-foreground">
-            {example.login}
-            {example.location ? ` · ${example.flag ?? ''} ${example.location}` : ''}
+          <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+            <span className="shrink-0">{example.login}</span>
+            {example.location && (
+              <>
+                <span className="shrink-0">·</span>
+                <Flag flag={example.flag} />
+                <span className="truncate">{example.location}</span>
+              </>
+            )}
           </div>
         </div>
       </Link>

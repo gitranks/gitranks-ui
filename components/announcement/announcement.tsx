@@ -2,6 +2,7 @@
 
 import { sendGAEvent } from '@next/third-parties/google';
 import { StarIcon, XIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useIsClient, useLocalStorage, useMediaQuery } from 'usehooks-ts';
 
@@ -43,8 +44,10 @@ export const Announcement = () => {
   // render must match it. Both hooks already hold the browser's values by then, so the banner
   // appears right after mount, and never flashes for someone who dismissed it.
   const isClient = useIsClient();
+  // The home page has its own support strip above the footer.
+  const isHome = usePathname() === '/';
 
-  if (!isClient || dismissed || dismissedThisVisit || !isDesktop) {
+  if (!isClient || isHome || dismissed || dismissedThisVisit || !isDesktop) {
     return null;
   }
 

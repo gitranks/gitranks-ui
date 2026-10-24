@@ -38,26 +38,31 @@ export const SearchProfile = () => {
   };
 
   return (
-    <div className="flex flex-col gap-1">
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSearch();
-        }}
-        className="flex gap-4"
-      >
-        <Input
-          placeholder="e.g., torvalds, sindresorhus"
-          value={login}
-          onChange={(event) => setLogin(event.target.value)}
-          disabled={loading}
-          autoCapitalize="none"
-        />
-        <Button onClick={onSearch} disabled={loading} className="w-[96px]">
-          {loading ? <ClipLoader loading={loading} size={16} color="currentColor" /> : <Search className="size-4" />}
-          {!loading && 'Search'}
-        </Button>
-      </form>
-    </div>
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSearch();
+      }}
+      className="flex max-w-xl gap-2"
+    >
+      <label htmlFor="landing-search" className="sr-only">
+        GitHub username or organization
+      </label>
+      <Input
+        id="landing-search"
+        placeholder="e.g. torvalds"
+        value={login}
+        onChange={(event) => setLogin(event.target.value)}
+        disabled={loading}
+        autoCapitalize="none"
+        autoComplete="off"
+        spellCheck={false}
+        className="h-10 min-w-0"
+      />
+      <Button type="submit" size="lg" disabled={loading} className="min-w-36">
+        {loading ? <ClipLoader loading={loading} size={16} color="currentColor" /> : <Search className="size-4" />}
+        Find my rank
+      </Button>
+    </form>
   );
 };

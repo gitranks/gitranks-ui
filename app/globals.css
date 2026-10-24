@@ -71,8 +71,6 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.606 0.25 292.717);
-  /* Landing hero wash, until the landing page is rebuilt on the new tokens. */
-  --landing-page-gradient-start-color: oklch(0.967 0.001 286.375);
 }
 
 .dark {
@@ -140,7 +138,6 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.702 0.183 293.541);
-  --landing-page-gradient-start-color: oklch(0.21 0.006 285.885);
 }
 
 @theme inline {
@@ -206,7 +203,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-landing-page-gradient-start-color: var(--landing-page-gradient-start-color);
 
   --animate-avatar-entry: avatarEntry 4s ease-out forwards;
   --animate-navigation-progress: navigationProgress 1.2s ease-in-out infinite;

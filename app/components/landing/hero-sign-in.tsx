@@ -15,13 +15,13 @@ export const HeroSignIn = () => {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
-      <span>or</span>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+      <span className="text-muted-foreground">or</span>
       <Button variant="outline" size="sm" onClick={() => signIn(IDENTITY_PROVIDER)}>
         <FaGithub />
         Sign in with GitHub
       </Button>
-      <span>to see yours without typing</span>
+      <span className="text-muted-foreground">to see yours without typing</span>
     </div>
   );
 };

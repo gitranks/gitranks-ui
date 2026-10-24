@@ -25,7 +25,7 @@ const RightValueLabel: FC<ValueLabelProps> = ({ value, viewBox, formatter }) => 
       dominantBaseline="middle"
       fontSize={12}
       fontWeight={400}
-      className="fill-gray-900 dark:fill-gray-100"
+      className="fill-foreground"
     >
       {formatter ? formatter(value) : value}
     </text>

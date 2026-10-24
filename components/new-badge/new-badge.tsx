@@ -4,7 +4,7 @@ import { Badge } from '../ui/badge';
 
 export const NewBadge = () => {
   return (
-    <Badge variant="secondary" className="bg-blue-500 text-white dark:bg-blue-600">
+    <Badge variant="secondary" className="bg-primary text-primary-foreground">
       <FlameIcon />
       NEW
     </Badge>

@@ -22,7 +22,7 @@ export const RepositoryTopLanguage: FC<RepositoryTopLanguageProps> = ({ language
   return (
     <div className="flex items-center gap-1.5">
       <span
-        className="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/20 shrink-0"
+        className="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-border shrink-0"
         style={{ backgroundColor: topLanguage.color! }}
         aria-hidden
       />

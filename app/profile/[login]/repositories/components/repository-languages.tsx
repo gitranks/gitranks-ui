@@ -31,7 +31,7 @@ export const RepositoryLanguages: FC<RepositoryLanguageProps> = ({ languages }) 
   return (
     <div className="flex flex-col gap-2 w-full max-w-[256px] shrink-0 rounded overflow-hidden">
       <div
-        className="flex h-2 w-full overflow-hidden rounded-full ring-1 ring-black/5 dark:ring-white/10"
+        className="flex h-2 w-full overflow-hidden rounded-full ring-1 ring-border"
         role="img"
         aria-label="Language usage chart"
         title={items.map((i) => `${i.name} ${fmt(i.percent)}`).join(' • ')}
@@ -53,7 +53,7 @@ export const RepositoryLanguages: FC<RepositoryLanguageProps> = ({ languages }) 
         {items.slice(0, LEGEND_LANG_LIMIT).map((l) => (
           <div key={l.name} className="flex items-center gap-1">
             <span
-              className="inline-block h-2 w-2 rounded-full ring-1 ring-black/10 dark:ring-white/20 shrink-0"
+              className="inline-block h-2 w-2 rounded-full ring-1 ring-border shrink-0"
               style={{ backgroundColor: l.color! }}
               aria-hidden
             />

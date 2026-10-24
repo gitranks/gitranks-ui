@@ -54,7 +54,7 @@ export const SearchProfile = () => {
           autoCapitalize="none"
         />
         <Button onClick={onSearch} disabled={loading} className="w-[96px]">
-          {loading ? <ClipLoader loading={loading} size={16} /> : <Search className="size-4" />}
+          {loading ? <ClipLoader loading={loading} size={16} color="currentColor" /> : <Search className="size-4" />}
           {!loading && 'Search'}
         </Button>
       </form>

@@ -260,7 +260,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       busyLabel !== null ? (
         <>
           {busyLabel}
-          <ClipLoader loading size={16} />
+          <ClipLoader loading size={16} color="currentColor" />
         </>
       ) : mode === 'daily' && daily?.available && dailyLabel ? (
         dailyLabel

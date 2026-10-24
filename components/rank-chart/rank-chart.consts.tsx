@@ -1,8 +1,7 @@
 import { TIER_NAMES } from '@/app/app.consts';
 
-export const DEFAULT_COLORS = ['#3B8EEA', '#00A8E8', '#00C5D7', '#30D594', '#B6E36B', '#FFD24C', '#FF8B48'];
-// light = ['#3B8EEA','#00A8E8','#00C5D7','#30D594','#B6E36B','#FFD24C','#FF8B48'];
-// dark = ['#2C7BB6','#0095C9','#00B3C7','#00CFA3','#8DD84C','#F9C445','#FF8132'];
+// Beginner to Legend, from the tier tokens in globals.css (they switch with the theme).
+export const DEFAULT_COLORS = TIER_NAMES.map((_, index) => `var(--tier-${index + 1})`);
 
 export const TIERS_COUNT = TIER_NAMES.length;
 export const START_END_GAP = 14; // degrees

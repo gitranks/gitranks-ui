@@ -13,7 +13,7 @@ type HeaderProps = {
 
 export const Header: FC<HeaderProps> = ({ login }) => {
   return (
-    <header className="flex items-center justify-between p-4">
+    <header className="mx-auto flex w-full max-w-7xl items-center justify-between p-4">
       <div className="flex items-center gap-3">
         <Link href="/" className="shrink-0" prefetch={false}>
           <Image

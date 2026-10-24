@@ -113,7 +113,7 @@ const ChartStarsSnapshot: FC<ChartStarsSnapshotProps> = ({ snapshots, metric, cl
           />
           <YAxis hide domain={['dataMin', 'dataMax + 1']} />
           <Tooltip content={<CustomTooltip />} cursor={false} />
-          <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} connectNulls />
+          <Line type="monotone" dataKey="value" stroke="var(--series-1)" strokeWidth={2} dot={false} connectNulls />
         </LineChart>
       </ResponsiveContainer>
     </div>

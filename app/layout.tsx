@@ -1,6 +1,6 @@
 import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { type ReactNode, Suspense } from 'react';
 
@@ -18,7 +18,9 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_X_HANDLE } from '@/lib/se
 
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+// Ranks, counts and code. Not preloaded: no page uses it above the fold yet.
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono', preload: false });
 
 const metadataBase = process.env.NEXT_PUBLIC_URI ? new URL(process.env.NEXT_PUBLIC_URI) : undefined;
 
@@ -50,14 +52,11 @@ type RootLayoutProps = {
 
 export default function RootLayout({ children, modal }: RootLayoutProps) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://avatars.githubusercontent.com" crossOrigin="anonymous" />
       </head>
-      <body
-        className="antialiased"
-        style={{ ...inter.style, fontFamily: `'Twemoji Country Flags', ${inter.style.fontFamily}` }}
-      >
+      <body className="antialiased">
         <JsonLd payloads={buildSiteJsonLd()} />
         <SessionProvider>
           <NuqsAdapter>

@@ -1,51 +1,52 @@
 @import 'tailwindcss';
-
-@plugin 'tailwindcss-animate';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
-
+/* GitRanks design tokens. Names follow shadcn/ui, so stock components pick them up; the GitRanks extras
+   (brand-soft, brand-mark, link, positive, negative, tier-*, series-*) sit beside them. */
 :root {
   --radius: 0.625rem;
+  /* Surfaces */
   --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.51 0.016 286);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  /* Brand and actions */
+  --primary: oklch(0.541 0.281 293.009);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.21 0.006 285.885);
+  --brand-soft: oklch(0.969 0.016 293.756);
+  --brand-soft-foreground: oklch(0.432 0.232 292.759);
+  --brand-mark: oklch(0.811 0.111 293.571);
+  --link: oklch(0.491 0.27 292.581);
+  --ring: oklch(0.606 0.25 292.717);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
-  --landing-page-gradient-start-color: #e0f2fe;
+  /* Ranking signals */
+  /* Tiers run Beginner (1) to Legend (7). Text-safe values: 4.5:1 or better on background and card. */
   --positive: #15803d;
   --negative: #b91c1c;
-  --link: #0969da;
-  /* Categorical series for multi-series charts, in this fixed order (adjacent pairs stay apart
-     under colour-vision deficiency), then two neutrals: "Other" (the labels past the top ones) and
-     "Other / unknown" (code files with no known language). */
+  --tier-1: oklch(0.442 0.017 285.786);
+  --tier-2: oklch(0.527 0.154 150.069);
+  --tier-3: oklch(0.511 0.096 186.391);
+  --tier-4: oklch(0.488 0.243 264.376);
+  --tier-5: oklch(0.491 0.27 292.581);
+  --tier-6: oklch(0.514 0.222 16.935);
+  --tier-7: oklch(0.555 0.163 48.998);
+  /* Data series */
+  /* Categorical series for multi-series charts, in this fixed order (adjacent pairs stay apart under
+     colour-vision deficiency), then two neutrals: "Other" (the labels past the top ones) and "Other / unknown"
+     (code files with no known language). shadcn's chart-1..5 alias the first five. */
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
@@ -56,45 +57,65 @@
   --series-8: #e34948;
   --series-other: #a3a9b4;
   --series-unknown: #6b7280;
+  --chart-1: var(--series-1);
+  --chart-2: var(--series-2);
+  --chart-3: var(--series-3);
+  --chart-4: var(--series-4);
+  --chart-5: var(--series-5);
+  /* Sidebar (shadcn compatibility) */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: oklch(0.541 0.281 293.009);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.606 0.25 292.717);
+  /* Landing hero wash, until the landing page is rebuilt on the new tokens. */
+  --landing-page-gradient-start-color: oklch(0.967 0.001 286.375);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
+  /* Surfaces */
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.21 0.006 285.885);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
-  --landing-page-gradient-start-color: #0f172a;
+  /* Brand and actions */
+  --primary: oklch(0.702 0.183 293.541);
+  --primary-foreground: oklch(0.141 0.005 285.823);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.985 0 0);
+  --brand-soft: oklch(0.26 0.06 292);
+  --brand-soft-foreground: oklch(0.894 0.057 293.283);
+  --brand-mark: oklch(0.811 0.111 293.571);
+  --link: oklch(0.811 0.111 293.571);
+  --ring: oklch(0.702 0.183 293.541);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  /* Ranking signals */
+  /* Tiers run Beginner (1) to Legend (7). Text-safe values: 4.5:1 or better on background and card. */
   --positive: #22c55e;
   --negative: #ef4444;
-  --link: #478be6;
+  --tier-1: oklch(0.705 0.015 286.067);
+  --tier-2: oklch(0.792 0.209 151.711);
+  --tier-3: oklch(0.777 0.152 181.912);
+  --tier-4: oklch(0.707 0.165 254.624);
+  --tier-5: oklch(0.702 0.183 293.541);
+  --tier-6: oklch(0.712 0.194 13.428);
+  --tier-7: oklch(0.828 0.189 84.429);
+  /* Data series */
+  /* Categorical series for multi-series charts, in this fixed order (adjacent pairs stay apart under
+     colour-vision deficiency), then two neutrals: "Other" (the labels past the top ones) and "Other / unknown"
+     (code files with no known language). shadcn's chart-1..5 alias the first five. */
   --series-1: #3987e5;
   --series-2: #d95926;
   --series-3: #199e70;
@@ -105,37 +126,78 @@
   --series-8: #e66767;
   --series-other: #64748b;
   --series-unknown: #a1a9b8;
+  --chart-1: var(--series-1);
+  --chart-2: var(--series-2);
+  --chart-3: var(--series-3);
+  --chart-4: var(--series-4);
+  --chart-5: var(--series-5);
+  /* Sidebar (shadcn compatibility) */
+  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.702 0.183 293.541);
+  --sidebar-primary-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-accent: oklch(0.274 0.006 286.033);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.702 0.183 293.541);
+  --landing-page-gradient-start-color: oklch(0.21 0.006 285.885);
 }
 
 @theme inline {
+  /* The flag font holds only flag glyphs, so it goes first and everything else falls through to Inter. */
+  --font-sans: 'Twemoji Country Flags', var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-foreground: var(--brand-soft-foreground);
+  --color-brand-mark: var(--brand-mark);
+  --color-link: var(--link);
+  --color-ring: var(--ring);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-tier-1: var(--tier-1);
+  --color-tier-2: var(--tier-2);
+  --color-tier-3: var(--tier-3);
+  --color-tier-4: var(--tier-4);
+  --color-tier-5: var(--tier-5);
+  --color-tier-6: var(--tier-6);
+  --color-tier-7: var(--tier-7);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --color-series-5: var(--series-5);
+  --color-series-6: var(--series-6);
+  --color-series-7: var(--series-7);
+  --color-series-8: var(--series-8);
+  --color-series-other: var(--series-other);
+  --color-series-unknown: var(--series-unknown);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -144,11 +206,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
   --color-landing-page-gradient-start-color: var(--landing-page-gradient-start-color);
-  --color-positive: var(--positive);
-  --color-negative: var(--negative);
-  --color-link: var(--link);
 
   --animate-avatar-entry: avatarEntry 4s ease-out forwards;
   --animate-navigation-progress: navigationProgress 1.2s ease-in-out infinite;
@@ -195,6 +253,6 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
 }

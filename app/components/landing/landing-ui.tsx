@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import type { FC, ReactNode } from 'react';
 
-import { TIER_NAMES } from '@/app/app.consts';
 import { cn } from '@/lib/utils';
 import type { Tier } from '@/types/generated/graphql';
 
@@ -13,31 +12,6 @@ export const tierAt = (tiers: readonly Tier[] | null | undefined, position?: num
 
   return tiers.find((t) => position >= t.minRank && position <= t.maxRank) ?? null;
 };
-
-export const tierLabel = (tier: Pick<Tier, 'tier' | 'level'>) => `${TIER_NAMES[tier.tier - 1]} ${tier.level}`;
-
-// Literal class names so Tailwind generates them: text in the tier colour on a 14% fill of it.
-const TIER_CHIP_CLASSES = [
-  'bg-tier-1/15 text-tier-1',
-  'bg-tier-2/15 text-tier-2',
-  'bg-tier-3/15 text-tier-3',
-  'bg-tier-4/15 text-tier-4',
-  'bg-tier-5/15 text-tier-5',
-  'bg-tier-6/15 text-tier-6',
-  'bg-tier-7/15 text-tier-7',
-];
-
-export const TierChip: FC<{ tier: Pick<Tier, 'tier' | 'level'>; className?: string }> = ({ tier, className }) => (
-  <span
-    className={cn(
-      'inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-semibold before:size-1.5 before:rounded-full before:bg-current',
-      TIER_CHIP_CLASSES[tier.tier - 1],
-      className,
-    )}
-  >
-    {tierLabel(tier)}
-  </span>
-);
 
 /**
  * A GitHub avatar loaded straight from GitHub's image CDN at twice its display size. The landing
@@ -85,31 +59,6 @@ export const GithubAvatar: FC<{ url?: string | null; size?: number; className?: 
       decoding="async"
       className={cn('shrink-0 rounded-full bg-muted', className)}
     />
-  );
-};
-
-/**
- * A flag emoji in its own box. Kept out of the text it labels: iOS Safari paints the text after a
- * flag in one of the flag's colours when both sit in one truncated (text-overflow) run.
- */
-export const Flag: FC<{ flag?: string | null; label?: string | null; className?: string }> = ({
-  flag,
-  label,
-  className,
-}) => {
-  if (!flag) {
-    return null;
-  }
-
-  // Named for screen readers only where the country is not written next to it.
-  return label ? (
-    <span role="img" aria-label={label} className={cn('shrink-0', className)}>
-      {flag}
-    </span>
-  ) : (
-    <span aria-hidden="true" className={cn('shrink-0', className)}>
-      {flag}
-    </span>
   );
 };
 

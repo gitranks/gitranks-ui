@@ -16,11 +16,11 @@ import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { OwnProjectsCard } from './overview-cards/own-projects-card';
 import { ProfileBadgesSection } from './profile-badges-section';
+import { MoreLink, ProfileSection } from './profile-card';
 import { ProfileSummary } from './profile-summary';
 import { RankHistoryTable } from './rank-history-table';
 import { StarsReviewNote } from './stars-review-note';
 import { JsonLd } from '@/components/json-ld/json-ld';
-import { Link } from '@/components/link/link';
 import type { ProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { countryInSentence } from '@/utils/country-in-sentence';
@@ -88,8 +88,8 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
     <LayoutLeftColumn user={user} className="gap-10">
       <JsonLd payloads={buildProfileTabSEO('overview', user, isGlobalContext ? 'global' : 'country').jsonLd} />
 
-      <div className="flex flex-col gap-3">
-        <h2 className="text-xl font-semibold">Profile Overview</h2>
+      <div className="flex flex-col gap-4">
+        <h2 className="sr-only">Profile overview</h2>
         <StarsReviewNote login={login} starsReview={starsReview} />
 
         <OverviewCardsContainer>
@@ -124,30 +124,39 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
       </div>
 
       {!!repositoriesCount && (
-        <div className="flex flex-col gap-3">
-          <h3 className="text-xl font-semibold">{repositoriesCount > 5 ? 'Top 5 Repositories' : 'Repositories'}</h3>
+        <ProfileSection
+          id="top-repositories"
+          title={repositoriesCount > 5 ? 'Top 5 repositories' : 'Repositories'}
+          action={
+            repositoriesCount > 5 && (
+              <MoreLink href={`/profile/${login}/repositories`}>
+                All {repositoriesCount.toLocaleString('en-US')} repositories
+              </MoreLink>
+            )
+          }
+        >
           <UserRepositoriesList repositories={repositories} login={login} loadMore={false} />
-          {repositoriesCount > 5 && (
-            <Link href={`/profile/${login}/repositories`}>{`View all ${repositoriesCount} repositories`}</Link>
-          )}
-        </div>
+        </ProfileSection>
       )}
 
       {!!contributions?.length && (
-        <div className="flex flex-col gap-3">
-          <h3 className="text-xl font-semibold">Last Contributions</h3>
+        <ProfileSection
+          id="recent-contributions"
+          title="Recent contributions"
+          action={<MoreLink href={`/profile/${login}/repositories`}>All contributions</MoreLink>}
+        >
           <UserContributionsList contributions={contributions} login={login} contributionCount={false} />
-          <Link href={`/profile/${login}/repositories`}>View all contributions</Link>
-        </div>
+        </ProfileSection>
       )}
 
       {!!scope && <RankHistoryTable history={rankHistory} scope={scope} />}
 
       {!!timeline?.length && <ProfileTimeline timeline={timeline} firstSeenAt={firstSeenAt} />}
 
-      <ProfileBadgesSection login={login} scores={{ s, c, f }} ranks={user.rankGlobal ?? null} />
-
-      <MessengerIntegration login={login} />
+      <div className="grid gap-4 md:gap-6 lg:has-[>:nth-child(2)]:grid-cols-[2fr_1fr]">
+        <ProfileBadgesSection login={login} scores={{ s, c, f }} ranks={user.rankGlobal ?? null} />
+        <MessengerIntegration login={login} />
+      </div>
     </LayoutLeftColumn>
   );
 };

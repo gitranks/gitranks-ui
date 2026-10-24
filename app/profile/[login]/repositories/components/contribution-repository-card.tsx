@@ -52,7 +52,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
       type="contribution"
       repository={repository}
       meta={
-        <Badge variant="secondary">
+        <Badge variant="secondary" className="font-mono tabular-nums">
           {badgeLabel}{' '}
           {showLinesChanged && (
             <>
@@ -63,7 +63,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
         </Badge>
       }
       contributionUrl={getContributionPrsUrl({ url: repository.url, login, year })}
-      className="border-0 p-4 pl-0 md:pl-0 rounded-none shadow-none bg-transparent"
+      className="px-0 py-3"
     />
   );
 };

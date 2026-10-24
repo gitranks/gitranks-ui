@@ -35,7 +35,7 @@ export const OsContributionsCard: FC<OsContributionsCardProps> = ({
     const percentage = Math.max((userRank / totalRankedUsers) * 100, 0.1);
 
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="text-sm">
         {percentage > 50 ? 'Bottom' : 'Top'} {formatNumberShort(percentage > 50 ? 100 - percentage : percentage)}% of
         ranked profiles
       </div>
@@ -43,7 +43,13 @@ export const OsContributionsCard: FC<OsContributionsCardProps> = ({
   };
 
   const getTooltip = () => (
-    <AdaptiveTooltip trigger={<InfoIcon size={20} />}>
+    <AdaptiveTooltip
+      trigger={
+        <button type="button" aria-label="What counts as a contribution?" className="text-muted-foreground">
+          <InfoIcon className="size-4" />
+        </button>
+      }
+    >
       <div className="max-w-80 text-sm">
         <div>
           <b>What counts as a contribution?</b>
@@ -61,36 +67,34 @@ export const OsContributionsCard: FC<OsContributionsCardProps> = ({
 
   const getCardContent = () => {
     if (!repoCount) {
-      return <div className="flex grow items-center p-3 md:p-4">This profile has no public contributions.</div>;
+      return <p className="text-sm text-muted-foreground">This profile has no public contributions.</p>;
     }
 
     return (
-      <div className="flex flex-col gap-3">
-        <ProfileCardHeader meta={getTooltip()}>
-          <span className="font-semibold">Open Source Contributions</span>
-        </ProfileCardHeader>
-        <div className="flex flex-col gap-1.5">
-          <div className="flex-inline items-center">
-            Contributed to {repoCount} repositories{' '}
-            {!!repoStars && (
-              <>
-                {' '}
-                with <span className="font-semibold">{formatNumberShort(repoStars)}</span> stars
-              </>
-            )}
-          </div>
-          {getTopRankedMessage()}
-          {!!languages?.length && (
-            <div className="flex gap-2 flex-wrap leading-tight">
-              Languages: <LangListWithSources languages={languages} login={login} />
-            </div>
-          )}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="font-mono text-3xl font-semibold tracking-tight tabular-nums">
+            {formatNumberShort(repoStars)}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {repoStars === 1 ? 'star' : 'stars'} on {repoCount.toLocaleString('en-US')}{' '}
+            {repoCount === 1 ? 'repository' : 'repositories'} contributed to
+          </span>
         </div>
+        {getTopRankedMessage()}
+        {!!languages?.length && (
+          <div className="flex flex-wrap gap-x-2 gap-y-1 text-sm leading-tight">
+            <span className="text-muted-foreground">Languages:</span>
+            <LangListWithSources languages={languages} login={login} />
+          </div>
+        )}
       </div>
     );
   };
+
   return (
-    <ProfileCard className="gap-2">
+    <ProfileCard className="gap-3">
+      <ProfileCardHeader meta={getTooltip()}>Open source contributions</ProfileCardHeader>
       {getCardContent()}
       <ChartStarsSnapshot snapshots={snapshots} metric="c" className="mt-auto" />
     </ProfileCard>

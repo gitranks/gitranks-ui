@@ -52,16 +52,18 @@ export const LoadMoreRepositories: FC<LoadMoreRepositoriesProps> = ({ login, rep
       ))}
 
       {hasLoadMoreButton && (
-        <Button
-          disabled={loadingState === LoadingState.LOADING}
-          onClick={handleLoadMore}
-          variant="outline"
-          className="flex-grow-0 self-start"
-        >
-          {loadingState === LoadingState.LOADING
-            ? 'Loading...'
-            : `Show more - ${loadedCount} of ${repositoriesCount} shown`}
-        </Button>
+        <div className="p-4">
+          <Button
+            disabled={loadingState === LoadingState.LOADING}
+            onClick={handleLoadMore}
+            variant="outline"
+            className="flex-grow-0 self-start"
+          >
+            {loadingState === LoadingState.LOADING
+              ? 'Loading...'
+              : `Show more - ${loadedCount} of ${repositoriesCount} shown`}
+          </Button>
+        </div>
       )}
     </>
   );

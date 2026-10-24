@@ -3,6 +3,7 @@ import type { FC } from 'react';
 import { TIER_NAMES } from '@/app/app.consts';
 import { AdaptiveModal } from '@/components/adaptive-modal/adaptive-modal';
 import { TagProvisional } from '@/components/tag-provisional/tag-provisional';
+import { tierTextClass } from '@/components/tier-chip/tier-chip';
 import { TiersExplanation } from '@/components/tiers-explanation/tiers-explanation';
 import { cn } from '@/lib/utils';
 import type { Tier } from '@/types/generated/graphql';
@@ -37,14 +38,22 @@ const getTierName = (tierData?: ProfileTierType): string => {
 };
 
 export const TierValue: FC<TierValueProps> = ({ tierData, tiers, rankedCount, rankType, className, rankingName }) => {
-  const getTierNameComponent = (className?: string) => <span className={className}>{getTierName(tierData)}</span>;
+  // A named tier is written in its colour; "N/A" and "Not Ranked" stay muted.
+  const color = tierData && hasTierData(tierData) ? tierTextClass(tierData.data?.tier) : 'text-muted-foreground';
 
   return (
-    <div className={cn('text-2xl font-semibold flex gap-2 items-center', className)}>
-      {!tiers?.length && getTierNameComponent()}
+    <div className={cn('text-2xl font-semibold tracking-tight flex gap-2 items-center', className)}>
+      {!tiers?.length && <span className={color}>{getTierName(tierData)}</span>}
       {!!tiers?.length && (
         <AdaptiveModal
-          trigger={getTierNameComponent('underline decoration-dotted underline-offset-4 cursor-pointer')}
+          trigger={
+            <button
+              type="button"
+              className={cn('text-left underline decoration-dotted underline-offset-4 cursor-pointer', color)}
+            >
+              {getTierName(tierData)}
+            </button>
+          }
           title={`${rankingName} cut-offs`}
           description={`Below is the detailed breakdown of tiers and levels for the ${rankingName}. It shows the rank range and the minimum score needed to earn each tier and level, based on today’s ${(
             rankedCount || 0

@@ -1,6 +1,7 @@
 import { MapPin } from 'lucide-react';
 
 import { ProfileListItem } from './profile-list-item';
+import { Flag } from '@/components/flag/flag';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 
 type ProfileLocationProps = {
@@ -17,7 +18,8 @@ export async function ProfileLocation({ location, country, countryFlag }: Profil
 
   return (
     <ProfileListItem
-      value={`${countryFlag ? `${countryFlag} ` : ''}${location}`}
+      value={location}
+      prefix={<Flag flag={countryFlag} className="me-1.5" />}
       url={hasRanking ? `/country/${encodeURIComponent(country)}/stars/1` : undefined}
       Icon={MapPin}
     />

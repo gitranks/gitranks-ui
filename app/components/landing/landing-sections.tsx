@@ -9,11 +9,12 @@ import { BadgeSnippet } from './badge-snippet';
 import { type ExampleRank, HeroAside } from './hero-aside';
 import { HeroSignIn } from './hero-sign-in';
 import { FEATURED_ORG, LEADERBOARD_ROWS } from './landing-data';
-import { Flag, formatCompact, formatFull, GithubAvatar, LandingSection } from './landing-ui';
+import { formatCompact, formatFull, GithubAvatar, LandingSection } from './landing-ui';
 import { type Leaderboard, LeaderboardTabs } from './leaderboard-tabs';
-import { RANK_DESCRIPTIONS, TIER_FRACTIONS, TIER_NAMES } from '@/app/app.consts';
+import { RANK_DESCRIPTIONS, TELEGRAM_BOT_URL, TIER_FRACTIONS, TIER_NAMES, WHATSAPP_BOT_URL } from '@/app/app.consts';
 import { seriesColor } from '@/app/org/[login]/components/pulse/org-pulse.utils';
 import { RANK_NAME } from '@/badge/badge.consts';
+import { Flag } from '@/components/flag/flag';
 import { InsightPostCard } from '@/components/insight/insight-post-card';
 import InsightText from '@/components/insight/insight-text';
 import { JsonLd } from '@/components/json-ld/json-ld';
@@ -30,9 +31,6 @@ import type {
 } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
 import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
-
-const WHATSAPP_URL = 'https://wa.me/48730654976?text=%2Fmenu';
-const TELEGRAM_URL = 'https://t.me/gitranksbot';
 
 export const Container: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
   <div className={`mx-auto w-full max-w-7xl px-4 ${className ?? ''}`}>{children}</div>
@@ -436,13 +434,13 @@ export const UpdatesSection = () => (
   >
     <div className="flex flex-wrap gap-3">
       <Button asChild variant="outline">
-        <a href={TELEGRAM_URL} target="_blank" rel="noopener">
+        <a href={TELEGRAM_BOT_URL} target="_blank" rel="noopener">
           <FaTelegramPlane />
           Telegram bot
         </a>
       </Button>
       <Button asChild variant="outline">
-        <a href={WHATSAPP_URL} target="_blank" rel="noopener">
+        <a href={WHATSAPP_BOT_URL} target="_blank" rel="noopener">
           <FaWhatsapp />
           WhatsApp bot
         </a>

@@ -6,9 +6,11 @@ import { useSession } from 'next-auth/react';
 import { type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { Flag, formatFull, GithubAvatar, TierChip } from './landing-ui';
+import { formatFull, GithubAvatar } from './landing-ui';
 import type { RankCardData, RankCardEntry, RankingKey } from './rank-card.types';
+import { Flag } from '@/components/flag/flag';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { TierChip } from '@/components/tier-chip/tier-chip';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';

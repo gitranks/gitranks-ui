@@ -49,11 +49,11 @@ export const Tab: FC<TabProps> = ({ href, children, exact, pathnames }) => {
   }
 
   return (
-    <li className="me-2">
+    <li className="shrink-0 sm:me-2">
       <Link
         href={href as Route}
         prefetch={false}
-        className={cn('relative inline-block p-4 pt-0 border-b-2 rounded-t-lg', {
+        className={cn('relative inline-block whitespace-nowrap px-3 pb-4 sm:px-4 border-b-2 rounded-t-lg', {
           'border-transparent hover:border-muted-foreground': !active,
           'border-foreground text-foreground font-semibold': active,
         })}

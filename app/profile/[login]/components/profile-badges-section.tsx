@@ -4,6 +4,7 @@ import type { Route } from 'next';
 import type { FC, MouseEvent } from 'react';
 import { toast } from 'sonner';
 
+import { MoreLink, ProfileCard, ProfileCardHeader } from './profile-card';
 import {
   type CanonicalBadgeVariant,
   getCanonicalBadgePath,
@@ -12,7 +13,6 @@ import {
   isCanonicalBadgeAvailable,
 } from '@/badge/canonical-badge';
 import type { RankingRanks, RankingScores } from '@/badge/utils/is-ranked-in';
-import { Link as LinkUnderlined } from '@/components/link/link';
 
 const BADGE_COLUMNS: [CanonicalBadgeVariant, CanonicalBadgeVariant][] = [
   ['stars-rank', 'stars-score'],
@@ -56,17 +56,18 @@ export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login, sco
   }
 
   return (
-    <div className="flex flex-col gap-2 px-4 py-4 rounded-xl border-1 mt-8">
-      <div className="flex items-start justify-between gap-x-4 gap-y-1 flex-wrap text-sm">
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <div>Embed {login}&apos;s GitRanks badges on GitHub, your site, or social media</div>
-          <div className="text-muted-foreground">
-            Click a badge to copy its image URL, or open the badge builder to customize it.
-          </div>
+    <ProfileCard className="gap-3">
+      <div className="flex items-start justify-between gap-x-4 gap-y-1 flex-wrap">
+        <div className="flex flex-col gap-1 min-w-0">
+          <ProfileCardHeader>Badges</ProfileCardHeader>
+          <p className="text-sm text-muted-foreground">
+            Embed {login}&apos;s GitRanks badges on GitHub, your site, or social media. Click a badge to copy its image
+            URL.
+          </p>
         </div>
-        <LinkUnderlined className="flex items-center gap-2 shrink-0" href={builderHref}>
+        <MoreLink href={builderHref} className="shrink-0">
           Customize in badge builder
-        </LinkUnderlined>
+        </MoreLink>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -93,6 +94,6 @@ export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login, sco
           </div>
         ))}
       </div>
-    </div>
+    </ProfileCard>
   );
 };

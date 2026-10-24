@@ -15,8 +15,8 @@ import { formatNumberShort } from '@/utils/format-number-short';
 
 export const RankCardItem: FC<RankCardItemProps> = ({ Icon, children, className }) => {
   return (
-    <div className={cn('flex flex-row items-center gap-2', className)}>
-      {!!Icon && <Icon size={20} className="shrink-0" />}
+    <div className={cn('flex flex-row items-center gap-2 text-sm', className)}>
+      {!!Icon && <Icon size={16} className="shrink-0 text-muted-foreground" />}
       {children}
     </div>
   );
@@ -25,7 +25,7 @@ export const RankCardItem: FC<RankCardItemProps> = ({ Icon, children, className 
 export const RankCardPosition: FC<RankCardPositionProps> = ({ rank, rankedCount, rankingLink }) => {
   return (
     <RankCardItem Icon={Medal}>
-      Position: {rank?.toLocaleString('en-US')}{' '}
+      Position: <span className="font-mono font-semibold tabular-nums">#{rank?.toLocaleString('en-US')}</span>{' '}
       {rankedCount && (
         <span className="text-muted-foreground text-xs">
           /{' '}

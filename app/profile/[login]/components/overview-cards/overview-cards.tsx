@@ -7,5 +7,7 @@ type OverviewCardsContainerProps = {
 };
 
 export const OverviewCardsContainer: FC<OverviewCardsContainerProps> = ({ children }) => {
-  return <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(360px,1fr))]">{children}</ProfileCardsGrid>;
+  return (
+    <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(min(100%,360px),1fr))]">{children}</ProfileCardsGrid>
+  );
 };

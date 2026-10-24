@@ -220,7 +220,7 @@ export const OrganizationsSection: FC<{
                         className="flex min-w-0 items-center gap-2 font-medium hover:underline"
                       >
                         <GithubAvatar url={org.avatarUrl} size={24} className="rounded-md" />
-                        <Flag flag={flag} />
+                        <Flag flag={flag} label={org.country} />
                         <span className="truncate" translate="no">
                           {org.login}
                         </span>

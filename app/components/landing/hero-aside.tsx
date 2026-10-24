@@ -225,7 +225,7 @@ const ExampleCards: FC<{ examples: ExampleRank[] }> = ({ examples }) => {
         <div className="min-w-0">
           <div className="truncate font-semibold">{example.name || example.login}</div>
           <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-            <span className="shrink-0">{example.login}</span>
+            <span className="min-w-0 truncate">{example.login}</span>
             {example.location && (
               <>
                 <span className="shrink-0">·</span>

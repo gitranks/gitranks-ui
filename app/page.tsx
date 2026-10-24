@@ -72,6 +72,7 @@ export default async function Home() {
               login: row.user.login,
               avatarUrl: row.user.avatarUrl ?? null,
               flag: (row.user.country && flags.get(row.user.country)) || null,
+              country: row.user.country ?? null,
               location: row.user.location ?? null,
               value: row.user[board.key] ?? null,
             },

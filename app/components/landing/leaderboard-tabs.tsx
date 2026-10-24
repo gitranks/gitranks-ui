@@ -17,6 +17,7 @@ export type LeaderboardRow = {
   login: string;
   avatarUrl: string | null;
   flag: string | null;
+  country: string | null;
   location: string | null;
   value: number | null;
 };
@@ -90,7 +91,7 @@ export const LeaderboardTabs: FC<{ boards: Leaderboard[] }> = ({ boards }) => {
                         className="flex min-w-0 items-center gap-2 font-medium hover:underline"
                       >
                         <GithubAvatar url={row.avatarUrl} size={24} />
-                        <Flag flag={row.flag} className="md:hidden" />
+                        <Flag flag={row.flag} label={row.country} className="md:hidden" />
                         <span className="truncate" translate="no">
                           {row.login}
                         </span>
@@ -98,7 +99,7 @@ export const LeaderboardTabs: FC<{ boards: Leaderboard[] }> = ({ boards }) => {
                     </td>
                     <td className="hidden max-w-56 px-2 py-2.5 text-muted-foreground md:table-cell">
                       <span className="flex min-w-0 items-center gap-1.5">
-                        <Flag flag={row.flag} />
+                        <Flag flag={row.flag} label={row.country} />
                         <span className="truncate">{row.location}</span>
                       </span>
                     </td>

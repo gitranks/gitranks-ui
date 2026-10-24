@@ -73,7 +73,10 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
                 <Footer />
               </div>
               <Suspense fallback={null}>{modal}</Suspense>
-              <Announcement />
+              {/* Reads the pathname, which can suspend on routes rendered on request. */}
+              <Suspense fallback={null}>
+                <Announcement />
+              </Suspense>
               <Toaster richColors position="top-right" />
             </ThemeProvider>
           </NuqsAdapter>

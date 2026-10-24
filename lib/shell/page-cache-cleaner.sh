@@ -2,17 +2,19 @@
 #
 # Caps the pages Next.js writes to its page cache at runtime.
 #
-# Next keeps every page it renders on demand under .next/server/app (the .html and .meta files,
-# the .segments folder and sometimes a .rsc file), with no eviction. A new container starts from
-# the image and drops them, but between deploys they pile up for as long as visitors and crawlers
-# keep finding new URLs. Every INTERVAL seconds this keeps the newest MAX_PAGES runtime pages and
-# deletes the rest, oldest first. A deleted page is a cache miss: Next renders it again on its next
-# visit, as after a deploy.
+# Next keeps every page it renders on demand under .next/server/route-cache (the .html and .meta
+# files, the .segments folder and sometimes a .rsc file), with no eviction. Before 16.4 they went to
+# .next/server/app, next to the build output. A new container starts from the image and drops
+# them, but between deploys they pile up for as long as visitors and crawlers keep finding new URLs.
+# Every INTERVAL seconds this keeps the newest MAX_PAGES runtime pages and deletes the rest, oldest
+# first. A deleted page is a cache miss: Next renders it again on its next visit, as after a deploy.
 #
 # Runtime pages are those written after the image was built: newer than BUILD_MARKER, a file the
-# Dockerfile touches after copying the build in. Pages prerendered at build time are never touched.
+# Dockerfile touches after copying the build in. Pages prerendered at build time stay in
+# .next/server/app and are never touched; the copy Next makes of one in the route cache when it
+# first serves it is a runtime page like any other.
 
-CACHE_DIR="${PAGE_CACHE_DIR:-/app/.next/server/app}"
+CACHE_DIR="${PAGE_CACHE_DIR:-/app/.next/server/route-cache}"
 BUILD_MARKER="${PAGE_CACHE_BUILD_MARKER:-/app/.next/page-cache-build-marker}"
 MAX_PAGES="${PAGE_CACHE_MAX_PAGES:-8000}"
 INTERVAL="${PAGE_CACHE_INTERVAL:-3600}" # seconds; 0 runs one pass and exits
@@ -37,8 +39,13 @@ for SETTING in "MAX_PAGES=$MAX_PAGES" "INTERVAL=$INTERVAL"; do
 done
 
 prune() {
-  if [ ! -d "$CACHE_DIR" ] || [ ! -e "$BUILD_MARKER" ]; then
-    log "Missing $CACHE_DIR or $BUILD_MARKER, nothing to do"
+  if [ ! -e "$BUILD_MARKER" ]; then
+    log "Missing $BUILD_MARKER, nothing to do"
+    return
+  fi
+  # Next creates the route cache with the first page it caches after a deploy.
+  if [ ! -d "$CACHE_DIR" ]; then
+    log "Found 0 runtime pages, no $CACHE_DIR yet (cap $MAX_PAGES)"
     return
   fi
 

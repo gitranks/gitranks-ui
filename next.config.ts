@@ -24,6 +24,9 @@ const htmlLimitedBots = new RegExp(`${HTML_LIMITED_BOT_UA_RE.source}|${AI_HTML_B
 const nextConfig: NextConfig = {
   output: 'standalone',
   cacheComponents: true,
+  // Next 16.4 warns unless this is set. false keeps the prefetching we had on 16.3; turning it on
+  // changes what every <Link> prefetches and needs its own review.
+  partialPrefetching: false,
   experimental: {
     // Dev-only instant-navigation checks run only for segments that export `instant`. By default
     // any page or default segment without one turns them on for the whole route, and the empty

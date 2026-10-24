@@ -69,15 +69,22 @@ const copyBadge = async (login: string, ranking: RankingKey) => {
 /** The signed-in visitor's own card. Loaded after the page, from a route cached per user. */
 const YourRankCard: FC<{ login: string }> = ({ login }) => {
   const [card, setCard] = useState<RankCardData | null>(null);
-  const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading');
+  const [state, setState] = useState<'loading' | 'ready' | 'unranked' | 'missing'>('loading');
   const [ranking, setRanking] = useState<RankingKey>('s');
 
   useEffect(() => {
     let cancelled = false;
     fetch('/api/me/rank-card')
-      .then((res) => (res.ok ? (res.json() as Promise<RankCardData>) : null))
+      .then(async (res) => {
+        if (res.status === 404) return 'unranked' as const;
+        return res.ok ? ((await res.json()) as RankCardData) : null;
+      })
       .then((data) => {
         if (cancelled) return;
+        if (data === 'unranked') {
+          setState('unranked');
+          return;
+        }
         if (!data) {
           setState('missing');
           return;
@@ -100,7 +107,7 @@ const YourRankCard: FC<{ login: string }> = ({ login }) => {
         <span className="font-semibold tracking-wider uppercase">Your rank</span>
       </div>
       <div className="flex items-center gap-3">
-        <GithubAvatar url={card?.avatarUrl} size={44} />
+        <GithubAvatar url={card?.avatarUrl} size={44} eager />
         <div className="min-w-0">
           <div className="truncate font-semibold">{login}</div>
           <Link href={`/profile/${login}`} prefetch={false} className="text-xs underline opacity-80">
@@ -116,6 +123,16 @@ const YourRankCard: FC<{ login: string }> = ({ login }) => {
         </div>
       )}
 
+      {state === 'unranked' && (
+        <p className="text-sm">
+          You&apos;re not ranked yet. A ranking needs at least 5 stars on your own repositories, 5 stars on others&apos;
+          repositories you merged pull requests into, or 5 followers.{' '}
+          <Link href="/methodology" prefetch={false} className="underline">
+            How rankings work
+          </Link>
+        </p>
+      )}
+
       {state === 'missing' && (
         <p className="text-sm">
           We couldn&apos;t load your ranks right now.{' '}
@@ -128,13 +145,12 @@ const YourRankCard: FC<{ login: string }> = ({ login }) => {
 
       {state === 'ready' && card && (
         <>
-          <div role="tablist" aria-label="Ranking" className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {(['s', 'c', 'f'] as RankingKey[]).map((key) => (
               <button
                 key={key}
                 type="button"
-                role="tab"
-                aria-selected={ranking === key}
+                aria-pressed={ranking === key}
                 onClick={() => setRanking(key)}
                 className={cn(
                   'rounded-sm border border-current/30 px-2 py-0.5 text-xs transition-colors',
@@ -205,7 +221,7 @@ const ExampleCards: FC<{ examples: ExampleRank[] }> = ({ examples }) => {
         </span>
       </div>
       <Link href={`/profile/${example.login}`} prefetch={false} className="flex items-center gap-3 hover:underline">
-        <GithubAvatar url={example.avatarUrl} size={44} />
+        <GithubAvatar url={example.avatarUrl} size={44} eager />
         <div className="min-w-0">
           <div className="truncate font-semibold">{example.name || example.login}</div>
           <div className="truncate text-xs text-muted-foreground">
@@ -218,13 +234,12 @@ const ExampleCards: FC<{ examples: ExampleRank[] }> = ({ examples }) => {
         {RANKING_LABELS[example.ranking].title}
       </div>
       <RankFacts entry={entry} ranking={example.ranking} />
-      <div className="flex justify-center gap-1.5" role="tablist" aria-label="Example">
+      <div className="flex justify-center gap-1.5">
         {examples.map((e, i) => (
           <button
             key={e.login}
             type="button"
-            role="tab"
-            aria-selected={i === index}
+            aria-pressed={i === index}
             aria-label={`Show ${e.login}`}
             onClick={() => setIndex(i)}
             className={cn('size-2 rounded-full transition-colors', i === index ? 'bg-primary' : 'bg-border')}

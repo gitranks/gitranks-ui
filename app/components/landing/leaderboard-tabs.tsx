@@ -43,7 +43,12 @@ export const LeaderboardTabs: FC<{ boards: Leaderboard[] }> = ({ boards }) => {
         </TabsList>
       </div>
       {boards.map((board) => (
-        <TabsContent key={board.key} value={board.key} className="flex flex-col gap-3">
+        <TabsContent
+          key={board.key}
+          value={board.key}
+          forceMount
+          className="flex flex-col gap-3 data-[state=inactive]:hidden"
+        >
           <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
             <table className="w-full text-sm">
               <thead className="text-xs text-muted-foreground">

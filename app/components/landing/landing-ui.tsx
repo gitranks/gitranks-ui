@@ -44,13 +44,28 @@ export const TierChip: FC<{ tier: Pick<Tier, 'tier' | 'level'>; className?: stri
  * shows the same avatars to every visitor, so sending them through our image optimizer would cost a
  * request to our server per avatar per new visitor.
  */
+/** The avatar URL asking GitHub for `px` pixels; null when it is missing or not an absolute URL. */
+const sizedAvatarUrl = (url: string | null | undefined, px: number) => {
+  if (!url) return null;
+  try {
+    const src = new URL(url);
+    src.searchParams.set('s', String(px));
+    return src.toString();
+  } catch {
+    return null;
+  }
+};
+
 // Always shown next to the login, so the image itself is decorative.
-export const GithubAvatar: FC<{ url?: string | null; size?: number; className?: string }> = ({
+export const GithubAvatar: FC<{ url?: string | null; size?: number; className?: string; eager?: boolean }> = ({
   url,
   size = 24,
   className,
+  eager = false,
 }) => {
-  if (!url) {
+  const src = sizedAvatarUrl(url, size * 2);
+
+  if (!src) {
     return (
       <span
         className={cn('inline-block shrink-0 rounded-full bg-muted', className)}
@@ -59,17 +74,14 @@ export const GithubAvatar: FC<{ url?: string | null; size?: number; className?: 
     );
   }
 
-  const src = new URL(url);
-  src.searchParams.set('s', String(size * 2));
-
   return (
     <Image
       unoptimized
-      src={src.toString()}
+      src={src}
       alt=""
       width={size}
       height={size}
-      loading="lazy"
+      loading={eager ? 'eager' : 'lazy'}
       decoding="async"
       className={cn('shrink-0 rounded-full bg-muted', className)}
     />

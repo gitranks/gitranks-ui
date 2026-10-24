@@ -171,7 +171,7 @@ export const OrganizationsSection: FC<{
         { label: 'Active contributors, last 12 months', value: formatFull(pulse.last12.activeContributors) },
         { label: 'First-time contributors', value: formatFull(pulse.last12.newContributors) },
         { label: 'Pull requests merged', value: formatFull(pulse.last12.pullRequests) },
-        { label: 'Net lines of code', value: `+${formatCompact(pulse.last12.net)}` },
+        { label: 'Net lines of code', value: `${pulse.last12.net > 0 ? '+' : ''}${formatCompact(pulse.last12.net)}` },
       ]
     : [];
 
@@ -493,7 +493,7 @@ export const FaqSection = () => (
     <div className="grid gap-x-8 lg:grid-cols-2">
       {FAQ.map(({ q, a, link }) => (
         <details key={q} className="group border-b py-4">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium">
+          <summary className="flex cursor-pointer list-none items-center [&::-webkit-details-marker]:hidden justify-between gap-4 font-medium">
             {q}
             <span aria-hidden="true" className="text-muted-foreground transition-transform group-open:rotate-45">
               +

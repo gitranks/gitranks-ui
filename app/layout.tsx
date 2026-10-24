@@ -19,7 +19,8 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_X_HANDLE } from '@/lib/se
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-// Ranks, counts and code. Not preloaded: no page uses it above the fold yet.
+// Ranks, counts and code (also code/kbd/pre through Tailwind's preflight). Not preloaded: today only the badge
+// builder's snippet uses it, and it may swap in after first paint there.
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono', preload: false });
 
 const metadataBase = process.env.NEXT_PUBLIC_URI ? new URL(process.env.NEXT_PUBLIC_URI) : undefined;

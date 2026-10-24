@@ -10,9 +10,15 @@ type BackboneProps = Readonly<{
 }>;
 
 export const PageContainer: FC<BackboneProps> = ({ children, className }) => {
-  // Two columns from md, the first as wide as the left column: one column on phones.
+  // Two columns from md, the first as wide as the left column. One column on phones, no wider than the
+  // screen: a wide table inside scrolls in its own box instead of widening the page.
   return (
-    <Page className={cn('grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]', className)}>
+    <Page
+      className={cn(
+        'grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]',
+        className,
+      )}
+    >
       {children}
     </Page>
   );

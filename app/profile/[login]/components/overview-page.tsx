@@ -153,7 +153,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
 
       {!!timeline?.length && <ProfileTimeline timeline={timeline} firstSeenAt={firstSeenAt} />}
 
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="grid gap-4 md:gap-6 lg:has-[>:nth-child(2)]:grid-cols-[2fr_1fr]">
         <ProfileBadgesSection login={login} scores={{ s, c, f }} ranks={user.rankGlobal ?? null} />
         <MessengerIntegration login={login} />
       </div>

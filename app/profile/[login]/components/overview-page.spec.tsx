@@ -75,7 +75,7 @@ describe('OverviewPage text', () => {
 
     expect(text).toContain('Stars Rank: N/A');
     expect(text).not.toContain('worldwide:');
-    expect(text).not.toContain('Rank History');
+    expect(text).not.toContain('Rank history');
   });
 
   it('sets the summary as muted small text right below the four cards, links in its color', () => {

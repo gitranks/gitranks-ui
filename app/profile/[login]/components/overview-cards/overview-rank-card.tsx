@@ -118,7 +118,7 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers,
           return (
             <div key={prop} className="flex flex-col items-center gap-0.5 px-2 py-3 text-center" title={label}>
               <dt className="sr-only">{label}:</dt>
-              <dd className="flex items-baseline gap-1.5">
+              <dd className="flex flex-wrap items-baseline justify-center gap-x-1.5">
                 <span
                   className={cn(
                     'font-mono text-sm font-semibold tabular-nums',

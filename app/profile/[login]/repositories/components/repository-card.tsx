@@ -62,7 +62,7 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
         </div>
 
         <div className="flex gap-x-4 gap-y-1 flex-wrap text-sm">
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
             {type === 'contribution' && <RepositoryTopLanguage languages={repository.languages} />}
             <RepositoryDetail Icon={Star} value={stargazerCount} label="Stars" />
             <RepositoryDetail Icon={Split} value={forkCount ?? 0} label="Forks" />

@@ -33,7 +33,7 @@ export const OwnProjectsCard: FC<OwnProjectsCardProps> = ({
     const percentage = Math.max((userRank / totalRankedUsers) * 100, 0.1);
 
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="text-sm">
         {percentage > 50 ? 'Bottom' : 'Top'} {formatNumberShort(percentage > 50 ? 100 - percentage : percentage)}% of
         ranked profiles
       </div>
@@ -42,38 +42,34 @@ export const OwnProjectsCard: FC<OwnProjectsCardProps> = ({
 
   const getCardContent = () => {
     if (!repoCount) {
-      return <div className="flex grow items-center p-3 md:p-4">No public repositories.</div>;
+      return <p className="text-sm text-muted-foreground">No public repositories.</p>;
     }
 
     return (
-      <div className="flex flex-col gap-3">
-        <ProfileCardHeader>
-          <span className="font-semibold">Own Projects</span>
-        </ProfileCardHeader>
-        <div className="flex flex-col gap-1.5">
-          <div className="flex-inline items-center">
-            {repoCount} public repositories{' '}
-            {!!repoStars && (
-              <>
-                {' '}
-                with <span className="font-semibold">{formatNumberShort(repoStars)}</span> stars
-              </>
-            )}
-          </div>
-          {getTopRankedMessage()}
-          {!!languages?.length && (
-            <div className="flex gap-2 flex-wrap leading-tight">
-              Languages:
-              <LangListWithSources languages={languages} login={login} />
-            </div>
-          )}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="font-mono text-3xl font-semibold tracking-tight tabular-nums">
+            {formatNumberShort(repoStars)}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {repoStars === 1 ? 'star' : 'stars'} across {repoCount.toLocaleString('en-US')} public{' '}
+            {repoCount === 1 ? 'repository' : 'repositories'}
+          </span>
         </div>
+        {getTopRankedMessage()}
+        {!!languages?.length && (
+          <div className="flex flex-wrap gap-x-2 gap-y-1 text-sm leading-tight">
+            <span className="text-muted-foreground">Languages:</span>
+            <LangListWithSources languages={languages} login={login} />
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <ProfileCard className="gap-2">
+    <ProfileCard className="gap-3">
+      <ProfileCardHeader>Own projects</ProfileCardHeader>
       {getCardContent()}
       <ChartStarsSnapshot snapshots={snapshots} metric="s" className="mt-auto" />
     </ProfileCard>

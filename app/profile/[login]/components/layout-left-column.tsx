@@ -3,9 +3,11 @@ import { BriefcaseBusiness, ExternalLink, Hourglass, Link2, Mail, Timer, UsersRo
 import Image from 'next/image';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
+import { FaGithub } from 'react-icons/fa';
 
 import { getSocialIcon } from '../utils/get-social-icon';
 import { FetchUserButtonForProfilePage } from './fetch-user-button';
+import { Eyebrow } from './profile-card';
 import { ProfileListItem } from './profile-list-item';
 import { ProfileLocation } from './profile-location';
 import {
@@ -40,14 +42,15 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
   }
 
   return (
-    <PageContainer>
-      <LeftColumnContainer>
+    // On phones the contacts and organizations follow the main column, so the ranks come first.
+    <PageContainer className="md:grid-rows-[auto_1fr]">
+      <LeftColumnContainer className="md:col-start-1 md:row-start-1">
         <AvatarAndNameContainer>
           <AvatarContainer>
             <Image
               src={`${user.avatarUrl}`}
               alt={`${user.login} avatar`}
-              className="rounded-full w-full h-full"
+              className="rounded-full w-full h-full bg-muted ring-1 ring-border"
               width={AVATAR_SIZE}
               height={AVATAR_SIZE}
               loading="eager"
@@ -55,12 +58,12 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
             />
           </AvatarContainer>
           <NameContainer>
-            <h1 className="font-semibold text-2xl" translate="no">
+            <h1 className="text-2xl font-semibold tracking-tight text-balance" translate="no">
               {user.name || user.login}
             </h1>
-            <h2 className="text-muted-foreground" translate="no">
+            <p className="text-muted-foreground" translate="no">
               @{user.login}
-            </h2>
+            </p>
           </NameContainer>
         </AvatarAndNameContainer>
         <ActionsContainer>
@@ -68,10 +71,11 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
             fetchingStatus={user.fetchingStatus}
             fetchingUpdatedAt={user.fetchingUpdatedAt}
           />
-          <Button size="sm" variant="secondary" className="flex-grow" asChild>
+          <Button size="sm" variant="outline" className="flex-grow" asChild>
             <Link href={`https://github.com/${user.login}`} target="_blank" rel="noopener noreferrer">
+              <FaGithub aria-hidden />
               Open GitHub
-              <ExternalLink className="size-4" />
+              <ExternalLink className="size-4 text-muted-foreground" aria-hidden />
             </Link>
           </Button>
         </ActionsContainer>
@@ -87,15 +91,28 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
               Icon={Timer}
             />
             <ProfileListItem
-              value={`${user.f?.toLocaleString('en-US')} followers • ${user.followingCount?.toLocaleString(
-                'en-US',
-              )} following`}
+              value={
+                <>
+                  <span className="font-mono tabular-nums">{(user.f ?? 0).toLocaleString('en-US')}</span> followers ·{' '}
+                  <span className="font-mono tabular-nums">{(user.followingCount ?? 0).toLocaleString('en-US')}</span>{' '}
+                  following
+                </>
+              }
               Icon={UsersRound}
             />
           </div>
+        </DetailsContainer>
+      </LeftColumnContainer>
+      <section className={cn('flex flex-col gap-4 min-w-0 md:col-start-2 md:row-start-1 md:row-span-2', className)}>
+        {children}
+      </section>
+      {(showContact || !!user.organizations?.length) && (
+        <DetailsContainer className="md:col-start-1 md:row-start-2">
           {showContact && (
             <div className="flex flex-col gap-1.5">
-              <h4 className="text-lg font-semibold">Contacts</h4>
+              <Eyebrow as="h2" className="mb-1">
+                Contacts
+              </Eyebrow>
               <ProfileListItem value={user.email} url={`mailto:${user.email}`} Icon={Mail} />
               <ProfileListItem value={user.websiteUrl} url={ensureLinkProtocol(user.websiteUrl)} Icon={Link2} />
               {user.socialAccounts?.nodes?.map((account) => (
@@ -110,8 +127,10 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
           )}
           {!!user.organizations?.length && (
             <div className="flex flex-col gap-1.5">
-              <h4 className="text-lg font-semibold">Organizations</h4>
-              <div className="flex gap-1 flex-wrap">
+              <Eyebrow as="h2" className="mb-1">
+                Organizations
+              </Eyebrow>
+              <div className="flex gap-1.5 flex-wrap">
                 {user.organizations
                   ?.filter((org) => org.login)
                   .map((org) => (
@@ -124,7 +143,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
                               alt={org.login ?? ''}
                               width={32}
                               height={32}
-                              className="rounded-sm bg-secondary"
+                              className="size-8 rounded-md bg-muted ring-1 ring-border"
                             />
                             <LinkPendingStatus />
                           </Link>
@@ -137,8 +156,7 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
             </div>
           )}
         </DetailsContainer>
-      </LeftColumnContainer>
-      <section className={cn('flex flex-col gap-4 w-full', className)}>{children}</section>
+      )}
     </PageContainer>
   );
 };

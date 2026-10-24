@@ -1,14 +1,15 @@
-import type { FC, PropsWithChildren } from 'react';
-import { FiArrowRight, FiGitPullRequest, FiStar, FiUsers } from 'react-icons/fi';
+import type { FC, ReactNode } from 'react';
 
 import { rankInfo } from '../../utils/profile-summary';
-import { ProfileCard } from '../profile-card';
+import { Eyebrow, MoreLink, ProfileCard } from '../profile-card';
 import { GlobalRankTooltip, PersonaTooltip } from '../tooltips';
 import { TIER_NAMES } from '@/app/app.consts';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
-import { Link } from '@/components/link/link';
 import { RankChart } from '@/components/rank-chart/rank-chart';
+import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { tierTextClass } from '@/components/tier-chip/tier-chip';
+import { cn } from '@/lib/utils';
 import type { PageProfileOverviewQuery, RankTier } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
 import { calculateTiers } from '@/utils/calculate-tiers/calculate-tiers';
@@ -26,109 +27,117 @@ type ProfileRankCardProps = {
   scope?: string;
 };
 
-type CardFooterRankProps = PropsWithChildren<{
-  /** The ranking and its scope, e.g. "Stars Rank worldwide": a tooltip, and text for readers of the HTML. */
-  label: string;
-}>;
+const FOOTER_RANKINGS: { prop: UserRankProp; caption: string }[] = [
+  { prop: UserRankProp.s, caption: 'Stars' },
+  { prop: UserRankProp.c, caption: 'Contributions' },
+  { prop: UserRankProp.f, caption: 'Followers' },
+];
 
-const CardFooterRank: FC<CardFooterRankProps> = ({ label, children }) => {
-  return (
-    <div
-      className="flex flex-col items-center text-sm border-r-1 px-3 text-muted-foreground min-w-[60px]"
-      title={label}
-    >
-      <span className="sr-only">{label}:</span>
-      {children}
-    </div>
-  );
-};
+/** A value that opens an explanation: a button, so it can be reached and opened from the keyboard. */
+const ExplainedValue: FC<{ children: ReactNode; explanation: ReactNode; className?: string }> = ({
+  children,
+  explanation,
+  className,
+}) => (
+  <AdaptiveTooltip
+    trigger={
+      <button
+        type="button"
+        className={cn('self-start text-left underline decoration-dotted underline-offset-4', className)}
+      >
+        {children}
+      </button>
+    }
+  >
+    {explanation}
+  </AdaptiveTooltip>
+);
 
 export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers, country, scope }) => {
   const { sTier, cTier, fTier, bestTier } = calculateTiers(ranks, tiers as RankTier);
-  // The position shows whether or not the ranking has tiers yet, as on the ranks tab and in the summary.
-  const sRank = rankInfo(ranks, UserRankProp.s)?.rank;
-  const cRank = rankInfo(ranks, UserRankProp.c)?.rank;
-  const fRank = rankInfo(ranks, UserRankProp.f)?.rank;
-  // A provisional rank is marked in the label only; the footer looks as it did.
+  // A provisional rank is marked in the label only; the footer looks the same.
   const labelOf = (prop: UserRankProp) =>
     `${RANK_NAME[prop]}${scope ? ` ${scope}` : ''}${rankInfo(ranks, prop)?.provisional ? ' (provisional)' : ''}`;
 
   const getCardContent = () => {
     if (sTier?.notAvailable && cTier?.notAvailable && fTier?.notAvailable) {
       return (
-        <div className="flex grow items-center">
+        <p className="text-sm text-muted-foreground">
           Not enough users yet! Ranking tiers unlock once at least 100 developers are ranked here.
-        </div>
+        </p>
       );
     }
 
     if (!bestTier?.data?.tier) {
       return (
-        <div className="flex grow items-center">
+        <p className="text-sm text-muted-foreground">
           No rank yet! To unlock your spot you&apos;ll need 5 stars on your own repos, 5 followers, or 5 stars on
           others&apos; repos you&apos;ve contributed to. You&apos;re just getting started - keep going!
-        </div>
+        </p>
       );
     }
 
     return (
-      <div className="flex flex-col grow justify-center gap-3">
-        <div className="flex flex-col">
-          <div className="">{country ? `Rank in ${shortenCountryName(country)}` : 'Global Rank'}</div>
-          <AdaptiveTooltip
-            trigger={
-              <div className="text-2xl font-semibold underline decoration-dotted underline-offset-4">
-                {TIER_NAMES[bestTier?.data?.tier - 1]} {bestTier?.data?.level}
-              </div>
-            }
+      <>
+        <div className="flex flex-col gap-0.5">
+          <Eyebrow>{country ? `Rank in ${shortenCountryName(country)}` : 'Global rank'}</Eyebrow>
+          <ExplainedValue
+            explanation={<GlobalRankTooltip />}
+            className={cn('text-2xl font-semibold tracking-tight', tierTextClass(bestTier.data.tier))}
           >
-            <GlobalRankTooltip />
-          </AdaptiveTooltip>
+            {TIER_NAMES[bestTier.data.tier - 1]} {bestTier.data.level}
+          </ExplainedValue>
         </div>
-        <div className="flex flex-col">
-          <div className="">Persona</div>
-          <AdaptiveTooltip
-            trigger={
-              <div className="text-2xl font-semibold underline decoration-dotted underline-offset-4">
-                {getPersonaType(bestTier?.source)}
-              </div>
-            }
-          >
-            <PersonaTooltip />
-          </AdaptiveTooltip>
+        <div className="flex flex-col gap-0.5">
+          <Eyebrow>Persona</Eyebrow>
+          <ExplainedValue explanation={<PersonaTooltip />} className="text-lg font-semibold">
+            {getPersonaType(bestTier.source)}
+          </ExplainedValue>
         </div>
-      </div>
+      </>
     );
   };
 
   return (
-    <ProfileCard className="gap-0 p-0 md:p-0">
-      <div className="flex gap-2 grow">
-        <div className="shrink-0 flex items-center">
+    <ProfileCard className="gap-0 p-0 overflow-hidden">
+      <div className="flex grow items-center gap-2">
+        <div className="shrink-0">
           <RankChart progress={bestTier?.data} />
         </div>
-        <div className="flex flex-col items-center grow p-3">{getCardContent()}</div>
-      </div>
-      <div className="h-12 flex items-center justify-between border-t-1 border-muted py-2 overflow-hidden">
-        <div className="grid grid-cols-3">
-          <CardFooterRank label={labelOf(UserRankProp.s)}>
-            <FiStar aria-hidden /> {sRank ? `#${sRank?.toLocaleString('en-US')}` : 'N/A'}
-          </CardFooterRank>
-          <CardFooterRank label={labelOf(UserRankProp.c)}>
-            <FiGitPullRequest aria-hidden /> {cRank ? `#${cRank?.toLocaleString('en-US')}` : 'N/A'}
-          </CardFooterRank>
-          <CardFooterRank label={labelOf(UserRankProp.f)}>
-            <FiUsers aria-hidden /> {fRank ? `#${fRank?.toLocaleString('en-US')}` : 'N/A'}
-          </CardFooterRank>
+        <div className="flex grow flex-col justify-center gap-3 py-4 pr-4">
+          {getCardContent()}
+          <MoreLink href={`/profile/${login}/ranks${country ? '/country' : ''}`}>Explore ranks</MoreLink>
         </div>
-
-        <Link
-          href={`/profile/${login}/ranks${country ? '/country' : ''}`}
-          className="flex items-center justify-center px-3 min-w-[140px] gap-x-1"
-        >
-          Explore Ranks <FiArrowRight />
-        </Link>
       </div>
+      {/* Each rank's label is its ranking and scope, e.g. "Stars Rank worldwide": a tooltip, and text for readers of the HTML. */}
+      <dl className="grid grid-cols-3 divide-x border-t">
+        {FOOTER_RANKINGS.map(({ prop, caption }) => {
+          const info = rankInfo(ranks, prop);
+          const label = labelOf(prop);
+
+          return (
+            <div key={prop} className="flex flex-col items-center gap-0.5 px-2 py-3 text-center" title={label}>
+              <dt className="sr-only">{label}:</dt>
+              <dd className="flex items-baseline gap-1.5">
+                <span
+                  className={cn(
+                    'font-mono text-sm font-semibold tabular-nums',
+                    !info && 'font-normal text-muted-foreground',
+                  )}
+                >
+                  {info ? `#${info.rank.toLocaleString('en-US')}` : 'N/A'}
+                </span>
+                {!info?.provisional && (
+                  <RankDelta current={info?.rank} previous={ranks?.[`${prop}M`]} className="font-mono" />
+                )}
+              </dd>
+              <dd className="text-xs text-muted-foreground" aria-hidden>
+                {caption}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
     </ProfileCard>
   );
 };

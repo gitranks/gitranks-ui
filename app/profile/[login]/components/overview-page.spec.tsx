@@ -26,7 +26,7 @@ const user = (rankGlobal: User['rankGlobal']): User => ({
 const contributionsRankLine = (rankGlobal: User['rankGlobal']) =>
   renderToStaticMarkup(<OverviewPage user={user(rankGlobal)} isGlobalContext />)
     .replaceAll('<!-- -->', '')
-    .split('Open Source Contributions')[1]
+    .split('Open source contributions')[1]
     ?.match(/(Top|Bottom) [\d.]+% of ranked profiles/)?.[0];
 
 describe('OverviewPage', () => {
@@ -81,7 +81,7 @@ describe('OverviewPage text', () => {
   it('sets the summary as muted small text right below the four cards, links in its color', () => {
     const markup = renderToStaticMarkup(<OverviewPage user={ranked} isGlobalContext />);
     const summary = markup.indexOf('data-testid="profile-summary"');
-    const lastCard = markup.indexOf('Open Source Contributions');
+    const lastCard = markup.indexOf('Open source contributions');
     const repositories = markup.indexOf('>Repositories</h3>');
 
     expect(lastCard).toBeGreaterThan(-1);

@@ -22,7 +22,7 @@ export const UserRepositoriesList: FC<UserRepositoriesListProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col divide-y rounded-xl border bg-card text-card-foreground shadow-sm dark:shadow-none">
       {repositories?.map((repo) => (
         <RepositoryCard key={repo.name} repository={repo as Repository} />
       ))}

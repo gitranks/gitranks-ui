@@ -1,11 +1,9 @@
 import { InfoIcon } from 'lucide-react';
 import type { FC } from 'react';
-import { FiArrowRight } from 'react-icons/fi';
 
-import { ProfileCard, ProfileCardHeader } from '../profile-card';
+import { MoreLink, ProfileCard, ProfileCardHeader } from '../profile-card';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 import BarChartLanguages from '@/components/chart-languages/bar-chart-languages';
-import { Link } from '@/components/link/link';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 
 type ProfileLanguageCardProps = {
@@ -17,18 +15,24 @@ export const ProfileLanguageCard: FC<ProfileLanguageCardProps> = ({ login, langu
   const getCardContent = () => {
     if (!languages?.length) {
       return (
-        <div className="flex grow items-center p-3 md:p-4">
+        <p className="grow px-4 text-sm text-muted-foreground">
           No languages to show yet. This profile has no public repos with code. Once there are some, we&apos;ll show
           their top languages here.
-        </div>
+        </p>
       );
     }
 
-    return <BarChartLanguages languages={languages.slice(0, 3)} className="px-3 md:px-4" />;
+    return <BarChartLanguages languages={languages.slice(0, 3)} className="px-4" />;
   };
 
   const getTooltip = () => (
-    <AdaptiveTooltip trigger={<InfoIcon size={20} />}>
+    <AdaptiveTooltip
+      trigger={
+        <button type="button" aria-label="How language stars are counted" className="text-muted-foreground">
+          <InfoIcon className="size-4" />
+        </button>
+      }
+    >
       <div className="max-w-80 text-sm">
         <div>
           Each repo has stars and a language breakdown. We get &quot;language stars&quot; by multiplying the repo&apos;s
@@ -43,17 +47,14 @@ export const ProfileLanguageCard: FC<ProfileLanguageCardProps> = ({ login, langu
   );
 
   return (
-    <ProfileCard className="gap-2 p-0 md:p-0">
-      <ProfileCardHeader meta={getTooltip()} className="p-3 md:p-4 pb-0 md:pb-0">
-        Top 3 Languages by Stars
+    <ProfileCard className="gap-3 p-0 overflow-hidden">
+      <ProfileCardHeader meta={getTooltip()} className="px-4 pt-4">
+        Top 3 languages by stars
       </ProfileCardHeader>
       {getCardContent()}
-      <Link
-        href={`/profile/${login}/languages`}
-        className="h-12 flex items-center justify-end px-3 border-t border-muted"
-      >
-        All Languages <FiArrowRight />
-      </Link>
+      <div className="mt-auto flex justify-end border-t px-4 py-3">
+        <MoreLink href={`/profile/${login}/languages`}>All languages</MoreLink>
+      </div>
     </ProfileCard>
   );
 };

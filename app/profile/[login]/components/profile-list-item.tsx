@@ -1,15 +1,17 @@
-import type { ComponentType, FC } from 'react';
+import type { ComponentType, FC, ReactNode } from 'react';
 
 import { Link } from '@/components/link/link';
 
 type ProfileListItemProps = {
-  value?: string | number | null;
+  value?: ReactNode;
   /** A site path (`/country/…`) opens in place; anything else opens in a new tab. */
   url?: string;
-  Icon: ComponentType<{ size: number; className?: string }>;
+  /** Shown before the value, outside its link: a flag. */
+  prefix?: ReactNode;
+  Icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
 };
 
-export const ProfileListItem: FC<ProfileListItemProps> = ({ value, url, Icon }) => {
+export const ProfileListItem: FC<ProfileListItemProps> = ({ value, url, prefix, Icon }) => {
   if (!value) {
     return null;
   }
@@ -30,10 +32,14 @@ export const ProfileListItem: FC<ProfileListItemProps> = ({ value, url, Icon }) 
     );
   };
 
+  // Long addresses and handles wrap anywhere; words in plain text keep together.
   return (
-    <div className="flex gap-2 items-center break-all">
-      <Icon size={20} className="shrink-0" />
-      {getValue()}
+    <div className="flex items-start gap-2 text-sm">
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+      <span className="min-w-0 [overflow-wrap:anywhere]">
+        {prefix}
+        {getValue()}
+      </span>
     </div>
   );
 };

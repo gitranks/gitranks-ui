@@ -10,6 +10,10 @@ export const MIN_VALUE = 5;
 export const MIN_PROFILES_THRESHOLD = 100;
 
 export const ITEMS_PER_PAGE = 100;
+
+// The rank update bots.
+export const TELEGRAM_BOT_URL = 'https://t.me/gitranksbot';
+export const WHATSAPP_BOT_URL = 'https://wa.me/48730654976?text=%2Fmenu';
 export const MAX_PAGES = 50;
 
 export const NOT_AVAILABLE = `Tiers are available for rankings with ${MIN_PROFILES_THRESHOLD} or more profiles.`;

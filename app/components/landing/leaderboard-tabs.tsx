@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import type { FC } from 'react';
 
-import { Flag, formatFull, GithubAvatar } from './landing-ui';
+import { formatFull, GithubAvatar } from './landing-ui';
 import type { RankingKey } from './rank-card.types';
+import { Flag } from '@/components/flag/flag';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';

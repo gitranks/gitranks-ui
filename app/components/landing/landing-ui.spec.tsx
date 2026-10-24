@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatCompact, tierAt, tierLabel } from './landing-ui';
+import { formatCompact, tierAt } from './landing-ui';
+import { tierLabel } from '@/components/tier-chip/tier-chip';
 
 const TIERS = [
   { tier: 7, level: 5, minRank: 1, maxRank: 10, minValue: 1000 },

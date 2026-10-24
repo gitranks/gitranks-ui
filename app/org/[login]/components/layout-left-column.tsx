@@ -16,6 +16,7 @@ import {
   NameContainer,
   PageContainer,
 } from '@/app/profile/[login]/components/profile-page-backbone';
+import { Flag } from '@/components/flag/flag';
 import { Button } from '@/components/ui/button';
 import type { PageOrgQuery } from '@/types/generated/graphql';
 import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
@@ -69,7 +70,11 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ org, children }) =
         <DetailsContainer>
           <div className="flex flex-col gap-1.5">
             {!!org.location && (
-              <ProfileListItem value={`${org.countryFlag ? `${org.countryFlag} ` : ''}${org.location}`} Icon={MapPin} />
+              <ProfileListItem
+                value={org.location}
+                prefix={<Flag flag={org.countryFlag} className="me-1.5" />}
+                Icon={MapPin}
+              />
             )}
             <ProfileListItem value={`Profile age: ${formatDistanceToNow(org.githubCreatedAt)}`} Icon={Hourglass} />
             <ProfileListItem

@@ -57,7 +57,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
     <LayoutLeftColumn user={user}>
       <JsonLd payloads={buildProfileTabSEO('ranks', user, isGlobalContext ? 'global' : 'country').jsonLd} />
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Profile Ranks</h2>
+        <h2 className="text-xl font-semibold tracking-tight">Ranks</h2>
         <ProfileRankingSwitcher countryName={country} />
       </div>
       <ProfileRankCharts
@@ -68,7 +68,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
         bestTier={bestTier}
       />
 
-      <h2 className="text-xl mt-4 flex items-center gap-2">
+      <h2 className="text-xl font-semibold tracking-tight mt-4 flex items-center gap-2">
         Rank breakdown <RankBreakdownTooltip />
       </h2>
       <ProfileCardsGrid>

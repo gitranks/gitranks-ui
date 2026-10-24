@@ -42,7 +42,7 @@ export const LanguagesPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) 
     <LayoutLeftColumn user={user}>
       <JsonLd payloads={buildProfileTabSEO('languages', user, isGlobalContext ? 'global' : 'country').jsonLd} />
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Language Ranks Breakdown</h2>
+        <h2 className="text-xl font-semibold tracking-tight">Language ranks</h2>
         <ProfileRankingSwitcher countryName={user.country} />
       </div>
 

@@ -10,11 +10,16 @@ type BackboneProps = Readonly<{
 }>;
 
 export const PageContainer: FC<BackboneProps> = ({ children, className }) => {
-  return <Page className={cn('gap-6 flex-col md:flex-row', className)}>{children}</Page>;
+  // Two columns from md, the first as wide as the left column: one column on phones.
+  return (
+    <Page className={cn('grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]', className)}>
+      {children}
+    </Page>
+  );
 };
 
 export const LeftColumnContainer: FC<BackboneProps> = ({ children, className }) => {
-  return <div className={cn('w-full md:w-3xs xl:w-2xs flex flex-col shrink-0 gap-4', className)}>{children}</div>;
+  return <div className={cn('flex min-w-0 flex-col gap-4', className)}>{children}</div>;
 };
 
 export const AvatarAndNameContainer: FC<BackboneProps> = ({ children, className }) => {

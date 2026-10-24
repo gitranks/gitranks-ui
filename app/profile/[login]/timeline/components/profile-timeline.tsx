@@ -2,6 +2,7 @@ import { compareDesc, format, parseISO } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
 import type { FC } from 'react';
 
+import { ProfileSection } from '../../components/profile-card';
 import { Timeline, TimelineDescription, TimelineItem, TimelineTime } from '@/components/timeline/timeline';
 import type {
   ChangeItemType,
@@ -83,8 +84,7 @@ export const ProfileTimeline: FC<ProfileTimelineProps> = ({ timeline, firstSeenA
   const sortedTimeline = timeline.toSorted((a, b) => compareDesc(parseISO(a.createdAt), parseISO(b.createdAt)));
 
   return (
-    <div className="flex flex-col gap-3 max-w-2xl">
-      <h3 className="text-xl font-semibold">Latest Updates</h3>
+    <ProfileSection id="latest-updates" title="Latest updates" className="max-w-2xl">
       <Timeline>
         {sortedTimeline.map((item) => {
           const formatted = format(parseISO(item.createdAt), 'dd MMM yyyy');
@@ -108,6 +108,6 @@ export const ProfileTimeline: FC<ProfileTimelineProps> = ({ timeline, firstSeenA
           </TimelineItem>
         )}
       </Timeline>
-    </div>
+    </ProfileSection>
   );
 };

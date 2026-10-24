@@ -89,9 +89,9 @@ export const Hero: FC<{ developersRanked?: number | null; examples: ExampleRank[
       <HeroAside examples={examples} />
     </Container>
     <Container>
-      <dl className="grid grid-cols-2 gap-4 border-t py-6 md:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-y-4 border-t py-6 md:grid-cols-4 md:divide-x">
         {stats.map((stat) => (
-          <div key={stat.label} className="flex flex-col-reverse gap-0.5">
+          <div key={stat.label} className="flex flex-col-reverse items-center gap-0.5 text-center">
             <dt className="text-xs font-medium text-muted-foreground">{stat.label}</dt>
             <dd className="font-mono text-2xl font-semibold tracking-tight tabular-nums">{stat.value}</dd>
           </div>

@@ -30,7 +30,7 @@ export type RefreshMessage = {
   secondary: string;
 };
 
-const TOKEN_NOTE = {
+export const TOKEN_NOTE = {
   note: 'GitHub will say we can “act on your behalf”. We only read GitHub data to build stats. You can remove access any time in GitHub settings.',
   noteLink: { text: 'GitHub settings', href: GITHUB_AUTHORIZATIONS_URL },
 };

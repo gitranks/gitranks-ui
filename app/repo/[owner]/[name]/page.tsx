@@ -6,6 +6,8 @@ import { notFound, permanentRedirect } from 'next/navigation';
 
 import { RepoHeader } from './components/repo-header';
 import { RepoRankCard } from './components/repo-rank-card';
+import { StarHistoryBadgeSection } from './components/star-history-badge-section';
+import { StarHistorySection } from './components/star-history-section';
 import { buildRepoMetadata, isRepoRanked } from './seo';
 import { REPO_MIN_RANK_STARS } from '@/app/app.consts';
 import { ProfileCardsGrid } from '@/app/profile/[login]/components/profile-card';
@@ -51,10 +53,15 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
   }
 
   const { owner, name } = repoParams;
-  cacheLife('hours');
   cacheTag(getRepoCacheTag(owner, name));
 
   const repo = await fetchRepo(owner, name);
+  // A running fetch ends on its own, so a page that shows one is kept only briefly.
+  if (repo?.pull?.status === 'running') {
+    cacheLife('minutes');
+  } else {
+    cacheLife('hours');
+  }
 
   if (!repo) {
     notFound();
@@ -108,6 +115,8 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
               : `Repositories are ranked from ${REPO_MIN_RANK_STARS} stars.`}
           </p>
         )}
+        <StarHistorySection repo={repo} />
+        {!!repo.history && <StarHistoryBadgeSection owner={repo.owner} name={repo.name} />}
       </Page>
     </>
   );

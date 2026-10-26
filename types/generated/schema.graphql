@@ -91,9 +91,14 @@ enum InsightCategory {
   COUNTRY_TRENDS
   LANGUAGE_ANALYSIS
   LANGUAGE_TRENDS
+  MONTH_IN_NUMBERS
   ORG_SCORE_CHANGE
   PROFILE_SCORE_CHANGE
+  REPO_ANNIVERSARY
+  RISING_REPOS
   SCORE_MILESTONE
+  STAR_BURST
+  TOP_100_CLIMBER
   TOP_STAR_GAINERS
 }
 
@@ -269,6 +274,7 @@ type Organization {
   reposCount: Int
   s: Int
   snapshots: JSON
+  topRepos(first: Int! = 5): [Repo!]!
   twitterUsername: String
   updatedAt: DateTime!
   usersCount: Int
@@ -317,6 +323,9 @@ type Query {
   organization(login: String!): Organization
   profilesForSitemap: [ProfileForSitemap!]!
   rankTiersByName(name: String!): RankTier
+  repo(name: String!, owner: String!): Repo
+  repoLanguages: [RepoLanguageSummary!]!
+  repoRankings(language: String, limit: Int! = 100, noLanguage: Boolean, offset: Int! = 0): [RankRepo!]!
   user(login: String!): User
   users(logins: [String!]!): [User!]
 }
@@ -456,6 +465,18 @@ type RankOrgWithoutOrganization {
   snapshots: JSON
 }
 
+type RankRepo {
+  githubId: String!
+  l: Int
+  lD: Int
+  lM: Int
+  language: String
+  repo: Repo
+  s: Int
+  sD: Int
+  sM: Int
+}
+
 type RankTier {
   cTiers: [Tier!]!
   cUsers: Int!
@@ -467,6 +488,36 @@ type RankTier {
   sUsers: Int!
 }
 
+type Repo {
+  burstMonths: [String!]
+  createdAt: DateTime
+  description: String
+  gainedThisMonth: Int
+  githubId: String!
+  isArchived: Boolean
+  isInOrganization: Boolean
+  language: String
+  monthStarts: JSON
+  name: String!
+  nameWithOwner: String!
+  owner: String!
+  ownerAvatarUrl: String
+  ownerId: String!
+  pushedAt: DateTime
+  rank: RankRepo
+  renamedTo: String
+  stars: Int!
+  starsAt: DateTime
+}
+
+type RepoLanguageSummary {
+  language: String
+  repos: Int!
+  stars: Float!
+  topRepo: Repo
+  topRepoId: String!
+}
+
 type Repository {
   createdAt: DateTime
   forkCount: Int
@@ -475,6 +526,7 @@ type Repository {
   languages: [LanguageEntity!]
   name: String
   pushedAt: DateTime
+  rank: RankRepo
   releasesCount: Int
   stargazerCount: Int!
   url: String!
@@ -558,6 +610,7 @@ type User {
   login: String!
   name: String
   organizations: [Organization!]
+  primaryLanguages: [String!]
   rankCountry: RankCountryWithoutUser
   rankGlobal: RankGlobalWithoutUser
   repositories(limit: Int, offset: Int! = 0): [Repository!]

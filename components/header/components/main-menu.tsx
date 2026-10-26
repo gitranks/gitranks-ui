@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { FaRegBuilding } from 'react-icons/fa';
 import { FaCode } from 'react-icons/fa6';
+import { GoRepo } from 'react-icons/go';
 import { GrLocation } from 'react-icons/gr';
 import { VscGlobe } from 'react-icons/vsc';
 
@@ -39,7 +40,7 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
             forceMount={hydrated ? undefined : true}
             className="absolute w-auto z-50 data-[state=closed]:hidden"
           >
-            <ul className="w-48">
+            <ul className="w-52">
               <ListItem href="/by/stars/1">
                 <VscGlobe /> Global Rankings
               </ListItem>
@@ -51,6 +52,9 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
               </ListItem>
               <ListItem href="/orgs/1">
                 <FaRegBuilding /> Org Rankings
+              </ListItem>
+              <ListItem href="/repos/1">
+                <GoRepo /> Repository Rankings
               </ListItem>
             </ul>
           </NavigationMenuContent>

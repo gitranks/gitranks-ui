@@ -6,6 +6,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { LayoutLeftColumn } from './components/layout-left-column';
+import { OrgTopRepos } from './components/org-top-repos';
 import { OrgPulseSections } from './components/pulse/org-pulse-sections';
 import { buildOrgSEO } from './seo';
 import { MIN_VALUE, RANK_DESCRIPTIONS } from '@/app/app.consts';
@@ -80,6 +81,7 @@ export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {
             )}
           </ProfileCardContent>
         </ProfileCard>
+        <OrgTopRepos repos={org.topRepos} />
       </ProfileCardsGrid>
       {org.hasActivity && org.pulse && <OrgPulseSections login={login} avatarUrl={org.avatarUrl} pulse={org.pulse} />}
     </LayoutLeftColumn>

@@ -17,11 +17,15 @@ export const SITEMAP_PAGE_DEPTH = {
   countries: 3,
   languages: 2,
   orgs: 20,
+  /** The global repository ranking, every page. */
+  repos: 50,
 } as const;
 
 export const SITEMAP_COUNTRY_LIMIT = 100;
 export const SITEMAP_LANGUAGE_LIMIT = 10;
 export const SITEMAP_LANGUAGE_COUNTRY_LIMIT = 10;
+/** Languages with the most ranked repositories, listed to the rankings' depth. */
+export const SITEMAP_REPO_LANGUAGE_LIMIT = 30;
 
 export const SITEMAP_RANKING_TYPES = ['contributions', 'followers', 'stars'] as const;
 

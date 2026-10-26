@@ -1,0 +1,11 @@
+fragment RepoRowFields on Repo {
+  githubId
+  owner
+  name
+  nameWithOwner
+  ownerAvatarUrl
+  description
+  language
+  stars
+  gainedThisMonth
+}

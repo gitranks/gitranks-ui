@@ -1,4 +1,5 @@
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
+import { fetchRepoLanguages } from '@/graphql/helpers/fetch-repo-languages';
 import { fetchTopLanguages } from '@/graphql/helpers/top-languages';
 import { matchRouteName } from '@/utils/match-route-name';
 
@@ -36,5 +37,15 @@ export async function resolveLanguageName(name: string): Promise<string> {
       languages.map((l) => l.language),
       name,
     ) ?? name
+  );
+}
+
+/** The stored spelling of a language with ranked repositories, or `undefined` when none matches. */
+export async function resolveRepoLanguageName(name: string): Promise<string | undefined> {
+  const languages = await fetchRepoLanguages();
+
+  return matchRouteName(
+    languages.flatMap((l) => (l.language ? [l.language] : [])),
+    name,
   );
 }

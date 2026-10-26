@@ -1,0 +1,15 @@
+query PageRepo($owner: String!, $name: String!) {
+  repo(owner: $owner, name: $name) {
+    ...RepoRowFields
+    isArchived
+    createdAt
+    renamedTo
+    rank {
+      language
+      s
+      sM
+      l
+      lM
+    }
+  }
+}

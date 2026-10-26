@@ -11,6 +11,11 @@ export const MIN_PROFILES_THRESHOLD = 100;
 
 export const ITEMS_PER_PAGE = 100;
 
+/** A repository is ranked from this many stars. */
+export const REPO_MIN_RANK_STARS = 100;
+/** A repository has a page from this many stars. */
+export const REPO_PAGE_MIN_STARS = 5;
+
 // The rank update bots.
 export const TELEGRAM_BOT_URL = 'https://t.me/gitranksbot';
 export const WHATSAPP_BOT_URL = 'https://wa.me/48730654976?text=%2Fmenu';

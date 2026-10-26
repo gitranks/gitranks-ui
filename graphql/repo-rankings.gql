@@ -1,0 +1,12 @@
+query RepoRankings($offset: Int, $language: String, $noLanguage: Boolean) {
+  repoRankings(offset: $offset, language: $language, noLanguage: $noLanguage) {
+    githubId
+    s
+    sM
+    l
+    lM
+    repo {
+      ...RepoRowFields
+    }
+  }
+}

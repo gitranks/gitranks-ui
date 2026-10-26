@@ -10,6 +10,8 @@ export const RANKING_MAX_PAGE = {
   country: 1001,
   language: 51,
   org: 51,
+  /** Every repository ranking: global, per language and without a language. */
+  repo: 51,
   /** The language summaries: far past the last language, and keeps the query offset in range. */
   languageSummary: 1000,
 } as const;
@@ -23,6 +25,21 @@ const isPage = (value: string, maxPage = Number.MAX_SAFE_INTEGER) => {
   const page = parsePageParam(value);
   return page !== null && page <= maxPage;
 };
+
+function isInvalidRepoRankingPath(rest: string[]): boolean {
+  const [list] = rest;
+
+  if (rest.length === 1) {
+    return list !== 'languages' && !isPage(list, RANKING_MAX_PAGE.repo);
+  }
+  if (list === 'no-language') {
+    return rest.length === 2 && !isPage(rest[1], RANKING_MAX_PAGE.repo);
+  }
+  if (list === 'language') {
+    return rest.length === 3 && !isPage(rest[2], RANKING_MAX_PAGE.repo);
+  }
+  return false;
+}
 
 /**
  * True for a ranking URL whose type, order or page number can never render a ranking.
@@ -53,6 +70,8 @@ export function isInvalidRankingPath(pathname: string): boolean {
       return rest.length === 2 && !(COUNTRY_SUMMARY_ORDERS.has(rest[0].toLowerCase()) && isPage(rest[1]));
     case 'orgs':
       return rest.length === 1 && !isPage(rest[0], RANKING_MAX_PAGE.org);
+    case 'repos':
+      return isInvalidRepoRankingPath(rest);
     default:
       return false;
   }

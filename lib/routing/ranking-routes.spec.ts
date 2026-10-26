@@ -35,6 +35,13 @@ describe('isInvalidRankingPath', () => {
     '/countries/users/2',
     '/countries/STARS/1',
     '/orgs/51',
+    '/repos',
+    '/repos/1',
+    '/repos/51',
+    '/repos/languages',
+    '/repos/language/C%23/51',
+    '/repos/no-language/3',
+    '/repo/vercel/next.js',
     '/profile/karpathy',
     '/org/openai',
     '/insights/abc',
@@ -65,6 +72,13 @@ describe('isInvalidRankingPath', () => {
     '/countries/stars/1.5',
     '/orgs/52',
     '/orgs/abc',
+    '/repos/0',
+    '/repos/52',
+    '/repos/bogus',
+    '/repos/language/Rust/52',
+    '/repos/language/Rust/x',
+    '/repos/no-language/52',
+    '/repos/no-language/01',
   ])('rejects %s', (path) => {
     expect(isInvalidRankingPath(path)).toBe(true);
   });

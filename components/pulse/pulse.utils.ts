@@ -59,9 +59,6 @@ export const UNKNOWN_SERIES_LABEL = 'Other / unknown';
  */
 export const LARGE_CHANGE_SHARE = 0.2;
 
-/** The contributor table's page size; the API holds at most 100 rows a period and sort. */
-export const CONTRIBUTORS_PAGE_SIZE = 25;
-
 const SERIES_COLORS = Array.from({ length: 8 }, (_, i) => `var(--series-${i + 1})`);
 
 /**

@@ -5,17 +5,18 @@ import { cacheLife, cacheTag } from 'next/cache';
 import { notFound, permanentRedirect } from 'next/navigation';
 
 import { RepoHeader } from './components/repo-header';
-import { RepoPulseSections } from './components/repo-pulse-sections';
+import { RepoPulseArea } from './components/repo-pulse-area';
 import { RepoRankCard } from './components/repo-rank-card';
 import { StarHistoryBadgeSection } from './components/star-history-badge-section';
 import { StarHistorySection } from './components/star-history-section';
 import { buildRepoMetadata, isRepoRanked } from './seo';
-import { REPO_MIN_RANK_STARS, REPO_PULSE_MIN_STARS } from '@/app/app.consts';
+import { REPO_MIN_RANK_STARS } from '@/app/app.consts';
 import { ProfileCardsGrid } from '@/app/profile/[login]/components/profile-card';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { fetchRepo } from '@/graphql/helpers/fetch-repo';
 import { fetchRepoLanguages } from '@/graphql/helpers/fetch-repo-languages';
+import { fetchRepoPulseFacts } from '@/graphql/helpers/fetch-repo-pulse';
 import {
   getRankingPageOf,
   getRepoCacheTag,
@@ -57,8 +58,10 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
   cacheTag(getRepoCacheTag(owner, name));
 
   const repo = await fetchRepo(owner, name);
-  // A running fetch ends on its own, so a page that shows one is kept only briefly.
-  if (repo?.pull?.status === 'running') {
+  const canonical = !!repo && !repo.renamedTo && repo.nameWithOwner === `${owner}/${name}`;
+  const { pulse, complete } = canonical ? await fetchRepoPulseFacts(owner, name) : { pulse: null, complete: true };
+  // A running fetch ends on its own and a failed analytics read may work soon: such a page is kept only briefly.
+  if (repo?.pull?.status === 'running' || !complete) {
     cacheLife('minutes');
   } else {
     cacheLife('hours');
@@ -118,15 +121,7 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
         )}
         <StarHistorySection repo={repo} />
         {!!repo.history && <StarHistoryBadgeSection owner={repo.owner} name={repo.name} />}
-        {repo.pulse ? (
-          <RepoPulseSections owner={repo.owner} name={repo.name} pulse={repo.pulse} />
-        ) : (
-          repo.stars < REPO_PULSE_MIN_STARS && (
-            <p className="text-sm text-muted-foreground">
-              {`Code and contributor analytics appear for repositories with ${REPO_PULSE_MIN_STARS.toLocaleString('en-US')}+ stars.`}
-            </p>
-          )
-        )}
+        <RepoPulseArea repo={repo} pulse={pulse} />
       </Page>
     </>
   );

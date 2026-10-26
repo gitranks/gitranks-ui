@@ -25,6 +25,9 @@ describe('repo pulse series route', () => {
     const response = await call('Octo-Org', 'hello.world', '?groupBy=LANGUAGE');
 
     expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+    );
     expect(await response.json()).toEqual({ series });
     expect(fetchRepoPulseSeries).toHaveBeenCalledWith('Octo-Org', 'hello.world', 'LANGUAGE');
   });
@@ -43,6 +46,7 @@ describe('repo pulse series route', () => {
     const response = await call(owner, name, '?groupBy=TYPE');
 
     expect(response.status).toBe(400);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(fetchRepoPulseSeries).not.toHaveBeenCalled();
   });
 
@@ -59,6 +63,7 @@ describe('repo pulse series route', () => {
     const response = await call('octo', 'hello', '?groupBy=KIND');
 
     expect(response.status).toBe(502);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(await response.json()).toEqual({ message: 'Failed to load the series' });
   });
 });

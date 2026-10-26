@@ -1,12 +1,15 @@
-import { CONTRIBUTORS_PAGE_SIZE } from '@/components/pulse/pulse.utils';
-import type { ContributorsQuery } from '@/components/pulse/pulse-contributors-table.state';
+import { CONTRIBUTORS_PAGE_SIZE } from '@/app/app.consts';
 import { OrgActivityGroupBy, OrgPulseContributorSort, OrgPulsePeriod } from '@/types/generated/graphql';
+import type { ContributorsQuery } from '@/types/pulse.types';
 
 /** The API holds at most this many rows a period and sort, so no page reaches past it. */
 export const PULSE_MAX_ROWS = 100;
 
 /** Language names are short: a longer label cannot name one. */
 export const PULSE_MAX_LABEL_LENGTH = 64;
+
+/** The analytics change at most daily, so shared caches may hold an answer for an hour. */
+export const PULSE_CACHE_CONTROL = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400';
 
 export type RepoPulseContributorsParams = ContributorsQuery & { first: number; offset: number };
 

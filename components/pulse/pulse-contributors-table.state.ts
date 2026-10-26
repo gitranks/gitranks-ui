@@ -1,7 +1,7 @@
-import { CONTRIBUTORS_PAGE_SIZE, type PulseContributorRow } from './pulse.utils';
+import type { PulseContributorRow } from './pulse.utils';
+import { CONTRIBUTORS_PAGE_SIZE } from '@/app/app.consts';
 import { OrgPulseContributorSort, OrgPulsePeriod } from '@/types/generated/graphql';
-
-export type ContributorsQuery = { period: OrgPulsePeriod; sortBy: OrgPulseContributorSort; label: string | null };
+import type { ContributorsQuery } from '@/types/pulse.types';
 
 export const DEFAULT_QUERY: ContributorsQuery = {
   period: OrgPulsePeriod.Last_12Months,

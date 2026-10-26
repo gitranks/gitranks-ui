@@ -3,20 +3,19 @@
 import NextLink from 'next/link';
 import { type FC, useMemo } from 'react';
 
+import { orgPulseLoaders } from './org-pulse-loaders';
 import { OrgPulseSharedGraph, type OrgPulseSharedOrgRow } from './org-pulse-shared-graph';
 import { ProfileCardContent, ProfileCardsGrid } from '@/app/profile/[login]/components/profile-card';
 import { avatarSrc, formatShare, plural } from '@/components/pulse/pulse.utils';
-import type { LoadContributorsPage } from '@/components/pulse/pulse-contributors-table.state';
 import {
   PulseCodeSection,
   PulseContributorsSection,
   PulseCountriesSection,
   PulseSection,
 } from '@/components/pulse/pulse-sections';
-import { type LoadPulseSeries, PulseSeriesProvider } from '@/components/pulse/pulse-series-provider';
+import { PulseSeriesProvider } from '@/components/pulse/pulse-series-provider';
 import { useHydrated } from '@/components/pulse/use-hydrated';
-import { graphqlClient } from '@/lib/graphql/graphql-client';
-import { OrgPulseContributorsDocument, OrgPulseSeriesDocument, type PageOrgQuery } from '@/types/generated/graphql';
+import type { PageOrgQuery } from '@/types/generated/graphql';
 
 export type OrgPulseFactsData = NonNullable<NonNullable<PageOrgQuery['organization']>['pulse']>;
 
@@ -87,24 +86,6 @@ const SharedSection: FC<{ login: string; avatarUrl?: string | null; orgs: OrgPul
   );
 };
 
-/** The organization's series and contributor pages, read through the GraphQL proxy. */
-const useOrgLoaders = (login: string) =>
-  useMemo(() => {
-    const loadSeries: LoadPulseSeries = (groupBy) =>
-      graphqlClient(OrgPulseSeriesDocument, { login, groupBy }).then((data) => data?.organization?.pulseSeries ?? null);
-    const loadContributors: LoadContributorsPage = (query, offset, first) =>
-      graphqlClient(OrgPulseContributorsDocument, {
-        login,
-        period: query.period,
-        sortBy: query.sortBy,
-        label: query.label,
-        first,
-        offset,
-      }).then((response) => response?.organization?.pulseContributors ?? null);
-
-    return { loadSeries, loadContributors };
-  }, [login]);
-
 /**
  * Org Pulse on the org page: the facts are rendered on the server into the HTML (crawlable, small),
  * and the 60-month series and the contributor table's other pages load in the browser. One client
@@ -112,7 +93,7 @@ const useOrgLoaders = (login: string) =>
  * facts once, not their markup. Data only: counts and shares, no headline, conclusion or score.
  */
 export const OrgPulseSections: FC<OrgPulseSectionsProps> = ({ login, avatarUrl, pulse }) => {
-  const { loadSeries, loadContributors } = useOrgLoaders(login);
+  const { loadSeries, loadContributors } = useMemo(() => orgPulseLoaders(login), [login]);
 
   return (
     <>

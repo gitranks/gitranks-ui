@@ -1,11 +1,8 @@
-'use client';
-
 import NextLink from 'next/link';
 import { type FC, useEffect, useId, useReducer } from 'react';
 
 import { avatarSrc, formatCount, PERIOD_OPTIONS, type PulseContributorRow, plural, SORT_OPTIONS } from './pulse.utils';
 import {
-  type ContributorsQuery,
   type ContributorsTableState,
   canShowMore,
   contributorsTableReducer,
@@ -20,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { OrgPulseContributorSort, type OrgPulsePeriod } from '@/types/generated/graphql';
+import type { ContributorsQuery } from '@/types/pulse.types';
 
 const ALL_LABELS = '__all';
 const AVATAR_SIZE = 24;

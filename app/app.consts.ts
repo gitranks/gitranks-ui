@@ -17,6 +17,8 @@ export const REPO_MIN_RANK_STARS = 100;
 export const REPO_PAGE_MIN_STARS = 5;
 /** A repository has code and contributor analytics from this many stars. */
 export const REPO_PULSE_MIN_STARS = 1000;
+/** The top contributors table's page size; the API holds at most 100 rows a period and sort. */
+export const CONTRIBUTORS_PAGE_SIZE = 25;
 
 // The rank update bots.
 export const TELEGRAM_BOT_URL = 'https://t.me/gitranksbot';

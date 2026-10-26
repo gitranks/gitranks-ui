@@ -1,5 +1,3 @@
-'use client';
-
 import { createContext, type FC, type ReactNode, useContext, useEffect, useMemo, useReducer } from 'react';
 
 import { hasLines, type PulseSeriesData } from './pulse.utils';

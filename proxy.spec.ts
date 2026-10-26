@@ -5,7 +5,7 @@ const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'a
 
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
-const { default: proxy } = await import('./proxy');
+const { default: proxy, config } = await import('./proxy');
 
 const event = {} as NextFetchEvent;
 const request = (cookie?: string, path = '/profile/torvalds') =>
@@ -59,4 +59,20 @@ describe('proxy', () => {
       expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
     },
   );
+
+  describe('matcher', () => {
+    const matches = (path: string) => new RegExp(`^${config.matcher[0]}$`).test(path);
+
+    it.each([
+      '/badges/torvalds/stars-rank.svg',
+      '/repo-badges/vercel/next.js/star-history.svg',
+      '/repo-badges/vercel/next.js/star-history.png',
+    ])('leaves the always-anonymous badge %s alone', (path) => {
+      expect(matches(path)).toBe(false);
+    });
+
+    it('still runs for the repository page', () => {
+      expect(matches('/repo/vercel/next.js')).toBe(true);
+    });
+  });
 });

@@ -1,12 +1,14 @@
 'use cache';
 
 import { cacheLife } from 'next/cache';
+import Link from 'next/link';
 
 import BadgeExample from './components/badge-example';
 import { BadgeContainer, BadgeDescription, BadgeExamplesWrapper, BadgeTitle } from './components/badge-helpers';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
+import { getRepoRankingPath } from '@/utils/repo-paths';
 
 export default async function BadgeGallery() {
   cacheLife('hours');
@@ -141,6 +143,28 @@ export default async function BadgeGallery() {
           <BadgeExample label={RANK_NAME.s} />
           <BadgeExample label={RANK_NAME.s} cornerStyle={BadgeCornerStyle.Squared} />
         </BadgeExamplesWrapper>
+      </BadgeContainer>
+
+      <BadgeContainer>
+        <BadgeTitle>Repository</BadgeTitle>
+        <BadgeDescription>
+          Shows a repository&apos;s star history - today&apos;s stars, the stars gained this month and the whole history
+          as a chart that reads well on light and dark READMEs. Every repository page has its own snippet: find yours in
+          the{' '}
+          <Link href={getRepoRankingPath()} className="underline">
+            repository rankings
+          </Link>
+          .
+        </BadgeDescription>
+        <img
+          src="/badges/repo-star-history-example.svg"
+          alt="Example star history badge of a repository"
+          width={1000}
+          height={400}
+          className="h-auto w-full max-w-3xl"
+          decoding="async"
+          loading="lazy"
+        />
       </BadgeContainer>
     </div>
   );

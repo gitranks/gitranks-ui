@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { series } from './org-pulse.fixtures';
+import { series } from './pulse.fixtures';
 import {
   avatarSrc,
   countryRowLabel,
@@ -14,7 +14,7 @@ import {
   toContributorRows,
   toInflowRows,
   toSnapshotRows,
-} from './org-pulse.utils';
+} from './pulse.utils';
 import { OrgPulseCountryGroup } from '@/types/generated/graphql';
 
 describe('chart rows', () => {

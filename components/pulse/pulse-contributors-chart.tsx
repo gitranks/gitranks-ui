@@ -3,10 +3,10 @@
 import { type FC, useMemo } from 'react';
 import { Bar, ComposedChart, Line, Tooltip, XAxis, YAxis } from 'recharts';
 
-import { formatCount, formatMonth, type OrgPulseSeriesData, toContributorRows } from './org-pulse.utils';
-import { ChartFrame, countAxisProps, monthAxisProps, Swatch, TooltipBox } from './org-pulse-chart-parts';
-import { ChartError, ChartLoading } from './org-pulse-code-charts';
-import { type ContributorsViewState, useOrgPulseSeries } from './org-pulse-series-provider';
+import { formatCount, formatMonth, type PulseSeriesData, toContributorRows } from './pulse.utils';
+import { ChartFrame, countAxisProps, monthAxisProps, Swatch, TooltipBox } from './pulse-chart-parts';
+import { ChartError, ChartLoading } from './pulse-code-charts';
+import { type ContributorsViewState, usePulseSeries } from './pulse-series-provider';
 
 const LINKED_COLOR = 'var(--series-1)';
 const ANONYMOUS_COLOR = 'var(--series-other)';
@@ -45,7 +45,7 @@ const ContributorsTooltip: FC<{ active?: boolean; payload?: Array<{ payload?: Ro
   );
 };
 
-export const ContributorsChart: FC<{ series: OrgPulseSeriesData }> = ({ series }) => {
+export const ContributorsChart: FC<{ series: PulseSeriesData }> = ({ series }) => {
   const rows = useMemo(() => toContributorRows(series), [series]);
   const first = formatMonth(series.months[0] ?? '');
   const last = formatMonth(series.months.at(-1) ?? '');
@@ -114,8 +114,8 @@ export const ContributorsChartView: FC<{ state: ContributorsViewState; onRetry: 
   );
 };
 
-export const OrgPulseContributorsChart: FC = () => {
-  const { contributors, retry } = useOrgPulseSeries();
+export const PulseContributorsChart: FC = () => {
+  const { contributors, retry } = usePulseSeries();
 
   return <ContributorsChartView state={contributors} onRetry={retry} />;
 };

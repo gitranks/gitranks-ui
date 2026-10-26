@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { series } from './org-pulse.fixtures';
+import { series } from './pulse.fixtures';
 import {
   contributorsViewState,
   initialSeriesState,
@@ -9,7 +9,7 @@ import {
   resultKey,
   type SeriesResults,
   seriesToRequest,
-} from './org-pulse-series-provider';
+} from './pulse-series-provider';
 import { OrgActivityGroupBy } from '@/types/generated/graphql';
 
 const { Type, Language, Kind } = OrgActivityGroupBy;

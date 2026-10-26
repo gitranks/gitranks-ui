@@ -1,8 +1,8 @@
-import type { OrgPulseFactsData, OrgPulseSeriesData } from './org-pulse.utils';
+import type { PulseFactsData, PulseSeriesData } from './pulse.utils';
 import { OrgPulseCountryGroup } from '@/types/generated/graphql';
 
 /** Three months, two labels; `[label][month]` like the API. */
-export const series: OrgPulseSeriesData = {
+export const series: PulseSeriesData = {
   months: ['2026-07', '2026-08', '2026-09'],
   labels: ['Code', 'Tests'],
   snapshot: [
@@ -27,7 +27,7 @@ export const series: OrgPulseSeriesData = {
   newContributors: [null, null, 3],
 };
 
-export const facts: OrgPulseFactsData = {
+export const facts: PulseFactsData = {
   lastMonth: '2026-09',
   snapshot: [
     { label: 'Code', lines: 1500, share: 0.852 },
@@ -86,7 +86,6 @@ export const facts: OrgPulseFactsData = {
     { group: OrgPulseCountryGroup.NoLocation, country: null, flag: null, contributors: 3 },
     { group: OrgPulseCountryGroup.NotOnGitranks, country: null, flag: null, contributors: 2 },
   ],
-  sharedContributorOrgs: [],
   scopeNote:
     "Lines in files under 100 KB in today's 3 public repositories with 5+ stars (archived included, forks excluded), 2021-10 to 2026-09. Files over 100 KB (1.2%), binary files (0.4%), vendored, generated and lock files are not counted.",
   computedAt: '2026-10-20T03:00:00.000Z',

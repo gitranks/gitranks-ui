@@ -2,10 +2,10 @@
 
 import type { FC } from 'react';
 
-import { GROUP_BY_OPTIONS, groupByLabel } from './org-pulse.utils';
-import { CHART_HEIGHT, SeriesLegend } from './org-pulse-chart-parts';
-import { InflowKey, LinesInflowChart, LinesSnapshotChart } from './org-pulse-lines-charts';
-import { type LinesViewState, useOrgPulseSeries } from './org-pulse-series-provider';
+import { GROUP_BY_OPTIONS, groupByLabel } from './pulse.utils';
+import { CHART_HEIGHT, SeriesLegend } from './pulse-chart-parts';
+import { InflowKey, LinesInflowChart, LinesSnapshotChart } from './pulse-lines-charts';
+import { type LinesViewState, usePulseSeries } from './pulse-series-provider';
 import { useHydrated } from './use-hydrated';
 import { ButtonGroup, ButtonGroupItem } from '@/components/button-group/button-group';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { OrgActivityGroupBy } from '@/types/generated/graphql';
 
-type OrgPulseCodeChartsViewProps = {
+type PulseCodeChartsViewProps = {
   groupBy: OrgActivityGroupBy;
   state: LinesViewState;
   onGroupByChange: (groupBy: OrgActivityGroupBy) => void;
@@ -39,13 +39,8 @@ export const ChartError: FC<{ onRetry: () => void; what: string }> = ({ onRetry,
 );
 
 /** The lines charts with their Type / Language / Kind switch; the switch drives both charts. */
-export const OrgPulseCodeChartsView: FC<OrgPulseCodeChartsViewProps> = ({
-  groupBy,
-  state,
-  onGroupByChange,
-  onRetry,
-}) => {
-  // Hidden only when the org has no lines at all: after a failed or empty grouping, the switch is the way back.
+export const PulseCodeChartsView: FC<PulseCodeChartsViewProps> = ({ groupBy, state, onGroupByChange, onRetry }) => {
+  // Hidden only when there are no lines at all: after a failed or empty grouping, the switch is the way back.
   const showSwitch = state.status !== 'empty' || !!state.switchable;
   const shown = state.status === 'loaded' ? state.groupBy : groupBy;
   const grouping = groupByLabel(shown).toLowerCase();
@@ -103,8 +98,8 @@ export const OrgPulseCodeChartsView: FC<OrgPulseCodeChartsViewProps> = ({
   );
 };
 
-export const OrgPulseCodeCharts: FC = () => {
-  const { groupBy, setGroupBy, lines, retry } = useOrgPulseSeries();
+export const PulseCodeCharts: FC = () => {
+  const { groupBy, setGroupBy, lines, retry } = usePulseSeries();
   const hydrated = useHydrated();
 
   // The series loads in the browser: the server-rendered page holds only the placeholder.
@@ -118,5 +113,5 @@ export const OrgPulseCodeCharts: FC = () => {
     );
   }
 
-  return <OrgPulseCodeChartsView groupBy={groupBy} state={lines} onGroupByChange={setGroupBy} onRetry={retry} />;
+  return <PulseCodeChartsView groupBy={groupBy} state={lines} onGroupByChange={setGroupBy} onRetry={retry} />;
 };

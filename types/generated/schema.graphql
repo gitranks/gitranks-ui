@@ -505,6 +505,13 @@ type Repo {
   ownerAvatarUrl: String
   ownerId: String
   pull: RepoPull
+  pulse: RepoPulseFacts
+
+  """
+  The repository's top contributors: the union of the top 100 of each period by lines, commits and pull requests. A label table, and which labels are listed, rank only that union, so a contributor outside it is missing even when among the top of a label.
+  """
+  pulseContributors(first: Int! = 25, label: String, offset: Int! = 0, period: OrgPulsePeriod! = LAST_12_MONTHS, sortBy: OrgPulseContributorSort! = LINES): OrgPulseContributorPage
+  pulseSeries(groupBy: OrgActivityGroupBy! = TYPE): OrgPulseSeries
   pushedAt: DateTime
   rank: RankRepo
   renamedTo: String
@@ -533,6 +540,21 @@ type RepoPull {
   requestedAt: DateTime!
   status: String!
   via: String!
+}
+
+type RepoPulseFacts {
+  computedAt: DateTime!
+
+  """
+  Countries of the repository's top contributors active in the last 12 months (the union of the top 100 of each period by lines, commits and pull requests), not of every contributor: the top 10 countries, then "no location" and "not on gitranks".
+  """
+  countries: [OrgPulseCountry!]!
+  last12: OrgPulseTotals!
+  lastMonth: String!
+  scopeNote: String!
+  snapshot: [OrgPulseLabelLines!]!
+  topContributors: [OrgPulseContributor!]!
+  unlinkedAuthors12: Int!
 }
 
 type RepoStarPoint {

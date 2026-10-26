@@ -1,6 +1,11 @@
 import type { FC } from 'react';
 
-import { avatarSrc, type OrgPulseSharedOrgRow } from './org-pulse.utils';
+import { avatarSrc } from '@/components/pulse/pulse.utils';
+import type { PageOrgQuery } from '@/types/generated/graphql';
+
+export type OrgPulseSharedOrgRow = NonNullable<
+  NonNullable<PageOrgQuery['organization']>['pulse']
+>['sharedContributorOrgs'][number];
 
 type OrgPulseSharedGraphProps = {
   login: string;

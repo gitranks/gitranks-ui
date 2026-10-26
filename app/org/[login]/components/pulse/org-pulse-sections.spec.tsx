@@ -1,8 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { facts } from './org-pulse.fixtures';
-import { OrgPulseSections } from './org-pulse-sections';
+import { type OrgPulseFactsData, OrgPulseSections } from './org-pulse-sections';
+import { facts as pulseFacts } from '@/components/pulse/pulse.fixtures';
+
+const facts: OrgPulseFactsData = { ...pulseFacts, sharedContributorOrgs: [] };
 
 const render = (pulse = facts) =>
   renderToStaticMarkup(

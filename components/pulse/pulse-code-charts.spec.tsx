@@ -1,16 +1,16 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { OrgPulseCodeChartsView } from './org-pulse-code-charts';
-import type { LinesViewState } from './org-pulse-series-provider';
+import { PulseCodeChartsView } from './pulse-code-charts';
+import type { LinesViewState } from './pulse-series-provider';
 import { OrgActivityGroupBy } from '@/types/generated/graphql';
 
 const render = (state: LinesViewState, groupBy = OrgActivityGroupBy.Type) =>
   renderToStaticMarkup(
-    <OrgPulseCodeChartsView groupBy={groupBy} state={state} onGroupByChange={() => {}} onRetry={() => {}} />,
+    <PulseCodeChartsView groupBy={groupBy} state={state} onGroupByChange={() => {}} onRetry={() => {}} />,
   ).replaceAll('&#x27;', "'");
 
-describe('OrgPulseCodeChartsView', () => {
+describe('PulseCodeChartsView', () => {
   it('renders one Type / Language / Kind switch as pressed buttons', () => {
     const html = render({ status: 'loading' }, OrgActivityGroupBy.Language);
 

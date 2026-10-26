@@ -15,6 +15,8 @@ export const ITEMS_PER_PAGE = 100;
 export const REPO_MIN_RANK_STARS = 100;
 /** A repository has a page from this many stars. */
 export const REPO_PAGE_MIN_STARS = 5;
+/** A repository has code and contributor analytics from this many stars. */
+export const REPO_PULSE_MIN_STARS = 1000;
 
 // The rank update bots.
 export const TELEGRAM_BOT_URL = 'https://t.me/gitranksbot';

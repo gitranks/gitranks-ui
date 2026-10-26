@@ -1,13 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { facts } from './org-pulse.fixtures';
-import { ContributorsTableView } from './org-pulse-contributors-table';
+import { facts } from './pulse.fixtures';
+import { ContributorsTableView } from './pulse-contributors-table';
 import {
   type ContributorsTableState,
   contributorsTableReducer,
   initialTableState,
-} from './org-pulse-contributors-table.state';
+} from './pulse-contributors-table.state';
 import { OrgPulseContributorSort } from '@/types/generated/graphql';
 
 const base = initialTableState(facts.topContributors, 4);

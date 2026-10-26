@@ -1,6 +1,23 @@
 import type { Route } from 'next';
 
 import { ITEMS_PER_PAGE } from '@/app/app.consts';
+import { isRepoSlug } from '@/lib/routing/ranking-routes';
+
+const decode = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+};
+
+/** The owner and name of a repository page's params, or `null` when they cannot name a repository. */
+export function parseRepoParams(ownerParam: string, nameParam: string) {
+  const owner = decode(ownerParam);
+  const name = decode(nameParam);
+
+  return owner !== null && name !== null && isRepoSlug(owner, name) ? { owner, name } : null;
+}
 
 /** The repository page of `owner/name`. */
 export function getRepoPath(nameWithOwner: string) {

@@ -9,6 +9,7 @@ const SITE_LINKS = [
   { href: '/countries/stars/1', label: 'Country Rankings' },
   { href: '/languages/global/score/1', label: 'Language Rankings' },
   { href: '/orgs/1', label: 'Org Rankings' },
+  { href: '/repos/1', label: 'Repository Rankings' },
   { href: '/insights', label: 'Insights' },
   { href: '/badge/gallery', label: 'Badges' },
   { href: '/methodology', label: 'How Rankings Work' },

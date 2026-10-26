@@ -13,7 +13,8 @@ const repoPagesOf = (repos: number, depth: number) => pagesOf(Math.min(depth, Ma
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pagesToParse = SITEMAP_PAGE_DEPTH.rankings;
-  const repoLanguages = await fetchRepoLanguages();
+  // Without the repository counts, the user rankings still ship.
+  const repoLanguages = await fetchRepoLanguages().catch(() => []);
   const rankedRepos = repoLanguages.reduce((sum, { repos }) => sum + repos, 0);
 
   const userRankings = pagesOf(pagesToParse).flatMap((page) => {

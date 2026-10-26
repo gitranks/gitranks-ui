@@ -23,7 +23,7 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
           <TableHead>Repository</TableHead>
           <TableHead className="hidden md:table-cell">Language</TableHead>
           <TableHead className="text-right">Stars</TableHead>
-          <TableHead className="hidden sm:table-cell text-right">This month</TableHead>
+          <TableHead className="hidden sm:table-cell text-right">Stars this month</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

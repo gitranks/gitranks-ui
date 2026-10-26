@@ -1,6 +1,28 @@
 import { describe, expect, it } from 'vitest';
 
-import { getRankingPageOf, getRepoCacheTag, getRepoLanguageRankingPath, getRepoPath } from './repo-paths';
+import {
+  getRankingPageOf,
+  getRepoCacheTag,
+  getRepoLanguageRankingPath,
+  getRepoPath,
+  parseRepoParams,
+} from './repo-paths';
+
+describe('parseRepoParams', () => {
+  it('reads the owner and the name of a repository', () => {
+    expect(parseRepoParams('vercel', 'next.js')).toEqual({ owner: 'vercel', name: 'next.js' });
+  });
+
+  it.each([
+    ['a'.repeat(40), 'x'],
+    ['-a', 'b'],
+    ['a', '%25'],
+    ['a', '%2F'],
+    ['a', '%E0%A4%A'],
+  ])('rejects %s/%s', (owner, name) => {
+    expect(parseRepoParams(owner, name)).toBeNull();
+  });
+});
 
 describe('repo paths', () => {
   it('encodes the owner and the name of a repository page', () => {

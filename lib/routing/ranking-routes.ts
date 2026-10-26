@@ -21,6 +21,15 @@ export const RANKING_TYPES = new Set(['stars', 'contributions', 'followers']);
 export const COUNTRY_SUMMARY_ORDERS = new Set(['stars', 'contributions', 'followers', 'users']);
 export const LANGUAGE_SUMMARY_ORDERS = new Set(['score', 'size', 'users']);
 
+// GitHub's rules: an owner is 1-39 of [A-Za-z0-9-] not starting with '-'; a name is 1-100 of [A-Za-z0-9._-].
+const REPO_OWNER = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
+const REPO_NAME = /^[A-Za-z0-9._-]{1,100}$/;
+
+/** True when `owner` and `name` can name a GitHub repository. */
+export function isRepoSlug(owner: string, name: string): boolean {
+  return REPO_OWNER.test(owner) && REPO_NAME.test(name);
+}
+
 const isPage = (value: string, maxPage = Number.MAX_SAFE_INTEGER) => {
   const page = parsePageParam(value);
   return page !== null && page <= maxPage;
@@ -72,6 +81,8 @@ export function isInvalidRankingPath(pathname: string): boolean {
       return rest.length === 1 && !isPage(rest[0], RANKING_MAX_PAGE.org);
     case 'repos':
       return isInvalidRepoRankingPath(rest);
+    case 'repo':
+      return !(rest.length === 2 && isRepoSlug(rest[0], rest[1]));
     default:
       return false;
   }

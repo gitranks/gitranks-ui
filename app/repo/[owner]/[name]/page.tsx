@@ -19,6 +19,7 @@ import {
   getRepoLanguageRankingPath,
   getRepoPath,
   getRepoRankingPath,
+  parseRepoParams,
 } from '@/utils/repo-paths';
 
 // Renders on request as one piece, like the profile pages; cached data keeps the render cheap.
@@ -26,7 +27,13 @@ export const instant = false;
 
 export async function generateMetadata({ params }: PageProps<'/repo/[owner]/[name]'>): Promise<Metadata> {
   const { owner, name } = await params;
-  const repo = await fetchRepo(decodeURIComponent(owner), decodeURIComponent(name));
+  const repoParams = parseRepoParams(owner, name);
+
+  if (!repoParams) {
+    notFound();
+  }
+
+  const repo = await fetchRepo(repoParams.owner, repoParams.name);
 
   if (!repo) {
     return {};
@@ -37,8 +44,13 @@ export async function generateMetadata({ params }: PageProps<'/repo/[owner]/[nam
 
 export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[name]'>) {
   const { owner: ownerParam, name: nameParam } = await params;
-  const owner = decodeURIComponent(ownerParam);
-  const name = decodeURIComponent(nameParam);
+  const repoParams = parseRepoParams(ownerParam, nameParam);
+
+  if (!repoParams) {
+    notFound();
+  }
+
+  const { owner, name } = repoParams;
   cacheLife('hours');
   cacheTag(getRepoCacheTag(owner, name));
 
@@ -53,11 +65,15 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
     permanentRedirect(getRepoPath(repo.renamedTo));
   }
 
+  // One URL per repository: a case variant redirects to the stored spelling.
+  if (repo.nameWithOwner !== `${owner}/${name}`) {
+    permanentRedirect(getRepoPath(repo.nameWithOwner));
+  }
+
   const rank = isRepoRanked(repo) ? repo.rank : null;
   const languages = rank ? await fetchRepoLanguages() : [];
   const rankedCount = languages.reduce((sum, { repos }) => sum + repos, 0);
   const languageCount = languages.find((l) => l.language === (rank?.language ?? null))?.repos;
-  const languageTitle = rank?.language ?? 'No language';
 
   return (
     <>
@@ -77,7 +93,7 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
             )}
             {!!rank.l && (
               <RepoRankCard
-                title={`${languageTitle} Rank`}
+                title={rank.language ? `${rank.language} Rank` : 'Rank Without a Language'}
                 rank={rank.l}
                 rankM={rank.lM}
                 rankingLink={getRepoLanguageRankingPath(rank.language, getRankingPageOf(rank.l))}

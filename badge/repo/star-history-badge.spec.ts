@@ -36,7 +36,9 @@ describe('parseStarHistoryFile', () => {
 });
 
 describe('getStarHistoryBadgeResponse', () => {
-  beforeEach(() => fetchBadgeRepo.mockReset());
+  beforeEach(() => {
+    fetchBadgeRepo.mockReset();
+  });
 
   it.each([
     ['-octo', 'widgets', 'star-history.svg'],
@@ -72,7 +74,7 @@ describe('getStarHistoryBadgeResponse', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/svg+xml; charset=utf-8');
     expect(response.headers.get('cache-control')).toBe(
-      'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800',
+      'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800',
     );
     expect(svg).toContain('fill-opacity="0.2"');
     expect(fetchBadgeRepo).toHaveBeenCalledWith('octo', 'widgets');
@@ -99,8 +101,30 @@ describe('getStarHistoryBadgeResponse', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe(contentType);
-    expect(response.headers.get('cache-control')).toBe('public, max-age=3600, s-maxage=86400');
+    expect(response.headers.get('cache-control')).toBe('public, max-age=3600, s-maxage=3600');
     expect(body.length).toBeGreaterThan(1000);
+  });
+
+  it('redirects another spelling to the stored one, keeping the file', async () => {
+    fetchBadgeRepo.mockResolvedValue(repo({ nameWithOwner: 'Octo/Widgets.js', history }));
+    const response = await getStarHistoryBadgeResponse('octo', 'widgets.JS', 'star-history.png');
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get('location')).toBe('/repo-badges/Octo/Widgets.js/star-history.png');
+    expect(response.headers.get('cache-control')).toBe(STAR_HISTORY_CACHE_CONTROL.chart);
+  });
+
+  it('answers a short-cached 503 when the data cannot be read', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    fetchBadgeRepo.mockRejectedValue(new Error('x'));
+    const response = await getStarHistoryBadgeResponse('octo', 'widgets', 'star-history.svg');
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get('cache-control')).toBe('public, max-age=60, s-maxage=60');
+    expect(response.headers.get('retry-after')).toBe('60');
+    expect(await response.text()).toBe('');
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    consoleError.mockRestore();
   });
 
   it('serves a PNG of the chart', async () => {

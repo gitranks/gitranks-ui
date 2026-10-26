@@ -39,7 +39,7 @@ function toSeries(points: StarPoint[], current: StarPoint) {
 function yearTicks(minTime: number, maxTime: number) {
   const { left, right } = STAR_HISTORY_PLOT;
   const span = maxTime - minTime;
-  if (span <= 0) return [];
+  if (!(span > 0)) return [];
 
   const width = right - left;
   const step = Math.max(1, Math.ceil(MIN_TICK_SPACING / ((width * YEAR_MS) / span)));
@@ -52,6 +52,11 @@ function yearTicks(minTime: number, maxTime: number) {
     }
   }
 
+  // No new year inside the range: name the first one at the left edge.
+  if (ticks.length === 0) {
+    ticks.push({ x: TICK_HALF_WIDTH, label: String(new Date(minTime).getUTCFullYear()) });
+  }
+
   return ticks;
 }
 
@@ -61,7 +66,7 @@ export function buildStarHistoryChart(points: StarPoint[], current: StarPoint): 
   const series = toSeries(points, current);
   const minTime = series[0].time;
   const maxTime = series[series.length - 1].time;
-  const maxStars = Math.max(...series.map(({ stars }) => stars));
+  const maxStars = series.reduce((max, { stars }) => Math.max(max, stars), 0);
 
   const xOf = (time: number) =>
     maxTime > minTime ? left + ((time - minTime) / (maxTime - minTime)) * (right - left) : right;

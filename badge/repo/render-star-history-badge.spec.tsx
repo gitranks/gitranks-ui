@@ -1,7 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
+import { describe, expect, it, vi } from 'vitest';
 
 import { renderNotTrackedSvg, renderStarHistorySvg, svgToPng } from './render-star-history-badge';
 import type { StarPoint } from './star-history-chart';
+
+const resvgOptions = vi.hoisted(() => [] as unknown[]);
+vi.mock('@resvg/resvg-js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@resvg/resvg-js')>();
+  class Resvg extends actual.Resvg {
+    constructor(...args: ConstructorParameters<typeof actual.Resvg>) {
+      resvgOptions.push(args[1]);
+      super(...args);
+    }
+  }
+  return { ...actual, Resvg };
+});
 
 const ROOT = /^<svg width="1000" height="400" viewBox="0 0 1000 400" xmlns="http:\/\/www\.w3\.org\/2000\/svg">/;
 
@@ -70,12 +85,24 @@ describe('renderStarHistorySvg', () => {
     expect([...png.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     expect(pngSize(png)).toEqual({ width: 2000, height: 800 });
   });
+
+  it('skips the system font scan, which satori output never needs', async () => {
+    await svgToPng(await renderStarHistorySvg({ kind: 'preparing', nameWithOwner: 'octo/widgets', stars: 42 }));
+
+    expect(resvgOptions.at(-1)).toMatchObject({ font: { loadSystemFonts: false } });
+  });
 });
 
 describe('static star history images', () => {
   // `vitest -u` writes them again after a change to the drawing.
   it('keeps the not-tracked image in step with the drawing', async () => {
     await expect(await renderNotTrackedSvg()).toMatchFileSnapshot('../../public/badges/repo-not-tracked.svg');
+  });
+
+  it('keeps the not-tracked PNG at 2000x800', async () => {
+    const png = new Uint8Array(await readFile(path.join(process.cwd(), 'public', 'badges', 'repo-not-tracked.png')));
+
+    expect(pngSize(png)).toEqual({ width: 2000, height: 800 });
   });
 
   it("keeps the gallery's example in step with the drawing", async () => {

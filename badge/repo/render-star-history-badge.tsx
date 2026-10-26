@@ -89,7 +89,11 @@ async function renderSvg(node: ReactNode) {
 
 /** Puts raw SVG right after the root's opening tag, so satori's text is drawn over it. */
 function underlay(svg: string, shapes: string) {
-  return svg.replace(/^<svg[^>]*>/, (open) => `${open}${shapes}`);
+  const open = /^<svg[^>]*>/.exec(svg)?.[0];
+  if (!open) {
+    throw new Error('The star history SVG does not start with an <svg> root');
+  }
+  return `${open}${shapes}${svg.slice(open.length)}`;
 }
 
 async function renderChart(input: Extract<StarHistoryBadgeInput, { kind: 'chart' }>) {
@@ -160,6 +164,7 @@ export function renderStarHistorySvg(input: StarHistoryBadgeInput): Promise<stri
 export async function svgToPng(svg: string): Promise<Uint8Array<ArrayBuffer>> {
   // Lazy-load the native binding only for PNG so SVG responses stay independent of resvg.
   const { Resvg } = await import('@resvg/resvg-js');
-  const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: PNG_WIDTH } });
+  // satori draws text as paths; scanning the system fonts would only cost time.
+  const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: PNG_WIDTH }, font: { loadSystemFonts: false } });
   return new Uint8Array(resvg.render().asPng());
 }

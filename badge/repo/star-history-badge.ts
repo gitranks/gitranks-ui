@@ -22,12 +22,14 @@ const CONTENT_TYPE: Record<StarHistoryBadgeFormat, string> = {
 };
 
 export const STAR_HISTORY_CACHE_CONTROL = {
-  /** The history moves at most daily: long at the edge, short in the browser. */
-  chart: 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800',
+  /** The history moves at most daily: long at the edge, short in the browser; the last good chart outlives an outage. */
+  chart: 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800',
   /** Short at the edge, so the chart replaces it soon after the history arrives. */
   preparing: 'public, max-age=300, s-maxage=3600',
-  notTracked: 'public, max-age=3600, s-maxage=86400',
+  /** Short at the edge too: a repository can become known during the day. */
+  notTracked: 'public, max-age=3600, s-maxage=3600',
   notFound: 'public, max-age=300, s-maxage=300',
+  unavailable: 'public, max-age=60, s-maxage=60',
 } as const;
 
 /** Served as-is for a repository without data, so made-up names cost no drawing. */
@@ -61,7 +63,10 @@ function imageResponse(body: Uint8Array<ArrayBuffer> | string, format: StarHisto
   return new Response(body, { headers: { 'Content-Type': CONTENT_TYPE[format], 'Cache-Control': cacheControl } });
 }
 
-/** The star history badge at `/repo-badges/<owner>/<name>/<file>`; a well-formed path always gets an image. */
+/**
+ * The star history badge at `/repo-badges/<owner>/<name>/<file>`. A well-formed path gets an image,
+ * a redirect to the stored spelling, or a short-cached 503 when the data cannot be read.
+ */
 export async function getStarHistoryBadgeResponse(ownerParam: string, nameParam: string, file: string) {
   const format = parseStarHistoryFile(file);
   const repoParams = parseRepoParams(ownerParam, nameParam);
@@ -73,10 +78,34 @@ export async function getStarHistoryBadgeResponse(ownerParam: string, nameParam:
     });
   }
 
-  const repo = await fetchBadgeRepo(repoParams.owner, repoParams.name);
+  try {
+    return await renderBadgeResponse(repoParams.owner, repoParams.name, file, format);
+  } catch (error) {
+    console.error('Error rendering the star history badge:', error);
+    return new Response(null, {
+      status: 503,
+      headers: { 'Cache-Control': STAR_HISTORY_CACHE_CONTROL.unavailable, 'Retry-After': '60' },
+    });
+  }
+}
+
+async function renderBadgeResponse(owner: string, name: string, file: string, format: StarHistoryBadgeFormat) {
+  const repo = await fetchBadgeRepo(owner, name);
 
   if (!repo) {
     return imageResponse(await readNotTracked(format), format, STAR_HISTORY_CACHE_CONTROL.notTracked);
+  }
+
+  // Case variants and old names share the stored spelling's cache entry.
+  if (repo.nameWithOwner !== `${owner}/${name}`) {
+    const [storedOwner, storedName] = repo.nameWithOwner.split('/');
+    return new Response(null, {
+      status: 308,
+      headers: {
+        Location: `/repo-badges/${encodeURIComponent(storedOwner)}/${encodeURIComponent(storedName)}/${file}`,
+        'Cache-Control': STAR_HISTORY_CACHE_CONTROL.chart,
+      },
+    });
   }
 
   const input = getStarHistoryBadgeInput(repo);

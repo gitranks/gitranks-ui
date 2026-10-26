@@ -89,4 +89,22 @@ describe('buildStarHistoryChart', () => {
       expect(ticks[i].x - ticks[i - 1].x).toBeGreaterThanOrEqual(80);
     }
   });
+
+  it('names the year at the left edge when the history stays within it', () => {
+    const { ticks } = buildStarHistoryChart([{ date: '2026-02-01T00:00:00Z', stars: 0 }], {
+      date: '2026-10-20T00:00:00Z',
+      stars: 50,
+    });
+
+    expect(ticks).toEqual([{ x: 30, label: '2026' }]);
+  });
+
+  it('draws an unreadable date of today without NaN', () => {
+    const { line, area, end, ticks } = buildStarHistoryChart(points, { date: 'garbage', stars: 7 });
+
+    expect(line).not.toContain('NaN');
+    expect(area).not.toContain('NaN');
+    expect(Number.isFinite(end.x) && Number.isFinite(end.y)).toBe(true);
+    expect(ticks).toEqual([]);
+  });
 });

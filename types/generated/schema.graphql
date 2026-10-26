@@ -494,6 +494,7 @@ type Repo {
   description: String
   gainedThisMonth: Int
   githubId: String!
+  history: RepoHistory
   isArchived: Boolean
   isInOrganization: Boolean
   language: String
@@ -503,11 +504,19 @@ type Repo {
   owner: String!
   ownerAvatarUrl: String
   ownerId: String!
+  pull: RepoPull
   pushedAt: DateTime
   rank: RankRepo
   renamedTo: String
   stars: Int!
   starsAt: DateTime
+}
+
+type RepoHistory {
+  complete: Boolean!
+  current: RepoStarPoint!
+  points: [RepoStarPoint!]!
+  readAt: DateTime!
 }
 
 type RepoLanguageSummary {
@@ -516,6 +525,19 @@ type RepoLanguageSummary {
   stars: Float!
   topRepo: Repo
   topRepoId: String!
+}
+
+type RepoPull {
+  failure: String
+  finishedAt: DateTime
+  requestedAt: DateTime!
+  status: String!
+  via: String!
+}
+
+type RepoStarPoint {
+  date: DateTime!
+  stars: Int!
 }
 
 type Repository {

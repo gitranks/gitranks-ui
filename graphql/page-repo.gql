@@ -11,5 +11,25 @@ query PageRepo($owner: String!, $name: String!) {
       l
       lM
     }
+    burstMonths
+    history {
+      points {
+        date
+        stars
+      }
+      current {
+        date
+        stars
+      }
+      complete
+      readAt
+    }
+    pull {
+      status
+      via
+      requestedAt
+      finishedAt
+      failure
+    }
   }
 }

@@ -1,5 +1,6 @@
 import { getRepoPath } from '@/utils/repo-paths';
 
+// Snippets always point at production, also when copied from a preview.
 const SITE_URL = 'https://gitranks.com';
 
 /** The star history badge's path on this site. */

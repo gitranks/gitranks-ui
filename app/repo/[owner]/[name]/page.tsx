@@ -53,10 +53,15 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
   }
 
   const { owner, name } = repoParams;
-  cacheLife('hours');
   cacheTag(getRepoCacheTag(owner, name));
 
   const repo = await fetchRepo(owner, name);
+  // A running fetch ends on its own, so a page that shows one is kept only briefly.
+  if (repo?.pull?.status === 'running') {
+    cacheLife('minutes');
+  } else {
+    cacheLife('hours');
+  }
 
   if (!repo) {
     notFound();

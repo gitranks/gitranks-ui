@@ -1,6 +1,8 @@
 import type { AuthMode } from '@/lib/auth-providers';
 import type { RepoPullState } from '@/types/repo-pull.types';
-import { PROFILE_REFRESH_WINDOW } from '@/utils/profile-refresh';
+
+/** How long after a fetch finished a status read may expire the cached page; it covers a slow fetch. */
+export const PULL_EXPIRY_WINDOW = 2 * 60 * 60 * 1_000;
 
 /** A token sign-in fetches on the visitor's own access; any other uses the free fetch of the day. */
 export const repoPullPath = (authMode: AuthMode | undefined) =>
@@ -13,7 +15,7 @@ export function recentPullState(pull: RepoPullState | null | undefined, now: num
   }
 
   const finishedAt = new Date(pull.finishedAt).getTime();
-  if (!Number.isFinite(finishedAt) || now - finishedAt > PROFILE_REFRESH_WINDOW) {
+  if (!Number.isFinite(finishedAt) || now - finishedAt > PULL_EXPIRY_WINDOW) {
     return null;
   }
 

@@ -3,15 +3,17 @@
 import { sendGAEvent } from '@next/third-parties/google';
 import { RefreshCw } from 'lucide-react';
 import { signIn, useSession } from 'next-auth/react';
-import { type FC, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 import { toast } from 'sonner';
 
 import {
+  allowanceAfter,
   PULL_MESSAGES,
   PULL_TOASTS,
   type PullDialogKind,
   type PullOutcome,
+  pullCheckOf,
   pullErrorOutcomeOf,
   pullHintOf,
   pullModeOf,
@@ -49,85 +51,92 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
   const mode = pullModeOf(session, status);
   const url = pullUrl(owner, name);
   const containerRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const attempt = useRef(0);
+  const inFlight = useRef(false);
+  const pullIdRef = useRef<string | null>(null);
   const [allowance, setAllowance] = useState<RepoPullAllowance | null>(null);
   const [checking, setChecking] = useState(false);
   const [dialog, setDialog] = useState<OpenDialog>(null);
   const [elapsed, setElapsed] = useState<number | null>(null);
   const [loadingLabel, setLoadingLabel] = useState(FETCH_MESSAGES[0]);
 
-  const stopPolling = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    setElapsed(null);
-  }, []);
-
   const loadStatus = useCallback(async () => {
     const res = await fetch(url, { cache: 'no-store' });
     return res.ok ? ((await res.json()) as RepoPullStatus) : null;
   }, [url]);
 
-  // A fetch was running when the page was rendered: wait for it, unless it is long given up.
-  useLayoutEffect(() => {
-    if (pull?.status !== 'running') {
-      return;
-    }
-
-    const since = sinceRequest(pull.requestedAt);
-    if (Number.isFinite(since) && since < PULL_TIMEOUT) {
-      setElapsed(Math.max(0, since));
-    }
-  }, [pull?.status, pull?.requestedAt]);
-
+  // Signed-in visitors wait for a running fetch; anyone sends one read for a fetch shown running past the wait.
   useEffect(() => {
-    if (mode !== 'daily' && mode !== 'token') {
+    if (mode === 'loading') {
       return;
     }
 
+    const signedIn = mode === 'daily' || mode === 'token';
+    const shownRunning = pull?.status === 'running';
+    const since = sinceRequest(pull?.requestedAt);
+    const waitable = shownRunning && since < PULL_TIMEOUT;
+
+    if (!signedIn && !(shownRunning && !waitable)) {
+      return;
+    }
+    if (signedIn && waitable) {
+      setElapsed((prev) => prev ?? Math.max(0, since));
+    }
+
+    let cancelled = false;
     loadStatus()
       .then((data) => {
+        if (cancelled || !signedIn) {
+          return;
+        }
         setAllowance(data?.allowance ?? null);
-        if (data?.pull?.status === 'running') {
-          setElapsed((prev) => prev ?? 0);
+        const running = data?.pull?.status === 'running' ? data.pull : null;
+        const runningSince = sinceRequest(running?.requestedAt);
+        if (running && runningSince < PULL_TIMEOUT) {
+          pullIdRef.current = running.id;
+          setElapsed((prev) => prev ?? Math.max(0, runningSince));
         }
       })
-      .catch(() => setAllowance(null));
-  }, [mode, loadStatus]);
+      .catch(() => !cancelled && signedIn && setAllowance(null));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, loadStatus, pull?.status, pull?.requestedAt]);
 
   const checkStatus = useCallback(async () => {
+    if (inFlight.current) {
+      return;
+    }
+    inFlight.current = true;
     setLoadingLabel('Checking…');
     const data = await loadStatus().catch(() => null);
 
-    if (!data || data.pull?.status === 'running') {
-      attempt.current += 1;
-      setLoadingLabel(FETCH_MESSAGES[attempt.current % FETCH_MESSAGES.length]);
-      return;
+    switch (pullCheckOf(data, pullIdRef.current)) {
+      case 'continue':
+        attempt.current += 1;
+        setLoadingLabel(FETCH_MESSAGES[attempt.current % FETCH_MESSAGES.length]);
+        break;
+      case 'stop':
+        setElapsed(null);
+        break;
+      case 'stopFailed':
+        setElapsed(null);
+        toast.error(PULL_TOASTS.pullFailed);
+        break;
+      case 'reload':
+        // The status read expired the cached page, so a reload shows the new history; no check runs after it.
+        setLoadingLabel('Reloading…');
+        window.location.reload();
+        return;
     }
 
-    if (data.pull?.status === 'failed') {
-      stopPolling();
-      toast.error(PULL_TOASTS.pullFailed);
-      return;
-    }
-
-    // Done: the status read expired the cached page, so a reload shows the new history.
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    setLoadingLabel('Reloading…');
-    window.location.reload();
-  }, [loadStatus, stopPolling]);
+    inFlight.current = false;
+  }, [loadStatus]);
 
   useEffect(() => {
     if (elapsed === null) {
       return;
-    }
-
-    const secondsPassed = Math.floor(elapsed / 1000);
-    if (secondsPassed > 0 && secondsPassed % (CHECK_STATUS_INTERVAL / 1000) === 0) {
-      checkStatus();
     }
 
     if (elapsed >= PULL_TIMEOUT) {
@@ -136,19 +145,17 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
       return;
     }
 
-    timerRef.current = setTimeout(() => {
-      setElapsed((prev) => (prev ?? 0) + TICK_INTERVAL);
-    }, TICK_INTERVAL);
-  }, [elapsed, checkStatus]);
+    const secondsPassed = Math.floor(elapsed / 1000);
+    if (secondsPassed > 0 && secondsPassed % (CHECK_STATUS_INTERVAL / 1000) === 0) {
+      checkStatus();
+    }
 
-  useEffect(
-    () => () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    },
-    [],
-  );
+    const timer = setTimeout(() => {
+      setElapsed((prev) => (prev === null ? null : prev + TICK_INTERVAL));
+    }, TICK_INTERVAL);
+
+    return () => clearTimeout(timer);
+  }, [elapsed, checkStatus]);
 
   const openDialog = (next: NonNullable<OpenDialog>) => {
     sendGAEvent('event', 'repo_pull_dialog_open', { kind: next.kind });
@@ -190,7 +197,10 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
         return;
       }
 
-      apply(pullOutcomeOf((await res.json()) as RepoPullResult, mode));
+      const result = (await res.json()) as RepoPullResult;
+      pullIdRef.current = result.status === 'started' ? result.pullId : null;
+      setAllowance((prev) => allowanceAfter(result, mode, prev));
+      apply(pullOutcomeOf(result, mode));
       loadStatus()
         .then((data) => data && setAllowance(data.allowance))
         .catch(() => {});

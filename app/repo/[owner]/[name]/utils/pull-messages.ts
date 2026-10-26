@@ -7,7 +7,7 @@ import {
   type RefreshMessage,
   TOKEN_NOTE,
 } from '@/components/refresh-dialogs/refresh-messages';
-import type { RepoPullAllowance, RepoPullResult } from '@/types/repo-pull.types';
+import type { RepoPullAllowance, RepoPullResult, RepoPullStatus } from '@/types/repo-pull.types';
 import { timeLeftUntil } from '@/utils/format-time-left';
 
 /** Fetches a day for a visitor signed in with their own token, when the answer does not say. */
@@ -45,7 +45,7 @@ export const PULL_MESSAGES = {
       'Star our repo.',
       'Get 1 star history fetch every day.',
     ],
-    closing: ['Need more? Later you can use your own GitHub token for up to 20 fetches a day.'],
+    closing: [`Need more? Later you can use your own GitHub token for up to ${TOKEN_PULLS_PER_DAY} fetches a day.`],
     primary: 'Sign in with GitHub',
     secondary: 'Maybe later',
   },
@@ -64,7 +64,7 @@ export const PULL_MESSAGES = {
     title: 'Easy, tiger 🐯',
     paragraphs: [
       'Your free fetch of today is used. The next one is in {time}.',
-      'Too long? Use your own GitHub token for up to 20 fetches a day. They run on your GitHub limits, not ours.',
+      `Too long? Use your own GitHub token for up to ${TOKEN_PULLS_PER_DAY} fetches a day. They run on your GitHub limits, not ours.`,
     ],
     ...TOKEN_NOTE,
     primary: 'Use my GitHub token',
@@ -121,6 +121,45 @@ export function pullOutcomeOf(result: RepoPullResult, mode: PullMode, now = Date
     case 'quota':
       return info(fillTime(PULL_TOASTS.quota, timeLeftUntil(result.nextAt, now)));
   }
+}
+
+/** What a status check while waiting leads to: wait more, stop, stop with an error, or reload the page. */
+export type PullCheck = 'continue' | 'stop' | 'stopFailed' | 'reload';
+
+/**
+ * The next step after a status check. `pullId` is the fetch this visitor started, when known: an answer about
+ * another fetch is not the end of this one.
+ */
+export function pullCheckOf(status: RepoPullStatus | null | undefined, pullId: string | null): PullCheck {
+  if (!status) {
+    return 'continue';
+  }
+
+  const { pull } = status;
+  if (!pull) {
+    return 'stop';
+  }
+  if ((pullId && pull.id !== pullId) || pull.status === 'running') {
+    return 'continue';
+  }
+
+  return pull.status === 'failed' ? 'stopFailed' : 'reload';
+}
+
+/** The allowance after a press started a fetch: a daily visitor's free fetch is used until `nextAt`. */
+export function allowanceAfter(
+  result: RepoPullResult,
+  mode: PullMode,
+  allowance: RepoPullAllowance | null,
+): RepoPullAllowance | null {
+  if (result.status !== 'started' || mode !== 'daily' || !result.nextAt) {
+    return allowance;
+  }
+
+  return {
+    daily: { available: false, nextAt: result.nextAt },
+    token: allowance?.token ?? { used: 0, limit: TOKEN_PULLS_PER_DAY, nextAt: null },
+  };
 }
 
 /** A refused press, by its HTTP status. */

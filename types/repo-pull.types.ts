@@ -14,10 +14,8 @@ export type RepoPullResult =
 export type RepoPullState = {
   id: string;
   status: 'running' | 'done' | 'failed';
-  via: string;
   requestedAt: string;
   finishedAt: string | null;
-  failure: string | null;
 };
 
 /** What the visitor may still fetch: one a day after a star, or a number a day with their own token. */

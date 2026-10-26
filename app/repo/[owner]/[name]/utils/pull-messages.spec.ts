@@ -2,14 +2,17 @@ import type { Session } from 'next-auth';
 import { describe, expect, it } from 'vitest';
 
 import {
+  allowanceAfter,
+  PULL_MESSAGES,
   PULL_TOASTS,
+  pullCheckOf,
   pullErrorOutcomeOf,
   pullHintOf,
   pullModeOf,
   pullOutcomeOf,
   TOKEN_PULLS_PER_DAY,
 } from './pull-messages';
-import type { RepoPullAllowance } from '@/types/repo-pull.types';
+import type { RepoPullAllowance, RepoPullState } from '@/types/repo-pull.types';
 
 const NOW = Date.parse('2026-10-26T10:00:00.000Z');
 const IN_2H = '2026-10-26T12:00:00.000Z';
@@ -130,5 +133,68 @@ describe('pullHintOf', () => {
     expect(
       pullHintOf('token', allowance({ available: false, nextAt: null }, { used: 20, limit: 20, nextAt: IN_2H }), NOW),
     ).toBe('You used all 20 fetches of today. The next one is in 2 h.');
+  });
+});
+
+describe('PULL_MESSAGES', () => {
+  it('names the daily token limit from its constant', () => {
+    expect(PULL_MESSAGES.signIn.closing[0]).toContain(`up to ${TOKEN_PULLS_PER_DAY} fetches a day`);
+    expect(PULL_MESSAGES.used.paragraphs[1]).toContain(`up to ${TOKEN_PULLS_PER_DAY} fetches a day`);
+  });
+});
+
+describe('pullCheckOf', () => {
+  const state = (id: string, status: RepoPullState['status']) => ({
+    pull: { id, status, requestedAt: AGO_1H, finishedAt: status === 'running' ? null : AGO_1H },
+    allowance: null,
+  });
+
+  it('waits on while the fetch runs or the read fails', () => {
+    expect(pullCheckOf(state('p1', 'running'), 'p1')).toBe('continue');
+    expect(pullCheckOf(state('p1', 'running'), null)).toBe('continue');
+    expect(pullCheckOf(null, 'p1')).toBe('continue');
+  });
+
+  it('stops without a reload when there is no fetch', () => {
+    expect(pullCheckOf({ pull: null, allowance: null }, 'p1')).toBe('stop');
+    expect(pullCheckOf({ pull: null, allowance: null }, null)).toBe('stop');
+  });
+
+  it('stops with an error when the fetch failed', () => {
+    expect(pullCheckOf(state('p1', 'failed'), 'p1')).toBe('stopFailed');
+    expect(pullCheckOf(state('p1', 'failed'), null)).toBe('stopFailed');
+  });
+
+  it('reloads when the fetch is done', () => {
+    expect(pullCheckOf(state('p1', 'done'), 'p1')).toBe('reload');
+    expect(pullCheckOf(state('p1', 'done'), null)).toBe('reload');
+  });
+
+  it('waits on while the answer is about an earlier fetch than the one started', () => {
+    expect(pullCheckOf(state('p0', 'done'), 'p1')).toBe('continue');
+    expect(pullCheckOf(state('p0', 'failed'), 'p1')).toBe('continue');
+  });
+});
+
+describe('allowanceAfter', () => {
+  const before = allowance({ available: true, nextAt: null }, { used: 2, limit: 20, nextAt: null });
+
+  it('marks the free fetch of the day used, so the line under the button names the next one', () => {
+    const after = allowanceAfter({ status: 'started', pullId: 'p1', nextAt: IN_2H }, 'daily', before);
+
+    expect(after).toEqual(allowance({ available: false, nextAt: IN_2H }, before.token));
+    expect(pullHintOf('daily', after, NOW)).toBe('Your next free fetch is in 2 h.');
+  });
+
+  it('fills in the token part when no allowance was read yet', () => {
+    expect(allowanceAfter({ status: 'started', pullId: 'p1', nextAt: IN_2H }, 'daily', null)).toEqual(
+      allowance({ available: false, nextAt: IN_2H }, { used: 0, limit: TOKEN_PULLS_PER_DAY, nextAt: null }),
+    );
+  });
+
+  it('keeps the allowance for any other answer, a token press or a start without nextAt', () => {
+    expect(allowanceAfter({ status: 'running' }, 'daily', before)).toBe(before);
+    expect(allowanceAfter({ status: 'started', pullId: 'p1', nextAt: IN_2H }, 'token', before)).toBe(before);
+    expect(allowanceAfter({ status: 'started', pullId: 'p1' }, 'daily', before)).toBe(before);
   });
 });

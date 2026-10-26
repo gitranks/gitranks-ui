@@ -46,7 +46,7 @@ const StarHistoryChart: FC<StarHistoryChartProps> = ({ history, burstMonths }) =
   const bursts = getBurstRanges(burstMonths, first.time, last.time);
 
   return (
-    <div className="[&_.recharts-surface:focus]:outline-none">
+    <div className="[&_.recharts-surface:focus:not(:focus-visible)]:outline-none [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-offset-2 [&_.recharts-surface:focus-visible]:outline-ring">
       <ResponsiveContainer width="100%" height={260}>
         <AreaChart data={points} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
           <defs>

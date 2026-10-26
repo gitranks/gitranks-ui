@@ -9,6 +9,8 @@ export type BurstRange = { x1: number; x2: number };
 
 const MONTH = /^(\d{4})-(\d{2})/;
 
+const DATE_FORMATTER = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' });
+
 const timeOf = (date: unknown) => (typeof date === 'string' || date instanceof Date ? new Date(date).getTime() : NaN);
 
 /**
@@ -38,6 +40,8 @@ export function getStarHistoryPoints(history: RepoHistory | null | undefined): S
 
 /** The burst months ('YYYY-MM…') as ranges from the month's start to the next month's, kept inside `[min, max]`. */
 export function getBurstRanges(burstMonths: string[] | null | undefined, min: number, max: number): BurstRange[] {
+  const seen = new Set<number>();
+
   return (burstMonths ?? []).flatMap((month) => {
     const match = MONTH.exec(month);
     if (!match) {
@@ -46,9 +50,32 @@ export function getBurstRanges(burstMonths: string[] | null | undefined, min: nu
 
     const year = Number(match[1]);
     const monthIndex = Number(match[2]) - 1;
-    const x1 = Math.max(Date.UTC(year, monthIndex, 1), min);
+    const start = Date.UTC(year, monthIndex, 1);
+    if (seen.has(start)) {
+      return [];
+    }
+    seen.add(start);
+
+    const x1 = Math.max(start, min);
     const x2 = Math.min(Date.UTC(year, monthIndex + 1, 1), max);
 
     return x1 < x2 ? [{ x1, x2 }] : [];
   });
+}
+
+/** The line under the chart: the current count and date, and notes on shading and estimates. */
+export function getStarHistoryNote(history: RepoHistory, burstMonths: string[] | null | undefined): string {
+  const points = getStarHistoryPoints(history);
+  const currentTime = timeOf(history.current.date);
+  const shaded =
+    points.length >= 2 && getBurstRanges(burstMonths, points[0].time, points[points.length - 1].time).length > 0;
+
+  return [
+    Number.isFinite(currentTime) &&
+      `${history.current.stars.toLocaleString('en-US')} stars on ${DATE_FORMATTER.format(currentTime)}.`,
+    shaded && 'Shaded months gained stars much faster than the months before them.',
+    !history.complete && 'The earliest months are estimates.',
+  ]
+    .filter(Boolean)
+    .join(' ');
 }

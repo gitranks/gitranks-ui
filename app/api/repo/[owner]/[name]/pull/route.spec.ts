@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import type { Session } from 'next-auth';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { signedFetch, revalidateTag, current } = vi.hoisted(() => ({
   signedFetch: vi.fn(),
@@ -47,11 +47,48 @@ const postBody = (owner: string, name: string) => ({
   body: JSON.stringify({ owner, name }),
 });
 
+const finished = (id: string, status: 'done' | 'failed', finishedAt: string) => ({
+  id,
+  status,
+  via: 'token',
+  requestedAt: finishedAt,
+  finishedAt,
+  failure: status === 'failed' ? 'internal-stage' : null,
+});
+
 describe('repo pull route', () => {
   beforeEach(() => {
     signedFetch.mockReset();
     revalidateTag.mockReset();
     current.session = null;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ['GET', 'Failed to load the star history fetch'],
+    ['POST', 'The star history fetch failed'],
+  ])('%s answers 502 JSON when the upstream call throws', async (method, message) => {
+    signIn('token');
+    signedFetch.mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND'));
+
+    const response = await call(method === 'GET' ? GET : POST, 'octo', 'hello', method);
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    await expect(response.json()).resolves.toEqual({ message });
+  });
+
+  it.each([['GET'], ['POST']])('%s answers 502 JSON when a 200 body is not JSON', async (method) => {
+    signIn('token');
+    signedFetch.mockResolvedValueOnce(new Response('<html>oops</html>', { status: 200 }));
+
+    const response = await call(method === 'GET' ? GET : POST, 'octo', 'hello', method);
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get('Content-Type')).toContain('application/json');
   });
 
   describe('POST', () => {
@@ -84,6 +121,7 @@ describe('repo pull route', () => {
       const response = await call(POST, 'Octo-Org', 'hello.world', 'POST');
 
       expect(response.status).toBe(200);
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
       await expect(response.json()).resolves.toEqual({ status: 'running' });
       expect(signedFetch).toHaveBeenCalledWith(
         '/repo/pull/token',
@@ -140,6 +178,7 @@ describe('repo pull route', () => {
       const response = await call(GET);
 
       expect(response.status).toBe(200);
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
       await expect(response.json()).resolves.toEqual({ pull: null, allowance: null });
       expect(signedFetch).toHaveBeenCalledWith(
         '/repo/pull/status?owner=Octo-Org&name=hello.world',
@@ -181,8 +220,7 @@ describe('repo pull route', () => {
     });
 
     it('expires the cached page once for a fetch that finished lately', async () => {
-      const finishedAt = new Date(Date.now() - 60_000).toISOString();
-      const pull = { id: 'p2', status: 'done', via: 'token', requestedAt: finishedAt, finishedAt, failure: null };
+      const pull = finished('p2', 'done', new Date(Date.now() - 60_000).toISOString());
       upstream(200, { pull, allowance: null });
       upstream(200, { pull, allowance: null });
 
@@ -193,10 +231,54 @@ describe('repo pull route', () => {
       expect(revalidateTag).toHaveBeenCalledWith('repo:octo/done-repo', { expire: 0 });
     });
 
+    it('expires the page again once the repeat window has passed', async () => {
+      const start = Date.now();
+      const now = vi.spyOn(Date, 'now').mockReturnValue(start);
+      const pull = finished('p5', 'done', new Date(start - 60_000).toISOString());
+      upstream(200, { pull, allowance: null });
+      upstream(200, { pull, allowance: null });
+      upstream(200, { pull, allowance: null });
+
+      await call(GET, 'octo', 'repeat-repo');
+      now.mockReturnValue(start + 14_000);
+      await call(GET, 'octo', 'repeat-repo');
+      now.mockReturnValue(start + 15_000);
+      await call(GET, 'octo', 'repeat-repo');
+
+      expect(revalidateTag).toHaveBeenCalledTimes(2);
+    });
+
+    it('expires the page for a fetch that failed lately, and for a slow one that finished an hour ago', async () => {
+      upstream(200, { pull: finished('p6', 'failed', new Date(Date.now() - 60_000).toISOString()), allowance: null });
+      upstream(200, {
+        pull: finished('p7', 'done', new Date(Date.now() - 60 * 60_000).toISOString()),
+        allowance: null,
+      });
+
+      await call(GET, 'octo', 'failed-repo');
+      await call(GET, 'octo', 'slow-repo');
+
+      expect(revalidateTag).toHaveBeenCalledWith('repo:octo/failed-repo', { expire: 0 });
+      expect(revalidateTag).toHaveBeenCalledWith('repo:octo/slow-repo', { expire: 0 });
+    });
+
+    it('answers only the fields the button needs', async () => {
+      const pull = finished('p8', 'failed', '2026-10-26T09:00:00.000Z');
+      const allowance = STATUS.allowance;
+      upstream(200, { pull, allowance, extra: 'internal' });
+
+      const response = await call(GET, 'octo', 'fields-repo');
+
+      await expect(response.json()).resolves.toEqual({
+        pull: { id: 'p8', status: 'failed', requestedAt: pull.requestedAt, finishedAt: pull.finishedAt },
+        allowance,
+      });
+    });
+
     it('leaves the cache alone while a fetch runs', async () => {
       const requestedAt = new Date().toISOString();
       upstream(200, {
-        pull: { id: 'p3', status: 'running', via: 'daily', requestedAt, finishedAt: null, failure: null },
+        pull: { id: 'p3', status: 'running', requestedAt, finishedAt: null },
         allowance: null,
       });
 

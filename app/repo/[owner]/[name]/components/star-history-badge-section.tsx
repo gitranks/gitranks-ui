@@ -38,6 +38,9 @@ const CopySnippet: FC<{ label: string; code: string }> = ({ label, code }) => {
           {copied ? <Check /> : <Clipboard />}
           {copied ? 'Copied' : 'Copy'}
         </Button>
+        <span className="sr-only" aria-live="polite">
+          {copied ? `${label} copied` : ''}
+        </span>
       </div>
       <pre className="overflow-x-auto rounded-md bg-muted px-3 py-2 font-mono text-[13px] leading-5">
         <code>{code}</code>

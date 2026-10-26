@@ -503,7 +503,7 @@ type Repo {
   nameWithOwner: String!
   owner: String!
   ownerAvatarUrl: String
-  ownerId: String!
+  ownerId: String
   pull: RepoPull
   pushedAt: DateTime
   rank: RankRepo

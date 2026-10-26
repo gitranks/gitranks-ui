@@ -1,0 +1,10 @@
+query RepoLanguages {
+  repoLanguages {
+    language
+    repos
+    stars
+    topRepo {
+      ...RepoRowFields
+    }
+  }
+}

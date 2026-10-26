@@ -21,6 +21,12 @@ query PageOrg($login: String!) {
     usersCount
     updatedAt
     hasActivity
+    topRepos {
+      ...RepoRowFields
+      rank {
+        s
+      }
+    }
     pulse {
       lastMonth
       snapshot {

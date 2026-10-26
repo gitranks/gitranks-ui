@@ -7,6 +7,7 @@ const LINKS = [
   { href: '/countries/stars/1', label: 'Country Rankings' },
   { href: '/languages/global/score/1', label: 'Language Rankings' },
   { href: '/orgs/1', label: 'Org Rankings' },
+  { href: '/repos/1', label: 'Repository Rankings' },
 ];
 
 export default function NotFound() {

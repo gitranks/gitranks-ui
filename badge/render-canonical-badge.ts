@@ -30,6 +30,8 @@ export async function renderCanonicalBadge(
   // Upscale for Image Search / social sharpness (inline badges are 20px tall).
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'height', value: 80 },
+    // satori draws text as paths; scanning the system fonts would only cost time.
+    font: { loadSystemFonts: false },
   });
 
   // resvg types its Buffer as ArrayBufferLike, which `BodyInit` rejects; the typed-array

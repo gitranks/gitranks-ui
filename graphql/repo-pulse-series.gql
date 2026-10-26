@@ -1,0 +1,7 @@
+query RepoPulseSeries($owner: String!, $name: String!, $groupBy: OrgActivityGroupBy!) {
+  repo(owner: $owner, name: $name) {
+    pulseSeries(groupBy: $groupBy) {
+      ...PulseSeriesFields
+    }
+  }
+}

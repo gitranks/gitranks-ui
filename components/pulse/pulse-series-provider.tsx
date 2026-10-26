@@ -1,44 +1,44 @@
-'use client';
-
 import { createContext, type FC, type ReactNode, useContext, useEffect, useMemo, useReducer } from 'react';
 
-import { hasLines, type OrgPulseSeriesData } from './org-pulse.utils';
-import { graphqlClient } from '@/lib/graphql/graphql-client';
-import { OrgActivityGroupBy, OrgPulseSeriesDocument } from '@/types/generated/graphql';
+import { hasLines, type PulseSeriesData } from './pulse.utils';
+import { OrgActivityGroupBy } from '@/types/generated/graphql';
 
-/** What one grouping returned: the series, `null` for an org with no data, or a failed request. */
-export type SeriesResult = { series: OrgPulseSeriesData | null } | { error: true };
+/** Loads one grouping's series: `null` when there is no data. */
+export type LoadPulseSeries = (groupBy: OrgActivityGroupBy) => Promise<PulseSeriesData | null>;
 
-/** Results by `resultKey`, so a response that lands after a switch is kept under its own org and grouping. */
+/** What one grouping returned: the series, `null` when there is no data, or a failed request. */
+export type SeriesResult = { series: PulseSeriesData | null } | { error: true };
+
+/** Results by `resultKey`, so a response that lands after a switch is kept under its own scope and grouping. */
 export type SeriesResults = Partial<Record<string, SeriesResult>>;
 
-export const resultKey = (login: string, groupBy: OrgActivityGroupBy) => `${login}\n${groupBy}`;
+export const resultKey = (scope: string, groupBy: OrgActivityGroupBy) => `${scope}\n${groupBy}`;
 
-const loadedSeries = (result: SeriesResult | undefined): OrgPulseSeriesData | null =>
+const loadedSeries = (result: SeriesResult | undefined): PulseSeriesData | null =>
   result && 'series' in result ? result.series : null;
 
 export type LinesViewState =
   | { status: 'loading' }
   | { status: 'error' }
-  /** `switchable` when another grouping of the org has lines, so the switch stays. */
+  /** `switchable` when another grouping has lines, so the switch stays. */
   | { status: 'empty'; switchable?: boolean }
   /** `groupBy` is the charts' own grouping: while the next one loads, the last charts stay, dimmed. */
-  | { status: 'loaded'; series: OrgPulseSeriesData; groupBy: OrgActivityGroupBy; refreshing?: boolean };
+  | { status: 'loaded'; series: PulseSeriesData; groupBy: OrgActivityGroupBy; refreshing?: boolean };
 
 /**
  * What the lines charts show for the selected grouping:
  * - while it loads, the last charts with lines stay on screen, dimmed (`refreshing`);
  * - a failed request is an error, with the switch still there to go back to a loaded grouping;
- * - a grouping with no lines is empty; the switch stays only if another grouping of this org has lines.
+ * - a grouping with no lines is empty; the switch stays only if another grouping has lines.
  */
 export function linesViewState(
   results: SeriesResults,
-  login: string,
+  scope: string,
   groupBy: OrgActivityGroupBy,
   shownGroupBy: OrgActivityGroupBy,
 ): LinesViewState {
-  const result = results[resultKey(login, groupBy)];
-  const shown = loadedSeries(results[resultKey(login, shownGroupBy)]);
+  const result = results[resultKey(scope, groupBy)];
+  const shown = loadedSeries(results[resultKey(scope, shownGroupBy)]);
 
   if (!result) {
     return hasLines(shown)
@@ -55,7 +55,7 @@ export function linesViewState(
   }
 
   const switchable = Object.values(OrgActivityGroupBy).some((other) =>
-    hasLines(loadedSeries(results[resultKey(login, other)])),
+    hasLines(loadedSeries(results[resultKey(scope, other)])),
   );
 
   return { status: 'empty', switchable };
@@ -65,25 +65,25 @@ export type ContributorsViewState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'empty' }
-  | { status: 'loaded'; series: OrgPulseSeriesData };
+  | { status: 'loaded'; series: PulseSeriesData };
 
 /**
- * The contributor charts read the same months in every grouping, so any loaded grouping of the org
+ * The contributor charts read the same months in every grouping, so any loaded grouping
  * serves them; they wait only while nothing has loaded yet.
  */
 export function contributorsViewState(
   results: SeriesResults,
-  login: string,
+  scope: string,
   groupBy: OrgActivityGroupBy,
 ): ContributorsViewState {
   const order = [groupBy, ...Object.values(OrgActivityGroupBy).filter((other) => other !== groupBy)];
-  const series = order.map((other) => loadedSeries(results[resultKey(login, other)])).find(Boolean);
+  const series = order.map((other) => loadedSeries(results[resultKey(scope, other)])).find(Boolean);
 
   if (series) {
     return series.months.length ? { status: 'loaded', series } : { status: 'empty' };
   }
 
-  const result = results[resultKey(login, groupBy)];
+  const result = results[resultKey(scope, groupBy)];
 
   if (!result) {
     return { status: 'loading' };
@@ -92,7 +92,7 @@ export function contributorsViewState(
   return 'error' in result ? { status: 'error' } : { status: 'empty' };
 }
 
-type OrgPulseSeriesContextValue = {
+type PulseSeriesContextValue = {
   groupBy: OrgActivityGroupBy;
   setGroupBy: (groupBy: OrgActivityGroupBy) => void;
   lines: LinesViewState;
@@ -100,20 +100,22 @@ type OrgPulseSeriesContextValue = {
   retry: () => void;
 };
 
-const OrgPulseSeriesContext = createContext<OrgPulseSeriesContextValue | null>(null);
+const PulseSeriesContext = createContext<PulseSeriesContextValue | null>(null);
 
-export const useOrgPulseSeries = () => {
-  const value = useContext(OrgPulseSeriesContext);
+export const usePulseSeries = () => {
+  const value = useContext(PulseSeriesContext);
 
   if (!value) {
-    throw new Error('useOrgPulseSeries must be used inside OrgPulseSeriesProvider');
+    throw new Error('usePulseSeries must be used inside PulseSeriesProvider');
   }
 
   return value;
 };
 
-type OrgPulseSeriesProviderProps = {
-  login: string;
+type PulseSeriesProviderProps = {
+  /** Names the organization or repository: results are kept per scope. */
+  scope: string;
+  loadSeries: LoadPulseSeries;
   children: ReactNode;
 };
 
@@ -142,7 +144,7 @@ export const initialSeriesState: SeriesState = {
 
 /**
  * The series requests as a pure function of the state and one event. A response is kept under its
- * own org and grouping whenever it lands, and moves the charts only if its grouping is still the
+ * own scope and grouping whenever it lands, and moves the charts only if its grouping is still the
  * selected one.
  */
 export function seriesReducer(state: SeriesState, event: SeriesEvent): SeriesState {
@@ -173,25 +175,25 @@ export function seriesReducer(state: SeriesState, event: SeriesEvent): SeriesSta
 }
 
 /** The request the selected grouping needs: none while its result is held or on its way. */
-export function seriesToRequest(state: SeriesState, login: string): string | null {
-  const key = resultKey(login, state.groupBy);
+export function seriesToRequest(state: SeriesState, scope: string): string | null {
+  const key = resultKey(scope, state.groupBy);
   return state.results[key] || state.inFlight[key] ? null : key;
 }
 
 /** The grouping whose charts show: the selected one once it has lines, else the last one that had. */
-const shownOf = (state: SeriesState, login: string) =>
-  hasLines(loadedSeries(state.results[resultKey(login, state.groupBy)])) ? state.groupBy : state.shownGroupBy;
+const shownOf = (state: SeriesState, scope: string) =>
+  hasLines(loadedSeries(state.results[resultKey(scope, state.groupBy)])) ? state.groupBy : state.shownGroupBy;
 
 /**
  * Loads the 60-month series in the browser, so the server-rendered page carries only the facts.
  * Each grouping is fetched once: a request still in flight when the user switches is kept, not repeated.
  */
-export const OrgPulseSeriesProvider: FC<OrgPulseSeriesProviderProps> = ({ login, children }) => {
+export const PulseSeriesProvider: FC<PulseSeriesProviderProps> = ({ scope, loadSeries, children }) => {
   const [state, dispatch] = useReducer(seriesReducer, initialSeriesState);
-  const toRequest = seriesToRequest(state, login);
+  const toRequest = seriesToRequest(state, scope);
   const { groupBy, results } = state;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `toRequest` names the org and grouping
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `toRequest` names the scope and grouping
   useEffect(() => {
     if (!toRequest) {
       return;
@@ -199,25 +201,25 @@ export const OrgPulseSeriesProvider: FC<OrgPulseSeriesProviderProps> = ({ login,
 
     dispatch({ type: 'requested', key: toRequest });
 
-    graphqlClient(OrgPulseSeriesDocument, { login, groupBy })
-      .then((data): SeriesResult => ({ series: data?.organization?.pulseSeries ?? null }))
+    loadSeries(groupBy)
+      .then((series): SeriesResult => ({ series }))
       .catch((error: unknown): SeriesResult => {
-        console.error('Error loading the org pulse series:', error);
+        console.error('Error loading the pulse series:', error);
         return { error: true };
       })
       .then((result) => dispatch({ type: 'settled', key: toRequest, groupBy, result }));
   }, [toRequest]);
 
-  const value = useMemo<OrgPulseSeriesContextValue>(
+  const value = useMemo<PulseSeriesContextValue>(
     () => ({
       groupBy,
       setGroupBy: (next: OrgActivityGroupBy) => dispatch({ type: 'select', groupBy: next }),
-      lines: linesViewState(results, login, groupBy, shownOf(state, login)),
-      contributors: contributorsViewState(results, login, groupBy),
-      retry: () => dispatch({ type: 'retry', key: resultKey(login, groupBy) }),
+      lines: linesViewState(results, scope, groupBy, shownOf(state, scope)),
+      contributors: contributorsViewState(results, scope, groupBy),
+      retry: () => dispatch({ type: 'retry', key: resultKey(scope, groupBy) }),
     }),
-    [state, groupBy, results, login],
+    [state, groupBy, results, scope],
   );
 
-  return <OrgPulseSeriesContext.Provider value={value}>{children}</OrgPulseSeriesContext.Provider>;
+  return <PulseSeriesContext.Provider value={value}>{children}</PulseSeriesContext.Provider>;
 };

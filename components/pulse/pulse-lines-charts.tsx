@@ -13,22 +13,22 @@ import {
   type MonthRow,
   monthInflow,
   monthSnapshot,
-  type OrgPulseSeriesData,
+  type PulseSeriesData,
   seriesColor,
   snapshotKey,
   toInflowRows,
   toSnapshotRows,
-} from './org-pulse.utils';
-import { ChartFrame, countAxisProps, monthAxisProps, Swatch, TooltipBox } from './org-pulse-chart-parts';
+} from './pulse.utils';
+import { ChartFrame, countAxisProps, monthAxisProps, Swatch, TooltipBox } from './pulse-chart-parts';
 import { cn } from '@/lib/utils';
 
 /** The two lines charts share one tooltip position: hovering a month in one shows it in both. */
-const SYNC_ID = 'org-pulse-lines';
+const SYNC_ID = 'pulse-lines';
 
 type TooltipProps = {
   active?: boolean;
   payload?: Array<{ payload?: MonthRow }>;
-  series: OrgPulseSeriesData;
+  series: PulseSeriesData;
 };
 
 const SnapshotTooltip: FC<TooltipProps> = ({ active, payload, series }) => {
@@ -138,12 +138,12 @@ const InflowTooltip: FC<TooltipProps> = ({ active, payload, series }) => {
 };
 
 type ChartProps = {
-  series: OrgPulseSeriesData;
+  series: PulseSeriesData;
   /** The grouping's name, lowercase, for the figures' labels. */
   grouping: string;
 };
 
-const range = (series: OrgPulseSeriesData) =>
+const range = (series: PulseSeriesData) =>
   `${series.months.length} months from ${formatMonth(series.months[0] ?? '')} to ${formatMonth(series.months.at(-1) ?? '')}`;
 
 export const LinesSnapshotChart: FC<ChartProps> = ({ series, grouping }) => {

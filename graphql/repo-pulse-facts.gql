@@ -1,0 +1,22 @@
+query RepoPulseFacts($owner: String!, $name: String!) {
+  repo(owner: $owner, name: $name) {
+    pulse {
+      lastMonth
+      snapshot {
+        ...PulseLabelLinesFields
+      }
+      last12 {
+        ...PulseTotalsFields
+      }
+      topContributors {
+        ...PulseContributorFields
+      }
+      unlinkedAuthors12
+      countries {
+        ...PulseCountryFields
+      }
+      scopeNote
+      computedAt
+    }
+  }
+}

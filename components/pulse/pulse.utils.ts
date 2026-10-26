@@ -3,15 +3,28 @@ import {
   OrgPulseContributorSort,
   OrgPulseCountryGroup,
   OrgPulsePeriod,
-  type OrgPulseSeriesQuery,
-  type PageOrgQuery,
+  type PulseContributorFieldsFragment,
+  type PulseCountryFieldsFragment,
+  type PulseLabelLinesFieldsFragment,
+  type PulseSeriesFieldsFragment,
+  type PulseTotalsFieldsFragment,
 } from '@/types/generated/graphql';
 
-export type OrgPulseSeriesData = NonNullable<NonNullable<OrgPulseSeriesQuery['organization']>['pulseSeries']>;
-export type OrgPulseFactsData = NonNullable<NonNullable<PageOrgQuery['organization']>['pulse']>;
-export type OrgPulseContributorRow = OrgPulseFactsData['topContributors'][number];
-export type OrgPulseCountryRow = OrgPulseFactsData['countries'][number];
-export type OrgPulseSharedOrgRow = OrgPulseFactsData['sharedContributorOrgs'][number];
+export type PulseSeriesData = PulseSeriesFieldsFragment;
+export type PulseContributorRow = PulseContributorFieldsFragment;
+export type PulseCountryRow = PulseCountryFieldsFragment;
+
+/** The facts an organization and a repository share. */
+export type PulseFactsData = {
+  lastMonth: string;
+  snapshot: PulseLabelLinesFieldsFragment[];
+  last12: PulseTotalsFieldsFragment;
+  topContributors: PulseContributorRow[];
+  unlinkedAuthors12: number;
+  countries: PulseCountryRow[];
+  scopeNote: string;
+  computedAt: unknown;
+};
 
 export const GROUP_BY_OPTIONS: { value: OrgActivityGroupBy; label: string }[] = [
   { value: OrgActivityGroupBy.Type, label: 'Type' },
@@ -46,9 +59,6 @@ export const UNKNOWN_SERIES_LABEL = 'Other / unknown';
  */
 export const LARGE_CHANGE_SHARE = 0.2;
 
-/** The contributor table's page size; the API holds at most 100 rows a period and sort. */
-export const CONTRIBUTORS_PAGE_SIZE = 25;
-
 const SERIES_COLORS = Array.from({ length: 8 }, (_, i) => `var(--series-${i + 1})`);
 
 /**
@@ -79,7 +89,7 @@ const cell = (matrix: number[][], label: number, month: number) => matrix[label]
 export type MonthRow = { index: number; month: string } & Record<string, number | string | null>;
 
 /** One row per month with each label's month-end lines. */
-export function toSnapshotRows(series: OrgPulseSeriesData): MonthRow[] {
+export function toSnapshotRows(series: PulseSeriesData): MonthRow[] {
   return series.months.map((month, m) => {
     const row: MonthRow = { index: m, month };
     series.labels.forEach((_, l) => {
@@ -90,7 +100,7 @@ export function toSnapshotRows(series: OrgPulseSeriesData): MonthRow[] {
 }
 
 /** One row per month: each label's lines added (positive, above the axis) and deleted (negative, below it). */
-export function toInflowRows(series: OrgPulseSeriesData): MonthRow[] {
+export function toInflowRows(series: PulseSeriesData): MonthRow[] {
   return series.months.map((month, m) => {
     const row: MonthRow = { index: m, month };
     series.labels.forEach((_, l) => {
@@ -104,7 +114,7 @@ export function toInflowRows(series: OrgPulseSeriesData): MonthRow[] {
 
 /** One row per month: active contributors (linked accounts, unlinked authors) and first-time ones (null before month 13). */
 export function toContributorRows(
-  series: OrgPulseSeriesData,
+  series: PulseSeriesData,
 ): { index: number; month: string; linked: number; anonymous: number; newContributors: number | null }[] {
   return series.months.map((month, m) => ({
     index: m,
@@ -118,7 +128,7 @@ export function toContributorRows(
 export type MonthLabelSnapshot = { label: string; index: number; lines: number };
 
 /** A month's month-end lines per label, top band first (the API lists the largest first, stacked at the bottom). */
-export function monthSnapshot(series: OrgPulseSeriesData, m: number): { labels: MonthLabelSnapshot[]; total: number } {
+export function monthSnapshot(series: PulseSeriesData, m: number): { labels: MonthLabelSnapshot[]; total: number } {
   const labels = series.labels.map((label, l) => ({ label, index: l, lines: cell(series.snapshot, l, m) })).reverse();
   return { labels, total: labels.reduce((sum, { lines }) => sum + lines, 0) };
 }
@@ -139,7 +149,7 @@ export type MonthInflow = {
 };
 
 /** What the inflow tooltip lists for a month: per label (top band first) and the month's totals. */
-export function monthInflow(series: OrgPulseSeriesData, m: number): MonthInflow {
+export function monthInflow(series: PulseSeriesData, m: number): MonthInflow {
   const labels = series.labels
     .map((label, l) => {
       const added = cell(series.added, l, m);
@@ -164,8 +174,8 @@ export function monthInflow(series: OrgPulseSeriesData, m: number): MonthInflow 
   };
 }
 
-/** Whether the series has any line to draw: an org can have months but no counted lines in one grouping. */
-export function hasLines(series: OrgPulseSeriesData | null | undefined): series is OrgPulseSeriesData {
+/** Whether the series has any line to draw: there can be months but no counted lines in one grouping. */
+export function hasLines(series: PulseSeriesData | null | undefined): series is PulseSeriesData {
   if (!series?.months.length) {
     return false;
   }
@@ -261,7 +271,7 @@ export function avatarSrc(url: string, size: number): string {
 }
 
 /** A countries row's name: the country, or what the group counts. */
-export function countryRowLabel(row: Pick<OrgPulseCountryRow, 'group' | 'country'>): string {
+export function countryRowLabel(row: Pick<PulseCountryRow, 'group' | 'country'>): string {
   switch (row.group) {
     case OrgPulseCountryGroup.NoLocation:
       return 'No location on gitranks';

@@ -1,0 +1,60 @@
+fragment PulseSeriesFields on OrgPulseSeries {
+  months
+  labels
+  snapshot
+  added
+  deleted
+  largestChange
+  largestChangeShare
+  crossLines
+  commits
+  pullRequests
+  activeLinked
+  activeAnonymous
+  newContributors
+}
+
+fragment PulseContributorFields on OrgPulseContributor {
+  githubId
+  login
+  hasProfile
+  avatarUrl
+  linesAdded
+  linesDeleted
+  commits
+  pullRequests
+  activeMonths
+  topLabels
+}
+
+fragment PulseContributorPageFields on OrgPulseContributorPage {
+  total
+  unlinkedAuthors
+  labels
+  items {
+    ...PulseContributorFields
+  }
+}
+
+fragment PulseLabelLinesFields on OrgPulseLabelLines {
+  label
+  lines
+  share
+}
+
+fragment PulseTotalsFields on OrgPulseTotals {
+  added
+  deleted
+  net
+  commits
+  pullRequests
+  activeContributors
+  newContributors
+}
+
+fragment PulseCountryFields on OrgPulseCountry {
+  group
+  country
+  flag
+  contributors
+}

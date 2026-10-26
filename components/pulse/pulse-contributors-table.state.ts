@@ -1,7 +1,7 @@
-import { CONTRIBUTORS_PAGE_SIZE, type OrgPulseContributorRow } from './org-pulse.utils';
+import type { PulseContributorRow } from './pulse.utils';
+import { CONTRIBUTORS_PAGE_SIZE } from '@/app/app.consts';
 import { OrgPulseContributorSort, OrgPulsePeriod } from '@/types/generated/graphql';
-
-export type ContributorsQuery = { period: OrgPulsePeriod; sortBy: OrgPulseContributorSort; label: string | null };
+import type { ContributorsQuery } from '@/types/pulse.types';
 
 export const DEFAULT_QUERY: ContributorsQuery = {
   period: OrgPulsePeriod.Last_12Months,
@@ -16,12 +16,19 @@ export type ContributorsPage = {
   total: number;
   unlinkedAuthors: number;
   labels: string[];
-  items: OrgPulseContributorRow[];
+  items: PulseContributorRow[];
 };
+
+/** Loads one page of the table: `null` when there is no data. */
+export type LoadContributorsPage = (
+  query: ContributorsQuery,
+  offset: number,
+  first: number,
+) => Promise<ContributorsPage | null>;
 
 export type ContributorsTableState = {
   query: ContributorsQuery;
-  items: OrgPulseContributorRow[];
+  items: PulseContributorRow[];
   /**
    * Whether the rows came from the API in this browser. The server-rendered rows come from facts
    * cached for hours: a live page appended to them could repeat or skip a row, so the first page
@@ -58,7 +65,7 @@ export type ContributorsTableEvent =
   | { type: 'labelsLoaded'; period: OrgPulsePeriod; labels: string[] }
   | { type: 'labelsFailed'; period: OrgPulsePeriod };
 
-export function initialTableState(items: OrgPulseContributorRow[], unlinkedAuthors: number): ContributorsTableState {
+export function initialTableState(items: PulseContributorRow[], unlinkedAuthors: number): ContributorsTableState {
   return {
     query: DEFAULT_QUERY,
     items,
@@ -90,9 +97,9 @@ export function canShowMore(state: ContributorsTableState): boolean {
 }
 
 /** Rows keyed by account: a page that overlaps the loaded rows adds only the new ones. */
-const rowKey = (row: OrgPulseContributorRow) => row.githubId ?? row.login;
+const rowKey = (row: PulseContributorRow) => row.githubId ?? row.login;
 
-function appendRows(rows: OrgPulseContributorRow[], next: OrgPulseContributorRow[]) {
+function appendRows(rows: PulseContributorRow[], next: PulseContributorRow[]) {
   const seen = new Set(rows.map(rowKey));
   return [...rows, ...next.filter((row) => !seen.has(rowKey(row)))];
 }

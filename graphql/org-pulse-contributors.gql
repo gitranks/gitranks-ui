@@ -8,21 +8,7 @@ query OrgPulseContributors(
 ) {
   organization(login: $login) {
     pulseContributors(period: $period, sortBy: $sortBy, label: $label, first: $first, offset: $offset) {
-      total
-      unlinkedAuthors
-      labels
-      items {
-        githubId
-        login
-        hasProfile
-        avatarUrl
-        linesAdded
-        linesDeleted
-        commits
-        pullRequests
-        activeMonths
-        topLabels
-      }
+      ...PulseContributorPageFields
     }
   }
 }

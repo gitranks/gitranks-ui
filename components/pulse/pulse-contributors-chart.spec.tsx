@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { ContributorsChartView } from './org-pulse-contributors-chart';
+import { ContributorsChartView } from './pulse-contributors-chart';
 
 describe('ContributorsChartView', () => {
   it('says so when there is no monthly data, instead of leaving the heading alone', () => {

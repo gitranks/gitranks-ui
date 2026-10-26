@@ -30,37 +30,17 @@ query PageOrg($login: String!) {
     pulse {
       lastMonth
       snapshot {
-        label
-        lines
-        share
+        ...PulseLabelLinesFields
       }
       last12 {
-        added
-        deleted
-        net
-        commits
-        pullRequests
-        activeContributors
-        newContributors
+        ...PulseTotalsFields
       }
       topContributors {
-        githubId
-        login
-        hasProfile
-        avatarUrl
-        linesAdded
-        linesDeleted
-        commits
-        pullRequests
-        activeMonths
-        topLabels
+        ...PulseContributorFields
       }
       unlinkedAuthors12
       countries {
-        group
-        country
-        flag
-        contributors
+        ...PulseCountryFields
       }
       sharedContributorOrgs {
         login

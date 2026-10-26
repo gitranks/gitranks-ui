@@ -1,32 +1,23 @@
-'use client';
-
 import NextLink from 'next/link';
 import { type FC, useEffect, useId, useReducer } from 'react';
 
+import { avatarSrc, formatCount, PERIOD_OPTIONS, type PulseContributorRow, plural, SORT_OPTIONS } from './pulse.utils';
 import {
-  avatarSrc,
-  formatCount,
-  type OrgPulseContributorRow,
-  PERIOD_OPTIONS,
-  plural,
-  SORT_OPTIONS,
-} from './org-pulse.utils';
-import {
-  type ContributorsQuery,
   type ContributorsTableState,
   canShowMore,
   contributorsTableReducer,
   currentLabels,
   initialTableState,
+  type LoadContributorsPage,
   tableStatus,
-} from './org-pulse-contributors-table.state';
+} from './pulse-contributors-table.state';
 import { useHydrated } from './use-hydrated';
 import { ButtonGroup, ButtonGroupItem } from '@/components/button-group/button-group';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { graphqlClient } from '@/lib/graphql/graphql-client';
 import { cn } from '@/lib/utils';
-import { OrgPulseContributorSort, OrgPulseContributorsDocument, type OrgPulsePeriod } from '@/types/generated/graphql';
+import { OrgPulseContributorSort, type OrgPulsePeriod } from '@/types/generated/graphql';
+import type { ContributorsQuery } from '@/types/pulse.types';
 
 const ALL_LABELS = '__all';
 const AVATAR_SIZE = 24;
@@ -48,7 +39,7 @@ const sortLong = (sortBy: OrgPulseContributorSort) =>
 
 /**
  * Cell styles live on the table, not on each cell: the first rows are server-rendered on every
- * covered org's page, so per-cell class lists would repeat in its HTML.
+ * covered page, so per-cell class lists would repeat in its HTML.
  */
 const TABLE_CLASSNAME = cn(
   'w-full text-sm',
@@ -61,7 +52,7 @@ const TABLE_CLASSNAME = cn(
 );
 
 /** The contributor's name: their gitranks profile when gitranks holds it, else their GitHub page (not followed). */
-const ContributorName: FC<{ row: OrgPulseContributorRow }> = ({ row }) => {
+const ContributorName: FC<{ row: PulseContributorRow }> = ({ row }) => {
   const content = (
     <>
       <img
@@ -278,32 +269,23 @@ export const ContributorsTableView: FC<ContributorsTableViewProps> = ({
   );
 };
 
-type OrgPulseContributorsTableProps = {
-  login: string;
+type PulseContributorsTableProps = {
   /** The server-rendered first rows: last 12 months by lines. */
-  initialItems: OrgPulseContributorRow[];
+  initialItems: PulseContributorRow[];
   initialUnlinkedAuthors: number;
+  /** Must keep its identity across renders: a new one loads the pending page again. */
+  loadPage: LoadContributorsPage;
 };
-
-const fetchPage = (login: string, query: ContributorsQuery, offset: number, first: number) =>
-  graphqlClient(OrgPulseContributorsDocument, {
-    login,
-    period: query.period,
-    sortBy: query.sortBy,
-    label: query.label,
-    first,
-    offset,
-  }).then((response) => response?.organization?.pulseContributors ?? null);
 
 /**
  * Starts from the server-rendered rows and loads nothing until asked: a control or "Show more"
  * loads a page, and opening the Language select loads its labels. The paging is
  * `contributorsTableReducer`; this runs the requests it asks for.
  */
-export const OrgPulseContributorsTable: FC<OrgPulseContributorsTableProps> = ({
-  login,
+export const PulseContributorsTable: FC<PulseContributorsTableProps> = ({
   initialItems,
   initialUnlinkedAuthors,
+  loadPage,
 }) => {
   const [state, dispatch] = useReducer(contributorsTableReducer, undefined, () =>
     initialTableState(initialItems, initialUnlinkedAuthors),
@@ -317,7 +299,7 @@ export const OrgPulseContributorsTable: FC<OrgPulseContributorsTableProps> = ({
       return;
     }
 
-    fetchPage(login, pending.query, pending.offset, pending.first)
+    loadPage(pending.query, pending.offset, pending.first)
       .then((page) =>
         dispatch({
           type: 'loaded',
@@ -326,10 +308,10 @@ export const OrgPulseContributorsTable: FC<OrgPulseContributorsTableProps> = ({
         }),
       )
       .catch((error: unknown) => {
-        console.error('Error loading the org contributors:', error);
+        console.error('Error loading the contributors:', error);
         dispatch({ type: 'failed', id: pending.id });
       });
-  }, [login, pending]);
+  }, [loadPage, pending]);
 
   // The labels alone: a page of no rows. A failure shows only in the select.
   // biome-ignore lint/correctness/useExhaustiveDependencies: one request per labels load
@@ -338,10 +320,10 @@ export const OrgPulseContributorsTable: FC<OrgPulseContributorsTableProps> = ({
       return;
     }
 
-    fetchPage(login, { ...state.query, label: null }, 0, 0)
+    loadPage({ ...state.query, label: null }, 0, 0)
       .then((page) => dispatch({ type: 'labelsLoaded', period, labels: page?.labels ?? [] }))
       .catch(() => dispatch({ type: 'labelsFailed', period }));
-  }, [login, labelsStatus, period]);
+  }, [loadPage, labelsStatus, period]);
 
   return (
     <ContributorsTableView

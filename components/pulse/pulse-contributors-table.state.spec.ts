@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { OrgPulseContributorRow } from './org-pulse.utils';
+import type { PulseContributorRow } from './pulse.utils';
 import {
   type ContributorsPage,
   type ContributorsTableState,
@@ -10,10 +10,10 @@ import {
   initialTableState,
   contributorsTableReducer as reduce,
   tableStatus,
-} from './org-pulse-contributors-table.state';
+} from './pulse-contributors-table.state';
 import { OrgPulseContributorSort, OrgPulsePeriod } from '@/types/generated/graphql';
 
-const row = (i: number): OrgPulseContributorRow => ({
+const row = (i: number): PulseContributorRow => ({
   githubId: String(i),
   login: `dev-${i}`,
   hasProfile: true,
@@ -26,7 +26,7 @@ const row = (i: number): OrgPulseContributorRow => ({
   topLabels: [],
 });
 const rows = (from: number, count: number) => Array.from({ length: count }, (_, i) => row(from + i));
-const page = (items: OrgPulseContributorRow[], total = 100, labels = ['Rust']): ContributorsPage => ({
+const page = (items: PulseContributorRow[], total = 100, labels = ['Rust']): ContributorsPage => ({
   total,
   unlinkedAuthors: 3,
   labels,

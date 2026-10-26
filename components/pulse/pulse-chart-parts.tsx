@@ -3,14 +3,14 @@
 import type { FC, ReactElement, ReactNode } from 'react';
 import { ResponsiveContainer } from 'recharts';
 
-import { formatAxisCount, formatMonthTick, monthTicks, seriesColor } from './org-pulse.utils';
+import { formatAxisCount, formatMonthTick, monthTicks, seriesColor } from './pulse.utils';
 import { cn } from '@/lib/utils';
 
 export const CHART_HEIGHT = 240;
 
 const AXIS_TICK = { fontSize: 11, fill: 'var(--muted-foreground)' };
 
-/** The month axis every Org Pulse chart shares: one category per month, ticks on Januaries (or quarters). */
+/** The month axis every pulse chart shares: one category per month, ticks on Januaries (or quarters). */
 export const monthAxisProps = (months: string[]) =>
   ({
     dataKey: 'month',

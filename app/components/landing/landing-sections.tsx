@@ -103,7 +103,7 @@ export const LeaderboardSection: FC<{ boards: Leaderboard[] }> = ({ boards }) =>
   <LandingSection
     id="leaderboard"
     eyebrow="Rankings"
-    title="Global leaderboard"
+    title="Developer leaderboard"
     intro={`The top ${LEADERBOARD_ROWS} developers worldwide in each ranking, with their change since last month.`}
     action={
       <Link href="/methodology" prefetch={false} className="text-link underline">

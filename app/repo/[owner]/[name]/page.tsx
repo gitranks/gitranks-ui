@@ -4,16 +4,18 @@ import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 import { notFound, permanentRedirect } from 'next/navigation';
 
-import { RepoHeader } from './components/repo-header';
+import { RepoLayout } from './components/repo-layout';
 import { RepoPulseArea } from './components/repo-pulse-area';
 import { RepoRankCard } from './components/repo-rank-card';
 import { StarHistoryBadgeSection } from './components/star-history-badge-section';
 import { StarHistorySection } from './components/star-history-section';
-import { buildRepoMetadata, isRepoRanked } from './seo';
+import { buildRepoSEO, isRepoRanked } from './seo';
+import { buildRepoSummary } from './utils/repo-summary';
 import { REPO_MIN_RANK_STARS } from '@/app/app.consts';
-import { ProfileCardsGrid } from '@/app/profile/[login]/components/profile-card';
+import { ProfileCard, ProfileCardsGrid } from '@/app/profile/[login]/components/profile-card';
+import { ProfileSummary } from '@/app/profile/[login]/components/profile-summary';
 import { Header } from '@/components/header/header';
-import { Page } from '@/components/page/page';
+import { JsonLd } from '@/components/json-ld/json-ld';
 import { fetchRepo } from '@/graphql/helpers/fetch-repo';
 import { fetchRepoLanguages } from '@/graphql/helpers/fetch-repo-languages';
 import { fetchRepoPulseFacts } from '@/graphql/helpers/fetch-repo-pulse';
@@ -43,7 +45,7 @@ export async function generateMetadata({ params }: PageProps<'/repo/[owner]/[nam
     return {};
   }
 
-  return buildRepoMetadata(repo);
+  return buildRepoSEO(repo).metadata;
 }
 
 export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[name]'>) {
@@ -85,44 +87,56 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
   const languages = rank ? await fetchRepoLanguages() : [];
   const rankedCount = languages.reduce((sum, { repos }) => sum + repos, 0);
   const languageCount = languages.find((l) => l.language === (rank?.language ?? null))?.repos;
+  const summary = buildRepoSummary({
+    ...repo,
+    rank,
+    rankedCount: rankedCount || undefined,
+    languageCount,
+    updatedAt: repo.history?.readAt,
+  });
 
   return (
     <>
       <Header />
-      <Page className="max-w-5xl w-full gap-6">
-        <RepoHeader repo={repo} languageUrl={rank?.language ? getRepoLanguageRankingPath(rank.language) : undefined} />
-        {rank ? (
-          <ProfileCardsGrid>
-            {!!rank.s && (
-              <RepoRankCard
-                title="Global Rank"
-                rank={rank.s}
-                rankM={rank.sM}
-                rankingLink={getRepoRankingPath(getRankingPageOf(rank.s))}
-                rankedCount={rankedCount || undefined}
-              />
-            )}
-            {!!rank.l && (
-              <RepoRankCard
-                title={rank.language ? `${rank.language} Rank` : 'Rank Without a Language'}
-                rank={rank.l}
-                rankM={rank.lM}
-                rankingLink={getRepoLanguageRankingPath(rank.language, getRankingPageOf(rank.l))}
-                rankedCount={languageCount}
-              />
-            )}
-          </ProfileCardsGrid>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            {repo.stars >= REPO_MIN_RANK_STARS
-              ? 'Not ranked yet: the repository joins the rankings at their next update.'
-              : `Repositories are ranked from ${REPO_MIN_RANK_STARS} stars.`}
-          </p>
-        )}
+      <RepoLayout repo={repo} languageUrl={rank?.language ? getRepoLanguageRankingPath(rank.language) : undefined}>
+        <JsonLd payloads={buildRepoSEO(repo).jsonLd} />
+        <div className="flex flex-col gap-4">
+          {rank ? (
+            <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))]">
+              {!!rank.s && (
+                <RepoRankCard
+                  title="Global rank"
+                  rank={rank.s}
+                  rankM={rank.sM}
+                  rankingLink={getRepoRankingPath(getRankingPageOf(rank.s))}
+                  rankedCount={rankedCount || undefined}
+                />
+              )}
+              {!!rank.l && (
+                <RepoRankCard
+                  title={rank.language ? `${rank.language} rank` : 'Rank without a language'}
+                  rank={rank.l}
+                  rankM={rank.lM}
+                  rankingLink={getRepoLanguageRankingPath(rank.language, getRankingPageOf(rank.l))}
+                  rankedCount={languageCount}
+                />
+              )}
+            </ProfileCardsGrid>
+          ) : (
+            <ProfileCard>
+              <p className="text-sm text-muted-foreground">
+                {repo.stars >= REPO_MIN_RANK_STARS
+                  ? 'Not ranked yet: the repository joins the rankings at their next update.'
+                  : `Repositories are ranked from ${REPO_MIN_RANK_STARS} stars.`}
+              </p>
+            </ProfileCard>
+          )}
+          <ProfileSummary parts={summary} />
+        </div>
         <StarHistorySection repo={repo} />
         {!!repo.history && <StarHistoryBadgeSection owner={repo.owner} name={repo.name} />}
         <RepoPulseArea repo={repo} pulse={pulse} />
-      </Page>
+      </RepoLayout>
     </>
   );
 }

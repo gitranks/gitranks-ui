@@ -43,6 +43,14 @@
   --tier-5: oklch(0.491 0.27 292.581);
   --tier-6: oklch(0.514 0.222 16.935);
   --tier-7: oklch(0.555 0.163 48.998);
+  /* Tier text on a 15% fill of its own colour, 4.8:1 or more (12px chips); the same as the tier colour in dark. */
+  --tier-1-strong: oklch(0.442 0.017 285.786);
+  --tier-2-strong: oklch(0.482 0.154 150.069);
+  --tier-3-strong: oklch(0.486 0.096 186.391);
+  --tier-4-strong: oklch(0.488 0.243 264.376);
+  --tier-5-strong: oklch(0.491 0.27 292.581);
+  --tier-6-strong: oklch(0.499 0.222 16.935);
+  --tier-7-strong: oklch(0.515 0.163 48.998);
   /* Data series */
   /* Categorical series for multi-series charts, in this fixed order (adjacent pairs stay apart under
      colour-vision deficiency), then two neutrals: "Other" (the labels past the top ones) and "Other / unknown"
@@ -110,6 +118,13 @@
   --tier-5: oklch(0.702 0.183 293.541);
   --tier-6: oklch(0.712 0.194 13.428);
   --tier-7: oklch(0.828 0.189 84.429);
+  --tier-1-strong: var(--tier-1);
+  --tier-2-strong: var(--tier-2);
+  --tier-3-strong: var(--tier-3);
+  --tier-4-strong: var(--tier-4);
+  --tier-5-strong: var(--tier-5);
+  --tier-6-strong: var(--tier-6);
+  --tier-7-strong: var(--tier-7);
   /* Data series */
   /* Categorical series for multi-series charts, in this fixed order (adjacent pairs stay apart under
      colour-vision deficiency), then two neutrals: "Other" (the labels past the top ones) and "Other / unknown"
@@ -173,6 +188,13 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
+  --color-tier-1-strong: var(--tier-1-strong);
+  --color-tier-2-strong: var(--tier-2-strong);
+  --color-tier-3-strong: var(--tier-3-strong);
+  --color-tier-4-strong: var(--tier-4-strong);
+  --color-tier-5-strong: var(--tier-5-strong);
+  --color-tier-6-strong: var(--tier-6-strong);
+  --color-tier-7-strong: var(--tier-7-strong);
   --color-tier-1: var(--tier-1);
   --color-tier-2: var(--tier-2);
   --color-tier-3: var(--tier-3);

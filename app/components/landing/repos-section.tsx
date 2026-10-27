@@ -5,6 +5,7 @@ import type { FC } from 'react';
 import { formatFull, GithubAvatar, LandingSection } from './landing-ui';
 import { ALL_REPOS_LINK, REPO_LANGUAGES_LINK } from '@/app/repos/components/repo-ranking-header';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { RepoTierAvatarBadge } from '@/components/repo-tier-chip/repo-tier-chip';
 import { cn } from '@/lib/utils';
 import type { RepoRankingsQuery } from '@/types/generated/graphql';
 import { getRepoPath } from '@/utils/repo-paths';
@@ -32,7 +33,7 @@ const Gained: FC<{ value?: number | null }> = ({ value }) =>
     </span>
   ) : null;
 
-const RepoName: FC<{ repo: RankedRepo['repo']; size: number }> = ({ repo, size }) => (
+const RepoName: FC<{ repo: RankedRepo['repo']; size: number; tier?: RankedRepo['tier'] }> = ({ repo, size, tier }) => (
   <Link
     href={getRepoPath(repo.nameWithOwner)}
     prefetch={false}
@@ -40,7 +41,10 @@ const RepoName: FC<{ repo: RankedRepo['repo']; size: number }> = ({ repo, size }
     title={repo.nameWithOwner}
     className="flex min-w-0 items-center gap-2 font-medium hover:underline"
   >
-    <GithubAvatar url={repo.ownerAvatarUrl} size={size} className="rounded-md" />
+    <span className="relative shrink-0">
+      <GithubAvatar url={repo.ownerAvatarUrl} size={size} className="rounded-md" />
+      {!!tier && <RepoTierAvatarBadge tier={tier} size="sm" />}
+    </span>
     <span className="truncate" translate="no">
       {repo.nameWithOwner}
     </span>
@@ -114,7 +118,7 @@ export const ReposSection: FC<{ rows: RepoRow[] }> = ({ rows }) => {
                     {row.s} <RankDelta current={row.s} previous={row.sM} className="ml-1 font-mono" />
                   </td>
                   <td className="max-w-0 px-2 py-2.5">
-                    <RepoName repo={row.repo} size={24} />
+                    <RepoName repo={row.repo} size={24} tier={row.tier} />
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono tabular-nums">{formatFull(row.repo.stars)}</td>
                   <td className="hidden px-4 py-2.5 text-right font-mono tabular-nums sm:table-cell">
@@ -137,7 +141,7 @@ export const ReposSection: FC<{ rows: RepoRow[] }> = ({ rows }) => {
                 <li key={row.githubId} className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-3">
                     <span className="w-8 shrink-0 font-mono text-xs text-muted-foreground tabular-nums">#{row.s}</span>
-                    <RepoName repo={row.repo} size={20} />
+                    <RepoName repo={row.repo} size={20} tier={row.tier} />
                     <span className="ml-auto shrink-0 font-mono tabular-nums">
                       <Gained value={row.repo.gainedThisMonth} />
                     </span>

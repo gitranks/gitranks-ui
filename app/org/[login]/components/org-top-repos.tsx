@@ -3,6 +3,10 @@ import type { FC } from 'react';
 
 import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '@/app/profile/[login]/components/profile-card';
 import { Link } from '@/components/link/link';
+import { repoTierLabel } from '@/components/repo-tier-chip/repo-tier-chip';
+import { RepoTierIcon } from '@/components/repo-tier-icon/repo-tier-icon';
+import { tierTextClass } from '@/components/tier-chip/tier-chip';
+import { cn } from '@/lib/utils';
 import type { PageOrgQuery } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
 import { getRepoPath } from '@/utils/repo-paths';
@@ -35,9 +39,25 @@ export const OrgTopRepos: FC<OrgTopReposProps> = ({ repos }) => {
               </div>
               <div className="flex shrink-0 items-center gap-3">
                 {!!repo.rank?.s && (
-                  <span className="flex items-center gap-1" title="Global repository rank">
-                    <Medal className="size-4 text-muted-foreground" aria-hidden />
-                    <span className="sr-only">Global repository rank:</span>
+                  <span
+                    className="flex items-center gap-1"
+                    title={
+                      repo.rank.tier
+                        ? `${repoTierLabel(repo.rank.tier)} · global repository rank`
+                        : 'Global repository rank'
+                    }
+                  >
+                    {repo.rank.tier ? (
+                      <RepoTierIcon
+                        tier={repo.rank.tier.tier}
+                        className={cn('size-4', tierTextClass(repo.rank.tier.tier))}
+                      />
+                    ) : (
+                      <Medal className="size-4 text-muted-foreground" aria-hidden />
+                    )}
+                    <span className="sr-only">
+                      {repo.rank.tier ? `${repoTierLabel(repo.rank.tier)}, ` : ''}Global repository rank:
+                    </span>
                     <span className="font-mono tabular-nums">#{repo.rank.s.toLocaleString('en-US')}</span>
                   </span>
                 )}

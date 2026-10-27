@@ -1,0 +1,12 @@
+query RepoRankTiers($language: String, $noLanguage: Boolean) {
+  repoRankTiers(language: $language, noLanguage: $noLanguage) {
+    repos
+    tiers {
+      tier
+      level
+      minRank
+      maxRank
+      minValue
+    }
+  }
+}

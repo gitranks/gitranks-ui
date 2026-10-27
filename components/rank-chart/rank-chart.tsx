@@ -35,7 +35,13 @@ const PIE_DATA = TIER_NAMES?.reduce<ChartItemType[]>((acc, _, index) => {
   ];
 }, []);
 
-export function RankChart({ progress, colors = DEFAULT_COLORS, debug = false }: RankChartProps) {
+export function RankChart({
+  progress,
+  colors = DEFAULT_COLORS,
+  labels = TIER_NAMES,
+  children,
+  debug = false,
+}: RankChartProps) {
   const isActive = useCallback(
     (item: ChartItemType) => {
       if (item.isGap || !progress) {
@@ -151,7 +157,7 @@ export function RankChart({ progress, colors = DEFAULT_COLORS, debug = false }: 
           })}
         </defs>
 
-        {TIER_NAMES.map((txt, i) => (
+        {labels.map((txt, i) => (
           <text
             key={i}
             fontSize={FONT_SIZE}
@@ -165,6 +171,9 @@ export function RankChart({ progress, colors = DEFAULT_COLORS, debug = false }: 
           </text>
         ))}
       </svg>
+      {children && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">{children}</div>
+      )}
     </div>
   );
 }

@@ -5,6 +5,14 @@ query RepoRankings($offset: Int, $language: String, $noLanguage: Boolean) {
     sM
     l
     lM
+    tier {
+      tier
+      level
+    }
+    languageTier {
+      tier
+      level
+    }
     repo {
       ...RepoRowFields
     }

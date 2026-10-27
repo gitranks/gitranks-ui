@@ -28,6 +28,9 @@ const TIER_CHIP_CLASSES = [
   'bg-tier-7/15 text-tier-7',
 ];
 
+/** The tier's chip classes: text in the tier colour on a 15% fill of it. */
+export const tierChipClass = (tier: number) => TIER_CHIP_CLASSES[tier - 1];
+
 /** The tier's text colour class, for a tier name written in it. */
 export const tierTextClass = (tier?: number | null) => (tier ? TIER_TEXT_CLASSES[tier - 1] : undefined);
 

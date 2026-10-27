@@ -325,6 +325,7 @@ type Query {
   rankTiersByName(name: String!): RankTier
   repo(name: String!, owner: String!): Repo
   repoLanguages: [RepoLanguageSummary!]!
+  repoRankTiers(language: String, noLanguage: Boolean): RepoRankTiers
   repoRankings(language: String, limit: Int! = 100, noLanguage: Boolean, offset: Int! = 0): [RankRepo!]!
   repoSitemapParts: Int!
   reposForSitemap(part: Int!): [String!]!
@@ -473,10 +474,12 @@ type RankRepo {
   lD: Int
   lM: Int
   language: String
+  languageTier: Tier
   repo: Repo
   s: Int
   sD: Int
   sM: Int
+  tier: Tier
 }
 
 type RankTier {
@@ -557,6 +560,11 @@ type RepoPulseFacts {
   snapshot: [OrgPulseLabelLines!]!
   topContributors: [OrgPulseContributor!]!
   unlinkedAuthors12: Int!
+}
+
+type RepoRankTiers {
+  repos: Int!
+  tiers: [Tier!]!
 }
 
 type RepoStarPoint {

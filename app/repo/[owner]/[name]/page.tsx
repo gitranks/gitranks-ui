@@ -143,7 +143,7 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
                 )}
               </>
             ) : (
-              <ProfileCard>
+              <ProfileCard className="self-start">
                 <p className="text-sm text-muted-foreground">
                   {repo.stars >= REPO_MIN_RANK_STARS
                     ? 'Not ranked yet: the repository joins the rankings at their next update.'
@@ -151,7 +151,12 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
                 </p>
               </ProfileCard>
             )}
-            <WhoBuildsItCard nameWithOwner={repo.nameWithOwner} siblings={repo.siblings} builtBy={repo.builtBy} />
+            <WhoBuildsItCard
+              nameWithOwner={repo.nameWithOwner}
+              stars={repo.stars}
+              siblings={repo.siblings}
+              builtBy={repo.builtBy}
+            />
           </ProfileCardsGrid>
           <ProfileSummary parts={summary} />
         </div>

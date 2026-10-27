@@ -4,7 +4,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { type FC, useState } from 'react';
 
-import { builtByTiersText, MIN_SIBLINGS, shareWords } from '../utils/who-builds-it';
+import {
+  builtByTiersText,
+  MIN_SIBLINGS,
+  percentOf,
+  SHOWN_SIBLINGS,
+  shareWords,
+  WHO_BUILDS_IT_MIN_STARS,
+} from '../utils/who-builds-it';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { tierLabel } from '@/components/tier-chip/tier-chip';
 import { cn } from '@/lib/utils';
@@ -17,6 +24,8 @@ type BuiltBy = NonNullable<Repo['builtBy']>;
 
 type WhoBuildsItCardProps = {
   nameWithOwner: string;
+  /** Repositories of `WHO_BUILDS_IT_MIN_STARS`+ say so while their data is missing; smaller ones show nothing. */
+  stars: number;
   siblings?: Siblings | null;
   builtBy?: BuiltBy | null;
 };
@@ -40,10 +49,10 @@ const SPOTS = [
   { x: 86, y: 82, align: 'items-end' },
 ] as const;
 
-const percent = (share: number) => `${Math.round(share * 100)}%`;
+const percent = percentOf;
 
 const SiblingsGraph: FC<{ nameWithOwner: string; siblings: Siblings }> = ({ nameWithOwner, siblings }) => (
-  <div className="relative hidden h-48 md:block">
+  <div className="relative hidden h-48 @sm:block">
     <svg aria-hidden className="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none">
       {siblings.slice(0, SPOTS.length).map(({ share, repo }, at) => (
         <line
@@ -87,7 +96,7 @@ const SiblingsGraph: FC<{ nameWithOwner: string; siblings: Siblings }> = ({ name
 );
 
 const SiblingsList: FC<{ siblings: Siblings }> = ({ siblings }) => (
-  <ol className="flex flex-col gap-2.5 md:hidden">
+  <ol className="flex flex-col gap-2.5 @sm:hidden">
     {siblings.map(({ share, repo }) => (
       <li key={repo.githubId} className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between gap-2 text-sm">
@@ -151,10 +160,10 @@ const BuiltByView: FC<{ nameWithOwner: string; builtBy: BuiltBy }> = ({ nameWith
           <li key={login ?? at} className="-ml-1.5">
             {login ? (
               <Link href={`/profile/${login}`} prefetch={false} title={`${login} · ${tierLabel({ tier, level })}`}>
-                <Avatar url={avatarUrl} login={login} tier={tier} />
+                <Avatar url={avatarUrl} label={`${login}, ${tierLabel({ tier, level })}`} tier={tier} />
               </Link>
             ) : (
-              <Avatar url={avatarUrl} login="" tier={tier} />
+              <Avatar url={avatarUrl} label={tierLabel({ tier, level })} tier={tier} />
             )}
           </li>
         ))}
@@ -164,17 +173,19 @@ const BuiltByView: FC<{ nameWithOwner: string; builtBy: BuiltBy }> = ({ nameWith
   );
 };
 
-const Avatar: FC<{ url?: string | null; login: string; tier: number }> = ({ url, login, tier }) =>
+const Avatar: FC<{ url?: string | null; label: string; tier: number }> = ({ url, label, tier }) =>
   url ? (
     <Image
       src={`${url}${url.includes('?') ? '&' : '?'}s=64`}
-      alt={login ? `${login} avatar` : ''}
+      alt={label}
       width={32}
       height={32}
       className={cn('size-8 rounded-full ring-2 ring-offset-2 ring-offset-card', TIER_RING[tier - 1])}
     />
   ) : (
     <span
+      role="img"
+      aria-label={label}
       className={cn('block size-8 rounded-full bg-muted ring-2 ring-offset-2 ring-offset-card', TIER_RING[tier - 1])}
     />
   );
@@ -184,21 +195,29 @@ const Avatar: FC<{ url?: string | null; login: string; tier: number }> = ({ url,
  * tiers of the people who built it in the last 12 months (Built by). A toggle when both are there; Built by alone
  * when there are fewer than 3 siblings; nothing when neither is.
  */
-export const WhoBuildsItCard: FC<WhoBuildsItCardProps> = ({ nameWithOwner, siblings, builtBy }) => {
-  const hasSiblings = (siblings?.length ?? 0) >= MIN_SIBLINGS;
+export const WhoBuildsItCard: FC<WhoBuildsItCardProps> = ({ nameWithOwner, stars, siblings, builtBy }) => {
+  const shownSiblings = (siblings ?? []).slice(0, SHOWN_SIBLINGS);
+  const hasSiblings = shownSiblings.length >= MIN_SIBLINGS;
   const hasBuiltBy = !!builtBy?.counts.length;
-  const [view, setView] = useState<'siblings' | 'builtBy'>(hasSiblings ? 'siblings' : 'builtBy');
+  const [picked, setPicked] = useState<'siblings' | 'builtBy'>('siblings');
+  // Derived on every render, so a refreshed page whose data changed never shows an empty card.
+  const view = hasSiblings && (picked === 'siblings' || !hasBuiltBy) ? 'siblings' : 'builtBy';
 
   if (!hasSiblings && !hasBuiltBy) {
-    return null;
+    return stars >= WHO_BUILDS_IT_MIN_STARS ? (
+      <ProfileCard className="gap-2 self-start">
+        <h2 className="text-base font-semibold">Who builds it</h2>
+        <p className="text-sm text-muted-foreground">We haven&apos;t read who builds this repository yet.</p>
+      </ProfileCard>
+    ) : null;
   }
 
   return (
-    <ProfileCard className="gap-3">
+    <ProfileCard className="@container gap-3">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Who builds it</h2>
         {hasSiblings && hasBuiltBy && (
-          <div role="group" aria-label="View" className="inline-flex rounded-md bg-muted p-0.5">
+          <div role="group" aria-label="Who builds it view" className="inline-flex rounded-md bg-muted p-0.5">
             {(
               [
                 ['siblings', 'Siblings'],
@@ -209,7 +228,7 @@ export const WhoBuildsItCard: FC<WhoBuildsItCardProps> = ({ nameWithOwner, sibli
                 key={key}
                 type="button"
                 aria-pressed={view === key}
-                onClick={() => setView(key)}
+                onClick={() => setPicked(key)}
                 className={cn(
                   'h-7 rounded-sm px-3 text-sm font-semibold',
                   view === key ? 'bg-card shadow-sm' : 'text-muted-foreground',
@@ -221,10 +240,10 @@ export const WhoBuildsItCard: FC<WhoBuildsItCardProps> = ({ nameWithOwner, sibli
           </div>
         )}
       </div>
-      {view === 'siblings' && hasSiblings ? (
-        <SiblingsView nameWithOwner={nameWithOwner} siblings={siblings!} />
+      {view === 'siblings' ? (
+        <SiblingsView nameWithOwner={nameWithOwner} siblings={shownSiblings} />
       ) : (
-        hasBuiltBy && <BuiltByView nameWithOwner={nameWithOwner} builtBy={builtBy!} />
+        <BuiltByView nameWithOwner={nameWithOwner} builtBy={builtBy!} />
       )}
     </ProfileCard>
   );

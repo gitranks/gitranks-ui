@@ -8,6 +8,7 @@ describe('shareWords', () => {
     expect(shareWords(0.33)).toBe('A third');
     expect(shareWords(0.25)).toBe('A quarter');
     expect(shareWords(0.41)).toBe('41%');
+    expect(shareWords(0.003)).toBe('<1%');
   });
 });
 

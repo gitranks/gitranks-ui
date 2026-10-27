@@ -10,7 +10,6 @@ import {
   TrendingUp,
   UserRound,
 } from 'lucide-react';
-import type { Route } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
@@ -26,6 +25,7 @@ import {
 } from '@/app/profile/[login]/components/profile-page-backbone';
 import { Button } from '@/components/ui/button';
 import type { PageRepoQuery } from '@/types/generated/graphql';
+import { getRepoOwnerPath } from '@/utils/repo-paths';
 
 type RepoLayoutProps = {
   repo: NonNullable<PageRepoQuery['repo']>;
@@ -36,23 +36,13 @@ type RepoLayoutProps = {
 
 const AVATAR_SIZE = 96;
 
-/** The owner's page here: an organization's or a user's; unknown when the API does not say which it is. */
-const ownerPathOf = (owner: string, isInOrganization?: boolean | null): Route | undefined => {
-  if (isInOrganization === true) {
-    return `/org/${owner}` as Route;
-  }
-  if (isInOrganization === false) {
-    return `/profile/${owner}` as Route;
-  }
-};
-
 const mono = (value: number) => <span className="font-mono tabular-nums">{value.toLocaleString('en-US')}</span>;
 
 /** The repository page's frame, like a profile's: the repository on the left, its numbers on the right. */
 export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children }) => {
   const { owner, name, nameWithOwner, ownerAvatarUrl, description, language, stars, gainedThisMonth, createdAt } = repo;
   const readAt = repo.history?.readAt;
-  const ownerPath = ownerPathOf(owner, repo.isInOrganization);
+  const ownerPath = getRepoOwnerPath(owner, repo.isInOrganization);
   const avatar = !!ownerAvatarUrl && (
     <Image
       src={`${ownerAvatarUrl}&s=${AVATAR_SIZE * 2}`}

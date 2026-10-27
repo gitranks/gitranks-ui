@@ -11,7 +11,9 @@ export function shareWords(share: number): string {
   return `${Math.round(share * 100)}%`;
 }
 
-const plural = (count: number, name: string) => `${count.toLocaleString('en-US')} ${name}${count === 1 ? '' : 's'}`;
+// "Advanced" is an adjective: its plural stays "Advanced"; every other tier name takes an "s".
+const plural = (count: number, name: string) =>
+  `${count.toLocaleString('en-US')} ${name}${count === 1 || name === 'Advanced' ? '' : 's'}`;
 
 /** "4 Legends, 11 Elites and 38 Masters": the three highest developer tiers present, highest first. */
 export function builtByTiersText(counts: { tier: number; count: number }[]): string {

@@ -28,5 +28,6 @@ describe('builtByTiersText', () => {
         { tier: 2, count: 5 },
       ]),
     ).toBe('2 Experts and 5 Adepts');
+    expect(builtByTiersText([{ tier: 3, count: 4 }])).toBe('4 Advanced');
   });
 });

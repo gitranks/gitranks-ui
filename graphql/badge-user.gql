@@ -1,0 +1,78 @@
+# Everything a developer's v3 badges read, in one query.
+query BadgeUser($login: String!) {
+  user(login: $login) {
+    login
+    avatarUrl
+    country
+    s
+    c
+    f
+    snapshots(limit: 25)
+    rankGlobal {
+      s
+      c
+      f
+      sM
+      cM
+      fM
+      sProvisional
+      cProvisional
+      fProvisional
+      snapshots
+    }
+    rankCountry {
+      s
+      c
+      f
+      sM
+      cM
+      fM
+      sProvisional
+      cProvisional
+      fProvisional
+    }
+    tiersGlobal {
+      ...BadgeTierLists
+    }
+    tiersCountry {
+      ...BadgeTierLists
+    }
+    sLangs(limit: 10) {
+      name
+      rankGlobal {
+        s
+        sM
+      }
+      tiersGlobal {
+        sUsers
+      }
+    }
+  }
+}
+
+fragment BadgeTierLists on RankTier {
+  sUsers
+  cUsers
+  fUsers
+  sTiers {
+    tier
+    level
+    minRank
+    maxRank
+    minValue
+  }
+  cTiers {
+    tier
+    level
+    minRank
+    maxRank
+    minValue
+  }
+  fTiers {
+    tier
+    level
+    minRank
+    maxRank
+    minValue
+  }
+}

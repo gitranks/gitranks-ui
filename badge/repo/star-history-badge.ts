@@ -8,7 +8,7 @@ import {
   svgToPng,
 } from './render-star-history-badge';
 import { fetchBadgeRepo } from './star-history-badge.loader';
-import type { BadgeRepoQuery } from '@/types/generated/graphql';
+import type { StarHistoryRepoQuery } from '@/types/generated/graphql';
 import { parseRepoParams } from '@/utils/repo-paths';
 
 const FILES: Record<string, StarHistoryBadgeFormat> = {
@@ -44,7 +44,7 @@ export function parseStarHistoryFile(file: string): StarHistoryBadgeFormat | nul
   return Object.hasOwn(FILES, file) ? FILES[file] : null;
 }
 
-export function getStarHistoryBadgeInput(repo: NonNullable<BadgeRepoQuery['repo']>): StarHistoryBadgeInput {
+export function getStarHistoryBadgeInput(repo: NonNullable<StarHistoryRepoQuery['repo']>): StarHistoryBadgeInput {
   const { nameWithOwner, history, gainedThisMonth } = repo;
 
   return history

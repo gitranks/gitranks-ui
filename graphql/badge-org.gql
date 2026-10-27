@@ -1,0 +1,33 @@
+# Everything an organization's v3 badges read, in one query.
+query BadgeOrg($login: String!) {
+  organization(login: $login) {
+    login
+    avatarUrl
+    s
+    reposCount
+    rankOrg {
+      s
+      sM
+    }
+    topRepos(first: 3) {
+      nameWithOwner
+      stars
+      rank {
+        s
+      }
+    }
+    pulse {
+      lastMonth
+      last12 {
+        activeContributors
+        newContributors
+      }
+    }
+    pulseSeries {
+      months
+      activeLinked
+      activeAnonymous
+      newContributors
+    }
+  }
+}

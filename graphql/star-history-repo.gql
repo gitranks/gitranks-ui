@@ -1,0 +1,17 @@
+query StarHistoryRepo($owner: String!, $name: String!) {
+  repo(owner: $owner, name: $name) {
+    nameWithOwner
+    stars
+    gainedThisMonth
+    history {
+      points {
+        date
+        stars
+      }
+      current {
+        date
+        stars
+      }
+    }
+  }
+}

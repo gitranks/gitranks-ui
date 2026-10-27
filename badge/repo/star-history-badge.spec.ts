@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { BadgeRepoQuery } from '@/types/generated/graphql';
+import type { StarHistoryRepoQuery } from '@/types/generated/graphql';
 
-const fetchBadgeRepo = vi.fn<(owner: string, name: string) => Promise<BadgeRepoQuery['repo']>>();
+const fetchBadgeRepo = vi.fn<(owner: string, name: string) => Promise<StarHistoryRepoQuery['repo']>>();
 vi.mock('./star-history-badge.loader', () => ({ fetchBadgeRepo }));
 
 const { getStarHistoryBadgeResponse, parseStarHistoryFile, STAR_HISTORY_CACHE_CONTROL } = await import(
@@ -17,7 +17,7 @@ const history = {
   current: { date: '2024-03-04T00:00:00Z', stars: 31 },
 };
 
-const repo = (overrides: Partial<NonNullable<BadgeRepoQuery['repo']>> = {}) => ({
+const repo = (overrides: Partial<NonNullable<StarHistoryRepoQuery['repo']>> = {}) => ({
   nameWithOwner: 'octo/widgets',
   stars: 31,
   gainedThisMonth: 6,

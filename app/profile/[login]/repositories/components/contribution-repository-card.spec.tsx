@@ -23,5 +23,7 @@ describe('ContributionRepositoryCard', () => {
     const badge = html.match(/<a [^>]*>2 PRs/)?.[0] ?? '';
     expect(badge).toContain('href="https://github.com/');
     expect(badge).toContain('target="_blank"');
+    expect(badge).toContain('data-slot="badge"');
+    expect(badge).toContain('aria-label="2 PRs on GitHub (opens in a new tab)"');
   });
 });

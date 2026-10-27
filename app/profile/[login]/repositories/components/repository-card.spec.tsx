@@ -34,31 +34,19 @@ describe('RepositoryCard', () => {
 
   it('links a contributed repository to its page from the star threshold', () => {
     const link = titleLink(
-      renderToStaticMarkup(
-        <RepositoryCard
-          type="contribution"
-          contributionUrl="https://github.com/vercel/next.js/pulls?q=author"
-          repository={repository(REPO_PAGE_MIN_STARS)}
-        />,
-      ),
+      renderToStaticMarkup(<RepositoryCard type="contribution" repository={repository(REPO_PAGE_MIN_STARS)} />),
     );
 
     expect(link).toContain('href="/repo/vercel/next.js"');
     expect(link).not.toContain('target="_blank"');
   });
 
-  it('links a contribution below the star threshold to its pull requests on GitHub', () => {
+  it('links a contribution below the star threshold to the repository on GitHub', () => {
     const link = titleLink(
-      renderToStaticMarkup(
-        <RepositoryCard
-          type="contribution"
-          contributionUrl="https://github.com/vercel/next.js/pulls?q=author"
-          repository={repository(REPO_PAGE_MIN_STARS - 1)}
-        />,
-      ),
+      renderToStaticMarkup(<RepositoryCard type="contribution" repository={repository(REPO_PAGE_MIN_STARS - 1)} />),
     );
 
-    expect(link).toContain('href="https://github.com/vercel/next.js/pulls?q=author"');
+    expect(link).toContain('href="https://github.com/vercel/next.js"');
     expect(link).toContain('target="_blank"');
   });
 });

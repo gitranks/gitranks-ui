@@ -60,6 +60,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             title="These pull requests on GitHub"
+            aria-label={`${badgeLabel} on GitHub (opens in a new tab)`}
             className="hover:underline"
           >
             {badgeLabel}{' '}
@@ -72,7 +73,6 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
           </a>
         </Badge>
       }
-      contributionUrl={contributionUrl}
       className="px-0 py-3"
     />
   );

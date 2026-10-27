@@ -4,15 +4,16 @@ import { startOfMonth } from 'date-fns';
 import type { MetadataRoute } from 'next';
 import { cacheLife } from 'next/cache';
 
-import { listCanonicalBadgeImageUrls } from '@/badge/canonical-badge';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { listProfileBadgeImageUrls } from '@/lib/sitemap/badge-images';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 import { ProfilesForSitemapDocument } from '@/types/generated/graphql';
 
 /**
  * Unchunked on purpose: `profilesForSitemap` returns at most 1000 logins per
- * rank order (stars + contributions, deduped), so ~2k urls at ~830 bytes each. Well under
- * the 50k url / 50MB limits; past ~25k profiles this needs `generateSitemaps`.
+ * rank order (stars + contributions, deduped), so ~2k urls at up to ~1.2 KB each while the old
+ * badge images are listed too (~500 bytes after). Well under the 50k url / 50MB limits; past
+ * ~25k profiles this needs `generateSitemaps`.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   cacheLife('hours');
@@ -28,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapEntry(`/profile/${encodeURIComponent(profile.login)}`, {
       lastModified,
       priority: 0.95,
-      images: listCanonicalBadgeImageUrls(profile.login, profile),
+      images: listProfileBadgeImageUrls(profile.login, profile),
     }),
   );
 }

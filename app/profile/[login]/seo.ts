@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 
 import { RANK_NAME } from '@/badge/badge.consts';
+import { hasProfileCard, socialCardPath } from '@/badge/v3/links';
 import { clipText } from '@/lib/seo/clip-text';
-import { pageMetadata } from '@/lib/seo/page-metadata';
+import { entityJsonLdImage } from '@/lib/seo/json-ld';
+import { entityPreviewImages, pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 import type { PageProfileLanguagesQuery, PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
@@ -123,13 +125,13 @@ function buildSameAs(stats: DataType): string[] {
   return [...new Set(urls.filter((url): url is string => !!url && URL.canParse(url)))];
 }
 
-function buildPerson(stats: DataType, url: string, avatarUrl: string) {
+function buildPerson(stats: DataType, url: string, avatarUrl: string, cardUrl: string | null) {
   return {
     '@type': 'Person',
     name: stats.name || stats.login,
     alternateName: stats.login,
     url,
-    image: avatarUrl,
+    image: entityJsonLdImage(avatarUrl, cardUrl),
     sameAs: buildSameAs(stats),
   };
 }
@@ -220,6 +222,8 @@ export function buildProfileTabSEO(
 ): { metadata: Metadata; jsonLd: object[] } {
   const { login, name, country } = data;
   const avatarUrl = absoluteUrl(`/api/avatar/${encodeURIComponent(login)}`);
+  // Tabs that do not read the global ranks judge the card by the scores alone.
+  const cardUrl = hasProfileCard(data, data.rankGlobal) ? absoluteUrl(socialCardPath({ kind: 'user', login })) : null;
   // Only the overview, ranks and languages tabs have a country variant.
   const where = scope === 'country' && country ? `in ${country}` : '';
 
@@ -236,7 +240,7 @@ export function buildProfileTabSEO(
     `${TAB_TITLES[tab]} of ${userName} on GitHub${where ? ` ${where}` : ''}.`;
   const crumb = tab === 'overview' && !where ? undefined : `${TAB_CRUMBS[tab]}${where ? ` ${where}` : ''}`;
 
-  const person = buildPerson(data, base, avatarUrl);
+  const person = buildPerson(data, base, avatarUrl, cardUrl);
   const jsonLd = [
     buildTabSpecificJsonLd(tab, scope, url, title, description, data, person),
     buildBreadcrumbs(userName, base, crumb, url),
@@ -244,7 +248,13 @@ export function buildProfileTabSEO(
 
   return {
     metadata: {
-      ...pageMetadata({ title, description, path, images: [avatarUrl], openGraphType: 'profile' }),
+      ...pageMetadata({
+        title,
+        description,
+        path,
+        images: entityPreviewImages(cardUrl, avatarUrl, `${login} on GitRanks`),
+        openGraphType: 'profile',
+      }),
       robots: {
         index: true,
         follow: true,

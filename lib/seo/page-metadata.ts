@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 
 import { SITE_NAME, SITE_X_HANDLE } from './site';
+import { SOCIAL_CARD_SIZE } from '@/badge/v3/links';
+
+/** An absolute image URL, or one with its size and alt text. */
+export type PreviewImage = string | { url: string; width: number; height: number; alt: string };
 
 type PageMetadataInput = {
   /** A plain title gets the root ` | GitRanks` template; `absolute` skips it. */
@@ -9,7 +13,7 @@ type PageMetadataInput = {
   /** Canonical path with URI-encoded segments; resolved against the root `metadataBase`. */
   path: string;
   /** Absolute image URLs for link previews. */
-  images?: string[];
+  images?: PreviewImage[];
 } & (
   | { openGraphType?: 'website' | 'profile'; publishedTime?: never }
   /** An article preview carries its publish time (ISO date). */
@@ -56,6 +60,21 @@ export function pageMetadata({
       images,
     },
   };
+}
+
+/**
+ * The link preview of a developer's, an organization's or a repository's page: its card drawn at 1200×630 when it
+ * has one (`cardUrl`), else its avatar; none without either.
+ */
+export function entityPreviewImages(
+  cardUrl: string | null,
+  avatarUrl: string | null | undefined,
+  alt: string,
+): PreviewImage[] | undefined {
+  if (cardUrl) {
+    return [{ url: cardUrl, ...SOCIAL_CARD_SIZE, alt }];
+  }
+  return avatarUrl ? [avatarUrl] : undefined;
 }
 
 /** ` · Page 3` for every page but the first: the title suffix. */

@@ -43,15 +43,48 @@ describe('buildRepoSEO', () => {
     expect(metadata.robots).toMatchObject({ index: true, follow: true, 'max-image-preview': 'large' });
   });
 
-  it('uses the owner avatar for link previews', () => {
+  it("shows a ranked repository's rank card in link previews", () => {
     const { metadata } = buildRepoSEO(repo());
 
     expect(metadata.openGraph).toMatchObject({
       url: '/repo/vercel/next.js',
+      images: [
+        {
+          url: 'https://gitranks.test/badge/repo/vercel/next.js/rank-card.png?size=social',
+          width: 1200,
+          height: 630,
+          alt: 'vercel/next.js on GitRanks',
+        },
+      ],
+    });
+    expect(metadata.twitter).toMatchObject({ card: 'summary_large_image', images: metadata.openGraph?.images });
+  });
+
+  it('falls back to the owner avatar when the repository has no rank card', () => {
+    const unranked = buildRepoSEO(repo({ rank: { s: null, l: 3, language: 'JavaScript' } })).metadata;
+
+    expect(unranked.openGraph).toMatchObject({ images: ['https://avatars.githubusercontent.com/u/14985020?v=4'] });
+    expect(unranked.twitter).toMatchObject({ card: 'summary_large_image' });
+    expect(buildRepoSEO(repo({ rank: null })).metadata.openGraph).toMatchObject({
       images: ['https://avatars.githubusercontent.com/u/14985020?v=4'],
     });
-    expect(metadata.twitter).toMatchObject({ card: 'summary_large_image' });
-    expect(buildRepoSEO(repo({ ownerAvatarUrl: null })).metadata.twitter).toMatchObject({ card: 'summary' });
+
+    const bare = buildRepoSEO(repo({ rank: null, ownerAvatarUrl: null })).metadata;
+    expect(bare.openGraph?.images).toBeUndefined();
+    expect(bare.twitter).toMatchObject({ card: 'summary' });
+  });
+
+  it('pairs the owner avatar with the rank card in JSON-LD, and keeps the avatar alone without a card', () => {
+    expect(sourceCodeOf(buildRepoSEO(repo()).jsonLd).image).toEqual([
+      'https://avatars.githubusercontent.com/u/14985020?v=4',
+      'https://gitranks.test/badge/repo/vercel/next.js/rank-card.png?size=social',
+    ]);
+    expect(sourceCodeOf(buildRepoSEO(repo({ rank: null })).jsonLd).image).toBe(
+      'https://avatars.githubusercontent.com/u/14985020?v=4',
+    );
+    expect(sourceCodeOf(buildRepoSEO(repo({ ownerAvatarUrl: null })).jsonLd).image).toBe(
+      'https://gitranks.test/badge/repo/vercel/next.js/rank-card.png?size=social',
+    );
   });
 
   it('names the ranking of repositories without a language', () => {
@@ -112,6 +145,10 @@ describe('buildRepoSEO', () => {
       alternateName: 'vercel/next.js',
       description: 'The React Framework',
       url: 'https://gitranks.test/repo/vercel/next.js',
+      image: [
+        'https://avatars.githubusercontent.com/u/14985020?v=4',
+        'https://gitranks.test/badge/repo/vercel/next.js/rank-card.png?size=social',
+      ],
       codeRepository: 'https://github.com/vercel/next.js',
       sameAs: ['https://github.com/vercel/next.js'],
       programmingLanguage: 'JavaScript',

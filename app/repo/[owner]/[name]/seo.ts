@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 
 import { REPO_INDEX_MIN_STARS, REPO_MIN_RANK_STARS } from '@/app/app.consts';
+import { hasRankCard, socialCardPath } from '@/badge/v3/links';
 import { clipText } from '@/lib/seo/clip-text';
-import { pageMetadata } from '@/lib/seo/page-metadata';
+import { entityJsonLdImage } from '@/lib/seo/json-ld';
+import { entityPreviewImages, pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 import type { PageRepoQuery } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
@@ -69,7 +71,7 @@ function buildOwner(repo: Repo) {
   };
 }
 
-function buildSourceCode(repo: Repo, url: string) {
+function buildSourceCode(repo: Repo, url: string, cardUrl: string | null) {
   const owner = buildOwner(repo);
   const createdAt = repo.createdAt ? new Date(repo.createdAt) : undefined;
 
@@ -79,6 +81,7 @@ function buildSourceCode(repo: Repo, url: string) {
     alternateName: repo.nameWithOwner,
     description: repo.description || undefined,
     url,
+    image: entityJsonLdImage(repo.ownerAvatarUrl, cardUrl),
     codeRepository: `https://github.com/${repo.nameWithOwner}`,
     sameAs: [`https://github.com/${repo.nameWithOwner}`],
     programmingLanguage: repo.language || undefined,
@@ -123,9 +126,16 @@ export function buildRepoSEO(repo: Repo): { metadata: Metadata; jsonLd: object[]
   const url = absoluteUrl(path);
   const title = `${repo.nameWithOwner} - GitHub Repository Rank`;
   const description = buildDescription(repo, ranked);
-  const image = repo.ownerAvatarUrl || undefined;
+  const cardUrl = hasRankCard(repo.rank)
+    ? absoluteUrl(socialCardPath({ kind: 'repo', nameWithOwner: repo.nameWithOwner }))
+    : null;
 
-  const metadata = pageMetadata({ title, description, path, images: image ? [image] : undefined });
+  const metadata = pageMetadata({
+    title,
+    description,
+    path,
+    images: entityPreviewImages(cardUrl, repo.ownerAvatarUrl, `${repo.nameWithOwner} on GitRanks`),
+  });
   const jsonLd = [
     {
       '@context': 'https://schema.org',
@@ -133,7 +143,7 @@ export function buildRepoSEO(repo: Repo): { metadata: Metadata; jsonLd: object[]
       url,
       name: title,
       description,
-      mainEntity: buildSourceCode(repo, url),
+      mainEntity: buildSourceCode(repo, url, cardUrl),
     },
     buildBreadcrumbs(repo, url),
   ];

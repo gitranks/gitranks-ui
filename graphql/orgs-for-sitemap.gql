@@ -1,0 +1,3 @@
+query OrgsForSitemap($part: Int!) {
+  orgsForSitemap(part: $part)
+}

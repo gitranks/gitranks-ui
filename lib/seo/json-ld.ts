@@ -55,3 +55,15 @@ export function buildRankingItemList(name: string, path: string, items: RankingL
     })),
   };
 }
+
+/**
+ * The schema.org `image` of a developer, an organization or a repository: the avatar, then its card drawn at
+ * 1200×630 when it has one (`cardUrl`), as the link preview shows it.
+ */
+export function entityJsonLdImage(
+  avatarUrl: string | null | undefined,
+  cardUrl: string | null,
+): string | string[] | undefined {
+  const images = [avatarUrl, cardUrl].filter((url): url is string => !!url);
+  return images.length > 1 ? images : images[0];
+}

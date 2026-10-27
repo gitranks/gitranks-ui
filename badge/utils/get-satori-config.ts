@@ -6,7 +6,8 @@ import type { FontWeight, SatoriOptions } from 'satori';
 import { emojiMapping } from './emoji-mapping';
 
 async function loadFont(fontName: string, fontWeight: string, fontStyle: string): Promise<Buffer> {
-  const fontFileName = `${fontName}-${fontWeight}${fontStyle}.ttf`;
+  // Files drop the spaces of a family name: "JetBrains Mono" is `JetBrainsMono-Bold.ttf`.
+  const fontFileName = `${fontName.replaceAll(' ', '')}-${fontWeight}${fontStyle}.ttf`;
   return fs.readFile(path.join(process.cwd(), 'public', 'fonts', fontFileName));
 }
 
@@ -19,7 +20,7 @@ const fontWeightToName: Record<number, string> = {
 const fontCache: Record<string, Buffer> = {};
 
 type FontOption = {
-  name?: 'Inter' | 'Verdana';
+  name?: 'Inter' | 'Verdana' | 'JetBrains Mono';
   style?: 'normal' | 'italic';
   weight: FontWeight;
 };

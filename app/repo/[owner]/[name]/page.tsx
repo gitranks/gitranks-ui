@@ -4,16 +4,15 @@ import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 import { notFound, permanentRedirect } from 'next/navigation';
 
-import { RepoHeader } from './components/repo-header';
+import { RepoLayout } from './components/repo-layout';
 import { RepoPulseArea } from './components/repo-pulse-area';
 import { RepoRankCard } from './components/repo-rank-card';
 import { StarHistoryBadgeSection } from './components/star-history-badge-section';
 import { StarHistorySection } from './components/star-history-section';
 import { buildRepoMetadata, isRepoRanked } from './seo';
 import { REPO_MIN_RANK_STARS } from '@/app/app.consts';
-import { ProfileCardsGrid } from '@/app/profile/[login]/components/profile-card';
+import { ProfileCard, ProfileCardsGrid } from '@/app/profile/[login]/components/profile-card';
 import { Header } from '@/components/header/header';
-import { Page } from '@/components/page/page';
 import { fetchRepo } from '@/graphql/helpers/fetch-repo';
 import { fetchRepoLanguages } from '@/graphql/helpers/fetch-repo-languages';
 import { fetchRepoPulseFacts } from '@/graphql/helpers/fetch-repo-pulse';
@@ -89,13 +88,12 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
   return (
     <>
       <Header />
-      <Page className="max-w-5xl w-full gap-6">
-        <RepoHeader repo={repo} languageUrl={rank?.language ? getRepoLanguageRankingPath(rank.language) : undefined} />
+      <RepoLayout repo={repo} languageUrl={rank?.language ? getRepoLanguageRankingPath(rank.language) : undefined}>
         {rank ? (
-          <ProfileCardsGrid>
+          <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))]">
             {!!rank.s && (
               <RepoRankCard
-                title="Global Rank"
+                title="Global rank"
                 rank={rank.s}
                 rankM={rank.sM}
                 rankingLink={getRepoRankingPath(getRankingPageOf(rank.s))}
@@ -104,7 +102,7 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
             )}
             {!!rank.l && (
               <RepoRankCard
-                title={rank.language ? `${rank.language} Rank` : 'Rank Without a Language'}
+                title={rank.language ? `${rank.language} rank` : 'Rank without a language'}
                 rank={rank.l}
                 rankM={rank.lM}
                 rankingLink={getRepoLanguageRankingPath(rank.language, getRankingPageOf(rank.l))}
@@ -113,16 +111,18 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
             )}
           </ProfileCardsGrid>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            {repo.stars >= REPO_MIN_RANK_STARS
-              ? 'Not ranked yet: the repository joins the rankings at their next update.'
-              : `Repositories are ranked from ${REPO_MIN_RANK_STARS} stars.`}
-          </p>
+          <ProfileCard>
+            <p className="text-sm text-muted-foreground">
+              {repo.stars >= REPO_MIN_RANK_STARS
+                ? 'Not ranked yet: the repository joins the rankings at their next update.'
+                : `Repositories are ranked from ${REPO_MIN_RANK_STARS} stars.`}
+            </p>
+          </ProfileCard>
         )}
         <StarHistorySection repo={repo} />
         {!!repo.history && <StarHistoryBadgeSection owner={repo.owner} name={repo.name} />}
         <RepoPulseArea repo={repo} pulse={pulse} />
-      </Page>
+      </RepoLayout>
     </>
   );
 }

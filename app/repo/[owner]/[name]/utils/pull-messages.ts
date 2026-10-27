@@ -2,6 +2,7 @@ import type { Session } from 'next-auth';
 
 import {
   fillTime,
+  REFRESH_LABELS,
   REFRESH_MESSAGES,
   REFRESH_TOASTS,
   type RefreshMessage,
@@ -14,7 +15,7 @@ import { timeLeftUntil } from '@/utils/format-time-left';
 export const TOKEN_PULLS_PER_DAY = 20;
 
 /**
- * Who presses "Fetch star history": `daily` signed in without a token (one free fetch a day for a star), `token`
+ * Who presses Refresh on a repository page: `daily` signed in without a token (one free fetch a day for a star), `token`
  * signed in with their own token. While the session is `loading`, a press does nothing.
  */
 export type PullMode = 'loading' | 'signed-out' | 'token' | 'daily';
@@ -176,32 +177,15 @@ export function pullErrorOutcomeOf(httpStatus: number): PullOutcome {
   }
 }
 
-const isLater = (iso: string | null | undefined, now: number): iso is string => !!iso && new Date(iso).getTime() > now;
-
-/** The line under the button: what a press costs this visitor. */
-export function pullHintOf(mode: PullMode, allowance: RepoPullAllowance | null | undefined, now = Date.now()) {
-  switch (mode) {
-    case 'loading':
-      return null;
-    case 'signed-out':
-      return 'Sign in with GitHub and star our repo to get one free fetch a day.';
-    case 'daily': {
-      const nextAt = allowance?.daily.nextAt;
-      if (allowance && !allowance.daily.available && isLater(nextAt, now)) {
-        return `Your next free fetch is in ${timeLeftUntil(nextAt, now)}.`;
-      }
-      return 'Starring gitranks/gitranks-ui on GitHub unlocks one free fetch a day.';
-    }
-    case 'token': {
-      if (!allowance) {
-        return `Uses your own GitHub access, up to ${TOKEN_PULLS_PER_DAY} fetches a day.`;
-      }
-      const { used, limit, nextAt } = allowance.token;
-      const left = Math.max(0, limit - used);
-      if (!left && isLater(nextAt, now)) {
-        return `You used all ${limit} fetches of today. The next one is in ${timeLeftUntil(nextAt, now)}.`;
-      }
-      return `Uses your own GitHub access: ${left} of ${limit} fetches left today.`;
-    }
+/** The button's label: like the profile's Refresh, with the fetches left today when the visitor has some. */
+export function pullLabelOf(mode: PullMode, allowance: RepoPullAllowance | null | undefined) {
+  if (mode === 'daily' && allowance?.daily.available) {
+    return REFRESH_LABELS.dailyAvailable;
   }
+  if (mode === 'token' && allowance) {
+    const { used, limit } = allowance.token;
+    return `Refresh · ${Math.max(0, limit - used)} left`;
+  }
+
+  return 'Refresh';
 }

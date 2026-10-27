@@ -5,7 +5,7 @@ import { type FC, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { getStarHistoryBadgePath, getStarHistoryBadgeSnippets } from '../utils/star-history-badge';
-import { ProfileCard, ProfileCardHeader } from '@/app/profile/[login]/components/profile-card';
+import { Eyebrow, ProfileCard, ProfileCardHeader } from '@/app/profile/[login]/components/profile-card';
 import { Button } from '@/components/ui/button';
 
 const CopySnippet: FC<{ label: string; code: string }> = ({ label, code }) => {
@@ -33,8 +33,8 @@ const CopySnippet: FC<{ label: string; code: string }> = ({ label, code }) => {
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium">{label}</span>
-        <Button type="button" variant="secondary" size="sm" onClick={copy} aria-label={`Copy ${label}`}>
+        <Eyebrow>{label}</Eyebrow>
+        <Button type="button" variant="ghost" size="sm" onClick={copy} aria-label={`Copy ${label}`}>
           {copied ? <Check /> : <Clipboard />}
           {copied ? 'Copied' : 'Copy'}
         </Button>
@@ -42,7 +42,7 @@ const CopySnippet: FC<{ label: string; code: string }> = ({ label, code }) => {
           {copied ? `${label} copied` : ''}
         </span>
       </div>
-      <pre className="overflow-x-auto rounded-md bg-muted px-3 py-2 font-mono text-[13px] leading-5">
+      <pre className="overflow-x-auto rounded-md border bg-muted/50 px-3 py-2 font-mono text-xs leading-5">
         <code>{code}</code>
       </pre>
     </div>
@@ -64,7 +64,7 @@ export const StarHistoryBadgeSection: FC<StarHistoryBadgeSectionProps> = ({ owne
       <img
         src={getStarHistoryBadgePath(owner, name)}
         alt={`Star history of ${owner}/${name}`}
-        className="w-full h-auto rounded-md"
+        className="w-full max-w-lg h-auto rounded-md border"
         loading="lazy"
       />
       <CopySnippet label="Markdown" code={markdown} />

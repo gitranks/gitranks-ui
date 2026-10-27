@@ -71,6 +71,13 @@ describe('proxy', () => {
       expect(matches(path)).toBe(false);
     });
 
+    it.each(['/logo-light.svg', '/logo-dark.svg', '/mark.svg', '/mark-mono.svg', '/favicon.ico', '/apple-icon.png'])(
+      'leaves the brand asset %s alone',
+      (path) => {
+        expect(matches(path)).toBe(false);
+      },
+    );
+
     it('still runs for the repository page', () => {
       expect(matches('/repo/vercel/next.js')).toBe(true);
     });

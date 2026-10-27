@@ -86,6 +86,50 @@ describe('StarsBestSection', () => {
     expect(html.replace(/<[^>]+>/g, '')).toContain('Starred by a Legend 2.');
   });
 
+  it('names the first stargazer with a login, counting the rest of that tier as "more"', () => {
+    const html = renderToStaticMarkup(
+      <StarsBestSection
+        starsBest={{
+          total: 4,
+          counts: [{ tier: 6, count: 4 }],
+          top: [person(null, 6, 5), person('bo', 6, 3), person('cy', 6, 1)],
+          legendRatio: null,
+        }}
+      />,
+    );
+
+    expect(html.replace(/<[^>]+>/g, '')).toContain('Starred by bo Elite 3 and 3 more Elites.');
+  });
+
+  it('takes "an" before an Elite without a login', () => {
+    const html = renderToStaticMarkup(
+      <StarsBestSection
+        starsBest={{ total: 2, counts: [{ tier: 6, count: 2 }], top: [person(null, 6, 3)], legendRatio: null }}
+      />,
+    );
+
+    expect(html.replace(/<[^>]+>/g, '')).toContain('Starred by an Elite 3 and 1 more Elite.');
+  });
+
+  it('says how many when neither names nor tiers came with the count', () => {
+    const one = renderToStaticMarkup(
+      <StarsBestSection starsBest={{ total: 1, counts: [], top: [], legendRatio: null }} />,
+    );
+    const five = renderToStaticMarkup(
+      <StarsBestSection starsBest={{ total: 5, counts: [], top: [], legendRatio: null }} />,
+    );
+
+    expect(one.replace(/<[^>]+>/g, '')).toContain('Starred by 1 top developer.');
+    expect(five.replace(/<[^>]+>/g, '')).toContain('Starred by 5 top developers.');
+  });
+
+  it('keeps one column without anyone to name in the full section', () => {
+    const html = renderToStaticMarkup(<StarsBestSection starsBest={{ ...full, top: [] }} />);
+
+    expect(html).not.toContain('grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]');
+    expect(html).not.toContain('Highest ranked among them');
+  });
+
   it('renders nothing without data or with nobody', () => {
     expect(renderToStaticMarkup(<StarsBestSection starsBest={null} />)).toBe('');
     expect(renderToStaticMarkup(<StarsBestSection starsBest={{ ...compact, total: 0, top: [], counts: [] }} />)).toBe(

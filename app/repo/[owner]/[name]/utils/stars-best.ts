@@ -32,22 +32,28 @@ export const shownLegendRatio = (ratio?: number | null) =>
 export const tiersPresent = (counts: Counts) =>
   [...counts].filter(({ count }) => count > 0).sort((a, b) => b.tier - a.tier);
 
+/** The stargazer the strip names: the highest ranked one with a login, else the highest ranked. */
+export const leadStargazer = <T extends { login?: string | null }>(top: T[]): T | undefined =>
+  top.find(({ login }) => login) ?? top[0];
+
+/** "a" or "an" before a word, by its first letter: "an Elite 3", "a Legend 2". */
+export const articleFor = (word: string) => (/^[aeiou]/i.test(word) ? 'an' : 'a');
+
 /**
- * The rest of the stargazers after the first one named, for "Starred by ana Legend 2, 1 Legend and 2 Elites.": the
- * tiers highest first, the third and lower folded into "N more" when there are more than three. Empty when there is
- * no one else.
+ * The rest of the stargazers after the one named, for "Starred by ana Legend 2, 1 more Legend and 2 Elites.": the
+ * tiers highest first, the named one's own tier as "N more", the third tier and lower folded into "N more" when there
+ * are more than three. Empty when there is no one else.
  */
 export function othersParts(counts: Counts, first?: { tier: number } | null): string[] {
   const others = tiersPresent(
     counts.map(({ tier, count }) => ({ tier, count: first && tier === first.tier ? count - 1 : count })),
   );
-  if (others.length <= 3) return others.map(({ tier, count }) => tierCountText(count, tier));
+  const text = ({ tier, count }: { tier: number; count: number }) =>
+    first && tier === first.tier ? tierCountText(count, tier).replace(' ', ' more ') : tierCountText(count, tier);
+  if (others.length <= 3) return others.map(text);
 
   const rest = others.slice(2).reduce((sum, { count }) => sum + count, 0);
-  return [
-    ...others.slice(0, 2).map(({ tier, count }) => tierCountText(count, tier)),
-    `${rest.toLocaleString('en-US')} more`,
-  ];
+  return [...others.slice(0, 2).map(text), `${rest.toLocaleString('en-US')} more`];
 }
 
 /** The separator before item `at` of a list read as "a, b and c". */

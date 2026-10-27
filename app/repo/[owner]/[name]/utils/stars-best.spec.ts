@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatRatio, listSeparator, othersParts, shownLegendRatio, starsBestView } from './stars-best';
+import {
+  articleFor,
+  formatRatio,
+  leadStargazer,
+  listSeparator,
+  othersParts,
+  shownLegendRatio,
+  starsBestView,
+} from './stars-best';
 
 describe('starsBestView', () => {
   it('is the full section from 20, the strip under it, and nothing without any', () => {
@@ -50,7 +58,7 @@ describe('othersParts', () => {
         ],
         { tier: 7 },
       ),
-    ).toEqual(['1 Legend', '2 Elites']);
+    ).toEqual(['1 more Legend', '2 Elites']);
   });
 
   it('is empty when the one named is the only one', () => {
@@ -66,6 +74,26 @@ describe('othersParts', () => {
         { tier: 3, count: 4 },
       ]),
     ).toEqual(['1 Legend', '3 Elites', '6 more']);
+  });
+
+  it('says "more" for the named one\'s own tier', () => {
+    expect(othersParts([{ tier: 6, count: 4 }], { tier: 6 })).toEqual(['3 more Elites']);
+  });
+});
+
+describe('leadStargazer', () => {
+  it('names the highest ranked with a login, else the highest ranked', () => {
+    expect(leadStargazer([{ login: null }, { login: 'bo' }])).toEqual({ login: 'bo' });
+    expect(leadStargazer([{ login: null }])).toEqual({ login: null });
+    expect(leadStargazer([])).toBeUndefined();
+  });
+});
+
+describe('articleFor', () => {
+  it('takes "an" before a vowel', () => {
+    expect(articleFor('Elite 3')).toBe('an');
+    expect(articleFor('Advanced 1')).toBe('an');
+    expect(articleFor('Legend 2')).toBe('a');
   });
 });
 

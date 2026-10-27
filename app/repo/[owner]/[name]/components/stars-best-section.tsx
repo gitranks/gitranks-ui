@@ -3,7 +3,9 @@ import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
 
 import {
+  articleFor,
   formatRatio,
+  leadStargazer,
   listSeparator,
   othersParts,
   STARS_BEST_TOP_COMPACT,
@@ -77,7 +79,11 @@ const NamedStargazer: FC<{ person: Stargazer }> = ({ person: { login, avatarUrl,
     <>
       <TierAvatar url={avatarUrl} label="" tier={tier} size="md" className={RING_GAP} />
       <span className="flex min-w-0 flex-col">
-        <span className={cn('truncate text-sm font-semibold', login && 'group-hover:underline')} translate="no">
+        <span
+          className={cn('truncate text-sm font-semibold', login && 'group-hover:underline')}
+          title={login ?? undefined}
+          translate="no"
+        >
           {login ?? <span className="font-normal text-muted-foreground">Name not shown</span>}
         </span>
         <span className={cn('text-xs font-semibold', tierStrongTextClass(tier))}>{tierLabel({ tier, level })}</span>
@@ -133,7 +139,7 @@ const FullSection: FC<{ starsBest: StarsBest; repoTier?: number | null }> = ({ s
 
   return (
     <ProfileCard className={cn('@container gap-0 p-5 md:p-6', SURFACE)}>
-      <div className="grid gap-x-8 gap-y-5 @2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className={cn('grid gap-x-8 gap-y-5', top.length > 0 && '@2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]')}>
         <div className="flex flex-col gap-3 @2xl:col-start-1 @2xl:row-start-1">
           <Heading />
           <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -148,8 +154,15 @@ const FullSection: FC<{ starsBest: StarsBest; repoTier?: number | null }> = ({ s
         {top.length > 0 && (
           <div className="flex flex-col gap-3 @2xl:col-start-2 @2xl:row-span-2 @2xl:row-start-1 @2xl:self-center">
             <Eyebrow as="h3">Highest ranked among them</Eyebrow>
-            <div className="@md:hidden">
+            <div className="flex flex-col gap-3 @md:hidden">
               <AvatarStack people={top} />
+              <ul className="flex flex-col gap-2.5">
+                {top.slice(0, STARS_BEST_TOP_COMPACT).map((person, at) => (
+                  <li key={person.login ?? at} className="min-w-0">
+                    <NamedStargazer person={person} />
+                  </li>
+                ))}
+              </ul>
             </div>
             <ul className="hidden gap-x-4 gap-y-3 @md:grid @md:grid-cols-2 @xl:grid-cols-3 @2xl:grid-cols-2">
               {top.map((person, at) => (
@@ -168,9 +181,9 @@ const FullSection: FC<{ starsBest: StarsBest; repoTier?: number | null }> = ({ s
   );
 };
 
-/** "Starred by ana Legend 2, 1 Legend and 2 Elites." */
+/** "Starred by ana Legend 2, 1 more Legend and 2 Elites." */
 const CompactSentence: FC<{ starsBest: StarsBest }> = ({ starsBest }) => {
-  const [first] = starsBest.top;
+  const first = leadStargazer(starsBest.top);
   const lead: ReactNode = first ? (
     <>
       {first.login ? (
@@ -178,16 +191,20 @@ const CompactSentence: FC<{ starsBest: StarsBest }> = ({ starsBest }) => {
           {first.login}
         </Link>
       ) : (
-        'a'
+        articleFor(tierLabel(first))
       )}{' '}
       <span className={cn('font-semibold', tierStrongTextClass(first.tier))}>{tierLabel(first)}</span>
     </>
   ) : null;
   const rest = othersParts(starsBest.counts, first);
   const parts: ReactNode[] = lead ? [lead, ...rest] : rest;
+  // Neither names nor tiers came with the count: say how many.
+  if (!parts.length) {
+    parts.push(`${starsBest.total.toLocaleString('en-US')} top developer${starsBest.total === 1 ? '' : 's'}`);
+  }
 
   return (
-    <p className="min-w-[min(100%,16rem)] grow text-[15px] leading-snug">
+    <p className="min-w-[min(100%,16rem)] grow text-[15px] leading-snug [overflow-wrap:anywhere]">
       Starred by{' '}
       {parts.map((part, at) => (
         <span key={at}>

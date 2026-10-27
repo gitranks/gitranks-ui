@@ -37,6 +37,11 @@ export const POST = auth(async function POST(req: AuthRequest) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
   }
 
+  // JSON only: a cross-site form can't send it, so this irreversible step can't be posted from another page.
+  if (!req.headers.get('content-type')?.toLowerCase().startsWith('application/json')) {
+    return NextResponse.json({ message: 'Expected JSON' }, { status: 415 });
+  }
+
   const body = await req.json().catch(() => null);
   const confirm: unknown = body?.confirm;
   if (typeof confirm !== 'string' || confirm.trim().toLowerCase() !== githubLogin.toLowerCase()) {
@@ -56,21 +61,26 @@ export const POST = auth(async function POST(req: AuthRequest) {
   if (!response.ok) {
     return NextResponse.json({ message: 'The removal failed' }, { status: response.status });
   }
-  const result = (await response.json()) as { profile: boolean; login: string };
+  // The removal went through: what follows only tidies up, so its own failure never reports the removal as failed.
+  const result = (await response.json().catch(() => null)) as { profile?: boolean; login?: string } | null;
+
+  for (const login of new Set([githubLogin, githubLogin.toLowerCase(), result?.login].filter(Boolean) as string[])) {
+    revalidateTag(profileCacheTag(login), { expire: 0 });
+  }
 
   // The server removes the sign-in rows it can find by GitHub id and login; this session's own row goes here too,
   // so it is gone even when GitRanks never held a profile to tell the id from.
   const userId = req.auth?.user.id;
   if (userId && ObjectId.isValid(userId)) {
-    const db = (await mongoClientPromise).db('auth');
-    const _id = new ObjectId(userId);
-    await db.collection('accounts').deleteMany({ userId: _id });
-    await db.collection('users').deleteOne({ _id });
+    try {
+      const db = (await mongoClientPromise).db('auth');
+      const _id = new ObjectId(userId);
+      await db.collection('accounts').deleteMany({ userId: _id });
+      await db.collection('users').deleteOne({ _id });
+    } catch (error) {
+      console.error('data removal: this sign-in was not deleted here; the server removes it too', error);
+    }
   }
 
-  for (const login of new Set([githubLogin, result.login])) {
-    revalidateTag(profileCacheTag(login), { expire: 0 });
-  }
-
-  return NextResponse.json({ status: 'removed', profile: result.profile } satisfies DataRemovalResult);
+  return NextResponse.json({ status: 'removed', profile: result?.profile ?? false } satisfies DataRemovalResult);
 });

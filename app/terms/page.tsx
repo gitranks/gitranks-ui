@@ -13,7 +13,7 @@ export const metadata: Metadata = pageMetadata({
 /*
  * The Terms of service. Short on purpose: what EU/UK consumer law requires for a free service, plus the clauses that
  * protect the operator. No promise the law doesn't require, and no numbers the site shows and may change (limits,
- * thresholds, how often refreshes are offered). lib/legal.ts lists the open points for a lawyer.
+ * thresholds, how often refreshes are offered). Have a lawyer review it.
  */
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;

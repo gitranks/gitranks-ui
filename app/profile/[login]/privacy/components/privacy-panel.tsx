@@ -21,9 +21,10 @@ import { Label } from '@/components/ui/label';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import type { DataRemovalStatus } from '@/types/data-removal.types';
+import { loginFromPath } from '@/utils/login-from-path';
 
 const isOwner = (sessionLogin: string | undefined, login: string) =>
-  !!sessionLogin && sessionLogin.toLowerCase() === decodeURIComponent(login).toLowerCase();
+  !!sessionLogin && sessionLogin.toLowerCase() === loginFromPath(login).toLowerCase();
 
 /** The Privacy tab's body: what GitRanks holds, and the removal, for the signed-in owner only. */
 export function PrivacyPanel({ login }: { login: string }) {
@@ -49,11 +50,9 @@ export function PrivacyPanel({ login }: { login: string }) {
           <EmailNote />
         </div>
       ) : !owner ? (
-        <p>{COPY.notOwner(decodeURIComponent(login))}</p>
+        <p>{COPY.notOwner(loginFromPath(login))}</p>
       ) : removed ? (
-        <p>
-          {COPY.removedText} <Link href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</Link>
-        </p>
+        <RemovedPanel login={session.user.githubLogin as string} />
       ) : (
         <OwnerPanel login={session.user.githubLogin as string} ready={removed !== null} />
       )}
@@ -67,6 +66,27 @@ function EmailNote() {
       {COPY.emailNote} <Link href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</Link> ·{' '}
       <Link href="/privacy#removal">How removal works</Link>
     </p>
+  );
+}
+
+/**
+ * A removed account signed in again: GitRanks holds nothing but that new sign-in, which can go the same way (the
+ * removal runs again and finds only it).
+ */
+function RemovedPanel({ login }: { login: string }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="flex flex-col items-start gap-4">
+      <p>
+        {COPY.removedText} <Link href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</Link>
+      </p>
+      <p>{COPY.signInAgain}</p>
+      <Button variant="destructive" onClick={() => setOpen(true)}>
+        {COPY.removeSignIn}
+      </Button>
+      <RemovalDialog login={login} open={open} onOpenChange={setOpen} />
+    </div>
   );
 }
 
@@ -109,6 +129,13 @@ export function RemovalDialog({
   const [removing, setRemoving] = useState(false);
   const matches = typed.trim().toLowerCase() === login.toLowerCase();
 
+  // The confirmation is typed each time: a cancelled dialog opens empty again.
+  const close = () => {
+    if (removing) return;
+    setTyped('');
+    onOpenChange(false);
+  };
+
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!matches || removing) return;
@@ -132,16 +159,14 @@ export function RemovalDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !removing && onOpenChange(next)}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
+      {/* An alert dialog: a destructive step the user confirms. */}
+      <DialogContent role="alertdialog">
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{COPY.dialogTitle}</DialogTitle>
             <DialogDescription asChild>
-              <div
-                role="alert"
-                className="flex gap-3 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-left text-destructive"
-              >
+              <div className="flex gap-3 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-left text-destructive">
                 <TriangleAlert aria-hidden className="mt-0.5 size-5 shrink-0" />
                 {/* The colour on the text itself: the description's own muted colour would win over the box's. */}
                 <strong className="font-bold text-destructive">{COPY.warning}</strong>
@@ -161,7 +186,7 @@ export function RemovalDialog({
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="secondary" disabled={removing} onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="secondary" disabled={removing} onClick={close}>
               {COPY.cancel}
             </Button>
             <Button type="submit" variant="destructive" disabled={!matches || removing}>

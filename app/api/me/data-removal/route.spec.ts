@@ -37,8 +37,14 @@ const signIn = (githubLogin: string) => {
   current.session = { user: { githubLogin, id: USER_ID }, expires: '2099-01-01T00:00:00.000Z' };
 };
 
-const post = (body: unknown) =>
-  POST(new NextRequest('https://gitranks.com/api/me/data-removal', { method: 'POST', body: JSON.stringify(body) }));
+const post = (body: unknown, contentType = 'application/json') =>
+  POST(
+    new NextRequest('https://gitranks.com/api/me/data-removal', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': contentType },
+    }),
+  );
 
 const upstream = (status: number, body: unknown) =>
   signedFetch.mockResolvedValueOnce(
@@ -99,6 +105,26 @@ describe('data removal route', () => {
     expect(String(collections.users.deleteOne.mock.calls[0][0]._id)).toBe(USER_ID);
     expect(revalidateTag).toHaveBeenCalledWith('profile:OctoCat', { expire: 0 });
     expect(revalidateTag).toHaveBeenCalledWith('profile:octocat', { expire: 0 });
+  });
+
+  it('refuses a body that is not JSON, as a cross-site form would send', async () => {
+    signIn('OctoCat');
+    expect((await post({ confirm: 'OctoCat' }, 'application/x-www-form-urlencoded')).status).toBe(415);
+    expect(signedFetch).not.toHaveBeenCalled();
+  });
+
+  it('still reports the removal when deleting the sign-in here fails', async () => {
+    signIn('OctoCat');
+    upstream(200, { status: 'removed', login: 'OctoCat', profile: true });
+    collections.accounts.deleteMany.mockRejectedValueOnce(new Error('down'));
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const response = await post({ confirm: 'OctoCat' });
+      expect(response.status).toBe(200);
+      expect(revalidateTag).toHaveBeenCalledWith('profile:OctoCat', { expire: 0 });
+    } finally {
+      error.mockRestore();
+    }
   });
 
   it('keeps the sign-in when the API refused the removal', async () => {

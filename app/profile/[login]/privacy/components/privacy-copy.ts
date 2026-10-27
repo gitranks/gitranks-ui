@@ -16,9 +16,12 @@ export const PRIVACY_COPY = {
   confirmButton: 'Remove everything',
   removing: 'Removing…',
   cancel: 'Cancel',
-  failed: 'The removal failed. Nothing is lost; please try again in a minute.',
+  failed: 'The removal didn’t finish. Please try again in a minute.',
   removedTitle: 'Your GitRanks data was removed',
   removedText: 'GitRanks won’t list your account again. To be listed again, write to us.',
+  /** A removed account signed in again: that new sign-in can go too. */
+  signInAgain: 'Signing in again kept your sign-in. Removing it deletes it and signs you out.',
+  removeSignIn: 'Remove my sign-in',
   signedOut: 'Sign in with GitHub to manage the data GitRanks holds about your account.',
   notOwner: (login: string) => `Only @${login} can manage this data. Sign in as them to do it.`,
   emailNote: 'Can’t sign in? Write to us from the email address your GitHub profile shows publicly.',

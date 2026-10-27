@@ -14,7 +14,7 @@ export const metadata: Metadata = pageMetadata({
 /*
  * The Privacy policy. Short on purpose: the information GDPR Articles 13 and 14 require, and no promise the law
  * doesn't. Retention is stated by criteria (Art. 13(2)(a) allows it), not periods. The Privacy tab and its removal
- * dialog link to #removal: keep that anchor. It covers GitRanks only. lib/legal.ts lists the open points for a lawyer.
+ * dialog link to #removal: keep that anchor. It covers GitRanks only. Have a lawyer review it.
  */
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
@@ -96,7 +96,8 @@ const sections: LegalSection[] = [
       <List>
         <li>
           <B>Sign in with GitHub</B>: we receive your GitHub username, account id, name, email address and avatar link.
-          The basic sign-in gives us no access to your GitHub account.
+          The basic sign-in lets us read your profile and email address when you sign in; we don&apos;t keep the access
+          it grants.
         </li>
         <li>
           <B>Sign in with your own token</B>: if you choose it, GitHub gives us a token that can act on your behalf. We
@@ -125,11 +126,12 @@ const sections: LegalSection[] = [
         </li>
         <li>
           <B>Analytics</B>: Google Analytics counts visits and how pages are used, with cookies (see{' '}
-          <A href="#cookies">Cookies</A>).
+          <A href="#cookies">Cookies</A>). Basis: legitimate interests, in knowing how the site is used.
         </li>
         <li>
           <B>Links in our posts</B>: when you open GitRanks from a link in one of our social posts, we count the click
-          with your IP address, browser and the page you came from, to measure which posts work.
+          with your IP address, browser and the page you came from. Basis: legitimate interests, in knowing which posts
+          work.
         </li>
       </List>
     ),
@@ -165,10 +167,9 @@ const sections: LegalSection[] = [
     title: 'International transfers',
     body: (
       <P>
-        Our servers are in the EU (Finland). The operator works from Ukraine, which has no EU or UK adequacy decision.
-        Some providers are in the United States. For them we rely on the EU-US Data Privacy Framework (and its UK
-        extension) where the provider is certified, and otherwise on standard contractual clauses. Write to {mail} for a
-        copy.
+        Our servers are in the EU (Finland), and GitRanks is run from Ukraine. Some providers are in the United States.
+        For them we rely on the EU-US Data Privacy Framework (and its UK extension) where the provider is certified, and
+        otherwise on standard contractual clauses. Write to {mail} for a copy.
       </P>
     ),
   },
@@ -185,6 +186,10 @@ const sections: LegalSection[] = [
           or you sign out.
         </li>
         <li>Logs and security data: deleted automatically after a fixed rotation period.</li>
+        <li>
+          Analytics: as set in our Google Analytics settings. Clicks on links in our posts: until the statistics about
+          those posts no longer need them.
+        </li>
         <li>
           Backups: deleted automatically at the end of a fixed rotation. Removed data leaves the backups when the last
           backup holding it is deleted.
@@ -210,8 +215,8 @@ const sections: LegalSection[] = [
           </li>
           <li>
             <B>By email</B>: write to {mail} from the email address your GitHub profile shows publicly, and include your
-            GitHub username. We remove the data once the two addresses match. If your GitHub email is hidden, sign in
-            and use the Privacy tab instead.
+            GitHub username. We remove the data once we&apos;ve confirmed the request comes from that address. If your
+            GitHub email is hidden, sign in and use the Privacy tab instead.
           </li>
         </List>
         <P>
@@ -263,12 +268,11 @@ const sections: LegalSection[] = [
     body: (
       <List>
         <li>
-          <B>Needed for the site</B>: the sign-in session, short-lived security cookies during sign-in, and
-          Cloudflare&apos;s security cookies.
+          <B>Needed for the site</B>: the sign-in session, a cookie that tells the page you&apos;re signed in,
+          short-lived security cookies during sign-in, and Cloudflare&apos;s security cookies.
         </li>
         <li>
-          <B>Analytics</B>: Google Analytics cookies, which tell repeat visits apart. Google processes this data under
-          its own privacy policy.
+          <B>Analytics</B>: Google Analytics cookies, which tell repeat visits apart.
         </li>
         <li>
           <B>In your browser only</B>: your theme, and which post links have already been counted in this tab.

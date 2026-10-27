@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildRepoSEO, isRepoRanked } from './seo';
+import { buildRepoSEO, isRepoIndexed, isRepoRanked } from './seo';
 
 // The site origin is read once, when the module loads.
 vi.hoisted(() => {
@@ -69,10 +69,20 @@ describe('buildRepoSEO', () => {
   });
 
   it('keeps a repository under the rank threshold out of the index', () => {
-    const { metadata } = buildRepoSEO(repo({ stars: 99, gainedThisMonth: -2, rank: null }));
+    const { metadata } = buildRepoSEO(repo({ stars: 4, gainedThisMonth: -2, rank: null }));
 
     expect(metadata.robots).toEqual({ index: false });
-    expect(metadata.description).toBe('99 stars. JavaScript. The React Framework');
+    expect(metadata.description).toBe('4 stars. JavaScript. The React Framework');
+  });
+
+  it('shows the ranks of a ranked repository under 100 stars but keeps its thin page out of the index', () => {
+    const small = repo({ stars: 99, gainedThisMonth: null });
+
+    expect(isRepoRanked(small)).toBe(true);
+    expect(isRepoIndexed(small)).toBe(false);
+    expect(buildRepoSEO(small).metadata.robots).toEqual({ index: false });
+    expect(buildRepoSEO(small).metadata.description).toMatch(/^Global rank: /);
+    expect(isRepoIndexed(repo({ stars: 100 }))).toBe(true);
   });
 
   it('keeps an unranked repository out of the index', () => {
@@ -81,9 +91,9 @@ describe('buildRepoSEO', () => {
   });
 
   it('shows no rank for a repository that fell under the threshold', () => {
-    expect(isRepoRanked(repo({ stars: 98 }))).toBe(false);
-    expect(buildRepoSEO(repo({ stars: 98 })).metadata.description).toBe(
-      '98 stars, +1.3K this month. JavaScript. The React Framework',
+    expect(isRepoRanked(repo({ stars: 4 }))).toBe(false);
+    expect(buildRepoSEO(repo({ stars: 4 })).metadata.description).toBe(
+      '4 stars, +1.3K this month. JavaScript. The React Framework',
     );
   });
 

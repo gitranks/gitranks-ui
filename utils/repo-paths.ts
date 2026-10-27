@@ -1,7 +1,7 @@
 import type { Route } from 'next';
 
 import { ITEMS_PER_PAGE } from '@/app/app.consts';
-import { isRepoSlug } from '@/lib/routing/ranking-routes';
+import { isRepoSlug, RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 
 const decode = (value: string) => {
   try {
@@ -44,9 +44,13 @@ export function getRepoLanguageRankingPath(language: string | null | undefined, 
   return (language ? `/repos/language/${encodeURIComponent(language)}/${page}` : `/repos/no-language/${page}`) as Route;
 }
 
-/** The ranking page a rank is listed on. */
+/**
+ * The repository ranking page a rank is listed on; the first page when the rank is past the pages the rankings list
+ * (`RANKING_MAX_PAGE.repo`), which answer 404.
+ */
 export function getRankingPageOf(rank: number) {
-  return Math.ceil(rank / ITEMS_PER_PAGE);
+  const page = Math.ceil(rank / ITEMS_PER_PAGE);
+  return page <= RANKING_MAX_PAGE.repo ? page : 1;
 }
 
 /** One cache tag per repository, whatever the spelling in the URL. */

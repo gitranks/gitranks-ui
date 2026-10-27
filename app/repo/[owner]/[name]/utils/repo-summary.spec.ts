@@ -70,8 +70,8 @@ describe('buildRepoSummary', () => {
   });
 
   it('says a repository past the threshold joins the rankings at their next update', () => {
-    expect(text({ stars: 100, rank: null })).toMatch(
-      /^vercel\/next\.js has 100 stars and is not ranked yet: it joins the rankings at their next update\. /,
+    expect(text({ stars: 5, rank: null })).toMatch(
+      /^vercel\/next\.js has 5 stars and is not ranked yet: it joins the rankings at their next update\. /,
     );
   });
 
@@ -81,7 +81,7 @@ describe('buildRepoSummary', () => {
         owner: 'octocat',
         nameWithOwner: 'octocat/tiny',
         language: 'Go',
-        stars: 42,
+        stars: 4,
         gainedThisMonth: -1,
         isInOrganization: false,
         isArchived: true,
@@ -89,7 +89,7 @@ describe('buildRepoSummary', () => {
         updatedAt: null,
       }),
     ).toBe(
-      'octocat/tiny has 42 stars and is not ranked: repositories are ranked from 100 stars. ' +
+      'octocat/tiny has 4 stars and is not ranked: repositories are ranked from 5 stars. ' +
         'It lost 1 star this month. It belongs to octocat. ' +
         'Its main language is Go. It was created on October 5, 2016. It is archived.',
     );

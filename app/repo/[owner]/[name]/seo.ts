@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { REPO_MIN_RANK_STARS } from '@/app/app.consts';
+import { REPO_INDEX_MIN_STARS, REPO_MIN_RANK_STARS } from '@/app/app.consts';
 import { clipText } from '@/lib/seo/clip-text';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
@@ -25,9 +25,14 @@ type Repo = Pick<
   | 'rank'
 >;
 
-/** A repository's ranks are shown, and its page indexed, from `REPO_MIN_RANK_STARS` and once ranked. */
+/** A repository's ranks are shown from `REPO_MIN_RANK_STARS` and once ranked. */
 export function isRepoRanked(repo: Pick<Repo, 'stars' | 'rank'>): boolean {
   return repo.stars >= REPO_MIN_RANK_STARS && !!repo.rank?.s;
+}
+
+/** A ranked repository's page is indexed from `REPO_INDEX_MIN_STARS`; below, it is a thin page. */
+export function isRepoIndexed(repo: Pick<Repo, 'stars' | 'rank'>): boolean {
+  return isRepoRanked(repo) && repo.stars >= REPO_INDEX_MIN_STARS;
 }
 
 /** The language a rank is in: its name, or the ranking of repositories without one. */
@@ -136,8 +141,8 @@ export function buildRepoSEO(repo: Repo): { metadata: Metadata; jsonLd: object[]
   return {
     metadata: {
       ...metadata,
-      // Only ranked repositories are indexed; the rest are thin pages until they join the rankings.
-      robots: ranked
+      // Only ranked repositories of `REPO_INDEX_MIN_STARS`+ stars are indexed; the rest are thin pages.
+      robots: isRepoIndexed(repo)
         ? { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 }
         : { index: false },
     },

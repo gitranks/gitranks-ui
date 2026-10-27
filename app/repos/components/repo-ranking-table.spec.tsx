@@ -39,6 +39,13 @@ describe('RepoRankingTable', () => {
     expect(html).not.toContain('Galaxy 1');
   });
 
+  it('shows the tier in its column only, with no badge on the owner avatar', () => {
+    const html = renderToStaticMarkup(<RepoRankingTable data={[row({ tier: 7, level: 5 }, null)]} />);
+
+    expect(html).not.toContain('aria-label="Supernova 5"');
+    expect(html).not.toContain('ring-background');
+  });
+
   it('leaves the tier out of a row without one', () => {
     const html = renderToStaticMarkup(<RepoRankingTable data={[row(null, null)]} />);
 

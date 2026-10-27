@@ -111,7 +111,9 @@ describe('ContributorsTableView', () => {
     const html = render({ ...live, items: [readmeOnly, ...live.items], visible: live.visible + 1 });
 
     expect(html).toMatch(/<td><span class="text-muted-foreground" title="No counted lines[^"]*">—<\/span><\/td>/);
-    expect(html).toContain("— No counted lines: files over 100 KB, binary, vendored, generated and lock files aren't counted.");
+    expect(html).toContain(
+      "— No counted lines: files over 100 KB, binary, vendored, generated and lock files aren't counted.",
+    );
   });
 
   it('keeps 0 lines and adds no note when every listed contributor has counted lines', () => {

@@ -19,7 +19,7 @@ type RepositoryCardProps = {
   meta?: ReactNode;
   className?: string;
   type?: 'contribution' | 'repository';
-  /** Where the title links to for a contribution; a repository links to itself. */
+  /** Where the title links to for a contribution without a repository page here. */
   contributionUrl?: string;
 };
 
@@ -37,9 +37,10 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({
   const { name, url, pushedAt, createdAt, stargazerCount, forkCount, releasesCount, isArchived, rank } = repository;
 
   const title = type === 'repository' ? name : getRepoName({ name: name ?? '', url });
-  // An own repository opens its page here once it has one; below that, and for a contribution, GitHub.
+  // A repository, own or contributed to, opens its page here once it has one; below that, GitHub (a contribution
+  // its pull requests there).
   const repoPath = stargazerCount >= REPO_PAGE_MIN_STARS ? getRepoPath(getRepoName({ name: name ?? '', url })) : null;
-  const titleUrl = type === 'repository' ? (repoPath ?? url) : (contributionUrl ?? url);
+  const titleUrl = repoPath ?? (type === 'contribution' ? (contributionUrl ?? url) : url);
   const isExternal = titleUrl !== repoPath;
 
   const getMeta = () => {

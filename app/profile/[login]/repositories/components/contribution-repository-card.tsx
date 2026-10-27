@@ -47,22 +47,32 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
     return null;
   }
 
+  const contributionUrl = getContributionPrsUrl({ url: repository.url, login, year });
+
   return (
     <RepositoryCard
       type="contribution"
       repository={repository}
       meta={
-        <Badge variant="secondary" className="font-mono tabular-nums">
-          {badgeLabel}{' '}
-          {showLinesChanged && (
-            <>
-              <span className="text-positive">+{linesAdded?.toLocaleString('en-US')}</span>
-              <span className="text-negative">-{linesRemoved?.toLocaleString('en-US')}</span>
-            </>
-          )}
+        <Badge variant="secondary" className="font-mono tabular-nums" asChild>
+          <a
+            href={contributionUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="These pull requests on GitHub"
+            className="hover:underline"
+          >
+            {badgeLabel}{' '}
+            {showLinesChanged && (
+              <>
+                <span className="text-positive">+{linesAdded?.toLocaleString('en-US')}</span>
+                <span className="text-negative">-{linesRemoved?.toLocaleString('en-US')}</span>
+              </>
+            )}
+          </a>
         </Badge>
       }
-      contributionUrl={getContributionPrsUrl({ url: repository.url, login, year })}
+      contributionUrl={contributionUrl}
       className="px-0 py-3"
     />
   );

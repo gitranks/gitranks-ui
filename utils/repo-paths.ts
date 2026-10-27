@@ -25,6 +25,16 @@ export function getRepoPath(nameWithOwner: string) {
   return `/repo/${encodeURIComponent(owner)}/${encodeURIComponent(name)}` as Route;
 }
 
+/** The owner's page here: an organization's or a user's; unknown when the API does not say which it is. */
+export function getRepoOwnerPath(owner: string, isInOrganization?: boolean | null): Route | undefined {
+  if (isInOrganization === true) {
+    return `/org/${owner}` as Route;
+  }
+  if (isInOrganization === false) {
+    return `/profile/${owner}` as Route;
+  }
+}
+
 export function getRepoRankingPath(page: number | string = 1) {
   return `/repos/${page}` as Route;
 }

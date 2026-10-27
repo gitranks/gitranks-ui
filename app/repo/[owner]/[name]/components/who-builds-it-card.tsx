@@ -149,10 +149,15 @@ const BuiltByView: FC<{ nameWithOwner: string; builtBy: BuiltBy }> = ({ nameWith
           <li key={login ?? at} className="-ml-1.5">
             {login ? (
               <Link href={`/profile/${login}`} prefetch={false} title={`${login} · ${tierLabel({ tier, level })}`}>
-                <TierAvatar url={avatarUrl} label={`${login}, ${tierLabel({ tier, level })}`} tier={tier} />
+                <TierAvatar
+                  url={avatarUrl}
+                  label={`${login}, ${tierLabel({ tier, level })}`}
+                  tier={tier}
+                  badge={false}
+                />
               </Link>
             ) : (
-              <TierAvatar url={avatarUrl} label={tierLabel({ tier, level })} tier={tier} />
+              <TierAvatar url={avatarUrl} label={tierLabel({ tier, level })} tier={tier} badge={false} />
             )}
           </li>
         ))}

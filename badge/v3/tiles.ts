@@ -141,11 +141,20 @@ export function resolveChoice(
   }
 }
 
-/** The choices that are available for the entity: the ones a page may show. */
+/**
+ * Badges a page leaves out although the builder offers them: star history draws a "preparing" image without a history,
+ * fine in a README that waits for it but empty on a page.
+ */
+const pageShows = (entity: EntityFacts, { id }: BadgeChoice) =>
+  !(entity.kind === 'repo' && id === 'star-history' && !entity.history);
+
+/** The choices that are available for the entity and that a page shows. */
 export function availableChoices(entity: EntityFacts, choices: BadgeChoice[], now = new Date()): BadgeChoice[] {
   return choices.filter((choice) => {
     const resolved = resolveChoice(entity, choice);
-    return !!resolved && availabilityOf(entity, choice.id, resolved.params, now) === 'available';
+    return (
+      !!resolved && availabilityOf(entity, choice.id, resolved.params, now) === 'available' && pageShows(entity, choice)
+    );
   });
 }
 

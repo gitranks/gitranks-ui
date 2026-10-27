@@ -100,16 +100,8 @@ export function promotionSetFor(kind: EntityFacts['kind'], stars: number): Promo
 
 export const promotionSetOf = (entity: EntityFacts): PromotionSet => promotionSetFor(entity.kind, sizeOf(entity));
 
-/**
- * Badges a page leaves out although the builder offers them: star history draws a "preparing" image without a history,
- * fine in a README that waits for it but empty on a page.
- */
-function pageShows(entity: EntityFacts, { id }: PromotedBadge): boolean {
-  return !(entity.kind === 'repo' && id === 'star-history' && !entity.history);
-}
-
 /** The bucket's shields, then its cards and charts, keeping the ones available for the entity. */
 export function promotedBadges(entity: EntityFacts, now = new Date()): PromotedBadge[] {
   const { shields, panels } = promotionSetOf(entity);
-  return availableChoices(entity, [...shields, ...panels], now).filter((promoted) => pageShows(entity, promoted));
+  return availableChoices(entity, [...shields, ...panels], now);
 }

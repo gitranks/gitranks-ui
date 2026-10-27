@@ -13,8 +13,10 @@ export const MIN_PROFILES_THRESHOLD = 100;
 
 export const ITEMS_PER_PAGE = 100;
 
-/** A repository is ranked from this many stars. */
-export const REPO_MIN_RANK_STARS = 100;
+/** A repository is ranked, and shows its ranks and tier, from this many stars (as developers). */
+export const REPO_MIN_RANK_STARS = 5;
+/** A ranked repository's page is indexed by search engines from this many stars; below, it is a thin page. */
+export const REPO_INDEX_MIN_STARS = 100;
 /** A repository has a page from this many stars. */
 export const REPO_PAGE_MIN_STARS = 5;
 /** A repository has code and contributor analytics from this many stars. */

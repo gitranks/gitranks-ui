@@ -14,7 +14,7 @@ import { tierTextClass } from '@/components/tier-chip/tier-chip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Repository } from '@/types/generated/graphql';
-import { getRankingPageOf, getRepoPath, getRepoRankingPath } from '@/utils/repo-paths';
+import { getRankingPageOf, getRepoPath, getRepoRankingPath, isRankListed } from '@/utils/repo-paths';
 import { getRepoName } from '@/utils/repositories';
 
 type RepositoryCardProps = {
@@ -23,6 +23,18 @@ type RepositoryCardProps = {
   className?: string;
   type?: 'contribution' | 'repository';
 };
+
+/** A link when there is somewhere to go, else the same content as plain text. */
+const MaybeLink: FC<{ href: string | null; title: string; children: ReactNode }> = ({ href, title, children }) =>
+  href ? (
+    <Link href={href as Route} prefetch={false} className="flex gap-1 items-center hover:underline" title={title}>
+      {children}
+    </Link>
+  ) : (
+    <span className="flex gap-1 items-center" title={title}>
+      {children}
+    </span>
+  );
 
 export const RepositoryCard: FC<RepositoryCardProps> = ({ repository, meta, className, type = 'repository' }) => {
   if (!repository) {
@@ -70,10 +82,9 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({ repository, meta, clas
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {type === 'contribution' && <RepositoryTopLanguage languages={repository.languages} />}
             {!!rank?.s && (
-              <Link
-                href={getRepoRankingPath(getRankingPageOf(rank.s))}
-                prefetch={false}
-                className="flex gap-1 items-center hover:underline"
+              // A rank past the listed pages is shown, not linked: page 1 is not where this repository is.
+              <MaybeLink
+                href={isRankListed(rank.s) ? getRepoRankingPath(getRankingPageOf(rank.s)) : null}
                 title={rank.tier ? `${repoTierLabel(rank.tier)} · global repository rank` : 'Global repository rank'}
               >
                 {rank.tier ? (
@@ -85,7 +96,7 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({ repository, meta, clas
                   {rank.tier ? `${repoTierLabel(rank.tier)}, ` : ''}Global repository rank:
                 </span>
                 <span className="font-mono tabular-nums">#{rank.s.toLocaleString('en-US')}</span>
-              </Link>
+              </MaybeLink>
             )}
             <RepositoryDetail Icon={Star} value={stargazerCount} label="Stars" />
             <RepositoryDetail Icon={Split} value={forkCount ?? 0} label="Forks" />

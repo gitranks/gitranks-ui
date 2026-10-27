@@ -3,10 +3,11 @@ import Link from 'next/link';
 import type { FC } from 'react';
 
 import { formatFull, GithubAvatar, LandingSection } from './landing-ui';
-import { REPO_LANGUAGES_LINK } from '@/app/repos/components/repo-ranking-header';
+import { ALL_REPOS_LINK, REPO_LANGUAGES_LINK } from '@/app/repos/components/repo-ranking-header';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { cn } from '@/lib/utils';
 import type { RepoRankingsQuery } from '@/types/generated/graphql';
-import { getRepoPath, getRepoRankingPath } from '@/utils/repo-paths';
+import { getRepoPath } from '@/utils/repo-paths';
 
 type RepoRow = RepoRankingsQuery['repoRankings'][number];
 type RankedRepo = RepoRow & { s: number; repo: NonNullable<RepoRow['repo']> };
@@ -35,6 +36,8 @@ const RepoName: FC<{ repo: RankedRepo['repo']; size: number }> = ({ repo, size }
   <Link
     href={getRepoPath(repo.nameWithOwner)}
     prefetch={false}
+    // Long names are cut on phones; the tooltip keeps them readable.
+    title={repo.nameWithOwner}
     className="flex min-w-0 items-center gap-2 font-medium hover:underline"
   >
     <GithubAvatar url={repo.ownerAvatarUrl} size={size} className="rounded-md" />
@@ -56,6 +59,8 @@ export const ReposSection: FC<{ rows: RepoRow[] }> = ({ rows }) => {
   }
 
   const rising = risingRepos(ranked);
+  // The rank of the last row read, not the row count: a row without its repository still holds a place.
+  const coveredRanks = ranked[ranked.length - 1].s;
   const maxGain = rising[0]?.repo.gainedThisMonth ?? 1;
 
   return (
@@ -66,8 +71,8 @@ export const ReposSection: FC<{ rows: RepoRow[] }> = ({ rows }) => {
       intro="The projects with the most stars on GitHub, and the ones gaining stars fastest this month."
       action={
         <span className="flex flex-wrap gap-x-4 gap-y-1">
-          <Link href={getRepoRankingPath(1)} prefetch={false} className="text-link underline">
-            All repositories
+          <Link href={ALL_REPOS_LINK.href as Route} prefetch={false} className="text-link underline">
+            {ALL_REPOS_LINK.label}
           </Link>
           <Link href={REPO_LANGUAGES_LINK.href as Route} prefetch={false} className="text-link underline">
             {REPO_LANGUAGES_LINK.label}
@@ -75,13 +80,14 @@ export const ReposSection: FC<{ rows: RepoRow[] }> = ({ rows }) => {
         </span>
       }
     >
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <div className={cn('grid items-start gap-6', rising.length > 0 && 'lg:grid-cols-2')}>
         <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <table className="w-full text-sm">
             <thead className="text-xs text-muted-foreground">
               <tr className="border-b">
                 <th scope="col" className="w-px px-4 py-2 text-left font-medium">
-                  #
+                  <span aria-hidden="true">#</span>
+                  <span className="sr-only">Rank</span>
                 </th>
                 <th scope="col" className="px-2 py-2 text-left font-medium">
                   Repository
@@ -93,7 +99,7 @@ export const ReposSection: FC<{ rows: RepoRow[] }> = ({ rows }) => {
                   scope="col"
                   className="hidden w-px px-4 py-2 text-right font-medium whitespace-nowrap sm:table-cell"
                 >
-                  This month
+                  This month<span className="sr-only">: stars gained</span>
                 </th>
               </tr>
             </thead>
@@ -102,7 +108,7 @@ export const ReposSection: FC<{ rows: RepoRow[] }> = ({ rows }) => {
                 <tr
                   key={row.githubId}
                   // Phones see the top 5.
-                  className={`border-b last:border-0 hover:bg-accent/60 ${index >= 5 ? 'hidden sm:table-row' : ''}`}
+                  className={cn('border-b last:border-0 hover:bg-accent/60', index >= 5 && 'hidden sm:table-row')}
                 >
                   <td className="px-4 py-2.5 font-mono whitespace-nowrap tabular-nums">
                     {row.s} <RankDelta current={row.s} previous={row.sM} className="ml-1 font-mono" />
@@ -124,9 +130,7 @@ export const ReposSection: FC<{ rows: RepoRow[] }> = ({ rows }) => {
           <div className="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm md:p-6">
             <div className="flex flex-col gap-0.5">
               <h3 className="font-semibold">Rising this month</h3>
-              <p className="text-xs text-muted-foreground">
-                Most stars gained this month among the top {ranked.length}
-              </p>
+              <p className="text-xs text-muted-foreground">Most stars gained this month among the top {coveredRanks}</p>
             </div>
             <ol className="flex flex-col gap-3 text-sm">
               {rising.map((row) => (

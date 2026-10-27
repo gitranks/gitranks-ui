@@ -45,11 +45,19 @@ describe('ReposSection', () => {
     expect(html).toContain('among the top 30');
   });
 
-  it('leaves out the rising card when nothing gained stars this month', () => {
+  it('leaves out the rising card, and its column, when nothing gained stars this month', () => {
     const html = render([row(1, 0), row(2, null), row(3, -4)]);
 
     expect(html).toContain('owner-1/repo-1');
     expect(html).not.toContain('Rising this month');
+    expect(html).not.toContain('lg:grid-cols-2');
+  });
+
+  it('names the ranks the rising card covers, rows without a repository included', () => {
+    const rows = Array.from({ length: 30 }, (_, i) => row(i + 1, 10));
+    rows[12] = { ...rows[12], repo: null };
+
+    expect(render(rows)).toContain('among the top 30');
   });
 });
 

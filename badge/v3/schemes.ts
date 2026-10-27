@@ -123,7 +123,7 @@ export type ShieldPalette = {
   /** Where tones are taken from: the value's ground. */
   ground: Ground;
   mark: MarkColors;
-  /** A 1px line around the shield, for the Auto drawings. */
+  /** A 1px line inside the shield's edge: Auto's hairline, Night's light edge. */
   hairline?: string;
 };
 
@@ -153,9 +153,13 @@ function customPalette(left: string, right: string, leftText: string, rightText:
   };
 }
 
+/** Night's near-black would vanish into a dark page (GitHub's #0d1117): a faint light edge keeps its outline. */
+export const NIGHT_EDGE = 'rgba(255, 255, 255, 0.18)';
+
 export function presetPalette(preset: Preset): ShieldPalette {
   const { left, right, leftText, rightText, extra } = PRESETS[preset];
-  return customPalette(left, right, leftText, rightText, extra ?? mix(right, rightText, 0.08));
+  const palette = customPalette(left, right, leftText, rightText, extra ?? mix(right, rightText, 0.08));
+  return preset === 'night' ? { ...palette, hairline: NIGHT_EDGE } : palette;
 }
 
 /** Two picked colours: each side's text by contrast, the extra the right colour shifted 8% towards its text. */

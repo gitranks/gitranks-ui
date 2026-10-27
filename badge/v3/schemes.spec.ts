@@ -6,6 +6,7 @@ import {
   MARK_DEEP,
   MARK_VIOLET,
   MARK_WHITE,
+  NIGHT_EDGE,
   markOn,
   mix,
   pickedPalette,
@@ -44,6 +45,15 @@ describe('presets', () => {
     expect(night.extra).toEqual({ background: '#3f3f46', text: '#d4d4d8' });
     expect(night.mark).toEqual(MARK_VIOLET);
     expect(night.ground).toBe('dark');
+  });
+
+  it('edges Night alone in faint white, so it holds on a dark page', () => {
+    expect(presetPalette('night').hairline).toBe(NIGHT_EDGE);
+    expect(NIGHT_EDGE).toBe('rgba(255, 255, 255, 0.18)');
+    expect(presetPalette('classic').hairline).toBeUndefined();
+    expect(presetPalette('violet').hairline).toBeUndefined();
+    expect(pickedPalette('#18181b', '#27272a').hairline).toBeUndefined();
+    expect(TINT_SHIELD.hairline).toBeUndefined();
   });
 
   it("Classic: today's colours with white text, the extra 8% towards it, and the white mark", () => {

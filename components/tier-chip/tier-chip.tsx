@@ -28,6 +28,20 @@ const TIER_CHIP_CLASSES = [
   'bg-tier-7/15 text-tier-7',
 ];
 
+// Literal class names so Tailwind generates them: tier text strong enough for 12px on a light fill of its colour.
+const TIER_STRONG_TEXT_CLASSES = [
+  'text-tier-1-strong',
+  'text-tier-2-strong',
+  'text-tier-3-strong',
+  'text-tier-4-strong',
+  'text-tier-5-strong',
+  'text-tier-6-strong',
+  'text-tier-7-strong',
+];
+
+/** The tier's text colour for small text on a tinted surface (a chip's fill, a tier-tinted card). */
+export const tierStrongTextClass = (tier: number) => TIER_STRONG_TEXT_CLASSES[tier - 1];
+
 /** The tier's chip classes: text in the tier colour on a 15% fill of it. */
 export const tierChipClass = (tier: number) => TIER_CHIP_CLASSES[tier - 1];
 

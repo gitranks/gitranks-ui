@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { type FC, useState } from 'react';
 
@@ -12,6 +11,7 @@ import {
   shareWords,
   WHO_BUILDS_IT_MIN_STARS,
 } from '../utils/who-builds-it';
+import { TIER_BG, TierAvatar } from './tier-avatar';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { tierLabel } from '@/components/tier-chip/tier-chip';
 import { cn } from '@/lib/utils';
@@ -30,17 +30,6 @@ type WhoBuildsItCardProps = {
   builtBy?: BuiltBy | null;
 };
 
-// Literal class names so Tailwind generates them: the developer tier colours (tier-1 … tier-7).
-const TIER_BG = ['bg-tier-1', 'bg-tier-2', 'bg-tier-3', 'bg-tier-4', 'bg-tier-5', 'bg-tier-6', 'bg-tier-7'];
-const TIER_RING = [
-  'ring-tier-1',
-  'ring-tier-2',
-  'ring-tier-3',
-  'ring-tier-4',
-  'ring-tier-5',
-  'ring-tier-6',
-  'ring-tier-7',
-];
 // Where the siblings sit around the repository in the graph (percent of the box), the closest first.
 const SPOTS = [
   { x: 14, y: 18, align: 'items-start' },
@@ -160,10 +149,10 @@ const BuiltByView: FC<{ nameWithOwner: string; builtBy: BuiltBy }> = ({ nameWith
           <li key={login ?? at} className="-ml-1.5">
             {login ? (
               <Link href={`/profile/${login}`} prefetch={false} title={`${login} · ${tierLabel({ tier, level })}`}>
-                <Avatar url={avatarUrl} label={`${login}, ${tierLabel({ tier, level })}`} tier={tier} />
+                <TierAvatar url={avatarUrl} label={`${login}, ${tierLabel({ tier, level })}`} tier={tier} />
               </Link>
             ) : (
-              <Avatar url={avatarUrl} label={tierLabel({ tier, level })} tier={tier} />
+              <TierAvatar url={avatarUrl} label={tierLabel({ tier, level })} tier={tier} />
             )}
           </li>
         ))}
@@ -172,23 +161,6 @@ const BuiltByView: FC<{ nameWithOwner: string; builtBy: BuiltBy }> = ({ nameWith
     </>
   );
 };
-
-const Avatar: FC<{ url?: string | null; label: string; tier: number }> = ({ url, label, tier }) =>
-  url ? (
-    <Image
-      src={`${url}${url.includes('?') ? '&' : '?'}s=64`}
-      alt={label}
-      width={32}
-      height={32}
-      className={cn('size-8 rounded-full ring-2 ring-offset-2 ring-offset-card', TIER_RING[tier - 1])}
-    />
-  ) : (
-    <span
-      role="img"
-      aria-label={label}
-      className={cn('block size-8 rounded-full bg-muted ring-2 ring-offset-2 ring-offset-card', TIER_RING[tier - 1])}
-    />
-  );
 
 /**
  * Who builds it: the repositories sharing the most active contributors with this one (Siblings), and the developer

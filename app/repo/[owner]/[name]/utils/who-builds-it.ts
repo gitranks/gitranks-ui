@@ -24,6 +24,9 @@ export function shareWords(share: number): string {
 const plural = (count: number, name: string) =>
   `${count.toLocaleString('en-US')} ${name}${count === 1 || name === 'Advanced' ? '' : 's'}`;
 
+/** "11 Elites", "1 Legend": a count of developers of one tier. */
+export const tierCountText = (count: number, tier: number) => plural(count, TIER_NAMES[tier - 1]);
+
 /** "4 Legends, 11 Elites and 38 Masters": the three highest developer tiers present, highest first. */
 export function builtByTiersText(counts: { tier: number; count: number }[]): string {
   const parts = [...counts]

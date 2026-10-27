@@ -10,6 +10,7 @@ import { RepoRankCard } from './components/repo-rank-card';
 import { RepoTierCard } from './components/repo-tier-card';
 import { StarHistoryBadgeSection } from './components/star-history-badge-section';
 import { StarHistorySection } from './components/star-history-section';
+import { StarsBestSection } from './components/stars-best-section';
 import { WhoBuildsItCard } from './components/who-builds-it-card';
 import { buildRepoSEO, isRepoRanked } from './seo';
 import { buildRepoSummary } from './utils/repo-summary';
@@ -158,6 +159,7 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
               builtBy={repo.builtBy}
             />
           </ProfileCardsGrid>
+          <StarsBestSection starsBest={repo.starsBest} repoTier={rank?.tier?.tier} />
           <ProfileSummary parts={summary} />
         </div>
         <StarHistorySection repo={repo} />

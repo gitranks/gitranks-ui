@@ -61,5 +61,19 @@ query PageRepo($owner: String!, $name: String!) {
         level
       }
     }
+    starsBest {
+      total
+      counts {
+        tier
+        count
+      }
+      top {
+        login
+        avatarUrl
+        tier
+        level
+      }
+      legendRatio
+    }
   }
 }

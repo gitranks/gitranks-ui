@@ -62,13 +62,15 @@ export const ProfileCardActions: FC<ProfileCardActionsProps> = ({ children, clas
 };
 
 /** A link to the full view of what a card or section shows: "All languages →". */
-export const MoreLink: FC<{ href: string; children: ReactNode; className?: string }> = ({
+export const MoreLink: FC<{ href: string; children: ReactNode; className?: string; rel?: string }> = ({
   href,
   children,
   className,
+  rel,
 }) => (
   <Link
     href={href}
+    rel={rel}
     className={cn('inline-flex items-center gap-1 text-sm font-medium no-underline hover:underline', className)}
   >
     {children}

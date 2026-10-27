@@ -1,6 +1,7 @@
 'use client';
 
 import { CopyIcon } from 'lucide-react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { type FC, useEffect, useState } from 'react';
@@ -55,6 +56,12 @@ const RankFacts: FC<{ entry: RankCardEntry; ranking: RankingKey }> = ({ entry, r
     </div>
   );
 };
+
+const BUILDER_BY: Record<RankingKey, string> = { s: '', c: '&by=contributions', f: '&by=followers' };
+
+/** The builder's Style step for this rank badge. */
+const builderHref = (login: string, ranking: RankingKey) =>
+  `/badge/builder?user=${encodeURIComponent(login)}&badge=rank${BUILDER_BY[ranking]}` as Route;
 
 const copyBadge = async (login: string, ranking: RankingKey) => {
   const origin = window.location.origin;
@@ -174,7 +181,7 @@ const YourRankCard: FC<{ login: string }> = ({ login }) => {
               Copy badge
             </Button>
             <Button size="sm" variant="outline" asChild>
-              <Link href={`/badge/builder/${card.login}`} prefetch={false}>
+              <Link href={builderHref(card.login, ranking)} prefetch={false}>
                 Customize
               </Link>
             </Button>

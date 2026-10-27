@@ -40,7 +40,7 @@ export const BadgeSnippet = ({ origin }: { origin: string }) => {
           Copy badge
         </Button>
         <Link
-          href={(own ? `/badge/builder/${login}` : '/badge/builder') as Route}
+          href={(own ? `/badge/builder?user=${encodeURIComponent(login)}` : '/badge/builder?user=') as Route}
           prefetch={false}
           className="text-sm text-link underline"
         >

@@ -30,7 +30,7 @@ type ProfileBadgesSectionProps = {
 export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login, scores, ranks }) => {
   // Badges exist only for the rankings this profile is in; the rest would be broken images.
   const columns = BADGE_COLUMNS.filter(([rankVariant]) => isCanonicalBadgeAvailable(rankVariant, scores, ranks));
-  const builderHref = `/badge/builder/${encodeURIComponent(login)}` as Route;
+  const builderHref = `/badge/builder?user=${encodeURIComponent(login)}` as Route;
 
   const copySvgUrl = async (variant: CanonicalBadgeVariant) => {
     const url = getCanonicalBadgeUrl(login, variant, 'svg', window.location.origin);
@@ -65,7 +65,7 @@ export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login, sco
             URL.
           </p>
         </div>
-        <MoreLink href={builderHref} className="shrink-0">
+        <MoreLink href={builderHref} rel="nofollow" className="shrink-0">
           Customize in badge builder
         </MoreLink>
       </div>

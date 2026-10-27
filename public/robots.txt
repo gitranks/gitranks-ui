@@ -1,5 +1,9 @@
-# `/badge/builder/` blocks only the thin per-login builder pages;
-# the bare `/badge/builder` and `/badge/gallery` stay crawlable.
+# `/badge/builder/` and `/badge/builder?` block the old per-login builder pages and
+# every builder state (an entity, a badge, a style); the bare `/badge/builder` and
+# `/badge/gallery` stay crawlable. `/api/badge/v3/` is the builder's data, not a page.
+# Google takes the longest matching rule, so `Disallow: /api/badge/v3/` wins over
+# `Allow: /api/badge/` and `Disallow: /badge/builder?` over `Allow: /`; the order
+# below gives first-match parsers the same answer.
 #
 # Crawl-delay is the pause, in seconds, between two requests from one crawler.
 # Bing, Anthropic and Ahrefs honour it; Google, Apple, Amazon and Yandex ignore
@@ -15,34 +19,42 @@
 # Search engines (Google ignores Crawl-delay)
 User-agent: Googlebot
 Allow: /api/avatar/
+Disallow: /api/badge/v3/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Disallow: /badge/builder?
 Allow: /
 
 User-agent: Bingbot
 User-agent: DuckDuckBot
 Crawl-delay: 2
 Allow: /api/avatar/
+Disallow: /api/badge/v3/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Disallow: /badge/builder?
 Allow: /
 
 User-agent: Applebot
 Crawl-delay: 5
 Allow: /api/avatar/
+Disallow: /api/badge/v3/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Disallow: /badge/builder?
 Allow: /
 
 User-agent: YandexBot
 Crawl-delay: 10
 Allow: /api/avatar/
+Disallow: /api/badge/v3/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Disallow: /badge/builder?
 Allow: /
 
 # AI search crawlers: they index pages so AI assistants can cite and link them
@@ -54,9 +66,11 @@ User-agent: Amzn-SearchBot
 Content-Signal: search=yes,ai-train=no,use=reference
 Crawl-delay: 2
 Allow: /api/avatar/
+Disallow: /api/badge/v3/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Disallow: /badge/builder?
 Allow: /
 
 # AI assistants fetching a page because a person asked about it right now
@@ -66,18 +80,22 @@ User-agent: Perplexity-User
 User-agent: Amzn-User
 Content-Signal: search=yes,ai-train=no,use=reference
 Allow: /api/avatar/
+Disallow: /api/badge/v3/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Disallow: /badge/builder?
 Allow: /
 
 # SEO tooling: allowed, but crawls slowly
 User-agent: AhrefsBot
 Crawl-delay: 30
 Allow: /api/avatar/
+Disallow: /api/badge/v3/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Disallow: /badge/builder?
 Allow: /
 
 # Scrapers and SEO crawlers: do not crawl
@@ -103,9 +121,11 @@ Disallow: /
 User-agent: *
 Crawl-delay: 10
 Allow: /api/avatar/
+Disallow: /api/badge/v3/
 Allow: /api/badge/
 Disallow: /api/
 Disallow: /badge/builder/
+Disallow: /badge/builder?
 Allow: /
 
 Sitemap: https://gitranks.com/sitemap.xml

@@ -2,6 +2,7 @@ import { type NextFetchEvent, type NextRequest, NextResponse } from 'next/server
 import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
+import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
 
@@ -19,7 +20,33 @@ const NOT_FOUND_PATH = '/_404';
 // `__Secure-` over HTTPS, bare in local dev; `.0`, `.1`… when the JWT is split across cookies.
 const SESSION_COOKIE = /^(__Secure-)?authjs\.session-token(\.\d+)?$/;
 
+const BUILDER_PATH = /^\/badge\/builder(?:\/(?<login>[^/]+))?\/?$/;
+
+/**
+ * An old builder link (its query names, or a login in the path) as the new builder's path and query, with its choices
+ * mapped; `null` for any other request. The builder page is cached and never sees the query, so it happens here.
+ */
+export function v2BuilderRedirect(url: URL): string | null {
+  const match = BUILDER_PATH.exec(url.pathname);
+  if (!match) return null;
+
+  let login: string | null = null;
+  try {
+    login = match.groups?.login ? decodeURIComponent(match.groups.login) : null;
+  } catch {
+    return null;
+  }
+  if (!isV2BuilderRequest(url.searchParams, login)) return null;
+
+  return `/badge/builder?${mapV2BuilderQuery(url.searchParams, login).toString()}`;
+}
+
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
+  const builder = v2BuilderRedirect(request.nextUrl);
+  if (builder) {
+    return NextResponse.redirect(new URL(builder, request.nextUrl), 308);
+  }
+
   // Checked before Auth.js: its wrapper rebuilds the request on the configured auth URL's origin,
   // which would turn this rewrite into an external one. It also keeps session cookies off 404s.
   if (isInvalidRankingPath(request.nextUrl.pathname)) {

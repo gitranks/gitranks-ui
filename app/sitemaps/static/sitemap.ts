@@ -13,5 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     sitemapEntry('/badge/gallery', { priority: 0.8 }),
     sitemapEntry('/badge/builder', { priority: 0.8 }),
     sitemapEntry('/methodology', { priority: 0.6 }),
+    sitemapEntry('/terms', { priority: 0.2 }),
+    sitemapEntry('/privacy', { priority: 0.2 }),
   ];
 }

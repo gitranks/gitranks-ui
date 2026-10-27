@@ -13,6 +13,8 @@ const SITE_LINKS = [
   { href: '/insights', label: 'Insights' },
   { href: '/badge/gallery', label: 'Badges' },
   { href: '/methodology', label: 'How Rankings Work' },
+  { href: '/terms', label: 'Terms' },
+  { href: '/privacy', label: 'Privacy' },
 ];
 
 export const Footer = () => {

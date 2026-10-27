@@ -114,6 +114,8 @@ export const REFRESH_TOASTS = {
   checkFailed: 'GitHub didn’t answer. Please try again in a minute.',
   /** Another tab is checking the star right now. */
   busy: 'We are already checking. Try again in a moment.',
+  /** The account's data was removed at its owner's request (410): GitRanks doesn't fetch it again. */
+  removed: 'This account’s data was removed from GitRanks at its owner’s request.',
 } as const;
 
 export const fillTime = (text: string, time?: string) => (time ? text.replaceAll('{time}', time) : text);

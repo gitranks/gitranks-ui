@@ -8,6 +8,7 @@ import {
   OrgRankingsDocument,
   PageOrgDocument,
   RankOrder,
+  RepoRankingsDocument,
 } from '@/types/generated/graphql';
 
 // Every read here is shared by all visitors and cached on the server, so a landing view never waits
@@ -87,5 +88,22 @@ export const fetchFeaturedOrg = async () => {
   } catch {
     cacheLife('minutes');
     return null;
+  }
+};
+
+/**
+ * The first page of the repository ranking. Empty until repositories are ranked, and then the
+ * landing leaves the block out; a failed read does the same for a few minutes.
+ */
+export const fetchTopRepos = async () => {
+  'use cache';
+  cacheLife(HOURLY);
+
+  try {
+    const { repoRankings } = (await graphqlDirect(RepoRankingsDocument, { offset: 0 })) ?? {};
+    return repoRankings ?? [];
+  } catch {
+    cacheLife('minutes');
+    return [];
   }
 };

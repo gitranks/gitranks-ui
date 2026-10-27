@@ -7,6 +7,7 @@ import {
   fetchLandingInsights,
   fetchLeaderboards,
   fetchTopOrgs,
+  fetchTopRepos,
 } from './components/landing/landing-data';
 import {
   BadgesSection,
@@ -24,6 +25,7 @@ import {
 } from './components/landing/landing-sections';
 import { formatCompact, tierAt } from './components/landing/landing-ui';
 import type { Leaderboard } from './components/landing/leaderboard-tabs';
+import { ReposSection } from './components/landing/repos-section';
 import { Header } from '@/components/header/header';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
@@ -44,7 +46,7 @@ const EXAMPLE_COUNT = 3;
 // lifetimes), so the page is prerendered and a view sends no request to the API. Only the signed-in
 // visitor's own rank card is fetched in the browser, from a route cached per user.
 export default async function Home() {
-  const [insights, leaderboards, tiers, orgs, featured, countries, languages, countryList] = await Promise.all([
+  const [insights, leaderboards, tiers, orgs, featured, countries, languages, countryList, repos] = await Promise.all([
     fetchLandingInsights(),
     fetchLeaderboards(),
     fetchGlobalTiers(),
@@ -53,6 +55,7 @@ export default async function Home() {
     fetchCountrySummaries(),
     fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, offset: 0, limit: 8 }),
     fetchCountries(),
+    fetchTopRepos(),
   ]);
 
   const flags = new Map(countryList.map((country) => [country.name, country.flag]));
@@ -124,6 +127,7 @@ export default async function Home() {
           <LeaderboardSection boards={boards} />
           <InsightsSection insights={insights} />
           <OrganizationsSection orgs={orgs} flags={flags} featured={featured} />
+          <ReposSection rows={repos} />
           <PlacesSection countries={countries} languages={languages} />
           <BadgesSection origin={SITE_URL} />
           <TiersSection />

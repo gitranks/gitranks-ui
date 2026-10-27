@@ -15,7 +15,9 @@ export const StarHistorySection: FC<StarHistorySectionProps> = ({ repo }) => {
 
   return (
     <ProfileCard className="gap-3">
-      <ProfileCardHeader>Star history</ProfileCardHeader>
+      <ProfileCardHeader>
+        <h2>Star history</h2>
+      </ProfileCardHeader>
       {history ? (
         <>
           <div className="h-[260px]">

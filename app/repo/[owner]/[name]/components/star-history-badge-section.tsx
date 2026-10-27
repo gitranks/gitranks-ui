@@ -57,7 +57,9 @@ export const StarHistoryBadgeSection: FC<StarHistoryBadgeSectionProps> = ({ owne
   return (
     <ProfileCard className="gap-3">
       <div className="flex flex-col gap-1">
-        <ProfileCardHeader>Star history badge</ProfileCardHeader>
+        <ProfileCardHeader>
+          <h2>Star history badge</h2>
+        </ProfileCardHeader>
         <p className="text-sm text-muted-foreground">Show this chart in a README or on your site.</p>
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element -- dynamic badge endpoint */}

@@ -177,7 +177,7 @@ export function pullErrorOutcomeOf(httpStatus: number): PullOutcome {
   }
 }
 
-/** The button's label: like the profile's Refresh, with the fetches left today when the visitor has some. */
+/** The button's label: like the profile's Refresh, with the fetches left today when the allowance is known. */
 export function pullLabelOf(mode: PullMode, allowance: RepoPullAllowance | null | undefined) {
   if (mode === 'daily' && allowance?.daily.available) {
     return REFRESH_LABELS.dailyAvailable;

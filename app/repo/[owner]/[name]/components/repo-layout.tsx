@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import {
   Building2,
   CalendarDays,
@@ -69,7 +69,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
     <PageContainer>
       <LeftColumnContainer>
         <div className="flex flex-row items-center gap-4 md:flex-col md:items-start">
-          {/* The owner's name links there too: the avatar is a second way in, out of the tab order. */}
+          {/* The owner row below links there too: the avatar is a second way in, out of the tab order. */}
           {ownerPath && avatar ? (
             <Link href={ownerPath} prefetch={false} tabIndex={-1} aria-hidden className="shrink-0">
               {avatar}
@@ -79,18 +79,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
           )}
           <div className="flex min-w-0 flex-col gap-1">
             <h1 className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]" translate="no">
-              {ownerPath ? (
-                <Link
-                  href={ownerPath}
-                  prefetch={false}
-                  className="text-muted-foreground hover:text-foreground hover:underline"
-                >
-                  {owner}
-                </Link>
-              ) : (
-                <span className="text-muted-foreground">{owner}</span>
-              )}
-              <span className="text-muted-foreground">/</span>
+              <span className="text-muted-foreground">{owner}/</span>
               {name}
             </h1>
             {repo.isArchived && (
@@ -142,12 +131,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
             {!!createdAt && (
               <ProfileListItem value={`Created ${format(createdAt, 'MMM d, yyyy')}`} Icon={CalendarDays} />
             )}
-            {!!readAt && (
-              <ProfileListItem
-                value={`Star history updated ${formatDistanceToNow(readAt, { addSuffix: true })}`}
-                Icon={Timer}
-              />
-            )}
+            {!!readAt && <ProfileListItem value={`Star history read ${format(readAt, 'MMM d, yyyy')}`} Icon={Timer} />}
           </div>
         </DetailsContainer>
       </LeftColumnContainer>

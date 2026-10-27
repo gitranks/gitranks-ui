@@ -18,8 +18,11 @@ const topShareOf = (rank: number, rankedCount?: number) => {
     return null;
   }
 
-  const percentage = Math.max((rank / rankedCount) * 100, 0.1);
-  return percentage > 50 ? `Bottom ${formatNumberShort(100 - percentage)}%` : `Top ${formatNumberShort(percentage)}%`;
+  // The count can lag the rank, so the share stays within 0.1–100% on either side.
+  const percentage = Math.min(Math.max((rank / rankedCount) * 100, 0.1), 100);
+  return percentage > 50
+    ? `Bottom ${formatNumberShort(Math.max(100 - percentage, 0.1))}%`
+    : `Top ${formatNumberShort(percentage)}%`;
 };
 
 /** A rank as the profile shows its numbers: the label over the mono rank, its change this month and its share. */
@@ -47,7 +50,7 @@ export const RepoRankCard: FC<RepoRankCardProps> = ({ title, rank, rankM, rankin
         )}
       </div>
       <MoreLink href={rankingLink} className="mt-auto">
-        View ranking
+        View ranking<span className="sr-only"> of {title}</span>
       </MoreLink>
     </ProfileCard>
   );

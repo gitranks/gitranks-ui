@@ -1,9 +1,6 @@
 import type { WallOrder } from './types';
 
-/**
- * What a badge knows about its entity: the API's answer, flattened. Fields marked "not served yet" are read by the
- * catalogue already; until the API sends them they stay `undefined`, and every badge that needs one is not available.
- */
+/** What a badge knows about its entity: the API's answer, flattened. */
 
 export type TierRef = { tier: number; level: number };
 
@@ -12,7 +9,7 @@ export type TierCount = { tier: number; count: number };
 /** A person on a stargazer list, a builder list or a contributors wall. */
 export type Person = { login: string | null; avatarUrl: string | null; tier: number; level: number };
 
-/** The next round rank and what it still takes (spec §3.4). Not served yet. */
+/** The next round rank and what it still takes (spec §3.4). */
 export type RankGoal = {
   targetRank: number;
   scope: 'global' | 'language' | 'country';
@@ -22,7 +19,7 @@ export type RankGoal = {
   unit: 'stars' | 'contributionStars' | 'followers';
 };
 
-/** A contributors wall, built ahead of time (spec §3.8). Not served yet. */
+/** A contributors wall, built ahead of time (spec §3.8). */
 export type ContributorsWall = {
   total: number;
   entries: { login: string; avatarUrl: string | null; tier: number | null; level: number | null }[];
@@ -36,10 +33,10 @@ export type PulseFacts = {
   lastMonth: string;
   active12: number;
   new12: number;
-  /** Not served yet. */
-  countryCount?: number;
-  /** Not served yet. */
-  contributors60?: number;
+  /** Distinct countries of the people active in 12 months. */
+  countryCount: number;
+  /** People with a GitHub account who landed a change in 60 months. */
+  contributors60: number;
 };
 
 export type PulseSeriesFacts = {
@@ -79,10 +76,8 @@ export type RepoFacts = {
   builtBy: TierCount[] | null;
   pulse: PulseFacts | null;
   pulseSeries: PulseSeriesFacts | null;
-  /** Not served yet. */
-  rankGoal?: RankGoal | null;
-  /** Not served yet. */
-  contributorsWall?: ContributorsWalls;
+  rankGoal: RankGoal | null;
+  contributorsWall: ContributorsWalls;
 };
 
 export type UserRanks = {
@@ -122,12 +117,11 @@ export type UserFacts = {
   tiersCountry: UserTierLists | null;
   /** Star-ranked languages, best first: the global rank and how many developers that list holds. */
   languages: { name: string; rank: number | null; rankM: number | null; total: number | null }[];
-  /** Not served yet; by ranking. */
-  rankGoal?: Partial<Record<'s' | 'c' | 'f', RankGoal | null>>;
-  /** Not served yet. */
-  contributorsWall?: ContributorsWalls;
-  /** Not served yet: how many of their own repositories the wall spans. */
-  wallRepos?: number;
+  /** By ranking. */
+  rankGoal: Record<'s' | 'c' | 'f', RankGoal | null>;
+  contributorsWall: ContributorsWalls;
+  /** How many of their own repositories the wall spans. */
+  wallRepos: number | null;
 };
 
 export type OrgFacts = {
@@ -140,16 +134,15 @@ export type OrgFacts = {
   topRepos: { nameWithOwner: string; stars: number; rank: number | null }[];
   pulse: PulseFacts | null;
   pulseSeries: PulseSeriesFacts | null;
-  /** Not served yet: ranked organizations, the top share's denominator. */
-  orgRankTotal?: number;
-  /** Not served yet. */
-  reposOver1k?: number;
-  /** Not served yet. */
-  contributorsWall?: ContributorsWalls;
+  /** Ranked organizations, the top share's denominator. */
+  orgRankTotal: number | null;
+  /** Repositories with 1,000+ stars. */
+  reposOver1k: number;
+  contributorsWall: ContributorsWalls;
 };
 
 export type EntityFacts = RepoFacts | UserFacts | OrgFacts;
 
 /** The entity's wall in an order, if it has one. */
 export const wallOf = (entity: EntityFacts, order: WallOrder): ContributorsWall | null =>
-  entity.contributorsWall?.[order] ?? null;
+  entity.contributorsWall[order] ?? null;

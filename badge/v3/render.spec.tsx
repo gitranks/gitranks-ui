@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { prefixIds } from './auto-svg';
 import { type BadgeDefinition, badgesOf } from './catalogue';
 import type { EntityFacts } from './facts';
-import { NOW, orgBigLater, repoBigLater, repoMidLater, userBigLater } from './fixtures';
+import { NOW, orgBig, repoBig, repoMid, userBig } from './fixtures';
 import { resolveParams } from './params';
 import { renderBadge, toPng } from './render';
 import { MARK_SIZE } from './shield';
@@ -39,7 +39,7 @@ const shieldSchemes = (badge: BadgeDefinition) => [
 ];
 
 /** The entity each badge is drawn for: the fixture with every fact, as the API will serve them. */
-const ENTITIES: EntityFacts[] = [repoBigLater, userBigLater, orgBigLater];
+const ENTITIES: EntityFacts[] = [repoBig, userBig, orgBig];
 
 /** Extra variants of a shield: its default, none, and every other extra it allows. */
 function extrasOf(badge: BadgeDefinition): string[] {
@@ -177,7 +177,7 @@ describe.each(ENTITIES.map((entity) => [entity.kind, entity] as const))('%s badg
 describe('the developer wall', () => {
   it('draws "not yet" while it is hidden', async () => {
     const wall = badgesOf('user').find(({ id }) => id === 'contributors-wall')!;
-    const { state } = await renderBadge(userBigLater, wall, resolveParams(wall, new URLSearchParams()), 'svg', NOW);
+    const { state } = await renderBadge(userBig, wall, resolveParams(wall, new URLSearchParams()), 'svg', NOW);
     expect(state).toBe('not-yet');
   });
 });
@@ -186,9 +186,9 @@ describe('PNG', () => {
   it('draws one drawing at 2×, light unless asked for dark', async () => {
     const [badge] = badgesOf('repo');
     const auto = resolveParams(badge, new URLSearchParams('scheme=auto'));
-    const light = await renderBadge(repoMidLater, badge, auto, 'png', NOW);
-    const dark = await renderBadge(repoMidLater, badge, { ...auto, theme: 'dark' }, 'png', NOW);
-    const svg = (await renderBadge(repoMidLater, badge, { ...auto, theme: 'light' }, 'svg', NOW)).body as string;
+    const light = await renderBadge(repoMid, badge, auto, 'png', NOW);
+    const dark = await renderBadge(repoMid, badge, { ...auto, theme: 'dark' }, 'png', NOW);
+    const svg = (await renderBadge(repoMid, badge, { ...auto, theme: 'light' }, 'svg', NOW)).body as string;
 
     expect(light.contentType).toBe('image/png');
     expect(pngSize(light.body as Uint8Array)).toEqual({ width: sizeOf(svg).width * 2, height: 40 });
@@ -199,7 +199,7 @@ describe('PNG', () => {
   it('draws a card for social sharing at 1200×630', async () => {
     const card = badgesOf('repo').find(({ id }) => id === 'rank-card')!;
     const params = resolveParams(card, new URLSearchParams('size=social'));
-    const { body } = await renderBadge(repoMidLater, card, params, 'png', NOW);
+    const { body } = await renderBadge(repoMid, card, params, 'png', NOW);
 
     expect(pngSize(body as Uint8Array)).toEqual({ width: 1200, height: 630 });
   });

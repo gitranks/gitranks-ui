@@ -1,0 +1,20 @@
+# The next round rank a goal badge names.
+fragment BadgeRankGoal on RankGoal {
+  targetRank
+  scope
+  language
+  country
+  needed
+  unit
+}
+
+# A contributors wall: everyone it draws from and its first entries.
+fragment BadgeWall on ContributorsWall {
+  total
+  entries {
+    login
+    avatarUrl
+    tier
+    level
+  }
+}

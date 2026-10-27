@@ -1,4 +1,6 @@
 # Everything a repository's v3 badges read, in one query.
+# The API refuses queries above complexity 220; this one costs about 195, so
+# check the budget before adding another costly field (pulse-sized, ~25).
 query BadgeRepo($owner: String!, $name: String!) {
   repo(owner: $owner, name: $name) {
     nameWithOwner
@@ -27,6 +29,18 @@ query BadgeRepo($owner: String!, $name: String!) {
         tier
         level
       }
+    }
+    rankGoal {
+      ...BadgeRankGoal
+    }
+    wallPopular: contributorsWall(order: POPULAR) {
+      ...BadgeWall
+    }
+    wallContributions: contributorsWall(order: CONTRIBUTIONS) {
+      ...BadgeWall
+    }
+    wallNewest: contributorsWall(order: NEWEST) {
+      ...BadgeWall
     }
     starsBest {
       total
@@ -59,6 +73,8 @@ query BadgeRepo($owner: String!, $name: String!) {
         activeContributors
         newContributors
       }
+      countryCount
+      contributors60
     }
     pulseSeries {
       months

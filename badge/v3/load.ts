@@ -1,14 +1,29 @@
 import { cacheLife, cacheTag } from 'next/cache';
 
-import type { OrgFacts, RepoFacts, TierTable, UserFacts, UserRanks, UserTierLists } from './facts';
+import type {
+  ContributorsWall,
+  ContributorsWalls,
+  OrgFacts,
+  PulseFacts,
+  RankGoal,
+  RepoFacts,
+  TierTable,
+  UserFacts,
+  UserRanks,
+  UserTierLists,
+} from './facts';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import {
   BadgeOrgDocument,
   type BadgeOrgQuery,
+  type BadgeRankGoalFragment,
   BadgeRepoDocument,
   type BadgeRepoQuery,
   BadgeUserDocument,
   type BadgeUserQuery,
+  type BadgeWallFragment,
+  RankGoalScope,
+  RankGoalUnit,
 } from '@/types/generated/graphql';
 import { getRepoCacheTag } from '@/utils/repo-paths';
 
@@ -35,6 +50,72 @@ function scoreRecord(json: unknown): UserFacts['snapshots'] {
     ]),
   );
 }
+
+const GOAL_SCOPES: Record<RankGoalScope, RankGoal['scope']> = {
+  [RankGoalScope.Global]: 'global',
+  [RankGoalScope.Language]: 'language',
+  [RankGoalScope.Country]: 'country',
+};
+
+const GOAL_UNITS: Record<RankGoalUnit, RankGoal['unit']> = {
+  [RankGoalUnit.Stars]: 'stars',
+  [RankGoalUnit.ContributionStars]: 'contributionStars',
+  [RankGoalUnit.Followers]: 'followers',
+};
+
+export function toRankGoal(goal: BadgeRankGoalFragment | null | undefined): RankGoal | null {
+  if (!goal) return null;
+  return {
+    targetRank: goal.targetRank,
+    scope: GOAL_SCOPES[goal.scope],
+    language: goal.language ?? null,
+    country: goal.country ?? null,
+    needed: goal.needed,
+    unit: GOAL_UNITS[goal.unit],
+  };
+}
+
+const toWall = (wall: BadgeWallFragment | null | undefined): ContributorsWall | null =>
+  wall
+    ? {
+        total: wall.total,
+        entries: wall.entries.map(({ login, avatarUrl, tier, level }) => ({
+          login,
+          avatarUrl: avatarUrl || null,
+          tier: tier ?? null,
+          level: level ?? null,
+        })),
+      }
+    : null;
+
+type WallFields = {
+  wallPopular?: BadgeWallFragment | null;
+  wallContributions?: BadgeWallFragment | null;
+  wallNewest?: BadgeWallFragment | null;
+};
+
+/** The walls an entity has, by order. */
+function toWalls({ wallPopular, wallContributions, wallNewest }: WallFields): ContributorsWalls {
+  return { popular: toWall(wallPopular), contributions: toWall(wallContributions), newest: toWall(wallNewest) };
+}
+
+type PulseData = {
+  lastMonth: string;
+  last12: { activeContributors: number; newContributors: number };
+  countryCount: number;
+  contributors60: number;
+};
+
+const toPulse = (pulse: PulseData | null | undefined): PulseFacts | null =>
+  pulse
+    ? {
+        lastMonth: pulse.lastMonth,
+        active12: pulse.last12.activeContributors,
+        new12: pulse.last12.newContributors,
+        countryCount: pulse.countryCount,
+        contributors60: pulse.contributors60,
+      }
+    : null;
 
 type RepoData = BadgeRepoQuery;
 
@@ -92,13 +173,7 @@ export function toRepoFacts({ repo, repoRankTiers, repoLanguages }: RepoData): R
       ? repo.siblings.map(({ share, repo: sibling }) => ({ nameWithOwner: sibling.nameWithOwner, share }))
       : null,
     builtBy: repo.builtBy ? repo.builtBy.counts.map(({ tier, count }) => ({ tier, count })) : null,
-    pulse: repo.pulse
-      ? {
-          lastMonth: repo.pulse.lastMonth,
-          active12: repo.pulse.last12.activeContributors,
-          new12: repo.pulse.last12.newContributors,
-        }
-      : null,
+    pulse: toPulse(repo.pulse),
     pulseSeries: repo.pulseSeries
       ? {
           months: repo.pulseSeries.months,
@@ -107,6 +182,8 @@ export function toRepoFacts({ repo, repoRankTiers, repoLanguages }: RepoData): R
           newContributors: repo.pulseSeries.newContributors ?? [],
         }
       : null,
+    rankGoal: toRankGoal(repo.rankGoal),
+    contributorsWall: toWalls(repo),
   };
 }
 
@@ -164,10 +241,18 @@ export function toUserFacts({ user }: BadgeUserQuery): UserFacts | null {
       rankM: rankGlobal?.sM ?? null,
       total: tiersGlobal?.sUsers ?? null,
     })),
+    rankGoal: {
+      s: toRankGoal(user.goalStars),
+      c: toRankGoal(user.goalContributions),
+      f: toRankGoal(user.goalFollowers),
+    },
+    // A developer's wall has no `newest` order.
+    contributorsWall: toWalls({ wallPopular: user.wallPopular, wallContributions: user.wallContributions }),
+    wallRepos: user.wallPopular?.repos ?? null,
   };
 }
 
-export function toOrgFacts({ organization: org }: BadgeOrgQuery, login: string): OrgFacts | null {
+export function toOrgFacts({ organization: org, orgRankTotal }: BadgeOrgQuery, login: string): OrgFacts | null {
   if (!org) return null;
   return {
     kind: 'org',
@@ -175,15 +260,11 @@ export function toOrgFacts({ organization: org }: BadgeOrgQuery, login: string):
     avatarUrl: org.avatarUrl ?? null,
     s: org.s ?? null,
     reposCount: org.reposCount ?? null,
+    reposOver1k: org.reposOver1k,
+    orgRankTotal: orgRankTotal || null,
     rank: org.rankOrg ? { s: org.rankOrg.s ?? null, sM: org.rankOrg.sM ?? null } : null,
     topRepos: org.topRepos.map(({ nameWithOwner, stars, rank }) => ({ nameWithOwner, stars, rank: rank?.s ?? null })),
-    pulse: org.pulse
-      ? {
-          lastMonth: org.pulse.lastMonth,
-          active12: org.pulse.last12.activeContributors,
-          new12: org.pulse.last12.newContributors,
-        }
-      : null,
+    pulse: toPulse(org.pulse),
     pulseSeries: org.pulseSeries
       ? {
           months: org.pulseSeries.months,
@@ -192,6 +273,7 @@ export function toOrgFacts({ organization: org }: BadgeOrgQuery, login: string):
           newContributors: org.pulseSeries.newContributors ?? [],
         }
       : null,
+    contributorsWall: toWalls(org),
   };
 }
 

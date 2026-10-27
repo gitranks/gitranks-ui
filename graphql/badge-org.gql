@@ -5,6 +5,7 @@ query BadgeOrg($login: String!) {
     avatarUrl
     s
     reposCount
+    reposOver1k
     rankOrg {
       s
       sM
@@ -22,6 +23,17 @@ query BadgeOrg($login: String!) {
         activeContributors
         newContributors
       }
+      countryCount
+      contributors60
+    }
+    wallPopular: contributorsWall(order: POPULAR) {
+      ...BadgeWall
+    }
+    wallContributions: contributorsWall(order: CONTRIBUTIONS) {
+      ...BadgeWall
+    }
+    wallNewest: contributorsWall(order: NEWEST) {
+      ...BadgeWall
     }
     pulseSeries {
       months
@@ -30,4 +42,5 @@ query BadgeOrg($login: String!) {
       newContributors
     }
   }
+  orgRankTotal
 }

@@ -302,7 +302,6 @@ function orgShield(org: OrgFacts, badge: BadgeDefinition, params: BadgeParams): 
       });
     }
     case 'popular-repos':
-      if (org.reposOver1k === undefined) return null;
       return content(params, '1k+ ★ repos', segment(mono(formatFull(org.reposOver1k))));
     case 'contributors':
       return contributorsShield(org, params);

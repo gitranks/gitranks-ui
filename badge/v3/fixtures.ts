@@ -74,12 +74,14 @@ const repoBase: RepoFacts = {
   builtBy: null,
   pulse: null,
   pulseSeries: null,
+  rankGoal: null,
+  contributorsWall: {},
 };
 
 /** 5–100 stars: ranked, a language rank, a young race. */
 export const repoSmall: RepoFacts = repoBase;
 
-/** 100–1k stars: a race behind last month. */
+/** 100–1k stars: a race behind last month, a goal in its language list. */
 export const repoMid: RepoFacts = {
   ...repoBase,
   stars: 812,
@@ -87,9 +89,10 @@ export const repoMid: RepoFacts = {
   monthStarts: { '2026-08-01': 700, '2026-09-01': 726, '2026-10-01': 774 },
   rank: { s: 41_206, sM: 41_518, l: 38, lM: 42, language: 'Rust', tier: { tier: 4, level: 3 } },
   totals: { repos: 5_300_000, languageRepos: 9_120 },
+  rankGoal: { targetRank: 25, scope: 'language', language: 'Rust', needed: 8, unit: 'stars' },
 };
 
-/** 1k+ stars: history, stargazers, pulse, a sibling. */
+/** 1k+ stars: history, stargazers, pulse, walls, a sibling, a global goal. */
 export const repoBig: RepoFacts = {
   ...repoBase,
   nameWithOwner: 'nebula/ui',
@@ -124,21 +127,10 @@ export const repoBig: RepoFacts = {
     { tier: 7, count: 3 },
     { tier: 6, count: 11 },
   ],
-  pulse: { lastMonth: '2026-09', active12: 186, new12: 41 },
-  pulseSeries: PULSE_SERIES,
-};
-
-/** The facts the API does not serve yet, as they will look. */
-export const repoBigLater: RepoFacts = {
-  ...repoBig,
-  rankGoal: { targetRank: 1_000, scope: 'global', needed: 3_120, unit: 'stars' },
   pulse: { lastMonth: '2026-09', active12: 186, new12: 41, countryCount: 23, contributors60: 2_410 },
-  contributorsWall: { popular: wallOf(70, 186), contributions: wallOf(40, 186) },
-};
-
-export const repoMidLater: RepoFacts = {
-  ...repoMid,
-  rankGoal: { targetRank: 25, scope: 'language', language: 'Rust', needed: 8, unit: 'stars' },
+  pulseSeries: PULSE_SERIES,
+  rankGoal: { targetRank: 1_000, scope: 'global', needed: 3_120, unit: 'stars' },
+  contributorsWall: { popular: wallOf(70, 186), contributions: wallOf(40, 186), newest: wallOf(70, 186) },
 };
 
 /** Fewer than 5 stars: known but not ranked. */
@@ -182,6 +174,9 @@ const userBase: UserFacts = {
   tiersGlobal: tierLists(3_300_000),
   tiersCountry: tierLists(61_000),
   languages: [{ name: 'Rust', rank: 61_000, rankM: 61_400, total: 610_207 }],
+  rankGoal: { s: null, c: null, f: null },
+  contributorsWall: {},
+  wallRepos: null,
 };
 
 /** Under 100 own stars: ranked by contributions and in a country. */
@@ -205,7 +200,7 @@ export const userMid: UserFacts = {
   ],
 };
 
-/** 1k+ own stars, two years of snapshots. */
+/** 1k+ own stars, two years of snapshots, a goal, a wall across their own repositories. */
 export const userBig: UserFacts = {
   ...userBase,
   s: 198_400,
@@ -222,11 +217,7 @@ export const userBig: UserFacts = {
   rankCountry: ranks(2, 3, 1),
   rankSnapshots: { '2026-09-01': { s: 14 }, '2026-10-01': { s: 13 } },
   languages: [{ name: 'Rust', rank: 14, rankM: 15, total: 610_207 }],
-};
-
-export const userBigLater: UserFacts = {
-  ...userBig,
-  rankGoal: { s: { targetRank: 10, scope: 'global', needed: 5_210, unit: 'stars' } },
+  rankGoal: { s: { targetRank: 10, scope: 'global', needed: 5_210, unit: 'stars' }, c: null, f: null },
   contributorsWall: { popular: wallOf(70, 142) },
   wallRepos: 9,
 };
@@ -255,6 +246,9 @@ const orgBase: OrgFacts = {
   topRepos: [{ nameWithOwner: 'nebula/cli', stars: 410, rank: 88_311 }],
   pulse: null,
   pulseSeries: null,
+  orgRankTotal: 336_901,
+  reposOver1k: 0,
+  contributorsWall: {},
 };
 
 export const orgSmall: OrgFacts = orgBase;
@@ -263,6 +257,7 @@ export const orgMid: OrgFacts = {
   ...orgBase,
   s: 4_210,
   reposCount: 38,
+  reposOver1k: 1,
   rank: { s: 2_310, sM: 2_330 },
   topRepos: [
     { nameWithOwner: 'nebula/ui', stars: 3_100, rank: 21_204 },
@@ -280,19 +275,13 @@ export const orgBig: OrgFacts = {
     { nameWithOwner: 'nebula/cli', stars: 22_000, rank: 8_311 },
     { nameWithOwner: 'nebula/icons', stars: 9_000, rank: 21_940 },
   ],
-  pulse: { lastMonth: '2026-09', active12: 2_104, new12: 318 },
+  reposOver1k: 14,
+  pulse: { lastMonth: '2026-09', active12: 2_104, new12: 318, countryCount: 61, contributors60: 9_800 },
   pulseSeries: {
     ...PULSE_SERIES,
     activeLinked: PULSE_SERIES.activeLinked.map((value) => value * 9),
     activeAnonymous: PULSE_SERIES.activeAnonymous.map((value) => value * 9),
   },
-};
-
-export const orgBigLater: OrgFacts = {
-  ...orgBig,
-  orgRankTotal: 336_901,
-  reposOver1k: 14,
-  pulse: { lastMonth: '2026-09', active12: 2_104, new12: 318, countryCount: 61, contributors60: 9_800 },
   contributorsWall: { popular: wallOf(70, 2_104), newest: wallOf(30, 2_104) },
 };
 

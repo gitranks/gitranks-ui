@@ -15,14 +15,18 @@ describe('AwaitingReadNote', () => {
     expect(html).toContain('GitRanks hasn’t read this repository’s star history yet');
     expect(html).toContain('href="/repo/acme/fastqueue"');
     expect(html).toContain('target="_blank"');
-    expect(html).toContain('Open its page and press Refresh');
+    expect(html).toContain('Sign in on its page and press Refresh');
     expect(html).toContain('Check again');
     expect(html).not.toContain('not read yet.');
   });
 
   it('says so after a check that found nothing new', () => {
     expect(render({ stillUnread: true })).toContain('Checked just now: not read yet.');
-    expect(render({ stillUnread: true, checking: true })).toContain('Checking…');
+    const checking = render({ stillUnread: true, checking: true });
+    expect(checking).toContain('Checking…');
+    // Still focusable and announced as busy, not removed from the tab order.
+    expect(checking).toContain('aria-disabled="true"');
+    expect(checking).not.toMatch(/<button[^>]*\sdisabled=""/);
   });
 
   it('leads a developer to their page; an organization has nothing to wait for', () => {

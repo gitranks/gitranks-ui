@@ -2,20 +2,24 @@
 
 import { cacheLife } from 'next/cache';
 
-import { GallerySection } from './components/gallery-section';
+import { GallerySection, galleryTiles } from './components/gallery-section';
 import { GALLERY_SECTIONS } from './gallery-badges';
 import { fetchShowcaseNames, loadShowcase } from './gallery-showcase';
 
 export default async function BadgeGallery() {
   const { names, ok: namesOk } = await fetchShowcaseNames();
   const showcases = await Promise.all(GALLERY_SECTIONS.map(({ kind }) => loadShowcase(kind, names[kind])));
-  // A section left out for want of its #1 comes back within minutes.
-  if (namesOk && showcases.every(({ ok }) => ok)) {
+  const now = new Date();
+  // A section left out for want of its #1 comes back within minutes; so does an image that waits on a read and
+  // carries the render's stamp (see `pendingQuery`).
+  const stamped = GALLERY_SECTIONS.some(({ kind }, index) =>
+    galleryTiles(kind, showcases[index].facts, now).some(({ pending }) => pending),
+  );
+  if (namesOk && showcases.every(({ ok }) => ok) && !stamped) {
     cacheLife('hours');
   } else {
     cacheLife('minutes');
   }
-  const now = new Date();
 
   return (
     <div className="flex flex-col gap-8">

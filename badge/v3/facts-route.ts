@@ -1,11 +1,12 @@
 import { USER_WALL_OFFERED } from './catalogue';
-import { awaitsRead, type EntityFacts } from './facts';
+import type { EntityFacts } from './facts';
+import { readsSoon } from './pending';
 import { type BadgeLoaders, parseEntityRef } from './route';
 import type { EntityKind } from './types';
 
 /**
- * The builder asks again within minutes; a miss, and an entity GitRanks has yet to read from GitHub, are kept shorter,
- * so a fetch made meanwhile shows up soon.
+ * The builder asks again within minutes; a miss, and an entity whose data will change soon on its own (see
+ * `readsSoon`), are kept shorter, so the change shows up soon.
  */
 export const FACTS_CACHE_CONTROL = {
   found: 'public, max-age=300, s-maxage=3600',
@@ -49,11 +50,7 @@ export async function getEntityFactsResponse(kind: string, name: string[], loade
   if (!facts) {
     return json({ error: 'Not found' }, 404, FACTS_CACHE_CONTROL.notFound);
   }
-  return json(
-    publicFacts(facts),
-    200,
-    awaitsRead(facts) ? FACTS_CACHE_CONTROL.awaitingRead : FACTS_CACHE_CONTROL.found,
-  );
+  return json(publicFacts(facts), 200, readsSoon(facts) ? FACTS_CACHE_CONTROL.awaitingRead : FACTS_CACHE_CONTROL.found);
 }
 
 /** The facts the builder may use: a developer's wall stays out while that wall is not offered. */

@@ -21,7 +21,8 @@ const encodeName = (name: string) => name.split('/').map(encodeURIComponent).joi
 /**
  * An entity's badge facts, `null` when GitRanks does not know it. A found entity is asked once per page view; a miss
  * or a failure is not kept, so asking again (after the visitor opens its GitRanks page, say) asks the site again.
- * `fresh` asks past every cache, for an entity that may have been fetched meanwhile; its answer replaces the kept one.
+ * `fresh` skips the HTTP caches (the browser's and any shared one) for an entity that may have been read meanwhile;
+ * its answer replaces the kept one. The site's own copy is fresh once the entity's refresh expired it.
  */
 export function fetchEntityFacts(
   kind: EntityKind,
@@ -55,9 +56,9 @@ export function seedEntityFacts(facts: EntityFacts): void {
 }
 
 /**
- * Asks again for an entity GitRanks may have read meanwhile. The entity's page expires its cached data when it sees
- * the visitor's refresh end; the same status read is made here first, in case that page was closed before, and then
- * the facts are asked past every cache.
+ * Asks again for an entity GitRanks may have read meanwhile. The entity's page expires the site's cached data when it
+ * sees the visitor's refresh end; the same status read is made here first, in case that page was closed before, and
+ * then the facts are asked with `fresh`, skipping the HTTP caches.
  */
 export async function recheckEntityFacts(kind: EntityKind, name: string): Promise<EntityFacts | null> {
   let status: Promise<Response> | null = null;
@@ -75,12 +76,30 @@ export async function recheckEntityFacts(kind: EntityKind, name: string): Promis
   return fetchEntityFacts(kind, name, { fresh: true });
 }
 
+type Held = FactsState & { key?: string; entity?: string | null };
+
+/**
+ * The state after an answer: the answer, except that facts found for the same entity stay when a later ask misses or
+ * fails, so a failed check never takes the visitor back to step 1.
+ */
+export function nextFactsState(previous: Held, next: Held): Held {
+  if (
+    previous.status === 'found' &&
+    previous.entity === next.entity &&
+    (next.status === 'missing' || next.status === 'error')
+  ) {
+    return { ...previous, key: next.key };
+  }
+  return next;
+}
+
 /**
  * The facts of the entity the URL names, loaded on the page (the builder page itself is cached for everyone). A new
- * `attempt` asks again for the same name; meanwhile the facts found for that entity stay shown.
+ * `attempt` asks again for the same name; meanwhile, and if that ask misses or fails, the facts found for that entity
+ * stay shown.
  */
 export function useEntityFacts(kind: EntityKind | null, name: string | null, attempt = 0): FactsState {
-  const [state, setState] = useState<FactsState & { key?: string; entity?: string | null }>({ status: 'idle' });
+  const [state, setState] = useState<Held>({ status: 'idle' });
   const entity = kind && name ? keyOf(kind, name) : null;
   const key = entity ? `${entity}#${attempt}` : null;
 
@@ -93,10 +112,10 @@ export function useEntityFacts(kind: EntityKind | null, name: string | null, att
     setState((previous) =>
       previous.status === 'found' && previous.entity === entity ? previous : { status: 'loading', key, entity },
     );
+    const settle = (next: Held) => current && setState((previous) => nextFactsState(previous, next));
     fetchEntityFacts(kind, name).then(
-      (facts) =>
-        current && setState(facts ? { status: 'found', facts, key, entity } : { status: 'missing', key, entity }),
-      () => current && setState({ status: 'error', key, entity }),
+      (facts) => settle(facts ? { status: 'found', facts, key, entity } : { status: 'missing', key, entity }),
+      () => settle({ status: 'error', key, entity }),
     );
     return () => {
       current = false;

@@ -232,7 +232,7 @@ exports[`old badge URLs > /repo-badges/Octo/Widgets/star-history.svg 1`] = `
 
 exports[`old badge URLs > /repo-badges/octo/fresh/star-history.svg 1`] = `
 {
-  "cache": "public, max-age=60, s-maxage=300",
+  "cache": "public, max-age=300, s-maxage=3600",
   "location": null,
   "sha256": "fd96bde5a06474b4edef489ab41ac28641d4f18500e50404c0d50fa9ee7fc80d",
   "status": 200,

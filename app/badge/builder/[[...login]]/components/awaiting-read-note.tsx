@@ -10,14 +10,14 @@ import { Button } from '@/components/ui/button';
 
 type Copy = { title: string; text: string; open: string };
 
-/** What the note says for an entity GitRanks has yet to read (see `awaitsRead`). */
+/** What the note says for an entity waiting on a read (see `showsReadNote`). */
 export function awaitingReadCopy(facts: EntityFacts): Copy | null {
   switch (facts.kind) {
     case 'repo':
       return {
         title: 'GitRanks hasn’t read this repository’s star history yet',
-        text: 'Until it does, the star history chart stays empty and some badges have nothing to show. Press Refresh on the repository’s page to read it from GitHub, then come back: this page checks again.',
-        open: 'Open its page and press Refresh',
+        text: 'This badge draws from it. Refresh on the repository’s page reads it from GitHub once you sign in there; then come back: this page checks again.',
+        open: 'Sign in on its page and press Refresh',
       };
     case 'user':
       return {
@@ -33,7 +33,7 @@ export function awaitingReadCopy(facts: EntityFacts): Copy | null {
 type AwaitingReadNoteProps = {
   facts: EntityFacts;
   checking: boolean;
-  /** Set after a check that found the entity still unread. */
+  /** Set after a check that found the entity still waiting. */
   stillUnread: boolean;
   onCheck: () => void;
 };
@@ -67,13 +67,20 @@ export function AwaitingReadNote({ facts, checking, stillUnread, onCheck }: Read
             <span className="sr-only"> (opens in a new tab)</span>
           </a>
         </Button>
-        <Button type="button" size="sm" variant="outline" onClick={onCheck} disabled={checking}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          aria-disabled={checking}
+          onClick={() => {
+            if (!checking) onCheck();
+          }}
+          className="aria-disabled:cursor-wait aria-disabled:opacity-70"
+        >
           {checking ? <ClipLoader size={14} color="currentColor" /> : <RefreshCw aria-hidden="true" />}
           {checking ? 'Checking…' : 'Check again'}
         </Button>
-        <p aria-live="polite" className="text-xs text-muted-foreground">
-          {stillUnread && !checking ? 'Checked just now: not read yet.' : ''}
-        </p>
+        {stillUnread && !checking && <p className="text-xs text-muted-foreground">Checked just now: not read yet.</p>}
       </div>
     </section>
   );

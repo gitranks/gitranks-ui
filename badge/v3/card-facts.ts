@@ -1,4 +1,6 @@
 import type { EntityFacts, OrgFacts, PulseFacts, RepoFacts, UserFacts, UserRanks, UserTierLists } from './facts';
+import { promotedBadges } from './promotion';
+import { badgeTiles } from './tiles';
 import type { BadgeOrgCardQuery, BadgeRepoCardQuery, BadgeUserCardQuery } from '@/types/generated/graphql';
 
 /**
@@ -159,15 +161,19 @@ export function toOrgCardFacts({ organization: org, orgRankTotal }: BadgeOrgCard
 
 /**
  * A page's read of its entity's badge data, for its Badges card: `null` facts for no entity, and `ok: false` when the
- * read failed, so the page renders without the card and is kept only briefly.
+ * read failed, so the page renders without the card. `brief` is true in that case and while one of the card's images
+ * waits on a read and carries the render's stamp (see `pendingQuery`): the page is then kept for minutes only.
  */
 export async function readBadgeFacts<T extends EntityFacts>(
   read: Promise<T | null> | null,
-): Promise<{ facts: T | null; ok: boolean }> {
+  now = new Date(),
+): Promise<{ facts: T | null; ok: boolean; brief: boolean }> {
   try {
-    return { facts: (await read) ?? null, ok: true };
+    const facts = (await read) ?? null;
+    const brief = !!facts && badgeTiles(facts, promotedBadges(facts, now), now).some(({ pending }) => pending);
+    return { facts, ok: true, brief };
   } catch (error) {
     console.error('Error reading badge data for a page:', error);
-    return { facts: null, ok: false };
+    return { facts: null, ok: false, brief: true };
   }
 }

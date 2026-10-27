@@ -30,8 +30,9 @@ export default async function ProfileOverviewPage({ params }: PageProps<'/profil
     fetchProfileOverviewExtras(user),
     readBadgeFacts(user ? loadBadgeUserCard(user.login) : null),
   ]);
-  // A page that rendered without a part it could not read is kept briefly, so the part comes back soon.
-  if (extras.complete && badges.ok) {
+  // A page that rendered without a part it could not read is kept briefly, so the part comes back soon; so is one
+  // whose badges await the profile's first read (their images carry the render's stamp).
+  if (extras.complete && !badges.brief) {
     cacheLife('hours');
   } else {
     cacheLife('minutes');

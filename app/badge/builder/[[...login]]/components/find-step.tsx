@@ -7,6 +7,7 @@ import { ClipLoader } from 'react-spinners';
 import { fetchEntityFacts } from '../hooks/use-entity-facts';
 import { entityName } from '../utils/badge-options';
 import { parseSearch } from '../utils/builder-state';
+import { FORMAT_NAMES } from '../utils/builder-view';
 import { avatarOf, KIND_LABELS } from './entity-chip';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
 import type { EntityFacts } from '@/badge/v3/facts';
@@ -27,8 +28,6 @@ const YOUR: Record<EntityKind, string> = {
   org: 'your organization',
   repo: 'your repository',
 };
-
-const FORMAT_NAMES: Record<BadgeDefinition['format'], string> = { shield: 'badge', card: 'card', chart: 'chart' };
 
 /** The step's heading; with a badge picked before the entity (in the gallery), it names that badge. */
 export function findHeading(kind: EntityKind | null, badge: BadgeDefinition | null): string {

@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import type { FactsState } from '../hooks/use-entity-facts';
 import { parseBuilderQuery, pickTarget } from './builder-state';
-import { builderView } from './builder-view';
-import { repoMid } from '@/badge/v3/fixtures';
+import { builderView, showsReadNote } from './builder-view';
+import { findBadge } from '@/badge/v3/catalogue';
+import { orgBig, repoBig, repoMid, userMid } from '@/badge/v3/fixtures';
 
 const state = (query: string) => parseBuilderQuery(new URLSearchParams(query));
 const found: FactsState = { status: 'found', facts: repoMid };
@@ -24,7 +25,7 @@ describe('builderView', () => {
     expect(builderView(picked, { wellFormed: true, factsState: found, badgeAvailable: false })).toEqual({
       step: 'badge',
       notice:
-        'The “starred by top developers” badge has nothing to show for acme/fastqueue right now. Pick another one.',
+        'The “starred by top developers” card has nothing to show for acme/fastqueue right now. Pick another one.',
     });
   });
 
@@ -49,5 +50,27 @@ describe('builderView', () => {
       step: 'embed',
       notice: null,
     });
+  });
+});
+
+describe('showsReadNote', () => {
+  const repo = (id: string) => findBadge('repo', id);
+
+  it("shows for a badge that reads a repository's missing star history", () => {
+    expect(repoMid.history).toBeNull();
+    for (const id of ['star-history', 'stars-card', 'month']) expect(showsReadNote(repoMid, repo(id))).toBe(true);
+  });
+
+  it('never shows for badges that draw the same without it, nor once the history is read', () => {
+    for (const id of ['rank', 'language-rank', 'stars', 'rank-card'])
+      expect(showsReadNote(repoMid, repo(id))).toBe(false);
+    expect(showsReadNote(repoMid, null)).toBe(false);
+    expect(showsReadNote(repoBig, repo('star-history'))).toBe(false);
+  });
+
+  it('shows for a developer whose first read is running, whatever the badge; never for an organization', () => {
+    expect(showsReadNote({ ...userMid, s: null, c: null, f: null }, null)).toBe(true);
+    expect(showsReadNote(userMid, findBadge('user', 'rank'))).toBe(false);
+    expect(showsReadNote(orgBig, findBadge('org', 'rank'))).toBe(false);
   });
 });

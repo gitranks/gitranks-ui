@@ -1,9 +1,29 @@
 import type { FactsState } from '../hooks/use-entity-facts';
 import { entityName } from './badge-options';
 import { type BuilderState, type BuilderStep, stepOf } from './builder-state';
+import type { BadgeDefinition } from '@/badge/v3/catalogue';
+import { awaitsRead, type EntityFacts } from '@/badge/v3/facts';
+import { awaitsReadFor } from '@/badge/v3/pending';
 import type { EntityKind } from '@/badge/v3/types';
 
 const KIND_NAMES: Record<EntityKind, string> = { user: 'developer', org: 'organization', repo: 'repository' };
+
+/** What a badge is called by its format: "the “stars” card". */
+export const FORMAT_NAMES: Record<BadgeDefinition['format'], string> = {
+  shield: 'badge',
+  card: 'card',
+  chart: 'chart',
+};
+
+/**
+ * Whether the builder says the entity waits on a read: a developer whose first read is running, or a repository
+ * without its star history when the URL's badge reads that history (see `awaitsReadFor`). Rank, language and stars
+ * badges draw the same without it, so the note never shows for them.
+ */
+export function showsReadNote(facts: EntityFacts, badge: BadgeDefinition | null): boolean {
+  if (facts.kind === 'user') return awaitsRead(facts);
+  return !!badge && badge.entity === facts.kind && awaitsReadFor(facts, badge.id);
+}
 
 /**
  * The step the builder shows, and why it is not the one the URL asks for: an entity it cannot find goes back to
@@ -25,7 +45,7 @@ export function builderView(
   if (factsState.status === 'found' && state.badge && !badgeAvailable) {
     return {
       step: 'badge',
-      notice: `The “${state.badge.title}” badge has nothing to show for ${entityName(factsState.facts)} right now. Pick another one.`,
+      notice: `The “${state.badge.title}” ${FORMAT_NAMES[state.badge.format]} has nothing to show for ${entityName(factsState.facts)} right now. Pick another one.`,
     };
   }
   return { step, notice: null };

@@ -1,20 +1,20 @@
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { toOrgCardFacts, toRepoCardFacts, toUserCardFacts } from './card-facts';
-import {
-  awaitsRead,
-  type ContributorsWall,
-  type ContributorsWalls,
-  type EntityFacts,
-  type OrgFacts,
-  type PulseFacts,
-  type RankGoal,
-  type RepoFacts,
-  type TierTable,
-  type UserFacts,
-  type UserRanks,
-  type UserTierLists,
+import type {
+  ContributorsWall,
+  ContributorsWalls,
+  EntityFacts,
+  OrgFacts,
+  PulseFacts,
+  RankGoal,
+  RepoFacts,
+  TierTable,
+  UserFacts,
+  UserRanks,
+  UserTierLists,
 } from './facts';
+import { readsSoon } from './pending';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import {
   BadgeOrgCardDocument,
@@ -284,11 +284,11 @@ export function toOrgFacts({ organization: org, orgRankTotal }: BadgeOrgQuery, l
 }
 
 /**
- * How long badge data is kept: an hour, or minutes for an entity GitRanks has yet to read, so its fetch shows up soon
- * even when nothing expires the entity's tag. A refresh of the entity expires its tag, the one its pages use, at once.
+ * How long badge data is kept: an hour, or minutes where the data will change soon with nothing to expire its tag
+ * (see `readsSoon`). A visitor's refresh of the entity expires its tag, the one its pages use, at once.
  */
-function keepFor(facts: EntityFacts | null): void {
-  if (facts && awaitsRead(facts)) {
+export function keepFor(facts: EntityFacts | null): void {
+  if (facts && readsSoon(facts)) {
     cacheLife('minutes');
   } else {
     cacheLife('hours');
@@ -321,26 +321,29 @@ export async function loadBadgeOrg(login: string): Promise<OrgFacts | null> {
   return toOrgFacts(await graphqlDirect(BadgeOrgDocument, { login }, { source: 'badge' }), login);
 }
 
-/** A developer's Badges card data (see `card-facts.ts`), kept for an hour; `null` when the profile is unknown. */
+/** A developer's Badges card data (see `card-facts.ts` and `keepFor`); `null` when the profile is unknown. */
 export async function loadBadgeUserCard(login: string): Promise<UserFacts | null> {
   'use cache';
   cacheTag(`profile:${login}`);
-  cacheLife('hours');
-  return toUserCardFacts(await graphqlDirect(BadgeUserCardDocument, { login }, { source: 'badge' }));
+  const facts = toUserCardFacts(await graphqlDirect(BadgeUserCardDocument, { login }, { source: 'badge' }));
+  keepFor(facts);
+  return facts;
 }
 
-/** A repository's Badges card data, kept for an hour; `null` when the repository is unknown. */
+/** A repository's Badges card data (see `keepFor`); `null` when the repository is unknown. */
 export async function loadBadgeRepoCard(owner: string, name: string): Promise<RepoFacts | null> {
   'use cache';
   cacheTag(getRepoCacheTag(owner, name));
-  cacheLife('hours');
-  return toRepoCardFacts(await graphqlDirect(BadgeRepoCardDocument, { owner, name }, { source: 'badge' }));
+  const facts = toRepoCardFacts(await graphqlDirect(BadgeRepoCardDocument, { owner, name }, { source: 'badge' }));
+  keepFor(facts);
+  return facts;
 }
 
-/** An organization's Badges card data, kept for an hour; `null` when the organization is unknown. */
+/** An organization's Badges card data (see `keepFor`); `null` when the organization is unknown. */
 export async function loadBadgeOrgCard(login: string): Promise<OrgFacts | null> {
   'use cache';
   cacheTag(`org:${login}`);
-  cacheLife('hours');
-  return toOrgCardFacts(await graphqlDirect(BadgeOrgCardDocument, { login }, { source: 'badge' }), login);
+  const facts = toOrgCardFacts(await graphqlDirect(BadgeOrgCardDocument, { login }, { source: 'badge' }), login);
+  keepFor(facts);
+  return facts;
 }

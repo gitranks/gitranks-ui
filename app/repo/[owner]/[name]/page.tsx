@@ -99,9 +99,10 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
     // An unranked repository below the 1k+ set has nothing to promote: no read.
     readBadgeFacts(rank || repo.stars >= REPO_BIG_PROMOTION_STARS ? loadBadgeRepoCard(owner, name) : null),
   ]);
-  if (!rankTiers.ok || !badges.ok) {
+  if (!rankTiers.ok || badges.brief) {
     // A failed read of the tier table or the badge data: try again in minutes rather than keep the page without
-    // that part for hours.
+    // that part for hours. So too while the repository awaits its first read: its badges' images carry the render's
+    // stamp (see `pendingQuery`).
     cacheLife('minutes');
   }
   const rankedCount = languages.reduce((sum, { repos }) => sum + repos, 0);

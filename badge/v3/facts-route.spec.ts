@@ -19,10 +19,10 @@ describe('getEntityFactsResponse', () => {
     expect((await getEntityFactsResponse('org', ['nebula'], loaders)).status).toBe(200);
   });
 
-  it('keeps an entity GitRanks has yet to read only briefly, so its fetch shows up soon', async () => {
-    const unread = {
+  it('keeps briefly the data that will change soon on its own, and the rest as usual', async () => {
+    const soon = {
       ...loaders,
-      repo: vi.fn(async () => repoSmall),
+      repo: vi.fn(async () => ({ ...repoSmall, stars: 2_400 })),
       user: vi.fn(async () => ({ ...userMid, s: null, c: null, f: null })),
     };
     expect(repoSmall.history).toBeNull();
@@ -30,11 +30,18 @@ describe('getEntityFactsResponse', () => {
       ['repo', ['acme', 'fastqueue']],
       ['user', ['octo-dev']],
     ] as const) {
-      const response = await getEntityFactsResponse(kind, [...name], unread);
+      const response = await getEntityFactsResponse(kind, [...name], soon);
       expect(response.status).toBe(200);
       expect(response.headers.get('cache-control')).toBe(FACTS_CACHE_CONTROL.awaitingRead);
     }
     expect(FACTS_CACHE_CONTROL.awaitingRead).toMatch(/s-maxage=300\b/);
+
+    // A small repository waits for a visitor's refresh, which expires its data itself.
+    const small = await getEntityFactsResponse('repo', ['acme', 'fastqueue'], {
+      ...loaders,
+      repo: vi.fn(async () => repoSmall),
+    });
+    expect(small.headers.get('cache-control')).toBe(FACTS_CACHE_CONTROL.found);
   });
 
   it.each([

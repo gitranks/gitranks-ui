@@ -3,6 +3,7 @@ import { type EntityFacts, wallOf } from './facts';
 import { formatCompact, formatFull } from './format';
 import { type BadgeEntityPath, badgeImagePath } from './links';
 import { type BadgeParams, BadgeParamsError, resolveParams } from './params';
+import { pendingQuery } from './pending';
 import { shieldContent } from './shields';
 import type { BadgeFormat, By, Segment, Theme } from './types';
 import { wallLayout } from './wall-layout';
@@ -106,8 +107,13 @@ export type BadgeTile = {
   /** Unique within a list: the id and its query. */
   key: string;
   format: BadgeFormat;
-  /** The badge's own URL pinned to each drawing of Auto, so it matches the page's theme rather than the system's. */
+  /**
+   * The badge's own URL pinned to each drawing of Auto, so it matches the page's theme rather than the system's; with
+   * the render's stamp while it draws "preparing" or "not yet" for want of a read (see `pendingQuery`).
+   */
   src: Record<Theme, string>;
+  /** Whether `src` carries that stamp: a page showing it is kept for minutes only. */
+  pending: boolean;
   alt: string;
   /** The builder for this badge, with the options it is drawn with (see `TileLink`). */
   href: string;
@@ -177,6 +183,8 @@ export function badgeTiles(
     const resolved = resolveChoice(entity, choice);
     if (!resolved) return [];
     const { badge, params } = resolved;
+    // Stamped with the render's time while it waits on a read (see `pendingQuery`).
+    const pending = pendingQuery(entity, badge, params, now);
     const query = choice.query ?? {};
     const search = new URLSearchParams(query).toString();
     return [
@@ -184,8 +192,8 @@ export function badgeTiles(
         key: search ? `${choice.id}?${search}` : choice.id,
         format: badge.format,
         src: {
-          light: badgeImagePath(path, badge.id, 'svg', { ...query, theme: 'light' }),
-          dark: badgeImagePath(path, badge.id, 'svg', { ...query, theme: 'dark' }),
+          light: badgeImagePath(path, badge.id, 'svg', { ...query, theme: 'light', ...pending }),
+          dark: badgeImagePath(path, badge.id, 'svg', { ...query, theme: 'dark', ...pending }),
         },
         alt: badgeAlt(entity, badge, params, now),
         href:
@@ -193,6 +201,7 @@ export function badgeTiles(
             ? builderHref({ kind: entity.kind, name: '', badge, style: query })
             : builderHref({ kind: entity.kind, name: entityNameOf(entity), badge, style: query, embed: true }),
         size: sizeOf(entity, badge, params),
+        pending: Object.keys(pending).length > 0,
       },
     ];
   });

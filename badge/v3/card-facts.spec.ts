@@ -19,14 +19,19 @@ const ranks = (s: number | null, c: number | null) => ({
 
 describe('readBadgeFacts', () => {
   it('passes the facts through, and a null result as none', async () => {
-    expect(await readBadgeFacts(Promise.resolve(repoMid))).toEqual({ facts: repoMid, ok: true });
-    expect(await readBadgeFacts(Promise.resolve(null))).toEqual({ facts: null, ok: true });
-    expect(await readBadgeFacts(null)).toEqual({ facts: null, ok: true });
+    expect(await readBadgeFacts(Promise.resolve(repoBig))).toEqual({ facts: repoBig, ok: true, brief: false });
+    expect(await readBadgeFacts(Promise.resolve(null))).toEqual({ facts: null, ok: true, brief: false });
+    expect(await readBadgeFacts(null)).toEqual({ facts: null, ok: true, brief: false });
+  });
+
+  it('keeps a page whole without a star history: its promoted badges draw without it', async () => {
+    expect(repoMid.history).toBeNull();
+    expect(await readBadgeFacts(Promise.resolve(repoMid), NOW)).toEqual({ facts: repoMid, ok: true, brief: false });
   });
 
   it('turns a failed read into no facts and ok: false', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(await readBadgeFacts(Promise.reject(new Error('down')))).toEqual({ facts: null, ok: false });
+    expect(await readBadgeFacts(Promise.reject(new Error('down')))).toEqual({ facts: null, ok: false, brief: true });
     expect(error).toHaveBeenCalled();
     error.mockRestore();
   });

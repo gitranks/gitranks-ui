@@ -2,11 +2,12 @@
 
 import { useTheme } from 'next-themes';
 
-import { entityName } from '../utils/badge-options';
+import { entityName, paramsOf } from '../utils/badge-options';
 import { type Style, styleQuery } from '../utils/builder-state';
-import { badgeImageUrl, withTheme } from '../utils/snippets';
+import { badgeImageUrl } from '../utils/snippets';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
 import type { EntityFacts } from '@/badge/v3/facts';
+import { pendingQuery } from '@/badge/v3/pending';
 import type { Theme } from '@/badge/v3/types';
 import { cn } from '@/lib/utils';
 
@@ -16,36 +17,36 @@ export function usePageTheme(): Theme {
   return resolvedTheme === 'dark' ? 'dark' : 'light';
 }
 
-const versions = new WeakMap<EntityFacts, string>();
+const stamps = new WeakMap<EntityFacts, number>();
 
 /**
- * A short fingerprint of the facts the builder shows. A preview carries it (an image ignores unknown keys), so the
- * preview changes as soon as the entity's data does, instead of an image kept from before a fetch.
+ * When the builder got these facts: the stamp `pendingQuery` puts on a preview that waits on a read. It is fixed per
+ * answer, so a preview is not fetched again at every keystroke, and new with every answer (a reload, a check again),
+ * so a preview drawn before a read is never shown from a cache after it.
  */
-export function factsVersion(facts: EntityFacts): string {
-  let version = versions.get(facts);
-  if (!version) {
-    // FNV-1a over the facts as JSON.
-    let hash = 0x811c9dc5;
-    const json = JSON.stringify(facts);
-    for (let index = 0; index < json.length; index++) {
-      hash = Math.imul(hash ^ json.charCodeAt(index), 0x01000193);
-    }
-    version = (hash >>> 0).toString(36);
-    versions.set(facts, version);
+export function factsStamp(facts: EntityFacts): number {
+  let stamp = stamps.get(facts);
+  if (stamp === undefined) {
+    stamp = Date.now();
+    stamps.set(facts, stamp);
   }
-  return version;
+  return stamp;
 }
 
 /**
- * A badge's own URL on this site, with the facts' version (see `factsVersion`); an Auto badge pinned to `theme`, so it
- * matches the ground it sits on. Only previews carry the version: the code to copy never does.
+ * A badge's own URL on this site; an Auto badge pinned to `theme`, so it matches the ground it sits on. While the
+ * image waits on a read it carries the facts' stamp (see `pendingQuery`); only previews do, never the code to copy.
  */
 export function previewSrc(facts: EntityFacts, badge: BadgeDefinition, style: Style, theme: Theme): string {
   const query = styleQuery(badge, style);
-  const url = badgeImageUrl('', facts.kind, entityName(facts), badge.id, query);
-  const pinned = (query.get('scheme') ?? 'auto') === 'auto' ? withTheme(url, theme) : url;
-  return `${pinned}${pinned.includes('?') ? '&' : '?'}v=${factsVersion(facts)}`;
+  if ((query.get('scheme') ?? 'auto') === 'auto') query.set('theme', theme);
+  const params = paramsOf(badge, style);
+  if (params) {
+    for (const [key, value] of Object.entries(pendingQuery(facts, badge, params, factsStamp(facts)))) {
+      query.set(key, value);
+    }
+  }
+  return badgeImageUrl('', facts.kind, entityName(facts), badge.id, query);
 }
 
 /** The real badge image, drawn by the same renderer a README gets. */

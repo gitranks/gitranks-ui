@@ -54,6 +54,21 @@ describe('getBadgeResponse', () => {
     expect(loaders.repo).toHaveBeenCalledWith('acme', 'fastqueue');
   });
 
+  it('draws the same image, with the same cache rule, whatever pending stamp or version the URL carries', async () => {
+    loaders.repo.mockImplementation(resolved(repoUnranked));
+    for (const [file, query] of [
+      ['star-history.svg', ''],
+      ['stars-card.svg', 'scheme=night'],
+      ['rank.svg', 'extra=none&theme=dark'],
+    ] as const) {
+      const clean = await repoResponse('acme', 'fastqueue', file, query);
+      const stamped = await repoResponse('acme', 'fastqueue', file, `${query}&pending=mh2k9x1c&v=1wub6og`);
+      expect(stamped.status).toBe(clean.status);
+      expect(stamped.headers.get('cache-control')).toBe(clean.headers.get('cache-control'));
+      expect(await stamped.text()).toBe(await clean.text());
+    }
+  });
+
   it('draws a PNG at twice the size', async () => {
     loaders.repo.mockImplementation(resolved(repoMid));
     const response = await repoResponse('acme', 'fastqueue', 'rank-card.png');

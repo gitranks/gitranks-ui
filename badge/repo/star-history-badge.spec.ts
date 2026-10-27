@@ -80,13 +80,13 @@ describe('getStarHistoryBadgeResponse', () => {
     expect(fetchBadgeRepo).toHaveBeenCalledWith('octo', 'widgets');
   });
 
-  it('draws the placeholder without a history and keeps it for minutes', async () => {
+  it('draws the placeholder without a history and keeps it at the edge for an hour', async () => {
     fetchBadgeRepo.mockResolvedValue(repo());
     const response = await getStarHistoryBadgeResponse('octo', 'widgets', 'star-history.svg');
     const svg = await response.text();
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('cache-control')).toBe('public, max-age=60, s-maxage=300');
+    expect(response.headers.get('cache-control')).toBe('public, max-age=300, s-maxage=3600');
     expect(svg).toMatch(/^<svg width="1000" height="400"/);
     expect(svg).not.toContain('fill-opacity="0.2"');
   });

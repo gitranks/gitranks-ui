@@ -52,6 +52,28 @@ describe('builder links', () => {
   });
 });
 
+describe('image URLs', () => {
+  it('stamp an image with the render time while it draws "not yet" for want of a read, never its link', () => {
+    const stamp = NOW.getTime().toString(36);
+    const [card] = badgeTiles(repoMid, [{ id: 'stars-card', query: { scheme: 'night' } }], NOW, 'find');
+    expect(card.pending).toBe(true);
+    expect(card.src).toEqual({
+      light: `/badge/repo/acme/fastqueue/stars-card.svg?scheme=night&theme=light&pending=${stamp}`,
+      dark: `/badge/repo/acme/fastqueue/stars-card.svg?scheme=night&theme=dark&pending=${stamp}`,
+    });
+    expect(card.href).not.toContain('pending');
+    const [later] = badgeTiles(repoMid, [{ id: 'stars-card' }], new Date(NOW.getTime() + 60_000));
+    expect(later.src.light).not.toContain(stamp);
+  });
+
+  it('use the clean URL for a badge that draws without the read, and once the read is made', () => {
+    const [rank] = badgeTiles(repoMid, [{ id: 'rank' }], NOW);
+    expect(rank).toMatchObject({ pending: false, src: { light: '/badge/repo/acme/fastqueue/rank.svg?theme=light' } });
+    const [read] = badgeTiles(repoBig, [{ id: 'stars-card' }], NOW);
+    expect(read).toMatchObject({ pending: false, src: { light: '/badge/repo/nebula/ui/stars-card.svg?theme=light' } });
+  });
+});
+
 describe('alt text', () => {
   it('states the fact a shield shows', () => {
     const rank = badge('repo', 'rank');
@@ -123,6 +145,7 @@ describe('tiles', () => {
       alt: 'octo-dev on GitRanks: contrib rank #8,210 · top 1%',
       href: '/badge/builder?user=octo-dev&badge=rank&by=contributions&step=embed',
       size: null,
+      pending: false,
     });
   });
 

@@ -1,12 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchEntityFacts, recheckEntityFacts, seedEntityFacts } from './use-entity-facts';
+import { fetchEntityFacts, nextFactsState, recheckEntityFacts, seedEntityFacts } from './use-entity-facts';
 import { orgBig, repoBig, repoMid, userMid } from '@/badge/v3/fixtures';
 
 const answer = (status: number, body: unknown = { error: 'x' }) =>
   Promise.resolve(new Response(JSON.stringify(body), { status }));
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe('fetchEntityFacts', () => {
   it('asks for a found entity once', async () => {
@@ -46,7 +49,7 @@ describe('fetchEntityFacts', () => {
 });
 
 describe('recheckEntityFacts', () => {
-  it("reads a repository's fetch status, then asks past every cache and keeps the new answer", async () => {
+  it("reads a repository's fetch status, then asks without the HTTP caches and keeps the new answer", async () => {
     seedEntityFacts(repoMid);
     const fetch = vi.fn((url: string) => (url.includes('/pull') ? answer(200, { pull: null }) : answer(200, repoBig)));
     vi.stubGlobal('fetch', fetch);
@@ -60,7 +63,6 @@ describe('recheckEntityFacts', () => {
     // The new answer replaces the one step 1 held.
     expect(await fetchEntityFacts('repo', 'acme/fastqueue')).toEqual(repoBig);
     expect(fetch).toHaveBeenCalledTimes(2);
-    vi.restoreAllMocks();
   });
 
   it("asks a developer's cache to expire, and asks anyway when that fails", async () => {
@@ -77,10 +79,41 @@ describe('recheckEntityFacts', () => {
     expect(fetch.mock.calls[1][0]).toMatch(/^\/api\/badge\/v3\/user\/octo-dev\?fresh=\d+$/);
   });
 
-  it('asks an organization past every cache alone', async () => {
+  it('asks an organization without the HTTP caches alone', async () => {
     const fetch = vi.fn(() => answer(200, orgBig));
     vi.stubGlobal('fetch', fetch);
     expect(await recheckEntityFacts('org', 'nebula')).toEqual(orgBig);
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('nextFactsState', () => {
+  const found = {
+    status: 'found' as const,
+    facts: repoMid,
+    key: 'repo:acme/fastqueue#0',
+    entity: 'repo:acme/fastqueue',
+  };
+
+  it('keeps the facts found for an entity when a later ask for it misses or fails', () => {
+    for (const status of ['missing', 'error'] as const) {
+      expect(nextFactsState(found, { status, key: 'repo:acme/fastqueue#1', entity: 'repo:acme/fastqueue' })).toEqual({
+        ...found,
+        key: 'repo:acme/fastqueue#1',
+      });
+    }
+  });
+
+  it('takes a new answer for the entity, and any answer for another one', () => {
+    const fresh = {
+      status: 'found' as const,
+      facts: repoBig,
+      key: 'repo:acme/fastqueue#1',
+      entity: 'repo:acme/fastqueue',
+    };
+    expect(nextFactsState(found, fresh)).toBe(fresh);
+    const other = { status: 'missing' as const, key: 'repo:acme/other#1', entity: 'repo:acme/other' };
+    expect(nextFactsState(found, other)).toBe(other);
+    expect(nextFactsState({ status: 'loading' }, other)).toBe(other);
   });
 });

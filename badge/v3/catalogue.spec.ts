@@ -467,7 +467,7 @@ describe('promotion', () => {
   it.each([
     [repoSmall, '5–100', ['language-rank', 'rank-card']],
     [repoMid, '100–1k', ['rank', 'language-rank', 'month', 'rank-card']],
-    [{ ...repoMid, stars: 90 }, '5–100', ['language-rank', 'goal', 'rank-card']],
+    [{ ...repoMid, stars: 90 }, '5–100', ['language-rank', 'rank-card']],
     [repoBig, '1k+', ['rank', 'contributors', 'starred-by-card', 'star-history']],
     [userSmall, 'under 100', ['rank', 'rank', 'month']],
     [userMid, '100–1k', ['rank', 'rank', 'month', 'profile-card']],

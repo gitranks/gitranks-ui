@@ -5,6 +5,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 
 import { OverviewPage } from './components/overview-page';
 import { buildProfileTabSEO } from './seo';
+import { loadBadgeUser, readBadgeFacts } from '@/badge/v3/load';
 import { fetchProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
 import { fetchProfilePageOverview } from '@/graphql/helpers/fetch-profile-page-overview';
 
@@ -24,13 +25,16 @@ export default async function ProfileOverviewPage({ params }: PageProps<'/profil
   cacheTag(`profile:${login}`);
 
   const user = await fetchProfilePageOverview(login);
-  const extras = await fetchProfileOverviewExtras(user);
+  const [extras, badges] = await Promise.all([
+    fetchProfileOverviewExtras(user),
+    readBadgeFacts(user ? loadBadgeUser(user.login) : null),
+  ]);
   // A page that rendered without a part it could not read is kept briefly, so the part comes back soon.
-  if (extras.complete) {
+  if (extras.complete && badges.ok) {
     cacheLife('hours');
   } else {
     cacheLife('minutes');
   }
 
-  return <OverviewPage user={user} extras={extras} isGlobalContext />;
+  return <OverviewPage user={user} extras={extras} badgeFacts={badges.facts} isGlobalContext />;
 }

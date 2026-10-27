@@ -16,6 +16,8 @@ import {
   ProfileCardHeader,
   ProfileCardsGrid,
 } from '@/app/profile/[login]/components/profile-card';
+import { loadBadgeOrg, readBadgeFacts } from '@/badge/v3/load';
+import { BadgesCard } from '@/components/badges-card/badges-card';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { RankCardItem, RankCardPosition, RankCardTotalValue } from '@/components/rank-card/rank-card-item';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
@@ -42,6 +44,12 @@ export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {
 
   if (!org) {
     notFound();
+  }
+
+  const badges = await readBadgeFacts(loadBadgeOrg(org.login ?? login));
+  if (!badges.ok) {
+    // The page renders without its Badges card; keep it briefly so the card comes back soon.
+    cacheLife('minutes');
   }
 
   const rank = org.rankOrg ?? {};
@@ -84,6 +92,7 @@ export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {
         <OrgTopRepos repos={org.topRepos} />
       </ProfileCardsGrid>
       {org.hasActivity && org.pulse && <OrgPulseSections login={login} avatarUrl={org.avatarUrl} pulse={org.pulse} />}
+      <BadgesCard entity={badges.facts} />
     </LayoutLeftColumn>
   );
 }

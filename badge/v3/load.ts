@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 import type {
   ContributorsWall,
   ContributorsWalls,
+  EntityFacts,
   OrgFacts,
   PulseFacts,
   RankGoal,
@@ -299,4 +300,19 @@ export async function loadBadgeOrg(login: string): Promise<OrgFacts | null> {
   cacheTag(`org:${login}`);
   cacheLife('hours');
   return toOrgFacts(await graphqlDirect(BadgeOrgDocument, { login }, { source: 'badge' }), login);
+}
+
+/**
+ * A page's read of its entity's badge data, for its Badges card: `null` facts for no entity, and `ok: false` when the
+ * read failed, so the page renders without the card and is kept only briefly.
+ */
+export async function readBadgeFacts<T extends EntityFacts>(
+  read: Promise<T | null> | null,
+): Promise<{ facts: T | null; ok: boolean }> {
+  try {
+    return { facts: (await read) ?? null, ok: true };
+  } catch (error) {
+    console.error('Error reading badge data for a page:', error);
+    return { facts: null, ok: false };
+  }
 }

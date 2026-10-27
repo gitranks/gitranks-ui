@@ -26,7 +26,7 @@ export const PROMOTION: Record<EntityFacts['kind'], PromotionSet[]> = {
       bucket: '5–100',
       from: 0,
       to: 100,
-      shields: [{ id: 'language-rank' }, { id: 'goal' }],
+      shields: [{ id: 'language-rank' }],
       panels: [{ id: 'rank-card' }],
     },
     {

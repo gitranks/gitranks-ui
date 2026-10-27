@@ -8,7 +8,6 @@ import { RepoLayout } from './components/repo-layout';
 import { RepoPulseArea } from './components/repo-pulse-area';
 import { RepoRankCard } from './components/repo-rank-card';
 import { RepoTierCard } from './components/repo-tier-card';
-import { StarHistoryBadgeSection } from './components/star-history-badge-section';
 import { StarHistorySection } from './components/star-history-section';
 import { StarsBestSection } from './components/stars-best-section';
 import { WhoBuildsItCard } from './components/who-builds-it-card';
@@ -17,6 +16,8 @@ import { buildRepoSummary } from './utils/repo-summary';
 import { REPO_MIN_RANK_STARS } from '@/app/app.consts';
 import { ProfileCard, ProfileCardsGrid } from '@/app/profile/[login]/components/profile-card';
 import { ProfileSummary } from '@/app/profile/[login]/components/profile-summary';
+import { loadBadgeRepo, readBadgeFacts } from '@/badge/v3/load';
+import { BadgesCard } from '@/components/badges-card/badges-card';
 import { Header } from '@/components/header/header';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { fetchRepo } from '@/graphql/helpers/fetch-repo';
@@ -88,11 +89,13 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
   }
 
   const rank = isRepoRanked(repo) ? repo.rank : null;
-  const [languages, rankTiers] = rank
-    ? await Promise.all([fetchRepoLanguages(), fetchRepoRankTiers()])
-    : [[], { tiers: null, ok: true }];
-  if (!rankTiers.ok) {
-    // A failed read of the tier table: try again in minutes rather than keep the card without its goal for hours.
+  const [[languages, rankTiers], badges] = await Promise.all([
+    rank ? Promise.all([fetchRepoLanguages(), fetchRepoRankTiers()]) : ([[], { tiers: null, ok: true }] as const),
+    readBadgeFacts(loadBadgeRepo(owner, name)),
+  ]);
+  if (!rankTiers.ok || !badges.ok) {
+    // A failed read of the tier table or the badge data: try again in minutes rather than keep the page without
+    // that part for hours.
     cacheLife('minutes');
   }
   const rankedCount = languages.reduce((sum, { repos }) => sum + repos, 0);
@@ -163,7 +166,7 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
           <ProfileSummary parts={summary} />
         </div>
         <StarHistorySection repo={repo} />
-        {!!repo.history && <StarHistoryBadgeSection owner={repo.owner} name={repo.name} />}
+        <BadgesCard entity={badges.facts} />
         <RepoPulseArea repo={repo} pulse={pulse} />
       </RepoLayout>
     </>

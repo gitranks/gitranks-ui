@@ -15,6 +15,7 @@ query BadgeRepo($owner: String!, $name: String!) {
         date
         stars
       }
+      complete
     }
     rank {
       s

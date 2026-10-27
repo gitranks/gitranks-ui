@@ -26,7 +26,7 @@ export const BadgeQuerySchema = z
     left: hex.optional(),
     right: hex.optional(),
     theme: z.enum(['light', 'dark']).optional(),
-    label: z.string().max(1000).optional(),
+    label: z.string().optional(),
     by: z.enum(['stars', 'contributions', 'followers']).optional(),
     scope: z.enum(['global', 'country']).optional(),
     language: z.string().trim().min(1).max(64).optional(),
@@ -93,7 +93,11 @@ export function defaultParams(badge: BadgeDefinition): BadgeParams {
 
 /** Trimmed and cut to 40 characters; empty means the badge's own label. */
 export function cutLabel(label: string | undefined): string | null {
-  const trimmed = label?.trim();
+  // Bound the work on a very long value before splitting it into characters.
+  const trimmed = label
+    ?.trimStart()
+    .slice(0, LABEL_MAX_LENGTH * 4)
+    .trim();
   return trimmed ? [...trimmed].slice(0, LABEL_MAX_LENGTH).join('').trim() : null;
 }
 
@@ -103,7 +107,11 @@ export function cutLabel(label: string | undefined): string | null {
  * `left` or `right`. Options a badge does not read are ignored.
  */
 export function resolveParams(badge: BadgeDefinition, search: URLSearchParams | Record<string, string>): BadgeParams {
-  const raw = search instanceof URLSearchParams ? Object.fromEntries(search.entries()) : search;
+  const raw: Record<string, string> = {
+    ...(search instanceof URLSearchParams ? Object.fromEntries(search.entries()) : search),
+  };
+  // Any label is accepted: cut before parsing, so length never refuses a badge.
+  if (raw.label !== undefined) raw.label = cutLabel(raw.label) ?? '';
   const parsed = BadgeQuerySchema.safeParse(raw);
   if (!parsed.success) {
     throw new BadgeParamsError(
@@ -129,6 +137,15 @@ export function resolveParams(badge: BadgeDefinition, search: URLSearchParams | 
       throw new BadgeParamsError(`value: ${badge.id} does not take "${query.value}"`);
     }
     params.value = query.value;
+  }
+
+  // A contributors shield never says the same thing twice: an extra asked for as the value is refused, a default
+  // extra equal to it is left out.
+  if (badge.values && params.extra === params.value) {
+    if (query.extra === params.value) {
+      throw new BadgeParamsError(`extra: "${query.extra}" is already the value`);
+    }
+    params.extra = null;
   }
 
   if (query.scheme === 'custom' && badge.format !== 'shield') {

@@ -1,5 +1,5 @@
 import { CONTRIBUTOR_KEYS, DEFAULT_CONTRIBUTOR_EXTRA, ORG_CONTRIBUTOR_KEYS } from './contributors';
-import type { EntityFacts, OrgFacts, RepoFacts, UserFacts } from './facts';
+import { type EntityFacts, type OrgFacts, type RepoFacts, type UserFacts, wallOf } from './facts';
 import type { BadgeParams } from './params';
 import { repoRace, userClimbRace, userStarsRace } from './race';
 import type { BadgeFormat, By, ContributorKey, EntityKind } from './types';
@@ -188,10 +188,26 @@ export function repoLanguageOf(repo: RepoFacts, language: string | null): string
   return !language || language.toLowerCase() === own.toLowerCase() ? own : null;
 }
 
-function wallOf(entity: EntityFacts, order: BadgeParams['order']) {
-  const walls = entity.contributorsWall as Partial<Record<string, { entries: unknown[] } | null>> | undefined;
-  return walls?.[order] ?? null;
+/** The monthly points of a developer's count in one ranking, oldest first. */
+export function countSeries(user: UserFacts, by: By): [key: string, value: number][] {
+  const prop = BY_PROP[by];
+  return Object.entries(user.snapshots ?? {})
+    .filter(([key]) => /^\d{4}-\d{2}-01$/.test(key))
+    .flatMap(([key, value]): [string, number][] => {
+      const count = value?.[prop];
+      return typeof count === 'number' ? [[key, count]] : [];
+    })
+    .sort(([a], [b]) => a.localeCompare(b));
 }
+
+/** A count chart needs this many monthly points. */
+export const COUNT_CHART_MIN_POINTS = 3;
+
+/**
+ * The developer wall stays hidden until contributor analytics cover developers' own repositories; its drawing is
+ * kept for then.
+ */
+export const USER_WALL_OFFERED = false;
 
 function repoAvailability(repo: RepoFacts, id: string, params: BadgeParams, now: Date): Availability {
   const ranked = !!repo.rank?.s;
@@ -252,9 +268,9 @@ function userAvailability(user: UserFacts, id: string, params: BadgeParams, now:
     case 'profile-card':
       return either(isUserRankedIn(user, 'stars', 'global') || isUserRankedIn(user, 'contributions', 'global'), false);
     case 'count-chart':
-      return either(Object.keys(user.snapshots ?? {}).length >= 3, false);
+      return either(countSeries(user, params.by).length >= COUNT_CHART_MIN_POINTS, false);
     case 'contributors-wall':
-      return either((wallOf(user, params.order)?.entries.length ?? 0) >= WALL_MIN_PEOPLE, false);
+      return either(USER_WALL_OFFERED && (wallOf(user, params.order)?.entries.length ?? 0) >= WALL_MIN_PEOPLE, false);
     default:
       return 'never';
   }

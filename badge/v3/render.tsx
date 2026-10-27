@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import satori from 'satori';
 
-import { joinAuto } from './auto-svg';
+import { joinAuto, shareImages } from './auto-svg';
 import { type Drawing, notYetDrawing, prepareDrawing } from './cards';
 import type { BadgeDefinition } from './catalogue';
 import type { EntityFacts } from './facts';
@@ -19,7 +19,12 @@ import {
 import { SHIELD_HEIGHT, Shield } from './shield';
 import { notYetShield, shieldContent } from './shields';
 import type { ImageFormat, Theme } from './types';
-import { renderStarHistorySvg, type StarHistoryBadgeInput, svgToPng } from '@/badge/repo/render-star-history-badge';
+import {
+  CONTENT_TYPE,
+  renderStarHistorySvg,
+  type StarHistoryBadgeInput,
+  svgToPng,
+} from '@/badge/repo/render-star-history-badge';
 import { getSatoriConfig } from '@/badge/utils/get-satori-config';
 
 /** What an image shows: the badge, "not yet" (it never applied), or star history still being prepared. */
@@ -29,8 +34,6 @@ export type RenderedBadge = { state: RenderState; body: string | Uint8Array<Arra
 
 /** og:image size for cards (spec §9). */
 export const SOCIAL_SIZE = { width: 1200, height: 630 } as const;
-
-const CONTENT_TYPE: Record<ImageFormat, string> = { svg: 'image/svg+xml; charset=utf-8', png: 'image/png' };
 
 const FONTS = [
   { weight: 400 as const },
@@ -120,13 +123,9 @@ async function drawPanel(entity: EntityFacts, badge: BadgeDefinition, params: Ba
 /** The width of an SVG drawing, from its root. */
 const widthOf = (svg: string) => Number(/^<svg\b[^>]*\bwidth="([\d.]+)"/.exec(svg)?.[1] ?? 0);
 
-/** PNG at twice the drawing's size. */
-export async function svgToPng2x(svg: string): Promise<Uint8Array<ArrayBuffer>> {
-  // Lazy-load the native binding only for PNG so SVG responses stay independent of resvg.
-  const { Resvg } = await import('@resvg/resvg-js');
-  // satori draws text as paths; scanning the system fonts would only cost time.
-  const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: widthOf(svg) * 2 }, font: { loadSystemFonts: false } });
-  return new Uint8Array(resvg.render().asPng());
+/** PNG at twice the drawing's size; a social card at its own 1200×630. */
+export function toPng(svg: string, scale: 1 | 2 = 2): Promise<Uint8Array<ArrayBuffer>> {
+  return svgToPng(svg, widthOf(svg) * scale);
 }
 
 /**
@@ -159,11 +158,11 @@ export async function renderBadge(
     badge.format === 'shield'
       ? await drawShield(entity, badge, params, themes, now)
       : await drawPanel(entity, badge, params, themes, now);
-  const svg = svgs.length === 2 ? joinAuto(svgs[0], svgs[1]) : svgs[0];
+  const svg = svgs.length === 2 ? joinAuto(svgs[0], svgs[1]) : shareImages(svgs[0]);
 
   return {
     state,
-    body: format === 'svg' ? svg : await svgToPng2x(svg),
+    body: format === 'svg' ? svg : await toPng(svg, params.size === 'social' && badge.format === 'card' ? 1 : 2),
     contentType: CONTENT_TYPE[format],
   };
 }

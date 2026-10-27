@@ -2,6 +2,8 @@
 export const AVATAR_FETCH_SIZE = 64;
 export const AVATAR_TIMEOUT_MS = 2_000;
 const AVATAR_HOST = 'https://avatars.githubusercontent.com/';
+/** A 64px avatar is a few KB; anything far bigger is not one. */
+export const AVATAR_MAX_BYTES = 64 * 1024;
 
 /** The avatar URL at 64px. */
 export function sizedAvatarUrl(url: string): string {
@@ -24,12 +26,20 @@ export async function fetchAvatar(url: string | null | undefined): Promise<strin
     return null;
   }
   try {
-    const response = await fetch(sizedAvatarUrl(url), { signal: AbortSignal.timeout(AVATAR_TIMEOUT_MS) });
+    // A redirect could lead off the avatar host: refuse it.
+    const response = await fetch(sizedAvatarUrl(url), {
+      signal: AbortSignal.timeout(AVATAR_TIMEOUT_MS),
+      redirect: 'error',
+    });
     const type = response.headers.get('content-type') ?? '';
-    if (!response.ok || !/^image\/(png|jpeg|gif)/.test(type)) {
+    const length = Number(response.headers.get('content-length') ?? 0);
+    if (!response.ok || !/^image\/(png|jpeg|gif)/.test(type) || length > AVATAR_MAX_BYTES) {
       return null;
     }
     const body = Buffer.from(await response.arrayBuffer());
+    if (body.length > AVATAR_MAX_BYTES) {
+      return null;
+    }
     return `data:${type.split(';')[0]};base64,${body.toString('base64')}`;
   } catch {
     return null;

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { repoMid, userMid } from './fixtures';
 import { monthKeysOf } from './month';
-import { raceState, repoRace, userClimbRace, userStarsRace } from './race';
+import { bestCompletedMonth, raceState, repoRace, userClimbRace, userStarsRace } from './race';
 
 const at = (day: number) => new Date(Date.UTC(2026, 9, day, 12));
 
@@ -86,6 +86,7 @@ describe('repoRace', () => {
         { date: '2026-10-01T00:00:00Z', stars: 774 },
       ],
       current: { date: '2026-10-20T00:00:00Z', stars: 986 },
+      complete: true,
     };
     expect(repoRace({ ...repoMid, gainedThisMonth: 212, history }, at(20)).state.kind).toBe('record');
     expect(repoRace({ ...repoMid, gainedThisMonth: 90, history }, at(20)).state.kind).toBe('beaten');
@@ -119,5 +120,51 @@ describe('developer races', () => {
 
   it('has no record state', () => {
     expect(userStarsRace({ ...userMid, s: 5_000 }, at(20)).state.kind).toBe('beaten');
+  });
+});
+
+describe('bestCompletedMonth', () => {
+  const point = (date: string, stars: number) => ({ date: `${date}T00:00:00.000Z`, stars });
+  const history = (points: { date: string; stars: number }[], complete = true) => ({
+    points,
+    current: { date: '2026-10-20T00:00:00Z', stars: 2_000 },
+    complete,
+  });
+
+  it('takes the best gain between months one month apart, before this month', () => {
+    const points = [
+      point('2026-06-01', 100),
+      point('2026-07-01', 180),
+      point('2026-08-01', 210),
+      point('2026-09-01', 300),
+      point('2026-10-01', 900),
+    ];
+    // October's start closes September: +600. This month (October to today) never counts.
+    expect(bestCompletedMonth(history(points), '2026-10-01')).toBe(600);
+    expect(bestCompletedMonth(history(points), '2026-09-01')).toBe(90);
+  });
+
+  it('never reads a jump across missing months as one month', () => {
+    const points = [point('2021-03-01', 0), point('2024-01-01', 5_000), point('2024-02-01', 5_040)];
+    expect(bestCompletedMonth(history(points), '2026-10-01')).toBe(40);
+  });
+
+  it('ignores points that are not a month start, such as the creation date', () => {
+    const points = [{ date: '2026-07-14T09:30:00Z', stars: 0 }, point('2026-08-01', 50), point('2026-09-01', 70)];
+    expect(bestCompletedMonth(history(points), '2026-10-01')).toBe(20);
+  });
+
+  it('knows no best month without a complete history', () => {
+    const points = [point('2026-08-01', 50), point('2026-09-01', 70)];
+    expect(bestCompletedMonth(history(points, false), '2026-10-01')).toBeNull();
+    expect(bestCompletedMonth(null, '2026-10-01')).toBeNull();
+  });
+
+  it('calls no record from an incomplete history', () => {
+    const points = [point('2026-08-01', 700), point('2026-09-01', 726), point('2026-10-01', 774)];
+    expect(repoRace({ ...repoMid, gainedThisMonth: 212, history: history(points, false) }, at(20)).state.kind).toBe(
+      'beaten',
+    );
+    expect(repoRace({ ...repoMid, gainedThisMonth: 212, history: history(points) }, at(20)).state.kind).toBe('record');
   });
 });

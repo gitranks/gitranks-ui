@@ -52,7 +52,9 @@ export function contributorCount(entity: RepoFacts | OrgFacts, key: ContributorK
     case 'countries':
       return pulse.countryCount ?? null;
     case 'legends':
-      return entity.kind === 'repo' ? (entity.builtBy?.find(({ tier }) => tier === LEGEND)?.count ?? 0) : null;
+      // No Built by means no count, not zero Legends.
+      if (entity.kind !== 'repo' || !entity.builtBy) return null;
+      return entity.builtBy.find(({ tier }) => tier === LEGEND)?.count ?? 0;
   }
 }
 

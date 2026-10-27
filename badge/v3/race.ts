@@ -1,5 +1,5 @@
 import type { RepoFacts, UserFacts } from './facts';
-import { monthKeysOf } from './month';
+import { monthKey, monthKeysOf } from './month';
 
 /** The month race (spec §3.5): this month's gain against last month's. */
 export type RaceState =
@@ -44,20 +44,38 @@ export function raceState({ current, last, best, dayOfMonth }: RaceInput): RaceS
 
 const numberOr = (value: number | null | undefined) => (typeof value === 'number' ? value : null);
 
-/** The largest gain between two consecutive month starts before this month. */
-function bestEarlierGain(points: { date: string; stars: number }[], thisKey: string): number | null {
-  const thisStart = Date.parse(`${thisKey}T00:00:00Z`);
-  const series = points
-    .map(({ date, stars }) => ({ time: Date.parse(date), stars }))
-    .filter(({ time }) => Number.isFinite(time) && time <= thisStart)
-    .sort((a, b) => a.time - b.time);
+/** The month key of an ISO date that falls on the 1st of a month at midnight UTC; `null` for any other moment. */
+function monthStartKeyOf(date: string): string | null {
+  const time = Date.parse(date);
+  if (!Number.isFinite(time)) return null;
+  const at = new Date(time);
+  if (at.getUTCDate() !== 1 || at.getUTCHours() || at.getUTCMinutes() || at.getUTCSeconds()) return null;
+  return monthKey(at.getUTCFullYear(), at.getUTCMonth());
+}
+
+/**
+ * The best month of a star history: the largest gain between two month starts exactly one month apart, over the
+ * months completed before `thisKey` (this month never counts). `null` unless the history is complete: a partial one
+ * would call a record against months it never saw.
+ */
+export function bestCompletedMonth(history: RepoFacts['history'], thisKey: string): number | null {
+  if (!history?.complete) return null;
+  const starts = new Map<string, number>();
+  for (const { date, stars } of history.points) {
+    const key = monthStartKeyOf(date);
+    if (key && key <= thisKey) starts.set(key, stars);
+  }
   let best: number | null = null;
-  for (let i = 1; i < series.length; i++) {
-    const gain = series[i].stars - series[i - 1].stars;
-    best = best === null ? gain : Math.max(best, gain);
+  for (const [key, stars] of starts) {
+    const next = starts.get(nextMonthKey(key));
+    if (next !== undefined && nextMonthKey(key) <= thisKey) {
+      best = Math.max(best ?? Number.NEGATIVE_INFINITY, next - stars);
+    }
   }
   return best;
 }
+
+const nextMonthKey = (key: string) => monthKey(Number(key.slice(0, 4)), Number(key.slice(5, 7)));
 
 /** A repository's race from its month starts; `best` only with a star history. */
 export function repoRace(repo: Pick<RepoFacts, 'gainedThisMonth' | 'monthStarts' | 'history'>, now: Date) {
@@ -66,7 +84,7 @@ export function repoRace(repo: Pick<RepoFacts, 'gainedThisMonth' | 'monthStarts'
   const lastStart = numberOr(repo.monthStarts?.[lastKey]);
   const current = numberOr(repo.gainedThisMonth);
   const last = thisStart !== null && lastStart !== null ? thisStart - lastStart : null;
-  const best = repo.history ? bestEarlierGain(repo.history.points, thisKey) : null;
+  const best = bestCompletedMonth(repo.history, thisKey);
 
   return { current, last, lastName, state: raceState({ current, last, best, dayOfMonth }) };
 }

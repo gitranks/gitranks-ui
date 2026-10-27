@@ -67,6 +67,17 @@ describe('resolveParams', () => {
     expect(resolve('repo', 'rank', 'label=Rust%20rank').label).toBe('Rust rank');
   });
 
+  it('takes a label of any length, cut before parsing', () => {
+    expect(resolve('repo', 'rank', `label=${'x'.repeat(5_000)}`).label).toBe('x'.repeat(LABEL_MAX_LENGTH));
+  });
+
+  it('never repeats the value as the extra on a contributors shield', () => {
+    expect(() => resolve('repo', 'contributors', 'value=12mo&extra=12mo')).toThrow(/already the value/);
+    // The default extra is countries: asked for as the value, the default extra is left out.
+    expect(resolve('repo', 'contributors', 'value=countries').extra).toBeNull();
+    expect(resolve('repo', 'contributors', 'value=countries&extra=new').extra).toBe('new');
+  });
+
   it('cuts a label by characters, not by code units', () => {
     const label = '★'.repeat(30) + '🦀'.repeat(20);
     expect([...(resolve('repo', 'rank', `label=${encodeURIComponent(label)}`).label ?? '')]).toHaveLength(40);
@@ -86,9 +97,9 @@ describe('resolveParams', () => {
   });
 
   it('refuses Legends for organizations, as value or extra', () => {
-    expect(resolve('repo', 'contributors', 'value=legends&extra=legends')).toMatchObject({
+    expect(resolve('repo', 'contributors', 'value=legends&extra=12mo')).toMatchObject({
       value: 'legends',
-      extra: 'legends',
+      extra: '12mo',
     });
     expect(() => resolve('org', 'contributors', 'value=legends')).toThrow(BadgeParamsError);
     expect(() => resolve('org', 'contributors', 'extra=legends')).toThrow(BadgeParamsError);

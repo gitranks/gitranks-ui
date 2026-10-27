@@ -1,3 +1,5 @@
+import type { WallOrder } from './types';
+
 /**
  * What a badge knows about its entity: the API's answer, flattened. Fields marked "not served yet" are read by the
  * catalogue already; until the API sends them they stay `undefined`, and every badge that needs one is not available.
@@ -25,6 +27,9 @@ export type ContributorsWall = {
   total: number;
   entries: { login: string; avatarUrl: string | null; tier: number | null; level: number | null }[];
 };
+
+/** An entity's walls by order; a developer has no `newest`. */
+export type ContributorsWalls = Partial<Record<WallOrder, ContributorsWall | null>>;
 
 export type PulseFacts = {
   /** The last completed month, `YYYY-MM`. */
@@ -54,7 +59,8 @@ export type RepoFacts = {
   gainedThisMonth: number | null;
   /** Stars on the 1st of each month, by month key. */
   monthStarts: Record<string, number> | null;
-  history: { points: StarPoint[]; current: StarPoint } | null;
+  /** `complete` when the history holds every star since the repository's start, not just recent months. */
+  history: { points: StarPoint[]; current: StarPoint; complete: boolean } | null;
   rank: {
     s: number | null;
     sM: number | null;
@@ -76,7 +82,7 @@ export type RepoFacts = {
   /** Not served yet. */
   rankGoal?: RankGoal | null;
   /** Not served yet. */
-  contributorsWall?: Partial<Record<'popular' | 'contributions' | 'newest', ContributorsWall | null>>;
+  contributorsWall?: ContributorsWalls;
 };
 
 export type UserRanks = {
@@ -119,7 +125,7 @@ export type UserFacts = {
   /** Not served yet; by ranking. */
   rankGoal?: Partial<Record<'s' | 'c' | 'f', RankGoal | null>>;
   /** Not served yet. */
-  contributorsWall?: Partial<Record<'popular' | 'contributions', ContributorsWall | null>>;
+  contributorsWall?: ContributorsWalls;
   /** Not served yet: how many of their own repositories the wall spans. */
   wallRepos?: number;
 };
@@ -139,7 +145,11 @@ export type OrgFacts = {
   /** Not served yet. */
   reposOver1k?: number;
   /** Not served yet. */
-  contributorsWall?: Partial<Record<'popular' | 'contributions' | 'newest', ContributorsWall | null>>;
+  contributorsWall?: ContributorsWalls;
 };
 
 export type EntityFacts = RepoFacts | UserFacts | OrgFacts;
+
+/** The entity's wall in an order, if it has one. */
+export const wallOf = (entity: EntityFacts, order: WallOrder): ContributorsWall | null =>
+  entity.contributorsWall?.[order] ?? null;

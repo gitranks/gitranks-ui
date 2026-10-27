@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { AUTO_STYLE, joinAuto, prefixIds } from './auto-svg';
+import { AUTO_STYLE, joinAuto, prefixIds, shareImages } from './auto-svg';
 
 const drawing = (fill: string, width = 120) =>
   `<svg width="${width}" height="20" viewBox="0 0 ${width} 20" xmlns="http://www.w3.org/2000/svg">` +
@@ -61,5 +61,35 @@ describe('joinAuto', () => {
 
   it('refuses something that is not one drawing', () => {
     expect(() => joinAuto('<g/>', drawing('#000'))).toThrow();
+  });
+});
+
+describe('shareImages', () => {
+  const avatar = 'data:image/png;base64,QUJD';
+  const image = (x: number, href = avatar) =>
+    `<image x="${x}" y="4" width="36" height="36" href="${href}" preserveAspectRatio="none" clip-path="url(#c${x})" mask="url(#m${x})"/>`;
+  const svg = (body: string) =>
+    `<svg width="100" height="50" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
+
+  it('embeds a repeated image once and places it with <use>, keeping its clip and mask', () => {
+    const shared = shareImages(svg(image(1) + image(50)));
+
+    expect(shared.split(avatar)).toHaveLength(2);
+    expect(shared).toContain(
+      `<defs><image id="img-0" width="36" height="36" href="${avatar}" preserveAspectRatio="none"/></defs>`,
+    );
+    expect(shared).toContain('<g clip-path="url(#c1)" mask="url(#m1)"><use href="#img-0" x="1" y="4"/></g>');
+    expect(shared).toContain('<g clip-path="url(#c50)" mask="url(#m50)"><use href="#img-0" x="50" y="4"/></g>');
+  });
+
+  it('leaves an image drawn once alone', () => {
+    const once = svg(image(1) + image(50, 'data:image/png;base64,REVG'));
+    expect(shareImages(once)).toBe(once);
+  });
+
+  it('embeds an avatar once across both Auto drawings', () => {
+    const joined = joinAuto(svg(image(1)), svg(image(1)));
+    expect(joined.split(avatar)).toHaveLength(2);
+    expect(joined.match(/<use href="#img-0"/g)).toHaveLength(2);
   });
 });

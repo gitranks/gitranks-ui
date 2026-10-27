@@ -1,7 +1,13 @@
 import type { RankGoal } from './facts';
 import { formatFull } from './format';
 
-/** The round ranks a goal can name (spec §3.4). */
+/**
+ * The rank goal rule (spec §3.4) as a reference: the API chooses the goal and badges only write it (`goalText`,
+ * `goalAmount`). `ROUND_RANKS`, `nextRoundRank` and `chooseGoal` pin the rule the API implements; only the specs
+ * use them.
+ */
+
+/** The round ranks a goal can name. */
 export const ROUND_RANKS = [
   10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000,
 ] as const;

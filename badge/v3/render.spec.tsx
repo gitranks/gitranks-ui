@@ -8,7 +8,7 @@ import { type BadgeDefinition, badgesOf } from './catalogue';
 import type { EntityFacts } from './facts';
 import { NOW, orgBigLater, repoBigLater, repoMidLater, userBigLater } from './fixtures';
 import { resolveParams } from './params';
-import { renderBadge, svgToPng2x } from './render';
+import { renderBadge, toPng } from './render';
 import { MARK_SIZE } from './shield';
 
 // Avatars are never fetched here: every one draws as the grey disk.
@@ -40,11 +40,9 @@ const ENTITIES: EntityFacts[] = [repoBigLater, userBigLater, orgBigLater];
 
 /** Extra variants of a shield: its default, none, and every other extra it allows. */
 function extrasOf(badge: BadgeDefinition): string[] {
-  return [
-    '',
-    'extra=none',
-    ...badge.extras.filter((extra) => extra !== badge.defaultExtra).map((extra) => `extra=${extra}`),
-  ];
+  // A contributors shield refuses its value (12mo by default) as its extra.
+  const others = badge.extras.filter((extra) => extra !== badge.defaultExtra && !(badge.values && extra === '12mo'));
+  return ['', 'extra=none', ...others.map((extra) => `extra=${extra}`)];
 }
 
 const VARIANT_QUERY: Record<string, string> = {
@@ -118,7 +116,10 @@ async function writeSheet(name: string, shots: Shot[], page: 'light' | 'dark') {
 }
 
 describe.each(ENTITIES.map((entity) => [entity.kind, entity] as const))('%s badges', (kind, entity) => {
-  const badges = badgesOf(kind).filter(({ id }) => id !== 'star-history');
+  // The developer wall is hidden for now: it draws "not yet" (tested below).
+  const badges = badgesOf(kind).filter(
+    ({ id, entity: owner }) => id !== 'star-history' && !(owner === 'user' && id === 'contributors-wall'),
+  );
 
   it.each(badges.map((badge) => [badge.id, badge] as const))(
     '%s draws in every scheme, with and without its extra and the logo',
@@ -170,6 +171,14 @@ describe.each(ENTITIES.map((entity) => [entity.kind, entity] as const))('%s badg
   );
 });
 
+describe('the developer wall', () => {
+  it('draws "not yet" while it is hidden', async () => {
+    const wall = badgesOf('user').find(({ id }) => id === 'contributors-wall')!;
+    const { state } = await renderBadge(userBigLater, wall, resolveParams(wall, new URLSearchParams()), 'svg', NOW);
+    expect(state).toBe('not-yet');
+  });
+});
+
 describe('PNG', () => {
   it('draws one drawing at 2×, light unless asked for dark', async () => {
     const [badge] = badgesOf('repo');
@@ -180,7 +189,7 @@ describe('PNG', () => {
 
     expect(light.contentType).toBe('image/png');
     expect(pngSize(light.body as Uint8Array)).toEqual({ width: sizeOf(svg).width * 2, height: 40 });
-    expect(light.body).toEqual(await svgToPng2x(svg));
+    expect(light.body).toEqual(await toPng(svg));
     expect(dark.body).not.toEqual(light.body);
   });
 
@@ -189,6 +198,6 @@ describe('PNG', () => {
     const params = resolveParams(card, new URLSearchParams('size=social'));
     const { body } = await renderBadge(repoMidLater, card, params, 'png', NOW);
 
-    expect(pngSize(body as Uint8Array)).toEqual({ width: 2400, height: 1260 });
+    expect(pngSize(body as Uint8Array)).toEqual({ width: 1200, height: 630 });
   });
 });

@@ -58,6 +58,7 @@ export function toRepoFacts({ repo, repoRankTiers, repoLanguages }: RepoData): R
       ? {
           points: repo.history.points.map(({ date, stars }) => ({ date: String(date), stars })),
           current: { date: String(repo.history.current.date), stars: repo.history.current.stars },
+          complete: repo.history.complete,
         }
       : null,
     rank: rank

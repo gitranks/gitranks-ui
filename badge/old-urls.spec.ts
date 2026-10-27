@@ -69,8 +69,10 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({
 }));
 
 vi.mock('@/badge/repo/star-history-badge.loader', () => ({
-  fetchBadgeRepo: vi.fn(async (owner: string, name: string) =>
-    owner === 'octo' && name === 'widgets'
+  // The API finds a repository whatever the case of its name, as the route's 308 expects.
+  fetchBadgeRepo: vi.fn(async (ownerParam: string, nameParam: string) => {
+    const [owner, name] = [ownerParam.toLowerCase(), nameParam.toLowerCase()];
+    return owner === 'octo' && name === 'widgets'
       ? {
           nameWithOwner: 'octo/widgets',
           stars: 6_214,
@@ -86,8 +88,8 @@ vi.mock('@/badge/repo/star-history-badge.loader', () => ({
         }
       : owner === 'octo' && name === 'fresh'
         ? { nameWithOwner: 'octo/fresh', stars: 42, gainedThisMonth: 3, history: null }
-        : null,
-  ),
+        : null;
+  }),
 }));
 
 const { GET: canonicalGet } = await import('@/app/badges/[login]/[file]/route');

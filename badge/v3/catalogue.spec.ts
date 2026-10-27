@@ -62,6 +62,8 @@ describe('the catalogue', () => {
       }
       expect(params(definition.entity, definition.id).extra).toBe(definition.defaultExtra);
       for (const extra of definition.extras) {
+        // A contributors shield refuses its value as its extra (the default value is 12mo).
+        if (definition.values && extra === '12mo') continue;
         expect(params(definition.entity, definition.id, `extra=${extra}`).extra).toBe(extra);
       }
     },
@@ -166,7 +168,7 @@ const AVAILABLE: [string, EntityFacts, string[]][] = [
   [
     'user 1k+, later',
     userBigLater,
-    ['rank', 'language-rank', 'goal', 'month', 'climb', 'tier', 'profile-card', 'count-chart', 'contributors-wall'],
+    ['rank', 'language-rank', 'goal', 'month', 'climb', 'tier', 'profile-card', 'count-chart'],
   ],
   ['user unranked', userUnranked, []],
   ['org under 1k', orgSmall, ['rank', 'stars', 'top-repo', 'org-card']],
@@ -262,6 +264,24 @@ describe('availability', () => {
       value: { runs: [{ text: 'not yet' }] },
     });
     expect(notYetShield(badge('user', 'rank'), params('user', 'rank', 'by=followers&label=Mine')).label).toBe('Mine');
+  });
+
+  it('keeps the developer wall hidden, even with a wall to draw', () => {
+    expect(userBigLater.contributorsWall?.popular?.entries.length).toBeGreaterThan(3);
+    for (const order of ['popular', 'contributions']) {
+      expect(availability(userBigLater, 'contributors-wall', `order=${order}`)).toBe('never');
+    }
+    expect(promotedBadges(userBigLater, NOW).map(({ id }) => id)).not.toContain('contributors-wall');
+  });
+
+  it('needs three monthly points of the asked ranking for a count chart', () => {
+    const starsOnly = {
+      ...userMid,
+      snapshots: Object.fromEntries(Object.entries(userMid.snapshots ?? {}).map(([key, { s }]) => [key, { s }])),
+    };
+    expect(availability(starsOnly, 'count-chart')).toBe('available');
+    expect(availability(starsOnly, 'count-chart', 'by=followers')).toBe('never');
+    expect(availability(userMid, 'count-chart', 'by=followers')).toBe('available');
   });
 
   it('draws star history for any repository it holds', () => {
@@ -431,6 +451,7 @@ describe('shield text', () => {
         { date: '2026-10-01T00:00:00Z', stars: 774 },
       ],
       current: { date: '2026-10-20T00:00:00Z', stars: 986 },
+      complete: true,
     };
     const content = shieldContent(
       { ...repoMid, gainedThisMonth: 212, history },
@@ -458,6 +479,9 @@ describe('shield text', () => {
     expect(textOf(contributorSegment(repoBigLater, 'countries') ?? undefined)).toBe('23 countries');
     expect(textOf(contributorSegment(repoBigLater, 'legends') ?? undefined)).toBe('3 Legends');
     expect(contributorSegment(orgBigLater, 'legends')).toBeNull();
+    // No Built by: no Legends count at all, not zero.
+    expect(contributorSegment({ ...repoBigLater, builtBy: null }, 'legends')).toBeNull();
+    expect(textOf(contributorSegment({ ...repoBigLater, builtBy: [] }, 'legends') ?? undefined)).toBe('0 Legends');
     expect(contributorSegment(repoBig, 'countries')).toBeNull();
   });
 });

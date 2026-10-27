@@ -106,6 +106,7 @@ export const repoBig: RepoFacts = {
       })),
     ],
     current: { date: '2026-10-20T00:00:00Z', stars: 54_210 },
+    complete: true,
   },
   rank: { s: 1_204, sM: 1_250, l: 112, lM: 118, language: 'TypeScript', tier: { tier: 7, level: 2 } },
   totals: { repos: 5_300_000, languageRepos: 412_000 },

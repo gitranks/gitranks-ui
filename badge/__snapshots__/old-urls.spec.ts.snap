@@ -222,11 +222,11 @@ exports[`old badge URLs > /badges/octo-dev/unknown.svg 1`] = `
 
 exports[`old badge URLs > /repo-badges/Octo/Widgets/star-history.svg 1`] = `
 {
-  "cache": "public, max-age=3600, s-maxage=3600",
-  "location": null,
-  "sha256": "6936c780d2333ef2aca4b4677ef8e14fb801e17e836ffa66f1905b49bd716d94",
-  "status": 200,
-  "type": "image/svg+xml; charset=utf-8",
+  "cache": "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800",
+  "location": "/repo-badges/octo/widgets/star-history.svg",
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "status": 308,
+  "type": null,
 }
 `;
 

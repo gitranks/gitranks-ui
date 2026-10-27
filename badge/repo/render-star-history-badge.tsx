@@ -18,6 +18,11 @@ const PNG_WIDTH = 2000;
 
 export type StarHistoryBadgeFormat = 'svg' | 'png';
 
+export const CONTENT_TYPE: Record<StarHistoryBadgeFormat, string> = {
+  svg: 'image/svg+xml; charset=utf-8',
+  png: 'image/png',
+};
+
 export type StarHistoryBadgeInput =
   | { kind: 'chart'; nameWithOwner: string; points: StarPoint[]; current: StarPoint; gainedThisMonth?: number | null }
   | { kind: 'preparing'; nameWithOwner: string; stars: number; gainedThisMonth?: number | null };
@@ -161,10 +166,11 @@ export function renderStarHistorySvg(input: StarHistoryBadgeInput): Promise<stri
   return input.kind === 'chart' ? renderChart(input) : renderPreparing(input);
 }
 
-export async function svgToPng(svg: string): Promise<Uint8Array<ArrayBuffer>> {
+/** A PNG of an SVG, `width` pixels wide (the star history chart at 2×). */
+export async function svgToPng(svg: string, width = PNG_WIDTH): Promise<Uint8Array<ArrayBuffer>> {
   // Lazy-load the native binding only for PNG so SVG responses stay independent of resvg.
   const { Resvg } = await import('@resvg/resvg-js');
   // satori draws text as paths; scanning the system fonts would only cost time.
-  const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: PNG_WIDTH }, font: { loadSystemFonts: false } });
+  const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: width }, font: { loadSystemFonts: false } });
   return new Uint8Array(resvg.render().asPng());
 }

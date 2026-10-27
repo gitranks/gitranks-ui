@@ -2,14 +2,23 @@ import type { ReactElement } from 'react';
 
 import { fetchAvatar, fetchAvatars } from './avatars';
 import { Avatar, axisTicks, CardFrame, Line, Num, Words } from './card-frame';
-import { isUserRankedIn, rankPropOf, userLanguageOf, userRanksIn } from './catalogue';
+import {
+  COUNT_CHART_MIN_POINTS,
+  countSeries,
+  isUserRankedIn,
+  rankPropOf,
+  USER_WALL_OFFERED,
+  userLanguageOf,
+  userRanksIn,
+} from './catalogue';
 import { contributorCount } from './contributors';
-import type { ContributorsWall, OrgFacts, RepoFacts, UserFacts } from './facts';
+import { type ContributorsWall, type OrgFacts, type RepoFacts, type UserFacts, wallOf } from './facts';
 import { formatCompact, formatFull, topShare } from './format';
 import { TierGlyph } from './glyphs';
 import { goalText } from './goals';
 import { monthKeysOf, monthLabelOf } from './month';
 import type { BadgeParams } from './params';
+import { bestCompletedMonth } from './race';
 import { type CardPalette, tierColor, toneColor } from './schemes';
 import type { By } from './types';
 import { REPO_TIER_NAMES, TIER_NAMES } from '@/app/app.consts';
@@ -103,16 +112,6 @@ function lastYearSeries(repo: RepoFacts): number[] {
   return [...points, repo.history.current.stars];
 }
 
-function bestMonthGain(repo: RepoFacts): number | null {
-  const points = [...(repo.history?.points ?? [])].sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
-  const series = [...points.map(({ stars }) => stars), ...(repo.history ? [repo.history.current.stars] : [])];
-  let best: number | null = null;
-  for (let i = 1; i < series.length; i++) {
-    best = Math.max(best ?? 0, series[i] - series[i - 1]);
-  }
-  return best;
-}
-
 /** A line and its area over a box, as path data. */
 function sparkPaths(series: number[], width: number, height: number, inset = 2) {
   const max = Math.max(...series);
@@ -129,10 +128,11 @@ function sparkPaths(series: number[], width: number, height: number, inset = 2) 
   return { line, area: `${line} L${width} ${height} L0 ${height} Z` };
 }
 
-function repoStarsCard(repo: RepoFacts, params: BadgeParams): Drawing | null {
+function repoStarsCard(repo: RepoFacts, params: BadgeParams, now: Date): Drawing | null {
   if (!repo.history) return null;
   const series = lastYearSeries(repo);
-  const best = bestMonthGain(repo);
+  // The record is the best completed month, as the month shield's record state reads it.
+  const best = bestCompletedMonth(repo.history, monthKeysOf(now).thisKey);
   const gain = repo.gainedThisMonth ?? 0;
   const { line, area } = sparkPaths(series, 366, 34);
   return {
@@ -278,23 +278,41 @@ function repoTierCard(repo: RepoFacts, params: BadgeParams): Drawing | null {
 
 type BarPoint = { label: string; value: number };
 
-/** Bars over a y axis with gridlines; the last bar is the latest month. */
-function BarsChart({
-  points,
-  palette,
+const CHART_BOTTOM = 22;
+
+/** The y axis of a chart: round ticks from 0 to above `max`, and the y of a value in a plot `height` tall. */
+function yAxis(max: number, height: number) {
+  const ticks = axisTicks(Math.max(max, 1));
+  const top = ticks[ticks.length - 1];
+  const plotHeight = height - CHART_BOTTOM;
+  const y = (value: number) => Math.round(((1 - value / top) * (plotHeight - 4) + 4) * 10) / 10;
+  return { ticks, y, plotHeight };
+}
+
+type AxisLabel = { key: string; left: number; width: number; label: string; align: 'flex-start' | 'center' };
+
+/**
+ * A chart's frame: gridlines with their values on the left, labels under the plot, and the plot's own shapes drawn
+ * over the gridlines.
+ */
+function Plot({
   width,
   height,
-}: Readonly<{ points: BarPoint[]; palette: CardPalette; width: number; height: number }>) {
-  const axis = 44;
-  const bottom = 22;
-  const plotWidth = width - axis;
-  const plotHeight = height - bottom;
-  const ticks = axisTicks(Math.max(...points.map(({ value }) => value), 1));
-  const top = ticks[ticks.length - 1];
-  const slot = plotWidth / points.length;
-  const bar = slot * 0.7;
-  const y = (value: number) => Math.round((1 - value / top) * (plotHeight - 4) + 4);
-
+  axis,
+  max,
+  palette,
+  labels,
+  shapes,
+}: Readonly<{
+  width: number;
+  height: number;
+  axis: number;
+  max: number;
+  palette: CardPalette;
+  labels: AxisLabel[];
+  shapes: (y: (value: number) => number, plotHeight: number) => ReactElement;
+}>) {
+  const { ticks, y, plotHeight } = yAxis(max, height);
   return (
     <div style={{ display: 'flex', position: 'relative', width, height, marginTop: 10 }}>
       <svg
@@ -307,11 +325,7 @@ function BarsChart({
         {ticks.map((tick) => (
           <path key={tick} d={`M${axis} ${y(tick)} H${width}`} stroke={palette.track} strokeWidth="1" />
         ))}
-        {points.map(({ value }, index) => {
-          const x = axis + index * slot + (slot - bar) / 2;
-          const h = Math.max(0, plotHeight - y(value));
-          return <rect key={index} x={x} y={plotHeight - h} width={bar} height={h} rx="3" fill={palette.accent} />;
-        })}
+        {shapes(y, plotHeight)}
       </svg>
       {ticks.map((tick) => (
         <div
@@ -332,16 +346,16 @@ function BarsChart({
           {formatCompact(tick)}
         </div>
       ))}
-      {points.map(({ label }, index) => (
+      {labels.map(({ key, left, width: labelWidth, label, align }) => (
         <div
-          key={index}
+          key={key}
           style={{
             position: 'absolute',
-            left: axis + index * slot,
+            left,
             top: plotHeight + 6,
-            width: slot,
+            width: labelWidth,
             display: 'flex',
-            justifyContent: 'center',
+            justifyContent: align,
             fontSize: 12,
             color: palette.muted,
           }}
@@ -350,6 +364,52 @@ function BarsChart({
         </div>
       ))}
     </div>
+  );
+}
+
+/** Bars over a y axis with gridlines; the last bar is the latest month. */
+function BarsChart({
+  points,
+  palette,
+  width,
+  height,
+}: Readonly<{ points: BarPoint[]; palette: CardPalette; width: number; height: number }>) {
+  const axis = 44;
+  const slot = (width - axis) / points.length;
+  const bar = slot * 0.7;
+  return (
+    <Plot
+      width={width}
+      height={height}
+      axis={axis}
+      max={Math.max(...points.map(({ value }) => value))}
+      palette={palette}
+      labels={points.map(({ label }, index) => ({
+        key: String(index),
+        left: axis + index * slot,
+        width: slot,
+        label,
+        align: 'center',
+      }))}
+      shapes={(y, plotHeight) => (
+        <>
+          {points.map(({ value }, index) => {
+            const h = Math.max(0, plotHeight - y(value));
+            return (
+              <rect
+                key={index}
+                x={axis + index * slot + (slot - bar) / 2}
+                y={plotHeight - h}
+                width={bar}
+                height={h}
+                rx="3"
+                fill={palette.accent}
+              />
+            );
+          })}
+        </>
+      )}
+    />
   );
 }
 
@@ -398,33 +458,30 @@ const countUnit = (by: By) => (by === 'followers' ? ' followers' : ' ★');
 
 function userCountChart(user: UserFacts, params: BadgeParams, now: Date): Drawing | null {
   const prop = rankPropOf(params.by);
-  const snapshots = Object.entries(user.snapshots ?? {})
-    .filter(([key, value]) => /^\d{4}-\d{2}-01$/.test(key) && typeof value?.[prop] === 'number')
-    .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-24);
-  if (snapshots.length < 3) return null;
-  const current = user[prop] ?? snapshots[snapshots.length - 1][1][prop] ?? 0;
-  const { thisKey } = monthKeysOf(now);
-  const thisStart = user.snapshots?.[thisKey]?.[prop];
+  const snapshots = countSeries(user, params.by).slice(-24);
+  if (snapshots.length < COUNT_CHART_MIN_POINTS) return null;
+  const current = user[prop] ?? snapshots[snapshots.length - 1][1];
+  const thisStart = user.snapshots?.[monthKeysOf(now).thisKey]?.[prop];
   const gain = typeof thisStart === 'number' ? current - thisStart : null;
-  const values = [...snapshots.map(([, value]) => value[prop] ?? 0), current];
+  const values = [...snapshots.map(([, value]) => value), current];
   const keys = snapshots.map(([key]) => key);
 
   const width = 752;
   const height = 182;
   const axis = 52;
-  const bottom = 22;
   const plotWidth = width - axis - 6;
-  const plotHeight = height - bottom;
-  const ticks = axisTicks(Math.max(...values, 1));
-  const top = ticks[ticks.length - 1];
   const x = (index: number) => Math.round((axis + (index / (values.length - 1)) * plotWidth) * 10) / 10;
-  const y = (value: number) => Math.round(((1 - value / top) * (plotHeight - 4) + 4) * 10) / 10;
-  const coords = values.map((value, index) => `${x(index)} ${y(value)}`);
-  const line = `M${coords.join(' L')}`;
-  const area = `${line} L${x(values.length - 1)} ${plotHeight} L${x(0)} ${plotHeight} Z`;
   const labelEvery = Math.max(1, Math.ceil(keys.length / 5));
-  const labels = keys.map((key, index) => ({ key, index })).filter(({ index }) => index % labelEvery === 0);
+  const labels: AxisLabel[] = keys
+    .map((key, index) => ({ key, index }))
+    .filter(({ index }) => index % labelEvery === 0)
+    .map(({ key, index }) => ({
+      key,
+      left: Math.min(x(index) - 40, width - 80),
+      width: 80,
+      label: monthLabelOf(key),
+      align: index === 0 ? 'flex-start' : 'center',
+    }));
 
   return {
     width: 800,
@@ -447,65 +504,32 @@ function userCountChart(user: UserFacts, params: BadgeParams, now: Date): Drawin
             </Num>
           ) : null}
         </Line>
-        <div style={{ display: 'flex', position: 'relative', width, height, marginTop: 10 }}>
-          <svg
-            width={width}
-            height={height}
-            viewBox={`0 0 ${width} ${height}`}
-            style={{ position: 'absolute', top: 0, left: 0 }}
-            aria-hidden="true"
-          >
-            {ticks.map((tick) => (
-              <path key={tick} d={`M${axis} ${y(tick)} H${width}`} stroke={palette.track} strokeWidth="1" />
-            ))}
-            <path d={area} fill={palette.accent} fillOpacity="0.1" />
-            <path
-              d={line}
-              fill="none"
-              stroke={palette.accent}
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-            <circle cx={x(values.length - 1)} cy={y(current)} r="4" fill={palette.accent} />
-          </svg>
-          {ticks.map((tick) => (
-            <div
-              key={tick}
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: y(tick) - 8,
-                width: axis - 8,
-                display: 'flex',
-                justifyContent: 'flex-end',
-                fontFamily: 'JetBrains Mono',
-                fontWeight: 700,
-                fontSize: 11,
-                color: palette.muted,
-              }}
-            >
-              {formatCompact(tick)}
-            </div>
-          ))}
-          {labels.map(({ key, index }) => (
-            <div
-              key={key}
-              style={{
-                position: 'absolute',
-                left: Math.min(x(index) - 40, width - 80),
-                top: plotHeight + 6,
-                width: 80,
-                display: 'flex',
-                justifyContent: index === 0 ? 'flex-start' : 'center',
-                fontSize: 12,
-                color: palette.muted,
-              }}
-            >
-              {monthLabelOf(key)}
-            </div>
-          ))}
-        </div>
+        <Plot
+          width={width}
+          height={height}
+          axis={axis}
+          max={Math.max(...values)}
+          palette={palette}
+          labels={labels}
+          shapes={(y, plotHeight) => {
+            const line = `M${values.map((value, index) => `${x(index)} ${y(value)}`).join(' L')}`;
+            const area = `${line} L${x(values.length - 1)} ${plotHeight} L${x(0)} ${plotHeight} Z`;
+            return (
+              <>
+                <path d={area} fill={palette.accent} fillOpacity="0.1" />
+                <path
+                  d={line}
+                  fill="none"
+                  stroke={palette.accent}
+                  strokeWidth="2.5"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+                <circle cx={x(values.length - 1)} cy={y(current)} r="4" fill={palette.accent} />
+              </>
+            );
+          }}
+        />
       </CardFrame>
     ),
   };
@@ -656,8 +680,7 @@ async function contributorsWall(
   entity: RepoFacts | UserFacts | OrgFacts,
   params: BadgeParams,
 ): Promise<Drawing | null> {
-  const walls = entity.contributorsWall as Partial<Record<string, ContributorsWall | null>> | undefined;
-  const wall = walls?.[params.order];
+  const wall = wallOf(entity, params.order);
   if (!wall || wall.entries.length < 3) return null;
   const shown = wall.entries.slice(0, WALL_COLUMNS * params.rows);
   const rows = Math.ceil(shown.length / WALL_COLUMNS);
@@ -746,7 +769,7 @@ export async function prepareDrawing(
       case 'rank-card':
         return repoRankCard(entity, params);
       case 'stars-card':
-        return repoStarsCard(entity, params);
+        return repoStarsCard(entity, params, now);
       case 'starred-by-card':
         return repoStarredByCard(entity, params);
       case 'community-card':
@@ -766,7 +789,8 @@ export async function prepareDrawing(
       case 'count-chart':
         return userCountChart(entity, params, now);
       case 'contributors-wall':
-        return contributorsWall(entity, params);
+        // Hidden for now: the drawing is kept for when developers' own repositories have contributor analytics.
+        return USER_WALL_OFFERED ? contributorsWall(entity, params) : null;
     }
   }
   if (entity.kind === 'org') {

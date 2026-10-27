@@ -116,76 +116,85 @@ export function readableOn(color: string, background: string, fallback: string):
 
 export type Block = { background: string; text: string };
 
+/**
+ * A shield is two blocks: the label, and the value with its extra after " · " in a muted tone (spec board 9).
+ */
 export type ShieldPalette = {
   label: Block;
   value: Block;
-  extra: Block;
+  /** The extra's text inside the value block. */
+  muted: string;
   /** Where tones are taken from: the value's ground. */
   ground: Ground;
   mark: MarkColors;
-  /** A 1px line inside the shield's edge: Auto's hairline, Night's light edge. */
-  hairline?: string;
+  /** A 1px line around the whole badge: Night's edge and Auto's hairline. */
+  edge?: string;
 };
 
-/** `extra` only where the design sets it; otherwise the 8% rule. */
-type CustomPreset = { left: string; right: string; leftText: string; rightText: string; extra?: string };
+/** Night's own mark: a light violet that holds on its grey label. */
+export const MARK_NIGHT: MarkColors = { podium: '#c4b5fd', star: '#ffb900' };
 
-/**
- * Night is the default. Classic is the old badge's colours in the new shape. Text colours are the designs'; picked
- * colours take theirs from the contrast rule.
- */
-export const PRESETS: Record<Preset, CustomPreset> = {
-  night: { left: '#18181b', right: '#27272a', leftText: '#fafafa', rightText: '#fafafa', extra: '#3f3f46' },
+/** The default preset, set by the design: a grey label, a near-black value, an edge that holds on a dark page. */
+export const NIGHT_SHIELD: ShieldPalette = {
+  label: { background: '#3f3f46', text: '#e4e4e7' },
+  value: { background: '#212830', text: '#f0f6fc' },
+  muted: '#9198a1',
+  ground: 'dark',
+  mark: MARK_NIGHT,
+  edge: '#3d444d',
+};
+
+type CustomPreset = { left: string; right: string; leftText: string; rightText: string };
+
+/** Classic is the old badge's colours in the new shape; text colours are the designs'. */
+export const PRESETS: Record<Exclude<Preset, 'night'>, CustomPreset> = {
   classic: { left: '#5c5c5c', right: '#2282c2', leftText: TEXT_LIGHT, rightText: TEXT_LIGHT },
   violet: { left: '#7f22fe', right: '#f5f3ff', leftText: TEXT_LIGHT, rightText: TEXT_DARK },
 };
 
-/** The extra's text: a quieter tone than the value's. */
-const extraTextOn = (valueText: string) => (luminance(valueText) > 0.5 ? '#d4d4d8' : '#3f3f46');
+/** The extra's muted tone: the value's text a quarter of the way to the value's ground. */
+export const mutedOn = (background: string, text: string) => mix(text, background, 0.25);
 
-function customPalette(left: string, right: string, leftText: string, rightText: string, extra: string): ShieldPalette {
+function customPalette(left: string, right: string, leftText: string, rightText: string): ShieldPalette {
   return {
     label: { background: left, text: leftText },
     value: { background: right, text: rightText },
-    extra: { background: extra, text: extraTextOn(rightText) },
+    muted: mutedOn(right, rightText),
     ground: luminance(rightText) > 0.5 ? 'dark' : 'light',
     mark: markOn(left, leftText),
   };
 }
 
-/** Night's near-black would vanish into a dark page (GitHub's #0d1117): a faint light edge keeps its outline. */
-export const NIGHT_EDGE = 'rgba(255, 255, 255, 0.18)';
-
 export function presetPalette(preset: Preset): ShieldPalette {
-  const { left, right, leftText, rightText, extra } = PRESETS[preset];
-  const palette = customPalette(left, right, leftText, rightText, extra ?? mix(right, rightText, 0.08));
-  return preset === 'night' ? { ...palette, hairline: NIGHT_EDGE } : palette;
+  if (preset === 'night') return NIGHT_SHIELD;
+  const { left, right, leftText, rightText } = PRESETS[preset];
+  return customPalette(left, right, leftText, rightText);
 }
 
-/** Two picked colours: each side's text by contrast, the extra the right colour shifted 8% towards its text. */
+/** Two picked colours: each block's text by contrast, the extra muted from the value's text. */
 export function pickedPalette(leftHex: string, rightHex: string): ShieldPalette {
   const left = normalizeHex(leftHex);
   const right = normalizeHex(rightHex);
-  const rightText = textOn(right);
-  return customPalette(left, right, textOn(left), rightText, mix(right, rightText, 0.08));
+  return customPalette(left, right, textOn(left), textOn(right));
 }
 
+/** Auto's colours wait for the owner's pick; only the shape follows the new design. */
 export const AUTO_SHIELD: Record<Theme, ShieldPalette> = {
   light: {
     label: { background: '#f4f4f5', text: '#3f3f46' },
     value: { background: '#ffffff', text: TEXT_DARK },
-    extra: { background: '#fafafa', text: '#3f3f46' },
+    muted: '#65656f',
     ground: 'light',
     mark: MARK_DEEP,
-    hairline: '#e4e4e7',
+    edge: '#e4e4e7',
   },
   dark: {
     label: { background: '#21262d', text: '#e6edf3' },
     value: { background: '#161b22', text: '#e6edf3' },
-    extra: { background: '#1c2128', text: '#9f9fa9' },
+    muted: '#9f9fa9',
     ground: 'dark',
     mark: MARK_VIOLET,
-    hairline: '#30363d',
+    edge: '#30363d',
   },
 };
 
@@ -193,7 +202,7 @@ export const AUTO_SHIELD: Record<Theme, ShieldPalette> = {
 export const TINT_SHIELD: ShieldPalette = {
   label: { background: alpha('#71717a', 0.14), text: '#71717a' },
   value: { background: alpha('#8b5cf6', 0.14), text: '#8b5cf6' },
-  extra: { background: alpha('#8b5cf6', 0.08), text: '#8b5cf6' },
+  muted: '#8b5cf6',
   ground: 'mid',
   mark: MARK_DEEP,
 };

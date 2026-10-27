@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import {
+  CONTENT_TYPE,
   renderStarHistorySvg,
   type StarHistoryBadgeFormat,
   type StarHistoryBadgeInput,
@@ -14,11 +15,6 @@ import { parseRepoParams } from '@/utils/repo-paths';
 const FILES: Record<string, StarHistoryBadgeFormat> = {
   'star-history.svg': 'svg',
   'star-history.png': 'png',
-};
-
-const CONTENT_TYPE: Record<StarHistoryBadgeFormat, string> = {
-  svg: 'image/svg+xml; charset=utf-8',
-  png: 'image/png',
 };
 
 export const STAR_HISTORY_CACHE_CONTROL = {

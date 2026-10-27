@@ -1,7 +1,7 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import { Mark, TierGlyph } from './glyphs';
-import { type Block, readableOn, type ShieldPalette, toneColor } from './schemes';
+import { type Block as BlockColors, readableOn, type ShieldPalette, toneColor } from './schemes';
 import type { Segment, ShieldContent } from './types';
 
 export const SHIELD_HEIGHT = 20;
@@ -14,30 +14,24 @@ const ICON_SIZE = 12;
 
 export const MONO_FONT = 'JetBrains Mono';
 
-function SegmentBlock({
+/** A segment's glyph and text runs; `base` colours runs without a tone of their own. */
+function Runs({
   segment,
-  block,
-  palette,
-  lead,
-}: Readonly<{ segment: Segment; block: Block; palette: ShieldPalette; lead?: ReactElement }>) {
-  const tone = (value: Segment['tone'], fallback: string) =>
-    readableOn(toneColor(value, palette.ground, fallback), block.background, block.text);
-  const baseColor = tone(segment.tone, block.text);
+  base,
+  tone,
+  weight,
+}: Readonly<{
+  segment: Segment;
+  base: string;
+  tone: (value: Segment['tone'], fallback: string) => string;
+  weight: number;
+}>) {
+  const color = segment.tone ? tone(segment.tone, base) : base;
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        height: SHIELD_HEIGHT,
-        padding: `0 ${SHIELD_PADDING}px`,
-        backgroundColor: block.background,
-        color: baseColor,
-      }}
-    >
-      {lead}
+    <>
       {segment.icon ? (
         <div style={{ display: 'flex', marginRight: GAP }}>
-          <TierGlyph icon={segment.icon} size={ICON_SIZE} color={baseColor} />
+          <TierGlyph icon={segment.icon} size={ICON_SIZE} color={color} />
         </div>
       ) : null}
       {segment.runs.map((run, index) => (
@@ -46,29 +40,47 @@ function SegmentBlock({
           style={{
             display: 'flex',
             whiteSpace: 'pre',
-            color: run.tone ? tone(run.tone, baseColor) : baseColor,
+            color: run.tone ? tone(run.tone, color) : color,
             fontFamily: run.mono ? MONO_FONT : 'Inter',
-            fontWeight: run.mono ? 700 : 600,
+            fontWeight: run.mono ? 700 : weight,
           }}
         >
           {run.text}
         </div>
       ))}
+    </>
+  );
+}
+
+function Block({ block, children }: Readonly<{ block: BlockColors; children: ReactNode }>) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        height: SHIELD_HEIGHT,
+        padding: `0 ${SHIELD_PADDING}px`,
+        backgroundColor: block.background,
+        color: block.text,
+      }}
+    >
+      {children}
     </div>
   );
 }
 
-/** A 20px shield: label, value and an optional extra, the podium mark leading the label unless `logo` is off. */
+/**
+ * A 20px shield in two blocks: the label, led by the podium mark unless `logo` is off; and the value, its extra after
+ * " · " in a muted tone.
+ */
 export function Shield({
   content,
   palette,
   logo,
 }: Readonly<{ content: ShieldContent; palette: ShieldPalette; logo: boolean }>): ReactElement {
-  const mark = logo ? (
-    <div style={{ display: 'flex', marginRight: GAP }}>
-      <Mark size={MARK_SIZE} colors={palette.mark} />
-    </div>
-  ) : undefined;
+  const { value } = palette;
+  const tone = (role: Segment['tone'], fallback: string) =>
+    readableOn(toneColor(role, palette.ground, fallback), value.background, fallback);
 
   return (
     <div
@@ -83,10 +95,26 @@ export function Shield({
         fontSize: SHIELD_FONT_SIZE,
       }}
     >
-      <SegmentBlock segment={{ runs: [{ text: content.label }] }} block={palette.label} palette={palette} lead={mark} />
-      <SegmentBlock segment={content.value} block={palette.value} palette={palette} />
-      {content.extra ? <SegmentBlock segment={content.extra} block={palette.extra} palette={palette} /> : null}
-      {palette.hairline ? (
+      <Block block={palette.label}>
+        {logo ? (
+          <div style={{ display: 'flex', marginRight: GAP }}>
+            <Mark size={MARK_SIZE} colors={palette.mark} />
+          </div>
+        ) : null}
+        <div style={{ display: 'flex', whiteSpace: 'pre' }}>{content.label}</div>
+      </Block>
+      <Block block={value}>
+        <Runs segment={content.value} base={value.text} tone={tone} weight={600} />
+        {content.extra ? (
+          <>
+            <div style={{ display: 'flex', whiteSpace: 'pre', marginLeft: GAP, color: palette.muted, fontWeight: 500 }}>
+              {'· '}
+            </div>
+            <Runs segment={content.extra} base={palette.muted} tone={tone} weight={500} />
+          </>
+        ) : null}
+      </Block>
+      {palette.edge ? (
         <div
           style={{
             position: 'absolute',
@@ -94,7 +122,7 @@ export function Shield({
             left: 0,
             right: 0,
             bottom: 0,
-            border: `1px solid ${palette.hairline}`,
+            border: `1px solid ${palette.edge}`,
             borderRadius: SHIELD_RADIUS,
           }}
         />

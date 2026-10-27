@@ -57,6 +57,6 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 /** Static assets and the always-anonymous routes never need the proxy. */
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|api/avatar|api/badge|badges|badge/(?:user|org|repo)/|repo-badges|sitemap\.xml|sitemaps|robots\.txt|favicon\.ico|icon\.svg|apple-icon\.png|icons|fonts|logo-|mark\.svg|mark-mono\.svg).*)',
+    '/((?!_next/static|_next/image|api/avatar|api/badge|badges|badge/(?:user|org|repo)/|repo-badges|sitemap\\.xml|sitemaps|robots\\.txt|favicon\\.ico|icon\\.svg|apple-icon\\.png|icons|fonts|logo-|mark\\.svg|mark-mono\\.svg).*)',
   ],
 };

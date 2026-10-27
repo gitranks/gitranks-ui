@@ -79,8 +79,11 @@ export function Shield({
   logo,
 }: Readonly<{ content: ShieldContent; palette: ShieldPalette; logo: boolean }>): ReactElement {
   const { value } = palette;
+  // On a tier fill the tier is the ground itself: its tone is plain text there.
   const tone = (role: Segment['tone'], fallback: string) =>
-    readableOn(toneColor(role, palette.ground, fallback), value.background, fallback);
+    palette.tierFill && role && typeof role === 'object'
+      ? fallback
+      : readableOn(toneColor(role, palette.ground, fallback), value.background, fallback);
 
   return (
     <div

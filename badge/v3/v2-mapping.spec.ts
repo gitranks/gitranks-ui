@@ -26,8 +26,7 @@ describe('isV2BuilderRequest', () => {
   });
 
   it('never takes a v3 builder link for an old one', () => {
-    const v3 =
-      'user=torvalds&badge=rank&extra=top&by=followers&scope=country&scheme=custom&preset=night&logo=1&label=x';
+    const v3 = 'user=torvalds&badge=rank&extra=top&by=followers&scope=country&scheme=night&logo=1&label=x';
     expect(isV2BuilderRequest(new URLSearchParams(v3))).toBe(false);
   });
 });
@@ -38,8 +37,7 @@ describe('mapV2BuilderQuery', () => {
       user: 'torvalds',
       badge: 'rank',
       extra: 'none',
-      scheme: 'custom',
-      preset: 'classic',
+      scheme: 'classic',
       logo: '0',
     });
     expect(map('ranking=s').user).toBe('');
@@ -88,10 +86,14 @@ describe('mapV2BuilderQuery', () => {
   });
 
   it('carries picked colours, filling a missing one with the old default', () => {
-    expect(map('labelBgColor=%23000&valueBgColor=%23fff')).toMatchObject({ left: '#000', right: '#fff' });
+    expect(map('labelBgColor=%23000&valueBgColor=%23fff')).toMatchObject({
+      scheme: 'custom',
+      left: '#000',
+      right: '#fff',
+    });
     expect(map('valueBgColor=%237c3aed')).toMatchObject({ left: '#5c5c5c', right: '#7c3aed' });
     expect(map('labelBgColor=%23123456')).toMatchObject({ left: '#123456', right: '#2282c2' });
-    expect(map('valueBgColor=%237c3aed').preset).toBeUndefined();
+    expect(map('valueBgColor=%237c3aed').scheme).toBe('custom');
   });
 
   it('keeps the label, cut to 40 characters, and drops the corner style', () => {
@@ -142,7 +144,11 @@ describe('the old gallery links', () => {
       const { user, badge: _badge, ...rest } = Object.fromEntries(mapped.entries());
       expect(user).toBe('torvalds');
       expect(() => resolveParams(badge, rest)).not.toThrow();
-      expect(resolveParams(badge, rest)).toMatchObject({ scheme: 'custom', logo: false, label: example.label });
+      expect(resolveParams(badge, rest)).toMatchObject({
+        scheme: 'valueBgColor' in example || 'labelBgColor' in example ? 'custom' : 'classic',
+        logo: false,
+        label: example.label,
+      });
     },
   );
 

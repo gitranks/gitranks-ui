@@ -117,10 +117,10 @@ describe('getBadgeResponse', () => {
 
   it('redirects another spelling to the stored one, keeping the file and the query', async () => {
     loaders.repo.mockImplementation(resolved(repoMid));
-    const response = await repoResponse('ACME', 'FastQueue', 'rank.svg', 'scheme=tint&v=2');
+    const response = await repoResponse('ACME', 'FastQueue', 'rank.svg', 'scheme=violet&v=2');
 
     expect(response.status).toBe(308);
-    expect(response.headers.get('location')).toBe('/badge/repo/acme/fastqueue/rank.svg?scheme=tint&v=2');
+    expect(response.headers.get('location')).toBe('/badge/repo/acme/fastqueue/rank.svg?scheme=violet&v=2');
     expect(response.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.badge);
   });
 
@@ -144,7 +144,7 @@ describe('getBadgeResponse', () => {
     consoleError.mockRestore();
   });
 
-  it.each(['extra=bogus', 'extra=of', 'left=%23000', 'right=%23000', 'scheme=custom-ish', 'label=x&logo=2'])(
+  it.each(['extra=bogus', 'extra=of', 'left=%23000', 'right=%23000', 'scheme=tint', 'scheme=tier', 'label=x&logo=2'])(
     'answers 400 for %s without reading data',
     async (query) => {
       const response = await repoResponse('acme', 'fastqueue', 'rank.svg', query);

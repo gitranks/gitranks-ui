@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import type { BadgeDefinition, ExtraKey } from './catalogue';
 import { CONTRIBUTOR_KEYS, DEFAULT_CONTRIBUTOR_VALUE } from './contributors';
-import type { By, ContributorKey, Preset, Scheme, Scope, Theme, WallOrder } from './types';
+import type { By, ContributorKey, Scheme, Scope, Theme, WallOrder } from './types';
 
 /** Custom label text is cut to this many characters. */
 export const LABEL_MAX_LENGTH = 40;
@@ -21,8 +21,7 @@ export const BadgeQuerySchema = z
       .optional(),
     value: z.enum(CONTRIBUTOR_KEYS).optional(),
     logo: z.enum(['0', '1']).optional(),
-    scheme: z.enum(['custom', 'auto', 'tint']).optional(),
-    preset: z.enum(['night', 'classic', 'violet']).optional(),
+    scheme: z.enum(['auto', 'night', 'violet', 'tier', 'classic', 'custom']).optional(),
     left: hex.optional(),
     right: hex.optional(),
     theme: z.enum(['light', 'dark']).optional(),
@@ -47,7 +46,6 @@ export type BadgeParams = {
   value: ContributorKey;
   logo: boolean;
   scheme: Scheme;
-  preset: Preset;
   /** Picked colours, both or neither. */
   colors: { left: string; right: string } | null;
   /** Pins one drawing of an Auto badge. */
@@ -70,14 +68,22 @@ export class BadgeParamsError extends Error {
   }
 }
 
+/** The schemes a badge takes: every one for shields, Tier only where the badge shows a tier; cards and charts take
+ * the fixed ones. */
+export function schemesOf(badge: BadgeDefinition): Scheme[] {
+  if (badge.format !== 'shield') return ['auto', 'night', 'violet', 'classic'];
+  return badge.id === 'tier'
+    ? ['auto', 'night', 'violet', 'tier', 'classic', 'custom']
+    : ['auto', 'night', 'violet', 'classic', 'custom'];
+}
+
 /** The defaults of a badge, as the builder starts it. */
 export function defaultParams(badge: BadgeDefinition): BadgeParams {
   return {
     extra: badge.defaultExtra,
     value: DEFAULT_CONTRIBUTOR_VALUE,
     logo: true,
-    scheme: badge.format === 'shield' ? 'custom' : 'auto',
-    preset: 'night',
+    scheme: 'auto',
     colors: null,
     theme: null,
     label: null,
@@ -103,8 +109,8 @@ export function cutLabel(label: string | undefined): string | null {
 
 /**
  * A badge's parameters from its query. Throws `BadgeParamsError` for a value the badge cannot take: an extra or a
- * contributor value it does not allow, Custom colours on a card or chart, `newest` on a developer's wall, or a lone
- * `left` or `right`. Options a badge does not read are ignored.
+ * contributor value it does not allow, a scheme it does not take, picked colours without `scheme=custom` (or the
+ * reverse), `newest` on a developer's wall, or a lone `left` or `right`. Options a badge does not read are ignored.
  */
 export function resolveParams(badge: BadgeDefinition, search: URLSearchParams | Record<string, string>): BadgeParams {
   const raw: Record<string, string> = {
@@ -148,11 +154,14 @@ export function resolveParams(badge: BadgeDefinition, search: URLSearchParams | 
     params.extra = null;
   }
 
-  if (query.scheme === 'custom' && badge.format !== 'shield') {
-    throw new BadgeParamsError('scheme: custom colours are for shields');
+  const scheme = query.scheme ?? params.scheme;
+  if (!schemesOf(badge).includes(scheme)) {
+    throw new BadgeParamsError(`scheme: ${badge.id} does not take "${scheme}"`);
   }
-  params.scheme = query.scheme ?? params.scheme;
-  params.preset = query.preset ?? params.preset;
+  if ((scheme === 'custom') !== !!(query.left && query.right)) {
+    throw new BadgeParamsError('left, right: picked colours go with scheme=custom, and it needs both');
+  }
+  params.scheme = scheme;
   params.colors = query.left && query.right ? { left: query.left, right: query.right } : null;
   params.theme = query.theme ?? null;
   params.logo = query.logo !== '0';

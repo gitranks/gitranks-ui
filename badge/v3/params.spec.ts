@@ -13,10 +13,9 @@ const resolve = (entity: 'user' | 'org' | 'repo', id: string, query: string) =>
   resolveParams(badge(entity, id), new URLSearchParams(query));
 
 describe('resolveParams', () => {
-  it('starts shields on Night with the logo and their default extra', () => {
+  it('starts shields on Auto with the logo and their default extra', () => {
     expect(resolve('repo', 'rank', '')).toMatchObject({
-      scheme: 'custom',
-      preset: 'night',
+      scheme: 'auto',
       logo: true,
       extra: 'top',
       colors: null,
@@ -36,7 +35,7 @@ describe('resolveParams', () => {
 
   it.each([
     'scheme=neon',
-    'preset=pink',
+    'scheme=tint',
     'logo=no',
     'theme=sepia',
     'left=red&right=blue',
@@ -55,8 +54,14 @@ describe('resolveParams', () => {
     expect(() => resolve('repo', 'contributors-wall', query)).toThrow(BadgeParamsError);
   });
 
-  it('takes both picked colours, in either length', () => {
-    expect(resolve('repo', 'rank', 'left=%23fff&right=%230f766e').colors).toEqual({ left: '#fff', right: '#0f766e' });
+  it('takes both picked colours with scheme=custom, in either length', () => {
+    expect(resolve('repo', 'rank', 'scheme=custom&left=%23fff&right=%230f766e')).toMatchObject({
+      scheme: 'custom',
+      colors: { left: '#fff', right: '#0f766e' },
+    });
+    expect(() => resolve('repo', 'rank', 'left=%23fff&right=%230f766e')).toThrow(/scheme=custom/);
+    expect(() => resolve('repo', 'rank', 'scheme=custom')).toThrow(/needs both/);
+    expect(() => resolve('repo', 'rank', 'scheme=night&left=%23fff&right=%23000')).toThrow(BadgeParamsError);
   });
 
   it('keeps a long label to 40 characters, trimmed', () => {
@@ -105,9 +110,27 @@ describe('resolveParams', () => {
     expect(() => resolve('org', 'contributors', 'extra=legends')).toThrow(BadgeParamsError);
   });
 
-  it('keeps Custom to shields', () => {
-    expect(() => resolve('repo', 'rank-card', 'scheme=custom')).toThrow(/for shields/);
-    expect(resolve('repo', 'rank-card', 'scheme=tint').scheme).toBe('tint');
+  it('offers shields every scheme, Tier only where the shield shows a tier', () => {
+    for (const scheme of ['auto', 'night', 'violet', 'classic']) {
+      expect(resolve('repo', 'rank', `scheme=${scheme}`).scheme).toBe(scheme);
+    }
+    expect(resolve('repo', 'tier', 'scheme=tier').scheme).toBe('tier');
+    expect(resolve('user', 'tier', 'scheme=tier').scheme).toBe('tier');
+    expect(() => resolve('repo', 'rank', 'scheme=tier')).toThrow(/does not take "tier"/);
+    expect(() => resolve('org', 'stars', 'scheme=tier')).toThrow(BadgeParamsError);
+  });
+
+  it('offers cards and charts Auto, Night, Violet and Classic only', () => {
+    for (const scheme of ['auto', 'night', 'violet', 'classic']) {
+      expect(resolve('repo', 'rank-card', `scheme=${scheme}`).scheme).toBe(scheme);
+      expect(resolve('user', 'count-chart', `scheme=${scheme}`).scheme).toBe(scheme);
+    }
+    expect(() => resolve('repo', 'rank-card', 'scheme=custom&left=%23000&right=%23fff')).toThrow(BadgeParamsError);
+    expect(() => resolve('repo', 'tier-card', 'scheme=tier')).toThrow(BadgeParamsError);
+  });
+
+  it('ignores the old preset key', () => {
+    expect(resolve('repo', 'rank', 'preset=violet').scheme).toBe('auto');
   });
 
   it('gives a developer wall no "newest" order', () => {

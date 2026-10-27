@@ -57,16 +57,16 @@ export function mapV2BuilderQuery(search: URLSearchParams, login?: string | null
   if (by && by !== 'stars') out.set('by', by);
   if (search.get('context') === 'country') out.set('scope', 'country');
 
-  out.set('scheme', 'custom');
   const labelBg = search.get('labelBgColor');
   const valueBg = search.get('valueBgColor');
   const left = labelBg && HEX.test(labelBg) ? labelBg : null;
   const right = valueBg && HEX.test(valueBg) ? valueBg : null;
   if (left || right) {
+    out.set('scheme', 'custom');
     out.set('left', left ?? V2_LABEL_BG);
     out.set('right', right ?? V2_VALUE_BG);
   } else {
-    out.set('preset', 'classic');
+    out.set('scheme', 'classic');
   }
 
   out.set('logo', '0');

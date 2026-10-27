@@ -10,15 +10,19 @@ import {
   AUTO_CARD,
   AUTO_SHIELD,
   type CardPalette,
+  CLASSIC_CARD,
+  CLASSIC_SHIELD,
+  NIGHT_CARD,
+  NIGHT_SHIELD,
   pickedPalette,
-  presetPalette,
   type ShieldPalette,
-  TINT_CARD,
-  TINT_SHIELD,
+  tierPalette,
+  VIOLET_CARD,
+  VIOLET_SHIELD,
 } from './schemes';
 import { SHIELD_HEIGHT, Shield } from './shield';
 import { notYetShield, shieldContent } from './shields';
-import type { ImageFormat, Theme } from './types';
+import type { ImageFormat, ShieldContent, Theme } from './types';
 import {
   CONTENT_TYPE,
   renderStarHistorySvg,
@@ -46,15 +50,34 @@ async function toSvg(node: ReactElement, size: { width?: number; height: number 
   return satori(node, await getSatoriConfig({ fontOptions: FONTS, ...size }));
 }
 
-/** The shield palette for the params; Auto takes the theme it is drawn in. */
-function shieldPalette(params: BadgeParams, theme: Theme): ShieldPalette {
-  if (params.scheme === 'tint') return TINT_SHIELD;
-  if (params.scheme === 'auto') return AUTO_SHIELD[theme];
-  return params.colors ? pickedPalette(params.colors.left, params.colors.right) : presetPalette(params.preset);
+/** The shield palette for the params; Auto takes the theme it is drawn in, Tier the tier the shield shows. */
+function shieldPalette(params: BadgeParams, theme: Theme, content: ShieldContent): ShieldPalette {
+  switch (params.scheme) {
+    case 'auto':
+      return AUTO_SHIELD[theme];
+    case 'night':
+      return NIGHT_SHIELD;
+    case 'violet':
+      return VIOLET_SHIELD;
+    case 'classic':
+      return CLASSIC_SHIELD;
+    case 'tier':
+      return tierPalette(content.value.icon?.tier ?? null);
+    case 'custom':
+      return params.colors ? pickedPalette(params.colors.left, params.colors.right) : NIGHT_SHIELD;
+  }
 }
 
+const CARD_PALETTES: Record<'night' | 'violet' | 'classic', CardPalette> = {
+  night: NIGHT_CARD,
+  violet: VIOLET_CARD,
+  classic: CLASSIC_CARD,
+};
+
 const cardPalette = (params: BadgeParams, theme: Theme): CardPalette =>
-  params.scheme === 'tint' ? TINT_CARD : AUTO_CARD[theme];
+  params.scheme === 'night' || params.scheme === 'violet' || params.scheme === 'classic'
+    ? CARD_PALETTES[params.scheme]
+    : AUTO_CARD[theme];
 
 /** The themes to draw: both for an Auto SVG without `theme`, else one (light unless asked for dark). */
 function themesOf(params: BadgeParams, format: ImageFormat): Theme[] {
@@ -92,7 +115,7 @@ async function drawShield(
   const shown = content ?? notYetShield(badge, params);
   const svgs = await Promise.all(
     themes.map((theme) =>
-      toSvg(<Shield content={shown} palette={shieldPalette(params, theme)} logo={params.logo} />, {
+      toSvg(<Shield content={shown} palette={shieldPalette(params, theme, shown)} logo={params.logo} />, {
         height: SHIELD_HEIGHT,
       }),
     ),

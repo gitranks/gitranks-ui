@@ -6,8 +6,11 @@ export type BadgeFormat = 'shield' | 'card' | 'chart';
 
 export type ImageFormat = 'svg' | 'png';
 
-export type Scheme = 'custom' | 'auto' | 'tint';
-export type Preset = 'night' | 'classic' | 'violet';
+/**
+ * One list of schemes: Auto (the default) follows the reader's theme; Night, Violet and Classic are fixed; Tier fills
+ * the value with the badge's tier colour (tier shields only); Custom takes two picked colours (shields only).
+ */
+export type Scheme = 'auto' | 'night' | 'violet' | 'tier' | 'classic' | 'custom';
 export type Theme = 'light' | 'dark';
 
 /** A developer ranking. */

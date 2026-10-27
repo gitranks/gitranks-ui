@@ -23,17 +23,20 @@ vi.mock('./avatars', () => ({
  */
 const SHOTS = process.env.BADGE_V3_SHOTS;
 
-const SHIELD_SCHEMES = [
-  'preset=night',
-  'preset=classic',
-  'preset=violet',
-  'left=%230f766e&right=%23ccfbf1',
+const PANEL_SCHEMES = [
   'scheme=auto&theme=light',
   'scheme=auto&theme=dark',
-  'scheme=tint',
+  'scheme=night',
+  'scheme=violet',
+  'scheme=classic',
 ];
 
-const PANEL_SCHEMES = ['scheme=auto&theme=light', 'scheme=auto&theme=dark', 'scheme=tint'];
+/** Every scheme a shield takes; Tier only on tier shields. */
+const shieldSchemes = (badge: BadgeDefinition) => [
+  ...PANEL_SCHEMES,
+  ...(badge.id === 'tier' ? ['scheme=tier'] : []),
+  'scheme=custom&left=%230f766e&right=%23ccfbf1',
+];
 
 /** The entity each badge is drawn for: the fixture with every fact, as the API will serve them. */
 const ENTITIES: EntityFacts[] = [repoBigLater, userBigLater, orgBigLater];
@@ -52,7 +55,7 @@ const VARIANT_QUERY: Record<string, string> = {
 
 function variantsOf(badge: BadgeDefinition): string[] {
   const base = VARIANT_QUERY[`${badge.entity} ${badge.id}`] ?? '';
-  const schemes = badge.format === 'shield' ? SHIELD_SCHEMES : PANEL_SCHEMES;
+  const schemes = badge.format === 'shield' ? shieldSchemes(badge) : PANEL_SCHEMES;
   const extras = badge.format === 'shield' ? extrasOf(badge) : [''];
   const variants: string[] = [];
   for (const scheme of schemes) {

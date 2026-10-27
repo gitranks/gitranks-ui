@@ -5,7 +5,7 @@ import { Link } from '../link/link';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
 
 const SITE_LINKS = [
-  { href: '/by/stars/1', label: 'Global Rankings' },
+  { href: '/by/stars/1', label: 'Developer Rankings' },
   { href: '/countries/stars/1', label: 'Country Rankings' },
   { href: '/languages/global/score/1', label: 'Language Rankings' },
   { href: '/orgs/1', label: 'Org Rankings' },

@@ -16,6 +16,7 @@ import {
   parseBuilderQuery,
   pickTarget,
   type Style,
+  storedNameQuery,
 } from '../utils/builder-state';
 import { builderView, showsReadNote } from '../utils/builder-view';
 import { createRechecker, listenForReturn } from '../utils/recheck';
@@ -78,8 +79,9 @@ export function BadgeBuilder() {
 
   // Another spelling or an old name: the stored one, so the badge URL matches the entity's own.
   useEffect(() => {
-    if (facts && state.kind && entityName(facts) !== state.name) {
-      setQuery({ [state.kind]: entityName(facts) }, { history: 'replace', scroll: false });
+    const stored = facts ? storedNameQuery({ kind: state.kind, name: state.name }, entityName(facts)) : null;
+    if (stored) {
+      setQuery(stored, { history: 'replace', scroll: false });
     }
   }, [facts, state.kind, state.name, setQuery]);
 

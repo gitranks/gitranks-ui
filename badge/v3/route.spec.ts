@@ -140,6 +140,17 @@ describe('getBadgeResponse', () => {
     expect(response.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.badge);
   });
 
+  it('redirects an old name of a renamed or moved repository to its current one', async () => {
+    // The data comes back under the current name when asked by an old one.
+    loaders.repo.mockImplementation(resolved(repoMid));
+    const response = await repoResponse('old-owner', 'old-name', 'stars.svg', 'scheme=violet');
+
+    expect(loaders.repo).toHaveBeenCalledWith('old-owner', 'old-name');
+    expect(response.status).toBe(308);
+    expect(response.headers.get('location')).toBe('/badge/repo/acme/fastqueue/stars.svg?scheme=violet');
+    expect(response.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.badge);
+  });
+
   it("redirects a developer's login to its stored case", async () => {
     loaders.user.mockImplementation(resolved(userMid));
     const response = await userResponse('Octo-Dev', 'rank.png');

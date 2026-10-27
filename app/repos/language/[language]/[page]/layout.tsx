@@ -8,11 +8,19 @@ import { repoLanguageRankingMetadata, repoLanguageRankingTitle } from '../../../
 import { REPO_LANGUAGES_LINK, RepoRankingHeader } from '../../../components/repo-ranking-header';
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
+import { fetchRepoLanguages } from '@/graphql/helpers/fetch-repo-languages';
 import { parsePageParam } from '@/utils/parse-page-param';
 import { resolveRepoLanguageName } from '@/utils/resolve-route-names';
 
-// Renders on request as a whole page, which is then cached; the route is allowed to block.
+// Params not listed in generateStaticParams render on request as a whole page, which is then
+// cached; there is no fallback shell, so the route is allowed to block and an unknown language
+// answers 404. The page says the same.
 export const instant = false;
+
+export async function generateStaticParams() {
+  const [top] = (await fetchRepoLanguages()).filter(({ language }) => !!language);
+  return [{ language: top?.language ?? 'JavaScript', page: '1' }];
+}
 
 export async function generateMetadata({
   params,

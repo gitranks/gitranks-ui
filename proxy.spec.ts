@@ -5,7 +5,7 @@ const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'a
 
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
-const { default: proxy, config, v2BuilderRedirect } = await import('./proxy');
+const { default: proxy, config, ENTITY_PAGE_CACHE_CONTROL, v2BuilderRedirect } = await import('./proxy');
 
 const event = {} as NextFetchEvent;
 const request = (cookie?: string, path = '/profile/torvalds') =>
@@ -15,11 +15,36 @@ describe('proxy', () => {
   beforeEach(() => withSession.mockClear());
 
   it('lets a visitor without a session through untouched, so the page stays cacheable', async () => {
-    const response = await proxy(request(), event);
+    const response = await proxy(request(undefined, '/by/stars/1'), event);
 
     expect(withSession).not.toHaveBeenCalled();
     expect(response?.headers.get('set-cookie')).toBeNull();
+    expect(response?.headers.get('cache-control')).toBeNull();
   });
+
+  it.each([
+    '/profile/torvalds',
+    '/profile/torvalds/ranks',
+    '/org/vercel',
+    '/repo/react/react',
+    '/repo/facebook/react',
+    '/insights/6650f0c2a1b2c3d4e5f60718',
+  ])('keeps %s out of shared caches for a visitor without a session, setting no cookie', async (path) => {
+    const response = await proxy(request(undefined, path), event);
+
+    expect(withSession).not.toHaveBeenCalled();
+    expect(response?.headers.get('set-cookie')).toBeNull();
+    expect(response?.headers.get('cache-control')).toBe(ENTITY_PAGE_CACHE_CONTROL);
+  });
+
+  it.each(['/', '/insights', '/orgs/1', '/repos/1', '/profile', '/repository/x'])(
+    'leaves %s to the page',
+    async (path) => {
+      const response = await proxy(request(undefined, path), event);
+
+      expect(response?.headers.get('cache-control')).toBeNull();
+    },
+  );
 
   it('clears a leftover session hint once the session is gone, without running Auth.js', async () => {
     const response = await proxy(request('has-session=1'), event);

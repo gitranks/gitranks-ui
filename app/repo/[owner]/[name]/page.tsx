@@ -38,8 +38,15 @@ import {
 /** From here a repository's promoted set has badges that need no rank. */
 const REPO_BIG_PROMOTION_STARS = PROMOTION.repo.at(-1)?.from ?? 1_000;
 
-// Renders on request as one piece, like the profile pages; cached data keeps the render cheap.
+// Renders as one piece, like the profile pages; cached data keeps the render cheap. One repository is listed in
+// generateStaticParams, so any other renders on request as a whole page before the response starts: there is no
+// fallback shell, `notFound()` answers 404 and `permanentRedirect()` a real 308. The page is then kept in the page
+// cache, which the page-cache cleaner caps.
 export const instant = false;
+
+export async function generateStaticParams() {
+  return [{ owner: 'torvalds', name: 'linux' }];
+}
 
 export async function generateMetadata({ params }: PageProps<'/repo/[owner]/[name]'>): Promise<Metadata> {
   const { owner, name } = await params;

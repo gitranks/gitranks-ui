@@ -23,6 +23,14 @@ const SESSION_COOKIE = /^(__Secure-)?authjs\.session-token(\.\d+)?$/;
 const BUILDER_PATH = /^\/badge\/builder(?:\/(?<login>[^/]+))?\/?$/;
 
 /**
+ * A developer's, an organization's or a repository's page, or one post. They render as whole pages and are kept in
+ * the page cache, which a refresh a visitor starts clears before the page reloads; a shared cache would show the old
+ * page again. So for visitors without a session they carry the header they had while they rendered per request.
+ */
+const ENTITY_PAGE = /^\/(?:profile|org|repo|insights)\/[^/]/;
+export const ENTITY_PAGE_CACHE_CONTROL = 'private, no-cache, no-store, max-age=0, must-revalidate';
+
+/**
  * An old builder link (its query names, or a login in the path) as the new builder's path and query, with its choices
  * mapped; `null` for any other request. The builder page is cached and never sees the query, so it happens here.
  */
@@ -59,7 +67,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // session-aware API routes wrap their handlers in `auth()` themselves.
   if (!request.cookies.getAll().some(({ name }) => SESSION_COOKIE.test(name))) {
     if (!request.cookies.has(SESSION_HINT_COOKIE)) {
-      return NextResponse.next();
+      if (!ENTITY_PAGE.test(request.nextUrl.pathname)) {
+        return NextResponse.next();
+      }
+      const response = NextResponse.next();
+      response.headers.set('Cache-Control', ENTITY_PAGE_CACHE_CONTROL);
+      return response;
     }
 
     // Signed out or expired: drop the hint, so the page stops asking for a session. A shared cache

@@ -25,6 +25,10 @@ query PageOrg($login: String!) {
       ...RepoRowFields
       rank {
         s
+        tier {
+          tier
+          level
+        }
       }
     }
     pulse {

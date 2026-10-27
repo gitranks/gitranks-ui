@@ -23,6 +23,7 @@ import {
   LeftColumnContainer,
   PageContainer,
 } from '@/app/profile/[login]/components/profile-page-backbone';
+import { RepoTierChip } from '@/components/repo-tier-chip/repo-tier-chip';
 import { Button } from '@/components/ui/button';
 import type { PageRepoQuery } from '@/types/generated/graphql';
 import { getRepoOwnerPath } from '@/utils/repo-paths';
@@ -72,6 +73,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
               <span className="text-muted-foreground">{owner}/</span>
               {name}
             </h1>
+            {!!repo.rank?.tier && <RepoTierChip tier={repo.rank.tier} className="self-start" />}
             {repo.isArchived && (
               <span className="self-start rounded-sm bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                 Archived

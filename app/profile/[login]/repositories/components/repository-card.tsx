@@ -8,6 +8,9 @@ import { RepositoryDetail } from './repository-detail';
 import { RepositoryLanguages } from './repository-languages';
 import { RepositoryTopLanguage } from './repository-top-language';
 import { REPO_PAGE_MIN_STARS } from '@/app/app.consts';
+import { repoTierLabel } from '@/components/repo-tier-chip/repo-tier-chip';
+import { RepoTierIcon } from '@/components/repo-tier-icon/repo-tier-icon';
+import { tierTextClass } from '@/components/tier-chip/tier-chip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Repository } from '@/types/generated/graphql';
@@ -71,10 +74,16 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({ repository, meta, clas
                 href={getRepoRankingPath(getRankingPageOf(rank.s))}
                 prefetch={false}
                 className="flex gap-1 items-center hover:underline"
-                title="Global repository rank"
+                title={rank.tier ? `${repoTierLabel(rank.tier)} · global repository rank` : 'Global repository rank'}
               >
-                <Medal className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="sr-only">Global repository rank:</span>
+                {rank.tier ? (
+                  <RepoTierIcon tier={rank.tier.tier} className={cn('size-4', tierTextClass(rank.tier.tier))} />
+                ) : (
+                  <Medal className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                )}
+                <span className="sr-only">
+                  {rank.tier ? `${repoTierLabel(rank.tier)}, ` : ''}Global repository rank:
+                </span>
                 <span className="font-mono tabular-nums">#{rank.s.toLocaleString('en-US')}</span>
               </Link>
             )}

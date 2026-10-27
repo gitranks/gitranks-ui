@@ -11,6 +11,17 @@ query PageRepo($owner: String!, $name: String!) {
       sM
       l
       lM
+      tier {
+        tier
+        level
+        minRank
+        maxRank
+        minValue
+      }
+      languageTier {
+        tier
+        level
+      }
     }
     burstMonths
     history {

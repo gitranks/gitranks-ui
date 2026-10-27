@@ -7,6 +7,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { RepoLayout } from './components/repo-layout';
 import { RepoPulseArea } from './components/repo-pulse-area';
 import { RepoRankCard } from './components/repo-rank-card';
+import { RepoTierCard } from './components/repo-tier-card';
 import { StarHistoryBadgeSection } from './components/star-history-badge-section';
 import { StarHistorySection } from './components/star-history-section';
 import { buildRepoSEO, isRepoRanked } from './seo';
@@ -19,6 +20,7 @@ import { JsonLd } from '@/components/json-ld/json-ld';
 import { fetchRepo } from '@/graphql/helpers/fetch-repo';
 import { fetchRepoLanguages } from '@/graphql/helpers/fetch-repo-languages';
 import { fetchRepoPulseFacts } from '@/graphql/helpers/fetch-repo-pulse';
+import { fetchRepoRankTiers } from '@/graphql/helpers/fetch-repo-rank-tiers';
 import {
   getRankingPageOf,
   getRepoCacheTag,
@@ -84,7 +86,7 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
   }
 
   const rank = isRepoRanked(repo) ? repo.rank : null;
-  const languages = rank ? await fetchRepoLanguages() : [];
+  const [languages, rankTiers] = rank ? await Promise.all([fetchRepoLanguages(), fetchRepoRankTiers()]) : [[], null];
   const rankedCount = languages.reduce((sum, { repos }) => sum + repos, 0);
   const languageCount = languages.find((l) => l.language === (rank?.language ?? null))?.repos;
   const summary = buildRepoSummary({
@@ -103,14 +105,23 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
         <div className="flex flex-col gap-4">
           {rank ? (
             <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))]">
-              {!!rank.s && (
-                <RepoRankCard
-                  title="Global rank"
-                  rank={rank.s}
-                  rankM={rank.sM}
-                  rankingLink={getRepoRankingPath(getRankingPageOf(rank.s))}
-                  rankedCount={rankedCount || undefined}
+              {rank.tier ? (
+                <RepoTierCard
+                  rank={{ ...rank, tier: rank.tier }}
+                  stars={repo.stars}
+                  gainedThisMonth={repo.gainedThisMonth}
+                  tiers={rankTiers?.tiers}
                 />
+              ) : (
+                !!rank.s && (
+                  <RepoRankCard
+                    title="Global rank"
+                    rank={rank.s}
+                    rankM={rank.sM}
+                    rankingLink={getRepoRankingPath(getRankingPageOf(rank.s))}
+                    rankedCount={rankedCount || undefined}
+                  />
+                )
               )}
               {!!rank.l && (
                 <RepoRankCard

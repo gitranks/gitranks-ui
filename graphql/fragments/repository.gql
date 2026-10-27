@@ -12,5 +12,9 @@ fragment RepositoryFields on Repository {
   }
   rank {
     s
+    tier {
+      tier
+      level
+    }
   }
 }

@@ -3,6 +3,7 @@ import type { FC } from 'react';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { ClickableRow } from '@/components/ranking-table/clickable-row';
 import { RepoLink } from '@/components/repo-link/repo-link';
+import { RepoTierChip } from '@/components/repo-tier-chip/repo-tier-chip';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LinkWithStopPropagation } from '@/components/user-card/components/link-with-stop-propagation';
 import type { RepoRankingsQuery } from '@/types/generated/graphql';
@@ -21,6 +22,7 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
         <TableRow>
           <TableHead className="w-[100px]">Rank</TableHead>
           <TableHead>Repository</TableHead>
+          <TableHead className="hidden lg:table-cell">Tier</TableHead>
           <TableHead className="hidden md:table-cell">Language</TableHead>
           <TableHead className="text-right">Stars</TableHead>
           <TableHead className="hidden sm:table-cell text-right">Stars this month</TableHead>
@@ -29,6 +31,7 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
       <TableBody>
         {data.map((item) => {
           const { githubId, repo } = item;
+          const tier = rankProp === 's' ? item.tier : item.languageTier;
 
           if (!repo) {
             return null;
@@ -44,7 +47,7 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
               </TableCell>
               <TableCell className="whitespace-normal">
                 <div className="flex min-w-0 flex-col gap-1">
-                  <RepoLink nameWithOwner={repo.nameWithOwner} ownerAvatarUrl={repo.ownerAvatarUrl} />
+                  <RepoLink nameWithOwner={repo.nameWithOwner} ownerAvatarUrl={repo.ownerAvatarUrl} tier={tier} />
                   {!!repo.description && (
                     <p className="line-clamp-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">
                       {repo.description}
@@ -52,6 +55,7 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
                   )}
                 </div>
               </TableCell>
+              <TableCell className="hidden lg:table-cell">{!!tier && <RepoTierChip tier={tier} />}</TableCell>
               <TableCell className="hidden md:table-cell">
                 {repo.language && (
                   <LinkWithStopPropagation

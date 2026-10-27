@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+<rect x="5" y="27" width="11.5" height="16" rx="2.2" fill="currentColor" fill-opacity=".55"/>
+<rect x="18.25" y="21" width="11.5" height="22" rx="2.2" fill="currentColor"/>
+<rect x="31.5" y="31" width="11.5" height="12" rx="2.2" fill="currentColor" fill-opacity=".35"/>
+<path d="M24.00 3.50 L25.88 8.41 L31.13 8.68 L27.04 11.99 L28.41 17.07 L24.00 14.20 L19.59 17.07 L20.96 11.99 L16.87 8.68 L22.12 8.41Z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+</svg>

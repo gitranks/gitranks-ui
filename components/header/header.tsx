@@ -1,8 +1,8 @@
 import { HomeIcon } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import type { FC } from 'react';
 
+import { Logo } from '../logo/logo';
 import SigninButton from '../signin-button/signin-button';
 import { MainMenu } from './components/main-menu';
 import { cn } from '@/lib/utils';
@@ -16,22 +16,7 @@ export const Header: FC<HeaderProps> = ({ login }) => {
     <header className="mx-auto flex w-full max-w-7xl items-center justify-between p-4">
       <div className="flex items-center gap-3">
         <Link href="/" className="shrink-0" prefetch={false}>
-          <Image
-            src="/logo-light.svg"
-            alt="Logo Light"
-            className={cn('dark:hidden sm:block', { hidden: login, block: !login })}
-            priority
-            width={96}
-            height={21}
-          />
-          <Image
-            src="/logo-dark.svg"
-            alt="Logo Dark"
-            className={cn('hidden dark:block sm:dark:block', { 'dark:hidden': login, 'dark:block': !login })}
-            priority
-            width={96}
-            height={21}
-          />
+          <Logo className={cn('h-[22px] sm:block', { hidden: login, block: !login })} />
           {!!login && <HomeIcon className="sm:hidden" />}
         </Link>
         {!!login && <span className="text-xl font-semibold">/</span>}

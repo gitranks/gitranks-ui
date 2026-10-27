@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { listOrgBadgeImageUrls, listProfileBadgeImageUrls, listRepoBadgeImageUrls } from './badge-images';
+import {
+  escapeImageLoc,
+  listOrgBadgeImageUrls,
+  listProfileBadgeImageUrls,
+  listRepoBadgeImageUrls,
+  sitemapImageLoc,
+} from './badge-images';
 import { SITEMAP_OLD_BADGE_IMAGES_UNTIL } from './sitemap.consts';
 
 const before = new Date('2026-11-26T23:59:59.999Z');
@@ -60,6 +66,26 @@ describe('sitemap badge images', () => {
     const urls = listProfileBadgeImageUrls('octocat', { s: 10, c: 10, f: 10 }, before);
 
     expect(urls.every((url) => !/[&<>"']/.test(url))).toBe(true);
+  });
+
+  it('escapes the characters XML reserves, so a query with two keys stays valid XML', () => {
+    expect(sitemapImageLoc('/badge/user/octocat/rank.png?by=followers&scope=country')).toBe(
+      'https://example.test/badge/user/octocat/rank.png?by=followers&amp;scope=country',
+    );
+    expect(escapeImageLoc(`https://example.test/a?b=<c>&d="e'`)).toBe(
+      'https://example.test/a?b=&lt;c&gt;&amp;d=&quot;e&apos;',
+    );
+  });
+
+  it('escapes the site origin too, in new and old images alike', () => {
+    vi.stubEnv('NEXT_PUBLIC_URI', 'https://example.test/x?a=1&b=2');
+
+    const urls = listProfileBadgeImageUrls('octocat', { s: 10 }, before);
+
+    expect(urls).toHaveLength(4);
+    expect(urls.every((url) => url.startsWith('https://example.test/x?a=1&amp;b=2/'))).toBe(true);
+    expect(listRepoBadgeImageUrls('vercel/next.js')[0]).toContain('&amp;');
+    expect(listOrgBadgeImageUrls('vercel')[0]).toContain('&amp;');
   });
 
   it("lists a repository's and an organization's card", () => {

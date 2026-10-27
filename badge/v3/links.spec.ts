@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { badgeImagePath, hasProfileCard, hasRankCard, SOCIAL_CARD_SIZE, socialCardPath } from './links';
-import { SOCIAL_SIZE } from './render';
 
 describe('badge image paths', () => {
   it('spells each kind of entity as its badge route reads it', () => {
@@ -26,8 +25,8 @@ describe('badge image paths', () => {
     expect(socialCardPath({ kind: 'org', login: 'vercel' })).toBe('/badge/org/vercel/org-card.png?size=social');
   });
 
-  it('states the size the renderer draws a social card at', () => {
-    expect(SOCIAL_CARD_SIZE).toEqual(SOCIAL_SIZE);
+  it('draws social cards at 1200×630', () => {
+    expect(SOCIAL_CARD_SIZE).toEqual({ width: 1200, height: 630 });
   });
 });
 

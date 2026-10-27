@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type Availability, availabilityOf, availableBadges, badgesOf, CATALOGUE, findBadge } from './catalogue';
 import { contributorSegment } from './contributors';
-import type { EntityFacts } from './facts';
+import type { EntityFacts, OrgFacts, RepoFacts, UserFacts } from './facts';
 import {
   NOW,
   orgBig,
@@ -22,6 +22,7 @@ import {
   userSmall,
   userUnranked,
 } from './fixtures';
+import { hasProfileCard, hasRankCard } from './links';
 import { resolveParams } from './params';
 import { promotedBadges, promotionSetOf } from './promotion';
 import { notYetShield, shieldContent } from './shields';
@@ -512,5 +513,70 @@ describe('promotion', () => {
       { id: 'rank', query: { by: 'contributions' } },
       { id: 'rank', query: { scope: 'country' } },
     ]);
+  });
+});
+
+describe('card availability for link previews', () => {
+  const noRanks = { s: null, sM: null, c: null, cM: null, f: null, fM: null };
+  const users: [string, UserFacts][] = [
+    ['small', userSmall],
+    ['mid', userMid],
+    ['big', userBig],
+    ['big later', userBigLater],
+    ['unranked', userUnranked],
+    ['scores but null ranks', { ...userBig, rankGlobal: null }],
+    [
+      'scores but no rank',
+      { ...userBig, rankGlobal: { ...noRanks, sProvisional: null, cProvisional: null, fProvisional: null } },
+    ],
+    [
+      'provisional stars only',
+      { ...userBig, rankGlobal: { ...noRanks, sProvisional: 40, cProvisional: null, fProvisional: null } },
+    ],
+    [
+      'provisional contributions only',
+      { ...userBig, rankGlobal: { ...noRanks, sProvisional: null, cProvisional: 90, fProvisional: null } },
+    ],
+    [
+      'followers rank only',
+      { ...userBig, rankGlobal: { ...noRanks, f: 3, sProvisional: null, cProvisional: null, fProvisional: null } },
+    ],
+    ['ranked under the score floor', { ...userBig, s: 4, c: 4 }],
+  ];
+  const repos: [string, RepoFacts][] = [
+    ['small', repoSmall],
+    ['mid', repoMid],
+    ['mid later', repoMidLater],
+    ['big', repoBig],
+    ['big later', repoBigLater],
+    ['unranked', repoUnranked],
+    ['null rank', { ...repoBig, rank: null }],
+    ['no global rank', { ...repoBig, rank: { ...repoBig.rank!, s: null } }],
+  ];
+  const orgs: [string, OrgFacts][] = [
+    ['small', orgSmall],
+    ['mid', orgMid],
+    ['big', orgBig],
+    ['big later', orgBigLater],
+    ['unranked', orgUnranked],
+    ['no global rank', { ...orgBig, rank: { s: null, sM: null } }],
+  ];
+
+  it.each(users)("agrees with the catalogue on a developer's profile card: %s", (_, user) => {
+    expect(hasProfileCard(user, user.rankGlobal)).toBe(availability(user, 'profile-card') === 'available');
+  });
+
+  it.each(repos)("agrees with the catalogue on a repository's rank card: %s", (_, repo) => {
+    expect(hasRankCard(repo.rank)).toBe(availability(repo, 'rank-card') === 'available');
+  });
+
+  it.each(orgs)("agrees with the catalogue on an organization's card: %s", (_, org) => {
+    expect(hasRankCard(org.rank)).toBe(availability(org, 'org-card') === 'available');
+  });
+
+  it('covers both answers for each card', () => {
+    expect(new Set(users.map(([, user]) => hasProfileCard(user, user.rankGlobal)))).toEqual(new Set([true, false]));
+    expect(new Set(repos.map(([, repo]) => hasRankCard(repo.rank)))).toEqual(new Set([true, false]));
+    expect(new Set(orgs.map(([, org]) => hasRankCard(org.rank)))).toEqual(new Set([true, false]));
   });
 });

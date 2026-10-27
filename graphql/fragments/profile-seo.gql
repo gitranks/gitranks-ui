@@ -4,4 +4,11 @@ fragment UserSeo on User {
   f
   repositoriesCount
   contributedRepoCount
+  # Every tab's link preview judges the profile card by the global ranks, country tabs included.
+  rankGlobal {
+    s
+    sProvisional
+    c
+    cProvisional
+  }
 }

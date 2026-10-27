@@ -222,7 +222,7 @@ export function buildProfileTabSEO(
 ): { metadata: Metadata; jsonLd: object[] } {
   const { login, name, country } = data;
   const avatarUrl = absoluteUrl(`/api/avatar/${encodeURIComponent(login)}`);
-  // Tabs that do not read the global ranks judge the card by the scores alone.
+  // Every tab's query reads the global ranks (`UserSeo`), so the preview never shows a card that has no rank yet.
   const cardUrl = hasProfileCard(data, data.rankGlobal) ? absoluteUrl(socialCardPath({ kind: 'user', login })) : null;
   // Only the overview, ranks and languages tabs have a country variant.
   const where = scope === 'country' && country ? `in ${country}` : '';

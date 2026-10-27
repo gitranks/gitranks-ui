@@ -5,6 +5,7 @@ import { joinAuto, shareImages } from './auto-svg';
 import { type Drawing, notYetDrawing, prepareDrawing } from './cards';
 import type { BadgeDefinition } from './catalogue';
 import type { EntityFacts } from './facts';
+import { SOCIAL_CARD_SIZE } from './links';
 import type { BadgeParams } from './params';
 import {
   AUTO_CARD,
@@ -35,9 +36,6 @@ import { getSatoriConfig } from '@/badge/utils/get-satori-config';
 export type RenderState = 'badge' | 'not-yet' | 'preparing';
 
 export type RenderedBadge = { state: RenderState; body: string | Uint8Array<ArrayBuffer>; contentType: string };
-
-/** og:image size for cards (spec §9). */
-export const SOCIAL_SIZE = { width: 1200, height: 630 } as const;
 
 const FONTS = [
   { weight: 400 as const },
@@ -91,7 +89,7 @@ const PAGE_BACKGROUND: Record<Theme, string> = { light: '#fafafa', dark: '#0d111
 
 /** A card centred on a 1200×630 page, for og:image. */
 function socialWrap(svg: string, drawing: Drawing, theme: Theme): string {
-  const { width, height } = SOCIAL_SIZE;
+  const { width, height } = SOCIAL_CARD_SIZE;
   const scale = Math.min((width - 120) / drawing.width, (height - 120) / drawing.height);
   const w = Math.round(drawing.width * scale);
   const h = Math.round(drawing.height * scale);

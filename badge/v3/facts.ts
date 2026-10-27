@@ -146,3 +146,19 @@ export type EntityFacts = RepoFacts | UserFacts | OrgFacts;
 /** The entity's wall in an order, if it has one. */
 export const wallOf = (entity: EntityFacts, order: WallOrder): ContributorsWall | null =>
   entity.contributorsWall[order] ?? null;
+
+/**
+ * Whether GitRanks has yet to read the entity from GitHub, so its badges have little or nothing to show until it
+ * does: a repository whose star history was never read, or a developer without a single count (their first read is
+ * still running). Organizations have no such state.
+ */
+export function awaitsRead(entity: EntityFacts): boolean {
+  switch (entity.kind) {
+    case 'repo':
+      return !entity.history;
+    case 'user':
+      return entity.s === null && entity.c === null && entity.f === null;
+    case 'org':
+      return false;
+  }
+}

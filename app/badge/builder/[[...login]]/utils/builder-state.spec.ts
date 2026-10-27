@@ -206,6 +206,37 @@ describe('cleanStyle defaults', () => {
   });
 });
 
+describe('a badge picked before the entity', () => {
+  it('links step 1 of its kind with the badge and its options; Embed waits for an entity', () => {
+    expect(builderHref({ kind: 'repo', name: '', badge: badge('repo', 'star-history') })).toBe(
+      '/badge/builder?repo=&badge=star-history',
+    );
+    expect(
+      builderHref({
+        kind: 'repo',
+        name: '',
+        badge: badge('repo', 'contributors-wall'),
+        style: { rows: '2', order: 'popular' },
+        embed: true,
+      }),
+    ).toBe('/badge/builder?repo=&badge=contributors-wall&rows=2');
+    expect(builderHref({ kind: null, badge: badge('repo', 'rank') })).toBe('/badge/builder');
+  });
+
+  it('opens step 1, then keeps the badge and its style for the entity found there', () => {
+    const gallery = state('repo=&badge=star-history');
+    expect(gallery).toMatchObject({ kind: 'repo', name: null, badge: { id: 'star-history' } });
+    expect(stepOf(gallery)).toBe('find');
+
+    const picked = pickTarget(gallery, 'repo', 'maslianok/react-select-me');
+    expect(builderHref(picked)).toBe('/badge/builder?repo=maslianok/react-select-me&badge=star-history');
+    expect(stepOf(state(builderHref(picked).split('?')[1]))).toBe('style');
+
+    const styled = pickTarget(state('user=&badge=rank&scope=country&scheme=night'), 'user', 'octo-dev');
+    expect(builderHref(styled)).toBe('/badge/builder?user=octo-dev&badge=rank&scope=country&scheme=night');
+  });
+});
+
 describe('pickTarget', () => {
   it("keeps a login-less old link's badge and style for an entity of its kind", () => {
     const redirected = state(mapV2BuilderQuery(new URLSearchParams('ranking=f&context=country&type=tier')).toString());

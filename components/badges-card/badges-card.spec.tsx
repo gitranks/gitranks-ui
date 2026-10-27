@@ -41,6 +41,12 @@ describe('BadgesCard', () => {
     expect(html).toContain('href="/badge/builder?user=octo-dev&badge=rank&scope=country&step=embed"');
   });
 
+  it('keeps clean image URLs for badges that draw without the star history', () => {
+    expect(repoMid.history).toBeNull();
+    expect(decode(render(repoMid))).not.toContain('pending=');
+    expect(decode(render(repoBig))).not.toContain('pending=');
+  });
+
   it('renders nothing without an available badge or without data', () => {
     expect(render(orgUnranked)).toBe('');
     expect(render(userUnranked)).toBe('');

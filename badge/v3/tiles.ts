@@ -3,6 +3,7 @@ import { type EntityFacts, wallOf } from './facts';
 import { formatCompact, formatFull } from './format';
 import { type BadgeEntityPath, badgeImagePath } from './links';
 import { type BadgeParams, BadgeParamsError, resolveParams } from './params';
+import { pendingQuery } from './pending';
 import { shieldContent } from './shields';
 import type { BadgeFormat, By, Segment, Theme } from './types';
 import { wallLayout } from './wall-layout';
@@ -10,7 +11,8 @@ import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-stat
 
 /**
  * Live badges on pages: the Badges card on profile, repository and organization pages, and the gallery. Each badge is
- * an image of its real URL that opens the builder at its last step.
+ * an image of its real URL. On an entity's page it opens the builder at its last step for that entity; in the gallery,
+ * at the first step, to find the visitor's own entity for the same badge.
  */
 
 /** A badge with the query that picks its variant (`rank?by=contributions`). */
@@ -105,10 +107,15 @@ export type BadgeTile = {
   /** Unique within a list: the id and its query. */
   key: string;
   format: BadgeFormat;
-  /** The badge's own URL pinned to each drawing of Auto, so it matches the page's theme rather than the system's. */
+  /**
+   * The badge's own URL pinned to each drawing of Auto, so it matches the page's theme rather than the system's; with
+   * the render's stamp while it draws "preparing" or "not yet" for want of a read (see `pendingQuery`).
+   */
   src: Record<Theme, string>;
+  /** Whether `src` carries that stamp: a page showing it is kept for minutes only. */
+  pending: boolean;
   alt: string;
-  /** The builder's last step for this badge, with the options it is drawn with. */
+  /** The builder for this badge, with the options it is drawn with (see `TileLink`). */
   href: string;
   /** Cards and charts draw at a fixed size; shields are 20 px high. */
   size: { width: number; height: number } | null;
@@ -158,13 +165,26 @@ export function availableChoices(entity: EntityFacts, choices: BadgeChoice[], no
   });
 }
 
+/**
+ * Where a tile leads: `embed`, the builder's last step for the entity drawn (its own page's Badges card); `find`, the
+ * builder's first step with the badge kept, to make it for another entity of the kind (the gallery).
+ */
+export type TileLink = 'embed' | 'find';
+
 /** A tile for each badge the entity can show, in order; a badge it cannot draw with that query is left out. */
-export function badgeTiles(entity: EntityFacts, choices: BadgeChoice[], now = new Date()): BadgeTile[] {
+export function badgeTiles(
+  entity: EntityFacts,
+  choices: BadgeChoice[],
+  now = new Date(),
+  link: TileLink = 'embed',
+): BadgeTile[] {
   const path = entityPathOf(entity);
   return choices.flatMap((choice): BadgeTile[] => {
     const resolved = resolveChoice(entity, choice);
     if (!resolved) return [];
     const { badge, params } = resolved;
+    // Stamped with the render's time while it waits on a read (see `pendingQuery`).
+    const pending = pendingQuery(entity, badge, params, now);
     const query = choice.query ?? {};
     const search = new URLSearchParams(query).toString();
     return [
@@ -172,12 +192,16 @@ export function badgeTiles(entity: EntityFacts, choices: BadgeChoice[], now = ne
         key: search ? `${choice.id}?${search}` : choice.id,
         format: badge.format,
         src: {
-          light: badgeImagePath(path, badge.id, 'svg', { ...query, theme: 'light' }),
-          dark: badgeImagePath(path, badge.id, 'svg', { ...query, theme: 'dark' }),
+          light: badgeImagePath(path, badge.id, 'svg', { ...query, theme: 'light', ...pending }),
+          dark: badgeImagePath(path, badge.id, 'svg', { ...query, theme: 'dark', ...pending }),
         },
         alt: badgeAlt(entity, badge, params, now),
-        href: builderHref({ kind: entity.kind, name: entityNameOf(entity), badge, style: query, embed: true }),
+        href:
+          link === 'find'
+            ? builderHref({ kind: entity.kind, name: '', badge, style: query })
+            : builderHref({ kind: entity.kind, name: entityNameOf(entity), badge, style: query, embed: true }),
         size: sizeOf(entity, badge, params),
+        pending: Object.keys(pending).length > 0,
       },
     ];
   });

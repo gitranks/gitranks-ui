@@ -44,7 +44,7 @@ export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {
   const [org, badges] = await Promise.all([fetchOrg(login), readBadgeFacts(loadBadgeOrgCard(login))]);
 
   // A page that rendered without its Badges card is kept briefly, so the card comes back soon.
-  if (badges.ok) {
+  if (!badges.brief) {
     cacheLife('hours');
   } else {
     cacheLife('minutes');

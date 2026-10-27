@@ -3,7 +3,7 @@
 import { parseAsString, useQueryStates } from 'nuqs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { seedEntityFacts, useEntityFacts } from '../hooks/use-entity-facts';
+import { recheckEntityFacts, seedEntityFacts, useEntityFacts } from '../hooks/use-entity-facts';
 import { entityName, offeredBadges, settleStyle } from '../utils/badge-options';
 import {
   BUILDER_KEYS,
@@ -16,8 +16,10 @@ import {
   parseBuilderQuery,
   pickTarget,
   type Style,
-  stepOf,
 } from '../utils/builder-state';
+import { builderView, showsReadNote } from '../utils/builder-view';
+import { createRechecker, listenForReturn } from '../utils/recheck';
+import { AwaitingReadNote } from './awaiting-read-note';
 import { BadgeStep } from './badge-step';
 import { EmbedStep } from './embed-step';
 import { FindStep } from './find-step';
@@ -46,7 +48,8 @@ export type Go = (
   options?: { replace?: boolean },
 ) => void;
 
-const KIND_NAMES: Record<EntityKind, string> = { user: 'developer', org: 'organization', repo: 'repository' };
+/** How often coming back to the page asks again for an entity GitRanks has yet to read. */
+const RECHECK_EVERY = 10_000;
 
 /** The four steps of `/badge/builder`, all in the URL (see `builder-state.ts`). */
 export function BadgeBuilder() {
@@ -99,24 +102,71 @@ export function BadgeBuilder() {
     }
   }, [facts, state.badge, state.embed, settled, settledDiffers, go]);
 
-  let step: BuilderStep = stepOf(state);
-  let notice: string | null = null;
-  if (step !== 'find' && state.kind && state.name) {
-    if (!wellFormed || factsState.status === 'missing') {
-      notice = `GitRanks has no ${KIND_NAMES[state.kind]} called “${state.name}” yet.`;
-      step = 'find';
-    } else if (factsState.status === 'error') {
-      notice = 'GitRanks could not look that up just now. Try again in a moment.';
-      step = 'find';
-    } else if (facts && state.badge && !badgeAvailable) {
-      notice = `That badge has nothing to show for ${entityName(facts)} right now. Pick another one.`;
-      step = 'badge';
-    }
-  }
+  const { step, notice } = builderView(state, { wellFormed, factsState, badgeAvailable });
   const loading = step !== 'find' && factsState.status !== 'found';
+
+  // An entity waiting on a read for this badge (see `showsReadNote`): asked again on "Check again" and when the
+  // visitor comes back to this page (from its page, where a refresh reads it), at most every `RECHECK_EVERY`.
+  const noteShown = !!facts && step !== 'find' && showsReadNote(facts, state.badge);
+  const entityKey = facts ? `${facts.kind}:${entityName(facts)}` : null;
+  const [checking, setChecking] = useState(false);
+  // The entity a check found still waiting, so the note says so until it is read or another entity is shown.
+  const [checkedUnread, setCheckedUnread] = useState<string | null>(null);
+  // What the last check found, for screen readers; the live region stays mounted so the change is read out.
+  const [checkStatus, setCheckStatus] = useState('');
+  const [focusAfterCheck, setFocusAfterCheck] = useState(false);
+  const badgeRef = useRef(state.badge);
+  badgeRef.current = state.badge;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: one checker per entity, not per answer for it
+  const rechecker = useMemo(() => {
+    if (!facts) return null;
+    const { kind } = facts;
+    const name = entityName(facts);
+    return createRechecker({
+      read: () => recheckEntityFacts(kind, name),
+      every: RECHECK_EVERY,
+      visible: () => document.visibilityState === 'visible',
+      onStart: () => {
+        setChecking(true);
+        setCheckStatus('');
+      },
+      onDone: (result, manual) => {
+        setChecking(false);
+        if (result.status !== 'found') {
+          // Nothing new: the facts shown stay, and so does the step.
+          setCheckStatus('GitRanks could not check just now. Try again in a moment.');
+          return;
+        }
+        const waiting = showsReadNote(result.facts, badgeRef.current);
+        setCheckedUnread(waiting ? name : null);
+        setCheckStatus(waiting ? 'Not read yet.' : 'Read: the badges are updated.');
+        setFocusAfterCheck(manual && !waiting);
+        seedEntityFacts(result.facts);
+        setAttempt((count) => count + 1);
+      },
+    });
+  }, [entityKey]);
+  useEffect(() => {
+    // Another entity: a check under way for the previous one is dropped.
+    setChecking(false);
+    setCheckStatus('');
+    return () => rechecker?.reset();
+  }, [rechecker]);
+  useEffect(() => {
+    if (!noteShown || !rechecker) return;
+    // The facts were just read: the first return counts from now.
+    rechecker.touch();
+    return listenForReturn(window, document, rechecker.onReturn);
+  }, [noteShown, rechecker]);
 
   // Focus follows the step, so a keyboard or screen reader user lands on the new step's heading.
   const headingRef = useRef<HTMLHeadingElement>(null);
+  // A check the visitor started took the note away: focus goes on to the step's heading.
+  useEffect(() => {
+    if (!focusAfterCheck || noteShown) return;
+    headingRef.current?.focus();
+    setFocusAfterCheck(false);
+  }, [focusAfterCheck, noteShown]);
   const shownStep = loading ? null : step;
   const previousStep = useRef<BuilderStep | null>(null);
   useEffect(() => {
@@ -146,6 +196,19 @@ export function BadgeBuilder() {
         }}
       />
 
+      <p aria-live="polite" className="sr-only">
+        {checkStatus}
+      </p>
+
+      {!loading && noteShown && facts && (
+        <AwaitingReadNote
+          facts={facts}
+          checking={checking}
+          stillUnread={checkedUnread === entityName(facts)}
+          onCheck={() => rechecker?.run(true)}
+        />
+      )}
+
       {loading ? (
         <div className="flex flex-col gap-4" aria-busy="true" aria-live="polite">
           <span className="sr-only">Loading</span>
@@ -157,6 +220,7 @@ export function BadgeBuilder() {
         <FindStep
           headingRef={headingRef}
           kind={state.kind}
+          badge={state.badge}
           initialQuery={notice ? (state.name ?? '') : ''}
           notice={notice}
           onPick={(picked) => {

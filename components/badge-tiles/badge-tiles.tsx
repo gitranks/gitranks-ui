@@ -7,10 +7,10 @@ import { cn } from '@/lib/utils';
 const IMAGE_PROPS = { loading: 'lazy', decoding: 'async' } as const;
 
 /**
- * One badge, drawn by its real URL, as a link to its code in the builder. Both drawings of Auto are in the page and
- * the site's theme shows one; a hidden lazy image is not fetched.
+ * One badge, drawn by its real URL, as a link into the builder; `action` says where it leads ("Get the code" by
+ * default). Both drawings of Auto are in the page and the site's theme shows one; a hidden lazy image is not fetched.
  */
-export const BadgeTileLink: FC<{ tile: BadgeTile }> = ({ tile }) => {
+export const BadgeTileLink: FC<{ tile: BadgeTile; action?: string }> = ({ tile, action = 'Get the code' }) => {
   const shield = tile.format === 'shield';
   const size = tile.size ?? undefined;
   const imageClass = shield ? 'h-auto w-auto max-w-full' : 'h-auto w-full';
@@ -20,7 +20,7 @@ export const BadgeTileLink: FC<{ tile: BadgeTile }> = ({ tile }) => {
     <Link
       href={tile.href}
       rel="nofollow"
-      title="Get the code"
+      title={action}
       className={cn(
         'flex min-h-11 items-center justify-center rounded-lg border bg-background p-2.5 no-underline',
         'transition-colors hover:border-primary/60 hover:bg-muted/40',
@@ -47,13 +47,17 @@ export const BadgeTileLink: FC<{ tile: BadgeTile }> = ({ tile }) => {
         style={style}
         {...IMAGE_PROPS}
       />
-      <span className="sr-only"> – get the code</span>
+      <span className="sr-only"> – {action.toLowerCase()}</span>
     </Link>
   );
 };
 
 /** Shields in a grid of small tiles, then cards, then charts, each side by side where they fit. */
-export const BadgeTiles: FC<{ tiles: BadgeTile[]; className?: string }> = ({ tiles, className }) => {
+export const BadgeTiles: FC<{ tiles: BadgeTile[]; action?: string; className?: string }> = ({
+  tiles,
+  action,
+  className,
+}) => {
   const shields = tiles.filter(({ format }) => format === 'shield');
   const cards = tiles.filter(({ format }) => format === 'card');
   const charts = tiles.filter(({ format }) => format === 'chart');
@@ -64,7 +68,7 @@ export const BadgeTiles: FC<{ tiles: BadgeTile[]; className?: string }> = ({ til
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-2">
           {shields.map((tile) => (
             <li key={tile.key} className="grid">
-              <BadgeTileLink tile={tile} />
+              <BadgeTileLink tile={tile} action={action} />
             </li>
           ))}
         </ul>
@@ -73,7 +77,7 @@ export const BadgeTiles: FC<{ tiles: BadgeTile[]; className?: string }> = ({ til
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,360px),1fr))] gap-2">
           {cards.map((tile) => (
             <li key={tile.key} className="grid">
-              <BadgeTileLink tile={tile} />
+              <BadgeTileLink tile={tile} action={action} />
             </li>
           ))}
         </ul>
@@ -82,7 +86,7 @@ export const BadgeTiles: FC<{ tiles: BadgeTile[]; className?: string }> = ({ til
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,560px),1fr))] gap-2">
           {charts.map((tile) => (
             <li key={tile.key} className="grid">
-              <BadgeTileLink tile={tile} />
+              <BadgeTileLink tile={tile} action={action} />
             </li>
           ))}
         </ul>

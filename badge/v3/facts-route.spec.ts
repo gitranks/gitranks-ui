@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { FACTS_CACHE_CONTROL, getEntityFactsResponse } from './facts-route';
-import { orgBig, repoMid, userBig, userMid } from './fixtures';
+import { orgBig, repoBig, repoSmall, userBig, userMid } from './fixtures';
 
 const loaders = {
   user: vi.fn(async (login: string) => (login === 'octo-dev' ? userMid : null)),
   org: vi.fn(async (login: string) => (login === 'nebula' ? orgBig : null)),
-  repo: vi.fn(async (owner: string, name: string) => (`${owner}/${name}` === 'acme/fastqueue' ? repoMid : null)),
+  repo: vi.fn(async (owner: string, name: string) => (`${owner}/${name}` === 'acme/fastqueue' ? repoBig : null)),
 };
 
 describe('getEntityFactsResponse', () => {
@@ -14,9 +14,34 @@ describe('getEntityFactsResponse', () => {
     const response = await getEntityFactsResponse('repo', ['acme', 'fastqueue'], loaders);
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe(FACTS_CACHE_CONTROL.found);
-    expect(await response.json()).toEqual(JSON.parse(JSON.stringify(repoMid)));
+    expect(await response.json()).toEqual(JSON.parse(JSON.stringify(repoBig)));
     expect((await getEntityFactsResponse('user', ['octo-dev'], loaders)).status).toBe(200);
     expect((await getEntityFactsResponse('org', ['nebula'], loaders)).status).toBe(200);
+  });
+
+  it('keeps briefly the data that will change soon on its own, and the rest as usual', async () => {
+    const soon = {
+      ...loaders,
+      repo: vi.fn(async () => ({ ...repoSmall, stars: 2_400 })),
+      user: vi.fn(async () => ({ ...userMid, s: null, c: null, f: null })),
+    };
+    expect(repoSmall.history).toBeNull();
+    for (const [kind, name] of [
+      ['repo', ['acme', 'fastqueue']],
+      ['user', ['octo-dev']],
+    ] as const) {
+      const response = await getEntityFactsResponse(kind, [...name], soon);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('cache-control')).toBe(FACTS_CACHE_CONTROL.awaitingRead);
+    }
+    expect(FACTS_CACHE_CONTROL.awaitingRead).toMatch(/s-maxage=300\b/);
+
+    // A small repository waits for a visitor's refresh, which expires its data itself.
+    const small = await getEntityFactsResponse('repo', ['acme', 'fastqueue'], {
+      ...loaders,
+      repo: vi.fn(async () => repoSmall),
+    });
+    expect(small.headers.get('cache-control')).toBe(FACTS_CACHE_CONTROL.found);
   });
 
   it.each([

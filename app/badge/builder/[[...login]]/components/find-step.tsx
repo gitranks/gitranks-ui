@@ -7,7 +7,9 @@ import { ClipLoader } from 'react-spinners';
 import { fetchEntityFacts } from '../hooks/use-entity-facts';
 import { entityName } from '../utils/badge-options';
 import { parseSearch } from '../utils/builder-state';
+import { FORMAT_NAMES } from '../utils/builder-view';
 import { avatarOf, KIND_LABELS } from './entity-chip';
+import type { BadgeDefinition } from '@/badge/v3/catalogue';
 import type { EntityFacts } from '@/badge/v3/facts';
 import type { EntityKind } from '@/badge/v3/types';
 import { Button } from '@/components/ui/button';
@@ -20,6 +22,18 @@ const HEADINGS: Record<EntityKind | 'any', string> = {
   org: 'Which organization is the badge for?',
   repo: 'Which repository is the badge for?',
 };
+
+const YOUR: Record<EntityKind, string> = {
+  user: 'your GitHub account',
+  org: 'your organization',
+  repo: 'your repository',
+};
+
+/** The step's heading; with a badge picked before the entity (in the gallery), it names that badge. */
+export function findHeading(kind: EntityKind | null, badge: BadgeDefinition | null): string {
+  if (kind && badge) return `Find ${YOUR[kind]} for the “${badge.title}” ${FORMAT_NAMES[badge.format]}`;
+  return HEADINGS[kind ?? 'any'];
+}
 
 const LABELS: Record<EntityKind | 'any', string> = {
   any: 'A developer, an organization or a repository',
@@ -52,6 +66,8 @@ type FindStepProps = {
   headingRef: RefObject<HTMLHeadingElement | null>;
   /** Narrows the search to one kind (`?repo=`, `?user=`, `?org=`). */
   kind: EntityKind | null;
+  /** A badge picked before the entity (`?repo=&badge=…`), kept for the entity found here. */
+  badge: BadgeDefinition | null;
   initialQuery: string;
   notice: string | null;
   onPick: (facts: EntityFacts) => void;
@@ -73,7 +89,15 @@ const INVALID: Record<EntityKind | 'any', string> = {
 };
 
 /** Step 1: one search box; a login finds developers and organizations, `owner/name` a repository. */
-export function FindStep({ headingRef, kind, initialQuery, notice, onPick, onAnyKind }: Readonly<FindStepProps>) {
+export function FindStep({
+  headingRef,
+  kind,
+  badge,
+  initialQuery,
+  notice,
+  onPick,
+  onAnyKind,
+}: Readonly<FindStepProps>) {
   const scope = kind ?? 'any';
   const [query, setQuery] = useState(initialQuery);
   const [lookup, setLookup] = useState<Lookup>({ status: 'idle' });
@@ -114,8 +138,11 @@ export function FindStep({ headingRef, kind, initialQuery, notice, onPick, onAny
   return (
     <section className="flex flex-col gap-4" aria-labelledby={`${inputId}-heading`}>
       <h2 id={`${inputId}-heading`} ref={headingRef} tabIndex={-1} className="text-xl font-semibold outline-none">
-        {HEADINGS[scope]}
+        {findHeading(kind, badge)}
       </h2>
+      {kind && badge && (
+        <p className="-mt-2 text-sm text-muted-foreground">Then style it and copy its code. Its style comes along.</p>
+      )}
 
       {notice && (
         <p role="alert" className="rounded-md border border-negative/30 bg-negative/5 px-3 py-2 text-sm">

@@ -54,6 +54,21 @@ describe('getBadgeResponse', () => {
     expect(loaders.repo).toHaveBeenCalledWith('acme', 'fastqueue');
   });
 
+  it('draws the same image, with the same cache rule, whatever pending stamp or version the URL carries', async () => {
+    loaders.repo.mockImplementation(resolved(repoUnranked));
+    for (const [file, query] of [
+      ['star-history.svg', ''],
+      ['stars-card.svg', 'scheme=night'],
+      ['rank.svg', 'extra=none&theme=dark'],
+    ] as const) {
+      const clean = await repoResponse('acme', 'fastqueue', file, query);
+      const stamped = await repoResponse('acme', 'fastqueue', file, `${query}&pending=mh2k9x1c&v=1wub6og`);
+      expect(stamped.status).toBe(clean.status);
+      expect(stamped.headers.get('cache-control')).toBe(clean.headers.get('cache-control'));
+      expect(await stamped.text()).toBe(await clean.text());
+    }
+  });
+
   it('draws a PNG at twice the size', async () => {
     loaders.repo.mockImplementation(resolved(repoMid));
     const response = await repoResponse('acme', 'fastqueue', 'rank-card.png');
@@ -65,12 +80,12 @@ describe('getBadgeResponse', () => {
     expect({ width: view.getUint32(16), height: view.getUint32(20) }).toEqual({ width: 800, height: 240 });
   });
 
-  it('answers a badge that never applied with "not yet", kept an hour at the edge', async () => {
+  it('answers a badge that never applied with "not yet", kept minutes at the edge', async () => {
     loaders.repo.mockImplementation(resolved(repoMid));
     const response = await repoResponse('acme', 'fastqueue', 'contributors.svg');
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('cache-control')).toBe('public, max-age=300, s-maxage=3600');
+    expect(response.headers.get('cache-control')).toBe('public, max-age=60, s-maxage=300');
   });
 
   it('keeps a volatile badge with nothing to show as a badge', async () => {
@@ -90,7 +105,8 @@ describe('getBadgeResponse', () => {
     loaders.repo.mockImplementation(resolved(repoUnranked));
     const preparing = await repoResponse('acme', 'fastqueue', 'star-history.svg');
     expect(preparing.status).toBe(200);
-    expect(preparing.headers.get('cache-control')).toBe('public, max-age=300, s-maxage=3600');
+    // Kept minutes: the chart replaces it soon after a fetch.
+    expect(preparing.headers.get('cache-control')).toBe('public, max-age=60, s-maxage=300');
     expect(await preparing.text()).not.toContain('fill-opacity="0.2"');
   });
 

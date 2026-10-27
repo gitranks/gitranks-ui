@@ -8,7 +8,7 @@ import { pageMetadata } from '@/lib/seo/page-metadata';
 export const metadata: Metadata = pageMetadata({
   title: 'Badge Builder',
   description:
-    'Generate custom GitHub badges with GitRanks. Show your global and country rankings, percentile, monthly changes, and progress toward the next tier.',
+    'Make a README badge for a GitHub developer, organization or repository: ranks, stars, goals, contributors and charts, styled to fit, with the code to copy.',
   path: '/badge/builder',
 });
 
@@ -20,7 +20,9 @@ export default function BadgeLayout({ children }: LayoutProps<'/badge/builder/[[
       <Page className="gap-6">
         <div>
           <h1 className="text-2xl font-semibold">Badge Builder</h1>
-          <div>Create a badge to showcase your GitHub rank in portfolio or anywhere you like!</div>
+          <div>
+            Make a badge for a developer, an organization or a repository: find it, pick a badge, style it, copy.
+          </div>
         </div>
 
         {children}

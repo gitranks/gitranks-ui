@@ -5,7 +5,7 @@ const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'a
 
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
-const { default: proxy, config } = await import('./proxy');
+const { default: proxy, config, v2BuilderRedirect } = await import('./proxy');
 
 const event = {} as NextFetchEvent;
 const request = (cookie?: string, path = '/profile/torvalds') =>
@@ -59,6 +59,56 @@ describe('proxy', () => {
       expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
     },
   );
+
+  describe('old builder links', () => {
+    const location = async (path: string, cookie?: string) => {
+      const response = await proxy(request(cookie, path), event);
+      const location = response?.headers.get('location');
+      return { status: response?.status, location: location ? location.replace('https://gitranks.com', '') : null };
+    };
+
+    it.each<[string, string]>([
+      ['/badge/builder/torvalds', '/badge/builder?user=torvalds&badge=rank&extra=none&scheme=classic&logo=0'],
+      [
+        '/badge/builder/torvalds?ranking=c&type=percentile&meta=monthly-change',
+        '/badge/builder?user=torvalds&badge=rank&extra=top&by=contributions&scheme=classic&logo=0',
+      ],
+      [
+        '/badge/builder?ranking=f&context=country&type=tier',
+        '/badge/builder?user=&badge=tier&by=followers&scope=country&scheme=classic&logo=0',
+      ],
+      [
+        '/badge/builder/octo-dev?type=position&meta=goal-top-10&labelBgColor=%23111111&label=my%20rank',
+        '/badge/builder?user=octo-dev&badge=rank&extra=goal&scheme=custom&left=%23111111&right=%232282c2&logo=0&label=my+rank',
+      ],
+      [
+        '/badge/builder/torvalds/?cornerStyle=squared',
+        '/badge/builder?user=torvalds&badge=rank&extra=none&scheme=classic&logo=0',
+      ],
+    ])('sends %s to the new builder with its choices mapped', async (path, expected) => {
+      expect(await location(path)).toEqual({ status: 308, location: expected });
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it('redirects a signed-in visitor too, before Auth.js', async () => {
+      expect((await location('/badge/builder/torvalds', 'authjs.session-token=t')).status).toBe(308);
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      '/badge/builder',
+      '/badge/builder/',
+      '/badge/builder?user=torvalds',
+      '/badge/builder?repo=',
+      '/badge/builder?user=torvalds&badge=rank&extra=top&scheme=night&step=embed',
+      '/badge/builder?org=vercel&badge=contributors-wall&order=newest&rows=2',
+      '/badge/gallery?type=tier',
+      '/badges/torvalds/stars-rank.svg',
+    ])('leaves the new builder link %s alone', async (path) => {
+      expect(v2BuilderRedirect(new URL(`https://gitranks.com${path}`))).toBeNull();
+      expect((await location(path)).status).not.toBe(308);
+    });
+  });
 
   describe('matcher', () => {
     const matches = (path: string) => new RegExp(`^${config.matcher[0]}$`).test(path);

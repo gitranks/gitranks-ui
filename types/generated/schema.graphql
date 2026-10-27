@@ -524,6 +524,7 @@ type Repo {
   siblings: [RepoSibling!]
   stars: Int!
   starsAt: DateTime
+  starsBest: RepoStarsBest
 }
 
 type RepoBuilder {
@@ -600,6 +601,29 @@ type RepoSibling {
 type RepoStarPoint {
   date: DateTime!
   stars: Int!
+}
+
+type RepoStargazer {
+  avatarUrl: String
+  level: Int!
+  login: String
+  tier: Int!
+}
+
+type RepoStarsBest {
+  """Those developers per developer tier, the highest tier first."""
+  counts: [TierCount!]!
+
+  """
+  How many times more often Legends star it than other repositories of its tier they star.
+  """
+  legendRatio: Float
+
+  """The highest-tier of them, at most 8."""
+  top: [RepoStargazer!]!
+
+  """Developers with 1,000+ stars of their own who starred it."""
+  total: Int!
 }
 
 type Repository {

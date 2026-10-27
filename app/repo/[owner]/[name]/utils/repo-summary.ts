@@ -1,3 +1,4 @@
+import { REPO_MIN_RANK_STARS } from '@/app/app.consts';
 import type { SummaryPart } from '@/app/profile/[login]/utils/profile-summary';
 import type { PageRepoQuery } from '@/types/generated/graphql';
 import { getRepoLanguageRankingPath, getRepoOwnerPath, getRepoRankingPath } from '@/utils/repo-paths';
@@ -36,9 +37,12 @@ const position = (rank: number, ranked?: number, noun = '') =>
   `#${formatNumber(rank)}${ranked && ranked >= rank ? ` of ${formatNumber(ranked)}${noun}` : ''}`;
 
 function rankSentence({ nameWithOwner, rank, stars, rankedCount, languageCount }: RepoSummaryInput): SummaryPart[] {
-  // The page says why next to it.
   if (!rank?.s) {
-    return [`${nameWithOwner} has ${formatNumber(stars)} stars and is not ranked yet.`];
+    return [
+      stars >= REPO_MIN_RANK_STARS
+        ? `${nameWithOwner} has ${formatNumber(stars)} stars and is not ranked yet: it joins the rankings at their next update.`
+        : `${nameWithOwner} has ${formatNumber(stars)} ${stars === 1 ? 'star' : 'stars'} and is not ranked: repositories are ranked from ${formatNumber(REPO_MIN_RANK_STARS)} stars.`,
+    ];
   }
 
   const parts: SummaryPart[] = [
@@ -90,8 +94,8 @@ function aboutSentences({ language, rank, createdAt, isArchived }: RepoSummaryIn
   const created = formatDate(createdAt);
 
   return [
-    // A language rank names the language already.
-    language && !rank?.l ? [`Its main language is ${language}.`] : null,
+    // A language rank in the repository's language names it already.
+    language && !(rank?.l && rank.language === language) ? [`Its main language is ${language}.`] : null,
     created ? [`It was created on ${created}.`] : null,
     isArchived ? ['It is archived.'] : null,
   ].filter((sentence): sentence is string[] => !!sentence);

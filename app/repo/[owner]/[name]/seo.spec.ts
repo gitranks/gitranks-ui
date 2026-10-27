@@ -62,6 +62,12 @@ describe('buildRepoSEO', () => {
     );
   });
 
+  it('names the language when the language rank is in another one', () => {
+    expect(buildRepoSEO(repo({ language: 'Go', rank: { s: 12, l: 3, language: null } })).metadata.description).toBe(
+      'Global rank: 12th. Rank without a language: 3rd. 130K stars, +1.3K this month. Go. The React Framework',
+    );
+  });
+
   it('keeps a repository under the rank threshold out of the index', () => {
     const { metadata } = buildRepoSEO(repo({ stars: 99, gainedThisMonth: -2, rank: null }));
 
@@ -99,13 +105,13 @@ describe('buildRepoSEO', () => {
       codeRepository: 'https://github.com/vercel/next.js',
       sameAs: ['https://github.com/vercel/next.js'],
       programmingLanguage: 'JavaScript',
-      image: 'https://avatars.githubusercontent.com/u/14985020?v=4',
       dateCreated: '2016-10-05T23:32:51.000Z',
       creativeWorkStatus: 'Archived',
-      author: {
+      maintainer: {
         '@type': 'Organization',
         name: 'vercel',
         url: 'https://gitranks.test/org/vercel',
+        image: 'https://avatars.githubusercontent.com/u/14985020?v=4',
         sameAs: ['https://github.com/vercel'],
       },
       interactionStatistic: {
@@ -130,15 +136,22 @@ describe('buildRepoSEO', () => {
     );
     const serialized = JSON.parse(JSON.stringify(sourceCode));
 
-    for (const key of ['description', 'programmingLanguage', 'dateCreated', 'image', 'author', 'creativeWorkStatus']) {
+    for (const key of ['description', 'programmingLanguage', 'dateCreated', 'maintainer', 'creativeWorkStatus']) {
       expect(serialized).not.toHaveProperty(key);
     }
   });
 
-  it('makes a user the author of a personal repository', () => {
-    const author = sourceCodeOf(buildRepoSEO(repo({ owner: 'octocat', isInOrganization: false })).jsonLd).author;
+  it('makes a user the maintainer of a personal repository', () => {
+    const maintainer = sourceCodeOf(
+      buildRepoSEO(repo({ owner: 'octocat', isInOrganization: false, ownerAvatarUrl: null })).jsonLd,
+    ).maintainer;
 
-    expect(author).toMatchObject({ '@type': 'Person', name: 'octocat', url: 'https://gitranks.test/profile/octocat' });
+    expect(JSON.parse(JSON.stringify(maintainer))).toEqual({
+      '@type': 'Person',
+      name: 'octocat',
+      url: 'https://gitranks.test/profile/octocat',
+      sameAs: ['https://github.com/octocat'],
+    });
   });
 
   it('puts the owner page between home and the repository in the breadcrumbs', () => {

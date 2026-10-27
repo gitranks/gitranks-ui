@@ -48,6 +48,7 @@ describe('buildRepoSummary', () => {
     expect(text({ rankedCount: undefined, languageCount: 2 })).toMatch(
       /^vercel\/next\.js is ranked #12 worldwide by stars \(130,000 stars\) and #3 in JavaScript\./,
     );
+    expect(text({ rankedCount: undefined })).toMatch(/^vercel\/next\.js is ranked #12 worldwide .* and #3 of 4,000 in/);
   });
 
   it('names the ranking of repositories without a language', () => {
@@ -57,6 +58,21 @@ describe('buildRepoSummary', () => {
     expect(links({ language: null, rank: { s: 12, l: 3, language: null } })[1]).toMatchObject({
       href: '/repos/no-language/1',
     });
+  });
+
+  it('names the language when the language rank is in another one', () => {
+    expect(text({ language: 'Go', rank: { s: 12, l: 3, language: null } })).toMatch(
+      /without a language\. .*Its main language is Go\./,
+    );
+    expect(text({ language: 'JavaScript', rank: { s: 12, l: 3, language: 'JavaScript' } })).not.toMatch(
+      /main language/,
+    );
+  });
+
+  it('says a repository past the threshold joins the rankings at their next update', () => {
+    expect(text({ stars: 100, rank: null })).toMatch(
+      /^vercel\/next\.js has 100 stars and is not ranked yet: it joins the rankings at their next update\. /,
+    );
   });
 
   it('says an unranked repository is not ranked yet, and names its language', () => {
@@ -73,7 +89,8 @@ describe('buildRepoSummary', () => {
         updatedAt: null,
       }),
     ).toBe(
-      'octocat/tiny has 42 stars and is not ranked yet. It lost 1 star this month. It belongs to octocat. ' +
+      'octocat/tiny has 42 stars and is not ranked: repositories are ranked from 100 stars. ' +
+        'It lost 1 star this month. It belongs to octocat. ' +
         'Its main language is Go. It was created on October 5, 2016. It is archived.',
     );
     expect(links({ owner: 'octocat', isInOrganization: false, rank: null })).toEqual([

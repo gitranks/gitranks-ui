@@ -39,8 +39,8 @@ function buildDescription(repo: Repo, ranked: boolean): string {
     ranked ? `Global rank: ${formatOrdinal(rank?.s)}.` : undefined,
     ranked && rank?.l ? `${languageRankName(rank.language)}: ${formatOrdinal(rank.l)}.` : undefined,
     `${formatNumberShort(stars)} stars${gainedThisMonth && gainedThisMonth > 0 ? `, +${formatNumberShort(gainedThisMonth)} this month` : ''}.`,
-    // A language rank names the language already.
-    !(ranked && rank?.l) && language ? `${language}.` : undefined,
+    // A language rank in the repository's language names it already.
+    language && !(ranked && rank?.l && rank.language === language) ? `${language}.` : undefined,
     description,
   ];
 
@@ -59,11 +59,12 @@ function buildOwner(repo: Repo) {
     '@type': repo.isInOrganization ? 'Organization' : 'Person',
     name: repo.owner,
     url: absoluteUrl(path),
+    image: repo.ownerAvatarUrl || undefined,
     sameAs: [`https://github.com/${repo.owner}`],
   };
 }
 
-function buildSourceCode(repo: Repo, url: string, image?: string) {
+function buildSourceCode(repo: Repo, url: string) {
   const owner = buildOwner(repo);
   const createdAt = repo.createdAt ? new Date(repo.createdAt) : undefined;
 
@@ -76,10 +77,10 @@ function buildSourceCode(repo: Repo, url: string, image?: string) {
     codeRepository: `https://github.com/${repo.nameWithOwner}`,
     sameAs: [`https://github.com/${repo.nameWithOwner}`],
     programmingLanguage: repo.language || undefined,
-    image,
     dateCreated: createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.toISOString() : undefined,
     creativeWorkStatus: repo.isArchived ? 'Archived' : undefined,
-    author: owner,
+    // The owner keeps the repository, but may not have written it (a transfer, an organization).
+    maintainer: owner,
     // GitHub stars, counted like likes.
     interactionStatistic: {
       '@type': 'InteractionCounter',
@@ -127,7 +128,7 @@ export function buildRepoSEO(repo: Repo): { metadata: Metadata; jsonLd: object[]
       url,
       name: title,
       description,
-      mainEntity: buildSourceCode(repo, url, image),
+      mainEntity: buildSourceCode(repo, url),
     },
     buildBreadcrumbs(repo, url),
   ];

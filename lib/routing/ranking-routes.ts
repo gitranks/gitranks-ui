@@ -25,6 +25,11 @@ export const LANGUAGE_SUMMARY_ORDERS = new Set(['score', 'size', 'users']);
 const REPO_OWNER = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
 const REPO_NAME = /^[A-Za-z0-9._-]{1,100}$/;
 
+/** True when `login` can name a GitHub user or organization. */
+export function isGithubLogin(login: string): boolean {
+  return REPO_OWNER.test(login);
+}
+
 /** True when `owner` and `name` can name a GitHub repository. */
 export function isRepoSlug(owner: string, name: string): boolean {
   return REPO_OWNER.test(owner) && REPO_NAME.test(name);

@@ -3,17 +3,38 @@
 import { Search } from 'lucide-react';
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
+import { isGithubLogin, isRepoSlug } from '@/lib/routing/ranking-routes';
 import { OrgIdByLoginDocument } from '@/types/generated/graphql';
+import { getRepoPath } from '@/utils/repo-paths';
+
+const INVALID_QUERY = 'Enter a GitHub user, organization, or owner/repo';
+
+/**
+ * The login or `owner/name` a search names: spaces, a pasted github.com URL (with its query or hash) and a leading
+ * `@` are dropped; segments past the second (`/issues/1`) are ignored.
+ */
+function parseQuery(query: string) {
+  const [owner = '', name] = query
+    .replace(/\s+/g, '')
+    .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
+    .replace(/[?#].*$/, '')
+    .replace(/^@/, '')
+    .split('/')
+    .filter(Boolean);
+
+  return { owner, name };
+}
 
 export const SearchProfile = () => {
   const [login, setLogin] = useState('');
   const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -22,23 +43,31 @@ export const SearchProfile = () => {
   }, []);
 
   const onSearch = async () => {
-    // "owner/name" is a repository; a single segment is a user or an organization.
-    const [owner, name] = login.trim().split('/').filter(Boolean);
+    const { owner, name } = parseQuery(login);
     if (!owner) {
+      return;
+    }
+
+    const valid = name ? isRepoSlug(owner, name) : isGithubLogin(owner);
+    if (!valid) {
+      inputRef.current?.setCustomValidity(INVALID_QUERY);
+      inputRef.current?.reportValidity();
       return;
     }
 
     setLoading(true);
 
     if (name) {
-      return router.push(`/repo/${owner}/${name}` as Route);
+      return router.push(getRepoPath(`${owner}/${name}`));
     }
 
-    const data = await graphqlClient(OrgIdByLoginDocument, { login: owner });
-    const orgFound = data.organization?.githubId;
-
-    if (orgFound) {
-      return router.push(`/org/${owner}` as Route);
+    try {
+      const data = await graphqlClient(OrgIdByLoginDocument, { login: owner });
+      if (data.organization?.githubId) {
+        return router.push(`/org/${owner}` as Route);
+      }
+    } catch {
+      // The profile page answers for users and 404s for unknown logins, so it is the fallback.
     }
 
     return router.push(`/profile/${owner}`);
@@ -56,10 +85,14 @@ export const SearchProfile = () => {
         GitHub user, organization, or repository
       </label>
       <Input
+        ref={inputRef}
         id="landing-search"
         placeholder="torvalds, vercel, or facebook/react"
         value={login}
-        onChange={(event) => setLogin(event.target.value)}
+        onChange={(event) => {
+          event.target.setCustomValidity('');
+          setLogin(event.target.value);
+        }}
         disabled={loading}
         autoCapitalize="none"
         autoComplete="off"

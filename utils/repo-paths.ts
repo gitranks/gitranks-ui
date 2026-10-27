@@ -44,6 +44,9 @@ export function getRepoLanguageRankingPath(language: string | null | undefined, 
   return (language ? `/repos/language/${encodeURIComponent(language)}/${page}` : `/repos/no-language/${page}`) as Route;
 }
 
+/** Whether a rank sits on a repository ranking page (the rankings list `RANKING_MAX_PAGE.repo` pages). */
+export const isRankListed = (rank: number) => Math.ceil(rank / ITEMS_PER_PAGE) <= RANKING_MAX_PAGE.repo;
+
 /**
  * The repository ranking page a rank is listed on; the first page when the rank is past the pages the rankings list
  * (`RANKING_MAX_PAGE.repo`), which answer 404.

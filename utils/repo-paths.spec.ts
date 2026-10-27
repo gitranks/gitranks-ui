@@ -5,6 +5,7 @@ import {
   getRepoCacheTag,
   getRepoLanguageRankingPath,
   getRepoPath,
+  isRankListed,
   parseRepoParams,
 } from './repo-paths';
 
@@ -40,6 +41,11 @@ describe('repo paths', () => {
     expect(getRankingPageOf(100)).toBe(1);
     expect(getRankingPageOf(101)).toBe(2);
     expect(getRankingPageOf(5_100)).toBe(51);
+  });
+
+  it('knows which ranks sit on a listed page', () => {
+    expect(isRankListed(5_100)).toBe(true);
+    expect(isRankListed(5_101)).toBe(false);
   });
 
   it('sends a rank past the listed pages to the first page instead of a 404', () => {

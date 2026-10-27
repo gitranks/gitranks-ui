@@ -1,0 +1,309 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`old badge URLs > /api/badge/octo-dev 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "2b15c53b473deca7774079180831360def0d8d3432a479b8a0f81874e33c897e",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/octo-dev?template=medium&theme=dark 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "9c0c7d70ae22e6b2cecb3422a8c32cdcbb04e44a12e74687429d78ee7cf9186e",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/octo-dev?template=small 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "ed749fa79c2fe2016d42060ef46882c47dfb9cb66867b788032ca567479e8640",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/octo-dev?template=small&rankingType=follower 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "bcc9bc952d4d88ad27f1264328387e55f374bad3d89b88c5766a7187893c11ed",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "873b781b5e31a50682b9942ecf1054a59ebac5071ce08777f7c61efa136f1361",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev?context=country&label=USA%20Stars%20Rank&cornerStyle=squared 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "07e69abda2b93665116d892e9decd3cbd98c2a24edf1fcf3c9e2d91f3c8e2cd3",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev?context=country&ranking=f&type=tier&valueBgColor=%237c3aed 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "0f18cbe7f51354eac83534488ee977eb85dd68e639100ac2491d174b254a1cec",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev?meta=goal-next-tier&labelBgColor=%23000&valueBgColor=%23fff 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "3b646ea8471241da2de5f2e6c3234cdbdd4315f67ac3bd7b861322fea85060c9",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev?meta=goal-top-10&label=Stars%20Rank 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "16f2deb18598a8e5fcb67ccd73cf2ec7cff39c703364fb91eccf7b324d2b427e",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev?meta=monthly-change&label=Stars%20Rank 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "03f5d9e08bf74ee9c1b877ec117eba3dd4c066d157601c782007cab6e97da1fb",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev?meta=percentile&v=2 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "bbc488d556c39143c42e164de36eca5269acdd7a48cd62a49b009b4d3df86db1",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev?ranking=c&type=percentile&valueBgColor=%237f5539 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "d7717f74874542dbfafbfce980e84d634b71bc842a815cf54612e14a24b811d9",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev?ranking=f&type=score&label=Total%20Followers 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "0620d11e9dc4cfc232951e423fb4938bd9ba644138d60c2a5228cd29ead19d3d",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev?type=nope 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "3528c6dc82c91a043b715df910d5aa701df62d718f0bd132427ca12837343c84",
+  "status": 400,
+  "type": "text/plain",
+}
+`;
+
+exports[`old badge URLs > /api/badge/v2/octo-dev?type=tier&valueBgColor=%237c3aed 1`] = `
+{
+  "cache": "max-age=300, public",
+  "location": null,
+  "sha256": "633199778570a652eda09b6b70d4f67273dc5f27718d92ccace7d82ea3fc73df",
+  "status": 200,
+  "type": "image/svg+xml",
+}
+`;
+
+exports[`old badge URLs > /badges/octo-dev/contributions-rank.svg 1`] = `
+{
+  "cache": "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800",
+  "location": null,
+  "sha256": "57d75615187652dfad83ed269b54b49140876d04562f47f07b375d7ce853f755",
+  "status": 200,
+  "type": "image/svg+xml; charset=utf-8",
+}
+`;
+
+exports[`old badge URLs > /badges/octo-dev/contributions-score.png 1`] = `
+{
+  "cache": "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800",
+  "location": null,
+  "sha256": "ea2ec8fa034cf5a49ecc46f56816998db4f22f82b10857f676cb2817adb69987",
+  "status": 200,
+  "type": "image/png",
+}
+`;
+
+exports[`old badge URLs > /badges/octo-dev/followers-rank.svg 1`] = `
+{
+  "cache": "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800",
+  "location": null,
+  "sha256": "c4ef76d33855004336eba5bdb85e74d62f22677e983acc9c69837f1fe81ed233",
+  "status": 200,
+  "type": "image/svg+xml; charset=utf-8",
+}
+`;
+
+exports[`old badge URLs > /badges/octo-dev/followers-score.svg 1`] = `
+{
+  "cache": "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800",
+  "location": null,
+  "sha256": "9260b411d153316ee1b977b552785bf634173f504b262c49a5f6a72394caa55f",
+  "status": 200,
+  "type": "image/svg+xml; charset=utf-8",
+}
+`;
+
+exports[`old badge URLs > /badges/octo-dev/stars-rank.svg 1`] = `
+{
+  "cache": "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800",
+  "location": null,
+  "sha256": "75febf59045050460ed67dc8ad57964dd40843fbb8b61ac0254da4c98a024e28",
+  "status": 200,
+  "type": "image/svg+xml; charset=utf-8",
+}
+`;
+
+exports[`old badge URLs > /badges/octo-dev/stars-score.svg 1`] = `
+{
+  "cache": "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800",
+  "location": null,
+  "sha256": "f3c6591cdc224f8d52d5c2b892cd6268d938db9c62d9c3e6e2d0f85ebce157d7",
+  "status": 200,
+  "type": "image/svg+xml; charset=utf-8",
+}
+`;
+
+exports[`old badge URLs > /badges/octo-dev/unknown.svg 1`] = `
+{
+  "cache": "public, max-age=300, s-maxage=86400",
+  "location": null,
+  "sha256": "b9eb498cd56f8d6b0e399063251b09dde28731091de142f3bbbda355a9092320",
+  "status": 404,
+  "type": "text/plain; charset=utf-8",
+}
+`;
+
+exports[`old badge URLs > /repo-badges/Octo/Widgets/star-history.svg 1`] = `
+{
+  "cache": "public, max-age=3600, s-maxage=3600",
+  "location": null,
+  "sha256": "6936c780d2333ef2aca4b4677ef8e14fb801e17e836ffa66f1905b49bd716d94",
+  "status": 200,
+  "type": "image/svg+xml; charset=utf-8",
+}
+`;
+
+exports[`old badge URLs > /repo-badges/octo/fresh/star-history.svg 1`] = `
+{
+  "cache": "public, max-age=300, s-maxage=3600",
+  "location": null,
+  "sha256": "fd96bde5a06474b4edef489ab41ac28641d4f18500e50404c0d50fa9ee7fc80d",
+  "status": 200,
+  "type": "image/svg+xml; charset=utf-8",
+}
+`;
+
+exports[`old badge URLs > /repo-badges/octo/unknown/star-history.png 1`] = `
+{
+  "cache": "public, max-age=3600, s-maxage=3600",
+  "location": null,
+  "sha256": "d25a1654b39ff2182da72115c9ed9d8849a7413c33d56d94cdaf75d6172f3451",
+  "status": 200,
+  "type": "image/png",
+}
+`;
+
+exports[`old badge URLs > /repo-badges/octo/unknown/star-history.svg 1`] = `
+{
+  "cache": "public, max-age=3600, s-maxage=3600",
+  "location": null,
+  "sha256": "6936c780d2333ef2aca4b4677ef8e14fb801e17e836ffa66f1905b49bd716d94",
+  "status": 200,
+  "type": "image/svg+xml; charset=utf-8",
+}
+`;
+
+exports[`old badge URLs > /repo-badges/octo/widgets/star-history.png 1`] = `
+{
+  "cache": "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800",
+  "location": null,
+  "sha256": "2829e0892af91d84c94b881811fed6868de9c282034ff9be0520b0d454abbd83",
+  "status": 200,
+  "type": "image/png",
+}
+`;
+
+exports[`old badge URLs > /repo-badges/octo/widgets/star-history.svg 1`] = `
+{
+  "cache": "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800",
+  "location": null,
+  "sha256": "78f990f50ea1c12c260b5aa947d0bbc8e91bc43b2601b935fcf2e58ab9400e38",
+  "status": 200,
+  "type": "image/svg+xml; charset=utf-8",
+}
+`;
+
+exports[`old badge URLs > keeps the 23 static badge files 1`] = `
+{
+  "c__global__percentile__none__rounded_vb-7f5539.svg": "aa0b7738cc047744d797d85b0e71242230e992cd9b09b81c000aeba57141e254",
+  "c__global__position__none__rounded.svg": "e503e00d28ce2c5534983420a3b3ca3e1336a0af22048ce8b64b53732f9e9dd0",
+  "c__global__score__none__rounded_vb-1e3a8a.svg": "dcecd206226536ba13544f4bd853c8415ec580edfa3aa60a4d25d193da6b94d2",
+  "c__global__tier__none__rounded_vb-7c3aed.svg": "b14442030bc3b27fd27022aa2897f31ee8e368bdcd32664505248a9d3b7f314c",
+  "f__country__tier__none__rounded_vb-7c3aed.svg": "7192df69223fff151af042afe9261cb059fb74923659c8f7c8d5cf731beefa4f",
+  "f__global__percentile__none__rounded_vb-7f5539.svg": "80dcdd1bbf6f3de9328c6733266a986b2dd5f6d33175728261c35b3d2f7b082e",
+  "f__global__position__none__rounded.svg": "ccf9dc4bf3ae7bd03a5399248c374ca15f678791653f9e4f02e5a9dc18610166",
+  "f__global__position__percentile__rounded_vb-1e3a8a.svg": "87eccfa9d270219ddeadb8ab9e2d6ce63ed1380559b9c78f69338259357d9100",
+  "f__global__score__none__rounded_vb-1e3a8a.svg": "8bc5b9cd3cf3f06acf4e4099d8cc8ad7bf677c6939816625a45cadea137b3c76",
+  "f__global__tier__none__rounded_vb-7c3aed.svg": "7696f57f06b86f984482c244a05e55805eb31bb155bec657a7743cbbb60d5c58",
+  "repo-not-tracked.png": "d25a1654b39ff2182da72115c9ed9d8849a7413c33d56d94cdaf75d6172f3451",
+  "repo-not-tracked.svg": "6936c780d2333ef2aca4b4677ef8e14fb801e17e836ffa66f1905b49bd716d94",
+  "repo-star-history-example.svg": "80052f6f83dbdf73d32288fc08f628a7f9c1725749bf42043e774ee044b0ef86",
+  "s__country__percentile__none__rounded_vb-7f5539.svg": "24c1ca7f6ebd2d1f9feae0c6f328222c402fedbb4c03f986833e23fc2a7c1db1",
+  "s__country__position__none__rounded.svg": "652097b8a0fee831887075d7772ed3317beb65505c81956a8cfb363f558e550f",
+  "s__global__percentile__none__rounded_vb-7f5539.svg": "8d1f57f1901179842f3f487c207b9ec23b304e7d28643de5b12549315ffe7d42",
+  "s__global__position__goal-next-tier__rounded.svg": "a444573cfa6be678179e5dd07d60dffc8a4c707b9e85f8a5c1a1ffc98322b799",
+  "s__global__position__goal-top-10__rounded.svg": "54ce43bdc9363849d759b7ff379011413464a5dff399cf58538c2bcc5e18437d",
+  "s__global__position__monthly-change__rounded.svg": "e20ab0f8ba9a9eae16c7fa51243834d90e75c8905701c25435b9894a49ef0f96",
+  "s__global__position__none__rounded.svg": "aeaf6208285dab76cf25c594c3a6bb05dbd72c0a4238232c0e2e0217e47fe655",
+  "s__global__position__none__squared.svg": "93a98951100b4bf81be4d79842111288fa72542d5a7df13caf070c7dd7cf43c9",
+  "s__global__score__none__rounded_vb-1e3a8a.svg": "23d605dace3596bd5174065142401a277cf4ff4aad6f6004a1e2a68b4f42e60c",
+  "s__global__tier__none__rounded_vb-7c3aed.svg": "d4c4a15d9734e0511642e3f37eab89587ad8d89b587fbeaf3d5f44109d137339",
+}
+`;

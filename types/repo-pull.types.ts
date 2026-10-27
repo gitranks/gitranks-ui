@@ -1,4 +1,4 @@
-/** The answer to a press of "Fetch star history"; dates arrive as ISO strings. */
+/** The answer to a press of Refresh on a repository page; dates arrive as ISO strings. */
 export type RepoPullResult =
   | { status: 'started'; pullId: string; nextAt?: string }
   | { status: 'not_eligible' }

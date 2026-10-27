@@ -7,7 +7,7 @@ import {
   PULL_TOASTS,
   pullCheckOf,
   pullErrorOutcomeOf,
-  pullHintOf,
+  pullLabelOf,
   pullModeOf,
   pullOutcomeOf,
   TOKEN_PULLS_PER_DAY,
@@ -98,41 +98,26 @@ describe('pullErrorOutcomeOf', () => {
   });
 });
 
-describe('pullHintOf', () => {
-  it('says nothing while the session loads', () => {
-    expect(pullHintOf('loading', null, NOW)).toBeNull();
+describe('pullLabelOf', () => {
+  it('reads Refresh while the session loads, signed out, or with an unknown allowance', () => {
+    expect(pullLabelOf('loading', null)).toBe('Refresh');
+    expect(pullLabelOf('signed-out', null)).toBe('Refresh');
+    expect(pullLabelOf('daily', null)).toBe('Refresh');
+    expect(pullLabelOf('token', null)).toBe('Refresh');
   });
 
-  it('asks a signed-out visitor to sign in and star', () => {
-    expect(pullHintOf('signed-out', null, NOW)).toBe(
-      'Sign in with GitHub and star our repo to get one free fetch a day.',
-    );
-  });
-
-  it('explains the star deal to a daily visitor with a fetch left or an unknown allowance', () => {
-    const starDeal = 'Starring gitranks/gitranks-ui on GitHub unlocks one free fetch a day.';
-
-    expect(pullHintOf('daily', null, NOW)).toBe(starDeal);
-    expect(pullHintOf('daily', allowance({ available: true, nextAt: null }), NOW)).toBe(starDeal);
-    expect(pullHintOf('daily', allowance({ available: false, nextAt: AGO_1H }), NOW)).toBe(starDeal);
-  });
-
-  it('tells a daily visitor when the next free fetch opens', () => {
-    expect(pullHintOf('daily', allowance({ available: false, nextAt: IN_2H }), NOW)).toBe(
-      'Your next free fetch is in 2 h.',
-    );
+  it("counts a daily visitor's unused free fetch", () => {
+    expect(pullLabelOf('daily', allowance({ available: true, nextAt: null }))).toBe('Refresh · 1 left');
+    expect(pullLabelOf('daily', allowance({ available: false, nextAt: IN_2H }))).toBe('Refresh');
   });
 
   it('counts the fetches a token visitor has left', () => {
-    expect(pullHintOf('token', null, NOW)).toBe(
-      `Uses your own GitHub access, up to ${TOKEN_PULLS_PER_DAY} fetches a day.`,
-    );
     expect(
-      pullHintOf('token', allowance({ available: false, nextAt: null }, { used: 3, limit: 20, nextAt: null }), NOW),
-    ).toBe('Uses your own GitHub access: 17 of 20 fetches left today.');
+      pullLabelOf('token', allowance({ available: false, nextAt: null }, { used: 3, limit: 20, nextAt: null })),
+    ).toBe('Refresh · 17 left');
     expect(
-      pullHintOf('token', allowance({ available: false, nextAt: null }, { used: 20, limit: 20, nextAt: IN_2H }), NOW),
-    ).toBe('You used all 20 fetches of today. The next one is in 2 h.');
+      pullLabelOf('token', allowance({ available: false, nextAt: null }, { used: 21, limit: 20, nextAt: IN_2H })),
+    ).toBe('Refresh · 0 left');
   });
 });
 
@@ -179,11 +164,11 @@ describe('pullCheckOf', () => {
 describe('allowanceAfter', () => {
   const before = allowance({ available: true, nextAt: null }, { used: 2, limit: 20, nextAt: null });
 
-  it('marks the free fetch of the day used, so the line under the button names the next one', () => {
+  it('marks the free fetch of the day used, so the button no longer counts it', () => {
     const after = allowanceAfter({ status: 'started', pullId: 'p1', nextAt: IN_2H }, 'daily', before);
 
     expect(after).toEqual(allowance({ available: false, nextAt: IN_2H }, before.token));
-    expect(pullHintOf('daily', after, NOW)).toBe('Your next free fetch is in 2 h.');
+    expect(pullLabelOf('daily', after)).toBe('Refresh');
   });
 
   it('fills in the token part when no allowance was read yet', () => {

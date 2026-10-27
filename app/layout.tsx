@@ -6,7 +6,6 @@ import { type ReactNode, Suspense } from 'react';
 
 import { CtaClickTracker } from './components/cta-click-tracker';
 import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
-import { Announcement } from '@/components/announcement/announcement';
 import { Footer } from '@/components/footer/footer';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { NavigationProgress } from '@/components/navigation-progress/navigation-progress';
@@ -73,10 +72,9 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
                 <Footer />
               </div>
               <Suspense fallback={null}>{modal}</Suspense>
-              {/* Reads the pathname, which can suspend on routes rendered on request. */}
-              <Suspense fallback={null}>
-                <Announcement />
-              </Suspense>
+              {/* The star-the-repo banner (components/announcement) is off for now. To bring it back, render
+                  <Announcement /> here inside <Suspense fallback={null}>: it reads the pathname, which can
+                  suspend on routes rendered on request. */}
               <Toaster richColors position="top-right" />
             </ThemeProvider>
           </NuqsAdapter>

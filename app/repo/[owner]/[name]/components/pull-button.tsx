@@ -15,7 +15,7 @@ import {
   type PullOutcome,
   pullCheckOf,
   pullErrorOutcomeOf,
-  pullHintOf,
+  pullLabelOf,
   pullModeOf,
   pullOutcomeOf,
 } from '../utils/pull-messages';
@@ -245,11 +245,10 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
   });
 
   const busyLabel = elapsed !== null ? loadingLabel : checking ? REFRESH_LABELS.checking : null;
-  const hint = elapsed === null ? pullHintOf(mode, allowance) : null;
 
   return (
-    <div ref={containerRef} className="flex flex-col items-start gap-2">
-      <Button size="sm" onClick={onClick} disabled={busyLabel !== null}>
+    <div ref={containerRef} className="flex flex-grow flex-col gap-2">
+      <Button size="sm" className="flex-grow" onClick={onClick} disabled={busyLabel !== null}>
         {busyLabel !== null ? (
           <>
             {busyLabel}
@@ -257,7 +256,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
           </>
         ) : (
           <>
-            Fetch star history
+            {pullLabelOf(mode, allowance)}
             <RefreshCw className="size-4" />
           </>
         )}
@@ -267,7 +266,6 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
           Next check in {Math.floor((CHECK_STATUS_INTERVAL - (elapsed % CHECK_STATUS_INTERVAL)) / 1000)} s
         </div>
       )}
-      {!!hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       {dialog && (
         <RefreshDialog
           open

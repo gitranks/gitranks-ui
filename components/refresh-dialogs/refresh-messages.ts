@@ -103,7 +103,7 @@ export const REFRESH_MESSAGES = {
 export type RefreshDialogKind = keyof typeof REFRESH_MESSAGES;
 
 export const REFRESH_LABELS = {
-  /** The button on the user's own profile while today's refresh is unused. */
+  /** The Refresh button while today's free refresh is unused: on the user's own profile, and on repository pages. */
   dailyAvailable: 'Refresh · 1 left',
   /** While the star check runs. */
   checking: 'Checking…',

@@ -5,7 +5,7 @@ import { Link } from '../link/link';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
 
 const SITE_LINKS = [
-  { href: '/by/stars/1', label: 'Global Rankings' },
+  { href: '/by/stars/1', label: 'Developer Rankings' },
   { href: '/countries/stars/1', label: 'Country Rankings' },
   { href: '/languages/global/score/1', label: 'Language Rankings' },
   { href: '/orgs/1', label: 'Org Rankings' },
@@ -29,7 +29,8 @@ export const Footer = () => {
           ))}
         </ul>
       </nav>
-      <div className="flex items-center justify-between">
+      {/* Phones put the credit line under the icons: beside them it wraps to three lines at 320px. */}
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3 text-xs">
           <Link href={SITE_SOCIAL_LINKS.github} target="_blank" rel="noopener noreferrer">
             <FaGithub className="h-5 w-5 text-muted-foreground" />
@@ -44,12 +45,12 @@ export const Footer = () => {
             <FaMastodon className="h-5 w-5 text-muted-foreground" />
           </Link>
         </div>
-        <p className="text-xs">
-          <span className="hidden md:inline">Hand-coded with love, bugs, and dreams by</span>
-          <span className="inline md:hidden">brought to you by</span>{' '}
+        <p className="text-xs md:text-right">
+          Built by{' '}
           <Link href="https://github.com/maslianok" target="_blank" rel="noopener noreferrer">
             @maslianok
           </Link>
+          . Yes, I've checked my own rank. No, we don't talk about it.
         </p>
       </div>
     </footer>

@@ -10,7 +10,7 @@ https://www.youtube.com/watch?v=CayzB5VQyPY
 
 <img width="410" alt="1-profile-analytics" src="https://github.com/user-attachments/assets/6a8d1f48-14d0-4f92-a508-e4ece286753e" />
 
-<img width="410" alt="2-global-rankings" src="https://github.com/user-attachments/assets/496c3c06-aad6-4ea6-b64c-ba43881c3cad" />
+<img width="410" alt="2-developer-rankings" src="https://github.com/user-attachments/assets/496c3c06-aad6-4ea6-b64c-ba43881c3cad" />
 
 <img width="410" alt="3-country-rankings" src="https://github.com/user-attachments/assets/775cf261-7f4c-485a-8229-acdef202aa9a" />
 

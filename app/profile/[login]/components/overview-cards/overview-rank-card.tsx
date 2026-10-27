@@ -9,6 +9,7 @@ import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip'
 import { RankChart } from '@/components/rank-chart/rank-chart';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { tierTextClass } from '@/components/tier-chip/tier-chip';
+import { TierIcon } from '@/components/tier-icon/tier-icon';
 import { cn } from '@/lib/utils';
 import type { PageProfileOverviewQuery, RankTier } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
@@ -85,6 +86,7 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers,
             explanation={<GlobalRankTooltip />}
             className={cn('text-2xl font-semibold tracking-tight', tierTextClass(bestTier.data.tier))}
           >
+            <TierIcon tier={bestTier.data.tier} className="mr-1.5 inline-block size-[0.9em] align-[-0.1em]" />
             {TIER_NAMES[bestTier.data.tier - 1]} {bestTier.data.level}
           </ExplainedValue>
         </div>

@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import type { FC } from 'react';
 
+import { TierAvatarBadge } from '@/components/tier-chip/tier-chip';
 import { cn } from '@/lib/utils';
 
 // Literal class names so Tailwind generates them: the developer tier colours (tier-1 … tier-7).
@@ -19,7 +20,8 @@ const SIZES = { sm: { px: 32, className: 'size-8' }, md: { px: 36, className: 's
 
 /**
  * A developer's avatar ringed in their tier colour, the ring set off from the surface by a gap of its colour
- * (`ring-offset-card` by default; pass another `ring-offset-*` for a tinted surface). A grey disk without a picture.
+ * (`ring-offset-card` by default; pass another `ring-offset-*` for a tinted surface), with the tier's glyph as a badge
+ * on its bottom-right corner. A grey disk without a picture.
  */
 export const TierAvatar: FC<{
   url?: string | null;
@@ -28,7 +30,11 @@ export const TierAvatar: FC<{
   tier: number;
   size?: keyof typeof SIZES;
   className?: string;
-}> = ({ url, label, tier, size = 'sm', className }) => {
+  /** The tier badge; leave it off where the tier is written next to the avatar with its glyph. */
+  badge?: boolean;
+  /** The badge's surface, `bg-*` and `ring-*`, when the avatar is not on a card. */
+  badgeClassName?: string;
+}> = ({ url, label, tier, size = 'sm', className, badge = true, badgeClassName }) => {
   const { px, className: sizeClass } = SIZES[size];
   const classes = cn(
     'block shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-card',
@@ -37,7 +43,7 @@ export const TierAvatar: FC<{
     className,
   );
 
-  return url ? (
+  const avatar = url ? (
     <Image
       src={`${url}${url.includes('?') ? '&' : '?'}s=${px * 2}`}
       alt={label}
@@ -49,5 +55,14 @@ export const TierAvatar: FC<{
     <span role="img" aria-label={label} className={cn('bg-muted', classes)} />
   ) : (
     <span aria-hidden className={cn('bg-muted', classes)} />
+  );
+
+  return badge ? (
+    <span className="relative block shrink-0">
+      {avatar}
+      <TierAvatarBadge tier={tier} className={badgeClassName} />
+    </span>
+  ) : (
+    avatar
   );
 };

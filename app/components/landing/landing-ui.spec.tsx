@@ -26,7 +26,7 @@ describe('tierAt', () => {
 describe('tierLabel', () => {
   it('names the tier and its level', () => {
     expect(tierLabel({ tier: 7, level: 5 })).toBe('Legend 5');
-    expect(tierLabel({ tier: 1, level: 3 })).toBe('Beginner 3');
+    expect(tierLabel({ tier: 1, level: 3 })).toBe('Rookie 3');
   });
 });
 

@@ -2,6 +2,8 @@ import type React from 'react';
 
 import { Separator } from '../ui/separator';
 import { RANK_DESCRIPTIONS, TIER_FRACTIONS, TIER_NAMES, TOP_LEVEL_FRACTIONS } from '@/app/app.consts';
+import { tierTextClass } from '@/components/tier-chip/tier-chip';
+import { TierIcon } from '@/components/tier-icon/tier-icon';
 import type { Tier } from '@/types/generated/graphql';
 import type { UserRankProp } from '@/types/ranking.types';
 
@@ -11,6 +13,14 @@ type TiersExplanationProps = {
   rankType: UserRankProp;
   tierData?: Tier;
 };
+
+/** The tier's glyph in its colour, then its name. */
+const TierName: React.FC<{ tier: number }> = ({ tier }) => (
+  <span className="inline-flex items-center gap-1.5">
+    <TierIcon tier={tier} className={`size-4 ${tierTextClass(tier)}`} />
+    {TIER_NAMES[tier - 1]}
+  </span>
+);
 
 export const TiersExplanation: React.FC<TiersExplanationProps> = ({ rankedCount, tiers, rankType, tierData }) => {
   if (!rankedCount || !tiers) {
@@ -35,7 +45,9 @@ export const TiersExplanation: React.FC<TiersExplanationProps> = ({ rankedCount,
             const isActive = tierData?.tier === tier && tierData?.level === level;
             return (
               <tr key={`${tier}-${level}`} className={`${isActive ? 'bg-accent' : ''}`}>
-                <td className="border-b p-2">{TIER_NAMES[tier - 1]}</td>
+                <td className="border-b p-2">
+                  <TierName tier={tier} />
+                </td>
                 <td className="border-b p-2">{level}</td>
                 <td className="border-b p-2 text-right">
                   #{minRank.toLocaleString('en-US')} – #{maxRank.toLocaleString('en-US')}
@@ -66,7 +78,9 @@ export const TiersExplanation: React.FC<TiersExplanationProps> = ({ rankedCount,
           <tbody>
             {TIER_NAMES.map((tier, i) => (
               <tr key={tier}>
-                <td className="border-b p-2">{tier}</td>
+                <td className="border-b p-2">
+                  <TierName tier={i + 1} />
+                </td>
                 <td className="border-b p-2 text-right">{(TIER_FRACTIONS[i] * 100).toFixed(0)}%</td>
               </tr>
             ))}

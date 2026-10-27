@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 type ProfileChartDataSlotProps = {
   title: string;
-  value: string | number;
+  value: ReactNode;
   tooltip: ReactNode;
   /** The value's colour: a tier's, where the value names one. */
   valueClassName?: string;

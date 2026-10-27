@@ -92,7 +92,8 @@ describe('leadStargazer', () => {
 describe('articleFor', () => {
   it('takes "an" before a vowel', () => {
     expect(articleFor('Elite 3')).toBe('an');
-    expect(articleFor('Advanced 1')).toBe('an');
+    expect(articleFor('Expert 1')).toBe('an');
+    expect(articleFor('Rookie 1')).toBe('a');
     expect(articleFor('Legend 2')).toBe('a');
   });
 });

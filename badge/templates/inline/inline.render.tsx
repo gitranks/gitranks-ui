@@ -125,12 +125,23 @@ const getBadgeMeta = (params: BadgeV2Params, data: BadgeFetchedData) => {
   }
 };
 
+/** The developer tier whose glyph leads the value: a tier badge with a tier to name. */
+const getBadgeValueTier = (params: BadgeV2Params, data: BadgeFetchedData) => {
+  const { tierData } = data;
+  if (params.type !== BadgeType.Tier || !tierData || tierData.notAvailable || tierData.notRanked) {
+    return;
+  }
+
+  return tierData.data?.tier;
+};
+
 const getBadgeParts = (params: BadgeV2Params, data: BadgeFetchedData) => {
   const label = getBadgeLabel(params);
   const value = getBadgeValue(params, data);
+  const valueTier = getBadgeValueTier(params, data);
   const meta = getBadgeMeta(params, data);
 
-  return { label, value, meta };
+  return { label, value, valueTier, meta };
 };
 
 const getTextByParams = async ({ login, params }: BadgeV2ServiceProps) => {
@@ -181,6 +192,7 @@ export async function renderInlineBadgeResult(props: BadgeV2ServiceProps): Promi
 
   let label: string | undefined;
   let value: string;
+  let valueTier: number | undefined;
   let meta: string | undefined;
   let error: string | undefined;
 
@@ -191,6 +203,7 @@ export async function renderInlineBadgeResult(props: BadgeV2ServiceProps): Promi
   } else {
     label = parts.label;
     value = parts.value;
+    valueTier = parts.valueTier;
     meta = parts.meta;
   }
 
@@ -198,6 +211,7 @@ export async function renderInlineBadgeResult(props: BadgeV2ServiceProps): Promi
     <BadgeInline
       label={label}
       value={value}
+      valueTier={valueTier}
       meta={meta}
       labelBgColor={labelBgColor}
       valueBgColor={valueBgColor}

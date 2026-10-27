@@ -58,7 +58,7 @@ export default async function BadgeGallery() {
       <BadgeContainer>
         <BadgeTitle>GitRank Tiers</BadgeTitle>
         <BadgeDescription>
-          Shows your GitRank tier - tiers range from <strong>Beginner</strong> to <strong>Legend</strong>, placing you
+          Shows your GitRank tier - tiers range from <strong>Rookie</strong> to <strong>Legend</strong>, placing you
           among the top GitHub profiles based on your rank. Each tier is split into levels for finer placement, with
           Legend giving extra recognition to the very best. You can find a detailed tier description by clicking the
           tier name on your profile page.

@@ -1,6 +1,6 @@
 import { TIER_NAMES } from '@/app/app.consts';
 
-// Beginner to Legend, from the tier tokens in globals.css (they switch with the theme).
+// Rookie to Legend, from the tier tokens in globals.css (they switch with the theme).
 export const DEFAULT_COLORS = TIER_NAMES.map((_, index) => `var(--tier-${index + 1})`);
 
 export const TIERS_COUNT = TIER_NAMES.length;

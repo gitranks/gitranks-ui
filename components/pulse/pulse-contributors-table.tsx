@@ -51,6 +51,29 @@ const TABLE_CLASSNAME = cn(
   '[&_td:nth-child(6)]:hidden [&_th:nth-child(6)]:hidden sm:[&_td:nth-child(6)]:table-cell sm:[&_th:nth-child(6)]:table-cell',
 );
 
+/**
+ * A contributor with landed changes but no counted line: everything they touched is outside the line count (files over
+ * 100 KB, binary, vendored, generated or lock files). A 0 there would read as "changed nothing".
+ */
+const hasUncountedLines = (row: PulseContributorRow) =>
+  !row.linesAdded && !row.linesDeleted && (row.commits > 0 || row.pullRequests > 0);
+
+const UNCOUNTED_NOTE =
+  "No counted lines: files over 100 KB, binary, vendored, generated and lock files aren't counted.";
+
+/** A lines cell: the count, or a muted dash when the row's lines were not counted. */
+const LinesCell: FC<{ value: number; uncounted: boolean }> = ({ value, uncounted }) => (
+  <td>
+    {uncounted ? (
+      <span className="text-muted-foreground" title={UNCOUNTED_NOTE}>
+        —
+      </span>
+    ) : (
+      formatCount(value)
+    )}
+  </td>
+);
+
 /** The contributor's name: their gitranks profile when gitranks holds it, else their GitHub page (not followed). */
 const ContributorName: FC<{ row: PulseContributorRow }> = ({ row }) => {
   const content = (
@@ -230,8 +253,8 @@ export const ContributorsTableView: FC<ContributorsTableViewProps> = ({
                     <div className="pl-8 text-xs text-muted-foreground">{row.topLabels.join(', ')}</div>
                   )}
                 </th>
-                <td>{formatCount(row.linesAdded)}</td>
-                <td>{formatCount(row.linesDeleted)}</td>
+                <LinesCell value={row.linesAdded} uncounted={hasUncountedLines(row)} />
+                <LinesCell value={row.linesDeleted} uncounted={hasUncountedLines(row)} />
                 <td>{formatCount(row.commits)}</td>
                 <td>{formatCount(row.pullRequests)}</td>
                 <td>{formatCount(row.activeMonths)}</td>
@@ -254,10 +277,11 @@ export const ContributorsTableView: FC<ContributorsTableViewProps> = ({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-        <span>
-          {state.unlinkedAuthors > 0
-            ? `${plural(state.unlinkedAuthors, 'unlinked author')} (no GitHub account found) not listed.`
-            : null}
+        <span className="flex flex-col gap-1">
+          {state.unlinkedAuthors > 0 && (
+            <span>{plural(state.unlinkedAuthors, 'unlinked author')} (no GitHub account found) not listed.</span>
+          )}
+          {rows.some(hasUncountedLines) && <span>— {UNCOUNTED_NOTE}</span>}
         </span>
         {interactive && canShowMore(state) && status !== 'error' && (
           <Button variant="outline" size="sm" onClick={onShowMore} disabled={state.live && !!state.pending}>

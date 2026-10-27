@@ -72,7 +72,7 @@ export const UserContributionsList: FC<UserContributionsListProps> = ({
             <TimelineDescription>
               {contribution.data?.map((item) => (
                 <ContributionRepositoryCard
-                  key={item.repository?.name}
+                  key={item.repository?.url ?? item.repository?.name}
                   repository={item.repository}
                   prsCount={item.prsCount}
                   mergedPrsCount={item.mergedPrsCount}

@@ -37,6 +37,22 @@ query BadgeUser($login: String!) {
     tiersCountry {
       ...BadgeTierLists
     }
+    goalStars: rankGoal(by: STARS) {
+      ...BadgeRankGoal
+    }
+    goalContributions: rankGoal(by: CONTRIBUTIONS) {
+      ...BadgeRankGoal
+    }
+    goalFollowers: rankGoal(by: FOLLOWERS) {
+      ...BadgeRankGoal
+    }
+    wallPopular: contributorsWall(order: POPULAR) {
+      ...BadgeWall
+      repos
+    }
+    wallContributions: contributorsWall(order: CONTRIBUTIONS) {
+      ...BadgeWall
+    }
     sLangs(limit: 10) {
       name
       rankGlobal {

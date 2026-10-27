@@ -286,7 +286,7 @@ function orgAvailability(org: OrgFacts, id: string, params: BadgeParams): Availa
     case 'top-repo':
       return either(!!org.topRepos[0]?.rank, ranked);
     case 'popular-repos':
-      return either((org.reposOver1k ?? 0) >= 1, org.reposOver1k !== undefined);
+      return either(org.reposOver1k >= 1, true);
     case 'contributors':
       return either((org.pulse?.active12 ?? 0) >= CONTRIBUTORS_MIN_ACTIVE, !!org.pulse);
     case 'contributors-chart':

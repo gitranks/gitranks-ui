@@ -6,18 +6,14 @@ import type { EntityFacts, OrgFacts, RepoFacts, UserFacts } from './facts';
 import {
   NOW,
   orgBig,
-  orgBigLater,
   orgMid,
   orgSmall,
   orgUnranked,
   repoBig,
-  repoBigLater,
   repoMid,
-  repoMidLater,
   repoSmall,
   repoUnranked,
   userBig,
-  userBigLater,
   userMid,
   userSmall,
   userUnranked,
@@ -111,37 +107,11 @@ const AVAILABLE: [string, EntityFacts, string[]][] = [
   [
     'repo 100–1k',
     repoMid,
-    ['rank', 'language-rank', 'stars', 'month', 'tier', 'rank-card', 'tier-card', 'star-history'],
-  ],
-  [
-    'repo 100–1k, later',
-    repoMidLater,
     ['rank', 'language-rank', 'goal', 'stars', 'month', 'tier', 'rank-card', 'tier-card', 'star-history'],
   ],
   [
     'repo 1k+',
     repoBig,
-    [
-      'rank',
-      'language-rank',
-      'stars',
-      'month',
-      'starred-by',
-      'contributors',
-      'sibling',
-      'tier',
-      'rank-card',
-      'stars-card',
-      'starred-by-card',
-      'community-card',
-      'tier-card',
-      'star-history',
-      'contributors-chart',
-    ],
-  ],
-  [
-    'repo 1k+, later',
-    repoBigLater,
     [
       'rank',
       'language-rank',
@@ -165,19 +135,13 @@ const AVAILABLE: [string, EntityFacts, string[]][] = [
   ['repo unranked', repoUnranked, ['star-history']],
   ['user under 100', userSmall, ['rank', 'language-rank', 'month', 'climb', 'tier', 'profile-card', 'count-chart']],
   ['user 100–1k', userMid, ['rank', 'language-rank', 'month', 'climb', 'tier', 'profile-card', 'count-chart']],
-  ['user 1k+', userBig, ['rank', 'language-rank', 'month', 'climb', 'tier', 'profile-card', 'count-chart']],
-  [
-    'user 1k+, later',
-    userBigLater,
-    ['rank', 'language-rank', 'goal', 'month', 'climb', 'tier', 'profile-card', 'count-chart'],
-  ],
+  ['user 1k+', userBig, ['rank', 'language-rank', 'goal', 'month', 'climb', 'tier', 'profile-card', 'count-chart']],
   ['user unranked', userUnranked, []],
   ['org under 1k', orgSmall, ['rank', 'stars', 'top-repo', 'org-card']],
-  ['org 1k–10k', orgMid, ['rank', 'stars', 'top-repo', 'org-card']],
-  ['org 10k+', orgBig, ['rank', 'stars', 'top-repo', 'contributors', 'org-card', 'contributors-chart']],
+  ['org 1k–10k', orgMid, ['rank', 'stars', 'top-repo', 'popular-repos', 'org-card']],
   [
-    'org 10k+, later',
-    orgBigLater,
+    'org 10k+',
+    orgBig,
     [
       'rank',
       'stars',
@@ -219,14 +183,17 @@ describe('availability', () => {
 
   it('needs three people for a contributors shield or wall', () => {
     expect(availability({ ...repoBig, pulse: { ...repoBig.pulse!, active12: 2 } }, 'contributors')).toBe('neutral');
-    expect(availability(repoBigLater, 'contributors-wall', 'order=contributions')).toBe('available');
-    expect(availability(repoBigLater, 'contributors-wall', 'order=newest')).toBe('never');
+    expect(availability(repoBig, 'contributors-wall', 'order=contributions')).toBe('available');
+    expect(availability(repoBig, 'contributors-wall', 'order=newest')).toBe('available');
+    const popularOnly = { ...repoBig, contributorsWall: { popular: repoBig.contributorsWall.popular } };
+    expect(availability(popularOnly, 'contributors-wall', 'order=newest')).toBe('never');
+    expect(availability(orgBig, 'contributors-wall', 'order=contributions')).toBe('never');
   });
 
   describe('volatile badges never fall back to "not yet"', () => {
     it.each<[string, EntityFacts, string, string, string]>([
       ['month on the 1st', { ...repoMid, gainedThisMonth: 0 }, 'month', 'this month', '+0 ★'],
-      ['goal with no goal left', repoMid, 'goal', 'repo rank', '#41,206'],
+      ['goal with no goal left', { ...repoMid, rankGoal: null }, 'goal', 'repo rank', '#41,206'],
       ['sibling gone', { ...repoBig, siblings: [] }, 'sibling', 'sibling repo', '–'],
       [
         'starred-by without a named stargazer',
@@ -268,11 +235,11 @@ describe('availability', () => {
   });
 
   it('keeps the developer wall hidden, even with a wall to draw', () => {
-    expect(userBigLater.contributorsWall?.popular?.entries.length).toBeGreaterThan(3);
+    expect(userBig.contributorsWall?.popular?.entries.length).toBeGreaterThan(3);
     for (const order of ['popular', 'contributions']) {
-      expect(availability(userBigLater, 'contributors-wall', `order=${order}`)).toBe('never');
+      expect(availability(userBig, 'contributors-wall', `order=${order}`)).toBe('never');
     }
-    expect(promotedBadges(userBigLater, NOW).map(({ id }) => id)).not.toContain('contributors-wall');
+    expect(promotedBadges(userBig, NOW).map(({ id }) => id)).not.toContain('contributors-wall');
   });
 
   it('needs three monthly points of the asked ranking for a count chart', () => {
@@ -299,13 +266,13 @@ describe('shield text', () => {
     ['repo rank, month', repoMid, 'rank', 'extra=month', { label: 'repo rank', value: '#41,206', extra: '↑312' }],
     [
       'repo rank, goal',
-      repoMidLater,
+      repoMid,
       'rank',
       'extra=goal',
       { label: 'repo rank', value: '#41,206', extra: '8 ★ to top 25 Rust repos' },
     ],
     ['repo language rank', repoMid, 'language-rank', '', { label: 'Rust rank', value: '#38', extra: 'of 9,120' }],
-    ['repo goal', repoMidLater, 'goal', '', { label: 'next goal', value: 'top 25 Rust repos', extra: '8 ★ to go' }],
+    ['repo goal', repoMid, 'goal', '', { label: 'next goal', value: 'top 25 Rust repos', extra: '8 ★ to go' }],
     ['repo stars', repoMid, 'stars', '', { label: 'stars', value: '812', extra: '+38 this month' }],
     ['repo stars, race', repoMid, 'stars', 'extra=race', { label: 'stars', value: '812', extra: '11 to beat Sep' }],
     ['repo month', repoMid, 'month', '', { label: 'this month', value: '+38 ★', extra: '11 to beat Sep' }],
@@ -327,14 +294,14 @@ describe('shield text', () => {
     ],
     [
       'repo contributors, later',
-      repoBigLater,
+      repoBig,
       'contributors',
       '',
       { label: 'contributors', value: '186 in 12 mo', extra: '23 countries' },
     ],
     [
       'repo contributors, Legends',
-      repoBigLater,
+      repoBig,
       'contributors',
       'value=legends&extra=5yr',
       { label: 'contributors', value: '3 Legends', extra: '2,410 in 5 yrs' },
@@ -378,7 +345,7 @@ describe('shield text', () => {
       { label: 'followers rank', value: '#40', extra: null },
     ],
     ['user language rank', userMid, 'language-rank', '', { label: 'Rust rank', value: '#14,002', extra: 'of 610,207' }],
-    ['user goal', userBigLater, 'goal', '', { label: 'next goal', value: 'top 10 devs', extra: '5,210 ★ to go' }],
+    ['user goal', userBig, 'goal', '', { label: 'next goal', value: 'top 10 devs', extra: '5,210 ★ to go' }],
     ['user month', userMid, 'month', '', { label: 'this month', value: '+38 ★', extra: 'beat Sep ↑' }],
     [
       'user climb',
@@ -396,8 +363,14 @@ describe('shield text', () => {
     ],
     ['user tier', userBig, 'tier', '', { label: 'gitranks', value: 'Legend', extra: null }],
     ['user tier, level', userBig, 'tier', 'extra=level', { label: 'gitranks', value: 'Legend', extra: 'level 5 of 5' }],
-    ['org rank', orgBig, 'rank', '', { label: 'org rank', value: '#12', extra: null }],
-    ['org rank, later', orgBigLater, 'rank', '', { label: 'org rank', value: '#12', extra: 'top 0.01%' }],
+    ['org rank', orgBig, 'rank', '', { label: 'org rank', value: '#12', extra: 'top 0.01%' }],
+    [
+      'org rank, no total',
+      { ...orgBig, orgRankTotal: null },
+      'rank',
+      '',
+      { label: 'org rank', value: '#12', extra: null },
+    ],
     ['org stars', orgBig, 'stars', '', { label: 'stars', value: '312k', extra: '418 repos' }],
     ['org top repo', orgMid, 'top-repo', '', { label: 'top repo', value: 'nebula/ui', extra: '#21,204' }],
     [
@@ -407,10 +380,10 @@ describe('shield text', () => {
       'extra=stars',
       { label: 'top repo', value: 'nebula/ui', extra: '3.1k ★' },
     ],
-    ['org 1k+ repos', orgBigLater, 'popular-repos', '', { label: '1k+ ★ repos', value: '14', extra: null }],
+    ['org 1k+ repos', orgBig, 'popular-repos', '', { label: '1k+ ★ repos', value: '14', extra: null }],
     [
       'org contributors',
-      orgBigLater,
+      orgBig,
       'contributors',
       'value=new&extra=countries',
       { label: 'contributors', value: '+27 new in Sep', extra: '61 countries' },
@@ -441,7 +414,8 @@ describe('shield text', () => {
 
   it('leaves a default extra out silently when there is nothing to show', () => {
     expect(shield({ ...repoMid, gainedThisMonth: 0 }, 'stars')).toEqual({ label: 'stars', value: '812', extra: null });
-    expect(shield(repoBig, 'contributors')).toEqual({ label: 'contributors', value: '186 in 12 mo', extra: null });
+    const noCountries = { ...repoBig, pulse: { ...repoBig.pulse!, countryCount: 0 } };
+    expect(shield(noCountries, 'contributors')).toEqual({ label: 'contributors', value: '186 in 12 mo', extra: null });
   });
 
   it('marks a record month in gold', () => {
@@ -473,17 +447,17 @@ describe('shield text', () => {
   });
 
   it('writes contributor values with their period', () => {
-    expect(textOf(contributorSegment(repoBigLater, '12mo') ?? undefined)).toBe('186 in 12 mo');
-    expect(textOf(contributorSegment(repoBigLater, 'month') ?? undefined)).toBe('192 in Sep');
-    expect(textOf(contributorSegment(repoBigLater, 'new') ?? undefined)).toBe('+27 new in Sep');
-    expect(textOf(contributorSegment(repoBigLater, '5yr') ?? undefined)).toBe('2,410 in 5 yrs');
-    expect(textOf(contributorSegment(repoBigLater, 'countries') ?? undefined)).toBe('23 countries');
-    expect(textOf(contributorSegment(repoBigLater, 'legends') ?? undefined)).toBe('3 Legends');
-    expect(contributorSegment(orgBigLater, 'legends')).toBeNull();
+    expect(textOf(contributorSegment(repoBig, '12mo') ?? undefined)).toBe('186 in 12 mo');
+    expect(textOf(contributorSegment(repoBig, 'month') ?? undefined)).toBe('192 in Sep');
+    expect(textOf(contributorSegment(repoBig, 'new') ?? undefined)).toBe('+27 new in Sep');
+    expect(textOf(contributorSegment(repoBig, '5yr') ?? undefined)).toBe('2,410 in 5 yrs');
+    expect(textOf(contributorSegment(repoBig, 'countries') ?? undefined)).toBe('23 countries');
+    expect(textOf(contributorSegment(repoBig, 'legends') ?? undefined)).toBe('3 Legends');
+    expect(contributorSegment(orgBig, 'legends')).toBeNull();
     // No Built by: no Legends count at all, not zero.
-    expect(contributorSegment({ ...repoBigLater, builtBy: null }, 'legends')).toBeNull();
-    expect(textOf(contributorSegment({ ...repoBigLater, builtBy: [] }, 'legends') ?? undefined)).toBe('0 Legends');
-    expect(contributorSegment(repoBig, 'countries')).toBeNull();
+    expect(contributorSegment({ ...repoBig, builtBy: null }, 'legends')).toBeNull();
+    expect(textOf(contributorSegment({ ...repoBig, builtBy: [] }, 'legends') ?? undefined)).toBe('0 Legends');
+    expect(contributorSegment({ ...repoBig, pulse: { ...repoBig.pulse!, countryCount: 0 } }, 'countries')).toBeNull();
   });
 });
 
@@ -493,8 +467,7 @@ describe('promotion', () => {
   it.each([
     [repoSmall, '5–100', ['language-rank', 'rank-card']],
     [repoMid, '100–1k', ['rank', 'language-rank', 'month', 'rank-card']],
-    [repoMidLater, '100–1k', ['rank', 'language-rank', 'month', 'rank-card']],
-    [{ ...repoMidLater, stars: 90 }, '5–100', ['language-rank', 'goal', 'rank-card']],
+    [{ ...repoMid, stars: 90 }, '5–100', ['language-rank', 'goal', 'rank-card']],
     [repoBig, '1k+', ['rank', 'contributors', 'starred-by-card', 'star-history']],
     [userSmall, 'under 100', ['rank', 'rank', 'month']],
     [userMid, '100–1k', ['rank', 'rank', 'month', 'profile-card']],
@@ -522,7 +495,6 @@ describe('card availability for link previews', () => {
     ['small', userSmall],
     ['mid', userMid],
     ['big', userBig],
-    ['big later', userBigLater],
     ['unranked', userUnranked],
     ['scores but null ranks', { ...userBig, rankGlobal: null }],
     [
@@ -546,9 +518,7 @@ describe('card availability for link previews', () => {
   const repos: [string, RepoFacts][] = [
     ['small', repoSmall],
     ['mid', repoMid],
-    ['mid later', repoMidLater],
     ['big', repoBig],
-    ['big later', repoBigLater],
     ['unranked', repoUnranked],
     ['null rank', { ...repoBig, rank: null }],
     ['no global rank', { ...repoBig, rank: { ...repoBig.rank!, s: null } }],
@@ -557,7 +527,6 @@ describe('card availability for link previews', () => {
     ['small', orgSmall],
     ['mid', orgMid],
     ['big', orgBig],
-    ['big later', orgBigLater],
     ['unranked', orgUnranked],
     ['no global rank', { ...orgBig, rank: { s: null, sM: null } }],
   ];

@@ -48,9 +48,10 @@ export function contributorCount(entity: RepoFacts | OrgFacts, key: ContributorK
     case 'new':
       return lastMonthOf(entity)?.newcomers ?? null;
     case '5yr':
-      return pulse.contributors60 ?? null;
+      return pulse.contributors60;
     case 'countries':
-      return pulse.countryCount ?? null;
+      // No known country among them: nothing to show, not "0 countries".
+      return pulse.countryCount || null;
     case 'legends':
       // No Built by means no count, not zero Legends.
       if (entity.kind !== 'repo' || !entity.builtBy) return null;

@@ -1,3 +1,4 @@
+import { ExternalLink } from 'lucide-react';
 import { type FC, useMemo } from 'react';
 
 import { RepositoryCard } from './repository-card';
@@ -32,7 +33,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
     () =>
       (prsCount ?? 0) > PR_FETCH_LIMIT
         ? `${prsCount} PRs`
-        : `${mergedPrsCount} ${pluralize('PR', mergedPrsCount ?? 0)}`,
+        : `${mergedPrsCount} merged ${pluralize('PR', mergedPrsCount ?? 0)}`,
     [prsCount, mergedPrsCount],
   );
 
@@ -54,6 +55,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
       type="contribution"
       repository={repository}
       meta={
+        // The pull requests on GitHub, the row's most wanted link: marked external like the profile's GitHub button.
         <Badge variant="secondary" className="font-mono tabular-nums" asChild>
           <a
             href={contributionUrl}
@@ -70,6 +72,7 @@ export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
                 <span className="text-negative">-{linesRemoved?.toLocaleString('en-US')}</span>
               </>
             )}
+            <ExternalLink className="size-3 text-muted-foreground" aria-hidden />
           </a>
         </Badge>
       }

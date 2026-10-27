@@ -20,10 +20,11 @@ describe('ContributionRepositoryCard', () => {
     );
 
     expect(html).toMatch(/<a [^>]*href="\/repo\/vercel\/next\.js"[^>]*>vercel\/next\.js<\/a>/);
-    const badge = html.match(/<a [^>]*>2 PRs/)?.[0] ?? '';
+    const badge = html.match(/<a [^>]*>2 merged PRs.*?<\/a>/)?.[0] ?? '';
     expect(badge).toContain('href="https://github.com/');
     expect(badge).toContain('target="_blank"');
     expect(badge).toContain('data-slot="badge"');
-    expect(badge).toContain('aria-label="2 PRs on GitHub (opens in a new tab)"');
+    expect(badge).toContain('aria-label="2 merged PRs on GitHub (opens in a new tab)"');
+    expect(badge).toContain('lucide-external-link');
   });
 });

@@ -87,16 +87,19 @@ export const Hero: FC<{ developersRanked?: number | null; examples: ExampleRank[
       </div>
       <HeroAside examples={examples} />
     </Container>
-    <Container>
-      <dl className="grid grid-cols-2 gap-y-4 border-t py-6 md:grid-cols-4 md:divide-x">
-        {stats.map((stat) => (
-          <div key={stat.label} className="flex flex-col-reverse items-center gap-0.5 text-center">
-            <dt className="text-xs font-medium text-muted-foreground">{stat.label}</dt>
-            <dd className="font-mono text-2xl font-semibold tracking-tight tabular-nums">{stat.value}</dd>
-          </div>
-        ))}
-      </dl>
-    </Container>
+    {/* Full-width rule, so it matches the section's bottom border. */}
+    <div className="border-t">
+      <Container>
+        <dl className="grid grid-cols-2 gap-y-4 py-6 md:grid-cols-4 md:divide-x">
+          {stats.map((stat) => (
+            <div key={stat.label} className="flex flex-col-reverse items-center gap-0.5 text-center">
+              <dt className="text-xs font-medium text-muted-foreground">{stat.label}</dt>
+              <dd className="font-mono text-2xl font-semibold tracking-tight tabular-nums">{stat.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </Container>
+    </div>
   </section>
 );
 

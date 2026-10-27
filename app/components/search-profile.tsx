@@ -22,19 +22,26 @@ export const SearchProfile = () => {
   }, []);
 
   const onSearch = async () => {
-    if (!login) {
+    // "owner/name" is a repository; a single segment is a user or an organization.
+    const [owner, name] = login.trim().split('/').filter(Boolean);
+    if (!owner) {
       return;
     }
 
     setLoading(true);
-    const data = await graphqlClient(OrgIdByLoginDocument, { login });
+
+    if (name) {
+      return router.push(`/repo/${owner}/${name}` as Route);
+    }
+
+    const data = await graphqlClient(OrgIdByLoginDocument, { login: owner });
     const orgFound = data.organization?.githubId;
 
     if (orgFound) {
-      return router.push(`/org/${login}` as Route);
+      return router.push(`/org/${owner}` as Route);
     }
 
-    return router.push(`/profile/${login}`);
+    return router.push(`/profile/${owner}`);
   };
 
   return (
@@ -46,11 +53,11 @@ export const SearchProfile = () => {
       className="flex max-w-xl gap-2"
     >
       <label htmlFor="landing-search" className="sr-only">
-        GitHub username or organization
+        GitHub user, organization, or repository
       </label>
       <Input
         id="landing-search"
-        placeholder="e.g. torvalds"
+        placeholder="torvalds, vercel, or facebook/react"
         value={login}
         onChange={(event) => setLogin(event.target.value)}
         disabled={loading}
@@ -61,7 +68,7 @@ export const SearchProfile = () => {
       />
       <Button type="submit" size="lg" disabled={loading} className="min-w-36">
         {loading ? <ClipLoader loading={loading} size={16} color="currentColor" /> : <Search className="size-4" />}
-        Find my rank
+        Search
       </Button>
     </form>
   );

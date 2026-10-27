@@ -10,7 +10,10 @@ type RepoLinkProps = {
   ownerAvatarUrl?: string | null;
   size?: number;
   className?: string;
-  /** The repository's tier, as a badge on the owner avatar. */
+  /**
+   * The repository's tier, as a badge on the owner avatar. Pass it in lists of mixed tiers; leave it out of rankings,
+   * where neighbouring rows share a tier and the badge would repeat down the page.
+   */
   tier?: { tier: number; level: number } | null;
 };
 

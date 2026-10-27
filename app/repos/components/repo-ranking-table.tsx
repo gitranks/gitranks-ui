@@ -32,6 +32,7 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
         {data.map((item) => {
           const { githubId, repo } = item;
           // The global tier on every list, as on the repository page: most languages have no tier table of their own.
+          // It shows in the Tier column only: neighbouring rows share a tier, so an avatar badge would repeat down the page.
           const { tier } = item;
 
           if (!repo) {
@@ -48,7 +49,7 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
               </TableCell>
               <TableCell className="whitespace-normal">
                 <div className="flex min-w-0 flex-col gap-1">
-                  <RepoLink nameWithOwner={repo.nameWithOwner} ownerAvatarUrl={repo.ownerAvatarUrl} tier={tier} />
+                  <RepoLink nameWithOwner={repo.nameWithOwner} ownerAvatarUrl={repo.ownerAvatarUrl} />
                   {!!repo.description && (
                     <p className="line-clamp-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">
                       {repo.description}

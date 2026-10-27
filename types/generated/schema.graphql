@@ -326,6 +326,8 @@ type Query {
   repo(name: String!, owner: String!): Repo
   repoLanguages: [RepoLanguageSummary!]!
   repoRankings(language: String, limit: Int! = 100, noLanguage: Boolean, offset: Int! = 0): [RankRepo!]!
+  repoSitemapParts: Int!
+  reposForSitemap(part: Int!): [String!]!
   user(login: String!): User
   users(logins: [String!]!): [User!]
 }

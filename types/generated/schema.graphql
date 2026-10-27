@@ -8,6 +8,34 @@ type Contribution {
   year: Int!
 }
 
+type ContributorsWall {
+  """At most 70, in the asked order."""
+  entries: [ContributorsWallEntry!]!
+
+  """A developer’s repositories with analytics; null otherwise."""
+  repos: Int
+
+  """
+  Everyone the wall draws from (people with a login): a repository’s top contributors, a developer’s union over their repositories, every contributor of an organization in 60 months.
+  """
+  total: Int!
+}
+
+type ContributorsWallEntry {
+  avatarUrl: String!
+  level: Int
+  login: String!
+
+  """The best developer tier (Built by’s rule); null without one."""
+  tier: Int
+}
+
+enum ContributorsWallOrder {
+  CONTRIBUTIONS
+  NEWEST
+  POPULAR
+}
+
 type Country {
   """Alternative country spellings"""
   altSpellings: [String!]!
@@ -198,7 +226,17 @@ enum OrgPulseCountryGroup {
 
 type OrgPulseFacts {
   computedAt: DateTime!
+
+  """
+  Linked accounts (people with a GitHub account) with a landed change in the 60-month window; unresolved authors are not counted. The window is the whole history: there is no all-time count.
+  """
+  contributors60: Int!
   countries: [OrgPulseCountry!]!
+
+  """
+  Distinct countries of the contributors `countries` counts (active in the last 12 months), before it keeps the top 10.
+  """
+  countryCount: Int!
   last12: OrgPulseTotals!
   lastMonth: String!
   scopeNote: String!
@@ -255,6 +293,7 @@ type OrgPulseTotals {
 
 type Organization {
   avatarUrl: String
+  contributorsWall(order: ContributorsWallOrder! = POPULAR): ContributorsWall
   country: String
   countryFlag: String
   createdAt: DateTime!
@@ -272,6 +311,9 @@ type Organization {
   pulseSeries(groupBy: OrgActivityGroupBy! = TYPE): OrgPulseSeries
   rankOrg: RankOrgWithoutOrganization
   reposCount: Int
+
+  """The organization's repositories with 1,000+ stars (not gone)."""
+  reposOver1k: Int!
   s: Int
   snapshots: JSON
   topRepos(first: Int! = 5): [Repo!]!
@@ -319,8 +361,13 @@ type Query {
   insights(limit: Int! = 20, skip: Int! = 0): [InsightPost!]!
   languageRankings(language: String!, limit: Int! = 100, offset: Int! = 0): [RankLanguageWithUser!]!
   languageSummary(date: String, limit: Int! = 100, offset: Int! = 0, order: LanguageSummaryOrder! = SCORE): [LanguageSummary!]!
+
+  """The number of ranked organizations (badges: the top share)."""
+  orgRankTotal: Int!
   orgRankings(limit: Int! = 100, offset: Int! = 0): [RankOrg!]!
+  orgSitemapParts: Int!
   organization(login: String!): Organization
+  orgsForSitemap(part: Int!): [String!]!
   profilesForSitemap: [ProfileForSitemap!]!
   rankTiersByName(name: String!): RankTier
   repo(name: String!, owner: String!): Repo
@@ -426,6 +473,36 @@ type RankGlobalWithoutUser {
   snapshots: JSON
 }
 
+type RankGoal {
+  """Set for a country goal."""
+  country: String
+
+  """Set for a language goal."""
+  language: String
+
+  """
+  How many more of `unit` the entity needs to pass the holder of `targetRank`.
+  """
+  needed: Int!
+  scope: RankGoalScope!
+
+  """The round rank to reach: 10, 25, 50, 100, 250, … 1,000,000."""
+  targetRank: Int!
+  unit: RankGoalUnit!
+}
+
+enum RankGoalScope {
+  COUNTRY
+  GLOBAL
+  LANGUAGE
+}
+
+enum RankGoalUnit {
+  CONTRIBUTION_STARS
+  FOLLOWERS
+  STARS
+}
+
 type RankLanguage {
   githubId: String!
   language: String!
@@ -496,6 +573,11 @@ type RankTier {
 type Repo {
   builtBy: RepoBuiltBy
   burstMonths: [String!]
+
+  """
+  Avatars of the repository's top contributors (the union of the top 100 of each period by lines, commits and pull requests), at most 70, built with its analytics. `NEWEST` ranks only those rows.
+  """
+  contributorsWall(order: ContributorsWallOrder! = POPULAR): ContributorsWall
   createdAt: DateTime
   description: String
   gainedThisMonth: Int
@@ -520,6 +602,7 @@ type Repo {
   pulseSeries(groupBy: OrgActivityGroupBy! = TYPE): OrgPulseSeries
   pushedAt: DateTime
   rank: RankRepo
+  rankGoal: RankGoal
   renamedTo: String
   siblings: [RepoSibling!]
   stars: Int!
@@ -572,9 +655,19 @@ type RepoPulseFacts {
   computedAt: DateTime!
 
   """
+  Linked accounts (people with a GitHub account) with a landed change in the 60-month window; unresolved authors are not counted. The window is the whole history: there is no all-time count.
+  """
+  contributors60: Int!
+
+  """
   Countries of the repository's top contributors active in the last 12 months (the union of the top 100 of each period by lines, commits and pull requests), not of every contributor: the top 10 countries, then "no location" and "not on gitranks".
   """
   countries: [OrgPulseCountry!]!
+
+  """
+  Distinct countries of the contributors `countries` counts (active in the last 12 months), before it keeps the top 10.
+  """
+  countryCount: Int!
   last12: OrgPulseTotals!
   lastMonth: String!
   scopeNote: String!
@@ -702,6 +795,11 @@ type User {
   company: String
   contributedRepoCount: Int
   contributions(limit: Int, offset: Int! = 0): [Contribution!]
+
+  """
+  The contributors of the repositories the developer owns that have analytics (1k+ stars), one avatar per account, at most 70. Null without such a repository. `NEWEST` is not offered (null).
+  """
+  contributorsWall(order: ContributorsWallOrder! = POPULAR): ContributorsWall
   country: String
   countryFlag: String
   createdAt: DateTime!
@@ -726,6 +824,11 @@ type User {
   primaryLanguages: [String!]
   rankCountry: RankCountryWithoutUser
   rankGlobal: RankGlobalWithoutUser
+
+  """
+  The next round rank in the global or country list of `by`; by stars also a language list (`language`, else the one the developer ranks best in). Null at #1, or when the goal is over 25% of the score away.
+  """
+  rankGoal(by: RankOrder! = STARS, language: String): RankGoal
   repositories(limit: Int, offset: Int! = 0): [Repository!]
   repositoriesCount: Int
   s: Int

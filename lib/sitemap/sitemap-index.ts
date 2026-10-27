@@ -1,7 +1,13 @@
 import { startOfMonth } from 'date-fns';
 
+import { fetchOrgSitemapParts } from '@/graphql/helpers/fetch-org-sitemap-parts';
 import { fetchRepoSitemapParts } from '@/graphql/helpers/fetch-repo-sitemap-parts';
-import { SITEMAP_REPO_PARTS_MAX, SITEMAP_SEGMENTS, type SitemapSegment } from '@/lib/sitemap/sitemap.consts';
+import {
+  SITEMAP_ORG_PARTS_MAX,
+  SITEMAP_REPO_PARTS_MAX,
+  SITEMAP_SEGMENTS,
+  type SitemapSegment,
+} from '@/lib/sitemap/sitemap.consts';
 import { absoluteSitemapUrl } from '@/lib/sitemap/sitemap-url';
 
 export function childSitemapLoc(segment: SitemapSegment): string {
@@ -13,12 +19,24 @@ export function repoSitemapLoc(part: number): string {
   return absoluteSitemapUrl(`/sitemaps/repos/sitemap/${part}.xml`);
 }
 
-/** Every child sitemap: the fixed segments, then the first `repoParts` repository parts. */
-export function listChildSitemapLocs(repoParts = 0): string[] {
-  const parts = Math.max(0, Math.min(Math.floor(repoParts), SITEMAP_REPO_PARTS_MAX));
+/** The organization-page sitemap of one part, as `generateSitemaps` names it. */
+export function orgSitemapLoc(part: number): string {
+  return absoluteSitemapUrl(`/sitemaps/orgs/pages/sitemap/${part}.xml`);
+}
+
+/** `count` parts, at most `max`: a count that cannot be trusted lists none or the most there can be. */
+const partsOf = (count: number, max: number, loc: (part: number) => string) =>
+  Array.from({ length: Math.max(0, Math.min(Math.floor(count), max)) }, (_, part) => loc(part));
+
+/**
+ * Every child sitemap: the fixed segments, then the first `repoParts` repository parts and the first `orgParts`
+ * organization-page parts.
+ */
+export function listChildSitemapLocs(repoParts = 0, orgParts = 0): string[] {
   return [
     ...SITEMAP_SEGMENTS.map(childSitemapLoc),
-    ...Array.from({ length: parts }, (_, part) => repoSitemapLoc(part)),
+    ...partsOf(repoParts, SITEMAP_REPO_PARTS_MAX, repoSitemapLoc),
+    ...partsOf(orgParts, SITEMAP_ORG_PARTS_MAX, orgSitemapLoc),
   ];
 }
 
@@ -46,7 +64,8 @@ ${entries}
 
 export async function sitemapIndexResponse(): Promise<Response> {
   // The locs resolve the base URL and throw on misconfig.
-  const locs = listChildSitemapLocs(await fetchRepoSitemapParts());
+  const [repoParts, orgParts] = await Promise.all([fetchRepoSitemapParts(), fetchOrgSitemapParts()]);
+  const locs = listChildSitemapLocs(repoParts, orgParts);
   return new Response(buildSitemapIndexXml(locs), {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',

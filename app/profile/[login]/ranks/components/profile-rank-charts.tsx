@@ -29,17 +29,14 @@ export const ProfileRankCharts: FC<ProfileChartsProps> = ({ rankChartTitle, sTie
     <ProfileCardsGrid>
       <ProfileChartCard>
         <ProfileChartSlot>
-          <RankChart progress={bestTier.data} />
+          <RankChart progress={bestTier.data}>
+            <TierIcon tier={bestTier.data.tier} className={`size-12 ${tierTextClass(bestTier.data.tier)}`} />
+          </RankChart>
         </ProfileChartSlot>
         <ProfileChartDataSlot
           tooltip={<GlobalRankTooltip />}
           title={rankChartTitle}
-          value={
-            <>
-              <TierIcon tier={bestTier.data.tier} className="mr-1.5 inline-block size-[0.9em] align-[-0.1em]" />
-              {TIER_NAMES[bestTier.data.tier - 1]} {bestTier.data.level}
-            </>
-          }
+          value={`${TIER_NAMES[bestTier.data.tier - 1]} ${bestTier.data.level}`}
           valueClassName={tierTextClass(bestTier.data.tier)}
         />
       </ProfileChartCard>

@@ -1,3 +1,4 @@
+import { USER_WALL_OFFERED } from './catalogue';
 import type { EntityFacts } from './facts';
 import { type BadgeLoaders, parseEntityRef } from './route';
 import type { EntityKind } from './types';
@@ -42,6 +43,12 @@ export async function getEntityFactsResponse(kind: string, name: string[], loade
     return json({ error: 'Unavailable' }, 503, FACTS_CACHE_CONTROL.unavailable);
   }
   return facts
-    ? json(facts, 200, FACTS_CACHE_CONTROL.found)
+    ? json(publicFacts(facts), 200, FACTS_CACHE_CONTROL.found)
     : json({ error: 'Not found' }, 404, FACTS_CACHE_CONTROL.notFound);
+}
+
+/** The facts the builder may use: a developer's wall stays out while that wall is not offered. */
+export function publicFacts(facts: EntityFacts): EntityFacts {
+  if (facts.kind !== 'user' || USER_WALL_OFFERED) return facts;
+  return { ...facts, contributorsWall: {}, wallRepos: null };
 }

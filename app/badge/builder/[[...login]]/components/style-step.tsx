@@ -10,7 +10,6 @@ import {
   type Choice,
   CUSTOM_START,
   extraChoices,
-  isAvailable,
   languageChoices,
   languageOf,
   orderChoices,
@@ -18,6 +17,7 @@ import {
   rankAmongChoices,
   schemeChoices,
   scopeChoices,
+  settleStyle,
   valueChoices,
 } from '../utils/badge-options';
 import type { Style } from '../utils/builder-state';
@@ -43,9 +43,6 @@ type StyleStepProps = {
   onDone: () => void;
 };
 
-/** Options that may stop applying after another change; dropped until the badge is available again. */
-const SETTLE_KEYS = ['scope', 'language', 'order', 'extra'] as const;
-
 /** `#abc` as `#aabbcc`, which a colour input needs. */
 const longHex = (hex: string) =>
   /^#[0-9a-f]{3}$/i.test(hex) ? `#${[...hex.slice(1)].map((c) => c + c).join('')}`.toLowerCase() : hex.toLowerCase();
@@ -63,11 +60,7 @@ export function StyleStep({ headingRef, facts, badge, style, now, onStyle, onDon
     for (const key of Object.keys(change) as (keyof Style)[]) {
       if (change[key] === undefined) delete next[key];
     }
-    for (const key of SETTLE_KEYS) {
-      if (isAvailable(facts, nextBadge, next, now)) break;
-      if (!(key in change)) delete next[key];
-    }
-    onStyle(nextBadge, next);
+    onStyle(nextBadge, settleStyle(facts, nextBadge, next, now, Object.keys(change)) ?? next);
   };
 
   const rankAmong = rankAmongChoices(facts, badge, now);

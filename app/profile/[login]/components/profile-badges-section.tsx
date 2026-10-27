@@ -65,7 +65,7 @@ export const ProfileBadgesSection: FC<ProfileBadgesSectionProps> = ({ login, sco
             URL.
           </p>
         </div>
-        <MoreLink href={builderHref} className="shrink-0">
+        <MoreLink href={builderHref} rel="nofollow" className="shrink-0">
           Customize in badge builder
         </MoreLink>
       </div>

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { FACTS_CACHE_CONTROL, getEntityFactsResponse } from './facts-route';
-import { orgBig, repoMid, userMid } from './fixtures';
+import { orgBig, repoMid, userBig, userMid } from './fixtures';
 
 const loaders = {
   user: vi.fn(async (login: string) => (login === 'octo-dev' ? userMid : null)),
@@ -30,6 +30,15 @@ describe('getEntityFactsResponse', () => {
     const response = await getEntityFactsResponse(kind, name, loaders);
     expect(response.status).toBe(404);
     expect(response.headers.get('cache-control')).toBe(FACTS_CACHE_CONTROL.notFound);
+  });
+
+  it("leaves a developer's wall out while it is not offered", async () => {
+    const withWall = { ...loaders, user: vi.fn(async () => userBig) };
+    const body = await (await getEntityFactsResponse('user', ['octo-big'], withWall)).json();
+    expect(userBig.contributorsWall.popular).toBeTruthy();
+    expect(body.contributorsWall).toEqual({});
+    expect(body.wallRepos).toBeNull();
+    expect(body.login).toBe(userBig.login);
   });
 
   it('answers 503 when the data cannot be read', async () => {

@@ -6,6 +6,7 @@ import {
   isEntityName,
   parseBuilderQuery,
   parseSearch,
+  pickTarget,
   stepOf,
   styleQuery,
 } from './builder-state';
@@ -188,5 +189,45 @@ describe('builderHref', () => {
     expect(parsed).toMatchObject({ kind: 'org', name: 'nebula', embed: true });
     expect(parsed.badge?.id).toBe('contributors-wall');
     expect(parsed.style).toEqual({ order: 'newest', rows: '2', tiers: '0', scheme: 'violet', logo: '0' });
+  });
+});
+
+describe('cleanStyle defaults', () => {
+  it('writes neither the default contributors value nor "none" where no extra is the default', () => {
+    expect(cleanStyle(badge('repo', 'contributors'), { value: '12mo', extra: '5yr' })).toEqual({ extra: '5yr' });
+    expect(cleanStyle(badge('repo', 'tier'), { extra: 'none' })).toEqual({});
+    expect(cleanStyle(badge('repo', 'rank'), { extra: 'none' })).toEqual({ extra: 'none' });
+  });
+
+  it('cuts the label as the image does', () => {
+    const long = 'a'.repeat(39) + 'bcdef';
+    expect(cleanStyle(badge('repo', 'rank'), { label: `  ${long}  ` }).label).toBe(`${'a'.repeat(39)}b`);
+    expect(styleQuery(badge('repo', 'rank'), { label: long }).get('label')).toHaveLength(40);
+  });
+});
+
+describe('pickTarget', () => {
+  it("keeps a login-less old link's badge and style for an entity of its kind", () => {
+    const redirected = state(mapV2BuilderQuery(new URLSearchParams('ranking=f&context=country&type=tier')).toString());
+    expect(redirected).toMatchObject({ kind: 'user', name: null });
+    expect(stepOf(redirected)).toBe('find');
+
+    const picked = pickTarget(redirected, 'user', 'octo-dev');
+    expect(picked.badge?.id).toBe('tier');
+    expect(picked.style).toEqual({ by: 'followers', scope: 'country', scheme: 'classic', logo: '0' });
+    expect(builderHref(picked)).toBe(
+      '/badge/builder?user=octo-dev&badge=tier&by=followers&scope=country&scheme=classic&logo=0',
+    );
+  });
+
+  it('starts at the badge step for another kind or without a badge', () => {
+    const redirected = state('user=&badge=tier&by=followers');
+    expect(pickTarget(redirected, 'org', 'nebula')).toEqual({ kind: 'org', name: 'nebula', badge: null, style: {} });
+    expect(pickTarget(state('repo='), 'repo', 'acme/fastqueue')).toEqual({
+      kind: 'repo',
+      name: 'acme/fastqueue',
+      badge: null,
+      style: {},
+    });
   });
 });

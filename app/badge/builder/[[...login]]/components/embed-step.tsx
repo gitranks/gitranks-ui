@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SITE_URL } from '@/lib/seo/site';
 
+const COPY_KEYS = 'Press Ctrl+C / ⌘C to copy.';
+
 type EmbedStepProps = {
   headingRef: RefObject<HTMLHeadingElement | null>;
   facts: EntityFacts;
@@ -30,13 +32,27 @@ export function EmbedStep({ headingRef, facts, badge, style, now, editHref, onEd
   const ids = useId();
   const [format, setFormat] = useState<SnippetFormat>('markdown');
   const [copied, setCopied] = useState<SnippetFormat | null>(null);
+  /** The code was selected instead of copied: the visitor copies it with the keyboard. */
+  const [selected, setSelected] = useState<SnippetFormat | null>(null);
+  const [status, setStatus] = useState('');
   const timer = useRef<number | undefined>(undefined);
+  const announceTimer = useRef<number | undefined>(undefined);
   const [origin, setOrigin] = useState(SITE_URL);
 
   useEffect(() => {
     if (!SITE_URL) setOrigin(window.location.origin);
-    return () => window.clearTimeout(timer.current);
+    return () => {
+      window.clearTimeout(timer.current);
+      window.clearTimeout(announceTimer.current);
+    };
   }, []);
+
+  /** Clears the live region first, so the same message is read again on every copy. */
+  const announce = (message: string) => {
+    setStatus('');
+    window.clearTimeout(announceTimer.current);
+    announceTimer.current = window.setTimeout(() => setStatus(message), 100);
+  };
 
   const params = paramsOf(badge, style);
   const name = entityName(facts);
@@ -49,9 +65,13 @@ export function EmbedStep({ headingRef, facts, badge, style, now, editHref, onEd
 
   const copy = async (which: SnippetFormat) => {
     const code = snippetOf(which, snippet);
+    window.clearTimeout(timer.current);
     try {
       await navigator.clipboard.writeText(code);
+      setSelected(null);
       setCopied(which);
+      announce('Copied to the clipboard');
+      timer.current = window.setTimeout(() => setCopied(null), 2000);
     } catch {
       // Without clipboard access the code is selected, ready for the visitor's own copy.
       const node = document.getElementById(`${ids}-${which}`);
@@ -59,10 +79,10 @@ export function EmbedStep({ headingRef, facts, badge, style, now, editHref, onEd
       if (node && selection) {
         selection.selectAllChildren(node);
       }
-      return;
+      setCopied(null);
+      setSelected(which);
+      announce(`The code is selected. ${COPY_KEYS}`);
     }
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopied(null), 2000);
   };
 
   const edit = (event: MouseEvent<HTMLAnchorElement>) => {
@@ -121,11 +141,16 @@ export function EmbedStep({ headingRef, facts, badge, style, now, editHref, onEd
                 {copied === value ? 'Copied' : `Copy ${label}`}
               </Button>
             </div>
+            {selected === value && (
+              <p className="text-right text-sm font-medium" aria-hidden="true">
+                Selected. {COPY_KEYS}
+              </p>
+            )}
           </TabsContent>
         ))}
       </Tabs>
       <p aria-live="polite" className="sr-only">
-        {copied ? 'Copied to the clipboard' : ''}
+        {status}
       </p>
     </section>
   );

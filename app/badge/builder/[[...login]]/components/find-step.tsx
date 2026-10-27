@@ -54,7 +54,7 @@ type FindStepProps = {
   kind: EntityKind | null;
   initialQuery: string;
   notice: string | null;
-  onPick: (kind: EntityKind, name: string) => void;
+  onPick: (facts: EntityFacts) => void;
   onAnyKind: () => void;
 };
 
@@ -102,12 +102,11 @@ export function FindStep({ headingRef, kind, initialQuery, notice, onPick, onAny
       return;
     }
     setLookup({ status: 'loading' });
-    try {
-      const answers = await Promise.all(kinds.map((each) => fetchEntityFacts(each, target.name)));
-      setLookup({ status: 'done', query: target.name, found: answers.filter((facts) => facts !== null) });
-    } catch {
-      setLookup({ status: 'error' });
-    }
+    // A developer and an organization are asked apart: whichever answers is listed, even if the other fails.
+    const answers = await Promise.allSettled(kinds.map((each) => fetchEntityFacts(each, target.name)));
+    const found = answers.flatMap((answer) => (answer.status === 'fulfilled' && answer.value ? [answer.value] : []));
+    const failed = answers.some((answer) => answer.status === 'rejected');
+    setLookup(found.length || !failed ? { status: 'done', query: target.name, found } : { status: 'error' });
   };
 
   const missing = lookup.status === 'done' && !lookup.found.length ? lookup.query : null;
@@ -177,7 +176,7 @@ export function FindStep({ headingRef, kind, initialQuery, notice, onPick, onAny
         {lookup.status === 'error' && (
           <p className="text-sm text-negative">GitRanks could not look that up just now. Try again in a moment.</p>
         )}
-        {missing && <MissingNote name={missing} />}
+        {missing && <MissingNote name={missing} kind={kind} />}
         {lookup.status === 'done' && lookup.found.length > 0 && (
           <>
             <span className="sr-only">
@@ -188,7 +187,7 @@ export function FindStep({ headingRef, kind, initialQuery, notice, onPick, onAny
                 <li key={`${facts.kind}:${entityName(facts)}`}>
                   <button
                     type="button"
-                    onClick={() => onPick(facts.kind, entityName(facts))}
+                    onClick={() => onPick(facts)}
                     className="flex min-h-12 w-full items-center gap-3 rounded-lg border bg-card px-3 py-2 text-left text-sm transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-ring"
                   >
                     <img
@@ -216,10 +215,14 @@ export function FindStep({ headingRef, kind, initialQuery, notice, onPick, onAny
   );
 }
 
-/** Nothing found: the page that fetches it from GitHub. */
-function MissingNote({ name }: Readonly<{ name: string }>) {
-  const repo = name.includes('/');
-  const href = repo ? getRepoPath(name) : `/profile/${encodeURIComponent(name)}`;
+/** Nothing found: the page that fetches it from GitHub, an organization's when the search is for organizations. */
+export function missingHref(name: string, kind: EntityKind | null): string {
+  if (name.includes('/')) return getRepoPath(name);
+  return kind === 'org' ? `/org/${encodeURIComponent(name)}` : `/profile/${encodeURIComponent(name)}`;
+}
+
+function MissingNote({ name, kind }: Readonly<{ name: string; kind: EntityKind | null }>) {
+  const href = missingHref(name, kind);
   return (
     <p className="text-sm">
       GitRanks has nothing for “{name}” yet.{' '}

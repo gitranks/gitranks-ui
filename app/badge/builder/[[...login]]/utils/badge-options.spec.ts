@@ -11,6 +11,7 @@ import {
   rankAmongChoices,
   schemeChoices,
   scopeChoices,
+  settleStyle,
   valueChoices,
 } from './badge-options';
 import { findBadge } from '@/badge/v3/catalogue';
@@ -170,5 +171,25 @@ describe('badgeAlt', () => {
     );
     expect(badgeAlt(repoBig, badge('repo', 'star-history'), {}, NOW)).toBe('nebula/ui on GitRanks: star history');
     expect(badgeAlt(userMid, badge('user', 'tier'), {}, NOW)).toMatch(/^octo-dev on GitRanks: gitranks \S+$/);
+  });
+});
+
+describe('settleStyle', () => {
+  const rank = badge('user', 'rank');
+
+  it('drops an option the entity lacks before the badge counts as unavailable', () => {
+    const noCountryRank = { ...userMid, rankCountry: null };
+    expect(settleStyle(noCountryRank, rank, { scope: 'country', extra: 'month' }, NOW)).toEqual({ extra: 'month' });
+    const wall = badge('org', 'contributors-wall');
+    expect(settleStyle(orgBig, wall, { order: 'contributions', rows: '2' }, NOW)).toEqual({ rows: '2' });
+  });
+
+  it('keeps a style that works, and the options just chosen', () => {
+    expect(settleStyle(userMid, rank, { scope: 'country' }, NOW)).toEqual({ scope: 'country' });
+    expect(settleStyle({ ...userMid, rankCountry: null }, rank, { scope: 'country' }, NOW, ['scope'])).toBeNull();
+  });
+
+  it('gives up when nothing makes the badge available', () => {
+    expect(settleStyle(userUnranked, rank, { scope: 'country' }, NOW)).toBeNull();
   });
 });

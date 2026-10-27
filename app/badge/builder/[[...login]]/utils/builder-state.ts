@@ -1,5 +1,6 @@
 import { type BadgeDefinition, findBadge } from '@/badge/v3/catalogue';
-import { BadgeParamsError, resolveParams } from '@/badge/v3/params';
+import { DEFAULT_CONTRIBUTOR_VALUE } from '@/badge/v3/contributors';
+import { BadgeParamsError, cutLabel, resolveParams } from '@/badge/v3/params';
 import type { EntityKind } from '@/badge/v3/types';
 import { isGithubLogin, isRepoSlug } from '@/lib/routing/ranking-routes';
 
@@ -121,6 +122,7 @@ const DEFAULT_STYLE: Style = {
   tiers: '1',
   scheme: 'auto',
   logo: '1',
+  value: DEFAULT_CONTRIBUTOR_VALUE,
 };
 
 /** The keys a badge reads: the shared ones, its options, and the shield-only extra, value and label. */
@@ -157,14 +159,18 @@ export function cleanStyle(badge: BadgeDefinition, style: Style): Style {
   for (const key of STYLE_KEYS) {
     const value = style[key];
     if (value === undefined || !keys.has(key) || key === 'left' || key === 'right') continue;
-    if (DEFAULT_STYLE[key] === value || (key === 'extra' && value === badge.defaultExtra)) continue;
+    if (DEFAULT_STYLE[key] === value) continue;
+    // The default extra, or "none" where the badge shows no extra by default.
+    if (key === 'extra' && (value === badge.defaultExtra || (value === 'none' && badge.defaultExtra === null)))
+      continue;
     if (key === 'scheme' && value === 'custom') {
       const colors = { scheme: 'custom', left: style.left ?? '', right: style.right ?? '' };
       if (accepts(badge, { ...out, ...colors })) Object.assign(out, colors);
       continue;
     }
     if (key === 'label') {
-      const label = value.trim();
+      // Cut as the image cuts it, so the URL never carries more than the badge shows.
+      const label = cutLabel(value);
       if (label) out.label = label;
       continue;
     }
@@ -205,4 +211,17 @@ export function builderHref(state: {
     if (state.embed) parts.push('step=embed');
   }
   return parts.length ? `/badge/builder?${parts.join('&')}` : '/badge/builder';
+}
+
+/**
+ * Where picking an entity in step 1 leads. An old builder link without a login (`?user=&badge=tier&…`) keeps its
+ * badge and style for an entity of the kind it names; anything else starts at step 2.
+ */
+export function pickTarget(
+  state: Pick<BuilderState, 'kind' | 'badge' | 'style'>,
+  kind: EntityKind,
+  name: string,
+): { kind: EntityKind; name: string; badge: BadgeDefinition | null; style: Style } {
+  const keep = kind === state.kind && !!state.badge;
+  return { kind, name, badge: keep ? state.badge : null, style: keep ? state.style : {} };
 }

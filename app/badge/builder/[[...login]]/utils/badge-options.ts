@@ -33,6 +33,30 @@ export function isAvailable(entity: EntityFacts, badge: BadgeDefinition, style: 
   return !!params && availabilityOf(entity, badge.id, params, now) === 'available';
 }
 
+/** Options that may stop applying to an entity (a country rank, a language, a wall order), dropped first to last. */
+export const SETTLE_KEYS = ['scope', 'language', 'order', 'extra'] as const;
+
+/**
+ * The style with the options dropped, in `SETTLE_KEYS` order, until the badge is available again; `keep` names options
+ * the visitor just chose, which stay. `null` when the badge is not available even then.
+ */
+export function settleStyle(
+  entity: EntityFacts,
+  badge: BadgeDefinition,
+  style: Style,
+  now = new Date(),
+  keep: readonly string[] = [],
+): Style | null {
+  const next: Style = { ...style };
+  if (isAvailable(entity, badge, next, now)) return next;
+  for (const key of SETTLE_KEYS) {
+    if (keep.includes(key) || next[key] === undefined) continue;
+    delete next[key];
+    if (isAvailable(entity, badge, next, now)) return next;
+  }
+  return null;
+}
+
 /**
  * The entity's available badges in catalogue order, each with the first ranking it is available in; badges with
  * nothing to show (and the developer contributors wall, never offered) are left out.

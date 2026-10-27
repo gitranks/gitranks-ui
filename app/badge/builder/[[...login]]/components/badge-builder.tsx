@@ -1,10 +1,10 @@
 'use client';
 
 import { parseAsString, useQueryStates } from 'nuqs';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { useEntityFacts } from '../hooks/use-entity-facts';
-import { entityName, isAvailable, offeredBadges } from '../utils/badge-options';
+import { seedEntityFacts, useEntityFacts } from '../hooks/use-entity-facts';
+import { entityName, offeredBadges, settleStyle } from '../utils/badge-options';
 import {
   BUILDER_KEYS,
   type BuilderQuery,
@@ -14,6 +14,7 @@ import {
   cleanStyle,
   isEntityName,
   parseBuilderQuery,
+  pickTarget,
   type Style,
   stepOf,
 } from '../utils/builder-state';
@@ -52,7 +53,9 @@ export function BadgeBuilder() {
   const [query, setQuery] = useQueryStates(PARSERS);
   const state: BuilderState = useMemo(() => parseBuilderQuery(query), [query]);
   const wellFormed = !state.kind || !state.name || isEntityName(state.kind, state.name);
-  const factsState = useEntityFacts(state.kind, wellFormed ? state.name : null);
+  // Bumped by a pick in step 1, so the same entity is asked again after a failed lookup.
+  const [attempt, setAttempt] = useState(0);
+  const factsState = useEntityFacts(state.kind, wellFormed ? state.name : null, attempt);
 
   const go: Go = useCallback(
     ({ kind, name = null, badge = null, style = {}, embed = false }, { replace = false } = {}) => {
@@ -79,7 +82,22 @@ export function BadgeBuilder() {
 
   const now = useMemo(() => new Date(), []);
   const offered = useMemo(() => (facts ? offeredBadges(facts, now) : []), [facts, now]);
-  const badgeAvailable = !!facts && !!state.badge && isAvailable(facts, state.badge, state.style, now);
+  // An option that does not apply to this entity (a country rank it lacks, a wall order it has no people in) is
+  // dropped, as the Style step drops it, before the badge counts as unavailable.
+  const settled = useMemo(
+    () => (facts && state.badge ? settleStyle(facts, state.badge, state.style, now) : null),
+    [facts, state.badge, state.style, now],
+  );
+  const badgeAvailable = !!settled;
+  const settledDiffers = !!settled && JSON.stringify(settled) !== JSON.stringify(state.style);
+  useEffect(() => {
+    if (facts && state.badge && settled && settledDiffers) {
+      go(
+        { kind: facts.kind, name: entityName(facts), badge: state.badge, style: settled, embed: state.embed },
+        { replace: true },
+      );
+    }
+  }, [facts, state.badge, state.embed, settled, settledDiffers, go]);
 
   let step: BuilderStep = stepOf(state);
   let notice: string | null = null;
@@ -141,7 +159,11 @@ export function BadgeBuilder() {
           kind={state.kind}
           initialQuery={notice ? (state.name ?? '') : ''}
           notice={notice}
-          onPick={(kind, name) => go({ kind, name })}
+          onPick={(picked) => {
+            seedEntityFacts(picked);
+            setAttempt((count) => count + 1);
+            go(pickTarget(state, picked.kind, entityName(picked)));
+          }}
           onAnyKind={() => go({ kind: null })}
         />
       ) : facts && step === 'badge' ? (

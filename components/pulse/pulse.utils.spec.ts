@@ -11,6 +11,7 @@ import {
   monthSnapshot,
   monthTicks,
   seriesColor,
+  seriesFrom,
   toContributorRows,
   toInflowRows,
   toSnapshotRows,
@@ -118,5 +119,28 @@ describe('formatters', () => {
     expect(seriesColor('Code', 0)).toBe('var(--series-1)');
     expect(seriesColor('Other', 1)).toBe('var(--series-other)');
     expect(seriesColor('Other / unknown', 2)).toBe('var(--series-unknown)');
+  });
+});
+
+describe('seriesFrom', () => {
+  it('drops the months before the first one from every month-indexed field', () => {
+    const trimmed = seriesFrom(series, '2026-08');
+
+    expect(trimmed.months).toEqual(['2026-08', '2026-09']);
+    expect(trimmed.snapshot).toEqual([
+      [1100, 1500],
+      [210, 260],
+    ]);
+    expect(trimmed.added[1]).toEqual([15, 60]);
+    expect(trimmed.deleted[0]).toEqual([50, 200]);
+    expect(trimmed.commits).toEqual([25, 41]);
+    expect(trimmed.newContributors).toEqual([null, 3]);
+    expect(trimmed.crossLines).toEqual([0, 1200]);
+    expect(trimmed.labels).toEqual(series.labels);
+  });
+
+  it('leaves a series that starts at or after the first month whole', () => {
+    expect(seriesFrom(series, '2020-01')).toBe(series);
+    expect(seriesFrom(series, '2026-07')).toBe(series);
   });
 });

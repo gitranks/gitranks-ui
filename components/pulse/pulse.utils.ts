@@ -281,3 +281,33 @@ export function countryRowLabel(row: Pick<PulseCountryRow, 'group' | 'country'>)
       return row.country || 'Unknown';
   }
 }
+
+/** The series' month-indexed fields: one value a month, and `[label][month]`. */
+const MONTH_FIELDS = [
+  'months',
+  'commits',
+  'pullRequests',
+  'activeLinked',
+  'activeAnonymous',
+  'newContributors',
+  'largestChange',
+  'largestChangeShare',
+  'crossLines',
+] as const;
+const LABEL_MONTH_FIELDS = ['snapshot', 'added', 'deleted'] as const;
+
+/**
+ * The series from `firstMonth` (`YYYY-MM`) on: the months before it dropped from every month-indexed field. A series
+ * that starts later, or a month it doesn't hold, leaves it whole.
+ */
+export function seriesFrom(series: PulseSeriesData, firstMonth: string): PulseSeriesData {
+  const start = series.months.findIndex((month) => month >= firstMonth);
+  if (start <= 0) return series;
+
+  const trimmed = { ...series };
+  for (const field of MONTH_FIELDS) Object.assign(trimmed, { [field]: series[field].slice(start) });
+  for (const field of LABEL_MONTH_FIELDS) {
+    Object.assign(trimmed, { [field]: series[field].map((row) => row.slice(start)) });
+  }
+  return trimmed;
+}

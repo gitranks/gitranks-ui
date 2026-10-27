@@ -3,7 +3,7 @@
 import { parseAsString, useQueryStates } from 'nuqs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { seedEntityFacts, useEntityFacts } from '../hooks/use-entity-facts';
+import { recheckEntityFacts, seedEntityFacts, useEntityFacts } from '../hooks/use-entity-facts';
 import { entityName, offeredBadges, settleStyle } from '../utils/badge-options';
 import {
   BUILDER_KEYS,
@@ -16,14 +16,16 @@ import {
   parseBuilderQuery,
   pickTarget,
   type Style,
-  stepOf,
 } from '../utils/builder-state';
+import { builderView } from '../utils/builder-view';
+import { AwaitingReadNote } from './awaiting-read-note';
 import { BadgeStep } from './badge-step';
 import { EmbedStep } from './embed-step';
 import { FindStep } from './find-step';
 import { StepsBar } from './steps-bar';
 import { StyleStep } from './style-step';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
+import { awaitsRead } from '@/badge/v3/facts';
 import type { EntityKind } from '@/badge/v3/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -46,7 +48,8 @@ export type Go = (
   options?: { replace?: boolean },
 ) => void;
 
-const KIND_NAMES: Record<EntityKind, string> = { user: 'developer', org: 'organization', repo: 'repository' };
+/** How often coming back to the page asks again for an entity GitRanks has yet to read. */
+const RECHECK_EVERY = 10_000;
 
 /** The four steps of `/badge/builder`, all in the URL (see `builder-state.ts`). */
 export function BadgeBuilder() {
@@ -99,21 +102,41 @@ export function BadgeBuilder() {
     }
   }, [facts, state.badge, state.embed, settled, settledDiffers, go]);
 
-  let step: BuilderStep = stepOf(state);
-  let notice: string | null = null;
-  if (step !== 'find' && state.kind && state.name) {
-    if (!wellFormed || factsState.status === 'missing') {
-      notice = `GitRanks has no ${KIND_NAMES[state.kind]} called “${state.name}” yet.`;
-      step = 'find';
-    } else if (factsState.status === 'error') {
-      notice = 'GitRanks could not look that up just now. Try again in a moment.';
-      step = 'find';
-    } else if (facts && state.badge && !badgeAvailable) {
-      notice = `That badge has nothing to show for ${entityName(facts)} right now. Pick another one.`;
-      step = 'badge';
-    }
-  }
+  const { step, notice } = builderView(state, { wellFormed, factsState, badgeAvailable });
   const loading = step !== 'find' && factsState.status !== 'found';
+
+  // An entity GitRanks has yet to read: asked again past every cache on "Check again" and when the visitor comes
+  // back to this page (from its page, where a refresh reads it), at most every few seconds.
+  const awaiting = !!facts && step !== 'find' && awaitsRead(facts);
+  const [checking, setChecking] = useState(false);
+  // The entity a check found still unread, so the note says so until it is read or another entity is shown.
+  const [checkedUnread, setCheckedUnread] = useState<string | null>(null);
+  const lastCheck = useRef(0);
+  const recheck = useCallback(async () => {
+    if (!facts) return;
+    lastCheck.current = Date.now();
+    setChecking(true);
+    const fresh = await recheckEntityFacts(facts.kind, entityName(facts)).catch(() => null);
+    setCheckedUnread(fresh && awaitsRead(fresh) ? entityName(fresh) : null);
+    setChecking(false);
+    setAttempt((count) => count + 1);
+  }, [facts]);
+  useEffect(() => {
+    if (!awaiting) return;
+    // The page was just read: the first return counts from now.
+    lastCheck.current = Date.now();
+    const onReturn = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastCheck.current > RECHECK_EVERY) recheck();
+    };
+    window.addEventListener('focus', onReturn);
+    window.addEventListener('pageshow', onReturn);
+    document.addEventListener('visibilitychange', onReturn);
+    return () => {
+      window.removeEventListener('focus', onReturn);
+      window.removeEventListener('pageshow', onReturn);
+      document.removeEventListener('visibilitychange', onReturn);
+    };
+  }, [awaiting, recheck]);
 
   // Focus follows the step, so a keyboard or screen reader user lands on the new step's heading.
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -146,6 +169,15 @@ export function BadgeBuilder() {
         }}
       />
 
+      {!loading && awaiting && facts && (
+        <AwaitingReadNote
+          facts={facts}
+          checking={checking}
+          stillUnread={checkedUnread === entityName(facts)}
+          onCheck={recheck}
+        />
+      )}
+
       {loading ? (
         <div className="flex flex-col gap-4" aria-busy="true" aria-live="polite">
           <span className="sr-only">Loading</span>
@@ -157,6 +189,7 @@ export function BadgeBuilder() {
         <FindStep
           headingRef={headingRef}
           kind={state.kind}
+          badge={state.badge}
           initialQuery={notice ? (state.name ?? '') : ''}
           notice={notice}
           onPick={(picked) => {

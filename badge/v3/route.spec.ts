@@ -65,12 +65,12 @@ describe('getBadgeResponse', () => {
     expect({ width: view.getUint32(16), height: view.getUint32(20) }).toEqual({ width: 800, height: 240 });
   });
 
-  it('answers a badge that never applied with "not yet", kept an hour at the edge', async () => {
+  it('answers a badge that never applied with "not yet", kept minutes at the edge', async () => {
     loaders.repo.mockImplementation(resolved(repoMid));
     const response = await repoResponse('acme', 'fastqueue', 'contributors.svg');
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('cache-control')).toBe('public, max-age=300, s-maxage=3600');
+    expect(response.headers.get('cache-control')).toBe('public, max-age=60, s-maxage=300');
   });
 
   it('keeps a volatile badge with nothing to show as a badge', async () => {
@@ -90,7 +90,8 @@ describe('getBadgeResponse', () => {
     loaders.repo.mockImplementation(resolved(repoUnranked));
     const preparing = await repoResponse('acme', 'fastqueue', 'star-history.svg');
     expect(preparing.status).toBe(200);
-    expect(preparing.headers.get('cache-control')).toBe('public, max-age=300, s-maxage=3600');
+    // Kept minutes: the chart replaces it soon after a fetch.
+    expect(preparing.headers.get('cache-control')).toBe('public, max-age=60, s-maxage=300');
     expect(await preparing.text()).not.toContain('fill-opacity="0.2"');
   });
 

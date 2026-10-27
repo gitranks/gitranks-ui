@@ -1,11 +1,15 @@
 import { USER_WALL_OFFERED } from './catalogue';
-import type { EntityFacts } from './facts';
+import { awaitsRead, type EntityFacts } from './facts';
 import { type BadgeLoaders, parseEntityRef } from './route';
 import type { EntityKind } from './types';
 
-/** The builder asks again within minutes; a miss is kept shorter, so a profile fetched meanwhile shows up soon. */
+/**
+ * The builder asks again within minutes; a miss, and an entity GitRanks has yet to read from GitHub, are kept shorter,
+ * so a fetch made meanwhile shows up soon.
+ */
 export const FACTS_CACHE_CONTROL = {
   found: 'public, max-age=300, s-maxage=3600',
+  awaitingRead: 'public, max-age=60, s-maxage=300',
   notFound: 'public, max-age=60, s-maxage=300',
   unavailable: 'public, max-age=30, s-maxage=30',
 } as const;
@@ -42,9 +46,14 @@ export async function getEntityFactsResponse(kind: string, name: string[], loade
     console.error('Error reading badge facts:', error);
     return json({ error: 'Unavailable' }, 503, FACTS_CACHE_CONTROL.unavailable);
   }
-  return facts
-    ? json(publicFacts(facts), 200, FACTS_CACHE_CONTROL.found)
-    : json({ error: 'Not found' }, 404, FACTS_CACHE_CONTROL.notFound);
+  if (!facts) {
+    return json({ error: 'Not found' }, 404, FACTS_CACHE_CONTROL.notFound);
+  }
+  return json(
+    publicFacts(facts),
+    200,
+    awaitsRead(facts) ? FACTS_CACHE_CONTROL.awaitingRead : FACTS_CACHE_CONTROL.found,
+  );
 }
 
 /** The facts the builder may use: a developer's wall stays out while that wall is not offered. */

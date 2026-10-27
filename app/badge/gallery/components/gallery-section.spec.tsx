@@ -18,8 +18,18 @@ describe('GallerySection', () => {
     expect(html).toContain('Organizations');
     expect(html).toContain('href="/org/nebula"');
     expect(html).toContain('href="/badge/builder?org="');
-    expect(html).toContain('href="/badge/builder?org=nebula&badge=org-card&step=embed"');
     expect(html).toContain('rel="nofollow"');
+  });
+
+  it("leads each badge to the builder's first step for that kind, with the badge kept, not to the #1's code", () => {
+    const html = render(orgSection, orgBig);
+
+    expect(html).toContain('href="/badge/builder?org=&badge=org-card"');
+    expect(html).toContain('href="/badge/builder?org=&badge=contributors-wall&rows=2"');
+    expect(html).not.toContain('step=embed');
+    expect(html).not.toContain('org=nebula&');
+    expect(html).toContain('title="Make this badge"');
+    expect(html).toContain('Click a badge to make it for yours.');
   });
 
   it('renders nothing without a #1 or without a badge to draw', () => {

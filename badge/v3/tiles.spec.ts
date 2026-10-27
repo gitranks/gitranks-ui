@@ -30,6 +30,26 @@ describe('builder links', () => {
     expect(country.href).toBe('/badge/builder?user=octo-dev&badge=rank&scope=country&step=embed');
     expect(global.href).toBe('/badge/builder?user=octo-dev&badge=rank&step=embed');
   });
+
+  it("opens the builder's first step for the gallery, with the badge and its options kept", () => {
+    const tiles = badgeTiles(
+      repoBig,
+      [
+        { id: 'star-history' },
+        { id: 'rank', query: { extra: 'month' } },
+        { id: 'contributors-wall', query: { rows: '2' } },
+      ],
+      NOW,
+      'find',
+    );
+    expect(tiles.map(({ href }) => href)).toEqual([
+      '/badge/builder?repo=&badge=star-history',
+      '/badge/builder?repo=&badge=rank&extra=month',
+      '/badge/builder?repo=&badge=contributors-wall&rows=2',
+    ]);
+    const [user] = badgeTiles(userSmall, [{ id: 'rank', query: { scope: 'country' } }], NOW, 'find');
+    expect(user.href).toBe('/badge/builder?user=&badge=rank&scope=country');
+  });
 });
 
 describe('alt text', () => {

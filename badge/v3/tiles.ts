@@ -10,7 +10,8 @@ import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-stat
 
 /**
  * Live badges on pages: the Badges card on profile, repository and organization pages, and the gallery. Each badge is
- * an image of its real URL that opens the builder at its last step.
+ * an image of its real URL. On an entity's page it opens the builder at its last step for that entity; in the gallery,
+ * at the first step, to find the visitor's own entity for the same badge.
  */
 
 /** A badge with the query that picks its variant (`rank?by=contributions`). */
@@ -108,7 +109,7 @@ export type BadgeTile = {
   /** The badge's own URL pinned to each drawing of Auto, so it matches the page's theme rather than the system's. */
   src: Record<Theme, string>;
   alt: string;
-  /** The builder's last step for this badge, with the options it is drawn with. */
+  /** The builder for this badge, with the options it is drawn with (see `TileLink`). */
   href: string;
   /** Cards and charts draw at a fixed size; shields are 20 px high. */
   size: { width: number; height: number } | null;
@@ -158,8 +159,19 @@ export function availableChoices(entity: EntityFacts, choices: BadgeChoice[], no
   });
 }
 
+/**
+ * Where a tile leads: `embed`, the builder's last step for the entity drawn (its own page's Badges card); `find`, the
+ * builder's first step with the badge kept, to make it for another entity of the kind (the gallery).
+ */
+export type TileLink = 'embed' | 'find';
+
 /** A tile for each badge the entity can show, in order; a badge it cannot draw with that query is left out. */
-export function badgeTiles(entity: EntityFacts, choices: BadgeChoice[], now = new Date()): BadgeTile[] {
+export function badgeTiles(
+  entity: EntityFacts,
+  choices: BadgeChoice[],
+  now = new Date(),
+  link: TileLink = 'embed',
+): BadgeTile[] {
   const path = entityPathOf(entity);
   return choices.flatMap((choice): BadgeTile[] => {
     const resolved = resolveChoice(entity, choice);
@@ -176,7 +188,10 @@ export function badgeTiles(entity: EntityFacts, choices: BadgeChoice[], now = ne
           dark: badgeImagePath(path, badge.id, 'svg', { ...query, theme: 'dark' }),
         },
         alt: badgeAlt(entity, badge, params, now),
-        href: builderHref({ kind: entity.kind, name: entityNameOf(entity), badge, style: query, embed: true }),
+        href:
+          link === 'find'
+            ? builderHref({ kind: entity.kind, name: '', badge, style: query })
+            : builderHref({ kind: entity.kind, name: entityNameOf(entity), badge, style: query, embed: true }),
         size: sizeOf(entity, badge, params),
       },
     ];

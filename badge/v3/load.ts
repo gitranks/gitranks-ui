@@ -1,17 +1,19 @@
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { toOrgCardFacts, toRepoCardFacts, toUserCardFacts } from './card-facts';
-import type {
-  ContributorsWall,
-  ContributorsWalls,
-  OrgFacts,
-  PulseFacts,
-  RankGoal,
-  RepoFacts,
-  TierTable,
-  UserFacts,
-  UserRanks,
-  UserTierLists,
+import {
+  awaitsRead,
+  type ContributorsWall,
+  type ContributorsWalls,
+  type EntityFacts,
+  type OrgFacts,
+  type PulseFacts,
+  type RankGoal,
+  type RepoFacts,
+  type TierTable,
+  type UserFacts,
+  type UserRanks,
+  type UserTierLists,
 } from './facts';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import {
@@ -281,20 +283,34 @@ export function toOrgFacts({ organization: org, orgRankTotal }: BadgeOrgQuery, l
   };
 }
 
-/** A repository's badge data, kept for an hour; `null` when the repository is unknown. */
+/**
+ * How long badge data is kept: an hour, or minutes for an entity GitRanks has yet to read, so its fetch shows up soon
+ * even when nothing expires the entity's tag. A refresh of the entity expires its tag, the one its pages use, at once.
+ */
+function keepFor(facts: EntityFacts | null): void {
+  if (facts && awaitsRead(facts)) {
+    cacheLife('minutes');
+  } else {
+    cacheLife('hours');
+  }
+}
+
+/** A repository's badge data (see `keepFor`); `null` when the repository is unknown. */
 export async function loadBadgeRepo(owner: string, name: string): Promise<RepoFacts | null> {
   'use cache';
   cacheTag(getRepoCacheTag(owner, name));
-  cacheLife('hours');
-  return toRepoFacts(await graphqlDirect(BadgeRepoDocument, { owner, name }, { source: 'badge' }));
+  const facts = toRepoFacts(await graphqlDirect(BadgeRepoDocument, { owner, name }, { source: 'badge' }));
+  keepFor(facts);
+  return facts;
 }
 
-/** A developer's badge data, kept for an hour; `null` when the profile is unknown. */
+/** A developer's badge data (see `keepFor`); `null` when the profile is unknown. */
 export async function loadBadgeUser(login: string): Promise<UserFacts | null> {
   'use cache';
   cacheTag(`profile:${login}`);
-  cacheLife('hours');
-  return toUserFacts(await graphqlDirect(BadgeUserDocument, { login }, { source: 'badge' }));
+  const facts = toUserFacts(await graphqlDirect(BadgeUserDocument, { login }, { source: 'badge' }));
+  keepFor(facts);
+  return facts;
 }
 
 /** An organization's badge data, kept for an hour; `null` when the organization is unknown. */

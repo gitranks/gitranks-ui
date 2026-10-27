@@ -195,7 +195,10 @@ export function styleQuery(badge: BadgeDefinition, style: Style): URLSearchParam
 /** Query values with `/`, `@` and `:` left readable, as the builder writes them. */
 const encodeValue = (value: string) => encodeURIComponent(value).replace(/%2F/gi, '/').replace(/%40/g, '@');
 
-/** A builder link for a state; an entity key with an empty name narrows step 1 to that kind. */
+/**
+ * A builder link for a state. An entity key with an empty name narrows step 1 to that kind; a badge with it is the one
+ * the visitor picked before their entity (in the gallery), kept with its style for the entity they find.
+ */
 export function builderHref(state: {
   kind: EntityKind | null;
   name?: string | null;
@@ -205,17 +208,19 @@ export function builderHref(state: {
 }): string {
   const parts: string[] = [];
   if (state.kind) parts.push(`${state.kind}=${encodeValue(state.name ?? '')}`);
-  if (state.kind && state.name && state.badge) {
+  if (state.kind && state.badge) {
     parts.push(`badge=${state.badge.id}`);
     for (const [key, value] of styleQuery(state.badge, state.style ?? {})) parts.push(`${key}=${encodeValue(value)}`);
-    if (state.embed) parts.push('step=embed');
+    if (state.name && state.embed) parts.push('step=embed');
   }
   return parts.length ? `/badge/builder?${parts.join('&')}` : '/badge/builder';
 }
 
 /**
- * Where picking an entity in step 1 leads. An old builder link without a login (`?user=&badge=tier&…`) keeps its
- * badge and style for an entity of the kind it names; anything else starts at step 2.
+ * Where picking an entity in step 1 leads. A badge picked before the entity (a gallery link, or an old builder link
+ * without a login: `?repo=&badge=star-history&…`) is kept with its style for an entity of the kind it names, so the
+ * builder goes on to step 3 (or to step 2 when that badge has nothing to show for the entity); anything else starts
+ * at step 2.
  */
 export function pickTarget(
   state: Pick<BuilderState, 'kind' | 'badge' | 'style'>,

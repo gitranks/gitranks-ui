@@ -10,8 +10,11 @@ import { parseRepoParams } from '@/utils/repo-paths';
 export const BADGE_CACHE_CONTROL = {
   /** Badge data moves at most daily: long at the edge, short in the browser; the last good image outlives an outage. */
   badge: 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800',
-  /** "not yet" and star history being prepared: short at the edge, so the real image replaces them soon. */
-  provisional: 'public, max-age=300, s-maxage=3600',
+  /**
+   * "not yet" and star history being prepared, which a fetch of the entity can turn into the real image: kept for
+   * minutes, so the image shows up soon after the fetch.
+   */
+  provisional: 'public, max-age=60, s-maxage=300',
   /** Misses are cached too, so a made-up name costs no data read or drawing at every request. */
   notFound: 'public, max-age=300, s-maxage=86400',
   badRequest: 'public, max-age=300, s-maxage=86400',

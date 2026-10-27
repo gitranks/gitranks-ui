@@ -24,7 +24,8 @@ type GallerySectionProps = (typeof GALLERY_SECTIONS)[number] & { entity: EntityF
 
 /** One kind's badges drawn for its #1; nothing when there is nothing to draw (the header's builder link stays). */
 export const GallerySection: FC<GallerySectionProps> = ({ kind, title, make, leader, entity, now }) => {
-  const tiles = entity ? badgeTiles(entity, availableChoices(entity, GALLERY_BADGES[kind], now), now) : [];
+  // A badge leads to the builder's first step, to make the same badge for the visitor's own entity.
+  const tiles = entity ? badgeTiles(entity, availableChoices(entity, GALLERY_BADGES[kind], now), now, 'find') : [];
   if (!entity || !tiles.length) {
     return null;
   }
@@ -42,14 +43,14 @@ export const GallerySection: FC<GallerySectionProps> = ({ kind, title, make, lea
             <Link href={pageOf(entity)} translate="no">
               {entityNameOf(entity)}
             </Link>
-            , {leader} today. Click a badge for its code.
+            , {leader} today. Click a badge to make it for yours.
           </p>
         </div>
         <MoreLink href={builderHref({ kind, name: '' })} rel="nofollow" className="shrink-0">
           {make}
         </MoreLink>
       </div>
-      <BadgeTiles tiles={tiles} />
+      <BadgeTiles tiles={tiles} action="Make this badge" />
     </section>
   );
 };

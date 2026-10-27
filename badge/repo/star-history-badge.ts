@@ -20,8 +20,8 @@ const FILES: Record<string, StarHistoryBadgeFormat> = {
 export const STAR_HISTORY_CACHE_CONTROL = {
   /** The history moves at most daily: long at the edge, short in the browser; the last good chart outlives an outage. */
   chart: 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800',
-  /** Short at the edge, so the chart replaces it soon after the history arrives. */
-  preparing: 'public, max-age=300, s-maxage=3600',
+  /** Kept for minutes, so the chart replaces it soon after the history arrives. */
+  preparing: 'public, max-age=60, s-maxage=300',
   /** Short at the edge too: a repository can become known during the day. */
   notTracked: 'public, max-age=3600, s-maxage=3600',
   notFound: 'public, max-age=300, s-maxage=300',

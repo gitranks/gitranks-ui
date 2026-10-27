@@ -18,7 +18,8 @@ import { tierCountText } from '../utils/who-builds-it';
 import { TIER_BG, TierAvatar } from './tier-avatar';
 import { REPO_TIER_NAMES } from '@/app/app.consts';
 import { Eyebrow, ProfileCard } from '@/app/profile/[login]/components/profile-card';
-import { tierLabel, tierStrongTextClass } from '@/components/tier-chip/tier-chip';
+import { tierLabel, tierStrongTextClass, tierTextClass } from '@/components/tier-chip/tier-chip';
+import { TierIcon } from '@/components/tier-icon/tier-icon';
 import { cn } from '@/lib/utils';
 import type { PageRepoQuery } from '@/types/generated/graphql';
 
@@ -35,6 +36,7 @@ type StarsBestSectionProps = {
 const SURFACE =
   '[--surface:color-mix(in_oklab,var(--tier-7)_6%,var(--card))] bg-(--surface) border-[color-mix(in_oklab,var(--tier-7)_35%,var(--border))]';
 const RING_GAP = 'ring-offset-(--surface)';
+const BADGE_SURFACE = 'bg-(--surface) ring-(--surface)';
 
 const Heading: FC = () => (
   <Eyebrow as="h2" className="inline-flex items-center gap-2 font-bold text-tier-7-strong">
@@ -56,6 +58,7 @@ const AvatarStack: FC<{ people: Stargazer[] }> = ({ people }) => (
           label={login ? `${login}, ${tierName}` : tierName}
           tier={tier}
           className={RING_GAP}
+          badgeClassName={BADGE_SURFACE}
         />
       );
       return (
@@ -77,7 +80,7 @@ const AvatarStack: FC<{ people: Stargazer[] }> = ({ people }) => (
 const NamedStargazer: FC<{ person: Stargazer }> = ({ person: { login, avatarUrl, tier, level } }) => {
   const content = (
     <>
-      <TierAvatar url={avatarUrl} label="" tier={tier} size="md" className={RING_GAP} />
+      <TierAvatar url={avatarUrl} label="" tier={tier} size="md" className={RING_GAP} badge={false} />
       <span className="flex min-w-0 flex-col">
         <span
           className={cn('truncate text-sm font-semibold', login && 'group-hover:underline')}
@@ -86,7 +89,10 @@ const NamedStargazer: FC<{ person: Stargazer }> = ({ person: { login, avatarUrl,
         >
           {login ?? <span className="font-normal text-muted-foreground">Name not shown</span>}
         </span>
-        <span className={cn('text-xs font-semibold', tierStrongTextClass(tier))}>{tierLabel({ tier, level })}</span>
+        <span className={cn('inline-flex items-center gap-1 text-xs font-semibold', tierStrongTextClass(tier))}>
+          <TierIcon tier={tier} className="size-3" />
+          {tierLabel({ tier, level })}
+        </span>
       </span>
     </>
   );
@@ -116,7 +122,7 @@ const TierBreakdown: FC<{ counts: StarsBest['counts'] }> = ({ counts }) => {
           const [number, ...name] = tierCountText(count, tier).split(' ');
           return (
             <li key={tier} className="inline-flex items-center gap-1.5">
-              <span aria-hidden className={cn('size-2 rounded-full', TIER_BG[tier - 1])} />
+              <TierIcon tier={tier} className={cn('size-3.5', tierTextClass(tier))} />
               <b className="font-mono font-semibold tabular-nums">{number}</b> {name.join(' ')}
             </li>
           );
@@ -193,7 +199,10 @@ const CompactSentence: FC<{ starsBest: StarsBest }> = ({ starsBest }) => {
       ) : (
         articleFor(tierLabel(first))
       )}{' '}
-      <span className={cn('font-semibold', tierStrongTextClass(first.tier))}>{tierLabel(first)}</span>
+      <span className={cn('font-semibold whitespace-nowrap', tierStrongTextClass(first.tier))}>
+        <TierIcon tier={first.tier} className="mr-1 inline-block size-[1em] align-[-0.125em]" />
+        {tierLabel(first)}
+      </span>
     </>
   ) : null;
   const rest = othersParts(starsBest.counts, first);

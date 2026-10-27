@@ -20,9 +20,9 @@ export function shareWords(share: number): string {
   return percentOf(share);
 }
 
-// "Advanced" is an adjective: its plural stays "Advanced"; every other tier name takes an "s".
+// "Skilled" is an adjective: its plural stays "Skilled"; every other tier name takes an "s".
 const plural = (count: number, name: string) =>
-  `${count.toLocaleString('en-US')} ${name}${count === 1 || name === 'Advanced' ? '' : 's'}`;
+  `${count.toLocaleString('en-US')} ${name}${count === 1 || name === 'Skilled' ? '' : 's'}`;
 
 /** "11 Elites", "1 Legend": a count of developers of one tier. */
 export const tierCountText = (count: number, tier: number) => plural(count, TIER_NAMES[tier - 1]);

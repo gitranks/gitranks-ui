@@ -4,6 +4,7 @@ import { TIER_NAMES } from '@/app/app.consts';
 import { AdaptiveModal } from '@/components/adaptive-modal/adaptive-modal';
 import { TagProvisional } from '@/components/tag-provisional/tag-provisional';
 import { tierTextClass } from '@/components/tier-chip/tier-chip';
+import { TierIcon } from '@/components/tier-icon/tier-icon';
 import { TiersExplanation } from '@/components/tiers-explanation/tiers-explanation';
 import { cn } from '@/lib/utils';
 import type { Tier } from '@/types/generated/graphql';
@@ -39,11 +40,18 @@ const getTierName = (tierData?: ProfileTierType): string => {
 
 export const TierValue: FC<TierValueProps> = ({ tierData, tiers, rankedCount, rankType, className, rankingName }) => {
   // A named tier is written in its colour; "N/A" and "Not Ranked" stay muted.
-  const color = tierData && hasTierData(tierData) ? tierTextClass(tierData.data?.tier) : 'text-muted-foreground';
+  const named = tierData && hasTierData(tierData);
+  const color = named ? tierTextClass(tierData.data?.tier) : 'text-muted-foreground';
+  const name = (
+    <>
+      {named && <TierIcon tier={tierData.data.tier} className="mr-1.5 inline-block size-[0.9em] align-[-0.1em]" />}
+      {getTierName(tierData)}
+    </>
+  );
 
   return (
     <div className={cn('text-2xl font-semibold tracking-tight flex gap-2 items-center', className)}>
-      {!tiers?.length && <span className={color}>{getTierName(tierData)}</span>}
+      {!tiers?.length && <span className={color}>{name}</span>}
       {!!tiers?.length && (
         <AdaptiveModal
           trigger={
@@ -51,7 +59,7 @@ export const TierValue: FC<TierValueProps> = ({ tierData, tiers, rankedCount, ra
               type="button"
               className={cn('text-left underline decoration-dotted underline-offset-4 cursor-pointer', color)}
             >
-              {getTierName(tierData)}
+              {name}
             </button>
           }
           title={`${rankingName} cut-offs`}

@@ -6,6 +6,8 @@ import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
 import { Link } from '@/components/link/link';
 import { Page } from '@/components/page/page';
+import { tierTextClass } from '@/components/tier-chip/tier-chip';
+import { TierIcon } from '@/components/tier-icon/tier-icon';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
 import { fetchRankedCounts } from '@/graphql/helpers/fetch-ranked-counts';
 import { pageMetadata } from '@/lib/seo/page-metadata';
@@ -184,7 +186,13 @@ export default function MethodologyPage() {
           </p>
           <Table
             head={['Tier', 'Share of ranked profiles']}
-            rows={TIER_NAMES.map((name, index) => [name, formatShare(TIER_FRACTIONS[index])]).reverse()}
+            rows={TIER_NAMES.map((name, index) => [
+              <span key={name} className="inline-flex items-center gap-1.5">
+                <TierIcon tier={index + 1} className={`size-4 ${tierTextClass(index + 1)}`} />
+                {name}
+              </span>,
+              formatShare(TIER_FRACTIONS[index]),
+            ]).reverse()}
           />
         </Section>
 

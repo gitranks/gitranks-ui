@@ -113,7 +113,7 @@ export default async function Home() {
         { value: formatCompact(tiers.cUsers, true), label: 'ranked by contribution stars' },
         { value: formatCompact(tiers.sUsers, true), label: 'ranked by stars' },
         { value: formatCompact(tiers.fUsers, true), label: 'ranked by followers' },
-        { value: '7', label: 'tiers, Beginner to Legend' },
+        { value: '7', label: 'tiers, Rookie to Legend' },
       ]
     : [];
 

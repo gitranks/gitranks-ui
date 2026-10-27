@@ -9,6 +9,10 @@ export const META_SCALE = 0.85;
 export const LABEL_BG = '#5c5c5c';
 export const VALUE_BG = '#2282c2';
 
+/** The tier glyph before a tier value: its size and the gap after it. */
+export const TIER_ICON_SIZE = 11;
+export const TIER_ICON_GAP = 3;
+
 export const PADDING_EDGE = 6;
 export const PADDING_SIDE = 6;
 

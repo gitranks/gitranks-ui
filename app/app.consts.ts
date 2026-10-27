@@ -1,10 +1,10 @@
 import { RANK_NAME } from '@/badge/badge.consts';
 
 // Must be 7 categories
-export const TIER_NAMES = ['Beginner', 'Adept', 'Advanced', 'Expert', 'Master', 'Elite', 'Legend'] as const;
+export const TIER_NAMES = ['Rookie', 'Skilled', 'Pro', 'Expert', 'Master', 'Elite', 'Legend'] as const;
 // Repository tiers, the same 7 shares and tier-1…7 colours as developers: Stardust (bottom 50%) to Supernova (top 1%).
 export const REPO_TIER_NAMES = ['Stardust', 'Comet', 'Moon', 'Planet', 'Nova', 'Galaxy', 'Supernova'] as const;
-// Share of ranked profiles in each tier, Beginner to Legend. Display only.
+// Share of ranked profiles in each tier, Rookie to Legend. Display only.
 export const TIER_FRACTIONS = [0.5, 0.25, 0.13, 0.06, 0.03, 0.02, 0.01] as const;
 export const TOP_LEVEL_FRACTIONS = [0.5, 0.3, 0.15, 0.04, 0.01] as const;
 

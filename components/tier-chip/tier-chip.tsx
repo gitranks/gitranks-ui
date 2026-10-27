@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 
 import { TIER_NAMES } from '@/app/app.consts';
+import { TierIcon } from '@/components/tier-icon/tier-icon';
 import { cn } from '@/lib/utils';
 import type { Tier } from '@/types/generated/graphql';
 
@@ -48,14 +49,35 @@ export const tierChipClass = (tier: number) => TIER_CHIP_CLASSES[tier - 1];
 /** The tier's text colour class, for a tier name written in it. */
 export const tierTextClass = (tier?: number | null) => (tier ? TIER_TEXT_CLASSES[tier - 1] : undefined);
 
+/** A developer's tier as a chip: its glyph and name in the tier colour on a 15% fill. */
 export const TierChip: FC<{ tier: Pick<Tier, 'tier' | 'level'>; className?: string }> = ({ tier, className }) => (
   <span
     className={cn(
-      'inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-semibold before:size-1.5 before:rounded-full before:bg-current',
+      'inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-xs font-semibold whitespace-nowrap',
       TIER_CHIP_CLASSES[tier.tier - 1],
       className,
     )}
   >
+    <TierIcon tier={tier.tier} className="size-3.5" />
     {tierLabel(tier)}
+  </span>
+);
+
+/**
+ * A developer's tier as a badge on their avatar, bottom right: the glyph on a tinted disk, ringed in the colour of the
+ * surface it sits on (`bg-card ring-card` by default; pass the surface's `bg-*` and `ring-*` for another). Decor: the
+ * avatar's alt text names the tier. Its parent must be `relative`.
+ */
+export const TierAvatarBadge: FC<{ tier: number; className?: string }> = ({ tier, className }) => (
+  <span
+    aria-hidden
+    className={cn(
+      'absolute -right-1 -bottom-1 z-10 flex size-4 items-center justify-center rounded-full bg-card ring-2 ring-card',
+      className,
+    )}
+  >
+    <span className={cn('flex size-full items-center justify-center rounded-full', TIER_CHIP_CLASSES[tier - 1])}>
+      <TierIcon tier={tier} className={cn('size-3', TIER_STRONG_TEXT_CLASSES[tier - 1])} />
+    </span>
   </span>
 );

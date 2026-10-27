@@ -19,6 +19,7 @@ import InsightText from '@/components/insight/insight-text';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { seriesColor } from '@/components/pulse/pulse.utils';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { TierIcon } from '@/components/tier-icon/tier-icon';
 import { Button } from '@/components/ui/button';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
 import { BadgeMeta, BadgeType } from '@/types/badge.types';
@@ -402,7 +403,7 @@ export const TiersSection = () => (
   <LandingSection
     id="tiers"
     eyebrow="Tiers"
-    title="From Beginner to Legend"
+    title="From Rookie to Legend"
     intro="Every ranked profile lands in one of seven tiers, each split into five levels. The share of profiles in each tier is fixed; the cut-offs move every Monday."
   >
     <ol className="grid grid-cols-1 gap-2 sm:grid-cols-7 sm:items-end sm:gap-3">
@@ -413,7 +414,10 @@ export const TiersSection = () => (
             style={{ '--bar': `${24 + index * 16}px` } as CSSProperties}
           />
           <span className="flex items-baseline gap-2 sm:flex-col sm:gap-0">
-            <span className={`font-semibold ${TIER_TEXT_CLASSES[index]}`}>{name}</span>
+            <span className={`inline-flex items-center gap-1.5 font-semibold ${TIER_TEXT_CLASSES[index]}`}>
+              <TierIcon tier={index + 1} className="size-4" />
+              {name}
+            </span>
             <span className="text-xs text-muted-foreground">
               {index === 0 ? 'Bottom' : index === TIER_NAMES.length - 1 ? 'Top' : 'Next'}{' '}
               {percent(TIER_FRACTIONS[index])}
@@ -461,7 +465,7 @@ const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = 
   },
   {
     q: 'What do the tiers mean?',
-    a: `Tiers group ranked profiles by share: Beginner is the bottom ${percent(TIER_FRACTIONS[0])} and Legend the top ${percent(TIER_FRACTIONS[6])}. Each tier has five levels. The cut-offs are recalculated every Monday.`,
+    a: `Tiers group ranked profiles by share: Rookie is the bottom ${percent(TIER_FRACTIONS[0])} and Legend the top ${percent(TIER_FRACTIONS[6])}. Each tier has five levels. The cut-offs are recalculated every Monday.`,
   },
   {
     q: 'Can I refresh my profile?',

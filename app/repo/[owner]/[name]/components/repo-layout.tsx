@@ -20,6 +20,8 @@ import { PullButton } from './pull-button';
 import { ProfileListItem } from '@/app/profile/[login]/components/profile-list-item';
 import {
   ActionsContainer,
+  AvatarAndNameContainer,
+  AvatarContainer,
   DetailsContainer,
   LeftColumnContainer,
   PageContainer,
@@ -36,7 +38,8 @@ type RepoLayoutProps = {
   children: ReactNode;
 };
 
-const AVATAR_SIZE = 96;
+// As wide as the left column, like the profile and organization avatars.
+const AVATAR_SIZE = 288;
 
 const mono = (value: number) => <span className="font-mono tabular-nums">{value.toLocaleString('en-US')}</span>;
 
@@ -49,7 +52,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
     <Image
       src={`${ownerAvatarUrl}&s=${AVATAR_SIZE * 2}`}
       alt={`${owner} avatar`}
-      className="size-16 shrink-0 rounded-full bg-muted ring-1 ring-border md:size-24"
+      className="h-full w-full rounded-full bg-muted ring-1 ring-border"
       width={AVATAR_SIZE}
       height={AVATAR_SIZE}
       loading="eager"
@@ -60,14 +63,18 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
   return (
     <PageContainer>
       <LeftColumnContainer>
-        <div className="flex flex-row items-center gap-4 md:flex-col md:items-start">
-          {/* The owner row below links there too: the avatar is a second way in, out of the tab order. */}
-          {ownerPath && avatar ? (
-            <Link href={ownerPath} prefetch={false} tabIndex={-1} aria-hidden className="shrink-0">
-              {avatar}
-            </Link>
-          ) : (
-            avatar
+        <AvatarAndNameContainer>
+          {avatar && (
+            <AvatarContainer className="shrink-0">
+              {/* The owner row below links there too: the avatar is a second way in, out of the tab order. */}
+              {ownerPath ? (
+                <Link href={ownerPath} prefetch={false} tabIndex={-1} aria-hidden className="block h-full w-full">
+                  {avatar}
+                </Link>
+              ) : (
+                avatar
+              )}
+            </AvatarContainer>
           )}
           <div className="flex min-w-0 flex-col gap-1">
             <h1 className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]" translate="no">
@@ -81,7 +88,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
               </span>
             )}
           </div>
-        </div>
+        </AvatarAndNameContainer>
         {!!description && <p className="text-sm [overflow-wrap:anywhere]">{description}</p>}
         <ActionsContainer>
           <PullButton

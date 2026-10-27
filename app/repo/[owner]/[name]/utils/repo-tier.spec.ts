@@ -26,4 +26,21 @@ describe('repoTierGoal', () => {
     expect(repoTierGoal({ tier: 5, level: 5 }, 4_500, tiers)).toBeNull();
     expect(repoTierGoal({ tier: 5, level: 5 }, 4_428, tiers)).toBeNull();
   });
+
+  it('says nothing when the table is from another ranking than the repository’s bucket', () => {
+    // The repository is Planet 5 of a 5.3M-repo ranking; the cached table is the earlier, smaller one.
+    const stale = [
+      { tier: 5, level: 1, minRank: 26_000, maxRank: 29_657, minValue: 2_305 },
+      { tier: 4, level: 5, minRank: 29_658, maxRank: 35_283, minValue: 1_931 },
+    ];
+    expect(repoTierGoal({ tier: 4, level: 5, minRank: 315_904, maxRank: 379_078 }, 143, stale)).toBeNull();
+
+    const fresh = [
+      { tier: 5, level: 1, minRank: 284_315, maxRank: 315_903, minValue: 173 },
+      { tier: 4, level: 5, minRank: 315_904, maxRank: 379_078, minValue: 139 },
+    ];
+    expect(repoTierGoal({ tier: 4, level: 5, minRank: 315_904, maxRank: 379_078 }, 143, fresh)).toBe(
+      '31 stars to Nova 1',
+    );
+  });
 });

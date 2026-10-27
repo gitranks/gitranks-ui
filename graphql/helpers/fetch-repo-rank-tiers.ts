@@ -12,7 +12,8 @@ export const fetchRepoRankTiers = async () => {
 
   try {
     const { repoRankTiers } = (await graphqlDirect(RepoRankTiersDocument, {})) ?? {};
-    cacheLife('hours');
+    // Minutes, not hours: a new ranking replaces the table, and a page rendered after it needs the new cut-offs.
+    cacheLife('minutes');
     return { tiers: repoRankTiers ?? null, ok: true };
   } catch {
     cacheLife('minutes');

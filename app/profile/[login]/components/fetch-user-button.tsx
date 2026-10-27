@@ -136,7 +136,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     const res = await fetch(`/api/profile/${login}`, { method: 'POST' });
 
     if (!res.ok) {
-      toast.error('Failed to fetch user profile');
+      toast.error(res.status === 410 ? REFRESH_TOASTS.removed : 'Failed to fetch user profile');
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
@@ -173,7 +173,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       });
 
       if (!res.ok) {
-        toast.error(REFRESH_TOASTS.checkFailed);
+        toast.error(res.status === 410 ? REFRESH_TOASTS.removed : REFRESH_TOASTS.checkFailed);
         return;
       }
 

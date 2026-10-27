@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from 'next/cache';
 
+import { OwnerTab } from './components/owner-tab';
 import { Header } from '@/components/header/header';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
@@ -27,6 +28,9 @@ export default async function ProfileLayout({ children, params }: LayoutProps<'/
         <Tab href={`/profile/${login}/ranks`}>Ranks</Tab>
         <Tab href={`/profile/${login}/repositories`}>Repositories</Tab>
         <Tab href={`/profile/${login}/languages`}>Languages</Tab>
+        <OwnerTab login={login} href={`/profile/${login}/privacy`}>
+          Privacy
+        </OwnerTab>
       </TabsBar>
       {children}
     </>

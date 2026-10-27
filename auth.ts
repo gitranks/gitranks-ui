@@ -148,6 +148,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       session.error = token.error as string | undefined;
       session.user.githubLogin = token.githubLogin as string;
+      // The sign-in's own user row, which a data removal deletes (`app/api/me/data-removal`).
+      session.user.id = token.sub as string;
       session.user.authMode = authModeOf(token);
       return session;
     },

@@ -17,10 +17,10 @@ type RepoLinkProps = {
 /** The owner's avatar and `owner/name`, linking to the repository page. */
 export const RepoLink: FC<RepoLinkProps> = ({ nameWithOwner, ownerAvatarUrl, size, className, tier }) => (
   <LinkWithStopPropagation href={getRepoPath(nameWithOwner)} className={className}>
-    {tier ? (
+    {tier && ownerAvatarUrl ? (
       <span className="relative shrink-0">
         <ProfileAvatar url={ownerAvatarUrl} login={nameWithOwner.split('/')[0]} size={size} />
-        <RepoTierAvatarBadge tier={tier} />
+        <RepoTierAvatarBadge tier={tier} surface="background" />
       </span>
     ) : (
       <ProfileAvatar url={ownerAvatarUrl} login={nameWithOwner.split('/')[0]} size={size} />

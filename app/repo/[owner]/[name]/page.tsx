@@ -86,7 +86,13 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
   }
 
   const rank = isRepoRanked(repo) ? repo.rank : null;
-  const [languages, rankTiers] = rank ? await Promise.all([fetchRepoLanguages(), fetchRepoRankTiers()]) : [[], null];
+  const [languages, rankTiers] = rank
+    ? await Promise.all([fetchRepoLanguages(), fetchRepoRankTiers()])
+    : [[], { tiers: null, ok: true }];
+  if (!rankTiers.ok) {
+    // A failed read of the tier table: try again in minutes rather than keep the card without its goal for hours.
+    cacheLife('minutes');
+  }
   const rankedCount = languages.reduce((sum, { repos }) => sum + repos, 0);
   const languageCount = languages.find((l) => l.language === (rank?.language ?? null))?.repos;
   const summary = buildRepoSummary({
@@ -110,7 +116,7 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
                   rank={{ ...rank, tier: rank.tier }}
                   stars={repo.stars}
                   gainedThisMonth={repo.gainedThisMonth}
-                  tiers={rankTiers?.tiers}
+                  tiers={rankTiers.tiers?.tiers}
                 />
               ) : (
                 !!rank.s && (
@@ -123,7 +129,8 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
                   />
                 )
               )}
-              {!!rank.l && (
+              {/* The tier card carries the language rank in its footer. */}
+              {!rank.tier && !!rank.l && (
                 <RepoRankCard
                   title={rank.language ? `${rank.language} rank` : 'Rank without a language'}
                   rank={rank.l}

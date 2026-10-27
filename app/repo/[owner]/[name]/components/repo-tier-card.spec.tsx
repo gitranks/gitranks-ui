@@ -34,6 +34,16 @@ describe('RepoTierCard', () => {
     expect(html).toContain('data-labels="Stardust,Comet,Moon,Planet,Nova,Galaxy,Supernova"');
   });
 
+  it('names the No language tier "Without a language", and shows N/A for unknown stars this month', () => {
+    const html = renderToStaticMarkup(
+      <RepoTierCard rank={{ ...rank, language: null }} stars={251_726} gainedThisMonth={null} tiers={null} />,
+    );
+
+    expect(html).toContain('Without a language');
+    expect(html).not.toContain('In No language');
+    expect(html).toContain('N/A');
+  });
+
   it('leaves out the language tier where the language has none, and names No language', () => {
     const html = renderToStaticMarkup(
       <RepoTierCard rank={{ ...rank, language: null, languageTier: null }} stars={251_726} tiers={null} />,

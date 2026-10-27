@@ -67,7 +67,7 @@ export const RepoTierCard: FC<RepoTierCardProps> = ({ rank, stars, gainedThisMon
           </div>
           {!!languageTier && (
             <div className="flex flex-col gap-0.5">
-              <Eyebrow>In {languageName}</Eyebrow>
+              <Eyebrow>{rank.language ? `In ${rank.language}` : 'Without a language'}</Eyebrow>
               <span className={cn('text-lg font-semibold', tierTextClass(languageTier.tier))}>
                 {repoTierLabel(languageTier)}
               </span>
@@ -90,7 +90,11 @@ export const RepoTierCard: FC<RepoTierCardProps> = ({ rank, stars, gainedThisMon
           label={`Rank in ${languageName}`}
         />
         <FooterValue
-          value={gainedThisMonth ? `${gainedThisMonth > 0 ? '+' : ''}${formatNumberShort(gainedThisMonth)}` : '0'}
+          value={
+            typeof gainedThisMonth === 'number'
+              ? `${gainedThisMonth > 0 ? '+' : ''}${formatNumberShort(gainedThisMonth)}`
+              : 'N/A'
+          }
           caption="Stars this month"
           label={`Stars this month (of ${formatNumberShort(stars)})`}
         />

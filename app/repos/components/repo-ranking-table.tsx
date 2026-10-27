@@ -31,7 +31,8 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
       <TableBody>
         {data.map((item) => {
           const { githubId, repo } = item;
-          const tier = rankProp === 's' ? item.tier : item.languageTier;
+          // The global tier on every list, as on the repository page: most languages have no tier table of their own.
+          const { tier } = item;
 
           if (!repo) {
             return null;

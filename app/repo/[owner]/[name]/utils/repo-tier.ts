@@ -8,8 +8,8 @@ const full = new Intl.NumberFormat('en-US');
 
 /**
  * The line under a repository's tier: at the very top, how many repositories share it ("Top 49 repositories on
- * GitHub"); else the stars still missing to the next bucket ("1,180 stars to Galaxy 1"). `null` when the table is
- * missing or the repository already has the next bucket's stars (the tiers catch up at the next ranking).
+ * GitHub"); else the stars still missing to pass the next bucket's last repository ("1,180 stars to Galaxy 1").
+ * `null` when the table is missing or the repository already has them (the tiers catch up at the next ranking).
  */
 export function repoTierGoal(tier: TierRef, stars: number, tiers?: readonly TableTier[] | null): string | null {
   if (!tiers?.length) {
@@ -25,6 +25,7 @@ export function repoTierGoal(tier: TierRef, stars: number, tiers?: readonly Tabl
   }
 
   const next = tiers[index - 1];
-  const missing = (next.minValue ?? 0) - stars;
+  // `minValue` is the stars of the next bucket's last repository: one more passes it.
+  const missing = (next.minValue ?? 0) - stars + 1;
   return missing > 0 ? `${full.format(missing)} ${missing === 1 ? 'star' : 'stars'} to ${repoTierLabel(next)}` : null;
 }

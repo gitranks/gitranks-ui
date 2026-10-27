@@ -22,12 +22,10 @@ describe('sitemap badge images', () => {
     expect(SITEMAP_OLD_BADGE_IMAGES_UNTIL.toISOString()).toBe('2026-11-27T00:00:00.000Z');
   });
 
-  it("lists a profile's new images, then its old PNGs, before the cut-over", () => {
-    expect(paths(listProfileBadgeImageUrls('Octo-Cat', { s: 10, c: 10, f: 10 }, before))).toEqual([
-      '/badge/user/Octo-Cat/profile-card.png',
-      '/badge/user/Octo-Cat/rank.png',
-      '/badge/user/Octo-Cat/rank.png?by=contributions',
-      '/badge/user/Octo-Cat/rank.png?by=followers',
+  it("lists a profile's promoted images as the page draws them, then its old PNGs, before the cut-over", () => {
+    expect(paths(listProfileBadgeImageUrls('Octo-Cat', { s: 150, c: 10, f: 10 }, before))).toEqual([
+      '/badge/user/Octo-Cat/rank.svg?theme=light',
+      '/badge/user/Octo-Cat/profile-card.svg?theme=light',
       '/badges/Octo-Cat/stars-rank.png',
       '/badges/Octo-Cat/contributions-rank.png',
       '/badges/Octo-Cat/followers-rank.png',
@@ -37,35 +35,39 @@ describe('sitemap badge images', () => {
     ]);
   });
 
-  it('lists only the new images from the cut-over on', () => {
-    expect(paths(listProfileBadgeImageUrls('Octo-Cat', { s: 10, c: 10, f: 10 }, after))).toEqual([
-      '/badge/user/Octo-Cat/profile-card.png',
-      '/badge/user/Octo-Cat/rank.png',
-      '/badge/user/Octo-Cat/rank.png?by=contributions',
-      '/badge/user/Octo-Cat/rank.png?by=followers',
+  it('lists only the promoted images from the cut-over on', () => {
+    expect(paths(listProfileBadgeImageUrls('Octo-Cat', { s: 150, c: 10, f: 10 }, after))).toEqual([
+      '/badge/user/Octo-Cat/rank.svg?theme=light',
+      '/badge/user/Octo-Cat/profile-card.svg?theme=light',
     ]);
   });
 
-  it('leaves out the images of rankings the profile is not in, old and new alike', () => {
-    expect(paths(listProfileBadgeImageUrls('octocat', { s: 4, c: 6, f: null }, before))).toEqual([
-      '/badge/user/octocat/profile-card.png',
-      '/badge/user/octocat/rank.png?by=contributions',
-      '/badges/octocat/contributions-rank.png',
-      '/badges/octocat/contributions-score.png',
+  it("follows the profile's size: a small profile's page promotes its contribution rank and no card", () => {
+    expect(paths(listProfileBadgeImageUrls('octocat', { s: 40, c: 10, f: 10 }, after))).toEqual([
+      '/badge/user/octocat/rank.svg?by=contributions&amp;theme=light',
     ]);
+    expect(paths(listProfileBadgeImageUrls('octocat', { s: 40, c: 4, f: 10 }, after))).toEqual([]);
   });
 
-  it('lists no profile card for a profile in the followers ranking alone', () => {
-    expect(paths(listProfileBadgeImageUrls('octocat', { s: 0, c: 0, f: 50 }, after))).toEqual([
-      '/badge/user/octocat/rank.png?by=followers',
+  it('leaves out what the scores cannot decide or the page never shows', () => {
+    const urls = paths(listProfileBadgeImageUrls('octocat', { s: 5_000, c: 10, f: 10 }, after));
+
+    expect(urls).toEqual([
+      '/badge/user/octocat/rank.svg?theme=light',
+      '/badge/user/octocat/profile-card.svg?theme=light',
     ]);
+    expect(urls.join()).not.toMatch(/scope=country|count-chart|month|followers/);
+  });
+
+  it('lists nothing for a profile in no promoted ranking', () => {
+    expect(listProfileBadgeImageUrls('octocat', { s: 0, c: 0, f: 50 }, after)).toEqual([]);
     expect(listProfileBadgeImageUrls('octocat', {}, before)).toEqual([]);
   });
 
-  it('writes no character the sitemap would have to escape', () => {
-    const urls = listProfileBadgeImageUrls('octocat', { s: 10, c: 10, f: 10 }, before);
+  it('escapes the query of a promoted image with two keys', () => {
+    const urls = listProfileBadgeImageUrls('octocat', { s: 40, c: 10, f: 10 }, after);
 
-    expect(urls.every((url) => !/[&<>"']/.test(url))).toBe(true);
+    expect(urls.every((url) => !/&(?!amp;)/.test(url))).toBe(true);
   });
 
   it('escapes the characters XML reserves, so a query with two keys stays valid XML', () => {
@@ -82,16 +84,20 @@ describe('sitemap badge images', () => {
 
     const urls = listProfileBadgeImageUrls('octocat', { s: 10 }, before);
 
-    expect(urls).toHaveLength(4);
+    expect(urls).toHaveLength(2);
     expect(urls.every((url) => url.startsWith('https://example.test/x?a=1&amp;b=2/'))).toBe(true);
     expect(listRepoBadgeImageUrls('vercel/next.js')[0]).toContain('&amp;');
     expect(listOrgBadgeImageUrls('vercel')[0]).toContain('&amp;');
   });
 
-  it("lists a repository's and an organization's card", () => {
+  it("lists what a listed repository's and organization's pages show", () => {
     expect(listRepoBadgeImageUrls('vercel/next.js')).toEqual([
-      'https://example.test/badge/repo/vercel/next.js/rank-card.png',
+      'https://example.test/badge/repo/vercel/next.js/rank.svg?theme=light',
+      'https://example.test/badge/repo/vercel/next.js/star-history.svg?theme=light',
     ]);
-    expect(listOrgBadgeImageUrls('vercel')).toEqual(['https://example.test/badge/org/vercel/org-card.png']);
+    expect(listOrgBadgeImageUrls('vercel')).toEqual([
+      'https://example.test/badge/org/vercel/rank.svg?theme=light',
+      'https://example.test/badge/org/vercel/org-card.svg?theme=light',
+    ]);
   });
 });

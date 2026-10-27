@@ -15,11 +15,12 @@ import { OverviewCardsContainer } from './overview-cards/overview-cards';
 import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { OwnProjectsCard } from './overview-cards/own-projects-card';
-import { ProfileBadgesSection } from './profile-badges-section';
 import { MoreLink, ProfileSection } from './profile-card';
 import { ProfileSummary } from './profile-summary';
 import { RankHistoryTable } from './rank-history-table';
 import { StarsReviewNote } from './stars-review-note';
+import type { UserFacts } from '@/badge/v3/facts';
+import { BadgesCard } from '@/components/badges-card/badges-card';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import type { ProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
@@ -28,10 +29,12 @@ import { countryInSentence } from '@/utils/country-in-sentence';
 type OverviewPageProps = {
   user: PageProfileOverviewQuery['user'];
   extras?: ProfileOverviewExtras;
+  /** The profile's badge data, for its Badges card. */
+  badgeFacts?: UserFacts | null;
   isGlobalContext?: boolean;
 };
 
-export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalContext }) => {
+export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, badgeFacts, isGlobalContext }) => {
   if (!user) {
     notFound();
   }
@@ -154,7 +157,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, isGlobalCont
       {!!timeline?.length && <ProfileTimeline timeline={timeline} firstSeenAt={firstSeenAt} />}
 
       <div className="grid gap-4 md:gap-6 lg:has-[>:nth-child(2)]:grid-cols-[2fr_1fr]">
-        <ProfileBadgesSection login={login} scores={{ s, c, f }} ranks={user.rankGlobal ?? null} />
+        <BadgesCard entity={badgeFacts ?? null} />
         <MessengerIntegration login={login} />
       </div>
     </LayoutLeftColumn>

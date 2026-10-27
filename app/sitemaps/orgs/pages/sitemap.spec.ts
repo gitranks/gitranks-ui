@@ -17,15 +17,27 @@ describe('organization-page sitemap', () => {
     expect(await generateSitemaps()).toEqual([0, 1, 2, 3, 4].map((id) => ({ id })));
   });
 
-  it("lists each organization's page with its card", async () => {
+  it("lists each organization's page with the badges it shows", async () => {
     vi.mocked(fetchOrgsForSitemap).mockResolvedValue(['vercel', 'a-b']);
 
     const entries = await part(1);
 
     expect(fetchOrgsForSitemap).toHaveBeenCalledWith(1);
     expect(entries.map(({ url, images }) => ({ url, images }))).toEqual([
-      { url: 'https://example.test/org/vercel', images: ['https://example.test/badge/org/vercel/org-card.png'] },
-      { url: 'https://example.test/org/a-b', images: ['https://example.test/badge/org/a-b/org-card.png'] },
+      {
+        url: 'https://example.test/org/vercel',
+        images: [
+          'https://example.test/badge/org/vercel/rank.svg?theme=light',
+          'https://example.test/badge/org/vercel/org-card.svg?theme=light',
+        ],
+      },
+      {
+        url: 'https://example.test/org/a-b',
+        images: [
+          'https://example.test/badge/org/a-b/rank.svg?theme=light',
+          'https://example.test/badge/org/a-b/org-card.svg?theme=light',
+        ],
+      },
     ]);
     expect(entries[0]).toMatchObject({ priority: 0.7, changeFrequency: 'monthly' });
   });

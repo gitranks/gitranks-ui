@@ -15,7 +15,10 @@ export async function generateSitemaps() {
   return Array.from({ length: SITEMAP_REPO_PARTS_MAX }, (_, id) => ({ id }));
 }
 
-/** One part of the repository pages, each with its rank card: the most starred repositories first, up to 40,000 a part. */
+/**
+ * One part of the repository pages, each with the badges it shows: the most starred repositories first, up to 40,000
+ * a part.
+ */
 export default async function sitemap(props: { id: Promise<string> }): Promise<MetadataRoute.Sitemap> {
   const part = Number(await props.id);
   if (!Number.isInteger(part) || part < 0 || part >= SITEMAP_REPO_PARTS_MAX) {

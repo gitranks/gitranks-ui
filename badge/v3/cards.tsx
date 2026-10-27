@@ -21,6 +21,7 @@ import type { BadgeParams } from './params';
 import { bestCompletedMonth } from './race';
 import { type CardPalette, tierColor, toneColor } from './schemes';
 import type { By } from './types';
+import { WALL_AVATAR, WALL_COLUMNS, WALL_GAP, WALL_WIDTH, wallLayout } from './wall-layout';
 import { REPO_TIER_NAMES, TIER_NAMES } from '@/app/app.consts';
 
 /** A card or chart, drawn once per palette. */
@@ -649,11 +650,6 @@ async function orgCard(org: OrgFacts, params: BadgeParams): Promise<Drawing | nu
 
 // Contributors walls
 
-export const WALL_COLUMNS = 14;
-export const WALL_AVATAR = 36;
-export const WALL_GAP = 6;
-export const WALL_WIDTH = 800;
-
 function wallFooter(entity: RepoFacts | UserFacts | OrgFacts, wall: ContributorsWall): string {
   const join = (parts: (string | null)[]) => parts.filter(Boolean).join(dot);
   const countries = entity.kind === 'user' ? null : contributorCount(entity, 'countries');
@@ -682,9 +678,7 @@ async function contributorsWall(
 ): Promise<Drawing | null> {
   const wall = wallOf(entity, params.order);
   if (!wall || wall.entries.length < 3) return null;
-  const shown = wall.entries.slice(0, WALL_COLUMNS * params.rows);
-  const rows = Math.ceil(shown.length / WALL_COLUMNS);
-  const more = Math.max(0, wall.total - shown.length);
+  const { shown, more, height } = wallLayout(wall, params.rows);
   const avatars = await fetchAvatars(shown.map(({ avatarUrl }) => avatarUrl));
   const name = entity.kind === 'repo' ? entity.nameWithOwner : entity.login;
   const title =
@@ -696,8 +690,6 @@ async function contributorsWall(
         ? 'contributors by contributions'
         : 'contributors';
   const gridWidth = WALL_COLUMNS * WALL_AVATAR + (WALL_COLUMNS - 1) * WALL_GAP;
-  // Padding, eyebrow, grid, footer lines.
-  const height = 21 + 16 + 16 + rows * WALL_AVATAR + (rows - 1) * WALL_GAP + 16 + 18 + (more ? 20 : 0) + 21;
   const footer = wallFooter(entity, wall);
 
   return {

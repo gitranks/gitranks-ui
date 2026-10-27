@@ -11,7 +11,7 @@ describe('repository sitemap', () => {
     vi.mocked(fetchReposForSitemap).mockReset();
   });
 
-  it("lists each repository's page with its rank card", async () => {
+  it("lists each repository's page with the badges it shows", async () => {
     vi.mocked(fetchReposForSitemap).mockResolvedValue(['vercel/next.js']);
 
     const entries = await sitemap({ id: Promise.resolve('0') });
@@ -19,7 +19,10 @@ describe('repository sitemap', () => {
     expect(entries.map(({ url, images }) => ({ url, images }))).toEqual([
       {
         url: 'https://example.test/repo/vercel/next.js',
-        images: ['https://example.test/badge/repo/vercel/next.js/rank-card.png'],
+        images: [
+          'https://example.test/badge/repo/vercel/next.js/rank.svg?theme=light',
+          'https://example.test/badge/repo/vercel/next.js/star-history.svg?theme=light',
+        ],
       },
     ]);
   });

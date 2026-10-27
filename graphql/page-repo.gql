@@ -41,5 +41,25 @@ query PageRepo($owner: String!, $name: String!) {
       requestedAt
       finishedAt
     }
+    siblings {
+      shared
+      share
+      repo {
+        ...RepoRowFields
+      }
+    }
+    builtBy {
+      accounts
+      counts {
+        tier
+        count
+      }
+      top {
+        login
+        avatarUrl
+        tier
+        level
+      }
+    }
   }
 }

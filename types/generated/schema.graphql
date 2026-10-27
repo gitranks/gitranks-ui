@@ -494,6 +494,7 @@ type RankTier {
 }
 
 type Repo {
+  builtBy: RepoBuiltBy
   burstMonths: [String!]
   createdAt: DateTime
   description: String
@@ -520,8 +521,27 @@ type Repo {
   pushedAt: DateTime
   rank: RankRepo
   renamedTo: String
+  siblings: [RepoSibling!]
   stars: Int!
   starsAt: DateTime
+}
+
+type RepoBuilder {
+  avatarUrl: String
+  level: Int!
+  login: String
+  tier: Int!
+}
+
+type RepoBuiltBy {
+  """Active accounts with a developer tier."""
+  accounts: Int!
+
+  """Accounts per developer tier, the highest tier first."""
+  counts: [TierCount!]!
+
+  """The highest-tier accounts, at most 8."""
+  top: [RepoBuilder!]!
 }
 
 type RepoHistory {
@@ -565,6 +585,16 @@ type RepoPulseFacts {
 type RepoRankTiers {
   repos: Int!
   tiers: [Tier!]!
+}
+
+type RepoSibling {
+  repo: Repo!
+
+  """The shared accounts' share of this repo's active accounts, 0–1."""
+  share: Float!
+
+  """Active accounts (2+ landed changes in 12 months) the two repos share."""
+  shared: Int!
 }
 
 type RepoStarPoint {
@@ -627,6 +657,11 @@ type Tier {
   maxRank: Int!
   minRank: Int!
   minValue: Int!
+  tier: Int!
+}
+
+type TierCount {
+  count: Int!
   tier: Int!
 }
 

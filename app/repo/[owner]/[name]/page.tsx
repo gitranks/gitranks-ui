@@ -10,6 +10,7 @@ import { RepoRankCard } from './components/repo-rank-card';
 import { RepoTierCard } from './components/repo-tier-card';
 import { StarHistoryBadgeSection } from './components/star-history-badge-section';
 import { StarHistorySection } from './components/star-history-section';
+import { WhoBuildsItCard } from './components/who-builds-it-card';
 import { buildRepoSEO, isRepoRanked } from './seo';
 import { buildRepoSummary } from './utils/repo-summary';
 import { REPO_MIN_RANK_STARS } from '@/app/app.consts';
@@ -109,46 +110,54 @@ export default async function RepoPage({ params }: PageProps<'/repo/[owner]/[nam
       <RepoLayout repo={repo} languageUrl={rank?.language ? getRepoLanguageRankingPath(rank.language) : undefined}>
         <JsonLd payloads={buildRepoSEO(repo).jsonLd} />
         <div className="flex flex-col gap-4">
-          {rank ? (
-            <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))]">
-              {rank.tier ? (
-                <RepoTierCard
-                  rank={{ ...rank, tier: rank.tier }}
-                  stars={repo.stars}
-                  gainedThisMonth={repo.gainedThisMonth}
-                  tiers={rankTiers.tiers?.tiers}
-                />
-              ) : (
-                !!rank.s && (
-                  <RepoRankCard
-                    title="Global rank"
-                    rank={rank.s}
-                    rankM={rank.sM}
-                    rankingLink={getRepoRankingPath(getRankingPageOf(rank.s))}
-                    rankedCount={rankedCount || undefined}
+          <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))]">
+            {rank ? (
+              <>
+                {rank.tier ? (
+                  <RepoTierCard
+                    rank={{ ...rank, tier: rank.tier }}
+                    stars={repo.stars}
+                    gainedThisMonth={repo.gainedThisMonth}
+                    tiers={rankTiers.tiers?.tiers}
                   />
-                )
-              )}
-              {/* The tier card carries the language rank in its footer. */}
-              {!rank.tier && !!rank.l && (
-                <RepoRankCard
-                  title={rank.language ? `${rank.language} rank` : 'Rank without a language'}
-                  rank={rank.l}
-                  rankM={rank.lM}
-                  rankingLink={getRepoLanguageRankingPath(rank.language, getRankingPageOf(rank.l))}
-                  rankedCount={languageCount}
-                />
-              )}
-            </ProfileCardsGrid>
-          ) : (
-            <ProfileCard>
-              <p className="text-sm text-muted-foreground">
-                {repo.stars >= REPO_MIN_RANK_STARS
-                  ? 'Not ranked yet: the repository joins the rankings at their next update.'
-                  : `Repositories are ranked from ${REPO_MIN_RANK_STARS} stars.`}
-              </p>
-            </ProfileCard>
-          )}
+                ) : (
+                  !!rank.s && (
+                    <RepoRankCard
+                      title="Global rank"
+                      rank={rank.s}
+                      rankM={rank.sM}
+                      rankingLink={getRepoRankingPath(getRankingPageOf(rank.s))}
+                      rankedCount={rankedCount || undefined}
+                    />
+                  )
+                )}
+                {/* The tier card carries the language rank in its footer. */}
+                {!rank.tier && !!rank.l && (
+                  <RepoRankCard
+                    title={rank.language ? `${rank.language} rank` : 'Rank without a language'}
+                    rank={rank.l}
+                    rankM={rank.lM}
+                    rankingLink={getRepoLanguageRankingPath(rank.language, getRankingPageOf(rank.l))}
+                    rankedCount={languageCount}
+                  />
+                )}
+              </>
+            ) : (
+              <ProfileCard className="self-start">
+                <p className="text-sm text-muted-foreground">
+                  {repo.stars >= REPO_MIN_RANK_STARS
+                    ? 'Not ranked yet: the repository joins the rankings at their next update.'
+                    : `Repositories are ranked from ${REPO_MIN_RANK_STARS} stars.`}
+                </p>
+              </ProfileCard>
+            )}
+            <WhoBuildsItCard
+              nameWithOwner={repo.nameWithOwner}
+              stars={repo.stars}
+              siblings={repo.siblings}
+              builtBy={repo.builtBy}
+            />
+          </ProfileCardsGrid>
           <ProfileSummary parts={summary} />
         </div>
         <StarHistorySection repo={repo} />

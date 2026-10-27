@@ -86,7 +86,6 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers,
             explanation={<GlobalRankTooltip />}
             className={cn('text-2xl font-semibold tracking-tight', tierTextClass(bestTier.data.tier))}
           >
-            <TierIcon tier={bestTier.data.tier} className="mr-1.5 inline-block size-[0.9em] align-[-0.1em]" />
             {TIER_NAMES[bestTier.data.tier - 1]} {bestTier.data.level}
           </ExplainedValue>
         </div>
@@ -104,7 +103,12 @@ export const ProfileRankCard: FC<ProfileRankCardProps> = ({ login, ranks, tiers,
     <ProfileCard className="gap-0 p-0 overflow-hidden">
       <div className="flex grow items-center gap-2">
         <div className="shrink-0">
-          <RankChart progress={bestTier?.data} />
+          {/* The tier's insignia sits in the ring's center, as the repository tier card draws its Cosmic icon. */}
+          <RankChart progress={bestTier?.data}>
+            {bestTier?.data && (
+              <TierIcon tier={bestTier.data.tier} className={cn('size-12', tierTextClass(bestTier.data.tier))} />
+            )}
+          </RankChart>
         </div>
         <div className="flex grow flex-col justify-center gap-3 py-4 pr-4">
           {getCardContent()}

@@ -13,7 +13,7 @@ describe('profile sitemap', () => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://example.test');
     vi.mocked(graphqlDirect).mockReset();
     vi.mocked(graphqlDirect).mockResolvedValue({
-      profilesForSitemap: [{ login: 'octocat', s: 10, c: 2, f: null }],
+      profilesForSitemap: [{ login: 'octocat', s: 150, c: 2, f: null }],
     });
   });
 
@@ -21,15 +21,15 @@ describe('profile sitemap', () => {
     vi.useRealTimers();
   });
 
-  it('lists old and new badge images until the cut-over', async () => {
+  it('lists the images the page shows and the old ones until the cut-over', async () => {
     vi.useFakeTimers({ now: new Date('2026-10-28T00:00:00.000Z'), toFake: ['Date'] });
 
     expect(await imagesOf()).toEqual([
       {
         url: 'https://example.test/profile/octocat',
         images: [
-          'https://example.test/badge/user/octocat/profile-card.png',
-          'https://example.test/badge/user/octocat/rank.png',
+          'https://example.test/badge/user/octocat/rank.svg?theme=light',
+          'https://example.test/badge/user/octocat/profile-card.svg?theme=light',
           'https://example.test/badges/octocat/stars-rank.png',
           'https://example.test/badges/octocat/stars-score.png',
         ],
@@ -37,15 +37,15 @@ describe('profile sitemap', () => {
     ]);
   });
 
-  it('lists only the new badge images after it', async () => {
+  it('lists only the images the page shows after it', async () => {
     vi.useFakeTimers({ now: new Date('2026-12-01T00:00:00.000Z'), toFake: ['Date'] });
 
     expect(await imagesOf()).toEqual([
       {
         url: 'https://example.test/profile/octocat',
         images: [
-          'https://example.test/badge/user/octocat/profile-card.png',
-          'https://example.test/badge/user/octocat/rank.png',
+          'https://example.test/badge/user/octocat/rank.svg?theme=light',
+          'https://example.test/badge/user/octocat/profile-card.svg?theme=light',
         ],
       },
     ]);

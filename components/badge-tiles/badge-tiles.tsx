@@ -47,6 +47,7 @@ export const BadgeTileLink: FC<{ tile: BadgeTile }> = ({ tile }) => {
         style={style}
         {...IMAGE_PROPS}
       />
+      <span className="sr-only"> – get the code</span>
     </Link>
   );
 };

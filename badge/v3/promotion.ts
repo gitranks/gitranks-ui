@@ -1,9 +1,8 @@
-import { availabilityOf, findBadge } from './catalogue';
 import type { EntityFacts } from './facts';
-import { type BadgeParams, BadgeParamsError, resolveParams } from './params';
+import { availableChoices, type BadgeChoice } from './tiles';
 
 /** A badge a page shows, with the query that picks its variant (`rank?by=contributions`). */
-export type PromotedBadge = { id: string; query?: Record<string, string> };
+export type PromotedBadge = BadgeChoice;
 
 type PromotionSet = {
   bucket: string;
@@ -93,28 +92,24 @@ export const PROMOTION: Record<EntityFacts['kind'], PromotionSet[]> = {
 /** The stars that size an entity. */
 const sizeOf = (entity: EntityFacts) => (entity.kind === 'repo' ? entity.stars : (entity.s ?? 0));
 
-export function promotionSetOf(entity: EntityFacts): PromotionSet {
-  const stars = sizeOf(entity);
-  const sets = PROMOTION[entity.kind];
+/** The set for an entity of a kind with these stars (for a developer, stars on their own repositories). */
+export function promotionSetFor(kind: EntityFacts['kind'], stars: number): PromotionSet {
+  const sets = PROMOTION[kind];
   return sets.find(({ from, to }) => stars >= from && stars < to) ?? sets[0];
 }
 
-function paramsOf(entity: EntityFacts, promoted: PromotedBadge): BadgeParams | null {
-  const badge = findBadge(entity.kind, promoted.id);
-  if (!badge) return null;
-  try {
-    return resolveParams(badge, promoted.query ?? {});
-  } catch (error) {
-    if (error instanceof BadgeParamsError) return null;
-    throw error;
-  }
+export const promotionSetOf = (entity: EntityFacts): PromotionSet => promotionSetFor(entity.kind, sizeOf(entity));
+
+/**
+ * Badges a page leaves out although the builder offers them: star history draws a "preparing" image without a history,
+ * fine in a README that waits for it but empty on a page.
+ */
+function pageShows(entity: EntityFacts, { id }: PromotedBadge): boolean {
+  return !(entity.kind === 'repo' && id === 'star-history' && !entity.history);
 }
 
 /** The bucket's shields, then its cards and charts, keeping the ones available for the entity. */
 export function promotedBadges(entity: EntityFacts, now = new Date()): PromotedBadge[] {
   const { shields, panels } = promotionSetOf(entity);
-  return [...shields, ...panels].filter((promoted) => {
-    const params = paramsOf(entity, promoted);
-    return params !== null && availabilityOf(entity, promoted.id, params, now) === 'available';
-  });
+  return availableChoices(entity, [...shields, ...panels], now).filter((promoted) => pageShows(entity, promoted));
 }

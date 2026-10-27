@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { findBadge } from './catalogue';
-import { NOW, orgBig, repoBig, repoMid, userBig, userSmall } from './fixtures';
+import { NOW, orgBig, repoBig, repoMid, userBig, userMid, userSmall } from './fixtures';
 import { defaultParams, resolveParams } from './params';
+import { promotedBadges } from './promotion';
 import { availableChoices, badgeAlt, badgeTiles, entityPathOf } from './tiles';
 
 const badge = (kind: 'user' | 'org' | 'repo', id: string) => {
@@ -61,6 +62,34 @@ describe('alt text', () => {
   });
 });
 
+describe('alt text of charts and cards', () => {
+  it('counts the months the chart draws', () => {
+    const chart = badge('user', 'count-chart');
+    expect(badgeAlt(userBig, chart, defaultParams(chart), NOW)).toBe(
+      'octo-dev on GitRanks: stars on own repositories, last 24 months',
+    );
+    expect(badgeAlt(userMid, chart, defaultParams(chart), NOW)).toBe(
+      'octo-dev on GitRanks: stars on own repositories, last 3 months',
+    );
+  });
+
+  it("reads a profile card's provisional rank as the card does", () => {
+    const card = badge('user', 'profile-card');
+    const provisional = {
+      ...userBig,
+      rankGlobal: { ...userBig.rankGlobal!, s: null, sProvisional: 40 },
+    };
+    expect(badgeAlt(provisional, card, defaultParams(card), NOW)).toBe('octo-dev on GitRanks: #40 by stars');
+  });
+});
+
+describe('page promotion', () => {
+  it('shows star history on a page only when the repository has one', () => {
+    expect(promotedBadges(repoBig, NOW).map(({ id }) => id)).toContain('star-history');
+    expect(promotedBadges({ ...repoBig, history: null }, NOW).map(({ id }) => id)).not.toContain('star-history');
+  });
+});
+
 describe('tiles', () => {
   it('draws each badge by its URL in both drawings of Auto and links to its code', () => {
     const [tile] = badgeTiles(userSmall, [{ id: 'rank', query: { by: 'contributions' } }], NOW);
@@ -98,6 +127,17 @@ describe('tiles', () => {
     ];
     expect(availableChoices(repoMid, choices, NOW)).toEqual([{ id: 'rank' }]);
     expect(availableChoices(repoBig, choices, NOW)).toEqual([{ id: 'rank' }, { id: 'starred-by-card' }]);
+  });
+
+  it("reserves a wall's drawn size from its rows and people", () => {
+    const [three, two] = badgeTiles(
+      repoBig,
+      [{ id: 'contributors-wall' }, { id: 'contributors-wall', query: { rows: '2' } }],
+      NOW,
+    );
+    expect(three.size).toEqual({ width: 800, height: 248 });
+    expect(two.size).toEqual({ width: 800, height: 206 });
+    expect(badgeTiles(repoMid, [{ id: 'contributors-wall' }], NOW)[0].size).toBeNull();
   });
 
   it('names the entity by its stored spelling', () => {

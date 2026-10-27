@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BadgesCard } from './badges-card';
 import type { EntityFacts } from '@/badge/v3/facts';
-import { NOW, orgUnranked, repoBig, repoMid, userSmall } from '@/badge/v3/fixtures';
+import { NOW, orgUnranked, repoBig, repoMid, repoUnranked, userSmall, userUnranked } from '@/badge/v3/fixtures';
 
 const render = (entity: EntityFacts | null) => renderToStaticMarkup(<BadgesCard entity={entity} now={NOW} />);
 
@@ -20,6 +20,7 @@ describe('BadgesCard', () => {
     expect(html).toContain('/badge/repo/acme/fastqueue/rank-card.svg?theme=light');
     expect(html).toContain('href="/badge/builder?repo=acme/fastqueue&badge=rank&step=embed"');
     expect(html).toContain('alt="acme/fastqueue on GitRanks: repo rank #41,206 · top 1%"');
+    expect(html).toContain('<span class="sr-only"> – get the code</span>');
   });
 
   it('links to the gallery and to every badge of the entity', () => {
@@ -42,6 +43,8 @@ describe('BadgesCard', () => {
 
   it('renders nothing without an available badge or without data', () => {
     expect(render(orgUnranked)).toBe('');
+    expect(render(userUnranked)).toBe('');
+    expect(render(repoUnranked)).toBe('');
     expect(render(null)).toBe('');
   });
 });

@@ -16,7 +16,8 @@ import {
   ProfileCardHeader,
   ProfileCardsGrid,
 } from '@/app/profile/[login]/components/profile-card';
-import { loadBadgeOrg, readBadgeFacts } from '@/badge/v3/load';
+import { readBadgeFacts } from '@/badge/v3/card-facts';
+import { loadBadgeOrgCard } from '@/badge/v3/load';
 import { BadgesCard } from '@/components/badges-card/badges-card';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { RankCardItem, RankCardPosition, RankCardTotalValue } from '@/components/rank-card/rank-card-item';
@@ -37,19 +38,20 @@ export async function generateMetadata({ params }: PageProps<'/org/[login]'>): P
 
 export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {
   const { login } = await params;
-  cacheLife('hours');
   cacheTag(`org:${login}`);
 
-  const org = await fetchOrg(login);
+  // The card's read starts with the page's own, not after it.
+  const [org, badges] = await Promise.all([fetchOrg(login), readBadgeFacts(loadBadgeOrgCard(login))]);
+
+  // A page that rendered without its Badges card is kept briefly, so the card comes back soon.
+  if (badges.ok) {
+    cacheLife('hours');
+  } else {
+    cacheLife('minutes');
+  }
 
   if (!org) {
     notFound();
-  }
-
-  const badges = await readBadgeFacts(loadBadgeOrg(org.login ?? login));
-  if (!badges.ok) {
-    // The page renders without its Badges card; keep it briefly so the card comes back soon.
-    cacheLife('minutes');
   }
 
   const rank = org.rankOrg ?? {};

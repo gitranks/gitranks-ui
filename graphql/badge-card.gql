@@ -1,0 +1,120 @@
+# What a page's Badges card reads: only the facts its promoted badges and their alt texts need. The badge images read
+# the full documents (badge-user.gql, badge-repo.gql, badge-org.gql).
+
+query BadgeUserCard($login: String!) {
+  user(login: $login) {
+    login
+    avatarUrl
+    country
+    s
+    c
+    f
+    snapshots(limit: 25)
+    rankGlobal {
+      s
+      c
+      f
+      sM
+      cM
+      fM
+      sProvisional
+      cProvisional
+      fProvisional
+    }
+    rankCountry {
+      s
+      c
+      f
+      sM
+      cM
+      fM
+      sProvisional
+      cProvisional
+      fProvisional
+    }
+    tiersGlobal {
+      sUsers
+      cUsers
+      fUsers
+    }
+    tiersCountry {
+      sUsers
+      cUsers
+      fUsers
+    }
+  }
+}
+
+query BadgeRepoCard($owner: String!, $name: String!) {
+  repo(owner: $owner, name: $name) {
+    nameWithOwner
+    language
+    stars
+    gainedThisMonth
+    monthStarts
+    history {
+      current {
+        date
+        stars
+      }
+      complete
+    }
+    rank {
+      s
+      sM
+      l
+      lM
+      language
+    }
+    starsBest {
+      total
+    }
+    pulse {
+      lastMonth
+      last12 {
+        activeContributors
+        newContributors
+      }
+      countryCount
+    }
+  }
+  repoRankTiers {
+    repos
+  }
+  repoLanguages {
+    language
+    repos
+  }
+}
+
+query BadgeOrgCard($login: String!) {
+  organization(login: $login) {
+    login
+    avatarUrl
+    s
+    reposCount
+    rankOrg {
+      s
+      sM
+    }
+    topRepos(first: 1) {
+      nameWithOwner
+      stars
+      rank {
+        s
+      }
+    }
+    pulse {
+      lastMonth
+      last12 {
+        activeContributors
+        newContributors
+      }
+      countryCount
+    }
+    pulseSeries {
+      months
+    }
+  }
+  orgRankTotal
+}

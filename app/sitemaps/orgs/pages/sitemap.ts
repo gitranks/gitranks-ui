@@ -15,8 +15,8 @@ export async function generateSitemaps() {
 }
 
 /**
- * One part of the organization pages (`/org/{login}`), each with its card: organizations with 1,000+ stars, most
- * starred first, up to 40,000 a part. The `/orgs/{page}` rankings stay in their own sitemap.
+ * One part of the organization pages (`/org/{login}`), each with the badges it shows: organizations with 1,000+
+ * stars, most starred first, up to 40,000 a part. The `/orgs/{page}` rankings stay in their own sitemap.
  */
 export default async function sitemap(props: { id: Promise<string> }): Promise<MetadataRoute.Sitemap> {
   const part = Number(await props.id);

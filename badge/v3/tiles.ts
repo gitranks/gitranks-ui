@@ -1,10 +1,11 @@
-import { availabilityOf, type BadgeDefinition, findBadge, isUserRankedIn } from './catalogue';
-import type { EntityFacts } from './facts';
+import { availabilityOf, type BadgeDefinition, countSeries, findBadge, isUserRankedIn, rankPropOf } from './catalogue';
+import { type EntityFacts, wallOf } from './facts';
 import { formatCompact, formatFull } from './format';
 import { type BadgeEntityPath, badgeImagePath } from './links';
 import { type BadgeParams, BadgeParamsError, resolveParams } from './params';
 import { shieldContent } from './shields';
 import type { BadgeFormat, By, Segment, Theme } from './types';
+import { wallLayout } from './wall-layout';
 import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
 
 /**
@@ -29,6 +30,9 @@ export const entityNameOf = (entity: EntityFacts | BadgeEntityPath) =>
 const segmentText = (segment: Segment | undefined) => segment?.runs.map(({ text }) => text).join('') ?? '';
 
 const plural = (count: number, one: string, many: string) => `${formatFull(count)} ${count === 1 ? one : many}`;
+
+/** The count chart draws up to this many monthly points. */
+const COUNT_CHART_MONTHS = 24;
 
 const COUNT_NAMES: Record<By, string> = {
   stars: 'stars on own repositories',
@@ -55,12 +59,16 @@ function panelFact(entity: EntityFacts, badge: BadgeDefinition, params: BadgePar
     }
     case 'user': {
       if (badge.id === 'profile-card') {
+        // As the card picks its rank: stars, else contributions; the provisional rank until the next update.
         const by: By = isUserRankedIn(entity, 'stars', 'global') ? 'stars' : 'contributions';
-        const rank = by === 'stars' ? entity.rankGlobal?.s : entity.rankGlobal?.c;
+        const prop = rankPropOf(by);
+        const rank = entity.rankGlobal?.[prop] ?? entity.rankGlobal?.[`${prop}Provisional`];
         return rank ? `#${formatFull(rank)} by ${by}` : badge.title;
       }
       if (badge.id === 'count-chart') {
-        return `${COUNT_NAMES[params.by]} over the last 24 months`;
+        // The months the chart draws: up to 24.
+        const months = countSeries(entity, params.by).slice(-COUNT_CHART_MONTHS).length;
+        return `${COUNT_NAMES[params.by]}, last ${months} months`;
       }
       return badge.title;
     }
@@ -106,8 +114,20 @@ export type BadgeTile = {
   size: { width: number; height: number } | null;
 };
 
+/** The drawing size a tile reserves: a card's or chart's own, a wall's from its rows and people; none for shields. */
+function sizeOf(entity: EntityFacts, badge: BadgeDefinition, params: BadgeParams): BadgeTile['size'] {
+  if (badge.format === 'shield') return null;
+  if (badge.id === 'contributors-wall') {
+    const wall = wallOf(entity, params.order);
+    if (!wall) return null;
+    const { width, height } = wallLayout(wall, params.rows);
+    return { width, height };
+  }
+  return badge.size ?? null;
+}
+
 /** The badge a choice names and the params its query gives, or `null` when the badge cannot take that query. */
-function resolveChoice(
+export function resolveChoice(
   entity: EntityFacts,
   choice: BadgeChoice,
 ): { badge: BadgeDefinition; params: BadgeParams } | null {
@@ -148,7 +168,7 @@ export function badgeTiles(entity: EntityFacts, choices: BadgeChoice[], now = ne
         },
         alt: badgeAlt(entity, badge, params, now),
         href: builderHref({ kind: entity.kind, name: entityNameOf(entity), badge, style: query, embed: true }),
-        size: badge.format === 'shield' ? null : (badge.size ?? null),
+        size: sizeOf(entity, badge, params),
       },
     ];
   });

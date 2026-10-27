@@ -1,9 +1,8 @@
-import { TrendingDown, TrendingUp } from 'lucide-react';
 import type { FC } from 'react';
 
-import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '@/app/profile/[login]/components/profile-card';
-import { RankCardItem, RankCardPosition } from '@/components/rank-card/rank-card-item';
+import { Eyebrow, MoreLink, ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { formatNumberShort } from '@/utils/format-number-short';
 
 type RepoRankCardProps = {
   title: string;
@@ -14,18 +13,45 @@ type RepoRankCardProps = {
   rankedCount?: number;
 };
 
-export const RepoRankCard: FC<RepoRankCardProps> = ({ title, rank, rankM, rankingLink, rankedCount }) => (
-  <ProfileCard className="gap-0">
-    <ProfileCardHeader>{title}</ProfileCardHeader>
-    <ProfileCardContent className="mt-4">
-      <RankCardPosition rank={rank} rankingLink={rankingLink} rankedCount={rankedCount} />
-      {!!rankM && rank !== rankM && (
-        <RankCardItem Icon={rank > rankM ? TrendingDown : TrendingUp}>
-          <span>
-            This month change: <RankDelta current={rank} previous={rankM} className="text-base" />
+const topShareOf = (rank: number, rankedCount?: number) => {
+  if (!rankedCount) {
+    return null;
+  }
+
+  // The count can lag the rank, so the share stays within 0.1–100% on either side.
+  const percentage = Math.min(Math.max((rank / rankedCount) * 100, 0.1), 100);
+  return percentage > 50
+    ? `Bottom ${formatNumberShort(Math.max(100 - percentage, 0.1))}%`
+    : `Top ${formatNumberShort(percentage)}%`;
+};
+
+/** A rank as the profile shows its numbers: the label over the mono rank, its change this month and its share. */
+export const RepoRankCard: FC<RepoRankCardProps> = ({ title, rank, rankM, rankingLink, rankedCount }) => {
+  const topShare = topShareOf(rank, rankedCount);
+
+  return (
+    <ProfileCard className="gap-3">
+      <div className="flex flex-col gap-1">
+        <Eyebrow as="h2">{title}</Eyebrow>
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="font-mono text-3xl font-semibold tracking-tight tabular-nums">
+            #{rank.toLocaleString('en-US')}
           </span>
-        </RankCardItem>
-      )}
-    </ProfileCardContent>
-  </ProfileCard>
-);
+          {!!rankM && rank !== rankM && (
+            <span className="text-sm text-muted-foreground">
+              <RankDelta current={rank} previous={rankM} className="font-mono text-sm" /> this month
+            </span>
+          )}
+        </div>
+        {!!topShare && (
+          <p className="text-sm">
+            {topShare} of {rankedCount!.toLocaleString('en-US')} ranked repositories
+          </p>
+        )}
+      </div>
+      <MoreLink href={rankingLink} className="mt-auto">
+        View ranking<span className="sr-only"> of {title}</span>
+      </MoreLink>
+    </ProfileCard>
+  );
+};

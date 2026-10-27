@@ -2,7 +2,17 @@
 
 import dynamic from 'next/dynamic';
 import type { FC } from 'react';
-import { Area, AreaChart, ReferenceArea, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceArea,
+  ReferenceDot,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 import { getBurstRanges, getStarHistoryPoints, type RepoHistory, type StarHistoryPoint } from '../utils/star-history';
 import { formatNumberShort } from '@/utils/format-number-short';
@@ -20,6 +30,9 @@ type TooltipProps = {
 const TICK_FORMATTER = new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 const DATE_FORMATTER = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' });
 
+// Mono numbers in the muted ink, like the profile's charts.
+const AXIS_TICK = { fontSize: 11, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-mono)' };
+
 const StarHistoryTooltip: FC<TooltipProps> = ({ active, payload }) => {
   const point = active ? payload?.[0]?.payload : undefined;
   if (!point) {
@@ -29,7 +42,9 @@ const StarHistoryTooltip: FC<TooltipProps> = ({ active, payload }) => {
   return (
     <div className="rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-sm">
       <div>{DATE_FORMATTER.format(point.time)}</div>
-      <div className="font-semibold">{point.stars.toLocaleString('en-US')} stars</div>
+      <div className="font-semibold">
+        <span className="font-mono tabular-nums">{point.stars.toLocaleString('en-US')}</span> stars
+      </div>
     </div>
   );
 };
@@ -55,6 +70,7 @@ const StarHistoryChart: FC<StarHistoryChartProps> = ({ history, burstMonths }) =
               <stop offset="100%" stopColor="var(--series-1)" stopOpacity={0.02} />
             </linearGradient>
           </defs>
+          <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
           {bursts.map(({ x1, x2 }) => (
             <ReferenceArea key={x1} x1={x1} x2={x2} fill="var(--series-2)" fillOpacity={0.15} ifOverflow="hidden" />
           ))}
@@ -66,7 +82,7 @@ const StarHistoryChart: FC<StarHistoryChartProps> = ({ history, burstMonths }) =
             tickLine={false}
             axisLine={false}
             minTickGap={32}
-            tick={{ fontSize: 11 }}
+            tick={AXIS_TICK}
             tickFormatter={(value) => TICK_FORMATTER.format(value)}
           />
           <YAxis
@@ -74,7 +90,7 @@ const StarHistoryChart: FC<StarHistoryChartProps> = ({ history, burstMonths }) =
             tickLine={false}
             axisLine={false}
             allowDecimals={false}
-            tick={{ fontSize: 11 }}
+            tick={AXIS_TICK}
             tickFormatter={formatNumberShort}
           />
           <Tooltip content={<StarHistoryTooltip />} />
@@ -93,7 +109,12 @@ const StarHistoryChart: FC<StarHistoryChartProps> = ({ history, burstMonths }) =
               r={4}
               fill="var(--series-1)"
               stroke="var(--background)"
-              label={{ value: DATE_FORMATTER.format(last.time), position: 'left', fontSize: 11 }}
+              label={{
+                value: DATE_FORMATTER.format(last.time),
+                position: 'left',
+                fontSize: 11,
+                fill: 'var(--muted-foreground)',
+              }}
             />
           )}
         </AreaChart>

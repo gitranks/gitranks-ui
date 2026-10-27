@@ -1,8 +1,11 @@
+# Everything a repository's v3 badges read, in one query.
 query BadgeRepo($owner: String!, $name: String!) {
   repo(owner: $owner, name: $name) {
     nameWithOwner
+    language
     stars
     gainedThisMonth
+    monthStarts
     history {
       points {
         date
@@ -12,6 +15,67 @@ query BadgeRepo($owner: String!, $name: String!) {
         date
         stars
       }
+      complete
     }
+    rank {
+      s
+      sM
+      l
+      lM
+      language
+      tier {
+        tier
+        level
+      }
+    }
+    starsBest {
+      total
+      counts {
+        tier
+        count
+      }
+      top {
+        login
+        avatarUrl
+        tier
+        level
+      }
+    }
+    siblings {
+      share
+      repo {
+        nameWithOwner
+      }
+    }
+    builtBy {
+      counts {
+        tier
+        count
+      }
+    }
+    pulse {
+      lastMonth
+      last12 {
+        activeContributors
+        newContributors
+      }
+    }
+    pulseSeries {
+      months
+      activeLinked
+      activeAnonymous
+      newContributors
+    }
+  }
+  repoRankTiers {
+    repos
+    tiers {
+      tier
+      level
+    }
+  }
+  repoLanguages {
+    language
+    repos
   }
 }

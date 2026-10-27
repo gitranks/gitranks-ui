@@ -2,23 +2,19 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import {
+  CONTENT_TYPE,
   renderStarHistorySvg,
   type StarHistoryBadgeFormat,
   type StarHistoryBadgeInput,
   svgToPng,
 } from './render-star-history-badge';
 import { fetchBadgeRepo } from './star-history-badge.loader';
-import type { BadgeRepoQuery } from '@/types/generated/graphql';
+import type { StarHistoryRepoQuery } from '@/types/generated/graphql';
 import { parseRepoParams } from '@/utils/repo-paths';
 
 const FILES: Record<string, StarHistoryBadgeFormat> = {
   'star-history.svg': 'svg',
   'star-history.png': 'png',
-};
-
-const CONTENT_TYPE: Record<StarHistoryBadgeFormat, string> = {
-  svg: 'image/svg+xml; charset=utf-8',
-  png: 'image/png',
 };
 
 export const STAR_HISTORY_CACHE_CONTROL = {
@@ -44,7 +40,7 @@ export function parseStarHistoryFile(file: string): StarHistoryBadgeFormat | nul
   return Object.hasOwn(FILES, file) ? FILES[file] : null;
 }
 
-export function getStarHistoryBadgeInput(repo: NonNullable<BadgeRepoQuery['repo']>): StarHistoryBadgeInput {
+export function getStarHistoryBadgeInput(repo: NonNullable<StarHistoryRepoQuery['repo']>): StarHistoryBadgeInput {
   const { nameWithOwner, history, gainedThisMonth } = repo;
 
   return history

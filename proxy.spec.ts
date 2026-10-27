@@ -67,6 +67,9 @@ describe('proxy', () => {
       '/badges/torvalds/stars-rank.svg',
       '/repo-badges/vercel/next.js/star-history.svg',
       '/repo-badges/vercel/next.js/star-history.png',
+      '/badge/user/torvalds/rank.svg',
+      '/badge/org/vercel/org-card.png',
+      '/badge/repo/vercel/next.js/star-history.svg',
     ])('leaves the always-anonymous badge %s alone', (path) => {
       expect(matches(path)).toBe(false);
     });
@@ -86,5 +89,12 @@ describe('proxy', () => {
     it('still runs for the repository page', () => {
       expect(matches('/repo/vercel/next.js')).toBe(true);
     });
+
+    it.each(['/badge', '/badge/builder', '/badge/builder/torvalds', '/badge/gallery'])(
+      'still runs for the badge page %s',
+      (path) => {
+        expect(matches(path)).toBe(true);
+      },
+    );
   });
 });

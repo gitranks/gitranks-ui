@@ -21,6 +21,9 @@ export const SITEMAP_PAGE_DEPTH = {
   repos: 50,
 } as const;
 
+/** The most repository sitemaps there can be (40,000 repositories each); the index lists those that hold any. */
+export const SITEMAP_REPO_PARTS_MAX = 10;
+
 export const SITEMAP_COUNTRY_LIMIT = 100;
 export const SITEMAP_LANGUAGE_LIMIT = 10;
 export const SITEMAP_LANGUAGE_COUNTRY_LIMIT = 10;

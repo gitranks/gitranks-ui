@@ -1,0 +1,3 @@
+query ReposForSitemap($part: Int!) {
+  reposForSitemap(part: $part)
+}

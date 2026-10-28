@@ -1,6 +1,7 @@
 /** The answer to a press of Refresh on a repository page; dates arrive as ISO strings. */
 export type RepoPullResult =
   | { status: 'started'; pullId: string; nextAt?: string }
+  | { status: 'refreshed'; stars: number; nextAt?: string; historyUntil?: string }
   | { status: 'not_eligible' }
   | { status: 'up_to_date' }
   | { status: 'not_ready'; until: string }

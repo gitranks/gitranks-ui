@@ -89,11 +89,21 @@ export const PULL_TOASTS = {
   failed: REFRESH_TOASTS.checkFailed,
   pullFailed: 'The star history fetch failed. Please try again later.',
   timedOut: 'The fetch is taking long. Come back later: the chart updates when it is done.',
+  updated: 'Updated. Badges are cached for 24 hours, so the ones in your README can take up to a day to show it.',
+  historyAgain: 'The full star history is read again in {time}.',
 } as const;
 
-/** What the button does next: wait for the fetch, open a dialog or show a toast. */
+/** The note after a refresh, shown until the visitor closes it, with when the full history is read again if known. */
+export function refreshNoteOf(historyUntil?: string, now = Date.now()) {
+  return historyUntil
+    ? `${PULL_TOASTS.updated} ${fillTime(PULL_TOASTS.historyAgain, timeLeftUntil(historyUntil, now))}`
+    : PULL_TOASTS.updated;
+}
+
+/** What the button does next: wait for the fetch, reload the page with a note, open a dialog or show a toast. */
 export type PullOutcome =
   | { kind: 'poll'; toast?: string }
+  | { kind: 'reload'; note: string }
   | { kind: 'dialog'; dialog: PullDialogKind; until?: string }
   | { kind: 'toast'; tone: 'info' | 'error'; text: string };
 
@@ -105,6 +115,8 @@ export function pullOutcomeOf(result: RepoPullResult, mode: PullMode, now = Date
       return { kind: 'poll', toast: mode === 'daily' ? PULL_TOASTS.startedDaily : PULL_TOASTS.started };
     case 'running':
       return { kind: 'poll' };
+    case 'refreshed':
+      return { kind: 'reload', note: refreshNoteOf(result.historyUntil, now) };
     case 'not_eligible':
       return info(PULL_TOASTS.notEligible);
     case 'up_to_date':
@@ -147,13 +159,13 @@ export function pullCheckOf(status: RepoPullStatus | null | undefined, pullId: s
   return pull.status === 'failed' ? 'stopFailed' : 'reload';
 }
 
-/** The allowance after a press started a fetch: a daily visitor's free fetch is used until `nextAt`. */
+/** The allowance after a press started or refreshed a fetch: a daily visitor's free fetch is used until `nextAt`. */
 export function allowanceAfter(
   result: RepoPullResult,
   mode: PullMode,
   allowance: RepoPullAllowance | null,
 ): RepoPullAllowance | null {
-  if (result.status !== 'started' || mode !== 'daily' || !result.nextAt) {
+  if ((result.status !== 'started' && result.status !== 'refreshed') || mode !== 'daily' || !result.nextAt) {
     return allowance;
   }
 

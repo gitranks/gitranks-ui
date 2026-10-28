@@ -103,8 +103,8 @@ export const POST = auth(async function POST(req: AuthRequest, { params }) {
 
   const result = read.body;
 
-  // The fetch is now under way, so a reload shows its progress instead of the cached page.
-  if (result.status === 'started') {
+  // The fetch is now under way, or its count is already in, so a reload shows it instead of the cached page.
+  if (result.status === 'started' || result.status === 'refreshed') {
     revalidateTag(getRepoCacheTag(repo.owner, repo.name), { expire: 0 });
   }
 

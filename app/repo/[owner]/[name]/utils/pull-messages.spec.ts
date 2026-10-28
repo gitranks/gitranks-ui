@@ -10,6 +10,7 @@ import {
   pullLabelOf,
   pullModeOf,
   pullOutcomeOf,
+  refreshNoteOf,
   TOKEN_PULLS_PER_DAY,
 } from './pull-messages';
 import type { RepoPullAllowance, RepoPullState } from '@/types/repo-pull.types';
@@ -61,6 +62,22 @@ describe('pullOutcomeOf', () => {
     expect(pullOutcomeOf({ status: 'running' }, 'token', NOW)).toEqual({ kind: 'poll' });
   });
 
+  it('reloads after a refresh, with the note on badges for the page after it', () => {
+    expect(pullOutcomeOf({ status: 'refreshed', stars: 171, nextAt: IN_2H }, 'daily', NOW)).toEqual({
+      kind: 'reload',
+      note: 'Updated. Badges are cached for 24 hours, so the ones in your README can take up to a day to show it.',
+    });
+  });
+
+  it('says when the full star history is read again, when the answer knows', () => {
+    expect(pullOutcomeOf({ status: 'refreshed', stars: 171, historyUntil: IN_2H }, 'daily', NOW)).toEqual({
+      kind: 'reload',
+      note:
+        'Updated. Badges are cached for 24 hours, so the ones in your README can take up to a day to show it. ' +
+        'The full star history is read again in 2 h.',
+    });
+  });
+
   it.each([
     [{ status: 'not_eligible' } as const, PULL_TOASTS.notEligible],
     [{ status: 'up_to_date' } as const, PULL_TOASTS.upToDate],
@@ -80,6 +97,18 @@ describe('pullOutcomeOf', () => {
     [{ status: 'blocked', until: IN_2H } as const, { kind: 'dialog', dialog: 'blocked', until: IN_2H }],
   ])('explains %o in a dialog', (result, outcome) => {
     expect(pullOutcomeOf(result, 'daily', NOW)).toEqual(outcome);
+  });
+});
+
+describe('refreshNoteOf', () => {
+  it('is the note on badges alone after a fetch, which knows no next read', () => {
+    expect(refreshNoteOf()).toBe(PULL_TOASTS.updated);
+  });
+
+  it('adds the time left until the full star history is read again', () => {
+    expect(refreshNoteOf('2026-10-26T23:20:00.000Z', NOW)).toBe(
+      `${PULL_TOASTS.updated} The full star history is read again in 13 h 20 min.`,
+    );
   });
 });
 
@@ -171,6 +200,12 @@ describe('allowanceAfter', () => {
     expect(pullLabelOf('daily', after)).toBe('Refresh');
   });
 
+  it('marks the free fetch of the day used after a refresh too', () => {
+    expect(allowanceAfter({ status: 'refreshed', stars: 171, nextAt: IN_2H }, 'daily', before)).toEqual(
+      allowance({ available: false, nextAt: IN_2H }, before.token),
+    );
+  });
+
   it('fills in the token part when no allowance was read yet', () => {
     expect(allowanceAfter({ status: 'started', pullId: 'p1', nextAt: IN_2H }, 'daily', null)).toEqual(
       allowance({ available: false, nextAt: IN_2H }, { used: 0, limit: TOKEN_PULLS_PER_DAY, nextAt: null }),
@@ -181,5 +216,7 @@ describe('allowanceAfter', () => {
     expect(allowanceAfter({ status: 'running' }, 'daily', before)).toBe(before);
     expect(allowanceAfter({ status: 'started', pullId: 'p1', nextAt: IN_2H }, 'token', before)).toBe(before);
     expect(allowanceAfter({ status: 'started', pullId: 'p1' }, 'daily', before)).toBe(before);
+    expect(allowanceAfter({ status: 'refreshed', stars: 171, nextAt: IN_2H }, 'token', before)).toBe(before);
+    expect(allowanceAfter({ status: 'refreshed', stars: 171 }, 'daily', before)).toBe(before);
   });
 });

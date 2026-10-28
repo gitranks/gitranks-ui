@@ -1,4 +1,5 @@
 import { absoluteUrl, SITE_DESCRIPTION, SITE_NAME, SITE_SAME_AS, SITE_URL } from './site';
+import { SOCIAL_CARD_SIZE } from '@/badge/v3/links';
 
 /** The site Organization node, emitted on every page; other nodes point at it by `@id`. */
 export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
@@ -56,14 +57,41 @@ export function buildRankingItemList(name: string, path: string, items: RankingL
   };
 }
 
+/** An entity page's images: the avatar the page draws as its main image, and its card drawn at 1200×630. */
+export type EntityImages = {
+  /** The entity's page, absolute (a developer's overview, for every tab): the images' `@id`s are on it. */
+  entityUrl: string;
+  avatar: { url: string; caption: string } | null;
+  card: { url: string; caption: string } | null;
+};
+
 /**
- * The schema.org `image` of a developer, an organization or a repository: the avatar, then its card drawn at
- * 1200×630 when it has one (`cardUrl`), as the link preview shows it.
+ * The schema.org `image` of a developer, an organization or a repository: the avatar, then the card when it has one,
+ * each an `ImageObject` with its caption (the card with its size). Pages name the avatar as their primary image by
+ * its `@id` (see `primaryImageOfPage`) rather than repeating it.
  */
-export function entityJsonLdImage(
-  avatarUrl: string | null | undefined,
-  cardUrl: string | null,
-): string | string[] | undefined {
-  const images = [avatarUrl, cardUrl].filter((url): url is string => !!url);
+export function entityJsonLdImage({ entityUrl, avatar, card }: EntityImages) {
+  const images = [
+    avatar && {
+      '@type': 'ImageObject',
+      '@id': `${entityUrl}#avatar`,
+      url: avatar.url,
+      contentUrl: avatar.url,
+      caption: avatar.caption,
+    },
+    card && {
+      '@type': 'ImageObject',
+      '@id': `${entityUrl}#card`,
+      url: card.url,
+      contentUrl: card.url,
+      encodingFormat: 'image/png',
+      ...SOCIAL_CARD_SIZE,
+      caption: card.caption,
+    },
+  ].filter((image) => !!image);
   return images.length > 1 ? images : images[0];
 }
+
+/** The page's main image, the avatar it draws at the top, by its `@id` in the entity's `image`. */
+export const primaryImageOfPage = ({ entityUrl, avatar }: EntityImages) =>
+  avatar ? { '@id': `${entityUrl}#avatar` } : undefined;

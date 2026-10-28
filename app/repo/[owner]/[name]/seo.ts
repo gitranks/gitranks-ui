@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 
 import { REPO_INDEX_MIN_STARS, REPO_MIN_RANK_STARS } from '@/app/app.consts';
+import { formatFull } from '@/badge/v3/format';
 import { hasRankCard, socialCardPath } from '@/badge/v3/links';
 import { clipText } from '@/lib/seo/clip-text';
-import { entityJsonLdImage } from '@/lib/seo/json-ld';
+import { type EntityImages, entityJsonLdImage, primaryImageOfPage } from '@/lib/seo/json-ld';
 import { entityPreviewImages, pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 import type { PageRepoQuery } from '@/types/generated/graphql';
+import { avatarPath, repoOwnerAvatarAlt } from '@/utils/avatar-path';
 import { formatNumberShort } from '@/utils/format-number-short';
 import { formatOrdinal } from '@/utils/format-ordinal';
 import { getRepoOwnerPath, getRepoPath } from '@/utils/repo-paths';
@@ -55,7 +57,7 @@ function buildDescription(repo: Repo, ranked: boolean): string {
 }
 
 /** The owner as a schema.org node; `undefined` when the API does not say whether it is a user or an organization. */
-function buildOwner(repo: Repo) {
+function buildOwner(repo: Repo, images?: EntityImages) {
   const path = getRepoOwnerPath(repo.owner, repo.isInOrganization);
 
   if (!path) {
@@ -66,13 +68,14 @@ function buildOwner(repo: Repo) {
     '@type': repo.isInOrganization ? 'Organization' : 'Person',
     name: repo.owner,
     url: absoluteUrl(path),
-    image: repo.ownerAvatarUrl || undefined,
+    // The owner's avatar is the repository page's main image, in the repository's `image`.
+    image: images && primaryImageOfPage(images),
     sameAs: [`https://github.com/${repo.owner}`],
   };
 }
 
-function buildSourceCode(repo: Repo, url: string, cardUrl: string | null) {
-  const owner = buildOwner(repo);
+function buildSourceCode(repo: Repo, url: string, images: EntityImages) {
+  const owner = buildOwner(repo, images);
   const createdAt = repo.createdAt ? new Date(repo.createdAt) : undefined;
 
   return {
@@ -81,7 +84,7 @@ function buildSourceCode(repo: Repo, url: string, cardUrl: string | null) {
     alternateName: repo.nameWithOwner,
     description: repo.description || undefined,
     url,
-    image: entityJsonLdImage(repo.ownerAvatarUrl, cardUrl),
+    image: entityJsonLdImage(images),
     codeRepository: `https://github.com/${repo.nameWithOwner}`,
     sameAs: [`https://github.com/${repo.nameWithOwner}`],
     programmingLanguage: repo.language || undefined,
@@ -126,15 +129,27 @@ export function buildRepoSEO(repo: Repo): { metadata: Metadata; jsonLd: object[]
   const url = absoluteUrl(path);
   const title = `${repo.nameWithOwner} - GitHub Repository Rank`;
   const description = buildDescription(repo, ranked);
-  const cardUrl = hasRankCard(repo.rank)
-    ? absoluteUrl(socialCardPath({ kind: 'repo', nameWithOwner: repo.nameWithOwner }))
-    : null;
+  const rank = repo.rank?.s;
+  // The page draws the owner's avatar at its top when GitHub gave one.
+  const images: EntityImages = {
+    entityUrl: url,
+    avatar: repo.ownerAvatarUrl
+      ? { url: absoluteUrl(avatarPath(repo.owner)), caption: repoOwnerAvatarAlt(repo.owner, repo.nameWithOwner) }
+      : null,
+    card:
+      rank && hasRankCard(repo.rank)
+        ? {
+            url: absoluteUrl(socialCardPath({ kind: 'repo', nameWithOwner: repo.nameWithOwner })),
+            caption: `${repo.nameWithOwner} on GitRanks: repo rank #${formatFull(rank)}`,
+          }
+        : null,
+  };
 
   const metadata = pageMetadata({
     title,
     description,
     path,
-    images: entityPreviewImages(cardUrl, repo.ownerAvatarUrl, `${repo.nameWithOwner} on GitRanks`),
+    images: entityPreviewImages(images),
   });
   const jsonLd = [
     {
@@ -143,7 +158,8 @@ export function buildRepoSEO(repo: Repo): { metadata: Metadata; jsonLd: object[]
       url,
       name: title,
       description,
-      mainEntity: buildSourceCode(repo, url, cardUrl),
+      primaryImageOfPage: primaryImageOfPage(images),
+      mainEntity: buildSourceCode(repo, url, images),
     },
     buildBreadcrumbs(repo, url),
   ];

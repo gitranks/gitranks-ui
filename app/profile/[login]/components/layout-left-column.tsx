@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
+import { avatarPath, userAvatarAlt } from '@/utils/avatar-path';
 import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 
 type LayoutLeftColumnProps = Readonly<{
@@ -47,14 +48,16 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
       <LeftColumnContainer className="md:col-start-1 md:row-start-1">
         <AvatarAndNameContainer>
           <AvatarContainer>
+            {/* The page's main image, from this site's own URL: the one its structured data names. */}
             <Image
-              src={`${user.avatarUrl}`}
-              alt={`${user.login} avatar`}
+              src={avatarPath(user.login)}
+              alt={userAvatarAlt(user.login, user.name)}
               className="rounded-full w-full h-full bg-muted ring-1 ring-border"
               width={AVATAR_SIZE}
               height={AVATAR_SIZE}
               loading="eager"
               fetchPriority="high"
+              unoptimized
             />
           </AvatarContainer>
           <NameContainer>

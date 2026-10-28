@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 
+import type { EntityImages } from './json-ld';
 import { SITE_NAME, SITE_X_HANDLE } from './site';
 import { SOCIAL_CARD_SIZE } from '@/badge/v3/links';
 
-/** An absolute image URL, or one with its size and alt text. */
-export type PreviewImage = string | { url: string; width: number; height: number; alt: string };
+/** An absolute image URL, or one with its alt text and, when known, its size. */
+export type PreviewImage = string | { url: string; width?: number; height?: number; alt: string };
 
 type PageMetadataInput = {
   /** A plain title gets the root ` | GitRanks` template; `absolute` skips it. */
@@ -64,17 +65,13 @@ export function pageMetadata({
 
 /**
  * The link preview of a developer's, an organization's or a repository's page: its card drawn at 1200×630 when it
- * has one (`cardUrl`), else its avatar; none without either.
+ * has one, else its avatar; none without either. Each with its caption as the alt text.
  */
-export function entityPreviewImages(
-  cardUrl: string | null,
-  avatarUrl: string | null | undefined,
-  alt: string,
-): PreviewImage[] | undefined {
-  if (cardUrl) {
-    return [{ url: cardUrl, ...SOCIAL_CARD_SIZE, alt }];
+export function entityPreviewImages({ avatar, card }: EntityImages): PreviewImage[] | undefined {
+  if (card) {
+    return [{ url: card.url, ...SOCIAL_CARD_SIZE, alt: card.caption }];
   }
-  return avatarUrl ? [avatarUrl] : undefined;
+  return avatar ? [{ url: avatar.url, alt: avatar.caption }] : undefined;
 }
 
 /** ` · Page 3` for every page but the first: the title suffix. */

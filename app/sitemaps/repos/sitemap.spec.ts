@@ -20,8 +20,8 @@ describe('repository sitemap', () => {
       {
         url: 'https://example.test/repo/vercel/next.js',
         images: [
+          'https://example.test/api/avatar/vercel',
           'https://example.test/badge/repo/vercel/next.js/rank.svg?theme=light',
-          'https://example.test/badge/repo/vercel/next.js/star-history.svg?theme=light',
         ],
       },
     ]);

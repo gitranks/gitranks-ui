@@ -30,13 +30,6 @@ export const SITEMAP_REPO_PARTS_MAX = 10;
  */
 export const SITEMAP_ORG_PARTS_MAX = 5;
 
-/**
- * Badges v3 moved the profile sitemap's images to the new badge URLs. For one month (from 2026-10-27) the sitemap
- * lists the old badge PNGs (`/badges/{login}/*.png`) beside the new ones, so search engines meet the new images before
- * the old ones leave; from this moment on it lists only the new ones. The old URLs keep answering either way.
- */
-export const SITEMAP_OLD_BADGE_IMAGES_UNTIL = new Date('2026-11-27T00:00:00.000Z');
-
 export const SITEMAP_COUNTRY_LIMIT = 100;
 export const SITEMAP_LANGUAGE_LIMIT = 10;
 export const SITEMAP_LANGUAGE_COUNTRY_LIMIT = 10;

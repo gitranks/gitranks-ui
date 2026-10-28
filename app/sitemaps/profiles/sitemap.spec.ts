@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import sitemap from './sitemap';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -17,33 +17,12 @@ describe('profile sitemap', () => {
     });
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('lists the images the page shows and the old ones until the cut-over', async () => {
-    vi.useFakeTimers({ now: new Date('2026-10-28T00:00:00.000Z'), toFake: ['Date'] });
-
+  it('lists the images the page shows: the avatar and the promoted badges', async () => {
     expect(await imagesOf()).toEqual([
       {
         url: 'https://example.test/profile/octocat',
         images: [
-          'https://example.test/badge/user/octocat/rank.svg?theme=light',
-          'https://example.test/badge/user/octocat/profile-card.svg?theme=light',
-          'https://example.test/badges/octocat/stars-rank.png',
-          'https://example.test/badges/octocat/stars-score.png',
-        ],
-      },
-    ]);
-  });
-
-  it('lists only the images the page shows after it', async () => {
-    vi.useFakeTimers({ now: new Date('2026-12-01T00:00:00.000Z'), toFake: ['Date'] });
-
-    expect(await imagesOf()).toEqual([
-      {
-        url: 'https://example.test/profile/octocat',
-        images: [
+          'https://example.test/api/avatar/octocat',
           'https://example.test/badge/user/octocat/rank.svg?theme=light',
           'https://example.test/badge/user/octocat/profile-card.svg?theme=light',
         ],

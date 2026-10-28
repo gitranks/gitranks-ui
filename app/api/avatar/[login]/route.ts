@@ -5,16 +5,21 @@ import { AvatarByLoginDocument } from '@/types/generated/graphql';
 
 type Props = { params: Promise<{ login: string }> };
 
+/** A GitHub login: letters, digits and single hyphens, not at either end; up to 39 characters. */
+const GITHUB_LOGIN = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;
+
 export async function GET(req: NextRequest, { params }: Props) {
   const { login } = await params;
 
-  const { user } = await graphqlDirect(AvatarByLoginDocument, { login });
+  const { user, organization } = (await graphqlDirect(AvatarByLoginDocument, { login })) ?? {};
+  // A developer's or an organization's stored avatar; any other GitHub account's (a repository owner GitRanks has not
+  // read) from GitHub's own avatar link for the login.
+  const src =
+    user?.avatarUrl ?? organization?.avatarUrl ?? (GITHUB_LOGIN.test(login) ? `https://github.com/${login}.png` : null);
 
-  if (!user?.avatarUrl) {
+  if (!src) {
     return new Response('User not found', { status: 404 });
   }
-
-  const src = user.avatarUrl;
 
   // Forward validators for 304 support
   const etag = req.headers.get('if-none-match') ?? undefined;

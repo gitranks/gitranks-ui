@@ -19,6 +19,7 @@ import {
 import { Flag } from '@/components/flag/flag';
 import { Button } from '@/components/ui/button';
 import type { PageOrgQuery } from '@/types/generated/graphql';
+import { avatarPath, orgAvatarAlt } from '@/utils/avatar-path';
 import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 
 type LayoutLeftColumnProps = Readonly<{
@@ -40,14 +41,16 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ org, children }) =
       <LeftColumnContainer>
         <AvatarAndNameContainer>
           <AvatarContainer>
+            {/* The page's main image, from this site's own URL: the one its structured data names. */}
             <Image
-              src={`${org.avatarUrl}`}
-              alt={`${org.login} avatar`}
+              src={avatarPath(org.login ?? '')}
+              alt={orgAvatarAlt(org.login ?? '', org.name)}
               className="rounded-full w-full h-full"
               width={AVATAR_SIZE}
               height={AVATAR_SIZE}
               loading="eager"
               fetchPriority="high"
+              unoptimized
             />
           </AvatarContainer>
           <NameContainer>

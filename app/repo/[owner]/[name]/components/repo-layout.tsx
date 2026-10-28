@@ -29,6 +29,7 @@ import {
 import { RepoTierChip } from '@/components/repo-tier-chip/repo-tier-chip';
 import { Button } from '@/components/ui/button';
 import type { PageRepoQuery } from '@/types/generated/graphql';
+import { avatarPath, repoOwnerAvatarAlt } from '@/utils/avatar-path';
 import { getRepoOwnerPath } from '@/utils/repo-paths';
 
 type RepoLayoutProps = {
@@ -48,15 +49,17 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
   const { owner, name, nameWithOwner, ownerAvatarUrl, description, language, stars, gainedThisMonth, createdAt } = repo;
   const readAt = repo.history?.readAt;
   const ownerPath = getRepoOwnerPath(owner, repo.isInOrganization);
+  // The page's main image, from this site's own URL: the one its structured data names.
   const avatar = !!ownerAvatarUrl && (
     <Image
-      src={`${ownerAvatarUrl}&s=${AVATAR_SIZE * 2}`}
-      alt={`${owner} avatar`}
+      src={avatarPath(owner)}
+      alt={repoOwnerAvatarAlt(owner, nameWithOwner)}
       className="h-full w-full rounded-full bg-muted ring-1 ring-border"
       width={AVATAR_SIZE}
       height={AVATAR_SIZE}
       loading="eager"
       fetchPriority="high"
+      unoptimized
     />
   );
 

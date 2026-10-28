@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { renderNotTrackedSvg, renderStarHistorySvg, svgToPng } from './render-star-history-badge';
+import { formatMonthly, renderNotTrackedSvg, renderStarHistorySvg, svgToPng } from './render-star-history-badge';
 import type { StarPoint } from './star-history-chart';
 
 const resvgOptions = vi.hoisted(() => [] as unknown[]);
@@ -38,6 +38,16 @@ function exampleHistory(): { points: StarPoint[]; current: StarPoint } {
   }
   return { points, current: { date: '2026-10-20T00:00:00Z', stars: 6214 } };
 }
+
+describe('formatMonthly', () => {
+  it('shows only a gain', () => {
+    expect(formatMonthly(1214)).toBe('+1,214 this month');
+    expect(formatMonthly(0)).toBeNull();
+    expect(formatMonthly(-3)).toBeNull();
+    expect(formatMonthly(null)).toBeNull();
+    expect(formatMonthly(undefined)).toBeNull();
+  });
+});
 
 describe('renderStarHistorySvg', () => {
   it('draws the chart under the text, on a transparent 1000x400 canvas', async () => {

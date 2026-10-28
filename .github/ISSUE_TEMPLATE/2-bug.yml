@@ -1,0 +1,39 @@
+name: Bug report
+description: Something on gitranks.com or a badge is broken or behaves wrongly.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - README badge or badge builder
+        - Developer profile
+        - Repository page
+        - Organization page
+        - Rankings or leaderboards
+        - Sign-in or profile refresh
+        - Telegram or WhatsApp updates
+        - Somewhere else
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Page or badge URL
+      placeholder: https://gitranks.com/badge/user/octocat/rank.svg
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you saw, and what you expected instead. Screenshots help.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Chrome 141 on macOS, Safari on iPhone

@@ -1,0 +1,47 @@
+name: Wrong or missing rank
+description: A rank, number or tier on GitRanks looks wrong, or a profile, repository or organization is missing.
+title: "[Rank]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for checking. Ranks update daily, and each ranking has a minimum: 5 stars on repositories you own, 5 stars on other people's repositories you have merged pull requests into, or 5 followers. [How rankings work](https://gitranks.com/methodology) explains what each number counts.
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: The GitRanks page, or the GitHub login or repository it is about.
+      placeholder: https://gitranks.com/profile/octocat
+    validations:
+      required: true
+  - type: dropdown
+    id: what
+    attributes:
+      label: What looks wrong?
+      options:
+        - Stars rank
+        - Contributions rank
+        - Followers rank
+        - Country or language rank
+        - Tier
+        - Repository rank or numbers
+        - Organization rank or numbers
+        - Not ranked or not found at all
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: seen
+    attributes:
+      label: What you see and what you expected
+      description: The numbers on GitRanks, the numbers on GitHub, and why you think they differ.
+      placeholder: GitRanks shows 120 stars; my repositories have 250 stars on GitHub.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: Before you send
+      options:
+        - label: I read [How rankings work](https://gitranks.com/methodology), and the difference is not explained by the minimums or the daily update.
+          required: true

@@ -141,7 +141,7 @@ Sign in, open your profile, go to the <b>Privacy</b> tab and choose <b>Remove my
 
 ## Feedback
 
-Found a bug, a wrong rank, or a metric you'd like to see? [Open an issue](https://github.com/gitranks/gitranks-ui/issues) or [start a discussion](https://github.com/gitranks/gitranks-ui/discussions). Every report helps.
+Found a bug or a rank that looks wrong? [Open an issue](https://github.com/gitranks/gitranks-ui/issues/new/choose). Have an idea for a metric or a badge? [Start a discussion](https://github.com/gitranks/gitranks-ui/discussions). Every report helps.
 
 Building something with GitHub data? GitRanks shares the data it has collected for free. Write to [hello@gitranks.com](mailto:hello@gitranks.com).
 

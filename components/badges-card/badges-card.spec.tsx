@@ -23,10 +23,11 @@ describe('BadgesCard', () => {
     expect(html).toContain('<span class="sr-only"> – get the code</span>');
   });
 
-  it('links to the gallery and to every badge of the entity', () => {
+  it("links to every badge of the entity: the builder's step 2", () => {
     const html = decode(render(repoBig));
 
-    expect(html).toContain('href="/badge/gallery"');
+    expect(html).not.toContain('href="/badge/gallery"');
+    expect(html).not.toContain('More badges');
     expect(html).toContain('href="/badge/builder?repo=nebula/ui"');
     expect(html).toContain('rel="nofollow"');
     expect(html).toContain('/badge/repo/nebula/ui/star-history.svg?theme=light');

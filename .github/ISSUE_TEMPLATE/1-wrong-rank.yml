@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for checking. Ranks update daily, and each ranking has a minimum: 5 stars on repositories you own, 5 stars on other people's repositories you have merged pull requests into, or 5 followers. [How rankings work](https://gitranks.com/methodology) explains what each number counts.
+        Thanks for checking. Ranks update every few days, and each ranking has a minimum: 5 stars on repositories you own, 5 stars on other people's repositories you have merged pull requests into, or 5 followers. [How rankings work](https://gitranks.com/methodology) explains what each number counts.
   - type: input
     id: page
     attributes:
@@ -43,5 +43,5 @@ body:
     attributes:
       label: Before you send
       options:
-        - label: I read [How rankings work](https://gitranks.com/methodology), and the difference is not explained by the minimums or the daily update.
+        - label: I read [How rankings work](https://gitranks.com/methodology), and the difference is not explained by the minimums or the update schedule.
           required: true

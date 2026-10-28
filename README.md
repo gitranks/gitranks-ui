@@ -10,7 +10,7 @@
 ### Where do you rank on GitHub?
 
 Rankings, analytics and README badges for developers, repositories and organizations on GitHub.<br>
-Worldwide, in your country and in every language. Updated daily.
+Worldwide, in your country and in every language.
 
 <a href="https://gitranks.com/repo/gitranks/gitranks-ui"><picture><source media="(prefers-color-scheme: dark)" srcset="https://gitranks.com/badge/repo/gitranks/gitranks-ui/rank.svg?theme=dark"><img src="https://gitranks.com/badge/repo/gitranks/gitranks-ui/rank.svg?theme=light" alt="gitranks/gitranks-ui on GitRanks: repo rank"></picture></a>
 <a href="https://gitranks.com/repo/gitranks/gitranks-ui"><picture><source media="(prefers-color-scheme: dark)" srcset="https://gitranks.com/badge/repo/gitranks/gitranks-ui/stars.svg?theme=dark"><img src="https://gitranks.com/badge/repo/gitranks/gitranks-ui/stars.svg?theme=light" alt="gitranks/gitranks-ui on GitRanks: stars"></picture></a>
@@ -36,7 +36,7 @@ Worldwide, in your country and in every language. Updated daily.
 - **Profiles.** Your ranks and how they moved month to month, your top languages, your own projects next to your open source contributions, and your most-starred repositories.
 - **Repositories.** Global and language rank, star history, lines of code by type, contributors per month, top contributors and their countries, and *Who builds it*: the repositories that share the most contributors.
 - **Organizations.** Rank, top repositories, code, contributors, contributors by country, and the organizations their contributors also work on.
-- **README badges.** Shields, cards and charts for any developer, repository or organization. They update every day and follow light and dark themes.
+- **README badges.** Shields, cards and charts for any developer, repository or organization. They update on their own as ranks change, and follow light and dark themes.
 - **Insights.** Short posts about records, climbers and hidden gems, written from the rankings and shared on [X](https://x.com/gitranks), [Bluesky](https://bsky.app/profile/gitranks.bsky.social) and [Mastodon](https://mastodon.social/@github_pulse).
 - **Rank updates in your messenger.** Get your rank daily or weekly from the [Telegram bot](https://t.me/gitranksbot), or on WhatsApp (the link is on every profile page).
 
@@ -119,7 +119,7 @@ Badge URLs look like `https://gitranks.com/badge/{user|repo|org}/{name}/{badge}.
 | **Contributions** | Stars on other people's repositories where you have merged pull requests | 5+ stars on those repositories |
 | **Followers** | Your followers on GitHub | 5+ followers |
 
-Each ranking is available worldwide, by country and by language. Ranks update daily, and the tier cut-offs are recalculated every Monday. Only public GitHub data is used. The details are on [How rankings work](https://gitranks.com/methodology).
+Each ranking is available worldwide, by country and by language. Worldwide and organization ranks update about every second day, country and language ranks about every fourth day, and tiers weekly. Only public GitHub data is used. The details are on [How rankings work](https://gitranks.com/methodology).
 
 <details>
 <summary><b>Why am I not ranked?</b></summary>

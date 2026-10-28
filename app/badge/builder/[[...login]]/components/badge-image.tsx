@@ -1,8 +1,10 @@
 'use client';
 
 import { useTheme } from 'next-themes';
+import { useEffect, useRef } from 'react';
 
 import { entityName, paramsOf } from '../utils/badge-options';
+import { browserCheck } from '../utils/browser-check';
 import { type Style, styleQuery } from '../utils/builder-state';
 import { badgeImageUrl } from '../utils/snippets';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
@@ -66,9 +68,20 @@ export function BadgeImage({
   className?: string;
 }>) {
   const size = badge.size;
+  const src = previewSrc(facts, badge, style, theme);
+  const ref = useRef<HTMLImageElement>(null);
+
+  // An image that failed before the page came alive fired its error with nobody listening.
+  useEffect(() => {
+    const image = ref.current;
+    if (image?.complete && image.naturalWidth === 0) browserCheck().onImageError(image.currentSrc || image.src);
+  }, []);
+
   return (
     <img
-      src={previewSrc(facts, badge, style, theme)}
+      ref={ref}
+      src={src}
+      onError={(event) => browserCheck().onImageError(event.currentTarget.currentSrc || event.currentTarget.src)}
       alt={alt}
       width={size?.width}
       height={badge.format === 'shield' ? 20 : size?.height}

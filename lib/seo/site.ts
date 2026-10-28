@@ -3,10 +3,11 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_URI ?? '').replace(/\/+$/, '');
 
 export const SITE_NAME = 'GitRanks';
 
-export const SITE_TITLE = 'GitRanks · GitHub Profile Analytics & Rankings';
+export const SITE_TITLE = 'GitRanks · GitHub Rankings, Analytics & README Badges';
 
+/** What GitRanks is, in one line: the site's meta description, its JSON-LD and anything else that states it. */
 export const SITE_DESCRIPTION =
-  'Explore rankings based on stars, contributions, and followers. Dive into dynamic leaderboards to see how you rank against developers worldwide and within your own country.';
+  'GitHub rankings, analytics and README badges for developers, repositories and organizations.';
 
 export const SITE_X_HANDLE = '@gitranks';
 

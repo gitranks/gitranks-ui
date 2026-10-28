@@ -74,7 +74,10 @@ export function BadgeImage({
       height={badge.format === 'shield' ? 20 : size?.height}
       loading="lazy"
       decoding="async"
-      className={cn(badge.format === 'shield' ? 'h-5 w-auto max-w-full' : 'h-auto w-full', className)}
+      className={cn(
+        badge.format === 'shield' ? 'h-5 w-auto max-w-full object-contain object-left' : 'h-auto w-full',
+        className,
+      )}
     />
   );
 }

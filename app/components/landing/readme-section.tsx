@@ -3,7 +3,7 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { type FC, useMemo, useState } from 'react';
+import { type FC, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { type ReadmeContent, readmeContent } from './readme-badges';
 import type { ReadmeShowcase } from './readme-showcase';
@@ -14,6 +14,7 @@ import type { EntityKind } from '@/badge/v3/types';
 import { BadgeImages } from '@/components/badge-tiles/badge-tiles';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { hasSessionHint } from '@/lib/session-hint';
 import { cn } from '@/lib/utils';
 
 const TABS: { kind: EntityKind; label: string; short?: string }[] = [
@@ -27,6 +28,19 @@ const STEPS = [
   { title: 'Pick a badge', text: 'Only the ones you have: rank, monthly race, next goal, contributors.' },
   { title: 'Copy and paste', text: 'Markdown or HTML. On GitHub it follows light and dark.' },
 ];
+
+const noSubscription = () => () => {};
+
+/**
+ * Whether the browser says it holds a session (see `session-hint`), before the session itself is known. `false` on the
+ * server and while hydrating, so the cached page and the first render match.
+ */
+const useSessionHint = () =>
+  useSyncExternalStore(
+    noSubscription,
+    () => hasSessionHint(document.cookie),
+    () => false,
+  );
 
 /** Shields a phone's README line shows. */
 const PHONE_SHIELDS = 2;
@@ -57,7 +71,7 @@ const ReadmeBadge: FC<{ tile: BadgeTile; action: string; className?: string }> =
     >
       <BadgeImages
         tile={tile}
-        className={card ? 'h-auto w-full' : 'h-5 w-auto max-w-full'}
+        className={card ? 'h-auto w-full' : 'h-5 w-auto max-w-full object-contain object-left'}
         style={card && tile.size ? { maxWidth: tile.size.width } : undefined}
       />
       <span className="sr-only"> – {action.toLowerCase()}</span>
@@ -82,11 +96,19 @@ const ReadmeFrame: FC<{ content: ReadmeContent | 'loading'; own: boolean }> = ({
       </div>
       <div className="flex flex-col gap-3.5 p-3.5 sm:px-6 sm:py-5">
         {content === 'loading' ? (
-          <div className="flex flex-wrap gap-2" aria-busy="true">
+          // The same rows as a developer's README, so the frame keeps its height whichever README comes.
+          <div className="flex flex-col gap-3.5" aria-busy="true">
             <span className="sr-only">Loading your badges</span>
-            <Skeleton className="h-5 w-36 bg-[#d1d9e0] dark:bg-[#3d444d]" />
-            <Skeleton className="h-5 w-32 bg-[#d1d9e0] dark:bg-[#3d444d]" />
-            <Skeleton className="hidden h-5 w-28 bg-[#d1d9e0] sm:block dark:bg-[#3d444d]" />
+            <div className="hidden border-b border-[#d1d9e0b3] pb-2 sm:block dark:border-[#3d444db3]">
+              <Skeleton className="h-8 w-40 bg-[#d1d9e0] dark:bg-[#3d444d]" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-5 w-36 bg-[#d1d9e0] dark:bg-[#3d444d]" />
+              <Skeleton className="h-5 w-32 bg-[#d1d9e0] dark:bg-[#3d444d]" />
+              <Skeleton className="hidden h-5 w-28 sm:block bg-[#d1d9e0] dark:bg-[#3d444d]" />
+            </div>
+            <Skeleton className="hidden h-[21px] w-64 sm:block bg-[#d1d9e0] dark:bg-[#3d444d]" />
+            <Skeleton className="hidden aspect-[400/140] w-full max-w-[400px] sm:block bg-[#d1d9e0] dark:bg-[#3d444d]" />
           </div>
         ) : (
           <>
@@ -129,8 +151,12 @@ export const ReadmeSection: FC<{ showcase: ReadmeShowcase }> = ({ showcase }) =>
   const ownContent = useMemo(() => (own.status === 'found' ? readmeContent(own.facts, 'embed') : null), [own]);
   const [selected, setSelected] = useState<EntityKind>('user');
 
+  const hinted = useSessionHint();
+
+  // A visitor who looks signed in waits for their own badges rather than seeing the #1's first.
+  const waiting = login ? own.status === 'loading' || own.status === 'idle' : status === 'loading' && hinted;
   let user: ReadmeContent | 'loading' | null = showcase.user;
-  if (login && (own.status === 'loading' || own.status === 'idle')) user = 'loading';
+  if (waiting) user = 'loading';
   else if (ownContent) user = ownContent;
   const contents: Record<EntityKind, ReadmeContent | 'loading' | null> = { ...showcase, user };
 

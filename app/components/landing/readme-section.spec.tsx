@@ -19,7 +19,7 @@ const session = (githubLogin: string): Session => ({
   expires: '2099-01-01T00:00:00.000Z',
 });
 
-const render = (value: Session | null, content: ReadmeShowcase = showcase) =>
+const render = (value: Session | null | undefined, content: ReadmeShowcase = showcase) =>
   renderToStaticMarkup(
     <SessionProvider session={value}>
       <ReadmeSection showcase={content} />
@@ -63,6 +63,13 @@ describe('ReadmeSection', () => {
     expect(html).toMatch(/<a [^>]*href="\/badge\/builder\?user=octo-dev"[^>]*>Get your badge<\/a>/);
     expect(html).toContain('Loading your badges');
     expect(html).not.toContain(`/badge/user/${userBig.login}/rank.svg`);
+  });
+
+  it('draws the #1 in the shared page while the session is unknown (the hint is only read in the browser)', () => {
+    const html = render(undefined);
+
+    expect(html).toContain(`/badge/user/${userBig.login}/rank.svg?theme=light`);
+    expect(html).not.toContain('Loading your badges');
   });
 
   it('leaves out a kind whose #1 could not be read', () => {

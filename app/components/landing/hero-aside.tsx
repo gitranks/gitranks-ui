@@ -84,16 +84,21 @@ const YourBadge: FC<{ login: string; ranking: RankingKey; ranked: boolean }> = (
 
   return (
     <>
-      {ranked && (facts.status === 'loading' || tile) && (
+      {ranked && (
+        // One 20 px row whatever it holds (the badge, its placeholder or a line), so nothing below moves.
         <div className="flex flex-col items-start gap-1.5 rounded-lg bg-background/60 px-3 py-2.5">
           <span className="text-xs opacity-80">Your badge</span>
-          {tile ? (
-            <BadgeImages tile={tile} className="h-5 w-auto max-w-full" />
-          ) : (
-            <Skeleton className="h-5 w-48 bg-current/10">
-              <span className="sr-only">Loading your badge</span>
-            </Skeleton>
-          )}
+          <div className="flex h-5 max-w-full items-center">
+            {tile ? (
+              <BadgeImages tile={tile} className="h-5 w-auto max-w-full object-contain object-left" />
+            ) : facts.status === 'loading' || facts.status === 'idle' ? (
+              <Skeleton className="h-5 w-48 bg-current/10">
+                <span className="sr-only">Loading your badge</span>
+              </Skeleton>
+            ) : (
+              <span className="truncate text-sm">No preview right now; the builder has it.</span>
+            )}
+          </div>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-3">

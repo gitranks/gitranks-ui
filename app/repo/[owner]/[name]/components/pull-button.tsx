@@ -20,7 +20,7 @@ import {
   pullOutcomeOf,
   refreshNoteOf,
 } from '../utils/pull-messages';
-import { savePullNote, takePullNote } from '../utils/pull-note';
+import { reloadWithPullNote, showKeptPullNote } from '../utils/pull-note';
 import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-dialogs/refresh-dialog';
 import { REFRESH_LABELS, STAR_REPO_URL } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,8 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
   const attempt = useRef(0);
   const inFlight = useRef(false);
   const pullIdRef = useRef<string | null>(null);
+  // Whether the fetch waited on was started by this visitor on this page: only then does its end leave a note.
+  const startedHere = useRef(false);
   const [allowance, setAllowance] = useState<RepoPullAllowance | null>(null);
   const [checking, setChecking] = useState(false);
   const [reloading, setReloading] = useState(false);
@@ -65,18 +67,14 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
 
   // The note a refresh left before the reload stays until the visitor closes it.
   useEffect(() => {
-    const note = takePullNote(owner, name);
-    if (note) {
-      toast.success(note, { id: `repo-pull-note:${owner}/${name}`, duration: Infinity, closeButton: true });
-    }
+    showKeptPullNote(owner, name, (note, options) => toast.success(note, options));
   }, [owner, name]);
 
-  // The cached page is expired by now, so a reload shows the new numbers; the note waits for the page after it.
+  // The cached page is expired by now, so a reload shows the new numbers; a note waits for the page after it.
   const reloadWithNote = useCallback(
-    (note: string) => {
+    (note: string | null) => {
       setReloading(true);
-      savePullNote(owner, name, note);
-      window.location.reload();
+      reloadWithPullNote(owner, name, note, () => window.location.reload());
     },
     [owner, name],
   );
@@ -147,7 +145,8 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
         break;
       case 'reload':
         // The status read expired the cached page, so a reload shows the new history; no check runs after it.
-        reloadWithNote(refreshNoteOf());
+        // Somebody else's fetch ending reloads without the note.
+        reloadWithNote(startedHere.current ? refreshNoteOf() : null);
         return;
     }
 
@@ -222,6 +221,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
 
       const result = (await res.json()) as RepoPullResult;
       pullIdRef.current = result.status === 'started' ? result.pullId : null;
+      startedHere.current = result.status === 'started';
       setAllowance((prev) => allowanceAfter(result, mode, prev));
       apply(pullOutcomeOf(result, mode));
       loadStatus()

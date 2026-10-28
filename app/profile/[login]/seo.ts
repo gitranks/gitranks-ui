@@ -1,12 +1,16 @@
 import type { Metadata } from 'next';
 
 import { RANK_NAME } from '@/badge/badge.consts';
+import { isRankedIn } from '@/badge/utils/is-ranked-in';
+import { formatFull } from '@/badge/v3/format';
 import { hasProfileCard, socialCardPath } from '@/badge/v3/links';
 import { clipText } from '@/lib/seo/clip-text';
-import { entityJsonLdImage } from '@/lib/seo/json-ld';
+import { type EntityImages, entityJsonLdImage, primaryImageOfPage } from '@/lib/seo/json-ld';
 import { entityPreviewImages, pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 import type { PageProfileLanguagesQuery, PageProfileOverviewQuery } from '@/types/generated/graphql';
+import { UserRankProp } from '@/types/ranking.types';
+import { avatarPath, userAvatarAlt } from '@/utils/avatar-path';
 import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 import { formatNumberShort } from '@/utils/format-number-short';
 import { formatOrdinal } from '@/utils/format-ordinal';
@@ -125,14 +129,38 @@ function buildSameAs(stats: DataType): string[] {
   return [...new Set(urls.filter((url): url is string => !!url && URL.canParse(url)))];
 }
 
-function buildPerson(stats: DataType, url: string, avatarUrl: string, cardUrl: string | null) {
+function buildPerson(stats: DataType, url: string, images: EntityImages) {
   return {
     '@type': 'Person',
     name: stats.name || stats.login,
     alternateName: stats.login,
     url,
-    image: entityJsonLdImage(avatarUrl, cardUrl),
+    image: entityJsonLdImage(images),
     sameAs: buildSameAs(stats),
+  };
+}
+
+/** The rank the profile card shows, in words, as the card picks it: stars, else contributions; "#13 by stars". */
+function profileCardFact(data: DataType): string | undefined {
+  const by = isRankedIn(UserRankProp.s, data, data.rankGlobal) ? UserRankProp.s : UserRankProp.c;
+  const rank = data.rankGlobal?.[by] ?? data.rankGlobal?.[`${by}Provisional`];
+  return rank ? `#${formatFull(rank)} by ${by === UserRankProp.s ? 'stars' : 'contributions'}` : undefined;
+}
+
+/** The avatar every tab draws at its top, and the profile card when the developer has a rank for it. */
+function buildImages(data: DataType, entityUrl: string): EntityImages {
+  const { login, name } = data;
+  // Every tab's query reads the global ranks (`UserSeo`), so the preview never shows a card that has no rank yet.
+  const fact = profileCardFact(data);
+  return {
+    entityUrl,
+    avatar: { url: absoluteUrl(avatarPath(login)), caption: userAvatarAlt(login, name) },
+    card: hasProfileCard(data, data.rankGlobal)
+      ? {
+          url: absoluteUrl(socialCardPath({ kind: 'user', login })),
+          caption: `${login} on GitRanks${fact ? `: ${fact}` : ''}`,
+        }
+      : null,
   };
 }
 
@@ -156,6 +184,7 @@ function buildTabSpecificJsonLd(
   description: string,
   stats: DataType,
   person: ReturnType<typeof buildPerson>,
+  images: EntityImages,
 ) {
   switch (tab) {
     case 'overview':
@@ -166,6 +195,7 @@ function buildTabSpecificJsonLd(
         url,
         name: title,
         description,
+        primaryImageOfPage: primaryImageOfPage(images),
         mainEntity: person,
       };
 
@@ -176,6 +206,7 @@ function buildTabSpecificJsonLd(
         url,
         name: title,
         description,
+        primaryImageOfPage: primaryImageOfPage(images),
         about: person,
         mainEntity: {
           '@type': 'ItemList',
@@ -199,6 +230,7 @@ function buildTabSpecificJsonLd(
         url,
         name: title,
         description,
+        primaryImageOfPage: primaryImageOfPage(images),
         about: person,
         mainEntity: {
           '@type': 'ItemList',
@@ -221,9 +253,6 @@ export function buildProfileTabSEO(
   scope: Scope = 'global',
 ): { metadata: Metadata; jsonLd: object[] } {
   const { login, name, country } = data;
-  const avatarUrl = absoluteUrl(`/api/avatar/${encodeURIComponent(login)}`);
-  // Every tab's query reads the global ranks (`UserSeo`), so the preview never shows a card that has no rank yet.
-  const cardUrl = hasProfileCard(data, data.rankGlobal) ? absoluteUrl(socialCardPath({ kind: 'user', login })) : null;
   // Only the overview, ranks and languages tabs have a country variant.
   const where = scope === 'country' && country ? `in ${country}` : '';
 
@@ -240,9 +269,10 @@ export function buildProfileTabSEO(
     `${TAB_TITLES[tab]} of ${userName} on GitHub${where ? ` ${where}` : ''}.`;
   const crumb = tab === 'overview' && !where ? undefined : `${TAB_CRUMBS[tab]}${where ? ` ${where}` : ''}`;
 
-  const person = buildPerson(data, base, avatarUrl, cardUrl);
+  const images = buildImages(data, base);
+  const person = buildPerson(data, base, images);
   const jsonLd = [
-    buildTabSpecificJsonLd(tab, scope, url, title, description, data, person),
+    buildTabSpecificJsonLd(tab, scope, url, title, description, data, person, images),
     buildBreadcrumbs(userName, base, crumb, url),
   ];
 
@@ -252,7 +282,7 @@ export function buildProfileTabSEO(
         title,
         description,
         path,
-        images: entityPreviewImages(cardUrl, avatarUrl, `${login} on GitRanks`),
+        images: entityPreviewImages(images),
         openGraphType: 'profile',
       }),
       robots: {

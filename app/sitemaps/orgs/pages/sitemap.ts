@@ -2,7 +2,7 @@ import { startOfMonth } from 'date-fns';
 import type { MetadataRoute } from 'next';
 
 import { fetchOrgsForSitemap } from '@/graphql/helpers/fetch-org-sitemap-parts';
-import { listOrgBadgeImageUrls } from '@/lib/sitemap/badge-images';
+import { listOrgImageUrls } from '@/lib/sitemap/badge-images';
 import { SITEMAP_ORG_PARTS_MAX } from '@/lib/sitemap/sitemap.consts';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 
@@ -15,7 +15,7 @@ export async function generateSitemaps() {
 }
 
 /**
- * One part of the organization pages (`/org/{login}`), each with the badges it shows: organizations with 1,000+
+ * One part of the organization pages (`/org/{login}`), each with the images it shows: organizations with 1,000+
  * stars, most starred first, up to 40,000 a part. The `/orgs/{page}` rankings stay in their own sitemap.
  */
 export default async function sitemap(props: { id: Promise<string> }): Promise<MetadataRoute.Sitemap> {
@@ -31,7 +31,7 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
     sitemapEntry(`/org/${encodeURIComponent(login)}`, {
       lastModified,
       priority: 0.7,
-      images: listOrgBadgeImageUrls(login),
+      images: listOrgImageUrls(login),
     }),
   );
 }

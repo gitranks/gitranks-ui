@@ -2,7 +2,7 @@ import { startOfMonth } from 'date-fns';
 import type { MetadataRoute } from 'next';
 
 import { fetchReposForSitemap } from '@/graphql/helpers/fetch-repo-sitemap-parts';
-import { listRepoBadgeImageUrls } from '@/lib/sitemap/badge-images';
+import { listRepoImageUrls } from '@/lib/sitemap/badge-images';
 import { SITEMAP_REPO_PARTS_MAX } from '@/lib/sitemap/sitemap.consts';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 import { getRepoPath } from '@/utils/repo-paths';
@@ -16,7 +16,7 @@ export async function generateSitemaps() {
 }
 
 /**
- * One part of the repository pages, each with the badges it shows: the most starred repositories first, up to 40,000
+ * One part of the repository pages, each with the images it shows: the most starred repositories first, up to 40,000
  * a part.
  */
 export default async function sitemap(props: { id: Promise<string> }): Promise<MetadataRoute.Sitemap> {
@@ -32,7 +32,7 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
     sitemapEntry(getRepoPath(nameWithOwner), {
       lastModified,
       priority: 0.7,
-      images: listRepoBadgeImageUrls(nameWithOwner),
+      images: listRepoImageUrls(nameWithOwner),
     }),
   );
 }

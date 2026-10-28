@@ -26,6 +26,24 @@ const repo = (overrides: Partial<Repo> = {}): Repo => ({
 });
 
 type Node = Record<string, unknown>;
+
+const AVATAR = {
+  '@type': 'ImageObject',
+  '@id': 'https://gitranks.test/repo/vercel/next.js#avatar',
+  url: 'https://gitranks.test/api/avatar/vercel',
+  contentUrl: 'https://gitranks.test/api/avatar/vercel',
+  caption: 'GitHub avatar of vercel, owner of vercel/next.js',
+};
+const CARD = {
+  '@type': 'ImageObject',
+  '@id': 'https://gitranks.test/repo/vercel/next.js#card',
+  url: 'https://gitranks.test/badge/repo/vercel/next.js/rank-card.png?size=social',
+  contentUrl: 'https://gitranks.test/badge/repo/vercel/next.js/rank-card.png?size=social',
+  encodingFormat: 'image/png',
+  width: 1200,
+  height: 630,
+  caption: 'vercel/next.js on GitRanks: repo rank #12',
+};
 const pageOf = (jsonLd: object[]) => jsonLd[0] as Node;
 const sourceCodeOf = (jsonLd: object[]) => pageOf(jsonLd).mainEntity as Node;
 const crumbsOf = (jsonLd: object[]) =>
@@ -53,38 +71,38 @@ describe('buildRepoSEO', () => {
           url: 'https://gitranks.test/badge/repo/vercel/next.js/rank-card.png?size=social',
           width: 1200,
           height: 630,
-          alt: 'vercel/next.js on GitRanks',
+          alt: 'vercel/next.js on GitRanks: repo rank #12',
         },
       ],
     });
     expect(metadata.twitter).toMatchObject({ card: 'summary_large_image', images: metadata.openGraph?.images });
   });
 
-  it('falls back to the owner avatar when the repository has no rank card', () => {
+  it("falls back to the owner's avatar, from this site, when the repository has no rank card", () => {
     const unranked = buildRepoSEO(repo({ rank: { s: null, l: 3, language: 'JavaScript' } })).metadata;
+    const avatar = { url: AVATAR.url, alt: AVATAR.caption };
 
-    expect(unranked.openGraph).toMatchObject({ images: ['https://avatars.githubusercontent.com/u/14985020?v=4'] });
-    expect(unranked.twitter).toMatchObject({ card: 'summary_large_image' });
-    expect(buildRepoSEO(repo({ rank: null })).metadata.openGraph).toMatchObject({
-      images: ['https://avatars.githubusercontent.com/u/14985020?v=4'],
+    expect(unranked.openGraph).toMatchObject({ images: [avatar] });
+    expect(unranked.twitter).toMatchObject({ card: 'summary_large_image', images: [avatar] });
+    expect(buildRepoSEO(repo({ rank: null })).metadata.openGraph).toMatchObject({ images: [avatar] });
+
+    // The avatar route answers for any owner, so the page and its preview have it without a stored avatar too.
+    expect(buildRepoSEO(repo({ rank: null, ownerAvatarUrl: null })).metadata.openGraph).toMatchObject({
+      images: [avatar],
     });
-
-    const bare = buildRepoSEO(repo({ rank: null, ownerAvatarUrl: null })).metadata;
-    expect(bare.openGraph?.images).toBeUndefined();
-    expect(bare.twitter).toMatchObject({ card: 'summary' });
   });
 
   it('pairs the owner avatar with the rank card in JSON-LD, and keeps the avatar alone without a card', () => {
-    expect(sourceCodeOf(buildRepoSEO(repo()).jsonLd).image).toEqual([
-      'https://avatars.githubusercontent.com/u/14985020?v=4',
-      'https://gitranks.test/badge/repo/vercel/next.js/rank-card.png?size=social',
-    ]);
-    expect(sourceCodeOf(buildRepoSEO(repo({ rank: null })).jsonLd).image).toBe(
-      'https://avatars.githubusercontent.com/u/14985020?v=4',
-    );
-    expect(sourceCodeOf(buildRepoSEO(repo({ ownerAvatarUrl: null })).jsonLd).image).toBe(
-      'https://gitranks.test/badge/repo/vercel/next.js/rank-card.png?size=social',
-    );
+    expect(sourceCodeOf(buildRepoSEO(repo()).jsonLd).image).toEqual([AVATAR, CARD]);
+    expect(sourceCodeOf(buildRepoSEO(repo({ rank: null })).jsonLd).image).toEqual(AVATAR);
+    expect(sourceCodeOf(buildRepoSEO(repo({ ownerAvatarUrl: null })).jsonLd).image).toEqual([AVATAR, CARD]);
+  });
+
+  it("names the owner's avatar, the image at the page's top, as the page's primary image", () => {
+    expect(pageOf(buildRepoSEO(repo()).jsonLd).primaryImageOfPage).toEqual({ '@id': AVATAR['@id'] });
+    expect(pageOf(buildRepoSEO(repo({ ownerAvatarUrl: null })).jsonLd).primaryImageOfPage).toEqual({
+      '@id': AVATAR['@id'],
+    });
   });
 
   it('names the ranking of repositories without a language', () => {
@@ -145,10 +163,7 @@ describe('buildRepoSEO', () => {
       alternateName: 'vercel/next.js',
       description: 'The React Framework',
       url: 'https://gitranks.test/repo/vercel/next.js',
-      image: [
-        'https://avatars.githubusercontent.com/u/14985020?v=4',
-        'https://gitranks.test/badge/repo/vercel/next.js/rank-card.png?size=social',
-      ],
+      image: [AVATAR, CARD],
       codeRepository: 'https://github.com/vercel/next.js',
       sameAs: ['https://github.com/vercel/next.js'],
       programmingLanguage: 'JavaScript',
@@ -158,7 +173,7 @@ describe('buildRepoSEO', () => {
         '@type': 'Organization',
         name: 'vercel',
         url: 'https://gitranks.test/org/vercel',
-        image: 'https://avatars.githubusercontent.com/u/14985020?v=4',
+        image: { '@id': AVATAR['@id'] },
         sameAs: ['https://github.com/vercel'],
       },
       interactionStatistic: {
@@ -197,6 +212,7 @@ describe('buildRepoSEO', () => {
       '@type': 'Person',
       name: 'octocat',
       url: 'https://gitranks.test/profile/octocat',
+      image: { '@id': 'https://gitranks.test/repo/vercel/next.js#avatar' },
       sameAs: ['https://github.com/octocat'],
     });
   });

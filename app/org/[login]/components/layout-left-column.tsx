@@ -19,6 +19,7 @@ import {
 import { Flag } from '@/components/flag/flag';
 import { Button } from '@/components/ui/button';
 import type { PageOrgQuery } from '@/types/generated/graphql';
+import { avatarPath, orgAvatarAlt } from '@/utils/avatar-path';
 import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 
 type LayoutLeftColumnProps = Readonly<{
@@ -39,17 +40,21 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ org, children }) =
     <PageContainer>
       <LeftColumnContainer>
         <AvatarAndNameContainer>
-          <AvatarContainer>
-            <Image
-              src={`${org.avatarUrl}`}
-              alt={`${org.login} avatar`}
-              className="rounded-full w-full h-full"
-              width={AVATAR_SIZE}
-              height={AVATAR_SIZE}
-              loading="eager"
-              fetchPriority="high"
-            />
-          </AvatarContainer>
+          {!!org.login && (
+            <AvatarContainer>
+              {/* The page's main image, from this site's own URL: the one its structured data names. */}
+              <Image
+                src={avatarPath(org.login)}
+                alt={orgAvatarAlt(org.login, org.name)}
+                className="rounded-full w-full h-full"
+                width={AVATAR_SIZE}
+                height={AVATAR_SIZE}
+                loading="eager"
+                fetchPriority="high"
+                unoptimized
+              />
+            </AvatarContainer>
+          )}
           <NameContainer>
             <h1 className="font-semibold text-2xl flex items-center gap-1" translate="no">
               {org.name || org.login} {org.isVerified && <MdOutlineVerified className="size-5 fill-positive" />}

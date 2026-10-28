@@ -2,7 +2,6 @@ import { RANK_NAME } from '@/badge/badge.consts';
 import type { BadgeV2Params } from '@/badge/badge.types';
 import { LABEL_BG, VALUE_BG } from '@/badge/templates/inline/inline.consts';
 import { isRankedIn, type RankingRanks, type RankingScores } from '@/badge/utils/is-ranked-in';
-import { absoluteSitemapUrl } from '@/lib/sitemap/sitemap-url';
 import { BadgeContext, BadgeCornerStyle, BadgeMeta, BadgeType } from '@/types/badge.types';
 import { UserRankProp } from '@/types/ranking.types';
 
@@ -131,14 +130,4 @@ export function getCanonicalBadgeUrl(
   baseUrl = process.env.NEXT_PUBLIC_URI?.replace(/\/+$/, '') ?? '',
 ): string {
   return `${baseUrl}${getCanonicalBadgePath(login, variant, format)}`;
-}
-
-/**
- * Absolute PNG locs for sitemap image extension / IndexNow. Scores only: a profile whose score
- * reached the threshold since the last ranking update can be listed a day early.
- */
-export function listCanonicalBadgeImageUrls(login: string, scores: RankingScores): string[] {
-  return CANONICAL_BADGE_VARIANTS.filter((variant) => isCanonicalBadgeAvailable(variant, scores, undefined)).map(
-    (variant) => absoluteSitemapUrl(getCanonicalBadgePath(login, variant, 'png')),
-  );
 }

@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 
+import { formatFull } from '@/badge/v3/format';
 import { hasRankCard, socialCardPath } from '@/badge/v3/links';
 import { clipText } from '@/lib/seo/clip-text';
-import { entityJsonLdImage } from '@/lib/seo/json-ld';
+import { type EntityImages, entityJsonLdImage, primaryImageOfPage } from '@/lib/seo/json-ld';
 import { entityPreviewImages, pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 import type { PageOrgQuery } from '@/types/generated/graphql';
+import { avatarPath, orgAvatarAlt } from '@/utils/avatar-path';
 import { ensureLinkProtocol } from '@/utils/ensure-link-protocol';
 import { formatNumberShort } from '@/utils/format-number-short';
 import { formatOrdinal } from '@/utils/format-ordinal';
@@ -36,14 +38,7 @@ function buildBreadcrumbs(name: string, url: string) {
   };
 }
 
-function buildTabSpecificJsonLd(
-  data: DataType,
-  url: string,
-  title: string,
-  description: string,
-  avatarUrl: string,
-  cardUrl: string | null,
-) {
+function buildTabSpecificJsonLd(data: DataType, url: string, title: string, description: string, images: EntityImages) {
   const { login, name, websiteUrl } = data;
   // The links the sidebar shows: GitHub and the organization's website.
   const sameAs = [`https://github.com/${login}`, ensureLinkProtocol(websiteUrl)].filter(
@@ -56,12 +51,13 @@ function buildTabSpecificJsonLd(
     url,
     name: title,
     description,
+    primaryImageOfPage: primaryImageOfPage(images),
     mainEntity: {
       '@type': 'Organization',
       name: name || login,
       alternateName: login,
       url,
-      image: entityJsonLdImage(avatarUrl, cardUrl),
+      image: entityJsonLdImage(images),
       sameAs,
     },
   };
@@ -75,17 +71,26 @@ export function buildOrgSEO(data: DataType): { metadata: Metadata; jsonLd: objec
     return { metadata: {}, jsonLd: [] };
   }
 
-  const avatarUrl = absoluteUrl(`/api/avatar/${encodeURIComponent(login)}`);
-  const cardUrl = hasRankCard(data.rankOrg) ? absoluteUrl(socialCardPath({ kind: 'org', login })) : null;
-
   const userName = `${login}${name ? ` (${name})` : ''}`;
   const path = `/org/${encodeURIComponent(login)}`;
   const url = absoluteUrl(path);
+  const rank = data.rankOrg?.s;
+  const images: EntityImages = {
+    entityUrl: url,
+    avatar: { url: absoluteUrl(avatarPath(login)), caption: orgAvatarAlt(login, name) },
+    card:
+      rank && hasRankCard(data.rankOrg)
+        ? {
+            url: absoluteUrl(socialCardPath({ kind: 'org', login })),
+            caption: `${name || login} on GitRanks: org rank #${formatFull(rank)}`,
+          }
+        : null,
+  };
   const title = `${name || login} - GitHub Analytics`;
   const description = buildOverviewDescription(data) || `GitHub analytics for the ${name || login} organization.`;
 
   const breadcrumbs = buildBreadcrumbs(userName, url);
-  const tabSpecificJsonLd = buildTabSpecificJsonLd(data, url, title, description, avatarUrl, cardUrl);
+  const tabSpecificJsonLd = buildTabSpecificJsonLd(data, url, title, description, images);
 
   return {
     metadata: {
@@ -93,7 +98,7 @@ export function buildOrgSEO(data: DataType): { metadata: Metadata; jsonLd: objec
         title,
         description,
         path,
-        images: entityPreviewImages(cardUrl, avatarUrl, `${name || login} on GitRanks`),
+        images: entityPreviewImages(images),
         openGraphType: 'profile',
       }),
       robots: {

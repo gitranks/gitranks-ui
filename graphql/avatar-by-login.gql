@@ -2,4 +2,7 @@ query AvatarByLogin($login: String!) {
   user(login: $login) {
     avatarUrl
   }
+  organization(login: $login) {
+    avatarUrl
+  }
 }

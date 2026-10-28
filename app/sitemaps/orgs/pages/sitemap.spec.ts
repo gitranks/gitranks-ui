@@ -17,7 +17,7 @@ describe('organization-page sitemap', () => {
     expect(await generateSitemaps()).toEqual([0, 1, 2, 3, 4].map((id) => ({ id })));
   });
 
-  it("lists each organization's page with the badges it shows", async () => {
+  it("lists each organization's page with the images it shows", async () => {
     vi.mocked(fetchOrgsForSitemap).mockResolvedValue(['vercel', 'a-b']);
 
     const entries = await part(1);
@@ -27,6 +27,7 @@ describe('organization-page sitemap', () => {
       {
         url: 'https://example.test/org/vercel',
         images: [
+          'https://example.test/api/avatar/vercel',
           'https://example.test/badge/org/vercel/rank.svg?theme=light',
           'https://example.test/badge/org/vercel/org-card.svg?theme=light',
         ],
@@ -34,6 +35,7 @@ describe('organization-page sitemap', () => {
       {
         url: 'https://example.test/org/a-b',
         images: [
+          'https://example.test/api/avatar/a-b',
           'https://example.test/badge/org/a-b/rank.svg?theme=light',
           'https://example.test/badge/org/a-b/org-card.svg?theme=light',
         ],

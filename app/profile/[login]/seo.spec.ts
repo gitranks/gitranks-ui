@@ -27,6 +27,7 @@ const user = (overrides: Partial<User> = {}): User => ({
   ...overrides,
 });
 
+const pageOf = (jsonLd: object[]) => jsonLd[0] as Record<string, unknown>;
 const personOf = (jsonLd: object[]) => (jsonLd[0] as { mainEntity: Record<string, unknown> }).mainEntity;
 
 describe('buildProfileTabSEO', () => {
@@ -63,6 +64,23 @@ describe('buildProfileTabSEO', () => {
     const card = 'https://gitranks.test/badge/user/Octo-Cat/profile-card.png?size=social';
     const avatar = 'https://gitranks.test/api/avatar/Octo-Cat';
     const ranked = (overrides: Partial<User> = {}) => user({ s: 120, c: 40, f: 3, ...overrides });
+    const AVATAR = {
+      '@type': 'ImageObject',
+      '@id': 'https://gitranks.test/profile/Octo-Cat#avatar',
+      url: avatar,
+      contentUrl: avatar,
+      caption: 'GitHub avatar of Octo Cat (@Octo-Cat)',
+    };
+    const CARD = {
+      '@type': 'ImageObject',
+      '@id': 'https://gitranks.test/profile/Octo-Cat#card',
+      url: card,
+      contentUrl: card,
+      encodingFormat: 'image/png',
+      width: 1200,
+      height: 630,
+      caption: 'Octo-Cat on GitRanks: #10 by stars',
+    };
 
     it("shows a ranked developer's profile card at 1200×630 on every tab", () => {
       for (const tab of ['overview', 'ranks', 'repositories', 'languages'] as const) {
@@ -70,37 +88,66 @@ describe('buildProfileTabSEO', () => {
 
         expect(metadata.openGraph).toMatchObject({
           type: 'profile',
-          images: [{ url: card, width: 1200, height: 630, alt: 'Octo-Cat on GitRanks' }],
+          images: [{ url: card, width: 1200, height: 630, alt: 'Octo-Cat on GitRanks: #10 by stars' }],
         });
         expect(metadata.twitter).toMatchObject({ card: 'summary_large_image', images: metadata.openGraph?.images });
       }
     });
 
     it('lists the avatar, then the card, as the person image', () => {
-      expect(personOf(buildProfileTabSEO('overview', ranked()).jsonLd).image).toEqual([avatar, card]);
+      expect(personOf(buildProfileTabSEO('overview', ranked()).jsonLd).image).toEqual([AVATAR, CARD]);
+    });
+
+    it("names the avatar every tab draws as its primary image, by the overview's image ids", () => {
+      expect(pageOf(buildProfileTabSEO('overview', ranked()).jsonLd)).toEqual({
+        '@context': 'https://schema.org',
+        '@type': 'ProfilePage',
+        url: 'https://gitranks.test/profile/Octo-Cat',
+        name: 'Octo-Cat (Octo Cat) - GitHub Analytics',
+        description: expect.any(String),
+        primaryImageOfPage: { '@id': AVATAR['@id'] },
+        mainEntity: {
+          '@type': 'Person',
+          name: 'Octo Cat',
+          alternateName: 'Octo-Cat',
+          url: 'https://gitranks.test/profile/Octo-Cat',
+          image: [AVATAR, CARD],
+          sameAs: ['https://github.com/Octo-Cat', 'https://octo.example', 'https://twitter.com/octo'],
+        },
+      });
+      for (const tab of ['ranks', 'repositories', 'languages'] as const) {
+        const page = pageOf(buildProfileTabSEO(tab, ranked(), 'country').jsonLd);
+
+        const person = (page['@type'] === 'ProfilePage' ? page.mainEntity : page.about) as { image: unknown };
+
+        expect(page.primaryImageOfPage).toEqual({ '@id': AVATAR['@id'] });
+        expect(person.image).toEqual([AVATAR, CARD]);
+      }
     });
 
     it('takes the card from the contributions ranking alone', () => {
       const { metadata } = buildProfileTabSEO('overview', ranked({ s: 2, rankGlobal: { s: null, c: 20 } }));
 
-      expect(metadata.openGraph).toMatchObject({ images: [{ url: card }] });
+      expect(metadata.openGraph).toMatchObject({
+        images: [{ url: card, alt: 'Octo-Cat on GitRanks: #20 by contributions' }],
+      });
     });
 
     it('falls back to the avatar for a developer in neither the stars nor the contributions ranking', () => {
       const followersOnly = ranked({ s: 2, c: 1, f: 900 });
       const { metadata, jsonLd } = buildProfileTabSEO('overview', followersOnly);
 
-      expect(metadata.openGraph).toMatchObject({ images: [avatar] });
-      expect(personOf(jsonLd).image).toBe(avatar);
+      expect(metadata.openGraph).toMatchObject({ images: [{ url: avatar, alt: AVATAR.caption }] });
+      expect(personOf(jsonLd).image).toEqual(AVATAR);
     });
 
     it('falls back to the avatar when the scores qualify but the global ranks are not there yet', () => {
       expect(buildProfileTabSEO('overview', ranked({ rankGlobal: null })).metadata.openGraph).toMatchObject({
-        images: [avatar],
+        images: [{ url: avatar }],
       });
       expect(
         buildProfileTabSEO('overview', ranked({ rankGlobal: { s: null, sProvisional: 40 } })).metadata.openGraph,
-      ).toMatchObject({ images: [{ url: card }] });
+      ).toMatchObject({ images: [{ url: card, alt: 'Octo-Cat on GitRanks: #40 by stars' }] });
     });
 
     it('judges the card by the scores on a tab that does not read the global ranks', () => {

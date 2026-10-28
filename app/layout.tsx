@@ -6,6 +6,7 @@ import { type ReactNode, Suspense } from 'react';
 
 import { CtaClickTracker } from './components/cta-click-tracker';
 import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
+import { BrowserCheck } from '@/components/browser-check/browser-check';
 import { Footer } from '@/components/footer/footer';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { NavigationProgress } from '@/components/navigation-progress/navigation-progress';
@@ -54,6 +55,7 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
+        <BrowserCheck />
         <link rel="preconnect" href="https://avatars.githubusercontent.com" crossOrigin="anonymous" />
       </head>
       <body className="antialiased">

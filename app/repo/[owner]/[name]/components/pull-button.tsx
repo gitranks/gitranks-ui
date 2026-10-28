@@ -18,7 +18,9 @@ import {
   pullLabelOf,
   pullModeOf,
   pullOutcomeOf,
+  refreshNoteOf,
 } from '../utils/pull-messages';
+import { savePullNote, takePullNote } from '../utils/pull-note';
 import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-dialogs/refresh-dialog';
 import { REFRESH_LABELS, STAR_REPO_URL } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
@@ -56,9 +58,28 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
   const pullIdRef = useRef<string | null>(null);
   const [allowance, setAllowance] = useState<RepoPullAllowance | null>(null);
   const [checking, setChecking] = useState(false);
+  const [reloading, setReloading] = useState(false);
   const [dialog, setDialog] = useState<OpenDialog>(null);
   const [elapsed, setElapsed] = useState<number | null>(null);
   const [loadingLabel, setLoadingLabel] = useState(FETCH_MESSAGES[0]);
+
+  // The note a refresh left before the reload stays until the visitor closes it.
+  useEffect(() => {
+    const note = takePullNote(owner, name);
+    if (note) {
+      toast.success(note, { id: `repo-pull-note:${owner}/${name}`, duration: Infinity, closeButton: true });
+    }
+  }, [owner, name]);
+
+  // The cached page is expired by now, so a reload shows the new numbers; the note waits for the page after it.
+  const reloadWithNote = useCallback(
+    (note: string) => {
+      setReloading(true);
+      savePullNote(owner, name, note);
+      window.location.reload();
+    },
+    [owner, name],
+  );
 
   const loadStatus = useCallback(async () => {
     const res = await fetch(url, { cache: 'no-store' });
@@ -126,13 +147,12 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
         break;
       case 'reload':
         // The status read expired the cached page, so a reload shows the new history; no check runs after it.
-        setLoadingLabel('Reloading…');
-        window.location.reload();
+        reloadWithNote(refreshNoteOf());
         return;
     }
 
     inFlight.current = false;
-  }, [loadStatus]);
+  }, [loadStatus, reloadWithNote]);
 
   useEffect(() => {
     if (elapsed === null) {
@@ -171,6 +191,9 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
         attempt.current = 0;
         setLoadingLabel(FETCH_MESSAGES[0]);
         setElapsed((prev) => prev ?? 0);
+        break;
+      case 'reload':
+        reloadWithNote(outcome.note);
         break;
       case 'dialog':
         openDialog({ kind: outcome.dialog, until: outcome.until });
@@ -244,7 +267,13 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
     },
   });
 
-  const busyLabel = elapsed !== null ? loadingLabel : checking ? REFRESH_LABELS.checking : null;
+  const busyLabel = reloading
+    ? 'Reloading…'
+    : elapsed !== null
+      ? loadingLabel
+      : checking
+        ? REFRESH_LABELS.checking
+        : null;
 
   return (
     <div ref={containerRef} className="flex flex-grow flex-col gap-2">
@@ -261,7 +290,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
           </>
         )}
       </Button>
-      {elapsed !== null && (
+      {elapsed !== null && !reloading && (
         <div className="text-xs text-muted-foreground">
           Next check in {Math.floor((CHECK_STATUS_INTERVAL - (elapsed % CHECK_STATUS_INTERVAL)) / 1000)} s
         </div>

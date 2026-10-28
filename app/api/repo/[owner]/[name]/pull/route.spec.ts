@@ -155,6 +155,17 @@ describe('repo pull route', () => {
       expect(revalidateTag).toHaveBeenCalledWith('repo:octo-org/hello', { expire: 0 });
     });
 
+    it('expires the cached page after a refresh, so the reload shows the new count', async () => {
+      signIn('identity');
+      const refreshed = { status: 'refreshed', stars: 171, nextAt: '2026-10-29T00:00:00.000Z' };
+      upstream(200, refreshed);
+
+      const response = await call(POST, 'Octo-Org', 'Hello', 'POST');
+
+      await expect(response.json()).resolves.toEqual(refreshed);
+      expect(revalidateTag).toHaveBeenCalledWith('repo:octo-org/hello', { expire: 0 });
+    });
+
     it.each([400, 401, 403, 502])('keeps a %i to a bare message', async (status) => {
       signIn('token');
       upstream(status, { message: 'detail', stack: 'internal' });

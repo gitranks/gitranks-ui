@@ -67,4 +67,6 @@ ENV HOSTNAME=0.0.0.0
 
 # Start both the cache cleaner (in background) and the node server (in foreground)
 # Background process output will appear in docker logs
-CMD ["sh", "-c", "/app/lib/shell/page-cache-cleaner.sh 2>&1 & exec node server.js"]
+# The runtime page cache is emptied first: tag expiry (a refresh, a removal) is kept in memory only, so a page left on
+# disk by the previous process could be served again after a restart in place. Build output is not under it.
+CMD ["sh", "-c", "rm -rf /app/.next/server/route-cache; /app/lib/shell/page-cache-cleaner.sh 2>&1 & exec node server.js"]

@@ -10,7 +10,8 @@ type InsightModalPageProps = {
 
 export default async function InsightModalPage({ params }: InsightModalPageProps) {
   const { id } = await params;
-  // The fetch is not cached, so `connection()` keeps it out of prerendering, as on /insights/[id].
+  // The modal opens on in-app navigation and reads the post fresh: the fetch is not cached, so `connection()` keeps it
+  // out of prerendering. (The full page, /insights/[id], reads it through a minutes-long cache instead.)
   await connection();
   const { insight } = await fetchInsightServer(id);
 

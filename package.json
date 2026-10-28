@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build --turbopack && node scripts/check-blocking-routes.mjs",
     "start": "next start",
     "lint": "biome check",
     "test": "vitest run",

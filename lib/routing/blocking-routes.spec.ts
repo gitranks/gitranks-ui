@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { BLOCKING_ROUTES, blockingRouteProblems } from '@/scripts/check-blocking-routes.mjs';
+
 vi.mock('server-only', () => ({}));
 vi.mock('@/graphql/helpers/fetch-repo-languages', () => ({
   fetchRepoLanguages: async () => [{ language: null }, { language: 'Rust' }],
@@ -62,5 +64,26 @@ describe('routes whose missing pages answer 404', () => {
   it('lists a language with ranked repositories, not the no-language list', async () => {
     const { generateStaticParams } = await import('@/app/repos/language/[language]/[page]/layout');
     await expect(generateStaticParams()).resolves.toEqual([{ language: 'Rust', page: '1' }]);
+  });
+});
+
+describe('the post-build check', () => {
+  const manifest = (fallback: unknown) => ({
+    dynamicRoutes: Object.fromEntries(BLOCKING_ROUTES.map((route) => [route, { fallback }])),
+  });
+
+  it('covers the same routes as this spec', () => {
+    expect([...BLOCKING_ROUTES].sort()).toEqual(ROUTES.map(({ segment }) => `/${segment}`).sort());
+  });
+
+  it('passes when no route has a fallback shell', () => {
+    expect(blockingRouteProblems(manifest(null))).toEqual([]);
+  });
+
+  it('fails on a fallback shell or a missing route', () => {
+    expect(blockingRouteProblems(manifest('/repo/[owner]/[name]'))).toHaveLength(BLOCKING_ROUTES.length);
+    const { dynamicRoutes } = manifest(null);
+    delete (dynamicRoutes as Record<string, unknown>)['/org/[login]'];
+    expect(blockingRouteProblems({ dynamicRoutes })).toEqual(['/org/[login]: not in the prerender manifest']);
   });
 });

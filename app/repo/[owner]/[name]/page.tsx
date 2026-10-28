@@ -40,8 +40,8 @@ const REPO_BIG_PROMOTION_STARS = PROMOTION.repo.at(-1)?.from ?? 1_000;
 
 // Renders as one piece, like the profile pages; cached data keeps the render cheap. One repository is listed in
 // generateStaticParams, so any other renders on request as a whole page before the response starts: there is no
-// fallback shell, `notFound()` answers 404 and `permanentRedirect()` a real 308. The page is then kept in the page
-// cache, which the page-cache cleaner caps.
+// fallback shell, `notFound()` answers 404 and `permanentRedirect()` a real 308. The page is then kept in memory
+// only (`lib/cache/page-cache-handler.cjs`), never on disk.
 export const instant = false;
 
 export async function generateStaticParams() {

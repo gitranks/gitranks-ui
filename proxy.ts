@@ -3,6 +3,7 @@ import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
+import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
 
@@ -24,8 +25,8 @@ const BUILDER_PATH = /^\/badge\/builder(?:\/(?<login>[^/]+))?\/?$/;
 
 /**
  * A developer's, an organization's or a repository's page, or one post. They render as whole pages and are kept in
- * the page cache, which a refresh a visitor starts clears before the page reloads; a shared cache would show the old
- * page again. So for visitors without a session they carry the header they had while they rendered per request.
+ * memory, which a refresh a visitor starts clears before the page reloads; a shared cache would show the old page
+ * again. So for visitors without a session they carry the header they had while they rendered per request.
  */
 const ENTITY_PAGE = /^\/(?:profile|org|repo|insights)\/[^/]/;
 export const ENTITY_PAGE_CACHE_CONTROL = 'private, no-cache, no-store, max-age=0, must-revalidate';
@@ -57,7 +58,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 
   // Checked before Auth.js: its wrapper rebuilds the request on the configured auth URL's origin,
   // which would turn this rewrite into an external one. It also keeps session cookies off 404s.
-  if (isInvalidRankingPath(request.nextUrl.pathname)) {
+  if (isInvalidRankingPath(request.nextUrl.pathname) || isImpossibleEntityPath(request.nextUrl.pathname)) {
     return NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
   }
 

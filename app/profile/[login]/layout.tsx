@@ -13,7 +13,7 @@ import { TabsBar } from '@/components/tabs/tabs-bar';
 // One login is listed in generateStaticParams, so every other profile renders on request as a
 // whole page before the response starts: there is no fallback shell, and a profile that is not
 // there answers 404 rather than a 200 carrying the not-found page. Each such page is then kept in
-// the page cache, which the page-cache cleaner caps.
+// memory only (`lib/cache/page-cache-handler.cjs`), never on disk.
 export const instant = false;
 
 export async function generateStaticParams() {

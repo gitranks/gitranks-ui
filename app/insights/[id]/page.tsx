@@ -17,7 +17,7 @@ type InsightDetailsPageProps = {
 // fallback: the post is in the server HTML instead of a segment streamed after the footer.
 // generateStaticParams lists an id no post has, so every real one renders on request as a whole
 // page before the response starts: an unknown or unpublished id answers 404. The page is then
-// kept in the page cache for minutes, like the post it reads.
+// kept in memory only (`lib/cache/page-cache-handler.cjs`) for minutes, like the post it reads.
 export const instant = false;
 
 /** An id no post can have, so the build renders the not-found page without asking for data. */

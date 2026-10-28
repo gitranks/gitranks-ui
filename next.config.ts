@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import type { NextConfig } from 'next';
 import { HTML_LIMITED_BOT_UA_RE } from 'next/dist/shared/lib/router/utils/html-bots';
 
@@ -23,6 +25,9 @@ const htmlLimitedBots = new RegExp(`${HTML_LIMITED_BOT_UA_RE.source}|${AI_HTML_B
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Next's file-system page cache, but the pages of one developer, organization, repository or post stay in memory:
+  // they render per URL, and a crawl would otherwise write each URL to disk. See the handler.
+  cacheHandler: fileURLToPath(new URL('./lib/cache/page-cache-handler.cjs', import.meta.url)),
   cacheComponents: true,
   // Next 16.4 warns unless this is set. false keeps the prefetching we had on 16.3; turning it on
   // changes what every <Link> prefetches and needs its own review.

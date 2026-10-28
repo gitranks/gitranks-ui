@@ -5,7 +5,7 @@ import { Header } from '@/components/header/header';
 // Renders as one piece, like the profile layout: no Suspense boundary (it would move the page into
 // a hidden segment after the footer). One organization is listed in generateStaticParams, so any
 // other renders on request as a whole page before the response starts, and one that is not there
-// answers 404. Each such page is then kept in the page cache, which the page-cache cleaner caps.
+// answers 404. Each such page is then kept in memory only (`lib/cache/page-cache-handler.cjs`).
 export const instant = false;
 
 export async function generateStaticParams() {

@@ -37,6 +37,39 @@ describe('proxy', () => {
     expect(response?.headers.get('cache-control')).toBe(ENTITY_PAGE_CACHE_CONTROL);
   });
 
+  it.each([
+    '/profile/wp-login.php',
+    '/profile/-dash',
+    '/profile/a_b/ranks',
+    '/org/.env',
+    '/org/x'.padEnd(45, 'x'),
+    '/repo/x/a%20b',
+    '/repo/-x/y',
+    '/repo/x',
+    '/insights/_',
+    '/insights/123',
+    '/insights/6650f0c2a1b2c3d4e5f6071z',
+  ])('rewrites the impossible url %s to the 404 page before anything renders', async (path) => {
+    for (const cookie of [undefined, 'authjs.session-token=t']) {
+      const response = await proxy(request(cookie, path), event);
+
+      expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+    }
+    expect(withSession).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    '/profile/torvalds/ranks',
+    '/org/vercel',
+    '/repo/react/react',
+    '/repo/x/.github',
+    '/insights/6650F0C2A1B2C3D4E5F60718',
+  ])('lets the well-formed url %s through to the page', async (path) => {
+    const response = await proxy(request(undefined, path), event);
+
+    expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+  });
+
   it.each(['/', '/insights', '/orgs/1', '/repos/1', '/profile', '/repository/x'])(
     'leaves %s to the page',
     async (path) => {

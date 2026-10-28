@@ -25,7 +25,8 @@ const chevrons = (d: string, strokeWidth = 5) => (
 
 /**
  * The parts of a developer tier's glyph on a 48 grid, all in `currentColor`: one to three chevrons, three chevrons
- * over a bar, a star, two stars, a crown. A flat list of plain SVG elements, so the badge renderer can draw it too.
+ * over a rocker, a star, a star over a rocker, a crown. A flat list of plain SVG elements, so the badge renderer can
+ * draw it too.
  */
 export const tierIconShapes = (tier: number): ReactElement[] => {
   switch (tier) {
@@ -61,12 +62,20 @@ export const tierIconShapes = (tier: number): ReactElement[] => {
     case 6:
       return [
         <path
-          key="stars"
-          d="M13.50 17.00 L15.73 22.93 L22.06 23.22 L17.11 27.17 L18.79 33.28 L13.50 29.80 L8.21 33.28 L9.89 27.17 L4.94 23.22 L11.27 22.93Z M34.50 17.00 L36.73 22.93 L43.06 23.22 L38.11 27.17 L39.79 33.28 L34.50 29.80 L29.21 33.28 L30.89 27.17 L25.94 23.22 L32.27 22.93Z"
+          key="star"
+          d="M24.00 7.50 L26.69 15.79 L35.41 15.79 L28.36 20.92 L31.05 29.21 L24.00 24.08 L16.95 29.21 L19.64 20.92 L12.59 15.79 L21.31 15.79Z"
           fill="currentColor"
           stroke="currentColor"
-          strokeWidth="1.8"
+          strokeWidth="2"
           strokeLinejoin="round"
+        />,
+        <path
+          key="rocker"
+          d="M9 36.5Q24 46 39 36.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4.6"
+          strokeLinecap="round"
         />,
       ];
     default:

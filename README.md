@@ -2,30 +2,16 @@
 
 <a href="https://gitranks.com">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="public/logo-dark.svg">
-    <img src="public/logo-light.svg" alt="GitRanks" width="240">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/readme/banner-dark.png">
+    <img src=".github/readme/banner-light.png" alt="GitRanks: where do you rank on GitHub? Rankings, analytics and README badges for developers, repositories and organizations. A developer profile with a Legend 5 tier, an organization card and rank badges.">
   </picture>
 </a>
-
-### Where do you rank on GitHub?
-
-GitHub rankings, analytics and README badges for developers, repositories and organizations.<br>
-Worldwide, in your country and in every language.
 
 <a href="https://gitranks.com/repo/gitranks/gitranks-ui"><picture><source media="(prefers-color-scheme: dark)" srcset="https://gitranks.com/badge/repo/gitranks/gitranks-ui/rank.svg?theme=dark"><img src="https://gitranks.com/badge/repo/gitranks/gitranks-ui/rank.svg?theme=light" alt="gitranks/gitranks-ui on GitRanks: repo rank"></picture></a>
 <a href="https://gitranks.com/repo/gitranks/gitranks-ui"><picture><source media="(prefers-color-scheme: dark)" srcset="https://gitranks.com/badge/repo/gitranks/gitranks-ui/stars.svg?theme=dark"><img src="https://gitranks.com/badge/repo/gitranks/gitranks-ui/stars.svg?theme=light" alt="gitranks/gitranks-ui on GitRanks: stars"></picture></a>
 <a href="https://gitranks.com/repo/gitranks/gitranks-ui"><picture><source media="(prefers-color-scheme: dark)" srcset="https://gitranks.com/badge/repo/gitranks/gitranks-ui/tier.svg?theme=dark"><img src="https://gitranks.com/badge/repo/gitranks/gitranks-ui/tier.svg?theme=light" alt="gitranks/gitranks-ui on GitRanks: tier"></picture></a>
 
 **[Find your rank](https://gitranks.com)** · [Make a badge](https://gitranks.com/badge/builder) · [Badge gallery](https://gitranks.com/badge/gallery) · [How rankings work](https://gitranks.com/methodology) · [Insights](https://gitranks.com/insights)
-
-<br>
-
-<a href="https://gitranks.com">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/readme/hero-dark.png">
-    <img src=".github/readme/hero-light.png" alt="The GitRanks home page: search for a developer, repository or organization, and an example rank card">
-  </picture>
-</a>
 
 </div>
 

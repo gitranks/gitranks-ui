@@ -5,7 +5,7 @@ const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'a
 
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
-const { default: proxy, config, v2BuilderRedirect } = await import('./proxy');
+const { default: proxy, config, ENTITY_PAGE_CACHE_CONTROL, v2BuilderRedirect } = await import('./proxy');
 
 const event = {} as NextFetchEvent;
 const request = (cookie?: string, path = '/profile/torvalds') =>
@@ -15,11 +15,69 @@ describe('proxy', () => {
   beforeEach(() => withSession.mockClear());
 
   it('lets a visitor without a session through untouched, so the page stays cacheable', async () => {
-    const response = await proxy(request(), event);
+    const response = await proxy(request(undefined, '/by/stars/1'), event);
 
     expect(withSession).not.toHaveBeenCalled();
     expect(response?.headers.get('set-cookie')).toBeNull();
+    expect(response?.headers.get('cache-control')).toBeNull();
   });
+
+  it.each([
+    '/profile/torvalds',
+    '/profile/torvalds/ranks',
+    '/org/vercel',
+    '/repo/react/react',
+    '/repo/facebook/react',
+    '/insights/6650f0c2a1b2c3d4e5f60718',
+  ])('keeps %s out of shared caches for a visitor without a session, setting no cookie', async (path) => {
+    const response = await proxy(request(undefined, path), event);
+
+    expect(withSession).not.toHaveBeenCalled();
+    expect(response?.headers.get('set-cookie')).toBeNull();
+    expect(response?.headers.get('cache-control')).toBe(ENTITY_PAGE_CACHE_CONTROL);
+  });
+
+  it.each([
+    '/profile/wp-login.php',
+    '/profile/-dash',
+    '/profile/a_b/ranks',
+    '/org/.env',
+    '/org/x'.padEnd(45, 'x'),
+    '/repo/x/a%20b',
+    '/repo/-x/y',
+    '/repo/x',
+    '/insights/_',
+    '/insights/123',
+    '/insights/6650f0c2a1b2c3d4e5f6071z',
+  ])('rewrites the impossible url %s to the 404 page before anything renders', async (path) => {
+    for (const cookie of [undefined, 'authjs.session-token=t']) {
+      const response = await proxy(request(cookie, path), event);
+
+      expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+    }
+    expect(withSession).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    '/profile/torvalds/ranks',
+    '/org/vercel',
+    '/repo/react/react',
+    '/repo/x/.github',
+    '/insights/6650F0C2A1B2C3D4E5F60718',
+  ])('lets the well-formed url %s through to the page', async (path) => {
+    const response = await proxy(request(undefined, path), event);
+
+    expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+  });
+
+  it.each(['/', '/insights', '/orgs/1', '/repos/1', '/profile', '/repository/x'])(
+    'leaves %s to the page',
+    async (path) => {
+      const response = await proxy(request(undefined, path), event);
+
+      expect(response?.headers.get('cache-control')).toBeNull();
+    },
+  );
 
   it('clears a leftover session hint once the session is gone, without running Auth.js', async () => {
     const response = await proxy(request('has-session=1'), event);

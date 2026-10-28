@@ -8,6 +8,7 @@ import {
   parseSearch,
   pickTarget,
   stepOf,
+  storedNameQuery,
   styleQuery,
 } from './builder-state';
 import { findBadge } from '@/badge/v3/catalogue';
@@ -260,5 +261,20 @@ describe('pickTarget', () => {
       badge: null,
       style: {},
     });
+  });
+});
+
+describe('storedNameQuery', () => {
+  it('switches an old name of a moved repository to the current one, so badge URLs and snippets use it', () => {
+    expect(storedNameQuery(state('repo=facebook/react&badge=stars'), 'react/react')).toEqual({ repo: 'react/react' });
+  });
+
+  it('switches another spelling to the stored one', () => {
+    expect(storedNameQuery(state('user=Torvalds'), 'torvalds')).toEqual({ user: 'torvalds' });
+  });
+
+  it('changes nothing when the URL already names the entity as stored, or names no kind', () => {
+    expect(storedNameQuery(state('repo=react/react'), 'react/react')).toBeNull();
+    expect(storedNameQuery(state(''), 'react/react')).toBeNull();
   });
 });

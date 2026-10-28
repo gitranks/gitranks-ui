@@ -10,8 +10,14 @@ import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
 import { parsePageParam } from '@/utils/parse-page-param';
 
-// Renders on request as a whole page, which is then cached; the route is allowed to block.
+// Params not listed in generateStaticParams render on request as a whole page, which is then
+// cached; there is no fallback shell, so the route is allowed to block and a page past the last
+// one answers 404. The page says the same.
 export const instant = false;
+
+export async function generateStaticParams() {
+  return [{ page: '1' }];
+}
 
 export async function generateMetadata({ params }: LayoutProps<'/repos/no-language/[page]'>): Promise<Metadata> {
   const { page: pageParam } = await params;

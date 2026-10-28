@@ -57,6 +57,17 @@ describe('getEntityFactsResponse', () => {
     expect(response.headers.get('cache-control')).toBe(FACTS_CACHE_CONTROL.notFound);
   });
 
+  it('answers an old name of a moved repository with the facts under its current name', async () => {
+    // Asked by an old name, the data comes back under the current one; the builder then switches its URL to it.
+    const moved = { ...loaders, repo: vi.fn(async () => repoBig) };
+    const response = await getEntityFactsResponse('repo', ['old-owner', 'old-name'], moved);
+
+    expect(moved.repo).toHaveBeenCalledWith('old-owner', 'old-name');
+    expect(response.status).toBe(200);
+    expect((await response.json()).nameWithOwner).toBe(repoBig.nameWithOwner);
+    expect(repoBig.nameWithOwner).not.toBe('old-owner/old-name');
+  });
+
   it("leaves a developer's wall out while it is not offered", async () => {
     const withWall = { ...loaders, user: vi.fn(async () => userBig) };
     const body = await (await getEntityFactsResponse('user', ['octo-big'], withWall)).json();

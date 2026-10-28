@@ -46,14 +46,14 @@ const HINTS: Record<EntityKind | 'any', string> = {
   any: '“owner/name” finds a repository; a login finds a developer or an organization.',
   user: 'The developer’s GitHub login, for example torvalds.',
   org: 'The organization’s GitHub login, for example vercel.',
-  repo: 'The repository as owner/name, for example facebook/react.',
+  repo: 'The repository as owner/name, for example react/react.',
 };
 
 const PLACEHOLDERS: Record<EntityKind | 'any', string> = {
-  any: 'torvalds, vercel or facebook/react',
+  any: 'torvalds, vercel or react/react',
   user: 'torvalds',
   org: 'vercel',
-  repo: 'facebook/react',
+  repo: 'react/react',
 };
 
 type Lookup =

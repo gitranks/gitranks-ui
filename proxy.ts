@@ -3,6 +3,7 @@ import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
+import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
 
@@ -21,6 +22,14 @@ const NOT_FOUND_PATH = '/_404';
 const SESSION_COOKIE = /^(__Secure-)?authjs\.session-token(\.\d+)?$/;
 
 const BUILDER_PATH = /^\/badge\/builder(?:\/(?<login>[^/]+))?\/?$/;
+
+/**
+ * A developer's, an organization's or a repository's page, or one post. They render as whole pages and are kept in
+ * memory, which a refresh a visitor starts clears before the page reloads; a shared cache would show the old page
+ * again. So for visitors without a session they carry the header they had while they rendered per request.
+ */
+const ENTITY_PAGE = /^\/(?:profile|org|repo|insights)\/[^/]/;
+export const ENTITY_PAGE_CACHE_CONTROL = 'private, no-cache, no-store, max-age=0, must-revalidate';
 
 /**
  * An old builder link (its query names, or a login in the path) as the new builder's path and query, with its choices
@@ -49,7 +58,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 
   // Checked before Auth.js: its wrapper rebuilds the request on the configured auth URL's origin,
   // which would turn this rewrite into an external one. It also keeps session cookies off 404s.
-  if (isInvalidRankingPath(request.nextUrl.pathname)) {
+  if (isInvalidRankingPath(request.nextUrl.pathname) || isImpossibleEntityPath(request.nextUrl.pathname)) {
     return NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
   }
 
@@ -59,7 +68,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // session-aware API routes wrap their handlers in `auth()` themselves.
   if (!request.cookies.getAll().some(({ name }) => SESSION_COOKIE.test(name))) {
     if (!request.cookies.has(SESSION_HINT_COOKIE)) {
-      return NextResponse.next();
+      if (!ENTITY_PAGE.test(request.nextUrl.pathname)) {
+        return NextResponse.next();
+      }
+      const response = NextResponse.next();
+      response.headers.set('Cache-Control', ENTITY_PAGE_CACHE_CONTROL);
+      return response;
     }
 
     // Signed out or expired: drop the hint, so the page stops asking for a session. A shared cache

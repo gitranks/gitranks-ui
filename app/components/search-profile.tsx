@@ -87,7 +87,7 @@ export const SearchProfile = () => {
       <Input
         ref={inputRef}
         id="landing-search"
-        placeholder="torvalds, vercel, or facebook/react"
+        placeholder="torvalds, vercel, or react/react"
         value={login}
         onChange={(event) => {
           event.target.setCustomValidity('');

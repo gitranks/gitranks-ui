@@ -62,6 +62,15 @@ const read = (query: URLSearchParams | BuilderQuery, key: string): string | null
   return typeof value === 'string' ? value : null;
 };
 
+/**
+ * The query that puts the entity's stored name in the URL when the URL names it otherwise: another spelling, or an
+ * old name of a repository that was renamed or moved, whose facts come back under the current name. The badge URL and
+ * the snippets then use the name that stays valid. `null` when they already agree.
+ */
+export function storedNameQuery(state: Pick<BuilderState, 'kind' | 'name'>, storedName: string): BuilderQuery | null {
+  return state.kind && storedName !== state.name ? { [state.kind]: storedName } : null;
+}
+
 /** The builder's state from its query. Only the first entity key counts; style values are kept as written. */
 export function parseBuilderQuery(query: URLSearchParams | BuilderQuery): BuilderState {
   const kind = ENTITY_KEYS.find((key) => read(query, key) !== null) ?? null;

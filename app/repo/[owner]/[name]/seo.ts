@@ -130,12 +130,10 @@ export function buildRepoSEO(repo: Repo): { metadata: Metadata; jsonLd: object[]
   const title = `${repo.nameWithOwner} - GitHub Repository Rank`;
   const description = buildDescription(repo, ranked);
   const rank = repo.rank?.s;
-  // The page draws the owner's avatar at its top when GitHub gave one.
+  // The page draws the owner's avatar at its top.
   const images: EntityImages = {
     entityUrl: url,
-    avatar: repo.ownerAvatarUrl
-      ? { url: absoluteUrl(avatarPath(repo.owner)), caption: repoOwnerAvatarAlt(repo.owner, repo.nameWithOwner) }
-      : null,
+    avatar: { url: absoluteUrl(avatarPath(repo.owner)), caption: repoOwnerAvatarAlt(repo.owner, repo.nameWithOwner) },
     card:
       rank && hasRankCard(repo.rank)
         ? {

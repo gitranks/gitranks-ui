@@ -86,20 +86,23 @@ describe('buildRepoSEO', () => {
     expect(unranked.twitter).toMatchObject({ card: 'summary_large_image', images: [avatar] });
     expect(buildRepoSEO(repo({ rank: null })).metadata.openGraph).toMatchObject({ images: [avatar] });
 
-    const bare = buildRepoSEO(repo({ rank: null, ownerAvatarUrl: null })).metadata;
-    expect(bare.openGraph?.images).toBeUndefined();
-    expect(bare.twitter).toMatchObject({ card: 'summary' });
+    // The avatar route answers for any owner, so the page and its preview have it without a stored avatar too.
+    expect(buildRepoSEO(repo({ rank: null, ownerAvatarUrl: null })).metadata.openGraph).toMatchObject({
+      images: [avatar],
+    });
   });
 
   it('pairs the owner avatar with the rank card in JSON-LD, and keeps the avatar alone without a card', () => {
     expect(sourceCodeOf(buildRepoSEO(repo()).jsonLd).image).toEqual([AVATAR, CARD]);
     expect(sourceCodeOf(buildRepoSEO(repo({ rank: null })).jsonLd).image).toEqual(AVATAR);
-    expect(sourceCodeOf(buildRepoSEO(repo({ ownerAvatarUrl: null })).jsonLd).image).toEqual(CARD);
+    expect(sourceCodeOf(buildRepoSEO(repo({ ownerAvatarUrl: null })).jsonLd).image).toEqual([AVATAR, CARD]);
   });
 
   it("names the owner's avatar, the image at the page's top, as the page's primary image", () => {
     expect(pageOf(buildRepoSEO(repo()).jsonLd).primaryImageOfPage).toEqual({ '@id': AVATAR['@id'] });
-    expect(pageOf(buildRepoSEO(repo({ ownerAvatarUrl: null })).jsonLd).primaryImageOfPage).toBeUndefined();
+    expect(pageOf(buildRepoSEO(repo({ ownerAvatarUrl: null })).jsonLd).primaryImageOfPage).toEqual({
+      '@id': AVATAR['@id'],
+    });
   });
 
   it('names the ranking of repositories without a language', () => {
@@ -209,6 +212,7 @@ describe('buildRepoSEO', () => {
       '@type': 'Person',
       name: 'octocat',
       url: 'https://gitranks.test/profile/octocat',
+      image: { '@id': 'https://gitranks.test/repo/vercel/next.js#avatar' },
       sameAs: ['https://github.com/octocat'],
     });
   });

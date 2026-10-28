@@ -57,7 +57,11 @@ const renderProfile = (facts: UserFacts) =>
     </ProfileLayout>,
   );
 
-const renderRepo = (facts: RepoFacts, children: ReactNode = badges(facts)) => {
+const renderRepo = (
+  facts: RepoFacts,
+  children: ReactNode = badges(facts),
+  ownerAvatarUrl: string | null = 'https://avatars.githubusercontent.com/u/2?v=4',
+) => {
   const [owner, name] = facts.nameWithOwner.split('/');
   return renderToStaticMarkup(
     <RepoLayout
@@ -66,7 +70,7 @@ const renderRepo = (facts: RepoFacts, children: ReactNode = badges(facts)) => {
           owner,
           name,
           nameWithOwner: facts.nameWithOwner,
-          ownerAvatarUrl: 'https://avatars.githubusercontent.com/u/2?v=4',
+          ownerAvatarUrl,
           stars: facts.stars,
           isInOrganization: true,
           createdAt: '2020-01-01T00:00:00Z',
@@ -127,6 +131,31 @@ describe('sitemap images are on their pages', () => {
 
     expect(listed).toHaveLength(2);
     expect(shown).toEqual(expect.arrayContaining(listed));
+  });
+
+  it("draws a repository owner's avatar without a stored avatar URL too, as the sitemap lists it", () => {
+    const shown = shownImages(renderRepo(repoBig, badges(repoBig), null));
+
+    expect(shown).toEqual(expect.arrayContaining(listRepoImageUrls(repoBig.nameWithOwner)));
+  });
+
+  it('draws no broken main image for an organization without a login', () => {
+    const html = renderToStaticMarkup(
+      <OrgLayout
+        org={
+          {
+            login: null,
+            name: 'Nebula',
+            githubCreatedAt: '2015-01-01T00:00:00Z',
+            updatedAt: NOW.toISOString(),
+          } as unknown as ComponentProps<typeof OrgLayout>['org']
+        }
+      >
+        {null}
+      </OrgLayout>,
+    );
+
+    expect(html).not.toContain('/api/avatar/');
   });
 
   it("draws a repository's star history only once it is read, so the sitemap leaves it out", () => {

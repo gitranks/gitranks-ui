@@ -40,19 +40,21 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ org, children }) =
     <PageContainer>
       <LeftColumnContainer>
         <AvatarAndNameContainer>
-          <AvatarContainer>
-            {/* The page's main image, from this site's own URL: the one its structured data names. */}
-            <Image
-              src={avatarPath(org.login ?? '')}
-              alt={orgAvatarAlt(org.login ?? '', org.name)}
-              className="rounded-full w-full h-full"
-              width={AVATAR_SIZE}
-              height={AVATAR_SIZE}
-              loading="eager"
-              fetchPriority="high"
-              unoptimized
-            />
-          </AvatarContainer>
+          {!!org.login && (
+            <AvatarContainer>
+              {/* The page's main image, from this site's own URL: the one its structured data names. */}
+              <Image
+                src={avatarPath(org.login)}
+                alt={orgAvatarAlt(org.login, org.name)}
+                className="rounded-full w-full h-full"
+                width={AVATAR_SIZE}
+                height={AVATAR_SIZE}
+                loading="eager"
+                fetchPriority="high"
+                unoptimized
+              />
+            </AvatarContainer>
+          )}
           <NameContainer>
             <h1 className="font-semibold text-2xl flex items-center gap-1" translate="no">
               {org.name || org.login} {org.isVerified && <MdOutlineVerified className="size-5 fill-positive" />}

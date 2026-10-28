@@ -14,7 +14,7 @@ const XML_ENTITIES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '
  */
 export const escapeImageLoc = (url: string): string => url.replace(/[&<>"']/g, (char) => XML_ENTITIES[char]);
 
-/** A badge image path as an absolute, escaped sitemap image loc. */
+/** An image path (a badge, an avatar) as an absolute, escaped sitemap image loc. */
 export const sitemapImageLoc = (path: string): string => escapeImageLoc(absoluteSitemapUrl(path));
 
 /**
@@ -38,7 +38,8 @@ const RANK_PROPS: Record<By, UserRankProp> = {
 
 /**
  * Whether a profile's page shows a promoted badge, as far as its scores tell. Scores only: a profile whose score
- * reached the threshold since the last ranking update can be listed a day early. Badges the scores cannot decide (a country rank, this month's race, the count chart) are left out.
+ * reached the threshold since the last ranking update can be listed a day early. Badges the scores cannot decide (a
+ * country rank, this month's race, the count chart) are left out.
  */
 function profileShows(scores: RankingScores, { id, query = {} }: PromotedBadge): boolean {
   if (id === 'profile-card') return hasProfileCard(scores, undefined);

@@ -46,11 +46,12 @@ const mono = (value: number) => <span className="font-mono tabular-nums">{value.
 
 /** The repository page's frame, like a profile's: the repository on the left, its numbers on the right. */
 export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children }) => {
-  const { owner, name, nameWithOwner, ownerAvatarUrl, description, language, stars, gainedThisMonth, createdAt } = repo;
+  const { owner, name, nameWithOwner, description, language, stars, gainedThisMonth, createdAt } = repo;
   const readAt = repo.history?.readAt;
   const ownerPath = getRepoOwnerPath(owner, repo.isInOrganization);
-  // The page's main image, from this site's own URL: the one its structured data names.
-  const avatar = !!ownerAvatarUrl && (
+  // The page's main image, from this site's own URL: the one its structured data and sitemap name. It answers for any
+  // owner, so it is drawn whether or not the repository's data has the owner's avatar.
+  const avatar = (
     <Image
       src={avatarPath(owner)}
       alt={repoOwnerAvatarAlt(owner, nameWithOwner)}
@@ -67,18 +68,16 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
     <PageContainer>
       <LeftColumnContainer>
         <AvatarAndNameContainer>
-          {avatar && (
-            <AvatarContainer className="shrink-0">
-              {/* The owner row below links there too: the avatar is a second way in, out of the tab order. */}
-              {ownerPath ? (
-                <Link href={ownerPath} prefetch={false} tabIndex={-1} aria-hidden className="block h-full w-full">
-                  {avatar}
-                </Link>
-              ) : (
-                avatar
-              )}
-            </AvatarContainer>
-          )}
+          <AvatarContainer className="shrink-0">
+            {/* The owner row below links there too: the avatar is a second way in, out of the tab order. */}
+            {ownerPath ? (
+              <Link href={ownerPath} prefetch={false} tabIndex={-1} aria-hidden className="block h-full w-full">
+                {avatar}
+              </Link>
+            ) : (
+              avatar
+            )}
+          </AvatarContainer>
           <div className="flex min-w-0 flex-col gap-1">
             <h1 className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]" translate="no">
               <span className="text-muted-foreground">{owner}/</span>

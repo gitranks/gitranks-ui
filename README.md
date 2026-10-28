@@ -151,6 +151,10 @@ This is the GitRanks website: the pages, the badge rendering and the badge build
 
 Built with [Next.js](https://nextjs.org) 16, React 19, [Tailwind CSS](https://tailwindcss.com) 4, [shadcn/ui](https://ui.shadcn.com), [Recharts](https://recharts.org) and [Satori](https://github.com/vercel/satori) for the badges.
 
+## License
+
+The code in this repository is released under the [MIT License](LICENSE). The GitRanks name and logo are not covered by it, and bundled fonts keep their own licenses.
+
 ## Support
 
 If GitRanks is useful to you, star the repository, put a badge in your README, or share your rank with a friend.

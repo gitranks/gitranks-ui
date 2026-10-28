@@ -56,11 +56,12 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@resvg/resvg-js', 'satori', 'harfbuzzjs', 'yoga-wasm-web'],
   async headers() {
     return [
-      // Next serves the app icon with max-age=0, so a shared cache asks the server again on every request.
-      {
-        source: '/favicon.ico',
+      // Next serves the app icons with max-age=0, so a shared cache asks the server again on every request. Pages link
+      // them with a content hash in the query, so a changed icon gets a new URL.
+      ...['/favicon.ico', '/icon.svg', '/apple-icon.png'].map((source) => ({
+        source,
         headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, s-maxage=604800' }],
-      },
+      })),
     ];
   },
   async redirects() {

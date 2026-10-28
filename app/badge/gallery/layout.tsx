@@ -23,8 +23,8 @@ export default function BadgeGalleryLayout({ children }: LayoutProps<'/badge/gal
           <div className="flex flex-col gap-2">
             <h1 className="text-2xl md:text-3xl font-semibold">Badges for your README</h1>
             <p className="text-muted-foreground">
-              Live ranks from GitRanks, updated daily. Each example shows today&apos;s #1; make the same badge for any
-              developer, repository or organization.
+              Live ranks from GitRanks, recalculated every few days. Each example shows today&apos;s #1; make the same
+              badge for any developer, repository or organization.
             </p>
           </div>
           <Button asChild className="self-start sm:self-auto">

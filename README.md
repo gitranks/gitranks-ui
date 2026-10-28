@@ -9,7 +9,7 @@
 
 ### Where do you rank on GitHub?
 
-Rankings, analytics and README badges for developers, repositories and organizations on GitHub.<br>
+GitHub rankings, analytics and README badges for developers, repositories and organizations.<br>
 Worldwide, in your country and in every language.
 
 <a href="https://gitranks.com/repo/gitranks/gitranks-ui"><picture><source media="(prefers-color-scheme: dark)" srcset="https://gitranks.com/badge/repo/gitranks/gitranks-ui/rank.svg?theme=dark"><img src="https://gitranks.com/badge/repo/gitranks/gitranks-ui/rank.svg?theme=light" alt="gitranks/gitranks-ui on GitRanks: repo rank"></picture></a>

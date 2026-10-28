@@ -29,8 +29,9 @@ export type StarHistoryBadgeInput =
 
 const formatCount = (value: number) => value.toLocaleString('en-US');
 
-const formatMonthly = (gained: number | null | undefined) =>
-  gained === null || gained === undefined ? null : `${gained >= 0 ? '+' : ''}${formatCount(gained)} this month`;
+/** Only a gain is shown: a month with no new stars (or a loss) leaves the label out. */
+export const formatMonthly = (gained: number | null | undefined) =>
+  typeof gained === 'number' && gained > 0 ? `+${formatCount(gained)} this month` : null;
 
 function Frame({ children }: Readonly<{ children: ReactNode }>) {
   return (

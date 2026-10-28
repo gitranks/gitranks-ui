@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ideas and questions
+    url: https://github.com/gitranks/gitranks-ui/discussions
+    about: Suggest a metric, a badge or a feature, or ask how something works.
+  - name: Remove my data
+    url: https://gitranks.com/privacy#removal
+    about: Sign in and use the Privacy tab on your profile, or ask by email.
+  - name: Make a badge
+    url: https://gitranks.com/badge/builder
+    about: Find your profile, repository or organization and copy a badge for your README.

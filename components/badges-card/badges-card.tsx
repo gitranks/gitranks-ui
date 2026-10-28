@@ -44,14 +44,12 @@ export const BadgesCard: FC<BadgesCardProps> = ({ entity, now = new Date() }) =>
           </ProfileCardHeader>
           <p className="text-sm text-muted-foreground">{INTRO[entity.kind](name)}</p>
         </div>
-        <MoreLink href="/badge/gallery" className="shrink-0">
+        {/* Every badge this entity has: the builder's step 2, with the entity already found. */}
+        <MoreLink href={builderHref({ kind: entity.kind, name })} rel="nofollow" className="shrink-0">
           See all badges
         </MoreLink>
       </div>
       <BadgeTiles tiles={tiles} />
-      <MoreLink href={builderHref({ kind: entity.kind, name })} rel="nofollow" className="self-start">
-        More badges
-      </MoreLink>
     </ProfileCard>
   );
 };

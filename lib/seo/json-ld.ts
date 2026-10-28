@@ -22,6 +22,7 @@ export function buildSiteJsonLd() {
       '@id': ORGANIZATION_ID,
       name: SITE_NAME,
       url: SITE_URL,
+      description: SITE_DESCRIPTION,
       logo: absoluteUrl('/apple-icon.png'),
       sameAs: SITE_SAME_AS,
     },

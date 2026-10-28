@@ -11,6 +11,11 @@ export const SHIELD_PADDING = 6;
 export const MARK_SIZE = 13;
 const GAP = 4;
 const ICON_SIZE = 12;
+/**
+ * Inter's line box sets its glyphs about 1px lower than JetBrains Mono's at this size, so the label, the extra and any
+ * Inter run sit 1px up: every run then shares the mono value's baseline, and the caps are centred in the 20px block.
+ */
+const INTER_LIFT = { position: 'relative', top: -1 } as const;
 
 export const MONO_FONT = 'JetBrains Mono';
 
@@ -43,6 +48,7 @@ function Runs({
             color: run.tone ? tone(run.tone, color) : color,
             fontFamily: run.mono ? MONO_FONT : 'Inter',
             fontWeight: run.mono ? 700 : weight,
+            ...(run.mono ? null : INTER_LIFT),
           }}
         >
           {run.text}
@@ -104,13 +110,22 @@ export function Shield({
             <Mark size={MARK_SIZE} colors={palette.mark} />
           </div>
         ) : null}
-        <div style={{ display: 'flex', whiteSpace: 'pre' }}>{content.label}</div>
+        <div style={{ display: 'flex', whiteSpace: 'pre', ...INTER_LIFT }}>{content.label}</div>
       </Block>
       <Block block={value}>
         <Runs segment={content.value} base={value.text} tone={tone} weight={600} />
         {content.extra ? (
           <>
-            <div style={{ display: 'flex', whiteSpace: 'pre', marginLeft: GAP, color: palette.muted, fontWeight: 500 }}>
+            <div
+              style={{
+                display: 'flex',
+                whiteSpace: 'pre',
+                marginLeft: GAP,
+                color: palette.muted,
+                fontWeight: 500,
+                ...INTER_LIFT,
+              }}
+            >
               {'· '}
             </div>
             <Runs segment={content.extra} base={palette.muted} tone={tone} weight={500} />

@@ -65,7 +65,7 @@ Every badge is a live image. Pick one in the **[badge builder](https://gitranks.
 
 This repository's own star history, drawn by GitRanks:
 
-<a href="https://gitranks.com/repo/gitranks/gitranks-ui"><picture><source media="(prefers-color-scheme: dark)" srcset="https://gitranks.com/badge/repo/gitranks/gitranks-ui/star-history.svg?theme=dark"><img src="https://gitranks.com/badge/repo/gitranks/gitranks-ui/star-history.svg?theme=light" alt="gitranks/gitranks-ui on GitRanks: star history" width="640"></picture></a>
+<a href="https://gitranks.com/repo/gitranks/gitranks-ui"><img src="https://gitranks.com/badge/repo/gitranks/gitranks-ui/star-history.svg" alt="gitranks/gitranks-ui on GitRanks: star history" width="640"></a>
 
 #### Organizations
 
@@ -84,7 +84,7 @@ The builder writes the snippet for you. In Markdown, a badge is a linked image:
 [![My GitRanks rank](https://gitranks.com/badge/user/YOUR_LOGIN/rank.svg)](https://gitranks.com/profile/YOUR_LOGIN)
 ```
 
-Badge URLs look like `https://gitranks.com/badge/{user|repo|org}/{name}/{badge}.svg`, and `.png` works too. With the default colors, a badge follows the reader's system light or dark theme; the builder's HTML snippet follows GitHub's theme setting instead. Badge URLs from earlier versions keep working.
+Badge URLs look like `https://gitranks.com/badge/{user|repo|org}/{name}/{badge}.svg`. With the default colors, an SVG badge follows the reader's system light or dark theme; the builder's HTML snippet follows GitHub's theme setting instead. A `.png` badge is drawn light, or dark with `?theme=dark`. Badge URLs from earlier versions keep working.
 
 ## A closer look
 
@@ -100,13 +100,13 @@ Badge URLs look like `https://gitranks.com/badge/{user|repo|org}/{name}/{badge}.
       <p align="center"><b>Developer profile</b>: tier, ranks and their monthly moves, top languages, own projects and contributions.</p>
     </td>
     <td width="50%" valign="top">
-      <a href="https://gitranks.com/repo/vercel/next.js">
+      <a href="https://gitranks.com/repo/gitranks/gitranks-ui">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset=".github/readme/repo-dark.png">
-          <img src=".github/readme/repo-light.png" alt="A repository page on GitRanks: repository tier, Who builds it, and lines of code over time">
+          <img src=".github/readme/repo-light.png" alt="This repository on GitRanks: repository tier, global and language rank, Who builds it, and star history">
         </picture>
       </a>
-      <p align="center"><b>Repository page</b>: tier, global and language rank, <i>Who builds it</i>, and the code over time.</p>
+      <p align="center"><b>Repository page</b>: tier, global and language rank, <i>Who builds it</i>, star history, and below it the code and contributors over time.</p>
     </td>
   </tr>
 </table>
@@ -143,7 +143,7 @@ Sign in, open your profile, go to the <b>Privacy</b> tab and choose <b>Remove my
 
 Found a bug, a wrong rank, or a metric you'd like to see? [Open an issue](https://github.com/gitranks/gitranks-ui/issues) or [start a discussion](https://github.com/gitranks/gitranks-ui/discussions). Every report helps.
 
-If you're building something with GitHub data and want what GitRanks has collected, get in touch. It's free to share.
+Building something with GitHub data? GitRanks shares the data it has collected for free. Write to [hello@gitranks.com](mailto:hello@gitranks.com).
 
 ## About this repository
 
@@ -153,6 +153,6 @@ Built with [Next.js](https://nextjs.org) 16, React 19, [Tailwind CSS](https://ta
 
 ## Support
 
-If GitRanks is useful to you, ⭐ star the repository, put a badge in your README, or share your rank with a friend.
+If GitRanks is useful to you, star the repository, put a badge in your README, or share your rank with a friend.
 
 <sub>Built by [@maslianok](https://github.com/maslianok). Yes, I've checked my own rank.</sub>

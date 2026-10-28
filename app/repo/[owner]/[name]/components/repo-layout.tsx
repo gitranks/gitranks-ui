@@ -1,4 +1,3 @@
-import { format } from 'date-fns';
 import {
   Building2,
   CalendarDays,
@@ -41,6 +40,9 @@ type RepoLayoutProps = {
 
 // As wide as the left column, like the profile and organization avatars.
 const AVATAR_SIZE = 288;
+
+/** In UTC, as GitHub stores the dates and as the page's summary words them, so both say the same day. */
+const SHORT_DATE = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' });
 
 const mono = (value: number) => <span className="font-mono tabular-nums">{value.toLocaleString('en-US')}</span>;
 
@@ -131,9 +133,11 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
               />
             )}
             {!!createdAt && (
-              <ProfileListItem value={`Created ${format(createdAt, 'MMM d, yyyy')}`} Icon={CalendarDays} />
+              <ProfileListItem value={`Created ${SHORT_DATE.format(new Date(createdAt))}`} Icon={CalendarDays} />
             )}
-            {!!readAt && <ProfileListItem value={`Star history read ${format(readAt, 'MMM d, yyyy')}`} Icon={Timer} />}
+            {!!readAt && (
+              <ProfileListItem value={`Star history read ${SHORT_DATE.format(new Date(readAt))}`} Icon={Timer} />
+            )}
           </div>
         </DetailsContainer>
       </LeftColumnContainer>

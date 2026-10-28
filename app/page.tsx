@@ -25,13 +25,14 @@ import {
 } from './components/landing/landing-sections';
 import { formatCompact, tierAt } from './components/landing/landing-ui';
 import type { Leaderboard } from './components/landing/leaderboard-tabs';
+import { fetchReadmeShowcase } from './components/landing/readme-showcase';
 import { ReposSection } from './components/landing/repos-section';
 import { Header } from '@/components/header/header';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
 import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary';
 import { pageMetadata } from '@/lib/seo/page-metadata';
-import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '@/lib/seo/site';
+import { SITE_DESCRIPTION, SITE_TITLE } from '@/lib/seo/site';
 import { LanguageSummaryOrder } from '@/types/generated/graphql';
 
 export const metadata: Metadata = pageMetadata({
@@ -44,19 +45,22 @@ const EXAMPLE_COUNT = 3;
 
 // Every read below is a shared, cached function (see landing-data.ts and the helpers' own cache
 // lifetimes), so the page is prerendered and a view sends no request to the API. Only the signed-in
-// visitor's own rank card is fetched in the browser, from a route cached per user.
+// visitor's own rank card is fetched in the browser, from a route cached per user, and their own
+// badges, from the public badge data the builder reads.
 export default async function Home() {
-  const [insights, leaderboards, tiers, orgs, featured, countries, languages, countryList, repos] = await Promise.all([
-    fetchLandingInsights(),
-    fetchLeaderboards(),
-    fetchGlobalTiers(),
-    fetchTopOrgs(),
-    fetchFeaturedOrg(),
-    fetchCountrySummaries(),
-    fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, offset: 0, limit: 8 }),
-    fetchCountries(),
-    fetchTopRepos(),
-  ]);
+  const [insights, leaderboards, tiers, orgs, featured, countries, languages, countryList, repos, showcase] =
+    await Promise.all([
+      fetchLandingInsights(),
+      fetchLeaderboards(),
+      fetchGlobalTiers(),
+      fetchTopOrgs(),
+      fetchFeaturedOrg(),
+      fetchCountrySummaries(),
+      fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, offset: 0, limit: 8 }),
+      fetchCountries(),
+      fetchTopRepos(),
+      fetchReadmeShowcase(),
+    ]);
 
   const flags = new Map(countryList.map((country) => [country.name, country.flag]));
 
@@ -129,7 +133,7 @@ export default async function Home() {
           <OrganizationsSection orgs={orgs} flags={flags} featured={featured} />
           <ReposSection rows={repos} />
           <PlacesSection countries={countries} languages={languages} />
-          <BadgesSection origin={SITE_URL} />
+          <BadgesSection showcase={showcase} />
           <TiersSection />
           <UpdatesSection />
           <FaqSection />

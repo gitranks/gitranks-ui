@@ -16,7 +16,7 @@ import {
 
 // The stock 'hours' profile, spelled out: next.config.ts gives 'hours' a zero lifetime in dev, which
 // would turn these reads into uncached holes in the prerendered page.
-const HOURLY = { stale: 300, revalidate: 3_600, expire: 86_400 };
+export const HOURLY = { stale: 300, revalidate: 3_600, expire: 86_400 };
 
 /** The organization whose code facts the landing shows. */
 export const FEATURED_ORG = 'vercel';

@@ -1,10 +1,46 @@
-import type { FC } from 'react';
+import type { CSSProperties, FC } from 'react';
 
 import type { BadgeTile } from '@/badge/v3/tiles';
 import { Link } from '@/components/link/link';
 import { cn } from '@/lib/utils';
 
 const IMAGE_PROPS = { loading: 'lazy', decoding: 'async' } as const;
+
+/**
+ * Both drawings of an Auto badge, by its real URL: the site's theme shows one, and a hidden lazy image is not fetched.
+ */
+export const BadgeImages: FC<{ tile: BadgeTile; className?: string; style?: CSSProperties }> = ({
+  tile,
+  className,
+  style,
+}) => {
+  const size = tile.size ?? undefined;
+
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element -- live badge images */}
+      <img
+        src={tile.src.light}
+        alt={tile.alt}
+        width={size?.width}
+        height={size?.height}
+        className={cn(className, 'dark:hidden')}
+        style={style}
+        {...IMAGE_PROPS}
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element -- live badge images */}
+      <img
+        src={tile.src.dark}
+        alt={tile.alt}
+        width={size?.width}
+        height={size?.height}
+        className={cn(className, 'hidden dark:block')}
+        style={style}
+        {...IMAGE_PROPS}
+      />
+    </>
+  );
+};
 
 /**
  * One badge, drawn by its real URL, as a link into the builder; `action` says where it leads ("Get the code" by
@@ -27,26 +63,7 @@ export const BadgeTileLink: FC<{ tile: BadgeTile; action?: string }> = ({ tile, 
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
       )}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- live badge images */}
-      <img
-        src={tile.src.light}
-        alt={tile.alt}
-        width={size?.width}
-        height={size?.height}
-        className={cn(imageClass, 'dark:hidden')}
-        style={style}
-        {...IMAGE_PROPS}
-      />
-      {/* eslint-disable-next-line @next/next/no-img-element -- live badge images */}
-      <img
-        src={tile.src.dark}
-        alt={tile.alt}
-        width={size?.width}
-        height={size?.height}
-        className={cn(imageClass, 'hidden dark:block')}
-        style={style}
-        {...IMAGE_PROPS}
-      />
+      <BadgeImages tile={tile} className={imageClass} style={style} />
       <span className="sr-only"> – {action.toLowerCase()}</span>
     </Link>
   );

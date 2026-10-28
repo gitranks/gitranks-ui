@@ -3,16 +3,15 @@ import Link from 'next/link';
 import type { CSSProperties, FC, ReactNode } from 'react';
 import { FaTelegramPlane, FaWhatsapp } from 'react-icons/fa';
 
-import BadgeExample from '../../badge/gallery/components/badge-example';
 import { SearchProfile } from '../search-profile';
-import { BadgeSnippet } from './badge-snippet';
 import { type ExampleRank, HeroAside } from './hero-aside';
 import { HeroSignIn } from './hero-sign-in';
 import { FEATURED_ORG, LEADERBOARD_ROWS } from './landing-data';
 import { formatCompact, formatFull, GithubAvatar, LandingSection } from './landing-ui';
 import { type Leaderboard, LeaderboardTabs } from './leaderboard-tabs';
+import { ReadmeSection } from './readme-section';
+import type { ReadmeShowcase } from './readme-showcase';
 import { RANK_DESCRIPTIONS, TELEGRAM_BOT_URL, TIER_FRACTIONS, TIER_NAMES, WHATSAPP_BOT_URL } from '@/app/app.consts';
-import { RANK_NAME } from '@/badge/badge.consts';
 import { Flag } from '@/components/flag/flag';
 import { InsightPostCard } from '@/components/insight/insight-post-card';
 import InsightText from '@/components/insight/insight-text';
@@ -22,7 +21,6 @@ import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { TierIcon } from '@/components/tier-icon/tier-icon';
 import { Button } from '@/components/ui/button';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
-import { BadgeMeta, BadgeType } from '@/types/badge.types';
 import type {
   CountrySummaryQuery,
   InsightsQuery,
@@ -30,7 +28,6 @@ import type {
   OrgRankingsQuery,
   PageOrgQuery,
 } from '@/types/generated/graphql';
-import { UserRankProp } from '@/types/ranking.types';
 import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
 
 export const Container: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
@@ -356,37 +353,8 @@ export const PlacesSection: FC<{ countries: CountryRow[]; languages: LanguageRow
   </LandingSection>
 );
 
-export const BadgesSection: FC<{ origin: string }> = ({ origin }) => (
-  <LandingSection
-    id="badges"
-    eyebrow="Badges"
-    title="Put your rank on your README"
-    intro="A live badge for your GitHub profile, a project README or your site. It updates as your rank moves."
-    action={
-      <Link href="/badge/gallery" prefetch={false} className="text-link underline">
-        Badge gallery
-      </Link>
-    }
-  >
-    <div className="grid items-start gap-6 lg:grid-cols-2">
-      <BadgeSnippet origin={origin} />
-      <div className="flex flex-col gap-3 rounded-xl border bg-card p-5 shadow-sm">
-        <span className="text-xs text-muted-foreground">README.md</span>
-        <div className="flex flex-wrap gap-2">
-          <BadgeExample label={RANK_NAME.s} />
-          <BadgeExample label={RANK_NAME.c} ranking={UserRankProp.c} type={BadgeType.Tier} valueBgColor="#7c3aed" />
-          <BadgeExample label={RANK_NAME.s} meta={BadgeMeta.MonthlyChange} />
-          <BadgeExample
-            label="Total Followers"
-            ranking={UserRankProp.f}
-            meta={BadgeMeta.Percentile}
-            valueBgColor="#1e3a8a"
-          />
-        </div>
-      </div>
-    </div>
-  </LandingSection>
-);
+/** "Put your rank on your README": live badges in a README, and the way into the builder. */
+export const BadgesSection: FC<{ showcase: ReadmeShowcase }> = ({ showcase }) => <ReadmeSection showcase={showcase} />;
 
 // Literal class names so Tailwind generates them.
 const TIER_BAR_CLASSES = ['bg-tier-1', 'bg-tier-2', 'bg-tier-3', 'bg-tier-4', 'bg-tier-5', 'bg-tier-6', 'bg-tier-7'];
@@ -456,7 +424,7 @@ export const UpdatesSection = () => (
   </LandingSection>
 );
 
-const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = [
+const FAQ: { q: string; a: string; link?: { href: string; label: string; nofollow?: boolean } }[] = [
   {
     q: 'How is my GitHub rank calculated?',
     a: `There are three rankings. ${RANK_DESCRIPTIONS.s.title}: ${RANK_DESCRIPTIONS.s.descriptionList} ${RANK_DESCRIPTIONS.c.title}: ${RANK_DESCRIPTIONS.c.descriptionList} ${RANK_DESCRIPTIONS.f.title}: ${RANK_DESCRIPTIONS.f.descriptionList}`,
@@ -476,8 +444,8 @@ const FAQ: { q: string; a: string; link?: { href: string; label: string } }[] = 
   },
   {
     q: 'How do I add a badge to my README?',
-    a: 'Open the badge builder with your GitHub username, pick a ranking and a style, and copy the snippet into your README or website.',
-    link: { href: '/badge/builder', label: 'Badge builder' },
+    a: 'Open the badge builder, find your profile, repository or organization, and pick one of the badges it has. Copy the Markdown or HTML into your README: on GitHub the badge follows light and dark.',
+    link: { href: '/badge/builder', label: 'Badge builder', nofollow: true },
   },
 ];
 
@@ -510,7 +478,12 @@ export const FaqSection = () => (
             {link && (
               <>
                 {' '}
-                <Link href={link.href as Route} prefetch={false} className="text-link underline">
+                <Link
+                  href={link.href as Route}
+                  rel={link.nofollow ? 'nofollow' : undefined}
+                  prefetch={false}
+                  className="text-link underline"
+                >
                   {link.label}
                 </Link>
               </>

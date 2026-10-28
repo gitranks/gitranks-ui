@@ -102,7 +102,7 @@ describe('mapV2BuilderQuery', () => {
   });
 });
 
-/** Every example the old gallery links to (`badge-example.tsx` builds the builder link from these props). */
+/** Every example the old gallery and landing linked to: a v2 builder link built from these props. */
 const GALLERY_EXAMPLES = [
   { label: 'Stars Rank' },
   { label: 'Contributor Rank', ranking: 'c' },

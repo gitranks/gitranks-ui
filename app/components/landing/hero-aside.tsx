@@ -1,14 +1,18 @@
 'use client';
 
-import { CopyIcon } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { type FC, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { type FC, useEffect, useMemo, useState } from 'react';
 
 import { formatFull, GithubAvatar } from './landing-ui';
 import type { RankCardData, RankCardEntry, RankingKey } from './rank-card.types';
+import { useEntityFacts } from '@/app/badge/builder/[[...login]]/hooks/use-entity-facts';
+import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
+import { findBadge } from '@/badge/v3/catalogue';
+import { availableChoices, badgeTiles } from '@/badge/v3/tiles';
+import type { By } from '@/badge/v3/types';
+import { BadgeImages } from '@/components/badge-tiles/badge-tiles';
 import { Flag } from '@/components/flag/flag';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { TierChip } from '@/components/tier-chip/tier-chip';
@@ -17,10 +21,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getPercentileRank } from '@/utils/get-percentile-rank';
 
-const RANKING_LABELS: Record<RankingKey, { tab: string; title: string; unit: string; badge: string }> = {
-  s: { tab: 'Stars', title: 'Stars rank', unit: 'stars', badge: 'stars-rank' },
-  c: { tab: 'Contributions', title: 'Contributor rank', unit: 'contribution stars', badge: 'contributions-rank' },
-  f: { tab: 'Followers', title: 'Followers rank', unit: 'followers', badge: 'followers-rank' },
+const RANKING_LABELS: Record<RankingKey, { tab: string; title: string; unit: string }> = {
+  s: { tab: 'Stars', title: 'Stars rank', unit: 'stars' },
+  c: { tab: 'Contributions', title: 'Contributor rank', unit: 'contribution stars' },
+  f: { tab: 'Followers', title: 'Followers rank', unit: 'followers' },
 };
 
 const EXAMPLE_INTERVAL_MS = 6000;
@@ -57,22 +61,60 @@ const RankFacts: FC<{ entry: RankCardEntry; ranking: RankingKey }> = ({ entry, r
   );
 };
 
-const BUILDER_BY: Record<RankingKey, string> = { s: '', c: '&by=contributions', f: '&by=followers' };
+const BY: Record<RankingKey, By> = { s: 'stars', c: 'contributions', f: 'followers' };
 
-/** The builder's Style step for this rank badge. */
-const builderHref = (login: string, ranking: RankingKey) =>
-  `/badge/builder?user=${encodeURIComponent(login)}&badge=rank${BUILDER_BY[ranking]}` as Route;
+const RANK_BADGE = findBadge('user', 'rank');
 
-const copyBadge = async (login: string, ranking: RankingKey) => {
-  const origin = window.location.origin;
-  const snippet = `<a href="${origin}/profile/${login}"><img src="${origin}/badges/${login}/${RANKING_LABELS[ranking].badge}.svg" alt="GitRanks badge for ${login}" /></a>`;
+/**
+ * The visitor's rank badge for the ranking the card shows, drawn live in the site's theme (Auto), with the ways into
+ * the builder: its last step for this badge, or every badge of the profile. The badge data is read in the browser,
+ * from the same public data the builder reads.
+ */
+const YourBadge: FC<{ login: string; ranking: RankingKey; ranked: boolean }> = ({ login, ranking, ranked }) => {
+  const facts = useEntityFacts('user', login);
+  const by = BY[ranking];
+  const tile = useMemo(() => {
+    if (facts.status !== 'found') return null;
+    const now = new Date();
+    const choices = availableChoices(facts.facts, [{ id: 'rank', query: by === 'stars' ? undefined : { by } }], now);
+    return badgeTiles(facts.facts, choices, now)[0] ?? null;
+  }, [facts, by]);
+  const embedHref = builderHref({ kind: 'user', name: login, badge: RANK_BADGE, style: { by }, embed: true }) as Route;
+  const moreHref = builderHref({ kind: 'user', name: login }) as Route;
 
-  try {
-    await navigator.clipboard.writeText(snippet);
-    toast.success('Badge copied. Paste it into your README.');
-  } catch {
-    toast.error('Copy failed. Open the badge builder to copy it by hand.');
-  }
+  return (
+    <>
+      {ranked && (
+        // One 20 px row whatever it holds (the badge, its placeholder or a line), so nothing below moves.
+        <div className="flex flex-col items-start gap-1.5 rounded-lg bg-background/60 px-3 py-2.5">
+          <span className="text-xs opacity-80">Your badge</span>
+          <div className="flex h-5 max-w-full items-center">
+            {tile ? (
+              <BadgeImages tile={tile} className="h-5 w-auto max-w-full object-contain object-left" />
+            ) : facts.status === 'loading' || facts.status === 'idle' ? (
+              <Skeleton className="h-5 w-48 bg-current/10">
+                <span className="sr-only">Loading your badge</span>
+              </Skeleton>
+            ) : (
+              <span className="truncate text-sm">No preview right now; the builder has it.</span>
+            )}
+          </div>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        {ranked && (
+          <Button size="sm" asChild>
+            <Link href={embedHref} rel="nofollow" prefetch={false}>
+              Get this badge
+            </Link>
+          </Button>
+        )}
+        <Link href={moreHref} rel="nofollow" prefetch={false} className="text-sm underline">
+          More badges
+        </Link>
+      </div>
+    </>
+  );
 };
 
 /** The signed-in visitor's own card. Loaded after the page, from a route cached per user. */
@@ -175,17 +217,7 @@ const YourRankCard: FC<{ login: string }> = ({ login }) => {
           ) : (
             <p className="text-sm">Not ranked by {RANKING_LABELS[ranking].unit} yet.</p>
           )}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" onClick={() => copyBadge(card.login, ranking)} disabled={!entry?.position}>
-              <CopyIcon />
-              Copy badge
-            </Button>
-            <Button size="sm" variant="outline" asChild>
-              <Link href={builderHref(card.login, ranking)} prefetch={false}>
-                Customize
-              </Link>
-            </Button>
-          </div>
+          <YourBadge login={card.login} ranking={ranking} ranked={!!entry?.position} />
         </>
       )}
     </div>

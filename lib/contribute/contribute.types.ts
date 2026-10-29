@@ -307,3 +307,41 @@ export type ContributeContributions = {
   items: ContributeContribution[];
   totals: { open: number; merged: number; closed: number; costUsd: number };
 };
+
+/** What a GitHub token may do in a repository; the maintainers page lists only `ADMIN` and `MAINTAIN`. */
+export type ContributeRepoPermission = 'ADMIN' | 'MAINTAIN' | 'WRITE' | 'TRIAGE' | 'READ';
+
+/** A public repository the visitor administers or maintains, and whether it is out of Contribute. */
+export type ContributeMaintainerRepo = {
+  /** The repository's GitHub node id: what an opt-out takes. */
+  repoId: string;
+  nameWithOwner: string;
+  permission: ContributeRepoPermission;
+  stars: number;
+  isArchived: boolean;
+  optedOut: boolean;
+  optedOutAt: string | null;
+};
+
+export type ContributeMaintainerRepos = {
+  /** The GitHub account the sign-in belongs to. */
+  login: string;
+  /** Most stars first. */
+  repos: ContributeMaintainerRepo[];
+  /** GitHub held more repositories than were read (the most-starred ones). */
+  truncated: boolean;
+};
+
+/** Why a repository asked to be opted out or back in was left as it was. */
+export type ContributeOptOutRefusal = 'NOT_MAINTAINER' | 'UNKNOWN_REPO';
+
+/** One repository asked to be opted out or back in, in the order asked. */
+export type ContributeOptOutResult = {
+  repoId: string;
+  /** Null when the id names no repository the account can see. */
+  nameWithOwner: string | null;
+  optedOut: boolean;
+  optedOutAt: string | null;
+  /** Null when it was changed. */
+  reason: ContributeOptOutRefusal | null;
+};

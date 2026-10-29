@@ -5,7 +5,7 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('./session-token', () => ({ sessionTokenOf }));
 
 const { contributePreviewAllowed, requestMaySeeContribute } = await import('./preview-gate');
-const { isContributePath } = await import('./contribute-path');
+const { isContributePath, isMaintainersPath } = await import('./contribute-path');
 
 const req = { headers: new Headers({ cookie: 'authjs.session-token=t' }) };
 
@@ -20,6 +20,18 @@ describe('the Contribute preview gate', () => {
     expect(isContributePath('/contribute/settings')).toBe(true);
     expect(isContributePath('/contributors')).toBe(false);
     expect(isContributePath('/profile/contribute')).toBe(false);
+  });
+
+  it('leaves out the page for maintainers alone, in the spellings the router reads as it', () => {
+    expect(isMaintainersPath('/contribute/maintainers')).toBe(true);
+    expect(isMaintainersPath('/contribute/maintainers/')).toBe(true);
+    expect(isMaintainersPath('/contribute/%6daintainers')).toBe(true);
+    expect(isMaintainersPath('/contribute/maintainers/x')).toBe(false);
+    expect(isMaintainersPath('/contribute/maintainers%2F..%2Fsettings')).toBe(false);
+    expect(isMaintainersPath('/contribute/maintainers\\..\\settings')).toBe(false);
+    expect(isMaintainersPath('/contribute/maintainers%')).toBe(false);
+    expect(isMaintainersPath('/contribute')).toBe(false);
+    expect(isMaintainersPath('/maintainers')).toBe(false);
   });
 
   it('matches the decoded path, so an encoded spelling cannot get past it', () => {

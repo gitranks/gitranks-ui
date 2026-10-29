@@ -11,7 +11,8 @@ export const metadata: Metadata = {
 
 /**
  * GitRanks Contribute. Open only to signed-in users the API lets in: the proxy answers everyone else with a 404, and
- * each page checks again when it reads the user's data.
+ * each page checks again when it reads the user's data. The page for maintainers is the exception, open to everyone,
+ * without Contribute's own bar.
  */
 export default function ContributeLayout({ children }: { children: ReactNode }) {
   return (

@@ -1,10 +1,12 @@
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
 import NextAuth from 'next-auth';
 import type { Adapter, AdapterAccount } from 'next-auth/adapters';
+import type { JWT } from 'next-auth/jwt';
 
 import authConfig from './auth.config';
 import { authModeOf, CONTRIBUTE_PROVIDER, IDENTITY_PROVIDER, TOKEN_PROVIDER } from './lib/auth-providers';
 import { grantSignInAllowed, type RemoveOtherGrants, withContributeGrant } from './lib/contribute/grant-adapter';
+import { dropExpiredMaintainerToken, lightSignInSession } from './lib/contribute/maintainer-token';
 import { currentSessionToken } from './lib/contribute/session-token';
 import mongoClientPromise from './lib/mongo-client';
 
@@ -81,11 +83,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       token.error = undefined;
+      dropExpiredMaintainerToken(token);
 
       if (account && profile) {
         if (account.provider === IDENTITY_PROVIDER) {
           // Who the user is, nothing to refresh: refreshes run on our token, once a day
-          return {
+          const identity: JWT = {
             ...token,
             access_token: undefined,
             expires_at: undefined,
@@ -93,6 +96,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             githubLogin: profile.login as string,
             authMode: 'identity',
           };
+          // Started on the maintainers page, it keeps its GitHub token for that page alone, never in `session` below.
+          return lightSignInSession(identity, account);
         }
 
         // First-time login, save the `access_token`, its expiry and the `refresh_token`

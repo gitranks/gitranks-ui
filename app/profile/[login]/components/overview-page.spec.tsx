@@ -7,6 +7,9 @@ import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 
 // The left column needs a signed-in session and route params; the cards are all this spec reads.
 vi.mock('./layout-left-column', () => ({ LayoutLeftColumn: ({ children }: PropsWithChildren) => children }));
+// The owner's "Issues for you" block reads the session in the browser; a signed-out visitor sees nothing of it.
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }));
+vi.mock('@/app/contribute/actions', () => ({}));
 
 type User = NonNullable<PageProfileOverviewQuery['user']>;
 

@@ -1,6 +1,8 @@
 /**
  * Sign-in that only proves who the user is. GitHub asks for read-only access to the profile and email, and we keep no
- * token from it. A signed-in user gets one refresh of their own profile a day on our token, for a star on our repo.
+ * token from it, except when it is started on the page for maintainers: there its token stays in the session for that
+ * page alone, for an hour at most (`lib/contribute/maintainer-token`). A signed-in user gets one refresh of their own
+ * profile a day on our token, for a star on our repo.
  */
 export const IDENTITY_PROVIDER = 'github-basic';
 

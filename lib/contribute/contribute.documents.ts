@@ -8,8 +8,11 @@ import type {
   ContributeContributions,
   ContributeDeleteDataResult,
   ContributeGrant,
+  ContributeIssue,
   ContributeIssuePage,
   ContributeIssuesFilter,
+  ContributeMaintainerRepos,
+  ContributeOptOutResult,
   ContributePreferences,
   ContributePreferencesInput,
   ContributeSettings,
@@ -30,6 +33,7 @@ const CREDENTIAL = 'provider last4 orgId workspaceId state blockedUntil ready ch
 const SETTINGS = `cycleCapUsd weekCapUsd dayCapUsd attemptCapUsd attemptsAtATime pace sweepDays renewalDay mainModel
   helperModel testModel effort maxChangedLines maxFiles openPrsAtATime dco autopilot`;
 const PREFERENCES = 'languages topicIds reposIn reposOut kinds maxSize';
+const ISSUE = 'issueId repositoryId nameWithOwner number url title labels language kind size score rank why';
 const PULL_REQUEST = 'prId number url state openedAt mergedAt closedAt reviewDecision checks syncedAt';
 const ATTEMPT = `attemptId issueId repositoryId nameWithOwner number title url kind state model budgetUsd costUsd
   endReason endDetail checksPassed approvedAt createdAt updatedAt
@@ -69,7 +73,7 @@ export const ContributeIssuesDocument = doc<
   { first?: number; after?: string; filter?: ContributeIssuesFilter }
 >(`query ContributeIssues($first: Int, $after: String, $filter: ContributeIssuesFilter) {
   contributeIssues(first: $first, after: $after, filter: $filter) {
-    items { issueId repositoryId nameWithOwner number url title labels language kind size score rank why }
+    items { ${ISSUE} }
     next total computedAt
   }
 }`);
@@ -166,4 +170,33 @@ export const ApproveAttemptDocument = doc<
 
 export const DiscardAttemptDocument = doc<{ discardAttempt: ContributeAttempt }, { id: string }>(
   `mutation DiscardAttempt($id: ID!) { discardAttempt(id: $id) { ${ATTEMPT} } }`,
+);
+
+/** The profile block "Issues for you": empty for anyone but the signed-in owner of the profile. */
+export const IssuesForProfileDocument = doc<{ issuesForProfile: ContributeIssue[] | null }, { login: string }>(
+  `query IssuesForProfile($login: String!) { issuesForProfile(login: $login) { ${ISSUE} } }`,
+);
+
+// The maintainers page. The GitHub token is always a variable, never part of the query's text.
+const OPT_OUT_RESULT = 'repoId nameWithOwner optedOut optedOutAt reason';
+
+export const MaintainerReposDocument = doc<{ maintainerRepos: ContributeMaintainerRepos }, { token: string }>(
+  `query MaintainerRepos($token: String!) {
+  maintainerRepos(token: $token) {
+    login truncated
+    repos { repoId nameWithOwner permission stars isArchived optedOut optedOutAt }
+  }
+}`,
+);
+
+export const OptOutReposDocument = doc<{ optOutRepos: ContributeOptOutResult[] }, { token: string; repoIds: string[] }>(
+  `mutation OptOutRepos($token: String!, $repoIds: [ID!]!) {
+  optOutRepos(token: $token, repoIds: $repoIds) { ${OPT_OUT_RESULT} }
+}`,
+);
+
+export const OptInReposDocument = doc<{ optInRepos: ContributeOptOutResult[] }, { token: string; repoIds: string[] }>(
+  `mutation OptInRepos($token: String!, $repoIds: [ID!]!) {
+  optInRepos(token: $token, repoIds: $repoIds) { ${OPT_OUT_RESULT} }
+}`,
 );

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { attemptActionErrorMessage, contributeErrorMessage, contributeErrorOf } from './errors';
+import {
+  attemptActionErrorMessage,
+  contributeErrorMessage,
+  contributeErrorOf,
+  maintainerErrorMessage,
+  maintainerErrorOf,
+} from './errors';
 
 const thrown = (errors: unknown[]) => new Error(JSON.stringify(errors));
 
@@ -59,5 +65,30 @@ describe('attemptActionErrorMessage', () => {
   it('says everything else as the other Contribute calls do', () => {
     expect(attemptActionErrorMessage('INVALID', 'The attempt is not in review')).toBe('The attempt is not in review');
     expect(attemptActionErrorMessage('FAILED')).toBe(contributeErrorMessage('FAILED'));
+  });
+});
+
+describe('maintainerErrorOf', () => {
+  it.each([
+    ['UNAUTHENTICATED', 'SIGNED_OUT'],
+    ['SERVICE_UNAVAILABLE', 'GITHUB_UNAVAILABLE'],
+    ['GRAPHQL_VALIDATION_FAILED', 'NOT_AVAILABLE_YET'],
+    ['BAD_USER_INPUT', 'FAILED'],
+    ['NOT_FOUND', 'FAILED'],
+  ])('reads %s as %s', (code, error) => {
+    expect(maintainerErrorOf(thrown([{ message: 'gho_secret', extensions: { code } }]))).toBe(error);
+  });
+
+  it('reads anything else as a failure', () => {
+    expect(maintainerErrorOf(new Error('GraphQL error! 502: Bad Gateway'))).toBe('FAILED');
+    expect(maintainerErrorOf(undefined)).toBe('FAILED');
+  });
+
+  it("tells each in its own words, never the API's", () => {
+    for (const error of ['SIGNED_OUT', 'GITHUB_UNAVAILABLE', 'NOT_AVAILABLE_YET', 'FAILED'] as const) {
+      expect(maintainerErrorMessage(error)).not.toContain('gho_');
+    }
+    expect(maintainerErrorMessage('SIGNED_OUT')).toContain('Sign in again');
+    expect(maintainerErrorMessage('GITHUB_UNAVAILABLE')).toBe('GitHub did not answer. Try again in a minute.');
   });
 });

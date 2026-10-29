@@ -7,9 +7,7 @@ import { Pill } from './primitives';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
-import { KIND_ONE, LANGUAGES, SIZES } from '@/lib/contribute/format';
-
-const GOOD_FIRST = /good.first|beginner|easy|starter/i;
+import { GOOD_FIRST_LABEL, KIND_ONE, LANGUAGES, SIZES } from '@/lib/contribute/format';
 
 /** One issue picked for the user: where, what, why, and Skip. */
 export function IssueCard({ issue }: { issue: ContributeIssue }) {
@@ -64,7 +62,7 @@ export function IssueCard({ issue }: { issue: ContributeIssue }) {
           <div className="flex flex-wrap gap-1.5">
             {issue.kind ? <Pill tone="violet">{KIND_ONE[issue.kind]}</Pill> : null}
             {issue.labels.map((label) => (
-              <Pill key={label} tone={GOOD_FIRST.test(label) ? 'green' : 'neutral'}>
+              <Pill key={label} tone={GOOD_FIRST_LABEL.test(label) ? 'green' : 'neutral'}>
                 {label}
               </Pill>
             ))}

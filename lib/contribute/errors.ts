@@ -67,3 +67,39 @@ export function attemptActionErrorMessage(error: ContributeErrorCode, message?: 
     return 'This attempt is gone, or it is no longer yours. Reload the page to see where it stands.';
   return contributeErrorMessage(error, message);
 }
+
+/**
+ * Why a maintainers page call failed:
+ * - `SIGNED_OUT`: no GitHub sign-in for the page, or GitHub refused its token.
+ * - `GITHUB_UNAVAILABLE`: GitHub did not answer for the token, or rate-limited it.
+ * - `NOT_AVAILABLE_YET`: the API does not know the operation yet.
+ * - `FAILED`: anything else.
+ * Never the API's own words: they are about a call that carried a token.
+ */
+export type MaintainerErrorCode = 'SIGNED_OUT' | 'GITHUB_UNAVAILABLE' | 'NOT_AVAILABLE_YET' | 'FAILED';
+
+export function maintainerErrorOf(error: unknown): MaintainerErrorCode {
+  const errors = graphqlErrorsOf(error);
+  const codes = errors.map(({ extensions }) => extensions?.code);
+
+  if (codes.includes('UNAUTHENTICATED')) return 'SIGNED_OUT';
+  if (codes.includes('SERVICE_UNAVAILABLE')) return 'GITHUB_UNAVAILABLE';
+  if (codes.includes('GRAPHQL_VALIDATION_FAILED') || errors.some(({ message }) => UNKNOWN_FIELD.test(message ?? ''))) {
+    return 'NOT_AVAILABLE_YET';
+  }
+  return 'FAILED';
+}
+
+/** A failed maintainers page call's message. */
+export function maintainerErrorMessage(error: MaintainerErrorCode): string {
+  switch (error) {
+    case 'SIGNED_OUT':
+      return 'GitHub did not accept your sign-in. Sign in again to see your repos.';
+    case 'GITHUB_UNAVAILABLE':
+      return 'GitHub did not answer. Try again in a minute.';
+    case 'NOT_AVAILABLE_YET':
+      return 'Opting out with your GitHub account is not available yet. Add .github/gitranks.yml to your repo instead.';
+    default:
+      return 'Something went wrong. Try again in a minute.';
+  }
+}

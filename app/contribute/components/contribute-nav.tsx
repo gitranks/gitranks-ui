@@ -4,6 +4,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { isMaintainersPath } from '@/lib/contribute/contribute-path';
 import { cn } from '@/lib/utils';
 
 export const CONTRIBUTE_TABS: { href: Route; label: string }[] = [
@@ -19,9 +20,11 @@ export const contributeTabOf = (pathname: string): Route | undefined => {
   return CONTRIBUTE_TABS.findLast(({ href }) => path === href || path.startsWith(`${href}/`))?.href;
 };
 
-/** Contribute's own bar, under the site header. */
+/** Contribute's own bar, under the site header; not on the page for maintainers, which is open to everyone. */
 export function ContributeNav() {
-  return <ContributeNavBar current={contributeTabOf(usePathname())} />;
+  const pathname = usePathname();
+  if (isMaintainersPath(pathname)) return null;
+  return <ContributeNavBar current={contributeTabOf(pathname)} />;
 }
 
 /**

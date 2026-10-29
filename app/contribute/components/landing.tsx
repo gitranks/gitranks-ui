@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 
 import { Eyebrow } from './primitives';
 import { ProviderCards } from './provider-cards';
-import { CONTACT_EMAIL } from '@/lib/legal';
 
 const STEPS = [
   {
@@ -188,12 +187,9 @@ export function Landing({ status }: { status?: ReactNode }) {
             time, never more than four a month, and pause after two are closed in a row. Every PR says it was made with
             AI.
           </p>
-          <a
-            href={`mailto:${CONTACT_EMAIL}?subject=Opt%20out%20of%20GitRanks%20Contribute`}
-            className="font-semibold text-primary"
-          >
+          <Link href="/contribute/maintainers" prefetch={false} className="font-semibold text-primary">
             Opt out your repo →
-          </a>
+          </Link>
         </div>
       </section>
     </div>

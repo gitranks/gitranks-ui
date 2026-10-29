@@ -10,3 +10,18 @@ export function isContributePath(pathname: string): boolean {
     return /^\/+contribute/i.test(pathname);
   }
 }
+
+/** The page for maintainers: open to every visitor, outside the preview. */
+export const MAINTAINERS_PATH = '/contribute/maintainers';
+
+/**
+ * Whether the path is the maintainers page itself, in any spelling the router reads as it; nothing under it, and no
+ * path that does not decode, is.
+ */
+export function isMaintainersPath(pathname: string): boolean {
+  try {
+    return /^\/+contribute\/+maintainers\/?$/i.test(decodeURIComponent(pathname));
+  } catch {
+    return false;
+  }
+}

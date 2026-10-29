@@ -44,6 +44,25 @@ describe('proxy', () => {
       expect(response?.headers.get('cache-control')).toBe('private, no-cache');
     });
 
+    it('lets everyone reach the page for maintainers, without asking who may see Contribute', async () => {
+      for (const path of ['/contribute/maintainers', '/contribute/maintainers/']) {
+        const signedOut = await proxy(request(undefined, path), event);
+        expect(signedOut?.headers.get('x-middleware-rewrite')).toBeNull();
+
+        const signedIn = await proxy(request('authjs.session-token=t', path), event);
+        expect(signedIn?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(signedIn?.headers.get('cache-control')).toBe('private, no-cache');
+      }
+      expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+
+    it('keeps everything under the page for maintainers, and the other pages, behind the gate', async () => {
+      for (const path of ['/contribute/maintainers/x', '/contribute/maintainers%2F..%2Fsettings', '/contribute/me']) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+      }
+    });
+
     it('asks nothing for the other pages', async () => {
       await proxy(request('authjs.session-token=t', '/contributors'), event);
       await proxy(request(undefined, '/by/stars/1'), event);

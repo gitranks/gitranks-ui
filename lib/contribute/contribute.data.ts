@@ -1,12 +1,24 @@
 import 'server-only';
 
 import {
+  ContributeAttemptDocument,
+  ContributeAttemptsDocument,
+  ContributeContributionsDocument,
   ContributeGrantDocument,
   ContributeIssuesDocument,
   ContributeOverviewDocument,
   ContributePausedDocument,
 } from './contribute.documents';
-import type { ContributeIssuePage, ContributeIssuesFilter, ContributeView } from './contribute.types';
+import type {
+  ContributeAttempt,
+  ContributeAttemptDetail,
+  ContributeAttemptState,
+  ContributeContributions,
+  ContributeIssuePage,
+  ContributeIssuesFilter,
+  ContributeView,
+} from './contribute.types';
+import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
 import { auth } from '@/auth';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -73,6 +85,67 @@ export async function loadIssues(
       { source: 'ssr', githubLogin },
     );
     return contributeIssues;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The signed-in user's attempts, newest first, optionally in one state; `undefined` when the API does not answer. */
+export async function loadAttempts(
+  state?: ContributeAttemptState,
+  first = 20,
+): Promise<ContributeAttempt[] | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+
+  try {
+    const { contributeAttempts } = await graphqlDirect(
+      ContributeAttemptsDocument,
+      { first, ...(state ? { state } : {}) },
+      { source: 'ssr', githubLogin },
+    );
+    return contributeAttempts ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * One of the signed-in user's attempts, for the review: null when there is none for them (not theirs, signed out or
+ * hidden), which the page answers with a 404; `undefined` when the API does not answer the review yet. An outage throws
+ * `ContributeUnavailableError`.
+ */
+export async function loadAttempt(id: string): Promise<ContributeAttemptDetail | null | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+
+  try {
+    const { contributeAttempt } = await graphqlDirect(
+      ContributeAttemptDocument,
+      { id },
+      { source: 'ssr', githubLogin },
+    );
+    return contributeAttempt;
+  } catch (failure) {
+    const { error } = contributeErrorOf(failure);
+    if (error === 'NOT_FOUND' || error === 'SIGNED_OUT' || error === 'INVALID') return null;
+    if (error === 'NOT_AVAILABLE_YET') return undefined;
+    throw new ContributeUnavailableError();
+  }
+}
+
+/** My contributions: the user's pull requests and their totals; `undefined` when the API does not answer them. */
+export async function loadContributions(first = 50): Promise<ContributeContributions | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+
+  try {
+    const { contributeContributions } = await graphqlDirect(
+      ContributeContributionsDocument,
+      { first },
+      { source: 'ssr', githubLogin },
+    );
+    return contributeContributions ?? undefined;
   } catch {
     return undefined;
   }

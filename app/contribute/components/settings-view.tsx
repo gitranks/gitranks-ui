@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { AccessSection, type GrantRefusal, grantRefusalOf } from './access-section';
+import { AccessSection } from './access-section';
 import { AutopilotSection } from './autopilot-section';
 import { ContributeNotices } from './contribute-notices';
 import { CycleSummary } from './cycle-summary';
@@ -13,6 +13,7 @@ import { SettingsForm } from './settings-form';
 import { loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeView } from '@/lib/contribute/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isPaused } from '@/lib/contribute/contribute-state';
+import { type GrantRefusal, grantRefusalOf } from '@/lib/contribute/grant-refusal';
 
 const SECTIONS = [
   ['limits', 'Spending limits'],

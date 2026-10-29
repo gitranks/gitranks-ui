@@ -1,6 +1,9 @@
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { AutosubmitCountdown, StopAutopilotButton } from './follow-up-buttons';
 import { Pill } from './primitives';
+import { attemptHref } from './reviews-ready';
 import {
   ATTEMPT_STATES,
   detailText,
@@ -19,6 +22,7 @@ import type {
   ContributeAttempt,
   ContributeAttemptPullRequest,
   ContributeAttemptSubmit,
+  ContributeFollowUpOf,
 } from '@/lib/contribute/contribute.types';
 import { relativeLabel, usd } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
@@ -144,9 +148,102 @@ export function PullRequestStatus({ pullRequest, now }: { pullRequest: Contribut
   );
 }
 
+/** The pull request a follow-up works on: `pull request #1419 ↗`, or words while it is not known. */
+export function FollowUpOfLink({ followUpOf }: { followUpOf: ContributeFollowUpOf | null | undefined }) {
+  if (!followUpOf) return <>the pull request</>;
+  const url = githubUrlOf(followUpOf.url);
+  return url ? (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+      pull request #{followUpOf.number} ↗
+    </a>
+  ) : (
+    <>pull request #{followUpOf.number}</>
+  );
+}
+
+/** Autopilot's hour: when it submits, and the user's Stop. Kept even while autopilot is off for everyone. */
+function AutosubmitStatus({ attempt, now }: { attempt: ContributeAttempt; now?: Date }) {
+  if (attempt.autosubmitAt === undefined) {
+    return <Text>When it submits, and stopping it, are not available yet.</Text>;
+  }
+  return (
+    <div className="flex flex-col gap-2.5">
+      <Text>
+        {attempt.autosubmitAt ? (
+          <AutosubmitCountdown at={attempt.autosubmitAt} from={(now ?? new Date()).toISOString()} />
+        ) : (
+          'It submits within the hour.'
+        )}{' '}
+        Stop it to review the change yourself first.
+      </Text>
+      <StopAutopilotButton attemptId={attempt.attemptId} />
+    </div>
+  );
+}
+
+/**
+ * A follow-up's place in its own words: it adds commits to a pull request rather than opening one. Null for a state
+ * that reads as a first attempt's.
+ */
+function followUpStatusOf(attempt: ContributeAttempt): ReactNode {
+  const pr = <FollowUpOfLink followUpOf={attempt.followUpOf} />;
+  switch (attempt.state) {
+    case 'REVIEW':
+      return (
+        <Box state="REVIEW" tone={attempt.submit?.lastError ? 'warn' : 'info'}>
+          <Title>{attempt.submit?.lastError ? 'Back for your approval' : 'Ready for your review'}</Title>
+          <Text>
+            Read the new commits and the replies drafted for you, then push the commits to {pr} or discard them.
+          </Text>
+          <SubmitErrorNote submit={attempt.submit} />
+        </Box>
+      );
+    case 'SUBMITTING':
+      return (
+        <Box state="SUBMITTING">
+          <Title>Pushing the commits</Title>
+          <Text>Approved. The commits are going onto {pr}&apos;s branch on your fork.</Text>
+          <SubmitErrorNote submit={attempt.submit} />
+        </Box>
+      );
+    case 'DONE':
+      return (
+        <Box state="DONE" tone="done">
+          <Title>Pushed to the pull request</Title>
+          <Text>
+            The commits are on {pr}, if there were any. {usd(attempt.costUsd)} was spent. Approve the replies below for
+            them to be posted.
+          </Text>
+        </Box>
+      );
+    case 'STOPPED':
+    case 'DISCARDED':
+      return (
+        <Box state={attempt.state} tone="muted">
+          <Title>{attempt.state === 'STOPPED' ? 'Stopped' : 'Discarded'}</Title>
+          <Text>
+            <span data-end-reason={attempt.endReason ?? ''}>
+              {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it ended is not available yet.'}
+            </span>
+            {attempt.endDetail ? <> Detail: {detailText(attempt.endDetail)}</> : null} Nothing was pushed to {pr}.{' '}
+            {usd(attempt.costUsd)} was spent.
+          </Text>
+          <SubmitErrorNote submit={attempt.submit} />
+        </Box>
+      );
+    default:
+      return null;
+  }
+}
+
 /** Where the attempt stands, at the top of its page: one block for each state. */
 export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; now?: Date }) {
   const spent = `${usd(attempt.costUsd)} of the ${usd(attempt.budgetUsd)} limit spent so far.`;
+
+  if (attempt.kind === 'FOLLOW_UP') {
+    const followUp = followUpStatusOf(attempt);
+    if (followUp) return followUp;
+  }
 
   switch (attempt.state) {
     case 'QUEUED':
@@ -191,7 +288,12 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
       return (
         <Box state="PENDING_AUTOSUBMIT" tone="warn">
           <Title>Autopilot submits this within the hour</Title>
-          <Text>Every check passed and the agent rated its risk low, so autopilot opens the pull request for you.</Text>
+          <Text>
+            {attempt.kind === 'FOLLOW_UP'
+              ? 'Every check passed and the agent rated its risk low, so autopilot pushes the commits for you.'
+              : 'Every check passed and the agent rated its risk low, so autopilot opens the pull request for you.'}
+          </Text>
+          <AutosubmitStatus attempt={attempt} now={now} />
         </Box>
       );
     case 'SUBMITTING':
@@ -228,6 +330,15 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
           ) : (
             <Text>The pull request is not available yet.</Text>
           )}
+          {attempt.state === 'FOLLOW_UP' && attempt.followUps?.currentAttemptId ? (
+            <Link
+              href={attemptHref(attempt.followUps.currentAttemptId)}
+              prefetch={false}
+              className="text-sm font-semibold text-primary"
+            >
+              See the follow-up →
+            </Link>
+          ) : null}
         </Box>
       );
     case 'STOPPED':

@@ -112,8 +112,47 @@ export const views = {
   fieldsMissing: { contributor: contributor(), grant: undefined, paused: undefined, grantAvailable: true },
   autopilotUnlocked: {
     contributor: contributor({
-      autopilot: { unlocked: true, mergedCount: 4, closedUnmergedStreak: 0 },
+      autopilot: {
+        unlocked: true,
+        mergedCount: 4,
+        closedUnmergedStreak: 0,
+        mergedToUnlock: 0,
+        lockedAt: null,
+        available: true,
+      },
       settings: { ...settings, autopilot: true },
+    }),
+    grant: connected,
+    paused: false,
+    grantAvailable: true,
+  },
+  /** Autopilot is not open yet: the record is read, the setting cannot be turned on. */
+  autopilotComing: {
+    contributor: contributor({
+      autopilot: {
+        unlocked: false,
+        mergedCount: 2,
+        closedUnmergedStreak: 1,
+        mergedToUnlock: 1,
+        lockedAt: null,
+        available: false,
+      },
+    }),
+    grant: connected,
+    paused: false,
+    grantAvailable: true,
+  },
+  /** Locked again by two pull requests closed without merging: three merged since then unlock it. */
+  autopilotRelocked: {
+    contributor: contributor({
+      autopilot: {
+        unlocked: false,
+        mergedCount: 5,
+        closedUnmergedStreak: 0,
+        mergedToUnlock: 2,
+        lockedAt: '2026-10-20T08:00:00.000Z',
+        available: true,
+      },
     }),
     grant: connected,
     paused: false,

@@ -3,7 +3,9 @@ import { parse } from 'graphql';
 import type {
   ContributeAttempt,
   ContributeAttemptDetail,
+  ContributeAttemptFollowUpFields,
   ContributeAttemptState,
+  ContributeAutopilot,
   ContributeConnectKeyResult,
   ContributeContributions,
   ContributeDeleteDataResult,
@@ -15,6 +17,7 @@ import type {
   ContributeOptOutResult,
   ContributePreferences,
   ContributePreferencesInput,
+  ContributeReplyDraft,
   ContributeSettings,
   ContributeSettingsInput,
   Contributor,
@@ -40,6 +43,15 @@ const ATTEMPT = `attemptId issueId repositoryId nameWithOwner number title url k
   submit { step waitUntil fork branch lastError { reason note at } }
   pullRequest { ${PULL_REQUEST} }`;
 
+// Follow-ups, reply drafts and autopilot: read in operations of their own, so an API without them leaves the rest.
+const NEEDS_YOU = 'needsYou { since signals { kind at detail } }';
+const FOLLOW_UPS = 'followUps { used left max handedOff handedOffAt currentAttemptId }';
+const FOLLOW_UP_FIELDS = `attemptId ${NEEDS_YOU} ${FOLLOW_UPS} followUpOf { attemptId prId number url } autosubmitAt autopilot`;
+const REPLY_DRAFT = `draftId prId attemptId comment { commentId author path line excerpt } text state posted postedAt url
+  lastError { reason note at } createdAt updatedAt`;
+
+type FollowUpFieldsOf<T> = T & { attemptId: string };
+
 export const ContributePreviewDocument = doc<{ contribute: { previewAllowed: boolean } | null }>(
   'query ContributePreview { contribute { previewAllowed } }',
 );
@@ -59,6 +71,13 @@ export const ContributeOverviewDocument = doc<{
     }
   }
 }`);
+
+/** The autopilot record's newer fields, merged into the overview's. */
+export const ContributeAutopilotDocument = doc<{
+  contribute: {
+    contributor: { autopilot: Pick<ContributeAutopilot, 'mergedToUnlock' | 'lockedAt' | 'available'> } | null;
+  } | null;
+}>('query ContributeAutopilot { contribute { contributor { autopilot { mergedToUnlock lockedAt available } } } }');
 
 export const ContributeGrantDocument = doc<{ contribute: { grant: ContributeGrant } | null }>(
   'query ContributeGrant { contribute { grant { connected login } } }',
@@ -151,6 +170,24 @@ export const ContributeAttemptDocument = doc<{ contributeAttempt: ContributeAtte
 }`,
 );
 
+export const ContributeAttemptsFollowUpsDocument = doc<
+  { contributeAttempts: FollowUpFieldsOf<ContributeAttemptFollowUpFields>[] | null },
+  { state?: ContributeAttemptState; first?: number }
+>(`query ContributeAttemptsFollowUps($state: ContributeAttemptState, $first: Int) {
+  contributeAttempts(state: $state, first: $first) { ${FOLLOW_UP_FIELDS} }
+}`);
+
+export const ContributeAttemptFollowUpsDocument = doc<
+  {
+    contributeAttempt: FollowUpFieldsOf<
+      ContributeAttemptFollowUpFields & { replyDrafts: ContributeReplyDraft[] }
+    > | null;
+  },
+  { id: string }
+>(`query ContributeAttemptFollowUps($id: ID!) {
+  contributeAttempt(id: $id) { ${FOLLOW_UP_FIELDS} replyDrafts { ${REPLY_DRAFT} } }
+}`);
+
 export const ContributeContributionsDocument = doc<
   { contributeContributions: ContributeContributions | null },
   { first?: number }
@@ -160,6 +197,39 @@ export const ContributeContributionsDocument = doc<
     totals { open merged closed costUsd }
   }
 }`);
+
+export const ContributeContributionsFollowUpsDocument = doc<
+  {
+    contributeContributions: {
+      items: FollowUpFieldsOf<
+        Pick<ContributeAttemptFollowUpFields, 'needsYou'> & {
+          followUps: NonNullable<ContributeAttemptFollowUpFields['followUps']>;
+        }
+      >[];
+    } | null;
+  },
+  { first?: number }
+>(`query ContributeContributionsFollowUps($first: Int) {
+  contributeContributions(first: $first) { items { attemptId ${NEEDS_YOU} ${FOLLOW_UPS} } }
+}`);
+
+/** A pull request's reply drafts, oldest first. */
+export const ContributeReplyDraftsDocument = doc<
+  { contributeReplyDrafts: ContributeReplyDraft[] | null },
+  { prId: string }
+>(`query ContributeReplyDrafts($prId: ID!) { contributeReplyDrafts(prId: $prId) { ${REPLY_DRAFT} } }`);
+
+export const StartFollowUpDocument = doc<{ startFollowUp: ContributeAttempt }, { prId: string }>(
+  `mutation StartFollowUp($prId: ID!) { startFollowUp(prId: $prId) { ${ATTEMPT} } }`,
+);
+
+export const VetoAutopilotDocument = doc<{ vetoAutopilot: ContributeAttempt }, { attemptId: string }>(
+  `mutation VetoAutopilot($attemptId: ID!) { vetoAutopilot(attemptId: $attemptId) { ${ATTEMPT} } }`,
+);
+
+export const ApproveReplyDocument = doc<{ approveReply: ContributeReplyDraft }, { draftId: string }>(
+  `mutation ApproveReply($draftId: ID!) { approveReply(draftId: $draftId) { ${REPLY_DRAFT} } }`,
+);
 
 export const ApproveAttemptDocument = doc<
   { approveAttempt: ContributeAttempt },

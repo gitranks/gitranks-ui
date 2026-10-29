@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { ContributeNotices } from './contribute-notices';
+import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { Pill } from './primitives';
+import { type DraftFollowUp, ReplyDraftItem } from './reply-drafts';
 import { attemptHref } from './reviews-ready';
 import {
   ATTEMPT_STATES,
@@ -17,12 +19,13 @@ import {
   SUBMIT_STEP_TEXT,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
-import { loadAttempts, loadContribute, loadContributions } from '@/lib/contribute/contribute.data';
+import { loadAttempts, loadContribute, loadContributions, loadOpenPrDrafts } from '@/lib/contribute/contribute.data';
 import type {
   ContributeAttempt,
   ContributeAttemptState,
   ContributeContribution,
   ContributeContributions,
+  ContributeReplyDraft,
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf } from '@/lib/contribute/contribute-state';
@@ -38,8 +41,16 @@ export async function ContributionsView() {
     loadAttempts(undefined, 50),
   ]);
   if (!view) notFound();
-  return <ContributionsScreen view={view} contributions={contributions} attempts={attempts} />;
+  const drafts = await loadOpenPrDrafts(contributions);
+  return <ContributionsScreen view={view} contributions={contributions} attempts={attempts} drafts={drafts} />;
 }
+
+/** The reply drafts of each open pull request, by its id; `undefined` for one the API does not answer. */
+export type DraftsByPr = Record<string, ContributeReplyDraft[] | undefined>;
+
+/** Drafts still waiting for the user: not posted, and not being posted. */
+const awaitingApproval = (drafts: ContributeReplyDraft[] | undefined) =>
+  (drafts ?? []).filter(({ state }) => state === 'DRAFT' || state === 'FAILED');
 
 function Tile({ label, value, text, name }: { label: string; value: string; text: ReactNode; name: string }) {
   return (
@@ -64,7 +75,7 @@ function Totals({ view, contributions }: { view: ContributeView; contributions: 
   }
   const { open, merged, closed, costUsd } = contributions.totals;
   const autopilot = view.contributor?.autopilot;
-  const toUnlock = Math.max(0, AUTOPILOT_AT - (autopilot?.mergedCount ?? merged));
+  const toUnlock = Math.max(0, autopilot?.mergedToUnlock ?? AUTOPILOT_AT - (autopilot?.mergedCount ?? merged));
   const ended = merged + closed;
   const changesRequested = contributions.items.filter(
     ({ pullRequest }) => pullRequest.state === 'OPEN' && pullRequest.reviewDecision === 'CHANGES_REQUESTED',
@@ -121,8 +132,13 @@ function AttemptRow({ attempt, action, text }: { attempt: ContributeAttempt; act
             {repoOf(attempt)} · issue #{attempt.number}
           </span>
           <Pill tone={state.tone}>{state.label}</Pill>
+          {attempt.kind === 'FOLLOW_UP' ? <Pill>Follow-up</Pill> : null}
         </span>
-        <span className="font-medium">{attemptTitleOf(attempt)}</span>
+        <span className="font-medium">
+          {attempt.kind === 'FOLLOW_UP' && attempt.followUpOf
+            ? `Follow-up on pull request #${attempt.followUpOf.number}`
+            : attemptTitleOf(attempt)}
+        </span>
         <span className="text-[13px] text-muted-foreground">{text}</span>
       </div>
       <Link
@@ -136,8 +152,81 @@ function AttemptRow({ attempt, action, text }: { attempt: ContributeAttempt; act
   );
 }
 
-function NeedsYou({ attempts, now }: { attempts: ContributeAttempt[]; now?: Date }) {
-  if (!attempts.length) return null;
+/** An open pull request that needs the user: what happened on it, its follow-up rounds, and its unposted replies. */
+function PrNeedsYouRow({
+  contribution,
+  drafts,
+  followUps,
+  attemptCapUsd,
+  now,
+}: {
+  contribution: ContributeContribution;
+  drafts: ContributeReplyDraft[];
+  followUps: Map<string, DraftFollowUp>;
+  attemptCapUsd?: number;
+  now?: Date;
+}) {
+  const { pullRequest } = contribution;
+  const url = githubUrlOf(pullRequest.url);
+  return (
+    <li data-pr-needs-you={pullRequest.number} className="flex flex-col gap-3 border-b px-5 py-4 last:border-b-0">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="font-mono text-[13px] text-muted-foreground">
+          {contribution.nameWithOwner || 'a repo'} ·{' '}
+          {url ? (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              PR #{pullRequest.number} on GitHub ↗
+            </a>
+          ) : (
+            `PR #${pullRequest.number}`
+          )}
+        </span>
+        <Link
+          href={attemptHref(contribution.attemptId)}
+          prefetch={false}
+          className="font-medium text-foreground hover:underline"
+        >
+          {contribution.title?.trim() || `Fix for issue #${contribution.issueNumber}`}
+        </Link>
+      </div>
+      <PrSignals needsYou={contribution.needsYou} now={now} />
+      {contribution.needsYou?.signals.length ? (
+        <FollowUpRounds followUps={contribution.followUps} pullRequest={pullRequest} attemptCapUsd={attemptCapUsd} />
+      ) : null}
+      {drafts.length ? (
+        <ul className="-mx-5 border-t">
+          {drafts.map((draft) => (
+            <ReplyDraftItem
+              key={draft.draftId}
+              draft={draft}
+              prNumber={pullRequest.number}
+              followUp={followUps.get(draft.attemptId)}
+              now={now}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
+function NeedsYou({
+  attempts,
+  prs,
+  drafts,
+  followUps,
+  attemptCapUsd,
+  now,
+}: {
+  attempts: ContributeAttempt[];
+  prs: ContributeContribution[];
+  drafts: DraftsByPr;
+  followUps: Map<string, DraftFollowUp>;
+  attemptCapUsd?: number;
+  now?: Date;
+}) {
+  const count = attempts.length + prs.length;
+  if (!count) return null;
   return (
     <section
       aria-labelledby="needs-you"
@@ -148,7 +237,7 @@ function NeedsYou({ attempts, now }: { attempts: ContributeAttempt[]; now?: Date
         id="needs-you"
         className="border-b border-amber-200 bg-amber-50 px-5 py-3.5 text-[15px] font-semibold text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
       >
-        Needs you · {attempts.length}
+        Needs you · {count}
       </h2>
       <ul>
         {attempts.map((attempt) => (
@@ -158,11 +247,23 @@ function NeedsYou({ attempts, now }: { attempts: ContributeAttempt[]; now?: Date
             action="Review"
             text={
               attempt.state === 'PENDING_AUTOSUBMIT'
-                ? 'Autopilot submits it within the hour.'
+                ? attempt.autosubmitAt
+                  ? `Autopilot submits it ${relativeLabel(attempt.autosubmitAt, now)}, unless you stop it.`
+                  : 'Autopilot submits it within the hour.'
                 : attempt.submit?.lastError
                   ? attempt.submit.lastError.note
                   : `Ready ${relativeLabel(attempt.updatedAt, now)} · cost ${usd(attempt.costUsd)} · waits seven days for you`
             }
+          />
+        ))}
+        {prs.map((contribution) => (
+          <PrNeedsYouRow
+            key={contribution.attemptId}
+            contribution={contribution}
+            drafts={awaitingApproval(drafts[contribution.pullRequest.prId])}
+            followUps={followUps}
+            attemptCapUsd={attemptCapUsd}
+            now={now}
           />
         ))}
       </ul>
@@ -327,6 +428,7 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
     ['Stopped at the go/no-go check', count(({ state, endReason }) => state === 'STOPPED' && endReason === 'NO_GO')],
     ['Stopped for another reason', count(({ state, endReason }) => state === 'STOPPED' && endReason !== 'NO_GO')],
     ['Discarded', count(({ state }) => state === 'DISCARDED')],
+    ['Follow-ups pushed', count(({ state }) => state === 'DONE')],
   ];
   const stops = attempts.filter(({ state }) => state === 'STOPPED').slice(0, 3);
 
@@ -373,15 +475,26 @@ export function ContributionsScreen({
   view,
   contributions,
   attempts,
+  drafts = {},
   now,
 }: {
   view: ContributeView;
   contributions: ContributeContributions | undefined;
   attempts: ContributeAttempt[] | undefined;
+  /** The reply drafts of the open pull requests, by pull request id. */
+  drafts?: DraftsByPr;
   now?: Date;
 }) {
   const spend = view.contributor?.spend;
   const needsYou = (attempts ?? []).filter(({ state }) => state === 'REVIEW' || state === 'PENDING_AUTOSUBMIT');
+  const prsNeedingYou = (contributions?.items ?? []).filter(
+    ({ pullRequest, needsYou: signals }) =>
+      pullRequest.state === 'OPEN' &&
+      (!!signals?.signals.length || awaitingApproval(drafts[pullRequest.prId]).length > 0),
+  );
+  const followUps = new Map(
+    (attempts ?? []).filter(({ kind }) => kind === 'FOLLOW_UP').map((attempt) => [attempt.attemptId, attempt]),
+  );
   const inProgress = (attempts ?? []).filter(
     ({ state }) => IN_PROGRESS_STATES.includes(state) && state !== 'PENDING_AUTOSUBMIT',
   );
@@ -398,7 +511,14 @@ export function ContributionsScreen({
         ) : null}
       </div>
       <Totals view={view} contributions={contributions} />
-      <NeedsYou attempts={needsYou} now={now} />
+      <NeedsYou
+        attempts={needsYou}
+        prs={prsNeedingYou}
+        drafts={drafts}
+        followUps={followUps}
+        attemptCapUsd={view.contributor?.settings?.attemptCapUsd}
+        now={now}
+      />
       <InProgress attempts={inProgress} now={now} />
       <div className="flex flex-wrap items-start gap-5">
         <PullRequests contributions={contributions} now={now} />

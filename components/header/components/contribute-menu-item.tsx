@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { mainMenuItemClass } from './menu-styles';
 import { NavigationMenuItem, NavigationMenuLink } from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
 
 const CACHE_KEY = 'contribute-preview';
 /** The answer is reused for a while, so the header does not ask on every page view. */
@@ -64,7 +65,7 @@ export function ContributeMenuItem() {
 
   return (
     <NavigationMenuItem>
-      <NavigationMenuLink className={mainMenuItemClass} asChild>
+      <NavigationMenuLink className={cn(mainMenuItemClass, 'gap-1.5')} asChild>
         <Link href="/contribute" prefetch={false}>
           Contribute
           <span className="rounded-full bg-violet-100 px-1.5 py-px text-[11px] font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-200">

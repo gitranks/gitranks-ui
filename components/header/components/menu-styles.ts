@@ -7,5 +7,5 @@ import { cn } from '@/lib/utils';
  */
 export const mainMenuItemClass = cn(
   navigationMenuTriggerStyle(),
-  'flex-row gap-1.5 bg-transparent max-sm:h-10 max-sm:w-full max-sm:justify-between max-sm:px-3',
+  'flex-row bg-transparent max-sm:h-10 max-sm:w-full max-sm:justify-between max-sm:px-3',
 );

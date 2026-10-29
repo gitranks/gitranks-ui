@@ -3,6 +3,10 @@ import type {
   ContributeAttemptDetail,
   ContributeAttemptPullRequest,
   ContributeContributions,
+  ContributeFollowUpOf,
+  ContributeFollowUps,
+  ContributeNeedsYou,
+  ContributeReplyDraft,
 } from '../contribute.types';
 
 /** A two-commit format-patch: a changed file, a new one, and the mail headers and signature around them. */
@@ -278,3 +282,167 @@ export const contributions: ContributeContributions = {
   ],
   totals: { open: 1, merged: 1, closed: 1, costUsd: 7.86 },
 };
+
+/** What the last read of an open pull request found: changes requested, then a comment, then a failing check. */
+export const needsYou = (patch: Partial<ContributeNeedsYou> = {}): ContributeNeedsYou => ({
+  since: '2026-10-28T09:00:00.000Z',
+  signals: [
+    { kind: 'CHANGES_REQUESTED', at: '2026-10-28T09:00:00.000Z', detail: null },
+    { kind: 'COMMENT', at: '2026-10-28T10:00:00.000Z', detail: null },
+    { kind: 'CHECK_FAILED', at: '2026-10-28T11:00:00.000Z', detail: 'lint, test (ubuntu)' },
+  ],
+  ...patch,
+});
+
+export const followUps = (patch: Partial<ContributeFollowUps> = {}): ContributeFollowUps => ({
+  used: 0,
+  left: 2,
+  max: 2,
+  handedOff: false,
+  handedOffAt: null,
+  currentAttemptId: null,
+  ...patch,
+});
+
+export const followUpOf: ContributeFollowUpOf = {
+  attemptId: 'A_1',
+  prId: 'PR_1',
+  number: 1419,
+  url: 'https://github.com/driftwood-js/driftwood/pull/1419',
+};
+
+/** A follow-up's commit: one more change on the pull request's branch. */
+export const FOLLOW_UP_PATCH = `From 7a7a7a7a7a7a Mon Sep 17 00:00:00 2001
+From: Octo Cat <octocat@users.noreply.github.com>
+Subject: [PATCH] Use the existing encoder
+
+---
+diff --git a/src/router/normalize-path.ts b/src/router/normalize-path.ts
+index 3333333..6666666 100644
+--- a/src/router/normalize-path.ts
++++ b/src/router/normalize-path.ts
+@@ -1,4 +1,4 @@
+ /** Normalizes a route path. */
+ export function normalizePath(path: string): string {
+-  return path.replace(/\\/$/, '')
++  return path.length > 1 ? path.replace(/\\/$/, '') : path
+ }
+--
+2.47.0
+`;
+
+export const replyDraft = (patch: Partial<ContributeReplyDraft> = {}): ContributeReplyDraft => ({
+  draftId: 'D_1',
+  prId: 'PR_1',
+  attemptId: 'A_F1',
+  comment: {
+    commentId: 'RC_1',
+    author: 'maintainer-mo',
+    path: 'src/router/normalize-path.ts',
+    line: 3,
+    excerpt: 'Should the root path "/" keep its slash?',
+  },
+  text: 'Good catch: the root path keeps its slash now, and a test covers it.',
+  state: 'DRAFT',
+  posted: false,
+  postedAt: null,
+  url: null,
+  lastError: null,
+  createdAt: '2026-10-28T11:40:00.000Z',
+  updatedAt: '2026-10-28T11:40:00.000Z',
+  ...patch,
+});
+
+/** The follow-up fields an API that answers them gives a first attempt with no pull request yet. */
+const noFollowUps = { needsYou: null, followUps: null, followUpOf: null, autosubmitAt: null, autopilot: false };
+
+/** A follow-up on pull request #1419, in review with one new commit and two drafted replies. */
+export const followUp = (patch: Partial<ContributeAttemptDetail> = {}): ContributeAttemptDetail =>
+  detail({
+    ...noFollowUps,
+    attemptId: 'A_F1',
+    kind: 'FOLLOW_UP',
+    state: 'REVIEW',
+    followUpOf,
+    patch: FOLLOW_UP_PATCH,
+    checks: [
+      { name: 'PATCH_PARSED', passed: true, detail: null },
+      { name: 'SECRETS', passed: true, detail: null },
+    ],
+    cost: { totalUsd: 1.12, goNoGoUsd: 0, workUsd: 1.02, runtimeUsd: 0.1 },
+    costUsd: 1.12,
+    replyDrafts: [
+      replyDraft(),
+      replyDraft({ draftId: 'D_2', comment: null, text: 'Pushed a fix for the failing lint check.' }),
+    ],
+    ...patch,
+  });
+
+/** First attempts and follow-ups in each state the follow-up views render. */
+export const followUpAttempts = {
+  /** A first attempt whose open pull request needs the user, with both rounds left. */
+  prNeedsYou: detail({
+    ...noFollowUps,
+    state: 'PR_OPEN',
+    pullRequest: pullRequest({ reviewDecision: 'CHANGES_REQUESTED', checks: 'FAILURE' }),
+    needsYou: needsYou(),
+    followUps: followUps(),
+    replyDrafts: [],
+  }),
+  /** Both rounds used: the pull request is the user's. */
+  handedOff: detail({
+    ...noFollowUps,
+    state: 'PR_OPEN',
+    pullRequest: pullRequest(),
+    needsYou: needsYou({ signals: [{ kind: 'COMMENT', at: '2026-10-28T11:30:00.000Z', detail: null }] }),
+    followUps: followUps({ used: 2, left: 0, handedOff: true, handedOffAt: '2026-10-27T10:00:00.000Z' }),
+    replyDrafts: [],
+  }),
+  /** A follow-up under way: its first attempt waits in `FOLLOW_UP`. */
+  underWay: detail({
+    ...noFollowUps,
+    state: 'FOLLOW_UP',
+    pullRequest: pullRequest(),
+    followUps: followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' }),
+    replyDrafts: [],
+  }),
+  review: followUp(),
+  /** A follow-up with replies only, no commits. */
+  repliesOnly: followUp({ patch: null }),
+  submitting: followUp({
+    state: 'SUBMITTING',
+    approvedAt: '2026-10-28T11:50:00.000Z',
+    submit: { step: 'PUSH', waitUntil: null, fork: 'octocat/driftwood', branch: 'gitranks/871', lastError: null },
+  }),
+  done: followUp({
+    state: 'DONE',
+    replyDrafts: [
+      replyDraft({
+        state: 'POSTED',
+        posted: true,
+        postedAt: '2026-10-28T11:58:00.000Z',
+        url: 'https://github.com/driftwood-js/driftwood/pull/1419#discussion_r1',
+      }),
+      replyDraft({
+        draftId: 'D_2',
+        comment: null,
+        state: 'FAILED',
+        lastError: {
+          reason: 'forbidden',
+          note: 'GitHub refused the reply: the conversation is locked or closed to you.',
+          at: '2026-10-28T11:59:00.000Z',
+        },
+      }),
+      replyDraft({ draftId: 'D_3', state: 'POSTING' }),
+    ],
+  }),
+  stopped: followUp({ state: 'STOPPED', endReason: 'BUDGET' }),
+  discarded: followUp({ state: 'DISCARDED', endReason: 'USER' }),
+  /** Autopilot submits it in 42 minutes unless the user stops it. */
+  pendingAutosubmit: detail({
+    ...noFollowUps,
+    state: 'PENDING_AUTOSUBMIT',
+    autopilot: true,
+    autosubmitAt: '2026-10-28T12:42:00.000Z',
+  }),
+} satisfies Record<string, ContributeAttemptDetail>;

@@ -104,7 +104,7 @@ function FileDiff({ file, room }: { file: PatchFile; room: number }) {
 }
 
 /** The patch, file by file, as text: never HTML, whatever it holds. Long files and patches are cut, and say so. */
-export function DiffViewer({ patch }: { patch: string | null | undefined }) {
+export function DiffViewer({ patch, title = 'Diff' }: { patch: string | null | undefined; title?: string }) {
   const parsed = parsePatch(patch);
   let room = MAX_TOTAL_LINES;
   const files = parsed.files.map((file) => {
@@ -117,7 +117,7 @@ export function DiffViewer({ patch }: { patch: string | null | undefined }) {
     <section aria-labelledby="diff-title" className="overflow-hidden rounded-xl border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-2.5 border-b px-5 py-3.5">
         <h2 id="diff-title" className="text-base font-semibold">
-          Diff
+          {title}
         </h2>
         {parsed.files.length ? (
           <span className="flex items-center gap-1.5">

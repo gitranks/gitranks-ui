@@ -562,8 +562,10 @@ describe('links the API gives', () => {
     expect(text(list)).toContain('PR #2490');
   });
 
-  it('keep reading an attempt waiting for autopilot again and again, without a stop it does not have', () => {
+  it('keep reading an attempt waiting for autopilot again and again, without a Stop the API does not answer yet', () => {
     expect(LIVE_STATES).toContain('PENDING_AUTOSUBMIT');
-    expect(text(review(attempts.pendingAutosubmit))).not.toMatch(/stop/i);
+    const html = review(attempts.pendingAutosubmit);
+    expect(html).not.toContain('data-stop-autopilot');
+    expect(text(html)).toContain('When it submits, and stopping it, are not available yet.');
   });
 });

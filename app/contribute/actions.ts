@@ -4,6 +4,7 @@ import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import {
   ApproveAttemptDocument,
+  ApproveReplyDocument,
   ConnectClaudeKeyDocument,
   DeleteContributeDataDocument,
   DiscardAttemptDocument,
@@ -15,6 +16,8 @@ import {
   SetContributeSettingsDocument,
   SetPreferencesDocument,
   SkipIssueDocument,
+  StartFollowUpDocument,
+  VetoAutopilotDocument,
 } from '@/lib/contribute/contribute.documents';
 import type {
   ContributeAttempt,
@@ -24,6 +27,7 @@ import type {
   ContributeDeleteDataResult,
   ContributePreferences,
   ContributePreferencesInput,
+  ContributeReplyDraft,
   ContributeSettings,
   ContributeSettingsInput,
 } from '@/lib/contribute/contribute.types';
@@ -139,4 +143,19 @@ export async function approveAttempt(input: ApproveAttemptInput): Promise<Contri
 /** Discards an attempt in review (or queued): its issue goes back to the pool. */
 export async function discardAttempt(id: string): Promise<ContributeActionResult<ContributeAttempt>> {
   return run(DiscardAttemptDocument, { id: String(id) }, (data) => data.discardAttempt);
+}
+
+/** Starts a follow-up on the user's open pull request (its node id): new commits and drafted replies, for review. */
+export async function startFollowUp(prId: string): Promise<ContributeActionResult<ContributeAttempt>> {
+  return run(StartFollowUpDocument, { prId: String(prId) }, (data) => data.startFollowUp);
+}
+
+/** Stops autopilot from submitting an attempt in its hour: it goes to the review instead. */
+export async function vetoAutopilot(attemptId: string): Promise<ContributeActionResult<ContributeAttempt>> {
+  return run(VetoAutopilotDocument, { attemptId: String(attemptId) }, (data) => data.vetoAutopilot);
+}
+
+/** Approves a drafted reply: it is posted publicly on GitHub, in the user's name. */
+export async function approveReply(draftId: string): Promise<ContributeActionResult<ContributeReplyDraft>> {
+  return run(ApproveReplyDocument, { draftId: String(draftId) }, (data) => data.approveReply);
 }

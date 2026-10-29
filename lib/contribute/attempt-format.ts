@@ -27,6 +27,7 @@ export const ATTEMPT_STATES: Record<ContributeAttemptState, { label: string; ton
   CLOSED: { label: 'Closed', tone: 'red' },
   STOPPED: { label: 'Stopped', tone: 'neutral' },
   DISCARDED: { label: 'Discarded', tone: 'neutral' },
+  DONE: { label: 'Pushed to the pull request', tone: 'green' },
 };
 
 /** What each state means on the timeline. */
@@ -44,6 +45,7 @@ export const EVENT_LABELS: Record<ContributeAttemptState, string> = {
   CLOSED: 'Closed without merging',
   STOPPED: 'Stopped',
   DISCARDED: 'Discarded',
+  DONE: 'Pushed to the pull request',
 };
 
 /** States an attempt is still moving in, before a pull request. */

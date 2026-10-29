@@ -6,7 +6,13 @@ vi.mock('@/auth', () => ({ auth }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
 const actions = await import('./actions');
-const { ApproveAttemptDocument, DiscardAttemptDocument } = await import('@/lib/contribute/contribute.documents');
+const {
+  ApproveAttemptDocument,
+  ApproveReplyDocument,
+  DiscardAttemptDocument,
+  StartFollowUpDocument,
+  VetoAutopilotDocument,
+} = await import('@/lib/contribute/contribute.documents');
 
 type Action = (...args: never[]) => Promise<{ ok: boolean; error?: string; message?: string }>;
 
@@ -24,6 +30,9 @@ const CALLS: Record<string, unknown[]> = {
   skipIssue: ['I_1'],
   approveAttempt: [{ id: 'A_1', title: 'Fix it', body: 'Fixes #1', dco: true, githubLogin: 'mallory' }],
   discardAttempt: ['A_1'],
+  startFollowUp: ['PR_1'],
+  vetoAutopilot: ['A_1'],
+  approveReply: ['D_1'],
 };
 
 const exported = Object.entries(actions).filter(([, value]) => typeof value === 'function') as [string, Action][];
@@ -134,5 +143,56 @@ describe('approveAttempt and discardAttempt', () => {
     );
 
     expect(await actions.discardAttempt('A_2')).toEqual({ ok: false, error: 'NOT_FOUND' });
+  });
+});
+
+describe('the follow-up actions', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it.each([
+    ['startFollowUp', StartFollowUpDocument, 'PR_1', { prId: 'PR_1' }, 'startFollowUp'],
+    ['vetoAutopilot', VetoAutopilotDocument, 'A_1', { attemptId: 'A_1' }, 'vetoAutopilot'],
+    ['approveReply', ApproveReplyDocument, 'D_1', { draftId: 'D_1' }, 'approveReply'],
+  ] as const)(
+    '%s sends its one id, as the signed-in user, and answers what the API did',
+    async (name, document, id, variables, field) => {
+      graphqlDirect.mockResolvedValue({ [field]: { ok: id } });
+      const action = (actions as unknown as Record<string, (value: string) => Promise<unknown>>)[name];
+
+      expect(await action(id)).toEqual({ ok: true, data: { ok: id } });
+      expect(graphqlDirect).toHaveBeenCalledWith(document, variables, { source: 'client', githubLogin: 'octocat' });
+    },
+  );
+
+  it('passes on a refusal in its own words, for the page to put plainly', async () => {
+    graphqlDirect.mockRejectedValue(
+      new Error(
+        JSON.stringify([
+          { message: 'A follow-up is already under way on this pull request', extensions: { code: 'CONFLICT' } },
+        ]),
+      ),
+    );
+
+    expect(await actions.startFollowUp('PR_1')).toEqual({
+      ok: false,
+      error: 'INVALID',
+      message: 'A follow-up is already under way on this pull request',
+    });
+  });
+
+  it("approves a follow-up with the title the API needs, an empty body and no sign-off of the user's own", async () => {
+    graphqlDirect.mockResolvedValue({ approveAttempt: { attemptId: 'A_F1', state: 'SUBMITTING' } });
+
+    await actions.approveAttempt({ id: 'A_F1', title: 'Follow-up on pull request #1419', body: '', dco: false });
+
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ApproveAttemptDocument,
+      { id: 'A_F1', title: 'Follow-up on pull request #1419', body: '', dco: false },
+      { source: 'client', githubLogin: 'octocat' },
+    );
   });
 });

@@ -89,7 +89,21 @@ export type ContributeSpend = {
   nextAttemptAt: string | null;
 };
 
-export type ContributeAutopilot = { unlocked: boolean; mergedCount: number; closedUnmergedStreak: number };
+/**
+ * The user's autopilot record. `mergedToUnlock`, `lockedAt` and `available` come from fields the API may not answer
+ * yet: `undefined` is "not available yet".
+ */
+export type ContributeAutopilot = {
+  unlocked: boolean;
+  mergedCount: number;
+  closedUnmergedStreak: number;
+  /** Merged pull requests still needed to unlock it; 0 when unlocked. */
+  mergedToUnlock?: number;
+  /** When two pull requests closed without merging in a row last locked it. */
+  lockedAt?: string | null;
+  /** Autopilot is open. False: it is coming, and turning the setting on is refused. */
+  available?: boolean;
+};
 
 export type Contributor = {
   status: ContributorStatus;
@@ -168,7 +182,8 @@ export type ContributeAttemptState =
   | 'MERGED'
   | 'CLOSED'
   | 'STOPPED'
-  | 'DISCARDED';
+  | 'DISCARDED'
+  | 'DONE';
 export type ContributeAttemptEndReason =
   | 'CLAIM_LOST'
   | 'NO_GO'
@@ -228,8 +243,49 @@ export type ContributeAttemptPullRequest = {
   syncedAt: string | null;
 };
 
+/** What the last read of an open pull request found: changes requested, a new comment, a check newly failing. */
+export type ContributePrSignalKind = 'CHANGES_REQUESTED' | 'COMMENT' | 'CHECK_FAILED';
+
+export type ContributePrSignal = {
+  kind: ContributePrSignalKind;
+  at: string;
+  /** For a failing check: the failing checks' names. */
+  detail: string | null;
+};
+
+/** The pull request needs the user: what happened on it since they last acted on it, newest last. */
+export type ContributeNeedsYou = { since: string; signals: ContributePrSignal[] };
+
+/** A pull request's follow-up rounds; past the last one the pull request is the user's to carry on. */
+export type ContributeFollowUps = {
+  used: number;
+  left: number;
+  max: number;
+  handedOff: boolean;
+  handedOffAt: string | null;
+  /** The follow-up under way. */
+  currentAttemptId: string | null;
+};
+
+/** The pull request a follow-up works on, and the first attempt that opened it. */
+export type ContributeFollowUpOf = { attemptId: string; prId: string; number: number; url: string };
+
+/** The fields of an attempt that came with follow-ups; asked on their own, so an API without them leaves the rest. */
+export type ContributeAttemptFollowUpFields = {
+  /** A first attempt's open pull request needs the user; null when it does not. */
+  needsYou: ContributeNeedsYou | null;
+  /** A first attempt with a pull request: its rounds. */
+  followUps: ContributeFollowUps | null;
+  /** A follow-up: the pull request it works on. */
+  followUpOf: ContributeFollowUpOf | null;
+  /** While waiting for autopilot: when it submits unless the user stops it. */
+  autosubmitAt: string | null;
+  /** Submitted (or to be) by autopilot, not approved by the user. */
+  autopilot: boolean;
+};
+
 /** One attempt: an agent session on one issue, and what came of it. */
-export type ContributeAttempt = {
+export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
   attemptId: string;
   issueId: string;
   repositoryId: string;
@@ -289,6 +345,40 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   cost: ContributeAttemptCost;
   approval: ContributeAttemptApproval | null;
   events: ContributeAttemptEvent[];
+  /** The pull request's reply drafts (a follow-up: the ones it wrote); `undefined` while the API does not answer them. */
+  replyDrafts?: ContributeReplyDraft[];
+};
+
+/** The review comment a reply answers: the first comment of its thread. */
+export type ContributeReplyTarget = {
+  commentId: string;
+  author: string | null;
+  path: string | null;
+  line: number | null;
+  /** The comment's first 300 characters. */
+  excerpt: string;
+};
+
+export type ContributeReplyState = 'DRAFT' | 'POSTING' | 'POSTED' | 'FAILED';
+
+/** A reply a follow-up drafted; posted on GitHub only once the user approves it. Its text is untrusted. */
+export type ContributeReplyDraft = {
+  draftId: string;
+  prId: string;
+  /** The follow-up that drafted it. */
+  attemptId: string;
+  /** Null: a top-level comment on the pull request. */
+  comment: ContributeReplyTarget | null;
+  text: string;
+  state: ContributeReplyState;
+  posted: boolean;
+  postedAt: string | null;
+  /** The posted comment on GitHub. */
+  url: string | null;
+  /** Why the last post failed. */
+  lastError: ContributeSubmitError | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 /** One of the user's pull requests opened through Contribute. */
@@ -301,6 +391,10 @@ export type ContributeContribution = {
   title: string | null;
   pullRequest: ContributeAttemptPullRequest;
   costUsd: number;
+  /** The open pull request needs the user; `undefined` while the API does not answer it. */
+  needsYou?: ContributeNeedsYou | null;
+  /** The pull request's follow-up rounds; `undefined` while the API does not answer them. */
+  followUps?: ContributeFollowUps;
 };
 
 export type ContributeContributions = {

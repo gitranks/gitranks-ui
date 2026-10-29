@@ -2,11 +2,15 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { ApprovalPanel, ChecksPanel, CostPanel, ReadinessPanel, ResultPanel, TimelinePanel } from './attempt-panels';
-import { AttemptStatus } from './attempt-status';
+import { AttemptStatus, FollowUpOfLink } from './attempt-status';
 import { DiffViewer } from './diff-viewer';
+import { FollowUpApproval } from './follow-up-approval';
 import { LiveRefresh } from './live-refresh';
+import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { PrForm } from './pr-form';
 import { Pill } from './primitives';
+import { ReplyDrafts } from './reply-drafts';
+import { attemptHref } from './reviews-ready';
 import {
   ATTEMPT_STATES,
   attemptTitleOf,
@@ -63,10 +67,15 @@ export function ReviewScreen({
   const login = view.contributor?.login ?? 'you';
   const repo = repoOf(attempt);
   const inReview = attempt.state === 'REVIEW';
+  const followUp = attempt.kind === 'FOLLOW_UP';
+  const prNumber = followUp ? (attempt.followUpOf?.number ?? null) : (attempt.pullRequest?.number ?? null);
+  // A first attempt shows its pull request's drafts once there is one; a follow-up always shows the ones it wrote.
+  const showDrafts = followUp || (!!attempt.pullRequest && attempt.replyDrafts?.length !== 0);
+  const posting = attempt.replyDrafts?.some(({ state }) => state === 'POSTING');
 
   return (
     <div className="flex flex-col gap-5" data-review={attempt.attemptId} data-state={attempt.state}>
-      {LIVE_STATES.includes(attempt.state) ? <LiveRefresh /> : null}
+      {LIVE_STATES.includes(attempt.state) || posting ? <LiveRefresh /> : null}
       <div className="flex flex-col gap-2.5">
         <BackLink />
         <div className="flex flex-wrap items-center gap-2.5">
@@ -83,19 +92,71 @@ export function ReviewScreen({
           </span>
         </div>
         <h1 className="text-[28px] font-bold tracking-tight text-balance">{attemptTitleOf(attempt)}</h1>
+        {followUp ? (
+          <p data-follow-up-of={attempt.followUpOf?.number ?? ''} className="text-sm text-muted-foreground">
+            {attempt.followUpOf === undefined ? (
+              'The pull request it follows up is not available yet.'
+            ) : (
+              <>
+                A follow-up of <FollowUpOfLink followUpOf={attempt.followUpOf} />
+                {attempt.followUpOf ? (
+                  <>
+                    {' '}
+                    ·{' '}
+                    <Link href={attemptHref(attempt.followUpOf.attemptId)} prefetch={false} className="text-primary">
+                      the change that opened it
+                    </Link>
+                  </>
+                ) : null}
+              </>
+            )}
+          </p>
+        ) : null}
       </div>
 
       <AttemptStatus attempt={attempt} now={now} />
+
+      {!followUp &&
+      attempt.pullRequest &&
+      (attempt.pullRequest.state === 'OPEN' || (attempt.followUps?.used ?? 0) > 0) ? (
+        <section data-panel="follow-ups" className="flex flex-col gap-2.5 rounded-xl border bg-card p-5">
+          <h2 className="text-base font-semibold">
+            {attempt.needsYou?.signals.length ? 'Your pull request needs you' : 'Follow-ups'}
+          </h2>
+          <PrSignals needsYou={attempt.needsYou} now={now} />
+          <FollowUpRounds
+            followUps={attempt.followUps}
+            pullRequest={attempt.pullRequest}
+            attemptCapUsd={view.contributor?.settings?.attemptCapUsd}
+          />
+        </section>
+      ) : null}
 
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <ResultPanel attempt={attempt} />
           <ChecksPanel attempt={attempt} />
-          <DiffViewer patch={attempt.patch} />
+          <DiffViewer patch={attempt.patch} title={followUp ? 'The new commits' : 'Diff'} />
+          {showDrafts ? (
+            <ReplyDrafts
+              drafts={attempt.replyDrafts}
+              prNumber={prNumber}
+              followUps={followUp ? new Map([[attempt.attemptId, attempt]]) : undefined}
+              freshness={[attempt.state, attempt.updatedAt, attempt.followUps?.currentAttemptId ?? ''].join('|')}
+              now={now}
+            />
+          ) : null}
         </div>
         <aside className="flex min-w-0 flex-[1_1_340px] flex-col gap-3.5">
           <CostPanel attempt={attempt} />
-          {inReview ? (
+          {inReview && followUp ? (
+            <FollowUpApproval
+              attemptId={attempt.attemptId}
+              prNumber={prNumber}
+              hasCommits={!!attempt.patch?.trim()}
+              again={!!attempt.submit?.lastError}
+            />
+          ) : inReview ? (
             <PrForm
               attemptId={attempt.attemptId}
               issueNumber={attempt.number}
@@ -107,7 +168,7 @@ export function ReviewScreen({
               dcoAsked={DCO_ASKED.test(attempt.readiness?.notes ?? '')}
               again={!!attempt.submit?.lastError}
             />
-          ) : (
+          ) : followUp ? null : (
             <ApprovalPanel attempt={attempt} />
           )}
           <TimelinePanel attempt={attempt} />

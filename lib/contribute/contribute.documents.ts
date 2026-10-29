@@ -1,7 +1,11 @@
 import { parse } from 'graphql';
 
 import type {
+  ContributeAttempt,
+  ContributeAttemptDetail,
+  ContributeAttemptState,
   ContributeConnectKeyResult,
+  ContributeContributions,
   ContributeDeleteDataResult,
   ContributeGrant,
   ContributeIssuePage,
@@ -26,6 +30,11 @@ const CREDENTIAL = 'provider last4 orgId workspaceId state blockedUntil ready ch
 const SETTINGS = `cycleCapUsd weekCapUsd dayCapUsd attemptCapUsd attemptsAtATime pace sweepDays renewalDay mainModel
   helperModel testModel effort maxChangedLines maxFiles openPrsAtATime dco autopilot`;
 const PREFERENCES = 'languages topicIds reposIn reposOut kinds maxSize';
+const PULL_REQUEST = 'prId number url state openedAt mergedAt closedAt reviewDecision checks syncedAt';
+const ATTEMPT = `attemptId issueId repositoryId nameWithOwner number title url kind state model budgetUsd costUsd
+  endReason endDetail checksPassed approvedAt createdAt updatedAt
+  submit { step waitUntil fork branch lastError { reason note at } }
+  pullRequest { ${PULL_REQUEST} }`;
 
 export const ContributePreviewDocument = doc<{ contribute: { previewAllowed: boolean } | null }>(
   'query ContributePreview { contribute { previewAllowed } }',
@@ -114,4 +123,47 @@ export const ResumeContributingDocument = doc<{ resumeContributing: boolean }>(
 
 export const SkipIssueDocument = doc<{ skipIssue: boolean }, { issueId: string }>(
   'mutation SkipIssue($issueId: ID!) { skipIssue(issueId: $issueId) }',
+);
+
+export const ContributeAttemptsDocument = doc<
+  { contributeAttempts: ContributeAttempt[] | null },
+  { state?: ContributeAttemptState; first?: number }
+>(`query ContributeAttempts($state: ContributeAttemptState, $first: Int) {
+  contributeAttempts(state: $state, first: $first) { ${ATTEMPT} }
+}`);
+
+export const ContributeAttemptDocument = doc<{ contributeAttempt: ContributeAttemptDetail | null }, { id: string }>(
+  `query ContributeAttempt($id: ID!) {
+  contributeAttempt(id: $id) {
+    ${ATTEMPT}
+    patch
+    result { verdict summary tests { command passed output } filesChanged risk riskNotes prBody }
+    readiness { install build test toolchain notes }
+    checks { name passed detail }
+    cost { totalUsd goNoGoUsd workUsd runtimeUsd }
+    approval { title body dco at }
+    events { state detail at }
+  }
+}`,
+);
+
+export const ContributeContributionsDocument = doc<
+  { contributeContributions: ContributeContributions | null },
+  { first?: number }
+>(`query ContributeContributions($first: Int) {
+  contributeContributions(first: $first) {
+    items { attemptId issueId repositoryId nameWithOwner issueNumber title costUsd pullRequest { ${PULL_REQUEST} } }
+    totals { open merged closed costUsd }
+  }
+}`);
+
+export const ApproveAttemptDocument = doc<
+  { approveAttempt: ContributeAttempt },
+  { id: string; title: string; body: string; dco: boolean }
+>(`mutation ApproveAttempt($id: ID!, $title: String!, $body: String!, $dco: Boolean!) {
+  approveAttempt(id: $id, title: $title, body: $body, dco: $dco) { ${ATTEMPT} }
+}`);
+
+export const DiscardAttemptDocument = doc<{ discardAttempt: ContributeAttempt }, { id: string }>(
+  `mutation DiscardAttempt($id: ID!) { discardAttempt(id: $id) { ${ATTEMPT} } }`,
 );

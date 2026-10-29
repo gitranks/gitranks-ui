@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 
 import { skipIssue } from '../actions';
 import { Pill } from './primitives';
+import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { KIND_ONE, LANGUAGES, SIZES } from '@/lib/contribute/format';
@@ -33,6 +34,7 @@ export function IssueCard({ issue }: { issue: ContributeIssue }) {
   }
 
   const title = issue.title?.trim() || `Issue #${issue.number}`;
+  const url = githubUrlOf(issue.url);
 
   return (
     <article
@@ -46,14 +48,18 @@ export function IssueCard({ issue }: { issue: ContributeIssue }) {
           </span>
           {issue.language ? <span>{LANGUAGES[issue.language]}</span> : null}
         </div>
-        <a
-          href={issue.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[17px] font-semibold text-foreground hover:underline"
-        >
-          {title}
-        </a>
+        {url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[17px] font-semibold text-foreground hover:underline"
+          >
+            {title}
+          </a>
+        ) : (
+          <span className="text-[17px] font-semibold text-foreground">{title}</span>
+        )}
         {issue.labels.length || issue.kind ? (
           <div className="flex flex-wrap gap-1.5">
             {issue.kind ? <Pill tone="violet">{KIND_ONE[issue.kind]}</Pill> : null}

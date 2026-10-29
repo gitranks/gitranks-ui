@@ -7,8 +7,9 @@ import { IssueCard } from './issue-card';
 import { filterOf, type IssuesQuery, issuesHref, issuesQueryOf } from './issues-filter';
 import { IssuesFilters } from './issues-filters';
 import { Meter } from './primitives';
-import { loadContribute, loadIssues } from '@/lib/contribute/contribute.data';
-import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
+import { ReviewsReady } from './reviews-ready';
+import { loadAttempts, loadContribute, loadIssues } from '@/lib/contribute/contribute.data';
+import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf } from '@/lib/contribute/contribute-state';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
 
@@ -18,9 +19,13 @@ export async function IssuesView({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = issuesQueryOf(await searchParams);
-  const [view, page] = await Promise.all([loadContribute(), loadIssues(filterOf(query), query.after)]);
+  const [view, page, reviews] = await Promise.all([
+    loadContribute(),
+    loadIssues(filterOf(query), query.after),
+    loadAttempts('REVIEW', 5),
+  ]);
   if (!view) notFound();
-  return <IssuesScreen view={view} page={page} query={query} />;
+  return <IssuesScreen view={view} page={page} query={query} reviews={reviews} />;
 }
 
 const filtered = (query: IssuesQuery) => !!(query.language || query.kind || query.size);
@@ -43,11 +48,14 @@ export function IssuesScreen({
   page,
   query,
   now,
+  reviews,
 }: {
   view: ContributeView;
   page: ContributeIssuePage | null | undefined;
   query: IssuesQuery;
   now?: Date;
+  /** The attempts waiting for the user's review; `undefined` while the API does not answer them. */
+  reviews?: ContributeAttempt[];
 }) {
   const spend = view.contributor?.spend;
   const settings = view.contributor?.settings;
@@ -110,6 +118,7 @@ export function IssuesScreen({
   return (
     <>
       <ContributeNotices notices={contributeNoticesOf(view)} />
+      <ReviewsReady attempts={reviews} />
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">

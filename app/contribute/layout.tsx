@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
+import { type ReactNode, Suspense } from 'react';
 
-import { ContributeNav } from './components/contribute-nav';
+import { ContributeNav, ContributeNavBar } from './components/contribute-nav';
 import { Header } from '@/components/header/header';
 
 export const metadata: Metadata = {
@@ -17,7 +17,10 @@ export default function ContributeLayout({ children }: { children: ReactNode }) 
   return (
     <>
       <Header />
-      <ContributeNav />
+      {/* An attempt's path is known only per request: its bar marks the tab once the request is read. */}
+      <Suspense fallback={<ContributeNavBar />}>
+        <ContributeNav />
+      </Suspense>
       {children}
     </>
   );

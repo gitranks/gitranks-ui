@@ -336,6 +336,18 @@ describe('issues for you', () => {
     expect(html).toContain('data-notice="grant-missing"');
   });
 
+  it('links the issue only when its link points at GitHub, and shows the title as text otherwise', () => {
+    expect(renderToStaticMarkup(<IssueCard issue={ISSUE} />)).toContain(
+      'href="https://github.com/fern-lang/fern/issues/2481"',
+    );
+    for (const url of ['javascript:alert(1)', 'http://github.com/x', 'https://github.com.evil.example/x']) {
+      const html = renderToStaticMarkup(<IssueCard issue={{ ...ISSUE, url }} />);
+
+      expect(html).not.toContain('href=');
+      expect(text(html)).toContain('Formatter drops a trailing comment in match arms');
+    }
+  });
+
   it('reads an issue without a title by its number', () => {
     expect(
       text(renderToStaticMarkup(<IssueCard issue={{ ...ISSUE, title: null, labels: [], kind: null }} />)),

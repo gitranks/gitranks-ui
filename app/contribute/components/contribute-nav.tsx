@@ -13,17 +13,27 @@ export const CONTRIBUTE_TABS: { href: Route; label: string }[] = [
   { href: '/contribute/settings', label: 'Settings' },
 ];
 
+/** The tab a Contribute path belongs to: the connect flow to the overview, an attempt's review to My contributions. */
+export const contributeTabOf = (pathname: string): Route | undefined => {
+  const path = pathname.startsWith('/contribute/attempts/') ? '/contribute/me' : pathname;
+  return CONTRIBUTE_TABS.findLast(({ href }) => path === href || path.startsWith(`${href}/`))?.href;
+};
+
 /** Contribute's own bar, under the site header. */
 export function ContributeNav() {
-  const pathname = usePathname();
-  // The connect flow belongs to the overview.
-  const current = CONTRIBUTE_TABS.findLast(({ href }) => pathname === href || pathname.startsWith(`${href}/`));
+  return <ContributeNavBar current={contributeTabOf(usePathname())} />;
+}
 
+/**
+ * The bar with `current` marked. Without one it is the stand-in while a page whose path is known only per request (an
+ * attempt's review) renders.
+ */
+export function ContributeNavBar({ current }: { current?: Route }) {
   return (
     <div className="border-b">
       <nav aria-label="Contribute" className="mx-auto flex max-w-7xl flex-wrap gap-6 px-4 text-sm">
         {CONTRIBUTE_TABS.map(({ href, label }) => {
-          const active = current?.href === href;
+          const active = current === href;
           return (
             <Link
               key={href}

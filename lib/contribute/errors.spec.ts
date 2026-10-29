@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { contributeErrorMessage, contributeErrorOf } from './errors';
+import { attemptActionErrorMessage, contributeErrorMessage, contributeErrorOf } from './errors';
 
 const thrown = (errors: unknown[]) => new Error(JSON.stringify(errors));
 
@@ -47,5 +47,17 @@ describe('contributeErrorOf', () => {
       expect(contributeErrorMessage(code)).toMatch(/\w/);
     }
     expect(contributeErrorMessage('INVALID', 'Too big')).toBe('Too big');
+  });
+});
+
+describe('attemptActionErrorMessage', () => {
+  it("says an attempt that is not found is gone or no longer the user's, not that Contribute is closed to them", () => {
+    expect(attemptActionErrorMessage('NOT_FOUND')).toContain('This attempt is gone, or it is no longer yours');
+    expect(attemptActionErrorMessage('NOT_FOUND')).not.toContain('not open to your account');
+  });
+
+  it('says everything else as the other Contribute calls do', () => {
+    expect(attemptActionErrorMessage('INVALID', 'The attempt is not in review')).toBe('The attempt is not in review');
+    expect(attemptActionErrorMessage('FAILED')).toBe(contributeErrorMessage('FAILED'));
   });
 });

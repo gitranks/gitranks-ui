@@ -1,9 +1,12 @@
 'use server';
 
+import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import {
+  ApproveAttemptDocument,
   ConnectClaudeKeyDocument,
   DeleteContributeDataDocument,
+  DiscardAttemptDocument,
   NoteProviderInterestDocument,
   PauseContributingDocument,
   RemoveLlmKeyDocument,
@@ -14,6 +17,7 @@ import {
   SkipIssueDocument,
 } from '@/lib/contribute/contribute.documents';
 import type {
+  ContributeAttempt,
   ContributeClaudePlan,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
@@ -106,4 +110,33 @@ export async function resumeContributing(): Promise<ContributeActionResult<boole
 
 export async function skipIssue(issueId: string): Promise<ContributeActionResult<boolean>> {
   return run(SkipIssueDocument, { issueId: String(issueId) }, (data) => data.skipIssue);
+}
+
+export type ApproveAttemptInput = { id: string; title: string; body: string; dco: boolean };
+
+/** Approves an attempt in review with the pull request's title and body as edited: the submission starts. */
+export async function approveAttempt(input: ApproveAttemptInput): Promise<ContributeActionResult<ContributeAttempt>> {
+  const title = String(input.title ?? '').trim();
+  const body = String(input.body ?? '').trim();
+  if (!title) return { ok: false, error: 'INVALID', message: 'Give the pull request a title.' };
+  if (title.length > PR_TITLE_MAX) {
+    return { ok: false, error: 'INVALID', message: `Keep the title under ${PR_TITLE_MAX} characters.` };
+  }
+  if (body.length > PR_BODY_MAX) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `Keep the description under ${PR_BODY_MAX.toLocaleString('en-US')} characters.`,
+    };
+  }
+  return run(
+    ApproveAttemptDocument,
+    { id: String(input.id), title, body, dco: input.dco === true },
+    (data) => data.approveAttempt,
+  );
+}
+
+/** Discards an attempt in review (or queued): its issue goes back to the pool. */
+export async function discardAttempt(id: string): Promise<ContributeActionResult<ContributeAttempt>> {
+  return run(DiscardAttemptDocument, { id: String(id) }, (data) => data.discardAttempt);
 }

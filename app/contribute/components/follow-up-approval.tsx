@@ -39,7 +39,10 @@ export function FollowUpApproval({
   const router = useRouter();
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [error, setError] = useState<string | null>(null);
+  /** It went through: the buttons stay off until the page reads the follow-up again. */
+  const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
+  const busy = pending || done;
   const pr = prNumber ? `pull request #${prNumber}` : 'the pull request';
 
   const act = (which: Exclude<Confirm, null>) =>
@@ -53,6 +56,7 @@ export function FollowUpApproval({
         setError(attemptActionErrorMessage(result.error, result.message));
         return;
       }
+      setDone(true);
       setConfirm(null);
       router.refresh();
     });
@@ -66,7 +70,7 @@ export function FollowUpApproval({
       <p className="text-[13px] text-muted-foreground">
         {hasCommits
           ? `The new commits go onto ${pr}'s branch on your fork, in your name, signed off as its first commits were. The pull request shows them at once.`
-          : 'The agent made no commits this round, only the replies below. Finish it, then approve the replies you want posted.'}
+          : 'The agent made no commits this round, only the replies below. Approve the replies you want posted, here or once it is finished; finishing it pushes nothing.'}
       </p>
       {error && !confirm ? (
         <span role="alert" className="text-sm text-red-700 dark:text-red-400">
@@ -76,7 +80,7 @@ export function FollowUpApproval({
       <button
         type="button"
         onClick={() => setConfirm('approve')}
-        disabled={pending}
+        disabled={busy}
         className="min-h-[46px] rounded-[10px] bg-primary font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
         {hasCommits ? (again ? 'Push again' : 'Push the commits') : 'Finish the follow-up'}
@@ -84,7 +88,7 @@ export function FollowUpApproval({
       <button
         type="button"
         onClick={() => setConfirm('discard')}
-        disabled={pending}
+        disabled={busy}
         className="min-h-[42px] rounded-[10px] border bg-background text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40"
       >
         Discard
@@ -114,15 +118,15 @@ export function FollowUpApproval({
             </span>
           ) : null}
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => setConfirm(null)} disabled={pending}>
+            <Button type="button" variant="secondary" onClick={() => setConfirm(null)} disabled={busy}>
               Cancel
             </Button>
             {confirm === 'discard' ? (
-              <Button type="button" variant="destructive" onClick={() => act('discard')} disabled={pending}>
+              <Button type="button" variant="destructive" onClick={() => act('discard')} disabled={busy}>
                 {pending ? 'Discarding…' : 'Discard'}
               </Button>
             ) : (
-              <Button type="button" onClick={() => act('approve')} disabled={pending}>
+              <Button type="button" onClick={() => act('approve')} disabled={busy}>
                 {pending ? 'Pushing…' : hasCommits ? 'Push' : 'Finish'}
               </Button>
             )}

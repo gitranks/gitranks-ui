@@ -116,7 +116,9 @@ export function ReviewScreen({
 
       <AttemptStatus attempt={attempt} now={now} />
 
-      {!followUp && attempt.pullRequest ? (
+      {!followUp &&
+      attempt.pullRequest &&
+      (attempt.pullRequest.state === 'OPEN' || (attempt.followUps?.used ?? 0) > 0) ? (
         <section data-panel="follow-ups" className="flex flex-col gap-2.5 rounded-xl border bg-card p-5">
           <h2 className="text-base font-semibold">
             {attempt.needsYou?.signals.length ? 'Your pull request needs you' : 'Follow-ups'}
@@ -140,6 +142,7 @@ export function ReviewScreen({
               drafts={attempt.replyDrafts}
               prNumber={prNumber}
               followUps={followUp ? new Map([[attempt.attemptId, attempt]]) : undefined}
+              freshness={[attempt.state, attempt.updatedAt, attempt.followUps?.currentAttemptId ?? ''].join('|')}
               now={now}
             />
           ) : null}

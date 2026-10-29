@@ -16,14 +16,17 @@ import {
 import { replyRefusalOf } from '@/lib/contribute/follow-up-format';
 
 /**
- * Approve a drafted reply, after a confirm that it is posted publicly on GitHub in the user's name. `blocked` is why it
- * cannot be posted yet, when that is known before asking; a refusal that approving again cannot mend blocks it too.
+ * Approve a drafted reply, after a confirm that it is posted publicly on GitHub in the user's name: `approveReply` is
+ * called from the confirm alone. `blocked` is why it cannot be posted yet, when that is known before asking; a refusal
+ * that approving again cannot mend blocks it too, until `version` (what the page last read of the draft and its
+ * follow-up) changes, so pushed commits lift it.
  */
 export function ApproveReplyButton({
   draftId,
   where,
   again,
   blocked,
+  version,
 }: {
   draftId: string;
   /** Where it is posted: `as a reply in the review thread on PR #12`. */
@@ -31,12 +34,23 @@ export function ApproveReplyButton({
   /** A post that failed: this approval is a second one. */
   again: boolean;
   blocked: string | null;
+  /** Changes whenever the page reads the draft or its follow-up anew. */
+  version: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refused, setRefused] = useState<string | null>(null);
+  /** Approved: the button stays off until the page reads the draft again. */
+  const [done, setDone] = useState(false);
+  const [seen, setSeen] = useState(version);
   const [pending, startTransition] = useTransition();
+  if (seen !== version) {
+    // Fresh data: a refusal of the last read, and the wait for this one, no longer stand.
+    setSeen(version);
+    setRefused(null);
+    setDone(false);
+  }
   const stop = blocked ?? refused;
 
   const approve = () =>
@@ -53,6 +67,7 @@ export function ApproveReplyButton({
         }
         return;
       }
+      setDone(true);
       setOpen(false);
       router.refresh();
     });
@@ -66,7 +81,7 @@ export function ApproveReplyButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        disabled={pending || !!stop}
+        disabled={pending || done || !!stop}
         className="min-h-10 rounded-[10px] bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
         {again ? 'Approve again' : 'Approve and post'}

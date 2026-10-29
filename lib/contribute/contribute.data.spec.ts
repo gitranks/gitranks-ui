@@ -227,10 +227,15 @@ describe('the follow-up fields, read on their own', () => {
     expect(graphqlDirect.mock.calls[0].slice(1)).toEqual([{ prId: 'PR_1' }, { source: 'ssr', githubLogin: 'octocat' }]);
     expect(await loadReplyDrafts('PR_2')).toBeUndefined();
 
-    const pr = (prId: string, state: string) => ({ attemptId: prId, pullRequest: { prId, state } });
+    const ran = { used: 1, left: 1, max: 2, handedOff: false, handedOffAt: null, currentAttemptId: null };
+    const pr = (prId: string, state: string, followUps?: object) => ({
+      attemptId: prId,
+      pullRequest: { prId, state },
+      ...(followUps ? { followUps } : {}),
+    });
     expect(
       await loadOpenPrDrafts({
-        items: [pr('PR_1', 'OPEN'), pr('PR_2', 'OPEN'), pr('PR_3', 'MERGED')] as never,
+        items: [pr('PR_1', 'OPEN', ran), pr('PR_2', 'OPEN', ran), pr('PR_3', 'MERGED', ran)] as never,
         totals: { open: 2, merged: 1, closed: 0, costUsd: 0 },
       }),
     ).toEqual({ PR_1: [{ draftId: 'D_1' }], PR_2: undefined });
@@ -240,6 +245,41 @@ describe('the follow-up fields, read on their own', () => {
     graphqlDirect.mockClear();
     expect(await loadReplyDrafts('PR_1')).toBeUndefined();
     expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('read drafts only for open pull requests a follow-up ran on, at most 10, and none without the rounds', async () => {
+    graphqlDirect.mockResolvedValue({ contributeReplyDrafts: [] });
+    const rounds = (patch: object) => ({
+      used: 0,
+      left: 2,
+      max: 2,
+      handedOff: false,
+      handedOffAt: null,
+      currentAttemptId: null,
+      ...patch,
+    });
+    const pr = (prId: string, followUps?: object) => ({
+      attemptId: prId,
+      pullRequest: { prId, state: 'OPEN' },
+      ...(followUps ? { followUps } : {}),
+    });
+    const page = (items: unknown[]) => ({
+      items: items as never,
+      totals: { open: items.length, merged: 0, closed: 0, costUsd: 0 },
+    });
+
+    // No follow-up ever ran, or the API does not answer the rounds: nothing more is asked.
+    expect(await loadOpenPrDrafts(page([pr('PR_1', rounds({})), pr('PR_2'), pr('PR_3')]))).toEqual({});
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    // A round used, or one under way: asked. Twelve of them: the first ten.
+    const ran = Array.from({ length: 12 }, (_, index) =>
+      pr(`PR_R${index}`, index % 2 ? rounds({ used: 1 }) : rounds({ currentAttemptId: `A_${index}` })),
+    );
+    const read = await loadOpenPrDrafts(page([pr('PR_0', rounds({})), ...ran]));
+    expect(Object.keys(read)).toEqual(ran.slice(0, 10).map(({ attemptId }) => attemptId));
+    expect(graphqlDirect).toHaveBeenCalledTimes(10);
+    expect(graphqlDirect.mock.calls.map(([, variables]) => variables.prId)).not.toContain('PR_0');
   });
 
   it("merge the autopilot record's newer fields into the overview's", async () => {

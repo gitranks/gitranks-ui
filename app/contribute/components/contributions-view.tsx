@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { ContributeNotices } from './contribute-notices';
+import { LiveRefresh } from './live-refresh';
 import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { Pill } from './primitives';
 import { type DraftFollowUp, ReplyDraftItem } from './reply-drafts';
@@ -48,9 +49,20 @@ export async function ContributionsView() {
 /** The reply drafts of each open pull request, by its id; `undefined` for one the API does not answer. */
 export type DraftsByPr = Record<string, ContributeReplyDraft[] | undefined>;
 
-/** Drafts still waiting for the user: not posted, and not being posted. */
-const awaitingApproval = (drafts: ContributeReplyDraft[] | undefined) =>
-  (drafts ?? []).filter(({ state }) => state === 'DRAFT' || state === 'FAILED');
+/** A posted reply stays in its pull request's row this long, with its link. */
+export const POSTED_SHOWN_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The drafts a pull request's row shows: those waiting for the user (draft, failed), those being posted, and those
+ * posted in the last day, so an approved reply does not vanish from where it was approved.
+ */
+const shownDrafts = (drafts: ContributeReplyDraft[] | undefined, now: Date) =>
+  (drafts ?? []).filter(({ state, postedAt, updatedAt }) => {
+    if (state === 'DRAFT' || state === 'FAILED' || state === 'POSTING') return true;
+    if (state !== 'POSTED') return false;
+    const at = new Date(postedAt ?? updatedAt).getTime();
+    return Number.isFinite(at) && now.getTime() - at <= POSTED_SHOWN_MS;
+  });
 
 function Tile({ label, value, text, name }: { label: string; value: string; text: ReactNode; name: string }) {
   return (
@@ -152,7 +164,7 @@ function AttemptRow({ attempt, action, text }: { attempt: ContributeAttempt; act
   );
 }
 
-/** An open pull request that needs the user: what happened on it, its follow-up rounds, and its unposted replies. */
+/** An open pull request that needs the user: what happened on it, its follow-up rounds, and its replies. */
 function PrNeedsYouRow({
   contribution,
   drafts,
@@ -201,6 +213,7 @@ function PrNeedsYouRow({
               draft={draft}
               prNumber={pullRequest.number}
               followUp={followUps.get(draft.attemptId)}
+              freshness={[contribution.followUps?.used ?? '', contribution.followUps?.currentAttemptId ?? ''].join('|')}
               now={now}
             />
           ))}
@@ -260,7 +273,7 @@ function NeedsYou({
           <PrNeedsYouRow
             key={contribution.attemptId}
             contribution={contribution}
-            drafts={awaitingApproval(drafts[contribution.pullRequest.prId])}
+            drafts={shownDrafts(drafts[contribution.pullRequest.prId], now ?? new Date())}
             followUps={followUps}
             attemptCapUsd={attemptCapUsd}
             now={now}
@@ -490,7 +503,10 @@ export function ContributionsScreen({
   const prsNeedingYou = (contributions?.items ?? []).filter(
     ({ pullRequest, needsYou: signals }) =>
       pullRequest.state === 'OPEN' &&
-      (!!signals?.signals.length || awaitingApproval(drafts[pullRequest.prId]).length > 0),
+      (!!signals?.signals.length || shownDrafts(drafts[pullRequest.prId], now ?? new Date()).length > 0),
+  );
+  const posting = prsNeedingYou.some(({ pullRequest }) =>
+    drafts[pullRequest.prId]?.some(({ state }) => state === 'POSTING'),
   );
   const followUps = new Map(
     (attempts ?? []).filter(({ kind }) => kind === 'FOLLOW_UP').map((attempt) => [attempt.attemptId, attempt]),
@@ -501,6 +517,7 @@ export function ContributionsScreen({
 
   return (
     <>
+      {posting ? <LiveRefresh /> : null}
       <ContributeNotices notices={contributeNoticesOf(view)} />
       <div className="flex flex-col gap-1">
         <h1 className="text-[28px] font-bold tracking-tight">My contributions</h1>

@@ -215,12 +215,19 @@ export async function loadReplyDrafts(prId: string): Promise<ContributeReplyDraf
 /** The open pull requests whose drafts My contributions reads, at most. */
 export const DRAFTS_READ_MAX = 10;
 
-/** The reply drafts of each open pull request, by its id; `undefined` for one the API does not answer. */
+/**
+ * The reply drafts of each open pull request a follow-up ran on, by its id; `undefined` for one the API does not
+ * answer. Only a follow-up drafts replies, so a pull request without one (or whose rounds the API does not answer) is
+ * not asked about: most loads ask nothing more.
+ */
 export async function loadOpenPrDrafts(
   contributions: ContributeContributions | undefined,
 ): Promise<Record<string, ContributeReplyDraft[] | undefined>> {
   const open = (contributions?.items ?? [])
-    .filter(({ pullRequest }) => pullRequest.state === 'OPEN')
+    .filter(
+      ({ pullRequest, followUps }) =>
+        pullRequest.state === 'OPEN' && !!followUps && (followUps.used > 0 || !!followUps.currentAttemptId),
+    )
     .slice(0, DRAFTS_READ_MAX);
   const lists = await Promise.all(open.map(({ pullRequest }) => loadReplyDrafts(pullRequest.prId)));
   return Object.fromEntries(open.map(({ pullRequest }, index) => [pullRequest.prId, lists[index]]));

@@ -24,11 +24,14 @@ export function ReplyDraftItem({
   draft,
   prNumber,
   followUp,
+  freshness,
   now,
 }: {
   draft: ContributeReplyDraft;
   prNumber: number | null;
   followUp?: DraftFollowUp;
+  /** What else the page read that a refusal may depend on (its follow-up's state, the pull request's). */
+  freshness?: string;
   now?: Date;
 }) {
   const state = toneLabelOf(REPLY_STATES, draft.state);
@@ -112,6 +115,7 @@ export function ReplyDraftItem({
       {canApprove ? (
         <ApproveReplyButton
           draftId={draft.draftId}
+          version={[draft.state, draft.updatedAt, followUp?.state ?? '', freshness ?? ''].join('|')}
           where={where}
           again={draft.state === 'FAILED'}
           blocked={followUp ? replyBlockOf(followUp) : null}
@@ -129,6 +133,7 @@ export function ReplyDrafts({
   drafts,
   prNumber,
   followUps,
+  freshness,
   now,
   title = 'Replies drafted for you',
 }: {
@@ -136,6 +141,8 @@ export function ReplyDrafts({
   prNumber: number | null;
   /** The follow-ups the page knows, by id, to show each draft's beside it. */
   followUps?: Map<string, DraftFollowUp>;
+  /** What else the page read that a refusal may depend on. */
+  freshness?: string;
   now?: Date;
   title?: string;
 }) {
@@ -159,6 +166,7 @@ export function ReplyDrafts({
               draft={draft}
               prNumber={prNumber}
               followUp={followUps?.get(draft.attemptId)}
+              freshness={freshness}
               now={now}
             />
           ))}

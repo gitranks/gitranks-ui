@@ -20,6 +20,8 @@ const ErrorNote = ({ error }: { error: string | null }) =>
 export function StartFollowUpButton({ prId }: { prId: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  /** It went through: the button stays off until the next page lands. */
+  const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const click = () =>
@@ -30,6 +32,7 @@ export function StartFollowUpButton({ prId }: { prId: string }) {
         setError(followUpErrorMessage(result.error, result.message));
         return;
       }
+      setDone(true);
       router.push(attemptHref(result.data.attemptId));
     });
 
@@ -38,10 +41,10 @@ export function StartFollowUpButton({ prId }: { prId: string }) {
       <button
         type="button"
         onClick={click}
-        disabled={pending}
+        disabled={pending || done}
         className="min-h-10 rounded-[10px] bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
-        {pending ? 'Starting…' : 'Start a follow-up'}
+        {pending || done ? 'Starting…' : 'Start a follow-up'}
       </button>
       <ErrorNote error={error} />
     </div>
@@ -52,6 +55,8 @@ export function StartFollowUpButton({ prId }: { prId: string }) {
 export function StopAutopilotButton({ attemptId }: { attemptId: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  /** It went through: the button stays off until the next page lands. */
+  const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const click = () =>
@@ -62,6 +67,7 @@ export function StopAutopilotButton({ attemptId }: { attemptId: string }) {
         setError(vetoErrorMessage(result.error, result.message));
         return;
       }
+      setDone(true);
       router.refresh();
     });
 
@@ -70,10 +76,10 @@ export function StopAutopilotButton({ attemptId }: { attemptId: string }) {
       <button
         type="button"
         onClick={click}
-        disabled={pending}
+        disabled={pending || done}
         className="min-h-10 rounded-[10px] border border-amber-300 bg-background px-4 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-800 dark:text-amber-200 dark:hover:bg-amber-950"
       >
-        {pending ? 'Stopping…' : 'Stop'}
+        {pending || done ? 'Stopping…' : 'Stop'}
       </button>
       <ErrorNote error={error} />
     </div>

@@ -18,8 +18,8 @@ export const AUTOPILOT_LOCK_AT = 2;
 
 /** Why turning autopilot on or off did not go through, in plain words. */
 export function autopilotErrorMessage(error: ContributeErrorCode, message?: string): string {
-  if (error === 'INVALID' && /locked/i.test(message ?? '')) {
-    return 'Autopilot is locked, so it cannot be turned on yet.';
+  if (error === 'INVALID' && /unlocks after/i.test(message ?? '')) {
+    return `Autopilot is locked: it unlocks after ${AUTOPILOT_UNLOCK_AT} pull requests merged through GitRanks.`;
   }
   if (error === 'INVALID' && /coming|not open|unavailable/i.test(message ?? '')) {
     return 'Autopilot is coming soon: it cannot be turned on yet. Your record keeps counting until then.';

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -9,6 +11,8 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/app/contribute/actions', () => ({}));
+// A marker where the page reads itself again, so the static markup shows it.
+vi.mock('./live-refresh', () => ({ LiveRefresh: () => <span data-live-refresh /> }));
 vi.mock('@/lib/contribute/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
@@ -22,7 +26,7 @@ const { ContributionsScreen } = await import('./contributions-view');
 const { SettingsScreen } = await import('./settings-view');
 const { ReplyDraftItem } = await import('./reply-drafts');
 const { autopilotErrorMessage } = await import('./autopilot-section');
-const { NOW, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { NOW, views, settings: baseSettings } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { attempt, contributions, followUpAttempts, followUps, needsYou, replyDraft } = await import(
   '@/lib/contribute/__fixtures__/contribute-attempts'
 );
@@ -144,23 +148,58 @@ describe('a pull request that needs the user, on My contributions', () => {
   });
 
   it('lists the replies waiting for approval beside their follow-up, even with nothing new on GitHub', () => {
+    const html = mine({ needsYou: null, followUps: followUps({ used: 1, left: 1 }) }, { PR_8: [replyDraft()] });
+
+    expect(html).toContain('data-pr-needs-you="1419"');
+    expect(html).toContain('data-reply-draft="D_1"');
+    expect(html).toContain('data-reply-follow-up="REVIEW"');
+    expect(text(html)).toContain('Drafted by a follow-up : waiting for your review.');
+    expect(html).not.toContain('data-live-refresh');
+  });
+
+  it('keeps an approved reply in its row while it posts, reading the page again until it is posted', () => {
     const html = mine(
       { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
       {
-        PR_8: [
-          replyDraft(),
-          replyDraft({ draftId: 'D_9', state: 'POSTED', posted: true }),
-          replyDraft({ draftId: 'D_10', state: 'POSTING' }),
-        ],
+        PR_8: [replyDraft({ state: 'POSTING', updatedAt: '2026-10-28T11:59:00.000Z' })],
       },
     );
 
     expect(html).toContain('data-pr-needs-you="1419"');
-    expect(html).toContain('data-reply-draft="D_1"');
-    expect(html).not.toContain('data-reply-draft="D_9"');
-    expect(html).not.toContain('data-reply-draft="D_10"');
-    expect(html).toContain('data-reply-follow-up="REVIEW"');
-    expect(text(html)).toContain('Drafted by a follow-up : waiting for your review.');
+    expect(html).toContain('data-reply-state="POSTING"');
+    expect(text(html)).toContain('Posting it on GitHub.');
+    expect(html).not.toContain('data-approve-reply');
+    expect(html).toContain('data-live-refresh');
+  });
+
+  it('keeps a reply posted in the last day in its row, with its link, and lets an older one go', () => {
+    const posted = (postedAt: string) =>
+      replyDraft({
+        state: 'POSTED',
+        posted: true,
+        postedAt,
+        url: 'https://github.com/kelp-db/kelp/pull/1419#discussion_r9',
+      });
+
+    const recent = mine(
+      { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
+      {
+        PR_8: [posted('2026-10-28T09:00:00.000Z')],
+      },
+    );
+    expect(recent).toContain('data-reply-state="POSTED"');
+    expect(recent).toContain('href="https://github.com/kelp-db/kelp/pull/1419#discussion_r9"');
+    expect(text(recent)).toContain('3 hours ago');
+    expect(recent).not.toContain('data-live-refresh');
+
+    const old = mine(
+      { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
+      {
+        PR_8: [posted('2026-10-26T09:00:00.000Z')],
+      },
+    );
+    expect(old).not.toContain('data-pr-needs-you');
+    expect(old).not.toContain('data-reply-draft');
   });
 
   it('says when autopilot submits an attempt waiting for it, with the link to stop it', () => {
@@ -210,6 +249,21 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(html).not.toContain('data-start-follow-up');
   });
 
+  it('leaves out the follow-ups of a merged or closed pull request no round ran on', () => {
+    const merged = {
+      ...followUpAttempts.prNeedsYou,
+      state: 'MERGED' as const,
+      needsYou: null,
+      pullRequest: { ...followUpAttempts.prNeedsYou.pullRequest!, state: 'MERGED' as const },
+    };
+    expect(review(merged)).not.toContain('data-panel="follow-ups"');
+    expect(review({ ...merged, followUps: undefined })).not.toContain('data-panel="follow-ups"');
+
+    const followedUp = review({ ...merged, followUps: followUps({ used: 1, left: 1 }) });
+    expect(followedUp).toContain('data-panel="follow-ups"');
+    expect(followedUp).not.toContain('data-start-follow-up');
+  });
+
   it('degrades the follow-up fields to "not available yet"', () => {
     const plain = text(
       review({ ...followUpAttempts.prNeedsYou, needsYou: undefined, followUps: undefined, replyDrafts: undefined }),
@@ -253,6 +307,8 @@ describe('a follow-up on the review screen', () => {
 
     expect(plain).toContain('Finish this follow-up');
     expect(plain).toContain('The agent made no commits this round');
+    expect(plain).toContain('Approve the replies you want posted, here or once it is finished');
+    expect(plain).not.toContain('Finish it, then approve');
   });
 
   it('shows the push under way, without the steps of a new pull request', () => {
@@ -347,6 +403,23 @@ describe('the reply drafts', () => {
     expect(html).not.toContain('javascript:');
   });
 
+  it('asks before posting: the button opens the confirm, and only the confirm posts', () => {
+    const html = item(replyDraft());
+
+    // The confirm is closed: nothing in the page posts the reply.
+    expect(text(html)).not.toContain('Post it');
+    expect(text(html)).not.toContain('Post this reply on GitHub?');
+
+    const source = readFileSync(new URL('./approve-reply-button.tsx', import.meta.url), 'utf8');
+    expect(source.match(/approveReply\(/g)).toHaveLength(1);
+    const approve = source.slice(source.indexOf('const approve = '), source.indexOf('return ('));
+    expect(approve).toContain('approveReply(draftId)');
+    expect(source.match(/onClick=\{approve\}/g)).toHaveLength(1);
+    const dialog = source.slice(source.indexOf('<DialogFooter>'), source.indexOf('</DialogFooter>'));
+    expect(dialog).toContain('onClick={approve}');
+    expect(source).toContain('onClick={() => setOpen(true)}');
+  });
+
   it("disables Approve while the follow-up's commits are not pushed, and once they never can be", () => {
     const pending = item(replyDraft(), { attemptId: 'A_F1', state: 'REVIEW', patch: 'diff' });
     expect(pending).toContain('data-blocked="true"');
@@ -432,9 +505,16 @@ describe('refusals, in plain words', () => {
     expect(vetoErrorMessage('INVALID', 'the attempt is review, not waiting to submit')).toContain(
       'no longer waiting for autopilot',
     );
-    expect(autopilotErrorMessage('INVALID', 'Autopilot is coming: no notice reaches you yet')).toContain(
-      'Autopilot is coming soon: it cannot be turned on yet.',
+    expect(
+      autopilotErrorMessage(
+        'INVALID',
+        'Autopilot is coming: it opens once GitRanks can tell you before it submits anything for you',
+      ),
+    ).toContain('Autopilot is coming soon: it cannot be turned on yet.');
+    expect(autopilotErrorMessage('INVALID', 'autopilot unlocks after 3 pull requests merged through GitRanks')).toBe(
+      'Autopilot is locked: it unlocks after 3 pull requests merged through GitRanks.',
     );
+    expect(autopilotErrorMessage('INVALID', 'Something else was locked')).toBe('Something else was locked');
   });
 });
 
@@ -453,6 +533,24 @@ describe('autopilot', () => {
     expect(plain).toContain('Closed without merging in a row 1 of 2');
     expect(plain).toContain('2 of 3 merged PRs');
     expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
+  });
+
+  it('lets a setting left on be turned off while autopilot is not open', () => {
+    const view = {
+      ...views.autopilotComing,
+      contributor: {
+        ...views.autopilotComing.contributor,
+        autopilot: { ...views.autopilotComing.contributor.autopilot, unlocked: true, mergedToUnlock: 0 },
+        settings: { ...baseSettings, autopilot: true },
+      },
+    };
+    const html = settings(view);
+    const checkbox = html.match(/<input[^>]*type="checkbox"[^>]*>/)?.[0] ?? '';
+
+    expect(html).toContain('data-autopilot-available="false"');
+    expect(checkbox).toContain('checked=""');
+    expect(checkbox).not.toContain('disabled=""');
+    expect(text(html)).toContain('Coming soon');
   });
 
   it('says it is not available yet while the API does not answer whether it is open', () => {

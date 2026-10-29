@@ -10,6 +10,7 @@ import { Panel } from './primitives';
 import type { ContributeCredential, ContributeGrant } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, maskedKey, relativeLabel, shortId } from '@/lib/contribute/format';
+import type { GrantRefusal } from '@/lib/contribute/grant-refusal';
 
 /** Where a user revokes an OAuth App themselves. */
 export const GITHUB_APPS_URL = 'https://github.com/settings/applications';
@@ -163,11 +164,6 @@ function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; av
 }
 
 /** Why GitHub's consent was not saved, from the `grant` query it came back with. */
-export type GrantRefusal = 'refused' | 'unavailable';
-
-export const grantRefusalOf = (value: string | string[] | undefined): GrantRefusal | undefined =>
-  value === 'refused' || value === 'unavailable' ? value : undefined;
-
 const REFUSALS: Record<GrantRefusal, string> = {
   refused:
     'GitHub access was not saved: it must come from the GitHub account you are signed in with. Sign out of other accounts on github.com and try again.',

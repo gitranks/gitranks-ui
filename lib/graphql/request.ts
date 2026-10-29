@@ -37,6 +37,12 @@ export async function request(
   );
 
   if (!response.ok) {
+    // A query the API refuses (a field it does not know, a variable it cannot read) comes back as a 4xx with the
+    // GraphQL errors in the body: those are thrown as for a 200, so callers can tell them apart.
+    const errors = response.status >= 400 && response.status < 500 ? await graphqlErrorsOf(response) : null;
+    if (errors) {
+      throw new Error(JSON.stringify(errors));
+    }
     throw new Error(`GraphQL error! ${response.status}: ${response.statusText}`);
   }
 
@@ -47,4 +53,14 @@ export async function request(
   }
 
   return { data: res.data, status: response.status };
+}
+
+/** The `errors` of a GraphQL answer's JSON body; null when the body is not one. */
+async function graphqlErrorsOf(response: Response): Promise<unknown[] | null> {
+  try {
+    const body = (await response.json()) as { errors?: unknown };
+    return Array.isArray(body?.errors) && body.errors.length ? body.errors : null;
+  } catch {
+    return null;
+  }
 }

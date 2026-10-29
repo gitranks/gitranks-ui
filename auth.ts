@@ -3,7 +3,9 @@ import NextAuth from 'next-auth';
 import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 
 import authConfig from './auth.config';
-import { authModeOf, IDENTITY_PROVIDER, TOKEN_PROVIDER } from './lib/auth-providers';
+import { authModeOf, CONTRIBUTE_PROVIDER, IDENTITY_PROVIDER, TOKEN_PROVIDER } from './lib/auth-providers';
+import { grantSignInAllowed, type RemoveOtherGrants, withContributeGrant } from './lib/contribute/grant-adapter';
+import { currentSessionToken } from './lib/contribute/session-token';
 import mongoClientPromise from './lib/mongo-client';
 
 const baseAdapter = MongoDBAdapter(mongoClientPromise);
@@ -24,13 +26,23 @@ const adapter: Adapter = {
     baseAdapter.linkAccount?.(account.provider === IDENTITY_PROVIDER ? withoutTokens(account) : account),
 };
 
+// A grant given again: the user's other grant rows go once the new one is in (`withContributeGrant`).
+const removeOtherGrants: RemoveOtherGrants = async ({ provider, userId, keep }) => {
+  const accounts = (await mongoClientPromise).db('auth').collection('accounts');
+  await accounts.deleteMany({ provider, userId, _id: { $ne: keep } } as Record<string, unknown>);
+};
+
 // database but jwt ¯\_(ツ)_/¯
 // https://authjs.dev/guides/edge-compatibility#middleware
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter,
+  // Pull request access for Contribute: linked to the signed-in user, its token sealed (`lib/contribute`).
+  adapter: withContributeGrant(adapter, currentSessionToken, removeOtherGrants),
   session: { strategy: 'jwt' },
   ...authConfig,
+  // Never on, in any environment: Auth.js's debug log prints every adapter call's arguments, and linking the GitHub
+  // grant passes its token to the adapter in the clear (it is sealed there, after the log).
+  debug: false,
   events: {
     signIn: async ({ account, profile }) => {
       // profile - user entity from github
@@ -52,12 +64,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   callbacks: {
+    // Pull request access is linked to the signed-in user, never a way in.
+    signIn: ({ account, profile }) =>
+      account?.provider === CONTRIBUTE_PROVIDER ? grantSignInAllowed(profile, currentSessionToken) : true,
+
     async jwt({ token, profile, account }) {
       // token:   the existing token (an object you can modify)
       // user:    only present on first sign-in (the returned user object)
       // account: only on first sign-in (OAuth/account info)
       // profile: only on first sign-in (OAuth profile)
       // isNewUser: boolean flag on first sign-in
+
+      if (account?.provider === CONTRIBUTE_PROVIDER) {
+        // Linking the grant hands this callback a fresh token: the session stays what it was, without the grant's.
+        return await currentSessionToken();
+      }
 
       token.error = undefined;
 

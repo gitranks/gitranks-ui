@@ -20,3 +20,10 @@ export const authModeOf = (token: Record<string, unknown>): AuthMode => {
 
   return token.access_token ? 'token' : 'identity';
 };
+
+/**
+ * Not a sign-in: a signed-in user links it from GitRanks Contribute so pull requests can open from their fork, in their
+ * name. A classic OAuth App with `public_repo` only (no `workflow`, so nothing under `.github/workflows` can be pushed).
+ * Its token is stored sealed and never enters the session.
+ */
+export const CONTRIBUTE_PROVIDER = 'github-contribute';

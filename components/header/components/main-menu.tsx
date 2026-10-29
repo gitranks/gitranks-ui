@@ -8,6 +8,7 @@ import { FaCode } from 'react-icons/fa6';
 import { GoRepo } from 'react-icons/go';
 import { GrLocation } from 'react-icons/gr';
 
+import { ContributeMenuItem } from './contribute-menu-item';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -66,6 +67,7 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
             </Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
+        <ContributeMenuItem />
       </NavigationMenuList>
     </NavigationMenu>
   );

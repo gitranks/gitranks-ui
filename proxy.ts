@@ -3,6 +3,8 @@ import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
+import { isContributePath } from './lib/contribute/contribute-path';
+import { requestMaySeeContribute } from './lib/contribute/preview-gate';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
@@ -60,6 +62,14 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // which would turn this rewrite into an external one. It also keeps session cookies off 404s.
   if (isInvalidRankingPath(request.nextUrl.pathname) || isImpossibleEntityPath(request.nextUrl.pathname)) {
     return NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+  }
+
+  // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared
+  // cache (it would be served to someone who is let in).
+  if (isContributePath(request.nextUrl.pathname) && !(await requestMaySeeContribute(request))) {
+    const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
   }
 
   // Auth.js sets its CSRF and callback-url cookies on every response it touches, and a shared

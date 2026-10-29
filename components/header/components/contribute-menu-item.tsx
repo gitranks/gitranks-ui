@@ -1,0 +1,77 @@
+'use client';
+
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
+
+import { NavigationMenuItem, NavigationMenuLink, navigationMenuTriggerStyle } from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
+
+const CACHE_KEY = 'contribute-preview';
+/** The answer is reused for a while, so the header does not ask on every page view. */
+const CACHE_MS = 10 * 60 * 1000;
+
+type Cached = { login: string; allowed: boolean; at: number };
+
+const readCache = (login: string): boolean | null => {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) ?? 'null') as Cached | null;
+    return cached?.login === login && Date.now() - cached.at < CACHE_MS ? cached.allowed : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeCache = (login: string, allowed: boolean) => {
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ login, allowed, at: Date.now() } satisfies Cached));
+  } catch {
+    // Storage can be off; the header asks again next time.
+  }
+};
+
+/** "Contribute", shown only to a signed-in user GitRanks Contribute is open to. */
+export function ContributeMenuItem() {
+  const { data: session } = useSession();
+  const login = session?.user?.githubLogin;
+  const [allowed, setAllowed] = useState(false);
+
+  useEffect(() => {
+    if (!login) {
+      setAllowed(false);
+      return;
+    }
+    const cached = readCache(login);
+    if (cached !== null) {
+      setAllowed(cached);
+      return;
+    }
+    let live = true;
+    fetch('/api/me/contribute')
+      .then((res) => (res.ok ? (res.json() as Promise<{ previewAllowed?: boolean }>) : null))
+      .then((data) => {
+        const value = data?.previewAllowed === true;
+        writeCache(login, value);
+        if (live) setAllowed(value);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [login]);
+
+  if (!allowed) return null;
+
+  return (
+    <NavigationMenuItem>
+      <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), 'bg-transparent gap-1.5')} asChild>
+        <Link href="/contribute" prefetch={false}>
+          Contribute
+          <span className="rounded-full bg-violet-100 px-1.5 py-px text-[11px] font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-200">
+            new
+          </span>
+        </Link>
+      </NavigationMenuLink>
+    </NavigationMenuItem>
+  );
+}

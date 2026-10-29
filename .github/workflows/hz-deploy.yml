@@ -69,15 +69,25 @@ jobs:
           AUTH_GITHUB_BASIC_ID: ${{ vars.AUTH_GITHUB_BASIC_ID }}
           AUTH_URL: ${{ vars.AUTH_URL }}
           NEXT_PUBLIC_URI: ${{ vars.NEXT_PUBLIC_URI }}
+          # Contribute's pull request access: optional, so a deploy works before they exist (the link then stays off).
+          AUTH_GITHUB_CONTRIBUTE_ID: ${{ vars.AUTH_GITHUB_CONTRIBUTE_ID }}
+          AUTH_GITHUB_CONTRIBUTE_SECRET: ${{ secrets.AUTH_GITHUB_CONTRIBUTE_SECRET }}
+          CONTRIBUTE_GRANT_SEAL_KEYS: ${{ secrets.CONTRIBUTE_GRANT_SEAL_KEYS }}
         run: |
           set -euo pipefail
           names="INTERNAL_JWT_SECRET AUTH_SECRET AUTH_GITHUB_SECRET AUTH_GITHUB_ID AUTH_GITHUB_BASIC_SECRET AUTH_GITHUB_BASIC_ID AUTH_URL NEXT_PUBLIC_URI"
+          optional="AUTH_GITHUB_CONTRIBUTE_ID AUTH_GITHUB_CONTRIBUTE_SECRET CONTRIBUTE_GRANT_SEAL_KEYS"
           for n in $names; do
             [ -n "${!n}" ] || { echo "$n is not set"; exit 1; }
           done
-          for n in $names; do
-            printf '%s=%s\n' "$n" "${!n}"
-          done |
+          {
+            for n in $names; do
+              printf '%s=%s\n' "$n" "${!n}"
+            done
+            for n in $optional; do
+              [ -z "${!n}" ] || printf '%s=%s\n' "$n" "${!n}"
+            done
+          } |
             ssh octo put-env ui-gitranks
 
       - name: Let the server pull the image

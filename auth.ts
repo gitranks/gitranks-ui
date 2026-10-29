@@ -3,7 +3,9 @@ import NextAuth from 'next-auth';
 import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 
 import authConfig from './auth.config';
-import { authModeOf, IDENTITY_PROVIDER, TOKEN_PROVIDER } from './lib/auth-providers';
+import { authModeOf, CONTRIBUTE_PROVIDER, IDENTITY_PROVIDER, TOKEN_PROVIDER } from './lib/auth-providers';
+import { grantSignInAllowed, withContributeGrant } from './lib/contribute/grant-adapter';
+import { currentSessionToken } from './lib/contribute/session-token';
 import mongoClientPromise from './lib/mongo-client';
 
 const baseAdapter = MongoDBAdapter(mongoClientPromise);
@@ -28,7 +30,8 @@ const adapter: Adapter = {
 // https://authjs.dev/guides/edge-compatibility#middleware
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter,
+  // Pull request access for Contribute: linked to the signed-in user, its token sealed (`lib/contribute`).
+  adapter: withContributeGrant(adapter, currentSessionToken),
   session: { strategy: 'jwt' },
   ...authConfig,
   events: {
@@ -52,12 +55,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   callbacks: {
+    // Pull request access is linked to the signed-in user, never a way in.
+    signIn: ({ account, profile }) =>
+      account?.provider === CONTRIBUTE_PROVIDER ? grantSignInAllowed(profile, currentSessionToken) : true,
+
     async jwt({ token, profile, account }) {
       // token:   the existing token (an object you can modify)
       // user:    only present on first sign-in (the returned user object)
       // account: only on first sign-in (OAuth/account info)
       // profile: only on first sign-in (OAuth profile)
       // isNewUser: boolean flag on first sign-in
+
+      if (account?.provider === CONTRIBUTE_PROVIDER) {
+        // Linking the grant hands this callback a fresh token: the session stays what it was, without the grant's.
+        return await currentSessionToken();
+      }
 
       token.error = undefined;
 

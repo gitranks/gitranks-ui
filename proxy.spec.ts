@@ -5,6 +5,12 @@ const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'a
 
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
+const { maySeeContribute } = vi.hoisted(() => ({ maySeeContribute: vi.fn(async () => false) }));
+vi.mock('./lib/contribute/preview-gate', () => ({
+  isContributePath: (pathname: string) => /^\/contribute(?:\/|$)/.test(pathname),
+  requestMaySeeContribute: maySeeContribute,
+}));
+
 const { default: proxy, config, ENTITY_PAGE_CACHE_CONTROL, v2BuilderRedirect } = await import('./proxy');
 
 const event = {} as NextFetchEvent;
@@ -12,7 +18,42 @@ const request = (cookie?: string, path = '/profile/torvalds') =>
   new NextRequest(`https://gitranks.com${path}`, cookie ? { headers: { cookie } } : undefined);
 
 describe('proxy', () => {
-  beforeEach(() => withSession.mockClear());
+  beforeEach(() => {
+    withSession.mockClear();
+    maySeeContribute.mockReset();
+    maySeeContribute.mockResolvedValue(false);
+  });
+
+  describe('Contribute', () => {
+    it.each(['/contribute', '/contribute/connect', '/contribute/settings', '/contribute/issues'])(
+      'answers %s with a 404 nobody caches, to anyone the API does not let in',
+      async (path) => {
+        for (const cookie of [undefined, 'authjs.session-token=t']) {
+          const response = await proxy(request(cookie, path), event);
+
+          expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+          expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        }
+        expect(withSession).not.toHaveBeenCalled();
+      },
+    );
+
+    it('lets in a signed-in user the API lets in, as any signed-in page', async () => {
+      maySeeContribute.mockResolvedValue(true);
+      const response = await proxy(request('authjs.session-token=t', '/contribute/settings'), event);
+
+      expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(withSession).toHaveBeenCalledOnce();
+      expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+    });
+
+    it('asks nothing for the other pages', async () => {
+      await proxy(request('authjs.session-token=t', '/contributors'), event);
+      await proxy(request(undefined, '/by/stars/1'), event);
+
+      expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+  });
 
   it('lets a visitor without a session through untouched, so the page stays cacheable', async () => {
     const response = await proxy(request(undefined, '/by/stars/1'), event);

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { AccessSection } from './access-section';
+import { AccessSection, type GrantRefusal, grantRefusalOf } from './access-section';
 import { AutopilotSection } from './autopilot-section';
 import { ContributeNotices } from './contribute-notices';
 import { CycleSummary } from './cycle-summary';
@@ -32,16 +32,16 @@ export async function SettingsView({
 }) {
   const [view, params] = await Promise.all([loadContribute(), searchParams]);
   if (!view) notFound();
-  return <SettingsScreen view={view} grantRefused={params.grant === 'refused'} />;
+  return <SettingsScreen view={view} grantRefusal={grantRefusalOf(params.grant)} />;
 }
 
 export function SettingsScreen({
   view,
-  grantRefused = false,
+  grantRefusal,
   now,
 }: {
   view: ContributeView;
-  grantRefused?: boolean;
+  grantRefusal?: GrantRefusal;
   now?: Date;
 }) {
   const { contributor } = view;
@@ -91,7 +91,13 @@ export function SettingsScreen({
             />
           ) : null}
           <PreferencesSection preferences={contributor?.preferences ?? null} />
-          <AccessSection credential={key} grant={view.grant} grantRefused={grantRefused} now={now} />
+          <AccessSection
+            credential={key}
+            grant={view.grant}
+            grantAvailable={view.grantAvailable}
+            grantRefusal={grantRefusal}
+            now={now}
+          />
           <DeleteDataSection />
         </div>
       </div>

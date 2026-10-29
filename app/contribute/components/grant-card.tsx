@@ -18,8 +18,16 @@ export function useGrantGithub(returnTo: Route) {
   return { grant, pending };
 }
 
-/** Step 3: what the GitHub access allows, and the button to grant it. */
-export function GrantCard({ grant, returnTo }: { grant: ContributeGrant | undefined; returnTo: Route }) {
+/** Step 3: what the GitHub access allows, and the button to grant it once it can be granted here. */
+export function GrantCard({
+  grant,
+  available,
+  returnTo,
+}: {
+  grant: ContributeGrant | undefined;
+  available: boolean;
+  returnTo: Route;
+}) {
   const { grant: allow, pending } = useGrantGithub(returnTo);
 
   return (
@@ -39,6 +47,10 @@ export function GrantCard({ grant, returnTo }: { grant: ContributeGrant | undefi
       {grant?.connected ? (
         <span className="text-sm font-semibold text-green-700 dark:text-green-400">
           Allowed{grant.login ? `, as @${grant.login}` : ''}
+        </span>
+      ) : !available ? (
+        <span className="text-sm font-medium text-muted-foreground" data-grant-available="false">
+          Pull request access is not available yet. It is coming soon.
         </span>
       ) : (
         <>

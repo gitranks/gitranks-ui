@@ -4,7 +4,8 @@ const { graphqlDirect, sessionTokenOf } = vi.hoisted(() => ({ graphqlDirect: vi.
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('./session-token', () => ({ sessionTokenOf }));
 
-const { contributePreviewAllowed, isContributePath, requestMaySeeContribute } = await import('./preview-gate');
+const { contributePreviewAllowed, requestMaySeeContribute } = await import('./preview-gate');
+const { isContributePath } = await import('./contribute-path');
 
 const req = { headers: new Headers({ cookie: 'authjs.session-token=t' }) };
 
@@ -19,6 +20,16 @@ describe('the Contribute preview gate', () => {
     expect(isContributePath('/contribute/settings')).toBe(true);
     expect(isContributePath('/contributors')).toBe(false);
     expect(isContributePath('/profile/contribute')).toBe(false);
+  });
+
+  it('matches the decoded path, so an encoded spelling cannot get past it', () => {
+    expect(isContributePath('/%63ontribute')).toBe(true);
+    expect(isContributePath('/contribute%2Fsettings')).toBe(true);
+    expect(isContributePath('/%2Fcontribute')).toBe(true);
+    expect(isContributePath('//contribute/issues')).toBe(true);
+    expect(isContributePath('/CONTRIBUTE')).toBe(true);
+    expect(isContributePath('/contribute%')).toBe(true);
+    expect(isContributePath('/%63ontributors')).toBe(false);
   });
 
   it('lets in only the logins the API lets in, asking as that login', async () => {

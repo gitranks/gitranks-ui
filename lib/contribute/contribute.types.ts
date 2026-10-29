@@ -150,4 +150,6 @@ export type ContributeView = {
   contributor: Contributor | null;
   grant: ContributeGrant | undefined;
   paused: boolean | undefined;
+  /** Pull request access can be granted here (the app and its key ring are configured). */
+  grantAvailable: boolean;
 };

@@ -14,11 +14,11 @@ import { claudeKeyOf, contributeNoticesOf } from '@/lib/contribute/contribute-st
 
 /**
  * The step the user is on: the key, then GitHub access (the limits come from the plan), then preferences. An API that
- * does not tell the grant yet does not hold the user on step 3.
+ * does not tell the grant yet, or access that cannot be granted yet, does not hold the user on step 3.
  */
 export function setupStepOf(view: ContributeView): number {
   if (!claudeKeyOf(view)) return 1;
-  if (view.grant && !view.grant.connected) return 3;
+  if (view.grantAvailable && view.grant && !view.grant.connected) return 3;
   if (view.contributor?.step !== 'DONE') return 4;
   return 5;
 }
@@ -59,7 +59,7 @@ export function ConnectScreen({ view, today }: { view: ContributeView; today: nu
       </div>
       <div className="grid gap-5 md:grid-cols-2">
         <LimitsPreview plan={contributor?.plan} settings={contributor?.settings} />
-        <GrantCard grant={view.grant} returnTo="/contribute/connect" />
+        <GrantCard grant={view.grant} available={view.grantAvailable} returnTo="/contribute/connect" />
       </div>
       {step === 4 ? <PreferencesStep preferences={contributor?.preferences ?? null} /> : null}
       {step === 5 ? (

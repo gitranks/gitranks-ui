@@ -4,7 +4,7 @@ import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 
 import authConfig from './auth.config';
 import { authModeOf, CONTRIBUTE_PROVIDER, IDENTITY_PROVIDER, TOKEN_PROVIDER } from './lib/auth-providers';
-import { grantSignInAllowed, withContributeGrant } from './lib/contribute/grant-adapter';
+import { grantSignInAllowed, type RemoveOtherGrants, withContributeGrant } from './lib/contribute/grant-adapter';
 import { currentSessionToken } from './lib/contribute/session-token';
 import mongoClientPromise from './lib/mongo-client';
 
@@ -26,14 +26,23 @@ const adapter: Adapter = {
     baseAdapter.linkAccount?.(account.provider === IDENTITY_PROVIDER ? withoutTokens(account) : account),
 };
 
+// A grant given again: the user's other grant rows go once the new one is in (`withContributeGrant`).
+const removeOtherGrants: RemoveOtherGrants = async ({ provider, userId, keep }) => {
+  const accounts = (await mongoClientPromise).db('auth').collection('accounts');
+  await accounts.deleteMany({ provider, userId, _id: { $ne: keep } } as Record<string, unknown>);
+};
+
 // database but jwt ¯\_(ツ)_/¯
 // https://authjs.dev/guides/edge-compatibility#middleware
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   // Pull request access for Contribute: linked to the signed-in user, its token sealed (`lib/contribute`).
-  adapter: withContributeGrant(adapter, currentSessionToken),
+  adapter: withContributeGrant(adapter, currentSessionToken, removeOtherGrants),
   session: { strategy: 'jwt' },
   ...authConfig,
+  // Never on, in any environment: Auth.js's debug log prints every adapter call's arguments, and linking the GitHub
+  // grant passes its token to the adapter in the clear (it is sealed there, after the log).
+  debug: false,
   events: {
     signIn: async ({ account, profile }) => {
       // profile - user entity from github

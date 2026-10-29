@@ -105,7 +105,7 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
 }
 
 /** The GitHub grant's line: connect when missing, revoke when there. */
-function GrantRow({ grant }: { grant: ContributeGrant | undefined }) {
+function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; available: boolean }) {
   const router = useRouter();
   const { grant: allow, pending: granting } = useGrantGithub('/contribute/settings#access');
   const [message, setMessage] = useState<ReactNode>(null);
@@ -134,53 +134,74 @@ function GrantRow({ grant }: { grant: ContributeGrant | undefined }) {
       );
     });
 
-  const detail =
-    grant === undefined
-      ? 'Status not available yet. Grant it, or revoke it on GitHub, any time.'
-      : grant.connected
-        ? `public_repo${grant.login ? `, as @${grant.login}` : ''}`
+  const detail = grant?.connected
+    ? `public_repo${grant.login ? `, as @${grant.login}` : ''}`
+    : !available
+      ? 'Not available yet. It is coming soon.'
+      : grant === undefined
+        ? 'Status not available yet. Grant it, or revoke it on GitHub, any time.'
         : 'Not allowed: pull requests cannot be opened for you';
 
   return (
-    <div data-grant={grant === undefined ? 'unknown' : grant.connected ? 'connected' : 'missing'}>
+    <div
+      data-grant={grant === undefined ? 'unknown' : grant.connected ? 'connected' : 'missing'}
+      data-grant-available={available}
+    >
       <Row title="GitHub pull requests" detail={message ?? detail}>
         {grant?.connected ? (
           <button type="button" onClick={revoke} disabled={pending} className={dangerButton}>
             {pending ? 'Revoking…' : 'Revoke'}
           </button>
-        ) : (
+        ) : available ? (
           <button type="button" onClick={allow} disabled={granting} className={plainButton}>
             {granting ? 'Opening GitHub…' : 'Allow on GitHub'}
           </button>
-        )}
+        ) : null}
       </Row>
     </div>
   );
 }
 
+/** Why GitHub's consent was not saved, from the `grant` query it came back with. */
+export type GrantRefusal = 'refused' | 'unavailable';
+
+export const grantRefusalOf = (value: string | string[] | undefined): GrantRefusal | undefined =>
+  value === 'refused' || value === 'unavailable' ? value : undefined;
+
+const REFUSALS: Record<GrantRefusal, string> = {
+  refused:
+    'GitHub access was not saved: it must come from the GitHub account you are signed in with. Sign out of other accounts on github.com and try again.',
+  unavailable: 'GitHub access was not saved: pull request access is not available yet.',
+};
+
 export function AccessSection({
   credential,
   grant,
-  grantRefused = false,
+  grantAvailable,
+  grantRefusal,
   now,
 }: {
   credential: ContributeCredential | undefined;
   grant: ContributeGrant | undefined;
-  /** GitHub sent back another account than the one signed in. */
-  grantRefused?: boolean;
+  grantAvailable: boolean;
+  /** GitHub sent back another account than the one signed in, or a grant that cannot be stored here. */
+  grantRefusal?: GrantRefusal;
   now?: Date;
 }) {
   return (
     <Panel id="access" className="gap-1">
       <h2 className="mb-2.5 text-lg font-semibold">Keys and access</h2>
-      {grantRefused ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
-          GitHub access was not saved: it must come from the GitHub account you are signed in with. Sign out of other
-          accounts on github.com and try again.
+      {grantRefusal ? (
+        <p role="alert" data-grant-refusal={grantRefusal} className="text-sm text-red-700 dark:text-red-400">
+          {REFUSALS[grantRefusal]} GitHub may still list GitRanks Contribute as authorized; you may want to revoke it in{' '}
+          <a href={GITHUB_APPS_URL} target="_blank" rel="noopener noreferrer" className="underline">
+            Authorized OAuth Apps
+          </a>
+          .
         </p>
       ) : null}
       <KeyRow credential={credential} now={now} />
-      <GrantRow grant={grant} />
+      <GrantRow grant={grant} available={grantAvailable} />
       <Row title="Your own agent (MCP)" detail="Use Claude Code, Codex or Cursor on your machine. Coming soon.">
         <button type="button" disabled className={plainButton}>
           Create token

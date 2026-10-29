@@ -6,10 +6,7 @@ const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'a
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
 const { maySeeContribute } = vi.hoisted(() => ({ maySeeContribute: vi.fn(async () => false) }));
-vi.mock('./lib/contribute/preview-gate', () => ({
-  isContributePath: (pathname: string) => /^\/contribute(?:\/|$)/.test(pathname),
-  requestMaySeeContribute: maySeeContribute,
-}));
+vi.mock('./lib/contribute/preview-gate', () => ({ requestMaySeeContribute: maySeeContribute }));
 
 const { default: proxy, config, ENTITY_PAGE_CACHE_CONTROL, v2BuilderRedirect } = await import('./proxy');
 

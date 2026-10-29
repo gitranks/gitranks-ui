@@ -32,13 +32,17 @@ export default {
     }),
     // Linked from a signed-in session only (`auth.ts` refuses it otherwise). Classic `public_repo`: a pull request from
     // the user's fork to a repository they do not own needs it. No `workflow`, so GitHub refuses any push that touches
-    // `.github/workflows`.
-    GitHub({
-      id: CONTRIBUTE_PROVIDER,
-      name: 'GitHub pull requests',
-      clientId: contributeClientId ?? '',
-      clientSecret: contributeClientSecret ?? '',
-      authorization: { params: { scope: 'public_repo' } },
-    }),
+    // `.github/workflows`. Registered only when its app is configured.
+    ...(contributeClientId && contributeClientSecret
+      ? [
+          GitHub({
+            id: CONTRIBUTE_PROVIDER,
+            name: 'GitHub pull requests',
+            clientId: contributeClientId,
+            clientSecret: contributeClientSecret,
+            authorization: { params: { scope: 'public_repo' } },
+          }),
+        ]
+      : []),
   ],
 } satisfies NextAuthConfig;

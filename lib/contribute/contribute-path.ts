@@ -1,0 +1,12 @@
+/**
+ * Contribute's pages: `/contribute` and everything under it. Matched on the decoded path, as the router matches it,
+ * so a percent-encoded, doubled-slash or upper-case spelling of it is matched too. A path that does not decode is
+ * matched on its start alone, so a malformed one is kept out rather than let through.
+ */
+export function isContributePath(pathname: string): boolean {
+  try {
+    return /^\/+contribute(?:[/\\]|$)/i.test(decodeURIComponent(pathname));
+  } catch {
+    return /^\/+contribute/i.test(pathname);
+  }
+}

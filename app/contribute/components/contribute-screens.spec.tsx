@@ -116,6 +116,16 @@ describe('the connect screen', () => {
     expect(text(render(views.active))).toContain('You are all set.');
   });
 
+  it('shows the GitHub access as not available yet, without a button, while it cannot be granted here', () => {
+    const view = { ...views.grantMissing, grantAvailable: false };
+    const html = render(view);
+
+    expect(setupStepOf(view)).toBe(5);
+    expect(html).toContain('data-grant-available="false"');
+    expect(text(html)).toContain('Pull request access is not available yet.');
+    expect(text(html)).not.toContain('Allow on GitHub');
+  });
+
   it('does not hold the user on GitHub access when the API cannot tell the grant yet', () => {
     const view = { ...views.fieldsMissing, contributor: { ...views.active.contributor, step: 'PREFERENCES' as const } };
 
@@ -169,8 +179,8 @@ describe("the key check's result", () => {
 });
 
 describe('the settings screen', () => {
-  const render = (view: ContributeView, grantRefused = false) =>
-    renderToStaticMarkup(<SettingsScreen view={view} now={NOW} grantRefused={grantRefused} />);
+  const render = (view: ContributeView, grantRefusal?: 'refused' | 'unavailable') =>
+    renderToStaticMarkup(<SettingsScreen view={view} now={NOW} grantRefusal={grantRefusal} />);
 
   it('has every setting, each section, and the delete', () => {
     const plain = text(render(views.active));
@@ -229,7 +239,28 @@ describe('the settings screen', () => {
     expect(text(render(views.active))).toContain('public_repo, as @octocat');
     expect(text(render(views.active))).toContain('Revoke');
     expect(render(views.fieldsMissing)).toContain('data-grant="unknown"');
-    expect(text(render(views.active, true))).toContain('it must come from the GitHub account you are signed in with');
+  });
+
+  it('says why a grant was refused, and where to revoke it on GitHub', () => {
+    const wrongAccount = render(views.grantMissing, 'refused');
+    expect(wrongAccount).toContain('data-grant-refusal="refused"');
+    expect(text(wrongAccount)).toContain('it must come from the GitHub account you are signed in with');
+    expect(text(wrongAccount)).toContain('you may want to revoke it in Authorized OAuth Apps');
+    expect(wrongAccount).toContain('href="https://github.com/settings/applications"');
+
+    const unavailable = render(views.grantMissing, 'unavailable');
+    expect(text(unavailable)).toContain('pull request access is not available yet');
+    expect(unavailable).toContain('href="https://github.com/settings/applications"');
+  });
+
+  it('offers no grant button while access cannot be granted here, and asks nothing about it', () => {
+    const view = { ...views.grantMissing, grantAvailable: false };
+    const html = render(view);
+
+    expect(html).toContain('data-grant-available="false"');
+    expect(text(html)).toContain('Not available yet. It is coming soon.');
+    expect(text(html)).not.toContain('Allow on GitHub');
+    expect(html).not.toContain('data-notice="grant-missing"');
   });
 
   it('locks autopilot until three merged pull requests, then lets the user turn it on', () => {

@@ -3,7 +3,8 @@ import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
-import { isContributePath, requestMaySeeContribute } from './lib/contribute/preview-gate';
+import { isContributePath } from './lib/contribute/contribute-path';
+import { requestMaySeeContribute } from './lib/contribute/preview-gate';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';

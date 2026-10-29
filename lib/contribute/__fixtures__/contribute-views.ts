@@ -73,22 +73,25 @@ const connected: ContributeGrant = { connected: true, login: 'octocat' };
 
 /** One view for each state a Contribute page renders. */
 export const views = {
-  newcomer: { contributor: null, grant: { connected: false, login: null }, paused: false },
+  newcomer: { contributor: null, grant: { connected: false, login: null }, paused: false, grantAvailable: true },
   noKey: {
     contributor: contributor({ credentials: [], settings: null, spend: null, step: 'KEY', status: 'ONBOARDING' }),
     grant: { connected: false, login: null },
     paused: false,
+    grantAvailable: true,
   },
-  active: { contributor: contributor(), grant: connected, paused: false },
+  active: { contributor: contributor(), grant: connected, paused: false, grantAvailable: true },
   keyInvalid: {
     contributor: contributor({ credentials: [key({ state: 'INVALID' })] }),
     grant: connected,
     paused: false,
+    grantAvailable: true,
   },
   exhausted: {
     contributor: contributor({ credentials: [key({ state: 'EXHAUSTED', blockedUntil: '2026-11-14T00:00:00.000Z' })] }),
     grant: connected,
     paused: false,
+    grantAvailable: true,
   },
   limitReached: {
     contributor: contributor({
@@ -96,11 +99,17 @@ export const views = {
     }),
     grant: connected,
     paused: false,
+    grantAvailable: true,
   },
-  grantMissing: { contributor: contributor(), grant: { connected: false, login: null }, paused: false },
-  paused: { contributor: contributor({ status: 'PAUSED' }), grant: connected, paused: true },
+  grantMissing: {
+    contributor: contributor(),
+    grant: { connected: false, login: null },
+    paused: false,
+    grantAvailable: true,
+  },
+  paused: { contributor: contributor({ status: 'PAUSED' }), grant: connected, paused: true, grantAvailable: true },
   /** An API that does not answer the grant and the pause yet. */
-  fieldsMissing: { contributor: contributor(), grant: undefined, paused: undefined },
+  fieldsMissing: { contributor: contributor(), grant: undefined, paused: undefined, grantAvailable: true },
   autopilotUnlocked: {
     contributor: contributor({
       autopilot: { unlocked: true, mergedCount: 4, closedUnmergedStreak: 0 },
@@ -108,5 +117,6 @@ export const views = {
     }),
     grant: connected,
     paused: false,
+    grantAvailable: true,
   },
 } satisfies Record<string, ContributeView>;

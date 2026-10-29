@@ -7,6 +7,7 @@ import {
   ContributePausedDocument,
 } from './contribute.documents';
 import type { ContributeIssuePage, ContributeIssuesFilter, ContributeView } from './contribute.types';
+import { isGrantAvailable } from './grant-availability';
 import { auth } from '@/auth';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
@@ -19,10 +20,19 @@ export async function viewerLogin(): Promise<string | null> {
 const settled = <T>(result: PromiseSettledResult<T>): T | undefined =>
   result.status === 'fulfilled' ? result.value : undefined;
 
+/** The API did not answer the overview: the pages show "try again" (`app/contribute/error.tsx`), never a 404. */
+export class ContributeUnavailableError extends Error {
+  constructor() {
+    super('GitRanks Contribute did not load');
+    this.name = 'ContributeUnavailableError';
+  }
+}
+
 /**
  * Everything the Contribute pages show for the signed-in user; null when Contribute is hidden from them (signed out,
- * or not on the preview), which the pages answer with a 404. The grant and the pause are read on their own, so an API
- * that does not answer them yet leaves them `undefined` and the rest of the page working.
+ * or not on the preview), which the pages answer with a 404. A failed read throws `ContributeUnavailableError`. The
+ * grant and the pause are read on their own, so an API that does not answer them yet leaves them `undefined` and the
+ * rest of the page working.
  */
 export async function loadContribute(): Promise<ContributeView | null> {
   const githubLogin = await viewerLogin();
@@ -35,7 +45,8 @@ export async function loadContribute(): Promise<ContributeView | null> {
     graphqlDirect(ContributePausedDocument, undefined, options),
   ]);
 
-  const contribute = settled(overview)?.contribute;
+  if (overview.status === 'rejected') throw new ContributeUnavailableError();
+  const { contribute } = overview.value;
   if (!contribute?.previewAllowed) return null;
 
   const pausedField = settled(paused)?.contribute?.contributor?.paused;
@@ -43,6 +54,7 @@ export async function loadContribute(): Promise<ContributeView | null> {
     contributor: contribute.contributor,
     grant: settled(grant)?.contribute?.grant ?? undefined,
     paused: typeof pausedField === 'boolean' ? pausedField : undefined,
+    grantAvailable: isGrantAvailable(),
   };
 }
 

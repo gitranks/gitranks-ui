@@ -1,8 +1,8 @@
 import type { ContributeCredential, ContributeView } from './contribute.types';
 
 /**
- * What stands between the user and their next attempt, most pressing first. `grant-missing` only when the API says so:
- * an API that does not answer the grant yet shows nothing about it.
+ * What stands between the user and their next attempt, most pressing first. `grant-missing` only when the API says so
+ * and access can be granted: an API that does not answer the grant yet shows nothing about it.
  */
 export type ContributeNotice =
   | { kind: 'no-key' }
@@ -29,6 +29,7 @@ export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
   else if (key.state === 'LIMIT_REACHED') notices.push({ kind: 'limit-reached', until: key.blockedUntil });
 
   if (view.contributor && isPaused(view)) notices.push({ kind: 'paused' });
-  if (view.grant && !view.grant.connected) notices.push({ kind: 'grant-missing' });
+  // Nothing to ask for while access cannot be granted here.
+  if (view.grantAvailable && view.grant && !view.grant.connected) notices.push({ kind: 'grant-missing' });
   return notices;
 }

@@ -137,6 +137,10 @@ export function ConnectKeyForm({ defaultPlan, defaultRenewalDay, initialOutcome,
           placeholder="sk-ant-api03-…"
           autoComplete="off"
           spellCheck={false}
+          // Not a password: keep password managers from saving or filling it.
+          data-1p-ignore
+          data-lpignore="true"
+          data-form-type="other"
           className={cn(inputClass, 'font-mono text-sm')}
         />
         <span className="text-sm text-muted-foreground">

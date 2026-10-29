@@ -2,9 +2,6 @@ import { ContributePreviewDocument } from './contribute.documents';
 import { sessionTokenOf } from './session-token';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
-/** Contribute's pages: `/contribute` and everything under it. */
-export const isContributePath = (pathname: string) => /^\/contribute(?:\/|$)/.test(pathname);
-
 /** Whether the API opens Contribute to this GitHub login (the preview list); false on any failure. */
 export async function contributePreviewAllowed(githubLogin: string | null | undefined): Promise<boolean> {
   if (!githubLogin) return false;

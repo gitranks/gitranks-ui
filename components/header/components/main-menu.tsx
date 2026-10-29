@@ -58,9 +58,12 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
     };
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
+    // Back and forward fire no tap.
+    window.addEventListener('popstate', close);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('popstate', close);
     };
   }, [open, close]);
 

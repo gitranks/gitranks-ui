@@ -10,6 +10,7 @@ const LINE_CLASSES: Record<PatchLineKind, string> = {
   add: 'bg-green-50 text-green-900 dark:bg-green-950/40 dark:text-green-200',
   del: 'bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200',
   note: 'text-muted-foreground italic',
+  commit: 'border-y bg-muted/60 font-sans text-xs font-medium text-muted-foreground',
 };
 
 const STATUS_LABELS: Record<PatchFile['status'], string | null> = {
@@ -28,12 +29,26 @@ function Counts({ added, removed }: { added: number; removed: number }) {
   );
 }
 
-function FileDiff({ file }: { file: PatchFile }) {
+/** At most this many lines are shown for one file, and for the whole patch. */
+export const MAX_FILE_LINES = 2_000;
+export const MAX_TOTAL_LINES = 10_000;
+
+const CUT_NOTE = 'The rest is not shown here. Read it all on GitHub once the pull request is open.';
+
+function FileDiff({ file, room }: { file: PatchFile; room: number }) {
   const large = file.lines.length > LARGE_FILE_LINES;
   const status = STATUS_LABELS[file.status];
+  const shown = file.lines.slice(0, Math.max(0, Math.min(room, MAX_FILE_LINES)));
+  const cut = shown.length < file.lines.length;
 
   return (
-    <details open={!large} data-file={file.path} data-large={large} className="group border-b last:border-b-0">
+    <details
+      open={!large}
+      data-file={file.path}
+      data-large={large}
+      data-truncated={cut}
+      className="group border-b last:border-b-0"
+    >
       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2.5 bg-muted/50 px-5 py-2.5 font-mono text-[13px] [&::-webkit-details-marker]:hidden">
         <span className="flex min-w-0 items-center gap-2">
           <span aria-hidden="true" className="text-muted-foreground transition-transform group-open:rotate-90">
@@ -43,6 +58,7 @@ function FileDiff({ file }: { file: PatchFile }) {
             {file.from && file.from !== file.path ? `${file.from} → ${file.path}` : file.path}
           </span>
           {status ? <span className="font-sans text-xs text-muted-foreground">{status}</span> : null}
+          {file.binary ? <span className="font-sans text-xs text-muted-foreground">binary</span> : null}
         </span>
         <span className="flex items-center gap-3">
           {large ? (
@@ -53,12 +69,10 @@ function FileDiff({ file }: { file: PatchFile }) {
           <Counts added={file.added} removed={file.removed} />
         </span>
       </summary>
-      {file.binary ? (
-        <p className="px-5 py-3 text-sm text-muted-foreground">A binary file: not shown.</p>
-      ) : file.lines.length ? (
+      {shown.length ? (
         <div className="overflow-x-auto font-mono text-[12.5px] leading-[1.65]">
           <div className="min-w-max">
-            {file.lines.map((line, index) => (
+            {shown.map((line, index) => (
               <div
                 // Lines repeat within a file and never move: the index is the line.
                 key={index}
@@ -70,16 +84,34 @@ function FileDiff({ file }: { file: PatchFile }) {
             ))}
           </div>
         </div>
-      ) : (
+      ) : null}
+      {cut ? (
+        <p data-cut className="px-5 py-3 text-sm text-muted-foreground">
+          {shown.length
+            ? `Showing ${shown.length.toLocaleString('en-US')} of ${file.lines.length.toLocaleString('en-US')} lines. `
+            : `${file.lines.length.toLocaleString('en-US')} lines, past the most shown for one patch. `}
+          {CUT_NOTE}
+        </p>
+      ) : null}
+      {file.binary ? (
+        <p className="px-5 py-3 text-sm text-muted-foreground">A binary file: its content is not shown.</p>
+      ) : null}
+      {!file.lines.length && !file.binary ? (
         <p className="px-5 py-3 text-sm text-muted-foreground">No line changes (a mode change or an empty file).</p>
-      )}
+      ) : null}
     </details>
   );
 }
 
-/** The patch, file by file, as text: never HTML, whatever it holds. */
+/** The patch, file by file, as text: never HTML, whatever it holds. Long files and patches are cut, and say so. */
 export function DiffViewer({ patch }: { patch: string | null | undefined }) {
   const parsed = parsePatch(patch);
+  let room = MAX_TOTAL_LINES;
+  const files = parsed.files.map((file) => {
+    const fileRoom = room;
+    room -= Math.min(file.lines.length, MAX_FILE_LINES, Math.max(0, fileRoom));
+    return { file, room: fileRoom };
+  });
 
   return (
     <section aria-labelledby="diff-title" className="overflow-hidden rounded-xl border bg-card">
@@ -96,8 +128,8 @@ export function DiffViewer({ patch }: { patch: string | null | undefined }) {
           </span>
         ) : null}
       </div>
-      {parsed.files.length ? (
-        parsed.files.map((file) => <FileDiff key={file.path} file={file} />)
+      {files.length ? (
+        files.map(({ file, room: fileRoom }) => <FileDiff key={file.path} file={file} room={fileRoom} />)
       ) : (
         <p className="px-5 py-4 text-sm text-muted-foreground">
           {patch ? 'The patch has no file changes to show.' : 'The diff is not available yet.'}

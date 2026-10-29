@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { PR_BODY_MAX, PR_TITLE_MAX, prBodyPreview, prFooterText } from '@/lib/contribute/attempt-format';
 import type { ContributeDcoMode } from '@/lib/contribute/contribute.types';
-import { contributeErrorMessage } from '@/lib/contribute/errors';
+import { attemptActionErrorMessage } from '@/lib/contribute/errors';
 
 const fieldClass =
   'w-full rounded-lg border border-input bg-background px-3 py-2 text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -71,7 +71,7 @@ export function PrForm({
           ? await approveAttempt({ id: attemptId, title, body, dco: standing || dco })
           : await discardAttempt(attemptId);
       if (!result.ok) {
-        setError(contributeErrorMessage(result.error, result.message));
+        setError(attemptActionErrorMessage(result.error, result.message));
         return;
       }
       setConfirm(null);
@@ -117,7 +117,7 @@ export function PrForm({
         />
       </div>
       <div className="flex flex-col gap-1.5" data-pr-preview>
-        <span className="text-[13px] font-medium">Preview: what GitHub gets</span>
+        <span className="text-[13px] font-medium">Preview: the Markdown GitHub gets</span>
         <div className="flex max-h-72 flex-col gap-2 overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-[12.5px]">
           <pre className="whitespace-pre-wrap">{prBodyPreview(body, issueNumber)}</pre>
           <span data-pr-footer className="border-t pt-2 text-muted-foreground">

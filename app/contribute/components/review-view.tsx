@@ -7,7 +7,15 @@ import { DiffViewer } from './diff-viewer';
 import { LiveRefresh } from './live-refresh';
 import { PrForm } from './pr-form';
 import { Pill } from './primitives';
-import { ATTEMPT_STATES, attemptTitleOf, editableBodyOf, LIVE_STATES, repoOf } from '@/lib/contribute/attempt-format';
+import {
+  ATTEMPT_STATES,
+  attemptTitleOf,
+  editableBodyOf,
+  githubUrlOf,
+  LIVE_STATES,
+  repoOf,
+  toneLabelOf,
+} from '@/lib/contribute/attempt-format';
 import { loadAttempt, loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 
@@ -50,7 +58,8 @@ export function ReviewScreen({
     );
   }
 
-  const state = ATTEMPT_STATES[attempt.state];
+  const state = toneLabelOf(ATTEMPT_STATES, attempt.state);
+  const issueUrl = githubUrlOf(attempt.url);
   const login = view.contributor?.login ?? 'you';
   const repo = repoOf(attempt);
   const inReview = attempt.state === 'REVIEW';
@@ -64,8 +73,8 @@ export function ReviewScreen({
           <Pill tone={state.tone}>{state.label}</Pill>
           {attempt.kind === 'FOLLOW_UP' ? <Pill>Follow-up</Pill> : null}
           <span className="font-mono text-sm text-muted-foreground">
-            {attempt.url ? (
-              <a href={attempt.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+            {issueUrl ? (
+              <a href={issueUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
                 {repo} · issue #{attempt.number}
               </a>
             ) : (

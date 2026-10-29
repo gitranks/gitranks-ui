@@ -2,14 +2,18 @@ import type { ReactNode } from 'react';
 
 import { Pill } from './primitives';
 import {
+  ATTEMPT_STATES,
   detailText,
   END_REASONS,
+  githubUrlOf,
+  labelOf,
   PR_CHECKS,
   PR_STATES,
   REVIEW_DECISIONS,
   SUBMIT_STEP_TEXT,
   SUBMIT_STEPS,
   timeLabel,
+  toneLabelOf,
 } from '@/lib/contribute/attempt-format';
 import type {
   ContributeAttempt,
@@ -87,7 +91,7 @@ function SubmitSteps({ submit, now }: { submit: ContributeAttemptSubmit; now?: D
         })}
       </ol>
       <Text>
-        {SUBMIT_STEP_TEXT[submit.step]}
+        {labelOf(SUBMIT_STEP_TEXT, submit.step)}
         {submit.step === 'WAITING_CAP'
           ? submit.waitUntil
             ? ` It goes on ${relativeLabel(submit.waitUntil, now)}, at ${timeLabel(submit.waitUntil)}. Nothing to do: it starts by itself.`
@@ -101,7 +105,8 @@ function SubmitSteps({ submit, now }: { submit: ContributeAttemptSubmit; now?: D
 
 /** The pull request once it is open: a link, its state on GitHub, and when the last sync read it. */
 export function PullRequestStatus({ pullRequest, now }: { pullRequest: ContributeAttemptPullRequest; now?: Date }) {
-  const state = PR_STATES[pullRequest.state];
+  const state = toneLabelOf(PR_STATES, pullRequest.state);
+  const url = githubUrlOf(pullRequest.url);
   const ended =
     pullRequest.state === 'MERGED'
       ? `merged ${relativeLabel(pullRequest.mergedAt, now)}`
@@ -113,22 +118,26 @@ export function PullRequestStatus({ pullRequest, now }: { pullRequest: Contribut
     <div data-pr-state={pullRequest.state} className="flex flex-col gap-1.5">
       <div className="flex flex-wrap items-center gap-2.5">
         <Pill tone={state.tone}>{state.label}</Pill>
-        <a
-          href={pullRequest.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-semibold text-primary hover:underline"
-        >
-          Pull request #{pullRequest.number} on GitHub ↗
-        </a>
+        {url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-primary hover:underline"
+          >
+            Pull request #{pullRequest.number} on GitHub ↗
+          </a>
+        ) : (
+          <span className="font-semibold">Pull request #{pullRequest.number}</span>
+        )}
       </div>
       <Text>
         Opened {relativeLabel(pullRequest.openedAt, now)}
         {ended ? `, ${ended}` : ''}.
         {pullRequest.state === 'OPEN' && pullRequest.reviewDecision
-          ? ` ${REVIEW_DECISIONS[pullRequest.reviewDecision]}.`
+          ? ` ${labelOf(REVIEW_DECISIONS, pullRequest.reviewDecision)}.`
           : ''}
-        {pullRequest.checks ? ` ${PR_CHECKS[pullRequest.checks]}.` : ''}
+        {pullRequest.checks ? ` ${labelOf(PR_CHECKS, pullRequest.checks)}.` : ''}
         {pullRequest.syncedAt ? ` Read from GitHub ${relativeLabel(pullRequest.syncedAt, now)}.` : ''}
       </Text>
     </div>
@@ -182,7 +191,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
       return (
         <Box state="PENDING_AUTOSUBMIT" tone="warn">
           <Title>Autopilot submits this within the hour</Title>
-          <Text>Every check passed and the agent rated its risk low. The email we sent has a Stop link.</Text>
+          <Text>Every check passed and the agent rated its risk low, so autopilot opens the pull request for you.</Text>
         </Box>
       );
     case 'SUBMITTING':
@@ -227,7 +236,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
           <Title>Stopped</Title>
           <Text>
             <span data-end-reason={attempt.endReason ?? ''}>
-              {attempt.endReason ? END_REASONS[attempt.endReason] : 'Why it stopped is not available yet.'}
+              {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it stopped is not available yet.'}
             </span>
             {attempt.endDetail ? (
               <>
@@ -248,10 +257,18 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
           <Title>Discarded</Title>
           <Text>
             <span data-end-reason={attempt.endReason ?? ''}>
-              {attempt.endReason ? END_REASONS[attempt.endReason] : 'It was discarded.'}
+              {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'It was discarded.'}
             </span>{' '}
             The issue went back to the pool, and nothing was submitted.
           </Text>
+        </Box>
+      );
+    default:
+      // A state this UI does not know yet: its name, and nothing it cannot back up.
+      return (
+        <Box state={attempt.state} tone="muted">
+          <Title>{toneLabelOf(ATTEMPT_STATES, attempt.state).label}</Title>
+          <Text>More about this state is not available yet.</Text>
         </Box>
       );
   }

@@ -9,10 +9,13 @@ import {
   ATTEMPT_STATES,
   attemptTitleOf,
   END_REASONS,
+  githubUrlOf,
   IN_PROGRESS_STATES,
+  labelOf,
   PR_STATES,
   repoOf,
   SUBMIT_STEP_TEXT,
+  toneLabelOf,
 } from '@/lib/contribute/attempt-format';
 import { loadAttempts, loadContribute, loadContributions } from '@/lib/contribute/contribute.data';
 import type {
@@ -105,7 +108,7 @@ function Totals({ view, contributions }: { view: ContributeView; contributions: 
 }
 
 function AttemptRow({ attempt, action, text }: { attempt: ContributeAttempt; action: string; text: ReactNode }) {
-  const state = ATTEMPT_STATES[attempt.state];
+  const state = toneLabelOf(ATTEMPT_STATES, attempt.state);
   return (
     <li
       data-attempt={attempt.attemptId}
@@ -155,7 +158,7 @@ function NeedsYou({ attempts, now }: { attempts: ContributeAttempt[]; now?: Date
             action="Review"
             text={
               attempt.state === 'PENDING_AUTOSUBMIT'
-                ? 'Autopilot submits it within the hour unless you stop it.'
+                ? 'Autopilot submits it within the hour.'
                 : attempt.submit?.lastError
                   ? attempt.submit.lastError.note
                   : `Ready ${relativeLabel(attempt.updatedAt, now)} · cost ${usd(attempt.costUsd)} · waits seven days for you`
@@ -186,7 +189,7 @@ function InProgress({ attempts, now }: { attempts: ContributeAttempt[]; now?: Da
             action="Details"
             text={
               attempt.state === 'SUBMITTING' && attempt.submit
-                ? `${SUBMIT_STEP_TEXT[attempt.submit.step]}${
+                ? `${labelOf(SUBMIT_STEP_TEXT, attempt.submit.step)}${
                     attempt.submit.step === 'WAITING_CAP' && attempt.submit.waitUntil
                       ? ` It goes on ${relativeLabel(attempt.submit.waitUntil, now)}.`
                       : ''
@@ -205,8 +208,20 @@ function PrStatePill({ contribution }: { contribution: ContributeContribution })
   if (pullRequest.state === 'OPEN' && pullRequest.reviewDecision === 'CHANGES_REQUESTED') {
     return <Pill tone="amber">Changes requested</Pill>;
   }
-  const state = PR_STATES[pullRequest.state];
+  const state = toneLabelOf(PR_STATES, pullRequest.state);
   return <Pill tone={state.tone}>{state.label}</Pill>;
+}
+
+/** `PR #12`, linked to GitHub only when the link points there. */
+function PrNumberLink({ url, number }: { url: string; number: number }) {
+  const href = githubUrlOf(url);
+  return href ? (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="hover:underline">
+      PR #{number}
+    </a>
+  ) : (
+    <span>PR #{number}</span>
+  );
 }
 
 function PullRequests({ contributions, now }: { contributions: ContributeContributions | undefined; now?: Date }) {
@@ -250,10 +265,8 @@ function PullRequests({ contributions, now }: { contributions: ContributeContrib
                     </Link>
                     <div className="font-mono text-[12.5px] text-muted-foreground">
                       {contribution.nameWithOwner || 'a repo'} ·{' '}
-                      <a href={pullRequest.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                        PR #{pullRequest.number}
-                      </a>{' '}
-                      · issue #{contribution.issueNumber}
+                      <PrNumberLink url={pullRequest.url} number={pullRequest.number} /> · issue #
+                      {contribution.issueNumber}
                     </div>
                   </td>
                   <td className="px-3 py-3 align-top">
@@ -343,7 +356,7 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
               <Link href={attemptHref(attempt.attemptId)} prefetch={false} className="font-mono text-foreground/80">
                 {repoOf(attempt)} #{attempt.number}
               </Link>{' '}
-              · {attempt.endReason ? END_REASONS[attempt.endReason] : 'Stopped.'} · {usd(attempt.costUsd)}
+              · {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Stopped.'} · {usd(attempt.costUsd)}
             </li>
           ))}
         </ul>

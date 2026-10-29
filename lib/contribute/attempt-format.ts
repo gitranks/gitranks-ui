@@ -58,7 +58,14 @@ export const IN_PROGRESS_STATES: ContributeAttemptState[] = [
 ];
 
 /** States whose page changes on its own: the page reads them again every little while. */
-export const LIVE_STATES: ContributeAttemptState[] = ['QUEUED', 'CLAIMING', 'RUNNING', 'CHECKS', 'SUBMITTING'];
+export const LIVE_STATES: ContributeAttemptState[] = [
+  'QUEUED',
+  'CLAIMING',
+  'RUNNING',
+  'CHECKS',
+  'PENDING_AUTOSUBMIT',
+  'SUBMITTING',
+];
 
 /** Why an attempt stopped or was discarded, in plain words. */
 export const END_REASONS: Record<ContributeAttemptEndReason, string> = {
@@ -160,8 +167,9 @@ export const attemptTitleOf = (attempt: Pick<ContributeAttempt, 'title' | 'numbe
 /** The attempt's repo, `owner/name`, or a placeholder while the API does not know it. */
 export const repoOf = (attempt: Pick<ContributeAttempt, 'nameWithOwner'>) => attempt.nameWithOwner || 'a repo';
 
-/** The one footer line the API adds to every pull request it opens for a reviewed change. */
-export const prFooterText = (login: string) => `🤖 Made with Claude via gitranks.com · reviewed by @${login}`;
+/** The one footer line the API adds to every pull request it opens for a reviewed change, as Markdown. */
+export const prFooterText = (login: string) =>
+  `🤖 Made with Claude via [gitranks.com](https://gitranks.com) · reviewed by @${login}`;
 
 /** A pull request body names the issue with a closing keyword, so GitHub closes it on merge. */
 const linksIssue = (body: string, number: number) =>
@@ -188,3 +196,26 @@ export function prBodyPreview(body: string, number: number): string {
 /** The longest title and body the API takes. */
 export const PR_TITLE_MAX = 256;
 export const PR_BODY_MAX = 60_000;
+
+/** A value the UI has no words for yet (`NEW_STATE`), as words: `New state`. */
+export const wordsOf = (value: string) => {
+  const words = value.toLowerCase().replaceAll('_', ' ').trim();
+  return words ? `${words[0].toUpperCase()}${words.slice(1)}` : '';
+};
+
+/** `record[value]`, or the value in words when the API sends one this UI does not know yet. */
+export const labelOf = (record: Record<string, string>, value: string) => record[value] ?? wordsOf(value);
+
+/** `record[value]`, or the value in words, in the neutral colour, when the API sends one this UI does not know yet. */
+export const toneLabelOf = (record: Record<string, { label: string; tone: Tone }>, value: string) =>
+  record[value] ?? { label: wordsOf(value), tone: 'neutral' as const };
+
+/** A link the API gave, kept only when it points at GitHub over HTTPS; null otherwise, which renders as plain text. */
+export const githubUrlOf = (url: string | null | undefined): string | null => {
+  if (!url?.startsWith('https://github.com/')) return null;
+  try {
+    return new URL(url).hostname === 'github.com' ? url : null;
+  } catch {
+    return null;
+  }
+};

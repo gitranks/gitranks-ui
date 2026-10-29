@@ -1,7 +1,15 @@
 import type { ReactNode } from 'react';
 
 import { Pill } from './primitives';
-import { CHECK_LABELS, detailText, EVENT_LABELS, RISKS, timeLabel } from '@/lib/contribute/attempt-format';
+import {
+  CHECK_LABELS,
+  detailText,
+  EVENT_LABELS,
+  labelOf,
+  RISKS,
+  timeLabel,
+  toneLabelOf,
+} from '@/lib/contribute/attempt-format';
 import type {
   ContributeAttemptDetail,
   ContributeAttemptTest,
@@ -46,13 +54,13 @@ export function ResultPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
       </Block>
     );
   }
-  const risk = result.risk ? RISKS[result.risk] : null;
+  const risk = result.risk ? toneLabelOf(RISKS, result.risk) : null;
 
   return (
     <Block title="What the agent changed" name="result">
       <div className="flex flex-wrap gap-1.5">
         {result.verdict ? (
-          <Pill tone={result.verdict === 'DONE' ? 'green' : 'amber'}>{VERDICTS[result.verdict]}</Pill>
+          <Pill tone={result.verdict === 'DONE' ? 'green' : 'amber'}>{labelOf(VERDICTS, result.verdict)}</Pill>
         ) : null}
         {risk ? <Pill tone={risk.tone}>{risk.label}</Pill> : <Pill>Risk not rated</Pill>}
       </div>
@@ -111,7 +119,7 @@ export function ChecksPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
               </span>
               <span className="min-w-0">
                 <span className="sr-only">{check.passed ? 'Passed: ' : 'Failed: '}</span>
-                {CHECK_LABELS[check.name] ?? detailText(check.name.toLowerCase())}
+                {labelOf(CHECK_LABELS, check.name)}
                 {!check.passed && check.detail ? (
                   <span className="block break-all text-muted-foreground">{check.detail}</span>
                 ) : null}
@@ -136,7 +144,8 @@ export function ChecksPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
   );
 }
 
-const modelName = (model: ContributeModel | null) => (model ? MODELS[model].replace(/^Claude /, '') : null);
+/** `Sonnet 5.5`; a model this UI does not know yet by its raw name. */
+const modelName = (model: ContributeModel | null) => (model ? (MODELS[model]?.replace(/^Claude /, '') ?? model) : null);
 
 /** What the attempt cost on the user's key, split by phase, against the attempt's limit. */
 export function CostPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
@@ -180,7 +189,7 @@ export function TimelinePanel({ attempt }: { attempt: ContributeAttemptDetail })
                   {timeLabel(event.at).replace(' UTC', '')}
                 </time>
                 <span className="text-foreground/90">
-                  {EVENT_LABELS[event.state] ?? detailText(event.state.toLowerCase())}
+                  {labelOf(EVENT_LABELS, event.state)}
                   {detail ? <span className="text-muted-foreground"> · {detail}</span> : null}
                 </span>
               </li>

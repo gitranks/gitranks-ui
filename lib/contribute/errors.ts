@@ -57,3 +57,13 @@ export function contributeErrorMessage(error: ContributeErrorCode, message?: str
       return 'Something went wrong. Try again in a minute.';
   }
 }
+
+/**
+ * A failed Submit or Discard's message. NOT_FOUND there is the attempt, not Contribute: it was deleted, or it belongs
+ * to another account.
+ */
+export function attemptActionErrorMessage(error: ContributeErrorCode, message?: string): string {
+  if (error === 'NOT_FOUND')
+    return 'This attempt is gone, or it is no longer yours. Reload the page to see where it stands.';
+  return contributeErrorMessage(error, message);
+}

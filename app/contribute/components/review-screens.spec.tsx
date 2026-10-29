@@ -18,7 +18,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
 }));
 
 const { ReviewScreen } = await import('./review-view');
-const { DiffViewer, LARGE_FILE_LINES } = await import('./diff-viewer');
+const { DiffViewer, LARGE_FILE_LINES, MAX_FILE_LINES, MAX_TOTAL_LINES } = await import('./diff-viewer');
 const { ContributionsScreen } = await import('./contributions-view');
 const { ReviewsReady } = await import('./reviews-ready');
 const { contributeTabOf } = await import('./contribute-nav');
@@ -28,7 +28,7 @@ const { NOW, views, settings } = await import('@/lib/contribute/__fixtures__/con
 const { PATCH, attempt, attempts, contributions, detail, stopped } = await import(
   '@/lib/contribute/__fixtures__/contribute-attempts'
 );
-const { END_REASONS } = await import('@/lib/contribute/attempt-format');
+const { END_REASONS, LIVE_STATES } = await import('@/lib/contribute/attempt-format');
 
 import type {
   ContributeAttemptDetail,
@@ -82,7 +82,7 @@ describe('the diff viewer', () => {
     const patch = `${PATCH}\ndiff --git a/big.json b/big.json\n--- a/big.json\n+++ b/big.json\n@@ -0,0 +1,${LARGE_FILE_LINES + 5} @@\n${many}\n`;
     const html = renderToStaticMarkup(<DiffViewer patch={patch} />);
 
-    expect(html).toMatch(/<details data-file="big.json" data-large="true" class="[^"]*">/);
+    expect(html).toMatch(/<details data-file="big.json" data-large="true" data-truncated="false" class="[^"]*">/);
     expect(html).toMatch(/<details open="" data-file="src\/router\/layout-cache.ts" data-large="false"/);
     expect(text(html)).toContain(`${LARGE_FILE_LINES + 6} lines, collapsed`);
   });
@@ -133,7 +133,7 @@ describe('the review screen', () => {
     expect(html).toMatch(/<textarea[^>]*>Fixes #871\n\n## What changed\nNormalize the route path.<\/textarea>/);
     expect(html).not.toContain('reviewed by @someone');
     expect(html).toContain('data-pr-footer');
-    expect(plain).toContain('🤖 Made with Claude via gitranks.com · reviewed by @octocat');
+    expect(plain).toContain('🤖 Made with Claude via [gitranks.com](https://gitranks.com) · reviewed by @octocat');
     expect(plain).toContain('Submit pull request');
     expect(plain).toContain('Discard');
   });
@@ -414,5 +414,156 @@ describe("Contribute's bar", () => {
     expect(contributeTabOf('/contribute/attempts/A_1')).toBe('/contribute/me');
     expect(contributeTabOf('/contribute/connect')).toBe('/contribute');
     expect(contributeTabOf('/contribute/issues')).toBe('/contribute/issues');
+  });
+});
+
+/** A one-file diff of `count` added lines. */
+const addedLines = (path: string, count: number) =>
+  `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@ -0,0 +1,${count} @@\n${Array.from(
+    { length: count },
+    (_, index) => `+line ${index}`,
+  ).join('\n')}\n`;
+
+describe('the diff viewer, defended', () => {
+  it('still shows the lines of a file marked binary', () => {
+    const patch = `diff --git a/src/a.ts b/src/a.ts\nBinary files a/src/a.ts and b/src/a.ts differ\n@@ -0,0 +1 @@\n+fetch(process.env.TOKEN)\n`;
+    const html = renderToStaticMarkup(<DiffViewer patch={patch} />);
+
+    expect(text(html)).toContain('+fetch(process.env.TOKEN)');
+    expect(text(html)).toContain('A binary file: its content is not shown.');
+  });
+
+  it('cuts a file past the most lines shown for one file, and says so', () => {
+    const html = renderToStaticMarkup(<DiffViewer patch={addedLines('big.ts', MAX_FILE_LINES + 10)} />);
+
+    expect((html.match(/data-line="add"/g) ?? []).length).toBe(MAX_FILE_LINES - 1);
+    expect(html).toContain('data-truncated="true"');
+    expect(text(html)).toContain('Showing 2,000 of 2,011 lines.');
+    expect(text(html)).toContain('Read it all on GitHub once the pull request is open.');
+    expect(text(html)).toContain(`+${MAX_FILE_LINES + 10}`);
+  });
+
+  it('cuts the whole patch past the most lines shown, file by file', () => {
+    const files = Array.from({ length: 6 }, (_, index) => addedLines(`f${index}.ts`, MAX_FILE_LINES - 1)).join('');
+    const html = renderToStaticMarkup(<DiffViewer patch={files} />);
+
+    expect((html.match(/data-line=/g) ?? []).length).toBe(MAX_TOTAL_LINES);
+    expect(html).toMatch(/data-file="f4.ts" data-large="true" data-truncated="false"/);
+    expect(html).toMatch(/data-file="f5.ts" data-large="true" data-truncated="true"/);
+    expect(text(html)).toContain('2,000 lines, past the most shown for one patch.');
+  });
+
+  it('marks where the next commit starts in a file two commits changed', () => {
+    const one = 'From 1111111 Mon Sep 17 00:00:00 2001\nSubject: [PATCH 1/2] One\n\n---\n';
+    const two = '-- \n2.47.0\n\nFrom 2222222 Mon Sep 17 00:00:00 2001\nSubject: [PATCH 2/2] Two\n\n---\n';
+    const html = renderToStaticMarkup(
+      <DiffViewer patch={`${one}${addedLines('a.ts', 1)}${two}${addedLines('a.ts', 1)}`} />,
+    );
+
+    expect(html).toContain('data-line="commit"');
+    expect(text(html)).toContain('Next commit: Two');
+  });
+});
+
+describe('values the UI does not know yet', () => {
+  const unknown = <T,>(value: string) => value as unknown as T;
+
+  it('renders an attempt in a new state, with a new model, risk and end reason, without failing', () => {
+    const item = detail({
+      state: unknown('WAITING_ON_CI'),
+      model: unknown('CLAUDE_FUTURE_6'),
+      endReason: unknown('SOMETHING_NEW'),
+      result: { ...attempts.review.result!, risk: unknown('EXTREME'), verdict: unknown('MAYBE') },
+      checks: [{ name: unknown('NEW_CHECK'), passed: true, detail: null }],
+      events: [{ state: unknown('WAITING_ON_CI'), detail: null, at: '2026-10-28T11:04:00.000Z' }],
+    });
+    const plain = text(review(item));
+
+    expect(plain).toContain('Waiting on ci');
+    expect(plain).toContain('More about this state is not available yet.');
+    expect(plain).toContain('Fix (CLAUDE_FUTURE_6)');
+    expect(plain).toContain('Extreme');
+    expect(plain).toContain('Maybe');
+    expect(plain).toContain('New check');
+  });
+
+  it('renders a new end reason, submit step and pull request state', () => {
+    expect(text(review(detail({ state: 'STOPPED', endReason: unknown('SOMETHING_NEW') })))).toContain('Something new');
+    const step = detail({
+      ...attempts.submittingFork,
+      submit: { ...attempts.submittingFork.submit!, step: unknown('VERIFY') },
+    });
+    expect(text(review(step))).toContain('Verify');
+    const pr = detail({
+      ...attempts.prOpen,
+      pullRequest: { ...attempts.prOpen.pullRequest!, state: unknown('DRAFT'), checks: unknown('SKIPPED') },
+    });
+    expect(text(review(pr))).toContain('Draft');
+    expect(text(review(pr))).toContain('Skipped');
+  });
+
+  it('lists attempts and pull requests in new states on My contributions', () => {
+    const html = renderToStaticMarkup(
+      <ContributionsScreen
+        view={views.active}
+        contributions={{
+          ...contributions,
+          items: [
+            {
+              ...contributions.items[0],
+              pullRequest: { ...contributions.items[0].pullRequest, state: unknown('DRAFT') },
+            },
+          ],
+        }}
+        attempts={[
+          attempt({ state: unknown('WAITING_ON_CI') }),
+          attempt({ attemptId: 'A_2', state: 'STOPPED', endReason: unknown('NEW') }),
+        ]}
+        now={NOW}
+      />,
+    );
+
+    expect(text(html)).toContain('Draft');
+    expect(text(html)).toContain('New ·');
+  });
+});
+
+describe('links the API gives', () => {
+  it('link to GitHub only, and read as plain text otherwise', () => {
+    const item = detail({
+      ...attempts.prOpen,
+      url: 'javascript:alert(1)',
+      pullRequest: { ...attempts.prOpen.pullRequest!, url: 'https://github.com.evil.example/x/pull/1' },
+    });
+    const html = review(item);
+
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('evil.example');
+    expect(text(html)).toContain('driftwood-js/driftwood · issue #871');
+    expect(text(html)).toContain('Pull request #1419');
+
+    const list = renderToStaticMarkup(
+      <ContributionsScreen
+        view={views.active}
+        contributions={{
+          ...contributions,
+          items: [
+            {
+              ...contributions.items[0],
+              pullRequest: { ...contributions.items[0].pullRequest, url: 'http://github.com/x' },
+            },
+          ],
+        }}
+        attempts={[]}
+        now={NOW}
+      />,
+    );
+    expect(list).not.toContain('http://github.com/x');
+    expect(text(list)).toContain('PR #2490');
+  });
+
+  it('keep reading an attempt waiting for autopilot again and again, without a stop it does not have', () => {
+    expect(LIVE_STATES).toContain('PENDING_AUTOSUBMIT');
+    expect(text(review(attempts.pendingAutosubmit))).not.toMatch(/stop/i);
   });
 });

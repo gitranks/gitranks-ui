@@ -3,7 +3,6 @@
 import { MenuIcon, XIcon } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { type FC, type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { FaRegBuilding, FaRegUser } from 'react-icons/fa';
 import { FaCode } from 'react-icons/fa6';
@@ -40,17 +39,11 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
   const root = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const listId = useId();
-  const pathname = usePathname();
 
   const close = useCallback(() => {
     setOpen(false);
     setSubmenu('');
   }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new page closes the panel.
-  useEffect(() => {
-    close();
-  }, [pathname, close]);
 
   useEffect(() => {
     if (!open) return;
@@ -65,9 +58,12 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
     };
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
+    // Back and forward fire no tap.
+    window.addEventListener('popstate', close);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('popstate', close);
     };
   }, [open, close]);
 
@@ -93,7 +89,8 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
       </button>
       <NavigationMenuList
         id={listId}
-        // A tap on any link closes the panel, the current page's included.
+        // A tap on any link closes the panel, the current page's included (a tap outside it closes it too). Not the
+        // pathname: reading it in the header makes every page that has one dynamic at prerender.
         onClick={(event) => {
           if ((event.target as HTMLElement).closest('a')) close();
         }}

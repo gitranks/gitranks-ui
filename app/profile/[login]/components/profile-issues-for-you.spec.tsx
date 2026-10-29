@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 const { useSession } = vi.hoisted(() => ({ useSession: vi.fn() }));
 vi.mock('next-auth/react', () => ({ useSession }));
-vi.mock('@/app/contribute/actions', () => ({ skipIssue: vi.fn() }));
 
 const { ProfileIssuesBlock, ProfileIssuesForYou } = await import('./profile-issues-for-you');
 const { isProfileOwner, profileIssuesUrl } = await import('@/lib/contribute/profile-issues');

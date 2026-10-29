@@ -44,7 +44,7 @@ describe('the maintainers page', () => {
   it('explains what Contribute does and the three ways out, the file shown as it is written', () => {
     const html = text(renderToStaticMarkup(<MaintainersScreen repos={null} />));
 
-    expect(html).toContain('Pull requests from gitranks, and how to stop them');
+    expect(html).toContain('Pull requests from GitRanks, and how to stop them');
     expect(html).toContain('spend their own AI credits on issues in open-source repos');
     expect(html).toContain('# .github/gitranks.yml contribute: off');
     expect(html).toContain('CONTRIBUTING.md, or an AI_POLICY.md');
@@ -55,7 +55,11 @@ describe('the maintainers page', () => {
     const html = panel({ state: 'signed-out' });
 
     expect(text(html)).toContain('Sign in with GitHub');
-    expect(text(html)).toContain('drop it within an hour');
+    expect(text(html)).toContain(
+      'signs you in to GitRanks with GitHub, which lets us read your profile and email addresses',
+    );
+    expect(text(html)).toContain('no longer use it after an hour');
+    expect(text(html)).toContain('you switch to the GitHub account you sign in with');
     expect(html).not.toContain('role="alert"');
     expect(html).not.toContain('data-repo');
   });

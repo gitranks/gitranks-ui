@@ -1,19 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { jar, currentSessionToken } = vi.hoisted(() => ({
-  jar: { get: vi.fn(), set: vi.fn(), delete: vi.fn() },
-  currentSessionToken: vi.fn(),
-}));
+const { jar, store, currentSessionToken } = vi.hoisted(() => {
+  const store = new Map<string, string>();
+  return {
+    store,
+    jar: {
+      get: vi.fn((name: string) => (store.has(name) ? { name, value: store.get(name) } : undefined)),
+      set: vi.fn((name: string, value: string, options?: { maxAge?: number }) => {
+        if (options?.maxAge === 0) store.delete(name);
+        else store.set(name, value);
+      }),
+    },
+    currentSessionToken: vi.fn(),
+  };
+});
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({ cookies: async () => jar }));
 vi.mock('./session-token', () => ({ currentSessionToken }));
 
 const {
-  MAINTAINER_SIGN_IN_COOKIE,
   MAINTAINER_TOKEN_TTL_MS,
   currentMaintainerToken,
   dropExpiredMaintainerToken,
   lightSignInSession,
+  maintainerSignInCookie,
   maintainerTokenOf,
   markMaintainerSignIn,
   takeMaintainerSignIn,
@@ -22,15 +32,27 @@ const {
 
 const NOW = Date.UTC(2026, 9, 29, 12);
 const SESSION = { sub: 'user-1', githubLogin: 'octocat', authMode: 'identity' as const };
+const MARK = maintainerSignInCookie().name;
+
+/** Auth.js's record of where the sign-in being completed returns to, as it stores it (absolute). */
+const returnsTo = (path: string, name = 'authjs.callback-url') => store.set(name, `http://localhost${path}`);
+
+/** The page's sign-in, started: the mark is set and the sign-in will return to the address it answers. */
+const startPageSignIn = async () => {
+  const redirectTo = await markMaintainerSignIn();
+  returnsTo(redirectTo);
+  return redirectTo;
+};
+
+beforeEach(() => {
+  store.clear();
+  jar.get.mockClear();
+  jar.set.mockClear();
+  currentSessionToken.mockReset();
+  currentSessionToken.mockResolvedValue(null);
+});
 
 describe("the maintainers page's GitHub token", () => {
-  beforeEach(() => {
-    jar.get.mockReset();
-    jar.set.mockReset();
-    jar.delete.mockReset();
-    currentSessionToken.mockReset();
-  });
-
   it('is kept for an hour, or until GitHub says it expires if that is sooner', () => {
     expect(withMaintainerToken(SESSION, 'gho_x', undefined, NOW)).toEqual({
       ...SESSION,
@@ -72,37 +94,62 @@ describe("the maintainers page's GitHub token", () => {
 });
 
 describe("the maintainers page's sign-in mark", () => {
-  beforeEach(() => {
-    jar.get.mockReset();
-    jar.set.mockReset();
-    jar.delete.mockReset();
+  it('is a five-minute cookie the browser cannot read, holding a nonce the sign-in returns with', async () => {
+    const redirectTo = await markMaintainerSignIn();
+    const [name, nonce, options] = jar.set.mock.calls[0];
+
+    expect(name).toBe('gitranks-maintainer-sign-in');
+    expect(nonce).toMatch(/^[0-9a-f-]{36}$/);
+    expect(options).toEqual({ httpOnly: true, secure: false, sameSite: 'lax', path: '/', maxAge: 300 });
+    expect(redirectTo).toBe(`/contribute/maintainers?s=${nonce}`);
+    expect(await markMaintainerSignIn()).not.toBe(redirectTo);
   });
 
-  it('is a short-lived cookie the browser cannot read', async () => {
-    await markMaintainerSignIn();
-
-    expect(jar.set).toHaveBeenCalledWith(MAINTAINER_SIGN_IN_COOKIE, '1', {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 600,
+  it('is a __Host- cookie in production: Secure, the whole site, no domain', () => {
+    expect(maintainerSignInCookie(true)).toEqual({
+      name: '__Host-gitranks-maintainer-sign-in',
+      options: { httpOnly: true, secure: true, sameSite: 'lax', path: '/' },
     });
   });
 
-  it('is used up by the sign-in that reads it', async () => {
-    jar.get.mockReturnValueOnce({ value: '1' });
-    expect(await takeMaintainerSignIn()).toBe(true);
-    expect(jar.delete).toHaveBeenCalledWith(MAINTAINER_SIGN_IN_COOKIE);
+  it("counts for the page's own sign-in, once", async () => {
+    await startPageSignIn();
 
-    jar.get.mockReturnValueOnce(undefined);
+    expect(await takeMaintainerSignIn()).toBe(true);
+    expect(store.has(MARK)).toBe(false);
     expect(await takeMaintainerSignIn()).toBe(false);
-    expect(jar.delete).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts with the address Auth.js keeps over HTTPS too', async () => {
+    const redirectTo = await markMaintainerSignIn();
+    returnsTo(redirectTo, '__Secure-authjs.callback-url');
+
+    expect(await takeMaintainerSignIn()).toBe(true);
+  });
+
+  it('never counts for another sign-in after the page sign-in was abandoned at GitHub', async () => {
+    for (const elsewhere of ['/profile/octocat', '/contribute/maintainers', '/contribute/maintainers?s=other', '/']) {
+      store.clear();
+      await startPageSignIn();
+      // Cancelled at GitHub: no callback ran, the mark is still there. The header's sign-in then starts from elsewhere.
+      returnsTo(elsewhere);
+
+      expect(await takeMaintainerSignIn()).toBe(false);
+      expect(store.has(MARK)).toBe(false);
+    }
+  });
+
+  it('never counts without a mark, or with one that is not a nonce', async () => {
+    returnsTo('/contribute/maintainers?s=1');
+    expect(await takeMaintainerSignIn()).toBe(false);
+
+    store.set(MARK, '1');
+    expect(await takeMaintainerSignIn()).toBe(false);
   });
 
   it('still counts where the cookie cannot be cleared', async () => {
-    jar.get.mockReturnValueOnce({ value: '1' });
-    jar.delete.mockImplementationOnce(() => {
+    await startPageSignIn();
+    jar.set.mockImplementationOnce(() => {
       throw new Error('read-only');
     });
     expect(await takeMaintainerSignIn()).toBe(true);
@@ -114,42 +161,40 @@ describe('the session a light sign-in starts', () => {
   const identity = { sub: 'user-1', githubLogin: 'octocat', authMode: 'identity' as const };
   const account = { access_token: TOKEN, expires_at: undefined };
 
-  beforeEach(() => {
-    jar.get.mockReset();
-    jar.delete.mockReset();
-    currentSessionToken.mockReset();
-    currentSessionToken.mockResolvedValue(null);
-  });
-
-  it('keeps no token, unless it was started on the maintainers page', async () => {
-    jar.get.mockReturnValue(undefined);
-
+  it('keeps no token without the page sign-in', async () => {
     expect(await lightSignInSession(identity, account)).toEqual(identity);
     expect(currentSessionToken).not.toHaveBeenCalled();
   });
 
-  it("keeps the maintainers page's token, and uses up the mark", async () => {
-    jar.get.mockReturnValue({ value: '1' });
+  it('keeps no token for a header sign-in after an abandoned page sign-in', async () => {
+    await startPageSignIn();
+    returnsTo('/profile/octocat');
+
+    expect(await lightSignInSession(identity, account)).toEqual(identity);
+  });
+
+  it("keeps the token for the page's own sign-in", async () => {
+    await startPageSignIn();
 
     const token = await lightSignInSession(identity, account);
 
     expect(token).toMatchObject({ ...identity, maintainerToken: TOKEN });
     expect(token.maintainerTokenExpiresAt).toBeGreaterThan(Date.now());
-    expect(jar.delete).toHaveBeenCalledWith(MAINTAINER_SIGN_IN_COOKIE);
   });
 
   it('leaves a signed-in user the session they had, token sign-in included, with the token added', async () => {
-    jar.get.mockReturnValue({ value: '1' });
-    const had = { sub: 'user-1', githubLogin: 'octocat', authMode: 'token' as const, access_token: 'ghu_ours' };
+    await startPageSignIn();
+    const had = { sub: 'user-1', githubLogin: 'OctoCat', authMode: 'token' as const, access_token: 'ghu_ours' };
     currentSessionToken.mockResolvedValue(had);
 
     expect(await lightSignInSession(identity, account)).toMatchObject({ ...had, maintainerToken: TOKEN });
   });
 
-  it('starts from the new sign-in for another user, or for a session that needs a new sign-in', async () => {
-    jar.get.mockReturnValue({ value: '1' });
+  it('switches to the GitHub account signed in with, and starts afresh for a session needing a new sign-in', async () => {
     for (const had of [
       { sub: 'user-2', githubLogin: 'someone', authMode: 'token', access_token: 'ghu_other' },
+      // The same user row with another GitHub account linked to it: still a switch to the account signed in with.
+      { sub: 'user-1', githubLogin: 'someone', authMode: 'token', access_token: 'ghu_other' },
       {
         sub: 'user-1',
         githubLogin: 'octocat',
@@ -158,6 +203,8 @@ describe('the session a light sign-in starts', () => {
         error: 'RefreshTokenError',
       },
     ]) {
+      store.clear();
+      await startPageSignIn();
       currentSessionToken.mockResolvedValueOnce(had);
 
       expect(await lightSignInSession(identity, account)).toEqual({

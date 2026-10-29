@@ -39,6 +39,9 @@ export const KIND_ONE: Record<ContributeIssueKind, string> = {
   PERFORMANCE: 'performance',
 };
 
+/** A label that says an issue suits a first contribution. */
+export const GOOD_FIRST_LABEL = /good.first|beginner|easy|starter/i;
+
 export const SIZES: Record<ContributeIssueSize, string> = { S: 'Small', M: 'Medium', L: 'Large' };
 
 export const MODELS: Record<ContributeModel, string> = {

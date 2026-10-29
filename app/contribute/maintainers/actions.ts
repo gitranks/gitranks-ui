@@ -4,7 +4,6 @@ import { signIn } from '@/auth';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { OptInReposDocument, OptOutReposDocument } from '@/lib/contribute/contribute.documents';
 import type { ContributeOptOutResult } from '@/lib/contribute/contribute.types';
-import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import { type MaintainerErrorCode, maintainerErrorOf } from '@/lib/contribute/errors';
 import { currentMaintainerToken, markMaintainerSignIn } from '@/lib/contribute/maintainer-token';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -66,8 +65,7 @@ export async function optInMaintainerRepos(repoIds: string[]): Promise<Maintaine
   );
 }
 
-/** The light GitHub sign-in, marked as the maintainers page's so its token is kept for the page (and back to it). */
+/** The light GitHub sign-in, marked as the maintainers page's so its token is kept for the page, and back to it. */
 export async function signInAsMaintainer(): Promise<void> {
-  await markMaintainerSignIn();
-  await signIn(IDENTITY_PROVIDER, { redirectTo: MAINTAINERS_PATH });
+  await signIn(IDENTITY_PROVIDER, { redirectTo: await markMaintainerSignIn() });
 }

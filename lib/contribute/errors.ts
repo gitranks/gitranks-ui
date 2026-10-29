@@ -98,7 +98,7 @@ export function maintainerErrorMessage(error: MaintainerErrorCode): string {
     case 'GITHUB_UNAVAILABLE':
       return 'GitHub did not answer. Try again in a minute.';
     case 'NOT_AVAILABLE_YET':
-      return 'Opting out here is not available yet. Add the file below to your repo instead.';
+      return 'Opting out with your GitHub account is not available yet. Add .github/gitranks.yml to your repo instead.';
     default:
       return 'Something went wrong. Try again in a minute.';
   }

@@ -13,7 +13,7 @@ vi.mock('next/headers', () => ({ cookies: async () => jar }));
 vi.mock('@/auth', () => ({ signIn }));
 
 const actions = await import('./actions');
-const { MAINTAINER_SIGN_IN_COOKIE } = await import('@/lib/contribute/maintainer-token');
+const { maintainerSignInCookie } = await import('@/lib/contribute/maintainer-token');
 
 const TOKEN = 'gho_maintainerPageToken123';
 const session = (patch: Record<string, unknown> = {}) => ({
@@ -139,10 +139,12 @@ describe('the maintainers page actions', () => {
     expect(answer.data).toHaveLength(100);
   });
 
-  it("signs in with the light GitHub sign-in, marked as the page's, back to the page", async () => {
+  it("signs in with the light GitHub sign-in, marked as the page's, back to the page with the mark's nonce", async () => {
     await actions.signInAsMaintainer();
 
-    expect(jar.set).toHaveBeenCalledWith(MAINTAINER_SIGN_IN_COOKIE, '1', expect.objectContaining({ httpOnly: true }));
-    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/contribute/maintainers' });
+    const [name, nonce, options] = jar.set.mock.calls[0];
+    expect(name).toBe(maintainerSignInCookie().name);
+    expect(options).toMatchObject({ httpOnly: true, maxAge: 300 });
+    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: `/contribute/maintainers?s=${nonce}` });
   });
 });

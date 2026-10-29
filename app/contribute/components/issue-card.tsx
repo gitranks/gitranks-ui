@@ -7,15 +7,10 @@ import { Pill } from './primitives';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
-import { KIND_ONE, LANGUAGES, SIZES } from '@/lib/contribute/format';
+import { GOOD_FIRST_LABEL, KIND_ONE, LANGUAGES, SIZES } from '@/lib/contribute/format';
 
-const GOOD_FIRST = /good.first|beginner|easy|starter/i;
-
-/**
- * One issue picked for the user: where, what, why, and Skip. `compact` is the profile block's card: where, what and
- * the labels, no Skip.
- */
-export function IssueCard({ issue, variant = 'full' }: { issue: ContributeIssue; variant?: 'full' | 'compact' }) {
+/** One issue picked for the user: where, what, why, and Skip. */
+export function IssueCard({ issue }: { issue: ContributeIssue }) {
   const [skipped, setSkipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -38,38 +33,6 @@ export function IssueCard({ issue, variant = 'full' }: { issue: ContributeIssue;
 
   const title = issue.title?.trim() || `Issue #${issue.number}`;
   const url = githubUrlOf(issue.url);
-
-  if (variant === 'compact') {
-    return (
-      <article data-issue={issue.issueId} className="flex min-w-0 flex-col gap-2 rounded-lg border bg-card px-4 py-3.5">
-        <span className="truncate font-mono text-[12.5px] text-muted-foreground">
-          {issue.nameWithOwner} · #{issue.number}
-        </span>
-        {url ? (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-foreground hover:underline"
-          >
-            {title}
-          </a>
-        ) : (
-          <span className="font-semibold text-foreground">{title}</span>
-        )}
-        {issue.labels.length || issue.language ? (
-          <div className="flex flex-wrap gap-1.5">
-            {issue.labels.slice(0, 2).map((label) => (
-              <Pill key={label} tone={GOOD_FIRST.test(label) ? 'green' : 'neutral'}>
-                {label}
-              </Pill>
-            ))}
-            {issue.language ? <Pill>{LANGUAGES[issue.language]}</Pill> : null}
-          </div>
-        ) : null}
-      </article>
-    );
-  }
 
   return (
     <article
@@ -99,7 +62,7 @@ export function IssueCard({ issue, variant = 'full' }: { issue: ContributeIssue;
           <div className="flex flex-wrap gap-1.5">
             {issue.kind ? <Pill tone="violet">{KIND_ONE[issue.kind]}</Pill> : null}
             {issue.labels.map((label) => (
-              <Pill key={label} tone={GOOD_FIRST.test(label) ? 'green' : 'neutral'}>
+              <Pill key={label} tone={GOOD_FIRST_LABEL.test(label) ? 'green' : 'neutral'}>
                 {label}
               </Pill>
             ))}

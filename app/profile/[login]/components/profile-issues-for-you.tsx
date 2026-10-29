@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
-import { IssueCard } from '@/app/contribute/components/issue-card';
+import { IssueCardCompact } from '@/app/contribute/components/issue-card-compact';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { PROFILE_ISSUES_MAX, type ProfileIssuesAnswer, profileIssuesUrl } from '@/lib/contribute/profile-issues';
 import { loginFromPath } from '@/utils/login-from-path';
@@ -63,7 +63,7 @@ export function ProfileIssuesBlock({ issues }: { issues: ContributeIssue[] }) {
       </div>
       <div className="grid gap-3 md:grid-cols-3">
         {issues.slice(0, PROFILE_ISSUES_MAX).map((issue) => (
-          <IssueCard key={issue.issueId} issue={issue} variant="compact" />
+          <IssueCardCompact key={issue.issueId} issue={issue} />
         ))}
       </div>
     </section>

@@ -33,10 +33,10 @@ export function MaintainersScreen({ repos }: { repos: ReactNode }) {
       <div className="flex max-w-3xl flex-col gap-3">
         <Eyebrow className="text-violet-700 dark:text-violet-300">For maintainers</Eyebrow>
         <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-balance">
-          Pull requests from gitranks, and how to stop them
+          Pull requests from GitRanks, and how to stop them
         </h1>
         <p className="text-lg text-muted-foreground">
-          Developers on gitranks spend their own AI credits on issues in open-source repos: an agent works on the issue,
+          Developers on GitRanks spend their own AI credits on issues in open-source repos: an agent works on the issue,
           the developer reviews the change, and the pull request opens in their name. These are the rules every one of
           those pull requests follows in your repo.
         </p>
@@ -109,8 +109,9 @@ export function MaintainerSignIn({ label = 'Sign in with GitHub' }: { label?: st
         {label}
       </button>
       <span className="text-[13px] text-muted-foreground">
-        Read-only access to your public profile. We use it on this page alone, to list your repos and check your role in
-        them, and drop it within an hour.
+        This signs you in to GitRanks with GitHub, which lets us read your profile and email addresses. We use that
+        access only on this page, to list your repos and check your role in them, and no longer use it after an hour. If
+        you are signed in to GitRanks as another account, you switch to the GitHub account you sign in with.
       </span>
     </form>
   );

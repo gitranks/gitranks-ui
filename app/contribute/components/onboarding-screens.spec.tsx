@@ -32,8 +32,9 @@ vi.mock('@/lib/contribute/contribute.data', () => data);
 
 const { Landing } = await import('./landing');
 const { SignInButton, SignInPanel, signInRouteOf, startSignIn } = await import('./sign-in-dialog');
-const { CONTRIBUTE_TABS, ContributeBarNav, ContributeBarView, contributeBarOf } = await import('./contribute-nav');
-const { ContributeBar, ContributeBarFallback } = await import('./contribute-bar');
+const { ContributeTabsNav, HeaderLine, contributeTabsShown } = await import('./contribute-tabs-nav');
+const { ContributeTabs } = await import('./contribute-tabs');
+const { default: ContributeLayout } = await import('../layout');
 const { IssuesView } = await import('./issues-view');
 const { ContributionsView } = await import('./contributions-view');
 const { ReviewView } = await import('./review-view');
@@ -200,143 +201,107 @@ describe('the sign-in', () => {
   });
 });
 
-describe("Contribute's bar", () => {
-  const viewer = (patch: Partial<Parameters<typeof contributeBarOf>[2]> = {}) => ({
-    signedIn: true,
-    onboarded: true,
-    ...patch,
-  });
-  /** The header's title: plain text after the logo and a "/", not a link. */
-  const TITLE = /<\/a><span[^>]*>\/<\/span><span[^>]*>contribute<\/span>/;
+describe("Contribute's header and tabs", () => {
+  const TABS = [
+    ['/contribute', 'Overview'],
+    ['/contribute/issues', 'Issues for you'],
+    ['/contribute/me', 'My contributions'],
+    ['/contribute/settings', 'Settings'],
+  ];
+  /** The tab links, as the site's tabs draw them. */
+  const tabLinks = (html: string) => html.match(/<a [^>]*href="\/contribute[^"]*"[^>]*>[^<]*/g) ?? [];
+  /** The tab marked as the current page: the site's tabs fill its underline. */
+  const currentTab = (html: string) =>
+    tabLinks(html)
+      .filter((link) => link.includes('border-foreground'))
+      .map((link) => link.match(/href="([^"]+)"/)?.[1]);
+  const tabsAt = (pathname: string, search = '', onboarded = true) => {
+    nav.pathname = pathname;
+    nav.search = search;
+    return renderToStaticMarkup(<ContributeTabsNav onboarded={onboarded} />);
+  };
 
-  it('has the tabs only once the user is onboarded, with the current one marked', () => {
-    expect(contributeBarOf('/contribute/issues', null, viewer())).toEqual({
-      tabs: true,
-      current: '/contribute/issues',
-      account: 'avatar',
-    });
-    expect(contributeBarOf('/contribute/attempts/A_1', null, viewer()).current).toBe('/contribute/me');
-    expect(contributeBarOf('/contribute', null, viewer({ onboarded: false }))).toEqual({
-      tabs: false,
-      current: undefined,
-      account: 'avatar',
-    });
-    // Settings stays open before onboarding, from the landing and the setup page; the bar has no link to it.
-    expect(contributeBarOf('/contribute/settings', null, viewer({ onboarded: false }))).toEqual({
-      tabs: false,
-      current: undefined,
-      account: 'avatar',
-    });
-  });
-
-  it('shows a visitor, and a signed-in user under ?as=visitor on the landing, "Sign in" and no tabs', () => {
-    const signIn = { tabs: false, current: undefined, account: 'sign-in' };
-
-    expect(contributeBarOf('/contribute', null, viewer({ signedIn: false, onboarded: false }))).toEqual(signIn);
-    expect(contributeBarOf('/contribute', 'visitor', viewer())).toEqual(signIn);
-    // Only on the landing: elsewhere the query changes nothing.
-    expect(contributeBarOf('/contribute/settings', 'visitor', viewer()).account).toBe('avatar');
-  });
-
-  it('gives the maintainers page no tabs and no Contribute sign-in: the avatar when signed in, else nothing', () => {
-    expect(contributeBarOf('/contribute/maintainers', null, viewer())).toEqual({
-      tabs: false,
-      current: undefined,
-      account: 'avatar',
-    });
-    expect(contributeBarOf('/contribute/maintainers', null, viewer({ onboarded: false })).account).toBe('avatar');
-    expect(contributeBarOf('/contribute/maintainers', null, { signedIn: false, onboarded: false })).toEqual({
-      tabs: false,
-      current: undefined,
-      account: 'none',
-    });
-  });
-
-  it('is the site header: the logo home, "contribute" as its title, the tabs as its menu and the avatar menu', () => {
-    const html = renderToStaticMarkup(<ContributeBarView tabs current="/contribute/me" account="avatar" />);
-    const plain = text(html);
-
-    expect(html.match(/<header[^>]*>\s*<div[^>]*>\s*<a [^>]*>/)?.[0]).toContain('href="/"');
-    expect(html).toMatch(TITLE);
-    expect(html).toContain('<nav aria-label="Contribute"');
-    for (const { href, label } of CONTRIBUTE_TABS) {
-      expect(html).toMatch(new RegExp(`<a [^>]*href="${href}">${label}</a>`));
-    }
-    expect(html.match(/<a [^>]*aria-current="page"[^>]*>/)?.[0]).toContain('href="/contribute/me"');
-    expect(html.match(/<a [^>]*aria-current="page"[^>]*>/)?.[0]).toContain('bg-accent text-foreground');
-    // The others are muted, so a hovered one never reads as the current one.
-    expect(html.match(/<a [^>]*href="\/contribute\/issues"[^>]*>/)?.[0]).toContain('text-muted-foreground');
-    expect(count(html, 'aria-current="page"')).toBe(1);
-    // On a phone the tabs are a panel under the menu button.
-    const toggle = html.match(/<button [^>]*aria-label="Open menu"[^>]*>/)?.[0] ?? '';
-    const panel = toggle.match(/aria-controls="([^"]+)"/)?.[1];
-    expect(toggle).toContain('aria-expanded="false"');
-    expect(html).toMatch(new RegExp(`<ul [^>]*class="[^"]*max-lg:hidden[^"]*" id="${panel}"`));
-    expect(html).toContain('data-avatar-menu');
-    expect(html).not.toContain(DIALOG_TRIGGER);
-    expect(plain).not.toContain('GitRanks Contribute');
-    expect(html).not.toContain('Back to GitRanks');
-  });
-
-  it('has no menu and no Settings link before onboarding', () => {
-    const html = renderToStaticMarkup(<ContributeBarView account="avatar" />);
-
-    expect(html).toMatch(TITLE);
-    expect(html).not.toContain('<nav');
-    expect(html).not.toContain('Open menu');
-    expect(html).not.toContain('href="/contribute');
-    expect(html).toContain('data-avatar-menu');
-  });
-
-  it('renders "Sign in" as the sign-in dialog\'s button, and no tabs', () => {
-    const html = renderToStaticMarkup(<ContributeBarView account="sign-in" />);
-
-    expect(html).not.toContain('<nav');
-    expect(html).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*>Sign in<\/button>/);
-    expect(html).not.toContain('data-avatar-menu');
-  });
-
-  it('stands in as the header shell, without tabs or an account, while the viewer is read', () => {
-    const html = renderToStaticMarkup(<ContributeBarFallback />);
-
-    expect(html).toMatch(TITLE);
-    expect(html).not.toContain('<nav');
-    expect(html).not.toContain(DIALOG_TRIGGER);
-    expect(html).not.toContain('data-avatar-menu');
-  });
-
-  it('reads the path and the query', () => {
+  beforeEach(() => {
     nav.pathname = '/contribute';
-    nav.search = 'as=visitor';
-    const asVisitor = renderToStaticMarkup(<ContributeBarNav {...viewer()} />);
-    expect(asVisitor).not.toContain('<nav');
-    expect(asVisitor).toContain(DIALOG_TRIGGER);
-
     nav.search = '';
-    expect(renderToStaticMarkup(<ContributeBarNav {...viewer()} />)).toContain('<nav aria-label="Contribute"');
-
-    nav.pathname = '/contribute/maintainers';
-    const maintainers = renderToStaticMarkup(<ContributeBarNav {...viewer({ signedIn: false, onboarded: false })} />);
-    expect(maintainers).not.toContain('<nav');
-    expect(maintainers).not.toContain(DIALOG_TRIGGER);
-    expect(maintainers).not.toContain('data-avatar-menu');
   });
 
-  it("reads the viewer, and shows no tabs when the read fails rather than failing the page's bar", async () => {
+  it('shows the tabs only to an onboarded user', () => {
+    expect(contributeTabsShown('/contribute/issues', null, true)).toBe(true);
+    expect(contributeTabsShown('/contribute', null, false)).toBe(false);
+    // Settings stays open before onboarding, from the landing and the setup page; there are no tabs to it.
+    expect(contributeTabsShown('/contribute/settings', null, false)).toBe(false);
+  });
+
+  it('shows no tabs under ?as=visitor on the landing, or on the maintainers page', () => {
+    expect(contributeTabsShown('/contribute', 'visitor', true)).toBe(false);
+    expect(contributeTabsShown('/contribute/', 'visitor', true)).toBe(false);
+    // Only on the landing: elsewhere the query changes nothing.
+    expect(contributeTabsShown('/contribute/settings', 'visitor', true)).toBe(true);
+    expect(contributeTabsShown('/contribute/maintainers', null, true)).toBe(false);
+    expect(contributeTabsShown('/contribute/maintainers', null, false)).toBe(false);
+  });
+
+  it("are the site's tabs, the four of them and no Contribute label, the current one marked", () => {
+    const html = tabsAt('/contribute/issues');
+
+    expect(html).toMatch(/^<div class="[^"]*border-b[^"]*"><ul /);
+    expect(tabLinks(html).map((link) => link.replace(/^.*href="([^"]+)"[^>]*>/, '$1 '))).toEqual(
+      TABS.map(([href, label]) => `${href} ${label}`),
+    );
+    expect(text(html)).not.toMatch(/\bContribute\b/);
+    expect(currentTab(html)).toEqual(['/contribute/issues']);
+    // The tabs' own line is the one under the header: no second one.
+    expect(html.match(/\bborder-b(?![\w-])/g)).toHaveLength(1);
+  });
+
+  it("marks My contributions on an attempt's review, and the overview on the connect flow", () => {
+    expect(currentTab(tabsAt('/contribute'))).toEqual(['/contribute']);
+    expect(currentTab(tabsAt('/contribute/attempts/A_1'))).toEqual(['/contribute/me']);
+    expect(currentTab(tabsAt('/contribute/me'))).toEqual(['/contribute/me']);
+    expect(currentTab(tabsAt('/contribute/connect', 'path=agent'))).toEqual(['/contribute']);
+    expect(currentTab(tabsAt('/contribute/settings'))).toEqual(['/contribute/settings']);
+  });
+
+  it('draws only the line under the header where there are no tabs', () => {
+    const line = renderToStaticMarkup(<HeaderLine />);
+
+    expect(tabsAt('/contribute', '', false)).toBe(line);
+    expect(tabsAt('/contribute', 'as=visitor')).toBe(line);
+    expect(tabsAt('/contribute/maintainers')).toBe(line);
+    expect(line).toBe('<div class="border-b"></div>');
+  });
+
+  it("reads the viewer, and shows no tabs when the read fails rather than failing the page's header", async () => {
     nav.pathname = '/contribute/issues';
-    nav.search = '';
-    data.viewerLogin.mockResolvedValue('octocat');
 
     data.loadContribute.mockResolvedValueOnce(views.active);
-    expect(renderToStaticMarkup(await ContributeBar())).toContain('<nav aria-label="Contribute"');
+    expect(renderToStaticMarkup(await ContributeTabs())).toContain('href="/contribute/me"');
 
     data.loadContribute.mockResolvedValueOnce(views.midSetup);
-    expect(renderToStaticMarkup(await ContributeBar())).not.toContain('<nav');
+    expect(renderToStaticMarkup(await ContributeTabs())).not.toContain('href="/contribute');
+
+    // A visitor has no view.
+    data.loadContribute.mockResolvedValueOnce(null);
+    expect(renderToStaticMarkup(await ContributeTabs())).not.toContain('href="/contribute');
 
     data.loadContribute.mockRejectedValueOnce(new Error('GitRanks Contribute did not load'));
-    const failed = renderToStaticMarkup(await ContributeBar());
-    expect(failed).not.toContain('<nav');
-    expect(failed).toContain('data-avatar-menu');
+    expect(renderToStaticMarkup(await ContributeTabs())).not.toContain('href="/contribute');
+  });
+
+  it("is the site's header: the logo home, the main menu and the site's sign-in, no title", () => {
+    const html = renderToStaticMarkup(<ContributeLayout>{null}</ContributeLayout>);
+    const header = html.match(/<header[\s\S]*<\/header>/)?.[0] ?? '';
+
+    expect(header).toContain('<a class="shrink-0" href="/">');
+    expect(header).toContain('<nav aria-label="Main"');
+    expect(header).toContain('data-avatar-menu');
+    expect(header).not.toContain('>/</span>');
+    expect(header).not.toContain('contribute</span>');
+    expect(header).not.toContain(DIALOG_TRIGGER);
+    // While the viewer is read, the header's line and no tabs.
+    expect(html.slice(html.indexOf('</header>'))).toContain('<div class="border-b"></div>');
+    expect(html).not.toContain('href="/contribute/me"');
   });
 });
 

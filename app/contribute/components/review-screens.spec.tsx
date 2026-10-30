@@ -21,7 +21,6 @@ const { ReviewScreen } = await import('./review-view');
 const { DiffViewer, LARGE_FILE_LINES, MAX_FILE_LINES, MAX_TOTAL_LINES } = await import('./diff-viewer');
 const { ContributionsScreen } = await import('./contributions-view');
 const { ReviewsReady } = await import('./reviews-ready');
-const { contributeTabOf } = await import('./contribute-nav');
 const { OverviewStatusView } = await import('./overview-status');
 const { IssuesScreen } = await import('./issues-view');
 const { NOW, views, settings } = await import('@/lib/contribute/__fixtures__/contribute-views');
@@ -406,14 +405,6 @@ describe('my contributions', () => {
     expect(empty).toContain('No pull requests yet.');
     expect(empty).toContain('No attempts yet');
     expect(empty).not.toContain('Needs you');
-  });
-});
-
-describe("Contribute's bar", () => {
-  it("marks My contributions on an attempt's review, and the overview on the connect flow", () => {
-    expect(contributeTabOf('/contribute/attempts/A_1')).toBe('/contribute/me');
-    expect(contributeTabOf('/contribute/connect')).toBe('/contribute');
-    expect(contributeTabOf('/contribute/issues')).toBe('/contribute/issues');
   });
 });
 

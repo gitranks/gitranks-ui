@@ -7,7 +7,9 @@ vi.mock('../actions', () => actions);
 vi.mock('sonner', () => ({ toast }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 
-const { ComingSoon, comingSoonNoteOf, comingSoonStatusOf, flipInterest, withInterest } = await import('./coming-soon');
+const { ComingSoon, PROVIDER_ICONS, comingSoonNoteOf, comingSoonStatusOf, flipInterest, withInterest } = await import(
+  './coming-soon'
+);
 const { COMING_SOON } = await import('@/lib/contribute/format');
 
 import type { ContributeComingSoonProvider } from '@/lib/contribute/contribute.types';
@@ -55,6 +57,16 @@ describe('the coming-soon cards', () => {
     });
     expect(at.every((index) => index >= 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
+  });
+
+  it('show each provider its mark, and OpenRouter, which has none, its initials', () => {
+    expect(COMING_SOON.filter(({ provider }) => !PROVIDER_ICONS[provider]).map(({ provider }) => provider)).toEqual([
+      'OPENROUTER',
+    ]);
+    const html = renderToStaticMarkup(<ComingSoon viewer="signed-in" />);
+    expect(html.match(/<svg[^>]*class="[^"]*size-\[18px\]/g)).toHaveLength(7);
+    expect(html).toMatch(/data-provider="OPENROUTER".*?>OR<\/span>/);
+    expect(html).not.toMatch(/>(CG|GC|GE|CU|JU|OA|XG)<\/span>/);
   });
 
   it('says what is coming and that the most asked for comes first', () => {

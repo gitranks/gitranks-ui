@@ -81,7 +81,7 @@ export type ComingSoonKind = 'Plan' | 'Cloud agent' | 'API key';
 /** The providers shown as coming soon, in the order the landing shows them, each with its "Notify me". */
 export const COMING_SOON: {
   provider: ContributeComingSoonProvider;
-  /** The initials on the card's badge. */
+  /** The initials on the card's badge, for a provider without a mark. */
   mono: string;
   title: string;
   kind: ComingSoonKind;

@@ -38,7 +38,7 @@ export function withInterest(noted: Noted, provider: ContributeComingSoonProvide
 
 /**
  * Puts `provider` on the list (`on`) or takes it off: the card changes at once, and back again with a toast when the
- * call fails. True when the call went through.
+ * call fails or never answers (offline, or a deploy under way). True when the call went through.
  */
 export async function flipInterest(
   provider: ContributeComingSoonProvider,
@@ -46,10 +46,16 @@ export async function flipInterest(
   update: (change: (noted: Noted) => Noted) => void,
 ): Promise<boolean> {
   update((noted) => withInterest(noted, provider, on));
-  const result = await (on ? noteProviderInterest(provider) : withdrawProviderInterest(provider));
-  if (result.ok) return true;
+  let message: string;
+  try {
+    const result = await (on ? noteProviderInterest(provider) : withdrawProviderInterest(provider));
+    if (result.ok) return true;
+    message = contributeErrorMessage(result.error, result.message);
+  } catch {
+    message = contributeErrorMessage('FAILED');
+  }
   update((noted) => withInterest(noted, provider, !on));
-  toast.error(contributeErrorMessage(result.error, result.message));
+  toast.error(message);
   return false;
 }
 
@@ -74,7 +80,7 @@ const CARD = cn(
 
 const BUTTON =
   'inline-flex min-h-10 items-center gap-1.5 self-start rounded-[10px] border px-3 text-sm font-semibold motion-safe:transition-colors max-sm:ml-auto max-sm:self-center';
-const BUTTON_IDLE = 'bg-background text-foreground hover:bg-accent';
+const BUTTON_IDLE = 'border-zinc-300 bg-background text-foreground hover:bg-accent dark:border-zinc-700';
 const BUTTON_ON =
   'border-violet-300 bg-violet-50 text-violet-800 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-200 dark:hover:bg-violet-950';
 
@@ -94,13 +100,19 @@ export function ComingSoon({
 }) {
   const visitor = viewer === 'visitor';
   const [noted, setNoted] = useState<Noted>(() => new Set(visitor ? [] : initial));
-  // A card's call in flight: another press of it waits for the answer, so a failure rolls back the right state.
+  // A card's call in flight: its button is busy and another press of it is ignored, so a failure rolls back the right
+  // state.
   const inFlight = useRef(new Set<ContributeComingSoonProvider>());
+  const [busy, setBusy] = useState<Noted>(() => new Set());
 
   const flip = (provider: ContributeComingSoonProvider) => {
     if (inFlight.current.has(provider)) return;
     inFlight.current.add(provider);
-    flipInterest(provider, !noted.has(provider), setNoted).finally(() => inFlight.current.delete(provider));
+    setBusy((current) => withInterest(current, provider, true));
+    void flipInterest(provider, !noted.has(provider), setNoted).finally(() => {
+      inFlight.current.delete(provider);
+      setBusy((current) => withInterest(current, provider, false));
+    });
   };
 
   return (
@@ -153,7 +165,8 @@ export function ComingSoon({
                   <button
                     type="button"
                     aria-pressed={on}
-                    aria-label={on ? `${title}: on the list. Select to take it off` : `Notify me when ${title} opens`}
+                    aria-busy={busy.has(provider) || undefined}
+                    aria-label={`Notify me when ${title} opens`}
                     onClick={() => flip(provider)}
                     className={cn(BUTTON, on ? BUTTON_ON : BUTTON_IDLE)}
                   >

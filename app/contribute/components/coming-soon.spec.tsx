@@ -88,7 +88,7 @@ describe('the coming-soon cards', () => {
       expect(count(html, 'aria-pressed="false"')).toBe(7);
       expect(count(html, 'aria-pressed="true"')).toBe(1);
       expect(html).toMatch(
-        /data-provider="COPILOT".*?aria-pressed="true" aria-label="GitHub Copilot: on the list. Select to take it off"[^>]*>.*?On the list<\/button>/,
+        /data-provider="COPILOT".*?aria-pressed="true" aria-label="Notify me when GitHub Copilot opens"[^>]*>.*?On the list<\/button>/,
       );
       expect(html).toContain('aria-label="Notify me when ChatGPT plan opens"');
       expect(text(html)).toContain("You're on the list for GitHub Copilot. We'll email you once, when it opens.");
@@ -178,6 +178,13 @@ describe('a press of "Notify me"', () => {
     expect(await flipInterest('COPILOT', false, update)).toBe(false);
     expect([...noted]).toEqual(['COPILOT']);
     expect(toast.error).toHaveBeenLastCalledWith('This is not available yet. It is coming soon.');
+  });
+
+  it('rolls back and says why when the call never answers', async () => {
+    actions.noteProviderInterest.mockRejectedValue(new TypeError('Failed to fetch'));
+    expect(await flipInterest('XAI', true, update)).toBe(false);
+    expect([...noted]).toEqual(['COPILOT']);
+    expect(toast.error).toHaveBeenLastCalledWith('Something went wrong. Try again in a minute.');
   });
 
   it("rolls back only the card that failed, not another's change made meanwhile", async () => {

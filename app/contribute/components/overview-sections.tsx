@@ -252,7 +252,7 @@ export function NeedsYouSection({ view, read, now }: { view: ContributeView; rea
             <li
               key={rowKeyOf(row)}
               data-row={row.kind}
-              className="flex items-center gap-3 rounded-lg border bg-background px-3.5 py-3 max-sm:flex-wrap"
+              className="flex items-center gap-3 rounded-lg border bg-background px-3.5 py-3 max-sm:flex-col max-sm:items-stretch max-sm:gap-2"
             >
               <Pill tone={copy.tone}>{copy.kind}</Pill>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">

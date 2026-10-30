@@ -3,14 +3,18 @@ import 'server-only';
 import {
   ContributeAttemptDocument,
   ContributeAttemptFollowUpsDocument,
+  ContributeAttemptOwnAgentDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
+  ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
+  ContributeContributionsOwnAgentDocument,
   ContributeGrantDocument,
   ContributeIssuesDocument,
   ContributeOverviewDocument,
+  ContributeOwnAgentDocument,
   ContributePausedDocument,
   ContributeReplyDraftsDocument,
 } from './contribute.documents';
@@ -22,6 +26,9 @@ import type {
   ContributeContributions,
   ContributeIssuePage,
   ContributeIssuesFilter,
+  ContributeMcpToken,
+  ContributeOwnAgent,
+  ContributePaths,
   ContributeReplyDraft,
   ContributeView,
 } from './contribute.types';
@@ -82,11 +89,12 @@ export async function loadContribute(): Promise<ContributeView | null> {
   if (!githubLogin) return null;
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [overview, grant, paused, autopilot] = await Promise.allSettled([
+  const [overview, grant, paused, autopilot, ownAgent] = await Promise.allSettled([
     graphqlDirect(ContributeOverviewDocument, undefined, options),
     graphqlDirect(ContributeGrantDocument, undefined, options),
     graphqlDirect(ContributePausedDocument, undefined, options),
     graphqlDirect(ContributeAutopilotDocument, undefined, options),
+    graphqlDirect(ContributeOwnAgentDocument, undefined, options),
   ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
@@ -105,6 +113,18 @@ export async function loadContribute(): Promise<ContributeView | null> {
     grant: settled(grant)?.contribute?.grant ?? undefined,
     paused: typeof pausedField === 'boolean' ? pausedField : undefined,
     grantAvailable: isGrantAvailable(),
+    ownAgent: ownAgentOf(settled(ownAgent)?.contribute),
+  };
+}
+
+/** The user's own agent as the API answered it; `undefined` when it does not answer it (yet). */
+function ownAgentOf(
+  contribute: { contributor: { paths: ContributePaths } | null; mcpTokens: ContributeMcpToken[] } | null | undefined,
+): ContributeOwnAgent | undefined {
+  if (!contribute || !Array.isArray(contribute.mcpTokens)) return undefined;
+  return {
+    paths: contribute.contributor?.paths ?? { hosted: false, mcp: contribute.mcpTokens.length > 0 },
+    tokens: contribute.mcpTokens,
   };
 }
 
@@ -138,14 +158,18 @@ export async function loadAttempts(
 
   const variables = { first, ...(state ? { state } : {}) };
   const options = { source: 'ssr' as const, githubLogin };
-  const [main, followUps] = await Promise.allSettled([
+  const [main, followUps, ownAgent] = await Promise.allSettled([
     graphqlDirect(ContributeAttemptsDocument, variables, options),
     graphqlDirect(ContributeAttemptsFollowUpsDocument, variables, options),
+    graphqlDirect(ContributeAttemptsOwnAgentDocument, variables, options),
   ]);
   const attempts = settled(main)?.contributeAttempts;
   if (!attempts) return undefined;
   const extras = byAttemptId(settled(followUps)?.contributeAttempts);
-  return attempts.map((attempt) => withFields(attempt, extras.get(attempt.attemptId)));
+  const agents = byAttemptId(settled(ownAgent)?.contributeAttempts);
+  return attempts.map((attempt) =>
+    withFields(withFields(attempt, extras.get(attempt.attemptId)), agents.get(attempt.attemptId)),
+  );
 }
 
 /**
@@ -163,11 +187,22 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   const followUps = Promise.resolve(graphqlDirect(ContributeAttemptFollowUpsDocument, { id }, options)).catch(
     () => undefined,
   );
+  const ownAgent = Promise.resolve(graphqlDirect(ContributeAttemptOwnAgentDocument, { id }, options)).catch(
+    () => undefined,
+  );
   try {
     const { contributeAttempt } = await review;
     if (!contributeAttempt) return contributeAttempt;
     const extra = (await followUps)?.contributeAttempt;
-    return withFields(contributeAttempt, extra?.attemptId === contributeAttempt.attemptId ? extra : undefined);
+    const withFollowUps = withFields(
+      contributeAttempt,
+      extra?.attemptId === contributeAttempt.attemptId ? extra : undefined,
+    );
+    const agent = (await ownAgent)?.contributeAttempt;
+    if (agent?.attemptId !== contributeAttempt.attemptId) return withFollowUps;
+    const { result, ...fields } = agent;
+    const merged = withFields(withFollowUps, fields);
+    return merged.result && result ? { ...merged, result: { ...merged.result, prTitle: result.prTitle } } : merged;
   } catch (failure) {
     const { error } = contributeErrorOf(failure);
     if (error === 'NOT_FOUND' || error === 'SIGNED_OUT' || error === 'INVALID') return null;
@@ -182,16 +217,20 @@ export async function loadContributions(first = 50): Promise<ContributeContribut
   if (!githubLogin) return undefined;
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [main, followUps] = await Promise.allSettled([
+  const [main, followUps, ownAgent] = await Promise.allSettled([
     graphqlDirect(ContributeContributionsDocument, { first }, options),
     graphqlDirect(ContributeContributionsFollowUpsDocument, { first }, options),
+    graphqlDirect(ContributeContributionsOwnAgentDocument, { first }, options),
   ]);
   const contributions = settled(main)?.contributeContributions;
   if (!contributions) return undefined;
   const extras = byAttemptId(settled(followUps)?.contributeContributions?.items);
+  const agents = byAttemptId(settled(ownAgent)?.contributeContributions?.items);
   return {
     ...contributions,
-    items: contributions.items.map((item) => withFields(item, extras.get(item.attemptId))),
+    items: contributions.items.map((item) =>
+      withFields(withFields(item, extras.get(item.attemptId)), agents.get(item.attemptId)),
+    ),
   };
 }
 

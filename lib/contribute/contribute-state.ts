@@ -12,6 +12,10 @@ export type ContributeNotice =
   | { kind: 'paused' }
   | { kind: 'grant-missing' };
 
+/** The user works with their own agent alone: a live token, no Claude key. */
+export const isOwnAgentOnly = (view: ContributeView | null | undefined): boolean =>
+  !!view?.ownAgent?.paths.mcp && !claudeKeyOf(view);
+
 /** The Claude key, the only live provider's. */
 export const claudeKeyOf = (view: ContributeView | null | undefined): ContributeCredential | undefined =>
   view?.contributor?.credentials.find((credential) => credential.provider === 'ANTHROPIC');
@@ -23,8 +27,10 @@ export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
   const notices: ContributeNotice[] = [];
   const key = claudeKeyOf(view);
 
-  if (!key) notices.push({ kind: 'no-key' });
-  else if (key.state === 'INVALID') notices.push({ kind: 'key-invalid' });
+  // Without a key, a user who works with their own agent has nothing missing: a key is one of two ways.
+  if (!key) {
+    if (!view.ownAgent?.paths.mcp) notices.push({ kind: 'no-key' });
+  } else if (key.state === 'INVALID') notices.push({ kind: 'key-invalid' });
   else if (key.state === 'EXHAUSTED') notices.push({ kind: 'exhausted', until: key.blockedUntil });
   else if (key.state === 'LIMIT_REACHED') notices.push({ kind: 'limit-reached', until: key.blockedUntil });
 

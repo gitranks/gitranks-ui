@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -6,6 +7,7 @@ import { ConsoleSteps } from './console-steps';
 import { ContributeNotices } from './contribute-notices';
 import { GrantCard } from './grant-card';
 import { LimitsPreview } from './limits-preview';
+import { OwnAgentSection } from './own-agent-section';
 import { PreferencesStep } from './preferences-step';
 import { SetupSteps } from './setup-steps';
 import { loadContribute } from '@/lib/contribute/contribute.data';
@@ -23,10 +25,49 @@ export function setupStepOf(view: ContributeView): number {
   return 5;
 }
 
-export async function ConnectView() {
-  const view = await loadContribute();
+export async function ConnectView({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [view, params] = await Promise.all([loadContribute(), searchParams]);
   if (!view) notFound();
+  if (params?.path === 'agent') return <OwnAgentConnectScreen view={view} />;
   return <ConnectScreen view={view} today={new Date().getUTCDate()} />;
+}
+
+/** Where the own-agent path starts. */
+export const OWN_AGENT_PATH = '/contribute/connect?path=agent' as Route;
+
+/**
+ * Connect with the user's own agent instead of a Claude key: GitHub access, what they like to work on, then a token
+ * for their agent. Nothing asks for a key.
+ */
+export function OwnAgentConnectScreen({ view, now }: { view: ContributeView; now?: Date }) {
+  const { contributor } = view;
+  return (
+    <>
+      <div className="flex flex-col gap-1.5" data-connect-path="agent">
+        <h1 className="text-3xl font-bold tracking-tight">Use your own agent</h1>
+        <p className="max-w-2xl text-muted-foreground">
+          Claude Code, Codex, Cursor or Gemini CLI on your machine picks an issue here, works on it and hands the change
+          back. You review and approve every pull request here. No Claude key is needed: your agent and its model are
+          your own.
+        </p>
+        <Link href="/contribute/connect" prefetch={false} className="text-sm font-semibold text-primary">
+          Use a Claude key instead →
+        </Link>
+      </div>
+      <GrantCard grant={view.grant} available={view.grantAvailable} returnTo={OWN_AGENT_PATH} step={1} />
+      <PreferencesStep
+        preferences={contributor?.preferences ?? null}
+        step={2}
+        next={`${OWN_AGENT_PATH}#own-agent` as Route}
+        saveLabel="Save, then create a token"
+      />
+      <OwnAgentSection ownAgent={view.ownAgent} now={now} step={3} />
+    </>
+  );
 }
 
 export function ConnectScreen({ view, today }: { view: ContributeView; today: number }) {
@@ -47,6 +88,11 @@ export function ConnectScreen({ view, today }: { view: ContributeView; today: nu
           Use a separate workspace for gitranks, so your other projects and your spend limit stay apart. It takes about
           two minutes in the Claude Console.
         </p>
+        {key ? null : (
+          <Link href={OWN_AGENT_PATH} prefetch={false} className="text-sm font-semibold text-primary">
+            Use your own agent instead (Claude Code, Codex, Cursor, Gemini CLI) →
+          </Link>
+        )}
       </div>
       <ContributeNotices notices={keyNotices} />
       <div className="flex flex-wrap items-start gap-5">

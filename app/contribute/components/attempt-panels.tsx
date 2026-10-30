@@ -2,9 +2,11 @@ import type { ReactNode } from 'react';
 
 import { Pill } from './primitives';
 import {
+  agentLabelOf,
   CHECK_LABELS,
   detailText,
   EVENT_LABELS,
+  isOwnAgent,
   labelOf,
   RISKS,
   timeLabel,
@@ -15,7 +17,7 @@ import type {
   ContributeAttemptTest,
   ContributeModel,
 } from '@/lib/contribute/contribute.types';
-import { MODELS, usd } from '@/lib/contribute/format';
+import { MODELS, timeLeftLabel, usd } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
 const NOT_YET = 'Not available yet.';
@@ -98,8 +100,12 @@ function TestRun({ test }: { test: ContributeAttemptTest }) {
   );
 }
 
-/** Our checks, pass or fail with the reason, and the tests the agent ran. */
+/**
+ * Our checks, pass or fail with the reason, and the tests the agent ran. The user's own agent reports its tests
+ * itself: shown as reported, unverified.
+ */
 export function ChecksPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
+  const reported = isOwnAgent(attempt);
   const tests = attempt.result?.tests ?? [];
 
   return (
@@ -130,7 +136,9 @@ export function ChecksPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
       ) : (
         <Muted>Our checks have not run yet.</Muted>
       )}
-      <h3 className="pt-1 text-sm font-semibold">Tests the agent ran</h3>
+      <h3 className="pt-1 text-sm font-semibold">
+        {reported ? 'Tests reported by your agent' : 'Tests the agent ran'}
+      </h3>
       {tests.length ? (
         <div className="flex flex-col gap-2.5 overflow-x-auto rounded-lg bg-zinc-900 px-3.5 py-3 font-mono text-[13px] leading-relaxed text-zinc-200">
           {tests.map((test, index) => (
@@ -167,6 +175,33 @@ export function CostPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
         <dd className="font-mono">{usd(cost.runtimeUsd)}</dd>
       </dl>
       <span className="text-xs text-muted-foreground">At list price, on your Claude key.</span>
+    </Block>
+  );
+}
+
+/**
+ * Made by the user's own agent, in place of a cost: nothing was spent on their key. The model is as the agent
+ * reported it.
+ */
+export function OwnAgentPanel({ attempt, now }: { attempt: ContributeAttemptDetail; now?: Date }) {
+  const agent = agentLabelOf(attempt.agent);
+  return (
+    <Block title="Made by your own agent" name="own-agent" className="p-4.5">
+      <span className="text-[17px] font-semibold">{agent ?? 'Your agent has not submitted yet'}</span>
+      <span className="text-xs text-muted-foreground">
+        As your agent reported it. It ran on your machine, so nothing was spent on a Claude key.
+      </span>
+      {timeLeftLabel(attempt.leaseUntil, now) ? (
+        <span className="text-sm text-muted-foreground">
+          The issue is held for it for another {timeLeftLabel(attempt.leaseUntil, now)}.
+        </span>
+      ) : null}
+      {attempt.changesRequested ? (
+        <div className="flex flex-col gap-1 border-t pt-2.5">
+          <span className="text-[13px] font-semibold text-muted-foreground">You sent it back with</span>
+          <span className="whitespace-pre-line text-sm text-foreground/90">{attempt.changesRequested.note}</span>
+        </div>
+      ) : null}
     </Block>
   );
 }

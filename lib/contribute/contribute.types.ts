@@ -166,6 +166,49 @@ export type ContributeView = {
   paused: boolean | undefined;
   /** Pull request access can be granted here (the app and its key ring are configured). */
   grantAvailable: boolean;
+  /** The user's own agent: their paths and live tokens; `undefined` while the API does not answer them. */
+  ownAgent?: ContributeOwnAgent;
+};
+
+/** Which ways of contributing the user has set up: a Claude key, a token for their own agent. */
+export type ContributePaths = { hosted: boolean; mcp: boolean };
+
+/** A token for the user's own agent: never the token itself, only its last 4 characters. */
+export type ContributeMcpToken = {
+  id: string;
+  name: string;
+  last4: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+};
+
+export type ContributeOwnAgent = { paths: ContributePaths; tokens: ContributeMcpToken[] };
+
+/** A token just created: the token itself is shown this once. */
+export type ContributeMcpTokenCreated = { token: string; mcpToken: ContributeMcpToken };
+
+export type ContributeAttemptRunner = 'MANAGED_AGENTS' | 'MCP';
+export type ContributeAgentName =
+  | 'CLAUDE_CODE'
+  | 'CODEX'
+  | 'CURSOR'
+  | 'GEMINI_CLI'
+  | 'COPILOT'
+  | 'AIDER'
+  | 'CLINE'
+  | 'OTHER';
+/** The agent as it reported itself; the model is shown as reported. */
+export type ContributeAgent = { name: ContributeAgentName; model: string | null };
+export type ContributeOpenedBy = 'SUBMIT' | 'HAND';
+
+/** What an attempt made by the user's own agent adds; read on its own, so an API without it leaves the rest. */
+export type ContributeOwnAgentFields = {
+  runner: ContributeAttemptRunner;
+  agent: ContributeAgent | null;
+  changesRequested: { note: string; at: string } | null;
+  leaseUntil: string | null;
+  sendBacksLeft: number;
+  openedBy: ContributeOpenedBy | null;
 };
 
 export type ContributeAttemptKind = 'FIRST' | 'FOLLOW_UP';
@@ -197,7 +240,10 @@ export type ContributeAttemptEndReason =
   | 'CANCELLED'
   | 'USER'
   | 'REVIEW_EXPIRED'
-  | 'SUBMIT_FAILED';
+  | 'SUBMIT_FAILED'
+  | 'RELEASED'
+  | 'MCP_IDLE'
+  | 'MCP_EXPIRED';
 export type ContributeSubmitStep = 'QUEUED' | 'WAITING_CAP' | 'FORK' | 'SYNC' | 'PUSH' | 'PULL_REQUEST';
 export type ContributePrState = 'OPEN' | 'MERGED' | 'CLOSED';
 export type ContributeReviewDecision = 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED';
@@ -285,28 +331,29 @@ export type ContributeAttemptFollowUpFields = {
 };
 
 /** One attempt: an agent session on one issue, and what came of it. */
-export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
-  attemptId: string;
-  issueId: string;
-  repositoryId: string;
-  nameWithOwner: string | null;
-  number: number;
-  title: string | null;
-  url: string | null;
-  kind: ContributeAttemptKind;
-  state: ContributeAttemptState;
-  model: ContributeModel | null;
-  budgetUsd: number;
-  costUsd: number;
-  endReason: ContributeAttemptEndReason | null;
-  endDetail: string | null;
-  checksPassed: boolean | null;
-  approvedAt: string | null;
-  submit: ContributeAttemptSubmit | null;
-  pullRequest: ContributeAttemptPullRequest | null;
-  createdAt: string;
-  updatedAt: string;
-};
+export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> &
+  Partial<ContributeOwnAgentFields> & {
+    attemptId: string;
+    issueId: string;
+    repositoryId: string;
+    nameWithOwner: string | null;
+    number: number;
+    title: string | null;
+    url: string | null;
+    kind: ContributeAttemptKind;
+    state: ContributeAttemptState;
+    model: ContributeModel | null;
+    budgetUsd: number;
+    costUsd: number;
+    endReason: ContributeAttemptEndReason | null;
+    endDetail: string | null;
+    checksPassed: boolean | null;
+    approvedAt: string | null;
+    submit: ContributeAttemptSubmit | null;
+    pullRequest: ContributeAttemptPullRequest | null;
+    createdAt: string;
+    updatedAt: string;
+  };
 
 export type ContributeAttemptTest = { command: string; passed: boolean; output: string | null };
 
@@ -318,6 +365,8 @@ export type ContributeAttemptResult = {
   risk: ContributeRiskLevel | null;
   riskNotes: string | null;
   prBody: string | null;
+  /** The title the user's own agent proposed; `undefined` while the API does not answer it. */
+  prTitle?: string | null;
 };
 
 export type ContributeRepoReadiness = {
@@ -395,6 +444,10 @@ export type ContributeContribution = {
   needsYou?: ContributeNeedsYou | null;
   /** The pull request's follow-up rounds; `undefined` while the API does not answer them. */
   followUps?: ContributeFollowUps;
+  /** Who made it: a session on the user's key, or their own agent; `undefined` while the API does not answer it. */
+  runner?: ContributeAttemptRunner;
+  agent?: ContributeAgent | null;
+  openedBy?: ContributeOpenedBy | null;
 };
 
 export type ContributeContributions = {

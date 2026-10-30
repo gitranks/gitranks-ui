@@ -1,4 +1,6 @@
 import type {
+  ContributeAgent,
+  ContributeAgentName,
   ContributeAttempt,
   ContributeAttemptCheckName,
   ContributeAttemptEndReason,
@@ -84,7 +86,26 @@ export const END_REASONS: Record<ContributeAttemptEndReason, string> = {
   USER: 'You discarded it.',
   REVIEW_EXPIRED: 'It waited seven days for a review, so it was let go.',
   SUBMIT_FAILED: 'The change could not be submitted as a pull request.',
+  RELEASED: 'Your agent gave the issue back.',
+  MCP_IDLE: 'Your agent made no call for it in 24 hours, so the issue was let go.',
+  MCP_EXPIRED: 'It reached the seven days an issue can be held, so it was let go.',
 };
+
+/** The agent names of the user's own agent, as the pull request's footer names them. */
+export const AGENT_NAMES: Record<ContributeAgentName, string> = {
+  CLAUDE_CODE: 'Claude Code',
+  CODEX: 'Codex',
+  CURSOR: 'Cursor',
+  GEMINI_CLI: 'Gemini CLI',
+  COPILOT: 'GitHub Copilot',
+  AIDER: 'Aider',
+  CLINE: 'Cline',
+  OTHER: 'another AI agent',
+};
+
+/** "Claude Code (claude-opus-5-5)": the agent, and the model as it reported it. */
+export const agentLabelOf = (agent: ContributeAgent | null | undefined): string | null =>
+  agent ? `${AGENT_NAMES[agent.name] ?? agent.name}${agent.model ? ` (${agent.model})` : ''}` : null;
 
 /** Each of our checks, as it reads when it passed. */
 export const CHECK_LABELS: Record<ContributeAttemptCheckName, string> = {
@@ -221,3 +242,12 @@ export const githubUrlOf = (url: string | null | undefined): string | null => {
     return null;
   }
 };
+
+/** Made by the user's own agent: nothing was spent on their key, so its agent stands where a cost would. */
+export const isOwnAgent = (attempt: { runner?: string | null }): boolean => attempt.runner === 'MCP';
+
+/** What an attempt cost, or, for the user's own agent, which agent made it. */
+export const costOrAgentOf = (
+  attempt: { runner?: string | null; agent?: ContributeAgent | null; costUsd: number },
+  usd: (amount: number) => string,
+): string => (isOwnAgent(attempt) ? (agentLabelOf(attempt.agent) ?? 'your own agent') : usd(attempt.costUsd));

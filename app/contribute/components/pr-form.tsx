@@ -15,6 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { CONTRIBUTE_PROVIDER } from '@/lib/auth-providers';
 import { PR_BODY_MAX, PR_TITLE_MAX, prBodyPreview, prFooterText } from '@/lib/contribute/attempt-format';
 import type { ContributeDcoMode } from '@/lib/contribute/contribute.types';
@@ -27,9 +29,6 @@ import {
   tabStoreOf,
   takePendingApproval,
 } from '@/lib/contribute/grant-resume';
-
-const fieldClass =
-  'w-full rounded-lg border border-input bg-background px-3 py-2 text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
 
 export type PrFormProps = {
   attemptId: string;
@@ -169,28 +168,28 @@ export function PrForm({
         <label htmlFor={`${id}-title`} className="text-sm font-medium">
           Title
         </label>
-        <input
+        <Input
           id={`${id}-title`}
           name="title"
           value={title}
           maxLength={PR_TITLE_MAX}
           required
           onChange={(event) => setTitle(event.target.value)}
-          className={`${fieldClass} text-sm`}
+          className="h-auto rounded-lg py-2 text-sm"
         />
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`${id}-body`} className="text-sm font-medium">
           Description
         </label>
-        <textarea
+        <Textarea
           id={`${id}-body`}
           name="body"
           rows={11}
           value={body}
           maxLength={PR_BODY_MAX}
           onChange={(event) => setBody(event.target.value)}
-          className={`${fieldClass} resize-y font-mono text-xs leading-normal`}
+          className="field-sizing-fixed resize-y rounded-lg font-mono text-xs leading-normal md:text-xs"
         />
       </div>
       <div className="flex flex-col gap-1.5" data-pr-preview>
@@ -208,7 +207,7 @@ export function PrForm({
       {standing ? (
         <p data-dco="standing" className="text-xs text-muted-foreground">
           The commits are signed off (DCO) under your standing consent.{' '}
-          <Link href="/contribute/settings" prefetch={false} className="text-primary">
+          <Link href="/contribute/settings" prefetch={false} className="text-link">
             Change it in Settings
           </Link>
           .
@@ -274,10 +273,10 @@ export function PrForm({
       ) : null}
       <Button
         type="button"
-        variant="outline"
+        variant="destructive-outline"
         onClick={() => setConfirm('discard')}
         disabled={busy}
-        className="min-h-10.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        className="min-h-10.5"
       >
         Discard
       </Button>

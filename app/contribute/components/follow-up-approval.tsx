@@ -88,10 +88,10 @@ export function FollowUpApproval({
       </Button>
       <Button
         type="button"
-        variant="outline"
+        variant="destructive-outline"
         onClick={() => setConfirm('discard')}
         disabled={busy}
-        className="min-h-10.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        className="min-h-10.5"
       >
         Discard
       </Button>

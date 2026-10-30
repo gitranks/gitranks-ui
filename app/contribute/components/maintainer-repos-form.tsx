@@ -81,7 +81,7 @@ export function MaintainerReposForm({
                 {repos.length} {repos.length === 1 ? 'repo' : 'repos'}, most stars first.
               </span>
             )}
-            <button type="button" onClick={toggleAll} className="font-medium text-primary hover:underline">
+            <button type="button" onClick={toggleAll} className="font-medium text-link hover:underline">
               {allSelected ? 'Clear selection' : 'Select all'}
             </button>
           </div>

@@ -50,7 +50,7 @@ export function CycleSummary({ view, now, action }: { view: ContributeView; now?
         ) : null}
       </div>
       {action ?? (
-        <Link href="/contribute/issues" prefetch={false} className="text-sm font-semibold text-primary">
+        <Link href="/contribute/issues" prefetch={false} className="text-sm font-semibold text-link">
           Issues for you →
         </Link>
       )}

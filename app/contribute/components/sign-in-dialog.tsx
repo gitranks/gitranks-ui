@@ -137,7 +137,7 @@ export function SignInPanel({
           {continueWithGithub}
         </Button>
       )}
-      <DialogClose className="self-center rounded-sm text-sm font-semibold text-primary hover:underline">
+      <DialogClose className="self-center rounded-sm text-sm font-semibold text-link hover:underline">
         Not now
       </DialogClose>
     </>

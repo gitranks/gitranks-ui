@@ -70,7 +70,7 @@ export function CodeBlock({
   className?: string;
 }) {
   return (
-    <div className={cn('dark overflow-hidden rounded-xl bg-card text-card-foreground ring-1 ring-border', className)}>
+    <div className={cn('dark overflow-hidden rounded-xl bg-background text-foreground ring-1 ring-border', className)}>
       <div className="flex items-center justify-between gap-2 border-b pl-3.5">
         <span className={cn('min-w-0 truncate text-xs text-muted-foreground', file && 'font-mono')}>{label}</span>
         <CopyIcon text={children} label={copyLabel} />

@@ -51,10 +51,10 @@ export function PanelTitle({ title, text, id }: { title: string; text?: ReactNod
 
 const PILL_TONES = {
   neutral: 'bg-muted text-foreground/80',
-  green: 'bg-positive/10 text-positive',
+  green: 'bg-positive/10 text-positive-strong',
   violet: 'bg-brand-soft text-brand-soft-foreground',
   amber: 'bg-warning-soft text-warning-soft-foreground',
-  red: 'bg-destructive/10 text-destructive',
+  red: 'bg-negative/10 text-negative-strong',
 } as const;
 
 export function Pill({ children, tone = 'neutral' }: { children: ReactNode; tone?: keyof typeof PILL_TONES }) {

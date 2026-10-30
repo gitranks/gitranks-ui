@@ -80,7 +80,7 @@ function FileOptions() {
         title="Or add a file to the repo"
         text="We read it before every PR. Removing it later lets us back in."
       />
-      <pre className="dark overflow-x-auto rounded-lg bg-card px-4 py-3.5 font-mono text-sm leading-relaxed text-card-foreground">
+      <pre className="dark overflow-x-auto rounded-lg bg-background px-4 py-3.5 font-mono text-sm leading-relaxed text-foreground">
         <code>
           <span className="text-muted-foreground"># .github/gitranks.yml</span>
           {'\n'}contribute: off

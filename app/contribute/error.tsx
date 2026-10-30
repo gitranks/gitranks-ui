@@ -14,7 +14,7 @@ export default function ContributeError({ reset }: { error: Error & { digest?: s
         <Button type="button" onClick={reset} className="min-h-11 px-5 font-semibold">
           Try again
         </Button>
-        <Link href="/" prefetch={false} className="text-sm font-semibold text-primary">
+        <Link href="/" prefetch={false} className="text-sm font-semibold text-link">
           Back to GitRanks
         </Link>
       </div>

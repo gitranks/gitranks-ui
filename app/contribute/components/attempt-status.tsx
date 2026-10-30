@@ -123,12 +123,7 @@ export function PullRequestStatus({ pullRequest, now }: { pullRequest: Contribut
       <div className="flex flex-wrap items-center gap-2.5">
         <Pill tone={state.tone}>{state.label}</Pill>
         {url ? (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-primary hover:underline"
-          >
+          <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-link hover:underline">
             Pull request #{pullRequest.number} on GitHub ↗
           </a>
         ) : (
@@ -153,7 +148,7 @@ export function FollowUpOfLink({ followUpOf }: { followUpOf: ContributeFollowUpO
   if (!followUpOf) return <>the pull request</>;
   const url = githubUrlOf(followUpOf.url);
   return url ? (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+    <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-link hover:underline">
       pull request #{followUpOf.number} ↗
     </a>
   ) : (
@@ -334,7 +329,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
             <Link
               href={attemptHref(attempt.followUps.currentAttemptId)}
               prefetch={false}
-              className="text-sm font-semibold text-primary"
+              className="text-sm font-semibold text-link"
             >
               See the follow-up →
             </Link>

@@ -75,7 +75,7 @@ export function StopAutopilotButton({ attemptId }: { attemptId: string }) {
         size="lg"
         onClick={click}
         disabled={pending || done}
-        className="border border-warning/40 bg-background px-4 font-semibold text-warning hover:bg-warning/10 hover:text-warning"
+        className="border border-warning/40 bg-background px-4 font-semibold text-warning hover:bg-warning-soft hover:text-warning dark:hover:bg-warning-soft"
       >
         {pending || done ? 'Stopping…' : 'Stop'}
       </Button>

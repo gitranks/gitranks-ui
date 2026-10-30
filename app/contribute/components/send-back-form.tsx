@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react';
 import { sendBackToAgent } from '../actions';
 import { Panel } from './primitives';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { attemptActionErrorMessage } from '@/lib/contribute/errors';
 import { SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
 
@@ -56,13 +57,13 @@ export function SendBackForm({ attemptId, left }: { attemptId: string; left: num
           send();
         }}
       >
-        <textarea
+        <Textarea
           value={note}
           onChange={(event) => setNote(event.target.value)}
           maxLength={SEND_BACK_NOTE_MAX}
           rows={4}
           aria-label="What your agent should change"
-          className="rounded-lg border bg-background px-3 py-2 text-sm"
+          className="field-sizing-fixed rounded-lg text-sm"
         />
         <div>
           <Button type="submit" variant="outline" size="lg" disabled={pending || !note.trim()} className="px-3.5">

@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 
 /** The word the user types to confirm. */
@@ -73,9 +74,9 @@ export function DeleteDataSection() {
       </div>
       <Button
         type="button"
-        variant="ghost"
+        variant="destructive-outline"
         onClick={() => setOpen(true)}
-        className="min-h-11 border border-destructive bg-background px-4 font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive"
+        className="min-h-11 px-4 font-semibold"
       >
         Delete everything
       </Button>
@@ -93,12 +94,12 @@ export function DeleteDataSection() {
             <label htmlFor={`${id}-confirm`} className="text-sm font-medium">
               Type <span className="font-mono">{DELETE_CONFIRMATION}</span> to confirm
             </label>
-            <input
+            <Input
               id={`${id}-confirm`}
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
               autoComplete="off"
-              className="rounded-lg border border-input bg-background px-3 py-2"
+              className="h-auto rounded-lg py-2 md:text-base"
             />
             {error ? (
               <span role="alert" className="text-sm text-destructive">

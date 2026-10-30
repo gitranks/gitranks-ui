@@ -72,7 +72,7 @@ export function FollowUpRounds({
         <Link
           href={attemptHref(followUps.currentAttemptId)}
           prefetch={false}
-          className="text-sm font-semibold text-primary"
+          className="text-sm font-semibold text-link"
         >
           See the follow-up →
         </Link>

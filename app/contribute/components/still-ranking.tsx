@@ -57,7 +57,7 @@ export function StillRanking({
                 setRound((value) => value + 1);
                 router.refresh();
               }}
-              className="font-semibold text-primary"
+              className="font-semibold text-link"
             >
               Refresh
             </button>{' '}

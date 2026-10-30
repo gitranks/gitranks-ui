@@ -127,7 +127,7 @@ export function AgentConnectView({
           Your agent asks GitRanks for an issue, fixes it on your machine and hands the change back. You review it here
           before anything reaches GitHub.
         </p>
-        <Link href={CONNECT_KEY_PATH} prefetch={false} className="text-sm font-semibold text-primary">
+        <Link href={CONNECT_KEY_PATH} prefetch={false} className="text-sm font-semibold text-link">
           Use your Claude key instead →
         </Link>
       </div>
@@ -236,7 +236,7 @@ export function AgentConnectView({
               ) : full ? (
                 <>
                   You have {MCP_TOKENS_MAX} live tokens.{' '}
-                  <Link href="/contribute/settings#own-agent" prefetch={false} className="font-semibold text-primary">
+                  <Link href="/contribute/settings#own-agent" prefetch={false} className="font-semibold text-link">
                     Revoke one in Settings
                   </Link>{' '}
                   to create another.

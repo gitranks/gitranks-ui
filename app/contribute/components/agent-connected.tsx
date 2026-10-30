@@ -167,7 +167,7 @@ export function AgentFirstPicks({ page }: { page: ContributeIssuePage | null | u
         <h2 id="agent-first-picks" className="text-lg font-bold">
           What your agent sees first
         </h2>
-        <Link href={ISSUES_PATH} prefetch={false} className="text-sm font-semibold text-primary">
+        <Link href={ISSUES_PATH} prefetch={false} className="text-sm font-semibold text-link">
           All issues for you →
         </Link>
       </div>
@@ -243,7 +243,7 @@ export function AgentNextSteps({
           <span className="font-semibold text-foreground">We guessed what you&apos;d like:</span>{' '}
           {guessedLineOf(view, { spend: false })}
         </span>
-        <Link href={WORK_SETTINGS_PATH} prefetch={false} className="font-semibold text-primary">
+        <Link href={WORK_SETTINGS_PATH} prefetch={false} className="font-semibold text-link">
           Change it in Settings →
         </Link>
       </div>

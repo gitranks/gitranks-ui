@@ -94,7 +94,7 @@ export function SettingsScreen({
                     : 'They start from your plan once a key is connected, and every one of them is yours to change.'
                 }
               />
-              <Link href="/contribute/connect" prefetch={false} className="text-sm font-semibold text-primary">
+              <Link href="/contribute/connect" prefetch={false} className="text-sm font-semibold text-link">
                 Connect your Claude key →
               </Link>
             </Panel>

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 import { SignInButton } from './sign-in-dialog';
+import { Logo } from '@/components/logo/logo';
 import SigninButton from '@/components/signin-button/signin-button';
 import { buttonVariants } from '@/components/ui/button';
 import { isMaintainersPath, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
@@ -99,22 +100,23 @@ export function ContributeBarView({
   return (
     <header className="border-b bg-background">
       {/* The site header's row: p-4 around 36px controls, 68px tall. */}
-      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-x-7 p-4 md:flex-nowrap">
+      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-x-3 p-4 sm:gap-x-7 md:flex-nowrap">
         <Link
           href={home}
           prefetch={false}
           aria-label="GitRanks Contribute, home"
-          className="flex flex-none flex-col leading-none"
+          className="flex h-9 flex-none items-center gap-2"
         >
-          <span className="text-lg font-bold tracking-tight">GitRanks</span>
-          <span className="mt-1 text-xs font-bold uppercase tracking-wider text-primary">Contribute</span>
+          {/* gitranks' own logo, at the Header's size, and the product's name beside it. */}
+          <Logo className="h-[22px]" />
+          <span className="text-sm font-semibold text-primary">Contribute</span>
         </Link>
 
         {tabs ? (
           // The tabs reach into the row's padding, so the current one's underline sits on the bar's bottom border.
           <nav
             aria-label="Contribute"
-            className="flex gap-1 self-stretch text-sm max-md:order-3 max-md:-mb-4 max-md:basis-full max-md:overflow-x-auto md:-my-4"
+            className="flex gap-1 self-stretch text-sm max-md:order-3 max-md:-mb-4 max-md:basis-full max-md:overflow-x-auto max-md:[scrollbar-width:none] md:-my-4"
           >
             {CONTRIBUTE_TABS.map(({ href, label }) => {
               const active = current === href;
@@ -139,7 +141,7 @@ export function ContributeBarView({
         ) : null}
 
         {/* The links keep a 44px target; -my-1 lets them sit in the 36px row. */}
-        <div className="ml-auto flex h-9 items-center gap-4.5 text-sm">
+        <div className="ml-auto flex h-9 items-center gap-3 text-sm sm:gap-4.5">
           {settings ? (
             <Link
               href="/contribute/settings"
@@ -157,7 +159,8 @@ export function ContributeBarView({
             className="-my-1 inline-flex min-h-11 items-center gap-1.5 font-medium text-muted-foreground hover:text-foreground"
           >
             <ChevronLeftIcon aria-hidden="true" className="size-4" />
-            GitRanks
+            {/* On a phone the chevron alone, so the bar stays one row. */}
+            <span className="max-sm:hidden">GitRanks</span>
           </Link>
           {account === 'sign-in' ? (
             <SignInButton

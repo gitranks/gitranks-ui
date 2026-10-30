@@ -210,11 +210,13 @@ describe("Contribute's header and tabs", () => {
   ];
   /** The tab links, as the site's tabs draw them. */
   const tabLinks = (html: string) => html.match(/<a [^>]*href="\/contribute[^"]*"[^>]*>[^<]*/g) ?? [];
-  /** The tab marked as the current page: the site's tabs fill its underline. */
-  const currentTab = (html: string) =>
-    tabLinks(html)
-      .filter((link) => link.includes('border-foreground'))
-      .map((link) => link.match(/href="([^"]+)"/)?.[1]);
+  /** The tab marked as the current page: filled underline, and `aria-current` for screen readers, on the same link. */
+  const currentTab = (html: string) => {
+    const filled = tabLinks(html).filter((link) => link.includes('border-foreground'));
+    const named = tabLinks(html).filter((link) => link.includes('aria-current="page"'));
+    expect(named).toEqual(filled);
+    return filled.map((link) => link.match(/href="([^"]+)"/)?.[1]);
+  };
   const tabsAt = (pathname: string, search = '', onboarded = true) => {
     nav.pathname = pathname;
     nav.search = search;

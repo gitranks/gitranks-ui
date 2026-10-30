@@ -93,7 +93,7 @@ export class ContributeUnavailableError extends Error {
  * Everything the Contribute pages show for the signed-in user; null when Contribute is hidden from them (signed out,
  * or not on the preview), which the pages answer with a 404. A failed read throws `ContributeUnavailableError`. The
  * grant, the pause and the onboarding are read on their own, so an API that does not answer them yet leaves them
- * `undefined` and the rest of the page working. Read once per request: the bar and the page share it.
+ * `undefined` and the rest of the page working. Read once per request: the tabs and the page share it.
  */
 export const loadContribute = cache(async (): Promise<ContributeView | null> => {
   const githubLogin = await viewerLogin();

@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
 /**
- * Goes on to a page the moment the user is onboarded, in a new history entry or (`replace`) in the current one. Contribute's bar sits in the layout, which a client navigation
- * keeps as it was rendered, without the tabs; the refresh after the push reads the whole tree again, the bar with it.
+ * Goes on to a page the moment the user is onboarded, in a new history entry or (`replace`) in the current one. Contribute's tabs sit in the layout, which a client navigation
+ * keeps as it was rendered, without them; the refresh after the push reads the whole tree again, the tabs with it.
  * The router runs the two in order, so the refresh is the new page's.
  */
 export function useOnboardedPush() {

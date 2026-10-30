@@ -53,6 +53,7 @@ export const Tab: FC<TabProps> = ({ href, children, exact, pathnames }) => {
       <Link
         href={href as Route}
         prefetch={false}
+        aria-current={active ? 'page' : undefined}
         className={cn('relative inline-block whitespace-nowrap px-3 pb-4 sm:px-4 border-b-2 rounded-t-lg', {
           'border-transparent hover:border-muted-foreground': !active,
           'border-foreground text-foreground font-semibold': active,

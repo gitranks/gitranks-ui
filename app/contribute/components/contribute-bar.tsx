@@ -8,17 +8,10 @@ import { isOnboarded } from '@/lib/contribute/contribute-state';
  */
 export async function ContributeBar() {
   const [login, view] = await Promise.all([viewerLogin(), loadContribute().catch(() => undefined)]);
-  return (
-    <ContributeBarNav
-      signedIn={!!login}
-      allowed={!!view}
-      onboarded={isOnboarded(view)}
-      contributor={!!view?.contributor}
-    />
-  );
+  return <ContributeBarNav signedIn={!!login} onboarded={isOnboarded(view)} />;
 }
 
-/** The bar while the viewer is read: no tabs, no account. */
+/** The bar while the viewer is read: the header's logo and title, no tabs, no account. */
 export function ContributeBarFallback() {
   return <ContributeBarView />;
 }

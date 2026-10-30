@@ -1,15 +1,17 @@
 'use client';
 
-import { ChevronLeftIcon } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 import { SignInButton } from './sign-in-dialog';
-import { Logo } from '@/components/logo/logo';
+import { mainMenuItemClass } from '@/components/header/components/menu-styles';
+import { PhoneMenu } from '@/components/header/components/phone-menu';
+import { Header } from '@/components/header/header';
 import SigninButton from '@/components/signin-button/signin-button';
 import { buttonVariants } from '@/components/ui/button';
-import { isMaintainersPath, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
+import { NavigationMenuItem, NavigationMenuLink } from '@/components/ui/navigation-menu';
+import { isMaintainersPath } from '@/lib/contribute/contribute-path';
 import { isAsVisitor } from '@/lib/contribute/contribute-state';
 import { cn } from '@/lib/utils';
 
@@ -26,28 +28,18 @@ export const contributeTabOf = (pathname: string): Route | undefined => {
   return CONTRIBUTE_TABS.findLast(({ href }) => path === href || path.startsWith(`${href}/`))?.href;
 };
 
-const isSettingsPath = (pathname: string) => contributeTabOf(pathname) === '/contribute/settings';
-
 /** Who is looking, as the bar needs it. */
 export type ContributeBarViewer = {
   signedIn: boolean;
-  /** Contribute is open to them (the preview lets them in). */
-  allowed: boolean;
   onboarded: boolean;
-  /** They have a contributor record: Settings is theirs before they are onboarded too. */
-  contributor: boolean;
 };
 
 /** What the bar holds for a viewer on a path. */
 export type ContributeBarState = {
-  /** Where the lockup goes. */
-  home: Route;
-  /** The tabs: only once the user is onboarded. */
+  /** The tabs, as the header's menu: only once the user is onboarded. */
   tabs: boolean;
-  /** The tab (or the Settings link) marked as the current page. */
+  /** The tab marked as the current page. */
   current?: Route;
-  /** A Settings link in place of the tabs: a contributor not onboarded yet keeps a way to their tokens and data. */
-  settings: boolean;
   /** The account: the site's avatar menu, "Sign in" (the sign-in dialog), or nothing. */
   account: 'avatar' | 'sign-in' | 'none';
 };
@@ -55,22 +47,15 @@ export type ContributeBarState = {
 /**
  * The bar for a viewer on a path. Not onboarded, Contribute is one page and has no tabs. `?as=visitor` on `/contribute`
  * shows a signed-in user the visitor's bar. The maintainers page, open to everyone, has no tabs and no Contribute
- * sign-in (it has its own); its lockup leads to the landing only for a viewer Contribute is open to.
+ * sign-in (it has its own).
  */
 export function contributeBarOf(pathname: string, as: string | null, viewer: ContributeBarViewer): ContributeBarState {
   const maintainers = isMaintainersPath(pathname);
   const visitor = !viewer.signedIn || (pathname.replace(/\/+$/, '') === '/contribute' && isAsVisitor(as));
   const tabs = viewer.onboarded && !visitor && !maintainers;
-  const settings = !tabs && !visitor && !maintainers && viewer.contributor;
   return {
-    home: maintainers && !viewer.allowed ? MAINTAINERS_PATH : '/contribute',
     tabs,
-    current: tabs
-      ? contributeTabOf(pathname)
-      : settings && isSettingsPath(pathname)
-        ? '/contribute/settings'
-        : undefined,
-    settings,
+    current: tabs ? contributeTabOf(pathname) : undefined,
     account: maintainers ? (viewer.signedIn ? 'avatar' : 'none') : visitor ? 'sign-in' : 'avatar',
   };
 }
@@ -83,14 +68,13 @@ export function ContributeBarNav(viewer: ContributeBarViewer) {
 }
 
 /**
- * Contribute's own top bar, in place of the site header: the lockup, the tabs once onboarded, the way back to
- * GitRanks and the account. Without props it is the stand-in while the viewer is read: no tabs, no account.
+ * Contribute's top bar: the site header, titled "contribute" as a profile is titled with its login, with the tabs as
+ * its menu once onboarded and the account. Without props it is the stand-in while the viewer is read: no tabs, no
+ * account.
  */
 export function ContributeBarView({
-  home = '/contribute',
   tabs = false,
   current,
-  settings = false,
   account = 'none',
   preview = false,
 }: Partial<ContributeBarState> & {
@@ -98,82 +82,45 @@ export function ContributeBarView({
   preview?: boolean;
 }) {
   return (
-    <header className="border-b bg-background">
-      {/* The site header's row: p-4 around 36px controls, 68px tall. */}
-      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-x-3 p-4 sm:gap-x-7 md:flex-nowrap">
-        <Link
-          href={home}
-          prefetch={false}
-          aria-label="GitRanks Contribute, home"
-          className="flex h-9 flex-none items-center gap-2"
-        >
-          {/* gitranks' own logo, at the Header's size, and the product's name beside it. */}
-          <Logo className="h-[22px]" />
-          <span className="text-sm font-semibold text-primary">Contribute</span>
-        </Link>
-
-        {tabs ? (
-          // The tabs reach into the row's padding, so the current one's underline sits on the bar's bottom border.
-          <nav
-            aria-label="Contribute"
-            className="flex gap-1 self-stretch text-sm max-md:order-3 max-md:-mb-4 max-md:basis-full max-md:overflow-x-auto max-md:[scrollbar-width:none] md:-my-4"
+    <Header
+      title="contribute"
+      menu={tabs ? <ContributeMenu current={current} /> : null}
+      account={
+        account === 'sign-in' ? (
+          <SignInButton
+            preview={preview}
+            className={buttonVariants({ variant: 'outline', className: 'font-semibold' })}
           >
-            {CONTRIBUTE_TABS.map(({ href, label }) => {
-              const active = current === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  prefetch={false}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'flex min-h-11 items-center border-b-2 px-3 whitespace-nowrap transition-colors',
-                    active
-                      ? 'border-primary font-semibold text-foreground'
-                      : 'border-transparent font-medium text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-        ) : null}
+            Sign in
+          </SignInButton>
+        ) : account === 'avatar' ? (
+          <SigninButton />
+        ) : null
+      }
+    />
+  );
+}
 
-        {/* The links keep a 44px target; -my-1 lets them sit in the 36px row. */}
-        <div className="ml-auto flex h-9 items-center gap-3 text-sm sm:gap-4.5">
-          {settings ? (
-            <Link
-              href="/contribute/settings"
-              prefetch={false}
-              aria-current={current === '/contribute/settings' ? 'page' : undefined}
-              className="-my-1 inline-flex min-h-11 items-center font-medium text-muted-foreground hover:text-foreground"
+/** The tabs as the header's menu items: in the row from `sm` up, in the menu's panel below it. */
+function ContributeMenu({ current }: { current?: Route }) {
+  return (
+    <PhoneMenu aria-label="Contribute">
+      {CONTRIBUTE_TABS.map(({ href, label }) => {
+        const active = current === href;
+        return (
+          <NavigationMenuItem key={href}>
+            <NavigationMenuLink
+              asChild
+              active={active}
+              className={cn(mainMenuItemClass, active && 'bg-accent text-foreground')}
             >
-              Settings
-            </Link>
-          ) : null}
-          <Link
-            href="/"
-            prefetch={false}
-            aria-label="Back to GitRanks"
-            className="-my-1 inline-flex min-h-11 items-center gap-1.5 font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ChevronLeftIcon aria-hidden="true" className="size-4" />
-            {/* On a phone the chevron alone, so the bar stays one row. */}
-            <span className="max-sm:hidden">GitRanks</span>
-          </Link>
-          {account === 'sign-in' ? (
-            <SignInButton
-              preview={preview}
-              className={buttonVariants({ variant: 'outline', className: 'font-semibold' })}
-            >
-              Sign in
-            </SignInButton>
-          ) : account === 'avatar' ? (
-            <SigninButton />
-          ) : null}
-        </div>
-      </div>
-    </header>
+              <Link href={href} prefetch={false}>
+                {label}
+              </Link>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+        );
+      })}
+    </PhoneMenu>
   );
 }

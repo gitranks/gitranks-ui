@@ -10,6 +10,7 @@ import { OwnAgentSection } from './own-agent-section';
 import { PauseButton } from './pause-button';
 import { PreferencesSection } from './preferences-section';
 import { Panel, PanelTitle } from './primitives';
+import { ScrollToHash } from './scroll-to-hash';
 import { SettingsForm } from './settings-form';
 import { loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeView } from '@/lib/contribute/contribute.types';
@@ -110,6 +111,7 @@ export function SettingsScreen({
           <DeleteDataSection />
         </div>
       </div>
+      <ScrollToHash />
     </>
   );
 }

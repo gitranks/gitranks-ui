@@ -105,6 +105,20 @@ describe('contributeHomeOf', () => {
     expect(contributeHomeOf(views.newcomer, { as: 'visitor', about: '1' })).toEqual(visitor);
     expect(contributeHomeOf(views.active, { as: 'someone' })).toEqual({ screen: 'overview' });
   });
+
+  it('opens the overview with the welcome once the own agent has called, the client read back', () => {
+    expect(contributeHomeOf(views.agentOnboarded, { welcome: 'agent', client: 'codex' })).toEqual({
+      screen: 'overview',
+      welcome: 'codex',
+    });
+    expect(contributeHomeOf(views.agentOnboarded, { welcome: 'agent', client: 'nope' })).toEqual({
+      screen: 'overview',
+      welcome: 'claude-code',
+    });
+    expect(contributeHomeOf(views.agentOnboarded, { welcome: 'other' })).toEqual({ screen: 'overview' });
+    // Not onboarded yet, the welcome is the landing still.
+    expect(contributeHomeOf(views.midSetup, { welcome: 'agent' }).screen).toBe('landing');
+  });
 });
 
 describe('isContributePageOpen', () => {

@@ -9,6 +9,20 @@ import { type ContributeNotice, claudeKeyOf, isOnboarded, isPaused } from './con
 export const isFirstRun = (view: ContributeView, attempts: ContributeAttempt[] | undefined): boolean =>
   isOnboarded(view) && !!claudeKeyOf(view) && attempts !== undefined && attempts.length === 0;
 
+/**
+ * An attempt of the user's own agent. One the API does not say the runner of is the agent's when there is no Claude key
+ * to have run it.
+ */
+const isAgentAttempt = (view: ContributeView, attempt: ContributeAttempt) =>
+  attempt.runner === 'MCP' || (attempt.runner === undefined && !claudeKeyOf(view));
+
+/**
+ * The own agent's "What happens next" (B2): for an onboarded user while their agent has made no attempt. Not while the
+ * API does not answer the attempts.
+ */
+export const isAgentFirstRun = (view: ContributeView, attempts: ContributeAttempt[] | undefined): boolean =>
+  isOnboarded(view) && attempts !== undefined && !attempts.some((attempt) => isAgentAttempt(view, attempt));
+
 /** When the first attempt starts, as far as the user's own state tells it. */
 export type FirstRunStep =
   /** Attempts are not open yet. */
@@ -56,6 +70,13 @@ export function firstRunStepOf(
   if (page === null || (page && page.items.length === 0)) return { kind: 'no-issues' };
   return { kind: 'soon' };
 }
+
+/**
+ * Step 1 of the own agent's guide (B2): what holds its first claim. Only the user's pause does: attempts closed and a
+ * key's state hold the agent we run, not theirs, so those notices stay beside the guide.
+ */
+export const agentFirstRunStepOf = (view: ContributeView): Extract<FirstRunStep, { kind: 'paused' | 'soon' }> =>
+  isPaused(view) ? { kind: 'paused' } : { kind: 'soon' };
 
 /** The notice step 1 says again in its own words, or null when it restates none. */
 function restatedNoticeOf(step: FirstRunStep): ContributeNotice['kind'] | null {

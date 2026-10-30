@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { firstSpend, key, NOW, views } from './__fixtures__/contribute-views';
 import type { ContributeIssuePage, ContributeView } from './contribute.types';
 import type { ContributeNotice } from './contribute-state';
-import { firstRunNoticesOf, firstRunStepOf, isFirstRun } from './first-run';
+import { agentFirstRunStepOf, firstRunNoticesOf, firstRunStepOf, isAgentFirstRun, isFirstRun } from './first-run';
 
 const ISSUE = {
   issueId: 'I_1',
@@ -82,6 +82,23 @@ describe('firstRunStepOf', () => {
   });
 });
 
+describe('isAgentFirstRun', () => {
+  const agent = views.agentOnboarded;
+
+  it("is an onboarded user while their own agent has made no attempt, and never while the attempts aren't answered", () => {
+    expect(isAgentFirstRun(agent, [])).toBe(true);
+    expect(isAgentFirstRun(agent, undefined)).toBe(false);
+    expect(isAgentFirstRun(views.midSetup, [])).toBe(false);
+  });
+
+  it("counts the agent's attempts alone: a hosted one leaves the guide, one of unknown runner without a key does not", () => {
+    expect(isAgentFirstRun(agent, [{ attemptId: 'A_1', runner: 'MCP' } as never])).toBe(false);
+    expect(isAgentFirstRun(agent, [{ attemptId: 'A_1' } as never])).toBe(false);
+    expect(isAgentFirstRun(views.active, [{ attemptId: 'A_1', runner: 'MANAGED_AGENTS' } as never])).toBe(true);
+    expect(isAgentFirstRun(views.active, [{ attemptId: 'A_1' } as never])).toBe(true);
+  });
+});
+
 describe('firstRunNoticesOf', () => {
   const all: ContributeNotice[] = [{ kind: 'exhausted', until: null }, { kind: 'paused' }];
   const kinds = (notices: ContributeNotice[], step: Parameters<typeof firstRunNoticesOf>[1]) =>
@@ -99,5 +116,19 @@ describe('firstRunNoticesOf', () => {
   it('keeps every block while step 1 says something else, attempts closed among them', () => {
     expect(kinds(all, { kind: 'closed' })).toEqual(['exhausted', 'paused']);
     expect(kinds(all, { kind: 'soon' })).toEqual(['exhausted', 'paused']);
+  });
+});
+
+describe('agentFirstRunStepOf', () => {
+  it("is held by the user's pause alone, so a key's notice and closed attempts stay beside the guide", () => {
+    const paused = { ...views.agentOnboarded, paused: true };
+    const invalid = { ...views.keyInvalid, attemptsOpen: false };
+
+    expect(agentFirstRunStepOf(paused)).toEqual({ kind: 'paused' });
+    expect(agentFirstRunStepOf(invalid)).toEqual({ kind: 'soon' });
+    expect(firstRunNoticesOf([{ kind: 'paused' }], agentFirstRunStepOf(paused))).toEqual([]);
+    expect(firstRunNoticesOf([{ kind: 'key-invalid' }], agentFirstRunStepOf(invalid))).toEqual([
+      { kind: 'key-invalid' },
+    ]);
   });
 });

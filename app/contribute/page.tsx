@@ -5,8 +5,11 @@ import { Landing } from './components/landing';
 import { OverviewScreen } from './components/overview-status';
 import { ContributePageSkeleton } from './components/page-skeleton';
 import { loadAttempts, loadContribute, loadIssues } from '@/lib/contribute/contribute.data';
-import { contributeHomeOf } from '@/lib/contribute/contribute-state';
-import { isFirstRun } from '@/lib/contribute/first-run';
+import { contributeHomeOf, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
+import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
+
+/** The attempts the welcome reads to tell whether the user's own agent has made one. */
+const AGENT_ATTEMPTS_READ = 20;
 
 /** Contribute's home: the landing until the user is onboarded, then the overview. */
 export default function ContributeHomePage({ searchParams }: PageProps<'/contribute'>) {
@@ -32,9 +35,34 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
 
   const home = contributeHomeOf(view, params);
   if (home.screen === 'overview') {
-    // Before the first attempt, the guide says whether anything is picked yet.
-    const firstRun = isFirstRun(view, await latest) ? { page: await loadIssues({}) } : undefined;
-    return <OverviewScreen view={view} reviews={await reviews} firstRun={firstRun} />;
+    if (home.welcome) {
+      // The welcome of the user's own agent: its guide until it has made an attempt, which a hosted one is not.
+      const [attempts, page] = await Promise.all([
+        loadAttempts(undefined, AGENT_ATTEMPTS_READ).catch(() => undefined),
+        loadIssues({}),
+      ]);
+      return (
+        <OverviewScreen
+          view={view}
+          reviews={await reviews}
+          welcome={home.welcome}
+          agentFirstRun={isAgentFirstRun(view, attempts) ? { page } : undefined}
+        />
+      );
+    }
+    // Before the first attempt, the guide says whether anything is picked yet: a key's (A3), or the own agent's (B2).
+    const attempts = await latest;
+    if (isFirstRun(view, attempts)) {
+      return <OverviewScreen view={view} reviews={await reviews} firstRun={{ page: await loadIssues({}) }} />;
+    }
+    const agentFirstRun = isOwnAgentOnly(view) && isAgentFirstRun(view, attempts);
+    return (
+      <OverviewScreen
+        view={view}
+        reviews={await reviews}
+        agentFirstRun={agentFirstRun ? { page: await loadIssues({}) } : undefined}
+      />
+    );
   }
   return <Landing viewer={home.viewer} preview={home.preview} />;
 }

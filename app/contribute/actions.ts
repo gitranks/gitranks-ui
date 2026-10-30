@@ -1,5 +1,6 @@
 'use server';
 
+import { agentConnectedOf } from '@/lib/contribute/agent-connect';
 import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import {
@@ -8,6 +9,8 @@ import {
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
   ContributeFeedComputedDocument,
+  ContributeOnboardingDocument,
+  ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
   DeleteContributeDataDocument,
   DiscardAttemptDocument,
@@ -208,6 +211,46 @@ export async function createMcpToken(name: string): Promise<ContributeActionResu
 /** Revokes a token: the agent using it can make no more calls. */
 export async function revokeMcpToken(id: string): Promise<ContributeActionResult<boolean>> {
   return run(RevokeMcpTokenDocument, { id: String(id) }, (data) => data.revokeMcpToken);
+}
+
+export type AgentWatch = {
+  /** The token the page shows, or the unused one it came back to; null without one. */
+  tokenId: string | null;
+  /** The user was onboarded when the page opened: the stamp cannot tell this call apart. */
+  onboarded: boolean;
+};
+
+/**
+ * Whether the user's own agent has called: the onboarded stamp, read on its own, for a user not onboarded before; else,
+ * or when the API does not answer the stamp, the first use of the watched token.
+ */
+export async function readAgentConnected(watch: AgentWatch): Promise<ContributeActionResult<boolean>> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
+  const options = { source: 'client' as const, githubLogin };
+  const onboardedBefore = watch?.onboarded === true;
+  const tokenId = typeof watch?.tokenId === 'string' && watch.tokenId ? watch.tokenId : null;
+
+  let onboardedAt: string | null | undefined;
+  if (!onboardedBefore) {
+    try {
+      const data = await graphqlDirect(ContributeOnboardingDocument, undefined, options);
+      onboardedAt = data?.contribute?.contributor?.onboardedAt;
+    } catch {
+      onboardedAt = undefined;
+    }
+    if (onboardedAt !== undefined || !tokenId) {
+      return { ok: true, data: agentConnectedOf({ onboardedBefore, onboardedAt, tokenUsedAt: undefined }) };
+    }
+  }
+  if (!tokenId) return { ok: true, data: false };
+  try {
+    const data = await graphqlDirect(ContributeOwnAgentDocument, undefined, options);
+    const tokenUsedAt = data?.contribute?.mcpTokens?.find(({ id }) => id === tokenId)?.lastUsedAt;
+    return { ok: true, data: agentConnectedOf({ onboardedBefore, onboardedAt, tokenUsedAt }) };
+  } catch (error) {
+    return { ok: false, ...contributeErrorOf(error) };
+  }
 }
 
 /** Sends a change made by the user's own agent back to it, with what to change. */

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
-/** A 44px copy icon: it says "Copied" to a screen reader, and shows a tick, for a moment. */
+/** A 44px copy icon: it shows a tick, and says "Copied" to a screen reader from beside it, for a moment. */
 export function CopyIcon({ text, label, tone = 'dark' }: { text: string; label: string; tone?: 'dark' | 'light' }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -23,24 +23,27 @@ export function CopyIcon({ text, label, tone = 'dark' }: { text: string; label: 
   };
 
   return (
-    <button
-      type="button"
-      onClick={copy}
-      aria-label={label}
-      className={cn(
-        'flex size-11 flex-none items-center justify-center rounded-md transition-colors',
-        tone === 'dark' ? 'text-zinc-400 hover:text-white' : 'text-muted-foreground hover:text-foreground',
-      )}
-    >
-      {copied ? (
-        <Check aria-hidden="true" className="size-4" strokeWidth={2.4} />
-      ) : (
-        <Copy aria-hidden="true" className="size-4" />
-      )}
-      <span aria-live="polite" className="sr-only">
+    <>
+      <button
+        type="button"
+        onClick={copy}
+        aria-label={label}
+        className={cn(
+          'flex size-11 flex-none items-center justify-center rounded-md transition-colors',
+          tone === 'dark' ? 'text-zinc-400 hover:text-white' : 'text-muted-foreground hover:text-foreground',
+        )}
+      >
+        {copied ? (
+          <Check aria-hidden="true" className="size-4" strokeWidth={2.4} />
+        ) : (
+          <Copy aria-hidden="true" className="size-4" />
+        )}
+      </button>
+      {/* Beside the button, not in it: a button's name is its label, and its children are not announced. */}
+      <span role="status" aria-live="polite" className="sr-only">
         {copied ? 'Copied' : ''}
       </span>
-    </button>
+    </>
   );
 }
 

@@ -33,6 +33,15 @@ export const welcomeClientOf = (client: string | string[] | null | undefined): M
 export const agentWelcomeHref = (client: McpClient): Route =>
   `/contribute?welcome=${AGENT_WELCOME}&client=${encodeURIComponent(client)}` as Route;
 
+/** The address without the welcome's parameters, or null when it has none. Path, other parameters and hash stay. */
+export function forgetWelcomeOf(href: string): string | null {
+  const url = new URL(href);
+  if (!url.searchParams.has('welcome') && !url.searchParams.has('client')) return null;
+  url.searchParams.delete('welcome');
+  url.searchParams.delete('client');
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 /**
  * The live token a user who left mid-setup comes back to: the newest one their agent has not used. Making a new one
  * replaces it.

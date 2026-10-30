@@ -106,6 +106,22 @@ describe('the setup for each client and computer', () => {
     expect(mcpClientSetupOf('cursor', 'mac').where).toContain('from a terminal');
   });
 
+  it('takes the old entry out of Claude Code before adding it again for a replaced token, its error silenced', () => {
+    const add = mcpSetupLinesOf('claude-code', 'mac');
+    expect(mcpClientSetupOf('claude-code', 'mac', { replacing: true }).lines).toBe(
+      `claude mcp remove --scope user gitranks 2>/dev/null; ${add}`,
+    );
+    expect(mcpClientSetupOf('claude-code', 'windows', { replacing: true }).lines).toBe(
+      `claude mcp remove --scope user gitranks 2>$null; ${mcpSetupLinesOf('claude-code', 'windows')}`,
+    );
+    expect(mcpClientSetupOf('claude-code', 'mac', { replacing: true }).where).toContain('keeps the old token');
+    // The others read the variable when they start: the same lines, and a restart.
+    expect(mcpClientSetupOf('codex', 'mac', { replacing: true }).lines).toBe(mcpSetupLinesOf('codex', 'mac'));
+    expect(mcpClientSetupOf('codex', 'mac', { replacing: true }).where).toContain('restart it');
+    expect(mcpClientSetupOf('gemini-cli', 'linux', { replacing: true }).where).toContain('restart it');
+    expect(mcpClientSetupOf('cursor', 'mac', { replacing: true }).where).toBe(mcpClientSetupOf('cursor', 'mac').where);
+  });
+
   it("keeps Settings' lines as they were", () => {
     expect(MCP_SETUPS.map(({ client, lines }) => [client, lines])).toEqual(
       MCP_CLIENTS.map((client) => [client, mcpSetupLinesOf(client, 'mac')]),

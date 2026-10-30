@@ -4,6 +4,7 @@ import { mcpToken } from './__fixtures__/contribute-views';
 import {
   agentConnectedOf,
   agentWelcomeHref,
+  forgetWelcomeOf,
   isAgentWelcome,
   replaceToken,
   unusedTokenOf,
@@ -100,5 +101,13 @@ describe('unusedTokenOf', () => {
     expect(unusedTokenOf([used, older, newer])?.id).toBe('T_3');
     expect(unusedTokenOf([used])).toBeUndefined();
     expect(unusedTokenOf(undefined)).toBeUndefined();
+  });
+});
+
+describe('forgetWelcomeOf', () => {
+  it("takes the welcome's parameters out of the address, and leaves the rest", () => {
+    expect(forgetWelcomeOf('https://gitranks.com/contribute?welcome=agent&client=codex')).toBe('/contribute');
+    expect(forgetWelcomeOf('https://gitranks.com/contribute?welcome=agent&as=x#top')).toBe('/contribute?as=x#top');
+    expect(forgetWelcomeOf('https://gitranks.com/contribute')).toBeNull();
   });
 });

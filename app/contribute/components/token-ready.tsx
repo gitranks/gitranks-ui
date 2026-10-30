@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckIcon } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { CodeBlock, CopyIcon } from './code-block';
 import {
@@ -33,7 +33,7 @@ export function MakeNewToken({ onReplace, pending }: { onReplace: () => void; pe
 }
 
 /** What making a new one does, and that creating a token never revokes the others. */
-export const REPLACE_NOTE = `A new one revokes this token, so only one stays live. Otherwise, creating a token never revokes the others: up to ${MCP_TOKENS_MAX} stay live, listed in Settings.`;
+export const REPLACE_NOTE = `A new one revokes this token, so only one stays live; run the setup it shows again. Claude Code keeps the token it read when GitRanks was added, so its setup removes that entry first; the other agents read the variable when they start, so restart them. Otherwise, creating a token never revokes the others: up to ${MCP_TOKENS_MAX} stay live, listed in Settings.`;
 
 /**
  * B1b, the token just created, in place: shown whole this once, the line that saves it on this computer (the OS
@@ -48,6 +48,8 @@ export function TokenReady({
   onDone,
   onReplace,
   replacing = false,
+  replaced = false,
+  focusOnShow = false,
   byHand: byHandOpen = false,
 }: {
   token: string;
@@ -59,6 +61,10 @@ export function TokenReady({
   onDone: () => void;
   onReplace: () => void;
   replacing?: boolean;
+  /** The token replaces one the agent may hold already: the setup takes the old one out first. */
+  replaced?: boolean;
+  /** Shown by a button that is gone now: focus moves to the token's status line. */
+  focusOnShow?: boolean;
   /** "Keep it out of your shell history" open from the start. */
   byHand?: boolean;
 }) {
@@ -66,14 +72,21 @@ export function TokenReady({
   const [byHand, setByHand] = useState(byHandOpen);
   const save = mcpTokenSaveOf(os, token);
   const manual = mcpTokenByHandOf(os, token);
-  const setup = mcpClientSetupOf(client, os);
+  const setup = mcpClientSetupOf(client, os, { replacing: replaced });
+  const status = useRef<HTMLDivElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new token is announced, and focused, again.
+  useEffect(() => {
+    if (focusOnShow) status.current?.focus();
+  }, [focusOnShow, token]);
 
   return (
     <div className="flex flex-col gap-5" data-token-ready>
       <div
+        ref={status}
         role="status"
+        tabIndex={-1}
         className={cn(
-          'flex flex-wrap items-center gap-2.5 rounded-xl bg-green-100 px-3.5 py-3 text-sm text-green-800 dark:bg-green-950/60 dark:text-green-300',
+          'flex flex-wrap items-center gap-2.5 rounded-xl bg-green-100 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 px-3.5 py-3 text-sm text-green-800 dark:bg-green-950/60 dark:text-green-300',
           rise,
         )}
       >

@@ -149,21 +149,37 @@ export type McpClientSetup = {
   lines: string;
 };
 
-export function mcpClientSetupOf(client: McpClient, os: McpOs): McpClientSetup {
+/**
+ * The line that drops Claude Code's GitRanks entry, its error silenced when there is none: Claude Code keeps the token
+ * it read when the entry was added, and refuses to add a name it holds already.
+ */
+export const claudeCodeRemoveOf = (os: McpOs): string =>
+  `claude mcp remove --scope user gitranks ${os === 'windows' ? '2>$null' : '2>/dev/null'}`;
+
+/**
+ * A client's setup on one OS. `replacing`: the token replaces one the agent may hold already, so Claude Code's entry
+ * is removed before it is added again, and the clients that read the variable when they start are restarted.
+ */
+export function mcpClientSetupOf(
+  client: McpClient,
+  os: McpOs,
+  { replacing = false }: { replacing?: boolean } = {},
+): McpClientSetup {
   const lines = mcpSetupLinesOf(client, os);
   const name = MCP_CLIENT_NAMES[client];
   if (client === 'claude-code') {
+    // On Windows the saved variable reaches new windows only.
+    const run =
+      os === 'windows' ? 'Run this once, in a new PowerShell window.' : 'Run this once, in the same terminal.';
     return {
       client,
       name,
       label: os === 'windows' ? 'PowerShell' : 'Terminal',
       file: false,
-      // On Windows the saved variable reaches new windows only.
-      where:
-        os === 'windows'
-          ? 'Run this once, in a new PowerShell window. It works in every project.'
-          : 'Run this once, in the same terminal. It works in every project.',
-      lines,
+      where: replacing
+        ? `${run} It removes the GitRanks entry Claude Code has, which keeps the old token, then adds it again.`
+        : `${run} It works in every project.`,
+      lines: replacing ? `${claudeCodeRemoveOf(os)}; ${lines}` : lines,
     };
   }
   const where = {
@@ -175,7 +191,9 @@ export function mcpClientSetupOf(client: McpClient, os: McpOs): McpClientSetup {
         : 'Add this to the Cursor MCP file, then start Cursor again from a terminal, so it sees the variable.',
     'gemini-cli': 'Add this to the Gemini CLI settings file.',
   }[client];
-  return { client, name, label: homePathOf(os, CONFIG_FILES[client]), file: true, where, lines };
+  const restart =
+    replacing && client !== 'cursor' ? ` If ${name} is running, restart it, so it reads the new token.` : '';
+  return { client, name, label: homePathOf(os, CONFIG_FILES[client]), file: true, where: where + restart, lines };
 }
 
 export type McpSetup = {

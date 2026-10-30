@@ -134,6 +134,48 @@ describe('B1, your own agent', () => {
     );
   });
 
+  it('announces the hint from the waiting status, and says to run the setup again after a new token', () => {
+    const { html, plain } = b1({ stage: 'added', shown: TOKEN, hint: true });
+    expect(html).toMatch(/role="status" aria-live="polite"[^>]*>(?:(?!<\/section>).)*data-agent-hint/s);
+    expect(plain).toContain('If you made a new token since you added GitRanks, run the setup again');
+    expect(b1({ stage: 'added', shown: TOKEN, client: 'codex', hint: true }).plain).toContain(
+      'If you made a new token since, restart Codex CLI',
+    );
+  });
+
+  it("starts Claude Code's setup by removing the old entry once the token replaced another", () => {
+    const { plain } = b1({ stage: 'token', shown: TOKEN, replaced: true });
+    expect(plain).toContain('claude mcp remove --scope user gitranks 2>/dev/null; claude mcp add');
+    expect(plain).toContain('Claude Code keeps the token it read when GitRanks was added');
+    expect(b1({ stage: 'token', shown: TOKEN }).plain).not.toContain('claude mcp remove');
+  });
+
+  it('says the old token is revoked when the new one could not be made, and offers to try again', () => {
+    const { html, plain } = b1({
+      stage: 'none',
+      revokedOnly: true,
+      error: 'Something went wrong. Try again in a minute.',
+    });
+    expect(html).toContain('data-agent-error');
+    expect(plain).toContain("Your old token is revoked, and a new one wasn't made.");
+    expect(plain).toContain('Try again');
+    expect(plain).not.toContain('Creating a token never revokes the others');
+  });
+
+  it('takes the token off the page once the agent has called', () => {
+    const { html, plain } = b1({ stage: 'token', shown: TOKEN, connected: true });
+    expect(html).not.toContain(TOKEN);
+    expect(html).not.toContain('data-token-ready');
+    expect(plain).toContain('Your agent is connected. Taking you on…');
+    expect(plain).not.toContain('Show the setup again');
+  });
+
+  it('says Copied from beside each copy button, not inside it', () => {
+    const { html } = b1({ stage: 'token', shown: TOKEN });
+    expect(html).toMatch(/aria-label="Copy the token"[^>]*>(?:(?!<\/button>).)*<\/button><span role="status"/s);
+    expect(html).not.toMatch(/<button[^>]*aria-label="Copy[^"]*"[^>]*>(?:(?!<\/button>).)*aria-live/s);
+  });
+
   it('brings a user back mid-setup to the hello, the token not shown again but replaceable', () => {
     const { html, plain } = b1({ stage: 'added', pending: mcpToken() });
 

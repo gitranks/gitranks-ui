@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { CodeBlock } from './code-block';
 import { guessedLineOf, WORK_SETTINGS_PATH } from './first-run-guide';
+import { ForgetWelcome } from './forget-welcome';
 import { PauseButton } from './pause-button';
 import { StillRanking } from './still-ranking';
 import { AGENT_WORK_PROMPT } from '@/lib/contribute/agent-connect';
@@ -34,6 +35,7 @@ const BURST = [
 export function AgentWelcome({ client }: { client: McpClient }) {
   return (
     <section className="flex flex-wrap items-center gap-6" data-agent-welcome={client}>
+      <ForgetWelcome />
       <div aria-hidden="true" className="relative size-22 flex-none">
         {BURST.map(({ dx, dy, tone }) => (
           <span

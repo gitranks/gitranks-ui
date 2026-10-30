@@ -139,6 +139,9 @@ export const COMING_SOON: {
   },
 ];
 
+/** Merged pull requests through GitRanks that unlock autopilot. */
+export const AUTOPILOT_UNLOCK_AT = 3;
+
 /** `$5`, `$63.40`: whole dollars without cents. */
 export const usd = (amount: number) =>
   `$${Number.isInteger(amount) ? amount.toLocaleString('en-US') : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

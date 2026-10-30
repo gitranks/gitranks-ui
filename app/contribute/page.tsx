@@ -2,8 +2,10 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { Landing } from './components/landing';
+import { overviewReadSectionsOf } from './components/overview-home';
 import { OverviewScreen } from './components/overview-status';
 import { ContributePageSkeleton } from './components/page-skeleton';
+import { isAgentWelcome } from '@/lib/contribute/agent-connect';
 import { loadAttempts, loadContribute, loadIssues, loadProviderInterests } from '@/lib/contribute/contribute.data';
 import { contributeHomeOf, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
 import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
@@ -27,40 +29,43 @@ export default function ContributeHomePage({ searchParams }: PageProps<'/contrib
 }
 
 async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, 'searchParams'>) {
-  // Read beside the view, for the overview; the landing does not wait for them.
-  const reviews = loadAttempts('REVIEW', 5).catch(() => undefined);
-  const latest = loadAttempts(undefined, 1).catch(() => undefined);
-  const [view, params] = await Promise.all([loadContribute(), searchParams]);
+  const params = await searchParams;
+  // Read beside the view, for the overview's first-run check; the landing does not wait for it. The welcome of the
+  // user's own agent looks further back, for an attempt of the agent's beside the key's.
+  const attempts = loadAttempts(undefined, isAgentWelcome(params.welcome) ? AGENT_ATTEMPTS_READ : 1).catch(
+    () => undefined,
+  );
+  const view = await loadContribute();
   if (!view) notFound();
 
   const home = contributeHomeOf(view, params);
   if (home.screen === 'overview') {
+    // The feed's first page, read once: the guide's picks, Up next, and Right now's "no issues".
+    const feed = loadIssues({});
+    const sections = overviewReadSectionsOf(view, feed);
     if (home.welcome) {
       // The welcome of the user's own agent: its guide until it has made an attempt, which a hosted one is not.
-      const [attempts, page] = await Promise.all([
-        loadAttempts(undefined, AGENT_ATTEMPTS_READ).catch(() => undefined),
-        loadIssues({}),
-      ]);
+      const read = await attempts;
       return (
         <OverviewScreen
           view={view}
-          reviews={await reviews}
+          sections={sections}
           welcome={home.welcome}
-          agentFirstRun={isAgentFirstRun(view, attempts) ? { page } : undefined}
+          agentFirstRun={isAgentFirstRun(view, read) ? { page: await feed } : undefined}
         />
       );
     }
     // Before the first attempt, the guide says whether anything is picked yet: a key's (A3), or the own agent's (B2).
-    const attempts = await latest;
-    if (isFirstRun(view, attempts)) {
-      return <OverviewScreen view={view} reviews={await reviews} firstRun={{ page: await loadIssues({}) }} />;
+    const latest = await attempts;
+    if (isFirstRun(view, latest)) {
+      return <OverviewScreen view={view} sections={sections} firstRun={{ page: await feed }} />;
     }
-    const agentFirstRun = isOwnAgentOnly(view) && isAgentFirstRun(view, attempts);
+    const agentFirstRun = isOwnAgentOnly(view) && isAgentFirstRun(view, latest);
     return (
       <OverviewScreen
         view={view}
-        reviews={await reviews}
-        agentFirstRun={agentFirstRun ? { page: await loadIssues({}) } : undefined}
+        sections={sections}
+        agentFirstRun={agentFirstRun ? { page: await feed } : undefined}
       />
     );
   }

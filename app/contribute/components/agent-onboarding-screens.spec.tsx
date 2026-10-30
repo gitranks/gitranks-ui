@@ -17,14 +17,15 @@ vi.mock('./live-refresh', () => ({ LiveRefresh: () => <span data-live-refresh />
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 
 const { AgentConnect, AgentConnectView } = await import('./agent-connect');
-const { OverviewScreen } = await import('./overview-status');
+const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
+const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
 const { IssuesScreen } = await import('./issues-view');
 const { NOW, mcpToken, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { AGENT_HELLO_PROMPT, AGENT_WORK_PROMPT } = await import('@/lib/contribute/agent-connect');
 
 import type { ComponentProps } from 'react';
 
-import type { ContributeIssuePage } from '@/lib/contribute/contribute.types';
+import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
 
 const text = (html: string) =>
   html
@@ -227,10 +228,19 @@ const page: ContributeIssuePage = {
 };
 const ranking: ContributeIssuePage = { items: [], next: null, total: 0, computedAt: null };
 
+/** Overview's sections from reads that all answered. */
+const sections = (view: ContributeView) => overviewSectionsOf(view, overviewData(), NOW);
+
 describe('B2, your agent is connected', () => {
   it('welcomes the client picked, says what happens next, and that the first picks are still being ranked', () => {
     const html = renderToStaticMarkup(
-      <OverviewScreen view={views.agentOnboarded} welcome="codex" agentFirstRun={{ page: ranking }} now={NOW} />,
+      <OverviewScreen
+        view={views.agentOnboarded}
+        sections={sections(views.agentOnboarded)}
+        welcome="codex"
+        agentFirstRun={{ page: ranking }}
+        now={NOW}
+      />,
     );
     const plain = text(html);
 
@@ -254,7 +264,13 @@ describe('B2, your agent is connected', () => {
 
   it('shows the top three picks once they are ranked', () => {
     const html = renderToStaticMarkup(
-      <OverviewScreen view={views.agentOnboarded} welcome="claude-code" agentFirstRun={{ page }} now={NOW} />,
+      <OverviewScreen
+        view={views.agentOnboarded}
+        sections={sections(views.agentOnboarded)}
+        welcome="claude-code"
+        agentFirstRun={{ page }}
+        now={NOW}
+      />,
     );
     const plain = text(html);
 
@@ -267,8 +283,15 @@ describe('B2, your agent is connected', () => {
     expect(html).not.toContain('data-issue="I_4"');
   });
 
-  it("keeps the welcome and gives way to today's status once the agent has made an attempt", () => {
-    const html = renderToStaticMarkup(<OverviewScreen view={views.agentOnboarded} welcome="cursor" now={NOW} />);
+  it("keeps the welcome and gives way to Overview's sections once the agent has made an attempt", () => {
+    const html = renderToStaticMarkup(
+      <OverviewScreen
+        view={views.agentOnboarded}
+        sections={sections(views.agentOnboarded)}
+        welcome="cursor"
+        now={NOW}
+      />,
+    );
 
     expect(html).toContain('data-agent-welcome="cursor"');
     expect(html).not.toContain('data-agent-next');
@@ -278,6 +301,7 @@ describe('B2, your agent is connected', () => {
     const paused = renderToStaticMarkup(
       <OverviewScreen
         view={{ ...views.agentOnboarded, paused: true }}
+        sections={sections({ ...views.agentOnboarded, paused: true })}
         welcome="claude-code"
         agentFirstRun={{ page }}
         now={NOW}
@@ -292,6 +316,7 @@ describe('B2, your agent is connected', () => {
     const invalid = renderToStaticMarkup(
       <OverviewScreen
         view={{ ...views.keyInvalid, ownAgent: views.agentOnboarded.ownAgent }}
+        sections={sections({ ...views.keyInvalid, ownAgent: views.agentOnboarded.ownAgent })}
         welcome="claude-code"
         agentFirstRun={{ page }}
         now={NOW}
@@ -304,7 +329,12 @@ describe('B2, your agent is connected', () => {
 
   it('opens Overview and Issues with the next steps, before the first attempt, without the welcome', () => {
     const overview = renderToStaticMarkup(
-      <OverviewScreen view={views.agentOnboarded} agentFirstRun={{ page }} now={NOW} />,
+      <OverviewScreen
+        view={views.agentOnboarded}
+        sections={sections(views.agentOnboarded)}
+        agentFirstRun={{ page }}
+        now={NOW}
+      />,
     );
     expect(overview).toContain('>Overview</h1>');
     expect(overview).not.toContain('data-agent-welcome');

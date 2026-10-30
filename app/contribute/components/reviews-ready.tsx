@@ -7,7 +7,7 @@ import type { ContributeAttempt } from '@/lib/contribute/contribute.types';
 /** The review screen of one attempt. */
 export const attemptHref = (attemptId: string) => `/contribute/attempts/${encodeURIComponent(attemptId)}` as Route;
 
-/** The attempts waiting for the user's review, above Issues for you and the overview; nothing when none waits. */
+/** The attempts waiting for the user's review, above Issues for you; nothing when none waits. */
 export function ReviewsReady({ attempts }: { attempts: ContributeAttempt[] | undefined }) {
   const ready = (attempts ?? []).filter(({ state }) => state === 'REVIEW');
   if (!ready.length) return null;

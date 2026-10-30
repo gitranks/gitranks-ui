@@ -3,10 +3,12 @@ import Link from 'next/link';
 
 import { CodeBlock } from './code-block';
 import { guessedLineOf, WORK_SETTINGS_PATH } from './first-run-guide';
-import { RankedWatch } from './ranked-watch';
+import { PauseButton } from './pause-button';
+import { StillRanking } from './still-ranking';
 import { AGENT_WORK_PROMPT } from '@/lib/contribute/agent-connect';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
+import { agentFirstRunStepOf } from '@/lib/contribute/first-run';
 import { KIND_ONE, LANGUAGES } from '@/lib/contribute/format';
 import { MCP_CLIENT_NAMES, type McpClient } from '@/lib/contribute/mcp-setup';
 import { cn } from '@/lib/utils';
@@ -117,19 +119,10 @@ function FirstPick({ issue }: { issue: ContributeIssue }) {
   );
 }
 
-function PicksNote({ title, text, watch = false }: { title: string; text: string; watch?: boolean }) {
+function PicksNote({ title, text }: { title: string; text: string }) {
   return (
     <div className="flex flex-col gap-1 rounded-[14px] border border-dashed px-5 py-6 text-center">
-      {watch ? <RankedWatch /> : null}
-      <span className="flex items-center justify-center gap-2 font-semibold">
-        {watch ? (
-          <span
-            aria-hidden="true"
-            className="size-3.5 rounded-full border-2 border-violet-200 border-t-primary motion-safe:animate-spin dark:border-violet-900 dark:border-t-primary"
-          />
-        ) : null}
-        {title}
-      </span>
+      <span className="font-semibold">{title}</span>
       <span className="text-sm text-muted-foreground">{text}</span>
     </div>
   );
@@ -144,13 +137,7 @@ export function AgentFirstPicks({ page }: { page: ContributeIssuePage | null | u
   if (page === undefined) {
     body = <PicksNote title="Issues are not available yet" text="The feed is coming soon. Check back shortly." />;
   } else if (page && !page.computedAt) {
-    body = (
-      <PicksNote
-        title="Your first picks are still being ranked"
-        text="This takes a minute or two. They show up here by themselves."
-        watch
-      />
-    );
+    body = <StillRanking />;
   } else if (!page?.items.length) {
     body = (
       <PicksNote
@@ -202,6 +189,8 @@ export function AgentNextSteps({
   heading?: 'h1' | 'h2';
 }) {
   const agent = client ? MCP_CLIENT_NAMES[client] : 'your agent';
+  // Only the user's pause holds the agent's claim; its notice is left out beside this, the rest stay.
+  const paused = agentFirstRunStepOf(view).kind === 'paused';
   return (
     <section
       aria-labelledby="agent-next-title"
@@ -222,12 +211,34 @@ export function AgentNextSteps({
         </CodeBlock>
       </div>
       <ol className="grid grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] gap-3.5">
-        {STEPS.map(({ title, text }) => (
-          <li key={title} className="flex flex-col gap-1.5 rounded-[14px] border bg-background p-4">
-            <span className="text-[13px] font-semibold text-violet-700 dark:text-violet-300">{title}</span>
-            <span className="text-sm text-foreground/80">{text}</span>
-          </li>
-        ))}
+        {STEPS.map(({ title, text }, index) =>
+          index === 0 && paused ? (
+            <li
+              key={title}
+              data-step="1"
+              data-agent-step="paused"
+              className="flex flex-col gap-1.5 rounded-[14px] border-2 border-primary bg-background p-4"
+            >
+              <span className="text-[13px] font-semibold text-violet-700 dark:text-violet-300">1 · paused by you</span>
+              <span className="font-bold">Contributing is paused</span>
+              <span className="text-sm text-foreground/80">
+                Your agent can&apos;t claim an issue until you resume. Your token and picks are kept.
+              </span>
+              <div className="flex pt-1 [&>div]:items-start">
+                <PauseButton paused />
+              </div>
+            </li>
+          ) : (
+            <li
+              key={title}
+              data-step={index + 1}
+              className="flex flex-col gap-1.5 rounded-[14px] border bg-background p-4"
+            >
+              <span className="text-[13px] font-semibold text-violet-700 dark:text-violet-300">{title}</span>
+              <span className="text-sm text-foreground/80">{text}</span>
+            </li>
+          ),
+        )}
       </ol>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-violet-100 pt-3.5 text-sm dark:border-violet-900/60">
         <span className="text-foreground/80">

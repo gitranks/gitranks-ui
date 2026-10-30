@@ -14,7 +14,6 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('./live-refresh', () => ({ LiveRefresh: () => <span data-live-refresh /> }));
-vi.mock('./ranked-watch', () => ({ RankedWatch: () => <span data-ranked-watch /> }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 
 const { AgentConnect, AgentConnectView } = await import('./agent-connect');
@@ -208,7 +207,7 @@ describe('B2, your agent is connected', () => {
     expect(plain).toContain('Change it in Settings');
     expect(html).toContain('data-agent-picks="ranking"');
     expect(plain).toContain('Your first picks are still being ranked');
-    expect(html).toContain('data-ranked-watch');
+    expect(html).toContain('data-ranking="waiting"');
   });
 
   it('shows the top three picks once they are ranked', () => {
@@ -218,7 +217,7 @@ describe('B2, your agent is connected', () => {
     const plain = text(html);
 
     expect(html).toContain('data-agent-picks="ready"');
-    expect(html).not.toContain('data-ranked-watch');
+    expect(html).not.toContain('data-ranking=');
     expect(plain).toContain('What your agent sees first');
     expect(plain).toContain('fern-lang/fern · #2481');
     expect(plain).toContain('bug · Rust · size S');
@@ -231,6 +230,34 @@ describe('B2, your agent is connected', () => {
 
     expect(html).toContain('data-agent-welcome="cursor"');
     expect(html).not.toContain('data-agent-next');
+  });
+
+  it("says the user's pause holds the agent's claim in step 1, its notice left out, and keeps a key's notices", () => {
+    const paused = renderToStaticMarkup(
+      <OverviewScreen
+        view={{ ...views.agentOnboarded, paused: true }}
+        welcome="claude-code"
+        agentFirstRun={{ page }}
+        now={NOW}
+      />,
+    );
+    expect(paused).toContain('data-agent-step="paused"');
+    expect(text(paused)).toContain('Contributing is paused');
+    expect(text(paused)).toContain('Resume');
+    expect(paused).not.toContain('data-notice="paused"');
+
+    // A refused key holds the attempts we run, not the agent's: its notice stays, and step 1 is the agent's claim.
+    const invalid = renderToStaticMarkup(
+      <OverviewScreen
+        view={{ ...views.keyInvalid, ownAgent: views.agentOnboarded.ownAgent }}
+        welcome="claude-code"
+        agentFirstRun={{ page }}
+        now={NOW}
+      />,
+    );
+    expect(invalid).not.toContain('data-agent-step="paused"');
+    expect(text(invalid)).toContain('your agent claims an issue');
+    expect(invalid).toContain('data-notice="key-invalid"');
   });
 
   it('opens Overview and Issues with the next steps, before the first attempt, without the welcome', () => {

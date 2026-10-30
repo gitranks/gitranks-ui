@@ -10,12 +10,14 @@ import { LimitsManual } from './limits-manual';
 import { ISSUES_PATH, Matching } from './matching';
 import {
   appliedLimitsOf,
+  connectLimitsOf,
   type LimitsMode,
   type ManualLimitsDraft,
   manualDraftOf,
   manualLimitsOf,
   PLAN_CHOICES,
   renewalLabelOf,
+  type StoredLimits,
 } from '@/lib/contribute/connect-limits';
 import type { ContributeClaudePlan, ContributeConnectKeyResult } from '@/lib/contribute/contribute.types';
 import { CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
@@ -31,8 +33,10 @@ const cardTitle = 'text-[17px] font-bold';
 export type KeyConnectProps = {
   /** The plan a key was connected with before; the plan's limits start from Max 5x otherwise. */
   defaultPlan?: ContributeClaudePlan | null;
-  /** "I'll set them myself" as the stored settings have it, for a key connected that way before. */
+  /** "I'll set them myself" as the stored settings have it, for a key connected before. */
   defaultManual?: Partial<ManualLimitsDraft>;
+  /** A key connected before: the plan and settings the connect keeps, said in "The limits we apply". */
+  stored?: StoredLimits | null;
   /** The reset day already set; else `guessDay` is taken. */
   renewalDay?: number | null;
   /** Today (UTC): our guess at the reset day. */
@@ -55,6 +59,7 @@ export type KeyConnectProps = {
 export function KeyConnect({
   defaultPlan,
   defaultManual,
+  stored = null,
   renewalDay,
   guessDay,
   replacing = false,
@@ -80,7 +85,14 @@ export function KeyConnect({
   const own = manualLimitsOf(manual);
   const limitsReady = mode === 'plan' || own.ok;
   const canSubmit = confirmed && key.trim().length > 0 && limitsReady && !pending;
-  const applied = appliedLimitsOf(mode, plan, manual);
+  // Why the button is off, said beside it: the checkbox's own `required` never speaks while the button is disabled.
+  const missing = [
+    confirmed ? null : 'tick the box in step 1',
+    key.trim() ? null : 'paste your key in step 2',
+    limitsReady ? null : 'fix the limits in step 3',
+  ].filter((step): step is string => step !== null);
+  const whyId = `${id}-why`;
+  const applied = appliedLimitsOf(mode, plan, manual, stored);
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -92,7 +104,10 @@ export function KeyConnect({
         plan: mode === 'manual' ? 'CREDITS' : plan,
         renewalDay: day,
         confirmedLimit: confirmed,
-        ...(mode === 'manual' && own.ok ? { cycleCapUsd: own.cycleCapUsd, limits: own.limits } : {}),
+        // Only what differs from the stored settings: a replace keeps the rest, a QUEUED pace among it.
+        ...(mode === 'manual' && own.ok
+          ? { cycleCapUsd: own.cycleCapUsd, limits: connectLimitsOf(own.limits, stored?.settings ?? null) }
+          : {}),
       });
       if (!result.ok) {
         setOutcome(undefined);
@@ -321,10 +336,16 @@ export function KeyConnect({
         <button
           type="submit"
           disabled={!canSubmit}
+          aria-describedby={!pending && missing.length ? whyId : undefined}
           className="min-h-[52px] rounded-xl bg-primary px-[22px] text-base font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {pending ? 'Checking your key…' : replacing ? 'Connect the new key' : 'Connect and find issues'}
         </button>
+        {!pending && missing.length ? (
+          <p id={whyId} data-connect-missing className="-mt-2 text-center text-[13px] text-muted-foreground">
+            To continue, {missing.join(', then ')}.
+          </p>
+        ) : null}
 
         {error ? (
           <p role="alert" className="text-sm font-medium text-red-700 dark:text-red-400">

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { LiveRefresh } from './live-refresh';
 import { PauseButton } from './pause-button';
 import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
+import { CONNECT_KEY_PATH } from '@/lib/contribute/contribute-path';
 import { type FirstRunStep, firstRunStepOf } from '@/lib/contribute/first-run';
 import { dayLabel, KINDS, LANGUAGES, relativeLabel, SIZES, usd } from '@/lib/contribute/format';
 
@@ -29,6 +30,17 @@ export function firstRunCopyOf(step: FirstRunStep, view: ContributeView, now = n
         title: 'Contributing is paused',
         text: 'No attempt starts until you resume. Your key, limits and picks are kept.',
         action: <PauseButton paused />,
+      };
+    case 'key-invalid':
+      return {
+        when: 'once you connect a new key',
+        title: 'Your key stopped working',
+        text: 'Anthropic refuses the key you connected, so no attempt starts. Connect a new one and your agent starts on one of your top picks.',
+        action: (
+          <Link href={CONNECT_KEY_PATH} prefetch={false} className="text-sm font-semibold text-primary">
+            Connect a new key →
+          </Link>
+        ),
       };
     case 'key-waiting': {
       const until = step.until ? dayLabel(step.until) : null;
@@ -135,7 +147,7 @@ export function FirstRunGuide({
 }) {
   const step = firstRunStepOf(view, page, now);
   const copy = firstRunCopyOf(step, view, now);
-  const yours = step.kind === 'paused' || step.kind === 'no-room';
+  const yours = step.kind === 'paused' || step.kind === 'no-room' || step.kind === 'key-invalid';
 
   return (
     <section

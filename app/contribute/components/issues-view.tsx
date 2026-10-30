@@ -8,13 +8,19 @@ import { FirstRunGuide } from './first-run-guide';
 import { IssueCard } from './issue-card';
 import { filterOf, type IssuesQuery, issuesHref, issuesQueryOf } from './issues-filter';
 import { IssuesFilters } from './issues-filters';
-import { LiveRefresh } from './live-refresh';
 import { Meter } from './primitives';
 import { ReviewsReady } from './reviews-ready';
+import { StillRanking } from './still-ranking';
 import { loadAttempts, loadContribute, loadIssues } from '@/lib/contribute/contribute.data';
 import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf, isContributePageOpen, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
-import { FIRST_RUN_NOTICES, isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
+import {
+  agentFirstRunStepOf,
+  firstRunNoticesOf,
+  firstRunStepOf,
+  isAgentFirstRun,
+  isFirstRun,
+} from '@/lib/contribute/first-run';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
 
 export async function IssuesView({
@@ -87,15 +93,7 @@ export function IssuesScreen({
     feed = <Empty title="Issues are not available yet" text="The feed is coming soon. Check back shortly." />;
   } else if (page && !page.computedAt && !page.items.length && !filtered(query)) {
     // The first picks are computed after the key is connected: the page reads itself again until they are in.
-    feed = (
-      <>
-        <LiveRefresh seconds={5} />
-        <Empty
-          title="Your first picks are still being ranked"
-          text="This takes a minute or two. They show up here by themselves."
-        />
-      </>
-    );
+    feed = <StillRanking />;
   } else if (!page?.items.length) {
     feed = filtered(query) ? (
       <Empty
@@ -148,17 +146,20 @@ export function IssuesScreen({
     );
   }
 
-  const notices = contributeNoticesOf(view).filter(({ kind }) => !firstRun || !FIRST_RUN_NOTICES.has(kind));
+  // Only the unfiltered first page says whether anything is picked at all.
+  const guidePage = query.after || filtered(query) ? undefined : page;
+  const notices = firstRun
+    ? firstRunNoticesOf(contributeNoticesOf(view), firstRunStepOf(view, guidePage, now))
+    : agentFirstRun
+      ? firstRunNoticesOf(contributeNoticesOf(view), agentFirstRunStepOf(view))
+      : contributeNoticesOf(view);
   const guided = firstRun || agentFirstRun;
   const Heading = guided ? 'h2' : 'h1';
 
   return (
     <>
       <ContributeNotices notices={notices} />
-      {firstRun ? (
-        // Only the unfiltered first page says whether anything is picked at all.
-        <FirstRunGuide view={view} page={query.after || filtered(query) ? undefined : page} now={now} heading="h1" />
-      ) : null}
+      {firstRun ? <FirstRunGuide view={view} page={guidePage} now={now} heading="h1" /> : null}
       {agentFirstRun ? <AgentNextSteps view={view} heading="h1" /> : null}
       <ReviewsReady attempts={reviews} />
       <div className="flex flex-wrap items-start gap-6">

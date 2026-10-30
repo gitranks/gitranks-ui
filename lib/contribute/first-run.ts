@@ -23,19 +23,14 @@ const isAgentAttempt = (view: ContributeView, attempt: ContributeAttempt) =>
 export const isAgentFirstRun = (view: ContributeView, attempts: ContributeAttempt[] | undefined): boolean =>
   isOnboarded(view) && attempts !== undefined && !attempts.some((attempt) => isAgentAttempt(view, attempt));
 
-/** The notices the guide's step 1 already gives, left out beside it. */
-export const FIRST_RUN_NOTICES: ReadonlySet<ContributeNotice['kind']> = new Set([
-  'paused',
-  'exhausted',
-  'limit-reached',
-]);
-
 /** When the first attempt starts, as far as the user's own state tells it. */
 export type FirstRunStep =
   /** Attempts are not open yet. */
   | { kind: 'closed' }
   /** The user paused contributing. */
   | { kind: 'paused' }
+  /** Anthropic refuses the stored key: nothing starts until a new one is connected. */
+  | { kind: 'key-invalid' }
   /** The key's credits, or its workspace's spend limit, are used up until `until`. */
   | { kind: 'key-waiting'; reason: 'EXHAUSTED' | 'LIMIT_REACHED'; until: string | null }
   /** No allowance ever covers one attempt under the caps. */
@@ -61,6 +56,7 @@ export function firstRunStepOf(
   if (isPaused(view)) return { kind: 'paused' };
 
   const key = claudeKeyOf(view);
+  if (key?.state === 'INVALID') return { kind: 'key-invalid' };
   if (key?.state === 'EXHAUSTED' || key?.state === 'LIMIT_REACHED') {
     return { kind: 'key-waiting', reason: key.state, until: key.blockedUntil };
   }
@@ -74,3 +70,33 @@ export function firstRunStepOf(
   if (page === null || (page && page.items.length === 0)) return { kind: 'no-issues' };
   return { kind: 'soon' };
 }
+
+/**
+ * Step 1 of the own agent's guide (B2): what holds its first claim. Only the user's pause does: attempts closed and a
+ * key's state hold the agent we run, not theirs, so those notices stay beside the guide.
+ */
+export const agentFirstRunStepOf = (view: ContributeView): Extract<FirstRunStep, { kind: 'paused' | 'soon' }> =>
+  isPaused(view) ? { kind: 'paused' } : { kind: 'soon' };
+
+/** The notice step 1 says again in its own words, or null when it restates none. */
+function restatedNoticeOf(step: FirstRunStep): ContributeNotice['kind'] | null {
+  switch (step.kind) {
+    case 'paused':
+      return 'paused';
+    case 'key-invalid':
+      return 'key-invalid';
+    case 'key-waiting':
+      return step.reason === 'EXHAUSTED' ? 'exhausted' : 'limit-reached';
+    default:
+      return null;
+  }
+}
+
+/**
+ * The notices beside the guide: all of them but the one its step 1 restates. Step 1 shows only the first state that
+ * holds, so every other block (a pause beside a used-up key, either while attempts are closed) stays said above it.
+ */
+export const firstRunNoticesOf = (notices: ContributeNotice[], step: FirstRunStep): ContributeNotice[] => {
+  const restated = restatedNoticeOf(step);
+  return notices.filter(({ kind }) => kind !== restated);
+};

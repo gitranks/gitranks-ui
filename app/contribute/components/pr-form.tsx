@@ -19,7 +19,14 @@ import { CONTRIBUTE_PROVIDER } from '@/lib/auth-providers';
 import { PR_BODY_MAX, PR_TITLE_MAX, prBodyPreview, prFooterText } from '@/lib/contribute/attempt-format';
 import type { ContributeDcoMode } from '@/lib/contribute/contribute.types';
 import { attemptActionErrorMessage } from '@/lib/contribute/errors';
-import { RESUME_PARAM, resumeHrefOf, savePendingApproval, takePendingApproval } from '@/lib/contribute/grant-resume';
+import {
+  RESUME_PARAM,
+  resumeHrefOf,
+  savePendingApproval,
+  sendPendingApproval,
+  tabStoreOf,
+  takePendingApproval,
+} from '@/lib/contribute/grant-resume';
 
 const fieldClass =
   'w-full rounded-lg border border-input bg-background px-3 py-2 text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -107,7 +114,7 @@ export function PrForm({
   const allowAndOpen = () => {
     setError(null);
     const nonce = nonceOf();
-    if (!savePendingApproval(sessionStorage, { attemptId, title, body, dco: standing || dco, nonce })) {
+    if (!savePendingApproval(tabStoreOf(window), { attemptId, title, body, dco: standing || dco, nonce })) {
       setError('This browser keeps nothing for the way back. Allow GitHub access in Settings, then submit here.');
       return;
     }
@@ -128,7 +135,7 @@ export function PrForm({
     params.delete(RESUME_PARAM);
     const rest = params.toString();
     const clean = `${window.location.pathname}${rest ? `?${rest}` : ''}${window.location.hash}`;
-    const approval = grantConnected ? takePendingApproval(sessionStorage, attemptId, resume) : null;
+    const approval = grantConnected ? takePendingApproval(tabStoreOf(window), attemptId, resume) : null;
     if (!approval) {
       router.replace(clean as never, { scroll: false });
       return;
@@ -137,16 +144,15 @@ export function PrForm({
     setBody(approval.body);
     setDco(approval.dco);
     setHandoff('opening');
-    void approveAttempt({ id: attemptId, title: approval.title, body: approval.body, dco: approval.dco }).then(
-      (result) => {
-        if (!result.ok) {
-          setHandoff(null);
-          setError(attemptActionErrorMessage(result.error, result.message));
-        }
-        router.replace(clean as never, { scroll: false });
-        router.refresh();
-      },
-    );
+    // The edits stay in the form's state: a refusal or a failed send gives the form back as the user left it.
+    void sendPendingApproval(approval, approveAttempt).then((failure) => {
+      if (failure) {
+        setHandoff(null);
+        setError(failure);
+      }
+      router.replace(clean as never, { scroll: false });
+      router.refresh();
+    });
   }, []);
 
   return (

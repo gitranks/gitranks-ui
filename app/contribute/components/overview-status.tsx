@@ -9,7 +9,7 @@ import { ReviewsReady } from './reviews-ready';
 import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
 import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
-import { FIRST_RUN_NOTICES } from '@/lib/contribute/first-run';
+import { agentFirstRunStepOf, firstRunNoticesOf, firstRunStepOf } from '@/lib/contribute/first-run';
 import type { McpClient } from '@/lib/contribute/mcp-setup';
 import { cn } from '@/lib/utils';
 
@@ -71,14 +71,16 @@ export function OverviewScreen({
       {agentFirstRun ? (
         <>
           <div className="flex flex-col gap-3">
-            <ContributeNotices notices={contributeNoticesOf(view)} />
+            <ContributeNotices notices={firstRunNoticesOf(contributeNoticesOf(view), agentFirstRunStepOf(view))} />
             <AgentNextSteps view={view} client={welcome} />
           </div>
           <AgentFirstPicks page={agentFirstRun.page} />
         </>
       ) : firstRun ? (
         <div className="flex flex-col gap-3">
-          <ContributeNotices notices={contributeNoticesOf(view).filter(({ kind }) => !FIRST_RUN_NOTICES.has(kind))} />
+          <ContributeNotices
+            notices={firstRunNoticesOf(contributeNoticesOf(view), firstRunStepOf(view, firstRun.page, now))}
+          />
           <FirstRunGuide view={view} page={firstRun.page} now={now} />
         </div>
       ) : (

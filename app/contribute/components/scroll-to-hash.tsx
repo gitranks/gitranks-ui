@@ -8,7 +8,8 @@ import { useEffect } from 'react';
  */
 export function ScrollToHash() {
   useEffect(() => {
-    const id = decodeURIComponent(window.location.hash.slice(1));
+    // The section ids are plain ASCII, so the hash needs no decoding (which throws on a stray `%`).
+    const id = window.location.hash.slice(1);
     if (id) document.getElementById(id)?.scrollIntoView();
   }, []);
   return null;

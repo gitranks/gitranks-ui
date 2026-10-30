@@ -81,7 +81,7 @@ export function ReviewScreen({
     return (
       <div className="flex flex-col items-start gap-3" data-review="unavailable">
         <BackLink />
-        <h1 className="text-[28px] font-bold tracking-tight">Reviews are not available yet</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Reviews are not available yet</h1>
         <p className="text-muted-foreground">This is coming soon. Check back shortly.</p>
       </div>
     );
@@ -118,7 +118,7 @@ export function ReviewScreen({
             )}
           </span>
         </div>
-        <h1 className="text-[28px] font-bold tracking-tight text-balance">{attemptTitleOf(attempt)}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-balance">{attemptTitleOf(attempt)}</h1>
         {followUp ? (
           <p data-follow-up-of={attempt.followUpOf?.number ?? ''} className="text-sm text-muted-foreground">
             {attempt.followUpOf === undefined ? (

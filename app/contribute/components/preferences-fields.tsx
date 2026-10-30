@@ -42,7 +42,7 @@ export function PreferencesFields({
                 className={cn(
                   'rounded-full border px-3 py-1 text-sm',
                   on
-                    ? 'border-primary bg-violet-50 text-violet-800 dark:bg-violet-950 dark:text-violet-200'
+                    ? 'border-primary bg-brand-soft text-brand-soft-foreground'
                     : 'border-dashed text-muted-foreground hover:text-foreground',
                 )}
               >

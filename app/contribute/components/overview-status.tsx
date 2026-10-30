@@ -63,8 +63,8 @@ export function OverviewScreen({
   return (
     <main
       className={cn(
-        'mx-auto flex w-full max-w-[1180px] flex-col px-4 pb-12',
-        welcome ? 'gap-[22px] pt-6 sm:gap-7 sm:pt-10' : 'gap-10 pt-8',
+        'mx-auto w-full max-w-7xl px-4 flex flex-col pb-12',
+        welcome ? 'gap-5.5 pt-6 sm:gap-7 sm:pt-10' : 'gap-10 pt-8',
       )}
     >
       {welcome ? <AgentWelcome client={welcome} /> : <h1 className="sr-only">Overview</h1>}

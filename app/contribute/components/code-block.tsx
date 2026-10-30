@@ -5,8 +5,11 @@ import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
-/** A 44px copy icon: it shows a tick, and says "Copied" to a screen reader from beside it, for a moment. */
-export function CopyIcon({ text, label, tone = 'dark' }: { text: string; label: string; tone?: 'dark' | 'light' }) {
+/**
+ * A 44px copy icon: it shows a tick, and says "Copied" to a screen reader from beside it, for a moment. Its colours are
+ * tokens, so it suits the surface it is on: inside a `CodeBlock` they are the dark theme's.
+ */
+export function CopyIcon({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -28,10 +31,7 @@ export function CopyIcon({ text, label, tone = 'dark' }: { text: string; label: 
         type="button"
         onClick={copy}
         aria-label={label}
-        className={cn(
-          'flex size-11 flex-none items-center justify-center rounded-md transition-colors',
-          tone === 'dark' ? 'text-zinc-400 hover:text-white' : 'text-muted-foreground hover:text-foreground',
-        )}
+        className="flex size-11 flex-none items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
       >
         {copied ? (
           <Check aria-hidden="true" className="size-4" strokeWidth={2.4} />
@@ -49,7 +49,8 @@ export function CopyIcon({ text, label, tone = 'dark' }: { text: string; label: 
 
 /**
  * A command, a config or a prompt to copy: a dark block with a header (where it goes) and a copy icon inside. Long
- * lines scroll sideways, unless `wrap` (a prompt).
+ * lines scroll sideways, unless `wrap` (a prompt). The block sets the dark theme on itself (`dark`), so its tokens are
+ * the dark theme's in both.
  */
 export function CodeBlock({
   label,
@@ -69,19 +70,14 @@ export function CodeBlock({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        'overflow-hidden rounded-xl bg-zinc-900 dark:bg-zinc-950 dark:ring-1 dark:ring-zinc-800',
-        className,
-      )}
-    >
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-800 pl-3.5">
-        <span className={cn('min-w-0 truncate text-xs text-zinc-400', file && 'font-mono')}>{label}</span>
+    <div className={cn('dark overflow-hidden rounded-xl bg-card text-card-foreground ring-1 ring-border', className)}>
+      <div className="flex items-center justify-between gap-2 border-b pl-3.5">
+        <span className={cn('min-w-0 truncate text-xs text-muted-foreground', file && 'font-mono')}>{label}</span>
         <CopyIcon text={children} label={copyLabel} />
       </div>
       <pre
         className={cn(
-          'px-3.5 py-3 font-mono text-[13px] leading-normal text-zinc-100',
+          'px-3.5 py-3 font-mono text-sm leading-normal',
           wrap ? 'whitespace-pre-wrap' : 'overflow-x-auto whitespace-pre',
         )}
       >

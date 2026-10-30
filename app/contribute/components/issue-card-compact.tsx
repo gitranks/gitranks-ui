@@ -13,7 +13,7 @@ export function IssueCardCompact({ issue }: { issue: ContributeIssue }) {
 
   return (
     <article data-issue={issue.issueId} className="flex min-w-0 flex-col gap-2 rounded-lg border bg-card px-4 py-3.5">
-      <span className="truncate font-mono text-[12.5px] text-muted-foreground">
+      <span className="truncate font-mono text-xs text-muted-foreground">
         {issue.nameWithOwner} · #{issue.number}
       </span>
       {url ? (

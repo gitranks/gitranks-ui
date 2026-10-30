@@ -64,7 +64,7 @@ describe('the coming-soon cards', () => {
       'OPENROUTER',
     ]);
     const html = renderToStaticMarkup(<ComingSoon viewer="signed-in" />);
-    expect(html.match(/<svg[^>]*class="[^"]*size-\[18px\]/g)).toHaveLength(7);
+    expect(html.match(/<svg[^>]*class="[^"]*size-4\.5/g)).toHaveLength(7);
     expect(html).toMatch(/data-provider="OPENROUTER".*?>OR<\/span>/);
     expect(html).not.toMatch(/>(CG|GC|GE|CU|JU|OA|XG)<\/span>/);
   });

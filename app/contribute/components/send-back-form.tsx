@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { sendBackToAgent } from '../actions';
 import { Panel } from './primitives';
+import { Button } from '@/components/ui/button';
 import { attemptActionErrorMessage } from '@/lib/contribute/errors';
 import { SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
 
@@ -64,16 +65,12 @@ export function SendBackForm({ attemptId, left }: { attemptId: string; left: num
           className="rounded-lg border bg-background px-3 py-2 text-sm"
         />
         <div>
-          <button
-            type="submit"
-            disabled={pending || !note.trim()}
-            className="min-h-10 rounded-lg border bg-background px-3.5 text-sm font-medium hover:bg-accent disabled:opacity-50"
-          >
+          <Button type="submit" variant="outline" size="lg" disabled={pending || !note.trim()} className="px-3.5">
             {pending ? 'Sending…' : 'Send back to my agent'}
-          </button>
+          </Button>
         </div>
         {message ? (
-          <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+          <p role="alert" className="text-sm text-destructive">
             {message}
           </p>
         ) : null}

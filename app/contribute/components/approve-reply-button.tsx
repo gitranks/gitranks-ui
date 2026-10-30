@@ -78,21 +78,22 @@ export function ApproveReplyButton({
       data-approve-reply={draftId}
       data-blocked={stop ? 'true' : 'false'}
     >
-      <button
+      <Button
         type="button"
+        size="lg"
         onClick={() => setOpen(true)}
         disabled={pending || done || !!stop}
-        className="min-h-10 rounded-[10px] bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        className="px-4 font-semibold"
       >
         {again ? 'Approve again' : 'Approve and post'}
-      </button>
+      </Button>
       {stop ? (
-        <span role="status" data-reply-blocked className="text-sm text-amber-900 dark:text-amber-200">
+        <span role="status" data-reply-blocked className="text-sm text-warning">
           {stop}
         </span>
       ) : null}
       {error && !open ? (
-        <span role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <span role="alert" className="text-sm text-destructive">
           {error}
         </span>
       ) : null}
@@ -106,7 +107,7 @@ export function ApproveReplyButton({
             </DialogDescription>
           </DialogHeader>
           {error ? (
-            <span role="alert" className="text-sm text-red-700 dark:text-red-400">
+            <span role="alert" className="text-sm text-destructive">
               {error}
             </span>
           ) : null}

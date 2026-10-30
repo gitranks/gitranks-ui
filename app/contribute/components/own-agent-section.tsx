@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { createMcpToken, revokeMcpToken } from '../actions';
 import { Eyebrow, Panel, PanelTitle } from './primitives';
+import { Button } from '@/components/ui/button';
 import type { ContributeMcpToken, ContributeOwnAgent } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, relativeLabel } from '@/lib/contribute/format';
@@ -20,12 +21,8 @@ import { cn } from '@/lib/utils';
 
 export const OWN_AGENT_SAFETY = 'Your agent reads issue text written by strangers. Keep its permission prompts on.';
 
-const plainButton =
-  'min-h-10 rounded-lg border bg-background px-3.5 text-sm font-medium hover:bg-accent disabled:opacity-50';
-const primaryButton =
-  'min-h-10 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50';
-const dangerButton =
-  'min-h-10 rounded-lg border bg-background px-3.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40';
+/** The section's controls keep their 40px height. */
+const dangerButton = 'h-10 text-destructive hover:bg-destructive/10 hover:text-destructive';
 
 function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -39,15 +36,15 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
     }
   };
   return (
-    <button type="button" onClick={copy} className={plainButton}>
+    <Button type="button" variant="outline" onClick={copy} className="h-10">
       <span aria-live="polite">{copied ? 'Copied' : label}</span>
-    </button>
+    </Button>
   );
 }
 
 function Code({ children }: { children: string }) {
   return (
-    <pre className="overflow-x-auto rounded-lg bg-zinc-900 px-3.5 py-3 font-mono text-[13px] leading-relaxed text-zinc-200">
+    <pre className="dark overflow-x-auto rounded-lg bg-card px-3.5 py-3 font-mono text-sm leading-relaxed text-card-foreground">
       {children}
     </pre>
   );
@@ -56,10 +53,7 @@ function Code({ children }: { children: string }) {
 /** The token just created, shown this once, with the line that puts it in the shell's environment. */
 function NewToken({ token, onDone }: { token: string; onDone: () => void }) {
   return (
-    <div
-      data-new-token
-      className="flex flex-col gap-2.5 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/40"
-    >
+    <div data-new-token className="flex flex-col gap-2.5 rounded-lg border border-warning/40 bg-warning-soft p-4">
       <p className="text-sm font-semibold">Copy your token now: it is shown only this once.</p>
       <div className="flex flex-wrap items-center gap-2">
         <code className="min-w-0 break-all rounded bg-background px-2 py-1 font-mono text-sm">{token}</code>
@@ -75,9 +69,9 @@ function NewToken({ token, onDone }: { token: string; onDone: () => void }) {
         <CopyButton text={exportLineOf(token)} />
       </div>
       <div>
-        <button type="button" onClick={onDone} className={plainButton}>
+        <Button type="button" variant="outline" onClick={onDone} className="h-10">
           I saved it
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -119,17 +113,17 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
       <div className="flex flex-wrap items-center gap-2">
         {confirming ? (
           <>
-            <button type="button" onClick={revoke} disabled={pending} className={dangerButton}>
+            <Button type="button" variant="outline" onClick={revoke} disabled={pending} className={dangerButton}>
               {pending ? 'Revoking…' : 'Yes, revoke it'}
-            </button>
-            <button type="button" onClick={() => setConfirming(false)} className={plainButton}>
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setConfirming(false)} className="h-10">
               Cancel
-            </button>
+            </Button>
           </>
         ) : (
-          <button type="button" onClick={() => setConfirming(true)} className={dangerButton}>
+          <Button type="button" variant="outline" onClick={() => setConfirming(true)} className={dangerButton}>
             Revoke
-          </button>
+          </Button>
         )}
       </div>
     </li>
@@ -145,18 +139,19 @@ export function SetupLines() {
       <fieldset className="flex flex-wrap gap-1.5">
         <legend className="sr-only">Your agent</legend>
         {MCP_SETUPS.map((each) => (
-          <button
+          <Button
             key={each.client}
             type="button"
+            variant="outline"
             aria-pressed={each.client === client}
             onClick={() => setClient(each.client)}
             className={cn(
-              'min-h-9 rounded-lg border px-3 text-sm',
-              each.client === client ? 'border-primary bg-primary/10 font-semibold' : 'bg-background hover:bg-accent',
+              'px-3 font-normal',
+              each.client === client && 'border-primary bg-primary/10 font-semibold hover:bg-primary/10',
             )}
           >
             {each.name}
-          </button>
+          </Button>
         ))}
       </fieldset>
       <span className="text-sm text-muted-foreground">{setup.where}</span>
@@ -244,9 +239,9 @@ export function OwnAgentSection({
                 className="min-h-10 rounded-lg border bg-background px-3 text-sm"
               />
             </label>
-            <button type="submit" disabled={pending || full || !name.trim()} className={primaryButton}>
+            <Button type="submit" disabled={pending || full || !name.trim()} className="h-10 font-semibold">
               {pending ? 'Creating…' : 'Create token'}
-            </button>
+            </Button>
           </form>
           {full ? (
             <p className="text-sm text-muted-foreground">
@@ -254,7 +249,7 @@ export function OwnAgentSection({
             </p>
           ) : null}
           {message ? (
-            <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+            <p role="alert" className="text-sm text-destructive">
               {message}
             </p>
           ) : null}

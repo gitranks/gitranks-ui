@@ -20,7 +20,7 @@ export function PrSignals({ needsYou, now }: { needsYou: ContributeNeedsYou | nu
     <ul data-signals={needsYou.signals.length} className="flex flex-col gap-1 text-sm">
       {[...needsYou.signals].reverse().map((signal, index) => (
         <li key={`${index}-${signal.kind}-${signal.at}`} data-signal={signal.kind} className="flex gap-2">
-          <span aria-hidden="true" className="text-amber-700 dark:text-amber-300">
+          <span aria-hidden="true" className="text-warning">
             •
           </span>
           <span>{signalText(signal, now)}</span>
@@ -80,7 +80,7 @@ export function FollowUpRounds({
       {canStartFollowUp(followUps) && open ? (
         <>
           <StartFollowUpButton prId={pullRequest.prId} />
-          <span className="text-[13px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             The agent reads the reviews, comments and failing checks, adds commits and drafts replies, on your Claude
             key
             {typeof attemptCapUsd === 'number' ? ` within your ${usd(attemptCapUsd)} limit for one attempt` : ''}.
@@ -89,9 +89,7 @@ export function FollowUpRounds({
         </>
       ) : null}
       {canStartFollowUp(followUps) && !open ? (
-        <span className="text-[13px] text-muted-foreground">
-          The pull request is not open, so no follow-up can start.
-        </span>
+        <span className="text-xs text-muted-foreground">The pull request is not open, so no follow-up can start.</span>
       ) : null}
     </div>
   );

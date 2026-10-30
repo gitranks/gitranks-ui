@@ -7,6 +7,7 @@ import { signIn } from 'next-auth/react';
 import { type ReactNode, useState } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogClose,
@@ -32,8 +33,9 @@ export const signInRouteOf = (path?: SignInPath): Route => (path ? PATHS[path].r
 /** The identity sign-in (read-only profile and email), back to the way the visitor picked. */
 export const startSignIn = (path?: SignInPath) => signIn(IDENTITY_PROVIDER, { redirectTo: signInRouteOf(path) });
 
+/** GitHub's own dark button, on the foreground token. */
 const CONTINUE_CLASS =
-  'inline-flex min-h-12 items-center justify-center gap-2.5 rounded-[10px] bg-foreground px-5 font-semibold text-background transition-colors hover:bg-foreground/85 disabled:opacity-60';
+  'min-h-12 gap-2.5 rounded-lg bg-foreground px-5 text-base font-semibold text-background hover:bg-foreground/85 disabled:opacity-60';
 
 /**
  * A visitor's action button: it opens the sign-in over the page. The dialog holds focus while open, closes on Escape,
@@ -64,7 +66,7 @@ export function SignInButton({
       </DialogTrigger>
       <DialogContent
         showCloseButton={false}
-        className="flex flex-col gap-5 rounded-[18px] p-8 shadow-2xl motion-reduce:animate-none sm:max-w-[440px] max-sm:rounded-2xl max-sm:p-6"
+        className="flex flex-col gap-5 rounded-2xl p-8 shadow-2xl motion-reduce:animate-none sm:max-w-md max-sm:p-6"
       >
         <SignInPanel path={path} preview={preview} onLeave={() => setOpen(false)} />
       </DialogContent>
@@ -95,10 +97,10 @@ export function SignInPanel({
   return (
     <>
       <div className="flex flex-col gap-2">
-        <span className="text-[13px] font-semibold uppercase tracking-[0.06em] text-violet-700 dark:text-violet-300">
+        <span className="text-xs font-semibold uppercase tracking-wider text-primary">
           {path ? PATHS[path].label : 'GitRanks Contribute'}
         </span>
-        <DialogTitle className="text-2xl leading-tight font-extrabold">Sign in to continue</DialogTitle>
+        <DialogTitle className="text-2xl leading-tight font-bold">Sign in to continue</DialogTitle>
         <DialogDescription className="text-base leading-normal text-foreground/80">
           We use your GitHub sign-in to match issues to the languages and repos on your profile. GitHub shares your
           public profile and email with us, read-only.
@@ -106,29 +108,23 @@ export function SignInPanel({
       </div>
       <ul className="flex flex-col gap-2.5 text-sm text-foreground/80">
         <li className="flex gap-2.5">
-          <CheckIcon
-            aria-hidden="true"
-            strokeWidth={2.4}
-            className="mt-px size-[18px] flex-none text-green-700 dark:text-green-400"
-          />
+          <CheckIcon aria-hidden="true" strokeWidth={2.4} className="mt-px size-4.5 flex-none text-positive" />
           {path ? 'You come straight back, to the next step' : 'You come straight back here'}
         </li>
         <li className="flex gap-2.5">
-          <CheckIcon
-            aria-hidden="true"
-            strokeWidth={2.4}
-            className="mt-px size-[18px] flex-none text-green-700 dark:text-green-400"
-          />
+          <CheckIcon aria-hidden="true" strokeWidth={2.4} className="mt-px size-4.5 flex-none text-positive" />
           No access to your repos. That's asked once, at your first submit
         </li>
       </ul>
       {preview ? (
         // Signed in already: the button goes on to the step, as the sign-in would.
-        <Link href={route} prefetch={false} className={CONTINUE_CLASS} data-sign-in="preview" onClick={onLeave}>
-          {continueWithGithub}
-        </Link>
+        <Button asChild className={CONTINUE_CLASS}>
+          <Link href={route} prefetch={false} data-sign-in="preview" onClick={onLeave}>
+            {continueWithGithub}
+          </Link>
+        </Button>
       ) : (
-        <button
+        <Button
           type="button"
           disabled={pending}
           className={CONTINUE_CLASS}
@@ -139,7 +135,7 @@ export function SignInPanel({
           }}
         >
           {continueWithGithub}
-        </button>
+        </Button>
       )}
       <DialogClose className="self-center rounded-sm text-sm font-semibold text-primary hover:underline">
         Not now

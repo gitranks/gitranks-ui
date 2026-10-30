@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 
 import { skipIssue } from '../actions';
 import { Pill } from './primitives';
+import { Button } from '@/components/ui/button';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
@@ -41,7 +42,7 @@ export function IssueCard({ issue, best = false }: { issue: ContributeIssue; bes
       data-best={best || undefined}
       className={cn(
         'flex flex-wrap items-start gap-4 rounded-xl border bg-card px-5 py-4',
-        best && 'border-violet-300 dark:border-violet-800',
+        best && 'border-primary/40',
       )}
     >
       <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-2">
@@ -57,12 +58,12 @@ export function IssueCard({ issue, best = false }: { issue: ContributeIssue; bes
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[17px] font-semibold text-foreground hover:underline"
+            className="text-lg font-semibold text-foreground hover:underline"
           >
             {title}
           </a>
         ) : (
-          <span className="text-[17px] font-semibold text-foreground">{title}</span>
+          <span className="text-lg font-semibold text-foreground">{title}</span>
         )}
         {issue.labels.length || issue.kind ? (
           <div className="flex flex-wrap gap-1.5">
@@ -87,16 +88,11 @@ export function IssueCard({ issue, best = false }: { issue: ContributeIssue; bes
           <dt className="text-muted-foreground">Match</dt>
           <dd className="font-mono">#{issue.rank}</dd>
         </dl>
-        <button
-          type="button"
-          onClick={skip}
-          disabled={pending}
-          className="min-h-10 rounded-lg border bg-background text-sm font-medium hover:bg-accent disabled:opacity-50"
-        >
+        <Button type="button" variant="outline" size="lg" onClick={skip} disabled={pending}>
           {pending ? 'Skipping…' : 'Skip'}
-        </button>
+        </Button>
         {error ? (
-          <span role="alert" className="text-sm text-red-700 dark:text-red-400">
+          <span role="alert" className="text-sm text-destructive">
             {error}
           </span>
         ) : null}

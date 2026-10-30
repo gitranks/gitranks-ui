@@ -189,7 +189,7 @@ describe('B1, your own agent', () => {
   it('sends a user with every token taken to Settings, and says when tokens are not available yet', () => {
     const full = b1({ full: true });
     expect(full.plain).toContain('You have 5 live tokens. Revoke one in Settings to create another.');
-    expect(full.html).toMatch(/<button type="button" disabled=""[^>]*>Create a GitRanks token/);
+    expect(full.html).toMatch(/<button[^>]* type="button" disabled=""[^>]*>Create a GitRanks token/);
     expect(b1({ unavailable: true }).plain).toContain('Not available yet');
   });
 

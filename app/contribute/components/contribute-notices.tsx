@@ -64,9 +64,7 @@ export function ContributeNotices({ notices, className }: { notices: ContributeN
             data-notice={notice.kind}
             className={cn(
               'flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3',
-              copy.tone === 'warn'
-                ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40'
-                : 'border-violet-200 bg-violet-50 dark:border-violet-900 dark:bg-violet-950/40',
+              copy.tone === 'warn' ? 'border-warning/30 bg-warning-soft' : 'border-primary/20 bg-brand-soft',
             )}
           >
             <div className="flex min-w-0 flex-col gap-0.5">

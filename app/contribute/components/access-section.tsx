@@ -7,6 +7,7 @@ import { type ReactNode, useState, useTransition } from 'react';
 import { removeClaudeKey, revokeGithubGrant } from '../actions';
 import { Panel } from './primitives';
 import { useGrantGithub } from './use-grant-github';
+import { Button } from '@/components/ui/button';
 import type { ContributeCredential, ContributeGrant } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, maskedKey, relativeLabel, shortId } from '@/lib/contribute/format';
@@ -22,10 +23,8 @@ const KEY_STATES: Record<ContributeCredential['state'], string> = {
   LIMIT_REACHED: 'workspace limit reached',
 };
 
-const dangerButton =
-  'min-h-10 rounded-lg border bg-background px-3.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40';
-const plainButton =
-  'min-h-10 rounded-lg border bg-background px-3.5 text-sm font-medium hover:bg-accent disabled:opacity-50';
+/** The rows' controls keep their 40px height. */
+const dangerButton = 'h-10 text-destructive hover:bg-destructive/10 hover:text-destructive';
 
 function Row({ title, detail, children }: { title: string; detail: ReactNode; children?: ReactNode }) {
   return (
@@ -61,9 +60,11 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
   if (!credential) {
     return (
       <Row title="Claude API key" detail={message ?? 'Not connected'}>
-        <Link href="/contribute/connect" prefetch={false} className={`${plainButton} inline-flex items-center`}>
-          Connect
-        </Link>
+        <Button asChild variant="outline" className="h-10">
+          <Link href="/contribute/connect" prefetch={false}>
+            Connect
+          </Link>
+        </Button>
       </Row>
     );
   }
@@ -83,23 +84,25 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
   return (
     <Row title="Claude API key" detail={message ?? detail}>
       {credential.state === 'INVALID' ? (
-        <Link href="/contribute/connect" prefetch={false} className={`${plainButton} inline-flex items-center`}>
-          Connect a new key
-        </Link>
+        <Button asChild variant="outline" className="h-10">
+          <Link href="/contribute/connect" prefetch={false}>
+            Connect a new key
+          </Link>
+        </Button>
       ) : null}
       {confirming ? (
         <>
-          <button type="button" onClick={remove} disabled={pending} className={dangerButton}>
+          <Button type="button" variant="outline" onClick={remove} disabled={pending} className={dangerButton}>
             {pending ? 'Removing…' : 'Yes, remove it'}
-          </button>
-          <button type="button" onClick={() => setConfirming(false)} className={plainButton}>
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setConfirming(false)} className="h-10">
             Cancel
-          </button>
+          </Button>
         </>
       ) : (
-        <button type="button" onClick={() => setConfirming(true)} className={dangerButton}>
+        <Button type="button" variant="outline" onClick={() => setConfirming(true)} className={dangerButton}>
           Remove key
-        </button>
+        </Button>
       )}
     </Row>
   );
@@ -150,13 +153,13 @@ function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; av
     >
       <Row title="GitHub pull requests" detail={message ?? detail}>
         {grant?.connected ? (
-          <button type="button" onClick={revoke} disabled={pending} className={dangerButton}>
+          <Button type="button" variant="outline" onClick={revoke} disabled={pending} className={dangerButton}>
             {pending ? 'Revoking…' : 'Revoke'}
-          </button>
+          </Button>
         ) : available ? (
-          <button type="button" onClick={allow} disabled={granting} className={plainButton}>
+          <Button type="button" variant="outline" onClick={allow} disabled={granting} className="h-10">
             {granting ? 'Opening GitHub…' : 'Allow on GitHub'}
-          </button>
+          </Button>
         ) : null}
       </Row>
     </div>
@@ -188,7 +191,7 @@ export function AccessSection({
     <Panel id="access" className="gap-1">
       <h2 className="mb-2.5 text-lg font-semibold">Keys and access</h2>
       {grantRefusal ? (
-        <p role="alert" data-grant-refusal={grantRefusal} className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" data-grant-refusal={grantRefusal} className="text-sm text-destructive">
           {REFUSALS[grantRefusal]} GitHub may still list GitRanks Contribute as authorized; you may want to revoke it in{' '}
           <a href={GITHUB_APPS_URL} target="_blank" rel="noopener noreferrer" className="underline">
             Authorized OAuth Apps
@@ -199,9 +202,9 @@ export function AccessSection({
       <KeyRow credential={credential} now={now} />
       <GrantRow grant={grant} available={grantAvailable} />
       <Row title="Your own agent (MCP)" detail="Tokens for Claude Code, Codex, Cursor or Gemini CLI on your machine.">
-        <a href="#own-agent" className={`${plainButton} inline-flex items-center`}>
-          Tokens
-        </a>
+        <Button asChild variant="outline" className="h-10">
+          <a href="#own-agent">Tokens</a>
+        </Button>
       </Row>
     </Panel>
   );

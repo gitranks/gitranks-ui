@@ -64,35 +64,37 @@ export function FollowUpApproval({
   return (
     <section
       data-follow-up-approval={attemptId}
-      className="flex flex-col gap-3 rounded-xl border-[1.5px] border-primary bg-card p-4.5"
+      className="flex flex-col gap-3 rounded-xl border-2 border-primary bg-card p-4.5"
     >
-      <h2 className="text-[15px] font-semibold">{hasCommits ? `Push to ${pr}` : 'Finish this follow-up'}</h2>
-      <p className="text-[13px] text-muted-foreground">
+      <h2 className="text-base font-semibold">{hasCommits ? `Push to ${pr}` : 'Finish this follow-up'}</h2>
+      <p className="text-sm text-muted-foreground">
         {hasCommits
           ? `The new commits go onto ${pr}'s branch on your fork, in your name, signed off as its first commits were. The pull request shows them at once.`
           : 'The agent made no commits this round, only the replies below. Approve the replies you want posted, here or once it is finished; finishing it pushes nothing.'}
       </p>
       {error && !confirm ? (
-        <span role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <span role="alert" className="text-sm text-destructive">
           {error}
         </span>
       ) : null}
-      <button
+      <Button
         type="button"
+        size="lg"
         onClick={() => setConfirm('approve')}
         disabled={busy}
-        className="min-h-[46px] rounded-[10px] bg-primary font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        className="min-h-11.5 font-semibold"
       >
         {hasCommits ? (again ? 'Push again' : 'Push the commits') : 'Finish the follow-up'}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setConfirm('discard')}
         disabled={busy}
-        className="min-h-[42px] rounded-[10px] border bg-background text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40"
+        className="min-h-10.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
       >
         Discard
-      </button>
+      </Button>
 
       <Dialog open={confirm !== null} onOpenChange={(open) => !pending && !open && setConfirm(null)}>
         <DialogContent>
@@ -113,7 +115,7 @@ export function FollowUpApproval({
             </DialogDescription>
           </DialogHeader>
           {error ? (
-            <span role="alert" className="text-sm text-red-700 dark:text-red-400">
+            <span role="alert" className="text-sm text-destructive">
               {error}
             </span>
           ) : null}

@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 /** A small uppercase label in the mono face, above a block. */
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span className={cn('font-mono text-xs uppercase tracking-[0.08em] text-muted-foreground', className)}>
+    <span className={cn('font-mono text-xs uppercase tracking-wider text-muted-foreground', className)}>
       {children}
     </span>
   );
@@ -28,7 +29,7 @@ export function Panel({
       id={id}
       className={cn(
         'flex scroll-mt-20 flex-col gap-4 rounded-xl border bg-card p-5 sm:p-6',
-        tone === 'danger' && 'border-red-200 dark:border-red-900',
+        tone === 'danger' && 'border-destructive/30',
         className,
       )}
     >
@@ -50,17 +51,17 @@ export function PanelTitle({ title, text, id }: { title: string; text?: ReactNod
 
 const PILL_TONES = {
   neutral: 'bg-muted text-foreground/80',
-  green: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
-  violet: 'bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200',
-  amber: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200',
-  red: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
+  green: 'bg-positive/10 text-positive',
+  violet: 'bg-brand-soft text-brand-soft-foreground',
+  amber: 'bg-warning-soft text-warning-soft-foreground',
+  red: 'bg-destructive/10 text-destructive',
 } as const;
 
 export function Pill({ children, tone = 'neutral' }: { children: ReactNode; tone?: keyof typeof PILL_TONES }) {
   return (
-    <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap', PILL_TONES[tone])}>
+    <Badge variant="secondary" className={PILL_TONES[tone]}>
       {children}
-    </span>
+    </Badge>
   );
 }
 

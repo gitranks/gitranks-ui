@@ -132,16 +132,16 @@ export function AutopilotSection({
           </div>
           <div aria-hidden="true" className="grid grid-cols-3 gap-1.5">
             {Array.from({ length: AUTOPILOT_UNLOCK_AT }, (_, index) => (
-              <span key={index} className={cn('h-1.5 rounded-sm', index < progress ? 'bg-[#8250df]' : 'bg-border')} />
+              <span key={index} className={cn('h-1.5 rounded-sm', index < progress ? 'bg-primary' : 'bg-border')} />
             ))}
           </div>
           {autopilot.lockedAt ? (
-            <span data-autopilot-locked-at className="text-sm text-amber-800 dark:text-amber-300">
+            <span data-autopilot-locked-at className="text-sm text-warning">
               Locked on {dayLabel(autopilot.lockedAt)}: two pull requests in a row were closed without merging.{' '}
               {AUTOPILOT_UNLOCK_AT} merged since then unlock it again.
             </span>
           ) : autopilot.closedUnmergedStreak >= AUTOPILOT_LOCK_AT ? (
-            <span className="text-sm text-amber-800 dark:text-amber-300">
+            <span className="text-sm text-warning">
               Locked again: your last two pull requests were closed without merging.
             </span>
           ) : null}
@@ -156,7 +156,7 @@ export function AutopilotSection({
         contributions. Two pull requests closed without merging in a row lock it again.
       </span>
       {error ? (
-        <span role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <span role="alert" className="text-sm text-destructive">
           {error}
         </span>
       ) : null}

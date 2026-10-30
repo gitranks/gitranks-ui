@@ -4,6 +4,7 @@ import { CheckIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { CodeBlock, CopyIcon } from './code-block';
+import { Button } from '@/components/ui/button';
 import {
   MCP_OS_NAMES,
   MCP_OSES,
@@ -25,7 +26,7 @@ export function MakeNewToken({ onReplace, pending }: { onReplace: () => void; pe
       type="button"
       onClick={onReplace}
       disabled={pending}
-      className="min-h-11 px-1 text-left text-[13px] font-semibold text-violet-700 hover:text-violet-800 disabled:opacity-50 dark:text-violet-300 dark:hover:text-violet-200"
+      className="min-h-11 px-1 text-left text-sm font-semibold text-link hover:text-link/80 disabled:opacity-50"
     >
       {pending ? 'Making a new one…' : 'Lost it before saving it? Make a new one'}
     </button>
@@ -86,11 +87,11 @@ export function TokenReady({
         role="status"
         tabIndex={-1}
         className={cn(
-          'flex flex-wrap items-center gap-2.5 rounded-xl bg-green-100 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 px-3.5 py-3 text-sm text-green-800 dark:bg-green-950/60 dark:text-green-300',
+          'flex flex-wrap items-center gap-2.5 rounded-xl bg-positive/10 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 px-3.5 py-3 text-sm text-positive',
           rise,
         )}
       >
-        <CheckIcon aria-hidden="true" className="size-[18px]" strokeWidth={2.6} />
+        <CheckIcon aria-hidden="true" className="size-4.5" strokeWidth={2.6} />
         <span>
           <span className="font-semibold">Your GitRanks token is ready.</span> We show it only this once.
         </span>
@@ -98,13 +99,13 @@ export function TokenReady({
 
       <div className={cn('flex flex-col gap-1.5', rise)}>
         <span className="text-sm font-semibold">Your GitRanks token</span>
-        <div className="flex items-center rounded-[10px] border border-input bg-muted/50 pl-3">
-          <code data-token className="min-w-0 flex-1 overflow-x-auto font-mono text-[13px] whitespace-nowrap">
+        <div className="flex items-center rounded-lg border border-input bg-muted/50 pl-3">
+          <code data-token className="min-w-0 flex-1 overflow-x-auto font-mono text-sm whitespace-nowrap">
             {token}
           </code>
-          <CopyIcon text={token} label="Copy the token" tone="light" />
+          <CopyIcon text={token} label="Copy the token" />
         </div>
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           The line below already includes it. Keep a copy only if you&apos;ll set up another computer or agent, and
           treat it like a password.
         </span>
@@ -113,7 +114,7 @@ export function TokenReady({
       <div className={cn('flex flex-col gap-2', rise, 'motion-safe:delay-120 motion-safe:fill-mode-both')}>
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <span className="text-sm font-semibold">a · Save the token on this computer</span>
-          <fieldset className="inline-flex gap-[3px] rounded-[10px] bg-muted p-[3px]">
+          <fieldset className="inline-flex gap-0.75 rounded-lg bg-muted p-0.75">
             <legend className="sr-only">Your computer</legend>
             {MCP_OSES.map((each) => (
               <button
@@ -122,7 +123,7 @@ export function TokenReady({
                 aria-pressed={each === os}
                 onClick={() => onOs(each)}
                 className={cn(
-                  'min-h-8 rounded-lg px-2.5 text-[13px] font-semibold transition-colors',
+                  'min-h-8 rounded-md px-2.5 text-sm font-semibold transition-colors',
                   each === os
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground',
@@ -133,7 +134,7 @@ export function TokenReady({
             ))}
           </fieldset>
         </div>
-        <span className="text-[13px] text-muted-foreground" data-save-note>
+        <span className="text-xs text-muted-foreground" data-save-note>
           {detectedOs === os ? `We detected ${MCP_OS_NAMES[os]}. ` : ''}
           {save.note}
         </span>
@@ -145,13 +146,13 @@ export function TokenReady({
           aria-expanded={byHand}
           aria-controls={`${id}-by-hand`}
           onClick={() => setByHand((open) => !open)}
-          className="min-h-11 self-start px-0.5 text-[13px] font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          className="min-h-11 self-start px-0.5 text-sm font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
         >
           Keep it out of your shell history
         </button>
         {byHand ? (
           <div id={`${id}-by-hand`} className="flex flex-col gap-2 rounded-xl border bg-muted/40 p-3.5" data-by-hand>
-            <span className="text-[13px] text-foreground/80">{manual.steps}</span>
+            <span className="text-sm text-foreground/80">{manual.steps}</span>
             {manual.line ? (
               <CodeBlock label={os === 'mac' ? '~/.zshrc' : '~/.bashrc'} file copyLabel="Copy the line">
                 {manual.line}
@@ -163,7 +164,7 @@ export function TokenReady({
 
       <div className={cn('flex flex-col gap-2', rise, 'motion-safe:delay-240 motion-safe:fill-mode-both')}>
         <span className="text-sm font-semibold">b · Add GitRanks to {setup.name}</span>
-        <span className="text-[13px] text-muted-foreground">{setup.where}</span>
+        <span className="text-xs text-muted-foreground">{setup.where}</span>
         <CodeBlock label={setup.label} file={setup.file} copyLabel="Copy the setup">
           {setup.lines}
         </CodeBlock>
@@ -171,16 +172,17 @@ export function TokenReady({
 
       <div className="flex flex-col gap-1.5 pt-1">
         <div className="flex flex-wrap items-center gap-3.5">
-          <button
+          <Button
             type="button"
+            size="lg"
             onClick={onDone}
-            className="min-h-12 flex-none rounded-[10px] bg-primary px-[22px] text-[15px] font-semibold whitespace-nowrap text-primary-foreground hover:bg-primary/90"
+            className="min-h-12 flex-none px-5.5 text-base font-semibold"
           >
             I&apos;ve added it
-          </button>
+          </Button>
           <MakeNewToken onReplace={onReplace} pending={replacing} />
         </div>
-        <span className="text-[13px] text-muted-foreground">{REPLACE_NOTE}</span>
+        <span className="text-xs text-muted-foreground">{REPLACE_NOTE}</span>
       </div>
     </div>
   );

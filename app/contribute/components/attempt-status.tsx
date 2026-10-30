@@ -41,8 +41,8 @@ function Box({
       data-attempt-status={state}
       className={cn(
         'flex flex-col gap-2 rounded-xl border px-5 py-4',
-        tone === 'info' && 'border-violet-200 bg-violet-50 dark:border-violet-900 dark:bg-violet-950/40',
-        tone === 'warn' && 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40',
+        tone === 'info' && 'border-primary/20 bg-brand-soft',
+        tone === 'warn' && 'border-warning/30 bg-warning-soft',
         tone === 'done' && 'bg-card',
         tone === 'muted' && 'bg-muted/40',
       )}
@@ -59,7 +59,7 @@ const Text = ({ children }: { children: ReactNode }) => <p className="text-sm te
 export function SubmitErrorNote({ submit }: { submit: ContributeAttemptSubmit | null }) {
   if (!submit?.lastError) return null;
   return (
-    <p role="alert" data-submit-error={submit.lastError.reason} className="text-sm text-amber-900 dark:text-amber-200">
+    <p role="alert" data-submit-error={submit.lastError.reason} className="text-sm text-warning-soft-foreground">
       {submit.lastError.note || 'The last step did not go through.'}{' '}
       <span className="text-muted-foreground">({timeLabel(submit.lastError.at)})</span>
     </p>
@@ -83,7 +83,7 @@ function SubmitSteps({ submit, now }: { submit: ContributeAttemptSubmit; now?: D
               aria-current={state === 'current' ? 'step' : undefined}
               className={cn(
                 'flex items-center gap-1.5 rounded-full border px-3 py-1',
-                state === 'done' && 'border-green-300 text-green-800 dark:border-green-800 dark:text-green-300',
+                state === 'done' && 'border-positive/30 text-positive',
                 state === 'current' && 'border-primary bg-background font-semibold text-foreground',
                 state === 'pending' && 'text-muted-foreground',
               )}

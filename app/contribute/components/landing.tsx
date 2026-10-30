@@ -5,6 +5,7 @@ import { Fragment, type ReactNode } from 'react';
 import { ComingSoon } from './coming-soon';
 import { Pill } from './primitives';
 import { SignInButton, type SignInPath } from './sign-in-dialog';
+import { buttonVariants } from '@/components/ui/button';
 import type { ContributeComingSoonProvider } from '@/lib/contribute/contribute.types';
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import type { LandingViewer } from '@/lib/contribute/contribute-state';
@@ -127,9 +128,9 @@ const QUESTIONS = [
   },
 ];
 
-const EYEBROW = 'text-[13px] font-semibold uppercase tracking-[0.06em] text-violet-700 dark:text-violet-300';
-const H2 = 'text-[26px] font-extrabold tracking-[-0.01em] text-balance sm:text-[32px]';
-const WIDTH = 'mx-auto w-full max-w-[1180px] px-4';
+const EYEBROW = 'text-xs font-semibold uppercase tracking-wider text-primary';
+const H2 = 'text-2xl font-bold tracking-tight text-balance md:text-3xl';
+const WIDTH = 'mx-auto w-full max-w-7xl px-4';
 const MUTED_SECTION = 'border-y bg-muted/40';
 
 /**
@@ -151,11 +152,10 @@ function StartAction({
 }) {
   const { label, href } = ACTIONS[path];
   const classes = cn(
-    'inline-flex items-center rounded-[10px] font-semibold transition-colors',
-    wide ? 'min-h-[46px] max-sm:flex-[1_1_100%] max-sm:justify-center' : 'min-h-11',
-    path === 'key'
-      ? 'bg-primary px-5 text-primary-foreground hover:bg-primary/90'
-      : 'border px-[18px] text-foreground hover:bg-accent',
+    buttonVariants({ variant: path === 'key' ? 'default' : 'outline', size: 'lg' }),
+    'text-base font-semibold',
+    wide ? 'min-h-11.5 max-sm:flex-[1_1_100%]' : 'min-h-11',
+    path === 'key' ? 'px-5' : 'px-4.5',
     className,
   );
   if (viewer === 'visitor') {
@@ -173,16 +173,13 @@ function StartAction({
 }
 
 function ExampleCard({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-2.5 rounded-[14px] border bg-card px-5 py-4 shadow-xs">{children}</div>;
+  return <div className="flex flex-col gap-2.5 rounded-xl border bg-card px-5 py-4 shadow-xs">{children}</div>;
 }
 
 /** A user whose agent token is live and whose agent has not called yet: carry on, or manage the token. */
 function MidSetupStrip() {
   return (
-    <div
-      className="border-b border-violet-200 bg-violet-50 dark:border-violet-900 dark:bg-violet-950/40"
-      data-landing="mid-setup"
-    >
+    <div className="border-b border-primary/20 bg-brand-soft" data-landing="mid-setup">
       <div className={cn(WIDTH, 'flex flex-wrap items-center justify-between gap-3 py-3 text-sm')}>
         <span>
           <span className="font-semibold">Almost there.</span> Your token is ready, and your agent hasn't connected yet.
@@ -230,10 +227,10 @@ export function Landing({
       <section className={cn(WIDTH, 'flex flex-wrap items-center gap-9 pt-8 pb-11 sm:gap-14 sm:pt-14 sm:pb-16')}>
         <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
           <span className={EYEBROW}>Contribute</span>
-          <h1 className="text-[36px] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance sm:text-[52px]">
+          <h1 className="text-4xl font-bold tracking-tight text-balance md:text-5xl">
             Fix real open-source issues with the AI you already pay for
           </h1>
-          <p className="max-w-[580px] text-lg leading-[1.55] text-foreground/80">
+          <p className="max-w-xl text-lg text-foreground/80">
             We find issues maintainers want solved and match them to what you know. An agent writes the fix: ours,
             running on your Claude key, or your own agent on your machine. You review every change, and the pull request
             opens in your name.
@@ -252,7 +249,7 @@ export function Landing({
           className="m-0 flex min-w-0 flex-[1_1_400px] flex-col gap-3.5"
         >
           <ExampleCard>
-            <div className="flex items-center justify-between gap-3 text-[13px] text-muted-foreground">
+            <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
               <span className="font-mono">fern-lang/fern · #2481</span>
               <span>picked for you</span>
             </div>
@@ -262,24 +259,25 @@ export function Landing({
               <Pill>bug</Pill>
               <Pill>Rust</Pill>
             </div>
-            <span className="text-[13px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Why: you write Rust, and you've contributed to fern-lang/fern-lsp
             </span>
           </ExampleCard>
           <div aria-hidden="true" className="flex items-center gap-2.5 pl-5 font-mono text-xs text-muted-foreground">
-            <span className="h-8 w-0.5 bg-violet-200 dark:bg-violet-900" />
+            <span className="h-8 w-0.5 bg-primary/30" />
             an agent writes the fix · you review · you submit
           </div>
           <ExampleCard>
             <div className="flex items-center justify-between gap-3">
-              <span className="rounded-full bg-[#8250df] px-2.5 py-0.5 text-xs font-semibold text-white">Merged</span>
-              <span className="text-[13px] text-muted-foreground">3 days after you submitted</span>
+              <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
+                Merged
+              </span>
+              <span className="text-xs text-muted-foreground">3 days after you submitted</span>
             </div>
             <span className="font-semibold">Keep trailing comments when formatting match arms</span>
-            <div className="flex flex-wrap gap-4 font-mono text-[13px]">
+            <div className="flex flex-wrap gap-4 font-mono text-xs">
               <span>
-                <span className="text-green-700 dark:text-green-400">+18</span>{' '}
-                <span className="text-red-700 dark:text-red-400">−3</span>
+                <span className="text-positive">+18</span> <span className="text-negative">−3</span>
               </span>
               <span className="text-muted-foreground">2 files</span>
               <span className="text-muted-foreground">in your name</span>
@@ -292,17 +290,17 @@ export function Landing({
         <div className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>
           <div className="flex flex-col gap-2">
             <h2 className={H2}>Two ways to contribute. Pick either, add the other later.</h2>
-            <p className="max-w-[720px] text-muted-foreground">
+            <p className="max-w-3xl text-muted-foreground">
               Both get the same issues, the same review before anything is sent, and the same pull request in your name.
               They differ in who runs the agent and whose credits it spends.
             </p>
           </div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-5">
             {WAYS.map(({ path, who, title, text, facts }) => (
-              <div key={path} className="flex min-w-0 flex-col gap-[18px] rounded-2xl border bg-card p-5 sm:p-7">
+              <div key={path} className="flex min-w-0 flex-col gap-4.5 rounded-2xl border bg-card p-5 sm:p-7">
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[13px] font-semibold text-violet-700 dark:text-violet-300">{who}</span>
-                  <h3 className="text-[22px] font-bold">{title}</h3>
+                  <span className="text-xs font-semibold text-primary">{who}</span>
+                  <h3 className="text-2xl font-bold">{title}</h3>
                   <p className="text-foreground/80">{text}</p>
                 </div>
                 <dl className="grid grid-cols-1 gap-y-0.5 text-sm sm:grid-cols-[120px_1fr] sm:gap-x-4 sm:gap-y-2.5">
@@ -327,7 +325,7 @@ export function Landing({
         <ol className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
           {STEPS.map(({ label, title, text }) => (
             <li key={label} className="flex min-w-0 flex-col gap-2">
-              <span className="font-mono text-[13px] text-violet-700 dark:text-violet-300">{label}</span>
+              <span className="font-mono text-xs text-primary">{label}</span>
               <span className="font-bold">{title}</span>
               <span className="text-sm text-muted-foreground">{text}</span>
             </li>
@@ -339,14 +337,14 @@ export function Landing({
         <div className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>
           <div className="flex flex-col gap-2">
             <h2 className={H2}>Everything is set for you, and all of it is yours to change</h2>
-            <p className="max-w-[720px] text-muted-foreground">
+            <p className="max-w-3xl text-muted-foreground">
               You start with sensible defaults, so there's nothing to configure before your first issue. Settings has
               every one of these.
             </p>
           </div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-4">
             {DEFAULTS.map(({ title, text }) => (
-              <div key={title} className="flex min-w-0 flex-col gap-1.5 rounded-[14px] border bg-card p-5">
+              <div key={title} className="flex min-w-0 flex-col gap-1.5 rounded-xl border bg-card p-5">
                 <h3 className="font-bold">{title}</h3>
                 <p className="text-sm text-muted-foreground">{text}</p>
               </div>
@@ -362,7 +360,7 @@ export function Landing({
             Still unsure which way fits you? Start with either. You can add the other later from Settings.
           </p>
         </div>
-        <dl className="flex min-w-0 flex-[2_1_560px] flex-col gap-[22px]">
+        <dl className="flex min-w-0 flex-[2_1_560px] flex-col gap-5.5">
           {QUESTIONS.map(({ question, answer }) => (
             <div key={question} className="flex flex-col gap-1">
               <dt className="font-bold">{question}</dt>
@@ -374,7 +372,7 @@ export function Landing({
 
       <section className="border-t">
         <div className={cn(WIDTH, 'flex flex-wrap items-center justify-between gap-5 pt-12 pb-16')}>
-          <h2 className="text-[22px] font-bold">Ready for your first issue?</h2>
+          <h2 className="text-2xl font-bold">Ready for your first issue?</h2>
           <div className="flex flex-wrap gap-3 max-sm:w-full">
             {action('key', { wide: true })}
             {action('agent', { wide: true })}

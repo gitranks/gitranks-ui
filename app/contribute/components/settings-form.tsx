@@ -5,6 +5,7 @@ import { type ReactNode, useId, useState, useTransition } from 'react';
 
 import { saveContributeSettings } from '../actions';
 import { Panel, PanelTitle } from './primitives';
+import { Button } from '@/components/ui/button';
 import type {
   ContributeDcoMode,
   ContributeEffort,
@@ -139,14 +140,16 @@ function Field({ label, children, htmlFor }: { label: string; children: ReactNod
 function SaveRow({ onSave, pending, message }: { onSave: () => void; pending: boolean; message?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="lg"
         onClick={onSave}
         disabled={pending}
-        className="min-h-10 rounded-lg border bg-background px-4 text-sm font-semibold hover:bg-accent disabled:opacity-50"
+        className="px-4 font-semibold"
       >
         {pending ? 'Saving…' : 'Save'}
-      </button>
+      </Button>
       {message}
     </div>
   );
@@ -187,7 +190,7 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
     status?.section === section ? (
       <span
         role={status.ok ? 'status' : 'alert'}
-        className={cn('text-sm', status.ok ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}
+        className={cn('text-sm', status.ok ? 'text-positive' : 'text-destructive')}
       >
         {status.text}
       </span>
@@ -250,7 +253,7 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
               htmlFor={`${field('pace')}-${pace}`}
               className={cn(
                 'flex cursor-pointer items-start gap-2.5 rounded-lg border px-3.5 py-3',
-                draft.pace === pace && 'border-primary border-[1.5px] bg-violet-50/60 dark:bg-violet-950/30',
+                draft.pace === pace && 'border-primary bg-brand-soft/50 ring-1 ring-primary',
               )}
             >
               <input
@@ -368,9 +371,7 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
             {textInput('openPrsAtATime')}
           </Field>
         </div>
-        {large ? (
-          <span className="text-sm text-amber-800 dark:text-amber-300">Large pull requests are merged less often.</span>
-        ) : null}
+        {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-sm font-medium">DCO sign-off, for repos that require it</legend>
           {(

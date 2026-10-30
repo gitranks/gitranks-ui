@@ -153,25 +153,25 @@ export function FirstRunGuide({
     <section
       aria-labelledby="first-run-title"
       data-first-run={step.kind}
-      className="flex flex-col gap-5 rounded-[18px] border border-violet-200 bg-violet-50/40 p-[18px] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500 motion-safe:delay-150 motion-safe:fill-mode-both sm:p-6 dark:border-violet-900 dark:bg-violet-950/20"
+      className="flex flex-col gap-5 rounded-2xl border border-primary/20 bg-brand-soft/50 p-4.5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500 motion-safe:delay-150 motion-safe:fill-mode-both sm:p-6"
     >
       {step.kind === 'soon' || step.kind === 'no-issues' || step.kind === 'paced' ? <LiveRefresh /> : null}
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <Heading id="first-run-title" className="text-[22px] font-extrabold sm:text-2xl">
+        <Heading id="first-run-title" className="text-2xl font-bold">
           You&apos;re in. Here&apos;s what happens next
         </Heading>
-        {yours ? null : <span className="text-[13px] text-muted-foreground">Nothing for you to do until step 2</span>}
+        {yours ? null : <span className="text-xs text-muted-foreground">Nothing for you to do until step 2</span>}
       </div>
       <ol className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
         <li
           data-step="1"
-          className="flex flex-col gap-2 rounded-[14px] border-2 border-primary bg-background p-4 motion-safe:animate-contribute-glow"
+          className="flex flex-col gap-2 rounded-xl border-2 border-primary bg-background p-4 motion-safe:animate-contribute-glow"
         >
-          <span className="flex items-center gap-2 text-[13px] font-semibold text-violet-700 dark:text-violet-300">
+          <span className="flex items-center gap-2 text-xs font-semibold text-primary">
             {copy.working ? (
               <span
                 aria-hidden="true"
-                className="size-3.5 rounded-full border-2 border-violet-200 border-t-primary motion-safe:animate-spin dark:border-violet-900 dark:border-t-primary"
+                className="size-3.5 rounded-full border-2 border-primary/20 border-t-primary motion-safe:animate-spin"
               />
             ) : null}
             1 · {copy.when}
@@ -181,14 +181,14 @@ export function FirstRunGuide({
           {copy.action ? <div className="flex pt-1 [&>div]:items-start">{copy.action}</div> : null}
         </li>
         {NEXT_STEPS.map(({ when, title, text }, index) => (
-          <li key={when} data-step={index + 2} className="flex flex-col gap-2 rounded-[14px] border bg-background p-4">
-            <span className="text-[13px] font-semibold text-muted-foreground">{when}</span>
+          <li key={when} data-step={index + 2} className="flex flex-col gap-2 rounded-xl border bg-background p-4">
+            <span className="text-xs font-semibold text-muted-foreground">{when}</span>
             <span className="font-bold">{title}</span>
             <span className="text-sm text-foreground/80">{text}</span>
           </li>
         ))}
       </ol>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-violet-100 pt-4 text-sm dark:border-violet-900/60">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-primary/20 pt-4 text-sm">
         <span className="text-foreground/80">
           <span className="font-semibold text-foreground">We guessed what you&apos;d like:</span> {guessedLineOf(view)}
         </span>

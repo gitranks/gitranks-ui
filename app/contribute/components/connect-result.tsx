@@ -87,13 +87,8 @@ export function ConnectResult({ outcome }: { outcome: ContributeConnectKeyResult
 
   return (
     <div role="status" data-result={outcome.result} className="flex flex-col gap-1.5 border-t pt-4">
-      <Eyebrow className="tracking-[0.06em]">After the check</Eyebrow>
-      <span
-        className={cn(
-          'flex items-center gap-2 font-semibold',
-          copy.ok ? 'text-green-700 dark:text-green-400' : 'text-amber-800 dark:text-amber-300',
-        )}
-      >
+      <Eyebrow>After the check</Eyebrow>
+      <span className={cn('flex items-center gap-2 font-semibold', copy.ok ? 'text-positive' : 'text-warning')}>
         <Icon className="size-4" aria-hidden="true" />
         {copy.title}
       </span>

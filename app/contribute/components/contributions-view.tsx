@@ -8,6 +8,7 @@ import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { Pill } from './primitives';
 import { type DraftFollowUp, ReplyDraftItem } from './reply-drafts';
 import { attemptHref } from './reviews-ready';
+import { Button } from '@/components/ui/button';
 import {
   ATTEMPT_STATES,
   agentLabelOf,
@@ -71,9 +72,9 @@ const shownDrafts = (drafts: ContributeReplyDraft[] | undefined, now: Date) =>
 function Tile({ label, value, text, name }: { label: string; value: string; text: ReactNode; name: string }) {
   return (
     <div data-total={name} className="flex min-w-0 flex-col gap-1 rounded-xl border bg-card px-4.5 py-4">
-      <span className="text-[13px] text-muted-foreground">{label}</span>
-      <span className="font-mono text-[28px] font-bold">{value}</span>
-      <span className="text-[13px] text-muted-foreground">{text}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="font-mono text-2xl font-bold">{value}</span>
+      <span className="text-xs text-muted-foreground">{text}</span>
     </div>
   );
 }
@@ -144,7 +145,7 @@ function AttemptRow({ attempt, action, text }: { attempt: ContributeAttempt; act
     >
       <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-0.5">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[13px] text-muted-foreground">
+          <span className="font-mono text-xs text-muted-foreground">
             {repoOf(attempt)} · issue #{attempt.number}
           </span>
           <Pill tone={state.tone}>{state.label}</Pill>
@@ -155,15 +156,13 @@ function AttemptRow({ attempt, action, text }: { attempt: ContributeAttempt; act
             ? `Follow-up on pull request #${attempt.followUpOf.number}`
             : attemptTitleOf(attempt)}
         </span>
-        <span className="text-[13px] text-muted-foreground">{text}</span>
+        <span className="text-xs text-muted-foreground">{text}</span>
       </div>
-      <Link
-        href={attemptHref(attempt.attemptId)}
-        prefetch={false}
-        className="min-h-10 content-center rounded-[10px] bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-      >
-        {action}
-      </Link>
+      <Button asChild className="min-h-10 px-4 font-semibold">
+        <Link href={attemptHref(attempt.attemptId)} prefetch={false}>
+          {action}
+        </Link>
+      </Button>
     </li>
   );
 }
@@ -187,7 +186,7 @@ function PrNeedsYouRow({
   return (
     <li data-pr-needs-you={pullRequest.number} className="flex flex-col gap-3 border-b px-5 py-4 last:border-b-0">
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="font-mono text-[13px] text-muted-foreground">
+        <span className="font-mono text-xs text-muted-foreground">
           {contribution.nameWithOwner || 'a repo'} ·{' '}
           {url ? (
             <a href={url} target="_blank" rel="noopener noreferrer" className="hover:underline">
@@ -248,11 +247,11 @@ function NeedsYou({
     <section
       aria-labelledby="needs-you"
       data-section="needs-you"
-      className="overflow-hidden rounded-xl border border-amber-200 bg-card dark:border-amber-900"
+      className="overflow-hidden rounded-xl border border-warning/30 bg-card"
     >
       <h2
         id="needs-you"
-        className="border-b border-amber-200 bg-amber-50 px-5 py-3.5 text-[15px] font-semibold text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+        className="border-b border-warning/30 bg-warning-soft px-5 py-3.5 text-base font-semibold text-warning-soft-foreground"
       >
         Needs you · {count}
       </h2>
@@ -306,7 +305,7 @@ function InProgress({ attempts, now }: { attempts: ContributeAttempt[]; now?: Da
       data-section="in-progress"
       className="overflow-hidden rounded-xl border bg-card"
     >
-      <h2 id="in-progress" className="border-b px-5 py-3.5 text-[15px] font-semibold">
+      <h2 id="in-progress" className="border-b px-5 py-3.5 text-base font-semibold">
         In progress · {attempts.length}
       </h2>
       <ul>
@@ -370,9 +369,9 @@ function PullRequests({ contributions, now }: { contributions: ContributeContrib
   } else {
     content = (
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[620px] border-collapse text-sm">
+        <table className="w-full min-w-155 border-collapse text-sm">
           <thead>
-            <tr className="text-left text-xs tracking-[0.06em] text-muted-foreground uppercase">
+            <tr className="text-left text-xs tracking-wider text-muted-foreground uppercase">
               <th className="px-5 py-2.5 font-medium">Pull request</th>
               <th className="px-3 py-2.5 font-medium">State</th>
               <th className="px-3 py-2.5 font-medium">Dates</th>
@@ -393,7 +392,7 @@ function PullRequests({ contributions, now }: { contributions: ContributeContrib
                     >
                       {contribution.title?.trim() || `Fix for issue #${contribution.issueNumber}`}
                     </Link>
-                    <div className="font-mono text-[12.5px] text-muted-foreground">
+                    <div className="font-mono text-xs text-muted-foreground">
                       {contribution.nameWithOwner || 'a repo'} ·{' '}
                       <PrNumberLink url={pullRequest.url} number={pullRequest.number} /> · issue #
                       {contribution.issueNumber}
@@ -402,7 +401,7 @@ function PullRequests({ contributions, now }: { contributions: ContributeContrib
                   <td className="px-3 py-3 align-top">
                     <PrStatePill contribution={contribution} />
                   </td>
-                  <td className="px-3 py-3 align-top text-[13px] whitespace-nowrap text-muted-foreground">
+                  <td className="px-3 py-3 align-top text-xs whitespace-nowrap text-muted-foreground">
                     <div>Opened {dayLabel(pullRequest.openedAt)}</div>
                     {ended ? (
                       <div>
@@ -414,7 +413,7 @@ function PullRequests({ contributions, now }: { contributions: ContributeContrib
                   </td>
                   <td
                     data-runner={contribution.runner ?? ''}
-                    className={`py-3 pr-5 pl-3 text-right align-top text-[13px] ${isOwnAgent(contribution) ? '' : 'font-mono'}`}
+                    className={`py-3 pr-5 pl-3 text-right align-top text-xs ${isOwnAgent(contribution) ? '' : 'font-mono'}`}
                   >
                     {costOrAgentOf(contribution, usd)}
                     {contribution.openedBy === 'HAND' ? (
@@ -435,7 +434,7 @@ function PullRequests({ contributions, now }: { contributions: ContributeContrib
       aria-labelledby="pull-requests"
       className="min-w-0 flex-[999_1_640px] overflow-hidden rounded-xl border bg-card"
     >
-      <h2 id="pull-requests" className="border-b px-5 py-3.5 text-[15px] font-semibold">
+      <h2 id="pull-requests" className="border-b px-5 py-3.5 text-base font-semibold">
         Pull requests
       </h2>
       {content}
@@ -450,7 +449,7 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
   if (!attempts) {
     return (
       <section className="flex flex-col gap-2 rounded-xl border bg-card p-4.5">
-        <h2 className="text-[15px] font-semibold">How attempts ended</h2>
+        <h2 className="text-base font-semibold">How attempts ended</h2>
         <p className="text-sm text-muted-foreground">Not available yet.</p>
       </section>
     );
@@ -469,7 +468,7 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
 
   return (
     <section data-section="how-attempts-ended" className="flex flex-col gap-2.5 rounded-xl border bg-card p-4.5">
-      <h2 className="text-[15px] font-semibold">
+      <h2 className="text-base font-semibold">
         {attempts.length
           ? `Your last ${attempts.length} attempt${attempts.length === 1 ? '' : 's'}`
           : 'No attempts yet'}
@@ -487,7 +486,7 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
         <p className="text-sm text-muted-foreground">An agent starts on an issue for you as your limits allow.</p>
       )}
       {stops.length ? (
-        <ul className="flex flex-col gap-1.5 border-t pt-2.5 text-[13px] text-muted-foreground">
+        <ul className="flex flex-col gap-1.5 border-t pt-2.5 text-xs text-muted-foreground">
           {stops.map((attempt) => (
             <li key={attempt.attemptId}>
               <Link href={attemptHref(attempt.attemptId)} prefetch={false} className="font-mono text-foreground/80">
@@ -543,7 +542,7 @@ export function ContributionsScreen({
       {posting ? <LiveRefresh /> : null}
       <ContributeNotices notices={contributeNoticesOf(view)} />
       <div className="flex flex-col gap-1">
-        <h1 className="text-[28px] font-bold tracking-tight">My contributions</h1>
+        <h1 className="text-2xl font-bold tracking-tight">My contributions</h1>
         {spend ? (
           <span className="text-sm text-muted-foreground">
             This cycle: {dayLabel(spend.cycleStart)} to {dayLabel(spend.cycleEnd)}, {usd(spend.cycleUsd)} used

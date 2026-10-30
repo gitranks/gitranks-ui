@@ -69,7 +69,7 @@ export function ResultPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
       <p className="whitespace-pre-line text-foreground/90">{result.summary || 'No summary was given.'}</p>
       {result.riskNotes ? (
         <div className="flex flex-col gap-1 border-t pt-2.5">
-          <span className="text-[13px] font-semibold text-muted-foreground">Worth a look</span>
+          <span className="text-xs font-semibold text-muted-foreground">Worth a look</span>
           <span className="whitespace-pre-line text-sm text-foreground/90">{result.riskNotes}</span>
         </div>
       ) : null}
@@ -86,14 +86,16 @@ function TestRun({ test }: { test: ContributeAttemptTest }) {
   return (
     <div data-test-passed={test.passed} className="flex flex-col gap-1">
       <div className="flex flex-wrap items-baseline gap-2">
-        <span className="text-zinc-400">$</span>
+        <span className="text-muted-foreground">$</span>
         <span className="min-w-0 break-all">{test.command}</span>
-        <span className={test.passed ? 'text-green-300' : 'text-red-300'}>{test.passed ? '✓ passed' : '✗ failed'}</span>
+        <span className={test.passed ? 'text-positive' : 'text-destructive'}>
+          {test.passed ? '✓ passed' : '✗ failed'}
+        </span>
       </div>
       {test.output ? (
         <details>
-          <summary className="cursor-pointer text-zinc-400">Output</summary>
-          <pre className="mt-1 max-h-80 overflow-auto whitespace-pre-wrap text-zinc-300">{test.output}</pre>
+          <summary className="cursor-pointer text-muted-foreground">Output</summary>
+          <pre className="mt-1 max-h-80 overflow-auto whitespace-pre-wrap text-foreground/80">{test.output}</pre>
         </details>
       ) : null}
     </div>
@@ -116,10 +118,7 @@ export function ChecksPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
             <li key={check.name} data-check={check.name} data-passed={check.passed} className="flex min-w-0 gap-2">
               <span
                 aria-hidden="true"
-                className={cn(
-                  'flex-none font-bold',
-                  check.passed ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400',
-                )}
+                className={cn('flex-none font-bold', check.passed ? 'text-positive' : 'text-destructive')}
               >
                 {check.passed ? '✓' : '✗'}
               </span>
@@ -140,7 +139,8 @@ export function ChecksPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
         {reported ? 'Tests reported by your agent' : 'Tests the agent ran'}
       </h3>
       {tests.length ? (
-        <div className="flex flex-col gap-2.5 overflow-x-auto rounded-lg bg-zinc-900 px-3.5 py-3 font-mono text-[13px] leading-relaxed text-zinc-200">
+        // The terminal reads dark in both themes: the block takes the dark theme's tokens.
+        <div className="dark flex flex-col gap-2.5 overflow-x-auto rounded-lg bg-card px-3.5 py-3 font-mono text-xs leading-relaxed text-card-foreground">
           {tests.map((test, index) => (
             <TestRun key={`${index}-${test.command}`} test={test} />
           ))}
@@ -163,10 +163,10 @@ export function CostPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
   return (
     <Block title="What it cost" name="cost" className="p-4.5">
       <div className="flex items-baseline gap-1.5">
-        <span className="font-mono text-[26px] font-bold">{usd(cost.totalUsd)}</span>
+        <span className="font-mono text-2xl font-bold">{usd(cost.totalUsd)}</span>
         <span className="text-sm text-muted-foreground">of your {usd(attempt.budgetUsd)} limit</span>
       </div>
-      <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-[13px]">
+      <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm">
         <dt className="text-muted-foreground">Go/no-go check</dt>
         <dd className="font-mono">{usd(cost.goNoGoUsd)}</dd>
         <dt className="text-muted-foreground">Fix{model ? ` (${model})` : ''}</dt>
@@ -187,7 +187,7 @@ export function OwnAgentPanel({ attempt, now }: { attempt: ContributeAttemptDeta
   const agent = agentLabelOf(attempt.agent);
   return (
     <Block title="Made by your own agent" name="own-agent" className="p-4.5">
-      <span className="text-[17px] font-semibold">{agent ?? 'Your agent has not submitted yet'}</span>
+      <span className="text-lg font-semibold">{agent ?? 'Your agent has not submitted yet'}</span>
       <span className="text-xs text-muted-foreground">
         As your agent reported it. It ran on your machine, so nothing was spent on a Claude key.
       </span>
@@ -198,7 +198,7 @@ export function OwnAgentPanel({ attempt, now }: { attempt: ContributeAttemptDeta
       ) : null}
       {attempt.changesRequested ? (
         <div className="flex flex-col gap-1 border-t pt-2.5">
-          <span className="text-[13px] font-semibold text-muted-foreground">You sent it back with</span>
+          <span className="text-xs font-semibold text-muted-foreground">You sent it back with</span>
           <span className="whitespace-pre-line text-sm text-foreground/90">{attempt.changesRequested.note}</span>
         </div>
       ) : null}
@@ -211,7 +211,7 @@ export function TimelinePanel({ attempt }: { attempt: ContributeAttemptDetail })
   return (
     <Block title="Timeline" name="timeline" className="p-4.5">
       {attempt.events.length ? (
-        <ol className="flex flex-col gap-2 text-[13px]">
+        <ol className="flex flex-col gap-2 text-xs">
           {attempt.events.map((event, index) => {
             const detail = detailText(event.detail);
             return (
@@ -257,7 +257,7 @@ export function ReadinessPanel({ attempt }: { attempt: ContributeAttemptDetail }
   return (
     <Block title="How the repo builds" name="readiness" className="p-4.5">
       {rows.length ? (
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-[13px]">
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
           {rows.map(([label, value]) => (
             <div key={label} className="contents">
               <dt className="text-muted-foreground">{label}</dt>
@@ -266,7 +266,7 @@ export function ReadinessPanel({ attempt }: { attempt: ContributeAttemptDetail }
           ))}
         </dl>
       ) : null}
-      {readiness.notes ? <p className="whitespace-pre-line text-[13px] text-foreground/90">{readiness.notes}</p> : null}
+      {readiness.notes ? <p className="whitespace-pre-line text-sm text-foreground/90">{readiness.notes}</p> : null}
     </Block>
   );
 }
@@ -279,7 +279,7 @@ export function ApprovalPanel({ attempt }: { attempt: ContributeAttemptDetail })
   return (
     <Block title="What you approved" name="approval" className="p-4.5">
       <span className="font-semibold">{approval.title}</span>
-      <pre className="max-h-72 overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-[12.5px] whitespace-pre-wrap">
+      <pre className="max-h-72 overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs whitespace-pre-wrap">
         {approval.body}
       </pre>
       <span className="text-xs text-muted-foreground">

@@ -2,6 +2,9 @@
 
 import { BellIcon, CheckIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
+import type { IconType } from 'react-icons';
+import { RiCursorAiFill, RiGeminiLine, RiGrokAiFill, RiOpenaiFill } from 'react-icons/ri';
+import { SiGithubcopilot, SiGooglejules } from 'react-icons/si';
 import { toast } from 'sonner';
 
 import { noteProviderInterest, withdrawProviderInterest } from '../actions';
@@ -13,6 +16,17 @@ import { COMING_SOON } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
 type Noted = ReadonlySet<ContributeComingSoonProvider>;
+
+/** Each card's mark; a provider without one shows its initials. */
+export const PROVIDER_ICONS: Partial<Record<ContributeComingSoonProvider, IconType>> = {
+  CHATGPT: RiOpenaiFill,
+  COPILOT: SiGithubcopilot,
+  GEMINI: RiGeminiLine,
+  CURSOR: RiCursorAiFill,
+  JULES: SiGooglejules,
+  OPENAI: RiOpenaiFill,
+  XAI: RiGrokAiFill,
+};
 
 const EMAIL_ONCE = "We'll email you once, when it opens";
 
@@ -135,6 +149,7 @@ export function ComingSoon({
         <ul className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 max-sm:gap-0 max-sm:overflow-hidden max-sm:rounded-[14px] max-sm:border">
           {COMING_SOON.map(({ provider, mono, title, kind, text }, index) => {
             const on = noted.has(provider);
+            const Icon = PROVIDER_ICONS[provider];
             return (
               <li key={provider} className={cn(CARD, RISE_DELAYS[index])} data-provider={provider}>
                 <div className="flex min-w-0 items-center gap-3">
@@ -142,7 +157,7 @@ export function ComingSoon({
                     aria-hidden="true"
                     className="flex size-[34px] flex-none items-center justify-center rounded-[9px] bg-muted text-[13px] font-bold text-foreground/80"
                   >
-                    {mono}
+                    {Icon ? <Icon className="size-[18px]" /> : mono}
                   </span>
                   <span className="flex min-w-0 flex-col">
                     <span className="font-semibold">{title}</span>

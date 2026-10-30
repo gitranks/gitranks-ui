@@ -1,6 +1,6 @@
 import type { Route } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { ContributeNotices } from './contribute-notices';
 import { IssueCard } from './issue-card';
@@ -10,7 +10,7 @@ import { Meter } from './primitives';
 import { ReviewsReady } from './reviews-ready';
 import { loadAttempts, loadContribute, loadIssues } from '@/lib/contribute/contribute.data';
 import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
-import { contributeNoticesOf } from '@/lib/contribute/contribute-state';
+import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
 
 export async function IssuesView({
@@ -25,6 +25,7 @@ export async function IssuesView({
     loadAttempts('REVIEW', 5),
   ]);
   if (!view) notFound();
+  if (!isContributePageOpen(view, 'issues')) redirect('/contribute');
   return <IssuesScreen view={view} page={page} query={query} reviews={reviews} />;
 }
 

@@ -39,3 +39,58 @@ export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
   if (view.grantAvailable && view.grant && !view.grant.connected) notices.push({ kind: 'grant-missing' });
   return notices;
 }
+
+/**
+ * Onboarded: a way of contributing worked once, a Claude key stored or the user's own agent's first call. Until then
+ * Contribute is the landing alone. Nothing clears it.
+ */
+export const isOnboarded = (view: ContributeView | null | undefined): boolean => !!view?.contributor?.onboardedAt;
+
+/** Mid-setup: a token for the user's own agent is live, and the agent has not connected with it yet. */
+export const isMidSetup = (view: ContributeView | null | undefined): boolean =>
+  !!view?.contributor && !isOnboarded(view) && !!view.ownAgent?.paths.mcp;
+
+/** `?as=visitor` on `/contribute`: a signed-in user sees the landing as a visitor would. It changes nothing else. */
+export const AS_VISITOR = 'visitor';
+
+const firstOf = (value: string | string[] | null | undefined) => (Array.isArray(value) ? value[0] : value);
+
+export const isAsVisitor = (as: string | string[] | null | undefined) => firstOf(as) === AS_VISITOR;
+
+/** Who the landing is for: its buttons sign a visitor in first, and a mid-setup user is offered to carry on. */
+export type LandingViewer = 'visitor' | 'signed-in' | 'mid-setup';
+
+/**
+ * What `/contribute` shows. `preview` is a signed-in user seeing the visitor's landing (`?as=visitor`): its sign-in
+ * goes straight on, as they are signed in already.
+ */
+export type ContributeHome = { screen: 'overview' } | { screen: 'landing'; viewer: LandingViewer; preview: boolean };
+
+/**
+ * `/contribute` for the signed-in user: the landing until they are onboarded, then the overview. `?about=1` shows an
+ * onboarded user the landing again ("How Contribute works"), and `?as=visitor` shows anyone the visitor's landing.
+ */
+export function contributeHomeOf(
+  view: ContributeView,
+  params: { as?: string | string[]; about?: string | string[] },
+): ContributeHome {
+  if (isAsVisitor(params.as)) return { screen: 'landing', viewer: 'visitor', preview: true };
+  if (!isOnboarded(view)) {
+    return { screen: 'landing', viewer: isMidSetup(view) ? 'mid-setup' : 'signed-in', preview: false };
+  }
+  if (firstOf(params.about) === '1') return { screen: 'landing', viewer: 'signed-in', preview: false };
+  return { screen: 'overview' };
+}
+
+/** The pages of Contribute that wait for the user: Issues, My contributions, an attempt's review, Settings. */
+export type ContributeGatedPage = 'issues' | 'me' | 'attempt' | 'settings';
+
+/**
+ * Whether the page is open to the user; one that is not sends them to the landing. Settings is open to any
+ * contributor, onboarded or not, so a user mid-setup can revoke a token or delete their data; the rest wait for
+ * onboarding.
+ */
+export function isContributePageOpen(view: ContributeView, page: ContributeGatedPage): boolean {
+  if (page === 'settings') return !!view.contributor;
+  return isOnboarded(view);
+}

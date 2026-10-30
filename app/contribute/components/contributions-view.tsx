@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { ContributeNotices } from './contribute-notices';
@@ -32,7 +32,7 @@ import type {
   ContributeReplyDraft,
   ContributeView,
 } from '@/lib/contribute/contribute.types';
-import { contributeNoticesOf } from '@/lib/contribute/contribute-state';
+import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { dayLabel, relativeLabel, timeLeftLabel, usd } from '@/lib/contribute/format';
 
 /** Merged pull requests that unlock autopilot. */
@@ -45,6 +45,7 @@ export async function ContributionsView() {
     loadAttempts(undefined, 50),
   ]);
   if (!view) notFound();
+  if (!isContributePageOpen(view, 'me')) redirect('/contribute');
   const drafts = await loadOpenPrDrafts(contributions);
   return <ContributionsScreen view={view} contributions={contributions} attempts={attempts} drafts={drafts} />;
 }

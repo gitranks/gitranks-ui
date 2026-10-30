@@ -23,6 +23,7 @@ const {
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
   ContributeGrantDocument,
+  ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeReplyDraftsDocument,
 } = await import('./contribute.documents');
@@ -63,6 +64,36 @@ describe('loadContribute', () => {
 
     expect(await loadContribute()).toMatchObject({ contributor: null, grant: undefined, paused: undefined });
     expect(graphqlDirect.mock.calls.some(([document]) => document === ContributeGrantDocument)).toBe(true);
+  });
+
+  it('adds the onboarding stamp and whether attempts are open, when the API answers them', async () => {
+    const contributor = { status: 'ACTIVE', login: 'octocat', autopilot: null };
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
+      if (document === ContributeOnboardingDocument) {
+        return {
+          contribute: {
+            attemptsOpen: false,
+            contributor: { onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'MCP' },
+          },
+        };
+      }
+      throw new Error('[{"message":"Cannot query field"}]');
+    });
+
+    expect(await loadContribute()).toMatchObject({
+      contributor: { login: 'octocat', onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'MCP' },
+      attemptsOpen: false,
+    });
+  });
+
+  it('leaves the onboarding fields out while the API does not answer them', async () => {
+    answer(async () => ({ contribute: { previewAllowed: true, contributor: { status: 'ACTIVE', autopilot: null } } }));
+
+    const view = await loadContribute();
+    expect(view?.contributor).not.toHaveProperty('onboardedAt');
+    expect(view?.contributor).not.toHaveProperty('onboardedVia');
+    expect(view).not.toHaveProperty('attemptsOpen');
   });
 });
 

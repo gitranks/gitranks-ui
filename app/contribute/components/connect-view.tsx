@@ -12,6 +12,7 @@ import { PreferencesStep } from './preferences-step';
 import { SetupSteps } from './setup-steps';
 import { loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeView } from '@/lib/contribute/contribute.types';
+import { CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
 
 /**
@@ -37,7 +38,7 @@ export async function ConnectView({
 }
 
 /** Where the own-agent path starts. */
-export const OWN_AGENT_PATH = '/contribute/connect?path=agent' as Route;
+export const OWN_AGENT_PATH = CONNECT_AGENT_PATH;
 
 /**
  * Connect with the user's own agent instead of a Claude key: GitHub access, what they like to work on, then a token

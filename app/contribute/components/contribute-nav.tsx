@@ -1,10 +1,14 @@
 'use client';
 
+import { ChevronLeftIcon } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
-import { isMaintainersPath } from '@/lib/contribute/contribute-path';
+import { SignInButton } from './sign-in-dialog';
+import SigninButton from '@/components/signin-button/signin-button';
+import { isMaintainersPath, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
+import { isAsVisitor } from '@/lib/contribute/contribute-state';
 import { cn } from '@/lib/utils';
 
 export const CONTRIBUTE_TABS: { href: Route; label: string }[] = [
@@ -20,41 +24,128 @@ export const contributeTabOf = (pathname: string): Route | undefined => {
   return CONTRIBUTE_TABS.findLast(({ href }) => path === href || path.startsWith(`${href}/`))?.href;
 };
 
-/** Contribute's own bar, under the site header; not on the page for maintainers, which is open to everyone. */
-export function ContributeNav() {
+/** Who is looking, as the bar needs it. */
+export type ContributeBarViewer = {
+  signedIn: boolean;
+  /** Contribute is open to them (the preview lets them in). */
+  allowed: boolean;
+  onboarded: boolean;
+};
+
+/** What the bar holds for a viewer on a path. */
+export type ContributeBarState = {
+  /** Where the lockup goes. */
+  home: Route;
+  /** The tabs: only once the user is onboarded. */
+  tabs: boolean;
+  /** The tab marked as the current page. */
+  current?: Route;
+  /** The account: the site's avatar menu, "Sign in" (the sign-in dialog), or nothing. */
+  account: 'avatar' | 'sign-in' | 'none';
+};
+
+/**
+ * The bar for a viewer on a path. Not onboarded, Contribute is one page and has no tabs. `?as=visitor` on `/contribute`
+ * shows a signed-in user the visitor's bar. The maintainers page, open to everyone, has no tabs and no Contribute
+ * sign-in (it has its own); its lockup leads to the landing only for a viewer Contribute is open to.
+ */
+export function contributeBarOf(pathname: string, as: string | null, viewer: ContributeBarViewer): ContributeBarState {
+  const maintainers = isMaintainersPath(pathname);
+  const visitor = !viewer.signedIn || (pathname.replace(/\/+$/, '') === '/contribute' && isAsVisitor(as));
+  const tabs = viewer.onboarded && !visitor && !maintainers;
+  return {
+    home: maintainers && !viewer.allowed ? MAINTAINERS_PATH : '/contribute',
+    tabs,
+    current: tabs ? contributeTabOf(pathname) : undefined,
+    account: maintainers ? (viewer.signedIn ? 'avatar' : 'none') : visitor ? 'sign-in' : 'avatar',
+  };
+}
+
+/** The bar as the path and the query say; it reads both, so it renders inside a Suspense boundary. */
+export function ContributeBarNav(viewer: ContributeBarViewer) {
   const pathname = usePathname();
-  if (isMaintainersPath(pathname)) return null;
-  return <ContributeNavBar current={contributeTabOf(pathname)} />;
+  const as = useSearchParams().get('as');
+  return <ContributeBarView {...contributeBarOf(pathname, as, viewer)} preview={viewer.signedIn} />;
 }
 
 /**
- * The bar with `current` marked. Without one it is the stand-in while a page whose path is known only per request (an
- * attempt's review) renders.
+ * Contribute's own top bar, in place of the site header: the lockup, the tabs once onboarded, the way back to
+ * GitRanks and the account. Without props it is the stand-in while the viewer is read: no tabs, no account.
  */
-export function ContributeNavBar({ current }: { current?: Route }) {
+export function ContributeBarView({
+  home = '/contribute',
+  tabs = false,
+  current,
+  account = 'none',
+  preview = false,
+}: Partial<ContributeBarState> & {
+  /** A signed-in user seeing the visitor's bar: its sign-in only goes on. */
+  preview?: boolean;
+}) {
   return (
-    <div className="border-b">
-      <nav aria-label="Contribute" className="mx-auto flex max-w-7xl flex-wrap gap-6 px-4 text-sm">
-        {CONTRIBUTE_TABS.map(({ href, label }) => {
-          const active = current === href;
-          return (
-            <Link
-              key={href}
-              href={href}
-              prefetch={false}
-              aria-current={active ? 'page' : undefined}
-              className={cn(
-                'border-b-2 py-3 transition-colors',
-                active
-                  ? 'border-primary font-semibold text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground',
-              )}
+    <header className="border-b bg-background">
+      <div className="mx-auto flex min-h-16 w-full max-w-[1180px] flex-wrap items-center gap-x-7 px-4 md:flex-nowrap">
+        <Link
+          href={home}
+          prefetch={false}
+          aria-label="GitRanks Contribute, home"
+          className="flex flex-none flex-col py-2.5 leading-none"
+        >
+          <span className="text-lg font-extrabold tracking-tight">GitRanks</span>
+          <span className="mt-[3px] text-[10px] font-bold uppercase tracking-[0.16em] text-violet-700 dark:text-violet-300">
+            Contribute
+          </span>
+        </Link>
+
+        {tabs ? (
+          <nav
+            aria-label="Contribute"
+            className="flex gap-1 self-stretch text-sm max-md:order-3 max-md:basis-full max-md:overflow-x-auto"
+          >
+            {CONTRIBUTE_TABS.map(({ href, label }) => {
+              const active = current === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  prefetch={false}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'flex min-h-11 items-center border-b-2 px-3 whitespace-nowrap transition-colors',
+                    active
+                      ? 'border-primary font-semibold text-foreground'
+                      : 'border-transparent font-medium text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+        ) : null}
+
+        <div className="ml-auto flex items-center gap-[18px] text-sm">
+          <Link
+            href="/"
+            prefetch={false}
+            aria-label="Back to GitRanks"
+            className="inline-flex min-h-11 items-center gap-1.5 font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeftIcon aria-hidden="true" className="size-4" />
+            GitRanks
+          </Link>
+          {account === 'sign-in' ? (
+            <SignInButton
+              preview={preview}
+              className="inline-flex min-h-10 items-center rounded-[10px] border px-3.5 font-semibold hover:bg-accent"
             >
-              {label}
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
+              Sign in
+            </SignInButton>
+          ) : account === 'avatar' ? (
+            <SigninButton />
+          ) : null}
+        </div>
+      </div>
+    </header>
   );
 }

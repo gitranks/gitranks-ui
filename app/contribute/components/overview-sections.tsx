@@ -96,11 +96,17 @@ const workOf = (attempt: ContributeAttempt) =>
     ? `Follow-up on PR #${attempt.followUpOf.number}`
     : attemptTitleOf(attempt);
 
-/** What a review cost, or, made by the user's own agent, which agent made it. */
-const madeOf = (attempt: ContributeAttempt) =>
-  isOwnAgent(attempt)
-    ? `made by ${attempt.agent ? (AGENT_NAMES[attempt.agent.name] ?? attempt.agent.name) : 'your own agent'}`
-    : usd(attempt.costUsd);
+/**
+ * What a review cost, or, made by the user's own agent, which agent made it. Whose it is unanswered and nothing
+ * spent, it may be the agent's, which spends nothing through us: no "$0", the cost is left out.
+ */
+const madeOf = (attempt: ContributeAttempt): string | null => {
+  if (isOwnAgent(attempt)) {
+    return `made by ${attempt.agent ? (AGENT_NAMES[attempt.agent.name] ?? attempt.agent.name) : 'your own agent'}`;
+  }
+  if (attempt.runner === undefined && !(attempt.costUsd > 0)) return null;
+  return usd(attempt.costUsd);
+};
 
 type RowCopy = {
   kind: string;

@@ -19,9 +19,13 @@ import { AUTOPILOT_UNLOCK_AT } from './format';
  * they contribute and what comes next. Each section is read on its own; these are its states, from what it read.
  */
 
-/** The states of the attempts that wait for the user, and how many of them Overview reads. */
+/**
+ * The states of the attempts that wait for the user, and how many of them Overview reads: the API's largest page.
+ * The API lists them newest first, and the oldest are the closest to letting go, so the page must hold them all to be
+ * ordered here. It does: at most one first attempt per open PR (10 at the most) and one follow-up per open PR.
+ */
 export const NEEDS_YOU_STATES: ContributeAttemptState[] = ['REVIEW', 'PENDING_AUTOSUBMIT'];
-export const NEEDS_YOU_READ = 10;
+export const NEEDS_YOU_READ = 50;
 
 /** The states of an attempt in flight, and how many of them Overview reads. */
 export const IN_FLIGHT_STATES: ContributeAttemptState[] = ['CLAIMING', 'RUNNING', 'CHECKS'];
@@ -85,8 +89,14 @@ const timeOf = (iso: string | null | undefined) => {
 /** When the review became ready: its seven days run from it. The last update stands in while it is not answered. */
 const readySince = (attempt: ContributeAttempt) => timeOf(attempt.reviewAt ?? attempt.updatedAt);
 
-const isGrantBounce = (attempt: ContributeAttempt) =>
-  attempt.state === 'REVIEW' && GRANT_REASONS.has(attempt.submit?.lastError?.reason?.toLowerCase() ?? '');
+/**
+ * A review whose submission bounced for want of GitHub access, while the access is not known to be granted: once it
+ * is, the bounce note is stale and the review is a review like any other.
+ */
+const isGrantBounce = (view: ContributeView, attempt: ContributeAttempt) =>
+  view.grant?.connected !== true &&
+  attempt.state === 'REVIEW' &&
+  GRANT_REASONS.has(attempt.submit?.lastError?.reason?.toLowerCase() ?? '');
 
 /**
  * The rows of "Needs you", in order: the key, no way set up, GitHub access, autopilot, the reviews (oldest ready
@@ -112,12 +122,14 @@ export function needsYouRowsOf(view: ContributeView, read: OverviewNeedsRead): N
   const repliesOf = (attempt: ContributeAttempt) => folded.get(attempt.attemptId) ?? 0;
 
   const reviews = read.reviews ?? [];
-  const grants = reviews.filter(isGrantBounce).sort((a, b) => readySince(a) - readySince(b));
+  const grants = reviews
+    .filter((attempt) => isGrantBounce(view, attempt))
+    .sort((a, b) => readySince(a) - readySince(b));
   const autopilot = reviews
     .filter(({ state }) => state === 'PENDING_AUTOSUBMIT')
     .sort((a, b) => timeOf(a.autosubmitAt) - timeOf(b.autosubmitAt));
   const ready = reviews
-    .filter((attempt) => attempt.state === 'REVIEW' && !isGrantBounce(attempt))
+    .filter((attempt) => attempt.state === 'REVIEW' && !isGrantBounce(view, attempt))
     .sort((a, b) => readySince(a) - readySince(b));
 
   for (const attempt of grants) rows.push({ kind: 'grant', attempt, replies: repliesOf(attempt) });
@@ -209,6 +221,8 @@ function hostedStateOf(
   if (counts && settings?.pace === 'QUEUED' && counts.queued === 0) return { kind: 'nothing-queued' };
   if (step.kind === 'no-room') return step;
   if (!inFlight || !counts || !settings) return { kind: 'unknown' };
+  // Without the feed, "no issues" cannot be ruled out.
+  if (step.kind === 'soon' && page === undefined) return { kind: 'unknown' };
   return step;
 }
 
@@ -238,10 +252,14 @@ export function rightNowOf(
   now = new Date(),
 ): RightNow {
   const key = !!claudeKeyOf(view);
+  // Whose an attempt in flight is comes from the own-agent fields, read on their own: unanswered beside a key, an
+  // attempt could be either agent's, so what depends on it is read as not answered.
+  const runnersUnread = key && !!read.inFlight?.some((attempt) => attempt.runner === undefined);
+  const known: OverviewNowRead = runnersUnread ? { ...read, inFlight: undefined } : read;
   return {
-    ...(key ? { hosted: hostedStateOf(view, read, page, now) } : {}),
+    ...(key ? { hosted: hostedStateOf(view, known, page, now) } : {}),
     cycle: key,
-    ...(view.ownAgent?.paths.mcp ? { ownAgent: ownAgentStateOf(view, read) } : {}),
+    ...(view.ownAgent?.paths.mcp ? { ownAgent: ownAgentStateOf(view, known) } : {}),
     live: (read.inFlight?.length ?? 0) > 0,
   };
 }

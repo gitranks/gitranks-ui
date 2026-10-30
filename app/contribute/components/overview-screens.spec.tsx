@@ -546,3 +546,64 @@ describe('Overview before the first attempt', () => {
     ).toContain('data-row="key"');
   });
 });
+
+describe('the review fixes, rendered', () => {
+  it('leaves the cost out of a review whose maker is unread and spent nothing, never "$0"', () => {
+    const { runner: _runner, ...unread } = attempt({ costUsd: 0, reviewAt: '2026-10-28T11:00:00.000Z' });
+    const html = text(
+      renderToStaticMarkup(
+        <NeedsYouSection view={both} read={{ reviews: [unread as ContributeAttempt], replies: [] }} now={NOW} />,
+      ),
+    );
+
+    expect(html).toContain('Nested layouts re-render on every navigation · ready 1 hour ago Review');
+    expect(html).not.toContain('$0');
+  });
+
+  it('shows a bounced review as a review, without the bounce note, once GitHub access is granted', () => {
+    const bounced = attempt({
+      submit: {
+        step: 'FORK',
+        waitUntil: null,
+        fork: null,
+        branch: null,
+        lastError: { reason: 'grant_missing', note: 'GitHub access is not connected.', at: '2026-10-28T10:00:00.000Z' },
+      },
+    });
+    const html = renderToStaticMarkup(
+      <NeedsYouSection view={views.active} read={{ reviews: [bounced], replies: [] }} now={NOW} />,
+    );
+
+    expect(html).toContain('data-row="review"');
+    expect(html).not.toContain('data-row="grant"');
+    expect(text(html)).not.toContain('not connected');
+  });
+
+  it("says it can't check either agent while whose the attempt in flight is is unread", () => {
+    const { runner: _runner, ...unread } = attempt({ state: 'RUNNING' });
+    const html = renderToStaticMarkup(
+      <RightNowSection
+        view={both}
+        read={{ ...nowIdle, inFlight: [unread as ContributeAttempt] }}
+        page={issuePage}
+        now={NOW}
+      />,
+    );
+    const plain = text(html);
+
+    expect(html).toContain('data-hosted="unknown"');
+    expect(html).toContain('data-own-agent="unknown"');
+    expect(plain).not.toContain('No issue held');
+    expect(plain).not.toContain('on your key');
+    expect(html).toContain('data-live-refresh="30"');
+  });
+
+  it('never says soon while Up next is unavailable', () => {
+    const html = renderToStaticMarkup(
+      <RightNowSection view={withSpend('2026-10-28T11:00:00.000Z')} read={nowIdle} page={undefined} now={NOW} />,
+    );
+
+    expect(html).toContain('data-hosted="unknown"');
+    expect(text(html)).not.toContain('usually within minutes');
+  });
+});

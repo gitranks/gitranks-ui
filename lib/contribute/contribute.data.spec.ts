@@ -440,7 +440,7 @@ describe("Overview's loaders, each operation settled on its own", () => {
   it('merges reviewAt into the reviews by id, and leaves it out when it is not answered', async () => {
     graphqlDirect.mockImplementation(async (document, variables) => {
       if (document === ContributeAttemptsInDocument) {
-        expect(variables).toEqual({ states: ['REVIEW', 'PENDING_AUTOSUBMIT'], first: 10 });
+        expect(variables).toEqual({ states: ['REVIEW', 'PENDING_AUTOSUBMIT'], first: 50 });
         return { contributeAttempts: [row('A_1'), row('A_2')] };
       }
       if (document === ContributeAttemptsInReviewAtDocument) {

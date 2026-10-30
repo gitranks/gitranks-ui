@@ -205,7 +205,8 @@ export function ComingSoon({
           <h3 className="inline font-semibold text-foreground">Coming soon.</h3> Tell us which you&apos;d use; the most
           asked for comes first.
         </div>
-        <ul className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Four from 1280: at 1024 a quarter of the row leaves a title a few letters beside the toggle. */}
+        <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
           {COMING_SOON.map(({ provider, mono, title }) => (
             <li
               key={provider}

@@ -15,6 +15,7 @@ import {
   impactTilesOf,
   lastUsedTokenOf,
   NEEDS_YOU_MAX,
+  NEEDS_YOU_READ,
   type NeedsYouRow,
   needsYouRowsOf,
   rightNowOf,
@@ -55,7 +56,11 @@ const both: ContributeView = {
 
 describe('needsYouRowsOf', () => {
   it('orders the rows: the key, GitHub access, autopilot, the reviews oldest ready first, then the replies', () => {
-    const view = { ...views.keyInvalid, ownAgent: { paths: { hosted: true, mcp: false }, tokens: [] } };
+    const view = {
+      ...views.keyInvalid,
+      grant: { connected: false, login: null },
+      ownAgent: { paths: { hosted: true, mcp: false }, tokens: [] },
+    };
     const needs = needsYouRowsOf(view, {
       reviews: [...reviewsReady, autopilot, grantBounce],
       replies: [replyWaiting()],
@@ -75,7 +80,7 @@ describe('needsYouRowsOf', () => {
   });
 
   it('never repeats a bounced review as a review row', () => {
-    const { rows } = needsYouRowsOf(views.active, { reviews: [grantBounce], replies: [] });
+    const { rows } = needsYouRowsOf(views.grantMissing, { reviews: [grantBounce], replies: [] });
 
     expect(kinds(rows)).toEqual(['grant']);
   });
@@ -299,6 +304,64 @@ describe('impactTilesOf', () => {
       value: 'On',
       label: 'autopilot unlocked',
     });
+  });
+});
+
+describe('the review fixes', () => {
+  const hosted = (patch: Partial<ContributeAttempt>) =>
+    attempt({ attemptId: 'A_RUN', state: 'RUNNING', createdAt: '2026-10-28T11:48:00.000Z', ...patch });
+
+  it('never gives an attempt to the key while whose it is is unread, and never says the own agent holds none', () => {
+    // The own-agent fields did not answer: no `runner`.
+    const { runner: _runner, ...unread } = hosted({});
+    const read = { ...nowIdle, inFlight: [unread as ContributeAttempt] };
+    const now = rightNowOf(both, read, issuePage, NOW);
+
+    expect(now.hosted).toEqual({ kind: 'unknown' });
+    expect(now.ownAgent).toEqual({
+      kind: 'unknown',
+      token: 'Claude Code on macOS',
+      lastCallAt: '2026-10-28T09:00:00.000Z',
+    });
+    expect(now.live).toBe(true);
+
+    // What does not depend on it still shows: the view's blocks, the scheduler's counts.
+    expect(rightNowOf({ ...both, paused: true }, read, issuePage, NOW).hosted?.kind).toBe('paused');
+    expect(rightNowOf(both, { ...read, scheduleCounts: { prBound: 3, queued: 0 } }, issuePage, NOW).hosted?.kind).toBe(
+      'pr-cap',
+    );
+    // Answered, it is the key's.
+    expect(
+      rightNowOf(both, { ...nowIdle, inFlight: [hosted({ runner: 'MANAGED_AGENTS' })] }, issuePage, NOW).hosted?.kind,
+    ).toBe('working');
+  });
+
+  it('shows a bounced review as a review once GitHub access is granted, and as GitHub access while unread', () => {
+    const connected = { ...views.active, grant: { connected: true, login: 'octocat' } };
+    expect(kinds(needsYouRowsOf(connected, { reviews: [grantBounce], replies: [] }).rows)).toEqual(['review']);
+    expect(kinds(needsYouRowsOf(views.grantMissing, { reviews: [grantBounce], replies: [] }).rows)).toEqual(['grant']);
+    expect(kinds(needsYouRowsOf(views.fieldsMissing, { reviews: [grantBounce], replies: [] }).rows)).toEqual(['grant']);
+  });
+
+  it('never says soon while the feed is unread, and keeps the holds before it', () => {
+    const soon = { ...views.active, contributor: contributor({ spend: firstSpend }) };
+    expect(rightNowOf(soon, nowIdle, undefined, NOW).hosted).toEqual({ kind: 'unknown' });
+    expect(rightNowOf(views.active, nowIdle, undefined, NOW).hosted?.kind).toBe('paced');
+    expect(rightNowOf(soon, nowIdle, issuePage, NOW).hosted?.kind).toBe('soon');
+  });
+
+  it('reads every review that can wait, and cuts the newest, counting them all', () => {
+    // At most one first attempt per open PR (10 at the most) and one follow-up per open PR.
+    expect(NEEDS_YOU_READ).toBeGreaterThanOrEqual(20);
+
+    // As the API lists them: newest first.
+    const reviews = Array.from({ length: 20 }, (_, index) =>
+      attempt({ attemptId: `A_${index}`, reviewAt: new Date(Date.UTC(2026, 9, 28 - index)).toISOString() }),
+    );
+    const needs = needsYouRowsOf(views.active, { reviews, replies: [] });
+
+    expect(ids(needs.rows)).toEqual(['A_19', 'A_18', 'A_17', 'A_16', 'A_15']);
+    expect(needs.total).toBe(20);
   });
 });
 

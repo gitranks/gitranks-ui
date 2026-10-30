@@ -43,11 +43,12 @@ describe('the header', () => {
     expect(html).not.toContain('>/</span>');
   });
 
-  it('titles a page after the logo and a "/", the logo giving way to a home icon on a phone', () => {
+  it('titles a page after the logo and a "/", the logo giving way to its mark alone on a phone', () => {
     const html = renderToStaticMarkup(<Header title="torvalds" />);
 
     expect(html).toMatch(/<svg [^>]*class="[^"]*h-\[22px\] sm:block hidden"/);
-    expect(html).toContain('lucide-house');
+    expect(html).toMatch(/<svg [^>]*class="[^"]*size-6 sm:hidden"[^>]*role="img"><title>GitRanks<\/title>/);
+    expect(html).not.toContain('lucide-house');
     expect(html).toMatch(/<\/a><span[^>]*>\/<\/span><span[^>]*>torvalds<\/span>/);
     expect(html).toContain('<nav aria-label="Main"');
   });

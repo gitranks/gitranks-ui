@@ -18,9 +18,12 @@ export default function ContributeLayout({ children }: { children: ReactNode }) 
     <>
       {/* The bar reads the viewer and the path (an attempt's is known only per request): first the header with no menu
           and no account. */}
-      <Suspense fallback={<ContributeBarFallback />}>
-        <ContributeBar />
-      </Suspense>
+      {/* The line under the header, across the page, as the home page draws one. */}
+      <div className="border-b">
+        <Suspense fallback={<ContributeBarFallback />}>
+          <ContributeBar />
+        </Suspense>
+      </div>
       {children}
     </>
   );

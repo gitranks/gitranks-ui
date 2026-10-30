@@ -3,10 +3,10 @@
 import { Check, Search } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { readFeedComputedAt } from '../actions';
+import { useOnboardedPush } from './use-onboarded-push';
 import {
   MATCHING_CONTINUE_MS,
   MATCHING_GIVE_UP_MS,
@@ -34,15 +34,15 @@ const CHIP_PLACES = [
  * animation, never the ticks.
  */
 export function Matching({ languages, initialTicks = 0 }: { languages: string[]; initialTicks?: number }) {
-  const router = useRouter();
+  const push = useOnboardedPush();
   const headline = useRef<HTMLHeadingElement>(null);
   const started = useRef<number | null>(null);
   const gone = useRef(false);
   const goOn = useCallback(() => {
     if (gone.current) return;
     gone.current = true;
-    router.push(ISSUES_PATH);
-  }, [router]);
+    push(ISSUES_PATH);
+  }, [push]);
   const [elapsed, setElapsed] = useState(0);
   const [computed, setComputed] = useState(false);
   const ticks = Math.max(initialTicks, matchingTicksOf(elapsed, computed));
@@ -170,6 +170,12 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
         <Link
           href={ISSUES_PATH}
           prefetch={false}
+          onClick={(event) => {
+            // The way on reads the bar again, for the tabs; a new tab or window loads it whole anyway.
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+            event.preventDefault();
+            goOn();
+          }}
           className="inline-flex min-h-12 items-center rounded-[10px] bg-primary px-[22px] font-semibold text-primary-foreground hover:bg-primary/90"
         >
           See my issues

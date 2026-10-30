@@ -2,6 +2,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
+import { AgentNextSteps } from './agent-connected';
 import { ContributeNotices } from './contribute-notices';
 import { FirstRunGuide } from './first-run-guide';
 import { IssueCard } from './issue-card';
@@ -12,8 +13,8 @@ import { Meter } from './primitives';
 import { ReviewsReady } from './reviews-ready';
 import { loadAttempts, loadContribute, loadIssues } from '@/lib/contribute/contribute.data';
 import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
-import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
-import { FIRST_RUN_NOTICES, isFirstRun } from '@/lib/contribute/first-run';
+import { contributeNoticesOf, isContributePageOpen, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
+import { FIRST_RUN_NOTICES, isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
 
 export async function IssuesView({
@@ -30,7 +31,17 @@ export async function IssuesView({
   ]);
   if (!view) notFound();
   if (!isContributePageOpen(view, 'issues')) redirect('/contribute');
-  return <IssuesScreen view={view} page={page} query={query} reviews={reviews} firstRun={isFirstRun(view, latest)} />;
+  const firstRun = isFirstRun(view, latest);
+  return (
+    <IssuesScreen
+      view={view}
+      page={page}
+      query={query}
+      reviews={reviews}
+      firstRun={firstRun}
+      agentFirstRun={!firstRun && isOwnAgentOnly(view) && isAgentFirstRun(view, latest)}
+    />
+  );
 }
 
 const filtered = (query: IssuesQuery) => !!(query.language || query.kind || query.size);
@@ -55,6 +66,7 @@ export function IssuesScreen({
   now,
   reviews,
   firstRun = false,
+  agentFirstRun = false,
 }: {
   view: ContributeView;
   page: ContributeIssuePage | null | undefined;
@@ -64,6 +76,8 @@ export function IssuesScreen({
   reviews?: ContributeAttempt[];
   /** No attempt yet: the page opens with what happens next. */
   firstRun?: boolean;
+  /** The user's own agent has made no attempt yet: the page opens with its next steps. */
+  agentFirstRun?: boolean;
 }) {
   const spend = view.contributor?.spend;
   const settings = view.contributor?.settings;
@@ -135,7 +149,8 @@ export function IssuesScreen({
   }
 
   const notices = contributeNoticesOf(view).filter(({ kind }) => !firstRun || !FIRST_RUN_NOTICES.has(kind));
-  const Heading = firstRun ? 'h2' : 'h1';
+  const guided = firstRun || agentFirstRun;
+  const Heading = guided ? 'h2' : 'h1';
 
   return (
     <>
@@ -144,13 +159,14 @@ export function IssuesScreen({
         // Only the unfiltered first page says whether anything is picked at all.
         <FirstRunGuide view={view} page={query.after || filtered(query) ? undefined : page} now={now} heading="h1" />
       ) : null}
+      {agentFirstRun ? <AgentNextSteps view={view} heading="h1" /> : null}
       <ReviewsReady attempts={reviews} />
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-1">
-              <Heading className={firstRun ? 'text-xl font-bold' : 'text-[28px] font-bold tracking-tight'}>
-                {firstRun ? 'Picked for you' : 'Issues for you'}
+              <Heading className={guided ? 'text-xl font-bold' : 'text-[28px] font-bold tracking-tight'}>
+                {guided ? 'Picked for you' : 'Issues for you'}
               </Heading>
               <span className="text-sm text-muted-foreground" data-total={page?.total ?? ''}>
                 {page

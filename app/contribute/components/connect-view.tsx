@@ -1,16 +1,13 @@
-import type { Route } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { AgentConnect } from './agent-connect';
 import { ContributeNotices } from './contribute-notices';
 import { KeyConnect } from './key-connect';
-import { OwnAgentSection } from './own-agent-section';
-import { PreferencesStep } from './preferences-step';
 import type { ManualLimitsDraft } from '@/lib/contribute/connect-limits';
 import { loadContribute, loadProfileLanguages } from '@/lib/contribute/contribute.data';
 import type { ContributeSettings, ContributeView } from '@/lib/contribute/contribute.types';
 import { CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
-import { claudeKeyOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
+import { claudeKeyOf, contributeNoticesOf, isOnboarded } from '@/lib/contribute/contribute-state';
 import { LANGUAGES } from '@/lib/contribute/format';
 
 export async function ConnectView({
@@ -28,33 +25,11 @@ export async function ConnectView({
 export const OWN_AGENT_PATH = CONNECT_AGENT_PATH;
 
 /**
- * Connect with the user's own agent instead of a Claude key: what they like to work on, then a token for their agent.
- * Nothing asks for a key, and GitHub access is asked for on the first review.
+ * B1, the own-agent path: the agent, a token and its setup, then the agent's first call. Nothing asks for a key or for
+ * preferences (guessed, changed in Settings), and GitHub access is asked for on the first review.
  */
-export function OwnAgentConnectScreen({ view, now }: { view: ContributeView; now?: Date }) {
-  const { contributor } = view;
-  return (
-    <>
-      <div className="flex flex-col gap-1.5" data-connect-path="agent">
-        <h1 className="text-3xl font-bold tracking-tight">Use your own agent</h1>
-        <p className="max-w-2xl text-muted-foreground">
-          Claude Code, Codex, Cursor or Gemini CLI on your machine picks an issue here, works on it and hands the change
-          back. You review and approve every pull request here. No Claude key is needed: your agent and its model are
-          your own.
-        </p>
-        <Link href="/contribute/connect" prefetch={false} className="text-sm font-semibold text-primary">
-          Use a Claude key instead →
-        </Link>
-      </div>
-      <PreferencesStep
-        preferences={contributor?.preferences ?? null}
-        step={1}
-        next={`${OWN_AGENT_PATH}#own-agent` as Route}
-        saveLabel="Save, then create a token"
-      />
-      <OwnAgentSection ownAgent={view.ownAgent} now={now} step={2} />
-    </>
-  );
+export function OwnAgentConnectScreen({ view }: { view: ContributeView }) {
+  return <AgentConnect onboarded={isOnboarded(view)} tokens={view.ownAgent?.tokens} />;
 }
 
 /** "I'll set them myself" as a key connected that way set it, to start the form from. */

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { firstSpend, key, NOW, views } from './__fixtures__/contribute-views';
 import type { ContributeIssuePage, ContributeView } from './contribute.types';
-import { firstRunStepOf, isFirstRun } from './first-run';
+import { firstRunStepOf, isAgentFirstRun, isFirstRun } from './first-run';
 
 const ISSUE = {
   issueId: 'I_1',
@@ -77,5 +77,22 @@ describe('firstRunStepOf', () => {
   it('does not call the feed empty while the API does not answer it, nor attempts closed while it does not say', () => {
     expect(kind(base, undefined)).toBe('soon');
     expect(kind({ ...base, attemptsOpen: undefined })).toBe('soon');
+  });
+});
+
+describe('isAgentFirstRun', () => {
+  const agent = views.agentOnboarded;
+
+  it("is an onboarded user while their own agent has made no attempt, and never while the attempts aren't answered", () => {
+    expect(isAgentFirstRun(agent, [])).toBe(true);
+    expect(isAgentFirstRun(agent, undefined)).toBe(false);
+    expect(isAgentFirstRun(views.midSetup, [])).toBe(false);
+  });
+
+  it("counts the agent's attempts alone: a hosted one leaves the guide, one of unknown runner without a key does not", () => {
+    expect(isAgentFirstRun(agent, [{ attemptId: 'A_1', runner: 'MCP' } as never])).toBe(false);
+    expect(isAgentFirstRun(agent, [{ attemptId: 'A_1' } as never])).toBe(false);
+    expect(isAgentFirstRun(views.active, [{ attemptId: 'A_1', runner: 'MANAGED_AGENTS' } as never])).toBe(true);
+    expect(isAgentFirstRun(views.active, [{ attemptId: 'A_1' } as never])).toBe(true);
   });
 });

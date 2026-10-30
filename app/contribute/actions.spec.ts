@@ -11,6 +11,8 @@ const {
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
+  ContributeOnboardingDocument,
+  ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
   DiscardAttemptDocument,
   RevokeMcpTokenDocument,
@@ -41,6 +43,7 @@ const CALLS: Record<string, unknown[]> = {
   approveReply: ['D_1'],
   createMcpToken: ['laptop'],
   revokeMcpToken: ['T_1'],
+  readAgentConnected: [{ tokenId: 'T_1', onboarded: true, githubLogin: 'mallory' }],
   sendBackToAgent: ['A_1', 'Add a test for tabs'],
 };
 
@@ -290,5 +293,56 @@ describe("the own agent's actions", () => {
     });
     expect(graphqlDirect).toHaveBeenCalledWith(SendBackToAgentDocument, { attemptId: 'A_1', note: 'Add a test' }, as);
     expect(await actions.sendBackToAgent('A_1', ' ')).toMatchObject({ ok: false, error: 'INVALID' });
+  });
+});
+
+describe('readAgentConnected', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+  const as = { source: 'client', githubLogin: 'octocat' };
+  const tokens = (lastUsedAt: string | null) => ({
+    contribute: {
+      contributor: { paths: { hosted: false, mcp: true } },
+      mcpTokens: [{ id: 'T_1', name: 'Claude Code on macOS', last4: 'Qx9z', createdAt: '', lastUsedAt }],
+    },
+  });
+
+  it('reads the onboarded stamp alone for a user not onboarded yet', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contribute: { contributor: { onboardedAt: '2026-10-28T12:00:00Z' } } });
+
+    expect(await actions.readAgentConnected({ tokenId: 'T_1', onboarded: false })).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    expect(graphqlDirect).toHaveBeenCalledWith(ContributeOnboardingDocument, undefined, as);
+  });
+
+  it('answers not yet while the stamp is unset, without reading the tokens', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contribute: { contributor: { onboardedAt: null } } });
+
+    expect(await actions.readAgentConnected({ tokenId: 'T_1', onboarded: false })).toEqual({ ok: true, data: false });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back on the token's first use when the API does not answer the stamp", async () => {
+    graphqlDirect.mockRejectedValueOnce(new Error('[{"message":"Cannot query field \\"onboardedAt\\""}]'));
+    graphqlDirect.mockResolvedValueOnce(tokens('2026-10-28T12:00:00Z'));
+
+    expect(await actions.readAgentConnected({ tokenId: 'T_1', onboarded: false })).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(ContributeOwnAgentDocument, undefined, as);
+  });
+
+  it('waits for the new token to be used by a user onboarded already', async () => {
+    graphqlDirect.mockResolvedValueOnce(tokens(null));
+    expect(await actions.readAgentConnected({ tokenId: 'T_1', onboarded: true })).toEqual({ ok: true, data: false });
+    graphqlDirect.mockResolvedValueOnce(tokens('2026-10-28T12:00:00Z'));
+    expect(await actions.readAgentConnected({ tokenId: 'T_1', onboarded: true })).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).not.toHaveBeenCalledWith(ContributeOnboardingDocument, undefined, as);
+  });
+
+  it('asks nothing of the tokens without one to watch', async () => {
+    expect(await actions.readAgentConnected({ tokenId: null, onboarded: true })).toEqual({ ok: true, data: false });
+    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 
+import { AgentFirstPicks, AgentNextSteps, AgentWelcome } from './agent-connected';
 import { ContributeNotices } from './contribute-notices';
 import { CycleSummary } from './cycle-summary';
 import { FirstRunGuide } from './first-run-guide';
@@ -9,6 +10,8 @@ import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/l
 import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
 import { FIRST_RUN_NOTICES } from '@/lib/contribute/first-run';
+import type { McpClient } from '@/lib/contribute/mcp-setup';
+import { cn } from '@/lib/utils';
 
 /** The landing again, for a user who is onboarded. */
 export const ABOUT_PATH = '/contribute?about=1' as Route;
@@ -36,24 +39,44 @@ export function OverviewStatusView({
 
 /**
  * The overview of an onboarded user: where they stand, then the maintainers' strip and the way back to the pitch.
- * Before their first attempt, what happens next takes the place of the status.
+ * Before their first attempt, what happens next takes the place of the status: the key's guide (A3), or the own
+ * agent's (B2). `welcome` opens it once, after the own-agent path, with the check.
  */
 export function OverviewScreen({
   view,
   now,
   reviews,
   firstRun,
+  agentFirstRun,
+  welcome,
 }: {
   view: ContributeView;
   now?: Date;
   reviews?: ContributeAttempt[];
   /** No attempt yet, with the feed's first page (`undefined`: not answered). */
   firstRun?: { page: ContributeIssuePage | null | undefined };
+  /** The user's own agent has made no attempt yet, with the feed's first page. */
+  agentFirstRun?: { page: ContributeIssuePage | null | undefined };
+  /** The client the user's own agent was just connected with. */
+  welcome?: McpClient;
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-10 px-4 pt-8 pb-12">
-      <h1 className="sr-only">Overview</h1>
-      {firstRun ? (
+    <main
+      className={cn(
+        'mx-auto flex w-full max-w-[1180px] flex-col px-4 pb-12',
+        welcome ? 'gap-[22px] pt-6 sm:gap-7 sm:pt-10' : 'gap-10 pt-8',
+      )}
+    >
+      {welcome ? <AgentWelcome client={welcome} /> : <h1 className="sr-only">Overview</h1>}
+      {agentFirstRun ? (
+        <>
+          <div className="flex flex-col gap-3">
+            <ContributeNotices notices={contributeNoticesOf(view)} />
+            <AgentNextSteps view={view} client={welcome} />
+          </div>
+          <AgentFirstPicks page={agentFirstRun.page} />
+        </>
+      ) : firstRun ? (
         <div className="flex flex-col gap-3">
           <ContributeNotices notices={contributeNoticesOf(view).filter(({ kind }) => !FIRST_RUN_NOTICES.has(kind))} />
           <FirstRunGuide view={view} page={firstRun.page} now={now} />

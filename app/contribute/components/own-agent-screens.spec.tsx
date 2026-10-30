@@ -104,26 +104,23 @@ describe('the setup lines', () => {
 });
 
 describe('Connect, with your own agent', () => {
-  it('offers the own-agent path beside the key, and that path asks for no key', () => {
+  it('offers the own-agent path beside the key, and that path asks for no key, no preferences and no GitHub access', () => {
     expect(text(renderToStaticMarkup(<ConnectScreen view={views.noKey} today={14} />))).toContain(
       'Use your own agent instead',
     );
     const html = renderToStaticMarkup(
       <OwnAgentConnectScreen
         view={{ ...views.noKey, ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] } }}
-        now={NOW}
       />,
     );
     const plain = text(html);
     expect(html).toContain('data-connect-path="agent"');
-    expect(plain).toContain('No Claude key is needed');
-    // GitHub access is asked for on the first review, not here.
+    expect(plain).toContain('no Claude key needed');
+    expect(plain).toContain('Create a GitRanks token');
+    // GitHub access is asked for on the first review, and the preferences are guessed.
     expect(plain).not.toContain('GitHub access');
-    expect(plain).toContain('Step 1 · What you like to work on');
-    expect(plain).toContain('Step 2 · A token for your agent');
-    expect(plain).toContain('Save, then create a token');
-    expect(plain).toContain('Create token');
-    expect(plain).not.toContain('Paste your key');
+    expect(plain).not.toContain('What you like to work on');
+    expect(plain).not.toContain('Paste the key');
   });
 });
 

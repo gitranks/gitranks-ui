@@ -1,4 +1,6 @@
+import { isAgentWelcome, welcomeClientOf } from './agent-connect';
 import type { ContributeCredential, ContributeView } from './contribute.types';
+import type { McpClient } from './mcp-setup';
 
 /**
  * What stands between the user and their next attempt, most pressing first. The GitHub grant is not among them: it is
@@ -68,21 +70,30 @@ export type LandingViewer = 'visitor' | 'signed-in' | 'mid-setup';
  * What `/contribute` shows. `preview` is a signed-in user seeing the visitor's landing (`?as=visitor`): its sign-in
  * goes straight on, as they are signed in already.
  */
-export type ContributeHome = { screen: 'overview' } | { screen: 'landing'; viewer: LandingViewer; preview: boolean };
+export type ContributeHome =
+  /** `welcome`: the user's own agent just connected (`?welcome=agent`), with the client they picked. */
+  { screen: 'overview'; welcome?: McpClient } | { screen: 'landing'; viewer: LandingViewer; preview: boolean };
 
 /**
  * `/contribute` for the signed-in user: the landing until they are onboarded, then the overview. `?about=1` shows an
  * onboarded user the landing again ("How Contribute works"), and `?as=visitor` shows anyone the visitor's landing.
+ * `?welcome=agent&client=…` opens the overview with the welcome of a user whose own agent just connected.
  */
 export function contributeHomeOf(
   view: ContributeView,
-  params: { as?: string | string[]; about?: string | string[] },
+  params: {
+    as?: string | string[];
+    about?: string | string[];
+    welcome?: string | string[];
+    client?: string | string[];
+  },
 ): ContributeHome {
   if (isAsVisitor(params.as)) return { screen: 'landing', viewer: 'visitor', preview: true };
   if (!isOnboarded(view)) {
     return { screen: 'landing', viewer: isMidSetup(view) ? 'mid-setup' : 'signed-in', preview: false };
   }
   if (firstOf(params.about) === '1') return { screen: 'landing', viewer: 'signed-in', preview: false };
+  if (isAgentWelcome(params.welcome)) return { screen: 'overview', welcome: welcomeClientOf(params.client) };
   return { screen: 'overview' };
 }
 

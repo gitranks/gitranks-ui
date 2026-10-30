@@ -75,8 +75,11 @@ export function firstRunCopyOf(step: FirstRunStep, view: ContributeView, now = n
   }
 }
 
-/** "We guessed what you'd like": what the picks and the pace start from, as the user's settings have them. */
-export function guessedLineOf(view: ContributeView): string {
+/**
+ * "We guessed what you'd like": what the picks and the pace start from, as the user's settings have them. Without
+ * `spend` (the user's own agent, which spends nothing through us), the picks alone.
+ */
+export function guessedLineOf(view: ContributeView, { spend = true }: { spend?: boolean } = {}): string {
   const preferences = view.contributor?.preferences;
   const settings = view.contributor?.settings;
   const kinds = preferences?.kinds.length
@@ -88,6 +91,7 @@ export function guessedLineOf(view: ContributeView): string {
   const languages = preferences?.languages.length
     ? `${preferences.languages.map((language) => LANGUAGES[language]).join(', ')} first`
     : "your profile's languages first";
+  if (!spend) return `${issues}, ${languages}.`;
   const cap = settings ? `within your ${usd(settings.cycleCapUsd)} monthly cap` : 'within your monthly cap';
   const pace =
     settings?.pace === 'FAST'

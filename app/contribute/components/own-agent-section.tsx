@@ -13,12 +13,10 @@ import {
   MCP_SETUPS,
   MCP_TOKEN_ENV,
   MCP_TOKEN_NAME_MAX,
+  MCP_TOKENS_MAX,
   type McpClient,
 } from '@/lib/contribute/mcp-setup';
 import { cn } from '@/lib/utils';
-
-/** Live tokens a user may hold at once. */
-export const MCP_TOKENS_MAX = 5;
 
 export const OWN_AGENT_SAFETY = 'Your agent reads issue text written by strangers. Keep its permission prompts on.';
 

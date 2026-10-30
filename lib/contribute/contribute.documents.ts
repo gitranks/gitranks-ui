@@ -25,6 +25,8 @@ import type {
   ContributePreferences,
   ContributePreferencesInput,
   ContributeReplyDraft,
+  ContributeReplyWaiting,
+  ContributeScheduleCounts,
   ContributeSettings,
   ContributeSettingsInput,
   Contributor,
@@ -381,3 +383,58 @@ export const OptInReposDocument = doc<{ optInRepos: ContributeOptOutResult[] }, 
   optInRepos(token: $token, repoIds: $repoIds) { ${OPT_OUT_RESULT} }
 }`,
 );
+
+// Overview: each operation is new, so an API without one leaves the rest of the page working.
+type AttemptStatesVariables = { states: ContributeAttemptState[]; first?: number };
+
+/** The attempts in any of `states`, newest first. */
+export const ContributeAttemptsInDocument = doc<
+  { contributeAttempts: ContributeAttempt[] | null },
+  AttemptStatesVariables
+>(`query ContributeAttemptsIn($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { ${ATTEMPT} }
+}`);
+
+export const ContributeAttemptsInFollowUpsDocument = doc<
+  { contributeAttempts: FollowUpFieldsOf<ContributeAttemptFollowUpFields>[] | null },
+  AttemptStatesVariables
+>(`query ContributeAttemptsInFollowUps($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { ${FOLLOW_UP_FIELDS} }
+}`);
+
+export const ContributeAttemptsInOwnAgentDocument = doc<
+  { contributeAttempts: OwnAgentRow[] | null },
+  AttemptStatesVariables
+>(
+  `query ContributeAttemptsInOwnAgent($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { ${OWN_AGENT_FIELDS} }
+}`,
+);
+
+/** When each attempt in review became ready, merged into the attempts by id. */
+export const ContributeAttemptsInReviewAtDocument = doc<
+  { contributeAttempts: { attemptId: string; reviewAt: string | null }[] | null },
+  AttemptStatesVariables
+>(`query ContributeAttemptsInReviewAt($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { attemptId reviewAt }
+}`);
+
+/** The reply drafts the user can approve now, oldest first. */
+export const ContributeRepliesWaitingDocument = doc<{ contributeRepliesWaiting: ContributeReplyWaiting[] | null }>(
+  `query ContributeRepliesWaiting { contributeRepliesWaiting { ${REPLY_DRAFT} nameWithOwner prNumber inReview } }`,
+);
+
+/** What the scheduler counts before it starts an attempt. */
+export const ContributeScheduleCountsDocument = doc<{
+  contribute: { contributor: { scheduleCounts: ContributeScheduleCounts | null } | null } | null;
+}>('query ContributeScheduleCounts { contribute { contributor { scheduleCounts { prBound queued } } } }');
+
+/** The totals of My contributions, without its list. */
+export const ContributeImpactDocument = doc<{
+  contributeContributions: { totals: { open: number; merged: number; closed: number } } | null;
+}>('query ContributeImpact { contributeContributions(first: 1) { totals { open merged closed } } }');
+
+/** The repos the user's merged pull requests helped. */
+export const ContributeImpactReposDocument = doc<{
+  contributeContributions: { totals: { reposHelped: number | null } } | null;
+}>('query ContributeImpactRepos { contributeContributions(first: 1) { totals { reposHelped } } }');

@@ -3,7 +3,7 @@ import { type ContributeNotice, claudeKeyOf, isOnboarded, isPaused } from './con
 
 /**
  * The first-run guide ("You're in. Here's what happens next") opens Issues and Overview for a contributor with a
- * Claude key and no attempt yet; once one exists, today's status takes its place. Not while the API does not answer
+ * Claude key and no attempt yet; once one exists, Overview's sections take its place. Not while the API does not answer
  * the attempts: nothing says there are none.
  */
 export const isFirstRun = (view: ContributeView, attempts: ContributeAttempt[] | undefined): boolean =>
@@ -13,7 +13,7 @@ export const isFirstRun = (view: ContributeView, attempts: ContributeAttempt[] |
  * An attempt of the user's own agent. One the API does not say the runner of is the agent's when there is no Claude key
  * to have run it.
  */
-const isAgentAttempt = (view: ContributeView, attempt: ContributeAttempt) =>
+export const isAgentAttempt = (view: ContributeView, attempt: ContributeAttempt) =>
   attempt.runner === 'MCP' || (attempt.runner === undefined && !claudeKeyOf(view));
 
 /**

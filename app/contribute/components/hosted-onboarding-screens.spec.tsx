@@ -21,7 +21,11 @@ const { LimitsManual } = await import('./limits-manual');
 const { Matching } = await import('./matching');
 const { FirstRunGuide } = await import('./first-run-guide');
 const { IssuesScreen } = await import('./issues-view');
-const { OverviewScreen } = await import('./overview-status');
+const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
+const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
+
+/** Overview's sections from reads that all answered. */
+const sections = (view: ContributeView) => overviewSectionsOf(view, overviewData(), NOW);
 const { ReviewScreen, grantNeededOf } = await import('./review-view');
 const { NOW, firstSpend, key, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
@@ -258,7 +262,7 @@ describe('A3, what happens next before the first attempt', () => {
     const issues = (view: ContributeView) =>
       renderToStaticMarkup(<IssuesScreen view={view} page={page} query={{}} now={NOW} firstRun />);
     const overview = (view: ContributeView) =>
-      renderToStaticMarkup(<OverviewScreen view={view} now={NOW} firstRun={{ page }} />);
+      renderToStaticMarkup(<OverviewScreen view={view} sections={sections(view)} now={NOW} firstRun={{ page }} />);
 
     for (const render of [issues, overview]) {
       // Paused alone: step 1 says it, the notice goes.
@@ -311,14 +315,19 @@ describe('A3, what happens next before the first attempt', () => {
     expect(html).not.toContain('data-notice="key-invalid"');
   });
 
-  it('takes the place of the status on Overview, and gives way to it once there is an attempt', () => {
-    const first = renderToStaticMarkup(<OverviewScreen view={views.firstKey} now={NOW} firstRun={{ page }} />);
+  it("takes the place of Overview's sections but Ways, and gives way to them once there is an attempt", () => {
+    const first = renderToStaticMarkup(
+      <OverviewScreen view={views.firstKey} sections={sections(views.firstKey)} now={NOW} firstRun={{ page }} />,
+    );
     expect(first).toContain('data-first-run="soon"');
-    expect(text(first)).not.toContain('used this cycle');
+    expect(first).not.toContain('data-now="cycle"');
+    expect(first).toContain('id="overview-ways"');
 
-    const later = renderToStaticMarkup(<OverviewScreen view={views.firstKey} now={NOW} />);
+    const later = renderToStaticMarkup(
+      <OverviewScreen view={views.firstKey} sections={sections(views.firstKey)} now={NOW} />,
+    );
     expect(later).not.toContain('data-first-run');
-    expect(text(later)).toContain('used this cycle');
+    expect(later).toContain('data-now="cycle"');
   });
 });
 

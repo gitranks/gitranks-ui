@@ -8,6 +8,10 @@ import {
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
+  ContributeAttemptsInDocument,
+  ContributeAttemptsInFollowUpsDocument,
+  ContributeAttemptsInOwnAgentDocument,
+  ContributeAttemptsInReviewAtDocument,
   ContributeAttemptsOpenDocument,
   ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
@@ -15,6 +19,8 @@ import {
   ContributeContributionsFollowUpsDocument,
   ContributeContributionsOwnAgentDocument,
   ContributeGrantDocument,
+  ContributeImpactDocument,
+  ContributeImpactReposDocument,
   ContributeIssuesDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
@@ -22,7 +28,9 @@ import {
   ContributePausedDocument,
   ContributeProfileLanguagesDocument,
   ContributeProviderInterestsDocument,
+  ContributeRepliesWaitingDocument,
   ContributeReplyDraftsDocument,
+  ContributeScheduleCountsDocument,
 } from './contribute.documents';
 import type {
   ContributeAttempt,
@@ -31,6 +39,7 @@ import type {
   ContributeAutopilot,
   ContributeComingSoonProvider,
   ContributeContributions,
+  ContributeImpactTotals,
   ContributeIssuePage,
   ContributeIssuesFilter,
   ContributeMcpToken,
@@ -42,6 +51,14 @@ import type {
 } from './contribute.types';
 import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
+import {
+  IN_FLIGHT_READ,
+  IN_FLIGHT_STATES,
+  NEEDS_YOU_READ,
+  NEEDS_YOU_STATES,
+  type OverviewNeedsRead,
+  type OverviewNowRead,
+} from './overview';
 import { auth } from '@/auth';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
@@ -223,18 +240,106 @@ export async function loadAttempts(
 
   const variables = { first, ...(state ? { state } : {}) };
   const options = { source: 'ssr' as const, githubLogin };
-  const [main, followUps, ownAgent] = await Promise.allSettled([
-    graphqlDirect(ContributeAttemptsDocument, variables, options),
-    graphqlDirect(ContributeAttemptsFollowUpsDocument, variables, options),
-    graphqlDirect(ContributeAttemptsOwnAgentDocument, variables, options),
-  ]);
+  return attemptsOf(
+    await Promise.allSettled([
+      graphqlDirect(ContributeAttemptsDocument, variables, options),
+      graphqlDirect(ContributeAttemptsFollowUpsDocument, variables, options),
+      graphqlDirect(ContributeAttemptsOwnAgentDocument, variables, options),
+    ]),
+  );
+}
+
+type AttemptRows = { contributeAttempts: ({ attemptId: string } & object)[] | null };
+
+/** The attempts of the first read, with the fields of the others merged in; `undefined` when the first failed. */
+function attemptsOf([main, ...extras]: [
+  PromiseSettledResult<{ contributeAttempts: ContributeAttempt[] | null }>,
+  ...PromiseSettledResult<AttemptRows>[],
+]): ContributeAttempt[] | undefined {
   const attempts = settled(main)?.contributeAttempts;
   if (!attempts) return undefined;
-  const extras = byAttemptId(settled(followUps)?.contributeAttempts);
-  const agents = byAttemptId(settled(ownAgent)?.contributeAttempts);
+  const rows = extras.map((extra) => byAttemptId(settled(extra)?.contributeAttempts));
   return attempts.map((attempt) =>
-    withFields(withFields(attempt, extras.get(attempt.attemptId)), agents.get(attempt.attemptId)),
+    rows.reduce((merged, row) => withFields(merged, row.get(attempt.attemptId)), attempt),
   );
+}
+
+/**
+ * The signed-in user's attempts in any of `states`, newest first, with their follow-up and own-agent fields;
+ * `undefined` when the API does not answer (an API that does not take `states` yet among them).
+ */
+export async function loadAttemptsIn(
+  states: ContributeAttemptState[],
+  first = 20,
+): Promise<ContributeAttempt[] | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+
+  const variables = { states, first };
+  const options = { source: 'ssr' as const, githubLogin };
+  return attemptsOf(
+    await Promise.allSettled([
+      graphqlDirect(ContributeAttemptsInDocument, variables, options),
+      graphqlDirect(ContributeAttemptsInFollowUpsDocument, variables, options),
+      graphqlDirect(ContributeAttemptsInOwnAgentDocument, variables, options),
+    ]),
+  );
+}
+
+/** Overview's "Needs you": the attempts waiting for the user, and the replies they can approve. */
+export async function loadOverviewNeeds(): Promise<OverviewNeedsRead> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return { reviews: undefined, replies: undefined };
+
+  const options = { source: 'ssr' as const, githubLogin };
+  const variables = { states: NEEDS_YOU_STATES, first: NEEDS_YOU_READ };
+  const [attempts, reviewAt, replies] = await Promise.allSettled([
+    loadAttemptsIn(NEEDS_YOU_STATES, NEEDS_YOU_READ),
+    graphqlDirect(ContributeAttemptsInReviewAtDocument, variables, options),
+    graphqlDirect(ContributeRepliesWaitingDocument, undefined, options),
+  ]);
+  const reviews = settled(attempts);
+  const readyAt = byAttemptId(settled(reviewAt)?.contributeAttempts);
+  const waiting = settled(replies)?.contributeRepliesWaiting;
+  return {
+    reviews: reviews?.map((attempt) => withFields(attempt, readyAt.get(attempt.attemptId))),
+    replies: Array.isArray(waiting) ? waiting : undefined,
+  };
+}
+
+/** Overview's "Right now": the attempts in flight, and what the scheduler counts before it starts one. */
+export async function loadOverviewNow(): Promise<OverviewNowRead> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return { inFlight: undefined, scheduleCounts: undefined };
+
+  const [inFlight, counts] = await Promise.allSettled([
+    loadAttemptsIn(IN_FLIGHT_STATES, IN_FLIGHT_READ),
+    graphqlDirect(ContributeScheduleCountsDocument, undefined, { source: 'ssr', githubLogin }),
+  ]);
+  const scheduleCounts = settled(counts)?.contribute?.contributor?.scheduleCounts;
+  return {
+    inFlight: settled(inFlight),
+    scheduleCounts:
+      typeof scheduleCounts?.prBound === 'number' && typeof scheduleCounts.queued === 'number'
+        ? scheduleCounts
+        : undefined,
+  };
+}
+
+/** Overview's "Your impact": the totals, with `reposHelped` when the API answers it; `undefined` when it does not. */
+export async function loadOverviewImpact(): Promise<ContributeImpactTotals | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+
+  const options = { source: 'ssr' as const, githubLogin };
+  const [totals, repos] = await Promise.allSettled([
+    graphqlDirect(ContributeImpactDocument, undefined, options),
+    graphqlDirect(ContributeImpactReposDocument, undefined, options),
+  ]);
+  const main = settled(totals)?.contributeContributions?.totals;
+  if (!main) return undefined;
+  const reposHelped = settled(repos)?.contributeContributions?.totals.reposHelped;
+  return { ...main, ...(typeof reposHelped === 'number' ? { reposHelped } : {}) };
 }
 
 /**

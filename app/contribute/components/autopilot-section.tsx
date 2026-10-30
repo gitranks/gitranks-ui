@@ -7,11 +7,10 @@ import { saveContributeSettings } from '../actions';
 import { Panel, Pill } from './primitives';
 import type { ContributeAutopilot } from '@/lib/contribute/contribute.types';
 import { type ContributeErrorCode, contributeErrorMessage } from '@/lib/contribute/errors';
-import { dayLabel } from '@/lib/contribute/format';
+import { AUTOPILOT_UNLOCK_AT, dayLabel } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
-/** Merged pull requests through GitRanks that unlock autopilot. */
-export const AUTOPILOT_UNLOCK_AT = 3;
+export { AUTOPILOT_UNLOCK_AT };
 
 /** Closed-unmerged pull requests in a row that lock it again. */
 export const AUTOPILOT_LOCK_AT = 2;

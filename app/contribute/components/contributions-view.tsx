@@ -34,10 +34,7 @@ import type {
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
-import { dayLabel, relativeLabel, timeLeftLabel, usd } from '@/lib/contribute/format';
-
-/** Merged pull requests that unlock autopilot. */
-const AUTOPILOT_AT = 3;
+import { AUTOPILOT_UNLOCK_AT, dayLabel, relativeLabel, timeLeftLabel, usd } from '@/lib/contribute/format';
 
 export async function ContributionsView() {
   const [view, contributions, attempts] = await Promise.all([
@@ -92,7 +89,7 @@ function Totals({ view, contributions }: { view: ContributeView; contributions: 
   }
   const { open, merged, closed, costUsd } = contributions.totals;
   const autopilot = view.contributor?.autopilot;
-  const toUnlock = Math.max(0, autopilot?.mergedToUnlock ?? AUTOPILOT_AT - (autopilot?.mergedCount ?? merged));
+  const toUnlock = Math.max(0, autopilot?.mergedToUnlock ?? AUTOPILOT_UNLOCK_AT - (autopilot?.mergedCount ?? merged));
   const ended = merged + closed;
   const changesRequested = contributions.items.filter(
     ({ pullRequest }) => pullRequest.state === 'OPEN' && pullRequest.reviewDecision === 'CHANGES_REQUESTED',

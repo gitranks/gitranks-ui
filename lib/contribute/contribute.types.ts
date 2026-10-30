@@ -377,6 +377,11 @@ export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> &
     pullRequest: ContributeAttemptPullRequest | null;
     createdAt: string;
     updatedAt: string;
+    /**
+     * When the attempt last became ready for review: its seven days run from it. Asked on its own; `undefined` while
+     * the API does not answer it.
+     */
+    reviewAt?: string | null;
   };
 
 export type ContributeAttemptTest = { command: string; passed: boolean; output: string | null };
@@ -454,6 +459,19 @@ export type ContributeReplyDraft = {
   updatedAt: string;
 };
 
+/**
+ * A reply draft the user can approve now, with its pull request. `inReview`: its follow-up is itself waiting for the
+ * user (in review, or about to be submitted by autopilot), so the draft is part of that review.
+ */
+export type ContributeReplyWaiting = ContributeReplyDraft & {
+  nameWithOwner: string | null;
+  prNumber: number;
+  inReview: boolean;
+};
+
+/** What the scheduler counts before it starts an attempt: pull requests open or on their way, and issues queued. */
+export type ContributeScheduleCounts = { prBound: number; queued: number };
+
 /** One of the user's pull requests opened through Contribute. */
 export type ContributeContribution = {
   attemptId: string;
@@ -473,6 +491,9 @@ export type ContributeContribution = {
   agent?: ContributeAgent | null;
   openedBy?: ContributeOpenedBy | null;
 };
+
+/** The totals Overview's impact shows; `reposHelped` is asked on its own, `undefined` while it is not answered. */
+export type ContributeImpactTotals = { open: number; merged: number; closed: number; reposHelped?: number };
 
 export type ContributeContributions = {
   items: ContributeContribution[];

@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { Landing } from './components/landing';
 import { OverviewScreen } from './components/overview-status';
 import { ContributePageSkeleton } from './components/page-skeleton';
-import { loadAttempts, loadContribute, loadIssues } from '@/lib/contribute/contribute.data';
+import { loadAttempts, loadContribute, loadIssues, loadProviderInterests } from '@/lib/contribute/contribute.data';
 import { contributeHomeOf, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
 import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
 
@@ -64,5 +64,7 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
       />
     );
   }
-  return <Landing viewer={home.viewer} preview={home.preview} />;
+  // A visitor's page starts with nothing noted, the preview of it too.
+  const noted = home.viewer === 'visitor' ? [] : await loadProviderInterests();
+  return <Landing viewer={home.viewer} preview={home.preview} noted={noted} />;
 }

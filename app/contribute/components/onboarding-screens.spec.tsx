@@ -63,6 +63,7 @@ describe('the landing', () => {
     const sections = [
       'Fix real open-source issues with the AI you already pay for',
       'Two ways to contribute. Pick either, add the other later.',
+      'More ways to spend credits you already have',
       'From an issue to a merged pull request',
       'Everything is set for you, and all of it is yours to change',
       'Questions',
@@ -96,7 +97,8 @@ describe('the landing', () => {
     const html = renderToStaticMarkup(<Landing viewer="visitor" />);
 
     expect(html).toContain('data-landing-viewer="visitor"');
-    expect(count(html, DIALOG_TRIGGER)).toBe(6);
+    // The two ways, three times each, and the eight coming-soon cards' "Notify me".
+    expect(count(html, DIALOG_TRIGGER)).toBe(14);
     expect(count(text(html), 'Start with my Claude key')).toBe(3);
     expect(count(text(html), 'Connect my own agent')).toBe(3);
     expect(html).not.toContain(KEY_HREF);
@@ -122,6 +124,16 @@ describe('the landing', () => {
     expect(plain).toContain('Continue setup →');
     expect(count(html, AGENT_HREF)).toBe(4);
     expect(html).toContain('href="/contribute/settings"');
+  });
+
+  it("shows the user's coming-soon list as the API keeps it, and none of it to a visitor", () => {
+    const signedIn = renderToStaticMarkup(<Landing viewer="signed-in" noted={['GEMINI', 'CURSOR']} />);
+    const visitor = renderToStaticMarkup(<Landing viewer="visitor" preview noted={['GEMINI']} />);
+
+    expect(count(signedIn, 'aria-pressed="true"')).toBe(2);
+    expect(text(signedIn)).toContain("You're on the list for 2 of these.");
+    expect(visitor).not.toContain('aria-pressed');
+    expect(text(visitor)).toContain('Sign in with GitHub to be told when one opens');
   });
 
   it('links the opt-out for maintainers', () => {

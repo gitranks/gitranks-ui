@@ -75,16 +75,68 @@ export const PLANS: { plan: ContributeClaudePlan; title: string; text: string; c
 
 export const planOf = (plan: ContributeClaudePlan | null | undefined) => PLANS.find((entry) => entry.plan === plan);
 
-/** The providers shown as coming soon, each with its "Notify me". */
-export const COMING_SOON: { provider: ContributeComingSoonProvider; title: string; text: string }[] = [
-  { provider: 'CHATGPT', title: 'ChatGPT plan', text: 'Plus and Pro allowance, under a weekly cap you set' },
-  { provider: 'COPILOT', title: 'GitHub Copilot', text: 'Monthly AI credits that reset on the 1st' },
-  { provider: 'OPENAI', title: 'OpenAI API key', text: 'A project key with a hard monthly limit' },
-  { provider: 'GEMINI', title: 'Gemini', text: 'Vertex credits from Google AI plans' },
-  { provider: 'JULES', title: 'Jules', text: "Jules' daily tasks, on your own fork" },
-  { provider: 'XAI', title: 'xAI Grok', text: 'An API key with a model allowlist and a prepaid stop' },
-  { provider: 'OPENROUTER', title: 'OpenRouter', text: 'One key for many models, with daily or weekly key limits' },
-  { provider: 'CURSOR', title: 'Cursor', text: 'Cloud agents on your Cursor plan' },
+/** What a coming-soon provider spends: a plan's allowance, a cloud agent's tasks, or an API key's credit. */
+export type ComingSoonKind = 'Plan' | 'Cloud agent' | 'API key';
+
+/** The providers shown as coming soon, in the order the landing shows them, each with its "Notify me". */
+export const COMING_SOON: {
+  provider: ContributeComingSoonProvider;
+  /** The initials on the card's badge. */
+  mono: string;
+  title: string;
+  kind: ComingSoonKind;
+  text: string;
+}[] = [
+  {
+    provider: 'CHATGPT',
+    mono: 'CG',
+    title: 'ChatGPT plan',
+    kind: 'Plan',
+    text: 'Your Plus or Pro allowance, under a weekly cap you set',
+  },
+  {
+    provider: 'COPILOT',
+    mono: 'GC',
+    title: 'GitHub Copilot',
+    kind: 'Plan',
+    text: 'Your monthly AI credits, before they reset on the 1st',
+  },
+  {
+    provider: 'GEMINI',
+    mono: 'GE',
+    title: 'Gemini',
+    kind: 'Plan',
+    text: 'The credits that come with your Google AI plan',
+  },
+  {
+    provider: 'CURSOR',
+    mono: 'CU',
+    title: 'Cursor',
+    kind: 'Cloud agent',
+    text: 'Cloud agents on your Cursor plan, no terminal needed',
+  },
+  {
+    provider: 'JULES',
+    mono: 'JU',
+    title: 'Jules',
+    kind: 'Cloud agent',
+    text: "Jules' daily tasks, run on your own fork",
+  },
+  {
+    provider: 'OPENAI',
+    mono: 'OA',
+    title: 'OpenAI API key',
+    kind: 'API key',
+    text: 'A project key with a hard monthly limit',
+  },
+  { provider: 'XAI', mono: 'XG', title: 'xAI Grok', kind: 'API key', text: 'An API key with a prepaid stop' },
+  {
+    provider: 'OPENROUTER',
+    mono: 'OR',
+    title: 'OpenRouter',
+    kind: 'API key',
+    text: 'One key for many models, with a daily or weekly limit',
+  },
 ];
 
 /** `$5`, `$63.40`: whole dollars without cents. */

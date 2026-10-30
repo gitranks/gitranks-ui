@@ -21,6 +21,7 @@ import {
   ContributeOwnAgentDocument,
   ContributePausedDocument,
   ContributeProfileLanguagesDocument,
+  ContributeProviderInterestsDocument,
   ContributeReplyDraftsDocument,
 } from './contribute.documents';
 import type {
@@ -28,6 +29,7 @@ import type {
   ContributeAttemptDetail,
   ContributeAttemptState,
   ContributeAutopilot,
+  ContributeComingSoonProvider,
   ContributeContributions,
   ContributeIssuePage,
   ContributeIssuesFilter,
@@ -169,6 +171,23 @@ export async function loadProfileLanguages(): Promise<string[]> {
       { source: 'ssr', githubLogin },
     );
     return (user?.sLangs ?? []).map(({ name }) => name).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/** The coming-soon providers the signed-in user asked to be told about; none when the API does not answer (yet). */
+export async function loadProviderInterests(): Promise<ContributeComingSoonProvider[]> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return [];
+
+  try {
+    const { contribute } = await graphqlDirect(ContributeProviderInterestsDocument, undefined, {
+      source: 'ssr',
+      githubLogin,
+    });
+    const interests = contribute?.providerInterests;
+    return Array.isArray(interests) ? interests.filter((provider) => typeof provider === 'string') : [];
   } catch {
     return [];
   }

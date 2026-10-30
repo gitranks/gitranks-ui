@@ -31,6 +31,7 @@ const CALLS: Record<string, unknown[]> = {
   saveContributeSettings: [{ cycleCapUsd: 10, githubLogin: 'mallory' }],
   savePreferences: [{ languages: ['GO'], githubLogin: 'mallory' }],
   noteProviderInterest: ['OPENAI'],
+  withdrawProviderInterest: ['OPENAI'],
   deleteContributeData: [],
   revokeGithubGrant: [],
   pauseContributing: [],

@@ -91,6 +91,14 @@ export const COMING_SOON: { provider: ContributeComingSoonProvider; title: strin
 export const usd = (amount: number) =>
   `$${Number.isInteger(amount) ? amount.toLocaleString('en-US') : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/** A number the user typed, `$` and spaces allowed; `undefined` when it is not one, `null` when empty. */
+export function parseAmount(text: string): number | null | undefined {
+  const cleaned = text.replace(/[$\s,]/g, '');
+  if (!cleaned) return null;
+  const value = Number(cleaned);
+  return Number.isFinite(value) && value >= 0 ? value : undefined;
+}
+
 /** `Nov 14`, in UTC (the API's days are UTC days). */
 export const dayLabel = (iso: string | null | undefined) => {
   if (!iso) return '';

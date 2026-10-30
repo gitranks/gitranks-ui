@@ -3,10 +3,12 @@ import Link from 'next/link';
 
 import { ContributeNotices } from './contribute-notices';
 import { CycleSummary } from './cycle-summary';
+import { FirstRunGuide } from './first-run-guide';
 import { ReviewsReady } from './reviews-ready';
-import type { ContributeAttempt, ContributeView } from '@/lib/contribute/contribute.types';
+import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
 import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
+import { firstRunNoticesOf, firstRunStepOf } from '@/lib/contribute/first-run';
 
 /** The landing again, for a user who is onboarded. */
 export const ABOUT_PATH = '/contribute?about=1' as Route;
@@ -32,20 +34,35 @@ export function OverviewStatusView({
   );
 }
 
-/** The overview of an onboarded user: where they stand, then the maintainers' strip and the way back to the pitch. */
+/**
+ * The overview of an onboarded user: where they stand, then the maintainers' strip and the way back to the pitch.
+ * Before their first attempt, what happens next takes the place of the status.
+ */
 export function OverviewScreen({
   view,
   now,
   reviews,
+  firstRun,
 }: {
   view: ContributeView;
   now?: Date;
   reviews?: ContributeAttempt[];
+  /** No attempt yet, with the feed's first page (`undefined`: not answered). */
+  firstRun?: { page: ContributeIssuePage | null | undefined };
 }) {
   return (
     <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-10 px-4 pt-8 pb-12">
       <h1 className="sr-only">Overview</h1>
-      <OverviewStatusView view={view} now={now} reviews={reviews} />
+      {firstRun ? (
+        <div className="flex flex-col gap-3">
+          <ContributeNotices
+            notices={firstRunNoticesOf(contributeNoticesOf(view), firstRunStepOf(view, firstRun.page, now))}
+          />
+          <FirstRunGuide view={view} page={firstRun.page} now={now} />
+        </div>
+      ) : (
+        <OverviewStatusView view={view} now={now} reviews={reviews} />
+      )}
       <footer
         className="flex flex-wrap items-center justify-between gap-4 border-t pt-6 text-sm"
         data-overview="footer"

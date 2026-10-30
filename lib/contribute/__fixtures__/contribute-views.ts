@@ -3,6 +3,7 @@ import type {
   ContributeGrant,
   ContributeMcpToken,
   ContributeSettings,
+  ContributeSpend,
   ContributeView,
   Contributor,
 } from '../contribute.types';
@@ -71,6 +72,17 @@ export const contributor = (patch: Partial<Contributor> = {}): Contributor => ({
   onboardedVia: 'HOSTED',
   ...patch,
 });
+
+/** The spend of a key just connected: nothing spent, the first attempt free to start. */
+export const firstSpend: ContributeSpend = {
+  todayUsd: 0,
+  weekUsd: 0,
+  cycleUsd: 0,
+  cycleStart: '2026-10-28T00:00:00.000Z',
+  cycleEnd: '2026-11-28T00:00:00.000Z',
+  allowanceUsd: 5,
+  nextAttemptAt: '2026-10-28T11:59:00.000Z',
+};
 
 /** A token for the user's own agent, created and not used yet. */
 export const mcpToken = (patch: Partial<ContributeMcpToken> = {}): ContributeMcpToken => ({
@@ -148,6 +160,23 @@ export const views = {
     ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] },
   },
   active: { contributor: contributor(), grant: connected, paused: false, grantAvailable: true, attemptsOpen: true },
+  /**
+   * A key just connected from Max 5x: onboarded, every setting guessed, nothing spent, the first attempt free to start,
+   * and no GitHub access yet.
+   */
+  firstKey: {
+    contributor: contributor({
+      plan: 'MAX_5X',
+      settings: { ...settings, cycleCapUsd: 100, dayCapUsd: null, renewalDay: 28 },
+      preferences: null,
+      spend: firstSpend,
+      onboardedAt: '2026-10-28T11:58:00.000Z',
+    }),
+    grant: { connected: false, login: null },
+    paused: false,
+    grantAvailable: true,
+    attemptsOpen: true,
+  },
   keyInvalid: {
     contributor: contributor({ credentials: [key({ state: 'INVALID' })] }),
     grant: connected,

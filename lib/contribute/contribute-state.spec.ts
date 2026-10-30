@@ -14,12 +14,13 @@ const kinds = (view: Parameters<typeof contributeNoticesOf>[0]) => contributeNot
 
 describe('contributeNoticesOf', () => {
   it('names what stands between the user and the next attempt, most pressing first', () => {
-    expect(kinds(views.newcomer)).toEqual(['no-key', 'grant-missing']);
-    expect(kinds(views.noKey)).toEqual(['no-key', 'grant-missing']);
+    expect(kinds(views.newcomer)).toEqual(['no-key']);
+    expect(kinds(views.noKey)).toEqual(['no-key']);
     expect(kinds(views.keyInvalid)).toEqual(['key-invalid']);
     expect(kinds(views.exhausted)).toEqual(['exhausted']);
     expect(kinds(views.limitReached)).toEqual(['limit-reached']);
-    expect(kinds(views.grantMissing)).toEqual(['grant-missing']);
+    // The grant is asked for on the first review, never up front.
+    expect(kinds(views.grantMissing)).toEqual([]);
     expect(kinds(views.paused)).toEqual(['paused']);
     expect(kinds(views.active)).toEqual([]);
   });
@@ -28,7 +29,7 @@ describe('contributeNoticesOf', () => {
     expect(contributeNoticesOf(views.exhausted)[0]).toEqual({ kind: 'exhausted', until: '2026-11-14T00:00:00.000Z' });
   });
 
-  it('says nothing about the grant, and reads the pause from the status, when the API does not answer them yet', () => {
+  it('reads the pause from the status when the API does not answer it yet', () => {
     expect(kinds(views.fieldsMissing)).toEqual([]);
     expect(isPaused({ ...views.fieldsMissing, contributor: { ...views.active.contributor, status: 'PAUSED' } })).toBe(
       true,

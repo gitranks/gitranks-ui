@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { type ReactNode, useState, useTransition } from 'react';
 
 import { removeClaudeKey, revokeGithubGrant } from '../actions';
-import { useGrantGithub } from './grant-card';
 import { Panel } from './primitives';
+import { useGrantGithub } from './use-grant-github';
 import type { ContributeCredential, ContributeGrant } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, maskedKey, relativeLabel, shortId } from '@/lib/contribute/format';

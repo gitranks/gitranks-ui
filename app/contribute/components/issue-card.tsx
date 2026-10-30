@@ -8,9 +8,10 @@ import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { GOOD_FIRST_LABEL, KIND_ONE, LANGUAGES, SIZES } from '@/lib/contribute/format';
+import { cn } from '@/lib/utils';
 
-/** One issue picked for the user: where, what, why, and Skip. */
-export function IssueCard({ issue }: { issue: ContributeIssue }) {
+/** One issue picked for the user: where, what, why, and Skip. `best` marks the top of the list. */
+export function IssueCard({ issue, best = false }: { issue: ContributeIssue; best?: boolean }) {
   const [skipped, setSkipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -37,7 +38,11 @@ export function IssueCard({ issue }: { issue: ContributeIssue }) {
   return (
     <article
       data-issue={issue.issueId}
-      className="flex flex-wrap items-start gap-4 rounded-xl border bg-card px-5 py-4"
+      data-best={best || undefined}
+      className={cn(
+        'flex flex-wrap items-start gap-4 rounded-xl border bg-card px-5 py-4',
+        best && 'border-violet-300 dark:border-violet-800',
+      )}
     >
       <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-2">
         <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-sm text-muted-foreground">
@@ -45,6 +50,7 @@ export function IssueCard({ issue }: { issue: ContributeIssue }) {
             {issue.nameWithOwner} · #{issue.number}
           </span>
           {issue.language ? <span>{LANGUAGES[issue.language]}</span> : null}
+          {best ? <Pill tone="violet">Best match</Pill> : null}
         </div>
         {url ? (
           <a

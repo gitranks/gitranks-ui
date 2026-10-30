@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useId, useState, useTransition } from 'react';
+import { signIn } from 'next-auth/react';
+import { useEffect, useId, useState, useTransition } from 'react';
 
 import { approveAttempt, discardAttempt } from '../actions';
 import { Button } from '@/components/ui/button';
@@ -14,9 +15,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { CONTRIBUTE_PROVIDER } from '@/lib/auth-providers';
 import { PR_BODY_MAX, PR_TITLE_MAX, prBodyPreview, prFooterText } from '@/lib/contribute/attempt-format';
 import type { ContributeDcoMode } from '@/lib/contribute/contribute.types';
 import { attemptActionErrorMessage } from '@/lib/contribute/errors';
+import {
+  RESUME_PARAM,
+  resumeHrefOf,
+  savePendingApproval,
+  sendPendingApproval,
+  tabStoreOf,
+  takePendingApproval,
+} from '@/lib/contribute/grant-resume';
 
 const fieldClass =
   'w-full rounded-lg border border-input bg-background px-3 py-2 text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -35,11 +45,28 @@ export type PrFormProps = {
   dcoAsked: boolean;
   /** A submission step that went wrong, so this approval is a second one. */
   again: boolean;
+  /**
+   * GitHub access for pull requests is not connected (or a submit bounced for want of it): the submit asks for it
+   * first, and the pull request opens once the user is back.
+   */
+  grantNeeded?: boolean;
+  /** GitHub access is connected: back from GitHub, the kept approval may be sent. */
+  grantConnected?: boolean;
 };
+
+/** A fresh nonce for the way back from GitHub. */
+const nonceOf = () =>
+  typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('');
 
 type Confirm = 'approve' | 'discard' | null;
 
-/** The pull request as it will open: an editable title and body, the footer line, DCO, then Submit or Discard. */
+/**
+ * The pull request as it will open: an editable title and body, the footer line, DCO, then Submit or Discard. On the
+ * first one, before GitHub access is connected, Submit asks for it: the approval waits in the tab, GitHub asks, and
+ * back here with the access (and the nonce the tab kept) it is sent at once.
+ */
 export function PrForm({
   attemptId,
   issueNumber,
@@ -50,6 +77,8 @@ export function PrForm({
   dcoMode,
   dcoAsked,
   again,
+  grantNeeded = false,
+  grantConnected = false,
 }: PrFormProps) {
   const router = useRouter();
   const id = useId();
@@ -58,7 +87,10 @@ export function PrForm({
   const [dco, setDco] = useState(false);
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [error, setError] = useState<string | null>(null);
+  /** On the way to GitHub, or back from it with the pull request opening. */
+  const [handoff, setHandoff] = useState<'github' | 'opening' | null>(null);
   const [pending, startTransition] = useTransition();
+  const busy = pending || handoff !== null;
 
   const standing = dcoMode === 'STANDING';
   const titleMissing = !title.trim();
@@ -77,6 +109,51 @@ export function PrForm({
       setConfirm(null);
       router.refresh();
     });
+
+  // Keep the approval in the tab, then let GitHub ask for access; it sends the user back here with the nonce.
+  const allowAndOpen = () => {
+    setError(null);
+    const nonce = nonceOf();
+    if (!savePendingApproval(tabStoreOf(window), { attemptId, title, body, dco: standing || dco, nonce })) {
+      setError('This browser keeps nothing for the way back. Allow GitHub access in Settings, then submit here.');
+      return;
+    }
+    setHandoff('github');
+    signIn(CONTRIBUTE_PROVIDER, { redirectTo: resumeHrefOf(attemptId, nonce) }).catch(() => {
+      setHandoff(null);
+      setError('GitHub could not be opened. Try again.');
+    });
+  };
+
+  // Back from GitHub: with the access connected and the nonce this tab kept, the pull request opens at once. Any other
+  // `resume` approves nothing. Either way the parameter goes, so a reload does not try again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, on the way back.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resume = params.get(RESUME_PARAM);
+    if (!resume) return;
+    params.delete(RESUME_PARAM);
+    const rest = params.toString();
+    const clean = `${window.location.pathname}${rest ? `?${rest}` : ''}${window.location.hash}`;
+    const approval = grantConnected ? takePendingApproval(tabStoreOf(window), attemptId, resume) : null;
+    if (!approval) {
+      router.replace(clean as never, { scroll: false });
+      return;
+    }
+    setTitle(approval.title);
+    setBody(approval.body);
+    setDco(approval.dco);
+    setHandoff('opening');
+    // The edits stay in the form's state: a refusal or a failed send gives the form back as the user left it.
+    void sendPendingApproval(approval, approveAttempt).then((failure) => {
+      if (failure) {
+        setHandoff(null);
+        setError(failure);
+      }
+      router.replace(clean as never, { scroll: false });
+      router.refresh();
+    });
+  }, []);
 
   return (
     <form
@@ -154,6 +231,26 @@ export function PrForm({
       <span className="text-[12.5px] text-muted-foreground">
         Opens on {repo} from your fork, in your name, co-authored by gitranks.
       </span>
+      {grantNeeded ? (
+        <div data-grant-ask className="flex flex-col gap-2 border-t pt-3.5 text-sm text-foreground/80">
+          <p>
+            {again
+              ? 'GitHub access for pull requests is not connected, so GitHub asks you once more to let us open PRs as you.'
+              : "This is your first one, so GitHub asks you once to let us open PRs as you. It's one permission,"}{' '}
+            <code className="font-mono">public_repo</code>:
+          </p>
+          <ul className="flex list-disc flex-col gap-1 pl-[18px]">
+            <li>fork the repo into your account and push a branch to it</li>
+            <li>open the PR on the original repo, in your name</li>
+            <li>never private repos, never workflow files</li>
+          </ul>
+        </div>
+      ) : null}
+      {handoff === 'opening' ? (
+        <p role="status" data-resume="opening" className="text-sm font-semibold text-violet-700 dark:text-violet-300">
+          Opening your PR…
+        </p>
+      ) : null}
       {error && !confirm ? (
         <span role="alert" className="text-sm text-red-700 dark:text-red-400">
           {error}
@@ -161,15 +258,28 @@ export function PrForm({
       ) : null}
       <button
         type="submit"
-        disabled={pending || titleMissing}
+        disabled={busy || titleMissing}
         className="min-h-[46px] rounded-[10px] bg-primary font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
-        {again ? 'Submit again' : 'Submit pull request'}
+        {handoff === 'github'
+          ? 'Opening GitHub…'
+          : handoff === 'opening'
+            ? 'Opening your PR…'
+            : grantNeeded
+              ? 'Allow GitHub access and open the PR'
+              : again
+                ? 'Submit again'
+                : 'Submit pull request'}
       </button>
+      {grantNeeded ? (
+        <span className="text-[13px] text-muted-foreground">
+          You come back here and the PR opens straight away. Revoke the access any time, on GitHub or in Settings.
+        </span>
+      ) : null}
       <button
         type="button"
         onClick={() => setConfirm('discard')}
-        disabled={pending}
+        disabled={busy}
         className="min-h-[42px] rounded-[10px] border bg-background text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40"
       >
         Discard
@@ -178,11 +288,19 @@ export function PrForm({
       <Dialog open={confirm !== null} onOpenChange={(open) => !pending && !open && setConfirm(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{confirm === 'discard' ? 'Discard this attempt?' : 'Submit this pull request?'}</DialogTitle>
+            <DialogTitle>
+              {confirm === 'discard'
+                ? 'Discard this attempt?'
+                : grantNeeded
+                  ? 'Allow GitHub access and open this pull request?'
+                  : 'Submit this pull request?'}
+            </DialogTitle>
             <DialogDescription>
               {confirm === 'discard'
                 ? 'Nothing is submitted, and the issue goes back to the pool. What it cost stays spent.'
-                : `It opens on ${repo} in your name, from your fork, with the title and description as you left them.`}
+                : grantNeeded
+                  ? `GitHub asks you for public_repo. Then you come back here, and it opens on ${repo} in your name, from your fork, with the title and description as you left them.`
+                  : `It opens on ${repo} in your name, from your fork, with the title and description as you left them.`}
             </DialogDescription>
           </DialogHeader>
           {error ? (
@@ -199,8 +317,14 @@ export function PrForm({
                 {pending ? 'Discarding…' : 'Discard'}
               </Button>
             ) : (
-              <Button type="button" onClick={() => act('approve')} disabled={pending}>
-                {pending ? 'Submitting…' : 'Submit'}
+              <Button type="button" onClick={() => (grantNeeded ? allowAndOpen() : act('approve'))} disabled={busy}>
+                {handoff === 'github'
+                  ? 'Opening GitHub…'
+                  : pending
+                    ? 'Submitting…'
+                    : grantNeeded
+                      ? 'Continue to GitHub'
+                      : 'Submit'}
               </Button>
             )}
           </DialogFooter>

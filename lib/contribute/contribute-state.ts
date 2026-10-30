@@ -1,16 +1,15 @@
 import type { ContributeCredential, ContributeView } from './contribute.types';
 
 /**
- * What stands between the user and their next attempt, most pressing first. `grant-missing` only when the API says so
- * and access can be granted: an API that does not answer the grant yet shows nothing about it.
+ * What stands between the user and their next attempt, most pressing first. The GitHub grant is not among them: it is
+ * asked for on the first review, from its submit button.
  */
 export type ContributeNotice =
   | { kind: 'no-key' }
   | { kind: 'key-invalid' }
   | { kind: 'exhausted'; until: string | null }
   | { kind: 'limit-reached'; until: string | null }
-  | { kind: 'paused' }
-  | { kind: 'grant-missing' };
+  | { kind: 'paused' };
 
 /** The user works with their own agent alone: a live token, no Claude key. */
 export const isOwnAgentOnly = (view: ContributeView | null | undefined): boolean =>
@@ -35,8 +34,6 @@ export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
   else if (key.state === 'LIMIT_REACHED') notices.push({ kind: 'limit-reached', until: key.blockedUntil });
 
   if (view.contributor && isPaused(view)) notices.push({ kind: 'paused' });
-  // Nothing to ask for while access cannot be granted here.
-  if (view.grantAvailable && view.grant && !view.grant.connected) notices.push({ kind: 'grant-missing' });
   return notices;
 }
 

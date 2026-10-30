@@ -2,47 +2,34 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { ConnectKeyForm } from './connect-key-form';
-import { ConsoleSteps } from './console-steps';
 import { ContributeNotices } from './contribute-notices';
-import { GrantCard } from './grant-card';
-import { LimitsPreview } from './limits-preview';
+import { KeyConnect } from './key-connect';
 import { OwnAgentSection } from './own-agent-section';
 import { PreferencesStep } from './preferences-step';
-import { SetupSteps } from './setup-steps';
-import { loadContribute } from '@/lib/contribute/contribute.data';
+import { manualDraftFromSettings, type StoredLimits } from '@/lib/contribute/connect-limits';
+import { loadContribute, loadProfileLanguages } from '@/lib/contribute/contribute.data';
 import type { ContributeView } from '@/lib/contribute/contribute.types';
 import { CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
-
-/**
- * The step the user is on: the key, then GitHub access (the limits come from the plan), then preferences. An API that
- * does not tell the grant yet, or access that cannot be granted yet, does not hold the user on step 3.
- */
-export function setupStepOf(view: ContributeView): number {
-  if (!claudeKeyOf(view)) return 1;
-  if (view.grantAvailable && view.grant && !view.grant.connected) return 3;
-  if (view.contributor?.step !== 'DONE') return 4;
-  return 5;
-}
+import { LANGUAGES } from '@/lib/contribute/format';
 
 export async function ConnectView({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params] = await Promise.all([loadContribute(), searchParams]);
+  const [view, params, languages] = await Promise.all([loadContribute(), searchParams, loadProfileLanguages()]);
   if (!view) notFound();
   if (params?.path === 'agent') return <OwnAgentConnectScreen view={view} />;
-  return <ConnectScreen view={view} today={new Date().getUTCDate()} />;
+  return <ConnectScreen view={view} today={new Date().getUTCDate()} profileLanguages={languages} />;
 }
 
 /** Where the own-agent path starts. */
 export const OWN_AGENT_PATH = CONNECT_AGENT_PATH;
 
 /**
- * Connect with the user's own agent instead of a Claude key: GitHub access, what they like to work on, then a token
- * for their agent. Nothing asks for a key.
+ * Connect with the user's own agent instead of a Claude key: what they like to work on, then a token for their agent.
+ * Nothing asks for a key, and GitHub access is asked for on the first review.
  */
 export function OwnAgentConnectScreen({ view, now }: { view: ContributeView; now?: Date }) {
   const { contributor } = view;
@@ -59,64 +46,53 @@ export function OwnAgentConnectScreen({ view, now }: { view: ContributeView; now
           Use a Claude key instead →
         </Link>
       </div>
-      <GrantCard grant={view.grant} available={view.grantAvailable} returnTo={OWN_AGENT_PATH} step={1} />
       <PreferencesStep
         preferences={contributor?.preferences ?? null}
-        step={2}
+        step={1}
         next={`${OWN_AGENT_PATH}#own-agent` as Route}
         saveLabel="Save, then create a token"
       />
-      <OwnAgentSection ownAgent={view.ownAgent} now={now} step={3} />
+      <OwnAgentSection ownAgent={view.ownAgent} now={now} step={2} />
     </>
   );
 }
 
-export function ConnectScreen({ view, today }: { view: ContributeView; today: number }) {
+/**
+ * A1, the hosted path: the key, the limits and the reset day on one screen. A first key goes on to the matching
+ * moment; a connected one is replaced here (from Settings or a notice), and the page stays. The languages the matching moment floats are
+ * the user's preferences when set, else their profile's.
+ */
+export function ConnectScreen({
+  view,
+  today,
+  profileLanguages = [],
+}: {
+  view: ContributeView;
+  today: number;
+  profileLanguages?: string[];
+}) {
   const { contributor } = view;
   const key = claudeKeyOf(view);
-  const step = setupStepOf(view);
   // The key's own trouble shows here; the rest of the notices belong to the other pages.
-  const keyNotices = contributeNoticesOf(view).filter(({ kind }) => kind !== 'no-key' && kind !== 'grant-missing');
+  const keyNotices = contributeNoticesOf(view).filter(({ kind }) => kind !== 'no-key');
+  const preferred = (contributor?.preferences?.languages ?? []).map((language) => LANGUAGES[language]);
+  // A key connected before (a plan is set only by a connect): the API keeps these settings, so the screen starts from
+  // them and says them. Settings made without a key are not a connect's: a first key takes the defaults over them.
+  const stored: StoredLimits | null =
+    contributor?.plan && contributor.settings
+      ? { plan: contributor.plan, settings: contributor.settings, preferences: contributor.preferences }
+      : null;
 
   return (
-    <>
-      <SetupSteps current={step} />
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {key ? 'Your Claude key is connected' : 'Connect your Claude key'}
-        </h1>
-        <p className="max-w-2xl text-muted-foreground">
-          Use a separate workspace for gitranks, so your other projects and your spend limit stay apart. It takes about
-          two minutes in the Claude Console.
-        </p>
-        {key ? null : (
-          <Link href={OWN_AGENT_PATH} prefetch={false} className="text-sm font-semibold text-primary">
-            Use your own agent instead (Claude Code, Codex, Cursor, Gemini CLI) →
-          </Link>
-        )}
-      </div>
-      <ContributeNotices notices={keyNotices} />
-      <div className="flex flex-wrap items-start gap-5">
-        <ConsoleSteps />
-        <ConnectKeyForm
-          replacing={!!key}
-          defaultPlan={contributor?.plan}
-          defaultRenewalDay={contributor?.settings?.renewalDay ?? today}
-        />
-      </div>
-      <div className="grid gap-5 md:grid-cols-2">
-        <LimitsPreview plan={contributor?.plan} settings={contributor?.settings} />
-        <GrantCard grant={view.grant} available={view.grantAvailable} returnTo="/contribute/connect" />
-      </div>
-      {step === 4 ? <PreferencesStep preferences={contributor?.preferences ?? null} /> : null}
-      {step === 5 ? (
-        <p className="text-sm text-muted-foreground">
-          You are all set.{' '}
-          <Link href="/contribute/issues" prefetch={false} className="font-semibold text-primary">
-            See the issues picked for you →
-          </Link>
-        </p>
-      ) : null}
-    </>
+    <KeyConnect
+      defaultPlan={contributor?.plan}
+      defaultManual={stored ? manualDraftFromSettings(stored.settings) : undefined}
+      stored={stored}
+      renewalDay={contributor?.settings?.renewalDay ?? null}
+      guessDay={today}
+      replacing={!!key}
+      languages={preferred.length ? preferred : profileLanguages}
+      notices={keyNotices.length ? <ContributeNotices notices={keyNotices} /> : null}
+    />
   );
 }

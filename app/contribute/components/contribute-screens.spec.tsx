@@ -11,14 +11,14 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 
-const { ConnectScreen, setupStepOf } = await import('./connect-view');
+const { ConnectScreen } = await import('./connect-view');
 const { SettingsScreen } = await import('./settings-view');
 const { IssuesScreen } = await import('./issues-view');
 const { OverviewScreen, OverviewStatusView } = await import('./overview-status');
 const { ContributeNotices } = await import('./contribute-notices');
 const { ConnectResult } = await import('./connect-result');
 const { IssueCard } = await import('./issue-card');
-const { NOW, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { NOW, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
 
 import type { ContributeConnectResult, ContributeIssue, ContributeView } from '@/lib/contribute/contribute.types';
@@ -39,7 +39,6 @@ describe('the notices above the Contribute pages', () => {
     ['keyInvalid', 'key-invalid', 'Your Claude key stopped working', '/contribute/connect'],
     ['exhausted', 'exhausted', 'Your credits are used up for this cycle', 'renew on Nov 14'],
     ['limitReached', 'limit-reached', "Your workspace's spend limit is reached", 'on Nov 1'],
-    ['grantMissing', 'grant-missing', 'Allow pull requests on GitHub', '/contribute/settings#access'],
     ['paused', 'paused', 'Contributing is paused', 'Resume in Settings'],
   ] as const)('show the %s state', (name, kind, title, detail) => {
     const html = notices(views[name]);
@@ -49,9 +48,10 @@ describe('the notices above the Contribute pages', () => {
     expect(html.includes(detail) || text(html).includes(detail)).toBe(true);
   });
 
-  it('show nothing for an active contributor, or about a grant the API does not answer yet', () => {
+  it('show nothing for an active contributor, and never ask for the GitHub grant up front', () => {
     expect(notices(views.active)).toBe('');
     expect(notices(views.fieldsMissing)).toBe('');
+    expect(notices(views.grantMissing)).toBe('');
   });
 });
 
@@ -100,66 +100,90 @@ describe('the overview', () => {
 });
 
 describe('the connect screen', () => {
-  const render = (view: ContributeView) => renderToStaticMarkup(<ConnectScreen view={view} today={14} />);
+  const render = (view: ContributeView) => renderToStaticMarkup(<ConnectScreen view={view} today={30} />);
 
-  it('starts on the key, with the Console walkthrough, the spend-limit guidance and the confirmation', () => {
+  it('is one screen: the Console key, the key itself, the limits from the plan, and what we apply', () => {
     const html = render(views.noKey);
     const plain = text(html);
+    const cards = [
+      '1 · Create a key in the Claude Console',
+      '2 · Paste the key',
+      '3 · Limit what the agent spends',
+      'The limits we apply',
+      'Connect and find issues',
+    ];
 
-    expect(setupStepOf(views.noKey)).toBe(1);
-    expect(html).toMatch(/aria-current="step"[^>]*>.*1 · Claude key/);
-    expect(plain).toContain('Create a workspace named gitranks');
-    expect(plain).toContain('Set its monthly spend limit');
-    expect(plain).toContain('Check auto-reload first');
-    expect(plain).toContain('I created a separate workspace for this key and set its monthly spend limit');
-    expect(plain).toContain('Max 5x');
-    expect(plain).toContain('Credits I bought');
-    expect(plain).toContain('Your credits renew on');
+    const at = cards.map((title) => plain.indexOf(title));
+    expect(at.every((index) => index >= 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    expect(plain).toContain('Connect your Claude key');
+    expect(plain).toContain('The key is from a separate workspace with a monthly spend limit');
+    expect(html).toMatch(/type="checkbox"[^>]*required/);
     expect(html).toContain('type="password"');
+    expect(html).toContain('href="/contribute/connect?path=agent"');
+    expect(plain).toContain('Open the Claude Console ↗');
   });
 
-  it('explains the GitHub access: public_repo only, never workflows', () => {
+  it("offers the plans by name alone, and starts the month from the plan's allowance", () => {
+    const html = render(views.newcomer);
+    const plain = text(html);
+
+    expect(html).toContain('data-limits="plan"');
+    for (const plan of ['Max 5x', 'Max 20x', 'Team Standard', 'Team Premium']) expect(plain).toContain(plan);
+    expect(html).toMatch(/aria-pressed="true"[^>]*>From my Claude plan/);
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Max 5x/);
+    expect(html.slice(0, html.indexOf('The limits we apply'))).not.toMatch(/\$\d/);
+    expect(plain).toContain("up to $100 of your credits, Max 5x's monthly allowance");
+    expect(plain).toContain('at most $5, it stops at the cap');
+    expect(plain).toContain('no separate cap: pacing spreads the month');
+    expect(plain).toContain('1 attempt, and at most 3 of your PRs open');
+    expect(plain).toContain('at most 400 changed lines in 15 files');
+    expect(plain).toContain('Sonnet 5.5 does the work, Haiku 5.5 helps');
+    expect(plain).toContain("Languages: your profile's first");
+
+    // A plan picked before is picked again.
+    expect(text(render(views.noKey))).toContain("up to $200 of your credits, Max 20x's monthly allowance");
+  });
+
+  it('guesses the reset day as today, and says it is a guess', () => {
+    const html = render(views.noKey);
+
+    expect(html).toMatch(/<option value="30" selected="">The 30th \(today, our guess\)<\/option>/);
+    expect(text(html)).toContain('On which day of the month do your API credits reset?');
+  });
+
+  it('asks nothing about GitHub access, no preferences, and no setup steps', () => {
     const plain = text(render(views.noKey));
 
-    expect(plain).toContain('public_repo');
-    expect(plain).toContain('workflow');
-    expect(plain).toContain('Never anything on private repos, and never workflow files');
-    expect(plain).toContain('Allow on GitHub');
+    expect(plain).not.toContain('public_repo');
+    expect(plain).not.toContain('Allow on GitHub');
+    expect(plain).not.toContain('What you like to work on');
   });
 
-  it('moves to the GitHub access once the key is in, then to the preferences', () => {
-    expect(setupStepOf(views.grantMissing)).toBe(3);
-    expect(render(views.grantMissing)).toContain('data-grant="missing"');
-
-    const preferences = { ...views.active, contributor: { ...views.active.contributor, step: 'PREFERENCES' as const } };
-    expect(setupStepOf(preferences)).toBe(4);
-    expect(text(render(preferences))).toContain('Show my issues');
-
-    expect(setupStepOf(views.active)).toBe(5);
-    expect(text(render(views.active))).toContain('You are all set.');
-  });
-
-  it('shows the GitHub access as not available yet, without a button, while it cannot be granted here', () => {
-    const view = { ...views.grantMissing, grantAvailable: false };
+  it('opens on the hand-set limits for a key connected with them, and keeps the stored reset day', () => {
+    const view = {
+      ...views.active,
+      contributor: {
+        ...views.active.contributor,
+        plan: 'CREDITS' as const,
+        settings: { ...settings, cycleCapUsd: 80, dayCapUsd: 10, pace: 'FAST' as const },
+      },
+    };
     const html = render(view);
+    const plain = text(html);
 
-    expect(setupStepOf(view)).toBe(5);
-    expect(html).toContain('data-grant-available="false"');
-    expect(text(html)).toContain('Pull request access is not available yet.');
-    expect(text(html)).not.toContain('Allow on GitHub');
-  });
-
-  it('does not hold the user on GitHub access when the API cannot tell the grant yet', () => {
-    const view = { ...views.fieldsMissing, contributor: { ...views.active.contributor, step: 'PREFERENCES' as const } };
-
-    expect(setupStepOf(view)).toBe(4);
-    expect(render(view)).toContain('data-grant="unknown"');
+    expect(html).toContain('data-limits="manual"');
+    expect(html).toContain('value="80"');
+    expect(plain).toContain('At most $80 a month, $10 a day and $5 an attempt, as fast as those caps allow.');
+    expect(plain).toContain('Connect a new Claude key');
+    expect(html).toMatch(/<option value="14" selected="">The 14th<\/option>/);
   });
 
   it("shows the key's own trouble", () => {
     expect(render(views.keyInvalid)).toContain('data-notice="key-invalid"');
     expect(render(views.exhausted)).toContain('data-notice="exhausted"');
     expect(render(views.limitReached)).toContain('data-notice="limit-reached"');
+    expect(render(views.noKey)).not.toContain('data-notice="no-key"');
   });
 });
 
@@ -345,18 +369,25 @@ describe('issues for you', () => {
 
   it('says when the feed is not available yet, empty, or empty under filters', () => {
     expect(text(render(undefined))).toContain('Issues are not available yet');
-    expect(text(render({ items: [], next: null, total: 0, computedAt: null }))).toContain(
+    expect(text(render({ items: [], next: null, total: 0, computedAt: '2026-10-28T07:00:00.000Z' }))).toContain(
       'No issues picked for you yet',
     );
+    // Not computed yet: the first picks are on their way, and the page reads itself again.
+    const ranking = render({ items: [], next: null, total: 0, computedAt: null });
+    expect(text(ranking)).toContain('Your first picks are still being ranked');
+    expect(ranking).toContain('data-ranking="waiting"');
     expect(text(render({ items: [], next: null, total: 0, computedAt: null }, { kind: 'DOCS' }))).toContain(
       'No issues match these filters',
     );
   });
 
-  it("shows the page's notices, a missing grant among them", () => {
-    const html = renderToStaticMarkup(<IssuesScreen view={views.grantMissing} page={undefined} query={{}} />);
-
-    expect(html).toContain('data-notice="grant-missing"');
+  it("shows the page's notices, and asks for no GitHub access up front", () => {
+    expect(renderToStaticMarkup(<IssuesScreen view={views.paused} page={undefined} query={{}} />)).toContain(
+      'data-notice="paused"',
+    );
+    expect(renderToStaticMarkup(<IssuesScreen view={views.grantMissing} page={undefined} query={{}} />)).not.toContain(
+      'data-notice',
+    );
   });
 
   it('links the issue only when its link points at GitHub, and shows the title as text otherwise', () => {

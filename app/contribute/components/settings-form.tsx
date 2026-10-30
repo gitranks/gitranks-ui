@@ -14,7 +14,7 @@ import type {
   ContributeSettingsInput,
 } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
-import { EFFORTS, MODELS, ordinalDay, PACES } from '@/lib/contribute/format';
+import { EFFORTS, MODELS, ordinalDay, PACES, parseAmount } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
 /** Above these, one line says that large pull requests are merged less often. */
@@ -66,14 +66,6 @@ const draftOf = (settings: ContributeSettings): Draft => ({
   effort: settings.effort,
   dco: settings.dco,
 });
-
-/** A number the user typed, `$` and spaces allowed; `undefined` when it is not one, `null` when empty. */
-export function parseAmount(text: string): number | null | undefined {
-  const cleaned = text.replace(/[$\s,]/g, '');
-  if (!cleaned) return null;
-  const value = Number(cleaned);
-  return Number.isFinite(value) && value >= 0 ? value : undefined;
-}
 
 type Section = 'limits' | 'pacing' | 'agent' | 'prs';
 

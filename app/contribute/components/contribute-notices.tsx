@@ -46,13 +46,6 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         text: 'No new attempts start until you resume. Your settings and queue are kept.',
         action: { href: '/contribute/settings', label: 'Resume in Settings' },
       };
-    case 'grant-missing':
-      return {
-        tone: 'info',
-        title: 'Allow pull requests on GitHub',
-        text: 'An agent can work on issues, but nothing can be submitted until you let us open pull requests from your fork.',
-        action: { href: '/contribute/settings#access', label: 'Allow on GitHub' },
-      };
   }
 }
 

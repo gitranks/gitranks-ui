@@ -3,6 +3,8 @@
 export type ContributeLiveProvider = 'ANTHROPIC';
 export type ContributeKeyState = 'VALID' | 'INVALID' | 'EXHAUSTED' | 'LIMIT_REACHED';
 export type ContributePace = 'EVEN' | 'FAST' | 'QUEUED';
+/** The paces a key connect may set: `QUEUED` is set in Settings alone. */
+export type ContributeConnectPace = Exclude<ContributePace, 'QUEUED'>;
 export type ContributeModel = 'CLAUDE_SONNET_5_5' | 'CLAUDE_OPUS_5_5' | 'CLAUDE_HAIKU_5_5';
 export type ContributeEffort = 'LOW' | 'MEDIUM' | 'HIGH' | 'XHIGH' | 'MAX';
 export type ContributeDcoMode = 'ASK' | 'STANDING';
@@ -127,6 +129,17 @@ export type Contributor = {
 };
 
 export type ContributeGrant = { connected: boolean; login: string | null };
+
+/**
+ * The limits a key connect sets beside the monthly cap ("I'll set them myself"): a field left out keeps its value,
+ * `null` is no week or day cap. The attempt cap may not be above any cap that is set.
+ */
+export type ContributeConnectLimits = {
+  weekCapUsd?: number | null;
+  dayCapUsd?: number | null;
+  attemptCapUsd?: number;
+  pace?: ContributeConnectPace;
+};
 
 export type ContributeConnectKeyResult = {
   result: ContributeConnectResult;

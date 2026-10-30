@@ -7,6 +7,7 @@ import type {
   ContributeAttemptState,
   ContributeAutopilot,
   ContributeConnectKeyResult,
+  ContributeConnectLimits,
   ContributeContributions,
   ContributeDeleteDataResult,
   ContributeGrant,
@@ -172,6 +173,39 @@ export const ConnectClaudeKeyDocument = doc<
     result retryAfterSec credential { ${CREDENTIAL} }
   }
 }`);
+
+/**
+ * The connect with the limits the user set themselves: an operation of its own, so an API that does not take them yet
+ * leaves the connect from a plan working.
+ */
+export const ConnectClaudeKeyWithLimitsDocument = doc<
+  { connectClaudeKey: ContributeConnectKeyResult },
+  {
+    key: string;
+    plan: string;
+    renewalDay: number;
+    confirmedLimit: boolean;
+    cycleCapUsd?: number;
+    limits: ContributeConnectLimits;
+  }
+>(`mutation ConnectClaudeKeyWithLimits($key: String!, $plan: ContributeClaudePlan!, $renewalDay: Int!, $confirmedLimit: Boolean!, $cycleCapUsd: Float, $limits: ContributeConnectLimitsInput!) {
+  connectClaudeKey(key: $key, plan: $plan, renewalDay: $renewalDay, confirmedLimit: $confirmedLimit, cycleCapUsd: $cycleCapUsd, limits: $limits) {
+    result retryAfterSec credential { ${CREDENTIAL} }
+  }
+}`);
+
+/** When the user's picks were last computed: what the matching moment after a connect waits for. */
+export const ContributeFeedComputedDocument = doc<{ contributeIssues: { computedAt: string | null } | null }>(
+  'query ContributeFeedComputed { contributeIssues(first: 1) { computedAt } }',
+);
+
+/** The languages of the user's profile, strongest first: the matching moment shows them. */
+export const ContributeProfileLanguagesDocument = doc<
+  { user: { sLangs: { name: string }[] | null } | null },
+  { login: string; limit: number }
+>(
+  'query ContributeProfileLanguages($login: String!, $limit: Int) { user(login: $login) { sLangs(limit: $limit) { name } } }',
+);
 
 export const RemoveLlmKeyDocument = doc<{ removeLlmKey: boolean }>(
   'mutation RemoveLlmKey { removeLlmKey(provider: ANTHROPIC) }',

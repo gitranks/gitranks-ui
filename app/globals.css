@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* GitRanks design tokens. Names follow shadcn/ui, so stock components pick them up; the GitRanks extras
-   (brand-soft, brand-mark, link, positive, negative, tier-*, series-*) sit beside them. */
+   (brand-soft, brand-mark, link, positive, negative, warning, tier-*, series-*) sit beside them. */
 :root {
   --radius: 0.625rem;
   /* Surfaces */
@@ -32,6 +32,12 @@
   --ring: oklch(0.606 0.25 292.717);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
+  /* Warnings */
+  /* Text-safe: 4.5:1 or better on background and card (5.0:1). The soft pair is a notice panel's fill and
+     its text (8.7:1). */
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --warning-soft-foreground: #78350f;
   /* Ranking signals */
   /* Tiers run Rookie (1) to Legend (7). Text-safe values: 4.5:1 or better on background and card. */
   --positive: #15803d;
@@ -107,6 +113,12 @@
   --ring: oklch(0.702 0.183 293.541);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
+  /* Warnings */
+  /* Text-safe: 4.5:1 or better on background and card (8.2:1). The soft pair is a notice panel's fill and
+     its text (14.8:1). */
+  --warning: #f59e0b;
+  --warning-soft: #211008;
+  --warning-soft-foreground: #fde68a;
   /* Ranking signals */
   /* Tiers run Rookie (1) to Legend (7). Text-safe values: 4.5:1 or better on background and card. */
   --positive: #22c55e;
@@ -188,6 +200,9 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
   --color-tier-1-strong: var(--tier-1-strong);
   --color-tier-2-strong: var(--tier-2-strong);
   --color-tier-3-strong: var(--tier-3-strong);

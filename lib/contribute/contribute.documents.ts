@@ -74,7 +74,10 @@ export const RevokeMcpTokenDocument = doc<{ revokeMcpToken: boolean }, { id: str
   'mutation RevokeMcpToken($id: ID!) { revokeMcpToken(id: $id) }',
 );
 
-export const SendBackToAgentDocument = doc<{ sendBackToAgent: ContributeAttempt }, { attemptId: string; note: string }>(
+export const SendBackToAgentDocument = doc<
+  { sendBackToAgent: Pick<ContributeAttempt, 'attemptId' | 'state'> },
+  { attemptId: string; note: string }
+>(
   `mutation SendBackToAgent($attemptId: ID!, $note: String!) { sendBackToAgent(attemptId: $attemptId, note: $note) { attemptId state } }`,
 );
 

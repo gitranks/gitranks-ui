@@ -107,6 +107,14 @@ export const relativeLabel = (iso: string | null | undefined, now = new Date()) 
   return formatDistanceStrict(date, now, { addSuffix: true, roundingMethod: 'round' });
 };
 
+/** `22 hours`: the time from now to `iso`, without "in" or "ago"; '' for a time not given or gone. */
+export const timeLeftLabel = (iso: string | null | undefined, now = new Date()) => {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime()) || date.getTime() <= now.getTime()) return '';
+  return formatDistanceStrict(date, now, { roundingMethod: 'round' });
+};
+
 /** `the 14th`. */
 export const ordinalDay = (day: number) => {
   const tens = day % 100;

@@ -59,7 +59,7 @@ describe('Settings, your own agent', () => {
     expect(plain).toContain('never used');
     expect(plain).toContain('Create token');
     expect(html).toContain('data-setup="claude-code"');
-    expect(plain).toContain(`claude mcp add --transport http gitranks ${MCP_URL}`);
+    expect(plain).toContain(`claude mcp add --scope user --transport http gitranks ${MCP_URL}`);
     expect(plain).toContain(OWN_AGENT_SAFETY);
   });
 
@@ -117,7 +117,10 @@ describe('Connect, with your own agent', () => {
     const plain = text(html);
     expect(html).toContain('data-connect-path="agent"');
     expect(plain).toContain('No Claude key is needed');
+    expect(plain).toContain('Step 1 · GitHub access');
     expect(plain).toContain('Step 2');
+    expect(plain).toContain('Step 3 · A token for your agent');
+    expect(plain).toContain('Save, then create a token');
     expect(plain).toContain('Create token');
     expect(plain).not.toContain('Paste your key');
   });
@@ -204,6 +207,7 @@ describe('My contributions, with your own agent', () => {
     expect(plain).toContain('Claude Code');
     expect(plain).toContain('opened by hand');
     expect(plain).toContain('Cursor is on it');
-    expect(plain).toContain('held for it until');
+    expect(plain).toContain('held for it for another');
+    expect(plain).not.toContain('until in');
   });
 });

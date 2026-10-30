@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { sendBackToAgent } from '../actions';
 import { Panel } from './primitives';
-import { contributeErrorMessage } from '@/lib/contribute/errors';
+import { attemptActionErrorMessage } from '@/lib/contribute/errors';
 import { SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
 
 /**
@@ -23,7 +23,7 @@ export function SendBackForm({ attemptId, left }: { attemptId: string; left: num
       setMessage(null);
       const result = await sendBackToAgent(attemptId, note);
       if (!result.ok) {
-        setMessage(contributeErrorMessage(result.error, result.message));
+        setMessage(attemptActionErrorMessage(result.error, result.message));
         return;
       }
       setNote('');

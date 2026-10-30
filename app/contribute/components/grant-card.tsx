@@ -23,16 +23,19 @@ export function GrantCard({
   grant,
   available,
   returnTo,
+  step = 3,
 }: {
   grant: ContributeGrant | undefined;
   available: boolean;
   returnTo: Route;
+  /** Its number among the setup's steps: 3 after the key, 1 on the own-agent path. */
+  step?: number;
 }) {
   const { grant: allow, pending } = useGrantGithub(returnTo);
 
   return (
     <div className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-5 sm:p-6" data-grant={grantStateOf(grant)}>
-      <Eyebrow>Step 3 · GitHub access</Eyebrow>
+      <Eyebrow>Step {step} · GitHub access</Eyebrow>
       <span className="text-[17px] font-semibold">Let us open pull requests for you</span>
       <ul className="flex list-disc flex-col gap-1 pl-4.5 text-sm text-foreground/80">
         <li>Fork a repo into your account and push a branch to the fork</li>

@@ -18,10 +18,12 @@ export function PreferencesStep({
   preferences,
   step = 4,
   next = '/contribute/issues',
+  saveLabel = 'Show my issues',
 }: {
   preferences: ContributePreferences | null;
   step?: number;
   next?: Route;
+  saveLabel?: string;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<PreferencesDraft>({
@@ -41,6 +43,8 @@ export function PreferencesStep({
         return;
       }
       router.push(next);
+      // The own-agent path stays on its page: read it again, so the saved preferences show.
+      router.refresh();
     });
 
   return (
@@ -55,7 +59,7 @@ export function PreferencesStep({
           disabled={pending}
           className="min-h-11 rounded-lg bg-primary px-5 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          {pending ? 'Saving…' : 'Show my issues'}
+          {pending ? 'Saving…' : saveLabel}
         </button>
         {error ? (
           <span role="alert" className="text-sm font-medium text-red-700 dark:text-red-400">

@@ -170,7 +170,7 @@ export async function createMcpToken(name: string): Promise<ContributeActionResu
   const trimmed = String(name ?? '').trim();
   if (!trimmed) return { ok: false, error: 'INVALID', message: 'Give the token a name, like "laptop".' };
   if (trimmed.length > MCP_TOKEN_NAME_MAX) {
-    return { ok: false, error: 'INVALID', message: `Keep the name under ${MCP_TOKEN_NAME_MAX} characters.` };
+    return { ok: false, error: 'INVALID', message: `Keep the name to ${MCP_TOKEN_NAME_MAX} characters at most.` };
   }
   return run(CreateMcpTokenDocument, { name: trimmed }, (data) => data.createMcpToken);
 }
@@ -184,14 +184,14 @@ export async function revokeMcpToken(id: string): Promise<ContributeActionResult
 export async function sendBackToAgent(
   attemptId: string,
   note: string,
-): Promise<ContributeActionResult<ContributeAttempt>> {
+): Promise<ContributeActionResult<Pick<ContributeAttempt, 'attemptId' | 'state'>>> {
   const trimmed = String(note ?? '').trim();
   if (!trimmed) return { ok: false, error: 'INVALID', message: 'Say what your agent should change.' };
   if (trimmed.length > SEND_BACK_NOTE_MAX) {
     return {
       ok: false,
       error: 'INVALID',
-      message: `Keep the note under ${SEND_BACK_NOTE_MAX.toLocaleString('en-US')} characters.`,
+      message: `Keep the note to ${SEND_BACK_NOTE_MAX.toLocaleString('en-US')} characters at most.`,
     };
   }
   return run(SendBackToAgentDocument, { attemptId: String(attemptId), note: trimmed }, (data) => data.sendBackToAgent);

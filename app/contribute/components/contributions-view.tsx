@@ -33,7 +33,7 @@ import type {
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf } from '@/lib/contribute/contribute-state';
-import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
+import { dayLabel, relativeLabel, timeLeftLabel, usd } from '@/lib/contribute/format';
 
 /** Merged pull requests that unlock autopilot. */
 const AUTOPILOT_AT = 3;
@@ -291,7 +291,8 @@ function NeedsYou({
 function ownAgentWorkText(attempt: ContributeAttempt, now?: Date): string {
   if (attempt.state === 'CLAIMING') return 'Your own agent claimed it: checking the issue on GitHub.';
   const agent = agentLabelOf(attempt.agent) ?? 'Your own agent';
-  const held = attempt.leaseUntil ? ` · held for it until ${relativeLabel(attempt.leaseUntil, now)}` : '';
+  const left = timeLeftLabel(attempt.leaseUntil, now);
+  const held = left ? ` · held for it for another ${left}` : '';
   const asked = attempt.changesRequested ? ' · sent back with your note' : '';
   return `${agent} is on it${held}${asked}`;
 }
@@ -374,7 +375,7 @@ function PullRequests({ contributions, now }: { contributions: ContributeContrib
               <th className="px-5 py-2.5 font-medium">Pull request</th>
               <th className="px-3 py-2.5 font-medium">State</th>
               <th className="px-3 py-2.5 font-medium">Dates</th>
-              <th className="py-2.5 pr-5 pl-3 text-right font-medium">Cost</th>
+              <th className="py-2.5 pr-5 pl-3 text-right font-medium">Cost or agent</th>
             </tr>
           </thead>
           <tbody>

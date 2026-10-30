@@ -17,7 +17,7 @@ import type {
   ContributeAttemptTest,
   ContributeModel,
 } from '@/lib/contribute/contribute.types';
-import { MODELS, relativeLabel, usd } from '@/lib/contribute/format';
+import { MODELS, timeLeftLabel, usd } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
 const NOT_YET = 'Not available yet.';
@@ -191,9 +191,9 @@ export function OwnAgentPanel({ attempt, now }: { attempt: ContributeAttemptDeta
       <span className="text-xs text-muted-foreground">
         As your agent reported it. It ran on your machine, so nothing was spent on a Claude key.
       </span>
-      {attempt.leaseUntil ? (
+      {timeLeftLabel(attempt.leaseUntil, now) ? (
         <span className="text-sm text-muted-foreground">
-          The issue is held for it until {relativeLabel(attempt.leaseUntil, now)}.
+          The issue is held for it for another {timeLeftLabel(attempt.leaseUntil, now)}.
         </span>
       ) : null}
       {attempt.changesRequested ? (

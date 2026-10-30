@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { createMcpToken, revokeMcpToken } from '../actions';
-import { Panel, PanelTitle } from './primitives';
+import { Eyebrow, Panel, PanelTitle } from './primitives';
 import type { ContributeMcpToken, ContributeOwnAgent } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, relativeLabel } from '@/lib/contribute/format';
@@ -42,7 +42,7 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
   };
   return (
     <button type="button" onClick={copy} className={plainButton}>
-      {copied ? 'Copied' : label}
+      <span aria-live="polite">{copied ? 'Copied' : label}</span>
     </button>
   );
 }
@@ -68,8 +68,7 @@ function NewToken({ token, onDone }: { token: string; onDone: () => void }) {
         <CopyButton text={token} />
       </div>
       <p className="text-sm text-muted-foreground">
-        Put it in your shell profile, so your agent reads it from <code className="font-mono">{MCP_TOKEN_ENV}</code> and
-        no config file holds it:
+        Put it in your shell profile, so your agent reads it from <code className="font-mono">{MCP_TOKEN_ENV}</code>:
       </p>
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1">
@@ -145,13 +144,13 @@ export function SetupLines() {
   const setup = MCP_SETUPS.find((each) => each.client === client) ?? MCP_SETUPS[0];
   return (
     <div className="flex flex-col gap-2.5" data-setup={setup.client}>
-      <div role="tablist" aria-label="Your agent" className="flex flex-wrap gap-1.5">
+      <fieldset className="flex flex-wrap gap-1.5">
+        <legend className="sr-only">Your agent</legend>
         {MCP_SETUPS.map((each) => (
           <button
             key={each.client}
             type="button"
-            role="tab"
-            aria-selected={each.client === client}
+            aria-pressed={each.client === client}
             onClick={() => setClient(each.client)}
             className={cn(
               'min-h-9 rounded-lg border px-3 text-sm',
@@ -161,7 +160,7 @@ export function SetupLines() {
             {each.name}
           </button>
         ))}
-      </div>
+      </fieldset>
       <span className="text-sm text-muted-foreground">{setup.where}</span>
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1">
@@ -177,7 +176,16 @@ export function SetupLines() {
  * Settings, "Your own agent (MCP)": the user's tokens for their own agent (create one, shown once; revoke one), the
  * setup for each client, and the safety line. `ownAgent` is `undefined` while the API does not answer it yet.
  */
-export function OwnAgentSection({ ownAgent, now }: { ownAgent: ContributeOwnAgent | undefined; now?: Date }) {
+export function OwnAgentSection({
+  ownAgent,
+  now,
+  step,
+}: {
+  ownAgent: ContributeOwnAgent | undefined;
+  now?: Date;
+  /** Its number on the own-agent path of Connect; none in Settings. */
+  step?: number;
+}) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [created, setCreated] = useState<string | null>(null);
@@ -201,6 +209,7 @@ export function OwnAgentSection({ ownAgent, now }: { ownAgent: ContributeOwnAgen
 
   return (
     <Panel id="own-agent" className="gap-3.5">
+      {step ? <Eyebrow>Step {step} · A token for your agent</Eyebrow> : null}
       <PanelTitle
         title="Your own agent (MCP)"
         text="Claude Code, Codex, Cursor or Gemini CLI on your machine finds issues here, works on one and hands the change back through our MCP server. You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed."

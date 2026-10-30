@@ -58,13 +58,14 @@ export function OwnAgentConnectScreen({ view, now }: { view: ContributeView; now
           Use a Claude key instead →
         </Link>
       </div>
-      <GrantCard grant={view.grant} available={view.grantAvailable} returnTo={OWN_AGENT_PATH} />
+      <GrantCard grant={view.grant} available={view.grantAvailable} returnTo={OWN_AGENT_PATH} step={1} />
       <PreferencesStep
         preferences={contributor?.preferences ?? null}
         step={2}
         next={`${OWN_AGENT_PATH}#own-agent` as Route}
+        saveLabel="Save, then create a token"
       />
-      <OwnAgentSection ownAgent={view.ownAgent} now={now} />
+      <OwnAgentSection ownAgent={view.ownAgent} now={now} step={3} />
     </>
   );
 }

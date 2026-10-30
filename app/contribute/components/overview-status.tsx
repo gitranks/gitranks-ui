@@ -8,7 +8,7 @@ import { ReviewsReady } from './reviews-ready';
 import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
 import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
-import { FIRST_RUN_NOTICES } from '@/lib/contribute/first-run';
+import { firstRunNoticesOf, firstRunStepOf } from '@/lib/contribute/first-run';
 
 /** The landing again, for a user who is onboarded. */
 export const ABOUT_PATH = '/contribute?about=1' as Route;
@@ -55,7 +55,9 @@ export function OverviewScreen({
       <h1 className="sr-only">Overview</h1>
       {firstRun ? (
         <div className="flex flex-col gap-3">
-          <ContributeNotices notices={contributeNoticesOf(view).filter(({ kind }) => !FIRST_RUN_NOTICES.has(kind))} />
+          <ContributeNotices
+            notices={firstRunNoticesOf(contributeNoticesOf(view), firstRunStepOf(view, firstRun.page, now))}
+          />
           <FirstRunGuide view={view} page={firstRun.page} now={now} />
         </div>
       ) : (

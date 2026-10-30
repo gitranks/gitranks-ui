@@ -23,7 +23,7 @@ const { FirstRunGuide } = await import('./first-run-guide');
 const { IssuesScreen } = await import('./issues-view');
 const { OverviewScreen } = await import('./overview-status');
 const { ReviewScreen, grantNeededOf } = await import('./review-view');
-const { NOW, firstSpend, key, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { NOW, firstSpend, key, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { manualDraftOf } = await import('@/lib/contribute/connect-limits');
 
@@ -81,15 +81,29 @@ describe('A1, "I\'ll set them myself"', () => {
     const html = render({ day: '3' });
 
     expect(html).toContain('data-limits-summary="attempt"');
-    expect(html).toMatch(/id="l-attempt"[^>]*aria-invalid="true"/);
+    expect(html).toMatch(/id="l-attempt"[^>]*aria-invalid="true"[^>]*aria-describedby="l-summary"/);
+    expect(html).toMatch(/id="l-summary"[^>]*data-limits-summary="attempt"/);
+    // Only the refused field points at the message.
+    expect(html).not.toMatch(/id="l-day"[^>]*aria-describedby/);
+    // The line under the fields is not live: it changes on every keystroke.
+    expect(html).not.toMatch(/role="status"[^>]*data-limits-summary/);
     expect(text(html)).toContain("Each attempt can't be more than each day ($3): no attempt could start.");
   });
 
   it('asks for the month when it is left empty', () => {
     const html = render({ month: '' });
 
-    expect(html).toMatch(/id="l-month"[^>]*aria-invalid="true"/);
+    expect(html).toMatch(/id="l-month"[^>]*aria-invalid="true"[^>]*aria-describedby="l-month-hint l-summary"/);
     expect(text(html)).toContain('Set a monthly amount to continue.');
+    expect(render()).toMatch(/id="l-month"[^>]*aria-describedby="l-month-hint"/);
+  });
+
+  it('keeps a QUEUED pace from the stored settings, with neither card picked', () => {
+    const html = render({ pace: 'QUEUED' });
+
+    expect(html).not.toContain('aria-pressed="true"');
+    expect(html).toContain('data-pace="queued"');
+    expect(text(html)).toContain('only on issues you queue');
   });
 
   it('opens with the hand-set limits for a key connected with them, and sums them up in what we apply', () => {
@@ -102,7 +116,24 @@ describe('A1, "I\'ll set them myself"', () => {
     expect(html).toContain('data-limits-applied="manual"');
     expect(plain).toContain('at most $80, the amount you set');
     expect(plain).toContain('$20 a week: the smallest cap wins');
-    expect(html).toMatch(/type="submit" disabled=""/);
+    expect(html).toMatch(/type="submit" disabled=""[^>]*aria-describedby="[^"]+-why"/);
+    expect(plain).toContain('To continue, tick the box in step 1, then paste your key in step 2.');
+  });
+
+  it('says on a replace the limits as they are stored, not the defaults', () => {
+    const stored = {
+      plan: 'MAX_5X' as const,
+      settings: { ...settings, cycleCapUsd: 150, attemptCapUsd: 3, pace: 'QUEUED' as const },
+    };
+    const plain = text(
+      renderToStaticMarkup(<KeyConnect defaultPlan="MAX_5X" stored={stored} guessDay={30} replacing />),
+    );
+
+    expect(plain).toContain('Your limits and picks stay as they are');
+    expect(plain).toContain('at most $150, your monthly cap as it is');
+    expect(plain).toContain('at most $3, it stops at the cap');
+    expect(plain).toContain('only on issues you queue');
+    expect(plain).not.toContain("Max 5x's monthly allowance");
   });
 });
 
@@ -221,22 +252,63 @@ describe('A3, what happens next before the first attempt', () => {
     expect(plain).toContain('Best match');
   });
 
-  it('leaves out the notices the guide already gives, and keeps the others', () => {
-    const paused = {
-      ...views.firstKey,
-      contributor: { ...views.firstKey.contributor, status: 'PAUSED' as const },
-      paused: true,
-    };
-    expect(renderToStaticMarkup(<IssuesScreen view={paused} page={page} query={{}} firstRun />)).not.toContain(
-      'data-notice="paused"',
-    );
+  it('leaves out only the notice step 1 restates, and keeps every other block', () => {
+    const paused = { ...views.firstKey.contributor, status: 'PAUSED' as const };
+    const exhausted = { credentials: [key({ state: 'EXHAUSTED', blockedUntil: '2026-11-14T00:00:00.000Z' })] };
+    const issues = (view: ContributeView) =>
+      renderToStaticMarkup(<IssuesScreen view={view} page={page} query={{}} now={NOW} firstRun />);
+    const overview = (view: ContributeView) =>
+      renderToStaticMarkup(<OverviewScreen view={view} now={NOW} firstRun={{ page }} />);
+
+    for (const render of [issues, overview]) {
+      // Paused alone: step 1 says it, the notice goes.
+      const pausedOnly = render({ ...views.firstKey, contributor: paused, paused: true });
+      expect(pausedOnly).toContain('data-first-run="paused"');
+      expect(pausedOnly).not.toContain('data-notice="paused"');
+
+      // Paused and used up: step 1 says the pause, the notice says the key.
+      const both = render({ ...views.firstKey, contributor: { ...paused, ...exhausted }, paused: true });
+      expect(both).toContain('data-first-run="paused"');
+      expect(both).toContain('data-notice="exhausted"');
+      expect(both).not.toContain('data-notice="paused"');
+
+      // Attempts closed: step 1 says so, and every block is still said above it.
+      const closed = render({
+        ...views.firstKey,
+        contributor: { ...paused, ...exhausted },
+        paused: true,
+        attemptsOpen: false,
+      });
+      expect(closed).toContain('data-first-run="closed"');
+      expect(closed).toContain('data-notice="paused"');
+      expect(closed).toContain('data-notice="exhausted"');
+      const limit = render({
+        ...views.firstKey,
+        contributor: {
+          ...views.firstKey.contributor,
+          credentials: [key({ state: 'LIMIT_REACHED', blockedUntil: null })],
+        },
+        attemptsOpen: false,
+      });
+      expect(limit).toContain('data-notice="limit-reached"');
+    }
+  });
+
+  it('says a key that stopped working, and the way to a new one, never "usually within minutes"', () => {
     const invalid = {
       ...views.firstKey,
       contributor: { ...views.firstKey.contributor, credentials: [key({ state: 'INVALID' })] },
     };
-    expect(renderToStaticMarkup(<IssuesScreen view={invalid} page={page} query={{}} firstRun />)).toContain(
-      'data-notice="key-invalid"',
-    );
+    const html = renderToStaticMarkup(<IssuesScreen view={invalid} page={page} query={{}} now={NOW} firstRun />);
+    const plain = text(html);
+
+    expect(html).toContain('data-first-run="key-invalid"');
+    expect(plain).toContain('Your key stopped working');
+    expect(html).toContain('href="/contribute/connect"');
+    expect(plain).not.toContain('usually within minutes');
+    expect(plain).not.toContain('Nothing for you to do');
+    // Step 1 says it: the notice is not said twice.
+    expect(html).not.toContain('data-notice="key-invalid"');
   });
 
   it('takes the place of the status on Overview, and gives way to it once there is an attempt', () => {
@@ -289,5 +361,28 @@ describe('A4, GitHub access at the first submit', () => {
     expect(grantNeededOf(views.active, bounced)).toBe(true);
     expect(text(review(views.active, bounced))).toContain('GitHub asks you once more');
     expect(grantNeededOf(views.active, detail())).toBe(false);
+    // A grant missing at the submit and connected since asks no more.
+    const missing = detail({
+      submit: {
+        step: 'QUEUED',
+        waitUntil: null,
+        fork: null,
+        branch: null,
+        lastError: { reason: 'grant_missing', note: 'Allow it from this page.', at: '2026-10-28T11:00:00.000Z' },
+      },
+    });
+    expect(grantNeededOf(views.active, missing)).toBe(false);
+    expect(grantNeededOf(views.firstKey, missing)).toBe(true);
+  });
+});
+
+describe('the first picks still being ranked', () => {
+  it('reads the page again for about two minutes, then stops', async () => {
+    const { rankingTickOf, RANKING_REFRESH_FOR_SECONDS } = await import('./still-ranking');
+
+    expect(RANKING_REFRESH_FOR_SECONDS).toBe(120);
+    expect(rankingTickOf(0, 5_000)).toBe('refresh');
+    expect(rankingTickOf(0, 115_000)).toBe('refresh');
+    expect(rankingTickOf(0, 120_000)).toBe('stop');
   });
 });

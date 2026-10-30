@@ -3,8 +3,11 @@ import type {
   ContributeConnectLimits,
   ContributeConnectPace,
   ContributeModel,
+  ContributePace,
+  ContributePreferences,
+  ContributeSettings,
 } from './contribute.types';
-import { MODELS, ordinalDay, parseAmount, planOf, usd } from './format';
+import { KINDS, LANGUAGES, MODELS, ordinalDay, parseAmount, planOf, SIZES, usd } from './format';
 
 /**
  * What a first key starts from, as the API sets it: the connect sends only what the user changed, so these describe
@@ -54,13 +57,16 @@ export const PLAN_CHOICES: { plan: ContributeClaudePlan; label: string }[] = [
 /** How the limits are set: from the plan's monthly allowance, or by hand. */
 export type LimitsMode = 'plan' | 'manual';
 
-/** "I'll set them myself" as typed: amounts as text, the pace picked. */
+/**
+ * "I'll set them myself" as typed: amounts as text, the pace picked. `QUEUED` only ever comes from the stored settings
+ * (the screen offers the other two): it is kept until the user picks one.
+ */
 export type ManualLimitsDraft = {
   month: string;
   week: string;
   day: string;
   attempt: string;
-  pace: ContributeConnectPace;
+  pace: ContributePace;
 };
 
 export type ManualField = 'month' | 'week' | 'day' | 'attempt';
@@ -74,8 +80,16 @@ export const manualDraftOf = (patch: Partial<ManualLimitsDraft> = {}): ManualLim
   ...patch,
 });
 
+/** The hand-set limits once they hold, the pace as the draft has it. */
+export type ManualLimitsSet = {
+  weekCapUsd: number | null;
+  dayCapUsd: number | null;
+  attemptCapUsd: number;
+  pace: ContributePace;
+};
+
 export type ManualLimits =
-  | { ok: true; cycleCapUsd: number; limits: Required<ContributeConnectLimits> }
+  | { ok: true; cycleCapUsd: number; limits: ManualLimitsSet }
   | { ok: false; field: ManualField; message: string };
 
 const LABELS: Record<ManualField, string> = {
@@ -147,10 +161,43 @@ export function manualLimitsOf(draft: ManualLimitsDraft): ManualLimits {
   };
 }
 
-const PACE_TEXT: Record<ContributeConnectPace, string> = {
+const PACE_TEXT: Record<ContributePace, string> = {
   EVEN: 'spread across your month',
   FAST: 'as fast as those caps allow',
+  QUEUED: 'only on issues you queue',
 };
+
+const isConnectPace = (pace: ContributePace): pace is ContributeConnectPace => pace === 'EVEN' || pace === 'FAST';
+
+/**
+ * The stored settings as "I'll set them myself" starts from them, for a key connected before: the amounts as they are,
+ * and the pace, `QUEUED` included, so a replace never shows (or sends) a pace the user did not pick.
+ */
+export function manualDraftFromSettings(settings: ContributeSettings): Partial<ManualLimitsDraft> {
+  const amount = (value: number | null) => (value === null ? '' : String(value));
+  return {
+    month: amount(settings.cycleCapUsd),
+    week: amount(settings.weekCapUsd),
+    day: amount(settings.dayCapUsd),
+    attempt: amount(settings.attemptCapUsd),
+    pace: settings.pace,
+  };
+}
+
+/**
+ * The `limits` a connect sends from the hand-set ones: on a key connected before, only the fields that differ from the
+ * stored settings (the API keeps the rest); on a first one, all of them. The pace goes only when it is one the connect
+ * takes, so a `QUEUED` pace the user left alone stays `QUEUED`.
+ */
+export function connectLimitsOf(set: ManualLimitsSet, stored: ContributeSettings | null): ContributeConnectLimits {
+  const changed = <K extends keyof ManualLimitsSet>(field: K) => !stored || stored[field] !== set[field];
+  return {
+    ...(changed('weekCapUsd') ? { weekCapUsd: set.weekCapUsd } : {}),
+    ...(changed('dayCapUsd') ? { dayCapUsd: set.dayCapUsd } : {}),
+    ...(changed('attemptCapUsd') ? { attemptCapUsd: set.attemptCapUsd } : {}),
+    ...(changed('pace') && isConnectPace(set.pace) ? { pace: set.pace } : {}),
+  };
+}
 
 /** The live line under the manual limits: what they add up to, or what is still missing. */
 export function manualSummaryOf(draft: ManualLimitsDraft): string {
@@ -170,37 +217,72 @@ const modelName = (model: ContributeModel) => MODELS[model].replace(/^Claude /, 
 
 export type LimitRow = { label: string; value: string };
 
+/** A key connected before: its plan and the settings the API keeps on a replace, with the user's picks. */
+export type StoredLimits = {
+  plan: ContributeClaudePlan;
+  settings: ContributeSettings;
+  preferences?: ContributePreferences | null;
+};
+
+const PICKED_PACE: Record<ContributePace, string> = {
+  EVEN: 'spread across your month',
+  FAST: 'as fast as the caps allow',
+  QUEUED: 'only on issues you queue',
+};
+
+function pickedIssuesOf(preferences: ContributePreferences | null | undefined): string {
+  const kinds = preferences?.kinds.length
+    ? preferences.kinds.map((kind) => KINDS[kind].toLowerCase()).join(', ')
+    : null;
+  const size = preferences?.maxSize ? `up to ${SIZES[preferences.maxSize].toLowerCase()}` : null;
+  if (!kinds && !size) return 'every kind and size';
+  return `${kinds ?? 'every kind'}${size ? `, ${size}` : ''}`;
+}
+
 /**
- * "The limits we apply": the plan's monthly allowance or the user's own numbers, then the defaults every first key
- * gets.
+ * "The limits we apply", as the connect will leave them. A first key gets the defaults under the plan's allowance or
+ * the user's own numbers. A key connected before keeps its stored settings (`stored`): on the same plan its monthly
+ * cap too, on a new plan the plan's allowance, with the attempt cap brought down to it as the API brings it.
  */
 export function appliedLimitsOf(
   mode: LimitsMode,
   plan: ContributeClaudePlan,
   manual: ManualLimitsDraft,
+  stored: StoredLimits | null = null,
 ): { limits: LimitRow[]; picked: LimitRow[] } {
   const own = mode === 'manual' ? manualLimitsOf(manual) : null;
   const choice = PLAN_CHOICES.find((entry) => entry.plan === plan);
   const credit = planOf(plan)?.creditUsd ?? null;
+  const kept = stored?.settings ?? null;
   const set = own?.ok ? own.limits : null;
-  const attempt = set?.attemptCapUsd ?? CONNECT_DEFAULTS.attemptCapUsd;
-  const pace = mode === 'manual' ? manual.pace : CONNECT_DEFAULTS.pace;
-  const periodCaps = set
-    ? [
-        ...(set.weekCapUsd === null ? [] : [`${usd(set.weekCapUsd)} a week`]),
-        ...(set.dayCapUsd === null ? [] : [`${usd(set.dayCapUsd)} a day`]),
-      ]
-    : [];
+  // On the plan path nothing but the plan is sent: the API keeps the cap on the same plan, else takes the plan's.
+  const planCap = kept && stored?.plan === plan ? kept.cycleCapUsd : credit;
+  const keptAttempt = kept
+    ? Math.max(CONNECT_BOUNDS.attemptCapUsd.min, Math.min(kept.attemptCapUsd, planCap ?? kept.attemptCapUsd))
+    : CONNECT_DEFAULTS.attemptCapUsd;
+  const attempt =
+    set?.attemptCapUsd ?? (mode === 'manual' ? (kept?.attemptCapUsd ?? CONNECT_DEFAULTS.attemptCapUsd) : keptAttempt);
+  const pace: ContributePace = mode === 'manual' ? manual.pace : (kept?.pace ?? CONNECT_DEFAULTS.pace);
+  const week = mode === 'manual' ? (set?.weekCapUsd ?? null) : (kept?.weekCapUsd ?? null);
+  const day = mode === 'manual' ? (set?.dayCapUsd ?? null) : (kept?.dayCapUsd ?? null);
+  const periodCaps = [
+    ...(week === null ? [] : [`${usd(week)} a week`]),
+    ...(day === null ? [] : [`${usd(day)} a day`]),
+  ];
 
   const month =
     mode === 'manual'
       ? own?.ok
         ? `at most ${usd(own.cycleCapUsd)}, the amount you set`
         : 'the amount you set above'
-      : credit !== null && choice
-        ? `up to ${usd(credit)} of your credits, ${choice.label}'s monthly allowance`
-        : 'your monthly allowance';
-  const { attemptsAtATime, openPrsAtATime, maxChangedLines, maxFiles } = CONNECT_DEFAULTS;
+      : kept && stored?.plan === plan
+        ? `at most ${usd(kept.cycleCapUsd)}, your monthly cap as it is`
+        : credit !== null && choice
+          ? `up to ${usd(credit)} of your credits, ${choice.label}'s monthly allowance`
+          : 'your monthly allowance';
+  const { attemptsAtATime, openPrsAtATime, maxChangedLines, maxFiles, mainModel, helperModel } =
+    kept ?? CONNECT_DEFAULTS;
+  const languages = stored?.preferences?.languages ?? [];
 
   return {
     limits: [
@@ -221,14 +303,22 @@ export function appliedLimitsOf(
       { label: 'Each PR', value: `at most ${maxChangedLines} changed lines in ${maxFiles} files` },
       {
         label: 'Models',
-        value: `${modelName(CONNECT_DEFAULTS.mainModel)} does the work, ${modelName(CONNECT_DEFAULTS.helperModel)} helps`,
+        value: `${modelName(mainModel)} does the work, ${modelName(helperModel)} helps`,
       },
     ],
     picked: [
-      { label: 'Issues', value: 'every kind and size' },
-      { label: 'Languages', value: "your profile's first" },
-      { label: 'Pull requests', value: 'each waits for your review' },
-      { label: 'Pacing', value: pace === 'EVEN' ? 'spread across your month' : 'as fast as the caps allow' },
+      { label: 'Issues', value: pickedIssuesOf(stored?.preferences) },
+      {
+        label: 'Languages',
+        value: languages.length
+          ? `${languages.map((language) => LANGUAGES[language]).join(', ')} first`
+          : "your profile's first",
+      },
+      {
+        label: 'Pull requests',
+        value: kept?.autopilot ? 'autopilot submits the low-risk ones, as you set it' : 'each waits for your review',
+      },
+      { label: 'Pacing', value: PICKED_PACE[pace] },
     ],
   };
 }

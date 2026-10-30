@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { firstSpend, key, NOW, views } from './__fixtures__/contribute-views';
 import type { ContributeIssuePage, ContributeView } from './contribute.types';
-import { firstRunStepOf, isFirstRun } from './first-run';
+import type { ContributeNotice } from './contribute-state';
+import { firstRunNoticesOf, firstRunStepOf, isFirstRun } from './first-run';
 
 const ISSUE = {
   issueId: 'I_1',
@@ -45,6 +46,7 @@ describe('firstRunStepOf', () => {
   it('takes the first state that holds, in order', () => {
     expect(kind({ ...base, attemptsOpen: false, paused: true })).toBe('closed');
     expect(kind({ ...withContributor({ status: 'PAUSED' }), paused: true })).toBe('paused');
+    expect(kind(withContributor({ credentials: [key({ state: 'INVALID' })] }))).toBe('key-invalid');
     expect(
       kind(withContributor({ credentials: [key({ state: 'EXHAUSTED', blockedUntil: '2026-11-14T00:00:00.000Z' })] })),
     ).toBe('key-waiting');
@@ -77,5 +79,25 @@ describe('firstRunStepOf', () => {
   it('does not call the feed empty while the API does not answer it, nor attempts closed while it does not say', () => {
     expect(kind(base, undefined)).toBe('soon');
     expect(kind({ ...base, attemptsOpen: undefined })).toBe('soon');
+  });
+});
+
+describe('firstRunNoticesOf', () => {
+  const all: ContributeNotice[] = [{ kind: 'exhausted', until: null }, { kind: 'paused' }];
+  const kinds = (notices: ContributeNotice[], step: Parameters<typeof firstRunNoticesOf>[1]) =>
+    firstRunNoticesOf(notices, step).map(({ kind }) => kind);
+
+  it('leaves out only the notice step 1 restates', () => {
+    expect(kinds(all, { kind: 'paused' })).toEqual(['exhausted']);
+    expect(kinds(all, { kind: 'key-waiting', reason: 'EXHAUSTED', until: null })).toEqual(['paused']);
+    expect(
+      kinds([{ kind: 'limit-reached', until: null }], { kind: 'key-waiting', reason: 'LIMIT_REACHED', until: null }),
+    ).toEqual([]);
+    expect(kinds([{ kind: 'key-invalid' }, { kind: 'paused' }], { kind: 'key-invalid' })).toEqual(['paused']);
+  });
+
+  it('keeps every block while step 1 says something else, attempts closed among them', () => {
+    expect(kinds(all, { kind: 'closed' })).toEqual(['exhausted', 'paused']);
+    expect(kinds(all, { kind: 'soon' })).toEqual(['exhausted', 'paused']);
   });
 });

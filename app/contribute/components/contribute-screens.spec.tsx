@@ -375,6 +375,7 @@ describe('issues for you', () => {
     // Not computed yet: the first picks are on their way, and the page reads itself again.
     const ranking = render({ items: [], next: null, total: 0, computedAt: null });
     expect(text(ranking)).toContain('Your first picks are still being ranked');
+    expect(ranking).toContain('data-ranking="waiting"');
     expect(text(render({ items: [], next: null, total: 0, computedAt: null }, { kind: 'DOCS' }))).toContain(
       'No issues match these filters',
     );

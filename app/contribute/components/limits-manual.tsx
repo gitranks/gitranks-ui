@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+
 import {
   type ManualField,
   type ManualLimitsDraft,
@@ -28,8 +30,9 @@ const OPTIONAL: { field: Exclude<ManualField, 'month'>; label: string; placehold
 ];
 
 /**
- * "I'll set them myself": the monthly cap (required), the week, day and attempt caps, and the pace, with a live line
- * of what they add up to. The attempt cap may not be above a cap that is set; the line says so as it is typed.
+ * "I'll set them myself": the monthly cap (required), the week, day and attempt caps, and the pace, with a line of what
+ * they add up to. The attempt cap may not be above a cap that is set; the line says so as it is typed, and the refused
+ * field points at it. Screen readers hear it when a refusal appears or clears, not on every keystroke.
  */
 export function LimitsManual({
   id,
@@ -42,8 +45,23 @@ export function LimitsManual({
 }) {
   const result = manualLimitsOf(draft);
   const refused = result.ok ? null : result.field;
+  const summary = manualSummaryOf(draft);
+  const summaryId = `${id}-summary`;
   const set = (field: ManualField) => (event: React.ChangeEvent<HTMLInputElement>) =>
     onChange({ ...draft, [field]: event.target.value });
+  const describedBy = (field: ManualField, hint?: string) =>
+    [hint, refused === field ? summaryId : null].filter(Boolean).join(' ') || undefined;
+
+  // Said once as a refusal appears, and once as it clears: the line under the fields changes with every keystroke.
+  const failing = refused !== null;
+  const [spoken, setSpoken] = useState('');
+  const wasFailing = useRef(failing);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only the refusal's coming and going is announced.
+  useEffect(() => {
+    if (failing === wasFailing.current) return;
+    wasFailing.current = failing;
+    setSpoken(failing ? summary : `Limits set. ${summary}`);
+  }, [failing]);
 
   return (
     <div className="flex flex-col gap-4" data-limits="manual">
@@ -61,7 +79,7 @@ export function LimitsManual({
             value={draft.month}
             onChange={set('month')}
             aria-invalid={refused === 'month' || undefined}
-            aria-describedby={`${id}-month-hint`}
+            aria-describedby={describedBy('month', `${id}-month-hint`)}
             className={cn(inputClass, 'w-35 border-2 border-primary px-3 text-[15px] font-semibold')}
           />
         </div>
@@ -84,6 +102,7 @@ export function LimitsManual({
                 onChange={set(field)}
                 placeholder={placeholder}
                 aria-invalid={refused === field || undefined}
+                aria-describedby={describedBy(field)}
                 className={inputClass}
               />
             </div>
@@ -119,10 +138,15 @@ export function LimitsManual({
             );
           })}
         </div>
+        {draft.pace === 'QUEUED' ? (
+          <span data-pace="queued" className="text-[13px] text-muted-foreground">
+            Now the agent works only on issues you queue. That stays as it is unless you pick one of these.
+          </span>
+        ) : null}
       </fieldset>
 
       <div
-        role="status"
+        id={summaryId}
         data-limits-summary={result.ok ? 'ok' : refused}
         className={cn(
           'rounded-xl px-3.5 py-3 text-sm',
@@ -131,8 +155,11 @@ export function LimitsManual({
             : 'bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100',
         )}
       >
-        {manualSummaryOf(draft)}
+        {summary}
       </div>
+      <span role="status" className="sr-only">
+        {spoken}
+      </span>
     </div>
   );
 }

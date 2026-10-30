@@ -94,7 +94,7 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
       className="flex flex-1 flex-col items-center justify-center gap-9 py-12"
       data-matching={done ? 'done' : 'working'}
     >
-      {/* The page's glow, behind the bar and the content. */}
+      {/* The page's glow, behind the tabs and the content. */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_40%,var(--color-brand-soft)_0,transparent_60%)]"
@@ -169,7 +169,7 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
             href={ISSUES_PATH}
             prefetch={false}
             onClick={(event) => {
-              // The way on reads the bar again, for the tabs; a new tab or window loads it whole anyway.
+              // The way on reads the layout again, for the tabs; a new tab or window loads it whole anyway.
               if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
               event.preventDefault();
               goOn();

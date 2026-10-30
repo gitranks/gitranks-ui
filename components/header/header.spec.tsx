@@ -34,7 +34,7 @@ describe('the main menu', () => {
 });
 
 describe('the header', () => {
-  it('shows the logo, the main menu and the sign-in by default', () => {
+  it('shows the logo, the main menu and the sign-in', () => {
     const html = renderToStaticMarkup(<Header />);
 
     expect(html).toContain('<a class="shrink-0" href="/">');
@@ -51,17 +51,5 @@ describe('the header', () => {
     expect(html).not.toContain('lucide-house');
     expect(html).toMatch(/<\/a><span[^>]*>\/<\/span><span[^>]*>torvalds<\/span>/);
     expect(html).toContain('<nav aria-label="Main"');
-  });
-
-  it('takes a menu and an account in place of its own, and null for none', () => {
-    const own = renderToStaticMarkup(<Header menu={<nav aria-label="Own" />} account={<span data-own-account />} />);
-    expect(own).toContain('<nav aria-label="Own"');
-    expect(own).toContain('data-own-account');
-    expect(own).not.toContain('aria-label="Main"');
-    expect(own).not.toContain('data-sign-in-button');
-
-    const bare = renderToStaticMarkup(<Header menu={null} account={null} />);
-    expect(bare).not.toContain('<nav');
-    expect(bare).not.toContain('data-sign-in-button');
   });
 });

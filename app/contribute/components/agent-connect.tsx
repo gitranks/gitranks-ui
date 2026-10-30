@@ -326,7 +326,7 @@ export function AgentConnectView({
 /**
  * B1 with its state: the token lives in this component's memory alone, never in storage or the URL. While a token is
  * live and the page is shown, it asks every 3s whether the agent has called; once it has, the token is taken off the
- * page (which the router may keep, hidden) and the page goes on to B2 in its place, the bar read again for the tabs.
+ * page (which the router may keep, hidden) and the page goes on to B2 in its place, the layout read again for the tabs.
  * `tokens` is `undefined` while the API does not answer them.
  */
 export function AgentConnect({

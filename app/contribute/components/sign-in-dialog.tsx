@@ -82,7 +82,7 @@ export function SignInPanel({
 }: {
   path?: SignInPath;
   preview?: boolean;
-  /** Closes the dialog as the preview's button goes on: from the bar, the page under it stays. */
+  /** Closes the dialog as the preview's button goes on, when the page under it stays. */
   onLeave?: () => void;
 }) {
   const [pending, setPending] = useState(false);

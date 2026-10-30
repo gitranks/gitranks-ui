@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { FC, ReactNode } from 'react';
+import type { FC } from 'react';
 
 import { Logo, LogoMark } from '../logo/logo';
 import SigninButton from '../signin-button/signin-button';
@@ -9,13 +9,9 @@ import { cn } from '@/lib/utils';
 type HeaderProps = {
   /** Text after the logo and a "/": a profile's login, or a section's name. Not a link. */
   title?: string;
-  /** In place of the site's main menu, on the right; `null` for none. */
-  menu?: ReactNode;
-  /** In place of the site's sign-in, after the menu; `null` for none. */
-  account?: ReactNode;
 };
 
-export const Header: FC<HeaderProps> = ({ title, menu = <MainMenu />, account = <SigninButton /> }) => {
+export const Header: FC<HeaderProps> = ({ title }) => {
   return (
     <header className="mx-auto flex w-full max-w-7xl items-center justify-between p-4">
       <div className="flex min-w-0 items-center gap-3">
@@ -29,8 +25,8 @@ export const Header: FC<HeaderProps> = ({ title, menu = <MainMenu />, account = 
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        {menu}
-        {account}
+        <MainMenu />
+        <SigninButton />
       </div>
     </header>
   );

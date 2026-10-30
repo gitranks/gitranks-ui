@@ -16,6 +16,7 @@ import type {
   ContributeMaintainerRepos,
   ContributeMcpToken,
   ContributeMcpTokenCreated,
+  ContributeOnboardedVia,
   ContributeOptOutResult,
   ContributeOwnAgentFields,
   ContributePaths,
@@ -132,6 +133,18 @@ export const ContributeAutopilotDocument = doc<{
     contributor: { autopilot: Pick<ContributeAutopilot, 'mergedToUnlock' | 'lockedAt' | 'available'> } | null;
   } | null;
 }>('query ContributeAutopilot { contribute { contributor { autopilot { mergedToUnlock lockedAt available } } } }');
+
+/** Whether the user is onboarded: read on its own, so an API without it leaves the rest. */
+export const ContributeOnboardingDocument = doc<{
+  contribute: {
+    contributor: { onboardedAt: string | null; onboardedVia: ContributeOnboardedVia | null } | null;
+  } | null;
+}>('query ContributeOnboarding { contribute { contributor { onboardedAt onboardedVia } } }');
+
+/** Whether attempts are open: read on its own, so a failed read of it never touches the onboarding. */
+export const ContributeAttemptsOpenDocument = doc<{ contribute: { attemptsOpen: boolean | null } | null }>(
+  'query ContributeAttemptsOpen { contribute { attemptsOpen } }',
+);
 
 export const ContributeGrantDocument = doc<{ contribute: { grant: ContributeGrant } | null }>(
   'query ContributeGrant { contribute { grant { connected login } } }',

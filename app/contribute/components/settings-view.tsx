@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { AccessSection } from './access-section';
 import { AutopilotSection } from './autopilot-section';
@@ -14,7 +14,13 @@ import { ScrollToHash } from './scroll-to-hash';
 import { SettingsForm } from './settings-form';
 import { loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeView } from '@/lib/contribute/contribute.types';
-import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, isPaused } from '@/lib/contribute/contribute-state';
+import {
+  claudeKeyOf,
+  contributeNoticesOf,
+  isContributePageOpen,
+  isOwnAgentOnly,
+  isPaused,
+} from '@/lib/contribute/contribute-state';
 import { type GrantRefusal, grantRefusalOf } from '@/lib/contribute/grant-refusal';
 
 const SECTIONS = [
@@ -36,6 +42,7 @@ export async function SettingsView({
 }) {
   const [view, params] = await Promise.all([loadContribute(), searchParams]);
   if (!view) notFound();
+  if (!isContributePageOpen(view, 'settings')) redirect('/contribute');
   return <SettingsScreen view={view} grantRefusal={grantRefusalOf(params.grant)} />;
 }
 

@@ -14,7 +14,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), lo
 const { ConnectScreen, setupStepOf } = await import('./connect-view');
 const { SettingsScreen } = await import('./settings-view');
 const { IssuesScreen } = await import('./issues-view');
-const { OverviewStatusView } = await import('./overview-status');
+const { OverviewScreen, OverviewStatusView } = await import('./overview-status');
 const { ContributeNotices } = await import('./contribute-notices');
 const { ConnectResult } = await import('./connect-result');
 const { IssueCard } = await import('./issue-card');
@@ -56,8 +56,31 @@ describe('the notices above the Contribute pages', () => {
 });
 
 describe('the overview', () => {
-  it('leaves the pitch alone until a key is connected', () => {
-    expect(renderToStaticMarkup(<OverviewStatusView view={views.noKey} now={NOW} />)).toBe('');
+  it('asks an onboarded contributor who removed their key and tokens to connect one, with no cycle to show', () => {
+    const html = renderToStaticMarkup(<OverviewStatusView view={views.onboardedNoPath} now={NOW} />);
+
+    expect(html).toContain('data-notice="no-key"');
+    expect(text(html)).not.toContain('used this cycle');
+  });
+
+  it('asks nothing of a contributor with their own agent alone, and shows no cycle', () => {
+    const html = renderToStaticMarkup(<OverviewStatusView view={views.agentOnboarded} now={NOW} />);
+
+    expect(html).not.toContain('data-notice="no-key"');
+    expect(text(html)).not.toContain('used this cycle');
+  });
+
+  it('ends with the maintainers strip and the way back to how Contribute works, not the pitch', () => {
+    const html = renderToStaticMarkup(<OverviewScreen view={views.active} now={NOW} />);
+    const plain = text(html);
+
+    expect(html).toContain('data-overview="footer"');
+    expect(plain).toContain('Maintain a repo?');
+    expect(html).toContain('href="/contribute/maintainers"');
+    expect(plain).toContain('How Contribute works');
+    expect(html.replaceAll('&amp;', '&')).toContain('href="/contribute?about=1"');
+    expect(plain).not.toContain('Fix real open-source issues');
+    expect(plain).toContain('$63.40 of $200 used this cycle');
   });
 
   it("shows this cycle's spend and the next attempt", () => {

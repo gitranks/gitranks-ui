@@ -1,11 +1,14 @@
 import 'server-only';
 
+import { cache } from 'react';
+
 import {
   ContributeAttemptDocument,
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
+  ContributeAttemptsOpenDocument,
   ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
   ContributeContributionsDocument,
@@ -13,6 +16,7 @@ import {
   ContributeContributionsOwnAgentDocument,
   ContributeGrantDocument,
   ContributeIssuesDocument,
+  ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
   ContributePausedDocument,
@@ -27,6 +31,7 @@ import type {
   ContributeIssuePage,
   ContributeIssuesFilter,
   ContributeMcpToken,
+  ContributeOnboardedVia,
   ContributeOwnAgent,
   ContributePaths,
   ContributeReplyDraft,
@@ -37,11 +42,14 @@ import { isGrantAvailable } from './grant-availability';
 import { auth } from '@/auth';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
-/** The signed-in user's GitHub login, for calls made on their behalf; null without a usable session. */
-export async function viewerLogin(): Promise<string | null> {
+/**
+ * The signed-in user's GitHub login, for calls made on their behalf; null without a usable session. Read once per
+ * request.
+ */
+export const viewerLogin = cache(async (): Promise<string | null> => {
   const session = await auth();
   return session?.user?.githubLogin && !session.error ? session.user.githubLogin : null;
-}
+});
 
 const settled = <T>(result: PromiseSettledResult<T>): T | undefined =>
   result.status === 'fulfilled' ? result.value : undefined;
@@ -81,20 +89,22 @@ export class ContributeUnavailableError extends Error {
 /**
  * Everything the Contribute pages show for the signed-in user; null when Contribute is hidden from them (signed out,
  * or not on the preview), which the pages answer with a 404. A failed read throws `ContributeUnavailableError`. The
- * grant and the pause are read on their own, so an API that does not answer them yet leaves them `undefined` and the
- * rest of the page working.
+ * grant, the pause and the onboarding are read on their own, so an API that does not answer them yet leaves them
+ * `undefined` and the rest of the page working. Read once per request: the bar and the page share it.
  */
-export async function loadContribute(): Promise<ContributeView | null> {
+export const loadContribute = cache(async (): Promise<ContributeView | null> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return null;
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [overview, grant, paused, autopilot, ownAgent] = await Promise.allSettled([
+  const [overview, grant, paused, autopilot, ownAgent, onboarding, attemptsOpen] = await Promise.allSettled([
     graphqlDirect(ContributeOverviewDocument, undefined, options),
     graphqlDirect(ContributeGrantDocument, undefined, options),
     graphqlDirect(ContributePausedDocument, undefined, options),
     graphqlDirect(ContributeAutopilotDocument, undefined, options),
     graphqlDirect(ContributeOwnAgentDocument, undefined, options),
+    graphqlDirect(ContributeOnboardingDocument, undefined, options),
+    graphqlDirect(ContributeAttemptsOpenDocument, undefined, options),
   ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
@@ -102,18 +112,33 @@ export async function loadContribute(): Promise<ContributeView | null> {
   if (!contribute?.previewAllowed) return null;
 
   const pausedField = settled(paused)?.contribute?.contributor?.paused;
+  const onboardingFields = settled(onboarding)?.contribute;
+  const attemptsOpenField = settled(attemptsOpen)?.contribute?.attemptsOpen;
   const { contributor } = contribute;
+  const withAutopilot = contributor?.autopilot
+    ? {
+        ...contributor,
+        autopilot: autopilotOf(contributor.autopilot, settled(autopilot)?.contribute?.contributor?.autopilot),
+      }
+    : contributor;
   return {
-    contributor: contributor?.autopilot
-      ? {
-          ...contributor,
-          autopilot: autopilotOf(contributor.autopilot, settled(autopilot)?.contribute?.contributor?.autopilot),
-        }
-      : contributor,
+    contributor: withAutopilot ? { ...withAutopilot, ...onboardedOf(onboardingFields?.contributor) } : withAutopilot,
     grant: settled(grant)?.contribute?.grant ?? undefined,
     paused: typeof pausedField === 'boolean' ? pausedField : undefined,
     grantAvailable: isGrantAvailable(),
     ownAgent: ownAgentOf(settled(ownAgent)?.contribute),
+    ...(typeof attemptsOpenField === 'boolean' ? { attemptsOpen: attemptsOpenField } : {}),
+  };
+});
+
+/** The onboarding fields the API answered; those it did not are left out, so they read as "not available yet". */
+function onboardedOf(
+  fields: { onboardedAt: string | null; onboardedVia: ContributeOnboardedVia | null } | null | undefined,
+): { onboardedAt?: string | null; onboardedVia?: ContributeOnboardedVia | null } {
+  if (!fields) return {};
+  return {
+    ...(fields.onboardedAt !== undefined ? { onboardedAt: fields.onboardedAt } : {}),
+    ...(fields.onboardedVia !== undefined ? { onboardedVia: fields.onboardedVia } : {}),
   };
 }
 

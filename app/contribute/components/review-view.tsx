@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import {
   ApprovalPanel,
@@ -32,11 +32,14 @@ import {
 } from '@/lib/contribute/attempt-format';
 import { loadAttempt, loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
+import { isContributePageOpen } from '@/lib/contribute/contribute-state';
 
 export async function ReviewView({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [view, attempt] = await Promise.all([loadContribute(), loadAttempt(id)]);
-  if (!view || attempt === null) notFound();
+  if (!view) notFound();
+  if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
+  if (attempt === null) notFound();
   return <ReviewScreen view={view} attempt={attempt} />;
 }
 

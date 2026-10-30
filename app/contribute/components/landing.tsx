@@ -1,197 +1,379 @@
+import type { Route } from 'next';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 
-import { Eyebrow } from './primitives';
-import { ProviderCards } from './provider-cards';
+import { Pill } from './primitives';
+import { SignInButton, type SignInPath } from './sign-in-dialog';
+import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
+import type { LandingViewer } from '@/lib/contribute/contribute-state';
+import { cn } from '@/lib/utils';
+
+const ACTIONS: Record<SignInPath, { label: string; href: Route }> = {
+  key: { label: 'Start with my Claude key', href: CONNECT_KEY_PATH },
+  agent: { label: 'Connect my own agent', href: CONNECT_AGENT_PATH },
+};
+
+const WAYS: {
+  path: SignInPath;
+  who: string;
+  title: string;
+  text: string;
+  facts: [string, string][];
+}[] = [
+  {
+    path: 'key',
+    who: 'We run the agent',
+    title: 'On your Claude key',
+    text: "Best if your Claude Max or Team plan has API credits that expire unused. We pick an issue, run Claude in Anthropic's hosted sandbox, and bring you a tested change to review. You never touch a terminal.",
+    facts: [
+      ['You bring', 'A Claude API key, from a workspace with its own spend limit'],
+      ['It spends', 'Your API credits, never more than the caps you set'],
+      ['The pace', 'Spread across your billing cycle, or as fast as your caps allow'],
+      ['Setup', 'One step, about two minutes'],
+    ],
+  },
+  {
+    path: 'agent',
+    who: 'Your agent does the work',
+    title: 'Claude Code, Codex, Cursor or Gemini CLI',
+    text: 'Best if you already work with a coding agent. It asks GitRanks for an issue, fixes it on your machine, and hands the change back for your review here. Your agent and its model stay your own.',
+    facts: [
+      ['You bring', 'An agent that speaks MCP, and a token we give you'],
+      ['It spends', 'Nothing through us: your agent, your plan'],
+      ['The pace', 'Whenever you ask your agent. An issue is held for you 24 hours from its last step, 7 days at most'],
+      ['Setup', 'Two short pastes, about a minute'],
+    ],
+  },
+];
 
 const STEPS = [
   {
-    title: 'Connect your key',
-    text: 'A Claude API key from a workspace with its own spend limit. Your credits pay; we never see your bill.',
+    label: '01 · we pick',
+    title: 'Issues worth your time',
+    text: "From active repos that merge outside work and want the issue solved, ranked by your languages and the repos you've worked on.",
   },
   {
-    title: 'We pick issues',
-    text: 'From active repos that merge outside work, matched to the languages and topics on your profile.',
+    label: '02 · the agent works',
+    title: 'A fix, with tests run',
+    text: "It reads the repo, writes the change and runs the project's tests. Nothing leaves the sandbox, or your machine, yet.",
   },
   {
-    title: 'An agent works, you review',
-    text: 'You see the diff, the tests it ran and what it cost. Submit it, ask for changes, or discard it.',
+    label: '03 · you review',
+    title: 'The diff, the tests, the cost',
+    text: 'Submit it, send it back with a note, or discard it. Every pull request waits for your OK.',
   },
   {
-    title: 'The PR is yours',
-    text: 'Opened from your fork, in your name, co-authored by gitranks. We tell you when maintainers reply.',
+    label: '04 · it opens in your name',
+    title: 'From your fork',
+    text: 'On your first submit we ask GitHub for one permission, public_repo, so we can fork and open the PR as you.',
+  },
+  {
+    label: '05 · maintainers reply',
+    title: 'You see it here',
+    text: 'Reviews and comments show up on My contributions, with a draft reply or a follow-up commit when they ask for changes.',
   },
 ];
 
-const PROMISES = [
+const DEFAULTS = [
   {
-    title: 'Your limits, all of them',
-    text: 'Monthly, weekly, daily and per-attempt caps, the models, PR size, pacing across your billing cycle. Change any of them any time.',
+    title: 'What you work on',
+    text: "Every kind of issue at first: bugs, docs, tests, features. Your profile's languages rank first. Narrow by language, kind, size or repo whenever you like.",
   },
   {
-    title: 'You review first',
-    text: 'Every PR waits for your OK. Autopilot unlocks after three of your PRs are merged, if you want it.',
+    title: 'Spend limits',
+    text: "On your Claude key: monthly, weekly, daily and per-attempt caps, starting from your plan's allowance.",
   },
   {
-    title: 'Leave whenever you like',
-    text: 'Remove your key and the GitHub access in Settings. Your merged PRs stay yours.',
+    title: 'Pacing',
+    text: 'Attempts spread across your billing cycle, so the credits last until they renew. Speed it up or pause any time.',
+  },
+  { title: 'The agent', text: 'Which models it uses and how large a pull request may get.' },
+  {
+    title: 'Your review',
+    text: 'Every pull request waits for you. After three of yours are merged you can turn on autopilot, if you want it.',
+  },
+  {
+    title: 'Leaving',
+    text: 'Remove your key, revoke your tokens and GitHub access, or delete your data. Your merged PRs stay yours.',
   },
 ];
 
-function Dot() {
-  return <span aria-hidden="true" className="size-1.5 rounded-full bg-green-700" />;
+const QUESTIONS = [
+  {
+    question: 'Does it cost anything?',
+    answer:
+      'No. With your Claude key, the agent spends your API credits, never past your caps. With your own agent, nothing is spent through us.',
+  },
+  {
+    question: 'What can you do on my GitHub account?',
+    answer:
+      'Only after your first submit, and only public_repo: fork a repo, push a branch to the fork and open the PR. Nothing on private repos, never workflow files. Revoke it any time.',
+  },
+  {
+    question: 'Do you see my Claude bill or my code?',
+    answer:
+      'No. Your key is encrypted and used only for your attempts. Your own agent works on your machine and sends us only the patch you submit.',
+  },
+  {
+    question: "What if a fix isn't good?",
+    answer: 'Discard it, or send it back with a note. Nothing reaches the maintainers until you submit.',
+  },
+  {
+    question: 'Is it fair to maintainers?',
+    answer:
+      'We open at most one PR in a repo at a time, never more than four a month, and pause after two are closed in a row. Every PR says it was made with AI. Maintainers can opt their repo out.',
+  },
+];
+
+const EYEBROW = 'text-[13px] font-semibold uppercase tracking-[0.06em] text-violet-700 dark:text-violet-300';
+const H2 = 'text-[26px] font-extrabold tracking-[-0.01em] text-balance sm:text-[32px]';
+const WIDTH = 'mx-auto w-full max-w-[1180px] px-4';
+const MUTED_SECTION = 'border-y bg-muted/40';
+
+/**
+ * One of the two ways in. A visitor's opens the sign-in first; a signed-in user's goes straight to the step. `wide`:
+ * the hero's and the closing row's, full width on a phone.
+ */
+function StartAction({
+  path,
+  viewer,
+  preview,
+  wide = false,
+  className,
+}: {
+  path: SignInPath;
+  viewer: LandingViewer;
+  preview: boolean;
+  wide?: boolean;
+  className?: string;
+}) {
+  const { label, href } = ACTIONS[path];
+  const classes = cn(
+    'inline-flex items-center rounded-[10px] font-semibold transition-colors',
+    wide ? 'min-h-[46px] max-sm:flex-[1_1_100%] max-sm:justify-center' : 'min-h-11',
+    path === 'key'
+      ? 'bg-primary px-5 text-primary-foreground hover:bg-primary/90'
+      : 'border px-[18px] text-foreground hover:bg-accent',
+    className,
+  );
+  if (viewer === 'visitor') {
+    return (
+      <SignInButton path={path} preview={preview} className={classes}>
+        {label}
+      </SignInButton>
+    );
+  }
+  return (
+    <Link href={href} prefetch={false} className={classes}>
+      {label}
+    </Link>
+  );
 }
 
 function ExampleCard({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-2.5 rounded-xl border bg-card px-5 py-4 shadow-xs">{children}</div>;
+  return <div className="flex flex-col gap-2.5 rounded-[14px] border bg-card px-5 py-4 shadow-xs">{children}</div>;
 }
 
-/** The pitch: the contribution first, the job benefit second; how it works; providers; limits; maintainers. */
-export function Landing({ status }: { status?: ReactNode }) {
+/** A user whose agent token is live and whose agent has not called yet: carry on, or manage the token. */
+function MidSetupStrip() {
   return (
-    <div className="flex flex-col">
-      {status ? <div className="mx-auto w-full max-w-7xl px-4 pt-6">{status}</div> : null}
+    <div
+      className="border-b border-violet-200 bg-violet-50 dark:border-violet-900 dark:bg-violet-950/40"
+      data-landing="mid-setup"
+    >
+      <div className={cn(WIDTH, 'flex flex-wrap items-center justify-between gap-3 py-3 text-sm')}>
+        <span>
+          <span className="font-semibold">Almost there.</span> Your token is ready, and your agent hasn't connected yet.
+        </span>
+        <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
+          <Link href={CONNECT_AGENT_PATH} prefetch={false} className="font-semibold text-primary">
+            Continue setup →
+          </Link>
+          <Link
+            href="/contribute/settings"
+            prefetch={false}
+            className="font-medium text-muted-foreground hover:text-foreground"
+          >
+            Settings
+          </Link>
+        </span>
+      </div>
+    </div>
+  );
+}
 
-      <section className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-14 px-4 pt-12 pb-16 md:pt-14">
-        <div className="flex min-w-0 flex-[1_1_520px] flex-col gap-5">
-          <Eyebrow className="text-violet-700 dark:text-violet-300">Contribute</Eyebrow>
-          <h1 className="text-4xl font-bold leading-[1.05] tracking-tight text-balance md:text-[54px]">
-            Invest your unused AI credits in open source
+/**
+ * Contribute's landing: what it does from an issue to a merged pull request, the two ways in, what is set for the user,
+ * the questions. The same page for a visitor, a signed-in user and one mid-setup; only the buttons and the strip
+ * change. `preview`: a signed-in user seeing the visitor's page (`?as=visitor`).
+ */
+export function Landing({ viewer, preview = false }: { viewer: LandingViewer; preview?: boolean }) {
+  const action = (path: SignInPath, props: { wide?: boolean; className?: string } = {}) => (
+    <StartAction path={path} viewer={viewer} preview={preview} {...props} />
+  );
+
+  return (
+    <main className="flex flex-col" data-landing-viewer={viewer}>
+      {viewer === 'mid-setup' ? <MidSetupStrip /> : null}
+
+      <section className={cn(WIDTH, 'flex flex-wrap items-center gap-9 pt-8 pb-11 sm:gap-14 sm:pt-14 sm:pb-16')}>
+        <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
+          <span className={EYEBROW}>Contribute</span>
+          <h1 className="text-[36px] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance sm:text-[52px]">
+            Fix real open-source issues with the AI you already pay for
           </h1>
-          <p className="max-w-xl text-lg text-foreground/80">
-            Claude Max and Team plans include monthly API credits that expire unused. Put them toward real fixes in
-            open-source projects, on issues maintainers want solved. An agent works on your own key, you review every
-            change, and the pull request opens in your name. Each one is a small investment in the software everyone
-            depends on, and in the future of programming.
+          <p className="max-w-[580px] text-lg leading-[1.55] text-foreground/80">
+            We find issues maintainers want solved and match them to what you know. An agent writes the fix: ours,
+            running on your Claude key, or your own agent on your machine. You review every change, and the pull request
+            opens in your name.
           </p>
-          <p className="max-w-xl text-muted-foreground">
-            It adds up for you too. Merged pull requests stay on your public record, and that footprint often opens the
-            door to your next job.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/contribute/connect"
-              prefetch={false}
-              className="inline-flex min-h-11 items-center rounded-lg bg-primary px-5 font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              Connect Claude
-            </Link>
-            <a
-              href="#how"
-              className="inline-flex min-h-11 items-center rounded-lg border px-4 font-medium hover:bg-accent"
-            >
-              How it works
-            </a>
+          <div className="flex flex-wrap gap-3">
+            {action('key', { wide: true })}
+            {action('agent', { wide: true })}
           </div>
-          <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-            <li className="flex items-center gap-2">
-              <Dot />
-              You set every limit
-            </li>
-            <li className="flex items-center gap-2">
-              <Dot />
-              Nothing reaches GitHub without your OK
-            </li>
-            <li className="flex items-center gap-2">
-              <Dot />
-              Revoke any time
-            </li>
-          </ul>
+          <p className="text-sm text-muted-foreground">
+            Free to use. Nothing reaches GitHub without your OK. Leave any time.
+          </p>
         </div>
 
         <figure
           aria-label="Example: from an issue to a merged pull request"
-          className="m-0 flex min-w-0 flex-[1_1_440px] flex-col gap-3.5"
+          className="m-0 flex min-w-0 flex-[1_1_400px] flex-col gap-3.5"
         >
           <ExampleCard>
-            <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between gap-3 text-[13px] text-muted-foreground">
               <span className="font-mono">fern-lang/fern · #2481</span>
               <span>picked for you</span>
             </div>
             <span className="font-semibold">Formatter drops a trailing comment in match arms</span>
-            <div className="flex flex-wrap gap-1.5 text-xs font-medium">
-              <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-800 dark:bg-green-950 dark:text-green-300">
-                good first issue
-              </span>
-              <span className="rounded-full bg-muted px-2 py-0.5">bug</span>
-              <span className="rounded-full bg-muted px-2 py-0.5">Rust</span>
+            <div className="flex flex-wrap gap-1.5">
+              <Pill tone="green">good first issue</Pill>
+              <Pill>bug</Pill>
+              <Pill>Rust</Pill>
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-[13px] text-muted-foreground">
               Why: you write Rust, and you've contributed to fern-lang/fern-lsp
             </span>
           </ExampleCard>
           <div aria-hidden="true" className="flex items-center gap-2.5 pl-5 font-mono text-xs text-muted-foreground">
             <span className="h-8 w-0.5 bg-violet-200 dark:bg-violet-900" />
-            agent on your key · you review · you submit
+            an agent writes the fix · you review · you submit
           </div>
           <ExampleCard>
             <div className="flex items-center justify-between gap-3">
               <span className="rounded-full bg-[#8250df] px-2.5 py-0.5 text-xs font-semibold text-white">Merged</span>
-              <span className="text-sm text-muted-foreground">3 days after you submitted</span>
+              <span className="text-[13px] text-muted-foreground">3 days after you submitted</span>
             </div>
             <span className="font-semibold">Keep trailing comments when formatting match arms</span>
-            <div className="flex flex-wrap gap-4 font-mono text-sm">
+            <div className="flex flex-wrap gap-4 font-mono text-[13px]">
               <span>
                 <span className="text-green-700 dark:text-green-400">+18</span>{' '}
                 <span className="text-red-700 dark:text-red-400">−3</span>
               </span>
               <span className="text-muted-foreground">2 files</span>
-              <span className="text-muted-foreground">$1.84 of your credits</span>
+              <span className="text-muted-foreground">in your name</span>
             </div>
           </ExampleCard>
         </figure>
       </section>
 
-      <section id="how" className="scroll-mt-16 border-y bg-muted/40">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-16">
-          <h2 className="text-3xl font-bold tracking-tight">How it works</h2>
-          <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map(({ title, text }, index) => (
-              <li key={title} className="flex min-w-0 flex-col gap-2.5">
-                <span className="font-mono text-sm text-violet-700 dark:text-violet-300">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <span className="text-[17px] font-semibold">{title}</span>
-                <span className="text-sm text-muted-foreground">{text}</span>
-              </li>
+      <section id="ways" className={cn(MUTED_SECTION, 'scroll-mt-4')}>
+        <div className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>
+          <div className="flex flex-col gap-2">
+            <h2 className={H2}>Two ways to contribute. Pick either, add the other later.</h2>
+            <p className="max-w-[720px] text-muted-foreground">
+              Both get the same issues, the same review before anything is sent, and the same pull request in your name.
+              They differ in who runs the agent and whose credits it spends.
+            </p>
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-5">
+            {WAYS.map(({ path, who, title, text, facts }) => (
+              <div key={path} className="flex min-w-0 flex-col gap-[18px] rounded-2xl border bg-card p-5 sm:p-7">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[13px] font-semibold text-violet-700 dark:text-violet-300">{who}</span>
+                  <h3 className="text-[22px] font-bold">{title}</h3>
+                  <p className="text-foreground/80">{text}</p>
+                </div>
+                <dl className="grid grid-cols-1 gap-y-0.5 text-sm sm:grid-cols-[120px_1fr] sm:gap-x-4 sm:gap-y-2.5">
+                  {facts.map(([term, detail]) => (
+                    <Fragment key={term}>
+                      <dt className="text-muted-foreground">{term}</dt>
+                      <dd className="max-sm:mb-2">{detail}</dd>
+                    </Fragment>
+                  ))}
+                </dl>
+                {action(path, { className: 'self-start' })}
+              </div>
             ))}
-          </ol>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 py-16">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-3xl font-bold tracking-tight">Bring the allowance you already pay for</h2>
-          <p className="max-w-2xl text-muted-foreground">
-            Claude works today. Tell us which one you want next and we'll let you know when it's ready.
+      <section className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>
+        <h2 className={H2}>From an issue to a merged pull request</h2>
+        <ol className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+          {STEPS.map(({ label, title, text }) => (
+            <li key={label} className="flex min-w-0 flex-col gap-2">
+              <span className="font-mono text-[13px] text-violet-700 dark:text-violet-300">{label}</span>
+              <span className="font-bold">{title}</span>
+              <span className="text-sm text-muted-foreground">{text}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className={MUTED_SECTION}>
+        <div className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>
+          <div className="flex flex-col gap-2">
+            <h2 className={H2}>Everything is set for you, and all of it is yours to change</h2>
+            <p className="max-w-[720px] text-muted-foreground">
+              You start with sensible defaults, so there's nothing to configure before your first issue. Settings has
+              every one of these.
+            </p>
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-4">
+            {DEFAULTS.map(({ title, text }) => (
+              <div key={title} className="flex min-w-0 flex-col gap-1.5 rounded-[14px] border bg-card p-5">
+                <h3 className="font-bold">{title}</h3>
+                <p className="text-sm text-muted-foreground">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className={cn(WIDTH, 'flex flex-wrap gap-12 py-11 sm:py-16')}>
+        <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2.5">
+          <h2 className={H2}>Questions</h2>
+          <p className="text-muted-foreground">
+            Still unsure which way fits you? Start with either. You can add the other later from Settings.
           </p>
         </div>
-        <ProviderCards />
-      </section>
-
-      <section className="mx-auto w-full max-w-7xl px-4 pb-16">
-        <div className="grid gap-3.5 md:grid-cols-3">
-          {PROMISES.map(({ title, text }) => (
-            <div key={title} className="flex min-w-0 flex-col gap-2 rounded-xl bg-muted/50 p-5">
-              <span className="text-[17px] font-semibold">{title}</span>
-              <span className="text-sm text-muted-foreground">{text}</span>
+        <dl className="flex min-w-0 flex-[2_1_560px] flex-col gap-[22px]">
+          {QUESTIONS.map(({ question, answer }) => (
+            <div key={question} className="flex flex-col gap-1">
+              <dt className="font-bold">{question}</dt>
+              <dd className="text-foreground/80">{answer}</dd>
             </div>
           ))}
-        </div>
+        </dl>
       </section>
 
       <section className="border-t">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 pt-9 pb-14">
-          <p className="max-w-3xl text-muted-foreground">
-            <span className="font-semibold text-foreground">Maintain a repo?</span> We open at most one PR in it at a
-            time, never more than four a month, and pause after two are closed in a row. Every PR says it was made with
-            AI.
+        <div className={cn(WIDTH, 'flex flex-wrap items-center justify-between gap-5 pt-12 pb-16')}>
+          <h2 className="text-[22px] font-bold">Ready for your first issue?</h2>
+          <div className="flex flex-wrap gap-3 max-sm:w-full">
+            {action('key', { wide: true })}
+            {action('agent', { wide: true })}
+          </div>
+          <p className="basis-full text-sm text-muted-foreground">
+            Maintain a repo?{' '}
+            <Link href={MAINTAINERS_PATH} prefetch={false} className="font-semibold text-primary">
+              Opt it out →
+            </Link>
           </p>
-          <Link href="/contribute/maintainers" prefetch={false} className="font-semibold text-primary">
-            Opt out your repo →
-          </Link>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

@@ -12,6 +12,8 @@ export type ContributeIssueSize = 'S' | 'M' | 'L';
 export type ContributorStatus = 'ONBOARDING' | 'ACTIVE' | 'PAUSED';
 export type ContributeClaudePlan = 'MAX_5X' | 'MAX_20X' | 'TEAM_STANDARD' | 'TEAM_PREMIUM' | 'CREDITS';
 export type ContributeOnboardingStep = 'KEY' | 'PREFERENCES' | 'DONE';
+/** The way that onboarded the user: a Claude key we run the agent on, or the first call of their own agent. */
+export type ContributeOnboardedVia = 'HOSTED' | 'MCP';
 export type ContributeConnectResult =
   | 'CONNECTED'
   | 'EXHAUSTED'
@@ -115,6 +117,13 @@ export type Contributor = {
   preferences: ContributePreferences | null;
   spend: ContributeSpend | null;
   autopilot: ContributeAutopilot;
+  /**
+   * When a way of contributing first worked: a key was stored, or the user's own agent made its first call. Null until
+   * then; `undefined` while the API does not answer it.
+   */
+  onboardedAt?: string | null;
+  /** Which way that was; null until onboarded, `undefined` while the API does not answer it. */
+  onboardedVia?: ContributeOnboardedVia | null;
 };
 
 export type ContributeGrant = { connected: boolean; login: string | null };
@@ -168,6 +177,8 @@ export type ContributeView = {
   grantAvailable: boolean;
   /** The user's own agent: their paths and live tokens; `undefined` while the API does not answer them. */
   ownAgent?: ContributeOwnAgent;
+  /** Attempts are open: an agent may start on an issue. `undefined` while the API does not answer it. */
+  attemptsOpen?: boolean;
 };
 
 /** Which ways of contributing the user has set up: a Claude key, a token for their own agent. */

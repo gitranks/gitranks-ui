@@ -3,14 +3,17 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { ContributeNotices } from './contribute-notices';
+import { FirstRunGuide } from './first-run-guide';
 import { IssueCard } from './issue-card';
 import { filterOf, type IssuesQuery, issuesHref, issuesQueryOf } from './issues-filter';
 import { IssuesFilters } from './issues-filters';
+import { LiveRefresh } from './live-refresh';
 import { Meter } from './primitives';
 import { ReviewsReady } from './reviews-ready';
 import { loadAttempts, loadContribute, loadIssues } from '@/lib/contribute/contribute.data';
 import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
+import { FIRST_RUN_NOTICES, isFirstRun } from '@/lib/contribute/first-run';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
 
 export async function IssuesView({
@@ -19,14 +22,15 @@ export async function IssuesView({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = issuesQueryOf(await searchParams);
-  const [view, page, reviews] = await Promise.all([
+  const [view, page, reviews, latest] = await Promise.all([
     loadContribute(),
     loadIssues(filterOf(query), query.after),
     loadAttempts('REVIEW', 5),
+    loadAttempts(undefined, 1),
   ]);
   if (!view) notFound();
   if (!isContributePageOpen(view, 'issues')) redirect('/contribute');
-  return <IssuesScreen view={view} page={page} query={query} reviews={reviews} />;
+  return <IssuesScreen view={view} page={page} query={query} reviews={reviews} firstRun={isFirstRun(view, latest)} />;
 }
 
 const filtered = (query: IssuesQuery) => !!(query.language || query.kind || query.size);
@@ -50,6 +54,7 @@ export function IssuesScreen({
   query,
   now,
   reviews,
+  firstRun = false,
 }: {
   view: ContributeView;
   page: ContributeIssuePage | null | undefined;
@@ -57,6 +62,8 @@ export function IssuesScreen({
   now?: Date;
   /** The attempts waiting for the user's review; `undefined` while the API does not answer them. */
   reviews?: ContributeAttempt[];
+  /** No attempt yet: the page opens with what happens next. */
+  firstRun?: boolean;
 }) {
   const spend = view.contributor?.spend;
   const settings = view.contributor?.settings;
@@ -64,6 +71,17 @@ export function IssuesScreen({
   let feed: React.ReactNode;
   if (page === undefined) {
     feed = <Empty title="Issues are not available yet" text="The feed is coming soon. Check back shortly." />;
+  } else if (page && !page.computedAt && !page.items.length && !filtered(query)) {
+    // The first picks are computed after the key is connected: the page reads itself again until they are in.
+    feed = (
+      <>
+        <LiveRefresh seconds={5} />
+        <Empty
+          title="Your first picks are still being ranked"
+          text="This takes a minute or two. They show up here by themselves."
+        />
+      </>
+    );
   } else if (!page?.items.length) {
     feed = filtered(query) ? (
       <Empty
@@ -91,8 +109,8 @@ export function IssuesScreen({
   } else {
     feed = (
       <>
-        {page.items.map((issue) => (
-          <IssueCard key={issue.issueId} issue={issue} />
+        {page.items.map((issue, index) => (
+          <IssueCard key={issue.issueId} issue={issue} best={index === 0 && !query.after} />
         ))}
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           {query.after ? (
@@ -116,15 +134,24 @@ export function IssuesScreen({
     );
   }
 
+  const notices = contributeNoticesOf(view).filter(({ kind }) => !firstRun || !FIRST_RUN_NOTICES.has(kind));
+  const Heading = firstRun ? 'h2' : 'h1';
+
   return (
     <>
-      <ContributeNotices notices={contributeNoticesOf(view)} />
+      <ContributeNotices notices={notices} />
+      {firstRun ? (
+        // Only the unfiltered first page says whether anything is picked at all.
+        <FirstRunGuide view={view} page={query.after || filtered(query) ? undefined : page} now={now} heading="h1" />
+      ) : null}
       <ReviewsReady attempts={reviews} />
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-1">
-              <h1 className="text-[28px] font-bold tracking-tight">Issues for you</h1>
+              <Heading className={firstRun ? 'text-xl font-bold' : 'text-[28px] font-bold tracking-tight'}>
+                {firstRun ? 'Picked for you' : 'Issues for you'}
+              </Heading>
               <span className="text-sm text-muted-foreground" data-total={page?.total ?? ''}>
                 {page
                   ? `${page.total.toLocaleString('en-US')} open issue${page.total === 1 ? '' : 's'} match your languages and topics. Maintainers agreed each one should be fixed.`

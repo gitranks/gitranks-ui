@@ -6,6 +6,8 @@ import {
   ApproveAttemptDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
+  ConnectClaudeKeyWithLimitsDocument,
+  ContributeFeedComputedDocument,
   CreateMcpTokenDocument,
   DeleteContributeDataDocument,
   DiscardAttemptDocument,
@@ -27,6 +29,7 @@ import type {
   ContributeClaudePlan,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
+  ContributeConnectLimits,
   ContributeDeleteDataResult,
   ContributeMcpTokenCreated,
   ContributePreferences,
@@ -62,21 +65,48 @@ export type ConnectKeyInput = {
   renewalDay: number;
   confirmedLimit: boolean;
   cycleCapUsd?: number;
+  /** The limits the user set themselves; left out, the plan's defaults apply. */
+  limits?: ContributeConnectLimits;
 };
+
+const amountOf = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : undefined);
+
+/** The limits as the API takes them: a week or day cap is a number or null (none); anything else is left out. */
+function connectLimitsOf(limits: ContributeConnectLimits): ContributeConnectLimits {
+  const cap = (value: unknown) => (value === null ? null : amountOf(value));
+  const week = cap(limits.weekCapUsd);
+  const day = cap(limits.dayCapUsd);
+  const attempt = amountOf(limits.attemptCapUsd);
+  return {
+    ...(week !== undefined ? { weekCapUsd: week } : {}),
+    ...(day !== undefined ? { dayCapUsd: day } : {}),
+    ...(attempt !== undefined ? { attemptCapUsd: attempt } : {}),
+    ...(limits.pace === 'EVEN' || limits.pace === 'FAST' ? { pace: limits.pace } : {}),
+  };
+}
 
 export async function connectClaudeKey(
   input: ConnectKeyInput,
 ): Promise<ContributeActionResult<ContributeConnectKeyResult>> {
+  const cycleCapUsd = amountOf(input.cycleCapUsd);
   const variables = {
     key: String(input.key ?? '').trim(),
     plan: input.plan,
     renewalDay: Math.trunc(Number(input.renewalDay)),
     confirmedLimit: input.confirmedLimit === true,
-    ...(typeof input.cycleCapUsd === 'number' && Number.isFinite(input.cycleCapUsd)
-      ? { cycleCapUsd: input.cycleCapUsd }
-      : {}),
+    ...(cycleCapUsd !== undefined ? { cycleCapUsd } : {}),
   };
-  return run(ConnectClaudeKeyDocument, variables, (data) => data.connectClaudeKey);
+  const pick = (data: { connectClaudeKey: ContributeConnectKeyResult }) => data.connectClaudeKey;
+  // Only a connect with the user's own limits asks for them, so one from a plan works on an API without them.
+  if (input.limits && typeof input.limits === 'object') {
+    return run(ConnectClaudeKeyWithLimitsDocument, { ...variables, limits: connectLimitsOf(input.limits) }, pick);
+  }
+  return run(ConnectClaudeKeyDocument, variables, pick);
+}
+
+/** When the user's picks were last computed; null until the first time. */
+export async function readFeedComputedAt(): Promise<ContributeActionResult<string | null>> {
+  return run(ContributeFeedComputedDocument, undefined, (data) => data.contributeIssues?.computedAt ?? null);
 }
 
 export async function removeClaudeKey(): Promise<ContributeActionResult<boolean>> {

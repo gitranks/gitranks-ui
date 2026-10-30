@@ -33,6 +33,7 @@ import {
 import { loadAttempt, loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import { isContributePageOpen } from '@/lib/contribute/contribute-state';
+import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
 
 export async function ReviewView({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -42,6 +43,14 @@ export async function ReviewView({ params }: { params: Promise<{ id: string }> }
   if (attempt === null) notFound();
   return <ReviewScreen view={view} attempt={attempt} />;
 }
+
+/**
+ * The submit asks for GitHub access first: it is not connected, or the last submit bounced for want of it (revoked on
+ * GitHub, say). Not while it cannot be granted here, nor while the API does not answer the grant.
+ */
+export const grantNeededOf = (view: ContributeView, attempt: ContributeAttemptDetail): boolean =>
+  view.grantAvailable &&
+  (view.grant?.connected === false || GRANT_BOUNCES.has(attempt.submit?.lastError?.reason ?? ''));
 
 /** The repo's notes ask for a Developer Certificate of Origin sign-off. */
 const DCO_ASKED = /\bDCO\b|signed-off-by|sign[- ]off/i;
@@ -187,6 +196,8 @@ export function ReviewScreen({
               dcoMode={view.contributor?.settings?.dco ?? null}
               dcoAsked={DCO_ASKED.test(attempt.readiness?.notes ?? '')}
               again={!!attempt.submit?.lastError}
+              grantNeeded={grantNeededOf(view, attempt)}
+              grantConnected={view.grant?.connected === true}
             />
           ) : followUp ? null : (
             <ApprovalPanel attempt={attempt} />

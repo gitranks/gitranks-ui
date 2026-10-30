@@ -20,6 +20,7 @@ import {
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
   ContributePausedDocument,
+  ContributeProfileLanguagesDocument,
   ContributeReplyDraftsDocument,
 } from './contribute.documents';
 import type {
@@ -151,6 +152,26 @@ function ownAgentOf(
     paths: contribute.contributor?.paths ?? { hosted: false, mcp: contribute.mcpTokens.length > 0 },
     tokens: contribute.mcpTokens,
   };
+}
+
+/** The languages the matching moment shows. */
+export const PROFILE_LANGUAGES_MAX = 4;
+
+/** The signed-in user's strongest languages on their profile, by name; none when it is not answered. */
+export async function loadProfileLanguages(): Promise<string[]> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return [];
+
+  try {
+    const { user } = await graphqlDirect(
+      ContributeProfileLanguagesDocument,
+      { login: githubLogin, limit: PROFILE_LANGUAGES_MAX },
+      { source: 'ssr', githubLogin },
+    );
+    return (user?.sLangs ?? []).map(({ name }) => name).filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 /** One page of issues for the signed-in user; `undefined` when the API does not answer the feed (yet). */

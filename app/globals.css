@@ -230,6 +230,40 @@
   --animate-navigation-progress: navigationProgress 1.2s ease-in-out infinite;
   /* The delay keeps the bar hidden for navigations that finish quickly. */
   --animate-navigation-progress-reveal: navigationProgressReveal 0.2s ease-out 0.15s both;
+  /* Contribute's matching moment and first-run guide; each use is under motion-safe. */
+  --animate-contribute-ring: contributeRing 2.4s ease-out infinite;
+  --animate-contribute-float: contributeFloat 3s ease-in-out infinite;
+  --animate-contribute-glow: contributeGlow 1.6s ease-out 3;
+
+  @keyframes contributeRing {
+    0% {
+      transform: scale(0.6);
+      opacity: 0.55;
+    }
+    100% {
+      transform: scale(1.9);
+      opacity: 0;
+    }
+  }
+
+  @keyframes contributeFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes contributeGlow {
+    0% {
+      box-shadow: 0 0 0 0 rgb(124 58 237 / 0.45);
+    }
+    100% {
+      box-shadow: 0 0 0 10px rgb(124 58 237 / 0);
+    }
+  }
 
   @keyframes navigationProgress {
     0% {

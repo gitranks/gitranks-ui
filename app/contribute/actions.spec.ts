@@ -9,6 +9,8 @@ const actions = await import('./actions');
 const {
   ApproveAttemptDocument,
   ApproveReplyDocument,
+  ConnectClaudeKeyDocument,
+  ConnectClaudeKeyWithLimitsDocument,
   CreateMcpTokenDocument,
   DiscardAttemptDocument,
   RevokeMcpTokenDocument,
@@ -22,6 +24,7 @@ type Action = (...args: never[]) => Promise<{ ok: boolean; error?: string; messa
 /** Every server action, with arguments that name another user wherever an argument could. */
 const CALLS: Record<string, unknown[]> = {
   connectClaudeKey: [{ key: 'sk-ant-x', plan: 'MAX_5X', renewalDay: 14, confirmedLimit: true, githubLogin: 'mallory' }],
+  readFeedComputedAt: [],
   removeClaudeKey: [],
   saveContributeSettings: [{ cycleCapUsd: 10, githubLogin: 'mallory' }],
   savePreferences: [{ languages: ['GO'], githubLogin: 'mallory' }],
@@ -81,6 +84,51 @@ describe('the Contribute server actions', () => {
       expect(graphqlDirect).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('connectClaudeKey', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    graphqlDirect.mockResolvedValue({
+      connectClaudeKey: { result: 'CONNECTED', retryAfterSec: null, credential: null },
+    });
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const input = { key: ' sk-ant-x ', plan: 'MAX_5X' as const, renewalDay: 14.6, confirmedLimit: true };
+
+  it('connects from a plan without asking for limits, so an API without them still takes it', async () => {
+    await actions.connectClaudeKey(input);
+
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ConnectClaudeKeyDocument,
+      { key: 'sk-ant-x', plan: 'MAX_5X', renewalDay: 14, confirmedLimit: true },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
+
+  it('sends the limits the user set, a week or day cap left empty as none, and nothing else', async () => {
+    await actions.connectClaudeKey({
+      ...input,
+      plan: 'CREDITS',
+      cycleCapUsd: 50,
+      limits: { weekCapUsd: null, dayCapUsd: 10, attemptCapUsd: 5, pace: 'FAST', extra: 1 } as never,
+    });
+
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ConnectClaudeKeyWithLimitsDocument,
+      {
+        key: 'sk-ant-x',
+        plan: 'CREDITS',
+        renewalDay: 14,
+        confirmedLimit: true,
+        cycleCapUsd: 50,
+        limits: { weekCapUsd: null, dayCapUsd: 10, attemptCapUsd: 5, pace: 'FAST' },
+      },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
 });
 
 describe('approveAttempt and discardAttempt', () => {

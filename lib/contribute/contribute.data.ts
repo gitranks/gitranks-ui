@@ -8,6 +8,7 @@ import {
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
+  ContributeAttemptsOpenDocument,
   ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
   ContributeContributionsDocument,
@@ -96,13 +97,14 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   if (!githubLogin) return null;
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [overview, grant, paused, autopilot, ownAgent, onboarding] = await Promise.allSettled([
+  const [overview, grant, paused, autopilot, ownAgent, onboarding, attemptsOpen] = await Promise.allSettled([
     graphqlDirect(ContributeOverviewDocument, undefined, options),
     graphqlDirect(ContributeGrantDocument, undefined, options),
     graphqlDirect(ContributePausedDocument, undefined, options),
     graphqlDirect(ContributeAutopilotDocument, undefined, options),
     graphqlDirect(ContributeOwnAgentDocument, undefined, options),
     graphqlDirect(ContributeOnboardingDocument, undefined, options),
+    graphqlDirect(ContributeAttemptsOpenDocument, undefined, options),
   ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
@@ -111,6 +113,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
 
   const pausedField = settled(paused)?.contribute?.contributor?.paused;
   const onboardingFields = settled(onboarding)?.contribute;
+  const attemptsOpenField = settled(attemptsOpen)?.contribute?.attemptsOpen;
   const { contributor } = contribute;
   const withAutopilot = contributor?.autopilot
     ? {
@@ -124,7 +127,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
     paused: typeof pausedField === 'boolean' ? pausedField : undefined,
     grantAvailable: isGrantAvailable(),
     ownAgent: ownAgentOf(settled(ownAgent)?.contribute),
-    ...(typeof onboardingFields?.attemptsOpen === 'boolean' ? { attemptsOpen: onboardingFields.attemptsOpen } : {}),
+    ...(typeof attemptsOpenField === 'boolean' ? { attemptsOpen: attemptsOpenField } : {}),
   };
 });
 

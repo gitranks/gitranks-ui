@@ -108,7 +108,7 @@ export function SignInPanel({
             strokeWidth={2.4}
             className="mt-px size-[18px] flex-none text-green-700 dark:text-green-400"
           />
-          {path ? 'You come straight back here, to the next step' : 'You come straight back here'}
+          {path ? 'You come straight back, to the next step' : 'You come straight back here'}
         </li>
         <li className="flex gap-2.5">
           <CheckIcon
@@ -139,7 +139,7 @@ export function SignInPanel({
         </button>
       )}
       <DialogClose className="self-center rounded-sm text-sm font-semibold text-primary hover:underline">
-        Back to the overview
+        Not now
       </DialogClose>
     </>
   );

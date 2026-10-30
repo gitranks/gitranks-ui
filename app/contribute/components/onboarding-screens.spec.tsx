@@ -149,10 +149,10 @@ describe('the sign-in', () => {
     expect(plain).toContain('Your Claude key');
     expect(html).toMatch(/<h2[^>]*id="[^"]+"[^>]*>Sign in to continue<\/h2>/);
     expect(plain).toContain('GitHub shares your public profile and email with us, read-only.');
-    expect(plain).toContain('You come straight back here, to the next step');
+    expect(plain).toContain('You come straight back, to the next step');
     expect(plain).toContain("No access to your repos. That's asked once, at your first submit");
     expect(html).toMatch(/<button[^>]*data-sign-in="github"[^>]*>.*Continue with GitHub<\/button>/);
-    expect(plain).toContain('Back to the overview');
+    expect(plain).toContain('Not now');
     expect(text(panel({ path: 'agent' }))).toContain('Your own agent');
   });
 
@@ -193,6 +193,7 @@ describe("Contribute's bar", () => {
     signedIn: true,
     allowed: true,
     onboarded: true,
+    contributor: true,
     ...patch,
   });
 
@@ -201,6 +202,7 @@ describe("Contribute's bar", () => {
       home: '/contribute',
       tabs: true,
       current: '/contribute/issues',
+      settings: false,
       account: 'avatar',
     });
     expect(contributeBarOf('/contribute/attempts/A_1', null, viewer()).current).toBe('/contribute/me');
@@ -208,13 +210,27 @@ describe("Contribute's bar", () => {
       home: '/contribute',
       tabs: false,
       current: undefined,
+      settings: true,
       account: 'avatar',
     });
     expect(contributeBarOf('/contribute/settings', null, viewer({ onboarded: false })).tabs).toBe(false);
   });
 
+  it('gives a contributor not onboarded yet a Settings link in place of the tabs, and nobody else', () => {
+    expect(contributeBarOf('/contribute/settings', null, viewer({ onboarded: false }))).toMatchObject({
+      settings: true,
+      current: '/contribute/settings',
+    });
+    expect(contributeBarOf('/contribute', null, viewer({ onboarded: false, contributor: false })).settings).toBe(false);
+    expect(contributeBarOf('/contribute', 'visitor', viewer({ onboarded: false })).settings).toBe(false);
+    expect(contributeBarOf('/contribute/maintainers', null, viewer({ onboarded: false })).settings).toBe(false);
+    const html = renderToStaticMarkup(<ContributeBarView settings current="/contribute/settings" account="avatar" />);
+    expect(html).toMatch(/<a aria-current="page"[^>]*href="\/contribute\/settings">Settings<\/a>/);
+    expect(html).not.toContain('<nav');
+  });
+
   it('shows a visitor, and a signed-in user under ?as=visitor on the landing, "Sign in" and no tabs', () => {
-    const signIn = { home: '/contribute', tabs: false, current: undefined, account: 'sign-in' };
+    const signIn = { home: '/contribute', tabs: false, current: undefined, settings: false, account: 'sign-in' };
 
     expect(contributeBarOf('/contribute', null, viewer({ signedIn: false, onboarded: false }))).toEqual(signIn);
     expect(contributeBarOf('/contribute', 'visitor', viewer())).toEqual(signIn);
@@ -227,16 +243,23 @@ describe("Contribute's bar", () => {
       home: '/contribute',
       tabs: false,
       current: undefined,
+      settings: false,
       account: 'avatar',
     });
     expect(contributeBarOf('/contribute/maintainers', null, viewer({ allowed: false, onboarded: false }))).toEqual({
       home: '/contribute/maintainers',
       tabs: false,
       current: undefined,
+      settings: false,
       account: 'avatar',
     });
     expect(
-      contributeBarOf('/contribute/maintainers', null, { signedIn: false, allowed: false, onboarded: false }).account,
+      contributeBarOf('/contribute/maintainers', null, {
+        signedIn: false,
+        allowed: false,
+        onboarded: false,
+        contributor: false,
+      }).account,
     ).toBe('none');
   });
 

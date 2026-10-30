@@ -23,6 +23,7 @@ const {
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
   ContributeGrantDocument,
+  ContributeAttemptsOpenDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeReplyDraftsDocument,
@@ -71,13 +72,9 @@ describe('loadContribute', () => {
     graphqlDirect.mockImplementation(async (document) => {
       if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
       if (document === ContributeOnboardingDocument) {
-        return {
-          contribute: {
-            attemptsOpen: false,
-            contributor: { onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'MCP' },
-          },
-        };
+        return { contribute: { contributor: { onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'MCP' } } };
       }
+      if (document === ContributeAttemptsOpenDocument) return { contribute: { attemptsOpen: false } };
       throw new Error('[{"message":"Cannot query field"}]');
     });
 
@@ -85,6 +82,21 @@ describe('loadContribute', () => {
       contributor: { login: 'octocat', onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'MCP' },
       attemptsOpen: false,
     });
+  });
+
+  it('keeps the onboarding stamp when whether attempts are open fails to read', async () => {
+    const contributor = { status: 'ACTIVE', login: 'octocat', autopilot: null };
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
+      if (document === ContributeOnboardingDocument) {
+        return { contribute: { contributor: { onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'HOSTED' } } };
+      }
+      throw new Error('[{"message":"Cannot query field"}]');
+    });
+
+    const view = await loadContribute();
+    expect(view?.contributor).toMatchObject({ onboardedAt: '2026-10-30T09:00:00.000Z' });
+    expect(view).not.toHaveProperty('attemptsOpen');
   });
 
   it('leaves the onboarding fields out while the API does not answer them', async () => {

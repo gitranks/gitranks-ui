@@ -42,9 +42,16 @@ export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
 
 /**
  * Onboarded: a way of contributing worked once, a Claude key stored or the user's own agent's first call. Until then
- * Contribute is the landing alone. Nothing clears it.
+ * Contribute is the landing alone. Nothing clears it. When the API does not answer it (an older API, or its read
+ * failed), it is guessed from what the user set up, so an active user is never sent back to the landing: a Claude key,
+ * a plan, or a token their agent used.
  */
-export const isOnboarded = (view: ContributeView | null | undefined): boolean => !!view?.contributor?.onboardedAt;
+export function isOnboarded(view: ContributeView | null | undefined): boolean {
+  const contributor = view?.contributor;
+  if (!contributor) return false;
+  if (contributor.onboardedAt !== undefined) return !!contributor.onboardedAt;
+  return !!claudeKeyOf(view) || !!contributor.plan || !!view?.ownAgent?.tokens.some((token) => token.lastUsedAt);
+}
 
 /** Mid-setup: a token for the user's own agent is live, and the agent has not connected with it yet. */
 export const isMidSetup = (view: ContributeView | null | undefined): boolean =>

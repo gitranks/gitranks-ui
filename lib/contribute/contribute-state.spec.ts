@@ -50,8 +50,23 @@ describe('isOnboarded', () => {
     expect(isOnboarded(null)).toBe(false);
   });
 
-  it('is false while the API does not answer the stamp', () => {
-    expect(isOnboarded(views.onboardingMissing)).toBe(false);
+  it('is guessed from what the user set up while the API does not answer the stamp', () => {
+    const missing = views.onboardingMissing;
+    // A stored Claude key.
+    expect(isOnboarded(missing)).toBe(true);
+
+    const nothingSetUp = { ...missing, contributor: { ...missing.contributor!, credentials: [], plan: null } };
+    expect(isOnboarded(nothingSetUp)).toBe(false);
+    expect(isOnboarded({ ...nothingSetUp, contributor: { ...nothingSetUp.contributor, plan: 'MAX_5X' } })).toBe(true);
+
+    const token = { ...views.midSetup.ownAgent!.tokens[0], lastUsedAt: null };
+    const unused = { ...nothingSetUp, ownAgent: { paths: { hosted: false, mcp: true }, tokens: [token] } };
+    expect(isOnboarded(unused)).toBe(false);
+    const used = {
+      ...unused,
+      ownAgent: { ...unused.ownAgent, tokens: [{ ...token, lastUsedAt: '2026-10-30T09:00:00.000Z' }] },
+    };
+    expect(isOnboarded(used)).toBe(true);
   });
 });
 

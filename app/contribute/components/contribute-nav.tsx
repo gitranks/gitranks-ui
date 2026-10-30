@@ -24,12 +24,16 @@ export const contributeTabOf = (pathname: string): Route | undefined => {
   return CONTRIBUTE_TABS.findLast(({ href }) => path === href || path.startsWith(`${href}/`))?.href;
 };
 
+const isSettingsPath = (pathname: string) => contributeTabOf(pathname) === '/contribute/settings';
+
 /** Who is looking, as the bar needs it. */
 export type ContributeBarViewer = {
   signedIn: boolean;
   /** Contribute is open to them (the preview lets them in). */
   allowed: boolean;
   onboarded: boolean;
+  /** They have a contributor record: Settings is theirs before they are onboarded too. */
+  contributor: boolean;
 };
 
 /** What the bar holds for a viewer on a path. */
@@ -38,8 +42,10 @@ export type ContributeBarState = {
   home: Route;
   /** The tabs: only once the user is onboarded. */
   tabs: boolean;
-  /** The tab marked as the current page. */
+  /** The tab (or the Settings link) marked as the current page. */
   current?: Route;
+  /** A Settings link in place of the tabs: a contributor not onboarded yet keeps a way to their tokens and data. */
+  settings: boolean;
   /** The account: the site's avatar menu, "Sign in" (the sign-in dialog), or nothing. */
   account: 'avatar' | 'sign-in' | 'none';
 };
@@ -53,10 +59,16 @@ export function contributeBarOf(pathname: string, as: string | null, viewer: Con
   const maintainers = isMaintainersPath(pathname);
   const visitor = !viewer.signedIn || (pathname.replace(/\/+$/, '') === '/contribute' && isAsVisitor(as));
   const tabs = viewer.onboarded && !visitor && !maintainers;
+  const settings = !tabs && !visitor && !maintainers && viewer.contributor;
   return {
     home: maintainers && !viewer.allowed ? MAINTAINERS_PATH : '/contribute',
     tabs,
-    current: tabs ? contributeTabOf(pathname) : undefined,
+    current: tabs
+      ? contributeTabOf(pathname)
+      : settings && isSettingsPath(pathname)
+        ? '/contribute/settings'
+        : undefined,
+    settings,
     account: maintainers ? (viewer.signedIn ? 'avatar' : 'none') : visitor ? 'sign-in' : 'avatar',
   };
 }
@@ -76,6 +88,7 @@ export function ContributeBarView({
   home = '/contribute',
   tabs = false,
   current,
+  settings = false,
   account = 'none',
   preview = false,
 }: Partial<ContributeBarState> & {
@@ -125,6 +138,16 @@ export function ContributeBarView({
         ) : null}
 
         <div className="ml-auto flex items-center gap-[18px] text-sm">
+          {settings ? (
+            <Link
+              href="/contribute/settings"
+              prefetch={false}
+              aria-current={current === '/contribute/settings' ? 'page' : undefined}
+              className="inline-flex min-h-11 items-center font-medium text-muted-foreground hover:text-foreground"
+            >
+              Settings
+            </Link>
+          ) : null}
           <Link
             href="/"
             prefetch={false}

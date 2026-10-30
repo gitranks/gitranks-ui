@@ -35,7 +35,7 @@ export default async function RepoNoLanguageRankingLayout({ children }: LayoutPr
 
   return (
     <>
-      <Header />
+      <Header section="rankings" />
       <Page className="max-w-5xl gap-6">
         <RepoRankingHeader title={repoLanguageRankingTitle(null)} link={REPO_LANGUAGES_LINK} />
         {children}

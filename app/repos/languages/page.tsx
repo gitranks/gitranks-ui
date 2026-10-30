@@ -25,7 +25,7 @@ export default async function RepoLanguagesPage() {
 
   return (
     <>
-      <Header />
+      <Header section="rankings" />
       <Page className="max-w-5xl gap-6">
         <RepoRankingHeader title="Repositories by Language" link={ALL_REPOS_LINK} />
         <PageGrid>

@@ -15,7 +15,7 @@ export const metadata: Metadata = pageMetadata({
 export default function BadgeLayout({ children }: LayoutProps<'/badge/builder/[[...login]]'>) {
   return (
     <>
-      <Header />
+      <Header section="badges" />
 
       <Page className="gap-6">
         <div>

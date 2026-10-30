@@ -16,7 +16,7 @@ export const metadata: Metadata = pageMetadata({
 export default function BadgeGalleryLayout({ children }: LayoutProps<'/badge/gallery'>) {
   return (
     <>
-      <Header />
+      <Header section="badges" />
 
       <Page className="gap-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

@@ -50,7 +50,7 @@ export default async function RepoLanguageRankingLayout({
 
   return (
     <>
-      <Header />
+      <Header section="rankings" />
       <Page className="max-w-5xl gap-6">
         <RepoRankingHeader title={repoLanguageRankingTitle(languageName)} link={REPO_LANGUAGES_LINK} />
         {children}

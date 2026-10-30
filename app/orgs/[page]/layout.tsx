@@ -38,7 +38,7 @@ export default async function RankingListLayout({ children }: LayoutProps<'/orgs
 
   return (
     <>
-      <Header />
+      <Header section="rankings" />
       <Page className="max-w-5xl gap-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <h1 className="text-2xl font-semibold">{RANK_NAME.o}</h1>

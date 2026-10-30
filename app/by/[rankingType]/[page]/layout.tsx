@@ -52,7 +52,7 @@ export default async function RankingListLayout({ children, params }: LayoutProp
 
   return (
     <>
-      <Header />
+      <Header section="rankings" />
       <Page className="max-w-5xl gap-6">
         <RankingHeaderSection rankingType={rankingType} />
         {children}

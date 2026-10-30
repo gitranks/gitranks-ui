@@ -12,6 +12,11 @@ vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 
 const { ConnectScreen } = await import('./connect-view');
+const { renewalDayOptionsOf } = await import('./key-connect');
+const { ALL, FILTER_OPTIONS } = await import('./issues-filters');
+const { helperModelLabelOf, testModelLabelOf } = await import('./settings-form');
+const { sizeLabelOf } = await import('./preferences-fields');
+const { KINDS, LANGUAGES } = await import('@/lib/contribute/format');
 const { SettingsScreen } = await import('./settings-view');
 const { IssuesScreen } = await import('./issues-view');
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
@@ -124,7 +129,14 @@ describe('the connect screen', () => {
   it('guesses the reset day as today, and says it is a guess', () => {
     const html = render(views.noKey);
 
-    expect(html).toMatch(/<option value="30" selected="">The 30th \(today, our guess\)<\/option>/);
+    // Radix renders the items only when open: the trigger says the day picked, the items come from the props.
+    expect(html).toMatch(
+      /role="combobox"[^>]*id="[^"]*-day"><span data-slot="select-value"[^>]*>The 30th \(today, our guess\)<\/span>/,
+    );
+    const options = renewalDayOptionsOf(null, 30);
+    expect(options.map(({ value }) => value)).toEqual(Array.from({ length: 31 }, (_, index) => String(index + 1)));
+    expect(options[0]).toEqual({ value: '1', label: 'The 1st' });
+    expect(options[29]).toEqual({ value: '30', label: 'The 30th (today, our guess)' });
     expect(text(html)).toContain('On which day of the month do your API credits reset?');
   });
 
@@ -152,7 +164,9 @@ describe('the connect screen', () => {
     expect(html).toContain('value="80"');
     expect(plain).toContain('At most $80 a month, $10 a day and $5 an attempt, as fast as those caps allow.');
     expect(plain).toContain('Connect a new Claude key');
-    expect(html).toMatch(/<option value="14" selected="">The 14th<\/option>/);
+    expect(html).toMatch(/role="combobox"[^>]*id="[^"]*-day"><span data-slot="select-value"[^>]*>The 14th<\/span>/);
+    // A day already set is no guess: no item says "today".
+    expect(renewalDayOptionsOf(14, 30).filter(({ label }) => label.includes('our guess'))).toEqual([]);
   });
 
   it("shows the key's own trouble", () => {
@@ -238,6 +252,25 @@ describe('the settings screen', () => {
     }
   });
 
+  it('says each pick in its trigger: the stored day, the models, the effort, and no size', () => {
+    const html = render(views.active);
+    const triggers = [
+      ...html.matchAll(/role="combobox"[^>]*><span data-slot="select-value"[^>]*>([^<]*)<\/span>/g),
+    ].map(([, label]) => label);
+
+    expect(triggers).toEqual([
+      'the 14th',
+      'Claude Sonnet 5.5',
+      'Claude Haiku 5.5 (cheaper)',
+      'Same as the main model',
+      'Medium',
+      'Any size',
+    ]);
+    expect(helperModelLabelOf('CLAUDE_OPUS_5_5')).toBe('Claude Opus 5.5');
+    expect(testModelLabelOf('CLAUDE_OPUS_5_5')).toBe('Claude Opus 5.5');
+    expect(sizeLabelOf('L')).toBe('Up to large');
+  });
+
   it('pauses an active contributor and resumes a paused one', () => {
     expect(render(views.active)).toContain('data-paused="false"');
     expect(text(render(views.active))).toContain('Pause contributing');
@@ -316,6 +349,28 @@ const ISSUE: ContributeIssue = {
 describe('issues for you', () => {
   const render = (page: Parameters<typeof IssuesScreen>[0]['page'], query = {}) =>
     renderToStaticMarkup(<IssuesScreen view={views.active} page={page} query={query} now={NOW} />);
+
+  it('says each filter in its trigger, "All …" for none, and offers the same items', () => {
+    const triggers = (html: string) =>
+      [...html.matchAll(/role="combobox"[^>]*><span data-slot="select-value"[^>]*>([^<]*)<\/span>/g)].map(
+        ([, label]) => label,
+      );
+
+    expect(triggers(render(undefined))).toEqual(['All languages', 'All kinds', 'Any size']);
+    expect(triggers(render(undefined, { language: 'GO', kind: 'DOCS', size: 'M' }))).toEqual([
+      'Go',
+      'Docs',
+      'Up to medium, where known',
+    ]);
+    expect(FILTER_OPTIONS.language.map(({ value }) => value)).toEqual([ALL, ...Object.keys(LANGUAGES)]);
+    expect(FILTER_OPTIONS.kind.map(({ value }) => value)).toEqual([ALL, ...Object.keys(KINDS)]);
+    expect(FILTER_OPTIONS.size).toEqual([
+      { value: ALL, label: 'Any size' },
+      { value: 'S', label: 'Up to small, where known' },
+      { value: 'M', label: 'Up to medium, where known' },
+      { value: 'L', label: 'Up to large, where known' },
+    ]);
+  });
 
   it('lists the picks with labels, why, the size where known, and Skip', () => {
     const html = render({

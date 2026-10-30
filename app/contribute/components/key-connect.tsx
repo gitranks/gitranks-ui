@@ -10,6 +10,7 @@ import { LimitsManual } from './limits-manual';
 import { ISSUES_PATH, Matching } from './matching';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   appliedLimitsOf,
   connectLimitsOf,
@@ -28,6 +29,10 @@ import { cn } from '@/lib/utils';
 
 const CONSOLE_URL = 'https://platform.claude.com/settings/workspaces';
 const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
+
+/** The reset day's items: every day of the month, today marked as our guess until a day is set. */
+export const renewalDayOptionsOf = (renewalDay: number | null | undefined, guessDay: number) =>
+  DAYS.map((day) => ({ value: String(day), label: renewalLabelOf(day, renewalDay ? null : guessDay) }));
 
 const card = 'flex flex-col rounded-2xl border bg-card p-4.5 sm:p-5.5';
 const cardTitle = 'text-lg font-bold';
@@ -95,6 +100,7 @@ export function KeyConnect({
   ].filter((step): step is string => step !== null);
   const whyId = `${id}-why`;
   const applied = appliedLimitsOf(mode, plan, manual, stored);
+  const dayOptions = renewalDayOptionsOf(renewalDay, guessDay);
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -282,18 +288,18 @@ export function KeyConnect({
             <label htmlFor={`${id}-day`} className="text-sm font-semibold">
               On which day of the month do your API credits reset?
             </label>
-            <select
-              id={`${id}-day`}
-              value={day}
-              onChange={(event) => setDay(Number(event.target.value))}
-              className="min-h-11 max-w-64 rounded-lg border border-input bg-background px-2.5 text-sm"
-            >
-              {DAYS.map((option) => (
-                <option key={option} value={option}>
-                  {renewalLabelOf(option, renewalDay ? null : guessDay)}
-                </option>
-              ))}
-            </select>
+            <Select value={String(day)} onValueChange={(next) => setDay(Number(next))}>
+              <SelectTrigger id={`${id}-day`} className="min-h-11 w-full max-w-64 rounded-lg">
+                <SelectValue>{dayOptions.find((option) => option.value === String(day))?.label}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {dayOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <span className="text-xs text-muted-foreground">
               So we can spread the agent&apos;s work over your month: credits that would expire get used before the
               reset, and it never runs dry in the first week. Not sure? Keep our guess and change it in Settings.

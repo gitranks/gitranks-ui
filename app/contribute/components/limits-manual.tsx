@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { Input } from '@/components/ui/input';
 import {
   type ManualField,
   type ManualLimitsDraft,
@@ -11,8 +12,7 @@ import {
 import type { ContributeConnectPace } from '@/lib/contribute/contribute.types';
 import { cn } from '@/lib/utils';
 
-const inputClass =
-  'min-h-11 w-full rounded-[10px] border border-input bg-background px-2.5 text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-red-600 dark:aria-invalid:border-red-400';
+const inputClass = 'h-11 rounded-lg px-2.5 text-sm';
 
 const PACES: { pace: ContributeConnectPace; title: string; text: string }[] = [
   {
@@ -70,20 +70,20 @@ export function LimitsManual({
           Each month <span className="font-medium text-muted-foreground">· required</span>
         </label>
         <div className="flex items-center gap-2">
-          <span aria-hidden="true" className="text-[15px] text-muted-foreground">
+          <span aria-hidden="true" className="text-base text-muted-foreground">
             $
           </span>
-          <input
+          <Input
             id={`${id}-month`}
             inputMode="decimal"
             value={draft.month}
             onChange={set('month')}
             aria-invalid={refused === 'month' || undefined}
             aria-describedby={describedBy('month', `${id}-month-hint`)}
-            className={cn(inputClass, 'w-35 border-2 border-primary px-3 text-[15px] font-semibold')}
+            className={cn(inputClass, 'w-35 border-2 border-primary px-3 text-base font-semibold md:text-base')}
           />
         </div>
-        <span id={`${id}-month-hint`} className="text-[13px] text-muted-foreground">
+        <span id={`${id}-month-hint`} className="text-xs text-muted-foreground">
           The most the agent may spend from your API credits between two resets.
         </span>
       </div>
@@ -92,10 +92,10 @@ export function LimitsManual({
         <div className="grid grid-cols-3 gap-2.5">
           {OPTIONAL.map(({ field, label, placeholder }) => (
             <div key={field} className="flex min-w-0 flex-col gap-1.5">
-              <label htmlFor={`${id}-${field}`} className="text-[13px] font-semibold">
+              <label htmlFor={`${id}-${field}`} className="text-xs font-semibold">
                 {label}
               </label>
-              <input
+              <Input
                 id={`${id}-${field}`}
                 inputMode="decimal"
                 value={draft[field]}
@@ -108,14 +108,14 @@ export function LimitsManual({
             </div>
           ))}
         </div>
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           Optional. Leave week and day empty and pacing spreads the month for you. An attempt stops when it reaches its
           cap.
         </span>
       </div>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1.5 text-[13px] font-semibold">Pacing</legend>
+        <legend className="mb-1.5 text-xs font-semibold">Pacing</legend>
         <div className="grid gap-2 sm:grid-cols-2">
           {PACES.map(({ pace, title, text }) => {
             const on = draft.pace === pace;
@@ -127,9 +127,7 @@ export function LimitsManual({
                 onClick={() => onChange({ ...draft, pace })}
                 className={cn(
                   'flex min-h-16 flex-col gap-0.5 rounded-xl px-3 py-2.5 text-left transition-colors',
-                  on
-                    ? 'border-2 border-primary bg-violet-50 dark:bg-violet-950/40'
-                    : 'border border-input bg-background hover:bg-accent',
+                  on ? 'border-2 border-primary bg-brand-soft' : 'border border-input bg-background hover:bg-accent',
                 )}
               >
                 <span className="text-sm font-semibold">{title}</span>
@@ -139,7 +137,7 @@ export function LimitsManual({
           })}
         </div>
         {draft.pace === 'QUEUED' ? (
-          <span data-pace="queued" className="text-[13px] text-muted-foreground">
+          <span data-pace="queued" className="text-xs text-muted-foreground">
             Now the agent works only on issues you queue. That stays as it is unless you pick one of these.
           </span>
         ) : null}
@@ -150,9 +148,7 @@ export function LimitsManual({
         data-limits-summary={result.ok ? 'ok' : refused}
         className={cn(
           'rounded-xl px-3.5 py-3 text-sm',
-          result.ok
-            ? 'bg-violet-50 text-violet-950 dark:bg-violet-950/40 dark:text-violet-100'
-            : 'bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100',
+          result.ok ? 'bg-brand-soft text-brand-soft-foreground' : 'bg-warning-soft text-warning-soft-foreground',
         )}
       >
         {summary}

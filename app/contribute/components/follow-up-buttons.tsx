@@ -5,13 +5,14 @@ import { useEffect, useState, useTransition } from 'react';
 
 import { startFollowUp, vetoAutopilot } from '../actions';
 import { attemptHref } from './reviews-ready';
+import { Button } from '@/components/ui/button';
 import { timeLabel } from '@/lib/contribute/attempt-format';
 import { followUpErrorMessage, vetoErrorMessage } from '@/lib/contribute/follow-up-format';
 import { relativeLabel } from '@/lib/contribute/format';
 
 const ErrorNote = ({ error }: { error: string | null }) =>
   error ? (
-    <span role="alert" className="text-sm text-red-700 dark:text-red-400">
+    <span role="alert" className="text-sm text-destructive">
       {error}
     </span>
   ) : null;
@@ -38,14 +39,9 @@ export function StartFollowUpButton({ prId }: { prId: string }) {
 
   return (
     <div className="flex flex-col items-start gap-1.5" data-start-follow-up={prId}>
-      <button
-        type="button"
-        onClick={click}
-        disabled={pending || done}
-        className="min-h-10 rounded-[10px] bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-      >
+      <Button type="button" size="lg" onClick={click} disabled={pending || done} className="px-4 font-semibold">
         {pending || done ? 'Starting…' : 'Start a follow-up'}
-      </button>
+      </Button>
       <ErrorNote error={error} />
     </div>
   );
@@ -73,14 +69,16 @@ export function StopAutopilotButton({ attemptId }: { attemptId: string }) {
 
   return (
     <div className="flex flex-col items-start gap-1.5" data-stop-autopilot={attemptId}>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="lg"
         onClick={click}
         disabled={pending || done}
-        className="min-h-10 rounded-[10px] border border-amber-300 bg-background px-4 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-800 dark:text-amber-200 dark:hover:bg-amber-950"
+        className="border border-warning/40 bg-background px-4 font-semibold text-warning hover:bg-warning-soft hover:text-warning dark:hover:bg-warning-soft"
       >
         {pending || done ? 'Stopping…' : 'Stop'}
-      </button>
+      </Button>
       <ErrorNote error={error} />
     </div>
   );

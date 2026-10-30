@@ -46,7 +46,7 @@ export function ReplyDraftItem({
       data-reply-state={draft.state}
       className="flex flex-col gap-2.5 border-b px-5 py-4 last:border-b-0"
     >
-      <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <Pill tone={state.tone}>{state.label}</Pill>
         <span>
           {draft.comment ? 'Reply in a review thread' : 'Comment on the pull request'}
@@ -70,21 +70,21 @@ export function ReplyDraftItem({
         </blockquote>
       ) : null}
       <div className="flex flex-col gap-1">
-        <span className="text-[13px] font-medium">The reply, posted in your name</span>
+        <span className="text-xs font-medium">The reply, posted in your name</span>
         <p className="rounded-lg bg-muted/60 p-3 text-sm whitespace-pre-wrap">{draft.text}</p>
       </div>
       {followUp ? (
-        <span data-reply-follow-up={followUp.state} className="text-[13px] text-muted-foreground">
+        <span data-reply-follow-up={followUp.state} className="text-xs text-muted-foreground">
           Drafted by a{' '}
-          <Link href={attemptHref(followUp.attemptId)} prefetch={false} className="text-primary hover:underline">
+          <Link href={attemptHref(followUp.attemptId)} prefetch={false} className="text-link hover:underline">
             follow-up
           </Link>
           {followUpState ? `: ${followUpState}.` : '.'}
         </span>
       ) : (
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           Drafted by a{' '}
-          <Link href={attemptHref(draft.attemptId)} prefetch={false} className="text-primary hover:underline">
+          <Link href={attemptHref(draft.attemptId)} prefetch={false} className="text-link hover:underline">
             follow-up
           </Link>
           .
@@ -97,18 +97,14 @@ export function ReplyDraftItem({
         <span className="text-sm">
           Posted {where}, {relativeLabel(draft.postedAt ?? draft.updatedAt, now)}.{' '}
           {postedUrl ? (
-            <a href={postedUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary">
+            <a href={postedUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-link">
               See it on GitHub ↗
             </a>
           ) : null}
         </span>
       ) : null}
       {draft.state === 'FAILED' ? (
-        <p
-          role="alert"
-          data-reply-error={draft.lastError?.reason ?? ''}
-          className="text-sm text-amber-900 dark:text-amber-200"
-        >
+        <p role="alert" data-reply-error={draft.lastError?.reason ?? ''} className="text-sm text-warning">
           {draft.lastError?.note || 'It was not posted.'} You can approve it again.
         </p>
       ) : null}
@@ -150,9 +146,7 @@ export function ReplyDrafts({
     <section data-panel="replies" className="flex flex-col overflow-hidden rounded-xl border bg-card">
       <div className="flex flex-col gap-1 border-b px-5 py-3.5">
         <h2 className="text-base font-semibold">{title}</h2>
-        <span className="text-[13px] text-muted-foreground">
-          Posted on GitHub in your name only if you approve them.
-        </span>
+        <span className="text-xs text-muted-foreground">Posted on GitHub in your name only if you approve them.</span>
       </div>
       {!drafts ? (
         <p data-replies="unavailable" className="px-5 py-4 text-sm text-muted-foreground">

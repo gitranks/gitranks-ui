@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { readFeedComputedAt } from '../actions';
 import { useOnboardedPush } from './use-onboarded-push';
+import { Button } from '@/components/ui/button';
 import {
   MATCHING_CONTINUE_MS,
   MATCHING_GIVE_UP_MS,
@@ -21,10 +22,10 @@ export const ISSUES_PATH: Route = '/contribute/issues';
 
 /** Where each chip floats beside the orb; on a phone they sit closer in. */
 const CHIP_PLACES = [
-  'top-[22px] -left-[58px] sm:-left-[86px]',
-  'top-[46px] -right-[72px] sm:-right-[104px]',
-  'bottom-[18px] -left-[44px] sm:-left-[64px]',
-  '-bottom-[14px] -right-[60px] sm:bottom-[6px] sm:-right-[90px]',
+  'top-5.5 -left-14.5 sm:-left-21.5',
+  'top-11.5 -right-18 sm:-right-26',
+  'bottom-4.5 -left-11 sm:-left-16',
+  '-bottom-3.5 -right-15 sm:bottom-1.5 sm:-right-22.5',
 ];
 
 /**
@@ -96,24 +97,24 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
       {/* The page's glow, behind the bar and the content. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_40%,var(--color-violet-50)_0,transparent_60%)] dark:bg-[radial-gradient(circle_at_50%_40%,color-mix(in_oklab,var(--color-violet-950)_60%,transparent)_0,transparent_60%)]"
+        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_40%,var(--color-brand-soft)_0,transparent_60%)]"
       />
       <div aria-hidden="true" className="relative size-42">
         {[0, 0.8, 1.6].map((delay) => (
           <span
             key={delay}
-            className="absolute inset-0 rounded-full border-2 border-violet-400 opacity-0 motion-safe:animate-contribute-ring motion-reduce:opacity-40"
+            className="absolute inset-0 rounded-full border-2 border-primary/60 opacity-0 motion-safe:animate-contribute-ring motion-reduce:opacity-40"
             style={{ animationDelay: `${delay}s` }}
           />
         ))}
-        <span className="absolute inset-[34px] flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_12px_40px_rgba(124,58,237,0.35)]">
+        <span className="absolute inset-8.5 flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/35">
           {done ? <Check className="size-11" strokeWidth={2.6} /> : <Search className="size-10" strokeWidth={2} />}
         </span>
         {languages.slice(0, CHIP_PLACES.length).map((language, index) => (
           <span
             key={language}
             className={cn(
-              'absolute rounded-full border bg-background px-2.5 py-1 text-xs font-semibold whitespace-nowrap sm:text-[13px] motion-safe:animate-contribute-float',
+              'absolute rounded-full border bg-background px-2.5 py-1 text-xs font-semibold whitespace-nowrap motion-safe:animate-contribute-float',
               CHIP_PLACES[index],
             )}
             style={{ animationDelay: `${index * 0.6}s` }}
@@ -124,37 +125,33 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
       </div>
 
       <div className="flex flex-col items-center gap-2.5 text-center">
-        <h1
-          ref={headline}
-          tabIndex={-1}
-          className="text-[28px] font-extrabold tracking-tight outline-none sm:text-[34px]"
-        >
+        <h1 ref={headline} tabIndex={-1} className="text-2xl font-bold tracking-tight outline-none md:text-3xl">
           {done ? 'Your first issues are ready' : 'Matching you with issues'}
         </h1>
-        <p className="max-w-[520px] text-muted-foreground">
+        <p className="max-w-lg text-muted-foreground">
           {done
             ? 'Ranked by your languages and the repos you know. Your agent starts on one of the top ones shortly.'
             : 'This takes a few seconds. We look for issues maintainers want solved, in repos that merge outside work.'}
         </p>
       </div>
 
-      <ol aria-live="polite" className="flex w-full max-w-[440px] flex-col gap-3">
+      <ol aria-live="polite" className="flex w-full max-w-md flex-col gap-3">
         {lines.slice(0, Math.min(ticks + 1, MATCHING_LINES)).map((line, index) => {
           const ticked = index < ticks;
           return (
             <li
               key={line}
               data-line={ticked ? 'done' : 'active'}
-              className="flex items-center gap-3 text-[15px] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-450"
+              className="flex items-center gap-3 text-base motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-450"
             >
               {ticked ? (
-                <span className="flex size-[22px] flex-none items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400">
+                <span className="flex size-5.5 flex-none items-center justify-center rounded-full bg-positive/10 text-positive">
                   <Check aria-hidden="true" className="size-3.5" strokeWidth={3} />
                 </span>
               ) : (
                 <span
                   aria-hidden="true"
-                  className="m-0.5 size-[18px] flex-none rounded-full border-[2.5px] border-violet-200 border-t-primary motion-safe:animate-spin dark:border-violet-900 dark:border-t-primary"
+                  className="m-0.5 size-4.5 flex-none rounded-full border-2 border-primary/20 border-t-primary motion-safe:animate-spin"
                 />
               )}
               <span className={ticked ? undefined : 'font-semibold'}>
@@ -167,19 +164,20 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
       </ol>
 
       {done ? (
-        <Link
-          href={ISSUES_PATH}
-          prefetch={false}
-          onClick={(event) => {
-            // The way on reads the bar again, for the tabs; a new tab or window loads it whole anyway.
-            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-            event.preventDefault();
-            goOn();
-          }}
-          className="inline-flex min-h-12 items-center rounded-[10px] bg-primary px-[22px] font-semibold text-primary-foreground hover:bg-primary/90"
-        >
-          See my issues
-        </Link>
+        <Button asChild size="lg" className="min-h-12 px-5.5 text-base font-semibold">
+          <Link
+            href={ISSUES_PATH}
+            prefetch={false}
+            onClick={(event) => {
+              // The way on reads the bar again, for the tabs; a new tab or window loads it whole anyway.
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+              event.preventDefault();
+              goOn();
+            }}
+          >
+            See my issues
+          </Link>
+        </Button>
       ) : null}
     </div>
   );

@@ -16,7 +16,7 @@ export function ReviewsReady({ attempts }: { attempts: ContributeAttempt[] | und
     <section
       aria-labelledby="reviews-ready"
       data-reviews-ready={ready.length}
-      className="flex flex-col gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 dark:border-violet-900 dark:bg-violet-950/40"
+      className="flex flex-col gap-2 rounded-xl border border-primary/20 bg-brand-soft px-4 py-3"
     >
       <h2 id="reviews-ready" className="font-semibold">
         {ready.length === 1 ? 'A change is ready for your review' : `${ready.length} changes are ready for your review`}
@@ -30,7 +30,7 @@ export function ReviewsReady({ attempts }: { attempts: ContributeAttempt[] | und
               </span>{' '}
               {attemptTitleOf(attempt)}
             </span>
-            <Link href={attemptHref(attempt.attemptId)} prefetch={false} className="text-sm font-semibold text-primary">
+            <Link href={attemptHref(attempt.attemptId)} prefetch={false} className="text-sm font-semibold text-link">
               Review →
             </Link>
           </li>

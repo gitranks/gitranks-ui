@@ -5,10 +5,10 @@ import { cn } from '@/lib/utils';
 export const LARGE_FILE_LINES = 120;
 
 const LINE_CLASSES: Record<PatchLineKind, string> = {
-  hunk: 'bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300',
+  hunk: 'bg-brand-soft text-brand-soft-foreground',
   context: 'text-foreground/80',
-  add: 'bg-green-50 text-green-900 dark:bg-green-950/40 dark:text-green-200',
-  del: 'bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200',
+  add: 'bg-positive/10 text-foreground',
+  del: 'bg-negative/10 text-foreground',
   note: 'text-muted-foreground italic',
   commit: 'border-y bg-muted/60 font-sans text-xs font-medium text-muted-foreground',
 };
@@ -22,9 +22,8 @@ const STATUS_LABELS: Record<PatchFile['status'], string | null> = {
 
 function Counts({ added, removed }: { added: number; removed: number }) {
   return (
-    <span className="font-mono text-[13px] whitespace-nowrap">
-      <span className="text-green-700 dark:text-green-400">+{added}</span>{' '}
-      <span className="text-red-700 dark:text-red-400">−{removed}</span>
+    <span className="font-mono text-xs whitespace-nowrap">
+      <span className="text-positive">+{added}</span> <span className="text-negative">−{removed}</span>
     </span>
   );
 }
@@ -49,7 +48,7 @@ function FileDiff({ file, room }: { file: PatchFile; room: number }) {
       data-truncated={cut}
       className="group border-b last:border-b-0"
     >
-      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2.5 bg-muted/50 px-5 py-2.5 font-mono text-[13px] [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2.5 bg-muted/50 px-5 py-2.5 font-mono text-xs [&::-webkit-details-marker]:hidden">
         <span className="flex min-w-0 items-center gap-2">
           <span aria-hidden="true" className="text-muted-foreground transition-transform group-open:rotate-90">
             ›
@@ -70,7 +69,7 @@ function FileDiff({ file, room }: { file: PatchFile; room: number }) {
         </span>
       </summary>
       {shown.length ? (
-        <div className="overflow-x-auto font-mono text-[12.5px] leading-[1.65]">
+        <div className="overflow-x-auto font-mono text-xs leading-relaxed">
           <div className="min-w-max">
             {shown.map((line, index) => (
               <div
@@ -122,7 +121,7 @@ export function DiffViewer({ patch, title = 'Diff' }: { patch: string | null | u
         {parsed.files.length ? (
           <span className="flex items-center gap-1.5">
             <Counts added={parsed.added} removed={parsed.removed} />
-            <span className="font-mono text-[13px] text-muted-foreground">
+            <span className="font-mono text-xs text-muted-foreground">
               · {parsed.files.length} file{parsed.files.length === 1 ? '' : 's'}
             </span>
           </span>

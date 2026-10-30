@@ -86,17 +86,17 @@ const RISE_DELAYS = [
 ];
 
 const CARD = cn(
-  'flex min-w-0 flex-col gap-3 rounded-[14px] border bg-card p-4',
+  'flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4',
   'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-450 motion-safe:ease-out motion-safe:fill-mode-both',
   // On a phone the cards are rows of one bordered list: the name and the button on a line, the text below.
   'max-sm:flex-row max-sm:flex-wrap max-sm:items-center max-sm:gap-x-3 max-sm:gap-y-2.5 max-sm:rounded-none max-sm:border-x-0 max-sm:border-t-0 max-sm:p-3.5 max-sm:last:border-b-0',
 );
 
+// Styled here rather than with the shared Button, whose transition is not behind motion-safe.
 const BUTTON =
-  'inline-flex min-h-10 items-center gap-1.5 self-start rounded-[10px] border px-3 text-sm font-semibold motion-safe:transition-colors max-sm:ml-auto max-sm:self-center';
-const BUTTON_IDLE = 'border-zinc-300 bg-background text-foreground hover:bg-accent dark:border-zinc-700';
-const BUTTON_ON =
-  'border-violet-300 bg-violet-50 text-violet-800 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-200 dark:hover:bg-violet-950';
+  'inline-flex min-h-10 items-center gap-1.5 self-start rounded-lg border px-3 text-sm font-semibold motion-safe:transition-colors max-sm:ml-auto max-sm:self-center';
+const BUTTON_IDLE = 'bg-background text-foreground hover:bg-accent';
+const BUTTON_ON = 'border-primary/40 bg-brand-soft text-brand-soft-foreground hover:bg-primary/10';
 
 /**
  * The providers that are coming, each with a "Notify me" that counts towards which comes first. A visitor's opens the
@@ -131,11 +131,11 @@ export function ComingSoon({
 
   return (
     <section aria-labelledby="coming-soon-title" className="border-b" data-landing="coming-soon">
-      <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-4 py-10 sm:py-14">
+      <div className="mx-auto w-full max-w-7xl px-4 flex flex-col gap-6 py-10 sm:py-14">
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
-          <div className="flex max-w-[720px] flex-col gap-2">
-            <span className="text-[13px] font-semibold text-violet-700 dark:text-violet-300">Coming soon</span>
-            <h2 id="coming-soon-title" className="text-[22px] font-extrabold tracking-[-0.01em] sm:text-[26px]">
+          <div className="flex max-w-3xl flex-col gap-2">
+            <span className="text-xs font-semibold text-primary">Coming soon</span>
+            <h2 id="coming-soon-title" className="text-2xl font-bold tracking-tight">
               More ways to spend credits you already have
             </h2>
             <p className="text-muted-foreground">
@@ -143,10 +143,10 @@ export function ComingSoon({
               count every request, and the most asked for comes first.
             </p>
           </div>
-          <span className="text-[13px] text-muted-foreground">{comingSoonNoteOf(viewer)}</span>
+          <span className="text-xs text-muted-foreground">{comingSoonNoteOf(viewer)}</span>
         </div>
 
-        <ul className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 max-sm:gap-0 max-sm:overflow-hidden max-sm:rounded-[14px] max-sm:border">
+        <ul className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 max-sm:gap-0 max-sm:overflow-hidden max-sm:rounded-xl max-sm:border">
           {COMING_SOON.map(({ provider, mono, title, kind, text }, index) => {
             const on = noted.has(provider);
             const Icon = PROVIDER_ICONS[provider];
@@ -155,16 +155,16 @@ export function ComingSoon({
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     aria-hidden="true"
-                    className="flex size-[34px] flex-none items-center justify-center rounded-[9px] bg-muted text-[13px] font-bold text-foreground/80"
+                    className="flex size-8.5 flex-none items-center justify-center rounded-md bg-muted text-xs font-bold text-foreground/80"
                   >
-                    {Icon ? <Icon className="size-[18px]" /> : mono}
+                    {Icon ? <Icon className="size-4.5" /> : mono}
                   </span>
                   <span className="flex min-w-0 flex-col">
                     <span className="font-semibold">{title}</span>
                     <span className="text-xs text-muted-foreground">{kind}</span>
                   </span>
                 </div>
-                <span className="flex-1 text-sm text-foreground/80 max-sm:order-3 max-sm:basis-full max-sm:pl-[46px]">
+                <span className="flex-1 text-sm text-foreground/80 max-sm:order-3 max-sm:basis-full max-sm:pl-11.5">
                   {text}
                 </span>
                 {visitor ? (
@@ -173,7 +173,7 @@ export function ComingSoon({
                     label={`Notify me when ${title} opens`}
                     className={cn(BUTTON, BUTTON_IDLE)}
                   >
-                    <BellIcon aria-hidden="true" className="size-[15px]" />
+                    <BellIcon aria-hidden="true" className="size-3.75" />
                     Notify me
                   </SignInButton>
                 ) : (
@@ -187,10 +187,10 @@ export function ComingSoon({
                   >
                     {on ? (
                       <span aria-hidden="true" className="inline-flex motion-safe:animate-contribute-pop">
-                        <CheckIcon strokeWidth={2.6} className="size-[15px]" />
+                        <CheckIcon strokeWidth={2.6} className="size-3.75" />
                       </span>
                     ) : (
-                      <BellIcon aria-hidden="true" className="size-[15px]" />
+                      <BellIcon aria-hidden="true" className="size-3.75" />
                     )}
                     {on ? 'On the list' : 'Notify me'}
                   </button>

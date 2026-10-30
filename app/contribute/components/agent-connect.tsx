@@ -9,6 +9,7 @@ import { createMcpToken, readAgentConnected, revokeMcpToken } from '../actions';
 import { CodeBlock } from './code-block';
 import { MakeNewToken, REPLACE_NOTE, TokenReady } from './token-ready';
 import { useOnboardedPush } from './use-onboarded-push';
+import { Button } from '@/components/ui/button';
 import {
   AGENT_HELLO_PROMPT,
   AGENT_HINT_MS,
@@ -36,12 +37,11 @@ import { cn } from '@/lib/utils';
 /** Where step 2 stands: no token yet, the token shown with its setup, or the setup done. */
 export type AgentStage = 'none' | 'token' | 'added';
 
-const card = 'flex flex-col gap-3.5 rounded-2xl bg-card p-[18px] sm:p-[22px]';
+const card = 'flex flex-col gap-3.5 rounded-2xl bg-card p-4.5 sm:p-5.5';
 const activeCard = 'border-2 border-primary';
 const idleCard = 'border';
-const cardTitle = 'text-[17px] font-bold';
-const plainButton =
-  'min-h-11 rounded-[10px] border border-input bg-background px-3.5 text-sm font-semibold hover:bg-accent disabled:opacity-50';
+const cardTitle = 'text-lg font-bold';
+const plainButton = 'min-h-11 px-3.5 font-semibold';
 
 export type AgentConnectViewProps = {
   client: McpClient;
@@ -119,17 +119,15 @@ export function AgentConnectView({
   }, [focus]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[880px] flex-col gap-4 sm:gap-5" data-connect-path="agent">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 sm:gap-5" data-connect-path="agent">
       <div className="flex flex-col gap-2 pb-1">
-        <span className="text-[13px] font-semibold text-violet-700 dark:text-violet-300">
-          About a minute · no Claude key needed
-        </span>
-        <h1 className="text-[28px] font-extrabold tracking-tight sm:text-[34px]">Connect your own agent</h1>
+        <span className="text-xs font-semibold text-primary">About a minute · no Claude key needed</span>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Connect your own agent</h1>
         <p className="text-foreground/80">
           Your agent asks GitRanks for an issue, fixes it on your machine and hands the change back. You review it here
           before anything reaches GitHub.
         </p>
-        <Link href={CONNECT_KEY_PATH} prefetch={false} className="text-sm font-semibold text-primary">
+        <Link href={CONNECT_KEY_PATH} prefetch={false} className="text-sm font-semibold text-link">
           Use your Claude key instead →
         </Link>
       </div>
@@ -147,9 +145,9 @@ export function AgentConnectView({
               aria-pressed={each === client}
               onClick={() => onClient(each)}
               className={cn(
-                'min-h-11 rounded-[10px] px-4 text-sm font-semibold transition-colors',
+                'min-h-11 rounded-lg px-4 text-sm font-semibold transition-colors',
                 each === client
-                  ? 'border-2 border-primary bg-violet-50 dark:bg-violet-950/40'
+                  ? 'border-2 border-primary bg-brand-soft'
                   : 'border border-input bg-background hover:bg-accent',
               )}
             >
@@ -186,11 +184,7 @@ export function AgentConnectView({
           <div className="flex flex-col gap-1.5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="flex items-center gap-2.5 text-sm">
-                <CheckIcon
-                  aria-hidden="true"
-                  className="size-[18px] flex-none text-green-700 dark:text-green-400"
-                  strokeWidth={2.6}
-                />
+                <CheckIcon aria-hidden="true" className="size-4.5 flex-none text-positive" strokeWidth={2.6} />
                 {shown || connected ? (
                   <span>
                     <span className="font-semibold">Token created</span> and GitRanks added to {name}
@@ -209,39 +203,40 @@ export function AgentConnectView({
                 )}
               </span>
               {connected ? null : shown ? (
-                <button type="button" onClick={onReopen} className={plainButton}>
+                <Button type="button" variant="outline" onClick={onReopen} className={plainButton}>
                   Show the setup again
-                </button>
+                </Button>
               ) : (
                 <MakeNewToken onReplace={onReplace} pending={working} />
               )}
             </div>
             {shown || connected ? null : (
-              <span className="text-[13px] text-muted-foreground">We showed it only once. {REPLACE_NOTE}</span>
+              <span className="text-xs text-muted-foreground">We showed it only once. {REPLACE_NOTE}</span>
             )}
           </div>
         ) : (
           <div className="flex flex-col items-start gap-3">
-            <p className="max-w-[640px] text-sm text-foreground/80">
+            <p className="max-w-2xl text-sm text-foreground/80">
               Your agent signs in to GitRanks with this token, as you: it finds issues, claims one, hands back the patch
               and sees your contributions. It can&apos;t open a pull request or spend anything, and you can revoke it in
               Settings.
             </p>
-            <button
+            <Button
               type="button"
+              size="lg"
               onClick={onCreate}
               disabled={working || full}
-              className="min-h-12 flex-none rounded-[10px] bg-primary px-[22px] text-[15px] font-semibold whitespace-nowrap text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="min-h-12 flex-none px-5.5 text-base font-semibold"
             >
               {working ? 'Creating…' : 'Create a GitRanks token'}
-            </button>
-            <span className="text-[13px] text-muted-foreground">
+            </Button>
+            <span className="text-xs text-muted-foreground">
               {revokedOnly ? (
                 <>We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it in Settings.</>
               ) : full ? (
                 <>
                   You have {MCP_TOKENS_MAX} live tokens.{' '}
-                  <Link href="/contribute/settings#own-agent" prefetch={false} className="font-semibold text-primary">
+                  <Link href="/contribute/settings#own-agent" prefetch={false} className="font-semibold text-link">
                     Revoke one in Settings
                   </Link>{' '}
                   to create another.
@@ -257,13 +252,13 @@ export function AgentConnectView({
         )}
         {error ? (
           <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1" data-agent-error>
-            <p className="text-sm font-medium text-red-700 dark:text-red-400">
+            <p className="text-sm font-medium text-destructive">
               {revokedOnly ? `Your old token is revoked, and a new one wasn't made. ${error}` : error}
             </p>
             {revokedOnly ? (
-              <button type="button" onClick={onCreate} disabled={working} className={plainButton}>
+              <Button type="button" variant="outline" onClick={onCreate} disabled={working} className={plainButton}>
                 {working ? 'Creating…' : 'Try again'}
-              </button>
+              </Button>
             ) : null}
           </div>
         ) : null}
@@ -286,7 +281,7 @@ export function AgentConnectView({
             <div
               role="status"
               aria-live="polite"
-              className="flex flex-col gap-2.5 rounded-xl border border-dashed border-violet-300 bg-muted/40 px-4 py-3.5 dark:border-violet-800"
+              className="flex flex-col gap-2.5 rounded-xl border border-dashed border-primary/40 bg-muted/40 px-4 py-3.5"
             >
               <div className="flex items-center gap-3.5">
                 <span aria-hidden="true" className="relative size-3 flex-none">
@@ -309,7 +304,7 @@ export function AgentConnectView({
               </div>
               {hint && !connected ? (
                 // In the status region, so it is announced when it appears.
-                <span className="text-[13px] text-muted-foreground" data-agent-hint>
+                <span className="text-xs text-muted-foreground" data-agent-hint>
                   Nothing yet? The variable must be set where {name} runs. In that terminal,{' '}
                   <code className="font-mono">{mcpTokenCheckOf(os)}</code> should print your token. If it prints
                   nothing, open a new terminal, check again, and start {name} from there.{' '}

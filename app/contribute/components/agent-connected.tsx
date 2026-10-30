@@ -24,11 +24,11 @@ const rise =
 
 /** Where each dot of the burst flies, and its colour. */
 const BURST = [
-  { dx: '-54px', dy: '-30px', tone: 'bg-violet-400' },
-  { dx: '50px', dy: '-40px', tone: 'bg-emerald-400' },
-  { dx: '58px', dy: '26px', tone: 'bg-violet-600' },
-  { dx: '-46px', dy: '40px', tone: 'bg-amber-400' },
-  { dx: '0px', dy: '-60px', tone: 'bg-blue-400' },
+  { dx: '-54px', dy: '-30px', tone: 'bg-brand-mark' },
+  { dx: '50px', dy: '-40px', tone: 'bg-positive' },
+  { dx: '58px', dy: '26px', tone: 'bg-primary' },
+  { dx: '-46px', dy: '40px', tone: 'bg-warning' },
+  { dx: '0px', dy: '-60px', tone: 'bg-series-1' },
 ];
 
 /** B2's top, once, after the own-agent path: a check that draws itself with a small burst. */
@@ -47,13 +47,13 @@ export function AgentWelcome({ client }: { client: McpClient }) {
             style={{ '--dx': dx, '--dy': dy } as React.CSSProperties}
           />
         ))}
-        <span className="absolute inset-0 flex items-center justify-center rounded-full bg-green-700 shadow-[0_12px_32px_rgba(21,128,61,0.3)] motion-safe:animate-contribute-pop">
+        <span className="absolute inset-0 flex items-center justify-center rounded-full bg-positive text-background shadow-xl shadow-positive/30 motion-safe:animate-contribute-pop">
           <svg
             aria-hidden="true"
             className="size-11"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#ffffff"
+            stroke="currentColor"
             strokeWidth={2.8}
           >
             <path
@@ -66,7 +66,7 @@ export function AgentWelcome({ client }: { client: McpClient }) {
         </span>
       </div>
       <div className="flex min-w-0 flex-[1_1_400px] flex-col gap-1.5">
-        <h1 className="text-[26px] font-extrabold tracking-tight sm:text-[32px]">Your agent is connected</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Your agent is connected</h1>
         <p className="text-foreground/80">
           {MCP_CLIENT_NAMES[client]} called GitRanks a moment ago. It can already see the issues picked for you.
         </p>
@@ -105,8 +105,8 @@ function FirstPick({ issue }: { issue: ContributeIssue }) {
   const url = githubUrlOf(issue.url);
   const facts = factsOf(issue);
   return (
-    <article data-issue={issue.issueId} className="flex min-w-0 flex-col gap-2 rounded-[14px] border bg-card p-4">
-      <span className="truncate font-mono text-[13px] text-muted-foreground">
+    <article data-issue={issue.issueId} className="flex min-w-0 flex-col gap-2 rounded-xl border bg-card p-4">
+      <span className="truncate font-mono text-xs text-muted-foreground">
         {issue.nameWithOwner} · #{issue.number}
       </span>
       {url ? (
@@ -116,14 +116,14 @@ function FirstPick({ issue }: { issue: ContributeIssue }) {
       ) : (
         <span className="font-semibold">{title}</span>
       )}
-      {facts ? <span className="text-[13px] text-muted-foreground">{facts}</span> : null}
+      {facts ? <span className="text-xs text-muted-foreground">{facts}</span> : null}
     </article>
   );
 }
 
 function PicksNote({ title, text }: { title: string; text: string }) {
   return (
-    <div className="flex flex-col gap-1 rounded-[14px] border border-dashed px-5 py-6 text-center">
+    <div className="flex flex-col gap-1 rounded-xl border border-dashed px-5 py-6 text-center">
       <span className="font-semibold">{title}</span>
       <span className="text-sm text-muted-foreground">{text}</span>
     </div>
@@ -167,7 +167,7 @@ export function AgentFirstPicks({ page }: { page: ContributeIssuePage | null | u
         <h2 id="agent-first-picks" className="text-lg font-bold">
           What your agent sees first
         </h2>
-        <Link href={ISSUES_PATH} prefetch={false} className="text-sm font-semibold text-primary">
+        <Link href={ISSUES_PATH} prefetch={false} className="text-sm font-semibold text-link">
           All issues for you →
         </Link>
       </div>
@@ -198,12 +198,12 @@ export function AgentNextSteps({
       aria-labelledby="agent-next-title"
       data-agent-next
       className={cn(
-        'flex flex-col gap-[18px] rounded-[18px] border border-violet-200 bg-violet-50/40 p-[18px] sm:p-6 dark:border-violet-900 dark:bg-violet-950/20',
+        'flex flex-col gap-4.5 rounded-2xl border border-primary/20 bg-brand-soft/50 p-4.5 sm:p-6',
         rise,
         'motion-safe:delay-900',
       )}
     >
-      <Heading id="agent-next-title" className="text-xl font-extrabold">
+      <Heading id="agent-next-title" className="text-xl font-bold">
         What happens next
       </Heading>
       <div className="flex flex-col gap-2">
@@ -219,9 +219,9 @@ export function AgentNextSteps({
               key={title}
               data-step="1"
               data-agent-step="paused"
-              className="flex flex-col gap-1.5 rounded-[14px] border-2 border-primary bg-background p-4"
+              className="flex flex-col gap-1.5 rounded-xl border-2 border-primary bg-background p-4"
             >
-              <span className="text-[13px] font-semibold text-violet-700 dark:text-violet-300">1 · paused by you</span>
+              <span className="text-xs font-semibold text-primary">1 · paused by you</span>
               <span className="font-bold">Contributing is paused</span>
               <span className="text-sm text-foreground/80">
                 Your agent can&apos;t claim an issue until you resume. Your token and picks are kept.
@@ -231,23 +231,19 @@ export function AgentNextSteps({
               </div>
             </li>
           ) : (
-            <li
-              key={title}
-              data-step={index + 1}
-              className="flex flex-col gap-1.5 rounded-[14px] border bg-background p-4"
-            >
-              <span className="text-[13px] font-semibold text-violet-700 dark:text-violet-300">{title}</span>
+            <li key={title} data-step={index + 1} className="flex flex-col gap-1.5 rounded-xl border bg-background p-4">
+              <span className="text-xs font-semibold text-primary">{title}</span>
               <span className="text-sm text-foreground/80">{text}</span>
             </li>
           ),
         )}
       </ol>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-violet-100 pt-3.5 text-sm dark:border-violet-900/60">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-primary/20 pt-3.5 text-sm">
         <span className="text-foreground/80">
           <span className="font-semibold text-foreground">We guessed what you&apos;d like:</span>{' '}
           {guessedLineOf(view, { spend: false })}
         </span>
-        <Link href={WORK_SETTINGS_PATH} prefetch={false} className="font-semibold text-primary">
+        <Link href={WORK_SETTINGS_PATH} prefetch={false} className="font-semibold text-link">
           Change it in Settings →
         </Link>
       </div>

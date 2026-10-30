@@ -63,8 +63,8 @@ export function OverviewScreen({
   return (
     <main
       className={cn(
-        'mx-auto flex w-full max-w-[1180px] flex-col px-4 pb-12',
-        welcome ? 'gap-[22px] pt-6 sm:gap-7 sm:pt-10' : 'gap-10 pt-8',
+        'mx-auto w-full max-w-7xl px-4 flex flex-col pb-12',
+        welcome ? 'gap-5.5 pt-6 sm:gap-7 sm:pt-10' : 'gap-10 pt-8',
       )}
     >
       {welcome ? <AgentWelcome client={welcome} /> : <h1 className="sr-only">Overview</h1>}
@@ -94,11 +94,11 @@ export function OverviewScreen({
           <span className="font-semibold text-foreground">Maintain a repo?</span> We open at most one PR in it at a
           time, never more than four a month, and pause after two are closed in a row. Every PR says it was made with
           AI.{' '}
-          <Link href={MAINTAINERS_PATH} prefetch={false} className="font-semibold text-primary">
+          <Link href={MAINTAINERS_PATH} prefetch={false} className="font-semibold text-link">
             Opt it out →
           </Link>
         </p>
-        <Link href={ABOUT_PATH} prefetch={false} className="font-semibold text-primary">
+        <Link href={ABOUT_PATH} prefetch={false} className="font-semibold text-link">
           How Contribute works
         </Link>
       </footer>

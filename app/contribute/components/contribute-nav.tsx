@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 import { SignInButton } from './sign-in-dialog';
+import { Logo } from '@/components/logo/logo';
 import SigninButton from '@/components/signin-button/signin-button';
+import { buttonVariants } from '@/components/ui/button';
 import { isMaintainersPath, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import { isAsVisitor } from '@/lib/contribute/contribute-state';
 import { cn } from '@/lib/utils';
@@ -97,23 +99,24 @@ export function ContributeBarView({
 }) {
   return (
     <header className="border-b bg-background">
-      <div className="mx-auto flex min-h-16 w-full max-w-[1180px] flex-wrap items-center gap-x-7 px-4 md:flex-nowrap">
+      {/* The site header's row: p-4 around 36px controls, 68px tall. */}
+      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-x-3 p-4 sm:gap-x-7 md:flex-nowrap">
         <Link
           href={home}
           prefetch={false}
           aria-label="GitRanks Contribute, home"
-          className="flex flex-none flex-col py-2.5 leading-none"
+          className="flex h-9 flex-none items-center gap-2"
         >
-          <span className="text-lg font-extrabold tracking-tight">GitRanks</span>
-          <span className="mt-[3px] text-[10px] font-bold uppercase tracking-[0.16em] text-violet-700 dark:text-violet-300">
-            Contribute
-          </span>
+          {/* gitranks' own logo, at the Header's size, and the product's name beside it. */}
+          <Logo className="h-[22px]" />
+          <span className="text-sm font-semibold text-primary">Contribute</span>
         </Link>
 
         {tabs ? (
+          // The tabs reach into the row's padding, so the current one's underline sits on the bar's bottom border.
           <nav
             aria-label="Contribute"
-            className="flex gap-1 self-stretch text-sm max-md:order-3 max-md:basis-full max-md:overflow-x-auto"
+            className="flex gap-1 self-stretch text-sm max-md:order-3 max-md:-mb-4 max-md:basis-full max-md:overflow-x-auto max-md:[scrollbar-width:none] md:-my-4"
           >
             {CONTRIBUTE_TABS.map(({ href, label }) => {
               const active = current === href;
@@ -137,13 +140,14 @@ export function ContributeBarView({
           </nav>
         ) : null}
 
-        <div className="ml-auto flex items-center gap-[18px] text-sm">
+        {/* The links keep a 44px target; -my-1 lets them sit in the 36px row. */}
+        <div className="ml-auto flex h-9 items-center gap-3 text-sm sm:gap-4.5">
           {settings ? (
             <Link
               href="/contribute/settings"
               prefetch={false}
               aria-current={current === '/contribute/settings' ? 'page' : undefined}
-              className="inline-flex min-h-11 items-center font-medium text-muted-foreground hover:text-foreground"
+              className="-my-1 inline-flex min-h-11 items-center font-medium text-muted-foreground hover:text-foreground"
             >
               Settings
             </Link>
@@ -152,15 +156,16 @@ export function ContributeBarView({
             href="/"
             prefetch={false}
             aria-label="Back to GitRanks"
-            className="inline-flex min-h-11 items-center gap-1.5 font-medium text-muted-foreground hover:text-foreground"
+            className="-my-1 inline-flex min-h-11 items-center gap-1.5 font-medium text-muted-foreground hover:text-foreground"
           >
             <ChevronLeftIcon aria-hidden="true" className="size-4" />
-            GitRanks
+            {/* On a phone the chevron alone, so the bar stays one row. */}
+            <span className="max-sm:hidden">GitRanks</span>
           </Link>
           {account === 'sign-in' ? (
             <SignInButton
               preview={preview}
-              className="inline-flex min-h-10 items-center rounded-[10px] border px-3.5 font-semibold hover:bg-accent"
+              className={buttonVariants({ variant: 'outline', className: 'font-semibold' })}
             >
               Sign in
             </SignInButton>

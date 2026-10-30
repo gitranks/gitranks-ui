@@ -99,7 +99,7 @@ export function IssuesScreen({
       <Empty
         title="No issues match these filters"
         text={
-          <Link href="/contribute/issues" prefetch={false} className="font-semibold text-primary">
+          <Link href="/contribute/issues" prefetch={false} className="font-semibold text-link">
             Clear the filters
           </Link>
         }
@@ -110,7 +110,7 @@ export function IssuesScreen({
         text={
           <>
             New picks arrive every day. Widen what you work on in{' '}
-            <Link href="/contribute/settings#work" prefetch={false} className="font-semibold text-primary">
+            <Link href="/contribute/settings#work" prefetch={false} className="font-semibold text-link">
               Settings
             </Link>
             .
@@ -126,7 +126,7 @@ export function IssuesScreen({
         ))}
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           {query.after ? (
-            <Link href={issuesHref({ ...query, after: undefined }) as Route} prefetch={false} className="text-primary">
+            <Link href={issuesHref({ ...query, after: undefined }) as Route} prefetch={false} className="text-link">
               ← Back to the best matches
             </Link>
           ) : (
@@ -136,7 +136,7 @@ export function IssuesScreen({
             <Link
               href={issuesHref({ ...query, after: page.next }) as Route}
               prefetch={false}
-              className="font-semibold text-primary"
+              className="font-semibold text-link"
             >
               More issues →
             </Link>
@@ -166,7 +166,7 @@ export function IssuesScreen({
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-1">
-              <Heading className={guided ? 'text-xl font-bold' : 'text-[28px] font-bold tracking-tight'}>
+              <Heading className={guided ? 'text-xl font-bold' : 'text-2xl font-bold tracking-tight'}>
                 {guided ? 'Picked for you' : 'Issues for you'}
               </Heading>
               <span className="text-sm text-muted-foreground" data-total={page?.total ?? ''}>
@@ -182,7 +182,7 @@ export function IssuesScreen({
         </div>
         <aside className="flex min-w-0 flex-[1_1_280px] flex-col gap-3.5">
           <section className="flex flex-col gap-2.5 rounded-xl border bg-card p-4.5">
-            <h2 className="text-[15px] font-semibold">This cycle</h2>
+            <h2 className="text-base font-semibold">This cycle</h2>
             {spend && settings ? (
               <>
                 <div className="flex items-baseline gap-1.5">
@@ -198,14 +198,14 @@ export function IssuesScreen({
             ) : (
               <span className="text-sm text-muted-foreground">
                 Nothing is spent until a key is connected.{' '}
-                <Link href="/contribute/connect" prefetch={false} className="font-semibold text-primary">
+                <Link href="/contribute/connect" prefetch={false} className="font-semibold text-link">
                   Connect Claude
                 </Link>
               </span>
             )}
           </section>
           <section className="flex flex-col gap-2 rounded-xl border bg-card p-4.5">
-            <h2 className="text-[15px] font-semibold">How picks work</h2>
+            <h2 className="text-base font-semibold">How picks work</h2>
             <span className="text-sm text-muted-foreground">
               Issues come from active repos that merge outside work, matched to your languages and topics. Skip one and
               it is not picked for you again. Size is shown where it is known.

@@ -15,6 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { CONTRIBUTE_PROVIDER } from '@/lib/auth-providers';
 import { PR_BODY_MAX, PR_TITLE_MAX, prBodyPreview, prFooterText } from '@/lib/contribute/attempt-format';
 import type { ContributeDcoMode } from '@/lib/contribute/contribute.types';
@@ -27,9 +29,6 @@ import {
   tabStoreOf,
   takePendingApproval,
 } from '@/lib/contribute/grant-resume';
-
-const fieldClass =
-  'w-full rounded-lg border border-input bg-background px-3 py-2 text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
 
 export type PrFormProps = {
   attemptId: string;
@@ -162,40 +161,40 @@ export function PrForm({
         event.preventDefault();
         if (!titleMissing) setConfirm('approve');
       }}
-      className="flex flex-col gap-3.5 rounded-xl border-[1.5px] border-primary bg-card p-4.5"
+      className="flex flex-col gap-3.5 rounded-xl border-2 border-primary bg-card p-4.5"
     >
-      <h2 className="text-[15px] font-semibold">Your pull request</h2>
+      <h2 className="text-base font-semibold">Your pull request</h2>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={`${id}-title`} className="text-[13px] font-medium">
+        <label htmlFor={`${id}-title`} className="text-sm font-medium">
           Title
         </label>
-        <input
+        <Input
           id={`${id}-title`}
           name="title"
           value={title}
           maxLength={PR_TITLE_MAX}
           required
           onChange={(event) => setTitle(event.target.value)}
-          className={`${fieldClass} text-sm`}
+          className="h-auto rounded-lg py-2 text-sm"
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={`${id}-body`} className="text-[13px] font-medium">
+        <label htmlFor={`${id}-body`} className="text-sm font-medium">
           Description
         </label>
-        <textarea
+        <Textarea
           id={`${id}-body`}
           name="body"
           rows={11}
           value={body}
           maxLength={PR_BODY_MAX}
           onChange={(event) => setBody(event.target.value)}
-          className={`${fieldClass} resize-y font-mono text-[12.5px] leading-normal`}
+          className="field-sizing-fixed resize-y rounded-lg font-mono text-xs leading-normal md:text-xs"
         />
       </div>
       <div className="flex flex-col gap-1.5" data-pr-preview>
-        <span className="text-[13px] font-medium">Preview: the Markdown GitHub gets</span>
-        <div className="flex max-h-72 flex-col gap-2 overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-[12.5px]">
+        <span className="text-sm font-medium">Preview: the Markdown GitHub gets</span>
+        <div className="flex max-h-72 flex-col gap-2 overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs">
           <pre className="whitespace-pre-wrap">{prBodyPreview(body, issueNumber)}</pre>
           <span data-pr-footer className="border-t pt-2 text-muted-foreground">
             {prFooterText(login)}
@@ -206,15 +205,15 @@ export function PrForm({
         </span>
       </div>
       {standing ? (
-        <p data-dco="standing" className="text-[13px] text-muted-foreground">
+        <p data-dco="standing" className="text-xs text-muted-foreground">
           The commits are signed off (DCO) under your standing consent.{' '}
-          <Link href="/contribute/settings" prefetch={false} className="text-primary">
+          <Link href="/contribute/settings" prefetch={false} className="text-link">
             Change it in Settings
           </Link>
           .
         </p>
       ) : (
-        <label data-dco={dcoAsked ? 'asked' : 'ask'} className="flex cursor-pointer items-start gap-2.5 text-[13px]">
+        <label data-dco={dcoAsked ? 'asked' : 'ask'} className="flex cursor-pointer items-start gap-2.5 text-sm">
           <input
             type="checkbox"
             name="dco"
@@ -228,7 +227,7 @@ export function PrForm({
           </span>
         </label>
       )}
-      <span className="text-[12.5px] text-muted-foreground">
+      <span className="text-xs text-muted-foreground">
         Opens on {repo} from your fork, in your name, co-authored by gitranks.
       </span>
       {grantNeeded ? (
@@ -239,7 +238,7 @@ export function PrForm({
               : "This is your first one, so GitHub asks you once to let us open PRs as you. It's one permission,"}{' '}
             <code className="font-mono">public_repo</code>:
           </p>
-          <ul className="flex list-disc flex-col gap-1 pl-[18px]">
+          <ul className="flex list-disc flex-col gap-1 pl-4.5">
             <li>fork the repo into your account and push a branch to it</li>
             <li>open the PR on the original repo, in your name</li>
             <li>never private repos, never workflow files</li>
@@ -247,20 +246,16 @@ export function PrForm({
         </div>
       ) : null}
       {handoff === 'opening' ? (
-        <p role="status" data-resume="opening" className="text-sm font-semibold text-violet-700 dark:text-violet-300">
+        <p role="status" data-resume="opening" className="text-sm font-semibold text-primary">
           Opening your PR…
         </p>
       ) : null}
       {error && !confirm ? (
-        <span role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <span role="alert" className="text-sm text-destructive">
           {error}
         </span>
       ) : null}
-      <button
-        type="submit"
-        disabled={busy || titleMissing}
-        className="min-h-[46px] rounded-[10px] bg-primary font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-      >
+      <Button type="submit" size="lg" disabled={busy || titleMissing} className="min-h-11.5 font-semibold">
         {handoff === 'github'
           ? 'Opening GitHub…'
           : handoff === 'opening'
@@ -270,20 +265,21 @@ export function PrForm({
               : again
                 ? 'Submit again'
                 : 'Submit pull request'}
-      </button>
+      </Button>
       {grantNeeded ? (
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           You come back here and the PR opens straight away. Revoke the access any time, on GitHub or in Settings.
         </span>
       ) : null}
-      <button
+      <Button
         type="button"
+        variant="destructive-outline"
         onClick={() => setConfirm('discard')}
         disabled={busy}
-        className="min-h-[42px] rounded-[10px] border bg-background text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40"
+        className="min-h-10.5"
       >
         Discard
-      </button>
+      </Button>
 
       <Dialog open={confirm !== null} onOpenChange={(open) => !pending && !open && setConfirm(null)}>
         <DialogContent>
@@ -304,7 +300,7 @@ export function PrForm({
             </DialogDescription>
           </DialogHeader>
           {error ? (
-            <span role="alert" className="text-sm text-red-700 dark:text-red-400">
+            <span role="alert" className="text-sm text-destructive">
               {error}
             </span>
           ) : null}

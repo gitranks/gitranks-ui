@@ -16,7 +16,7 @@ export default function ContributeHomePage({ searchParams }: PageProps<'/contrib
   return (
     <Suspense
       fallback={
-        <main className="mx-auto w-full max-w-[1180px] px-4 pt-8 pb-16">
+        <main className="mx-auto w-full max-w-7xl px-4 pt-8 pb-16">
           <ContributePageSkeleton />
         </main>
       }

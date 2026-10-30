@@ -49,6 +49,14 @@ describe('the coming-soon cards', () => {
       'API key',
     ]);
     expect(COMING_SOON.map(({ mono }) => mono)).toEqual(['CG', 'GC', 'GE', 'CU', 'JU', 'OA', 'XG', 'OR']);
+
+    const plain = text(renderToStaticMarkup(<ComingSoon viewer="signed-in" />));
+    const at = COMING_SOON.map(({ title, text: line }) => {
+      expect(plain).toContain(line);
+      return plain.indexOf(title);
+    });
+    expect(at.every((index) => index >= 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
   });
 
   it('show each provider its mark, and OpenRouter, which has none, its initials', () => {
@@ -58,14 +66,7 @@ describe('the coming-soon cards', () => {
     const html = renderToStaticMarkup(<ComingSoon viewer="signed-in" />);
     expect(html.match(/<svg[^>]*class="[^"]*size-\[18px\]/g)).toHaveLength(7);
     expect(html).toMatch(/data-provider="OPENROUTER".*?>OR<\/span>/);
-
-    const plain = text(renderToStaticMarkup(<ComingSoon viewer="signed-in" />));
-    const at = COMING_SOON.map(({ title, text: line }) => {
-      expect(plain).toContain(line);
-      return plain.indexOf(title);
-    });
-    expect(at.every((index) => index >= 0)).toBe(true);
-    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    expect(html).not.toMatch(/>(CG|GC|GE|CU|JU|OA|XG)<\/span>/);
   });
 
   it('says what is coming and that the most asked for comes first', () => {

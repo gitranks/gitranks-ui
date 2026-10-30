@@ -26,6 +26,7 @@ import {
   SkipIssueDocument,
   StartFollowUpDocument,
   VetoAutopilotDocument,
+  WithdrawProviderInterestDocument,
 } from '@/lib/contribute/contribute.documents';
 import type {
   ContributeAttempt,
@@ -132,6 +133,12 @@ export async function noteProviderInterest(
   provider: ContributeComingSoonProvider,
 ): Promise<ContributeActionResult<boolean>> {
   return run(NoteProviderInterestDocument, { provider }, (data) => data.noteProviderInterest);
+}
+
+export async function withdrawProviderInterest(
+  provider: ContributeComingSoonProvider,
+): Promise<ContributeActionResult<boolean>> {
+  return run(WithdrawProviderInterestDocument, { provider }, (data) => data.withdrawProviderInterest);
 }
 
 export async function deleteContributeData(): Promise<ContributeActionResult<ContributeDeleteDataResult>> {

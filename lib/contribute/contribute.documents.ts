@@ -6,6 +6,7 @@ import type {
   ContributeAttemptFollowUpFields,
   ContributeAttemptState,
   ContributeAutopilot,
+  ContributeComingSoonProvider,
   ContributeConnectKeyResult,
   ContributeConnectLimits,
   ContributeContributions,
@@ -228,6 +229,15 @@ export const SetPreferencesDocument = doc<
 export const NoteProviderInterestDocument = doc<{ noteProviderInterest: boolean }, { provider: string }>(
   'mutation NoteProviderInterest($provider: ContributeComingSoonProvider!) { noteProviderInterest(provider: $provider) }',
 );
+
+export const WithdrawProviderInterestDocument = doc<{ withdrawProviderInterest: boolean }, { provider: string }>(
+  'mutation WithdrawProviderInterest($provider: ContributeComingSoonProvider!) { withdrawProviderInterest(provider: $provider) }',
+);
+
+/** The coming-soon providers the user asked to be told about, read on its own so an API without it leaves none. */
+export const ContributeProviderInterestsDocument = doc<{
+  contribute: { providerInterests: ContributeComingSoonProvider[] | null } | null;
+}>('query ContributeProviderInterests { contribute { providerInterests } }');
 
 export const DeleteContributeDataDocument = doc<{ deleteContributeData: ContributeDeleteDataResult }>(
   'mutation DeleteContributeData { deleteContributeData { deleted grantRevoked } }',

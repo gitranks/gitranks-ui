@@ -12,6 +12,7 @@ const {
   loadContribute,
   loadContributions,
   loadOpenPrDrafts,
+  loadProviderInterests,
   loadReplyDrafts,
 } = await import('./contribute.data');
 const {
@@ -26,6 +27,7 @@ const {
   ContributeAttemptsOpenDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
+  ContributeProviderInterestsDocument,
   ContributeReplyDraftsDocument,
 } = await import('./contribute.documents');
 
@@ -356,5 +358,36 @@ describe('the follow-up fields, read on their own', () => {
     const autopilot = (await loadContribute())?.contributor?.autopilot;
     expect(autopilot).toEqual({ unlocked: false, mergedCount: 1, closedUnmergedStreak: 0 });
     expect(autopilot && 'available' in autopilot).toBe(false);
+  });
+});
+
+describe('loadProviderInterests', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it("reads the user's list in an operation of its own, as the user", async () => {
+    graphqlDirect.mockResolvedValue({ contribute: { providerInterests: ['COPILOT', 'XAI'] } });
+
+    expect(await loadProviderInterests()).toEqual(['COPILOT', 'XAI']);
+    expect(graphqlDirect).toHaveBeenCalledWith(ContributeProviderInterestsDocument, undefined, {
+      source: 'ssr',
+      githubLogin: 'octocat',
+    });
+  });
+
+  it('is empty when the API does not answer it, answers nothing, or there is no session', async () => {
+    graphqlDirect.mockRejectedValueOnce(new Error('[{"message":"Cannot query field \\"providerInterests\\""}]'));
+    expect(await loadProviderInterests()).toEqual([]);
+    graphqlDirect.mockResolvedValueOnce({ contribute: null });
+    expect(await loadProviderInterests()).toEqual([]);
+    graphqlDirect.mockResolvedValueOnce({ contribute: { providerInterests: null } });
+    expect(await loadProviderInterests()).toEqual([]);
+
+    auth.mockResolvedValueOnce(null);
+    expect(await loadProviderInterests()).toEqual([]);
+    expect(graphqlDirect).toHaveBeenCalledTimes(3);
   });
 });

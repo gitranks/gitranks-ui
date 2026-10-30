@@ -2,8 +2,10 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { Fragment, type ReactNode } from 'react';
 
+import { ComingSoon } from './coming-soon';
 import { Pill } from './primitives';
 import { SignInButton, type SignInPath } from './sign-in-dialog';
+import type { ContributeComingSoonProvider } from '@/lib/contribute/contribute.types';
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import type { LandingViewer } from '@/lib/contribute/contribute-state';
 import { cn } from '@/lib/utils';
@@ -203,11 +205,20 @@ function MidSetupStrip() {
 }
 
 /**
- * Contribute's landing: what it does from an issue to a merged pull request, the two ways in, what is set for the user,
- * the questions. The same page for a visitor, a signed-in user and one mid-setup; only the buttons and the strip
- * change. `preview`: a signed-in user seeing the visitor's page (`?as=visitor`).
+ * Contribute's landing: what it does from an issue to a merged pull request, the two ways in, the ways that are coming,
+ * what is set for the user, the questions. The same page for a visitor, a signed-in user and one mid-setup; only the
+ * buttons and the strip change. `preview`: a signed-in user seeing the visitor's page (`?as=visitor`). `noted`: the
+ * coming-soon providers the user asked to be told about.
  */
-export function Landing({ viewer, preview = false }: { viewer: LandingViewer; preview?: boolean }) {
+export function Landing({
+  viewer,
+  preview = false,
+  noted,
+}: {
+  viewer: LandingViewer;
+  preview?: boolean;
+  noted?: readonly ContributeComingSoonProvider[];
+}) {
   const action = (path: SignInPath, props: { wide?: boolean; className?: string } = {}) => (
     <StartAction path={path} viewer={viewer} preview={preview} {...props} />
   );
@@ -308,6 +319,8 @@ export function Landing({ viewer, preview = false }: { viewer: LandingViewer; pr
           </div>
         </div>
       </section>
+
+      <ComingSoon viewer={viewer} preview={preview} noted={noted} />
 
       <section className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>
         <h2 className={H2}>From an issue to a merged pull request</h2>

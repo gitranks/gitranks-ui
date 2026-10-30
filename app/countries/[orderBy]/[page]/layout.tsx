@@ -60,7 +60,7 @@ export default async function CountriesLayout({ children, params }: LayoutProps<
 
   return (
     <>
-      <Header />
+      <Header section="rankings" />
       <Page className="gap-8">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between flex-wrap gap-4">

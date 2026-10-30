@@ -19,7 +19,9 @@ import {
 } from '@/components/ui/navigation-menu';
 import { cn } from '@/lib/utils';
 
-export function MainMenu({ className }: Readonly<{ className?: string }>) {
+export type MenuSection = 'rankings' | 'badges' | 'contribute';
+
+export function MainMenu({ className, section }: Readonly<{ className?: string; section?: MenuSection }>) {
   // The shared viewport mounts menu content on the client only, so the menu runs without it.
   // `forceMount` puts the links in the server HTML for crawlers (hidden while closed). After
   // hydration it is dropped and the closed menu unmounts as usual: a mounted one keeps its
@@ -34,7 +36,10 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
   return (
     <PhoneMenu className={className}>
       <NavigationMenuItem>
-        <NavigationMenuTrigger className={mainMenuItemClass}>Rankings</NavigationMenuTrigger>
+        {/* Marked the way Radix marks an active link, so the shared item class styles both. */}
+        <NavigationMenuTrigger className={mainMenuItemClass} data-active={section === 'rankings' ? '' : undefined}>
+          Rankings
+        </NavigationMenuTrigger>
         <NavigationMenuContent
           forceMount={hydrated ? undefined : true}
           // In the panel the rankings open in place, under their trigger.
@@ -60,14 +65,14 @@ export function MainMenu({ className }: Readonly<{ className?: string }>) {
         </NavigationMenuContent>
       </NavigationMenuItem>
       <NavigationMenuItem>
-        <NavigationMenuLink className={mainMenuItemClass} asChild>
+        <NavigationMenuLink className={mainMenuItemClass} active={section === 'badges'} asChild>
           {/* Not prefetched: the header is on every page, so a prefetch cost a request on every page view. */}
           <Link href="/badge/gallery" prefetch={false}>
             Badges
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
-      <ContributeMenuItem />
+      <ContributeMenuItem active={section === 'contribute'} />
     </PhoneMenu>
   );
 }

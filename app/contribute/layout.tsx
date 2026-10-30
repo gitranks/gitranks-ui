@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function ContributeLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <Header />
+      <Header section="contribute" />
       {/* The tabs read the viewer and the path (an attempt's is known only per request): the header's line until then. */}
       <Suspense fallback={<HeaderLine />}>
         <ContributeTabs />

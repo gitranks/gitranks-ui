@@ -39,7 +39,7 @@ export default async function RepoRankingLayout({ children }: LayoutProps<'/repo
 
   return (
     <>
-      <Header />
+      <Header section="rankings" />
       <Page className="max-w-5xl gap-6">
         <RepoRankingHeader title="Repository Ranking" link={REPO_LANGUAGES_LINK} />
         {children}

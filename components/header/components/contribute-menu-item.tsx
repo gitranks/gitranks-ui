@@ -32,7 +32,7 @@ const writeCache = (login: string, allowed: boolean) => {
 };
 
 /** "Contribute", shown only to a signed-in user GitRanks Contribute is open to. */
-export function ContributeMenuItem() {
+export function ContributeMenuItem({ active }: Readonly<{ active?: boolean }>) {
   const { data: session } = useSession();
   const login = session?.user?.githubLogin;
   const [allowed, setAllowed] = useState(false);
@@ -65,7 +65,7 @@ export function ContributeMenuItem() {
 
   return (
     <NavigationMenuItem>
-      <NavigationMenuLink className={cn(mainMenuItemClass, 'gap-1.5')} asChild>
+      <NavigationMenuLink className={cn(mainMenuItemClass, 'gap-1.5')} active={active} asChild>
         <Link href="/contribute" prefetch={false}>
           Contribute
           <span className="rounded-full bg-violet-100 px-1.5 py-px text-[11px] font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-200">

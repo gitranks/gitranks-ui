@@ -67,7 +67,7 @@ export default async function RankingListLayout({
 
   return (
     <>
-      <Header />
+      <Header section="rankings" />
       <Page className="max-w-5xl gap-6">
         <RankingHeaderSection rankingType={rankingType} countryName={countryName} />
         {children}

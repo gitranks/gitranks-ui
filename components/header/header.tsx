@@ -3,15 +3,17 @@ import type { FC } from 'react';
 
 import { Logo, LogoMark } from '../logo/logo';
 import SigninButton from '../signin-button/signin-button';
-import { MainMenu } from './components/main-menu';
+import { MainMenu, type MenuSection } from './components/main-menu';
 import { cn } from '@/lib/utils';
 
 type HeaderProps = {
   /** Text after the logo and a "/": a profile's login, or a section's name. Not a link. */
   title?: string;
+  /** The menu item to mark: the section the page belongs to. Set by the section's layout, as the header reads no path. */
+  section?: MenuSection;
 };
 
-export const Header: FC<HeaderProps> = ({ title }) => {
+export const Header: FC<HeaderProps> = ({ title, section }) => {
   return (
     <header className="mx-auto flex w-full max-w-7xl items-center justify-between p-4">
       <div className="flex min-w-0 items-center gap-3">
@@ -25,7 +27,7 @@ export const Header: FC<HeaderProps> = ({ title }) => {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <MainMenu />
+        <MainMenu section={section} />
         <SigninButton />
       </div>
     </header>

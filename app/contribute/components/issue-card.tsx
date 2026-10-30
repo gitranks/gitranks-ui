@@ -4,13 +4,15 @@ import { useState, useTransition } from 'react';
 
 import { skipIssue } from '../actions';
 import { Pill } from './primitives';
+import { Button } from '@/components/ui/button';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { GOOD_FIRST_LABEL, KIND_ONE, LANGUAGES, SIZES } from '@/lib/contribute/format';
+import { cn } from '@/lib/utils';
 
-/** One issue picked for the user: where, what, why, and Skip. */
-export function IssueCard({ issue }: { issue: ContributeIssue }) {
+/** One issue picked for the user: where, what, why, and Skip. `best` marks the top of the list. */
+export function IssueCard({ issue, best = false }: { issue: ContributeIssue; best?: boolean }) {
   const [skipped, setSkipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -37,7 +39,11 @@ export function IssueCard({ issue }: { issue: ContributeIssue }) {
   return (
     <article
       data-issue={issue.issueId}
-      className="flex flex-wrap items-start gap-4 rounded-xl border bg-card px-5 py-4"
+      data-best={best || undefined}
+      className={cn(
+        'flex flex-wrap items-start gap-4 rounded-xl border bg-card px-5 py-4',
+        best && 'border-primary/40',
+      )}
     >
       <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-2">
         <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-sm text-muted-foreground">
@@ -45,18 +51,19 @@ export function IssueCard({ issue }: { issue: ContributeIssue }) {
             {issue.nameWithOwner} · #{issue.number}
           </span>
           {issue.language ? <span>{LANGUAGES[issue.language]}</span> : null}
+          {best ? <Pill tone="violet">Best match</Pill> : null}
         </div>
         {url ? (
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[17px] font-semibold text-foreground hover:underline"
+            className="text-lg font-semibold text-foreground hover:underline"
           >
             {title}
           </a>
         ) : (
-          <span className="text-[17px] font-semibold text-foreground">{title}</span>
+          <span className="text-lg font-semibold text-foreground">{title}</span>
         )}
         {issue.labels.length || issue.kind ? (
           <div className="flex flex-wrap gap-1.5">
@@ -81,16 +88,11 @@ export function IssueCard({ issue }: { issue: ContributeIssue }) {
           <dt className="text-muted-foreground">Match</dt>
           <dd className="font-mono">#{issue.rank}</dd>
         </dl>
-        <button
-          type="button"
-          onClick={skip}
-          disabled={pending}
-          className="min-h-10 rounded-lg border bg-background text-sm font-medium hover:bg-accent disabled:opacity-50"
-        >
+        <Button type="button" variant="outline" size="lg" onClick={skip} disabled={pending}>
           {pending ? 'Skipping…' : 'Skip'}
-        </button>
+        </Button>
         {error ? (
-          <span role="alert" className="text-sm text-red-700 dark:text-red-400">
+          <span role="alert" className="text-sm text-destructive">
             {error}
           </span>
         ) : null}

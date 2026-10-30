@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react';
 import { savePreferences } from '../actions';
 import { type PreferencesDraft, PreferencesFields } from './preferences-fields';
 import { Panel, PanelTitle } from './primitives';
+import { Button } from '@/components/ui/button';
 import type { ContributePreferences } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { cn } from '@/lib/utils';
@@ -48,21 +49,20 @@ export function PreferencesSection({ preferences }: { preferences: ContributePre
         {skipped ? ` · ${plural(skipped, 'repo')} skipped` : ''}. Picking topics and repos here is coming soon.
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="lg"
           onClick={save}
           disabled={pending}
-          className="min-h-10 rounded-lg border bg-background px-4 text-sm font-semibold hover:bg-accent disabled:opacity-50"
+          className="px-4 font-semibold"
         >
           {pending ? 'Saving…' : 'Save'}
-        </button>
+        </Button>
         {status ? (
           <span
             role={status.ok ? 'status' : 'alert'}
-            className={cn(
-              'text-sm',
-              status.ok ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400',
-            )}
+            className={cn('text-sm', status.ok ? 'text-positive' : 'text-destructive')}
           >
             {status.text}
           </span>

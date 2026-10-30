@@ -1,32 +1,49 @@
 import 'server-only';
 
+import { cache } from 'react';
+
 import {
   ContributeAttemptDocument,
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
+  ContributeAttemptsInDocument,
+  ContributeAttemptsInFollowUpsDocument,
+  ContributeAttemptsInOwnAgentDocument,
+  ContributeAttemptsInReviewAtDocument,
+  ContributeAttemptsOpenDocument,
   ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
   ContributeContributionsOwnAgentDocument,
   ContributeGrantDocument,
+  ContributeImpactDocument,
+  ContributeImpactReposDocument,
   ContributeIssuesDocument,
+  ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
   ContributePausedDocument,
+  ContributeProfileLanguagesDocument,
+  ContributeProviderInterestsDocument,
+  ContributeRepliesWaitingDocument,
   ContributeReplyDraftsDocument,
+  ContributeScheduleCountsDocument,
 } from './contribute.documents';
 import type {
   ContributeAttempt,
   ContributeAttemptDetail,
   ContributeAttemptState,
   ContributeAutopilot,
+  ContributeComingSoonProvider,
   ContributeContributions,
+  ContributeImpactTotals,
   ContributeIssuePage,
   ContributeIssuesFilter,
   ContributeMcpToken,
+  ContributeOnboardedVia,
   ContributeOwnAgent,
   ContributePaths,
   ContributeReplyDraft,
@@ -34,14 +51,25 @@ import type {
 } from './contribute.types';
 import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
+import {
+  IN_FLIGHT_READ,
+  IN_FLIGHT_STATES,
+  NEEDS_YOU_READ,
+  NEEDS_YOU_STATES,
+  type OverviewNeedsRead,
+  type OverviewNowRead,
+} from './overview';
 import { auth } from '@/auth';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
-/** The signed-in user's GitHub login, for calls made on their behalf; null without a usable session. */
-export async function viewerLogin(): Promise<string | null> {
+/**
+ * The signed-in user's GitHub login, for calls made on their behalf; null without a usable session. Read once per
+ * request.
+ */
+export const viewerLogin = cache(async (): Promise<string | null> => {
   const session = await auth();
   return session?.user?.githubLogin && !session.error ? session.user.githubLogin : null;
-}
+});
 
 const settled = <T>(result: PromiseSettledResult<T>): T | undefined =>
   result.status === 'fulfilled' ? result.value : undefined;
@@ -81,20 +109,22 @@ export class ContributeUnavailableError extends Error {
 /**
  * Everything the Contribute pages show for the signed-in user; null when Contribute is hidden from them (signed out,
  * or not on the preview), which the pages answer with a 404. A failed read throws `ContributeUnavailableError`. The
- * grant and the pause are read on their own, so an API that does not answer them yet leaves them `undefined` and the
- * rest of the page working.
+ * grant, the pause and the onboarding are read on their own, so an API that does not answer them yet leaves them
+ * `undefined` and the rest of the page working. Read once per request: the tabs and the page share it.
  */
-export async function loadContribute(): Promise<ContributeView | null> {
+export const loadContribute = cache(async (): Promise<ContributeView | null> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return null;
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [overview, grant, paused, autopilot, ownAgent] = await Promise.allSettled([
+  const [overview, grant, paused, autopilot, ownAgent, onboarding, attemptsOpen] = await Promise.allSettled([
     graphqlDirect(ContributeOverviewDocument, undefined, options),
     graphqlDirect(ContributeGrantDocument, undefined, options),
     graphqlDirect(ContributePausedDocument, undefined, options),
     graphqlDirect(ContributeAutopilotDocument, undefined, options),
     graphqlDirect(ContributeOwnAgentDocument, undefined, options),
+    graphqlDirect(ContributeOnboardingDocument, undefined, options),
+    graphqlDirect(ContributeAttemptsOpenDocument, undefined, options),
   ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
@@ -102,18 +132,33 @@ export async function loadContribute(): Promise<ContributeView | null> {
   if (!contribute?.previewAllowed) return null;
 
   const pausedField = settled(paused)?.contribute?.contributor?.paused;
+  const onboardingFields = settled(onboarding)?.contribute;
+  const attemptsOpenField = settled(attemptsOpen)?.contribute?.attemptsOpen;
   const { contributor } = contribute;
+  const withAutopilot = contributor?.autopilot
+    ? {
+        ...contributor,
+        autopilot: autopilotOf(contributor.autopilot, settled(autopilot)?.contribute?.contributor?.autopilot),
+      }
+    : contributor;
   return {
-    contributor: contributor?.autopilot
-      ? {
-          ...contributor,
-          autopilot: autopilotOf(contributor.autopilot, settled(autopilot)?.contribute?.contributor?.autopilot),
-        }
-      : contributor,
+    contributor: withAutopilot ? { ...withAutopilot, ...onboardedOf(onboardingFields?.contributor) } : withAutopilot,
     grant: settled(grant)?.contribute?.grant ?? undefined,
     paused: typeof pausedField === 'boolean' ? pausedField : undefined,
     grantAvailable: isGrantAvailable(),
     ownAgent: ownAgentOf(settled(ownAgent)?.contribute),
+    ...(typeof attemptsOpenField === 'boolean' ? { attemptsOpen: attemptsOpenField } : {}),
+  };
+});
+
+/** The onboarding fields the API answered; those it did not are left out, so they read as "not available yet". */
+function onboardedOf(
+  fields: { onboardedAt: string | null; onboardedVia: ContributeOnboardedVia | null } | null | undefined,
+): { onboardedAt?: string | null; onboardedVia?: ContributeOnboardedVia | null } {
+  if (!fields) return {};
+  return {
+    ...(fields.onboardedAt !== undefined ? { onboardedAt: fields.onboardedAt } : {}),
+    ...(fields.onboardedVia !== undefined ? { onboardedVia: fields.onboardedVia } : {}),
   };
 }
 
@@ -126,6 +171,43 @@ function ownAgentOf(
     paths: contribute.contributor?.paths ?? { hosted: false, mcp: contribute.mcpTokens.length > 0 },
     tokens: contribute.mcpTokens,
   };
+}
+
+/** The languages the matching moment shows. */
+export const PROFILE_LANGUAGES_MAX = 4;
+
+/** The signed-in user's strongest languages on their profile, by name; none when it is not answered. */
+export async function loadProfileLanguages(): Promise<string[]> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return [];
+
+  try {
+    const { user } = await graphqlDirect(
+      ContributeProfileLanguagesDocument,
+      { login: githubLogin, limit: PROFILE_LANGUAGES_MAX },
+      { source: 'ssr', githubLogin },
+    );
+    return (user?.sLangs ?? []).map(({ name }) => name).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/** The coming-soon providers the signed-in user asked to be told about; none when the API does not answer (yet). */
+export async function loadProviderInterests(): Promise<ContributeComingSoonProvider[]> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return [];
+
+  try {
+    const { contribute } = await graphqlDirect(ContributeProviderInterestsDocument, undefined, {
+      source: 'ssr',
+      githubLogin,
+    });
+    const interests = contribute?.providerInterests;
+    return Array.isArray(interests) ? interests.filter((provider) => typeof provider === 'string') : [];
+  } catch {
+    return [];
+  }
 }
 
 /** One page of issues for the signed-in user; `undefined` when the API does not answer the feed (yet). */
@@ -158,18 +240,106 @@ export async function loadAttempts(
 
   const variables = { first, ...(state ? { state } : {}) };
   const options = { source: 'ssr' as const, githubLogin };
-  const [main, followUps, ownAgent] = await Promise.allSettled([
-    graphqlDirect(ContributeAttemptsDocument, variables, options),
-    graphqlDirect(ContributeAttemptsFollowUpsDocument, variables, options),
-    graphqlDirect(ContributeAttemptsOwnAgentDocument, variables, options),
-  ]);
+  return attemptsOf(
+    await Promise.allSettled([
+      graphqlDirect(ContributeAttemptsDocument, variables, options),
+      graphqlDirect(ContributeAttemptsFollowUpsDocument, variables, options),
+      graphqlDirect(ContributeAttemptsOwnAgentDocument, variables, options),
+    ]),
+  );
+}
+
+type AttemptRows = { contributeAttempts: ({ attemptId: string } & object)[] | null };
+
+/** The attempts of the first read, with the fields of the others merged in; `undefined` when the first failed. */
+function attemptsOf([main, ...extras]: [
+  PromiseSettledResult<{ contributeAttempts: ContributeAttempt[] | null }>,
+  ...PromiseSettledResult<AttemptRows>[],
+]): ContributeAttempt[] | undefined {
   const attempts = settled(main)?.contributeAttempts;
   if (!attempts) return undefined;
-  const extras = byAttemptId(settled(followUps)?.contributeAttempts);
-  const agents = byAttemptId(settled(ownAgent)?.contributeAttempts);
+  const rows = extras.map((extra) => byAttemptId(settled(extra)?.contributeAttempts));
   return attempts.map((attempt) =>
-    withFields(withFields(attempt, extras.get(attempt.attemptId)), agents.get(attempt.attemptId)),
+    rows.reduce((merged, row) => withFields(merged, row.get(attempt.attemptId)), attempt),
   );
+}
+
+/**
+ * The signed-in user's attempts in any of `states`, newest first, with their follow-up and own-agent fields;
+ * `undefined` when the API does not answer (an API that does not take `states` yet among them).
+ */
+export async function loadAttemptsIn(
+  states: ContributeAttemptState[],
+  first = 20,
+): Promise<ContributeAttempt[] | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+
+  const variables = { states, first };
+  const options = { source: 'ssr' as const, githubLogin };
+  return attemptsOf(
+    await Promise.allSettled([
+      graphqlDirect(ContributeAttemptsInDocument, variables, options),
+      graphqlDirect(ContributeAttemptsInFollowUpsDocument, variables, options),
+      graphqlDirect(ContributeAttemptsInOwnAgentDocument, variables, options),
+    ]),
+  );
+}
+
+/** Overview's "Needs you": the attempts waiting for the user, and the replies they can approve. */
+export async function loadOverviewNeeds(): Promise<OverviewNeedsRead> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return { reviews: undefined, replies: undefined };
+
+  const options = { source: 'ssr' as const, githubLogin };
+  const variables = { states: NEEDS_YOU_STATES, first: NEEDS_YOU_READ };
+  const [attempts, reviewAt, replies] = await Promise.allSettled([
+    loadAttemptsIn(NEEDS_YOU_STATES, NEEDS_YOU_READ),
+    graphqlDirect(ContributeAttemptsInReviewAtDocument, variables, options),
+    graphqlDirect(ContributeRepliesWaitingDocument, undefined, options),
+  ]);
+  const reviews = settled(attempts);
+  const readyAt = byAttemptId(settled(reviewAt)?.contributeAttempts);
+  const waiting = settled(replies)?.contributeRepliesWaiting;
+  return {
+    reviews: reviews?.map((attempt) => withFields(attempt, readyAt.get(attempt.attemptId))),
+    replies: Array.isArray(waiting) ? waiting : undefined,
+  };
+}
+
+/** Overview's "Right now": the attempts in flight, and what the scheduler counts before it starts one. */
+export async function loadOverviewNow(): Promise<OverviewNowRead> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return { inFlight: undefined, scheduleCounts: undefined };
+
+  const [inFlight, counts] = await Promise.allSettled([
+    loadAttemptsIn(IN_FLIGHT_STATES, IN_FLIGHT_READ),
+    graphqlDirect(ContributeScheduleCountsDocument, undefined, { source: 'ssr', githubLogin }),
+  ]);
+  const scheduleCounts = settled(counts)?.contribute?.contributor?.scheduleCounts;
+  return {
+    inFlight: settled(inFlight),
+    scheduleCounts:
+      typeof scheduleCounts?.prBound === 'number' && typeof scheduleCounts.queued === 'number'
+        ? scheduleCounts
+        : undefined,
+  };
+}
+
+/** Overview's "Your impact": the totals, with `reposHelped` when the API answers it; `undefined` when it does not. */
+export async function loadOverviewImpact(): Promise<ContributeImpactTotals | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+
+  const options = { source: 'ssr' as const, githubLogin };
+  const [totals, repos] = await Promise.allSettled([
+    graphqlDirect(ContributeImpactDocument, undefined, options),
+    graphqlDirect(ContributeImpactReposDocument, undefined, options),
+  ]);
+  const main = settled(totals)?.contributeContributions?.totals;
+  if (!main) return undefined;
+  const reposHelped = settled(repos)?.contributeContributions?.totals.reposHelped;
+  return { ...main, ...(typeof reposHelped === 'number' ? { reposHelped } : {}) };
 }
 
 /**

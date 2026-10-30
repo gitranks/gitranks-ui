@@ -6,7 +6,9 @@ import type {
   ContributeAttemptFollowUpFields,
   ContributeAttemptState,
   ContributeAutopilot,
+  ContributeComingSoonProvider,
   ContributeConnectKeyResult,
+  ContributeConnectLimits,
   ContributeContributions,
   ContributeDeleteDataResult,
   ContributeGrant,
@@ -16,12 +18,15 @@ import type {
   ContributeMaintainerRepos,
   ContributeMcpToken,
   ContributeMcpTokenCreated,
+  ContributeOnboardedVia,
   ContributeOptOutResult,
   ContributeOwnAgentFields,
   ContributePaths,
   ContributePreferences,
   ContributePreferencesInput,
   ContributeReplyDraft,
+  ContributeReplyWaiting,
+  ContributeScheduleCounts,
   ContributeSettings,
   ContributeSettingsInput,
   Contributor,
@@ -133,6 +138,18 @@ export const ContributeAutopilotDocument = doc<{
   } | null;
 }>('query ContributeAutopilot { contribute { contributor { autopilot { mergedToUnlock lockedAt available } } } }');
 
+/** Whether the user is onboarded: read on its own, so an API without it leaves the rest. */
+export const ContributeOnboardingDocument = doc<{
+  contribute: {
+    contributor: { onboardedAt: string | null; onboardedVia: ContributeOnboardedVia | null } | null;
+  } | null;
+}>('query ContributeOnboarding { contribute { contributor { onboardedAt onboardedVia } } }');
+
+/** Whether attempts are open: read on its own, so a failed read of it never touches the onboarding. */
+export const ContributeAttemptsOpenDocument = doc<{ contribute: { attemptsOpen: boolean | null } | null }>(
+  'query ContributeAttemptsOpen { contribute { attemptsOpen } }',
+);
+
 export const ContributeGrantDocument = doc<{ contribute: { grant: ContributeGrant } | null }>(
   'query ContributeGrant { contribute { grant { connected login } } }',
 );
@@ -160,6 +177,39 @@ export const ConnectClaudeKeyDocument = doc<
   }
 }`);
 
+/**
+ * The connect with the limits the user set themselves: an operation of its own, so an API that does not take them yet
+ * leaves the connect from a plan working.
+ */
+export const ConnectClaudeKeyWithLimitsDocument = doc<
+  { connectClaudeKey: ContributeConnectKeyResult },
+  {
+    key: string;
+    plan: string;
+    renewalDay: number;
+    confirmedLimit: boolean;
+    cycleCapUsd?: number;
+    limits: ContributeConnectLimits;
+  }
+>(`mutation ConnectClaudeKeyWithLimits($key: String!, $plan: ContributeClaudePlan!, $renewalDay: Int!, $confirmedLimit: Boolean!, $cycleCapUsd: Float, $limits: ContributeConnectLimitsInput!) {
+  connectClaudeKey(key: $key, plan: $plan, renewalDay: $renewalDay, confirmedLimit: $confirmedLimit, cycleCapUsd: $cycleCapUsd, limits: $limits) {
+    result retryAfterSec credential { ${CREDENTIAL} }
+  }
+}`);
+
+/** When the user's picks were last computed: what the matching moment after a connect waits for. */
+export const ContributeFeedComputedDocument = doc<{ contributeIssues: { computedAt: string | null } | null }>(
+  'query ContributeFeedComputed { contributeIssues(first: 1) { computedAt } }',
+);
+
+/** The languages of the user's profile, strongest first: the matching moment shows them. */
+export const ContributeProfileLanguagesDocument = doc<
+  { user: { sLangs: { name: string }[] | null } | null },
+  { login: string; limit: number }
+>(
+  'query ContributeProfileLanguages($login: String!, $limit: Int) { user(login: $login) { sLangs(limit: $limit) { name } } }',
+);
+
 export const RemoveLlmKeyDocument = doc<{ removeLlmKey: boolean }>(
   'mutation RemoveLlmKey { removeLlmKey(provider: ANTHROPIC) }',
 );
@@ -181,6 +231,15 @@ export const SetPreferencesDocument = doc<
 export const NoteProviderInterestDocument = doc<{ noteProviderInterest: boolean }, { provider: string }>(
   'mutation NoteProviderInterest($provider: ContributeComingSoonProvider!) { noteProviderInterest(provider: $provider) }',
 );
+
+export const WithdrawProviderInterestDocument = doc<{ withdrawProviderInterest: boolean }, { provider: string }>(
+  'mutation WithdrawProviderInterest($provider: ContributeComingSoonProvider!) { withdrawProviderInterest(provider: $provider) }',
+);
+
+/** The coming-soon providers the user asked to be told about, read on its own so an API without it leaves none. */
+export const ContributeProviderInterestsDocument = doc<{
+  contribute: { providerInterests: ContributeComingSoonProvider[] | null } | null;
+}>('query ContributeProviderInterests { contribute { providerInterests } }');
 
 export const DeleteContributeDataDocument = doc<{ deleteContributeData: ContributeDeleteDataResult }>(
   'mutation DeleteContributeData { deleteContributeData { deleted grantRevoked } }',
@@ -324,3 +383,58 @@ export const OptInReposDocument = doc<{ optInRepos: ContributeOptOutResult[] }, 
   optInRepos(token: $token, repoIds: $repoIds) { ${OPT_OUT_RESULT} }
 }`,
 );
+
+// Overview: each operation is new, so an API without one leaves the rest of the page working.
+type AttemptStatesVariables = { states: ContributeAttemptState[]; first?: number };
+
+/** The attempts in any of `states`, newest first. */
+export const ContributeAttemptsInDocument = doc<
+  { contributeAttempts: ContributeAttempt[] | null },
+  AttemptStatesVariables
+>(`query ContributeAttemptsIn($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { ${ATTEMPT} }
+}`);
+
+export const ContributeAttemptsInFollowUpsDocument = doc<
+  { contributeAttempts: FollowUpFieldsOf<ContributeAttemptFollowUpFields>[] | null },
+  AttemptStatesVariables
+>(`query ContributeAttemptsInFollowUps($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { ${FOLLOW_UP_FIELDS} }
+}`);
+
+export const ContributeAttemptsInOwnAgentDocument = doc<
+  { contributeAttempts: OwnAgentRow[] | null },
+  AttemptStatesVariables
+>(
+  `query ContributeAttemptsInOwnAgent($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { ${OWN_AGENT_FIELDS} }
+}`,
+);
+
+/** When each attempt in review became ready, merged into the attempts by id. */
+export const ContributeAttemptsInReviewAtDocument = doc<
+  { contributeAttempts: { attemptId: string; reviewAt: string | null }[] | null },
+  AttemptStatesVariables
+>(`query ContributeAttemptsInReviewAt($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { attemptId reviewAt }
+}`);
+
+/** The reply drafts the user can approve now, oldest first. */
+export const ContributeRepliesWaitingDocument = doc<{ contributeRepliesWaiting: ContributeReplyWaiting[] | null }>(
+  `query ContributeRepliesWaiting { contributeRepliesWaiting { ${REPLY_DRAFT} nameWithOwner prNumber inReview } }`,
+);
+
+/** What the scheduler counts before it starts an attempt. */
+export const ContributeScheduleCountsDocument = doc<{
+  contribute: { contributor: { scheduleCounts: ContributeScheduleCounts | null } | null } | null;
+}>('query ContributeScheduleCounts { contribute { contributor { scheduleCounts { prBound queued } } } }');
+
+/** The totals of My contributions, without its list. */
+export const ContributeImpactDocument = doc<{
+  contributeContributions: { totals: { open: number; merged: number; closed: number } } | null;
+}>('query ContributeImpact { contributeContributions(first: 1) { totals { open merged closed } } }');
+
+/** The repos the user's merged pull requests helped. */
+export const ContributeImpactReposDocument = doc<{
+  contributeContributions: { totals: { reposHelped: number | null } } | null;
+}>('query ContributeImpactRepos { contributeContributions(first: 1) { totals { reposHelped } } }');

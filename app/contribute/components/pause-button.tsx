@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { pauseContributing, resumeContributing } from '../actions';
+import { Button } from '@/components/ui/button';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 
 /** Pauses new attempts, or resumes them. */
@@ -25,21 +26,18 @@ export function PauseButton({ paused }: { paused: boolean }) {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button
+      <Button
         type="button"
+        variant={paused ? 'default' : 'outline'}
         onClick={click}
         disabled={pending}
         data-paused={paused}
-        className={
-          paused
-            ? 'min-h-11 rounded-lg bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50'
-            : 'min-h-11 rounded-lg border bg-background px-4 font-medium hover:bg-accent disabled:opacity-50'
-        }
+        className={paused ? 'min-h-11 px-4 font-semibold' : 'min-h-11 px-4'}
       >
         {pending ? 'Saving…' : paused ? 'Resume contributing' : 'Pause contributing'}
-      </button>
+      </Button>
       {error ? (
-        <span role="alert" className="max-w-64 text-right text-sm text-red-700 dark:text-red-400">
+        <span role="alert" className="max-w-64 text-right text-sm text-destructive">
           {error}
         </span>
       ) : null}

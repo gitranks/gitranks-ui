@@ -9,9 +9,14 @@ const {
   ContributeUnavailableError,
   loadAttempt,
   loadAttempts,
+  loadAttemptsIn,
   loadContribute,
   loadContributions,
   loadOpenPrDrafts,
+  loadOverviewImpact,
+  loadOverviewNeeds,
+  loadOverviewNow,
+  loadProviderInterests,
   loadReplyDrafts,
 } = await import('./contribute.data');
 const {
@@ -19,11 +24,22 @@ const {
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
+  ContributeAttemptsInDocument,
+  ContributeAttemptsInFollowUpsDocument,
+  ContributeAttemptsInOwnAgentDocument,
+  ContributeAttemptsInReviewAtDocument,
   ContributeAutopilotDocument,
+  ContributeImpactDocument,
+  ContributeImpactReposDocument,
+  ContributeRepliesWaitingDocument,
+  ContributeScheduleCountsDocument,
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
   ContributeGrantDocument,
+  ContributeAttemptsOpenDocument,
+  ContributeOnboardingDocument,
   ContributeOverviewDocument,
+  ContributeProviderInterestsDocument,
   ContributeReplyDraftsDocument,
 } = await import('./contribute.documents');
 
@@ -63,6 +79,47 @@ describe('loadContribute', () => {
 
     expect(await loadContribute()).toMatchObject({ contributor: null, grant: undefined, paused: undefined });
     expect(graphqlDirect.mock.calls.some(([document]) => document === ContributeGrantDocument)).toBe(true);
+  });
+
+  it('adds the onboarding stamp and whether attempts are open, when the API answers them', async () => {
+    const contributor = { status: 'ACTIVE', login: 'octocat', autopilot: null };
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
+      if (document === ContributeOnboardingDocument) {
+        return { contribute: { contributor: { onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'MCP' } } };
+      }
+      if (document === ContributeAttemptsOpenDocument) return { contribute: { attemptsOpen: false } };
+      throw new Error('[{"message":"Cannot query field"}]');
+    });
+
+    expect(await loadContribute()).toMatchObject({
+      contributor: { login: 'octocat', onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'MCP' },
+      attemptsOpen: false,
+    });
+  });
+
+  it('keeps the onboarding stamp when whether attempts are open fails to read', async () => {
+    const contributor = { status: 'ACTIVE', login: 'octocat', autopilot: null };
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
+      if (document === ContributeOnboardingDocument) {
+        return { contribute: { contributor: { onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'HOSTED' } } };
+      }
+      throw new Error('[{"message":"Cannot query field"}]');
+    });
+
+    const view = await loadContribute();
+    expect(view?.contributor).toMatchObject({ onboardedAt: '2026-10-30T09:00:00.000Z' });
+    expect(view).not.toHaveProperty('attemptsOpen');
+  });
+
+  it('leaves the onboarding fields out while the API does not answer them', async () => {
+    answer(async () => ({ contribute: { previewAllowed: true, contributor: { status: 'ACTIVE', autopilot: null } } }));
+
+    const view = await loadContribute();
+    expect(view?.contributor).not.toHaveProperty('onboardedAt');
+    expect(view?.contributor).not.toHaveProperty('onboardedVia');
+    expect(view).not.toHaveProperty('attemptsOpen');
   });
 });
 
@@ -313,5 +370,144 @@ describe('the follow-up fields, read on their own', () => {
     const autopilot = (await loadContribute())?.contributor?.autopilot;
     expect(autopilot).toEqual({ unlocked: false, mergedCount: 1, closedUnmergedStreak: 0 });
     expect(autopilot && 'available' in autopilot).toBe(false);
+  });
+});
+
+describe('loadProviderInterests', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it("reads the user's list in an operation of its own, as the user", async () => {
+    graphqlDirect.mockResolvedValue({ contribute: { providerInterests: ['COPILOT', 'XAI'] } });
+
+    expect(await loadProviderInterests()).toEqual(['COPILOT', 'XAI']);
+    expect(graphqlDirect).toHaveBeenCalledWith(ContributeProviderInterestsDocument, undefined, {
+      source: 'ssr',
+      githubLogin: 'octocat',
+    });
+  });
+
+  it('is empty when the API does not answer it, answers nothing, or there is no session', async () => {
+    graphqlDirect.mockRejectedValueOnce(new Error('[{"message":"Cannot query field \\"providerInterests\\""}]'));
+    expect(await loadProviderInterests()).toEqual([]);
+    graphqlDirect.mockResolvedValueOnce({ contribute: null });
+    expect(await loadProviderInterests()).toEqual([]);
+    graphqlDirect.mockResolvedValueOnce({ contribute: { providerInterests: null } });
+    expect(await loadProviderInterests()).toEqual([]);
+
+    auth.mockResolvedValueOnce(null);
+    expect(await loadProviderInterests()).toEqual([]);
+    expect(graphqlDirect).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("Overview's loaders, each operation settled on its own", () => {
+  const notYet = () => Promise.reject(new Error('[{"message":"Cannot query field"}]'));
+  const row = (attemptId: string, state = 'REVIEW') => ({ attemptId, state, updatedAt: '2026-10-28T10:00:00.000Z' });
+
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it('reads attempts in several states at once, with their follow-up and own-agent fields', async () => {
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeAttemptsInDocument) return { contributeAttempts: [row('A_1', 'RUNNING')] };
+      if (document === ContributeAttemptsInFollowUpsDocument) {
+        return { contributeAttempts: [{ attemptId: 'A_1', autosubmitAt: null }] };
+      }
+      if (document === ContributeAttemptsInOwnAgentDocument)
+        return { contributeAttempts: [{ attemptId: 'A_1', runner: 'MCP' }] };
+      return notYet();
+    });
+
+    expect(await loadAttemptsIn(['CLAIMING', 'RUNNING', 'CHECKS'], 5)).toEqual([
+      { ...row('A_1', 'RUNNING'), autosubmitAt: null, runner: 'MCP' },
+    ]);
+    expect(graphqlDirect.mock.calls[0].slice(1)).toEqual([
+      { states: ['CLAIMING', 'RUNNING', 'CHECKS'], first: 5 },
+      { source: 'ssr', githubLogin: 'octocat' },
+    ]);
+
+    graphqlDirect.mockImplementation(notYet);
+    expect(await loadAttemptsIn(['REVIEW'])).toBeUndefined();
+  });
+
+  it('merges reviewAt into the reviews by id, and leaves it out when it is not answered', async () => {
+    graphqlDirect.mockImplementation(async (document, variables) => {
+      if (document === ContributeAttemptsInDocument) {
+        expect(variables).toEqual({ states: ['REVIEW', 'PENDING_AUTOSUBMIT'], first: 50 });
+        return { contributeAttempts: [row('A_1'), row('A_2')] };
+      }
+      if (document === ContributeAttemptsInReviewAtDocument) {
+        return { contributeAttempts: [{ attemptId: 'A_2', reviewAt: '2026-10-27T00:00:00.000Z' }] };
+      }
+      if (document === ContributeRepliesWaitingDocument) return { contributeRepliesWaiting: [] };
+      return notYet();
+    });
+
+    const needs = await loadOverviewNeeds();
+    expect(needs.replies).toEqual([]);
+    expect(needs.reviews?.map((attempt) => attempt.reviewAt)).toEqual([undefined, '2026-10-27T00:00:00.000Z']);
+  });
+
+  it('leaves the replies undefined when they are not answered, and the reviews when the attempts are not', async () => {
+    graphqlDirect.mockImplementation(async (document) =>
+      document === ContributeAttemptsInDocument ? { contributeAttempts: [row('A_1')] } : notYet(),
+    );
+    expect(await loadOverviewNeeds()).toEqual({ reviews: [row('A_1')], replies: undefined });
+
+    graphqlDirect.mockImplementation(async (document) =>
+      document === ContributeRepliesWaitingDocument ? { contributeRepliesWaiting: [] } : notYet(),
+    );
+    expect(await loadOverviewNeeds()).toEqual({ reviews: undefined, replies: [] });
+  });
+
+  it('reads the attempts in flight and the scheduler counts on their own', async () => {
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeAttemptsInDocument) return { contributeAttempts: [] };
+      if (document === ContributeScheduleCountsDocument) {
+        return { contribute: { contributor: { scheduleCounts: { prBound: 2, queued: 0 } } } };
+      }
+      return notYet();
+    });
+    expect(await loadOverviewNow()).toEqual({ inFlight: [], scheduleCounts: { prBound: 2, queued: 0 } });
+
+    graphqlDirect.mockImplementation(async (document) =>
+      document === ContributeAttemptsInDocument ? { contributeAttempts: [] } : notYet(),
+    );
+    expect(await loadOverviewNow()).toEqual({ inFlight: [], scheduleCounts: undefined });
+  });
+
+  it('reads the totals, and repos helped on its own', async () => {
+    const totals = { open: 2, merged: 7, closed: 1 };
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeImpactDocument) return { contributeContributions: { totals } };
+      if (document === ContributeImpactReposDocument)
+        return { contributeContributions: { totals: { reposHelped: 6 } } };
+      return notYet();
+    });
+    expect(await loadOverviewImpact()).toEqual({ ...totals, reposHelped: 6 });
+
+    graphqlDirect.mockImplementation(async (document) =>
+      document === ContributeImpactDocument ? { contributeContributions: { totals } } : notYet(),
+    );
+    expect(await loadOverviewImpact()).toEqual(totals);
+
+    graphqlDirect.mockImplementation(notYet);
+    expect(await loadOverviewImpact()).toBeUndefined();
+  });
+
+  it('reads nothing without a session', async () => {
+    auth.mockResolvedValue(null);
+
+    expect(await loadOverviewNeeds()).toEqual({ reviews: undefined, replies: undefined });
+    expect(await loadOverviewNow()).toEqual({ inFlight: undefined, scheduleCounts: undefined });
+    expect(await loadOverviewImpact()).toBeUndefined();
+    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });

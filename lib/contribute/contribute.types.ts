@@ -3,6 +3,8 @@
 export type ContributeLiveProvider = 'ANTHROPIC';
 export type ContributeKeyState = 'VALID' | 'INVALID' | 'EXHAUSTED' | 'LIMIT_REACHED';
 export type ContributePace = 'EVEN' | 'FAST' | 'QUEUED';
+/** The paces a key connect may set: `QUEUED` is set in Settings alone. */
+export type ContributeConnectPace = Exclude<ContributePace, 'QUEUED'>;
 export type ContributeModel = 'CLAUDE_SONNET_5_5' | 'CLAUDE_OPUS_5_5' | 'CLAUDE_HAIKU_5_5';
 export type ContributeEffort = 'LOW' | 'MEDIUM' | 'HIGH' | 'XHIGH' | 'MAX';
 export type ContributeDcoMode = 'ASK' | 'STANDING';
@@ -12,6 +14,8 @@ export type ContributeIssueSize = 'S' | 'M' | 'L';
 export type ContributorStatus = 'ONBOARDING' | 'ACTIVE' | 'PAUSED';
 export type ContributeClaudePlan = 'MAX_5X' | 'MAX_20X' | 'TEAM_STANDARD' | 'TEAM_PREMIUM' | 'CREDITS';
 export type ContributeOnboardingStep = 'KEY' | 'PREFERENCES' | 'DONE';
+/** The way that onboarded the user: a Claude key we run the agent on, or the first call of their own agent. */
+export type ContributeOnboardedVia = 'HOSTED' | 'MCP';
 export type ContributeConnectResult =
   | 'CONNECTED'
   | 'EXHAUSTED'
@@ -115,9 +119,27 @@ export type Contributor = {
   preferences: ContributePreferences | null;
   spend: ContributeSpend | null;
   autopilot: ContributeAutopilot;
+  /**
+   * When a way of contributing first worked: a key was stored, or the user's own agent made its first call. Null until
+   * then; `undefined` while the API does not answer it.
+   */
+  onboardedAt?: string | null;
+  /** Which way that was; null until onboarded, `undefined` while the API does not answer it. */
+  onboardedVia?: ContributeOnboardedVia | null;
 };
 
 export type ContributeGrant = { connected: boolean; login: string | null };
+
+/**
+ * The limits a key connect sets beside the monthly cap ("I'll set them myself"): a field left out keeps its value,
+ * `null` is no week or day cap. The attempt cap may not be above any cap that is set.
+ */
+export type ContributeConnectLimits = {
+  weekCapUsd?: number | null;
+  dayCapUsd?: number | null;
+  attemptCapUsd?: number;
+  pace?: ContributeConnectPace;
+};
 
 export type ContributeConnectKeyResult = {
   result: ContributeConnectResult;
@@ -168,6 +190,8 @@ export type ContributeView = {
   grantAvailable: boolean;
   /** The user's own agent: their paths and live tokens; `undefined` while the API does not answer them. */
   ownAgent?: ContributeOwnAgent;
+  /** Attempts are open: an agent may start on an issue. `undefined` while the API does not answer it. */
+  attemptsOpen?: boolean;
 };
 
 /** Which ways of contributing the user has set up: a Claude key, a token for their own agent. */
@@ -353,6 +377,11 @@ export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> &
     pullRequest: ContributeAttemptPullRequest | null;
     createdAt: string;
     updatedAt: string;
+    /**
+     * When the attempt last became ready for review: its seven days run from it. Asked on its own; `undefined` while
+     * the API does not answer it.
+     */
+    reviewAt?: string | null;
   };
 
 export type ContributeAttemptTest = { command: string; passed: boolean; output: string | null };
@@ -430,6 +459,19 @@ export type ContributeReplyDraft = {
   updatedAt: string;
 };
 
+/**
+ * A reply draft the user can approve now, with its pull request. `inReview`: its follow-up is itself waiting for the
+ * user (in review, or about to be submitted by autopilot), so the draft is part of that review.
+ */
+export type ContributeReplyWaiting = ContributeReplyDraft & {
+  nameWithOwner: string | null;
+  prNumber: number;
+  inReview: boolean;
+};
+
+/** What the scheduler counts before it starts an attempt: pull requests open or on their way, and issues queued. */
+export type ContributeScheduleCounts = { prBound: number; queued: number };
+
 /** One of the user's pull requests opened through Contribute. */
 export type ContributeContribution = {
   attemptId: string;
@@ -449,6 +491,9 @@ export type ContributeContribution = {
   agent?: ContributeAgent | null;
   openedBy?: ContributeOpenedBy | null;
 };
+
+/** The totals Overview's impact shows; `reposHelped` is asked on its own, `undefined` while it is not answered. */
+export type ContributeImpactTotals = { open: number; merged: number; closed: number; reposHelped?: number };
 
 export type ContributeContributions = {
   items: ContributeContribution[];

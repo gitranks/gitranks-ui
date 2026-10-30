@@ -28,7 +28,7 @@ export default async function ProfileLayout({ children, params }: LayoutProps<'/
 
   return (
     <>
-      <Header login={login} />
+      <Header title={login} />
       <TabsBar className="mb-4">
         <Tab href={`/profile/${login}`} pathnames={[`/profile/${login}`, `/profile/${login}/country`]}>
           Overview

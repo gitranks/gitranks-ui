@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { AccessSection } from './access-section';
 import { AutopilotSection } from './autopilot-section';
@@ -10,10 +10,17 @@ import { OwnAgentSection } from './own-agent-section';
 import { PauseButton } from './pause-button';
 import { PreferencesSection } from './preferences-section';
 import { Panel, PanelTitle } from './primitives';
+import { ScrollToHash } from './scroll-to-hash';
 import { SettingsForm } from './settings-form';
 import { loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeView } from '@/lib/contribute/contribute.types';
-import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, isPaused } from '@/lib/contribute/contribute-state';
+import {
+  claudeKeyOf,
+  contributeNoticesOf,
+  isContributePageOpen,
+  isOwnAgentOnly,
+  isPaused,
+} from '@/lib/contribute/contribute-state';
 import { type GrantRefusal, grantRefusalOf } from '@/lib/contribute/grant-refusal';
 
 const SECTIONS = [
@@ -35,6 +42,7 @@ export async function SettingsView({
 }) {
   const [view, params] = await Promise.all([loadContribute(), searchParams]);
   if (!view) notFound();
+  if (!isContributePageOpen(view, 'settings')) redirect('/contribute');
   return <SettingsScreen view={view} grantRefusal={grantRefusalOf(params.grant)} />;
 }
 
@@ -86,7 +94,7 @@ export function SettingsScreen({
                     : 'They start from your plan once a key is connected, and every one of them is yours to change.'
                 }
               />
-              <Link href="/contribute/connect" prefetch={false} className="text-sm font-semibold text-primary">
+              <Link href="/contribute/connect" prefetch={false} className="text-sm font-semibold text-link">
                 Connect your Claude key →
               </Link>
             </Panel>
@@ -110,6 +118,7 @@ export function SettingsScreen({
           <DeleteDataSection />
         </div>
       </div>
+      <ScrollToHash />
     </>
   );
 }

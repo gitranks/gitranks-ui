@@ -1,3 +1,5 @@
+import type { Route } from 'next';
+
 /**
  * Contribute's pages: `/contribute` and everything under it. Matched on the decoded path, as the router matches it,
  * so a percent-encoded, doubled-slash or upper-case spelling of it is matched too. A path that does not decode is
@@ -25,3 +27,7 @@ export function isMaintainersPath(pathname: string): boolean {
     return false;
   }
 }
+
+/** Where each way of contributing starts: a Claude key we run the agent on, or the user's own agent. */
+export const CONNECT_KEY_PATH: Route = '/contribute/connect';
+export const CONNECT_AGENT_PATH = '/contribute/connect?path=agent' as Route;

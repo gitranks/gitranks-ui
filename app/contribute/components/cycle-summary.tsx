@@ -32,11 +32,11 @@ export function CycleSummary({ view, now, action }: { view: ContributeView; now?
         <div className="flex flex-wrap items-baseline gap-2.5">
           <Pill tone={state.tone}>{state.label}</Pill>
           {spend && settings ? (
-            <span className="text-[17px] font-semibold">
+            <span className="text-lg font-semibold">
               {usd(spend.cycleUsd)} of {usd(settings.cycleCapUsd)} used this cycle
             </span>
           ) : (
-            <span className="text-[17px] font-semibold">No spend yet</span>
+            <span className="text-lg font-semibold">No spend yet</span>
           )}
           {spend ? (
             <span className="text-sm text-muted-foreground">
@@ -50,7 +50,7 @@ export function CycleSummary({ view, now, action }: { view: ContributeView; now?
         ) : null}
       </div>
       {action ?? (
-        <Link href="/contribute/issues" prefetch={false} className="text-sm font-semibold text-primary">
+        <Link href="/contribute/issues" prefetch={false} className="text-sm font-semibold text-link">
           Issues for you →
         </Link>
       )}

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import {
   ApprovalPanel,
@@ -32,13 +32,28 @@ import {
 } from '@/lib/contribute/attempt-format';
 import { loadAttempt, loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
+import { isContributePageOpen } from '@/lib/contribute/contribute-state';
+import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
 
 export async function ReviewView({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [view, attempt] = await Promise.all([loadContribute(), loadAttempt(id)]);
-  if (!view || attempt === null) notFound();
+  if (!view) notFound();
+  if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
+  if (attempt === null) notFound();
   return <ReviewScreen view={view} attempt={attempt} />;
 }
+
+/**
+ * The submit asks for GitHub access first: it is not connected, or the last submit bounced for want of it (revoked on
+ * GitHub, say). A bounce for a missing grant asks no more once it is connected again (in Settings, say); a revoked one
+ * still does, as only GitHub knows it. Not while it cannot be granted here, nor while the API does not answer the grant.
+ */
+export const grantNeededOf = (view: ContributeView, attempt: ContributeAttemptDetail): boolean => {
+  const reason = attempt.submit?.lastError?.reason ?? '';
+  const bounced = GRANT_BOUNCES.has(reason) && !(reason === 'grant_missing' && view.grant?.connected === true);
+  return view.grantAvailable && (view.grant?.connected === false || bounced);
+};
 
 /** The repo's notes ask for a Developer Certificate of Origin sign-off. */
 const DCO_ASKED = /\bDCO\b|signed-off-by|sign[- ]off/i;
@@ -66,7 +81,7 @@ export function ReviewScreen({
     return (
       <div className="flex flex-col items-start gap-3" data-review="unavailable">
         <BackLink />
-        <h1 className="text-[28px] font-bold tracking-tight">Reviews are not available yet</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Reviews are not available yet</h1>
         <p className="text-muted-foreground">This is coming soon. Check back shortly.</p>
       </div>
     );
@@ -103,7 +118,7 @@ export function ReviewScreen({
             )}
           </span>
         </div>
-        <h1 className="text-[28px] font-bold tracking-tight text-balance">{attemptTitleOf(attempt)}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-balance">{attemptTitleOf(attempt)}</h1>
         {followUp ? (
           <p data-follow-up-of={attempt.followUpOf?.number ?? ''} className="text-sm text-muted-foreground">
             {attempt.followUpOf === undefined ? (
@@ -115,7 +130,7 @@ export function ReviewScreen({
                   <>
                     {' '}
                     ·{' '}
-                    <Link href={attemptHref(attempt.followUpOf.attemptId)} prefetch={false} className="text-primary">
+                    <Link href={attemptHref(attempt.followUpOf.attemptId)} prefetch={false} className="text-link">
                       the change that opened it
                     </Link>
                   </>
@@ -184,6 +199,8 @@ export function ReviewScreen({
               dcoMode={view.contributor?.settings?.dco ?? null}
               dcoAsked={DCO_ASKED.test(attempt.readiness?.notes ?? '')}
               again={!!attempt.submit?.lastError}
+              grantNeeded={grantNeededOf(view, attempt)}
+              grantConnected={view.grant?.connected === true}
             />
           ) : followUp ? null : (
             <ApprovalPanel attempt={attempt} />

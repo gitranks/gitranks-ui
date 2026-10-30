@@ -1,7 +1,9 @@
 import type {
   ContributeCredential,
   ContributeGrant,
+  ContributeMcpToken,
   ContributeSettings,
+  ContributeSpend,
   ContributeView,
   Contributor,
 } from '../contribute.types';
@@ -66,8 +68,34 @@ export const contributor = (patch: Partial<Contributor> = {}): Contributor => ({
     nextAttemptAt: '2026-10-28T14:00:00.000Z',
   },
   autopilot: { unlocked: false, mergedCount: 1, closedUnmergedStreak: 0 },
+  onboardedAt: '2026-10-14T09:00:00.000Z',
+  onboardedVia: 'HOSTED',
   ...patch,
 });
+
+/** The spend of a key just connected: nothing spent, the first attempt free to start. */
+export const firstSpend: ContributeSpend = {
+  todayUsd: 0,
+  weekUsd: 0,
+  cycleUsd: 0,
+  cycleStart: '2026-10-28T00:00:00.000Z',
+  cycleEnd: '2026-11-28T00:00:00.000Z',
+  allowanceUsd: 5,
+  nextAttemptAt: '2026-10-28T11:59:00.000Z',
+};
+
+/** A token for the user's own agent, created and not used yet. */
+export const mcpToken = (patch: Partial<ContributeMcpToken> = {}): ContributeMcpToken => ({
+  id: 'T_1',
+  name: 'Claude Code on macOS',
+  last4: 'Qx9z',
+  createdAt: '2026-10-28T11:00:00.000Z',
+  lastUsedAt: null,
+  ...patch,
+});
+
+/** The onboarding fields of a contributor not onboarded yet. */
+const notOnboarded = { onboardedAt: null, onboardedVia: null } as const;
 
 const connected: ContributeGrant = { connected: true, login: 'octocat' };
 
@@ -75,12 +103,80 @@ const connected: ContributeGrant = { connected: true, login: 'octocat' };
 export const views = {
   newcomer: { contributor: null, grant: { connected: false, login: null }, paused: false, grantAvailable: true },
   noKey: {
-    contributor: contributor({ credentials: [], settings: null, spend: null, step: 'KEY', status: 'ONBOARDING' }),
+    contributor: contributor({
+      credentials: [],
+      settings: null,
+      spend: null,
+      step: 'KEY',
+      status: 'ONBOARDING',
+      ...notOnboarded,
+    }),
     grant: { connected: false, login: null },
     paused: false,
     grantAvailable: true,
   },
-  active: { contributor: contributor(), grant: connected, paused: false, grantAvailable: true },
+  /** A token for their own agent is live, and the agent has not called yet: setup, not onboarding. */
+  midSetup: {
+    contributor: contributor({
+      credentials: [],
+      plan: null,
+      settings: null,
+      spend: null,
+      step: 'KEY',
+      status: 'ONBOARDING',
+      ...notOnboarded,
+    }),
+    grant: { connected: false, login: null },
+    paused: false,
+    grantAvailable: true,
+    ownAgent: { paths: { hosted: false, mcp: true }, tokens: [mcpToken()] },
+    attemptsOpen: true,
+  },
+  /** Onboarded by their own agent's first call: a used token, no Claude key. */
+  agentOnboarded: {
+    contributor: contributor({
+      credentials: [],
+      plan: null,
+      settings: null,
+      spend: null,
+      step: 'KEY',
+      onboardedVia: 'MCP',
+    }),
+    grant: { connected: false, login: null },
+    paused: false,
+    grantAvailable: true,
+    ownAgent: {
+      paths: { hosted: false, mcp: true },
+      tokens: [mcpToken({ lastUsedAt: '2026-10-28T11:05:00.000Z' })],
+    },
+    attemptsOpen: true,
+  },
+  /** Onboarded once, and since then the key removed and the tokens revoked. */
+  onboardedNoPath: {
+    contributor: contributor({ credentials: [], settings: null, spend: null }),
+    grant: connected,
+    paused: false,
+    grantAvailable: true,
+    ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] },
+  },
+  active: { contributor: contributor(), grant: connected, paused: false, grantAvailable: true, attemptsOpen: true },
+  /**
+   * A key just connected from Max 5x: onboarded, every setting guessed, nothing spent, the first attempt free to start,
+   * and no GitHub access yet.
+   */
+  firstKey: {
+    contributor: contributor({
+      plan: 'MAX_5X',
+      settings: { ...settings, cycleCapUsd: 100, dayCapUsd: null, renewalDay: 28 },
+      preferences: null,
+      spend: firstSpend,
+      onboardedAt: '2026-10-28T11:58:00.000Z',
+    }),
+    grant: { connected: false, login: null },
+    paused: false,
+    grantAvailable: true,
+    attemptsOpen: true,
+  },
   keyInvalid: {
     contributor: contributor({ credentials: [key({ state: 'INVALID' })] }),
     grant: connected,
@@ -110,6 +206,13 @@ export const views = {
   paused: { contributor: contributor({ status: 'PAUSED' }), grant: connected, paused: true, grantAvailable: true },
   /** An API that does not answer the grant and the pause yet. */
   fieldsMissing: { contributor: contributor(), grant: undefined, paused: undefined, grantAvailable: true },
+  /** An API that does not answer the onboarding yet: the fields are left out. */
+  onboardingMissing: {
+    contributor: (({ onboardedAt: _at, onboardedVia: _via, ...rest }) => rest)(contributor()),
+    grant: connected,
+    paused: false,
+    grantAvailable: true,
+  },
   autopilotUnlocked: {
     contributor: contributor({
       autopilot: {

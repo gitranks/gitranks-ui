@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 
 import { optInMaintainerRepos, optOutMaintainerRepos, signInAsMaintainer } from '../maintainers/actions';
 import { PanelTitle, Pill } from './primitives';
+import { Button } from '@/components/ui/button';
 import type { ContributeMaintainerRepo, ContributeOptOutResult } from '@/lib/contribute/contribute.types';
 import { type MaintainerErrorCode, maintainerErrorMessage } from '@/lib/contribute/errors';
 import {
@@ -80,7 +81,7 @@ export function MaintainerReposForm({
                 {repos.length} {repos.length === 1 ? 'repo' : 'repos'}, most stars first.
               </span>
             )}
-            <button type="button" onClick={toggleAll} className="font-medium text-primary hover:underline">
+            <button type="button" onClick={toggleAll} className="font-medium text-link hover:underline">
               {allSelected ? 'Clear selection' : 'Select all'}
             </button>
           </div>
@@ -92,22 +93,23 @@ export function MaintainerReposForm({
             ))}
           </ul>
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <button
+            <Button
               type="button"
               onClick={() => run('out')}
               disabled={pending || !selected.size}
-              className="min-h-11 rounded-lg bg-primary px-5 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="min-h-11 px-5 font-semibold"
             >
               {pending ? 'Saving…' : 'Opt out selected'}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => run('in')}
               disabled={pending || !selected.size}
-              className="min-h-11 rounded-lg border bg-background px-4 font-medium hover:bg-accent disabled:opacity-50"
+              className="min-h-11"
             >
               Opt back in
-            </button>
+            </Button>
           </div>
         </fieldset>
       ) : (
@@ -119,15 +121,12 @@ export function MaintainerReposForm({
 
       {error ? (
         <div role="alert" data-error={error} className="flex flex-col items-start gap-3">
-          <p className="text-sm text-red-700 dark:text-red-400">{maintainerErrorMessage(error)}</p>
+          <p className="text-sm text-destructive">{maintainerErrorMessage(error)}</p>
           {error === 'SIGNED_OUT' ? (
             <form action={signInAsMaintainer}>
-              <button
-                type="submit"
-                className="min-h-11 rounded-lg bg-primary px-5 font-semibold text-primary-foreground hover:bg-primary/90"
-              >
+              <Button type="submit" className="min-h-11 px-5 font-semibold">
                 Sign in again
-              </button>
+              </Button>
             </form>
           ) : null}
         </div>
@@ -158,7 +157,7 @@ function RepoRow({
         <input id={id} type="checkbox" checked={checked} onChange={onToggle} className="size-4 accent-primary" />
         <span className="truncate font-mono text-sm">{repo.nameWithOwner}</span>
       </span>
-      <span className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-muted-foreground">
+      <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
         {repo.optedOut ? (
           <Pill tone="amber">{repo.optedOutAt ? `Opted out since ${fullDayLabel(repo.optedOutAt)}` : 'Opted out'}</Pill>
         ) : null}
@@ -189,7 +188,7 @@ export function OptOutResults({
         {results.map((result) => (
           <li key={result.repoId} data-result={result.reason ?? 'CHANGED'} className="flex flex-col">
             <span className="font-mono">{result.nameWithOwner ?? names.get(result.repoId) ?? 'A repo'}</span>
-            <span className={result.reason ? 'text-red-700 dark:text-red-400' : 'text-muted-foreground'}>
+            <span className={result.reason ? 'text-destructive' : 'text-muted-foreground'}>
               {optOutResultText(result, change)}
             </span>
           </li>

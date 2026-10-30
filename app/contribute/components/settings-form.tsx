@@ -5,6 +5,8 @@ import { type ReactNode, useId, useState, useTransition } from 'react';
 
 import { saveContributeSettings } from '../actions';
 import { Panel, PanelTitle } from './primitives';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import type {
   ContributeDcoMode,
   ContributeEffort,
@@ -14,15 +16,14 @@ import type {
   ContributeSettingsInput,
 } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
-import { EFFORTS, MODELS, ordinalDay, PACES } from '@/lib/contribute/format';
+import { EFFORTS, MODELS, ordinalDay, PACES, parseAmount } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
 /** Above these, one line says that large pull requests are merged less often. */
 const DEFAULT_MAX_LINES = 400;
 const DEFAULT_MAX_FILES = 15;
 
-const inputClass =
-  'w-full rounded-lg border border-input bg-background px-3 py-2.5 font-mono text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
+const inputClass = 'h-auto rounded-lg py-2.5 font-mono md:text-base';
 const selectClass = 'w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground';
 
 type Draft = Record<
@@ -66,14 +67,6 @@ const draftOf = (settings: ContributeSettings): Draft => ({
   effort: settings.effort,
   dco: settings.dco,
 });
-
-/** A number the user typed, `$` and spaces allowed; `undefined` when it is not one, `null` when empty. */
-export function parseAmount(text: string): number | null | undefined {
-  const cleaned = text.replace(/[$\s,]/g, '');
-  if (!cleaned) return null;
-  const value = Number(cleaned);
-  return Number.isFinite(value) && value >= 0 ? value : undefined;
-}
 
 type Section = 'limits' | 'pacing' | 'agent' | 'prs';
 
@@ -147,14 +140,16 @@ function Field({ label, children, htmlFor }: { label: string; children: ReactNod
 function SaveRow({ onSave, pending, message }: { onSave: () => void; pending: boolean; message?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="lg"
         onClick={onSave}
         disabled={pending}
-        className="min-h-10 rounded-lg border bg-background px-4 text-sm font-semibold hover:bg-accent disabled:opacity-50"
+        className="px-4 font-semibold"
       >
         {pending ? 'Saving…' : 'Save'}
-      </button>
+      </Button>
       {message}
     </div>
   );
@@ -195,7 +190,7 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
     status?.section === section ? (
       <span
         role={status.ok ? 'status' : 'alert'}
-        className={cn('text-sm', status.ok ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}
+        className={cn('text-sm', status.ok ? 'text-positive' : 'text-destructive')}
       >
         {status.text}
       </span>
@@ -203,7 +198,7 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
 
   const field = (key: keyof Draft) => `${id}-${key}`;
   const textInput = (key: keyof Draft, placeholder?: string) => (
-    <input
+    <Input
       id={field(key)}
       inputMode="decimal"
       value={draft[key] as string}
@@ -258,7 +253,7 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
               htmlFor={`${field('pace')}-${pace}`}
               className={cn(
                 'flex cursor-pointer items-start gap-2.5 rounded-lg border px-3.5 py-3',
-                draft.pace === pace && 'border-primary border-[1.5px] bg-violet-50/60 dark:bg-violet-950/30',
+                draft.pace === pace && 'border-primary bg-brand-soft/50 ring-1 ring-primary',
               )}
             >
               <input
@@ -376,9 +371,7 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
             {textInput('openPrsAtATime')}
           </Field>
         </div>
-        {large ? (
-          <span className="text-sm text-amber-800 dark:text-amber-300">Large pull requests are merged less often.</span>
-        ) : null}
+        {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-sm font-medium">DCO sign-off, for repos that require it</legend>
           {(

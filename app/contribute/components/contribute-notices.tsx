@@ -46,13 +46,6 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         text: 'No new attempts start until you resume. Your settings and queue are kept.',
         action: { href: '/contribute/settings', label: 'Resume in Settings' },
       };
-    case 'grant-missing':
-      return {
-        tone: 'info',
-        title: 'Allow pull requests on GitHub',
-        text: 'An agent can work on issues, but nothing can be submitted until you let us open pull requests from your fork.',
-        action: { href: '/contribute/settings#access', label: 'Allow on GitHub' },
-      };
   }
 }
 
@@ -71,9 +64,7 @@ export function ContributeNotices({ notices, className }: { notices: ContributeN
             data-notice={notice.kind}
             className={cn(
               'flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3',
-              copy.tone === 'warn'
-                ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40'
-                : 'border-violet-200 bg-violet-50 dark:border-violet-900 dark:bg-violet-950/40',
+              copy.tone === 'warn' ? 'border-warning/30 bg-warning-soft' : 'border-primary/20 bg-brand-soft',
             )}
           >
             <div className="flex min-w-0 flex-col gap-0.5">
@@ -81,7 +72,7 @@ export function ContributeNotices({ notices, className }: { notices: ContributeN
               <span className="text-sm text-muted-foreground">{copy.text}</span>
             </div>
             {copy.action ? (
-              <Link href={copy.action.href} prefetch={false} className="text-sm font-semibold text-primary">
+              <Link href={copy.action.href} prefetch={false} className="text-sm font-semibold text-link">
                 {copy.action.label} →
               </Link>
             ) : null}

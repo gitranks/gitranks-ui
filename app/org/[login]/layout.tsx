@@ -20,7 +20,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<'/org/
 
   return (
     <>
-      <Header login={login} />
+      <Header title={login} />
       {children}
     </>
   );

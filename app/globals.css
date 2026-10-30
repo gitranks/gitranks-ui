@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* GitRanks design tokens. Names follow shadcn/ui, so stock components pick them up; the GitRanks extras
-   (brand-soft, brand-mark, link, positive, negative, tier-*, series-*) sit beside them. */
+   (brand-soft, brand-mark, link, positive, negative, warning, tier-*, series-*) sit beside them. */
 :root {
   --radius: 0.625rem;
   /* Surfaces */
@@ -32,10 +32,20 @@
   --ring: oklch(0.606 0.25 292.717);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
+  /* Warnings */
+  /* Text-safe: 4.5:1 or better on background and card (5.0:1). The soft pair is a notice panel's fill and
+     its text (8.7:1). */
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --warning-soft-foreground: #78350f;
   /* Ranking signals */
   /* Tiers run Rookie (1) to Legend (7). Text-safe values: 4.5:1 or better on background and card. */
   --positive: #15803d;
   --negative: #b91c1c;
+  /* Positive and negative text on a 10% fill of its own colour (pills, status lines), 5.1:1 or more on background
+     and card. In dark, positive-strong is positive; negative-strong is lighter, as negative is 4.3:1 there on a card. */
+  --positive-strong: oklch(0.482 0.154 150.069);
+  --negative-strong: #b91c1c;
   --tier-1: oklch(0.442 0.017 285.786);
   --tier-2: oklch(0.527 0.154 150.069);
   --tier-3: oklch(0.511 0.096 186.391);
@@ -107,10 +117,18 @@
   --ring: oklch(0.702 0.183 293.541);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
+  /* Warnings */
+  /* Text-safe: 4.5:1 or better on background and card (8.2:1). The soft pair is a notice panel's fill and
+     its text (14.8:1). */
+  --warning: #f59e0b;
+  --warning-soft: #211008;
+  --warning-soft-foreground: #fde68a;
   /* Ranking signals */
   /* Tiers run Rookie (1) to Legend (7). Text-safe values: 4.5:1 or better on background and card. */
   --positive: #22c55e;
   --negative: #ef4444;
+  --positive-strong: var(--positive);
+  --negative-strong: #f87171;
   --tier-1: oklch(0.705 0.015 286.067);
   --tier-2: oklch(0.792 0.209 151.711);
   --tier-3: oklch(0.777 0.152 181.912);
@@ -188,6 +206,11 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
+  --color-positive-strong: var(--positive-strong);
+  --color-negative-strong: var(--negative-strong);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
   --color-tier-1-strong: var(--tier-1-strong);
   --color-tier-2-strong: var(--tier-2-strong);
   --color-tier-3-strong: var(--tier-3-strong);
@@ -230,6 +253,88 @@
   --animate-navigation-progress: navigationProgress 1.2s ease-in-out infinite;
   /* The delay keeps the bar hidden for navigations that finish quickly. */
   --animate-navigation-progress-reveal: navigationProgressReveal 0.2s ease-out 0.15s both;
+  /* Contribute's matching moment and first-run guide; each use is under motion-safe. */
+  --animate-contribute-ring: contributeRing 2.4s ease-out infinite;
+  --animate-contribute-float: contributeFloat 3s ease-in-out infinite;
+  --animate-contribute-glow: contributeGlow 1.6s ease-out 3;
+  /* The own agent's path: the wait for its first call, then the check once it has called. */
+  --animate-contribute-pulse: contributePulse 1.6s ease-out infinite;
+  --animate-contribute-pop: contributePop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  --animate-contribute-draw: contributeDraw 0.5s ease-out 0.45s forwards;
+  --animate-contribute-burst: contributeBurst 0.9s ease-out 0.35s both;
+
+  @keyframes contributeRing {
+    0% {
+      transform: scale(0.6);
+      opacity: 0.55;
+    }
+    100% {
+      transform: scale(1.9);
+      opacity: 0;
+    }
+  }
+
+  @keyframes contributeFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes contributeGlow {
+    0% {
+      box-shadow: 0 0 0 0 rgb(124 58 237 / 0.45);
+    }
+    100% {
+      box-shadow: 0 0 0 10px rgb(124 58 237 / 0);
+    }
+  }
+
+  @keyframes contributePulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
+
+  @keyframes contributePop {
+    0% {
+      transform: scale(0.4);
+      opacity: 0;
+    }
+    70% {
+      transform: scale(1.08);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes contributeDraw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* Each dot sets --dx and --dy, where it flies to. */
+  @keyframes contributeBurst {
+    0% {
+      transform: translate(0, 0) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(var(--dx), var(--dy)) scale(0.4);
+      opacity: 0;
+    }
+  }
 
   @keyframes navigationProgress {
     0% {

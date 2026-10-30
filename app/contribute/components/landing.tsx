@@ -185,7 +185,7 @@ function MidSetupStrip() {
           <span className="font-semibold">Almost there.</span> Your token is ready, and your agent hasn't connected yet.
         </span>
         <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
-          <Link href={CONNECT_AGENT_PATH} prefetch={false} className="font-semibold text-primary">
+          <Link href={CONNECT_AGENT_PATH} prefetch={false} className="font-semibold text-link">
             Continue setup →
           </Link>
           <Link
@@ -379,7 +379,7 @@ export function Landing({
           </div>
           <p className="basis-full text-sm text-muted-foreground">
             Maintain a repo?{' '}
-            <Link href={MAINTAINERS_PATH} prefetch={false} className="font-semibold text-primary">
+            <Link href={MAINTAINERS_PATH} prefetch={false} className="font-semibold text-link">
               Opt it out →
             </Link>
           </p>

@@ -1,11 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useId, useState, useTransition } from 'react';
 
 import { createMcpToken, revokeMcpToken } from '../actions';
 import { Eyebrow, Panel, PanelTitle } from './primitives';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import type { ContributeMcpToken, ContributeOwnAgent } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, relativeLabel } from '@/lib/contribute/format';
@@ -20,9 +21,6 @@ import {
 import { cn } from '@/lib/utils';
 
 export const OWN_AGENT_SAFETY = 'Your agent reads issue text written by strangers. Keep its permission prompts on.';
-
-/** The section's controls keep their 40px height. */
-const dangerButton = 'h-10 text-destructive hover:bg-destructive/10 hover:text-destructive';
 
 function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -44,7 +42,7 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
 
 function Code({ children }: { children: string }) {
   return (
-    <pre className="dark overflow-x-auto rounded-lg bg-card px-3.5 py-3 font-mono text-sm leading-relaxed text-card-foreground">
+    <pre className="dark overflow-x-auto rounded-lg bg-background px-3.5 py-3 font-mono text-sm leading-relaxed text-foreground">
       {children}
     </pre>
   );
@@ -113,7 +111,7 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
       <div className="flex flex-wrap items-center gap-2">
         {confirming ? (
           <>
-            <Button type="button" variant="outline" onClick={revoke} disabled={pending} className={dangerButton}>
+            <Button type="button" variant="destructive-outline" onClick={revoke} disabled={pending} className="h-10">
               {pending ? 'Revoking…' : 'Yes, revoke it'}
             </Button>
             <Button type="button" variant="outline" onClick={() => setConfirming(false)} className="h-10">
@@ -121,7 +119,7 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
             </Button>
           </>
         ) : (
-          <Button type="button" variant="outline" onClick={() => setConfirming(true)} className={dangerButton}>
+          <Button type="button" variant="destructive-outline" onClick={() => setConfirming(true)} className="h-10">
             Revoke
           </Button>
         )}
@@ -147,7 +145,8 @@ export function SetupLines() {
             onClick={() => setClient(each.client)}
             className={cn(
               'px-3 font-normal',
-              each.client === client && 'border-primary bg-primary/10 font-semibold hover:bg-primary/10',
+              each.client === client &&
+                'border-primary bg-primary/10 font-semibold hover:bg-primary/10 dark:border-primary dark:bg-primary/10 dark:hover:bg-primary/10',
             )}
           >
             {each.name}
@@ -180,6 +179,7 @@ export function OwnAgentSection({
   step?: number;
 }) {
   const router = useRouter();
+  const id = useId();
   const [name, setName] = useState('');
   const [created, setCreated] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -228,15 +228,16 @@ export function OwnAgentSection({
               create();
             }}
           >
-            <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
+            <label htmlFor={`${id}-name`} className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
               <span className="font-medium">Token name</span>
-              <input
+              <Input
+                id={`${id}-name`}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 maxLength={MCP_TOKEN_NAME_MAX}
                 placeholder="laptop"
                 disabled={full}
-                className="min-h-10 rounded-lg border bg-background px-3 text-sm"
+                className="h-10 rounded-lg text-sm"
               />
             </label>
             <Button type="submit" disabled={pending || full || !name.trim()} className="h-10 font-semibold">

@@ -130,7 +130,7 @@ export function ReviewScreen({
                   <>
                     {' '}
                     ·{' '}
-                    <Link href={attemptHref(attempt.followUpOf.attemptId)} prefetch={false} className="text-primary">
+                    <Link href={attemptHref(attempt.followUpOf.attemptId)} prefetch={false} className="text-link">
                       the change that opened it
                     </Link>
                   </>

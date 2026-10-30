@@ -87,7 +87,7 @@ export function TokenReady({
         role="status"
         tabIndex={-1}
         className={cn(
-          'flex flex-wrap items-center gap-2.5 rounded-xl bg-positive/10 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 px-3.5 py-3 text-sm text-positive',
+          'flex flex-wrap items-center gap-2.5 rounded-xl bg-positive/10 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 px-3.5 py-3 text-sm text-positive-strong',
           rise,
         )}
       >

@@ -37,7 +37,7 @@ export function firstRunCopyOf(step: FirstRunStep, view: ContributeView, now = n
         title: 'Your key stopped working',
         text: 'Anthropic refuses the key you connected, so no attempt starts. Connect a new one and your agent starts on one of your top picks.',
         action: (
-          <Link href={CONNECT_KEY_PATH} prefetch={false} className="text-sm font-semibold text-primary">
+          <Link href={CONNECT_KEY_PATH} prefetch={false} className="text-sm font-semibold text-link">
             Connect a new key →
           </Link>
         ),
@@ -59,7 +59,7 @@ export function firstRunCopyOf(step: FirstRunStep, view: ContributeView, now = n
         title: 'Your caps leave no room for one attempt',
         text: 'An attempt may spend up to its cap, and no allowance under your caps ever covers one.',
         action: (
-          <Link href={LIMITS_SETTINGS_PATH} prefetch={false} className="text-sm font-semibold text-primary">
+          <Link href={LIMITS_SETTINGS_PATH} prefetch={false} className="text-sm font-semibold text-link">
             Raise them in Settings →
           </Link>
         ),
@@ -192,7 +192,7 @@ export function FirstRunGuide({
         <span className="text-foreground/80">
           <span className="font-semibold text-foreground">We guessed what you&apos;d like:</span> {guessedLineOf(view)}
         </span>
-        <Link href={WORK_SETTINGS_PATH} prefetch={false} className="font-semibold text-primary">
+        <Link href={WORK_SETTINGS_PATH} prefetch={false} className="font-semibold text-link">
           Change it in Settings →
         </Link>
       </div>

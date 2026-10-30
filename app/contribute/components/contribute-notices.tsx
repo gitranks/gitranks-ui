@@ -72,7 +72,7 @@ export function ContributeNotices({ notices, className }: { notices: ContributeN
               <span className="text-sm text-muted-foreground">{copy.text}</span>
             </div>
             {copy.action ? (
-              <Link href={copy.action.href} prefetch={false} className="text-sm font-semibold text-primary">
+              <Link href={copy.action.href} prefetch={false} className="text-sm font-semibold text-link">
                 {copy.action.label} →
               </Link>
             ) : null}

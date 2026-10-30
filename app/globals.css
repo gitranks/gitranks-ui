@@ -42,6 +42,10 @@
   /* Tiers run Rookie (1) to Legend (7). Text-safe values: 4.5:1 or better on background and card. */
   --positive: #15803d;
   --negative: #b91c1c;
+  /* Positive and negative text on a 10% fill of its own colour (pills, status lines), 5.1:1 or more on background
+     and card. In dark, positive-strong is positive; negative-strong is lighter, as negative is 4.3:1 there on a card. */
+  --positive-strong: oklch(0.482 0.154 150.069);
+  --negative-strong: #b91c1c;
   --tier-1: oklch(0.442 0.017 285.786);
   --tier-2: oklch(0.527 0.154 150.069);
   --tier-3: oklch(0.511 0.096 186.391);
@@ -123,6 +127,8 @@
   /* Tiers run Rookie (1) to Legend (7). Text-safe values: 4.5:1 or better on background and card. */
   --positive: #22c55e;
   --negative: #ef4444;
+  --positive-strong: var(--positive);
+  --negative-strong: #f87171;
   --tier-1: oklch(0.705 0.015 286.067);
   --tier-2: oklch(0.792 0.209 151.711);
   --tier-3: oklch(0.777 0.152 181.912);
@@ -200,6 +206,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
+  --color-positive-strong: var(--positive-strong);
+  --color-negative-strong: var(--negative-strong);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-warning-soft-foreground: var(--warning-soft-foreground);

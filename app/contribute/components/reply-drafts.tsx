@@ -76,7 +76,7 @@ export function ReplyDraftItem({
       {followUp ? (
         <span data-reply-follow-up={followUp.state} className="text-xs text-muted-foreground">
           Drafted by a{' '}
-          <Link href={attemptHref(followUp.attemptId)} prefetch={false} className="text-primary hover:underline">
+          <Link href={attemptHref(followUp.attemptId)} prefetch={false} className="text-link hover:underline">
             follow-up
           </Link>
           {followUpState ? `: ${followUpState}.` : '.'}
@@ -84,7 +84,7 @@ export function ReplyDraftItem({
       ) : (
         <span className="text-xs text-muted-foreground">
           Drafted by a{' '}
-          <Link href={attemptHref(draft.attemptId)} prefetch={false} className="text-primary hover:underline">
+          <Link href={attemptHref(draft.attemptId)} prefetch={false} className="text-link hover:underline">
             follow-up
           </Link>
           .
@@ -97,7 +97,7 @@ export function ReplyDraftItem({
         <span className="text-sm">
           Posted {where}, {relativeLabel(draft.postedAt ?? draft.updatedAt, now)}.{' '}
           {postedUrl ? (
-            <a href={postedUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary">
+            <a href={postedUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-link">
               See it on GitHub ↗
             </a>
           ) : null}

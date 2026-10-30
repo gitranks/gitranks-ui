@@ -30,7 +30,7 @@ export function ReviewsReady({ attempts }: { attempts: ContributeAttempt[] | und
               </span>{' '}
               {attemptTitleOf(attempt)}
             </span>
-            <Link href={attemptHref(attempt.attemptId)} prefetch={false} className="text-sm font-semibold text-primary">
+            <Link href={attemptHref(attempt.attemptId)} prefetch={false} className="text-sm font-semibold text-link">
               Review →
             </Link>
           </li>

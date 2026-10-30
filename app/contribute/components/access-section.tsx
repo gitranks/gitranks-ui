@@ -23,9 +23,6 @@ const KEY_STATES: Record<ContributeCredential['state'], string> = {
   LIMIT_REACHED: 'workspace limit reached',
 };
 
-/** The rows' controls keep their 40px height. */
-const dangerButton = 'h-10 text-destructive hover:bg-destructive/10 hover:text-destructive';
-
 function Row({ title, detail, children }: { title: string; detail: ReactNode; children?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b py-3.5 last:border-b-0">
@@ -92,7 +89,7 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
       ) : null}
       {confirming ? (
         <>
-          <Button type="button" variant="outline" onClick={remove} disabled={pending} className={dangerButton}>
+          <Button type="button" variant="destructive-outline" onClick={remove} disabled={pending} className="h-10">
             {pending ? 'Removing…' : 'Yes, remove it'}
           </Button>
           <Button type="button" variant="outline" onClick={() => setConfirming(false)} className="h-10">
@@ -100,7 +97,7 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
           </Button>
         </>
       ) : (
-        <Button type="button" variant="outline" onClick={() => setConfirming(true)} className={dangerButton}>
+        <Button type="button" variant="destructive-outline" onClick={() => setConfirming(true)} className="h-10">
           Remove key
         </Button>
       )}
@@ -153,7 +150,7 @@ function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; av
     >
       <Row title="GitHub pull requests" detail={message ?? detail}>
         {grant?.connected ? (
-          <Button type="button" variant="outline" onClick={revoke} disabled={pending} className={dangerButton}>
+          <Button type="button" variant="destructive-outline" onClick={revoke} disabled={pending} className="h-10">
             {pending ? 'Revoking…' : 'Revoke'}
           </Button>
         ) : available ? (

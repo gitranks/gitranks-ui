@@ -141,11 +141,11 @@ export function KeyConnect({
             : "Everything else starts from sensible defaults. You'll see your first issues right after this."}
         </p>
         {replacing ? (
-          <Link href={ISSUES_PATH} prefetch={false} className="text-sm font-semibold text-primary">
+          <Link href={ISSUES_PATH} prefetch={false} className="text-sm font-semibold text-link">
             See your issues →
           </Link>
         ) : (
-          <Link href={CONNECT_AGENT_PATH} prefetch={false} className="text-sm font-semibold text-primary">
+          <Link href={CONNECT_AGENT_PATH} prefetch={false} className="text-sm font-semibold text-link">
             Use your own agent instead →
           </Link>
         )}

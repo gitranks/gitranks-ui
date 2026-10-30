@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { Input } from '@/components/ui/input';
 import {
   type ManualField,
   type ManualLimitsDraft,
@@ -11,8 +12,7 @@ import {
 import type { ContributeConnectPace } from '@/lib/contribute/contribute.types';
 import { cn } from '@/lib/utils';
 
-const inputClass =
-  'min-h-11 w-full rounded-lg border border-input bg-background px-2.5 text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive';
+const inputClass = 'h-11 rounded-lg px-2.5 text-sm';
 
 const PACES: { pace: ContributeConnectPace; title: string; text: string }[] = [
   {
@@ -73,14 +73,14 @@ export function LimitsManual({
           <span aria-hidden="true" className="text-base text-muted-foreground">
             $
           </span>
-          <input
+          <Input
             id={`${id}-month`}
             inputMode="decimal"
             value={draft.month}
             onChange={set('month')}
             aria-invalid={refused === 'month' || undefined}
             aria-describedby={describedBy('month', `${id}-month-hint`)}
-            className={cn(inputClass, 'w-35 border-2 border-primary px-3 text-base font-semibold')}
+            className={cn(inputClass, 'w-35 border-2 border-primary px-3 text-base font-semibold md:text-base')}
           />
         </div>
         <span id={`${id}-month-hint`} className="text-xs text-muted-foreground">
@@ -95,7 +95,7 @@ export function LimitsManual({
               <label htmlFor={`${id}-${field}`} className="text-xs font-semibold">
                 {label}
               </label>
-              <input
+              <Input
                 id={`${id}-${field}`}
                 inputMode="decimal"
                 value={draft[field]}

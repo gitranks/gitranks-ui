@@ -140,7 +140,7 @@ export function ChecksPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
       </h3>
       {tests.length ? (
         // The terminal reads dark in both themes: the block takes the dark theme's tokens.
-        <div className="dark flex flex-col gap-2.5 overflow-x-auto rounded-lg bg-card px-3.5 py-3 font-mono text-xs leading-relaxed text-card-foreground">
+        <div className="dark flex flex-col gap-2.5 overflow-x-auto rounded-lg bg-background px-3.5 py-3 font-mono text-xs leading-relaxed text-foreground">
           {tests.map((test, index) => (
             <TestRun key={`${index}-${test.command}`} test={test} />
           ))}

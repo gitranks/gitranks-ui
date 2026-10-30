@@ -94,11 +94,11 @@ export function OverviewScreen({
           <span className="font-semibold text-foreground">Maintain a repo?</span> We open at most one PR in it at a
           time, never more than four a month, and pause after two are closed in a row. Every PR says it was made with
           AI.{' '}
-          <Link href={MAINTAINERS_PATH} prefetch={false} className="font-semibold text-primary">
+          <Link href={MAINTAINERS_PATH} prefetch={false} className="font-semibold text-link">
             Opt it out →
           </Link>
         </p>
-        <Link href={ABOUT_PATH} prefetch={false} className="font-semibold text-primary">
+        <Link href={ABOUT_PATH} prefetch={false} className="font-semibold text-link">
           How Contribute works
         </Link>
       </footer>

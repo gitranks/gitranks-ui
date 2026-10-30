@@ -361,7 +361,7 @@ function PullRequests({ contributions, now }: { contributions: ContributeContrib
     content = (
       <p className="px-5 py-4 text-sm text-muted-foreground">
         No pull requests yet. Once you submit a change you reviewed, it shows here.{' '}
-        <Link href="/contribute/issues" prefetch={false} className="font-semibold text-primary">
+        <Link href="/contribute/issues" prefetch={false} className="font-semibold text-link">
           See the issues picked for you
         </Link>
       </p>

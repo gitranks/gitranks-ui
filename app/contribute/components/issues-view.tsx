@@ -99,7 +99,7 @@ export function IssuesScreen({
       <Empty
         title="No issues match these filters"
         text={
-          <Link href="/contribute/issues" prefetch={false} className="font-semibold text-primary">
+          <Link href="/contribute/issues" prefetch={false} className="font-semibold text-link">
             Clear the filters
           </Link>
         }
@@ -110,7 +110,7 @@ export function IssuesScreen({
         text={
           <>
             New picks arrive every day. Widen what you work on in{' '}
-            <Link href="/contribute/settings#work" prefetch={false} className="font-semibold text-primary">
+            <Link href="/contribute/settings#work" prefetch={false} className="font-semibold text-link">
               Settings
             </Link>
             .
@@ -126,7 +126,7 @@ export function IssuesScreen({
         ))}
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           {query.after ? (
-            <Link href={issuesHref({ ...query, after: undefined }) as Route} prefetch={false} className="text-primary">
+            <Link href={issuesHref({ ...query, after: undefined }) as Route} prefetch={false} className="text-link">
               ← Back to the best matches
             </Link>
           ) : (
@@ -136,7 +136,7 @@ export function IssuesScreen({
             <Link
               href={issuesHref({ ...query, after: page.next }) as Route}
               prefetch={false}
-              className="font-semibold text-primary"
+              className="font-semibold text-link"
             >
               More issues →
             </Link>
@@ -198,7 +198,7 @@ export function IssuesScreen({
             ) : (
               <span className="text-sm text-muted-foreground">
                 Nothing is spent until a key is connected.{' '}
-                <Link href="/contribute/connect" prefetch={false} className="font-semibold text-primary">
+                <Link href="/contribute/connect" prefetch={false} className="font-semibold text-link">
                   Connect Claude
                 </Link>
               </span>

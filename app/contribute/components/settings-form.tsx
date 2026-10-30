@@ -6,6 +6,7 @@ import { type ReactNode, useId, useState, useTransition } from 'react';
 import { saveContributeSettings } from '../actions';
 import { Panel, PanelTitle } from './primitives';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import type {
   ContributeDcoMode,
   ContributeEffort,
@@ -22,8 +23,7 @@ import { cn } from '@/lib/utils';
 const DEFAULT_MAX_LINES = 400;
 const DEFAULT_MAX_FILES = 15;
 
-const inputClass =
-  'w-full rounded-lg border border-input bg-background px-3 py-2.5 font-mono text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
+const inputClass = 'h-auto rounded-lg py-2.5 font-mono md:text-base';
 const selectClass = 'w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground';
 
 type Draft = Record<
@@ -198,7 +198,7 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
 
   const field = (key: keyof Draft) => `${id}-${key}`;
   const textInput = (key: keyof Draft, placeholder?: string) => (
-    <input
+    <Input
       id={field(key)}
       inputMode="decimal"
       value={draft[key] as string}

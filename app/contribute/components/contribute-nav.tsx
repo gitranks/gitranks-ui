@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 import { SignInButton } from './sign-in-dialog';
-import { mainMenuItemClass } from '@/components/header/components/menu-styles';
+import { wideMenuItemClass } from '@/components/header/components/menu-styles';
 import { PhoneMenu } from '@/components/header/components/phone-menu';
 import { Header } from '@/components/header/header';
 import SigninButton from '@/components/signin-button/signin-button';
@@ -101,10 +101,13 @@ export function ContributeBarView({
   );
 }
 
-/** The tabs as the header's menu items: in the row from `sm` up, in the menu's panel below it. */
+/**
+ * The tabs as the header's menu items: in the row from `lg` up (four tabs and the title need the room), in the menu's
+ * panel below it. The current one is filled and the others muted, so a hovered tab never reads as the current one.
+ */
 function ContributeMenu({ current }: { current?: Route }) {
   return (
-    <PhoneMenu aria-label="Contribute">
+    <PhoneMenu aria-label="Contribute" breakpoint="lg">
       {CONTRIBUTE_TABS.map(({ href, label }) => {
         const active = current === href;
         return (
@@ -112,7 +115,12 @@ function ContributeMenu({ current }: { current?: Route }) {
             <NavigationMenuLink
               asChild
               active={active}
-              className={cn(mainMenuItemClass, active && 'bg-accent text-foreground')}
+              className={cn(
+                wideMenuItemClass,
+                active
+                  ? 'bg-accent text-foreground'
+                  : 'text-muted-foreground hover:text-foreground focus:text-foreground',
+              )}
             >
               <Link href={href} prefetch={false}>
                 {label}

@@ -16,10 +16,10 @@ export const metadata: Metadata = {
 export default function ContributeLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      {/* The bar reads the viewer and the path (an attempt's is known only per request): first the header with no menu
-          and no account. */}
       {/* The line under the header, across the page, as the home page draws one. */}
       <div className="border-b">
+        {/* The bar reads the viewer and the path (an attempt's is known only per request): first the header with no
+            menu and no account. */}
         <Suspense fallback={<ContributeBarFallback />}>
           <ContributeBar />
         </Suspense>

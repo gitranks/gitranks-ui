@@ -264,12 +264,14 @@ describe("Contribute's bar", () => {
     }
     expect(html.match(/<a [^>]*aria-current="page"[^>]*>/)?.[0]).toContain('href="/contribute/me"');
     expect(html.match(/<a [^>]*aria-current="page"[^>]*>/)?.[0]).toContain('bg-accent text-foreground');
+    // The others are muted, so a hovered one never reads as the current one.
+    expect(html.match(/<a [^>]*href="\/contribute\/issues"[^>]*>/)?.[0]).toContain('text-muted-foreground');
     expect(count(html, 'aria-current="page"')).toBe(1);
     // On a phone the tabs are a panel under the menu button.
     const toggle = html.match(/<button [^>]*aria-label="Open menu"[^>]*>/)?.[0] ?? '';
     const panel = toggle.match(/aria-controls="([^"]+)"/)?.[1];
     expect(toggle).toContain('aria-expanded="false"');
-    expect(html).toMatch(new RegExp(`<ul [^>]*class="[^"]*max-sm:hidden[^"]*" id="${panel}"`));
+    expect(html).toMatch(new RegExp(`<ul [^>]*class="[^"]*max-lg:hidden[^"]*" id="${panel}"`));
     expect(html).toContain('data-avatar-menu');
     expect(html).not.toContain(DIALOG_TRIGGER);
     expect(plain).not.toContain('GitRanks Contribute');

@@ -198,10 +198,10 @@ export function AccessSection({
       ) : null}
       <KeyRow credential={credential} now={now} />
       <GrantRow grant={grant} available={grantAvailable} />
-      <Row title="Your own agent (MCP)" detail="Use Claude Code, Codex or Cursor on your machine. Coming soon.">
-        <button type="button" disabled className={plainButton}>
-          Create token
-        </button>
+      <Row title="Your own agent (MCP)" detail="Tokens for Claude Code, Codex, Cursor or Gemini CLI on your machine.">
+        <a href="#own-agent" className={`${plainButton} inline-flex items-center`}>
+          Tokens
+        </a>
       </Row>
     </Panel>
   );

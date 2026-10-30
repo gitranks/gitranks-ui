@@ -6,11 +6,11 @@ import { ContributePageSkeleton } from '../components/page-skeleton';
 
 export const metadata: Metadata = { title: 'Connect Claude' };
 
-export default function ContributeConnect() {
+export default function ContributeConnect({ searchParams }: PageProps<'/contribute/connect'>) {
   return (
     <main className="mx-auto flex w-full max-w-[1080px] flex-col gap-7 px-4 pt-9 pb-16">
       <Suspense fallback={<ContributePageSkeleton />}>
-        <ConnectView />
+        <ConnectView searchParams={searchParams} />
       </Suspense>
     </main>
   );

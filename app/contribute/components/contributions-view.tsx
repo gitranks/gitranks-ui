@@ -10,10 +10,13 @@ import { type DraftFollowUp, ReplyDraftItem } from './reply-drafts';
 import { attemptHref } from './reviews-ready';
 import {
   ATTEMPT_STATES,
+  agentLabelOf,
   attemptTitleOf,
+  costOrAgentOf,
   END_REASONS,
   githubUrlOf,
   IN_PROGRESS_STATES,
+  isOwnAgent,
   labelOf,
   PR_STATES,
   repoOf,
@@ -265,7 +268,7 @@ function NeedsYou({
                   : 'Autopilot submits it within the hour.'
                 : attempt.submit?.lastError
                   ? attempt.submit.lastError.note
-                  : `Ready ${relativeLabel(attempt.updatedAt, now)} · cost ${usd(attempt.costUsd)} · waits seven days for you`
+                  : `Ready ${relativeLabel(attempt.updatedAt, now)} · ${isOwnAgent(attempt) ? `made by ${costOrAgentOf(attempt, usd)}` : `cost ${usd(attempt.costUsd)}`} · waits seven days for you`
             }
           />
         ))}
@@ -282,6 +285,15 @@ function NeedsYou({
       </ul>
     </section>
   );
+}
+
+/** The user's own agent at work: checking the issue, or holding it until its lease ends, with what was asked of it. */
+function ownAgentWorkText(attempt: ContributeAttempt, now?: Date): string {
+  if (attempt.state === 'CLAIMING') return 'Your own agent claimed it: checking the issue on GitHub.';
+  const agent = agentLabelOf(attempt.agent) ?? 'Your own agent';
+  const held = attempt.leaseUntil ? ` · held for it until ${relativeLabel(attempt.leaseUntil, now)}` : '';
+  const asked = attempt.changesRequested ? ' · sent back with your note' : '';
+  return `${agent} is on it${held}${asked}`;
 }
 
 function InProgress({ attempts, now }: { attempts: ContributeAttempt[]; now?: Date }) {
@@ -308,7 +320,9 @@ function InProgress({ attempts, now }: { attempts: ContributeAttempt[]; now?: Da
                       ? ` It goes on ${relativeLabel(attempt.submit.waitUntil, now)}.`
                       : ''
                   }`
-                : `Started ${relativeLabel(attempt.createdAt, now)} · ${usd(attempt.costUsd)} of ${usd(attempt.budgetUsd)}`
+                : isOwnAgent(attempt)
+                  ? ownAgentWorkText(attempt, now)
+                  : `Started ${relativeLabel(attempt.createdAt, now)} · ${usd(attempt.costUsd)} of ${usd(attempt.budgetUsd)}`
             }
           />
         ))}
@@ -396,8 +410,14 @@ function PullRequests({ contributions, now }: { contributions: ContributeContrib
                       <div>{relativeLabel(pullRequest.openedAt, now)}</div>
                     )}
                   </td>
-                  <td className="py-3 pr-5 pl-3 text-right align-top font-mono text-[13px]">
-                    {usd(contribution.costUsd)}
+                  <td
+                    data-runner={contribution.runner ?? ''}
+                    className={`py-3 pr-5 pl-3 text-right align-top text-[13px] ${isOwnAgent(contribution) ? '' : 'font-mono'}`}
+                  >
+                    {costOrAgentOf(contribution, usd)}
+                    {contribution.openedBy === 'HAND' ? (
+                      <div className="text-muted-foreground">opened by hand</div>
+                    ) : null}
                   </td>
                 </tr>
               );
@@ -471,7 +491,8 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
               <Link href={attemptHref(attempt.attemptId)} prefetch={false} className="font-mono text-foreground/80">
                 {repoOf(attempt)} #{attempt.number}
               </Link>{' '}
-              · {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Stopped.'} · {usd(attempt.costUsd)}
+              · {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Stopped.'} ·{' '}
+              {costOrAgentOf(attempt, usd)}
             </li>
           ))}
         </ul>

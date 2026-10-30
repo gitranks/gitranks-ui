@@ -9,7 +9,10 @@ const actions = await import('./actions');
 const {
   ApproveAttemptDocument,
   ApproveReplyDocument,
+  CreateMcpTokenDocument,
   DiscardAttemptDocument,
+  RevokeMcpTokenDocument,
+  SendBackToAgentDocument,
   StartFollowUpDocument,
   VetoAutopilotDocument,
 } = await import('@/lib/contribute/contribute.documents');
@@ -33,6 +36,9 @@ const CALLS: Record<string, unknown[]> = {
   startFollowUp: ['PR_1'],
   vetoAutopilot: ['A_1'],
   approveReply: ['D_1'],
+  createMcpToken: ['laptop'],
+  revokeMcpToken: ['T_1'],
+  sendBackToAgent: ['A_1', 'Add a test for tabs'],
 };
 
 const exported = Object.entries(actions).filter(([, value]) => typeof value === 'function') as [string, Action][];
@@ -194,5 +200,47 @@ describe('the follow-up actions', () => {
       { id: 'A_F1', title: 'Follow-up on pull request #1419', body: '', dco: false },
       { source: 'client', githubLogin: 'octocat' },
     );
+  });
+});
+
+describe("the own agent's actions", () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+  const as = { source: 'client', githubLogin: 'octocat' };
+
+  it('creates a token under its trimmed name, and answers the token the API gave once', async () => {
+    const created = {
+      token: 'gr_x',
+      mcpToken: { id: 'T_1', name: 'laptop', last4: 'x', createdAt: '', lastUsedAt: null },
+    };
+    graphqlDirect.mockResolvedValue({ createMcpToken: created });
+
+    expect(await actions.createMcpToken('  laptop ')).toEqual({ ok: true, data: created });
+    expect(graphqlDirect).toHaveBeenCalledWith(CreateMcpTokenDocument, { name: 'laptop' }, as);
+  });
+
+  it('refuses a blank or too long name before asking anything', async () => {
+    expect(await actions.createMcpToken('  ')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.createMcpToken('x'.repeat(41))).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('revokes a token by its id', async () => {
+    graphqlDirect.mockResolvedValue({ revokeMcpToken: true });
+    expect(await actions.revokeMcpToken('T_1')).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).toHaveBeenCalledWith(RevokeMcpTokenDocument, { id: 'T_1' }, as);
+  });
+
+  it('sends a change back to the agent with the trimmed note, and refuses an empty one', async () => {
+    graphqlDirect.mockResolvedValue({ sendBackToAgent: { attemptId: 'A_1', state: 'RUNNING' } });
+    expect(await actions.sendBackToAgent('A_1', ' Add a test ')).toEqual({
+      ok: true,
+      data: { attemptId: 'A_1', state: 'RUNNING' },
+    });
+    expect(graphqlDirect).toHaveBeenCalledWith(SendBackToAgentDocument, { attemptId: 'A_1', note: 'Add a test' }, as);
+    expect(await actions.sendBackToAgent('A_1', ' ')).toMatchObject({ ok: false, error: 'INVALID' });
   });
 });

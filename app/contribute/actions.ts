@@ -6,6 +6,7 @@ import {
   ApproveAttemptDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
+  CreateMcpTokenDocument,
   DeleteContributeDataDocument,
   DiscardAttemptDocument,
   NoteProviderInterestDocument,
@@ -13,6 +14,8 @@ import {
   RemoveLlmKeyDocument,
   ResumeContributingDocument,
   RevokeGithubGrantDocument,
+  RevokeMcpTokenDocument,
+  SendBackToAgentDocument,
   SetContributeSettingsDocument,
   SetPreferencesDocument,
   SkipIssueDocument,
@@ -25,6 +28,7 @@ import type {
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
   ContributeDeleteDataResult,
+  ContributeMcpTokenCreated,
   ContributePreferences,
   ContributePreferencesInput,
   ContributeReplyDraft,
@@ -32,6 +36,7 @@ import type {
   ContributeSettingsInput,
 } from '@/lib/contribute/contribute.types';
 import { type ContributeActionResult, contributeErrorOf } from '@/lib/contribute/errors';
+import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type DocumentNode from '@/types/typed-document-node';
 
@@ -158,4 +163,36 @@ export async function vetoAutopilot(attemptId: string): Promise<ContributeAction
 /** Approves a drafted reply: it is posted publicly on GitHub, in the user's name. */
 export async function approveReply(draftId: string): Promise<ContributeActionResult<ContributeReplyDraft>> {
   return run(ApproveReplyDocument, { draftId: String(draftId) }, (data) => data.approveReply);
+}
+
+/** A token for the user's own agent: the token itself comes back this once. */
+export async function createMcpToken(name: string): Promise<ContributeActionResult<ContributeMcpTokenCreated>> {
+  const trimmed = String(name ?? '').trim();
+  if (!trimmed) return { ok: false, error: 'INVALID', message: 'Give the token a name, like "laptop".' };
+  if (trimmed.length > MCP_TOKEN_NAME_MAX) {
+    return { ok: false, error: 'INVALID', message: `Keep the name under ${MCP_TOKEN_NAME_MAX} characters.` };
+  }
+  return run(CreateMcpTokenDocument, { name: trimmed }, (data) => data.createMcpToken);
+}
+
+/** Revokes a token: the agent using it can make no more calls. */
+export async function revokeMcpToken(id: string): Promise<ContributeActionResult<boolean>> {
+  return run(RevokeMcpTokenDocument, { id: String(id) }, (data) => data.revokeMcpToken);
+}
+
+/** Sends a change made by the user's own agent back to it, with what to change. */
+export async function sendBackToAgent(
+  attemptId: string,
+  note: string,
+): Promise<ContributeActionResult<ContributeAttempt>> {
+  const trimmed = String(note ?? '').trim();
+  if (!trimmed) return { ok: false, error: 'INVALID', message: 'Say what your agent should change.' };
+  if (trimmed.length > SEND_BACK_NOTE_MAX) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `Keep the note under ${SEND_BACK_NOTE_MAX.toLocaleString('en-US')} characters.`,
+    };
+  }
+  return run(SendBackToAgentDocument, { attemptId: String(attemptId), note: trimmed }, (data) => data.sendBackToAgent);
 }

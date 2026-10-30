@@ -1,7 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { ApprovalPanel, ChecksPanel, CostPanel, ReadinessPanel, ResultPanel, TimelinePanel } from './attempt-panels';
+import {
+  ApprovalPanel,
+  ChecksPanel,
+  CostPanel,
+  OwnAgentPanel,
+  ReadinessPanel,
+  ResultPanel,
+  TimelinePanel,
+} from './attempt-panels';
 import { AttemptStatus, FollowUpOfLink } from './attempt-status';
 import { DiffViewer } from './diff-viewer';
 import { FollowUpApproval } from './follow-up-approval';
@@ -11,11 +19,13 @@ import { PrForm } from './pr-form';
 import { Pill } from './primitives';
 import { ReplyDrafts } from './reply-drafts';
 import { attemptHref } from './reviews-ready';
+import { SendBackForm } from './send-back-form';
 import {
   ATTEMPT_STATES,
   attemptTitleOf,
   editableBodyOf,
   githubUrlOf,
+  isOwnAgent,
   LIVE_STATES,
   repoOf,
   toneLabelOf,
@@ -68,6 +78,7 @@ export function ReviewScreen({
   const repo = repoOf(attempt);
   const inReview = attempt.state === 'REVIEW';
   const followUp = attempt.kind === 'FOLLOW_UP';
+  const ownAgent = isOwnAgent(attempt);
   const prNumber = followUp ? (attempt.followUpOf?.number ?? null) : (attempt.pullRequest?.number ?? null);
   // A first attempt shows its pull request's drafts once there is one; a follow-up always shows the ones it wrote.
   const showDrafts = followUp || (!!attempt.pullRequest && attempt.replyDrafts?.length !== 0);
@@ -81,6 +92,7 @@ export function ReviewScreen({
         <div className="flex flex-wrap items-center gap-2.5">
           <Pill tone={state.tone}>{state.label}</Pill>
           {attempt.kind === 'FOLLOW_UP' ? <Pill>Follow-up</Pill> : null}
+          {ownAgent ? <Pill tone="violet">Your own agent</Pill> : null}
           <span className="font-mono text-sm text-muted-foreground">
             {issueUrl ? (
               <a href={issueUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
@@ -148,7 +160,7 @@ export function ReviewScreen({
           ) : null}
         </div>
         <aside className="flex min-w-0 flex-[1_1_340px] flex-col gap-3.5">
-          <CostPanel attempt={attempt} />
+          {ownAgent ? <OwnAgentPanel attempt={attempt} now={now} /> : <CostPanel attempt={attempt} />}
           {inReview && followUp ? (
             <FollowUpApproval
               attemptId={attempt.attemptId}
@@ -161,7 +173,12 @@ export function ReviewScreen({
               attemptId={attempt.attemptId}
               issueNumber={attempt.number}
               repo={repo}
-              defaultTitle={attempt.approval?.title || attempt.title?.trim() || `Fix #${attempt.number}`}
+              defaultTitle={
+                attempt.approval?.title ||
+                attempt.result?.prTitle?.trim() ||
+                attempt.title?.trim() ||
+                `Fix #${attempt.number}`
+              }
               defaultBody={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
               login={login}
               dcoMode={view.contributor?.settings?.dco ?? null}
@@ -171,6 +188,9 @@ export function ReviewScreen({
           ) : followUp ? null : (
             <ApprovalPanel attempt={attempt} />
           )}
+          {inReview && ownAgent ? (
+            <SendBackForm attemptId={attempt.attemptId} left={attempt.sendBacksLeft ?? 0} />
+          ) : null}
           <TimelinePanel attempt={attempt} />
           <ReadinessPanel attempt={attempt} />
         </aside>

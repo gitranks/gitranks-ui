@@ -14,7 +14,11 @@ import type {
   ContributeIssuePage,
   ContributeIssuesFilter,
   ContributeMaintainerRepos,
+  ContributeMcpToken,
+  ContributeMcpTokenCreated,
   ContributeOptOutResult,
+  ContributeOwnAgentFields,
+  ContributePaths,
   ContributePreferences,
   ContributePreferencesInput,
   ContributeReplyDraft,
@@ -51,6 +55,53 @@ const REPLY_DRAFT = `draftId prId attemptId comment { commentId author path line
   lastError { reason note at } createdAt updatedAt`;
 
 type FollowUpFieldsOf<T> = T & { attemptId: string };
+
+// The user's own agent: read in operations of their own too, so an API without them leaves the rest.
+const MCP_TOKEN = 'id name last4 createdAt lastUsedAt';
+const OWN_AGENT_FIELDS =
+  'attemptId runner agent { name model } changesRequested { note at } leaseUntil sendBacksLeft openedBy';
+type OwnAgentRow = Partial<ContributeOwnAgentFields> & { attemptId: string };
+
+export const ContributeOwnAgentDocument = doc<{
+  contribute: { contributor: { paths: ContributePaths } | null; mcpTokens: ContributeMcpToken[] } | null;
+}>(`query ContributeOwnAgent { contribute { contributor { paths { hosted mcp } } mcpTokens { ${MCP_TOKEN} } } }`);
+
+export const CreateMcpTokenDocument = doc<{ createMcpToken: ContributeMcpTokenCreated }, { name: string }>(
+  `mutation CreateMcpToken($name: String!) { createMcpToken(name: $name) { token mcpToken { ${MCP_TOKEN} } } }`,
+);
+
+export const RevokeMcpTokenDocument = doc<{ revokeMcpToken: boolean }, { id: string }>(
+  'mutation RevokeMcpToken($id: ID!) { revokeMcpToken(id: $id) }',
+);
+
+export const SendBackToAgentDocument = doc<{ sendBackToAgent: ContributeAttempt }, { attemptId: string; note: string }>(
+  `mutation SendBackToAgent($attemptId: ID!, $note: String!) { sendBackToAgent(attemptId: $attemptId, note: $note) { attemptId state } }`,
+);
+
+export const ContributeAttemptsOwnAgentDocument = doc<
+  { contributeAttempts: OwnAgentRow[] | null },
+  { state?: ContributeAttemptState; first?: number }
+>(`query ContributeAttemptsOwnAgent($state: ContributeAttemptState, $first: Int) {
+  contributeAttempts(state: $state, first: $first) { ${OWN_AGENT_FIELDS} }
+}`);
+
+export const ContributeAttemptOwnAgentDocument = doc<
+  { contributeAttempt: (OwnAgentRow & { result: { prTitle: string | null } | null }) | null },
+  { id: string }
+>(`query ContributeAttemptOwnAgent($id: ID!) {
+  contributeAttempt(id: $id) { ${OWN_AGENT_FIELDS} result { prTitle } }
+}`);
+
+export const ContributeContributionsOwnAgentDocument = doc<
+  {
+    contributeContributions: {
+      items: Pick<OwnAgentRow, 'attemptId' | 'runner' | 'agent' | 'openedBy'>[];
+    } | null;
+  },
+  { first?: number }
+>(`query ContributeContributionsOwnAgent($first: Int) {
+  contributeContributions(first: $first) { items { attemptId runner agent { name model } openedBy } }
+}`);
 
 export const ContributePreviewDocument = doc<{ contribute: { previewAllowed: boolean } | null }>(
   'query ContributePreview { contribute { previewAllowed } }',

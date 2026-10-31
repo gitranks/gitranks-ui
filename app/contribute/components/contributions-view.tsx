@@ -41,6 +41,7 @@ import type {
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
+import { followUpCanHelp } from '@/lib/contribute/follow-up-format';
 import { AUTOPILOT_UNLOCK_AT, dayLabel, relativeLabel, timeLeftLabel, usd } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
@@ -218,8 +219,8 @@ function PrNeedsYouRow({
           {contribution.title?.trim() || `Fix for issue #${contribution.issueNumber}`}
         </Link>
       </div>
-      <PrSignals needsYou={contribution.needsYou} now={now} prId={pullRequest.prId} />
-      {contribution.needsYou?.signals.length ? (
+      <PrSignals needsYou={contribution.needsYou} now={now} prId={pullRequest.prId} prNumber={pullRequest.number} />
+      {followUpCanHelp(contribution.needsYou?.signals) ? (
         <FollowUpRounds followUps={contribution.followUps} pullRequest={pullRequest} attemptCapUsd={attemptCapUsd} />
       ) : null}
       {drafts.length ? (

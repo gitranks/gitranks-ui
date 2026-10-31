@@ -118,13 +118,18 @@ export function vetoErrorMessage(error: ContributeErrorCode, message?: string): 
   return contributeErrorMessage(error, message);
 }
 
+/** Whether a follow-up could act on what the pull request needs: anything but a CLA, which only the user signs. */
+export const followUpCanHelp = (signals: readonly ContributePrSignal[] | null | undefined): boolean =>
+  (signals ?? []).some((signal) => signal.kind !== 'CLA');
+
 /** Why "Mark as handled" did not go through, for the user. */
 export function handledErrorMessage(error: ContributeErrorCode, message?: string): string {
   if (error === 'NOT_FOUND') return 'This pull request is gone, or it is no longer yours. Reload the page.';
-  if (error === 'INVALID') {
-    return /not open/i.test(message ?? '')
-      ? 'The pull request is no longer open. Reload the page to see how it ended.'
-      : 'The pull request changed just now. Reload the page and try again.';
+  if (error === 'INVALID' && /not open/i.test(message ?? '')) {
+    return 'The pull request is no longer open. Reload the page to see how it ended.';
+  }
+  if (error === 'INVALID' && /changed meanwhile/i.test(message ?? '')) {
+    return 'The pull request changed just now. Reload the page and try again.';
   }
   return contributeErrorMessage(error, message);
 }

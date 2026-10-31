@@ -29,7 +29,9 @@ const { AutopilotRecord, autopilotErrorMessage } = await import('./autopilot-sec
 const { NOW, views, settings: baseSettings } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { attempt, contributions, feedbackThread, flowDraft, followUpAttempts, followUps, needsYou, replyDraft } =
   await import('@/lib/contribute/__fixtures__/contribute-attempts');
-const { followUpErrorMessage, replyRefusalOf, vetoErrorMessage } = await import('@/lib/contribute/follow-up-format');
+const { followUpErrorMessage, handledErrorMessage, replyRefusalOf, vetoErrorMessage } = await import(
+  '@/lib/contribute/follow-up-format'
+);
 
 import type {
   ContributeAttemptDetail,
@@ -97,6 +99,18 @@ describe('a pull request that needs the user, on My contributions', () => {
       followUps: followUps(),
     });
     expect(text(cla)).toContain('Sign the contributor license agreement (CLA): license/cla');
+    expect(cla).toContain('aria-label="Mark pull request #1419 as handled"');
+    // Only the user signs a CLA: no follow-up is offered for it alone.
+    expect(cla).not.toContain('data-start-follow-up');
+  });
+
+  it('says why Mark as handled did not go through', () => {
+    expect(handledErrorMessage('NOT_FOUND')).toContain('no longer yours');
+    expect(handledErrorMessage('INVALID', 'the pull request is not open')).toContain('no longer open');
+    expect(handledErrorMessage('INVALID', 'the pull request changed meanwhile: try again')).toContain(
+      'changed just now',
+    );
+    expect(handledErrorMessage('INVALID', 'prId must match')).not.toContain('changed just now');
   });
 
   it('offers a follow-up with the rounds used and left, within the limit for one attempt', () => {
@@ -239,6 +253,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(plain).toContain('A reviewer asked for changes · 3 hours ago');
     expect(html).toContain('data-start-follow-up="PR_1"');
     expect(plain).toContain('Follow-up round 1 of 2 · 2 left');
+    expect(html).toContain('data-mark-handled="PR_1"');
   });
 
   it('says it is handed to the user after two rounds', () => {

@@ -163,6 +163,7 @@ export function ReviewScreen({
             needsYou={attempt.needsYou}
             now={now}
             prId={attempt.pullRequest.state === 'OPEN' ? attempt.pullRequest.prId : undefined}
+            prNumber={attempt.pullRequest.number}
           />
           <FollowUpRounds
             followUps={attempt.followUps}

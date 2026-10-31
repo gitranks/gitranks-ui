@@ -19,10 +19,12 @@ export function PrSignals({
   needsYou,
   now,
   prId,
+  prNumber,
 }: {
   needsYou: ContributeNeedsYou | null | undefined;
   now?: Date;
   prId?: string;
+  prNumber?: number;
 }) {
   if (needsYou === undefined) {
     return <p className="text-sm text-muted-foreground">What changed on GitHub is not available yet.</p>;
@@ -44,7 +46,8 @@ export function PrSignals({
   return (
     <div className="flex flex-col gap-2">
       {list}
-      <MarkHandledButton prId={prId} />
+      {/* A signal arriving later is a new "needs you": the button starts afresh. */}
+      <MarkHandledButton key={needsYou.since} prId={prId} prNumber={prNumber} />
     </div>
   );
 }

@@ -51,7 +51,7 @@ export function StartFollowUpButton({ prId }: { prId: string }) {
  * "Mark as handled": the user took care of what the pull request's reads found, so it leaves Needs you. Something new
  * on it raises it again.
  */
-export function MarkHandledButton({ prId }: { prId: string }) {
+export function MarkHandledButton({ prId, prNumber }: { prId: string; prNumber?: number }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   /** It went through: the button stays off until the page reads again. */
@@ -72,7 +72,14 @@ export function MarkHandledButton({ prId }: { prId: string }) {
 
   return (
     <div className="flex flex-col items-start gap-1.5" data-mark-handled={prId}>
-      <Button type="button" variant="outline" size="sm" onClick={click} disabled={pending || done}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={click}
+        disabled={pending || done}
+        aria-label={prNumber ? `Mark pull request #${prNumber} as handled` : undefined}
+      >
         {pending || done ? 'Marking…' : 'Mark as handled'}
       </Button>
       <ErrorNote error={error} />

@@ -18,10 +18,26 @@ const own = {
 };
 
 describe('the Contribute section on the home page', () => {
-  it('shows to everyone once Contribute is open, and before that only to users it is open to', () => {
-    expect(contributeSectionShown(true, false)).toBe(true);
-    expect(contributeSectionShown(false, true)).toBe(true);
-    expect(contributeSectionShown(false, false)).toBe(false);
+  it('shows a visitor the section once Contribute is open to everyone', () => {
+    expect(contributeSectionShown(true, false, false)).toBe(true);
+    expect(contributeSectionShown(false, false, false)).toBe(false);
+  });
+
+  it("follows a signed-in user's own access, so the button never leads to a page they cannot open", () => {
+    expect(contributeSectionShown(false, true, true)).toBe(true);
+    expect(contributeSectionShown(true, true, false)).toBe(false);
+    expect(contributeSectionShown(false, true, false)).toBe(false);
+    // Until their access is known: as for everyone.
+    expect(contributeSectionShown(true, true, null)).toBe(true);
+    expect(contributeSectionShown(false, true, null)).toBe(false);
+  });
+
+  it('keeps the button waiting, doing nothing, until the session and access are known', () => {
+    const html = renderToStaticMarkup(<ContributeSectionView viewer="visitor" picks={EXAMPLE_PICKS} pending />);
+
+    expect(html).toMatch(/<span aria-disabled="true" data-pending="true"[^>]*>Start contributing/);
+    expect(html).not.toContain('aria-haspopup="dialog"');
+    expect(html).not.toContain('href="/contribute"');
   });
 
   it('renders nothing for a visitor before Contribute is open, and the section once it is', () => {
@@ -40,7 +56,7 @@ describe('the Contribute section on the home page', () => {
     ]) {
       expect(html).toContain(title);
     }
-    expect(html.indexOf('Contributor rank')).toBeGreaterThan(html.indexOf('next job search'));
+    expect(html.indexOf('can count toward your Contributor rank')).toBeGreaterThan(html.indexOf('next job search'));
     expect(html).toContain('Every pull request says it was made with AI.');
   });
 
@@ -48,7 +64,8 @@ describe('the Contribute section on the home page', () => {
     const html = renderToStaticMarkup(<ContributeSectionView viewer="visitor" picks={EXAMPLE_PICKS} />);
 
     expect(html).toContain('data-picks="example"');
-    expect(html).toContain('Example picks');
+    expect(html).toContain('Example picks</span> <span');
+    expect(html).not.toContain('These repos');
     expect(html).toContain('Why: Your stack: fern-fmt · used by 3 of 5 repos · A maintainer asked for a PR');
     expect(html).not.toContain('href="https://github.com/');
     expect(html).toContain('Fix it with');

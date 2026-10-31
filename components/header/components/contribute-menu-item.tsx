@@ -13,7 +13,7 @@ export function ContributeMenuItem({ active }: Readonly<{ active?: boolean }>) {
   const { data: session } = useSession();
   const allowed = useContributeAllowed(session?.user?.githubLogin);
 
-  if (!allowed) return null;
+  if (allowed !== true) return null;
 
   return (
     <NavigationMenuItem>

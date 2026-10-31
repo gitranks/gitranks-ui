@@ -29,12 +29,12 @@ const POINTS = [
   {
     icon: SquareTerminal,
     title: 'Your agent writes it, you approve it',
-    text: 'Claude Code, Codex, Cursor or Gemini CLI, or ours in a sandbox on your Claude key. Nothing reaches GitHub until you submit it.',
+    text: 'Claude Code, Codex, Cursor or Gemini CLI, or ours in a sandbox on your Claude key. You review each change on GitRanks before we open the pull request.',
   },
   {
     icon: BriefcaseBusiness,
     title: 'A track record that works for you',
-    text: 'Merged pull requests in projects people rely on stay on your GitHub profile: work to point to in your next job search, and to talk through in an interview. They count toward your Contributor rank too.',
+    text: 'Merged pull requests in projects people rely on stay on your GitHub profile: work to point to in your next job search, and to talk through in an interview. They can count toward your Contributor rank too.',
   },
 ];
 
@@ -100,13 +100,21 @@ const WAYS = [
 
 const ACTION_CLASS = cn(buttonVariants({ size: 'lg' }), 'min-h-11 px-5 text-base font-semibold max-sm:w-full');
 
-const Action: FC<{ viewer: ContributeViewer }> = ({ viewer }) => {
+const Action: FC<{ viewer: ContributeViewer; pending: boolean }> = ({ viewer, pending }) => {
   const content = (
     <>
       {viewer === 'contributor' ? 'Open Contribute' : 'Start contributing'}
       <ArrowRight aria-hidden />
     </>
   );
+  // Until the session and the user's access are known: the button's place, doing nothing yet.
+  if (pending) {
+    return (
+      <span aria-disabled="true" data-pending className={cn(ACTION_CLASS, 'pointer-events-none opacity-60')}>
+        {content}
+      </span>
+    );
+  }
   // Signed out: the sign-in first, then Contribute.
   if (viewer === 'visitor') {
     return <SignInButton className={ACTION_CLASS}>{content}</SignInButton>;
@@ -140,19 +148,12 @@ const Picks: FC<{ viewer: ContributeViewer; picks: ContributeIssue[] }> = ({ vie
               </Link>
             </>
           ) : (
-            <>
-              <h3 className="flex items-baseline gap-2">
-                <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                  Example picks
-                </span>
-                <span className="text-sm text-muted-foreground">from a stack</span>
-              </h3>
-              <span aria-hidden className="flex gap-0.5 rounded-lg bg-muted p-0.5 text-xs text-muted-foreground">
-                <span className="rounded-md px-2 py-0.5">All issues</span>
-                <span className="rounded-md bg-card px-2 py-0.5 font-semibold text-foreground shadow-xs">My stack</span>
-                <span className="rounded-md px-2 py-0.5">These repos</span>
-              </span>
-            </>
+            <h3 className="flex items-baseline gap-2">
+              <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                Example picks
+              </span>{' '}
+              <span className="text-sm text-muted-foreground">from a stack</span>
+            </h3>
           )}
         </div>
         <div className="flex flex-col divide-y">
@@ -181,10 +182,11 @@ const Picks: FC<{ viewer: ContributeViewer; picks: ContributeIssue[] }> = ({ vie
   );
 };
 
-/** The section as a viewer sees it. `picks`: the contributor's own, else the examples. */
-export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: ContributeIssue[] }> = ({
+/** The section as a viewer sees it. `picks`: the contributor's own, else the examples. `pending`: the button waits. */
+export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: ContributeIssue[]; pending?: boolean }> = ({
   viewer,
   picks,
+  pending = false,
 }) => (
   <section
     aria-labelledby="contribute"
@@ -223,7 +225,7 @@ export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: Contri
         ))}
       </ul>
       <div className="flex flex-col items-start gap-2">
-        <Action viewer={viewer} />
+        <Action viewer={viewer} pending={pending} />
         <span className="text-sm text-muted-foreground">Free to use. Every pull request says it was made with AI.</span>
       </div>
     </div>
@@ -231,19 +233,22 @@ export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: Contri
   </section>
 );
 
-/** Whether the section shows: to everyone once Contribute is open, before that to signed-in users it is open to. */
-export const contributeSectionShown = (open: boolean, allowed: boolean) => open || allowed;
+/**
+ * Whether the section shows. A signed-in user sees it when Contribute is open to them, the same answer that opens
+ * Contribute's pages, so its button never leads to a page they cannot open; until that answer comes, when Contribute is
+ * open to everyone. A visitor sees it once Contribute is open to everyone; their button signs them in first.
+ */
+export const contributeSectionShown = (open: boolean, signedIn: boolean, allowed: boolean | null) =>
+  signedIn ? (allowed ?? open) : open;
 
 /** The signed-in user's own top picks, read once they may see the section; none for anybody else or on a failure. */
 function useOwnPicks(login: string | null): ContributeIssue[] {
   const [picks, setPicks] = useState<ContributeIssue[]>([]);
 
   useEffect(() => {
+    setPicks([]);
     const url = login ? profileIssuesUrl(login, login) : null;
-    if (!url) {
-      setPicks([]);
-      return;
-    }
+    if (!url) return;
     let live = true;
     fetch(url)
       .then((res) => (res.ok ? (res.json() as Promise<ProfileIssuesAnswer>) : null))
@@ -262,16 +267,23 @@ function useOwnPicks(login: string | null): ContributeIssue[] {
 /**
  * GitRanks Contribute on the home page: the pitch, and picks beside it. `open`: whether Contribute is open to everyone;
  * until then only signed-in users it is open to see it. A contributor sees their own top picks in place of the examples.
+ * While the session is still loading, the button waits rather than offering a sign-in to someone already signed in.
  */
 export const ContributeSection: FC<{ open: boolean }> = ({ open }) => {
   const { data: session, status } = useSession();
   const login = status === 'authenticated' ? (session?.user?.githubLogin ?? null) : null;
   const allowed = useContributeAllowed(login);
-  const shown = contributeSectionShown(open, allowed);
-  const own = useOwnPicks(shown ? login : null);
+  const shown = contributeSectionShown(open, !!login, allowed);
+  const own = useOwnPicks(shown && allowed ? login : null);
 
   if (!shown) return null;
 
   const viewer: ContributeViewer = own.length ? 'contributor' : login ? 'member' : 'visitor';
-  return <ContributeSectionView viewer={viewer} picks={own.length ? own : EXAMPLE_PICKS} />;
+  return (
+    <ContributeSectionView
+      viewer={viewer}
+      picks={own.length ? own : EXAMPLE_PICKS}
+      pending={status === 'loading' || (!!login && allowed === null)}
+    />
+  );
 };

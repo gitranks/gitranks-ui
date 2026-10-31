@@ -25,12 +25,31 @@ const writeCache = (login: string, allowed: boolean) => {
   }
 };
 
+/** The question under way, per login, so the header and a page asking at once send one request. */
+const asking = new Map<string, Promise<boolean>>();
+
+const ask = (login: string): Promise<boolean> => {
+  const pending = asking.get(login);
+  if (pending) return pending;
+  const answer = fetch('/api/me/contribute')
+    .then((res) => (res.ok ? (res.json() as Promise<{ previewAllowed?: boolean }>) : null))
+    .then((data) => {
+      const value = data?.previewAllowed === true;
+      writeCache(login, value);
+      return value;
+    })
+    .catch(() => false)
+    .finally(() => asking.delete(login));
+  asking.set(login, answer);
+  return answer;
+};
+
 /**
- * Whether GitRanks Contribute is open to the signed-in user `login`: false for nobody, until the answer comes, and on
- * any failure. Shared by the header's menu item and the home page's section, through one cached answer.
+ * Whether GitRanks Contribute is open to the signed-in user `login`: null while the answer is on its way, false for
+ * nobody and on any failure. Shared by the header's menu item and the home page's section, through one cached answer.
  */
-export function useContributeAllowed(login: string | null | undefined): boolean {
-  const [allowed, setAllowed] = useState(false);
+export function useContributeAllowed(login: string | null | undefined): boolean | null {
+  const [allowed, setAllowed] = useState<boolean | null>(login ? null : false);
 
   useEffect(() => {
     if (!login) {
@@ -42,15 +61,11 @@ export function useContributeAllowed(login: string | null | undefined): boolean 
       setAllowed(cached);
       return;
     }
+    setAllowed(null);
     let live = true;
-    fetch('/api/me/contribute')
-      .then((res) => (res.ok ? (res.json() as Promise<{ previewAllowed?: boolean }>) : null))
-      .then((data) => {
-        const value = data?.previewAllowed === true;
-        writeCache(login, value);
-        if (live) setAllowed(value);
-      })
-      .catch(() => {});
+    ask(login).then((value) => {
+      if (live) setAllowed(value);
+    });
     return () => {
       live = false;
     };

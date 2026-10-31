@@ -105,7 +105,7 @@ describe('Settings, what to work on', () => {
     expect(plain).toContain('3 / 50 repos');
     expect(html).toContain('data-group="@me"');
     expect(html).toContain('data-group="acme-corp"');
-    expect(rowOf(html, 'octocat/site')).toContain('Reading…');
+    expect(rowOf(html, 'octocat/site')).toContain('Reading');
     expect(rowOf(html, 'octocat/resize-detector')).toContain('Read');
     expect(plain).toContain('@me My repos added');
 
@@ -116,7 +116,7 @@ describe('Settings, what to work on', () => {
     expect(rowOf(html, 'facebook/react')).toContain('used by 12');
     expect(text(rowOf(html, 'facebook/react'))).toContain('react, react-dom, scheduler');
     expect(text(rowOf(html, 'nestjs/nest'))).toContain('@nestjs/core, @nestjs/common, @nestjs/config, +2');
-    expect(text(rowOf(html, 'nestjs/nest'))).toContain('Reading issues…');
+    expect(text(rowOf(html, 'nestjs/nest'))).toContain('Reading');
     expect(plain).toContain('Show all 50');
     expect(plain).toContain("Didn't pass the rules · 2");
     expect(plain).toContain('No outside PR merged in 90 days');

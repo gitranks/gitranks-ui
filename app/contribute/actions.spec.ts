@@ -55,6 +55,7 @@ const CALLS: Record<string, unknown[]> = {
   ignoreContributeRepo: ['R_1'],
   unignoreContributeRepo: ['R_1'],
   resolveContributeStack: [],
+  readContributeActivity: [],
   sendContributeFeedback: ['GATES', 'lodash is left out', { mode: 'STACK', githubLogin: 'mallory' }],
 };
 
@@ -69,7 +70,9 @@ const SET_ACTIONS = [
   'resolveContributeStack',
   'sendContributeFeedback',
 ];
-const loginOf = (name: string) => (SET_ACTIONS.includes(name) ? 'maslianok' : 'octocat');
+/** The reads about what the user works on: nothing for the other logins, and nothing is asked. */
+const SET_READS = ['readContributeActivity'];
+const loginOf = (name: string) => (SET_ACTIONS.includes(name) || SET_READS.includes(name) ? 'maslianok' : 'octocat');
 
 const exported = Object.entries(actions).filter(([, value]) => typeof value === 'function') as [string, Action][];
 
@@ -99,6 +102,14 @@ describe('the Contribute server actions', () => {
     const action = (actions as unknown as Record<string, Action>)[name];
 
     expect(await action(...(CALLS[name] as never[]))).toEqual({ ok: false, error: 'NOT_FOUND' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it.each(SET_READS)('%s answers nothing, and calls nothing, for a login the modes are not shown to', async (name) => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    const action = (actions as unknown as Record<string, Action>)[name];
+
+    expect(await action(...(CALLS[name] as never[]))).toEqual({ ok: true, data: null });
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 

@@ -304,14 +304,31 @@ export type ContributeAttemptCheckName =
 /** What last went wrong in a submission: a fixed code, and the API's note for the user. */
 export type ContributeSubmitError = { reason: string; note: string; at: string };
 
-/** A submission, from the approval on. `waitUntil` is set while it waits for the next day's pull requests. */
+/** When a write step (fork, sync, push, pull request) started and finished; `doneAt` null while it runs or failed. */
+export type ContributeSubmitStepTime = { step: ContributeSubmitStep; startedAt: string; doneAt: string | null };
+
+/**
+ * A submission, from the approval on. `waitUntil` is set while it waits for the next day's pull requests. The steps'
+ * clock (`steps`, `stepStartedAt`, `forkPending`, `retryAt`) is read in an operation of its own: absent while the API
+ * does not answer it.
+ */
 export type ContributeAttemptSubmit = {
   step: ContributeSubmitStep;
   waitUntil: string | null;
   fork: string | null;
   branch: string | null;
   lastError: ContributeSubmitError | null;
+  steps?: ContributeSubmitStepTime[] | null;
+  stepStartedAt?: string | null;
+  forkPending?: boolean | null;
+  retryAt?: string | null;
 };
+
+/** The parts of an attempt the submission's stepper reads again while it submits, and when they were read. */
+export type ContributeAttemptLive = Pick<
+  ContributeAttempt,
+  'attemptId' | 'state' | 'updatedAt' | 'submit' | 'pullRequest'
+>;
 
 export type ContributeAttemptPullRequest = {
   prId: string;

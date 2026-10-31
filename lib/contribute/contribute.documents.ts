@@ -5,7 +5,9 @@ import type {
   ContributeAttempt,
   ContributeAttemptDetail,
   ContributeAttemptFollowUpFields,
+  ContributeAttemptLive,
   ContributeAttemptState,
+  ContributeAttemptSubmit,
   ContributeAutopilot,
   ContributeChanges,
   ContributeComingSoonProvider,
@@ -301,6 +303,34 @@ export const ContributeAttemptDocument = doc<{ contributeAttempt: ContributeAtte
   }
 }`,
 );
+
+// The submission's step clock: read in operations of its own, so an API without it leaves the stepper without durations.
+const SUBMIT = 'step waitUntil fork branch lastError { reason note at }';
+const SUBMIT_CLOCK = 'steps { step startedAt doneAt } stepStartedAt forkPending retryAt';
+
+export const ContributeAttemptSubmitClockDocument = doc<
+  { contributeAttempt: { attemptId: string; submit: ContributeAttemptSubmit | null } | null },
+  { id: string }
+>(`query ContributeAttemptSubmitClock($id: ID!) {
+  contributeAttempt(id: $id) { attemptId submit { ${SUBMIT} ${SUBMIT_CLOCK} } }
+}`);
+
+/** What the stepper reads again while the attempt submits: its state, the submission with its clock, the PR. */
+export const ContributeAttemptLiveDocument = doc<{ contributeAttempt: ContributeAttemptLive | null }, { id: string }>(
+  `query ContributeAttemptLive($id: ID!) {
+  contributeAttempt(id: $id) {
+    attemptId state updatedAt submit { ${SUBMIT} ${SUBMIT_CLOCK} } pullRequest { ${PULL_REQUEST} }
+  }
+}`,
+);
+
+/** The same, without the clock: for an API that does not answer it yet. */
+export const ContributeAttemptLiveBareDocument = doc<
+  { contributeAttempt: ContributeAttemptLive | null },
+  { id: string }
+>(`query ContributeAttemptLiveBare($id: ID!) {
+  contributeAttempt(id: $id) { attemptId state updatedAt submit { ${SUBMIT} } pullRequest { ${PULL_REQUEST} } }
+}`);
 
 export const ContributeAttemptsFollowUpsDocument = doc<
   { contributeAttempts: FollowUpFieldsOf<ContributeAttemptFollowUpFields>[] | null },

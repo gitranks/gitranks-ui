@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { AutosubmitCountdown, StopAutopilotButton } from './follow-up-buttons';
 import { HEADING, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
+import { LiveSubmit, SubmitStepsSettled, TryAgainButton } from './submit-stepper';
 import {
   ATTEMPT_STATES,
   detailText,
@@ -13,8 +14,6 @@ import {
   PR_CHECKS,
   PR_STATES,
   REVIEW_DECISIONS,
-  SUBMIT_STEP_TEXT,
-  SUBMIT_STEPS,
   timeLabel,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
@@ -66,46 +65,15 @@ export function SubmitErrorNote({ submit }: { submit: ContributeAttemptSubmit | 
   );
 }
 
-/** Fork, sync, push, pull request: the step the submission is on. */
-function SubmitSteps({ submit, now }: { submit: ContributeAttemptSubmit; now?: Date }) {
-  const current = SUBMIT_STEPS.findIndex(({ step }) => step === submit.step);
+/** A pull request opened in the last few minutes: its box still shows the steps that opened it. */
+const JUST_OPENED_MS = 10 * 60_000;
+const justOpened = (pullRequest: ContributeAttemptPullRequest | null | undefined, now?: Date) => {
+  const opened = pullRequest ? Date.parse(pullRequest.openedAt) : Number.NaN;
+  return !Number.isNaN(opened) && (now ?? new Date()).getTime() - opened < JUST_OPENED_MS;
+};
 
-  return (
-    <>
-      <ol aria-label="Submission steps" className="flex flex-wrap items-center gap-2 text-sm">
-        {SUBMIT_STEPS.map(({ step, label }, index) => {
-          const state = current < 0 || index > current ? 'pending' : index === current ? 'current' : 'done';
-          return (
-            <li
-              key={step}
-              data-step={step}
-              data-step-state={state}
-              aria-current={state === 'current' ? 'step' : undefined}
-              className={cn(
-                'flex items-center gap-1.5 rounded-full border px-3 py-1',
-                state === 'done' && 'border-positive/30 text-positive',
-                state === 'current' && 'border-primary bg-background font-semibold text-foreground',
-                state === 'pending' && 'text-muted-foreground',
-              )}
-            >
-              <span aria-hidden="true">{state === 'done' ? '✓' : `${index + 1}`}</span>
-              {label}
-            </li>
-          );
-        })}
-      </ol>
-      <Text>
-        {labelOf(SUBMIT_STEP_TEXT, submit.step)}
-        {submit.step === 'WAITING_CAP'
-          ? submit.waitUntil
-            ? ` It goes on ${relativeLabel(submit.waitUntil, now)}, at ${timeLabel(submit.waitUntil)}. Nothing to do: it starts by itself.`
-            : ' It goes on when the next UTC day starts. Nothing to do: it starts by itself.'
-          : ''}
-        {submit.fork ? ` From ${submit.fork}${submit.branch ? `, branch ${submit.branch}` : ''}.` : ''}
-      </Text>
-    </>
-  );
-}
+/** The submission stopped at one of the four steps (not before the fork: a busy repo, say). */
+const failedAtStep = (submit: ContributeAttemptSubmit) => submit.step !== 'QUEUED' && submit.step !== 'WAITING_CAP';
 
 /** The pull request once it is open: a link, its state on GitHub, and when the last sync read it. */
 export function PullRequestStatus({ pullRequest, now }: { pullRequest: ContributeAttemptPullRequest; now?: Date }) {
@@ -275,8 +243,12 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
       return (
         <Box state="REVIEW" tone={attempt.submit?.lastError ? 'warn' : 'info'}>
           <Title>{attempt.submit?.lastError ? 'Back for your approval' : 'Ready for your review'}</Title>
+          {attempt.submit?.lastError && failedAtStep(attempt.submit) ? (
+            <SubmitStepsSettled state="REVIEW" submit={attempt.submit} />
+          ) : null}
           <Text>Read the change, then submit it as your pull request or discard it. It waits seven days for you.</Text>
           <SubmitErrorNote submit={attempt.submit} />
+          {attempt.submit?.lastError ? <TryAgainButton /> : null}
         </Box>
       );
     case 'PENDING_AUTOSUBMIT':
@@ -294,21 +266,24 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
     case 'SUBMITTING':
       return (
         <Box state="SUBMITTING" tone={attempt.submit?.step === 'WAITING_CAP' ? 'warn' : 'info'}>
-          <Title>
-            {attempt.submit?.step === 'WAITING_CAP' ? 'Waiting for tomorrow' : 'Submitting your pull request'}
-          </Title>
-          {attempt.submit ? (
-            <SubmitSteps submit={attempt.submit} now={now} />
-          ) : (
-            <Text>Approved. The steps are not available yet.</Text>
-          )}
-          <SubmitErrorNote submit={attempt.submit} />
+          {/* Only what the stepper reads: the rest of the attempt (its diff, say) stays on the server. */}
+          <LiveSubmit
+            attempt={{
+              attemptId: attempt.attemptId,
+              state: attempt.state,
+              updatedAt: attempt.updatedAt,
+              submit: attempt.submit,
+              pullRequest: attempt.pullRequest,
+            }}
+            now={now}
+          />
         </Box>
       );
     case 'PR_OPEN':
     case 'FOLLOW_UP':
     case 'MERGED':
-    case 'CLOSED':
+    case 'CLOSED': {
+      const fresh = justOpened(attempt.pullRequest, now);
       return (
         <Box state={attempt.state} tone="done">
           <Title>
@@ -320,8 +295,19 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
                   ? 'A follow-up is running on your pull request'
                   : 'Your pull request is open'}
           </Title>
+          {attempt.state === 'PR_OPEN' && attempt.submit && fresh ? (
+            <SubmitStepsSettled state={attempt.state} submit={attempt.submit} pullRequest={attempt.pullRequest} />
+          ) : null}
           {attempt.pullRequest ? (
-            <PullRequestStatus pullRequest={attempt.pullRequest} now={now} />
+            <div
+              className={
+                fresh
+                  ? 'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-400'
+                  : undefined
+              }
+            >
+              <PullRequestStatus pullRequest={attempt.pullRequest} now={now} />
+            </div>
           ) : (
             <Text>The pull request is not available yet.</Text>
           )}
@@ -336,6 +322,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
           ) : null}
         </Box>
       );
+    }
     case 'STOPPED':
       return (
         <Box state="STOPPED" tone="muted">
@@ -354,6 +341,9 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
             {usd(attempt.costUsd)} was spent.
             {attempt.endReason === 'SUBMIT_FAILED' ? '' : ' The issue went back to the pool.'}
           </Text>
+          {attempt.endReason === 'SUBMIT_FAILED' && attempt.submit && failedAtStep(attempt.submit) ? (
+            <SubmitStepsSettled state="STOPPED" submit={attempt.submit} />
+          ) : null}
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
       );

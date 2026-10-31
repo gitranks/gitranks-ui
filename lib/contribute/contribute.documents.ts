@@ -48,6 +48,7 @@ import type {
   ContributeSettingsInput,
   Contributor,
 } from './contribute.types';
+import type { ContributeConventionsFields, ContributePrFixKind } from './pr-conventions';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
@@ -320,6 +321,31 @@ export const ContributeAttemptSubmitClockDocument = doc<
   { id: string }
 >(`query ContributeAttemptSubmitClock($id: ID!) {
   contributeAttempt(id: $id) { attemptId submit { ${SUBMIT} ${SUBMIT_CLOCK} } }
+}`);
+
+// The repo's PR conventions and the open PR's fixes: read on their own, so an API without them leaves the page as it was.
+const CONVENTIONS = `title { hard source types scopes requireScope pattern } titleExamples template { path aiAsks }
+  changelog { kind path required source } cla { check signUrl } dco generated notes`;
+const PR_FIXES = 'prIssues { kind check message suggestion } prTitle prBody prFix { kind state note at }';
+
+export const ContributeAttemptConventionsDocument = doc<
+  {
+    contributeAttempt:
+      | (Required<ContributeConventionsFields> & { attemptId: string; result: { prTitle: string | null } | null })
+      | null;
+  },
+  { id: string }
+>(`query ContributeAttemptConventions($id: ID!) {
+  contributeAttempt(id: $id) { attemptId conventions { ${CONVENTIONS} } ${PR_FIXES} result { prTitle } }
+}`);
+
+export const FixContributePullRequestDocument = doc<
+  { fixContributePullRequest: Required<ContributeConventionsFields> & { attemptId: string } },
+  { attemptId: string; kind: ContributePrFixKind; title?: string | null; body?: string | null }
+>(`mutation FixContributePullRequest($attemptId: ID!, $kind: ContributePrFixKind!, $title: String, $body: String) {
+  fixContributePullRequest(attemptId: $attemptId, kind: $kind, title: $title, body: $body) {
+    attemptId conventions { ${CONVENTIONS} } ${PR_FIXES}
+  }
 }`);
 
 /** Whether the repo requires a DCO sign-off: read on its own, so an API without it leaves the review as it was. */

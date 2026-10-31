@@ -14,6 +14,7 @@ import { AttemptStatus, FollowUpOfLink } from './attempt-status';
 import { DiffViewer } from './diff-viewer';
 import { FollowUpApproval } from './follow-up-approval';
 import { FollowUpResult } from './follow-up-result';
+import { PrConventionsCard } from './pr-conventions-card';
 import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { PrForm } from './pr-form';
 import { HEADING, Pill } from './primitives';
@@ -152,6 +153,18 @@ export function ReviewScreen({
 
       <AttemptStatus attempt={attempt} now={now} />
 
+      {!followUp && attempt.pullRequest?.state === 'OPEN' ? (
+        <PrConventionsCard
+          attemptId={attempt.attemptId}
+          prNumber={attempt.pullRequest.number}
+          issues={attempt.prIssues ?? []}
+          fix={attempt.prFix ?? null}
+          title={attempt.prTitle ?? attempt.approval?.title ?? ''}
+          body={editableBodyOf(attempt.prBody ?? attempt.approval?.body ?? attempt.result?.prBody)}
+          titleRule={attempt.conventions?.title ?? null}
+        />
+      ) : null}
+
       {!followUp &&
       attempt.pullRequest &&
       (attempt.pullRequest.state === 'OPEN' || (attempt.followUps?.used ?? 0) > 0) ? (
@@ -248,6 +261,8 @@ export function ReviewScreen({
               again={!!attempt.submit?.lastError}
               grantNeeded={grantNeededOf(view, attempt)}
               grantConnected={view.grant?.connected === true}
+              conventions={attempt.conventions}
+              patch={attempt.patch}
             />
           ) : followUp ? null : (
             <ApprovalPanel attempt={attempt} />

@@ -183,6 +183,104 @@ describe('the review screen', () => {
     expect(review(detail({ dcoRequired: false }), standing)).not.toContain('data-dco');
   });
 
+  it('shows what the repo needs, checks the title live against its rule, and blocks only a failing hard rule', () => {
+    const repoConventions = {
+      title: {
+        hard: true,
+        source: '`.github/semantic.yml`',
+        types: ['feat', 'fix', 'docs'],
+        scopes: null,
+        requireScope: false,
+        pattern: null,
+      },
+      titleExamples: ['fix(router): keep the cache'],
+      template: { path: '.github/pull_request_template.md', aiAsks: ['If you are an AI agent, name your model'] },
+      changelog: { kind: 'FILE' as const, path: 'CHANGELOG.md', required: true, source: '9 of the last 10' },
+      cla: { check: 'license/cla', signUrl: 'https://cla-assistant.io/driftwood-js/driftwood' },
+      dco: false,
+      generated: ['test-vr/__snapshots__/'],
+      notes: [],
+    };
+    // The agent proposed a title that passes: the form opens with it, Submit open.
+    const passing = review(
+      detail({
+        conventions: repoConventions,
+        result: { ...attempts.review.result!, prTitle: 'fix(router): keep the layout cache' },
+      }),
+    );
+    expect(passing).toContain('data-repo-needs');
+    expect(passing).toContain('value="fix(router): keep the layout cache"');
+    expect(passing).toMatch(/data-need="title" data-state="ok"/);
+    expect(passing).toMatch(/data-need="cla" data-state="todo"/);
+    expect(passing).toContain('href="https://cla-assistant.io/driftwood-js/driftwood"');
+    expect(text(passing)).toContain("A signed CLA: sign it after the PR opens; we can't sign for you");
+    expect(passing).toMatch(/data-need="changelog" data-state="todo"/);
+    expect(passing).not.toContain('data-title-rule-fails');
+    expect(passing).not.toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+
+    // The issue's own title fails the repo's checked rule: said, and Submit waits.
+    const failing = review(detail({ conventions: repoConventions, title: 'Layout cache drops nested routes' }));
+    expect(failing).toMatch(/data-need="title" data-state="blocked"/);
+    expect(failing).toContain('aria-invalid="true"');
+    expect(failing).toContain('data-title-rule-fails');
+    expect(failing).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+
+    // A rule the repo only asks for: told, never blocking. No conventions read: no section.
+    const soft = review(
+      detail({
+        conventions: { ...repoConventions, title: { ...repoConventions.title, hard: false } },
+        title: 'Layout',
+      }),
+    );
+    expect(soft).toMatch(/data-need="title" data-state="todo"/);
+    expect(soft).not.toContain('data-title-rule-fails');
+    expect(review(detail())).not.toContain('data-repo-needs');
+  });
+
+  it("offers the open pull request's one-click fixes, and the CLA as a link only", () => {
+    const html = review(
+      detail({
+        state: 'PR_OPEN',
+        pullRequest: pullRequest(),
+        prTitle: 'Layout cache drops nested routes',
+        prIssues: [
+          {
+            kind: 'TITLE',
+            check: 'Semantic PR',
+            message: "Use the repo's `type(scope): summary` form.",
+            suggestion: 'fix: layout cache drops nested routes',
+          },
+          {
+            kind: 'CHANGELOG',
+            check: null,
+            message: 'The changelog line still waits for the pull request number.',
+            suggestion: '- fix: layout cache [#1419](https://github.com/driftwood-js/driftwood/pull/1419)',
+          },
+          { kind: 'TEMPLATE', check: 'PR description', message: 'Fill in the template.', suggestion: null },
+          {
+            kind: 'CLA',
+            check: 'license/cla',
+            message: "Sign the repo's CLA; we can't sign for you.",
+            suggestion: 'https://cla-assistant.io/x/y',
+          },
+        ],
+        prFix: { kind: 'LINK', state: 'FAILED', note: 'The branch moved.', at: '2026-10-28T12:00:00.000Z' },
+      }),
+    );
+    const plain = text(html);
+    expect(html).toContain('data-panel="pr-conventions"');
+    expect(plain).toContain('Retitle to “fix: layout cache drops nested routes”');
+    expect(plain).toContain('Fix the changelog line');
+    expect(plain).toContain('Edit the description');
+    expect(html).toContain('href="https://cla-assistant.io/x/y"');
+    expect(html).toContain('data-pr-fix="failed"');
+    expect(plain).toContain('Linking the changelog line to the pull request did not go through: The branch moved.');
+    // Nothing to fix, nothing sent: no card.
+    expect(review(detail({ state: 'PR_OPEN', pullRequest: pullRequest(), prIssues: [], prFix: null }))).not.toContain(
+      'data-panel="pr-conventions"',
+    );
+  });
+
   it('signs off only where the repo requires it (or the API does not say), with the tick or the standing consent', () => {
     expect(signOffOf(false, 'STANDING', true)).toBe(false);
     expect(signOffOf(false, 'ASK', true)).toBe(false);

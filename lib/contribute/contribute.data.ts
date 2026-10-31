@@ -4,6 +4,7 @@ import { cache } from 'react';
 
 import {
   ContributeActivityDocument,
+  ContributeAttemptConventionsDocument,
   ContributeAttemptDcoDocument,
   ContributeAttemptDocument,
   ContributeAttemptFollowUpFlowDocument,
@@ -72,6 +73,7 @@ import {
   type OverviewNowRead,
 } from './overview';
 import { auth } from '@/auth';
+import type { ContributeConventionsFields } from '@/lib/contribute/pr-conventions';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /**
@@ -460,6 +462,10 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   );
   // Whether the repo requires a DCO sign-off; left out when not answered.
   const dco = Promise.resolve(graphqlDirect(ContributeAttemptDcoDocument, { id }, options)).catch(() => undefined);
+  // The repo's PR conventions, the open PR's fixes, and the agent's proposed title; left out when not answered.
+  const conventions = Promise.resolve(graphqlDirect(ContributeAttemptConventionsDocument, { id }, options)).catch(
+    () => undefined,
+  );
   try {
     const { contributeAttempt: read } = await review;
     if (!read) return read;
@@ -483,10 +489,15 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
       dcoRead?.attemptId === contributeAttempt.attemptId && typeof dcoRead.dcoRequired === 'boolean'
         ? { ...withFlow, dcoRequired: dcoRead.dcoRequired }
         : withFlow;
+    const conventionsRead = (await conventions)?.contributeAttempt;
+    const withConventions = withConventionsOf(
+      withDco,
+      conventionsRead?.attemptId === contributeAttempt.attemptId ? conventionsRead : undefined,
+    );
     const agent = (await ownAgent)?.contributeAttempt;
-    if (agent?.attemptId !== contributeAttempt.attemptId) return withDco;
+    if (agent?.attemptId !== contributeAttempt.attemptId) return withConventions;
     const { result, ...fields } = agent;
-    const merged = withFields(withDco, fields);
+    const merged = withFields(withConventions, fields);
     return merged.result && result ? { ...merged, result: { ...merged.result, prTitle: result.prTitle } } : merged;
   } catch (failure) {
     const { error } = contributeErrorOf(failure);
@@ -494,6 +505,23 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
     if (error === 'NOT_AVAILABLE_YET') return undefined;
     throw new ContributeUnavailableError();
   }
+}
+
+/**
+ * The attempt with the repo's PR conventions and the open PR's fixes (`ContributeAttemptConventions`), and the agent's
+ * proposed title on its result (the form's default). An API that does not answer them leaves the attempt as it was.
+ */
+export function withConventionsOf(
+  attempt: ContributeAttemptDetail,
+  read: (Required<ContributeConventionsFields> & { result: { prTitle: string | null } | null }) | undefined,
+): ContributeAttemptDetail {
+  if (!read) return attempt;
+  const { conventions, prIssues, prTitle, prBody, prFix, result } = read;
+  const withTitle =
+    attempt.result && result?.prTitle && !attempt.result.prTitle
+      ? { ...attempt.result, prTitle: result.prTitle }
+      : attempt.result;
+  return { ...attempt, conventions, prIssues, prTitle, prBody, prFix, result: withTitle };
 }
 
 /**

@@ -31,6 +31,12 @@ import {
   tabStoreOf,
   takePendingApproval,
 } from '@/lib/contribute/grant-resume';
+import {
+  type ChecklistItem,
+  type ContributeRepoConventions,
+  checklistOf,
+  titleBlocks,
+} from '@/lib/contribute/pr-conventions';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
 
 export type PrFormProps = {
@@ -57,7 +63,76 @@ export type PrFormProps = {
   grantNeeded?: boolean;
   /** GitHub access is connected: back from GitHub, the kept approval may be sent. */
   grantConnected?: boolean;
+  /** What the repo asks of a PR (its title rule, a CLA, a changelog line); null or absent when none was read. */
+  conventions?: ContributeRepoConventions | null;
+  /** The change, for the changelog line it adds. */
+  patch?: string | null;
 };
+
+const MARK: Record<ChecklistItem['state'], string> = { ok: '✓', blocked: '✕', todo: '•', info: '·' };
+const MARK_LABEL: Record<ChecklistItem['state'], string> = {
+  ok: 'Done:',
+  blocked: 'Needed before Submit:',
+  todo: 'To do:',
+  info: 'Note:',
+};
+
+/** "This repo needs": the repo's conventions against the PR as it stands; the title line follows the field live. */
+export function RepoNeeds({ items, titleId }: { items: ChecklistItem[]; titleId?: string }) {
+  if (!items.length) return null;
+  return (
+    <section data-repo-needs aria-label="This repo needs" className="flex flex-col gap-1.5 rounded-lg bg-muted/60 p-3">
+      <h3 className="text-sm font-medium">This repo needs</h3>
+      <ul className="flex flex-col gap-1.5 text-xs">
+        {items.map((item) => (
+          <li
+            key={item.key}
+            data-need={item.key}
+            data-state={item.state}
+            id={item.key === 'title' ? titleId : undefined}
+            className="flex gap-2"
+          >
+            <span
+              aria-hidden
+              className={
+                item.state === 'ok'
+                  ? 'text-positive'
+                  : item.state === 'blocked'
+                    ? 'text-destructive'
+                    : 'text-muted-foreground'
+              }
+            >
+              {MARK[item.state]}
+            </span>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span>
+                <span className="sr-only">{MARK_LABEL[item.state]} </span>
+                {item.label}
+                {item.link ? (
+                  <>
+                    {' '}
+                    <a href={item.link} target="_blank" rel="noreferrer" className="text-link">
+                      Sign here<span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  </>
+                ) : null}
+              </span>
+              {item.detail ? (
+                <span
+                  className={`break-words ${item.state === 'blocked' ? 'text-destructive' : 'text-muted-foreground'} ${
+                    item.key === 'changelog' ? 'font-mono' : ''
+                  }`}
+                >
+                  {item.detail}
+                </span>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 /**
  * The approval's `dco`: only where the repo requires a sign-off (or while the API does not say), with the tick or the
@@ -98,6 +173,8 @@ export function PrForm({
   again,
   grantNeeded = false,
   grantConnected = false,
+  conventions = null,
+  patch = null,
 }: PrFormProps) {
   const router = useRouter();
   const id = useId();
@@ -119,7 +196,10 @@ export function PrForm({
   const signOff = signOffOf(dcoRequired, dcoMode, dco);
   // A repo that checks every commit fails an unsigned PR: the tick comes first (or Discard).
   const signOffMissing = dcoRequired === true && !signOff;
-  const blocked = titleMissing || signOffMissing;
+  // Only a title that fails a rule the repo checks blocks Submit: everything else is the user's to do or to know.
+  const titleRuleFails = !titleMissing && titleBlocks(title, conventions?.title);
+  const blocked = titleMissing || signOffMissing || titleRuleFails;
+  const needs = checklistOf(conventions, { title, patch });
 
   const act = (which: Exclude<Confirm, null>) =>
     startTransition(async () => {
@@ -210,9 +290,12 @@ export function PrForm({
           maxLength={PR_TITLE_MAX}
           required
           onChange={(event) => setTitle(event.target.value)}
+          aria-invalid={titleRuleFails || undefined}
+          aria-describedby={needs.some((item) => item.key === 'title') ? `${id}-title-rule` : undefined}
           className="h-auto rounded-lg py-2 text-sm"
         />
       </div>
+      <RepoNeeds items={needs} titleId={`${id}-title-rule`} />
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`${id}-body`} className="text-sm font-medium">
           Description
@@ -306,6 +389,11 @@ export function PrForm({
       {error && !confirm ? (
         <span role="alert" className="text-sm text-destructive">
           {error}
+        </span>
+      ) : null}
+      {titleRuleFails ? (
+        <span data-title-rule-fails className="text-sm text-muted-foreground">
+          Fix the title to submit: this repo checks it, and a title that fails fails the pull request.
         </span>
       ) : null}
       {signOffMissing ? (

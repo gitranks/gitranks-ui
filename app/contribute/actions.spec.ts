@@ -26,6 +26,7 @@ const {
   SendContributeFeedbackDocument,
   StartFollowUpDocument,
   StartFollowUpOnDocument,
+  MarkNeedsYouHandledDocument,
   VetoAutopilotDocument,
 } = await import('@/lib/contribute/contribute.documents');
 
@@ -53,6 +54,7 @@ const CALLS: Record<string, unknown[]> = {
   approveFollowUp: ['A_F1', 'Follow-up', [{ draftId: 'D_1', text: 'Renamed it.', send: true }]],
   setResolveHumanThreads: [true],
   vetoAutopilot: ['A_1'],
+  markNeedsYouHandled: ['PR_1'],
   approveReply: ['D_1'],
   createMcpToken: ['laptop'],
   revokeMcpToken: ['T_1'],
@@ -291,6 +293,7 @@ describe('the follow-up actions', () => {
   it.each([
     ['startFollowUp', StartFollowUpDocument, 'PR_1', { prId: 'PR_1' }, 'startFollowUp'],
     ['vetoAutopilot', VetoAutopilotDocument, 'A_1', { attemptId: 'A_1' }, 'vetoAutopilot'],
+    ['markNeedsYouHandled', MarkNeedsYouHandledDocument, 'PR_1', { prId: 'PR_1' }, 'markNeedsYouHandled'],
     ['approveReply', ApproveReplyDocument, 'D_1', { draftId: 'D_1' }, 'approveReply'],
   ] as const)(
     '%s sends its one id, as the signed-in user, and answers what the API did',

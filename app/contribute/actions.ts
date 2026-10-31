@@ -24,6 +24,7 @@ import {
   DeleteContributeDataDocument,
   DiscardAttemptDocument,
   IgnoreContributeRepoDocument,
+  MarkNeedsYouHandledDocument,
   NoteProviderInterestDocument,
   PauseContributingDocument,
   RemoveFromContributeSetDocument,
@@ -381,6 +382,11 @@ export async function setResolveHumanThreads(on: boolean): Promise<ContributeAct
 /** Stops autopilot from submitting an attempt in its hour: it goes to the review instead. */
 export async function vetoAutopilot(attemptId: string): Promise<ContributeActionResult<ContributeAttempt>> {
   return run(VetoAutopilotDocument, { attemptId: String(attemptId) }, (data) => data.vetoAutopilot);
+}
+
+/** Clears what the pull request's last reads found: the user took care of it. Something new raises it again. */
+export async function markNeedsYouHandled(prId: string): Promise<ContributeActionResult<ContributeAttempt>> {
+  return run(MarkNeedsYouHandledDocument, { prId: String(prId) }, (data) => data.markNeedsYouHandled);
 }
 
 /** Approves a drafted reply: it is posted publicly on GitHub, in the user's name. */

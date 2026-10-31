@@ -456,6 +456,10 @@ export const StartFollowUpDocument = doc<{ startFollowUp: ContributeAttempt }, {
   `mutation StartFollowUp($prId: ID!) { startFollowUp(prId: $prId) { ${ATTEMPT} } }`,
 );
 
+export const MarkNeedsYouHandledDocument = doc<{ markNeedsYouHandled: ContributeAttempt }, { prId: string }>(
+  `mutation MarkNeedsYouHandled($prId: ID!) { markNeedsYouHandled(prId: $prId) { ${ATTEMPT} } }`,
+);
+
 export const VetoAutopilotDocument = doc<{ vetoAutopilot: ContributeAttempt }, { attemptId: string }>(
   `mutation VetoAutopilot($attemptId: ID!) { vetoAutopilot(attemptId: $attemptId) { ${ATTEMPT} } }`,
 );

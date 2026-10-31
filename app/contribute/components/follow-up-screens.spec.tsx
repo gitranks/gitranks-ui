@@ -87,6 +87,18 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(plain).toMatch(/Needs you · 2/);
   });
 
+  it('offers Mark as handled under what happened, and names a CLA to sign', () => {
+    const html = mine({ needsYou: needsYou(), followUps: followUps() });
+    expect(html).toContain('data-mark-handled="PR_8"');
+    expect(text(html)).toContain('Mark as handled');
+
+    const cla = mine({
+      needsYou: { since: NOW.toISOString(), signals: [{ kind: 'CLA', at: NOW.toISOString(), detail: 'license/cla' }] },
+      followUps: followUps(),
+    });
+    expect(text(cla)).toContain('Sign the contributor license agreement (CLA): license/cla');
+  });
+
   it('offers a follow-up with the rounds used and left, within the limit for one attempt', () => {
     const first = mine({ needsYou: needsYou(), followUps: followUps() });
     expect(first).toContain('data-start-follow-up="PR_8"');

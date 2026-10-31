@@ -343,13 +343,16 @@ export type ContributeAttemptPullRequest = {
   syncedAt: string | null;
 };
 
-/** What the last read of an open pull request found: changes requested, a new comment, a check newly failing. */
-export type ContributePrSignalKind = 'CHANGES_REQUESTED' | 'COMMENT' | 'CHECK_FAILED';
+/**
+ * What the last read of an open pull request found: changes requested, a new comment, a check newly failing, a CLA
+ * to sign. Each leaves once its cause is gone, or once the user marks it handled.
+ */
+export type ContributePrSignalKind = 'CHANGES_REQUESTED' | 'COMMENT' | 'CHECK_FAILED' | 'CLA';
 
 export type ContributePrSignal = {
   kind: ContributePrSignalKind;
   at: string;
-  /** For a failing check: the failing checks' names. */
+  /** For a failing check: the failing checks' names; for a CLA: its check's. */
   detail: string | null;
 };
 

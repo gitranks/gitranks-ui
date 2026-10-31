@@ -3,11 +3,11 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
-import { startFollowUp, vetoAutopilot } from '../actions';
+import { markNeedsYouHandled, startFollowUp, vetoAutopilot } from '../actions';
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
 import { timeLabel } from '@/lib/contribute/attempt-format';
-import { followUpErrorMessage, vetoErrorMessage } from '@/lib/contribute/follow-up-format';
+import { followUpErrorMessage, handledErrorMessage, vetoErrorMessage } from '@/lib/contribute/follow-up-format';
 import { relativeLabel } from '@/lib/contribute/format';
 
 const ErrorNote = ({ error }: { error: string | null }) =>
@@ -41,6 +41,39 @@ export function StartFollowUpButton({ prId }: { prId: string }) {
     <div className="flex flex-col items-start gap-1.5" data-start-follow-up={prId}>
       <Button type="button" size="lg" onClick={click} disabled={pending || done} className="px-4 font-semibold">
         {pending || done ? 'Starting…' : 'Start a follow-up'}
+      </Button>
+      <ErrorNote error={error} />
+    </div>
+  );
+}
+
+/**
+ * "Mark as handled": the user took care of what the pull request's reads found, so it leaves Needs you. Something new
+ * on it raises it again.
+ */
+export function MarkHandledButton({ prId }: { prId: string }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  /** It went through: the button stays off until the page reads again. */
+  const [done, setDone] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  const click = () =>
+    startTransition(async () => {
+      setError(null);
+      const result = await markNeedsYouHandled(prId);
+      if (!result.ok) {
+        setError(handledErrorMessage(result.error, result.message));
+        return;
+      }
+      setDone(true);
+      router.refresh();
+    });
+
+  return (
+    <div className="flex flex-col items-start gap-1.5" data-mark-handled={prId}>
+      <Button type="button" variant="outline" size="sm" onClick={click} disabled={pending || done}>
+        {pending || done ? 'Marking…' : 'Mark as handled'}
       </Button>
       <ErrorNote error={error} />
     </div>

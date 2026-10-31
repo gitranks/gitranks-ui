@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { StartFollowUpButton } from './follow-up-buttons';
+import { MarkHandledButton, StartFollowUpButton } from './follow-up-buttons';
 import { attemptHref } from './reviews-ready';
 import type {
   ContributeAttemptPullRequest,
@@ -11,13 +11,24 @@ import { roundLineOf } from '@/lib/contribute/follow-up-flow';
 import { canStartFollowUp, roundsText, signalText } from '@/lib/contribute/follow-up-format';
 import { dayLabel, usd } from '@/lib/contribute/format';
 
-/** What happened on the pull request since the user last acted on it, newest first, each with when. */
-export function PrSignals({ needsYou, now }: { needsYou: ContributeNeedsYou | null | undefined; now?: Date }) {
+/**
+ * What happened on the pull request since the user last acted on it, newest first, each with when; with `prId`,
+ * "Mark as handled" under them. Each leaves on its own once its cause is gone on GitHub.
+ */
+export function PrSignals({
+  needsYou,
+  now,
+  prId,
+}: {
+  needsYou: ContributeNeedsYou | null | undefined;
+  now?: Date;
+  prId?: string;
+}) {
   if (needsYou === undefined) {
     return <p className="text-sm text-muted-foreground">What changed on GitHub is not available yet.</p>;
   }
   if (!needsYou?.signals.length) return null;
-  return (
+  const list = (
     <ul data-signals={needsYou.signals.length} className="flex flex-col gap-1 text-sm">
       {[...needsYou.signals].reverse().map((signal, index) => (
         <li key={`${index}-${signal.kind}-${signal.at}`} data-signal={signal.kind} className="flex gap-2">
@@ -28,6 +39,13 @@ export function PrSignals({ needsYou, now }: { needsYou: ContributeNeedsYou | nu
         </li>
       ))}
     </ul>
+  );
+  if (!prId) return list;
+  return (
+    <div className="flex flex-col gap-2">
+      {list}
+      <MarkHandledButton prId={prId} />
+    </div>
   );
 }
 

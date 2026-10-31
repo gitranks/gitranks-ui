@@ -218,7 +218,7 @@ function PrNeedsYouRow({
           {contribution.title?.trim() || `Fix for issue #${contribution.issueNumber}`}
         </Link>
       </div>
-      <PrSignals needsYou={contribution.needsYou} now={now} />
+      <PrSignals needsYou={contribution.needsYou} now={now} prId={pullRequest.prId} />
       {contribution.needsYou?.signals.length ? (
         <FollowUpRounds followUps={contribution.followUps} pullRequest={pullRequest} attemptCapUsd={attemptCapUsd} />
       ) : null}

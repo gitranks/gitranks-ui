@@ -39,7 +39,7 @@ const reducedMotion = () =>
 type Delays = Partial<Record<ContributeSubmitStep, number>>;
 
 /** A step's dot: a check once done, a spinning ring while it runs, a cross where it failed. */
-function StepDot({ view, index }: { view: SubmitStepView; index: number }) {
+function StepDot({ view, index, changed }: { view: SubmitStepView; index: number; changed: boolean }) {
   const base = 'relative flex size-8 flex-none items-center justify-center rounded-full text-sm font-semibold';
   switch (view.state) {
     case 'done':
@@ -47,7 +47,8 @@ function StepDot({ view, index }: { view: SubmitStepView; index: number }) {
         <span
           className={cn(
             base,
-            'bg-positive text-background motion-safe:animate-contribute-pop motion-safe:[animation-delay:var(--step-delay)]',
+            'bg-positive text-background',
+            changed && 'motion-safe:animate-contribute-pop motion-safe:[animation-delay:var(--step-delay)]',
           )}
         >
           <Check className="size-4" strokeWidth={3} aria-hidden="true" />
@@ -62,7 +63,8 @@ function StepDot({ view, index }: { view: SubmitStepView; index: number }) {
             base,
             'border-2 bg-background',
             warn ? 'border-warning text-warning' : 'border-primary text-primary',
-            'motion-safe:animate-in motion-safe:fade-in motion-safe:fill-mode-both motion-safe:[animation-delay:var(--step-delay)]',
+            changed &&
+              'motion-safe:animate-in motion-safe:fade-in motion-safe:fill-mode-both motion-safe:[animation-delay:var(--step-delay)]',
           )}
         >
           <span
@@ -139,7 +141,8 @@ const STEP_STATE_WORDS: Record<SubmitStepView['state'], string> = {
 
 /**
  * Fork, sync, push, pull request: each step's dot, joined by lines that fill as steps finish. The running step spins
- * and counts up; a finished one shows how long it took; the last one links to the pull request once it is open. Every
+ * and counts up; a finished one shows how long it took; the last one links to the pull request once it is open. A step
+ * that changed since the last read (in `delays`) pops or fades in at its turn; on a first render nothing replays. Every
  * motion is under `motion-safe`.
  */
 export function SubmitStepper({
@@ -185,7 +188,7 @@ export function SubmitStepper({
                 />
               </span>
             )}
-            <StepDot key={view.state} view={view} index={index} />
+            <StepDot key={view.state} view={view} index={index} changed={view.step in delays} />
             <span
               className={cn(
                 'text-sm leading-tight',
@@ -219,13 +222,11 @@ function NowLine({
   submit,
   pullRequest,
   nowMs,
-  now,
 }: {
   progress: SubmitProgress;
   submit: ContributeAttemptSubmit;
   pullRequest: ContributeAttemptPullRequest | null | undefined;
   nowMs: number | null;
-  now?: Date;
 }) {
   if (progress.finished) {
     const url = githubUrlOf(pullRequest?.url);
@@ -247,16 +248,23 @@ function NowLine({
     );
   }
   const step = submit.step;
+  const note = submit.lastError?.note;
   let words = labelOf(SUBMIT_STEP_TEXT, step);
-  if (step === 'WAITING_CAP') {
+  if (progress.current?.state === 'failed') {
+    words = note || 'The last step did not go through.';
+  } else if (step === 'WAITING_CAP') {
+    // Relative to the clock once it runs (the client's), so the server's and the browser's first render agree.
+    const when = nowMs === null ? '' : ` ${relativeLabel(submit.waitUntil, new Date(nowMs))},`;
     words += submit.waitUntil
-      ? ` It goes on ${relativeLabel(submit.waitUntil, now)}, at ${timeLabel(submit.waitUntil)}. Nothing to do: it starts by itself.`
+      ? ` It goes on${when} at ${timeLabel(submit.waitUntil)}. Nothing to do: it starts by itself.`
       : ' It goes on when the next UTC day starts. Nothing to do: it starts by itself.';
+  } else if (progress.current?.state === 'retrying') {
+    // No countdown here: this line is a live region, and the step's own label counts down.
+    words = note || 'The last try did not go through. Trying again shortly.';
   } else if (step === 'FORK' && submit.forkPending) {
     words = 'GitHub is making your fork. A new fork can take a few minutes.';
-  } else if (progress.current?.state === 'retrying') {
-    const meta = stepMetaOf(progress.current, nowMs, submit.retryAt);
-    words = `${submit.lastError?.note || 'The last try did not go through.'} ${meta}.`;
+  } else if (note) {
+    words += ` ${note}`;
   }
   return (
     <>
@@ -317,6 +325,24 @@ export function LiveSubmit({
 
   const progress = live.submit ? submitProgressOf(live.state, live.submit) : null;
   const running = progress?.current?.state === 'current' || progress?.current?.state === 'retrying';
+  // Reads run while it submits a step; a page first read while waiting for the day (or without its submission) starts
+  // them once a newer read of the page shows a step.
+  const pollable = live.state === 'SUBMITTING' && !!live.submit && live.submit.step !== 'WAITING_CAP';
+  // Left `submitting`: the steps that changed play out, then the page is read again (the PR card, the review).
+  const [settling, setSettling] = useState<number | null>(null);
+  // An API without the steps' clock is asked without it from then on, once per read rather than twice.
+  const withClock = useRef(true);
+
+  useEffect(() => {
+    if (settling === null) return;
+    const timer = setTimeout(() => router.refresh(), reducedMotion() ? 0 : settling * STAGGER_MS + SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [settling, router]);
+
+  // The clock starts after the first render, so the server's render and the browser's agree.
+  useEffect(() => {
+    setClock((at) => at ?? Date.now());
+  }, []);
 
   useEffect(() => {
     if (!running) return;
@@ -326,6 +352,7 @@ export function LiveSubmit({
     return () => clearInterval(timer);
   }, [running]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a newer read of the page (`updatedAt`) starts the reads again, after failures too.
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let failures = 0;
@@ -340,16 +367,12 @@ export function LiveSubmit({
       clearTimeout(timer);
       if (delay !== null) timer = setTimeout(read, delay);
     };
-    const settle = (steps: number) => {
-      const wait = reducedMotion() ? 0 : steps * STAGGER_MS + SETTLE_MS;
-      timer = setTimeout(() => router.refresh(), wait);
-    };
     const read = async () => {
       if (document.visibilityState !== 'visible') {
         hiddenWait = true;
         return;
       }
-      const result = await readAttemptLive(attempt.attemptId).catch(() => null);
+      const result = await readAttemptLive(attempt.attemptId, withClock.current).catch(() => null);
       if (stopped) return;
       if (!result?.ok || !result.data.attempt) {
         failures += 1;
@@ -358,6 +381,7 @@ export function LiveSubmit({
         return;
       }
       failures = 0;
+      withClock.current = result.data.clock;
       const readAt = Date.parse(result.data.readAt);
       if (!Number.isNaN(readAt)) offset.current = readAt - Date.now();
       const next = result.data.attempt;
@@ -366,7 +390,7 @@ export function LiveSubmit({
       latest.current = next;
       dispatch({ live: next, stagger });
       if (next.state !== 'SUBMITTING') {
-        settle(Object.keys(changed).length);
+        setSettling(Object.keys(changed).length);
         return;
       }
       schedule(delayOf());
@@ -378,14 +402,15 @@ export function LiveSubmit({
       }
     };
 
-    if (latest.current.state === 'SUBMITTING') schedule(delayOf());
+    if (!pollable) return;
+    schedule(delayOf());
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       stopped = true;
       clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [attempt.attemptId, router]);
+  }, [attempt.attemptId, attempt.updatedAt, pollable]);
 
   const waiting = live.submit?.step === 'WAITING_CAP';
   return (
@@ -393,9 +418,13 @@ export function LiveSubmit({
       <Title>
         {progress?.finished
           ? 'Your pull request is open'
-          : waiting
-            ? 'Waiting for tomorrow'
-            : 'Submitting your pull request'}
+          : live.state === 'REVIEW'
+            ? 'Back for your approval'
+            : live.state === 'STOPPED'
+              ? 'Stopped'
+              : waiting
+                ? 'Waiting for tomorrow'
+                : 'Submitting your pull request'}
       </Title>
       {live.submit && progress ? (
         <>
@@ -409,7 +438,7 @@ export function LiveSubmit({
             />
           )}
           <p role="status" className="text-sm text-muted-foreground" data-submit-now={live.submit.step}>
-            <NowLine progress={progress} submit={live.submit} pullRequest={live.pullRequest} nowMs={clock} now={now} />
+            <NowLine progress={progress} submit={live.submit} pullRequest={live.pullRequest} nowMs={clock} />
           </p>
         </>
       ) : (
@@ -443,7 +472,10 @@ export function TryAgainButton() {
         const form = document.getElementById('pr-form');
         if (!form) return;
         form.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' });
-        form.querySelector<HTMLElement>('button[type="submit"]')?.focus({ preventScroll: true });
+        const target =
+          form.querySelector<HTMLElement>('button[type="submit"]:not(:disabled)') ??
+          form.querySelector<HTMLElement>('input, textarea');
+        target?.focus({ preventScroll: true });
       }}
     >
       Try again

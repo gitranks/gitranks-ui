@@ -266,14 +266,24 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
     case 'SUBMITTING':
       return (
         <Box state="SUBMITTING" tone={attempt.submit?.step === 'WAITING_CAP' ? 'warn' : 'info'}>
-          <LiveSubmit attempt={attempt} now={now} />
-          {attempt.submit?.retryAt ? null : <SubmitErrorNote submit={attempt.submit} />}
+          {/* Only what the stepper reads: the rest of the attempt (its diff, say) stays on the server. */}
+          <LiveSubmit
+            attempt={{
+              attemptId: attempt.attemptId,
+              state: attempt.state,
+              updatedAt: attempt.updatedAt,
+              submit: attempt.submit,
+              pullRequest: attempt.pullRequest,
+            }}
+            now={now}
+          />
         </Box>
       );
     case 'PR_OPEN':
     case 'FOLLOW_UP':
     case 'MERGED':
-    case 'CLOSED':
+    case 'CLOSED': {
+      const fresh = justOpened(attempt.pullRequest, now);
       return (
         <Box state={attempt.state} tone="done">
           <Title>
@@ -285,13 +295,13 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
                   ? 'A follow-up is running on your pull request'
                   : 'Your pull request is open'}
           </Title>
-          {attempt.state === 'PR_OPEN' && attempt.submit && justOpened(attempt.pullRequest, now) ? (
+          {attempt.state === 'PR_OPEN' && attempt.submit && fresh ? (
             <SubmitStepsSettled state={attempt.state} submit={attempt.submit} pullRequest={attempt.pullRequest} />
           ) : null}
           {attempt.pullRequest ? (
             <div
               className={
-                justOpened(attempt.pullRequest, now)
+                fresh
                   ? 'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-400'
                   : undefined
               }
@@ -312,6 +322,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
           ) : null}
         </Box>
       );
+    }
     case 'STOPPED':
       return (
         <Box state="STOPPED" tone="muted">

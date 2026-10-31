@@ -95,7 +95,7 @@ describe('the Contribute server actions', () => {
     const live = { attemptId: 'A_1', state: 'SUBMITTING', updatedAt: 'x', submit: null, pullRequest: null };
     graphqlDirect.mockResolvedValueOnce({ contributeAttempt: live });
     const read = await actions.readAttemptLive('A_1');
-    expect(read).toMatchObject({ ok: true, data: { attempt: live } });
+    expect(read).toMatchObject({ ok: true, data: { attempt: live, clock: true } });
     expect(read.ok && Number.isNaN(Date.parse(read.data.readAt))).toBe(false);
     expect(graphqlDirect.mock.calls[0][0]).toBe(ContributeAttemptLiveDocument);
 
@@ -103,11 +103,19 @@ describe('the Contribute server actions', () => {
     graphqlDirect
       .mockRejectedValueOnce(new Error(JSON.stringify([{ message: 'Cannot query field "steps" on type "X".' }])))
       .mockResolvedValueOnce({ contributeAttempt: live });
-    await expect(actions.readAttemptLive('A_1')).resolves.toMatchObject({ ok: true, data: { attempt: live } });
+    await expect(actions.readAttemptLive('A_1')).resolves.toMatchObject({
+      ok: true,
+      data: { attempt: live, clock: false },
+    });
     expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
       ContributeAttemptLiveDocument,
       ContributeAttemptLiveBareDocument,
     ]);
+    // Told so, the stepper asks without the clock: one read, not two.
+    graphqlDirect.mockReset();
+    graphqlDirect.mockResolvedValueOnce({ contributeAttempt: live });
+    await expect(actions.readAttemptLive('A_1', false)).resolves.toMatchObject({ ok: true, data: { clock: false } });
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([ContributeAttemptLiveBareDocument]);
 
     // Not the viewer's: no second read.
     graphqlDirect.mockReset();

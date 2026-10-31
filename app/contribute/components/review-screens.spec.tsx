@@ -295,7 +295,8 @@ describe('the review screen', () => {
 
     expect(html).toMatch(/data-step="PUSH" data-step-state="retrying" aria-current="step"/);
     expect(stepOf(html, 'PUSH')).toContain('Again in 45 s');
-    expect(text(html)).toContain('GitHub did not answer; trying again shortly. Again in 45 s.');
+    // The countdown sits on the step; the live line keeps the note alone, so it is not read out every second.
+    expect(text(html)).toContain('GitHub did not answer; trying again shortly. From octocat/driftwood');
     // Said once, in the stepper's line.
     expect(html).not.toContain('data-submit-error');
   });

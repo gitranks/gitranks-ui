@@ -476,16 +476,21 @@ export function SettingsForm({ settings, page }: { settings: ContributeSettings;
               <span id={`${field('dco')}-legend`} className="text-sm font-medium">
                 DCO sign-off, for repos that require it
               </span>
+              <span id={`${field('dco')}-help`} className="-mt-1 text-xs text-muted-foreground">
+                Some repos require a Developer Certificate of Origin sign-off on every commit; elsewhere nothing is
+                asked and nothing is signed off.
+              </span>
               <RadioGroup
                 aria-labelledby={`${field('dco')}-legend`}
+                aria-describedby={`${field('dco')}-help`}
                 value={draft.dco}
                 onValueChange={(next) => set('dco', next as ContributeDcoMode)}
                 className="gap-2"
               >
                 {(
                   [
-                    ['ASK', 'Ask me on every PR'],
-                    ['STANDING', 'Sign off for me on every PR, including autopilot'],
+                    ['ASK', 'Ask me on each PR to a repo that requires it'],
+                    ['STANDING', 'Sign off automatically when a repo requires DCO'],
                   ] as const
                 ).map(([dco, label]) => (
                   <label key={dco} htmlFor={`${field('dco')}-${dco}`} className="flex items-center gap-2.5 text-sm">

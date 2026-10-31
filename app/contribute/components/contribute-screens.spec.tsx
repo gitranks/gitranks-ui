@@ -123,7 +123,7 @@ describe('the connect screen', () => {
     expect(plain).toContain('no separate cap: pacing spreads the month');
     expect(plain).toContain('1 attempt, and at most 3 of your PRs open');
     expect(plain).toContain('at most 400 changed lines in 15 files');
-    expect(plain).toContain('Sonnet 5.5 does the work, Haiku 5.5 helps');
+    expect(plain).toContain('Opus 5.5 does the work, Sonnet 5.5 writes tests, Haiku 5.5 helps');
     expect(plain).toContain("Languages: your profile's first");
 
     // A plan picked before is picked again.

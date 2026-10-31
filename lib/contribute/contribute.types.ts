@@ -523,6 +523,11 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   patch: string | null;
   result: ContributeAttemptResult | null;
   readiness: ContributeRepoReadiness | null;
+  /**
+   * The repo requires a DCO sign-off on every commit: the review asks for it (or the standing consent gives it).
+   * False: nothing is asked and nothing is signed off. `undefined` while the API does not answer it.
+   */
+  dcoRequired?: boolean;
   checks: ContributeAttemptCheck[];
   cost: ContributeAttemptCost;
   approval: ContributeAttemptApproval | null;

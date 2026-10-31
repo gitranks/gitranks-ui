@@ -61,9 +61,6 @@ export const grantNeededOf = (view: ContributeView, attempt: ContributeAttemptDe
   return view.grantAvailable && (view.grant?.connected === false || bounced);
 };
 
-/** The repo's notes ask for a Developer Certificate of Origin sign-off. */
-const DCO_ASKED = /\bDCO\b|signed-off-by|sign[- ]off/i;
-
 const BackLink = () => (
   <Link href="/contribute/me" prefetch={false} className="text-sm">
     ← My contributions
@@ -242,7 +239,7 @@ export function ReviewScreen({
               defaultBody={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
               login={login}
               dcoMode={view.contributor?.settings?.dco ?? null}
-              dcoAsked={DCO_ASKED.test(attempt.readiness?.notes ?? '')}
+              dcoRequired={attempt.dcoRequired}
               again={!!attempt.submit?.lastError}
               grantNeeded={grantNeededOf(view, attempt)}
               grantConnected={view.grant?.connected === true}

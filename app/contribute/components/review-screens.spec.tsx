@@ -19,6 +19,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
 }));
 
 const { ReviewScreen } = await import('./review-view');
+const { signOffOf } = await import('./pr-form');
 const { DiffViewer, LARGE_FILE_LINES, MAX_FILE_LINES, MAX_TOTAL_LINES } = await import('./diff-viewer');
 const { ContributionsScreen } = await import('./contributions-view');
 const { ReviewsReady } = await import('./reviews-ready');
@@ -143,21 +144,54 @@ describe('the review screen', () => {
     expect(html).toMatch(/<pre[^>]*>Fixes #871\n\nJust a change.<\/pre>/);
   });
 
-  it('asks for the DCO sign-off, says when the repo asks for it, and not under a standing consent', () => {
-    expect(review(attempts.review)).toContain('data-dco="ask"');
-    expect(review(attempts.review)).toContain('type="checkbox"');
+  it('asks for the DCO sign-off only where the repo requires it, says what DCO is, and not under a standing consent', () => {
+    const required = detail({ dcoRequired: true });
+    const html = review(required);
+    expect(html).toContain('data-dco="required"');
+    expect(html).toContain('type="checkbox"');
+    expect(text(html)).toContain('This repo requires a DCO sign-off.');
+    expect(html).toContain('data-dco-explained');
+    expect(html).toContain('href="https://developercertificate.org/"');
+    // Unticked, Submit waits: an unsigned PR would fail the repo's DCO check.
+    expect(html).toContain('data-dco-missing');
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
 
-    const asked = detail({ readiness: { ...attempts.review.readiness!, notes: 'Commits need Signed-off-by (DCO).' } });
-    expect(review(asked)).toContain('data-dco="asked"');
-    expect(text(review(asked))).toContain('This repo asks for a DCO sign-off.');
+    // A repo that requires none: nothing about DCO, whatever its notes say.
+    const none = review(
+      detail({
+        dcoRequired: false,
+        readiness: { ...attempts.review.readiness!, notes: 'Commits need Signed-off-by.' },
+      }),
+    );
+    expect(none).not.toContain('data-dco');
+    expect(none).not.toContain('type="checkbox"');
+
+    // An API that does not say yet: the old ask, in case the repo does.
+    expect(review(attempts.review)).toContain('data-dco="ask"');
 
     const standing = {
       ...views.active,
       contributor: { ...views.active.contributor, settings: { ...settings, dco: 'STANDING' as const } },
     };
-    const html = review(attempts.review, standing);
-    expect(html).toContain('data-dco="standing"');
-    expect(html).not.toContain('type="checkbox"');
+    const consented = review(required, standing);
+    expect(consented).toContain('data-dco="standing"');
+    expect(text(consented)).toContain(
+      'This repo requires a DCO sign-off: the commits are signed off under your standing',
+    );
+    expect(consented).not.toContain('type="checkbox"');
+    expect(consented).not.toContain('data-dco-missing');
+    expect(review(detail({ dcoRequired: false }), standing)).not.toContain('data-dco');
+  });
+
+  it('signs off only where the repo requires it (or the API does not say), with the tick or the standing consent', () => {
+    expect(signOffOf(false, 'STANDING', true)).toBe(false);
+    expect(signOffOf(false, 'ASK', true)).toBe(false);
+    expect(signOffOf(true, 'STANDING', false)).toBe(true);
+    expect(signOffOf(true, 'ASK', true)).toBe(true);
+    expect(signOffOf(true, 'ASK', false)).toBe(false);
+    expect(signOffOf(true, null, false)).toBe(false);
+    expect(signOffOf(undefined, 'STANDING', false)).toBe(true);
+    expect(signOffOf(undefined, 'ASK', false)).toBe(false);
   });
 
   it('asks to approve again after a submission bounced back, with its note and the edited text', () => {

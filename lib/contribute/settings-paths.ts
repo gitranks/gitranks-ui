@@ -1,5 +1,7 @@
 import type { Route } from 'next';
 
+import type { ContributeSetListMode } from './contribute.types';
+
 /** Settings, a summary of every setting, and the pages each one is changed on. */
 export const SETTINGS_PATHS = {
   summary: '/contribute/settings' as Route,
@@ -12,13 +14,10 @@ export const SETTINGS_PATHS = {
 
 /**
  * Where each section of the one long Settings page now lives, by its old `#anchor`. Links in the app use it, and the
- * summary sends an old link (a bookmark, a notice) on to it. Anchors not here stay on the summary.
+ * summary sends an old link (a bookmark, a notice) on to it. Anchors not here stay on the summary: what you work on
+ * (`#modes`), and the filters (`#work`), rules and ignored repos, whose dialogs open at their anchor.
  */
 const ANCHORS: Record<string, Route> = {
-  modes: SETTINGS_PATHS.work,
-  work: `${SETTINGS_PATHS.work}#work` as Route,
-  rules: `${SETTINGS_PATHS.work}#rules` as Route,
-  ignored: `${SETTINGS_PATHS.work}#ignored` as Route,
   limits: SETTINGS_PATHS.budget,
   pacing: `${SETTINGS_PATHS.budget}#pacing` as Route,
   agent: SETTINGS_PATHS.agent,
@@ -26,6 +25,14 @@ const ANCHORS: Record<string, Route> = {
   access: SETTINGS_PATHS.keys,
   'own-agent': SETTINGS_PATHS.ownAgent,
 };
+
+/** The guided switch to a mode with a list. */
+export const switchPathOf = (mode: ContributeSetListMode): Route =>
+  `/contribute/settings/switch/${mode.toLowerCase()}` as Route;
+
+/** The mode a switch page's segment names, or null for any other segment. */
+export const switchModeOf = (segment: string): ContributeSetListMode | null =>
+  segment === 'stack' ? 'STACK' : segment === 'repos' ? 'REPOS' : null;
 
 /** The page an old Settings `#anchor` is on now, or null when it stays on the summary. */
 export const movedAnchorOf = (anchor: string): Route | null =>

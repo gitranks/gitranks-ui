@@ -7,8 +7,10 @@ import { ContributeNotices } from './contribute-notices';
 import { CycleSummary } from './cycle-summary';
 import { DeleteDataSection } from './delete-data-section';
 import { PauseButton } from './pause-button';
+import { PreferencesSection } from './preferences-section';
 import { SettingsAnchors } from './settings-anchors';
 import { SettingsGroup, SettingsList, SettingsRow } from './settings-rows';
+import { SettingsWorkGroup } from './settings-work-group';
 import { loadContribute, loadContributeSet } from '@/lib/contribute/contribute.data';
 import type { ContributeSet, ContributeView } from '@/lib/contribute/contribute.types';
 import {
@@ -27,8 +29,6 @@ import {
   grantSummaryOf,
   keySummaryOf,
   ownAgentSummaryOf,
-  preferencesSummaryOf,
-  workSummaryOf,
 } from '@/lib/contribute/settings-summary';
 
 /** Reads the user for a Settings page: a 404 to someone Contribute is not open to, Contribute's home before signing up. */
@@ -73,7 +73,7 @@ export function SettingsScreen({
   const settings = settingsOf(view);
   // The pause and the key's trouble are shown where they are acted on, in the status card and under Keys.
   const notices = contributeNoticesOf(view).filter(({ kind }) => kind !== 'paused');
-  const preferences = preferencesSummaryOf(contributor?.preferences ?? null);
+  const preferences = contributor?.preferences ?? null;
 
   return (
     <>
@@ -81,22 +81,22 @@ export function SettingsScreen({
       <ContributeNotices notices={notices} />
       {contributor ? <CycleSummary view={view} now={now} action={<PauseButton paused={isPaused(view)} />} /> : null}
 
-      <SettingsGroup id="settings-work" title="What you work on">
-        <SettingsList>
-          <SettingsRow
-            icon={LayoutGrid}
-            href={SETTINGS_PATHS.work}
-            title="Where your issues come from"
-            value={
-              set
-                ? `${workSummaryOf(set)} · ${preferences}`
-                : setFailed
-                  ? "Your lists didn't load. Reload the page to try again; everything else here works as usual."
-                  : preferences
-            }
-          />
-        </SettingsList>
-      </SettingsGroup>
+      {set ? (
+        <SettingsWorkGroup set={set} preferences={preferences} />
+      ) : (
+        <SettingsGroup id="modes" title="What you work on">
+          <SettingsList>
+            {setFailed ? (
+              <SettingsRow
+                icon={LayoutGrid}
+                title="Where your issues come from"
+                value="Your lists didn't load. Reload the page to try again; everything else here works as usual."
+              />
+            ) : null}
+            <PreferencesSection preferences={preferences} modes={setFailed} />
+          </SettingsList>
+        </SettingsGroup>
+      )}
 
       <SettingsGroup id="settings-budget" title="Budget and the agent">
         <SettingsList>

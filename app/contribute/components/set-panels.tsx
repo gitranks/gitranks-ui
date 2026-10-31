@@ -4,11 +4,22 @@ import { Check, MessageSquare } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
 import { unignoreContributeRepo } from '../actions';
-import { Eyebrow, Panel, PanelTitle } from './primitives';
+import { Eyebrow } from './primitives';
 import type { SetWrite } from './set-section';
+import { useHashOpen } from './use-hash-open';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import type { ContributeIgnoredRepo, ContributeSet } from '@/lib/contribute/contribute.types';
 import { SOURCE_RULES, WORK_RULES } from '@/lib/contribute/set-format';
+import { cn } from '@/lib/utils';
 
 function Rules({ title, rules }: { title: string; rules: string[] }) {
   return (
@@ -26,20 +37,10 @@ function Rules({ title, rules }: { title: string; rules: string[] }) {
   );
 }
 
-/** The rules a repo the user adds must pass, in plain words, and a way to suggest a change to them. */
-export function RulesPanel({ onFeedback }: { onFeedback: () => void }) {
+/** The rules a repo the user adds must pass, in plain words, with how often lists are checked. */
+export function RulesContent() {
   return (
-    <Panel id="rules">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PanelTitle
-          title="How we pick repos"
-          text="We only send PRs where they have a fair chance of being reviewed. A repo you add must pass these rules."
-        />
-        <Button type="button" variant="outline" onClick={onFeedback}>
-          <MessageSquare aria-hidden="true" />
-          Suggest a change
-        </Button>
-      </div>
+    <div className="flex flex-col gap-4" data-rules>
       <div className="grid gap-4 sm:grid-cols-2">
         <Rules title="Repos we work on" rules={WORK_RULES} />
         <div className="flex flex-col gap-2">
@@ -51,24 +52,57 @@ export function RulesPanel({ onFeedback }: { onFeedback: () => void }) {
         Lists hold up to 50 repos each, and we check every repo for new issues every 12 hours. Repos you add are read
         right away.
       </p>
-    </Panel>
+    </div>
   );
 }
 
-/** The repos never picked, in any mode, with Unignore. */
-export function IgnoredPanel({ set, write }: { set: ContributeSet; write: SetWrite }) {
+/**
+ * "How we pick repos" as a link-styled button that opens the rules, with Suggest a change (which closes them and opens
+ * the feedback). Opens by itself when the page's URL ends in `#rules`.
+ */
+export function RulesDialog({ onFeedback, className }: { onFeedback: () => void; className?: string }) {
+  const [open, setOpen] = useHashOpen('rules');
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button type="button" className={cn('text-link underline-offset-2 hover:underline', className)}>
+          How we pick repos
+        </button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>How we pick repos</DialogTitle>
+          <DialogDescription>
+            We only send PRs where they have a fair chance of being reviewed. A repo you add must pass these rules.
+          </DialogDescription>
+        </DialogHeader>
+        <RulesContent />
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setOpen(false);
+              onFeedback();
+            }}
+          >
+            <MessageSquare aria-hidden="true" />
+            Suggest a change
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** The repos never picked, in any mode, with Unignore, and what to do when the list is full. */
+export function IgnoredList({ set, write }: { set: ContributeSet; write: SetWrite }) {
   const full = set.ignore.length >= set.limits.ignore;
   return (
-    <Panel id="ignored">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <PanelTitle
-          title="Ignored repos"
-          text="Never picked, in any mode, and never added back by a user, an org or your stack."
-        />
-        <span className="font-mono text-xs text-muted-foreground" data-count={set.ignore.length}>
-          <span className="text-foreground">{set.ignore.length}</span> / {set.limits.ignore}
-        </span>
-      </div>
+    <div className="flex flex-col gap-3" data-ignored>
+      <span className="font-mono text-xs text-muted-foreground" data-count={set.ignore.length}>
+        <span className="text-foreground">{set.ignore.length}</span> / {set.limits.ignore}
+      </span>
       {set.ignore.length ? (
         <ul className="flex flex-wrap gap-1.5">
           {set.ignore.map((repo) => (
@@ -85,7 +119,7 @@ export function IgnoredPanel({ set, write }: { set: ContributeSet; write: SetWri
           Your ignore list is full ({set.limits.ignore}): unignore a repo first to ignore another.
         </p>
       ) : null}
-    </Panel>
+    </div>
   );
 }
 

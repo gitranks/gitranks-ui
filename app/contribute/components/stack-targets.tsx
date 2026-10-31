@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 
 import { ignoreContributeRepo, resolveContributeStack } from '../actions';
 import type { FeedbackOpen } from './feedback-dialog';
-import { Pill } from './primitives';
+import { Pill, SubTitle } from './primitives';
 import type { SetWrite } from './set-section';
 import { Button } from '@/components/ui/button';
 import type { ContributeSet, ContributeStackTarget } from '@/lib/contribute/contribute.types';
@@ -42,7 +42,7 @@ export function StackTargets({
     <div className="flex flex-col gap-3 border-t pt-4" data-targets={resolve?.state ?? 'none'}>
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <h3 className="text-sm font-semibold">Libraries we&apos;ll work on</h3>
+          <SubTitle>Libraries we&apos;ll work on</SubTitle>
           <p className="text-xs text-muted-foreground">
             {resolve ? (
               <>

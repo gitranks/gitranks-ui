@@ -17,7 +17,9 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
 }));
 
 const { SettingsScreen } = await import('./settings-view');
-const { WorkSettingsScreen } = await import('./settings-pages');
+const { SwitchSettingsScreen, WorkSettingsScreen } = await import('./settings-pages');
+const { SwitchReview } = await import('./mode-switch');
+const { IgnoredList, RulesContent } = await import('./set-panels');
 const { IssuesScreen } = await import('./issues-view');
 const { FeedbackForm } = await import('./feedback-dialog');
 const { Dialog } = await import('@/components/ui/dialog');
@@ -37,8 +39,12 @@ const text = (html: string) =>
     .replaceAll('&amp;', '&')
     .replace(/\s+/g, ' ');
 
-const settings = (set?: ContributeSet | null) =>
-  renderToStaticMarkup(<WorkSettingsScreen view={views.active} now={NOW} set={set} />);
+/** The list's page. */
+const settings = (set?: ContributeSet | null) => renderToStaticMarkup(<WorkSettingsScreen now={NOW} set={set} />);
+/** The Settings summary. */
+const summary = (set?: ContributeSet | null, setFailed = false) =>
+  renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} set={set} setFailed={setFailed} />);
+const noWrite = async () => null;
 
 /** Whether the radio pill with this label is the checked one. */
 const checked = (html: string, label: string) => new RegExp(`<input[^>]*checked=""[^>]*>${label}`).test(html);
@@ -51,58 +57,57 @@ const rowOf = (html: string, repo: string) => {
 };
 
 describe('Settings, what to work on', () => {
-  it('sums up what you work on in one row of Settings, opening its page', () => {
-    const html = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} set={stackSet()} />);
-    const row = html.slice(
-      html.indexOf('href="/contribute/settings/work"'),
-      html.indexOf('</a>', html.indexOf('href="/contribute/settings/work"')),
-    );
+  it('shows the three modes on Settings, the current one filled, and the rest switching', () => {
+    const html = summary(stackSet());
+    const start = html.indexOf('aria-label="Where your issues come from"');
+    const cards = html.slice(start, html.indexOf('</ul>', start));
 
-    expect(text(row)).toContain('Support my stack · 50 libraries from');
-    expect(html).not.toContain('id="rules"');
-    expect(html).not.toContain('id="ignored"');
+    expect(cards).toMatch(/data-mode="STACK" data-current="true"><div aria-current="true"/);
+    expect(cards).toContain('href="/contribute/settings/switch/repos"');
+    expect(cards).toContain('aria-label="Switch to Support these repos"');
+    expect(cards).toMatch(/<button[^>]*aria-label="Switch to All issues"/);
+    for (const title of ['Support my stack', 'Support these repos', 'All issues']) expect(text(cards)).toContain(title);
+    expect(text(cards)).toContain('Current');
+    // Nothing switches on the summary itself: no radios, no list editor.
+    expect(html).not.toMatch(/<input[^>]*type="radio"/);
+    expect(html).not.toContain('data-list="SOURCES"');
   });
 
-  it('opens its page with what to work on, the preferences, the rules and the ignored repos', () => {
+  it('sums up the current list, the filters and the ignored repos in rows, with how we pick repos beside them', () => {
+    const html = summary(stackSet());
+    const plain = text(html);
+
+    expect(html).toContain('data-list-row="STACK"');
+    expect(html).toContain('href="/contribute/settings/work"');
+    expect(plain).toContain('Your stack 50 libraries from 3 repos · then all issues');
+    expect(plain).toContain('Filters Rust · Bugs · any size');
+    expect(html).toContain('aria-label="Edit filters"');
+    expect(plain).toContain('Ignored repos 3 repos never picked, in any mode');
+    expect(html).toContain('aria-label="Manage ignored repos"');
+    expect(plain).toContain('How we pick repos');
+    expect(text(summary(smallReposSet()))).toContain('Your repos 12 repos saved · 3 being read · only these');
+    expect(summary(stackSet({ mode: 'ALL' }))).not.toContain('data-list-row');
+  });
+
+  it('opens the list on its own page, with the libraries and what happens when they have nothing ready', () => {
     const html = settings(stackSet());
-    const panels = ['modes', 'work', 'rules', 'ignored'].map((id) => html.indexOf(`id="${id}"`));
-    expect(panels.every((at) => at >= 0)).toBe(true);
-    expect([...panels].sort((a, b) => a - b)).toEqual(panels);
     expect(html).toContain('href="/contribute/settings"');
-    expect(html.match(/id="work"/g)).toHaveLength(1);
-    expect(text(html)).toContain('None picked: every language the pool has. Applies in every mode.');
+    expect(html).toContain('data-list="SOURCES"');
+    expect(html).toContain('data-targets="READY"');
+    expect(html).toContain('data-fallback="THEN_ALL"');
+    expect(text(html)).toContain('How we pick repos');
+    expect(html).not.toContain('id="rules"');
   });
 
-  it('says when what you work on did not load, and shows the rest as usual', () => {
-    const html = renderToStaticMarkup(<WorkSettingsScreen view={views.active} now={NOW} set={undefined} setFailed />);
+  it('says when what you work on did not load, and keeps the filters', () => {
+    expect(text(settings(undefined))).not.toContain("didn't load");
+    const failed = text(renderToStaticMarkup(<WorkSettingsScreen now={NOW} set={undefined} setFailed />));
+    expect(failed).toContain("Your lists didn't load. Reload the page to try again");
 
+    const html = summary(undefined, true);
     expect(text(html)).toContain("Your lists didn't load. Reload the page to try again");
-    expect(html).toContain('id="work"');
-    expect(text(html)).not.toContain('How we pick repos');
-
-    const summary = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} set={undefined} setFailed />);
-    expect(text(summary)).toContain("Your lists didn't load. Reload the page to try again");
-    expect(summary).toContain('href="/contribute/settings/budget"');
-  });
-
-  it('keeps the mode radios enabled while a change saves, so focus stays on them', () => {
-    const html = settings(stackSet());
-    const radios = [...html.matchAll(/<input[^>]*type="radio"[^>]*>/g)].map(([tag]) => tag);
-
-    expect(radios.length).toBeGreaterThan(3);
-    expect(radios.filter((tag) => tag.includes('disabled'))).toEqual([]);
-  });
-
-  it('offers three modes as radios, the active one checked', () => {
-    const all = settings(stackSet());
-    const html = all.slice(all.indexOf('id="modes"'), all.indexOf('id="rules"'));
-    const radios = [...html.matchAll(/<input[^>]*type="radio"[^>]*>/g)]
-      .map(([tag]) => tag)
-      .filter((tag) => /value="(STACK|REPOS|ALL)"/.test(tag));
-
-    expect(radios).toHaveLength(3);
-    expect(radios.filter((tag) => tag.includes('checked=""'))).toEqual([expect.stringContaining('value="STACK"')]);
-    for (const title of ['Support my stack', 'Support these repos', 'All issues']) expect(text(html)).toContain(title);
+    expect(text(html)).toContain('Filters Rust · Bugs · any size');
+    expect(html).toContain('href="/contribute/settings/budget"');
   });
 
   it("Stack: the sources by how they were added, the libraries they use, and what happens when they're empty", () => {
@@ -182,28 +187,27 @@ describe('Settings, what to work on', () => {
     expect(plain).not.toContain("Libraries we'll work on");
   });
 
-  it('All issues: no list to edit', () => {
-    const plain = text(settings(stackSet({ mode: 'ALL' })));
+  it('All issues: no list to edit, and the way to pick another mode', () => {
+    const html = settings(stackSet({ mode: 'ALL' }));
+    const plain = text(html);
 
-    expect(plain).toContain('What to work on');
+    expect(plain).toContain('All issues has no list to edit.');
+    expect(html).toContain('href="/contribute/settings"');
     expect(plain).not.toContain("Your stack's sources");
-    expect(plain).not.toContain('Repos you support');
     expect(plain).not.toContain('have nothing ready');
   });
 
-  it('explains both sets of rules, with Suggest a change', () => {
-    const plain = text(settings(stackSet()));
+  it('explains both sets of rules in their dialog', () => {
+    const plain = text(renderToStaticMarkup(<RulesContent />));
 
     expect(plain).toContain('At least one PR from outside the team merged in 90 days');
     expect(plain).toContain('A dependency file GitHub can read');
     expect(plain).toContain('A commit in the last 12 months');
     expect(plain).toContain('we check every repo for new issues every 12 hours');
-    expect(plain).toContain('Suggest a change');
   });
 
   it('lists the ignored repos with Unignore, and turns Ignore off when the list is full', () => {
-    const html = settings(stackSet());
-    expect(text(html)).toContain('Ignored repos');
+    const html = renderToStaticMarkup(<IgnoredList set={stackSet()} write={noWrite} />);
     expect(html).toContain('aria-label="Unignore eslint/eslint"');
     expect(text(html)).toContain('3 / 50');
 
@@ -212,23 +216,72 @@ describe('Settings, what to work on', () => {
       nameWithOwner: `old/repo-${index}`,
       at: '2026-10-20T09:00:00.000Z',
     }));
+    expect(text(renderToStaticMarkup(<IgnoredList set={stackSet({ ignore })} write={noWrite} />))).toContain(
+      'Your ignore list is full (50): unignore a repo first to ignore another.',
+    );
     const full = settings(stackSet({ ignore }));
-    expect(text(full)).toContain('Your ignore list is full (50): unignore a repo first to ignore another.');
     expect(rowOf(full, 'facebook/react')).toMatch(/disabled=""[^>]*title="Your ignore list is full \(50\)/);
   });
 
   it('shows nothing about the modes when they are not shown to the user', () => {
     for (const set of [undefined, null]) {
-      const html = settings(set);
+      const html = summary(set);
       const plain = text(html);
 
-      expect(plain).not.toContain('What to work on');
+      expect(html).not.toContain('aria-label="Where your issues come from"');
       expect(plain).not.toContain('How we pick repos');
       expect(plain).not.toContain('Ignored repos');
-      expect(plain).not.toContain('Applies in every mode');
-      expect(plain).toContain('What you work on');
-      expect(html).not.toContain('href="#modes"');
+      expect(plain).toContain('What you work on Rust · Bugs · any size');
     }
+  });
+});
+
+describe('switching what you work on', () => {
+  it('starts on the list it moves to, step 1 of 3, with Cancel back to Settings', () => {
+    const html = renderToStaticMarkup(<SwitchSettingsScreen set={smallReposSet()} target="STACK" now={NOW} />);
+    const plain = text(html);
+
+    expect(plain).toContain('Switch to Support my stack');
+    expect(plain).toContain('Your current mode goes on until you switch.');
+    expect(html).toMatch(/<li aria-current="step"[^>]*>.*?1<\/span>Your stack/);
+    expect(plain).toContain('When nothing is ready');
+    expect(plain).toContain('Review');
+    expect(html).toContain('data-list="SOURCES"');
+    expect(plain).toContain('3 / 50 repos');
+    expect(plain).toContain('Next');
+    expect(html).toContain('href="/contribute/settings"');
+  });
+
+  it('reviews the switch: from and to, the list, what happens when it is quiet, and what is kept', () => {
+    const plain = text(renderToStaticMarkup(<SwitchReview set={smallReposSet()} target="STACK" onEdit={() => {}} />));
+
+    expect(plain).toContain('Where issues come from Support these repos → Support my stack');
+    expect(plain).toContain('Your stack 3 repos');
+    expect(plain).toContain('When nothing is ready Work on all issues meanwhile');
+    expect(plain).toContain('Kept Your repos list (12 repos) stays saved: switch back any time.');
+  });
+
+  it('asks for at least one repo before switching to an empty list', () => {
+    const html = renderToStaticMarkup(<SwitchReview set={stackSet()} target="REPOS" onEdit={() => {}} />);
+
+    expect(html).toContain('data-review-empty');
+    expect(text(html)).toContain('Add at least one repo first');
+    expect(text(html)).toContain('Add repos');
+  });
+
+  it('says what the agent does while a new stack is read, by what happens when it is quiet', () => {
+    const fresh = (fallback: 'THEN_ALL' | 'SET_ONLY') =>
+      text(
+        renderToStaticMarkup(
+          <SwitchReview
+            set={smallReposSet({ stack: { ...stackSet().stack, fallback, resolve: null } })}
+            target="STACK"
+            onEdit={() => {}}
+          />,
+        ),
+      );
+    expect(fresh('THEN_ALL')).toContain('Until then, your agent works on all issues.');
+    expect(fresh('SET_ONLY')).toContain('Until then, your agent has nothing to work on, and waits.');
   });
 });
 
@@ -311,7 +364,7 @@ describe('Issues for you, by mode', () => {
       'We check them for new issues every 12 hours. 3 repos are still being read for the first time.',
     );
     expect(plain).toContain('Work on all issues meanwhile');
-    expect(html).toContain('href="/contribute/settings/work"');
+    expect(html).toContain('href="/contribute/settings#modes"');
     expect(plain).toContain('Add more repos');
     expect(plain).toContain('Language filter: Rust. 12 of them are in other languages.');
 

@@ -29,6 +29,8 @@ describe('the activity, as the bar reads it', () => {
     expect(activityTabOf('/contribute/connect/')).toBe('OVERVIEW');
     expect(activityTabOf('/contribute/issues')).toBe('ISSUES');
     expect(activityTabOf('/contribute/settings')).toBe('SETTINGS');
+    expect(activityTabOf('/contribute/settings/switch/stack')).toBe('SETTINGS');
+    expect(activityTabOf('/contribute/settingsx')).toBeNull();
     expect(activityTabOf('/contribute/me')).toBeNull();
     expect(itemsOn({ items: [item()], readAt: '' }, 'OVERVIEW')).toEqual([]);
     expect(itemsOn({ items: [item()], readAt: '' }, null)).toEqual([]);

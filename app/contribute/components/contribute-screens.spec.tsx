@@ -18,9 +18,8 @@ const { helperModelLabelOf, testModelLabelOf } = await import('./settings-form')
 const { sizeLabelOf } = await import('./preferences-fields');
 const { KINDS, LANGUAGES } = await import('@/lib/contribute/format');
 const { SettingsScreen } = await import('./settings-view');
-const { FormSettingsScreen, KeysSettingsScreen, OwnAgentSettingsScreen, WorkSettingsScreen } = await import(
-  './settings-pages'
-);
+const { FormSettingsScreen, KeysSettingsScreen, OwnAgentSettingsScreen } = await import('./settings-pages');
+const { PreferencesFields } = await import('./preferences-fields');
 const { IssuesScreen } = await import('./issues-view');
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
 const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
@@ -226,7 +225,7 @@ describe('the settings screen', () => {
       <>
         <FormSettingsScreen page="budget" view={view} />
         <FormSettingsScreen page="agent" view={view} />
-        <WorkSettingsScreen view={view} now={NOW} />
+        <PreferencesFields value={{ languages: [], kinds: [], maxSize: null }} onChange={() => {}} />
         <KeysSettingsScreen view={view} grantRefusal={grantRefusal} now={NOW} />
       </>,
     );
@@ -237,7 +236,7 @@ describe('the settings screen', () => {
 
     for (const label of [
       'What you work on',
-      'Where your issues come from Rust · Bugs · any size',
+      'What you work on Rust · Bugs · any size',
       'Budget and the agent',
       'Budget and pacing',
       '$200 a cycle · Even, then a final sweep · renews on the 14th',
@@ -252,7 +251,7 @@ describe('the settings screen', () => {
     ]) {
       expect(plain).toContain(label);
     }
-    for (const page of ['work', 'budget', 'agent', 'keys', 'own-agent']) {
+    for (const page of ['budget', 'agent', 'keys', 'own-agent']) {
       expect(html).toContain(`href="/contribute/settings/${page}"`);
     }
     expect(html).not.toContain('role="combobox"');
@@ -559,7 +558,7 @@ describe('the confirms before what cannot be undone', () => {
 
     expect(triggersOf(html)).toEqual(['Remove key', 'Revoke', 'Revoke Claude Code on macOS']);
     expect(text(html)).not.toContain('Yes, remove it');
-    // The summary acts on none of them: its one dialog is autopilot's record.
-    expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />))).toEqual(['Details']);
+    // The summary acts on none of them: its dialogs are the filters and autopilot's record.
+    expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />))).toEqual(['Edit', 'Details']);
   });
 });

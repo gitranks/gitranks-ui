@@ -10,6 +10,7 @@ const data = vi.hoisted(() => ({
   loadContributeActivity: vi.fn(async () => null),
   loadContributeVersion: vi.fn(async () => '4.2'),
   loadAttempt: vi.fn(),
+  loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),
   loadOpenPrDrafts: vi.fn(),

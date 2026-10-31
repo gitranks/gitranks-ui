@@ -7,6 +7,7 @@ import type {
   ContributeFollowUps,
   ContributeNeedsYou,
 } from '@/lib/contribute/contribute.types';
+import { roundLineOf } from '@/lib/contribute/follow-up-flow';
 import { canStartFollowUp, roundsText, signalText } from '@/lib/contribute/follow-up-format';
 import { dayLabel, usd } from '@/lib/contribute/format';
 
@@ -38,11 +39,14 @@ export function FollowUpRounds({
   followUps,
   pullRequest,
   attemptCapUsd,
+  startHere = true,
 }: {
   followUps: ContributeFollowUps | null | undefined;
   pullRequest: Pick<ContributeAttemptPullRequest, 'prId' | 'state'>;
   /** The user's limit for one attempt, which a follow-up runs within. */
   attemptCapUsd?: number;
+  /** Offer "Start a follow-up" here; off where the review-feedback card starts it on the threads chosen. */
+  startHere?: boolean;
 }) {
   if (followUps === undefined) {
     return (
@@ -77,7 +81,18 @@ export function FollowUpRounds({
           See the follow-up →
         </Link>
       ) : null}
-      {canStartFollowUp(followUps) && open ? (
+      {followUps.history?.length ? (
+        <ol data-rounds={followUps.history.length} className="flex flex-col gap-1 text-sm">
+          {followUps.history.map((round) => (
+            <li key={round.attemptId} data-round={round.round}>
+              <Link href={attemptHref(round.attemptId)} prefetch={false} className="hover:underline">
+                {roundLineOf(round)}
+              </Link>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {canStartFollowUp(followUps) && open && startHere ? (
         <>
           <StartFollowUpButton prId={pullRequest.prId} />
           <span className="text-xs text-muted-foreground">

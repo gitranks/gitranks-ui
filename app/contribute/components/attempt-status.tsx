@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { AutosubmitCountdown, StopAutopilotButton } from './follow-up-buttons';
+import { FollowUpStepper } from './follow-up-stepper';
 import { HEADING, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
 import { LiveSubmit, SubmitStepsSettled, TryAgainButton } from './submit-stepper';
@@ -19,10 +20,12 @@ import {
 } from '@/lib/contribute/attempt-format';
 import type {
   ContributeAttempt,
+  ContributeAttemptDetail,
   ContributeAttemptPullRequest,
   ContributeAttemptSubmit,
   ContributeFollowUpOf,
 } from '@/lib/contribute/contribute.types';
+import { roundLineOf } from '@/lib/contribute/follow-up-flow';
 import { relativeLabel, usd } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
@@ -144,67 +147,126 @@ function AutosubmitStatus({ attempt, now }: { attempt: ContributeAttempt; now?: 
   );
 }
 
+/** What a follow-up that ended without pushing came to, in plain words, by why it ended. */
+const FOLLOW_UP_ENDS: Partial<Record<NonNullable<ContributeAttempt['endReason']>, string>> = {
+  NO_GO: 'The agent read the comments and decided not to change anything.',
+  CHECKS_FAILED: 'Our checks stopped it before the review.',
+  BUDGET: 'It reached your limit for one attempt before it finished.',
+  TIMEOUT: 'It ran past the two-hour limit before it finished.',
+  FAILED: 'The agent session failed before it finished.',
+  CANCELLED: 'It was cancelled before it finished.',
+  SUBMIT_FAILED: 'The push did not go through.',
+  USER: 'You discarded it.',
+};
+
+/** Back to the pull request's page, where another round can start. */
+function BackToPr({ attempt }: { attempt: ContributeAttempt }) {
+  if (!attempt.followUpOf) return null;
+  return (
+    <Link href={attemptHref(attempt.followUpOf.attemptId)} prefetch={false} className="text-sm font-semibold text-link">
+      Back to the pull request&apos;s page →
+    </Link>
+  );
+}
+
 /**
- * A follow-up's place in its own words: it adds commits to a pull request rather than opening one. Null for a state
- * that reads as a first attempt's.
+ * A follow-up's place in its own words: it adds commits to a pull request rather than opening one. While it runs, its
+ * four steps; in review, ready; after, what it came to and what the user can do. Null for a state that reads as a
+ * first attempt's.
  */
-function followUpStatusOf(attempt: ContributeAttempt): ReactNode {
+function followUpStatusOf(attempt: ContributeAttempt | ContributeAttemptDetail, now?: Date): ReactNode {
   const pr = <FollowUpOfLink followUpOf={attempt.followUpOf} />;
+  const events = 'events' in attempt ? attempt.events : undefined;
   switch (attempt.state) {
+    case 'QUEUED':
+    case 'RUNNING':
+    case 'CHECKS':
+      return (
+        <Box state={attempt.state}>
+          <FollowUpStepper attempt={{ ...attempt, events: events ?? [] }} now={now} />
+        </Box>
+      );
     case 'REVIEW':
       return (
         <Box state="REVIEW" tone={attempt.submit?.lastError ? 'warn' : 'info'}>
-          <Title>{attempt.submit?.lastError ? 'Back for your approval' : 'Ready for your review'}</Title>
-          <Text>
-            Read the new commits and the replies drafted for you, then push the commits to {pr} or discard them.
-          </Text>
+          {attempt.submit?.lastError ? (
+            <>
+              <Title>Back for your approval</Title>
+              <Text>The push did not go through. Nothing was posted. Read the note, then try again or discard it.</Text>
+            </>
+          ) : (
+            <FollowUpStepper attempt={{ ...attempt, events: events ?? [] }} now={now} />
+          )}
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
       );
     case 'SUBMITTING':
       return (
         <Box state="SUBMITTING">
-          <Title>Pushing the commits</Title>
-          <Text>Approved. The commits are going onto {pr}&apos;s branch on your fork.</Text>
+          <Title>Pushing the fixes</Title>
+          <Text>
+            Approved. The commits are going onto {pr}&apos;s branch on your fork; the replies you chose are posted once
+            they are there.
+          </Text>
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
       );
-    case 'DONE':
+    case 'DONE': {
+      const round = 'round' in attempt ? attempt.round : undefined;
       return (
         <Box state="DONE" tone="done">
           <Title>Pushed to the pull request</Title>
+          {round ? (
+            <p data-round-line={round.round} className="text-sm font-semibold">
+              {roundLineOf(round)}
+            </p>
+          ) : null}
           <Text>
-            The commits are on {pr}, if there were any. {usd(attempt.costUsd)} was spent. Approve the replies below for
-            them to be posted.
+            The new commits are on {pr}, if there were any. {usd(attempt.costUsd)} was spent. Each reply&apos;s state is
+            below; one that did not go with the push can still be posted from there.
           </Text>
+          <BackToPr attempt={attempt} />
         </Box>
       );
+    }
     case 'STOPPED':
-    case 'DISCARDED':
+    case 'DISCARDED': {
+      const why =
+        attempt.endReason === 'CHECKS_FAILED' && attempt.endDetail === 'not_empty'
+          ? 'The agent wrote no commit and no reply, so there was nothing to review.'
+          : (attempt.endReason && FOLLOW_UP_ENDS[attempt.endReason]) ||
+            (attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it ended is not available yet.');
       return (
         <Box state={attempt.state} tone="muted">
-          <Title>{attempt.state === 'STOPPED' ? 'Stopped' : 'Discarded'}</Title>
+          <Title>{attempt.state === 'STOPPED' ? 'Stopped, nothing pushed' : 'Discarded, nothing pushed'}</Title>
           <Text>
-            <span data-end-reason={attempt.endReason ?? ''}>
-              {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it ended is not available yet.'}
-            </span>
-            {attempt.endDetail ? <> Detail: {detailText(attempt.endDetail)}</> : null} Nothing was pushed to {pr}.{' '}
-            {usd(attempt.costUsd)} was spent.
+            <span data-end-reason={attempt.endReason ?? ''}>{why}</span>
+            {attempt.endDetail && attempt.endDetail !== 'not_empty' ? (
+              <>
+                {' '}
+                {attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}
+                {detailText(attempt.endDetail)}
+              </>
+            ) : null}{' '}
+            Nothing was pushed to {pr} and no reply was posted. {usd(attempt.costUsd)} was spent. The comments still
+            wait on the pull request: answer them on GitHub, or start another round from its page if one is left.
           </Text>
           <SubmitErrorNote submit={attempt.submit} />
+          <BackToPr attempt={attempt} />
         </Box>
       );
+    }
     default:
       return null;
   }
 }
 
 /** Where the attempt stands, at the top of its page: one block for each state. */
-export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; now?: Date }) {
+export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | ContributeAttemptDetail; now?: Date }) {
   const spent = `${usd(attempt.costUsd)} of the ${usd(attempt.budgetUsd)} limit spent so far.`;
 
   if (attempt.kind === 'FOLLOW_UP') {
-    const followUp = followUpStatusOf(attempt);
+    const followUp = followUpStatusOf(attempt, now);
     if (followUp) return followUp;
   }
 

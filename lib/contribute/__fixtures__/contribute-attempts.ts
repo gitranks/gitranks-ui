@@ -3,6 +3,7 @@ import type {
   ContributeAttemptDetail,
   ContributeAttemptPullRequest,
   ContributeContributions,
+  ContributeFeedbackThread,
   ContributeFollowUpOf,
   ContributeFollowUps,
   ContributeNeedsYou,
@@ -352,6 +353,42 @@ export const replyDraft = (patch: Partial<ContributeReplyDraft> = {}): Contribut
   updatedAt: '2026-10-28T11:40:00.000Z',
   ...patch,
 });
+
+/** A review thread waiting on pull request #1419: a bot's, by default. */
+export const feedbackThread = (patch: Partial<ContributeFeedbackThread> = {}): ContributeFeedbackThread => ({
+  threadId: 'T_1',
+  commentId: 'C_1',
+  author: 'coderabbitai',
+  bot: true,
+  path: 'src/router/normalize-path.ts',
+  line: 3,
+  excerpt: 'Use a const for the root path.',
+  url: 'https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901',
+  createdAt: '2026-10-28T11:00:00.000Z',
+  ignored: false,
+  ...patch,
+});
+
+/** A reply draft of the follow-up flow: a bot's thread, fixed, its reply to post with the push. */
+export const flowDraft = (patch: Partial<ContributeReplyDraft> = {}): ContributeReplyDraft =>
+  replyDraft({
+    comment: {
+      commentId: 'C_1',
+      author: 'coderabbitai',
+      path: 'src/router/normalize-path.ts',
+      line: 3,
+      excerpt: 'Use a const for the root path.',
+    },
+    text: 'Made it a const.',
+    outcome: 'FIXED',
+    reason: null,
+    bot: true,
+    prefix: 'Fixed in <commit>: ',
+    send: false,
+    resolve: false,
+    resolveState: 'NONE',
+    ...patch,
+  });
 
 /** The follow-up fields an API that answers them gives a first attempt with no pull request yet. */
 const noFollowUps = { needsYou: null, followUps: null, followUpOf: null, autosubmitAt: null, autopilot: false };

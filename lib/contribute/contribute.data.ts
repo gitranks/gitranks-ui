@@ -5,6 +5,7 @@ import { cache } from 'react';
 import {
   ContributeActivityDocument,
   ContributeAttemptDocument,
+  ContributeAttemptFollowUpFlowDocument,
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptSubmitClockDocument,
@@ -33,8 +34,10 @@ import {
   ContributeProviderInterestsDocument,
   ContributeRepliesWaitingDocument,
   ContributeReplyDraftsDocument,
+  ContributeResolveHumansDocument,
   ContributeScheduleCountsDocument,
   ContributeSetDocument,
+  type FollowUpFlowRead,
 } from './contribute.documents';
 import type {
   ContributeActivity,
@@ -431,6 +434,10 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   const clock = Promise.resolve(graphqlDirect(ContributeAttemptSubmitClockDocument, { id }, options)).catch(
     () => undefined,
   );
+  // The follow-up flow's fields (the threads, the checks in a word, the rounds); left out when not answered.
+  const flow = Promise.resolve(graphqlDirect(ContributeAttemptFollowUpFlowDocument, { id }, options)).catch(
+    () => undefined,
+  );
   try {
     const { contributeAttempt: read } = await review;
     if (!read) return read;
@@ -444,16 +451,64 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
       contributeAttempt,
       extra?.attemptId === contributeAttempt.attemptId ? extra : undefined,
     );
+    const flowRead = (await flow)?.contributeAttempt;
+    const withFlow = withFollowUpFlow(
+      withFollowUps,
+      flowRead?.attemptId === contributeAttempt.attemptId ? flowRead : undefined,
+    );
     const agent = (await ownAgent)?.contributeAttempt;
-    if (agent?.attemptId !== contributeAttempt.attemptId) return withFollowUps;
+    if (agent?.attemptId !== contributeAttempt.attemptId) return withFlow;
     const { result, ...fields } = agent;
-    const merged = withFields(withFollowUps, fields);
+    const merged = withFields(withFlow, fields);
     return merged.result && result ? { ...merged, result: { ...merged.result, prTitle: result.prTitle } } : merged;
   } catch (failure) {
     const { error } = contributeErrorOf(failure);
     if (error === 'NOT_FOUND' || error === 'SIGNED_OUT' || error === 'INVALID') return null;
     if (error === 'NOT_AVAILABLE_YET') return undefined;
     throw new ContributeUnavailableError();
+  }
+}
+
+/**
+ * The follow-up flow's fields over the review: the checks in a word, the threads waiting, the round and the rounds,
+ * each draft's outcome and each test's `notRun`, matched by id (a draft or test the flow read does not name keeps
+ * its own fields only).
+ */
+export function withFollowUpFlow(
+  attempt: ContributeAttemptDetail,
+  flow: FollowUpFlowRead | undefined,
+): ContributeAttemptDetail {
+  if (!flow) return attempt;
+  const drafts = new Map((flow.replyDrafts ?? []).map(({ draftId, ...fields }) => [draftId, fields]));
+  const notRun = new Map((flow.result?.tests ?? []).map((test) => [test.command, test.notRun]));
+  return {
+    ...attempt,
+    checkStatus: flow.checkStatus,
+    reviewFeedback: flow.reviewFeedback,
+    round: flow.round,
+    followUps: attempt.followUps
+      ? { ...attempt.followUps, history: flow.followUps?.history ?? null }
+      : attempt.followUps,
+    result: attempt.result
+      ? {
+          ...attempt.result,
+          tests: attempt.result.tests.map((test) => ({ ...test, notRun: notRun.get(test.command) ?? null })),
+        }
+      : attempt.result,
+    replyDrafts: attempt.replyDrafts?.map((draft) => ({ ...draft, ...drafts.get(draft.draftId) })),
+  };
+}
+
+/** Whether the user's follow-ups resolve people's threads too; `undefined` when the API does not answer it. */
+export async function loadResolveHumanThreads(): Promise<boolean | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+  try {
+    const read = await graphqlDirect(ContributeResolveHumansDocument, undefined, { source: 'ssr', githubLogin });
+    const on = read.contribute?.contributor?.settings?.resolveHumanThreads;
+    return typeof on === 'boolean' ? on : undefined;
+  } catch {
+    return undefined;
   }
 }
 

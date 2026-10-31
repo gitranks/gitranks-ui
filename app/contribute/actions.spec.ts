@@ -9,6 +9,7 @@ const actions = await import('./actions');
 const {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
+  ApproveFollowUpDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
@@ -24,6 +25,7 @@ const {
   SendBackToAgentDocument,
   SendContributeFeedbackDocument,
   StartFollowUpDocument,
+  StartFollowUpOnDocument,
   VetoAutopilotDocument,
 } = await import('@/lib/contribute/contribute.documents');
 
@@ -48,6 +50,8 @@ const CALLS: Record<string, unknown[]> = {
   approveAttempt: [{ id: 'A_1', title: 'Fix it', body: 'Fixes #1', dco: true, githubLogin: 'mallory' }],
   discardAttempt: ['A_1'],
   startFollowUp: ['PR_1'],
+  approveFollowUp: ['A_F1', 'Follow-up', [{ draftId: 'D_1', text: 'Renamed it.', send: true }]],
+  setResolveHumanThreads: [true],
   vetoAutopilot: ['A_1'],
   approveReply: ['D_1'],
   createMcpToken: ['laptop'],
@@ -325,6 +329,54 @@ describe('the follow-up actions', () => {
       { id: 'A_F1', title: 'Follow-up on pull request #1419', body: '', dco: false },
       { source: 'client', githubLogin: 'octocat' },
     );
+  });
+});
+
+describe('the follow-up flow’s actions', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+  const as = { source: 'client', githubLogin: 'octocat' };
+
+  it('starts a follow-up on the comments chosen, and refuses none chosen before asking', async () => {
+    graphqlDirect.mockResolvedValue({ startFollowUp: { attemptId: 'A_F2' } });
+    await actions.startFollowUp('PR_1', ['C_1', 'C_2']);
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      StartFollowUpOnDocument,
+      { prId: 'PR_1', commentIds: ['C_1', 'C_2'] },
+      as,
+    );
+
+    graphqlDirect.mockReset();
+    expect(await actions.startFollowUp('PR_1', [])).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('approves a follow-up with its replies trimmed, and refuses a reply to post with no text', async () => {
+    graphqlDirect.mockResolvedValue({ approveAttempt: { attemptId: 'A_F1', state: 'SUBMITTING' } });
+    await actions.approveFollowUp('A_F1', 'Follow-up on pull request #1419', [
+      { draftId: 'D_1', text: '  Renamed it.  ', send: true },
+      { draftId: 'D_2', text: '', send: false },
+    ]);
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ApproveFollowUpDocument,
+      {
+        id: 'A_F1',
+        title: 'Follow-up on pull request #1419',
+        replies: [
+          { draftId: 'D_1', text: 'Renamed it.', send: true },
+          { draftId: 'D_2', text: '', send: false },
+        ],
+      },
+      as,
+    );
+
+    graphqlDirect.mockReset();
+    const empty = await actions.approveFollowUp('A_F1', 't', [{ draftId: 'D_1', text: ' ', send: true }]);
+    expect(empty).toMatchObject({ ok: false, error: 'INVALID', message: expect.stringContaining('no text') });
+    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });
 

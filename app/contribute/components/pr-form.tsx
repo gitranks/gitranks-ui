@@ -59,6 +59,13 @@ export type PrFormProps = {
   grantConnected?: boolean;
 };
 
+/**
+ * The approval's `dco`: only where the repo requires a sign-off (or while the API does not say), with the tick or the
+ * standing consent. A repo that requires none is never signed off.
+ */
+export const signOffOf = (dcoRequired: boolean | undefined, mode: ContributeDcoMode | null, ticked: boolean) =>
+  dcoRequired !== false && (mode === 'STANDING' || ticked);
+
 /** A fresh nonce for the way back from GitHub. */
 const nonceOf = () =>
   typeof crypto.randomUUID === 'function'
@@ -107,9 +114,12 @@ export function PrForm({
   const busy = pending || handoff !== null;
 
   const standing = dcoMode === 'STANDING';
-  const asksDco = dcoRequired !== false;
-  const signOff = asksDco && (standing || dco);
   const titleMissing = !title.trim();
+  const asksDco = dcoRequired !== false;
+  const signOff = signOffOf(dcoRequired, dcoMode, dco);
+  // A repo that checks every commit fails an unsigned PR: the tick comes first (or Discard).
+  const signOffMissing = dcoRequired === true && !signOff;
+  const blocked = titleMissing || signOffMissing;
 
   const act = (which: Exclude<Confirm, null>) =>
     startTransition(async () => {
@@ -184,7 +194,7 @@ export function PrForm({
       data-pr-form={attemptId}
       onSubmit={(event) => {
         event.preventDefault();
-        if (!titleMissing) setConfirm('approve');
+        if (!blocked) setConfirm('approve');
       }}
       className="flex scroll-mt-20 flex-col gap-3.5 rounded-xl border-2 border-primary bg-card p-4.5"
     >
@@ -248,6 +258,7 @@ export function PrForm({
             <input
               type="checkbox"
               name="dco"
+              aria-describedby={`${id}-dco-explained`}
               checked={dco}
               onChange={(event) => setDco(event.target.checked)}
               className="mt-0.5 accent-primary"
@@ -259,12 +270,12 @@ export function PrForm({
               I certify the Developer Certificate of Origin for this change.
             </span>
           </label>
-          <span data-dco-explained className="pl-6 text-xs text-muted-foreground">
+          <span id={`${id}-dco-explained`} data-dco-explained className="pl-6 text-xs text-muted-foreground">
             DCO is your statement that you wrote this change or have the right to submit it under the project&apos;s
             license; signing off adds a <code className="font-mono">Signed-off-by</code> line with your name to each
             commit.{' '}
             <a href="https://developercertificate.org/" target="_blank" rel="noreferrer" className="text-link">
-              developercertificate.org
+              developercertificate.org<span className="sr-only"> (opens in a new tab)</span>
             </a>
           </span>
         </div>
@@ -297,7 +308,12 @@ export function PrForm({
           {error}
         </span>
       ) : null}
-      <Button type="submit" size="lg" disabled={busy || titleMissing} className="min-h-11.5 font-semibold">
+      {signOffMissing ? (
+        <span data-dco-missing className="text-sm text-muted-foreground">
+          Tick the DCO sign-off to submit: this repo checks every commit for one.
+        </span>
+      ) : null}
+      <Button type="submit" size="lg" disabled={busy || blocked} className="min-h-11.5 font-semibold">
         {handoff === 'github'
           ? 'Opening GitHub…'
           : handoff === 'opening'

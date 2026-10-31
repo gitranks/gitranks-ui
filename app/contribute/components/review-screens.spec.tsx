@@ -19,6 +19,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
 }));
 
 const { ReviewScreen } = await import('./review-view');
+const { signOffOf } = await import('./pr-form');
 const { DiffViewer, LARGE_FILE_LINES, MAX_FILE_LINES, MAX_TOTAL_LINES } = await import('./diff-viewer');
 const { ContributionsScreen } = await import('./contributions-view');
 const { ReviewsReady } = await import('./reviews-ready');
@@ -151,6 +152,9 @@ describe('the review screen', () => {
     expect(text(html)).toContain('This repo requires a DCO sign-off.');
     expect(html).toContain('data-dco-explained');
     expect(html).toContain('href="https://developercertificate.org/"');
+    // Unticked, Submit waits: an unsigned PR would fail the repo's DCO check.
+    expect(html).toContain('data-dco-missing');
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
 
     // A repo that requires none: nothing about DCO, whatever its notes say.
     const none = review(
@@ -175,7 +179,19 @@ describe('the review screen', () => {
       'This repo requires a DCO sign-off: the commits are signed off under your standing',
     );
     expect(consented).not.toContain('type="checkbox"');
+    expect(consented).not.toContain('data-dco-missing');
     expect(review(detail({ dcoRequired: false }), standing)).not.toContain('data-dco');
+  });
+
+  it('signs off only where the repo requires it (or the API does not say), with the tick or the standing consent', () => {
+    expect(signOffOf(false, 'STANDING', true)).toBe(false);
+    expect(signOffOf(false, 'ASK', true)).toBe(false);
+    expect(signOffOf(true, 'STANDING', false)).toBe(true);
+    expect(signOffOf(true, 'ASK', true)).toBe(true);
+    expect(signOffOf(true, 'ASK', false)).toBe(false);
+    expect(signOffOf(true, null, false)).toBe(false);
+    expect(signOffOf(undefined, 'STANDING', false)).toBe(true);
+    expect(signOffOf(undefined, 'ASK', false)).toBe(false);
   });
 
   it('asks to approve again after a submission bounced back, with its note and the edited text', () => {

@@ -461,7 +461,9 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
     );
     const dcoRead = (await dco)?.contributeAttempt;
     const withDco =
-      dcoRead?.attemptId === contributeAttempt.attemptId ? { ...withFlow, dcoRequired: dcoRead.dcoRequired } : withFlow;
+      dcoRead?.attemptId === contributeAttempt.attemptId && typeof dcoRead.dcoRequired === 'boolean'
+        ? { ...withFlow, dcoRequired: dcoRead.dcoRequired }
+        : withFlow;
     const agent = (await ownAgent)?.contributeAttempt;
     if (agent?.attemptId !== contributeAttempt.attemptId) return withDco;
     const { result, ...fields } = agent;

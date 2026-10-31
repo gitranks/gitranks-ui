@@ -1,3 +1,5 @@
+import type { ContributeConventionsFields } from './pr-conventions';
+
 /** GitRanks Contribute as the GitRanks GraphQL API answers it. */
 
 export type ContributeLiveProvider = 'ANTHROPIC';
@@ -534,7 +536,8 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   events: ContributeAttemptEvent[];
   /** The pull request's reply drafts (a follow-up: the ones it wrote); `undefined` while the API does not answer them. */
   replyDrafts?: ContributeReplyDraft[];
-} & Partial<ContributeFollowUpFlowFields>;
+} & Partial<ContributeFollowUpFlowFields> &
+  ContributeConventionsFields;
 
 /** The review comment a reply answers: the first comment of its thread. */
 export type ContributeReplyTarget = {

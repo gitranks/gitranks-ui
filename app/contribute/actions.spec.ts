@@ -26,6 +26,7 @@ const {
   SendContributeFeedbackDocument,
   StartFollowUpDocument,
   StartFollowUpOnDocument,
+  FixContributePullRequestDocument,
   VetoAutopilotDocument,
 } = await import('@/lib/contribute/contribute.documents');
 
@@ -53,6 +54,7 @@ const CALLS: Record<string, unknown[]> = {
   approveFollowUp: ['A_F1', 'Follow-up', [{ draftId: 'D_1', text: 'Renamed it.', send: true }]],
   setResolveHumanThreads: [true],
   vetoAutopilot: ['A_1'],
+  fixPullRequest: [{ attemptId: 'A_1', kind: 'TITLE', title: 'fix: x', githubLogin: 'mallory' }],
   approveReply: ['D_1'],
   createMcpToken: ['laptop'],
   revokeMcpToken: ['T_1'],
@@ -278,6 +280,41 @@ describe('approveAttempt and discardAttempt', () => {
     );
 
     expect(await actions.discardAttempt('A_2')).toEqual({ ok: false, error: 'NOT_FOUND' });
+  });
+});
+
+describe('the open pull request fixes', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it('sends one fix as the signed-in user, and refuses a kind or a title we do not send', async () => {
+    graphqlDirect.mockResolvedValue({ fixContributePullRequest: { attemptId: 'A_1' } });
+    await expect(actions.fixPullRequest({ attemptId: 'A_1', kind: 'TITLE', title: '  fix: x  ' })).resolves.toEqual({
+      ok: true,
+      data: { attemptId: 'A_1' },
+    });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      FixContributePullRequestDocument,
+      { attemptId: 'A_1', kind: 'TITLE', title: 'fix: x', body: undefined },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    await actions.fixPullRequest({ attemptId: 'A_1', kind: 'CHANGELOG' });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      FixContributePullRequestDocument,
+      { attemptId: 'A_1', kind: 'CHANGELOG', title: undefined, body: undefined },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    graphqlDirect.mockClear();
+    expect(await actions.fixPullRequest({ attemptId: 'A_1', kind: 'MERGE' as never })).toMatchObject({
+      error: 'INVALID',
+    });
+    expect(await actions.fixPullRequest({ attemptId: 'A_1', kind: 'TITLE', title: ' ' })).toMatchObject({
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });
 

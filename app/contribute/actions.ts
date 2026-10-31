@@ -23,6 +23,7 @@ import {
   CreateMcpTokenDocument,
   DeleteContributeDataDocument,
   DiscardAttemptDocument,
+  FixContributePullRequestDocument,
   IgnoreContributeRepoDocument,
   NoteProviderInterestDocument,
   PauseContributingDocument,
@@ -85,6 +86,11 @@ import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
 import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
 import { activityFor, contributeModesShown } from '@/lib/contribute/modes-gate';
+import {
+  type ContributeConventionsFields,
+  type ContributePrFixKind,
+  PR_FIX_KINDS,
+} from '@/lib/contribute/pr-conventions';
 import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type DocumentNode from '@/types/typed-document-node';
@@ -381,6 +387,37 @@ export async function setResolveHumanThreads(on: boolean): Promise<ContributeAct
 /** Stops autopilot from submitting an attempt in its hour: it goes to the review instead. */
 export async function vetoAutopilot(attemptId: string): Promise<ContributeActionResult<ContributeAttempt>> {
   return run(VetoAutopilotDocument, { attemptId: String(attemptId) }, (data) => data.vetoAutopilot);
+}
+
+/**
+ * A one-click fix to the user's open pull request, on their GitHub access: TITLE retitles it, BODY sets its
+ * description (the footer kept), CHANGELOG fixes its changelog line in a commit on its branch.
+ */
+export async function fixPullRequest(input: {
+  attemptId: string;
+  kind: ContributePrFixKind;
+  title?: string;
+  body?: string;
+}): Promise<ContributeActionResult<Required<ContributeConventionsFields>>> {
+  const kind = PR_FIX_KINDS.includes(input.kind) ? input.kind : null;
+  if (!kind) return { ok: false, error: 'INVALID', message: 'That fix is not one we make.' };
+  const title = kind === 'TITLE' ? String(input.title ?? '').trim() : undefined;
+  if (kind === 'TITLE' && (!title || title.length > PR_TITLE_MAX)) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `Give the pull request a title of ${PR_TITLE_MAX} characters at most.`,
+    };
+  }
+  const body = kind === 'BODY' ? String(input.body ?? '') : undefined;
+  if (body !== undefined && body.length > PR_BODY_MAX) {
+    return { ok: false, error: 'INVALID', message: `Keep the description to ${PR_BODY_MAX} characters at most.` };
+  }
+  return run(
+    FixContributePullRequestDocument,
+    { attemptId: String(input.attemptId), kind, title, body },
+    (data) => data.fixContributePullRequest,
+  );
 }
 
 /** Approves a drafted reply: it is posted publicly on GitHub, in the user's name. */

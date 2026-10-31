@@ -9,6 +9,7 @@ import {
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
+  ContributeActivityDocument,
   ContributeFeedComputedDocument,
   ContributeOnboardingDocument,
   ContributeOwnAgentDocument,
@@ -37,6 +38,7 @@ import {
   WithdrawProviderInterestDocument,
 } from '@/lib/contribute/contribute.documents';
 import type {
+  ContributeActivity,
   ContributeAttempt,
   ContributeClaudePlan,
   ContributeComingSoonProvider,
@@ -343,6 +345,14 @@ const oneOf = <T extends string>(values: readonly T[], value: unknown): value is
   typeof value === 'string' && (values as readonly string[]).includes(value);
 
 const invalid = (message: string) => ({ ok: false as const, error: 'INVALID' as const, message });
+
+/** What the API is working on for the user now; null when the modes are not shown to them. */
+export async function readContributeActivity(): Promise<ContributeActionResult<ContributeActivity | null>> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
+  if (!contributeModesShown(githubLogin)) return { ok: true, data: null };
+  return run(ContributeActivityDocument, undefined, (data) => data.contributeActivity);
+}
 
 /** Switches where the user's issues come from; each mode keeps its own list. */
 export async function setContributeMode(mode: ContributeSetMode): Promise<ContributeSetActionResult<ContributeSet>> {

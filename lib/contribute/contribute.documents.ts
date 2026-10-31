@@ -1,6 +1,7 @@
 import { parse } from 'graphql';
 
 import type {
+  ContributeActivity,
   ContributeAttempt,
   ContributeAttemptDetail,
   ContributeAttemptFollowUpFields,
@@ -459,6 +460,12 @@ const SET = `mode version
 
 export const ContributeSetDocument = doc<{ contributeSet: ContributeSet | null }>(
   `query ContributeSet { contributeSet { ${SET} } }`,
+);
+
+export const ContributeActivityDocument = doc<{ contributeActivity: ContributeActivity | null }>(
+  `query ContributeActivity { contributeActivity {
+    items { kind tabs label done total startedAt expectedAt repos { repositoryId nameWithOwner stage } } readAt
+  } }`,
 );
 
 export const SetContributeModeDocument = doc<{ setContributeMode: ContributeSet }, { mode: ContributeSetMode }>(

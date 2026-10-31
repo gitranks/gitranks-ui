@@ -10,7 +10,6 @@ import {
   modeSummaryOf,
   reasonsText,
   reasonText,
-  refreshDelayOf,
   settlingOf,
   statusOf,
   tiersOf,
@@ -219,8 +218,8 @@ describe('the lists', () => {
   });
 
   it("say a repo's status, a failed one with its reasons", () => {
-    expect(statusOf({ status: 'CHECKING', reasons: [] }, 'work')).toEqual({ label: 'Reading issues…', tone: 'amber' });
-    expect(statusOf({ status: 'CHECKING', reasons: [] }, 'source').label).toBe('Reading…');
+    expect(statusOf({ status: 'CHECKING', reasons: [] }, 'work')).toEqual({ label: 'Reading', tone: 'neutral' });
+    expect(statusOf({ status: 'CHECKING', reasons: [] }, 'source').label).toBe('Reading');
     expect(statusOf({ status: 'ACTIVE', reasons: [] }, 'work')).toEqual({ label: 'Active', tone: 'green' });
     expect(statusOf({ status: 'FAILED', reasons: ['OPTED_OUT', 'AI_BAN'] }, 'work')).toEqual({
       label: "Didn't pass: maintainers asked us not to send PRs",
@@ -321,14 +320,6 @@ describe('reading the page again while repos settle', () => {
     };
     expect(settlingOf(resolving)).toBe(true);
     expect(settlingOf({ ...resolving, mode: 'REPOS' })).toBe(false);
-  });
-
-  it('waits 20 seconds, then a minute, and stops after 10 minutes', () => {
-    expect(refreshDelayOf(0)).toBe(20_000);
-    expect(refreshDelayOf(119_000)).toBe(20_000);
-    expect(refreshDelayOf(2 * 60_000)).toBe(60_000);
-    expect(refreshDelayOf(9 * 60_000)).toBe(60_000);
-    expect(refreshDelayOf(10 * 60_000)).toBeNull();
   });
 });
 

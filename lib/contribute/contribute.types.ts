@@ -569,6 +569,37 @@ export type ContributeSetReason =
 export type ContributeStackResolveState = 'RESOLVING' | 'READY' | 'FAILED';
 export type ContributeFeedbackTopic = 'GATES' | 'MODES' | 'OTHER';
 
+/** Work the API is doing for the user that takes a while: worked out libraries, new repos read, a wait. */
+export type ContributeActivityKind = 'STACK_RESOLVE' | 'FIRST_READS' | 'FIRST_READS_WAITING' | 'READS_PAUSED';
+/** A Contribute tab an activity shows on. */
+export type ContributeActivityTab = 'OVERVIEW' | 'ISSUES' | 'SETTINGS';
+/** Where one repo is: its rules read first, queued, its issues read, then sorted, or waiting. */
+export type ContributeActivityRepoStage = 'CHECKING' | 'QUEUED' | 'READING' | 'SORTING' | 'READ' | 'WAITING' | 'PAUSED';
+
+export type ContributeActivityRepo = {
+  repositoryId: string;
+  nameWithOwner: string;
+  stage: ContributeActivityRepoStage;
+};
+
+/** One piece of work in progress. */
+export type ContributeActivityItem = {
+  kind: ContributeActivityKind;
+  tabs: ContributeActivityTab[];
+  /** One plain line, e.g. "Reading issues from 14 of 20 repos". */
+  label: string;
+  /** Null when it cannot be counted. */
+  done: number | null;
+  total: number | null;
+  startedAt: string;
+  /** When it should be done (an estimate); null when no time can be promised. */
+  expectedAt: string | null;
+  repos: ContributeActivityRepo[];
+};
+
+/** The user's work in progress; no items when nothing runs. */
+export type ContributeActivity = { items: ContributeActivityItem[]; readAt: string };
+
 /** How a repo got on a list: "@me", a user or org (its login), or on its own. */
 export type ContributeSetRepoVia = { kind: ContributeSetRepoViaKind; login: string | null };
 

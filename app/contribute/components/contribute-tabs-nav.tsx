@@ -2,8 +2,10 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 
+import { ActivityBar, ActivityDot, ActivityProvider } from './activity';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
+import type { ContributeActivity } from '@/lib/contribute/contribute.types';
 import { isMaintainersPath } from '@/lib/contribute/contribute-path';
 import { isAsVisitor } from '@/lib/contribute/contribute-state';
 
@@ -22,10 +24,17 @@ export function contributeTabsShown(pathname: string, as: string | null, onboard
 }
 
 /**
- * Contribute's tabs under the header, as a profile's are, or the header's line when they do not show. It reads the
- * path and the query, so it renders inside a Suspense boundary.
+ * Contribute's tabs under the header, as a profile's are, or the header's line when they do not show; with them, a dot
+ * on each tab with work in progress and the bar for the current tab's. It reads the path and the query, so it renders
+ * inside a Suspense boundary.
  */
-export function ContributeTabsNav({ onboarded }: { onboarded: boolean }) {
+export function ContributeTabsNav({
+  onboarded,
+  activity = null,
+}: {
+  onboarded: boolean;
+  activity?: ContributeActivity | null;
+}) {
   const pathname = usePathname();
   const as = useSearchParams().get('as');
   if (!contributeTabsShown(pathname, as, onboarded)) return <HeaderLine />;
@@ -33,15 +42,25 @@ export function ContributeTabsNav({ onboarded }: { onboarded: boolean }) {
   // An attempt's review belongs to My contributions, the connect flow to the overview.
   const attempt = pathname.startsWith('/contribute/attempts/');
   return (
-    <TabsBar>
-      <Tab href="/contribute" pathnames={['/contribute', '/contribute/connect']}>
-        Overview
-      </Tab>
-      <Tab href="/contribute/issues">Issues for you</Tab>
-      <Tab href="/contribute/me" pathnames={attempt ? [pathname] : undefined}>
-        My contributions
-      </Tab>
-      <Tab href="/contribute/settings">Settings</Tab>
-    </TabsBar>
+    <ActivityProvider initial={activity}>
+      <TabsBar>
+        <Tab href="/contribute" pathnames={['/contribute', '/contribute/connect']}>
+          Overview
+          <ActivityDot tab="OVERVIEW" />
+        </Tab>
+        <Tab href="/contribute/issues">
+          Issues for you
+          <ActivityDot tab="ISSUES" />
+        </Tab>
+        <Tab href="/contribute/me" pathnames={attempt ? [pathname] : undefined}>
+          My contributions
+        </Tab>
+        <Tab href="/contribute/settings">
+          Settings
+          <ActivityDot tab="SETTINGS" />
+        </Tab>
+      </TabsBar>
+      <ActivityBar />
+    </ActivityProvider>
   );
 }

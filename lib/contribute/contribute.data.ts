@@ -3,6 +3,7 @@ import 'server-only';
 import { cache } from 'react';
 
 import {
+  ContributeActivityDocument,
   ContributeAttemptDocument,
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptOwnAgentDocument,
@@ -34,6 +35,7 @@ import {
   ContributeSetDocument,
 } from './contribute.documents';
 import type {
+  ContributeActivity,
   ContributeAttempt,
   ContributeAttemptDetail,
   ContributeAttemptState,
@@ -249,6 +251,25 @@ export const loadContributeSet = cache(async (): Promise<ContributeSet | null | 
     return contributeSet;
   } catch {
     return undefined;
+  }
+});
+
+/**
+ * What the API is working on for the signed-in user (new repos read, the stack worked out). Null when the modes are
+ * not shown to them, the API hides it or does not answer: no activity is shown then. Read once per request.
+ */
+export const loadContributeActivity = cache(async (): Promise<ContributeActivity | null> => {
+  const githubLogin = await viewerLogin();
+  if (!contributeModesShown(githubLogin)) return null;
+
+  try {
+    const { contributeActivity } = await graphqlDirect(ContributeActivityDocument, undefined, {
+      source: 'ssr',
+      githubLogin: githubLogin as string,
+    });
+    return contributeActivity;
+  } catch {
+    return null;
   }
 });
 

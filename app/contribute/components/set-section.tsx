@@ -2,9 +2,10 @@
 
 import { Globe, Layers, LayoutGrid } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useId, useState, useTransition } from 'react';
+import { type ReactNode, useId, useState, useTransition } from 'react';
 
 import { setContributeFallback, setContributeMode } from '../actions';
+import { announceActivity } from './activity';
 import { FeedbackDialog, type FeedbackOpen } from './feedback-dialog';
 import { Panel, PanelTitle } from './primitives';
 import { RadioPills, useSettledPick } from './radio-pills';
@@ -22,7 +23,7 @@ import {
   type ContributeSetActionResult,
   contributeSetErrorMessage,
 } from '@/lib/contribute/errors';
-import { FALLBACKS, MODES, refreshDelayOf, settlingOf } from '@/lib/contribute/set-format';
+import { FALLBACKS, MODES, settlingOf } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
 
 /** Runs a change to the set and shows its answer; resolves to the failure's message, or null. */
@@ -32,32 +33,6 @@ export type SetWrite = (
 ) => Promise<string | null>;
 
 const ICONS = { STACK: Layers, REPOS: LayoutGrid, ALL: Globe } as const;
-
-/**
- * Reads the page again while a repo of the active list is read for the first time, or the libraries are worked out:
- * every 20 seconds, then every minute, and not after 10 minutes. Mounted again (and so started over) by a change the
- * user makes.
- */
-function SettlingRefresh() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const start = Date.now();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const next = () => {
-      const delay = refreshDelayOf(Date.now() - start);
-      if (delay === null) return;
-      timer = setTimeout(() => {
-        if (document.visibilityState === 'visible') router.refresh();
-        next();
-      }, delay);
-    };
-    next();
-    return () => clearTimeout(timer);
-  }, [router]);
-
-  return null;
-}
 
 /**
  * What the user works on (the mode, its list and what happens when the list has nothing ready), then `preferences`,
@@ -75,7 +50,6 @@ export function SetSections({
 }) {
   const router = useRouter();
   const [written, setWritten] = useState<ContributeSet | null>(null);
-  const [changes, setChanges] = useState(0);
   const [feedback, setFeedback] = useState<FeedbackOpen | null>(null);
   // The newer of the page's read and the last change's answer.
   const set = written && written.version >= loaded.version ? written : loaded;
@@ -85,8 +59,9 @@ export function SetSections({
     if (!result.ok) return contributeSetErrorMessage(result.error, action, set.limits, result.message);
     // Answers can come back out of order: keep the newest.
     setWritten((current) => (current && current.version > result.data.version ? current : result.data));
-    setChanges((count) => count + 1);
     router.refresh();
+    // A repo read for the first time, or the libraries worked out: the bar under the tabs follows it from here.
+    if (settlingOf(result.data)) announceActivity();
     return null;
   };
 
@@ -115,7 +90,6 @@ export function SetSections({
         perDay={set.limits.feedbackPerDay}
         onClose={() => setFeedback(null)}
       />
-      {settlingOf(set) ? <SettlingRefresh key={changes} /> : null}
     </>
   );
 }

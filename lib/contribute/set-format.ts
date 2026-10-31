@@ -92,7 +92,8 @@ export function statusOf(
     ContributeSetRepoStatus,
     () => { label: string; tone: 'green' | 'amber' | 'red' | 'neutral' }
   > = {
-    CHECKING: () => ({ label: rules === 'source' ? 'Reading…' : 'Reading issues…', tone: 'amber' }),
+    // Quiet: the bar under the tabs says how the reads go.
+    CHECKING: () => ({ label: 'Reading', tone: 'neutral' }),
     ACTIVE: () => ({ label: rules === 'source' ? 'Read' : 'Active', tone: 'green' }),
     FAILED: () => ({
       label: repo.reasons.length ? `Didn't pass: ${lowerFirst(reasonsText(repo.reasons, rules))}` : "Didn't pass",
@@ -397,11 +398,4 @@ export function settlingOf(set: ContributeSet): boolean {
   }
   if (set.mode === 'REPOS') return checking(set.repos.repos);
   return false;
-}
-
-/** How long to wait before reading the page again, given how long it has waited; null: stop until the user acts. */
-export function refreshDelayOf(elapsedMs: number): number | null {
-  if (elapsedMs < 2 * 60_000) return 20_000;
-  if (elapsedMs < 10 * 60_000) return 60_000;
-  return null;
 }

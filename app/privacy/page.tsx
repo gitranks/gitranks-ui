@@ -7,14 +7,15 @@ import { pageMetadata } from '@/lib/seo/page-metadata';
 export const metadata: Metadata = pageMetadata({
   title: 'Privacy policy',
   description:
-    'What personal data GitRanks processes about developers, signed-in users and visitors, why, who receives it, how long it is kept, and how to remove your data.',
+    'What personal data GitRanks and GitRanks Contribute process about developers, signed-in users, maintainers and visitors, why, who receives it, how long it is kept, and how to remove your data.',
   path: '/privacy',
 });
 
 /*
  * The Privacy policy. Short on purpose: the information GDPR Articles 13 and 14 require, and no promise the law
  * doesn't. Retention is stated by criteria (Art. 13(2)(a) allows it), not periods. The Privacy tab and its removal
- * dialog link to #removal: keep that anchor. It covers GitRanks only. Have a lawyer review it.
+ * dialog link to #removal: keep that anchor. It covers GitRanks, Contribute included (#contribute). Have a lawyer
+ * review it.
  */
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
@@ -97,7 +98,7 @@ const sections: LegalSection[] = [
         <li>
           <B>Sign in with GitHub</B>: we receive your GitHub username, account id, name, email address and avatar link.
           The basic sign-in lets us read your profile and email address when you sign in; we don&apos;t keep the access
-          it grants.
+          it grants, except briefly for the maintainers page (see <A href="#contribute">GitRanks Contribute</A>).
         </li>
         <li>
           <B>Sign in with your own token</B>: if you choose it, GitHub gives us a token that can act on your behalf. We
@@ -113,6 +114,88 @@ const sections: LegalSection[] = [
           <B>Basis</B>: contract (Article 6(1)(b)), to provide what you ask for.
         </li>
       </List>
+    ),
+  },
+  {
+    id: 'contribute',
+    title: 'GitRanks Contribute',
+    body: (
+      <>
+        <P>
+          GitRanks Contribute suggests issues in public repositories, helps you work on them with an AI agent and opens
+          pull requests from your GitHub account. This section covers what it adds to the above. Basis: contract
+          (Article 6(1)(b)), to provide what you ask for, unless stated otherwise.
+        </P>
+        <List>
+          <li>
+            <B>Your account and settings</B>: your GitHub username and account id, your email address if your sign-in
+            shared it, your Contribute settings and preferences (such as languages, topics, the kinds and size of
+            issues, and the repositories you choose or ignore), the providers you asked to hear about, and the feedback
+            you send us (we also receive it as a message). To suggest issues, we also use what we know and work out from
+            your public work, such as topics, languages and seniority (see{' '}
+            <A href="#developers">Developers on GitRanks</A>).
+          </li>
+          <li>
+            <B>Your AI provider key</B>: if you connect one, we store it encrypted and show only its last four
+            characters. We use it to check that it works and to run the agent on your behalf, at your cost. We also keep
+            the ids of the organization and workspace it belongs to, the agent setup we create there, and what each run
+            cost. Removing the key in Contribute&apos;s settings deletes it from GitRanks; delete it at your provider
+            too.
+          </li>
+          <li>
+            <B>Agent runs</B>: a run takes place in a sandbox at your AI provider, under your key. We send it the issue
+            with its labels and comments (including their authors&apos; usernames), other pull requests and claims on
+            it, the repository&apos;s contributing guidelines and pull request template, our notes on the repository
+            and, on a follow-up, the review comments on your pull request. The sandbox reads the repository&apos;s
+            public code. We keep what the run returns (such as the change, its summary, test results and drafted
+            replies), our checks of it, its history and its cost. When a run ends, we ask the provider to delete it.
+            Your provider&apos;s own terms and privacy policy apply to what it processes under your key.
+          </li>
+          <li>
+            <B>Your own agent</B>: if you create a token for your own agent, we keep a hash of it, its last four
+            characters, the name you give it and when it was last used. We keep what your agent sends us, such as the
+            issues it claims, its changes, the build and test commands it reports, and its name and model. Your agent
+            and the AI it uses are yours; we receive what your agent sends us.
+          </li>
+          <li>
+            <B>GitHub access for pull requests</B>: if you allow it, GitHub gives us a token that can act for you on
+            public repositories, including ones you can write to (GitHub&apos;s <B>public_repo</B> permission). We store
+            it encrypted and use it to fork repositories, push branches, open pull requests, and post and resolve
+            comments on them, as you approve or as your Contribute settings allow. Forks, commits, pull requests and
+            comments are made under your GitHub account and are public on GitHub. We record the pull requests opened
+            through Contribute and read their status, reviews, comments and checks from GitHub. You can revoke this
+            access at any time in your GitHub settings, under Applications.
+          </li>
+          <li>
+            <B>AI-assisted work</B>: pull requests Contribute opens for you say in their text that they were made with
+            AI. We mark those, and pull requests your own agent opens for an issue it claimed through Contribute, as
+            AI-assisted in our data, and may show or weigh them apart from the rest of your work wherever we show or
+            score it.
+          </li>
+          <li>
+            <B>The issues we suggest</B>: Contribute reads public issues, their comments and labels, and public
+            repository files from GitHub, including the usernames of the people who wrote them. We send some of this to
+            our AI providers to sort the issues. We keep it while it is public on GitHub and Contribute needs it. Basis:
+            legitimate interests, in suggesting issues worth working on.
+          </li>
+          <li>
+            <B>Maintainers</B>: the maintainers page has you sign in with GitHub to list the repositories you maintain
+            and let you opt them out of Contribute. The token GitHub gives that sign-in is kept in your encrypted
+            sign-in cookie and used for up to one hour, on that page only. When you opt a repository out, we keep your
+            GitHub account id and username and when you did it, until the repository is opted back in. Basis: legitimate
+            interests, in respecting maintainers&apos; choices.
+          </li>
+          <li>
+            <B>Deleting it</B>: in Contribute&apos;s settings, choose <B>Delete all Contribute data</B>. It stops runs
+            under way, deletes your key, settings, preferences, suggestions, runs and their history, drafted replies,
+            agent tokens and feedback, and revokes the GitHub access. If GitHub can&apos;t be told, revoke the access in
+            your GitHub settings. Removing your data from GitRanks (see <A href="#removal">Removing your data</A>) does
+            the same. Forks, commits, pull requests and comments on GitHub stay there, as does your key at your AI
+            provider, and so do the copies of your feedback we received as messages. We may keep records of the pull
+            requests opened through Contribute and that they were AI-assisted.
+          </li>
+        </List>
+      </>
     ),
   },
   {
@@ -154,9 +237,12 @@ const sections: LegalSection[] = [
         <li>The public, for profiles, rankings, badges and posts, as described above.</li>
         <li>
           Service providers that process data for us. These currently include Cloudflare (network, security, email),
-          Hetzner (hosting), Google (analytics) and our AI providers.
+          Hetzner (hosting), Google (analytics), Telegram (notifications to us) and our AI providers.
         </li>
-        <li>GitHub, when we read public data and check stars.</li>
+        <li>GitHub, when we read public data and check stars, and when Contribute acts for you.</li>
+        <li>
+          The AI provider whose key you connect to Contribute (currently Anthropic), under your own account with it.
+        </li>
         <li>Our professional advisers, and authorities where the law requires.</li>
         <li>Someone who takes over GitRanks, if the business is transferred.</li>
       </List>
@@ -169,7 +255,8 @@ const sections: LegalSection[] = [
       <P>
         Our servers are in the EU (Finland), and GitRanks is run from Ukraine. Some providers are in the United States.
         For them we rely on the EU-US Data Privacy Framework (and its UK extension) where the provider is certified, and
-        otherwise on standard contractual clauses. Write to {mail} for a copy.
+        otherwise on standard contractual clauses. Write to {mail} for a copy. Contribute sends data to the AI provider
+        you connect, which may be outside the EU, at your request and under your own agreement with it.
       </P>
     ),
   },
@@ -184,6 +271,10 @@ const sections: LegalSection[] = [
         <li>
           Sign-in data, tokens and refresh records: until you remove your data. Sign-in sessions last until they expire
           or you sign out.
+        </li>
+        <li>
+          Contribute data: what you give or create there, until you delete it or remove your data; other Contribute data
+          as described under <A href="#contribute">GitRanks Contribute</A>.
         </li>
         <li>Logs and security data: deleted automatically after a fixed rotation period.</li>
         <li>
@@ -221,15 +312,20 @@ const sections: LegalSection[] = [
         </List>
         <P>
           A removal deletes your profile, your ranks and their history, the repositories you own, and your place in
-          rankings, contributor tables and our posts on GitRanks. It also deletes your sign-in, your token and your
-          refresh records. Your badges stop working. A removal can&apos;t be undone, and GitRanks won&apos;t list your
-          account again, even if you sign in. To be listed again, write to us.
+          rankings, contributor tables and our posts on GitRanks. It also deletes your sign-in, your token, your refresh
+          records and your Contribute data (see <A href="#contribute">GitRanks Contribute</A>). Your badges stop
+          working. A removal can&apos;t be undone, and GitRanks won&apos;t list your account again, even if you sign in.
+          To be listed again, write to us.
         </P>
         <P>We keep only:</P>
         <List>
           <li>a one-way hash of your GitHub account id and username, so nothing adds your account back;</li>
           <li>
             records against fake stars on other accounts that name your account, for as long as fair rankings need them;
+          </li>
+          <li>
+            records of pull requests opened through Contribute and whether they were AI-assisted, and any repository
+            opt-out you made as a maintainer, until it is lifted;
           </li>
           <li>backups, until they are rotated out.</li>
         </List>
@@ -275,7 +371,8 @@ const sections: LegalSection[] = [
           <B>Analytics</B>: Google Analytics cookies, which tell repeat visits apart.
         </li>
         <li>
-          <B>In your browser only</B>: your theme, and which post links have already been counted in this tab.
+          <B>In your browser only</B>: your theme, which post links have already been counted in this tab and, for
+          Contribute, a few details for the open tab, such as a step to finish after you grant GitHub access.
         </li>
       </List>
     ),

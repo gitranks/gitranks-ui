@@ -18,7 +18,7 @@ export const OPERATOR_ADDRESS =
 export const CONTACT_EMAIL = 'hello@gitranks.com';
 
 /** The day the Privacy policy and the Terms last changed (YYYY-MM-DD). */
-export const LAST_UPDATED = '2026-10-27';
+export const LAST_UPDATED = '2026-10-31';
 
 /** "27 October 2026", the way the pages show a last-updated day. */
 export function legalDate(day: string = LAST_UPDATED): string {

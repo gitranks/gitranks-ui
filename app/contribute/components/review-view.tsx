@@ -155,14 +155,12 @@ export function ReviewScreen({
 
       {!followUp && attempt.pullRequest?.state === 'OPEN' ? (
         <PrConventionsCard
-          // A fix that settled starts the card afresh (its editors closed, its drafts the PR's own again).
-          key={`${attempt.prFix?.kind ?? ''}|${attempt.prFix?.state ?? ''}|${attempt.prTitle ?? ''}`}
           attemptId={attempt.attemptId}
           prNumber={attempt.pullRequest.number}
           issues={attempt.prIssues ?? []}
           fix={attempt.prFix ?? null}
           title={attempt.prTitle ?? attempt.approval?.title ?? ''}
-          body={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
+          body={editableBodyOf(attempt.prBody ?? attempt.approval?.body ?? attempt.result?.prBody)}
           titleRule={attempt.conventions?.title ?? null}
         />
       ) : null}

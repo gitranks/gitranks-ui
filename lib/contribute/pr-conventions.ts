@@ -50,6 +50,8 @@ export type ContributeConventionsFields = {
   conventions?: ContributeRepoConventions | null;
   prIssues?: ContributePrConventionIssue[];
   prTitle?: string | null;
+  /** The PR's description as a fix last set it (without the footer); null while none did. */
+  prBody?: string | null;
   prFix?: ContributePrFix | null;
 };
 
@@ -72,11 +74,22 @@ function partsProblemOf(type: string, scope: string | undefined, rule: Contribut
   return null;
 }
 
+/**
+ * A pattern safe to run on every keystroke: none with a quantified group that holds a quantifier (`(\w+\s?)*`), which
+ * can take seconds on a failing title. The API leaves such a pattern out too; this guards an older answer.
+ */
+export const safePattern = (pattern: string): boolean => !/\([^()]*[+*}][^()]*\)[+*{]/.test(pattern);
+
+/** Only `https:` links from the repo's data. */
+export const httpsOnly = (url: string | null | undefined): string | null =>
+  url && /^https:\/\//i.test(url) ? url : null;
+
 /** Why `title` fails `rule`, in words; null when it passes or there is no rule. */
 export function titleProblemOf(title: string, rule: ContributeTitleRule | null | undefined): string | null {
   if (!rule) return null;
   const trimmed = title.trim();
   if (rule.pattern) {
+    if (!safePattern(rule.pattern)) return null;
     let match: RegExpMatchArray | null = null;
     try {
       match = trimmed.match(new RegExp(rule.pattern));
@@ -117,12 +130,30 @@ export function changelogLinesOf(patch: string | null | undefined, path: string 
   for (const line of patch.split('\n')) {
     if (line.startsWith('diff --git ')) {
       const file = line.match(/ b\/(.+)$/)?.[1] ?? '';
-      inFile = path ? file === path || file.startsWith(path) || changelog.test(file) : changelog.test(file);
+      // The repo's own place when it is known (a folder's path ends in `/`), else any changelog-like file.
+      inFile = path ? (path.endsWith('/') ? file.startsWith(path) : file === path) : changelog.test(file);
     } else if (inFile && line.startsWith('+') && !line.startsWith('+++') && line.slice(1).trim()) {
       lines.push(line.slice(1));
     }
   }
   return lines;
+}
+
+/**
+ * The line to show of what the change adds to the changelog: a list item or a sentence, never a changeset's
+ * frontmatter (`---`, `"pkg": patch`) or a heading (`### Fixed`).
+ */
+export function entryLineOf(lines: readonly string[]): string | null {
+  let frontmatter = false;
+  const kept: string[] = [];
+  for (const line of lines) {
+    if (line.trim() === '---') {
+      frontmatter = !frontmatter;
+      continue;
+    }
+    if (!frontmatter && !/^\s*#/.test(line)) kept.push(line);
+  }
+  return kept.find((line) => /^\s*[-*+]\s/.test(line)) ?? kept[0] ?? null;
 }
 
 /** The PR number and URL placeholders the agent writes in the changelog line; filled in once the PR opens. */
@@ -155,15 +186,15 @@ export function checklistOf(
     items.push({
       key: 'cla',
       state: 'todo',
-      label: conventions.cla.signUrl
+      label: httpsOnly(conventions.cla.signUrl)
         ? "A signed CLA: sign it after the PR opens; we can't sign for you"
         : "A signed CLA: the check on the PR links it after it opens; we can't sign for you",
       detail: `The \`${conventions.cla.check}\` check waits for it.`,
-      link: conventions.cla.signUrl,
+      link: httpsOnly(conventions.cla.signUrl),
     });
   }
   if (conventions.changelog) {
-    const lines = changelogLinesOf(input.patch, conventions.changelog.path);
+    const entry = entryLineOf(changelogLinesOf(input.patch, conventions.changelog.path));
     const what =
       conventions.changelog.kind === 'CHANGESETS'
         ? 'A changeset'
@@ -172,11 +203,9 @@ export function checklistOf(
           : `A line in ${conventions.changelog.path}`;
     items.push({
       key: 'changelog',
-      state: lines.length ? 'ok' : conventions.changelog.required ? 'todo' : 'info',
+      state: entry ? 'ok' : conventions.changelog.required ? 'todo' : 'info',
       label: `${what}${conventions.changelog.required ? '' : ', as most PRs add'}`,
-      detail: lines.length
-        ? fillPlaceholders(lines[0])
-        : 'This change adds none: edit the diff, or send it back to the agent.',
+      detail: entry ? fillPlaceholders(entry) : 'This change adds none: edit the diff, or send it back to the agent.',
       link: null,
     });
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useId, useState, useTransition } from 'react';
+import { useEffect, useId, useState, useTransition } from 'react';
 
 import { fixPullRequest } from '../actions';
 import { HEADING } from './primitives';
@@ -15,6 +15,7 @@ import {
   type ContributePrFix,
   type ContributePrFixKind,
   type ContributeTitleRule,
+  httpsOnly,
   titleProblemOf,
 } from '@/lib/contribute/pr-conventions';
 
@@ -37,28 +38,12 @@ const FIX_WORDS: Record<ContributePrFix['kind'], string> = {
   BODY: 'Updating the description',
 };
 
-/** The last fix in a line: on its way, done, or why it failed. */
-function FixStatus({ fix }: { fix: ContributePrFix }) {
+/** The last fix in words: on its way, done, or why it failed. */
+function fixTextOf(fix: ContributePrFix): string {
   const words = FIX_WORDS[fix.kind];
-  if (fix.state === 'SENDING') {
-    return (
-      <p role="status" data-pr-fix="sending" className="text-sm text-muted-foreground">
-        {words}…
-      </p>
-    );
-  }
-  if (fix.state === 'DONE') {
-    return (
-      <p role="status" data-pr-fix="done" className="text-sm text-positive-strong">
-        {words}: done.
-      </p>
-    );
-  }
-  return (
-    <p role="status" data-pr-fix="failed" className="text-sm text-destructive">
-      {words} did not go through{fix.note ? `: ${fix.note}` : '.'} Try again.
-    </p>
-  );
+  if (fix.state === 'SENDING') return `${words}…`;
+  if (fix.state === 'DONE') return `${words}: done.`;
+  return `${words} did not go through${fix.note ? `: ${fix.note}` : '.'} Try again.`;
 }
 
 /**
@@ -84,8 +69,12 @@ export function PrConventionsCard({
   const [draftBody, setDraftBody] = useState(body);
   const sending = fix?.state === 'SENDING';
   const busy = pending || sending;
+  // The PR's title and description as they stand now: a fix that went through is the editors' new start.
+  useEffect(() => setDraftTitle(title), [title]);
+  useEffect(() => setDraftBody(body), [body]);
 
-  if (!issues.length && !fix) return null;
+  // A fix that settled with nothing left to fix says no more.
+  if (!issues.length && !sending) return null;
 
   const send = (kind: ContributePrFixKind, values: { title?: string; body?: string } = {}) =>
     startTransition(async () => {
@@ -129,6 +118,8 @@ export function PrConventionsCard({
                     size="sm"
                     variant="secondary"
                     disabled={busy}
+                    aria-expanded={editing === 'TITLE'}
+                    aria-controls={`${id}-title-editor`}
                     onClick={() => setEditing(editing === 'TITLE' ? null : 'TITLE')}
                   >
                     Edit the title
@@ -157,6 +148,8 @@ export function PrConventionsCard({
                     size="sm"
                     variant="secondary"
                     disabled={busy}
+                    aria-expanded={editing === 'BODY'}
+                    aria-controls={`${id}-body-editor`}
                     onClick={() => setEditing(editing === 'BODY' ? null : 'BODY')}
                   >
                     Edit the description
@@ -164,8 +157,13 @@ export function PrConventionsCard({
                 </div>
               ) : null}
               {issue.kind === 'CLA' ? (
-                issue.suggestion ? (
-                  <a href={issue.suggestion} target="_blank" rel="noreferrer" className="text-link">
+                httpsOnly(issue.suggestion) ? (
+                  <a
+                    href={httpsOnly(issue.suggestion) ?? undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-link"
+                  >
                     Sign the CLA<span className="sr-only"> (opens in a new tab)</span>
                   </a>
                 ) : (
@@ -180,6 +178,7 @@ export function PrConventionsCard({
       ) : null}
       {editing === 'TITLE' ? (
         <form
+          id={`${id}-title-editor`}
           className="flex flex-col gap-1.5"
           onSubmit={(event) => {
             event.preventDefault();
@@ -212,6 +211,7 @@ export function PrConventionsCard({
       ) : null}
       {editing === 'BODY' ? (
         <form
+          id={`${id}-body-editor`}
           className="flex flex-col gap-1.5"
           onSubmit={(event) => {
             event.preventDefault();
@@ -239,7 +239,20 @@ export function PrConventionsCard({
           </div>
         </form>
       ) : null}
-      {fix ? <FixStatus fix={fix} /> : null}
+      {/* Always there, so a screen reader hears each change of the fix's state. */}
+      <p
+        role="status"
+        data-pr-fix={fix ? fix.state.toLowerCase() : undefined}
+        className={`text-sm ${
+          fix?.state === 'FAILED'
+            ? 'text-destructive'
+            : fix?.state === 'DONE'
+              ? 'text-positive-strong'
+              : 'text-muted-foreground'
+        }`}
+      >
+        {fix ? fixTextOf(fix) : ''}
+      </p>
       {error ? (
         <span role="alert" className="text-sm text-destructive">
           {error}

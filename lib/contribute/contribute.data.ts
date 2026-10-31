@@ -498,12 +498,12 @@ export function withConventionsOf(
   read: (Required<ContributeConventionsFields> & { result: { prTitle: string | null } | null }) | undefined,
 ): ContributeAttemptDetail {
   if (!read) return attempt;
-  const { conventions, prIssues, prTitle, prFix, result } = read;
+  const { conventions, prIssues, prTitle, prBody, prFix, result } = read;
   const withTitle =
     attempt.result && result?.prTitle && !attempt.result.prTitle
       ? { ...attempt.result, prTitle: result.prTitle }
       : attempt.result;
-  return { ...attempt, conventions, prIssues, prTitle, prFix, result: withTitle };
+  return { ...attempt, conventions, prIssues, prTitle, prBody, prFix, result: withTitle };
 }
 
 /**

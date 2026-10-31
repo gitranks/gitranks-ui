@@ -5,6 +5,9 @@ import {
   type ContributeTitleRule,
   changelogLinesOf,
   checklistOf,
+  entryLineOf,
+  httpsOnly,
+  safePattern,
   titleBlocks,
   titleProblemOf,
 } from './pr-conventions';
@@ -103,5 +106,28 @@ describe('This repo needs', () => {
       '- docs(): add a recipe [#{{PR_NUMBER}}]({{PR_URL}})',
     ]);
     expect(changelogLinesOf('diff --git a/x.ts b/x.ts\n+a', 'CHANGELOG.md')).toEqual([]);
+  });
+
+  it('shows the entry, not a changeset frontmatter or a heading, and only the repo own place', () => {
+    expect(entryLineOf(['---', '"driftwood": patch', '---', 'Keep the cache'])).toBe('Keep the cache');
+    expect(entryLineOf(['### Fixed', '- keep the cache'])).toBe('- keep the cache');
+    expect(entryLineOf([])).toBeNull();
+    const other = 'diff --git a/docs/CHANGELOG.md b/docs/CHANGELOG.md\n+- elsewhere';
+    expect(changelogLinesOf(other, 'CHANGELOG.md')).toEqual([]);
+    expect(changelogLinesOf('diff --git a/.changeset/a.md b/.changeset/a.md\n+x', '.changeset/')).toEqual(['x']);
+  });
+});
+
+describe("the repo's own data, defused", () => {
+  it('runs no pattern that can backtrack for seconds, and links only https', () => {
+    expect(safePattern('^\\[(\\w*?)\\](?:\\[(.*?)\\])?(?:\\s*)(.*)$')).toBe(true);
+    expect(safePattern('^(\\w+\\s?)*$')).toBe(false);
+    const slow = { ...semantic, pattern: '^(\\w+\\s?)*$' };
+    const started = Date.now();
+    expect(titleProblemOf('a'.repeat(40) + '!', slow)).toBeNull();
+    expect(Date.now() - started).toBeLessThan(50);
+    expect(httpsOnly('https://cla-assistant.io/o/r')).toBe('https://cla-assistant.io/o/r');
+    expect(httpsOnly('javascript:alert(1)')).toBeNull();
+    expect(httpsOnly(null)).toBeNull();
   });
 });

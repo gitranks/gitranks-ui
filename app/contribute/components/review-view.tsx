@@ -159,7 +159,12 @@ export function ReviewScreen({
           <h2 className={HEADING.card}>
             {attempt.needsYou?.signals.length ? 'Your pull request needs you' : 'Follow-ups'}
           </h2>
-          <PrSignals needsYou={attempt.needsYou} now={now} />
+          <PrSignals
+            needsYou={attempt.needsYou}
+            now={now}
+            prId={attempt.pullRequest.state === 'OPEN' ? attempt.pullRequest.prId : undefined}
+            prNumber={attempt.pullRequest.number}
+          />
           <FollowUpRounds
             followUps={attempt.followUps}
             pullRequest={attempt.pullRequest}

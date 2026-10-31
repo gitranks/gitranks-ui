@@ -604,6 +604,28 @@ describe('autopilot', () => {
     expect(unmailed).toContain('data-autopilot-no-email');
     expect(text(unmailed)).toContain('Sign in again and share your GitHub email to turn it on.');
     expect(unmailed).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
+
+    // A setting left on with no address: its changes wait for the review, and it can still be turned off.
+    const leftOn = withNotice(null);
+    const html = settings({
+      ...leftOn,
+      contributor: { ...leftOn.contributor, settings: { ...baseSettings, autopilot: true } },
+    });
+    const checkbox = html.match(/<input[^>]*type="checkbox"[^>]*>/)?.[0] ?? '';
+    expect(checkbox).toContain('checked=""');
+    expect(checkbox).not.toContain('disabled=""');
+    expect(text(html)).toContain('so its changes wait for your review');
+
+    // Locked: signing in again would not turn it on, so the row does not say so.
+    const locked = withNotice(null);
+    const lockedHtml = settings({
+      ...locked,
+      contributor: {
+        ...locked.contributor,
+        autopilot: { ...locked.contributor.autopilot, unlocked: false, mergedToUnlock: 1 },
+      },
+    });
+    expect(lockedHtml).not.toContain('data-autopilot-no-email');
   });
 
   it('words the refusal to turn it on with no email', () => {
@@ -632,7 +654,7 @@ describe('autopilot', () => {
     expect(reviewing('notice_late')).toContain('data-autopilot-review-reason="notice_late"');
     expect(text(reviewing('notice_late'))).toContain('we could not email you first');
     expect(text(reviewing('no_email'))).toContain('we have no email to tell you first');
-    expect(text(reviewing('autopilot_off'))).toContain('turned off or locked during the hour');
+    expect(text(reviewing('autopilot_off'))).toContain('turned off or locked before it did');
     expect(reviewing('vetoed')).not.toContain('data-autopilot-review-reason');
     expect(reviewing(null)).not.toContain('data-autopilot-review-reason');
   });

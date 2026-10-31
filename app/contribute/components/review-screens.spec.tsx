@@ -174,7 +174,7 @@ describe('the review screen', () => {
     ['queued', 'QUEUED', 'It starts when your limits allow the next attempt.'],
     ['running', 'RUNNING', 'The agent is working on it'],
     ['checks', 'CHECKS', 'Running our checks'],
-    ['pendingAutosubmit', 'PENDING_AUTOSUBMIT', 'Autopilot submits this within the hour'],
+    ['pendingAutosubmit', 'PENDING_AUTOSUBMIT', 'Autopilot submits this unless you stop it'],
     ['discarded', 'DISCARDED', 'You discarded it.'],
     ['expired', 'DISCARDED', 'It waited seven days for a review'],
   ] as const)('renders the %s state', (name, state, words) => {

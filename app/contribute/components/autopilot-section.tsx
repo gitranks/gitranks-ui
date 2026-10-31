@@ -28,6 +28,9 @@ export const AUTOPILOT_LOCK_AT = 2;
 
 const NO_EMAIL =
   'Autopilot emails you before each submission, and we have no email for you. Sign in again and share your GitHub email to turn it on.';
+/** The setting is on, but there is no address: nothing is submitted for the user, every change waits for them. */
+const NO_EMAIL_ON =
+  'Autopilot emails you before each submission, and we have no email for you, so its changes wait for your review. Sign in again and share your GitHub email.';
 
 /** Why turning autopilot on or off did not go through, in plain words. */
 export function autopilotErrorMessage(error: ContributeErrorCode, message?: string): string {
@@ -120,9 +123,9 @@ export function AutopilotSection({
               Emails before each submission go to {autopilot.noticeTo}
             </span>
           ) : null}
-          {open && noEmail && !error ? (
+          {open && noEmail && !locked && canSave && !error ? (
             <span data-autopilot-no-email className="block text-warning">
-              {NO_EMAIL}
+              {checked ? NO_EMAIL_ON : NO_EMAIL}
             </span>
           ) : null}
           {error ? (

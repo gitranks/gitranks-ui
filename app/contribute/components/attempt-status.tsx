@@ -60,11 +60,11 @@ const Text = ({ children }: { children: ReactNode }) => <p className="text-sm te
 const AUTOPILOT_REVIEW_NOTES: Partial<Record<ContributeAutopilotReviewReason, string>> = {
   no_email: 'Autopilot did not submit it: we have no email to tell you first, so it waits for your review.',
   notice_late: 'Autopilot did not submit it: we could not email you first, so it waits for your review.',
-  autopilot_off: 'Autopilot did not submit it: autopilot was turned off or locked during the hour.',
+  autopilot_off: 'Autopilot did not submit it: autopilot was turned off or locked before it did.',
 };
 
 export function AutopilotReviewNote({ reason }: { reason: ContributeAttempt['reviewReason'] }) {
-  const note = reason ? AUTOPILOT_REVIEW_NOTES[reason] : undefined;
+  const note = reason && Object.hasOwn(AUTOPILOT_REVIEW_NOTES, reason) ? AUTOPILOT_REVIEW_NOTES[reason] : undefined;
   if (!note) return null;
   return (
     <p data-autopilot-review-reason={reason} className="text-sm text-warning">
@@ -302,7 +302,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
     case 'PENDING_AUTOSUBMIT':
       return (
         <Box state="PENDING_AUTOSUBMIT" tone="warn">
-          <Title>Autopilot submits this within the hour</Title>
+          <Title>Autopilot submits this unless you stop it</Title>
           <Text>
             {attempt.kind === 'FOLLOW_UP'
               ? 'Every check passed and the agent rated its risk low, so autopilot pushes the commits for you.'

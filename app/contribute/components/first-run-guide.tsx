@@ -1,4 +1,3 @@
-import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -9,9 +8,10 @@ import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contr
 import { CONNECT_KEY_PATH } from '@/lib/contribute/contribute-path';
 import { type FirstRunStep, firstRunStepOf } from '@/lib/contribute/first-run';
 import { dayLabel, KINDS, LANGUAGES, relativeLabel, SIZES, usd } from '@/lib/contribute/format';
+import { settingsPathOf } from '@/lib/contribute/settings-paths';
 
-export const WORK_SETTINGS_PATH = '/contribute/settings#work' as Route;
-const LIMITS_SETTINGS_PATH = '/contribute/settings#limits' as Route;
+export const WORK_SETTINGS_PATH = settingsPathOf('work');
+const LIMITS_SETTINGS_PATH = settingsPathOf('limits');
 
 type StepCopy = { when: string; title: string; text: ReactNode; action?: ReactNode; working?: boolean };
 

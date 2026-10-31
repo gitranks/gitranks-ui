@@ -1,18 +1,14 @@
-import Link from 'next/link';
+import { Cpu, GitPullRequest, KeyRound, LayoutGrid, SquareTerminal, Wallet } from 'lucide-react';
+import type { Route } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
-import { AccessSection } from './access-section';
 import { AutopilotSection } from './autopilot-section';
 import { ContributeNotices } from './contribute-notices';
 import { CycleSummary } from './cycle-summary';
 import { DeleteDataSection } from './delete-data-section';
-import { OwnAgentSection } from './own-agent-section';
 import { PauseButton } from './pause-button';
-import { PreferencesSection } from './preferences-section';
-import { Panel, PanelTitle } from './primitives';
-import { ScrollToHash } from './scroll-to-hash';
-import { SetSections } from './set-section';
-import { SettingsForm } from './settings-form';
+import { SettingsAnchors } from './settings-anchors';
+import { SettingsGroup, SettingsList, SettingsRow } from './settings-rows';
 import { loadContribute, loadContributeSet } from '@/lib/contribute/contribute.data';
 import type { ContributeSet, ContributeView } from '@/lib/contribute/contribute.types';
 import {
@@ -21,52 +17,52 @@ import {
   isContributePageOpen,
   isOwnAgentOnly,
   isPaused,
+  settingsOf,
 } from '@/lib/contribute/contribute-state';
-import { type GrantRefusal, grantRefusalOf } from '@/lib/contribute/grant-refusal';
+import { grantRefusalOf } from '@/lib/contribute/grant-refusal';
+import { SETTINGS_PATHS } from '@/lib/contribute/settings-paths';
+import {
+  agentSummaryOf,
+  budgetSummaryOf,
+  grantSummaryOf,
+  keySummaryOf,
+  ownAgentSummaryOf,
+  preferencesSummaryOf,
+  workSummaryOf,
+} from '@/lib/contribute/settings-summary';
 
-const SECTIONS = [
-  ['limits', 'Spending limits'],
-  ['pacing', 'Pacing'],
-  ['agent', 'The agent'],
-  ['prs', 'Pull requests'],
-  ['autopilot', 'Autopilot'],
-  ['work', 'What you work on'],
-  ['access', 'Keys and access'],
-  ['own-agent', 'Your own agent'],
-  ['danger', 'Delete data'],
-] as const;
-
-/** The sections about what the user works on, first, when the modes are shown to them; the preferences follow. */
-const SET_SECTIONS = [
-  ['modes', 'What to work on'],
-  ['work', 'Preferences'],
-  ['rules', 'How we pick repos'],
-  ['ignored', 'Ignored repos'],
-] as const;
+/** Reads the user for a Settings page: a 404 to someone Contribute is not open to, Contribute's home before signing up. */
+export async function loadSettingsView(): Promise<ContributeView> {
+  const view = await loadContribute();
+  if (!view) notFound();
+  if (!isContributePageOpen(view, 'settings')) redirect('/contribute');
+  return view;
+}
 
 export async function SettingsView({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params, set] = await Promise.all([loadContribute(), searchParams, loadContributeSet()]);
-  if (!view) notFound();
-  if (!isContributePageOpen(view, 'settings')) redirect('/contribute');
+  const [view, params, set] = await Promise.all([loadSettingsView(), searchParams, loadContributeSet()]);
+  // GitHub's consent comes back here when it was not saved: its answer is on the page of keys and access.
+  const grant = grantRefusalOf(params.grant);
+  if (grant) redirect(`${SETTINGS_PATHS.keys}?grant=${grant}` as Route);
   // The modes are shown to the user (the read is not null) but did not load.
-  return (
-    <SettingsScreen view={view} grantRefusal={grantRefusalOf(params.grant)} set={set} setFailed={set === undefined} />
-  );
+  return <SettingsScreen view={view} set={set} setFailed={set === undefined} />;
 }
 
+/**
+ * Settings, at rest: where things stand and Pause, then each setting as a row with its value in plain words, grouped by
+ * what it is about, and Delete last. Each row opens the page it is changed on; autopilot's toggle is on its row.
+ */
 export function SettingsScreen({
   view,
-  grantRefusal,
   now,
   set,
   setFailed = false,
 }: {
   view: ContributeView;
-  grantRefusal?: GrantRefusal;
   now?: Date;
   /** What the user works on; null or `undefined` when the modes are not shown, and then nothing about them is. */
   set?: ContributeSet | null;
@@ -74,59 +70,62 @@ export function SettingsScreen({
   setFailed?: boolean;
 }) {
   const { contributor } = view;
-  const key = claudeKeyOf(view);
-  // With their own agent alone and no plan, the spending limits have nothing to limit: they come with a key.
-  const settings = isOwnAgentOnly(view) && !contributor?.plan ? null : (contributor?.settings ?? null);
+  const settings = settingsOf(view);
   // The pause and the key's trouble are shown where they are acted on, in the status card and under Keys.
   const notices = contributeNoticesOf(view).filter(({ kind }) => kind !== 'paused');
-  const sections = set ? [...SET_SECTIONS, ...SECTIONS.filter(([id]) => id !== 'work')] : SECTIONS;
-  const preferences = <PreferencesSection preferences={contributor?.preferences ?? null} modes={!!set} />;
+  const preferences = preferencesSummaryOf(contributor?.preferences ?? null);
 
   return (
     <>
+      <h1 className="sr-only">Settings</h1>
       <ContributeNotices notices={notices} />
       {contributor ? <CycleSummary view={view} now={now} action={<PauseButton paused={isPaused(view)} />} /> : null}
-      <div className="flex flex-wrap items-start gap-6">
-        <nav
-          aria-label="Settings sections"
-          className="flex flex-[0_1_200px] flex-col gap-0.5 text-sm max-md:hidden md:sticky md:top-4"
-        >
-          {sections.map(([id, label]) => (
-            <a
-              key={id}
-              href={`#${id}`}
-              className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              {label}
-            </a>
-          ))}
-        </nav>
-        <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4.5">
-          {set ? <SetSections set={set} now={now} preferences={preferences} /> : null}
-          {!set && setFailed ? (
-            <Panel id="modes">
-              <PanelTitle
-                title="What to work on"
-                text="Your lists didn't load. Reload the page to try again; everything else here works as usual."
-              />
-            </Panel>
-          ) : null}
+
+      <SettingsGroup id="settings-work" title="What you work on">
+        <SettingsList>
+          <SettingsRow
+            icon={LayoutGrid}
+            href={SETTINGS_PATHS.work}
+            title="Where your issues come from"
+            value={
+              set
+                ? `${workSummaryOf(set)} · ${preferences}`
+                : setFailed
+                  ? "Your lists didn't load. Reload the page to try again; everything else here works as usual."
+                  : preferences
+            }
+          />
+        </SettingsList>
+      </SettingsGroup>
+
+      <SettingsGroup id="settings-budget" title="Budget and the agent">
+        <SettingsList>
           {settings ? (
-            <SettingsForm settings={settings} />
-          ) : (
-            <Panel id="limits">
-              <PanelTitle
-                title="Spending limits, pacing and the agent"
-                text={
-                  isOwnAgentOnly(view)
-                    ? 'Your own agent spends nothing through us. These come with a Claude key, if you connect one for hosted attempts.'
-                    : 'They start from your plan once a key is connected, and every one of them is yours to change.'
-                }
+            <>
+              <SettingsRow
+                icon={Wallet}
+                href={SETTINGS_PATHS.budget}
+                title="Budget and pacing"
+                value={budgetSummaryOf(settings)}
               />
-              <Link href="/contribute/connect" prefetch={false} className="text-sm font-semibold text-link">
-                Connect your Claude key →
-              </Link>
-            </Panel>
+              <SettingsRow
+                icon={Cpu}
+                href={SETTINGS_PATHS.agent}
+                title="Agent and pull requests"
+                value={agentSummaryOf(settings)}
+              />
+            </>
+          ) : (
+            <SettingsRow
+              icon={Wallet}
+              href={SETTINGS_PATHS.budget}
+              title="Spending limits, pacing and the agent"
+              value={
+                isOwnAgentOnly(view)
+                  ? 'Your own agent spends nothing through us. These come with a Claude key, if you connect one for hosted attempts.'
+                  : 'They start from your plan once a key is connected, and every one of them is yours to change.'
+              }
+            />
           )}
           {contributor ? (
             <AutopilotSection
@@ -135,19 +134,35 @@ export function SettingsScreen({
               canSave={!!settings}
             />
           ) : null}
-          {set ? null : preferences}
-          <AccessSection
-            credential={key}
-            grant={view.grant}
-            grantAvailable={view.grantAvailable}
-            grantRefusal={grantRefusal}
-            now={now}
+        </SettingsList>
+      </SettingsGroup>
+
+      <SettingsGroup id="settings-connections" title="Connections">
+        <SettingsList>
+          <SettingsRow
+            icon={KeyRound}
+            href={SETTINGS_PATHS.keys}
+            title="Claude API key"
+            value={keySummaryOf(claudeKeyOf(view))}
+            data={{ 'data-key-state': claudeKeyOf(view)?.state ?? 'none' }}
           />
-          <OwnAgentSection ownAgent={view.ownAgent} now={now} />
-          <DeleteDataSection />
-        </div>
-      </div>
-      <ScrollToHash />
+          <SettingsRow
+            icon={GitPullRequest}
+            href={SETTINGS_PATHS.keys}
+            title="GitHub pull requests"
+            value={grantSummaryOf(view.grant, view.grantAvailable)}
+          />
+          <SettingsRow
+            icon={SquareTerminal}
+            href={SETTINGS_PATHS.ownAgent}
+            title="Your own agent (MCP)"
+            value={ownAgentSummaryOf(view.ownAgent, now)}
+          />
+        </SettingsList>
+      </SettingsGroup>
+
+      <DeleteDataSection />
+      <SettingsAnchors />
     </>
   );
 }

@@ -10,6 +10,7 @@ import type {
   ContributePreferences,
 } from '@/lib/contribute/contribute.types';
 import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
+import { sizeLabelOf } from '@/lib/contribute/settings-summary';
 import { cn } from '@/lib/utils';
 
 export type PreferencesDraft = Pick<ContributePreferences, 'languages' | 'kinds' | 'maxSize'>;
@@ -17,9 +18,7 @@ export type PreferencesDraft = Pick<ContributePreferences, 'languages' | 'kinds'
 /** The "Any size" item: Radix takes no empty value, so no largest size is this, and back to `null` on change. */
 export const ANY_SIZE = 'any';
 
-/** The largest size's item label, "Any size" for none. */
-export const sizeLabelOf = (size: ContributeIssueSize | null) =>
-  size ? `Up to ${SIZES[size].toLowerCase()}` : 'Any size';
+export { sizeLabelOf };
 
 const toggle = <T,>(list: T[], value: T) =>
   list.includes(value) ? list.filter((item) => item !== value) : [...list, value];

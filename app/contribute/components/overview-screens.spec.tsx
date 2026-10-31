@@ -314,7 +314,7 @@ describe('Right now', () => {
     expect(text(slots)).toContain(
       'Waiting Your own agent holds your slot A new attempt starts when it hands back its patch or releases the issue. Attempts at a time in Settings →',
     );
-    expect(slots).toContain('href="/contribute/settings#limits"');
+    expect(slots).toContain('href="/contribute/settings/budget"');
 
     const three = { ...both, contributor: contributor({ settings: { ...settings, attemptsAtATime: 3 } }) };
     const allSlots = now(three, {
@@ -327,7 +327,7 @@ describe('Right now', () => {
     expect(text(cap)).toContain(
       'Waiting At your open PRs cap 3 of 3 pull requests are open or on their way. The next attempt starts when one is merged, closed or discarded. Open PRs at a time in Settings →',
     );
-    expect(cap).toContain('href="/contribute/settings#prs"');
+    expect(cap).toContain('href="/contribute/settings/agent#prs"');
 
     const queuedView = {
       ...views.active,
@@ -337,7 +337,7 @@ describe('Right now', () => {
     expect(text(queued)).toContain(
       'Waiting Nothing queued Your pacing is "Only issues I queue", and none is queued. Pacing in Settings →',
     );
-    expect(queued).toContain('href="/contribute/settings#pacing"');
+    expect(queued).toContain('href="/contribute/settings/budget#pacing"');
   });
 
   it('never says soon while a hold holds, or while the attempts in flight or the counts are not answered', () => {
@@ -438,8 +438,8 @@ describe('Ways you contribute', () => {
     expect(text(html)).toContain(
       'Your own agent Connected Claude Code on macOS · 1 token live · last call 3 hours ago Manage in Settings →',
     );
-    expect(html).toContain('href="/contribute/settings#access"');
-    expect(html).toContain('href="/contribute/settings#own-agent"');
+    expect(html).toContain('href="/contribute/settings/keys"');
+    expect(html).toContain('href="/contribute/settings/own-agent"');
   });
 
   it('offers each way not set up, dashed', () => {

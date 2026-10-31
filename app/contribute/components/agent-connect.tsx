@@ -33,6 +33,7 @@ import {
   mcpTokenNameOf,
   type NavigatorLike,
 } from '@/lib/contribute/mcp-setup';
+import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
 
 /** Where step 2 stands: no token yet, the token shown with its setup, or the setup done. */
@@ -237,7 +238,7 @@ export function AgentConnectView({
               ) : full ? (
                 <>
                   You have {MCP_TOKENS_MAX} live tokens.{' '}
-                  <Link href="/contribute/settings#own-agent" prefetch={false} className="font-semibold text-link">
+                  <Link href={settingsPathOf('own-agent')} prefetch={false} className="font-semibold text-link">
                     Revoke one in Settings
                   </Link>{' '}
                   to create another.

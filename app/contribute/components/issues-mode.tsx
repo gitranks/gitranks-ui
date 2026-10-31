@@ -14,6 +14,7 @@ import type { ContributeLanguage, ContributeSet, ContributeSetMode } from '@/lib
 import { contributeSetErrorMessage } from '@/lib/contribute/errors';
 import { LANGUAGES } from '@/lib/contribute/format';
 import { MODES, modeChipOf, modeSummaryOf, plural, setReposOf, setSizeOf } from '@/lib/contribute/set-format';
+import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
 
 const ICONS = { STACK: Layers, REPOS: LayoutGrid, ALL: Globe } as const;
@@ -114,7 +115,7 @@ export function ModeSwitcher({ set, languages = [] }: { set: ContributeSet; lang
             </span>
           ) : null}
           <Link
-            href="/contribute/settings#modes"
+            href={settingsPathOf('modes')}
             prefetch={false}
             className="border-t px-3 pt-2 pb-1 text-sm text-link hover:underline"
           >
@@ -137,7 +138,7 @@ export function OtherIssuesDivider({ set, none }: { set: ContributeSet; none: bo
       </div>
       <p className="text-xs text-muted-foreground">
         Shown {none ? 'instead of' : 'below'} {own}, because you chose &quot;Work on all issues meanwhile&quot;.{' '}
-        <Link href="/contribute/settings#modes" prefetch={false} className="text-link hover:underline">
+        <Link href={settingsPathOf('modes')} prefetch={false} className="text-link hover:underline">
           Change
         </Link>
       </p>
@@ -220,7 +221,7 @@ export function SetOnlyEmpty({
           {pending ? 'Switching…' : 'Work on all issues meanwhile'}
         </Button>
         <Button asChild variant="outline">
-          <Link href="/contribute/settings#modes" prefetch={false}>
+          <Link href={settingsPathOf('modes')} prefetch={false}>
             {mode === 'STACK' ? 'Add more sources' : 'Add more repos'}
           </Link>
         </Button>
@@ -234,7 +235,7 @@ export function SetOnlyEmpty({
         <p className="text-xs text-muted-foreground">
           Language filter: {languages.map((language) => LANGUAGES[language]).join(', ')}.{' '}
           {outside === 1 ? '1 of them is' : `${outside} of them are`} in other languages.{' '}
-          <Link href="/contribute/settings#work" prefetch={false} className="text-link hover:underline">
+          <Link href={settingsPathOf('work')} prefetch={false} className="text-link hover:underline">
             Change
           </Link>
         </p>

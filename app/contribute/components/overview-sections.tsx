@@ -37,11 +37,12 @@ import {
   rightNowOf,
   upNextOf,
 } from '@/lib/contribute/overview';
+import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
 
 const ME_PATH: Route = '/contribute/me';
 const ISSUES_PATH: Route = '/contribute/issues';
-const settingsAt = (anchor: string) => `/contribute/settings#${anchor}` as Route;
+const settingsAt = settingsPathOf;
 
 /** The sections rise in one after another; never with reduced motion. */
 const RISE =

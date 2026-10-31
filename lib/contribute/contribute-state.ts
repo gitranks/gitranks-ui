@@ -1,5 +1,5 @@
 import { isAgentWelcome, welcomeClientOf } from './agent-connect';
-import type { ContributeCredential, ContributeView } from './contribute.types';
+import type { ContributeCredential, ContributeSettings, ContributeView } from './contribute.types';
 import type { McpClient } from './mcp-setup';
 
 /**
@@ -16,6 +16,13 @@ export type ContributeNotice =
 /** The user works with their own agent alone: a live token, no Claude key. */
 export const isOwnAgentOnly = (view: ContributeView | null | undefined): boolean =>
   !!view?.ownAgent?.paths.mcp && !claudeKeyOf(view);
+
+/**
+ * The user's spending limits, pacing and agent settings; null with their own agent alone and no plan, where they have
+ * nothing to limit: they come with a key.
+ */
+export const settingsOf = (view: ContributeView): ContributeSettings | null =>
+  isOwnAgentOnly(view) && !view.contributor?.plan ? null : (view.contributor?.settings ?? null);
 
 /** The Claude key, the only live provider's. */
 export const claudeKeyOf = (view: ContributeView | null | undefined): ContributeCredential | undefined =>

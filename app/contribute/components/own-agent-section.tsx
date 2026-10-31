@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { createMcpToken, revokeMcpToken } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
-import { Panel, PanelTitle, SubTitle } from './primitives';
+import { HEADING, Panel, PanelTitle, SubTitle } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { ContributeMcpToken, ContributeOwnAgent } from '@/lib/contribute/contribute.types';
@@ -18,6 +18,7 @@ import {
   MCP_TOKEN_NAME_MAX,
   MCP_TOKENS_MAX,
   type McpClient,
+  OWN_AGENT_TEXT,
 } from '@/lib/contribute/mcp-setup';
 import { cn } from '@/lib/utils';
 
@@ -189,11 +190,14 @@ export function OwnAgentSection({
   ownAgent,
   now,
   step,
+  titled = true,
 }: {
   ownAgent: ContributeOwnAgent | undefined;
   now?: Date;
   /** Its number on the own-agent path of Connect; none in Settings. */
   step?: number;
+  /** False on its own Settings page, whose title says it. */
+  titled?: boolean;
 }) {
   const router = useRouter();
   const id = useId();
@@ -219,11 +223,13 @@ export function OwnAgentSection({
 
   return (
     <Panel id="own-agent" className="gap-3.5">
-      <PanelTitle
-        eyebrow={step ? `Step ${step} · A token for your agent` : undefined}
-        title="Your own agent (MCP)"
-        text="Claude Code, Codex, Cursor or Gemini CLI on your machine finds issues here, works on one and hands the change back through our MCP server. You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed."
-      />
+      {titled ? (
+        <PanelTitle
+          eyebrow={step ? `Step ${step} · A token for your agent` : undefined}
+          title="Your own agent (MCP)"
+          text={OWN_AGENT_TEXT}
+        />
+      ) : null}
       {ownAgent === undefined ? (
         <p className="text-sm text-muted-foreground">Not available yet. It is coming soon.</p>
       ) : (
@@ -271,7 +277,11 @@ export function OwnAgentSection({
               {message}
             </p>
           ) : null}
-          <SubTitle className="pt-1">Set up your agent</SubTitle>
+          {titled ? (
+            <SubTitle className="pt-1">Set up your agent</SubTitle>
+          ) : (
+            <h2 className={cn(HEADING.block, 'pt-1')}>Set up your agent</h2>
+          )}
           <SetupLines />
           <p data-safety className="text-sm font-medium">
             {OWN_AGENT_SAFETY}

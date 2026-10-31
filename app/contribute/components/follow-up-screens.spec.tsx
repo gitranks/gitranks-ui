@@ -25,7 +25,7 @@ const { ReviewScreen } = await import('./review-view');
 const { ContributionsScreen } = await import('./contributions-view');
 const { SettingsScreen } = await import('./settings-view');
 const { ReplyDraftItem } = await import('./reply-drafts');
-const { autopilotErrorMessage } = await import('./autopilot-section');
+const { AutopilotRecord, autopilotErrorMessage } = await import('./autopilot-section');
 const { NOW, views, settings: baseSettings } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { attempt, contributions, followUpAttempts, followUps, needsYou, replyDraft } = await import(
   '@/lib/contribute/__fixtures__/contribute-attempts'
@@ -519,7 +519,14 @@ describe('refusals, in plain words', () => {
 });
 
 describe('autopilot', () => {
-  const settings = (view: ContributeView) => renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />);
+  /** Its row on the Settings summary, and the record its Details dialog opens. */
+  const settings = (view: ContributeView) =>
+    renderToStaticMarkup(
+      <>
+        <SettingsScreen view={view} now={NOW} />
+        {view.contributor ? <AutopilotRecord autopilot={view.contributor.autopilot} /> : null}
+      </>,
+    );
 
   it('says it is coming soon while it is not open, with the record and the toggle off', () => {
     const html = settings(views.autopilotComing);
@@ -574,6 +581,7 @@ describe('autopilot', () => {
   it('says when it locked again, and counts the merges since', () => {
     const plain = text(settings(views.autopilotRelocked));
 
+    expect(plain).toContain('Locked on Oct 20 · 1 of 3 merged since');
     expect(plain).toContain('Locked on Oct 20: two pull requests in a row were closed without merging.');
     expect(plain).toContain('1 of 3 merged PRs');
   });

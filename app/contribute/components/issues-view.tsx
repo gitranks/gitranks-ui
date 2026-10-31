@@ -31,6 +31,7 @@ import {
 } from '@/lib/contribute/first-run';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
 import { tiersOf } from '@/lib/contribute/set-format';
+import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
 
 export async function IssuesView({
@@ -149,7 +150,7 @@ export function IssuesScreen({
         text={
           <>
             New picks arrive every day. Widen what you work on in{' '}
-            <Link href="/contribute/settings#work" prefetch={false} className="font-semibold text-link">
+            <Link href={settingsPathOf('work')} prefetch={false} className="font-semibold text-link">
               Settings
             </Link>
             .

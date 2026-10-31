@@ -2,7 +2,7 @@
 
 import { Bot } from 'lucide-react';
 import Link from 'next/link';
-import { type ReactNode, useSyncExternalStore } from 'react';
+import { type ReactNode, useState, useSyncExternalStore } from 'react';
 
 import { useActivity } from './activity';
 import { Pill } from './primitives';
@@ -97,10 +97,7 @@ export function RunRow({ run, readAt }: { run: ContributeAgentRun; readAt: strin
     <li
       data-run={run.attemptId}
       data-phase={run.phase}
-      className={cn(
-        'flex flex-col gap-1.5 px-4 py-3 motion-safe:transition-opacity motion-safe:duration-500',
-        settled && 'bg-muted/30',
-      )}
+      className={cn('flex flex-col gap-1.5 px-4 py-3', settled && 'bg-muted/30')}
     >
       <div className="flex min-w-0 items-center gap-2">
         <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">{runRefOf(run)}</span>
@@ -150,21 +147,30 @@ function RunList({ runs, readAt }: { runs: readonly ContributeAgentRun[]; readAt
  */
 export function AgentRunsIndicator() {
   const activity = useActivity();
-  if (!activity?.runs.length) return null;
-  return <AgentRunsIndicatorView activity={activity} />;
+  const [open, setOpen] = useState(false);
+  // Open, it stays while its last run leaves, so the focus inside it never falls to the page.
+  if (!runsOf(activity).length && !open) return null;
+  return <AgentRunsIndicatorView activity={activity} open={open} onOpenChange={setOpen} />;
 }
 
-export function AgentRunsIndicatorView({ activity }: { activity: ContributeActivity }) {
-  const { runs } = activity;
+export function AgentRunsIndicatorView({
+  activity,
+  open,
+  onOpenChange,
+}: {
+  activity: ContributeActivity | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const runs = runsOf(activity);
   const active = anyActive(runs);
-  const label = indicatorLabelOf(runs);
+  const label = indicatorLabelOf(runs) || 'No agents at work';
   const settled = runs.every(isSettled);
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={`${label}: show the agent runs`}
           data-agent-runs={active ? 'working' : settled ? 'settled' : 'waiting'}
           className={cn(
             'flex min-h-9 shrink-0 items-center gap-2 rounded-full border bg-card px-3 text-xs font-medium whitespace-nowrap text-foreground outline-none',
@@ -172,12 +178,12 @@ export function AgentRunsIndicatorView({ activity }: { activity: ContributeActiv
             active && 'border-primary/40',
           )}
         >
-          <LiveDot active={active} settled={settled} />
+          <LiveDot active={active} settled={settled && runs.length > 0} />
           <Bot aria-hidden="true" className="size-3.5 text-muted-foreground max-sm:hidden" />
+          {/* The name is the words shown: the short ones on a phone, so a spoken "click 2 working" finds it. */}
           <span className="max-sm:hidden">{label}</span>
-          <span className="sm:hidden" aria-hidden="true">
-            {indicatorShortLabelOf(runs)}
-          </span>
+          <span className="sm:hidden">{indicatorShortLabelOf(runs) || label}</span>
+          <span className="sr-only">: show the agent runs</span>
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -194,7 +200,8 @@ export function AgentRunsIndicatorView({ activity }: { activity: ContributeActiv
 }
 
 /** What the header's indicator opens: every run, and the way to My contributions. */
-export function AgentRunsSheet({ activity }: { activity: ContributeActivity }) {
+export function AgentRunsSheet({ activity }: { activity: ContributeActivity | null }) {
+  const runs = runsOf(activity);
   return (
     <>
       <div className="flex items-baseline justify-between gap-3 border-b px-4 py-3">
@@ -204,7 +211,11 @@ export function AgentRunsSheet({ activity }: { activity: ContributeActivity }) {
         </Link>
       </div>
       <div className="max-h-[min(28rem,70vh)] overflow-y-auto">
-        <RunList runs={activity.runs} readAt={activity.readAt} />
+        {activity && runs.length ? (
+          <RunList runs={runs} readAt={activity.readAt} />
+        ) : (
+          <p className="px-4 py-3 text-sm text-muted-foreground">No agents at work right now.</p>
+        )}
       </div>
     </>
   );

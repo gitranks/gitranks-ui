@@ -63,8 +63,9 @@ export function ContributeTabsNav({
           Settings
           <ActivityDot tab="SETTINGS" />
         </Tab>
-        {/* The agent runs, on every tab: held at the end, so a phone's scrolled tabs never hide it. */}
-        <li className="sticky right-0 ms-auto flex shrink-0 items-center bg-background ps-3 pe-1 empty:hidden">
+        {/* The agent runs, on every tab: held at the end, so a phone's scrolled tabs never hide it; as tall as its pill, so
+            the bar's line runs on under it. */}
+        <li className="sticky right-0 ms-auto flex shrink-0 self-start ps-3 pe-1 max-sm:bg-background empty:hidden">
           <AgentRunsIndicator />
         </li>
       </TabsBar>

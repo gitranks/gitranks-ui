@@ -1,5 +1,5 @@
 import { activitySignatureOf, isRunning } from './activity-format';
-import { anyActive, runsOf } from './agent-runs';
+import { anyActive, isSettled, runsOf } from './agent-runs';
 import type { ContributeActivity, ContributeChangeArea, ContributeChangesRead } from './contribute.types';
 import type { ContributeActionResult } from './errors';
 
@@ -21,7 +21,7 @@ export const CHANGES_BACKOFF_MAX_MS = 5 * 60_000;
 export const CHANGES_FOCUS_GAP_MS = 5_000;
 /** While everything only waits (the shared queue, a pause), the bar is read again this often. */
 export const ACTIVITY_WAITING_READ_MS = 5 * 60_000;
-/** While agent runs are listed but none works (queued, ready, done), they are read again this often: a settled one leaves. */
+/** While a settled agent run is listed (ready, done, stopped), the runs are read again this often: it leaves after 10 min. */
 export const ACTIVITY_RUNS_READ_MS = 60_000;
 
 /** What the user did that counts as being around. */
@@ -235,24 +235,25 @@ export function refreshesFor(pathname: string, changed: readonly ContributeChang
 }
 
 /**
- * Whether a tick reads the bar too: something runs or may have started, a wait is due its slow look, or listed agent
- * runs are due theirs (a queued one starts, a settled one leaves).
+ * Whether a tick reads the bar too: something runs or may have started, a wait is due its slow look (unsettled agent
+ * runs included: the API names their every move), or a settled run is due its minute's look (it leaves the list).
  */
 export function readsActivity({
   activity,
   running,
   waitingReadDue,
-  runsReadDue = false,
+  runsReadDue,
 }: {
   activity: ContributeActivity | null;
   /** The last poll's flag, or the user just started something. */
   running: boolean;
   waitingReadDue: boolean;
-  runsReadDue?: boolean;
+  runsReadDue: boolean;
 }): boolean {
   if (running) return true;
-  if (runsOf(activity).length && runsReadDue) return true;
-  return !!activity?.items.length && waitingReadDue;
+  const runs = runsOf(activity);
+  if (runsReadDue && runs.some(isSettled)) return true;
+  return (!!activity?.items.length || runs.length > 0) && waitingReadDue;
 }
 
 /** What the poll holds between reads. */
@@ -288,17 +289,19 @@ export function afterChangesRead(
   read: ContributeChangesRead,
   pathname: string,
   now: number,
-): { held: HeldChanges; moved: boolean; changed: boolean } {
+): { held: HeldChanges; moved: boolean; changed: boolean; tookActivity: boolean } {
   const { changes, activity } = read;
   let next: HeldChanges = { ...held, version: changes.version, running: changes.activity };
   let moved = false;
-  if (activity !== undefined) {
+  // A read that began before the page was read again (a stop, a start) answers older work: the page's stays.
+  const tookActivity = activity !== undefined && !(activity && held.activity && activity.readAt < held.activity.readAt);
+  if (tookActivity) {
     const signature = activitySignatureOf(activity);
     moved = !!held.signature && signature !== held.signature;
     // The flag is settled by the bar's own read, so it may lag a read behind: running items keep the pace.
     next = { ...next, activity, signature, activityReadAt: now, running: next.running || runningOf(activity) };
   }
-  return { held: next, moved, changed: refreshesFor(pathname, changes.changed) };
+  return { held: next, moved, changed: refreshesFor(pathname, changes.changed), tookActivity };
 }
 
 /** How long the bar says the user can leave, after they started something; the poll stays fast as long. */
@@ -362,7 +365,7 @@ export function createChangesSession(
         held = { ...held, version: page };
         changed = false;
       }
-      if (result.data.activity !== undefined) deps.showActivity(result.data.activity);
+      if (step.tookActivity) deps.showActivity(result.data.activity ?? null);
       deps.emit(result.data.changes.changed);
       if (step.moved || changed) deps.refresh();
       return 'ok';

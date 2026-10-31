@@ -16,6 +16,7 @@ const { NOW, contributor, firstSpend, key, mcpToken, settings, views } = await i
   '@/lib/contribute/__fixtures__/contribute-views'
 );
 const { attempt, followUpOf } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
+const { activityOf, QUEUED, WORKING } = await import('@/lib/contribute/__fixtures__/agent-runs');
 const { followUpInReview, issuePage, needsNothing, nowIdle, overviewData, replyWaiting, reviewsReady } = await import(
   '@/lib/contribute/__fixtures__/contribute-overview'
 );
@@ -49,6 +50,15 @@ const withSpend = (nextAttemptAt: string | null): ContributeView => ({
 });
 
 describe('Overview, once there is an attempt', () => {
+  it('puts Working now first while agent runs are listed, and leaves it out with none', () => {
+    const html = screen(views.active, { activity: activityOf(WORKING, QUEUED) });
+    const headings = [...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/g)].map(([, title]) => title);
+    expect(headings.slice(0, 2)).toEqual(['Working now', 'Needs you']);
+    expect(html).toContain('data-run="att_working"');
+    expect(text(html)).toContain('1 agent working');
+    expect(screen(views.active, { activity: activityOf() })).not.toContain('Working now');
+  });
+
   it('shows the sections in order, each with its heading, under the sr-only Overview', () => {
     const html = screen(views.active);
     const headings = [...html.matchAll(/<h([12])[^>]*>(.*?)<\/h\1>/g)].map(([, level, title]) => `${level}:${title}`);

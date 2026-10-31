@@ -22,7 +22,7 @@ import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contr
 type Feed = Promise<ContributeIssuePage | null | undefined>;
 
 async function WorkingNowRead() {
-  return <WorkingNowSection activity={await loadContributeActivity()} />;
+  return <WorkingNowSection activity={await loadContributeActivity().catch(() => null)} />;
 }
 
 async function NeedsYouRead({ view }: { view: ContributeView }) {

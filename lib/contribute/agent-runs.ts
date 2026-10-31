@@ -67,7 +67,8 @@ export function stepsOf(run: Pick<ContributeAgentRun, 'phase' | 'kind'>): { step
         RUNNING_CHECKS: 3,
         WAITING_FOR_YOU: 4,
         READY: 4,
-        SUBMITTING: 5,
+        // Submitting comes after the review: the last step stays lit until the PR opens.
+        SUBMITTING: 4,
         DONE: 5,
       };
   return { steps, at: order[run.phase] ?? 0 };
@@ -140,7 +141,7 @@ export const runTitleOf = ({ title, number }: Pick<ContributeAgentRun, 'title' |
 
 /**
  * The newer of two reads of the runs: the page's (server-rendered) or the poll's. The poll's once it read at or after
- * the page's.
+ * the page's. A poll that answered none (the API hid it) leaves the page's: the next page read says the same.
  */
 export function newerActivity(
   page: ContributeActivity | null | undefined,

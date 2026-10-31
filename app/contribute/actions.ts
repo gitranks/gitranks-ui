@@ -1,6 +1,7 @@
 'use server';
 
 import { agentConnectedOf } from '@/lib/contribute/agent-connect';
+import { anyActive, runsOf } from '@/lib/contribute/agent-runs';
 import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import {
@@ -536,10 +537,14 @@ export async function readContributeChanges(
       source: 'client',
       githubLogin,
     });
-    // The reads of the modes only for a login they are shown to; the agent runs for everyone.
-    return { ok: true, data: { changes, activity: activityFor(githubLogin, contributeActivity) } };
+    // The reads of the modes only for a login they are shown to; the agent runs for everyone. For the others, only an
+    // agent at work holds the poll fast: their hidden reads never do.
+    const activity = activityFor(githubLogin, contributeActivity);
+    if (contributeModesShown(githubLogin)) return { ok: true, data: { changes, activity } };
+    return { ok: true, data: { changes: { ...changes, activity: anyActive(runsOf(activity)) }, activity } };
   } catch {
-    return { ok: true, data: { changes } };
+    if (contributeModesShown(githubLogin)) return { ok: true, data: { changes } };
+    return { ok: true, data: { changes: { ...changes, activity: false } } };
   }
 }
 

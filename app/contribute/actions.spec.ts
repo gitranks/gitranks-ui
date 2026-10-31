@@ -660,10 +660,22 @@ describe('readContributeChanges', () => {
     graphqlDirect
       .mockResolvedValueOnce({ contributeChanges: changes })
       .mockResolvedValueOnce({ contributeActivity: { ...ACTIVITY, items: [reads], runs: [run] } });
-    // The activity read settles the flag for them too: their runs hold the poll fast while an agent works.
+    // Their runs hold the poll fast while an agent works; their hidden reads never do.
     expect(await actions.readContributeChanges('3.2', true)).toEqual({
       ok: true,
       data: { changes, activity: { ...ACTIVITY, items: [], runs: [run] } },
+    });
+    graphqlDirect
+      .mockResolvedValueOnce({ contributeChanges: changes })
+      .mockResolvedValueOnce({ contributeActivity: { ...ACTIVITY, items: [reads], runs: [] } });
+    expect(await actions.readContributeChanges('3.2', true)).toEqual({
+      ok: true,
+      data: { changes: { ...changes, activity: false }, activity: { ...ACTIVITY, items: [], runs: [] } },
+    });
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: changes }).mockRejectedValueOnce(new Error('down'));
+    expect(await actions.readContributeChanges('3.2', true)).toEqual({
+      ok: true,
+      data: { changes: { ...changes, activity: false } },
     });
 
     as('maslianok');

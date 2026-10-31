@@ -27,8 +27,10 @@ import { cn } from '@/lib/utils';
 
 /** How long the bar says the user can leave, after they started something. */
 const ANNOUNCE_MS = 12_000;
-/** The repos an item lists before "and N more". */
+/** The repos an item lists before "Show N more". */
 const REPOS_SHOWN = 8;
+/** Failed reads in a row tried again (backing off) before the bar stops until the page is read again. */
+const READ_TRIES = 5;
 
 type ActivityState = { activity: ContributeActivity | null; announced: boolean };
 const ActivityContext = createContext<ActivityState>({ activity: null, announced: false });
@@ -49,18 +51,17 @@ export function ActivityProvider({ initial, children }: { initial: ContributeAct
   const [announcedAt, setAnnouncedAt] = useState<number | null>(null);
   const latest = useRef(initial);
   const signature = useRef(activitySignatureOf(initial));
-  const loop = useRef<{ start: (delay: number) => void; idle: () => boolean } | null>(null);
+  const loop = useRef<{ start: (delay: number) => void } | null>(null);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let reads = 0;
-    let running = false;
+    let failures = 0;
     let hiddenWait = false;
     let stopped = false;
 
     const schedule = (delay: number) => {
       clearTimeout(timer);
-      running = true;
       timer = setTimeout(read, delay);
     };
     const read = async () => {
@@ -72,11 +73,14 @@ export function ActivityProvider({ initial, children }: { initial: ContributeAct
       if (stopped) return;
       reads += 1;
       if (!result?.ok) {
-        // Kept as it was; tried again later, while there was something to show.
-        if (latest.current?.items.length) schedule(activityDelayOf(reads, latest.current.items));
-        else running = false;
+        // Kept as it was and tried again, backing off; signed out, or failing over and over, it waits for the page.
+        failures += 1;
+        if (result?.error !== 'SIGNED_OUT' && failures < READ_TRIES) {
+          schedule(activityDelayOf(reads, latest.current?.items ?? []));
+        }
         return;
       }
+      failures = 0;
       const next = result.data;
       const moved = activitySignatureOf(next);
       if (moved !== signature.current && signature.current) router.refresh();
@@ -84,7 +88,6 @@ export function ActivityProvider({ initial, children }: { initial: ContributeAct
       latest.current = next;
       setActivity(next);
       if (next?.items.length) schedule(activityDelayOf(reads, next.items));
-      else running = false;
     };
     const onVisible = () => {
       if (document.visibilityState === 'visible' && hiddenWait) {
@@ -94,6 +97,7 @@ export function ActivityProvider({ initial, children }: { initial: ContributeAct
     };
     const onStarted = () => {
       reads = 0;
+      failures = 0;
       setAnnouncedAt(Date.now());
       schedule(0);
     };
@@ -101,9 +105,10 @@ export function ActivityProvider({ initial, children }: { initial: ContributeAct
     loop.current = {
       start: (delay) => {
         reads = 0;
+        failures = 0;
+        if (hiddenWait) return;
         schedule(delay);
       },
-      idle: () => !running && !hiddenWait,
     };
     if (latest.current?.items.length) schedule(activityDelayOf(0, latest.current.items));
     document.addEventListener('visibilitychange', onVisible);
@@ -116,13 +121,15 @@ export function ActivityProvider({ initial, children }: { initial: ContributeAct
     };
   }, [router]);
 
-  // A newer read of the page (it was read again): taken, and read again while it shows work.
+  // A newer read of the page (it was read again, e.g. after Resume): taken; work it shows anew is read again soon.
   useEffect(() => {
     if (!initial || (latest.current && initial.readAt <= latest.current.readAt)) return;
+    const moved = activitySignatureOf(initial);
+    const changed = moved !== signature.current;
     latest.current = initial;
-    signature.current = activitySignatureOf(initial);
+    signature.current = moved;
     setActivity(initial);
-    if (initial.items.length && loop.current?.idle()) loop.current.start(activityDelayOf(0, initial.items));
+    if (changed && initial.items.length) loop.current?.start(activityDelayOf(0, initial.items));
   }, [initial]);
 
   useEffect(() => {
@@ -172,8 +179,25 @@ export function ActivityBar() {
     return () => clearInterval(timer);
   }, []);
 
-  if (!items.length) return null;
-  return <ActivityBarView items={items} announced={announced} now={now} />;
+  // One live region, there before and after the bar, so the start and the end are both said.
+  const summary = summaryOf(items);
+  const previous = useRef('');
+  const [finished, setFinished] = useState(false);
+  useEffect(() => {
+    if (summary) setFinished(false);
+    else if (previous.current) setFinished(true);
+    previous.current = summary;
+  }, [summary]);
+  const status = summary || (finished ? 'All done' : '');
+
+  return (
+    <>
+      <p className="sr-only" role="status">
+        {status}
+      </p>
+      {items.length ? <ActivityBarView items={items} announced={announced} now={now} /> : null}
+    </>
+  );
 }
 
 /** The bar itself: one quiet line, and the details on a click. */
@@ -221,7 +245,7 @@ export function ActivityBarView({
             ) : null}
             <span className={cn('relative size-2.5 rounded-full', running ? 'bg-primary' : 'bg-muted-foreground/60')} />
           </span>
-          <span className="line-clamp-2 min-w-0 flex-1 font-medium sm:truncate">{summary}</span>
+          <span className="line-clamp-2 min-w-0 flex-1 font-medium sm:line-clamp-none sm:truncate">{summary}</span>
           {eta ? <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">{eta}</span> : null}
           <span className="shrink-0 text-xs text-muted-foreground">{open ? 'Hide' : 'Details'}</span>
           <ChevronDown
@@ -233,21 +257,14 @@ export function ActivityBarView({
           />
         </button>
         {running ? <ProgressLine share={share} /> : null}
-        <p className="sr-only" role="status">
-          {summary}
-        </p>
         {announced ? (
           <p className="px-4 pt-2 pb-3 text-xs text-muted-foreground">
             This keeps going in the background, so you can leave this page. Progress shows here and on the tab.
           </p>
         ) : null}
-        {open ? (
-          <div id={id} className="flex flex-col divide-y border-t">
-            {items.map((item) => (
-              <ItemDetails key={item.kind} item={item} now={now} />
-            ))}
-          </div>
-        ) : null}
+        <div id={id} hidden={!open} className="flex flex-col divide-y border-t">
+          {open ? items.map((item) => <ItemDetails key={item.kind} item={item} now={now} />) : null}
+        </div>
       </section>
     </div>
   );
@@ -310,9 +327,14 @@ function ItemDetails({ item, now }: { item: ContributeActivityItem; now: Date | 
           ))}
         </ul>
       ) : null}
-      {item.repos.length > shown.length ? (
-        <button type="button" onClick={() => setAll(true)} className="self-start text-xs text-link hover:underline">
-          Show {item.repos.length - shown.length} more
+      {item.repos.length > REPOS_SHOWN ? (
+        <button
+          type="button"
+          aria-expanded={all}
+          onClick={() => setAll((value) => !value)}
+          className="self-start text-xs text-link hover:underline"
+        >
+          {all ? 'Show fewer' : `Show ${item.repos.length - REPOS_SHOWN} more`}
         </button>
       ) : null}
     </div>

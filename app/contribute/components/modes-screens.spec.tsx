@@ -280,8 +280,9 @@ describe('switching what you work on', () => {
           />,
         ),
       );
-    expect(fresh('THEN_ALL')).toContain('Until then, your agent works on all issues.');
-    expect(fresh('SET_ONLY')).toContain('Until then, your agent has nothing to work on, and waits.');
+    // Whatever happens when it is quiet: until a library is read, the agent works on all issues.
+    expect(fresh('THEN_ALL')).toContain('Until one is read, your agent works on all issues.');
+    expect(fresh('SET_ONLY')).toContain('Until one is read, your agent works on all issues.');
   });
 });
 
@@ -378,6 +379,16 @@ describe('Issues for you, by mode', () => {
 });
 
 describe('the Issues page while the stack is worked out', () => {
+  it('says the other issues stand in until a library is read, with no way to change it', async () => {
+    const { OtherIssuesDivider } = await import('./issues-mode');
+    const set = stackSet({ stack: { ...stackSet().stack, fallback: 'SET_ONLY', resolve: null } });
+    const plain = text(renderToStaticMarkup(<OtherIssuesDivider set={set} none />));
+
+    expect(plain).toContain('Your stack is being worked out: other issues for you');
+    expect(plain).toContain('Shown until a library of your stack is read.');
+    expect(plain).not.toContain('Change');
+  });
+
   it('says the libraries are on their way, not that the list is empty', () => {
     const empty = { items: [], next: null, total: 0, computedAt: '2026-10-28T07:00:00.000Z' };
     const base = stackSet();
@@ -389,6 +400,8 @@ describe('the Issues page while the stack is worked out', () => {
 
       expect(plain).toContain("We're working out the libraries your stack uses");
       expect(plain).toContain("We're reading the dependency files of your 3 repos.");
+      expect(plain).toContain('Until then, your agent works on all issues');
+      expect(plain).not.toContain('Work on all issues meanwhile');
       expect(plain).not.toContain('Your list is empty');
     }
   });

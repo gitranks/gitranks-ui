@@ -139,6 +139,40 @@ export function listOf(set: ContributeSet, mode: ContributeSetListMode) {
 export const countedTargetsOf = (set: ContributeSet) =>
   (set.stack.resolve?.targets ?? []).filter(({ status }) => status !== 'UNSUPPORTED');
 
+/** A stack's sources or libraries that are read or being read: what the agent can work on, now or soon. */
+const live = <T extends { status: ContributeSetRepo['status'] }>(entries: T[]) =>
+  entries.filter(({ status }) => status === 'ACTIVE' || status === 'CHECKING');
+
+/** The stack's libraries the agent works on or soon will: read, or being read for the first time. */
+export const liveTargetsOf = (set: ContributeSet) => live(set.stack.resolve?.targets ?? []);
+
+/** A first read counts as under way this long after the repo was added; one that never lands stops counting. */
+const FIRST_READ_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * A stack still worked out with nothing of it read yet: it has sources (read or being read), no library is read, and
+ * the libraries are not worked out yet, or a source or library is still read for the first time (for a day at most).
+ * Until one is read, the agent works on all issues, whatever happens when the stack has nothing ready.
+ */
+export function stackPendingOf(set: ContributeSet, now = new Date()): boolean {
+  const { resolve } = set.stack;
+  const sources = live(set.stack.sources);
+  if (!sources.length) return false;
+  const targets = liveTargetsOf(set);
+  if (targets.some(({ status }) => status === 'ACTIVE')) return false;
+  const reading = (entry: ContributeSetRepo) =>
+    entry.status === 'CHECKING' && now.getTime() - new Date(entry.addedAt).getTime() < FIRST_READ_WINDOW_MS;
+  return !resolve || resolve.state === 'RESOLVING' || sources.some(reading) || targets.some(reading);
+}
+
+/** While pending: the libraries are found and only read for the first time (else they are still worked out). */
+export const readingLibrariesOf = (set: ContributeSet): number =>
+  set.stack.resolve &&
+  set.stack.resolve.state !== 'RESOLVING' &&
+  !set.stack.sources.some(({ status }) => status === 'CHECKING')
+    ? liveTargetsOf(set).length
+    : 0;
+
 /** How many repos a mode works on now: the libraries of the stack, or the repos list's count. */
 export const setSizeOf = (set: ContributeSet, mode: ContributeSetListMode) =>
   mode === 'STACK' ? countedTargetsOf(set).length : set.repos.count;
@@ -179,6 +213,13 @@ export function modeChipOf(
   const withFilter = (detail: string) => [detail, filter].filter(Boolean).join(' · ');
   if (set.mode === 'ALL') return { title: 'All issues', detail: filter, quiet: true };
   const only = (set.mode === 'STACK' ? set.stack.fallback : set.repos.fallback) === 'SET_ONLY';
+  if (set.mode === 'STACK' && stackPendingOf(set)) {
+    return {
+      title: 'Supporting your stack',
+      detail: withFilter('working out libraries · all issues until then'),
+      quiet: false,
+    };
+  }
   if (set.mode === 'STACK') {
     const libraries = plural(setSizeOf(set, 'STACK'), 'library', 'libraries');
     return {

@@ -17,6 +17,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
 }));
 
 const { SettingsScreen } = await import('./settings-view');
+const { WorkSettingsScreen } = await import('./settings-pages');
 const { IssuesScreen } = await import('./issues-view');
 const { FeedbackForm } = await import('./feedback-dialog');
 const { Dialog } = await import('@/components/ui/dialog');
@@ -37,7 +38,7 @@ const text = (html: string) =>
     .replace(/\s+/g, ' ');
 
 const settings = (set?: ContributeSet | null) =>
-  renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} set={set} />);
+  renderToStaticMarkup(<WorkSettingsScreen view={views.active} now={NOW} set={set} />);
 
 /** Whether the radio pill with this label is the checked one. */
 const checked = (html: string, label: string) => new RegExp(`<input[^>]*checked=""[^>]*>${label}`).test(html);
@@ -50,30 +51,38 @@ const rowOf = (html: string, repo: string) => {
 };
 
 describe('Settings, what to work on', () => {
-  it('opens the settings with what to work on, the preferences, the rules and the ignored repos', () => {
+  it('sums up what you work on in one row of Settings, opening its page', () => {
+    const html = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} set={stackSet()} />);
+    const row = html.slice(
+      html.indexOf('href="/contribute/settings/work"'),
+      html.indexOf('</a>', html.indexOf('href="/contribute/settings/work"')),
+    );
+
+    expect(text(row)).toContain('Support my stack · 50 libraries from');
+    expect(html).not.toContain('id="rules"');
+    expect(html).not.toContain('id="ignored"');
+  });
+
+  it('opens its page with what to work on, the preferences, the rules and the ignored repos', () => {
     const html = settings(stackSet());
-    const panels = ['modes', 'work', 'rules', 'ignored', 'limits'].map((id) => html.indexOf(`id="${id}"`));
+    const panels = ['modes', 'work', 'rules', 'ignored'].map((id) => html.indexOf(`id="${id}"`));
     expect(panels.every((at) => at >= 0)).toBe(true);
     expect([...panels].sort((a, b) => a - b)).toEqual(panels);
-
-    const nav = html.slice(html.indexOf('aria-label="Settings sections"'), html.indexOf('</nav>'));
-    expect([...nav.matchAll(/href="#([a-z-]+)"/g)].map(([, id]) => id).slice(0, 5)).toEqual([
-      'modes',
-      'work',
-      'rules',
-      'ignored',
-      'limits',
-    ]);
+    expect(html).toContain('href="/contribute/settings"');
     expect(html.match(/id="work"/g)).toHaveLength(1);
     expect(text(html)).toContain('None picked: every language the pool has. Applies in every mode.');
   });
 
   it('says when what you work on did not load, and shows the rest as usual', () => {
-    const html = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} set={undefined} setFailed />);
+    const html = renderToStaticMarkup(<WorkSettingsScreen view={views.active} now={NOW} set={undefined} setFailed />);
 
     expect(text(html)).toContain("Your lists didn't load. Reload the page to try again");
-    expect(html).toContain('id="limits"');
+    expect(html).toContain('id="work"');
     expect(text(html)).not.toContain('How we pick repos');
+
+    const summary = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} set={undefined} setFailed />);
+    expect(text(summary)).toContain("Your lists didn't load. Reload the page to try again");
+    expect(summary).toContain('href="/contribute/settings/budget"');
   });
 
   it('keeps the mode radios enabled while a change saves, so focus stays on them', () => {
@@ -302,7 +311,7 @@ describe('Issues for you, by mode', () => {
       'We check them for new issues every 12 hours. 3 repos are still being read for the first time.',
     );
     expect(plain).toContain('Work on all issues meanwhile');
-    expect(html).toContain('href="/contribute/settings#modes"');
+    expect(html).toContain('href="/contribute/settings/work"');
     expect(plain).toContain('Add more repos');
     expect(plain).toContain('Language filter: Rust. 12 of them are in other languages.');
 

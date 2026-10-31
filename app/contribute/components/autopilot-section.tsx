@@ -1,10 +1,21 @@
 'use client';
 
+import { Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition } from 'react';
 
 import { saveContributeSettings } from '../actions';
-import { HEADING, Panel, Pill } from './primitives';
+import { Pill } from './primitives';
+import { SettingsRow } from './settings-rows';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import type { ContributeAutopilot } from '@/lib/contribute/contribute.types';
 import { type ContributeErrorCode, contributeErrorMessage } from '@/lib/contribute/errors';
 import { AUTOPILOT_UNLOCK_AT, dayLabel } from '@/lib/contribute/format';
@@ -26,9 +37,22 @@ export function autopilotErrorMessage(error: ContributeErrorCode, message?: stri
   return contributeErrorMessage(error, message);
 }
 
+/** Where the record stands: locked, open, merges still needed and made toward unlocking, the closed streak. */
+function recordOf(autopilot: ContributeAutopilot) {
+  const locked = !autopilot.unlocked;
+  const toUnlock = locked ? Math.max(0, autopilot.mergedToUnlock ?? AUTOPILOT_UNLOCK_AT - autopilot.mergedCount) : 0;
+  return {
+    locked,
+    open: autopilot.available === true,
+    toUnlock,
+    progress: Math.min(AUTOPILOT_UNLOCK_AT, Math.max(0, AUTOPILOT_UNLOCK_AT - toUnlock)),
+    streak: Math.min(autopilot.closedUnmergedStreak, AUTOPILOT_LOCK_AT),
+  };
+}
+
 /**
- * Autopilot: the user's record (merged through GitRanks, still needed to unlock, closed without merging in a row) and
- * a toggle they own once it is unlocked. While autopilot is not open (`available` false, or not known yet), it says it
+ * Autopilot's row in Settings: the user's record (merged through GitRanks, still needed to unlock, closed without merging in a row) and
+ * a toggle they own once it is unlocked, with the full record behind Details. While autopilot is not open (`available` false, or not known yet), it says it
  * is coming and the toggle cannot be turned on; a setting left on can always be turned off.
  */
 export function AutopilotSection({
@@ -46,12 +70,8 @@ export function AutopilotSection({
   const [on, setOn] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const locked = !autopilot.unlocked;
-  const open = autopilot.available === true;
+  const { locked, open, progress } = recordOf(autopilot);
   const canTurnOn = open && !locked;
-  const toUnlock = locked ? Math.max(0, autopilot.mergedToUnlock ?? AUTOPILOT_UNLOCK_AT - autopilot.mergedCount) : 0;
-  const progress = Math.min(AUTOPILOT_UNLOCK_AT, Math.max(0, AUTOPILOT_UNLOCK_AT - toUnlock));
-  const streak = Math.min(autopilot.closedUnmergedStreak, AUTOPILOT_LOCK_AT);
   const checked = canTurnOn ? on : on && enabled;
 
   const toggle = (next: boolean) => {
@@ -69,39 +89,78 @@ export function AutopilotSection({
   };
 
   return (
-    <Panel id="autopilot">
-      <div
-        className="flex flex-wrap items-center justify-between gap-3"
-        data-autopilot={locked ? 'locked' : 'unlocked'}
-        data-autopilot-available={autopilot.available === undefined ? 'unknown' : String(autopilot.available)}
+    <SettingsRow
+      id="autopilot"
+      icon={Zap}
+      title={
+        <>
+          Autopilot
+          {open ? null : (
+            <Pill tone="violet">{autopilot.available === false ? 'Coming soon' : 'Not available yet'}</Pill>
+          )}
+        </>
+      }
+      value={
+        <>
+          {!locked
+            ? `Unlocked: ${autopilot.mergedCount} merged through GitRanks`
+            : autopilot.lockedAt
+              ? `Locked on ${dayLabel(autopilot.lockedAt)} · ${progress} of ${AUTOPILOT_UNLOCK_AT} merged since`
+              : `${progress} of ${AUTOPILOT_UNLOCK_AT} merged PRs toward unlocking`}
+          {error ? (
+            <span role="alert" className="block text-destructive">
+              {error}
+            </span>
+          ) : null}
+        </>
+      }
+      data={{
+        'data-autopilot': locked ? 'locked' : 'unlocked',
+        'data-autopilot-available': autopilot.available === undefined ? 'unknown' : String(autopilot.available),
+      }}
+    >
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button type="button" variant="ghost" size="sm">
+            Details
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Autopilot</DialogTitle>
+            <DialogDescription>
+              Submit without your review when every check passed and the risk is low.
+            </DialogDescription>
+          </DialogHeader>
+          <AutopilotRecord autopilot={autopilot} />
+        </DialogContent>
+      </Dialog>
+      <label
+        htmlFor={`${id}-autopilot`}
+        className={cn('flex items-center gap-2.5 text-sm', !canTurnOn && 'text-muted-foreground')}
       >
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className={HEADING.section}>Autopilot</h2>
-            {open ? null : (
-              <Pill tone="violet">{autopilot.available === false ? 'Coming soon' : 'Not available yet'}</Pill>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Submit without your review when every check passed and the risk is low.
-          </p>
-        </div>
-        <label
-          htmlFor={`${id}-autopilot`}
-          className={cn('flex items-center gap-2.5 text-sm', !canTurnOn && 'text-muted-foreground')}
-        >
-          <input
-            id={`${id}-autopilot`}
-            type="checkbox"
-            checked={checked}
-            disabled={pending || !canSave || (!canTurnOn && !checked)}
-            onChange={(event) => toggle(event.target.checked)}
-            className="size-4.5 accent-primary"
-          />
-          {checked ? 'On' : open && locked ? 'Locked' : 'Off'}
-        </label>
-      </div>
+        <input
+          id={`${id}-autopilot`}
+          type="checkbox"
+          checked={checked}
+          disabled={pending || !canSave || (!canTurnOn && !checked)}
+          onChange={(event) => toggle(event.target.checked)}
+          className="size-4.5 accent-primary"
+        />
+        {checked ? 'On' : open && locked ? 'Locked' : 'Off'}
+      </label>
+    </SettingsRow>
+  );
+}
 
+/**
+ * The user's autopilot record: whether it is open, merged through GitRanks, still needed to unlock, closed without
+ * merging in a row, the unlock progress, and how it works once open.
+ */
+export function AutopilotRecord({ autopilot }: { autopilot: ContributeAutopilot }) {
+  const { locked, open, toUnlock, progress, streak } = recordOf(autopilot);
+  return (
+    <div className="flex flex-col gap-4">
       {open ? null : (
         <p data-autopilot-coming className="text-sm">
           {autopilot.available === false
@@ -109,7 +168,6 @@ export function AutopilotSection({
             : 'Autopilot is not available yet. It is coming soon.'}
         </p>
       )}
-
       <dl data-autopilot-record className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 text-sm">
         <dt className="text-muted-foreground">Merged through GitRanks</dt>
         <dd className="font-mono">{autopilot.mergedCount}</dd>
@@ -154,11 +212,6 @@ export function AutopilotSection({
         Once it is open: before autopilot submits, you have one hour to stop it, from the attempt&apos;s page or My
         contributions. Two pull requests closed without merging in a row lock it again.
       </span>
-      {error ? (
-        <span role="alert" className="text-sm text-destructive">
-          {error}
-        </span>
-      ) : null}
-    </Panel>
+    </div>
   );
 }

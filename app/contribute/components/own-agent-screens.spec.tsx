@@ -20,6 +20,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
 
 const { OwnAgentSection, OWN_AGENT_SAFETY } = await import('./own-agent-section');
 const { SettingsScreen } = await import('./settings-view');
+const { OwnAgentSettingsScreen } = await import('./settings-pages');
 const { OwnAgentConnectScreen, ConnectScreen } = await import('./connect-view');
 const { ReviewScreen } = await import('./review-view');
 const { ContributionsScreen } = await import('./contributions-view');
@@ -74,6 +75,13 @@ describe('Settings, your own agent', () => {
     expect(plain).toContain('Your own agent (MCP)');
     expect(plain).toContain('Your own agent spends nothing through us');
     expect(plain).not.toContain('Cycle cap');
+  });
+
+  it('has its own Settings page, titled once', () => {
+    const html = renderToStaticMarkup(<OwnAgentSettingsScreen view={agentOnly} now={NOW} />);
+    expect(html.match(/Your own agent \(MCP\)<\/h[12]>/g)).toHaveLength(1);
+    expect(html).toContain('<h1');
+    expect(text(html)).toContain('Create token');
   });
 
   it('asks no key of a contributor who has their own agent', () => {

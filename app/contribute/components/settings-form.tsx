@@ -79,7 +79,8 @@ const draftOf = (settings: ContributeSettings): Draft => ({
   dco: settings.dco,
 });
 
-type Section = 'limits' | 'pacing' | 'agent' | 'prs';
+export type SettingsSection = 'limits' | 'pacing' | 'agent' | 'prs';
+type Section = SettingsSection;
 
 /** Each section's patch from the draft, or the label of the first field that is not a valid number. */
 export function patchOf(section: Section, draft: Draft): { patch: ContributeSettingsInput } | { invalid: string } {
@@ -166,8 +167,14 @@ function SaveRow({ onSave, pending, message }: { onSave: () => void; pending: bo
   );
 }
 
-/** The spending limits, pacing, the agent and pull requests, each section saved on its own. */
-export function SettingsForm({ settings }: { settings: ContributeSettings }) {
+/** The spending limits, pacing, the agent and pull requests, or the `sections` of them, each saved on its own. */
+export function SettingsForm({
+  settings,
+  sections = ['limits', 'pacing', 'agent', 'prs'],
+}: {
+  settings: ContributeSettings;
+  sections?: SettingsSection[];
+}) {
   const router = useRouter();
   const id = useId();
   const [draft, setDraft] = useState<Draft>(() => draftOf(settings));
@@ -225,188 +232,196 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
 
   return (
     <>
-      <Panel id="limits">
-        <PanelTitle
-          title="Spending limits"
-          text="We never start an attempt that could cross one of these. Leave a field empty for no limit."
-        />
-        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Each billing cycle" htmlFor={field('cycleCapUsd')}>
-            {textInput('cycleCapUsd')}
-          </Field>
-          <Field label="Each week" htmlFor={field('weekCapUsd')}>
-            {textInput('weekCapUsd', 'No limit')}
-          </Field>
-          <Field label="Each day" htmlFor={field('dayCapUsd')}>
-            {textInput('dayCapUsd', 'No limit')}
-          </Field>
-          <Field label="Each attempt" htmlFor={field('attemptCapUsd')}>
-            {textInput('attemptCapUsd')}
-          </Field>
-          <Field label="Attempts at a time" htmlFor={field('attemptsAtATime')}>
-            {textInput('attemptsAtATime')}
-          </Field>
-        </div>
-        <span className="text-sm text-muted-foreground">
-          Amounts are at list price, the unit your credits are counted in. A no-go check uses at most a tenth of the
-          attempt limit before the agent decides whether to go on.
-        </span>
-        <SaveRow onSave={() => save('limits')} pending={pendingSection === 'limits'} message={messageFor('limits')} />
-      </Panel>
-
-      <Panel id="pacing">
-        <PanelTitle title="Pacing" text="Your credits expire when they renew. Choose how we spread the work." />
-        <RadioGroup
-          aria-label="Pacing mode"
-          value={draft.pace}
-          onValueChange={(next) => set('pace', next as ContributePace)}
-          className="gap-2"
-        >
-          {(Object.keys(PACES) as ContributePace[]).map((pace) => (
-            <label
-              key={pace}
-              htmlFor={`${field('pace')}-${pace}`}
-              className={cn(
-                'flex cursor-pointer items-start gap-2.5 rounded-lg border px-3.5 py-3 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
-                draft.pace === pace && 'border-primary bg-brand-soft/50 ring-1 ring-primary',
-              )}
-            >
-              <RadioGroupItem id={`${field('pace')}-${pace}`} value={pace} className="mt-1" />
-              <span className="flex flex-col">
-                <span className="font-medium">{PACES[pace].title}</span>
-                <span className="text-sm text-muted-foreground">{PACES[pace].text}</span>
-              </span>
-            </label>
-          ))}
-        </RadioGroup>
-        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Sweep days" htmlFor={field('sweepDays')}>
-            {textInput('sweepDays')}
-          </Field>
-          <Field label="Credits renew on" htmlFor={field('renewalDay')}>
-            <Select value={String(draft.renewalDay)} onValueChange={(next) => set('renewalDay', Number(next))}>
-              <SelectTrigger id={field('renewalDay')} className={selectClass}>
-                <SelectValue>{ordinalDay(draft.renewalDay)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {DAYS.map((day) => (
-                  <SelectItem key={day} value={String(day)}>
-                    {ordinalDay(day)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-        <SaveRow onSave={() => save('pacing')} pending={pendingSection === 'pacing'} message={messageFor('pacing')} />
-      </Panel>
-
-      <Panel id="agent">
-        <PanelTitle title="The agent" text="Bigger models fix harder issues and cost more per attempt." />
-        <div className="grid gap-3.5 sm:grid-cols-2">
-          <Field label="Main model" htmlFor={field('mainModel')}>
-            <Select value={draft.mainModel} onValueChange={(next) => set('mainModel', next as ContributeModel)}>
-              <SelectTrigger id={field('mainModel')} className={selectClass}>
-                <SelectValue>{MODELS[draft.mainModel]}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
-                  <SelectItem key={model} value={model}>
-                    {MODELS[model]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Running tests and reading logs" htmlFor={field('helperModel')}>
-            <Select value={draft.helperModel} onValueChange={(next) => set('helperModel', next as ContributeModel)}>
-              <SelectTrigger id={field('helperModel')} className={selectClass}>
-                <SelectValue>{helperModelLabelOf(draft.helperModel)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
-                  <SelectItem key={model} value={model}>
-                    {helperModelLabelOf(model)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Writing tests" htmlFor={field('testModel')}>
-            <Select
-              value={draft.testModel ?? SAME_AS_MAIN}
-              onValueChange={(next) => set('testModel', next === SAME_AS_MAIN ? null : (next as ContributeModel))}
-            >
-              <SelectTrigger id={field('testModel')} className={selectClass}>
-                <SelectValue>{testModelLabelOf(draft.testModel)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={SAME_AS_MAIN}>{testModelLabelOf(null)}</SelectItem>
-                {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
-                  <SelectItem key={model} value={model}>
-                    {testModelLabelOf(model)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Effort" htmlFor={field('effort')}>
-            <Select value={draft.effort} onValueChange={(next) => set('effort', next as ContributeEffort)}>
-              <SelectTrigger id={field('effort')} className={selectClass}>
-                <SelectValue>{EFFORTS[draft.effort]}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(EFFORTS) as ContributeEffort[]).map((effort) => (
-                  <SelectItem key={effort} value={effort}>
-                    {EFFORTS[effort]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-        <SaveRow onSave={() => save('agent')} pending={pendingSection === 'agent'} message={messageFor('agent')} />
-      </Panel>
-
-      <Panel id="prs">
-        <PanelTitle title="Pull requests" text="An attempt above these limits stops before review." />
-        <div className="grid gap-3.5 sm:grid-cols-3">
-          <Field label="Changed lines" htmlFor={field('maxChangedLines')}>
-            {textInput('maxChangedLines')}
-          </Field>
-          <Field label="Files" htmlFor={field('maxFiles')}>
-            {textInput('maxFiles')}
-          </Field>
-          <Field label="Open PRs at a time" htmlFor={field('openPrsAtATime')}>
-            {textInput('openPrsAtATime')}
-          </Field>
-        </div>
-        {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
-        <div className="flex flex-col gap-2">
-          <span id={`${field('dco')}-legend`} className="text-sm font-medium">
-            DCO sign-off, for repos that require it
+      {sections.includes('limits') ? (
+        <Panel id="limits">
+          <PanelTitle
+            title="Spending limits"
+            text="We never start an attempt that could cross one of these. Leave a field empty for no limit."
+          />
+          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label="Each billing cycle" htmlFor={field('cycleCapUsd')}>
+              {textInput('cycleCapUsd')}
+            </Field>
+            <Field label="Each week" htmlFor={field('weekCapUsd')}>
+              {textInput('weekCapUsd', 'No limit')}
+            </Field>
+            <Field label="Each day" htmlFor={field('dayCapUsd')}>
+              {textInput('dayCapUsd', 'No limit')}
+            </Field>
+            <Field label="Each attempt" htmlFor={field('attemptCapUsd')}>
+              {textInput('attemptCapUsd')}
+            </Field>
+            <Field label="Attempts at a time" htmlFor={field('attemptsAtATime')}>
+              {textInput('attemptsAtATime')}
+            </Field>
+          </div>
+          <span className="text-sm text-muted-foreground">
+            Amounts are at list price, the unit your credits are counted in. A no-go check uses at most a tenth of the
+            attempt limit before the agent decides whether to go on.
           </span>
+          <SaveRow onSave={() => save('limits')} pending={pendingSection === 'limits'} message={messageFor('limits')} />
+        </Panel>
+      ) : null}
+
+      {sections.includes('pacing') ? (
+        <Panel id="pacing">
+          <PanelTitle title="Pacing" text="Your credits expire when they renew. Choose how we spread the work." />
           <RadioGroup
-            aria-labelledby={`${field('dco')}-legend`}
-            value={draft.dco}
-            onValueChange={(next) => set('dco', next as ContributeDcoMode)}
+            aria-label="Pacing mode"
+            value={draft.pace}
+            onValueChange={(next) => set('pace', next as ContributePace)}
             className="gap-2"
           >
-            {(
-              [
-                ['ASK', 'Ask me on every PR'],
-                ['STANDING', 'Sign off for me on every PR, including autopilot'],
-              ] as const
-            ).map(([dco, label]) => (
-              <label key={dco} htmlFor={`${field('dco')}-${dco}`} className="flex items-center gap-2.5 text-sm">
-                <RadioGroupItem id={`${field('dco')}-${dco}`} value={dco} />
-                {label}
+            {(Object.keys(PACES) as ContributePace[]).map((pace) => (
+              <label
+                key={pace}
+                htmlFor={`${field('pace')}-${pace}`}
+                className={cn(
+                  'flex cursor-pointer items-start gap-2.5 rounded-lg border px-3.5 py-3 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
+                  draft.pace === pace && 'border-primary bg-brand-soft/50 ring-1 ring-primary',
+                )}
+              >
+                <RadioGroupItem id={`${field('pace')}-${pace}`} value={pace} className="mt-1" />
+                <span className="flex flex-col">
+                  <span className="font-medium">{PACES[pace].title}</span>
+                  <span className="text-sm text-muted-foreground">{PACES[pace].text}</span>
+                </span>
               </label>
             ))}
           </RadioGroup>
-        </div>
-        <SaveRow onSave={() => save('prs')} pending={pendingSection === 'prs'} message={messageFor('prs')} />
-      </Panel>
+          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label="Sweep days" htmlFor={field('sweepDays')}>
+              {textInput('sweepDays')}
+            </Field>
+            <Field label="Credits renew on" htmlFor={field('renewalDay')}>
+              <Select value={String(draft.renewalDay)} onValueChange={(next) => set('renewalDay', Number(next))}>
+                <SelectTrigger id={field('renewalDay')} className={selectClass}>
+                  <SelectValue>{ordinalDay(draft.renewalDay)}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {DAYS.map((day) => (
+                    <SelectItem key={day} value={String(day)}>
+                      {ordinalDay(day)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+          <SaveRow onSave={() => save('pacing')} pending={pendingSection === 'pacing'} message={messageFor('pacing')} />
+        </Panel>
+      ) : null}
+
+      {sections.includes('agent') ? (
+        <Panel id="agent">
+          <PanelTitle title="The agent" text="Bigger models fix harder issues and cost more per attempt." />
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <Field label="Main model" htmlFor={field('mainModel')}>
+              <Select value={draft.mainModel} onValueChange={(next) => set('mainModel', next as ContributeModel)}>
+                <SelectTrigger id={field('mainModel')} className={selectClass}>
+                  <SelectValue>{MODELS[draft.mainModel]}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {MODELS[model]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Running tests and reading logs" htmlFor={field('helperModel')}>
+              <Select value={draft.helperModel} onValueChange={(next) => set('helperModel', next as ContributeModel)}>
+                <SelectTrigger id={field('helperModel')} className={selectClass}>
+                  <SelectValue>{helperModelLabelOf(draft.helperModel)}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {helperModelLabelOf(model)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Writing tests" htmlFor={field('testModel')}>
+              <Select
+                value={draft.testModel ?? SAME_AS_MAIN}
+                onValueChange={(next) => set('testModel', next === SAME_AS_MAIN ? null : (next as ContributeModel))}
+              >
+                <SelectTrigger id={field('testModel')} className={selectClass}>
+                  <SelectValue>{testModelLabelOf(draft.testModel)}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SAME_AS_MAIN}>{testModelLabelOf(null)}</SelectItem>
+                  {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {testModelLabelOf(model)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Effort" htmlFor={field('effort')}>
+              <Select value={draft.effort} onValueChange={(next) => set('effort', next as ContributeEffort)}>
+                <SelectTrigger id={field('effort')} className={selectClass}>
+                  <SelectValue>{EFFORTS[draft.effort]}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(EFFORTS) as ContributeEffort[]).map((effort) => (
+                    <SelectItem key={effort} value={effort}>
+                      {EFFORTS[effort]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+          <SaveRow onSave={() => save('agent')} pending={pendingSection === 'agent'} message={messageFor('agent')} />
+        </Panel>
+      ) : null}
+
+      {sections.includes('prs') ? (
+        <Panel id="prs">
+          <PanelTitle title="Pull requests" text="An attempt above these limits stops before review." />
+          <div className="grid gap-3.5 sm:grid-cols-3">
+            <Field label="Changed lines" htmlFor={field('maxChangedLines')}>
+              {textInput('maxChangedLines')}
+            </Field>
+            <Field label="Files" htmlFor={field('maxFiles')}>
+              {textInput('maxFiles')}
+            </Field>
+            <Field label="Open PRs at a time" htmlFor={field('openPrsAtATime')}>
+              {textInput('openPrsAtATime')}
+            </Field>
+          </div>
+          {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
+          <div className="flex flex-col gap-2">
+            <span id={`${field('dco')}-legend`} className="text-sm font-medium">
+              DCO sign-off, for repos that require it
+            </span>
+            <RadioGroup
+              aria-labelledby={`${field('dco')}-legend`}
+              value={draft.dco}
+              onValueChange={(next) => set('dco', next as ContributeDcoMode)}
+              className="gap-2"
+            >
+              {(
+                [
+                  ['ASK', 'Ask me on every PR'],
+                  ['STANDING', 'Sign off for me on every PR, including autopilot'],
+                ] as const
+              ).map(([dco, label]) => (
+                <label key={dco} htmlFor={`${field('dco')}-${dco}`} className="flex items-center gap-2.5 text-sm">
+                  <RadioGroupItem id={`${field('dco')}-${dco}`} value={dco} />
+                  {label}
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
+          <SaveRow onSave={() => save('prs')} pending={pendingSection === 'prs'} message={messageFor('prs')} />
+        </Panel>
+      ) : null}
     </>
   );
 }

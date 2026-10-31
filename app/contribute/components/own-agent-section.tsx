@@ -181,6 +181,10 @@ export function SetupLines() {
   );
 }
 
+/** What the user's own agent does with us, under its title. */
+export const OWN_AGENT_TEXT =
+  'Claude Code, Codex, Cursor or Gemini CLI on your machine finds issues here, works on one and hands the change back through our MCP server. You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed.';
+
 /**
  * Settings, "Your own agent (MCP)": the user's tokens for their own agent (create one, shown once; revoke one), the
  * setup for each client, and the safety line. `ownAgent` is `undefined` while the API does not answer it yet.
@@ -189,11 +193,14 @@ export function OwnAgentSection({
   ownAgent,
   now,
   step,
+  titled = true,
 }: {
   ownAgent: ContributeOwnAgent | undefined;
   now?: Date;
   /** Its number on the own-agent path of Connect; none in Settings. */
   step?: number;
+  /** False on its own Settings page, whose title says it. */
+  titled?: boolean;
 }) {
   const router = useRouter();
   const id = useId();
@@ -219,11 +226,13 @@ export function OwnAgentSection({
 
   return (
     <Panel id="own-agent" className="gap-3.5">
-      <PanelTitle
-        eyebrow={step ? `Step ${step} · A token for your agent` : undefined}
-        title="Your own agent (MCP)"
-        text="Claude Code, Codex, Cursor or Gemini CLI on your machine finds issues here, works on one and hands the change back through our MCP server. You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed."
-      />
+      {titled ? (
+        <PanelTitle
+          eyebrow={step ? `Step ${step} · A token for your agent` : undefined}
+          title="Your own agent (MCP)"
+          text={OWN_AGENT_TEXT}
+        />
+      ) : null}
       {ownAgent === undefined ? (
         <p className="text-sm text-muted-foreground">Not available yet. It is coming soon.</p>
       ) : (

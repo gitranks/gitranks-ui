@@ -18,6 +18,7 @@ const { helperModelLabelOf, testModelLabelOf } = await import('./settings-form')
 const { sizeLabelOf } = await import('./preferences-fields');
 const { KINDS, LANGUAGES } = await import('@/lib/contribute/format');
 const { SettingsScreen } = await import('./settings-view');
+const { FormSettingsScreen, KeysSettingsScreen, WorkSettingsScreen } = await import('./settings-pages');
 const { IssuesScreen } = await import('./issues-view');
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
 const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
@@ -216,11 +217,48 @@ describe("the key check's result", () => {
 });
 
 describe('the settings screen', () => {
-  const render = (view: ContributeView, grantRefusal?: 'refused' | 'unavailable') =>
-    renderToStaticMarkup(<SettingsScreen view={view} now={NOW} grantRefusal={grantRefusal} />);
+  const render = (view: ContributeView) => renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />);
+  /** The pages the summary's rows open, one after the other. */
+  const pages = (view: ContributeView, grantRefusal?: 'refused' | 'unavailable') =>
+    renderToStaticMarkup(
+      <>
+        <FormSettingsScreen page="budget" view={view} />
+        <FormSettingsScreen page="agent" view={view} />
+        <WorkSettingsScreen view={view} now={NOW} />
+        <KeysSettingsScreen view={view} grantRefusal={grantRefusal} now={NOW} />
+      </>,
+    );
 
-  it('has every setting, each section, and the delete', () => {
-    const plain = text(render(views.active));
+  it('sums up every setting in a row with its value, each opening its page, and the delete', () => {
+    const html = render(views.active);
+    const plain = text(html);
+
+    for (const label of [
+      'What you work on',
+      'Where your issues come from Rust · Bugs · any size',
+      'Budget and the agent',
+      'Budget and pacing',
+      '$200 a cycle · Even, then a final sweep · renews on the 14th',
+      'Agent and pull requests',
+      'Claude Sonnet 5.5, medium effort · PRs up to 400 lines, 15 files',
+      'Autopilot',
+      'Connections',
+      'Claude API key',
+      'GitHub pull requests',
+      'Your own agent (MCP)',
+      'Delete all Contribute data',
+    ]) {
+      expect(plain).toContain(label);
+    }
+    for (const page of ['work', 'budget', 'agent', 'keys', 'own-agent']) {
+      expect(html).toContain(`href="/contribute/settings/${page}"`);
+    }
+    expect(html).not.toContain('role="combobox"');
+    expect(html).not.toContain('aria-label="Settings sections"');
+  });
+
+  it('has every setting on the pages the rows open', () => {
+    const plain = text(pages(views.active));
 
     for (const label of [
       'Each billing cycle',
@@ -241,19 +279,17 @@ describe('the settings screen', () => {
       'Files',
       'Open PRs at a time',
       'DCO sign-off',
-      'Autopilot',
       'Languages',
       'Issue kinds',
       'Largest issue size',
       'Keys and access',
-      'Delete all Contribute data',
     ]) {
       expect(plain).toContain(label);
     }
   });
 
   it('says each pick in its trigger: the stored day, the models, the effort, and no size', () => {
-    const html = render(views.active);
+    const html = pages(views.active);
     const triggers = [
       ...html.matchAll(/role="combobox"[^>]*><span data-slot="select-value"[^>]*>([^<]*)<\/span>/g),
     ].map(([, label]) => label);
@@ -272,7 +308,7 @@ describe('the settings screen', () => {
   });
 
   it('renders the pace and the DCO sign-off as radio groups, named, with the stored ones checked', () => {
-    const html = render(views.active);
+    const html = pages(views.active);
     const groups = [...html.matchAll(/role="radiogroup"[^>]*aria-(label|labelledby)="([^"]*)"/g)].map(
       ([, kind, name]) =>
         kind === 'label' ? name : text(html.match(new RegExp(`id="${name}"[^>]*>([^<]*)<`))?.[1] ?? ''),
@@ -294,39 +330,42 @@ describe('the settings screen', () => {
   it('shows the key and its state, and asks for one when there is none', () => {
     expect(render(views.active)).toContain('data-key-state="VALID"');
     expect(text(render(views.keyInvalid))).toContain('refused by Anthropic');
-    expect(text(render(views.keyInvalid))).toContain('Connect a new key');
-    expect(text(render(views.exhausted))).toContain('credits used up until Nov 14');
-    expect(text(render(views.limitReached))).toContain('workspace limit reached until Nov 1');
-    expect(text(render(views.noKey))).toContain('Not connected');
-    expect(text(render(views.noKey))).toContain('Connect your Claude key →');
+    expect(text(render(views.noKey))).toContain('Claude API key Not connected');
+    expect(pages(views.active)).toContain('data-key-state="VALID"');
+    expect(text(pages(views.keyInvalid))).toContain('Connect a new key');
+    expect(text(pages(views.exhausted))).toContain('credits used up until Nov 14');
+    expect(text(pages(views.limitReached))).toContain('workspace limit reached until Nov 1');
+    expect(text(pages(views.noKey))).toContain('Not connected');
+    expect(text(pages(views.noKey))).toContain('Connect your Claude key →');
   });
 
   it('connects a missing grant and revokes a granted one', () => {
-    expect(render(views.grantMissing)).toContain('data-grant="missing"');
-    expect(text(render(views.grantMissing))).toContain('Allow on GitHub');
-    expect(render(views.active)).toContain('data-grant="connected"');
-    expect(text(render(views.active))).toContain('public_repo, as @octocat');
-    expect(text(render(views.active))).toContain('Revoke');
-    expect(render(views.fieldsMissing)).toContain('data-grant="unknown"');
+    expect(pages(views.grantMissing)).toContain('data-grant="missing"');
+    expect(text(pages(views.grantMissing))).toContain('Allow on GitHub');
+    expect(pages(views.active)).toContain('data-grant="connected"');
+    expect(text(pages(views.active))).toContain('public_repo, as @octocat');
+    expect(text(pages(views.active))).toContain('Revoke');
+    expect(pages(views.fieldsMissing)).toContain('data-grant="unknown"');
   });
 
   it('says why a grant was refused, and where to revoke it on GitHub', () => {
-    const wrongAccount = render(views.grantMissing, 'refused');
+    const wrongAccount = pages(views.grantMissing, 'refused');
     expect(wrongAccount).toContain('data-grant-refusal="refused"');
     expect(text(wrongAccount)).toContain('it must come from the GitHub account you are signed in with');
     expect(text(wrongAccount)).toContain('you may want to revoke it in Authorized OAuth Apps');
     expect(wrongAccount).toContain('href="https://github.com/settings/applications"');
 
-    const unavailable = render(views.grantMissing, 'unavailable');
+    const unavailable = pages(views.grantMissing, 'unavailable');
     expect(text(unavailable)).toContain('pull request access is not available yet');
     expect(unavailable).toContain('href="https://github.com/settings/applications"');
   });
 
   it('offers no grant button while access cannot be granted here, and asks nothing about it', () => {
     const view = { ...views.grantMissing, grantAvailable: false };
-    const html = render(view);
+    const html = pages(view);
 
     expect(html).toContain('data-grant-available="false"');
+    expect(text(render(view))).toContain('GitHub pull requests Not available yet. It is coming soon.');
     expect(text(html)).toContain('Not available yet. It is coming soon.');
     expect(text(html)).not.toContain('Allow on GitHub');
     expect(html).not.toContain('data-notice="grant-missing"');
@@ -491,8 +530,14 @@ describe('the heading scale', () => {
       `<h1 class="${HEADING.page}">Issues for you</h1>`,
     );
     const settings = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} />);
-    expect(settings).toContain(`<h2 class="${HEADING.section}">Pacing</h2>`);
-    expect(settings).toContain(`class="${HEADING.section} mb-2.5">Keys and access</h2>`);
+    expect(settings).toContain('<h1 class="sr-only">Settings</h1>');
+    expect(settings).toContain(`class="${HEADING.block}">Budget and the agent</h2>`);
+    const budget = renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.active} />);
+    expect(budget).toContain(`<h1 class="${HEADING.page}">Budget and pacing</h1>`);
+    expect(budget).toContain(`<h2 class="${HEADING.section}">Pacing</h2>`);
+    expect(renderToStaticMarkup(<KeysSettingsScreen view={views.active} now={NOW} />)).toContain(
+      `<h1 class="${HEADING.page}">Keys and access</h1>`,
+    );
   });
 });
 

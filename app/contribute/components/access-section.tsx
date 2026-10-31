@@ -6,24 +6,18 @@ import { type ReactNode, useEffect, useRef, useState, useTransition } from 'reac
 
 import { removeClaudeKey, revokeGithubGrant } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
-import { HEADING, Panel } from './primitives';
+import { Panel } from './primitives';
 import { useGrantGithub } from './use-grant-github';
 import { Button } from '@/components/ui/button';
 import type { ContributeCredential, ContributeGrant } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, maskedKey, relativeLabel, shortId } from '@/lib/contribute/format';
 import type { GrantRefusal } from '@/lib/contribute/grant-refusal';
-import { cn } from '@/lib/utils';
+import { SETTINGS_PATHS } from '@/lib/contribute/settings-paths';
+import { grantSummaryOf, KEY_STATES } from '@/lib/contribute/settings-summary';
 
 /** Where a user revokes an OAuth App themselves. */
 export const GITHUB_APPS_URL = 'https://github.com/settings/applications';
-
-const KEY_STATES: Record<ContributeCredential['state'], string> = {
-  VALID: 'works',
-  INVALID: 'refused by Anthropic',
-  EXHAUSTED: 'credits used up',
-  LIMIT_REACHED: 'workspace limit reached',
-};
 
 function Row({ title, detail, children }: { title: string; detail: ReactNode; children?: ReactNode }) {
   return (
@@ -130,7 +124,7 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
 /** The GitHub grant's line: connect when missing, revoke when there. */
 function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; available: boolean }) {
   const router = useRouter();
-  const { grant: allow, pending: granting } = useGrantGithub('/contribute/settings#access');
+  const { grant: allow, pending: granting } = useGrantGithub(SETTINGS_PATHS.keys);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<ReactNode>(null);
   const [confirming, setConfirming] = useState(false);
@@ -165,13 +159,7 @@ function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; av
       );
     });
 
-  const detail = grant?.connected
-    ? `public_repo${grant.login ? `, as @${grant.login}` : ''}`
-    : !available
-      ? 'Not available yet. It is coming soon.'
-      : grant === undefined
-        ? 'Status not available yet. Grant it, or revoke it on GitHub, any time.'
-        : 'Not allowed: pull requests cannot be opened for you';
+  const detail = grantSummaryOf(grant, available);
 
   return (
     <div
@@ -243,7 +231,6 @@ export function AccessSection({
 }) {
   return (
     <Panel id="access" className="gap-1">
-      <h2 className={cn(HEADING.section, 'mb-2.5')}>Keys and access</h2>
       {grantRefusal ? (
         <p role="alert" data-grant-refusal={grantRefusal} className="text-sm text-destructive">
           {REFUSALS[grantRefusal]} GitHub may still list GitRanks Contribute as authorized; you may want to revoke it in{' '}
@@ -257,7 +244,9 @@ export function AccessSection({
       <GrantRow grant={grant} available={grantAvailable} />
       <Row title="Your own agent (MCP)" detail="Tokens for Claude Code, Codex, Cursor or Gemini CLI on your machine.">
         <Button asChild variant="outline" className="h-10">
-          <a href="#own-agent">Tokens</a>
+          <Link href={SETTINGS_PATHS.ownAgent} prefetch={false}>
+            Tokens
+          </Link>
         </Button>
       </Row>
     </Panel>

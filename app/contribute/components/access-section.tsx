@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useState, useTransition } from 'react';
+import { type ReactNode, useEffect, useRef, useState, useTransition } from 'react';
 
 import { removeClaudeKey, revokeGithubGrant } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
@@ -42,9 +42,13 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
   const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const done = useRef<HTMLSpanElement>(null);
+  // The button and its dialog are gone once the key is: the focus goes to the line that says so.
+  useEffect(() => {
+    if (message) done.current?.focus();
+  }, [message]);
 
   const remove = () =>
     startTransition(async () => {
@@ -59,9 +63,15 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
       router.refresh();
     });
 
+  const said = message ? (
+    <span ref={done} role="status" tabIndex={-1} className="outline-none">
+      {message}
+    </span>
+  ) : null;
+
   if (!credential) {
     return (
-      <Row title="Claude API key" detail={message ?? 'Not connected'}>
+      <Row title="Claude API key" detail={said ?? 'Not connected'}>
         <Button asChild variant="outline" className="h-10">
           <Link href="/contribute/connect" prefetch={false}>
             Connect
@@ -84,7 +94,7 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
   );
 
   return (
-    <Row title="Claude API key" detail={message ?? detail}>
+    <Row title="Claude API key" detail={said ?? detail}>
       {credential.state === 'INVALID' ? (
         <Button asChild variant="outline" className="h-10">
           <Link href="/contribute/connect" prefetch={false}>
@@ -92,28 +102,27 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
           </Link>
         </Button>
       ) : null}
-      <Button
-        type="button"
-        variant="destructive-outline"
-        onClick={() => {
-          setError(null);
-          setConfirming(true);
-        }}
-        className="h-10"
-      >
-        Remove key
-      </Button>
-      <ConfirmDialog
-        open={confirming}
-        onOpenChange={setConfirming}
-        title="Remove your Claude key?"
-        description="No new attempts start with it. To use it again you connect it again. Delete it in the Claude Console too, so it cannot be used anywhere."
-        action="Remove key"
-        pendingAction="Removing…"
-        pending={pending}
-        error={error}
-        onConfirm={remove}
-      />
+      {message ? null : (
+        <ConfirmDialog
+          trigger={
+            <Button type="button" variant="destructive-outline" className="h-10">
+              Remove key
+            </Button>
+          }
+          open={confirming}
+          onOpenChange={(open) => {
+            if (open) setError(null);
+            setConfirming(open);
+          }}
+          title="Remove your Claude key?"
+          description="No new attempts start with it. To use it again, connect it again. Delete it in the Claude Console too, so it cannot be used anywhere."
+          action="Remove key"
+          pendingAction="Removing…"
+          pending={pending}
+          error={error}
+          onConfirm={remove}
+        />
+      )}
     </Row>
   );
 }
@@ -122,20 +131,26 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
 function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; available: boolean }) {
   const router = useRouter();
   const { grant: allow, pending: granting } = useGrantGithub('/contribute/settings#access');
-  const [message, setMessage] = useState<ReactNode>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<ReactNode>(null);
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
+  const done = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (message) done.current?.focus();
+  }, [message]);
 
   const revoke = () =>
     startTransition(async () => {
+      setError(null);
       const result = await revokeGithubGrant();
-      setConfirming(false);
       if (result.ok) {
+        setConfirming(false);
         setMessage('Revoked. Pull requests can no longer be opened for you.');
         router.refresh();
         return;
       }
-      setMessage(
+      setError(
         result.error === 'NOT_AVAILABLE_YET' ? (
           <>
             Revoking here is not available yet. Revoke it on GitHub:{' '}
@@ -163,33 +178,44 @@ function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; av
       data-grant={grant === undefined ? 'unknown' : grant.connected ? 'connected' : 'missing'}
       data-grant-available={available}
     >
-      <Row title="GitHub pull requests" detail={message ?? detail}>
-        {grant?.connected ? (
-          <Button
-            type="button"
-            variant="destructive-outline"
-            onClick={() => setConfirming(true)}
-            disabled={pending}
-            className="h-10"
-          >
-            Revoke
-          </Button>
-        ) : available ? (
+      <Row
+        title="GitHub pull requests"
+        detail={
+          message ? (
+            <span ref={done} role="status" tabIndex={-1} className="outline-none">
+              {message}
+            </span>
+          ) : (
+            detail
+          )
+        }
+      >
+        {grant?.connected && !message ? (
+          <ConfirmDialog
+            trigger={
+              <Button type="button" variant="destructive-outline" className="h-10">
+                Revoke
+              </Button>
+            }
+            open={confirming}
+            onOpenChange={(open) => {
+              if (open) setError(null);
+              setConfirming(open);
+            }}
+            title="Revoke GitHub access?"
+            description="Pull requests can no longer be opened for you until you allow it on GitHub again."
+            action="Revoke access"
+            pendingAction="Revoking…"
+            pending={pending}
+            error={error}
+            onConfirm={revoke}
+          />
+        ) : !grant?.connected && available ? (
           <Button type="button" variant="outline" onClick={allow} disabled={granting} className="h-10">
             {granting ? 'Opening GitHub…' : 'Allow on GitHub'}
           </Button>
         ) : null}
       </Row>
-      <ConfirmDialog
-        open={confirming}
-        onOpenChange={setConfirming}
-        title="Revoke GitHub access?"
-        description="Pull requests can no longer be opened for you until you allow it on GitHub again."
-        action="Revoke access"
-        pendingAction="Revoking…"
-        pending={pending}
-        onConfirm={revoke}
-      />
     </div>
   );
 }

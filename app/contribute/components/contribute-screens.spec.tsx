@@ -24,7 +24,7 @@ const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-
 const { ContributeNotices } = await import('./contribute-notices');
 const { ConnectResult } = await import('./connect-result');
 const { IssueCard } = await import('./issue-card');
-const { NOW, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { NOW, mcpToken, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
 
 import type { ContributeConnectResult, ContributeIssue, ContributeView } from '@/lib/contribute/contribute.types';
@@ -401,9 +401,13 @@ describe('issues for you', () => {
     expect(plain).not.toContain('not known');
     expect(plain).toContain("Why it was picked: you write Rust, and you've contributed to fern-lang/fern-lsp");
     // One label, a beginner one first, and how many more: the kind and the match rank are not repeated.
-    expect(plain).toContain('good first issue +1 more label');
+    expect(plain).toContain('good first issue +1 , also labelled formatter');
     expect(plain).not.toContain('Best match');
     expect(plain).toContain('Skip fern-lang/fern #2481');
+    // Skip only opens its confirm: it is the dialog's trigger, not the action.
+    expect(html).toMatch(
+      /<button[^>]*aria-haspopup="dialog"[^>]*>Skip<span class="sr-only"> fern-lang\/fern #2481<\/span>/,
+    );
     expect(html).toContain('href="/contribute/issues?after=c2"');
   });
 
@@ -489,5 +493,18 @@ describe('the heading scale', () => {
     const settings = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} />);
     expect(settings).toContain(`<h2 class="${HEADING.section}">Pacing</h2>`);
     expect(settings).toContain(`class="${HEADING.section} mb-2.5">Keys and access</h2>`);
+  });
+});
+
+describe('the confirms before what cannot be undone', () => {
+  it('open from Remove key, Revoke (GitHub) and Revoke (token), which act only from the dialog', () => {
+    const view = { ...views.active, ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken()] } };
+    const html = renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />);
+    const triggers = [...html.matchAll(/<button[^>]*aria-haspopup="dialog"[^>]*>(.*?)<\/button>/g)].map(([, label]) =>
+      text(label).trim(),
+    );
+
+    expect(triggers).toEqual(['Remove key', 'Revoke', 'Revoke Claude Code on macOS']);
+    expect(text(html)).not.toContain('Yes, remove it');
   });
 });

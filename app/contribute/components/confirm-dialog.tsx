@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import {
   AlertDialog,
@@ -10,15 +10,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 
 /**
  * "Are you sure?" before an action that cannot be undone, or not easily: what goes, and a destructive button that
- * says what it does. Cancel takes the focus first. It stays open while the action runs, and shows why it failed; the
- * caller closes it once the action went through.
+ * says what it does. `trigger` is the button that opens it, and gets the focus back on Cancel. Cancel takes the focus
+ * first. It stays open while the action runs, and shows why it failed; the caller closes it once the action went
+ * through, and moves the focus to what says so when the trigger goes with it.
  */
 export function ConfirmDialog({
+  trigger,
   open,
   onOpenChange,
   title,
@@ -29,6 +32,7 @@ export function ConfirmDialog({
   error,
   onConfirm,
 }: {
+  trigger: ReactElement;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -38,11 +42,12 @@ export function ConfirmDialog({
   /** The confirm button while the action runs, as in "Skipping…". */
   pendingAction: string;
   pending: boolean;
-  error?: string | null;
+  error?: ReactNode;
   onConfirm: () => void;
 }) {
   return (
     <AlertDialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
+      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useId, useState, useTransition } from 'react';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { createMcpToken, revokeMcpToken } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
@@ -80,7 +80,13 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Revoked: the row says so, without its button, until the page reads the tokens again. */
+  const [revoked, setRevoked] = useState(false);
   const [pending, startTransition] = useTransition();
+  const done = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (revoked) done.current?.focus();
+  }, [revoked]);
 
   const revoke = () =>
     startTransition(async () => {
@@ -91,6 +97,7 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
         return;
       }
       setConfirming(false);
+      setRevoked(true);
       router.refresh();
     });
 
@@ -101,34 +108,39 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
     >
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="font-medium">{token.name}</span>
-        <span className="text-sm text-muted-foreground">
-          <span className="font-mono">gr_…{token.last4}</span> · created {dayLabel(token.createdAt)} ·{' '}
-          {token.lastUsedAt ? `last used ${relativeLabel(token.lastUsedAt, now)}` : 'never used'}
-        </span>
+        {revoked ? (
+          <span ref={done} role="status" tabIndex={-1} className="text-sm text-muted-foreground outline-none">
+            Revoked. An agent using it can no longer reach us.
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground">
+            <span className="font-mono">gr_…{token.last4}</span> · created {dayLabel(token.createdAt)} ·{' '}
+            {token.lastUsedAt ? `last used ${relativeLabel(token.lastUsedAt, now)}` : 'never used'}
+          </span>
+        )}
       </div>
-      <Button
-        type="button"
-        variant="destructive-outline"
-        onClick={() => {
-          setError(null);
-          setConfirming(true);
-        }}
-        className="h-10"
-      >
-        Revoke
-        <span className="sr-only"> {token.name}</span>
-      </Button>
-      <ConfirmDialog
-        open={confirming}
-        onOpenChange={setConfirming}
-        title={`Revoke "${token.name}"?`}
-        description="An agent using this token can no longer reach us, and the token cannot be brought back. Create a new one to connect it again."
-        action="Revoke token"
-        pendingAction="Revoking…"
-        pending={pending}
-        error={error}
-        onConfirm={revoke}
-      />
+      {revoked ? null : (
+        <ConfirmDialog
+          trigger={
+            <Button type="button" variant="destructive-outline" className="h-10">
+              Revoke
+              <span className="sr-only"> {token.name}</span>
+            </Button>
+          }
+          open={confirming}
+          onOpenChange={(open) => {
+            if (open) setError(null);
+            setConfirming(open);
+          }}
+          title={`Revoke "${token.name}"?`}
+          description="An agent using this token can no longer reach us, and the token cannot be brought back. Create a new one to connect it again."
+          action="Revoke token"
+          pendingAction="Revoking…"
+          pending={pending}
+          error={error}
+          onConfirm={revoke}
+        />
+      )}
     </li>
   );
 }

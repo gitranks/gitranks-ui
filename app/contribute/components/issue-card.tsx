@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { skipIssue } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
@@ -24,6 +24,11 @@ export function IssueCard({ issue, other = false }: { issue: ContributeIssue; ot
   const [skipped, setSkipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const done = useRef<HTMLParagraphElement>(null);
+  // The row and its dialog are gone once it is skipped: the focus goes to the line that says so.
+  useEffect(() => {
+    if (skipped) done.current?.focus();
+  }, [skipped]);
 
   const skip = () =>
     startTransition(async () => {
@@ -40,7 +45,12 @@ export function IssueCard({ issue, other = false }: { issue: ContributeIssue; ot
   const where = `${issue.nameWithOwner} #${issue.number}`;
   if (skipped) {
     return (
-      <p role="status" className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
+      <p
+        ref={done}
+        role="status"
+        tabIndex={-1}
+        className="px-4 py-3 text-sm text-muted-foreground outline-none sm:px-5"
+      >
         Skipped {where}. It will not be picked for you again.
       </p>
     );
@@ -49,7 +59,7 @@ export function IssueCard({ issue, other = false }: { issue: ContributeIssue; ot
   const title = issue.title?.trim() || `Issue #${issue.number}`;
   const url = githubUrlOf(issue.url);
   const label = labelOf(issue.labels);
-  const more = issue.labels.length - 1;
+  const rest = issue.labels.filter((each) => each !== label);
   const why = issue.why?.trim();
 
   return (
@@ -89,10 +99,10 @@ export function IssueCard({ issue, other = false }: { issue: ContributeIssue; ot
             {label ? (
               <span className="flex items-center gap-1" data-labels={issue.labels.length}>
                 <Pill tone={GOOD_FIRST_LABEL.test(label) ? 'green' : 'neutral'}>{label}</Pill>
-                {more > 0 ? (
-                  <span className="text-xs" title={issue.labels.filter((each) => each !== label).join(', ')}>
-                    +{more}
-                    <span className="sr-only"> more label{more === 1 ? '' : 's'}</span>
+                {rest.length ? (
+                  <span className="text-xs" title={rest.join(', ')}>
+                    <span aria-hidden="true">+{rest.length}</span>
+                    <span className="sr-only">, also labelled {rest.join(', ')}</span>
                   </span>
                 ) : null}
               </span>
@@ -100,22 +110,18 @@ export function IssueCard({ issue, other = false }: { issue: ContributeIssue; ot
           </div>
         ) : null}
       </div>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => {
-          setError(null);
-          setConfirming(true);
-        }}
-        className="-mr-2 flex-none text-muted-foreground"
-      >
-        Skip
-        <span className="sr-only"> {where}</span>
-      </Button>
       <ConfirmDialog
+        trigger={
+          <Button type="button" variant="ghost" className="-mr-2 h-10 flex-none px-3 text-muted-foreground">
+            Skip
+            <span className="sr-only"> {where}</span>
+          </Button>
+        }
         open={confirming}
-        onOpenChange={setConfirming}
+        onOpenChange={(open) => {
+          if (open) setError(null);
+          setConfirming(open);
+        }}
         title="Skip this issue?"
         description={
           <>

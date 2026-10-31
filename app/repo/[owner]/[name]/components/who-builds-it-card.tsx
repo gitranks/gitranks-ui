@@ -195,10 +195,7 @@ export const WhoBuildsItCard: FC<WhoBuildsItCardProps> = ({ nameWithOwner, stars
         <h2 className="text-base font-semibold">Who builds it</h2>
         {hasSiblings && hasBuiltBy && (
           // A fieldset (a group to assistive tech), reset to look like the plain box it replaced.
-          <fieldset
-            aria-label="Who builds it view"
-            className="m-0 inline-flex min-w-0 rounded-md border-0 bg-muted p-0.5"
-          >
+          <fieldset aria-label="Who builds it view" className="m-0 inline-flex rounded-md border-0 bg-muted p-0.5">
             {(
               [
                 ['siblings', 'Siblings'],

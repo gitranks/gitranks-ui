@@ -237,7 +237,7 @@ export function ActivityBarView({
           {summary}
         </p>
         {announced ? (
-          <p className="px-4 pt-2 pb-3 text-xs text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0">
+          <p className="px-4 pt-2 pb-3 text-xs text-muted-foreground">
             This keeps going in the background, so you can leave this page. Progress shows here and on the tab.
           </p>
         ) : null}

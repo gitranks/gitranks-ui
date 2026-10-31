@@ -223,6 +223,7 @@ const REFRESHED_BY: [test: (path: string) => boolean, areas: ContributeChangeAre
   // The first-run guide shows here too, and says when the first attempt starts.
   [(path) => path === '/contribute/issues', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
   [(path) => path === '/contribute/me', ['ATTEMPTS']],
+  [(path) => path === '/contribute/runs', ['ATTEMPTS']],
   [(path) => path.startsWith('/contribute/attempts/'), ['ATTEMPTS']],
   [(path) => path === '/contribute/settings' || path.startsWith('/contribute/settings/'), ['SET', 'SETTINGS']],
 ];

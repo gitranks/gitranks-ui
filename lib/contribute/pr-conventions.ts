@@ -11,7 +11,7 @@ export type ContributeTitleRule = {
   types: string[] | null;
   scopes: string[] | null;
   requireScope: boolean;
-  /** The repo's own title pattern (group 1 the type, 2 the scope); null: `type(scope): summary`. */
+  /** The repo's own title pattern, shown and never run (group 1 the type, 2 the scope); null: `type(scope): summary`. */
   pattern: string | null;
 };
 
@@ -74,12 +74,6 @@ function partsProblemOf(type: string, scope: string | undefined, rule: Contribut
   return null;
 }
 
-/**
- * A pattern safe to run on every keystroke: none with a quantified group that holds a quantifier (`(\w+\s?)*`), which
- * can take seconds on a failing title. The API leaves such a pattern out too; this guards an older answer.
- */
-export const safePattern = (pattern: string): boolean => !/\([^()]*[+*}][^()]*\)[+*{]/.test(pattern);
-
 /** Only `https:` links from the repo's data. */
 export const httpsOnly = (url: string | null | undefined): string | null =>
   url && /^https:\/\//i.test(url) ? url : null;
@@ -88,17 +82,9 @@ export const httpsOnly = (url: string | null | undefined): string | null =>
 export function titleProblemOf(title: string, rule: ContributeTitleRule | null | undefined): string | null {
   if (!rule) return null;
   const trimmed = title.trim();
-  if (rule.pattern) {
-    if (!safePattern(rule.pattern)) return null;
-    let match: RegExpMatchArray | null = null;
-    try {
-      match = trimmed.match(new RegExp(rule.pattern));
-    } catch {
-      return null;
-    }
-    if (!match) return `Follow the repo's title pattern \`${rule.pattern}\`.`;
-    return partsProblemOf(match[1] ?? '', match[2], rule);
-  }
+  // The repo's own form is never run here: a stranger's regex can backtrack for seconds on a failing title. The API
+  // never treats it as a rule it checks either; the repo's own action checks it on the pull request.
+  if (rule.pattern) return null;
   const match = trimmed.match(CONVENTIONAL);
   if (!match) {
     const type = !rule.types || rule.types.includes('fix') ? 'fix' : rule.types[0];
@@ -178,7 +164,13 @@ export function checklistOf(
       key: 'title',
       state: problem ? (rule.hard ? 'blocked' : 'todo') : 'ok',
       label: rule.hard ? `A title in ${form}, checked by ${rule.source}` : `A title in ${form}, as ${rule.source} asks`,
-      detail: problem ?? (conventions.titleExamples[0] ? `Like: ${conventions.titleExamples[0]}` : null),
+      detail:
+        problem ??
+        (rule.pattern
+          ? `Pattern: ${rule.pattern}`
+          : conventions.titleExamples[0]
+            ? `Like: ${conventions.titleExamples[0]}`
+            : null),
       link: null,
     });
   }

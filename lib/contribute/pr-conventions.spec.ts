@@ -7,7 +7,6 @@ import {
   checklistOf,
   entryLineOf,
   httpsOnly,
-  safePattern,
   titleBlocks,
   titleProblemOf,
 } from './pr-conventions';
@@ -60,12 +59,14 @@ describe('the title rule, as the API checks it', () => {
     expect(titleProblemOf('fix: x', scoped)).toContain('Add a scope');
     expect(titleProblemOf('fix(web): x', scoped)).toContain('`web` is not one of');
     expect(titleProblemOf('fix(cli): x', scoped)).toBeNull();
-    const pulsar = { ...semantic, types: ['fix', 'cleanup'], pattern: '^\\[(\\w*?)\\](?:\\[(.*?)\\])?(?:\\s*)(.*)$' };
-    expect(titleProblemOf('[fix][cli] End early', pulsar)).toBeNull();
-    expect(titleProblemOf('[feat][cli] End early', pulsar)).toContain('`feat` is not one of');
-    expect(titleProblemOf('fix(cli): end early', pulsar)).toContain('title pattern');
-    // A pattern this browser cannot compile checks nothing: the API's own check stands.
-    expect(titleProblemOf('x', { ...semantic, pattern: '(?<' })).toBeNull();
+    // The repo's own pattern is shown, never run: a stranger's regex can backtrack for seconds.
+    const pulsar = { ...semantic, hard: false, pattern: '^(([a-z ]+))+\\(x\\)$' };
+    const started = Date.now();
+    expect(titleProblemOf('fix the crash in the parser now', pulsar)).toBeNull();
+    expect(Date.now() - started).toBeLessThan(50);
+    expect(checklistOf(conventions({ title: pulsar }), { title: 'x', patch: null })[0].detail).toBe(
+      `Pattern: ${pulsar.pattern}`,
+    );
   });
 
   it('blocks only on a hard rule', () => {
@@ -119,13 +120,7 @@ describe('This repo needs', () => {
 });
 
 describe("the repo's own data, defused", () => {
-  it('runs no pattern that can backtrack for seconds, and links only https', () => {
-    expect(safePattern('^\\[(\\w*?)\\](?:\\[(.*?)\\])?(?:\\s*)(.*)$')).toBe(true);
-    expect(safePattern('^(\\w+\\s?)*$')).toBe(false);
-    const slow = { ...semantic, pattern: '^(\\w+\\s?)*$' };
-    const started = Date.now();
-    expect(titleProblemOf('a'.repeat(40) + '!', slow)).toBeNull();
-    expect(Date.now() - started).toBeLessThan(50);
+  it('links only https', () => {
     expect(httpsOnly('https://cla-assistant.io/o/r')).toBe('https://cla-assistant.io/o/r');
     expect(httpsOnly('javascript:alert(1)')).toBeNull();
     expect(httpsOnly(null)).toBeNull();

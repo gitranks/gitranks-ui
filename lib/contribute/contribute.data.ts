@@ -83,6 +83,16 @@ export const viewerLogin = cache(async (): Promise<string | null> => {
   return session?.user?.githubLogin && !session.error ? session.user.githubLogin : null;
 });
 
+/**
+ * The signed-in user's email, as GitHub gave it at their first sign-in; undefined without one. Sent with Contribute's
+ * writes, so the emails a user asks for ("Notify me") have an address.
+ */
+export const viewerEmail = cache(async (): Promise<string | undefined> => {
+  const session = await auth();
+  const email = session?.user?.email?.trim();
+  return email && !session?.error && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined;
+});
+
 const settled = <T>(result: PromiseSettledResult<T>): T | undefined =>
   result.status === 'fulfilled' ? result.value : undefined;
 

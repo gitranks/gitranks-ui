@@ -3,7 +3,7 @@
 import { agentConnectedOf } from '@/lib/contribute/agent-connect';
 import { anyActive, runsOf } from '@/lib/contribute/agent-runs';
 import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
-import { viewerLogin } from '@/lib/contribute/contribute.data';
+import { viewerEmail, viewerLogin } from '@/lib/contribute/contribute.data';
 import {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
@@ -98,7 +98,8 @@ async function run<TData, TVariables extends Record<string, unknown>, T>(
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   try {
-    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin });
+    const accountEmail = await viewerEmail();
+    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
     return { ok: true, data: pick(data) };
   } catch (error) {
     return { ok: false, ...contributeErrorOf(error) };
@@ -470,7 +471,8 @@ async function runSet<TData, TVariables extends Record<string, unknown>, T>(
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   if (!contributeModesShown(githubLogin)) return { ok: false, error: 'NOT_FOUND' };
   try {
-    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin });
+    const accountEmail = await viewerEmail();
+    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
     return { ok: true, data: pick(data) };
   } catch (error) {
     return { ok: false, ...contributeSetErrorOf(error) };

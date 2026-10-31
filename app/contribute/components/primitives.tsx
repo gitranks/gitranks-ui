@@ -38,15 +38,72 @@ export function Panel({
   );
 }
 
-export function PanelTitle({ title, text, id }: { title: string; text?: ReactNode; id?: string }) {
+/**
+ * Contribute's heading scale, one step per level, so a heading never reads like the text under it (`text-sm`):
+ * - `page`: the page's title, its h1;
+ * - `section`: a section of the page, an h2 in a full-width panel;
+ * - `card`: a narrower block's h2, a side card or a form beside the diff;
+ * - `block`: a part inside a section or card, its h3.
+ * For a heading that needs its own element (a ref, a level picked at runtime); the components below use them.
+ */
+export const HEADING = {
+  page: 'text-2xl font-bold tracking-tight text-balance md:text-3xl',
+  section: 'text-xl font-semibold tracking-tight',
+  card: 'text-lg font-semibold',
+  block: 'text-base font-semibold',
+} as const;
+
+/** A page's h1, with an eyebrow above it and a line of muted text under it. */
+export function PageTitle({
+  title,
+  text,
+  eyebrow,
+  children,
+}: {
+  title: ReactNode;
+  text?: ReactNode;
+  eyebrow?: ReactNode;
+  /** Beside the title, on its line: a chip or a control. */
+  children?: ReactNode;
+}) {
   return (
-    <div className="flex flex-col gap-1">
-      <h2 id={id} className="text-lg font-semibold">
+    <div className="flex min-w-0 flex-col gap-1.5">
+      {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h1 className={HEADING.page}>{title}</h1>
+        {children}
+      </div>
+      {text ? <p className="text-sm text-muted-foreground">{text}</p> : null}
+    </div>
+  );
+}
+
+/** A section's h2, with an eyebrow above it and a line of muted text under it. */
+export function PanelTitle({
+  title,
+  text,
+  id,
+  eyebrow,
+}: {
+  title: string;
+  text?: ReactNode;
+  id?: string;
+  eyebrow?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
+      <h2 id={id} className={HEADING.section}>
         {title}
       </h2>
       {text ? <p className="text-sm text-muted-foreground">{text}</p> : null}
     </div>
   );
+}
+
+/** A part's h3 inside a section or a card. */
+export function SubTitle({ children, className }: { children: ReactNode; className?: string }) {
+  return <h3 className={cn(HEADING.block, className)}>{children}</h3>;
 }
 
 const PILL_TONES = {

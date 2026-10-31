@@ -6,6 +6,7 @@ import { signIn } from 'next-auth/react';
 import { useEffect, useId, useState, useTransition } from 'react';
 
 import { approveAttempt, discardAttempt } from '../actions';
+import { HEADING } from './primitives';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -163,7 +164,7 @@ export function PrForm({
       }}
       className="flex flex-col gap-3.5 rounded-xl border-2 border-primary bg-card p-4.5"
     >
-      <h2 className="text-base font-semibold">Your pull request</h2>
+      <h2 className={HEADING.card}>Your pull request</h2>
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`${id}-title`} className="text-sm font-medium">
           Title

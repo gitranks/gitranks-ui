@@ -8,6 +8,7 @@ import { connectClaudeKey } from '../actions';
 import { ConnectResult, STORED_RESULTS } from './connect-result';
 import { LimitsManual } from './limits-manual';
 import { ISSUES_PATH, Matching } from './matching';
+import { HEADING } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,7 +36,7 @@ export const renewalDayOptionsOf = (renewalDay: number | null | undefined, guess
   DAYS.map((day) => ({ value: String(day), label: renewalLabelOf(day, renewalDay ? null : guessDay) }));
 
 const card = 'flex flex-col rounded-2xl border bg-card p-4.5 sm:p-5.5';
-const cardTitle = 'text-lg font-bold';
+const cardTitle = HEADING.card;
 
 export type KeyConnectProps = {
   /** The plan a key was connected with before; the plan's limits start from Max 5x otherwise. */
@@ -138,9 +139,7 @@ export function KeyConnect({
         <span className="text-xs font-semibold text-primary">
           {replacing ? 'Replace your key' : 'The only step · about two minutes'}
         </span>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          {replacing ? 'Connect a new Claude key' : 'Connect your Claude key'}
-        </h1>
+        <h1 className={HEADING.page}>{replacing ? 'Connect a new Claude key' : 'Connect your Claude key'}</h1>
         <p className="text-foreground/80">
           {replacing
             ? 'A new key replaces the one you connected. Your limits and picks stay as they are, unless you change them here.'
@@ -312,7 +311,7 @@ export function KeyConnect({
           className="flex flex-col gap-3.5 rounded-2xl bg-brand-soft p-4.5 sm:p-5.5"
           data-limits-applied={mode}
         >
-          <h2 id={`${id}-k4`} className="text-base font-bold">
+          <h2 id={`${id}-k4`} className={HEADING.card}>
             The limits we apply
           </h2>
           <dl className="grid grid-cols-1 gap-x-4 gap-y-0.5 text-sm sm:grid-cols-[minmax(110px,auto)_1fr] sm:gap-y-1.5">
@@ -324,7 +323,7 @@ export function KeyConnect({
             ))}
           </dl>
           <div className="flex flex-col gap-2 border-t border-primary/20 pt-3">
-            <span className="text-base font-bold">What we picked for you</span>
+            <h3 className={HEADING.block}>What we picked for you</h3>
             <ul className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-4 gap-y-1.5 text-sm text-foreground/80">
               {applied.picked.map(({ label, value }) => (
                 <li key={label}>

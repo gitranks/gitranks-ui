@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { sendBackToAgent } from '../actions';
-import { Panel } from './primitives';
+import { HEADING, Panel } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { attemptActionErrorMessage } from '@/lib/contribute/errors';
@@ -35,7 +35,7 @@ export function SendBackForm({ attemptId, left }: { attemptId: string; left: num
   if (left <= 0) {
     return (
       <Panel className="gap-2 p-4.5">
-        <h2 className="text-base font-semibold">Send back to my agent</h2>
+        <h2 className={HEADING.card}>Send back to my agent</h2>
         <p className="text-sm text-muted-foreground">
           It was sent back as many times as it can be. Submit it as it is, or discard it.
         </p>
@@ -45,7 +45,7 @@ export function SendBackForm({ attemptId, left }: { attemptId: string; left: num
 
   return (
     <Panel className="gap-2.5 p-4.5">
-      <h2 className="text-base font-semibold">Send back to my agent</h2>
+      <h2 className={HEADING.card}>Send back to my agent</h2>
       <p className="text-sm text-muted-foreground">
         Say what to change. Your agent reads it on its next call and submits again. {left} more time
         {left === 1 ? '' : 's'} for this change.

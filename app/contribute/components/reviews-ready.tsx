@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 
+import { HEADING } from './primitives';
 import { attemptTitleOf, repoOf } from '@/lib/contribute/attempt-format';
 import type { ContributeAttempt } from '@/lib/contribute/contribute.types';
 
@@ -18,7 +19,7 @@ export function ReviewsReady({ attempts }: { attempts: ContributeAttempt[] | und
       data-reviews-ready={ready.length}
       className="flex flex-col gap-2 rounded-xl border border-primary/20 bg-brand-soft px-4 py-3"
     >
-      <h2 id="reviews-ready" className="font-semibold">
+      <h2 id="reviews-ready" className={HEADING.block}>
         {ready.length === 1 ? 'A change is ready for your review' : `${ready.length} changes are ready for your review`}
       </h2>
       <ul className="flex flex-col gap-1.5">

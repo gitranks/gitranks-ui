@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { AutosubmitCountdown, StopAutopilotButton } from './follow-up-buttons';
-import { Pill } from './primitives';
+import { HEADING, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
 import {
   ATTEMPT_STATES,
@@ -52,7 +52,7 @@ function Box({
   );
 }
 
-const Title = ({ children }: { children: ReactNode }) => <h2 className="font-semibold">{children}</h2>;
+const Title = ({ children }: { children: ReactNode }) => <h2 className={HEADING.card}>{children}</h2>;
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
 /** The note the API left after a submission step went wrong: why, and what to do. */

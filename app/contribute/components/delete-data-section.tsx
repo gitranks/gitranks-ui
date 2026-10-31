@@ -5,7 +5,7 @@ import { useId, useState, useTransition } from 'react';
 
 import { deleteContributeData } from '../actions';
 import { GITHUB_APPS_URL } from './access-section';
-import { Panel } from './primitives';
+import { HEADING, Panel } from './primitives';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -50,7 +50,7 @@ export function DeleteDataSection() {
   return (
     <Panel id="danger" tone="danger" className="flex-row flex-wrap items-center justify-between">
       <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-1">
-        <h2 className="text-lg font-semibold">Delete all Contribute data</h2>
+        <h2 className={HEADING.section}>Delete all Contribute data</h2>
         <span className="text-sm text-muted-foreground">
           Removes your key, the GitHub access, your settings and attempt history. PRs already on GitHub stay there.
         </span>

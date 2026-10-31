@@ -1,3 +1,4 @@
+import { HEADING } from './primitives';
 import { type PatchFile, type PatchLineKind, parsePatch } from '@/lib/contribute/patch';
 import { cn } from '@/lib/utils';
 
@@ -115,7 +116,7 @@ export function DiffViewer({ patch, title = 'Diff' }: { patch: string | null | u
   return (
     <section aria-labelledby="diff-title" className="overflow-hidden rounded-xl border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-2.5 border-b px-5 py-3.5">
-        <h2 id="diff-title" className="text-base font-semibold">
+        <h2 id="diff-title" className={HEADING.card}>
           {title}
         </h2>
         {parsed.files.length ? (

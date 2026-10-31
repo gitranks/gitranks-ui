@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { ContributeNotices } from './contribute-notices';
 import { LiveRefresh } from './live-refresh';
 import { FollowUpRounds, PrSignals } from './pr-follow-ups';
-import { Pill } from './primitives';
+import { HEADING, PageTitle, Pill } from './primitives';
 import { type DraftFollowUp, ReplyDraftItem } from './reply-drafts';
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ import type {
 } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { AUTOPILOT_UNLOCK_AT, dayLabel, relativeLabel, timeLeftLabel, usd } from '@/lib/contribute/format';
+import { cn } from '@/lib/utils';
 
 export async function ContributionsView() {
   const [view, contributions, attempts] = await Promise.all([
@@ -248,7 +249,10 @@ function NeedsYou({
     >
       <h2
         id="needs-you"
-        className="border-b border-warning/30 bg-warning-soft px-5 py-3.5 text-base font-semibold text-warning-soft-foreground"
+        className={cn(
+          HEADING.card,
+          'border-b border-warning/30 bg-warning-soft px-5 py-3.5 text-warning-soft-foreground',
+        )}
       >
         Needs you · {count}
       </h2>
@@ -302,7 +306,7 @@ function InProgress({ attempts, now }: { attempts: ContributeAttempt[]; now?: Da
       data-section="in-progress"
       className="overflow-hidden rounded-xl border bg-card"
     >
-      <h2 id="in-progress" className="border-b px-5 py-3.5 text-base font-semibold">
+      <h2 id="in-progress" className={cn(HEADING.card, 'border-b px-5 py-3.5')}>
         In progress · {attempts.length}
       </h2>
       <ul>
@@ -431,7 +435,7 @@ function PullRequests({ contributions, now }: { contributions: ContributeContrib
       aria-labelledby="pull-requests"
       className="min-w-0 flex-[999_1_640px] overflow-hidden rounded-xl border bg-card"
     >
-      <h2 id="pull-requests" className="border-b px-5 py-3.5 text-base font-semibold">
+      <h2 id="pull-requests" className={cn(HEADING.card, 'border-b px-5 py-3.5')}>
         Pull requests
       </h2>
       {content}
@@ -446,7 +450,7 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
   if (!attempts) {
     return (
       <section className="flex flex-col gap-2 rounded-xl border bg-card p-4.5">
-        <h2 className="text-base font-semibold">How attempts ended</h2>
+        <h2 className={HEADING.card}>How attempts ended</h2>
         <p className="text-sm text-muted-foreground">Not available yet.</p>
       </section>
     );
@@ -465,7 +469,7 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
 
   return (
     <section data-section="how-attempts-ended" className="flex flex-col gap-2.5 rounded-xl border bg-card p-4.5">
-      <h2 className="text-base font-semibold">
+      <h2 className={HEADING.card}>
         {attempts.length
           ? `Your last ${attempts.length} attempt${attempts.length === 1 ? '' : 's'}`
           : 'No attempts yet'}
@@ -538,14 +542,14 @@ export function ContributionsScreen({
     <>
       {posting ? <LiveRefresh /> : null}
       <ContributeNotices notices={contributeNoticesOf(view)} />
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">My contributions</h1>
-        {spend ? (
-          <span className="text-sm text-muted-foreground">
-            This cycle: {dayLabel(spend.cycleStart)} to {dayLabel(spend.cycleEnd)}, {usd(spend.cycleUsd)} used
-          </span>
-        ) : null}
-      </div>
+      <PageTitle
+        title="My contributions"
+        text={
+          spend
+            ? `This cycle: ${dayLabel(spend.cycleStart)} to ${dayLabel(spend.cycleEnd)}, ${usd(spend.cycleUsd)} used`
+            : undefined
+        }
+      />
       <Totals view={view} contributions={contributions} />
       <NeedsYou
         attempts={needsYou}

@@ -563,12 +563,13 @@ describe('readContributeChanges', () => {
     });
   });
 
-  it('leaves the work in progress out for a login the modes are not shown to, or when its read fails', async () => {
+  it('never reads or runs the work in progress for a login the modes are not shown to; leaves it out when it fails', async () => {
     as('octocat');
-    graphqlDirect.mockResolvedValueOnce({ contributeChanges: { ...CHANGES, activity: true } });
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: { ...CHANGES, activity: true, changed: ['SET'] } });
+    // Nothing would ever settle the flag for them: it never holds their poll fast.
     expect(await actions.readContributeChanges('3.2', true)).toEqual({
       ok: true,
-      data: { changes: { ...CHANGES, activity: true } },
+      data: { changes: { ...CHANGES, activity: false, changed: ['SET'] } },
     });
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
 

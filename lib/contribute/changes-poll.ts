@@ -1,5 +1,6 @@
 import { activitySignatureOf, isRunning } from './activity-format';
 import type { ContributeActivity, ContributeChangeArea, ContributeChangesRead } from './contribute.types';
+import type { ContributeActionResult } from './errors';
 
 /**
  * Contribute's one poll: a cheap read of what moved for the user since the version the page holds
@@ -102,6 +103,7 @@ export function startChangesPolling(
     if (stopped) return;
     if (env.document.visibilityState !== 'visible') {
       hidden = true;
+      again = false;
       return;
     }
     if (reading) {
@@ -125,7 +127,11 @@ export function startChangesPolling(
     }
     failures = outcome === 'failed' ? failures + 1 : 0;
     if (cadence() === 'fast') fastReads += 1;
-    if (hidden) return;
+    if (hidden) {
+      // Shown again, it reads once: not once more for a read asked while this one ran.
+      again = false;
+      return;
+    }
     if (again) {
       again = false;
       schedule(0);
@@ -211,7 +217,8 @@ export function takesVersion(read: string | null | undefined, held: string | nul
 const REFRESHED_BY: [test: (path: string) => boolean, areas: ContributeChangeArea[]][] = [
   [(path) => path === '/contribute', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
   [(path) => path === '/contribute/connect', ['FEED', 'SETTINGS']],
-  [(path) => path === '/contribute/issues', ['FEED', 'SET', 'SETTINGS']],
+  // The first-run guide shows here too, and says when the first attempt starts.
+  [(path) => path === '/contribute/issues', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
   [(path) => path === '/contribute/me', ['ATTEMPTS']],
   [(path) => path.startsWith('/contribute/attempts/'), ['ATTEMPTS']],
   [(path) => path === '/contribute/settings' || path.startsWith('/contribute/settings/'), ['SET', 'SETTINGS']],
@@ -263,14 +270,14 @@ export const heldOf = (version: string | null, activity: ContributeActivity | nu
 
 /**
  * One read taken: the version and the flag it answered, the work in progress when it was read too, and whether the
- * page at `pathname` reads itself again (it shows what moved, or the work moved on: a repo read, an item ended).
+ * page at `pathname` shows what moved (`changed`) or the work moved on (`moved`: a repo read, an item ended).
  */
 export function afterChangesRead(
   held: HeldChanges,
   read: ContributeChangesRead,
   pathname: string,
   now: number,
-): { held: HeldChanges; refresh: boolean } {
+): { held: HeldChanges; moved: boolean; changed: boolean } {
   const { changes, activity } = read;
   let next: HeldChanges = { ...held, version: changes.version, running: changes.activity };
   let moved = false;
@@ -280,5 +287,108 @@ export function afterChangesRead(
     // The flag is settled by the bar's own read, so it may lag a read behind: running items keep the pace.
     next = { ...next, activity, signature, activityReadAt: now, running: next.running || runningOf(activity) };
   }
-  return { held: next, refresh: moved || refreshesFor(pathname, changes.changed) };
+  return { held: next, moved, changed: refreshesFor(pathname, changes.changed) };
+}
+
+/** How long the bar says the user can leave, after they started something; the poll stays fast as long. */
+export const ANNOUNCE_MS = 12_000;
+/** After the user started something, the poll waits for their own page read this long at most, then reads. */
+export const ANNOUNCE_READ_WAIT_MS = 2_000;
+/** The answers no read can change until the page is read again; anything else is tried again, backing off. */
+const FINAL_ERRORS = new Set(['SIGNED_OUT', 'NOT_FOUND']);
+
+export type ChangesSessionDeps = {
+  read: (since: string | null, withActivity: boolean) => Promise<ContributeActionResult<ContributeChangesRead | null>>;
+  /** The page reads itself again. */
+  refresh: () => void;
+  /** The parts that follow the poll hear what moved. */
+  emit: (changed: readonly ContributeChangeArea[]) => void;
+  /** The work in progress the bar shows. */
+  showActivity: (activity: ContributeActivity | null) => void;
+  pathname: () => string;
+  /** A page waits on something soon (the bus's holds). */
+  held?: () => boolean;
+  now?: () => number;
+};
+
+/**
+ * The one poll's state and its reads, apart from React: `tick` is one read and what it does, `cadence` the pace it
+ * asks for, `takePage` a newer read of the page (after a poll or the user's own write), `announce` the user starting
+ * something long. A read in flight while the page was read again keeps the page's version when it is not older, and
+ * reads nothing again for areas the page already shows. `stop` makes a read still in flight do nothing.
+ */
+export function createChangesSession(
+  version: string | null,
+  activity: ContributeActivity | null,
+  deps: ChangesSessionDeps,
+) {
+  const now = deps.now ?? Date.now;
+  let held = heldOf(version, activity, now());
+  let announcedUntil = 0;
+  let awaitingPage = false;
+  let active = true;
+
+  return {
+    async tick(): Promise<ChangesTick> {
+      const at = now();
+      const sent = held.version;
+      const withActivity = readsActivity({
+        activity: held.activity,
+        running: held.running || at < announcedUntil,
+        waitingReadDue: at - held.activityReadAt >= ACTIVITY_WAITING_READ_MS,
+      });
+      const result = await deps.read(sent, withActivity);
+      if (!active) return 'stop';
+      if (!result.ok) return FINAL_ERRORS.has(result.error) ? 'stop' : 'failed';
+      if (!result.data) return 'stop';
+      const page = held.version !== sent ? held.version : null;
+      const step = afterChangesRead(held, result.data, deps.pathname(), at);
+      held = step.held;
+      let changed = step.changed;
+      if (page && !takesVersion(result.data.changes.version, page)) {
+        // The page was read again while this read ran, at a version as new: it shows what this read names.
+        held = { ...held, version: page };
+        changed = false;
+      }
+      if (result.data.activity !== undefined) deps.showActivity(result.data.activity);
+      deps.emit(result.data.changes.changed);
+      if (step.moved || changed) deps.refresh();
+      return 'ok';
+    },
+    cadence(): ChangesCadence {
+      return held.running || deps.held?.() || now() < announcedUntil ? 'fast' : 'normal';
+    },
+    /** A newer read of the page: its version (and work) taken. True when a read waits on it (`announce`). */
+    takePage(pageVersion: string | null, pageActivity: ContributeActivity | null): boolean {
+      if (pageActivity && !(held.activity && pageActivity.readAt <= held.activity.readAt)) {
+        held = {
+          ...held,
+          activity: pageActivity,
+          signature: activitySignatureOf(pageActivity),
+          running: held.running || runningOf(pageActivity),
+          activityReadAt: now(),
+        };
+        deps.showActivity(pageActivity);
+      }
+      if (!takesVersion(pageVersion, held.version)) return false;
+      held = { ...held, version: pageVersion };
+      const waited = awaitingPage;
+      awaitingPage = false;
+      return waited;
+    },
+    /** The user started something long: fast for a while; the next read waits for their own page read. */
+    announce(): void {
+      announcedUntil = now() + ANNOUNCE_MS;
+      awaitingPage = true;
+    },
+    /** The wait for the user's page read is over (`ANNOUNCE_READ_WAIT_MS`): true when the read should go now. */
+    announceWaited(): boolean {
+      const waited = awaitingPage;
+      awaitingPage = false;
+      return waited;
+    },
+    stop(): void {
+      active = false;
+    },
+  };
 }

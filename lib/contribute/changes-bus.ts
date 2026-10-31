@@ -45,7 +45,12 @@ export const fastChangesHeld = () => fastHolds > 0;
 /** Whether the one poll runs in this tab (it does under the tabs, once the user is onboarded). */
 export const changesPollRunning = () => wake !== null;
 
-/** The poll's read-now, called when a page starts holding it fast; null when the poll stops. */
-export function setChangesWake(readNow: (() => void) | null): void {
+/** The poll's read-now, called when a page starts holding it fast. */
+export function setChangesWake(readNow: () => void): void {
   wake = readNow;
+}
+
+/** The poll stopped: its read-now goes, unless another poll's took its place. */
+export function clearChangesWake(readNow: () => void): void {
+  if (wake === readNow) wake = null;
 }

@@ -409,7 +409,8 @@ const VERSION = /^\d{1,15}\.\d{1,15}$/;
 /**
  * Contribute's one poll: what moved since `since` (a version a previous read answered; null for none). The work in
  * progress is read in the same call when `withActivity`, when a long read may run, or when it may have started or
- * ended; a failed read of it leaves it out. Null when the API hides Contribute from the user.
+ * ended; a failed read of it leaves it out. For a login the modes are not shown to, it is never read and never runs.
+ * Null when the API hides Contribute from the user.
  */
 export async function readContributeChanges(
   since: string | null,
@@ -430,7 +431,9 @@ export async function readContributeChanges(
   if (!changes) return { ok: true, data: null };
   const reads =
     withActivity === true || changes.activity || changes.changed.some((area) => area === 'ACTIVITY' || area === 'SET');
-  if (!reads || !contributeModesShown(githubLogin)) return { ok: true, data: { changes } };
+  // The work in progress is the modes': without them, nothing is read and nothing holds the poll fast.
+  if (!contributeModesShown(githubLogin)) return { ok: true, data: { changes: { ...changes, activity: false } } };
+  if (!reads) return { ok: true, data: { changes } };
   try {
     const { contributeActivity } = await graphqlDirect(ContributeActivityDocument, undefined, {
       source: 'client',

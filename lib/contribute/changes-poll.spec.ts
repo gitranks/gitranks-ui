@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   changesPollRunning,
+  clearChangesWake,
   emitContributeChanges,
   fastChangesHeld,
   holdFastChanges,
@@ -10,6 +11,7 @@ import {
 } from './changes-bus';
 import {
   ACTIVITY_WAITING_READ_MS,
+  ANNOUNCE_MS,
   afterChangesRead,
   CHANGES_BACKOFF_MAX_MS,
   CHANGES_FAST_MS,
@@ -19,6 +21,7 @@ import {
   type ChangesCadence,
   type ChangesTick,
   changesDelayOf,
+  createChangesSession,
   heldOf,
   readsActivity,
   refreshesFor,
@@ -250,7 +253,8 @@ describe('what a read does', () => {
     ['/contribute/', ['SETTINGS'], true],
     ['/contribute/connect', ['FEED'], true],
     ['/contribute/issues', ['FEED'], true],
-    ['/contribute/issues', ['ATTEMPTS'], false],
+    ['/contribute/issues', ['ATTEMPTS'], true],
+    ['/contribute/issues', ['ISSUES'], false],
     ['/contribute/me', ['ATTEMPTS'], true],
     ['/contribute/me', ['SET', 'FEED'], false],
     ['/contribute/attempts/A_1', ['ATTEMPTS'], true],
@@ -285,7 +289,7 @@ describe('what a read does', () => {
       1,
     );
 
-    expect(step).toEqual({ held: { ...held, version: '4.2' }, refresh: false });
+    expect(step).toEqual({ held: { ...held, version: '4.2' }, moved: false, changed: false });
   });
 
   it('an attempt moved: the overview reads itself again, the version moves on', () => {
@@ -296,8 +300,7 @@ describe('what a read does', () => {
       1,
     );
 
-    expect(step.refresh).toBe(true);
-    expect(step.held.version).toBe('5.2');
+    expect(step).toMatchObject({ moved: false, changed: true, held: { version: '5.2' } });
   });
 
   it('the work moved on: the page reads itself again, and a running item keeps the pace though the flag lags', () => {
@@ -311,7 +314,7 @@ describe('what a read does', () => {
       '/contribute/settings',
       9,
     );
-    expect(moved.refresh).toBe(true);
+    expect(moved).toMatchObject({ moved: true, changed: false });
     expect(moved.held).toMatchObject({ activity: after, running: true, activityReadAt: 9 });
 
     const same = afterChangesRead(
@@ -320,7 +323,7 @@ describe('what a read does', () => {
       '/contribute/settings',
       10,
     );
-    expect(same.refresh).toBe(false);
+    expect(same).toMatchObject({ moved: false, changed: false });
 
     const ended = afterChangesRead(
       same.held,
@@ -328,7 +331,7 @@ describe('what a read does', () => {
       '/contribute/me',
       11,
     );
-    expect(ended).toMatchObject({ refresh: true, held: { running: false } });
+    expect(ended).toMatchObject({ moved: true, changed: false, held: { running: false } });
   });
 
   it('the first work seen reads nothing again: there was none before to have moved', () => {
@@ -338,7 +341,7 @@ describe('what a read does', () => {
       '/contribute/me',
       1,
     );
-    expect(step).toMatchObject({ refresh: false, held: { running: true } });
+    expect(step).toMatchObject({ moved: false, changed: false, held: { running: true } });
   });
 });
 
@@ -369,6 +372,153 @@ describe('the bus between the poll and the page', () => {
     expect(fastChangesHeld()).toBe(true);
     other();
     expect(fastChangesHeld()).toBe(false);
-    setChangesWake(null);
+    clearChangesWake(() => undefined);
+    expect(changesPollRunning()).toBe(true);
+    clearChangesWake(wake);
+    expect(changesPollRunning()).toBe(false);
+  });
+});
+
+describe('the poll session', () => {
+  type Read = Awaited<ReturnType<Parameters<typeof createChangesSession>[2]['read']>>;
+  const answer = (version: string, changed: string[] = [], extra: Record<string, unknown> = {}): Read => ({
+    ok: true,
+    data: { changes: { version, activity: false, changed: changed as never }, ...extra },
+  });
+  const sessionOf = (reads: Read[], options: { path?: string; activity?: ContributeActivity | null } = {}) => {
+    const deps = {
+      read: vi.fn(async () => reads.shift() ?? answer('9.9')),
+      refresh: vi.fn(),
+      emit: vi.fn(),
+      showActivity: vi.fn(),
+      pathname: () => options.path ?? '/contribute',
+      now: () => Date.now(),
+    };
+    return { session: createChangesSession('4.2', options.activity ?? null, deps), deps };
+  };
+
+  it('nothing moved: reads from the version held, refreshes nothing, tells the page nothing', async () => {
+    const { session, deps } = sessionOf([answer('4.2')]);
+
+    expect(await session.tick()).toBe('ok');
+    expect(deps.read).toHaveBeenCalledWith('4.2', false);
+    expect(deps.refresh).not.toHaveBeenCalled();
+    expect(deps.emit).toHaveBeenCalledWith([]);
+    expect(deps.showActivity).not.toHaveBeenCalled();
+  });
+
+  it('an attempt moved: the overview reads itself again once, and the next read starts from the new version', async () => {
+    const { session, deps } = sessionOf([answer('5.2', ['ATTEMPTS', 'ISSUES']), answer('5.2')]);
+
+    await session.tick();
+    expect(deps.refresh).toHaveBeenCalledTimes(1);
+    expect(deps.emit).toHaveBeenCalledWith(['ATTEMPTS', 'ISSUES']);
+    await session.tick();
+    expect(deps.read).toHaveBeenLastCalledWith('5.2', false);
+    expect(deps.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('an issue’s availability alone refreshes no page: the cards hear it', async () => {
+    const { session, deps } = sessionOf([answer('4.3', ['ISSUES'])], { path: '/contribute/issues' });
+
+    await session.tick();
+    expect(deps.refresh).not.toHaveBeenCalled();
+    expect(deps.emit).toHaveBeenCalledWith(['ISSUES']);
+  });
+
+  it('a page read during a read, as new: kept, and what it already shows is not read again', async () => {
+    const { session, deps } = sessionOf([]);
+    let finish: (read: Read) => void = () => undefined;
+    deps.read.mockImplementationOnce(() => new Promise<Read>((resolve) => (finish = resolve)));
+
+    const tick = session.tick();
+    // The user's own write and its page read land while the poll is out.
+    expect(session.takePage('5.2', null)).toBe(false);
+    finish(answer('5.2', ['SET']));
+    await tick;
+    expect(deps.refresh).not.toHaveBeenCalled();
+    await session.tick();
+    expect(deps.read).toHaveBeenLastCalledWith('5.2', false);
+  });
+
+  it('a page read during a read, older than its answer: the answer wins and refreshes', async () => {
+    const { session, deps } = sessionOf([]);
+    let finish: (read: Read) => void = () => undefined;
+    deps.read.mockImplementationOnce(() => new Promise<Read>((resolve) => (finish = resolve)));
+
+    const tick = session.tick();
+    session.takePage('5.2', null);
+    finish(answer('6.2', ['SET']));
+    await tick;
+    expect(deps.refresh).toHaveBeenCalledTimes(1);
+    await session.tick();
+    expect(deps.read).toHaveBeenLastCalledWith('6.2', false);
+  });
+
+  it('a start of the user’s goes fast, reads the bar, and waits for their own page read', async () => {
+    const { session, deps } = sessionOf([answer('5.2', [], { activity: activityOf(item('FIRST_READS')) })], {
+      path: '/contribute/settings',
+    });
+
+    expect(session.cadence()).toBe('normal');
+    session.announce();
+    expect(session.cadence()).toBe('fast');
+    // The page read that follows the write: the read waiting on it goes now.
+    expect(session.takePage('5.2', null)).toBe(true);
+    expect(session.announceWaited()).toBe(false);
+    await session.tick();
+    expect(deps.read).toHaveBeenCalledWith('5.2', true);
+    // The page already shows the write; the first work seen moved nothing.
+    expect(deps.refresh).not.toHaveBeenCalled();
+    expect(deps.showActivity).toHaveBeenCalledWith(activityOf(item('FIRST_READS')));
+    // A first read runs: fast past the announce too.
+    vi.advanceTimersByTime(ANNOUNCE_MS);
+    expect(session.cadence()).toBe('fast');
+  });
+
+  it('a start with no page read after it reads at the wait’s end', () => {
+    const { session } = sessionOf([]);
+    session.announce();
+    expect(session.announceWaited()).toBe(true);
+    expect(session.announceWaited()).toBe(false);
+  });
+
+  it('stops for a signed-out user or a hidden Contribute, backs off on anything else', async () => {
+    const outcomes = await Promise.all(
+      (
+        [
+          { ok: false, error: 'SIGNED_OUT' },
+          { ok: false, error: 'NOT_FOUND' },
+          { ok: true, data: null },
+          { ok: false, error: 'NOT_AVAILABLE_YET' },
+          { ok: false, error: 'FAILED' },
+        ] as Read[]
+      ).map((read) => sessionOf([read]).session.tick()),
+    );
+    expect(outcomes).toEqual(['stop', 'stop', 'stop', 'failed', 'failed']);
+  });
+
+  it('does nothing with a read that lands after it stopped', async () => {
+    const { session, deps } = sessionOf([]);
+    let finish: (read: Read) => void = () => undefined;
+    deps.read.mockImplementationOnce(() => new Promise<Read>((resolve) => (finish = resolve)));
+
+    const tick = session.tick();
+    session.stop();
+    finish(answer('5.2', ['ATTEMPTS']));
+    expect(await tick).toBe('stop');
+    expect(deps.refresh).not.toHaveBeenCalled();
+    expect(deps.emit).not.toHaveBeenCalled();
+  });
+
+  it('takes a newer page read’s work in progress, and holds the pace for a running item', () => {
+    const { session, deps } = sessionOf([]);
+    const running = { ...activityOf(item('STACK_RESOLVE')), readAt: '2026-10-31T21:05:00.000Z' };
+
+    session.takePage('4.2', running);
+    expect(deps.showActivity).toHaveBeenCalledWith(running);
+    expect(session.cadence()).toBe('fast');
+    session.takePage('4.2', activityOf());
+    expect(deps.showActivity).toHaveBeenCalledTimes(1);
   });
 });

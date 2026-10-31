@@ -1,8 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { refreshesFor } from '@/lib/contribute/changes-poll';
-
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/contribute',
@@ -241,30 +239,23 @@ describe('Right now', () => {
     ['RUNNING', 'Working'],
     ['CLAIMING', 'Starting'],
     ['CHECKS', 'Checking'],
-  ] as const)(
-    'shows a hosted attempt in %s with a spinner, announced, and read again when it moves',
-    (state, label) => {
-      const html = now(views.active, hosted({ state }));
+  ] as const)('shows a hosted attempt in %s with a spinner, announced', (state, label) => {
+    const html = now(views.active, hosted({ state }));
 
-      expect(html).toContain('data-hosted="working"');
-      // No timer of its own: the overview reads itself again when Contribute's poll names an attempt's move.
-      expect(refreshesFor('/contribute', ['ATTEMPTS'])).toBe(true);
-      expect(html).toMatch(
-        new RegExp(
-          `role="status"[^>]*><span aria-hidden="true" class="[^"]*motion-safe:animate-spin[^"]*"></span>${label}<`,
-        ),
-      );
-      expect(text(html)).toContain(
-        'driftwood-js/driftwood #871 · Nested layouts re-render on every navigation Started 12 minutes ago, on your key. It shows up under Needs you when it is ready.',
-      );
-    },
-  );
+    expect(html).toContain('data-hosted="working"');
+    expect(html).toMatch(
+      new RegExp(
+        `role="status"[^>]*><span aria-hidden="true" class="[^"]*motion-safe:animate-spin[^"]*"></span>${label}<`,
+      ),
+    );
+    expect(text(html)).toContain(
+      'driftwood-js/driftwood #871 · Nested layouts re-render on every navigation Started 12 minutes ago, on your key. It shows up under Needs you when it is ready.',
+    );
+  });
 
   it('names a hosted follow-up by its pull request', () => {
     expect(text(now(views.active, hosted({ kind: 'FOLLOW_UP', followUpOf })))).toContain('Follow-up on PR #1419');
   });
-
-  it('does not read the page again while nothing is in flight', () => {});
 
   it.each([
     [
@@ -629,7 +620,6 @@ describe('the review fixes, rendered', () => {
     expect(html).toContain('data-own-agent="unknown"');
     expect(plain).not.toContain('No issue held');
     expect(plain).not.toContain('on your key');
-    expect(refreshesFor('/contribute', ['ATTEMPTS'])).toBe(true);
   });
 
   it('never says soon while Up next is unavailable', () => {

@@ -122,6 +122,8 @@ export class ContributeUnavailableError extends Error {
 export const loadContribute = cache(async (): Promise<ContributeView | null> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return null;
+  // The poll's baseline before anything the page shows: a change landing meanwhile is named by the first poll.
+  await loadContributeVersion();
 
   const options = { source: 'ssr' as const, githubLogin };
   const [overview, grant, paused, autopilot, ownAgent, onboarding, attemptsOpen] = await Promise.allSettled([

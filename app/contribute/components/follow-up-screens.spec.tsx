@@ -3,8 +3,6 @@ import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { refreshesFor } from '@/lib/contribute/changes-poll';
-
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/contribute/me',
@@ -157,7 +155,7 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(text(html)).toContain('Drafted by a follow-up : waiting for your review.');
   });
 
-  it('keeps an approved reply in its row while it posts, reading the page again until it is posted', () => {
+  it('keeps an approved reply in its row while it posts', () => {
     const html = mine(
       { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
       {
@@ -169,8 +167,6 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(html).toContain('data-reply-state="POSTING"');
     expect(text(html)).toContain('Posting it on GitHub.');
     expect(html).not.toContain('data-approve-reply');
-    // Read again when Contribute's poll names the post's move (an attempt's timeline), with no timer of its own.
-    expect(refreshesFor('/contribute/me', ['ATTEMPTS'])).toBe(true);
   });
 
   it('keeps a reply posted in the last day in its row, with its link, and lets an older one go', () => {

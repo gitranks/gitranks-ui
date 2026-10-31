@@ -99,9 +99,14 @@ function useLiveFeed(
   useEffect(() => {
     feed.start();
     feed.onBeforeRemove((issueId) => moveFocusOff(root.current, issueId));
+    // One status read at a time; a change named while one runs reads once more after it, never lost.
     let reading = false;
-    const stop = onContributeChanges((changed) => {
-      if (reading || !changed.includes('ISSUES')) return;
+    let again = false;
+    const read = () => {
+      if (reading) {
+        again = true;
+        return;
+      }
       reading = true;
       void feed
         .poll()
@@ -111,7 +116,14 @@ function useLiveFeed(
         .catch(() => undefined)
         .finally(() => {
           reading = false;
+          if (again) {
+            again = false;
+            read();
+          }
         });
+    };
+    const stop = onContributeChanges((changed) => {
+      if (changed.includes('ISSUES')) read();
     });
     return () => {
       stop();

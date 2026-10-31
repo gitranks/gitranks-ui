@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 
-import { WorkingNowSection } from './agent-runs';
 import {
   ImpactSection,
   NeedsYouSection,
@@ -21,17 +20,18 @@ import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contr
 
 type Feed = Promise<ContributeIssuePage | null | undefined>;
 
-async function WorkingNowRead() {
-  return <WorkingNowSection activity={await loadContributeActivity().catch(() => null)} />;
-}
-
 async function NeedsYouRead({ view }: { view: ContributeView }) {
   return <NeedsYouSection view={view} read={await loadOverviewNeeds()} />;
 }
 
 async function RightNowRead({ view, feed }: { view: ContributeView; feed: Feed }) {
-  const [read, page] = await Promise.all([loadOverviewNow(), feed]);
-  return <RightNowSection view={view} read={read} page={page} />;
+  // The runs are the tabs' read too (once per request); without them each lane says what the page read of it.
+  const [read, page, activity] = await Promise.all([
+    loadOverviewNow(),
+    feed,
+    loadContributeActivity().catch(() => null),
+  ]);
+  return <RightNowSection view={view} read={read} page={page} activity={activity} />;
 }
 
 async function ImpactRead({ view }: { view: ContributeView }) {
@@ -51,12 +51,6 @@ async function UpNextRead({ feed }: { feed: Feed }) {
  * `feed` is the feed's first page, read once: Up next shows it, and Right now tells "no issues" from it.
  */
 export const overviewReadSectionsOf = (view: ContributeView, feed: Feed): OverviewSections => ({
-  // The tabs read it too (once per request); with no runs it renders nothing, so it waits with no skeleton.
-  working: (
-    <Suspense fallback={null}>
-      <WorkingNowRead />
-    </Suspense>
-  ),
   needs: (
     <Suspense fallback={<SectionSkeleton className="h-20" />}>
       <NeedsYouRead view={view} />

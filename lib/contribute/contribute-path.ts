@@ -44,3 +44,6 @@ export function isMaintainersPath(pathname: string): boolean {
 /** Where each way of contributing starts: a Claude key we run the agent on, or the user's own agent. */
 export const CONNECT_KEY_PATH: Route = '/contribute/connect';
 export const CONNECT_AGENT_PATH = '/contribute/connect?path=agent' as Route;
+
+/** Every agent run: the live ones, then the history. The robot tab and Right now's "All runs" lead there. */
+export const RUNS_PATH = '/contribute/runs' as Route;

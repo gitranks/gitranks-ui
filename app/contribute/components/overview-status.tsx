@@ -3,7 +3,6 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { AgentFirstPicks, AgentNextSteps, AgentWelcome } from './agent-connected';
-import { WorkingNowSection } from './agent-runs';
 import { ContributeNotices } from './contribute-notices';
 import { FirstRunGuide } from './first-run-guide';
 import { ImpactSection, NeedsYouSection, RightNowSection, UpNextSection, WaysSection } from './overview-sections';
@@ -29,8 +28,6 @@ export const ABOUT_PATH = '/contribute?about=1' as Route;
  * fails leaves the rest. Before the first attempt only Ways is shown.
  */
 export type OverviewSections = {
-  /** The agent runs, live ("Working now"); renders nothing with none. */
-  working?: ReactNode;
   needs: ReactNode;
   now: ReactNode;
   impact: ReactNode;
@@ -46,15 +43,14 @@ export type OverviewData = {
   noted: readonly ContributeComingSoonProvider[];
   /** The feed's first page: Up next's, and what Right now's "no issues" is told from. */
   page: ContributeIssuePage | null | undefined;
-  /** The work in progress, for its agent runs. */
+  /** The work in progress, for Right now's agent runs. */
   activity?: ContributeActivity | null;
 };
 
 /** The sections from what they read. */
 export const overviewSectionsOf = (view: ContributeView, data: OverviewData, now?: Date): OverviewSections => ({
-  working: <WorkingNowSection activity={data.activity} />,
   needs: <NeedsYouSection view={view} read={data.needs} now={now} />,
-  now: <RightNowSection view={view} read={data.now} page={data.page} now={now} />,
+  now: <RightNowSection view={view} read={data.now} page={data.page} activity={data.activity} now={now} />,
   impact: <ImpactSection view={view} totals={data.impact} />,
   ways: <WaysSection view={view} noted={data.noted} now={now} />,
   upNext: <UpNextSection page={data.page} />,
@@ -82,8 +78,8 @@ function OverviewFooter() {
 }
 
 /**
- * The overview of an onboarded user: what needs them, what runs right now, their impact, the ways they contribute and
- * what comes next, then the maintainers' strip. Before their first attempt, the guide of what happens next takes the
+ * The overview of an onboarded user: what needs them, what runs right now, what comes next, their impact and the ways
+ * they contribute, then the maintainers' strip. Before their first attempt, the guide of what happens next takes the
  * place of all but Ways: the key's (A3), or the own agent's (B2). `welcome` opens it once, after the own-agent path,
  * with the check.
  */
@@ -136,12 +132,11 @@ export function OverviewScreen({
         </>
       ) : (
         <>
-          {sections.working}
           {sections.needs}
           {sections.now}
+          {sections.upNext}
           {sections.impact}
           {sections.ways}
-          {sections.upNext}
         </>
       )}
       <OverviewFooter />

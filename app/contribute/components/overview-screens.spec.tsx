@@ -50,13 +50,18 @@ const withSpend = (nextAttemptAt: string | null): ContributeView => ({
 });
 
 describe('Overview, once there is an attempt', () => {
-  it('puts Working now first while agent runs are listed, and leaves it out with none', () => {
+  it('shows the agent runs in Right now, never in a section of their own', () => {
     const html = screen(views.active, { activity: activityOf(WORKING, QUEUED) });
     const headings = [...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/g)].map(([, title]) => title);
-    expect(headings.slice(0, 2)).toEqual(['Working now', 'Needs you']);
+    expect(headings.slice(0, 2)).toEqual(['Needs you', 'Right now']);
+    expect(html).not.toContain('Working now');
     expect(html).toContain('data-run="att_working"');
-    expect(text(html)).toContain('1 agent working');
-    expect(screen(views.active, { activity: activityOf() })).not.toContain('Working now');
+    expect(text(html)).toContain('Right now 1 agent working All runs →');
+    expect(html).toContain('href="/contribute/runs"');
+    // With none, the hosted lane says what holds it.
+    const idle = screen(views.active, { activity: activityOf() });
+    expect(idle).not.toContain('data-run=');
+    expect(idle).toContain('data-now="hosted"');
   });
 
   it('shows the sections in order, each with its heading, under the sr-only Overview', () => {
@@ -67,9 +72,9 @@ describe('Overview, once there is an attempt', () => {
       '1:Overview',
       '2:Needs you',
       '2:Right now',
+      '2:Up next',
       '2:Your impact',
       '2:Ways you contribute',
-      '2:Up next',
     ]);
     expect(html).toMatch(/<h1 class="sr-only">Overview<\/h1>/);
     expect(html).toMatch(/<h2 id="overview-needs" class="sr-only">Needs you<\/h2>/);
@@ -370,7 +375,7 @@ describe('Right now', () => {
       leaseUntil: '2026-11-01T00:00:00.000Z',
     });
     expect(text(now(views.agentOnboarded, { ...nowIdle, inFlight: [held] }))).toContain(
-      'Your own agent Holding quill-rs/quill #1204 Claude Code · last call 55 minutes ago. Held for you until Nov 1.',
+      'Your own agent Working Holding quill-rs/quill #1204 Claude Code · last call 55 minutes ago. Held for you until Nov 1.',
     );
     expect(text(now(views.agentOnboarded, { ...nowIdle, inFlight: [{ ...held, state: 'CLAIMING' }] }))).toContain(
       'Claiming quill-rs/quill #1204',
@@ -388,17 +393,31 @@ describe('Right now', () => {
     ).toContain('Holding quill-rs/quill #1204 · sent back with your note');
 
     expect(text(now(views.agentOnboarded))).toContain(
-      'Your own agent No issue held Claude Code on macOS · last call 55 minutes ago. Ask it to "Find me an issue on GitRanks".',
+      'Your own agent Idle No issue held Claude Code on macOS · last call 55 minutes ago. Ask it to "Find me an issue on GitRanks".',
     );
     const fresh = { ...views.agentOnboarded, ownAgent: { paths: { hosted: false, mcp: true }, tokens: [mcpToken()] } };
-    expect(text(now(fresh))).toContain("Your own agent Your agent hasn't called yet");
+    expect(text(now(fresh))).toContain("Your own agent Waiting Your agent hasn't called yet");
     expect(text(now({ ...views.agentOnboarded, paused: true }))).toContain(
-      "Your own agent Contributing is paused Your agent can't claim an issue until you resume.",
+      "Your own agent Paused Contributing is paused Your agent can't claim an issue until you resume.",
     );
     // Its last call stays when the attempts in flight do not answer.
     expect(text(now(views.agentOnboarded, { ...nowIdle, inFlight: undefined }))).toContain(
       "We can't check your agent right now. Claude Code on macOS · last call 55 minutes ago.",
     );
+  });
+
+  it('says a pause once for both agents, with the way to resume', () => {
+    const html = now({ ...both, paused: true });
+    expect(html).toContain('data-hosted="paused"');
+    expect(html).not.toContain('data-now="own-agent"');
+    expect(text(html)).toContain(
+      "Paused Contributing is paused No attempt starts on your key, and your own agent can't claim an issue, until you resume.",
+    );
+    expect(text(html)).toContain('Resume contributing');
+  });
+
+  it('leaves the way to a new key to Needs you', () => {
+    expect(now(views.keyInvalid)).not.toContain('href="/contribute/connect"');
   });
 
   it('shows both agents for a user with both', () => {

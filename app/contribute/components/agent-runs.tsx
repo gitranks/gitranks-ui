@@ -1,34 +1,33 @@
 'use client';
 
-import { Bot } from 'lucide-react';
+import { Bot, Cloud, SquareTerminal } from 'lucide-react';
 import Link from 'next/link';
-import { type ReactNode, useState, useSyncExternalStore } from 'react';
+import { type ReactNode, useSyncExternalStore } from 'react';
 
 import { useActivity } from './activity';
 import { Pill } from './primitives';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tab } from '@/components/tabs/tabs';
 import {
-  anyActive,
   durationLabel,
   eventLineOf,
   indicatorLabelOf,
-  indicatorShortLabelOf,
   isSettled,
+  laneRunsOf,
   newerActivity,
   phaseTextOf,
   quietAgentOf,
   runLinkOf,
   runRefOf,
   runsOf,
+  runsTabMarkOf,
   runTitleOf,
   spendLabelOf,
   stepsOf,
 } from '@/lib/contribute/agent-runs';
 import { contributeActivitySnapshot, onContributeActivity } from '@/lib/contribute/changes-bus';
 import type { ContributeActivity, ContributeAgentRun } from '@/lib/contribute/contribute.types';
+import { RUNS_PATH } from '@/lib/contribute/contribute-path';
 import { cn } from '@/lib/utils';
-
-const ME_PATH = '/contribute/me';
 
 /**
  * The work in progress as the page read it, or as the one poll read it since, whichever is newer: the page is a sibling
@@ -97,15 +96,22 @@ export function RunRow({ run, readAt }: { run: ContributeAgentRun; readAt: strin
     <li
       data-run={run.attemptId}
       data-phase={run.phase}
-      className={cn('flex flex-col gap-1.5 px-4 py-3', settled && 'bg-muted/30')}
+      className={cn(
+        // A phone stacks the issue, the phase and its facts, then the event beside the link; wider, the issue and its
+        // event take the left, the phase, the facts and the link the right.
+        'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3 text-xs',
+        "[grid-template-areas:'ref_ref''title_title''phase_phase''facts_facts''event_link']",
+        "sm:grid-cols-[minmax(0,1fr)_15rem] sm:gap-x-6 sm:[grid-template-areas:'ref_phase''title_facts''event_link']",
+        settled && 'bg-muted/30',
+      )}
     >
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">{runRefOf(run)}</span>
+      <div className="flex min-w-0 items-center gap-2 [grid-area:ref]">
+        <span className="min-w-0 truncate font-mono text-muted-foreground">{runRefOf(run)}</span>
         {run.kind === 'FOLLOW_UP' ? <Pill>Follow-up</Pill> : null}
         {run.runner === 'MCP' ? <Pill>Your agent</Pill> : null}
       </div>
-      <span className="line-clamp-2 text-sm font-medium">{runTitleOf(run)}</span>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+      <span className="line-clamp-2 self-start text-sm font-medium [grid-area:title]">{runTitleOf(run)}</span>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 [grid-area:phase]">
         {settled ? (
           <Pill tone={SETTLED_TONE[run.phase as keyof typeof SETTLED_TONE]}>{phaseTextOf(run)}</Pill>
         ) : (
@@ -115,18 +121,16 @@ export function RunRow({ run, readAt }: { run: ContributeAgentRun; readAt: strin
           </span>
         )}
         {settled ? null : <RunSteps run={run} />}
-        {facts ? <span className="text-muted-foreground tabular-nums">{facts}</span> : null}
       </div>
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <span className="min-w-0 truncate text-xs text-muted-foreground">{event}</span>
-        <Link
-          href={link.href}
-          prefetch={false}
-          className="inline-flex min-h-8 shrink-0 items-center text-xs font-semibold text-link hover:underline"
-        >
-          {link.label} →
-        </Link>
-      </div>
+      {facts ? <span className="self-start text-muted-foreground tabular-nums [grid-area:facts]">{facts}</span> : null}
+      <span className="min-w-0 truncate text-muted-foreground [grid-area:event]">{event}</span>
+      <Link
+        href={link.href}
+        prefetch={false}
+        className="inline-flex min-h-8 shrink-0 items-center justify-self-end font-semibold text-link hover:underline [grid-area:link] sm:justify-self-start"
+      >
+        {link.label} →
+      </Link>
     </li>
   );
 }
@@ -142,86 +146,149 @@ function RunList({ runs, readAt }: { runs: readonly ContributeAgentRun[]; readAt
 }
 
 /**
- * The header's "N agents working", on every tab: nothing with no runs; a dot that breathes while an agent works. A click
- * opens the runs.
+ * The robot tab, at the end of Contribute's tabs and held there while a phone's tabs scroll: every agent run, live and
+ * past. While agents work it spins and counts them; with runs queued, quiet or waiting for the user, a grey dot and
+ * their count; else the robot alone. Its name says the same in words.
  */
-export function AgentRunsIndicator() {
-  const activity = useActivity();
-  const [open, setOpen] = useState(false);
-  // Open, it stays while its last run leaves, so the focus inside it never falls to the page.
-  if (!runsOf(activity).length && !open) return null;
-  return <AgentRunsIndicatorView activity={activity} open={open} onOpenChange={setOpen} />;
+export function AgentRunsTab() {
+  return (
+    <Tab
+      href={RUNS_PATH}
+      // On a phone the tabs scroll under it; its ground stops a pixel short, so the bar's line runs on under it.
+      className="sticky right-0 ms-auto bg-no-repeat max-sm:bg-linear-to-b max-sm:from-background max-sm:to-background max-sm:bg-size-[100%_calc(100%-1px)]"
+    >
+      <AgentRunsTabLabel runs={runsOf(useActivity())} />
+    </Tab>
+  );
 }
 
-export function AgentRunsIndicatorView({
-  activity,
-  open,
-  onOpenChange,
-}: {
-  activity: ContributeActivity | null;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}) {
-  const runs = runsOf(activity);
-  const active = anyActive(runs);
-  const label = indicatorLabelOf(runs) || 'No agents at work';
-  const settled = runs.every(isSettled);
+export function AgentRunsTabLabel({ runs }: { runs: readonly ContributeAgentRun[] }) {
+  const { working, waiting, label } = runsTabMarkOf(runs);
+  const count = working || waiting;
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          data-agent-runs={active ? 'working' : settled ? 'settled' : 'waiting'}
+    <span
+      className="inline-flex items-center gap-1.5 align-middle"
+      title={label ? `Agent runs · ${label}` : 'Agent runs'}
+      data-agent-runs={working ? 'working' : waiting ? 'waiting' : 'none'}
+    >
+      <Bot aria-hidden="true" className="size-4.5" />
+      <span className="sr-only">{label ? `Agent runs: ${label}` : 'Agent runs'}</span>
+      {working ? (
+        <span
+          aria-hidden="true"
+          className="size-3 flex-none rounded-full border-2 border-primary/20 border-t-primary motion-safe:animate-spin"
+        />
+      ) : waiting ? (
+        <span aria-hidden="true" className="size-1.5 rounded-full bg-muted-foreground/60" />
+      ) : null}
+      {count ? (
+        <span
+          aria-hidden="true"
           className={cn(
-            'flex min-h-9 shrink-0 items-center gap-2 rounded-full border bg-card px-3 text-xs font-medium whitespace-nowrap text-foreground outline-none',
-            'hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-            active && 'border-primary/40',
+            'inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1.5 font-mono text-[11px] font-semibold tabular-nums',
+            working ? 'bg-brand-soft text-brand-soft-foreground' : 'bg-muted text-foreground/70',
           )}
         >
-          <LiveDot active={active} settled={settled && runs.length > 0} />
-          <Bot aria-hidden="true" className="size-3.5 text-muted-foreground max-sm:hidden" />
-          {/* The name is the words shown: the short ones on a phone, so a spoken "click 2 working" finds it. */}
-          <span className="max-sm:hidden">{label}</span>
-          <span className="sm:hidden">{indicatorShortLabelOf(runs) || label}</span>
-          <span className="sr-only">: show the agent runs</span>
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        collisionPadding={16}
-        className="w-[min(26rem,calc(100vw-2rem))] p-0"
-        data-agent-runs-sheet=""
-        aria-label="Agent runs"
-      >
-        <AgentRunsSheet activity={activity} />
-      </PopoverContent>
-    </Popover>
+          {count}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
-/** What the header's indicator opens: every run, and the way to My contributions. */
-export function AgentRunsSheet({ activity }: { activity: ContributeActivity | null }) {
-  const runs = runsOf(activity);
+/** Right now's few words beside its heading, live: "2 agents working"; nothing with no live run. */
+export function LiveRunsLabel({ activity }: { activity: ContributeActivity | null | undefined }) {
+  const { label } = runsTabMarkOf(runsOf(useLiveActivity(activity)));
+  return label ? <span className="text-sm text-muted-foreground">{label}</span> : null;
+}
+
+const LANES = {
+  hosted: { title: 'Hosted agent', note: 'on your Claude key', Icon: Cloud },
+  own: { title: 'Your own agent', note: null, Icon: SquareTerminal },
+} as const;
+
+type LaneName = keyof typeof LANES;
+
+function Lane({
+  name,
+  runs,
+  readAt,
+  children,
+}: {
+  name: LaneName;
+  runs: readonly ContributeAgentRun[];
+  readAt: string;
+  children: ReactNode;
+}) {
+  const { title, note, Icon } = LANES[name];
   return (
-    <>
-      <div className="flex items-baseline justify-between gap-3 border-b px-4 py-3">
-        <span className="text-sm font-semibold">Agent runs</span>
-        <Link href={ME_PATH} prefetch={false} className="text-xs font-semibold text-link hover:underline">
-          My contributions →
-        </Link>
+    <div data-lane={name} data-lane-runs={runs.length}>
+      <div className="flex items-center gap-2 border-b bg-muted/60 px-4 py-2 text-xs">
+        <Icon aria-hidden="true" className="size-3.5 text-muted-foreground" />
+        <h3 className="font-semibold">{title}</h3>
+        {note ? <span className="text-muted-foreground">{note}</span> : null}
       </div>
-      <div className="max-h-[min(28rem,70vh)] overflow-y-auto">
-        {activity && runs.length ? (
-          <RunList runs={runs} readAt={activity.readAt} />
-        ) : (
-          <p className="px-4 py-3 text-sm text-muted-foreground">No agents at work right now.</p>
-        )}
-      </div>
-    </>
+      {runs.length ? <RunList runs={runs} readAt={readAt} /> : children}
+    </div>
   );
 }
 
-/** Overview's "Working now": the runs, live from the poll; nothing with none. */
+/**
+ * Right now's agents, a lane each: the agent we run on the user's key, and the user's own agent. A lane lists its live
+ * runs, from the poll, or else says what holds it (`hosted`, `ownAgent`: the page's words for its state, as it read
+ * it); the runs that ended in the last ten minutes follow, under "Just finished". A run that waits for the user is Needs
+ * you's alone. Paused with nothing live, one line says so for both (`paused`); with neither way, `none` does.
+ */
+export function RightNowLanes({
+  activity,
+  hosted,
+  ownAgent,
+  paused,
+  none,
+}: {
+  activity: ContributeActivity | null | undefined;
+  hosted?: ReactNode;
+  ownAgent?: ReactNode;
+  paused?: ReactNode;
+  none?: ReactNode;
+}) {
+  const live = useLiveActivity(activity);
+  const lanes = laneRunsOf(runsOf(live));
+  const readAt = live?.readAt ?? '';
+  const working = lanes.hosted.length > 0 || lanes.own.length > 0;
+  return (
+    <div
+      data-now-lanes={working ? 'working' : 'idle'}
+      className={cn('flex flex-col divide-y overflow-hidden rounded-xl border bg-card', working && 'border-primary/30')}
+    >
+      {paused && !working ? (
+        paused
+      ) : (
+        <>
+          {hosted || lanes.hosted.length ? (
+            <Lane name="hosted" runs={lanes.hosted} readAt={readAt}>
+              {hosted}
+            </Lane>
+          ) : null}
+          {ownAgent || lanes.own.length ? (
+            <Lane name="own" runs={lanes.own} readAt={readAt}>
+              {ownAgent}
+            </Lane>
+          ) : null}
+          {working || hosted || ownAgent ? null : none}
+        </>
+      )}
+      {lanes.finished.length ? (
+        <div data-lane="finished">
+          <h3 className="bg-muted/30 px-4 pt-2.5 text-xs font-semibold text-muted-foreground">Just finished</h3>
+          <RunList runs={lanes.finished} readAt={readAt} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The runs page's "Working now": the runs, live from the poll; nothing with none. */
 export function WorkingNowSection({ activity }: { activity: ContributeActivity | null | undefined }) {
   const live = useLiveActivity(activity);
   if (!live?.runs.length) return null;

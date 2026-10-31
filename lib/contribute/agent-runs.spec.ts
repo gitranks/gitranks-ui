@@ -5,10 +5,11 @@ import {
   durationLabel,
   eventLineOf,
   indicatorLabelOf,
-  indicatorShortLabelOf,
+  laneRunsOf,
   newerActivity,
   phaseTextOf,
   runLinkOf,
+  runsTabMarkOf,
   spendLabelOf,
   stepsOf,
 } from './agent-runs';
@@ -23,8 +24,28 @@ describe('the agent runs', () => {
     const done = runOf({ phase: 'DONE', active: false, settledAt: '2026-10-31T11:59:00.000Z' });
     expect(indicatorLabelOf([READY, done])).toBe('Done');
     expect(indicatorLabelOf([])).toBe('');
-    expect(indicatorShortLabelOf([WORKING, FOLLOW_UP])).toBe('2 working');
-    expect(indicatorShortLabelOf([READY])).toBe('Ready for you');
+  });
+
+  it('marks the robot tab with how many work, else how many wait, and nothing for settled runs', () => {
+    expect(runsTabMarkOf([WORKING, FOLLOW_UP, QUEUED, READY])).toEqual({
+      working: 2,
+      waiting: 0,
+      label: '2 agents working',
+    });
+    expect(runsTabMarkOf([QUEUED])).toEqual({ working: 0, waiting: 1, label: '1 queued' });
+    expect(runsTabMarkOf([READY])).toEqual({ working: 0, waiting: 0, label: '' });
+    expect(runsTabMarkOf([])).toEqual({ working: 0, waiting: 0, label: '' });
+  });
+
+  it("splits Right now's runs by lane, the ones that wait for the user left to Needs you", () => {
+    const own = runOf({ attemptId: 'att_own', runner: 'MCP' });
+    const autopilot = runOf({ attemptId: 'att_autopilot', phase: 'WAITING_FOR_YOU', active: false });
+    const done = runOf({ attemptId: 'att_done', phase: 'DONE', active: false });
+    const stopped = runOf({ attemptId: 'att_stopped', phase: 'STOPPED', active: false });
+    const lanes = laneRunsOf([WORKING, FOLLOW_UP, QUEUED, own, autopilot, READY, done, stopped]);
+    expect(lanes.hosted.map(({ attemptId }) => attemptId)).toEqual(['att_working', 'att_follow_up', 'att_queued']);
+    expect(lanes.own.map(({ attemptId }) => attemptId)).toEqual(['att_own']);
+    expect(lanes.finished.map(({ attemptId }) => attemptId)).toEqual(['att_done', 'att_stopped']);
   });
 
   it('words a settled run as the user acts on it, a live one as the API says', () => {

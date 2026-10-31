@@ -210,6 +210,8 @@ describe("Contribute's header and tabs", () => {
     ['/contribute/issues', 'Issues for you'],
     ['/contribute/me', 'My contributions'],
     ['/contribute/settings', 'Settings'],
+    // The robot tab: its words are for screen readers, after the icon.
+    ['/contribute/runs', ''],
   ];
   /** The tab links, as the site's tabs draw them. */
   const tabLinks = (html: string) => html.match(/<a [^>]*href="\/contribute[^"]*"[^>]*>[^<]*/g) ?? [];
@@ -247,7 +249,7 @@ describe("Contribute's header and tabs", () => {
     expect(contributeTabsShown('/contribute/maintainers', null, false)).toBe(false);
   });
 
-  it("are the site's tabs, the four of them and no Contribute label, the current one marked", () => {
+  it("are the site's tabs, the four of them and the robot's, no Contribute label, the current one marked", () => {
     const html = tabsAt('/contribute/issues');
 
     expect(html).toMatch(/^<div class="[^"]*border-b[^"]*"><ul /);
@@ -266,6 +268,7 @@ describe("Contribute's header and tabs", () => {
     expect(currentTab(tabsAt('/contribute/me'))).toEqual(['/contribute/me']);
     expect(currentTab(tabsAt('/contribute/connect', 'path=agent'))).toEqual(['/contribute']);
     expect(currentTab(tabsAt('/contribute/settings'))).toEqual(['/contribute/settings']);
+    expect(currentTab(tabsAt('/contribute/runs'))).toEqual(['/contribute/runs']);
   });
 
   it('draws only the line under the header where there are no tabs', () => {

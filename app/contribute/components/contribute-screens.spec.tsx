@@ -348,7 +348,7 @@ describe('the settings screen', () => {
   });
 
   it('saves a page in one patch, or names the first field that is not a number', async () => {
-    const { pagePatchOf } = await import('./settings-form');
+    const { moreLimitsSummaryOf, pagePatchOf } = await import('./settings-form');
     const draft = {
       cycleCapUsd: '$200',
       weekCapUsd: '',
@@ -379,8 +379,28 @@ describe('the settings screen', () => {
         renewalDay: 14,
       },
     });
+    expect(pagePatchOf('agent', draft)).toEqual({
+      patch: {
+        mainModel: 'CLAUDE_SONNET_5_5',
+        helperModel: 'CLAUDE_HAIKU_5_5',
+        testModel: null,
+        effort: 'MEDIUM',
+        maxChangedLines: 400,
+        maxFiles: 15,
+        openPrsAtATime: 3,
+        dco: 'ASK',
+      },
+    });
     expect(pagePatchOf('budget', { ...draft, sweepDays: 'soon' })).toEqual({ invalid: 'Sweep days' });
     expect(pagePatchOf('agent', { ...draft, maxFiles: '' })).toEqual({ invalid: 'Files' });
+
+    // The fold's line says what was typed, even what Save will refuse.
+    expect(moreLimitsSummaryOf(draft)).toBe(
+      'no week cap · $15 a day · $5 an attempt · 1 at a time · sweep 3 days · renews on the 14th',
+    );
+    expect(moreLimitsSummaryOf({ ...draft, weekCapUsd: 'abc', attemptCapUsd: '5', sweepDays: '1' })).toBe(
+      'week cap “abc” · $15 a day · $5 an attempt · 1 at a time · sweep 1 day · renews on the 14th',
+    );
   });
 
   it('pauses an active contributor and resumes a paused one', () => {
@@ -598,7 +618,7 @@ describe('the heading scale', () => {
     const budget = renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.active} />);
     expect(budget).toContain(`<h1 class="${HEADING.page}">Budget and pacing</h1>`);
     expect(renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.active} />)).toContain(
-      `<h3 class="${HEADING.block}">Pull requests</h3>`,
+      `<h2 class="${HEADING.block}">Pull requests</h2>`,
     );
     expect(renderToStaticMarkup(<KeysSettingsScreen view={views.active} now={NOW} />)).toContain(
       `<h1 class="${HEADING.page}">Keys and access</h1>`,

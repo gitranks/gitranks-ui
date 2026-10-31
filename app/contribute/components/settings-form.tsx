@@ -2,10 +2,10 @@
 
 import { ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useId, useState, useTransition } from 'react';
+import { type ReactNode, useEffect, useId, useState, useTransition } from 'react';
 
 import { saveContributeSettings } from '../actions';
-import { Panel, SubTitle } from './primitives';
+import { HEADING, Panel } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -153,6 +153,7 @@ function Field({ label, children, htmlFor }: { label: string; children: ReactNod
 /** A fold for the fields most people leave as they are: its title, their values in a line, and the fields. */
 function Fold({
   id,
+  anchor,
   title,
   summary,
   open,
@@ -160,6 +161,8 @@ function Fold({
   children,
 }: {
   id: string;
+  /** Its id on the page, for links that name a field inside it. */
+  anchor?: string;
   title: string;
   summary: string;
   open: boolean;
@@ -167,7 +170,7 @@ function Fold({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border" data-fold={open ? 'open' : 'closed'}>
+    <div id={anchor} className="scroll-mt-20 rounded-xl border" data-fold={open ? 'open' : 'closed'}>
       <button
         type="button"
         aria-expanded={open}
@@ -204,6 +207,8 @@ const PAGES = {
 export type SettingsFormPage = keyof typeof PAGES;
 
 /** One patch for a page's sections, or the label of the first field that is not a valid number. */
+export type { Draft as SettingsDraft };
+
 export function pagePatchOf(
   page: SettingsFormPage,
   draft: Draft,
@@ -217,10 +222,23 @@ export function pagePatchOf(
   return { patch };
 }
 
+/** A cap as the fold's line says it: "$15 a day", "no week cap", or what was typed that is not a number. */
 const capLabel = (text: string, what: string) => {
   const value = parseAmount(text);
-  return value === null || value === undefined ? `no ${what} cap` : `$${value} a ${what}`;
+  if (value === undefined) return `${what} cap “${text.trim()}”`;
+  return value === null ? `no ${what} cap` : `$${value} ${what === 'attempt' ? 'an' : 'a'} ${what}`;
 };
+
+/** What the fold of More limits says of them, as typed. */
+export const moreLimitsSummaryOf = (draft: Draft) =>
+  [
+    capLabel(draft.weekCapUsd, 'week'),
+    capLabel(draft.dayCapUsd, 'day'),
+    capLabel(draft.attemptCapUsd, 'attempt'),
+    `${draft.attemptsAtATime.trim() || '?'} at a time`,
+    `sweep ${draft.sweepDays.trim() === '1' ? '1 day' : `${draft.sweepDays.trim() || '?'} days`}`,
+    `renews on ${ordinalDay(draft.renewalDay)}`,
+  ].join(' · ');
 
 /**
  * Budget and pacing, or the agent and pull requests, on their Settings page: what most people change up front, the
@@ -235,6 +253,11 @@ export function SettingsForm({ settings, page }: { settings: ContributeSettings;
   const [pending, startTransition] = useTransition();
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((current) => ({ ...current, [key]: value }));
+
+  // A link to a folded field ("Attempts at a time in Settings") arrives with the fold open.
+  useEffect(() => {
+    if (window.location.hash === '#more-limits') setFolded(false);
+  }, []);
 
   const save = () => {
     const built = pagePatchOf(page, draft);
@@ -251,6 +274,8 @@ export function SettingsForm({ settings, page }: { settings: ContributeSettings;
         setStatus({ ok: true, text: 'Saved.' });
         router.refresh();
       } else {
+        // The server may refuse a folded field (an attempt cap above a cap that is set): show it.
+        if (result.error === 'INVALID') setFolded(false);
         setStatus({ ok: false, text: contributeErrorMessage(result.error, result.message) });
       }
     });
@@ -331,15 +356,9 @@ export function SettingsForm({ settings, page }: { settings: ContributeSettings;
 
           <Fold
             id={`${id}-more`}
+            anchor="more-limits"
             title="More limits"
-            summary={[
-              capLabel(draft.weekCapUsd, 'week'),
-              capLabel(draft.dayCapUsd, 'day'),
-              `${draft.attemptCapUsd || '—'} an attempt`,
-              `${draft.attemptsAtATime} at a time`,
-              `sweep ${draft.sweepDays} days`,
-              `renews on ${ordinalDay(draft.renewalDay)}`,
-            ].join(' · ')}
+            summary={moreLimitsSummaryOf(draft)}
             open={!folded}
             onToggle={() => setFolded(!folded)}
           >
@@ -438,7 +457,7 @@ export function SettingsForm({ settings, page }: { settings: ContributeSettings;
 
           <div id="prs" className="flex scroll-mt-20 flex-col gap-3.5 border-t pt-4">
             <div className="flex flex-col gap-1">
-              <SubTitle>Pull requests</SubTitle>
+              <h2 className={HEADING.block}>Pull requests</h2>
               <span className="text-sm text-muted-foreground">An attempt above these limits stops before review.</span>
             </div>
             <div className="grid gap-3.5 sm:grid-cols-3">

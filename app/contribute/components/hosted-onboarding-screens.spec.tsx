@@ -245,15 +245,14 @@ describe('A3, what happens next before the first attempt', () => {
     expect(text(guide(views.active))).toContain('bugs, Rust first, within your $200 monthly cap');
   });
 
-  it('opens Issues, with the picks under it and the best match marked', () => {
+  it('opens Issues, with the picks under it', () => {
     const html = renderToStaticMarkup(<IssuesScreen view={views.firstKey} page={page} query={{}} now={NOW} firstRun />);
     const plain = text(html);
 
     expect(html).toMatch(/<h1[^>]*>You&#x27;re in. Here&#x27;s what happens next<\/h1>/);
     expect(html).toMatch(/<h2[^>]*>Picked for you<\/h2>/);
     expect(plain.indexOf("You're in")).toBeLessThan(plain.indexOf('Picked for you'));
-    expect(html.match(/data-best="true"/g)).toHaveLength(1);
-    expect(plain).toContain('Best match');
+    expect(html.match(/data-issue="/g)).toHaveLength(page.items.length);
   });
 
   it('leaves out only the notice step 1 restates, and keeps every other block', () => {

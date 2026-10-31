@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation';
 import { type ReactNode, useState, useTransition } from 'react';
 
 import { removeClaudeKey, revokeGithubGrant } from '../actions';
-import { Panel } from './primitives';
+import { ConfirmDialog } from './confirm-dialog';
+import { HEADING, Panel } from './primitives';
 import { useGrantGithub } from './use-grant-github';
 import { Button } from '@/components/ui/button';
 import type { ContributeCredential, ContributeGrant } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, maskedKey, relativeLabel, shortId } from '@/lib/contribute/format';
 import type { GrantRefusal } from '@/lib/contribute/grant-refusal';
+import { cn } from '@/lib/utils';
 
 /** Where a user revokes an OAuth App themselves. */
 export const GITHUB_APPS_URL = 'https://github.com/settings/applications';
@@ -42,14 +44,17 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const [error, setError] = useState<string | null>(null);
+
   const remove = () =>
     startTransition(async () => {
+      setError(null);
       const result = await removeClaudeKey();
-      setConfirming(false);
       if (!result.ok) {
-        setMessage(contributeErrorMessage(result.error, result.message));
+        setError(contributeErrorMessage(result.error, result.message));
         return;
       }
+      setConfirming(false);
       setMessage('Removed. Delete the key in the Claude Console too, so it cannot be used anywhere.');
       router.refresh();
     });
@@ -87,20 +92,28 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
           </Link>
         </Button>
       ) : null}
-      {confirming ? (
-        <>
-          <Button type="button" variant="destructive-outline" onClick={remove} disabled={pending} className="h-10">
-            {pending ? 'Removing…' : 'Yes, remove it'}
-          </Button>
-          <Button type="button" variant="outline" onClick={() => setConfirming(false)} className="h-10">
-            Cancel
-          </Button>
-        </>
-      ) : (
-        <Button type="button" variant="destructive-outline" onClick={() => setConfirming(true)} className="h-10">
-          Remove key
-        </Button>
-      )}
+      <Button
+        type="button"
+        variant="destructive-outline"
+        onClick={() => {
+          setError(null);
+          setConfirming(true);
+        }}
+        className="h-10"
+      >
+        Remove key
+      </Button>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Remove your Claude key?"
+        description="No new attempts start with it. To use it again you connect it again. Delete it in the Claude Console too, so it cannot be used anywhere."
+        action="Remove key"
+        pendingAction="Removing…"
+        pending={pending}
+        error={error}
+        onConfirm={remove}
+      />
     </Row>
   );
 }
@@ -110,11 +123,13 @@ function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; av
   const router = useRouter();
   const { grant: allow, pending: granting } = useGrantGithub('/contribute/settings#access');
   const [message, setMessage] = useState<ReactNode>(null);
+  const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const revoke = () =>
     startTransition(async () => {
       const result = await revokeGithubGrant();
+      setConfirming(false);
       if (result.ok) {
         setMessage('Revoked. Pull requests can no longer be opened for you.');
         router.refresh();
@@ -150,8 +165,14 @@ function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; av
     >
       <Row title="GitHub pull requests" detail={message ?? detail}>
         {grant?.connected ? (
-          <Button type="button" variant="destructive-outline" onClick={revoke} disabled={pending} className="h-10">
-            {pending ? 'Revoking…' : 'Revoke'}
+          <Button
+            type="button"
+            variant="destructive-outline"
+            onClick={() => setConfirming(true)}
+            disabled={pending}
+            className="h-10"
+          >
+            Revoke
           </Button>
         ) : available ? (
           <Button type="button" variant="outline" onClick={allow} disabled={granting} className="h-10">
@@ -159,6 +180,16 @@ function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; av
           </Button>
         ) : null}
       </Row>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Revoke GitHub access?"
+        description="Pull requests can no longer be opened for you until you allow it on GitHub again."
+        action="Revoke access"
+        pendingAction="Revoking…"
+        pending={pending}
+        onConfirm={revoke}
+      />
     </div>
   );
 }
@@ -186,7 +217,7 @@ export function AccessSection({
 }) {
   return (
     <Panel id="access" className="gap-1">
-      <h2 className="mb-2.5 text-lg font-semibold">Keys and access</h2>
+      <h2 className={cn(HEADING.section, 'mb-2.5')}>Keys and access</h2>
       {grantRefusal ? (
         <p role="alert" data-grant-refusal={grantRefusal} className="text-sm text-destructive">
           {REFUSALS[grantRefusal]} GitHub may still list GitRanks Contribute as authorized; you may want to revoke it in{' '}

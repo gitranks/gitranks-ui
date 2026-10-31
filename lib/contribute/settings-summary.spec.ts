@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolve, smallReposSet, stackSet } from './__fixtures__/contribute-sets';
+import { stackPendingOf } from './set-format';
 import { movedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './settings-paths';
 import {
   keptListOf,
@@ -71,7 +72,13 @@ describe('what you work on, in short', () => {
   it('says the stack is worked out while it is, and that none was found once it was', () => {
     const fresh = stackSet({ stack: { ...stackSet().stack, resolve: null } });
     expect(listSummaryOf(fresh)).toBe('Working out your libraries from 3 repos · all issues until then');
-    expect(waitingLibrariesOf(fresh)).toContain('Until then, your agent works on all issues.');
+    expect(waitingLibrariesOf(fresh)).toContain('Until one is read, your agent works on all issues.');
+    const setOnly = stackSet({ stack: { ...stackSet().stack, fallback: 'SET_ONLY', resolve: null } });
+    expect(listSummaryOf(setOnly)).toBe('Working out your libraries from 3 repos · all issues until then');
+    // Every library still read for the first time: still worked out.
+    const reading = resolve({ targets: resolve().targets.map((each) => ({ ...each, status: 'CHECKING' as const })) });
+    expect(stackPendingOf(stackSet({ stack: { ...stackSet().stack, resolve: reading } }))).toBe(true);
+    expect(stackPendingOf(stackSet())).toBe(false);
 
     const none = stackSet({ stack: { ...stackSet().stack, resolve: resolve({ targets: [] }) } });
     expect(listSummaryOf(none)).toBe('No libraries found in 3 repos · all issues meanwhile');

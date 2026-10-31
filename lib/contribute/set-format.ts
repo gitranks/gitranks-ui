@@ -139,6 +139,19 @@ export function listOf(set: ContributeSet, mode: ContributeSetListMode) {
 export const countedTargetsOf = (set: ContributeSet) =>
   (set.stack.resolve?.targets ?? []).filter(({ status }) => status !== 'UNSUPPORTED');
 
+/**
+ * A stack still worked out with nothing of it read yet: it has sources, no library is read (`ACTIVE`), and they are
+ * not worked out yet or are still read for the first time. Until one is read, the agent works on all issues, whatever
+ * happens when the stack has nothing ready.
+ */
+export function stackPendingOf(set: ContributeSet): boolean {
+  const { count, resolve } = set.stack;
+  if (!count) return false;
+  const targets = countedTargetsOf(set);
+  if (targets.some(({ status }) => status === 'ACTIVE')) return false;
+  return !resolve || resolve.state === 'RESOLVING' || targets.some(({ status }) => status === 'CHECKING');
+}
+
 /** How many repos a mode works on now: the libraries of the stack, or the repos list's count. */
 export const setSizeOf = (set: ContributeSet, mode: ContributeSetListMode) =>
   mode === 'STACK' ? countedTargetsOf(set).length : set.repos.count;

@@ -17,7 +17,8 @@ export function useHashOpen(id: string): [boolean, (open: boolean) => void] {
   const change = (next: boolean) => {
     setOpen(next);
     if (!next && window.location.hash.slice(1) === id) {
-      window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+      // No state of our own: the router copies its own in, and so knows the hash is gone.
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
   };
 

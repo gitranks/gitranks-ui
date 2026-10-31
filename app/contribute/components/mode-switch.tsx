@@ -38,7 +38,10 @@ export function ModeSwitch({
   now?: Date;
 }) {
   const router = useRouter();
-  const { set, write, setFeedback, feedbackDialog } = useSetWrite(loaded);
+  const { set: current, write, writing, setFeedback, feedbackDialog } = useSetWrite(loaded);
+  // Once switched, the set from before it, shown until the summary opens: the new one reads as a switch to itself.
+  const [switched, setSwitched] = useState<ContributeSet | null>(null);
+  const set = switched ?? current;
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -58,15 +61,20 @@ export function ModeSwitch({
     setStep(next);
   };
 
-  const switchMode = () =>
+  const switchMode = () => {
+    const before = set;
     startTransition(async () => {
       const failure = await write(() => setContributeMode(target), 'change');
       if (failure) {
         setError(failure);
         return;
       }
+      setSwitched(before);
       router.push(SETTINGS_PATHS.summary);
     });
+  };
+  // A change on its way (an add, a pick) lands before the next step reads the list.
+  const busy = pending || writing || !!switched;
 
   return (
     <div className="flex flex-col gap-5" data-switch={target} data-step={step}>
@@ -126,22 +134,22 @@ export function ModeSwitch({
         </Button>
         <span className="ml-auto flex flex-wrap gap-2">
           {step > 0 ? (
-            <Button type="button" variant="outline" onClick={() => go(step - 1)} disabled={pending}>
+            <Button type="button" variant="outline" onClick={() => go(step - 1)} disabled={busy}>
               Back
             </Button>
           ) : null}
           {step < steps.length - 1 ? (
-            <Button type="button" onClick={() => go(step + 1)}>
+            <Button type="button" onClick={() => go(step + 1)} disabled={busy}>
               Next
             </Button>
           ) : (
             <Button
               type="button"
               onClick={switchMode}
-              disabled={pending || listOf(set, target).count === 0}
+              disabled={busy || listOf(set, target).count === 0}
               data-switch-button
             >
-              {pending ? 'Switching…' : `Switch to ${modeTitleOf(target)}`}
+              {pending || switched ? 'Switching…' : `Switch to ${modeTitleOf(target)}`}
             </Button>
           )}
         </span>

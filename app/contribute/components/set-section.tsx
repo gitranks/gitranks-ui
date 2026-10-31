@@ -23,18 +23,20 @@ export type SetWrite = (
 ) => Promise<string | null>;
 
 /**
- * The set as the page read it, or the answer to the user's last change if newer, and `write` to change it. The
- * feedback dialog is opened through `setFeedback`.
+ * The set as the page read it, or the answer to the user's last change if newer, `write` to change it, and whether a
+ * change is on its way. The feedback dialog is opened through `setFeedback`.
  */
 export function useSetWrite(loaded: ContributeSet) {
   const router = useRouter();
   const [written, setWritten] = useState<ContributeSet | null>(null);
   const [feedback, setFeedback] = useState<FeedbackOpen | null>(null);
+  const [writing, setWriting] = useState(0);
   // The newer of the page's read and the last change's answer.
   const set = written && written.version >= loaded.version ? written : loaded;
 
   const write: SetWrite = async (call, action) => {
-    const result = await call();
+    setWriting((count) => count + 1);
+    const result = await call().finally(() => setWriting((count) => count - 1));
     if (!result.ok) return contributeSetErrorMessage(result.error, action, set.limits, result.message);
     // Answers can come back out of order: keep the newest.
     setWritten((current) => (current && current.version > result.data.version ? current : result.data));
@@ -54,7 +56,7 @@ export function useSetWrite(loaded: ContributeSet) {
     />
   );
 
-  return { set, write, setFeedback, feedbackDialog };
+  return { set, write, writing: writing > 0, setFeedback, feedbackDialog };
 }
 
 /** What a list's mode does when the list has nothing ready. */

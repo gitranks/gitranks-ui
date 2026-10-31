@@ -6,16 +6,28 @@ import { cn } from '@/lib/utils';
 
 /**
  * Calls `save` once the user stops picking: arrowing through radios picks each one in turn, and only the last is
- * saved. Every pick before it is shown at once by the caller.
+ * saved. Every pick before it is shown at once by the caller. A pick still waiting when the picker goes away (a step
+ * of the switch moving on) is saved then.
  */
 export function useSettledPick<T>(save: (value: T) => void, ms = 350) {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const waiting = useRef<{ value: T } | null>(null);
   const latest = useRef(save);
   latest.current = save;
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      if (waiting.current) latest.current(waiting.current.value);
+    },
+    [],
+  );
   return (value: T) => {
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => latest.current(value), ms);
+    waiting.current = { value };
+    timer.current = setTimeout(() => {
+      waiting.current = null;
+      latest.current(value);
+    }, ms);
   };
 }
 

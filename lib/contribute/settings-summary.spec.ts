@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { movedAnchorOf, settingsPathOf } from './settings-paths';
-import { ownAgentSummaryOf, preferencesSummaryOf } from './settings-summary';
+import { resolve, smallReposSet, stackSet } from './__fixtures__/contribute-sets';
+import { movedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './settings-paths';
+import {
+  keptListOf,
+  listSummaryOf,
+  ownAgentSummaryOf,
+  preferencesSummaryOf,
+  waitingLibrariesOf,
+} from './settings-summary';
 
 describe('the Settings summary', () => {
   it('says the preferences in short, naming three languages and counting the rest', () => {
@@ -47,5 +54,35 @@ describe('the Settings pages', () => {
     expect(movedAnchorOf('autopilot')).toBeNull();
     expect(movedAnchorOf('constructor')).toBeNull();
     expect(settingsPathOf('danger')).toBe('/contribute/settings#danger');
+  });
+});
+
+describe('what you work on, in short', () => {
+  it('names each switch page by its mode, and reads the mode back', () => {
+    expect(switchPathOf('STACK')).toBe('/contribute/settings/switch/stack');
+    expect(switchPathOf('REPOS')).toBe('/contribute/settings/switch/repos');
+    expect(switchModeOf('stack')).toBe('STACK');
+    expect(switchModeOf('repos')).toBe('REPOS');
+    expect(switchModeOf('all')).toBeNull();
+    expect(switchModeOf('STACK')).toBeNull();
+  });
+
+  it('says the stack is worked out while it is, and that none was found once it was', () => {
+    const fresh = stackSet({ stack: { ...stackSet().stack, resolve: null } });
+    expect(listSummaryOf(fresh)).toBe('Working out your libraries from 3 repos · all issues until then');
+    expect(waitingLibrariesOf(fresh)).toContain('Until then, your agent works on all issues.');
+
+    const none = stackSet({ stack: { ...stackSet().stack, resolve: resolve({ targets: [] }) } });
+    expect(listSummaryOf(none)).toBe('No libraries found in 3 repos · all issues meanwhile');
+    expect(waitingLibrariesOf(none)).toContain('We found no libraries we can work on');
+
+    expect(waitingLibrariesOf(stackSet())).toBeNull();
+    expect(listSummaryOf(stackSet())).toBe('50 libraries from 3 repos · then all issues');
+  });
+
+  it('says what a switch keeps', () => {
+    expect(keptListOf(stackSet())).toBe('Your stack (3 repos) stays saved: switch back any time.');
+    expect(keptListOf(smallReposSet())).toBe('Your repos list (12 repos) stays saved: switch back any time.');
+    expect(keptListOf(stackSet({ mode: 'ALL' }))).toBeNull();
   });
 });

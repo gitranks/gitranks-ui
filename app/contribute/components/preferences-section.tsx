@@ -72,6 +72,8 @@ export function PreferencesSection({
   const router = useRouter();
   const [open, setOpen] = useHashOpen('work');
   const [draft, setDraft] = useState<PreferencesDraft>(() => draftOf(preferences));
+  // What was last saved here, until the page's read catches up with it.
+  const [saved, setSaved] = useState<PreferencesDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const title = modes ? 'Filters' : 'What you work on';
@@ -80,7 +82,7 @@ export function PreferencesSection({
     if (pending) return;
     // Opened again: from what is saved, not from a draft left behind.
     if (next) {
-      setDraft(draftOf(preferences));
+      setDraft(saved ?? draftOf(preferences));
       setError(null);
     }
     setOpen(next);
@@ -93,6 +95,7 @@ export function PreferencesSection({
         setError(contributeErrorMessage(result.error, result.message));
         return;
       }
+      setSaved(draft);
       setOpen(false);
       router.refresh();
     });

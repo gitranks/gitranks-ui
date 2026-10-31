@@ -364,7 +364,7 @@ describe('Issues for you, by mode', () => {
       'We check them for new issues every 12 hours. 3 repos are still being read for the first time.',
     );
     expect(plain).toContain('Work on all issues meanwhile');
-    expect(html).toContain('href="/contribute/settings#modes"');
+    expect(html).toContain('href="/contribute/settings/work"');
     expect(plain).toContain('Add more repos');
     expect(plain).toContain('Language filter: Rust. 12 of them are in other languages.');
 

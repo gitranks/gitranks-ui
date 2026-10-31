@@ -67,7 +67,12 @@ export function ModeCards({ set, write }: { set: ContributeSet; write: SetWrite 
         {MODES.map(({ mode, title }) => (
           <li key={mode} data-mode={mode} data-current={mode === set.mode || undefined}>
             {mode === set.mode ? (
-              <div aria-current="true" className={cn(CARD, 'border-primary bg-brand-soft text-brand-soft-foreground')}>
+              <div
+                aria-current="true"
+                tabIndex={-1}
+                data-current-card
+                className={cn(CARD, 'border-primary bg-brand-soft text-brand-soft-foreground')}
+              >
                 {body(mode, true)}
               </div>
             ) : mode === 'ALL' ? (
@@ -96,7 +101,16 @@ export function ModeCards({ set, write }: { set: ContributeSet; write: SetWrite 
         ))}
       </ul>
       <Dialog open={confirming} onOpenChange={(next) => !pending && setConfirming(next)}>
-        <DialogContent>
+        <DialogContent
+          onCloseAutoFocus={(event) => {
+            // Switched: the card that opened it is now the current one, which is not a button.
+            const card = document.querySelector<HTMLElement>('[data-mode="ALL"] [data-current-card]');
+            if (card) {
+              event.preventDefault();
+              card.focus();
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Switch to All issues?</DialogTitle>
             <DialogDescription>

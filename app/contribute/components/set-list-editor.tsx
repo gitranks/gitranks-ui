@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronDown, CircleAlert, Search, X } from 'lucide-react';
+import Link from 'next/link';
 import { type FormEvent, useId, useState, useTransition } from 'react';
 
 import { addToContributeSet, ignoreContributeRepo, removeFromContributeSet } from '../actions';
@@ -28,6 +29,7 @@ import {
   statusOf,
   viaGroupsOf,
 } from '@/lib/contribute/set-format';
+import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
 
 /** Rows a group shows before "Show more". */
@@ -190,7 +192,15 @@ export function SetListEditor({
       )}
       {ignoreFull ? (
         <p className="text-xs text-muted-foreground">
-          Your ignore list is full ({set.limits.ignore}): unignore a repo first to ignore another.
+          Your ignore list is full ({set.limits.ignore}):{' '}
+          <Link
+            href={settingsPathOf('ignored')}
+            prefetch={false}
+            className="text-link underline-offset-2 hover:underline"
+          >
+            unignore a repo
+          </Link>{' '}
+          first to ignore another.
         </p>
       ) : null}
       <p className="text-xs text-muted-foreground">

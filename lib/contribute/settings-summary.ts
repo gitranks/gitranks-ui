@@ -9,7 +9,7 @@ import type {
   ContributeSettings,
 } from './contribute.types';
 import { EFFORTS, KINDS, LANGUAGES, MODELS, maskedKey, ordinalDay, PACES, relativeLabel, SIZES, usd } from './format';
-import { modeSummaryOf, modeTitleOf, plural } from './set-format';
+import { countedTargetsOf, modeSummaryOf, modeTitleOf, plural } from './set-format';
 
 /** What we say of the Claude key's state, after its last 4. */
 export const KEY_STATES: Record<ContributeCredential['state'], string> = {
@@ -33,11 +33,17 @@ const fallbackOf = (set: ContributeSet, mode: ContributeSetListMode) =>
   mode === 'STACK' ? set.stack.fallback : set.repos.fallback;
 
 /**
- * While the stack's sources are read and no library is worked out yet: what the agent does meanwhile, which follows
- * "when nothing is ready". Null once there are libraries, or no sources.
+ * A stack with sources and no library to work on, while they are worked out or once none was found: what the agent
+ * does meanwhile, which follows "when nothing is ready". Null once there are libraries, or no sources.
  */
 export function waitingLibrariesOf(set: ContributeSet): string | null {
-  if (!set.stack.count || set.stack.resolve?.targets.length) return null;
+  const { count, resolve } = set.stack;
+  if (!count || countedTargetsOf(set).length) return null;
+  if (resolve && resolve.state !== 'RESOLVING') {
+    return fallbackOf(set, 'STACK') === 'SET_ONLY'
+      ? "We found no libraries we can work on in these repos, so your agent would wait. Add other repos, or pick 'Work on all issues meanwhile'."
+      : 'We found no libraries we can work on in these repos. Until you add others, your agent works on all issues.';
+  }
   return fallbackOf(set, 'STACK') === 'SET_ONLY'
     ? 'We work out your libraries once your repos are read. Until then, your agent has nothing to work on, and waits.'
     : 'We work out your libraries once your repos are read. Until then, your agent works on all issues.';
@@ -47,8 +53,11 @@ export function waitingLibrariesOf(set: ContributeSet): string | null {
 export function listSummaryOf(set: ContributeSet): string {
   if (set.mode === 'ALL') return modeSummaryOf(set, 'ALL');
   const only = fallbackOf(set, set.mode) === 'SET_ONLY';
-  if (set.mode === 'STACK' && waitingLibrariesOf(set)) {
-    return `Working out your libraries from ${plural(set.stack.count, 'repo')} · ${only ? 'waiting until then' : 'all issues until then'}`;
+  if (set.mode === 'STACK' && set.stack.count && !countedTargetsOf(set).length) {
+    const working = !set.stack.resolve || set.stack.resolve.state === 'RESOLVING';
+    return working
+      ? `Working out your libraries from ${plural(set.stack.count, 'repo')} · ${only ? 'waiting until then' : 'all issues until then'}`
+      : `No libraries found in ${plural(set.stack.count, 'repo')} · ${only ? 'waiting' : 'all issues meanwhile'}`;
   }
   const reading = set.mode === 'REPOS' ? set.repos.repos.filter(({ status }) => status === 'CHECKING').length : 0;
   return [

@@ -25,7 +25,7 @@ const DEFAULT_MAX_LINES = 400;
 const DEFAULT_MAX_FILES = 15;
 
 const inputClass = 'h-auto rounded-lg py-2.5 font-mono md:text-base';
-const selectClass = 'min-h-11 w-full rounded-lg text-base';
+const selectClass = 'data-[size=default]:h-auto w-full rounded-lg py-2.5 text-base';
 const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 
 /** "Writing tests" takes no model of its own as this: Radix takes no empty value, and it is `null` in the draft. */

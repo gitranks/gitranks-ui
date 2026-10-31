@@ -51,7 +51,7 @@ export function IssuesFilters({ query }: { query: IssuesQuery }) {
               value={value}
               onValueChange={(next) => change({ [filter]: next === ALL ? undefined : next } as Partial<IssuesQuery>)}
             >
-              <SelectTrigger id={`${id}-${filter}`} className="rounded-lg">
+              <SelectTrigger id={`${id}-${filter}`} className="min-w-40 rounded-lg">
                 <SelectValue>{options.find((option) => option.value === value)?.label}</SelectValue>
               </SelectTrigger>
               <SelectContent>

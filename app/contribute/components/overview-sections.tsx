@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 
 import { ComingSoon } from './coming-soon';
 import { noticeCopyOf } from './contribute-notices';
-import { IssueCardCompact } from './issue-card-compact';
+import { LiveUpNext } from './live-issues';
 import { LiveRefresh } from './live-refresh';
 import { PauseButton } from './pause-button';
 import { HEADING, Meter, Pill } from './primitives';
@@ -34,8 +34,9 @@ import {
   type OverviewNeedsRead,
   type OverviewNowRead,
   type OwnAgentState,
+  rankedOf,
   rightNowOf,
-  upNextOf,
+  UP_NEXT_PICKS,
 } from '@/lib/contribute/overview';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
@@ -363,7 +364,7 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
         title:
           state.slots > 1 ? `Your own agent holds all ${state.slots} of your slots` : 'Your own agent holds your slot',
         text: 'A new attempt starts when it hands back its patch or releases the issue.',
-        action: settingsLink('limits', 'Attempts at a time in Settings'),
+        action: settingsLink('more-limits', 'Attempts at a time in Settings'),
       };
     case 'pr-cap':
       return {
@@ -384,7 +385,7 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
         label: 'Next attempt',
         title: 'None can start',
         text: 'Your caps leave no room for one attempt.',
-        action: settingsLink('limits', 'Raise them in Settings'),
+        action: settingsLink('more-limits', 'Raise them in Settings'),
       };
     case 'paced':
       return {
@@ -705,24 +706,22 @@ export function WaysSection({
 // ---------------------------------------------------------------------------------------------------------------------
 // Up next
 
-/** "Up next": the top of the feed, each with why it was picked. No Skip here: that is on Issues. */
+/**
+ * "Up next": the top of the feed, each with why it was picked. No Skip here: that is on Issues. Live: a pick taken
+ * meanwhile says so and leaves, and the next one takes its place.
+ */
 export function UpNextSection({ page }: { page: ContributeIssuePage | null | undefined }) {
+  const empty = <SectionNote name="empty">We&apos;re still finding issues for you.</SectionNote>;
   let body: ReactNode;
   if (page === undefined) {
     body = <SectionNote name="unavailable">Your picks are not available right now.</SectionNote>;
   } else if (page && !page.computedAt) {
     body = <StillRanking />;
   } else if (!page?.items.length) {
-    body = <SectionNote name="empty">We&apos;re still finding issues for you.</SectionNote>;
+    body = empty;
   } else {
     body = (
-      <ol className="divide-y overflow-hidden rounded-xl border bg-card">
-        {upNextOf(page).map((issue) => (
-          <li key={issue.issueId}>
-            <IssueCardCompact issue={issue} variant="pick" />
-          </li>
-        ))}
-      </ol>
+      <LiveUpNext items={rankedOf(page)} total={page.total} next={page.next} limit={UP_NEXT_PICKS} empty={empty} />
     );
   }
 

@@ -14,6 +14,8 @@ const {
   ConnectClaudeKeyWithLimitsDocument,
   ContributeAttemptLiveBareDocument,
   ContributeAttemptLiveDocument,
+  ContributeIssueStatusDocument,
+  ContributeIssuesDocument,
   ContributeOnboardingDocument,
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
@@ -41,6 +43,8 @@ const CALLS: Record<string, unknown[]> = {
   pauseContributing: [],
   resumeContributing: [],
   skipIssue: ['I_1'],
+  readIssueStatuses: [['I_1', 'I_2']],
+  readIssuesPage: [{ after: 'c2', first: 2, filter: { languages: ['RUST'] }, githubLogin: 'mallory' }],
   approveAttempt: [{ id: 'A_1', title: 'Fix it', body: 'Fixes #1', dco: true, githubLogin: 'mallory' }],
   discardAttempt: ['A_1'],
   startFollowUp: ['PR_1'],
@@ -507,5 +511,58 @@ describe('the actions about what the user works on', () => {
     graphqlDirect.mockClear();
     await actions.sendContributeFeedback('OTHER', 'hello', { mode: 'NOPE' as never });
     expect(graphqlDirect.mock.calls[0][1]).toEqual({ topic: 'OTHER', text: 'hello' });
+  });
+});
+
+describe('readIssueStatuses and readIssuesPage', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it('asks about at most 50 ids, in order, and nothing for none', async () => {
+    graphqlDirect.mockResolvedValue({ contributeIssueStatus: [] });
+    const ids = Array.from({ length: 60 }, (_, at) => `I_${at}`);
+
+    await actions.readIssueStatuses(['', ...ids] as string[]);
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ContributeIssueStatusDocument,
+      { issueIds: ids.slice(0, 50) },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+
+    graphqlDirect.mockClear();
+    expect(await actions.readIssueStatuses([])).toEqual({ ok: true, data: [] });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('answers null when the API hides the statuses', async () => {
+    graphqlDirect.mockResolvedValue({ contributeIssueStatus: null });
+
+    expect(await actions.readIssueStatuses(['I_1'])).toEqual({ ok: true, data: null });
+  });
+
+  it('reads the next issues after the cursor, a page at most, under the known filters alone', async () => {
+    graphqlDirect.mockResolvedValue({ contributeIssues: { items: [], next: null, total: 0, computedAt: null } });
+
+    await actions.readIssuesPage({
+      after: 'c2',
+      first: 99,
+      filter: { languages: ['RUST', 'COBOL' as never], kinds: 'BUG' as never, maxSize: 'M' },
+    });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ContributeIssuesDocument,
+      { first: 20, after: 'c2', filter: { languages: ['RUST'], maxSize: 'M' } },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+
+    graphqlDirect.mockClear();
+    await actions.readIssuesPage({ after: 'c3', first: 0 });
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ first: 1, after: 'c3' });
+
+    graphqlDirect.mockClear();
+    expect(await actions.readIssuesPage({ after: '', first: 2 })).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });

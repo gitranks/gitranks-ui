@@ -1,10 +1,11 @@
 'use client';
 
+import { ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useId, useState, useTransition } from 'react';
+import { type ReactNode, useEffect, useId, useState, useTransition } from 'react';
 
 import { saveContributeSettings } from '../actions';
-import { Panel, PanelTitle } from './primitives';
+import { HEADING, Panel } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -149,70 +150,136 @@ function Field({ label, children, htmlFor }: { label: string; children: ReactNod
   );
 }
 
-function SaveRow({ onSave, pending, message }: { onSave: () => void; pending: boolean; message?: ReactNode }) {
+/** A fold for the fields most people leave as they are: its title, their values in a line, and the fields. */
+function Fold({
+  id,
+  anchor,
+  title,
+  summary,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string;
+  /** Its id on the page, for links that name a field inside it. */
+  anchor?: string;
+  title: string;
+  summary: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <Button
+    <div id={anchor} className="scroll-mt-20 rounded-xl border" data-fold={open ? 'open' : 'closed'}>
+      <button
         type="button"
-        variant="outline"
-        size="lg"
-        onClick={onSave}
-        disabled={pending}
-        className="px-4 font-semibold"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={onToggle}
+        className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
-        {pending ? 'Saving…' : 'Save'}
-      </Button>
-      {message}
+        <ChevronRight
+          aria-hidden="true"
+          className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')}
+        />
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-sm font-semibold">{title}</span>
+          <span className="text-sm text-muted-foreground">{summary}</span>
+        </span>
+      </button>
+      {/* Kept on the page while folded, so the draft and the labels stay as they are. */}
+      <div id={id} hidden={!open} className="flex flex-col gap-4 border-t px-4 pt-4 pb-4">
+        {children}
+      </div>
     </div>
   );
 }
 
-/** The spending limits, pacing, the agent and pull requests, or the `sections` of them, each saved on its own. */
-export function SettingsForm({
-  settings,
-  sections = ['limits', 'pacing', 'agent', 'prs'],
-}: {
-  settings: ContributeSettings;
-  sections?: SettingsSection[];
-}) {
+/** Each page's sections, saved together, and the fields its fold holds. */
+const PAGES = {
+  budget: {
+    sections: ['limits', 'pacing'],
+    folded: ['Each week', 'Each day', 'Each attempt', 'Attempts at a time', 'Sweep days'],
+  },
+  agent: { sections: ['agent', 'prs'], folded: [] },
+} as const satisfies Record<string, { sections: SettingsSection[]; folded: string[] }>;
+
+export type SettingsFormPage = keyof typeof PAGES;
+
+/** One patch for a page's sections, or the label of the first field that is not a valid number. */
+export type { Draft as SettingsDraft };
+
+export function pagePatchOf(
+  page: SettingsFormPage,
+  draft: Draft,
+): { patch: ContributeSettingsInput } | { invalid: string } {
+  let patch: ContributeSettingsInput = {};
+  for (const section of PAGES[page].sections) {
+    const built = patchOf(section, draft);
+    if ('invalid' in built) return built;
+    patch = { ...patch, ...built.patch };
+  }
+  return { patch };
+}
+
+/** A cap as the fold's line says it: "$15 a day", "no week cap", or what was typed that is not a number. */
+const capLabel = (text: string, what: string) => {
+  const value = parseAmount(text);
+  if (value === undefined) return `${what} cap “${text.trim()}”`;
+  return value === null ? `no ${what} cap` : `$${value} ${what === 'attempt' ? 'an' : 'a'} ${what}`;
+};
+
+/** What the fold of More limits says of them, as typed. */
+export const moreLimitsSummaryOf = (draft: Draft) =>
+  [
+    capLabel(draft.weekCapUsd, 'week'),
+    capLabel(draft.dayCapUsd, 'day'),
+    capLabel(draft.attemptCapUsd, 'attempt'),
+    `${draft.attemptsAtATime.trim() || '?'} at a time`,
+    `sweep ${draft.sweepDays.trim() === '1' ? '1 day' : `${draft.sweepDays.trim() || '?'} days`}`,
+    `renews on ${ordinalDay(draft.renewalDay)}`,
+  ].join(' · ');
+
+/**
+ * Budget and pacing, or the agent and pull requests, on their Settings page: what most people change up front, the
+ * rest folded with its values shown, and one Save for the page.
+ */
+export function SettingsForm({ settings, page }: { settings: ContributeSettings; page: SettingsFormPage }) {
   const router = useRouter();
   const id = useId();
   const [draft, setDraft] = useState<Draft>(() => draftOf(settings));
-  const [status, setStatus] = useState<{ section: Section; ok: boolean; text: string } | null>(null);
-  const [pendingSection, setPendingSection] = useState<Section | null>(null);
-  const [, startTransition] = useTransition();
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
+  const [folded, setFolded] = useState(true);
+  const [pending, startTransition] = useTransition();
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((current) => ({ ...current, [key]: value }));
 
-  const save = (section: Section) => {
-    const built = patchOf(section, draft);
+  // A link to a folded field ("Attempts at a time in Settings") arrives with the fold open.
+  useEffect(() => {
+    if (window.location.hash === '#more-limits') setFolded(false);
+  }, []);
+
+  const save = () => {
+    const built = pagePatchOf(page, draft);
     if ('invalid' in built) {
-      setStatus({ section, ok: false, text: `${built.invalid}: enter a number.` });
+      // A field that is folded away opens, so the user sees what to fix.
+      if ((PAGES[page].folded as readonly string[]).includes(built.invalid)) setFolded(false);
+      setStatus({ ok: false, text: `${built.invalid}: enter a number.` });
       return;
     }
-    setPendingSection(section);
     startTransition(async () => {
       const result = await saveContributeSettings(built.patch);
-      setPendingSection(null);
       if (result.ok) {
         setDraft(draftOf(result.data));
-        setStatus({ section, ok: true, text: 'Saved.' });
+        setStatus({ ok: true, text: 'Saved.' });
         router.refresh();
       } else {
-        setStatus({ section, ok: false, text: contributeErrorMessage(result.error, result.message) });
+        // The server may refuse a folded field (an attempt cap above a cap that is set): show it.
+        if (result.error === 'INVALID') setFolded(false);
+        setStatus({ ok: false, text: contributeErrorMessage(result.error, result.message) });
       }
     });
   };
-
-  const messageFor = (section: Section) =>
-    status?.section === section ? (
-      <span
-        role={status.ok ? 'status' : 'alert'}
-        className={cn('text-sm', status.ok ? 'text-positive' : 'text-destructive')}
-      >
-        {status.text}
-      </span>
-    ) : null;
 
   const field = (key: keyof Draft) => `${id}-${key}`;
   const textInput = (key: keyof Draft, placeholder?: string) => (
@@ -230,137 +297,113 @@ export function SettingsForm({
   const files = Number(draft.maxFiles);
   const large = lines > DEFAULT_MAX_LINES || files > DEFAULT_MAX_FILES;
 
+  const modelSelect = (key: 'mainModel' | 'helperModel', label: (model: ContributeModel) => string) => (
+    <Select value={draft[key]} onValueChange={(next) => set(key, next as ContributeModel)}>
+      <SelectTrigger id={field(key)} className={selectClass}>
+        <SelectValue>{label(draft[key])}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
+          <SelectItem key={model} value={model}>
+            {label(model)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   return (
-    <>
-      {sections.includes('limits') ? (
-        <Panel id="limits">
-          <PanelTitle
-            title="Spending limits"
-            text="We never start an attempt that could cross one of these. Leave a field empty for no limit."
-          />
-          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Each billing cycle" htmlFor={field('cycleCapUsd')}>
-              {textInput('cycleCapUsd')}
-            </Field>
-            <Field label="Each week" htmlFor={field('weekCapUsd')}>
-              {textInput('weekCapUsd', 'No limit')}
-            </Field>
-            <Field label="Each day" htmlFor={field('dayCapUsd')}>
-              {textInput('dayCapUsd', 'No limit')}
-            </Field>
-            <Field label="Each attempt" htmlFor={field('attemptCapUsd')}>
-              {textInput('attemptCapUsd')}
-            </Field>
-            <Field label="Attempts at a time" htmlFor={field('attemptsAtATime')}>
-              {textInput('attemptsAtATime')}
-            </Field>
-          </div>
-          <span className="text-sm text-muted-foreground">
-            Amounts are at list price, the unit your credits are counted in. A no-go check uses at most a tenth of the
-            attempt limit before the agent decides whether to go on.
-          </span>
-          <SaveRow onSave={() => save('limits')} pending={pendingSection === 'limits'} message={messageFor('limits')} />
-        </Panel>
-      ) : null}
+    <Panel id={page === 'budget' ? 'limits' : 'agent'}>
+      {page === 'budget' ? (
+        <>
+          <Field label="Each billing cycle" htmlFor={field('cycleCapUsd')}>
+            <div className="max-w-48">{textInput('cycleCapUsd')}</div>
+            <span className="text-sm text-muted-foreground">
+              We never start an attempt that could cross a limit. Amounts are at list price, the unit your credits are
+              counted in.
+            </span>
+          </Field>
 
-      {sections.includes('pacing') ? (
-        <Panel id="pacing">
-          <PanelTitle title="Pacing" text="Your credits expire when they renew. Choose how we spread the work." />
-          <RadioGroup
-            aria-label="Pacing mode"
-            value={draft.pace}
-            onValueChange={(next) => set('pace', next as ContributePace)}
-            className="gap-2"
+          <div id="pacing" className="flex scroll-mt-20 flex-col gap-2">
+            <span id={`${field('pace')}-legend`} className="text-sm font-medium">
+              How we spread the work
+            </span>
+            <RadioGroup
+              aria-labelledby={`${field('pace')}-legend`}
+              value={draft.pace}
+              onValueChange={(next) => set('pace', next as ContributePace)}
+              className="gap-2"
+            >
+              {(Object.keys(PACES) as ContributePace[]).map((pace) => (
+                <label
+                  key={pace}
+                  htmlFor={`${field('pace')}-${pace}`}
+                  className={cn(
+                    'flex cursor-pointer items-start gap-2.5 rounded-lg border px-3.5 py-3 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
+                    draft.pace === pace && 'border-primary bg-brand-soft/50 ring-1 ring-primary',
+                  )}
+                >
+                  <RadioGroupItem id={`${field('pace')}-${pace}`} value={pace} className="mt-1" />
+                  <span className="flex flex-col">
+                    <span className="font-medium">{PACES[pace].title}</span>
+                    <span className="text-sm text-muted-foreground">{PACES[pace].text}</span>
+                  </span>
+                </label>
+              ))}
+            </RadioGroup>
+            <span className="text-sm text-muted-foreground">Your credits expire when they renew.</span>
+          </div>
+
+          <Fold
+            id={`${id}-more`}
+            anchor="more-limits"
+            title="More limits"
+            summary={moreLimitsSummaryOf(draft)}
+            open={!folded}
+            onToggle={() => setFolded(!folded)}
           >
-            {(Object.keys(PACES) as ContributePace[]).map((pace) => (
-              <label
-                key={pace}
-                htmlFor={`${field('pace')}-${pace}`}
-                className={cn(
-                  'flex cursor-pointer items-start gap-2.5 rounded-lg border px-3.5 py-3 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
-                  draft.pace === pace && 'border-primary bg-brand-soft/50 ring-1 ring-primary',
-                )}
-              >
-                <RadioGroupItem id={`${field('pace')}-${pace}`} value={pace} className="mt-1" />
-                <span className="flex flex-col">
-                  <span className="font-medium">{PACES[pace].title}</span>
-                  <span className="text-sm text-muted-foreground">{PACES[pace].text}</span>
-                </span>
-              </label>
-            ))}
-          </RadioGroup>
-          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Sweep days" htmlFor={field('sweepDays')}>
-              {textInput('sweepDays')}
-            </Field>
-            <Field label="Credits renew on" htmlFor={field('renewalDay')}>
-              <Select value={String(draft.renewalDay)} onValueChange={(next) => set('renewalDay', Number(next))}>
-                <SelectTrigger id={field('renewalDay')} className={selectClass}>
-                  <SelectValue>{ordinalDay(draft.renewalDay)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {DAYS.map((day) => (
-                    <SelectItem key={day} value={String(day)}>
-                      {ordinalDay(day)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-          <SaveRow onSave={() => save('pacing')} pending={pendingSection === 'pacing'} message={messageFor('pacing')} />
-        </Panel>
-      ) : null}
-
-      {sections.includes('agent') ? (
-        <Panel id="agent">
-          <PanelTitle title="The agent" text="Bigger models fix harder issues and cost more per attempt." />
+            <div className="grid gap-3.5 sm:grid-cols-2">
+              <Field label="Each week" htmlFor={field('weekCapUsd')}>
+                {textInput('weekCapUsd', 'No limit')}
+              </Field>
+              <Field label="Each day" htmlFor={field('dayCapUsd')}>
+                {textInput('dayCapUsd', 'No limit')}
+              </Field>
+              <Field label="Each attempt" htmlFor={field('attemptCapUsd')}>
+                {textInput('attemptCapUsd')}
+              </Field>
+              <Field label="Attempts at a time" htmlFor={field('attemptsAtATime')}>
+                {textInput('attemptsAtATime')}
+              </Field>
+              <Field label="Sweep days" htmlFor={field('sweepDays')}>
+                {textInput('sweepDays')}
+              </Field>
+              <Field label="Credits renew on" htmlFor={field('renewalDay')}>
+                <Select value={String(draft.renewalDay)} onValueChange={(next) => set('renewalDay', Number(next))}>
+                  <SelectTrigger id={field('renewalDay')} className={selectClass}>
+                    <SelectValue>{ordinalDay(draft.renewalDay)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DAYS.map((day) => (
+                      <SelectItem key={day} value={String(day)}>
+                        {ordinalDay(day)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              Leave week or day empty for no limit. A no-go check uses at most a tenth of the attempt limit before the
+              agent decides whether to go on.
+            </span>
+          </Fold>
+        </>
+      ) : (
+        <>
           <div className="grid gap-3.5 sm:grid-cols-2">
             <Field label="Main model" htmlFor={field('mainModel')}>
-              <Select value={draft.mainModel} onValueChange={(next) => set('mainModel', next as ContributeModel)}>
-                <SelectTrigger id={field('mainModel')} className={selectClass}>
-                  <SelectValue>{MODELS[draft.mainModel]}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {MODELS[model]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Running tests and reading logs" htmlFor={field('helperModel')}>
-              <Select value={draft.helperModel} onValueChange={(next) => set('helperModel', next as ContributeModel)}>
-                <SelectTrigger id={field('helperModel')} className={selectClass}>
-                  <SelectValue>{helperModelLabelOf(draft.helperModel)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {helperModelLabelOf(model)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Writing tests" htmlFor={field('testModel')}>
-              <Select
-                value={draft.testModel ?? SAME_AS_MAIN}
-                onValueChange={(next) => set('testModel', next === SAME_AS_MAIN ? null : (next as ContributeModel))}
-              >
-                <SelectTrigger id={field('testModel')} className={selectClass}>
-                  <SelectValue>{testModelLabelOf(draft.testModel)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={SAME_AS_MAIN}>{testModelLabelOf(null)}</SelectItem>
-                  {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {testModelLabelOf(model)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {modelSelect('mainModel', (model) => MODELS[model])}
             </Field>
             <Field label="Effort" htmlFor={field('effort')}>
               <Select value={draft.effort} onValueChange={(next) => set('effort', next as ContributeEffort)}>
@@ -377,51 +420,98 @@ export function SettingsForm({
               </Select>
             </Field>
           </div>
-          <SaveRow onSave={() => save('agent')} pending={pendingSection === 'agent'} message={messageFor('agent')} />
-        </Panel>
-      ) : null}
+          <span className="-mt-2 text-sm text-muted-foreground">
+            Bigger models fix harder issues and cost more per attempt.
+          </span>
+          <Fold
+            id={`${id}-models`}
+            title="Models for smaller tasks"
+            summary={`${helperModelLabelOf(draft.helperModel)} runs tests and reads logs · writing tests: ${testModelLabelOf(draft.testModel).toLowerCase()}`}
+            open={!folded}
+            onToggle={() => setFolded(!folded)}
+          >
+            <div className="grid gap-3.5 sm:grid-cols-2">
+              <Field label="Running tests and reading logs" htmlFor={field('helperModel')}>
+                {modelSelect('helperModel', helperModelLabelOf)}
+              </Field>
+              <Field label="Writing tests" htmlFor={field('testModel')}>
+                <Select
+                  value={draft.testModel ?? SAME_AS_MAIN}
+                  onValueChange={(next) => set('testModel', next === SAME_AS_MAIN ? null : (next as ContributeModel))}
+                >
+                  <SelectTrigger id={field('testModel')} className={selectClass}>
+                    <SelectValue>{testModelLabelOf(draft.testModel)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SAME_AS_MAIN}>{testModelLabelOf(null)}</SelectItem>
+                    {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {testModelLabelOf(model)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+          </Fold>
 
-      {sections.includes('prs') ? (
-        <Panel id="prs">
-          <PanelTitle title="Pull requests" text="An attempt above these limits stops before review." />
-          <div className="grid gap-3.5 sm:grid-cols-3">
-            <Field label="Changed lines" htmlFor={field('maxChangedLines')}>
-              {textInput('maxChangedLines')}
-            </Field>
-            <Field label="Files" htmlFor={field('maxFiles')}>
-              {textInput('maxFiles')}
-            </Field>
-            <Field label="Open PRs at a time" htmlFor={field('openPrsAtATime')}>
-              {textInput('openPrsAtATime')}
-            </Field>
+          <div id="prs" className="flex scroll-mt-20 flex-col gap-3.5 border-t pt-4">
+            <div className="flex flex-col gap-1">
+              <h2 className={HEADING.block}>Pull requests</h2>
+              <span className="text-sm text-muted-foreground">An attempt above these limits stops before review.</span>
+            </div>
+            <div className="grid gap-3.5 sm:grid-cols-3">
+              <Field label="Changed lines" htmlFor={field('maxChangedLines')}>
+                {textInput('maxChangedLines')}
+              </Field>
+              <Field label="Files" htmlFor={field('maxFiles')}>
+                {textInput('maxFiles')}
+              </Field>
+              <Field label="Open PRs at a time" htmlFor={field('openPrsAtATime')}>
+                {textInput('openPrsAtATime')}
+              </Field>
+            </div>
+            {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
+            <div className="flex flex-col gap-2">
+              <span id={`${field('dco')}-legend`} className="text-sm font-medium">
+                DCO sign-off, for repos that require it
+              </span>
+              <RadioGroup
+                aria-labelledby={`${field('dco')}-legend`}
+                value={draft.dco}
+                onValueChange={(next) => set('dco', next as ContributeDcoMode)}
+                className="gap-2"
+              >
+                {(
+                  [
+                    ['ASK', 'Ask me on every PR'],
+                    ['STANDING', 'Sign off for me on every PR, including autopilot'],
+                  ] as const
+                ).map(([dco, label]) => (
+                  <label key={dco} htmlFor={`${field('dco')}-${dco}`} className="flex items-center gap-2.5 text-sm">
+                    <RadioGroupItem id={`${field('dco')}-${dco}`} value={dco} />
+                    {label}
+                  </label>
+                ))}
+              </RadioGroup>
+            </div>
           </div>
-          {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
-          <div className="flex flex-col gap-2">
-            <span id={`${field('dco')}-legend`} className="text-sm font-medium">
-              DCO sign-off, for repos that require it
-            </span>
-            <RadioGroup
-              aria-labelledby={`${field('dco')}-legend`}
-              value={draft.dco}
-              onValueChange={(next) => set('dco', next as ContributeDcoMode)}
-              className="gap-2"
-            >
-              {(
-                [
-                  ['ASK', 'Ask me on every PR'],
-                  ['STANDING', 'Sign off for me on every PR, including autopilot'],
-                ] as const
-              ).map(([dco, label]) => (
-                <label key={dco} htmlFor={`${field('dco')}-${dco}`} className="flex items-center gap-2.5 text-sm">
-                  <RadioGroupItem id={`${field('dco')}-${dco}`} value={dco} />
-                  {label}
-                </label>
-              ))}
-            </RadioGroup>
-          </div>
-          <SaveRow onSave={() => save('prs')} pending={pendingSection === 'prs'} message={messageFor('prs')} />
-        </Panel>
-      ) : null}
-    </>
+        </>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3 border-t pt-4">
+        <Button type="button" size="lg" onClick={save} disabled={pending} className="px-5 font-semibold">
+          {pending ? 'Saving…' : 'Save'}
+        </Button>
+        {status ? (
+          <span
+            role={status.ok ? 'status' : 'alert'}
+            className={cn('text-sm', status.ok ? 'text-positive' : 'text-destructive')}
+          >
+            {status.text}
+          </span>
+        ) : null}
+      </div>
+    </Panel>
   );
 }

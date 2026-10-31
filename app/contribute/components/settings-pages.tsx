@@ -8,7 +8,7 @@ import { OwnAgentSection } from './own-agent-section';
 import { Panel, PanelTitle } from './primitives';
 import { ScrollToHash } from './scroll-to-hash';
 import { SetListScreen } from './set-list-screen';
-import { SettingsForm, type SettingsSection } from './settings-form';
+import { SettingsForm, type SettingsFormPage } from './settings-form';
 import { SettingsPageHead } from './settings-rows';
 import { loadSettingsView } from './settings-view';
 import { loadContributeSet } from '@/lib/contribute/contribute.data';
@@ -126,16 +126,12 @@ const FORM_PAGES = {
   budget: {
     title: 'Budget and pacing',
     text: 'How much the agent may spend, and how we spread the work across your cycle.',
-    sections: ['limits', 'pacing'],
   },
   agent: {
     title: 'Agent and pull requests',
     text: 'The models the agent works with, and how large a pull request may be.',
-    sections: ['agent', 'prs'],
   },
-} as const satisfies Record<string, { title: string; text: string; sections: SettingsSection[] }>;
-
-export type SettingsFormPage = keyof typeof FORM_PAGES;
+} as const satisfies Record<SettingsFormPage, { title: string; text: string }>;
 
 export async function FormSettingsView({ page }: { page: SettingsFormPage }) {
   return <FormSettingsScreen page={page} view={await loadSettingsView()} />;
@@ -143,13 +139,13 @@ export async function FormSettingsView({ page }: { page: SettingsFormPage }) {
 
 /** The spending limits and pacing, or the agent and pull requests. */
 export function FormSettingsScreen({ page, view }: { page: SettingsFormPage; view: ContributeView }) {
-  const { title, text, sections } = FORM_PAGES[page];
+  const { title, text } = FORM_PAGES[page];
   const settings = settingsOf(view);
   return (
     <>
       <SettingsPageHead title={title} text={text} />
       <PageNotices view={view} />
-      {settings ? <SettingsForm settings={settings} sections={[...sections]} /> : <NoSettingsPanel view={view} />}
+      {settings ? <SettingsForm settings={settings} page={page} /> : <NoSettingsPanel view={view} />}
       <ScrollToHash />
     </>
   );

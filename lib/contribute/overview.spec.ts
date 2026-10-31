@@ -18,8 +18,8 @@ import {
   NEEDS_YOU_READ,
   type NeedsYouRow,
   needsYouRowsOf,
+  rankedOf,
   rightNowOf,
-  upNextOf,
 } from './overview';
 
 const kinds = (rows: NeedsYouRow[]) => rows.map(({ kind }) => kind);
@@ -365,8 +365,8 @@ describe('the review fixes', () => {
   });
 });
 
-describe('upNextOf', () => {
-  it("is the feed's top three, in rank order", () => {
-    expect(upNextOf(issuePage).map(({ issueId }) => issueId)).toEqual(['I_1', 'I_2', 'I_3']);
+describe('rankedOf', () => {
+  it("is the feed's issues in rank order", () => {
+    expect(rankedOf(issuePage).map(({ issueId }) => issueId)).toEqual(['I_1', 'I_2', 'I_3', 'I_4']);
   });
 });

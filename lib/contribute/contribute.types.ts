@@ -181,6 +181,16 @@ export type ContributeIssuePage = {
   computedAt: string | null;
 };
 
+/** Where a shown issue stands now: still free, taken by the user's own agent, or by another contributor. */
+export type ContributeIssueStatusValue = 'AVAILABLE' | 'CLAIMED_BY_YOU' | 'TAKEN';
+
+export type ContributeIssueStatus = {
+  issueId: string;
+  status: ContributeIssueStatusValue;
+  /** The user's attempt on it, with `CLAIMED_BY_YOU`; null otherwise. */
+  attemptId: string | null;
+};
+
 /**
  * What the Contribute pages render from. `grant` and `paused` come from fields the API may not answer yet: `undefined`
  * is "not available yet", which the pages show as such instead of failing.

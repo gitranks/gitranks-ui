@@ -56,6 +56,7 @@ import type {
 } from './contribute.types';
 import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
+import { ISSUES_PAGE_SIZE } from './live-issues';
 import { contributeModesShown } from './modes-gate';
 import {
   IN_FLIGHT_READ,
@@ -227,7 +228,7 @@ export async function loadIssues(
   try {
     const { contributeIssues } = await graphqlDirect(
       ContributeIssuesDocument,
-      { first: 20, ...(after ? { after } : {}), ...(Object.keys(filter).length ? { filter } : {}) },
+      { first: ISSUES_PAGE_SIZE, ...(after ? { after } : {}), ...(Object.keys(filter).length ? { filter } : {}) },
       { source: 'ssr', githubLogin },
     );
     return contributeIssues;

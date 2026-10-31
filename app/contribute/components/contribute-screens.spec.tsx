@@ -271,6 +271,18 @@ describe('the settings screen', () => {
     expect(sizeLabelOf('L')).toBe('Up to large');
   });
 
+  it('picks the pace and the DCO sign-off with radio groups that mark the stored ones', () => {
+    const html = render(views.active);
+    const groups = [...html.matchAll(/role="radiogroup"[^>]*aria-(label|labelledby)="([^"]*)"/g)].map(
+      ([, kind, name]) => (kind === 'label' ? name : 'labelledby'),
+    );
+    const checked = [...html.matchAll(/role="radio" aria-checked="true"[^>]*value="([^"]*)"/g)].map(([, v]) => v);
+
+    expect(groups).toEqual(['Pacing mode', 'labelledby']);
+    expect(checked).toEqual(['EVEN', 'ASK']);
+    expect(html).not.toMatch(/<input[^>]*id="[^"]*-(pace|dco)-/);
+  });
+
   it('pauses an active contributor and resumes a paused one', () => {
     expect(render(views.active)).toContain('data-paused="false"');
     expect(text(render(views.active))).toContain('Pause contributing');

@@ -28,6 +28,7 @@ import { LABEL_MAX_LENGTH } from '@/badge/v3/params';
 import { shieldContent } from '@/badge/v3/shields';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 /** Style changes reach the previews this long after the last one. */
@@ -328,6 +329,10 @@ function Segmented<T extends string>({
   );
 }
 
+/** A choice as its item says it: the name, and what it would show where there is a sample. */
+export const choiceLabelOf = (choice: Choice<string> | undefined) =>
+  choice?.sample ? `${choice.name} (${choice.sample})` : choice?.name;
+
 function SelectField<T extends string>({
   label,
   choices,
@@ -340,18 +345,18 @@ function SelectField<T extends string>({
       <label htmlFor={id} className="text-sm font-medium">
         {label}
       </label>
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value as T)}
-        className="h-9 w-full min-w-0 rounded-md border border-input bg-card px-2 text-sm shadow-xs focus-visible:outline-2 focus-visible:outline-ring"
-      >
-        {choices.map((choice) => (
-          <option key={choice.value} value={choice.value}>
-            {choice.sample ? `${choice.name} (${choice.sample})` : choice.name}
-          </option>
-        ))}
-      </select>
+      <Select value={value} onValueChange={(next) => onChange(next as T)}>
+        <SelectTrigger id={id} className="w-full min-w-0 bg-card">
+          <SelectValue>{choiceLabelOf(choices.find((choice) => choice.value === value))}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {choices.map((choice) => (
+            <SelectItem key={choice.value} value={choice.value}>
+              {choiceLabelOf(choice)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

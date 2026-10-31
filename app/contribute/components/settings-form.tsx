@@ -7,6 +7,7 @@ import { saveContributeSettings } from '../actions';
 import { Panel, PanelTitle } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type {
   ContributeDcoMode,
@@ -255,8 +256,12 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
 
       <Panel id="pacing">
         <PanelTitle title="Pacing" text="Your credits expire when they renew. Choose how we spread the work." />
-        <fieldset className="flex flex-col gap-2">
-          <legend className="sr-only">Pacing mode</legend>
+        <RadioGroup
+          aria-label="Pacing mode"
+          value={draft.pace}
+          onValueChange={(next) => set('pace', next as ContributePace)}
+          className="gap-2"
+        >
           {(Object.keys(PACES) as ContributePace[]).map((pace) => (
             <label
               key={pace}
@@ -266,21 +271,14 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
                 draft.pace === pace && 'border-primary bg-brand-soft/50 ring-1 ring-primary',
               )}
             >
-              <input
-                id={`${field('pace')}-${pace}`}
-                type="radio"
-                name={field('pace')}
-                checked={draft.pace === pace}
-                onChange={() => set('pace', pace)}
-                className="mt-1 accent-primary"
-              />
+              <RadioGroupItem id={`${field('pace')}-${pace}`} value={pace} className="mt-1" />
               <span className="flex flex-col">
                 <span className="font-medium">{PACES[pace].title}</span>
                 <span className="text-sm text-muted-foreground">{PACES[pace].text}</span>
               </span>
             </label>
           ))}
-        </fieldset>
+        </RadioGroup>
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Sweep days" htmlFor={field('sweepDays')}>
             {textInput('sweepDays')}
@@ -384,27 +382,29 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
           </Field>
         </div>
         {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-medium">DCO sign-off, for repos that require it</legend>
-          {(
-            [
-              ['ASK', 'Ask me on every PR'],
-              ['STANDING', 'Sign off for me on every PR, including autopilot'],
-            ] as const
-          ).map(([dco, label]) => (
-            <label key={dco} htmlFor={`${field('dco')}-${dco}`} className="flex items-center gap-2.5 text-sm">
-              <input
-                id={`${field('dco')}-${dco}`}
-                type="radio"
-                name={field('dco')}
-                checked={draft.dco === dco}
-                onChange={() => set('dco', dco)}
-                className="accent-primary"
-              />
-              {label}
-            </label>
-          ))}
-        </fieldset>
+        <div className="flex flex-col gap-2">
+          <span id={`${field('dco')}-legend`} className="mb-2 text-sm font-medium">
+            DCO sign-off, for repos that require it
+          </span>
+          <RadioGroup
+            aria-labelledby={`${field('dco')}-legend`}
+            value={draft.dco}
+            onValueChange={(next) => set('dco', next as ContributeDcoMode)}
+            className="gap-2"
+          >
+            {(
+              [
+                ['ASK', 'Ask me on every PR'],
+                ['STANDING', 'Sign off for me on every PR, including autopilot'],
+              ] as const
+            ).map(([dco, label]) => (
+              <label key={dco} htmlFor={`${field('dco')}-${dco}`} className="flex items-center gap-2.5 text-sm">
+                <RadioGroupItem id={`${field('dco')}-${dco}`} value={dco} />
+                {label}
+              </label>
+            ))}
+          </RadioGroup>
+        </div>
         <SaveRow onSave={() => save('prs')} pending={pendingSection === 'prs'} message={messageFor('prs')} />
       </Panel>
     </>

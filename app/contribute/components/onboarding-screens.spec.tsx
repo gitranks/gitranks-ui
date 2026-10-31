@@ -9,6 +9,7 @@ const data = vi.hoisted(() => ({
   loadContributeSet: vi.fn(async () => null),
   loadContributeActivity: vi.fn(async () => null),
   loadAttempt: vi.fn(),
+  loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),
   loadOpenPrDrafts: vi.fn(),

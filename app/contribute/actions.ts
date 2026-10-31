@@ -6,6 +6,7 @@ import { viewerLogin } from '@/lib/contribute/contribute.data';
 import {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
+  ApproveFollowUpDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
@@ -35,8 +36,10 @@ import {
   SetContributeModeDocument,
   SetContributeSettingsDocument,
   SetPreferencesDocument,
+  SetResolveHumansDocument,
   SkipIssueDocument,
   StartFollowUpDocument,
+  StartFollowUpOnDocument,
   UnignoreContributeRepoDocument,
   VetoAutopilotDocument,
   WithdrawProviderInterestDocument,
@@ -296,9 +299,72 @@ export async function discardAttempt(id: string): Promise<ContributeActionResult
   return run(DiscardAttemptDocument, { id: String(id) }, (data) => data.discardAttempt);
 }
 
-/** Starts a follow-up on the user's open pull request (its node id): new commits and drafted replies, for review. */
-export async function startFollowUp(prId: string): Promise<ContributeActionResult<ContributeAttempt>> {
-  return run(StartFollowUpDocument, { prId: String(prId) }, (data) => data.startFollowUp);
+/**
+ * Starts a follow-up on the user's open pull request (its node id): new commits and drafted replies, for review. With
+ * `commentIds`, on those review threads alone; the pull request's other waiting threads are ignored from then on.
+ */
+export async function startFollowUp(
+  prId: string,
+  commentIds?: string[],
+): Promise<ContributeActionResult<ContributeAttempt>> {
+  const ids = Array.isArray(commentIds) ? commentIds.map(String).filter(Boolean).slice(0, FOLLOW_UP_THREADS_MAX) : [];
+  if (Array.isArray(commentIds) && !ids.length) {
+    return { ok: false, error: 'INVALID', message: 'Choose at least one comment to address.' };
+  }
+  return ids.length
+    ? run(StartFollowUpOnDocument, { prId: String(prId), commentIds: ids }, (data) => data.startFollowUp)
+    : run(StartFollowUpDocument, { prId: String(prId) }, (data) => data.startFollowUp);
+}
+
+/** The most review threads one follow-up addresses (the API's). */
+const FOLLOW_UP_THREADS_MAX = 20;
+/** The longest reply GitHub takes from us (the API's). */
+const REPLY_MAX = 8_000;
+
+export type FollowUpReplyInput = { draftId: string; text: string; send: boolean };
+
+/**
+ * Approves a follow-up in review with its replies as edited: its commits are pushed to the pull request, then each
+ * reply sent is posted ("Fixed in <commit>: …"), and a bot's thread is resolved.
+ */
+export async function approveFollowUp(
+  id: string,
+  title: string,
+  replies: FollowUpReplyInput[],
+): Promise<ContributeActionResult<ContributeAttempt>> {
+  const list = (Array.isArray(replies) ? replies : []).map((reply) => ({
+    draftId: String(reply.draftId),
+    text: String(reply.text ?? '').trim(),
+    send: reply.send === true,
+  }));
+  if (list.some((reply) => reply.text.length > REPLY_MAX)) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `Keep each reply under ${REPLY_MAX.toLocaleString('en-US')} characters.`,
+    };
+  }
+  if (list.some((reply) => reply.send && !reply.text)) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: 'A reply you chose to post has no text. Write it, or leave it out.',
+    };
+  }
+  return run(
+    ApproveFollowUpDocument,
+    { id: String(id), title: String(title || 'Follow-up'), replies: list },
+    (data) => data.approveAttempt,
+  );
+}
+
+/** Whether a follow-up's replies resolve people's threads too (off: only bots'; reviewers resolve their own). */
+export async function setResolveHumanThreads(on: boolean): Promise<ContributeActionResult<boolean>> {
+  return run(
+    SetResolveHumansDocument,
+    { on: on === true },
+    (data) => data.setContributeSettings?.resolveHumanThreads === true,
+  );
 }
 
 /** Stops autopilot from submitting an attempt in its hour: it goes to the review instead. */

@@ -38,8 +38,19 @@ const reducedMotion = () =>
 
 type Delays = Partial<Record<ContributeSubmitStep, number>>;
 
-/** A step's dot: a check once done, a spinning ring while it runs, a cross where it failed. */
-function StepDot({ view, index, changed }: { view: SubmitStepView; index: number; changed: boolean }) {
+/**
+ * A step's dot: a check once done, a spinning ring while it runs, a cross where it failed. Shared with the follow-up's
+ * run (`FollowUpStepper`), so both steppers read alike.
+ */
+export function StepDot({
+  view,
+  index,
+  changed,
+}: {
+  view: Pick<SubmitStepView, 'state'>;
+  index: number;
+  changed: boolean;
+}) {
   const base = 'relative flex size-8 flex-none items-center justify-center rounded-full text-sm font-semibold';
   switch (view.state) {
     case 'done':

@@ -365,6 +365,74 @@ export type ContributeFollowUps = {
   handedOffAt: string | null;
   /** The follow-up under way. */
   currentAttemptId: string | null;
+  /** Each round so far, oldest first; `undefined` while the API does not answer it. */
+  history?: ContributeFollowUpRound[] | null;
+};
+
+/** One follow-up round as the pull request lines it up: "Round 1 pushed 46de700 · 5 fixed · 2 replied". */
+export type ContributeFollowUpRound = {
+  round: number;
+  attemptId: string;
+  state: ContributeAttemptState;
+  endReason: ContributeAttemptEndReason | null;
+  /** The pull request's head after the round's push. */
+  pushedSha: string | null;
+  fixed: number;
+  skipped: number;
+  needsYou: number;
+  replied: number;
+  resolved: number;
+  at: string;
+};
+
+/** Our checks in one word: a failing test, tests that could not run, or a rail that blocks the push. */
+export type ContributeCheckStatus = 'PASSED' | 'FAILED' | 'NOT_RUN' | 'BLOCKED';
+export type ContributeCheckStatusView = { status: ContributeCheckStatus; note: string };
+
+/** A review thread waiting for an answer on the pull request. Its author and text are untrusted. */
+export type ContributeFeedbackThread = {
+  threadId: string;
+  /** Its first comment's node id: what a follow-up is told to address. */
+  commentId: string;
+  author: string | null;
+  bot: boolean;
+  path: string | null;
+  line: number | null;
+  /** The comment as one plain line. */
+  excerpt: string;
+  url: string | null;
+  createdAt: string | null;
+  /** Ignored in an earlier round. */
+  ignored: boolean;
+};
+export type ContributeReviewFeedback = { threads: ContributeFeedbackThread[]; readAt: string | null };
+
+/** What a follow-up did about a review thread. */
+export type ContributeThreadOutcome = 'FIXED' | 'SKIPPED' | 'NEEDS_YOU';
+export type ContributeResolveState = 'NONE' | 'RESOLVING' | 'RESOLVED' | 'FAILED';
+
+/** The fields of the follow-up flow (2026-10-31), asked on their own: an API without them leaves the rest. */
+export type ContributeFollowUpFlowFields = {
+  checkStatus: ContributeCheckStatusView | null;
+  /** A first attempt's open pull request: the threads waiting for an answer, between rounds. */
+  reviewFeedback: ContributeReviewFeedback | null;
+  /** A follow-up: its round. */
+  round: ContributeFollowUpRound | null;
+};
+
+/** A reply draft's follow-up flow fields; `undefined` while the API does not answer them. */
+export type ContributeReplyDraftFlow = {
+  outcome: ContributeThreadOutcome | null;
+  /** The agent's reason: a skip's, or the question for the user. Untrusted. */
+  reason: string | null;
+  bot: boolean;
+  /** Posted before the text: "Fixed in <sha>: ", "Not changed: " (with "<commit>" before the push). */
+  prefix: string | null;
+  /** Approved to post with the push. */
+  send: boolean;
+  /** Its thread is resolved after the reply posts. */
+  resolve: boolean;
+  resolveState: ContributeResolveState;
 };
 
 /** The pull request a follow-up works on, and the first attempt that opened it. */
@@ -414,7 +482,13 @@ export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> &
     reviewAt?: string | null;
   };
 
-export type ContributeAttemptTest = { command: string; passed: boolean; output: string | null };
+export type ContributeAttemptTest = {
+  command: string;
+  passed: boolean;
+  output: string | null;
+  /** It could not run at all (dependencies, a toolchain); `undefined` while the API does not answer it. */
+  notRun?: boolean | null;
+};
 
 export type ContributeAttemptResult = {
   verdict: ContributeAttemptVerdict | null;
@@ -455,7 +529,7 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   events: ContributeAttemptEvent[];
   /** The pull request's reply drafts (a follow-up: the ones it wrote); `undefined` while the API does not answer them. */
   replyDrafts?: ContributeReplyDraft[];
-};
+} & Partial<ContributeFollowUpFlowFields>;
 
 /** The review comment a reply answers: the first comment of its thread. */
 export type ContributeReplyTarget = {
@@ -487,7 +561,7 @@ export type ContributeReplyDraft = {
   lastError: ContributeSubmitError | null;
   createdAt: string;
   updatedAt: string;
-};
+} & Partial<ContributeReplyDraftFlow>;
 
 /**
  * A reply draft the user can approve now, with its pull request. `inReview`: its follow-up is itself waiting for the

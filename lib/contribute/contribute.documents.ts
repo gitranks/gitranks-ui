@@ -9,6 +9,7 @@ import type {
   ContributeAttemptState,
   ContributeAttemptSubmit,
   ContributeAutopilot,
+  ContributeCheckStatusView,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
   ContributeConnectLimits,
@@ -16,6 +17,7 @@ import type {
   ContributeDeleteDataResult,
   ContributeFeedbackContext,
   ContributeFeedbackTopic,
+  ContributeFollowUpRound,
   ContributeGrant,
   ContributeIssue,
   ContributeIssuePage,
@@ -31,7 +33,9 @@ import type {
   ContributePreferences,
   ContributePreferencesInput,
   ContributeReplyDraft,
+  ContributeReplyDraftFlow,
   ContributeReplyWaiting,
+  ContributeReviewFeedback,
   ContributeScheduleCounts,
   ContributeSet,
   ContributeSetAddResult,
@@ -347,6 +351,65 @@ export const ContributeAttemptFollowUpsDocument = doc<
   { id: string }
 >(`query ContributeAttemptFollowUps($id: ID!) {
   contributeAttempt(id: $id) { ${FOLLOW_UP_FIELDS} replyDrafts { ${REPLY_DRAFT} } }
+}`);
+
+// The follow-up flow (2026-10-31): what each thread came to, the checks in a word, the threads waiting, the rounds.
+const ROUND = 'round attemptId state endReason pushedSha fixed skipped needsYou replied resolved at';
+const FEEDBACK_THREAD = 'threadId commentId author bot path line excerpt url createdAt ignored';
+
+export type FollowUpFlowRead = {
+  attemptId: string;
+  checkStatus: ContributeCheckStatusView | null;
+  reviewFeedback: ContributeReviewFeedback | null;
+  round: ContributeFollowUpRound | null;
+  followUps: { history: ContributeFollowUpRound[] | null } | null;
+  result: { tests: { command: string; notRun: boolean | null }[] } | null;
+  replyDrafts: (ContributeReplyDraftFlow & { draftId: string })[];
+};
+
+export const ContributeAttemptFollowUpFlowDocument = doc<
+  { contributeAttempt: FollowUpFlowRead | null },
+  { id: string }
+>(
+  `query ContributeAttemptFollowUpFlow($id: ID!) {
+  contributeAttempt(id: $id) {
+    attemptId
+    checkStatus { status note }
+    reviewFeedback { threads { ${FEEDBACK_THREAD} } readAt }
+    round { ${ROUND} }
+    followUps { history { ${ROUND} } }
+    result { tests { command notRun } }
+    replyDrafts { draftId outcome reason bot prefix send resolve resolveState }
+  }
+}`,
+);
+
+/** A follow-up on the threads the user chose to address; the pull request's other waiting threads are ignored. */
+export const StartFollowUpOnDocument = doc<
+  { startFollowUp: ContributeAttempt },
+  { prId: string; commentIds: string[] }
+>(
+  `mutation StartFollowUpOn($prId: ID!, $commentIds: [ID!]) { startFollowUp(prId: $prId, commentIds: $commentIds) { ${ATTEMPT} } }`,
+);
+
+/** A follow-up's approval with its replies as edited: the commits are pushed, then the replies sent are posted. */
+export const ApproveFollowUpDocument = doc<
+  { approveAttempt: ContributeAttempt },
+  { id: string; title: string; replies: { draftId: string; text: string; send: boolean }[] }
+>(`mutation ApproveFollowUp($id: ID!, $title: String!, $replies: [ContributeReplyInput!]) {
+  approveAttempt(id: $id, title: $title, body: "", dco: false, replies: $replies) { ${ATTEMPT} }
+}`);
+
+/** Whether a follow-up's replies resolve people's threads too (off: only bots'), read and written on its own. */
+export const ContributeResolveHumansDocument = doc<{
+  contribute: { contributor: { settings: { resolveHumanThreads: boolean } | null } | null } | null;
+}>('query ContributeResolveHumans { contribute { contributor { settings { resolveHumanThreads } } } }');
+
+export const SetResolveHumansDocument = doc<
+  { setContributeSettings: { resolveHumanThreads: boolean } },
+  { on: boolean }
+>(`mutation SetResolveHumans($on: Boolean!) {
+  setContributeSettings(settings: { resolveHumanThreads: $on }) { resolveHumanThreads }
 }`);
 
 export const ContributeContributionsDocument = doc<

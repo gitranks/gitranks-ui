@@ -13,6 +13,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadIssues: vi.fn(),
   loadAttempt: vi.fn(),
+  loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),
 }));

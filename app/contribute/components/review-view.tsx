@@ -13,11 +13,13 @@ import {
 import { AttemptStatus, FollowUpOfLink } from './attempt-status';
 import { DiffViewer } from './diff-viewer';
 import { FollowUpApproval } from './follow-up-approval';
+import { FollowUpResult } from './follow-up-result';
 import { LiveRefresh } from './live-refresh';
 import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { PrForm } from './pr-form';
 import { HEADING, Pill } from './primitives';
 import { ReplyDrafts } from './reply-drafts';
+import { ReviewFeedbackCard } from './review-feedback';
 import { attemptHref } from './reviews-ready';
 import { SendBackForm } from './send-back-form';
 import {
@@ -30,18 +32,24 @@ import {
   repoOf,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
-import { loadAttempt, loadContribute } from '@/lib/contribute/contribute.data';
+import { loadAttempt, loadContribute, loadResolveHumanThreads } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import { isContributePageOpen } from '@/lib/contribute/contribute-state';
+import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
+import { canStartFollowUp } from '@/lib/contribute/follow-up-format';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
 
 export async function ReviewView({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [view, attempt] = await Promise.all([loadContribute(), loadAttempt(id)]);
+  const [view, attempt, resolveHumans] = await Promise.all([
+    loadContribute(),
+    loadAttempt(id),
+    loadResolveHumanThreads(),
+  ]);
   if (!view) notFound();
   if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
   if (attempt === null) notFound();
-  return <ReviewScreen view={view} attempt={attempt} />;
+  return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} />;
 }
 
 /**
@@ -72,10 +80,13 @@ export function ReviewScreen({
   view,
   attempt,
   now,
+  resolveHumans,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail | undefined;
   now?: Date;
+  /** Whether a follow-up's replies resolve people's threads too; `undefined` while the API does not answer it. */
+  resolveHumans?: boolean;
 }) {
   if (!attempt) {
     return (
@@ -97,7 +108,13 @@ export function ReviewScreen({
   const prNumber = followUp ? (attempt.followUpOf?.number ?? null) : (attempt.pullRequest?.number ?? null);
   // A first attempt shows its pull request's drafts once there is one; a follow-up always shows the ones it wrote.
   const showDrafts = followUp || (!!attempt.pullRequest && attempt.replyDrafts?.length !== 0);
-  const posting = attempt.replyDrafts?.some(({ state }) => state === 'POSTING');
+  const posting = attempt.replyDrafts?.some(
+    ({ state, resolveState }) => state === 'POSTING' || resolveState === 'RESOLVING',
+  );
+  // The follow-up flow: one card per thread with its outcome, the diff, and one approval (an older API: the drafts).
+  const flow = followUp && hasOutcomes(attempt.replyDrafts);
+  const feedback = !followUp && attempt.pullRequest?.state === 'OPEN' ? attempt.reviewFeedback : null;
+  const roundOpen = !!attempt.followUps && canStartFollowUp(attempt.followUps) && attempt.state === 'PR_OPEN';
 
   return (
     <div className="flex flex-col gap-5" data-review={attempt.attemptId} data-state={attempt.state}>
@@ -155,16 +172,41 @@ export function ReviewScreen({
             followUps={attempt.followUps}
             pullRequest={attempt.pullRequest}
             attemptCapUsd={view.contributor?.settings?.attemptCapUsd}
+            // The review-feedback card below starts the round on the threads chosen.
+            startHere={!feedback?.threads.length}
           />
         </section>
+      ) : null}
+
+      {feedback?.threads.length && attempt.pullRequest ? (
+        <ReviewFeedbackCard
+          prId={attempt.pullRequest.prId}
+          prNumber={attempt.pullRequest.number}
+          feedback={feedback}
+          canStart={roundOpen}
+          blocked={
+            roundOpen
+              ? null
+              : attempt.followUps?.currentAttemptId
+                ? 'A follow-up is under way on these comments.'
+                : 'Every follow-up round is used: answer these on GitHub.'
+          }
+          attemptCapUsd={view.contributor?.settings?.attemptCapUsd}
+          now={now}
+        />
       ) : null}
 
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <ResultPanel attempt={attempt} />
+          {flow ? (
+            <FollowUpResult attempt={attempt} prNumber={prNumber} resolveHumans={resolveHumans}>
+              {attempt.patch?.trim() ? <DiffViewer patch={attempt.patch} title="The new commits" /> : null}
+            </FollowUpResult>
+          ) : null}
           <ChecksPanel attempt={attempt} />
-          <DiffViewer patch={attempt.patch} title={followUp ? 'The new commits' : 'Diff'} />
-          {showDrafts ? (
+          {flow ? null : <DiffViewer patch={attempt.patch} title={followUp ? 'The new commits' : 'Diff'} />}
+          {showDrafts && !flow ? (
             <ReplyDrafts
               drafts={attempt.replyDrafts}
               prNumber={prNumber}
@@ -176,7 +218,7 @@ export function ReviewScreen({
         </div>
         <aside className="flex min-w-0 flex-[1_1_340px] flex-col gap-3.5">
           {ownAgent ? <OwnAgentPanel attempt={attempt} now={now} /> : <CostPanel attempt={attempt} />}
-          {inReview && followUp ? (
+          {inReview && followUp && flow ? null : inReview && followUp ? (
             <FollowUpApproval
               attemptId={attempt.attemptId}
               prNumber={prNumber}

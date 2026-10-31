@@ -18,7 +18,6 @@ const {
   loadOverviewNeeds,
   loadOverviewNow,
   loadProviderInterests,
-  loadIssueTiers,
   loadReplyDrafts,
 } = await import('./contribute.data');
 const {
@@ -538,30 +537,5 @@ describe('what the user works on', () => {
     expect(await loadContributeSet()).toBeNull();
     graphqlDirect.mockRejectedValueOnce(new Error('GraphQL error! 502'));
     expect(await loadContributeSet()).toBeUndefined();
-  });
-
-  it("reads the feed's tiers by issue, and nothing when the API does not answer them", async () => {
-    auth.mockResolvedValue({ user: { githubLogin: 'maslianok' }, expires: '2099-01-01' });
-    graphqlDirect.mockResolvedValueOnce({
-      contributeIssues: {
-        items: [
-          { issueId: 'I_1', tier: 0 },
-          { issueId: 'I_2', tier: 1 },
-          { issueId: 'I_3', tier: null },
-        ],
-      },
-    });
-    expect(await loadIssueTiers({}, 'c2')).toEqual(
-      new Map([
-        ['I_1', 0],
-        ['I_2', 1],
-      ]),
-    );
-    expect(graphqlDirect.mock.calls[0][1]).toEqual({ first: 20, after: 'c2' });
-
-    graphqlDirect.mockRejectedValueOnce(
-      new Error(JSON.stringify([{ message: 'Cannot query field "tier" on type "ContributeIssue".' }])),
-    );
-    expect(await loadIssueTiers({})).toBeUndefined();
   });
 });

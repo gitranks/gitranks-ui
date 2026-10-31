@@ -36,9 +36,10 @@ const SECTIONS = [
   ['danger', 'Delete data'],
 ] as const;
 
-/** The sections about what the user works on, first, when the modes are shown to them. */
+/** The sections about what the user works on, first, when the modes are shown to them; the preferences follow. */
 const SET_SECTIONS = [
   ['modes', 'What to work on'],
+  ['work', 'Preferences'],
   ['rules', 'How we pick repos'],
   ['ignored', 'Ignored repos'],
 ] as const;
@@ -51,7 +52,10 @@ export async function SettingsView({
   const [view, params, set] = await Promise.all([loadContribute(), searchParams, loadContributeSet()]);
   if (!view) notFound();
   if (!isContributePageOpen(view, 'settings')) redirect('/contribute');
-  return <SettingsScreen view={view} grantRefusal={grantRefusalOf(params.grant)} set={set} />;
+  // The modes are shown to the user (the read is not null) but did not load.
+  return (
+    <SettingsScreen view={view} grantRefusal={grantRefusalOf(params.grant)} set={set} setFailed={set === undefined} />
+  );
 }
 
 export function SettingsScreen({
@@ -59,12 +63,15 @@ export function SettingsScreen({
   grantRefusal,
   now,
   set,
+  setFailed = false,
 }: {
   view: ContributeView;
   grantRefusal?: GrantRefusal;
   now?: Date;
   /** What the user works on; null or `undefined` when the modes are not shown, and then nothing about them is. */
   set?: ContributeSet | null;
+  /** The modes are shown to the user, and what they work on did not load. */
+  setFailed?: boolean;
 }) {
   const { contributor } = view;
   const key = claudeKeyOf(view);
@@ -72,9 +79,8 @@ export function SettingsScreen({
   const settings = isOwnAgentOnly(view) && !contributor?.plan ? null : (contributor?.settings ?? null);
   // The pause and the key's trouble are shown where they are acted on, in the status card and under Keys.
   const notices = contributeNoticesOf(view).filter(({ kind }) => kind !== 'paused');
-  const sections = set
-    ? [...SET_SECTIONS, ...SECTIONS.map(([id, label]) => [id, id === 'work' ? 'Preferences' : label] as const)]
-    : SECTIONS;
+  const sections = set ? [...SET_SECTIONS, ...SECTIONS.filter(([id]) => id !== 'work')] : SECTIONS;
+  const preferences = <PreferencesSection preferences={contributor?.preferences ?? null} modes={!!set} />;
 
   return (
     <>
@@ -96,7 +102,15 @@ export function SettingsScreen({
           ))}
         </nav>
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4.5">
-          {set ? <SetSections set={set} now={now} /> : null}
+          {set ? <SetSections set={set} now={now} preferences={preferences} /> : null}
+          {!set && setFailed ? (
+            <Panel id="modes">
+              <PanelTitle
+                title="What to work on"
+                text="Your lists didn't load. Reload the page to try again; everything else here works as usual."
+              />
+            </Panel>
+          ) : null}
           {settings ? (
             <SettingsForm settings={settings} />
           ) : (
@@ -121,7 +135,7 @@ export function SettingsScreen({
               canSave={!!settings}
             />
           ) : null}
-          <PreferencesSection preferences={contributor?.preferences ?? null} modes={!!set} />
+          {set ? null : preferences}
           <AccessSection
             credential={key}
             grant={view.grant}

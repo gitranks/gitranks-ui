@@ -53,8 +53,6 @@ export const contributor = (patch: Partial<Contributor> = {}): Contributor => ({
   preferences: {
     languages: ['RUST'],
     topicIds: ['T_1', 'T_2'],
-    reposIn: [],
-    reposOut: ['R_1'],
     kinds: ['BUG'],
     maxSize: null,
   },

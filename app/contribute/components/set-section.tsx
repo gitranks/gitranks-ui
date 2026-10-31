@@ -2,12 +2,12 @@
 
 import { Globe, Layers, LayoutGrid } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useId, useState, useTransition } from 'react';
+import { type ReactNode, useEffect, useId, useState, useTransition } from 'react';
 
 import { setContributeFallback, setContributeMode } from '../actions';
 import { FeedbackDialog, type FeedbackOpen } from './feedback-dialog';
-import { LiveRefresh } from './live-refresh';
 import { Panel, PanelTitle } from './primitives';
+import { RadioPills, useSettledPick } from './radio-pills';
 import { SetListEditor } from './set-list-editor';
 import { IgnoredPanel, RulesPanel } from './set-panels';
 import { StackTargets } from './stack-targets';
@@ -22,7 +22,7 @@ import {
   type ContributeSetActionResult,
   contributeSetErrorMessage,
 } from '@/lib/contribute/errors';
-import { FALLBACKS, MODES } from '@/lib/contribute/set-format';
+import { FALLBACKS, MODES, refreshDelayOf, settlingOf } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
 
 /** Runs a change to the set and shows its answer; resolves to the failure's message, or null. */
@@ -33,20 +33,49 @@ export type SetWrite = (
 
 const ICONS = { STACK: Layers, REPOS: LayoutGrid, ALL: Globe } as const;
 
-/** Whether the page should read itself again: a repo is read for the first time, or the libraries are worked out. */
-const settling = (set: ContributeSet) =>
-  set.stack.resolve?.state === 'RESOLVING' ||
-  [...set.stack.sources, ...set.repos.repos, ...(set.stack.resolve?.targets ?? [])].some(
-    ({ status }) => status === 'CHECKING',
-  );
+/**
+ * Reads the page again while a repo of the active list is read for the first time, or the libraries are worked out:
+ * every 20 seconds, then every minute, and not after 10 minutes. Mounted again (and so started over) by a change the
+ * user makes.
+ */
+function SettlingRefresh() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const start = Date.now();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const next = () => {
+      const delay = refreshDelayOf(Date.now() - start);
+      if (delay === null) return;
+      timer = setTimeout(() => {
+        if (document.visibilityState === 'visible') router.refresh();
+        next();
+      }, delay);
+    };
+    next();
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  return null;
+}
 
 /**
- * What the user works on (the mode, its list and what happens when the list has nothing ready), how we pick repos,
- * and the ignored repos. Every change answers the set as it is now, shown at once.
+ * What the user works on (the mode, its list and what happens when the list has nothing ready), then `preferences`,
+ * how we pick repos, and the ignored repos. Every change answers the set as it is now, shown at once.
  */
-export function SetSections({ set: loaded, now }: { set: ContributeSet; now?: Date }) {
+export function SetSections({
+  set: loaded,
+  now,
+  preferences,
+}: {
+  set: ContributeSet;
+  now?: Date;
+  /** Shown right after what to work on. */
+  preferences?: ReactNode;
+}) {
   const router = useRouter();
   const [written, setWritten] = useState<ContributeSet | null>(null);
+  const [changes, setChanges] = useState(0);
   const [feedback, setFeedback] = useState<FeedbackOpen | null>(null);
   // The newer of the page's read and the last change's answer.
   const set = written && written.version >= loaded.version ? written : loaded;
@@ -54,7 +83,9 @@ export function SetSections({ set: loaded, now }: { set: ContributeSet; now?: Da
   const write: SetWrite = async (call, action) => {
     const result = await call();
     if (!result.ok) return contributeSetErrorMessage(result.error, action, set.limits, result.message);
-    setWritten(result.data);
+    // Answers can come back out of order: keep the newest.
+    setWritten((current) => (current && current.version > result.data.version ? current : result.data));
+    setChanges((count) => count + 1);
     router.refresh();
     return null;
   };
@@ -75,6 +106,7 @@ export function SetSections({ set: loaded, now }: { set: ContributeSet; now?: Da
           </>
         )}
       </Panel>
+      {preferences}
       <RulesPanel onFeedback={() => setFeedback({ topic: 'GATES', context: { mode: set.mode } })} />
       <IgnoredPanel set={set} write={write} />
       <FeedbackDialog
@@ -83,33 +115,46 @@ export function SetSections({ set: loaded, now }: { set: ContributeSet; now?: Da
         perDay={set.limits.feedbackPerDay}
         onClose={() => setFeedback(null)}
       />
-      {settling(set) ? <LiveRefresh seconds={20} /> : null}
+      {settlingOf(set) ? <SettlingRefresh key={changes} /> : null}
     </>
   );
 }
 
-/** The three modes as native radios: arrows move between them, and picking one switches at once. */
+/**
+ * The three modes as native radios: arrows move between them, the pick is shown at once and saved once the user
+ * stops, so arrowing past one mode to the next saves only the last.
+ */
 function ModeCards({ mode, write }: { mode: ContributeSetMode; write: SetWrite }) {
   const id = useId();
   const [pending, startTransition] = useTransition();
-  const [picking, setPicking] = useState<ContributeSetMode | null>(null);
+  const [chosen, setChosen] = useState<ContributeSetMode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const shown = chosen ?? mode;
+
+  const save = useSettledPick((next: ContributeSetMode) => {
+    if (next === mode) {
+      setChosen(null);
+      return;
+    }
+    startTransition(async () => {
+      const failure = await write(() => setContributeMode(next), 'change');
+      setError(failure);
+      setChosen(null);
+    });
+  });
 
   const pick = (next: ContributeSetMode) => {
-    if (next === mode || pending) return;
-    setPicking(next);
-    startTransition(async () => {
-      setError(await write(() => setContributeMode(next), 'change'));
-      setPicking(null);
-    });
+    setError(null);
+    setChosen(next);
+    save(next);
   };
 
   return (
-    <fieldset className="flex flex-col gap-2">
+    <fieldset className="flex flex-col gap-2" aria-busy={pending || undefined}>
       <legend className="sr-only">Where your issues come from</legend>
       <div className="grid gap-2.5 sm:grid-cols-3">
         {MODES.map((entry) => {
-          const on = entry.mode === mode;
+          const on = entry.mode === shown;
           const Icon = ICONS[entry.mode];
           return (
             <label
@@ -127,7 +172,6 @@ function ModeCards({ mode, write }: { mode: ContributeSetMode; write: SetWrite }
                 name={`${id}-mode`}
                 value={entry.mode}
                 checked={on}
-                disabled={pending}
                 onChange={() => pick(entry.mode)}
                 className="sr-only"
               />
@@ -140,7 +184,7 @@ function ModeCards({ mode, write }: { mode: ContributeSetMode; write: SetWrite }
                 />
               </span>
               <span className={cn('text-xs', on ? 'opacity-80' : 'text-muted-foreground')}>
-                {picking === entry.mode ? 'Switching…' : entry.text}
+                {on && pending ? 'Switching…' : entry.text}
               </span>
             </label>
           );
@@ -157,45 +201,39 @@ function ModeCards({ mode, write }: { mode: ContributeSetMode; write: SetWrite }
 
 /** What a list's mode does when the list has nothing ready. */
 function FallbackChoice({ set, mode, write }: { set: ContributeSet; mode: ContributeSetListMode; write: SetWrite }) {
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const [chosen, setChosen] = useState<ContributeSetFallback | null>(null);
   const [error, setError] = useState<string | null>(null);
   const current = mode === 'STACK' ? set.stack.fallback : set.repos.fallback;
+  const shown = chosen ?? current;
   const things = mode === 'STACK' ? 'libraries' : 'repos';
 
-  const pick = (fallback: ContributeSetFallback) => {
-    if (fallback === current || pending) return;
+  const save = useSettledPick((fallback: ContributeSetFallback) => {
+    if (fallback === current) {
+      setChosen(null);
+      return;
+    }
     startTransition(async () => {
       setError(await write(() => setContributeFallback(mode, fallback), 'change'));
+      setChosen(null);
     });
-  };
+  });
 
   return (
-    <fieldset className="flex flex-col gap-2 border-t pt-4" data-fallback={current}>
-      <legend className="float-left mb-2 w-full text-sm font-semibold">When these {things} have nothing ready</legend>
-      <div className="flex flex-wrap gap-1.5">
-        {FALLBACKS.map(({ fallback, label }) => {
-          const on = fallback === current;
-          return (
-            <button
-              key={fallback}
-              type="button"
-              aria-pressed={on}
-              disabled={pending}
-              onClick={() => pick(fallback)}
-              className={cn(
-                'rounded-full border px-3 py-1 text-sm',
-                on
-                  ? 'border-primary bg-brand-soft text-brand-soft-foreground'
-                  : 'border-dashed text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
+    <div className="flex flex-col gap-2 border-t pt-4" data-fallback={shown}>
+      <RadioPills
+        legend={`When these ${things} have nothing ready`}
+        legendClassName="font-semibold"
+        options={FALLBACKS.map(({ fallback, label }) => ({ value: fallback, label }))}
+        value={shown}
+        onChange={(fallback) => {
+          setError(null);
+          setChosen(fallback);
+          save(fallback);
+        }}
+      />
       <p className="text-xs text-muted-foreground">
-        {current === 'SET_ONLY'
+        {shown === 'SET_ONLY'
           ? `Your agent works only on these ${things}, and waits when they have nothing ready.`
           : `Issues from these ${things} always come first. When they have nothing ready, your agent works on other issues for you.`}
       </p>
@@ -204,6 +242,6 @@ function FallbackChoice({ set, mode, write }: { set: ContributeSet; mode: Contri
           {error}
         </span>
       ) : null}
-    </fieldset>
+    </div>
   );
 }

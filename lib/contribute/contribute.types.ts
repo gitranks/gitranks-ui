@@ -75,8 +75,6 @@ export type ContributeSettingsInput = Partial<ContributeSettings>;
 export type ContributePreferences = {
   languages: ContributeLanguage[];
   topicIds: string[];
-  reposIn: string[];
-  reposOut: string[];
   kinds: ContributeIssueKind[];
   maxSize: ContributeIssueSize | null;
 };
@@ -170,8 +168,8 @@ export type ContributeIssue = {
   rank: number;
   why: string;
   /**
-   * 0: from the user's own list (or any issue in the "All issues" mode), 1: an other issue shown after it. Read on its
-   * own and merged in; `undefined` when not answered.
+   * 0: from the user's own list (and every issue in the "All issues" mode), 1: an other issue shown after it, when the
+   * list has nothing (more) ready. Read by the feed alone; issues read elsewhere leave it out.
    */
   tier?: number;
 };

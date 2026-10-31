@@ -22,7 +22,6 @@ import {
   ContributeImpactDocument,
   ContributeImpactReposDocument,
   ContributeIssuesDocument,
-  ContributeIssueTiersDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
@@ -252,32 +251,6 @@ export const loadContributeSet = cache(async (): Promise<ContributeSet | null | 
     return undefined;
   }
 });
-
-/**
- * Each issue's tier on one page of the feed, by issue id; `undefined` when the API does not answer tiers (yet), so the
- * page shows one list as before.
- */
-export async function loadIssueTiers(
-  filter: ContributeIssuesFilter,
-  after?: string,
-): Promise<Map<string, number> | undefined> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-
-  try {
-    const { contributeIssues } = await graphqlDirect(
-      ContributeIssueTiersDocument,
-      { first: 20, ...(after ? { after } : {}), ...(Object.keys(filter).length ? { filter } : {}) },
-      { source: 'ssr', githubLogin },
-    );
-    const items = contributeIssues?.items ?? [];
-    return new Map(
-      items.filter(({ tier }) => typeof tier === 'number').map(({ issueId, tier }) => [issueId, tier as number]),
-    );
-  } catch {
-    return undefined;
-  }
-}
 
 /** The signed-in user's attempts, newest first, optionally in one state; `undefined` when the API does not answer. */
 export async function loadAttempts(

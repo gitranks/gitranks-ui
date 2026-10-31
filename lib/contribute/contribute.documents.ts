@@ -52,7 +52,7 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 const CREDENTIAL = 'provider last4 orgId workspaceId state blockedUntil ready checkedAt lastError';
 const SETTINGS = `cycleCapUsd weekCapUsd dayCapUsd attemptCapUsd attemptsAtATime pace sweepDays renewalDay mainModel
   helperModel testModel effort maxChangedLines maxFiles openPrsAtATime dco autopilot`;
-const PREFERENCES = 'languages topicIds reposIn reposOut kinds maxSize';
+const PREFERENCES = 'languages topicIds kinds maxSize';
 const ISSUE = 'issueId repositoryId nameWithOwner number url title labels language kind size score rank why';
 const PULL_REQUEST = 'prId number url state openedAt mergedAt closedAt reviewDecision checks syncedAt';
 const ATTEMPT = `attemptId issueId repositoryId nameWithOwner number title url kind state model budgetUsd costUsd
@@ -171,7 +171,7 @@ export const ContributeIssuesDocument = doc<
   { first?: number; after?: string; filter?: ContributeIssuesFilter }
 >(`query ContributeIssues($first: Int, $after: String, $filter: ContributeIssuesFilter) {
   contributeIssues(first: $first, after: $after, filter: $filter) {
-    items { ${ISSUE} }
+    items { ${ISSUE} tier }
     next total computedAt
   }
 }`);
@@ -460,14 +460,6 @@ const SET = `mode version
 export const ContributeSetDocument = doc<{ contributeSet: ContributeSet | null }>(
   `query ContributeSet { contributeSet { ${SET} } }`,
 );
-
-/** Each issue's tier on a page of the feed: read on its own, so an API without it leaves the feed working. */
-export const ContributeIssueTiersDocument = doc<
-  { contributeIssues: { items: { issueId: string; tier: number | null }[] } | null },
-  { first?: number; after?: string; filter?: ContributeIssuesFilter }
->(`query ContributeIssueTiers($first: Int, $after: String, $filter: ContributeIssuesFilter) {
-  contributeIssues(first: $first, after: $after, filter: $filter) { items { issueId tier } }
-}`);
 
 export const SetContributeModeDocument = doc<{ setContributeMode: ContributeSet }, { mode: ContributeSetMode }>(
   `mutation SetContributeMode($mode: ContributeSetMode!) { setContributeMode(mode: $mode) { ${SET} } }`,

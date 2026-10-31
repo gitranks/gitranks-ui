@@ -3,10 +3,11 @@
 import { Check, ChevronDown, Clock, Globe, Layers, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useId, useState, useTransition } from 'react';
 
 import { setContributeFallback, setContributeMode } from '../actions';
 import { Eyebrow } from './primitives';
+import { useSettledPick } from './radio-pills';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ContributeLanguage, ContributeSet, ContributeSetMode } from '@/lib/contribute/contribute.types';
@@ -17,32 +18,37 @@ import { cn } from '@/lib/utils';
 
 const ICONS = { STACK: Layers, REPOS: LayoutGrid, ALL: Globe } as const;
 
-/** The mode chip by the Issues page's title, with a switcher; nothing in the "All issues" mode. */
-export function ModeSwitcher({ set }: { set: ContributeSet }) {
+/**
+ * The mode chip by the Issues page's title, with a switcher: the modes as native radios (saved once the user stops
+ * picking) and a link to edit the lists. Quiet in the "All issues" mode, so the page still offers a way into a mode.
+ */
+export function ModeSwitcher({ set, languages = [] }: { set: ContributeSet; languages?: ContributeLanguage[] }) {
+  const id = useId();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [chosen, setChosen] = useState<ContributeSetMode | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const chip = modeChipOf(set);
-  if (!chip) return null;
+  const chip = modeChipOf(set, languages);
   const Icon = ICONS[set.mode];
+  const shown = chosen ?? set.mode;
 
-  const pick = (mode: ContributeSetMode) => {
+  const save = useSettledPick((mode: ContributeSetMode) => {
     if (mode === set.mode) {
-      setOpen(false);
+      setChosen(null);
       return;
     }
     startTransition(async () => {
-      setError(null);
       const result = await setContributeMode(mode);
       if (!result.ok) {
         setError(contributeSetErrorMessage(result.error, 'change', set.limits, result.message));
+        setChosen(null);
         return;
       }
       setOpen(false);
       router.refresh();
     });
-  };
+  });
 
   return (
     <div className="flex flex-col items-start gap-1" data-mode-chip={set.mode}>
@@ -50,41 +56,58 @@ export function ModeSwitcher({ set }: { set: ContributeSet }) {
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex max-w-full items-center gap-2 rounded-full border border-primary bg-brand-soft px-3.5 py-1.5 text-left text-sm text-brand-soft-foreground"
+            className={cn(
+              'flex max-w-full items-center gap-2 rounded-full border px-3.5 py-1.5 text-left text-sm',
+              chip.quiet
+                ? 'text-muted-foreground hover:text-foreground'
+                : 'border-primary bg-brand-soft text-brand-soft-foreground',
+            )}
           >
             <Icon aria-hidden="true" className="size-4 shrink-0" />
             <span>
-              {chip.title} <span className="opacity-70">· {chip.detail}</span>
+              {chip.title}
+              {chip.detail ? <span className="opacity-70"> · {chip.detail}</span> : null}
             </span>
             <ChevronDown aria-hidden="true" className="size-3.5 shrink-0" />
             <span className="sr-only">: change where your issues come from</span>
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-1 rounded-xl p-1.5">
-          <div className="flex flex-col gap-1">
+          <fieldset className="flex flex-col gap-1" aria-busy={pending || undefined}>
+            <legend className="sr-only">Where your issues come from</legend>
             {MODES.map((entry) => {
-              const on = entry.mode === set.mode;
+              const on = entry.mode === shown;
               return (
-                <button
+                <label
                   key={entry.mode}
-                  type="button"
-                  aria-pressed={on}
-                  disabled={pending}
-                  onClick={() => pick(entry.mode)}
+                  htmlFor={`${id}-${entry.mode}`}
                   className={cn(
-                    'flex flex-col items-start rounded-lg px-3 py-2 text-left hover:bg-muted',
+                    'flex cursor-pointer flex-col items-start rounded-lg px-3 py-2 text-left hover:bg-muted has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
                     on && 'bg-muted',
                   )}
                 >
+                  <input
+                    id={`${id}-${entry.mode}`}
+                    type="radio"
+                    name={`${id}-mode`}
+                    value={entry.mode}
+                    checked={on}
+                    onChange={() => {
+                      setError(null);
+                      setChosen(entry.mode);
+                      save(entry.mode);
+                    }}
+                    className="sr-only"
+                  />
                   <span className="flex items-center gap-1.5 text-sm font-medium">
                     {on ? <Check aria-hidden="true" className="size-3.5" /> : null}
                     {entry.title}
                   </span>
                   <span className="text-xs text-muted-foreground">{modeSummaryOf(set, entry.mode)}</span>
-                </button>
+                </label>
               );
             })}
-          </div>
+          </fieldset>
           {error ? (
             <span role="alert" className="px-3 text-xs text-destructive">
               {error}
@@ -153,6 +176,9 @@ export function SetOnlyEmpty({
     ? repos.filter(({ language }) => language && !languages.includes(language)).length
     : 0;
   const things = mode === 'STACK' ? plural(size, 'library', 'libraries') : plural(size, 'repo');
+  // Sources are added but their libraries are not worked out yet: nothing is empty, it is on its way.
+  const workingOut =
+    mode === 'STACK' && !size && set.stack.count > 0 && (!set.stack.resolve || set.stack.resolve.state === 'RESOLVING');
 
   const meanwhile = () =>
     startTransition(async () => {
@@ -175,12 +201,18 @@ export function SetOnlyEmpty({
       </div>
       <div className="flex max-w-md flex-col gap-1.5">
         <h2 className="text-lg font-semibold">
-          {size ? `Your ${things} have no issues ready right now` : 'Your list is empty'}
+          {workingOut
+            ? "We're working out the libraries your stack uses"
+            : size
+              ? `Your ${things} have no issues ready right now`
+              : 'Your list is empty'}
         </h2>
         <p className="text-sm text-muted-foreground">
-          {size
-            ? `We check them for new issues every 12 hours.${reading ? ` ${plural(reading, 'repo')} ${reading === 1 ? 'is' : 'are'} still being read for the first time.` : ''} Your agent waits meanwhile.`
-            : 'Add repos to it in Settings, or work on all issues meanwhile. Your agent waits until then.'}
+          {workingOut
+            ? `We're reading the dependency files of your ${plural(set.stack.count, 'repo')}. Their libraries' issues show here once they're read. Your agent waits meanwhile.`
+            : size
+              ? `We check them for new issues every 12 hours.${reading ? ` ${plural(reading, 'repo')} ${reading === 1 ? 'is' : 'are'} still being read for the first time.` : ''} Your agent waits meanwhile.`
+              : 'Add repos to it in Settings, or work on all issues meanwhile. Your agent waits until then.'}
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-2">

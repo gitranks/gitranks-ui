@@ -82,7 +82,14 @@ export function SetListEditor({
       }
       if (answer.result) {
         const after = listOf(answer.result.set, mode);
-        setNotice(addNoticeOf(trimmed, answer.result, { count: after.count, cap: after.cap, rules }));
+        setNotice(
+          addNoticeOf(trimmed, answer.result, {
+            count: after.count,
+            cap: after.cap,
+            rules,
+            listed: after.repos.map(({ repositoryId }) => repositoryId),
+          }),
+        );
         if (trimmed !== '@me') setInput('');
       }
     });

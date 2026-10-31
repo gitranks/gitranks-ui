@@ -5,13 +5,13 @@ import { type FormEvent, useId, useState, useTransition } from 'react';
 
 import { sendContributeFeedback } from '../actions';
 import { Eyebrow } from './primitives';
+import { RadioPills } from './radio-pills';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import type { ContributeFeedbackContext, ContributeFeedbackTopic } from '@/lib/contribute/contribute.types';
 import { contributeSetErrorMessage } from '@/lib/contribute/errors';
 import { FEEDBACK_TOPICS, feedbackContextLine, feedbackProblemOf, type SetRules } from '@/lib/contribute/set-format';
-import { cn } from '@/lib/utils';
 
 /** Where the dialog was opened: the topic it starts on and what is sent along. */
 export type FeedbackOpen = { topic: ContributeFeedbackTopic; context: ContributeFeedbackContext; rules?: SetRules };
@@ -99,30 +99,13 @@ export function FeedbackForm({
           goes straight to the person building this.
         </DialogDescription>
       </div>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-medium">About</legend>
-        <div className="flex flex-wrap gap-1.5">
-          {FEEDBACK_TOPICS.map((entry) => {
-            const on = entry.topic === topic;
-            return (
-              <button
-                key={entry.topic}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setTopic(entry.topic)}
-                className={cn(
-                  'rounded-full border px-3 py-1 text-sm',
-                  on
-                    ? 'border-primary bg-brand-soft text-brand-soft-foreground'
-                    : 'border-dashed text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {entry.label}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
+      <RadioPills
+        legend="About"
+        legendClassName="mb-1"
+        options={FEEDBACK_TOPICS.map((entry) => ({ value: entry.topic, label: entry.label }))}
+        value={topic}
+        onChange={setTopic}
+      />
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`${id}-text`} className="text-sm font-medium">
           Your message

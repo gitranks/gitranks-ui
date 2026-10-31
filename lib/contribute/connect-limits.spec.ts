@@ -145,7 +145,7 @@ describe('a key connected before', () => {
     const own = picked('plan', 'MAX_5X', manualDraftOf(), {
       plan: 'MAX_5X',
       settings: stored,
-      preferences: { languages: ['RUST', 'GO'], topicIds: [], reposIn: [], reposOut: [], kinds: ['BUG'], maxSize: 'M' },
+      preferences: { languages: ['RUST', 'GO'], topicIds: [], kinds: ['BUG'], maxSize: 'M' },
     });
 
     expect(own.Issues).toBe('bugs, up to medium');

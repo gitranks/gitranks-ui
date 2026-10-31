@@ -43,8 +43,6 @@ export function PreferencesSection({
     });
 
   const topics = preferences?.topicIds.length ?? 0;
-  const skipped = preferences?.reposOut.length ?? 0;
-  const only = preferences?.reposIn.length ?? 0;
 
   return (
     <Panel id="work">
@@ -63,14 +61,7 @@ export function PreferencesSection({
       />
       <p className="text-sm text-muted-foreground">
         {topics ? `${plural(topics, 'topic')} from your profile` : 'Topics from your profile'}
-        {modes ? (
-          '. Picking topics here is coming soon.'
-        ) : (
-          <>
-            {only ? ` · only ${plural(only, 'repo')}` : ''}
-            {skipped ? ` · ${plural(skipped, 'repo')} skipped` : ''}. Picking topics and repos here is coming soon.
-          </>
-        )}
+        {modes ? '. Picking topics here is coming soon.' : '. Picking topics and repos here is coming soon.'}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <Button

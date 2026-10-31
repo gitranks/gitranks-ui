@@ -1,3 +1,4 @@
+import { print } from 'graphql';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -13,13 +14,13 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadContributeSet: vi.fn(),
   loadIssues: vi.fn(),
-  loadIssueTiers: vi.fn(),
 }));
 
 const { SettingsScreen } = await import('./settings-view');
 const { IssuesScreen } = await import('./issues-view');
 const { FeedbackForm } = await import('./feedback-dialog');
 const { Dialog } = await import('@/components/ui/dialog');
+const { ContributeIssuesDocument, IssuesForProfileDocument } = await import('@/lib/contribute/contribute.documents');
 const { NOW, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { fullReposSet, resolve, smallReposSet, stackSet } = await import(
   '@/lib/contribute/__fixtures__/contribute-sets'
@@ -38,6 +39,10 @@ const text = (html: string) =>
 const settings = (set?: ContributeSet | null) =>
   renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} set={set} />);
 
+/** Whether the radio pill with this label is the checked one. */
+const checked = (html: string, label: string) => new RegExp(`<input[^>]*checked=""[^>]*>${label}`).test(html);
+const unchecked = (html: string, label: string) => new RegExp(`<input(?![^>]*checked="")[^>]*>${label}`).test(html);
+
 /** The markup of the list row for one repo. */
 const rowOf = (html: string, repo: string) => {
   const start = html.indexOf(`data-repo="${repo}"`);
@@ -45,24 +50,46 @@ const rowOf = (html: string, repo: string) => {
 };
 
 describe('Settings, what to work on', () => {
-  it('opens the settings with the modes, the rules and the ignored repos, then the preferences', () => {
+  it('opens the settings with what to work on, the preferences, the rules and the ignored repos', () => {
     const html = settings(stackSet());
-    const plain = text(html);
+    const panels = ['modes', 'work', 'rules', 'ignored', 'limits'].map((id) => html.indexOf(`id="${id}"`));
+    expect(panels.every((at) => at >= 0)).toBe(true);
+    expect([...panels].sort((a, b) => a - b)).toEqual(panels);
 
-    const order = ['What to work on', 'How we pick repos', 'Ignored repos', 'Spending limits', 'Preferences'].map(
-      (title) => plain.indexOf(title),
-    );
-    expect(order.every((at) => at >= 0)).toBe(true);
-    expect(html.indexOf('id="modes"')).toBeLessThan(html.indexOf('id="limits"'));
-    expect(html).toContain('href="#modes"');
-    expect(html).toContain('href="#rules"');
-    expect(plain).toContain('None picked: every language the pool has. Applies in every mode.');
+    const nav = html.slice(html.indexOf('aria-label="Settings sections"'), html.indexOf('</nav>'));
+    expect([...nav.matchAll(/href="#([a-z-]+)"/g)].map(([, id]) => id).slice(0, 5)).toEqual([
+      'modes',
+      'work',
+      'rules',
+      'ignored',
+      'limits',
+    ]);
+    expect(html.match(/id="work"/g)).toHaveLength(1);
+    expect(text(html)).toContain('None picked: every language the pool has. Applies in every mode.');
+  });
+
+  it('says when what you work on did not load, and shows the rest as usual', () => {
+    const html = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} set={undefined} setFailed />);
+
+    expect(text(html)).toContain("Your lists didn't load. Reload the page to try again");
+    expect(html).toContain('id="limits"');
+    expect(text(html)).not.toContain('How we pick repos');
+  });
+
+  it('keeps the mode radios enabled while a change saves, so focus stays on them', () => {
+    const html = settings(stackSet());
+    const radios = [...html.matchAll(/<input[^>]*type="radio"[^>]*>/g)].map(([tag]) => tag);
+
+    expect(radios.length).toBeGreaterThan(3);
+    expect(radios.filter((tag) => tag.includes('disabled'))).toEqual([]);
   });
 
   it('offers three modes as radios, the active one checked', () => {
     const all = settings(stackSet());
     const html = all.slice(all.indexOf('id="modes"'), all.indexOf('id="rules"'));
-    const radios = [...html.matchAll(/<input[^>]*type="radio"[^>]*>/g)].map(([tag]) => tag);
+    const radios = [...html.matchAll(/<input[^>]*type="radio"[^>]*>/g)]
+      .map(([tag]) => tag)
+      .filter((tag) => /value="(STACK|REPOS|ALL)"/.test(tag));
 
     expect(radios).toHaveLength(3);
     expect(radios.filter((tag) => tag.includes('checked=""'))).toEqual([expect.stringContaining('value="STACK"')]);
@@ -97,7 +124,8 @@ describe('Settings, what to work on', () => {
     expect(plain).toContain("38 packages have no GitHub repo linked, so we can't follow them.");
 
     expect(plain).toContain('When these libraries have nothing ready');
-    expect(html).toMatch(/aria-pressed="true"[^>]*>Work on all issues meanwhile/);
+    expect(checked(html, 'Work on all issues meanwhile')).toBe(true);
+    expect(unchecked(html, 'Wait for new issues')).toBe(true);
   });
 
   it('Stack: says while the libraries are worked out, and offers Try again when that failed', () => {
@@ -140,7 +168,7 @@ describe('Settings, what to work on', () => {
     expect(text(greyed)).not.toContain('Ignore');
 
     expect(plain).toContain('When these repos have nothing ready');
-    expect(html).toMatch(/aria-pressed="true"[^>]*>Wait for new issues/);
+    expect(checked(html, 'Wait for new issues')).toBe(true);
     expect(plain).toContain('Your agent works only on these repos');
     expect(plain).not.toContain("Libraries we'll work on");
   });
@@ -220,13 +248,15 @@ describe('Issues for you, by mode', () => {
   ) => renderToStaticMarkup(<IssuesScreen view={views.active} page={page} query={query} now={NOW} set={set} />);
   const somePage = { items: [issue({})], next: null, total: 1, computedAt: '2026-10-28T07:00:00.000Z' };
 
-  it('says the mode by the title, and nothing in All issues', () => {
-    expect(text(render(stackSet(), somePage))).toContain('Supporting your stack · 50 libraries');
-    expect(text(render(fullReposSet(), somePage))).toContain('Supporting 50 repos · only these');
+  it('says the mode by the title, with the language filter, and a quiet way into a mode in All issues', () => {
+    expect(text(render(stackSet(), somePage))).toContain('Supporting your stack · 50 libraries · Rust');
+    expect(text(render(fullReposSet(), somePage))).toContain('Supporting 50 repos · only these · Rust');
     expect(
       text(render(smallReposSet({ repos: { ...smallReposSet().repos, fallback: 'THEN_ALL' } }), somePage)),
-    ).toContain('Supporting 12 repos · then all issues');
-    expect(render(stackSet({ mode: 'ALL' }), somePage)).not.toContain('data-mode-chip');
+    ).toContain('Supporting 12 repos · then all issues · Rust');
+    const all = render(stackSet({ mode: 'ALL' }), somePage);
+    expect(all).toContain('data-mode-chip="ALL"');
+    expect(text(all)).toContain('All issues · Rust');
     expect(render(undefined, somePage)).not.toContain('data-mode-chip');
   });
 
@@ -286,6 +316,29 @@ describe('Issues for you, by mode', () => {
   });
 });
 
+describe('the Issues page while the stack is worked out', () => {
+  it('says the libraries are on their way, not that the list is empty', () => {
+    const empty = { items: [], next: null, total: 0, computedAt: '2026-10-28T07:00:00.000Z' };
+    const base = stackSet();
+    for (const resolveState of [null, resolve({ state: 'RESOLVING', targets: [], endedAt: null })]) {
+      const set = stackSet({ stack: { ...base.stack, fallback: 'SET_ONLY', resolve: resolveState } });
+      const plain = text(
+        renderToStaticMarkup(<IssuesScreen view={views.active} page={empty} query={{}} now={NOW} set={set} />),
+      );
+
+      expect(plain).toContain("We're working out the libraries your stack uses");
+      expect(plain).toContain("We're reading the dependency files of your 3 repos.");
+      expect(plain).not.toContain('Your list is empty');
+    }
+  });
+
+  it("reads each issue's tier with the feed itself, and only there", () => {
+    const feed = print(ContributeIssuesDocument);
+    expect(feed).toMatch(/items \{[^}]*\btier\b/);
+    expect(print(IssuesForProfileDocument)).not.toContain('tier');
+  });
+});
+
 describe('the feedback dialog', () => {
   const render = (open: Parameters<typeof FeedbackForm>[0]['open']) =>
     renderToStaticMarkup(
@@ -301,9 +354,10 @@ describe('the feedback dialog', () => {
     });
     const plain = text(html);
 
-    expect(html).toMatch(/aria-pressed="true"[^>]*>The rules/);
-    expect(html).toMatch(/aria-pressed="false"[^>]*>Modes and lists/);
-    expect(html).toMatch(/aria-pressed="false"[^>]*>Something else/);
+    expect(checked(html, 'The rules')).toBe(true);
+    expect(unchecked(html, 'Modes and lists')).toBe(true);
+    expect(unchecked(html, 'Something else')).toBe(true);
+    expect(html).not.toContain('disabled=""');
     expect(html).toContain('maxLength="2000"');
     expect(plain).toContain('Up to 2,000 characters.');
     expect(plain).toContain(

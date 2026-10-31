@@ -167,9 +167,9 @@ function ResolveState({ set, write, now }: { set: ContributeSet; write: SetWrite
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <span className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted-foreground" role="status">
+      <span className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted-foreground">
         <span aria-hidden="true" className={cn('size-1.5 rounded-full', dot)} />
-        {label}
+        <span role="status">{label}</span>
         {state === 'RESOLVING' ? null : (
           <Button type="button" variant="ghost" size="sm" onClick={run} disabled={pending}>
             {pending ? 'Starting…' : state === 'FAILED' ? 'Try again' : 'Refresh'}

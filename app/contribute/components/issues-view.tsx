@@ -12,13 +12,7 @@ import { ModeSwitcher, OtherIssuesDivider, SetIssuesHeading, SetOnlyEmpty } from
 import { Meter } from './primitives';
 import { ReviewsReady } from './reviews-ready';
 import { StillRanking } from './still-ranking';
-import {
-  loadAttempts,
-  loadContribute,
-  loadContributeSet,
-  loadIssues,
-  loadIssueTiers,
-} from '@/lib/contribute/contribute.data';
+import { loadAttempts, loadContribute, loadContributeSet, loadIssues } from '@/lib/contribute/contribute.data';
 import type {
   ContributeAttempt,
   ContributeIssuePage,
@@ -42,7 +36,7 @@ export async function IssuesView({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = issuesQueryOf(await searchParams);
-  const [view, loaded, reviews, latest, set] = await Promise.all([
+  const [view, page, reviews, latest, set] = await Promise.all([
     loadContribute(),
     loadIssues(filterOf(query), query.after),
     loadAttempts('REVIEW', 5),
@@ -52,13 +46,6 @@ export async function IssuesView({
   if (!view) notFound();
   if (!isContributePageOpen(view, 'issues')) redirect('/contribute');
   const firstRun = isFirstRun(view, latest);
-  // Each issue's tier, read only where the page splits the feed by it: a mode with a list of its own.
-  const tiers =
-    set && set.mode !== 'ALL' && loaded?.items.length ? await loadIssueTiers(filterOf(query), query.after) : undefined;
-  const page =
-    loaded && tiers
-      ? { ...loaded, items: loaded.items.map((issue) => ({ ...issue, tier: tiers.get(issue.issueId) })) }
-      : loaded;
   return (
     <IssuesScreen
       view={view}
@@ -219,7 +206,7 @@ export function IssuesScreen({
                 <Heading className={guided ? 'text-xl font-bold' : 'text-2xl font-bold tracking-tight'}>
                   {guided ? 'Picked for you' : 'Issues for you'}
                 </Heading>
-                {set ? <ModeSwitcher set={set} /> : null}
+                {set ? <ModeSwitcher set={set} languages={view.contributor?.preferences?.languages ?? []} /> : null}
               </div>
               <span className="text-sm text-muted-foreground" data-total={page?.total ?? ''}>
                 {page

@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { ContributeSection } from './components/landing/contribute-section';
 import type { ExampleRank } from './components/landing/hero-aside';
 import {
-  fetchContributeOpen,
   fetchFeaturedOrg,
   fetchGlobalTiers,
   fetchLandingInsights,
@@ -49,33 +48,21 @@ const EXAMPLE_COUNT = 3;
 // lifetimes), so the page is prerendered and a view sends no request to the API. Only the signed-in
 // visitor's own rank card is fetched in the browser, from a route cached per user, their own
 // badges, from the public badge data the builder reads, and, where Contribute is open to them,
-// whether it is and their own top picks.
+// their own top picks.
 export default async function Home() {
-  const [
-    insights,
-    leaderboards,
-    tiers,
-    orgs,
-    featured,
-    countries,
-    languages,
-    countryList,
-    repos,
-    showcase,
-    contributeOpen,
-  ] = await Promise.all([
-    fetchLandingInsights(),
-    fetchLeaderboards(),
-    fetchGlobalTiers(),
-    fetchTopOrgs(),
-    fetchFeaturedOrg(),
-    fetchCountrySummaries(),
-    fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, offset: 0, limit: 8 }),
-    fetchCountries(),
-    fetchTopRepos(),
-    fetchReadmeShowcase(),
-    fetchContributeOpen(),
-  ]);
+  const [insights, leaderboards, tiers, orgs, featured, countries, languages, countryList, repos, showcase] =
+    await Promise.all([
+      fetchLandingInsights(),
+      fetchLeaderboards(),
+      fetchGlobalTiers(),
+      fetchTopOrgs(),
+      fetchFeaturedOrg(),
+      fetchCountrySummaries(),
+      fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, offset: 0, limit: 8 }),
+      fetchCountries(),
+      fetchTopRepos(),
+      fetchReadmeShowcase(),
+    ]);
 
   const flags = new Map(countryList.map((country) => [country.name, country.flag]));
 
@@ -143,7 +130,7 @@ export default async function Home() {
       <main>
         <Hero developersRanked={developersRanked} examples={examples} stats={stats} />
         <Container>
-          <ContributeSection open={contributeOpen} />
+          <ContributeSection />
           <LeaderboardSection boards={boards} />
           <InsightsSection insights={insights} />
           <OrganizationsSection orgs={orgs} flags={flags} featured={featured} />

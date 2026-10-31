@@ -7,7 +7,6 @@ import { useSession } from 'next-auth/react';
 import { type FC, useEffect, useState } from 'react';
 
 import { IssueCardCompact } from '@/app/contribute/components/issue-card-compact';
-import { SignInButton } from '@/app/contribute/components/sign-in-dialog';
 import { buttonVariants } from '@/components/ui/button';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { type ProfileIssuesAnswer, profileIssuesUrl } from '@/lib/contribute/profile-issues';
@@ -17,8 +16,8 @@ import { cn } from '@/lib/utils';
 const CONTRIBUTE_PATH: Route = '/contribute';
 const ISSUES_PATH: Route = '/contribute/issues';
 
-/** Who is looking: signed out, signed in without picks yet, or a contributor with picks of their own. */
-export type ContributeViewer = 'visitor' | 'member' | 'contributor';
+/** Who is looking: a user Contribute is open to, without picks yet, or a contributor with picks of their own. */
+export type ContributeViewer = 'member' | 'contributor';
 
 const POINTS = [
   {
@@ -100,31 +99,13 @@ const WAYS = [
 
 const ACTION_CLASS = cn(buttonVariants({ size: 'lg' }), 'min-h-11 px-5 text-base font-semibold max-sm:w-full');
 
-const Action: FC<{ viewer: ContributeViewer; pending: boolean }> = ({ viewer, pending }) => {
-  const content = (
-    <>
-      {viewer === 'contributor' ? 'Open Contribute' : 'Start contributing'}
-      <ArrowRight aria-hidden />
-    </>
-  );
-  // Until the session and the user's access are known: the button's place, doing nothing yet.
-  if (pending) {
-    return (
-      <span aria-disabled="true" data-pending className={cn(ACTION_CLASS, 'pointer-events-none opacity-60')}>
-        {content}
-      </span>
-    );
-  }
-  // Signed out: the sign-in first, then Contribute.
-  if (viewer === 'visitor') {
-    return <SignInButton className={ACTION_CLASS}>{content}</SignInButton>;
-  }
-  return (
-    <Link href={CONTRIBUTE_PATH} prefetch={false} className={ACTION_CLASS}>
-      {content}
-    </Link>
-  );
-};
+/** Into Contribute, where the menu item goes: its onboarding until the user is set up, then their overview. */
+const Action: FC<{ viewer: ContributeViewer }> = ({ viewer }) => (
+  <Link href={CONTRIBUTE_PATH} prefetch={false} className={ACTION_CLASS}>
+    {viewer === 'contributor' ? 'Open Contribute' : 'Start contributing'}
+    <ArrowRight aria-hidden />
+  </Link>
+);
 
 /** The picks beside the pitch: the contributor's own top picks, or examples from a stack with the two ways to fix one. */
 const Picks: FC<{ viewer: ContributeViewer; picks: ContributeIssue[] }> = ({ viewer, picks }) => {
@@ -182,11 +163,10 @@ const Picks: FC<{ viewer: ContributeViewer; picks: ContributeIssue[] }> = ({ vie
   );
 };
 
-/** The section as a viewer sees it. `picks`: the contributor's own, else the examples. `pending`: the button waits. */
-export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: ContributeIssue[]; pending?: boolean }> = ({
+/** The section as a viewer sees it. `picks`: the contributor's own, else the examples. */
+export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: ContributeIssue[] }> = ({
   viewer,
   picks,
-  pending = false,
 }) => (
   <section
     aria-labelledby="contribute"
@@ -225,21 +205,13 @@ export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: Contri
         ))}
       </ul>
       <div className="flex flex-col items-start gap-2">
-        <Action viewer={viewer} pending={pending} />
+        <Action viewer={viewer} />
         <span className="text-sm text-muted-foreground">Free to use. Every pull request says it was made with AI.</span>
       </div>
     </div>
     <Picks viewer={viewer} picks={picks} />
   </section>
 );
-
-/**
- * Whether the section shows. A signed-in user sees it when Contribute is open to them, the same answer that opens
- * Contribute's pages, so its button never leads to a page they cannot open; until that answer comes, when Contribute is
- * open to everyone. A visitor sees it once Contribute is open to everyone; their button signs them in first.
- */
-export const contributeSectionShown = (open: boolean, signedIn: boolean, allowed: boolean | null) =>
-  signedIn ? (allowed ?? open) : open;
 
 /** The signed-in user's own top picks, read once they may see the section; none for anybody else or on a failure. */
 function useOwnPicks(login: string | null): ContributeIssue[] {
@@ -265,25 +237,19 @@ function useOwnPicks(login: string | null): ContributeIssue[] {
 }
 
 /**
- * GitRanks Contribute on the home page: the pitch, and picks beside it. `open`: whether Contribute is open to everyone;
- * until then only signed-in users it is open to see it. A contributor sees their own top picks in place of the examples.
- * While the session is still loading, the button waits rather than offering a sign-in to someone already signed in.
+ * GitRanks Contribute on the home page: the pitch, and picks beside it. Shown on the same answer as the header's
+ * Contribute item, to signed-in users Contribute is open to: the preview list now, everyone signed in at launch. A
+ * contributor sees their own top picks in place of the examples.
  */
-export const ContributeSection: FC<{ open: boolean }> = ({ open }) => {
-  const { data: session, status } = useSession();
-  const login = status === 'authenticated' ? (session?.user?.githubLogin ?? null) : null;
-  const allowed = useContributeAllowed(login);
-  const shown = contributeSectionShown(open, !!login, allowed);
-  const own = useOwnPicks(shown && allowed ? login : null);
+export const ContributeSection: FC = () => {
+  const { data: session } = useSession();
+  const login = session?.user?.githubLogin ?? null;
+  const allowed = useContributeAllowed(login) === true;
+  const own = useOwnPicks(allowed ? login : null);
 
-  if (!shown) return null;
+  if (!allowed) return null;
 
-  const viewer: ContributeViewer = own.length ? 'contributor' : login ? 'member' : 'visitor';
   return (
-    <ContributeSectionView
-      viewer={viewer}
-      picks={own.length ? own : EXAMPLE_PICKS}
-      pending={status === 'loading' || (!!login && allowed === null)}
-    />
+    <ContributeSectionView viewer={own.length ? 'contributor' : 'member'} picks={own.length ? own : EXAMPLE_PICKS} />
   );
 };

@@ -63,14 +63,24 @@ export type LiveFeed = {
   poll: () => Promise<PollOutcome>;
   /** The statuses read, applied: a taken or claimed row says so, then leaves. */
   apply: (statuses: ContributeIssueStatus[]) => void;
-  /** A row the user's own action found taken (a Skip refused): it leaves as if it was read so. */
+  /**
+   * A row the user's own action found taken (a Skip refused): it leaves as if it was read so, and is read at once in
+   * case it was the user's own agent that took it.
+   */
   markTaken: (issueId: string) => void;
   /** A row that is settled here (the user skipped it): never asked about again. */
   forget: (issueId: string) => void;
   /** Called with a row's id just before it leaves the list, so the focus can move off it. */
   onBeforeRemove: (handler: ((issueId: string) => void) | null) => void;
-  /** Clears every pending timer: the list is gone. */
-  destroy: () => void;
+  /**
+   * A newer read of the page (a refresh, other filters, another cursor): its rows replace the list, keeping what is
+   * known of the ones still in it; a row it drops while it says it was taken stays until it has left.
+   */
+  reset: (page: { items: ContributeIssue[]; total: number; next: string | null }) => void;
+  /** Starts it again after `stop`: the rows on their way out are sent out again. */
+  start: () => void;
+  /** Stops it: no timers, and an answer still on its way is dropped. */
+  stop: () => void;
 };
 
 /** The reads that cannot succeed until the page is read again. */
@@ -89,14 +99,21 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
   const settled = new Set<string>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const listeners = new Set<() => void>();
+  /** Rows the page's total no longer counts (a newer read dropped them): they leave without counting out again. */
+  const uncounted = new Set<string>();
   let beforeRemove: ((issueId: string) => void) | null = null;
   let filling = false;
+  let active = true;
+  /** Bumped by a stop or a newer read: an answer asked for before it is dropped. */
+  let generation = 0;
 
   const emit = () => {
     snapshot = { rows: rows.slice(0, limit), total, next };
     for (const listener of listeners) listener();
   };
+  const fresh = (issue: ContributeIssue): LiveRow => ({ issue, status: 'AVAILABLE', attemptId: null, leaving: false });
   const later = (ms: number, run: () => void) => {
+    if (!active) return;
     const timer = setTimeout(() => {
       timers.delete(timer);
       run();
@@ -107,33 +124,35 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
     rows = rows.map((row) => (row.issue.issueId === issueId ? { ...row, ...patch } : row));
   };
 
-  const fill = async () => {
+  const fill = async (): Promise<void> => {
     const missing = limit - rows.length;
-    if (filling || !readMore || !next || missing <= 0) return;
+    if (!active || filling || !readMore || !next || missing <= 0) return;
     filling = true;
+    const asked = generation;
+    let added = false;
     try {
       const result = await readMore(next, missing);
-      if (!result.ok || !result.data) return;
+      if (asked !== generation || !result.ok || !result.data) return;
       const held = new Set(rows.map(({ issue }) => issue.issueId));
-      const fresh = result.data.items.filter(({ issueId }) => !held.has(issueId) && !settled.has(issueId));
-      rows = [
-        ...rows,
-        ...fresh.map((issue) => ({ issue, status: 'AVAILABLE' as const, attemptId: null, leaving: false })),
-      ];
+      const more = result.data.items.filter(({ issueId }) => !held.has(issueId) && !settled.has(issueId));
+      rows = [...rows, ...more.map(fresh)];
       next = result.data.next;
+      added = more.length > 0;
       emit();
     } catch {
       // Tried again at the next read.
     } finally {
       filling = false;
     }
+    // More rows left meanwhile: the next ones are read too, while the reads still bring some.
+    if (added) await fill();
   };
 
   const remove = (issueId: string) => {
     if (!rows.some((row) => row.issue.issueId === issueId)) return;
     beforeRemove?.(issueId);
     rows = rows.filter((row) => row.issue.issueId !== issueId);
-    total = Math.max(0, total - 1);
+    if (!uncounted.delete(issueId)) total = Math.max(0, total - 1);
     emit();
     void fill();
   };
@@ -152,6 +171,7 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
   };
 
   const apply = (statuses: ContributeIssueStatus[]) => {
+    if (!active) return;
     let changed = false;
     for (const { issueId, status, attemptId } of statuses ?? []) {
       const row = rows.find((each) => each.issue.issueId === issueId);
@@ -166,6 +186,17 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
     if (changed) emit();
   };
 
+  /** Asks about these ids; the answer is applied unless the list moved on meanwhile. */
+  const read = async (ids: string[]): Promise<PollOutcome> => {
+    const asked = generation;
+    const result = await readStatus(ids);
+    if (asked !== generation) return undefined;
+    if (!result.ok) return FINAL_ERRORS.has(result.error) ? 'stop' : undefined;
+    if (result.data === null) return 'stop';
+    apply(result.data);
+    return undefined;
+  };
+
   return {
     subscribe: (listener) => {
       listeners.add(listener);
@@ -173,7 +204,10 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
     },
     getSnapshot: () => snapshot,
     apply,
-    markTaken: (issueId) => apply([{ issueId, status: 'TAKEN', attemptId: null }]),
+    markTaken: (issueId) => {
+      apply([{ issueId, status: 'TAKEN', attemptId: null }]);
+      if (active) read([issueId]).catch(() => undefined);
+    },
     forget: (issueId) => {
       settled.add(issueId);
     },
@@ -181,21 +215,45 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
       beforeRemove = handler;
     },
     poll: async () => {
-      // Rows still free, and the ones a refused Skip marked taken: those may turn out to be the user's own.
+      if (!active) return undefined;
       const ids = rows
         .slice(0, limit)
-        .filter(({ issue, status, leaving }) => !leaving && status !== 'CLAIMED_BY_YOU' && !settled.has(issue.issueId))
+        .filter(({ issue, status }) => status === 'AVAILABLE' && !settled.has(issue.issueId))
         .map(({ issue }) => issue.issueId)
         .slice(0, ISSUE_STATUS_IDS_MAX);
       void fill();
-      if (!ids.length) return undefined;
-      const result = await readStatus(ids);
-      if (!result.ok) return FINAL_ERRORS.has(result.error) ? 'stop' : undefined;
-      if (result.data === null) return 'stop';
-      apply(result.data);
-      return undefined;
+      return ids.length ? read(ids) : undefined;
     },
-    destroy: () => {
+    reset: (page) => {
+      generation += 1;
+      const was = new Map(rows.map((row, at) => [row.issue.issueId, { row, at }]));
+      const ids = new Set(page.items.map(({ issueId }) => issueId));
+      const merged = page.items.map((issue) => {
+        const known = was.get(issue.issueId)?.row;
+        return known ? { ...known, issue } : fresh(issue);
+      });
+      for (const [issueId, { row, at }] of was) {
+        if (ids.has(issueId) || row.status === 'AVAILABLE') continue;
+        merged.splice(Math.min(at, merged.length), 0, row);
+        uncounted.add(issueId);
+      }
+      rows = merged;
+      total = page.total;
+      next = page.next;
+      emit();
+      void fill();
+    },
+    start: () => {
+      if (active) return;
+      active = true;
+      for (const { issue, status, leaving } of rows) {
+        if (leaving) later(LIVE_LEAVE_MS, () => remove(issue.issueId));
+        else if (status !== 'AVAILABLE') scheduleExit(issue.issueId);
+      }
+    },
+    stop: () => {
+      active = false;
+      generation += 1;
       for (const timer of timers) clearTimeout(timer);
       timers.clear();
     },

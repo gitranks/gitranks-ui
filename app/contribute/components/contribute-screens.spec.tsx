@@ -27,7 +27,7 @@ const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-
 const { ContributeNotices } = await import('./contribute-notices');
 const { ConnectResult } = await import('./connect-result');
 const { IssueCard } = await import('./issue-card');
-const { LiveIssueList, LiveRowItem } = await import('./live-issues');
+const { LiveAnnouncer, LiveIssueList, LiveRowItem } = await import('./live-issues');
 const { LIVE_EXIT_AFTER_MS, LIVE_LEAVE_MS, createLiveFeed } = await import('@/lib/contribute/live-issues');
 const { NOW, mcpToken, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
@@ -531,10 +531,10 @@ describe('issues taken while the page is open', () => {
   const rowClassesOf = (html: string) =>
     [...html.matchAll(/<li data-live-row="[^"]+"[^>]*class="([^"]*)"/g)].map(([, c]) => c);
 
-  it('keep a status line ready in every free card, out of sight and empty, with Skip and the link on', () => {
+  it('leave a free card as it was, with Skip and the link on, and no status line', () => {
     const html = card('AVAILABLE');
 
-    expect(html).toContain('<p role="status" tabindex="-1" class="sr-only"></p>');
+    expect(html).not.toContain('data-live-status');
     expect(html).not.toContain('data-gone');
     expect(html).toContain('href="https://github.com/fern-lang/fern/issues/2481"');
     expect(html).not.toContain(' disabled=""');
@@ -544,12 +544,14 @@ describe('issues taken while the page is open', () => {
   it('say a taken issue is taken, dimmed, with Skip and the link off and no error', () => {
     const html = card('TAKEN');
 
-    expect(html).toMatch(/<p role="status"[^>]*data-live-status="taken"[^>]*>Taken by another contributor<\/p>/);
+    // A place for the focus, not a live region of its own: the list announces it once.
+    expect(html).toMatch(/<p tabindex="-1" data-live-status="taken"[^>]*>Taken by another contributor<\/p>/);
+    expect(html).not.toContain('role="status"');
     expect(html).toContain('data-gone="true"');
     expect(html).toContain('opacity-60');
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*aria-disabled="true"[^>]*>Skip/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Skip/);
     expect(html).not.toContain('href="https://github.com/fern-lang/fern/issues/2481"');
-    expect(html).toMatch(/<a [^>]*aria-disabled="true"[^>]*>Formatter drops/);
+    expect(html).toMatch(/<a target="_blank" rel="noopener noreferrer" class="[^"]*opacity-60">Formatter drops/);
     expect(html).not.toContain('role="alert"');
   });
 
@@ -647,6 +649,37 @@ describe('issues taken while the page is open', () => {
     expect(still).not.toContain('transition');
     expect(leaving).toContain('motion-reduce:transition-none');
     expect(leaving).toContain('duration-300');
+  });
+
+  it("announce each issue taken, or that the user's agent is on it, once, in the list's own live region", () => {
+    const rows = [
+      { issue: ISSUE, status: 'TAKEN' as const, attemptId: null, leaving: false },
+      {
+        issue: { ...ISSUE, issueId: 'I_2', number: 7 },
+        status: 'CLAIMED_BY_YOU' as const,
+        attemptId: 'A_1',
+        leaving: false,
+      },
+      { issue: { ...ISSUE, issueId: 'I_3', number: 8 }, status: 'AVAILABLE' as const, attemptId: null, leaving: false },
+    ];
+    const html = renderToStaticMarkup(<LiveAnnouncer rows={rows} />);
+
+    expect(html).toMatch(/^<p role="status" class="sr-only">/);
+    expect(text(html).trim()).toBe(
+      'fern-lang/fern #2481: taken by another contributor. fern-lang/fern #7: your agent is on this.',
+    );
+    expect(renderToStaticMarkup(<LiveAnnouncer rows={[rows[2]]} />)).toBe('<p role="status" class="sr-only"></p>');
+  });
+
+  it('keep the same column, live region first, whether the page has issues, none, or is not available', () => {
+    const column = (page: Parameters<typeof IssuesScreen>[0]['page']) =>
+      renderToStaticMarkup(<IssuesScreen view={views.active} page={page} query={{}} now={NOW} />).match(
+        /<div tabindex="-1" class="outline-none flex min-w-0 flex-\[999_1_640px\] flex-col gap-4"><p role="status" class="sr-only"><\/p>/g,
+      );
+
+    expect(column({ items: [ISSUE], next: null, total: 1, computedAt: null })).toHaveLength(1);
+    expect(column({ items: [], next: null, total: 0, computedAt: '2026-10-28T07:00:00.000Z' })).toHaveLength(1);
+    expect(column(undefined)).toHaveLength(1);
   });
 
   it('count the page from its total, and mark every row as live', () => {

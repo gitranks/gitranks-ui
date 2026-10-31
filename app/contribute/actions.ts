@@ -204,10 +204,7 @@ export async function readIssueStatuses(
   const ids = (Array.isArray(issueIds) ? issueIds : [])
     .filter((id) => typeof id === 'string' && id)
     .slice(0, ISSUE_STATUS_IDS_MAX);
-  if (!ids.length) {
-    const githubLogin = await viewerLogin();
-    return githubLogin ? { ok: true, data: [] } : { ok: false, error: 'SIGNED_OUT' };
-  }
+  if (!ids.length) return { ok: true, data: [] };
   return run(ContributeIssueStatusDocument, { issueIds: ids }, (data) => data.contributeIssueStatus);
 }
 

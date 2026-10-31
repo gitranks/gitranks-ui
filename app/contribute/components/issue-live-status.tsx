@@ -5,7 +5,6 @@ import { type RefObject, useLayoutEffect } from 'react';
 
 import { attemptHref } from './reviews-ready';
 import type { LiveStatus } from '@/lib/contribute/live-issues';
-import { cn } from '@/lib/utils';
 
 /** What a list row knows of its issue as it is now, and what it tells the list. */
 export type IssueLive = {
@@ -24,8 +23,9 @@ export const isGone = (status: LiveStatus | undefined) => !!status && status !==
 export const GONE = 'opacity-60';
 
 /**
- * The card's status line: a live region that is always there (out of sight while the issue is free), so the change
- * is announced. "Taken by another contributor", or "Your agent is on this · View" with the user's attempt.
+ * The card's status line, once the issue is no longer free: "Taken by another contributor", or "Your agent is on this
+ * · View" with the user's attempt. Not a live region (the list has one); the focus moves here when the card's
+ * controls turn off under it.
  */
 export function IssueLiveStatus({
   status,
@@ -36,13 +36,13 @@ export function IssueLiveStatus({
   attemptId: string | null;
   ref?: RefObject<HTMLParagraphElement | null>;
 }) {
+  if (status === 'AVAILABLE') return null;
   return (
     <p
       ref={ref}
-      role="status"
       tabIndex={-1}
-      data-live-status={status === 'AVAILABLE' ? undefined : status === 'TAKEN' ? 'taken' : 'yours'}
-      className={cn(status === 'AVAILABLE' ? 'sr-only' : 'text-sm font-medium text-foreground outline-none')}
+      data-live-status={status === 'TAKEN' ? 'taken' : 'yours'}
+      className="text-sm font-medium text-foreground outline-none"
     >
       {status === 'TAKEN' ? 'Taken by another contributor' : null}
       {status === 'CLAIMED_BY_YOU' ? (

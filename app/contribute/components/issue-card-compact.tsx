@@ -64,7 +64,6 @@ export function IssueCardCompact({
           href={gone ? undefined : url}
           target="_blank"
           rel="noopener noreferrer"
-          aria-disabled={gone || undefined}
           className={cn('font-semibold text-foreground', gone ? GONE : 'hover:underline')}
         >
           {title}

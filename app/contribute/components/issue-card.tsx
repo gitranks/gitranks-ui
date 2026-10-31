@@ -48,10 +48,10 @@ export function IssueCard({
     if (skipped) done.current?.focus();
   }, [skipped]);
   useFocusOnGone(gone, card, line);
-  // Taken while its confirm is open: the dialog closes, nothing left to confirm.
+  // Taken while its confirm is open: the dialog closes, nothing left to confirm; a Skip under way settles first.
   useEffect(() => {
-    if (gone) setConfirming(false);
-  }, [gone]);
+    if (gone && !pending) setConfirming(false);
+  }, [gone, pending]);
 
   const skip = () =>
     startTransition(async () => {
@@ -122,7 +122,6 @@ export function IssueCard({
             href={gone ? undefined : url}
             target="_blank"
             rel="noopener noreferrer"
-            aria-disabled={gone || undefined}
             className={cn('font-semibold text-pretty text-foreground', gone ? GONE : 'hover:underline')}
           >
             {title}
@@ -161,7 +160,6 @@ export function IssueCard({
             type="button"
             variant="ghost"
             disabled={gone}
-            aria-disabled={gone || undefined}
             className="-mr-2 h-10 flex-none px-3 text-muted-foreground"
           >
             Skip

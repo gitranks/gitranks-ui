@@ -8,6 +8,7 @@ import {
   type RefObject,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -37,10 +38,13 @@ type LivePage = { items: ContributeIssue[]; total: number; next: string | null }
 type LiveState = { feed: LiveFeed; snapshot: LiveSnapshot };
 const LiveContext = createContext<LiveState | null>(null);
 
+const NO_PAGE: LivePage = { items: [], total: 0, next: null };
+const NO_FILTER: ContributeIssuesFilter = {};
+
 const reducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-/** A new read of the page (another cursor, the filters, a refresh with other issues): the list starts over from it. */
+/** A newer read of the page (another cursor, the filters, a refresh): the list takes it in. */
 const signatureOf = (page: LivePage) => `${page.total}|${page.next ?? ''}|${page.items.map((i) => i.issueId).join()}`;
 
 /**
@@ -52,7 +56,7 @@ export function moveFocusOff(scope: HTMLElement | null, issueId: string) {
   const rows = [...scope.querySelectorAll<HTMLElement>('[data-live-row]')];
   const at = rows.findIndex((row) => row.dataset.liveRow === issueId);
   if (at < 0 || !rows[at].contains(document.activeElement)) return;
-  const stays = (row: HTMLElement) => !row.querySelector('[data-gone]');
+  const stays = (row: HTMLElement) => !!row.querySelector('[data-live-focus]:not([data-gone])');
   const to = rows.slice(at + 1).find(stays) ?? rows.slice(0, at).reverse().find(stays);
   (to?.querySelector<HTMLElement>('[data-live-focus]') ?? scope).focus();
 }
@@ -61,6 +65,8 @@ export function moveFocusOff(scope: HTMLElement | null, issueId: string) {
  * Keeps a list of issues as they are now: its rows are read again every 20 s while the tab is shown (a minute once
  * the user is idle), and a taken one says so, then leaves; the total counts it out, and a page left short is filled
  * from the next issues under the same filters. The focus on a row that leaves moves to the next row, or the list.
+ * One list for the life of the page: a newer read of it is taken in, never a list made anew, so nothing around it
+ * (the filters, the focus) starts over.
  */
 function useLiveFeed(
   page: LivePage,
@@ -68,28 +74,59 @@ function useLiveFeed(
   filter: ContributeIssuesFilter,
   root: RefObject<HTMLElement | null>,
 ) {
+  const filterNow = useRef(filter);
   const [feed] = useState(() =>
     createLiveFeed({
       ...page,
       limit,
       readStatus: (ids) => readIssueStatuses(ids),
-      readMore: (after, first) => readIssuesPage({ filter, after, first }),
+      readMore: (after, first) => readIssuesPage({ filter: filterNow.current, after, first }),
       reducedMotion,
     }),
   );
   const snapshot = useSyncExternalStore(feed.subscribe, feed.getSnapshot, feed.getSnapshot);
 
+  const signature = signatureOf(page);
+  const taken = useRef(signature);
+  // Before paint, so the older rows never show under the newer filters.
+  useLayoutEffect(() => {
+    filterNow.current = filter;
+    if (taken.current === signature) return;
+    taken.current = signature;
+    feed.reset(page);
+  }, [feed, signature, page, filter]);
+
   useEffect(() => {
+    feed.start();
     feed.onBeforeRemove((issueId) => moveFocusOff(root.current, issueId));
     const stop = startStatusPolling(feed.poll, { document, window });
     return () => {
       stop();
       feed.onBeforeRemove(null);
-      feed.destroy();
+      feed.stop();
     };
   }, [feed, root]);
 
   return { feed, snapshot };
+}
+
+/**
+ * The list's one live region, out of sight: says each issue that was taken, or that the user's own agent is on.
+ * The cards say it too, but are not live regions themselves, so the focus moved onto one is not said twice.
+ */
+export function LiveAnnouncer({ rows }: { rows: LiveRow[] }) {
+  return (
+    <p role="status" className="sr-only">
+      {rows
+        .filter(({ status }) => status !== 'AVAILABLE')
+        .map(({ issue, status }) => (
+          <span key={issue.issueId}>
+            {issue.nameWithOwner} #{issue.number}:{' '}
+            {status === 'TAKEN' ? 'taken by another contributor.' : 'your agent is on this.'}{' '}
+          </span>
+        ))}
+    </p>
+  );
 }
 
 /** A row of a live list: it fades and folds away when it leaves, at once with reduced motion. */
@@ -117,31 +154,9 @@ const liveOf = (feed: LiveFeed, row: LiveRow): IssueLive => ({
   onSkipped: () => feed.forget(row.issue.issueId),
 });
 
-function LiveIssuesInner({
-  page,
-  filter,
-  className,
-  children,
-}: {
-  page: LivePage;
-  filter: ContributeIssuesFilter;
-  className?: string;
-  children: ReactNode;
-}) {
-  const root = useRef<HTMLDivElement>(null);
-  const state = useLiveFeed(page, ISSUES_PAGE_SIZE, filter, root);
-  return (
-    <LiveContext.Provider value={state}>
-      <div ref={root} tabIndex={-1} className={cn('outline-none', className)}>
-        {children}
-      </div>
-    </LiveContext.Provider>
-  );
-}
-
 /**
- * The Issues page's column, live: the total over it and the lists in it follow the issues taken meanwhile. Without a
- * page it is the column alone.
+ * The Issues page's column, live: the total over it and the lists in it follow the issues taken meanwhile. The same
+ * column whatever the page holds (none, when the feed is not available), so a new read never rebuilds it.
  */
 export function LiveIssues({
   page,
@@ -154,11 +169,15 @@ export function LiveIssues({
   className?: string;
   children: ReactNode;
 }) {
-  if (!page?.items.length) return <div className={className}>{children}</div>;
+  const root = useRef<HTMLDivElement>(null);
+  const state = useLiveFeed(page ?? NO_PAGE, ISSUES_PAGE_SIZE, filter, root);
   return (
-    <LiveIssuesInner key={signatureOf(page)} page={page} filter={filter} className={className}>
-      {children}
-    </LiveIssuesInner>
+    <LiveContext.Provider value={state}>
+      <div ref={root} tabIndex={-1} className={cn('outline-none', className)}>
+        <LiveAnnouncer rows={state.snapshot.rows} />
+        {children}
+      </div>
+    </LiveContext.Provider>
   );
 }
 
@@ -263,31 +282,28 @@ function LivePick({ row }: { row: LiveRow }) {
   );
 }
 
-function LiveUpNextInner({ page, limit, empty }: { page: LivePage; limit: number; empty: ReactNode }) {
-  const root = useRef<HTMLOListElement>(null);
-  const { snapshot } = useLiveFeed(page, limit, {}, root);
-  if (!snapshot.rows.length && !snapshot.next) return empty;
-  return (
-    <ol
-      ref={root}
-      tabIndex={-1}
-      data-picks={snapshot.rows.length}
-      className="divide-y overflow-hidden rounded-xl border bg-card outline-none"
-    >
-      {snapshot.rows.map((row) => (
-        <LiveRowItem key={row.issue.issueId} row={row}>
-          <LivePick row={row} />
-        </LiveRowItem>
-      ))}
-    </ol>
-  );
-}
-
 /**
  * Overview's top picks, live: `items` in rank order, the first `limit` shown. A taken one says so, then leaves, and
- * the next pick takes its place; `empty` once none is left.
+ * the next pick takes its place; `empty` while none is shown (also while the next ones are read). The page's own
+ * refreshes are taken in, so a pick saying it was taken finishes its way out.
  */
 export function LiveUpNext({ items, total, next, limit, empty }: LivePage & { limit: number; empty: ReactNode }) {
-  const page = { items, total, next };
-  return <LiveUpNextInner key={signatureOf(page)} page={page} limit={limit} empty={empty} />;
+  const root = useRef<HTMLDivElement>(null);
+  const { snapshot } = useLiveFeed({ items, total, next }, limit, NO_FILTER, root);
+  return (
+    <div ref={root} tabIndex={-1} data-picks={snapshot.rows.length} className="outline-none">
+      <LiveAnnouncer rows={snapshot.rows} />
+      {snapshot.rows.length ? (
+        <ol className="divide-y overflow-hidden rounded-xl border bg-card">
+          {snapshot.rows.map((row) => (
+            <LiveRowItem key={row.issue.issueId} row={row}>
+              <LivePick row={row} />
+            </LiveRowItem>
+          ))}
+        </ol>
+      ) : (
+        empty
+      )}
+    </div>
+  );
 }

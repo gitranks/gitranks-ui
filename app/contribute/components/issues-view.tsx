@@ -169,7 +169,7 @@ export function IssuesScreen({
       <ReviewsReady attempts={reviews} />
       <div className="flex flex-wrap items-start gap-6">
         <LiveIssues
-          page={page?.items.length ? page : null}
+          page={page ?? null}
           filter={filterOf(query)}
           className="flex min-w-0 flex-[999_1_640px] flex-col gap-4"
         >

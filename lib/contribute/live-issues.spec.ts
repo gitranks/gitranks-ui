@@ -97,8 +97,9 @@ describe('a live list of issues', () => {
 
     feed.markTaken('I_1');
     expect(rowOf(feed, 'I_1')?.status).toBe('TAKEN');
-    await feed.poll();
-    expect(readStatus).toHaveBeenCalledWith(['I_1', 'I_2', 'I_3', 'I_4']);
+    // Read at once, alone: the regular reads come too late for a row that leaves in 2 s.
+    expect(readStatus).toHaveBeenCalledWith(['I_1']);
+    await vi.advanceTimersByTimeAsync(0);
     expect(rowOf(feed, 'I_1')).toMatchObject({ status: 'CLAIMED_BY_YOU', attemptId: 'A_1' });
 
     // One exit, from the first change: the claim does not hold it longer.
@@ -107,15 +108,99 @@ describe('a live list of issues', () => {
     expect(feed.getSnapshot().total).toBe(41);
   });
 
-  it('asks about the shown rows alone, never one skipped here or already claimed', async () => {
+  it('asks about the shown free rows alone, never one skipped here, taken or claimed', async () => {
     const readStatus = vi.fn(async (): Promise<StatusRead> => ({ ok: true, data: [] }));
-    const feed = feedOf({ readStatus, limit: 3 });
+    const feed = feedOf({ readStatus, limit: 4 });
 
     feed.forget('I_2');
-    feed.apply([yours('I_3', 'A_3')]);
+    feed.apply([yours('I_3', 'A_3'), taken('I_4')]);
     await feed.poll();
 
     expect(readStatus).toHaveBeenCalledWith(['I_1']);
+  });
+
+  it('drops an answer that comes after it stopped: no new timers, no fill for a gone page', async () => {
+    let answer: (value: StatusRead) => void = () => undefined;
+    const readStatus = vi.fn(() => new Promise<StatusRead>((resolve) => (answer = resolve)));
+    const readMore = vi.fn(async () => ({ ok: false as const, error: 'FAILED' as const }));
+    const feed = feedOf({ readStatus, readMore, next: 'c2', limit: 4 });
+
+    const read = feed.poll();
+    feed.stop();
+    answer({ ok: true, data: [taken('I_1')] });
+    await read;
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS * 5);
+
+    expect(rowOf(feed, 'I_1')?.status).toBe('AVAILABLE');
+    expect(ids(feed)).toHaveLength(4);
+    expect(readMore).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('sends the rows on their way out again when it starts after a stop', async () => {
+    const feed = feedOf({ reducedMotion: () => true });
+
+    feed.apply([taken('I_1')]);
+    feed.stop();
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS * 2);
+    expect(ids(feed)).toContain('I_1');
+
+    feed.start();
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+    expect(ids(feed)).not.toContain('I_1');
+  });
+
+  it('takes in a newer read of the page, keeping what it knows, and lets a dropped taken row finish its way out', async () => {
+    const feed = feedOf({ reducedMotion: () => true });
+
+    feed.apply([taken('I_2'), yours('I_3', 'A_3')]);
+    // The newer read no longer lists I_2 (its total already counts it out), and still lists I_3.
+    feed.reset({ items: [ISSUES[0], ISSUES[2], ISSUES[3], issue({ issueId: 'I_5', rank: 5 })], total: 40, next: null });
+
+    expect(ids(feed)).toEqual(['I_1', 'I_2', 'I_3', 'I_4', 'I_5']);
+    expect(rowOf(feed, 'I_2')?.status).toBe('TAKEN');
+    expect(rowOf(feed, 'I_3')).toMatchObject({ status: 'CLAIMED_BY_YOU', attemptId: 'A_3' });
+    expect(feed.getSnapshot().total).toBe(40);
+
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+    expect(ids(feed)).toEqual(['I_1', 'I_4', 'I_5']);
+    // I_2 was counted out by the newer read already; I_3 was still counted in it.
+    expect(feed.getSnapshot().total).toBe(39);
+  });
+
+  it('drops a fill asked for before a newer read of the page', async () => {
+    let answer: (value: ContributeActionResult<ContributeIssuePage | null>) => void = () => undefined;
+    const readMore = vi.fn(() => new Promise<ContributeActionResult<ContributeIssuePage | null>>((r) => (answer = r)));
+    const feed = feedOf({ items: ISSUES.slice(0, 1), limit: 2, next: 'c2', readMore });
+
+    const read = feed.poll();
+    feed.reset({ items: ISSUES.slice(0, 2), total: 2, next: null });
+    answer({ ok: true, data: { items: [issue({ issueId: 'I_9' })], next: 'c9', total: 9, computedAt: null } });
+    await read;
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(ids(feed)).toEqual(['I_1', 'I_2']);
+    expect(feed.getSnapshot().next).toBeNull();
+  });
+
+  it('fills every slot when two rows leave close together', async () => {
+    const pages = [
+      { items: [issue({ issueId: 'I_5', rank: 5 })], next: 'c3' },
+      { items: [issue({ issueId: 'I_6', rank: 6 })], next: null },
+    ];
+    const readMore = vi.fn(
+      async (): Promise<ContributeActionResult<ContributeIssuePage | null>> => ({
+        ok: true,
+        data: { ...(pages.shift() ?? { items: [], next: null }), total: 0, computedAt: null },
+      }),
+    );
+    const feed = feedOf({ limit: 4, next: 'c2', readMore, reducedMotion: () => true });
+
+    feed.apply([taken('I_1'), taken('I_2')]);
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+
+    expect(ids(feed)).toEqual(['I_3', 'I_4', 'I_5', 'I_6']);
+    expect(readMore).toHaveBeenCalledTimes(2);
   });
 
   it('fills a page left short from the next issues, under the cursor, and moves the cursor on', async () => {

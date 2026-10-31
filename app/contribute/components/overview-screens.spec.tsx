@@ -493,12 +493,13 @@ describe('Up next', () => {
     expect(plain).not.toContain('Skip');
   });
 
-  it('keeps each pick live: a status line ready, out of sight, and a list the focus can fall back to', () => {
+  it('keeps the picks live: one live region, out of sight, and a place the focus can fall back to', () => {
     const html = upNext(issuePage);
 
-    expect(html).toContain('data-picks="3"');
-    expect(html).toMatch(/<ol tabindex="-1"/);
-    expect(html.match(/<p role="status" tabindex="-1" class="sr-only"><\/p>/g)).toHaveLength(3);
+    expect(html).toMatch(
+      /<div tabindex="-1" data-picks="3" class="outline-none"><p role="status" class="sr-only"><\/p><ol/,
+    );
+    expect(html.match(/role="status"/g)).toHaveLength(1);
     expect(html.match(/data-live-row="/g)).toHaveLength(3);
   });
 
@@ -512,15 +513,20 @@ describe('Up next', () => {
       <IssueCardCompact issue={pick} variant="pick" live={{ status: 'CLAIMED_BY_YOU', attemptId: 'A_7' }} />,
     );
 
-    expect(taken).toMatch(/role="status"[^>]*data-live-status="taken"[^>]*>Taken by another contributor</);
+    expect(taken).toMatch(/<p tabindex="-1" data-live-status="taken"[^>]*>Taken by another contributor</);
     expect(taken).toContain('data-gone="true"');
     expect(taken).not.toContain(`href="${pick.url}"`);
-    expect(taken).toMatch(/<a [^>]*aria-disabled="true"/);
+    expect(taken).toMatch(/<a target="_blank" rel="noopener noreferrer" class="[^"]*opacity-60">/);
     expect(text(yours)).toContain('Your agent is on this · View');
     expect(yours).toContain('href="/contribute/attempts/A_7"');
     expect(yours).not.toContain(`href="${pick.url}"`);
-    // The profile block's card is not live: no status line.
-    expect(renderToStaticMarkup(<IssueCardCompact issue={pick} />)).not.toContain('role="status"');
+    // A free pick, and the profile block's card (not live), have no status line.
+    expect(
+      renderToStaticMarkup(
+        <IssueCardCompact issue={pick} variant="pick" live={{ status: 'AVAILABLE', attemptId: null }} />,
+      ),
+    ).not.toContain('data-live-status');
+    expect(renderToStaticMarkup(<IssueCardCompact issue={pick} />)).not.toContain('data-live-status');
   });
 
   it('says the picks are ranking, there are none yet, or they are not available', () => {

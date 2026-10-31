@@ -3,7 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-/** How often the page reads itself again while the first picks are ranked, and for how long before it stops. */
+import { changesPollRunning, holdFastChanges } from '@/lib/contribute/changes-bus';
+
+/** How often the wait looks again while the first picks are ranked, and for how long before it stops. */
 export const RANKING_REFRESH_SECONDS = 5;
 export const RANKING_REFRESH_FOR_SECONDS = 120;
 
@@ -12,8 +14,10 @@ export const rankingTickOf = (startedAt: number, now: number, forSeconds = RANKI
   now - startedAt >= forSeconds * 1000 ? 'stop' : 'refresh';
 
 /**
- * The first picks are computed after the key is connected: the page reads itself again every few seconds until they
- * are in, for about two minutes. Past that it stops, since each read is the whole page's, and offers a refresh.
+ * The first picks are computed after the key is connected. While they are, Contribute's poll goes fast (5 then 10 s),
+ * and the page reads itself again once the poll says the picks are in (`FEED`); where the poll does not run yet (the
+ * tabs show once the user is onboarded), the page reads itself again every few seconds instead. About two minutes on,
+ * it stops and offers a refresh.
  */
 export function StillRanking({
   seconds = RANKING_REFRESH_SECONDS,
@@ -30,15 +34,20 @@ export function StillRanking({
   useEffect(() => {
     setStopped(false);
     const startedAt = Date.now();
+    const release = holdFastChanges();
     const timer = setInterval(() => {
       if (rankingTickOf(startedAt, Date.now(), forSeconds) === 'stop') {
         clearInterval(timer);
+        release();
         setStopped(true);
         return;
       }
-      if (document.visibilityState === 'visible') router.refresh();
+      if (!changesPollRunning() && document.visibilityState === 'visible') router.refresh();
     }, seconds * 1000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      release();
+    };
   }, [router, seconds, forSeconds, round]);
 
   return (

@@ -3,17 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { issue } from './__fixtures__/contribute-overview';
 import type { ContributeIssue, ContributeIssuePage, ContributeIssueStatus } from './contribute.types';
 import type { ContributeActionResult } from './errors';
-import {
-  createLiveFeed,
-  LIVE_EXIT_AFTER_MS,
-  LIVE_LEAVE_MS,
-  type LiveFeedOptions,
-  STATUS_IDLE_AFTER_MS,
-  STATUS_IDLE_POLL_MS,
-  STATUS_POLL_MS,
-  skipOutcomeOf,
-  startStatusPolling,
-} from './live-issues';
+import { createLiveFeed, LIVE_EXIT_AFTER_MS, LIVE_LEAVE_MS, type LiveFeedOptions, skipOutcomeOf } from './live-issues';
 
 type StatusRead = ContributeActionResult<ContributeIssueStatus[] | null>;
 
@@ -281,115 +271,5 @@ describe('a Skip answered', () => {
       kind: 'failed',
       message: 'Something went wrong. Try again in a minute.',
     });
-  });
-});
-
-describe('the status reads', () => {
-  /** A page: shown or hidden, and where the user's moves are heard. */
-  const pageOf = (visibilityState: DocumentVisibilityState = 'visible') => {
-    const document = Object.assign(new EventTarget(), { visibilityState });
-    const window = new EventTarget();
-    return {
-      env: { document, window } as unknown as Parameters<typeof startStatusPolling>[1],
-      show: () => {
-        document.visibilityState = 'visible';
-        document.dispatchEvent(new Event('visibilitychange'));
-      },
-      hide: () => {
-        document.visibilityState = 'hidden';
-        document.dispatchEvent(new Event('visibilitychange'));
-      },
-      move: () => window.dispatchEvent(new Event('pointermove')),
-    };
-  };
-
-  it('read every 20 s while the tab is shown', async () => {
-    const poll = vi.fn(async () => undefined);
-    const stop = startStatusPolling(poll, pageOf().env);
-
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS - 1);
-    expect(poll).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(1);
-    expect(poll).toHaveBeenCalledTimes(1);
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS);
-    expect(poll).toHaveBeenCalledTimes(2);
-    stop();
-  });
-
-  it('pause while the tab is hidden, and read once right when it is shown again', async () => {
-    const poll = vi.fn(async () => undefined);
-    const page = pageOf();
-    const stop = startStatusPolling(poll, page.env);
-
-    page.hide();
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS * 10);
-    expect(poll).not.toHaveBeenCalled();
-
-    page.show();
-    await vi.advanceTimersByTimeAsync(0);
-    expect(poll).toHaveBeenCalledTimes(1);
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS);
-    expect(poll).toHaveBeenCalledTimes(2);
-    stop();
-  });
-
-  it('wait for a tab opened hidden to be shown', async () => {
-    const poll = vi.fn(async () => undefined);
-    const page = pageOf('hidden');
-    const stop = startStatusPolling(poll, page.env);
-
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS * 3);
-    expect(poll).not.toHaveBeenCalled();
-    page.show();
-    await vi.advanceTimersByTimeAsync(0);
-    expect(poll).toHaveBeenCalledTimes(1);
-    stop();
-  });
-
-  it('back off to a minute once the user is idle, and come back to 20 s at their next move', async () => {
-    const poll = vi.fn(async () => undefined);
-    const page = pageOf();
-    const stop = startStatusPolling(poll, page.env);
-
-    await vi.advanceTimersByTimeAsync(STATUS_IDLE_AFTER_MS);
-    const atIdle = poll.mock.calls.length;
-    expect(atIdle).toBe(STATUS_IDLE_AFTER_MS / STATUS_POLL_MS);
-
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS);
-    expect(poll).toHaveBeenCalledTimes(atIdle);
-    await vi.advanceTimersByTimeAsync(STATUS_IDLE_POLL_MS - STATUS_POLL_MS);
-    expect(poll).toHaveBeenCalledTimes(atIdle + 1);
-
-    page.move();
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS);
-    expect(poll).toHaveBeenCalledTimes(atIdle + 2);
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS);
-    expect(poll).toHaveBeenCalledTimes(atIdle + 3);
-    stop();
-  });
-
-  it('try a failed read again at the next tick, and end when told to stop', async () => {
-    const poll = vi
-      .fn<() => Promise<'stop' | undefined>>()
-      .mockRejectedValueOnce(new Error('offline'))
-      .mockResolvedValueOnce('stop');
-    const stop = startStatusPolling(poll, pageOf().env);
-
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS * 2);
-    expect(poll).toHaveBeenCalledTimes(2);
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS * 5);
-    expect(poll).toHaveBeenCalledTimes(2);
-    stop();
-  });
-
-  it('read nothing more once stopped', async () => {
-    const poll = vi.fn(async () => undefined);
-    const page = pageOf();
-    startStatusPolling(poll, page.env)();
-
-    page.hide();
-    page.show();
-    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS * 3);
-    expect(poll).not.toHaveBeenCalled();
   });
 });

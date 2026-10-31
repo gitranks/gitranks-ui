@@ -1,14 +1,11 @@
 'use client';
 
 import { Check, ChevronDown } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { createContext, type ReactNode, useContext, useEffect, useId, useRef, useState } from 'react';
 
-import { readContributeActivity } from '../actions';
 import {
   ACTIVITY_STARTED_EVENT,
-  activityDelayOf,
-  activitySignatureOf,
   activityTabOf,
   etaOf,
   isRunning,
@@ -25,124 +22,28 @@ import type {
 } from '@/lib/contribute/contribute.types';
 import { cn } from '@/lib/utils';
 
-/** How long the bar says the user can leave, after they started something. */
-const ANNOUNCE_MS = 12_000;
 /** The repos an item lists before "Show N more". */
 const REPOS_SHOWN = 8;
-/** Failed reads in a row tried again (backing off) before the bar stops until the page is read again. */
-const READ_TRIES = 5;
 
 type ActivityState = { activity: ContributeActivity | null; announced: boolean };
 const ActivityContext = createContext<ActivityState>({ activity: null, announced: false });
 
-/** Tells the bar the user just started something long: it reads at once and says they can leave the page. */
+/** Tells the poll the user just started something long: it reads at once, and the bar says they can leave the page. */
 export function announceActivity() {
   window.dispatchEvent(new Event(ACTIVITY_STARTED_EVENT));
 }
 
-/**
- * The user's work in progress for the tabs and the bar under them. It reads the activity again only while something
- * runs (soon, then backing off to a minute; rarely while everything only waits), never while the tab is hidden, and at
- * once when a page announces new work. When the work moves on, the page is read again so its lists follow.
- */
-export function ActivityProvider({ initial, children }: { initial: ContributeActivity | null; children: ReactNode }) {
-  const router = useRouter();
-  const [activity, setActivity] = useState(initial);
-  const [announcedAt, setAnnouncedAt] = useState<number | null>(null);
-  const latest = useRef(initial);
-  const signature = useRef(activitySignatureOf(initial));
-  const loop = useRef<{ start: (delay: number) => void } | null>(null);
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let reads = 0;
-    let failures = 0;
-    let hiddenWait = false;
-    let stopped = false;
-
-    const schedule = (delay: number) => {
-      clearTimeout(timer);
-      timer = setTimeout(read, delay);
-    };
-    const read = async () => {
-      if (document.visibilityState !== 'visible') {
-        hiddenWait = true;
-        return;
-      }
-      const result = await readContributeActivity().catch(() => null);
-      if (stopped) return;
-      reads += 1;
-      if (!result?.ok) {
-        // Kept as it was and tried again, backing off; signed out, or failing over and over, it waits for the page.
-        failures += 1;
-        if (result?.error !== 'SIGNED_OUT' && failures < READ_TRIES) {
-          schedule(activityDelayOf(reads, latest.current?.items ?? []));
-        }
-        return;
-      }
-      failures = 0;
-      const next = result.data;
-      const moved = activitySignatureOf(next);
-      if (moved !== signature.current && signature.current) router.refresh();
-      signature.current = moved;
-      latest.current = next;
-      setActivity(next);
-      if (next?.items.length) schedule(activityDelayOf(reads, next.items));
-    };
-    const onVisible = () => {
-      if (document.visibilityState === 'visible' && hiddenWait) {
-        hiddenWait = false;
-        read();
-      }
-    };
-    const onStarted = () => {
-      reads = 0;
-      failures = 0;
-      setAnnouncedAt(Date.now());
-      schedule(0);
-    };
-
-    loop.current = {
-      start: (delay) => {
-        reads = 0;
-        failures = 0;
-        if (hiddenWait) return;
-        schedule(delay);
-      },
-    };
-    if (latest.current?.items.length) schedule(activityDelayOf(0, latest.current.items));
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener(ACTIVITY_STARTED_EVENT, onStarted);
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener(ACTIVITY_STARTED_EVENT, onStarted);
-    };
-  }, [router]);
-
-  // A newer read of the page (it was read again, e.g. after Resume): taken; work it shows anew is read again soon.
-  useEffect(() => {
-    if (!initial || (latest.current && initial.readAt <= latest.current.readAt)) return;
-    const moved = activitySignatureOf(initial);
-    const changed = moved !== signature.current;
-    latest.current = initial;
-    signature.current = moved;
-    setActivity(initial);
-    if (changed && initial.items.length) loop.current?.start(activityDelayOf(0, initial.items));
-  }, [initial]);
-
-  useEffect(() => {
-    if (announcedAt === null) return;
-    const timer = setTimeout(() => setAnnouncedAt(null), ANNOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [announcedAt]);
-
-  return (
-    <ActivityContext.Provider value={{ activity, announced: announcedAt !== null }}>
-      {children}
-    </ActivityContext.Provider>
-  );
+/** The user's work in progress for the tabs and the bar under them, as the one poll (`ChangesProvider`) last read it. */
+export function ActivityProvider({
+  activity,
+  announced,
+  children,
+}: {
+  activity: ContributeActivity | null;
+  announced: boolean;
+  children: ReactNode;
+}) {
+  return <ActivityContext.Provider value={{ activity, announced }}>{children}</ActivityContext.Provider>;
 }
 
 /** A small dot on a tab with work in progress. */

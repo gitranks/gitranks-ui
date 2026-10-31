@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  activityDelayOf,
-  activitySignatureOf,
-  activityTabOf,
-  etaOf,
-  itemsOn,
-  shareOf,
-  summaryOf,
-} from './activity-format';
+import { activitySignatureOf, activityTabOf, etaOf, itemsOn, shareOf, summaryOf } from './activity-format';
 import type { ContributeActivityItem } from './contribute.types';
 
 const item = (over: Partial<ContributeActivityItem> = {}): ContributeActivityItem => ({
@@ -35,15 +27,6 @@ describe('the activity, as the bar reads it', () => {
     expect(itemsOn({ items: [item()], readAt: '' }, 'OVERVIEW')).toEqual([]);
     expect(itemsOn({ items: [item()], readAt: '' }, null)).toEqual([]);
     expect(itemsOn(null, 'ISSUES')).toEqual([]);
-  });
-
-  it('reads again soon, backs off to a minute, and rarely while everything only waits', () => {
-    const running = [item()];
-    expect([0, 1, 2, 3, 4, 9].map((reads) => activityDelayOf(reads, running))).toEqual([
-      5_000, 10_000, 20_000, 30_000, 60_000, 60_000,
-    ]);
-    expect(activityDelayOf(0, [item({ kind: 'FIRST_READS_WAITING' }), item({ kind: 'READS_PAUSED' })])).toBe(300_000);
-    expect(activityDelayOf(0, [item({ kind: 'FIRST_READS_WAITING' }), item()])).toBe(5_000);
   });
 
   it('moves when an item ends or a repo moves on, not otherwise', () => {

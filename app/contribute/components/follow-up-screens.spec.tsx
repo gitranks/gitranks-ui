@@ -12,7 +12,6 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/app/contribute/actions', () => ({}));
 // A marker where the page reads itself again, so the static markup shows it.
-vi.mock('./live-refresh', () => ({ LiveRefresh: () => <span data-live-refresh /> }));
 vi.mock('@/lib/contribute/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
@@ -154,10 +153,9 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(html).toContain('data-reply-draft="D_1"');
     expect(html).toContain('data-reply-follow-up="REVIEW"');
     expect(text(html)).toContain('Drafted by a follow-up : waiting for your review.');
-    expect(html).not.toContain('data-live-refresh');
   });
 
-  it('keeps an approved reply in its row while it posts, reading the page again until it is posted', () => {
+  it('keeps an approved reply in its row while it posts', () => {
     const html = mine(
       { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
       {
@@ -169,7 +167,6 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(html).toContain('data-reply-state="POSTING"');
     expect(text(html)).toContain('Posting it on GitHub.');
     expect(html).not.toContain('data-approve-reply');
-    expect(html).toContain('data-live-refresh');
   });
 
   it('keeps a reply posted in the last day in its row, with its link, and lets an older one go', () => {
@@ -190,7 +187,6 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(recent).toContain('data-reply-state="POSTED"');
     expect(recent).toContain('href="https://github.com/kelp-db/kelp/pull/1419#discussion_r9"');
     expect(text(recent)).toContain('3 hours ago');
-    expect(recent).not.toContain('data-live-refresh');
 
     const old = mine(
       { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },

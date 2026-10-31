@@ -6,18 +6,10 @@ export const ISSUES_PAGE_SIZE = 20;
 /** The most ids one status read asks about. */
 export const ISSUE_STATUS_IDS_MAX = 50;
 
-/** How often the shown issues are read again while the user is around, and once they have been idle a while. */
-export const STATUS_POLL_MS = 20_000;
-export const STATUS_IDLE_POLL_MS = 60_000;
-/** No pointer, key or scroll for this long: the user is idle. */
-export const STATUS_IDLE_AFTER_MS = 3 * 60_000;
 /** How long a taken issue stays, saying so, before it leaves the list. */
 export const LIVE_EXIT_AFTER_MS = 2_000;
 /** How long it takes to fade and fold away; the classes that animate it last as long. */
 export const LIVE_LEAVE_MS = 300;
-
-/** What the user did that counts as being around. */
-export const STATUS_ACTIVITY_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'scroll'];
 
 /** Where a shown issue stands: free, the user's own agent is on it, or another contributor took it. */
 export type LiveStatus = 'AVAILABLE' | 'CLAIMED_BY_YOU' | 'TAKEN';
@@ -258,93 +250,6 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
       timers.clear();
     },
   };
-}
-
-/** What the reads need of the page: whether it is shown, and the events that say the user is around. */
-export type PollEnvironment = {
-  document: Pick<Document, 'visibilityState' | 'addEventListener' | 'removeEventListener'>;
-  window: Pick<Window, 'addEventListener' | 'removeEventListener'>;
-  now?: () => number;
-};
-
-/**
- * Calls `poll` every 20 s while the tab is shown, every minute once the user has been idle 3 minutes (back to 20 s at
- * their next move), never while the tab is hidden, and once right when it is shown again. One read at a time; a
- * failed one is tried again at the next tick, and `'stop'` ends the reads. Returns the stop.
- */
-export function startStatusPolling(poll: () => Promise<PollOutcome>, env: PollEnvironment): () => void {
-  const now = env.now ?? Date.now;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let stopped = false;
-  let reading = false;
-  let hidden = false;
-  let lastActive = now();
-  let lastRead = now();
-
-  const idle = () => now() - lastActive >= STATUS_IDLE_AFTER_MS;
-  const schedule = (ms: number) => {
-    clearTimeout(timer);
-    timer = setTimeout(tick, Math.max(0, ms));
-  };
-  const tick = async () => {
-    timer = undefined;
-    if (stopped) return;
-    if (env.document.visibilityState !== 'visible') {
-      hidden = true;
-      return;
-    }
-    if (reading) return;
-    reading = true;
-    lastRead = now();
-    let outcome: PollOutcome;
-    try {
-      outcome = await poll();
-    } catch {
-      outcome = undefined;
-    } finally {
-      reading = false;
-    }
-    if (stopped) return;
-    if (outcome === 'stop') {
-      stop();
-      return;
-    }
-    if (!hidden) schedule(idle() ? STATUS_IDLE_POLL_MS : STATUS_POLL_MS);
-  };
-  const onVisibility = () => {
-    if (stopped) return;
-    if (env.document.visibilityState === 'visible') {
-      if (!hidden) return;
-      // Coming back to the tab is a move of the user's.
-      hidden = false;
-      lastActive = now();
-      if (reading) return;
-      clearTimeout(timer);
-      void tick();
-    } else {
-      hidden = true;
-      clearTimeout(timer);
-      timer = undefined;
-    }
-  };
-  const onActive = () => {
-    const wasIdle = idle();
-    lastActive = now();
-    // Back from idle: the next read comes 20 s after the last one, not a minute.
-    if (wasIdle && !stopped && !hidden && !reading) schedule(lastRead + STATUS_POLL_MS - now());
-  };
-  function stop() {
-    stopped = true;
-    clearTimeout(timer);
-    env.document.removeEventListener('visibilitychange', onVisibility);
-    for (const name of STATUS_ACTIVITY_EVENTS) env.window.removeEventListener(name, onActive);
-  }
-
-  env.document.addEventListener('visibilitychange', onVisibility);
-  for (const name of STATUS_ACTIVITY_EVENTS) env.window.addEventListener(name, onActive, { passive: true });
-  if (env.document.visibilityState === 'visible') schedule(STATUS_POLL_MS);
-  else hidden = true;
-  return stop;
 }
 
 /**

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { LiveRefresh } from './live-refresh';
 import { PauseButton } from './pause-button';
 import { HEADING } from './primitives';
 import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
@@ -156,7 +155,6 @@ export function FirstRunGuide({
       data-first-run={step.kind}
       className="flex flex-col gap-5 rounded-2xl border border-primary/20 bg-brand-soft/50 p-4.5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500 motion-safe:delay-150 motion-safe:fill-mode-both sm:p-6"
     >
-      {step.kind === 'soon' || step.kind === 'no-issues' || step.kind === 'paced' ? <LiveRefresh /> : null}
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <Heading id="first-run-title" className={Heading === 'h1' ? HEADING.page : HEADING.section}>
           You&apos;re in. Here&apos;s what happens next

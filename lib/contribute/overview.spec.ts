@@ -170,7 +170,6 @@ describe('rightNowOf', () => {
       const now = rightNowOf(views.active, { ...nowIdle, inFlight: [inFlight({ state })] }, issuePage, NOW);
 
       expect(now.hosted).toMatchObject({ kind: 'working', attempt: { state } });
-      expect(now.live).toBe(true);
     },
   );
 
@@ -232,7 +231,7 @@ describe('rightNowOf', () => {
   });
 
   it('shows the cycle for a key alone, and no hosted card without one', () => {
-    expect(rightNowOf(views.active, nowIdle, issuePage, NOW)).toMatchObject({ cycle: true, live: false });
+    expect(rightNowOf(views.active, nowIdle, issuePage, NOW)).toMatchObject({ cycle: true });
     const agentOnly = rightNowOf(views.agentOnboarded, nowIdle, issuePage, NOW);
     expect(agentOnly.hosted).toBeUndefined();
     expect(agentOnly.cycle).toBe(false);
@@ -323,7 +322,6 @@ describe('the review fixes', () => {
       token: 'Claude Code on macOS',
       lastCallAt: '2026-10-28T09:00:00.000Z',
     });
-    expect(now.live).toBe(true);
 
     // What does not depend on it still shows: the view's blocks, the scheduler's counts.
     expect(rightNowOf({ ...both, paused: true }, read, issuePage, NOW).hosted?.kind).toBe('paused');

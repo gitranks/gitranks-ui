@@ -7,7 +7,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock('@/app/contribute/actions', () => ({ readContributeActivity: vi.fn() }));
+vi.mock('@/app/contribute/actions', () => ({ readContributeChanges: vi.fn() }));
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({ useReportPendingNavigation: () => {} }));
 
 const { ActivityBarView } = await import('./activity');

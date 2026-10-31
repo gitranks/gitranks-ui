@@ -10,7 +10,7 @@ export function activityTabOf(pathname: string): ContributeActivityTab | null {
   const path = pathname.replace(/\/+$/, '');
   if (path === '/contribute' || path === '/contribute/connect') return 'OVERVIEW';
   if (path === '/contribute/issues') return 'ISSUES';
-  if (path === '/contribute/settings') return 'SETTINGS';
+  if (path === '/contribute/settings' || path.startsWith('/contribute/settings/')) return 'SETTINGS';
   return null;
 }
 

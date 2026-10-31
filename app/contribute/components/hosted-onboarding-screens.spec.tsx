@@ -241,7 +241,7 @@ describe('A3, what happens next before the first attempt', () => {
     expect(text(html)).toContain(
       "We guessed what you'd like: every kind and size of issue, your profile's languages first, within your $100 monthly cap, paced across your cycle.",
     );
-    expect(html).toContain('href="/contribute/settings/work#work"');
+    expect(html).toContain('href="/contribute/settings#work"');
     expect(text(guide(views.active))).toContain('bugs, Rust first, within your $200 monthly cap');
   });
 

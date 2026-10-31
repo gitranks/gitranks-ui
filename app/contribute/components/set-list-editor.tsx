@@ -1,11 +1,13 @@
 'use client';
 
 import { ChevronDown, CircleAlert, Search, X } from 'lucide-react';
+import Link from 'next/link';
 import { type FormEvent, useId, useState, useTransition } from 'react';
 
 import { addToContributeSet, ignoreContributeRepo, removeFromContributeSet } from '../actions';
 import type { FeedbackOpen } from './feedback-dialog';
-import { Meter, Pill } from './primitives';
+import { Meter, Pill, SubTitle } from './primitives';
+import { RulesDialog } from './set-panels';
 import type { SetWrite } from './set-section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +29,7 @@ import {
   statusOf,
   viaGroupsOf,
 } from '@/lib/contribute/set-format';
+import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
 
 /** Rows a group shows before "Show more". */
@@ -45,12 +48,15 @@ export function SetListEditor({
   write,
   onFeedback,
   now,
+  divided = true,
 }: {
   set: ContributeSet;
   mode: ContributeSetListMode;
   write: SetWrite;
   onFeedback: (open: FeedbackOpen) => void;
   now?: Date;
+  /** A rule above it, under what comes before it in its panel. */
+  divided?: boolean;
 }) {
   const id = useId();
   const { list, repos, count, cap } = listOf(set, mode);
@@ -101,10 +107,10 @@ export function SetListEditor({
   };
 
   return (
-    <div className="flex flex-col gap-3 border-t pt-4" data-list={list}>
+    <div className={cn('flex flex-col gap-3', divided && 'border-t pt-4')} data-list={list}>
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <h3 className="text-sm font-semibold">{list === 'SOURCES' ? "Your stack's sources" : 'Repos you support'}</h3>
+          <SubTitle>{list === 'SOURCES' ? "Your stack's sources" : 'Repos you support'}</SubTitle>
           <p className="text-xs text-muted-foreground">
             {list === 'SOURCES'
               ? 'We read the dependency files (package.json, go.mod, pyproject.toml, Cargo.toml…) of these repos.'
@@ -186,16 +192,22 @@ export function SetListEditor({
       )}
       {ignoreFull ? (
         <p className="text-xs text-muted-foreground">
-          Your ignore list is full ({set.limits.ignore}): unignore a repo first to ignore another.
+          Your ignore list is full ({set.limits.ignore}):{' '}
+          <Link
+            href={settingsPathOf('ignored')}
+            prefetch={false}
+            className="text-link underline-offset-2 hover:underline"
+          >
+            unignore a repo
+          </Link>{' '}
+          first to ignore another.
         </p>
       ) : null}
       <p className="text-xs text-muted-foreground">
         {list === 'SOURCES'
           ? `A user or org adds its public repos that pass the source rules, most stars first, up to ${cap}. `
           : `A user or org adds its repos that pass the rules, most stars first, up to ${cap}. We check every repo for new issues every 12 hours. `}
-        <a href="#rules" className="text-link underline-offset-2 hover:underline">
-          How we pick repos
-        </a>
+        <RulesDialog onFeedback={() => onFeedback({ topic: 'GATES', context: { mode } })} />
       </p>
     </div>
   );

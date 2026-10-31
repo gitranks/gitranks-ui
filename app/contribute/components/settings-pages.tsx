@@ -1,58 +1,99 @@
 import Link from 'next/link';
+import { notFound, redirect } from 'next/navigation';
 
 import { AccessSection } from './access-section';
 import { ContributeNotices } from './contribute-notices';
+import { ModeSwitch } from './mode-switch';
 import { OwnAgentSection } from './own-agent-section';
-import { PreferencesSection } from './preferences-section';
 import { Panel, PanelTitle } from './primitives';
 import { ScrollToHash } from './scroll-to-hash';
-import { SetSections } from './set-section';
+import { SetListScreen } from './set-list-screen';
 import { SettingsForm, type SettingsSection } from './settings-form';
 import { SettingsPageHead } from './settings-rows';
 import { loadSettingsView } from './settings-view';
 import { loadContributeSet } from '@/lib/contribute/contribute.data';
-import type { ContributeSet, ContributeView } from '@/lib/contribute/contribute.types';
+import type { ContributeSet, ContributeSetListMode, ContributeView } from '@/lib/contribute/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, settingsOf } from '@/lib/contribute/contribute-state';
 import { type GrantRefusal, grantRefusalOf } from '@/lib/contribute/grant-refusal';
 import { OWN_AGENT_TEXT } from '@/lib/contribute/mcp-setup';
+import { MODES, modeTitleOf } from '@/lib/contribute/set-format';
+import { SETTINGS_PATHS, switchModeOf } from '@/lib/contribute/settings-paths';
 
 export async function WorkSettingsView() {
-  const [view, set] = await Promise.all([loadSettingsView(), loadContributeSet()]);
-  return <WorkSettingsScreen view={view} set={set} setFailed={set === undefined} />;
+  const [, set] = await Promise.all([loadSettingsView(), loadContributeSet()]);
+  // Without the modes there is no list: the filters are on the summary.
+  if (set === null) redirect(SETTINGS_PATHS.summary);
+  return <WorkSettingsScreen set={set} setFailed={set === undefined} />;
 }
 
-/** What the user works on: the mode and its list, then the preferences, how we pick repos and the ignored repos. */
+/** The current mode's list, changed in place; All issues has none, and says where to pick another mode. */
 export function WorkSettingsScreen({
-  view,
   now,
   set,
   setFailed = false,
 }: {
-  view: ContributeView;
   now?: Date;
-  /** Null or `undefined` when the modes are not shown, and then nothing about them is. */
   set?: ContributeSet | null;
   /** The modes are shown to the user, and what they work on did not load. */
   setFailed?: boolean;
 }) {
-  const preferences = <PreferencesSection preferences={view.contributor?.preferences ?? null} modes={!!set} />;
+  const mode = set?.mode;
   return (
     <>
       <SettingsPageHead
-        title="What you work on"
-        text="Where your issues come from, and the filters on top of it in every mode."
+        title={mode === 'STACK' ? 'Your stack' : mode === 'REPOS' ? 'Your repos' : 'What you work on'}
+        text={MODES.find((entry) => entry.mode === mode)?.text}
       />
-      {set ? <SetSections set={set} now={now} preferences={preferences} /> : null}
-      {!set && setFailed ? (
-        <Panel id="modes">
-          <PanelTitle
-            title="What to work on"
-            text="Your lists didn't load. Reload the page to try again; everything else here works as usual."
-          />
+      {set && mode && mode !== 'ALL' ? <SetListScreen set={set} mode={mode} now={now} /> : null}
+      {mode === 'ALL' ? (
+        <Panel id="list">
+          <p className="text-sm text-muted-foreground">
+            All issues has no list to edit. To support your stack or your own list of repos, pick it in{' '}
+            <Link href={SETTINGS_PATHS.summary} prefetch={false} className="font-semibold text-link">
+              Settings
+            </Link>
+            .
+          </p>
         </Panel>
       ) : null}
-      {set ? null : preferences}
-      <ScrollToHash />
+      {!set && setFailed ? (
+        <Panel id="list">
+          <p className="text-sm text-muted-foreground">
+            Your lists didn&apos;t load. Reload the page to try again; everything else in Settings works as usual.
+          </p>
+        </Panel>
+      ) : null}
+    </>
+  );
+}
+
+export async function SwitchSettingsView({ params }: { params: Promise<{ mode: string }> }) {
+  const [, set, { mode: segment }] = await Promise.all([loadSettingsView(), loadContributeSet(), params]);
+  const target = switchModeOf(segment);
+  if (!target) notFound();
+  if (!set) redirect(SETTINGS_PATHS.summary);
+  // Already in it: its list is changed on its own page.
+  if (set.mode === target) redirect(SETTINGS_PATHS.work);
+  return <SwitchSettingsScreen set={set} target={target} />;
+}
+
+/** The guided switch to a mode with a list. */
+export function SwitchSettingsScreen({
+  set,
+  target,
+  now,
+}: {
+  set: ContributeSet;
+  target: ContributeSetListMode;
+  now?: Date;
+}) {
+  return (
+    <>
+      <SettingsPageHead
+        title={`Switch to ${modeTitleOf(target)}`}
+        text={`${MODES.find((entry) => entry.mode === target)?.text} Your current mode goes on until you switch.`}
+      />
+      <ModeSwitch set={set} target={target} now={now} />
     </>
   );
 }

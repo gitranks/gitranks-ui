@@ -23,7 +23,7 @@ const { ContributionsScreen } = await import('./contributions-view');
 const { ReviewsReady } = await import('./reviews-ready');
 const { IssuesScreen } = await import('./issues-view');
 const { NOW, views, settings } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { PATCH, attempt, attempts, contributions, detail, stopped } = await import(
+const { PATCH, attempt, attempts, contributions, detail, pullRequest, stopped } = await import(
   '@/lib/contribute/__fixtures__/contribute-attempts'
 );
 const { END_REASONS, LIVE_STATES } = await import('@/lib/contribute/attempt-format');
@@ -195,7 +195,8 @@ describe('the review screen', () => {
   });
 
   it.each([
-    ['submittingQueued', 'QUEUED', 'Approved. The submission starts in a moment.', null],
+    // Queued, the fork is next: it reads as starting.
+    ['submittingQueued', 'QUEUED', 'Approved. The submission starts in a moment.', 'FORK'],
     ['submittingFork', 'FORK', 'Making your fork of the repo.', 'FORK'],
     ['submittingSync', 'SYNC', 'Bringing your fork up to date', 'SYNC'],
     ['submittingPush', 'PUSH', 'Pushing the change to a branch on your fork.', 'PUSH'],
@@ -220,6 +221,151 @@ describe('the review screen', () => {
     expect(html).toContain('data-step="FORK" data-step-state="done"');
     expect(html).toContain('data-step="SYNC" data-step-state="done"');
     expect(html).toContain('data-step="PULL_REQUEST" data-step-state="pending"');
+  });
+
+  /** A submission with its steps' clock: fork and sync done, the push running for 4 s at NOW. */
+  const clocked = (patch: Partial<ContributeAttemptDetail> = {}, submit = {}) =>
+    detail({
+      ...attempts.submittingPush,
+      ...patch,
+      submit: {
+        ...attempts.submittingPush.submit!,
+        steps: [
+          { step: 'FORK', startedAt: '2026-10-28T11:59:50.000Z', doneAt: '2026-10-28T11:59:52.700Z' },
+          { step: 'SYNC', startedAt: '2026-10-28T11:59:52.700Z', doneAt: '2026-10-28T11:59:56.000Z' },
+          { step: 'PUSH', startedAt: '2026-10-28T11:59:56.000Z', doneAt: null },
+        ],
+        stepStartedAt: '2026-10-28T11:59:56.000Z',
+        forkPending: false,
+        retryAt: null,
+        ...submit,
+      },
+    });
+  const stepOf = (html: string, step: string) =>
+    text(html.match(new RegExp(`<li data-step="${step}"[^>]*>.*?</li>`))?.[0] ?? '');
+
+  it('shows each done step with how long it took, and the running one with its time so far', () => {
+    const html = review(clocked());
+
+    expect(html).toContain('data-step="FORK" data-step-state="done"');
+    expect(stepOf(html, 'FORK')).toContain('2.7 s');
+    expect(stepOf(html, 'SYNC')).toContain('3.3 s');
+    expect(html).toMatch(/data-step="PUSH" data-step-state="current" aria-current="step"/);
+    expect(stepOf(html, 'PUSH')).toContain('Push : in progress 4 s');
+    expect(stepOf(html, 'PULL_REQUEST')).toContain('Pull request : not started');
+    // The lines fill behind the done steps only.
+    expect((html.match(/data-step-line="filled"/g) ?? []).length).toBe(2);
+    expect(html).toContain('role="status"');
+    expect(text(html)).toContain('Pushing the change to a branch on your fork.');
+  });
+
+  it('spins and pulses only under motion-safe, so reduced motion keeps the stepper still', () => {
+    const html = review(clocked()).match(/<ol aria-label="Submission steps".*?<\/ol>/)?.[0] ?? '';
+    const animated = [...html.matchAll(/class="([^"]*(?:animate-|transition)[^"]*)"/g)].map(([, classes]) => classes);
+
+    expect(animated.length).toBeGreaterThan(0);
+    for (const classes of animated) {
+      for (const name of classes.split(' ').filter((name) => /animate-|transition|duration-/.test(name))) {
+        expect(name.startsWith('motion-safe:') || name.startsWith('motion-reduce:'), name).toBe(true);
+      }
+    }
+  });
+
+  it('says GitHub is making the fork while it waits for it', () => {
+    const html = review(clocked({}, { step: 'FORK', steps: [], forkPending: true, stepStartedAt: NOW.toISOString() }));
+
+    expect(text(html)).toContain('GitHub is making your fork. A new fork can take a few minutes.');
+    expect(html).toMatch(/data-step="FORK" data-step-state="current"/);
+  });
+
+  it('marks a step tried again after a passing failure, and says when', () => {
+    const html = review(
+      clocked(
+        {},
+        {
+          retryAt: '2026-10-28T12:00:45.000Z',
+          lastError: {
+            reason: 'transient',
+            note: 'GitHub did not answer; trying again shortly.',
+            at: NOW.toISOString(),
+          },
+        },
+      ),
+    );
+
+    expect(html).toMatch(/data-step="PUSH" data-step-state="retrying" aria-current="step"/);
+    expect(stepOf(html, 'PUSH')).toContain('Again in 45 s');
+    expect(text(html)).toContain('GitHub did not answer; trying again shortly. Again in 45 s.');
+    // Said once, in the stepper's line.
+    expect(html).not.toContain('data-submit-error');
+  });
+
+  it('shows the sync as not needed when the own repo stands for the fork', () => {
+    const html = review(
+      clocked(
+        {},
+        {
+          step: 'PULL_REQUEST',
+          steps: [
+            { step: 'FORK', startedAt: '2026-10-28T11:59:50.000Z', doneAt: '2026-10-28T11:59:51.000Z' },
+            { step: 'PUSH', startedAt: '2026-10-28T11:59:51.000Z', doneAt: '2026-10-28T11:59:55.000Z' },
+            { step: 'PULL_REQUEST', startedAt: '2026-10-28T11:59:55.000Z', doneAt: null },
+          ],
+        },
+      ),
+    );
+
+    expect(html).toContain('data-step="SYNC" data-step-state="skipped"');
+    expect(stepOf(html, 'SYNC')).toContain('Not needed');
+    expect((html.match(/data-step-line="filled"/g) ?? []).length).toBe(3);
+  });
+
+  it('shows where a submission failed, with its note and a way to try again', () => {
+    const html = review(
+      clocked(
+        { state: 'REVIEW' },
+        {
+          lastError: {
+            reason: 'branch_conflict',
+            note: 'Your fork already has this branch with other commits.',
+            at: NOW.toISOString(),
+          },
+        },
+      ),
+    );
+
+    expect(html).toContain('data-attempt-status="REVIEW"');
+    expect(html).toContain('data-step="FORK" data-step-state="done"');
+    expect(html).toContain('data-step="PUSH" data-step-state="failed"');
+    expect(stepOf(html, 'PUSH')).toContain('Push : failed Failed');
+    expect(text(html)).toContain('Your fork already has this branch with other commits.');
+    expect(text(html)).toContain('Try again');
+    expect(html).toContain('id="pr-form"');
+  });
+
+  it('shows the steps done and links the pull request when it just opened', () => {
+    const opened = clocked(
+      { state: 'PR_OPEN', pullRequest: pullRequest({ openedAt: '2026-10-28T11:59:59.000Z' }) },
+      {
+        step: 'PULL_REQUEST',
+        steps: [
+          { step: 'FORK', startedAt: '2026-10-28T11:59:50.000Z', doneAt: '2026-10-28T11:59:52.700Z' },
+          { step: 'SYNC', startedAt: '2026-10-28T11:59:52.700Z', doneAt: '2026-10-28T11:59:56.000Z' },
+          { step: 'PUSH', startedAt: '2026-10-28T11:59:56.000Z', doneAt: '2026-10-28T11:59:57.500Z' },
+          { step: 'PULL_REQUEST', startedAt: '2026-10-28T11:59:57.500Z', doneAt: '2026-10-28T11:59:59.000Z' },
+        ],
+      },
+    );
+    const html = review(opened);
+
+    expect(html).toContain('data-attempt-status="PR_OPEN"');
+    expect((html.match(/data-step-state="done"/g) ?? []).length).toBe(4);
+    expect(stepOf(html, 'PULL_REQUEST')).toContain('Pull request #1419 ↗');
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
+    expect(text(html)).toContain('Your pull request is open');
+
+    // Opened a while ago: the PR card alone.
+    expect(review(attempts.prOpen)).not.toContain('data-step-state');
   });
 
   it("waits for tomorrow under the day's cap, and says when it goes on", () => {

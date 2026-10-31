@@ -12,6 +12,8 @@ const {
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
+  ContributeAttemptLiveBareDocument,
+  ContributeAttemptLiveDocument,
   ContributeOnboardingDocument,
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
@@ -56,6 +58,7 @@ const CALLS: Record<string, unknown[]> = {
   unignoreContributeRepo: ['R_1'],
   resolveContributeStack: [],
   readContributeActivity: [],
+  readAttemptLive: ['A_1'],
   sendContributeFeedback: ['GATES', 'lodash is left out', { mode: 'STACK', githubLogin: 'mallory' }],
 };
 
@@ -85,6 +88,32 @@ describe('the Contribute server actions', () => {
 
   it('are all covered here', () => {
     expect(exported.map(([name]) => name).sort()).toEqual(Object.keys(CALLS).sort());
+  });
+
+  it("reads a submitting attempt again with its steps' clock, and without it from an API that lacks it", async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    const live = { attemptId: 'A_1', state: 'SUBMITTING', updatedAt: 'x', submit: null, pullRequest: null };
+    graphqlDirect.mockResolvedValueOnce({ contributeAttempt: live });
+    const read = await actions.readAttemptLive('A_1');
+    expect(read).toMatchObject({ ok: true, data: { attempt: live } });
+    expect(read.ok && Number.isNaN(Date.parse(read.data.readAt))).toBe(false);
+    expect(graphqlDirect.mock.calls[0][0]).toBe(ContributeAttemptLiveDocument);
+
+    graphqlDirect.mockReset();
+    graphqlDirect
+      .mockRejectedValueOnce(new Error(JSON.stringify([{ message: 'Cannot query field "steps" on type "X".' }])))
+      .mockResolvedValueOnce({ contributeAttempt: live });
+    await expect(actions.readAttemptLive('A_1')).resolves.toMatchObject({ ok: true, data: { attempt: live } });
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
+      ContributeAttemptLiveDocument,
+      ContributeAttemptLiveBareDocument,
+    ]);
+
+    // Not the viewer's: no second read.
+    graphqlDirect.mockReset();
+    graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify([{ extensions: { code: 'NOT_FOUND' } }])));
+    await expect(actions.readAttemptLive('A_1')).resolves.toMatchObject({ ok: false, error: 'NOT_FOUND' });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
   });
 
   it.each(Object.keys(CALLS))('%s runs as the signed-in user, never one named in its arguments', async (name) => {

@@ -7,6 +7,7 @@ import {
   ContributeAttemptDocument,
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptOwnAgentDocument,
+  ContributeAttemptSubmitClockDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
   ContributeAttemptsInDocument,
@@ -403,9 +404,18 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   const ownAgent = Promise.resolve(graphqlDirect(ContributeAttemptOwnAgentDocument, { id }, options)).catch(
     () => undefined,
   );
+  // The submission's step clock, for the stepper's durations; left out when the API does not answer it.
+  const clock = Promise.resolve(graphqlDirect(ContributeAttemptSubmitClockDocument, { id }, options)).catch(
+    () => undefined,
+  );
   try {
-    const { contributeAttempt } = await review;
-    if (!contributeAttempt) return contributeAttempt;
+    const { contributeAttempt: read } = await review;
+    if (!read) return read;
+    const timed = (await clock)?.contributeAttempt;
+    const contributeAttempt =
+      timed?.attemptId === read.attemptId && read.submit && timed.submit?.step === read.submit.step
+        ? { ...read, submit: { ...read.submit, ...timed.submit } }
+        : read;
     const extra = (await followUps)?.contributeAttempt;
     const withFollowUps = withFields(
       contributeAttempt,

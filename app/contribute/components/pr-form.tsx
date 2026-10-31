@@ -158,12 +158,13 @@ export function PrForm({
 
   return (
     <form
+      id="pr-form"
       data-pr-form={attemptId}
       onSubmit={(event) => {
         event.preventDefault();
         if (!titleMissing) setConfirm('approve');
       }}
-      className="flex flex-col gap-3.5 rounded-xl border-2 border-primary bg-card p-4.5"
+      className="flex scroll-mt-20 flex-col gap-3.5 rounded-xl border-2 border-primary bg-card p-4.5"
     >
       <h2 className={HEADING.card}>Your pull request</h2>
       <div className="flex flex-col gap-1.5">

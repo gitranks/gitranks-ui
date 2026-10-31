@@ -128,6 +128,9 @@ export const ContributeContributionsOwnAgentDocument = doc<
   contributeContributions(first: $first) { items { attemptId runner agent { name model } openedBy } }
 }`);
 
+/** Contribute is launched (`CONTRIBUTE_PREVIEW=true` on the API): open to everyone, signed-out visitors included. */
+export const ContributeOpenDocument = doc<{ contributeOpen: boolean }>('query ContributeOpen { contributeOpen }');
+
 export const ContributePreviewDocument = doc<{ contribute: { previewAllowed: boolean } | null }>(
   'query ContributePreview { contribute { previewAllowed } }',
 );

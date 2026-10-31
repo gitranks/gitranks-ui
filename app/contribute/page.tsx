@@ -9,6 +9,7 @@ import { isAgentWelcome } from '@/lib/contribute/agent-connect';
 import { loadAttempts, loadContribute, loadIssues, loadProviderInterests } from '@/lib/contribute/contribute.data';
 import { contributeHomeOf, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
 import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
+import { contributeOpen } from '@/lib/contribute/preview-gate';
 
 /** The attempts the welcome reads to tell whether the user's own agent has made one. */
 const AGENT_ATTEMPTS_READ = 20;
@@ -36,7 +37,11 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
     () => undefined,
   );
   const view = await loadContribute();
-  if (!view) notFound();
+  if (!view) {
+    // Launched, the landing is everyone's (§9.3): a visitor without a session, or one Contribute does not know yet.
+    if (await contributeOpen()) return <Landing viewer="visitor" noted={[]} />;
+    notFound();
+  }
 
   const home = contributeHomeOf(view, params);
   if (home.screen === 'overview') {

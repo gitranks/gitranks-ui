@@ -493,6 +493,42 @@ describe('Up next', () => {
     expect(plain).not.toContain('Skip');
   });
 
+  it('keeps the picks live: one live region, out of sight, and a place the focus can fall back to', () => {
+    const html = upNext(issuePage);
+
+    expect(html).toMatch(
+      /<div tabindex="-1" data-picks="3" class="outline-none"><p role="status" class="sr-only"><\/p><ol/,
+    );
+    expect(html.match(/role="status"/g)).toHaveLength(1);
+    expect(html.match(/data-live-row="/g)).toHaveLength(3);
+  });
+
+  it("says a taken pick is taken, its link off, and one the user's agent took with the way to the attempt", async () => {
+    const { IssueCardCompact } = await import('./issue-card-compact');
+    const pick = issuePage.items[1];
+    const taken = renderToStaticMarkup(
+      <IssueCardCompact issue={pick} variant="pick" live={{ status: 'TAKEN', attemptId: null }} />,
+    );
+    const yours = renderToStaticMarkup(
+      <IssueCardCompact issue={pick} variant="pick" live={{ status: 'CLAIMED_BY_YOU', attemptId: 'A_7' }} />,
+    );
+
+    expect(taken).toMatch(/<p tabindex="-1" data-live-status="taken"[^>]*>Taken by another contributor</);
+    expect(taken).toContain('data-gone="true"');
+    expect(taken).not.toContain(`href="${pick.url}"`);
+    expect(taken).toMatch(/<a target="_blank" rel="noopener noreferrer" class="[^"]*opacity-60">/);
+    expect(text(yours)).toContain('Your agent is on this · View');
+    expect(yours).toContain('href="/contribute/attempts/A_7"');
+    expect(yours).not.toContain(`href="${pick.url}"`);
+    // A free pick, and the profile block's card (not live), have no status line.
+    expect(
+      renderToStaticMarkup(
+        <IssueCardCompact issue={pick} variant="pick" live={{ status: 'AVAILABLE', attemptId: null }} />,
+      ),
+    ).not.toContain('data-live-status');
+    expect(renderToStaticMarkup(<IssueCardCompact issue={pick} />)).not.toContain('data-live-status');
+  });
+
   it('says the picks are ranking, there are none yet, or they are not available', () => {
     expect(upNext({ ...issuePage, computedAt: null })).toContain('data-ranking="waiting"');
     expect(text(upNext({ ...issuePage, items: [] }))).toContain("We're still finding issues for you.");

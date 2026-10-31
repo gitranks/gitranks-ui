@@ -1,22 +1,20 @@
 import { ChevronDown } from 'lucide-react';
-import type { Route } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { AgentNextSteps } from './agent-connected';
 import { ContributeNotices } from './contribute-notices';
 import { FirstRunGuide } from './first-run-guide';
-import { IssueCard } from './issue-card';
-import { filterOf, type IssuesQuery, issuesHref, issuesQueryOf } from './issues-filter';
+import { filterOf, type IssuesQuery, issuesQueryOf } from './issues-filter';
 import { IssuesFilters } from './issues-filters';
-import { ModeSwitcher, OtherIssuesDivider, SetIssuesHeading, SetOnlyEmpty } from './issues-mode';
+import { ModeSwitcher, SetOnlyEmpty } from './issues-mode';
+import { LiveIssues, LiveIssuesFeed, LiveIssuesTotal } from './live-issues';
 import { HEADING, Meter } from './primitives';
 import { ReviewsReady } from './reviews-ready';
 import { StillRanking } from './still-ranking';
 import { loadAttempts, loadContribute, loadContributeSet, loadIssues } from '@/lib/contribute/contribute.data';
 import type {
   ContributeAttempt,
-  ContributeIssue,
   ContributeIssuePage,
   ContributeSet,
   ContributeView,
@@ -30,9 +28,7 @@ import {
   isFirstRun,
 } from '@/lib/contribute/first-run';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
-import { tiersOf } from '@/lib/contribute/set-format';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
-import { cn } from '@/lib/utils';
 
 export async function IssuesView({
   searchParams,
@@ -67,20 +63,6 @@ const filtered = (query: IssuesQuery) => !!(query.language || query.kind || quer
 
 /** The user's mode works on its own list alone, and waits when it has nothing ready. */
 const setOnly = (set: ContributeSet) => (set.mode === 'STACK' ? set.stack.fallback : set.repos.fallback) === 'SET_ONLY';
-
-/** The issues as rows of one list; dashed for issues from outside the user's own list. */
-function IssueList({ issues, other = false }: { issues: ContributeIssue[]; other?: boolean }) {
-  if (!issues.length) return null;
-  return (
-    <ul className={cn('divide-y overflow-hidden rounded-xl border bg-card', other && 'border-dashed')}>
-      {issues.map((issue) => (
-        <li key={issue.issueId}>
-          <IssueCard issue={issue} other={other} />
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 function Empty({ title, text }: { title: string; text: React.ReactNode }) {
   return (
@@ -121,21 +103,17 @@ export function IssuesScreen({
   const spend = view.contributor?.spend;
   const settings = view.contributor?.settings;
 
-  let feed: React.ReactNode;
-  if (page === undefined) {
-    feed = <Empty title="Issues are not available yet" text="The feed is coming soon. Check back shortly." />;
-  } else if (page && !page.computedAt && !page.items.length && !filtered(query)) {
-    // The first picks are computed after the key is connected: the page reads itself again until they are in.
-    feed = <StillRanking />;
-  } else if (!page?.items.length && set && set.mode !== 'ALL' && setOnly(set) && !filtered(query) && !query.after) {
-    feed = (
+  // No issues (left): the user's list has nothing ready, nothing matches the filters, or nothing is picked yet.
+  let none: React.ReactNode;
+  if (set && set.mode !== 'ALL' && setOnly(set) && !filtered(query) && !query.after) {
+    none = (
       <SetOnlyEmpty
         set={set as ContributeSet & { mode: 'STACK' | 'REPOS' }}
         languages={view.contributor?.preferences?.languages ?? []}
       />
     );
-  } else if (!page?.items.length) {
-    feed = filtered(query) ? (
+  } else {
+    none = filtered(query) ? (
       <Empty
         title="No issues match these filters"
         text={
@@ -158,40 +136,19 @@ export function IssuesScreen({
         }
       />
     );
+  }
+
+  let feed: React.ReactNode;
+  if (page === undefined) {
+    feed = <Empty title="Issues are not available yet" text="The feed is coming soon. Check back shortly." />;
+  } else if (page && !page.computedAt && !page.items.length && !filtered(query)) {
+    // The first picks are computed after the key is connected: the page reads itself again until they are in.
+    feed = <StillRanking />;
+  } else if (!page?.items.length) {
+    feed = none;
   } else {
-    const split = set ? tiersOf(page.items, set.mode) : null;
-    feed = (
-      <>
-        {split && set ? (
-          <>
-            {split.set.length ? <SetIssuesHeading set={set} /> : null}
-            <IssueList issues={split.set} />
-            {split.other.length ? <OtherIssuesDivider set={set} none={!split.set.length && !query.after} /> : null}
-            <IssueList issues={split.other} other />
-          </>
-        ) : (
-          <IssueList issues={page.items} />
-        )}
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          {query.after ? (
-            <Link href={issuesHref({ ...query, after: undefined }) as Route} prefetch={false} className="text-link">
-              ← Back to the best matches
-            </Link>
-          ) : (
-            <span />
-          )}
-          {page.next ? (
-            <Link
-              href={issuesHref({ ...query, after: page.next }) as Route}
-              prefetch={false}
-              className="font-semibold text-link"
-            >
-              More issues →
-            </Link>
-          ) : null}
-        </div>
-      </>
-    );
+    // Live: an issue taken meanwhile says so and leaves, and the next ones fill the page.
+    feed = <LiveIssuesFeed set={set} query={query} empty={none} />;
   }
 
   // Only the unfiltered first page says whether anything is picked at all.
@@ -203,14 +160,6 @@ export function IssuesScreen({
       : contributeNoticesOf(view);
   const guided = firstRun || agentFirstRun;
   const Heading = guided ? 'h2' : 'h1';
-  const summary = page
-    ? [
-        `${page.total.toLocaleString('en-US')} open issue${page.total === 1 ? '' : 's'} match your languages and topics`,
-        page.computedAt ? `picked ${relativeLabel(page.computedAt, now)}` : null,
-      ]
-        .filter(Boolean)
-        .join(' · ')
-    : 'Open issues that match your languages and topics, in repos that merge outside work.';
 
   return (
     <>
@@ -219,7 +168,11 @@ export function IssuesScreen({
       {agentFirstRun ? <AgentNextSteps view={view} heading="h1" /> : null}
       <ReviewsReady attempts={reviews} />
       <div className="flex flex-wrap items-start gap-6">
-        <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
+        <LiveIssues
+          page={page ?? null}
+          filter={filterOf(query)}
+          className="flex min-w-0 flex-[999_1_640px] flex-col gap-4"
+        >
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-1.5">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -228,14 +181,21 @@ export function IssuesScreen({
                 </Heading>
                 {set ? <ModeSwitcher set={set} languages={view.contributor?.preferences?.languages ?? []} /> : null}
               </div>
-              <span className="text-sm text-muted-foreground" data-total={page?.total ?? ''}>
-                {summary}
-              </span>
+              {page ? (
+                <LiveIssuesTotal
+                  total={page.total}
+                  rest={page.computedAt ? ` · picked ${relativeLabel(page.computedAt, now)}` : ''}
+                />
+              ) : (
+                <span className="text-sm text-muted-foreground" data-total="">
+                  Open issues that match your languages and topics, in repos that merge outside work.
+                </span>
+              )}
             </div>
             <IssuesFilters query={query} />
           </div>
           {feed}
-        </div>
+        </LiveIssues>
         <aside className="flex min-w-0 flex-[1_1_280px] flex-col gap-3.5">
           <section className="flex flex-col gap-2.5 rounded-xl border bg-card p-4.5">
             <h2 className={HEADING.card}>This cycle</h2>

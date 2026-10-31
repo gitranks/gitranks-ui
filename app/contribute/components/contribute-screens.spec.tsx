@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
@@ -26,6 +26,8 @@ const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-
 const { ContributeNotices } = await import('./contribute-notices');
 const { ConnectResult } = await import('./connect-result');
 const { IssueCard } = await import('./issue-card');
+const { LiveAnnouncer, LiveIssueList, LiveRowItem } = await import('./live-issues');
+const { LIVE_EXIT_AFTER_MS, LIVE_LEAVE_MS, createLiveFeed } = await import('@/lib/contribute/live-issues');
 const { NOW, mcpToken, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
 
@@ -516,7 +518,7 @@ describe('issues for you', () => {
     const plain = text(html);
 
     expect(plain).toContain('42 open issues match your languages and topics · picked 3 hours ago');
-    expect(html.match(/<li><article data-issue=/g)).toHaveLength(2);
+    expect(html.match(/<li data-live-row="I_\d"[^>]*><div[^>]*><article data-issue=/g)).toHaveLength(2);
     expect(plain).toContain('fern-lang/fern · #2481');
     expect(plain).toContain('Size small');
     expect(html.match(/data-size="[SML]"/g)).toHaveLength(1);
@@ -585,6 +587,196 @@ describe('issues for you', () => {
     expect(
       text(renderToStaticMarkup(<IssueCard issue={{ ...ISSUE, title: null, labels: [], kind: null }} />)),
     ).toContain('Issue #2481');
+  });
+});
+
+describe('issues taken while the page is open', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const card = (status: 'AVAILABLE' | 'TAKEN' | 'CLAIMED_BY_YOU', attemptId: string | null = null) =>
+    renderToStaticMarkup(<IssueCard issue={ISSUE} live={{ status, attemptId }} />);
+  const feedOf = (reducedMotion = false) =>
+    createLiveFeed({
+      items: [ISSUE, { ...ISSUE, issueId: 'I_2', number: 2482 }],
+      total: 42,
+      next: null,
+      limit: 20,
+      readStatus: async () => ({ ok: true, data: [] }),
+      reducedMotion: () => reducedMotion,
+    });
+  const list = (feed: ReturnType<typeof feedOf>) =>
+    renderToStaticMarkup(<LiveIssueList rows={feed.getSnapshot().rows} feed={feed} />);
+  /** The classes of each row itself, where its fade and fold would be. */
+  const rowClassesOf = (html: string) =>
+    [...html.matchAll(/<li data-live-row="[^"]+"[^>]*class="([^"]*)"/g)].map(([, c]) => c);
+
+  it('leave a free card as it was, with Skip and the link on, and no status line', () => {
+    const html = card('AVAILABLE');
+
+    expect(html).not.toContain('data-live-status');
+    expect(html).not.toContain('data-gone');
+    expect(html).toContain('href="https://github.com/fern-lang/fern/issues/2481"');
+    expect(html).not.toContain(' disabled=""');
+    expect(html).not.toContain('aria-disabled');
+  });
+
+  it('say a taken issue is taken, dimmed, with Skip and the link off and no error', () => {
+    const html = card('TAKEN');
+
+    // A place for the focus, not a live region of its own: the list announces it once.
+    expect(html).toMatch(/<p tabindex="-1" data-live-status="taken"[^>]*>Taken by another contributor<\/p>/);
+    expect(html).not.toContain('role="status"');
+    expect(html).toContain('data-gone="true"');
+    expect(html).toContain('opacity-60');
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Skip/);
+    expect(html).not.toContain('href="https://github.com/fern-lang/fern/issues/2481"');
+    expect(html).toMatch(/<a target="_blank" rel="noopener noreferrer" class="[^"]*opacity-60">Formatter drops/);
+    expect(html).not.toContain('role="alert"');
+  });
+
+  it("say the user's own agent is on it, with the way to its attempt, and nothing to click on the issue", () => {
+    const html = card('CLAIMED_BY_YOU', 'A_9');
+
+    expect(text(html)).toContain('Your agent is on this · View');
+    expect(html).toContain('data-live-status="yours"');
+    expect(html).toMatch(/<a [^>]*href="\/contribute\/attempts\/A_9"[^>]*>View<\/a>/);
+    expect(html).toMatch(/<button[^>]*disabled=""/);
+    expect(html).not.toContain('href="https://github.com/fern-lang/fern/issues/2481"');
+    expect(text(card('CLAIMED_BY_YOU'))).toContain('Your agent is on this');
+    expect(card('CLAIMED_BY_YOU')).not.toContain('View');
+  });
+
+  it('show a taken row at once, fold it away after the moment, then leave it out of the list', async () => {
+    vi.useFakeTimers();
+    const feed = feedOf();
+
+    feed.apply([{ issueId: 'I_1', status: 'TAKEN', attemptId: null }]);
+    const shown = list(feed);
+    expect(text(shown)).toContain('Taken by another contributor');
+    expect(shown).toMatch(/<button[^>]*disabled=""[^>]*>Skip<span class="sr-only"> fern-lang\/fern #2481/);
+    expect(shown).not.toContain('data-leaving');
+
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+    const leaving = list(feed);
+    expect(leaving).toMatch(/<li data-live-row="I_1" data-leaving="true" class="[^"]*grid-rows-\[0fr\][^"]*opacity-0/);
+    expect(leaving).toContain('transition-[grid-template-rows,opacity]');
+
+    await vi.advanceTimersByTimeAsync(LIVE_LEAVE_MS);
+    const after = list(feed);
+    expect(after).not.toContain('data-live-row="I_1"');
+    expect(after).toContain('data-live-row="I_2"');
+    expect(feed.getSnapshot().total).toBe(41);
+  });
+
+  it('leave at once, with no fade or fold, under reduced motion', async () => {
+    vi.useFakeTimers();
+    const feed = feedOf(true);
+    const renders: string[] = [];
+    feed.subscribe(() => renders.push(list(feed)));
+
+    feed.apply([{ issueId: 'I_1', status: 'TAKEN', attemptId: null }]);
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+
+    expect(list(feed)).not.toContain('data-live-row="I_1"');
+    expect(renders.length).toBeGreaterThan(1);
+    for (const html of renders) {
+      for (const classes of rowClassesOf(html)) expect(classes).toBe('grid grid-rows-[1fr]');
+      expect(html).not.toContain('data-leaving');
+    }
+  });
+
+  it('turn a row taken from a Skip refused as taken', async () => {
+    vi.useFakeTimers();
+    const feed = feedOf();
+
+    feed.markTaken('I_2');
+    const html = list(feed);
+    expect(html.match(/Taken by another contributor/g)).toHaveLength(1);
+    expect(html).not.toContain('role="alert"');
+  });
+
+  it('fill a page left short with the next issue, and count the one that left out', async () => {
+    vi.useFakeTimers();
+    const readMore = vi.fn(async () => ({
+      ok: true as const,
+      data: { items: [{ ...ISSUE, issueId: 'I_3', number: 2483 }], next: 'c3', total: 41, computedAt: null },
+    }));
+    const feed = createLiveFeed({
+      items: [ISSUE, { ...ISSUE, issueId: 'I_2', number: 2482 }],
+      total: 42,
+      next: 'c2',
+      limit: 2,
+      readStatus: async () => ({ ok: true, data: [] }),
+      readMore,
+      reducedMotion: () => true,
+    });
+
+    feed.apply([{ issueId: 'I_1', status: 'TAKEN', attemptId: null }]);
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+
+    expect(readMore).toHaveBeenCalledWith('c2', 1);
+    const html = list(feed);
+    expect(html.match(/data-live-row="(I_\d)"/g)).toEqual(['data-live-row="I_2"', 'data-live-row="I_3"']);
+    expect(feed.getSnapshot()).toMatchObject({ total: 41, next: 'c3' });
+  });
+
+  it('fold a row with the classes that animate it only while it leaves', () => {
+    const row = { issue: ISSUE, status: 'TAKEN' as const, attemptId: null };
+    const still = renderToStaticMarkup(<LiveRowItem row={{ ...row, leaving: false }}>x</LiveRowItem>);
+    const leaving = renderToStaticMarkup(<LiveRowItem row={{ ...row, leaving: true }}>x</LiveRowItem>);
+
+    expect(still).not.toContain('transition');
+    expect(leaving).toContain('motion-reduce:transition-none');
+    expect(leaving).toContain('duration-300');
+  });
+
+  it("announce each issue taken, or that the user's agent is on it, once, in the list's own live region", () => {
+    const rows = [
+      { issue: ISSUE, status: 'TAKEN' as const, attemptId: null, leaving: false },
+      {
+        issue: { ...ISSUE, issueId: 'I_2', number: 7 },
+        status: 'CLAIMED_BY_YOU' as const,
+        attemptId: 'A_1',
+        leaving: false,
+      },
+      { issue: { ...ISSUE, issueId: 'I_3', number: 8 }, status: 'AVAILABLE' as const, attemptId: null, leaving: false },
+    ];
+    const html = renderToStaticMarkup(<LiveAnnouncer rows={rows} />);
+
+    expect(html).toMatch(/^<p role="status" class="sr-only">/);
+    expect(text(html).trim()).toBe(
+      'fern-lang/fern #2481: taken by another contributor. fern-lang/fern #7: your agent is on this.',
+    );
+    expect(renderToStaticMarkup(<LiveAnnouncer rows={[rows[2]]} />)).toBe('<p role="status" class="sr-only"></p>');
+  });
+
+  it('keep the same column, live region first, whether the page has issues, none, or is not available', () => {
+    const column = (page: Parameters<typeof IssuesScreen>[0]['page']) =>
+      renderToStaticMarkup(<IssuesScreen view={views.active} page={page} query={{}} now={NOW} />).match(
+        /<div tabindex="-1" class="outline-none flex min-w-0 flex-\[999_1_640px\] flex-col gap-4"><p role="status" class="sr-only"><\/p>/g,
+      );
+
+    expect(column({ items: [ISSUE], next: null, total: 1, computedAt: null })).toHaveLength(1);
+    expect(column({ items: [], next: null, total: 0, computedAt: '2026-10-28T07:00:00.000Z' })).toHaveLength(1);
+    expect(column(undefined)).toHaveLength(1);
+  });
+
+  it('count the page from its total, and mark every row as live', () => {
+    const html = renderToStaticMarkup(
+      <IssuesScreen
+        view={views.active}
+        page={{ items: [ISSUE], next: null, total: 7, computedAt: null }}
+        query={{}}
+        now={NOW}
+      />,
+    );
+
+    expect(html).toContain('data-total="7"');
+    expect(text(html)).toContain('7 open issues match your languages and topics');
+    expect(html).toContain('data-live-row="I_1"');
+    expect(html).toMatch(/<div tabindex="-1" class="outline-none flex/);
   });
 });
 

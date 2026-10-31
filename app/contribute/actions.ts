@@ -11,6 +11,8 @@ import {
   ConnectClaudeKeyWithLimitsDocument,
   ContributeActivityDocument,
   ContributeFeedComputedDocument,
+  ContributeIssueStatusDocument,
+  ContributeIssuesDocument,
   ContributeOnboardingDocument,
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
@@ -47,6 +49,9 @@ import type {
   ContributeDeleteDataResult,
   ContributeFeedbackContext,
   ContributeFeedbackTopic,
+  ContributeIssuePage,
+  ContributeIssueStatus,
+  ContributeIssuesFilter,
   ContributeMcpTokenCreated,
   ContributePreferences,
   ContributePreferencesInput,
@@ -67,6 +72,8 @@ import {
   contributeErrorOf,
   contributeSetErrorOf,
 } from '@/lib/contribute/errors';
+import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
+import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
 import { contributeModesShown } from '@/lib/contribute/modes-gate';
 import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
@@ -185,6 +192,54 @@ export async function resumeContributing(): Promise<ContributeActionResult<boole
 
 export async function skipIssue(issueId: string): Promise<ContributeActionResult<boolean>> {
   return run(SkipIssueDocument, { issueId: String(issueId) }, (data) => data.skipIssue);
+}
+
+/**
+ * The shown issues as they are now, in the order given: at most the first 50 ids are asked. Null when the API hides
+ * it from the user; none for no ids, without a call.
+ */
+export async function readIssueStatuses(
+  issueIds: string[],
+): Promise<ContributeActionResult<ContributeIssueStatus[] | null>> {
+  const ids = (Array.isArray(issueIds) ? issueIds : [])
+    .filter((id) => typeof id === 'string' && id)
+    .slice(0, ISSUE_STATUS_IDS_MAX);
+  if (!ids.length) return { ok: true, data: [] };
+  return run(ContributeIssueStatusDocument, { issueIds: ids }, (data) => data.contributeIssueStatus);
+}
+
+export type IssuesPageInput = { filter?: ContributeIssuesFilter; after: string; first: number };
+
+/** The feed's filters, their known values alone. */
+function issuesFilterOf(filter: ContributeIssuesFilter | undefined): ContributeIssuesFilter {
+  if (!filter || typeof filter !== 'object') return {};
+  const known = <T extends string>(values: unknown, allowed: Record<T, unknown>) =>
+    (Array.isArray(values) ? values : []).filter(
+      (value): value is T => typeof value === 'string' && Object.hasOwn(allowed, value),
+    );
+  const languages = known(filter.languages, LANGUAGES);
+  const kinds = known(filter.kinds, KINDS);
+  const maxSize = known([filter.maxSize], SIZES)[0];
+  return {
+    ...(languages.length ? { languages } : {}),
+    ...(kinds.length ? { kinds } : {}),
+    ...(maxSize ? { maxSize } : {}),
+  };
+}
+
+/** More of the feed after a cursor, under the same filters: what fills a page whose issues were taken meanwhile. */
+export async function readIssuesPage(
+  input: IssuesPageInput,
+): Promise<ContributeActionResult<ContributeIssuePage | null>> {
+  const after = typeof input?.after === 'string' ? input.after : '';
+  if (!after || after.length > 512) return invalid('No more issues to read.');
+  const first = Math.min(Math.max(Math.trunc(Number(input.first)) || 1, 1), ISSUES_PAGE_SIZE);
+  const filter = issuesFilterOf(input.filter);
+  return run(
+    ContributeIssuesDocument,
+    { first, after, ...(Object.keys(filter).length ? { filter } : {}) },
+    (data) => data.contributeIssues,
+  );
 }
 
 export type ApproveAttemptInput = { id: string; title: string; body: string; dco: boolean };

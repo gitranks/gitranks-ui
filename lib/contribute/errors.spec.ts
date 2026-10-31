@@ -43,6 +43,17 @@ describe('contributeErrorOf', () => {
     ).toEqual({ error: 'INVALID', message: 'attemptCapUsd must be at most 100' });
   });
 
+  it('reads an issue that is no longer free as taken, whatever else comes with it', () => {
+    expect(
+      contributeErrorOf(
+        thrown([
+          { message: 'The issue is no longer available', extensions: { code: 'ISSUE_TAKEN' } },
+          { message: 'conflict', extensions: { code: 'CONFLICT' } },
+        ]),
+      ),
+    ).toEqual({ error: 'ISSUE_TAKEN' });
+  });
+
   it('reads anything else as a failure', () => {
     expect(contributeErrorOf(new Error('GraphQL error! 502: Bad Gateway'))).toEqual({ error: 'FAILED' });
     expect(contributeErrorOf(thrown([{ message: 'down', extensions: { code: 'SERVICE_UNAVAILABLE' } }]))).toEqual({
@@ -51,7 +62,7 @@ describe('contributeErrorOf', () => {
   });
 
   it('has a message for every code', () => {
-    for (const code of ['SIGNED_OUT', 'NOT_FOUND', 'NOT_AVAILABLE_YET', 'INVALID', 'FAILED'] as const) {
+    for (const code of ['SIGNED_OUT', 'NOT_FOUND', 'NOT_AVAILABLE_YET', 'INVALID', 'ISSUE_TAKEN', 'FAILED'] as const) {
       expect(contributeErrorMessage(code)).toMatch(/\w/);
     }
     expect(contributeErrorMessage('INVALID', 'Too big')).toBe('Too big');
@@ -79,6 +90,17 @@ describe('maintainerErrorOf', () => {
     ['NOT_FOUND', 'FAILED'],
   ])('reads %s as %s', (code, error) => {
     expect(maintainerErrorOf(thrown([{ message: 'gho_secret', extensions: { code } }]))).toBe(error);
+  });
+
+  it('reads an issue that is no longer free as taken, whatever else comes with it', () => {
+    expect(
+      contributeErrorOf(
+        thrown([
+          { message: 'The issue is no longer available', extensions: { code: 'ISSUE_TAKEN' } },
+          { message: 'conflict', extensions: { code: 'CONFLICT' } },
+        ]),
+      ),
+    ).toEqual({ error: 'ISSUE_TAKEN' });
   });
 
   it('reads anything else as a failure', () => {

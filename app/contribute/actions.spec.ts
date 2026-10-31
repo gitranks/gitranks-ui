@@ -27,6 +27,7 @@ const {
   StartFollowUpDocument,
   StartFollowUpOnDocument,
   FixContributePullRequestDocument,
+  MarkNeedsYouHandledDocument,
   VetoAutopilotDocument,
 } = await import('@/lib/contribute/contribute.documents');
 
@@ -55,6 +56,7 @@ const CALLS: Record<string, unknown[]> = {
   setResolveHumanThreads: [true],
   vetoAutopilot: ['A_1'],
   fixPullRequest: [{ attemptId: 'A_1', kind: 'TITLE', title: 'fix: x', githubLogin: 'mallory' }],
+  markNeedsYouHandled: ['PR_1'],
   approveReply: ['D_1'],
   createMcpToken: ['laptop'],
   revokeMcpToken: ['T_1'],
@@ -140,6 +142,31 @@ describe('the Contribute server actions', () => {
 
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
     expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'client', githubLogin: loginOf(name) });
+  });
+
+  it("sends the session's email with a write, so Notify me's email has an address; never a malformed one", async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat', email: ' octo@example.com ' }, expires: '2099-01-01' });
+    await actions.noteProviderInterest('CHATGPT');
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({
+      source: 'client',
+      githubLogin: 'octocat',
+      accountEmail: 'octo@example.com',
+    });
+
+    graphqlDirect.mockClear();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat', email: 'not an address' }, expires: '2099-01-01' });
+    await actions.noteProviderInterest('CHATGPT');
+    expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
+  });
+
+  it('sends the email with a set write too, and never with a read or a poll', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'maslianok', email: 'm@example.com' }, expires: '2099-01-01' });
+    await actions.setContributeMode('STACK');
+    expect(graphqlDirect.mock.calls[0][2]).toMatchObject({ accountEmail: 'm@example.com' });
+
+    graphqlDirect.mockClear();
+    await actions.readFeedComputedAt();
+    expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
   });
 
   it.each(SET_ACTIONS)('%s refuses, and calls nothing, for a login the modes are not shown to', async (name) => {
@@ -328,6 +355,7 @@ describe('the follow-up actions', () => {
   it.each([
     ['startFollowUp', StartFollowUpDocument, 'PR_1', { prId: 'PR_1' }, 'startFollowUp'],
     ['vetoAutopilot', VetoAutopilotDocument, 'A_1', { attemptId: 'A_1' }, 'vetoAutopilot'],
+    ['markNeedsYouHandled', MarkNeedsYouHandledDocument, 'PR_1', { prId: 'PR_1' }, 'markNeedsYouHandled'],
     ['approveReply', ApproveReplyDocument, 'D_1', { draftId: 'D_1' }, 'approveReply'],
   ] as const)(
     '%s sends its one id, as the signed-in user, and answers what the API did',

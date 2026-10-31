@@ -131,9 +131,10 @@ const sections: LegalSection[] = [
             <B>Your account and settings</B>: your GitHub username and account id, your email address if your sign-in
             shared it, your Contribute settings and preferences (such as languages, topics, the kinds and size of
             issues, and the repositories you choose or ignore), the providers you asked to hear about, and the feedback
-            you send us (we also receive it as a message). To suggest issues, we also use what we know and work out from
-            your public work, such as topics, languages and seniority (see{' '}
-            <A href="#developers">Developers on GitRanks</A>).
+            you send us (we also receive it as a message). We use your email address only for the emails you ask for,
+            such as the one telling you that a provider you asked to hear about is open, and each one lets you
+            unsubscribe. To suggest issues, we also use what we know and work out from your public work, such as topics,
+            languages and seniority (see <A href="#developers">Developers on GitRanks</A>).
           </li>
           <li>
             <B>Your AI provider key</B>: if you connect one, we store it encrypted and show only its last four
@@ -236,8 +237,9 @@ const sections: LegalSection[] = [
       <List>
         <li>The public, for profiles, rankings, badges and posts, as described above.</li>
         <li>
-          Service providers that process data for us. These currently include Cloudflare (network, security, email),
-          Hetzner (hosting), Google (analytics), Telegram (notifications to us) and our AI providers.
+          Service providers that process data for us. These currently include Cloudflare (network, security, email
+          routing), Hetzner (hosting), Google (analytics, and sending our emails), Telegram (notifications to us) and
+          our AI providers.
         </li>
         <li>GitHub, when we read public data and check stars, and when Contribute acts for you.</li>
         <li>

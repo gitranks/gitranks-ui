@@ -3,7 +3,7 @@
 import { agentConnectedOf } from '@/lib/contribute/agent-connect';
 import { anyActive, runsOf } from '@/lib/contribute/agent-runs';
 import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
-import { viewerLogin } from '@/lib/contribute/contribute.data';
+import { viewerEmail, viewerLogin } from '@/lib/contribute/contribute.data';
 import {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
@@ -25,6 +25,7 @@ import {
   DiscardAttemptDocument,
   FixContributePullRequestDocument,
   IgnoreContributeRepoDocument,
+  MarkNeedsYouHandledDocument,
   NoteProviderInterestDocument,
   PauseContributingDocument,
   RemoveFromContributeSetDocument,
@@ -95,6 +96,15 @@ import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type DocumentNode from '@/types/typed-document-node';
 
+/** A write (a mutation) carries the session's email, so the emails the user asks for have an address; a read never. */
+const isWrite = (document: DocumentNode<unknown, never>) =>
+  (document as unknown as { definitions: { kind: string; operation?: string }[] }).definitions.some(
+    (definition) => definition.kind === 'OperationDefinition' && definition.operation === 'mutation',
+  );
+
+const accountEmailFor = async (document: DocumentNode<unknown, never>) =>
+  isWrite(document) ? await viewerEmail() : undefined;
+
 /** Every action runs as the session's user, never one named in its arguments. */
 async function run<TData, TVariables extends Record<string, unknown>, T>(
   document: DocumentNode<TData, TVariables>,
@@ -104,7 +114,8 @@ async function run<TData, TVariables extends Record<string, unknown>, T>(
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   try {
-    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin });
+    const accountEmail = await accountEmailFor(document as DocumentNode<unknown, never>);
+    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
     return { ok: true, data: pick(data) };
   } catch (error) {
     return { ok: false, ...contributeErrorOf(error) };
@@ -420,6 +431,11 @@ export async function fixPullRequest(input: {
   );
 }
 
+/** Clears what the pull request's last reads found: the user took care of it. Something new raises it again. */
+export async function markNeedsYouHandled(prId: string): Promise<ContributeActionResult<ContributeAttempt>> {
+  return run(MarkNeedsYouHandledDocument, { prId: String(prId) }, (data) => data.markNeedsYouHandled);
+}
+
 /** Approves a drafted reply: it is posted publicly on GitHub, in the user's name. */
 export async function approveReply(draftId: string): Promise<ContributeActionResult<ContributeReplyDraft>> {
   return run(ApproveReplyDocument, { draftId: String(draftId) }, (data) => data.approveReply);
@@ -507,7 +523,8 @@ async function runSet<TData, TVariables extends Record<string, unknown>, T>(
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   if (!contributeModesShown(githubLogin)) return { ok: false, error: 'NOT_FOUND' };
   try {
-    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin });
+    const accountEmail = await accountEmailFor(document as DocumentNode<unknown, never>);
+    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
     return { ok: true, data: pick(data) };
   } catch (error) {
     return { ok: false, ...contributeSetErrorOf(error) };

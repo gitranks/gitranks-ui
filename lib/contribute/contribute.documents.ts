@@ -129,6 +129,9 @@ export const ContributeContributionsOwnAgentDocument = doc<
   contributeContributions(first: $first) { items { attemptId runner agent { name model } openedBy } }
 }`);
 
+/** Contribute is launched (`CONTRIBUTE_PREVIEW=true` on the API): open to everyone, signed-out visitors included. */
+export const ContributeOpenDocument = doc<{ contributeOpen: boolean }>('query ContributeOpen { contributeOpen }');
+
 export const ContributePreviewDocument = doc<{ contribute: { previewAllowed: boolean } | null }>(
   'query ContributePreview { contribute { previewAllowed } }',
 );
@@ -480,6 +483,10 @@ export const ContributeReplyDraftsDocument = doc<
 
 export const StartFollowUpDocument = doc<{ startFollowUp: ContributeAttempt }, { prId: string }>(
   `mutation StartFollowUp($prId: ID!) { startFollowUp(prId: $prId) { ${ATTEMPT} } }`,
+);
+
+export const MarkNeedsYouHandledDocument = doc<{ markNeedsYouHandled: ContributeAttempt }, { prId: string }>(
+  `mutation MarkNeedsYouHandled($prId: ID!) { markNeedsYouHandled(prId: $prId) { ${ATTEMPT} } }`,
 );
 
 export const VetoAutopilotDocument = doc<{ vetoAutopilot: ContributeAttempt }, { attemptId: string }>(

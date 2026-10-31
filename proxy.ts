@@ -3,8 +3,8 @@ import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
-import { isContributePath, isMaintainersPath } from './lib/contribute/contribute-path';
-import { requestMaySeeContribute } from './lib/contribute/preview-gate';
+import { isContributePath, isLandingPath, isMaintainersPath } from './lib/contribute/contribute-path';
+import { contributeOpen, requestMaySeeContribute } from './lib/contribute/preview-gate';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
@@ -65,9 +65,15 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   }
 
   // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared
-  // cache (it would be served to someone who is let in). The page for maintainers is open to everyone.
+  // cache (it would be served to someone who is let in). The page for maintainers is open to everyone, and once
+  // Contribute is launched so is the landing, to visitors without a session too.
   const { pathname } = request.nextUrl;
-  if (isContributePath(pathname) && !isMaintainersPath(pathname) && !(await requestMaySeeContribute(request))) {
+  if (
+    isContributePath(pathname) &&
+    !isMaintainersPath(pathname) &&
+    !(isLandingPath(pathname) && (await contributeOpen())) &&
+    !(await requestMaySeeContribute(request))
+  ) {
     const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
     response.headers.set('Cache-Control', 'private, no-store');
     return response;

@@ -5,8 +5,11 @@ const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'a
 
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
-const { maySeeContribute } = vi.hoisted(() => ({ maySeeContribute: vi.fn(async () => false) }));
-vi.mock('./lib/contribute/preview-gate', () => ({ requestMaySeeContribute: maySeeContribute }));
+const { maySeeContribute, open } = vi.hoisted(() => ({
+  maySeeContribute: vi.fn(async () => false),
+  open: vi.fn(async () => false),
+}));
+vi.mock('./lib/contribute/preview-gate', () => ({ requestMaySeeContribute: maySeeContribute, contributeOpen: open }));
 
 const { default: proxy, config, ENTITY_PAGE_CACHE_CONTROL, v2BuilderRedirect } = await import('./proxy');
 
@@ -19,6 +22,8 @@ describe('proxy', () => {
     withSession.mockClear();
     maySeeContribute.mockReset();
     maySeeContribute.mockResolvedValue(false);
+    open.mockReset();
+    open.mockResolvedValue(false);
   });
 
   describe('Contribute', () => {
@@ -34,6 +39,28 @@ describe('proxy', () => {
         expect(withSession).not.toHaveBeenCalled();
       },
     );
+
+    it('once launched, lets everyone see the landing, a visitor without a session as any signed-out page', async () => {
+      open.mockResolvedValue(true);
+      for (const path of ['/contribute', '/contribute/', '/contribute?as=visitor']) {
+        const signedOut = await proxy(request(undefined, path), event);
+        expect(signedOut?.headers.get('x-middleware-rewrite'), path).toBeNull();
+        expect(signedOut?.headers.get('cache-control'), path).toBeNull();
+      }
+      const signedIn = await proxy(request('authjs.session-token=t', '/contribute'), event);
+      expect(signedIn?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(signedIn?.headers.get('cache-control')).toBe('private, no-cache');
+      expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+
+    it('once launched, keeps every other Contribute page for signed-in users the API lets in', async () => {
+      open.mockResolvedValue(true);
+      for (const path of ['/contribute/connect', '/contribute/issues', '/contribute/settings', '/contribute%2Fme']) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+      }
+      expect(open).not.toHaveBeenCalled();
+    });
 
     it('lets in a signed-in user the API lets in, as any signed-in page', async () => {
       maySeeContribute.mockResolvedValue(true);

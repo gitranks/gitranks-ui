@@ -4,8 +4,10 @@ const { graphqlDirect, sessionTokenOf } = vi.hoisted(() => ({ graphqlDirect: vi.
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('./session-token', () => ({ sessionTokenOf }));
 
-const { contributePreviewAllowed, requestMaySeeContribute } = await import('./preview-gate');
-const { isContributePath, isMaintainersPath } = await import('./contribute-path');
+const { contributeOpen, contributePreviewAllowed, requestMaySeeContribute, resetContributeOpen } = await import(
+  './preview-gate'
+);
+const { isContributePath, isLandingPath, isMaintainersPath } = await import('./contribute-path');
 
 const req = { headers: new Headers({ cookie: 'authjs.session-token=t' }) };
 
@@ -13,6 +15,32 @@ describe('the Contribute preview gate', () => {
   beforeEach(() => {
     graphqlDirect.mockReset();
     sessionTokenOf.mockReset();
+    resetContributeOpen();
+  });
+
+  it('takes the landing alone as the landing, in the spellings the router reads as it', () => {
+    for (const path of ['/contribute', '/contribute/', '/%63ontribute', '//CONTRIBUTE']) {
+      expect(isLandingPath(path), path).toBe(true);
+    }
+    for (const path of ['/contribute/issues', '/contribute%2Fsettings', '/contribute/maintainers', '/contribute%']) {
+      expect(isLandingPath(path), path).toBe(false);
+    }
+  });
+
+  it('is open once the API says it is launched, asked once a minute, and closed on any failure', async () => {
+    graphqlDirect.mockResolvedValue({ contributeOpen: true });
+    expect(await contributeOpen(0)).toBe(true);
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr' });
+    expect(await contributeOpen(59_999)).toBe(true);
+    expect(graphqlDirect).toHaveBeenCalledOnce();
+
+    graphqlDirect.mockResolvedValue({ contributeOpen: false });
+    expect(await contributeOpen(60_000)).toBe(false);
+    resetContributeOpen();
+    graphqlDirect.mockRejectedValue(new Error('Cannot query field "contributeOpen"'));
+    expect(await contributeOpen(0)).toBe(false);
+    expect(await contributeOpen(1)).toBe(false);
+    expect(graphqlDirect).toHaveBeenCalledTimes(3);
   });
 
   it('covers /contribute and everything under it, nothing else', () => {

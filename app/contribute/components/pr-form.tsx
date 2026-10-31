@@ -64,14 +64,14 @@ const nonceOf = () =>
 
 type Confirm = 'approve' | 'discard' | null;
 
+/** Up to the top of the page, where the submission's progress shows once it starts. */
+const scrollToProgress = () => window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+
 /**
  * The pull request as it will open: an editable title and body, the footer line, DCO, then Submit or Discard. On the
  * first one, before GitHub access is connected, Submit asks for it: the approval waits in the tab, GitHub asks, and
  * back here with the access (and the nonce the tab kept) it is sent at once.
  */
-/** Up to the top of the page, where the submission's progress shows once it starts. */
-const scrollToProgress = () => window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
-
 export function PrForm({
   attemptId,
   issueNumber,

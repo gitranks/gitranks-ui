@@ -128,7 +128,6 @@ const QUESTIONS = [
   },
 ];
 
-const EYEBROW = 'text-xs font-semibold uppercase tracking-wider text-primary';
 const H2 = 'text-2xl font-bold tracking-tight text-balance md:text-3xl';
 const WIDTH = 'mx-auto w-full max-w-7xl px-4';
 const MUTED_SECTION = 'border-y bg-muted/40';
@@ -226,7 +225,6 @@ export function Landing({
 
       <section className={cn(WIDTH, 'flex flex-wrap items-center gap-9 pt-8 pb-11 sm:gap-14 sm:pt-14 sm:pb-16')}>
         <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
-          <span className={EYEBROW}>Contribute</span>
           <h1 className="text-4xl font-bold tracking-tight text-balance md:text-5xl">
             Fix real open-source issues with the AI you already pay for
           </h1>

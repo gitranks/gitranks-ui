@@ -43,8 +43,11 @@ export type PrFormProps = {
   login: string;
   /** The user's DCO setting; null while it is not known. */
   dcoMode: ContributeDcoMode | null;
-  /** The repo's notes mention a sign-off. */
-  dcoAsked: boolean;
+  /**
+   * The repo requires a DCO sign-off: the form asks for it (or says the standing consent gives it). False: nothing is
+   * shown and nothing is signed off. `undefined` while the API does not say: the form asks, in case the repo does.
+   */
+  dcoRequired: boolean | undefined;
   /** A submission step that went wrong, so this approval is a second one. */
   again: boolean;
   /**
@@ -84,7 +87,7 @@ export function PrForm({
   defaultBody,
   login,
   dcoMode,
-  dcoAsked,
+  dcoRequired,
   again,
   grantNeeded = false,
   grantConnected = false,
@@ -104,6 +107,8 @@ export function PrForm({
   const busy = pending || handoff !== null;
 
   const standing = dcoMode === 'STANDING';
+  const asksDco = dcoRequired !== false;
+  const signOff = asksDco && (standing || dco);
   const titleMissing = !title.trim();
 
   const act = (which: Exclude<Confirm, null>) =>
@@ -111,7 +116,7 @@ export function PrForm({
       setError(null);
       const result =
         which === 'approve'
-          ? await approveAttempt({ id: attemptId, title, body, dco: standing || dco })
+          ? await approveAttempt({ id: attemptId, title, body, dco: signOff })
           : await discardAttempt(attemptId);
       if (!result.ok) {
         setError(attemptActionErrorMessage(result.error, result.message));
@@ -129,7 +134,7 @@ export function PrForm({
   const allowAndOpen = () => {
     setError(null);
     const nonce = nonceOf();
-    if (!savePendingApproval(tabStoreOf(window), { attemptId, title, body, dco: standing || dco, nonce })) {
+    if (!savePendingApproval(tabStoreOf(window), { attemptId, title, body, dco: signOff, nonce })) {
       setError('This browser keeps nothing for the way back. Allow GitHub access in Settings, then submit here.');
       return;
     }
@@ -224,28 +229,45 @@ export function PrForm({
           The footer line is added to every pull request, linking gitranks.com.
         </span>
       </div>
-      {standing ? (
+      {!asksDco ? null : standing ? (
         <p data-dco="standing" className="text-xs text-muted-foreground">
-          The commits are signed off (DCO) under your standing consent.{' '}
+          {dcoRequired
+            ? 'This repo requires a DCO sign-off: the commits are signed off under your standing consent.'
+            : 'The commits are signed off (DCO) under your standing consent.'}{' '}
           <Link href={settingsPathOf('prs')} prefetch={false} className="text-link">
             Change it in Settings
           </Link>
           .
         </p>
       ) : (
-        <label data-dco={dcoAsked ? 'asked' : 'ask'} className="flex cursor-pointer items-start gap-2.5 text-sm">
-          <input
-            type="checkbox"
-            name="dco"
-            checked={dco}
-            onChange={(event) => setDco(event.target.checked)}
-            className="mt-0.5 accent-primary"
-          />
-          <span>
-            {dcoAsked ? 'This repo asks for a DCO sign-off. ' : 'Sign off the commits (DCO), if the repo asks for it. '}
-            I certify the Developer Certificate of Origin for this change.
+        <div className="flex flex-col gap-1.5">
+          <label
+            data-dco={dcoRequired ? 'required' : 'ask'}
+            className="flex cursor-pointer items-start gap-2.5 text-sm"
+          >
+            <input
+              type="checkbox"
+              name="dco"
+              checked={dco}
+              onChange={(event) => setDco(event.target.checked)}
+              className="mt-0.5 accent-primary"
+            />
+            <span>
+              {dcoRequired
+                ? 'This repo requires a DCO sign-off. '
+                : 'Sign off the commits (DCO), if the repo asks for it. '}
+              I certify the Developer Certificate of Origin for this change.
+            </span>
+          </label>
+          <span data-dco-explained className="pl-6 text-xs text-muted-foreground">
+            DCO is your statement that you wrote this change or have the right to submit it under the project&apos;s
+            license; signing off adds a <code className="font-mono">Signed-off-by</code> line with your name to each
+            commit.{' '}
+            <a href="https://developercertificate.org/" target="_blank" rel="noreferrer" className="text-link">
+              developercertificate.org
+            </a>
           </span>
-        </label>
+        </div>
       )}
       <span className="text-xs text-muted-foreground">
         Opens on {repo} from your fork, in your name, co-authored by gitranks.

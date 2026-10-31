@@ -143,21 +143,39 @@ describe('the review screen', () => {
     expect(html).toMatch(/<pre[^>]*>Fixes #871\n\nJust a change.<\/pre>/);
   });
 
-  it('asks for the DCO sign-off, says when the repo asks for it, and not under a standing consent', () => {
-    expect(review(attempts.review)).toContain('data-dco="ask"');
-    expect(review(attempts.review)).toContain('type="checkbox"');
+  it('asks for the DCO sign-off only where the repo requires it, says what DCO is, and not under a standing consent', () => {
+    const required = detail({ dcoRequired: true });
+    const html = review(required);
+    expect(html).toContain('data-dco="required"');
+    expect(html).toContain('type="checkbox"');
+    expect(text(html)).toContain('This repo requires a DCO sign-off.');
+    expect(html).toContain('data-dco-explained');
+    expect(html).toContain('href="https://developercertificate.org/"');
 
-    const asked = detail({ readiness: { ...attempts.review.readiness!, notes: 'Commits need Signed-off-by (DCO).' } });
-    expect(review(asked)).toContain('data-dco="asked"');
-    expect(text(review(asked))).toContain('This repo asks for a DCO sign-off.');
+    // A repo that requires none: nothing about DCO, whatever its notes say.
+    const none = review(
+      detail({
+        dcoRequired: false,
+        readiness: { ...attempts.review.readiness!, notes: 'Commits need Signed-off-by.' },
+      }),
+    );
+    expect(none).not.toContain('data-dco');
+    expect(none).not.toContain('type="checkbox"');
+
+    // An API that does not say yet: the old ask, in case the repo does.
+    expect(review(attempts.review)).toContain('data-dco="ask"');
 
     const standing = {
       ...views.active,
       contributor: { ...views.active.contributor, settings: { ...settings, dco: 'STANDING' as const } },
     };
-    const html = review(attempts.review, standing);
-    expect(html).toContain('data-dco="standing"');
-    expect(html).not.toContain('type="checkbox"');
+    const consented = review(required, standing);
+    expect(consented).toContain('data-dco="standing"');
+    expect(text(consented)).toContain(
+      'This repo requires a DCO sign-off: the commits are signed off under your standing',
+    );
+    expect(consented).not.toContain('type="checkbox"');
+    expect(review(detail({ dcoRequired: false }), standing)).not.toContain('data-dco');
   });
 
   it('asks to approve again after a submission bounced back, with its note and the edited text', () => {

@@ -4,6 +4,7 @@ import { cache } from 'react';
 
 import {
   ContributeActivityDocument,
+  ContributeAttemptDcoDocument,
   ContributeAttemptDocument,
   ContributeAttemptFollowUpFlowDocument,
   ContributeAttemptFollowUpsDocument,
@@ -438,6 +439,8 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   const flow = Promise.resolve(graphqlDirect(ContributeAttemptFollowUpFlowDocument, { id }, options)).catch(
     () => undefined,
   );
+  // Whether the repo requires a DCO sign-off; left out when not answered.
+  const dco = Promise.resolve(graphqlDirect(ContributeAttemptDcoDocument, { id }, options)).catch(() => undefined);
   try {
     const { contributeAttempt: read } = await review;
     if (!read) return read;
@@ -456,10 +459,13 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
       withFollowUps,
       flowRead?.attemptId === contributeAttempt.attemptId ? flowRead : undefined,
     );
+    const dcoRead = (await dco)?.contributeAttempt;
+    const withDco =
+      dcoRead?.attemptId === contributeAttempt.attemptId ? { ...withFlow, dcoRequired: dcoRead.dcoRequired } : withFlow;
     const agent = (await ownAgent)?.contributeAttempt;
-    if (agent?.attemptId !== contributeAttempt.attemptId) return withFlow;
+    if (agent?.attemptId !== contributeAttempt.attemptId) return withDco;
     const { result, ...fields } = agent;
-    const merged = withFields(withFlow, fields);
+    const merged = withFields(withDco, fields);
     return merged.result && result ? { ...merged, result: { ...merged.result, prTitle: result.prTitle } } : merged;
   } catch (failure) {
     const { error } = contributeErrorOf(failure);

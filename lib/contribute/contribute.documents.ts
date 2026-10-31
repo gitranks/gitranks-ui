@@ -319,6 +319,14 @@ export const ContributeAttemptSubmitClockDocument = doc<
   contributeAttempt(id: $id) { attemptId submit { ${SUBMIT} ${SUBMIT_CLOCK} } }
 }`);
 
+/** Whether the repo requires a DCO sign-off: read on its own, so an API without it leaves the review as it was. */
+export const ContributeAttemptDcoDocument = doc<
+  { contributeAttempt: { attemptId: string; dcoRequired: boolean } | null },
+  { id: string }
+>(`query ContributeAttemptDco($id: ID!) {
+  contributeAttempt(id: $id) { attemptId dcoRequired }
+}`);
+
 /** What the stepper reads again while the attempt submits: its state, the submission with its clock, the PR. */
 export const ContributeAttemptLiveDocument = doc<{ contributeAttempt: ContributeAttemptLive | null }, { id: string }>(
   `query ContributeAttemptLive($id: ID!) {

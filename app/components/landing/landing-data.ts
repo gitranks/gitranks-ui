@@ -1,6 +1,7 @@
 import { cacheLife } from 'next/cache';
 
 import { fetchInsightsServer } from '@/graphql/helpers/fetch-insights-server';
+import { ContributeOpenDocument } from '@/lib/contribute/contribute.documents';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import {
   BadgeTiersDocument,
@@ -88,6 +89,23 @@ export const fetchFeaturedOrg = async () => {
   } catch {
     cacheLife('minutes');
     return null;
+  }
+};
+
+/**
+ * Whether GitRanks Contribute is open to everyone. Until it is, the landing shows its section only to signed-in users
+ * it is open to, and a failed read counts as closed for a few minutes.
+ */
+export const fetchContributeOpen = async () => {
+  'use cache';
+  cacheLife({ stale: 60, revalidate: 300, expire: 3_600 });
+
+  try {
+    const { contributeOpen } = (await graphqlDirect(ContributeOpenDocument)) ?? {};
+    return contributeOpen === true;
+  } catch {
+    cacheLife('minutes');
+    return false;
   }
 };
 

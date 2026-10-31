@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 
+import { ContributeSection } from './components/landing/contribute-section';
 import type { ExampleRank } from './components/landing/hero-aside';
 import {
+  fetchContributeOpen,
   fetchFeaturedOrg,
   fetchGlobalTiers,
   fetchLandingInsights,
@@ -48,19 +50,31 @@ const EXAMPLE_COUNT = 3;
 // visitor's own rank card is fetched in the browser, from a route cached per user, and their own
 // badges, from the public badge data the builder reads.
 export default async function Home() {
-  const [insights, leaderboards, tiers, orgs, featured, countries, languages, countryList, repos, showcase] =
-    await Promise.all([
-      fetchLandingInsights(),
-      fetchLeaderboards(),
-      fetchGlobalTiers(),
-      fetchTopOrgs(),
-      fetchFeaturedOrg(),
-      fetchCountrySummaries(),
-      fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, offset: 0, limit: 8 }),
-      fetchCountries(),
-      fetchTopRepos(),
-      fetchReadmeShowcase(),
-    ]);
+  const [
+    insights,
+    leaderboards,
+    tiers,
+    orgs,
+    featured,
+    countries,
+    languages,
+    countryList,
+    repos,
+    showcase,
+    contributeOpen,
+  ] = await Promise.all([
+    fetchLandingInsights(),
+    fetchLeaderboards(),
+    fetchGlobalTiers(),
+    fetchTopOrgs(),
+    fetchFeaturedOrg(),
+    fetchCountrySummaries(),
+    fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, offset: 0, limit: 8 }),
+    fetchCountries(),
+    fetchTopRepos(),
+    fetchReadmeShowcase(),
+    fetchContributeOpen(),
+  ]);
 
   const flags = new Map(countryList.map((country) => [country.name, country.flag]));
 
@@ -128,6 +142,7 @@ export default async function Home() {
       <main>
         <Hero developersRanked={developersRanked} examples={examples} stats={stats} />
         <Container>
+          <ContributeSection open={contributeOpen} />
           <LeaderboardSection boards={boards} />
           <InsightsSection insights={insights} />
           <OrganizationsSection orgs={orgs} flags={flags} featured={featured} />

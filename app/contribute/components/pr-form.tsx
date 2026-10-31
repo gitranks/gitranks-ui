@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { useEffect, useId, useState, useTransition } from 'react';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { approveAttempt, discardAttempt } from '../actions';
 import { HEADING } from './primitives';
@@ -67,6 +67,10 @@ type Confirm = 'approve' | 'discard' | null;
 /** Up to the top of the page, where the submission's progress shows once it starts. */
 const scrollToProgress = () => window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
 
+/** The focus on the attempt's status box, which shows the progress, without scrolling to it a second time. */
+const focusProgress = () =>
+  document.querySelector<HTMLElement>('[data-attempt-status]')?.focus({ preventScroll: true });
+
 /**
  * The pull request as it will open: an editable title and body, the footer line, DCO, then Submit or Discard. On the
  * first one, before GitHub access is connected, Submit asks for it: the approval waits in the tab, GitHub asks, and
@@ -95,6 +99,8 @@ export function PrForm({
   /** On the way to GitHub, or back from it with the pull request opening. */
   const [handoff, setHandoff] = useState<'github' | 'opening' | null>(null);
   const [pending, startTransition] = useTransition();
+  /** The approval went through: the closing dialog hands the focus to the progress, not back to Submit. */
+  const approved = useRef(false);
   const busy = pending || handoff !== null;
 
   const standing = dcoMode === 'STANDING';
@@ -111,8 +117,11 @@ export function PrForm({
         setError(attemptActionErrorMessage(result.error, result.message));
         return;
       }
+      if (which === 'approve') {
+        approved.current = true;
+        scrollToProgress();
+      }
       setConfirm(null);
-      if (which === 'approve') scrollToProgress();
       router.refresh();
     });
 
@@ -155,7 +164,10 @@ export function PrForm({
       if (failure) {
         setHandoff(null);
         setError(failure);
-      } else scrollToProgress();
+      } else {
+        scrollToProgress();
+        focusProgress();
+      }
       router.replace(clean as never, { scroll: false });
       router.refresh();
     });
@@ -290,7 +302,13 @@ export function PrForm({
       </Button>
 
       <Dialog open={confirm !== null} onOpenChange={(open) => !pending && !open && setConfirm(null)}>
-        <DialogContent>
+        <DialogContent
+          onCloseAutoFocus={(event) => {
+            if (!approved.current) return;
+            event.preventDefault();
+            focusProgress();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>
               {confirm === 'discard'

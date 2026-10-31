@@ -7,6 +7,7 @@ import { useEffect, useId, useState, useTransition } from 'react';
 
 import { approveAttempt, discardAttempt } from '../actions';
 import { HEADING } from './primitives';
+import { reducedMotion } from './submit-stepper';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -68,6 +69,9 @@ type Confirm = 'approve' | 'discard' | null;
  * first one, before GitHub access is connected, Submit asks for it: the approval waits in the tab, GitHub asks, and
  * back here with the access (and the nonce the tab kept) it is sent at once.
  */
+/** Up to the top of the page, where the submission's progress shows once it starts. */
+const scrollToProgress = () => window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+
 export function PrForm({
   attemptId,
   issueNumber,
@@ -108,6 +112,7 @@ export function PrForm({
         return;
       }
       setConfirm(null);
+      if (which === 'approve') scrollToProgress();
       router.refresh();
     });
 
@@ -150,7 +155,7 @@ export function PrForm({
       if (failure) {
         setHandoff(null);
         setError(failure);
-      }
+      } else scrollToProgress();
       router.replace(clean as never, { scroll: false });
       router.refresh();
     });

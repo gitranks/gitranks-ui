@@ -135,6 +135,11 @@ export const ContributePreviewDocument = doc<{ contribute: { previewAllowed: boo
   'query ContributePreview { contribute { previewAllowed } }',
 );
 
+/** Whether Contribute is open to everyone, signed out included: public, the same for every visitor. */
+export const ContributeOpenDocument = doc<{ contributeOpen: boolean | null }>(
+  'query ContributeOpen { contributeOpen }',
+);
+
 export const ContributeOverviewDocument = doc<{
   contribute: { previewAllowed: boolean; contributor: Contributor | null } | null;
 }>(`query ContributeOverview {

@@ -10,6 +10,8 @@ import {
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
   ContributeActivityDocument,
+  ContributeAttemptLiveBareDocument,
+  ContributeAttemptLiveDocument,
   ContributeFeedComputedDocument,
   ContributeIssueStatusDocument,
   ContributeIssuesDocument,
@@ -42,6 +44,7 @@ import {
 import type {
   ContributeActivity,
   ContributeAttempt,
+  ContributeAttemptLive,
   ContributeClaudePlan,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
@@ -264,6 +267,28 @@ export async function approveAttempt(input: ApproveAttemptInput): Promise<Contri
     { id: String(input.id), title, body, dco: input.dco === true },
     (data) => data.approveAttempt,
   );
+}
+
+/**
+ * The submission's stepper reads the attempt again while it submits: its state, the submission with its steps' clock
+ * and the pull request, plus when they were read (to set the elapsed times against our clock). An API that does not
+ * answer the clock yet is read without it, and `clock: false` tells the stepper to ask without it from then on.
+ */
+export async function readAttemptLive(
+  id: string,
+  withClock = true,
+): Promise<ContributeActionResult<{ attempt: ContributeAttemptLive | null; readAt: string; clock: boolean }>> {
+  const variables = { id: String(id) };
+  const bare = () => run(ContributeAttemptLiveBareDocument, variables, (data) => data.contributeAttempt);
+  let clock = withClock !== false;
+  let result = clock
+    ? await run(ContributeAttemptLiveDocument, variables, (data) => data.contributeAttempt)
+    : await bare();
+  if (!result.ok && clock && result.error === 'NOT_AVAILABLE_YET') {
+    clock = false;
+    result = await bare();
+  }
+  return result.ok ? { ok: true, data: { attempt: result.data, readAt: new Date().toISOString(), clock } } : result;
 }
 
 /** Discards an attempt in review (or queued): its issue goes back to the pool. */

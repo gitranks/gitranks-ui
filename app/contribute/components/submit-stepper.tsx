@@ -33,7 +33,7 @@ const SETTLE_MS = 900;
 /** Failed reads in a row tried again before the stepper leaves it to the page's own reads. */
 const READ_TRIES = 5;
 
-const reducedMotion = () =>
+export const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
 type Delays = Partial<Record<ContributeSubmitStep, number>>;

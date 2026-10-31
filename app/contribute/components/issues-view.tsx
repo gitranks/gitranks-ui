@@ -8,11 +8,23 @@ import { FirstRunGuide } from './first-run-guide';
 import { IssueCard } from './issue-card';
 import { filterOf, type IssuesQuery, issuesHref, issuesQueryOf } from './issues-filter';
 import { IssuesFilters } from './issues-filters';
+import { ModeSwitcher, OtherIssuesDivider, SetIssuesHeading, SetOnlyEmpty } from './issues-mode';
 import { Meter } from './primitives';
 import { ReviewsReady } from './reviews-ready';
 import { StillRanking } from './still-ranking';
-import { loadAttempts, loadContribute, loadIssues } from '@/lib/contribute/contribute.data';
-import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
+import {
+  loadAttempts,
+  loadContribute,
+  loadContributeSet,
+  loadIssues,
+  loadIssueTiers,
+} from '@/lib/contribute/contribute.data';
+import type {
+  ContributeAttempt,
+  ContributeIssuePage,
+  ContributeSet,
+  ContributeView,
+} from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf, isContributePageOpen, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
 import {
   agentFirstRunStepOf,
@@ -22,6 +34,7 @@ import {
   isFirstRun,
 } from '@/lib/contribute/first-run';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
+import { tiersOf } from '@/lib/contribute/set-format';
 
 export async function IssuesView({
   searchParams,
@@ -29,19 +42,28 @@ export async function IssuesView({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = issuesQueryOf(await searchParams);
-  const [view, page, reviews, latest] = await Promise.all([
+  const [view, loaded, reviews, latest, set] = await Promise.all([
     loadContribute(),
     loadIssues(filterOf(query), query.after),
     loadAttempts('REVIEW', 5),
     loadAttempts(undefined, 1),
+    loadContributeSet(),
   ]);
   if (!view) notFound();
   if (!isContributePageOpen(view, 'issues')) redirect('/contribute');
   const firstRun = isFirstRun(view, latest);
+  // Each issue's tier, read only where the page splits the feed by it: a mode with a list of its own.
+  const tiers =
+    set && set.mode !== 'ALL' && loaded?.items.length ? await loadIssueTiers(filterOf(query), query.after) : undefined;
+  const page =
+    loaded && tiers
+      ? { ...loaded, items: loaded.items.map((issue) => ({ ...issue, tier: tiers.get(issue.issueId) })) }
+      : loaded;
   return (
     <IssuesScreen
       view={view}
       page={page}
+      set={set}
       query={query}
       reviews={reviews}
       firstRun={firstRun}
@@ -51,6 +73,9 @@ export async function IssuesView({
 }
 
 const filtered = (query: IssuesQuery) => !!(query.language || query.kind || query.size);
+
+/** The user's mode works on its own list alone, and waits when it has nothing ready. */
+const setOnly = (set: ContributeSet) => (set.mode === 'STACK' ? set.stack.fallback : set.repos.fallback) === 'SET_ONLY';
 
 function Empty({ title, text }: { title: string; text: React.ReactNode }) {
   return (
@@ -73,6 +98,7 @@ export function IssuesScreen({
   reviews,
   firstRun = false,
   agentFirstRun = false,
+  set,
 }: {
   view: ContributeView;
   page: ContributeIssuePage | null | undefined;
@@ -84,6 +110,8 @@ export function IssuesScreen({
   firstRun?: boolean;
   /** The user's own agent has made no attempt yet: the page opens with its next steps. */
   agentFirstRun?: boolean;
+  /** What the user works on; null or `undefined` when the modes are not shown, and then nothing about them is. */
+  set?: ContributeSet | null;
 }) {
   const spend = view.contributor?.spend;
   const settings = view.contributor?.settings;
@@ -94,6 +122,13 @@ export function IssuesScreen({
   } else if (page && !page.computedAt && !page.items.length && !filtered(query)) {
     // The first picks are computed after the key is connected: the page reads itself again until they are in.
     feed = <StillRanking />;
+  } else if (!page?.items.length && set && set.mode !== 'ALL' && setOnly(set) && !filtered(query) && !query.after) {
+    feed = (
+      <SetOnlyEmpty
+        set={set as ContributeSet & { mode: 'STACK' | 'REPOS' }}
+        languages={view.contributor?.preferences?.languages ?? []}
+      />
+    );
   } else if (!page?.items.length) {
     feed = filtered(query) ? (
       <Empty
@@ -119,11 +154,25 @@ export function IssuesScreen({
       />
     );
   } else {
+    const split = set ? tiersOf(page.items, set.mode) : null;
     feed = (
       <>
-        {page.items.map((issue, index) => (
-          <IssueCard key={issue.issueId} issue={issue} best={index === 0 && !query.after} />
-        ))}
+        {split && set ? (
+          <>
+            {split.set.length ? <SetIssuesHeading set={set} /> : null}
+            {split.set.map((issue, index) => (
+              <IssueCard key={issue.issueId} issue={issue} best={index === 0 && !query.after} />
+            ))}
+            {split.other.length ? <OtherIssuesDivider set={set} none={!split.set.length && !query.after} /> : null}
+            {split.other.map((issue) => (
+              <IssueCard key={issue.issueId} issue={issue} other />
+            ))}
+          </>
+        ) : (
+          page.items.map((issue, index) => (
+            <IssueCard key={issue.issueId} issue={issue} best={index === 0 && !query.after} />
+          ))
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           {query.after ? (
             <Link href={issuesHref({ ...query, after: undefined }) as Route} prefetch={false} className="text-link">
@@ -165,10 +214,13 @@ export function IssuesScreen({
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <Heading className={guided ? 'text-xl font-bold' : 'text-2xl font-bold tracking-tight'}>
-                {guided ? 'Picked for you' : 'Issues for you'}
-              </Heading>
+            <div className="flex min-w-0 flex-col gap-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <Heading className={guided ? 'text-xl font-bold' : 'text-2xl font-bold tracking-tight'}>
+                  {guided ? 'Picked for you' : 'Issues for you'}
+                </Heading>
+                {set ? <ModeSwitcher set={set} /> : null}
+              </div>
               <span className="text-sm text-muted-foreground" data-total={page?.total ?? ''}>
                 {page
                   ? `${page.total.toLocaleString('en-US')} open issue${page.total === 1 ? '' : 's'} match your languages and topics. Maintainers agreed each one should be fixed.`

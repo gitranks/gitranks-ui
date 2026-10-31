@@ -28,9 +28,12 @@ const toggle = <T,>(list: T[], value: T) =>
 export function PreferencesFields({
   value,
   onChange,
+  languagesNote,
 }: {
   value: PreferencesDraft;
   onChange: (next: PreferencesDraft) => void;
+  /** Said after the languages' hint. */
+  languagesNote?: string;
 }) {
   const id = useId();
 
@@ -60,7 +63,9 @@ export function PreferencesFields({
             );
           })}
         </div>
-        <span className="text-xs text-muted-foreground">None picked: every language the pool has.</span>
+        <span className="text-xs text-muted-foreground">
+          None picked: every language the pool has.{languagesNote ? ` ${languagesNote}` : ''}
+        </span>
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">

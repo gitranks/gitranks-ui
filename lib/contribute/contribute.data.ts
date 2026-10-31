@@ -22,6 +22,7 @@ import {
   ContributeImpactDocument,
   ContributeImpactReposDocument,
   ContributeIssuesDocument,
+  ContributeIssueTiersDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
@@ -31,6 +32,7 @@ import {
   ContributeRepliesWaitingDocument,
   ContributeReplyDraftsDocument,
   ContributeScheduleCountsDocument,
+  ContributeSetDocument,
 } from './contribute.documents';
 import type {
   ContributeAttempt,
@@ -47,10 +49,12 @@ import type {
   ContributeOwnAgent,
   ContributePaths,
   ContributeReplyDraft,
+  ContributeSet,
   ContributeView,
 } from './contribute.types';
 import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
+import { contributeModesShown } from './modes-gate';
 import {
   IN_FLIGHT_READ,
   IN_FLIGHT_STATES,
@@ -225,6 +229,51 @@ export async function loadIssues(
       { source: 'ssr', githubLogin },
     );
     return contributeIssues;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * What the signed-in user works on: the mode, the lists and the ignored repos. Null when the modes are not shown to
+ * them (nothing is asked then) or the API hides them; `undefined` when the API does not answer. Read once per request.
+ */
+export const loadContributeSet = cache(async (): Promise<ContributeSet | null | undefined> => {
+  const githubLogin = await viewerLogin();
+  if (!contributeModesShown(githubLogin)) return null;
+
+  try {
+    const { contributeSet } = await graphqlDirect(ContributeSetDocument, undefined, {
+      source: 'ssr',
+      githubLogin: githubLogin as string,
+    });
+    return contributeSet;
+  } catch {
+    return undefined;
+  }
+});
+
+/**
+ * Each issue's tier on one page of the feed, by issue id; `undefined` when the API does not answer tiers (yet), so the
+ * page shows one list as before.
+ */
+export async function loadIssueTiers(
+  filter: ContributeIssuesFilter,
+  after?: string,
+): Promise<Map<string, number> | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+
+  try {
+    const { contributeIssues } = await graphqlDirect(
+      ContributeIssueTiersDocument,
+      { first: 20, ...(after ? { after } : {}), ...(Object.keys(filter).length ? { filter } : {}) },
+      { source: 'ssr', githubLogin },
+    );
+    const items = contributeIssues?.items ?? [];
+    return new Map(
+      items.filter(({ tier }) => typeof tier === 'number').map(({ issueId, tier }) => [issueId, tier as number]),
+    );
   } catch {
     return undefined;
   }

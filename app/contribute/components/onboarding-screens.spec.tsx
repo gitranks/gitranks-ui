@@ -6,6 +6,8 @@ const data = vi.hoisted(() => ({
   loadContribute: vi.fn(),
   viewerLogin: vi.fn(),
   loadIssues: vi.fn(),
+  loadContributeSet: vi.fn(async () => null),
+  loadIssueTiers: vi.fn(),
   loadAttempt: vi.fn(),
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),

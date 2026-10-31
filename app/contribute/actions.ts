@@ -4,6 +4,7 @@ import { agentConnectedOf } from '@/lib/contribute/agent-connect';
 import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import {
+  AddToContributeSetDocument,
   ApproveAttemptDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
@@ -14,17 +15,24 @@ import {
   CreateMcpTokenDocument,
   DeleteContributeDataDocument,
   DiscardAttemptDocument,
+  IgnoreContributeRepoDocument,
   NoteProviderInterestDocument,
   PauseContributingDocument,
+  RemoveFromContributeSetDocument,
   RemoveLlmKeyDocument,
+  ResolveContributeStackDocument,
   ResumeContributingDocument,
   RevokeGithubGrantDocument,
   RevokeMcpTokenDocument,
   SendBackToAgentDocument,
+  SendContributeFeedbackDocument,
+  SetContributeFallbackDocument,
+  SetContributeModeDocument,
   SetContributeSettingsDocument,
   SetPreferencesDocument,
   SkipIssueDocument,
   StartFollowUpDocument,
+  UnignoreContributeRepoDocument,
   VetoAutopilotDocument,
   WithdrawProviderInterestDocument,
 } from '@/lib/contribute/contribute.documents';
@@ -35,15 +43,31 @@ import type {
   ContributeConnectKeyResult,
   ContributeConnectLimits,
   ContributeDeleteDataResult,
+  ContributeFeedbackContext,
+  ContributeFeedbackTopic,
   ContributeMcpTokenCreated,
   ContributePreferences,
   ContributePreferencesInput,
   ContributeReplyDraft,
+  ContributeSet,
+  ContributeSetAddResult,
+  ContributeSetFallback,
+  ContributeSetList,
+  ContributeSetListMode,
+  ContributeSetMode,
+  ContributeSetReason,
   ContributeSettings,
   ContributeSettingsInput,
 } from '@/lib/contribute/contribute.types';
-import { type ContributeActionResult, contributeErrorOf } from '@/lib/contribute/errors';
+import {
+  type ContributeActionResult,
+  type ContributeSetActionResult,
+  contributeErrorOf,
+  contributeSetErrorOf,
+} from '@/lib/contribute/errors';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
+import { contributeModesShown } from '@/lib/contribute/modes-gate';
+import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type DocumentNode from '@/types/typed-document-node';
 
@@ -275,4 +299,140 @@ export async function sendBackToAgent(
     };
   }
   return run(SendBackToAgentDocument, { attemptId: String(attemptId), note: trimmed }, (data) => data.sendBackToAgent);
+}
+
+/** What the user works on: shown, and so written, only for the logins the modes are open to. */
+async function runSet<TData, TVariables extends Record<string, unknown>, T>(
+  document: DocumentNode<TData, TVariables>,
+  variables: TVariables | undefined,
+  pick: (data: TData) => T,
+): Promise<ContributeSetActionResult<T>> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
+  if (!contributeModesShown(githubLogin)) return { ok: false, error: 'NOT_FOUND' };
+  try {
+    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin });
+    return { ok: true, data: pick(data) };
+  } catch (error) {
+    return { ok: false, ...contributeSetErrorOf(error) };
+  }
+}
+
+const MODES: ContributeSetMode[] = ['ALL', 'STACK', 'REPOS'];
+const LIST_MODES: ContributeSetListMode[] = ['STACK', 'REPOS'];
+const LISTS: ContributeSetList[] = ['SOURCES', 'REPOS'];
+const FALLBACKS: ContributeSetFallback[] = ['SET_ONLY', 'THEN_ALL'];
+const TOPICS: ContributeFeedbackTopic[] = ['GATES', 'MODES', 'OTHER'];
+const REASONS: ContributeSetReason[] = [
+  'PRIVATE',
+  'DELETED',
+  'FORK',
+  'ARCHIVED',
+  'ISSUES_DISABLED',
+  'PUSHED',
+  'LICENSE',
+  'LANGUAGE',
+  'OUTSIDE_MERGES',
+  'OPTED_OUT',
+  'AI_BAN',
+  'CONTRIBUTE_OFF',
+  'NO_MANIFEST',
+];
+
+const oneOf = <T extends string>(values: readonly T[], value: unknown): value is T =>
+  typeof value === 'string' && (values as readonly string[]).includes(value);
+
+const invalid = (message: string) => ({ ok: false as const, error: 'INVALID' as const, message });
+
+/** Switches where the user's issues come from; each mode keeps its own list. */
+export async function setContributeMode(mode: ContributeSetMode): Promise<ContributeSetActionResult<ContributeSet>> {
+  if (!oneOf(MODES, mode)) return invalid('Pick one of the three modes.');
+  return runSet(SetContributeModeDocument, { mode }, (data) => data.setContributeMode);
+}
+
+/** What a mode with a list does when the list has nothing ready. */
+export async function setContributeFallback(
+  mode: ContributeSetListMode,
+  fallback: ContributeSetFallback,
+): Promise<ContributeSetActionResult<ContributeSet>> {
+  if (!oneOf(LIST_MODES, mode) || !oneOf(FALLBACKS, fallback)) return invalid('Pick one of the two choices.');
+  return runSet(SetContributeFallbackDocument, { mode, fallback }, (data) => data.setContributeFallback);
+}
+
+/** Adds "@me", a user or org (its repos that pass the rules), or one repo to a list. */
+export async function addToContributeSet(
+  list: ContributeSetList,
+  input: string,
+): Promise<ContributeSetActionResult<ContributeSetAddResult>> {
+  const trimmed = String(input ?? '').trim();
+  if (!oneOf(LISTS, list)) return invalid('Pick a list to add to.');
+  if (!trimmed) return invalid('Enter a repo (owner/name), a GitHub link, a user or an org.');
+  if (trimmed.length > ADD_INPUT_MAX) return invalid(`Keep it to ${ADD_INPUT_MAX} characters at most.`);
+  return runSet(AddToContributeSetDocument, { list, input: trimmed }, (data) => data.addToContributeSet);
+}
+
+/** Takes repos off a list, freeing their places. */
+export async function removeFromContributeSet(
+  list: ContributeSetList,
+  repositoryIds: string[],
+): Promise<ContributeSetActionResult<ContributeSet>> {
+  const ids = (Array.isArray(repositoryIds) ? repositoryIds : []).map(String).filter(Boolean);
+  if (!oneOf(LISTS, list) || !ids.length) return invalid('Pick a repo to remove.');
+  return runSet(RemoveFromContributeSetDocument, { list, repositoryIds: ids }, (data) => data.removeFromContributeSet);
+}
+
+/** Takes a repo off every list and onto the ignored repos: nothing brings it back. */
+export async function ignoreContributeRepo(repositoryId: string): Promise<ContributeSetActionResult<ContributeSet>> {
+  return runSet(
+    IgnoreContributeRepoDocument,
+    { repositoryId: String(repositoryId) },
+    (data) => data.ignoreContributeRepo,
+  );
+}
+
+/** Takes a repo off the ignored repos. */
+export async function unignoreContributeRepo(repositoryId: string): Promise<ContributeSetActionResult<ContributeSet>> {
+  return runSet(
+    UnignoreContributeRepoDocument,
+    { repositoryId: String(repositoryId) },
+    (data) => data.unignoreContributeRepo,
+  );
+}
+
+/** Works out the libraries of the user's stack again. */
+export async function resolveContributeStack(): Promise<ContributeSetActionResult<ContributeSet>> {
+  return runSet(ResolveContributeStackDocument, undefined, (data) => data.resolveContributeStack);
+}
+
+/** The context sent with a feedback message, its known fields alone. */
+function feedbackContextOf(context: ContributeFeedbackContext | undefined): ContributeFeedbackContext | undefined {
+  if (!context || typeof context !== 'object') return undefined;
+  const repo = typeof context.repo === 'string' ? context.repo.trim().slice(0, ADD_INPUT_MAX) : '';
+  const reasons = Array.isArray(context.reasons) ? context.reasons.filter((reason) => oneOf(REASONS, reason)) : [];
+  const sent: ContributeFeedbackContext = {
+    ...(oneOf(MODES, context.mode) ? { mode: context.mode } : {}),
+    ...(repo ? { repo } : {}),
+    ...(reasons.length ? { reasons } : {}),
+  };
+  return Object.keys(sent).length ? sent : undefined;
+}
+
+/** Sends the user's message about the rules, the modes or anything else, with where they wrote it. */
+export async function sendContributeFeedback(
+  topic: ContributeFeedbackTopic,
+  text: string,
+  context?: ContributeFeedbackContext,
+): Promise<ContributeSetActionResult<boolean>> {
+  const trimmed = String(text ?? '').trim();
+  if (!oneOf(TOPICS, topic)) return invalid('Pick what your message is about.');
+  if (!trimmed) return invalid('Write a few words first.');
+  if (trimmed.length > FEEDBACK_MAX) {
+    return invalid(`Keep it to ${FEEDBACK_MAX.toLocaleString('en-US')} characters at most.`);
+  }
+  const sent = feedbackContextOf(context);
+  return runSet(
+    SendContributeFeedbackDocument,
+    { topic, text: trimmed, ...(sent ? { context: sent } : {}) },
+    (data) => data.sendContributeFeedback,
+  );
 }

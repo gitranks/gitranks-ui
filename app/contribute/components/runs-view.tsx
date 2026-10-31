@@ -33,14 +33,16 @@ export async function RunsView({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = runsQueryOf(await searchParams);
+  const now = new Date();
+  const filter = runsFilterOf(query, now);
   const [view, page, activity] = await Promise.all([
     loadContribute(),
-    loadRuns(runsFilterOf(query)),
+    loadRuns(filter),
     loadContributeActivity().catch(() => null),
   ]);
   if (!view) notFound();
   if (!isContributePageOpen(view, 'runs')) redirect('/contribute');
-  return <RunsScreen view={view} page={page} query={query} activity={activity} />;
+  return <RunsScreen view={view} page={page} query={query} activity={activity} from={filter.from} now={now} />;
 }
 
 function Tile({
@@ -113,12 +115,16 @@ function Totals({ totals }: { totals: ContributeRunsTotals }) {
   );
 }
 
-/** Why the agents said no-go: a bar by category, each part a link that filters the list to it (again: back). */
+/**
+ * Why the agents said no-go: every no-go under the repo, runner and dates by category, whatever is picked; each part a
+ * link that filters the list to it, and picked, back to every no-go.
+ */
 function NoGoBreakdown({ totals, query }: { totals: ContributeRunsTotals; query: RunsQuery }) {
-  if (!totals.noGo) return null;
   const parts = totals.noGoByCategory;
+  if (!parts.length && !totals.noGo) return null;
+  const sum = parts.reduce((all, { count }) => all + count, 0);
   const hrefOf = (category: (typeof parts)[number]['category']) =>
-    runsHref({ ...query, outcome: undefined, reason: query.reason === category ? undefined : category }) as Route;
+    runsHref({ ...query, outcome: 'NO_GO', reason: query.reason === category ? undefined : category }) as Route;
   return (
     <section
       aria-labelledby="runs-no-go"
@@ -130,9 +136,10 @@ function NoGoBreakdown({ totals, query }: { totals: ContributeRunsTotals; query:
           Why agents said no-go
         </h2>
         <span className="text-xs text-muted-foreground">
-          <span className="lg:hidden">{percentLabel(totals.noGo, totals.started)} of started runs · </span>
-          {totals.noGo} no-go{totals.noGo === 1 ? '' : 's'}
-          {parts.length ? ' · pick one to filter' : ''}
+          {!query.outcome && !query.reason ? (
+            <span className="lg:hidden">{percentLabel(totals.noGo, totals.started)} of started runs · </span>
+          ) : null}
+          {sum ? `${sum} no-go${sum === 1 ? '' : 's'} · pick one to filter` : `${totals.noGo} no-gos`}
         </span>
       </div>
       {parts.length ? (
@@ -142,7 +149,7 @@ function NoGoBreakdown({ totals, query }: { totals: ContributeRunsTotals; query:
               <span
                 key={category}
                 className={cn('h-full', query.reason && query.reason !== category && 'opacity-35')}
-                style={{ flexGrow: count, background: NO_GO_CATEGORIES[category].color }}
+                style={{ flexGrow: count, background: NO_GO_CATEGORIES[category]?.color }}
               />
             ))}
           </div>
@@ -154,14 +161,14 @@ function NoGoBreakdown({ totals, query }: { totals: ContributeRunsTotals; query:
                   prefetch={false}
                   scroll={false}
                   aria-current={query.reason === category ? 'true' : undefined}
-                  className="inline-flex items-center gap-1.5 rounded-sm hover:underline aria-[current]:font-semibold aria-[current]:underline"
+                  className="inline-flex min-h-7 items-center gap-1.5 rounded-sm hover:underline aria-[current]:font-semibold aria-[current]:underline"
                 >
                   <span
                     aria-hidden="true"
                     className="size-2.5 rounded-xs"
-                    style={{ background: NO_GO_CATEGORIES[category].color }}
+                    style={{ background: NO_GO_CATEGORIES[category]?.color }}
                   />
-                  {NO_GO_CATEGORIES[category].label}
+                  {NO_GO_CATEGORIES[category]?.label ?? category}
                   <span className="font-mono text-muted-foreground">{count}</span>
                 </Link>
               </li>
@@ -183,7 +190,7 @@ function OutcomeChips({ page, query }: { page: ContributeRunsPage; query: RunsQu
   return (
     <nav
       aria-label="Outcome"
-      className="-mx-4 min-w-0 flex-1 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0"
+      className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]"
     >
       <ul className="flex gap-1.5 md:flex-wrap">
         {chips.map(({ value, label }) => (
@@ -227,12 +234,15 @@ export function RunsScreen({
   page,
   query,
   activity,
+  from,
   now,
 }: {
   view: ContributeView;
   page: ContributeRunsPage | undefined;
   query: RunsQuery;
   activity?: ContributeActivity | null;
+  /** The first page's range start, for the pages Load more reads. */
+  from?: string;
   now?: Date;
 }) {
   const href = runsHref(query);
@@ -263,7 +273,7 @@ export function RunsScreen({
           <RunsFilters query={query} repos={page.repos} />
         </div>
         {page.items.length ? (
-          <RunsList key={href} page={page} href={href} now={now} />
+          <RunsList key={href} page={page} href={href} from={from} now={now} />
         ) : !isFiltered(query) ? (
           <Empty title="No runs in the last 30 days">
             <Link

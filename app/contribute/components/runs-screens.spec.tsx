@@ -66,13 +66,16 @@ describe('Agent runs', () => {
     expect(page).toContain('Issue #8040');
   });
 
-  it('keeps the filters in the links: the chips, and a category on the bar that a second click clears', () => {
+  it('keeps the filters in the links: the chips, and a category on the bar that a second click takes back to every no-go', () => {
     const html = render({ query: runsQueryOf({ reason: 'needs_design', repo: 'can1357/oh-my-pi' }) });
     expect(html).toContain('href="/contribute/runs?outcome=no_go&amp;repo=can1357%2Foh-my-pi"');
     expect(html).toContain('href="/contribute/runs?repo=can1357%2Foh-my-pi"');
-    // The category picked is current, and its link drops it.
+    // The category picked is current, and its link drops it back to every no-go; the others switch to theirs.
     expect(html).toMatch(
-      /aria-current="true"[^>]*href="\/contribute\/runs\?repo=can1357%2Foh-my-pi"|href="\/contribute\/runs\?repo=can1357%2Foh-my-pi"[^>]*aria-current="true"/,
+      /aria-current="true"[^>]*href="\/contribute\/runs\?outcome=no_go&amp;repo=can1357%2Foh-my-pi"/,
+    );
+    expect(html).toContain(
+      'href="/contribute/runs?outcome=no_go&amp;reason=cannot_reproduce&amp;repo=can1357%2Foh-my-pi"',
     );
   });
 

@@ -109,6 +109,9 @@ export const RUN_OUTCOMES: Record<ContributeRunOutcome, { label: string; tone: T
   DISCARDED: { label: 'Discarded', tone: 'neutral' },
 };
 
+/** An outcome's words and colour; one this page does not know yet reads as Stopped. */
+export const outcomeOf = (outcome: ContributeRunOutcome) => RUN_OUTCOMES[outcome] ?? RUN_OUTCOMES.STOPPED;
+
 /** The outcome chips, in order, after All. */
 export const OUTCOME_FILTERS: { value: ContributeRunOutcomeFilter; label: string }[] = [
   { value: 'PR', label: 'Pull requests' },
@@ -192,6 +195,9 @@ export function runsHref(query: RunsQuery): string {
 export const isFiltered = (query: RunsQuery) =>
   !!(query.outcome || query.reason || query.repo || query.runner || query.range !== DEFAULT_RANGE);
 
+/** A range's start as `runsFilterOf` writes it: midnight UTC. */
+export const RANGE_START = /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/;
+
 /** The API's filter for a query; the range counts back from `now`, to the start of that UTC day. */
 export function runsFilterOf(query: RunsQuery, now = new Date()): ContributeRunsFilter {
   const days = RANGES.find(({ value }) => value === query.range)?.days ?? null;
@@ -215,7 +221,8 @@ export const runTitleOf = (run: Pick<ContributeRun, 'title' | 'number'>) => run.
 /** `Hosted · Sonnet 5.5`, or the user's own agent by the name it gave. */
 export function runnerLabelOf(run: Pick<ContributeRun, 'runner' | 'model' | 'agent'>): string {
   if (run.runner === 'MCP') return run.agent ? (AGENT_NAMES[run.agent.name] ?? 'Your agent') : 'Your agent';
-  return run.model ? `Hosted · ${MODELS[run.model].replace(/^Claude /, '')}` : 'Hosted';
+  const model = run.model ? MODELS[run.model] : undefined;
+  return model ? `Hosted · ${model.replace(/^Claude /, '')}` : 'Hosted';
 }
 
 export const effortLabelOf = (effort: ContributeEffort | null) => (effort ? EFFORTS[effort].toLowerCase() : '');
@@ -271,16 +278,17 @@ const firstSentence = (text: string) => text.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? 
 
 /** The run's line under its outcome: the PR, the no-go's reason, the check that failed, or why it ended. */
 export function runReasonOf(run: ContributeRun): string {
-  const pr = run.pullRequest?.number ?? run.followUpOf?.number;
+  const number = run.pullRequest?.number ?? run.followUpOf?.number;
+  const pr = number ? `PR #${number}` : 'The PR';
   switch (run.outcome) {
     case 'PR_OPEN':
-      return `PR #${pr} · waiting on maintainers`;
+      return `${pr} · waiting on maintainers`;
     case 'MERGED':
-      return `PR #${pr} merged`;
+      return `${pr} merged`;
     case 'CLOSED':
-      return `PR #${pr} closed without merging`;
+      return `${pr} closed without merging`;
     case 'PUSHED':
-      return `Pushed to PR #${pr}`;
+      return number ? `Pushed to PR #${number}` : 'Pushed to the PR';
     case 'REVIEW':
       return 'Waiting for your review';
     case 'RUNNING':

@@ -2,6 +2,7 @@
 
 import { useId } from 'react';
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type {
   ContributeIssueKind,
   ContributeIssueSize,
@@ -12,6 +13,13 @@ import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
 export type PreferencesDraft = Pick<ContributePreferences, 'languages' | 'kinds' | 'maxSize'>;
+
+/** The "Any size" item: Radix takes no empty value, so no largest size is this, and back to `null` on change. */
+export const ANY_SIZE = 'any';
+
+/** The largest size's item label, "Any size" for none. */
+export const sizeLabelOf = (size: ContributeIssueSize | null) =>
+  size ? `Up to ${SIZES[size].toLowerCase()}` : 'Any size';
 
 const toggle = <T,>(list: T[], value: T) =>
   list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
@@ -77,21 +85,24 @@ export function PreferencesFields({
         <label htmlFor={`${id}-size`} className="text-sm font-medium">
           Largest issue size
         </label>
-        <select
-          id={`${id}-size`}
-          value={value.maxSize ?? ''}
-          onChange={(event) =>
-            onChange({ ...value, maxSize: (event.target.value || null) as ContributeIssueSize | null })
+        <Select
+          value={value.maxSize ?? ANY_SIZE}
+          onValueChange={(next) =>
+            onChange({ ...value, maxSize: next === ANY_SIZE ? null : (next as ContributeIssueSize) })
           }
-          className="max-w-56 rounded-lg border border-input bg-background px-3 py-2.5"
         >
-          <option value="">Any size</option>
-          {(Object.keys(SIZES) as ContributeIssueSize[]).map((size) => (
-            <option key={size} value={size}>
-              Up to {SIZES[size].toLowerCase()}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id={`${id}-size`} className="min-h-11 w-full max-w-56 rounded-lg text-base">
+            <SelectValue>{sizeLabelOf(value.maxSize)}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ANY_SIZE}>{sizeLabelOf(null)}</SelectItem>
+            {(Object.keys(SIZES) as ContributeIssueSize[]).map((size) => (
+              <SelectItem key={size} value={size}>
+                {sizeLabelOf(size)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <span className="text-xs text-muted-foreground">
           Size is known only for some issues; ones without a size still show.
         </span>

@@ -7,6 +7,7 @@ import { saveContributeSettings } from '../actions';
 import { Panel, PanelTitle } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type {
   ContributeDcoMode,
   ContributeEffort,
@@ -24,7 +25,16 @@ const DEFAULT_MAX_LINES = 400;
 const DEFAULT_MAX_FILES = 15;
 
 const inputClass = 'h-auto rounded-lg py-2.5 font-mono md:text-base';
-const selectClass = 'w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground';
+const selectClass = 'data-[size=default]:h-auto w-full rounded-lg py-2.5 text-base';
+const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
+
+/** "Writing tests" takes no model of its own as this: Radix takes no empty value, and it is `null` in the draft. */
+export const SAME_AS_MAIN = 'same';
+
+export const helperModelLabelOf = (model: ContributeModel) =>
+  `${MODELS[model]}${model === 'CLAUDE_HAIKU_5_5' ? ' (cheaper)' : ''}`;
+
+export const testModelLabelOf = (model: ContributeModel | null) => (model ? MODELS[model] : 'Same as the main model');
 
 type Draft = Record<
   | 'cycleCapUsd'
@@ -276,18 +286,18 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
             {textInput('sweepDays')}
           </Field>
           <Field label="Credits renew on" htmlFor={field('renewalDay')}>
-            <select
-              id={field('renewalDay')}
-              value={draft.renewalDay}
-              onChange={(event) => set('renewalDay', Number(event.target.value))}
-              className={selectClass}
-            >
-              {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
-                <option key={day} value={day}>
-                  {ordinalDay(day)}
-                </option>
-              ))}
-            </select>
+            <Select value={String(draft.renewalDay)} onValueChange={(next) => set('renewalDay', Number(next))}>
+              <SelectTrigger id={field('renewalDay')} className={selectClass}>
+                <SelectValue>{ordinalDay(draft.renewalDay)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {DAYS.map((day) => (
+                  <SelectItem key={day} value={String(day)}>
+                    {ordinalDay(day)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         </div>
         <SaveRow onSave={() => save('pacing')} pending={pendingSection === 'pacing'} message={messageFor('pacing')} />
@@ -297,62 +307,64 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
         <PanelTitle title="The agent" text="Bigger models fix harder issues and cost more per attempt." />
         <div className="grid gap-3.5 sm:grid-cols-2">
           <Field label="Main model" htmlFor={field('mainModel')}>
-            <select
-              id={field('mainModel')}
-              value={draft.mainModel}
-              onChange={(event) => set('mainModel', event.target.value as ContributeModel)}
-              className={selectClass}
-            >
-              {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
-                <option key={model} value={model}>
-                  {MODELS[model]}
-                </option>
-              ))}
-            </select>
+            <Select value={draft.mainModel} onValueChange={(next) => set('mainModel', next as ContributeModel)}>
+              <SelectTrigger id={field('mainModel')} className={selectClass}>
+                <SelectValue>{MODELS[draft.mainModel]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {MODELS[model]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field label="Running tests and reading logs" htmlFor={field('helperModel')}>
-            <select
-              id={field('helperModel')}
-              value={draft.helperModel}
-              onChange={(event) => set('helperModel', event.target.value as ContributeModel)}
-              className={selectClass}
-            >
-              {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
-                <option key={model} value={model}>
-                  {MODELS[model]}
-                  {model === 'CLAUDE_HAIKU_5_5' ? ' (cheaper)' : ''}
-                </option>
-              ))}
-            </select>
+            <Select value={draft.helperModel} onValueChange={(next) => set('helperModel', next as ContributeModel)}>
+              <SelectTrigger id={field('helperModel')} className={selectClass}>
+                <SelectValue>{helperModelLabelOf(draft.helperModel)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {helperModelLabelOf(model)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field label="Writing tests" htmlFor={field('testModel')}>
-            <select
-              id={field('testModel')}
-              value={draft.testModel ?? ''}
-              onChange={(event) => set('testModel', (event.target.value || null) as ContributeModel | null)}
-              className={selectClass}
+            <Select
+              value={draft.testModel ?? SAME_AS_MAIN}
+              onValueChange={(next) => set('testModel', next === SAME_AS_MAIN ? null : (next as ContributeModel))}
             >
-              <option value="">Same as the main model</option>
-              {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
-                <option key={model} value={model}>
-                  {MODELS[model]}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id={field('testModel')} className={selectClass}>
+                <SelectValue>{testModelLabelOf(draft.testModel)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SAME_AS_MAIN}>{testModelLabelOf(null)}</SelectItem>
+                {(Object.keys(MODELS) as ContributeModel[]).map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {testModelLabelOf(model)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field label="Effort" htmlFor={field('effort')}>
-            <select
-              id={field('effort')}
-              value={draft.effort}
-              onChange={(event) => set('effort', event.target.value as ContributeEffort)}
-              className={selectClass}
-            >
-              {(Object.keys(EFFORTS) as ContributeEffort[]).map((effort) => (
-                <option key={effort} value={effort}>
-                  {EFFORTS[effort]}
-                </option>
-              ))}
-            </select>
+            <Select value={draft.effort} onValueChange={(next) => set('effort', next as ContributeEffort)}>
+              <SelectTrigger id={field('effort')} className={selectClass}>
+                <SelectValue>{EFFORTS[draft.effort]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(EFFORTS) as ContributeEffort[]).map((effort) => (
+                  <SelectItem key={effort} value={effort}>
+                    {EFFORTS[effort]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         </div>
         <SaveRow onSave={() => save('agent')} pending={pendingSection === 'agent'} message={messageFor('agent')} />

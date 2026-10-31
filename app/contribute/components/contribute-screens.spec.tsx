@@ -298,9 +298,9 @@ describe('the settings screen', () => {
     expect(triggers).toEqual([
       'the 14th',
       'Claude Sonnet 5.5',
+      'Medium',
       'Claude Haiku 5.5 (cheaper)',
       'Same as the main model',
-      'Medium',
       'Any size',
     ]);
     expect(helperModelLabelOf('CLAUDE_OPUS_5_5')).toBe('Claude Opus 5.5');
@@ -316,9 +316,71 @@ describe('the settings screen', () => {
     );
     const checked = [...html.matchAll(/role="radio" aria-checked="true"[^>]*value="([^"]*)"/g)].map(([, v]) => v);
 
-    expect(groups).toEqual(['Pacing mode', 'DCO sign-off, for repos that require it']);
+    expect(groups).toEqual(['How we spread the work', 'DCO sign-off, for repos that require it']);
     expect(checked).toEqual(['EVEN', 'ASK']);
     expect(html).not.toMatch(/<input[^>]*id="[^"]*-(pace|dco)-/);
+  });
+
+  it('puts the cycle cap and the pace first on the budget page, the rest folded with its values, and one Save', () => {
+    const html = renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.active} />);
+    const plain = text(html);
+
+    expect(html).toContain('data-fold="closed"');
+    expect(html).toMatch(/aria-expanded="false"[^>]*>.*More limits/);
+    expect(plain).toContain(
+      'no week cap · $15 a day · $5 an attempt · 1 at a time · sweep 3 days · renews on the 14th',
+    );
+    // Folded, still on the page: the draft and the labels stay.
+    expect(html).toMatch(/<div id="[^"]*-more" hidden=""/);
+    expect(html.match(/>Save</g)).toHaveLength(1);
+  });
+
+  it('puts the main model and effort first on the agent page, the smaller tasks folded, and one Save', () => {
+    const html = renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.active} />);
+    const plain = text(html);
+
+    expect(plain).toContain('Models for smaller tasks');
+    expect(plain).toContain(
+      'Claude Haiku 5.5 (cheaper) runs tests and reads logs · writing tests: same as the main model',
+    );
+    expect(html).toMatch(/<div id="[^"]*-models" hidden=""/);
+    expect(html.match(/>Save</g)).toHaveLength(1);
+  });
+
+  it('saves a page in one patch, or names the first field that is not a number', async () => {
+    const { pagePatchOf } = await import('./settings-form');
+    const draft = {
+      cycleCapUsd: '$200',
+      weekCapUsd: '',
+      dayCapUsd: '$15',
+      attemptCapUsd: '$5',
+      attemptsAtATime: '1',
+      sweepDays: '3',
+      maxChangedLines: '400',
+      maxFiles: '15',
+      openPrsAtATime: '3',
+      pace: 'EVEN' as const,
+      renewalDay: 14,
+      mainModel: 'CLAUDE_SONNET_5_5' as const,
+      helperModel: 'CLAUDE_HAIKU_5_5' as const,
+      testModel: null,
+      effort: 'MEDIUM' as const,
+      dco: 'ASK' as const,
+    };
+    expect(pagePatchOf('budget', draft)).toEqual({
+      patch: {
+        cycleCapUsd: 200,
+        weekCapUsd: null,
+        dayCapUsd: 15,
+        attemptCapUsd: 5,
+        attemptsAtATime: 1,
+        pace: 'EVEN',
+        sweepDays: 3,
+        renewalDay: 14,
+      },
+    });
+    expect(pagePatchOf('budget', { ...draft, sweepDays: 'soon' })).toEqual({ invalid: 'Sweep days' });
+    expect(pagePatchOf('agent', { ...draft, maxFiles: '' })).toEqual({ invalid: 'Files' });
   });
 
   it('pauses an active contributor and resumes a paused one', () => {
@@ -535,7 +597,9 @@ describe('the heading scale', () => {
     expect(settings).toContain(`class="${HEADING.block}">Budget and the agent</h2>`);
     const budget = renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.active} />);
     expect(budget).toContain(`<h1 class="${HEADING.page}">Budget and pacing</h1>`);
-    expect(budget).toContain(`<h2 class="${HEADING.section}">Pacing</h2>`);
+    expect(renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.active} />)).toContain(
+      `<h3 class="${HEADING.block}">Pull requests</h3>`,
+    );
     expect(renderToStaticMarkup(<KeysSettingsScreen view={views.active} now={NOW} />)).toContain(
       `<h1 class="${HEADING.page}">Keys and access</h1>`,
     );

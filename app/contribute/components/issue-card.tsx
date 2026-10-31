@@ -11,8 +11,19 @@ import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { GOOD_FIRST_LABEL, KIND_ONE, LANGUAGES, SIZES } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
-/** One issue picked for the user: where, what, why, and Skip. `best` marks the top of the list. */
-export function IssueCard({ issue, best = false }: { issue: ContributeIssue; best?: boolean }) {
+/**
+ * One issue picked for the user: where, what, why, and Skip. `best` marks the top of the list, `other` an issue from
+ * outside the user's own list.
+ */
+export function IssueCard({
+  issue,
+  best = false,
+  other = false,
+}: {
+  issue: ContributeIssue;
+  best?: boolean;
+  other?: boolean;
+}) {
   const [skipped, setSkipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -40,9 +51,11 @@ export function IssueCard({ issue, best = false }: { issue: ContributeIssue; bes
     <article
       data-issue={issue.issueId}
       data-best={best || undefined}
+      data-other={other || undefined}
       className={cn(
         'flex flex-wrap items-start gap-4 rounded-xl border bg-card px-5 py-4',
         best && 'border-primary/40',
+        other && 'border-dashed',
       )}
     >
       <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-2">

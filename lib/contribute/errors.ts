@@ -103,3 +103,81 @@ export function maintainerErrorMessage(error: MaintainerErrorCode): string {
       return 'Something went wrong. Try again in a minute.';
   }
 }
+
+/**
+ * Why a call about what the user works on (the mode, the lists, the ignored repos, feedback) failed: the Contribute
+ * codes, and
+ * - `RATE_LIMITED`: a day's limit is reached, or GitHub asked us to slow down.
+ * - `GITHUB_UNAVAILABLE`: GitHub could not be read.
+ * - `LIST_FULL`: the ignored repos are at their cap.
+ * - `CONFLICT`: the lists changed meanwhile.
+ * - `UNAVAILABLE`: the service is down for a moment.
+ */
+export type ContributeSetErrorCode =
+  | ContributeErrorCode
+  | 'RATE_LIMITED'
+  | 'GITHUB_UNAVAILABLE'
+  | 'LIST_FULL'
+  | 'CONFLICT'
+  | 'UNAVAILABLE';
+
+export type ContributeSetActionResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: ContributeSetErrorCode; message?: string };
+
+const SET_CODES: Record<string, ContributeSetErrorCode> = {
+  RATE_LIMITED: 'RATE_LIMITED',
+  GITHUB_UNAVAILABLE: 'GITHUB_UNAVAILABLE',
+  LIST_FULL: 'LIST_FULL',
+  CONFLICT: 'CONFLICT',
+  SERVICE_UNAVAILABLE: 'UNAVAILABLE',
+};
+
+export function contributeSetErrorOf(error: unknown): { error: ContributeSetErrorCode; message?: string } {
+  const codes = graphqlErrorsOf(error).map(({ extensions }) => extensions?.code ?? '');
+  const own = codes.find((code) => code in SET_CODES);
+  if (own) return { error: SET_CODES[own] };
+  return contributeErrorOf(error);
+}
+
+/** What the failed call was doing, so its message can say it. */
+export type ContributeSetAction = 'add' | 'ignore' | 'resolve' | 'feedback' | 'change';
+
+/** A failed call's message for the user, about what the user works on. */
+export function contributeSetErrorMessage(
+  error: ContributeSetErrorCode,
+  action: ContributeSetAction,
+  limits?: { addsPerDay?: number; resolvesPerDay?: number; feedbackPerDay?: number; ignore?: number },
+  message?: string,
+): string {
+  switch (error) {
+    case 'RATE_LIMITED':
+      if (action === 'add') {
+        return `Too many adds for now. You can add ${limits?.addsPerDay ?? 60} times a day, and GitHub sometimes asks us to slow down. Try again later.`;
+      }
+      if (action === 'resolve') {
+        return `You can refresh your libraries ${limits?.resolvesPerDay ?? 10} times a day. Try again tomorrow.`;
+      }
+      if (action === 'feedback') {
+        return `You can send ${limits?.feedbackPerDay ?? 10} messages a day. Try again tomorrow.`;
+      }
+      return 'Too many changes for now. Try again in a minute.';
+    case 'GITHUB_UNAVAILABLE':
+      return "GitHub didn't answer. Try again in a minute.";
+    case 'LIST_FULL':
+      return `Your ignore list is full (${limits?.ignore ?? 50}): unignore a repo first.`;
+    case 'CONFLICT':
+      return 'Your lists changed meanwhile. Reload the page and try again.';
+    case 'UNAVAILABLE':
+      return 'This is down for a moment. Try again in a minute.';
+    case 'NOT_FOUND':
+      if (action === 'add') return 'GitHub has no user, org or repo by that name.';
+      if (action === 'ignore') return 'That repo is no longer on your lists. Reload the page to see them.';
+      return contributeErrorMessage(error, message);
+    case 'INVALID':
+      if (action === 'add') return 'Enter a repo (owner/name), a GitHub link, a user or an org.';
+      return contributeErrorMessage(error, message);
+    default:
+      return contributeErrorMessage(error, message);
+  }
+}

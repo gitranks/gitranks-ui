@@ -31,6 +31,7 @@ import {
   ContributeRepliesWaitingDocument,
   ContributeReplyDraftsDocument,
   ContributeScheduleCountsDocument,
+  ContributeSetDocument,
 } from './contribute.documents';
 import type {
   ContributeAttempt,
@@ -47,10 +48,12 @@ import type {
   ContributeOwnAgent,
   ContributePaths,
   ContributeReplyDraft,
+  ContributeSet,
   ContributeView,
 } from './contribute.types';
 import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
+import { contributeModesShown } from './modes-gate';
 import {
   IN_FLIGHT_READ,
   IN_FLIGHT_STATES,
@@ -229,6 +232,25 @@ export async function loadIssues(
     return undefined;
   }
 }
+
+/**
+ * What the signed-in user works on: the mode, the lists and the ignored repos. Null when the modes are not shown to
+ * them (nothing is asked then) or the API hides them; `undefined` when the API does not answer. Read once per request.
+ */
+export const loadContributeSet = cache(async (): Promise<ContributeSet | null | undefined> => {
+  const githubLogin = await viewerLogin();
+  if (!contributeModesShown(githubLogin)) return null;
+
+  try {
+    const { contributeSet } = await graphqlDirect(ContributeSetDocument, undefined, {
+      source: 'ssr',
+      githubLogin: githubLogin as string,
+    });
+    return contributeSet;
+  } catch {
+    return undefined;
+  }
+});
 
 /** The signed-in user's attempts, newest first, optionally in one state; `undefined` when the API does not answer. */
 export async function loadAttempts(

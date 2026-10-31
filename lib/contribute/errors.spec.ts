@@ -4,6 +4,8 @@ import {
   attemptActionErrorMessage,
   contributeErrorMessage,
   contributeErrorOf,
+  contributeSetErrorMessage,
+  contributeSetErrorOf,
   maintainerErrorMessage,
   maintainerErrorOf,
 } from './errors';
@@ -90,5 +92,57 @@ describe('maintainerErrorOf', () => {
     }
     expect(maintainerErrorMessage('SIGNED_OUT')).toContain('Sign in again');
     expect(maintainerErrorMessage('GITHUB_UNAVAILABLE')).toBe('GitHub did not answer. Try again in a minute.');
+  });
+});
+
+describe('contributeSetErrorOf', () => {
+  it.each([
+    ['RATE_LIMITED', 'RATE_LIMITED'],
+    ['GITHUB_UNAVAILABLE', 'GITHUB_UNAVAILABLE'],
+    ['LIST_FULL', 'LIST_FULL'],
+    ['CONFLICT', 'CONFLICT'],
+    ['SERVICE_UNAVAILABLE', 'UNAVAILABLE'],
+    ['NOT_FOUND', 'NOT_FOUND'],
+    ['UNAUTHENTICATED', 'SIGNED_OUT'],
+  ])('reads %s as %s', (code, error) => {
+    expect(contributeSetErrorOf(thrown([{ message: 'x', extensions: { code } }]))).toEqual({ error });
+  });
+
+  it('keeps the rest as the other Contribute calls read them', () => {
+    expect(contributeSetErrorOf(thrown([{ message: 'Too long', extensions: { code: 'BAD_USER_INPUT' } }]))).toEqual({
+      error: 'INVALID',
+      message: 'Too long',
+    });
+    expect(contributeSetErrorOf(new Error('GraphQL error! 502'))).toEqual({ error: 'FAILED' });
+  });
+});
+
+describe('contributeSetErrorMessage', () => {
+  const limits = { addsPerDay: 60, resolvesPerDay: 10, feedbackPerDay: 10, ignore: 50 };
+
+  it('says which day limit is reached', () => {
+    expect(contributeSetErrorMessage('RATE_LIMITED', 'add', limits)).toContain('You can add 60 times a day');
+    expect(contributeSetErrorMessage('RATE_LIMITED', 'resolve', limits)).toBe(
+      'You can refresh your libraries 10 times a day. Try again tomorrow.',
+    );
+    expect(contributeSetErrorMessage('RATE_LIMITED', 'feedback', limits)).toBe(
+      'You can send 10 messages a day. Try again tomorrow.',
+    );
+  });
+
+  it('says what a missing name, a full ignore list, GitHub or an outage means', () => {
+    expect(contributeSetErrorMessage('NOT_FOUND', 'add')).toBe('GitHub has no user, org or repo by that name.');
+    expect(contributeSetErrorMessage('NOT_FOUND', 'ignore')).toContain('no longer on your lists');
+    expect(contributeSetErrorMessage('NOT_FOUND', 'change')).toBe(contributeErrorMessage('NOT_FOUND'));
+    expect(contributeSetErrorMessage('INVALID', 'add', limits, 'bad')).toBe(
+      'Enter a repo (owner/name), a GitHub link, a user or an org.',
+    );
+    expect(contributeSetErrorMessage('INVALID', 'change', limits, 'Not a mode')).toBe('Not a mode');
+    expect(contributeSetErrorMessage('LIST_FULL', 'ignore', limits)).toBe(
+      'Your ignore list is full (50): unignore a repo first.',
+    );
+    expect(contributeSetErrorMessage('GITHUB_UNAVAILABLE', 'add')).toBe("GitHub didn't answer. Try again in a minute.");
+    expect(contributeSetErrorMessage('CONFLICT', 'change')).toContain('changed meanwhile');
+    expect(contributeSetErrorMessage('UNAVAILABLE', 'change')).toContain('down for a moment');
   });
 });

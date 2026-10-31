@@ -75,8 +75,6 @@ export type ContributeSettingsInput = Partial<ContributeSettings>;
 export type ContributePreferences = {
   languages: ContributeLanguage[];
   topicIds: string[];
-  reposIn: string[];
-  reposOut: string[];
   kinds: ContributeIssueKind[];
   maxSize: ContributeIssueSize | null;
 };
@@ -169,6 +167,11 @@ export type ContributeIssue = {
   score: number;
   rank: number;
   why: string;
+  /**
+   * 0: from the user's own list (and every issue in the "All issues" mode), 1: an other issue shown after it, when the
+   * list has nothing (more) ready. Read by the feed alone; issues read elsewhere leave it out.
+   */
+  tier?: number;
 };
 
 export type ContributeIssuePage = {
@@ -536,4 +539,143 @@ export type ContributeOptOutResult = {
   optedOutAt: string | null;
   /** Null when it was changed. */
   reason: ContributeOptOutRefusal | null;
+};
+
+/** Where the user's issues come from: every project we pick, the libraries their repos use, or their own list. */
+export type ContributeSetMode = 'ALL' | 'STACK' | 'REPOS';
+/** The modes with a list of their own. */
+export type ContributeSetListMode = Exclude<ContributeSetMode, 'ALL'>;
+/** The lists the user edits: the repos whose dependencies make their stack, or the repos they support. */
+export type ContributeSetList = 'SOURCES' | 'REPOS';
+/** When a list has nothing ready: wait for new issues, or work on all issues meanwhile. */
+export type ContributeSetFallback = 'SET_ONLY' | 'THEN_ALL';
+export type ContributeSetRepoStatus = 'CHECKING' | 'ACTIVE' | 'FAILED' | 'UNSUPPORTED';
+export type ContributeSetRepoViaKind = 'ME' | 'OWNER' | 'REPO';
+/** Why a repo did not pass the rules, in the order the page lists them. */
+export type ContributeSetReason =
+  | 'PRIVATE'
+  | 'DELETED'
+  | 'FORK'
+  | 'ARCHIVED'
+  | 'ISSUES_DISABLED'
+  | 'PUSHED'
+  | 'LICENSE'
+  | 'LANGUAGE'
+  | 'OUTSIDE_MERGES'
+  | 'OPTED_OUT'
+  | 'AI_BAN'
+  | 'CONTRIBUTE_OFF'
+  | 'NO_MANIFEST';
+export type ContributeStackResolveState = 'RESOLVING' | 'READY' | 'FAILED';
+export type ContributeFeedbackTopic = 'GATES' | 'MODES' | 'OTHER';
+
+/** How a repo got on a list: "@me", a user or org (its login), or on its own. */
+export type ContributeSetRepoVia = { kind: ContributeSetRepoViaKind; login: string | null };
+
+export type ContributeSetRepo = {
+  repositoryId: string;
+  nameWithOwner: string;
+  stars: number;
+  /** Null: a language not supported yet. */
+  language: ContributeLanguage | null;
+  via: ContributeSetRepoVia;
+  addedAt: string;
+  status: ContributeSetRepoStatus;
+  /** Why it did not pass; empty otherwise. */
+  reasons: ContributeSetReason[];
+};
+
+/** A library the user's stack uses. */
+export type ContributeStackTarget = ContributeSetRepo & {
+  /** How many of the user's repos use it. */
+  usage: number;
+  /** Up to 5 of its package names those repos depend on. */
+  packages: string[];
+};
+
+/** A library that did not pass the rules. */
+export type ContributeStackFailedRepo = {
+  repositoryId: string;
+  nameWithOwner: string;
+  usage: number;
+  reasons: ContributeSetReason[];
+};
+
+/** The libraries worked out from the user's repos, the last time. */
+export type ContributeStackResolve = {
+  state: ContributeStackResolveState;
+  startedAt: string;
+  endedAt: string | null;
+  /** The ones that passed, most used first; then the ones in a language not supported yet. */
+  targets: ContributeStackTarget[];
+  failed: ContributeStackFailedRepo[];
+  /** Packages with no GitHub repo. */
+  unlinked: number;
+  /** Packages read. */
+  packages: number;
+};
+
+export type ContributeSetStack = {
+  sources: ContributeSetRepo[];
+  /** The repos that count toward the cap. */
+  count: number;
+  fallback: ContributeSetFallback;
+  /** Null before the libraries were first worked out. */
+  resolve: ContributeStackResolve | null;
+};
+
+export type ContributeSetRepos = {
+  repos: ContributeSetRepo[];
+  /** The repos that count toward the cap. */
+  count: number;
+  fallback: ContributeSetFallback;
+};
+
+export type ContributeIgnoredRepo = { repositoryId: string; nameWithOwner: string; at: string };
+
+export type ContributeSetLimits = {
+  sources: number;
+  repos: number;
+  targets: number;
+  ignore: number;
+  addsPerDay: number;
+  resolvesPerDay: number;
+  feedbackPerDay: number;
+  feedbackMaxChars: number;
+};
+
+/** What the user works on: the mode, each mode's list and fallback, and the ignored repos. */
+export type ContributeSet = {
+  mode: ContributeSetMode;
+  stack: ContributeSetStack;
+  repos: ContributeSetRepos;
+  ignore: ContributeIgnoredRepo[];
+  /** Grows with every change. */
+  version: number;
+  limits: ContributeSetLimits;
+};
+
+/** What one add did, and the set after it. */
+export type ContributeSetAddResult = {
+  added: ContributeSetRepo[];
+  /** Passed the rules: the ones added and the ones that did not fit. */
+  passed: number;
+  /** Repos read: a user's or org's most-starred ones, or 1 for a repo. */
+  considered: number;
+  /** The list filled up before every passing repo fit. */
+  full: boolean;
+  skipped: {
+    ignored: number;
+    duplicate: number;
+    unsupported: ContributeSetRepo[];
+    failed: { reason: ContributeSetReason; count: number }[];
+  };
+  set: ContributeSet;
+};
+
+/** Where the feedback dialog was opened, sent with the message. */
+export type ContributeFeedbackContext = {
+  mode?: ContributeSetMode;
+  repo?: string;
+  reasons?: ContributeSetReason[];
 };

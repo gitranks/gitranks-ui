@@ -7,6 +7,7 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
 const actions = await import('./actions');
 const {
+  AddToContributeSetDocument,
   ApproveAttemptDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
@@ -17,6 +18,7 @@ const {
   DiscardAttemptDocument,
   RevokeMcpTokenDocument,
   SendBackToAgentDocument,
+  SendContributeFeedbackDocument,
   StartFollowUpDocument,
   VetoAutopilotDocument,
 } = await import('@/lib/contribute/contribute.documents');
@@ -46,7 +48,28 @@ const CALLS: Record<string, unknown[]> = {
   revokeMcpToken: ['T_1'],
   readAgentConnected: [{ tokenId: 'T_1', onboarded: true, githubLogin: 'mallory' }],
   sendBackToAgent: ['A_1', 'Add a test for tabs'],
+  setContributeMode: ['STACK'],
+  setContributeFallback: ['REPOS', 'SET_ONLY'],
+  addToContributeSet: ['REPOS', 'vercel'],
+  removeFromContributeSet: ['REPOS', ['R_1']],
+  ignoreContributeRepo: ['R_1'],
+  unignoreContributeRepo: ['R_1'],
+  resolveContributeStack: [],
+  sendContributeFeedback: ['GATES', 'lodash is left out', { mode: 'STACK', githubLogin: 'mallory' }],
 };
+
+/** The actions about what the user works on: open only to the logins the modes are shown to. */
+const SET_ACTIONS = [
+  'setContributeMode',
+  'setContributeFallback',
+  'addToContributeSet',
+  'removeFromContributeSet',
+  'ignoreContributeRepo',
+  'unignoreContributeRepo',
+  'resolveContributeStack',
+  'sendContributeFeedback',
+];
+const loginOf = (name: string) => (SET_ACTIONS.includes(name) ? 'maslianok' : 'octocat');
 
 const exported = Object.entries(actions).filter(([, value]) => typeof value === 'function') as [string, Action][];
 
@@ -62,13 +85,21 @@ describe('the Contribute server actions', () => {
   });
 
   it.each(Object.keys(CALLS))('%s runs as the signed-in user, never one named in its arguments', async (name) => {
-    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    auth.mockResolvedValue({ user: { githubLogin: loginOf(name) }, expires: '2099-01-01' });
     const action = (actions as unknown as Record<string, Action>)[name];
 
     await action(...(CALLS[name] as never[]));
 
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
-    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'client', githubLogin: 'octocat' });
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'client', githubLogin: loginOf(name) });
+  });
+
+  it.each(SET_ACTIONS)('%s refuses, and calls nothing, for a login the modes are not shown to', async (name) => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    const action = (actions as unknown as Record<string, Action>)[name];
+
+    expect(await action(...(CALLS[name] as never[]))).toEqual({ ok: false, error: 'NOT_FOUND' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
   it.each(Object.keys(CALLS))(
@@ -345,5 +376,88 @@ describe('readAgentConnected', () => {
   it('asks nothing of the tokens without one to watch', async () => {
     expect(await actions.readAgentConnected({ tokenId: null, onboarded: true })).toEqual({ ok: true, data: false });
     expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+});
+
+describe('the actions about what the user works on', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'maslianok' }, expires: '2099-01-01' });
+  });
+
+  it('refuse a mode, list or fallback that is not one, and an empty or long add, before calling', async () => {
+    expect(await actions.setContributeMode('NONE' as never)).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.setContributeFallback('ALL' as never, 'SET_ONLY')).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(await actions.addToContributeSet('TARGETS' as never, 'vercel')).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(await actions.addToContributeSet('REPOS', '   ')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.addToContributeSet('REPOS', 'x'.repeat(201))).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.removeFromContributeSet('REPOS', [])).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('send an add trimmed', async () => {
+    graphqlDirect.mockResolvedValue({ addToContributeSet: { added: [] } });
+    await actions.addToContributeSet('SOURCES', '  @me ');
+
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      AddToContributeSetDocument,
+      { list: 'SOURCES', input: '@me' },
+      { source: 'client', githubLogin: 'maslianok' },
+    );
+  });
+
+  it('read a day limit as RATE_LIMITED, and a full ignore list as LIST_FULL', async () => {
+    graphqlDirect.mockRejectedValueOnce(
+      new Error(JSON.stringify([{ message: 'x', extensions: { code: 'RATE_LIMITED' } }])),
+    );
+    expect(await actions.resolveContributeStack()).toEqual({ ok: false, error: 'RATE_LIMITED' });
+    graphqlDirect.mockRejectedValueOnce(
+      new Error(JSON.stringify([{ message: 'x', extensions: { code: 'LIST_FULL' } }])),
+    );
+    expect(await actions.ignoreContributeRepo('R_1')).toEqual({ ok: false, error: 'LIST_FULL' });
+  });
+
+  it('send feedback trimmed, within its limit, with only the known parts of its context', async () => {
+    expect(await actions.sendContributeFeedback('GATES', '  ')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.sendContributeFeedback('GATES', 'x'.repeat(2001))).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+      message: 'Keep it to 2,000 characters at most.',
+    });
+    expect(await actions.sendContributeFeedback('PRAISE' as never, 'hi')).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    graphqlDirect.mockResolvedValue({ sendContributeFeedback: true });
+    expect(
+      await actions.sendContributeFeedback('GATES', ' lodash is left out ', {
+        mode: 'STACK',
+        repo: ' lodash/lodash ',
+        reasons: ['OUTSIDE_MERGES', 'NOT_A_REASON' as never],
+        githubLogin: 'mallory',
+      } as never),
+    ).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      SendContributeFeedbackDocument,
+      {
+        topic: 'GATES',
+        text: 'lodash is left out',
+        context: { mode: 'STACK', repo: 'lodash/lodash', reasons: ['OUTSIDE_MERGES'] },
+      },
+      { source: 'client', githubLogin: 'maslianok' },
+    );
+
+    graphqlDirect.mockClear();
+    await actions.sendContributeFeedback('OTHER', 'hello', { mode: 'NOPE' as never });
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ topic: 'OTHER', text: 'hello' });
   });
 });

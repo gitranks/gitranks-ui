@@ -11,6 +11,7 @@ const {
   loadAttempts,
   loadAttemptsIn,
   loadContribute,
+  loadContributeSet,
   loadContributions,
   loadOpenPrDrafts,
   loadOverviewImpact,
@@ -509,5 +510,32 @@ describe("Overview's loaders, each operation settled on its own", () => {
     expect(await loadOverviewNow()).toEqual({ inFlight: undefined, scheduleCounts: undefined });
     expect(await loadOverviewImpact()).toBeUndefined();
     expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+});
+
+describe('what the user works on', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+  });
+
+  it('is not even asked for a login the modes are not shown to', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    expect(await loadContributeSet()).toBeNull();
+    auth.mockResolvedValue(null);
+    expect(await loadContributeSet()).toBeNull();
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('is read as the user the modes are shown to; null when hidden, undefined when not answered', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'maslianok' }, expires: '2099-01-01' });
+    graphqlDirect.mockResolvedValueOnce({ contributeSet: { mode: 'STACK' } });
+    expect(await loadContributeSet()).toEqual({ mode: 'STACK' });
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr', githubLogin: 'maslianok' });
+
+    graphqlDirect.mockResolvedValueOnce({ contributeSet: null });
+    expect(await loadContributeSet()).toBeNull();
+    graphqlDirect.mockRejectedValueOnce(new Error('GraphQL error! 502'));
+    expect(await loadContributeSet()).toBeUndefined();
   });
 });

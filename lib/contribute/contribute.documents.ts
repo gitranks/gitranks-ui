@@ -11,6 +11,8 @@ import type {
   ContributeConnectLimits,
   ContributeContributions,
   ContributeDeleteDataResult,
+  ContributeFeedbackContext,
+  ContributeFeedbackTopic,
   ContributeGrant,
   ContributeIssue,
   ContributeIssuePage,
@@ -27,6 +29,12 @@ import type {
   ContributeReplyDraft,
   ContributeReplyWaiting,
   ContributeScheduleCounts,
+  ContributeSet,
+  ContributeSetAddResult,
+  ContributeSetFallback,
+  ContributeSetList,
+  ContributeSetListMode,
+  ContributeSetMode,
   ContributeSettings,
   ContributeSettingsInput,
   Contributor,
@@ -44,7 +52,7 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 const CREDENTIAL = 'provider last4 orgId workspaceId state blockedUntil ready checkedAt lastError';
 const SETTINGS = `cycleCapUsd weekCapUsd dayCapUsd attemptCapUsd attemptsAtATime pace sweepDays renewalDay mainModel
   helperModel testModel effort maxChangedLines maxFiles openPrsAtATime dco autopilot`;
-const PREFERENCES = 'languages topicIds reposIn reposOut kinds maxSize';
+const PREFERENCES = 'languages topicIds kinds maxSize';
 const ISSUE = 'issueId repositoryId nameWithOwner number url title labels language kind size score rank why';
 const PULL_REQUEST = 'prId number url state openedAt mergedAt closedAt reviewDecision checks syncedAt';
 const ATTEMPT = `attemptId issueId repositoryId nameWithOwner number title url kind state model budgetUsd costUsd
@@ -163,7 +171,7 @@ export const ContributeIssuesDocument = doc<
   { first?: number; after?: string; filter?: ContributeIssuesFilter }
 >(`query ContributeIssues($first: Int, $after: String, $filter: ContributeIssuesFilter) {
   contributeIssues(first: $first, after: $after, filter: $filter) {
-    items { ${ISSUE} }
+    items { ${ISSUE} tier }
     next total computedAt
   }
 }`);
@@ -438,3 +446,65 @@ export const ContributeImpactDocument = doc<{
 export const ContributeImpactReposDocument = doc<{
   contributeContributions: { totals: { reposHelped: number | null } } | null;
 }>('query ContributeImpactRepos { contributeContributions(first: 1) { totals { reposHelped } } }');
+
+// What the user works on: the mode, the lists and the ignored repos. Read and written in operations of their own, so
+// an API without them leaves the rest of the pages working.
+const SET_REPO = 'repositoryId nameWithOwner stars language via { kind login } addedAt status reasons';
+const SET = `mode version
+  stack { sources { ${SET_REPO} } count fallback
+    resolve { state startedAt endedAt packages unlinked targets { ${SET_REPO} usage packages } failed { repositoryId nameWithOwner usage reasons } } }
+  repos { repos { ${SET_REPO} } count fallback }
+  ignore { repositoryId nameWithOwner at }
+  limits { sources repos targets ignore addsPerDay resolvesPerDay feedbackPerDay feedbackMaxChars }`;
+
+export const ContributeSetDocument = doc<{ contributeSet: ContributeSet | null }>(
+  `query ContributeSet { contributeSet { ${SET} } }`,
+);
+
+export const SetContributeModeDocument = doc<{ setContributeMode: ContributeSet }, { mode: ContributeSetMode }>(
+  `mutation SetContributeMode($mode: ContributeSetMode!) { setContributeMode(mode: $mode) { ${SET} } }`,
+);
+
+export const SetContributeFallbackDocument = doc<
+  { setContributeFallback: ContributeSet },
+  { mode: ContributeSetListMode; fallback: ContributeSetFallback }
+>(`mutation SetContributeFallback($mode: ContributeSetListMode!, $fallback: ContributeSetFallback!) {
+  setContributeFallback(mode: $mode, fallback: $fallback) { ${SET} }
+}`);
+
+export const AddToContributeSetDocument = doc<
+  { addToContributeSet: ContributeSetAddResult },
+  { list: ContributeSetList; input: string }
+>(`mutation AddToContributeSet($list: ContributeSetList!, $input: String!) {
+  addToContributeSet(list: $list, input: $input) {
+    added { ${SET_REPO} } passed considered full
+    skipped { ignored duplicate unsupported { ${SET_REPO} } failed { reason count } }
+    set { ${SET} }
+  }
+}`);
+
+export const RemoveFromContributeSetDocument = doc<
+  { removeFromContributeSet: ContributeSet },
+  { list: ContributeSetList; repositoryIds: string[] }
+>(`mutation RemoveFromContributeSet($list: ContributeSetList!, $repositoryIds: [ID!]!) {
+  removeFromContributeSet(list: $list, repositoryIds: $repositoryIds) { ${SET} }
+}`);
+
+export const IgnoreContributeRepoDocument = doc<{ ignoreContributeRepo: ContributeSet }, { repositoryId: string }>(
+  `mutation IgnoreContributeRepo($repositoryId: ID!) { ignoreContributeRepo(repositoryId: $repositoryId) { ${SET} } }`,
+);
+
+export const UnignoreContributeRepoDocument = doc<{ unignoreContributeRepo: ContributeSet }, { repositoryId: string }>(
+  `mutation UnignoreContributeRepo($repositoryId: ID!) { unignoreContributeRepo(repositoryId: $repositoryId) { ${SET} } }`,
+);
+
+export const ResolveContributeStackDocument = doc<{ resolveContributeStack: ContributeSet }>(
+  `mutation ResolveContributeStack { resolveContributeStack { ${SET} } }`,
+);
+
+export const SendContributeFeedbackDocument = doc<
+  { sendContributeFeedback: boolean },
+  { topic: ContributeFeedbackTopic; text: string; context?: ContributeFeedbackContext }
+>(`mutation SendContributeFeedback($topic: ContributeFeedbackTopic!, $text: String!, $context: ContributeFeedbackContextInput) {
+  sendContributeFeedback(topic: $topic, text: $text, context: $context)
+}`);

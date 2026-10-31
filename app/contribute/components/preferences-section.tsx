@@ -14,7 +14,14 @@ import { cn } from '@/lib/utils';
 const plural = (count: number, one: string) => `${count} ${one}${count === 1 ? '' : 's'}`;
 
 /** What the user works on. Topics and repositories come from their profile and are counted here. */
-export function PreferencesSection({ preferences }: { preferences: ContributePreferences | null }) {
+export function PreferencesSection({
+  preferences,
+  modes = false,
+}: {
+  preferences: ContributePreferences | null;
+  /** The modes are shown above: these are filters on top of them, and repos are picked there. */
+  modes?: boolean;
+}) {
   const router = useRouter();
   const [draft, setDraft] = useState<PreferencesDraft>({
     languages: preferences?.languages ?? [],
@@ -36,17 +43,25 @@ export function PreferencesSection({ preferences }: { preferences: ContributePre
     });
 
   const topics = preferences?.topicIds.length ?? 0;
-  const skipped = preferences?.reposOut.length ?? 0;
-  const only = preferences?.reposIn.length ?? 0;
 
   return (
     <Panel id="work">
-      <PanelTitle title="What you work on" text="Filled from your profile. Add or remove anything." />
-      <PreferencesFields value={draft} onChange={setDraft} />
+      {modes ? (
+        <PanelTitle
+          title="Preferences"
+          text="Filters on top of what you work on. Filled from your profile. Add or remove anything."
+        />
+      ) : (
+        <PanelTitle title="What you work on" text="Filled from your profile. Add or remove anything." />
+      )}
+      <PreferencesFields
+        value={draft}
+        onChange={setDraft}
+        languagesNote={modes ? 'Applies in every mode.' : undefined}
+      />
       <p className="text-sm text-muted-foreground">
         {topics ? `${plural(topics, 'topic')} from your profile` : 'Topics from your profile'}
-        {only ? ` · only ${plural(only, 'repo')}` : ''}
-        {skipped ? ` · ${plural(skipped, 'repo')} skipped` : ''}. Picking topics and repos here is coming soon.
+        {modes ? '. Picking topics here is coming soon.' : '. Picking topics and repos here is coming soon.'}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <Button

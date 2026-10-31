@@ -11,9 +11,10 @@ import { PauseButton } from './pause-button';
 import { PreferencesSection } from './preferences-section';
 import { Panel, PanelTitle } from './primitives';
 import { ScrollToHash } from './scroll-to-hash';
+import { SetSections } from './set-section';
 import { SettingsForm } from './settings-form';
-import { loadContribute } from '@/lib/contribute/contribute.data';
-import type { ContributeView } from '@/lib/contribute/contribute.types';
+import { loadContribute, loadContributeSet } from '@/lib/contribute/contribute.data';
+import type { ContributeSet, ContributeView } from '@/lib/contribute/contribute.types';
 import {
   claudeKeyOf,
   contributeNoticesOf,
@@ -35,25 +36,42 @@ const SECTIONS = [
   ['danger', 'Delete data'],
 ] as const;
 
+/** The sections about what the user works on, first, when the modes are shown to them; the preferences follow. */
+const SET_SECTIONS = [
+  ['modes', 'What to work on'],
+  ['work', 'Preferences'],
+  ['rules', 'How we pick repos'],
+  ['ignored', 'Ignored repos'],
+] as const;
+
 export async function SettingsView({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params] = await Promise.all([loadContribute(), searchParams]);
+  const [view, params, set] = await Promise.all([loadContribute(), searchParams, loadContributeSet()]);
   if (!view) notFound();
   if (!isContributePageOpen(view, 'settings')) redirect('/contribute');
-  return <SettingsScreen view={view} grantRefusal={grantRefusalOf(params.grant)} />;
+  // The modes are shown to the user (the read is not null) but did not load.
+  return (
+    <SettingsScreen view={view} grantRefusal={grantRefusalOf(params.grant)} set={set} setFailed={set === undefined} />
+  );
 }
 
 export function SettingsScreen({
   view,
   grantRefusal,
   now,
+  set,
+  setFailed = false,
 }: {
   view: ContributeView;
   grantRefusal?: GrantRefusal;
   now?: Date;
+  /** What the user works on; null or `undefined` when the modes are not shown, and then nothing about them is. */
+  set?: ContributeSet | null;
+  /** The modes are shown to the user, and what they work on did not load. */
+  setFailed?: boolean;
 }) {
   const { contributor } = view;
   const key = claudeKeyOf(view);
@@ -61,6 +79,8 @@ export function SettingsScreen({
   const settings = isOwnAgentOnly(view) && !contributor?.plan ? null : (contributor?.settings ?? null);
   // The pause and the key's trouble are shown where they are acted on, in the status card and under Keys.
   const notices = contributeNoticesOf(view).filter(({ kind }) => kind !== 'paused');
+  const sections = set ? [...SET_SECTIONS, ...SECTIONS.filter(([id]) => id !== 'work')] : SECTIONS;
+  const preferences = <PreferencesSection preferences={contributor?.preferences ?? null} modes={!!set} />;
 
   return (
     <>
@@ -71,7 +91,7 @@ export function SettingsScreen({
           aria-label="Settings sections"
           className="flex flex-[0_1_200px] flex-col gap-0.5 text-sm max-md:hidden md:sticky md:top-4"
         >
-          {SECTIONS.map(([id, label]) => (
+          {sections.map(([id, label]) => (
             <a
               key={id}
               href={`#${id}`}
@@ -82,6 +102,15 @@ export function SettingsScreen({
           ))}
         </nav>
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4.5">
+          {set ? <SetSections set={set} now={now} preferences={preferences} /> : null}
+          {!set && setFailed ? (
+            <Panel id="modes">
+              <PanelTitle
+                title="What to work on"
+                text="Your lists didn't load. Reload the page to try again; everything else here works as usual."
+              />
+            </Panel>
+          ) : null}
           {settings ? (
             <SettingsForm settings={settings} />
           ) : (
@@ -106,7 +135,7 @@ export function SettingsScreen({
               canSave={!!settings}
             />
           ) : null}
-          <PreferencesSection preferences={contributor?.preferences ?? null} />
+          {set ? null : preferences}
           <AccessSection
             credential={key}
             grant={view.grant}

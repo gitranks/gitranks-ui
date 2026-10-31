@@ -3,7 +3,6 @@ import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { ContributeNotices } from './contribute-notices';
-import { LiveRefresh } from './live-refresh';
 import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { HEADING, PageTitle, Pill } from './primitives';
 import { type DraftFollowUp, ReplyDraftItem } from './reply-drafts';
@@ -528,9 +527,6 @@ export function ContributionsScreen({
       pullRequest.state === 'OPEN' &&
       (!!signals?.signals.length || shownDrafts(drafts[pullRequest.prId], now ?? new Date()).length > 0),
   );
-  const posting = prsNeedingYou.some(({ pullRequest }) =>
-    drafts[pullRequest.prId]?.some(({ state }) => state === 'POSTING'),
-  );
   const followUps = new Map(
     (attempts ?? []).filter(({ kind }) => kind === 'FOLLOW_UP').map((attempt) => [attempt.attemptId, attempt]),
   );
@@ -540,7 +536,6 @@ export function ContributionsScreen({
 
   return (
     <>
-      {posting ? <LiveRefresh /> : null}
       <ContributeNotices notices={contributeNoticesOf(view)} />
       <PageTitle
         title="My contributions"

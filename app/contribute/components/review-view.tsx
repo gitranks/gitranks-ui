@@ -14,7 +14,6 @@ import { AttemptStatus, FollowUpOfLink } from './attempt-status';
 import { DiffViewer } from './diff-viewer';
 import { FollowUpApproval } from './follow-up-approval';
 import { FollowUpResult } from './follow-up-result';
-import { LiveRefresh } from './live-refresh';
 import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { PrForm } from './pr-form';
 import { HEADING, Pill } from './primitives';
@@ -28,7 +27,6 @@ import {
   editableBodyOf,
   githubUrlOf,
   isOwnAgent,
-  LIVE_STATES,
   repoOf,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
@@ -108,9 +106,6 @@ export function ReviewScreen({
   const prNumber = followUp ? (attempt.followUpOf?.number ?? null) : (attempt.pullRequest?.number ?? null);
   // A first attempt shows its pull request's drafts once there is one; a follow-up always shows the ones it wrote.
   const showDrafts = followUp || (!!attempt.pullRequest && attempt.replyDrafts?.length !== 0);
-  const posting = attempt.replyDrafts?.some(
-    ({ state, resolveState }) => state === 'POSTING' || resolveState === 'RESOLVING',
-  );
   // The follow-up flow: one card per thread with its outcome, the diff, and one approval (an older API: the drafts).
   // An API with the flow answers `checkStatus` (null before the checks), so a round with no reply is one too.
   const flow = followUp && (attempt.checkStatus !== undefined || hasOutcomes(attempt.replyDrafts));
@@ -119,7 +114,6 @@ export function ReviewScreen({
 
   return (
     <div className="flex flex-col gap-5" data-review={attempt.attemptId} data-state={attempt.state}>
-      {LIVE_STATES.includes(attempt.state) || posting ? <LiveRefresh /> : null}
       <div className="flex flex-col gap-2.5">
         <BackLink />
         <div className="flex flex-wrap items-center gap-2.5">

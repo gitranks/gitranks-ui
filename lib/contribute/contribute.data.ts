@@ -18,6 +18,7 @@ import {
   ContributeAttemptsOpenDocument,
   ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
+  ContributeChangesDocument,
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
   ContributeContributionsOwnAgentDocument,
@@ -125,6 +126,8 @@ export class ContributeUnavailableError extends Error {
 export const loadContribute = cache(async (): Promise<ContributeView | null> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return null;
+  // The poll's baseline before anything the page shows: a change landing meanwhile is named by the first poll.
+  await loadContributeVersion();
 
   const options = { source: 'ssr' as const, githubLogin };
   const [overview, grant, paused, autopilot, ownAgent, onboarding, attemptsOpen] = await Promise.allSettled([
@@ -273,6 +276,25 @@ export const loadContributeActivity = cache(async (): Promise<ContributeActivity
       githubLogin: githubLogin as string,
     });
     return contributeActivity;
+  } catch {
+    return null;
+  }
+});
+
+/**
+ * The version of what the signed-in user sees, as this request reads it: the poll's baseline, so it names only what
+ * moves after the page was read. Null when the API hides it or does not answer (the first poll sets the baseline).
+ */
+export const loadContributeVersion = cache(async (): Promise<string | null> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+  try {
+    const { contributeChanges } = await graphqlDirect(
+      ContributeChangesDocument,
+      { since: null },
+      { source: 'ssr', githubLogin },
+    );
+    return contributeChanges?.version ?? null;
   } catch {
     return null;
   }

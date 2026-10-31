@@ -9,7 +9,6 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('./live-refresh', () => ({ LiveRefresh: () => <span data-live-refresh /> }));
 vi.mock('@/lib/contribute/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),

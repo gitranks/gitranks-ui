@@ -20,20 +20,9 @@ export const itemsOn = (activity: ContributeActivity | null, tab: ContributeActi
 
 /** Items that only wait (nothing moves until a slot frees or the user resumes): read again rarely. */
 const WAITING_KINDS: ContributeActivityItem['kind'][] = ['FIRST_READS_WAITING', 'READS_PAUSED'];
-export const onlyWaiting = (items: ContributeActivityItem[]) =>
-  items.length > 0 && items.every(({ kind }) => WAITING_KINDS.includes(kind));
 
 /** Whether an item is work under way (its line moves), not a wait. */
 export const isRunning = (item: ContributeActivityItem) => !WAITING_KINDS.includes(item.kind);
-
-/**
- * How long to wait before reading the activity again: soon after the user started something, then backing off to a
- * minute; every five minutes while everything only waits.
- */
-export function activityDelayOf(reads: number, items: ContributeActivityItem[]): number {
-  if (onlyWaiting(items)) return 5 * 60_000;
-  return [5_000, 10_000, 20_000, 30_000][reads] ?? 60_000;
-}
 
 /**
  * What the page shows changes with this: an item ending or starting, a repo moving on. The page is read again when it

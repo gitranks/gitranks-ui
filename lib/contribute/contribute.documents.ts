@@ -9,6 +9,7 @@ import type {
   ContributeAttemptState,
   ContributeAttemptSubmit,
   ContributeAutopilot,
+  ContributeChanges,
   ContributeCheckStatusView,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
@@ -568,6 +569,11 @@ export const ContributeActivityDocument = doc<{ contributeActivity: ContributeAc
   `query ContributeActivity { contributeActivity {
     items { kind tabs label done total startedAt expectedAt repos { repositoryId nameWithOwner stage } } readAt
   } }`,
+);
+
+/** What moved for the user since `since`: one cheap read; null when the API hides it. */
+export const ContributeChangesDocument = doc<{ contributeChanges: ContributeChanges | null }, { since: string | null }>(
+  `query ContributeChanges($since: String) { contributeChanges(since: $since) { version activity changed } }`,
 );
 
 export const SetContributeModeDocument = doc<{ setContributeMode: ContributeSet }, { mode: ContributeSetMode }>(

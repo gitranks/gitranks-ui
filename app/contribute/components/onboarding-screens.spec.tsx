@@ -8,6 +8,7 @@ const data = vi.hoisted(() => ({
   loadIssues: vi.fn(),
   loadContributeSet: vi.fn(async () => null),
   loadContributeActivity: vi.fn(async () => null),
+  loadContributeVersion: vi.fn(async () => '4.2'),
   loadAttempt: vi.fn(),
   loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
@@ -30,7 +31,6 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-auth/react', () => ({ signIn, signOut: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/components/signin-button/signin-button', () => ({ default: () => <span data-avatar-menu /> }));
 vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('./live-refresh', () => ({ LiveRefresh: () => <span data-live-refresh /> }));
 vi.mock('@/lib/contribute/contribute.data', () => data);
 
 const { Landing } = await import('./landing');

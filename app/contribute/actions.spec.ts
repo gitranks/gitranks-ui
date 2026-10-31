@@ -65,8 +65,8 @@ const CALLS: Record<string, unknown[]> = {
   ignoreContributeRepo: ['R_1'],
   unignoreContributeRepo: ['R_1'],
   resolveContributeStack: [],
-  readContributeActivity: [],
   readAttemptLive: ['A_1'],
+  readContributeChanges: ['3.1', false],
   sendContributeFeedback: ['GATES', 'lodash is left out', { mode: 'STACK', githubLogin: 'mallory' }],
 };
 
@@ -81,9 +81,7 @@ const SET_ACTIONS = [
   'resolveContributeStack',
   'sendContributeFeedback',
 ];
-/** The reads about what the user works on: nothing for the other logins, and nothing is asked. */
-const SET_READS = ['readContributeActivity'];
-const loginOf = (name: string) => (SET_ACTIONS.includes(name) || SET_READS.includes(name) ? 'maslianok' : 'octocat');
+const loginOf = (name: string) => (SET_ACTIONS.includes(name) ? 'maslianok' : 'octocat');
 
 const exported = Object.entries(actions).filter(([, value]) => typeof value === 'function') as [string, Action][];
 
@@ -147,14 +145,6 @@ describe('the Contribute server actions', () => {
     const action = (actions as unknown as Record<string, Action>)[name];
 
     expect(await action(...(CALLS[name] as never[]))).toEqual({ ok: false, error: 'NOT_FOUND' });
-    expect(graphqlDirect).not.toHaveBeenCalled();
-  });
-
-  it.each(SET_READS)('%s answers nothing, and calls nothing, for a login the modes are not shown to', async (name) => {
-    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
-    const action = (actions as unknown as Record<string, Action>)[name];
-
-    expect(await action(...(CALLS[name] as never[]))).toEqual({ ok: true, data: null });
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
@@ -616,5 +606,72 @@ describe('readIssueStatuses and readIssuesPage', () => {
     graphqlDirect.mockClear();
     expect(await actions.readIssuesPage({ after: '', first: 2 })).toMatchObject({ ok: false, error: 'INVALID' });
     expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+});
+
+describe('readContributeChanges', () => {
+  const CHANGES = { version: '4.2', activity: false, changed: [] };
+  const ACTIVITY = { items: [], readAt: '2026-10-31T21:00:00.000Z' };
+  const as = (githubLogin: string) => auth.mockResolvedValue({ user: { githubLogin }, expires: '2099-01-01' });
+
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    as('maslianok');
+  });
+
+  it('reads what moved since the version held, and nothing more when nothing runs', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: CHANGES });
+
+    expect(await actions.readContributeChanges('3.2', false)).toEqual({ ok: true, data: { changes: CHANGES } });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ since: '3.2' });
+  });
+
+  it('sends no version it could not have had from a read', async () => {
+    graphqlDirect.mockResolvedValue({ contributeChanges: CHANGES });
+
+    await actions.readContributeChanges('3', false);
+    await actions.readContributeChanges({ since: '1.1' } as never, false);
+    expect(graphqlDirect.mock.calls.map(([, variables]) => variables)).toEqual([{ since: null }, { since: null }]);
+  });
+
+  it.each([
+    ['asked', { ...CHANGES }, true],
+    ['running', { ...CHANGES, activity: true }, false],
+    ['the list moved', { ...CHANGES, changed: ['SET'] }, false],
+    ['work started or ended', { ...CHANGES, changed: ['ACTIVITY'] }, false],
+  ])('reads the work in progress in the same call when %s', async (_why, changes, withActivity) => {
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: changes }).mockResolvedValueOnce({
+      contributeActivity: ACTIVITY,
+    });
+
+    expect(await actions.readContributeChanges('3.2', withActivity as boolean)).toEqual({
+      ok: true,
+      data: { changes, activity: ACTIVITY },
+    });
+  });
+
+  it('never reads or runs the work in progress for a login the modes are not shown to; leaves it out when it fails', async () => {
+    as('octocat');
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: { ...CHANGES, activity: true, changed: ['SET'] } });
+    // Nothing would ever settle the flag for them: it never holds their poll fast.
+    expect(await actions.readContributeChanges('3.2', true)).toEqual({
+      ok: true,
+      data: { changes: { ...CHANGES, activity: false, changed: ['SET'] } },
+    });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+
+    as('maslianok');
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: CHANGES }).mockRejectedValueOnce(new Error('down'));
+    expect(await actions.readContributeChanges('3.2', true)).toEqual({ ok: true, data: { changes: CHANGES } });
+  });
+
+  it('answers null when the API hides Contribute, and an error when it fails', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: null });
+    expect(await actions.readContributeChanges(null, true)).toEqual({ ok: true, data: null });
+
+    graphqlDirect.mockRejectedValueOnce(new Error('down'));
+    expect(await actions.readContributeChanges(null, false)).toMatchObject({ ok: false });
   });
 });

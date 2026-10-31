@@ -701,6 +701,21 @@ export type ContributeActivityItem = {
 /** The user's work in progress; no items when nothing runs. */
 export type ContributeActivity = { items: ContributeActivityItem[]; readAt: string };
 
+/** What a change touched: an attempt, the issues computed for the user, an issue's availability, the list, settings. */
+export type ContributeChangeArea = 'ATTEMPTS' | 'FEED' | 'ISSUES' | 'SET' | 'SETTINGS' | 'ACTIVITY';
+
+/** What moved for the user since a version (`contributeChanges`). */
+export type ContributeChanges = {
+  /** Opaque: sent back as `since`. */
+  version: string;
+  /** A long read may be running: the poll goes faster and reads the bar too. */
+  activity: boolean;
+  changed: ContributeChangeArea[];
+};
+
+/** A poll's answer: what moved, and the work in progress when it was read too (left out when it was not). */
+export type ContributeChangesRead = { changes: ContributeChanges; activity?: ContributeActivity | null };
+
 /** How a repo got on a list: "@me", a user or org (its login), or on its own. */
 export type ContributeSetRepoVia = { kind: ContributeSetRepoViaKind; login: string | null };
 

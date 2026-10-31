@@ -1,12 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { allowed } = vi.hoisted(() => ({ allowed: { value: null as boolean | null } }));
-
-vi.mock('next-auth/react', () => ({
-  useSession: () => ({ data: { user: { githubLogin: 'octocat' } }, status: 'authenticated' }),
+const { session, useContributeAllowed } = vi.hoisted(() => ({
+  session: { data: null as { user: { githubLogin?: string } } | null },
+  useContributeAllowed: vi.fn<(login: string | null | undefined) => boolean | null>(),
 }));
-vi.mock('@/lib/contribute/use-contribute-allowed', () => ({ useContributeAllowed: () => allowed.value }));
+
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: session.data }) }));
+vi.mock('@/lib/contribute/use-contribute-allowed', () => ({ useContributeAllowed }));
 
 const { ContributeSection, ContributeSectionView, EXAMPLE_PICKS } = await import('./contribute-section');
 
@@ -21,13 +22,28 @@ const own = {
 };
 
 describe('the Contribute section on the home page', () => {
-  it("shows on the header item's answer: only to a user Contribute is open to", () => {
-    allowed.value = null;
-    expect(renderToStaticMarkup(<ContributeSection />)).toBe('');
-    allowed.value = false;
-    expect(renderToStaticMarkup(<ContributeSection />)).toBe('');
-    allowed.value = true;
+  beforeEach(() => {
+    session.data = { user: { githubLogin: 'octocat' } };
+    useContributeAllowed.mockReset();
+  });
+
+  it("asks the header item's question about the signed-in user, and shows only on its yes", () => {
+    useContributeAllowed.mockReturnValue(true);
     expect(renderToStaticMarkup(<ContributeSection />)).toContain('Invest in the open source you build on');
+    expect(useContributeAllowed).toHaveBeenCalledWith('octocat');
+
+    for (const answer of [null, false]) {
+      useContributeAllowed.mockReturnValue(answer);
+      expect(renderToStaticMarkup(<ContributeSection />)).toBe('');
+    }
+  });
+
+  it('asks about nobody when signed out, and stays hidden', () => {
+    session.data = null;
+    useContributeAllowed.mockImplementation((login) => !!login);
+
+    expect(renderToStaticMarkup(<ContributeSection />)).toBe('');
+    expect(useContributeAllowed).toHaveBeenCalledWith(null);
   });
 
   it('leads with the investment, the stack and the track record; the rank comes last', () => {

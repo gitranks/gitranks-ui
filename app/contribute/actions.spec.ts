@@ -140,6 +140,31 @@ describe('the Contribute server actions', () => {
     expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'client', githubLogin: loginOf(name) });
   });
 
+  it("sends the session's email with a write, so Notify me's email has an address; never a malformed one", async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat', email: ' octo@example.com ' }, expires: '2099-01-01' });
+    await actions.noteProviderInterest('CHATGPT');
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({
+      source: 'client',
+      githubLogin: 'octocat',
+      accountEmail: 'octo@example.com',
+    });
+
+    graphqlDirect.mockClear();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat', email: 'not an address' }, expires: '2099-01-01' });
+    await actions.noteProviderInterest('CHATGPT');
+    expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
+  });
+
+  it('sends the email with a set write too, and never with a read or a poll', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'maslianok', email: 'm@example.com' }, expires: '2099-01-01' });
+    await actions.setContributeMode('STACK');
+    expect(graphqlDirect.mock.calls[0][2]).toMatchObject({ accountEmail: 'm@example.com' });
+
+    graphqlDirect.mockClear();
+    await actions.readFeedComputedAt();
+    expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
+  });
+
   it.each(SET_ACTIONS)('%s refuses, and calls nothing, for a login the modes are not shown to', async (name) => {
     auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
     const action = (actions as unknown as Record<string, Action>)[name];

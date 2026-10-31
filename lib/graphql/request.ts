@@ -9,6 +9,8 @@ type RequestOptions = {
   source?: RequestSource;
   /** Read from the session by the caller, which must have a request scope. */
   githubLogin?: string;
+  /** The same session's email, sent with `githubLogin` alone. */
+  accountEmail?: string;
 };
 
 export async function request(
@@ -34,6 +36,7 @@ export async function request(
     },
     options?.source,
     options?.githubLogin,
+    options?.accountEmail,
   );
 
   if (!response.ok) {

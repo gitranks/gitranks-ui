@@ -78,9 +78,27 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
  * The signed-in user's GitHub login, for calls made on their behalf; null without a usable session. Read once per
  * request.
  */
+/**
+ * The session, read once per request: a second `auth()` would run the token refresh again, and a refresh token is
+ * single-use.
+ */
+const viewerSession = cache(() => auth());
+
 export const viewerLogin = cache(async (): Promise<string | null> => {
-  const session = await auth();
+  const session = await viewerSession();
   return session?.user?.githubLogin && !session.error ? session.user.githubLogin : null;
+});
+
+/**
+ * The signed-in user's email, as GitHub gave it at their first sign-in; undefined without one. Sent with Contribute's
+ * writes, so the emails a user asks for ("Notify me") have an address.
+ */
+export const viewerEmail = cache(async (): Promise<string | undefined> => {
+  const session = await viewerSession();
+  const email = session?.user?.email?.trim();
+  return email && !session?.error && email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
+    ? email
+    : undefined;
 });
 
 const settled = <T>(result: PromiseSettledResult<T>): T | undefined =>

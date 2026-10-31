@@ -9,7 +9,7 @@ import type {
   ContributeSettings,
 } from './contribute.types';
 import { EFFORTS, KINDS, LANGUAGES, MODELS, maskedKey, ordinalDay, PACES, relativeLabel, SIZES, usd } from './format';
-import { countedTargetsOf, modeSummaryOf, modeTitleOf, plural, stackPendingOf } from './set-format';
+import { liveTargetsOf, modeSummaryOf, modeTitleOf, plural, readingLibrariesOf, stackPendingOf } from './set-format';
 
 /** What we say of the Claude key's state, after its last 4. */
 export const KEY_STATES: Record<ContributeCredential['state'], string> = {
@@ -38,9 +38,12 @@ const fallbackOf = (set: ContributeSet, mode: ContributeSetListMode) =>
  */
 export function waitingLibrariesOf(set: ContributeSet): string | null {
   if (stackPendingOf(set)) {
-    return 'We work out your libraries once your repos are read. Until one is read, your agent works on all issues.';
+    const reading = readingLibrariesOf(set);
+    return reading
+      ? `We found ${plural(reading, 'library', 'libraries')} and are reading them for the first time. Until one is read, your agent works on all issues.`
+      : 'We work out your libraries once your repos are read. Until one is read, your agent works on all issues.';
   }
-  if (!set.stack.count || countedTargetsOf(set).length) return null;
+  if (!set.stack.count || liveTargetsOf(set).length) return null;
   return fallbackOf(set, 'STACK') === 'SET_ONLY'
     ? "We found no libraries we can work on in these repos, so your agent would wait. Add other repos, or pick 'Work on all issues meanwhile'."
     : 'We found no libraries we can work on in these repos. Until you add others, your agent works on all issues.';
@@ -51,9 +54,12 @@ export function listSummaryOf(set: ContributeSet): string {
   if (set.mode === 'ALL') return modeSummaryOf(set, 'ALL');
   const only = fallbackOf(set, set.mode) === 'SET_ONLY';
   if (set.mode === 'STACK' && stackPendingOf(set)) {
-    return `Working out your libraries from ${plural(set.stack.count, 'repo')} · all issues until then`;
+    const reading = readingLibrariesOf(set);
+    return reading
+      ? `Reading ${plural(reading, 'library', 'libraries')} for the first time · all issues until then`
+      : `Working out your libraries from ${plural(set.stack.count, 'repo')} · all issues until then`;
   }
-  if (set.mode === 'STACK' && set.stack.count && !countedTargetsOf(set).length) {
+  if (set.mode === 'STACK' && set.stack.count && !liveTargetsOf(set).length) {
     return `No libraries found in ${plural(set.stack.count, 'repo')} · ${only ? 'waiting' : 'all issues meanwhile'}`;
   }
   const reading = set.mode === 'REPOS' ? set.repos.repos.filter(({ status }) => status === 'CHECKING').length : 0;

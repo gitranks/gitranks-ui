@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolve, smallReposSet, stackSet } from './__fixtures__/contribute-sets';
-import { stackPendingOf } from './set-format';
+import { modeChipOf, stackPendingOf } from './set-format';
 import { movedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './settings-paths';
 import {
   keptListOf,
@@ -75,10 +75,36 @@ describe('what you work on, in short', () => {
     expect(waitingLibrariesOf(fresh)).toContain('Until one is read, your agent works on all issues.');
     const setOnly = stackSet({ stack: { ...stackSet().stack, fallback: 'SET_ONLY', resolve: null } });
     expect(listSummaryOf(setOnly)).toBe('Working out your libraries from 3 repos · all issues until then');
-    // Every library still read for the first time: still worked out.
-    const reading = resolve({ targets: resolve().targets.map((each) => ({ ...each, status: 'CHECKING' as const })) });
-    expect(stackPendingOf(stackSet({ stack: { ...stackSet().stack, resolve: reading } }))).toBe(true);
+    expect(modeChipOf(setOnly).detail).toBe('working out libraries · all issues until then');
+    // Every library found still read for the first time: pending, and it says so.
+    const justNow = new Date().toISOString();
+    const reading = resolve({
+      targets: resolve().targets.map((each) =>
+        each.status === 'ACTIVE' ? { ...each, status: 'CHECKING' as const, addedAt: justNow } : each,
+      ),
+    });
+    // Its sources all read: the libraries are found, only their issues are read.
+    const sources = stackSet().stack.sources.map((each) => ({ ...each, status: 'ACTIVE' as const }));
+    const readingSet = stackSet({ stack: { ...stackSet().stack, sources, resolve: reading } });
+    expect(stackPendingOf(readingSet)).toBe(true);
+    expect(listSummaryOf(readingSet)).toMatch(/^Reading \d+ libraries for the first time · all issues until then$/);
+    // A first read that never landed, a day on, no longer holds it.
+    expect(stackPendingOf(readingSet, new Date(Date.now() + 25 * 60 * 60 * 1000))).toBe(false);
+    // A stack that works goes on waiting while a new source is worked out.
+    expect(stackPendingOf(stackSet({ stack: { ...stackSet().stack, resolve: resolve({ state: 'RESOLVING' }) } }))).toBe(
+      false,
+    );
     expect(stackPendingOf(stackSet())).toBe(false);
+    // Only libraries that failed their read: none to work on, and with "wait" it says the agent would wait.
+    const failedOnly = stackSet({
+      stack: {
+        ...stackSet().stack,
+        fallback: 'SET_ONLY',
+        resolve: resolve({ targets: resolve().targets.map((each) => ({ ...each, status: 'FAILED' as const })) }),
+      },
+    });
+    expect(waitingLibrariesOf(failedOnly)).toContain('so your agent would wait');
+    expect(listSummaryOf(failedOnly)).toBe('No libraries found in 3 repos · waiting');
 
     const none = stackSet({ stack: { ...stackSet().stack, resolve: resolve({ targets: [] }) } });
     expect(listSummaryOf(none)).toBe('No libraries found in 3 repos · all issues meanwhile');

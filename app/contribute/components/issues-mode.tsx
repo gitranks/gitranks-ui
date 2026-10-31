@@ -18,6 +18,7 @@ import {
   modeChipOf,
   modeSummaryOf,
   plural,
+  readingLibrariesOf,
   setReposOf,
   setSizeOf,
   stackPendingOf,
@@ -199,8 +200,9 @@ export function SetOnlyEmpty({
     ? repos.filter(({ language }) => language && !languages.includes(language)).length
     : 0;
   const things = mode === 'STACK' ? plural(size, 'library', 'libraries') : plural(size, 'repo');
-  // Sources are added but their libraries are not worked out yet: nothing is empty, it is on its way.
+  // The stack is still worked out, or its libraries read for the first time: the agent works on all issues meanwhile.
   const workingOut = mode === 'STACK' && stackPendingOf(set);
+  const readingLibraries = workingOut ? readingLibrariesOf(set) : 0;
 
   const meanwhile = () =>
     startTransition(async () => {
@@ -223,18 +225,22 @@ export function SetOnlyEmpty({
       </div>
       <div className="flex max-w-md flex-col gap-1.5">
         <h2 className="text-lg font-semibold">
-          {workingOut
-            ? "We're working out the libraries your stack uses"
-            : size
-              ? `Your ${things} have no issues ready right now`
-              : 'Your list is empty'}
+          {readingLibraries
+            ? "We're reading the libraries your stack uses"
+            : workingOut
+              ? "We're working out the libraries your stack uses"
+              : size
+                ? `Your ${things} have no issues ready right now`
+                : 'Your list is empty'}
         </h2>
         <p className="text-sm text-muted-foreground">
-          {workingOut
-            ? `We're reading the dependency files of your ${plural(set.stack.count, 'repo')}. Their libraries' issues show here once they're read. Until then, your agent works on all issues, and they show here once picked.`
-            : size
-              ? `We check them for new issues every 12 hours.${reading ? ` ${plural(reading, 'repo')} ${reading === 1 ? 'is' : 'are'} still being read for the first time.` : ''} Your agent waits meanwhile.`
-              : 'Add repos to it in Settings, or work on all issues meanwhile. Your agent waits until then.'}
+          {readingLibraries
+            ? `We found ${plural(readingLibraries, 'library', 'libraries')} in your ${plural(set.stack.count, 'repo')}, and are reading their issues for the first time. Until one is read, your agent works on all issues, and they show here once picked.`
+            : workingOut
+              ? `We're reading the dependency files of your ${plural(set.stack.count, 'repo')}. Their libraries' issues show here once they're read. Until then, your agent works on all issues, and they show here once picked.`
+              : size
+                ? `We check them for new issues every 12 hours.${reading ? ` ${plural(reading, 'repo')} ${reading === 1 ? 'is' : 'are'} still being read for the first time.` : ''} Your agent waits meanwhile.`
+                : 'Add repos to it in Settings, or work on all issues meanwhile. Your agent waits until then.'}
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-2">

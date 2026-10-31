@@ -13,7 +13,7 @@ import {
   type ContributeSetActionResult,
   contributeSetErrorMessage,
 } from '@/lib/contribute/errors';
-import { FALLBACKS, settlingOf } from '@/lib/contribute/set-format';
+import { FALLBACKS, settlingOf, stackPendingOf } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
 
 /** Runs a change to the set and shows its answer; resolves to the failure's message, or null. */
@@ -107,6 +107,9 @@ export function FallbackChoice({
         {shown === 'SET_ONLY'
           ? `Your agent works only on these ${things}, and waits when they have nothing ready.`
           : `Issues from these ${things} always come first. When they have nothing ready, your agent works on other issues for you.`}
+        {mode === 'STACK' && stackPendingOf(set)
+          ? ' Until a library of your stack is read, your agent works on all issues either way.'
+          : ''}
       </p>
       {error ? (
         <span role="alert" className="text-sm text-destructive">

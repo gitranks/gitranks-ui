@@ -4,9 +4,16 @@
  * - `NOT_FOUND`: the API hides Contribute from this user (off the preview list).
  * - `NOT_AVAILABLE_YET`: the API does not know the operation or field yet.
  * - `INVALID`: the API refused the input, with its own message.
+ * - `ISSUE_TAKEN`: the issue is no longer free: a contributor (or the user's own agent) is on it.
  * - `FAILED`: anything else.
  */
-export type ContributeErrorCode = 'SIGNED_OUT' | 'NOT_FOUND' | 'NOT_AVAILABLE_YET' | 'INVALID' | 'FAILED';
+export type ContributeErrorCode =
+  | 'SIGNED_OUT'
+  | 'NOT_FOUND'
+  | 'NOT_AVAILABLE_YET'
+  | 'INVALID'
+  | 'ISSUE_TAKEN'
+  | 'FAILED';
 
 export type ContributeActionResult<T> =
   | { ok: true; data: T }
@@ -32,6 +39,7 @@ export function contributeErrorOf(error: unknown): { error: ContributeErrorCode;
 
   if (codes.includes('NOT_FOUND')) return { error: 'NOT_FOUND' };
   if (codes.includes('UNAUTHENTICATED')) return { error: 'SIGNED_OUT' };
+  if (codes.includes('ISSUE_TAKEN')) return { error: 'ISSUE_TAKEN' };
   if (codes.includes('GRAPHQL_VALIDATION_FAILED') || errors.some(({ message }) => UNKNOWN_FIELD.test(message ?? ''))) {
     return { error: 'NOT_AVAILABLE_YET' };
   }
@@ -53,6 +61,8 @@ export function contributeErrorMessage(error: ContributeErrorCode, message?: str
       return 'This is not available yet. It is coming soon.';
     case 'INVALID':
       return message || 'That value was not accepted. Check it and try again.';
+    case 'ISSUE_TAKEN':
+      return 'Another contributor is on this issue now.';
     default:
       return 'Something went wrong. Try again in a minute.';
   }

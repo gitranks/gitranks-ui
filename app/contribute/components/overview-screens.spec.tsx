@@ -493,6 +493,36 @@ describe('Up next', () => {
     expect(plain).not.toContain('Skip');
   });
 
+  it('keeps each pick live: a status line ready, out of sight, and a list the focus can fall back to', () => {
+    const html = upNext(issuePage);
+
+    expect(html).toContain('data-picks="3"');
+    expect(html).toMatch(/<ol tabindex="-1"/);
+    expect(html.match(/<p role="status" tabindex="-1" class="sr-only"><\/p>/g)).toHaveLength(3);
+    expect(html.match(/data-live-row="/g)).toHaveLength(3);
+  });
+
+  it("says a taken pick is taken, its link off, and one the user's agent took with the way to the attempt", async () => {
+    const { IssueCardCompact } = await import('./issue-card-compact');
+    const pick = issuePage.items[1];
+    const taken = renderToStaticMarkup(
+      <IssueCardCompact issue={pick} variant="pick" live={{ status: 'TAKEN', attemptId: null }} />,
+    );
+    const yours = renderToStaticMarkup(
+      <IssueCardCompact issue={pick} variant="pick" live={{ status: 'CLAIMED_BY_YOU', attemptId: 'A_7' }} />,
+    );
+
+    expect(taken).toMatch(/role="status"[^>]*data-live-status="taken"[^>]*>Taken by another contributor</);
+    expect(taken).toContain('data-gone="true"');
+    expect(taken).not.toContain(`href="${pick.url}"`);
+    expect(taken).toMatch(/<a [^>]*aria-disabled="true"/);
+    expect(text(yours)).toContain('Your agent is on this · View');
+    expect(yours).toContain('href="/contribute/attempts/A_7"');
+    expect(yours).not.toContain(`href="${pick.url}"`);
+    // The profile block's card is not live: no status line.
+    expect(renderToStaticMarkup(<IssueCardCompact issue={pick} />)).not.toContain('role="status"');
+  });
+
   it('says the picks are ranking, there are none yet, or they are not available', () => {
     expect(upNext({ ...issuePage, computedAt: null })).toContain('data-ranking="waiting"');
     expect(text(upNext({ ...issuePage, items: [] }))).toContain("We're still finding issues for you.");

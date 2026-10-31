@@ -1,0 +1,310 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { issue } from './__fixtures__/contribute-overview';
+import type { ContributeIssue, ContributeIssuePage, ContributeIssueStatus } from './contribute.types';
+import type { ContributeActionResult } from './errors';
+import {
+  createLiveFeed,
+  LIVE_EXIT_AFTER_MS,
+  LIVE_LEAVE_MS,
+  type LiveFeedOptions,
+  STATUS_IDLE_AFTER_MS,
+  STATUS_IDLE_POLL_MS,
+  STATUS_POLL_MS,
+  skipOutcomeOf,
+  startStatusPolling,
+} from './live-issues';
+
+type StatusRead = ContributeActionResult<ContributeIssueStatus[] | null>;
+
+const ISSUES: ContributeIssue[] = [1, 2, 3, 4].map((n) => issue({ issueId: `I_${n}`, number: n, rank: n }));
+const taken = (issueId: string): ContributeIssueStatus => ({ issueId, status: 'TAKEN', attemptId: null });
+const yours = (issueId: string, attemptId: string): ContributeIssueStatus => ({
+  issueId,
+  status: 'CLAIMED_BY_YOU',
+  attemptId,
+});
+
+const feedOf = (patch: Partial<LiveFeedOptions> = {}) =>
+  createLiveFeed({
+    items: ISSUES,
+    total: 42,
+    next: null,
+    limit: 20,
+    readStatus: vi.fn(async (): Promise<StatusRead> => ({ ok: true, data: [] })),
+    ...patch,
+  });
+
+const ids = (feed: ReturnType<typeof createLiveFeed>) => feed.getSnapshot().rows.map(({ issue }) => issue.issueId);
+const rowOf = (feed: ReturnType<typeof createLiveFeed>, id: string) =>
+  feed.getSnapshot().rows.find(({ issue }) => issue.issueId === id);
+
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe('a live list of issues', () => {
+  it('marks a taken issue at once, folds it away after the moment, then drops it and counts it out', async () => {
+    const feed = feedOf();
+    const listener = vi.fn();
+    feed.subscribe(listener);
+
+    feed.apply([taken('I_2'), { issueId: 'I_1', status: 'AVAILABLE', attemptId: null }]);
+    expect(rowOf(feed, 'I_2')).toMatchObject({ status: 'TAKEN', leaving: false });
+    expect(rowOf(feed, 'I_1')?.status).toBe('AVAILABLE');
+    expect(feed.getSnapshot().total).toBe(42);
+
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS - 1);
+    expect(rowOf(feed, 'I_2')?.leaving).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(rowOf(feed, 'I_2')?.leaving).toBe(true);
+    expect(ids(feed)).toContain('I_2');
+
+    await vi.advanceTimersByTimeAsync(LIVE_LEAVE_MS);
+    expect(ids(feed)).toEqual(['I_1', 'I_3', 'I_4']);
+    expect(feed.getSnapshot().total).toBe(41);
+    expect(listener).toHaveBeenCalled();
+  });
+
+  it('drops a taken issue with no fold under reduced motion', async () => {
+    const feed = feedOf({ reducedMotion: () => true });
+    const seen: boolean[] = [];
+    feed.subscribe(() => seen.push(!!rowOf(feed, 'I_1')?.leaving));
+
+    feed.apply([taken('I_1')]);
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+
+    expect(ids(feed)).toEqual(['I_2', 'I_3', 'I_4']);
+    expect(seen).not.toContain(true);
+  });
+
+  it("keeps the user's attempt on an issue their agent took, and lets it leave the same way", async () => {
+    const feed = feedOf();
+
+    feed.apply([yours('I_3', 'A_9')]);
+    expect(rowOf(feed, 'I_3')).toMatchObject({ status: 'CLAIMED_BY_YOU', attemptId: 'A_9' });
+
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS + LIVE_LEAVE_MS);
+    expect(ids(feed)).not.toContain('I_3');
+  });
+
+  it("turns a Skip refused as taken into a taken row, and then the user's own claim if a read says so", async () => {
+    const readStatus = vi.fn(async (): Promise<StatusRead> => ({ ok: true, data: [yours('I_1', 'A_1')] }));
+    const feed = feedOf({ readStatus });
+
+    feed.markTaken('I_1');
+    expect(rowOf(feed, 'I_1')?.status).toBe('TAKEN');
+    await feed.poll();
+    expect(readStatus).toHaveBeenCalledWith(['I_1', 'I_2', 'I_3', 'I_4']);
+    expect(rowOf(feed, 'I_1')).toMatchObject({ status: 'CLAIMED_BY_YOU', attemptId: 'A_1' });
+
+    // One exit, from the first change: the claim does not hold it longer.
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS + LIVE_LEAVE_MS);
+    expect(ids(feed)).not.toContain('I_1');
+    expect(feed.getSnapshot().total).toBe(41);
+  });
+
+  it('asks about the shown rows alone, never one skipped here or already claimed', async () => {
+    const readStatus = vi.fn(async (): Promise<StatusRead> => ({ ok: true, data: [] }));
+    const feed = feedOf({ readStatus, limit: 3 });
+
+    feed.forget('I_2');
+    feed.apply([yours('I_3', 'A_3')]);
+    await feed.poll();
+
+    expect(readStatus).toHaveBeenCalledWith(['I_1']);
+  });
+
+  it('fills a page left short from the next issues, under the cursor, and moves the cursor on', async () => {
+    const readMore = vi.fn(
+      async (): Promise<ContributeActionResult<ContributeIssuePage | null>> => ({
+        ok: true,
+        data: {
+          items: [ISSUES[0], ISSUES[3]],
+          next: 'c3',
+          total: 40,
+          computedAt: null,
+        },
+      }),
+    );
+    const feed = feedOf({ items: ISSUES.slice(0, 3), limit: 3, next: 'c2', readMore, reducedMotion: () => true });
+
+    feed.apply([taken('I_2')]);
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+
+    expect(readMore).toHaveBeenCalledWith('c2', 1);
+    // The one already held is not shown twice; the list is back to its size.
+    expect(ids(feed)).toEqual(['I_1', 'I_3', 'I_4']);
+    expect(feed.getSnapshot().next).toBe('c3');
+    expect(feed.getSnapshot().total).toBe(41);
+  });
+
+  it('shows the next pick in place of one that left, when more are held than shown', async () => {
+    const feed = feedOf({ limit: 3, reducedMotion: () => true });
+    expect(ids(feed)).toEqual(['I_1', 'I_2', 'I_3']);
+
+    feed.apply([taken('I_1')]);
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+
+    expect(ids(feed)).toEqual(['I_2', 'I_3', 'I_4']);
+  });
+
+  it('tries a failed fill again at the next read', async () => {
+    const readMore = vi
+      .fn<NonNullable<LiveFeedOptions['readMore']>>()
+      .mockResolvedValueOnce({ ok: false, error: 'FAILED' })
+      .mockResolvedValueOnce({
+        ok: true,
+        data: { items: [issue({ issueId: 'I_9', rank: 9 })], next: null, total: 1, computedAt: null },
+      });
+    const feed = feedOf({ items: ISSUES.slice(0, 1), limit: 2, next: 'c2', readMore });
+
+    await feed.poll();
+    expect(ids(feed)).toEqual(['I_1']);
+    await feed.poll();
+    expect(ids(feed)).toEqual(['I_1', 'I_9']);
+    expect(feed.getSnapshot().next).toBeNull();
+  });
+
+  it('moves the focus off a row just before it leaves', async () => {
+    const feed = feedOf({ reducedMotion: () => true });
+    const before = vi.fn((id: string) => expect(ids(feed)).toContain(id));
+    feed.onBeforeRemove(before);
+
+    feed.apply([taken('I_4')]);
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+
+    expect(before).toHaveBeenCalledWith('I_4');
+  });
+
+  it('stops the reads when the API hides them, and keeps on after a failed one', async () => {
+    expect(await feedOf({ readStatus: async () => ({ ok: true, data: null }) }).poll()).toBe('stop');
+    expect(await feedOf({ readStatus: async () => ({ ok: false, error: 'NOT_AVAILABLE_YET' }) }).poll()).toBe('stop');
+    expect(await feedOf({ readStatus: async () => ({ ok: false, error: 'SIGNED_OUT' }) }).poll()).toBe('stop');
+    expect(await feedOf({ readStatus: async () => ({ ok: false, error: 'FAILED' }) }).poll()).toBeUndefined();
+  });
+});
+
+describe('a Skip answered', () => {
+  it('turns the card taken, with no error, when the issue was taken meanwhile', () => {
+    expect(skipOutcomeOf({ ok: false, error: 'ISSUE_TAKEN' })).toEqual({ kind: 'taken' });
+    expect(skipOutcomeOf({ ok: true, data: true })).toEqual({ kind: 'skipped' });
+    expect(skipOutcomeOf({ ok: false, error: 'FAILED' })).toEqual({
+      kind: 'failed',
+      message: 'Something went wrong. Try again in a minute.',
+    });
+  });
+});
+
+describe('the status reads', () => {
+  /** A page: shown or hidden, and where the user's moves are heard. */
+  const pageOf = (visibilityState: DocumentVisibilityState = 'visible') => {
+    const document = Object.assign(new EventTarget(), { visibilityState });
+    const window = new EventTarget();
+    return {
+      env: { document, window } as unknown as Parameters<typeof startStatusPolling>[1],
+      show: () => {
+        document.visibilityState = 'visible';
+        document.dispatchEvent(new Event('visibilitychange'));
+      },
+      hide: () => {
+        document.visibilityState = 'hidden';
+        document.dispatchEvent(new Event('visibilitychange'));
+      },
+      move: () => window.dispatchEvent(new Event('pointermove')),
+    };
+  };
+
+  it('read every 20 s while the tab is shown', async () => {
+    const poll = vi.fn(async () => undefined);
+    const stop = startStatusPolling(poll, pageOf().env);
+
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS - 1);
+    expect(poll).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(poll).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS);
+    expect(poll).toHaveBeenCalledTimes(2);
+    stop();
+  });
+
+  it('pause while the tab is hidden, and read once right when it is shown again', async () => {
+    const poll = vi.fn(async () => undefined);
+    const page = pageOf();
+    const stop = startStatusPolling(poll, page.env);
+
+    page.hide();
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS * 10);
+    expect(poll).not.toHaveBeenCalled();
+
+    page.show();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(poll).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS);
+    expect(poll).toHaveBeenCalledTimes(2);
+    stop();
+  });
+
+  it('wait for a tab opened hidden to be shown', async () => {
+    const poll = vi.fn(async () => undefined);
+    const page = pageOf('hidden');
+    const stop = startStatusPolling(poll, page.env);
+
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS * 3);
+    expect(poll).not.toHaveBeenCalled();
+    page.show();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(poll).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it('back off to a minute once the user is idle, and come back to 20 s at their next move', async () => {
+    const poll = vi.fn(async () => undefined);
+    const page = pageOf();
+    const stop = startStatusPolling(poll, page.env);
+
+    await vi.advanceTimersByTimeAsync(STATUS_IDLE_AFTER_MS);
+    const atIdle = poll.mock.calls.length;
+    expect(atIdle).toBe(STATUS_IDLE_AFTER_MS / STATUS_POLL_MS);
+
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS);
+    expect(poll).toHaveBeenCalledTimes(atIdle);
+    await vi.advanceTimersByTimeAsync(STATUS_IDLE_POLL_MS - STATUS_POLL_MS);
+    expect(poll).toHaveBeenCalledTimes(atIdle + 1);
+
+    page.move();
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS);
+    expect(poll).toHaveBeenCalledTimes(atIdle + 2);
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS);
+    expect(poll).toHaveBeenCalledTimes(atIdle + 3);
+    stop();
+  });
+
+  it('try a failed read again at the next tick, and end when told to stop', async () => {
+    const poll = vi
+      .fn<() => Promise<'stop' | undefined>>()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce('stop');
+    const stop = startStatusPolling(poll, pageOf().env);
+
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS * 2);
+    expect(poll).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS * 5);
+    expect(poll).toHaveBeenCalledTimes(2);
+    stop();
+  });
+
+  it('read nothing more once stopped', async () => {
+    const poll = vi.fn(async () => undefined);
+    const page = pageOf();
+    startStatusPolling(poll, page.env)();
+
+    page.hide();
+    page.show();
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_MS * 3);
+    expect(poll).not.toHaveBeenCalled();
+  });
+});

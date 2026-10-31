@@ -17,6 +17,7 @@ import type {
   ContributeGrant,
   ContributeIssue,
   ContributeIssuePage,
+  ContributeIssueStatus,
   ContributeIssuesFilter,
   ContributeMaintainerRepos,
   ContributeMcpToken,
@@ -175,6 +176,14 @@ export const ContributeIssuesDocument = doc<
     items { ${ISSUE} tier }
     next total computedAt
   }
+}`);
+
+/** The shown issues as they are now, in the order asked (1 to 50 ids); null when the API hides it from the user. */
+export const ContributeIssueStatusDocument = doc<
+  { contributeIssueStatus: ContributeIssueStatus[] | null },
+  { issueIds: string[] }
+>(`query ContributeIssueStatus($issueIds: [ID!]!) {
+  contributeIssueStatus(issueIds: $issueIds) { issueId status attemptId }
 }`);
 
 export const ConnectClaudeKeyDocument = doc<

@@ -298,6 +298,9 @@ export function impactTilesOf(
 // ---------------------------------------------------------------------------------------------------------------------
 // Up next
 
+/** The feed's issues in rank order. */
+export const rankedOf = (page: ContributeIssuePage): ContributeIssue[] =>
+  [...page.items].sort((a, b) => a.rank - b.rank);
+
 /** The feed's top picks, in rank order. */
-export const upNextOf = (page: ContributeIssuePage): ContributeIssue[] =>
-  [...page.items].sort((a, b) => a.rank - b.rank).slice(0, UP_NEXT_PICKS);
+export const upNextOf = (page: ContributeIssuePage): ContributeIssue[] => rankedOf(page).slice(0, UP_NEXT_PICKS);

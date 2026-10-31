@@ -47,6 +47,7 @@ describe('the Settings pages', () => {
   it('sends each old section anchor to the page it is on now, and keeps the rest on the summary', () => {
     expect(movedAnchorOf('limits')).toBe('/contribute/settings/budget');
     expect(movedAnchorOf('prs')).toBe('/contribute/settings/agent#prs');
+    expect(movedAnchorOf('more-limits')).toBe('/contribute/settings/budget#more-limits');
     expect(movedAnchorOf('access')).toBe('/contribute/settings/keys');
     expect(movedAnchorOf('own-agent')).toBe('/contribute/settings/own-agent');
     expect(movedAnchorOf('modes')).toBeNull();

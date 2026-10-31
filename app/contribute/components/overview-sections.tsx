@@ -363,7 +363,7 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
         title:
           state.slots > 1 ? `Your own agent holds all ${state.slots} of your slots` : 'Your own agent holds your slot',
         text: 'A new attempt starts when it hands back its patch or releases the issue.',
-        action: settingsLink('limits', 'Attempts at a time in Settings'),
+        action: settingsLink('more-limits', 'Attempts at a time in Settings'),
       };
     case 'pr-cap':
       return {
@@ -384,7 +384,7 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
         label: 'Next attempt',
         title: 'None can start',
         text: 'Your caps leave no room for one attempt.',
-        action: settingsLink('limits', 'Raise them in Settings'),
+        action: settingsLink('more-limits', 'Raise them in Settings'),
       };
     case 'paced':
       return {

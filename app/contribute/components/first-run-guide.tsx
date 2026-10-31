@@ -11,7 +11,7 @@ import { dayLabel, KINDS, LANGUAGES, relativeLabel, SIZES, usd } from '@/lib/con
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
 
 export const WORK_SETTINGS_PATH = settingsPathOf('work');
-const LIMITS_SETTINGS_PATH = settingsPathOf('limits');
+const LIMITS_SETTINGS_PATH = settingsPathOf('more-limits');
 
 type StepCopy = { when: string; title: string; text: ReactNode; action?: ReactNode; working?: boolean };
 

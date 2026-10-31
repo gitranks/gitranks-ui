@@ -314,7 +314,7 @@ describe('Right now', () => {
     expect(text(slots)).toContain(
       'Waiting Your own agent holds your slot A new attempt starts when it hands back its patch or releases the issue. Attempts at a time in Settings →',
     );
-    expect(slots).toContain('href="/contribute/settings/budget"');
+    expect(slots).toContain('href="/contribute/settings/budget#more-limits"');
 
     const three = { ...both, contributor: contributor({ settings: { ...settings, attemptsAtATime: 3 } }) };
     const allSlots = now(three, {

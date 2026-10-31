@@ -20,6 +20,7 @@ export const SETTINGS_PATHS = {
 const ANCHORS: Record<string, Route> = {
   limits: SETTINGS_PATHS.budget,
   pacing: `${SETTINGS_PATHS.budget}#pacing` as Route,
+  'more-limits': `${SETTINGS_PATHS.budget}#more-limits` as Route,
   agent: SETTINGS_PATHS.agent,
   prs: `${SETTINGS_PATHS.agent}#prs` as Route,
   access: SETTINGS_PATHS.keys,

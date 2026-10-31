@@ -231,7 +231,7 @@ describe('A3, what happens next before the first attempt', () => {
     expect(text(paused)).not.toContain('Nothing for you to do');
 
     expect(guide(withContributor({ spend: { ...spend, nextAttemptAt: null } }))).toContain(
-      'href="/contribute/settings/budget"',
+      'href="/contribute/settings/budget#more-limits"',
     );
   });
 

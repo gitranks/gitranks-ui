@@ -1,4 +1,5 @@
 import { activitySignatureOf, isRunning } from './activity-format';
+import { anyActive, runsOf } from './agent-runs';
 import type { ContributeActivity, ContributeChangeArea, ContributeChangesRead } from './contribute.types';
 import type { ContributeActionResult } from './errors';
 
@@ -20,6 +21,8 @@ export const CHANGES_BACKOFF_MAX_MS = 5 * 60_000;
 export const CHANGES_FOCUS_GAP_MS = 5_000;
 /** While everything only waits (the shared queue, a pause), the bar is read again this often. */
 export const ACTIVITY_WAITING_READ_MS = 5 * 60_000;
+/** While agent runs are listed but none works (queued, ready, done), they are read again this often: a settled one leaves. */
+export const ACTIVITY_RUNS_READ_MS = 60_000;
 
 /** What the user did that counts as being around. */
 export const CHANGES_ACTIVITY_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'scroll'];
@@ -231,18 +234,24 @@ export function refreshesFor(pathname: string, changed: readonly ContributeChang
   return changed.some((area) => areas.includes(area));
 }
 
-/** Whether a tick reads the bar too: something runs or may have started, or a wait is due its slow look. */
+/**
+ * Whether a tick reads the bar too: something runs or may have started, a wait is due its slow look, or listed agent
+ * runs are due theirs (a queued one starts, a settled one leaves).
+ */
 export function readsActivity({
   activity,
   running,
   waitingReadDue,
+  runsReadDue = false,
 }: {
   activity: ContributeActivity | null;
   /** The last poll's flag, or the user just started something. */
   running: boolean;
   waitingReadDue: boolean;
+  runsReadDue?: boolean;
 }): boolean {
   if (running) return true;
+  if (runsOf(activity).length && runsReadDue) return true;
   return !!activity?.items.length && waitingReadDue;
 }
 
@@ -257,7 +266,9 @@ export type HeldChanges = {
   activityReadAt: number;
 };
 
-export const runningOf = (activity: ContributeActivity | null) => !!activity?.items.some(isRunning);
+/** A long read runs, or an agent works on a run: the poll goes fast. */
+export const runningOf = (activity: ContributeActivity | null) =>
+  !!activity?.items.some(isRunning) || anyActive(runsOf(activity));
 
 /** What the poll holds at first, from the page's read. */
 export const heldOf = (version: string | null, activity: ContributeActivity | null, now: number): HeldChanges => ({
@@ -336,6 +347,7 @@ export function createChangesSession(
         activity: held.activity,
         running: held.running || at < announcedUntil,
         waitingReadDue: at - held.activityReadAt >= ACTIVITY_WAITING_READ_MS,
+        runsReadDue: at - held.activityReadAt >= ACTIVITY_RUNS_READ_MS,
       });
       const result = await deps.read(sent, withActivity);
       if (!active) return 'stop';

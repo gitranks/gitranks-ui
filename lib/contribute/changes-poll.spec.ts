@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { QUEUED, READY, WORKING } from './__fixtures__/agent-runs';
 import {
   changesPollRunning,
   clearChangesWake,
@@ -10,6 +11,7 @@ import {
   setChangesWake,
 } from './changes-bus';
 import {
+  ACTIVITY_RUNS_READ_MS,
   ACTIVITY_WAITING_READ_MS,
   ANNOUNCE_MS,
   afterChangesRead,
@@ -25,6 +27,7 @@ import {
   heldOf,
   readsActivity,
   refreshesFor,
+  runningOf,
   startChangesPolling,
   takesVersion,
 } from './changes-poll';
@@ -41,7 +44,7 @@ const item = (kind: ContributeActivityItem['kind'], done = 0): ContributeActivit
   expectedAt: null,
   repos: [{ repositoryId: 'R_1', nameWithOwner: 'acme/one', stage: done ? 'READ' : 'READING' }],
 });
-const activityOf = (...items: ContributeActivityItem[]): ContributeActivity => ({ items, readAt: AT });
+const activityOf = (...items: ContributeActivityItem[]): ContributeActivity => ({ items, runs: [], readAt: AT });
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -278,6 +281,19 @@ describe('what a read does', () => {
     expect(readsActivity({ activity: waiting, running: false, waitingReadDue: true })).toBe(true);
     expect(readsActivity({ activity: activityOf(), running: false, waitingReadDue: true })).toBe(false);
     expect(ACTIVITY_WAITING_READ_MS).toBe(5 * 60_000);
+  });
+
+  it('goes fast while an agent works on a run, and reads listed runs every minute otherwise', () => {
+    const working = { ...activityOf(), runs: [WORKING] };
+    const waiting = { ...activityOf(), runs: [QUEUED, READY] };
+    expect(runningOf(working)).toBe(true);
+    expect(runningOf(waiting)).toBe(false);
+    expect(readsActivity({ activity: waiting, running: false, waitingReadDue: false, runsReadDue: false })).toBe(false);
+    expect(readsActivity({ activity: waiting, running: false, waitingReadDue: false, runsReadDue: true })).toBe(true);
+    expect(readsActivity({ activity: activityOf(), running: false, waitingReadDue: false, runsReadDue: true })).toBe(
+      false,
+    );
+    expect(ACTIVITY_RUNS_READ_MS).toBe(60_000);
   });
 
   it('nothing moved: the version is kept, the page is not read again', () => {

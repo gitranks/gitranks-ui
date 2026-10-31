@@ -6,7 +6,13 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { readContributeChanges } from '../actions';
 import { ActivityProvider } from './activity';
 import { ACTIVITY_STARTED_EVENT } from '@/lib/contribute/activity-format';
-import { clearChangesWake, emitContributeChanges, fastChangesHeld, setChangesWake } from '@/lib/contribute/changes-bus';
+import {
+  clearChangesWake,
+  emitContributeChanges,
+  fastChangesHeld,
+  publishContributeActivity,
+  setChangesWake,
+} from '@/lib/contribute/changes-bus';
 import {
   ANNOUNCE_MS,
   ANNOUNCE_READ_WAIT_MS,
@@ -42,7 +48,11 @@ export function ChangesProvider({
       read: (since, withActivity) => readContributeChanges(since, withActivity),
       refresh: () => router.refresh(),
       emit: emitContributeChanges,
-      showActivity: setActivity,
+      showActivity: (next) => {
+        setActivity(next);
+        // The page's parts (Overview's Working now, My contributions' rows) follow the runs through the bus.
+        publishContributeActivity(next);
+      },
       pathname: () => path.current,
       held: fastChangesHeld,
     }),

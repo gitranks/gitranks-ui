@@ -567,7 +567,13 @@ export const ContributeSetDocument = doc<{ contributeSet: ContributeSet | null }
 
 export const ContributeActivityDocument = doc<{ contributeActivity: ContributeActivity | null }>(
   `query ContributeActivity { contributeActivity {
-    items { kind tabs label done total startedAt expectedAt repos { repositoryId nameWithOwner stage } } readAt
+    items { kind tabs label done total startedAt expectedAt repos { repositoryId nameWithOwner stage } }
+    runs {
+      attemptId nameWithOwner number title kind runner state phase label active queuedAt startedAt settledAt
+      elapsedSeconds spendUsd budgetUsd latestEvent { state detail at } queuePosition lastCallAt autosubmitAt endReason
+      prUrl
+    }
+    readAt
   } }`,
 );
 

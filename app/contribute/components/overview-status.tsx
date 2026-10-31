@@ -3,10 +3,12 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { AgentFirstPicks, AgentNextSteps, AgentWelcome } from './agent-connected';
+import { WorkingNowSection } from './agent-runs';
 import { ContributeNotices } from './contribute-notices';
 import { FirstRunGuide } from './first-run-guide';
 import { ImpactSection, NeedsYouSection, RightNowSection, UpNextSection, WaysSection } from './overview-sections';
 import type {
+  ContributeActivity,
   ContributeComingSoonProvider,
   ContributeImpactTotals,
   ContributeIssuePage,
@@ -27,6 +29,8 @@ export const ABOUT_PATH = '/contribute?about=1' as Route;
  * fails leaves the rest. Before the first attempt only Ways is shown.
  */
 export type OverviewSections = {
+  /** The agent runs, live ("Working now"); renders nothing with none. */
+  working?: ReactNode;
   needs: ReactNode;
   now: ReactNode;
   impact: ReactNode;
@@ -42,10 +46,13 @@ export type OverviewData = {
   noted: readonly ContributeComingSoonProvider[];
   /** The feed's first page: Up next's, and what Right now's "no issues" is told from. */
   page: ContributeIssuePage | null | undefined;
+  /** The work in progress, for its agent runs. */
+  activity?: ContributeActivity | null;
 };
 
 /** The sections from what they read. */
 export const overviewSectionsOf = (view: ContributeView, data: OverviewData, now?: Date): OverviewSections => ({
+  working: <WorkingNowSection activity={data.activity} />,
   needs: <NeedsYouSection view={view} read={data.needs} now={now} />,
   now: <RightNowSection view={view} read={data.now} page={data.page} now={now} />,
   impact: <ImpactSection view={view} totals={data.impact} />,
@@ -129,6 +136,7 @@ export function OverviewScreen({
         </>
       ) : (
         <>
+          {sections.working}
           {sections.needs}
           {sections.now}
           {sections.impact}

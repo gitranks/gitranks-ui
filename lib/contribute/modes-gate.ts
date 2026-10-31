@@ -1,3 +1,5 @@
+import type { ContributeActivity } from './contribute.types';
+
 /**
  * The GitHub logins that see the modes (support my stack, support these repos) before they open to everyone. Everyone
  * else keeps Contribute as it is: no mode section, no mode switch, and the modes' actions refuse.
@@ -9,4 +11,13 @@ export function contributeModesShown(githubLogin: string | null | undefined): bo
   if (!githubLogin) return false;
   const login = githubLogin.toLowerCase();
   return MODES_PREVIEW_LOGINS.some((allowed) => allowed.toLowerCase() === login);
+}
+
+/** The work in progress a login sees: the reads of the modes only when the modes are shown to it; the runs always. */
+export function activityFor(
+  githubLogin: string | null | undefined,
+  activity: ContributeActivity | null,
+): ContributeActivity | null {
+  if (!activity || contributeModesShown(githubLogin)) return activity;
+  return { ...activity, items: [] };
 }

@@ -3,6 +3,7 @@
 import { usePathname, useSearchParams } from 'next/navigation';
 
 import { ActivityBar, ActivityDot } from './activity';
+import { AgentRunsIndicator } from './agent-runs';
 import { ChangesProvider } from './live-changes';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
@@ -26,8 +27,8 @@ export function contributeTabsShown(pathname: string, as: string | null, onboard
 
 /**
  * Contribute's tabs under the header, as a profile's are, or the header's line when they do not show; with them, a dot
- * on each tab with work in progress, the bar for the current tab's, and Contribute's one poll (`ChangesProvider`). It
- * reads the path and the query, so it renders inside a Suspense boundary.
+ * on each tab with work in progress, the agent runs at the end, the bar for the current tab's, and Contribute's one
+ * poll (`ChangesProvider`). It reads the path and the query, so it renders inside a Suspense boundary.
  */
 export function ContributeTabsNav({
   onboarded,
@@ -62,6 +63,10 @@ export function ContributeTabsNav({
           Settings
           <ActivityDot tab="SETTINGS" />
         </Tab>
+        {/* The agent runs, on every tab: held at the end, so a phone's scrolled tabs never hide it. */}
+        <li className="sticky right-0 ms-auto flex shrink-0 items-center bg-background ps-3 pe-1 empty:hidden">
+          <AgentRunsIndicator />
+        </li>
       </TabsBar>
       <ActivityBar />
     </ChangesProvider>

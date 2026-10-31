@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 
+import { WorkingNowSection } from './agent-runs';
 import {
   ImpactSection,
   NeedsYouSection,
@@ -10,6 +11,7 @@ import {
 } from './overview-sections';
 import type { OverviewSections } from './overview-status';
 import {
+  loadContributeActivity,
   loadOverviewImpact,
   loadOverviewNeeds,
   loadOverviewNow,
@@ -18,6 +20,10 @@ import {
 import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
 
 type Feed = Promise<ContributeIssuePage | null | undefined>;
+
+async function WorkingNowRead() {
+  return <WorkingNowSection activity={await loadContributeActivity()} />;
+}
 
 async function NeedsYouRead({ view }: { view: ContributeView }) {
   return <NeedsYouSection view={view} read={await loadOverviewNeeds()} />;
@@ -45,6 +51,12 @@ async function UpNextRead({ feed }: { feed: Feed }) {
  * `feed` is the feed's first page, read once: Up next shows it, and Right now tells "no issues" from it.
  */
 export const overviewReadSectionsOf = (view: ContributeView, feed: Feed): OverviewSections => ({
+  // The tabs read it too (once per request); with no runs it renders nothing, so it waits with no skeleton.
+  working: (
+    <Suspense fallback={null}>
+      <WorkingNowRead />
+    </Suspense>
+  ),
   needs: (
     <Suspense fallback={<SectionSkeleton className="h-20" />}>
       <NeedsYouRead view={view} />

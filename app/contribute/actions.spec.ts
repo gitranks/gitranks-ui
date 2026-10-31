@@ -611,7 +611,7 @@ describe('readIssueStatuses and readIssuesPage', () => {
 
 describe('readContributeChanges', () => {
   const CHANGES = { version: '4.2', activity: false, changed: [] };
-  const ACTIVITY = { items: [], readAt: '2026-10-31T21:00:00.000Z' };
+  const ACTIVITY = { items: [], runs: [], readAt: '2026-10-31T21:00:00.000Z' };
   const as = (githubLogin: string) => auth.mockResolvedValue({ user: { githubLogin }, expires: '2099-01-01' });
 
   beforeEach(() => {
@@ -652,15 +652,19 @@ describe('readContributeChanges', () => {
     });
   });
 
-  it('never reads or runs the work in progress for a login the modes are not shown to; leaves it out when it fails', async () => {
+  it('reads only the agent runs for a login the modes are not shown to; leaves the activity out when it fails', async () => {
     as('octocat');
-    graphqlDirect.mockResolvedValueOnce({ contributeChanges: { ...CHANGES, activity: true, changed: ['SET'] } });
-    // Nothing would ever settle the flag for them: it never holds their poll fast.
+    const changes = { ...CHANGES, activity: true, changed: ['SET'] };
+    const reads = { kind: 'FIRST_READS', label: 'Reading issues from 1 of 2 repos' };
+    const run = { attemptId: 'a1', phase: 'WORKING', active: true };
+    graphqlDirect
+      .mockResolvedValueOnce({ contributeChanges: changes })
+      .mockResolvedValueOnce({ contributeActivity: { ...ACTIVITY, items: [reads], runs: [run] } });
+    // The activity read settles the flag for them too: their runs hold the poll fast while an agent works.
     expect(await actions.readContributeChanges('3.2', true)).toEqual({
       ok: true,
-      data: { changes: { ...CHANGES, activity: false, changed: ['SET'] } },
+      data: { changes, activity: { ...ACTIVITY, items: [], runs: [run] } },
     });
-    expect(graphqlDirect).toHaveBeenCalledTimes(1);
 
     as('maslianok');
     graphqlDirect.mockResolvedValueOnce({ contributeChanges: CHANGES }).mockRejectedValueOnce(new Error('down'));

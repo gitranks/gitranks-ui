@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { QUEUED, READY, WORKING } from './__fixtures__/agent-runs';
 import {
   changesPollRunning,
   clearChangesWake,
@@ -10,6 +11,7 @@ import {
   setChangesWake,
 } from './changes-bus';
 import {
+  ACTIVITY_RUNS_READ_MS,
   ACTIVITY_WAITING_READ_MS,
   ANNOUNCE_MS,
   afterChangesRead,
@@ -25,6 +27,7 @@ import {
   heldOf,
   readsActivity,
   refreshesFor,
+  runningOf,
   startChangesPolling,
   takesVersion,
 } from './changes-poll';
@@ -41,7 +44,7 @@ const item = (kind: ContributeActivityItem['kind'], done = 0): ContributeActivit
   expectedAt: null,
   repos: [{ repositoryId: 'R_1', nameWithOwner: 'acme/one', stage: done ? 'READ' : 'READING' }],
 });
-const activityOf = (...items: ContributeActivityItem[]): ContributeActivity => ({ items, readAt: AT });
+const activityOf = (...items: ContributeActivityItem[]): ContributeActivity => ({ items, runs: [], readAt: AT });
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -273,11 +276,53 @@ describe('what a read does', () => {
 
   it('reads the bar while something runs, and a wait only every five minutes', () => {
     const waiting = activityOf(item('FIRST_READS_WAITING'));
-    expect(readsActivity({ activity: null, running: true, waitingReadDue: false })).toBe(true);
-    expect(readsActivity({ activity: waiting, running: false, waitingReadDue: false })).toBe(false);
-    expect(readsActivity({ activity: waiting, running: false, waitingReadDue: true })).toBe(true);
-    expect(readsActivity({ activity: activityOf(), running: false, waitingReadDue: true })).toBe(false);
+    expect(readsActivity({ activity: null, running: true, waitingReadDue: false, runsReadDue: false })).toBe(true);
+    expect(readsActivity({ activity: waiting, running: false, waitingReadDue: false, runsReadDue: false })).toBe(false);
+    expect(readsActivity({ activity: waiting, running: false, waitingReadDue: true, runsReadDue: false })).toBe(true);
+    expect(readsActivity({ activity: activityOf(), running: false, waitingReadDue: true, runsReadDue: false })).toBe(
+      false,
+    );
     expect(ACTIVITY_WAITING_READ_MS).toBe(5 * 60_000);
+  });
+
+  it('goes fast while an agent works on a run, reads a settled one every minute, an unsettled wait every five', () => {
+    const working = { ...activityOf(), runs: [WORKING] };
+    const settled = { ...activityOf(), runs: [QUEUED, READY] };
+    const queued = { ...activityOf(), runs: [QUEUED] };
+    expect(runningOf(working)).toBe(true);
+    expect(runningOf(settled)).toBe(false);
+    const reads = (activity: ContributeActivity, runsReadDue: boolean, waitingReadDue = false) =>
+      readsActivity({ activity, running: false, waitingReadDue, runsReadDue });
+    expect(reads(settled, false)).toBe(false);
+    expect(reads(settled, true)).toBe(true);
+    // A queued run moves only with a state the API names: the minute's look is not for it.
+    expect(reads(queued, true)).toBe(false);
+    expect(reads(queued, true, true)).toBe(true);
+    expect(reads(activityOf(), true, true)).toBe(false);
+    expect(ACTIVITY_RUNS_READ_MS).toBe(60_000);
+  });
+
+  it('keeps the page’s newer work over a read that began before it', () => {
+    const page = { ...activityOf(), runs: [READY], readAt: '2026-10-31T12:00:10.000Z' };
+    const held = heldOf('4.2', page, 0);
+    const older = { ...activityOf(), runs: [WORKING], readAt: '2026-10-31T12:00:00.000Z' };
+    const step = afterChangesRead(
+      held,
+      { changes: { version: '4.2', activity: true, changed: [] }, activity: older },
+      '/contribute',
+      1,
+    );
+    expect(step.tookActivity).toBe(false);
+    expect(step.held.activity).toBe(page);
+    const newer = { ...older, readAt: '2026-10-31T12:00:20.000Z' };
+    const next = afterChangesRead(
+      held,
+      { changes: { version: '4.3', activity: true, changed: [] }, activity: newer },
+      '/contribute',
+      2,
+    );
+    expect(next.tookActivity).toBe(true);
+    expect(next.held.activity).toBe(newer);
   });
 
   it('nothing moved: the version is kept, the page is not read again', () => {
@@ -289,7 +334,7 @@ describe('what a read does', () => {
       1,
     );
 
-    expect(step).toEqual({ held: { ...held, version: '4.2' }, moved: false, changed: false });
+    expect(step).toEqual({ held: { ...held, version: '4.2' }, moved: false, changed: false, tookActivity: false });
   });
 
   it('an attempt moved: the overview reads itself again, the version moves on', () => {

@@ -24,21 +24,22 @@ describe('the activity, as the bar reads it', () => {
     expect(activityTabOf('/contribute/settings/switch/stack')).toBe('SETTINGS');
     expect(activityTabOf('/contribute/settingsx')).toBeNull();
     expect(activityTabOf('/contribute/me')).toBeNull();
-    expect(itemsOn({ items: [item()], readAt: '' }, 'OVERVIEW')).toEqual([]);
-    expect(itemsOn({ items: [item()], readAt: '' }, null)).toEqual([]);
+    expect(itemsOn({ items: [item()], runs: [], readAt: '' }, 'OVERVIEW')).toEqual([]);
+    expect(itemsOn({ items: [item()], runs: [], readAt: '' }, null)).toEqual([]);
     expect(itemsOn(null, 'ISSUES')).toEqual([]);
   });
 
   it('moves when an item ends or a repo moves on, not otherwise', () => {
-    const before = activitySignatureOf({ items: [item()], readAt: 'a' });
-    expect(activitySignatureOf({ items: [item()], readAt: 'b' })).toBe(before);
+    const before = activitySignatureOf({ items: [item()], runs: [], readAt: 'a' });
+    expect(activitySignatureOf({ items: [item()], runs: [], readAt: 'b' })).toBe(before);
     expect(
       activitySignatureOf({
         items: [item({ repos: [{ repositoryId: 'R_1', nameWithOwner: 'a/b', stage: 'READING' }] })],
+        runs: [],
         readAt: 'b',
       }),
     ).not.toBe(before);
-    expect(activitySignatureOf({ items: [], readAt: 'c' })).toBe('');
+    expect(activitySignatureOf({ items: [], runs: [], readAt: 'c' })).toBe('');
     expect(activitySignatureOf(null)).toBe('');
   });
 

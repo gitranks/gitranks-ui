@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { LiveRunPhase } from './agent-runs';
 import { ContributeNotices } from './contribute-notices';
 import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { HEADING, PageTitle, Pill } from './primitives';
@@ -23,8 +24,15 @@ import {
   SUBMIT_STEP_TEXT,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
-import { loadAttempts, loadContribute, loadContributions, loadOpenPrDrafts } from '@/lib/contribute/contribute.data';
+import {
+  loadAttempts,
+  loadContribute,
+  loadContributeActivity,
+  loadContributions,
+  loadOpenPrDrafts,
+} from '@/lib/contribute/contribute.data';
 import type {
+  ContributeActivity,
   ContributeAttempt,
   ContributeAttemptState,
   ContributeContribution,
@@ -37,15 +45,24 @@ import { AUTOPILOT_UNLOCK_AT, dayLabel, relativeLabel, timeLeftLabel, usd } from
 import { cn } from '@/lib/utils';
 
 export async function ContributionsView() {
-  const [view, contributions, attempts] = await Promise.all([
+  const [view, contributions, attempts, activity] = await Promise.all([
     loadContribute(),
     loadContributions(),
     loadAttempts(undefined, 50),
+    loadContributeActivity().catch(() => null),
   ]);
   if (!view) notFound();
   if (!isContributePageOpen(view, 'me')) redirect('/contribute');
   const drafts = await loadOpenPrDrafts(contributions);
-  return <ContributionsScreen view={view} contributions={contributions} attempts={attempts} drafts={drafts} />;
+  return (
+    <ContributionsScreen
+      view={view}
+      contributions={contributions}
+      attempts={attempts}
+      drafts={drafts}
+      activity={activity}
+    />
+  );
 }
 
 /** The reply drafts of each open pull request, by its id; `undefined` for one the API does not answer. */
@@ -297,7 +314,15 @@ function ownAgentWorkText(attempt: ContributeAttempt, now?: Date): string {
   return `${agent} is on it${held}${asked}`;
 }
 
-function InProgress({ attempts, now }: { attempts: ContributeAttempt[]; now?: Date }) {
+function InProgress({
+  attempts,
+  activity,
+  now,
+}: {
+  attempts: ContributeAttempt[];
+  activity?: ContributeActivity | null;
+  now?: Date;
+}) {
   if (!attempts.length) return null;
   return (
     <section
@@ -315,21 +340,28 @@ function InProgress({ attempts, now }: { attempts: ContributeAttempt[]; now?: Da
             attempt={attempt}
             action="Details"
             text={
-              attempt.state === 'SUBMITTING' && attempt.submit
-                ? `${labelOf(SUBMIT_STEP_TEXT, attempt.submit.step)}${
-                    attempt.submit.step === 'WAITING_CAP' && attempt.submit.waitUntil
-                      ? ` It goes on ${relativeLabel(attempt.submit.waitUntil, now)}.`
-                      : ''
-                  }`
-                : isOwnAgent(attempt)
-                  ? ownAgentWorkText(attempt, now)
-                  : `Started ${relativeLabel(attempt.createdAt, now)} · ${usd(attempt.costUsd)} of ${usd(attempt.budgetUsd)}`
+              <LiveRunPhase attemptId={attempt.attemptId} activity={activity}>
+                {inProgressTextOf(attempt, now)}
+              </LiveRunPhase>
             }
           />
         ))}
       </ul>
     </section>
   );
+}
+
+/** An in-progress row's own line: the submission's step, the user's own agent, or when it started and its spend. */
+function inProgressTextOf(attempt: ContributeAttempt, now?: Date): string {
+  return attempt.state === 'SUBMITTING' && attempt.submit
+    ? `${labelOf(SUBMIT_STEP_TEXT, attempt.submit.step)}${
+        attempt.submit.step === 'WAITING_CAP' && attempt.submit.waitUntil
+          ? ` It goes on ${relativeLabel(attempt.submit.waitUntil, now)}.`
+          : ''
+      }`
+    : isOwnAgent(attempt)
+      ? ownAgentWorkText(attempt, now)
+      : `Started ${relativeLabel(attempt.createdAt, now)} · ${usd(attempt.costUsd)} of ${usd(attempt.budgetUsd)}`;
 }
 
 function PrStatePill({ contribution }: { contribution: ContributeContribution }) {
@@ -511,6 +543,7 @@ export function ContributionsScreen({
   contributions,
   attempts,
   drafts = {},
+  activity,
   now,
 }: {
   view: ContributeView;
@@ -518,6 +551,8 @@ export function ContributionsScreen({
   attempts: ContributeAttempt[] | undefined;
   /** The reply drafts of the open pull requests, by pull request id. */
   drafts?: DraftsByPr;
+  /** The work in progress, for the live phase of the runs in progress. */
+  activity?: ContributeActivity | null;
   now?: Date;
 }) {
   const spend = view.contributor?.spend;
@@ -554,7 +589,7 @@ export function ContributionsScreen({
         attemptCapUsd={view.contributor?.settings?.attemptCapUsd}
         now={now}
       />
-      <InProgress attempts={inProgress} now={now} />
+      <InProgress attempts={inProgress} activity={activity} now={now} />
       <div className="flex flex-wrap items-start gap-5">
         <PullRequests contributions={contributions} now={now} />
         <aside className="flex min-w-0 flex-[1_1_320px] flex-col gap-3.5">

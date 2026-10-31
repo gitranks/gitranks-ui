@@ -46,6 +46,9 @@ export function ActivityProvider({
   return <ActivityContext.Provider value={{ activity, announced }}>{children}</ActivityContext.Provider>;
 }
 
+/** The work in progress the tabs' poll last read. */
+export const useActivity = () => useContext(ActivityContext).activity;
+
 /** A small dot on a tab with work in progress. */
 export function ActivityDot({ tab }: { tab: ContributeActivityTab }) {
   const { activity } = useContext(ActivityContext);

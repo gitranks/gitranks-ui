@@ -704,7 +704,56 @@ export type ContributeActivityItem = {
 };
 
 /** The user's work in progress; no items when nothing runs. */
-export type ContributeActivity = { items: ContributeActivityItem[]; readAt: string };
+/** Where an agent run is; READY, DONE and STOPPED are settled (shown for 10 minutes, then gone). */
+export type ContributeAgentRunPhase =
+  | 'QUEUED'
+  | 'CHECKING_ISSUE'
+  | 'WORKING'
+  | 'ADDRESSING_REVIEW'
+  | 'RUNNING_CHECKS'
+  | 'WAITING_FOR_YOU'
+  | 'SUBMITTING'
+  | 'READY'
+  | 'DONE'
+  | 'STOPPED';
+
+/** One of the user's agent runs: live, or settled in the last 10 minutes. */
+export type ContributeAgentRun = {
+  attemptId: string;
+  nameWithOwner: string | null;
+  /** The issue. */
+  number: number;
+  title: string | null;
+  kind: ContributeAttemptKind;
+  runner: ContributeAttemptRunner;
+  state: ContributeAttemptState;
+  phase: ContributeAgentRunPhase;
+  /** One plain line, e.g. "Running checks", "Queued, 2nd in line". */
+  label: string;
+  /** An agent works on it now; false while it waits (queued, the autopilot's hour) or settled. */
+  active: boolean;
+  queuedAt: string;
+  /** Null while queued. */
+  startedAt: string | null;
+  /** Null while live. */
+  settledAt: string | null;
+  /** From the start (the queueing while queued) to the settle, or to the read. */
+  elapsedSeconds: number;
+  /** A hosted run's spend so far and its cap; null for the user's own agent. */
+  spendUsd: number | null;
+  budgetUsd: number | null;
+  latestEvent: ContributeAttemptEvent | null;
+  /** 1 for the next queued attempt to start. */
+  queuePosition: number | null;
+  /** The user's own agent: its last call. */
+  lastCallAt: string | null;
+  /** WAITING_FOR_YOU: when autopilot submits. */
+  autosubmitAt: string | null;
+  endReason: ContributeAttemptEndReason | null;
+  prUrl: string | null;
+};
+
+export type ContributeActivity = { items: ContributeActivityItem[]; runs: ContributeAgentRun[]; readAt: string };
 
 /** What a change touched: an attempt, the issues computed for the user, an issue's availability, the list, settings. */
 export type ContributeChangeArea = 'ATTEMPTS' | 'FEED' | 'ISSUES' | 'SET' | 'SETTINGS' | 'ACTIVITY';

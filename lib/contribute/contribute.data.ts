@@ -62,7 +62,7 @@ import type {
 import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
 import { ISSUES_PAGE_SIZE } from './live-issues';
-import { contributeModesShown } from './modes-gate';
+import { activityFor, contributeModesShown } from './modes-gate';
 import {
   IN_FLIGHT_READ,
   IN_FLIGHT_STATES,
@@ -264,19 +264,20 @@ export const loadContributeSet = cache(async (): Promise<ContributeSet | null | 
 });
 
 /**
- * What the API is working on for the signed-in user (new repos read, the stack worked out). Null when the modes are
- * not shown to them, the API hides it or does not answer: no activity is shown then. Read once per request.
+ * What the API is working on for the signed-in user: new repos read, the stack worked out (only when the modes are
+ * shown to them: `activityFor`), and their agent runs. Null when the API hides it or does not answer: no activity is
+ * shown then. Read once per request.
  */
 export const loadContributeActivity = cache(async (): Promise<ContributeActivity | null> => {
   const githubLogin = await viewerLogin();
-  if (!contributeModesShown(githubLogin)) return null;
+  if (!githubLogin) return null;
 
   try {
     const { contributeActivity } = await graphqlDirect(ContributeActivityDocument, undefined, {
       source: 'ssr',
-      githubLogin: githubLogin as string,
+      githubLogin,
     });
-    return contributeActivity;
+    return activityFor(githubLogin, contributeActivity);
   } catch {
     return null;
   }

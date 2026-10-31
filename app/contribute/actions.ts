@@ -1,6 +1,7 @@
 'use server';
 
 import { agentConnectedOf } from '@/lib/contribute/agent-connect';
+import { anyActive, runsOf } from '@/lib/contribute/agent-runs';
 import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import {
@@ -83,7 +84,7 @@ import {
 import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
 import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
-import { contributeModesShown } from '@/lib/contribute/modes-gate';
+import { activityFor, contributeModesShown } from '@/lib/contribute/modes-gate';
 import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type DocumentNode from '@/types/typed-document-node';
@@ -508,7 +509,7 @@ const VERSION = /^\d{1,15}\.\d{1,15}$/;
 /**
  * Contribute's one poll: what moved since `since` (a version a previous read answered; null for none). The work in
  * progress is read in the same call when `withActivity`, when a long read may run, or when it may have started or
- * ended; a failed read of it leaves it out. For a login the modes are not shown to, it is never read and never runs.
+ * ended; a failed read of it leaves it out. For a login the modes are not shown to, it holds the agent runs alone.
  * Null when the API hides Contribute from the user.
  */
 export async function readContributeChanges(
@@ -530,17 +531,20 @@ export async function readContributeChanges(
   if (!changes) return { ok: true, data: null };
   const reads =
     withActivity === true || changes.activity || changes.changed.some((area) => area === 'ACTIVITY' || area === 'SET');
-  // The work in progress is the modes': without them, nothing is read and nothing holds the poll fast.
-  if (!contributeModesShown(githubLogin)) return { ok: true, data: { changes: { ...changes, activity: false } } };
   if (!reads) return { ok: true, data: { changes } };
   try {
     const { contributeActivity } = await graphqlDirect(ContributeActivityDocument, undefined, {
       source: 'client',
       githubLogin,
     });
-    return { ok: true, data: { changes, activity: contributeActivity } };
+    // The reads of the modes only for a login they are shown to; the agent runs for everyone. For the others, only an
+    // agent at work holds the poll fast: their hidden reads never do.
+    const activity = activityFor(githubLogin, contributeActivity);
+    if (contributeModesShown(githubLogin)) return { ok: true, data: { changes, activity } };
+    return { ok: true, data: { changes: { ...changes, activity: anyActive(runsOf(activity)) }, activity } };
   } catch {
-    return { ok: true, data: { changes } };
+    if (contributeModesShown(githubLogin)) return { ok: true, data: { changes } };
+    return { ok: true, data: { changes: { ...changes, activity: false } } };
   }
 }
 

@@ -1,4 +1,4 @@
-import type { ContributeChangeArea } from './contribute.types';
+import type { ContributeActivity, ContributeChangeArea } from './contribute.types';
 
 /**
  * Between the one poll (in the tabs, `ChangesProvider`) and the parts of the page that follow it: the page is a sibling
@@ -54,3 +54,26 @@ export function setChangesWake(readNow: () => void): void {
 export function clearChangesWake(readNow: () => void): void {
   if (wake === readNow) wake = null;
 }
+
+type ActivityListener = () => void;
+
+const activityListeners = new Set<ActivityListener>();
+let latestActivity: ContributeActivity | null = null;
+
+/** The poll's side: the work in progress it last read (the agent runs the page's parts show). */
+export function publishContributeActivity(activity: ContributeActivity | null): void {
+  if (activity === latestActivity) return;
+  latestActivity = activity;
+  for (const listener of [...activityListeners]) listener();
+}
+
+/** Hears every new read of the work in progress (`useSyncExternalStore`'s subscribe); returns the unsubscribe. */
+export function onContributeActivity(listener: ActivityListener): () => void {
+  activityListeners.add(listener);
+  return () => {
+    activityListeners.delete(listener);
+  };
+}
+
+/** The work in progress the poll last read; null before its first. */
+export const contributeActivitySnapshot = () => latestActivity;

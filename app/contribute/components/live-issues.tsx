@@ -21,6 +21,7 @@ import type { IssueLive } from './issue-live-status';
 import { isGone, useFocusOnGone } from './issue-live-status';
 import { type IssuesQuery, issuesHref } from './issues-filter';
 import { OtherIssuesDivider, SetIssuesHeading } from './issues-mode';
+import { onContributeChanges } from '@/lib/contribute/changes-bus';
 import type { ContributeIssue, ContributeIssuesFilter, ContributeSet } from '@/lib/contribute/contribute.types';
 import {
   createLiveFeed,
@@ -28,7 +29,6 @@ import {
   type LiveFeed,
   type LiveRow,
   type LiveSnapshot,
-  startStatusPolling,
 } from '@/lib/contribute/live-issues';
 import { tiersOf } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
@@ -62,11 +62,11 @@ export function moveFocusOff(scope: HTMLElement | null, issueId: string) {
 }
 
 /**
- * Keeps a list of issues as they are now: its rows are read again every 20 s while the tab is shown (a minute once
- * the user is idle), and a taken one says so, then leaves; the total counts it out, and a page left short is filled
- * from the next issues under the same filters. The focus on a row that leaves moves to the next row, or the list.
- * One list for the life of the page: a newer read of it is taken in, never a list made anew, so nothing around it
- * (the filters, the focus) starts over.
+ * Keeps a list of issues as they are now: its rows are read again when Contribute's poll says an issue's availability
+ * may have moved (`ISSUES`), and a taken one says so, then leaves; the total counts it out, and a page left short is
+ * filled from the next issues under the same filters. The focus on a row that leaves moves to the next row, or the
+ * list. One list for the life of the page: a newer read of it is taken in, never a list made anew, so nothing around
+ * it (the filters, the focus) starts over.
  */
 function useLiveFeed(
   page: LivePage,
@@ -99,7 +99,20 @@ function useLiveFeed(
   useEffect(() => {
     feed.start();
     feed.onBeforeRemove((issueId) => moveFocusOff(root.current, issueId));
-    const stop = startStatusPolling(feed.poll, { document, window });
+    let reading = false;
+    const stop = onContributeChanges((changed) => {
+      if (reading || !changed.includes('ISSUES')) return;
+      reading = true;
+      void feed
+        .poll()
+        .then((outcome) => {
+          if (outcome === 'stop') stop();
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          reading = false;
+        });
+    });
     return () => {
       stop();
       feed.onBeforeRemove(null);

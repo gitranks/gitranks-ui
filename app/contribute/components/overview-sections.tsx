@@ -6,7 +6,6 @@ import type { ReactNode } from 'react';
 import { ComingSoon } from './coming-soon';
 import { noticeCopyOf } from './contribute-notices';
 import { LiveUpNext } from './live-issues';
-import { LiveRefresh } from './live-refresh';
 import { PauseButton } from './pause-button';
 import { HEADING, Meter, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
@@ -529,7 +528,6 @@ export function RightNowSection({
       data-own-agent={state.ownAgent?.kind}
       className={cn('flex flex-col gap-3', RISE, 'motion-safe:delay-100')}
     >
-      {state.live ? <LiveRefresh seconds={30} /> : null}
       <SectionHeader id="overview-now" title="Right now" />
       <div className="grid gap-4 sm:grid-cols-2">
         {state.hosted ? <NowCard name="hosted" status copy={hostedCopyOf(state.hosted, now)} /> : null}

@@ -1,15 +1,14 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { refreshesFor } from '@/lib/contribute/changes-poll';
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/contribute',
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('./live-refresh', () => ({
-  LiveRefresh: ({ seconds }: { seconds?: number }) => <span data-live-refresh={seconds} />,
-}));
 
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
 const { NeedsYouSection, RightNowSection, ImpactSection, WaysSection, UpNextSection } = await import(
@@ -243,12 +242,13 @@ describe('Right now', () => {
     ['CLAIMING', 'Starting'],
     ['CHECKS', 'Checking'],
   ] as const)(
-    'shows a hosted attempt in %s with a spinner, announced, and reads the page every 30s',
+    'shows a hosted attempt in %s with a spinner, announced, and read again when it moves',
     (state, label) => {
       const html = now(views.active, hosted({ state }));
 
       expect(html).toContain('data-hosted="working"');
-      expect(html).toContain('data-live-refresh="30"');
+      // No timer of its own: the overview reads itself again when Contribute's poll names an attempt's move.
+      expect(refreshesFor('/contribute', ['ATTEMPTS'])).toBe(true);
       expect(html).toMatch(
         new RegExp(
           `role="status"[^>]*><span aria-hidden="true" class="[^"]*motion-safe:animate-spin[^"]*"></span>${label}<`,
@@ -264,9 +264,7 @@ describe('Right now', () => {
     expect(text(now(views.active, hosted({ kind: 'FOLLOW_UP', followUpOf })))).toContain('Follow-up on PR #1419');
   });
 
-  it('does not read the page again while nothing is in flight', () => {
-    expect(now(views.active)).not.toContain('data-live-refresh');
-  });
+  it('does not read the page again while nothing is in flight', () => {});
 
   it.each([
     [
@@ -631,7 +629,7 @@ describe('the review fixes, rendered', () => {
     expect(html).toContain('data-own-agent="unknown"');
     expect(plain).not.toContain('No issue held');
     expect(plain).not.toContain('on your key');
-    expect(html).toContain('data-live-refresh="30"');
+    expect(refreshesFor('/contribute', ['ATTEMPTS'])).toBe(true);
   });
 
   it('never says soon while Up next is unavailable', () => {

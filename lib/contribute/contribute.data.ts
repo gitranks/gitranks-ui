@@ -16,6 +16,7 @@ import {
   ContributeAttemptsOpenDocument,
   ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
+  ContributeChangesDocument,
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
   ContributeContributionsOwnAgentDocument,
@@ -269,6 +270,25 @@ export const loadContributeActivity = cache(async (): Promise<ContributeActivity
       githubLogin: githubLogin as string,
     });
     return contributeActivity;
+  } catch {
+    return null;
+  }
+});
+
+/**
+ * The version of what the signed-in user sees, as this request reads it: the poll's baseline, so it names only what
+ * moves after the page was read. Null when the API hides it or does not answer (the first poll sets the baseline).
+ */
+export const loadContributeVersion = cache(async (): Promise<string | null> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+  try {
+    const { contributeChanges } = await graphqlDirect(
+      ContributeChangesDocument,
+      { since: null },
+      { source: 'ssr', githubLogin },
+    );
+    return contributeChanges?.version ?? null;
   } catch {
     return null;
   }

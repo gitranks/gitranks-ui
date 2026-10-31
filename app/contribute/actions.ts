@@ -10,6 +10,7 @@ import {
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
   ContributeActivityDocument,
+  ContributeChangesDocument,
   ContributeFeedComputedDocument,
   ContributeIssueStatusDocument,
   ContributeIssuesDocument,
@@ -40,8 +41,9 @@ import {
   WithdrawProviderInterestDocument,
 } from '@/lib/contribute/contribute.documents';
 import type {
-  ContributeActivity,
   ContributeAttempt,
+  ContributeChanges,
+  ContributeChangesRead,
   ContributeClaudePlan,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
@@ -402,11 +404,42 @@ const oneOf = <T extends string>(values: readonly T[], value: unknown): value is
 const invalid = (message: string) => ({ ok: false as const, error: 'INVALID' as const, message });
 
 /** What the API is working on for the user now; null when the modes are not shown to them. */
-export async function readContributeActivity(): Promise<ContributeActionResult<ContributeActivity | null>> {
+const VERSION = /^\d{1,15}\.\d{1,15}$/;
+
+/**
+ * Contribute's one poll: what moved since `since` (a version a previous read answered; null for none). The work in
+ * progress is read in the same call when `withActivity`, when a long read may run, or when it may have started or
+ * ended; a failed read of it leaves it out. Null when the API hides Contribute from the user.
+ */
+export async function readContributeChanges(
+  since: string | null,
+  withActivity: boolean,
+): Promise<ContributeActionResult<ContributeChangesRead | null>> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
-  if (!contributeModesShown(githubLogin)) return { ok: true, data: null };
-  return run(ContributeActivityDocument, undefined, (data) => data.contributeActivity);
+  const variables = { since: typeof since === 'string' && VERSION.test(since) ? since : null };
+  let changes: ContributeChanges | null;
+  try {
+    ({ contributeChanges: changes = null } = await graphqlDirect(ContributeChangesDocument, variables, {
+      source: 'client',
+      githubLogin,
+    }));
+  } catch (error) {
+    return { ok: false, ...contributeErrorOf(error) };
+  }
+  if (!changes) return { ok: true, data: null };
+  const reads =
+    withActivity === true || changes.activity || changes.changed.some((area) => area === 'ACTIVITY' || area === 'SET');
+  if (!reads || !contributeModesShown(githubLogin)) return { ok: true, data: { changes } };
+  try {
+    const { contributeActivity } = await graphqlDirect(ContributeActivityDocument, undefined, {
+      source: 'client',
+      githubLogin,
+    });
+    return { ok: true, data: { changes, activity: contributeActivity } };
+  } catch {
+    return { ok: true, data: { changes } };
+  }
 }
 
 /** Switches where the user's issues come from; each mode keeps its own list. */

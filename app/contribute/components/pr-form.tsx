@@ -30,6 +30,7 @@ import {
   tabStoreOf,
   takePendingApproval,
 } from '@/lib/contribute/grant-resume';
+import { settingsPathOf } from '@/lib/contribute/settings-paths';
 
 export type PrFormProps = {
   attemptId: string;
@@ -208,7 +209,7 @@ export function PrForm({
       {standing ? (
         <p data-dco="standing" className="text-xs text-muted-foreground">
           The commits are signed off (DCO) under your standing consent.{' '}
-          <Link href="/contribute/settings" prefetch={false} className="text-link">
+          <Link href={settingsPathOf('prs')} prefetch={false} className="text-link">
             Change it in Settings
           </Link>
           .

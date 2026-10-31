@@ -28,7 +28,8 @@ const ANCHORS: Record<string, Route> = {
 };
 
 /** The page an old Settings `#anchor` is on now, or null when it stays on the summary. */
-export const movedAnchorOf = (anchor: string): Route | null => ANCHORS[anchor] ?? null;
+export const movedAnchorOf = (anchor: string): Route | null =>
+  Object.hasOwn(ANCHORS, anchor) ? ANCHORS[anchor] : null;
 
 /** Where a Settings section is: its own page, or the summary at its anchor. */
 export const settingsPathOf = (anchor: string): Route =>

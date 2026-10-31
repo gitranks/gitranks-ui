@@ -18,7 +18,9 @@ const { helperModelLabelOf, testModelLabelOf } = await import('./settings-form')
 const { sizeLabelOf } = await import('./preferences-fields');
 const { KINDS, LANGUAGES } = await import('@/lib/contribute/format');
 const { SettingsScreen } = await import('./settings-view');
-const { FormSettingsScreen, KeysSettingsScreen, WorkSettingsScreen } = await import('./settings-pages');
+const { FormSettingsScreen, KeysSettingsScreen, OwnAgentSettingsScreen, WorkSettingsScreen } = await import(
+  './settings-pages'
+);
 const { IssuesScreen } = await import('./issues-view');
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
 const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
@@ -544,12 +546,20 @@ describe('the heading scale', () => {
 describe('the confirms before what cannot be undone', () => {
   it('open from Remove key, Revoke (GitHub) and Revoke (token), which act only from the dialog', () => {
     const view = { ...views.active, ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken()] } };
-    const html = renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />);
-    const triggers = [...html.matchAll(/<button[^>]*aria-haspopup="dialog"[^>]*>(.*?)<\/button>/g)].map(([, label]) =>
-      text(label).trim(),
+    const html = renderToStaticMarkup(
+      <>
+        <KeysSettingsScreen view={view} now={NOW} />
+        <OwnAgentSettingsScreen view={view} now={NOW} />
+      </>,
     );
+    const triggersOf = (markup: string) =>
+      [...markup.matchAll(/<button[^>]*aria-haspopup="dialog"[^>]*>(.*?)<\/button>/g)].map(([, label]) =>
+        text(label).trim(),
+      );
 
-    expect(triggers).toEqual(['Remove key', 'Revoke', 'Revoke Claude Code on macOS']);
+    expect(triggersOf(html)).toEqual(['Remove key', 'Revoke', 'Revoke Claude Code on macOS']);
     expect(text(html)).not.toContain('Yes, remove it');
+    // The summary acts on none of them: its one dialog is autopilot's record.
+    expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />))).toEqual(['Details']);
   });
 });

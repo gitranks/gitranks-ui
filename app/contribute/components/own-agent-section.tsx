@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { createMcpToken, revokeMcpToken } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
-import { Panel, PanelTitle, SubTitle } from './primitives';
+import { HEADING, Panel, PanelTitle, SubTitle } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { ContributeMcpToken, ContributeOwnAgent } from '@/lib/contribute/contribute.types';
@@ -18,6 +18,7 @@ import {
   MCP_TOKEN_NAME_MAX,
   MCP_TOKENS_MAX,
   type McpClient,
+  OWN_AGENT_TEXT,
 } from '@/lib/contribute/mcp-setup';
 import { cn } from '@/lib/utils';
 
@@ -181,10 +182,6 @@ export function SetupLines() {
   );
 }
 
-/** What the user's own agent does with us, under its title. */
-export const OWN_AGENT_TEXT =
-  'Claude Code, Codex, Cursor or Gemini CLI on your machine finds issues here, works on one and hands the change back through our MCP server. You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed.';
-
 /**
  * Settings, "Your own agent (MCP)": the user's tokens for their own agent (create one, shown once; revoke one), the
  * setup for each client, and the safety line. `ownAgent` is `undefined` while the API does not answer it yet.
@@ -280,7 +277,11 @@ export function OwnAgentSection({
               {message}
             </p>
           ) : null}
-          <SubTitle className="pt-1">Set up your agent</SubTitle>
+          {titled ? (
+            <SubTitle className="pt-1">Set up your agent</SubTitle>
+          ) : (
+            <h2 className={cn(HEADING.block, 'pt-1')}>Set up your agent</h2>
+          )}
           <SetupLines />
           <p data-safety className="text-sm font-medium">
             {OWN_AGENT_SAFETY}

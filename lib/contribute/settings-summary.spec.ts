@@ -44,6 +44,7 @@ describe('the Settings pages', () => {
     expect(movedAnchorOf('own-agent')).toBe('/contribute/settings/own-agent');
     expect(movedAnchorOf('modes')).toBe('/contribute/settings/work');
     expect(movedAnchorOf('autopilot')).toBeNull();
+    expect(movedAnchorOf('constructor')).toBeNull();
     expect(settingsPathOf('danger')).toBe('/contribute/settings#danger');
   });
 });

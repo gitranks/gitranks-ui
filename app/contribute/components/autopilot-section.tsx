@@ -121,7 +121,7 @@ export function AutopilotSection({
     >
       <Dialog>
         <DialogTrigger asChild>
-          <Button type="button" variant="ghost" size="sm">
+          <Button type="button" variant="ghost" size="sm" aria-label="Autopilot details">
             Details
           </Button>
         </DialogTrigger>
@@ -145,6 +145,7 @@ export function AutopilotSection({
           checked={checked}
           disabled={pending || !canSave || (!canTurnOn && !checked)}
           onChange={(event) => toggle(event.target.checked)}
+          aria-label="Autopilot"
           className="size-4.5 accent-primary"
         />
         {checked ? 'On' : open && locked ? 'Locked' : 'Off'}

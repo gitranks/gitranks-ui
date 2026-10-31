@@ -1,4 +1,8 @@
 /** The longest name a token may have, and the longest note sent back to the user's own agent. */
+/** What the user's own agent does with us, under its title. */
+export const OWN_AGENT_TEXT =
+  'Claude Code, Codex, Cursor or Gemini CLI on your machine finds issues here, works on one and hands the change back through our MCP server. You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed.';
+
 export const MCP_TOKEN_NAME_MAX = 40;
 export const SEND_BACK_NOTE_MAX = 2_000;
 /** Live tokens a user may hold at once. Creating one never revokes the others. */

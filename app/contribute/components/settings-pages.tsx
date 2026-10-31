@@ -1,7 +1,8 @@
 import Link from 'next/link';
 
 import { AccessSection } from './access-section';
-import { OWN_AGENT_TEXT, OwnAgentSection } from './own-agent-section';
+import { ContributeNotices } from './contribute-notices';
+import { OwnAgentSection } from './own-agent-section';
 import { PreferencesSection } from './preferences-section';
 import { Panel, PanelTitle } from './primitives';
 import { ScrollToHash } from './scroll-to-hash';
@@ -11,8 +12,9 @@ import { SettingsPageHead } from './settings-rows';
 import { loadSettingsView } from './settings-view';
 import { loadContributeSet } from '@/lib/contribute/contribute.data';
 import type { ContributeSet, ContributeView } from '@/lib/contribute/contribute.types';
-import { claudeKeyOf, isOwnAgentOnly, settingsOf } from '@/lib/contribute/contribute-state';
+import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, settingsOf } from '@/lib/contribute/contribute-state';
 import { type GrantRefusal, grantRefusalOf } from '@/lib/contribute/grant-refusal';
+import { OWN_AGENT_TEXT } from '@/lib/contribute/mcp-setup';
 
 export async function WorkSettingsView() {
   const [view, set] = await Promise.all([loadSettingsView(), loadContributeSet()]);
@@ -53,6 +55,11 @@ export function WorkSettingsScreen({
       <ScrollToHash />
     </>
   );
+}
+
+/** The notices the summary shows, on the pages where they are acted on: the key's trouble, the caps reached. */
+function PageNotices({ view }: { view: ContributeView }) {
+  return <ContributeNotices notices={contributeNoticesOf(view).filter(({ kind }) => kind !== 'paused')} />;
 }
 
 /** With their own agent alone, or before a key: the limits have nothing to limit yet, and why. */
@@ -100,6 +107,7 @@ export function FormSettingsScreen({ page, view }: { page: SettingsFormPage; vie
   return (
     <>
       <SettingsPageHead title={title} text={text} />
+      <PageNotices view={view} />
       {settings ? <SettingsForm settings={settings} sections={[...sections]} /> : <NoSettingsPanel view={view} />}
       <ScrollToHash />
     </>
@@ -131,6 +139,7 @@ export function KeysSettingsScreen({
         title="Keys and access"
         text="The Claude key hosted attempts run on, and GitHub's permission to open pull requests for you."
       />
+      <PageNotices view={view} />
       <AccessSection
         credential={claudeKeyOf(view)}
         grant={view.grant}

@@ -27,20 +27,30 @@ describe('the Contribute preview gate', () => {
     }
   });
 
-  it('is open once the API says it is launched, asked once a minute, and closed on any failure', async () => {
+  it('is open once the API says it is launched, asked once a minute and one ask at a time', async () => {
     graphqlDirect.mockResolvedValue({ contributeOpen: true });
-    expect(await contributeOpen(0)).toBe(true);
+    expect(await Promise.all([contributeOpen(0), contributeOpen(0)])).toEqual([true, true]);
+    expect(graphqlDirect).toHaveBeenCalledOnce();
     expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr' });
     expect(await contributeOpen(59_999)).toBe(true);
     expect(graphqlDirect).toHaveBeenCalledOnce();
 
     graphqlDirect.mockResolvedValue({ contributeOpen: false });
     expect(await contributeOpen(60_000)).toBe(false);
-    resetContributeOpen();
+  });
+
+  it('is closed while the API never answered, and keeps its last answer through a failure', async () => {
     graphqlDirect.mockRejectedValue(new Error('Cannot query field "contributeOpen"'));
     expect(await contributeOpen(0)).toBe(false);
-    expect(await contributeOpen(1)).toBe(false);
+
+    graphqlDirect.mockResolvedValueOnce({ contributeOpen: true });
+    expect(await contributeOpen(10_000)).toBe(true);
+    // A failed ask a minute later keeps it open, and tries again 10 seconds on.
+    expect(await contributeOpen(70_000)).toBe(true);
+    expect(await contributeOpen(79_999)).toBe(true);
     expect(graphqlDirect).toHaveBeenCalledTimes(3);
+    graphqlDirect.mockResolvedValueOnce({ contributeOpen: false });
+    expect(await contributeOpen(80_000)).toBe(false);
   });
 
   it('covers /contribute and everything under it, nothing else', () => {

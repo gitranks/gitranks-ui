@@ -31,17 +31,14 @@ const writeCache = (login: string, allowed: boolean) => {
   }
 };
 
-/**
- * "Contribute", shown only to someone GitRanks Contribute is open to: during the preview a signed-in user the API lets
- * in, once launched everyone (a visitor without a session is cached under no login).
- */
+/** "Contribute", shown only to a signed-in user GitRanks Contribute is open to. */
 export function ContributeMenuItem({ active }: Readonly<{ active?: boolean }>) {
-  const { data: session, status } = useSession();
-  const login = session?.user?.githubLogin ?? (status === 'unauthenticated' ? '' : undefined);
+  const { data: session } = useSession();
+  const login = session?.user?.githubLogin;
   const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
-    if (login === undefined) {
+    if (!login) {
       setAllowed(false);
       return;
     }

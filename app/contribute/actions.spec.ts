@@ -155,6 +155,16 @@ describe('the Contribute server actions', () => {
     expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
   });
 
+  it('sends the email with a set write too, and never with a read or a poll', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'maslianok', email: 'm@example.com' }, expires: '2099-01-01' });
+    await actions.setContributeMode('STACK');
+    expect(graphqlDirect.mock.calls[0][2]).toMatchObject({ accountEmail: 'm@example.com' });
+
+    graphqlDirect.mockClear();
+    await actions.readFeedComputedAt();
+    expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
+  });
+
   it.each(SET_ACTIONS)('%s refuses, and calls nothing, for a login the modes are not shown to', async (name) => {
     auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
     const action = (actions as unknown as Record<string, Action>)[name];

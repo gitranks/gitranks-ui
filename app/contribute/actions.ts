@@ -89,6 +89,15 @@ import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type DocumentNode from '@/types/typed-document-node';
 
+/** A write (a mutation) carries the session's email, so the emails the user asks for have an address; a read never. */
+const isWrite = (document: DocumentNode<unknown, never>) =>
+  (document as unknown as { definitions: { kind: string; operation?: string }[] }).definitions.some(
+    (definition) => definition.kind === 'OperationDefinition' && definition.operation === 'mutation',
+  );
+
+const accountEmailFor = async (document: DocumentNode<unknown, never>) =>
+  isWrite(document) ? await viewerEmail() : undefined;
+
 /** Every action runs as the session's user, never one named in its arguments. */
 async function run<TData, TVariables extends Record<string, unknown>, T>(
   document: DocumentNode<TData, TVariables>,
@@ -98,7 +107,7 @@ async function run<TData, TVariables extends Record<string, unknown>, T>(
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   try {
-    const accountEmail = await viewerEmail();
+    const accountEmail = await accountEmailFor(document as DocumentNode<unknown, never>);
     const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
     return { ok: true, data: pick(data) };
   } catch (error) {
@@ -471,7 +480,7 @@ async function runSet<TData, TVariables extends Record<string, unknown>, T>(
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   if (!contributeModesShown(githubLogin)) return { ok: false, error: 'NOT_FOUND' };
   try {
-    const accountEmail = await viewerEmail();
+    const accountEmail = await accountEmailFor(document as DocumentNode<unknown, never>);
     const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
     return { ok: true, data: pick(data) };
   } catch (error) {

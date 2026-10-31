@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { LiveRefresh } from './live-refresh';
 import { PauseButton } from './pause-button';
+import { HEADING } from './primitives';
 import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
 import { CONNECT_KEY_PATH } from '@/lib/contribute/contribute-path';
 import { type FirstRunStep, firstRunStepOf } from '@/lib/contribute/first-run';
@@ -157,7 +158,7 @@ export function FirstRunGuide({
     >
       {step.kind === 'soon' || step.kind === 'no-issues' || step.kind === 'paced' ? <LiveRefresh /> : null}
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <Heading id="first-run-title" className="text-2xl font-bold">
+        <Heading id="first-run-title" className={Heading === 'h1' ? HEADING.page : HEADING.section}>
           You&apos;re in. Here&apos;s what happens next
         </Heading>
         {yours ? null : <span className="text-xs text-muted-foreground">Nothing for you to do until step 2</span>}

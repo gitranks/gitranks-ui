@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
@@ -9,12 +10,13 @@ import { IssueCard } from './issue-card';
 import { filterOf, type IssuesQuery, issuesHref, issuesQueryOf } from './issues-filter';
 import { IssuesFilters } from './issues-filters';
 import { ModeSwitcher, OtherIssuesDivider, SetIssuesHeading, SetOnlyEmpty } from './issues-mode';
-import { Meter } from './primitives';
+import { HEADING, Meter } from './primitives';
 import { ReviewsReady } from './reviews-ready';
 import { StillRanking } from './still-ranking';
 import { loadAttempts, loadContribute, loadContributeSet, loadIssues } from '@/lib/contribute/contribute.data';
 import type {
   ContributeAttempt,
+  ContributeIssue,
   ContributeIssuePage,
   ContributeSet,
   ContributeView,
@@ -29,6 +31,7 @@ import {
 } from '@/lib/contribute/first-run';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
 import { tiersOf } from '@/lib/contribute/set-format';
+import { cn } from '@/lib/utils';
 
 export async function IssuesView({
   searchParams,
@@ -63,6 +66,20 @@ const filtered = (query: IssuesQuery) => !!(query.language || query.kind || quer
 
 /** The user's mode works on its own list alone, and waits when it has nothing ready. */
 const setOnly = (set: ContributeSet) => (set.mode === 'STACK' ? set.stack.fallback : set.repos.fallback) === 'SET_ONLY';
+
+/** The issues as rows of one list; dashed for issues from outside the user's own list. */
+function IssueList({ issues, other = false }: { issues: ContributeIssue[]; other?: boolean }) {
+  if (!issues.length) return null;
+  return (
+    <ul className={cn('divide-y overflow-hidden rounded-xl border bg-card', other && 'border-dashed')}>
+      {issues.map((issue) => (
+        <li key={issue.issueId}>
+          <IssueCard issue={issue} other={other} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function Empty({ title, text }: { title: string; text: React.ReactNode }) {
   return (
@@ -147,18 +164,12 @@ export function IssuesScreen({
         {split && set ? (
           <>
             {split.set.length ? <SetIssuesHeading set={set} /> : null}
-            {split.set.map((issue, index) => (
-              <IssueCard key={issue.issueId} issue={issue} best={index === 0 && !query.after} />
-            ))}
+            <IssueList issues={split.set} />
             {split.other.length ? <OtherIssuesDivider set={set} none={!split.set.length && !query.after} /> : null}
-            {split.other.map((issue) => (
-              <IssueCard key={issue.issueId} issue={issue} other />
-            ))}
+            <IssueList issues={split.other} other />
           </>
         ) : (
-          page.items.map((issue, index) => (
-            <IssueCard key={issue.issueId} issue={issue} best={index === 0 && !query.after} />
-          ))
+          <IssueList issues={page.items} />
         )}
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           {query.after ? (
@@ -191,6 +202,14 @@ export function IssuesScreen({
       : contributeNoticesOf(view);
   const guided = firstRun || agentFirstRun;
   const Heading = guided ? 'h2' : 'h1';
+  const summary = page
+    ? [
+        `${page.total.toLocaleString('en-US')} open issue${page.total === 1 ? '' : 's'} match your languages and topics`,
+        page.computedAt ? `picked ${relativeLabel(page.computedAt, now)}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : 'Open issues that match your languages and topics, in repos that merge outside work.';
 
   return (
     <>
@@ -201,18 +220,15 @@ export function IssuesScreen({
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex min-w-0 flex-col gap-1.5">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <Heading className={guided ? 'text-xl font-bold' : 'text-2xl font-bold tracking-tight'}>
+                <Heading className={guided ? HEADING.section : HEADING.page}>
                   {guided ? 'Picked for you' : 'Issues for you'}
                 </Heading>
                 {set ? <ModeSwitcher set={set} languages={view.contributor?.preferences?.languages ?? []} /> : null}
               </div>
               <span className="text-sm text-muted-foreground" data-total={page?.total ?? ''}>
-                {page
-                  ? `${page.total.toLocaleString('en-US')} open issue${page.total === 1 ? '' : 's'} match your languages and topics. Maintainers agreed each one should be fixed.`
-                  : 'Open issues that match your languages and topics, in repos that merge outside work.'}
-                {page?.computedAt ? ` Picked ${relativeLabel(page.computedAt, now)}.` : ''}
+                {summary}
               </span>
             </div>
             <IssuesFilters query={query} />
@@ -221,7 +237,7 @@ export function IssuesScreen({
         </div>
         <aside className="flex min-w-0 flex-[1_1_280px] flex-col gap-3.5">
           <section className="flex flex-col gap-2.5 rounded-xl border bg-card p-4.5">
-            <h2 className="text-base font-semibold">This cycle</h2>
+            <h2 className={HEADING.card}>This cycle</h2>
             {spend && settings ? (
               <>
                 <div className="flex items-baseline gap-1.5">
@@ -243,13 +259,17 @@ export function IssuesScreen({
               </span>
             )}
           </section>
-          <section className="flex flex-col gap-2 rounded-xl border bg-card p-4.5">
-            <h2 className="text-base font-semibold">How picks work</h2>
-            <span className="text-sm text-muted-foreground">
-              Issues come from active repos that merge outside work, matched to your languages and topics. Skip one and
-              it is not picked for you again. Size is shown where it is known.
-            </span>
-          </section>
+          <details className="group rounded-xl border bg-card text-sm" data-how-picks-work>
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-xl px-4.5 py-3 font-semibold outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+              How picks work
+              <ChevronDown aria-hidden="true" className="size-4 text-muted-foreground group-open:rotate-180" />
+            </summary>
+            <p className="px-4.5 pb-4 text-muted-foreground">
+              Issues come from active repos that merge outside work, matched to your languages and topics, and
+              maintainers agreed each one should be fixed. Skip one and it is not picked for you again. Size is shown
+              where it is known.
+            </p>
+          </details>
         </aside>
       </div>
     </>

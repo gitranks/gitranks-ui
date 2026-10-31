@@ -13,7 +13,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), lo
 
 const { ConnectScreen } = await import('./connect-view');
 const { renewalDayOptionsOf } = await import('./key-connect');
-const { ALL, FILTER_OPTIONS } = await import('./issues-filters');
+const { ALL, FILTER_OPTIONS, activeFiltersOf } = await import('./issues-filters');
 const { helperModelLabelOf, testModelLabelOf } = await import('./settings-form');
 const { sizeLabelOf } = await import('./preferences-fields');
 const { KINDS, LANGUAGES } = await import('@/lib/contribute/format');
@@ -24,7 +24,7 @@ const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-
 const { ContributeNotices } = await import('./contribute-notices');
 const { ConnectResult } = await import('./connect-result');
 const { IssueCard } = await import('./issue-card');
-const { NOW, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { NOW, mcpToken, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
 
 import type { ContributeConnectResult, ContributeIssue, ContributeView } from '@/lib/contribute/contribute.types';
@@ -363,18 +363,17 @@ describe('issues for you', () => {
   const render = (page: Parameters<typeof IssuesScreen>[0]['page'], query = {}) =>
     renderToStaticMarkup(<IssuesScreen view={views.active} page={page} query={query} now={NOW} />);
 
-  it('says each filter in its trigger, "All …" for none, and offers the same items', () => {
-    const triggers = (html: string) =>
-      [...html.matchAll(/role="combobox"[^>]*><span data-slot="select-value"[^>]*>([^<]*)<\/span>/g)].map(
-        ([, label]) => label,
-      );
+  it('keeps the filters behind one button that counts and names the ones set, and offers the same items', () => {
+    const none = render(undefined);
+    expect(none).toContain('data-filters="0"');
+    expect(none).not.toContain('role="combobox"');
+    expect(text(none)).not.toContain('Clear');
 
-    expect(triggers(render(undefined))).toEqual(['All languages', 'All kinds', 'Any size']);
-    expect(triggers(render(undefined, { language: 'GO', kind: 'DOCS', size: 'M' }))).toEqual([
-      'Go',
-      'Docs',
-      'Up to medium, where known',
-    ]);
+    const set = render(undefined, { language: 'GO', kind: 'DOCS', size: 'M' });
+    expect(set).toContain('data-filters="3"');
+    expect(text(set)).toContain('Filters 3 : Go, Docs, Up to medium, where known');
+    expect(text(set)).toContain('Clear the filters');
+    expect(activeFiltersOf({ size: 'S' })).toEqual(['Up to small, where known']);
     expect(FILTER_OPTIONS.language.map(({ value }) => value)).toEqual([ALL, ...Object.keys(LANGUAGES)]);
     expect(FILTER_OPTIONS.kind.map(({ value }) => value)).toEqual([ALL, ...Object.keys(KINDS)]);
     expect(FILTER_OPTIONS.size).toEqual([
@@ -385,24 +384,38 @@ describe('issues for you', () => {
     ]);
   });
 
-  it('lists the picks with labels, why, the size where known, and Skip', () => {
+  it('lists the picks as rows: where, the size where known, why, one label and the count of the rest, and Skip', () => {
     const html = render({
-      items: [ISSUE, { ...ISSUE, issueId: 'I_2', size: null, rank: 2 }],
+      items: [ISSUE, { ...ISSUE, issueId: 'I_2', size: null, rank: 2, labels: ['formatter'] }],
       next: 'c2',
       total: 42,
-      computedAt: null,
+      computedAt: '2026-10-28T09:00:00.000Z',
     });
     const plain = text(html);
 
-    expect(plain).toContain('42 open issues match your languages and topics');
+    expect(plain).toContain('42 open issues match your languages and topics · picked 3 hours ago');
+    expect(html.match(/<li><article data-issue=/g)).toHaveLength(2);
     expect(plain).toContain('fern-lang/fern · #2481');
-    expect(plain).toContain('good first issue');
-    expect(plain).toContain("Why: you write Rust, and you've contributed to fern-lang/fern-lsp");
-    expect(plain).toContain('Small');
-    expect(plain).toContain('not known');
-    expect(plain).toContain('Skip');
+    expect(plain).toContain('Size small');
+    expect(html.match(/data-size="[SML]"/g)).toHaveLength(1);
+    expect(plain).not.toContain('not known');
+    expect(plain).toContain("Why it was picked: you write Rust, and you've contributed to fern-lang/fern-lsp");
+    // One label, a beginner one first, and how many more: the kind and the match rank are not repeated.
+    expect(plain).toContain('good first issue +1 , also labelled formatter');
+    expect(plain).not.toContain('Best match');
+    expect(plain).toContain('Skip fern-lang/fern #2481');
+    // Skip only opens its confirm: it is the dialog's trigger, not the action.
+    expect(html).toMatch(
+      /<button[^>]*aria-haspopup="dialog"[^>]*>Skip<span class="sr-only"> fern-lang\/fern #2481<\/span>/,
+    );
     expect(html).toContain('href="/contribute/issues?after=c2"');
-    expect(plain).toContain('where known');
+  });
+
+  it('keeps how picks work folded', () => {
+    const html = render(undefined);
+
+    expect(html).toMatch(/<details[^>]*data-how-picks-work/);
+    expect(html).not.toMatch(/<details[^>]*open/);
   });
 
   it('keeps the filters on the next page', () => {
@@ -450,5 +463,48 @@ describe('issues for you', () => {
     expect(
       text(renderToStaticMarkup(<IssueCard issue={{ ...ISSUE, title: null, labels: [], kind: null }} />)),
     ).toContain('Issue #2481');
+  });
+});
+
+describe('the heading scale', () => {
+  it('gives the page title, a section and a part their own step, each above the text under it', async () => {
+    const { HEADING, PageTitle, PanelTitle, SubTitle } = await import('./primitives');
+    const html = renderToStaticMarkup(
+      <>
+        <PageTitle title="Issues for you" text="42 open issues" />
+        <PanelTitle title="Keys and access" eyebrow="Step 2" text="Your key" />
+        <SubTitle>Set up your agent</SubTitle>
+      </>,
+    );
+
+    expect(html).toContain(`<h1 class="${HEADING.page}">Issues for you</h1>`);
+    expect(html).toContain(`<h2 class="${HEADING.section}">Keys and access</h2>`);
+    expect(html).toContain(`<h3 class="${HEADING.block}">Set up your agent</h3>`);
+    expect(text(html)).toContain('Step 2 Keys and access');
+    expect(new Set(Object.values(HEADING)).size).toBe(4);
+  });
+
+  it('heads the Issues page with its h1, and Settings with section headings at the section step', async () => {
+    const { HEADING } = await import('./primitives');
+
+    expect(renderToStaticMarkup(<IssuesScreen view={views.active} page={undefined} query={{}} now={NOW} />)).toContain(
+      `<h1 class="${HEADING.page}">Issues for you</h1>`,
+    );
+    const settings = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} />);
+    expect(settings).toContain(`<h2 class="${HEADING.section}">Pacing</h2>`);
+    expect(settings).toContain(`class="${HEADING.section} mb-2.5">Keys and access</h2>`);
+  });
+});
+
+describe('the confirms before what cannot be undone', () => {
+  it('open from Remove key, Revoke (GitHub) and Revoke (token), which act only from the dialog', () => {
+    const view = { ...views.active, ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken()] } };
+    const html = renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />);
+    const triggers = [...html.matchAll(/<button[^>]*aria-haspopup="dialog"[^>]*>(.*?)<\/button>/g)].map(([, label]) =>
+      text(label).trim(),
+    );
+
+    expect(triggers).toEqual(['Remove key', 'Revoke', 'Revoke Claude Code on macOS']);
+    expect(text(html)).not.toContain('Yes, remove it');
   });
 });

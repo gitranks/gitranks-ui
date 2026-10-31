@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { Pill } from './primitives';
+import { HEADING, Pill, SubTitle } from './primitives';
 import {
   agentLabelOf,
   CHECK_LABELS,
@@ -36,7 +36,7 @@ function Block({
 }) {
   return (
     <section data-panel={name} className={cn('flex flex-col gap-2.5 rounded-xl border bg-card p-5', className)}>
-      <h2 className="text-base font-semibold">{title}</h2>
+      <h2 className={HEADING.card}>{title}</h2>
       {children}
     </section>
   );
@@ -135,9 +135,7 @@ export function ChecksPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
       ) : (
         <Muted>Our checks have not run yet.</Muted>
       )}
-      <h3 className="pt-1 text-sm font-semibold">
-        {reported ? 'Tests reported by your agent' : 'Tests the agent ran'}
-      </h3>
+      <SubTitle className="pt-1">{reported ? 'Tests reported by your agent' : 'Tests the agent ran'}</SubTitle>
       {tests.length ? (
         // The terminal reads dark in both themes: the block takes the dark theme's tokens.
         <div className="dark flex flex-col gap-2.5 overflow-x-auto rounded-lg bg-background px-3.5 py-3 font-mono text-xs leading-relaxed text-foreground">

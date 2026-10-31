@@ -16,7 +16,7 @@ import { FollowUpApproval } from './follow-up-approval';
 import { LiveRefresh } from './live-refresh';
 import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { PrForm } from './pr-form';
-import { Pill } from './primitives';
+import { HEADING, Pill } from './primitives';
 import { ReplyDrafts } from './reply-drafts';
 import { attemptHref } from './reviews-ready';
 import { SendBackForm } from './send-back-form';
@@ -81,7 +81,7 @@ export function ReviewScreen({
     return (
       <div className="flex flex-col items-start gap-3" data-review="unavailable">
         <BackLink />
-        <h1 className="text-2xl font-bold tracking-tight">Reviews are not available yet</h1>
+        <h1 className={HEADING.page}>Reviews are not available yet</h1>
         <p className="text-muted-foreground">This is coming soon. Check back shortly.</p>
       </div>
     );
@@ -118,7 +118,7 @@ export function ReviewScreen({
             )}
           </span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-balance">{attemptTitleOf(attempt)}</h1>
+        <h1 className={HEADING.page}>{attemptTitleOf(attempt)}</h1>
         {followUp ? (
           <p data-follow-up-of={attempt.followUpOf?.number ?? ''} className="text-sm text-muted-foreground">
             {attempt.followUpOf === undefined ? (
@@ -147,7 +147,7 @@ export function ReviewScreen({
       attempt.pullRequest &&
       (attempt.pullRequest.state === 'OPEN' || (attempt.followUps?.used ?? 0) > 0) ? (
         <section data-panel="follow-ups" className="flex flex-col gap-2.5 rounded-xl border bg-card p-5">
-          <h2 className="text-base font-semibold">
+          <h2 className={HEADING.card}>
             {attempt.needsYou?.signals.length ? 'Your pull request needs you' : 'Follow-ups'}
           </h2>
           <PrSignals needsYou={attempt.needsYou} now={now} />

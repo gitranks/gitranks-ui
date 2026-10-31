@@ -274,8 +274,7 @@ describe('Issues for you, by mode', () => {
     expect(plain.indexOf('From your stack')).toBeLessThan(plain.indexOf('Other issues for you'));
     expect(plain).toContain('Shown below your stack\'s issues, because you chose "Work on all issues meanwhile"');
     expect(html.match(/data-other="true"/g)).toHaveLength(1);
-    expect(html.match(/data-best="true"/g)).toHaveLength(1);
-    expect(plain).toContain('Why: Your stack: vitest · used by 9 of 14 repos');
+    expect(plain).toContain('Why it was picked: Your stack: vitest · used by 9 of 14 repos');
   });
 
   it('says the list has nothing ready when only other issues are on the first page', () => {

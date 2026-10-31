@@ -5,6 +5,7 @@ import { CodeBlock } from './code-block';
 import { guessedLineOf, WORK_SETTINGS_PATH } from './first-run-guide';
 import { ForgetWelcome } from './forget-welcome';
 import { PauseButton } from './pause-button';
+import { HEADING } from './primitives';
 import { StillRanking } from './still-ranking';
 import { AGENT_WORK_PROMPT } from '@/lib/contribute/agent-connect';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
@@ -66,7 +67,7 @@ export function AgentWelcome({ client }: { client: McpClient }) {
         </span>
       </div>
       <div className="flex min-w-0 flex-[1_1_400px] flex-col gap-1.5">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Your agent is connected</h1>
+        <h1 className={HEADING.page}>Your agent is connected</h1>
         <p className="text-foreground/80">
           {MCP_CLIENT_NAMES[client]} called GitRanks a moment ago. It can already see the issues picked for you.
         </p>
@@ -164,7 +165,7 @@ export function AgentFirstPicks({ page }: { page: ContributeIssuePage | null | u
       data-agent-picks={page === undefined ? 'unavailable' : page && !page.computedAt ? 'ranking' : 'ready'}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 id="agent-first-picks" className="text-lg font-bold">
+        <h2 id="agent-first-picks" className={HEADING.section}>
           What your agent sees first
         </h2>
         <Link href={ISSUES_PATH} prefetch={false} className="text-sm font-semibold text-link">
@@ -203,7 +204,7 @@ export function AgentNextSteps({
         'motion-safe:delay-900',
       )}
     >
-      <Heading id="agent-next-title" className="text-xl font-bold">
+      <Heading id="agent-next-title" className={Heading === 'h1' ? HEADING.page : HEADING.section}>
         What happens next
       </Heading>
       <div className="flex flex-col gap-2">

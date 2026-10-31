@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { approveAttempt, discardAttempt } from '../actions';
+import { HEADING } from './primitives';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -66,7 +67,7 @@ export function FollowUpApproval({
       data-follow-up-approval={attemptId}
       className="flex flex-col gap-3 rounded-xl border-2 border-primary bg-card p-4.5"
     >
-      <h2 className="text-base font-semibold">{hasCommits ? `Push to ${pr}` : 'Finish this follow-up'}</h2>
+      <h2 className={HEADING.card}>{hasCommits ? `Push to ${pr}` : 'Finish this follow-up'}</h2>
       <p className="text-sm text-muted-foreground">
         {hasCommits
           ? `The new commits go onto ${pr}'s branch on your fork, in your name, signed off as its first commits were. The pull request shows them at once.`

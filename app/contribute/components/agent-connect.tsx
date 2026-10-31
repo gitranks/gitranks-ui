@@ -7,6 +7,7 @@ import { flushSync } from 'react-dom';
 
 import { createMcpToken, readAgentConnected, revokeMcpToken } from '../actions';
 import { CodeBlock } from './code-block';
+import { HEADING } from './primitives';
 import { MakeNewToken, REPLACE_NOTE, TokenReady } from './token-ready';
 import { useOnboardedPush } from './use-onboarded-push';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,7 @@ export type AgentStage = 'none' | 'token' | 'added';
 const card = 'flex flex-col gap-3.5 rounded-2xl bg-card p-4.5 sm:p-5.5';
 const activeCard = 'border-2 border-primary';
 const idleCard = 'border';
-const cardTitle = 'text-lg font-bold';
+const cardTitle = HEADING.card;
 const plainButton = 'min-h-11 px-3.5 font-semibold';
 
 export type AgentConnectViewProps = {
@@ -122,7 +123,7 @@ export function AgentConnectView({
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 sm:gap-5" data-connect-path="agent">
       <div className="flex flex-col gap-2 pb-1">
         <span className="text-xs font-semibold text-primary">About a minute · no Claude key needed</span>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Connect your own agent</h1>
+        <h1 className={HEADING.page}>Connect your own agent</h1>
         <p className="text-foreground/80">
           Your agent asks GitRanks for an issue, fixes it on your machine and hands the change back. You review it here
           before anything reaches GitHub.

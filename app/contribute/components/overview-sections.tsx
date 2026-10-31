@@ -8,7 +8,7 @@ import { noticeCopyOf } from './contribute-notices';
 import { IssueCardCompact } from './issue-card-compact';
 import { LiveRefresh } from './live-refresh';
 import { PauseButton } from './pause-button';
-import { Meter, Pill } from './primitives';
+import { HEADING, Meter, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
 import { StillRanking } from './still-ranking';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -61,7 +61,7 @@ const CARD = 'flex min-w-0 flex-col gap-2 rounded-xl border bg-card p-4';
 function SectionHeader({ id, title, link }: { id: string; title: string; link?: { href: Route; label: string } }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-      <h2 id={id} className="text-lg font-semibold">
+      <h2 id={id} className={HEADING.section}>
         {title}
       </h2>
       {link ? (
@@ -248,7 +248,7 @@ export function NeedsYouSection({ view, read, now }: { view: ContributeView; rea
       data-needs={total}
       className={cn('flex flex-col gap-3 rounded-xl border border-primary/20 bg-brand-soft p-4.5', RISE)}
     >
-      <h2 id="overview-needs" className="text-lg font-semibold">
+      <h2 id="overview-needs" className={HEADING.card}>
         {total === 1 ? '1 thing needs you' : `${total} things need you`}
       </h2>
       <ul className="flex flex-col gap-2">

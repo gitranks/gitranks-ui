@@ -1,10 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useId, useState, useTransition } from 'react';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { createMcpToken, revokeMcpToken } from '../actions';
-import { Eyebrow, Panel, PanelTitle } from './primitives';
+import { ConfirmDialog } from './confirm-dialog';
+import { Panel, PanelTitle, SubTitle } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { ContributeMcpToken, ContributeOwnAgent } from '@/lib/contribute/contribute.types';
@@ -78,17 +79,25 @@ function NewToken({ token, onDone }: { token: string; onDone: () => void }) {
 function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  /** Revoked: the row says so, without its button, until the page reads the tokens again. */
+  const [revoked, setRevoked] = useState(false);
   const [pending, startTransition] = useTransition();
+  const done = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (revoked) done.current?.focus();
+  }, [revoked]);
 
   const revoke = () =>
     startTransition(async () => {
+      setError(null);
       const result = await revokeMcpToken(token.id);
-      setConfirming(false);
       if (!result.ok) {
-        setMessage(contributeErrorMessage(result.error, result.message));
+        setError(contributeErrorMessage(result.error, result.message));
         return;
       }
+      setConfirming(false);
+      setRevoked(true);
       router.refresh();
     });
 
@@ -99,31 +108,39 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
     >
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="font-medium">{token.name}</span>
-        <span className="text-sm text-muted-foreground">
-          {message ?? (
-            <>
-              <span className="font-mono">gr_…{token.last4}</span> · created {dayLabel(token.createdAt)} ·{' '}
-              {token.lastUsedAt ? `last used ${relativeLabel(token.lastUsedAt, now)}` : 'never used'}
-            </>
-          )}
-        </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {confirming ? (
-          <>
-            <Button type="button" variant="destructive-outline" onClick={revoke} disabled={pending} className="h-10">
-              {pending ? 'Revoking…' : 'Yes, revoke it'}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setConfirming(false)} className="h-10">
-              Cancel
-            </Button>
-          </>
+        {revoked ? (
+          <span ref={done} role="status" tabIndex={-1} className="text-sm text-muted-foreground outline-none">
+            Revoked. An agent using it can no longer reach us.
+          </span>
         ) : (
-          <Button type="button" variant="destructive-outline" onClick={() => setConfirming(true)} className="h-10">
-            Revoke
-          </Button>
+          <span className="text-sm text-muted-foreground">
+            <span className="font-mono">gr_…{token.last4}</span> · created {dayLabel(token.createdAt)} ·{' '}
+            {token.lastUsedAt ? `last used ${relativeLabel(token.lastUsedAt, now)}` : 'never used'}
+          </span>
         )}
       </div>
+      {revoked ? null : (
+        <ConfirmDialog
+          trigger={
+            <Button type="button" variant="destructive-outline" className="h-10">
+              Revoke
+              <span className="sr-only"> {token.name}</span>
+            </Button>
+          }
+          open={confirming}
+          onOpenChange={(open) => {
+            if (open) setError(null);
+            setConfirming(open);
+          }}
+          title={`Revoke "${token.name}"?`}
+          description="An agent using this token can no longer reach us, and the token cannot be brought back. Create a new one to connect it again."
+          action="Revoke token"
+          pendingAction="Revoking…"
+          pending={pending}
+          error={error}
+          onConfirm={revoke}
+        />
+      )}
     </li>
   );
 }
@@ -202,8 +219,8 @@ export function OwnAgentSection({
 
   return (
     <Panel id="own-agent" className="gap-3.5">
-      {step ? <Eyebrow>Step {step} · A token for your agent</Eyebrow> : null}
       <PanelTitle
+        eyebrow={step ? `Step ${step} · A token for your agent` : undefined}
         title="Your own agent (MCP)"
         text="Claude Code, Codex, Cursor or Gemini CLI on your machine finds issues here, works on one and hands the change back through our MCP server. You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed."
       />
@@ -254,7 +271,7 @@ export function OwnAgentSection({
               {message}
             </p>
           ) : null}
-          <h3 className="pt-1 text-sm font-semibold">Set up your agent</h3>
+          <SubTitle className="pt-1">Set up your agent</SubTitle>
           <SetupLines />
           <p data-safety className="text-sm font-medium">
             {OWN_AGENT_SAFETY}

@@ -1,115 +1,139 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { skipIssue } from '../actions';
+import { ConfirmDialog } from './confirm-dialog';
 import { Pill } from './primitives';
 import { Button } from '@/components/ui/button';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
-import { GOOD_FIRST_LABEL, KIND_ONE, LANGUAGES, SIZES } from '@/lib/contribute/format';
-import { cn } from '@/lib/utils';
+import { GOOD_FIRST_LABEL, LANGUAGES, SIZES } from '@/lib/contribute/format';
+
+/** The one GitHub label shown: a beginner-friendly one where there is one, else the first. */
+const labelOf = (labels: string[]) => labels.find((label) => GOOD_FIRST_LABEL.test(label)) ?? labels[0];
 
 /**
- * One issue picked for the user: where, what, why, and Skip. `best` marks the top of the list, `other` an issue from
- * outside the user's own list.
+ * One issue picked for the user, as a row of the Issues list: where and how big, what, why it was picked, and Skip,
+ * which asks first. One GitHub label is shown, and the count of the rest. `other` marks an issue from outside the
+ * user's own list.
  */
-export function IssueCard({
-  issue,
-  best = false,
-  other = false,
-}: {
-  issue: ContributeIssue;
-  best?: boolean;
-  other?: boolean;
-}) {
+export function IssueCard({ issue, other = false }: { issue: ContributeIssue; other?: boolean }) {
+  const [confirming, setConfirming] = useState(false);
   const [skipped, setSkipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const done = useRef<HTMLParagraphElement>(null);
+  // The row and its dialog are gone once it is skipped: the focus goes to the line that says so.
+  useEffect(() => {
+    if (skipped) done.current?.focus();
+  }, [skipped]);
 
   const skip = () =>
     startTransition(async () => {
       setError(null);
       const result = await skipIssue(issue.issueId);
-      if (result.ok) setSkipped(true);
-      else setError(contributeErrorMessage(result.error, result.message));
+      if (!result.ok) {
+        setError(contributeErrorMessage(result.error, result.message));
+        return;
+      }
+      setConfirming(false);
+      setSkipped(true);
     });
 
+  const where = `${issue.nameWithOwner} #${issue.number}`;
   if (skipped) {
     return (
-      <p role="status" className="rounded-xl border border-dashed px-5 py-3 text-sm text-muted-foreground">
-        Skipped {issue.nameWithOwner} #{issue.number}. It will not be picked for you again.
+      <p
+        ref={done}
+        role="status"
+        tabIndex={-1}
+        className="px-4 py-3 text-sm text-muted-foreground outline-none sm:px-5"
+      >
+        Skipped {where}. It will not be picked for you again.
       </p>
     );
   }
 
   const title = issue.title?.trim() || `Issue #${issue.number}`;
   const url = githubUrlOf(issue.url);
+  const label = labelOf(issue.labels);
+  const rest = issue.labels.filter((each) => each !== label);
+  const why = issue.why?.trim();
 
   return (
     <article
       data-issue={issue.issueId}
-      data-best={best || undefined}
       data-other={other || undefined}
-      className={cn(
-        'flex flex-wrap items-start gap-4 rounded-xl border bg-card px-5 py-4',
-        best && 'border-primary/40',
-        other && 'border-dashed',
-      )}
+      className="flex items-start gap-3 px-4 py-3.5 sm:px-5"
     >
-      <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-sm text-muted-foreground">
-          <span className="font-mono text-foreground/80">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+          <span className="font-mono break-all text-foreground/80">
             {issue.nameWithOwner} · #{issue.number}
           </span>
           {issue.language ? <span>{LANGUAGES[issue.language]}</span> : null}
-          {best ? <Pill tone="violet">Best match</Pill> : null}
+          {issue.size ? <span data-size={issue.size}>Size {SIZES[issue.size].toLowerCase()}</span> : null}
         </div>
         {url ? (
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-lg font-semibold text-foreground hover:underline"
+            className="font-semibold text-pretty text-foreground hover:underline"
           >
             {title}
           </a>
         ) : (
-          <span className="text-lg font-semibold text-foreground">{title}</span>
+          <span className="font-semibold text-pretty text-foreground">{title}</span>
         )}
-        {issue.labels.length || issue.kind ? (
-          <div className="flex flex-wrap gap-1.5">
-            {issue.kind ? <Pill tone="violet">{KIND_ONE[issue.kind]}</Pill> : null}
-            {issue.labels.map((label) => (
-              <Pill key={label} tone={GOOD_FIRST_LABEL.test(label) ? 'green' : 'neutral'}>
-                {label}
-              </Pill>
-            ))}
+        {why || label ? (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            {why ? (
+              <span data-why className="min-w-0">
+                <span className="sr-only">Why it was picked: </span>
+                {why}
+              </span>
+            ) : null}
+            {label ? (
+              <span className="flex items-center gap-1" data-labels={issue.labels.length}>
+                <Pill tone={GOOD_FIRST_LABEL.test(label) ? 'green' : 'neutral'}>{label}</Pill>
+                {rest.length ? (
+                  <span className="text-xs" title={rest.join(', ')}>
+                    <span aria-hidden="true">+{rest.length}</span>
+                    <span className="sr-only">, also labelled {rest.join(', ')}</span>
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
           </div>
         ) : null}
-        {issue.why ? (
-          <span className="text-sm text-muted-foreground">
-            <span className="text-foreground/60">Why:</span> {issue.why}
-          </span>
-        ) : null}
       </div>
-      <div className="flex flex-[0_0_200px] flex-col gap-2.5">
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-sm">
-          <dt className="text-muted-foreground">Size</dt>
-          <dd className="font-mono">{issue.size ? SIZES[issue.size] : 'not known'}</dd>
-          <dt className="text-muted-foreground">Match</dt>
-          <dd className="font-mono">#{issue.rank}</dd>
-        </dl>
-        <Button type="button" variant="outline" size="lg" onClick={skip} disabled={pending}>
-          {pending ? 'Skipping…' : 'Skip'}
-        </Button>
-        {error ? (
-          <span role="alert" className="text-sm text-destructive">
-            {error}
-          </span>
-        ) : null}
-      </div>
+      <ConfirmDialog
+        trigger={
+          <Button type="button" variant="ghost" className="-mr-2 h-10 flex-none px-3 text-muted-foreground">
+            Skip
+            <span className="sr-only"> {where}</span>
+          </Button>
+        }
+        open={confirming}
+        onOpenChange={(open) => {
+          if (open) setError(null);
+          setConfirming(open);
+        }}
+        title="Skip this issue?"
+        description={
+          <>
+            <span className="font-mono">{where}</span> will not be picked for you again. You can&apos;t undo this.
+          </>
+        }
+        action="Skip issue"
+        pendingAction="Skipping…"
+        pending={pending}
+        error={error}
+        onConfirm={skip}
+      />
     </article>
   );
 }

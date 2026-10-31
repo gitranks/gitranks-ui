@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { readFeedComputedAt } from '../actions';
+import { HEADING } from './primitives';
 import { useOnboardedPush } from './use-onboarded-push';
 import { Button } from '@/components/ui/button';
 import {
@@ -125,7 +126,7 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
       </div>
 
       <div className="flex flex-col items-center gap-2.5 text-center">
-        <h1 ref={headline} tabIndex={-1} className="text-2xl font-bold tracking-tight outline-none md:text-3xl">
+        <h1 ref={headline} tabIndex={-1} className={cn(HEADING.page, 'outline-none')}>
           {done ? 'Your first issues are ready' : 'Matching you with issues'}
         </h1>
         <p className="max-w-lg text-muted-foreground">

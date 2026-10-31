@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { ApproveReplyButton } from './approve-reply-button';
-import { Pill } from './primitives';
+import { HEADING, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
 import { githubUrlOf, toneLabelOf } from '@/lib/contribute/attempt-format';
 import type { ContributeAttempt, ContributeReplyDraft } from '@/lib/contribute/contribute.types';
@@ -145,7 +145,7 @@ export function ReplyDrafts({
   return (
     <section data-panel="replies" className="flex flex-col overflow-hidden rounded-xl border bg-card">
       <div className="flex flex-col gap-1 border-b px-5 py-3.5">
-        <h2 className="text-base font-semibold">{title}</h2>
+        <h2 className={HEADING.card}>{title}</h2>
         <span className="text-xs text-muted-foreground">Posted on GitHub in your name only if you approve them.</span>
       </div>
       {!drafts ? (

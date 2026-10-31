@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition } from 'react';
 
 import { saveContributeSettings } from '../actions';
-import { Panel, Pill } from './primitives';
+import { HEADING, Panel, Pill } from './primitives';
 import type { ContributeAutopilot } from '@/lib/contribute/contribute.types';
 import { type ContributeErrorCode, contributeErrorMessage } from '@/lib/contribute/errors';
 import { AUTOPILOT_UNLOCK_AT, dayLabel } from '@/lib/contribute/format';
@@ -77,7 +77,7 @@ export function AutopilotSection({
       >
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-semibold">Autopilot</h2>
+            <h2 className={HEADING.section}>Autopilot</h2>
             {open ? null : (
               <Pill tone="violet">{autopilot.available === false ? 'Coming soon' : 'Not available yet'}</Pill>
             )}

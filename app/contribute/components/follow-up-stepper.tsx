@@ -10,8 +10,11 @@ const STEP_NOW: Record<(typeof FOLLOW_UP_STEPS)[number], string> = {
   reading: 'The agent is reading the review comments and setting the project up, so it can run the tests.',
   fixing: 'The agent is changing the code for the comments you chose, and drafting a reply to each.',
   checks: 'The agent is done. We are checking its commits before they come to you.',
-  ready: 'Read what it did about each comment, then push the fixes and the replies.',
+  ready: 'Read what it did about each comment and the new commits, then push them with the replies, or discard them.',
 };
+
+/** In review, the Checks step as our checks came out: a cross where they block, a dash where the tests could not run. */
+const CHECK_STEP = { PASSED: 'done', FAILED: 'failed', NOT_RUN: 'skipped', BLOCKED: 'failed' } as const;
 
 /**
  * A follow-up's run as four steps: reading the comments, fixing, our checks, ready for you. The dots are the submit
@@ -21,7 +24,7 @@ export function FollowUpStepper({
   attempt,
   now,
 }: {
-  attempt: Pick<ContributeAttemptDetail, 'state' | 'events' | 'createdAt' | 'costUsd' | 'budgetUsd'>;
+  attempt: Pick<ContributeAttemptDetail, 'state' | 'events' | 'createdAt' | 'costUsd' | 'budgetUsd' | 'checkStatus'>;
   now?: Date;
 }) {
   const step = followUpStepOf(attempt);
@@ -34,7 +37,10 @@ export function FollowUpStepper({
       <h2 className={HEADING.card}>{ready ? 'Ready for you' : 'The agent is on your review comments'}</h2>
       <ol aria-label="Follow-up steps" className="grid grid-cols-4 pt-1">
         {FOLLOW_UP_STEPS.map((each, index) => {
-          const state = index < at || (ready && index === at) ? 'done' : index === at ? 'current' : 'pending';
+          const checks =
+            ready && each === 'checks' && attempt.checkStatus ? CHECK_STEP[attempt.checkStatus.status] : null;
+          const state =
+            checks ?? (index < at || (ready && index === at) ? 'done' : index === at ? 'current' : 'pending');
           const last = index === FOLLOW_UP_STEPS.length - 1;
           return (
             <li
@@ -59,7 +65,18 @@ export function FollowUpStepper({
                 className={cn('text-sm leading-tight', state === 'pending' ? 'text-muted-foreground' : 'font-medium')}
               >
                 {FOLLOW_UP_STEP_LABELS[each]}
-                <span className="sr-only">: {state === 'done' ? 'done' : state === 'current' ? 'now' : 'next'}</span>
+                <span className="sr-only">
+                  :{' '}
+                  {state === 'done'
+                    ? 'done'
+                    : state === 'current'
+                      ? 'now'
+                      : state === 'failed'
+                        ? 'did not pass'
+                        : state === 'skipped'
+                          ? 'could not run'
+                          : 'next'}
+                </span>
               </span>
             </li>
           );
@@ -71,7 +88,7 @@ export function FollowUpStepper({
           <>
             {' '}
             Started {relativeLabel(attempt.createdAt, now)}; {usd(attempt.costUsd)} of the {usd(attempt.budgetUsd)}{' '}
-            limit spent so far. Nothing goes to GitHub before you approve it.
+            limit spent so far. Nothing goes to GitHub before you approve it, unless your autopilot is on.
           </>
         )}
       </p>

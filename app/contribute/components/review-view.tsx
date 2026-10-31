@@ -112,7 +112,8 @@ export function ReviewScreen({
     ({ state, resolveState }) => state === 'POSTING' || resolveState === 'RESOLVING',
   );
   // The follow-up flow: one card per thread with its outcome, the diff, and one approval (an older API: the drafts).
-  const flow = followUp && hasOutcomes(attempt.replyDrafts);
+  // An API with the flow answers `checkStatus` (null before the checks), so a round with no reply is one too.
+  const flow = followUp && (attempt.checkStatus !== undefined || hasOutcomes(attempt.replyDrafts));
   const feedback = !followUp && attempt.pullRequest?.state === 'OPEN' ? attempt.reviewFeedback : null;
   const roundOpen = !!attempt.followUps && canStartFollowUp(attempt.followUps) && attempt.state === 'PR_OPEN';
 
@@ -180,6 +181,8 @@ export function ReviewScreen({
 
       {feedback?.threads.length && attempt.pullRequest ? (
         <ReviewFeedbackCard
+          // A thread arriving in a later read starts the choices afresh: none is shown chosen but left out.
+          key={feedback.threads.map((thread) => thread.commentId).join(',')}
           prId={attempt.pullRequest.prId}
           prNumber={attempt.pullRequest.number}
           feedback={feedback}
@@ -200,7 +203,13 @@ export function ReviewScreen({
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <ResultPanel attempt={attempt} />
           {flow ? (
-            <FollowUpResult attempt={attempt} prNumber={prNumber} resolveHumans={resolveHumans}>
+            <FollowUpResult
+              // A push that came back to the review starts the card afresh (its buttons on again).
+              key={`${attempt.state}|${attempt.submit?.lastError?.at ?? ''}`}
+              attempt={attempt}
+              prNumber={prNumber}
+              resolveHumans={resolveHumans}
+            >
               {attempt.patch?.trim() ? <DiffViewer patch={attempt.patch} title="The new commits" /> : null}
             </FollowUpResult>
           ) : null}

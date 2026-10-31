@@ -150,11 +150,11 @@ function AutosubmitStatus({ attempt, now }: { attempt: ContributeAttempt; now?: 
 /** What a follow-up that ended without pushing came to, in plain words, by why it ended. */
 const FOLLOW_UP_ENDS: Partial<Record<NonNullable<ContributeAttempt['endReason']>, string>> = {
   NO_GO: 'The agent read the comments and decided not to change anything.',
-  CHECKS_FAILED: 'The agent wrote no commit and no reply, so there was nothing to review.',
+  CHECKS_FAILED: 'Our checks stopped it before the review.',
   BUDGET: 'It reached your limit for one attempt before it finished.',
   TIMEOUT: 'It ran past the two-hour limit before it finished.',
   FAILED: 'The agent session failed before it finished.',
-  CANCELLED: 'It was cancelled before it finished: the pull request was merged or closed meanwhile.',
+  CANCELLED: 'It was cancelled before it finished.',
   SUBMIT_FAILED: 'The push did not go through.',
   USER: 'You discarded it.',
 };
@@ -223,7 +223,7 @@ function followUpStatusOf(attempt: ContributeAttempt | ContributeAttemptDetail, 
           ) : null}
           <Text>
             The new commits are on {pr}, if there were any. {usd(attempt.costUsd)} was spent. Each reply&apos;s state is
-            below.
+            below; one that did not go with the push can still be posted from there.
           </Text>
           <BackToPr attempt={attempt} />
         </Box>
@@ -232,14 +232,16 @@ function followUpStatusOf(attempt: ContributeAttempt | ContributeAttemptDetail, 
     case 'STOPPED':
     case 'DISCARDED': {
       const why =
-        (attempt.endReason && FOLLOW_UP_ENDS[attempt.endReason]) ||
-        (attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it ended is not available yet.');
+        attempt.endReason === 'CHECKS_FAILED' && attempt.endDetail === 'not_empty'
+          ? 'The agent wrote no commit and no reply, so there was nothing to review.'
+          : (attempt.endReason && FOLLOW_UP_ENDS[attempt.endReason]) ||
+            (attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it ended is not available yet.');
       return (
         <Box state={attempt.state} tone="muted">
           <Title>{attempt.state === 'STOPPED' ? 'Stopped, nothing pushed' : 'Discarded, nothing pushed'}</Title>
           <Text>
             <span data-end-reason={attempt.endReason ?? ''}>{why}</span>
-            {attempt.endDetail && attempt.endReason !== 'CHECKS_FAILED' ? (
+            {attempt.endDetail && attempt.endDetail !== 'not_empty' ? (
               <>
                 {' '}
                 {attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}

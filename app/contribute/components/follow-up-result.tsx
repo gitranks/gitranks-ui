@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { type ReactNode, useState, useTransition } from 'react';
 
 import { approveFollowUp, discardAttempt, setResolveHumanThreads } from '../actions';
+import { ApproveReplyButton } from './approve-reply-button';
 import { ConfirmDialog } from './confirm-dialog';
 import { HEADING, Pill } from './primitives';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
@@ -76,12 +78,15 @@ function ThreadResult({
   onEdit,
   readOnly,
   resolveHumans,
+  postLater = null,
 }: {
   draft: ContributeReplyDraft;
   edit: Edit;
   onEdit: (edit: Edit) => void;
   readOnly: boolean;
   resolveHumans: boolean;
+  /** After the push: a reply that did not go with it may still be posted, one by one. */
+  postLater?: { prNumber: number | null; version: string } | null;
 }) {
   const outcome = draft.outcome ? OUTCOMES[draft.outcome] : null;
   const where = draft.comment ? whereOfThread(draft.comment) : '';
@@ -90,6 +95,10 @@ function ThreadResult({
   const fieldId = `reply-${draft.draftId}`;
   const prefix = (draft.prefix ?? '').replace('<commit>', 'the new commit');
   const resolves = resolvesOf(draft, resolveHumans);
+  const who = draft.comment
+    ? `${draft.comment.author || 'a reviewer'}${where ? ` on ${where}` : ''}`
+    : 'the pull request';
+  const unsent = postLater && editable(draft) && draft.text.trim();
 
   return (
     <li
@@ -126,12 +135,17 @@ function ThreadResult({
         <div className="flex flex-col gap-1.5">
           <label htmlFor={fieldId} className="text-xs font-medium">
             Reply, posted in your name{prefix ? ` after “${prefix.trim()}”` : ''}
+            <span className="sr-only"> (to {who})</span>
           </label>
           <Textarea
             id={fieldId}
             value={edit.text}
             onChange={(event) =>
-              onEdit({ text: event.target.value, send: edit.send || Boolean(event.target.value.trim()) })
+              // Writing into an empty reply means to post it; an edit never ticks one the user unticked.
+              onEdit({
+                text: event.target.value,
+                send: edit.text.trim() ? edit.send : Boolean(event.target.value.trim()),
+              })
             }
             rows={2}
             placeholder={draft.outcome === 'NEEDS_YOU' ? 'Write your answer, or leave it for GitHub' : undefined}
@@ -143,6 +157,7 @@ function ThreadResult({
               checked={edit.send && Boolean(edit.text.trim())}
               disabled={!edit.text.trim()}
               onChange={(event) => onEdit({ ...edit, send: event.target.checked })}
+              aria-label={`Post the reply to ${who}`}
               className="size-4 accent-primary"
             />
             Post this reply
@@ -154,6 +169,22 @@ function ThreadResult({
           </label>
         </div>
       )}
+      {unsent ? (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm text-muted-foreground">Not posted with the push. Post it now if you want it.</span>
+          <ApproveReplyButton
+            draftId={draft.draftId}
+            version={postLater.version}
+            where={
+              draft.comment
+                ? `as a reply to ${who}`
+                : `as a comment on ${postLater.prNumber ? `pull request #${postLater.prNumber}` : 'the pull request'}`
+            }
+            again={draft.state === 'FAILED'}
+            blocked={null}
+          />
+        </div>
+      ) : null}
       {after ? (
         <span
           role={draft.state === 'FAILED' || draft.resolveState === 'FAILED' ? 'alert' : undefined}
@@ -188,7 +219,10 @@ export function FollowUpResult({
   resolveHumans,
   children,
 }: {
-  attempt: Pick<ContributeAttemptDetail, 'attemptId' | 'state' | 'patch' | 'checkStatus' | 'submit' | 'replyDrafts'>;
+  attempt: Pick<
+    ContributeAttemptDetail,
+    'attemptId' | 'state' | 'patch' | 'checkStatus' | 'submit' | 'replyDrafts' | 'approvedAt' | 'updatedAt'
+  >;
   prNumber: number | null;
   /** The user's setting; `undefined` while the API does not answer it (people's threads stay open). */
   resolveHumans: boolean | undefined;
@@ -200,16 +234,24 @@ export function FollowUpResult({
   const inReview = attempt.state === 'REVIEW';
   const hasCommits = Boolean(attempt.patch?.trim());
   const blocked = hasCommits && attempt.checkStatus?.status === 'BLOCKED';
+  // Approved before (a push that came back): the user's own choices; else ours.
   const [edits, setEdits] = useState<Record<string, Edit>>(() =>
-    Object.fromEntries(drafts.map((draft) => [draft.draftId, { text: draft.text, send: sendsByDefault(draft) }])),
+    Object.fromEntries(
+      drafts.map((draft) => [
+        draft.draftId,
+        { text: draft.text, send: attempt.approvedAt && draft.send !== undefined ? draft.send : sendsByDefault(draft) },
+      ]),
+    ),
   );
   const [humans, setHumans] = useState(resolveHumans === true);
   const [confirm, setConfirm] = useState<'push' | 'discard' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [settingError, setSettingError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<'push' | 'discard' | null>(null);
   const [pending, startTransition] = useTransition();
-  const busy = pending || done;
+  const [saving, startSaving] = useTransition();
+  const [acting, setActing] = useState<'push' | 'discard' | null>(null);
+  const busy = pending || done !== null;
   const pr = prNumber ? `pull request #${prNumber}` : 'the pull request';
 
   const editOf = (draft: ContributeReplyDraft) => edits[draft.draftId] ?? { text: draft.text, send: false };
@@ -220,6 +262,7 @@ export function FollowUpResult({
 
   const push = () =>
     startTransition(async () => {
+      setActing('push');
       setError(null);
       const result = await approveFollowUp(
         attempt.attemptId,
@@ -234,20 +277,21 @@ export function FollowUpResult({
         setError(attemptActionErrorMessage(result.error, result.message));
         return;
       }
-      setDone(true);
+      setDone('push');
       setConfirm(null);
       router.refresh();
     });
 
   const discard = () =>
     startTransition(async () => {
+      setActing('discard');
       setError(null);
       const result = await discardAttempt(attempt.attemptId);
       if (!result.ok) {
         setError(attemptActionErrorMessage(result.error, result.message));
         return;
       }
-      setDone(true);
+      setDone('discard');
       setConfirm(null);
       router.refresh();
     });
@@ -255,7 +299,7 @@ export function FollowUpResult({
   const toggleHumans = (on: boolean) => {
     setHumans(on);
     setSettingError(null);
-    startTransition(async () => {
+    startSaving(async () => {
       const result = await setResolveHumanThreads(on);
       if (!result.ok) {
         setHumans(!on);
@@ -279,6 +323,11 @@ export function FollowUpResult({
               onEdit={(edit) => setEdits((current) => ({ ...current, [draft.draftId]: edit }))}
               readOnly={!inReview || !editable(draft) || busy}
               resolveHumans={humans}
+              postLater={
+                attempt.state === 'DONE'
+                  ? { prNumber, version: [draft.state, draft.updatedAt, attempt.updatedAt].join('|') }
+                  : null
+              }
             />
           ))}
         </ul>
@@ -293,6 +342,29 @@ export function FollowUpResult({
   ]
     .filter(Boolean)
     .join(', ');
+
+  // The push's confirm: what it does, said once more, publicly and in the user's name.
+  const pushDialog = (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{hasCommits ? `Push the fixes to ${pr}?` : `Post the replies on ${pr}?`}</DialogTitle>
+        <DialogDescription>This {summary}, publicly on GitHub in your name.</DialogDescription>
+      </DialogHeader>
+      {error ? (
+        <span role="alert" className="text-sm text-destructive">
+          {error}
+        </span>
+      ) : null}
+      <DialogFooter>
+        <Button type="button" variant="secondary" onClick={() => setConfirm(null)} disabled={busy}>
+          Cancel
+        </Button>
+        <Button type="button" onClick={push} disabled={busy}>
+          {pending ? 'Pushing…' : pushLabel}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
 
   return (
     <section data-panel="follow-up-result" className="flex flex-col gap-3.5 rounded-xl border bg-card p-4 sm:p-5">
@@ -312,7 +384,7 @@ export function FollowUpResult({
                 type="checkbox"
                 checked={humans}
                 onChange={(event) => toggleHumans(event.target.checked)}
-                disabled={busy || resolveHumans === undefined}
+                disabled={busy || saving || resolveHumans === undefined}
                 className="mt-0.5 size-4 accent-primary"
               />
               <span>
@@ -341,19 +413,23 @@ export function FollowUpResult({
             </span>
           ) : null}
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              type="button"
-              size="lg"
-              onClick={() => setConfirm('push')}
-              disabled={busy || blocked || (!hasCommits && !sent.length)}
-              className="min-h-11 font-semibold"
-            >
-              {busy && confirm !== 'discard'
-                ? 'Pushing…'
-                : attempt.submit?.lastError
-                  ? `${pushLabel} again`
-                  : pushLabel}
-            </Button>
+            <Dialog open={confirm === 'push'} onOpenChange={(open) => !pending && setConfirm(open ? 'push' : null)}>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={busy || blocked || (!hasCommits && !sent.length)}
+                  className="min-h-11 font-semibold"
+                >
+                  {(pending && acting === 'push') || done === 'push'
+                    ? 'Pushing…'
+                    : attempt.submit?.lastError
+                      ? `${pushLabel} again`
+                      : pushLabel}
+                </Button>
+              </DialogTrigger>
+              {pushDialog}
+            </Dialog>
             <ConfirmDialog
               trigger={
                 <Button type="button" variant="destructive-outline" disabled={busy} className="min-h-11">
@@ -371,27 +447,6 @@ export function FollowUpResult({
               onConfirm={discard}
             />
           </div>
-          <Dialog open={confirm === 'push'} onOpenChange={(open) => !pending && !open && setConfirm(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{hasCommits ? `Push the fixes to ${pr}?` : `Post the replies on ${pr}?`}</DialogTitle>
-                <DialogDescription>This {summary}, publicly on GitHub in your name.</DialogDescription>
-              </DialogHeader>
-              {error ? (
-                <span role="alert" className="text-sm text-destructive">
-                  {error}
-                </span>
-              ) : null}
-              <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setConfirm(null)} disabled={busy}>
-                  Cancel
-                </Button>
-                <Button type="button" onClick={push} disabled={busy}>
-                  {pending ? 'Pushing…' : pushLabel}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       ) : null}
     </section>

@@ -307,16 +307,24 @@ export async function startFollowUp(
   prId: string,
   commentIds?: string[],
 ): Promise<ContributeActionResult<ContributeAttempt>> {
-  const ids = Array.isArray(commentIds) ? commentIds.map(String).filter(Boolean).slice(0, FOLLOW_UP_THREADS_MAX) : [];
+  const ids = Array.isArray(commentIds) ? commentIds.map(String).filter(Boolean) : [];
   if (Array.isArray(commentIds) && !ids.length) {
     return { ok: false, error: 'INVALID', message: 'Choose at least one comment to address.' };
+  }
+  // Never cut silently: the comments left out would be ignored from then on.
+  if (ids.length > FOLLOW_UP_THREADS_MAX) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `A round takes ${FOLLOW_UP_THREADS_MAX} comments at most. Ignore the rest for now; you can address them in a later round.`,
+    };
   }
   return ids.length
     ? run(StartFollowUpOnDocument, { prId: String(prId), commentIds: ids }, (data) => data.startFollowUp)
     : run(StartFollowUpDocument, { prId: String(prId) }, (data) => data.startFollowUp);
 }
 
-/** The most review threads one follow-up addresses (the API's). */
+/** The most review threads one follow-up addresses (the API's; the review-feedback card keeps to it). */
 const FOLLOW_UP_THREADS_MAX = 20;
 /** The longest reply GitHub takes from us (the API's). */
 const REPLY_MAX = 8_000;

@@ -16,6 +16,9 @@ import { cn } from '@/lib/utils';
 
 type Choice = 'address' | 'ignore';
 
+/** The most comments one round addresses (the API's). */
+const ROUND_MAX = 20;
+
 /** One waiting thread: who wrote it, where, its first line, and Address / Ignore. Its text is untrusted. */
 function ThreadRow({
   thread,
@@ -124,6 +127,7 @@ export function ReviewFeedbackCard({
   const shown = showIgnored ? feedback.threads : fresh;
   const { bots, people } = threadsByWho(shown);
   const chosen = feedback.threads.filter((thread) => choices[thread.commentId] === 'address');
+  const tooMany = chosen.length > ROUND_MAX;
   const pr = prNumber ? `pull request #${prNumber}` : 'the pull request';
 
   const start = () =>
@@ -192,7 +196,7 @@ export function ReviewFeedbackCard({
             type="button"
             size="lg"
             onClick={start}
-            disabled={busy || !chosen.length}
+            disabled={busy || !chosen.length || tooMany}
             className="min-h-11 self-stretch font-semibold sm:self-start"
           >
             {busy
@@ -201,10 +205,17 @@ export function ReviewFeedbackCard({
                 ? `Address ${chosen.length} ${chosen.length === 1 ? 'comment' : 'comments'}`
                 : 'Choose a comment to address'}
           </Button>
+          {tooMany ? (
+            <span role="status" className="text-sm text-warning">
+              A round takes {ROUND_MAX} comments at most. Set {chosen.length - ROUND_MAX} to Ignore for now; you can
+              address them in a later round.
+            </span>
+          ) : null}
           <span className="text-xs text-muted-foreground">
             The agent works on your Claude key
             {typeof attemptCapUsd === 'number' ? ` within your ${usd(attemptCapUsd)} limit for one attempt` : ''}, runs
-            the tests, and drafts a reply to each comment. You review it all before anything is pushed or posted.
+            the tests, and drafts a reply to each comment. You review it all before anything is pushed or posted, unless
+            your autopilot is on.
           </span>
         </div>
       ) : blocked ? (

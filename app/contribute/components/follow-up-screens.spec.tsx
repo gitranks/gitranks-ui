@@ -688,7 +688,7 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     expect(fixing).toMatch(/data-step="fixing" data-step-state="current"/);
     expect(fixing).toMatch(/data-step="reading" data-step-state="done"/);
     expect(run({ state: 'CHECKS' })).toMatch(/data-step="checks" data-step-state="current"/);
-    expect(text(run({ state: 'RUNNING' }))).toContain('Nothing goes to GitHub before you approve it.');
+    expect(text(run({ state: 'RUNNING' }))).toContain('Nothing goes to GitHub before you approve it');
   });
 
   const inReview = (patch: Partial<ContributeAttemptDetail> = {}) =>
@@ -868,6 +868,38 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     expect(noGo).toContain('Back to the pull request');
     const empty = text(review({ ...followUpAttempts.stopped, endReason: 'CHECKS_FAILED', endDetail: 'not_empty' }));
     expect(empty).toContain('The agent wrote no commit and no reply');
+  });
+
+  it('never takes more than a round can: past 20 comments it asks to ignore the rest first', () => {
+    const many = Array.from({ length: 22 }, (_, index) =>
+      feedbackThread({ commentId: `C_${index}`, threadId: `T_${index}` }),
+    );
+    const plain = text(prOpen({ reviewFeedback: { readAt: null, threads: many } }));
+    expect(plain).toContain('Address 22 comments');
+    expect(plain).toContain('A round takes 20 comments at most. Set 2 to Ignore for now');
+  });
+
+  it('marks the Checks step as our checks came out, and says what an older stop really was', () => {
+    const blocked = review(
+      inReview({ checkStatus: { status: 'BLOCKED', note: 'It cannot be pushed: it changes a GitHub workflow.' } }),
+    );
+    expect(blocked).toMatch(/data-step="checks" data-step-state="failed"/);
+    expect(review(inReview())).toMatch(/data-step="checks" data-step-state="skipped"/);
+    const older = text(review({ ...followUpAttempts.stopped, endReason: 'CHECKS_FAILED', endDetail: 'tests_passed' }));
+    expect(older).toContain('Our checks stopped it before the review.');
+    expect(older).not.toContain('wrote no commit');
+  });
+
+  it('after the push, offers to post a reply that did not go with it', () => {
+    const plain = text(review(inReview({ state: 'DONE', replyDrafts: [flowDraft({ draftId: 'D_9' })] })));
+    expect(plain).toContain('Not posted with the push. Post it now if you want it.');
+  });
+
+  it('shows a round with no reply as the flow’s, with its checks', () => {
+    const html = review(inReview({ replyDrafts: [] }));
+    expect(html).toContain('data-panel="follow-up-result"');
+    expect(text(html)).toContain('The agent drafted no reply this round.');
+    expect(html).not.toContain('data-follow-up-approval');
   });
 
   it('keeps the drafts one by one on an API without the flow', () => {

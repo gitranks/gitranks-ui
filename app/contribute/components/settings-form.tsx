@@ -267,7 +267,7 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
               key={pace}
               htmlFor={`${field('pace')}-${pace}`}
               className={cn(
-                'flex cursor-pointer items-start gap-2.5 rounded-lg border px-3.5 py-3',
+                'flex cursor-pointer items-start gap-2.5 rounded-lg border px-3.5 py-3 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
                 draft.pace === pace && 'border-primary bg-brand-soft/50 ring-1 ring-primary',
               )}
             >
@@ -383,7 +383,7 @@ export function SettingsForm({ settings }: { settings: ContributeSettings }) {
         </div>
         {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
         <div className="flex flex-col gap-2">
-          <span id={`${field('dco')}-legend`} className="mb-2 text-sm font-medium">
+          <span id={`${field('dco')}-legend`} className="text-sm font-medium">
             DCO sign-off, for repos that require it
           </span>
           <RadioGroup

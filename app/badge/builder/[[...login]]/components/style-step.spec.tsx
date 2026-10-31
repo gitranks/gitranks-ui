@@ -6,7 +6,7 @@ import { findBadge } from '@/badge/v3/catalogue';
 import { NOW, userMid } from '@/badge/v3/fixtures';
 
 describe('StyleStep', () => {
-  it('picks the language and the extra with design-system dropdowns that say the pick in their trigger', () => {
+  it('renders the language and the extra as design-system dropdowns whose triggers say the pick', () => {
     const html = renderToStaticMarkup(
       <StyleStep
         headingRef={{ current: null }}

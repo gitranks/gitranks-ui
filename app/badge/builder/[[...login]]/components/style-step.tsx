@@ -346,7 +346,7 @@ function SelectField<T extends string>({
         {label}
       </label>
       <Select value={value} onValueChange={(next) => onChange(next as T)}>
-        <SelectTrigger id={id} className="w-full min-w-0 bg-card">
+        <SelectTrigger id={id} className="w-full min-w-0 bg-card dark:bg-card">
           <SelectValue>{choiceLabelOf(choices.find((choice) => choice.value === value))}</SelectValue>
         </SelectTrigger>
         <SelectContent>

@@ -271,14 +271,15 @@ describe('the settings screen', () => {
     expect(sizeLabelOf('L')).toBe('Up to large');
   });
 
-  it('picks the pace and the DCO sign-off with radio groups that mark the stored ones', () => {
+  it('renders the pace and the DCO sign-off as radio groups, named, with the stored ones checked', () => {
     const html = render(views.active);
     const groups = [...html.matchAll(/role="radiogroup"[^>]*aria-(label|labelledby)="([^"]*)"/g)].map(
-      ([, kind, name]) => (kind === 'label' ? name : 'labelledby'),
+      ([, kind, name]) =>
+        kind === 'label' ? name : text(html.match(new RegExp(`id="${name}"[^>]*>([^<]*)<`))?.[1] ?? ''),
     );
     const checked = [...html.matchAll(/role="radio" aria-checked="true"[^>]*value="([^"]*)"/g)].map(([, v]) => v);
 
-    expect(groups).toEqual(['Pacing mode', 'labelledby']);
+    expect(groups).toEqual(['Pacing mode', 'DCO sign-off, for repos that require it']);
     expect(checked).toEqual(['EVEN', 'ASK']);
     expect(html).not.toMatch(/<input[^>]*id="[^"]*-(pace|dco)-/);
   });

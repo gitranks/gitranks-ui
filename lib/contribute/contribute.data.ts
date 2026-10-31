@@ -7,6 +7,7 @@ import {
   ContributeAttemptDocument,
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptOwnAgentDocument,
+  ContributeAttemptReviewReasonDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
   ContributeAttemptsInDocument,
@@ -16,6 +17,7 @@ import {
   ContributeAttemptsOpenDocument,
   ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
+  ContributeAutopilotNoticeDocument,
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
   ContributeContributionsOwnAgentDocument,
@@ -95,12 +97,13 @@ const byAttemptId = <T extends { attemptId: string }>(rows: T[] | null | undefin
 /** The autopilot record with the newer fields the API answered; those it did not are left out. */
 const autopilotOf = (
   autopilot: ContributeAutopilot,
-  extra: Pick<ContributeAutopilot, 'mergedToUnlock' | 'lockedAt' | 'available'> | undefined,
+  extra: Pick<ContributeAutopilot, 'mergedToUnlock' | 'lockedAt' | 'available' | 'noticeTo'> | undefined,
 ): ContributeAutopilot => ({
   ...autopilot,
   ...(typeof extra?.mergedToUnlock === 'number' ? { mergedToUnlock: extra.mergedToUnlock } : {}),
   ...(extra && extra.lockedAt !== undefined ? { lockedAt: extra.lockedAt } : {}),
   ...(typeof extra?.available === 'boolean' ? { available: extra.available } : {}),
+  ...(extra && (typeof extra.noticeTo === 'string' || extra.noticeTo === null) ? { noticeTo: extra.noticeTo } : {}),
 });
 
 /** The API did not answer the overview: the pages show "try again" (`app/contribute/error.tsx`), never a 404. */
@@ -122,15 +125,17 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   if (!githubLogin) return null;
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [overview, grant, paused, autopilot, ownAgent, onboarding, attemptsOpen] = await Promise.allSettled([
-    graphqlDirect(ContributeOverviewDocument, undefined, options),
-    graphqlDirect(ContributeGrantDocument, undefined, options),
-    graphqlDirect(ContributePausedDocument, undefined, options),
-    graphqlDirect(ContributeAutopilotDocument, undefined, options),
-    graphqlDirect(ContributeOwnAgentDocument, undefined, options),
-    graphqlDirect(ContributeOnboardingDocument, undefined, options),
-    graphqlDirect(ContributeAttemptsOpenDocument, undefined, options),
-  ]);
+  const [overview, grant, paused, autopilot, autopilotNotice, ownAgent, onboarding, attemptsOpen] =
+    await Promise.allSettled([
+      graphqlDirect(ContributeOverviewDocument, undefined, options),
+      graphqlDirect(ContributeGrantDocument, undefined, options),
+      graphqlDirect(ContributePausedDocument, undefined, options),
+      graphqlDirect(ContributeAutopilotDocument, undefined, options),
+      graphqlDirect(ContributeAutopilotNoticeDocument, undefined, options),
+      graphqlDirect(ContributeOwnAgentDocument, undefined, options),
+      graphqlDirect(ContributeOnboardingDocument, undefined, options),
+      graphqlDirect(ContributeAttemptsOpenDocument, undefined, options),
+    ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
   const { contribute } = overview.value;
@@ -143,7 +148,10 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   const withAutopilot = contributor?.autopilot
     ? {
         ...contributor,
-        autopilot: autopilotOf(contributor.autopilot, settled(autopilot)?.contribute?.contributor?.autopilot),
+        autopilot: autopilotOf(contributor.autopilot, {
+          ...settled(autopilot)?.contribute?.contributor?.autopilot,
+          ...settled(autopilotNotice)?.contribute?.contributor?.autopilot,
+        }),
       }
     : contributor;
   return {
@@ -403,12 +411,18 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   const ownAgent = Promise.resolve(graphqlDirect(ContributeAttemptOwnAgentDocument, { id }, options)).catch(
     () => undefined,
   );
+  const reviewReason = Promise.resolve(graphqlDirect(ContributeAttemptReviewReasonDocument, { id }, options)).catch(
+    () => undefined,
+  );
   try {
     const { contributeAttempt } = await review;
     if (!contributeAttempt) return contributeAttempt;
     const extra = (await followUps)?.contributeAttempt;
+    const reason = (await reviewReason)?.contributeAttempt;
     const withFollowUps = withFields(
-      contributeAttempt,
+      reason?.attemptId === contributeAttempt.attemptId && reason.reviewReason !== undefined
+        ? { ...contributeAttempt, reviewReason: reason.reviewReason }
+        : contributeAttempt,
       extra?.attemptId === contributeAttempt.attemptId ? extra : undefined,
     );
     const agent = (await ownAgent)?.contributeAttempt;

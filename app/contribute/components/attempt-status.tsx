@@ -22,6 +22,7 @@ import type {
   ContributeAttempt,
   ContributeAttemptPullRequest,
   ContributeAttemptSubmit,
+  ContributeAutopilotReviewReason,
   ContributeFollowUpOf,
 } from '@/lib/contribute/contribute.types';
 import { relativeLabel, usd } from '@/lib/contribute/format';
@@ -54,6 +55,23 @@ function Box({
 
 const Title = ({ children }: { children: ReactNode }) => <h2 className={HEADING.card}>{children}</h2>;
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
+
+/** Why autopilot left it for the user's review instead of submitting it; nothing for an ordinary review. */
+const AUTOPILOT_REVIEW_NOTES: Partial<Record<ContributeAutopilotReviewReason, string>> = {
+  no_email: 'Autopilot did not submit it: we have no email to tell you first, so it waits for your review.',
+  notice_late: 'Autopilot did not submit it: we could not email you first, so it waits for your review.',
+  autopilot_off: 'Autopilot did not submit it: autopilot was turned off or locked during the hour.',
+};
+
+export function AutopilotReviewNote({ reason }: { reason: ContributeAttempt['reviewReason'] }) {
+  const note = reason ? AUTOPILOT_REVIEW_NOTES[reason] : undefined;
+  if (!note) return null;
+  return (
+    <p data-autopilot-review-reason={reason} className="text-sm text-warning">
+      {note}
+    </p>
+  );
+}
 
 /** The note the API left after a submission step went wrong: why, and what to do. */
 export function SubmitErrorNote({ submit }: { submit: ContributeAttemptSubmit | null }) {
@@ -167,7 +185,7 @@ function AutosubmitStatus({ attempt, now }: { attempt: ContributeAttempt; now?: 
         {attempt.autosubmitAt ? (
           <AutosubmitCountdown at={attempt.autosubmitAt} from={(now ?? new Date()).toISOString()} />
         ) : (
-          'It submits within the hour.'
+          'Emailing you first. The hour starts once the email is sent.'
         )}{' '}
         Stop it to review the change yourself first.
       </Text>
@@ -190,6 +208,7 @@ function followUpStatusOf(attempt: ContributeAttempt): ReactNode {
           <Text>
             Read the new commits and the replies drafted for you, then push the commits to {pr} or discard them.
           </Text>
+          <AutopilotReviewNote reason={attempt.reviewReason} />
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
       );
@@ -276,6 +295,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
         <Box state="REVIEW" tone={attempt.submit?.lastError ? 'warn' : 'info'}>
           <Title>{attempt.submit?.lastError ? 'Back for your approval' : 'Ready for your review'}</Title>
           <Text>Read the change, then submit it as your pull request or discard it. It waits seven days for you.</Text>
+          <AutopilotReviewNote reason={attempt.reviewReason} />
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
       );

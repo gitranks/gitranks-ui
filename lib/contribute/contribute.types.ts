@@ -105,7 +105,18 @@ export type ContributeAutopilot = {
   lockedAt?: string | null;
   /** Autopilot is open. False: it is coming, and turning the setting on is refused. */
   available?: boolean;
+  /**
+   * Where the email before each autopilot submission goes, masked (`m•••@gmail.com`); null when no address is known,
+   * and then turning the setting on is refused.
+   */
+  noticeTo?: string | null;
 };
+
+/**
+ * Why autopilot left a change for the user's review: no email to tell them first (`no_email`), the email not sent in
+ * time (`notice_late`), autopilot turned off or locked meanwhile (`autopilot_off`), or the user's Stop (`vetoed`).
+ */
+export type ContributeAutopilotReviewReason = 'no_email' | 'notice_late' | 'autopilot_off' | 'vetoed';
 
 export type Contributor = {
   status: ContributorStatus;
@@ -358,8 +369,10 @@ export type ContributeAttemptFollowUpFields = {
 };
 
 /** One attempt: an agent session on one issue, and what came of it. */
-export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> &
-  Partial<ContributeOwnAgentFields> & {
+export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
+  /** In the review: why autopilot left it there; null for any other review. Read on its own (`undefined`: not known). */
+  reviewReason?: ContributeAutopilotReviewReason | null;
+} & Partial<ContributeOwnAgentFields> & {
     attemptId: string;
     issueId: string;
     repositoryId: string;

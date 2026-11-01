@@ -57,6 +57,7 @@ export const RepoScreen: FC<RepoScreenProps> = ({ repo, pulse, languages, tiers,
                   <RepoTierCard
                     rank={{ ...rank, tier: rank.tier }}
                     stars={repo.stars}
+                    starsCheck={repo.starsCheck}
                     gainedThisMonth={repo.gainedThisMonth}
                     tiers={tiers?.tiers}
                   />

@@ -63,8 +63,10 @@ export function getBurstRanges(burstMonths: string[] | null | undefined, min: nu
   });
 }
 
-/** The line under the chart: the current count and date, and notes on shading and estimates. */
-/** The star history's caption, in parts: the current count and its date, then the notes that follow it. */
+/**
+ * The line under the chart, in parts: the current count and its date (the caption strikes GitHub's count through
+ * before it when some stars don't count), then the notes on shading and estimates.
+ */
 export function getStarHistoryNoteParts(
   history: RepoHistory,
   burstMonths: string[] | null | undefined,
@@ -83,12 +85,4 @@ export function getStarHistoryNoteParts(
       !history.complete && 'The earliest months are estimates.',
     ].filter((note): note is string => !!note),
   };
-}
-
-export function getStarHistoryNote(history: RepoHistory, burstMonths: string[] | null | undefined): string {
-  const { current, notes } = getStarHistoryNoteParts(history, burstMonths);
-
-  return [current && `${current.stars.toLocaleString('en-US')} stars on ${current.date}.`, ...notes]
-    .filter(Boolean)
-    .join(' ');
 }

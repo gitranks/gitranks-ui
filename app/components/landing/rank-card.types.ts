@@ -1,3 +1,5 @@
+import type { StarsNotCountedTotal } from '@/components/star-count/star-count';
+
 export type RankCardTier = { tier: number; level: number };
 
 /** One global ranking of a profile. `previous` is the position a month ago. */
@@ -5,6 +7,8 @@ export type RankCardEntry = {
   position: number | null;
   previous: number | null;
   value: number | null;
+  /** The stars ranking's total: the stars that don't count, struck through before it. */
+  notCounted?: StarsNotCountedTotal | null;
   rankedCount: number | null;
   tier: RankCardTier | null;
 };

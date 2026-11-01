@@ -102,6 +102,7 @@ export const LandingScreen: FC<LandingData> = ({
             position: row.s,
             previous: row.sM ?? null,
             value: row.user.s ?? null,
+            notCounted: row.user.starsNotCounted,
             rankedCount: tiers?.sUsers ?? null,
             tier: tier ? { tier: tier.tier, level: tier.level } : null,
           },

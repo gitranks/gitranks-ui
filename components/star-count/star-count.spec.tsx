@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  hasStarsNotCounted,
   repoStarsNotCountedText,
   StarCount,
   StarsNotCountedTag,
@@ -120,5 +121,22 @@ describe('StarsNotCountedTag', () => {
     expect(html).toContain('Stars not counted');
     expect(html).toContain('bg-secondary');
     expect(text(html)).toContain('206 stars from suspected fake accounts aren’t counted. GitHub shows 219.');
+  });
+});
+
+describe('hasStarsNotCounted', () => {
+  it('holds only with stars not counted and a GitHub count', () => {
+    expect(hasStarsNotCounted({ notCounted: 206, githubStars: 219 })).toBe(true);
+    expect(hasStarsNotCounted({ notCounted: 0, githubStars: 219 })).toBe(false);
+    expect(hasStarsNotCounted({ notCounted: 206, githubStars: null })).toBe(false);
+    expect(hasStarsNotCounted(null)).toBe(false);
+    expect(hasStarsNotCounted(undefined)).toBe(false);
+  });
+
+  it('keeps the strike and the tag in step', () => {
+    const check = { notCounted: 0, githubStars: 219 };
+
+    expect(renderToStaticMarkup(<StarsNotCountedTag check={check} />)).toBe('');
+    expect(renderToStaticMarkup(<StarCount stars={13} {...check} />)).toBe('13');
   });
 });

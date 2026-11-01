@@ -26,7 +26,7 @@ import {
   PageContainer,
 } from '@/app/profile/[login]/components/profile-page-backbone';
 import { RepoTierChip } from '@/components/repo-tier-chip/repo-tier-chip';
-import { StarCount, StarsNotCountedTag } from '@/components/star-count/star-count';
+import { hasStarsNotCounted, StarCount, StarsNotCountedTag } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
 import type { PageRepoQuery } from '@/types/generated/graphql';
 import { avatarPath, repoOwnerAvatarAlt } from '@/utils/avatar-path';
@@ -84,7 +84,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
               <span className="text-muted-foreground">{owner}/</span>
               {name}
             </h1>
-            {(isRepoRanked(repo) && !!repo.rank?.tier) || repo.starsCheck ? (
+            {(isRepoRanked(repo) && !!repo.rank?.tier) || hasStarsNotCounted(repo.starsCheck) ? (
               <div className="flex flex-wrap items-center gap-1.5 self-start">
                 {isRepoRanked(repo) && !!repo.rank?.tier && <RepoTierChip tier={repo.rank.tier} />}
                 <StarsNotCountedTag check={repo.starsCheck} />

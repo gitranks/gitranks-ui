@@ -32,6 +32,18 @@ export const repoStarsNotCountedText = (notCounted: number, githubStars: number)
 export const totalStarsNotCountedText = ({ stars: count, repositories }: StarsNotCountedTotal) =>
   `${stars(count)} from suspected fake accounts on ${FULL.format(repositories)} ${repositories === 1 ? 'repository' : 'repositories'} ${isNot(count)} counted.`;
 
+/** A repository's star check: GitHub's count and the stars from suspected fake accounts (`Repo.starsCheck`). */
+export type StarsCheck = { notCounted?: number | null; githubStars?: number | null };
+
+/**
+ * Whether some of a repository's stars don't count: stars from suspected fake accounts, and a GitHub count to show.
+ * The repository page's chip row, `StarsNotCountedTag` and `StarCount`'s strike all ask this, so they agree.
+ */
+export const hasStarsNotCounted = (
+  check: StarsCheck | null | undefined,
+): check is { notCounted: number; githubStars: number } =>
+  !!check && (check.notCounted ?? 0) > 0 && (check.githubStars ?? 0) > 0;
+
 /** A row the pointer opens (`ClickableRow`) must not open when the hover's trigger is tapped. */
 const stopPropagation = (event: MouseEvent) => event.stopPropagation();
 
@@ -139,8 +151,9 @@ export type StarCountProps = StarCountBaseProps & {
  * ("~~219~~ 13 stars"), with a hover that says why. The same order everywhere keeps right-aligned columns aligned.
  */
 export const StarCount: FC<StarCountProps> = ({ stars: honest, githubStars, notCounted, format = 'full', ...rest }) => {
-  const struck = githubStars && githubStars > honest ? githubStars : null;
-  const hover = struck ? repoStarsNotCountedText(notCounted || struck - honest, struck) : undefined;
+  const check = { githubStars, notCounted: notCounted ?? (githubStars ? githubStars - honest : null) };
+  const struck = hasStarsNotCounted(check) ? check.githubStars : null;
+  const hover = hasStarsNotCounted(check) ? repoStarsNotCountedText(check.notCounted, check.githubStars) : undefined;
 
   return (
     <StruckCount stars={honest} struck={struck} hover={hover} struckLabel="GitHub shows" format={format} {...rest} />
@@ -174,13 +187,13 @@ export const StarTotalCount: FC<StarTotalCountProps> = ({ stars: honest, notCoun
 
 type StarsNotCountedTagProps = {
   /** `Repo.starsCheck`. */
-  check?: { notCounted: number; githubStars: number } | null;
+  check?: StarsCheck | null;
   className?: string;
 };
 
 /** "Stars not counted" beside a repository's tier chip, in `TagProvisional`'s grey, opening the same hover. */
 export const StarsNotCountedTag: FC<StarsNotCountedTagProps> = ({ check, className }) => {
-  if (!check || check.notCounted <= 0) {
+  if (!hasStarsNotCounted(check)) {
     return null;
   }
 

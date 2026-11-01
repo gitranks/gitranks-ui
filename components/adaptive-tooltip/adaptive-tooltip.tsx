@@ -14,16 +14,22 @@ type AdaptiveTooltipProps = {
   contentClassName?: string;
 };
 
+/**
+ * A pointer that can hover, such as a mouse or a trackpad: those get the tooltip. Touch screens of any width (phones and
+ * tablets) get the popover, which opens on a tap.
+ */
+export const HOVER_POINTER_QUERY = '(hover: hover) and (pointer: fine)';
+
 export const AdaptiveTooltip = ({ trigger, children, contentClassName }: AdaptiveTooltipProps) => {
   const [mounted, setMounted] = useState(false);
-  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const canHover = useMediaQuery(HOVER_POINTER_QUERY);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   // Always render Popover on server and initial client render to avoid hydration mismatch
-  if (!mounted || !isDesktop) {
+  if (!mounted || !canHover) {
     return (
       <Popover>
         <PopoverTrigger asChild>{trigger}</PopoverTrigger>

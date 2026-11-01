@@ -16,6 +16,7 @@ import type { By } from '@/badge/v3/types';
 import { BadgeImages } from '@/components/badge-tiles/badge-tiles';
 import { Flag } from '@/components/flag/flag';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { StarTotalCount } from '@/components/star-count/star-count';
 import { TierChip } from '@/components/tier-chip/tier-chip';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -55,7 +56,12 @@ const RankFacts: FC<{ entry: RankCardEntry; ranking: RankingKey }> = ({ entry, r
         {entry.tier && <TierChip tier={entry.tier} />}
         {percentile !== null && <span>Top {percentile}%</span>}
         <span className="font-mono tabular-nums">
-          {formatFull(entry.value)} {RANKING_LABELS[ranking].unit}
+          {ranking === 's' && typeof entry.value === 'number' && entry.notCounted ? (
+            <StarTotalCount stars={entry.value} notCounted={entry.notCounted} />
+          ) : (
+            formatFull(entry.value)
+          )}{' '}
+          {RANKING_LABELS[ranking].unit}
         </span>
       </div>
     </div>

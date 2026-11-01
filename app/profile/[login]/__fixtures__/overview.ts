@@ -240,7 +240,6 @@ export const strongProfile: ProfileUser = {
   ],
 };
 
-/** Ranked counts the summary cites for the strong profile. */
 /**
  * The strong profile when some of its stars don't count: `tiny-store` shows 27,900 on GitHub, 6,500 of them from
  * suspected fake accounts, so the totals stay as they are and the GitHub counts are struck through beside them.
@@ -253,6 +252,7 @@ export const strongProfileStarsNotCounted: ProfileUser = {
   ),
 };
 
+/** Ranked counts the summary cites for the strong profile. */
 export const strongExtras: ProfileOverviewExtras = {
   rankedGlobal: { sUsers: 1_657_241, cUsers: 1_101_747, fUsers: 3_303_658 },
   rankedCountry: { sUsers: 31_000, cUsers: 22_400, fUsers: 61_000 },

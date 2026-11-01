@@ -1,0 +1,143 @@
+import type { ContributeRun, ContributeRunsPage } from '../runs';
+
+/** Runs as the API answers them: the owner's of 2026-10-30/31, cut to the shapes the page draws. */
+export const runOf = (fields: Partial<ContributeRun> = {}): ContributeRun => ({
+  attemptId: '6ae66cf092fedc1b8ded1999',
+  nameWithOwner: 'renovatebot/renovate',
+  number: 36837,
+  title: 'GitHub: deduplicate status checks which have been re-run',
+  kind: 'FIRST',
+  followUpOf: null,
+  followUps: 0,
+  runner: 'MANAGED_AGENTS',
+  model: 'CLAUDE_SONNET_5_5',
+  effort: 'MEDIUM',
+  agent: null,
+  queuedBy: 'scheduler',
+  state: 'PR_OPEN',
+  outcome: 'PR_OPEN',
+  endReason: null,
+  endDetail: null,
+  noGoCategory: null,
+  pullRequest: { number: 47605, url: 'https://github.com/renovatebot/renovate/pull/47605' },
+  costUsd: 0.11,
+  goNoGoUsd: 0.04,
+  workUsd: 0.07,
+  createdAt: '2026-10-31T21:05:00.073Z',
+  startedAt: '2026-10-31T21:05:00.710Z',
+  finishedAt: '2026-10-31T21:08:05.623Z',
+  ...fields,
+});
+
+export const NO_GO = runOf({
+  attemptId: '6ae66d0292fedc1b8de48d65',
+  nameWithOwner: 'can1357/oh-my-pi',
+  number: 16734,
+  title: 'Approval card: let the detail box use the terminal height',
+  model: 'CLAUDE_OPUS_5_5',
+  state: 'STOPPED',
+  outcome: 'NO_GO',
+  endReason: 'NO_GO',
+  endDetail: 'Needs a design decision. The issue is still current on main (62f4f7cc).',
+  noGoCategory: 'NEEDS_DESIGN',
+  pullRequest: null,
+  costUsd: 0.14,
+  goNoGoUsd: 0.14,
+  workUsd: 0,
+  createdAt: '2026-10-31T22:35:00.068Z',
+  startedAt: '2026-10-31T22:35:00.849Z',
+  finishedAt: '2026-10-31T22:35:32.852Z',
+});
+
+const retry = (attemptId: string, minute: string): ContributeRun =>
+  runOf({
+    attemptId,
+    nameWithOwner: 'recharts/recharts',
+    number: 8040,
+    title: null,
+    model: null,
+    effort: null,
+    state: 'STOPPED',
+    outcome: 'NOT_STARTED',
+    endReason: 'CLAIM_LOST',
+    endDetail: 'ref_pr',
+    pullRequest: null,
+    costUsd: 0,
+    goNoGoUsd: 0,
+    workUsd: 0,
+    createdAt: `2026-10-31T20:${minute}:00.000Z`,
+    startedAt: null,
+    finishedAt: null,
+  });
+
+export const FOLLOW_UP = runOf({
+  attemptId: '6ae6672f92fedc1b8de154ceb',
+  nameWithOwner: 'recharts/recharts',
+  number: 7983,
+  title: 'Website guide: styling data points through the data array',
+  kind: 'FOLLOW_UP',
+  followUpOf: { attemptId: '6ae6650c92fedc1b8debe4c4e', number: 8136 },
+  queuedBy: 'user',
+  state: 'STOPPED',
+  outcome: 'CHECKS_FAILED',
+  endReason: 'CHECKS_FAILED',
+  endDetail: 'tests_passed',
+  pullRequest: null,
+  costUsd: 0.15,
+  goNoGoUsd: 0.08,
+  workUsd: 0.07,
+  createdAt: '2026-10-31T20:55:53.651Z',
+  startedAt: '2026-10-31T20:55:53.646Z',
+  finishedAt: '2026-10-31T20:57:27.591Z',
+});
+
+export const MERGED = runOf({
+  attemptId: '6ae5b1ec92fedc1b8de7ab54f',
+  nameWithOwner: 'maslianok/contribute-sandbox',
+  number: 2,
+  title: 'truncate returns one character more than max',
+  state: 'MERGED',
+  outcome: 'MERGED',
+  pullRequest: { number: 5, url: null },
+  costUsd: 0.07,
+  createdAt: '2026-10-30T23:15:00.052Z',
+  startedAt: '2026-10-30T23:15:16.569Z',
+  finishedAt: '2026-10-30T23:16:51.205Z',
+});
+
+export const RETRIES = [retry('6ae6600492fedc1b8deb7b214', '20'), retry('6ae65ee892fedc1b8deabc059', '15')];
+
+export const pageOf = (fields: Partial<ContributeRunsPage> = {}): ContributeRunsPage => ({
+  items: [NO_GO, runOf(), FOLLOW_UP, ...RETRIES, MERGED],
+  nextCursor: 'MTc5MzQ0.next',
+  totals: {
+    runs: 26,
+    started: 20,
+    costUsd: 2.35,
+    prs: 5,
+    merged: 1,
+    closed: 1,
+    noGo: 13,
+    noGoCostUsd: 1.26,
+    noGoByCategory: [
+      { category: 'NEEDS_DESIGN', count: 6 },
+      { category: 'CANNOT_REPRODUCE', count: 4 },
+      { category: 'ALREADY_FIXED', count: 2 },
+      { category: 'BOT_HANDLED', count: 1 },
+    ],
+  },
+  outcomeCounts: [
+    { outcome: 'ALL', count: 26 },
+    { outcome: 'PR', count: 5 },
+    { outcome: 'NO_GO', count: 13 },
+    { outcome: 'CHECKS_FAILED', count: 2 },
+    { outcome: 'STOPPED', count: 0 },
+    { outcome: 'NOT_STARTED', count: 6 },
+  ],
+  repos: ['can1357/oh-my-pi', 'renovatebot/renovate', 'recharts/recharts', 'maslianok/contribute-sandbox'],
+  days: [
+    { day: '2026-10-31', runs: 25, costUsd: 2.28, prs: 4 },
+    { day: '2026-10-30', runs: 1, costUsd: 0.07, prs: 1 },
+  ],
+  ...fields,
+});

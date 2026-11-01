@@ -39,7 +39,7 @@ export const EVENT_LABELS: Record<ContributeAttemptState, string> = {
   RUNNING: 'The agent started',
   CHECKS: 'Running our checks',
   REVIEW: 'Waiting for your review',
-  PENDING_AUTOSUBMIT: 'Autopilot will submit it within the hour',
+  PENDING_AUTOSUBMIT: 'Autopilot will submit it unless you stop it',
   SUBMITTING: 'Submitting',
   PR_OPEN: 'Pull request opened',
   FOLLOW_UP: 'Follow-up started',

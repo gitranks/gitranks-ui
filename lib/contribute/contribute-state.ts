@@ -105,7 +105,7 @@ export function contributeHomeOf(
 }
 
 /** The pages of Contribute that wait for the user: Issues, My contributions, an attempt's review, Settings. */
-export type ContributeGatedPage = 'issues' | 'me' | 'attempt' | 'settings';
+export type ContributeGatedPage = 'issues' | 'me' | 'runs' | 'attempt' | 'settings';
 
 /**
  * Whether the page is open to the user; one that is not sends them to the landing. Settings is open to any

@@ -44,3 +44,5 @@ dist
 
 .env
 .env.local
+# design exports (pnpm design:export)
+/.design/

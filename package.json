@@ -10,6 +10,7 @@
     "lint": "biome check",
     "test": "vitest run",
     "format": "biome format --write",
+    "design:export": "vitest run -c design/vitest.config.mts && node scripts/design-css.mjs",
     "types": "next typegen && tsc --noEmit",
     "codegen": "dotenv -e .env.local graphql-codegen",
     "standalone": "dotenv -e .env.local node .next/standalone/server.js",

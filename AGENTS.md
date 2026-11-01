@@ -29,3 +29,9 @@ detail needs recording, ask where the private notes belong rather than putting i
 This applies to anything you generate, including text you are merely summarising or carrying over
 from another context.
 
+
+# Design
+
+Design work (new screens, changes, reviews, tokens) follows the `gitranks-design` skill
+(`.claude/skills/gitranks-design/SKILL.md`): rules in `DESIGN.md`, where designs live in `design/README.md`. Start from
+the live screens drawn from code, change only what is asked, and redraw a screen after its PR merges.

@@ -8,18 +8,10 @@ import { it } from 'vitest';
 
 import { boardOf, boardPathOf } from './board';
 import { drawImages } from './images';
-import { AREAS } from './registry';
+import { AREAS, type DesignGlobals } from './registry';
 import { SCREENS } from './screens';
 
 const OUT = join(process.cwd(), '.design');
-
-/** What the mocks in `setup.tsx` read: the state's path, params and query, and who is looking. */
-type DesignGlobals = {
-  __designPath?: string;
-  __designParams?: Record<string, string>;
-  __designSearch?: string;
-  __designSignedOut?: boolean;
-};
 
 /** The route's params at a path: `/profile/[login]` at `/profile/octo-dev` is `{ login: 'octo-dev' }`. */
 const paramsOf = (route: string, pathname: string) => {

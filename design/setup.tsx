@@ -1,14 +1,10 @@
 import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 
+import type { DesignGlobals } from './registry';
+
 // Screens render as the server would send them: no router, a signed-in look unless a state is signed out, loaders and
 // actions never called.
-type DesignGlobals = {
-  __designPath?: string;
-  __designParams?: Record<string, string>;
-  __designSearch?: string;
-  __designSignedOut?: boolean;
-};
 
 // One clock for every board, so an export draws the same "3 days ago" each time: the day the fixtures are set on.
 vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-28T12:00:00.000Z') });

@@ -47,6 +47,9 @@ Live boards come from main only. The script refuses anything else.
 4. **Propose by editing copies.**
    - Copy each board you change to `<root>/project/proposals/<slug>/<name>.dc.html` and edit only what changes. It sits
      at the same depth as the live board, so its stylesheet link stays as it is.
+   - Its badge images point at the live `current/img/` files, which a redraw replaces. To keep them as they are, or for
+     a board exported from your branch (whose images main hasn't published), copy the files it references into
+     `proposals/<slug>/img/`, point its `src` there, and publish them with the boards.
    - Keep the app's classes: they come from `gitranks.css`. Inline `style` is fine for something new.
    - Give options as extra boards (A, B), not as flags.
    - Place the boards on the screen's page at the row's `y` and the `x` the page's grey "Live boards" note names, which

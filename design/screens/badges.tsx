@@ -8,7 +8,7 @@ import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-stat
 import { GalleryScreen } from '@/app/badge/gallery/components/gallery-screen';
 import BadgeGalleryLayout from '@/app/badge/gallery/layout';
 import { findBadge } from '@/badge/v3/catalogue';
-import { NOW, orgBig, repoBig, userBig } from '@/badge/v3/fixtures';
+import { orgBig, repoBig, userBig } from '@/badge/v3/fixtures';
 
 const leaders = [withBadgeFacts(userBig), withBadgeFacts(repoBig), withBadgeFacts(orgBig)];
 
@@ -70,7 +70,7 @@ export const BADGES_SCREENS: Screen[] = [
         height: 2000,
         render: () => (
           <BadgeGalleryLayout params={Promise.resolve({})}>
-            <GalleryScreen leaders={leaders} now={NOW} />
+            <GalleryScreen leaders={leaders} now={new Date()} />
           </BadgeGalleryLayout>
         ),
       },

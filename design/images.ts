@@ -1,11 +1,15 @@
 import { createHash } from 'node:crypto';
+import { basename } from 'node:path';
 
 import type { EntityFacts } from '@/badge/v3/facts';
-import { NOW } from '@/badge/v3/fixtures';
 import { type BadgeLoaders, getBadgeResponse, parseEntityRef } from '@/badge/v3/route';
 import type { EntityKind } from '@/badge/v3/types';
+import { SITE_URL } from '@/lib/seo/site';
 
-/** Where the badges the boards show are written, under `project/`: one file per drawing, named by its content. */
+/**
+ * Where the badges the boards show are written, under `project/`: `<board>-<n>.svg`, so a redraw replaces a board's
+ * images in place rather than adding new files.
+ */
 const IMAGES = 'current/img';
 
 const nameOf = (entity: EntityFacts) => (entity.kind === 'repo' ? entity.nameWithOwner : entity.login).toLowerCase();
@@ -33,8 +37,6 @@ const loaders: BadgeLoaders = {
   org: async (login) => findBadgeFacts('org', login),
   repo: async (owner, name) => findBadgeFacts('repo', `${owner}/${name}`),
 };
-
-const hash = (text: string) => createHash('sha256').update(text).digest('hex').slice(0, 16);
 
 /**
  * A GitHub-style identicon for an avatar: the fixtures' accounts are made up, so the boards draw no real person's
@@ -65,27 +67,30 @@ function avatarKey(url: URL): string | null {
   return null;
 }
 
-/** A badge URL drawn from the fixtures, as the site's own route draws it; null when it names no badge. */
+/** A badge URL drawn from the fixtures, as the site's own route draws it at the boards' clock; null when it names none. */
 async function drawBadge(url: URL): Promise<string | null> {
   const [, , kind, ...rest] = url.pathname.split('/');
   const file = rest.pop();
   if (!file || (kind !== 'user' && kind !== 'org' && kind !== 'repo')) return null;
   const params = kind === 'repo' ? { owner: rest[0], name: rest[1] } : { login: rest[0] };
-  const response = await getBadgeResponse(parseEntityRef(kind, params), file, url.searchParams, loaders, NOW);
+  const response = await getBadgeResponse(parseEntityRef(kind, params), file, url.searchParams, loaders, new Date());
   if (!response.ok) {
     throw new Error(
       `${url.pathname}: ${response.status} ${await response.text()}. Name its facts with withBadgeFacts (design/images.ts).`,
     );
   }
+  if (!response.headers.get('Content-Type')?.startsWith('image/svg+xml')) {
+    throw new Error(`${url.pathname}: the boards draw SVG badges only.`);
+  }
   return response.text();
 }
 
 const decodeEntities = (value: string) => value.replaceAll('&amp;', '&');
-const SITE = 'https://gitranks.com';
+const SITE = new URL(SITE_URL || 'https://gitranks.com').origin;
 
 /**
  * Every image of a board drawn without the site: badges from the fixtures into files beside the boards, avatars as
- * identicons. An image the site would serve and that this cannot draw stops the export, so no board shows a hole.
+ * identicons. Any other image stops the export, so no board shows a hole or loads from elsewhere.
  */
 export async function drawImages(
   markup: string,
@@ -94,6 +99,7 @@ export async function drawImages(
   const images = new Map<string, string>();
   const up = '../'.repeat(boardPath.split('/').length - 1);
   const sources = new Map<string, string>();
+  const board = basename(boardPath, '.dc.html');
 
   const resolve = async (src: string): Promise<string> => {
     if (src.startsWith('data:')) return src;
@@ -106,12 +112,11 @@ export async function drawImages(
     if (url.origin === SITE && url.pathname.startsWith('/badge/')) {
       const svg = await drawBadge(url);
       if (svg) {
-        const path = `${IMAGES}/${hash(svg)}.svg`;
+        const path = `${IMAGES}/${board}-${images.size}.svg`;
         images.set(path, svg);
         return `${up}${path}`;
       }
     }
-    if (url.origin !== SITE) return src;
     throw new Error(`No drawing for the image ${src} on ${boardPath}: draw it in design/images.ts.`);
   };
 

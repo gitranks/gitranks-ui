@@ -13,6 +13,14 @@ export const AREAS = {
 
 export type Area = keyof typeof AREAS;
 
+/** What the export sets for each state and the mocks in `setup.tsx` read: its path, params and query, and who looks. */
+export type DesignGlobals = {
+  __designPath?: string;
+  __designParams?: Record<string, string>;
+  __designSearch?: string;
+  __designSignedOut?: boolean;
+};
+
 /** One state of a screen, drawn from fixtures: a board on the canvas. */
 export type ScreenState = {
   id: string;

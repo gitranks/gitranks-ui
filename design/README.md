@@ -47,13 +47,14 @@ for a layout) that takes the data as props, so the catalogue renders the same co
 How a state is drawn (`design/setup.tsx`, `design/images.ts`):
 
 - As the server sends it: async server components are awaited, browser-only parts (`ssr: false` charts) are left out,
-  and every board shares one clock (28 Oct 2026, 12:00 UTC).
+  and every board and its badges share one clock (28 Oct 2026, 12:00 UTC), with `NEXT_PUBLIC_URI` set as in production.
 - Signed in as the catalogue's viewer, or signed out with `signedOut: true`.
 - Loaders and server-only modules are mocked; nothing reads the API. A loader a screen calls in the browser is mocked
   to return its fixture.
 - Badge images are drawn from badge facts, the way the site's own route draws them, into `project/current/img/`. A
-  screen names the facts its badges show with `withBadgeFacts`. Avatars become identicons, since the fixtures' accounts
-  are made up. An image the export can't draw stops it.
+  screen names the facts its badges show with `withBadgeFacts`. Each board's images are `img/<board>-<n>.svg`, so a
+  redraw replaces them in place. Avatars become identicons, since the fixtures' accounts are made up. Any other image
+  stops the export.
 
 ## Commands
 

@@ -2,7 +2,8 @@
 
 import { cacheLife } from 'next/cache';
 
-import { GallerySection, galleryTiles } from './components/gallery-section';
+import { GalleryScreen } from './components/gallery-screen';
+import { galleryTiles } from './components/gallery-section';
 import { GALLERY_SECTIONS } from './gallery-badges';
 import { fetchShowcaseNames, loadShowcase } from './gallery-showcase';
 
@@ -21,11 +22,5 @@ export default async function BadgeGallery() {
     cacheLife('minutes');
   }
 
-  return (
-    <div className="flex flex-col gap-8">
-      {GALLERY_SECTIONS.map((section, index) => (
-        <GallerySection key={section.kind} {...section} entity={showcases[index].facts} now={now} />
-      ))}
-    </div>
-  );
+  return <GalleryScreen leaders={showcases.map(({ facts }) => facts)} now={now} />;
 }

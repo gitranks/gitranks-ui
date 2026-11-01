@@ -3,16 +3,10 @@ import { SessionProvider } from 'next-auth/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { readmeContent } from './readme-badges';
+import { showcase } from './__fixtures__/landing';
 import { ReadmeSection } from './readme-section';
 import type { ReadmeShowcase } from './readme-showcase';
-import { NOW, orgBig, repoBig, userBig } from '@/badge/v3/fixtures';
-
-const showcase: ReadmeShowcase = {
-  user: readmeContent(userBig, 'find', NOW),
-  repo: readmeContent(repoBig, 'find', NOW),
-  org: readmeContent(orgBig, 'find', NOW),
-};
+import { userBig } from '@/badge/v3/fixtures';
 
 const session = (githubLogin: string): Session => ({
   user: { githubLogin, name: githubLogin },

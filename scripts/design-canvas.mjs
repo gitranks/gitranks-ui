@@ -27,7 +27,7 @@ if (git('rev-parse HEAD') !== git('rev-parse origin/main') || git('status --porc
   );
 }
 const canvas = JSON.parse(readFileSync(live, 'utf8'));
-const { commit, boards } = JSON.parse(readFileSync(join(OUT, 'boards.json'), 'utf8'));
+const { commit, boards, images = [] } = JSON.parse(readFileSync(join(OUT, 'boards.json'), 'utf8'));
 if (commit.endsWith('-dirty')) fail('The export came from a checkout with changes: run pnpm design:export again here.');
 
 const GAP_X = 80;
@@ -144,8 +144,12 @@ writeFileSync(
 const files = Object.fromEntries([
   ['project/current/gitranks.css', 'project/current/gitranks.css'],
   ...listed.map((path) => [`project/${path}`, `project/${path}`]),
+  // The badges the boards show, named by their content: a drawing that changed is a new file.
+  ...images.map((path) => [`project/${path}`, `project/${path}`]),
   ...removed.map((path) => [`project/${path}`, null]),
 ]);
 writeFileSync(join(OUT, 'publish.json'), `${JSON.stringify(files, null, 1)}\n`);
-console.log(`${listed.length} live boards, ${removed.length} removed; ${others.length} other boards kept.`);
+console.log(
+  `${listed.length} live boards and ${images.length} images, ${removed.length} removed; ${others.length} other boards kept.`,
+);
 console.log('Publish: root .design, file_path .design/project/canvas.json, files from .design/publish.json.');

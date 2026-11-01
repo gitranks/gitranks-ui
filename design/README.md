@@ -19,7 +19,8 @@ Both links are private to the owner.
 
 ## The canvas
 
-One canvas, one page per area (Contribute, …), plus Archive.
+One canvas, one page per area (Landing, Developer profile, Repository, Organization, Rankings, Badges, Contribute),
+plus Archive.
 
 - **Live boards** (`project/current/<area>/<screen>--<state>.dc.html`) are drawn from this repo's code by
   `pnpm design:export`: the real components, rendered from fixtures, with the app's own stylesheet
@@ -35,18 +36,32 @@ One canvas, one page per area (Contribute, …), plus Archive.
 ## The catalogue
 
 `design/screens/<area>.tsx` lists each screen: its route, the files that draw it, and its states. A state renders the
-real screen component with fixtures (the same ones the specs use, under `lib/**/__fixtures__`) at a width (1280, or
-390 for a phone) and a board height. `design/screens/index.ts` gathers the areas; `design/registry.ts` has the types.
+real screen component with fixtures (the same ones the specs use: `__fixtures__` modules beside the code, and
+`badge/v3/fixtures.ts`) at a width (1280, or 390 for a phone) and a board height. `design/screens/index.ts` gathers
+the areas; `design/registry.ts` has the types.
 
 A screen that isn't in the catalogue yet gets an entry before anyone designs on it. A state is cheap: a fixture and a
-render call.
+render call. A page that reads its data inside a server component first gets a presentational `…Screen` (or `…Frame`
+for a layout) that takes the data as props, so the catalogue renders the same component the page does.
+
+How a state is drawn (`design/setup.tsx`, `design/images.ts`):
+
+- As the server sends it: async server components are awaited, browser-only parts (`ssr: false` charts) are left out,
+  and every board and its badges share one clock (28 Oct 2026, 12:00 UTC), with `NEXT_PUBLIC_URI` set as in production.
+- Signed in as the catalogue's viewer, or signed out with `signedOut: true`.
+- Loaders and server-only modules are mocked; nothing reads the API. A loader a screen calls in the browser is mocked
+  to return its fixture.
+- Badge images are drawn from badge facts, the way the site's own route draws them, into `project/current/img/`. A
+  screen names the facts its badges show with `withBadgeFacts`. Each board's images are `img/<board>-<n>.svg`, so a
+  redraw replaces them in place. Avatars become identicons, since the fixtures' accounts are made up. Any other image
+  stops the export.
 
 ## Commands
 
 | Command | Does |
 | --- | --- |
-| `pnpm design:export` | Renders every state to `.design/project/current/**` and builds `gitranks.css` (about a second). |
-| `node scripts/design-canvas.mjs <canvas.json>` | Merges the export into the canvas's index as read from the canvas: replaces the live boards and their notes (ids starting `current-`), keeps proposals, other notes and pages. Writes `.design/project/canvas.json` and `.design/publish.json` (the files to send). Runs only on a clean checkout of `origin/main`: live boards come from main. |
+| `pnpm design:export` | Renders every state to `.design/project/current/**`, with the badge images the boards show, and builds `gitranks.css` (a few seconds). |
+| `node scripts/design-canvas.mjs <canvas.json>` | Merges the export into the canvas's index as read from the canvas: replaces the live boards and their notes (ids starting `current-`), keeps proposals, other notes and pages. Writes `.design/project/canvas.json` and `.design/publish.json` (the files to send: boards, images, stylesheet). Runs only on a clean checkout of `origin/main`: live boards come from main. |
 | `node scripts/design-tokens.mjs <tokens.json>` | The design system's `tokens.json` with every colour from `app/globals.css`, keeping its usage notes and type scale. Writes `.design/system/project/tokens.json`. |
 
 `.design/` is not committed.

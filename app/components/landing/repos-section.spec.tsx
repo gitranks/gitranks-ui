@@ -1,25 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { repoRow as row } from './__fixtures__/landing';
 import { ReposSection, risingRepos } from './repos-section';
 import type { RepoRankingsQuery } from '@/types/generated/graphql';
 
 type Row = RepoRankingsQuery['repoRankings'][number];
-
-const row = (s: number, gainedThisMonth: number | null, sM: number | null = s): Row => ({
-  githubId: `R_${s}`,
-  s,
-  sM,
-  repo: {
-    githubId: `R_${s}`,
-    owner: `owner-${s}`,
-    name: `repo-${s}`,
-    nameWithOwner: `owner-${s}/repo-${s}`,
-    ownerAvatarUrl: `https://avatars.githubusercontent.com/u/${s}?v=4`,
-    stars: 100_000 - s,
-    gainedThisMonth,
-  },
-});
 
 const render = (rows: Row[]) => renderToStaticMarkup(<ReposSection rows={rows} />);
 

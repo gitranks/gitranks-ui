@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     include: ['design/export.design.tsx'],
     setupFiles: ['design/setup.tsx'],
+    // The site's address, as production sets it: the badge snippets and links the boards show are absolute.
+    env: { NEXT_PUBLIC_URI: 'https://gitranks.com' },
   },
 });

@@ -37,7 +37,8 @@ Live boards come from main only. The script refuses anything else.
 1. **Redraw** (above), so the live boards match main.
 2. **Find the screen** in `design/screens/<area>.tsx` by route.
    - If it isn't there, add the screen and the states you need on your branch. Render the real `…Screen` component with
-     the fixtures its spec uses, the same way the neighbouring entries do.
+     the fixtures its spec uses, the same way the neighbouring entries do. A page that reads its data in a server
+     component gets a presentational `…Screen` first; `design/README.md` (The catalogue) says how states are drawn.
    - Run `pnpm design:export` until it passes.
    - The new boards aren't live until that PR merges. Until then, copy the ones you need from `.design/project/current/`
      into `proposals/<slug>/`, as in step 4.
@@ -46,6 +47,9 @@ Live boards come from main only. The script refuses anything else.
 4. **Propose by editing copies.**
    - Copy each board you change to `<root>/project/proposals/<slug>/<name>.dc.html` and edit only what changes. It sits
      at the same depth as the live board, so its stylesheet link stays as it is.
+   - Its badge images point at the live `current/img/` files, which a redraw replaces. To keep them as they are, or for
+     a board exported from your branch (whose images main hasn't published), copy the files it references into
+     `proposals/<slug>/img/`, point its `src` there, and publish them with the boards.
    - Keep the app's classes: they come from `gitranks.css`. Inline `style` is fine for something new.
    - Give options as extra boards (A, B), not as flags.
    - Place the boards on the screen's page at the row's `y` and the `x` the page's grey "Live boards" note names, which

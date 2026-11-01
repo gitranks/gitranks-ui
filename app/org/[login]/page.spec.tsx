@@ -1,6 +1,7 @@
 import { cacheLife } from 'next/cache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { nebulaOrg } from './__fixtures__/org';
 import OrgPage from './page';
 import { loadBadgeOrgCard } from '@/badge/v3/load';
 import { fetchOrg } from '@/graphql/helpers/fetch-org';
@@ -10,14 +11,14 @@ vi.mock('next/navigation', () => ({ notFound: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-org', () => ({ fetchOrg: vi.fn() }));
 vi.mock('@/badge/v3/load', () => ({ loadBadgeOrgCard: vi.fn() }));
 
-const ORG = { login: 'nebula', s: 312_000, rankOrg: { s: 12, sM: 15 }, topRepos: [], hasActivity: false, pulse: null };
+const ORG = nebulaOrg;
 
 const render = () => OrgPage({ params: Promise.resolve({ login: 'nebula' }) } as PageProps<'/org/[login]'>);
 
 describe('organization page', () => {
   beforeEach(() => {
     vi.mocked(cacheLife).mockReset();
-    vi.mocked(fetchOrg).mockResolvedValue(ORG as unknown as Awaited<ReturnType<typeof fetchOrg>>);
+    vi.mocked(fetchOrg).mockResolvedValue(ORG);
   });
 
   it('is kept for hours when the badge data reads', async () => {
@@ -45,7 +46,7 @@ describe('organization page', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(loadBadgeOrgCard).toHaveBeenCalledWith('nebula');
-    orgRead(ORG as unknown as Awaited<ReturnType<typeof fetchOrg>>);
+    orgRead(ORG);
     await page;
   });
 });

@@ -197,7 +197,7 @@ export function PrForm({
   // A repo that checks every commit fails an unsigned PR: the tick comes first (or Discard).
   const signOffMissing = dcoRequired === true && !signOff;
   // Only a title that fails a rule the repo checks blocks Submit: everything else is the user's to do or to know.
-  const titleRuleFails = !titleMissing && titleBlocks(title, conventions?.title);
+  const titleRuleFails = !titleMissing && titleBlocks(title, conventions);
   const blocked = titleMissing || signOffMissing || titleRuleFails;
   const needs = checklistOf(conventions, { title, patch });
 
@@ -393,7 +393,7 @@ export function PrForm({
       ) : null}
       {titleRuleFails ? (
         <span data-title-rule-fails className="text-sm text-muted-foreground">
-          Fix the title to submit: this repo checks it, and a title that fails fails the pull request.
+          Fix the title to submit: as it is, it would fail the repo&apos;s rules on the pull request.
         </span>
       ) : null}
       {signOffMissing ? (

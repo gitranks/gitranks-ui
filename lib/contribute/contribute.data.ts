@@ -4,6 +4,7 @@ import { cache } from 'react';
 
 import {
   ContributeActivityDocument,
+  ContributeAttemptCheckStopDocument,
   ContributeAttemptConventionsDocument,
   ContributeAttemptDcoDocument,
   ContributeAttemptDocument,
@@ -473,6 +474,10 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   );
   // Whether the repo requires a DCO sign-off; left out when not answered.
   const dco = Promise.resolve(graphqlDirect(ContributeAttemptDcoDocument, { id }, options)).catch(() => undefined);
+  // Whether the check ran out, and can be tried again; left out when not answered.
+  const checkStop = Promise.resolve(graphqlDirect(ContributeAttemptCheckStopDocument, { id }, options)).catch(
+    () => undefined,
+  );
   // The repo's PR conventions, the open PR's fixes, and the agent's proposed title; left out when not answered.
   const conventions = Promise.resolve(graphqlDirect(ContributeAttemptConventionsDocument, { id }, options)).catch(
     () => undefined,
@@ -503,9 +508,14 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
       dcoRead?.attemptId === contributeAttempt.attemptId && typeof dcoRead.dcoRequired === 'boolean'
         ? { ...withFlow, dcoRequired: dcoRead.dcoRequired }
         : withFlow;
+    const stopRead = (await checkStop)?.contributeAttempt;
+    const withStop =
+      stopRead?.attemptId === contributeAttempt.attemptId && typeof stopRead.retryable === 'boolean'
+        ? { ...withDco, stoppedInCheck: stopRead.stoppedInCheck, retryable: stopRead.retryable }
+        : withDco;
     const conventionsRead = (await conventions)?.contributeAttempt;
     const withConventions = withConventionsOf(
-      withDco,
+      withStop,
       conventionsRead?.attemptId === contributeAttempt.attemptId ? conventionsRead : undefined,
     );
     const agent = (await ownAgent)?.contributeAttempt;

@@ -370,6 +370,14 @@ export const ContributeAttemptDcoDocument = doc<
   contributeAttempt(id: $id) { attemptId dcoRequired }
 }`);
 
+/** A check that ran out of budget or time, and whether it can be tried again: read on its own, as the field above. */
+export const ContributeAttemptCheckStopDocument = doc<
+  { contributeAttempt: { attemptId: string; stoppedInCheck: boolean; retryable: boolean } | null },
+  { id: string }
+>(`query ContributeAttemptCheckStop($id: ID!) {
+  contributeAttempt(id: $id) { attemptId stoppedInCheck retryable }
+}`);
+
 /** What the stepper reads again while the attempt submits: its state, the submission with its clock, the PR. */
 export const ContributeAttemptLiveDocument = doc<{ contributeAttempt: ContributeAttemptLive | null }, { id: string }>(
   `query ContributeAttemptLive($id: ID!) {
@@ -517,6 +525,10 @@ export const ApproveAttemptDocument = doc<
 >(`mutation ApproveAttempt($id: ID!, $title: String!, $body: String!, $dco: Boolean!) {
   approveAttempt(id: $id, title: $title, body: $body, dco: $dco) { ${ATTEMPT} }
 }`);
+
+export const RetryAttemptDocument = doc<{ retryAttempt: ContributeAttempt }, { id: string }>(
+  `mutation RetryAttempt($id: ID!) { retryAttempt(id: $id) { ${ATTEMPT} } }`,
+);
 
 export const DiscardAttemptDocument = doc<{ discardAttempt: ContributeAttempt }, { id: string }>(
   `mutation DiscardAttempt($id: ID!) { discardAttempt(id: $id) { ${ATTEMPT} } }`,

@@ -487,6 +487,11 @@ export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
     costUsd: number;
     endReason: ContributeAttemptEndReason | null;
     endDetail: string | null;
+    /**
+     * Stopped by its budget or the time while the agent still checked the issue, before deciding: no word on the
+     * issue, unlike a no-go. `undefined` while the API does not answer it (`stoppedInCheckOf` then reads the detail).
+     */
+    stoppedInCheck?: boolean;
     checksPassed: boolean | null;
     approvedAt: string | null;
     submit: ContributeAttemptSubmit | null;
@@ -546,6 +551,11 @@ export type ContributeAttemptDetail = ContributeAttempt & {
    * False: nothing is asked and nothing is signed off. `undefined` while the API does not answer it.
    */
   dcoRequired?: boolean;
+  /**
+   * The check ran out of budget or time before deciding: `retryAttempt` tries it again once, on twice the check's
+   * budget. `undefined` while the API does not answer it.
+   */
+  retryable?: boolean;
   checks: ContributeAttemptCheck[];
   cost: ContributeAttemptCost;
   approval: ContributeAttemptApproval | null;

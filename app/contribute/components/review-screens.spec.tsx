@@ -555,6 +555,30 @@ describe('the review screen', () => {
     },
   );
 
+  it('a check that ran out never reads as a no-go, and offers one retry on a bigger budget', () => {
+    const detailText = 'Ran out of the $0.50 check budget after 19 min before deciding; last step: bash: cargo build';
+    const ranOut = detail({ ...stopped('BUDGET', detailText), stoppedInCheck: true, retryable: true });
+    const html = review(ranOut);
+    const plain = text(html);
+    expect(plain).toContain('Stopped while checking the issue');
+    expect(plain).toContain('Stopped: ran out of budget while checking the issue.');
+    expect(plain).toContain(`Detail: ${detailText}`);
+    expect(plain).toContain('nothing was said about the issue');
+    expect(plain).not.toContain('decided not to go ahead');
+    expect(plain).not.toContain('went back to the pool');
+    expect(html).toContain('data-check-stop');
+    expect(plain).toContain('Retry with a bigger check budget');
+
+    // Tried again already: the words stay, the button goes.
+    expect(text(review(detail({ ...ranOut, retryable: false })))).not.toContain('Retry with a bigger check budget');
+    // The time cap says time; an API without the field is read from the detail.
+    const late = text(review(stopped('TIMEOUT', 'Hit the 15-min check limit ($0.42 of $1.00 spent) before deciding')));
+    expect(late).toContain('Stopped: ran out of time while checking the issue.');
+    expect(late).not.toContain('Retry with a bigger check budget');
+    // A budget stop in the work is the attempt's limit, as before.
+    expect(text(review(detail({ ...stopped('BUDGET'), stoppedInCheck: false })))).toContain(END_REASONS.BUDGET);
+  });
+
   it('says a stop with no reason yet is not available yet', () => {
     expect(text(review(detail({ state: 'STOPPED' })))).toContain('Why it stopped is not available yet.');
   });
@@ -614,6 +638,12 @@ describe('my contributions', () => {
     }),
     attempt({ attemptId: 'A_4', state: 'STOPPED', endReason: 'NO_GO', costUsd: 0.38 }),
     attempt({ attemptId: 'A_5', state: 'MERGED' }),
+    attempt({
+      attemptId: 'A_6',
+      state: 'STOPPED',
+      endReason: 'BUDGET',
+      endDetail: 'Ran out of the $1.00 check budget',
+    }),
   ];
   const render = (
     data: Parameters<typeof ContributionsScreen>[0]['contributions'],
@@ -665,10 +695,13 @@ describe('my contributions', () => {
   it('counts how the last attempts ended, with the reasons of the stops', () => {
     const plain = text(render(contributions, list));
 
-    expect(plain).toContain('Your last 5 attempts');
+    expect(plain).toContain('Your last 6 attempts');
     expect(plain).toContain('Became pull requests 1');
     expect(plain).toContain('Stopped at the go/no-go check 1');
+    expect(plain).toContain('Ran out while checking the issue 1');
+    expect(plain).toContain('Stopped for another reason 0');
     expect(plain).toContain(END_REASONS.NO_GO);
+    expect(plain).toContain('Stopped: ran out of budget while checking the issue.');
   });
 
   it('says what is not available yet, and when there are no pull requests yet', () => {

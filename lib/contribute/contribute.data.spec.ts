@@ -40,6 +40,7 @@ const {
   ContributeContributionsFollowUpsDocument,
   ContributeGrantDocument,
   ContributeAttemptsOpenDocument,
+  ContributeAttemptCheckStopDocument,
   ContributeAttemptDcoDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
@@ -197,6 +198,43 @@ describe('loadAttempt: whether the repo requires DCO, read on its own', () => {
       const read = await loadAttempt('A_1');
       expect(read).toEqual({ attemptId: 'A_1', state: 'REVIEW' });
       expect('dcoRequired' in (read ?? {})).toBe(false);
+    }
+  });
+});
+
+describe('loadAttempt: a check that ran out, read on its own', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const answering = (stop: () => Promise<unknown>) =>
+    graphqlDirect.mockImplementation((document) =>
+      document === ContributeAttemptCheckStopDocument
+        ? stop()
+        : Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'STOPPED' } }),
+    );
+
+  it("merges the attempt's own answer, and leaves both fields out otherwise", async () => {
+    answering(() =>
+      Promise.resolve({ contributeAttempt: { attemptId: 'A_1', stoppedInCheck: true, retryable: true } }),
+    );
+    expect(await loadAttempt('A_1')).toEqual({
+      attemptId: 'A_1',
+      state: 'STOPPED',
+      stoppedInCheck: true,
+      retryable: true,
+    });
+
+    for (const stop of [
+      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', stoppedInCheck: true, retryable: true } }),
+      () => Promise.reject(new Error('[{"message":"Cannot query field \\"retryable\\""}]')),
+    ]) {
+      answering(stop);
+      const read = await loadAttempt('A_1');
+      expect(read).toEqual({ attemptId: 'A_1', state: 'STOPPED' });
+      expect('retryable' in (read ?? {})).toBe(false);
     }
   });
 });

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { AutosubmitCountdown, StopAutopilotButton } from './follow-up-buttons';
+import { AutosubmitCountdown, RetryCheckButton, StopAutopilotButton } from './follow-up-buttons';
 import { FollowUpStepper } from './follow-up-stepper';
 import { HEADING, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
@@ -10,11 +10,13 @@ import {
   ATTEMPT_STATES,
   detailText,
   END_REASONS,
+  endReasonTextOf,
   githubUrlOf,
   labelOf,
   PR_CHECKS,
   PR_STATES,
   REVIEW_DECISIONS,
+  stoppedInCheckOf,
   timeLabel,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
@@ -407,13 +409,14 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
         </Box>
       );
     }
-    case 'STOPPED':
+    case 'STOPPED': {
+      const inCheck = stoppedInCheckOf(attempt);
       return (
         <Box state="STOPPED" tone="muted">
-          <Title>Stopped</Title>
+          <Title>{inCheck ? 'Stopped while checking the issue' : 'Stopped'}</Title>
           <Text>
-            <span data-end-reason={attempt.endReason ?? ''}>
-              {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it stopped is not available yet.'}
+            <span data-end-reason={attempt.endReason ?? ''} data-check-stop={inCheck ? '' : undefined}>
+              {endReasonTextOf(attempt) ?? 'Why it stopped is not available yet.'}
             </span>
             {attempt.endDetail ? (
               <>
@@ -423,14 +426,20 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
               </>
             ) : null}{' '}
             {usd(attempt.costUsd)} was spent.
-            {attempt.endReason === 'SUBMIT_FAILED' ? '' : ' The issue went back to the pool.'}
+            {attempt.endReason === 'SUBMIT_FAILED'
+              ? ''
+              : inCheck
+                ? ' The agent had not decided yet, so nothing was said about the issue.'
+                : ' The issue went back to the pool.'}
           </Text>
+          {'retryable' in attempt && attempt.retryable ? <RetryCheckButton attemptId={attempt.attemptId} /> : null}
           {attempt.endReason === 'SUBMIT_FAILED' && attempt.submit && failedAtStep(attempt.submit) ? (
             <SubmitStepsSettled state="STOPPED" submit={attempt.submit} />
           ) : null}
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
       );
+    }
     case 'DISCARDED':
       return (
         <Box state="DISCARDED" tone="muted">

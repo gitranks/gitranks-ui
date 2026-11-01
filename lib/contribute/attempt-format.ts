@@ -91,6 +91,33 @@ export const END_REASONS: Record<ContributeAttemptEndReason, string> = {
   MCP_EXPIRED: 'It reached the seven days an issue can be held, so it was let go.',
 };
 
+/** The detail of a check that ran out (the API's words): read when an API does not say `stoppedInCheck`. */
+const CHECK_STOP_DETAIL = /^(?:Ran out of the \$[\d.]+ check budget|Hit the \d+-min check limit)/;
+
+/**
+ * Stopped by its budget or the time while the agent still checked the issue, before deciding: no word on the issue,
+ * so it must never read as a no-go.
+ */
+export const stoppedInCheckOf = (
+  attempt: Pick<ContributeAttempt, 'state' | 'endReason' | 'endDetail' | 'stoppedInCheck'>,
+): boolean =>
+  attempt.stoppedInCheck ??
+  (attempt.state === 'STOPPED' &&
+    (attempt.endReason === 'BUDGET' || attempt.endReason === 'TIMEOUT') &&
+    CHECK_STOP_DETAIL.test(attempt.endDetail ?? ''));
+
+/** Why an attempt ended, in plain words: a check that ran out says so, the rest as `END_REASONS`. */
+export function endReasonTextOf(
+  attempt: Pick<ContributeAttempt, 'state' | 'endReason' | 'endDetail' | 'stoppedInCheck'>,
+): string | null {
+  if (stoppedInCheckOf(attempt)) {
+    return attempt.endReason === 'TIMEOUT'
+      ? 'Stopped: ran out of time while checking the issue.'
+      : 'Stopped: ran out of budget while checking the issue.';
+  }
+  return attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : null;
+}
+
 /** The agent names of the user's own agent, as the pull request's footer names them. */
 export const AGENT_NAMES: Record<ContributeAgentName, string> = {
   CLAUDE_CODE: 'Claude Code',

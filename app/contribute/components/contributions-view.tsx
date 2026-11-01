@@ -14,7 +14,7 @@ import {
   agentLabelOf,
   attemptTitleOf,
   costOrAgentOf,
-  END_REASONS,
+  endReasonTextOf,
   githubUrlOf,
   IN_PROGRESS_STATES,
   isOwnAgent,
@@ -22,6 +22,7 @@ import {
   PR_STATES,
   repoOf,
   SUBMIT_STEP_TEXT,
+  stoppedInCheckOf,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
 import {
@@ -493,7 +494,11 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
     ['Waiting for your review', count(({ state }) => state === 'REVIEW')],
     ['In progress', count(({ state }) => IN_PROGRESS_STATES.includes(state))],
     ['Stopped at the go/no-go check', count(({ state, endReason }) => state === 'STOPPED' && endReason === 'NO_GO')],
-    ['Stopped for another reason', count(({ state, endReason }) => state === 'STOPPED' && endReason !== 'NO_GO')],
+    ['Ran out while checking the issue', count(stoppedInCheckOf)],
+    [
+      'Stopped for another reason',
+      count((attempt) => attempt.state === 'STOPPED' && attempt.endReason !== 'NO_GO' && !stoppedInCheckOf(attempt)),
+    ],
     ['Discarded', count(({ state }) => state === 'DISCARDED')],
     ['Follow-ups pushed', count(({ state }) => state === 'DONE')],
   ];
@@ -525,8 +530,7 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
               <Link href={attemptHref(attempt.attemptId)} prefetch={false} className="font-mono text-foreground/80">
                 {repoOf(attempt)} #{attempt.number}
               </Link>{' '}
-              · {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Stopped.'} ·{' '}
-              {costOrAgentOf(attempt, usd)}
+              · {endReasonTextOf(attempt) ?? 'Stopped.'} · {costOrAgentOf(attempt, usd)}
             </li>
           ))}
         </ul>

@@ -4,6 +4,10 @@ query PageProfileOverview($login: String!, $isGlobalContext: Boolean! = true) {
     ...UserBaseFields
     ...UserFetchingStatus
     ...UserSeo
+    starsNotCounted {
+      stars
+      repositories
+    }
     ...UserTiersGlobal @include(if: $isGlobalContext)
     ...UserTiersCountry @skip(if: $isGlobalContext)
     # Both unconditional: the summary names the worldwide and the country rank on either tab, and the

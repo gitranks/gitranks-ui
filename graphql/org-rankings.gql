@@ -11,6 +11,10 @@ query OrgRankings($offset: Int) {
       country
       isVerified
       s
+      starsNotCounted {
+        stars
+        repositories
+      }
     }
   }
 }

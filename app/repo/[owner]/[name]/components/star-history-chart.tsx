@@ -15,16 +15,21 @@ import {
 } from 'recharts';
 
 import { getBurstRanges, getStarHistoryPoints, type RepoHistory, type StarHistoryPoint } from '../utils/star-history';
+import { StarCount } from '@/components/star-count/star-count';
+import type { RepoStarsCheck } from '@/types/generated/graphql';
 import { formatNumberShort } from '@/utils/format-number-short';
 
 type StarHistoryChartProps = {
   history: RepoHistory;
   burstMonths?: string[] | null;
+  /** When some stars don't count: the current point shows GitHub's count struck through before its own. */
+  starsCheck?: Pick<RepoStarsCheck, 'notCounted' | 'githubStars'> | null;
 };
 
 type TooltipProps = {
   active?: boolean;
   payload?: Array<{ payload?: StarHistoryPoint }>;
+  starsCheck?: StarHistoryChartProps['starsCheck'];
 };
 
 const TICK_FORMATTER = new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -33,7 +38,7 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en', { dateStyle: 'medium', time
 // Mono numbers in the muted ink, like the profile's charts.
 const AXIS_TICK = { fontSize: 11, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-mono)' };
 
-const StarHistoryTooltip: FC<TooltipProps> = ({ active, payload }) => {
+const StarHistoryTooltip: FC<TooltipProps> = ({ active, payload, starsCheck }) => {
   const point = active ? payload?.[0]?.payload : undefined;
   if (!point) {
     return null;
@@ -43,13 +48,19 @@ const StarHistoryTooltip: FC<TooltipProps> = ({ active, payload }) => {
     <div className="rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-sm">
       <div>{DATE_FORMATTER.format(point.time)}</div>
       <div className="font-semibold">
-        <span className="font-mono tabular-nums">{point.stars.toLocaleString('en-US')}</span> stars
+        <StarCount
+          stars={point.stars}
+          githubStars={point.current ? starsCheck?.githubStars : null}
+          numberClassName="font-mono tabular-nums"
+          suffix=" stars"
+          withHover={false}
+        />
       </div>
     </div>
   );
 };
 
-const StarHistoryChart: FC<StarHistoryChartProps> = ({ history, burstMonths }) => {
+const StarHistoryChart: FC<StarHistoryChartProps> = ({ history, burstMonths, starsCheck }) => {
   const points = getStarHistoryPoints(history);
 
   if (points.length < 2) {
@@ -93,7 +104,7 @@ const StarHistoryChart: FC<StarHistoryChartProps> = ({ history, burstMonths }) =
             tick={AXIS_TICK}
             tickFormatter={formatNumberShort}
           />
-          <Tooltip content={<StarHistoryTooltip />} />
+          <Tooltip content={<StarHistoryTooltip starsCheck={starsCheck} />} />
           <Area
             type="monotone"
             dataKey="stars"

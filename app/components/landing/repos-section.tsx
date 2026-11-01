@@ -5,6 +5,7 @@ import type { FC } from 'react';
 import { formatFull, GithubAvatar, LandingSection } from './landing-ui';
 import { ALL_REPOS_LINK, REPO_LANGUAGES_LINK } from '@/app/repos/components/repo-ranking-header';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { StarCount } from '@/components/star-count/star-count';
 import { cn } from '@/lib/utils';
 import type { RepoRankingsQuery } from '@/types/generated/graphql';
 import { getRepoPath } from '@/utils/repo-paths';
@@ -117,7 +118,13 @@ export const ReposSection: FC<{ rows: RepoRow[] }> = ({ rows }) => {
                   <td className="max-w-0 px-2 py-2.5">
                     <RepoName repo={row.repo} size={24} />
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums">{formatFull(row.repo.stars)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono tabular-nums">
+                    <StarCount
+                      stars={row.repo.stars}
+                      githubStars={row.repo.starsCheck?.githubStars}
+                      notCounted={row.repo.starsCheck?.notCounted}
+                    />
+                  </td>
                   <td className="hidden px-4 py-2.5 text-right font-mono tabular-nums sm:table-cell">
                     <Gained value={row.repo.gainedThisMonth} />
                   </td>

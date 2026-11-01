@@ -18,6 +18,7 @@ import InsightText from '@/components/insight/insight-text';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { seriesColor } from '@/components/pulse/pulse.utils';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { StarTotalCount } from '@/components/star-count/star-count';
 import { TierIcon } from '@/components/tier-icon/tier-icon';
 import { Button } from '@/components/ui/button';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
@@ -225,7 +226,9 @@ export const OrganizationsSection: FC<{
                         </span>
                       </Link>
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono tabular-nums">{formatFull(org.s)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono tabular-nums">
+                      {typeof org.s === 'number' && <StarTotalCount stars={org.s} notCounted={org.starsNotCounted} />}
+                    </td>
                   </tr>
                 );
               })}

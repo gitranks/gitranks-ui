@@ -7,6 +7,7 @@ import { RankChart } from '@/components/rank-chart/rank-chart';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { repoTierLabel } from '@/components/repo-tier-chip/repo-tier-chip';
 import { RepoTierIcon } from '@/components/repo-tier-icon/repo-tier-icon';
+import { StarCount } from '@/components/star-count/star-count';
 import { tierTextClass } from '@/components/tier-chip/tier-chip';
 import { cn } from '@/lib/utils';
 import type { PageRepoQuery, RepoRankTiersQuery } from '@/types/generated/graphql';
@@ -20,19 +21,23 @@ type Tier = NonNullable<Rank['tier']>;
 type RepoTierCardProps = {
   rank: Rank & { tier: Tier };
   stars: number;
+  /** When some stars don't count: the footer's label names GitHub's count, struck through, too. */
+  starsCheck?: Repo['starsCheck'];
   gainedThisMonth?: number | null;
   /** The global tier table, for the stars to the next bucket. */
   tiers?: NonNullable<RepoRankTiersQuery['repoRankTiers']>['tiers'] | null;
 };
 
-const FooterValue: FC<{ value: string; delta?: ReactNode; caption: string; label: string }> = ({
-  value,
-  delta,
-  caption,
-  label,
-}) => (
+const FooterValue: FC<{
+  value: string;
+  delta?: ReactNode;
+  caption: string;
+  /** The tooltip, and what screen readers hear unless `labelNode` is given. */
+  label: string;
+  labelNode?: ReactNode;
+}> = ({ value, delta, caption, label, labelNode }) => (
   <div className="flex flex-col items-center gap-0.5 px-2 py-3 text-center" title={label}>
-    <dt className="sr-only">{label}:</dt>
+    <dt className="sr-only">{labelNode ?? label}:</dt>
     <dd className="flex flex-wrap items-baseline justify-center gap-x-1.5">
       <span className="font-mono text-sm font-semibold tabular-nums">{value}</span>
       {delta}
@@ -44,7 +49,7 @@ const FooterValue: FC<{ value: string; delta?: ReactNode; caption: string; label
 );
 
 /** A repository's tier as the profile shows a developer's: the ring of tiers with its glyph, the tier, its ranks. */
-export const RepoTierCard: FC<RepoTierCardProps> = ({ rank, stars, gainedThisMonth, tiers }) => {
+export const RepoTierCard: FC<RepoTierCardProps> = ({ rank, stars, starsCheck, gainedThisMonth, tiers }) => {
   const { tier, languageTier } = rank;
   const goal = repoTierGoal(tier, stars, tiers);
   const languageName = rank.language ?? 'No language';
@@ -97,6 +102,19 @@ export const RepoTierCard: FC<RepoTierCardProps> = ({ rank, stars, gainedThisMon
           }
           caption="Stars this month"
           label={`Stars this month (of ${formatNumberShort(stars)})`}
+          labelNode={
+            <>
+              Stars this month (of{' '}
+              <StarCount
+                stars={stars}
+                githubStars={starsCheck?.githubStars}
+                notCounted={starsCheck?.notCounted}
+                format="compact"
+                withHover={false}
+              />
+              )
+            </>
+          }
         />
       </dl>
     </ProfileCard>

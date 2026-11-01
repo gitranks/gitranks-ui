@@ -115,6 +115,8 @@ const orgs: LandingData['orgs'] = ORGS.map((login, index) => ({
     country: ['United States', 'Germany', null, 'Japan', 'Ukraine'][index],
     isVerified: true,
     s: Math.round(1_250_000 / (1 + index * 0.6)),
+    // fern-lang: 18,000 of its stars, on one repository, came from suspected fake accounts.
+    starsNotCounted: login === 'fern-lang' ? { stars: 18_000, repositories: 1 } : null,
   },
 }));
 

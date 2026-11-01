@@ -80,6 +80,7 @@ export const LandingScreen: FC<LandingData> = ({
               country: row.user.country ?? null,
               location: row.user.location ?? null,
               value: row.user[board.key] ?? null,
+              notCounted: board.key === 's' ? row.user.starsNotCounted : null,
             },
           ]
         : [],
@@ -101,6 +102,7 @@ export const LandingScreen: FC<LandingData> = ({
             position: row.s,
             previous: row.sM ?? null,
             value: row.user.s ?? null,
+            notCounted: row.user.starsNotCounted,
             rankedCount: tiers?.sUsers ?? null,
             tier: tier ? { tier: tier.tier, level: tier.level } : null,
           },

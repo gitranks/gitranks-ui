@@ -9,6 +9,7 @@ import { formatFull, GithubAvatar } from './landing-ui';
 import type { RankingKey } from './rank-card.types';
 import { Flag } from '@/components/flag/flag';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import { type StarsNotCountedTotal, StarTotalCount } from '@/components/star-count/star-count';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,8 @@ export type LeaderboardRow = {
   country: string | null;
   location: string | null;
   value: number | null;
+  /** The stars board's total: the stars that don't count, struck through before it. */
+  notCounted?: StarsNotCountedTotal | null;
 };
 
 export type Leaderboard = { key: RankingKey; tab: string; valueLabel: string; href: string; rows: LeaderboardRow[] };
@@ -104,7 +107,13 @@ export const LeaderboardTabs: FC<{ boards: Leaderboard[] }> = ({ boards }) => {
                         <span className="truncate">{row.location}</span>
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono tabular-nums">{formatFull(row.value)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono tabular-nums">
+                      {typeof row.value === 'number' && row.notCounted ? (
+                        <StarTotalCount stars={row.value} notCounted={row.notCounted} />
+                      ) : (
+                        formatFull(row.value)
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

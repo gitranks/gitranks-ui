@@ -17,6 +17,10 @@ query PageOrg($login: String!) {
     githubCreatedAt
     githubUpdatedAt
     s
+    starsNotCounted {
+      stars
+      repositories
+    }
     reposCount
     usersCount
     updatedAt

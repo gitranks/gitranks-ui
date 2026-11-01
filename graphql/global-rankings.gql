@@ -13,6 +13,10 @@ query GlobalRankings($order: RankOrder, $offset: Int) {
       location
       country
       s
+      starsNotCounted {
+        stars
+        repositories
+      }
       c
       f
     }

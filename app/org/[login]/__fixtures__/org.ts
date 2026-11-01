@@ -61,3 +61,15 @@ export const nebulaOrg: Org = {
     ],
   },
 };
+
+/**
+ * `nebula` when some of its stars don't count: `cli` shows 31,400 on GitHub, 9,400 of them from suspected fake accounts.
+ * The totals stay the honest ones; GitHub's counts are struck through beside them.
+ */
+export const nebulaOrgStarsNotCounted: Org = {
+  ...nebulaOrg,
+  starsNotCounted: { stars: 9_400, repositories: 1 },
+  topRepos: nebulaOrg.topRepos.map((repo) =>
+    repo.name === 'cli' ? { ...repo, starsCheck: { notCounted: 9_400, githubStars: 31_400 } } : repo,
+  ),
+};

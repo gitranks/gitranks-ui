@@ -9,6 +9,7 @@ import type { FeedbackOpen } from './feedback-dialog';
 import { Meter, Pill, SubTitle } from './primitives';
 import { RulesDialog } from './set-panels';
 import type { SetWrite } from './set-section';
+import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type {
@@ -18,7 +19,6 @@ import type {
   ContributeSetRepo,
 } from '@/lib/contribute/contribute.types';
 import { dayLabel, LANGUAGES } from '@/lib/contribute/format';
-import { starsLabel } from '@/lib/contribute/maintainers-format';
 import {
   ADD_INPUT_MAX,
   addNoticeOf,
@@ -354,7 +354,7 @@ function RepoRow({
       </a>
       <span className="text-xs text-muted-foreground">
         <span aria-hidden="true">★</span>
-        <span className="sr-only">Stars:</span> {starsLabel(repo.stars)}
+        <span className="sr-only">Stars:</span> <StarCount stars={repo.stars} format="compact" />
       </span>
       {repo.language ? <span className="text-xs text-muted-foreground">{LANGUAGES[repo.language]}</span> : null}
       <Pill tone={status.tone}>{status.label}</Pill>

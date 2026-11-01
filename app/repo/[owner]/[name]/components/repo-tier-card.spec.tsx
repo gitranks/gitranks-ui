@@ -52,4 +52,24 @@ describe('RepoTierCard', () => {
     expect(html).not.toContain('In ');
     expect(html).toContain('No language');
   });
+
+  it("names GitHub's count, struck through, in the stars footer's label when some stars don't count", () => {
+    const plain = renderToStaticMarkup(
+      <RepoTierCard rank={rank} stars={251_726} gainedThisMonth={3_100} tiers={[rank.tier]} />,
+    );
+    const struck = renderToStaticMarkup(
+      <RepoTierCard
+        rank={rank}
+        stars={251_726}
+        starsCheck={{ notCounted: 3_720, githubStars: 255_446 }}
+        gainedThisMonth={3_100}
+        tiers={[rank.tier]}
+      />,
+    );
+
+    expect(plain).not.toContain('<s ');
+    expect(struck).toMatch(/<dt class="sr-only">Stars this month \(of.*<s [^>]*>.*255\.4K.*<\/s><span>251\.7K<\/span>/);
+    // The tooltip stays the honest count.
+    expect(struck).toContain('title="Stars this month (of 251.7K)"');
+  });
 });

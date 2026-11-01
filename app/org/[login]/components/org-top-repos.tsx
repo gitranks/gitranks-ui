@@ -5,10 +5,10 @@ import { ProfileCard, ProfileCardContent, ProfileCardHeader } from '@/app/profil
 import { Link } from '@/components/link/link';
 import { repoTierLabel } from '@/components/repo-tier-chip/repo-tier-chip';
 import { RepoTierIcon } from '@/components/repo-tier-icon/repo-tier-icon';
+import { StarCount } from '@/components/star-count/star-count';
 import { tierTextClass } from '@/components/tier-chip/tier-chip';
 import { cn } from '@/lib/utils';
 import type { PageOrgQuery } from '@/types/generated/graphql';
-import { formatNumberShort } from '@/utils/format-number-short';
 import { getRepoPath } from '@/utils/repo-paths';
 
 type OrgTopReposProps = {
@@ -61,10 +61,16 @@ export const OrgTopRepos: FC<OrgTopReposProps> = ({ repos }) => {
                     <span className="font-mono tabular-nums">#{repo.rank.s.toLocaleString('en-US')}</span>
                   </span>
                 )}
-                <span className="flex items-center gap-1" title="Stars">
+                <span className="flex items-center gap-1" title={repo.starsCheck ? undefined : 'Stars'}>
                   <Star className="size-4 text-muted-foreground" aria-hidden />
                   <span className="sr-only">Stars:</span>
-                  <span className="font-mono tabular-nums">{formatNumberShort(repo.stars)}</span>
+                  <StarCount
+                    stars={repo.stars}
+                    githubStars={repo.starsCheck?.githubStars}
+                    notCounted={repo.starsCheck?.notCounted}
+                    format="compact"
+                    numberClassName="font-mono tabular-nums"
+                  />
                 </span>
               </div>
             </li>

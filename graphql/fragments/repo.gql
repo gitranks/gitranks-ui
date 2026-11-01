@@ -7,5 +7,9 @@ fragment RepoRowFields on Repo {
   description
   language
   stars
+  starsCheck {
+    notCounted
+    githubStars
+  }
   gainedThisMonth
 }

@@ -111,6 +111,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, badgeFacts, 
             login={login}
             repoCount={repositoriesCount ?? 0}
             repoStars={s ?? 0}
+            starsNotCounted={user.starsNotCounted}
             languages={sLangs}
             snapshots={snapshots}
             totalRankedUsers={tiers?.sUsers ?? 0}

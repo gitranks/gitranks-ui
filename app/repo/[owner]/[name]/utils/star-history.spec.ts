@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getBurstRanges, getStarHistoryNote, getStarHistoryPoints, type RepoHistory } from './star-history';
+import { getBurstRanges, getStarHistoryNoteParts, getStarHistoryPoints, type RepoHistory } from './star-history';
 
 const history = (points: RepoHistory['points'], current: RepoHistory['current']): RepoHistory => ({
   points,
@@ -98,7 +98,7 @@ describe('getBurstRanges', () => {
   });
 });
 
-describe('getStarHistoryNote', () => {
+describe('getStarHistoryNoteParts', () => {
   const points = [
     { date: '2026-01-01T00:00:00.000Z', stars: 10 },
     { date: '2026-05-01T00:00:00.000Z', stars: 900 },
@@ -106,18 +106,30 @@ describe('getStarHistoryNote', () => {
   const current = { date: '2026-10-20T00:00:00.000Z', stars: 1234 };
 
   it('names the current count and date, the shading and the estimates', () => {
-    expect(getStarHistoryNote({ ...history(points, current), complete: false }, ['2026-03'])).toBe(
-      '1,234 stars on Oct 20, 2026. Shaded months gained stars much faster than the months before them. The earliest months are estimates.',
-    );
+    expect(getStarHistoryNoteParts({ ...history(points, current), complete: false }, ['2026-03'])).toEqual({
+      current: { stars: 1234, date: 'Oct 20, 2026' },
+      notes: [
+        'Shaded months gained stars much faster than the months before them.',
+        'The earliest months are estimates.',
+      ],
+    });
   });
 
   it('leaves out the shading note when no burst month is on the chart', () => {
-    expect(getStarHistoryNote(history(points, current), ['2020-03', '2027-01'])).toBe('1,234 stars on Oct 20, 2026.');
+    expect(getStarHistoryNoteParts(history(points, current), ['2020-03', '2027-01']).notes).toEqual([]);
   });
 
-  it('leaves out the count sentence when its date cannot be read', () => {
-    expect(getStarHistoryNote({ ...history(points, { date: 'garbage', stars: 5 }), complete: false }, null)).toBe(
-      'The earliest months are estimates.',
-    );
+  it('gives the current count and its date apart from the notes, for the caption to strike GitHub’s count', () => {
+    const points = [{ date: '2026-10-17T00:00:00.000Z', stars: 0 }];
+    const current = { date: '2026-10-27T00:00:00.000Z', stars: 13 };
+
+    expect(getStarHistoryNoteParts({ ...history(points, current), complete: false }, null)).toEqual({
+      current: { stars: 13, date: 'Oct 27, 2026' },
+      notes: ['The earliest months are estimates.'],
+    });
+  });
+
+  it('has no current part when its date cannot be read', () => {
+    expect(getStarHistoryNoteParts(history([], { date: 'garbage', stars: 5 }), null).current).toBeNull();
   });
 });

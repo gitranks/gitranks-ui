@@ -61,11 +61,19 @@ const previousOf = (position: number) => {
   return position === 1 ? 1 : Math.max(1, position + shift);
 };
 
+/**
+ * The stars ranking's #3, some of whose stars don't count: 12,300 from suspected fake accounts on 2 repositories. Its
+ * honest total ranks it, so its neighbours stay as they are.
+ */
+export const STARS_NOT_COUNTED_AT = 3;
+const starsNotCountedOf = (position: number, by: RankingKey) =>
+  by === 's' && position === STARS_NOT_COUNTED_AT ? { stars: 12_300, repositories: 2 } : null;
+
 /** A page of a global ranking, as the API returns it. */
 export const globalRankings = (by: RankingKey, offset = 0, count = 100): Row[] =>
   Array.from({ length: count }, (_, index) => {
     const position = offset + index + 1;
-    const user = developerAt(position, by);
+    const user = { ...developerAt(position, by), starsNotCounted: starsNotCountedOf(position, by) };
     return { githubId: `U_${by}${position}`, [by]: position, [`${by}M`]: previousOf(position), user } as Row;
   });
 

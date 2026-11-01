@@ -4,6 +4,7 @@ import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { ClickableRow } from '@/components/ranking-table/clickable-row';
 import { RepoLink } from '@/components/repo-link/repo-link';
 import { RepoTierChip } from '@/components/repo-tier-chip/repo-tier-chip';
+import { StarCount } from '@/components/star-count/star-count';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LinkWithStopPropagation } from '@/components/user-card/components/link-with-stop-propagation';
 import type { RepoRankingsQuery } from '@/types/generated/graphql';
@@ -68,7 +69,13 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
                   </LinkWithStopPropagation>
                 )}
               </TableCell>
-              <TableCell className="text-right">{repo.stars.toLocaleString('en-US')}</TableCell>
+              <TableCell className="text-right">
+                <StarCount
+                  stars={repo.stars}
+                  githubStars={repo.starsCheck?.githubStars}
+                  notCounted={repo.starsCheck?.notCounted}
+                />
+              </TableCell>
               <TableCell className="hidden sm:table-cell text-right">
                 {!!repo.gainedThisMonth && (
                   <span className={repo.gainedThisMonth > 0 ? 'text-positive' : 'text-negative'}>

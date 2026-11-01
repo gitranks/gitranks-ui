@@ -63,19 +63,26 @@ export function getBurstRanges(burstMonths: string[] | null | undefined, min: nu
   });
 }
 
-/** The line under the chart: the current count and date, and notes on shading and estimates. */
-export function getStarHistoryNote(history: RepoHistory, burstMonths: string[] | null | undefined): string {
+/**
+ * The line under the chart, in parts: the current count and its date (the caption strikes GitHub's count through
+ * before it when some stars don't count), then the notes on shading and estimates.
+ */
+export function getStarHistoryNoteParts(
+  history: RepoHistory,
+  burstMonths: string[] | null | undefined,
+): { current: { stars: number; date: string } | null; notes: string[] } {
   const points = getStarHistoryPoints(history);
   const currentTime = timeOf(history.current.date);
   const shaded =
     points.length >= 2 && getBurstRanges(burstMonths, points[0].time, points[points.length - 1].time).length > 0;
 
-  return [
-    Number.isFinite(currentTime) &&
-      `${history.current.stars.toLocaleString('en-US')} stars on ${DATE_FORMATTER.format(currentTime)}.`,
-    shaded && 'Shaded months gained stars much faster than the months before them.',
-    !history.complete && 'The earliest months are estimates.',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  return {
+    current: Number.isFinite(currentTime)
+      ? { stars: history.current.stars, date: DATE_FORMATTER.format(currentTime) }
+      : null,
+    notes: [
+      shaded && 'Shaded months gained stars much faster than the months before them.',
+      !history.complete && 'The earliest months are estimates.',
+    ].filter((note): note is string => !!note),
+  };
 }

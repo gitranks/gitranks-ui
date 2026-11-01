@@ -18,10 +18,6 @@ export const fullDayLabel = (iso: string | null | undefined) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 };
 
-/** `12.3K` stars. */
-export const starsLabel = (stars: number) =>
-  new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(Math.max(0, stars || 0));
-
 /** What happened to one repository asked to be opted out (`out`) or back in (`in`), in plain words. */
 export function optOutResultText(result: ContributeOptOutResult, change: OptOutChange): string {
   if (result.reason === 'NOT_MAINTAINER') {

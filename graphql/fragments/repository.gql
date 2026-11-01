@@ -5,6 +5,8 @@ fragment RepositoryFields on Repository {
   pushedAt
   releasesCount
   stargazerCount
+  githubStars
+  starsNotCounted
   isArchived
   forkCount
   languages {

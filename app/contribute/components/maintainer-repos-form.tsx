@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 
 import { optInMaintainerRepos, optOutMaintainerRepos, signInAsMaintainer } from '../maintainers/actions';
 import { PanelTitle, Pill } from './primitives';
+import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
 import type { ContributeMaintainerRepo, ContributeOptOutResult } from '@/lib/contribute/contribute.types';
 import { type MaintainerErrorCode, maintainerErrorMessage } from '@/lib/contribute/errors';
@@ -12,7 +13,6 @@ import {
   type OptOutChange,
   optOutResultText,
   PERMISSIONS,
-  starsLabel,
   withOptOutResults,
 } from '@/lib/contribute/maintainers-format';
 
@@ -164,7 +164,7 @@ function RepoRow({
         {repo.isArchived ? <Pill>Archived</Pill> : null}
         <Pill tone="violet">{PERMISSIONS[repo.permission] ?? repo.permission}</Pill>
         <span className="font-mono" title={`${repo.stars.toLocaleString('en-US')} stars`}>
-          ★ {starsLabel(repo.stars)}
+          ★ <StarCount stars={repo.stars} format="compact" />
         </span>
       </span>
     </label>

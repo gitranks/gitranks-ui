@@ -142,6 +142,10 @@ describe("the repo's agent rules and our own (actualbudget/actual#9396)", () => 
     expect(withoutDraftMarks('[WIP] [Bug]: null after deleting')).toBe('[Bug]: null after deleting');
     expect(withoutDraftMarks('[AI] WIP: fix it')).toBe('[AI] fix it');
     expect(withoutDraftMarks('Wipe the cache')).toBe('Wipe the cache');
+    // A dash with no space around it is a word's, as the API reads it.
+    expect(withoutDraftMarks('Draft-js: fix selection')).toBe('Draft-js: fix selection');
+    expect(withoutDraftMarks('WIP-limit: column cap')).toBe('WIP-limit: column cap');
+    expect(withoutDraftMarks('WIP - fix it')).toBe('fix it');
     expect(titleProblemsOf('[WIP] fix it', null)).toContain('approved it as ready');
     // The approval takes the mark off: the form blocks only what it refuses, and says the mark comes off.
     expect(titleBlocks('[WIP] fix it', null)).toBe(false);

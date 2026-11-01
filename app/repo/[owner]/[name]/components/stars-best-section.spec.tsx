@@ -1,45 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { starsBestCompact as compact, starsBestFull as full, stargazer as person } from '../__fixtures__/repo';
 import { StarsBestSection } from './stars-best-section';
 
 vi.mock('next/image', () => ({ default: (props: { alt: string }) => <img alt={props.alt} /> }));
-
-const person = (login: string | null, tier: number, level: number) => ({
-  login,
-  avatarUrl: login ? `https://avatars.githubusercontent.com/${login}?v=4` : null,
-  tier,
-  level,
-});
-
-const full = {
-  total: 1_284,
-  counts: [
-    { tier: 7, count: 214 },
-    { tier: 6, count: 1_070 },
-  ],
-  top: [
-    person('ana', 7, 5),
-    person('bo', 7, 5),
-    person(null, 7, 4),
-    person('cy', 7, 4),
-    person('di', 7, 3),
-    person('ed', 6, 5),
-    person('fay', 6, 5),
-    person('gus', 6, 4),
-  ],
-  legendRatio: 4.23,
-};
-
-const compact = {
-  total: 3,
-  counts: [
-    { tier: 7, count: 1 },
-    { tier: 6, count: 2 },
-  ],
-  top: [person('ana', 7, 2), person('bo', 6, 5), person('cy', 6, 1)],
-  legendRatio: null,
-};
 
 describe('StarsBestSection', () => {
   it('shows the full section from 20: the count, the tiers, the ratio and the six highest ranked', () => {

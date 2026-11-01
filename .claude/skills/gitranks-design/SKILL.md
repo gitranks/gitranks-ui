@@ -37,7 +37,8 @@ Live boards come from main only. The script refuses anything else.
 1. **Redraw** (above), so the live boards match main.
 2. **Find the screen** in `design/screens/<area>.tsx` by route.
    - If it isn't there, add the screen and the states you need on your branch. Render the real `…Screen` component with
-     the fixtures its spec uses, the same way the neighbouring entries do.
+     the fixtures its spec uses, the same way the neighbouring entries do. A page that reads its data in a server
+     component gets a presentational `…Screen` first; `design/README.md` (The catalogue) says how states are drawn.
    - Run `pnpm design:export` until it passes.
    - The new boards aren't live until that PR merges. Until then, copy the ones you need from `.design/project/current/`
      into `proposals/<slug>/`, as in step 4.

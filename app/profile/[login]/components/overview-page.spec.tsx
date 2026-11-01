@@ -2,30 +2,16 @@ import type { PropsWithChildren } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { type ProfileUser, rankedProfile, profileUser as user } from '../__fixtures__/overview';
 import { OverviewPage } from './overview-page';
-import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 
 // The left column needs a signed-in session and route params; the cards are all this spec reads.
 vi.mock('./layout-left-column', () => ({ LayoutLeftColumn: ({ children }: PropsWithChildren) => children }));
 // The owner's "Issues for you" block reads the session in the browser; a signed-out visitor sees nothing of it.
 vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }));
 
-type User = NonNullable<PageProfileOverviewQuery['user']>;
-
-const user = (rankGlobal: User['rankGlobal']): User => ({
-  githubId: '1',
-  login: 'contributor',
-  avatarUrl: 'https://avatars.example/1',
-  s: 120,
-  c: 40,
-  repositoriesCount: 3,
-  contributedRepoCount: 5,
-  rankGlobal,
-  tiersGlobal: { sUsers: 1000, cUsers: 2000, fUsers: 3000, sTiers: [], cTiers: [], fTiers: [] },
-});
-
 // The first percentage line after the card's title, with React's text-node separators removed.
-const contributionsRankLine = (rankGlobal: User['rankGlobal']) =>
+const contributionsRankLine = (rankGlobal: ProfileUser['rankGlobal']) =>
   renderToStaticMarkup(<OverviewPage user={user(rankGlobal)} isGlobalContext />)
     .replaceAll('<!-- -->', '')
     .split('Open source contributions')[1]
@@ -50,12 +36,7 @@ const pageText = (props: Parameters<typeof OverviewPage>[0]) =>
     .replace(/\s+/g, ' ');
 
 describe('OverviewPage text', () => {
-  const ranked = {
-    ...user({ s: 50, c: 200, f: 7, snapshots: { '2026-10-01': { s: 60, c: 210, f: 7 } } }),
-    country: 'Germany',
-    rankCountry: { s: 4, c: 20, f: 1 },
-    snapshots: { '2026-10-01': { s: 100, c: 30 } },
-  };
+  const ranked = rankedProfile;
 
   it('labels each rank on the card with its ranking and scope, tiers or not', () => {
     const text = pageText({ user: ranked, isGlobalContext: true });

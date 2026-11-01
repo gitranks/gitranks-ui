@@ -4,9 +4,7 @@ import type { Metadata } from 'next';
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
-import { Header } from '@/components/header/header';
-import { Page } from '@/components/page/page';
-import { RankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
+import { GlobalRankingFrame } from '../components/global-ranking-view';
 import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { getRankingTitle } from '@/utils/get-ranking-title';
 import { isRankingType } from '@/utils/is-ranking-type';
@@ -50,13 +48,5 @@ export default async function RankingListLayout({ children, params }: LayoutProp
     return notFound();
   }
 
-  return (
-    <>
-      <Header section="rankings" />
-      <Page className="max-w-5xl gap-6">
-        <RankingHeaderSection rankingType={rankingType} />
-        {children}
-      </Page>
-    </>
-  );
+  return <GlobalRankingFrame rankingType={rankingType}>{children}</GlobalRankingFrame>;
 }

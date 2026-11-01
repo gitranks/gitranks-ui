@@ -2,6 +2,12 @@ import type { ReactElement } from 'react';
 
 /** The product areas, one page each on the designs canvas, in this order. */
 export const AREAS = {
+  landing: 'Landing',
+  profile: 'Developer profile',
+  repo: 'Repository',
+  org: 'Organization',
+  rankings: 'Rankings',
+  badges: 'Badges',
   contribute: 'Contribute',
 } as const;
 
@@ -11,8 +17,10 @@ export type Area = keyof typeof AREAS;
 export type ScreenState = {
   id: string;
   title: string;
-  /** The path the app is at, for the tabs and links that read it. */
+  /** The path the app is at, with its query, for the tabs, links and steps that read them. */
   path: string;
+  /** Drawn for a visitor who is not signed in; otherwise for the catalogue's signed-in viewer. */
+  signedOut?: boolean;
   /** The board's width; 390 is a phone. */
   width?: number;
   /** The board's height: the page's height at `width`, rounded up. */

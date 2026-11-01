@@ -7,6 +7,7 @@ import { type FC, useEffect, useMemo, useState } from 'react';
 
 import { formatFull, GithubAvatar } from './landing-ui';
 import type { RankCardData, RankCardEntry, RankingKey } from './rank-card.types';
+import { useRankCard } from './use-rank-card';
 import { useEntityFacts } from '@/app/badge/builder/[[...login]]/hooks/use-entity-facts';
 import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
 import { findBadge } from '@/badge/v3/catalogue';
@@ -117,38 +118,11 @@ const YourBadge: FC<{ login: string; ranking: RankingKey; ranked: boolean }> = (
   );
 };
 
-/** The signed-in visitor's own card. Loaded after the page, from a route cached per user. */
+/** The signed-in visitor's own card, opened on their best ranking until they pick another. */
 const YourRankCard: FC<{ login: string }> = ({ login }) => {
-  const [card, setCard] = useState<RankCardData | null>(null);
-  const [state, setState] = useState<'loading' | 'ready' | 'unranked' | 'missing'>('loading');
-  const [ranking, setRanking] = useState<RankingKey>('s');
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/me/rank-card')
-      .then(async (res) => {
-        if (res.status === 404) return 'unranked' as const;
-        return res.ok ? ((await res.json()) as RankCardData) : null;
-      })
-      .then((data) => {
-        if (cancelled) return;
-        if (data === 'unranked') {
-          setState('unranked');
-          return;
-        }
-        if (!data) {
-          setState('missing');
-          return;
-        }
-        setCard(data);
-        setRanking(bestRanking(data));
-        setState('ready');
-      })
-      .catch(() => !cancelled && setState('missing'));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { card, state } = useRankCard();
+  const [picked, setRanking] = useState<RankingKey | null>(null);
+  const ranking = picked ?? (card ? bestRanking(card) : 's');
 
   const entry = card?.rankings[ranking];
 

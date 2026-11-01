@@ -95,8 +95,12 @@ export function PrConventionsCard({
       <h2 className={HEADING.card}>#{prNumber} and the repo&apos;s rules</h2>
       {issues.length ? (
         <ul className="flex flex-col gap-3">
-          {issues.map((issue) => (
-            <li key={issue.kind} data-pr-issue={issue.kind} className="flex flex-col gap-1.5 text-sm">
+          {issues.map((issue, index) => (
+            <li
+              key={`${issue.kind}-${issue.check ?? ''}-${index}`}
+              data-pr-issue={issue.kind}
+              className="flex flex-col gap-1.5 text-sm"
+            >
               <span>
                 {issue.message}
                 {issue.check ? <span className="text-muted-foreground"> ({issue.check})</span> : null}

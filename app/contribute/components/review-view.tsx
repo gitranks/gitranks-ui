@@ -249,12 +249,12 @@ export function ReviewScreen({
               attemptId={attempt.attemptId}
               issueNumber={attempt.number}
               repo={repo}
-              defaultTitle={withoutDraftMarks(
-                attempt.approval?.title ||
-                  attempt.result?.prTitle?.trim() ||
-                  attempt.title?.trim() ||
-                  `Fix #${attempt.number}`,
-              )}
+              defaultTitle={
+                // Each candidate without its WIP or draft marks: one that is nothing but a mark gives way.
+                [attempt.approval?.title, attempt.result?.prTitle, attempt.title]
+                  .map((title) => withoutDraftMarks(title ?? ''))
+                  .find(Boolean) ?? `Fix #${attempt.number}`
+              }
               defaultBody={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
               login={login}
               dcoMode={view.contributor?.settings?.dco ?? null}

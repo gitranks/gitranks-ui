@@ -15,7 +15,7 @@ export const SIGNALS: Record<ContributePrSignalKind, string> = {
   COMMENT: 'Someone else commented on it',
   CHECK_FAILED: 'A check started failing',
   CLA: 'Sign the contributor license agreement (CLA)',
-  TITLE: "The title breaks the repo's rules: retitle it below",
+  TITLE: "The title breaks the repo's rules (retitle it on the pull request's page)",
 };
 
 /** `A check started failing: lint, test · 2 hours ago`. */

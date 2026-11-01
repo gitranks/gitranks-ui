@@ -143,7 +143,13 @@ describe("the repo's agent rules and our own (actualbudget/actual#9396)", () => 
     expect(withoutDraftMarks('[AI] WIP: fix it')).toBe('[AI] fix it');
     expect(withoutDraftMarks('Wipe the cache')).toBe('Wipe the cache');
     expect(titleProblemsOf('[WIP] fix it', null)).toContain('approved it as ready');
-    expect(titleBlocks('[WIP] fix it', null)).toBe(true);
+    // The approval takes the mark off: the form blocks only what it refuses, and says the mark comes off.
+    expect(titleBlocks('[WIP] fix it', null)).toBe(false);
+    expect(titleBlocks('[AI] [WIP] Fix the null error', actual)).toBe(false);
+    expect(titleBlocks('[WIP] Fix the null error', actual)).toBe(true);
+    expect(checklistOf(null, { title: 'WIP: fix it', patch: null })).toEqual([
+      expect.objectContaining({ key: 'title', state: 'todo', detail: expect.stringContaining('comes off at Submit') }),
+    ]);
     expect(titleProblemsOf('Fix the null error', actual)).toContain('`[AI]`');
     expect(titleBlocks('[AI] Fix the null error', actual)).toBe(false);
   });
@@ -160,7 +166,7 @@ describe("the repo's agent rules and our own (actualbudget/actual#9396)", () => 
     // A WIP mark is ours to keep out, whatever the repo asks.
     expect(checklistOf(conventions({ title: null }), { title: '[WIP] fix', patch: null })[0]).toMatchObject({
       key: 'title',
-      state: 'blocked',
+      state: 'todo',
     });
   });
 });

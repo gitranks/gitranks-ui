@@ -140,9 +140,16 @@ export function titleProblemsOf(
   return titleProblemOf(rest, rule);
 }
 
-/** What blocks Submit: a draft mark, a missing required prefix, or a title rule the repo checks. */
+/**
+ * What blocks Submit, as the approval refuses it: a missing required prefix, or a title rule the repo checks, on the
+ * title without its WIP or draft marks (the approval takes them off; the list says so).
+ */
 export const titleBlocks = (title: string, conventions: TitleConventions | null | undefined): boolean =>
-  Boolean(titleProblemsOf(title, conventions, true));
+  Boolean(titleProblemsOf(withoutDraftMarks(title), conventions, true));
+
+/** The note on a typed WIP or draft mark: it never goes with the pull request. */
+const DRAFT_NOTE =
+  'The WIP or draft mark comes off at Submit: GitRanks opens a pull request only once you approved it as ready.';
 
 export type ChecklistItem = {
   key: 'title' | 'cla' | 'changelog' | 'template' | 'generated';
@@ -201,13 +208,18 @@ export function checklistOf(
   conventions: ContributeRepoConventions | null | undefined,
   input: { title: string; patch: string | null | undefined },
 ): ChecklistItem[] {
-  if (!conventions) return [];
+  const draft = hasDraftMark(input.title.trim()) || withoutDraftMarks(input.title) !== input.title.trim();
+  if (!conventions) {
+    return draft
+      ? [{ key: 'title', state: 'todo', label: 'A title, ready for review', detail: DRAFT_NOTE, link: null }]
+      : [];
+  }
   const items: ChecklistItem[] = [];
   const rule = conventions.title;
   const prefix = conventions.titlePrefix ?? null;
-  const draft = hasDraftMark(input.title.trim());
   if (rule || prefix || draft) {
-    const problem = titleProblemsOf(input.title, conventions);
+    const bare = withoutDraftMarks(input.title);
+    const problem = titleProblemsOf(bare, conventions) ?? (draft ? DRAFT_NOTE : null);
     const blocks = titleBlocks(input.title, conventions);
     const form = rule?.pattern ? `the repo's own form` : rule ? `\`type(scope): summary\`` : null;
     const starts = prefix ? `starting with \`${prefix}\`` : null;

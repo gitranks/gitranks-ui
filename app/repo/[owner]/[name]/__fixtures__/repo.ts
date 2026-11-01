@@ -1,4 +1,5 @@
-import { repoBig } from '@/badge/v3/fixtures';
+import type { RepoFacts } from '@/badge/v3/facts';
+import { repoBig, repoSmall } from '@/badge/v3/fixtures';
 import { facts as pulseFacts } from '@/components/pulse/pulse.fixtures';
 import type { PageRepoQuery, RepoLanguagesQuery, RepoRankTiersQuery } from '@/types/generated/graphql';
 
@@ -137,4 +138,56 @@ export const repoRankTiers: NonNullable<RepoRankTiersQuery['repoRankTiers']> = {
     maxRank: Math.round(49 * 1.6 ** (index + 1)),
     minValue: Math.round(175_007 / 1.5 ** index),
   })),
+};
+
+/**
+ * `brightfern/tidepool`'s badge data: a two-week-old repository with 13 stars, low in the ranking, its whole star
+ * history read on a visitor's pull.
+ */
+export const youngRepoFacts: RepoFacts = {
+  ...repoSmall,
+  nameWithOwner: 'brightfern/tidepool',
+  language: 'Go',
+  stars: 13,
+  gainedThisMonth: 13,
+  monthStarts: { '2026-10-01': 0 },
+  history: {
+    points: [{ date: '2026-10-17T00:00:00Z', stars: 0 }],
+    current: { date: '2026-10-27T00:00:00Z', stars: 13 },
+    complete: true,
+  },
+  rank: { s: 1_384_200, sM: 1_384_200, l: 61_400, lM: 61_400, language: 'Go', tier: { tier: 1, level: 5 } },
+  totals: { repos: 5_300_000, languageRepos: 231_000 },
+};
+
+/** `brightfern/tidepool` on its page: made on 17 Oct 2026, 13 stars, no builders or stargazers of note yet. */
+export const youngRepo: Repo = {
+  githubId: 'R_brightfern_tidepool',
+  owner: 'brightfern',
+  name: 'tidepool',
+  nameWithOwner: youngRepoFacts.nameWithOwner,
+  ownerAvatarUrl: 'https://avatars.githubusercontent.com/u/brightfern?v=4',
+  description: 'A tiny habit tracker for the terminal.',
+  language: 'Go',
+  stars: youngRepoFacts.stars,
+  gainedThisMonth: youngRepoFacts.gainedThisMonth,
+  isArchived: false,
+  isInOrganization: false,
+  createdAt: '2026-10-17T08:40:00Z',
+  renamedTo: null,
+  burstMonths: [],
+  rank: {
+    language: 'Go',
+    s: 1_384_200,
+    sM: 1_384_200,
+    l: 61_400,
+    lM: 61_400,
+    tier: { tier: 1, level: 5, minRank: 1_210_001, maxRank: 1_460_000, minValue: 12 },
+    languageTier: { tier: 1, level: 5 },
+  },
+  history: youngRepoFacts.history && { ...youngRepoFacts.history, readAt: '2026-10-27T11:20:00Z' },
+  pull: { status: 'done', requestedAt: '2026-10-27T11:10:00Z', finishedAt: '2026-10-27T11:20:00Z' },
+  siblings: [],
+  builtBy: { accounts: 1, counts: [{ tier: 2, count: 1 }], top: [] },
+  starsBest: null,
 };

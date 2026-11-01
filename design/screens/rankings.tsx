@@ -1,5 +1,11 @@
 import type { Screen } from '../registry';
 import { GlobalRankingFrame, GlobalRankingScreen } from '@/app/by/[rankingType]/components/global-ranking-view';
+import { repoRankingPage } from '@/app/repos/__fixtures__/repo-rankings';
+import { REPO_LANGUAGES_LINK, RepoRankingHeader } from '@/app/repos/components/repo-ranking-header';
+import { RepoRankingTable } from '@/app/repos/components/repo-ranking-table';
+import { Header } from '@/components/header/header';
+import { Page } from '@/components/page/page';
+import { Pagination } from '@/components/pagination/pagination';
 import {
   countries,
   globalRankings,
@@ -7,6 +13,7 @@ import {
   rankedCounts,
 } from '@/components/ranking-table/__fixtures__/global-rankings';
 import { RankingTypeClient } from '@/types/ranking.types';
+import { getRepoRankingPath } from '@/utils/repo-paths';
 
 export const RANKINGS_SCREENS: Screen[] = [
   {
@@ -37,6 +44,36 @@ export const RANKINGS_SCREENS: Screen[] = [
               languages={leadingLanguages}
             />
           </GlobalRankingFrame>
+        ),
+      },
+    ],
+  },
+  {
+    id: 'repo-ranking',
+    title: 'Repository ranking',
+    area: 'rankings',
+    route: '/repos/[page]',
+    sources: [
+      'app/repos/[page]/layout.tsx',
+      'app/repos/[page]/page.tsx',
+      'app/repos/components/repo-ranking-table.tsx',
+    ],
+    states: [
+      {
+        id: 'page-40',
+        title: 'Page 40',
+        path: getRepoRankingPath(40),
+        height: 1500,
+        // The layout and the page, from their parts: the page reads its rows in a server component.
+        render: () => (
+          <>
+            <Header section="rankings" />
+            <Page className="max-w-5xl gap-6">
+              <RepoRankingHeader title="Repository Ranking" link={REPO_LANGUAGES_LINK} />
+              <RepoRankingTable data={repoRankingPage} />
+              <Pagination prev={getRepoRankingPath(39)} next={getRepoRankingPath(41)} />
+            </Page>
+          </>
         ),
       },
     ],

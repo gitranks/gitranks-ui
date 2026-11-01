@@ -23,9 +23,11 @@ const builder = (path: string) => (
 
 const user = { kind: 'user', name: userBig.login } as const;
 const card = findBadge('user', 'profile-card');
+const repo = { kind: 'repo', name: 'brightfern/tidepool' } as const;
 const BUILDER = {
   find: builderHref({ kind: null }),
   badge: builderHref(user),
+  repoBadge: builderHref(repo),
   style: builderHref({ ...user, badge: card }),
   embed: builderHref({ ...user, badge: card, embed: true }),
 };
@@ -54,6 +56,13 @@ export const BADGES_SCREENS: Screen[] = [
       },
       { id: 'style', title: '3 · Style', path: BUILDER.style, height: 800, render: () => builder(BUILDER.style) },
       { id: 'embed', title: '4 · Embed', path: BUILDER.embed, height: 800, render: () => builder(BUILDER.embed) },
+      {
+        id: 'badge-repo',
+        title: '2 · Pick a badge, for a repository',
+        path: BUILDER.repoBadge,
+        height: 1800,
+        render: () => builder(BUILDER.repoBadge),
+      },
     ],
   },
   {

@@ -1,10 +1,23 @@
 import { withBadgeFacts } from '../images';
 import type { Screen } from '../registry';
-import { bigRepo, bigRepoPulse, repoLanguages, repoRankTiers } from '@/app/repo/[owner]/[name]/__fixtures__/repo';
+import {
+  bigRepo,
+  bigRepoPulse,
+  repoLanguages,
+  repoRankTiers,
+  youngRepo,
+  youngRepoFacts,
+} from '@/app/repo/[owner]/[name]/__fixtures__/repo';
 import { RepoScreen } from '@/app/repo/[owner]/[name]/components/repo-screen';
 import { repoBig } from '@/badge/v3/fixtures';
 
 const badges = withBadgeFacts(repoBig);
+const youngBadges = withBadgeFacts(youngRepoFacts);
+
+/** A young repository: no analytics yet. */
+const young = () => (
+  <RepoScreen repo={youngRepo} pulse={null} languages={repoLanguages} tiers={repoRankTiers} badgeFacts={youngBadges} />
+);
 
 export const REPO_SCREENS: Screen[] = [
   {
@@ -35,6 +48,21 @@ export const REPO_SCREENS: Screen[] = [
             badgeFacts={badges}
           />
         ),
+      },
+      {
+        id: 'young',
+        title: 'A young repository, low in the ranking',
+        path: `/repo/${youngRepo.nameWithOwner}`,
+        height: 2000,
+        render: young,
+      },
+      {
+        id: 'young-phone',
+        title: 'A young repository · phone',
+        path: `/repo/${youngRepo.nameWithOwner}`,
+        width: 390,
+        height: 3000,
+        render: young,
       },
     ],
   },

@@ -50,8 +50,9 @@ const text = (html: string) =>
     .replaceAll('&amp;', '&')
     .replace(/\s+/g, ' ');
 
-const review = (item: ContributeAttemptDetail, view: ContributeView = views.active) =>
-  renderToStaticMarkup(<ReviewScreen view={view} attempt={item} now={NOW} />);
+/** The page of `item`; `next`: on the round not started yet. */
+const review = (item: ContributeAttemptDetail, view: ContributeView = views.active, next = false) =>
+  renderToStaticMarkup(<ReviewScreen view={view} attempt={item} next={next} now={NOW} />);
 
 /** My contributions with the open pull request (`kelp-db/kelp` #1419) as `patch` makes it. */
 const mine = (
@@ -244,57 +245,68 @@ describe('a pull request that needs the user, on My contributions', () => {
 });
 
 describe('the follow-ups of a pull request, on its first attempt', () => {
-  it('shows what needs the user, the rounds and Start a follow-up', () => {
+  it('shows what needs the user under the header, and the next round as a session to open', () => {
     const html = review(followUpAttempts.prNeedsYou);
     const plain = text(html);
 
-    expect(html).toContain('data-panel="follow-ups"');
-    expect(plain).toContain('Your pull request needs you');
+    expect(html).toContain('data-needs-you=""');
     expect(plain).toContain('A reviewer asked for changes · 3 hours ago');
-    expect(html).toContain('data-start-follow-up="PR_1"');
-    expect(plain).toContain('Follow-up round 1 of 2 · 2 left');
     expect(html).toContain('data-mark-handled="PR_1"');
+    expect(html).toContain('data-session="next"');
+    expect(html).toContain('href="/contribute/attempts/A_1?session=next"');
+    expect(plain).toContain('0 of 2 rounds used');
+    // The round is started from its own session, not from the first attempt's.
+    expect(html).not.toContain('data-start-follow-up');
+    expect(review(followUpAttempts.prNeedsYou, views.active, true)).toContain('data-start-follow-up="PR_1"');
   });
 
   it('says it is handed to the user after two rounds', () => {
     const html = review(followUpAttempts.handedOff);
 
-    expect(html).toContain('data-follow-ups="handed-off"');
-    expect(text(html)).toContain('handed to you');
-    expect(html).not.toContain('data-start-follow-up');
+    expect(html).toContain('data-session="handed-off"');
+    expect(text(html)).toContain('Carry the pull request on on GitHub.');
+    expect(html).not.toContain('data-session="next"');
+    expect(review(followUpAttempts.handedOff, views.active, true)).not.toContain('data-start-follow-up');
   });
 
-  it('links the follow-up running on it', () => {
+  it('lists the follow-up running on it', () => {
     const html = review(followUpAttempts.underWay);
 
-    expect(text(html)).toContain('A follow-up is running on your pull request');
+    expect(html).toContain('data-session="A_F1"');
     expect(html).toContain('href="/contribute/attempts/A_F1"');
-    expect(html).not.toContain('data-start-follow-up');
+    expect(html).not.toContain('data-session="next"');
   });
 
-  it('leaves out the follow-ups of a merged or closed pull request no round ran on', () => {
+  it('offers no next round on a merged or closed pull request', () => {
     const merged = {
       ...followUpAttempts.prNeedsYou,
       state: 'MERGED' as const,
       needsYou: null,
       pullRequest: { ...followUpAttempts.prNeedsYou.pullRequest!, state: 'MERGED' as const },
     };
-    expect(review(merged)).not.toContain('data-panel="follow-ups"');
-    expect(review({ ...merged, followUps: undefined })).not.toContain('data-panel="follow-ups"');
-
-    const followedUp = review({ ...merged, followUps: followUps({ used: 1, left: 1 }) });
-    expect(followedUp).toContain('data-panel="follow-ups"');
-    expect(followedUp).not.toContain('data-start-follow-up');
+    for (const item of [
+      merged,
+      { ...merged, followUps: undefined },
+      { ...merged, followUps: followUps({ used: 1 }) },
+    ]) {
+      const html = review(item, views.active, true);
+      expect(html).not.toContain('data-session="next"');
+      expect(html).not.toContain('data-start-follow-up');
+      expect(html).not.toContain('data-needs-you');
+    }
   });
 
-  it('degrades the follow-up fields to "not available yet"', () => {
-    const plain = text(
-      review({ ...followUpAttempts.prNeedsYou, needsYou: undefined, followUps: undefined, replyDrafts: undefined }),
-    );
+  it('renders the page without the follow-up fields', () => {
+    const html = review({
+      ...followUpAttempts.prNeedsYou,
+      needsYou: undefined,
+      followUps: undefined,
+      replyDrafts: undefined,
+    });
 
-    expect(plain).toContain('What changed on GitHub is not available yet.');
-    expect(plain).toContain('Follow-ups are not available yet.');
-    expect(plain).toContain('Reply drafts are not available yet.');
+    expect(html).toContain('data-session="A_1"');
+    expect(html).not.toContain('data-session="next"');
+    expect(text(html)).not.toContain('Reply drafts are not available yet.');
   });
 });
 
@@ -716,26 +728,31 @@ describe('values the UI does not know yet', () => {
 });
 
 describe('the follow-up flow: review feedback, the run, the result and the rounds', () => {
+  // The pull request's page on the round not started yet, where the waiting comments are chosen.
   const prOpen = (patch: Partial<ContributeAttemptDetail> = {}) =>
-    review({
-      ...followUpAttempts.prNeedsYou,
-      reviewFeedback: {
-        readAt: '2026-10-28T11:50:00.000Z',
-        threads: [
-          feedbackThread(),
-          feedbackThread({ commentId: 'C_2', threadId: 'T_2', excerpt: 'Translate the <b>title</b>.' }),
-          feedbackThread({
-            commentId: 'C_3',
-            threadId: 'T_3',
-            bot: false,
-            author: 'maintainer-mo',
-            excerpt: 'Name it collapse?',
-          }),
-          feedbackThread({ commentId: 'C_4', threadId: 'T_4', ignored: true, excerpt: 'Add a baseline.' }),
-        ],
+    review(
+      {
+        ...followUpAttempts.prNeedsYou,
+        reviewFeedback: {
+          readAt: '2026-10-28T11:50:00.000Z',
+          threads: [
+            feedbackThread(),
+            feedbackThread({ commentId: 'C_2', threadId: 'T_2', excerpt: 'Translate the <b>title</b>.' }),
+            feedbackThread({
+              commentId: 'C_3',
+              threadId: 'T_3',
+              bot: false,
+              author: 'maintainer-mo',
+              excerpt: 'Name it collapse?',
+            }),
+            feedbackThread({ commentId: 'C_4', threadId: 'T_4', ignored: true, excerpt: 'Add a baseline.' }),
+          ],
+        },
+        ...patch,
       },
-      ...patch,
-    });
+      views.active,
+      true,
+    );
 
   it('lists the waiting comments, bots and people apart, each to Address or Ignore, with one button', () => {
     const html = prOpen();
@@ -948,8 +965,9 @@ describe('the follow-up flow: review feedback, the run, the result and the round
         }),
       }),
     );
-    expect(plain).toContain('Round 1 pushed 46de700 · 5 fixed · 2 replied');
-    expect(plain).toContain('Round 2 stopped, nothing pushed');
+    expect(plain).toContain('Round 1 · follow-up Pushed 46de700');
+    expect(plain).toContain('5 fixed · 2 replied');
+    expect(plain).toContain('Round 2 · follow-up Stopped');
     expect(plain).toContain('Every follow-up round is used: answer these on GitHub.');
   });
 

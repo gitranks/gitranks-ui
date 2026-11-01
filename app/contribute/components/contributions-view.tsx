@@ -13,6 +13,7 @@ import {
   ATTEMPT_STATES,
   agentLabelOf,
   attemptTitleOf,
+  checkLimitOf,
   costOrAgentOf,
   endReasonTextOf,
   githubUrlOf,
@@ -22,7 +23,6 @@ import {
   PR_STATES,
   repoOf,
   SUBMIT_STEP_TEXT,
-  stoppedInCheckOf,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
 import {
@@ -493,12 +493,12 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
     ['Became pull requests', count(({ state }) => PR_STATES_OF_ATTEMPT.includes(state))],
     ['Waiting for your review', count(({ state }) => state === 'REVIEW')],
     ['In progress', count(({ state }) => IN_PROGRESS_STATES.includes(state))],
-    ['Stopped at the go/no-go check', count(({ state, endReason }) => state === 'STOPPED' && endReason === 'NO_GO')],
-    ['Ran out while checking the issue', count(stoppedInCheckOf)],
     [
-      'Stopped for another reason',
-      count((attempt) => attempt.state === 'STOPPED' && attempt.endReason !== 'NO_GO' && !stoppedInCheckOf(attempt)),
+      'Stopped at the go/no-go check',
+      count((attempt) => attempt.state === 'STOPPED' && attempt.endReason === 'NO_GO' && !ranOutOf(attempt)),
     ],
+    ['Ran out while checking the issue', count((attempt) => attempt.state === 'STOPPED' && ranOutOf(attempt))],
+    ['Stopped for another reason', count(({ state, endReason }) => state === 'STOPPED' && endReason !== 'NO_GO')],
     ['Discarded', count(({ state }) => state === 'DISCARDED')],
     ['Follow-ups pushed', count(({ state }) => state === 'DONE')],
   ];
@@ -548,6 +548,9 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
  * My contributions: the totals, what needs the user, what is in progress, the pull requests, and how attempts ended.
  * `contributions` and `attempts` are `undefined` while the API does not answer them.
  */
+/** A no-go of ours: the check reached its limit with no verdict. */
+const ranOutOf = (attempt: ContributeAttempt): boolean => checkLimitOf(attempt)?.decided === false;
+
 export function ContributionsScreen({
   view,
   contributions,

@@ -555,28 +555,50 @@ describe('the review screen', () => {
     },
   );
 
-  it('a check that ran out never reads as a no-go, and offers one retry on a bigger budget', () => {
-    const detailText = 'Ran out of the $0.50 check budget after 19 min before deciding; last step: bash: cargo build';
-    const ranOut = detail({ ...stopped('BUDGET', detailText), stoppedInCheck: true, retryable: true });
+  it('a no-go the agent wrote at the check limit reads like any no-go, with the note', () => {
+    const reason = 'The renderer needs a GPU the sandbox lacks. A person with one would have to reproduce it.';
+    const decided = detail({
+      ...stopped('NO_GO', `${reason} Decided at the check's budget limit.`),
+      checkLimit: { limit: 'budget', decided: true },
+    });
+    const plain = text(review(decided));
+    expect(plain).toContain(END_REASONS.NO_GO);
+    expect(plain).toContain(`Its reason: ${reason}`);
+    expect(plain).not.toContain(`${reason} Decided at`);
+    expect(plain).toContain("Decided at the check's budget limit, when the agent was told to wrap up.");
+    expect(plain).not.toContain('Retry with a bigger check budget');
+    // Without the field (an older API, a list): read from the detail alike.
+    expect(text(review(stopped('NO_GO', `${reason} Decided at the check's time limit.`)))).toContain(
+      "Decided at the check's time limit",
+    );
+  });
+
+  it('no verdict by the limit: says it ran out, never a no-go, and offers one retry on a bigger budget', () => {
+    const detailText =
+      'No verdict: it was on "bash: cargo build" when the check\'s $0.50 budget ran out, after 19 min.';
+    const ranOut = detail({
+      ...stopped('NO_GO', detailText),
+      checkLimit: { limit: 'budget', decided: false },
+      retryable: true,
+    });
     const html = review(ranOut);
     const plain = text(html);
     expect(plain).toContain('Stopped while checking the issue');
     expect(plain).toContain('Stopped: ran out of budget while checking the issue.');
     expect(plain).toContain(`Detail: ${detailText}`);
-    expect(plain).toContain('nothing was said about the issue');
     expect(plain).not.toContain('decided not to go ahead');
-    expect(plain).not.toContain('went back to the pool');
-    expect(html).toContain('data-check-stop');
+    expect(plain).toContain('Nothing was decided about the issue');
+    expect(html).toContain('data-check-limit="budget"');
     expect(plain).toContain('Retry with a bigger check budget');
 
     // Tried again already: the words stay, the button goes.
     expect(text(review(detail({ ...ranOut, retryable: false })))).not.toContain('Retry with a bigger check budget');
-    // The time cap says time; an API without the field is read from the detail.
-    const late = text(review(stopped('TIMEOUT', 'Hit the 15-min check limit ($0.42 of $1.00 spent) before deciding')));
+    // The time limit says time; without the field it is read from the detail.
+    const late = text(review(stopped('NO_GO', "No verdict before the check's 15-minute limit ran out, after 16 min.")));
     expect(late).toContain('Stopped: ran out of time while checking the issue.');
     expect(late).not.toContain('Retry with a bigger check budget');
     // A budget stop in the work is the attempt's limit, as before.
-    expect(text(review(detail({ ...stopped('BUDGET'), stoppedInCheck: false })))).toContain(END_REASONS.BUDGET);
+    expect(text(review(stopped('BUDGET')))).toContain(END_REASONS.BUDGET);
   });
 
   it('says a stop with no reason yet is not available yet', () => {
@@ -641,8 +663,8 @@ describe('my contributions', () => {
     attempt({
       attemptId: 'A_6',
       state: 'STOPPED',
-      endReason: 'BUDGET',
-      endDetail: 'Ran out of the $1.00 check budget',
+      endReason: 'NO_GO',
+      endDetail: "No verdict before the check's $1.00 budget ran out, after 19 min.",
     }),
   ];
   const render = (

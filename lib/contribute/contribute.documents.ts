@@ -11,6 +11,7 @@ import type {
   ContributeAutopilot,
   ContributeAutopilotReviewReason,
   ContributeChanges,
+  ContributeCheckLimitView,
   ContributeCheckStatusView,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
@@ -370,12 +371,18 @@ export const ContributeAttemptDcoDocument = doc<
   contributeAttempt(id: $id) { attemptId dcoRequired }
 }`);
 
-/** A check that ran out of budget or time, and whether it can be tried again: read on its own, as the field above. */
+/** A no-go at the check's limit, and whether it can be tried again: read on its own, as the field above. */
 export const ContributeAttemptCheckStopDocument = doc<
-  { contributeAttempt: { attemptId: string; stoppedInCheck: boolean; retryable: boolean } | null },
+  {
+    contributeAttempt: {
+      attemptId: string;
+      checkLimit: ContributeCheckLimitView | null;
+      retryable: boolean;
+    } | null;
+  },
   { id: string }
 >(`query ContributeAttemptCheckStop($id: ID!) {
-  contributeAttempt(id: $id) { attemptId stoppedInCheck retryable }
+  contributeAttempt(id: $id) { attemptId checkLimit { limit decided } retryable }
 }`);
 
 /** What the stepper reads again while the attempt submits: its state, the submission with its clock, the PR. */

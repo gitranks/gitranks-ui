@@ -8,15 +8,17 @@ import { attemptHref } from './reviews-ready';
 import { LiveSubmit, SubmitStepsSettled, TryAgainButton } from './submit-stepper';
 import {
   ATTEMPT_STATES,
+  checkLimitOf,
   detailText,
   END_REASONS,
   endReasonTextOf,
   githubUrlOf,
   labelOf,
+  limitNoteOf,
+  noGoReasonOf,
   PR_CHECKS,
   PR_STATES,
   REVIEW_DECISIONS,
-  stoppedInCheckOf,
   timeLabel,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
@@ -410,28 +412,34 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
       );
     }
     case 'STOPPED': {
-      const inCheck = stoppedInCheckOf(attempt);
+      const limit = checkLimitOf(attempt);
+      const ranOut = !!limit && !limit.decided;
       return (
         <Box state="STOPPED" tone="muted">
-          <Title>{inCheck ? 'Stopped while checking the issue' : 'Stopped'}</Title>
+          <Title>{ranOut ? 'Stopped while checking the issue' : 'Stopped'}</Title>
           <Text>
-            <span data-end-reason={attempt.endReason ?? ''} data-check-stop={inCheck ? '' : undefined}>
+            <span data-end-reason={attempt.endReason ?? ''} data-check-limit={limit ? limit.limit : undefined}>
               {endReasonTextOf(attempt) ?? 'Why it stopped is not available yet.'}
             </span>
             {attempt.endDetail ? (
               <>
                 {' '}
-                {attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}
-                {detailText(attempt.endDetail)}
+                {attempt.endReason === 'NO_GO' && !ranOut ? 'Its reason: ' : 'Detail: '}
+                {detailText(noGoReasonOf(attempt.endDetail))}
               </>
             ) : null}{' '}
             {usd(attempt.costUsd)} was spent.
             {attempt.endReason === 'SUBMIT_FAILED'
               ? ''
-              : inCheck
-                ? ' The agent had not decided yet, so nothing was said about the issue.'
+              : ranOut
+                ? ' Nothing was decided about the issue; it went back to the pool.'
                 : ' The issue went back to the pool.'}
           </Text>
+          {limit?.decided ? (
+            <span data-limit-note className="text-xs text-muted-foreground">
+              {limitNoteOf(limit)}
+            </span>
+          ) : null}
           {'retryable' in attempt && attempt.retryable ? <RetryCheckButton attemptId={attempt.attemptId} /> : null}
           {attempt.endReason === 'SUBMIT_FAILED' && attempt.submit && failedAtStep(attempt.submit) ? (
             <SubmitStepsSettled state="STOPPED" submit={attempt.submit} />

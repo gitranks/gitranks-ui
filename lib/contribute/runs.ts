@@ -1,4 +1,12 @@
-import { AGENT_NAMES, CHECK_LABELS, detailText, END_REASONS, type Tone } from './attempt-format';
+import {
+  AGENT_NAMES,
+  CHECK_LABELS,
+  checkLimitOf,
+  detailText,
+  END_REASONS,
+  noGoReasonOf,
+  type Tone,
+} from './attempt-format';
 import type {
   ContributeAgent,
   ContributeAttemptCheckName,
@@ -32,7 +40,8 @@ export type ContributeNoGoCategory =
   | 'ALREADY_FIXED'
   | 'BOT_HANDLED'
   | 'TOO_BIG'
-  | 'OTHER';
+  | 'OTHER'
+  | 'OUT_OF_BUDGET';
 
 export type ContributeRun = {
   attemptId: string;
@@ -129,6 +138,7 @@ export const NO_GO_CATEGORIES: Record<ContributeNoGoCategory, { label: string; c
   BOT_HANDLED: { label: 'Handled by a bot', color: 'var(--series-4)' },
   TOO_BIG: { label: 'Too big', color: 'var(--series-5)' },
   OTHER: { label: 'Other', color: 'var(--series-other)' },
+  OUT_OF_BUDGET: { label: 'Ran out of budget', color: 'var(--series-6)' },
 };
 
 export type RunsRange = '7d' | '30d' | '90d' | 'all';
@@ -293,8 +303,12 @@ export function runReasonOf(run: ContributeRun): string {
       return 'Waiting for your review';
     case 'RUNNING':
       return '';
-    case 'NO_GO':
-      return run.endDetail ? firstSentence(detailText(run.endDetail)) : '';
+    case 'NO_GO': {
+      if (!run.endDetail) return '';
+      // The agent's reason, written at the check's limit: its first sentence and the note, like any no-go reason.
+      const reason = firstSentence(detailText(noGoReasonOf(run.endDetail)));
+      return checkLimitOf(run)?.decided ? `${reason} · decided at the check's limit` : reason;
+    }
     case 'CHECKS_FAILED': {
       const code = run.endDetail?.toUpperCase() as ContributeAttemptCheckName | undefined;
       return (code && FAILED_CHECKS[code]) || (code && CHECK_LABELS[code] ? `Failed: ${CHECK_LABELS[code]}` : '');

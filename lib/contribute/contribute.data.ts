@@ -511,7 +511,7 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
     const stopRead = (await checkStop)?.contributeAttempt;
     const withStop =
       stopRead?.attemptId === contributeAttempt.attemptId && typeof stopRead.retryable === 'boolean'
-        ? { ...withDco, stoppedInCheck: stopRead.stoppedInCheck, retryable: stopRead.retryable }
+        ? { ...withDco, checkLimit: stopRead.checkLimit ?? null, retryable: stopRead.retryable }
         : withDco;
     const conventionsRead = (await conventions)?.contributeAttempt;
     const withConventions = withConventionsOf(

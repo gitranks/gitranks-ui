@@ -5,6 +5,7 @@ import type {
   ContributeAttemptCheckName,
   ContributeAttemptEndReason,
   ContributeAttemptState,
+  ContributeCheckLimitView,
   ContributeChecksState,
   ContributePrState,
   ContributeReviewDecision,
@@ -91,27 +92,42 @@ export const END_REASONS: Record<ContributeAttemptEndReason, string> = {
   MCP_EXPIRED: 'It reached the seven days an issue can be held, so it was let go.',
 };
 
-/** The detail of a check that ran out (the API's words): read when an API does not say `stoppedInCheck`. */
-const CHECK_STOP_DETAIL = /^(?:Ran out of the \$[\d.]+ check budget|Hit the \d+-min check limit)/;
+/** The note the API puts after a no-go the agent wrote when told to wrap up at the check's limit. */
+const DECIDED_AT_LIMIT = /\s*Decided at the check's (budget|time) limit\.$/;
+/** The API's words for a check that reached its limit with no verdict. */
+const RAN_OUT = /^No verdict(?::| before) .*the check's (?:\$[\d.]+ budget|(\d+)-minute limit) ran out/;
 
 /**
- * Stopped by its budget or the time while the agent still checked the issue, before deciding: no word on the issue,
- * so it must never read as a no-go.
+ * A no-go at the go/no-go check's budget or time limit: `decided` when the agent wrote it on being told to wrap up,
+ * else the check ran out with no verdict. From the API's `checkLimit`, else read from its detail (lists and runs).
  */
-export const stoppedInCheckOf = (
-  attempt: Pick<ContributeAttempt, 'state' | 'endReason' | 'endDetail' | 'stoppedInCheck'>,
-): boolean =>
-  attempt.stoppedInCheck ??
-  (attempt.state === 'STOPPED' &&
-    (attempt.endReason === 'BUDGET' || attempt.endReason === 'TIMEOUT') &&
-    CHECK_STOP_DETAIL.test(attempt.endDetail ?? ''));
+export function checkLimitOf(
+  attempt: Pick<ContributeAttempt, 'endReason' | 'endDetail' | 'checkLimit'>,
+): ContributeCheckLimitView | null {
+  if (attempt.checkLimit !== undefined) return attempt.checkLimit;
+  if (attempt.endReason !== 'NO_GO' || !attempt.endDetail) return null;
+  const decided = DECIDED_AT_LIMIT.exec(attempt.endDetail);
+  if (decided) return { limit: decided[1] === 'time' ? 'time' : 'budget', decided: true };
+  const ranOut = RAN_OUT.exec(attempt.endDetail);
+  return ranOut ? { limit: ranOut[1] ? 'time' : 'budget', decided: false } : null;
+}
+
+/** A no-go's reason without the "decided at the limit" note (the page says it apart). */
+export const noGoReasonOf = (detail: string): string => detail.replace(DECIDED_AT_LIMIT, '');
+
+/** The note under a no-go decided at the check's limit. */
+export const limitNoteOf = ({ limit }: ContributeCheckLimitView): string =>
+  limit === 'time'
+    ? "Decided at the check's time limit, when the agent was told to wrap up."
+    : "Decided at the check's budget limit, when the agent was told to wrap up.";
 
 /** Why an attempt ended, in plain words: a check that ran out says so, the rest as `END_REASONS`. */
 export function endReasonTextOf(
-  attempt: Pick<ContributeAttempt, 'state' | 'endReason' | 'endDetail' | 'stoppedInCheck'>,
+  attempt: Pick<ContributeAttempt, 'endReason' | 'endDetail' | 'checkLimit'>,
 ): string | null {
-  if (stoppedInCheckOf(attempt)) {
-    return attempt.endReason === 'TIMEOUT'
+  const limit = checkLimitOf(attempt);
+  if (limit && !limit.decided) {
+    return limit.limit === 'time'
       ? 'Stopped: ran out of time while checking the issue.'
       : 'Stopped: ran out of budget while checking the issue.';
   }

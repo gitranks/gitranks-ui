@@ -488,10 +488,10 @@ export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
     endReason: ContributeAttemptEndReason | null;
     endDetail: string | null;
     /**
-     * Stopped by its budget or the time while the agent still checked the issue, before deciding: no word on the
-     * issue, unlike a no-go. `undefined` while the API does not answer it (`stoppedInCheckOf` then reads the detail).
+     * A no-go at the check's budget or time limit (`decided`: written when the agent was told to wrap up; else no
+     * verdict by the limit). `undefined` while not read (`checkLimitOf` then reads the detail).
      */
-    stoppedInCheck?: boolean;
+    checkLimit?: ContributeCheckLimitView | null;
     checksPassed: boolean | null;
     approvedAt: string | null;
     submit: ContributeAttemptSubmit | null;
@@ -539,6 +539,9 @@ export type ContributeAttemptCost = { totalUsd: number; goNoGoUsd: number; workU
 
 export type ContributeAttemptApproval = { title: string; body: string; dco: boolean; at: string };
 
+/** The go/no-go check's limit a no-go was decided at (`decided`), or reached with no verdict. */
+export type ContributeCheckLimitView = { limit: 'budget' | 'time'; decided: boolean };
+
 export type ContributeAttemptEvent = { state: ContributeAttemptState; detail: string | null; at: string };
 
 /** One attempt for the review screen. `patch` is `git format-patch` text: untrusted, rendered as text only. */
@@ -552,8 +555,8 @@ export type ContributeAttemptDetail = ContributeAttempt & {
    */
   dcoRequired?: boolean;
   /**
-   * The check ran out of budget or time before deciding: `retryAttempt` tries it again once, on twice the check's
-   * budget. `undefined` while the API does not answer it.
+   * The check reached its limit with no verdict: `retryAttempt` tries it again once, on twice the check's budget.
+   * `undefined` while the API does not answer it.
    */
   retryable?: boolean;
   checks: ContributeAttemptCheck[];

@@ -7,7 +7,7 @@ import { markNeedsYouHandled, retryAttempt, startFollowUp, vetoAutopilot } from 
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
 import { timeLabel } from '@/lib/contribute/attempt-format';
-import { contributeErrorMessage } from '@/lib/contribute/errors';
+import { attemptActionErrorMessage } from '@/lib/contribute/errors';
 import { followUpErrorMessage, handledErrorMessage, vetoErrorMessage } from '@/lib/contribute/follow-up-format';
 import { relativeLabel } from '@/lib/contribute/format';
 
@@ -64,9 +64,9 @@ export function RetryCheckButton({ attemptId }: { attemptId: string }) {
       const result = await retryAttempt(attemptId);
       if (!result.ok) {
         setError(
-          result.error === 'INVALID'
+          result.error === 'INVALID' && /tried again|only a check/i.test(result.message ?? '')
             ? 'It was tried again already, or it can no longer be. Reload the page.'
-            : contributeErrorMessage(result.error, result.message),
+            : attemptActionErrorMessage(result.error, result.message),
         );
         return;
       }

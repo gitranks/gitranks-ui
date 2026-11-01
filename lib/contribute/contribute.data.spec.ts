@@ -218,17 +218,19 @@ describe('loadAttempt: a check that ran out, read on its own', () => {
 
   it("merges the attempt's own answer, and leaves both fields out otherwise", async () => {
     answering(() =>
-      Promise.resolve({ contributeAttempt: { attemptId: 'A_1', stoppedInCheck: true, retryable: true } }),
+      Promise.resolve({
+        contributeAttempt: { attemptId: 'A_1', checkLimit: { limit: 'budget', decided: false }, retryable: true },
+      }),
     );
     expect(await loadAttempt('A_1')).toEqual({
       attemptId: 'A_1',
       state: 'STOPPED',
-      stoppedInCheck: true,
+      checkLimit: { limit: 'budget', decided: false },
       retryable: true,
     });
 
     for (const stop of [
-      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', stoppedInCheck: true, retryable: true } }),
+      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', checkLimit: null, retryable: true } }),
       () => Promise.reject(new Error('[{"message":"Cannot query field \\"retryable\\""}]')),
     ]) {
       answering(stop);

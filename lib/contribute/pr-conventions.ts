@@ -97,9 +97,12 @@ export function titleProblemOf(title: string, rule: ContributeTitleRule | null |
   return partsProblemOf(match[1], match[2], rule);
 }
 
-/** One leading WIP, draft or "do not merge" mark: `[WIP]`, `WIP:`, `(draft)`, `DNM -`. As the API reads it. */
+/**
+ * One leading WIP, draft or "do not merge" mark: `[WIP]`, `(draft)`, `WIP:`, `DNM - `, as the API reads it. A dash counts
+ * only with spaces around it: `Draft-js: fix selection` and `WIP-limit: cap` are titles, not marks.
+ */
 const DRAFT_MARK =
-  /^\s*(?:[[(](?:wip|draft|do[\s-]*not[\s-]*merge|dnm)[\])]\s*[:\-–]?|(?:wip|draft|dnm|do[\s-]*not[\s-]*merge)\s*[:\-–])\s*/i;
+  /^\s*(?:[[(](?:wip|draft|do[\s-]*not[\s-]*merge|dnm)[\])](?:\s*:|\s+[-–](?=\s))?|(?:wip|draft|dnm|do\s+not\s+merge)(?:\s*:|\s+[-–](?=\s)))\s*/i;
 
 export const hasDraftMark = (title: string): boolean => DRAFT_MARK.test(title);
 

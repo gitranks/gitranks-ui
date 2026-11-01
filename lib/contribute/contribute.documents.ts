@@ -503,6 +503,15 @@ export const MarkNeedsYouHandledDocument = doc<{ markNeedsYouHandled: Contribute
   `mutation MarkNeedsYouHandled($prId: ID!) { markNeedsYouHandled(prId: $prId) { ${ATTEMPT} } }`,
 );
 
+export const IgnoreReviewThreadsDocument = doc<
+  { ignoreReviewThreads: string[] },
+  { prId: string; commentIds: string[]; ignore: boolean }
+>(
+  `mutation IgnoreReviewThreads($prId: ID!, $commentIds: [ID!]!, $ignore: Boolean!) {
+    ignoreReviewThreads(prId: $prId, commentIds: $commentIds, ignore: $ignore)
+  }`,
+);
+
 export const VetoAutopilotDocument = doc<{ vetoAutopilot: ContributeAttempt }, { attemptId: string }>(
   `mutation VetoAutopilot($attemptId: ID!) { vetoAutopilot(attemptId: $attemptId) { ${ATTEMPT} } }`,
 );

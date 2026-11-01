@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
-import { startFollowUp } from '../actions';
+import { ignoreReviewThreads, startFollowUp } from '../actions';
 import { HEADING, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
@@ -90,8 +90,9 @@ function Group({ title, children, count }: { title: string; children: React.Reac
 
 /**
  * Review feedback on an open pull request: the review threads waiting for an answer, bots' and people's apart, each
- * to Address or Ignore, and one button that starts a follow-up on the ones addressed. Threads ignored in an earlier
- * round are listed apart, and may be addressed again. Nothing is posted or pushed before the user's review.
+ * to Address or Ignore, and one button that starts a follow-up on the ones addressed. An Ignore is saved at once and
+ * holds until someone comments on the thread again; ignored threads are listed apart, and may be addressed again.
+ * Nothing is posted or pushed before the user's review.
  */
 export function ReviewFeedbackCard({
   prId,
@@ -120,6 +121,7 @@ export function ReviewFeedbackCard({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [, startSaving] = useTransition();
   const busy = pending || done;
 
   const fresh = feedback.threads.filter((thread) => !thread.ignored);
@@ -145,13 +147,29 @@ export function ReviewFeedbackCard({
       router.push(attemptHref(result.data.attemptId));
     });
 
+  // Ignore is kept on the pull request at once (Address undoes it): the comment stays out of every round, autopilot's
+  // too, until someone comments on it again.
+  const choose = (thread: ContributeFeedbackThread, choice: Choice) => {
+    const before = choices[thread.commentId] ?? 'address';
+    if (before === choice) return;
+    setChoices((current) => ({ ...current, [thread.commentId]: choice }));
+    setError(null);
+    startSaving(async () => {
+      const result = await ignoreReviewThreads(prId, [thread.commentId], choice === 'ignore');
+      if (!result.ok) {
+        setChoices((current) => ({ ...current, [thread.commentId]: before }));
+        setError(followUpErrorMessage(result.error, result.message));
+      }
+    });
+  };
+
   const row = (thread: ContributeFeedbackThread) => (
     <ThreadRow
       key={thread.commentId}
       thread={thread}
       choice={choices[thread.commentId] ?? 'address'}
-      onChoose={(choice) => setChoices((current) => ({ ...current, [thread.commentId]: choice }))}
-      disabled={busy || !canStart}
+      onChoose={(choice) => choose(thread, choice)}
+      disabled={busy}
     />
   );
 
@@ -164,7 +182,7 @@ export function ReviewFeedbackCard({
         </div>
         <p className="text-sm text-muted-foreground">
           {fresh.length
-            ? `${fresh.length === 1 ? 'One comment waits' : `${fresh.length} comments wait`} for an answer on ${pr}. Choose what the agent addresses; the rest are ignored.`
+            ? `${fresh.length === 1 ? 'One comment waits' : `${fresh.length} comments wait`} for an answer on ${pr}. Ignore one to keep it out of every follow-up until someone comments on it again.`
             : `No new comment waits for an answer on ${pr}.`}
           {feedback.readAt ? ` Read from GitHub ${relativeLabel(feedback.readAt, now)}.` : ''}
         </p>
@@ -182,7 +200,7 @@ export function ReviewFeedbackCard({
           aria-expanded={showIgnored}
           className="self-start text-sm font-medium text-link hover:underline"
         >
-          {showIgnored ? 'Hide' : 'Show'} {earlier.length} ignored in an earlier round
+          {showIgnored ? 'Hide' : 'Show'} {earlier.length} ignored
         </button>
       ) : null}
       {error ? (

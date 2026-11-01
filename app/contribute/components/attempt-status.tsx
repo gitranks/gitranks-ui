@@ -1,17 +1,21 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { AutosubmitCountdown, StopAutopilotButton } from './follow-up-buttons';
+import { AutosubmitCountdown, RetryCheckButton, StopAutopilotButton } from './follow-up-buttons';
 import { FollowUpStepper } from './follow-up-stepper';
 import { HEADING, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
 import { LiveSubmit, SubmitStepsSettled, TryAgainButton } from './submit-stepper';
 import {
   ATTEMPT_STATES,
+  checkLimitOf,
   detailText,
   END_REASONS,
+  endReasonTextOf,
   githubUrlOf,
   labelOf,
+  limitNoteOf,
+  noGoReasonOf,
   PR_CHECKS,
   PR_STATES,
   REVIEW_DECISIONS,
@@ -407,30 +411,43 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
         </Box>
       );
     }
-    case 'STOPPED':
+    case 'STOPPED': {
+      const limit = checkLimitOf(attempt);
+      const ranOut = !!limit && !limit.decided;
       return (
         <Box state="STOPPED" tone="muted">
-          <Title>Stopped</Title>
+          <Title>{ranOut ? 'Stopped while checking the issue' : 'Stopped'}</Title>
           <Text>
-            <span data-end-reason={attempt.endReason ?? ''}>
-              {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it stopped is not available yet.'}
+            <span data-end-reason={attempt.endReason ?? ''} data-check-limit={limit ? limit.limit : undefined}>
+              {endReasonTextOf(attempt) ?? 'Why it stopped is not available yet.'}
             </span>
             {attempt.endDetail ? (
               <>
                 {' '}
-                {attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}
-                {detailText(attempt.endDetail)}
+                {ranOut ? '' : attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}
+                {detailText(noGoReasonOf(attempt.endDetail))}
               </>
             ) : null}{' '}
             {usd(attempt.costUsd)} was spent.
-            {attempt.endReason === 'SUBMIT_FAILED' ? '' : ' The issue went back to the pool.'}
+            {attempt.endReason === 'SUBMIT_FAILED'
+              ? ''
+              : ranOut
+                ? ' Nothing was decided about the issue; it went back to the pool.'
+                : ' The issue went back to the pool.'}
           </Text>
+          {limit?.decided ? (
+            <span data-limit-note className="text-xs text-muted-foreground">
+              {limitNoteOf(limit)}
+            </span>
+          ) : null}
+          {'retryable' in attempt && attempt.retryable ? <RetryCheckButton attemptId={attempt.attemptId} /> : null}
           {attempt.endReason === 'SUBMIT_FAILED' && attempt.submit && failedAtStep(attempt.submit) ? (
             <SubmitStepsSettled state="STOPPED" submit={attempt.submit} />
           ) : null}
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
       );
+    }
     case 'DISCARDED':
       return (
         <Box state="DISCARDED" tone="muted">

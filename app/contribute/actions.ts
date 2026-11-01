@@ -32,6 +32,7 @@ import {
   RemoveLlmKeyDocument,
   ResolveContributeStackDocument,
   ResumeContributingDocument,
+  RetryAttemptDocument,
   RevokeGithubGrantDocument,
   RevokeMcpTokenDocument,
   SendBackToAgentDocument,
@@ -312,6 +313,11 @@ export async function readAttemptLive(
     result = await bare();
   }
   return result.ok ? { ok: true, data: { attempt: result.data, readAt: new Date().toISOString(), clock } } : result;
+}
+
+/** Tries again, once, an attempt whose check ran out of budget or time: queued, its check on twice the budget. */
+export async function retryAttempt(id: string): Promise<ContributeActionResult<ContributeAttempt>> {
+  return run(RetryAttemptDocument, { id: String(id) }, (data) => data.retryAttempt);
 }
 
 /** Discards an attempt in review (or queued): its issue goes back to the pool. */

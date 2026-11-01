@@ -13,8 +13,9 @@ import {
   ATTEMPT_STATES,
   agentLabelOf,
   attemptTitleOf,
+  checkLimitOf,
   costOrAgentOf,
-  END_REASONS,
+  endReasonTextOf,
   githubUrlOf,
   IN_PROGRESS_STATES,
   isOwnAgent,
@@ -492,7 +493,11 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
     ['Became pull requests', count(({ state }) => PR_STATES_OF_ATTEMPT.includes(state))],
     ['Waiting for your review', count(({ state }) => state === 'REVIEW')],
     ['In progress', count(({ state }) => IN_PROGRESS_STATES.includes(state))],
-    ['Stopped at the go/no-go check', count(({ state, endReason }) => state === 'STOPPED' && endReason === 'NO_GO')],
+    [
+      'Stopped at the go/no-go check',
+      count((attempt) => attempt.state === 'STOPPED' && attempt.endReason === 'NO_GO' && !ranOutOf(attempt)),
+    ],
+    ['Ran out while checking the issue', count((attempt) => attempt.state === 'STOPPED' && ranOutOf(attempt))],
     ['Stopped for another reason', count(({ state, endReason }) => state === 'STOPPED' && endReason !== 'NO_GO')],
     ['Discarded', count(({ state }) => state === 'DISCARDED')],
     ['Follow-ups pushed', count(({ state }) => state === 'DONE')],
@@ -525,8 +530,7 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
               <Link href={attemptHref(attempt.attemptId)} prefetch={false} className="font-mono text-foreground/80">
                 {repoOf(attempt)} #{attempt.number}
               </Link>{' '}
-              · {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Stopped.'} ·{' '}
-              {costOrAgentOf(attempt, usd)}
+              · {endReasonTextOf(attempt) ?? 'Stopped.'} · {costOrAgentOf(attempt, usd)}
             </li>
           ))}
         </ul>
@@ -539,6 +543,9 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
     </section>
   );
 }
+
+/** A no-go of ours: the check reached its limit with no verdict. */
+const ranOutOf = (attempt: ContributeAttempt): boolean => checkLimitOf(attempt)?.decided === false;
 
 /**
  * My contributions: the totals, what needs the user, what is in progress, the pull requests, and how attempts ended.

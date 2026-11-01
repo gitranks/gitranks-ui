@@ -555,6 +555,53 @@ describe('the review screen', () => {
     },
   );
 
+  it('a no-go the agent wrote at the check limit reads like any no-go, with the note', () => {
+    const reason = 'The renderer needs a GPU the sandbox lacks. A person with one would have to reproduce it.';
+    const decided = detail({
+      ...stopped('NO_GO', `${reason} Decided at the check's budget limit.`),
+      checkLimit: { limit: 'budget', decided: true },
+    });
+    const plain = text(review(decided));
+    expect(plain).toContain(END_REASONS.NO_GO);
+    expect(plain).toContain(`Its reason: ${reason}`);
+    expect(plain).not.toContain(`${reason} Decided at`);
+    expect(plain).toContain("Decided at the check's budget limit, when the agent was told to wrap up.");
+    expect(plain).not.toContain('Retry with a bigger check budget');
+    // Without the field (an older API, a list): read from the detail alike.
+    expect(text(review(stopped('NO_GO', `${reason} Decided at the check's time limit.`)))).toContain(
+      "Decided at the check's time limit",
+    );
+  });
+
+  it('no verdict by the limit: says it ran out, never a no-go, and offers one retry on a bigger budget', () => {
+    const detailText =
+      'No verdict: it was on "bash: cargo build" when the check\'s $0.50 budget ran out, after 19 min.';
+    const ranOut = detail({
+      ...stopped('NO_GO', detailText),
+      checkLimit: { limit: 'budget', decided: false },
+      retryable: true,
+    });
+    const html = review(ranOut);
+    const plain = text(html);
+    expect(plain).toContain('Stopped while checking the issue');
+    expect(plain).toContain('Stopped: ran out of budget while checking the issue.');
+    expect(plain).toContain(detailText);
+    expect(plain).not.toContain('Detail: No verdict');
+    expect(plain).not.toContain('decided not to go ahead');
+    expect(plain).toContain('Nothing was decided about the issue');
+    expect(html).toContain('data-check-limit="budget"');
+    expect(plain).toContain('Retry with a bigger check budget');
+
+    // Tried again already: the words stay, the button goes.
+    expect(text(review(detail({ ...ranOut, retryable: false })))).not.toContain('Retry with a bigger check budget');
+    // The time limit says time; without the field it is read from the detail.
+    const late = text(review(stopped('NO_GO', "No verdict before the check's 15-minute limit ran out, after 16 min.")));
+    expect(late).toContain('Stopped: ran out of time while checking the issue.');
+    expect(late).not.toContain('Retry with a bigger check budget');
+    // A budget stop in the work is the attempt's limit, as before.
+    expect(text(review(stopped('BUDGET')))).toContain(END_REASONS.BUDGET);
+  });
+
   it('says a stop with no reason yet is not available yet', () => {
     expect(text(review(detail({ state: 'STOPPED' })))).toContain('Why it stopped is not available yet.');
   });
@@ -614,6 +661,12 @@ describe('my contributions', () => {
     }),
     attempt({ attemptId: 'A_4', state: 'STOPPED', endReason: 'NO_GO', costUsd: 0.38 }),
     attempt({ attemptId: 'A_5', state: 'MERGED' }),
+    attempt({
+      attemptId: 'A_6',
+      state: 'STOPPED',
+      endReason: 'NO_GO',
+      endDetail: "No verdict before the check's $1.00 budget ran out, after 19 min.",
+    }),
   ];
   const render = (
     data: Parameters<typeof ContributionsScreen>[0]['contributions'],
@@ -665,10 +718,13 @@ describe('my contributions', () => {
   it('counts how the last attempts ended, with the reasons of the stops', () => {
     const plain = text(render(contributions, list));
 
-    expect(plain).toContain('Your last 5 attempts');
+    expect(plain).toContain('Your last 6 attempts');
     expect(plain).toContain('Became pull requests 1');
     expect(plain).toContain('Stopped at the go/no-go check 1');
+    expect(plain).toContain('Ran out while checking the issue 1');
+    expect(plain).toContain('Stopped for another reason 0');
     expect(plain).toContain(END_REASONS.NO_GO);
+    expect(plain).toContain('Stopped: ran out of budget while checking the issue.');
   });
 
   it('says what is not available yet, and when there are no pull requests yet', () => {

@@ -76,33 +76,29 @@ const mine = (
   );
 
 describe('a pull request that needs the user, on My contributions', () => {
-  it('lists what happened on GitHub in plain words, with when, linking the pull request', () => {
+  it('shows one label of what waits, linking the pull request and its attempt page, and no follow-up controls', () => {
     const html = mine({ needsYou: needsYou(), followUps: followUps() });
     const plain = text(html);
 
     expect(html).toContain('data-pr-needs-you="1419"');
-    expect(plain).toContain('A reviewer asked for changes · 3 hours ago');
-    expect(plain).toContain('Someone else commented on it · 2 hours ago');
-    expect(plain).toContain('A check started failing: lint, test (ubuntu) · 1 hour ago');
+    expect(html).toContain('data-pr-label="Changes requested"');
     expect(html).toContain('href="https://github.com/kelp-db/kelp/pull/1419"');
     expect(plain).toContain('PR #1419 on GitHub');
     expect(html).toContain('href="/contribute/attempts/A_8"');
     expect(plain).toMatch(/Needs you · 2/);
+    // The owner, 2026-11-01: the follow-up management lives on the attempt page only.
+    expect(plain).not.toContain('A reviewer asked for changes');
+    expect(html).not.toContain('data-mark-handled');
+    expect(html).not.toContain('data-start-follow-up');
+    expect(html).not.toContain('data-follow-ups');
   });
 
-  it('offers Mark as handled under what happened, and names a CLA to sign', () => {
-    const html = mine({ needsYou: needsYou(), followUps: followUps() });
-    expect(html).toContain('data-mark-handled="PR_8"');
-    expect(text(html)).toContain('Mark as handled');
-
-    const cla = mine({
-      needsYou: { since: NOW.toISOString(), signals: [{ kind: 'CLA', at: NOW.toISOString(), detail: 'license/cla' }] },
-      followUps: followUps(),
-    });
-    expect(text(cla)).toContain('Sign the contributor license agreement (CLA): license/cla');
-    expect(cla).toContain('aria-label="Mark pull request #1419 as handled"');
-    // Only the user signs a CLA: no follow-up is offered for it alone.
-    expect(cla).not.toContain('data-start-follow-up');
+  it('names what waits in a few words: comments, a check, a CLA', () => {
+    const one = (kind: 'COMMENT' | 'CHECK_FAILED' | 'CLA') =>
+      mine({ needsYou: { since: NOW.toISOString(), signals: [{ kind, at: NOW.toISOString(), detail: null }] } });
+    expect(one('COMMENT')).toContain('data-pr-label="Comments to address"');
+    expect(one('CHECK_FAILED')).toContain('data-pr-label="A check failed"');
+    expect(one('CLA')).toContain('data-pr-label="A CLA to sign"');
   });
 
   it('says why Mark as handled did not go through', () => {
@@ -114,37 +110,18 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(handledErrorMessage('INVALID', 'prId must match')).not.toContain('changed just now');
   });
 
-  it('offers a follow-up with the rounds used and left, within the limit for one attempt', () => {
-    const first = mine({ needsYou: needsYou(), followUps: followUps() });
-    expect(first).toContain('data-start-follow-up="PR_8"');
-    expect(first).toContain('data-rounds-left="2"');
-    expect(text(first)).toContain('Follow-up round 1 of 2 · 2 left');
-    expect(text(first)).toContain('within your $5 limit for one attempt');
-    expect(text(first)).toContain('Start a follow-up');
+  it('lists a follow-up ready once, as its Review row, and one under way on the pull request', () => {
+    const current = followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' });
+    // A follow-up ready is its own Review row; the pull request is not listed twice.
+    const ready = mine({ needsYou: needsYou(), followUps: current });
+    expect(ready).not.toContain('data-pr-needs-you');
+    expect(ready).toContain('href="/contribute/attempts/A_F1"');
 
-    const second = text(mine({ needsYou: needsYou(), followUps: followUps({ used: 1, left: 1 }) }));
-    expect(second).toContain('Follow-up round 2 of 2 · 1 left');
-  });
-
-  it('hands the pull request to the user after the last round, with no follow-up to start', () => {
-    const html = mine({
-      needsYou: needsYou(),
-      followUps: followUps({ used: 2, left: 0, handedOff: true, handedOffAt: '2026-10-27T10:00:00.000Z' }),
-    });
-
-    expect(html).toContain('data-follow-ups="handed-off"');
-    expect(text(html)).toContain('All 2 follow-up rounds are used, so this pull request is handed to you');
-    expect(text(html)).toContain('Handed to you on Oct 27.');
-    expect(html).not.toContain('data-start-follow-up');
-  });
-
-  it('links the follow-up under way instead of starting another', () => {
-    const html = mine({ needsYou: needsYou(), followUps: followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' }) });
-
-    expect(html).toContain('data-follow-ups="under-way"');
-    expect(text(html)).toContain('A follow-up is under way: round 1 of 2.');
-    expect(html).toContain('href="/contribute/attempts/A_F1"');
-    expect(html).not.toContain('data-start-follow-up');
+    const running = mine({ needsYou: needsYou(), followUps: current }, {}, [
+      attempt({ attemptId: 'A_F1', kind: 'FOLLOW_UP', state: 'RUNNING' }),
+    ]);
+    expect(running).toContain('data-pr-label="Follow-up under way"');
+    expect(running).toContain('href="/contribute/attempts/A_8"');
   });
 
   it('leaves out a pull request with nothing new, and one that is not open', () => {
@@ -161,68 +138,24 @@ describe('a pull request that needs the user, on My contributions', () => {
       />,
     );
     expect(merged).not.toContain('data-pr-needs-you');
-  });
-
-  it('says follow-ups are not available yet while the API does not answer them', () => {
-    const html = mine({ needsYou: needsYou() });
-
-    expect(html).toContain('data-follow-ups="unavailable"');
-    expect(text(html)).toContain('Follow-ups are not available yet.');
-    expect(html).not.toContain('data-start-follow-up');
-    // And without the newer fields at all, the page reads as it did.
+    // Without the newer fields at all, the page reads as it did.
     expect(mine({})).not.toContain('data-pr-needs-you');
   });
 
-  it('lists the replies waiting for approval beside their follow-up, even with nothing new on GitHub', () => {
+  it('counts the replies waiting for approval, even with nothing new on GitHub, and keeps their text off the list', () => {
     const html = mine({ needsYou: null, followUps: followUps({ used: 1, left: 1 }) }, { PR_8: [replyDraft()] });
 
     expect(html).toContain('data-pr-needs-you="1419"');
-    expect(html).toContain('data-reply-draft="D_1"');
-    expect(html).toContain('data-reply-follow-up="REVIEW"');
-    expect(text(html)).toContain('Drafted by a follow-up : waiting for your review.');
+    expect(html).toContain('data-pr-label="1 reply to approve"');
+    expect(html).not.toContain('data-reply-draft');
   });
 
-  it('keeps an approved reply in its row while it posts', () => {
-    const html = mine(
+  it('leaves out a pull request whose replies are all approved: nothing waits there any more', () => {
+    const posting = mine(
       { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
-      {
-        PR_8: [replyDraft({ state: 'POSTING', updatedAt: '2026-10-28T11:59:00.000Z' })],
-      },
+      { PR_8: [replyDraft({ state: 'POSTING', updatedAt: '2026-10-28T11:59:00.000Z' })] },
     );
-
-    expect(html).toContain('data-pr-needs-you="1419"');
-    expect(html).toContain('data-reply-state="POSTING"');
-    expect(text(html)).toContain('Posting it on GitHub.');
-    expect(html).not.toContain('data-approve-reply');
-  });
-
-  it('keeps a reply posted in the last day in its row, with its link, and lets an older one go', () => {
-    const posted = (postedAt: string) =>
-      replyDraft({
-        state: 'POSTED',
-        posted: true,
-        postedAt,
-        url: 'https://github.com/kelp-db/kelp/pull/1419#discussion_r9',
-      });
-
-    const recent = mine(
-      { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
-      {
-        PR_8: [posted('2026-10-28T09:00:00.000Z')],
-      },
-    );
-    expect(recent).toContain('data-reply-state="POSTED"');
-    expect(recent).toContain('href="https://github.com/kelp-db/kelp/pull/1419#discussion_r9"');
-    expect(text(recent)).toContain('3 hours ago');
-
-    const old = mine(
-      { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
-      {
-        PR_8: [posted('2026-10-26T09:00:00.000Z')],
-      },
-    );
-    expect(old).not.toContain('data-pr-needs-you');
-    expect(old).not.toContain('data-reply-draft');
+    expect(posting).not.toContain('data-pr-needs-you');
   });
 
   it('says when autopilot submits an attempt waiting for it, with the link to stop it', () => {
@@ -714,7 +647,7 @@ describe('values the UI does not know yet', () => {
       },
       followUps: followUps(),
     });
-    expect(text(html)).toContain('Something changed on it');
+    expect(html).toContain('data-pr-label="Something changed on it"');
 
     const draft = renderToStaticMarkup(
       <ul>
@@ -763,7 +696,7 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     expect(plain).toContain('People · 1');
     // Ignored in an earlier round: listed apart, not counted.
     expect(html).not.toContain('data-feedback-thread="C_4"');
-    expect(plain).toContain('Show 1 ignored in an earlier round');
+    expect(plain).toContain('Show 1 ignored');
     expect(plain).toContain('Address 3 comments');
     expect(html.match(/aria-pressed="true"/g)).toHaveLength(3);
     // The card starts the round, so the plain button is not offered beside it.
@@ -852,10 +785,13 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     expect(plain).toContain('then resolve the thread');
     expect(plain).toContain('the thread stays open for its reviewer');
     expect(plain).toContain('Push fixes and reply');
-    expect(plain).toContain('Discard');
+    expect(plain).toContain('Discard round');
     expect(plain).toContain(
       'Approving pushes the new commits to pull request #1419, posts 3 replies, resolves 2 threads.',
     );
+    // The owner, 2026-11-01: each comment may be discarded on its own, for good, until someone comments again.
+    expect(plain.match(/Discard comment/g)?.length).toBe(4);
+    expect(html).toContain('aria-label="Discard the comment of maintainer-mo on src/router/normalize-path.ts:3');
     // The diff sits in the card, before the approval; the old one-by-one approval is gone.
     expect(html.indexOf('data-file="src/router/normalize-path.ts"')).toBeGreaterThan(
       html.indexOf('data-panel="follow-up-result"'),
@@ -990,7 +926,7 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     );
     const plain = text(prOpen({ reviewFeedback: { readAt: null, threads: many } }));
     expect(plain).toContain('Address 22 comments');
-    expect(plain).toContain('A round takes 20 comments at most. Set 2 to Ignore for now');
+    expect(plain).toContain('A round takes 20 comments at most. Set 2 to Ignore: they stay out of every round');
   });
 
   it('marks the Checks step as our checks came out, and says what an older stop really was', () => {

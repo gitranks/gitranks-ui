@@ -25,6 +25,7 @@ import {
   DiscardAttemptDocument,
   FixContributePullRequestDocument,
   IgnoreContributeRepoDocument,
+  IgnoreReviewThreadsDocument,
   MarkNeedsYouHandledDocument,
   NoteProviderInterestDocument,
   PauseContributingDocument,
@@ -440,6 +441,24 @@ export async function fixPullRequest(input: {
 /** Clears what the pull request's last reads found: the user took care of it. Something new raises it again. */
 export async function markNeedsYouHandled(prId: string): Promise<ContributeActionResult<ContributeAttempt>> {
   return run(MarkNeedsYouHandledDocument, { prId: String(prId) }, (data) => data.markNeedsYouHandled);
+}
+
+/**
+ * Ignores review comments on the user's pull request (`ignore: false` brings them back): never addressed or followed up
+ * again until someone comments on them after; a follow-up waiting for the user drops its reply to them.
+ */
+export async function ignoreReviewThreads(
+  prId: string,
+  commentIds: string[],
+  ignore = true,
+): Promise<ContributeActionResult<string[]>> {
+  const ids = (Array.isArray(commentIds) ? commentIds : []).map(String).filter(Boolean);
+  if (!ids.length) return { ok: false, error: 'INVALID', message: 'Choose a comment first.' };
+  return run(
+    IgnoreReviewThreadsDocument,
+    { prId: String(prId), commentIds: ids, ignore: ignore !== false },
+    (data) => data.ignoreReviewThreads,
+  );
 }
 
 /** Approves a drafted reply: it is posted publicly on GitHub, in the user's name. */

@@ -1,8 +1,11 @@
 import type {
+  ContributeAttempt,
   ContributeAttemptDetail,
   ContributeCheckStatus,
   ContributeFeedbackThread,
   ContributeFollowUpRound,
+  ContributeFollowUps,
+  ContributeNeedsYou,
   ContributeReplyDraft,
   ContributeThreadOutcome,
 } from './contribute.types';
@@ -134,4 +137,29 @@ export function threadAfterOf(draft: ContributeReplyDraft): string | null {
   if (draft.resolveState === 'RESOLVING') return 'Replied, resolving the thread…';
   if (draft.resolveState === 'FAILED') return draft.lastError?.note || 'Replied; the thread could not be resolved.';
   return draft.comment ? 'Replied, left open for its reviewer' : 'Posted';
+}
+
+/**
+ * An open pull request's row on My contributions (the owner, 2026-11-01: the follow-ups "take too much space" there):
+ * one short label of what waits on its attempt page, where every follow-up control lives. Null: nothing waits.
+ */
+export function prNeedsYouLabelOf(
+  pr: { needsYou?: ContributeNeedsYou | null; followUps?: ContributeFollowUps | null },
+  drafts: readonly Pick<ContributeReplyDraft, 'state'>[],
+  current: Pick<ContributeAttempt, 'state'> | undefined,
+): string | null {
+  if (pr.followUps?.currentAttemptId) {
+    return current?.state === 'REVIEW' || current?.state === 'PENDING_AUTOSUBMIT'
+      ? 'Follow-up ready'
+      : 'Follow-up under way';
+  }
+  const waiting = drafts.filter(({ state }) => state === 'DRAFT' || state === 'FAILED').length;
+  if (waiting) return `${waiting} ${waiting === 1 ? 'reply' : 'replies'} to approve`;
+  const kinds = new Set((pr.needsYou?.signals ?? []).map(({ kind }) => kind));
+  if (kinds.has('CHANGES_REQUESTED')) return 'Changes requested';
+  if (kinds.has('COMMENT')) return 'Comments to address';
+  if (kinds.has('CHECK_FAILED')) return 'A check failed';
+  if (kinds.has('CLA')) return 'A CLA to sign';
+  // A kind this UI does not know yet still says something.
+  return kinds.size ? 'Something changed on it' : null;
 }

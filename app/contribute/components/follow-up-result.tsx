@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
-import { approveFollowUp, discardAttempt, setResolveHumanThreads } from '../actions';
+import { approveFollowUp, discardAttempt, ignoreReviewThreads, setResolveHumanThreads } from '../actions';
 import { ApproveReplyButton } from './approve-reply-button';
 import { ConfirmDialog } from './confirm-dialog';
 import { HEADING, Pill } from './primitives';
@@ -79,6 +79,7 @@ function ThreadResult({
   readOnly,
   resolveHumans,
   postLater = null,
+  onDiscard = null,
 }: {
   draft: ContributeReplyDraft;
   edit: Edit;
@@ -87,6 +88,8 @@ function ThreadResult({
   resolveHumans: boolean;
   /** After the push: a reply that did not go with it may still be posted, one by one. */
   postLater?: { prNumber: number | null; version: string } | null;
+  /** In the review: leave this comment out for good (its reply too), until someone comments on it again. */
+  onDiscard?: (() => void) | null;
 }) {
   const outcome = draft.outcome ? OUTCOMES[draft.outcome] : null;
   const where = draft.comment ? whereOfThread(draft.comment) : '';
@@ -113,6 +116,18 @@ function ThreadResult({
           {draft.comment ? draft.comment.author || 'A reviewer' : 'Comment on the pull request'}
         </span>
         {where ? <span className="font-mono break-all">{where}</span> : null}
+        {onDiscard ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={onDiscard}
+            aria-label={`Discard the comment of ${who}: no reply, and left out until someone comments on it again`}
+            className="ml-auto min-h-9"
+          >
+            Discard comment
+          </Button>
+        ) : null}
       </div>
       {draft.comment ? (
         <blockquote className="border-l-2 pl-3 text-sm break-words whitespace-pre-line text-muted-foreground">
@@ -227,14 +242,13 @@ export function FollowUpResult({
   resolveHumans: boolean | undefined;
 }) {
   const router = useRouter();
-  const drafts = attempt.replyDrafts ?? [];
   const inReview = attempt.state === 'REVIEW';
   const hasCommits = Boolean(attempt.patch?.trim());
   const blocked = hasCommits && attempt.checkStatus?.status === 'BLOCKED';
   // Approved before (a push that came back): the user's own choices; else ours.
   const [edits, setEdits] = useState<Record<string, Edit>>(() =>
     Object.fromEntries(
-      drafts.map((draft) => [
+      (attempt.replyDrafts ?? []).map((draft) => [
         draft.draftId,
         { text: draft.text, send: attempt.approvedAt && draft.send !== undefined ? draft.send : sendsByDefault(draft) },
       ]),
@@ -248,9 +262,13 @@ export function FollowUpResult({
   const [pending, startTransition] = useTransition();
   const [saving, startSaving] = useTransition();
   const [acting, setActing] = useState<'push' | 'discard' | null>(null);
+  // Comments discarded one by one: gone from the card at once (back on a failure); the API drops their replies.
+  const [dropped, setDropped] = useState<Set<string>>(() => new Set());
+  const [, startDropping] = useTransition();
   const busy = pending || done !== null;
   const pr = prNumber ? `pull request #${prNumber}` : 'the pull request';
 
+  const drafts = (attempt.replyDrafts ?? []).filter((draft) => !dropped.has(draft.draftId));
   const editOf = (draft: ContributeReplyDraft) => edits[draft.draftId] ?? { text: draft.text, send: false };
   const sent = drafts.filter((draft) => editable(draft) && editOf(draft).send && editOf(draft).text.trim());
   const resolving = sent.filter((draft) => resolvesOf(draft, humans)).length;
@@ -293,6 +311,22 @@ export function FollowUpResult({
       router.refresh();
     });
 
+  const discardComment = (draft: ContributeReplyDraft) => {
+    const commentId = draft.comment?.commentId;
+    if (!draft.prId || !commentId) return;
+    setError(null);
+    setDropped((current) => new Set([...current, draft.draftId]));
+    startDropping(async () => {
+      const result = await ignoreReviewThreads(draft.prId, [commentId]);
+      if (!result.ok) {
+        setDropped((current) => new Set([...current].filter((id) => id !== draft.draftId)));
+        setError(attemptActionErrorMessage(result.error, result.message));
+        return;
+      }
+      router.refresh();
+    });
+  };
+
   const toggleHumans = (on: boolean) => {
     setHumans(on);
     setSettingError(null);
@@ -324,6 +358,9 @@ export function FollowUpResult({
                 attempt.state === 'DONE'
                   ? { prNumber, version: [draft.state, draft.updatedAt, attempt.updatedAt].join('|') }
                   : null
+              }
+              onDiscard={
+                inReview && draft.prId && draft.comment && editable(draft) && !busy ? () => discardComment(draft) : null
               }
             />
           ))}
@@ -428,14 +465,14 @@ export function FollowUpResult({
             <ConfirmDialog
               trigger={
                 <Button type="button" variant="destructive-outline" disabled={busy} className="min-h-11">
-                  Discard
+                  Discard round
                 </Button>
               }
               open={confirm === 'discard'}
               onOpenChange={(open) => setConfirm(open ? 'discard' : null)}
-              title="Discard this follow-up?"
-              description="Nothing is pushed and no reply is posted. What it cost stays spent; the comments stay waiting on the pull request."
-              action="Discard"
+              title="Discard this round?"
+              description="Nothing is pushed and no reply is posted. What it cost stays spent; the comments you did not discard stay waiting on the pull request."
+              action="Discard round"
               pendingAction="Discarding…"
               pending={pending}
               error={confirm === 'discard' ? error : null}

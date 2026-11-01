@@ -27,6 +27,7 @@ const {
   StartFollowUpDocument,
   StartFollowUpOnDocument,
   FixContributePullRequestDocument,
+  IgnoreReviewThreadsDocument,
   MarkNeedsYouHandledDocument,
   VetoAutopilotDocument,
 } = await import('@/lib/contribute/contribute.documents');
@@ -58,6 +59,7 @@ const CALLS: Record<string, unknown[]> = {
   vetoAutopilot: ['A_1'],
   fixPullRequest: [{ attemptId: 'A_1', kind: 'TITLE', title: 'fix: x', githubLogin: 'mallory' }],
   markNeedsYouHandled: ['PR_1'],
+  ignoreReviewThreads: ['PR_1', ['C_1']],
   approveReply: ['D_1'],
   createMcpToken: ['laptop'],
   revokeMcpToken: ['T_1'],
@@ -368,6 +370,26 @@ describe('the follow-up actions', () => {
       expect(graphqlDirect).toHaveBeenCalledWith(document, variables, { source: 'client', githubLogin: 'octocat' });
     },
   );
+
+  it('ignores review comments, or brings them back, and refuses an empty choice', async () => {
+    graphqlDirect.mockResolvedValue({ ignoreReviewThreads: ['C_1'] });
+    expect(await actions.ignoreReviewThreads('PR_1', ['C_1'])).toEqual({ ok: true, data: ['C_1'] });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      IgnoreReviewThreadsDocument,
+      { prId: 'PR_1', commentIds: ['C_1'], ignore: true },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    graphqlDirect.mockResolvedValue({ ignoreReviewThreads: [] });
+    await actions.ignoreReviewThreads('PR_1', ['C_1'], false);
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      IgnoreReviewThreadsDocument,
+      { prId: 'PR_1', commentIds: ['C_1'], ignore: false },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    graphqlDirect.mockReset();
+    expect(await actions.ignoreReviewThreads('PR_1', [])).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
 
   it('passes on a refusal in its own words, for the page to put plainly', async () => {
     graphqlDirect.mockRejectedValue(

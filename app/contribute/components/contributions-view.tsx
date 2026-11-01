@@ -4,9 +4,8 @@ import type { ReactNode } from 'react';
 
 import { LiveRunPhase } from './agent-runs';
 import { ContributeNotices } from './contribute-notices';
-import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { HEADING, PageTitle, Pill } from './primitives';
-import { type DraftFollowUp, ReplyDraftItem } from './reply-drafts';
+import type { DraftFollowUp } from './reply-drafts';
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,7 +41,7 @@ import type {
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
-import { followUpCanHelp } from '@/lib/contribute/follow-up-format';
+import { prNeedsYouLabelOf } from '@/lib/contribute/follow-up-flow';
 import { AUTOPILOT_UNLOCK_AT, dayLabel, relativeLabel, timeLeftLabel, usd } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
@@ -183,25 +182,30 @@ function AttemptRow({ attempt, action, text }: { attempt: ContributeAttempt; act
   );
 }
 
-/** An open pull request that needs the user: what happened on it, its follow-up rounds, and its replies. */
+/**
+ * An open pull request that needs the user, in one line: its repo and title, and one label of what waits (a follow-up
+ * ready, replies to approve, comments to address), linking to its attempt page, where the follow-up controls are.
+ */
 function PrNeedsYouRow({
   contribution,
   drafts,
   followUps,
-  attemptCapUsd,
-  now,
 }: {
   contribution: ContributeContribution;
   drafts: ContributeReplyDraft[];
   followUps: Map<string, DraftFollowUp>;
-  attemptCapUsd?: number;
-  now?: Date;
 }) {
   const { pullRequest } = contribution;
   const url = githubUrlOf(pullRequest.url);
+  const current = contribution.followUps?.currentAttemptId;
+  const label = prNeedsYouLabelOf(contribution, drafts, current ? followUps.get(current) : undefined);
+  const href = attemptHref(contribution.attemptId);
   return (
-    <li data-pr-needs-you={pullRequest.number} className="flex flex-col gap-3 border-b px-5 py-4 last:border-b-0">
-      <div className="flex min-w-0 flex-col gap-0.5">
+    <li
+      data-pr-needs-you={pullRequest.number}
+      className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 last:border-b-0"
+    >
+      <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-0.5">
         <span className="font-mono text-xs text-muted-foreground">
           {contribution.nameWithOwner || 'a repo'} ·{' '}
           {url ? (
@@ -212,32 +216,22 @@ function PrNeedsYouRow({
             `PR #${pullRequest.number}`
           )}
         </span>
-        <Link
-          href={attemptHref(contribution.attemptId)}
-          prefetch={false}
-          className="font-medium text-foreground hover:underline"
-        >
+        <span className="font-medium">
           {contribution.title?.trim() || `Fix for issue #${contribution.issueNumber}`}
-        </Link>
+        </span>
       </div>
-      <PrSignals needsYou={contribution.needsYou} now={now} prId={pullRequest.prId} prNumber={pullRequest.number} />
-      {followUpCanHelp(contribution.needsYou?.signals) ? (
-        <FollowUpRounds followUps={contribution.followUps} pullRequest={pullRequest} attemptCapUsd={attemptCapUsd} />
-      ) : null}
-      {drafts.length ? (
-        <ul className="-mx-5 border-t">
-          {drafts.map((draft) => (
-            <ReplyDraftItem
-              key={draft.draftId}
-              draft={draft}
-              prNumber={pullRequest.number}
-              followUp={followUps.get(draft.attemptId)}
-              freshness={[contribution.followUps?.used ?? '', contribution.followUps?.currentAttemptId ?? ''].join('|')}
-              now={now}
-            />
-          ))}
-        </ul>
-      ) : null}
+      <div className="flex flex-none items-center gap-3">
+        {label ? (
+          <span data-pr-label={label}>
+            <Pill tone="amber">{label}</Pill>
+          </span>
+        ) : null}
+        <Button asChild variant="outline" className="min-h-10 px-4 font-semibold">
+          <Link href={href} prefetch={false} aria-label={`Open the follow-ups of pull request #${pullRequest.number}`}>
+            Open
+          </Link>
+        </Button>
+      </div>
     </li>
   );
 }
@@ -247,14 +241,12 @@ function NeedsYou({
   prs,
   drafts,
   followUps,
-  attemptCapUsd,
   now,
 }: {
   attempts: ContributeAttempt[];
   prs: ContributeContribution[];
   drafts: DraftsByPr;
   followUps: Map<string, DraftFollowUp>;
-  attemptCapUsd?: number;
   now?: Date;
 }) {
   const count = attempts.length + prs.length;
@@ -297,8 +289,6 @@ function NeedsYou({
             contribution={contribution}
             drafts={shownDrafts(drafts[contribution.pullRequest.prId], now ?? new Date())}
             followUps={followUps}
-            attemptCapUsd={attemptCapUsd}
-            now={now}
           />
         ))}
       </ul>
@@ -570,14 +560,20 @@ export function ContributionsScreen({
 }) {
   const spend = view.contributor?.spend;
   const needsYou = (attempts ?? []).filter(({ state }) => state === 'REVIEW' || state === 'PENDING_AUTOSUBMIT');
-  const prsNeedingYou = (contributions?.items ?? []).filter(
-    ({ pullRequest, needsYou: signals }) =>
-      pullRequest.state === 'OPEN' &&
-      (!!signals?.signals.length || shownDrafts(drafts[pullRequest.prId], now ?? new Date()).length > 0),
-  );
   const followUps = new Map(
     (attempts ?? []).filter(({ kind }) => kind === 'FOLLOW_UP').map((attempt) => [attempt.attemptId, attempt]),
   );
+  // An open pull request with something waiting on its attempt page; a follow-up ready has its own Review row above.
+  const prsNeedingYou = (contributions?.items ?? []).filter((contribution) => {
+    if (contribution.pullRequest.state !== 'OPEN') return false;
+    const current = contribution.followUps?.currentAttemptId;
+    const label = prNeedsYouLabelOf(
+      contribution,
+      shownDrafts(drafts[contribution.pullRequest.prId], now ?? new Date()),
+      current ? followUps.get(current) : undefined,
+    );
+    return label !== null && label !== 'Follow-up ready';
+  });
   const inProgress = (attempts ?? []).filter(
     ({ state }) => IN_PROGRESS_STATES.includes(state) && state !== 'PENDING_AUTOSUBMIT',
   );
@@ -594,14 +590,7 @@ export function ContributionsScreen({
         }
       />
       <Totals view={view} contributions={contributions} />
-      <NeedsYou
-        attempts={needsYou}
-        prs={prsNeedingYou}
-        drafts={drafts}
-        followUps={followUps}
-        attemptCapUsd={view.contributor?.settings?.attemptCapUsd}
-        now={now}
-      />
+      <NeedsYou attempts={needsYou} prs={prsNeedingYou} drafts={drafts} followUps={followUps} now={now} />
       <InProgress attempts={inProgress} activity={activity} now={now} />
       <div className="flex flex-wrap items-start gap-5">
         <PullRequests contributions={contributions} now={now} />

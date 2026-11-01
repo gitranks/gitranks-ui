@@ -11,6 +11,7 @@ import type {
   ContributeAutopilot,
   ContributeAutopilotReviewReason,
   ContributeChanges,
+  ContributeCheckLimitView,
   ContributeCheckStatusView,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
@@ -339,7 +340,7 @@ export const ContributeAttemptSubmitClockDocument = doc<
 
 // The repo's PR conventions and the open PR's fixes: read on their own, so an API without them leaves the page as it was.
 const CONVENTIONS = `title { hard source types scopes requireScope pattern } titleExamples template { path aiAsks }
-  changelog { kind path required source } cla { check signUrl } dco generated notes`;
+  changelog { kind path required source } cla { check signUrl } dco generated notes titlePrefix templateByHuman agentMarker`;
 const PR_FIXES = 'prIssues { kind check message suggestion } prTitle prBody prFix { kind state note at }';
 
 export const ContributeAttemptConventionsDocument = doc<
@@ -368,6 +369,20 @@ export const ContributeAttemptDcoDocument = doc<
   { id: string }
 >(`query ContributeAttemptDco($id: ID!) {
   contributeAttempt(id: $id) { attemptId dcoRequired }
+}`);
+
+/** A no-go at the check's limit, and whether it can be tried again: read on its own, as the field above. */
+export const ContributeAttemptCheckStopDocument = doc<
+  {
+    contributeAttempt: {
+      attemptId: string;
+      checkLimit: ContributeCheckLimitView | null;
+      retryable: boolean;
+    } | null;
+  },
+  { id: string }
+>(`query ContributeAttemptCheckStop($id: ID!) {
+  contributeAttempt(id: $id) { attemptId checkLimit { limit decided } retryable }
 }`);
 
 /** What the stepper reads again while the attempt submits: its state, the submission with its clock, the PR. */
@@ -517,6 +532,10 @@ export const ApproveAttemptDocument = doc<
 >(`mutation ApproveAttempt($id: ID!, $title: String!, $body: String!, $dco: Boolean!) {
   approveAttempt(id: $id, title: $title, body: $body, dco: $dco) { ${ATTEMPT} }
 }`);
+
+export const RetryAttemptDocument = doc<{ retryAttempt: ContributeAttempt }, { id: string }>(
+  `mutation RetryAttempt($id: ID!) { retryAttempt(id: $id) { ${ATTEMPT} } }`,
+);
 
 export const DiscardAttemptDocument = doc<{ discardAttempt: ContributeAttempt }, { id: string }>(
   `mutation DiscardAttempt($id: ID!) { discardAttempt(id: $id) { ${ATTEMPT} } }`,

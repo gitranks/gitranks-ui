@@ -34,6 +34,7 @@ import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
 import { usd } from '@/lib/contribute/format';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
 import { parsePatch } from '@/lib/contribute/patch';
+import { withoutDraftMarks } from '@/lib/contribute/pr-conventions';
 import {
   attemptPath,
   NEXT_SESSION,
@@ -158,7 +159,7 @@ function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; n
           fix={first.prFix ?? null}
           title={first.prTitle ?? first.approval?.title ?? ''}
           body={editableBodyOf(first.prBody ?? first.approval?.body ?? first.result?.prBody)}
-          titleRule={first.conventions?.title ?? null}
+          conventions={first.conventions ?? null}
         />
       ) : null}
     </section>
@@ -317,10 +318,10 @@ function SessionDetails({
             issueNumber={attempt.number}
             repo={repo}
             defaultTitle={
-              attempt.approval?.title ||
-              attempt.result?.prTitle?.trim() ||
-              attempt.title?.trim() ||
-              `Fix #${attempt.number}`
+              // Each candidate without its WIP or draft marks: one that is nothing but a mark gives way.
+              [attempt.approval?.title, attempt.result?.prTitle, attempt.title]
+                .map((title) => withoutDraftMarks(title ?? ''))
+                .find(Boolean) ?? `Fix #${attempt.number}`
             }
             defaultBody={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
             login={view.contributor?.login ?? 'you'}

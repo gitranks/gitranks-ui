@@ -283,7 +283,7 @@ function NeedsYou({
               attempt.state === 'PENDING_AUTOSUBMIT'
                 ? attempt.autosubmitAt
                   ? `Autopilot submits it ${relativeLabel(attempt.autosubmitAt, now)}, unless you stop it.`
-                  : 'Autopilot submits it within the hour.'
+                  : 'Autopilot emails you first, then submits it an hour later unless you stop it.'
                 : attempt.submit?.lastError
                   ? attempt.submit.lastError.note
                   : `Ready ${relativeLabel(attempt.updatedAt, now)} · ${isOwnAgent(attempt) ? `made by ${costOrAgentOf(attempt, usd)}` : `cost ${usd(attempt.costUsd)}`} · waits seven days for you`

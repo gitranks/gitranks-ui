@@ -29,7 +29,9 @@ const {
   ContributeAttemptsInFollowUpsDocument,
   ContributeAttemptsInOwnAgentDocument,
   ContributeAttemptsInReviewAtDocument,
+  ContributeAttemptReviewReasonDocument,
   ContributeAutopilotDocument,
+  ContributeAutopilotNoticeDocument,
   ContributeImpactDocument,
   ContributeImpactReposDocument,
   ContributeRepliesWaitingDocument,
@@ -407,6 +409,33 @@ describe('the follow-up fields, read on their own', () => {
     const autopilot = (await loadContribute())?.contributor?.autopilot;
     expect(autopilot).toEqual({ unlocked: false, mergedCount: 1, closedUnmergedStreak: 0 });
     expect(autopilot && 'available' in autopilot).toBe(false);
+
+    // Where its emails go, read on its own: a known "none" is kept as null.
+    for (const noticeTo of ['m•••@gmail.com', null]) {
+      graphqlDirect.mockImplementation((document) =>
+        document === ContributeOverviewDocument
+          ? Promise.resolve(overview)
+          : document === ContributeAutopilotNoticeDocument
+            ? Promise.resolve({ contribute: { contributor: { autopilot: { noticeTo } } } })
+            : NOT_YET(),
+      );
+      expect((await loadContribute())?.contributor?.autopilot).toMatchObject({ noticeTo });
+    }
+  });
+
+  it('merge why autopilot left an attempt for the review into it, and never another attempt’s', async () => {
+    const answer = (reviewReason: { attemptId: string; reviewReason: string | null }) =>
+      graphqlDirect.mockImplementation((document) =>
+        document === ContributeAttemptDocument
+          ? Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'REVIEW' } })
+          : document === ContributeAttemptReviewReasonDocument
+            ? Promise.resolve({ contributeAttempt: reviewReason })
+            : NOT_YET(),
+      );
+    answer({ attemptId: 'A_1', reviewReason: 'notice_late' });
+    expect(await loadAttempt('A_1')).toMatchObject({ reviewReason: 'notice_late' });
+    answer({ attemptId: 'A_2', reviewReason: 'notice_late' });
+    expect(await loadAttempt('A_1')).not.toHaveProperty('reviewReason');
   });
 });
 

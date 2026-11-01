@@ -9,6 +9,7 @@ import type {
   ContributeAttemptState,
   ContributeAttemptSubmit,
   ContributeAutopilot,
+  ContributeAutopilotReviewReason,
   ContributeChanges,
   ContributeCheckStatusView,
   ContributeComingSoonProvider,
@@ -158,6 +159,19 @@ export const ContributeAutopilotDocument = doc<{
     contributor: { autopilot: Pick<ContributeAutopilot, 'mergedToUnlock' | 'lockedAt' | 'available'> } | null;
   } | null;
 }>('query ContributeAutopilot { contribute { contributor { autopilot { mergedToUnlock lockedAt available } } } }');
+
+/** Where autopilot's emails go: read on its own, so an API without it leaves the rest. */
+export const ContributeAutopilotNoticeDocument = doc<{
+  contribute: { contributor: { autopilot: Pick<ContributeAutopilot, 'noticeTo'> } | null } | null;
+}>('query ContributeAutopilotNotice { contribute { contributor { autopilot { noticeTo } } } }');
+
+/** Why autopilot left an attempt for the review: read on its own, so an API without it leaves the rest. */
+export const ContributeAttemptReviewReasonDocument = doc<
+  {
+    contributeAttempt: { attemptId: string; reviewReason: ContributeAutopilotReviewReason | null } | null;
+  },
+  { id: string }
+>('query ContributeAttemptReviewReason($id: ID!) { contributeAttempt(id: $id) { attemptId reviewReason } }');
 
 /** Whether the user is onboarded: read on its own, so an API without it leaves the rest. */
 export const ContributeOnboardingDocument = doc<{

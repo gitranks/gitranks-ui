@@ -26,6 +26,12 @@ export { AUTOPILOT_UNLOCK_AT };
 /** Closed-unmerged pull requests in a row that lock it again. */
 export const AUTOPILOT_LOCK_AT = 2;
 
+const NO_EMAIL =
+  'Autopilot emails you before each submission, and we have no email for you. Sign in again and share your GitHub email to turn it on.';
+/** The setting is on, but there is no address: nothing is submitted for the user, every change waits for them. */
+const NO_EMAIL_ON =
+  'Autopilot emails you before each submission, and we have no email for you, so its changes wait for your review. Sign in again and share your GitHub email.';
+
 /** Why turning autopilot on or off did not go through, in plain words. */
 export function autopilotErrorMessage(error: ContributeErrorCode, message?: string): string {
   if (error === 'INVALID' && /unlocks after/i.test(message ?? '')) {
@@ -33,6 +39,9 @@ export function autopilotErrorMessage(error: ContributeErrorCode, message?: stri
   }
   if (error === 'INVALID' && /coming|not open|unavailable/i.test(message ?? '')) {
     return 'Autopilot is coming soon: it cannot be turned on yet. Your record keeps counting until then.';
+  }
+  if (error === 'INVALID' && /emails you/i.test(message ?? '')) {
+    return NO_EMAIL;
   }
   return contributeErrorMessage(error, message);
 }
@@ -44,6 +53,8 @@ function recordOf(autopilot: ContributeAutopilot) {
   return {
     locked,
     open: autopilot.available === true,
+    // `undefined`: the API does not say yet; only a known "none" blocks turning it on.
+    noEmail: autopilot.noticeTo === null,
     toUnlock,
     progress: Math.min(AUTOPILOT_UNLOCK_AT, Math.max(0, AUTOPILOT_UNLOCK_AT - toUnlock)),
     streak: Math.min(autopilot.closedUnmergedStreak, AUTOPILOT_LOCK_AT),
@@ -70,8 +81,8 @@ export function AutopilotSection({
   const [on, setOn] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const { locked, open, progress } = recordOf(autopilot);
-  const canTurnOn = open && !locked;
+  const { locked, open, noEmail, progress } = recordOf(autopilot);
+  const canTurnOn = open && !locked && !noEmail;
   const checked = canTurnOn ? on : on && enabled;
 
   const toggle = (next: boolean) => {
@@ -107,6 +118,16 @@ export function AutopilotSection({
             : autopilot.lockedAt
               ? `Locked on ${dayLabel(autopilot.lockedAt)} · ${progress} of ${AUTOPILOT_UNLOCK_AT} merged since`
               : `${progress} of ${AUTOPILOT_UNLOCK_AT} merged PRs toward unlocking`}
+          {open && autopilot.noticeTo ? (
+            <span data-autopilot-notice-to className="block">
+              Emails before each submission go to {autopilot.noticeTo}
+            </span>
+          ) : null}
+          {open && noEmail && !locked && canSave && !error ? (
+            <span data-autopilot-no-email className="block text-warning">
+              {checked ? NO_EMAIL_ON : NO_EMAIL}
+            </span>
+          ) : null}
           {error ? (
             <span role="alert" className="block text-destructive">
               {error}
@@ -165,7 +186,7 @@ export function AutopilotRecord({ autopilot }: { autopilot: ContributeAutopilot 
       {open ? null : (
         <p data-autopilot-coming className="text-sm">
           {autopilot.available === false
-            ? 'Autopilot is coming soon. It opens once we can tell you before each submission, with an hour to stop it. Your record below keeps counting until then.'
+            ? 'Autopilot is coming soon. Before each submission it will email you, with an hour to stop it. Your record below keeps counting until then.'
             : 'Autopilot is not available yet. It is coming soon.'}
         </p>
       )}
@@ -210,8 +231,10 @@ export function AutopilotRecord({ autopilot }: { autopilot: ContributeAutopilot 
         </span>
       )}
       <span className="text-sm text-muted-foreground">
-        Once it is open: before autopilot submits, you have one hour to stop it, from the attempt&apos;s page or My
-        contributions. Two pull requests closed without merging in a row lock it again.
+        Before autopilot submits, we email you{autopilot.noticeTo ? ` at ${autopilot.noticeTo}` : ''}. You have one hour
+        from that email to stop it, from the link in it, the attempt&apos;s page or My contributions. If the email
+        cannot be sent, the change waits for your review instead. Two pull requests closed without merging in a row lock
+        it again.
       </span>
     </div>
   );

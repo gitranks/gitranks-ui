@@ -156,7 +156,7 @@ export function needsRowCopyOf(row: NeedsYouRow, now = new Date()): RowCopy {
       };
     }
     case 'autopilot': {
-      const when = relativeLabel(row.attempt.autosubmitAt, now) || 'within the hour';
+      const when = relativeLabel(row.attempt.autosubmitAt, now) || 'an hour after emailing you';
       return {
         kind: 'Autopilot',
         tone: 'amber',

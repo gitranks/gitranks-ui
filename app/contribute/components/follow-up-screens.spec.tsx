@@ -609,6 +609,79 @@ describe('autopilot', () => {
     expect(plain).toContain('1 of 3 merged PRs');
   });
 
+  it('says where the emails before each submission go, and refuses to turn it on with no email', () => {
+    const withNotice = (noticeTo: string | null) => ({
+      ...views.autopilotUnlocked,
+      contributor: {
+        ...views.autopilotUnlocked.contributor,
+        autopilot: { ...views.autopilotUnlocked.contributor.autopilot, noticeTo },
+        settings: { ...baseSettings, autopilot: false },
+      },
+    });
+    const mailed = settings(withNotice('m•••@gmail.com'));
+    expect(text(mailed)).toContain('Emails before each submission go to m•••@gmail.com');
+    expect(text(mailed)).toContain('Before autopilot submits, we email you at m•••@gmail.com.');
+    expect(mailed).not.toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
+
+    const unmailed = settings(withNotice(null));
+    expect(unmailed).toContain('data-autopilot-no-email');
+    expect(text(unmailed)).toContain('Sign in again and share your GitHub email to turn it on.');
+    expect(unmailed).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
+
+    // A setting left on with no address: its changes wait for the review, and it can still be turned off.
+    const leftOn = withNotice(null);
+    const html = settings({
+      ...leftOn,
+      contributor: { ...leftOn.contributor, settings: { ...baseSettings, autopilot: true } },
+    });
+    const checkbox = html.match(/<input[^>]*type="checkbox"[^>]*>/)?.[0] ?? '';
+    expect(checkbox).toContain('checked=""');
+    expect(checkbox).not.toContain('disabled=""');
+    expect(text(html)).toContain('so its changes wait for your review');
+
+    // Locked: signing in again would not turn it on, so the row does not say so.
+    const locked = withNotice(null);
+    const lockedHtml = settings({
+      ...locked,
+      contributor: {
+        ...locked.contributor,
+        autopilot: { ...locked.contributor.autopilot, unlocked: false, mergedToUnlock: 1 },
+      },
+    });
+    expect(lockedHtml).not.toContain('data-autopilot-no-email');
+  });
+
+  it('words the refusal to turn it on with no email', () => {
+    expect(
+      autopilotErrorMessage(
+        'INVALID',
+        'Autopilot emails you before each submission. Sign in again and share your GitHub email to turn it on',
+      ),
+    ).toContain('we have no email for you');
+  });
+
+  it('says it is emailing first while the hour has not started', () => {
+    const plain = text(review({ ...followUpAttempts.pendingAutosubmit, autosubmitAt: null }));
+    expect(plain).toContain('Emailing you first. The hour starts once the email is sent.');
+  });
+
+  it('says why autopilot left a change for the review, and nothing for an ordinary one or the user’s Stop', () => {
+    const reviewing = (reviewReason: ContributeAttemptDetail['reviewReason']) =>
+      review({
+        ...followUpAttempts.pendingAutosubmit,
+        state: 'REVIEW',
+        autosubmitAt: null,
+        autopilot: false,
+        reviewReason,
+      });
+    expect(reviewing('notice_late')).toContain('data-autopilot-review-reason="notice_late"');
+    expect(text(reviewing('notice_late'))).toContain('we could not email you first');
+    expect(text(reviewing('no_email'))).toContain('we have no email to tell you first');
+    expect(text(reviewing('autopilot_off'))).toContain('turned off or locked before it did');
+    expect(reviewing('vetoed')).not.toContain('data-autopilot-review-reason');
+    expect(reviewing(null)).not.toContain('data-autopilot-review-reason');
+  });
+
   it('counts down to the submission on an attempt waiting for it, with Stop', () => {
     const html = review(followUpAttempts.pendingAutosubmit);
 

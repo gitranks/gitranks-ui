@@ -25,9 +25,18 @@ const { ContributionsScreen } = await import('./contributions-view');
 const { ReviewsReady } = await import('./reviews-ready');
 const { IssuesScreen } = await import('./issues-view');
 const { NOW, views, settings } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { PATCH, attempt, attempts, contributions, detail, pullRequest, stopped } = await import(
-  '@/lib/contribute/__fixtures__/contribute-attempts'
-);
+const {
+  PATCH,
+  attempt,
+  attempts,
+  contributions,
+  detail,
+  feedbackThread,
+  followUpAttempts,
+  followUps,
+  pullRequest,
+  stopped,
+} = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { END_REASONS, LIVE_STATES } = await import('@/lib/contribute/attempt-format');
 
 import type {
@@ -89,6 +98,84 @@ describe('the diff viewer', () => {
 
   it('says when the diff is not available yet', () => {
     expect(text(renderToStaticMarkup(<DiffViewer patch={null} />))).toContain('The diff is not available yet.');
+  });
+});
+
+describe('the contribution page', () => {
+  /** Whether a tab's panel is the one shown: `active`, else `inactive` (rendered, hidden). */
+  const panel = (html: string, tab: string) =>
+    html.match(new RegExp(`<div data-state="(\\w+)"[^>]*data-tab-panel="${tab}"`))?.[1];
+
+  it("opens a review on the change itself, the pull request's form behind its button", () => {
+    const html = review(attempts.review);
+    expect(panel(html, 'changes')).toBe('active');
+    expect(panel(html, 'summary')).toBe('inactive');
+    expect(html).toContain('data-submit-panel="closed"');
+    expect(text(html)).toContain('Write the pull request…');
+    // The form is there, hidden: the way back from GitHub's access screen runs either way.
+    expect(html).toContain('data-pr-form="A_1"');
+  });
+
+  it('opens the form by itself after a submit that bounced', () => {
+    expect(review(attempts.bounced)).toContain('data-submit-panel="open"');
+  });
+
+  it('opens a pull request on its summary, the header saying where it stands and no box saying it again', () => {
+    const html = review(attempts.prOpen);
+    expect(panel(html, 'summary')).toBe('active');
+    expect(html).toContain('data-pr-state="OPEN"');
+    expect(html).not.toContain('data-attempt-status="PR_OPEN"');
+  });
+
+  it("shows a round with its pull request's sessions, read from the first attempt", () => {
+    const html = renderToStaticMarkup(
+      <ReviewScreen
+        view={views.active}
+        attempt={followUpAttempts.review}
+        // The round in review is the one under way on its pull request.
+        first={{ ...followUpAttempts.prNeedsYou, followUps: followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' }) }}
+        now={NOW}
+      />,
+    );
+    const plain = text(html);
+    expect(html).toContain('data-pr-state="OPEN"');
+    expect(html).not.toContain('data-session="next"');
+    expect(html).toMatch(/data-session="A_F1"[^>]*><a[^>]*aria-current="page"/);
+    expect(plain).toContain('Round 1 · follow-up Ready for you');
+    expect(panel(html, 'replies')).toBe('active');
+    expect(html).not.toContain('data-follow-up-of');
+  });
+
+  it("shows an own agent's round with the agent that made it", () => {
+    const round = {
+      ...followUpAttempts.review,
+      runner: 'MCP' as const,
+      agent: { name: 'CLAUDE_CODE' as const, model: null },
+    };
+    expect(review(round)).toContain('data-panel="own-agent"');
+  });
+
+  it('says nothing needs the user once a fix settled with nothing left to fix', () => {
+    const fixed = {
+      ...followUpAttempts.prNeedsYou,
+      needsYou: null,
+      prIssues: [],
+      prFix: { kind: 'TITLE' as const, state: 'DONE' as const, note: null, at: '2026-10-28T11:50:00.000Z' },
+    };
+    expect(review(fixed)).not.toContain('data-needs-you');
+  });
+
+  it('still lists the waiting comments, with why, once no round can start', () => {
+    const usedUp = {
+      ...followUpAttempts.handedOff,
+      pullRequest: { ...followUpAttempts.handedOff.pullRequest!, state: 'OPEN' as const },
+      reviewFeedback: { readAt: null, threads: [feedbackThread()] },
+    };
+    expect(review(usedUp)).toContain('href="/contribute/attempts/A_1?session=next"');
+    const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={usedUp} next now={NOW} />);
+    expect(html).toContain('data-panel="review-feedback"');
+    expect(text(html)).toContain('Every follow-up round is used: answer these on GitHub.');
+    expect(html).not.toContain('data-start-follow-up');
   });
 });
 
@@ -545,20 +632,22 @@ describe('the review screen', () => {
   });
 
   it.each([
-    ['prOpen', 'OPEN', 'Your pull request is open', 'Waiting for a maintainer review'],
-    ['followUp', 'OPEN', 'A follow-up is running', 'Changes requested'],
-    ['merged', 'MERGED', 'Merged', 'merged 5 minutes ago'],
-    ['closed', 'CLOSED', 'Closed without merging', 'Checks failed'],
-  ] as const)('links the pull request once it exists: %s', (name, prState, title, words) => {
-    const html = review(attempts[name]);
-    const plain = text(html);
+    ['prOpen', 'OPEN', 'PR #1419 open', 'Waiting for a maintainer review'],
+    ['merged', 'MERGED', 'PR #1419 merged', 'merged 5 minutes ago'],
+    ['closed', 'CLOSED', 'PR #1419 closed', 'Checks failed'],
+  ] as const)(
+    'links the pull request once it exists, in the header and its session: %s',
+    (name, prState, title, words) => {
+      const html = review(attempts[name]);
+      const plain = text(html);
 
-    expect(html).toContain(`data-pr-state="${prState}"`);
-    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
-    expect(plain).toContain('Pull request #1419 on GitHub');
-    expect(plain).toContain(title);
-    expect(plain).toContain(words);
-  });
+      expect(html).toContain(`data-pr-state="${prState}"`);
+      expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
+      expect(plain).toContain('Pull request #1419 on GitHub');
+      expect(plain).toContain(title);
+      expect(plain).toContain(words);
+    },
+  );
 
   it.each(Object.keys(END_REASONS) as ContributeAttemptEndReason[])(
     'says in plain words why it stopped: %s',

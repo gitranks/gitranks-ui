@@ -83,6 +83,16 @@ export const whereOfThread = (thread: { path: string | null; line: number | null
 export const shortSha = (sha: string | null | undefined) =>
   sha && /^[0-9a-f]{7,40}$/i.test(sha) ? sha.slice(0, 7) : null;
 
+/** What a round did with the threads: `5 fixed`, `2 replied`…; none it did not do. */
+export const roundTalliesOf = (round: ContributeFollowUpRound): string[] =>
+  [
+    round.fixed ? `${round.fixed} fixed` : null,
+    round.skipped ? `${round.skipped} not changed` : null,
+    round.needsYou ? `${round.needsYou} for you` : null,
+    round.replied ? `${round.replied} replied` : null,
+    round.resolved ? `${round.resolved} resolved` : null,
+  ].filter((tally) => tally !== null);
+
 /**
  * A round as one line: "Round 1 pushed 46de700 · 5 fixed · 2 replied · 2 resolved", or what it came to when nothing
  * was pushed ("Round 2 discarded, nothing pushed").
@@ -90,13 +100,7 @@ export const shortSha = (sha: string | null | undefined) =>
 export function roundLineOf(round: ContributeFollowUpRound): string {
   const head = `Round ${round.round}`;
   const sha = shortSha(round.pushedSha);
-  const tallies = [
-    round.fixed ? `${round.fixed} fixed` : null,
-    round.skipped ? `${round.skipped} not changed` : null,
-    round.needsYou ? `${round.needsYou} for you` : null,
-    round.replied ? `${round.replied} replied` : null,
-    round.resolved ? `${round.resolved} resolved` : null,
-  ].filter(Boolean);
+  const tallies = roundTalliesOf(round);
   const tail = tallies.length ? ` · ${tallies.join(' · ')}` : '';
   switch (round.state) {
     case 'DONE':

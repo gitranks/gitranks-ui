@@ -319,7 +319,7 @@ describe('the pages that wait for onboarding', () => {
   const pages = {
     issues: () => IssuesView({ searchParams }),
     me: () => ContributionsView(),
-    attempt: () => ReviewView({ params }),
+    attempt: () => ReviewView({ params, searchParams: Promise.resolve({}) }),
     settings: () => SettingsView({ searchParams }),
   };
 

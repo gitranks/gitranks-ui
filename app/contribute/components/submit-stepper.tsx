@@ -6,6 +6,7 @@ import { type CSSProperties, type ReactNode, useEffect, useReducer, useRef, useS
 
 import { readAttemptLive } from '../actions';
 import { HEADING } from './primitives';
+import { openSubmitForm } from './submit-panel';
 import { Button } from '@/components/ui/button';
 import { githubUrlOf, labelOf, SUBMIT_STEP_TEXT, timeLabel } from '@/lib/contribute/attempt-format';
 import type {
@@ -480,13 +481,17 @@ export function TryAgainButton() {
       size="sm"
       className="self-start"
       onClick={() => {
-        const form = document.getElementById('pr-form');
-        if (!form) return;
-        form.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' });
-        const target =
-          form.querySelector<HTMLElement>('button[type="submit"]:not(:disabled)') ??
-          form.querySelector<HTMLElement>('input, textarea');
-        target?.focus({ preventScroll: true });
+        // The form sits behind its button until asked for: it opens first, then takes the focus once it shows.
+        openSubmitForm();
+        requestAnimationFrame(() => {
+          const form = document.getElementById('pr-form');
+          if (!form) return;
+          form.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' });
+          const target =
+            form.querySelector<HTMLElement>('button[type="submit"]:not(:disabled)') ??
+            form.querySelector<HTMLElement>('input, textarea');
+          target?.focus({ preventScroll: true });
+        });
       }}
     >
       Try again

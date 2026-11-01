@@ -60,14 +60,11 @@ export function FollowUpRounds({
   followUps,
   pullRequest,
   attemptCapUsd,
-  startHere = true,
 }: {
   followUps: ContributeFollowUps | null | undefined;
   pullRequest: Pick<ContributeAttemptPullRequest, 'prId' | 'state'>;
   /** The user's limit for one attempt, which a follow-up runs within. */
   attemptCapUsd?: number;
-  /** Offer "Start a follow-up" here; off where the review-feedback card starts it on the threads chosen. */
-  startHere?: boolean;
 }) {
   if (followUps === undefined) {
     return (
@@ -113,7 +110,7 @@ export function FollowUpRounds({
           ))}
         </ol>
       ) : null}
-      {canStartFollowUp(followUps) && open && startHere ? (
+      {canStartFollowUp(followUps) && open ? (
         <>
           <StartFollowUpButton prId={pullRequest.prId} />
           <span className="text-xs text-muted-foreground">

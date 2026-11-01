@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import type { ReactNode } from 'react';
 
 import {
   ApprovalPanel,
@@ -10,37 +11,48 @@ import {
   ResultPanel,
   TimelinePanel,
 } from './attempt-panels';
-import { AttemptStatus, FollowUpOfLink } from './attempt-status';
+import { SessionsList } from './attempt-sessions';
+import { AttemptStatus, FollowUpOfLink, justOpened, PullRequestStatus } from './attempt-status';
 import { DiffViewer } from './diff-viewer';
 import { FollowUpApproval } from './follow-up-approval';
+import { StartFollowUpButton } from './follow-up-buttons';
 import { FollowUpResult } from './follow-up-result';
 import { PrConventionsCard } from './pr-conventions-card';
-import { FollowUpRounds, PrSignals } from './pr-follow-ups';
+import { PrSignals } from './pr-follow-ups';
 import { PrForm } from './pr-form';
 import { HEADING, Pill } from './primitives';
 import { ReplyDrafts } from './reply-drafts';
 import { ReviewFeedbackCard } from './review-feedback';
-import { attemptHref } from './reviews-ready';
 import { SendBackForm } from './send-back-form';
-import {
-  ATTEMPT_STATES,
-  attemptTitleOf,
-  editableBodyOf,
-  githubUrlOf,
-  isOwnAgent,
-  repoOf,
-  toneLabelOf,
-} from '@/lib/contribute/attempt-format';
+import { type SessionTab, SessionTabs } from './session-tabs';
+import { SubmitPanel } from './submit-panel';
+import { attemptTitleOf, editableBodyOf, githubUrlOf, isOwnAgent, repoOf } from '@/lib/contribute/attempt-format';
 import { loadAttempt, loadContribute, loadResolveHumanThreads } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import { isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
-import { canStartFollowUp } from '@/lib/contribute/follow-up-format';
+import { usd } from '@/lib/contribute/format';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
+import { parsePatch } from '@/lib/contribute/patch';
 import { withoutDraftMarks } from '@/lib/contribute/pr-conventions';
+import {
+  attemptPath,
+  NEXT_SESSION,
+  nextRoundOpen,
+  nextSessionPath,
+  sessionsOf,
+  waitingThreadsOf,
+} from '@/lib/contribute/sessions';
+import { cn } from '@/lib/utils';
 
-export async function ReviewView({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export async function ReviewView({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ session?: string | string[] }>;
+}) {
+  const [{ id }, { session }] = await Promise.all([params, searchParams]);
   const [view, attempt, resolveHumans] = await Promise.all([
     loadContribute(),
     loadAttempt(id),
@@ -49,7 +61,21 @@ export async function ReviewView({ params }: { params: Promise<{ id: string }> }
   if (!view) notFound();
   if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
   if (attempt === null) notFound();
-  return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} />;
+  // A round's page lists its pull request's sessions: those are the first attempt's to tell.
+  const followUpOf = attempt?.kind === 'FOLLOW_UP' ? attempt.followUpOf : undefined;
+  const read = followUpOf ? await loadAttempt(followUpOf.attemptId).catch(() => undefined) : undefined;
+  // Only the first attempt whose pull request the round follows up: any other read is no part of this page.
+  const first =
+    read?.kind === 'FIRST' && (!read.pullRequest || read.pullRequest.prId === followUpOf?.prId) ? read : undefined;
+  return (
+    <ReviewScreen
+      view={view}
+      attempt={attempt}
+      first={first}
+      next={session === NEXT_SESSION}
+      resolveHumans={resolveHumans}
+    />
+  );
 }
 
 /**
@@ -64,23 +90,305 @@ export const grantNeededOf = (view: ContributeView, attempt: ContributeAttemptDe
 };
 
 const BackLink = () => (
-  <Link href="/contribute/me" prefetch={false} className="text-sm">
+  <Link href="/contribute/me" prefetch={false} className="text-sm font-semibold text-link">
     ← My contributions
   </Link>
 );
 
+/** The pull request's states its first attempt settles in: the header says them, so its session adds no box. */
+const PR_SETTLED = new Set(['PR_OPEN', 'FOLLOW_UP', 'MERGED', 'CLOSED']);
+
 /**
- * Review an attempt: where it stands, what the agent changed and why, our checks, the diff, the cost and the timeline;
- * in review, the pull request to submit. `attempt` is `undefined` while the API does not answer the review yet.
+ * "Needs you" under the header: what waits for the user on the open pull request, each with its way out (the comments
+ * to choose for the next round, the repo's rules to fix, what changed on GitHub); nothing when nothing waits.
+ */
+function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; next: boolean; now?: Date }) {
+  const pr = first.pullRequest;
+  if (pr?.state !== 'OPEN' || first.kind !== 'FIRST') return null;
+  const waiting = waitingThreadsOf(first).length;
+  const signals = first.needsYou?.signals.length ?? 0;
+  // A fix that settled with nothing left to fix shows nothing (the card says no more), so it is no reason here.
+  const rules = !!first.prIssues?.length || first.prFix?.state === 'SENDING';
+  if (!waiting && !signals && !rules) return null;
+  const round = (first.followUps?.used ?? 0) + 1;
+
+  return (
+    <section
+      aria-labelledby="attempt-needs"
+      data-needs-you=""
+      className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-brand-soft p-4"
+    >
+      <h2 id="attempt-needs" className={HEADING.card}>
+        Needs you
+      </h2>
+      {waiting ? (
+        <div
+          data-waiting={waiting}
+          className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border bg-background px-3.5 py-2.5 text-sm"
+        >
+          <Pill tone="amber">Review comments</Pill>
+          <span className="min-w-0 flex-1">
+            {waiting === 1 ? '1 comment waits' : `${waiting} comments wait`} for an answer on #{pr.number}.
+          </span>
+          {nextRoundOpen(first) && next ? (
+            <span className="text-muted-foreground">Choose below what round {round} addresses.</span>
+          ) : nextRoundOpen(first) ? (
+            <Link
+              href={nextSessionPath(first.attemptId)}
+              prefetch={false}
+              scroll={false}
+              className="font-semibold text-link"
+            >
+              Choose what round {round} addresses →
+            </Link>
+          ) : next ? null : (
+            <Link
+              href={nextSessionPath(first.attemptId)}
+              prefetch={false}
+              scroll={false}
+              className="font-semibold text-link"
+            >
+              See the comments →
+            </Link>
+          )}
+        </div>
+      ) : null}
+      {signals ? (
+        <div className="rounded-lg border bg-background px-3.5 py-2.5">
+          <PrSignals needsYou={first.needsYou} now={now} prId={pr.prId} prNumber={pr.number} />
+        </div>
+      ) : null}
+      {rules ? (
+        <PrConventionsCard
+          attemptId={first.attemptId}
+          prNumber={pr.number}
+          issues={first.prIssues ?? []}
+          fix={first.prFix ?? null}
+          title={first.prTitle ?? first.approval?.title ?? ''}
+          body={editableBodyOf(first.prBody ?? first.approval?.body ?? first.result?.prBody)}
+          conventions={first.conventions ?? null}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+/**
+ * The round that has not started: the comments to choose, or with none waiting, the button that starts it. While no
+ * round can start, the comments are still listed, with why.
+ */
+function NextRound({ first, view, now }: { first: ContributeAttemptDetail; view: ContributeView; now?: Date }) {
+  const pr = first.pullRequest;
+  if (!pr) return null;
+  const feedback = first.reviewFeedback;
+  const cap = view.contributor?.settings?.attemptCapUsd;
+  if (feedback?.threads.length) {
+    return (
+      <ReviewFeedbackCard
+        // A thread arriving in a later read starts the choices afresh: none is shown chosen but left out.
+        key={feedback.threads.map((thread) => thread.commentId).join(',')}
+        prId={pr.prId}
+        prNumber={pr.number}
+        feedback={feedback}
+        canStart={nextRoundOpen(first)}
+        blocked={
+          nextRoundOpen(first)
+            ? null
+            : first.followUps?.currentAttemptId
+              ? 'A follow-up is under way on these comments.'
+              : 'Every follow-up round is used: answer these on GitHub.'
+        }
+        attemptCapUsd={cap}
+        now={now}
+      />
+    );
+  }
+  return (
+    <section data-next-round="" className="flex flex-col gap-2.5 rounded-xl border bg-card p-5">
+      <h2 className={HEADING.card}>Round {(first.followUps?.used ?? 0) + 1}</h2>
+      <p className="text-sm text-muted-foreground">
+        No review comment waits on #{pr.number}. A round still reads the reviews, comments and failing checks, adds
+        commits and drafts replies, on your Claude key
+        {typeof cap === 'number' ? ` within your ${usd(cap)} limit for one attempt` : ''}. Nothing is pushed or posted
+        before you review it.
+      </p>
+      {nextRoundOpen(first) ? <StartFollowUpButton prId={pr.prId} /> : null}
+    </section>
+  );
+}
+
+/** One session's details, a tab each: what it did, its changes, its checks, and what it cost and when. */
+function SessionDetails({
+  attempt,
+  view,
+  now,
+  resolveHumans,
+}: {
+  attempt: ContributeAttemptDetail;
+  view: ContributeView;
+  now?: Date;
+  resolveHumans?: boolean;
+}) {
+  const repo = repoOf(attempt);
+  const inReview = attempt.state === 'REVIEW';
+  const followUp = attempt.kind === 'FOLLOW_UP';
+  const ownAgent = isOwnAgent(attempt);
+  const prNumber = followUp ? (attempt.followUpOf?.number ?? null) : (attempt.pullRequest?.number ?? null);
+  // The follow-up flow: one card per thread with its outcome, and one approval (an older API: the drafts). An API with
+  // the flow answers `checkStatus` (null before the checks), so a round with no reply is one too.
+  const flow = followUp && (attempt.checkStatus !== undefined || hasOutcomes(attempt.replyDrafts));
+  const files = parsePatch(attempt.patch).files.length;
+  const checks = attempt.checksPassed === true ? '✓' : attempt.checksPassed === false ? '✗' : undefined;
+
+  const replies: ReactNode = flow ? (
+    <FollowUpResult
+      // A push that came back to the review starts the card afresh (its buttons on again).
+      key={`${attempt.state}|${attempt.submit?.lastError?.at ?? ''}`}
+      attempt={attempt}
+      prNumber={prNumber}
+      resolveHumans={resolveHumans}
+    />
+  ) : (
+    <ReplyDrafts
+      drafts={attempt.replyDrafts}
+      prNumber={prNumber}
+      followUps={new Map([[attempt.attemptId, attempt]])}
+      freshness={[attempt.state, attempt.updatedAt].join('|')}
+      now={now}
+    />
+  );
+  // A first attempt's own drafts, from an API before the flow: kept where they were read, under its summary.
+  const firstDrafts = !followUp && attempt.pullRequest && attempt.replyDrafts?.length;
+
+  const tabs: SessionTab[] = [
+    followUp
+      ? {
+          value: 'replies',
+          label: 'Replies',
+          badge: attempt.replyDrafts?.length || undefined,
+          content: (
+            <>
+              <ResultPanel attempt={attempt} />
+              {ownAgent ? <OwnAgentPanel attempt={attempt} now={now} /> : null}
+              {replies}
+            </>
+          ),
+        }
+      : {
+          value: 'summary',
+          label: 'Summary',
+          content: (
+            <>
+              <ResultPanel attempt={attempt} />
+              {ownAgent ? <OwnAgentPanel attempt={attempt} now={now} /> : null}
+              <ApprovalPanel attempt={attempt} />
+              {firstDrafts ? (
+                <ReplyDrafts
+                  drafts={attempt.replyDrafts}
+                  prNumber={prNumber}
+                  freshness={[attempt.state, attempt.updatedAt, attempt.followUps?.currentAttemptId ?? ''].join('|')}
+                  now={now}
+                />
+              ) : null}
+            </>
+          ),
+        },
+    {
+      value: 'changes',
+      label: 'Changes',
+      badge: files ? `${files} ${files === 1 ? 'file' : 'files'}` : undefined,
+      content: <DiffViewer patch={attempt.patch} title={followUp ? 'The new commits' : 'Diff'} />,
+    },
+    {
+      value: 'checks',
+      label: 'Checks',
+      badge: checks,
+      content: (
+        <>
+          <ChecksPanel attempt={attempt} />
+          <ReadinessPanel attempt={attempt} />
+        </>
+      ),
+    },
+    {
+      value: 'activity',
+      label: 'Activity',
+      content: (
+        <>
+          {ownAgent ? null : <CostPanel attempt={attempt} />}
+          <TimelinePanel attempt={attempt} />
+        </>
+      ),
+    },
+  ];
+  // The review opens on the change itself; a round, on what it did with the comments.
+  const opening = followUp ? 'replies' : inReview || attempt.state === 'PENDING_AUTOSUBMIT' ? 'changes' : 'summary';
+  const showStatus = followUp || !PR_SETTLED.has(attempt.state) || justOpened(attempt.pullRequest, now);
+
+  return (
+    <div className="flex min-w-0 flex-col gap-4" data-session-details={attempt.attemptId}>
+      {showStatus ? <AttemptStatus attempt={attempt} now={now} /> : null}
+      {inReview && !followUp ? (
+        <SubmitPanel open={!!attempt.submit?.lastError}>
+          <PrForm
+            attemptId={attempt.attemptId}
+            issueNumber={attempt.number}
+            repo={repo}
+            defaultTitle={
+              // Each candidate without its WIP or draft marks: one that is nothing but a mark gives way.
+              [attempt.approval?.title, attempt.result?.prTitle, attempt.title]
+                .map((title) => withoutDraftMarks(title ?? ''))
+                .find(Boolean) ?? `Fix #${attempt.number}`
+            }
+            defaultBody={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
+            login={view.contributor?.login ?? 'you'}
+            dcoMode={view.contributor?.settings?.dco ?? null}
+            dcoRequired={attempt.dcoRequired}
+            again={!!attempt.submit?.lastError}
+            grantNeeded={grantNeededOf(view, attempt)}
+            grantConnected={view.grant?.connected === true}
+            conventions={attempt.conventions}
+            patch={attempt.patch}
+          />
+        </SubmitPanel>
+      ) : null}
+      {inReview && followUp && !flow ? (
+        <FollowUpApproval
+          attemptId={attempt.attemptId}
+          prNumber={prNumber}
+          hasCommits={!!attempt.patch?.trim()}
+          again={!!attempt.submit?.lastError}
+        />
+      ) : null}
+      {inReview && ownAgent ? <SendBackForm attemptId={attempt.attemptId} left={attempt.sendBacksLeft ?? 0} /> : null}
+      <SessionTabs
+        key={attempt.attemptId}
+        tabs={tabs}
+        defaultValue={opening}
+        label={followUp ? 'This follow-up round' : 'The first attempt'}
+      />
+    </div>
+  );
+}
+
+/**
+ * A contribution, one page for all its sessions: the issue and its pull request on top, what waits for the user under
+ * them, the sessions (the first attempt, each follow-up round, the next round while one may start) beside the one
+ * shown. `attempt` is the session in the address (`undefined` while the API does not answer it); `first`, a round's
+ * first attempt, read beside it (a first attempt is its own); `next` shows the round not started.
  */
 export function ReviewScreen({
   view,
   attempt,
+  first: firstRead,
+  next = false,
   now,
   resolveHumans,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail | undefined;
+  first?: ContributeAttemptDetail;
+  next?: boolean;
   now?: Date;
   /** Whether a follow-up's replies resolve people's threads too; `undefined` while the API does not answer it. */
   resolveHumans?: boolean;
@@ -95,42 +403,39 @@ export function ReviewScreen({
     );
   }
 
-  const state = toneLabelOf(ATTEMPT_STATES, attempt.state);
-  const issueUrl = githubUrlOf(attempt.url);
-  const login = view.contributor?.login ?? 'you';
-  const repo = repoOf(attempt);
-  const inReview = attempt.state === 'REVIEW';
   const followUp = attempt.kind === 'FOLLOW_UP';
-  const ownAgent = isOwnAgent(attempt);
-  const prNumber = followUp ? (attempt.followUpOf?.number ?? null) : (attempt.pullRequest?.number ?? null);
-  // A first attempt shows its pull request's drafts once there is one; a follow-up always shows the ones it wrote.
-  const showDrafts = followUp || (!!attempt.pullRequest && attempt.replyDrafts?.length !== 0);
-  // The follow-up flow: one card per thread with its outcome, the diff, and one approval (an older API: the drafts).
-  // An API with the flow answers `checkStatus` (null before the checks), so a round with no reply is one too.
-  const flow = followUp && (attempt.checkStatus !== undefined || hasOutcomes(attempt.replyDrafts));
-  const feedback = !followUp && attempt.pullRequest?.state === 'OPEN' ? attempt.reviewFeedback : null;
-  const roundOpen = !!attempt.followUps && canStartFollowUp(attempt.followUps) && attempt.state === 'PR_OPEN';
+  const first = followUp ? firstRead : attempt;
+  // The next round, or while none can start, the comments that wait, listed with why.
+  const showNext = !!first && next && (nextRoundOpen(first) || waitingThreadsOf(first).length > 0);
+  const issueUrl = githubUrlOf(attempt.url);
+  const repo = repoOf(attempt);
+  const cards = first
+    ? sessionsOf(first, { attemptId: attempt.attemptId, next: showNext }, followUp ? attempt : undefined)
+    : null;
 
   return (
-    <div className="flex flex-col gap-5" data-review={attempt.attemptId} data-state={attempt.state}>
-      <div className="flex flex-col gap-2.5">
+    <div
+      className="flex flex-col gap-5"
+      data-review={attempt.attemptId}
+      data-state={attempt.state}
+      data-shown-session={showNext ? NEXT_SESSION : attempt.attemptId}
+    >
+      <header className="flex flex-col gap-2">
         <BackLink />
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Pill tone={state.tone}>{state.label}</Pill>
-          {attempt.kind === 'FOLLOW_UP' ? <Pill>Follow-up</Pill> : null}
-          {ownAgent ? <Pill tone="violet">Your own agent</Pill> : null}
-          <span className="font-mono text-sm text-muted-foreground">
-            {issueUrl ? (
-              <a href={issueUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                {repo} · issue #{attempt.number}
-              </a>
-            ) : (
-              `${repo} · issue #${attempt.number}`
-            )}
-          </span>
-        </div>
+        <span className="flex flex-wrap items-center gap-2.5 font-mono text-sm text-muted-foreground">
+          {issueUrl ? (
+            <a href={issueUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              {repo} · issue #{attempt.number} ↗
+            </a>
+          ) : (
+            `${repo} · issue #${attempt.number}`
+          )}
+          {isOwnAgent(attempt) ? <Pill tone="violet">Your own agent</Pill> : null}
+        </span>
         <h1 className={HEADING.page}>{attemptTitleOf(attempt)}</h1>
-        {followUp ? (
+        {first?.pullRequest ? (
+          <PullRequestStatus pullRequest={first.pullRequest} now={now} />
+        ) : followUp ? (
           <p data-follow-up-of={attempt.followUpOf?.number ?? ''} className="text-sm text-muted-foreground">
             {attempt.followUpOf === undefined ? (
               'The pull request it follows up is not available yet.'
@@ -141,7 +446,7 @@ export function ReviewScreen({
                   <>
                     {' '}
                     ·{' '}
-                    <Link href={attemptHref(attempt.followUpOf.attemptId)} prefetch={false} className="text-link">
+                    <Link href={attemptPath(attempt.followUpOf.attemptId)} prefetch={false} className="text-link">
                       the change that opened it
                     </Link>
                   </>
@@ -150,130 +455,24 @@ export function ReviewScreen({
             )}
           </p>
         ) : null}
-      </div>
+      </header>
 
-      <AttemptStatus attempt={attempt} now={now} />
+      {first ? <NeedsYouStrip first={first} next={showNext} now={now} /> : null}
 
-      {!followUp && attempt.pullRequest?.state === 'OPEN' ? (
-        <PrConventionsCard
-          attemptId={attempt.attemptId}
-          prNumber={attempt.pullRequest.number}
-          issues={attempt.prIssues ?? []}
-          fix={attempt.prFix ?? null}
-          title={attempt.prTitle ?? attempt.approval?.title ?? ''}
-          body={editableBodyOf(attempt.prBody ?? attempt.approval?.body ?? attempt.result?.prBody)}
-          conventions={attempt.conventions ?? null}
-        />
-      ) : null}
-
-      {!followUp &&
-      attempt.pullRequest &&
-      (attempt.pullRequest.state === 'OPEN' || (attempt.followUps?.used ?? 0) > 0) ? (
-        <section data-panel="follow-ups" className="flex flex-col gap-2.5 rounded-xl border bg-card p-5">
-          <h2 className={HEADING.card}>
-            {attempt.needsYou?.signals.length ? 'Your pull request needs you' : 'Follow-ups'}
-          </h2>
-          <PrSignals
-            needsYou={attempt.needsYou}
-            now={now}
-            prId={attempt.pullRequest.state === 'OPEN' ? attempt.pullRequest.prId : undefined}
-            prNumber={attempt.pullRequest.number}
+      <div className={cn('grid items-start gap-5', cards && 'lg:grid-cols-[17rem_minmax(0,1fr)]')}>
+        {cards ? (
+          <SessionsList
+            cards={cards}
+            rounds={first?.followUps ? `${first.followUps.used} of ${first.followUps.max} rounds used` : null}
           />
-          <FollowUpRounds
-            followUps={attempt.followUps}
-            pullRequest={attempt.pullRequest}
-            attemptCapUsd={view.contributor?.settings?.attemptCapUsd}
-            // The review-feedback card below starts the round on the threads chosen.
-            startHere={!feedback?.threads.length}
-          />
-        </section>
-      ) : null}
-
-      {feedback?.threads.length && attempt.pullRequest ? (
-        <ReviewFeedbackCard
-          // A thread arriving in a later read starts the choices afresh: none is shown chosen but left out.
-          key={feedback.threads.map((thread) => thread.commentId).join(',')}
-          prId={attempt.pullRequest.prId}
-          prNumber={attempt.pullRequest.number}
-          feedback={feedback}
-          canStart={roundOpen}
-          blocked={
-            roundOpen
-              ? null
-              : attempt.followUps?.currentAttemptId
-                ? 'A follow-up is under way on these comments.'
-                : 'Every follow-up round is used: answer these on GitHub.'
-          }
-          attemptCapUsd={view.contributor?.settings?.attemptCapUsd}
-          now={now}
-        />
-      ) : null}
-
-      <div className="flex flex-wrap items-start gap-6">
-        <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
-          <ResultPanel attempt={attempt} />
-          {flow ? (
-            <FollowUpResult
-              // A push that came back to the review starts the card afresh (its buttons on again).
-              key={`${attempt.state}|${attempt.submit?.lastError?.at ?? ''}`}
-              attempt={attempt}
-              prNumber={prNumber}
-              resolveHumans={resolveHumans}
-            >
-              {attempt.patch?.trim() ? <DiffViewer patch={attempt.patch} title="The new commits" /> : null}
-            </FollowUpResult>
-          ) : null}
-          <ChecksPanel attempt={attempt} />
-          {flow ? null : <DiffViewer patch={attempt.patch} title={followUp ? 'The new commits' : 'Diff'} />}
-          {showDrafts && !flow ? (
-            <ReplyDrafts
-              drafts={attempt.replyDrafts}
-              prNumber={prNumber}
-              followUps={followUp ? new Map([[attempt.attemptId, attempt]]) : undefined}
-              freshness={[attempt.state, attempt.updatedAt, attempt.followUps?.currentAttemptId ?? ''].join('|')}
-              now={now}
-            />
-          ) : null}
-        </div>
-        <aside className="flex min-w-0 flex-[1_1_340px] flex-col gap-3.5">
-          {ownAgent ? <OwnAgentPanel attempt={attempt} now={now} /> : <CostPanel attempt={attempt} />}
-          {inReview && followUp && flow ? null : inReview && followUp ? (
-            <FollowUpApproval
-              attemptId={attempt.attemptId}
-              prNumber={prNumber}
-              hasCommits={!!attempt.patch?.trim()}
-              again={!!attempt.submit?.lastError}
-            />
-          ) : inReview ? (
-            <PrForm
-              attemptId={attempt.attemptId}
-              issueNumber={attempt.number}
-              repo={repo}
-              defaultTitle={
-                // Each candidate without its WIP or draft marks: one that is nothing but a mark gives way.
-                [attempt.approval?.title, attempt.result?.prTitle, attempt.title]
-                  .map((title) => withoutDraftMarks(title ?? ''))
-                  .find(Boolean) ?? `Fix #${attempt.number}`
-              }
-              defaultBody={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
-              login={login}
-              dcoMode={view.contributor?.settings?.dco ?? null}
-              dcoRequired={attempt.dcoRequired}
-              again={!!attempt.submit?.lastError}
-              grantNeeded={grantNeededOf(view, attempt)}
-              grantConnected={view.grant?.connected === true}
-              conventions={attempt.conventions}
-              patch={attempt.patch}
-            />
-          ) : followUp ? null : (
-            <ApprovalPanel attempt={attempt} />
+        ) : null}
+        <div className="flex min-w-0 flex-col gap-4">
+          {showNext && first ? (
+            <NextRound first={first} view={view} now={now} />
+          ) : (
+            <SessionDetails attempt={attempt} view={view} now={now} resolveHumans={resolveHumans} />
           )}
-          {inReview && ownAgent ? (
-            <SendBackForm attemptId={attempt.attemptId} left={attempt.sendBacksLeft ?? 0} />
-          ) : null}
-          <TimelinePanel attempt={attempt} />
-          <ReadinessPanel attempt={attempt} />
-        </aside>
+        </div>
       </div>
     </div>
   );

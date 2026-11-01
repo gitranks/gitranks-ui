@@ -94,7 +94,7 @@ export function SubmitErrorNote({ submit }: { submit: ContributeAttemptSubmit | 
 
 /** A pull request opened in the last few minutes: its box still shows the steps that opened it. */
 const JUST_OPENED_MS = 10 * 60_000;
-const justOpened = (pullRequest: ContributeAttemptPullRequest | null | undefined, now?: Date) => {
+export const justOpened = (pullRequest: ContributeAttemptPullRequest | null | undefined, now?: Date) => {
   const opened = pullRequest ? Date.parse(pullRequest.openedAt) : Number.NaN;
   return !Number.isNaN(opened) && (now ?? new Date()).getTime() - opened < JUST_OPENED_MS;
 };

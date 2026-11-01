@@ -18,8 +18,8 @@ import {
   NEEDS_YOU_READ,
   type NeedsYouRow,
   needsYouRowsOf,
+  rankedOf,
   rightNowOf,
-  upNextOf,
 } from './overview';
 
 const kinds = (rows: NeedsYouRow[]) => rows.map(({ kind }) => kind);
@@ -170,7 +170,6 @@ describe('rightNowOf', () => {
       const now = rightNowOf(views.active, { ...nowIdle, inFlight: [inFlight({ state })] }, issuePage, NOW);
 
       expect(now.hosted).toMatchObject({ kind: 'working', attempt: { state } });
-      expect(now.live).toBe(true);
     },
   );
 
@@ -232,7 +231,7 @@ describe('rightNowOf', () => {
   });
 
   it('shows the cycle for a key alone, and no hosted card without one', () => {
-    expect(rightNowOf(views.active, nowIdle, issuePage, NOW)).toMatchObject({ cycle: true, live: false });
+    expect(rightNowOf(views.active, nowIdle, issuePage, NOW)).toMatchObject({ cycle: true });
     const agentOnly = rightNowOf(views.agentOnboarded, nowIdle, issuePage, NOW);
     expect(agentOnly.hosted).toBeUndefined();
     expect(agentOnly.cycle).toBe(false);
@@ -323,7 +322,6 @@ describe('the review fixes', () => {
       token: 'Claude Code on macOS',
       lastCallAt: '2026-10-28T09:00:00.000Z',
     });
-    expect(now.live).toBe(true);
 
     // What does not depend on it still shows: the view's blocks, the scheduler's counts.
     expect(rightNowOf({ ...both, paused: true }, read, issuePage, NOW).hosted?.kind).toBe('paused');
@@ -365,8 +363,8 @@ describe('the review fixes', () => {
   });
 });
 
-describe('upNextOf', () => {
-  it("is the feed's top three, in rank order", () => {
-    expect(upNextOf(issuePage).map(({ issueId }) => issueId)).toEqual(['I_1', 'I_2', 'I_3']);
+describe('rankedOf', () => {
+  it("is the feed's issues in rank order", () => {
+    expect(rankedOf(issuePage).map(({ issueId }) => issueId)).toEqual(['I_1', 'I_2', 'I_3', 'I_4']);
   });
 });

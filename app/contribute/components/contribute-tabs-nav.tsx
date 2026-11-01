@@ -2,7 +2,9 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 
-import { ActivityBar, ActivityDot, ActivityProvider } from './activity';
+import { ActivityBar, ActivityDot } from './activity';
+import { AgentRunsIndicator } from './agent-runs';
+import { ChangesProvider } from './live-changes';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
 import type { ContributeActivity } from '@/lib/contribute/contribute.types';
@@ -25,15 +27,17 @@ export function contributeTabsShown(pathname: string, as: string | null, onboard
 
 /**
  * Contribute's tabs under the header, as a profile's are, or the header's line when they do not show; with them, a dot
- * on each tab with work in progress and the bar for the current tab's. It reads the path and the query, so it renders
- * inside a Suspense boundary.
+ * on each tab with work in progress, the agent runs at the end, the bar for the current tab's, and Contribute's one
+ * poll (`ChangesProvider`). It reads the path and the query, so it renders inside a Suspense boundary.
  */
 export function ContributeTabsNav({
   onboarded,
   activity = null,
+  version = null,
 }: {
   onboarded: boolean;
   activity?: ContributeActivity | null;
+  version?: string | null;
 }) {
   const pathname = usePathname();
   const as = useSearchParams().get('as');
@@ -42,7 +46,7 @@ export function ContributeTabsNav({
   // An attempt's review belongs to My contributions, the connect flow to the overview.
   const attempt = pathname.startsWith('/contribute/attempts/');
   return (
-    <ActivityProvider initial={activity}>
+    <ChangesProvider version={version} activity={activity}>
       <TabsBar>
         <Tab href="/contribute" pathnames={['/contribute', '/contribute/connect']}>
           Overview
@@ -59,8 +63,13 @@ export function ContributeTabsNav({
           Settings
           <ActivityDot tab="SETTINGS" />
         </Tab>
+        {/* The agent runs, on every tab: held at the end, so a phone's scrolled tabs never hide it; as tall as its pill, so
+            the bar's line runs on under it. */}
+        <li className="sticky right-0 ms-auto flex shrink-0 self-start ps-3 pe-1 max-sm:bg-background empty:hidden">
+          <AgentRunsIndicator />
+        </li>
       </TabsBar>
       <ActivityBar />
-    </ActivityProvider>
+    </ChangesProvider>
   );
 }

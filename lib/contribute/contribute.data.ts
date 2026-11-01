@@ -4,10 +4,14 @@ import { cache } from 'react';
 
 import {
   ContributeActivityDocument,
+  ContributeAttemptConventionsDocument,
+  ContributeAttemptDcoDocument,
   ContributeAttemptDocument,
+  ContributeAttemptFollowUpFlowDocument,
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptReviewReasonDocument,
+  ContributeAttemptSubmitClockDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
   ContributeAttemptsInDocument,
@@ -18,6 +22,7 @@ import {
   ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
   ContributeAutopilotNoticeDocument,
+  ContributeChangesDocument,
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
   ContributeContributionsOwnAgentDocument,
@@ -33,8 +38,10 @@ import {
   ContributeProviderInterestsDocument,
   ContributeRepliesWaitingDocument,
   ContributeReplyDraftsDocument,
+  ContributeResolveHumansDocument,
   ContributeScheduleCountsDocument,
   ContributeSetDocument,
+  type FollowUpFlowRead,
 } from './contribute.documents';
 import type {
   ContributeActivity,
@@ -57,7 +64,8 @@ import type {
 } from './contribute.types';
 import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
-import { contributeModesShown } from './modes-gate';
+import { ISSUES_PAGE_SIZE } from './live-issues';
+import { activityFor, contributeModesShown } from './modes-gate';
 import {
   IN_FLIGHT_READ,
   IN_FLIGHT_STATES,
@@ -67,15 +75,34 @@ import {
   type OverviewNowRead,
 } from './overview';
 import { auth } from '@/auth';
+import type { ContributeConventionsFields } from '@/lib/contribute/pr-conventions';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /**
  * The signed-in user's GitHub login, for calls made on their behalf; null without a usable session. Read once per
  * request.
  */
+/**
+ * The session, read once per request: a second `auth()` would run the token refresh again, and a refresh token is
+ * single-use.
+ */
+const viewerSession = cache(() => auth());
+
 export const viewerLogin = cache(async (): Promise<string | null> => {
-  const session = await auth();
+  const session = await viewerSession();
   return session?.user?.githubLogin && !session.error ? session.user.githubLogin : null;
+});
+
+/**
+ * The signed-in user's email, as GitHub gave it at their first sign-in; undefined without one. Sent with Contribute's
+ * writes, so the emails a user asks for ("Notify me") have an address.
+ */
+export const viewerEmail = cache(async (): Promise<string | undefined> => {
+  const session = await viewerSession();
+  const email = session?.user?.email?.trim();
+  return email && !session?.error && email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
+    ? email
+    : undefined;
 });
 
 const settled = <T>(result: PromiseSettledResult<T>): T | undefined =>
@@ -123,6 +150,8 @@ export class ContributeUnavailableError extends Error {
 export const loadContribute = cache(async (): Promise<ContributeView | null> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return null;
+  // The poll's baseline before anything the page shows: a change landing meanwhile is named by the first poll.
+  await loadContributeVersion();
 
   const options = { source: 'ssr' as const, githubLogin };
   const [overview, grant, paused, autopilot, autopilotNotice, ownAgent, onboarding, attemptsOpen] =
@@ -234,7 +263,7 @@ export async function loadIssues(
   try {
     const { contributeIssues } = await graphqlDirect(
       ContributeIssuesDocument,
-      { first: 20, ...(after ? { after } : {}), ...(Object.keys(filter).length ? { filter } : {}) },
+      { first: ISSUES_PAGE_SIZE, ...(after ? { after } : {}), ...(Object.keys(filter).length ? { filter } : {}) },
       { source: 'ssr', githubLogin },
     );
     return contributeIssues;
@@ -263,19 +292,39 @@ export const loadContributeSet = cache(async (): Promise<ContributeSet | null | 
 });
 
 /**
- * What the API is working on for the signed-in user (new repos read, the stack worked out). Null when the modes are
- * not shown to them, the API hides it or does not answer: no activity is shown then. Read once per request.
+ * What the API is working on for the signed-in user: new repos read, the stack worked out (only when the modes are
+ * shown to them: `activityFor`), and their agent runs. Null when the API hides it or does not answer: no activity is
+ * shown then. Read once per request.
  */
 export const loadContributeActivity = cache(async (): Promise<ContributeActivity | null> => {
   const githubLogin = await viewerLogin();
-  if (!contributeModesShown(githubLogin)) return null;
+  if (!githubLogin) return null;
 
   try {
     const { contributeActivity } = await graphqlDirect(ContributeActivityDocument, undefined, {
       source: 'ssr',
-      githubLogin: githubLogin as string,
+      githubLogin,
     });
-    return contributeActivity;
+    return activityFor(githubLogin, contributeActivity);
+  } catch {
+    return null;
+  }
+});
+
+/**
+ * The version of what the signed-in user sees, as this request reads it: the poll's baseline, so it names only what
+ * moves after the page was read. Null when the API hides it or does not answer (the first poll sets the baseline).
+ */
+export const loadContributeVersion = cache(async (): Promise<string | null> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+  try {
+    const { contributeChanges } = await graphqlDirect(
+      ContributeChangesDocument,
+      { since: null },
+      { source: 'ssr', githubLogin },
+    );
+    return contributeChanges?.version ?? null;
   } catch {
     return null;
   }
@@ -414,9 +463,28 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   const reviewReason = Promise.resolve(graphqlDirect(ContributeAttemptReviewReasonDocument, { id }, options)).catch(
     () => undefined,
   );
+  // The submission's step clock, for the stepper's durations; left out when the API does not answer it.
+  const clock = Promise.resolve(graphqlDirect(ContributeAttemptSubmitClockDocument, { id }, options)).catch(
+    () => undefined,
+  );
+  // The follow-up flow's fields (the threads, the checks in a word, the rounds); left out when not answered.
+  const flow = Promise.resolve(graphqlDirect(ContributeAttemptFollowUpFlowDocument, { id }, options)).catch(
+    () => undefined,
+  );
+  // Whether the repo requires a DCO sign-off; left out when not answered.
+  const dco = Promise.resolve(graphqlDirect(ContributeAttemptDcoDocument, { id }, options)).catch(() => undefined);
+  // The repo's PR conventions, the open PR's fixes, and the agent's proposed title; left out when not answered.
+  const conventions = Promise.resolve(graphqlDirect(ContributeAttemptConventionsDocument, { id }, options)).catch(
+    () => undefined,
+  );
   try {
-    const { contributeAttempt } = await review;
-    if (!contributeAttempt) return contributeAttempt;
+    const { contributeAttempt: read } = await review;
+    if (!read) return read;
+    const timed = (await clock)?.contributeAttempt;
+    const contributeAttempt =
+      timed?.attemptId === read.attemptId && read.submit && timed.submit?.step === read.submit.step
+        ? { ...read, submit: { ...read.submit, ...timed.submit } }
+        : read;
     const extra = (await followUps)?.contributeAttempt;
     const reason = (await reviewReason)?.contributeAttempt;
     const withFollowUps = withFields(
@@ -425,16 +493,91 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
         : contributeAttempt,
       extra?.attemptId === contributeAttempt.attemptId ? extra : undefined,
     );
+    const flowRead = (await flow)?.contributeAttempt;
+    const withFlow = withFollowUpFlow(
+      withFollowUps,
+      flowRead?.attemptId === contributeAttempt.attemptId ? flowRead : undefined,
+    );
+    const dcoRead = (await dco)?.contributeAttempt;
+    const withDco =
+      dcoRead?.attemptId === contributeAttempt.attemptId && typeof dcoRead.dcoRequired === 'boolean'
+        ? { ...withFlow, dcoRequired: dcoRead.dcoRequired }
+        : withFlow;
+    const conventionsRead = (await conventions)?.contributeAttempt;
+    const withConventions = withConventionsOf(
+      withDco,
+      conventionsRead?.attemptId === contributeAttempt.attemptId ? conventionsRead : undefined,
+    );
     const agent = (await ownAgent)?.contributeAttempt;
-    if (agent?.attemptId !== contributeAttempt.attemptId) return withFollowUps;
+    if (agent?.attemptId !== contributeAttempt.attemptId) return withConventions;
     const { result, ...fields } = agent;
-    const merged = withFields(withFollowUps, fields);
+    const merged = withFields(withConventions, fields);
     return merged.result && result ? { ...merged, result: { ...merged.result, prTitle: result.prTitle } } : merged;
   } catch (failure) {
     const { error } = contributeErrorOf(failure);
     if (error === 'NOT_FOUND' || error === 'SIGNED_OUT' || error === 'INVALID') return null;
     if (error === 'NOT_AVAILABLE_YET') return undefined;
     throw new ContributeUnavailableError();
+  }
+}
+
+/**
+ * The attempt with the repo's PR conventions and the open PR's fixes (`ContributeAttemptConventions`), and the agent's
+ * proposed title on its result (the form's default). An API that does not answer them leaves the attempt as it was.
+ */
+export function withConventionsOf(
+  attempt: ContributeAttemptDetail,
+  read: (Required<ContributeConventionsFields> & { result: { prTitle: string | null } | null }) | undefined,
+): ContributeAttemptDetail {
+  if (!read) return attempt;
+  const { conventions, prIssues, prTitle, prBody, prFix, result } = read;
+  const withTitle =
+    attempt.result && result?.prTitle && !attempt.result.prTitle
+      ? { ...attempt.result, prTitle: result.prTitle }
+      : attempt.result;
+  return { ...attempt, conventions, prIssues, prTitle, prBody, prFix, result: withTitle };
+}
+
+/**
+ * The follow-up flow's fields over the review: the checks in a word, the threads waiting, the round and the rounds,
+ * each draft's outcome and each test's `notRun`, matched by id (a draft or test the flow read does not name keeps
+ * its own fields only).
+ */
+export function withFollowUpFlow(
+  attempt: ContributeAttemptDetail,
+  flow: FollowUpFlowRead | undefined,
+): ContributeAttemptDetail {
+  if (!flow) return attempt;
+  const drafts = new Map((flow.replyDrafts ?? []).map(({ draftId, ...fields }) => [draftId, fields]));
+  const notRun = new Map((flow.result?.tests ?? []).map((test) => [test.command, test.notRun]));
+  return {
+    ...attempt,
+    checkStatus: flow.checkStatus,
+    reviewFeedback: flow.reviewFeedback,
+    round: flow.round,
+    followUps: attempt.followUps
+      ? { ...attempt.followUps, history: flow.followUps?.history ?? null }
+      : attempt.followUps,
+    result: attempt.result
+      ? {
+          ...attempt.result,
+          tests: attempt.result.tests.map((test) => ({ ...test, notRun: notRun.get(test.command) ?? null })),
+        }
+      : attempt.result,
+    replyDrafts: attempt.replyDrafts?.map((draft) => ({ ...draft, ...drafts.get(draft.draftId) })),
+  };
+}
+
+/** Whether the user's follow-ups resolve people's threads too; `undefined` when the API does not answer it. */
+export async function loadResolveHumanThreads(): Promise<boolean | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+  try {
+    const read = await graphqlDirect(ContributeResolveHumansDocument, undefined, { source: 'ssr', githubLogin });
+    const on = read.contribute?.contributor?.settings?.resolveHumanThreads;
+    return typeof on === 'boolean' ? on : undefined;
+  } catch {
+    return undefined;
   }
 }
 

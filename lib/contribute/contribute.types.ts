@@ -1,3 +1,5 @@
+import type { ContributeConventionsFields } from './pr-conventions';
+
 /** GitRanks Contribute as the GitRanks GraphQL API answers it. */
 
 export type ContributeLiveProvider = 'ANTHROPIC';
@@ -192,6 +194,16 @@ export type ContributeIssuePage = {
   computedAt: string | null;
 };
 
+/** Where a shown issue stands now: still free, taken by the user's own agent, or by another contributor. */
+export type ContributeIssueStatusValue = 'AVAILABLE' | 'CLAIMED_BY_YOU' | 'TAKEN';
+
+export type ContributeIssueStatus = {
+  issueId: string;
+  status: ContributeIssueStatusValue;
+  /** The user's attempt on it, with `CLAIMED_BY_YOU`; null otherwise. */
+  attemptId: string | null;
+};
+
 /**
  * What the Contribute pages render from. `grant` and `paused` come from fields the API may not answer yet: `undefined`
  * is "not available yet", which the pages show as such instead of failing.
@@ -305,14 +317,31 @@ export type ContributeAttemptCheckName =
 /** What last went wrong in a submission: a fixed code, and the API's note for the user. */
 export type ContributeSubmitError = { reason: string; note: string; at: string };
 
-/** A submission, from the approval on. `waitUntil` is set while it waits for the next day's pull requests. */
+/** When a write step (fork, sync, push, pull request) started and finished; `doneAt` null while it runs or failed. */
+export type ContributeSubmitStepTime = { step: ContributeSubmitStep; startedAt: string; doneAt: string | null };
+
+/**
+ * A submission, from the approval on. `waitUntil` is set while it waits for the next day's pull requests. The steps'
+ * clock (`steps`, `stepStartedAt`, `forkPending`, `retryAt`) is read in an operation of its own: absent while the API
+ * does not answer it.
+ */
 export type ContributeAttemptSubmit = {
   step: ContributeSubmitStep;
   waitUntil: string | null;
   fork: string | null;
   branch: string | null;
   lastError: ContributeSubmitError | null;
+  steps?: ContributeSubmitStepTime[] | null;
+  stepStartedAt?: string | null;
+  forkPending?: boolean | null;
+  retryAt?: string | null;
 };
+
+/** The parts of an attempt the submission's stepper reads again while it submits, and when they were read. */
+export type ContributeAttemptLive = Pick<
+  ContributeAttempt,
+  'attemptId' | 'state' | 'updatedAt' | 'submit' | 'pullRequest'
+>;
 
 export type ContributeAttemptPullRequest = {
   prId: string;
@@ -327,13 +356,16 @@ export type ContributeAttemptPullRequest = {
   syncedAt: string | null;
 };
 
-/** What the last read of an open pull request found: changes requested, a new comment, a check newly failing. */
-export type ContributePrSignalKind = 'CHANGES_REQUESTED' | 'COMMENT' | 'CHECK_FAILED';
+/**
+ * What the last read of an open pull request found: changes requested, a new comment, a check newly failing, a CLA
+ * to sign. Each leaves once its cause is gone, or once the user marks it handled.
+ */
+export type ContributePrSignalKind = 'CHANGES_REQUESTED' | 'COMMENT' | 'CHECK_FAILED' | 'CLA';
 
 export type ContributePrSignal = {
   kind: ContributePrSignalKind;
   at: string;
-  /** For a failing check: the failing checks' names. */
+  /** For a failing check: the failing checks' names; for a CLA: its check's. */
   detail: string | null;
 };
 
@@ -349,6 +381,74 @@ export type ContributeFollowUps = {
   handedOffAt: string | null;
   /** The follow-up under way. */
   currentAttemptId: string | null;
+  /** Each round so far, oldest first; `undefined` while the API does not answer it. */
+  history?: ContributeFollowUpRound[] | null;
+};
+
+/** One follow-up round as the pull request lines it up: "Round 1 pushed 46de700 · 5 fixed · 2 replied". */
+export type ContributeFollowUpRound = {
+  round: number;
+  attemptId: string;
+  state: ContributeAttemptState;
+  endReason: ContributeAttemptEndReason | null;
+  /** The pull request's head after the round's push. */
+  pushedSha: string | null;
+  fixed: number;
+  skipped: number;
+  needsYou: number;
+  replied: number;
+  resolved: number;
+  at: string;
+};
+
+/** Our checks in one word: a failing test, tests that could not run, or a rail that blocks the push. */
+export type ContributeCheckStatus = 'PASSED' | 'FAILED' | 'NOT_RUN' | 'BLOCKED';
+export type ContributeCheckStatusView = { status: ContributeCheckStatus; note: string };
+
+/** A review thread waiting for an answer on the pull request. Its author and text are untrusted. */
+export type ContributeFeedbackThread = {
+  threadId: string;
+  /** Its first comment's node id: what a follow-up is told to address. */
+  commentId: string;
+  author: string | null;
+  bot: boolean;
+  path: string | null;
+  line: number | null;
+  /** The comment as one plain line. */
+  excerpt: string;
+  url: string | null;
+  createdAt: string | null;
+  /** Ignored in an earlier round. */
+  ignored: boolean;
+};
+export type ContributeReviewFeedback = { threads: ContributeFeedbackThread[]; readAt: string | null };
+
+/** What a follow-up did about a review thread. */
+export type ContributeThreadOutcome = 'FIXED' | 'SKIPPED' | 'NEEDS_YOU';
+export type ContributeResolveState = 'NONE' | 'RESOLVING' | 'RESOLVED' | 'FAILED';
+
+/** The fields of the follow-up flow (2026-10-31), asked on their own: an API without them leaves the rest. */
+export type ContributeFollowUpFlowFields = {
+  checkStatus: ContributeCheckStatusView | null;
+  /** A first attempt's open pull request: the threads waiting for an answer, between rounds. */
+  reviewFeedback: ContributeReviewFeedback | null;
+  /** A follow-up: its round. */
+  round: ContributeFollowUpRound | null;
+};
+
+/** A reply draft's follow-up flow fields; `undefined` while the API does not answer them. */
+export type ContributeReplyDraftFlow = {
+  outcome: ContributeThreadOutcome | null;
+  /** The agent's reason: a skip's, or the question for the user. Untrusted. */
+  reason: string | null;
+  bot: boolean;
+  /** Posted before the text: "Fixed in <sha>: ", "Not changed: " (with "<commit>" before the push). */
+  prefix: string | null;
+  /** Approved to post with the push. */
+  send: boolean;
+  /** Its thread is resolved after the reply posts. */
+  resolve: boolean;
+  resolveState: ContributeResolveState;
 };
 
 /** The pull request a follow-up works on, and the first attempt that opened it. */
@@ -400,7 +500,13 @@ export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
     reviewAt?: string | null;
   };
 
-export type ContributeAttemptTest = { command: string; passed: boolean; output: string | null };
+export type ContributeAttemptTest = {
+  command: string;
+  passed: boolean;
+  output: string | null;
+  /** It could not run at all (dependencies, a toolchain); `undefined` while the API does not answer it. */
+  notRun?: boolean | null;
+};
 
 export type ContributeAttemptResult = {
   verdict: ContributeAttemptVerdict | null;
@@ -435,13 +541,19 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   patch: string | null;
   result: ContributeAttemptResult | null;
   readiness: ContributeRepoReadiness | null;
+  /**
+   * The repo requires a DCO sign-off on every commit: the review asks for it (or the standing consent gives it).
+   * False: nothing is asked and nothing is signed off. `undefined` while the API does not answer it.
+   */
+  dcoRequired?: boolean;
   checks: ContributeAttemptCheck[];
   cost: ContributeAttemptCost;
   approval: ContributeAttemptApproval | null;
   events: ContributeAttemptEvent[];
   /** The pull request's reply drafts (a follow-up: the ones it wrote); `undefined` while the API does not answer them. */
   replyDrafts?: ContributeReplyDraft[];
-};
+} & Partial<ContributeFollowUpFlowFields> &
+  ContributeConventionsFields;
 
 /** The review comment a reply answers: the first comment of its thread. */
 export type ContributeReplyTarget = {
@@ -473,7 +585,7 @@ export type ContributeReplyDraft = {
   lastError: ContributeSubmitError | null;
   createdAt: string;
   updatedAt: string;
-};
+} & Partial<ContributeReplyDraftFlow>;
 
 /**
  * A reply draft the user can approve now, with its pull request. `inReview`: its follow-up is itself waiting for the
@@ -611,7 +723,71 @@ export type ContributeActivityItem = {
 };
 
 /** The user's work in progress; no items when nothing runs. */
-export type ContributeActivity = { items: ContributeActivityItem[]; readAt: string };
+/** Where an agent run is; READY, DONE and STOPPED are settled (shown for 10 minutes, then gone). */
+export type ContributeAgentRunPhase =
+  | 'QUEUED'
+  | 'CHECKING_ISSUE'
+  | 'WORKING'
+  | 'ADDRESSING_REVIEW'
+  | 'RUNNING_CHECKS'
+  | 'WAITING_FOR_YOU'
+  | 'SUBMITTING'
+  | 'READY'
+  | 'DONE'
+  | 'STOPPED';
+
+/** One of the user's agent runs: live, or settled in the last 10 minutes. */
+export type ContributeAgentRun = {
+  attemptId: string;
+  nameWithOwner: string | null;
+  /** The issue. */
+  number: number;
+  title: string | null;
+  kind: ContributeAttemptKind;
+  runner: ContributeAttemptRunner;
+  state: ContributeAttemptState;
+  phase: ContributeAgentRunPhase;
+  /** One plain line, e.g. "Running checks", "Queued, 2nd in line". */
+  label: string;
+  /** An agent works on it now; false while it waits (queued, the autopilot's hour) or settled. */
+  active: boolean;
+  queuedAt: string;
+  /** Null while queued. */
+  startedAt: string | null;
+  /** Null while live. */
+  settledAt: string | null;
+  /** From the start (the queueing while queued) to the settle, or to the read. */
+  elapsedSeconds: number;
+  /** A hosted run's spend so far and its cap; null for the user's own agent. */
+  spendUsd: number | null;
+  budgetUsd: number | null;
+  latestEvent: ContributeAttemptEvent | null;
+  /** 1 for the next queued attempt to start. */
+  queuePosition: number | null;
+  /** The user's own agent: its last call. */
+  lastCallAt: string | null;
+  /** WAITING_FOR_YOU: when autopilot submits. */
+  autosubmitAt: string | null;
+  endReason: ContributeAttemptEndReason | null;
+  prUrl: string | null;
+};
+
+export type ContributeActivity = { items: ContributeActivityItem[]; runs: ContributeAgentRun[]; readAt: string };
+
+/** What a change touched: an attempt, the issues computed for the user, an issue's availability, the list, settings. */
+export type ContributeChangeArea = 'ATTEMPTS' | 'FEED' | 'ISSUES' | 'SET' | 'SETTINGS' | 'ACTIVITY';
+
+/** What moved for the user since a version (`contributeChanges`). */
+export type ContributeChanges = {
+  /** Opaque: sent back as `since`. */
+  version: string;
+  /** A long read may be running: the poll goes faster and reads the bar too. */
+  activity: boolean;
+  changed: ContributeChangeArea[];
+};
+
+/** A poll's answer: what moved, and the work in progress when it was read too (left out when it was not). */
+export type ContributeChangesRead = { changes: ContributeChanges; activity?: ContributeActivity | null };
 
 /** How a repo got on a list: "@me", a user or org (its login), or on its own. */
 export type ContributeSetRepoVia = { kind: ContributeSetRepoViaKind; login: string | null };

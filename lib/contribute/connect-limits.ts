@@ -21,8 +21,9 @@ export const CONNECT_DEFAULTS = {
   attemptCapUsd: 5,
   attemptsAtATime: 1,
   pace: 'EVEN',
-  mainModel: 'CLAUDE_SONNET_5_5',
+  mainModel: 'CLAUDE_OPUS_5_5',
   helperModel: 'CLAUDE_HAIKU_5_5',
+  testModel: 'CLAUDE_SONNET_5_5',
   maxChangedLines: 400,
   maxFiles: 15,
   openPrsAtATime: 3,
@@ -35,6 +36,7 @@ export const CONNECT_DEFAULTS = {
   pace: ContributeConnectPace;
   mainModel: ContributeModel;
   helperModel: ContributeModel;
+  testModel: ContributeModel | null;
   maxChangedLines: number;
   maxFiles: number;
   openPrsAtATime: number;
@@ -280,7 +282,7 @@ export function appliedLimitsOf(
         : credit !== null && choice
           ? `up to ${usd(credit)} of your credits, ${choice.label}'s monthly allowance`
           : 'your monthly allowance';
-  const { attemptsAtATime, openPrsAtATime, maxChangedLines, maxFiles, mainModel, helperModel } =
+  const { attemptsAtATime, openPrsAtATime, maxChangedLines, maxFiles, mainModel, helperModel, testModel } =
     kept ?? CONNECT_DEFAULTS;
   const languages = stored?.preferences?.languages ?? [];
 
@@ -303,7 +305,7 @@ export function appliedLimitsOf(
       { label: 'Each PR', value: `at most ${maxChangedLines} changed lines in ${maxFiles} files` },
       {
         label: 'Models',
-        value: `${modelName(mainModel)} does the work, ${modelName(helperModel)} helps`,
+        value: `${modelName(mainModel)} does the work, ${modelName(testModel ?? mainModel)} writes tests, ${modelName(helperModel)} helps`,
       },
     ],
     picked: [

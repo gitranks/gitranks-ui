@@ -13,17 +13,19 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadIssues: vi.fn(),
   loadAttempt: vi.fn(),
+  loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),
 }));
 
 const { ReviewScreen } = await import('./review-view');
+const { signOffOf } = await import('./pr-form');
 const { DiffViewer, LARGE_FILE_LINES, MAX_FILE_LINES, MAX_TOTAL_LINES } = await import('./diff-viewer');
 const { ContributionsScreen } = await import('./contributions-view');
 const { ReviewsReady } = await import('./reviews-ready');
 const { IssuesScreen } = await import('./issues-view');
 const { NOW, views, settings } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { PATCH, attempt, attempts, contributions, detail, stopped } = await import(
+const { PATCH, attempt, attempts, contributions, detail, pullRequest, stopped } = await import(
   '@/lib/contribute/__fixtures__/contribute-attempts'
 );
 const { END_REASONS, LIVE_STATES } = await import('@/lib/contribute/attempt-format');
@@ -142,21 +144,152 @@ describe('the review screen', () => {
     expect(html).toMatch(/<pre[^>]*>Fixes #871\n\nJust a change.<\/pre>/);
   });
 
-  it('asks for the DCO sign-off, says when the repo asks for it, and not under a standing consent', () => {
-    expect(review(attempts.review)).toContain('data-dco="ask"');
-    expect(review(attempts.review)).toContain('type="checkbox"');
+  it('asks for the DCO sign-off only where the repo requires it, says what DCO is, and not under a standing consent', () => {
+    const required = detail({ dcoRequired: true });
+    const html = review(required);
+    expect(html).toContain('data-dco="required"');
+    expect(html).toContain('type="checkbox"');
+    expect(text(html)).toContain('This repo requires a DCO sign-off.');
+    expect(html).toContain('data-dco-explained');
+    expect(html).toContain('href="https://developercertificate.org/"');
+    // Unticked, Submit waits: an unsigned PR would fail the repo's DCO check.
+    expect(html).toContain('data-dco-missing');
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
 
-    const asked = detail({ readiness: { ...attempts.review.readiness!, notes: 'Commits need Signed-off-by (DCO).' } });
-    expect(review(asked)).toContain('data-dco="asked"');
-    expect(text(review(asked))).toContain('This repo asks for a DCO sign-off.');
+    // A repo that requires none: nothing about DCO, whatever its notes say.
+    const none = review(
+      detail({
+        dcoRequired: false,
+        readiness: { ...attempts.review.readiness!, notes: 'Commits need Signed-off-by.' },
+      }),
+    );
+    expect(none).not.toContain('data-dco');
+    expect(none).not.toContain('type="checkbox"');
+
+    // An API that does not say yet: the old ask, in case the repo does.
+    expect(review(attempts.review)).toContain('data-dco="ask"');
 
     const standing = {
       ...views.active,
       contributor: { ...views.active.contributor, settings: { ...settings, dco: 'STANDING' as const } },
     };
-    const html = review(attempts.review, standing);
-    expect(html).toContain('data-dco="standing"');
-    expect(html).not.toContain('type="checkbox"');
+    const consented = review(required, standing);
+    expect(consented).toContain('data-dco="standing"');
+    expect(text(consented)).toContain(
+      'This repo requires a DCO sign-off: the commits are signed off under your standing',
+    );
+    expect(consented).not.toContain('type="checkbox"');
+    expect(consented).not.toContain('data-dco-missing');
+    expect(review(detail({ dcoRequired: false }), standing)).not.toContain('data-dco');
+  });
+
+  it('shows what the repo needs, checks the title live against its rule, and blocks only a failing hard rule', () => {
+    const repoConventions = {
+      title: {
+        hard: true,
+        source: '`.github/semantic.yml`',
+        types: ['feat', 'fix', 'docs'],
+        scopes: null,
+        requireScope: false,
+        pattern: null,
+      },
+      titleExamples: ['fix(router): keep the cache'],
+      template: { path: '.github/pull_request_template.md', aiAsks: ['If you are an AI agent, name your model'] },
+      changelog: { kind: 'FILE' as const, path: 'CHANGELOG.md', required: true, source: '9 of the last 10' },
+      cla: { check: 'license/cla', signUrl: 'https://cla-assistant.io/driftwood-js/driftwood' },
+      dco: false,
+      generated: ['test-vr/__snapshots__/'],
+      notes: [],
+    };
+    // The agent proposed a title that passes: the form opens with it, Submit open.
+    const passing = review(
+      detail({
+        conventions: repoConventions,
+        result: { ...attempts.review.result!, prTitle: 'fix(router): keep the layout cache' },
+      }),
+    );
+    expect(passing).toContain('data-repo-needs');
+    expect(passing).toContain('value="fix(router): keep the layout cache"');
+    expect(passing).toMatch(/data-need="title" data-state="ok"/);
+    expect(passing).toMatch(/data-need="cla" data-state="todo"/);
+    expect(passing).toContain('href="https://cla-assistant.io/driftwood-js/driftwood"');
+    expect(text(passing)).toContain("A signed CLA: sign it after the PR opens; we can't sign for you");
+    expect(passing).toMatch(/data-need="changelog" data-state="todo"/);
+    expect(passing).not.toContain('data-title-rule-fails');
+    expect(passing).not.toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+
+    // The issue's own title fails the repo's checked rule: said, and Submit waits.
+    const failing = review(detail({ conventions: repoConventions, title: 'Layout cache drops nested routes' }));
+    expect(failing).toMatch(/data-need="title" data-state="blocked"/);
+    expect(failing).toContain('aria-invalid="true"');
+    expect(failing).toContain('data-title-rule-fails');
+    expect(failing).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+
+    // A rule the repo only asks for: told, never blocking. No conventions read: no section.
+    const soft = review(
+      detail({
+        conventions: { ...repoConventions, title: { ...repoConventions.title, hard: false } },
+        title: 'Layout',
+      }),
+    );
+    expect(soft).toMatch(/data-need="title" data-state="todo"/);
+    expect(soft).not.toContain('data-title-rule-fails');
+    expect(review(detail())).not.toContain('data-repo-needs');
+  });
+
+  it("offers the open pull request's one-click fixes, and the CLA as a link only", () => {
+    const html = review(
+      detail({
+        state: 'PR_OPEN',
+        pullRequest: pullRequest(),
+        prTitle: 'Layout cache drops nested routes',
+        prIssues: [
+          {
+            kind: 'TITLE',
+            check: 'Semantic PR',
+            message: "Use the repo's `type(scope): summary` form.",
+            suggestion: 'fix: layout cache drops nested routes',
+          },
+          {
+            kind: 'CHANGELOG',
+            check: null,
+            message: 'The changelog line still waits for the pull request number.',
+            suggestion: '- fix: layout cache [#1419](https://github.com/driftwood-js/driftwood/pull/1419)',
+          },
+          { kind: 'TEMPLATE', check: 'PR description', message: 'Fill in the template.', suggestion: null },
+          {
+            kind: 'CLA',
+            check: 'license/cla',
+            message: "Sign the repo's CLA; we can't sign for you.",
+            suggestion: 'https://cla-assistant.io/x/y',
+          },
+        ],
+        prFix: { kind: 'LINK', state: 'FAILED', note: 'The branch moved.', at: '2026-10-28T12:00:00.000Z' },
+      }),
+    );
+    const plain = text(html);
+    expect(html).toContain('data-panel="pr-conventions"');
+    expect(plain).toContain('Retitle to “fix: layout cache drops nested routes”');
+    expect(plain).toContain('Fix the changelog line');
+    expect(plain).toContain('Edit the description');
+    expect(html).toContain('href="https://cla-assistant.io/x/y"');
+    expect(html).toContain('data-pr-fix="failed"');
+    expect(plain).toContain('Linking the changelog line to the pull request did not go through: The branch moved.');
+    // Nothing to fix, nothing sent: no card.
+    expect(review(detail({ state: 'PR_OPEN', pullRequest: pullRequest(), prIssues: [], prFix: null }))).not.toContain(
+      'data-panel="pr-conventions"',
+    );
+  });
+
+  it('signs off only where the repo requires it (or the API does not say), with the tick or the standing consent', () => {
+    expect(signOffOf(false, 'STANDING', true)).toBe(false);
+    expect(signOffOf(false, 'ASK', true)).toBe(false);
+    expect(signOffOf(true, 'STANDING', false)).toBe(true);
+    expect(signOffOf(true, 'ASK', true)).toBe(true);
+    expect(signOffOf(true, 'ASK', false)).toBe(false);
+    expect(signOffOf(true, null, false)).toBe(false);
+    expect(signOffOf(undefined, 'STANDING', false)).toBe(true);
+    expect(signOffOf(undefined, 'ASK', false)).toBe(false);
   });
 
   it('asks to approve again after a submission bounced back, with its note and the edited text', () => {
@@ -195,7 +328,8 @@ describe('the review screen', () => {
   });
 
   it.each([
-    ['submittingQueued', 'QUEUED', 'Approved. The submission starts in a moment.', null],
+    // Queued, the fork is next: it reads as starting.
+    ['submittingQueued', 'QUEUED', 'Approved. The submission starts in a moment.', 'FORK'],
     ['submittingFork', 'FORK', 'Making your fork of the repo.', 'FORK'],
     ['submittingSync', 'SYNC', 'Bringing your fork up to date', 'SYNC'],
     ['submittingPush', 'PUSH', 'Pushing the change to a branch on your fork.', 'PUSH'],
@@ -220,6 +354,152 @@ describe('the review screen', () => {
     expect(html).toContain('data-step="FORK" data-step-state="done"');
     expect(html).toContain('data-step="SYNC" data-step-state="done"');
     expect(html).toContain('data-step="PULL_REQUEST" data-step-state="pending"');
+  });
+
+  /** A submission with its steps' clock: fork and sync done, the push running for 4 s at NOW. */
+  const clocked = (patch: Partial<ContributeAttemptDetail> = {}, submit = {}) =>
+    detail({
+      ...attempts.submittingPush,
+      ...patch,
+      submit: {
+        ...attempts.submittingPush.submit!,
+        steps: [
+          { step: 'FORK', startedAt: '2026-10-28T11:59:50.000Z', doneAt: '2026-10-28T11:59:52.700Z' },
+          { step: 'SYNC', startedAt: '2026-10-28T11:59:52.700Z', doneAt: '2026-10-28T11:59:56.000Z' },
+          { step: 'PUSH', startedAt: '2026-10-28T11:59:56.000Z', doneAt: null },
+        ],
+        stepStartedAt: '2026-10-28T11:59:56.000Z',
+        forkPending: false,
+        retryAt: null,
+        ...submit,
+      },
+    });
+  const stepOf = (html: string, step: string) =>
+    text(html.match(new RegExp(`<li data-step="${step}"[^>]*>.*?</li>`))?.[0] ?? '');
+
+  it('shows each done step with how long it took, and the running one with its time so far', () => {
+    const html = review(clocked());
+
+    expect(html).toContain('data-step="FORK" data-step-state="done"');
+    expect(stepOf(html, 'FORK')).toContain('2.7 s');
+    expect(stepOf(html, 'SYNC')).toContain('3.3 s');
+    expect(html).toMatch(/data-step="PUSH" data-step-state="current" aria-current="step"/);
+    expect(stepOf(html, 'PUSH')).toContain('Push : in progress 4 s');
+    expect(stepOf(html, 'PULL_REQUEST')).toContain('Pull request : not started');
+    // The lines fill behind the done steps only.
+    expect((html.match(/data-step-line="filled"/g) ?? []).length).toBe(2);
+    expect(html).toContain('role="status"');
+    expect(text(html)).toContain('Pushing the change to a branch on your fork.');
+  });
+
+  it('spins and pulses only under motion-safe, so reduced motion keeps the stepper still', () => {
+    const html = review(clocked()).match(/<ol aria-label="Submission steps".*?<\/ol>/)?.[0] ?? '';
+    const animated = [...html.matchAll(/class="([^"]*(?:animate-|transition)[^"]*)"/g)].map(([, classes]) => classes);
+
+    expect(animated.length).toBeGreaterThan(0);
+    for (const classes of animated) {
+      for (const name of classes.split(' ').filter((name) => /animate-|transition|duration-/.test(name))) {
+        expect(name.startsWith('motion-safe:') || name.startsWith('motion-reduce:'), name).toBe(true);
+      }
+    }
+  });
+
+  it('says GitHub is making the fork while it waits for it', () => {
+    const html = review(clocked({}, { step: 'FORK', steps: [], forkPending: true, stepStartedAt: NOW.toISOString() }));
+
+    expect(text(html)).toContain('GitHub is making your fork. A new fork can take a few minutes.');
+    expect(html).toMatch(/data-step="FORK" data-step-state="current"/);
+  });
+
+  it('marks a step tried again after a passing failure, and says when', () => {
+    const html = review(
+      clocked(
+        {},
+        {
+          retryAt: '2026-10-28T12:00:45.000Z',
+          lastError: {
+            reason: 'transient',
+            note: 'GitHub did not answer; trying again shortly.',
+            at: NOW.toISOString(),
+          },
+        },
+      ),
+    );
+
+    expect(html).toMatch(/data-step="PUSH" data-step-state="retrying" aria-current="step"/);
+    expect(stepOf(html, 'PUSH')).toContain('Again in 45 s');
+    // The countdown sits on the step; the live line keeps the note alone, so it is not read out every second.
+    expect(text(html)).toContain('GitHub did not answer; trying again shortly. From octocat/driftwood');
+    // Said once, in the stepper's line.
+    expect(html).not.toContain('data-submit-error');
+  });
+
+  it('shows the sync as not needed when the own repo stands for the fork', () => {
+    const html = review(
+      clocked(
+        {},
+        {
+          step: 'PULL_REQUEST',
+          steps: [
+            { step: 'FORK', startedAt: '2026-10-28T11:59:50.000Z', doneAt: '2026-10-28T11:59:51.000Z' },
+            { step: 'PUSH', startedAt: '2026-10-28T11:59:51.000Z', doneAt: '2026-10-28T11:59:55.000Z' },
+            { step: 'PULL_REQUEST', startedAt: '2026-10-28T11:59:55.000Z', doneAt: null },
+          ],
+        },
+      ),
+    );
+
+    expect(html).toContain('data-step="SYNC" data-step-state="skipped"');
+    expect(stepOf(html, 'SYNC')).toContain('Not needed');
+    expect((html.match(/data-step-line="filled"/g) ?? []).length).toBe(3);
+  });
+
+  it('shows where a submission failed, with its note and a way to try again', () => {
+    const html = review(
+      clocked(
+        { state: 'REVIEW' },
+        {
+          lastError: {
+            reason: 'branch_conflict',
+            note: 'Your fork already has this branch with other commits.',
+            at: NOW.toISOString(),
+          },
+        },
+      ),
+    );
+
+    expect(html).toContain('data-attempt-status="REVIEW"');
+    expect(html).toContain('data-step="FORK" data-step-state="done"');
+    expect(html).toContain('data-step="PUSH" data-step-state="failed"');
+    expect(stepOf(html, 'PUSH')).toContain('Push : failed Failed');
+    expect(text(html)).toContain('Your fork already has this branch with other commits.');
+    expect(text(html)).toContain('Try again');
+    expect(html).toContain('id="pr-form"');
+  });
+
+  it('shows the steps done and links the pull request when it just opened', () => {
+    const opened = clocked(
+      { state: 'PR_OPEN', pullRequest: pullRequest({ openedAt: '2026-10-28T11:59:59.000Z' }) },
+      {
+        step: 'PULL_REQUEST',
+        steps: [
+          { step: 'FORK', startedAt: '2026-10-28T11:59:50.000Z', doneAt: '2026-10-28T11:59:52.700Z' },
+          { step: 'SYNC', startedAt: '2026-10-28T11:59:52.700Z', doneAt: '2026-10-28T11:59:56.000Z' },
+          { step: 'PUSH', startedAt: '2026-10-28T11:59:56.000Z', doneAt: '2026-10-28T11:59:57.500Z' },
+          { step: 'PULL_REQUEST', startedAt: '2026-10-28T11:59:57.500Z', doneAt: '2026-10-28T11:59:59.000Z' },
+        ],
+      },
+    );
+    const html = review(opened);
+
+    expect(html).toContain('data-attempt-status="PR_OPEN"');
+    expect((html.match(/data-step-state="done"/g) ?? []).length).toBe(4);
+    expect(stepOf(html, 'PULL_REQUEST')).toContain('Pull request #1419 ↗');
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
+    expect(text(html)).toContain('Your pull request is open');
+
+    // Opened a while ago: the PR card alone.
+    expect(review(attempts.prOpen)).not.toContain('data-step-state');
   });
 
   it("waits for tomorrow under the day's cap, and says when it goes on", () => {

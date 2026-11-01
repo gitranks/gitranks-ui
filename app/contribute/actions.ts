@@ -1,22 +1,31 @@
 'use server';
 
 import { agentConnectedOf } from '@/lib/contribute/agent-connect';
+import { anyActive, runsOf } from '@/lib/contribute/agent-runs';
 import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
-import { viewerLogin } from '@/lib/contribute/contribute.data';
+import { viewerEmail, viewerLogin } from '@/lib/contribute/contribute.data';
 import {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
+  ApproveFollowUpDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
   ContributeActivityDocument,
+  ContributeAttemptLiveBareDocument,
+  ContributeAttemptLiveDocument,
+  ContributeChangesDocument,
   ContributeFeedComputedDocument,
+  ContributeIssueStatusDocument,
+  ContributeIssuesDocument,
   ContributeOnboardingDocument,
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
   DeleteContributeDataDocument,
   DiscardAttemptDocument,
+  FixContributePullRequestDocument,
   IgnoreContributeRepoDocument,
+  MarkNeedsYouHandledDocument,
   NoteProviderInterestDocument,
   PauseContributingDocument,
   RemoveFromContributeSetDocument,
@@ -31,15 +40,19 @@ import {
   SetContributeModeDocument,
   SetContributeSettingsDocument,
   SetPreferencesDocument,
+  SetResolveHumansDocument,
   SkipIssueDocument,
   StartFollowUpDocument,
+  StartFollowUpOnDocument,
   UnignoreContributeRepoDocument,
   VetoAutopilotDocument,
   WithdrawProviderInterestDocument,
 } from '@/lib/contribute/contribute.documents';
 import type {
-  ContributeActivity,
   ContributeAttempt,
+  ContributeAttemptLive,
+  ContributeChanges,
+  ContributeChangesRead,
   ContributeClaudePlan,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
@@ -47,6 +60,9 @@ import type {
   ContributeDeleteDataResult,
   ContributeFeedbackContext,
   ContributeFeedbackTopic,
+  ContributeIssuePage,
+  ContributeIssueStatus,
+  ContributeIssuesFilter,
   ContributeMcpTokenCreated,
   ContributePreferences,
   ContributePreferencesInput,
@@ -67,11 +83,27 @@ import {
   contributeErrorOf,
   contributeSetErrorOf,
 } from '@/lib/contribute/errors';
+import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
+import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
-import { contributeModesShown } from '@/lib/contribute/modes-gate';
+import { activityFor, contributeModesShown } from '@/lib/contribute/modes-gate';
+import {
+  type ContributeConventionsFields,
+  type ContributePrFixKind,
+  PR_FIX_KINDS,
+} from '@/lib/contribute/pr-conventions';
 import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type DocumentNode from '@/types/typed-document-node';
+
+/** A write (a mutation) carries the session's email, so the emails the user asks for have an address; a read never. */
+const isWrite = (document: DocumentNode<unknown, never>) =>
+  (document as unknown as { definitions: { kind: string; operation?: string }[] }).definitions.some(
+    (definition) => definition.kind === 'OperationDefinition' && definition.operation === 'mutation',
+  );
+
+const accountEmailFor = async (document: DocumentNode<unknown, never>) =>
+  isWrite(document) ? await viewerEmail() : undefined;
 
 /** Every action runs as the session's user, never one named in its arguments. */
 async function run<TData, TVariables extends Record<string, unknown>, T>(
@@ -82,7 +114,8 @@ async function run<TData, TVariables extends Record<string, unknown>, T>(
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   try {
-    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin });
+    const accountEmail = await accountEmailFor(document as DocumentNode<unknown, never>);
+    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
     return { ok: true, data: pick(data) };
   } catch (error) {
     return { ok: false, ...contributeErrorOf(error) };
@@ -187,6 +220,54 @@ export async function skipIssue(issueId: string): Promise<ContributeActionResult
   return run(SkipIssueDocument, { issueId: String(issueId) }, (data) => data.skipIssue);
 }
 
+/**
+ * The shown issues as they are now, in the order given: at most the first 50 ids are asked. Null when the API hides
+ * it from the user; none for no ids, without a call.
+ */
+export async function readIssueStatuses(
+  issueIds: string[],
+): Promise<ContributeActionResult<ContributeIssueStatus[] | null>> {
+  const ids = (Array.isArray(issueIds) ? issueIds : [])
+    .filter((id) => typeof id === 'string' && id)
+    .slice(0, ISSUE_STATUS_IDS_MAX);
+  if (!ids.length) return { ok: true, data: [] };
+  return run(ContributeIssueStatusDocument, { issueIds: ids }, (data) => data.contributeIssueStatus);
+}
+
+export type IssuesPageInput = { filter?: ContributeIssuesFilter; after: string; first: number };
+
+/** The feed's filters, their known values alone. */
+function issuesFilterOf(filter: ContributeIssuesFilter | undefined): ContributeIssuesFilter {
+  if (!filter || typeof filter !== 'object') return {};
+  const known = <T extends string>(values: unknown, allowed: Record<T, unknown>) =>
+    (Array.isArray(values) ? values : []).filter(
+      (value): value is T => typeof value === 'string' && Object.hasOwn(allowed, value),
+    );
+  const languages = known(filter.languages, LANGUAGES);
+  const kinds = known(filter.kinds, KINDS);
+  const maxSize = known([filter.maxSize], SIZES)[0];
+  return {
+    ...(languages.length ? { languages } : {}),
+    ...(kinds.length ? { kinds } : {}),
+    ...(maxSize ? { maxSize } : {}),
+  };
+}
+
+/** More of the feed after a cursor, under the same filters: what fills a page whose issues were taken meanwhile. */
+export async function readIssuesPage(
+  input: IssuesPageInput,
+): Promise<ContributeActionResult<ContributeIssuePage | null>> {
+  const after = typeof input?.after === 'string' ? input.after : '';
+  if (!after || after.length > 512) return invalid('No more issues to read.');
+  const first = Math.min(Math.max(Math.trunc(Number(input.first)) || 1, 1), ISSUES_PAGE_SIZE);
+  const filter = issuesFilterOf(input.filter);
+  return run(
+    ContributeIssuesDocument,
+    { first, after, ...(Object.keys(filter).length ? { filter } : {}) },
+    (data) => data.contributeIssues,
+  );
+}
+
 export type ApproveAttemptInput = { id: string; title: string; body: string; dco: boolean };
 
 /** Approves an attempt in review with the pull request's title and body as edited: the submission starts. */
@@ -211,19 +292,148 @@ export async function approveAttempt(input: ApproveAttemptInput): Promise<Contri
   );
 }
 
+/**
+ * The submission's stepper reads the attempt again while it submits: its state, the submission with its steps' clock
+ * and the pull request, plus when they were read (to set the elapsed times against our clock). An API that does not
+ * answer the clock yet is read without it, and `clock: false` tells the stepper to ask without it from then on.
+ */
+export async function readAttemptLive(
+  id: string,
+  withClock = true,
+): Promise<ContributeActionResult<{ attempt: ContributeAttemptLive | null; readAt: string; clock: boolean }>> {
+  const variables = { id: String(id) };
+  const bare = () => run(ContributeAttemptLiveBareDocument, variables, (data) => data.contributeAttempt);
+  let clock = withClock !== false;
+  let result = clock
+    ? await run(ContributeAttemptLiveDocument, variables, (data) => data.contributeAttempt)
+    : await bare();
+  if (!result.ok && clock && result.error === 'NOT_AVAILABLE_YET') {
+    clock = false;
+    result = await bare();
+  }
+  return result.ok ? { ok: true, data: { attempt: result.data, readAt: new Date().toISOString(), clock } } : result;
+}
+
 /** Discards an attempt in review (or queued): its issue goes back to the pool. */
 export async function discardAttempt(id: string): Promise<ContributeActionResult<ContributeAttempt>> {
   return run(DiscardAttemptDocument, { id: String(id) }, (data) => data.discardAttempt);
 }
 
-/** Starts a follow-up on the user's open pull request (its node id): new commits and drafted replies, for review. */
-export async function startFollowUp(prId: string): Promise<ContributeActionResult<ContributeAttempt>> {
-  return run(StartFollowUpDocument, { prId: String(prId) }, (data) => data.startFollowUp);
+/**
+ * Starts a follow-up on the user's open pull request (its node id): new commits and drafted replies, for review. With
+ * `commentIds`, on those review threads alone; the pull request's other waiting threads are ignored from then on.
+ */
+export async function startFollowUp(
+  prId: string,
+  commentIds?: string[],
+): Promise<ContributeActionResult<ContributeAttempt>> {
+  const ids = Array.isArray(commentIds) ? commentIds.map(String).filter(Boolean) : [];
+  if (Array.isArray(commentIds) && !ids.length) {
+    return { ok: false, error: 'INVALID', message: 'Choose at least one comment to address.' };
+  }
+  // Never cut silently: the comments left out would be ignored from then on.
+  if (ids.length > FOLLOW_UP_THREADS_MAX) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `A round takes ${FOLLOW_UP_THREADS_MAX} comments at most. Ignore the rest for now; you can address them in a later round.`,
+    };
+  }
+  return ids.length
+    ? run(StartFollowUpOnDocument, { prId: String(prId), commentIds: ids }, (data) => data.startFollowUp)
+    : run(StartFollowUpDocument, { prId: String(prId) }, (data) => data.startFollowUp);
+}
+
+/** The most review threads one follow-up addresses (the API's; the review-feedback card keeps to it). */
+const FOLLOW_UP_THREADS_MAX = 20;
+/** The longest reply GitHub takes from us (the API's). */
+const REPLY_MAX = 8_000;
+
+export type FollowUpReplyInput = { draftId: string; text: string; send: boolean };
+
+/**
+ * Approves a follow-up in review with its replies as edited: its commits are pushed to the pull request, then each
+ * reply sent is posted ("Fixed in <commit>: …"), and a bot's thread is resolved.
+ */
+export async function approveFollowUp(
+  id: string,
+  title: string,
+  replies: FollowUpReplyInput[],
+): Promise<ContributeActionResult<ContributeAttempt>> {
+  const list = (Array.isArray(replies) ? replies : []).map((reply) => ({
+    draftId: String(reply.draftId),
+    text: String(reply.text ?? '').trim(),
+    send: reply.send === true,
+  }));
+  if (list.some((reply) => reply.text.length > REPLY_MAX)) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `Keep each reply under ${REPLY_MAX.toLocaleString('en-US')} characters.`,
+    };
+  }
+  if (list.some((reply) => reply.send && !reply.text)) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: 'A reply you chose to post has no text. Write it, or leave it out.',
+    };
+  }
+  return run(
+    ApproveFollowUpDocument,
+    { id: String(id), title: String(title || 'Follow-up'), replies: list },
+    (data) => data.approveAttempt,
+  );
+}
+
+/** Whether a follow-up's replies resolve people's threads too (off: only bots'; reviewers resolve their own). */
+export async function setResolveHumanThreads(on: boolean): Promise<ContributeActionResult<boolean>> {
+  return run(
+    SetResolveHumansDocument,
+    { on: on === true },
+    (data) => data.setContributeSettings?.resolveHumanThreads === true,
+  );
 }
 
 /** Stops autopilot from submitting an attempt in its hour: it goes to the review instead. */
 export async function vetoAutopilot(attemptId: string): Promise<ContributeActionResult<ContributeAttempt>> {
   return run(VetoAutopilotDocument, { attemptId: String(attemptId) }, (data) => data.vetoAutopilot);
+}
+
+/**
+ * A one-click fix to the user's open pull request, on their GitHub access: TITLE retitles it, BODY sets its
+ * description (the footer kept), CHANGELOG fixes its changelog line in a commit on its branch.
+ */
+export async function fixPullRequest(input: {
+  attemptId: string;
+  kind: ContributePrFixKind;
+  title?: string;
+  body?: string;
+}): Promise<ContributeActionResult<Required<ContributeConventionsFields>>> {
+  const kind = PR_FIX_KINDS.includes(input.kind) ? input.kind : null;
+  if (!kind) return { ok: false, error: 'INVALID', message: 'That fix is not one we make.' };
+  const title = kind === 'TITLE' ? String(input.title ?? '').trim() : undefined;
+  if (kind === 'TITLE' && (!title || title.length > PR_TITLE_MAX)) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `Give the pull request a title of ${PR_TITLE_MAX} characters at most.`,
+    };
+  }
+  const body = kind === 'BODY' ? String(input.body ?? '') : undefined;
+  if (body !== undefined && body.length > PR_BODY_MAX) {
+    return { ok: false, error: 'INVALID', message: `Keep the description to ${PR_BODY_MAX} characters at most.` };
+  }
+  return run(
+    FixContributePullRequestDocument,
+    { attemptId: String(input.attemptId), kind, title, body },
+    (data) => data.fixContributePullRequest,
+  );
+}
+
+/** Clears what the pull request's last reads found: the user took care of it. Something new raises it again. */
+export async function markNeedsYouHandled(prId: string): Promise<ContributeActionResult<ContributeAttempt>> {
+  return run(MarkNeedsYouHandledDocument, { prId: String(prId) }, (data) => data.markNeedsYouHandled);
 }
 
 /** Approves a drafted reply: it is posted publicly on GitHub, in the user's name. */
@@ -313,7 +523,8 @@ async function runSet<TData, TVariables extends Record<string, unknown>, T>(
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   if (!contributeModesShown(githubLogin)) return { ok: false, error: 'NOT_FOUND' };
   try {
-    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin });
+    const accountEmail = await accountEmailFor(document as DocumentNode<unknown, never>);
+    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
     return { ok: true, data: pick(data) };
   } catch (error) {
     return { ok: false, ...contributeSetErrorOf(error) };
@@ -347,11 +558,48 @@ const oneOf = <T extends string>(values: readonly T[], value: unknown): value is
 const invalid = (message: string) => ({ ok: false as const, error: 'INVALID' as const, message });
 
 /** What the API is working on for the user now; null when the modes are not shown to them. */
-export async function readContributeActivity(): Promise<ContributeActionResult<ContributeActivity | null>> {
+const VERSION = /^\d{1,15}\.\d{1,15}$/;
+
+/**
+ * Contribute's one poll: what moved since `since` (a version a previous read answered; null for none). The work in
+ * progress is read in the same call when `withActivity`, when a long read may run, or when it may have started or
+ * ended; a failed read of it leaves it out. For a login the modes are not shown to, it holds the agent runs alone.
+ * Null when the API hides Contribute from the user.
+ */
+export async function readContributeChanges(
+  since: string | null,
+  withActivity: boolean,
+): Promise<ContributeActionResult<ContributeChangesRead | null>> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
-  if (!contributeModesShown(githubLogin)) return { ok: true, data: null };
-  return run(ContributeActivityDocument, undefined, (data) => data.contributeActivity);
+  const variables = { since: typeof since === 'string' && VERSION.test(since) ? since : null };
+  let changes: ContributeChanges | null;
+  try {
+    ({ contributeChanges: changes = null } = await graphqlDirect(ContributeChangesDocument, variables, {
+      source: 'client',
+      githubLogin,
+    }));
+  } catch (error) {
+    return { ok: false, ...contributeErrorOf(error) };
+  }
+  if (!changes) return { ok: true, data: null };
+  const reads =
+    withActivity === true || changes.activity || changes.changed.some((area) => area === 'ACTIVITY' || area === 'SET');
+  if (!reads) return { ok: true, data: { changes } };
+  try {
+    const { contributeActivity } = await graphqlDirect(ContributeActivityDocument, undefined, {
+      source: 'client',
+      githubLogin,
+    });
+    // The reads of the modes only for a login they are shown to; the agent runs for everyone. For the others, only an
+    // agent at work holds the poll fast: their hidden reads never do.
+    const activity = activityFor(githubLogin, contributeActivity);
+    if (contributeModesShown(githubLogin)) return { ok: true, data: { changes, activity } };
+    return { ok: true, data: { changes: { ...changes, activity: anyActive(runsOf(activity)) }, activity } };
+  } catch {
+    if (contributeModesShown(githubLogin)) return { ok: true, data: { changes } };
+    return { ok: true, data: { changes: { ...changes, activity: false } } };
+  }
 }
 
 /** Switches where the user's issues come from; each mode keeps its own list. */

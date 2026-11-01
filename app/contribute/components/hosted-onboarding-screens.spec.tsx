@@ -13,7 +13,6 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('./live-refresh', () => ({ LiveRefresh: () => <span data-live-refresh /> }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 
 const { KeyConnect } = await import('./key-connect');
@@ -231,7 +230,7 @@ describe('A3, what happens next before the first attempt', () => {
     expect(text(paused)).not.toContain('Nothing for you to do');
 
     expect(guide(withContributor({ spend: { ...spend, nextAttemptAt: null } }))).toContain(
-      'href="/contribute/settings/budget"',
+      'href="/contribute/settings/budget#more-limits"',
     );
   });
 

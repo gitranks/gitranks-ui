@@ -5,9 +5,13 @@ import type {
   ContributeAttempt,
   ContributeAttemptDetail,
   ContributeAttemptFollowUpFields,
+  ContributeAttemptLive,
   ContributeAttemptState,
+  ContributeAttemptSubmit,
   ContributeAutopilot,
   ContributeAutopilotReviewReason,
+  ContributeChanges,
+  ContributeCheckStatusView,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
   ContributeConnectLimits,
@@ -15,9 +19,11 @@ import type {
   ContributeDeleteDataResult,
   ContributeFeedbackContext,
   ContributeFeedbackTopic,
+  ContributeFollowUpRound,
   ContributeGrant,
   ContributeIssue,
   ContributeIssuePage,
+  ContributeIssueStatus,
   ContributeIssuesFilter,
   ContributeMaintainerRepos,
   ContributeMcpToken,
@@ -29,7 +35,9 @@ import type {
   ContributePreferences,
   ContributePreferencesInput,
   ContributeReplyDraft,
+  ContributeReplyDraftFlow,
   ContributeReplyWaiting,
+  ContributeReviewFeedback,
   ContributeScheduleCounts,
   ContributeSet,
   ContributeSetAddResult,
@@ -41,6 +49,7 @@ import type {
   ContributeSettingsInput,
   Contributor,
 } from './contribute.types';
+import type { ContributeConventionsFields, ContributePrFixKind } from './pr-conventions';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
@@ -121,6 +130,9 @@ export const ContributeContributionsOwnAgentDocument = doc<
   contributeContributions(first: $first) { items { attemptId runner agent { name model } openedBy } }
 }`);
 
+/** Contribute is launched (`CONTRIBUTE_PREVIEW=true` on the API): open to everyone, signed-out visitors included. */
+export const ContributeOpenDocument = doc<{ contributeOpen: boolean }>('query ContributeOpen { contributeOpen }');
+
 export const ContributePreviewDocument = doc<{ contribute: { previewAllowed: boolean } | null }>(
   'query ContributePreview { contribute { previewAllowed } }',
 );
@@ -189,6 +201,14 @@ export const ContributeIssuesDocument = doc<
     items { ${ISSUE} tier }
     next total computedAt
   }
+}`);
+
+/** The shown issues as they are now, in the order asked (1 to 50 ids); null when the API hides it from the user. */
+export const ContributeIssueStatusDocument = doc<
+  { contributeIssueStatus: ContributeIssueStatus[] | null },
+  { issueIds: string[] }
+>(`query ContributeIssueStatus($issueIds: [ID!]!) {
+  contributeIssueStatus(issueIds: $issueIds) { issueId status attemptId }
 }`);
 
 export const ConnectClaudeKeyDocument = doc<
@@ -306,6 +326,67 @@ export const ContributeAttemptDocument = doc<{ contributeAttempt: ContributeAtte
 }`,
 );
 
+// The submission's step clock: read in operations of its own, so an API without it leaves the stepper without durations.
+const SUBMIT = 'step waitUntil fork branch lastError { reason note at }';
+const SUBMIT_CLOCK = 'steps { step startedAt doneAt } stepStartedAt forkPending retryAt';
+
+export const ContributeAttemptSubmitClockDocument = doc<
+  { contributeAttempt: { attemptId: string; submit: ContributeAttemptSubmit | null } | null },
+  { id: string }
+>(`query ContributeAttemptSubmitClock($id: ID!) {
+  contributeAttempt(id: $id) { attemptId submit { ${SUBMIT} ${SUBMIT_CLOCK} } }
+}`);
+
+// The repo's PR conventions and the open PR's fixes: read on their own, so an API without them leaves the page as it was.
+const CONVENTIONS = `title { hard source types scopes requireScope pattern } titleExamples template { path aiAsks }
+  changelog { kind path required source } cla { check signUrl } dco generated notes`;
+const PR_FIXES = 'prIssues { kind check message suggestion } prTitle prBody prFix { kind state note at }';
+
+export const ContributeAttemptConventionsDocument = doc<
+  {
+    contributeAttempt:
+      | (Required<ContributeConventionsFields> & { attemptId: string; result: { prTitle: string | null } | null })
+      | null;
+  },
+  { id: string }
+>(`query ContributeAttemptConventions($id: ID!) {
+  contributeAttempt(id: $id) { attemptId conventions { ${CONVENTIONS} } ${PR_FIXES} result { prTitle } }
+}`);
+
+export const FixContributePullRequestDocument = doc<
+  { fixContributePullRequest: Required<ContributeConventionsFields> & { attemptId: string } },
+  { attemptId: string; kind: ContributePrFixKind; title?: string | null; body?: string | null }
+>(`mutation FixContributePullRequest($attemptId: ID!, $kind: ContributePrFixKind!, $title: String, $body: String) {
+  fixContributePullRequest(attemptId: $attemptId, kind: $kind, title: $title, body: $body) {
+    attemptId conventions { ${CONVENTIONS} } ${PR_FIXES}
+  }
+}`);
+
+/** Whether the repo requires a DCO sign-off: read on its own, so an API without it leaves the review as it was. */
+export const ContributeAttemptDcoDocument = doc<
+  { contributeAttempt: { attemptId: string; dcoRequired: boolean } | null },
+  { id: string }
+>(`query ContributeAttemptDco($id: ID!) {
+  contributeAttempt(id: $id) { attemptId dcoRequired }
+}`);
+
+/** What the stepper reads again while the attempt submits: its state, the submission with its clock, the PR. */
+export const ContributeAttemptLiveDocument = doc<{ contributeAttempt: ContributeAttemptLive | null }, { id: string }>(
+  `query ContributeAttemptLive($id: ID!) {
+  contributeAttempt(id: $id) {
+    attemptId state updatedAt submit { ${SUBMIT} ${SUBMIT_CLOCK} } pullRequest { ${PULL_REQUEST} }
+  }
+}`,
+);
+
+/** The same, without the clock: for an API that does not answer it yet. */
+export const ContributeAttemptLiveBareDocument = doc<
+  { contributeAttempt: ContributeAttemptLive | null },
+  { id: string }
+>(`query ContributeAttemptLiveBare($id: ID!) {
+  contributeAttempt(id: $id) { attemptId state updatedAt submit { ${SUBMIT} } pullRequest { ${PULL_REQUEST} } }
+}`);
+
 export const ContributeAttemptsFollowUpsDocument = doc<
   { contributeAttempts: FollowUpFieldsOf<ContributeAttemptFollowUpFields>[] | null },
   { state?: ContributeAttemptState; first?: number }
@@ -322,6 +403,65 @@ export const ContributeAttemptFollowUpsDocument = doc<
   { id: string }
 >(`query ContributeAttemptFollowUps($id: ID!) {
   contributeAttempt(id: $id) { ${FOLLOW_UP_FIELDS} replyDrafts { ${REPLY_DRAFT} } }
+}`);
+
+// The follow-up flow (2026-10-31): what each thread came to, the checks in a word, the threads waiting, the rounds.
+const ROUND = 'round attemptId state endReason pushedSha fixed skipped needsYou replied resolved at';
+const FEEDBACK_THREAD = 'threadId commentId author bot path line excerpt url createdAt ignored';
+
+export type FollowUpFlowRead = {
+  attemptId: string;
+  checkStatus: ContributeCheckStatusView | null;
+  reviewFeedback: ContributeReviewFeedback | null;
+  round: ContributeFollowUpRound | null;
+  followUps: { history: ContributeFollowUpRound[] | null } | null;
+  result: { tests: { command: string; notRun: boolean | null }[] } | null;
+  replyDrafts: (ContributeReplyDraftFlow & { draftId: string })[];
+};
+
+export const ContributeAttemptFollowUpFlowDocument = doc<
+  { contributeAttempt: FollowUpFlowRead | null },
+  { id: string }
+>(
+  `query ContributeAttemptFollowUpFlow($id: ID!) {
+  contributeAttempt(id: $id) {
+    attemptId
+    checkStatus { status note }
+    reviewFeedback { threads { ${FEEDBACK_THREAD} } readAt }
+    round { ${ROUND} }
+    followUps { history { ${ROUND} } }
+    result { tests { command notRun } }
+    replyDrafts { draftId outcome reason bot prefix send resolve resolveState }
+  }
+}`,
+);
+
+/** A follow-up on the threads the user chose to address; the pull request's other waiting threads are ignored. */
+export const StartFollowUpOnDocument = doc<
+  { startFollowUp: ContributeAttempt },
+  { prId: string; commentIds: string[] }
+>(
+  `mutation StartFollowUpOn($prId: ID!, $commentIds: [ID!]) { startFollowUp(prId: $prId, commentIds: $commentIds) { ${ATTEMPT} } }`,
+);
+
+/** A follow-up's approval with its replies as edited: the commits are pushed, then the replies sent are posted. */
+export const ApproveFollowUpDocument = doc<
+  { approveAttempt: ContributeAttempt },
+  { id: string; title: string; replies: { draftId: string; text: string; send: boolean }[] }
+>(`mutation ApproveFollowUp($id: ID!, $title: String!, $replies: [ContributeReplyInput!]) {
+  approveAttempt(id: $id, title: $title, body: "", dco: false, replies: $replies) { ${ATTEMPT} }
+}`);
+
+/** Whether a follow-up's replies resolve people's threads too (off: only bots'), read and written on its own. */
+export const ContributeResolveHumansDocument = doc<{
+  contribute: { contributor: { settings: { resolveHumanThreads: boolean } | null } | null } | null;
+}>('query ContributeResolveHumans { contribute { contributor { settings { resolveHumanThreads } } } }');
+
+export const SetResolveHumansDocument = doc<
+  { setContributeSettings: { resolveHumanThreads: boolean } },
+  { on: boolean }
+>(`mutation SetResolveHumans($on: Boolean!) {
+  setContributeSettings(settings: { resolveHumanThreads: $on }) { resolveHumanThreads }
 }`);
 
 export const ContributeContributionsDocument = doc<
@@ -357,6 +497,10 @@ export const ContributeReplyDraftsDocument = doc<
 
 export const StartFollowUpDocument = doc<{ startFollowUp: ContributeAttempt }, { prId: string }>(
   `mutation StartFollowUp($prId: ID!) { startFollowUp(prId: $prId) { ${ATTEMPT} } }`,
+);
+
+export const MarkNeedsYouHandledDocument = doc<{ markNeedsYouHandled: ContributeAttempt }, { prId: string }>(
+  `mutation MarkNeedsYouHandled($prId: ID!) { markNeedsYouHandled(prId: $prId) { ${ATTEMPT} } }`,
 );
 
 export const VetoAutopilotDocument = doc<{ vetoAutopilot: ContributeAttempt }, { attemptId: string }>(
@@ -478,8 +622,19 @@ export const ContributeSetDocument = doc<{ contributeSet: ContributeSet | null }
 
 export const ContributeActivityDocument = doc<{ contributeActivity: ContributeActivity | null }>(
   `query ContributeActivity { contributeActivity {
-    items { kind tabs label done total startedAt expectedAt repos { repositoryId nameWithOwner stage } } readAt
+    items { kind tabs label done total startedAt expectedAt repos { repositoryId nameWithOwner stage } }
+    runs {
+      attemptId nameWithOwner number title kind runner state phase label active queuedAt startedAt settledAt
+      elapsedSeconds spendUsd budgetUsd latestEvent { state detail at } queuePosition lastCallAt autosubmitAt endReason
+      prUrl
+    }
+    readAt
   } }`,
+);
+
+/** What moved for the user since `since`: one cheap read; null when the API hides it. */
+export const ContributeChangesDocument = doc<{ contributeChanges: ContributeChanges | null }, { since: string | null }>(
+  `query ContributeChanges($since: String) { contributeChanges(since: $since) { version activity changed } }`,
 );
 
 export const SetContributeModeDocument = doc<{ setContributeMode: ContributeSet }, { mode: ContributeSetMode }>(

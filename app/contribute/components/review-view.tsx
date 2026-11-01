@@ -13,11 +13,13 @@ import {
 import { AttemptStatus, FollowUpOfLink } from './attempt-status';
 import { DiffViewer } from './diff-viewer';
 import { FollowUpApproval } from './follow-up-approval';
-import { LiveRefresh } from './live-refresh';
+import { FollowUpResult } from './follow-up-result';
+import { PrConventionsCard } from './pr-conventions-card';
 import { FollowUpRounds, PrSignals } from './pr-follow-ups';
 import { PrForm } from './pr-form';
 import { HEADING, Pill } from './primitives';
 import { ReplyDrafts } from './reply-drafts';
+import { ReviewFeedbackCard } from './review-feedback';
 import { attemptHref } from './reviews-ready';
 import { SendBackForm } from './send-back-form';
 import {
@@ -26,22 +28,27 @@ import {
   editableBodyOf,
   githubUrlOf,
   isOwnAgent,
-  LIVE_STATES,
   repoOf,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
-import { loadAttempt, loadContribute } from '@/lib/contribute/contribute.data';
+import { loadAttempt, loadContribute, loadResolveHumanThreads } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import { isContributePageOpen } from '@/lib/contribute/contribute-state';
+import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
+import { canStartFollowUp } from '@/lib/contribute/follow-up-format';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
 
 export async function ReviewView({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [view, attempt] = await Promise.all([loadContribute(), loadAttempt(id)]);
+  const [view, attempt, resolveHumans] = await Promise.all([
+    loadContribute(),
+    loadAttempt(id),
+    loadResolveHumanThreads(),
+  ]);
   if (!view) notFound();
   if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
   if (attempt === null) notFound();
-  return <ReviewScreen view={view} attempt={attempt} />;
+  return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} />;
 }
 
 /**
@@ -54,9 +61,6 @@ export const grantNeededOf = (view: ContributeView, attempt: ContributeAttemptDe
   const bounced = GRANT_BOUNCES.has(reason) && !(reason === 'grant_missing' && view.grant?.connected === true);
   return view.grantAvailable && (view.grant?.connected === false || bounced);
 };
-
-/** The repo's notes ask for a Developer Certificate of Origin sign-off. */
-const DCO_ASKED = /\bDCO\b|signed-off-by|sign[- ]off/i;
 
 const BackLink = () => (
   <Link href="/contribute/me" prefetch={false} className="text-sm">
@@ -72,10 +76,13 @@ export function ReviewScreen({
   view,
   attempt,
   now,
+  resolveHumans,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail | undefined;
   now?: Date;
+  /** Whether a follow-up's replies resolve people's threads too; `undefined` while the API does not answer it. */
+  resolveHumans?: boolean;
 }) {
   if (!attempt) {
     return (
@@ -97,11 +104,14 @@ export function ReviewScreen({
   const prNumber = followUp ? (attempt.followUpOf?.number ?? null) : (attempt.pullRequest?.number ?? null);
   // A first attempt shows its pull request's drafts once there is one; a follow-up always shows the ones it wrote.
   const showDrafts = followUp || (!!attempt.pullRequest && attempt.replyDrafts?.length !== 0);
-  const posting = attempt.replyDrafts?.some(({ state }) => state === 'POSTING');
+  // The follow-up flow: one card per thread with its outcome, the diff, and one approval (an older API: the drafts).
+  // An API with the flow answers `checkStatus` (null before the checks), so a round with no reply is one too.
+  const flow = followUp && (attempt.checkStatus !== undefined || hasOutcomes(attempt.replyDrafts));
+  const feedback = !followUp && attempt.pullRequest?.state === 'OPEN' ? attempt.reviewFeedback : null;
+  const roundOpen = !!attempt.followUps && canStartFollowUp(attempt.followUps) && attempt.state === 'PR_OPEN';
 
   return (
     <div className="flex flex-col gap-5" data-review={attempt.attemptId} data-state={attempt.state}>
-      {LIVE_STATES.includes(attempt.state) || posting ? <LiveRefresh /> : null}
       <div className="flex flex-col gap-2.5">
         <BackLink />
         <div className="flex flex-wrap items-center gap-2.5">
@@ -143,6 +153,18 @@ export function ReviewScreen({
 
       <AttemptStatus attempt={attempt} now={now} />
 
+      {!followUp && attempt.pullRequest?.state === 'OPEN' ? (
+        <PrConventionsCard
+          attemptId={attempt.attemptId}
+          prNumber={attempt.pullRequest.number}
+          issues={attempt.prIssues ?? []}
+          fix={attempt.prFix ?? null}
+          title={attempt.prTitle ?? attempt.approval?.title ?? ''}
+          body={editableBodyOf(attempt.prBody ?? attempt.approval?.body ?? attempt.result?.prBody)}
+          titleRule={attempt.conventions?.title ?? null}
+        />
+      ) : null}
+
       {!followUp &&
       attempt.pullRequest &&
       (attempt.pullRequest.state === 'OPEN' || (attempt.followUps?.used ?? 0) > 0) ? (
@@ -150,21 +172,59 @@ export function ReviewScreen({
           <h2 className={HEADING.card}>
             {attempt.needsYou?.signals.length ? 'Your pull request needs you' : 'Follow-ups'}
           </h2>
-          <PrSignals needsYou={attempt.needsYou} now={now} />
+          <PrSignals
+            needsYou={attempt.needsYou}
+            now={now}
+            prId={attempt.pullRequest.state === 'OPEN' ? attempt.pullRequest.prId : undefined}
+            prNumber={attempt.pullRequest.number}
+          />
           <FollowUpRounds
             followUps={attempt.followUps}
             pullRequest={attempt.pullRequest}
             attemptCapUsd={view.contributor?.settings?.attemptCapUsd}
+            // The review-feedback card below starts the round on the threads chosen.
+            startHere={!feedback?.threads.length}
           />
         </section>
+      ) : null}
+
+      {feedback?.threads.length && attempt.pullRequest ? (
+        <ReviewFeedbackCard
+          // A thread arriving in a later read starts the choices afresh: none is shown chosen but left out.
+          key={feedback.threads.map((thread) => thread.commentId).join(',')}
+          prId={attempt.pullRequest.prId}
+          prNumber={attempt.pullRequest.number}
+          feedback={feedback}
+          canStart={roundOpen}
+          blocked={
+            roundOpen
+              ? null
+              : attempt.followUps?.currentAttemptId
+                ? 'A follow-up is under way on these comments.'
+                : 'Every follow-up round is used: answer these on GitHub.'
+          }
+          attemptCapUsd={view.contributor?.settings?.attemptCapUsd}
+          now={now}
+        />
       ) : null}
 
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <ResultPanel attempt={attempt} />
+          {flow ? (
+            <FollowUpResult
+              // A push that came back to the review starts the card afresh (its buttons on again).
+              key={`${attempt.state}|${attempt.submit?.lastError?.at ?? ''}`}
+              attempt={attempt}
+              prNumber={prNumber}
+              resolveHumans={resolveHumans}
+            >
+              {attempt.patch?.trim() ? <DiffViewer patch={attempt.patch} title="The new commits" /> : null}
+            </FollowUpResult>
+          ) : null}
           <ChecksPanel attempt={attempt} />
-          <DiffViewer patch={attempt.patch} title={followUp ? 'The new commits' : 'Diff'} />
-          {showDrafts ? (
+          {flow ? null : <DiffViewer patch={attempt.patch} title={followUp ? 'The new commits' : 'Diff'} />}
+          {showDrafts && !flow ? (
             <ReplyDrafts
               drafts={attempt.replyDrafts}
               prNumber={prNumber}
@@ -176,7 +236,7 @@ export function ReviewScreen({
         </div>
         <aside className="flex min-w-0 flex-[1_1_340px] flex-col gap-3.5">
           {ownAgent ? <OwnAgentPanel attempt={attempt} now={now} /> : <CostPanel attempt={attempt} />}
-          {inReview && followUp ? (
+          {inReview && followUp && flow ? null : inReview && followUp ? (
             <FollowUpApproval
               attemptId={attempt.attemptId}
               prNumber={prNumber}
@@ -197,10 +257,12 @@ export function ReviewScreen({
               defaultBody={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
               login={login}
               dcoMode={view.contributor?.settings?.dco ?? null}
-              dcoAsked={DCO_ASKED.test(attempt.readiness?.notes ?? '')}
+              dcoRequired={attempt.dcoRequired}
               again={!!attempt.submit?.lastError}
               grantNeeded={grantNeededOf(view, attempt)}
               grantConnected={view.grant?.connected === true}
+              conventions={attempt.conventions}
+              patch={attempt.patch}
             />
           ) : followUp ? null : (
             <ApprovalPanel attempt={attempt} />

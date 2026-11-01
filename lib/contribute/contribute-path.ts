@@ -13,6 +13,19 @@ export function isContributePath(pathname: string): boolean {
   }
 }
 
+/**
+ * Whether the path is the landing, `/contribute` itself, in any spelling the router reads as it: the one page a visitor
+ * without a session sees once Contribute is launched (onboarding design §9.3). Nothing under it, and no path that does
+ * not decode, is.
+ */
+export function isLandingPath(pathname: string): boolean {
+  try {
+    return /^\/+contribute\/?$/i.test(decodeURIComponent(pathname));
+  } catch {
+    return false;
+  }
+}
+
 /** The page for maintainers: open to every visitor, outside the preview. */
 export const MAINTAINERS_PATH = '/contribute/maintainers';
 

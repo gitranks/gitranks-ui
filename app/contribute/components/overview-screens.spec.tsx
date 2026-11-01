@@ -7,9 +7,6 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('./live-refresh', () => ({
-  LiveRefresh: ({ seconds }: { seconds?: number }) => <span data-live-refresh={seconds} />,
-}));
 
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
 const { NeedsYouSection, RightNowSection, ImpactSection, WaysSection, UpNextSection } = await import(
@@ -19,6 +16,7 @@ const { NOW, contributor, firstSpend, key, mcpToken, settings, views } = await i
   '@/lib/contribute/__fixtures__/contribute-views'
 );
 const { attempt, followUpOf } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
+const { activityOf, QUEUED, WORKING } = await import('@/lib/contribute/__fixtures__/agent-runs');
 const { followUpInReview, issuePage, needsNothing, nowIdle, overviewData, replyWaiting, reviewsReady } = await import(
   '@/lib/contribute/__fixtures__/contribute-overview'
 );
@@ -52,6 +50,15 @@ const withSpend = (nextAttemptAt: string | null): ContributeView => ({
 });
 
 describe('Overview, once there is an attempt', () => {
+  it('puts Working now first while agent runs are listed, and leaves it out with none', () => {
+    const html = screen(views.active, { activity: activityOf(WORKING, QUEUED) });
+    const headings = [...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/g)].map(([, title]) => title);
+    expect(headings.slice(0, 2)).toEqual(['Working now', 'Needs you']);
+    expect(html).toContain('data-run="att_working"');
+    expect(text(html)).toContain('1 agent working');
+    expect(screen(views.active, { activity: activityOf() })).not.toContain('Working now');
+  });
+
   it('shows the sections in order, each with its heading, under the sr-only Overview', () => {
     const html = screen(views.active);
     const headings = [...html.matchAll(/<h([12])[^>]*>(.*?)<\/h\1>/g)].map(([, level, title]) => `${level}:${title}`);
@@ -242,30 +249,22 @@ describe('Right now', () => {
     ['RUNNING', 'Working'],
     ['CLAIMING', 'Starting'],
     ['CHECKS', 'Checking'],
-  ] as const)(
-    'shows a hosted attempt in %s with a spinner, announced, and reads the page every 30s',
-    (state, label) => {
-      const html = now(views.active, hosted({ state }));
+  ] as const)('shows a hosted attempt in %s with a spinner, announced', (state, label) => {
+    const html = now(views.active, hosted({ state }));
 
-      expect(html).toContain('data-hosted="working"');
-      expect(html).toContain('data-live-refresh="30"');
-      expect(html).toMatch(
-        new RegExp(
-          `role="status"[^>]*><span aria-hidden="true" class="[^"]*motion-safe:animate-spin[^"]*"></span>${label}<`,
-        ),
-      );
-      expect(text(html)).toContain(
-        'driftwood-js/driftwood #871 · Nested layouts re-render on every navigation Started 12 minutes ago, on your key. It shows up under Needs you when it is ready.',
-      );
-    },
-  );
+    expect(html).toContain('data-hosted="working"');
+    expect(html).toMatch(
+      new RegExp(
+        `role="status"[^>]*><span aria-hidden="true" class="[^"]*motion-safe:animate-spin[^"]*"></span>${label}<`,
+      ),
+    );
+    expect(text(html)).toContain(
+      'driftwood-js/driftwood #871 · Nested layouts re-render on every navigation Started 12 minutes ago, on your key. It shows up under Needs you when it is ready.',
+    );
+  });
 
   it('names a hosted follow-up by its pull request', () => {
     expect(text(now(views.active, hosted({ kind: 'FOLLOW_UP', followUpOf })))).toContain('Follow-up on PR #1419');
-  });
-
-  it('does not read the page again while nothing is in flight', () => {
-    expect(now(views.active)).not.toContain('data-live-refresh');
   });
 
   it.each([
@@ -314,7 +313,7 @@ describe('Right now', () => {
     expect(text(slots)).toContain(
       'Waiting Your own agent holds your slot A new attempt starts when it hands back its patch or releases the issue. Attempts at a time in Settings →',
     );
-    expect(slots).toContain('href="/contribute/settings/budget"');
+    expect(slots).toContain('href="/contribute/settings/budget#more-limits"');
 
     const three = { ...both, contributor: contributor({ settings: { ...settings, attemptsAtATime: 3 } }) };
     const allSlots = now(three, {
@@ -493,6 +492,42 @@ describe('Up next', () => {
     expect(plain).not.toContain('Skip');
   });
 
+  it('keeps the picks live: one live region, out of sight, and a place the focus can fall back to', () => {
+    const html = upNext(issuePage);
+
+    expect(html).toMatch(
+      /<div tabindex="-1" data-picks="3" class="outline-none"><p role="status" class="sr-only"><\/p><ol/,
+    );
+    expect(html.match(/role="status"/g)).toHaveLength(1);
+    expect(html.match(/data-live-row="/g)).toHaveLength(3);
+  });
+
+  it("says a taken pick is taken, its link off, and one the user's agent took with the way to the attempt", async () => {
+    const { IssueCardCompact } = await import('./issue-card-compact');
+    const pick = issuePage.items[1];
+    const taken = renderToStaticMarkup(
+      <IssueCardCompact issue={pick} variant="pick" live={{ status: 'TAKEN', attemptId: null }} />,
+    );
+    const yours = renderToStaticMarkup(
+      <IssueCardCompact issue={pick} variant="pick" live={{ status: 'CLAIMED_BY_YOU', attemptId: 'A_7' }} />,
+    );
+
+    expect(taken).toMatch(/<p tabindex="-1" data-live-status="taken"[^>]*>Taken by another contributor</);
+    expect(taken).toContain('data-gone="true"');
+    expect(taken).not.toContain(`href="${pick.url}"`);
+    expect(taken).toMatch(/<a target="_blank" rel="noopener noreferrer" class="[^"]*opacity-60">/);
+    expect(text(yours)).toContain('Your agent is on this · View');
+    expect(yours).toContain('href="/contribute/attempts/A_7"');
+    expect(yours).not.toContain(`href="${pick.url}"`);
+    // A free pick, and the profile block's card (not live), have no status line.
+    expect(
+      renderToStaticMarkup(
+        <IssueCardCompact issue={pick} variant="pick" live={{ status: 'AVAILABLE', attemptId: null }} />,
+      ),
+    ).not.toContain('data-live-status');
+    expect(renderToStaticMarkup(<IssueCardCompact issue={pick} />)).not.toContain('data-live-status');
+  });
+
   it('says the picks are ranking, there are none yet, or they are not available', () => {
     expect(upNext({ ...issuePage, computedAt: null })).toContain('data-ranking="waiting"');
     expect(text(upNext({ ...issuePage, items: [] }))).toContain("We're still finding issues for you.");
@@ -595,7 +630,6 @@ describe('the review fixes, rendered', () => {
     expect(html).toContain('data-own-agent="unknown"');
     expect(plain).not.toContain('No issue held');
     expect(plain).not.toContain('on your key');
-    expect(html).toContain('data-live-refresh="30"');
   });
 
   it('never says soon while Up next is unavailable', () => {

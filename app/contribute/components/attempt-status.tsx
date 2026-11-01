@@ -2,8 +2,10 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { AutosubmitCountdown, StopAutopilotButton } from './follow-up-buttons';
+import { FollowUpStepper } from './follow-up-stepper';
 import { HEADING, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
+import { LiveSubmit, SubmitStepsSettled, TryAgainButton } from './submit-stepper';
 import {
   ATTEMPT_STATES,
   detailText,
@@ -13,18 +15,18 @@ import {
   PR_CHECKS,
   PR_STATES,
   REVIEW_DECISIONS,
-  SUBMIT_STEP_TEXT,
-  SUBMIT_STEPS,
   timeLabel,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
 import type {
   ContributeAttempt,
+  ContributeAttemptDetail,
   ContributeAttemptPullRequest,
   ContributeAttemptSubmit,
   ContributeAutopilotReviewReason,
   ContributeFollowUpOf,
 } from '@/lib/contribute/contribute.types';
+import { roundLineOf } from '@/lib/contribute/follow-up-flow';
 import { relativeLabel, usd } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
@@ -40,8 +42,10 @@ function Box({
   return (
     <section
       data-attempt-status={state}
+      // Focused when a submission starts, so keyboard and screen reader users land on its progress.
+      tabIndex={-1}
       className={cn(
-        'flex flex-col gap-2 rounded-xl border px-5 py-4',
+        'flex flex-col gap-2 rounded-xl border px-5 py-4 outline-none',
         tone === 'info' && 'border-primary/20 bg-brand-soft',
         tone === 'warn' && 'border-warning/30 bg-warning-soft',
         tone === 'done' && 'bg-card',
@@ -84,46 +88,15 @@ export function SubmitErrorNote({ submit }: { submit: ContributeAttemptSubmit | 
   );
 }
 
-/** Fork, sync, push, pull request: the step the submission is on. */
-function SubmitSteps({ submit, now }: { submit: ContributeAttemptSubmit; now?: Date }) {
-  const current = SUBMIT_STEPS.findIndex(({ step }) => step === submit.step);
+/** A pull request opened in the last few minutes: its box still shows the steps that opened it. */
+const JUST_OPENED_MS = 10 * 60_000;
+const justOpened = (pullRequest: ContributeAttemptPullRequest | null | undefined, now?: Date) => {
+  const opened = pullRequest ? Date.parse(pullRequest.openedAt) : Number.NaN;
+  return !Number.isNaN(opened) && (now ?? new Date()).getTime() - opened < JUST_OPENED_MS;
+};
 
-  return (
-    <>
-      <ol aria-label="Submission steps" className="flex flex-wrap items-center gap-2 text-sm">
-        {SUBMIT_STEPS.map(({ step, label }, index) => {
-          const state = current < 0 || index > current ? 'pending' : index === current ? 'current' : 'done';
-          return (
-            <li
-              key={step}
-              data-step={step}
-              data-step-state={state}
-              aria-current={state === 'current' ? 'step' : undefined}
-              className={cn(
-                'flex items-center gap-1.5 rounded-full border px-3 py-1',
-                state === 'done' && 'border-positive/30 text-positive',
-                state === 'current' && 'border-primary bg-background font-semibold text-foreground',
-                state === 'pending' && 'text-muted-foreground',
-              )}
-            >
-              <span aria-hidden="true">{state === 'done' ? '✓' : `${index + 1}`}</span>
-              {label}
-            </li>
-          );
-        })}
-      </ol>
-      <Text>
-        {labelOf(SUBMIT_STEP_TEXT, submit.step)}
-        {submit.step === 'WAITING_CAP'
-          ? submit.waitUntil
-            ? ` It goes on ${relativeLabel(submit.waitUntil, now)}, at ${timeLabel(submit.waitUntil)}. Nothing to do: it starts by itself.`
-            : ' It goes on when the next UTC day starts. Nothing to do: it starts by itself.'
-          : ''}
-        {submit.fork ? ` From ${submit.fork}${submit.branch ? `, branch ${submit.branch}` : ''}.` : ''}
-      </Text>
-    </>
-  );
-}
+/** The submission stopped at one of the four steps (not before the fork: a busy repo, say). */
+const failedAtStep = (submit: ContributeAttemptSubmit) => submit.step !== 'QUEUED' && submit.step !== 'WAITING_CAP';
 
 /** The pull request once it is open: a link, its state on GitHub, and when the last sync read it. */
 export function PullRequestStatus({ pullRequest, now }: { pullRequest: ContributeAttemptPullRequest; now?: Date }) {
@@ -194,20 +167,56 @@ function AutosubmitStatus({ attempt, now }: { attempt: ContributeAttempt; now?: 
   );
 }
 
+/** What a follow-up that ended without pushing came to, in plain words, by why it ended. */
+const FOLLOW_UP_ENDS: Partial<Record<NonNullable<ContributeAttempt['endReason']>, string>> = {
+  NO_GO: 'The agent read the comments and decided not to change anything.',
+  CHECKS_FAILED: 'Our checks stopped it before the review.',
+  BUDGET: 'It reached your limit for one attempt before it finished.',
+  TIMEOUT: 'It ran past the two-hour limit before it finished.',
+  FAILED: 'The agent session failed before it finished.',
+  CANCELLED: 'It was cancelled before it finished.',
+  SUBMIT_FAILED: 'The push did not go through.',
+  USER: 'You discarded it.',
+};
+
+/** Back to the pull request's page, where another round can start. */
+function BackToPr({ attempt }: { attempt: ContributeAttempt }) {
+  if (!attempt.followUpOf) return null;
+  return (
+    <Link href={attemptHref(attempt.followUpOf.attemptId)} prefetch={false} className="text-sm font-semibold text-link">
+      Back to the pull request&apos;s page →
+    </Link>
+  );
+}
+
 /**
- * A follow-up's place in its own words: it adds commits to a pull request rather than opening one. Null for a state
- * that reads as a first attempt's.
+ * A follow-up's place in its own words: it adds commits to a pull request rather than opening one. While it runs, its
+ * four steps; in review, ready; after, what it came to and what the user can do. Null for a state that reads as a
+ * first attempt's.
  */
-function followUpStatusOf(attempt: ContributeAttempt): ReactNode {
+function followUpStatusOf(attempt: ContributeAttempt | ContributeAttemptDetail, now?: Date): ReactNode {
   const pr = <FollowUpOfLink followUpOf={attempt.followUpOf} />;
+  const events = 'events' in attempt ? attempt.events : undefined;
   switch (attempt.state) {
+    case 'QUEUED':
+    case 'RUNNING':
+    case 'CHECKS':
+      return (
+        <Box state={attempt.state}>
+          <FollowUpStepper attempt={{ ...attempt, events: events ?? [] }} now={now} />
+        </Box>
+      );
     case 'REVIEW':
       return (
         <Box state="REVIEW" tone={attempt.submit?.lastError ? 'warn' : 'info'}>
-          <Title>{attempt.submit?.lastError ? 'Back for your approval' : 'Ready for your review'}</Title>
-          <Text>
-            Read the new commits and the replies drafted for you, then push the commits to {pr} or discard them.
-          </Text>
+          {attempt.submit?.lastError ? (
+            <>
+              <Title>Back for your approval</Title>
+              <Text>The push did not go through. Nothing was posted. Read the note, then try again or discard it.</Text>
+            </>
+          ) : (
+            <FollowUpStepper attempt={{ ...attempt, events: events ?? [] }} now={now} />
+          )}
           <AutopilotReviewNote reason={attempt.reviewReason} />
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
@@ -215,47 +224,70 @@ function followUpStatusOf(attempt: ContributeAttempt): ReactNode {
     case 'SUBMITTING':
       return (
         <Box state="SUBMITTING">
-          <Title>Pushing the commits</Title>
-          <Text>Approved. The commits are going onto {pr}&apos;s branch on your fork.</Text>
+          <Title>Pushing the fixes</Title>
+          <Text>
+            Approved. The commits are going onto {pr}&apos;s branch on your fork; the replies you chose are posted once
+            they are there.
+          </Text>
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
       );
-    case 'DONE':
+    case 'DONE': {
+      const round = 'round' in attempt ? attempt.round : undefined;
       return (
         <Box state="DONE" tone="done">
           <Title>Pushed to the pull request</Title>
+          {round ? (
+            <p data-round-line={round.round} className="text-sm font-semibold">
+              {roundLineOf(round)}
+            </p>
+          ) : null}
           <Text>
-            The commits are on {pr}, if there were any. {usd(attempt.costUsd)} was spent. Approve the replies below for
-            them to be posted.
+            The new commits are on {pr}, if there were any. {usd(attempt.costUsd)} was spent. Each reply&apos;s state is
+            below; one that did not go with the push can still be posted from there.
           </Text>
+          <BackToPr attempt={attempt} />
         </Box>
       );
+    }
     case 'STOPPED':
-    case 'DISCARDED':
+    case 'DISCARDED': {
+      const why =
+        attempt.endReason === 'CHECKS_FAILED' && attempt.endDetail === 'not_empty'
+          ? 'The agent wrote no commit and no reply, so there was nothing to review.'
+          : (attempt.endReason && FOLLOW_UP_ENDS[attempt.endReason]) ||
+            (attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it ended is not available yet.');
       return (
         <Box state={attempt.state} tone="muted">
-          <Title>{attempt.state === 'STOPPED' ? 'Stopped' : 'Discarded'}</Title>
+          <Title>{attempt.state === 'STOPPED' ? 'Stopped, nothing pushed' : 'Discarded, nothing pushed'}</Title>
           <Text>
-            <span data-end-reason={attempt.endReason ?? ''}>
-              {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it ended is not available yet.'}
-            </span>
-            {attempt.endDetail ? <> Detail: {detailText(attempt.endDetail)}</> : null} Nothing was pushed to {pr}.{' '}
-            {usd(attempt.costUsd)} was spent.
+            <span data-end-reason={attempt.endReason ?? ''}>{why}</span>
+            {attempt.endDetail && attempt.endDetail !== 'not_empty' ? (
+              <>
+                {' '}
+                {attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}
+                {detailText(attempt.endDetail)}
+              </>
+            ) : null}{' '}
+            Nothing was pushed to {pr} and no reply was posted. {usd(attempt.costUsd)} was spent. The comments still
+            wait on the pull request: answer them on GitHub, or start another round from its page if one is left.
           </Text>
           <SubmitErrorNote submit={attempt.submit} />
+          <BackToPr attempt={attempt} />
         </Box>
       );
+    }
     default:
       return null;
   }
 }
 
 /** Where the attempt stands, at the top of its page: one block for each state. */
-export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; now?: Date }) {
+export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | ContributeAttemptDetail; now?: Date }) {
   const spent = `${usd(attempt.costUsd)} of the ${usd(attempt.budgetUsd)} limit spent so far.`;
 
   if (attempt.kind === 'FOLLOW_UP') {
-    const followUp = followUpStatusOf(attempt);
+    const followUp = followUpStatusOf(attempt, now);
     if (followUp) return followUp;
   }
 
@@ -294,9 +326,13 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
       return (
         <Box state="REVIEW" tone={attempt.submit?.lastError ? 'warn' : 'info'}>
           <Title>{attempt.submit?.lastError ? 'Back for your approval' : 'Ready for your review'}</Title>
+          {attempt.submit?.lastError && failedAtStep(attempt.submit) ? (
+            <SubmitStepsSettled state="REVIEW" submit={attempt.submit} />
+          ) : null}
           <Text>Read the change, then submit it as your pull request or discard it. It waits seven days for you.</Text>
           <AutopilotReviewNote reason={attempt.reviewReason} />
           <SubmitErrorNote submit={attempt.submit} />
+          {attempt.submit?.lastError ? <TryAgainButton /> : null}
         </Box>
       );
     case 'PENDING_AUTOSUBMIT':
@@ -314,21 +350,24 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
     case 'SUBMITTING':
       return (
         <Box state="SUBMITTING" tone={attempt.submit?.step === 'WAITING_CAP' ? 'warn' : 'info'}>
-          <Title>
-            {attempt.submit?.step === 'WAITING_CAP' ? 'Waiting for tomorrow' : 'Submitting your pull request'}
-          </Title>
-          {attempt.submit ? (
-            <SubmitSteps submit={attempt.submit} now={now} />
-          ) : (
-            <Text>Approved. The steps are not available yet.</Text>
-          )}
-          <SubmitErrorNote submit={attempt.submit} />
+          {/* Only what the stepper reads: the rest of the attempt (its diff, say) stays on the server. */}
+          <LiveSubmit
+            attempt={{
+              attemptId: attempt.attemptId,
+              state: attempt.state,
+              updatedAt: attempt.updatedAt,
+              submit: attempt.submit,
+              pullRequest: attempt.pullRequest,
+            }}
+            now={now}
+          />
         </Box>
       );
     case 'PR_OPEN':
     case 'FOLLOW_UP':
     case 'MERGED':
-    case 'CLOSED':
+    case 'CLOSED': {
+      const fresh = justOpened(attempt.pullRequest, now);
       return (
         <Box state={attempt.state} tone="done">
           <Title>
@@ -340,8 +379,19 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
                   ? 'A follow-up is running on your pull request'
                   : 'Your pull request is open'}
           </Title>
+          {attempt.state === 'PR_OPEN' && attempt.submit && fresh ? (
+            <SubmitStepsSettled state={attempt.state} submit={attempt.submit} pullRequest={attempt.pullRequest} />
+          ) : null}
           {attempt.pullRequest ? (
-            <PullRequestStatus pullRequest={attempt.pullRequest} now={now} />
+            <div
+              className={
+                fresh
+                  ? 'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-400'
+                  : undefined
+              }
+            >
+              <PullRequestStatus pullRequest={attempt.pullRequest} now={now} />
+            </div>
           ) : (
             <Text>The pull request is not available yet.</Text>
           )}
@@ -356,6 +406,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
           ) : null}
         </Box>
       );
+    }
     case 'STOPPED':
       return (
         <Box state="STOPPED" tone="muted">
@@ -374,6 +425,9 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt; no
             {usd(attempt.costUsd)} was spent.
             {attempt.endReason === 'SUBMIT_FAILED' ? '' : ' The issue went back to the pool.'}
           </Text>
+          {attempt.endReason === 'SUBMIT_FAILED' && attempt.submit && failedAtStep(attempt.submit) ? (
+            <SubmitStepsSettled state="STOPPED" submit={attempt.submit} />
+          ) : null}
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
       );

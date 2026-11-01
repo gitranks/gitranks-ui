@@ -185,8 +185,6 @@ export type RightNow = {
   cycle: boolean;
   /** The own agent's card, for a user with a live token. */
   ownAgent?: OwnAgentState;
-  /** An attempt is in flight: the page reads itself again, so it moves on without a reload. */
-  live: boolean;
 };
 
 /** The view's own blocks: they hold before anything the scheduler counts. */
@@ -260,7 +258,6 @@ export function rightNowOf(
     ...(key ? { hosted: hostedStateOf(view, known, page, now) } : {}),
     cycle: key,
     ...(view.ownAgent?.paths.mcp ? { ownAgent: ownAgentStateOf(view, known) } : {}),
-    live: (read.inFlight?.length ?? 0) > 0,
   };
 }
 
@@ -298,6 +295,6 @@ export function impactTilesOf(
 // ---------------------------------------------------------------------------------------------------------------------
 // Up next
 
-/** The feed's top picks, in rank order. */
-export const upNextOf = (page: ContributeIssuePage): ContributeIssue[] =>
-  [...page.items].sort((a, b) => a.rank - b.rank).slice(0, UP_NEXT_PICKS);
+/** The feed's issues in rank order. */
+export const rankedOf = (page: ContributeIssuePage): ContributeIssue[] =>
+  [...page.items].sort((a, b) => a.rank - b.rank);

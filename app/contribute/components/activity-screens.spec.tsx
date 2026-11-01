@@ -7,7 +7,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock('@/app/contribute/actions', () => ({ readContributeActivity: vi.fn() }));
+vi.mock('@/app/contribute/actions', () => ({ readContributeChanges: vi.fn() }));
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({ useReportPendingNavigation: () => {} }));
 
 const { ActivityBarView } = await import('./activity');
@@ -135,7 +135,7 @@ describe('the activity bar', () => {
 });
 
 describe('the tabs with work in progress', () => {
-  const activity: ContributeActivity = { items: [reads], readAt: NOW.toISOString() };
+  const activity: ContributeActivity = { items: [reads], runs: [], readAt: NOW.toISOString() };
 
   it('dots the tabs the work belongs to, and shows the bar on them', () => {
     pathname = '/contribute/settings';
@@ -154,7 +154,7 @@ describe('the tabs with work in progress', () => {
       'data-activity-bar',
     );
     pathname = '/contribute/issues';
-    const quiet = renderToStaticMarkup(<ContributeTabsNav onboarded activity={{ items: [], readAt: '' }} />);
+    const quiet = renderToStaticMarkup(<ContributeTabsNav onboarded activity={{ items: [], runs: [], readAt: '' }} />);
     expect(quiet).not.toContain('data-activity');
   });
 });

@@ -12,10 +12,10 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/app/contribute/actions', () => ({}));
 // A marker where the page reads itself again, so the static markup shows it.
-vi.mock('./live-refresh', () => ({ LiveRefresh: () => <span data-live-refresh /> }));
 vi.mock('@/lib/contribute/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
+  loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),
   loadOpenPrDrafts: vi.fn(),
@@ -27,10 +27,11 @@ const { SettingsScreen } = await import('./settings-view');
 const { ReplyDraftItem } = await import('./reply-drafts');
 const { AutopilotRecord, autopilotErrorMessage } = await import('./autopilot-section');
 const { NOW, views, settings: baseSettings } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { attempt, contributions, followUpAttempts, followUps, needsYou, replyDraft } = await import(
-  '@/lib/contribute/__fixtures__/contribute-attempts'
+const { attempt, contributions, feedbackThread, flowDraft, followUpAttempts, followUps, needsYou, replyDraft } =
+  await import('@/lib/contribute/__fixtures__/contribute-attempts');
+const { followUpErrorMessage, handledErrorMessage, replyRefusalOf, vetoErrorMessage } = await import(
+  '@/lib/contribute/follow-up-format'
 );
-const { followUpErrorMessage, replyRefusalOf, vetoErrorMessage } = await import('@/lib/contribute/follow-up-format');
 
 import type {
   ContributeAttemptDetail,
@@ -86,6 +87,30 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(plain).toContain('PR #1419 on GitHub');
     expect(html).toContain('href="/contribute/attempts/A_8"');
     expect(plain).toMatch(/Needs you · 2/);
+  });
+
+  it('offers Mark as handled under what happened, and names a CLA to sign', () => {
+    const html = mine({ needsYou: needsYou(), followUps: followUps() });
+    expect(html).toContain('data-mark-handled="PR_8"');
+    expect(text(html)).toContain('Mark as handled');
+
+    const cla = mine({
+      needsYou: { since: NOW.toISOString(), signals: [{ kind: 'CLA', at: NOW.toISOString(), detail: 'license/cla' }] },
+      followUps: followUps(),
+    });
+    expect(text(cla)).toContain('Sign the contributor license agreement (CLA): license/cla');
+    expect(cla).toContain('aria-label="Mark pull request #1419 as handled"');
+    // Only the user signs a CLA: no follow-up is offered for it alone.
+    expect(cla).not.toContain('data-start-follow-up');
+  });
+
+  it('says why Mark as handled did not go through', () => {
+    expect(handledErrorMessage('NOT_FOUND')).toContain('no longer yours');
+    expect(handledErrorMessage('INVALID', 'the pull request is not open')).toContain('no longer open');
+    expect(handledErrorMessage('INVALID', 'the pull request changed meanwhile: try again')).toContain(
+      'changed just now',
+    );
+    expect(handledErrorMessage('INVALID', 'prId must match')).not.toContain('changed just now');
   });
 
   it('offers a follow-up with the rounds used and left, within the limit for one attempt', () => {
@@ -154,10 +179,9 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(html).toContain('data-reply-draft="D_1"');
     expect(html).toContain('data-reply-follow-up="REVIEW"');
     expect(text(html)).toContain('Drafted by a follow-up : waiting for your review.');
-    expect(html).not.toContain('data-live-refresh');
   });
 
-  it('keeps an approved reply in its row while it posts, reading the page again until it is posted', () => {
+  it('keeps an approved reply in its row while it posts', () => {
     const html = mine(
       { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
       {
@@ -169,7 +193,6 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(html).toContain('data-reply-state="POSTING"');
     expect(text(html)).toContain('Posting it on GitHub.');
     expect(html).not.toContain('data-approve-reply');
-    expect(html).toContain('data-live-refresh');
   });
 
   it('keeps a reply posted in the last day in its row, with its link, and lets an older one go', () => {
@@ -190,7 +213,6 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(recent).toContain('data-reply-state="POSTED"');
     expect(recent).toContain('href="https://github.com/kelp-db/kelp/pull/1419#discussion_r9"');
     expect(text(recent)).toContain('3 hours ago');
-    expect(recent).not.toContain('data-live-refresh');
 
     const old = mine(
       { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
@@ -231,6 +253,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(plain).toContain('A reviewer asked for changes · 3 hours ago');
     expect(html).toContain('data-start-follow-up="PR_1"');
     expect(plain).toContain('Follow-up round 1 of 2 · 2 left');
+    expect(html).toContain('data-mark-handled="PR_1"');
   });
 
   it('says it is handed to the user after two rounds', () => {
@@ -315,7 +338,7 @@ describe('a follow-up on the review screen', () => {
     const html = review(followUpAttempts.submitting);
 
     expect(html).toContain('data-attempt-status="SUBMITTING"');
-    expect(text(html)).toContain('Pushing the commits');
+    expect(text(html)).toContain('Pushing the fixes');
     expect(html).not.toContain('aria-label="Submission steps"');
     expect(html).not.toContain('data-follow-up-approval');
   });
@@ -326,7 +349,7 @@ describe('a follow-up on the review screen', () => {
     expect(html).toContain('data-state="DONE"');
     expect(html).toContain('data-attempt-status="DONE"');
     expect(text(html)).toContain('Pushed to the pull request');
-    expect(text(html)).toContain('The commits are on pull request #1419');
+    expect(text(html)).toContain('The new commits are on pull request #1419');
   });
 
   it('says nothing was pushed when it stopped or was discarded', () => {
@@ -689,5 +712,295 @@ describe('values the UI does not know yet', () => {
     expect(draft).toContain('data-reply-state="ARCHIVED"');
     expect(text(draft)).toContain('Archived');
     expect(draft).not.toContain('data-approve-reply');
+  });
+});
+
+describe('the follow-up flow: review feedback, the run, the result and the rounds', () => {
+  const prOpen = (patch: Partial<ContributeAttemptDetail> = {}) =>
+    review({
+      ...followUpAttempts.prNeedsYou,
+      reviewFeedback: {
+        readAt: '2026-10-28T11:50:00.000Z',
+        threads: [
+          feedbackThread(),
+          feedbackThread({ commentId: 'C_2', threadId: 'T_2', excerpt: 'Translate the <b>title</b>.' }),
+          feedbackThread({
+            commentId: 'C_3',
+            threadId: 'T_3',
+            bot: false,
+            author: 'maintainer-mo',
+            excerpt: 'Name it collapse?',
+          }),
+          feedbackThread({ commentId: 'C_4', threadId: 'T_4', ignored: true, excerpt: 'Add a baseline.' }),
+        ],
+      },
+      ...patch,
+    });
+
+  it('lists the waiting comments, bots and people apart, each to Address or Ignore, with one button', () => {
+    const html = prOpen();
+    const plain = text(html);
+    expect(html).toContain('data-panel="review-feedback"');
+    expect(plain).toContain('3 comments wait for an answer on pull request #1419');
+    expect(plain).toContain('Bots · 2');
+    expect(plain).toContain('People · 1');
+    // Ignored in an earlier round: listed apart, not counted.
+    expect(html).not.toContain('data-feedback-thread="C_4"');
+    expect(plain).toContain('Show 1 ignored in an earlier round');
+    expect(plain).toContain('Address 3 comments');
+    expect(html.match(/aria-pressed="true"/g)).toHaveLength(3);
+    // The card starts the round, so the plain button is not offered beside it.
+    expect(html).not.toContain('data-start-follow-up');
+    // Strangers' words are text, never markup.
+    expect(html).not.toContain('<b>title</b>');
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901"');
+  });
+
+  it('says why no round can start while one runs, and keeps the plain button without waiting comments', () => {
+    const busy = text(prOpen({ followUps: followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' }) }));
+    expect(busy).toContain('A follow-up is under way on these comments.');
+    expect(busy).not.toContain('Address 3 comments');
+    const none = prOpen({ reviewFeedback: { readAt: null, threads: [] } });
+    expect(none).not.toContain('data-panel="review-feedback"');
+    expect(none).toContain('data-start-follow-up');
+  });
+
+  it('shows the run as four steps: reading, fixing once the work is sent, then our checks', () => {
+    const run = (patch: Partial<ContributeAttemptDetail>) =>
+      review(followUpAttempts.review && { ...followUpAttempts.review, ...patch });
+    const reading = run({
+      state: 'RUNNING',
+      events: [{ state: 'RUNNING', detail: 'follow_up: no claim', at: '2026-10-28T11:00:00.000Z' }],
+    });
+    expect(reading).toContain('data-follow-up-step="reading"');
+    expect(reading).toMatch(/data-step="reading" data-step-state="current"/);
+    expect(text(reading)).toMatch(/Reading comments : now .*Fixing : next .*Checks : next .*Ready for you : next/);
+    const fixing = run({
+      state: 'RUNNING',
+      events: [
+        { state: 'RUNNING', detail: 'go: budget raised to $5.00, the work sent', at: '2026-10-28T11:01:00.000Z' },
+      ],
+    });
+    expect(fixing).toMatch(/data-step="fixing" data-step-state="current"/);
+    expect(fixing).toMatch(/data-step="reading" data-step-state="done"/);
+    expect(run({ state: 'CHECKS' })).toMatch(/data-step="checks" data-step-state="current"/);
+    expect(text(run({ state: 'RUNNING' }))).toContain('Nothing goes to GitHub before you approve it');
+  });
+
+  const inReview = (patch: Partial<ContributeAttemptDetail> = {}) =>
+    followUpAttempts.review && {
+      ...followUpAttempts.review,
+      checkStatus: {
+        status: 'NOT_RUN' as const,
+        note: 'The tests could not run in the sandbox (npm test), so nothing here proves the change works.',
+      },
+      replyDrafts: [
+        flowDraft(),
+        flowDraft({
+          draftId: 'D_2',
+          bot: false,
+          comment: { ...flowDraft().comment!, author: 'maintainer-mo' },
+          prefix: 'Fixed in <commit>: ',
+        }),
+        flowDraft({
+          draftId: 'D_3',
+          outcome: 'SKIPPED',
+          prefix: 'Not changed: ',
+          reason: 'Shared component',
+          text: 'Out of scope here.',
+        }),
+        flowDraft({
+          draftId: 'D_4',
+          outcome: 'NEEDS_YOU',
+          prefix: null,
+          reason: 'Trim too, or only collapse?',
+          text: '',
+        }),
+      ],
+      ...patch,
+    };
+
+  it('shows each comment’s outcome, the checks in plain words, the diff and one approval', () => {
+    const html = review(inReview());
+    const plain = text(html);
+    expect(html).toContain('data-panel="follow-up-result"');
+    expect(html).toContain('data-check-status="NOT_RUN"');
+    expect(plain).toContain('The tests could not run');
+    expect(plain).toContain('Fixed');
+    expect(plain).toContain('Not changed');
+    expect(plain).toContain('Needs you');
+    expect(plain).toContain('Question for you: Trim too, or only collapse?');
+    expect(plain).toContain('Reply, posted in your name after “Fixed in the new commit:”');
+    // The bot's thread is resolved after; the person's stays open for its reviewer.
+    expect(plain).toContain('then resolve the thread');
+    expect(plain).toContain('the thread stays open for its reviewer');
+    expect(plain).toContain('Push fixes and reply');
+    expect(plain).toContain('Discard');
+    expect(plain).toContain(
+      'Approving pushes the new commits to pull request #1419, posts 3 replies, resolves 2 threads.',
+    );
+    // The diff sits in the card, before the approval; the old one-by-one approval is gone.
+    expect(html.indexOf('data-file="src/router/normalize-path.ts"')).toBeGreaterThan(
+      html.indexOf('data-panel="follow-up-result"'),
+    );
+    expect(html).not.toContain('data-follow-up-approval');
+    expect(html).not.toContain('data-panel="replies"');
+  });
+
+  it('blocks the push on a failed rail, saying so, and keeps Discard', () => {
+    const plain = text(
+      review(
+        inReview({ checkStatus: { status: 'BLOCKED', note: 'It cannot be pushed: it changes a GitHub workflow.' } }),
+      ),
+    );
+    expect(plain).toContain('Our checks block this push');
+    expect(plain).toContain('These commits cannot be pushed. Discard them, or answer the threads on GitHub yourself.');
+    expect(plain).toContain('Discard');
+  });
+
+  it('after the push: the round line, and each reply posted, resolved or left open', () => {
+    const html = review(
+      inReview({
+        state: 'DONE',
+        round: {
+          round: 1,
+          attemptId: 'A_F1',
+          state: 'DONE',
+          endReason: null,
+          pushedSha: '46de700aa1',
+          fixed: 5,
+          skipped: 0,
+          needsYou: 0,
+          replied: 2,
+          resolved: 1,
+          at: '2026-10-28T12:00:00.000Z',
+        },
+        replyDrafts: [
+          flowDraft({
+            state: 'POSTED',
+            posted: true,
+            resolveState: 'RESOLVED',
+            text: 'Fixed in 46de700: Made it a const.',
+            url: 'https://github.com/driftwood-js/driftwood/pull/1419#discussion_r905',
+          }),
+          flowDraft({
+            draftId: 'D_2',
+            bot: false,
+            state: 'POSTED',
+            posted: true,
+            text: 'Fixed in 46de700: Renamed it.',
+          }),
+          flowDraft({
+            draftId: 'D_3',
+            state: 'FAILED',
+            lastError: {
+              reason: 'forbidden',
+              note: 'GitHub refused the reply: the conversation is locked.',
+              at: '2026-10-28T12:00:00.000Z',
+            },
+          }),
+        ],
+      }),
+    );
+    const plain = text(html);
+    expect(plain).toContain('Round 1 pushed 46de700 · 5 fixed · 2 replied · 1 resolved');
+    expect(plain).toContain('Replied and resolved');
+    expect(plain).toContain('Replied, left open for its reviewer');
+    expect(plain).toContain('GitHub refused the reply: the conversation is locked.');
+    expect(plain).not.toContain('Push fixes and reply');
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419#discussion_r905"');
+  });
+
+  it('lines the rounds up on the pull request’s page', () => {
+    const plain = text(
+      prOpen({
+        followUps: followUps({
+          used: 2,
+          left: 0,
+          history: [
+            {
+              round: 1,
+              attemptId: 'A_F1',
+              state: 'DONE',
+              endReason: null,
+              pushedSha: '46de700aa1',
+              fixed: 5,
+              skipped: 0,
+              needsYou: 0,
+              replied: 2,
+              resolved: 0,
+              at: '2026-10-28T12:00:00.000Z',
+            },
+            {
+              round: 2,
+              attemptId: 'A_F2',
+              state: 'STOPPED',
+              endReason: 'NO_GO',
+              pushedSha: null,
+              fixed: 0,
+              skipped: 0,
+              needsYou: 0,
+              replied: 0,
+              resolved: 0,
+              at: '2026-10-28T13:00:00.000Z',
+            },
+          ],
+        }),
+      }),
+    );
+    expect(plain).toContain('Round 1 pushed 46de700 · 5 fixed · 2 replied');
+    expect(plain).toContain('Round 2 stopped, nothing pushed');
+    expect(plain).toContain('Every follow-up round is used: answer these on GitHub.');
+  });
+
+  it('never stops silently: each end says what happened and what the user can do', () => {
+    const noGo = text(
+      review({ ...followUpAttempts.stopped, endReason: 'NO_GO', endDetail: 'The comments ask for a redesign.' }),
+    );
+    expect(noGo).toContain('Stopped, nothing pushed');
+    expect(noGo).toContain('The agent read the comments and decided not to change anything.');
+    expect(noGo).toContain('Its reason: The comments ask for a redesign.');
+    expect(noGo).toContain('start another round from its page');
+    expect(noGo).toContain('Back to the pull request');
+    const empty = text(review({ ...followUpAttempts.stopped, endReason: 'CHECKS_FAILED', endDetail: 'not_empty' }));
+    expect(empty).toContain('The agent wrote no commit and no reply');
+  });
+
+  it('never takes more than a round can: past 20 comments it asks to ignore the rest first', () => {
+    const many = Array.from({ length: 22 }, (_, index) =>
+      feedbackThread({ commentId: `C_${index}`, threadId: `T_${index}` }),
+    );
+    const plain = text(prOpen({ reviewFeedback: { readAt: null, threads: many } }));
+    expect(plain).toContain('Address 22 comments');
+    expect(plain).toContain('A round takes 20 comments at most. Set 2 to Ignore for now');
+  });
+
+  it('marks the Checks step as our checks came out, and says what an older stop really was', () => {
+    const blocked = review(
+      inReview({ checkStatus: { status: 'BLOCKED', note: 'It cannot be pushed: it changes a GitHub workflow.' } }),
+    );
+    expect(blocked).toMatch(/data-step="checks" data-step-state="failed"/);
+    expect(review(inReview())).toMatch(/data-step="checks" data-step-state="skipped"/);
+    const older = text(review({ ...followUpAttempts.stopped, endReason: 'CHECKS_FAILED', endDetail: 'tests_passed' }));
+    expect(older).toContain('Our checks stopped it before the review.');
+    expect(older).not.toContain('wrote no commit');
+  });
+
+  it('after the push, offers to post a reply that did not go with it', () => {
+    const plain = text(review(inReview({ state: 'DONE', replyDrafts: [flowDraft({ draftId: 'D_9' })] })));
+    expect(plain).toContain('Not posted with the push. Post it now if you want it.');
+  });
+
+  it('shows a round with no reply as the flow’s, with its checks', () => {
+    const html = review(inReview({ replyDrafts: [] }));
+    expect(html).toContain('data-panel="follow-up-result"');
+    expect(text(html)).toContain('The agent drafted no reply this round.');
+    expect(html).not.toContain('data-follow-up-approval');
+  });
+
+  it('keeps the drafts one by one on an API without the flow', () => {
+    const html = review(followUpAttempts.review);
+    expect(html).not.toContain('data-panel="follow-up-result"');
+    expect(html).toContain('data-follow-up-approval="A_F1"');
   });
 });

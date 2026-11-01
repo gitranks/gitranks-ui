@@ -31,6 +31,7 @@ export function ConfirmDialog({
   pending,
   error,
   onConfirm,
+  onCloseAutoFocus,
 }: {
   trigger: ReactElement;
   open: boolean;
@@ -44,11 +45,13 @@ export function ConfirmDialog({
   pending: boolean;
   error?: ReactNode;
   onConfirm: () => void;
+  /** Where the focus goes on close, when not back to the trigger (which may be off by then). */
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
     <AlertDialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent onCloseAutoFocus={onCloseAutoFocus}>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>

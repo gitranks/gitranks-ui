@@ -1,22 +1,36 @@
 import Link from 'next/link';
 
-import { StartFollowUpButton } from './follow-up-buttons';
+import { MarkHandledButton, StartFollowUpButton } from './follow-up-buttons';
 import { attemptHref } from './reviews-ready';
 import type {
   ContributeAttemptPullRequest,
   ContributeFollowUps,
   ContributeNeedsYou,
 } from '@/lib/contribute/contribute.types';
+import { roundLineOf } from '@/lib/contribute/follow-up-flow';
 import { canStartFollowUp, roundsText, signalText } from '@/lib/contribute/follow-up-format';
 import { dayLabel, usd } from '@/lib/contribute/format';
 
-/** What happened on the pull request since the user last acted on it, newest first, each with when. */
-export function PrSignals({ needsYou, now }: { needsYou: ContributeNeedsYou | null | undefined; now?: Date }) {
+/**
+ * What happened on the pull request since the user last acted on it, newest first, each with when; with `prId`,
+ * "Mark as handled" under them. Each leaves on its own once its cause is gone on GitHub.
+ */
+export function PrSignals({
+  needsYou,
+  now,
+  prId,
+  prNumber,
+}: {
+  needsYou: ContributeNeedsYou | null | undefined;
+  now?: Date;
+  prId?: string;
+  prNumber?: number;
+}) {
   if (needsYou === undefined) {
     return <p className="text-sm text-muted-foreground">What changed on GitHub is not available yet.</p>;
   }
   if (!needsYou?.signals.length) return null;
-  return (
+  const list = (
     <ul data-signals={needsYou.signals.length} className="flex flex-col gap-1 text-sm">
       {[...needsYou.signals].reverse().map((signal, index) => (
         <li key={`${index}-${signal.kind}-${signal.at}`} data-signal={signal.kind} className="flex gap-2">
@@ -28,6 +42,14 @@ export function PrSignals({ needsYou, now }: { needsYou: ContributeNeedsYou | nu
       ))}
     </ul>
   );
+  if (!prId) return list;
+  return (
+    <div className="flex flex-col gap-2">
+      {list}
+      {/* A signal arriving later is a new "needs you": the button starts afresh. */}
+      <MarkHandledButton key={needsYou.since} prId={prId} prNumber={prNumber} />
+    </div>
+  );
 }
 
 /**
@@ -38,11 +60,14 @@ export function FollowUpRounds({
   followUps,
   pullRequest,
   attemptCapUsd,
+  startHere = true,
 }: {
   followUps: ContributeFollowUps | null | undefined;
   pullRequest: Pick<ContributeAttemptPullRequest, 'prId' | 'state'>;
   /** The user's limit for one attempt, which a follow-up runs within. */
   attemptCapUsd?: number;
+  /** Offer "Start a follow-up" here; off where the review-feedback card starts it on the threads chosen. */
+  startHere?: boolean;
 }) {
   if (followUps === undefined) {
     return (
@@ -77,7 +102,18 @@ export function FollowUpRounds({
           See the follow-up →
         </Link>
       ) : null}
-      {canStartFollowUp(followUps) && open ? (
+      {followUps.history?.length ? (
+        <ol data-rounds={followUps.history.length} className="flex flex-col gap-1 text-sm">
+          {followUps.history.map((round) => (
+            <li key={round.attemptId} data-round={round.round}>
+              <Link href={attemptHref(round.attemptId)} prefetch={false} className="hover:underline">
+                {roundLineOf(round)}
+              </Link>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {canStartFollowUp(followUps) && open && startHere ? (
         <>
           <StartFollowUpButton prId={pullRequest.prId} />
           <span className="text-xs text-muted-foreground">

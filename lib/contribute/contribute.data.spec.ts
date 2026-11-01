@@ -40,6 +40,7 @@ const {
   ContributeContributionsFollowUpsDocument,
   ContributeGrantDocument,
   ContributeAttemptsOpenDocument,
+  ContributeAttemptDcoDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeProviderInterestsDocument,
@@ -162,6 +163,41 @@ describe('loadAttempt', () => {
 
     graphqlDirect.mockRejectedValueOnce(new Error('GraphQL error! 502: Bad Gateway'));
     await expect(loadAttempt('A_1')).rejects.toBeInstanceOf(ContributeUnavailableError);
+  });
+});
+
+describe('loadAttempt: whether the repo requires DCO, read on its own', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const answering = (dco: () => Promise<unknown>) =>
+    graphqlDirect.mockImplementation((document) =>
+      document === ContributeAttemptDcoDocument
+        ? dco()
+        : Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'REVIEW' } }),
+    );
+
+  it("merges the attempt's own answer, and leaves the field out otherwise", async () => {
+    answering(() => Promise.resolve({ contributeAttempt: { attemptId: 'A_1', dcoRequired: true } }));
+    expect(await loadAttempt('A_1')).toEqual({ attemptId: 'A_1', state: 'REVIEW', dcoRequired: true });
+
+    answering(() => Promise.resolve({ contributeAttempt: { attemptId: 'A_1', dcoRequired: false } }));
+    expect(await loadAttempt('A_1')).toMatchObject({ dcoRequired: false });
+
+    // Another attempt's answer, an API without the field, or a failed read: not known, so the form asks as before.
+    for (const dco of [
+      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', dcoRequired: false } }),
+      () => Promise.reject(new Error('[{"message":"Cannot query field \\"dcoRequired\\""}]')),
+      () => Promise.reject(new Error('GraphQL error! 502: Bad Gateway')),
+    ]) {
+      answering(dco);
+      const read = await loadAttempt('A_1');
+      expect(read).toEqual({ attemptId: 'A_1', state: 'REVIEW' });
+      expect('dcoRequired' in (read ?? {})).toBe(false);
+    }
   });
 });
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { ContributeSection } from './components/landing/contribute-section';
 import type { ExampleRank } from './components/landing/hero-aside';
 import {
   fetchFeaturedOrg,
@@ -45,8 +46,9 @@ const EXAMPLE_COUNT = 3;
 
 // Every read below is a shared, cached function (see landing-data.ts and the helpers' own cache
 // lifetimes), so the page is prerendered and a view sends no request to the API. Only the signed-in
-// visitor's own rank card is fetched in the browser, from a route cached per user, and their own
-// badges, from the public badge data the builder reads.
+// visitor's own rank card is fetched in the browser, from a route cached per user, their own
+// badges, from the public badge data the builder reads, and, where Contribute is open to them,
+// their own top picks.
 export default async function Home() {
   const [insights, leaderboards, tiers, orgs, featured, countries, languages, countryList, repos, showcase] =
     await Promise.all([
@@ -128,6 +130,7 @@ export default async function Home() {
       <main>
         <Hero developersRanked={developersRanked} examples={examples} stats={stats} />
         <Container>
+          <ContributeSection />
           <LeaderboardSection boards={boards} />
           <InsightsSection insights={insights} />
           <OrganizationsSection orgs={orgs} flags={flags} featured={featured} />

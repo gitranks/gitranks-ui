@@ -8,6 +8,8 @@ export type RequestSource = 'ssr' | 'client' | 'badge';
 type InternalClaims = {
   source: RequestSource | 'build';
   githubLogin?: string;
+  /** The signed-in user's email, on Contribute's calls only: the address its emails go to. */
+  accountEmail?: string;
 };
 
 const isBuildPhase = () => process.env.NEXT_PHASE === 'phase-production-build';
@@ -21,12 +23,12 @@ const CF_BUILD_BYPASS_HEADER = 'x-gitranks-build';
  * on paths that run inside a "use cache" scope, which `cacheComponents` rejects.
  * Callers that have a request scope read the session there and pass it down.
  */
-const resolveClaims = (source: RequestSource, githubLogin?: string): InternalClaims => {
+const resolveClaims = (source: RequestSource, githubLogin?: string, accountEmail?: string): InternalClaims => {
   if (isBuildPhase()) {
     return { source: 'build' };
   }
-
-  return githubLogin ? { source, githubLogin } : { source };
+  if (!githubLogin) return { source };
+  return accountEmail ? { source, githubLogin, accountEmail } : { source, githubLogin };
 };
 
 export async function signedFetch(
@@ -34,8 +36,9 @@ export async function signedFetch(
   init: RequestInit = {},
   source: RequestSource = 'ssr',
   githubLogin?: string,
+  accountEmail?: string,
 ) {
-  const claims = resolveClaims(source, githubLogin);
+  const claims = resolveClaims(source, githubLogin, accountEmail);
   const token = jwt.sign(claims, process.env.INTERNAL_JWT_SECRET!, { expiresIn: '5m' });
 
   const headers = new Headers(init.headers);

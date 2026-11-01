@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { useEffect, useId, useState, useTransition } from 'react';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { approveAttempt, discardAttempt } from '../actions';
 import { HEADING } from './primitives';
+import { reducedMotion } from './submit-stepper';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,6 +31,12 @@ import {
   tabStoreOf,
   takePendingApproval,
 } from '@/lib/contribute/grant-resume';
+import {
+  type ChecklistItem,
+  type ContributeRepoConventions,
+  checklistOf,
+  titleBlocks,
+} from '@/lib/contribute/pr-conventions';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
 
 export type PrFormProps = {
@@ -42,8 +49,11 @@ export type PrFormProps = {
   login: string;
   /** The user's DCO setting; null while it is not known. */
   dcoMode: ContributeDcoMode | null;
-  /** The repo's notes mention a sign-off. */
-  dcoAsked: boolean;
+  /**
+   * The repo requires a DCO sign-off: the form asks for it (or says the standing consent gives it). False: nothing is
+   * shown and nothing is signed off. `undefined` while the API does not say: the form asks, in case the repo does.
+   */
+  dcoRequired: boolean | undefined;
   /** A submission step that went wrong, so this approval is a second one. */
   again: boolean;
   /**
@@ -53,7 +63,83 @@ export type PrFormProps = {
   grantNeeded?: boolean;
   /** GitHub access is connected: back from GitHub, the kept approval may be sent. */
   grantConnected?: boolean;
+  /** What the repo asks of a PR (its title rule, a CLA, a changelog line); null or absent when none was read. */
+  conventions?: ContributeRepoConventions | null;
+  /** The change, for the changelog line it adds. */
+  patch?: string | null;
 };
+
+const MARK: Record<ChecklistItem['state'], string> = { ok: '✓', blocked: '✕', todo: '•', info: '·' };
+const MARK_LABEL: Record<ChecklistItem['state'], string> = {
+  ok: 'Done:',
+  blocked: 'Needed before Submit:',
+  todo: 'To do:',
+  info: 'Note:',
+};
+
+/** "This repo needs": the repo's conventions against the PR as it stands; the title line follows the field live. */
+export function RepoNeeds({ items, titleId }: { items: ChecklistItem[]; titleId?: string }) {
+  if (!items.length) return null;
+  return (
+    <section data-repo-needs aria-label="This repo needs" className="flex flex-col gap-1.5 rounded-lg bg-muted/60 p-3">
+      <h3 className="text-sm font-medium">This repo needs</h3>
+      <ul className="flex flex-col gap-1.5 text-xs">
+        {items.map((item) => (
+          <li
+            key={item.key}
+            data-need={item.key}
+            data-state={item.state}
+            id={item.key === 'title' ? titleId : undefined}
+            className="flex gap-2"
+          >
+            <span
+              aria-hidden
+              className={
+                item.state === 'ok'
+                  ? 'text-positive'
+                  : item.state === 'blocked'
+                    ? 'text-destructive'
+                    : 'text-muted-foreground'
+              }
+            >
+              {MARK[item.state]}
+            </span>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span>
+                <span className="sr-only">{MARK_LABEL[item.state]} </span>
+                {item.label}
+                {item.link ? (
+                  <>
+                    {' '}
+                    <a href={item.link} target="_blank" rel="noreferrer" className="text-link">
+                      Sign here<span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  </>
+                ) : null}
+              </span>
+              {item.detail ? (
+                <span
+                  className={`break-words ${item.state === 'blocked' ? 'text-destructive' : 'text-muted-foreground'} ${
+                    item.key === 'changelog' ? 'font-mono' : ''
+                  }`}
+                >
+                  {item.detail}
+                </span>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * The approval's `dco`: only where the repo requires a sign-off (or while the API does not say), with the tick or the
+ * standing consent. A repo that requires none is never signed off.
+ */
+export const signOffOf = (dcoRequired: boolean | undefined, mode: ContributeDcoMode | null, ticked: boolean) =>
+  dcoRequired !== false && (mode === 'STANDING' || ticked);
 
 /** A fresh nonce for the way back from GitHub. */
 const nonceOf = () =>
@@ -62,6 +148,13 @@ const nonceOf = () =>
     : Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('');
 
 type Confirm = 'approve' | 'discard' | null;
+
+/** Up to the top of the page, where the submission's progress shows once it starts. */
+const scrollToProgress = () => window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+
+/** The focus on the attempt's status box, which shows the progress, without scrolling to it a second time. */
+const focusProgress = () =>
+  document.querySelector<HTMLElement>('[data-attempt-status]')?.focus({ preventScroll: true });
 
 /**
  * The pull request as it will open: an editable title and body, the footer line, DCO, then Submit or Discard. On the
@@ -76,10 +169,12 @@ export function PrForm({
   defaultBody,
   login,
   dcoMode,
-  dcoAsked,
+  dcoRequired,
   again,
   grantNeeded = false,
   grantConnected = false,
+  conventions = null,
+  patch = null,
 }: PrFormProps) {
   const router = useRouter();
   const id = useId();
@@ -91,21 +186,35 @@ export function PrForm({
   /** On the way to GitHub, or back from it with the pull request opening. */
   const [handoff, setHandoff] = useState<'github' | 'opening' | null>(null);
   const [pending, startTransition] = useTransition();
+  /** The approval went through: the closing dialog hands the focus to the progress, not back to Submit. */
+  const approved = useRef(false);
   const busy = pending || handoff !== null;
 
   const standing = dcoMode === 'STANDING';
   const titleMissing = !title.trim();
+  const asksDco = dcoRequired !== false;
+  const signOff = signOffOf(dcoRequired, dcoMode, dco);
+  // A repo that checks every commit fails an unsigned PR: the tick comes first (or Discard).
+  const signOffMissing = dcoRequired === true && !signOff;
+  // Only a title that fails a rule the repo checks blocks Submit: everything else is the user's to do or to know.
+  const titleRuleFails = !titleMissing && titleBlocks(title, conventions?.title);
+  const blocked = titleMissing || signOffMissing || titleRuleFails;
+  const needs = checklistOf(conventions, { title, patch });
 
   const act = (which: Exclude<Confirm, null>) =>
     startTransition(async () => {
       setError(null);
       const result =
         which === 'approve'
-          ? await approveAttempt({ id: attemptId, title, body, dco: standing || dco })
+          ? await approveAttempt({ id: attemptId, title, body, dco: signOff })
           : await discardAttempt(attemptId);
       if (!result.ok) {
         setError(attemptActionErrorMessage(result.error, result.message));
         return;
+      }
+      if (which === 'approve') {
+        approved.current = true;
+        scrollToProgress();
       }
       setConfirm(null);
       router.refresh();
@@ -115,7 +224,7 @@ export function PrForm({
   const allowAndOpen = () => {
     setError(null);
     const nonce = nonceOf();
-    if (!savePendingApproval(tabStoreOf(window), { attemptId, title, body, dco: standing || dco, nonce })) {
+    if (!savePendingApproval(tabStoreOf(window), { attemptId, title, body, dco: signOff, nonce })) {
       setError('This browser keeps nothing for the way back. Allow GitHub access in Settings, then submit here.');
       return;
     }
@@ -150,6 +259,9 @@ export function PrForm({
       if (failure) {
         setHandoff(null);
         setError(failure);
+      } else {
+        scrollToProgress();
+        focusProgress();
       }
       router.replace(clean as never, { scroll: false });
       router.refresh();
@@ -158,12 +270,13 @@ export function PrForm({
 
   return (
     <form
+      id="pr-form"
       data-pr-form={attemptId}
       onSubmit={(event) => {
         event.preventDefault();
-        if (!titleMissing) setConfirm('approve');
+        if (!blocked) setConfirm('approve');
       }}
-      className="flex flex-col gap-3.5 rounded-xl border-2 border-primary bg-card p-4.5"
+      className="flex scroll-mt-20 flex-col gap-3.5 rounded-xl border-2 border-primary bg-card p-4.5"
     >
       <h2 className={HEADING.card}>Your pull request</h2>
       <div className="flex flex-col gap-1.5">
@@ -177,9 +290,12 @@ export function PrForm({
           maxLength={PR_TITLE_MAX}
           required
           onChange={(event) => setTitle(event.target.value)}
+          aria-invalid={titleRuleFails || undefined}
+          aria-describedby={needs.some((item) => item.key === 'title') ? `${id}-title-rule` : undefined}
           className="h-auto rounded-lg py-2 text-sm"
         />
       </div>
+      <RepoNeeds items={needs} titleId={`${id}-title-rule`} />
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`${id}-body`} className="text-sm font-medium">
           Description
@@ -206,28 +322,46 @@ export function PrForm({
           The footer line is added to every pull request, linking gitranks.com.
         </span>
       </div>
-      {standing ? (
+      {!asksDco ? null : standing ? (
         <p data-dco="standing" className="text-xs text-muted-foreground">
-          The commits are signed off (DCO) under your standing consent.{' '}
+          {dcoRequired
+            ? 'This repo requires a DCO sign-off: the commits are signed off under your standing consent.'
+            : 'The commits are signed off (DCO) under your standing consent.'}{' '}
           <Link href={settingsPathOf('prs')} prefetch={false} className="text-link">
             Change it in Settings
           </Link>
           .
         </p>
       ) : (
-        <label data-dco={dcoAsked ? 'asked' : 'ask'} className="flex cursor-pointer items-start gap-2.5 text-sm">
-          <input
-            type="checkbox"
-            name="dco"
-            checked={dco}
-            onChange={(event) => setDco(event.target.checked)}
-            className="mt-0.5 accent-primary"
-          />
-          <span>
-            {dcoAsked ? 'This repo asks for a DCO sign-off. ' : 'Sign off the commits (DCO), if the repo asks for it. '}
-            I certify the Developer Certificate of Origin for this change.
+        <div className="flex flex-col gap-1.5">
+          <label
+            data-dco={dcoRequired ? 'required' : 'ask'}
+            className="flex cursor-pointer items-start gap-2.5 text-sm"
+          >
+            <input
+              type="checkbox"
+              name="dco"
+              aria-describedby={`${id}-dco-explained`}
+              checked={dco}
+              onChange={(event) => setDco(event.target.checked)}
+              className="mt-0.5 accent-primary"
+            />
+            <span>
+              {dcoRequired
+                ? 'This repo requires a DCO sign-off. '
+                : 'Sign off the commits (DCO), if the repo asks for it. '}
+              I certify the Developer Certificate of Origin for this change.
+            </span>
+          </label>
+          <span id={`${id}-dco-explained`} data-dco-explained className="pl-6 text-xs text-muted-foreground">
+            DCO is your statement that you wrote this change or have the right to submit it under the project&apos;s
+            license; signing off adds a <code className="font-mono">Signed-off-by</code> line with your name to each
+            commit.{' '}
+            <a href="https://developercertificate.org/" target="_blank" rel="noreferrer" className="text-link">
+              developercertificate.org<span className="sr-only"> (opens in a new tab)</span>
+            </a>
           </span>
-        </label>
+        </div>
       )}
       <span className="text-xs text-muted-foreground">
         Opens on {repo} from your fork, in your name, co-authored by gitranks.
@@ -257,7 +391,17 @@ export function PrForm({
           {error}
         </span>
       ) : null}
-      <Button type="submit" size="lg" disabled={busy || titleMissing} className="min-h-11.5 font-semibold">
+      {titleRuleFails ? (
+        <span data-title-rule-fails className="text-sm text-muted-foreground">
+          Fix the title to submit: this repo checks it, and a title that fails fails the pull request.
+        </span>
+      ) : null}
+      {signOffMissing ? (
+        <span data-dco-missing className="text-sm text-muted-foreground">
+          Tick the DCO sign-off to submit: this repo checks every commit for one.
+        </span>
+      ) : null}
+      <Button type="submit" size="lg" disabled={busy || blocked} className="min-h-11.5 font-semibold">
         {handoff === 'github'
           ? 'Opening GitHub…'
           : handoff === 'opening'
@@ -284,7 +428,13 @@ export function PrForm({
       </Button>
 
       <Dialog open={confirm !== null} onOpenChange={(open) => !pending && !open && setConfirm(null)}>
-        <DialogContent>
+        <DialogContent
+          onCloseAutoFocus={(event) => {
+            if (!approved.current) return;
+            event.preventDefault();
+            focusProgress();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>
               {confirm === 'discard'

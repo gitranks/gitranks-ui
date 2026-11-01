@@ -11,7 +11,9 @@ vi.mock('@/app/contribute/actions', () => ({ readContributeChanges: vi.fn() }));
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({ useReportPendingNavigation: () => {} }));
 vi.mock('@/lib/contribute/contribute.data', () => ({}));
 
-const { AgentRunsTabLabel, LiveRunPhase, RightNowLanes, WorkingNowSection } = await import('./agent-runs');
+const { AgentRunsTabLabel, LiveRunPhase, LiveRunsLabel, RightNowLanes, WorkingNowSection } = await import(
+  './agent-runs'
+);
 const { ContributeTabsNav } = await import('./contribute-tabs-nav');
 const { ContributionsScreen } = await import('./contributions-view');
 const { activityOf, FOLLOW_UP, QUEUED, READY, runOf, WORKING } = await import(
@@ -88,8 +90,27 @@ describe("Right now's lanes", () => {
     expect(idle).not.toContain('Just finished');
     const paused = text(lanes(null, { paused: <p>both paused</p> }));
     expect(paused.trim()).toBe('both paused');
-    // A run still live while paused keeps its lane.
+    // A run started while paused keeps its lane.
     expect(text(lanes(activityOf(WORKING), { paused: <p>both paused</p> }))).not.toContain('both paused');
+    // One only queued waits on the pause: the pause stays, the run under it.
+    const queuedPaused = lanes(activityOf(QUEUED), { paused: <p>both paused</p> });
+    expect(text(queuedPaused)).toContain('both paused');
+    expect(queuedPaused).toContain('data-run="att_queued"');
+  });
+
+  it('words its heading from the runs its lanes show, never from one left to Needs you', () => {
+    expect(text(renderToStaticMarkup(<LiveRunsLabel activity={activityOf(WORKING, READY)} />)).trim()).toBe(
+      '1 agent working',
+    );
+    const autopilot = runOf({ attemptId: 'att_autopilot', phase: 'WAITING_FOR_YOU', active: false });
+    expect(renderToStaticMarkup(<LiveRunsLabel activity={activityOf(autopilot)} />)).toBe('');
+  });
+
+  it('keeps a lane’s hold in sight while its runs are only queued', () => {
+    const html = lanes(activityOf(QUEUED));
+    expect(html).toContain('data-now-lanes="idle"');
+    expect(text(html)).toContain('hosted idle');
+    expect(html).toContain('data-run="att_queued"');
   });
 });
 

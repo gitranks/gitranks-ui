@@ -196,11 +196,15 @@ export function AgentRunsTabLabel({ runs }: { runs: readonly ContributeAgentRun[
   );
 }
 
-/** Right now's few words beside its heading, live: "2 agents working"; nothing with no live run. */
+/** Right now's few words beside its heading, live, of the runs its lanes show: "2 agents working"; nothing with none. */
 export function LiveRunsLabel({ activity }: { activity: ContributeActivity | null | undefined }) {
-  const { label } = runsTabMarkOf(runsOf(useLiveActivity(activity)));
+  const { hosted, own } = laneRunsOf(runsOf(useLiveActivity(activity)));
+  const { label } = runsTabMarkOf([...hosted, ...own]);
   return label ? <span className="text-sm text-muted-foreground">{label}</span> : null;
 }
+
+/** Whether a run has started: one only queued has not, and leaves its lane's hold (a pause, a cap) in sight. */
+const isStarted = ({ phase }: Pick<ContributeAgentRun, 'phase'>) => phase !== 'QUEUED';
 
 const LANES = {
   hosted: { title: 'Hosted agent', note: 'on your Claude key', Icon: Cloud },
@@ -228,16 +232,19 @@ function Lane({
         <h3 className="font-semibold">{title}</h3>
         {note ? <span className="text-muted-foreground">{note}</span> : null}
       </div>
-      {runs.length ? <RunList runs={runs} readAt={readAt} /> : children}
+      {/* What holds the lane stays until a run of it starts: a queued one waits on that very hold. */}
+      {runs.some(isStarted) ? null : children}
+      {runs.length ? <RunList runs={runs} readAt={readAt} /> : null}
     </div>
   );
 }
 
 /**
  * Right now's agents, a lane each: the agent we run on the user's key, and the user's own agent. A lane lists its live
- * runs, from the poll, or else says what holds it (`hosted`, `ownAgent`: the page's words for its state, as it read
- * it); the runs that ended in the last ten minutes follow, under "Just finished". A run that waits for the user is Needs
- * you's alone. Paused with nothing live, one line says so for both (`paused`); with neither way, `none` does.
+ * runs, from the poll, and says what holds it (`hosted`, `ownAgent`: the page's words for its state, as it read it)
+ * until one of them starts; the runs that ended in the last ten minutes follow, under "Just finished". A run that waits
+ * for the user is Needs you's alone. Paused with nothing started, one line says so for both (`paused`), any queued runs
+ * under it; with neither way, `none` does.
  */
 export function RightNowLanes({
   activity,
@@ -255,14 +262,18 @@ export function RightNowLanes({
   const live = useLiveActivity(activity);
   const lanes = laneRunsOf(runsOf(live));
   const readAt = live?.readAt ?? '';
-  const working = lanes.hosted.length > 0 || lanes.own.length > 0;
+  const queued = [...lanes.hosted, ...lanes.own];
+  const working = queued.some(isStarted);
   return (
     <div
       data-now-lanes={working ? 'working' : 'idle'}
       className={cn('flex flex-col divide-y overflow-hidden rounded-xl border bg-card', working && 'border-primary/30')}
     >
       {paused && !working ? (
-        paused
+        <div data-lane="paused">
+          {paused}
+          {queued.length ? <RunList runs={queued} readAt={readAt} /> : null}
+        </div>
       ) : (
         <>
           {hosted || lanes.hosted.length ? (
@@ -275,7 +286,7 @@ export function RightNowLanes({
               {ownAgent}
             </Lane>
           ) : null}
-          {working || hosted || ownAgent ? null : none}
+          {queued.length || hosted || ownAgent ? null : none}
         </>
       )}
       {lanes.finished.length ? (

@@ -121,11 +121,15 @@ export function ReviewFeedbackCard({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
+  // Threads whose Ignore or Address is being saved: their buttons and the start wait for it.
+  const [saving, setSaving] = useState<Set<string>>(() => new Set());
   const [, startSaving] = useTransition();
   const busy = pending || done;
 
   const fresh = feedback.threads.filter((thread) => !thread.ignored);
   const earlier = feedback.threads.filter((thread) => thread.ignored);
+  // The count follows the choices as saved here; the groups stay as the page opened, so nothing jumps under a click.
+  const waiting = feedback.threads.filter((thread) => (choices[thread.commentId] ?? 'address') === 'address').length;
   const shown = showIgnored ? feedback.threads : fresh;
   const { bots, people } = threadsByWho(shown);
   const chosen = feedback.threads.filter((thread) => choices[thread.commentId] === 'address');
@@ -150,14 +154,17 @@ export function ReviewFeedbackCard({
   // Ignore is kept on the pull request at once (Address undoes it): the comment stays out of every round, autopilot's
   // too, until someone comments on it again.
   const choose = (thread: ContributeFeedbackThread, choice: Choice) => {
-    const before = choices[thread.commentId] ?? 'address';
-    if (before === choice) return;
-    setChoices((current) => ({ ...current, [thread.commentId]: choice }));
+    const id = thread.commentId;
+    const before = choices[id] ?? 'address';
+    if (before === choice || saving.has(id)) return;
+    setChoices((current) => ({ ...current, [id]: choice }));
+    setSaving((current) => new Set([...current, id]));
     setError(null);
     startSaving(async () => {
-      const result = await ignoreReviewThreads(prId, [thread.commentId], choice === 'ignore');
+      const result = await ignoreReviewThreads(prId, [id], choice === 'ignore');
+      setSaving((current) => new Set([...current].filter((each) => each !== id)));
       if (!result.ok) {
-        setChoices((current) => ({ ...current, [thread.commentId]: before }));
+        setChoices((current) => ({ ...current, [id]: before }));
         setError(followUpErrorMessage(result.error, result.message));
       }
     });
@@ -169,7 +176,7 @@ export function ReviewFeedbackCard({
       thread={thread}
       choice={choices[thread.commentId] ?? 'address'}
       onChoose={(choice) => choose(thread, choice)}
-      disabled={busy}
+      disabled={busy || saving.has(thread.commentId)}
     />
   );
 
@@ -178,11 +185,11 @@ export function ReviewFeedbackCard({
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className={HEADING.card}>Review feedback</h2>
-          <Pill tone={fresh.length ? 'amber' : 'neutral'}>{fresh.length} waiting</Pill>
+          <Pill tone={waiting ? 'amber' : 'neutral'}>{waiting} waiting</Pill>
         </div>
         <p className="text-sm text-muted-foreground">
-          {fresh.length
-            ? `${fresh.length === 1 ? 'One comment waits' : `${fresh.length} comments wait`} for an answer on ${pr}. Ignore one to keep it out of every follow-up until someone comments on it again.`
+          {waiting
+            ? `${waiting === 1 ? 'One comment waits' : `${waiting} comments wait`} for an answer on ${pr}. Ignore one to keep it out of every follow-up until someone comments on it again.`
             : `No new comment waits for an answer on ${pr}.`}
           {feedback.readAt ? ` Read from GitHub ${relativeLabel(feedback.readAt, now)}.` : ''}
         </p>
@@ -214,7 +221,7 @@ export function ReviewFeedbackCard({
             type="button"
             size="lg"
             onClick={start}
-            disabled={busy || !chosen.length || tooMany}
+            disabled={busy || !chosen.length || tooMany || saving.size > 0}
             className="min-h-11 self-stretch font-semibold sm:self-start"
           >
             {busy
@@ -225,8 +232,8 @@ export function ReviewFeedbackCard({
           </Button>
           {tooMany ? (
             <span role="status" className="text-sm text-warning">
-              A round takes {ROUND_MAX} comments at most. Set {chosen.length - ROUND_MAX} to Ignore for now; you can
-              address them in a later round.
+              A round takes {ROUND_MAX} comments at most. Set {chosen.length - ROUND_MAX} to Ignore: they stay out of
+              every round, autopilot&apos;s too, until you address them again or someone comments on them.
             </span>
           ) : null}
           <span className="text-xs text-muted-foreground">

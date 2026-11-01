@@ -198,8 +198,7 @@ function PrNeedsYouRow({
   const url = githubUrlOf(pullRequest.url);
   const current = contribution.followUps?.currentAttemptId;
   const label = prNeedsYouLabelOf(contribution, drafts, current ? followUps.get(current) : undefined);
-  // A follow-up waiting for the user opens on its own page; anything else on the pull request's.
-  const href = attemptHref(current && label === 'Follow-up ready' ? current : contribution.attemptId);
+  const href = attemptHref(contribution.attemptId);
   return (
     <li
       data-pr-needs-you={pullRequest.number}
@@ -227,7 +226,7 @@ function PrNeedsYouRow({
           </span>
         ) : null}
         <Button asChild variant="outline" className="min-h-10 px-4 font-semibold">
-          <Link href={href} prefetch={false} aria-label={`Open pull request #${pullRequest.number}`}>
+          <Link href={href} prefetch={false} aria-label={`Open the follow-ups of pull request #${pullRequest.number}`}>
             Open
           </Link>
         </Button>
@@ -554,14 +553,20 @@ export function ContributionsScreen({
 }) {
   const spend = view.contributor?.spend;
   const needsYou = (attempts ?? []).filter(({ state }) => state === 'REVIEW' || state === 'PENDING_AUTOSUBMIT');
-  const prsNeedingYou = (contributions?.items ?? []).filter(
-    ({ pullRequest, needsYou: signals }) =>
-      pullRequest.state === 'OPEN' &&
-      (!!signals?.signals.length || shownDrafts(drafts[pullRequest.prId], now ?? new Date()).length > 0),
-  );
   const followUps = new Map(
     (attempts ?? []).filter(({ kind }) => kind === 'FOLLOW_UP').map((attempt) => [attempt.attemptId, attempt]),
   );
+  // An open pull request with something waiting on its attempt page; a follow-up ready has its own Review row above.
+  const prsNeedingYou = (contributions?.items ?? []).filter((contribution) => {
+    if (contribution.pullRequest.state !== 'OPEN') return false;
+    const current = contribution.followUps?.currentAttemptId;
+    const label = prNeedsYouLabelOf(
+      contribution,
+      shownDrafts(drafts[contribution.pullRequest.prId], now ?? new Date()),
+      current ? followUps.get(current) : undefined,
+    );
+    return label !== null && label !== 'Follow-up ready';
+  });
   const inProgress = (attempts ?? []).filter(
     ({ state }) => IN_PROGRESS_STATES.includes(state) && state !== 'PENDING_AUTOSUBMIT',
   );

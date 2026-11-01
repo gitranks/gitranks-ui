@@ -109,10 +109,11 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(handledErrorMessage('INVALID', 'prId must match')).not.toContain('changed just now');
   });
 
-  it('says a follow-up is ready, linking it, or under way', () => {
+  it('lists a follow-up ready once, as its Review row, and one under way on the pull request', () => {
     const current = followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' });
+    // A follow-up ready is its own Review row; the pull request is not listed twice.
     const ready = mine({ needsYou: needsYou(), followUps: current });
-    expect(ready).toContain('data-pr-label="Follow-up ready"');
+    expect(ready).not.toContain('data-pr-needs-you');
     expect(ready).toContain('href="/contribute/attempts/A_F1"');
 
     const running = mine({ needsYou: needsYou(), followUps: current }, {}, [
@@ -148,24 +149,12 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(html).not.toContain('data-reply-draft');
   });
 
-  it('keeps a pull request whose reply is posting or posted in the last day, and lets an older one go', () => {
+  it('leaves out a pull request whose replies are all approved: nothing waits there any more', () => {
     const posting = mine(
       { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
       { PR_8: [replyDraft({ state: 'POSTING', updatedAt: '2026-10-28T11:59:00.000Z' })] },
     );
-    expect(posting).toContain('data-pr-needs-you="1419"');
-    const posted = (postedAt: string) =>
-      replyDraft({
-        state: 'POSTED',
-        posted: true,
-        postedAt,
-        url: 'https://github.com/kelp-db/kelp/pull/1419#discussion_r9',
-      });
-    const old = mine(
-      { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
-      { PR_8: [posted('2026-10-26T09:00:00.000Z')] },
-    );
-    expect(old).not.toContain('data-pr-needs-you');
+    expect(posting).not.toContain('data-pr-needs-you');
   });
 
   it('says when autopilot submits an attempt waiting for it, with the link to stop it', () => {
@@ -919,7 +908,7 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     );
     const plain = text(prOpen({ reviewFeedback: { readAt: null, threads: many } }));
     expect(plain).toContain('Address 22 comments');
-    expect(plain).toContain('A round takes 20 comments at most. Set 2 to Ignore for now');
+    expect(plain).toContain('A round takes 20 comments at most. Set 2 to Ignore: they stay out of every round');
   });
 
   it('marks the Checks step as our checks came out, and says what an older stop really was', () => {

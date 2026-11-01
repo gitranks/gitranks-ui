@@ -80,7 +80,6 @@ function ThreadResult({
   resolveHumans,
   postLater = null,
   onDiscard = null,
-  discarding = false,
 }: {
   draft: ContributeReplyDraft;
   edit: Edit;
@@ -91,7 +90,6 @@ function ThreadResult({
   postLater?: { prNumber: number | null; version: string } | null;
   /** In the review: leave this comment out for good (its reply too), until someone comments on it again. */
   onDiscard?: (() => void) | null;
-  discarding?: boolean;
 }) {
   const outcome = draft.outcome ? OUTCOMES[draft.outcome] : null;
   const where = draft.comment ? whereOfThread(draft.comment) : '';
@@ -124,11 +122,10 @@ function ThreadResult({
             size="sm"
             variant="ghost"
             onClick={onDiscard}
-            disabled={discarding}
-            aria-label={`Discard the comment of ${who}: no reply, and never addressed again`}
+            aria-label={`Discard the comment of ${who}: no reply, and left out until someone comments on it again`}
             className="ml-auto min-h-9"
           >
-            {discarding ? 'Discarding…' : 'Discard comment'}
+            Discard comment
           </Button>
         ) : null}
       </div>
@@ -268,9 +265,8 @@ export function FollowUpResult({
   const [pending, startTransition] = useTransition();
   const [saving, startSaving] = useTransition();
   const [acting, setActing] = useState<'push' | 'discard' | null>(null);
-  // Comments discarded one by one: gone from the card at once; the API drops their replies.
+  // Comments discarded one by one: gone from the card at once (back on a failure); the API drops their replies.
   const [dropped, setDropped] = useState<Set<string>>(() => new Set());
-  const [dropping, setDropping] = useState<string | null>(null);
   const [, startDropping] = useTransition();
   const busy = pending || done !== null;
   const pr = prNumber ? `pull request #${prNumber}` : 'the pull request';
@@ -321,16 +317,15 @@ export function FollowUpResult({
   const discardComment = (draft: ContributeReplyDraft) => {
     const commentId = draft.comment?.commentId;
     if (!draft.prId || !commentId) return;
-    setDropping(draft.draftId);
     setError(null);
+    setDropped((current) => new Set([...current, draft.draftId]));
     startDropping(async () => {
       const result = await ignoreReviewThreads(draft.prId, [commentId]);
-      setDropping(null);
       if (!result.ok) {
+        setDropped((current) => new Set([...current].filter((id) => id !== draft.draftId)));
         setError(attemptActionErrorMessage(result.error, result.message));
         return;
       }
-      setDropped((current) => new Set([...current, draft.draftId]));
       router.refresh();
     });
   };
@@ -370,7 +365,6 @@ export function FollowUpResult({
               onDiscard={
                 inReview && draft.prId && draft.comment && editable(draft) && !busy ? () => discardComment(draft) : null
               }
-              discarding={dropping === draft.draftId}
             />
           ))}
         </ul>
@@ -482,7 +476,7 @@ export function FollowUpResult({
               open={confirm === 'discard'}
               onOpenChange={(open) => setConfirm(open ? 'discard' : null)}
               title="Discard this round?"
-              description="Nothing is pushed and no reply is posted. What it cost stays spent; the comments stay waiting on the pull request."
+              description="Nothing is pushed and no reply is posted. What it cost stays spent; the comments you did not discard stay waiting on the pull request."
               action="Discard round"
               pendingAction="Discarding…"
               pending={pending}

@@ -3,7 +3,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { LiveRunsLabel, RightNowLanes } from './agent-runs';
+import { type LaneNote, LiveRunsLabel, RightNowLanes } from './agent-runs';
 import { ComingSoon } from './coming-soon';
 import { noticeCopyOf } from './contribute-notices';
 import { LiveUpNext } from './live-issues';
@@ -25,7 +25,7 @@ import type {
 } from '@/lib/contribute/contribute.types';
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, RUNS_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf } from '@/lib/contribute/contribute-state';
-import { dayLabel, maskedKey, planOf, relativeLabel, usd } from '@/lib/contribute/format';
+import { dayLabel, MODELS, maskedKey, planOf, relativeLabel, usd } from '@/lib/contribute/format';
 import {
   type HostedState,
   impactTilesOf,
@@ -367,6 +367,13 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
       });
       return { label: 'Waiting', title: notice.title, text: typeof notice.text === 'string' ? notice.text : undefined };
     }
+    case 'slots-busy':
+      return {
+        label: 'Next attempt',
+        title: 'When a slot frees',
+        text: state.slots > 1 ? `All ${state.slots} of your slots are busy.` : 'Your one slot is busy.',
+        action: settingsLink('more-limits', 'Attempts at a time in Settings'),
+      };
     case 'slots-taken':
       return {
         label: 'Waiting',
@@ -421,7 +428,18 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
 
 const lastCall = (at: string | null, now: Date) => (at ? `last call ${relativeLabel(at, now)}` : null);
 
-/** The own agent's lane: the issue it holds, or what it can do next. The lane names the agent, so the label is its state. */
+/** The own agent's lane header: which agent (the one at work, else the token it called with) and its last call. */
+export function ownLaneOf(state: OwnAgentState, now = new Date()): LaneNote {
+  const agent =
+    state.kind === 'holding' ? state.agent : state.kind === 'idle' || state.kind === 'unknown' ? state.token : null;
+  const at = 'lastCallAt' in state ? state.lastCallAt : null;
+  return { note: agent, aside: lastCall(at, now) };
+}
+
+/**
+ * The own agent's lane: the issue it holds, or what it can do next. The lane names the agent and its last call, so the
+ * label is its state.
+ */
 export function ownAgentCopyOf(state: OwnAgentState, now = new Date()): CardCopy {
   switch (state.kind) {
     case 'holding': {
@@ -433,19 +451,17 @@ export function ownAgentCopyOf(state: OwnAgentState, now = new Date()): CardCopy
           : attempt.state === 'CHECKS'
             ? `Checking the patch for ${issue}`
             : `Holding ${issue}`;
-      const who = [state.agent ?? 'Your agent', lastCall(state.lastCallAt, now)].filter(Boolean).join(' · ');
-      const until = attempt.leaseUntil ? ` Held for you until ${dayLabel(attempt.leaseUntil)}.` : '';
       return {
         label: WORKING_LABELS[attempt.state] ?? 'Working',
         title: `${title}${attempt.changesRequested ? ' · sent back with your note' : ''}`,
-        text: `${who}.${until}`,
+        text: attempt.leaseUntil ? `Held for you until ${dayLabel(attempt.leaseUntil)}.` : undefined,
       };
     }
     case 'idle':
       return {
         label: 'Idle',
         title: 'No issue held',
-        text: `${state.token} · ${lastCall(state.lastCallAt, now)}. Ask it to "${AGENT_HELLO_PROMPT}".`,
+        text: `Ask it to "${AGENT_HELLO_PROMPT}".`,
       };
     case 'never-called':
       return { label: 'Waiting', title: "Your agent hasn't called yet", text: `Ask it to "${AGENT_HELLO_PROMPT}".` };
@@ -455,10 +471,8 @@ export function ownAgentCopyOf(state: OwnAgentState, now = new Date()): CardCopy
         title: 'Contributing is paused',
         text: "Your agent can't claim an issue until you resume.",
       };
-    case 'unknown': {
-      const known = [state.token, lastCall(state.lastCallAt, now)].filter(Boolean).join(' · ');
-      return { label: 'Unknown', title: "We can't check your agent right now.", text: known ? `${known}.` : undefined };
-    }
+    case 'unknown':
+      return { label: 'Unknown', title: "We can't check your agent right now." };
   }
 }
 
@@ -515,6 +529,16 @@ function CycleCard({ view }: { view: ContributeView }) {
   );
 }
 
+/** The hosted lane's header: the model it runs on, and the slots when every one is busy. */
+export function hostedLaneOf(view: ContributeView, state: HostedState): LaneNote {
+  const model = view.contributor?.settings?.mainModel;
+  const hold = state.kind === 'working' ? state.next : state;
+  return {
+    note: ['on your Claude key', model ? MODELS[model].replace(/^Claude /, '') : null].filter(Boolean).join(' · '),
+    aside: hold.kind === 'slots-busy' ? `${hold.slots} of ${hold.slots} at a time` : null,
+  };
+}
+
 /** Paused with both ways set up: one line for both lanes, in place of each saying it. */
 const PAUSED_BOTH: CardCopy = {
   label: 'Paused',
@@ -544,6 +568,8 @@ export function RightNowSection({
   const state = rightNowOf(view, read, page, now);
   const none = !state.hosted && !state.ownAgent;
   const hostedCopy = state.hosted ? hostedCopyOf(state.hosted, now) : undefined;
+  // While the hosted agent works, what holds its next attempt sits beside the cycle; unread, nothing is said.
+  const next = state.hosted?.kind === 'working' && state.hosted.next.kind !== 'unknown' ? state.hosted.next : undefined;
   const bothPaused = state.hosted?.kind === 'paused' && (!state.ownAgent || state.ownAgent.kind === 'paused');
 
   return (
@@ -556,12 +582,16 @@ export function RightNowSection({
       <SectionHeader
         id="overview-now"
         title="Right now"
-        aside={<LiveRunsLabel activity={activity} />}
+        aside={<LiveRunsLabel activity={activity} idle={none ? undefined : 'No agent at work'} />}
         link={{ href: RUNS_PATH, label: 'All runs →' }}
       />
       <div className={cn('grid items-start gap-4', state.cycle && 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]')}>
         <RightNowLanes
           activity={activity}
+          notes={{
+            hosted: state.hosted ? hostedLaneOf(view, state.hosted) : undefined,
+            own: state.ownAgent ? ownLaneOf(state.ownAgent, now) : undefined,
+          }}
           hosted={hostedCopy ? <NowCard lane name="hosted" status copy={hostedCopy} /> : undefined}
           ownAgent={
             state.ownAgent ? <NowCard lane name="own-agent" copy={ownAgentCopyOf(state.ownAgent, now)} /> : undefined
@@ -594,7 +624,12 @@ export function RightNowSection({
             ) : undefined
           }
         />
-        {state.cycle ? <CycleCard view={view} /> : null}
+        {state.cycle ? (
+          <div className="flex min-w-0 flex-col gap-4">
+            <CycleCard view={view} />
+            {next ? <NowCard name="next" copy={{ ...hostedCopyOf(next, now), label: 'Next attempt' }} /> : null}
+          </div>
+        ) : null}
       </div>
     </section>
   );

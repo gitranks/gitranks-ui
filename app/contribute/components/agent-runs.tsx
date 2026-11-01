@@ -196,10 +196,15 @@ export function AgentRunsTabLabel({ runs }: { runs: readonly ContributeAgentRun[
   );
 }
 
-/** Right now's few words beside its heading, live, of the runs its lanes show: "2 agents working"; nothing with none. */
-export function LiveRunsLabel({ activity }: { activity: ContributeActivity | null | undefined }) {
-  const { hosted, own } = laneRunsOf(runsOf(useLiveActivity(activity)));
-  const { label } = runsTabMarkOf([...hosted, ...own]);
+/**
+ * Right now's few words beside its heading, live, of the runs its lanes show: "2 agents working"; with none read, `idle`
+ * ("No agent at work"), or nothing.
+ */
+export function LiveRunsLabel({ activity, idle }: { activity: ContributeActivity | null | undefined; idle?: string }) {
+  const live = useLiveActivity(activity);
+  const { hosted, own } = laneRunsOf(runsOf(live));
+  // Idle only once the runs are read: unread, nothing says none is at work.
+  const label = runsTabMarkOf([...hosted, ...own]).label || (live ? idle : undefined);
   return label ? <span className="text-sm text-muted-foreground">{label}</span> : null;
 }
 
@@ -213,24 +218,33 @@ const LANES = {
 
 type LaneName = keyof typeof LANES;
 
+/** A lane header's words beside its title (`note`: the model, the agent) and at its end (`aside`: the last call). */
+export type LaneNote = { note?: string | null; aside?: string | null };
+
 function Lane({
   name,
   runs,
   readAt,
+  header,
   children,
 }: {
   name: LaneName;
   runs: readonly ContributeAgentRun[];
   readAt: string;
+  header?: LaneNote;
   children: ReactNode;
 }) {
-  const { title, note, Icon } = LANES[name];
+  const { title, Icon } = LANES[name];
+  const note = header?.note ?? LANES[name].note;
   return (
     <div data-lane={name} data-lane-runs={runs.length}>
-      <div className="flex items-center gap-2 border-b bg-muted/60 px-4 py-2 text-xs">
-        <Icon aria-hidden="true" className="size-3.5 text-muted-foreground" />
-        <h3 className="font-semibold">{title}</h3>
-        {note ? <span className="text-muted-foreground">{note}</span> : null}
+      <div className="flex min-w-0 items-center gap-2 border-b bg-muted/60 px-4 py-2 text-xs">
+        <Icon aria-hidden="true" className="size-3.5 flex-none text-muted-foreground" />
+        <h3 className="flex-none font-semibold">{title}</h3>
+        {note ? <span className="min-w-0 truncate text-muted-foreground">{note}</span> : null}
+        {header?.aside ? (
+          <span className="ml-auto flex-none text-muted-foreground tabular-nums">{header.aside}</span>
+        ) : null}
       </div>
       {/* What holds the lane stays until a run of it starts: a queued one waits on that very hold. */}
       {runs.some(isStarted) ? null : children}
@@ -248,12 +262,15 @@ function Lane({
  */
 export function RightNowLanes({
   activity,
+  notes,
   hosted,
   ownAgent,
   paused,
   none,
 }: {
   activity: ContributeActivity | null | undefined;
+  /** Each lane header's words, as the page read them. */
+  notes?: Partial<Record<LaneName, LaneNote>>;
   hosted?: ReactNode;
   ownAgent?: ReactNode;
   paused?: ReactNode;
@@ -277,12 +294,12 @@ export function RightNowLanes({
       ) : (
         <>
           {hosted || lanes.hosted.length ? (
-            <Lane name="hosted" runs={lanes.hosted} readAt={readAt}>
+            <Lane name="hosted" runs={lanes.hosted} readAt={readAt} header={notes?.hosted}>
               {hosted}
             </Lane>
           ) : null}
           {ownAgent || lanes.own.length ? (
-            <Lane name="own" runs={lanes.own} readAt={readAt}>
+            <Lane name="own" runs={lanes.own} readAt={readAt} header={notes?.own}>
               {ownAgent}
             </Lane>
           ) : null}

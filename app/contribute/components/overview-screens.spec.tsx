@@ -81,7 +81,7 @@ describe('Overview, once there is an attempt', () => {
     for (const id of ['overview-needs', 'overview-now', 'overview-impact', 'overview-ways', 'overview-next']) {
       expect(html).toContain(`aria-labelledby="${id}"`);
     }
-    expect(html).toMatch(/<h3[^>]*>Coming soon\.<\/h3>/);
+    expect(html).toMatch(/<h3[^>]*>Coming soon:<\/h3>/);
     expect(html).toContain('data-overview="footer"');
   });
 
@@ -365,6 +365,33 @@ describe('Right now', () => {
     expect(now(views.agentOnboarded)).not.toContain('data-now="cycle"');
   });
 
+  it('names the model on the hosted lane, and what holds the next attempt while one works', () => {
+    const html = now(views.active, hosted({}));
+    // One slot, and it is busy: the next waits for it, said beside the cycle and on the lane.
+    expect(text(html)).toContain('Hosted agent on your Claude key · Sonnet 5.5 1 of 1 at a time');
+    expect(text(html)).toContain(
+      'Next attempt When a slot frees Your one slot is busy. Attempts at a time in Settings →',
+    );
+    const two = { ...views.active, contributor: contributor({ settings: { ...settings, attemptsAtATime: 2 } }) };
+    const free = now(two, hosted({}));
+    expect(text(free)).toContain('Next attempt In 2 hours Paced across your cycle, on one of your top picks.');
+    expect(text(free)).not.toContain('at a time');
+    // Nothing at work: the lane says what holds it, and no card repeats it.
+    expect(now(views.active)).not.toContain('data-now="next"');
+  });
+
+  it('says no agent is at work once the runs are read, and nothing before', () => {
+    const read = (activity: Parameters<typeof RightNowSection>[0]['activity']) =>
+      text(
+        renderToStaticMarkup(
+          <RightNowSection view={views.active} read={nowIdle} page={issuePage} activity={activity} now={NOW} />,
+        ),
+      );
+    expect(read(activityOf())).toContain('Right now No agent at work All runs →');
+    expect(read(null)).toContain('Right now All runs →');
+    expect(read(activityOf(WORKING))).toContain('Right now 1 agent working All runs →');
+  });
+
   it("shows the user's own agent holding an issue, idle, never called and paused", () => {
     const held = attempt({
       nameWithOwner: 'quill-rs/quill',
@@ -375,7 +402,7 @@ describe('Right now', () => {
       leaseUntil: '2026-11-01T00:00:00.000Z',
     });
     expect(text(now(views.agentOnboarded, { ...nowIdle, inFlight: [held] }))).toContain(
-      'Your own agent Working Holding quill-rs/quill #1204 Claude Code · last call 55 minutes ago. Held for you until Nov 1.',
+      'Your own agent Claude Code last call 55 minutes ago Working Holding quill-rs/quill #1204 Held for you until Nov 1.',
     );
     expect(text(now(views.agentOnboarded, { ...nowIdle, inFlight: [{ ...held, state: 'CLAIMING' }] }))).toContain(
       'Claiming quill-rs/quill #1204',
@@ -393,16 +420,16 @@ describe('Right now', () => {
     ).toContain('Holding quill-rs/quill #1204 · sent back with your note');
 
     expect(text(now(views.agentOnboarded))).toContain(
-      'Your own agent Idle No issue held Claude Code on macOS · last call 55 minutes ago. Ask it to "Find me an issue on GitRanks".',
+      'Your own agent Claude Code on macOS last call 55 minutes ago Idle No issue held Ask it to "Find me an issue on GitRanks".',
     );
     const fresh = { ...views.agentOnboarded, ownAgent: { paths: { hosted: false, mcp: true }, tokens: [mcpToken()] } };
     expect(text(now(fresh))).toContain("Your own agent Waiting Your agent hasn't called yet");
     expect(text(now({ ...views.agentOnboarded, paused: true }))).toContain(
       "Your own agent Paused Contributing is paused Your agent can't claim an issue until you resume.",
     );
-    // Its last call stays when the attempts in flight do not answer.
+    // Its last call stays, in the lane's header, when the attempts in flight do not answer.
     expect(text(now(views.agentOnboarded, { ...nowIdle, inFlight: undefined }))).toContain(
-      "We can't check your agent right now. Claude Code on macOS · last call 55 minutes ago.",
+      "Your own agent Claude Code on macOS last call 55 minutes ago Unknown We can't check your agent right now.",
     );
   });
 
@@ -483,7 +510,12 @@ describe('Ways you contribute', () => {
     expect(html).toContain('data-overview="coming-soon"');
     expect(html.match(/aria-pressed="/g)).toHaveLength(8);
     expect(html).toMatch(/aria-pressed="true"[^>]*aria-label="Notify me when GitHub Copilot opens"/);
-    expect(text(html)).toContain("Coming soon. Tell us which you'd use; the most asked for comes first.");
+    expect(text(html)).toContain(
+      "Coming soon: your ChatGPT plan, GitHub Copilot and 6 more. Notify me → Tell us which you'd use; the most asked for comes first.",
+    );
+    // One line: the toggles open under it, the list's status stays in sight.
+    expect(html).toMatch(/aria-expanded="false"[^>]*>Notify me →</);
+    expect(html).toMatch(/<div id="[^"]+" hidden="" class="flex flex-col gap-2\.5"><p[^>]*>Tell us which/);
     expect(text(html)).toContain("You're on the list for GitHub Copilot.");
     expect(html).toMatch(/role="status"/);
     // No kind or text line.

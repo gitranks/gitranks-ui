@@ -16,10 +16,12 @@ if (!live || !existsSync(live)) {
 const system = JSON.parse(readFileSync(live, 'utf8'));
 const css = readFileSync(join(root, 'app/globals.css'), 'utf8');
 
-/** `--name: value;` of one block, each with the comment above its group. */
+/** `--name: value;` of one block (`:root`, `.dark`), each with the last comment above it. */
 function variablesOf(selector) {
-  const start = css.indexOf(`${selector} {`);
-  const body = css.slice(start, css.indexOf('\n}', start));
+  const head = new RegExp(`^${selector.replace('.', '\\.')} \\{$`, 'm').exec(css);
+  if (!head) return new Map();
+  // A comment after a declaration on its own line describes that line, not the ones below.
+  const body = css.slice(head.index, css.indexOf('\n}', head.index)).replace(/;[ \t]*\/\*[\s\S]*?\*\//g, ';');
   const variables = new Map();
   let comment = '';
   for (const match of body.matchAll(/\/\*([\s\S]*?)\*\/|--([\w-]+):\s*([^;]+);/g)) {
@@ -29,32 +31,48 @@ function variablesOf(selector) {
   return variables;
 }
 
-const COLOUR = /^(#|oklch\(|rgb|hsl|var\(--)/;
+// What the design system reads as a colour: hex, a colour function with no function inside, or an alias.
+const COLOUR = /^(#[0-9a-f]{3,8}|(oklch|oklab|rgba?|hsla?|lab|lch)\([^()]*\)|var\(--[\w-]+\))$/i;
+const COLOURISH = /^(#|oklch|oklab|rgb|hsl|lab|lch|color-mix|var\()/i;
 const valueOf = (value) => value.replace(/^var\(--([\w-]+)\)$/, '{$1}');
 const light = variablesOf(':root');
 const dark = variablesOf('.dark');
 const previous = new Map((system.color?.tokens ?? []).map((token) => [token.name, token]));
 
 const tokens = [];
-for (const [name, { value, comment }] of light) {
-  if (!COLOUR.test(value)) continue;
+const skipped = [];
+for (const name of new Set([...light.keys(), ...dark.keys()])) {
+  const lightValue = light.get(name)?.value;
   const darkValue = dark.get(name)?.value;
+  const values = [lightValue, darkValue].filter(Boolean);
+  if (!values.some((value) => COLOURISH.test(value))) continue;
+  if (!values.every((value) => COLOUR.test(value))) {
+    skipped.push(name);
+    continue;
+  }
+  const comment = (light.get(name) ?? dark.get(name)).comment;
   tokens.push({
     name,
-    value: darkValue && darkValue !== value ? { light: valueOf(value), dark: valueOf(darkValue) } : valueOf(value),
+    value:
+      lightValue && darkValue && darkValue !== lightValue
+        ? { light: valueOf(lightValue), dark: valueOf(darkValue) }
+        : lightValue
+          ? valueOf(lightValue)
+          : { dark: valueOf(darkValue) },
     usage: previous.get(name)?.usage ?? (comment || 'From app/globals.css.'),
   });
 }
-const gone = [...previous.keys()].filter((name) => !light.has(name));
+const kept = new Set(tokens.map(({ name }) => name));
+const gone = [...previous.keys()].filter((name) => !kept.has(name));
 
-const commit = execSync('git rev-parse --short HEAD').toString().trim();
+const commit = execSync("git describe --always --dirty --abbrev=7 --exclude='*'").toString().trim();
 const next = {
   ...system,
   meta: {
     ...system.meta,
     source: 'github',
     repo: 'gitranks/gitranks-ui',
-    ref: `main@${commit}`,
+    ref: commit,
     status: 'live',
     synced: new Date().toISOString().slice(0, 10),
   },
@@ -64,4 +82,5 @@ const out = join(root, '.design/system/project/tokens.json');
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, `${JSON.stringify(next, null, 1)}\n`);
 console.log(`${tokens.length} colours from app/globals.css @${commit}.`);
-if (gone.length) console.log(`Not in the stylesheet any more (kept out): ${gone.join(', ')}`);
+if (skipped.length) console.log(`Not readable by the design system (left out): ${skipped.join(', ')}`);
+if (gone.length) console.log(`In the design system but no longer in the stylesheet (left out): ${gone.join(', ')}`);

@@ -26,8 +26,9 @@ One canvas, one page per area (Contribute, …), plus Archive.
   (`project/current/gitranks.css`). Each screen is a row, titled with its route; its states run left to right. They are
   never edited by hand: they change when the code does.
 - **Proposals** (`project/proposals/<slug>/<name>.dc.html`) start as copies of the live boards they change and edit
-  only what changes. They sit to the right of the screen's row (x from 4000), with a sticky note: what changes, why,
-  the status (Proposed → Approved → Building #PR → Shipped).
+  only what changes. They sit in the page's proposal column (the grey "Live boards" note names its x) beside the
+  screen's row, with a sticky note: what changes, why, the status (Proposed → Approved → Building #PR → Shipped). When
+  live rows move or widen, the redraw moves the proposal column's boards and notes with their row.
 - **Archive**: a shipped or dropped proposal moves there (its boards' `page` becomes `archive`), so the history stays
   in one place. Older canvases from before this one are linked from there.
 
@@ -44,8 +45,8 @@ render call.
 
 | Command | Does |
 | --- | --- |
-| `pnpm design:export` | Renders every state to `.design/project/current/**` and builds `gitranks.css`. `DESIGN_SCREENS=<id>,<id>` limits it to those screens. |
-| `node scripts/design-canvas.mjs <canvas.json>` | Merges the export into the canvas's index as read from the canvas: replaces live boards and their titles, keeps proposals, notes and pages. Writes `.design/project/canvas.json` and `.design/publish.json` (the files to send). |
+| `pnpm design:export` | Renders every state to `.design/project/current/**` and builds `gitranks.css` (about a second). |
+| `node scripts/design-canvas.mjs <canvas.json>` | Merges the export into the canvas's index as read from the canvas: replaces the live boards and their notes (ids starting `current-`), keeps proposals, other notes and pages. Writes `.design/project/canvas.json` and `.design/publish.json` (the files to send). Runs only on a clean checkout of `origin/main`: live boards come from main. |
 | `node scripts/design-tokens.mjs <tokens.json>` | The design system's `tokens.json` with every colour from `app/globals.css`, keeping its usage notes and type scale. Writes `.design/system/project/tokens.json`. |
 
 `.design/` is not committed.

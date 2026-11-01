@@ -10,22 +10,18 @@ import { AREAS } from './registry';
 import { SCREENS } from './screens';
 
 const OUT = join(process.cwd(), '.design');
-const only = process.env.DESIGN_SCREENS?.split(',').filter(Boolean);
 
 it('exports the screens', () => {
-  const commit = execSync('git rev-parse --short HEAD').toString().trim();
+  // The commit the boards come from; `-dirty` when the checkout has changes, which the canvas never takes as live.
+  const commit = execSync("git describe --always --dirty --abbrev=7 --exclude='*'").toString().trim();
   const boards: Record<string, Record<string, string | number>> = {};
-  // Every board is listed, so the canvas keeps one layout; only the screens asked for are drawn.
   for (const screen of SCREENS) {
-    const drawn = !only || only.includes(screen.id);
     for (const state of screen.states) {
       const path = boardPathOf(screen, state);
-      if (drawn) {
-        (globalThis as { __designPath?: string }).__designPath = state.path;
-        const file = join(OUT, 'project', path);
-        mkdirSync(dirname(file), { recursive: true });
-        writeFileSync(file, boardOf(screen, state, renderToStaticMarkup(state.render()), commit));
-      }
+      (globalThis as { __designPath?: string }).__designPath = state.path;
+      const file = join(OUT, 'project', path);
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, boardOf(screen, state, renderToStaticMarkup(state.render()), commit));
       boards[path] = {
         area: screen.area,
         areaName: AREAS[screen.area],
@@ -36,7 +32,6 @@ it('exports the screens', () => {
         title: `${screen.title} · ${state.title}`,
         width: state.width ?? 1280,
         height: state.height,
-        drawn: drawn ? 1 : 0,
       };
     }
   }

@@ -9,7 +9,12 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-vi.mock('next-auth/react', () => ({ signIn: () => {}, signOut: () => {}, useSession: () => ({ data: null }) }));
+vi.mock('next-auth/react', () => ({
+  signIn: () => {},
+  signOut: () => {},
+  useSession: () => ({ data: { user: { githubLogin: 'octocat', name: 'Octo Cat' } }, status: 'authenticated' }),
+}));
+vi.mock('@/lib/contribute/use-contribute-allowed', () => ({ useContributeAllowed: () => true }));
 vi.mock('@/components/signin-button/signin-button', () => ({
   default: () => <span aria-hidden="true" className="block size-8 rounded-full border bg-muted" />,
 }));

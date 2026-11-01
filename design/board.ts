@@ -10,9 +10,12 @@ export const STYLESHEET = 'current/gitranks.css';
 // A boolean attribute React writes as `x=""` reads as false once the canvas turns markup back into React props.
 const BOOLEAN_ATTRIBUTES = /\s(hidden|disabled|checked|open|selected|readonly|required|multiple)=""/g;
 
+// The canvas reads `{{` as a hole even when written as an entity: an invisible word joiner keeps the braces apart.
+const WORD_JOINER = '\u2060';
+
 /** Markup the canvas reads as written: booleans spelled out, and no `{{` it would take for a hole. */
 export const canvasSafe = (html: string) =>
-  html.replace(BOOLEAN_ATTRIBUTES, ' $1="$1"').replaceAll('{{', '{&#123;').replaceAll('}}', '}&#125;');
+  html.replace(BOOLEAN_ATTRIBUTES, ' $1="$1"').replaceAll('{{', `{${WORD_JOINER}{`);
 
 const escapeHtml = (text: string) => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 

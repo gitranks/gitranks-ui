@@ -157,11 +157,16 @@ export function needsYouRowsOf(view: ContributeView, read: OverviewNeedsRead): N
 
 /** What the agent we run on the user's key does now, or the first thing that holds its next attempt. */
 export type HostedState =
-  /** An attempt on the key is in flight. */
-  | { kind: 'working'; attempt: ContributeAttempt }
+  /** An attempt on the key is in flight; `next` is what holds the one after it. */
+  { kind: 'working'; attempt: ContributeAttempt; next: HostedHold } | HostedHold;
+
+/** The first thing that holds the hosted agent's next attempt. */
+export type HostedHold =
   | FirstRunStep
   /** The user's own agent holds every slot of `attemptsAtATime`. */
   | { kind: 'slots-taken'; slots: number }
+  /** Every slot is busy, an attempt on the key among them: the next starts when one ends. */
+  | { kind: 'slots-busy'; slots: number }
   /** The pull requests open or on their way reach the user's cap. */
   | { kind: 'pr-cap'; prBound: number; cap: number }
   /** The pace is "only issues I queue", and none is queued. */
@@ -191,9 +196,10 @@ export type RightNow = {
 const VIEW_BLOCKS = new Set<FirstRunStep['kind']>(['closed', 'paused', 'key-invalid', 'key-waiting']);
 
 /**
- * The hosted agent's state: an attempt in flight, else the first of the guide's states that holds, with the
- * scheduler's three holds after the key's (slots, open PRs, nothing queued). "Paced", "no issues" and "soon" need both
- * the attempts in flight and the scheduler's counts: without them a hold cannot be ruled out.
+ * The hosted agent's state: an attempt in flight, with what holds the next one, else that hold: the first of the
+ * guide's states that holds, with the scheduler's three holds after the key's (slots, open PRs, nothing queued).
+ * "Paced", "no issues" and "soon" need both the attempts in flight and the scheduler's counts: without them a hold
+ * cannot be ruled out.
  */
 function hostedStateOf(
   view: ContributeView,
@@ -201,17 +207,26 @@ function hostedStateOf(
   page: ContributeIssuePage | null | undefined,
   now: Date,
 ): HostedState {
-  const { inFlight, scheduleCounts: counts } = read;
-  const hosted = inFlight?.find((attempt) => !isAgentAttempt(view, attempt));
-  if (hosted) return { kind: 'working', attempt: hosted };
+  const hosted = read.inFlight?.find((attempt) => !isAgentAttempt(view, attempt));
+  const next = hostedHoldOf(view, read, page, now, !!hosted);
+  return hosted ? { kind: 'working', attempt: hosted, next } : next;
+}
 
+function hostedHoldOf(
+  view: ContributeView,
+  read: OverviewNowRead,
+  page: ContributeIssuePage | null | undefined,
+  now: Date,
+  working: boolean,
+): HostedHold {
+  const { inFlight, scheduleCounts: counts } = read;
   const step = firstRunStepOf(view, page, now);
   if (VIEW_BLOCKS.has(step.kind)) return step;
 
   const settings = view.contributor?.settings;
-  // None in flight is hosted: the user's own agent holds every slot.
   if (inFlight?.length && settings && inFlight.length >= settings.attemptsAtATime) {
-    return { kind: 'slots-taken', slots: settings.attemptsAtATime };
+    // With none of them hosted, the user's own agent holds every slot.
+    return { kind: working ? 'slots-busy' : 'slots-taken', slots: settings.attemptsAtATime };
   }
   if (counts && settings && counts.prBound >= settings.openPrsAtATime) {
     return { kind: 'pr-cap', prBound: counts.prBound, cap: settings.openPrsAtATime };

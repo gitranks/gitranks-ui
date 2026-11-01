@@ -14,7 +14,7 @@ import { repoBig } from '@/badge/v3/fixtures';
 const badges = withBadgeFacts(repoBig);
 const youngBadges = withBadgeFacts(youngRepoFacts);
 
-/** A young repository: no analytics yet. */
+/** A young repository: no analytics yet, and most of GitHub's stars from suspected fake accounts. */
 const young = () => (
   <RepoScreen repo={youngRepo} pulse={null} languages={repoLanguages} tiers={repoRankTiers} badgeFacts={youngBadges} />
 );
@@ -51,14 +51,14 @@ export const REPO_SCREENS: Screen[] = [
       },
       {
         id: 'young',
-        title: 'A young repository, low in the ranking',
+        title: 'A young repository, stars not counted',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
         render: young,
       },
       {
         id: 'young-phone',
-        title: 'A young repository · phone',
+        title: 'A young repository, stars not counted · phone',
         path: `/repo/${youngRepo.nameWithOwner}`,
         width: 390,
         height: 3000,

@@ -80,6 +80,7 @@ export const RanksPage: FC<OverviewPageProps> = ({ user, isGlobalContext }) => {
           rankM={sM}
           rankProvisional={sProvisional}
           score={user.s}
+          starsNotCounted={user.starsNotCounted}
           login={login}
           rankingName={getRankingName(UserRankProp.s)}
           rankingLink={getRankingLink(UserRankProp.s)}

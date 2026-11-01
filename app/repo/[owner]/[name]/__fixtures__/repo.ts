@@ -142,7 +142,7 @@ export const repoRankTiers: NonNullable<RepoRankTiersQuery['repoRankTiers']> = {
 
 /**
  * `brightfern/tidepool`'s badge data: a two-week-old repository with 13 stars, low in the ranking, its whole star
- * history read on a visitor's pull.
+ * history read on a visitor's pull. Badges show the honest count only.
  */
 export const youngRepoFacts: RepoFacts = {
   ...repoSmall,
@@ -160,7 +160,10 @@ export const youngRepoFacts: RepoFacts = {
   totals: { repos: 5_300_000, languageRepos: 231_000 },
 };
 
-/** `brightfern/tidepool` on its page: made on 17 Oct 2026, 13 stars, no builders or stargazers of note yet. */
+/**
+ * `brightfern/tidepool` on its page: made on 17 Oct 2026, 13 stars, no builders or stargazers of note yet. GitHub shows
+ * 219: 206 came from suspected fake accounts and don't count.
+ */
 export const youngRepo: Repo = {
   githubId: 'R_brightfern_tidepool',
   owner: 'brightfern',
@@ -170,6 +173,7 @@ export const youngRepo: Repo = {
   description: 'A tiny habit tracker for the terminal.',
   language: 'Go',
   stars: youngRepoFacts.stars,
+  starsCheck: { notCounted: 206, githubStars: 219 },
   gainedThisMonth: youngRepoFacts.gainedThisMonth,
   isArchived: false,
   isInOrganization: false,

@@ -48,7 +48,12 @@ export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts }) => {
             {!hasData && (
               <>
                 <RankCardItem>{RANK_DESCRIPTIONS.s.notRankedMessage}</RankCardItem>
-                <RankCardTotalValue score={org.s ?? 0} login={login} rankType={UserRankProp.s} />
+                <RankCardTotalValue
+                  score={org.s ?? 0}
+                  starsNotCounted={org.starsNotCounted}
+                  login={login}
+                  rankType={UserRankProp.s}
+                />
               </>
             )}
             {hasData && (
@@ -62,7 +67,13 @@ export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts }) => {
                     </span>
                   </RankCardItem>
                 )}
-                <RankCardTotalValue score={org.s ?? 0} login={login} rankType={UserRankProp.s} showLink={false} />
+                <RankCardTotalValue
+                  score={org.s ?? 0}
+                  starsNotCounted={org.starsNotCounted}
+                  login={login}
+                  rankType={UserRankProp.s}
+                  showLink={false}
+                />
               </>
             )}
           </ProfileCardContent>

@@ -10,6 +10,7 @@ import { RepositoryTopLanguage } from './repository-top-language';
 import { REPO_PAGE_MIN_STARS } from '@/app/app.consts';
 import { repoTierLabel } from '@/components/repo-tier-chip/repo-tier-chip';
 import { RepoTierIcon } from '@/components/repo-tier-icon/repo-tier-icon';
+import { StarCount } from '@/components/star-count/star-count';
 import { tierTextClass } from '@/components/tier-chip/tier-chip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -98,7 +99,16 @@ export const RepositoryCard: FC<RepositoryCardProps> = ({ repository, meta, clas
                 <span className="font-mono tabular-nums">#{rank.s.toLocaleString('en-US')}</span>
               </MaybeLink>
             )}
-            <RepositoryDetail Icon={Star} value={stargazerCount} label="Stars" />
+            <RepositoryDetail Icon={Star} value={stargazerCount} label="Stars">
+              {repository.githubStars && repository.githubStars > stargazerCount ? (
+                <StarCount
+                  stars={stargazerCount}
+                  githubStars={repository.githubStars}
+                  notCounted={repository.starsNotCounted}
+                  numberClassName="font-mono tabular-nums"
+                />
+              ) : undefined}
+            </RepositoryDetail>
             <RepositoryDetail Icon={Split} value={forkCount ?? 0} label="Forks" />
             {!!releasesCount && <RepositoryDetail Icon={Package} value={releasesCount} label="Releases" />}
           </div>

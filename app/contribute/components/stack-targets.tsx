@@ -6,10 +6,10 @@ import { ignoreContributeRepo, resolveContributeStack } from '../actions';
 import type { FeedbackOpen } from './feedback-dialog';
 import { Pill, SubTitle } from './primitives';
 import type { SetWrite } from './set-section';
+import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
 import type { ContributeSet, ContributeStackTarget } from '@/lib/contribute/contribute.types';
 import { relativeLabel } from '@/lib/contribute/format';
-import { starsLabel } from '@/lib/contribute/maintainers-format';
 import { plural, reasonsText, statusOf } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
 
@@ -233,7 +233,7 @@ function TargetRow({
       ) : null}
       <span className="text-xs text-muted-foreground">
         <span aria-hidden="true">★</span>
-        <span className="sr-only">Stars:</span> {starsLabel(target.stars)}
+        <span className="sr-only">Stars:</span> <StarCount stars={target.stars} format="compact" />
       </span>
       <Pill tone={status.tone}>{status.label}</Pill>
       <span className="ml-auto">

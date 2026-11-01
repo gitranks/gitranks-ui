@@ -26,6 +26,7 @@ import {
   PageContainer,
 } from '@/app/profile/[login]/components/profile-page-backbone';
 import { RepoTierChip } from '@/components/repo-tier-chip/repo-tier-chip';
+import { StarCount, StarsNotCountedTag } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
 import type { PageRepoQuery } from '@/types/generated/graphql';
 import { avatarPath, repoOwnerAvatarAlt } from '@/utils/avatar-path';
@@ -43,8 +44,6 @@ const AVATAR_SIZE = 288;
 
 /** In UTC, as GitHub stores the dates and as the page's summary words them, so both say the same day. */
 const SHORT_DATE = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' });
-
-const mono = (value: number) => <span className="font-mono tabular-nums">{value.toLocaleString('en-US')}</span>;
 
 /** The repository page's frame, like a profile's: the repository on the left, its numbers on the right. */
 export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children }) => {
@@ -85,7 +84,12 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
               <span className="text-muted-foreground">{owner}/</span>
               {name}
             </h1>
-            {isRepoRanked(repo) && !!repo.rank?.tier && <RepoTierChip tier={repo.rank.tier} className="self-start" />}
+            {(isRepoRanked(repo) && !!repo.rank?.tier) || repo.starsCheck ? (
+              <div className="flex flex-wrap items-center gap-1.5 self-start">
+                {isRepoRanked(repo) && !!repo.rank?.tier && <RepoTierChip tier={repo.rank.tier} />}
+                <StarsNotCountedTag check={repo.starsCheck} />
+              </div>
+            ) : null}
             {repo.isArchived && (
               <span className="self-start rounded-sm bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                 Archived
@@ -117,7 +121,18 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
               Icon={repo.isInOrganization ? Building2 : UserRound}
             />
             <ProfileListItem value={language} url={languageUrl} Icon={Code} />
-            <ProfileListItem value={<>{mono(stars)} stars</>} Icon={Star} />
+            <ProfileListItem
+              value={
+                <StarCount
+                  stars={stars}
+                  githubStars={repo.starsCheck?.githubStars}
+                  notCounted={repo.starsCheck?.notCounted}
+                  numberClassName="font-mono tabular-nums"
+                  suffix=" stars"
+                />
+              }
+              Icon={Star}
+            />
             {!!gainedThisMonth && (
               <ProfileListItem
                 value={

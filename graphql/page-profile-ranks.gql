@@ -3,6 +3,10 @@ query PageProfileRanks($login: String!, $isGlobalContext: Boolean! = true) {
     ...UserBaseFields
     ...UserFetchingStatus
     ...UserSeo
+    starsNotCounted {
+      stars
+      repositories
+    }
     ...UserTiersGlobal @include(if: $isGlobalContext)
     ...UserTiersCountry @skip(if: $isGlobalContext)
     rankGlobal @include(if: $isGlobalContext) {

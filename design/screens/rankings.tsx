@@ -61,7 +61,7 @@ export const RANKINGS_SCREENS: Screen[] = [
     states: [
       {
         id: 'page-40',
-        title: 'Page 40',
+        title: 'Page 40, a row with stars not counted',
         path: getRepoRankingPath(40),
         height: 1500,
         // The layout and the page, from their parts: the page reads its rows in a server component.

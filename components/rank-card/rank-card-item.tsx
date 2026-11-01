@@ -2,6 +2,7 @@ import { Medal, Star, UserRound, UsersRound } from 'lucide-react';
 import type { FC } from 'react';
 
 import { Link } from '../link/link';
+import { StarTotalCount } from '../star-count/star-count';
 import type {
   RankCardItemProps,
   RankCardPositionProps,
@@ -49,7 +50,13 @@ export const RankCardTotalProfilesRanked: FC<RankCardTotalProfilesRankedProps> =
   );
 };
 
-export const RankCardTotalValue: FC<RankCardTotalValueProps> = ({ score, rankType, login, showLink = true }) => {
+export const RankCardTotalValue: FC<RankCardTotalValueProps> = ({
+  score,
+  starsNotCounted,
+  rankType,
+  login,
+  showLink = true,
+}) => {
   let linkText: string | undefined;
   if (rankType === UserRankProp.s) {
     linkText = 'repositories';
@@ -61,7 +68,8 @@ export const RankCardTotalValue: FC<RankCardTotalValueProps> = ({ score, rankTyp
 
   return (
     <RankCardItem Icon={rankType === 'f' ? UsersRound : Star}>
-      Total {entityName}s: {(score || 0).toLocaleString('en-US')}{' '}
+      Total {entityName}s:{' '}
+      <StarTotalCount stars={score || 0} notCounted={rankType === UserRankProp.s ? starsNotCounted : null} />{' '}
       {showLink && linkText && !!score && (
         <Link href={`/profile/${login}/repositories`} className="text-sm">
           {linkText}

@@ -1,3 +1,2098 @@
+"""
+GitRanks Contribute for the signed-in viewer (the Contribute's overview)
+"""
+type Contribute {
+  """Hosted attempts start; false: none starts until Contribute opens"""
+  attemptsOpen: Boolean!
+
+  """Null until the viewer did something that keeps a row"""
+  contributor: Contributor
+
+  """
+  The GitHub access Contribute opens PRs with; known with or without a contributor. Null with an error when it cannot be read now
+  """
+  grant: ContributeGrant
+
+  """
+  The viewer's live tokens for the MCP server (their own agent), oldest first; never a token itself. Null with an error when they cannot be read now
+  """
+  mcpTokens: [ContributeMcpToken!]
+
+  """
+  The viewer may connect a key (the preview list holds them, or there is none)
+  """
+  previewAllowed: Boolean!
+
+  """
+  The coming-soon providers the viewer asked to hear about, in CONTRIB_COMING_SOON_PROVIDERS order; empty with no contributor
+  """
+  providerInterests: [ContributeComingSoonProvider!]!
+}
+
+"""The viewer's work in progress; empty items when nothing runs"""
+type ContributeActivity {
+  items: [ContributeActivityItem!]!
+
+  """When contrib read it"""
+  readAt: String!
+}
+
+"""One piece of work in progress"""
+type ContributeActivityItem {
+  """Counted progress; null when it cannot be counted"""
+  done: Int
+
+  """
+  When it should be done: an estimate (the resolve's: its deadline); null when no time can be promised
+  """
+  expectedAt: String
+  kind: ContributeActivityKind!
+
+  """
+  One plain line, e.g. "Reading issues from 14 of 20 repos"
+  """
+  label: String!
+  repos: [ContributeActivityRepo!]!
+  startedAt: String!
+
+  """The tabs it shows on"""
+  tabs: [ContributeActivityTab!]!
+  total: Int
+}
+
+"""
+STACK_RESOLVE (the stack's libraries worked out), FIRST_READS (new repos' issues read for the first time), FIRST_READS_WAITING (new repos waiting their turn in the shared queue), READS_PAUSED (nothing is read while contributing is paused)
+"""
+enum ContributeActivityKind {
+  FIRST_READS
+  FIRST_READS_WAITING
+  READS_PAUSED
+  STACK_RESOLVE
+}
+
+"""One repo of an activity"""
+type ContributeActivityRepo {
+  nameWithOwner: String!
+  repositoryId: ID!
+  stage: ContributeActivityRepoStage!
+}
+
+"""
+Where one repo is: CHECKING (its contribution rules are read first), QUEUED (in the next hourly listing), READING (its issues are being listed), SORTING (its issues are being triaged), READ, WAITING (in the shared queue), PAUSED
+"""
+enum ContributeActivityRepoStage {
+  CHECKING
+  PAUSED
+  QUEUED
+  READ
+  READING
+  SORTING
+  WAITING
+}
+
+"""A Contribute tab an activity shows on"""
+enum ContributeActivityTab {
+  ISSUES
+  OVERVIEW
+  SETTINGS
+}
+
+"""The agent of an MCP attempt, as it reported itself (unverified)"""
+type ContributeAgent {
+  """The model, as reported"""
+  model: String
+  name: ContributeAgentName!
+}
+
+"""
+The agent an MCP attempt reported: claude-code, codex, cursor, gemini-cli, copilot, aider, cline or other
+"""
+enum ContributeAgentName {
+  AIDER
+  CLAUDE_CODE
+  CLINE
+  CODEX
+  COPILOT
+  CURSOR
+  GEMINI_CLI
+  OTHER
+}
+
+"""One attempt: an agent session on one issue, and what came of it"""
+type ContributeAttempt {
+  """An MCP attempt: its agent, once it submitted"""
+  agent: ContributeAgent
+  approvedAt: String
+  attemptId: ID!
+
+  """Submitted (or to be) by autopilot, not approved by the viewer"""
+  autopilot: Boolean!
+
+  """
+  pending_autosubmit: when autopilot submits it unless the viewer stops it
+  """
+  autosubmitAt: String
+  budgetUsd: Float!
+
+  """An MCP attempt sent back to the agent: the viewer’s note"""
+  changesRequested: ContributeChangesRequested
+
+  """
+  A no-go decided at the check's budget or time limit (decided), or reached by it with no verdict; null otherwise
+  """
+  checkLimit: ContributeCheckLimit
+
+  """Null until the checks ran"""
+  checksPassed: Boolean
+  costUsd: Float!
+  createdAt: String!
+
+  """A fixed code, or the agent's no-go reason"""
+  endDetail: String
+  endReason: ContributeAttemptEndReason
+
+  """A follow-up: the PR it works on"""
+  followUpOf: ContributeFollowUpOf
+
+  """A first attempt with a PR: the PR's rounds"""
+  followUps: ContributeFollowUps
+
+  """The issue's GitHub node id"""
+  issueId: String!
+  kind: ContributeAttemptKind!
+
+  """
+  An MCP attempt at work: until when the agent holds the issue without another call
+  """
+  leaseUntil: String
+  model: ContributeModel
+  nameWithOwner: String
+
+  """
+  The open PR needs the viewer (a first attempt): changes requested, a comment, a failing check
+  """
+  needsYou: ContributeNeedsYou
+
+  """The issue's number"""
+  number: Int!
+
+  """An MCP attempt's PR: through the review, or by hand"""
+  openedBy: ContributeOpenedBy
+
+  """Null until the PR opened"""
+  pullRequest: ContributeAttemptPullRequest
+  repositoryId: String!
+
+  """
+  When it last reached the review: its 7 days run from it. Set again by a bounce back to the review and by autopilot's veto; null before the first review
+  """
+  reviewAt: String
+
+  """
+  review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed); null for any other review
+  """
+  reviewReason: String
+  runner: ContributeAttemptRunner!
+
+  """
+  An MCP attempt in review: how many more times it may be sent back (0 otherwise)
+  """
+  sendBacksLeft: Int!
+  state: ContributeAttemptState!
+
+  """Null before the approval"""
+  submit: ContributeAttemptSubmit
+
+  """The issue's title; null before the session started"""
+  title: String
+  updatedAt: String!
+
+  """The issue's page on GitHub"""
+  url: String
+}
+
+"""The PR's title and body as the viewer approved them"""
+type ContributeAttemptApproval {
+  at: String!
+  body: String!
+  dco: Boolean!
+  title: String!
+}
+
+type ContributeAttemptCheck {
+  """The paths or the count that failed it"""
+  detail: String
+  name: ContributeAttemptCheckName!
+  passed: Boolean!
+}
+
+"""One of our checks"""
+enum ContributeAttemptCheckName {
+  BINARY_FILES
+  CI_CONFIG
+  LICENSE_FILES
+  LOCKFILES
+  MAX_CHANGED_LINES
+  MAX_FILES
+  NOT_EMPTY
+  PATCH_PARSED
+  SECRETS
+  TESTS_PASSED
+  TEST_TOUCHED
+  WORKFLOW_PATHS
+}
+
+"""The session's cost at list price on the viewer's key, split (USD)"""
+type ContributeAttemptCost {
+  """The go/no-go phase"""
+  goNoGoUsd: Float!
+
+  """Session running time (part of the total)"""
+  runtimeUsd: Float!
+  totalUsd: Float!
+  workUsd: Float!
+}
+
+"""
+One attempt for the review screen: the diff, the result, the checks, the cost, the timeline
+"""
+type ContributeAttemptDetail {
+  """An MCP attempt: its agent, once it submitted"""
+  agent: ContributeAgent
+  approval: ContributeAttemptApproval
+  approvedAt: String
+  attemptId: ID!
+
+  """Submitted (or to be) by autopilot, not approved by the viewer"""
+  autopilot: Boolean!
+
+  """
+  pending_autosubmit: when autopilot submits it unless the viewer stops it
+  """
+  autosubmitAt: String
+  budgetUsd: Float!
+
+  """An MCP attempt sent back to the agent: the viewer’s note"""
+  changesRequested: ContributeChangesRequested
+
+  """
+  A no-go decided at the check's budget or time limit (decided), or reached by it with no verdict; null otherwise
+  """
+  checkLimit: ContributeCheckLimit
+
+  """Our checks in one word; null before"""
+  checkStatus: ContributeCheckStatusView
+  checks: [ContributeAttemptCheck!]!
+
+  """Null until the checks ran"""
+  checksPassed: Boolean
+
+  """
+  A first attempt's repo conventions (what the PR form checks); null for a follow-up or when unread
+  """
+  conventions: ContributeRepoConventions
+  cost: ContributeAttemptCost!
+  costUsd: Float!
+  createdAt: String!
+
+  """
+  The repo requires a DCO sign-off on every commit: the review asks for it (or the standing consent gives it). False: nothing is asked and the commits are not signed off
+  """
+  dcoRequired: Boolean!
+
+  """A fixed code, or the agent's no-go reason"""
+  endDetail: String
+  endReason: ContributeAttemptEndReason
+  events: [ContributeAttemptEvent!]!
+
+  """A follow-up: the PR it works on"""
+  followUpOf: ContributeFollowUpOf
+
+  """A first attempt with a PR: the PR's rounds"""
+  followUps: ContributeFollowUps
+
+  """The issue's GitHub node id"""
+  issueId: String!
+  kind: ContributeAttemptKind!
+
+  """
+  An MCP attempt at work: until when the agent holds the issue without another call
+  """
+  leaseUntil: String
+  model: ContributeModel
+  nameWithOwner: String
+
+  """
+  The open PR needs the viewer (a first attempt): changes requested, a comment, a failing check
+  """
+  needsYou: ContributeNeedsYou
+
+  """The issue's number"""
+  number: Int!
+
+  """An MCP attempt's PR: through the review, or by hand"""
+  openedBy: ContributeOpenedBy
+
+  """The patch (git format-patch text)"""
+  patch: String
+
+  """The PR's description as a fix last set it; null while none did"""
+  prBody: String
+  prFix: ContributePrFix
+
+  """What its open PR fails of them, with the fixes"""
+  prIssues: [ContributePrConventionIssue!]!
+
+  """The PR's title as last set (the approval's, then a retitle's)"""
+  prTitle: String
+
+  """Null until the PR opened"""
+  pullRequest: ContributeAttemptPullRequest
+  readiness: ContributeRepoReadiness
+
+  """The PR's reply drafts (a follow-up: the ones it wrote), oldest first"""
+  replyDrafts: [ContributeReplyDraft!]!
+  repositoryId: String!
+  result: ContributeAttemptResult
+
+  """
+  The check of the issue reached its budget or time limit with no verdict (endDetail says what it was on): retryAttempt tries it again once, on twice the budget
+  """
+  retryable: Boolean!
+
+  """
+  When it last reached the review: its 7 days run from it. Set again by a bounce back to the review and by autopilot's veto; null before the first review
+  """
+  reviewAt: String
+
+  """
+  A first attempt's open PR: its review threads waiting for an answer, between rounds
+  """
+  reviewFeedback: ContributeReviewFeedback
+
+  """
+  review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed); null for any other review
+  """
+  reviewReason: String
+
+  """A follow-up's own round"""
+  round: ContributeFollowUpRound
+  runner: ContributeAttemptRunner!
+
+  """
+  An MCP attempt in review: how many more times it may be sent back (0 otherwise)
+  """
+  sendBacksLeft: Int!
+  state: ContributeAttemptState!
+
+  """Null before the approval"""
+  submit: ContributeAttemptSubmit
+
+  """The issue's title; null before the session started"""
+  title: String
+  updatedAt: String!
+
+  """The issue's page on GitHub"""
+  url: String
+}
+
+"""Why an attempt stopped or was discarded"""
+enum ContributeAttemptEndReason {
+  BUDGET
+  CANCELLED
+  CHECKS_FAILED
+  CLAIM_LOST
+  EXHAUSTED
+  FAILED
+  KEY_INVALID
+  LIMIT_REACHED
+  MCP_EXPIRED
+  MCP_IDLE
+  NO_GO
+  RELEASED
+  REVIEW_EXPIRED
+  SUBMIT_FAILED
+  TIMEOUT
+  USER
+}
+
+"""One change on the attempt's timeline"""
+type ContributeAttemptEvent {
+  at: String!
+
+  """A fixed code or a short note of ours"""
+  detail: String
+  state: ContributeAttemptState!
+}
+
+"""A first attempt, or a follow-up"""
+enum ContributeAttemptKind {
+  FIRST
+  FOLLOW_UP
+}
+
+"""An attempt's pull request, as the last sync read it"""
+type ContributeAttemptPullRequest {
+  checks: ContributeChecksState
+  closedAt: String
+  mergedAt: String
+  number: Int!
+  openedAt: String!
+
+  """The PR's GitHub node id"""
+  prId: ID!
+  reviewDecision: ContributeReviewDecision
+  state: ContributePrState!
+
+  """When the PR sync last read it"""
+  syncedAt: String
+  url: String!
+}
+
+"""The agent's result.json, checked and cut to size"""
+type ContributeAttemptResult {
+  filesChanged: [String!]!
+
+  """The agent's PR body, following the repo's template"""
+  prBody: String
+
+  """
+  The PR title the agent proposed, following the repo's title rule (the form's default)
+  """
+  prTitle: String
+  risk: ContributeRiskLevel
+  riskNotes: String
+  summary: String!
+  tests: [ContributeAttemptTest!]!
+  verdict: ContributeAttemptVerdict
+}
+
+"""
+Who does an attempt's work: a hosted session on the viewer's key, or their own agent through the MCP server
+"""
+enum ContributeAttemptRunner {
+  MANAGED_AGENTS
+  MCP
+}
+
+"""
+An attempt's state: queued, claiming, running, checks, review, submitting, pr_open and on; or how it ended
+"""
+enum ContributeAttemptState {
+  CHECKS
+  CLAIMING
+  CLOSED
+  DISCARDED
+  DONE
+  FOLLOW_UP
+  MERGED
+  PENDING_AUTOSUBMIT
+  PR_OPEN
+  QUEUED
+  REVIEW
+  RUNNING
+  STOPPED
+  SUBMITTING
+}
+
+"""A submission (fork, sync, push, PR), from the approval on"""
+type ContributeAttemptSubmit {
+  branch: String
+
+  """The fork's owner/name once made"""
+  fork: String
+
+  """fork: GitHub is still making the fork (it can take minutes)"""
+  forkPending: Boolean
+
+  """
+  Set after a bounce back to review (approve again), or while a step is tried again
+  """
+  lastError: ContributeSubmitError
+
+  """A step that failed for a passing reason is sent again at this time"""
+  retryAt: String
+  step: ContributeSubmitStep!
+
+  """
+  When the current step started (the approval while queued); null when not known
+  """
+  stepStartedAt: String
+
+  """
+  The write steps run so far, in their order; a skipped one (the sync of an own repo) is absent
+  """
+  steps: [ContributeSubmitStepTime!]
+
+  """
+  waiting_cap: when the next UTC day starts and the submission goes on (the day's cap of PRs)
+  """
+  waitUntil: String
+}
+
+type ContributeAttemptTest {
+  command: String!
+
+  """
+  'fail': a red-before-fix proof (the new test without the fix), which must fail
+  """
+  expect: String
+
+  """The command could not run at all (dependencies, a toolchain)"""
+  notRun: Boolean
+  output: String
+  passed: Boolean!
+}
+
+"""The agent's verdict on its work"""
+enum ContributeAttemptVerdict {
+  DONE
+  NO_GO
+  PARTIAL
+}
+
+type ContributeAutopilot {
+  """
+  Autopilot is open on our side. False: it is coming, and turning the setting on answers CONFLICT
+  """
+  available: Boolean!
+  closedUnmergedStreak: Int!
+
+  """When 2 closed-unmerged PRs in a row last locked it"""
+  lockedAt: String
+  mergedCount: Int!
+
+  """Merged PRs still needed to unlock it; 0 when unlocked"""
+  mergedToUnlock: Int!
+
+  """
+  Where the email before each autopilot submission goes, masked; null when none is known, and then turning the setting on answers CONFLICT
+  """
+  noticeTo: String
+  unlocked: Boolean!
+}
+
+"""
+ATTEMPTS (an attempt's state, timeline or PR), FEED (the issues for the viewer computed again), ISSUES (an issue's availability may have moved: a claim, a release, an attempt, a drop), SET (the list or a repo of it), SETTINGS (settings, plan, key, status), ACTIVITY (work in progress started or ended)
+"""
+enum ContributeChangeArea {
+  ACTIVITY
+  ATTEMPTS
+  FEED
+  ISSUES
+  SET
+  SETTINGS
+}
+
+"""A changelog file, changesets (`.changeset/*.md`) or news fragments"""
+enum ContributeChangelogKind {
+  CHANGESETS
+  FILE
+  FRAGMENTS
+}
+
+"""The changelog PRs to the repo edit"""
+type ContributeChangelogRule {
+  kind: ContributeChangelogKind!
+
+  """`CHANGELOG.md`, `.changeset/`, `changelog.d/`"""
+  path: String!
+
+  """Most PRs edit it, a check checks it, or the docs ask for it"""
+  required: Boolean!
+  source: String!
+}
+
+"""
+What moved for the viewer since a version: one cheap read, no GitHub call
+"""
+type ContributeChanges {
+  """A long read may be running: poll faster, and read contributeActivity"""
+  activity: Boolean!
+
+  """
+  The areas changed since `since`; none without one, every area when `since` is ahead
+  """
+  changed: [ContributeChangeArea!]!
+
+  """The version now, opaque: send it back as `since`"""
+  version: String!
+}
+
+"""The viewer's note when they sent an MCP attempt back to their agent"""
+type ContributeChangesRequested {
+  at: String!
+  note: String!
+}
+
+"""
+The go/no-go check's limit a no-go was decided at, or reached with no verdict
+"""
+type ContributeCheckLimit {
+  """
+  The agent wrote its verdict when told to wrap up; false: no verdict by the limit
+  """
+  decided: Boolean!
+
+  """budget or time"""
+  limit: String!
+}
+
+"""
+Our checks in one word: passed, failed (a test failed), not_run (the tests could not run), blocked (a rail failed)
+"""
+enum ContributeCheckStatus {
+  BLOCKED
+  FAILED
+  NOT_RUN
+  PASSED
+}
+
+"""Our checks in one word, and what to tell the viewer"""
+type ContributeCheckStatusView {
+  note: String!
+  status: ContributeCheckStatus!
+}
+
+"""The PR head's check rollup"""
+enum ContributeChecksState {
+  ERROR
+  EXPECTED
+  FAILURE
+  PENDING
+  SUCCESS
+}
+
+"""A CLA the repo's PRs sign"""
+type ContributeClaRule {
+  """The check's name on the PR"""
+  check: String!
+
+  """Where to sign, when the check links it"""
+  signUrl: String
+}
+
+"""The Claude plan the credits come from"""
+enum ContributeClaudePlan {
+  CREDITS
+  MAX_5X
+  MAX_20X
+  TEAM_PREMIUM
+  TEAM_STANDARD
+}
+
+"""
+A provider shown as coming soon, whose "Notify me" is noteProviderInterest
+"""
+enum ContributeComingSoonProvider {
+  CHATGPT
+  COPILOT
+  COPILOT_AGENT
+  CURSOR
+  DEEPSEEK
+  GEMINI
+  JULES
+  MISTRAL
+  OPENAI
+  OPENROUTER
+  XAI
+}
+
+type ContributeConnectKeyResult {
+  """The stored key, when it was stored"""
+  credential: ContributeCredential
+  result: ContributeConnectResult!
+
+  """rate_limited: try again after this many seconds"""
+  retryAfterSec: Int
+}
+
+input ContributeConnectLimitsInput {
+  attemptCapUsd: Float
+  dayCapUsd: Float
+  pace: ContributeConnectPace
+  weekCapUsd: Float
+}
+
+"""
+The pace a key connect sets: spread across the month, or as fast as the caps allow
+"""
+enum ContributeConnectPace {
+  EVEN
+  FAST
+}
+
+"""A key connect's outcome"""
+enum ContributeConnectResult {
+  CONNECTED
+  EXHAUSTED
+  INVALID
+  LIMIT_REACHED
+  MANAGED_AGENTS_UNAVAILABLE
+  RATE_LIMITED
+  REFUSED
+  UNAVAILABLE
+}
+
+"""One of the viewer's PRs opened through Contribute"""
+type ContributeContribution {
+  agent: ContributeAgent
+  attemptId: ID!
+
+  """The attempt's session cost at list price on the viewer's key"""
+  costUsd: Float!
+  followUps: ContributeFollowUps!
+  issueId: String!
+  issueNumber: Int!
+  nameWithOwner: String
+
+  """The open PR needs the viewer"""
+  needsYou: ContributeNeedsYou
+
+  """An MCP attempt: through the review, or by hand"""
+  openedBy: ContributeOpenedBy
+  pullRequest: ContributeAttemptPullRequest!
+  repositoryId: String!
+  runner: ContributeAttemptRunner!
+
+  """The PR's title as approved"""
+  title: String
+}
+
+type ContributeContributionTotals {
+  closed: Int!
+
+  """What the sessions behind every PR cost"""
+  costUsd: Float!
+  merged: Int!
+  open: Int!
+
+  """The distinct repos of the merged PRs"""
+  reposHelped: Int!
+}
+
+"""
+My contributions: the viewer's PRs, newest first, and the totals of all of them
+"""
+type ContributeContributions {
+  items: [ContributeContribution!]!
+  totals: ContributeContributionTotals!
+}
+
+"""A connected key: never the key, only its last 4"""
+type ContributeCredential {
+  """Until when an exhausted or limit_reached key waits"""
+  blockedUntil: String
+  checkedAt: String!
+  last4: String!
+
+  """A fixed code of the last refusal, never the provider's message"""
+  lastError: String
+  orgId: String
+  provider: ContributeLiveProvider!
+
+  """
+  Our environment and agents exist on the key; else the next attempt makes them
+  """
+  ready: Boolean!
+  state: ContributeKeyState!
+  workspaceId: String
+}
+
+"""
+DCO sign-off, only on a repo that requires it: asked on each such PR, or a standing consent
+"""
+enum ContributeDcoMode {
+  ASK
+  STANDING
+}
+
+type ContributeDeleteDataResult {
+  """GitRanks Contribute held rows on the viewer, now deleted"""
+  deleted: Boolean!
+
+  """
+  The GitHub grant was deleted and revoked, or there was none; else revoke the app on GitHub
+  """
+  grantRevoked: Boolean!
+}
+
+"""The main model's effort"""
+enum ContributeEffort {
+  HIGH
+  LOW
+  MAX
+  MEDIUM
+  XHIGH
+}
+
+input ContributeFeedbackContextInput {
+  """Left out: the viewer's own mode"""
+  mode: ContributeSetMode
+
+  """A failed repo's reasons"""
+  reasons: [ContributeSetReason!]
+
+  """A repo, as owner/name"""
+  repo: String
+}
+
+"""A review thread waiting for an answer on the PR"""
+type ContributeFeedbackThread {
+  author: String
+  bot: Boolean!
+
+  """Its first comment's node id: what startFollowUp's commentIds name"""
+  commentId: ID!
+  createdAt: String
+
+  """The comment as one plain line"""
+  excerpt: String!
+
+  """The viewer ignored it in an earlier round"""
+  ignored: Boolean!
+  line: Int
+  path: String
+
+  """The thread's node id"""
+  threadId: ID!
+  url: String
+}
+
+"""What the feedback is about: GATES, MODES or OTHER"""
+enum ContributeFeedbackTopic {
+  GATES
+  MODES
+  OTHER
+}
+
+"""The PR a follow-up works on, and the first attempt that opened it"""
+type ContributeFollowUpOf {
+  attemptId: ID!
+  number: Int!
+  prId: ID!
+  url: String!
+}
+
+"""
+One follow-up round: what it pushed, its threads’ outcomes, the replies posted
+"""
+type ContributeFollowUpRound {
+  at: String!
+  attemptId: ID!
+  endReason: ContributeAttemptEndReason
+  fixed: Int!
+  needsYou: Int!
+
+  """The PR head after its push"""
+  pushedSha: String
+
+  """Replies posted"""
+  replied: Int!
+
+  """Threads resolved"""
+  resolved: Int!
+  round: Int!
+  skipped: Int!
+  state: ContributeAttemptState!
+}
+
+"""
+A PR's follow-up rounds; past the last the PR is the viewer's to carry on
+"""
+type ContributeFollowUps {
+  """The follow-up under way"""
+  currentAttemptId: ID
+  handedOff: Boolean!
+  handedOffAt: String
+
+  """Each round so far, oldest first"""
+  history: [ContributeFollowUpRound!]
+  left: Int!
+  max: Int!
+  used: Int!
+}
+
+"""The GitHub access Contribute opens PRs with"""
+type ContributeGrant {
+  """The viewer granted it, and has not revoked it"""
+  connected: Boolean!
+
+  """The GitHub login it was granted as; null when not connected"""
+  login: String
+}
+
+"""A repo on the ignore list: no add, preset or resolve brings it back"""
+type ContributeIgnoredRepo {
+  """When it was ignored"""
+  at: String!
+  nameWithOwner: String!
+  repositoryId: ID!
+}
+
+"""One recommended issue: what an "Issues for you" card shows"""
+type ContributeIssue {
+  """The issue's GitHub node id"""
+  issueId: ID!
+  kind: ContributeIssueKind
+  labels: [String!]!
+  language: ContributeLanguage
+  nameWithOwner: String!
+  number: Int!
+
+  """Its place in the stored list, 1 the best"""
+  rank: Int!
+
+  """The repository's GitHub node id"""
+  repositoryId: String!
+
+  """The match, 0 to 1"""
+  score: Float!
+
+  """Null when the issue was never sized"""
+  size: ContributeIssueSize
+
+  """
+  0: an issue of the active set (every issue in the all mode); 1: a fallback issue outside the list, shown after every tier 0 one (rank already orders them)
+  """
+  tier: Int!
+
+  """The issue's title; null when GitHub could not be asked"""
+  title: String
+
+  """The issue's page on GitHub"""
+  url: String!
+
+  """Why this issue, as one line"""
+  why: String!
+}
+
+"""An issue kind to ask for"""
+enum ContributeIssueKind {
+  BUG
+  DOCS
+  FEATURE
+  PERFORMANCE
+  REFACTOR
+  TESTS
+}
+
+"""A page of the recommended issues, best first"""
+type ContributeIssuePage {
+  """When the list was last computed; null before the first time"""
+  computedAt: String
+  items: [ContributeIssue!]!
+
+  """The next page's after; null on the last page"""
+  next: String
+
+  """
+  The issues the filter lets through, as of the last compute: it can count a few cards a page leaves off (their repo left the pool since), so treat it as approximate
+  """
+  total: Int!
+}
+
+"""An issue size"""
+enum ContributeIssueSize {
+  L
+  M
+  S
+}
+
+"""
+One shown issue as it is now, for the Issues list and Up next to drop taken cards live
+"""
+type ContributeIssueStatus {
+  """With CLAIMED_BY_YOU: your newest attempt on it"""
+  attemptId: ID
+  issueId: ID!
+  status: ContributeIssueStatusValue!
+}
+
+"""
+An issue as it is now: AVAILABLE, CLAIMED_BY_YOU (an attempt of yours on it, any but a lost claim: it belongs in My contributions) or TAKEN (someone else's at work or with a PR, a live claim, or closed)
+"""
+enum ContributeIssueStatusValue {
+  AVAILABLE
+  CLAIMED_BY_YOU
+  TAKEN
+}
+
+input ContributeIssuesFilter {
+  kinds: [ContributeIssueKind!]
+  languages: [ContributeLanguage!]
+  maxSize: ContributeIssueSize
+}
+
+"""
+A key: valid, invalid (deleted or wrong), exhausted (until the renewal day), limit_reached (until the 1st)
+"""
+enum ContributeKeyState {
+  EXHAUSTED
+  INVALID
+  LIMIT_REACHED
+  VALID
+}
+
+"""A language the pool holds issues in"""
+enum ContributeLanguage {
+  GO
+  JAVA
+  JS_TS
+  PHP
+  PYTHON
+  RUBY
+  RUST
+}
+
+"""A provider whose keys connect today"""
+enum ContributeLiveProvider {
+  ANTHROPIC
+}
+
+"""
+A repository the visitor administers or maintains, and whether it is opted out
+"""
+type ContributeMaintainerRepo {
+  isArchived: Boolean!
+  nameWithOwner: String!
+
+  """
+  Out of GitRanks Contribute: no issue of it is picked and no pull request opened there
+  """
+  optedOut: Boolean!
+
+  """When it was opted out (ISO); null when it is not"""
+  optedOutAt: String
+
+  """ADMIN or MAINTAIN"""
+  permission: ContributeRepoPermission!
+
+  """The repository's GitHub node id: what optOutRepos takes"""
+  repoId: ID!
+  stars: Int!
+}
+
+"""
+The visitor's GitHub account and the public repositories it administers or maintains
+"""
+type ContributeMaintainerRepos {
+  """The GitHub login the token belongs to"""
+  login: String!
+
+  """Most stars first"""
+  repos: [ContributeMaintainerRepo!]!
+
+  """GitHub held more repositories than were read (the first 300, by stars)"""
+  truncated: Boolean!
+}
+
+"""A personal token for the MCP server: never the token, only its last 4"""
+type ContributeMcpToken {
+  createdAt: String!
+  id: ID!
+  last4: String!
+
+  """Written at most once every 5 minutes"""
+  lastUsedAt: String
+  name: String!
+}
+
+"""
+A new MCP token: the token itself is answered here once, and never again
+"""
+type ContributeMcpTokenCreated {
+  mcpToken: ContributeMcpToken!
+
+  """gr_…: shown once; only its hash is kept"""
+  token: String!
+}
+
+"""A model an attempt runs on"""
+enum ContributeModel {
+  CLAUDE_HAIKU_5_5
+  CLAUDE_OPUS_5_5
+  CLAUDE_SONNET_5_5
+}
+
+"""
+The PR needs the viewer: the signals since they (or autopilot) last acted on it
+"""
+type ContributeNeedsYou {
+  """Newest last, at most 10"""
+  signals: [ContributePrSignal!]!
+  since: String!
+}
+
+"""
+Why an agent said no-go: needs_design, cannot_reproduce, already_fixed, bot_handled, too_big or other; out_of_budget when the check ran out with no verdict
+"""
+enum ContributeNoGoCategory {
+  ALREADY_FIXED
+  BOT_HANDLED
+  CANNOT_REPRODUCE
+  NEEDS_DESIGN
+  OTHER
+  OUT_OF_BUDGET
+  TOO_BIG
+}
+
+type ContributeNoGoCount {
+  category: ContributeNoGoCategory!
+  count: Int!
+}
+
+"""
+The first path that worked: a stored Claude key (hosted), or the first call of the contributor's own agent (mcp)
+"""
+enum ContributeOnboardedVia {
+  HOSTED
+  MCP
+}
+
+"""The onboarding's next step"""
+enum ContributeOnboardingStep {
+  DONE
+  KEY
+  PREFERENCES
+}
+
+"""
+How an MCP attempt's PR opened: through the review and our submission, or by the viewer by hand
+"""
+enum ContributeOpenedBy {
+  HAND
+  SUBMIT
+}
+
+"""
+NOT_MAINTAINER: the token is not ADMIN or MAINTAIN on the repo; UNKNOWN_REPO: the id names no repository the token can see
+"""
+enum ContributeOptOutRefusal {
+  NOT_MAINTAINER
+  UNKNOWN_REPO
+}
+
+"""One repository asked of optOutRepos or optInRepos, in the order asked"""
+type ContributeOptOutResult {
+  """Null when the id names no repository the token can see"""
+  nameWithOwner: String
+
+  """Whether the repository is out of GitRanks Contribute now"""
+  optedOut: Boolean!
+  optedOutAt: String
+
+  """Why it was not changed; null when it was"""
+  reason: ContributeOptOutRefusal
+  repoId: ID!
+}
+
+"""Even (with an end-of-cycle sweep), fast, or queued issues only"""
+enum ContributePace {
+  EVEN
+  FAST
+  QUEUED
+}
+
+"""
+The paths a contributor has: a Claude key (hosted attempts), a live MCP token (their own agent)
+"""
+type ContributePaths {
+  hosted: Boolean!
+  mcp: Boolean!
+}
+
+"""A convention an open PR fails, and its one-click fix when there is one"""
+type ContributePrConventionIssue {
+  """The failing check that says so"""
+  check: String
+  kind: ContributePrIssueKind!
+  message: String!
+
+  """
+  title: the title the fix sets; changelog: the line it writes; cla: where to sign; null: no fix
+  """
+  suggestion: String
+}
+
+"""The last fix sent to an open PR"""
+type ContributePrFix {
+  at: String!
+  kind: ContributePrFixStep!
+
+  """Why it failed, in words"""
+  note: String
+  state: ContributePrFixState!
+}
+
+"""
+A one-click fix to an open PR: title (retitle it), body (set its description), changelog (fix the changelog line in a commit)
+"""
+enum ContributePrFixKind {
+  BODY
+  CHANGELOG
+  TITLE
+}
+
+"""Where a fix to an open PR stands"""
+enum ContributePrFixState {
+  DONE
+  FAILED
+  SENDING
+}
+
+"""
+A fix sent to an open PR: link (the changelog line's PR number, once it opened), changelog, title, body
+"""
+enum ContributePrFixStep {
+  BODY
+  CHANGELOG
+  LINK
+  TITLE
+}
+
+"""
+What an open PR fails of its repo's conventions: the title, the changelog line, the template, the CLA
+"""
+enum ContributePrIssueKind {
+  CHANGELOG
+  CLA
+  TEMPLATE
+  TITLE
+}
+
+"""One thing the PR sync found on an open PR"""
+type ContributePrSignal {
+  at: String!
+
+  """check_failed: the failing checks’ names; cla: the CLA check’s"""
+  detail: String
+  kind: ContributePrSignalKind!
+}
+
+"""
+What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules
+"""
+enum ContributePrSignalKind {
+  CHANGES_REQUESTED
+  CHECK_FAILED
+  CLA
+  COMMENT
+  TITLE
+}
+
+"""A PR: open, merged or closed"""
+enum ContributePrState {
+  CLOSED
+  MERGED
+  OPEN
+}
+
+"""
+Matching filters: an empty list filters nothing; ids are GitHub node ids
+"""
+type ContributePreferences {
+  kinds: [ContributeIssueKind!]!
+  languages: [ContributeLanguage!]!
+
+  """Null: any size"""
+  maxSize: ContributeIssueSize
+  reposIn: [String!]! @deprecated(reason: "The repos list replaced it (contributeSet); always empty")
+  reposOut: [String!]! @deprecated(reason: "The ignore list replaced it (contributeSet); always empty")
+  topicIds: [String!]!
+}
+
+input ContributePreferencesInput {
+  kinds: [ContributeIssueKind!]
+  languages: [ContributeLanguage!]
+  maxSize: ContributeIssueSize
+  topicIds: [String!]
+}
+
+"""A reply a follow-up drafted; posted only once the viewer approves it"""
+type ContributeReplyDraft {
+  """The follow-up that drafted it"""
+  attemptId: ID!
+
+  """The thread was opened by a bot: it is resolved once answered"""
+  bot: Boolean!
+
+  """Null: a top-level comment on the PR"""
+  comment: ContributeReplyTarget
+  createdAt: String!
+  draftId: ID!
+
+  """Why the last post failed"""
+  lastError: ContributeSubmitError
+
+  """What the follow-up did about the thread"""
+  outcome: ContributeThreadOutcome
+  posted: Boolean!
+  postedAt: String
+  prId: ID!
+
+  """
+  Posted before the text: "Fixed in <sha>: " or "Not changed: " (<commit> before the push)
+  """
+  prefix: String
+
+  """The agent's reason: a skip's, or the question for the viewer"""
+  reason: String
+
+  """Its thread is resolved after the reply posts"""
+  resolve: Boolean!
+  resolveState: ContributeResolveState!
+
+  """Approved to post with the push"""
+  send: Boolean!
+  state: ContributeReplyState!
+  text: String!
+  updatedAt: String!
+
+  """The posted comment on GitHub"""
+  url: String
+}
+
+"""A follow-up's reply as the viewer edited it at the approval"""
+input ContributeReplyInput {
+  draftId: ID!
+
+  """Post it with the push"""
+  send: Boolean!
+  text: String!
+}
+
+"""
+A drafted reply: draft, posting (approved), posted, or failed (approve again)
+"""
+enum ContributeReplyState {
+  DRAFT
+  FAILED
+  POSTED
+  POSTING
+}
+
+"""The review thread a reply answers (its first comment)"""
+type ContributeReplyTarget {
+  author: String
+
+  """The review comment's GitHub node id"""
+  commentId: ID!
+
+  """The comment's first 300 characters"""
+  excerpt: String!
+  line: Int
+  path: String
+}
+
+"""
+A reply draft the viewer can approve now, with its PR. inReview: its follow-up waits in the review (or autopilot's hour) with it, so it folds into that review
+"""
+type ContributeReplyWaiting {
+  """The follow-up that drafted it"""
+  attemptId: ID!
+
+  """The thread was opened by a bot: it is resolved once answered"""
+  bot: Boolean!
+
+  """Null: a top-level comment on the PR"""
+  comment: ContributeReplyTarget
+  createdAt: String!
+  draftId: ID!
+
+  """
+  The follow-up that drafted it waits for the viewer (review, or autopilot’s hour)
+  """
+  inReview: Boolean!
+
+  """Why the last post failed"""
+  lastError: ContributeSubmitError
+  nameWithOwner: String
+
+  """What the follow-up did about the thread"""
+  outcome: ContributeThreadOutcome
+  posted: Boolean!
+  postedAt: String
+  prId: ID!
+
+  """The PR's number"""
+  prNumber: Int!
+
+  """
+  Posted before the text: "Fixed in <sha>: " or "Not changed: " (<commit> before the push)
+  """
+  prefix: String
+
+  """The agent's reason: a skip's, or the question for the viewer"""
+  reason: String
+
+  """Its thread is resolved after the reply posts"""
+  resolve: Boolean!
+  resolveState: ContributeResolveState!
+
+  """Approved to post with the push"""
+  send: Boolean!
+  state: ContributeReplyState!
+  text: String!
+  updatedAt: String!
+
+  """The posted comment on GitHub"""
+  url: String
+}
+
+"""
+What the repo asks of a PR, read from its config, its checks and its merged PRs
+"""
+type ContributeRepoConventions {
+  """A mark every comment an agent posts starts with (🤖)"""
+  agentMarker: String
+  changelog: ContributeChangelogRule
+  cla: ContributeClaRule
+
+  """A DCO check runs on its PRs"""
+  dco: Boolean!
+
+  """
+  Folders of generated files its merged PRs commit (snapshots, baselines)
+  """
+  generated: [String!]!
+
+  """Its docs' lines about titles and changelogs, as found"""
+  notes: [String!]!
+  template: ContributeTemplateAsks
+
+  """Its agent rules leave the PR template for the human to fill"""
+  templateByHuman: Boolean
+  title: ContributeTitleRule
+
+  """Recently merged PR titles"""
+  titleExamples: [String!]!
+
+  """A prefix every PR title must carry (`[AI]`), from its agent rules"""
+  titlePrefix: String
+}
+
+"""
+The signed-in visitor's permission on a GitHub repository, as GitHub answered for their token
+"""
+enum ContributeRepoPermission {
+  ADMIN
+  MAINTAIN
+  READ
+  TRIAGE
+  WRITE
+}
+
+"""How the repo installs, builds and tests, as the agent found it"""
+type ContributeRepoReadiness {
+  build: String
+  install: String
+  notes: String
+  test: String
+  toolchain: String
+}
+
+"""
+A thread's resolve after its reply posted: none, resolving, resolved, failed
+"""
+enum ContributeResolveState {
+  FAILED
+  NONE
+  RESOLVED
+  RESOLVING
+}
+
+"""The PR's review decision"""
+enum ContributeReviewDecision {
+  APPROVED
+  CHANGES_REQUESTED
+  REVIEW_REQUIRED
+}
+
+"""The PR's review threads waiting for an answer"""
+type ContributeReviewFeedback {
+  """When GitHub was last read for them"""
+  readAt: String
+  threads: [ContributeFeedbackThread!]!
+}
+
+"""The agent's own rating of its change"""
+enum ContributeRiskLevel {
+  HIGH
+  LOW
+  MEDIUM
+}
+
+"""One run: an agent's attempt on one issue, and what came of it"""
+type ContributeRun {
+  """The viewer's own agent, as it named itself"""
+  agent: ContributeAgent
+  attemptId: ID!
+  costUsd: Float!
+  createdAt: String!
+  effort: ContributeEffort
+
+  """A fixed code, or the agent's no-go reason"""
+  endDetail: String
+  endReason: ContributeAttemptEndReason
+
+  """When the agent stopped working; null while it works"""
+  finishedAt: String
+  followUpOf: ContributeRunFollowUpOf
+
+  """A first attempt's follow-up rounds so far"""
+  followUps: Int!
+  goNoGoUsd: Float!
+  kind: ContributeAttemptKind!
+  model: ContributeModel
+
+  """`owner/name`, the pool's for a run that never read it"""
+  nameWithOwner: String
+  noGoCategory: ContributeNoGoCategory
+  number: Int!
+  outcome: ContributeRunOutcome!
+  pullRequest: ContributeRunPullRequest
+
+  """`user` when the viewer put it in line, else `scheduler`"""
+  queuedBy: String!
+  runner: ContributeAttemptRunner!
+  startedAt: String
+  state: ContributeAttemptState!
+
+  """Null when the session never read the issue"""
+  title: String
+  workUsd: Float!
+}
+
+type ContributeRunFollowUpOf {
+  attemptId: ID!
+
+  """The PR's number"""
+  number: Int!
+}
+
+"""
+A run's outcome: running, review, pr_open, merged, closed, pushed, no_go, checks_failed, not_started, stopped, discarded
+"""
+enum ContributeRunOutcome {
+  CHECKS_FAILED
+  CLOSED
+  DISCARDED
+  MERGED
+  NOT_STARTED
+  NO_GO
+  PR_OPEN
+  PUSHED
+  REVIEW
+  RUNNING
+  STOPPED
+}
+
+type ContributeRunOutcomeCount {
+  count: Int!
+  outcome: ContributeRunOutcomeCountKey!
+}
+
+"""An outcome chip's key: all, or an outcome filter"""
+enum ContributeRunOutcomeCountKey {
+  ALL
+  CHECKS_FAILED
+  NOT_STARTED
+  NO_GO
+  PR
+  STOPPED
+}
+
+"""
+The outcome filter: pr (open, merged, closed, pushed), no_go, checks_failed, stopped (with discarded), not_started
+"""
+enum ContributeRunOutcomeFilter {
+  CHECKS_FAILED
+  NOT_STARTED
+  NO_GO
+  PR
+  STOPPED
+}
+
+type ContributeRunPullRequest {
+  number: Int!
+  url: String
+}
+
+"""A page of the viewer's runs, newest first"""
+type ContributeRuns {
+  """The UTC days this page's runs fall on, the latest first"""
+  days: [ContributeRunsDay!]!
+  items: [ContributeRun!]!
+
+  """The next page's `after`; null on the last page"""
+  nextCursor: String
+
+  """Runs per outcome chip, under the rest of the filter"""
+  outcomeCounts: [ContributeRunOutcomeCount!]!
+
+  """Every repo the viewer has runs in, the latest first"""
+  repos: [String!]!
+  totals: ContributeRunsTotals!
+}
+
+"""
+One UTC day of the page: every run of it the filter matches, on this page or not
+"""
+type ContributeRunsDay {
+  costUsd: Float!
+
+  """YYYY-MM-DD, UTC"""
+  day: String!
+
+  """PRs its first attempts opened"""
+  prs: Int!
+  runs: Int!
+}
+
+"""Which runs: every one when empty"""
+input ContributeRunsFilter {
+  """The no-gos of that category alone"""
+  category: ContributeNoGoCategory
+
+  """ISO: runs started at or after it"""
+  from: String
+  outcome: ContributeRunOutcomeFilter
+
+  """`owner/name`"""
+  repo: String
+  runner: ContributeAttemptRunner
+
+  """ISO: runs started before it"""
+  to: String
+}
+
+"""Over every run the filter matches, not only the page"""
+type ContributeRunsTotals {
+  closed: Int!
+  costUsd: Float!
+  merged: Int!
+  noGo: Int!
+
+  """The largest first; a no-go without a category is left out"""
+  noGoByCategory: [ContributeNoGoCount!]!
+  noGoCostUsd: Float!
+
+  """First attempts that opened a PR"""
+  prs: Int!
+  runs: Int!
+
+  """The runs that reached the agent"""
+  started: Int!
+}
+
+"""What the scheduler counts now, as it decides whether an attempt starts"""
+type ContributeScheduleCounts {
+  """
+  Attempts against open PRs at a time: reviews, autopilot’s hour, submissions and open PRs
+  """
+  prBound: Int!
+
+  """
+  Issues in line (first attempts queued), every one: above 0 an attempt may still wait, when none of them is free now
+  """
+  queued: Int!
+}
+
+"""
+The viewer's set: the active mode, each mode's list and fallback, the ignore list
+"""
+type ContributeSet {
+  ignore: [ContributeIgnoredRepo!]!
+  limits: ContributeSetLimits!
+  mode: ContributeSetMode!
+  repos: ContributeSetRepos!
+  stack: ContributeSetStack!
+
+  """Bumps on every write that changed something"""
+  version: Int!
+}
+
+"""
+What one add did ("Added 2 of 31 repos from vercel: your list is full"), and the set now
+"""
+type ContributeSetAddResult {
+  """Appended, in order"""
+  added: [ContributeSetRepo!]!
+
+  """Repos read: an owner's first 100 by stars, or 1 for a repo"""
+  considered: Int!
+
+  """The list hit its cap before every passing repo fit"""
+  full: Boolean!
+
+  """Passed the gate: the added ones and those that did not fit"""
+  passed: Int!
+  set: ContributeSet!
+  skipped: ContributeSetAddSkipped!
+}
+
+"""What an add left out"""
+type ContributeSetAddSkipped {
+  """Already on the list"""
+  duplicate: Int!
+
+  """Failed the list's gate, by reason"""
+  failed: [ContributeSetReasonCount!]!
+
+  """On the ignore list"""
+  ignored: Int!
+
+  """In a language not supported yet (stored greyed when they fit)"""
+  unsupported: [ContributeSetRepo!]!
+}
+
+"""
+When the set has nothing ready: SET_ONLY waits, THEN_ALL (the default) goes on with all issues
+"""
+enum ContributeSetFallback {
+  SET_ONLY
+  THEN_ALL
+}
+
+"""
+The set's caps: each list's size, and the day limits per viewer (UTC days)
+"""
+type ContributeSetLimits {
+  """Adds a day (RATE_LIMITED past it)"""
+  addsPerDay: Int!
+
+  """A feedback message's most characters"""
+  feedbackMaxChars: Int!
+
+  """Feedback messages a day (RATE_LIMITED past it)"""
+  feedbackPerDay: Int!
+  ignore: Int!
+  repos: Int!
+
+  """Manual stack resolves a day (RATE_LIMITED past it)"""
+  resolvesPerDay: Int!
+  sources: Int!
+  targets: Int!
+}
+
+"""
+A list the viewer edits: SOURCES (the stack's own repos) or REPOS (the repos list)
+"""
+enum ContributeSetList {
+  REPOS
+  SOURCES
+}
+
+"""A mode with a list, and so a fallback: STACK or REPOS"""
+enum ContributeSetListMode {
+  REPOS
+  STACK
+}
+
+"""
+Where issues come from: ALL (the global pool), STACK (the libraries your repos use), REPOS (your list)
+"""
+enum ContributeSetMode {
+  ALL
+  REPOS
+  STACK
+}
+
+"""Why a repo did not pass a list's gate, in the order the UI lists them"""
+enum ContributeSetReason {
+  AI_BAN
+  ARCHIVED
+  CONTRIBUTE_OFF
+  DELETED
+  FORK
+  ISSUES_DISABLED
+  LANGUAGE
+  LICENSE
+  NO_MANIFEST
+  OPTED_OUT
+  OUTSIDE_MERGES
+  PRIVATE
+  PUSHED
+}
+
+"""Repos an add left out for one gate reason"""
+type ContributeSetReasonCount {
+  count: Int!
+  reason: ContributeSetReason!
+}
+
+"""One repo on a list (SetRepo)"""
+type ContributeSetRepo {
+  addedAt: String!
+
+  """Null: not a language the sandbox runs"""
+  language: ContributeLanguage
+  nameWithOwner: String!
+
+  """Why it failed (or is unsupported); empty otherwise"""
+  reasons: [ContributeSetReason!]!
+
+  """The repository's GitHub node id"""
+  repositoryId: ID!
+  stars: Int!
+
+  """The live status"""
+  status: ContributeSetRepoStatus!
+  via: ContributeSetRepoVia!
+}
+
+"""
+CHECKING until its first read, ACTIVE, FAILED (a gate reason found later; reasons say which), UNSUPPORTED (a language the sandbox does not run: shown greyed, never counted)
+"""
+enum ContributeSetRepoStatus {
+  ACTIVE
+  CHECKING
+  FAILED
+  UNSUPPORTED
+}
+
+"""How a repo got on the list"""
+type ContributeSetRepoVia {
+  kind: ContributeSetRepoViaKind!
+
+  """OWNER: the login as GitHub spells it; else null"""
+  login: String
+}
+
+"""
+How a repo got on the list: ME (the @me preset), OWNER (a user or org expanded), REPO (one repo)
+"""
+enum ContributeSetRepoViaKind {
+  ME
+  OWNER
+  REPO
+}
+
+"""Support these repos: the list and its fallback"""
+type ContributeSetRepos {
+  """The repos counted toward the cap: every one but UNSUPPORTED"""
+  count: Int!
+  fallback: ContributeSetFallback!
+  repos: [ContributeSetRepo!]!
+}
+
+"""Support my stack: the sources, their fallback and resolve"""
+type ContributeSetStack {
+  """The sources counted toward the cap: every one but UNSUPPORTED"""
+  count: Int!
+  fallback: ContributeSetFallback!
+
+  """Null before the first resolve"""
+  resolve: ContributeStackResolve
+  sources: [ContributeSetRepo!]!
+}
+
+"""Every setting is the user's; weekCapUsd and dayCapUsd null for none"""
+type ContributeSettings {
+  attemptCapUsd: Float!
+  attemptsAtATime: Int!
+  autopilot: Boolean!
+  cycleCapUsd: Float!
+  dayCapUsd: Float
+  dco: ContributeDcoMode!
+  effort: ContributeEffort!
+  helperModel: ContributeModel!
+  mainModel: ContributeModel!
+  maxChangedLines: Int!
+  maxFiles: Int!
+  openPrsAtATime: Int!
+  pace: ContributePace!
+
+  """The day of the month (UTC) the credits renew"""
+  renewalDay: Int!
+
+  """
+  A follow-up's pushed replies resolve people's review threads too; off: only bots' (reviewers resolve their own)
+  """
+  resolveHumanThreads: Boolean!
+  sweepDays: Int!
+
+  """Null: the same as the main model"""
+  testModel: ContributeModel
+  weekCapUsd: Float
+}
+
+input ContributeSettingsInput {
+  attemptCapUsd: Float
+  attemptsAtATime: Int
+  autopilot: Boolean
+  cycleCapUsd: Float
+  dayCapUsd: Float
+  dco: ContributeDcoMode
+  effort: ContributeEffort
+  helperModel: ContributeModel
+  mainModel: ContributeModel
+  maxChangedLines: Int
+  maxFiles: Int
+  openPrsAtATime: Int
+  pace: ContributePace
+  renewalDay: Int
+  resolveHumanThreads: Boolean
+  sweepDays: Int
+  testModel: ContributeModel
+  weekCapUsd: Float
+}
+
+"""
+Spend in UTC days; the week starts on Monday, the cycle on the renewal day
+"""
+type ContributeSpend {
+  """What an attempt may start against now"""
+  allowanceUsd: Float!
+  cycleEnd: String!
+  cycleStart: String!
+  cycleUsd: Float!
+
+  """When an attempt could next start; null when none ever can"""
+  nextAttemptAt: String
+  todayUsd: Float!
+  weekUsd: Float!
+}
+
+"""A stack candidate that did not pass the gate ("Why isn't X here?")"""
+type ContributeStackFailedRepo {
+  nameWithOwner: String!
+  reasons: [ContributeSetReason!]!
+  repositoryId: ID!
+  usage: Int!
+}
+
+"""
+The stack's last resolve: its sources' dependencies turned into target repos
+"""
+type ContributeStackResolve {
+  endedAt: String
+
+  """The first 20 candidates that did not pass"""
+  failed: [ContributeStackFailedRepo!]!
+
+  """Distinct direct packages read"""
+  packages: Int!
+  startedAt: String!
+  state: ContributeStackResolveState!
+
+  """
+  The ≤ 50 that passed the gate, by usage then stars; then the UNSUPPORTED ones (not counted)
+  """
+  targets: [ContributeStackTarget!]!
+
+  """Packages with no GitHub repo"""
+  unlinked: Int!
+}
+
+"""
+The stack resolve: RESOLVING, READY, or FAILED (the last targets kept; resolveContributeStack tries again)
+"""
+enum ContributeStackResolveState {
+  FAILED
+  READY
+  RESOLVING
+}
+
+"""A stack target: a library the viewer's sources use"""
+type ContributeStackTarget {
+  addedAt: String!
+
+  """Null: not a language the sandbox runs"""
+  language: ContributeLanguage
+  nameWithOwner: String!
+
+  """Up to 5 of its package names the sources depend on"""
+  packages: [String!]!
+
+  """Why it failed (or is unsupported); empty otherwise"""
+  reasons: [ContributeSetReason!]!
+
+  """The repository's GitHub node id"""
+  repositoryId: ID!
+  stars: Int!
+
+  """The live status"""
+  status: ContributeSetRepoStatus!
+
+  """How many sources use it"""
+  usage: Int!
+  via: ContributeSetRepoVia!
+}
+
+"""What last went wrong in a submission, in our words"""
+type ContributeSubmitError {
+  at: String!
+
+  """What happened and what to do, for the user"""
+  note: String!
+
+  """
+  A fixed code: the write that failed (grant_revoked, submit_off, …) or ours (no_answer, …)
+  """
+  reason: String!
+}
+
+"""
+A submission's step: queued, waiting_cap (the day's PRs are open), fork, sync, push, pull_request
+"""
+enum ContributeSubmitStep {
+  FORK
+  PULL_REQUEST
+  PUSH
+  QUEUED
+  SYNC
+  WAITING_CAP
+}
+
+"""A submission's write step: when it started and finished"""
+type ContributeSubmitStepTime {
+  """Null while it runs, or after it failed"""
+  doneAt: String
+  startedAt: String!
+
+  """fork, sync, push or pull_request"""
+  step: ContributeSubmitStep!
+}
+
+"""The repo's PR template and what it asks of AI-written PRs"""
+type ContributeTemplateAsks {
+  """Its lines about AI use (name the model, tick a box)"""
+  aiAsks: [String!]!
+  path: String!
+}
+
+"""
+What a follow-up did about a review thread: fixed, skipped (with a reason), needs_you (a decision for the viewer)
+"""
+enum ContributeThreadOutcome {
+  FIXED
+  NEEDS_YOU
+  SKIPPED
+}
+
+"""The repo's PR title rule: `type(scope)!: summary`, or its own pattern"""
+type ContributeTitleRule {
+  """A bot or a workflow checks it: a title that fails it fails a check"""
+  hard: Boolean!
+
+  """
+  The repo's own title pattern (a JS regex source: group 1 the type, 2 the scope); null: conventional
+  """
+  pattern: String
+  requireScope: Boolean!
+
+  """The scopes allowed; null: any"""
+  scopes: [String!]
+
+  """Where it was read, in words ("`.github/semantic.yml`")"""
+  source: String!
+
+  """The types allowed; null: any"""
+  types: [String!]
+}
+
 type Contribution {
   linesAdded: Int
   linesRemoved: Int
@@ -6,6 +2101,44 @@ type Contribution {
   repoId: String
   repository: Repository
   year: Int!
+}
+
+"""The signed-in viewer as GitRanks Contribute knows them"""
+type Contributor {
+  autopilot: ContributeAutopilot!
+  createdAt: String!
+  credentials: [ContributeCredential!]!
+  login: String!
+
+  """
+  When a path first worked (a stored key, or their agent’s first call); null until then. Never cleared
+  """
+  onboardedAt: String
+
+  """Which path onboarded them; null until then"""
+  onboardedVia: ContributeOnboardedVia
+  paths: ContributePaths!
+
+  """Contributing is paused: by the viewer, or because the key was refused"""
+  paused: Boolean!
+  plan: ContributeClaudePlan
+  preferences: ContributePreferences
+  scheduleCounts: ContributeScheduleCounts!
+
+  """Null until a key was connected"""
+  settings: ContributeSettings
+
+  """Null until there are settings"""
+  spend: ContributeSpend
+  status: ContributorStatus!
+  step: ContributeOnboardingStep!
+}
+
+"""Onboarding, active or paused"""
+enum ContributorStatus {
+  ACTIVE
+  ONBOARDING
+  PAUSED
 }
 
 type ContributorsWall {
@@ -179,6 +2312,185 @@ enum LanguageSummaryOrder {
   USERS
 }
 
+type Mutation {
+  """
+  Adds to a list: "@me", a user or org (its passing repos, most stars first, until the list is full), owner/name or a GitHub URL (one repo; one that fails the gate is not added, skipped.failed says why). BAD_USER_INPUT for an input that is none of them, NOT_FOUND when GitHub has no such owner or repo, RATE_LIMITED past 60 adds a day or while GitHub rate limits the read, GITHUB_UNAVAILABLE when GitHub cannot be read
+  """
+  addToContributeSet(
+    """@me, a login, owner/name or a GitHub URL (at most 200 characters)"""
+    input: String!
+    list: ContributeSetList!
+  ): ContributeSetAddResult!
+
+  """
+  Approves an attempt in review with the PR’s title and body as edited, and the DCO sign-off (used only on a repo that requires it, `dcoRequired`): the submission starts (fork, push, PR in the viewer’s name). CONFLICT when the attempt is not in review
+  """
+  approveAttempt(
+    body: String!
+    dco: Boolean!
+    id: ID!
+
+    """
+    A follow-up's replies as edited: each posted with the push when send is true
+    """
+    replies: [ContributeReplyInput!]
+    title: String!
+  ): ContributeAttempt!
+
+  """
+  Approves a drafted reply: it is posted on the PR in the viewer’s name (a reply in its review thread, or a comment). Never posted otherwise. CONFLICT when the PR is no longer open
+  """
+  approveReply(draftId: ID!): ContributeReplyDraft!
+
+  """
+  Checks a Claude API key (one 1-token request on it), seals and stores it; never answered back. confirmedLimit: the key is in a separate workspace with a monthly spend limit. cycleCapUsd is required for purchased credits and overrides the plan’s credit otherwise; limits sets the week, day and attempt caps and the pace (BAD_USER_INPUT, nothing stored, when the attempt cap is above a cap that is set). A stored key onboards the viewer
+  """
+  connectClaudeKey(confirmedLimit: Boolean!, cycleCapUsd: Float, key: String!, limits: ContributeConnectLimitsInput, plan: ContributeClaudePlan!, renewalDay: Int!): ContributeConnectKeyResult!
+
+  """
+  A personal token for the MCP server (name at most 40 characters). The token is answered here once and never again. The first one makes the viewer a contributor without a Claude key. CONFLICT at 5 live tokens
+  """
+  createMcpToken(name: String!): ContributeMcpTokenCreated!
+
+  """
+  Deletes and revokes the GitHub grant, then every row GitRanks Contribute keeps on the viewer
+  """
+  deleteContributeData: ContributeDeleteDataResult!
+
+  """
+  Discards a queued attempt or one in review; its issue goes back to the pool. CONFLICT from any other state
+  """
+  discardAttempt(id: ID!): ContributeAttempt!
+
+  """
+  A one-click fix to the viewer's open PR, on their GitHub grant: TITLE retitles it (CONFLICT when the title fails the repo's checked title rule), BODY sets its description (our footer kept), CHANGELOG fixes its changelog line in a commit on its branch. CONFLICT when another fix is on its way or the PR is not open
+  """
+  fixContributePullRequest(attemptId: ID!, body: String, kind: ContributePrFixKind!, title: String): ContributeAttemptDetail!
+
+  """
+  Takes a repo off every list and the targets and onto the ignore list. LIST_FULL when it holds 50, NOT_FOUND for a repo in no list
+  """
+  ignoreContributeRepo(repositoryId: ID!): ContributeSet!
+
+  """
+  Ignores review threads of the viewer’s open PR (first comments’ node ids), or brings them back with ignore: false. An ignored thread is never addressed or followed up again, unless a comment arrives on it after; a follow-up under way drops its unsent reply. The PR’s ignored threads back. NOT_FOUND when not the viewer’s, CONFLICT when the PR is not open
+  """
+  ignoreReviewThreads(commentIds: [ID!]!, ignore: Boolean! = true, prId: ID!): [ID!]!
+
+  """
+  Mark as handled: clears the open PR’s needs-you signals (kept on its timeline); a signal found later raises it again. The PR’s first attempt back. NOT_FOUND when not the viewer’s, CONFLICT when the PR is not open
+  """
+  markNeedsYouHandled(prId: ID!): ContributeAttempt!
+
+  """A "Notify me" on a coming-soon provider"""
+  noteProviderInterest(provider: ContributeComingSoonProvider!): Boolean!
+
+  """
+  Lifts the opt-out of repositories the token administers or maintains: they may come back with the next weekly pool run, if they still pass its rules
+  """
+  optInRepos(repoIds: [ID!]!, token: String!): [ContributeOptOutResult!]!
+
+  """
+  Takes repositories out of GitRanks Contribute at once and for good: no issue of theirs is picked, nothing is submitted there. Only those the token administers or maintains (each other one says why); idempotent. UNAUTHENTICATED when GitHub refuses the token
+  """
+  optOutRepos(repoIds: [ID!]!, token: String!): [ContributeOptOutResult!]!
+
+  """
+  No new attempt starts until resumeContributing; a key must be connected first
+  """
+  pauseContributing: Boolean!
+
+  """
+  Takes repos off a list, freeing their slots; an id not on it is ignored
+  """
+  removeFromContributeSet(list: ContributeSetList!, repositoryIds: [ID!]!): ContributeSet!
+
+  """
+  Deletes the sealed key at once (the user deletes it in the Console too); false when there was none
+  """
+  removeLlmKey(provider: ContributeLiveProvider!): Boolean!
+
+  """
+  Runs the stack resolve again ("Try again"); answers the set RESOLVING. RATE_LIMITED past 10 a day
+  """
+  resolveContributeStack: ContributeSet!
+
+  """
+  Contributing again; refused (CONFLICT) without a key, or when the key was refused
+  """
+  resumeContributing: Boolean!
+
+  """
+  Tries again, once, an attempt whose check of the issue ran out of budget or time before deciding (retryable): a new attempt on the issue, queued, its check on twice the budget. CONFLICT when it is not one
+  """
+  retryAttempt(id: ID!): ContributeAttempt!
+
+  """
+  Deletes the GitHub grant and revokes it at GitHub; false when GitHub could not be told (revoke the app on GitHub). True when there was none
+  """
+  revokeGithubGrant: Boolean!
+
+  """
+  Revokes a token: its next call answers 401. Revoking the last one ends the claims its agent is working on. False when it was not a live token of the viewer’s
+  """
+  revokeMcpToken(id: ID!): Boolean!
+
+  """
+  Sends an MCP attempt in review back to the viewer’s own agent with a note (at most 2,000 characters): it reads the note and submits again, within 7 days of its claim. At most 3 times an attempt. CONFLICT when it is not an MCP attempt in review, or was sent back 3 times
+  """
+  sendBackToAgent(attemptId: ID!, note: String!): ContributeAttempt!
+
+  """
+  Feedback to the GitRanks team (at most 2,000 characters), with where the dialog was opened. RATE_LIMITED past 10 a day
+  """
+  sendContributeFeedback(context: ContributeFeedbackContextInput, text: String!, topic: ContributeFeedbackTopic!): Boolean!
+
+  """
+  A list mode's fallback: when its set has nothing ready, wait (SET_ONLY) or work on all issues
+  """
+  setContributeFallback(fallback: ContributeSetFallback!, mode: ContributeSetListMode!): ContributeSet!
+
+  """
+  Switches the active mode; the other modes keep their lists and fallbacks
+  """
+  setContributeMode(mode: ContributeSetMode!): ContributeSet!
+
+  """A field left out keeps its value; a key must be connected first"""
+  setContributeSettings(settings: ContributeSettingsInput!): ContributeSettings!
+
+  """Contribute's matching preferences; a list left out keeps its value"""
+  setPreferences(preferences: ContributePreferencesInput!): ContributePreferences!
+
+  """
+  Takes a recommended issue off the list for good; NOT_FOUND for an issue never recommended, ISSUE_TAKEN for one someone (you or another contributor) is working on
+  """
+  skipIssue(issueId: ID!): Boolean!
+
+  """
+  Starts a follow-up on the viewer’s open PR (its node id): an agent session on their key reads the reviews and failing checks, adds commits to the PR’s branch and drafts replies. At most 2 rounds a PR. CONFLICT when it cannot start now (the PR not open, one under way, no rounds left, limits reached)
+  """
+  startFollowUp(
+    """
+    The review threads to address (first comments’ node ids); the other waiting ones are ignored
+    """
+    commentIds: [ID!]
+    prId: ID!
+  ): ContributeAttempt!
+
+  """Takes a repo off the ignore list"""
+  unignoreContributeRepo(repositoryId: ID!): ContributeSet!
+
+  """
+  Stops an autopilot submission in its hour (pending_autosubmit): the attempt goes to the review instead. CONFLICT from any other state
+  """
+  vetoAutopilot(attemptId: ID!): ContributeAttempt!
+
+  """
+  Takes back a "Notify me" on a coming-soon provider; false when there was none
+  """
+  withdrawProviderInterest(provider: ContributeComingSoonProvider!): Boolean!
+}
+
 enum OrgActivityGroupBy {
   KIND
   LANGUAGE
@@ -316,6 +2628,7 @@ type Organization {
   reposOver1k: Int!
   s: Int
   snapshots: JSON
+  starsNotCounted: StarsNotCounted
   topRepos(first: Int! = 5): [Repo!]!
   twitterUsername: String
   updatedAt: DateTime!
@@ -342,6 +2655,77 @@ type ProfileForSitemap {
 }
 
 type Query {
+  """
+  The signed-in viewer's Contribute: keys (masked), settings, spend, preferences. Null when hidden
+  """
+  contribute: Contribute
+
+  """
+  The viewer's work in progress (the stack resolve, new repos' first reads), each with its tabs, a line, counts, an estimate and its repos: the UI polls it while something runs. Null when hidden
+  """
+  contributeActivity: ContributeActivity
+
+  """
+  One attempt for the review: the diff, the result, the checks, the cost split, the timeline, the submission and the PR. NOT_FOUND when it is not the viewer’s; null when hidden
+  """
+  contributeAttempt(id: ID!): ContributeAttemptDetail
+
+  """
+  The viewer's attempts, newest first, optionally in one state or in any of several (not both: BAD_USER_INPUT). Null when hidden
+  """
+  contributeAttempts(first: Int = 20, state: ContributeAttemptState, states: [ContributeAttemptState!]): [ContributeAttempt!]
+
+  """
+  What moved for the viewer since `since` (the version a previous read answered): the UI polls it, faster while `activity`, and refetches only the areas named. Null when hidden
+  """
+  contributeChanges(since: String): ContributeChanges
+
+  """
+  My contributions: the viewer's PRs opened through Contribute, newest first, and their totals
+  """
+  contributeContributions(first: Int): ContributeContributions
+
+  """
+  The shown issues as they are now, for the Issues list and Up next to drop a taken card while open (polled): up to 50 ids, in the order asked. Null when hidden
+  """
+  contributeIssueStatus(issueIds: [ID!]!): [ContributeIssueStatus!]
+
+  """
+  Issues for you: the recommended issues, best first, a page at a time. Null when hidden
+  """
+  contributeIssues(after: String, filter: ContributeIssuesFilter, first: Int = 20): ContributeIssuePage
+
+  """
+  Contribute is launched: open to everyone, so the landing is shown to signed-out visitors too. False during the preview
+  """
+  contributeOpen: Boolean!
+
+  """The matching preferences; null before any were set, or when hidden"""
+  contributePreferences: ContributePreferences
+
+  """
+  The reply drafts the viewer can approve now, across their open PRs, oldest first. inReview: its follow-up waits in the review with it. Null when hidden
+  """
+  contributeRepliesWaiting: [ContributeReplyWaiting!]
+
+  """
+  The reply drafts of the viewer's PR (its node id), oldest first. NOT_FOUND when it is not theirs
+  """
+  contributeReplyDrafts(prId: ID!): [ContributeReplyDraft!]
+
+  """
+  The viewer's runs, newest first, a page at a time (`after`: the previous page's `nextCursor`; `first` at most 50, more is BAD_USER_INPUT), with the totals and the outcome counts of every run the filter matches. Null when hidden
+  """
+  contributeRuns(after: String, filter: ContributeRunsFilter, first: Int): ContributeRuns
+
+  """
+  The viewer's set: the active mode, the stack's sources and targets, the repos list, each fallback, the ignore list, with each repo’s live status. The defaults (ALL, empty lists) before any write. Null when hidden
+  """
+  contributeSet: ContributeSet
+
+  """The settings; null before a key was connected, or when hidden"""
+  contributeSettings: ContributeSettings
+
   """List of countries"""
   country: [Country!]
   countryLanguageRankings(country: String!, language: String!, limit: Int! = 100, offset: Int! = 0): [RankCountryLanguageWithUser!]!
@@ -359,8 +2743,21 @@ type Query {
   List of top-level scheduled insights (posts) with their replies, where scheduleFor <= now
   """
   insights(limit: Int! = 20, skip: Int! = 0): [InsightPost!]!
+
+  """
+  The profile block "Issues for you": the best few recommended issues, for the signed-in viewer on their own profile alone; an empty list for anyone else, and whenever there is nothing to show
+  """
+  issuesForProfile(
+    """The profile's GitHub login"""
+    login: String!
+  ): [ContributeIssue!]!
   languageRankings(language: String!, limit: Int! = 100, offset: Int! = 0): [RankLanguageWithUser!]!
   languageSummary(date: String, limit: Int! = 100, offset: Int! = 0, order: LanguageSummaryOrder! = SCORE): [LanguageSummary!]!
+
+  """
+  The public repositories the token's GitHub account administers or maintains, and whether each is opted out of GitRanks Contribute. token: the GitHub sign-in of the maintainers page, read once and kept nowhere. UNAUTHENTICATED when GitHub refuses it
+  """
+  maintainerRepos(token: String!): ContributeMaintainerRepos!
 
   """The number of ranked organizations (badges: the top share)."""
   orgRankTotal: Int!
@@ -376,6 +2773,11 @@ type Query {
   repoRankings(language: String, limit: Int! = 100, noLanguage: Boolean, offset: Int! = 0): [RankRepo!]!
   repoSitemapParts: Int!
   reposForSitemap(part: Int!): [String!]!
+
+  """
+  The weekly social posting reports, newest first (the weekly review routine); owner scripts only
+  """
+  socialWeekReports(limit: Int! = 4): [SocialWeekReport!]!
   user(login: String!): User
   users(logins: [String!]!): [User!]
 }
@@ -608,6 +3010,7 @@ type Repo {
   stars: Int!
   starsAt: DateTime
   starsBest: RepoStarsBest
+  starsCheck: RepoStarsCheck
 }
 
 type RepoBuilder {
@@ -719,10 +3122,16 @@ type RepoStarsBest {
   total: Int!
 }
 
+type RepoStarsCheck {
+  githubStars: Int!
+  notCounted: Int!
+}
+
 type Repository {
   createdAt: DateTime
   forkCount: Int
   githubId: String!
+  githubStars: Int
   isArchived: Boolean
   languages: [LanguageEntity!]
   name: String
@@ -730,6 +3139,7 @@ type Repository {
   rank: RankRepo
   releasesCount: Int
   stargazerCount: Int!
+  starsNotCounted: Int
   url: String!
 }
 
@@ -755,6 +3165,21 @@ type SocialAccountNodeEntity {
   displayName: String
   provider: String!
   url: String!
+}
+
+type SocialWeekReport {
+  """The whole report as stored (socialWeekReport)"""
+  report: JSON!
+
+  """ISO week, e.g. 2026-W44"""
+  week: String!
+  weekEnd: String!
+  weekStart: String!
+}
+
+type StarsNotCounted {
+  repositories: Int!
+  stars: Int!
 }
 
 type StarsReview {
@@ -836,6 +3261,7 @@ type User {
   sLangs(limit: Int, offset: Int! = 0): [UserLanguage!]
   snapshots(limit: Int, offset: Int! = 0): JSON
   socialAccounts: SocialAccount
+  starsNotCounted: StarsNotCounted
   starsReview: StarsReview
   tiersCountry: RankTier
   tiersGlobal: RankTier

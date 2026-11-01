@@ -241,6 +241,18 @@ export const strongProfile: ProfileUser = {
 };
 
 /** Ranked counts the summary cites for the strong profile. */
+/**
+ * The strong profile when some of its stars don't count: `tiny-store` shows 27,900 on GitHub, 6,500 of them from
+ * suspected fake accounts, so the totals stay as they are and the GitHub counts are struck through beside them.
+ */
+export const strongProfileStarsNotCounted: ProfileUser = {
+  ...strongProfile,
+  starsNotCounted: { stars: 6_500, repositories: 1 },
+  repositories: strongProfile.repositories?.map((repo) =>
+    repo.name === 'tiny-store' ? { ...repo, githubStars: 27_900, starsNotCounted: 6_500 } : repo,
+  ),
+};
+
 export const strongExtras: ProfileOverviewExtras = {
   rankedGlobal: { sUsers: 1_657_241, cUsers: 1_101_747, fUsers: 3_303_658 },
   rankedCountry: { sUsers: 31_000, cUsers: 22_400, fUsers: 61_000 },

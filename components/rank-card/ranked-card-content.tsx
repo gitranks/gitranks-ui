@@ -13,6 +13,7 @@ export const RankedCardContent: FC<RankCardProps> = ({
   rankProvisional,
   rankM,
   score,
+  starsNotCounted,
   login,
   rankingLink,
 }) => {
@@ -31,7 +32,7 @@ export const RankedCardContent: FC<RankCardProps> = ({
           </span>
         </RankCardItem>
       )}
-      <RankCardTotalValue score={score} login={login} rankType={rankType} />
+      <RankCardTotalValue score={score} starsNotCounted={starsNotCounted} login={login} rankType={rankType} />
     </>
   );
 };

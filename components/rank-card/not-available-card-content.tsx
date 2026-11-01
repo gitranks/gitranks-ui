@@ -11,6 +11,7 @@ export const NotAvailableCardContent: FC<RankCardProps> = ({
   rank,
   rankProvisional,
   score,
+  starsNotCounted,
   login,
   rankingLink,
 }) => {
@@ -23,7 +24,7 @@ export const NotAvailableCardContent: FC<RankCardProps> = ({
       <RankCardItem>{NOT_AVAILABLE}</RankCardItem>
       {hasRank && <RankCardPosition rank={rankToDisplay} rankedCount={rankedCount} rankingLink={rankingLink} />}
       {!hasRank && <RankCardTotalProfilesRanked rankedCount={rankedCount} rankingLink={rankingLink} />}
-      <RankCardTotalValue score={score} login={login} rankType={rankType} />
+      <RankCardTotalValue score={score} starsNotCounted={starsNotCounted} login={login} rankType={rankType} />
     </>
   );
 };

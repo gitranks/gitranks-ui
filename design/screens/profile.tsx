@@ -6,6 +6,7 @@ import {
   type ProfileUser,
   strongExtras,
   strongProfile,
+  strongProfileStarsNotCounted,
 } from '@/app/profile/[login]/__fixtures__/overview';
 import { OverviewPage } from '@/app/profile/[login]/components/overview-page';
 import { ProfileFrame } from '@/app/profile/[login]/components/profile-frame';
@@ -48,6 +49,13 @@ export const PROFILE_SCREENS: Screen[] = [
         path: `/profile/${newcomerProfile.login}`,
         height: 1100,
         render: () => overview(newcomerProfile, newcomerBadges, newcomerExtras),
+      },
+      {
+        id: 'stars-not-counted',
+        title: 'Some stars not counted',
+        path: `/profile/${strongProfile.login}`,
+        height: 3000,
+        render: () => overview(strongProfileStarsNotCounted, strongBadges),
       },
       {
         id: 'strong-phone',

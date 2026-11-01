@@ -1,6 +1,6 @@
 import { withBadgeFacts } from '../images';
 import type { Screen } from '../registry';
-import { nebulaOrg } from '@/app/org/[login]/__fixtures__/org';
+import { nebulaOrg, nebulaOrgStarsNotCounted } from '@/app/org/[login]/__fixtures__/org';
 import { OrgScreen } from '@/app/org/[login]/components/org-screen';
 import { orgBig } from '@/badge/v3/fixtures';
 import { Header } from '@/components/header/header';
@@ -30,6 +30,18 @@ export const ORG_SCREENS: Screen[] = [
             {/* The organization layout: the header, titled with the login. */}
             <Header title={nebulaOrg.login ?? undefined} />
             <OrgScreen login={nebulaOrg.login ?? ''} org={nebulaOrg} badgeFacts={badges} />
+          </>
+        ),
+      },
+      {
+        id: 'stars-not-counted',
+        title: 'Some stars not counted',
+        path: `/org/${nebulaOrg.login}`,
+        height: 3000,
+        render: () => (
+          <>
+            <Header title={nebulaOrg.login ?? undefined} />
+            <OrgScreen login={nebulaOrg.login ?? ''} org={nebulaOrgStarsNotCounted} badgeFacts={badges} />
           </>
         ),
       },

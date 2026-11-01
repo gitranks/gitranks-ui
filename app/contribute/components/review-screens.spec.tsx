@@ -275,6 +275,24 @@ describe('the review screen', () => {
     expect(html).toContain('href="https://cla-assistant.io/x/y"');
     expect(html).toContain('data-pr-fix="failed"');
     expect(plain).toContain('Linking the changelog line to the pull request did not go through: The branch moved.');
+    // A repo whose agent rules leave the template for the human: a link to fill it in on GitHub.
+    const template = review(
+      detail({
+        state: 'PR_OPEN',
+        pullRequest: pullRequest(),
+        prIssues: [
+          {
+            kind: 'TEMPLATE',
+            check: null,
+            message: 'The repo asks the person who tested the change to fill in its template.',
+            suggestion: 'https://github.com/driftwood-js/driftwood/pull/1419',
+          },
+        ],
+        prFix: null,
+      }),
+    );
+    expect(text(template)).toContain('Fill it in on GitHub');
+    expect(template).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
     // Nothing to fix, nothing sent: no card.
     expect(review(detail({ state: 'PR_OPEN', pullRequest: pullRequest(), prIssues: [], prFix: null }))).not.toContain(
       'data-panel="pr-conventions"',

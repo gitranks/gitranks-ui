@@ -14,9 +14,9 @@ import {
   type ContributePrConventionIssue,
   type ContributePrFix,
   type ContributePrFixKind,
-  type ContributeTitleRule,
+  type ContributeRepoConventions,
   httpsOnly,
-  titleProblemOf,
+  titleProblemsOf,
 } from '@/lib/contribute/pr-conventions';
 
 export type PrConventionsCardProps = {
@@ -28,7 +28,7 @@ export type PrConventionsCardProps = {
   title: string;
   /** The description as approved, for the description editor. */
   body: string;
-  titleRule: ContributeTitleRule | null;
+  conventions: ContributeRepoConventions | null;
 };
 
 const FIX_WORDS: Record<ContributePrFix['kind'], string> = {
@@ -58,7 +58,7 @@ export function PrConventionsCard({
   fix,
   title,
   body,
-  titleRule,
+  conventions,
 }: PrConventionsCardProps) {
   const router = useRouter();
   const id = useId();
@@ -88,7 +88,7 @@ export function PrConventionsCard({
       router.refresh();
     });
 
-  const draftProblem = titleRule?.hard ? titleProblemOf(draftTitle, titleRule) : null;
+  const draftProblem = titleProblemsOf(draftTitle, conventions, true);
 
   return (
     <section data-panel="pr-conventions" className="flex flex-col gap-3 rounded-xl border bg-card p-5">
@@ -141,7 +141,16 @@ export function PrConventionsCard({
                   </span>
                 </div>
               ) : null}
-              {issue.kind === 'TEMPLATE' ? (
+              {issue.kind === 'TEMPLATE' && httpsOnly(issue.suggestion) ? (
+                <a
+                  href={httpsOnly(issue.suggestion) ?? undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-link"
+                >
+                  Fill it in on GitHub<span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              ) : issue.kind === 'TEMPLATE' ? (
                 <div>
                   <Button
                     type="button"

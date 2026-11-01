@@ -9,6 +9,8 @@ import {
   httpsOnly,
   titleBlocks,
   titleProblemOf,
+  titleProblemsOf,
+  withoutDraftMarks,
 } from './pr-conventions';
 
 const TYPES = ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert'];
@@ -70,9 +72,9 @@ describe('the title rule, as the API checks it', () => {
   });
 
   it('blocks only on a hard rule', () => {
-    expect(titleBlocks('Deduplicate', semantic)).toBe(true);
-    expect(titleBlocks('Deduplicate', { ...semantic, hard: false })).toBe(false);
-    expect(titleBlocks('fix: deduplicate', semantic)).toBe(false);
+    expect(titleBlocks('Deduplicate', { title: semantic })).toBe(true);
+    expect(titleBlocks('Deduplicate', { title: { ...semantic, hard: false } })).toBe(false);
+    expect(titleBlocks('fix: deduplicate', { title: semantic })).toBe(false);
   });
 });
 
@@ -124,5 +126,41 @@ describe("the repo's own data, defused", () => {
     expect(httpsOnly('https://cla-assistant.io/o/r')).toBe('https://cla-assistant.io/o/r');
     expect(httpsOnly('javascript:alert(1)')).toBeNull();
     expect(httpsOnly(null)).toBeNull();
+  });
+});
+
+describe("the repo's agent rules and our own (actualbudget/actual#9396)", () => {
+  const actual = conventions({
+    title: null,
+    titleExamples: [],
+    titlePrefix: '[AI]',
+    templateByHuman: true,
+    agentMarker: '🤖',
+  });
+
+  it('never lets a WIP or draft mark through, and asks for the prefix', () => {
+    expect(withoutDraftMarks('[WIP] [Bug]: null after deleting')).toBe('[Bug]: null after deleting');
+    expect(withoutDraftMarks('[AI] WIP: fix it')).toBe('[AI] fix it');
+    expect(withoutDraftMarks('Wipe the cache')).toBe('Wipe the cache');
+    expect(titleProblemsOf('[WIP] fix it', null)).toContain('approved it as ready');
+    expect(titleBlocks('[WIP] fix it', null)).toBe(true);
+    expect(titleProblemsOf('Fix the null error', actual)).toContain('`[AI]`');
+    expect(titleBlocks('[AI] Fix the null error', actual)).toBe(false);
+  });
+
+  it('lists the prefix and the template the user fills on GitHub', () => {
+    const items = checklistOf(actual, { title: 'Fix the null error', patch: null });
+    expect(items.map(({ key, state }) => [key, state])).toEqual([
+      ['title', 'blocked'],
+      ['template', 'todo'],
+    ]);
+    expect(items[0].label).toBe("A title starting with `[AI]`, as the repo's agent rules require");
+    expect(items[1].label).toContain('filled in by you on GitHub');
+    expect(checklistOf(actual, { title: '[AI] Fix the null error', patch: null })[0].state).toBe('ok');
+    // A WIP mark is ours to keep out, whatever the repo asks.
+    expect(checklistOf(conventions({ title: null }), { title: '[WIP] fix', patch: null })[0]).toMatchObject({
+      key: 'title',
+      state: 'blocked',
+    });
   });
 });

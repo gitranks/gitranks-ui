@@ -360,7 +360,7 @@ export type ContributeAttemptPullRequest = {
  * What the last read of an open pull request found: changes requested, a new comment, a check newly failing, a CLA
  * to sign. Each leaves once its cause is gone, or once the user marks it handled.
  */
-export type ContributePrSignalKind = 'CHANGES_REQUESTED' | 'COMMENT' | 'CHECK_FAILED' | 'CLA';
+export type ContributePrSignalKind = 'CHANGES_REQUESTED' | 'COMMENT' | 'CHECK_FAILED' | 'CLA' | 'TITLE';
 
 export type ContributePrSignal = {
   kind: ContributePrSignalKind;

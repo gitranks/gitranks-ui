@@ -24,6 +24,10 @@ export type ContributeRepoConventions = {
   dco: boolean;
   generated: string[];
   notes: string[];
+  /** The repo's rules for AI agents: a prefix every title carries (`[AI]`), its template left for the human, 🤖. */
+  titlePrefix?: string | null;
+  templateByHuman?: boolean | null;
+  agentMarker?: string | null;
 };
 
 export type ContributePrIssueKind = 'TITLE' | 'CHANGELOG' | 'TEMPLATE' | 'CLA';
@@ -93,9 +97,52 @@ export function titleProblemOf(title: string, rule: ContributeTitleRule | null |
   return partsProblemOf(match[1], match[2], rule);
 }
 
-/** A title that fails a hard rule: the one thing that blocks Submit. */
-export const titleBlocks = (title: string, rule: ContributeTitleRule | null | undefined): boolean =>
-  Boolean(rule?.hard && titleProblemOf(title, rule));
+/** One leading WIP, draft or "do not merge" mark: `[WIP]`, `WIP:`, `(draft)`, `DNM -`. As the API reads it. */
+const DRAFT_MARK =
+  /^\s*(?:[[(](?:wip|draft|do[\s-]*not[\s-]*merge|dnm)[\])]\s*[:\-–]?|(?:wip|draft|dnm|do[\s-]*not[\s-]*merge)\s*[:\-–])\s*/i;
+
+export const hasDraftMark = (title: string): boolean => DRAFT_MARK.test(title);
+
+/** The title without its leading WIP, draft and "do not merge" marks (each, however many, behind a `[tag]` too). */
+export function withoutDraftMarks(title: string): string {
+  const trimmed = title.trim();
+  const tag = trimmed.match(/^\[[^\]]{1,20}\]\s+/)?.[0];
+  if (tag && !hasDraftMark(tag) && hasDraftMark(trimmed.slice(tag.length))) {
+    return `${tag.trim()} ${withoutDraftMarks(trimmed.slice(tag.length))}`;
+  }
+  let rest = trimmed;
+  for (let match = rest.match(DRAFT_MARK); match; match = rest.match(DRAFT_MARK)) rest = rest.slice(match[0].length);
+  return rest.trim();
+}
+
+type TitleConventions = Pick<ContributeRepoConventions, 'title' | 'titlePrefix'>;
+
+/**
+ * Why `title` fails the repo's conventions, as the API checks it: a draft mark (never ours: a GitRanks PR opens only
+ * once approved as ready), the prefix the repo requires, then its title rule on what follows the prefix. `hardOnly`
+ * checks the title rule only when a check enforces it.
+ */
+export function titleProblemsOf(
+  title: string,
+  conventions: TitleConventions | null | undefined,
+  hardOnly = false,
+): string | null {
+  const trimmed = title.trim();
+  const prefix = conventions?.titlePrefix ?? null;
+  const rest = prefix && trimmed.startsWith(prefix) ? trimmed.slice(prefix.length).trim() : trimmed;
+  if (hasDraftMark(trimmed) || hasDraftMark(rest)) {
+    return 'Leave out the WIP or draft mark: GitRanks opens a pull request only once you approved it as ready.';
+  }
+  if (prefix && !trimmed.startsWith(prefix))
+    return `Start the title with \`${prefix}\`, as the repo's agent rules require.`;
+  const rule = conventions?.title ?? null;
+  if (!rule || (hardOnly && !rule.hard)) return null;
+  return titleProblemOf(rest, rule);
+}
+
+/** What blocks Submit: a draft mark, a missing required prefix, or a title rule the repo checks. */
+export const titleBlocks = (title: string, conventions: TitleConventions | null | undefined): boolean =>
+  Boolean(titleProblemsOf(title, conventions, true));
 
 export type ChecklistItem = {
   key: 'title' | 'cla' | 'changelog' | 'template' | 'generated';
@@ -157,16 +204,25 @@ export function checklistOf(
   if (!conventions) return [];
   const items: ChecklistItem[] = [];
   const rule = conventions.title;
-  if (rule) {
-    const problem = titleProblemOf(input.title, rule);
-    const form = rule.pattern ? `the repo's own form` : `\`type(scope): summary\``;
+  const prefix = conventions.titlePrefix ?? null;
+  const draft = hasDraftMark(input.title.trim());
+  if (rule || prefix || draft) {
+    const problem = titleProblemsOf(input.title, conventions);
+    const blocks = titleBlocks(input.title, conventions);
+    const form = rule?.pattern ? `the repo's own form` : rule ? `\`type(scope): summary\`` : null;
+    const starts = prefix ? `starting with \`${prefix}\`` : null;
+    const what = ['A title', form ? `in ${form}` : null, starts].filter(Boolean).join(' ');
     items.push({
       key: 'title',
-      state: problem ? (rule.hard ? 'blocked' : 'todo') : 'ok',
-      label: rule.hard ? `A title in ${form}, checked by ${rule.source}` : `A title in ${form}, as ${rule.source} asks`,
+      state: problem ? (blocks ? 'blocked' : 'todo') : 'ok',
+      label: !rule
+        ? `${what}${prefix ? ", as the repo's agent rules require" : ', ready for review'}`
+        : rule.hard
+          ? `${what}, checked by ${rule.source}`
+          : `${what}, as ${rule.source} asks`,
       detail:
         problem ??
-        (rule.pattern
+        (rule?.pattern
           ? `Pattern: ${rule.pattern}`
           : conventions.titleExamples[0]
             ? `Like: ${conventions.titleExamples[0]}`
@@ -201,7 +257,16 @@ export function checklistOf(
       link: null,
     });
   }
-  if (conventions.template?.aiAsks.length) {
+  if (conventions.templateByHuman) {
+    items.push({
+      key: 'template',
+      state: 'todo',
+      label: 'The template, filled in by you on GitHub after the PR opens',
+      detail:
+        "The repo's agent rules leave Description, Testing and the checklist to the person who tested the change.",
+      link: null,
+    });
+  } else if (conventions.template?.aiAsks.length) {
     items.push({
       key: 'template',
       state: 'info',

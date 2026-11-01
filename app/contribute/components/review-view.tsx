@@ -37,6 +37,7 @@ import { isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
 import { canStartFollowUp } from '@/lib/contribute/follow-up-format';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
+import { withoutDraftMarks } from '@/lib/contribute/pr-conventions';
 
 export async function ReviewView({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -161,7 +162,7 @@ export function ReviewScreen({
           fix={attempt.prFix ?? null}
           title={attempt.prTitle ?? attempt.approval?.title ?? ''}
           body={editableBodyOf(attempt.prBody ?? attempt.approval?.body ?? attempt.result?.prBody)}
-          titleRule={attempt.conventions?.title ?? null}
+          conventions={attempt.conventions ?? null}
         />
       ) : null}
 
@@ -248,12 +249,12 @@ export function ReviewScreen({
               attemptId={attempt.attemptId}
               issueNumber={attempt.number}
               repo={repo}
-              defaultTitle={
+              defaultTitle={withoutDraftMarks(
                 attempt.approval?.title ||
-                attempt.result?.prTitle?.trim() ||
-                attempt.title?.trim() ||
-                `Fix #${attempt.number}`
-              }
+                  attempt.result?.prTitle?.trim() ||
+                  attempt.title?.trim() ||
+                  `Fix #${attempt.number}`,
+              )}
               defaultBody={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
               login={login}
               dcoMode={view.contributor?.settings?.dco ?? null}

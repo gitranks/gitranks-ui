@@ -5,8 +5,8 @@ import type { ContributeActivity, ContributeAgentRun, ContributeAgentRunPhase } 
 import { relativeLabel, usd } from './format';
 
 /**
- * The user's agent runs as the activity read lists them (`runs`): the header's count, the sheet's and Overview's rows,
- * My contributions' live phase. Live runs come first, oldest first; settled ones (ready, done, stopped) stay ten
+ * The user's agent runs as the activity read lists them (`runs`): the robot tab's count, Right now's lanes, the runs
+ * page's Working now, My contributions' live phase. Live runs come first, oldest first; settled ones (ready, done, stopped) stay ten
  * minutes, then the API leaves them out.
  */
 
@@ -36,11 +36,37 @@ export function indicatorLabelOf(runs: readonly ContributeAgentRun[]): string {
   return latest ? SETTLED_TEXT[latest.phase as SettledPhase] : '';
 }
 
-/** The header's words on a phone: `2 working`, else the same. */
-export const indicatorShortLabelOf = (runs: readonly ContributeAgentRun[]): string => {
-  const working = runs.filter(({ active }) => active).length;
-  return working ? `${working} working` : indicatorLabelOf(runs);
-};
+/**
+ * The robot tab's mark: how many agents work (a spinner), else how many runs are live but not working (queued, the
+ * user's own agent gone quiet, waiting for the user: a grey dot), and the words for both. Settled runs mark nothing.
+ */
+export function runsTabMarkOf(runs: readonly ContributeAgentRun[]): {
+  working: number;
+  waiting: number;
+  label: string;
+} {
+  const live = runs.filter((run) => !isSettled(run));
+  const working = live.filter(({ active }) => active).length;
+  return { working, waiting: working ? 0 : live.length, label: live.length ? indicatorLabelOf(live) : '' };
+}
+
+/**
+ * Right now's runs: each lane's live ones (the agent run on the user's key, the user's own agent) and the ones that
+ * ended (done, stopped). A run that waits for the user (a review ready, the autopilot about to submit) is Needs
+ * you's alone, so it is never in both.
+ */
+export function laneRunsOf(runs: readonly ContributeAgentRun[]): {
+  hosted: ContributeAgentRun[];
+  own: ContributeAgentRun[];
+  finished: ContributeAgentRun[];
+} {
+  const live = runs.filter((run) => !isSettled(run) && run.phase !== 'WAITING_FOR_YOU');
+  return {
+    hosted: live.filter(({ runner }) => runner !== 'MCP'),
+    own: live.filter(({ runner }) => runner === 'MCP'),
+    finished: runs.filter(({ phase }) => phase === 'DONE' || phase === 'STOPPED'),
+  };
+}
 
 const SETTLED_TEXT: Record<SettledPhase, string> = {
   READY: 'Ready for you',

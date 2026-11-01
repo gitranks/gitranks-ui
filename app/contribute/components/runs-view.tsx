@@ -188,10 +188,7 @@ function OutcomeChips({ page, query }: { page: ContributeRunsPage; query: RunsQu
   const current = query.reason ? 'NO_GO' : (query.outcome ?? 'ALL');
   const chips = [{ value: 'ALL' as const, label: 'All' }, ...OUTCOME_FILTERS];
   return (
-    <nav
-      aria-label="Outcome"
-      className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]"
-    >
+    <nav aria-label="Outcome" className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]">
       <ul className="flex gap-1.5 md:flex-wrap">
         {chips.map(({ value, label }) => (
           <li key={value} className="shrink-0">

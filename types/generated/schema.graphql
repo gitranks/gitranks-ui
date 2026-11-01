@@ -2644,6 +2644,7 @@ type OrganizationBasic {
   login: String
   name: String
   s: Int
+  starsNotCounted: StarsNotCounted
 }
 
 type ProfileForSitemap {
@@ -3282,6 +3283,7 @@ type UserBasic {
   login: String!
   s: Int
   sLangs: [UserLanguageBasic!]
+  starsNotCounted: StarsNotCounted
 }
 
 enum UserFetchingStatus {

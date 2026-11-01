@@ -80,6 +80,7 @@ export const LandingScreen: FC<LandingData> = ({
               country: row.user.country ?? null,
               location: row.user.location ?? null,
               value: row.user[board.key] ?? null,
+              notCounted: board.key === 's' ? row.user.starsNotCounted : null,
             },
           ]
         : [],

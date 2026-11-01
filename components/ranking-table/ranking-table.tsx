@@ -4,6 +4,7 @@ import { RankDelta } from '../rank-delta/rank-delta';
 import { LinkWithStopPropagation } from '../user-card/components/link-with-stop-propagation';
 import { UserCard } from '../user-card/user-card';
 import { ClickableRow } from './clickable-row';
+import { StarTotalCount } from '@/components/star-count/star-count';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { CountryQuery, CountryRankingsQuery, GlobalRankingsQuery } from '@/types/generated/graphql';
 import { getRankingConfigByType } from '@/utils/get-ranking-config-by-type';
@@ -61,7 +62,13 @@ export const RankingTable: FC<RankingTableProps> = ({ rankingType, data, countri
                   location
                 )}
               </TableCell>
-              <TableCell className="text-right">{user?.[rankPropName]?.toLocaleString('en-US')}</TableCell>
+              <TableCell className="text-right">
+                {rankPropName === 's' && typeof user?.s === 'number' ? (
+                  <StarTotalCount stars={user.s} notCounted={user.starsNotCounted} />
+                ) : (
+                  user?.[rankPropName]?.toLocaleString('en-US')
+                )}
+              </TableCell>
             </ClickableRow>
           );
         })}

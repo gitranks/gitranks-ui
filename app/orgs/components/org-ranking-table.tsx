@@ -2,6 +2,7 @@ import type { FC } from 'react';
 
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { ClickableRow } from '@/components/ranking-table/clickable-row';
+import { StarTotalCount } from '@/components/star-count/star-count';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { UserCard } from '@/components/user-card/user-card';
 import type { CountryQuery, OrgRankingsQuery } from '@/types/generated/graphql';
@@ -42,7 +43,11 @@ export const OrgRankingTable: FC<OrgRankingTableProps> = ({ data, countries }) =
               <TableCell className="hidden sm:table-cell break-all whitespace-normal">
                 {getCountryFlag(countries, organization?.country)} <span translate="no">{organization?.location}</span>
               </TableCell>
-              <TableCell className="text-right">{organization?.s?.toLocaleString('en-US')}</TableCell>
+              <TableCell className="text-right">
+                {typeof organization?.s === 'number' && (
+                  <StarTotalCount stars={organization.s} notCounted={organization.starsNotCounted} />
+                )}
+              </TableCell>
             </ClickableRow>
           );
         })}

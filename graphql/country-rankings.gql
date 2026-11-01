@@ -13,6 +13,10 @@ query CountryRankings($order: RankOrder, $offset: Int, $country: String!) {
       location
       country
       s
+      starsNotCounted {
+        stars
+        repositories
+      }
       c
       f
     }

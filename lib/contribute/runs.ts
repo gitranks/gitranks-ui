@@ -138,7 +138,7 @@ export const NO_GO_CATEGORIES: Record<ContributeNoGoCategory, { label: string; c
   BOT_HANDLED: { label: 'Handled by a bot', color: 'var(--series-4)' },
   TOO_BIG: { label: 'Too big', color: 'var(--series-5)' },
   OTHER: { label: 'Other', color: 'var(--series-other)' },
-  OUT_OF_BUDGET: { label: 'Ran out of budget', color: 'var(--series-6)' },
+  OUT_OF_BUDGET: { label: 'Ran out before deciding', color: 'var(--series-6)' },
 };
 
 export type RunsRange = '7d' | '30d' | '90d' | 'all';
@@ -305,9 +305,16 @@ export function runReasonOf(run: ContributeRun): string {
       return '';
     case 'NO_GO': {
       if (!run.endDetail) return '';
+      const limit = checkLimitOf(run);
+      // No verdict by the check's limit: the fixed words (its detail quotes a step, which a cut could split).
+      if (limit && !limit.decided) {
+        return limit.limit === 'time'
+          ? 'Ran out of time while checking the issue'
+          : 'Ran out of budget while checking the issue';
+      }
       // The agent's reason, written at the check's limit: its first sentence and the note, like any no-go reason.
       const reason = firstSentence(detailText(noGoReasonOf(run.endDetail)));
-      return checkLimitOf(run)?.decided ? `${reason} · decided at the check's limit` : reason;
+      return limit?.decided ? `${reason} · decided at the check's limit` : reason;
     }
     case 'CHECKS_FAILED': {
       const code = run.endDetail?.toUpperCase() as ContributeAttemptCheckName | undefined;

@@ -424,7 +424,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
             {attempt.endDetail ? (
               <>
                 {' '}
-                {attempt.endReason === 'NO_GO' && !ranOut ? 'Its reason: ' : 'Detail: '}
+                {ranOut ? '' : attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}
                 {detailText(noGoReasonOf(attempt.endDetail))}
               </>
             ) : null}{' '}

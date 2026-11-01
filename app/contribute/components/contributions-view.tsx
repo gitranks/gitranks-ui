@@ -544,13 +544,13 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
   );
 }
 
+/** A no-go of ours: the check reached its limit with no verdict. */
+const ranOutOf = (attempt: ContributeAttempt): boolean => checkLimitOf(attempt)?.decided === false;
+
 /**
  * My contributions: the totals, what needs the user, what is in progress, the pull requests, and how attempts ended.
  * `contributions` and `attempts` are `undefined` while the API does not answer them.
  */
-/** A no-go of ours: the check reached its limit with no verdict. */
-const ranOutOf = (attempt: ContributeAttempt): boolean => checkLimitOf(attempt)?.decided === false;
-
 export function ContributionsScreen({
   view,
   contributions,

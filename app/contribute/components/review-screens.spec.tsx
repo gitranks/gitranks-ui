@@ -585,7 +585,8 @@ describe('the review screen', () => {
     const plain = text(html);
     expect(plain).toContain('Stopped while checking the issue');
     expect(plain).toContain('Stopped: ran out of budget while checking the issue.');
-    expect(plain).toContain(`Detail: ${detailText}`);
+    expect(plain).toContain(detailText);
+    expect(plain).not.toContain('Detail: No verdict');
     expect(plain).not.toContain('decided not to go ahead');
     expect(plain).toContain('Nothing was decided about the issue');
     expect(html).toContain('data-check-limit="budget"');

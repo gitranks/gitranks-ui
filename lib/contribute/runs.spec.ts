@@ -104,10 +104,10 @@ describe('a run in words', () => {
       noGoCategory: 'OUT_OF_BUDGET',
       endDetail: 'No verdict: it was on "bash: npm ci" when the check\'s $0.50 budget ran out, after 19 min.',
     });
-    expect(runReasonOf(ranOut)).toBe(
-      'No verdict: it was on "bash: npm ci" when the check\'s $0.50 budget ran out, after 19 min.',
-    );
-    expect(NO_GO_CATEGORIES.OUT_OF_BUDGET.label).toBe('Ran out of budget');
+    expect(runReasonOf(ranOut)).toBe('Ran out of budget while checking the issue');
+    const late = { ...ranOut, endDetail: "No verdict before the check's 15-minute limit ran out, after 16 min." };
+    expect(runReasonOf(late)).toBe('Ran out of time while checking the issue');
+    expect(NO_GO_CATEGORIES.OUT_OF_BUDGET.label).toBe('Ran out before deciding');
   });
 });
 

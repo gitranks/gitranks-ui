@@ -133,7 +133,7 @@ function NoGoBreakdown({ totals, query }: { totals: ContributeRunsTotals; query:
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 id="runs-no-go" className={HEADING.block}>
-          Why agents said no-go
+          Why agents said no-go, or ran out
         </h2>
         <span className="text-xs text-muted-foreground">
           {!query.outcome && !query.reason ? (

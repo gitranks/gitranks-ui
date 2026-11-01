@@ -80,7 +80,7 @@ export function RetryCheckButton({ attemptId }: { attemptId: string }) {
         {pending || done ? 'Queueing…' : 'Retry with a bigger check budget'}
       </Button>
       <span className="text-xs text-muted-foreground">
-        Once: the agent checks the issue again on twice the budget, as your limits allow.
+        Once: the agent checks the issue again with twice the budget and time, as your limits allow.
       </span>
       <ErrorNote error={error} />
     </div>

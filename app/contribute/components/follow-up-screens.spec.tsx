@@ -304,7 +304,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
       replyDrafts: undefined,
     });
 
-    expect(html).toContain('data-session="A_1"');
+    expect(html).toMatch(/<li data-session="A_1"/);
     expect(html).not.toContain('data-session="next"');
     expect(text(html)).not.toContain('Reply drafts are not available yet.');
   });

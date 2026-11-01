@@ -62,13 +62,16 @@ export async function ReviewView({
   if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
   if (attempt === null) notFound();
   // A round's page lists its pull request's sessions: those are the first attempt's to tell.
-  const firstId = attempt?.kind === 'FOLLOW_UP' ? attempt.followUpOf?.attemptId : undefined;
-  const first = firstId ? await loadAttempt(firstId).catch(() => undefined) : undefined;
+  const followUpOf = attempt?.kind === 'FOLLOW_UP' ? attempt.followUpOf : undefined;
+  const read = followUpOf ? await loadAttempt(followUpOf.attemptId).catch(() => undefined) : undefined;
+  // Only the first attempt whose pull request the round follows up: any other read is no part of this page.
+  const first =
+    read?.kind === 'FIRST' && (!read.pullRequest || read.pullRequest.prId === followUpOf?.prId) ? read : undefined;
   return (
     <ReviewScreen
       view={view}
       attempt={attempt}
-      first={first ?? undefined}
+      first={first}
       next={session === NEXT_SESSION}
       resolveHumans={resolveHumans}
     />
@@ -101,10 +104,11 @@ const PR_SETTLED = new Set(['PR_OPEN', 'FOLLOW_UP', 'MERGED', 'CLOSED']);
  */
 function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; next: boolean; now?: Date }) {
   const pr = first.pullRequest;
-  if (!pr || pr.state !== 'OPEN' || first.kind !== 'FIRST') return null;
+  if (pr?.state !== 'OPEN' || first.kind !== 'FIRST') return null;
   const waiting = waitingThreadsOf(first).length;
   const signals = first.needsYou?.signals.length ?? 0;
-  const rules = !!first.prIssues?.length || !!first.prFix;
+  // A fix that settled with nothing left to fix shows nothing (the card says no more), so it is no reason here.
+  const rules = !!first.prIssues?.length || first.prFix?.state === 'SENDING';
   if (!waiting && !signals && !rules) return null;
   const round = (first.followUps?.used ?? 0) + 1;
 
@@ -137,12 +141,15 @@ function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; n
             >
               Choose what round {round} addresses →
             </Link>
-          ) : (
-            <span className="text-muted-foreground">
-              {first.followUps?.currentAttemptId
-                ? 'A follow-up is under way on these comments.'
-                : 'Every follow-up round is used: answer these on GitHub.'}
-            </span>
+          ) : next ? null : (
+            <Link
+              href={nextSessionPath(first.attemptId)}
+              prefetch={false}
+              scroll={false}
+              className="font-semibold text-link"
+            >
+              See the comments →
+            </Link>
           )}
         </div>
       ) : null}
@@ -166,7 +173,10 @@ function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; n
   );
 }
 
-/** The round that has not started: the comments to choose, or with none waiting, the button that starts it. */
+/**
+ * The round that has not started: the comments to choose, or with none waiting, the button that starts it. While no
+ * round can start, the comments are still listed, with why.
+ */
 function NextRound({ first, view, now }: { first: ContributeAttemptDetail; view: ContributeView; now?: Date }) {
   const pr = first.pullRequest;
   if (!pr) return null;
@@ -180,8 +190,14 @@ function NextRound({ first, view, now }: { first: ContributeAttemptDetail; view:
         prId={pr.prId}
         prNumber={pr.number}
         feedback={feedback}
-        canStart
-        blocked={null}
+        canStart={nextRoundOpen(first)}
+        blocked={
+          nextRoundOpen(first)
+            ? null
+            : first.followUps?.currentAttemptId
+              ? 'A follow-up is under way on these comments.'
+              : 'Every follow-up round is used: answer these on GitHub.'
+        }
         attemptCapUsd={cap}
         now={now}
       />
@@ -196,7 +212,7 @@ function NextRound({ first, view, now }: { first: ContributeAttemptDetail; view:
         {typeof cap === 'number' ? ` within your ${usd(cap)} limit for one attempt` : ''}. Nothing is pushed or posted
         before you review it.
       </p>
-      <StartFollowUpButton prId={pr.prId} />
+      {nextRoundOpen(first) ? <StartFollowUpButton prId={pr.prId} /> : null}
     </section>
   );
 }
@@ -253,6 +269,7 @@ function SessionDetails({
           content: (
             <>
               <ResultPanel attempt={attempt} />
+              {ownAgent ? <OwnAgentPanel attempt={attempt} now={now} /> : null}
               {replies}
             </>
           ),
@@ -388,7 +405,8 @@ export function ReviewScreen({
 
   const followUp = attempt.kind === 'FOLLOW_UP';
   const first = followUp ? firstRead : attempt;
-  const showNext = !!first && next && nextRoundOpen(first);
+  // The next round, or while none can start, the comments that wait, listed with why.
+  const showNext = !!first && next && (nextRoundOpen(first) || waitingThreadsOf(first).length > 0);
   const issueUrl = githubUrlOf(attempt.url);
   const repo = repoOf(attempt);
   const cards = first
@@ -400,7 +418,7 @@ export function ReviewScreen({
       className="flex flex-col gap-5"
       data-review={attempt.attemptId}
       data-state={attempt.state}
-      data-session={showNext ? NEXT_SESSION : attempt.attemptId}
+      data-shown-session={showNext ? NEXT_SESSION : attempt.attemptId}
     >
       <header className="flex flex-col gap-2">
         <BackLink />

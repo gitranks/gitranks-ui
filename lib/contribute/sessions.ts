@@ -69,10 +69,18 @@ function roundPillOf(round: ContributeFollowUpRound): { label: string; tone: Ton
       return { label: 'Pushing', tone: 'violet' };
     case 'QUEUED':
       return { label: 'Queued', tone: 'neutral' };
-    default:
+    case 'CLAIMING':
+    case 'RUNNING':
+    case 'CHECKS':
       return { label: 'Working', tone: 'violet' };
+    default:
+      // A state the UI does not know yet: its own words, nothing implied.
+      return { label: ATTEMPT_STATES[round.state]?.label ?? capitalized(String(round.state)), tone: 'neutral' };
   }
 }
+
+const capitalized = (text: string) =>
+  text ? `${text[0].toUpperCase()}${text.slice(1).toLowerCase().replaceAll('_', ' ')}` : text;
 
 const filesText = (patch: string | null | undefined) => {
   const files = parsePatch(patch).files.length;
@@ -109,10 +117,12 @@ export function sessionsOf(
 ): SessionCard[] {
   const cards = [firstCardOf(first, !selected.next && selected.attemptId === first.attemptId)];
   const history = [...(first.followUps?.history ?? [])];
+  // Without the history, a round added here is the latest one: its number is the rounds used.
+  const numberOf = () => (first.followUps?.history ? history.length + 1 : first.followUps?.used || history.length + 1);
   const unlisted = (attemptId: string) => !history.some((entry) => entry.attemptId === attemptId);
   const add = (attemptId: string, state: ContributeFollowUpRound['state'], at: string) =>
     history.push({
-      round: history.length + 1,
+      round: numberOf(),
       attemptId,
       state,
       endReason: null,

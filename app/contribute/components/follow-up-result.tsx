@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
 import { approveFollowUp, discardAttempt, setResolveHumanThreads } from '../actions';
 import { ApproveReplyButton } from './approve-reply-button';
@@ -217,7 +217,6 @@ export function FollowUpResult({
   attempt,
   prNumber,
   resolveHumans,
-  children,
 }: {
   attempt: Pick<
     ContributeAttemptDetail,
@@ -226,8 +225,6 @@ export function FollowUpResult({
   prNumber: number | null;
   /** The user's setting; `undefined` while the API does not answer it (people's threads stay open). */
   resolveHumans: boolean | undefined;
-  /** The new commits' diff, read between the threads and the approval. */
-  children?: ReactNode;
 }) {
   const router = useRouter();
   const drafts = attempt.replyDrafts ?? [];
@@ -374,8 +371,6 @@ export function FollowUpResult({
       {list('People', people)}
       {list('Comments on the pull request', comments)}
       {!drafts.length ? <p className="text-sm text-muted-foreground">The agent drafted no reply this round.</p> : null}
-      {children}
-
       {inReview ? (
         <div className="flex flex-col gap-3 border-t pt-3.5">
           {people.length ? (

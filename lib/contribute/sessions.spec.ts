@@ -75,9 +75,19 @@ describe("a contribution's sessions", () => {
       ['A_1', 'PR #1419 open'],
       ['A_F1', 'Working'],
     ]);
-    const shown = sessionsOf(followUpAttempts.prNeedsYou, at('A_F1'), followUpAttempts.review);
-    expect(shown.map(({ key }) => key)).toEqual(['A_1', 'A_F1', 'next']);
+    const shown = sessionsOf(first, at('A_F1'), followUpAttempts.review);
+    expect(shown.map(({ key }) => key)).toEqual(['A_1', 'A_F1']);
     expect(shown[1]).toMatchObject({ pill: { label: 'Ready for you' }, current: true });
+  });
+
+  it('numbers a round added without the history as the latest, and words a state it does not know', () => {
+    const first = {
+      ...followUpAttempts.prNeedsYou,
+      followUps: followUps({ used: 3, left: 0, max: 3, currentAttemptId: 'A_F3' }),
+    };
+    expect(sessionsOf(first, at('A_F3'))[1].title).toBe('Round 3 · follow-up');
+    const odd = { ...first, followUps: followUps({ history: [round({ state: 'SHELVED' as never })] }) };
+    expect(sessionsOf(odd, at('A_1'))[1].pill).toEqual({ label: 'Shelved', tone: 'neutral' });
   });
 
   it('says every round is used once none is left', () => {

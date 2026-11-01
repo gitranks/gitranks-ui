@@ -22,7 +22,11 @@ export function SubmitPanel({ open: initiallyOpen, children }: { open: boolean; 
   const opened = useRef(initiallyOpen);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has(RESUME_PARAM)) setOpen(true);
+    // Back from GitHub the form opens with the page: nothing moves the focus.
+    if (new URLSearchParams(window.location.search).has(RESUME_PARAM)) {
+      opened.current = true;
+      setOpen(true);
+    }
     const show = () => setOpen(true);
     window.addEventListener(OPEN_SUBMIT_EVENT, show);
     return () => window.removeEventListener(OPEN_SUBMIT_EVENT, show);
@@ -47,7 +51,9 @@ export function SubmitPanel({ open: initiallyOpen, children }: { open: boolean; 
         >
           {open ? 'Hide the pull request' : 'Write the pull request…'}
         </Button>
-        {open ? null : <span className="text-sm text-muted-foreground">Its title and text, then the submit.</span>}
+        {open ? null : (
+          <span className="text-sm text-muted-foreground">Its title and text, then submit or discard.</span>
+        )}
       </div>
       <div id={id} ref={panel} hidden={!open}>
         {children}

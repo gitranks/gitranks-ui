@@ -25,9 +25,18 @@ const { ContributionsScreen } = await import('./contributions-view');
 const { ReviewsReady } = await import('./reviews-ready');
 const { IssuesScreen } = await import('./issues-view');
 const { NOW, views, settings } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { PATCH, attempt, attempts, contributions, detail, followUpAttempts, pullRequest, stopped } = await import(
-  '@/lib/contribute/__fixtures__/contribute-attempts'
-);
+const {
+  PATCH,
+  attempt,
+  attempts,
+  contributions,
+  detail,
+  feedbackThread,
+  followUpAttempts,
+  followUps,
+  pullRequest,
+  stopped,
+} = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { END_REASONS, LIVE_STATES } = await import('@/lib/contribute/attempt-format');
 
 import type {
@@ -123,16 +132,50 @@ describe('the contribution page', () => {
       <ReviewScreen
         view={views.active}
         attempt={followUpAttempts.review}
-        first={followUpAttempts.prNeedsYou}
+        // The round in review is the one under way on its pull request.
+        first={{ ...followUpAttempts.prNeedsYou, followUps: followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' }) }}
         now={NOW}
       />,
     );
     const plain = text(html);
     expect(html).toContain('data-pr-state="OPEN"');
+    expect(html).not.toContain('data-session="next"');
     expect(html).toMatch(/data-session="A_F1"[^>]*><a[^>]*aria-current="page"/);
     expect(plain).toContain('Round 1 · follow-up Ready for you');
     expect(panel(html, 'replies')).toBe('active');
     expect(html).not.toContain('data-follow-up-of');
+  });
+
+  it("shows an own agent's round with the agent that made it", () => {
+    const round = {
+      ...followUpAttempts.review,
+      runner: 'MCP' as const,
+      agent: { name: 'CLAUDE_CODE' as const, model: null },
+    };
+    expect(review(round)).toContain('data-panel="own-agent"');
+  });
+
+  it('says nothing needs the user once a fix settled with nothing left to fix', () => {
+    const fixed = {
+      ...followUpAttempts.prNeedsYou,
+      needsYou: null,
+      prIssues: [],
+      prFix: { kind: 'TITLE' as const, state: 'DONE' as const, note: null, at: '2026-10-28T11:50:00.000Z' },
+    };
+    expect(review(fixed)).not.toContain('data-needs-you');
+  });
+
+  it('still lists the waiting comments, with why, once no round can start', () => {
+    const usedUp = {
+      ...followUpAttempts.handedOff,
+      pullRequest: { ...followUpAttempts.handedOff.pullRequest!, state: 'OPEN' as const },
+      reviewFeedback: { readAt: null, threads: [feedbackThread()] },
+    };
+    expect(review(usedUp)).toContain('href="/contribute/attempts/A_1?session=next"');
+    const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={usedUp} next now={NOW} />);
+    expect(html).toContain('data-panel="review-feedback"');
+    expect(text(html)).toContain('Every follow-up round is used: answer these on GitHub.');
+    expect(html).not.toContain('data-start-follow-up');
   });
 });
 
@@ -590,7 +633,6 @@ describe('the review screen', () => {
 
   it.each([
     ['prOpen', 'OPEN', 'PR #1419 open', 'Waiting for a maintainer review'],
-    ['followUp', 'OPEN', 'A follow-up is running', 'Changes requested'],
     ['merged', 'MERGED', 'PR #1419 merged', 'merged 5 minutes ago'],
     ['closed', 'CLOSED', 'PR #1419 closed', 'Checks failed'],
   ] as const)(

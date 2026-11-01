@@ -3,10 +3,11 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
-import { markNeedsYouHandled, startFollowUp, vetoAutopilot } from '../actions';
+import { markNeedsYouHandled, retryAttempt, startFollowUp, vetoAutopilot } from '../actions';
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
 import { timeLabel } from '@/lib/contribute/attempt-format';
+import { attemptActionErrorMessage } from '@/lib/contribute/errors';
 import { followUpErrorMessage, handledErrorMessage, vetoErrorMessage } from '@/lib/contribute/follow-up-format';
 import { relativeLabel } from '@/lib/contribute/format';
 
@@ -42,6 +43,45 @@ export function StartFollowUpButton({ prId }: { prId: string }) {
       <Button type="button" size="lg" onClick={click} disabled={pending || done} className="px-4 font-semibold">
         {pending || done ? 'Starting…' : 'Start a follow-up'}
       </Button>
+      <ErrorNote error={error} />
+    </div>
+  );
+}
+
+/**
+ * A check that ran out of budget or time, tried again once: a new attempt on the issue, queued, its check on twice the
+ * budget. Opens it.
+ */
+export function RetryCheckButton({ attemptId }: { attemptId: string }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  const click = () =>
+    startTransition(async () => {
+      setError(null);
+      const result = await retryAttempt(attemptId);
+      if (!result.ok) {
+        setError(
+          result.error === 'INVALID' && /tried again|only a check/i.test(result.message ?? '')
+            ? 'It was tried again already, or it can no longer be. Reload the page.'
+            : attemptActionErrorMessage(result.error, result.message),
+        );
+        return;
+      }
+      setDone(true);
+      router.push(attemptHref(result.data.attemptId));
+    });
+
+  return (
+    <div className="flex flex-col items-start gap-1.5" data-retry-check={attemptId}>
+      <Button type="button" size="sm" onClick={click} disabled={pending || done}>
+        {pending || done ? 'Queueing…' : 'Retry with a bigger check budget'}
+      </Button>
+      <span className="text-xs text-muted-foreground">
+        Once: the agent checks the issue again with twice the budget and time, as your limits allow.
+      </span>
       <ErrorNote error={error} />
     </div>
   );

@@ -51,6 +51,7 @@ const CALLS: Record<string, unknown[]> = {
   readIssuesPage: [{ after: 'c2', first: 2, filter: { languages: ['RUST'] }, githubLogin: 'mallory' }],
   approveAttempt: [{ id: 'A_1', title: 'Fix it', body: 'Fixes #1', dco: true, githubLogin: 'mallory' }],
   discardAttempt: ['A_1'],
+  retryAttempt: ['A_1'],
   startFollowUp: ['PR_1'],
   approveFollowUp: ['A_F1', 'Follow-up', [{ draftId: 'D_1', text: 'Renamed it.', send: true }]],
   setResolveHumanThreads: [true],

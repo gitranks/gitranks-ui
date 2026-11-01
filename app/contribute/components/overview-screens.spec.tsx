@@ -378,6 +378,27 @@ describe('Right now', () => {
     expect(text(free)).not.toContain('at a time');
     // Nothing at work: the lane says what holds it, and no card repeats it.
     expect(now(views.active)).not.toContain('data-now="next"');
+
+    const both = { ...views.active, contributor: contributor({ settings: { ...settings, attemptsAtATime: 2 } }) };
+    const busy = now(both, {
+      ...nowIdle,
+      inFlight: [
+        attempt({ state: 'RUNNING', runner: 'MANAGED_AGENTS' }),
+        attempt({ attemptId: 'A_2', state: 'RUNNING', runner: 'MANAGED_AGENTS' }),
+      ],
+    });
+    expect(text(busy)).toContain('2 of 2 at a time');
+    expect(text(busy)).toContain('Next attempt When a slot frees All 2 of your slots are busy.');
+    // A hold that stops every attempt keeps its own label.
+    expect(text(now(views.keyInvalid, hosted({})))).toContain('Stopped Your Claude key stopped working');
+  });
+
+  it("keeps the lane's model words when the model is one the page doesn't know", () => {
+    const odd = {
+      ...views.active,
+      contributor: contributor({ settings: { ...settings, mainModel: 'CLAUDE_NEXT' as never } }),
+    };
+    expect(text(now(odd))).toContain('Hosted agent on your Claude key');
   });
 
   it('says no agent is at work once the runs are read, and nothing before', () => {
@@ -390,6 +411,14 @@ describe('Right now', () => {
     expect(read(activityOf())).toContain('Right now No agent at work All runs →');
     expect(read(null)).toContain('Right now All runs →');
     expect(read(activityOf(WORKING))).toContain('Right now 1 agent working All runs →');
+    // The page read one at work that the runs no longer show: neither is said.
+    const working = (activity: Parameters<typeof RightNowSection>[0]['activity']) =>
+      text(
+        renderToStaticMarkup(
+          <RightNowSection view={views.active} read={hosted({})} page={issuePage} activity={activity} now={NOW} />,
+        ),
+      );
+    expect(working(activityOf())).toContain('Right now All runs →');
   });
 
   it("shows the user's own agent holding an issue, idle, never called and paused", () => {

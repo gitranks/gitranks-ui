@@ -27,6 +27,7 @@ import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, RUNS_PATH } from '@/lib/contribut
 import { claudeKeyOf } from '@/lib/contribute/contribute-state';
 import { dayLabel, MODELS, maskedKey, planOf, relativeLabel, usd } from '@/lib/contribute/format';
 import {
+  type HostedHold,
   type HostedState,
   impactTilesOf,
   lastUsedTokenOf,
@@ -534,10 +535,21 @@ export function hostedLaneOf(view: ContributeView, state: HostedState): LaneNote
   const model = view.contributor?.settings?.mainModel;
   const hold = state.kind === 'working' ? state.next : state;
   return {
-    note: ['on your Claude key', model ? MODELS[model].replace(/^Claude /, '') : null].filter(Boolean).join(' · '),
+    note: ['on your Claude key', model ? (MODELS[model]?.replace(/^Claude /, '') ?? null) : null]
+      .filter(Boolean)
+      .join(' · '),
     aside: hold.kind === 'slots-busy' ? `${hold.slots} of ${hold.slots} at a time` : null,
   };
 }
+
+/** The holds that stop every attempt (a pause, the key), which keep their own label; the scheduler's say "Next attempt". */
+const STOPS = new Set<HostedHold['kind']>(['closed', 'paused', 'key-invalid', 'key-waiting']);
+
+/** The card beside the cycle while the hosted agent works: what holds its next attempt. */
+const nextCopyOf = (hold: HostedHold, now?: Date): CardCopy => {
+  const copy = hostedCopyOf(hold, now);
+  return STOPS.has(hold.kind) ? copy : { ...copy, label: 'Next attempt' };
+};
 
 /** Paused with both ways set up: one line for both lanes, in place of each saying it. */
 const PAUSED_BOTH: CardCopy = {
@@ -570,6 +582,8 @@ export function RightNowSection({
   const hostedCopy = state.hosted ? hostedCopyOf(state.hosted, now) : undefined;
   // While the hosted agent works, what holds its next attempt sits beside the cycle; unread, nothing is said.
   const next = state.hosted?.kind === 'working' && state.hosted.next.kind !== 'unknown' ? state.hosted.next : undefined;
+  // "No agent at work" only when the page read none at work either: a lane's card may still say one works.
+  const atWork = state.hosted?.kind === 'working' || state.ownAgent?.kind === 'holding';
   const bothPaused = state.hosted?.kind === 'paused' && (!state.ownAgent || state.ownAgent.kind === 'paused');
 
   return (
@@ -582,7 +596,7 @@ export function RightNowSection({
       <SectionHeader
         id="overview-now"
         title="Right now"
-        aside={<LiveRunsLabel activity={activity} idle={none ? undefined : 'No agent at work'} />}
+        aside={<LiveRunsLabel activity={activity} idle={none || atWork ? undefined : 'No agent at work'} />}
         link={{ href: RUNS_PATH, label: 'All runs →' }}
       />
       <div className={cn('grid items-start gap-4', state.cycle && 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]')}>
@@ -627,7 +641,7 @@ export function RightNowSection({
         {state.cycle ? (
           <div className="flex min-w-0 flex-col gap-4">
             <CycleCard view={view} />
-            {next ? <NowCard name="next" copy={{ ...hostedCopyOf(next, now), label: 'Next attempt' }} /> : null}
+            {next ? <NowCard name="next" copy={nextCopyOf(next, now)} /> : null}
           </div>
         ) : null}
       </div>

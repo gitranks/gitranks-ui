@@ -238,10 +238,11 @@ function Lane({
   const note = header?.note ?? LANES[name].note;
   return (
     <div data-lane={name} data-lane-runs={runs.length}>
-      <div className="flex min-w-0 items-center gap-2 border-b bg-muted/60 px-4 py-2 text-xs">
+      {/* On a phone the header wraps, so the agent and its last call stay whole. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 border-b bg-muted/60 px-4 py-2 text-xs">
         <Icon aria-hidden="true" className="size-3.5 flex-none text-muted-foreground" />
         <h3 className="flex-none font-semibold">{title}</h3>
-        {note ? <span className="min-w-0 truncate text-muted-foreground">{note}</span> : null}
+        {note ? <span className="min-w-0 text-muted-foreground">{note}</span> : null}
         {header?.aside ? (
           <span className="ml-auto flex-none text-muted-foreground tabular-nums">{header.aside}</span>
         ) : null}

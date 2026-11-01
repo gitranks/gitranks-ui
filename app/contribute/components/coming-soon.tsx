@@ -38,7 +38,7 @@ export const comingSoonNoteOf = (viewer: LandingViewer) =>
 export function comingSoonLineOf(): string {
   const [first, second, ...rest] = COMING_SOON.map(({ title }) => title);
   const more = rest.length ? ` and ${rest.length} more` : '';
-  return `your ${[first, second].filter(Boolean).join(', ')}${more}.`;
+  return rest.length ? `your ${first}, ${second}${more}.` : `your ${[first, second].filter(Boolean).join(' and ')}.`;
 }
 
 /** What the user is on the list for, among the cards shown; '' for none. */
@@ -211,9 +211,9 @@ export function ComingSoon({
     return (
       <div className="flex flex-col gap-2.5 rounded-xl border border-dashed px-4 py-3" data-overview="coming-soon">
         <div className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-          <span>
+          <div>
             <h3 className="inline font-semibold text-foreground">Coming soon:</h3> {comingSoonLineOf()}
-          </span>
+          </div>
           <button
             type="button"
             aria-expanded={open}
@@ -221,7 +221,7 @@ export function ComingSoon({
             onClick={() => setOpen((value) => !value)}
             className="inline-flex min-h-10 items-center font-semibold text-link hover:underline max-sm:min-h-11"
           >
-            {open ? 'Hide' : 'Notify me →'}
+            {open ? 'Hide the list' : 'Notify me →'}
           </button>
         </div>
         <div id={listId} hidden={!open} className="flex flex-col gap-2.5">

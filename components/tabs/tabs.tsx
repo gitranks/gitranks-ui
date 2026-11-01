@@ -13,6 +13,8 @@ type TabProps = {
   children: ReactNode;
   exact?: boolean;
   pathnames?: string[];
+  /** Classes for the tab's list item, as one held at the end of the bar. */
+  className?: string;
 };
 
 /**
@@ -36,7 +38,7 @@ const TabPendingHint: FC = () => {
   );
 };
 
-export const Tab: FC<TabProps> = ({ href, children, exact, pathnames }) => {
+export const Tab: FC<TabProps> = ({ href, children, exact, pathnames, className }) => {
   const pathname = usePathname();
   let active = false;
 
@@ -49,7 +51,7 @@ export const Tab: FC<TabProps> = ({ href, children, exact, pathnames }) => {
   }
 
   return (
-    <li className="shrink-0 sm:me-2">
+    <li className={cn('shrink-0 sm:me-2', className)}>
       <Link
         href={href as Route}
         prefetch={false}

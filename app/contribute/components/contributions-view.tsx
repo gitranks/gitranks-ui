@@ -535,6 +535,11 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
           ))}
         </ul>
       ) : null}
+      {attempts.length ? (
+        <Link href="/contribute/runs" prefetch={false} className="text-sm font-semibold text-link" data-see-all-runs>
+          See all runs ›
+        </Link>
+      ) : null}
     </section>
   );
 }

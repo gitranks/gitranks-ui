@@ -260,6 +260,8 @@ describe('what a read does', () => {
     ['/contribute/issues', ['ISSUES'], false],
     ['/contribute/me', ['ATTEMPTS'], true],
     ['/contribute/me', ['SET', 'FEED'], false],
+    ['/contribute/runs', ['ATTEMPTS'], true],
+    ['/contribute/runs', ['SET', 'FEED'], false],
     ['/contribute/attempts/A_1', ['ATTEMPTS'], true],
     ['/contribute/settings/budget', ['SETTINGS'], true],
     ['/contribute/settings', ['ATTEMPTS'], false],

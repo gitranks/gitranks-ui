@@ -3,6 +3,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { LiveRunsLabel, RightNowLanes } from './agent-runs';
 import { ComingSoon } from './coming-soon';
 import { noticeCopyOf } from './contribute-notices';
 import { LiveUpNext } from './live-issues';
@@ -14,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AGENT_HELLO_PROMPT } from '@/lib/contribute/agent-connect';
 import { AGENT_NAMES, attemptTitleOf, isOwnAgent, repoOf, type Tone } from '@/lib/contribute/attempt-format';
 import type {
+  ContributeActivity,
   ContributeAttempt,
   ContributeComingSoonProvider,
   ContributeImpactTotals,
@@ -21,7 +23,7 @@ import type {
   ContributeKeyState,
   ContributeView,
 } from '@/lib/contribute/contribute.types';
-import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from '@/lib/contribute/contribute-path';
+import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, RUNS_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf } from '@/lib/contribute/contribute-state';
 import { dayLabel, maskedKey, planOf, relativeLabel, usd } from '@/lib/contribute/format';
 import {
@@ -59,17 +61,31 @@ const ROW_ACTION = cn(
 
 const CARD = 'flex min-w-0 flex-col gap-2 rounded-xl border bg-card p-4';
 
-function SectionHeader({ id, title, link }: { id: string; title: string; link?: { href: Route; label: string } }) {
+function SectionHeader({
+  id,
+  title,
+  link,
+  aside,
+}: {
+  id: string;
+  title: string;
+  link?: { href: Route; label: string };
+  /** A few words beside the link. */
+  aside?: ReactNode;
+}) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-3">
       <h2 id={id} className={HEADING.section}>
         {title}
       </h2>
-      {link ? (
-        <Link href={link.href} prefetch={false} className={ACTION_LINK}>
-          {link.label}
-        </Link>
-      ) : null}
+      <div className="flex items-center gap-4">
+        {aside}
+        {link ? (
+          <Link href={link.href} prefetch={false} className={ACTION_LINK}>
+            {link.label}
+          </Link>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -337,19 +353,13 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
           </div>
         ),
       };
-    case 'key-invalid': {
-      const notice = noticeCopyOf({ kind: 'key-invalid' });
+    // Needs you holds the way to a new key; this says only why nothing starts.
+    case 'key-invalid':
       return {
         label: 'Stopped',
         title: 'Your Claude key stopped working',
-        text: typeof notice.text === 'string' ? notice.text : undefined,
-        action: (
-          <Link href={CONNECT_KEY_PATH} prefetch={false} className={ACTION_LINK}>
-            Connect a new key →
-          </Link>
-        ),
+        text: 'Nothing starts until you connect a working one, under Needs you.',
       };
-    }
     case 'key-waiting': {
       const notice = noticeCopyOf({
         kind: state.reason === 'EXHAUSTED' ? 'exhausted' : 'limit-reached',
@@ -411,9 +421,8 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
 
 const lastCall = (at: string | null, now: Date) => (at ? `last call ${relativeLabel(at, now)}` : null);
 
-/** The own agent's card: the issue it holds, or what it can do next. */
+/** The own agent's lane: the issue it holds, or what it can do next. The lane names the agent, so the label is its state. */
 export function ownAgentCopyOf(state: OwnAgentState, now = new Date()): CardCopy {
-  const label = 'Your own agent';
   switch (state.kind) {
     case 'holding': {
       const { attempt } = state;
@@ -427,28 +436,28 @@ export function ownAgentCopyOf(state: OwnAgentState, now = new Date()): CardCopy
       const who = [state.agent ?? 'Your agent', lastCall(state.lastCallAt, now)].filter(Boolean).join(' · ');
       const until = attempt.leaseUntil ? ` Held for you until ${dayLabel(attempt.leaseUntil)}.` : '';
       return {
-        label,
+        label: WORKING_LABELS[attempt.state] ?? 'Working',
         title: `${title}${attempt.changesRequested ? ' · sent back with your note' : ''}`,
         text: `${who}.${until}`,
       };
     }
     case 'idle':
       return {
-        label,
+        label: 'Idle',
         title: 'No issue held',
         text: `${state.token} · ${lastCall(state.lastCallAt, now)}. Ask it to "${AGENT_HELLO_PROMPT}".`,
       };
     case 'never-called':
-      return { label, title: "Your agent hasn't called yet", text: `Ask it to "${AGENT_HELLO_PROMPT}".` };
+      return { label: 'Waiting', title: "Your agent hasn't called yet", text: `Ask it to "${AGENT_HELLO_PROMPT}".` };
     case 'paused':
       return {
-        label,
+        label: 'Paused',
         title: 'Contributing is paused',
         text: "Your agent can't claim an issue until you resume.",
       };
     case 'unknown': {
       const known = [state.token, lastCall(state.lastCallAt, now)].filter(Boolean).join(' · ');
-      return { label, title: "We can't check your agent right now.", text: known ? `${known}.` : undefined };
+      return { label: 'Unknown', title: "We can't check your agent right now.", text: known ? `${known}.` : undefined };
     }
   }
 }
@@ -457,16 +466,19 @@ function NowCard({
   copy,
   name,
   status = false,
+  lane = false,
   children,
 }: {
   copy: CardCopy;
   name: string;
   /** Its label is announced when the page reads itself again. */
   status?: boolean;
+  /** Inside a lane of Right now's agents, which is the card. */
+  lane?: boolean;
   children?: ReactNode;
 }) {
   return (
-    <div data-now={name} className={CARD}>
+    <div data-now={name} className={lane ? 'flex min-w-0 flex-col gap-1.5 px-4 py-3.5' : CARD}>
       <span role={status ? 'status' : undefined} className="flex items-center gap-2 text-xs font-semibold text-primary">
         {copy.busy ? (
           <span
@@ -503,23 +515,36 @@ function CycleCard({ view }: { view: ContributeView }) {
   );
 }
 
+/** Paused with both ways set up: one line for both lanes, in place of each saying it. */
+const PAUSED_BOTH: CardCopy = {
+  label: 'Paused',
+  title: 'Contributing is paused',
+  text: "No attempt starts on your key, and your own agent can't claim an issue, until you resume. Your picks and settings are kept.",
+};
+
 /**
- * "Right now": the hosted agent, its cycle, and the user's own agent. While an attempt is in flight the page reads
- * itself again every 30 seconds, so "Working" turns into a review without a reload.
+ * "Right now": the agents, a lane each (the one we run on the user's key, the user's own agent) with their live runs or
+ * what holds them, and the cycle's spend beside them. The runs come from the poll, so a run that ends leaves its lane
+ * without a reload; the holds are as the page read them.
  */
 export function RightNowSection({
   view,
   read,
   page,
+  activity,
   now,
 }: {
   view: ContributeView;
   read: OverviewNowRead;
   page: ContributeIssuePage | null | undefined;
+  /** The agent runs, as the page read them. */
+  activity?: ContributeActivity | null;
   now?: Date;
 }) {
   const state = rightNowOf(view, read, page, now);
   const none = !state.hosted && !state.ownAgent;
+  const hostedCopy = state.hosted ? hostedCopyOf(state.hosted, now) : undefined;
+  const bothPaused = state.hosted?.kind === 'paused' && (!state.ownAgent || state.ownAgent.kind === 'paused');
 
   return (
     <section
@@ -528,25 +553,48 @@ export function RightNowSection({
       data-own-agent={state.ownAgent?.kind}
       className={cn('flex flex-col gap-3', RISE, 'motion-safe:delay-100')}
     >
-      <SectionHeader id="overview-now" title="Right now" />
-      <div className="grid gap-4 sm:grid-cols-2">
-        {state.hosted ? <NowCard name="hosted" status copy={hostedCopyOf(state.hosted, now)} /> : null}
+      <SectionHeader
+        id="overview-now"
+        title="Right now"
+        aside={<LiveRunsLabel activity={activity} />}
+        link={{ href: RUNS_PATH, label: 'All runs →' }}
+      />
+      <div className={cn('grid items-start gap-4', state.cycle && 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]')}>
+        <RightNowLanes
+          activity={activity}
+          hosted={hostedCopy ? <NowCard lane name="hosted" status copy={hostedCopy} /> : undefined}
+          ownAgent={
+            state.ownAgent ? <NowCard lane name="own-agent" copy={ownAgentCopyOf(state.ownAgent, now)} /> : undefined
+          }
+          paused={
+            bothPaused && hostedCopy ? (
+              <NowCard
+                lane
+                name="hosted"
+                status
+                copy={state.ownAgent ? { ...hostedCopy, ...PAUSED_BOTH } : hostedCopy}
+              />
+            ) : undefined
+          }
+          none={
+            none ? (
+              <NowCard
+                lane
+                name="none"
+                copy={
+                  view.ownAgent === undefined
+                    ? { label: 'Your agent', title: "We can't check your agent right now." }
+                    : {
+                        label: 'Your agent',
+                        title: 'Nothing runs yet',
+                        text: 'Add your Claude key or connect your own agent, under Ways you contribute.',
+                      }
+                }
+              />
+            ) : undefined
+          }
+        />
         {state.cycle ? <CycleCard view={view} /> : null}
-        {state.ownAgent ? <NowCard name="own-agent" copy={ownAgentCopyOf(state.ownAgent, now)} /> : null}
-        {none ? (
-          <NowCard
-            name="none"
-            copy={
-              view.ownAgent === undefined
-                ? { label: 'Your agent', title: "We can't check your agent right now." }
-                : {
-                    label: 'Your agent',
-                    title: 'Nothing runs yet',
-                    text: 'Add your Claude key or connect your own agent, under Ways you contribute.',
-                  }
-            }
-          />
-        ) : null}
       </div>
     </section>
   );
@@ -559,7 +607,7 @@ export function RightNowSection({
 export function ImpactSection({ view, totals }: { view: ContributeView; totals: ContributeImpactTotals | undefined }) {
   const tiles = impactTilesOf(view, totals);
   return (
-    <section aria-labelledby="overview-impact" className={cn('flex flex-col gap-3', RISE, 'motion-safe:delay-150')}>
+    <section aria-labelledby="overview-impact" className={cn('flex flex-col gap-3', RISE, 'motion-safe:delay-200')}>
       <SectionHeader id="overview-impact" title="Your impact" link={{ href: ME_PATH, label: 'My contributions →' }} />
       {tiles ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -690,7 +738,7 @@ export function WaysSection({
   now?: Date;
 }) {
   return (
-    <section aria-labelledby="overview-ways" className={cn('flex flex-col gap-3', RISE, 'motion-safe:delay-200')}>
+    <section aria-labelledby="overview-ways" className={cn('flex flex-col gap-3', RISE, 'motion-safe:delay-300')}>
       <SectionHeader id="overview-ways" title="Ways you contribute" />
       <div className="grid gap-4 sm:grid-cols-2">
         <WayCard name="key" copy={keyWayOf(view)} />
@@ -729,7 +777,7 @@ export function UpNextSection({ page }: { page: ContributeIssuePage | null | und
       data-up-next={
         page === undefined ? 'unavailable' : page && !page.computedAt ? 'ranking' : (page?.items.length ?? 0)
       }
-      className={cn('flex flex-col gap-3', RISE, 'motion-safe:delay-300')}
+      className={cn('flex flex-col gap-3', RISE, 'motion-safe:delay-150')}
     >
       <SectionHeader id="overview-next" title="Up next" link={{ href: ISSUES_PATH, label: 'All picks in Issues →' }} />
       {body}

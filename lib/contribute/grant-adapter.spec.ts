@@ -8,6 +8,7 @@ import { GRANT_REFUSED_PATH, GRANT_UNAVAILABLE_PATH, grantSignInAllowed, withCon
 
 const RING = `k1:${randomBytes(32).toString('base64')}`;
 const TOKEN = 'gho_16C7e42F292c6912E7710c838347Ae178B4a';
+const REFRESH = 'ghr_1B4a2e77838347a7E420ce178F2E7c6912E169b6Bd1D7';
 const SESSION = { sub: 'user-1', githubLogin: 'OctoCat', authMode: 'identity' as const };
 const STORED = { _id: 'row-new', userId: 'stored-user-1' };
 
@@ -111,6 +112,17 @@ describe('the GitHub grant in Auth.js (pull request access)', () => {
     expect(api.openGrant(row.access_token, api.grantAadOf('583231'), api.sealKeyRingOf(RING)!)?.token).toBe(TOKEN);
   });
 
+  it('writes the refresh token sealed and the expiry when GitHub gives them, never in the clear', async () => {
+    await adapter.linkAccount?.(grantAccount({ refresh_token: REFRESH, expires_at: 1_793_000_000 }));
+
+    const row = base.linkAccount.mock.calls[0][0] as AdapterAccount;
+    expect(row.expires_at).toBe(1_793_000_000);
+    expect(JSON.stringify(row)).not.toContain(REFRESH);
+    expect(api.openGrant(row.refresh_token, 'github-contribute:583231:refresh', api.sealKeyRingOf(RING)!)?.token).toBe(
+      REFRESH,
+    );
+  });
+
   it("inserts the new row first, then removes every other grant row of the user, by the new row's id", async () => {
     await adapter.linkAccount?.(grantAccount());
 
@@ -133,7 +145,9 @@ describe('the GitHub grant in Auth.js (pull request access)', () => {
   it('writes nothing without the key ring, rather than the token in the clear', async () => {
     delete process.env.CONTRIBUTE_GRANT_SEAL_KEYS;
 
-    await expect(adapter.linkAccount?.(grantAccount())).rejects.toThrow(/CONTRIBUTE_GRANT_SEAL_KEYS/);
+    await expect(adapter.linkAccount?.(grantAccount({ refresh_token: REFRESH }))).rejects.toThrow(
+      /CONTRIBUTE_GRANT_SEAL_KEYS/,
+    );
     expect(calls).toEqual([]);
   });
 

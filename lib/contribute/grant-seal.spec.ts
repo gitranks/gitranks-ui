@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 import * as api from './__fixtures__/api-grant-seal';
-import { grantAadOf, openGrant, SEAL_KEYS_ENV, sealGrant, sealKeyRingOf } from './grant-seal';
+import { grantAadOf, grantRefreshAadOf, openGrant, SEAL_KEYS_ENV, sealGrant, sealKeyRingOf } from './grant-seal';
 
 const ringOf = (value: string) => sealKeyRingOf(value) as NonNullable<ReturnType<typeof sealKeyRingOf>>;
 const apiRingOf = (value: string) => api.sealKeyRingOf(value) as NonNullable<ReturnType<typeof api.sealKeyRingOf>>;
@@ -59,6 +59,19 @@ describe('the grant seal, against the API that opens it', () => {
 
     expect(grantAadOf('583231')).toBe('github-contribute:583231');
     expect(api.openGrant(sealed, api.grantAadOf('583232'), apiRingOf(ring))).toBeNull();
+  });
+
+  it('seals the refresh token under its own associated data, so it never opens as the access token', () => {
+    const ring = `k1:${keyText()}`;
+    const sealed = sealGrant(TOKEN, grantRefreshAadOf('583231'), ringOf(ring));
+
+    expect(grantRefreshAadOf('583231')).toBe(`${api.grantAadOf('583231')}:refresh`);
+    expect(api.openGrant(sealed, `${api.grantAadOf('583231')}:refresh`, apiRingOf(ring))?.token).toBe(TOKEN);
+    expect(api.openGrant(sealed, api.grantAadOf('583231'), apiRingOf(ring))).toBeNull();
+    expect(api.openGrant(sealed, `${api.grantAadOf('583232')}:refresh`, apiRingOf(ring))).toBeNull();
+    expect(
+      openGrant(sealGrant(TOKEN, grantAadOf('583231'), ringOf(ring)), grantRefreshAadOf('583231'), ringOf(ring)),
+    ).toBeNull();
   });
 
   it('seals with the last key of the ring, which the API opens after a rotation', () => {

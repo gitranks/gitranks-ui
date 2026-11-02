@@ -12,8 +12,10 @@ import { CONTRIBUTE_PROVIDER } from '@/lib/auth-providers';
  * - A sealed token: `v1.<keyId>.<iv>.<ciphertext>.<tag>`, each part base64url without padding. AES-256-GCM, a 12-byte
  *   random iv, a 16-byte tag, and the associated data `github-contribute:<providerAccountId>` (GitHub's numeric user
  *   id, as the row stores it), so a sealed token copied onto another user's row does not open.
+ * - The refresh token is sealed the same way under a second associated data,
+ *   `github-contribute:<providerAccountId>:refresh`, so the two sealed values on a row cannot be swapped.
  *
- * The token is never logged; an error names the variable, never a value.
+ * No token is ever logged; an error names the variable, never a value.
  */
 
 const VERSION = 'v1';
@@ -36,6 +38,10 @@ export type OpenedGrant = { token: string; keyId: string };
 
 /** The associated data a grant token is sealed under. */
 export const grantAadOf = (providerAccountId: string): string => `${CONTRIBUTE_PROVIDER}:${providerAccountId}`;
+
+/** The associated data the refresh token is sealed under: not the access token's, so neither opens as the other. */
+export const grantRefreshAadOf = (providerAccountId: string): string =>
+  `${CONTRIBUTE_PROVIDER}:${providerAccountId}:refresh`;
 
 /**
  * The key ring in `value` (the variable's text); null when it is unset or blank. A malformed ring throws, naming the

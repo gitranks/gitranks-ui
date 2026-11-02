@@ -7,6 +7,7 @@ import { approveFollowUp, discardAttempt, ignoreReviewThreads, setResolveHumanTh
 import { ApproveReplyButton } from './approve-reply-button';
 import { ConfirmDialog } from './confirm-dialog';
 import { HEADING, Pill } from './primitives';
+import { OrgAccessLink, ReplyCopyBar, ReplyText } from './reply-text';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -25,15 +26,9 @@ import type {
   ContributeReplyDraft,
 } from '@/lib/contribute/contribute.types';
 import { attemptActionErrorMessage } from '@/lib/contribute/errors';
-import {
-  CHECK_STATUSES,
-  OUTCOMES,
-  replyPreviewOf,
-  threadAfterOf,
-  threadsByWho,
-  whereOfThread,
-} from '@/lib/contribute/follow-up-flow';
+import { CHECK_STATUSES, OUTCOMES, threadAfterOf, threadsByWho, whereOfThread } from '@/lib/contribute/follow-up-flow';
 import { followUpApprovalTitle } from '@/lib/contribute/follow-up-format';
+import { isOrgRestricted, type OrgAccess } from '@/lib/contribute/org-access';
 import { cn } from '@/lib/utils';
 
 /** The user's edit of one reply: its text, and whether it goes with the push. */
@@ -80,6 +75,8 @@ function ThreadResult({
   resolveHumans,
   postLater = null,
   onDiscard = null,
+  orgAccess,
+  pr,
 }: {
   draft: ContributeReplyDraft;
   edit: Edit;
@@ -90,6 +87,10 @@ function ThreadResult({
   postLater?: { prNumber: number | null; version: string } | null;
   /** In the review: leave this comment out for good (its reply too), until someone comments on it again. */
   onDiscard?: (() => void) | null;
+  /** Where to ask an organization that refused the app to approve it. */
+  orgAccess: OrgAccess;
+  /** The pull request as the page names it ("pull request #1419"). */
+  pr: string;
 }) {
   const outcome = draft.outcome ? OUTCOMES[draft.outcome] : null;
   const where = draft.comment ? whereOfThread(draft.comment) : '';
@@ -102,6 +103,8 @@ function ThreadResult({
     ? `${draft.comment.author || 'a reviewer'}${where ? ` on ${where}` : ''}`
     : 'the pull request';
   const unsent = postLater && editable(draft) && draft.text.trim();
+  const restricted = draft.state === 'FAILED' && isOrgRestricted(draft.lastError?.reason);
+  const copyLabel = draft.comment ? `Copy the reply to ${who}` : `Copy the comment on ${pr}`;
 
   return (
     <li
@@ -142,9 +145,7 @@ function ThreadResult({
       ) : null}
       {readOnly ? (
         draft.text.trim() ? (
-          <p className="rounded-lg bg-muted/60 p-3 text-sm break-words whitespace-pre-wrap">
-            {draft.state === 'POSTED' ? draft.text : replyPreviewOf(draft.prefix, draft.text)}
-          </p>
+          <ReplyText draft={draft} label={copyLabel} />
         ) : null
       ) : (
         <div className="flex flex-col gap-1.5">
@@ -182,6 +183,8 @@ function ThreadResult({
               </span>
             ) : null}
           </label>
+          {/* Refused before: the user may post it on GitHub themselves instead. */}
+          {draft.state === 'FAILED' ? <ReplyCopyBar draft={draft} text={edit.text} label={copyLabel} /> : null}
         </div>
       )}
       {unsent ? (
@@ -219,6 +222,7 @@ function ThreadResult({
           ) : null}
         </span>
       ) : null}
+      {restricted ? <OrgAccessLink access={orgAccess} /> : null}
     </li>
   );
 }
@@ -232,6 +236,7 @@ export function FollowUpResult({
   attempt,
   prNumber,
   resolveHumans,
+  orgAccess,
 }: {
   attempt: Pick<
     ContributeAttemptDetail,
@@ -240,6 +245,8 @@ export function FollowUpResult({
   prNumber: number | null;
   /** The user's setting; `undefined` while the API does not answer it (people's threads stay open). */
   resolveHumans: boolean | undefined;
+  /** Where to ask an organization that refused the app to approve it (read on the server). */
+  orgAccess: OrgAccess;
 }) {
   const router = useRouter();
   const inReview = attempt.state === 'REVIEW';
@@ -362,6 +369,8 @@ export function FollowUpResult({
               onDiscard={
                 inReview && draft.prId && draft.comment && editable(draft) && !busy ? () => discardComment(draft) : null
               }
+              orgAccess={orgAccess}
+              pr={pr}
             />
           ))}
         </ul>

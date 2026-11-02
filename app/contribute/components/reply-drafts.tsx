@@ -2,11 +2,13 @@ import Link from 'next/link';
 
 import { ApproveReplyButton } from './approve-reply-button';
 import { HEADING, Pill } from './primitives';
+import { OrgAccessLink, ReplyText } from './reply-text';
 import { attemptHref } from './reviews-ready';
 import { githubUrlOf, toneLabelOf } from '@/lib/contribute/attempt-format';
 import type { ContributeAttempt, ContributeReplyDraft } from '@/lib/contribute/contribute.types';
 import { FOLLOW_UP_STATES, REPLY_STATES, replyBlockOf } from '@/lib/contribute/follow-up-format';
 import { relativeLabel } from '@/lib/contribute/format';
+import { isOrgRestricted, orgAccessOf } from '@/lib/contribute/org-access';
 
 /** The follow-up that drafted a reply, as far as the page knows it; `patch` only on the follow-up's own page. */
 export type DraftFollowUp = Pick<ContributeAttempt, 'attemptId' | 'state'> & { patch?: string | null };
@@ -17,6 +19,13 @@ function whereOf(draft: ContributeReplyDraft, prNumber: number | null) {
   if (!draft.comment) return `as a comment on ${pr}`;
   const { path, line } = draft.comment;
   return `as a reply in the review thread${path ? ` on ${path}${line ? `:${line}` : ''}` : ''}, on ${pr}`;
+}
+
+/** The copy icon's name: which reply it copies. */
+function copyLabelOf(draft: ContributeReplyDraft, prNumber: number | null) {
+  if (!draft.comment) return `Copy the comment on ${prNumber ? `pull request #${prNumber}` : 'the pull request'}`;
+  const { author, path, line } = draft.comment;
+  return `Copy the reply to ${author || 'a reviewer'}${path ? ` on ${path}${line ? `:${line}` : ''}` : ''}`;
 }
 
 /** One drafted reply: what it answers, its words, and where it stands; Approve while it is not posted. */
@@ -39,6 +48,7 @@ export function ReplyDraftItem({
   const where = whereOf(draft, prNumber);
   const canApprove = draft.state === 'DRAFT' || draft.state === 'FAILED';
   const followUpState = followUp ? FOLLOW_UP_STATES[followUp.state] : undefined;
+  const restricted = draft.state === 'FAILED' && isOrgRestricted(draft.lastError?.reason);
 
   return (
     <li
@@ -71,7 +81,7 @@ export function ReplyDraftItem({
       ) : null}
       <div className="flex flex-col gap-1">
         <span className="text-xs font-medium">The reply, posted in your name</span>
-        <p className="rounded-lg bg-muted/60 p-3 text-sm whitespace-pre-wrap">{draft.text}</p>
+        <ReplyText draft={draft} label={copyLabelOf(draft, prNumber)} />
       </div>
       {followUp ? (
         <span data-reply-follow-up={followUp.state} className="text-xs text-muted-foreground">
@@ -105,9 +115,13 @@ export function ReplyDraftItem({
       ) : null}
       {draft.state === 'FAILED' ? (
         <p role="alert" data-reply-error={draft.lastError?.reason ?? ''} className="text-sm text-warning">
-          {draft.lastError?.note || 'It was not posted.'} You can approve it again.
+          {draft.lastError?.note || 'It was not posted.'}{' '}
+          {restricted
+            ? 'You can approve it again once the organization approves the app.'
+            : 'You can approve it again.'}
         </p>
       ) : null}
+      {restricted ? <OrgAccessLink access={orgAccessOf()} /> : null}
       {canApprove ? (
         <ApproveReplyButton
           draftId={draft.draftId}

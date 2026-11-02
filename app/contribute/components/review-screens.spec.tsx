@@ -582,6 +582,34 @@ describe('the review screen', () => {
     expect(html).toContain('id="pr-form"');
   });
 
+  it("refused at the pull request by the repository's organization: where to ask it, and that Try again waits on it", () => {
+    const html = review(
+      clocked(
+        { state: 'REVIEW' },
+        {
+          step: 'PULL_REQUEST',
+          steps: [
+            { step: 'FORK', startedAt: '2026-10-28T11:59:50.000Z', doneAt: '2026-10-28T11:59:51.000Z' },
+            { step: 'PUSH', startedAt: '2026-10-28T11:59:51.000Z', doneAt: '2026-10-28T11:59:55.000Z' },
+            { step: 'PULL_REQUEST', startedAt: '2026-10-28T11:59:55.000Z', doneAt: null },
+          ],
+          lastError: {
+            reason: 'org_restricted',
+            note: "The repository's organization has not approved the app.",
+            at: NOW.toISOString(),
+          },
+        },
+      ),
+    );
+
+    expect(html).toContain('data-step="PULL_REQUEST" data-step-state="failed"');
+    expect(text(html)).toContain("The repository's organization has not approved the app.");
+    expect(html).toContain('data-org-access');
+    expect(text(html)).toContain('Try again');
+    expect(text(html)).toContain('It goes through only once the organization approves the app.');
+    expect(text(html)).not.toContain('Allow on GitHub');
+  });
+
   it('shows the steps done and links the pull request when it just opened', () => {
     const opened = clocked(
       { state: 'PR_OPEN', pullRequest: pullRequest({ openedAt: '2026-10-28T11:59:59.000Z' }) },

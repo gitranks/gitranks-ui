@@ -1109,10 +1109,14 @@ export type ContributeReplyDraft = {
   __typename?: 'ContributeReplyDraft';
   /** The follow-up that drafted it */
   attemptId: Scalars['ID']['output'];
+  /** What an approval would post now (the repo's mark, the prefix with its commit), or what was sent */
+  body?: Maybe<Scalars['String']['output']>;
   /** The thread was opened by a bot: it is resolved once answered */
   bot: Scalars['Boolean']['output'];
   /** Null: a top-level comment on the PR */
   comment?: Maybe<ContributeReplyTarget>;
+  /** What it answers on GitHub: the review comment, or the pull request's conversation */
+  commentUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
   draftId: Scalars['ID']['output'];
   /** Why the last post failed */
@@ -1171,10 +1175,14 @@ export type ContributeReplyWaiting = {
   __typename?: 'ContributeReplyWaiting';
   /** The follow-up that drafted it */
   attemptId: Scalars['ID']['output'];
+  /** What an approval would post now (the repo's mark, the prefix with its commit), or what was sent */
+  body?: Maybe<Scalars['String']['output']>;
   /** The thread was opened by a bot: it is resolved once answered */
   bot: Scalars['Boolean']['output'];
   /** Null: a top-level comment on the PR */
   comment?: Maybe<ContributeReplyTarget>;
+  /** What it answers on GitHub: the review comment, or the pull request's conversation */
+  commentUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
   draftId: Scalars['ID']['output'];
   /** The follow-up that drafted it waits for the viewer (review, or autopilot’s hour) */

@@ -21,7 +21,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadOpenPrDrafts: vi.fn(),
 }));
 
-const { ReviewScreen } = await import('./review-view');
+const { ReviewScreen, grantNeededOf } = await import('./review-view');
 const { ContributionsScreen } = await import('./contributions-view');
 const { SettingsScreen } = await import('./settings-view');
 const { ReplyDraftItem } = await import('./reply-drafts');
@@ -364,6 +364,154 @@ describe('the reply drafts', () => {
     expect(failed).toContain('data-reply-error="no_answer"');
     expect(text(failed)).toContain('GitHub did not answer. Approve again later. You can approve it again.');
     expect(text(failed)).toContain('Approve again');
+  });
+
+  it('puts the reply in a box with a copy icon, copying what it shows, and links where it goes', () => {
+    const html = item(
+      replyDraft({ commentUrl: 'https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901' }),
+    );
+    expect(html).toContain('data-reply-text');
+    expect(html).toContain('aria-label="Copy the reply to maintainer-mo on src/router/normalize-path.ts:3"');
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901"');
+    expect(text(html)).toContain('Open the thread on GitHub ↗');
+
+    // What was last sent to GitHub, mark and prefix included, is what shows and copies.
+    const sent = item(replyDraft({ state: 'FAILED', body: '🤖 Fixed in 46de700: Good catch.' }));
+    expect(text(sent)).toContain('🤖 Fixed in 46de700: Good catch.');
+    expect(sent).not.toContain('data-reply-link');
+
+    const posted = item(
+      replyDraft({
+        comment: null,
+        state: 'POSTED',
+        posted: true,
+        commentUrl: 'https://github.com/driftwood-js/driftwood/pull/1419',
+      }),
+    );
+    expect(posted).toContain('aria-label="Copy the comment on pull request #1419"');
+    expect(posted).not.toContain('data-reply-link');
+  });
+
+  it('copies a draft not sent yet as an approval would post it: the mark and the prefix with its commit', () => {
+    const html = item(flowDraft({ prefix: 'Fixed in 46de700: ', body: '🤖 Fixed in 46de700: Made it a const.' }));
+    expect(text(html)).toContain('🤖 Fixed in 46de700: Made it a const.');
+    expect(html).toContain('aria-label="Copy the reply to coderabbitai on src/router/normalize-path.ts:3"');
+    expect(text(html)).not.toContain('once its commits are on the pull request');
+  });
+
+  it('shows a reply whose commit is not on the pull request yet, but offers no copy until it is', () => {
+    const html = item(flowDraft({ body: null }));
+    expect(text(html)).toContain('Fixed in the new commit: Made it a const.');
+    expect(html).not.toContain('aria-label="Copy the');
+    expect(text(html)).toContain('You can copy it once its commits are on the pull request.');
+  });
+
+  it("refused by the repository's organization: says so, keeps Approve again, and links where to ask it", () => {
+    const failed = (id?: string) => {
+      vi.stubEnv('AUTH_GITHUB_CONTRIBUTE_ID', id ?? '');
+      try {
+        return item(
+          replyDraft({
+            state: 'FAILED',
+            commentUrl: 'https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901',
+            lastError: {
+              reason: 'org_restricted',
+              note: 'The organization has not approved the app.',
+              at: NOW.toISOString(),
+            },
+          }),
+        );
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    };
+
+    const app = failed('Ov23liAbc');
+    expect(app).toContain('data-reply-error="org_restricted"');
+    expect(text(app)).toContain(
+      'The organization has not approved the app. You can approve it again once the organization approves the app.',
+    );
+    expect(text(app)).not.toContain('locked or closed');
+    expect(app).toContain('data-org-access="app"');
+    expect(app).toContain('href="https://github.com/settings/connections/applications/Ov23liAbc"');
+    expect(text(app)).toContain('Request access for the organization ↗');
+    expect(text(app)).toContain('Open the thread on GitHub ↗');
+    expect(app).toContain('data-approve-reply="D_1"');
+
+    const apps = failed();
+    expect(apps).toContain('data-org-access="apps"');
+    expect(apps).toContain('href="https://github.com/settings/applications"');
+    expect(text(apps)).toContain('press Request next to the organization');
+
+    expect(
+      item(replyDraft({ state: 'FAILED', lastError: { reason: 'forbidden', note: 'No.', at: NOW.toISOString() } })),
+    ).not.toContain('data-org-access');
+  });
+
+  it("on the follow-up's card, shows the refused reply to copy, its thread, and where to ask the organization", () => {
+    const html = review(followUpAttempts.orgRestricted);
+    const plain = text(html);
+
+    expect(plain).toContain('🤖 Fixed in 46de700: Made it a const.');
+    expect(html).toContain('aria-label="Copy the reply to coderabbitai on src/router/normalize-path.ts:3"');
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901"');
+    expect(html).toContain('data-org-access');
+    expect(plain).toContain("The repository's organization only lets apps it approved post there.");
+  });
+
+  it('back in the review, a reply the organization refused can be copied and its thread opened from the field', () => {
+    const refused = (patch: Partial<ContributeReplyDraft>) =>
+      review({
+        ...followUpAttempts.review,
+        replyDrafts: [
+          flowDraft({
+            state: 'FAILED',
+            commentUrl: 'https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901',
+            lastError: {
+              reason: 'org_restricted',
+              note: 'The organization has not approved the app.',
+              at: NOW.toISOString(),
+            },
+            ...patch,
+          }),
+        ],
+      });
+
+    const html = refused({ prefix: 'Fixed in 46de700: ', body: '🤖 Fixed in 46de700: Made it a const.' });
+    expect(html).toContain('<textarea');
+    expect(html).toContain('data-reply-copy');
+    expect(html).toContain('aria-label="Copy the reply to coderabbitai on src/router/normalize-path.ts:3"');
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901"');
+    expect(html).toContain('data-org-access');
+
+    // Its commit not on the pull request yet: no copy, and why.
+    const waiting = refused({ body: null });
+    expect(waiting).toContain('data-reply-copy');
+    expect(waiting).not.toContain('aria-label="Copy the reply');
+    expect(text(waiting)).toContain('You can copy it once its commits are on the pull request.');
+  });
+
+  it("refused submission by the repository's organization: the note, where to ask it, and no grant bounce", () => {
+    const refused: ContributeAttemptDetail = {
+      ...followUpAttempts.review,
+      submit: {
+        step: 'PUSH',
+        waitUntil: null,
+        fork: 'octocat/driftwood',
+        branch: 'gitranks/871',
+        lastError: {
+          reason: 'org_restricted',
+          note: 'The organization has not approved the app.',
+          at: NOW.toISOString(),
+        },
+      },
+    };
+    const html = review(refused);
+    expect(html).toContain('data-submit-error="org_restricted"');
+    expect(html).toContain('data-org-access');
+    expect(text(html)).not.toContain('Allow on GitHub');
+    const connected = { ...views.active, grantAvailable: true, grant: { connected: true, login: 'octocat' } };
+    expect(grantNeededOf(connected, refused)).toBe(false);
   });
 
   it('keeps a posted link that does not point at GitHub as no link', () => {

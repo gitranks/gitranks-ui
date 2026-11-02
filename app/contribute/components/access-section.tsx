@@ -13,11 +13,11 @@ import type { ContributeCredential, ContributeGrant } from '@/lib/contribute/con
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, maskedKey, relativeLabel, shortId } from '@/lib/contribute/format';
 import type { GrantRefusal } from '@/lib/contribute/grant-refusal';
+import { GITHUB_APPS_URL } from '@/lib/contribute/org-access';
 import { SETTINGS_PATHS } from '@/lib/contribute/settings-paths';
 import { grantSummaryOf, KEY_STATES } from '@/lib/contribute/settings-summary';
 
-/** Where a user revokes an OAuth App themselves. */
-export const GITHUB_APPS_URL = 'https://github.com/settings/applications';
+export { GITHUB_APPS_URL };
 
 function Row({ title, detail, children }: { title: string; detail: ReactNode; children?: ReactNode }) {
   return (

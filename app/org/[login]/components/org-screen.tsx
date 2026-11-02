@@ -31,7 +31,7 @@ type OrgScreenProps = {
 /** The organization page from its data: its stars rank, top repositories, analytics and badges. */
 export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts }) => {
   const rank = org.rankOrg ?? {};
-  const hasData = org.s ?? 0 >= MIN_VALUE;
+  const hasData = (org.s ?? 0) >= MIN_VALUE;
 
   return (
     <LayoutLeftColumn org={org}>

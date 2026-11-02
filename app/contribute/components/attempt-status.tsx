@@ -31,6 +31,7 @@ import type {
   ContributeAutopilotReviewReason,
   ContributeFollowUpOf,
 } from '@/lib/contribute/contribute.types';
+import { runDecisionsOf } from '@/lib/contribute/decisions';
 import { roundLineOf } from '@/lib/contribute/follow-up-flow';
 import { relativeLabel, usd } from '@/lib/contribute/format';
 import { isOrgRestricted, orgAccessOf } from '@/lib/contribute/org-access';
@@ -433,6 +434,8 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
     case 'STOPPED': {
       const limit = checkLimitOf(attempt);
       const ranOut = !!limit && !limit.decided;
+      // A no-go's reason, or what the check was on when it ran out, is the decisions card's to show when it has one.
+      const detail = attempt.endReason === 'NO_GO' && runDecisionsOf(attempt) ? null : attempt.endDetail;
       return (
         <Box state="STOPPED" tone="muted">
           <Title>{ranOut ? 'Stopped while checking the issue' : 'Stopped'}</Title>
@@ -440,11 +443,11 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
             <span data-end-reason={attempt.endReason ?? ''} data-check-limit={limit ? limit.limit : undefined}>
               {endReasonTextOf(attempt) ?? 'Why it stopped is not available yet.'}
             </span>
-            {attempt.endDetail ? (
+            {detail ? (
               <>
                 {' '}
                 {ranOut ? '' : attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}
-                {detailText(noGoReasonOf(attempt.endDetail))}
+                {detailText(noGoReasonOf(detail))}
               </>
             ) : null}{' '}
             {usd(attempt.costUsd)} was spent.

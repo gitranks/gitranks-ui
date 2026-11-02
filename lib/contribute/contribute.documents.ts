@@ -21,6 +21,7 @@ import type {
   ContributeFeedbackContext,
   ContributeFeedbackTopic,
   ContributeFollowUpRound,
+  ContributeGoNoGo,
   ContributeGrant,
   ContributeIssue,
   ContributeIssuePage,
@@ -385,6 +386,20 @@ export const ContributeAttemptCheckStopDocument = doc<
   { id: string }
 >(`query ContributeAttemptCheckStop($id: ID!) {
   contributeAttempt(id: $id) { attemptId checkLimit { limit decided } retryable }
+}`);
+
+/** The agent's decisions on the run: its go/no-go and its brief. Read on their own, as the fields above. */
+export const ContributeAttemptDecisionsDocument = doc<
+  {
+    contributeAttempt: {
+      attemptId: string;
+      goNoGo: ContributeGoNoGo | null;
+      brief: string | null;
+    } | null;
+  },
+  { id: string }
+>(`query ContributeAttemptDecisions($id: ID!) {
+  contributeAttempt(id: $id) { attemptId goNoGo { verdict reason decidedAtLimit at } brief }
 }`);
 
 /** What the stepper reads again while the attempt submits: its state, the submission with its clock, the PR. */

@@ -30,6 +30,7 @@ const {
   attempt,
   attempts,
   contributions,
+  decisionAttempts,
   detail,
   feedbackThread,
   followUpAttempts,
@@ -736,6 +737,41 @@ describe('the review screen', () => {
     expect(late).not.toContain('Retry with a bigger check budget');
     // A budget stop in the work is the attempt's limit, as before.
     expect(text(review(stopped('BUDGET')))).toContain(END_REASONS.BUDGET);
+  });
+
+  it("shows the agent's decisions above the tabs, and the Stopped box leaves the no-go's reason to them", () => {
+    const noGo = review(decisionAttempts.noGo);
+    const plain = text(noGo);
+    expect(noGo).toContain('data-go-no-go="no_go"');
+    expect(plain).toContain('What the agent decided Go or no-go No-go The re-render comes from the app');
+    expect(plain).not.toContain('Its reason:');
+    expect(plain.match(/The re-render comes from the app/g)).toHaveLength(1);
+    expect(noGo.indexOf('data-panel="decisions"')).toBeLessThan(noGo.indexOf('role="tablist"'));
+
+    const went = text(review(decisionAttempts.went));
+    expect(went).toContain('Go or no-go Go Reproduced it');
+    expect(went).toContain('What the agent found Checked the layout cache');
+
+    const ranOut = review(decisionAttempts.ranOut);
+    expect(ranOut).toContain('data-limit-stop=""');
+    expect(text(ranOut)).toContain('Stopped at the $0.60 check limit after $0.61.');
+    expect(text(ranOut).match(/No verdict: it was on/g)).toHaveLength(1);
+
+    // A follow-up's brief alone titles the card.
+    const run = text(
+      renderToStaticMarkup(
+        <ReviewScreen
+          view={views.active}
+          attempt={decisionAttempts.followUp}
+          first={followUpAttempts.underWay}
+          now={NOW}
+        />,
+      ),
+    );
+    expect(run).toContain('What the agent found Read the review and the failing check.');
+    expect(run).not.toContain('What the agent decided');
+    // An older run: no card, and the box keeps the reason.
+    expect(review(stopped('NO_GO', 'needs a design decision'))).not.toContain('data-panel="decisions"');
   });
 
   it('says a stop with no reason yet is not available yet', () => {

@@ -16,15 +16,21 @@ export function AgentDecisions({ attempt }: { attempt: ContributeAttemptDetail }
 
   return (
     <section data-panel="decisions" className="flex flex-col gap-3 rounded-xl border bg-card p-5">
-      {/* A run with nothing decided but its brief (a follow-up's, say) is titled by it. */}
-      <h2 className={HEADING.card}>{goNoGo || stop ? 'What the agent decided' : 'What the agent found'}</h2>
+      {/* A run with no verdict is titled by what it has: a stop at a limit, or only its brief (a follow-up's, say). */}
+      <h2 className={HEADING.card}>
+        {goNoGo ? 'What the agent decided' : stop ? 'Where the agent stopped' : 'What the agent found'}
+      </h2>
       {goNoGo ? (
         <div data-go-no-go={goNoGo.verdict} className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-semibold">Go or no-go</h3>
             <Pill tone={goNoGo.verdict === 'go' ? 'green' : 'amber'}>{goNoGo.verdict === 'go' ? 'Go' : 'No-go'}</Pill>
           </div>
-          <p className={TEXT}>{goNoGo.reason}</p>
+          {goNoGo.reason.trim() ? (
+            <p className={TEXT}>{goNoGo.reason}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">The agent gave no reason.</p>
+          )}
           {limitNote ? <span className="text-xs text-muted-foreground">{limitNote}</span> : null}
         </div>
       ) : null}

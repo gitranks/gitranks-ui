@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { decisionAttempts, detail, stopped } from './__fixtures__/contribute-attempts';
-import { limitStopOf, runDecisionsOf } from './decisions';
+import { limitStopOf, runDecisionsOf, shownByDecisions } from './decisions';
 
 describe('a stop at a limit, in words', () => {
   it("names the check's cap from the API's words, and what was spent", () => {
@@ -68,5 +68,31 @@ describe("the agent's decisions on a run", () => {
     expect(runDecisionsOf(detail())).toBeNull();
     expect(runDecisionsOf(detail({ goNoGo: null, brief: '  ' }))).toBeNull();
     expect(runDecisionsOf(decisionAttempts.followUp)).toMatchObject({ goNoGo: null, stop: null });
+  });
+
+  it("is nothing on an API that doesn't serve the decisions, a stop at a limit too", () => {
+    expect(runDecisionsOf(stopped('BUDGET'))).toBeNull();
+    expect(runDecisionsOf({ ...decisionAttempts.ranOut, goNoGo: undefined, brief: undefined })).toBeNull();
+  });
+});
+
+describe('what the status box leaves to the decisions card', () => {
+  it("leaves a no-go's reason, and the note that it was decided at the check's cap", () => {
+    expect(shownByDecisions(decisionAttempts.noGo)).toEqual({ noGoDetail: true, limitNote: false });
+    expect(
+      shownByDecisions({
+        ...decisionAttempts.noGo,
+        checkLimit: { limit: 'budget', decided: true },
+        goNoGo: { ...decisionAttempts.noGo.goNoGo!, decidedAtLimit: 'budget' },
+      }),
+    ).toEqual({ noGoDetail: true, limitNote: true });
+    expect(shownByDecisions(decisionAttempts.ranOut)).toEqual({ noGoDetail: true, limitNote: false });
+  });
+
+  it('leaves nothing on an older API', () => {
+    expect(shownByDecisions(stopped('NO_GO', 'needs a design decision'))).toEqual({
+      noGoDetail: false,
+      limitNote: false,
+    });
   });
 });

@@ -31,7 +31,7 @@ import type {
   ContributeAutopilotReviewReason,
   ContributeFollowUpOf,
 } from '@/lib/contribute/contribute.types';
-import { runDecisionsOf } from '@/lib/contribute/decisions';
+import { shownByDecisions } from '@/lib/contribute/decisions';
 import { roundLineOf } from '@/lib/contribute/follow-up-flow';
 import { relativeLabel, usd } from '@/lib/contribute/format';
 import { isOrgRestricted, orgAccessOf } from '@/lib/contribute/org-access';
@@ -267,6 +267,8 @@ function followUpStatusOf(attempt: ContributeAttempt | ContributeAttemptDetail, 
     }
     case 'STOPPED':
     case 'DISCARDED': {
+      // A no-go's reason is the decisions card's to show when it has one.
+      const detail = shownByDecisions(attempt).noGoDetail ? null : attempt.endDetail;
       const why =
         attempt.endReason === 'CHECKS_FAILED' && attempt.endDetail === 'not_empty'
           ? 'The agent wrote no commit and no reply, so there was nothing to review.'
@@ -277,11 +279,11 @@ function followUpStatusOf(attempt: ContributeAttempt | ContributeAttemptDetail, 
           <Title>{attempt.state === 'STOPPED' ? 'Stopped, nothing pushed' : 'Discarded, nothing pushed'}</Title>
           <Text>
             <span data-end-reason={attempt.endReason ?? ''}>{why}</span>
-            {attempt.endDetail && attempt.endDetail !== 'not_empty' ? (
+            {detail && detail !== 'not_empty' ? (
               <>
                 {' '}
                 {attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}
-                {detailText(attempt.endDetail)}
+                {detailText(detail)}
               </>
             ) : null}{' '}
             Nothing was pushed to {pr} and no reply was posted. {usd(attempt.costUsd)} was spent. The comments still
@@ -434,8 +436,10 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
     case 'STOPPED': {
       const limit = checkLimitOf(attempt);
       const ranOut = !!limit && !limit.decided;
-      // A no-go's reason, or what the check was on when it ran out, is the decisions card's to show when it has one.
-      const detail = attempt.endReason === 'NO_GO' && runDecisionsOf(attempt) ? null : attempt.endDetail;
+      // A no-go's reason, what the check was on when it ran out, and a decision at the check's cap are the decisions
+      // card's to show when it has them.
+      const shown = shownByDecisions(attempt);
+      const detail = shown.noGoDetail ? null : attempt.endDetail;
       return (
         <Box state="STOPPED" tone="muted">
           <Title>{ranOut ? 'Stopped while checking the issue' : 'Stopped'}</Title>
@@ -457,7 +461,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
                 ? ' Nothing was decided about the issue; it went back to the pool.'
                 : ' The issue went back to the pool.'}
           </Text>
-          {limit?.decided ? (
+          {limit?.decided && !shown.limitNote ? (
             <span data-limit-note className="text-xs text-muted-foreground">
               {limitNoteOf(limit)}
             </span>

@@ -42,10 +42,12 @@ export type RunDecisions = {
   brief: string | null;
 };
 
-export function runDecisionsOf(
-  attempt: StopFields & Pick<ContributeAttemptDetail, 'goNoGo' | 'brief'>,
-): RunDecisions | null {
-  const goNoGo = attempt.goNoGo ?? null;
+type DecisionFields = StopFields & Pick<ContributeAttemptDetail, 'goNoGo' | 'brief'>;
+
+export function runDecisionsOf(attempt: DecisionFields): RunDecisions | null {
+  // An API that doesn't serve the decisions leaves the page as it was, a limit stop's wording too.
+  if (attempt.goNoGo === undefined) return null;
+  const goNoGo = attempt.goNoGo;
   const text = limitStopOf(attempt);
   const ranOut = !!text && attempt.endReason === 'NO_GO';
   const stop = text ? { text, detail: ranOut ? attempt.endDetail : null } : null;
@@ -57,5 +59,17 @@ export function runDecisionsOf(
     limitNote: goNoGo?.decidedAtLimit ? limitNoteOf({ limit: goNoGo.decidedAtLimit, decided: true }) : null,
     stop,
     brief: shownBrief,
+  };
+}
+
+/**
+ * What the status box leaves to the decisions card: a no-go's reason (or what the check was on when it ran out), and
+ * the note that the agent decided at the check's cap.
+ */
+export function shownByDecisions(attempt: DecisionFields): { noGoDetail: boolean; limitNote: boolean } {
+  const decisions = runDecisionsOf(attempt);
+  return {
+    noGoDetail: !!decisions && attempt.endReason === 'NO_GO',
+    limitNote: !!decisions?.limitNote,
   };
 }

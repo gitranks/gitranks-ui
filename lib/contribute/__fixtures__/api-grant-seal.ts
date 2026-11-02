@@ -23,6 +23,8 @@ export type OpenedGrant = { token: string; keyId: string };
 
 export const grantAadOf = (providerAccountId: string): string => `${CONTRIBUTE_GRANT_PROVIDER}:${providerAccountId}`;
 
+export const grantRefreshAadOf = (providerAccountId: string): string => `${grantAadOf(providerAccountId)}:refresh`;
+
 export function sealKeyRingOf(value: string | undefined): SealKeyRing | null {
   const entries = (value ?? '')
     .split(',')

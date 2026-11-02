@@ -1314,11 +1314,21 @@ type ContributeReplyDraft {
   """The follow-up that drafted it"""
   attemptId: ID!
 
+  """
+  The words last sent to GitHub, mark and prefix included; null until approved once
+  """
+  body: String
+
   """The thread was opened by a bot: it is resolved once answered"""
   bot: Boolean!
 
   """Null: a top-level comment on the PR"""
   comment: ContributeReplyTarget
+
+  """
+  What it answers on GitHub: the review comment, or the pull request's conversation
+  """
+  commentUrl: String
   createdAt: String!
   draftId: ID!
 
@@ -1392,11 +1402,21 @@ type ContributeReplyWaiting {
   """The follow-up that drafted it"""
   attemptId: ID!
 
+  """
+  The words last sent to GitHub, mark and prefix included; null until approved once
+  """
+  body: String
+
   """The thread was opened by a bot: it is resolved once answered"""
   bot: Boolean!
 
   """Null: a top-level comment on the PR"""
   comment: ContributeReplyTarget
+
+  """
+  What it answers on GitHub: the review comment, or the pull request's conversation
+  """
+  commentUrl: String
   createdAt: String!
   draftId: ID!
 

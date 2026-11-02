@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { nebulaOrg } from '../__fixtures__/org';
 import { OrgScreen } from './org-screen';
-import { MIN_VALUE, RANK_DESCRIPTIONS } from '@/app/app.consts';
+import { MIN_VALUE } from '@/app/app.consts';
 
 const render = (s: number | null) =>
   renderToStaticMarkup(<OrgScreen login="nebula" org={{ ...nebulaOrg, s }} badgeFacts={null} />);
@@ -16,14 +16,15 @@ describe('OrgScreen stars rank', () => {
   ])('says the organization is not ranked with %s', (_, s) => {
     const html = render(s);
 
-    expect(html).toContain(RANK_DESCRIPTIONS.s.notRankedMessage);
+    expect(html).toContain(`An organization needs ${MIN_VALUE}+ stars on repositories it owns to be ranked.`);
     expect(html).not.toContain('Position:');
+    expect(html).not.toContain('/repositories">repositories');
   });
 
   it('shows the position once the organization has the stars the ranking needs', () => {
     const html = render(MIN_VALUE);
 
     expect(html).toMatch(/Position: <span[^>]*>#12<\/span>/);
-    expect(html).not.toContain(RANK_DESCRIPTIONS.s.notRankedMessage);
+    expect(html).not.toContain('to be ranked.');
   });
 });

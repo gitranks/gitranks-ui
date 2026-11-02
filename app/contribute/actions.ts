@@ -85,6 +85,7 @@ import {
   contributeErrorOf,
   contributeSetErrorOf,
 } from '@/lib/contribute/errors';
+import { FOLLOW_UP_NOTE_MAX } from '@/lib/contribute/follow-up-format';
 import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
 import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
@@ -327,13 +328,23 @@ export async function discardAttempt(id: string): Promise<ContributeActionResult
 }
 
 /**
- * Starts a follow-up on the user's open pull request (its node id): new commits and drafted replies, for review. With
- * `commentIds`, on those review threads alone; the pull request's other waiting threads are ignored from then on.
+ * Starts a follow-up run on the user's open pull request (its node id): new commits and drafted replies, for review.
+ * With `commentIds`, on those review threads alone; the pull request's other waiting threads are ignored from then on.
+ * `reason`: the user's note to the agent, which it puts first.
  */
 export async function startFollowUp(
   prId: string,
   commentIds?: string[],
+  reason?: string,
 ): Promise<ContributeActionResult<ContributeAttempt>> {
+  const note = typeof reason === 'string' ? reason.trim() : '';
+  if (note.length > FOLLOW_UP_NOTE_MAX) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `A note takes ${FOLLOW_UP_NOTE_MAX.toLocaleString('en-US')} characters at most.`,
+    };
+  }
   const ids = Array.isArray(commentIds) ? commentIds.map(String).filter(Boolean) : [];
   if (Array.isArray(commentIds) && !ids.length) {
     return { ok: false, error: 'INVALID', message: 'Choose at least one comment to address.' };
@@ -343,12 +354,13 @@ export async function startFollowUp(
     return {
       ok: false,
       error: 'INVALID',
-      message: `A round takes ${FOLLOW_UP_THREADS_MAX} comments at most. Ignore the rest for now; you can address them in a later round.`,
+      message: `A run takes ${FOLLOW_UP_THREADS_MAX} comments at most. Ignore the rest for now; you can address them in a later run.`,
     };
   }
+  const withNote = note ? { reason: note } : {};
   return ids.length
-    ? run(StartFollowUpOnDocument, { prId: String(prId), commentIds: ids }, (data) => data.startFollowUp)
-    : run(StartFollowUpDocument, { prId: String(prId) }, (data) => data.startFollowUp);
+    ? run(StartFollowUpOnDocument, { prId: String(prId), commentIds: ids, ...withNote }, (data) => data.startFollowUp)
+    : run(StartFollowUpDocument, { prId: String(prId), ...withNote }, (data) => data.startFollowUp);
 }
 
 /** The most review threads one follow-up addresses (the API's; the review-feedback card keeps to it). */

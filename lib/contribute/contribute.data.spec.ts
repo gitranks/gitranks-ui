@@ -278,7 +278,14 @@ describe('the follow-up fields, read on their own', () => {
 
   const NOT_YET = () => Promise.reject(new Error('[{"message":"Cannot query field \\"needsYou\\""}]'));
   const signals = { since: 'x', signals: [{ kind: 'COMMENT', at: 'x', detail: null }] };
-  const rounds = { used: 1, left: 1, max: 2, handedOff: false, handedOffAt: null, currentAttemptId: null };
+  const rounds = {
+    used: 1,
+    autopilotRuns: 0,
+    autopilotMax: 2,
+    manualRuns: 1,
+    recommended: false,
+    currentAttemptId: null,
+  };
 
   it('merge into the attempts by id, and leave them out when the API does not answer them', async () => {
     graphqlDirect.mockImplementation((document) =>
@@ -363,7 +370,14 @@ describe('the follow-up fields, read on their own', () => {
     expect(graphqlDirect.mock.calls[0].slice(1)).toEqual([{ prId: 'PR_1' }, { source: 'ssr', githubLogin: 'octocat' }]);
     expect(await loadReplyDrafts('PR_2')).toBeUndefined();
 
-    const ran = { used: 1, left: 1, max: 2, handedOff: false, handedOffAt: null, currentAttemptId: null };
+    const ran = {
+      used: 1,
+      autopilotRuns: 0,
+      autopilotMax: 2,
+      manualRuns: 1,
+      recommended: false,
+      currentAttemptId: null,
+    };
     const pr = (prId: string, state: string, followUps?: object) => ({
       attemptId: prId,
       pullRequest: { prId, state },
@@ -387,10 +401,10 @@ describe('the follow-up fields, read on their own', () => {
     graphqlDirect.mockResolvedValue({ contributeReplyDrafts: [] });
     const rounds = (patch: object) => ({
       used: 0,
-      left: 2,
-      max: 2,
-      handedOff: false,
-      handedOffAt: null,
+      autopilotRuns: 0,
+      autopilotMax: 2,
+      manualRuns: 0,
+      recommended: false,
       currentAttemptId: null,
       ...patch,
     });

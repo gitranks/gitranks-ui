@@ -90,7 +90,7 @@ describe('A1, "I\'ll set them myself"', () => {
     expect(html).not.toMatch(/id="l-day"[^>]*aria-describedby/);
     // The line under the fields is not live: it changes on every keystroke.
     expect(html).not.toMatch(/role="status"[^>]*data-limits-summary/);
-    expect(text(html)).toContain("Each attempt can't be more than each day ($3): no attempt could start.");
+    expect(text(html)).toContain("Each run can't be more than each day ($3): no run could start.");
   });
 
   it('asks for the month when it is left empty', () => {

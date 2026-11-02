@@ -267,7 +267,7 @@ describe('the settings screen', () => {
       'Each billing cycle',
       'Each week',
       'Each day',
-      'Each attempt',
+      'Each run',
       'Attempts at a time',
       'Even, then a final sweep',
       'As fast as possible',

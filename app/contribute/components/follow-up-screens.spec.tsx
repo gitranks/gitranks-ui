@@ -111,7 +111,7 @@ describe('a pull request that needs the user, on My contributions', () => {
   });
 
   it('lists a follow-up ready once, as its Review row, and one under way on the pull request', () => {
-    const current = followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' });
+    const current = followUps({ used: 1, manualRuns: 1, currentAttemptId: 'A_F1' });
     // A follow-up ready is its own Review row; the pull request is not listed twice.
     const ready = mine({ needsYou: needsYou(), followUps: current });
     expect(ready).not.toContain('data-pr-needs-you');
@@ -143,7 +143,7 @@ describe('a pull request that needs the user, on My contributions', () => {
   });
 
   it('counts the replies waiting for approval, even with nothing new on GitHub, and keeps their text off the list', () => {
-    const html = mine({ needsYou: null, followUps: followUps({ used: 1, left: 1 }) }, { PR_8: [replyDraft()] });
+    const html = mine({ needsYou: null, followUps: followUps({ used: 1, manualRuns: 1 }) }, { PR_8: [replyDraft()] });
 
     expect(html).toContain('data-pr-needs-you="1419"');
     expect(html).toContain('data-pr-label="1 reply to approve"');
@@ -152,7 +152,7 @@ describe('a pull request that needs the user, on My contributions', () => {
 
   it('leaves out a pull request whose replies are all approved: nothing waits there any more', () => {
     const posting = mine(
-      { needsYou: null, followUps: followUps({ used: 1, left: 1 }) },
+      { needsYou: null, followUps: followUps({ used: 1, manualRuns: 1 }) },
       { PR_8: [replyDraft({ state: 'POSTING', updatedAt: '2026-10-28T11:59:00.000Z' })] },
     );
     expect(posting).not.toContain('data-pr-needs-you');
@@ -178,7 +178,7 @@ describe('a pull request that needs the user, on My contributions', () => {
 });
 
 describe('the follow-ups of a pull request, on its first attempt', () => {
-  it('shows what needs the user under the header, and the next round as a session to open', () => {
+  it('shows what needs the user under the header, and the next run, recommended, as a session to open', () => {
     const html = review(followUpAttempts.prNeedsYou);
     const plain = text(html);
 
@@ -187,19 +187,69 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(html).toContain('data-mark-handled="PR_1"');
     expect(html).toContain('data-session="next"');
     expect(html).toContain('href="/contribute/attempts/A_1?session=next"');
-    expect(plain).toContain('0 of 2 rounds used');
-    // The round is started from its own session, not from the first attempt's.
+    expect(plain).toContain('Run 1 · follow-up Recommended');
+    expect(plain).not.toMatch(/rounds? (used|left)/);
+    // The run is started from its own session, not from the first attempt's.
     expect(html).not.toContain('data-start-follow-up');
-    expect(review(followUpAttempts.prNeedsYou, views.active, true)).toContain('data-start-follow-up="PR_1"');
+
+    const next = review(followUpAttempts.prNeedsYou, views.active, true);
+    expect(next).toContain('data-next-round="recommended"');
+    expect(next).toContain('data-start-follow-up="PR_1"');
+    expect(next).toContain('data-follow-up-note=""');
+    expect(next).toContain('maxLength="2000"');
+    expect(text(next)).toContain('GitRanks sees a failing check, a new comment and a request for changes on #1419.');
+    expect(text(next)).toContain('A note for the agent (optional)');
+    expect(text(next)).toContain('the agent follows yours');
+    expect(next).toContain('data-variant="default"');
   });
 
-  it('says it is handed to the user after two rounds', () => {
-    const html = review(followUpAttempts.handedOff);
+  it('offers a run with nothing waiting too: the user says what they think is wrong', () => {
+    const html = review(followUpAttempts.quiet, views.active, true);
+    const plain = text(html);
 
-    expect(html).toContain('data-session="handed-off"');
-    expect(text(html)).toContain('Carry the pull request on on GitHub.');
-    expect(html).not.toContain('data-session="next"');
-    expect(review(followUpAttempts.handedOff, views.active, true)).not.toContain('data-start-follow-up');
+    expect(html).toContain('data-next-round="own"');
+    expect(plain).toContain(
+      'GitRanks sees nothing waiting on #1419. If you think something is wrong, start a run anyway',
+    );
+    expect(plain).toContain('What’s wrong? (optional)');
+    expect(html).toContain('data-variant="outline"');
+    expect(plain).toContain('Run 1 · autopilot');
+    expect(plain).toContain('Run 2 · you');
+    expect(plain).toContain('Run 3 · follow-up Not started');
+    expect(plain).toContain('2 runs · $0.43');
+    expect(html).not.toContain('data-session="handed-off"');
+    expect(plain).not.toMatch(/rounds? (used|left)|handed to you/i);
+  });
+
+  it('tells autopilot’s share while it is on, and that a run of the user’s turns it off here', () => {
+    const contributor = views.active.contributor!;
+    const on: ContributeView = {
+      ...views.active,
+      contributor: {
+        ...contributor,
+        settings: { ...contributor.settings!, autopilot: true },
+        autopilot: { ...contributor.autopilot, unlocked: true },
+      },
+    };
+    expect(text(review(followUpAttempts.prNeedsYou, on, true))).toContain(
+      'Autopilot has started 0 of its 2 runs here. A run you start yourself turns autopilot off on this pull request.',
+    );
+    expect(text(review(followUpAttempts.quiet, on, true))).toContain(
+      'Autopilot stays off on this pull request: you started a run here yourself.',
+    );
+    expect(review(followUpAttempts.prNeedsYou, views.active, true)).not.toContain('data-autopilot-runs');
+    expect(review({ ...followUpAttempts.prNeedsYou, runner: 'MCP' }, on, true)).not.toContain('data-autopilot-runs');
+  });
+
+  it('shows the user’s note on the run it went with', () => {
+    const noted = {
+      ...followUpAttempts.review,
+      followUpOf: { ...followUpAttempts.review.followUpOf!, trigger: 'own' as const, reason: 'Fix the docs example.' },
+    };
+    const html = review(noted);
+    expect(html).toContain('data-run-note=""');
+    expect(text(html)).toContain('Your note Fix the docs example.');
+    expect(review(followUpAttempts.review)).not.toContain('data-run-note');
   });
 
   it('lists the follow-up running on it', () => {
@@ -274,7 +324,7 @@ describe('a follow-up on the review screen', () => {
     const plain = text(review(followUpAttempts.repliesOnly));
 
     expect(plain).toContain('Finish this follow-up');
-    expect(plain).toContain('The agent made no commits this round');
+    expect(plain).toContain('The agent made no commits this run');
     expect(plain).toContain('Approve the replies you want posted, here or once it is finished');
     expect(plain).not.toContain('Finish it, then approve');
   });
@@ -572,7 +622,6 @@ describe('refusals, in plain words', () => {
   it.each([
     ['The pull request is not open', 'The pull request is no longer open'],
     ['A follow-up is already under way on this pull request', 'A follow-up is already running'],
-    ['Every follow-up round (2) is used: the pull request is yours from here', 'Every follow-up round is used'],
     ['New sessions are paused on our side for now', 'New agent sessions are paused on our side'],
     ['Contributing is paused', 'Contributing is paused. Resume it in Settings'],
     ['Your Claude key cannot start a session now', 'Your Claude key cannot start a session now. Check it'],
@@ -855,7 +904,7 @@ describe('the follow-up flow: review feedback, the run, the result and the round
   });
 
   it('says why no round can start while one runs, and keeps the plain button without waiting comments', () => {
-    const busy = text(prOpen({ followUps: followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' }) }));
+    const busy = text(prOpen({ followUps: followUps({ used: 1, manualRuns: 1, currentAttemptId: 'A_F1' }) }));
     expect(busy).toContain('A follow-up is under way on these comments.');
     expect(busy).not.toContain('Address 3 comments');
     const none = prOpen({ reviewFeedback: { readAt: null, threads: [] } });
@@ -933,7 +982,7 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     expect(plain).toContain('then resolve the thread');
     expect(plain).toContain('the thread stays open for its reviewer');
     expect(plain).toContain('Push fixes and reply');
-    expect(plain).toContain('Discard round');
+    expect(plain).toContain('Discard run');
     expect(plain).toContain(
       'Approving pushes the new commits to pull request #1419, posts 3 replies, resolves 2 threads.',
     );
@@ -966,6 +1015,10 @@ describe('the follow-up flow: review feedback, the run, the result and the round
         round: {
           round: 1,
           attemptId: 'A_F1',
+          by: 'user',
+          trigger: 'recommended',
+          reason: null,
+          costUsd: 0.31,
           state: 'DONE',
           endReason: null,
           pushedSha: '46de700aa1',
@@ -1004,7 +1057,7 @@ describe('the follow-up flow: review feedback, the run, the result and the round
       }),
     );
     const plain = text(html);
-    expect(plain).toContain('Round 1 pushed 46de700 · 5 fixed · 2 replied · 1 resolved');
+    expect(plain).toContain('Run 1 pushed 46de700 · 5 fixed · 2 replied · 1 resolved');
     expect(plain).toContain('Replied and resolved');
     expect(plain).toContain('Replied, left open for its reviewer');
     expect(plain).toContain('GitHub refused the reply: the conversation is locked.');
@@ -1017,11 +1070,16 @@ describe('the follow-up flow: review feedback, the run, the result and the round
       prOpen({
         followUps: followUps({
           used: 2,
-          left: 0,
+          autopilotRuns: 1,
+          manualRuns: 1,
           history: [
             {
               round: 1,
               attemptId: 'A_F1',
+              by: 'autopilot',
+              trigger: 'autopilot',
+              reason: null,
+              costUsd: 0.31,
               state: 'DONE',
               endReason: null,
               pushedSha: '46de700aa1',
@@ -1035,6 +1093,10 @@ describe('the follow-up flow: review feedback, the run, the result and the round
             {
               round: 2,
               attemptId: 'A_F2',
+              by: 'user',
+              trigger: 'own',
+              reason: 'The docs example is wrong.',
+              costUsd: 0.12,
               state: 'STOPPED',
               endReason: 'NO_GO',
               pushedSha: null,
@@ -1049,10 +1111,11 @@ describe('the follow-up flow: review feedback, the run, the result and the round
         }),
       }),
     );
-    expect(plain).toContain('Round 1 · follow-up Pushed 46de700');
+    expect(plain).toContain('Run 1 · autopilot Pushed 46de700');
     expect(plain).toContain('5 fixed · 2 replied');
-    expect(plain).toContain('Round 2 · follow-up Stopped');
-    expect(plain).toContain('Every follow-up round is used: answer these on GitHub.');
+    expect(plain).toContain('Run 2 · you Stopped');
+    expect(plain).toContain('2 runs · $0.43');
+    expect(plain).not.toMatch(/rounds? (used|left)/);
   });
 
   it('never stops silently: each end says what happened and what the user can do', () => {
@@ -1068,13 +1131,13 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     expect(empty).toContain('The agent wrote no commit and no reply');
   });
 
-  it('never takes more than a round can: past 20 comments it asks to ignore the rest first', () => {
+  it('never takes more than a run can: past 20 comments it asks to ignore the rest first', () => {
     const many = Array.from({ length: 22 }, (_, index) =>
       feedbackThread({ commentId: `C_${index}`, threadId: `T_${index}` }),
     );
     const plain = text(prOpen({ reviewFeedback: { readAt: null, threads: many } }));
     expect(plain).toContain('Address 22 comments');
-    expect(plain).toContain('A round takes 20 comments at most. Set 2 to Ignore: they stay out of every round');
+    expect(plain).toContain('A run takes 20 comments at most. Set 2 to Ignore: they stay out of every run');
   });
 
   it('marks the Checks step as our checks came out, and says what an older stop really was', () => {
@@ -1096,7 +1159,7 @@ describe('the follow-up flow: review feedback, the run, the result and the round
   it('shows a round with no reply as the flow’s, with its checks', () => {
     const html = review(inReview({ replyDrafts: [] }));
     expect(html).toContain('data-panel="follow-up-result"');
-    expect(text(html)).toContain('The agent drafted no reply this round.');
+    expect(text(html)).toContain('The agent drafted no reply this run.');
     expect(html).not.toContain('data-follow-up-approval');
   });
 

@@ -98,7 +98,7 @@ const LABELS: Record<ManualField, string> = {
   month: 'each month',
   week: 'each week',
   day: 'each day',
-  attempt: 'each attempt',
+  attempt: 'each run',
 };
 
 const twoDecimals = (value: number) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-9;
@@ -152,7 +152,7 @@ export function manualLimitsOf(draft: ManualLimitsDraft): ManualLimits {
     return {
       ok: false,
       field: 'attempt',
-      message: `Each attempt can't be more than ${LABELS[smallestField]} (${usd(smallest)}): no attempt could start.`,
+      message: `Each run can't be more than ${LABELS[smallestField]} (${usd(smallest)}): no run could start.`,
     };
   }
 
@@ -289,7 +289,7 @@ export function appliedLimitsOf(
   return {
     limits: [
       { label: 'Each month', value: month },
-      { label: 'Each attempt', value: `at most ${usd(attempt)}, it stops at the cap` },
+      { label: 'Each run', value: `at most ${usd(attempt)}, it stops at the cap` },
       {
         label: 'Week and day',
         value: periodCaps.length

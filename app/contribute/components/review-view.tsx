@@ -31,6 +31,7 @@ import { loadAttempt, loadContribute, loadResolveHumanThreads } from '@/lib/cont
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import { isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
+import { autopilotLineOf } from '@/lib/contribute/follow-up-format';
 import { usd } from '@/lib/contribute/format';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
 import { orgAccessOf } from '@/lib/contribute/org-access';
@@ -40,7 +41,9 @@ import {
   attemptPath,
   NEXT_SESSION,
   nextRoundOpen,
+  nextRoundRecommended,
   nextSessionPath,
+  runsLabelOf,
   sessionsOf,
   waitingThreadsOf,
 } from '@/lib/contribute/sessions';
@@ -132,7 +135,7 @@ function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; n
             {waiting === 1 ? '1 comment waits' : `${waiting} comments wait`} for an answer on #{pr.number}.
           </span>
           {nextRoundOpen(first) && next ? (
-            <span className="text-muted-foreground">Choose below what round {round} addresses.</span>
+            <span className="text-muted-foreground">Choose below what run {round} addresses.</span>
           ) : nextRoundOpen(first) ? (
             <Link
               href={nextSessionPath(first.attemptId)}
@@ -140,7 +143,7 @@ function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; n
               scroll={false}
               className="font-semibold text-link"
             >
-              Choose what round {round} addresses →
+              Choose what run {round} addresses →
             </Link>
           ) : next ? null : (
             <Link
@@ -175,45 +178,102 @@ function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; n
 }
 
 /**
- * The round that has not started: the comments to choose, or with none waiting, the button that starts it. While no
- * round can start, the comments are still listed, with why.
+ * Autopilot's share of the pull request's runs, while the user's autopilot is on: started so far, and that a run they
+ * start turns it off here. Never on a pull request their own agent made: autopilot cannot start that agent.
+ */
+function AutopilotLine({ first, view }: { first: ContributeAttemptDetail; view: ContributeView }) {
+  const contributor = view.contributor;
+  const on = !!contributor?.settings?.autopilot && !!contributor.autopilot?.unlocked;
+  if (!on || !first.followUps || isOwnAgent(first)) return null;
+  return (
+    <p data-autopilot-runs={first.followUps.autopilotRuns} className="text-xs text-muted-foreground">
+      {autopilotLineOf(first.followUps)}
+    </p>
+  );
+}
+
+/** What GitRanks sees waiting on the pull request, in a few words: "a failing check and a request for changes". */
+function waitingWordsOf(first: ContributeAttemptDetail): string {
+  const kinds = new Set((first.needsYou?.signals ?? []).map((signal) => signal.kind));
+  const words = [
+    kinds.has('CHECK_FAILED') ? 'a failing check' : null,
+    kinds.has('COMMENT') ? 'a new comment' : null,
+    kinds.has('CHANGES_REQUESTED') ? 'a request for changes' : null,
+  ].filter((word): word is string => !!word);
+  if (!words.length) return 'something to act on';
+  return words.length === 1 ? words[0] : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`;
+}
+
+/**
+ * The run that has not started: the comments to choose, or with none waiting, the card that starts it. Recommended
+ * when GitRanks sees something a run can act on; otherwise the user may still start one when they think something is
+ * wrong, with a note saying what. While no run can start, the comments are still listed, with why.
  */
 function NextRound({ first, view, now }: { first: ContributeAttemptDetail; view: ContributeView; now?: Date }) {
   const pr = first.pullRequest;
   if (!pr) return null;
   const feedback = first.reviewFeedback;
   const cap = view.contributor?.settings?.attemptCapUsd;
+  const run = (first.followUps?.used ?? 0) + 1;
+  const limit = typeof cap === 'number' ? ` within your ${usd(cap)} limit per run` : '';
   if (feedback?.threads.length) {
     return (
-      <ReviewFeedbackCard
-        // A thread arriving in a later read starts the choices afresh: none is shown chosen but left out.
-        key={feedback.threads.map((thread) => thread.commentId).join(',')}
-        prId={pr.prId}
-        prNumber={pr.number}
-        feedback={feedback}
-        canStart={nextRoundOpen(first)}
-        blocked={
-          nextRoundOpen(first)
-            ? null
-            : first.followUps?.currentAttemptId
-              ? 'A follow-up is under way on these comments.'
-              : 'Every follow-up round is used: answer these on GitHub.'
-        }
-        attemptCapUsd={cap}
-        now={now}
-      />
+      <div className="flex flex-col gap-2">
+        <ReviewFeedbackCard
+          // A thread arriving in a later read starts the choices afresh: none is shown chosen but left out.
+          key={feedback.threads.map((thread) => thread.commentId).join(',')}
+          prId={pr.prId}
+          prNumber={pr.number}
+          feedback={feedback}
+          canStart={nextRoundOpen(first)}
+          blocked={nextRoundOpen(first) ? null : 'A follow-up is under way on these comments.'}
+          attemptCapUsd={cap}
+          now={now}
+        />
+        <AutopilotLine first={first} view={view} />
+      </div>
     );
   }
+  const recommended = nextRoundRecommended(first);
   return (
-    <section data-next-round="" className="flex flex-col gap-2.5 rounded-xl border bg-card p-5">
-      <h2 className={HEADING.card}>Round {(first.followUps?.used ?? 0) + 1}</h2>
+    <section
+      data-next-round={recommended ? 'recommended' : 'own'}
+      className="flex flex-col gap-3 rounded-xl border bg-card p-5"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className={HEADING.card}>Run {run}</h2>
+        {recommended ? <Pill tone="violet">Recommended</Pill> : null}
+      </div>
       <p className="text-sm text-muted-foreground">
-        No review comment waits on #{pr.number}. A round still reads the reviews, comments and failing checks, adds
-        commits and drafts replies, on your Claude key
-        {typeof cap === 'number' ? ` within your ${usd(cap)} limit for one attempt` : ''}. Nothing is pushed or posted
-        before you review it.
+        {recommended
+          ? `GitRanks sees ${waitingWordsOf(first)} on #${pr.number}. The agent reads every review, comment and check, fixes what it can and drafts replies, on your Claude key${limit}. Nothing is pushed or posted before you review it.`
+          : `GitRanks sees nothing waiting on #${pr.number}. If you think something is wrong, start a run anyway: the agent reads every review, comment and check on the pull request, fixes what it finds, or ends with a note on why nothing needs a change. On your Claude key${limit}.`}
       </p>
-      {nextRoundOpen(first) ? <StartFollowUpButton prId={pr.prId} /> : null}
+      {nextRoundOpen(first) ? (
+        <StartFollowUpButton
+          prId={pr.prId}
+          primary={recommended}
+          noteLabel={recommended ? 'A note for the agent' : 'What’s wrong?'}
+          notePlaceholder={
+            recommended
+              ? 'Anything it should know? For example: the lint rule is wrong here, fix the test instead.'
+              : 'Tell the agent what you think is wrong.'
+          }
+        />
+      ) : null}
+      <AutopilotLine first={first} view={view} />
+    </section>
+  );
+}
+
+/** A follow-up run's note from the user to its agent, as they wrote it. */
+function RunNote({ attempt }: { attempt: ContributeAttemptDetail }) {
+  const reason = attempt.kind === 'FOLLOW_UP' ? attempt.followUpOf?.reason?.trim() : null;
+  if (!reason) return null;
+  return (
+    <section data-run-note="" className="flex flex-col gap-1.5 rounded-xl border bg-card p-4">
+      <h2 className="text-sm font-semibold">Your note</h2>
+      <p className="text-sm break-words whitespace-pre-line">{reason}</p>
     </section>
   );
 }
@@ -367,7 +427,7 @@ function SessionDetails({
         key={attempt.attemptId}
         tabs={tabs}
         defaultValue={opening}
-        label={followUp ? 'This follow-up round' : 'The first attempt'}
+        label={followUp ? 'This follow-up run' : 'The first attempt'}
       />
     </div>
   );
@@ -407,7 +467,7 @@ export function ReviewScreen({
 
   const followUp = attempt.kind === 'FOLLOW_UP';
   const first = followUp ? firstRead : attempt;
-  // The next round, or while none can start, the comments that wait, listed with why.
+  // The next run, or while none can start, the comments that wait, listed with why.
   const showNext = !!first && next && (nextRoundOpen(first) || waitingThreadsOf(first).length > 0);
   const issueUrl = githubUrlOf(attempt.url);
   const repo = repoOf(attempt);
@@ -462,17 +522,15 @@ export function ReviewScreen({
       {first ? <NeedsYouStrip first={first} next={showNext} now={now} /> : null}
 
       <div className={cn('grid items-start gap-5', cards && 'lg:grid-cols-[17rem_minmax(0,1fr)]')}>
-        {cards ? (
-          <SessionsList
-            cards={cards}
-            rounds={first?.followUps ? `${first.followUps.used} of ${first.followUps.max} rounds used` : null}
-          />
-        ) : null}
+        {cards ? <SessionsList cards={cards} rounds={first ? runsLabelOf(first) : null} /> : null}
         <div className="flex min-w-0 flex-col gap-4">
           {showNext && first ? (
             <NextRound first={first} view={view} now={now} />
           ) : (
-            <SessionDetails attempt={attempt} view={view} now={now} resolveHumans={resolveHumans} />
+            <>
+              <RunNote attempt={attempt} />
+              <SessionDetails attempt={attempt} view={view} now={now} resolveHumans={resolveHumans} />
+            </>
           )}
         </div>
       </div>

@@ -97,11 +97,11 @@ export const roundTalliesOf = (round: ContributeFollowUpRound): string[] =>
   ].filter((tally) => tally !== null);
 
 /**
- * A round as one line: "Round 1 pushed 46de700 · 5 fixed · 2 replied · 2 resolved", or what it came to when nothing
- * was pushed ("Round 2 discarded, nothing pushed").
+ * A run as one line: "Run 1 pushed 46de700 · 5 fixed · 2 replied · 2 resolved", or what it came to when nothing was
+ * pushed ("Run 2 discarded, nothing pushed").
  */
 export function roundLineOf(round: ContributeFollowUpRound): string {
-  const head = `Round ${round.round}`;
+  const head = `Run ${round.round}`;
   const sha = shortSha(round.pushedSha);
   const tallies = roundTalliesOf(round);
   const tail = tallies.length ? ` · ${tallies.join(' · ')}` : '';

@@ -103,7 +103,7 @@ export function patchOf(section: Section, draft: Draft): { patch: ContributeSett
             cycleCapUsd: required('Each billing cycle', draft.cycleCapUsd),
             weekCapUsd: optional('Each week', draft.weekCapUsd),
             dayCapUsd: optional('Each day', draft.dayCapUsd),
-            attemptCapUsd: required('Each attempt', draft.attemptCapUsd),
+            attemptCapUsd: required('Each run', draft.attemptCapUsd),
             attemptsAtATime: required('Attempts at a time', draft.attemptsAtATime, true),
           },
         };
@@ -199,7 +199,7 @@ function Fold({
 const PAGES = {
   budget: {
     sections: ['limits', 'pacing'],
-    folded: ['Each week', 'Each day', 'Each attempt', 'Attempts at a time', 'Sweep days'],
+    folded: ['Each week', 'Each day', 'Each run', 'Attempts at a time', 'Sweep days'],
   },
   agent: { sections: ['agent', 'prs'], folded: [] },
 } as const satisfies Record<string, { sections: SettingsSection[]; folded: string[] }>;
@@ -369,7 +369,7 @@ export function SettingsForm({ settings, page }: { settings: ContributeSettings;
               <Field label="Each day" htmlFor={field('dayCapUsd')}>
                 {textInput('dayCapUsd', 'No limit')}
               </Field>
-              <Field label="Each attempt" htmlFor={field('attemptCapUsd')}>
+              <Field label="Each run" htmlFor={field('attemptCapUsd')}>
                 {textInput('attemptCapUsd')}
               </Field>
               <Field label="Attempts at a time" htmlFor={field('attemptsAtATime')}>

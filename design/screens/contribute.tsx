@@ -10,7 +10,12 @@ import { RunsScreen } from '@/app/contribute/components/runs-view';
 import { SettingsScreen } from '@/app/contribute/components/settings-view';
 import { Header } from '@/components/header/header';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
-import { attempt, attempts, contributions, followUpAttempts } from '@/lib/contribute/__fixtures__/contribute-attempts';
+import {
+  attempt,
+  contributions,
+  decisionAttempts,
+  followUpAttempts,
+} from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { issuePage, nowIdle, overviewData } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import { pageOf } from '@/lib/contribute/__fixtures__/runs';
@@ -156,6 +161,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     sources: [
       'app/contribute/components/review-view.tsx',
       'app/contribute/components/attempt-sessions.tsx',
+      'app/contribute/components/agent-decisions.tsx',
       'lib/contribute/sessions.ts',
     ],
     states: [
@@ -167,7 +173,48 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () =>
           frame(
             <main className={MAIN}>
-              <ReviewScreen view={views.active} attempt={attempts.review} now={NOW} />
+              <ReviewScreen view={views.active} attempt={decisionAttempts.went} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'no-go',
+        title: 'First attempt, the agent said no-go',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <ReviewScreen view={views.active} attempt={decisionAttempts.noGo} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'check-ran-out',
+        title: 'First attempt, the check ran out',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <ReviewScreen view={views.active} attempt={decisionAttempts.ranOut} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'follow-up-run',
+        title: 'A follow-up run, ready for review',
+        path: '/contribute/attempts/A_F1',
+        height: 2000,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <ReviewScreen
+                view={views.active}
+                attempt={decisionAttempts.followUp}
+                first={followUpAttempts.underWay}
+                now={NOW}
+              />
             </main>,
           ),
       },

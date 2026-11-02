@@ -30,6 +30,7 @@ const {
   attempt,
   attempts,
   contributions,
+  decisionAttempts,
   detail,
   feedbackThread,
   followUpAttempts,
@@ -736,6 +737,72 @@ describe('the review screen', () => {
     expect(late).not.toContain('Retry with a bigger check budget');
     // A budget stop in the work is the attempt's limit, as before.
     expect(text(review(stopped('BUDGET')))).toContain(END_REASONS.BUDGET);
+  });
+
+  it("shows the agent's decisions above the tabs, and the Stopped box leaves the no-go's reason to them", () => {
+    const noGo = review(decisionAttempts.noGo);
+    const plain = text(noGo);
+    expect(noGo).toContain('data-go-no-go="no_go"');
+    expect(plain).toContain('What the agent decided Go or no-go No-go The re-render comes from the app');
+    expect(plain).not.toContain('Its reason:');
+    expect(plain.match(/The re-render comes from the app/g)).toHaveLength(1);
+    expect(noGo.indexOf('data-panel="decisions"')).toBeLessThan(noGo.indexOf('role="tablist"'));
+
+    const went = text(review(decisionAttempts.went));
+    expect(went).toContain('Go or no-go Go Reproduced it');
+    expect(went).toContain('What the agent found Checked the layout cache');
+
+    const ranOut = review(decisionAttempts.ranOut);
+    expect(ranOut).toContain('data-limit-stop=""');
+    expect(text(ranOut)).toContain('Where the agent stopped');
+    expect(text(ranOut)).toContain('Stopped at the $0.60 check limit after $0.61.');
+    expect(text(ranOut).match(/No verdict: it was on/g)).toHaveLength(1);
+
+    // A follow-up's brief alone titles the card.
+    const run = text(
+      renderToStaticMarkup(
+        <ReviewScreen
+          view={views.active}
+          attempt={decisionAttempts.followUp}
+          first={followUpAttempts.underWay}
+          now={NOW}
+        />,
+      ),
+    );
+    expect(run).toContain('What the agent found Read the review and the failing check.');
+    expect(run).not.toContain('What the agent decided');
+    // An older run: no card, and the box keeps the reason.
+    expect(review(stopped('NO_GO', 'needs a design decision'))).not.toContain('data-panel="decisions"');
+  });
+
+  it("shows a decision at the check's cap, a follow-up's no-go and a blank reason once each", () => {
+    const goNoGo = { ...decisionAttempts.noGo.goNoGo!, decidedAtLimit: 'budget' as const };
+    const atCap = text(review({ ...decisionAttempts.noGo, checkLimit: { limit: 'budget', decided: true }, goNoGo }));
+    expect(atCap.match(/Decided at the check's budget limit/g)).toHaveLength(1);
+    expect(atCap.match(/The re-render comes from the app/g)).toHaveLength(1);
+
+    const followUpNoGo = text(
+      renderToStaticMarkup(
+        <ReviewScreen
+          view={views.active}
+          attempt={{
+            ...followUpAttempts.stopped,
+            endReason: 'NO_GO',
+            endDetail: `${goNoGo.reason} Decided at the check's budget limit.`,
+            goNoGo,
+            brief: goNoGo.reason,
+          }}
+          first={followUpAttempts.underWay}
+          now={NOW}
+        />,
+      ),
+    );
+    expect(followUpNoGo).not.toContain('Its reason:');
+    expect(followUpNoGo.match(/The re-render comes from the app/g)).toHaveLength(1);
+    expect(followUpNoGo.match(/Decided at the check's budget limit/g)).toHaveLength(1);
+
+    const blank = text(review({ ...decisionAttempts.noGo, goNoGo: { ...goNoGo, reason: '' }, brief: null }));
+    expect(blank).toContain('No-go The agent gave no reason.');
   });
 
   it('says a stop with no reason yet is not available yet', () => {

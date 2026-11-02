@@ -7,6 +7,7 @@ import {
   ContributeAttemptCheckStopDocument,
   ContributeAttemptConventionsDocument,
   ContributeAttemptDcoDocument,
+  ContributeAttemptDecisionsDocument,
   ContributeAttemptDocument,
   ContributeAttemptFollowUpFlowDocument,
   ContributeAttemptFollowUpsDocument,
@@ -478,6 +479,10 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   const checkStop = Promise.resolve(graphqlDirect(ContributeAttemptCheckStopDocument, { id }, options)).catch(
     () => undefined,
   );
+  // The agent's go/no-go and its brief; left out when not answered.
+  const decisions = Promise.resolve(graphqlDirect(ContributeAttemptDecisionsDocument, { id }, options)).catch(
+    () => undefined,
+  );
   // The repo's PR conventions, the open PR's fixes, and the agent's proposed title; left out when not answered.
   const conventions = Promise.resolve(graphqlDirect(ContributeAttemptConventionsDocument, { id }, options)).catch(
     () => undefined,
@@ -513,9 +518,14 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
       stopRead?.attemptId === contributeAttempt.attemptId && typeof stopRead.retryable === 'boolean'
         ? { ...withDco, checkLimit: stopRead.checkLimit ?? null, retryable: stopRead.retryable }
         : withDco;
+    const decisionsRead = (await decisions)?.contributeAttempt;
+    const withDecisions =
+      decisionsRead?.attemptId === contributeAttempt.attemptId && decisionsRead.goNoGo !== undefined
+        ? { ...withStop, goNoGo: decisionsRead.goNoGo, brief: decisionsRead.brief ?? null }
+        : withStop;
     const conventionsRead = (await conventions)?.contributeAttempt;
     const withConventions = withConventionsOf(
-      withStop,
+      withDecisions,
       conventionsRead?.attemptId === contributeAttempt.attemptId ? conventionsRead : undefined,
     );
     const agent = (await ownAgent)?.contributeAttempt;

@@ -545,3 +545,52 @@ export const followUpAttempts = {
     autosubmitAt: '2026-10-28T12:42:00.000Z',
   }),
 } satisfies Record<string, ContributeAttemptDetail>;
+
+const NO_GO_REASON =
+  'The re-render comes from the app, not the router: layouts here are keyed by `useId`, which changes on every ' +
+  'navigation. The fix belongs in the reporter’s code, and the maintainer said so in the second comment.';
+
+/** Runs with the agent's decisions: a no-go, a check that ran out, a go with its brief, a follow-up's brief. */
+export const decisionAttempts = {
+  noGo: detail({
+    ...stopped('NO_GO', NO_GO_REASON),
+    checkLimit: null,
+    retryable: false,
+    costUsd: 0.42,
+    cost: { totalUsd: 0.42, goNoGoUsd: 0.42, workUsd: 0, runtimeUsd: 0 },
+    goNoGo: { verdict: 'no_go', reason: NO_GO_REASON, decidedAtLimit: null, at: '2026-10-28T09:16:00.000Z' },
+    brief: NO_GO_REASON,
+  }),
+  ranOut: detail({
+    ...stopped(
+      'NO_GO',
+      'No verdict: it was on "Reading src/router/layout-cache.ts" when the check\'s $0.60 budget ran out, after 4 min.',
+    ),
+    checkLimit: { limit: 'budget', decided: false },
+    retryable: true,
+    costUsd: 0.61,
+    cost: { totalUsd: 0.61, goNoGoUsd: 0.61, workUsd: 0, runtimeUsd: 0 },
+    goNoGo: null,
+    brief: null,
+  }),
+  went: detail({
+    goNoGo: {
+      verdict: 'go',
+      reason:
+        'Reproduced it: two paths for the same route, `/docs/` and `/docs`, miss the layout cache. A small change in ' +
+        'the router, with a test.',
+      decidedAtLimit: null,
+      at: '2026-10-28T09:15:00.000Z',
+    },
+    brief:
+      'Checked the layout cache and the path helpers. Paths with a trailing slash or a different case were cached ' +
+      'apart, so every navigation between them re-rendered the layouts. normalizePath now runs before the lookup; ' +
+      'a new test covers both forms. The lint warning is in a file this change does not touch.',
+  }),
+  followUp: followUp({
+    goNoGo: null,
+    brief:
+      'Read the review and the failing check. The reviewer asked for a const: done. The lint check fails on main ' +
+      'too (the same warning in src/legacy), so nothing to change for it; the reply says so.',
+  }),
+} satisfies Record<string, ContributeAttemptDetail>;

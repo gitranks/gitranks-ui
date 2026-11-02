@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { AgentDecisions } from './agent-decisions';
 import {
   ApprovalPanel,
   ChecksPanel,
@@ -400,6 +401,7 @@ function SessionDetails({
   return (
     <div className="flex min-w-0 flex-col gap-4" data-session-details={attempt.attemptId}>
       {showStatus ? <AttemptStatus attempt={attempt} now={now} /> : null}
+      <AgentDecisions attempt={attempt} />
       {inReview && !followUp ? (
         <SubmitPanel open={!!attempt.submit?.lastError}>
           <PrForm

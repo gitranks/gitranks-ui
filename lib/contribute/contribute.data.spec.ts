@@ -41,6 +41,7 @@ const {
   ContributeGrantDocument,
   ContributeAttemptsOpenDocument,
   ContributeAttemptCheckStopDocument,
+  ContributeAttemptDecisionsDocument,
   ContributeAttemptDcoDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
@@ -237,6 +238,45 @@ describe('loadAttempt: a check that ran out, read on its own', () => {
       const read = await loadAttempt('A_1');
       expect(read).toEqual({ attemptId: 'A_1', state: 'STOPPED' });
       expect('retryable' in (read ?? {})).toBe(false);
+    }
+  });
+});
+
+describe("loadAttempt: the agent's decisions, read on their own", () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const answering = (decisions: () => Promise<unknown>) =>
+    graphqlDirect.mockImplementation((document) =>
+      document === ContributeAttemptDecisionsDocument
+        ? decisions()
+        : Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'STOPPED' } }),
+    );
+  const goNoGo = { verdict: 'no_go', reason: 'Fixed upstream.', decidedAtLimit: null, at: '2026-11-02T10:00:00Z' };
+
+  it("merges the attempt's own answer, an older run's nulls too, and leaves both fields out otherwise", async () => {
+    answering(() => Promise.resolve({ contributeAttempt: { attemptId: 'A_1', goNoGo, brief: 'Fixed upstream.' } }));
+    expect(await loadAttempt('A_1')).toEqual({
+      attemptId: 'A_1',
+      state: 'STOPPED',
+      goNoGo,
+      brief: 'Fixed upstream.',
+    });
+
+    answering(() => Promise.resolve({ contributeAttempt: { attemptId: 'A_1', goNoGo: null, brief: null } }));
+    expect(await loadAttempt('A_1')).toEqual({ attemptId: 'A_1', state: 'STOPPED', goNoGo: null, brief: null });
+
+    for (const decisions of [
+      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', goNoGo, brief: 'x' } }),
+      () => Promise.reject(new Error('[{"message":"Cannot query field \\"goNoGo\\""}]')),
+    ]) {
+      answering(decisions);
+      const read = await loadAttempt('A_1');
+      expect(read).toEqual({ attemptId: 'A_1', state: 'STOPPED' });
+      expect('goNoGo' in (read ?? {})).toBe(false);
     }
   });
 });

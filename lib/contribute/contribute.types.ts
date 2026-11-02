@@ -563,6 +563,15 @@ export type ContributeAttemptApproval = { title: string; body: string; dco: bool
 /** The go/no-go check's limit a no-go was decided at (`decided`), or reached with no verdict. */
 export type ContributeCheckLimitView = { limit: 'budget' | 'time'; decided: boolean };
 
+/** A hosted session's latest go/no-go: its verdict, its whole reason, and the check's cap it was written at. */
+export type ContributeGoNoGo = {
+  verdict: 'go' | 'no_go';
+  reason: string;
+  /** budget or time when the agent wrote it on being told to wrap up at the check's cap; null otherwise. */
+  decidedAtLimit: 'budget' | 'time' | null;
+  at: string;
+};
+
 export type ContributeAttemptEvent = { state: ContributeAttemptState; detail: string | null; at: string };
 
 /** One attempt for the review screen. `patch` is `git format-patch` text: untrusted, rendered as text only. */
@@ -580,6 +589,13 @@ export type ContributeAttemptDetail = ContributeAttempt & {
    * `undefined` while the API does not answer it.
    */
   retryable?: boolean;
+  /** The session's latest go/no-go: null when it gave none (an older run); `undefined` while the API does not answer it. */
+  goNoGo?: ContributeGoNoGo | null;
+  /**
+   * The run's brief: what it checked, found and changed, or why nothing (a no-go's reason). Null when the run gave
+   * none; `undefined` while the API does not answer it.
+   */
+  brief?: string | null;
   checks: ContributeAttemptCheck[];
   cost: ContributeAttemptCost;
   approval: ContributeAttemptApproval | null;

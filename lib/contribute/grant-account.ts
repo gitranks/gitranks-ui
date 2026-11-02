@@ -9,8 +9,10 @@ export type GrantRowExtras = { githubLogin?: string };
 /**
  * The fields of a grant row that carry its tokens: the access token sealed, the refresh token sealed under its own
  * associated data, the access token's expiry (epoch seconds), and what describes them. The access token expires after
- * 8 hours, and the API renews it with the sealed refresh token. A grant without a refresh token or an expiry keeps
- * neither. Throws when there is no token or no key ring: the row is never written with a token in the clear.
+ * 8 hours, and the API renews it with the sealed refresh token. The refresh token is kept only with a valid expiry
+ * (epoch seconds): without one the API would never know it is due. An expiry without a refresh token is kept, so the
+ * API knows when the grant runs out. Throws when there is no token or no key ring: the row is never written with a
+ * token in the clear.
  */
 export function sealedGrantFields(
   account: Pick<
@@ -25,18 +27,23 @@ export function sealedGrantFields(
 
   const providerAccountId = String(account.providerAccountId);
   const { refresh_token, expires_at } = account;
+  const expiry = isEpochSeconds(expires_at) ? expires_at : undefined;
   return {
     provider: CONTRIBUTE_PROVIDER,
     providerAccountId,
     access_token: sealGrant(account.access_token, grantAadOf(providerAccountId), ring),
-    ...(typeof refresh_token === 'string' && refresh_token
+    ...(expiry !== undefined && typeof refresh_token === 'string' && refresh_token
       ? { refresh_token: sealGrant(refresh_token, grantRefreshAadOf(providerAccountId), ring) }
       : {}),
-    ...(typeof expires_at === 'number' && Number.isFinite(expires_at) && expires_at > 0 ? { expires_at } : {}),
+    ...(expiry !== undefined ? { expires_at: expiry } : {}),
     ...(account.scope ? { scope: account.scope } : {}),
     ...(account.token_type ? { token_type: account.token_type } : {}),
   };
 }
+
+/** A positive time in epoch seconds; one in milliseconds (past the year 5138 as seconds) is refused. */
+const isEpochSeconds = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 && value < 1e11;
 
 /**
  * The account row Auth.js links for the grant, with its tokens sealed and the user's GitHub login on it. The tokens

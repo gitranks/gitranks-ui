@@ -118,7 +118,7 @@ describe('the GitHub grant in Auth.js (pull request access)', () => {
     const row = base.linkAccount.mock.calls[0][0] as AdapterAccount;
     expect(row.expires_at).toBe(1_793_000_000);
     expect(JSON.stringify(row)).not.toContain(REFRESH);
-    expect(api.openGrant(row.refresh_token, 'github-contribute:583231:refresh', api.sealKeyRingOf(RING)!)?.token).toBe(
+    expect(api.openGrant(row.refresh_token, api.grantRefreshAadOf('583231'), api.sealKeyRingOf(RING)!)?.token).toBe(
       REFRESH,
     );
   });

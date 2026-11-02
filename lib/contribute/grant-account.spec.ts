@@ -57,12 +57,12 @@ describe('sealedGrantAccount', () => {
     expect(JSON.stringify(row)).not.toContain(REFRESH);
     expect(row.refresh_token).toMatch(/^v1\.k1\./);
 
-    expect(grantRefreshAadOf('583231')).toBe('github-contribute:583231:refresh');
-    expect(api.openGrant(row.refresh_token, grantRefreshAadOf('583231'), ring())?.token).toBe(REFRESH);
+    expect(grantRefreshAadOf('583231')).toBe(api.grantRefreshAadOf('583231'));
+    expect(api.openGrant(row.refresh_token, api.grantRefreshAadOf('583231'), ring())?.token).toBe(REFRESH);
     expect(api.openGrant(row.refresh_token, api.grantAadOf('583231'), ring())).toBeNull();
-    expect(api.openGrant(row.refresh_token, grantRefreshAadOf('583232'), ring())).toBeNull();
+    expect(api.openGrant(row.refresh_token, api.grantRefreshAadOf('583232'), ring())).toBeNull();
     expect(api.openGrant(row.access_token, api.grantAadOf('583231'), ring())?.token).toBe(TOKEN);
-    expect(api.openGrant(row.access_token, grantRefreshAadOf('583231'), ring())).toBeNull();
+    expect(api.openGrant(row.access_token, api.grantRefreshAadOf('583231'), ring())).toBeNull();
   });
 
   it('writes the row as before for a grant without a refresh token or an expiry', () => {
@@ -80,11 +80,19 @@ describe('sealedGrantAccount', () => {
     ['an expiry that is not a finite number', { expires_at: Number.POSITIVE_INFINITY }],
     ['an expiry that is not a number', { expires_at: '1793000000' }],
     ['a refresh token that is not a string', { refresh_token: 42 }],
+    ['a refresh token without an expiry', { refresh_token: REFRESH }],
+    ['an expiry in milliseconds', { refresh_token: REFRESH, expires_at: 1_793_000_000_000 }],
   ])('keeps neither field from %s', (_case, patch) => {
     const row = sealedGrantAccount(accountOf(patch), {}, RING);
 
     expect(row).not.toHaveProperty('refresh_token');
     expect(row).not.toHaveProperty('expires_at');
+  });
+
+  it('keeps an expiry without a refresh token, so the grant is known to run out', () => {
+    const row = sealedGrantAccount(accountOf({ expires_at: 1_793_000_000 }), {}, RING);
+    expect(row).not.toHaveProperty('refresh_token');
+    expect(row.expires_at).toBe(1_793_000_000);
   });
 
   it('refuses a grant without a token', () => {

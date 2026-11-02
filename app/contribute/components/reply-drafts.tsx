@@ -1,8 +1,7 @@
 import Link from 'next/link';
 
-import { ApproveReplyButton } from './approve-reply-button';
-import { DismissReplyButton } from './dismiss-reply-button';
 import { HEADING, Pill } from './primitives';
+import { ReplyActions } from './reply-actions';
 import { OrgAccessLink, ReplyText } from './reply-text';
 import { attemptHref } from './reviews-ready';
 import { githubUrlOf, toneLabelOf } from '@/lib/contribute/attempt-format';
@@ -122,10 +121,10 @@ export function ReplyDraftItem({
       {draft.state === 'FAILED' ? (
         <p role="alert" data-reply-error={draft.lastError?.reason ?? ''} className="text-sm text-warning">
           {draft.lastError?.note || 'It was not posted.'}{' '}
-          {asComment
-            ? 'You can post it as a comment on the pull request instead, or dismiss it.'
-            : restricted
-              ? 'You can approve it again once the organization approves the app, or dismiss it.'
+          {restricted
+            ? `You can approve it again once the organization approves the app, ${asComment ? 'post it as a comment on the pull request instead, ' : ''}or dismiss it.`
+            : asComment
+              ? 'You can post it as a comment on the pull request instead, or dismiss it.'
               : 'You can approve it again, or dismiss it.'}
         </p>
       ) : null}
@@ -136,27 +135,18 @@ export function ReplyDraftItem({
       ) : null}
       {restricted ? <OrgAccessLink access={orgAccessOf()} /> : null}
       {canApprove ? (
-        <div className="flex flex-wrap items-start gap-2">
-          {asComment ? (
-            <ApproveReplyButton
-              draftId={draft.draftId}
-              version={version}
-              where={`as a comment on ${prNumber ? `pull request #${prNumber}` : 'the pull request'}`}
-              again={false}
-              blocked={null}
-              asComment
-            />
-          ) : (
-            <ApproveReplyButton
-              draftId={draft.draftId}
-              version={version}
-              where={where}
-              again={draft.state === 'FAILED'}
-              blocked={followUp ? replyBlockOf(followUp) : null}
-            />
-          )}
-          <DismissReplyButton draftId={draft.draftId} />
-        </div>
+        <ReplyActions
+          draftId={draft.draftId}
+          version={version}
+          where={where}
+          commentWhere={
+            asComment ? `as a comment on ${prNumber ? `pull request #${prNumber}` : 'the pull request'}` : null
+          }
+          again={draft.state === 'FAILED'}
+          blocked={followUp ? replyBlockOf(followUp) : null}
+          showApprove
+          who={draft.comment ? draft.comment.author || 'a reviewer' : 'the pull request'}
+        />
       ) : null}
     </li>
   );

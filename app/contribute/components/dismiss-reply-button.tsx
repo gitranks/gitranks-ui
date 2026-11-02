@@ -20,7 +20,19 @@ import { contributeErrorMessage } from '@/lib/contribute/errors';
  * Dismiss a reply that waits for the user (drafted, or refused by GitHub): it is never posted and no longer counts as
  * something that needs them. The confirm asks why: they posted it on GitHub themselves, or it is not needed.
  */
-export function DismissReplyButton({ draftId }: { draftId: string }) {
+export function DismissReplyButton({
+  draftId,
+  label,
+  disabled = false,
+  onDone,
+}: {
+  draftId: string;
+  /** The button's accessible name: which reply it dismisses. */
+  label: string;
+  /** Another action on the same reply went through: off until the page reads it again. */
+  disabled?: boolean;
+  onDone?: () => void;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +50,7 @@ export function DismissReplyButton({ draftId }: { draftId: string }) {
       }
       setDone(true);
       setOpen(false);
+      onDone?.();
       router.refresh();
     });
 
@@ -48,7 +61,8 @@ export function DismissReplyButton({ draftId }: { draftId: string }) {
         size="lg"
         variant="ghost"
         onClick={() => setOpen(true)}
-        disabled={pending || done}
+        disabled={pending || done || disabled}
+        aria-label={label}
         className="px-4"
       >
         Dismiss

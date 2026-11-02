@@ -4,10 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { approveFollowUp, discardAttempt, ignoreReviewThreads, setResolveHumanThreads } from '../actions';
-import { ApproveReplyButton } from './approve-reply-button';
 import { ConfirmDialog } from './confirm-dialog';
-import { DismissReplyButton } from './dismiss-reply-button';
 import { HEADING, Pill } from './primitives';
+import { ReplyActions } from './reply-actions';
 import { OrgAccessLink, ReplyCopyBar, ReplyText } from './reply-text';
 import { Button } from '@/components/ui/button';
 import {
@@ -106,6 +105,7 @@ function ThreadResult({
   const waiting = Boolean(postLater) && editable(draft);
   const unsent = waiting && draft.text.trim();
   const asComment = waiting && draft.canPostAsComment === true;
+  const prName = postLater?.prNumber ? `pull request #${postLater.prNumber}` : 'the pull request';
   const restricted = draft.state === 'FAILED' && isOrgRestricted(draft.lastError?.reason);
   const copyLabel = draft.comment ? `Copy the reply to ${who}` : `Copy the comment on ${pr}`;
 
@@ -194,28 +194,21 @@ function ThreadResult({
         <div className="flex flex-col gap-1.5">
           <span className="text-sm text-muted-foreground">
             {asComment
-              ? 'GitHub did not let it into the review thread. Post it as a comment on the pull request instead, or dismiss it if you posted it yourself or no longer need it.'
+              ? 'GitHub did not let it into the review thread. Approve it again once the organization approves the app, post it as a comment on the pull request instead, or dismiss it if you posted it yourself or no longer need it.'
               : unsent
                 ? 'Not posted with the push. Post it now if you want it, or dismiss it.'
                 : 'No reply was written. Dismiss it if none is needed.'}
           </span>
-          <div className="flex flex-wrap items-start gap-2">
-            {unsent ? (
-              <ApproveReplyButton
-                draftId={draft.draftId}
-                version={postLater.version}
-                where={
-                  draft.comment && !asComment
-                    ? `as a reply to ${who}`
-                    : `as a comment on ${postLater.prNumber ? `pull request #${postLater.prNumber}` : 'the pull request'}`
-                }
-                again={draft.state === 'FAILED' && !asComment}
-                blocked={null}
-                asComment={asComment}
-              />
-            ) : null}
-            <DismissReplyButton draftId={draft.draftId} />
-          </div>
+          <ReplyActions
+            draftId={draft.draftId}
+            version={postLater.version}
+            where={draft.comment ? `as a reply to ${who}` : `as a comment on ${prName}`}
+            commentWhere={asComment ? `as a comment on ${prName}` : null}
+            again={draft.state === 'FAILED'}
+            blocked={null}
+            showApprove={Boolean(unsent)}
+            who={who}
+          />
         </div>
       ) : null}
       {after ? (

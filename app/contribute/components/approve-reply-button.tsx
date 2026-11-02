@@ -29,6 +29,8 @@ export function ApproveReplyButton({
   blocked,
   version,
   asComment = false,
+  disabled = false,
+  onDone,
 }: {
   draftId: string;
   /** Where it is posted: `as a reply in the review thread on PR #12`. */
@@ -39,6 +41,9 @@ export function ApproveReplyButton({
   /** Changes whenever the page reads the draft or its follow-up anew. */
   version: string;
   asComment?: boolean;
+  /** Another action on the same reply went through: off until the page reads it again. */
+  disabled?: boolean;
+  onDone?: () => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -72,6 +77,7 @@ export function ApproveReplyButton({
       }
       setDone(true);
       setOpen(false);
+      onDone?.();
       router.refresh();
     });
 
@@ -86,7 +92,7 @@ export function ApproveReplyButton({
         size="lg"
         variant={asComment ? 'secondary' : 'default'}
         onClick={() => setOpen(true)}
-        disabled={pending || done || !!stop}
+        disabled={pending || done || disabled || !!stop}
         className="px-4 font-semibold"
       >
         {asComment ? 'Post as a comment instead' : again ? 'Approve again' : 'Approve and post'}

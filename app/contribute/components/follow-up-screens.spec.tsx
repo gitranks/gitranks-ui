@@ -354,10 +354,14 @@ describe('the reply drafts', () => {
     const lastError = { reason: 'org_restricted', note: 'GitHub did not let us post it.', at: NOW.toISOString() };
     const html = item(replyDraft({ state: 'FAILED', lastError, canPostAsComment: true }));
     const plain = text(html);
+    // Both: the thread again once the organization approves the app, or a comment now.
+    expect(plain).toContain('Approve again');
     expect(plain).toContain('Post as a comment instead');
-    expect(plain).not.toContain('Approve again');
-    expect(plain).toContain('post it as a comment on the pull request instead, or dismiss it');
+    expect(plain).toContain(
+      'You can approve it again once the organization approves the app, post it as a comment on the pull request instead, or dismiss it.',
+    );
     expect(html).toContain('data-dismiss-reply="D_1"');
+    expect(html).toContain('aria-label="Dismiss the reply to maintainer-mo"');
 
     const posted = item(replyDraft({ state: 'POSTED', asComment: true, url: 'https://github.com/o/r/pull/1419#c1' }));
     expect(text(posted)).toContain('Posted as a comment on pull request #1419');

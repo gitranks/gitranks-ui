@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { AutosubmitCountdown, RetryCheckButton, StopAutopilotButton } from './follow-up-buttons';
 import { FollowUpStepper } from './follow-up-stepper';
 import { HEADING, Pill } from './primitives';
+import { OrgAccessLink } from './reply-text';
 import { attemptHref } from './reviews-ready';
 import { LiveSubmit, SubmitStepsSettled, TryAgainButton } from './submit-stepper';
 import {
@@ -32,6 +33,7 @@ import type {
 } from '@/lib/contribute/contribute.types';
 import { roundLineOf } from '@/lib/contribute/follow-up-flow';
 import { relativeLabel, usd } from '@/lib/contribute/format';
+import { isOrgRestricted, orgAccessOf } from '@/lib/contribute/org-access';
 import { cn } from '@/lib/utils';
 
 function Box({
@@ -84,11 +86,19 @@ export function AutopilotReviewNote({ reason }: { reason: ContributeAttempt['rev
 /** The note the API left after a submission step went wrong: why, and what to do. */
 export function SubmitErrorNote({ submit }: { submit: ContributeAttemptSubmit | null }) {
   if (!submit?.lastError) return null;
-  return (
+  const note = (
     <p role="alert" data-submit-error={submit.lastError.reason} className="text-sm text-warning-soft-foreground">
       {submit.lastError.note || 'The last step did not go through.'}{' '}
       <span className="text-muted-foreground">({timeLabel(submit.lastError.at)})</span>
     </p>
+  );
+  if (!isOrgRestricted(submit.lastError.reason)) return note;
+  // The organization's own setting: the way past it is on GitHub, not here.
+  return (
+    <>
+      {note}
+      <OrgAccessLink access={orgAccessOf()} />
+    </>
   );
 }
 

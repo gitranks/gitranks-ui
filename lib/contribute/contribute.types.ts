@@ -594,6 +594,10 @@ export type ContributeReplyDraft = {
   postedAt: string | null;
   /** The posted comment on GitHub. */
   url: string | null;
+  /** What it answers on GitHub: the review comment, or the pull request's conversation. Absent from an older API. */
+  commentUrl?: string | null;
+  /** The words last sent to GitHub, mark and prefix included; null until approved once. Absent from an older API. */
+  body?: string | null;
   /** Why the last post failed. */
   lastError: ContributeSubmitError | null;
   createdAt: string;

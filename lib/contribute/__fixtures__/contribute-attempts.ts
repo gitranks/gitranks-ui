@@ -473,6 +473,22 @@ export const followUpAttempts = {
       replyDraft({ draftId: 'D_3', state: 'POSTING' }),
     ],
   }),
+  /** Pushed, but the repository's organization has not approved the app: its reply waits, to approve again or post. */
+  orgRestricted: followUp({
+    state: 'DONE',
+    replyDrafts: [
+      flowDraft({
+        state: 'FAILED',
+        body: '🤖 Fixed in 46de700: Made it a const.',
+        commentUrl: 'https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901',
+        lastError: {
+          reason: 'org_restricted',
+          note: "The repository's organization only lets apps it approved post there. Post this reply yourself.",
+          at: '2026-10-28T11:59:00.000Z',
+        },
+      }),
+    ],
+  }),
   stopped: followUp({ state: 'STOPPED', endReason: 'BUDGET' }),
   discarded: followUp({ state: 'DISCARDED', endReason: 'USER' }),
   /** Autopilot submits it in 42 minutes unless the user stops it. */

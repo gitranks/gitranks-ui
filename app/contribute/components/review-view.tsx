@@ -33,6 +33,7 @@ import { isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
 import { usd } from '@/lib/contribute/format';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
+import { orgAccessOf } from '@/lib/contribute/org-access';
 import { parsePatch } from '@/lib/contribute/patch';
 import { withoutDraftMarks } from '@/lib/contribute/pr-conventions';
 import {
@@ -247,6 +248,7 @@ function SessionDetails({
       attempt={attempt}
       prNumber={prNumber}
       resolveHumans={resolveHumans}
+      orgAccess={orgAccessOf()}
     />
   ) : (
     <ReplyDrafts

@@ -44,6 +44,16 @@ export const nextRoundOpen = (first: ContributeAttemptDetail): boolean =>
   !!first.followUps &&
   !first.followUps.currentAttemptId;
 
+/** The next run's number: one past the runs so far, as counted or as listed. */
+export const nextRunNumberOf = (first: ContributeAttemptDetail): number =>
+  Math.max(first.followUps?.used ?? 0, first.followUps?.history?.length ?? 0) + 1;
+
+/** Who started a run read on its own: autopilot, the user, or null when its read does not say. */
+function starterOf(run: ContributeAttemptDetail): ContributeFollowUpRound['by'] | null {
+  if (run.followUpOf?.trigger === 'autopilot' || run.autopilot) return 'autopilot';
+  return run.followUpOf?.trigger ? 'user' : null;
+}
+
 /** The next run is recommended: GitRanks sees something a run can act on, or review comments wait for an answer. */
 export const nextRoundRecommended = (first: ContributeAttemptDetail): boolean =>
   !!first.followUps?.recommended || waitingThreadsOf(first).length > 0;
@@ -127,11 +137,20 @@ export function sessionsOf(
   // Without the history, a run added here is the latest one: its number is the runs used.
   const numberOf = () => (first.followUps?.history ? history.length + 1 : first.followUps?.used || history.length + 1);
   const unlisted = (attemptId: string) => !history.some((entry) => entry.attemptId === attemptId);
-  const add = (attemptId: string, state: ContributeFollowUpRound['state'], at: string, costUsd = 0) =>
+  // Runs added here whose starter is not known: their card names neither.
+  const whoUnknown = new Set<string>();
+  const add = (
+    attemptId: string,
+    state: ContributeFollowUpRound['state'],
+    at: string,
+    by: ContributeFollowUpRound['by'] | null,
+    costUsd = 0,
+  ) => {
+    if (!by) whoUnknown.add(attemptId);
     history.push({
       round: numberOf(),
       attemptId,
-      by: 'user',
+      by: by ?? 'user',
       trigger: null,
       reason: null,
       costUsd,
@@ -145,16 +164,19 @@ export function sessionsOf(
       resolved: 0,
       at,
     });
-  if (round && unlisted(round.attemptId)) add(round.attemptId, round.state, round.createdAt, round.costUsd);
+  };
+  if (round && unlisted(round.attemptId)) {
+    add(round.attemptId, round.state, round.createdAt, starterOf(round), round.costUsd);
+  }
   // The run under way, before the history lists it: under way is all that is known of it.
   const current = first.followUps?.currentAttemptId;
-  if (current && unlisted(current)) add(current, 'RUNNING', '');
+  if (current && unlisted(current)) add(current, 'RUNNING', '', null);
   for (const entry of history) {
     const tallies = roundTalliesOf(entry);
     cards.push({
       key: entry.attemptId,
       href: attemptPath(entry.attemptId),
-      title: `Run ${entry.round} · ${entry.by === 'autopilot' ? 'autopilot' : 'you'}`,
+      title: `Run ${entry.round} · ${whoUnknown.has(entry.attemptId) ? 'follow-up' : entry.by === 'autopilot' ? 'autopilot' : 'you'}`,
       pill: roundPillOf(entry),
       meta: [timeLabel(entry.at), entry.costUsd > 0 ? usd(entry.costUsd) : null].filter(Boolean).join(' · '),
       note: tallies.length ? tallies.join(' · ') : null,
@@ -169,7 +191,7 @@ export function sessionsOf(
     cards.push({
       key: NEXT_SESSION,
       href: nextSessionPath(first.attemptId),
-      title: `Run ${Math.max(followUps.used, history.length) + 1} · follow-up`,
+      title: `Run ${nextRunNumberOf(first)} · follow-up`,
       pill: recommended ? { label: 'Recommended', tone: 'violet' } : { label: 'Not started', tone: 'neutral' },
       meta: recommended ? 'Not started' : 'Your call',
       note: waiting ? `${waiting} ${waiting === 1 ? 'comment' : 'comments'} waiting` : null,

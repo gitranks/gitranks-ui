@@ -31,9 +31,13 @@ export function signalText(signal: ContributePrSignal, now?: Date): string {
 export const FOLLOW_UP_NOTE_MAX = 2_000;
 
 /** Autopilot's share of the pull request's runs, when its line shows: started so far, and whether it stopped. */
-export function autopilotLineOf(followUps: Pick<ContributeFollowUps, 'autopilotRuns' | 'autopilotMax' | 'manualRuns'>) {
+export function autopilotLineOf(
+  followUps: Pick<ContributeFollowUps, 'autopilotRuns' | 'autopilotMax' | 'manualRuns' | 'history'>,
+) {
   if (followUps.manualRuns > 0) {
-    return 'Autopilot stays off on this pull request: you started a run here yourself.';
+    // The first run the user started, when the runs are listed.
+    const mine = followUps.history?.find((run) => run.by === 'user')?.round;
+    return `Autopilot stays off on this pull request: you started ${mine ? `run ${mine}` : 'a run'} yourself.`;
   }
   if (followUps.autopilotRuns >= followUps.autopilotMax) {
     return `Autopilot has started its ${followUps.autopilotMax} runs here; any more are yours to start.`;

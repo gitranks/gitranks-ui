@@ -42,6 +42,7 @@ import {
   NEXT_SESSION,
   nextRoundOpen,
   nextRoundRecommended,
+  nextRunNumberOf,
   nextSessionPath,
   runsLabelOf,
   sessionsOf,
@@ -65,10 +66,10 @@ export async function ReviewView({
   if (!view) notFound();
   if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
   if (attempt === null) notFound();
-  // A round's page lists its pull request's sessions: those are the first attempt's to tell.
+  // A run's page lists its pull request's sessions: those are the first attempt's to tell.
   const followUpOf = attempt?.kind === 'FOLLOW_UP' ? attempt.followUpOf : undefined;
   const read = followUpOf ? await loadAttempt(followUpOf.attemptId).catch(() => undefined) : undefined;
-  // Only the first attempt whose pull request the round follows up: any other read is no part of this page.
+  // Only the first attempt whose pull request the run follows up: any other read is no part of this page.
   const first =
     read?.kind === 'FIRST' && (!read.pullRequest || read.pullRequest.prId === followUpOf?.prId) ? read : undefined;
   return (
@@ -104,7 +105,7 @@ const PR_SETTLED = new Set(['PR_OPEN', 'FOLLOW_UP', 'MERGED', 'CLOSED']);
 
 /**
  * "Needs you" under the header: what waits for the user on the open pull request, each with its way out (the comments
- * to choose for the next round, the repo's rules to fix, what changed on GitHub); nothing when nothing waits.
+ * to choose for the next run, the repo's rules to fix, what changed on GitHub); nothing when nothing waits.
  */
 function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; next: boolean; now?: Date }) {
   const pr = first.pullRequest;
@@ -114,7 +115,7 @@ function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; n
   // A fix that settled with nothing left to fix shows nothing (the card says no more), so it is no reason here.
   const rules = !!first.prIssues?.length || first.prFix?.state === 'SENDING';
   if (!waiting && !signals && !rules) return null;
-  const round = (first.followUps?.used ?? 0) + 1;
+  const round = nextRunNumberOf(first);
 
   return (
     <section
@@ -192,6 +193,15 @@ function AutopilotLine({ first, view }: { first: ContributeAttemptDetail; view: 
   );
 }
 
+/** Why no run can start on the pull request's waiting comments now, by its cause. */
+function blockedWhy(first: ContributeAttemptDetail): string {
+  if (first.followUps?.currentAttemptId) return 'A follow-up is under way on these comments.';
+  if (first.openedBy === 'HAND') {
+    return 'You opened this pull request yourself, so no run can add to it: answer these on GitHub.';
+  }
+  return 'No run can start on this pull request now: answer these on GitHub.';
+}
+
 /** What GitRanks sees waiting on the pull request, in a few words: "a failing check and a request for changes". */
 function waitingWordsOf(first: ContributeAttemptDetail): string {
   const kinds = new Set((first.needsYou?.signals ?? []).map((signal) => signal.kind));
@@ -214,7 +224,7 @@ function NextRound({ first, view, now }: { first: ContributeAttemptDetail; view:
   if (!pr) return null;
   const feedback = first.reviewFeedback;
   const cap = view.contributor?.settings?.attemptCapUsd;
-  const run = (first.followUps?.used ?? 0) + 1;
+  const run = nextRunNumberOf(first);
   const limit = typeof cap === 'number' ? ` within your ${usd(cap)} limit per run` : '';
   if (feedback?.threads.length) {
     return (
@@ -226,7 +236,7 @@ function NextRound({ first, view, now }: { first: ContributeAttemptDetail; view:
           prNumber={pr.number}
           feedback={feedback}
           canStart={nextRoundOpen(first)}
-          blocked={nextRoundOpen(first) ? null : 'A follow-up is under way on these comments.'}
+          blocked={nextRoundOpen(first) ? null : blockedWhy(first)}
           attemptCapUsd={cap}
           now={now}
         />
@@ -296,7 +306,7 @@ function SessionDetails({
   const ownAgent = isOwnAgent(attempt);
   const prNumber = followUp ? (attempt.followUpOf?.number ?? null) : (attempt.pullRequest?.number ?? null);
   // The follow-up flow: one card per thread with its outcome, and one approval (an older API: the drafts). An API with
-  // the flow answers `checkStatus` (null before the checks), so a round with no reply is one too.
+  // the flow answers `checkStatus` (null before the checks), so a run with no reply is one too.
   const flow = followUp && (attempt.checkStatus !== undefined || hasOutcomes(attempt.replyDrafts));
   const files = parsePatch(attempt.patch).files.length;
   const checks = attempt.checksPassed === true ? '✓' : attempt.checksPassed === false ? '✗' : undefined;
@@ -383,7 +393,7 @@ function SessionDetails({
       ),
     },
   ];
-  // The review opens on the change itself; a round, on what it did with the comments.
+  // The review opens on the change itself; a run, on what it did with the comments.
   const opening = followUp ? 'replies' : inReview || attempt.state === 'PENDING_AUTOSUBMIT' ? 'changes' : 'summary';
   const showStatus = followUp || !PR_SETTLED.has(attempt.state) || justOpened(attempt.pullRequest, now);
 
@@ -435,9 +445,9 @@ function SessionDetails({
 
 /**
  * A contribution, one page for all its sessions: the issue and its pull request on top, what waits for the user under
- * them, the sessions (the first attempt, each follow-up round, the next round while one may start) beside the one
- * shown. `attempt` is the session in the address (`undefined` while the API does not answer it); `first`, a round's
- * first attempt, read beside it (a first attempt is its own); `next` shows the round not started.
+ * them, the sessions (the first attempt, each follow-up run, the next run while one may start) beside the one
+ * shown. `attempt` is the session in the address (`undefined` while the API does not answer it); `first`, a run's
+ * first attempt, read beside it (a first attempt is its own); `next` shows the run not started.
  */
 export function ReviewScreen({
   view,

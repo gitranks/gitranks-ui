@@ -50,6 +50,7 @@ export function FollowUpNote({
       </label>
       <Textarea
         id={id}
+        aria-describedby={`${id}-hint ${id}-count`}
         rows={3}
         maxLength={FOLLOW_UP_NOTE_MAX}
         placeholder={placeholder}
@@ -59,10 +60,10 @@ export function FollowUpNote({
         className="min-h-20"
       />
       <span className="flex justify-between gap-3 text-xs text-muted-foreground">
-        <span>
+        <span id={`${id}-hint`}>
           Your note comes first: where it and a comment on the pull request disagree, the agent follows yours.
         </span>
-        <span className="shrink-0 font-mono tabular-nums">
+        <span id={`${id}-count`} aria-live="polite" className="shrink-0 font-mono tabular-nums">
           {value.length.toLocaleString('en-US')} / {FOLLOW_UP_NOTE_MAX.toLocaleString('en-US')}
         </span>
       </span>

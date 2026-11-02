@@ -235,10 +235,31 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
       'Autopilot has started 0 of its 2 runs here. A run you start yourself turns autopilot off on this pull request.',
     );
     expect(text(review(followUpAttempts.quiet, on, true))).toContain(
-      'Autopilot stays off on this pull request: you started a run here yourself.',
+      'Autopilot stays off on this pull request: you started run 2 yourself.',
     );
     expect(review(followUpAttempts.prNeedsYou, views.active, true)).not.toContain('data-autopilot-runs');
     expect(review({ ...followUpAttempts.prNeedsYou, runner: 'MCP' }, on, true)).not.toContain('data-autopilot-runs');
+  });
+
+  it('says why no run can start on waiting comments of a pull request opened by hand', () => {
+    const hand = {
+      ...followUpAttempts.quiet,
+      openedBy: 'HAND' as const,
+      reviewFeedback: { readAt: null, threads: [feedbackThread()] },
+    };
+    const html = review(hand, views.active, true);
+    expect(html).toContain('data-panel="review-feedback"');
+    expect(text(html)).toContain(
+      'You opened this pull request yourself, so no run can add to it: answer these on GitHub.',
+    );
+    expect(text(html)).not.toContain('under way');
+    expect(html).not.toContain('data-start-follow-up');
+  });
+
+  it('describes the note box to screen readers: its hint and a live counter', () => {
+    const html = review(followUpAttempts.prNeedsYou, views.active, true);
+    expect(html).toContain('aria-describedby="follow-up-note-PR_1-hint follow-up-note-PR_1-count"');
+    expect(html).toContain('id="follow-up-note-PR_1-count" aria-live="polite"');
   });
 
   it('shows the user’s note on the run it went with', () => {
@@ -1125,7 +1146,7 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     expect(noGo).toContain('Stopped, nothing pushed');
     expect(noGo).toContain('The agent read the comments and decided not to change anything.');
     expect(noGo).toContain('Its reason: The comments ask for a redesign.');
-    expect(noGo).toContain('start another round from its page');
+    expect(noGo).toContain('or start another run from its page.');
     expect(noGo).toContain('Back to the pull request');
     const empty = text(review({ ...followUpAttempts.stopped, endReason: 'CHECKS_FAILED', endDetail: 'not_empty' }));
     expect(empty).toContain('The agent wrote no commit and no reply');

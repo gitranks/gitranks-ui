@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { attempts, followUpAttempts, followUps } from './__fixtures__/contribute-attempts';
 import type { ContributeFollowUpRound } from './contribute.types';
-import { nextRoundOpen, nextRoundRecommended, runsLabelOf, sessionsOf, waitingThreadsOf } from './sessions';
+import {
+  nextRoundOpen,
+  nextRoundRecommended,
+  nextRunNumberOf,
+  runsLabelOf,
+  sessionsOf,
+  waitingThreadsOf,
+} from './sessions';
 
 const round = (patch: Partial<ContributeFollowUpRound> = {}): ContributeFollowUpRound => ({
   round: 1,
@@ -109,7 +116,11 @@ describe("a contribution's sessions", () => {
       ...followUpAttempts.prNeedsYou,
       followUps: followUps({ used: 3, currentAttemptId: 'A_F3' }),
     };
-    expect(sessionsOf(first, at('A_F3'))[1].title).toBe('Run 3 · you');
+    expect(sessionsOf(first, at('A_F3'))[1].title).toBe('Run 3 · follow-up');
+    // The run read on its own names who started it.
+    const byAutopilot = { ...followUpAttempts.review, attemptId: 'A_F3', autopilot: true };
+    expect(sessionsOf(first, at('A_F3'), byAutopilot)[1].title).toBe('Run 3 · autopilot');
+    expect(nextRunNumberOf(followUpAttempts.quiet)).toBe(3);
     const odd = { ...first, followUps: followUps({ history: [round({ state: 'SHELVED' as never })] }) };
     expect(sessionsOf(odd, at('A_1'))[1].pill).toEqual({ label: 'Shelved', tone: 'neutral' });
   });

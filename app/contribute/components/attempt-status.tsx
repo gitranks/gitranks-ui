@@ -193,7 +193,7 @@ const FOLLOW_UP_ENDS: Partial<Record<NonNullable<ContributeAttempt['endReason']>
   USER: 'You discarded it.',
 };
 
-/** Back to the pull request's page, where another round can start. */
+/** Back to the pull request's page, where another run can start. */
 function BackToPr({ attempt }: { attempt: ContributeAttempt }) {
   if (!attempt.followUpOf) return null;
   return (
@@ -284,7 +284,7 @@ function followUpStatusOf(attempt: ContributeAttempt | ContributeAttemptDetail, 
               </>
             ) : null}{' '}
             Nothing was pushed to {pr} and no reply was posted. {usd(attempt.costUsd)} was spent. The comments still
-            wait on the pull request: answer them on GitHub, or start another round from its page if one is left.
+            wait on the pull request: answer them on GitHub, or start another run from its page.
           </Text>
           <SubmitErrorNote submit={attempt.submit} />
           <BackToPr attempt={attempt} />

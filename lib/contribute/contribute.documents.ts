@@ -76,8 +76,8 @@ const ATTEMPT = `attemptId issueId repositoryId nameWithOwner number title url k
 const NEEDS_YOU = 'needsYou { since signals { kind at detail } }';
 const FOLLOW_UPS = 'followUps { used left max handedOff handedOffAt currentAttemptId }';
 const FOLLOW_UP_FIELDS = `attemptId ${NEEDS_YOU} ${FOLLOW_UPS} followUpOf { attemptId prId number url } autosubmitAt autopilot`;
-const REPLY_DRAFT = `draftId prId attemptId comment { commentId author path line excerpt } text state posted postedAt url
-  commentUrl body lastError { reason note at } createdAt updatedAt`;
+const REPLY_DRAFT = `draftId prId attemptId comment { commentId author path line excerpt } text prefix state posted
+  postedAt url commentUrl body lastError { reason note at } createdAt updatedAt`;
 
 type FollowUpFieldsOf<T> = T & { attemptId: string };
 

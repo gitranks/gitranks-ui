@@ -1109,9 +1109,9 @@ export type ContributeReplyDraft = {
   __typename?: 'ContributeReplyDraft';
   /** The follow-up that drafted it */
   attemptId: Scalars['ID']['output'];
-  /** The thread was opened by a bot: it is resolved once answered */
-  /** The words last sent to GitHub, mark and prefix included; null until approved once */
+  /** What an approval would post now (the repo's mark, the prefix with its commit), or what was sent */
   body?: Maybe<Scalars['String']['output']>;
+  /** The thread was opened by a bot: it is resolved once answered */
   bot: Scalars['Boolean']['output'];
   /** Null: a top-level comment on the PR */
   comment?: Maybe<ContributeReplyTarget>;
@@ -1175,9 +1175,9 @@ export type ContributeReplyWaiting = {
   __typename?: 'ContributeReplyWaiting';
   /** The follow-up that drafted it */
   attemptId: Scalars['ID']['output'];
-  /** The thread was opened by a bot: it is resolved once answered */
-  /** The words last sent to GitHub, mark and prefix included; null until approved once */
+  /** What an approval would post now (the repo's mark, the prefix with its commit), or what was sent */
   body?: Maybe<Scalars['String']['output']>;
+  /** The thread was opened by a bot: it is resolved once answered */
   bot: Scalars['Boolean']['output'];
   /** Null: a top-level comment on the PR */
   comment?: Maybe<ContributeReplyTarget>;

@@ -346,7 +346,16 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
           <Text>Read the change, then submit it as your pull request or discard it. It waits seven days for you.</Text>
           <AutopilotReviewNote reason={attempt.reviewReason} />
           <SubmitErrorNote submit={attempt.submit} />
-          {attempt.submit?.lastError ? <TryAgainButton /> : null}
+          {attempt.submit?.lastError ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <TryAgainButton />
+              {isOrgRestricted(attempt.submit.lastError.reason) ? (
+                <span data-org-wait className="text-sm text-muted-foreground">
+                  It goes through only once the organization approves the app.
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </Box>
       );
     case 'PENDING_AUTOSUBMIT':

@@ -7,7 +7,7 @@ import { approveFollowUp, discardAttempt, ignoreReviewThreads, setResolveHumanTh
 import { ApproveReplyButton } from './approve-reply-button';
 import { ConfirmDialog } from './confirm-dialog';
 import { HEADING, Pill } from './primitives';
-import { OrgAccessLink, ReplyText } from './reply-text';
+import { OrgAccessLink, ReplyCopyBar, ReplyText } from './reply-text';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -76,6 +76,7 @@ function ThreadResult({
   postLater = null,
   onDiscard = null,
   orgAccess,
+  pr,
 }: {
   draft: ContributeReplyDraft;
   edit: Edit;
@@ -88,6 +89,8 @@ function ThreadResult({
   onDiscard?: (() => void) | null;
   /** Where to ask an organization that refused the app to approve it. */
   orgAccess: OrgAccess;
+  /** The pull request as the page names it ("pull request #1419"). */
+  pr: string;
 }) {
   const outcome = draft.outcome ? OUTCOMES[draft.outcome] : null;
   const where = draft.comment ? whereOfThread(draft.comment) : '';
@@ -101,6 +104,7 @@ function ThreadResult({
     : 'the pull request';
   const unsent = postLater && editable(draft) && draft.text.trim();
   const restricted = draft.state === 'FAILED' && isOrgRestricted(draft.lastError?.reason);
+  const copyLabel = draft.comment ? `Copy the reply to ${who}` : `Copy the comment on ${pr}`;
 
   return (
     <li
@@ -141,7 +145,7 @@ function ThreadResult({
       ) : null}
       {readOnly ? (
         draft.text.trim() ? (
-          <ReplyText draft={draft} />
+          <ReplyText draft={draft} label={copyLabel} />
         ) : null
       ) : (
         <div className="flex flex-col gap-1.5">
@@ -179,6 +183,8 @@ function ThreadResult({
               </span>
             ) : null}
           </label>
+          {/* Refused before: the user may post it on GitHub themselves instead. */}
+          {draft.state === 'FAILED' ? <ReplyCopyBar draft={draft} text={edit.text} label={copyLabel} /> : null}
         </div>
       )}
       {unsent ? (
@@ -364,6 +370,7 @@ export function FollowUpResult({
                 inReview && draft.prId && draft.comment && editable(draft) && !busy ? () => discardComment(draft) : null
               }
               orgAccess={orgAccess}
+              pr={pr}
             />
           ))}
         </ul>

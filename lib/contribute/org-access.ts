@@ -28,12 +28,20 @@ export function orgAccessOf(clientId: string | undefined = process.env.AUTH_GITH
 }
 
 /**
- * A reply's words to copy and post by hand, as the box shows them: the posted text once posted; before, the text last
- * sent to GitHub, or the prefix and the text as they will read.
+ * A reply's words as they would go on GitHub, to post by hand, and whether they can be copied yet. `body` is what an
+ * approval would post now (the repo's mark, the prefix with its commit) or, once sent, what was sent; with none, the
+ * prefix and the text as the page shows them. A prefix still waiting for its commit ("Fixed in <commit>: ") is not
+ * what GitHub would get, so it is not to copy until the commits are on the pull request. `text`: the words as the user
+ * edits them, which `body` no longer is once they differ.
  */
-export function replyCopyOf(draft: Pick<ContributeReplyDraft, 'state' | 'text' | 'prefix' | 'body'>): string {
-  if (draft.state === 'POSTED') return draft.text;
-  return draft.body?.trim() ? draft.body : replyPreviewOf(draft.prefix, draft.text);
+export function replyCopyOf(
+  draft: Pick<ContributeReplyDraft, 'state' | 'text' | 'prefix' | 'body'>,
+  text: string = draft.text,
+): { words: string; copyable: boolean } {
+  const body = draft.body?.trim() ? draft.body : null;
+  if (draft.state === 'POSTED') return { words: body ?? draft.text, copyable: true };
+  if (body && text === draft.text) return { words: body, copyable: true };
+  return { words: replyPreviewOf(draft.prefix, text), copyable: !(draft.prefix ?? '').includes('<commit>') };
 }
 
 /** Where to paste a reply that is not posted: its review thread, or the pull request's conversation. */

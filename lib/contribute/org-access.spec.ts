@@ -27,26 +27,41 @@ describe('isOrgRestricted', () => {
 });
 
 describe('replyCopyOf', () => {
-  it('copies the words last sent to GitHub once there are some', () => {
-    expect(replyCopyOf(flowDraft({ state: 'FAILED', body: '🤖 Fixed in 46de700: Made it a const.' }))).toBe(
-      '🤖 Fixed in 46de700: Made it a const.',
-    );
+  it('copies what an approval would post, or what was sent, once the API says it', () => {
+    expect(replyCopyOf(flowDraft({ body: '🤖 Fixed in 46de700: Made it a const.' }))).toEqual({
+      words: '🤖 Fixed in 46de700: Made it a const.',
+      copyable: true,
+    });
+    expect(replyCopyOf(flowDraft({ state: 'FAILED', body: '🤖 Fixed in 46de700: Made it a const.' }))).toEqual({
+      words: '🤖 Fixed in 46de700: Made it a const.',
+      copyable: true,
+    });
   });
 
-  it('copies the prefix and the text before it was sent, as the page shows them', () => {
-    expect(replyCopyOf(flowDraft())).toBe('Fixed in the new commit: Made it a const.');
-    expect(replyCopyOf(replyDraft({ body: null }))).toBe(
-      'Good catch: the root path keeps its slash now, and a test covers it.',
-    );
-    expect(replyCopyOf(replyDraft({ body: '   ' }))).toBe(
-      'Good catch: the root path keeps its slash now, and a test covers it.',
-    );
+  it('without it: the prefix and the text, not to copy while the prefix waits for its commit', () => {
+    expect(replyCopyOf(flowDraft())).toEqual({ words: 'Fixed in the new commit: Made it a const.', copyable: false });
+    expect(replyCopyOf(flowDraft({ prefix: 'Not changed: ', body: '  ' }))).toEqual({
+      words: 'Not changed: Made it a const.',
+      copyable: true,
+    });
+    expect(replyCopyOf(replyDraft({ body: null }))).toEqual({
+      words: 'Good catch: the root path keeps its slash now, and a test covers it.',
+      copyable: true,
+    });
   });
 
-  it('copies the posted text once posted', () => {
-    expect(replyCopyOf(flowDraft({ state: 'POSTED', text: 'Fixed in 46de700: Made it a const.', body: 'x' }))).toBe(
-      'Fixed in 46de700: Made it a const.',
+  it("copies the user's edit, not the body it no longer is", () => {
+    expect(replyCopyOf(flowDraft({ prefix: 'Fixed in 46de700: ', body: '🤖 Fixed in 46de700: x' }), 'Mine.')).toEqual({
+      words: 'Fixed in 46de700: Mine.',
+      copyable: true,
+    });
+  });
+
+  it('copies the posted words once posted', () => {
+    expect(replyCopyOf(flowDraft({ state: 'POSTED', text: 'Fixed in 46de700: Made it a const.', body: null }))).toEqual(
+      { words: 'Fixed in 46de700: Made it a const.', copyable: true },
     );
+    expect(replyCopyOf(flowDraft({ state: 'POSTED', text: 'x', body: '🤖 x' })).words).toBe('🤖 x');
   });
 });
 

@@ -371,7 +371,7 @@ describe('the reply drafts', () => {
       replyDraft({ commentUrl: 'https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901' }),
     );
     expect(html).toContain('data-reply-text');
-    expect(html).toContain('aria-label="Copy the reply"');
+    expect(html).toContain('aria-label="Copy the reply to maintainer-mo on src/router/normalize-path.ts:3"');
     expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901"');
     expect(text(html)).toContain('Open the thread on GitHub ↗');
 
@@ -381,10 +381,29 @@ describe('the reply drafts', () => {
     expect(sent).not.toContain('data-reply-link');
 
     const posted = item(
-      replyDraft({ state: 'POSTED', posted: true, commentUrl: 'https://github.com/driftwood-js/driftwood/pull/1419' }),
+      replyDraft({
+        comment: null,
+        state: 'POSTED',
+        posted: true,
+        commentUrl: 'https://github.com/driftwood-js/driftwood/pull/1419',
+      }),
     );
-    expect(posted).toContain('aria-label="Copy the reply"');
+    expect(posted).toContain('aria-label="Copy the comment on pull request #1419"');
     expect(posted).not.toContain('data-reply-link');
+  });
+
+  it('copies a draft not sent yet as an approval would post it: the mark and the prefix with its commit', () => {
+    const html = item(flowDraft({ prefix: 'Fixed in 46de700: ', body: '🤖 Fixed in 46de700: Made it a const.' }));
+    expect(text(html)).toContain('🤖 Fixed in 46de700: Made it a const.');
+    expect(html).toContain('aria-label="Copy the reply to coderabbitai on src/router/normalize-path.ts:3"');
+    expect(text(html)).not.toContain('once its commits are on the pull request');
+  });
+
+  it('shows a reply whose commit is not on the pull request yet, but offers no copy until it is', () => {
+    const html = item(flowDraft({ body: null }));
+    expect(text(html)).toContain('Fixed in the new commit: Made it a const.');
+    expect(html).not.toContain('aria-label="Copy the');
+    expect(text(html)).toContain('You can copy it once its commits are on the pull request.');
   });
 
   it("refused by the repository's organization: says so, keeps Approve again, and links where to ask it", () => {
@@ -434,10 +453,42 @@ describe('the reply drafts', () => {
     const plain = text(html);
 
     expect(plain).toContain('🤖 Fixed in 46de700: Made it a const.');
-    expect(html).toContain('aria-label="Copy the reply"');
+    expect(html).toContain('aria-label="Copy the reply to coderabbitai on src/router/normalize-path.ts:3"');
     expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901"');
     expect(html).toContain('data-org-access');
     expect(plain).toContain("The repository's organization only lets apps it approved post there.");
+  });
+
+  it('back in the review, a reply the organization refused can be copied and its thread opened from the field', () => {
+    const refused = (patch: Partial<ContributeReplyDraft>) =>
+      review({
+        ...followUpAttempts.review,
+        replyDrafts: [
+          flowDraft({
+            state: 'FAILED',
+            commentUrl: 'https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901',
+            lastError: {
+              reason: 'org_restricted',
+              note: 'The organization has not approved the app.',
+              at: NOW.toISOString(),
+            },
+            ...patch,
+          }),
+        ],
+      });
+
+    const html = refused({ prefix: 'Fixed in 46de700: ', body: '🤖 Fixed in 46de700: Made it a const.' });
+    expect(html).toContain('<textarea');
+    expect(html).toContain('data-reply-copy');
+    expect(html).toContain('aria-label="Copy the reply to coderabbitai on src/router/normalize-path.ts:3"');
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419#discussion_r901"');
+    expect(html).toContain('data-org-access');
+
+    // Its commit not on the pull request yet: no copy, and why.
+    const waiting = refused({ body: null });
+    expect(waiting).toContain('data-reply-copy');
+    expect(waiting).not.toContain('aria-label="Copy the reply');
+    expect(text(waiting)).toContain('You can copy it once its commits are on the pull request.');
   });
 
   it("refused submission by the repository's organization: the note, where to ask it, and no grant bounce", () => {

@@ -21,6 +21,13 @@ function whereOf(draft: ContributeReplyDraft, prNumber: number | null) {
   return `as a reply in the review thread${path ? ` on ${path}${line ? `:${line}` : ''}` : ''}, on ${pr}`;
 }
 
+/** The copy icon's name: which reply it copies. */
+function copyLabelOf(draft: ContributeReplyDraft, prNumber: number | null) {
+  if (!draft.comment) return `Copy the comment on ${prNumber ? `pull request #${prNumber}` : 'the pull request'}`;
+  const { author, path, line } = draft.comment;
+  return `Copy the reply to ${author || 'a reviewer'}${path ? ` on ${path}${line ? `:${line}` : ''}` : ''}`;
+}
+
 /** One drafted reply: what it answers, its words, and where it stands; Approve while it is not posted. */
 export function ReplyDraftItem({
   draft,
@@ -74,7 +81,7 @@ export function ReplyDraftItem({
       ) : null}
       <div className="flex flex-col gap-1">
         <span className="text-xs font-medium">The reply, posted in your name</span>
-        <ReplyText draft={draft} />
+        <ReplyText draft={draft} label={copyLabelOf(draft, prNumber)} />
       </div>
       {followUp ? (
         <span data-reply-follow-up={followUp.state} className="text-xs text-muted-foreground">

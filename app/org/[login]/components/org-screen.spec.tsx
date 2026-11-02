@@ -18,6 +18,7 @@ describe('OrgScreen stars rank', () => {
 
     expect(html).toContain(`An organization needs ${MIN_VALUE}+ stars on repositories it owns to be ranked.`);
     expect(html).not.toContain('Position:');
+    expect(html).not.toContain('/repositories">repositories');
   });
 
   it('shows the position once the organization has the stars the ranking needs', () => {

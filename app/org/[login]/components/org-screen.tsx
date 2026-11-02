@@ -53,6 +53,7 @@ export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts }) => {
                   starsNotCounted={org.starsNotCounted}
                   login={login}
                   rankType={UserRankProp.s}
+                  showLink={false}
                 />
               </>
             )}

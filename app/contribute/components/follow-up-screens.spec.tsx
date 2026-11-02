@@ -407,6 +407,37 @@ describe('the reply drafts', () => {
     expect(text(item(replyDraft({ comment: null })))).toContain('Comment on the pull request');
   });
 
+  it('offers Dismiss on a waiting reply, and says why a dismissed one was not posted', () => {
+    expect(item(replyDraft())).toContain('data-dismiss-reply="D_1"');
+    expect(item(replyDraft({ state: 'POSTING' }))).not.toContain('data-dismiss-reply');
+
+    const dismissed = item(replyDraft({ state: 'DISMISSED', dismissedReason: 'POSTED_BY_HAND' }));
+    expect(dismissed).toContain('data-reply-dismissed="POSTED_BY_HAND"');
+    expect(text(dismissed)).toContain('Dismissed: you posted it on GitHub yourself');
+    expect(dismissed).not.toContain('data-approve-reply');
+    expect(dismissed).not.toContain('data-dismiss-reply');
+    expect(text(item(replyDraft({ state: 'DISMISSED', dismissedReason: 'THREAD_RESOLVED' })))).toContain(
+      'the thread was resolved on GitHub',
+    );
+  });
+
+  it('offers a thread reply GitHub refused in its thread as a comment on the pull request instead', () => {
+    const lastError = { reason: 'org_restricted', note: 'GitHub did not let us post it.', at: NOW.toISOString() };
+    const html = item(replyDraft({ state: 'FAILED', lastError, canPostAsComment: true }));
+    const plain = text(html);
+    // Both: the thread again once the organization approves the app, or a comment now.
+    expect(plain).toContain('Approve again');
+    expect(plain).toContain('Post as a comment instead');
+    expect(plain).toContain(
+      'You can approve it again once the organization approves the app, post it as a comment on the pull request instead, or dismiss it.',
+    );
+    expect(html).toContain('data-dismiss-reply="D_1"');
+    expect(html).toContain('aria-label="Dismiss the reply to maintainer-mo"');
+
+    const posted = item(replyDraft({ state: 'POSTED', asComment: true, url: 'https://github.com/o/r/pull/1419#c1' }));
+    expect(text(posted)).toContain('Posted as a comment on pull request #1419');
+  });
+
   it('shows posting, posted with its link, and failed with the note and Approve again', () => {
     const posting = item(replyDraft({ state: 'POSTING' }));
     expect(text(posting)).toContain('Posting it on GitHub.');
@@ -433,7 +464,9 @@ describe('the reply drafts', () => {
       }),
     );
     expect(failed).toContain('data-reply-error="no_answer"');
-    expect(text(failed)).toContain('GitHub did not answer. Approve again later. You can approve it again.');
+    expect(text(failed)).toContain(
+      'GitHub did not answer. Approve again later. You can approve it again, or dismiss it.',
+    );
     expect(text(failed)).toContain('Approve again');
   });
 
@@ -500,7 +533,7 @@ describe('the reply drafts', () => {
     const app = failed('Ov23liAbc');
     expect(app).toContain('data-reply-error="org_restricted"');
     expect(text(app)).toContain(
-      'The organization has not approved the app. You can approve it again once the organization approves the app.',
+      'The organization has not approved the app. You can approve it again once the organization approves the app, or dismiss it.',
     );
     expect(text(app)).not.toContain('locked or closed');
     expect(app).toContain('data-org-access="app"');
@@ -600,7 +633,7 @@ describe('the reply drafts', () => {
     const source = readFileSync(new URL('./approve-reply-button.tsx', import.meta.url), 'utf8');
     expect(source.match(/approveReply\(/g)).toHaveLength(1);
     const approve = source.slice(source.indexOf('const approve = '), source.indexOf('return ('));
-    expect(approve).toContain('approveReply(draftId)');
+    expect(approve).toContain('approveReply(draftId, asComment)');
     expect(source.match(/onClick=\{approve\}/g)).toHaveLength(1);
     const dialog = source.slice(source.indexOf('<DialogFooter>'), source.indexOf('</DialogFooter>'));
     expect(dialog).toContain('onClick={approve}');
@@ -1174,7 +1207,7 @@ describe('the follow-up flow: review feedback, the run, the result and the round
 
   it('after the push, offers to post a reply that did not go with it', () => {
     const plain = text(review(inReview({ state: 'DONE', replyDrafts: [flowDraft({ draftId: 'D_9' })] })));
-    expect(plain).toContain('Not posted with the push. Post it now if you want it.');
+    expect(plain).toContain('Not posted with the push. Post it now if you want it, or dismiss it.');
   });
 
   it('shows a round with no reply as the flow’s, with its checks', () => {

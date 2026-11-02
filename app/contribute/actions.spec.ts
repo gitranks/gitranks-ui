@@ -18,6 +18,7 @@ const {
   ContributeIssueStatusDocument,
   ContributeIssuesDocument,
   ContributeOnboardingDocument,
+  DismissReplyDocument,
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
   DiscardAttemptDocument,
@@ -61,6 +62,7 @@ const CALLS: Record<string, unknown[]> = {
   markNeedsYouHandled: ['PR_1'],
   ignoreReviewThreads: ['PR_1', ['C_1']],
   approveReply: ['D_1'],
+  dismissReply: ['D_1', 'NOT_NEEDED'],
   createMcpToken: ['laptop'],
   revokeMcpToken: ['T_1'],
   readAgentConnected: [{ tokenId: 'T_1', onboarded: true, githubLogin: 'mallory' }],
@@ -370,6 +372,30 @@ describe('the follow-up actions', () => {
       expect(graphqlDirect).toHaveBeenCalledWith(document, variables, { source: 'client', githubLogin: 'octocat' });
     },
   );
+
+  it('approves a refused thread reply as a comment, and dismisses a reply with its reason', async () => {
+    graphqlDirect.mockResolvedValue({ approveReply: { ok: 'D_1' } });
+    expect(await actions.approveReply('D_1', true)).toEqual({ ok: true, data: { ok: 'D_1' } });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ApproveReplyDocument,
+      { draftId: 'D_1', asComment: true },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+
+    graphqlDirect.mockResolvedValue({ dismissReply: { ok: 'D_1' } });
+    expect(await actions.dismissReply('D_1', 'POSTED_BY_HAND')).toEqual({ ok: true, data: { ok: 'D_1' } });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      DismissReplyDocument,
+      { draftId: 'D_1', reason: 'POSTED_BY_HAND' },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    graphqlDirect.mockClear();
+    expect(await actions.dismissReply('D_1', 'THREAD_RESOLVED' as never)).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
 
   it('ignores review comments, or brings them back, and refuses an empty choice', async () => {
     graphqlDirect.mockResolvedValue({ ignoreReviewThreads: ['C_1'] });

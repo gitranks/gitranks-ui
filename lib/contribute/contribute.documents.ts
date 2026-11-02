@@ -37,6 +37,7 @@ import type {
   ContributePreferencesInput,
   ContributeReplyDraft,
   ContributeReplyDraftFlow,
+  ContributeReplyUserDismissReason,
   ContributeReplyWaiting,
   ContributeReviewFeedback,
   ContributeScheduleCounts,
@@ -77,7 +78,8 @@ const NEEDS_YOU = 'needsYou { since signals { kind at detail } }';
 const FOLLOW_UPS = 'followUps { used autopilotRuns autopilotMax manualRuns recommended currentAttemptId }';
 const FOLLOW_UP_FIELDS = `attemptId ${NEEDS_YOU} ${FOLLOW_UPS} followUpOf { attemptId prId number url trigger reason } autosubmitAt autopilot`;
 const REPLY_DRAFT = `draftId prId attemptId comment { commentId author path line excerpt } text prefix state posted
-  postedAt url commentUrl body lastError { reason note at } createdAt updatedAt`;
+  postedAt url commentUrl body lastError { reason note at } canPostAsComment asComment dismissedReason dismissedAt
+  createdAt updatedAt`;
 
 type FollowUpFieldsOf<T> = T & { attemptId: string };
 
@@ -535,8 +537,22 @@ export const VetoAutopilotDocument = doc<{ vetoAutopilot: ContributeAttempt }, {
   `mutation VetoAutopilot($attemptId: ID!) { vetoAutopilot(attemptId: $attemptId) { ${ATTEMPT} } }`,
 );
 
-export const ApproveReplyDocument = doc<{ approveReply: ContributeReplyDraft }, { draftId: string }>(
-  `mutation ApproveReply($draftId: ID!) { approveReply(draftId: $draftId) { ${REPLY_DRAFT} } }`,
+export const ApproveReplyDocument = doc<
+  { approveReply: ContributeReplyDraft },
+  { draftId: string; asComment?: boolean }
+>(
+  `mutation ApproveReply($draftId: ID!, $asComment: Boolean) {
+    approveReply(draftId: $draftId, asComment: $asComment) { ${REPLY_DRAFT} }
+  }`,
+);
+
+export const DismissReplyDocument = doc<
+  { dismissReply: ContributeReplyDraft },
+  { draftId: string; reason: ContributeReplyUserDismissReason }
+>(
+  `mutation DismissReply($draftId: ID!, $reason: ContributeReplyUserDismissReason!) {
+    dismissReply(draftId: $draftId, reason: $reason) { ${REPLY_DRAFT} }
+  }`,
 );
 
 export const ApproveAttemptDocument = doc<

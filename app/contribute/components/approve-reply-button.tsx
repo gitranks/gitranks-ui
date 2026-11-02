@@ -19,7 +19,8 @@ import { replyRefusalOf } from '@/lib/contribute/follow-up-format';
  * Approve a drafted reply, after a confirm that it is posted publicly on GitHub in the user's name: `approveReply` is
  * called from the confirm alone. `blocked` is why it cannot be posted yet, when that is known before asking; a refusal
  * that approving again cannot mend blocks it too, until `version` (what the page last read of the draft and its
- * follow-up) changes, so pushed commits lift it.
+ * follow-up) changes, so pushed commits lift it. `asComment`: a reply GitHub refused in its review thread, posted as a
+ * comment on the pull request instead (its first line links the review comment).
  */
 export function ApproveReplyButton({
   draftId,
@@ -27,6 +28,9 @@ export function ApproveReplyButton({
   again,
   blocked,
   version,
+  asComment = false,
+  disabled = false,
+  onDone,
 }: {
   draftId: string;
   /** Where it is posted: `as a reply in the review thread on PR #12`. */
@@ -36,6 +40,10 @@ export function ApproveReplyButton({
   blocked: string | null;
   /** Changes whenever the page reads the draft or its follow-up anew. */
   version: string;
+  asComment?: boolean;
+  /** Another action on the same reply went through: off until the page reads it again. */
+  disabled?: boolean;
+  onDone?: () => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -56,7 +64,7 @@ export function ApproveReplyButton({
   const approve = () =>
     startTransition(async () => {
       setError(null);
-      const result = await approveReply(draftId);
+      const result = await approveReply(draftId, asComment);
       if (!result.ok) {
         const refusal = replyRefusalOf(result.error, result.message);
         if (refusal.final) {
@@ -69,6 +77,7 @@ export function ApproveReplyButton({
       }
       setDone(true);
       setOpen(false);
+      onDone?.();
       router.refresh();
     });
 
@@ -81,11 +90,12 @@ export function ApproveReplyButton({
       <Button
         type="button"
         size="lg"
+        variant={asComment ? 'secondary' : 'default'}
         onClick={() => setOpen(true)}
-        disabled={pending || done || !!stop}
+        disabled={pending || done || disabled || !!stop}
         className="px-4 font-semibold"
       >
-        {again ? 'Approve again' : 'Approve and post'}
+        {asComment ? 'Post as a comment instead' : again ? 'Approve again' : 'Approve and post'}
       </Button>
       {stop ? (
         <span role="status" data-reply-blocked className="text-sm text-warning">
@@ -101,9 +111,11 @@ export function ApproveReplyButton({
       <Dialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Post this reply on GitHub?</DialogTitle>
+            <DialogTitle>{asComment ? 'Post it as a comment instead?' : 'Post this reply on GitHub?'}</DialogTitle>
             <DialogDescription>
-              It is posted publicly {where}, in your name, with the words as drafted. Anyone can read it there.
+              {asComment
+                ? `GitHub did not let it into the review thread. It is posted publicly ${where}, in your name, starting with a link to the review comment it answers. The thread itself stays as it is.`
+                : `It is posted publicly ${where}, in your name, with the words as drafted. Anyone can read it there.`}
             </DialogDescription>
           </DialogHeader>
           {error ? (

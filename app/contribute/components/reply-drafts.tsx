@@ -1,11 +1,12 @@
 import Link from 'next/link';
 
-import { ApproveReplyButton } from './approve-reply-button';
 import { HEADING, Pill } from './primitives';
+import { ReplyActions } from './reply-actions';
 import { OrgAccessLink, ReplyText } from './reply-text';
 import { attemptHref } from './reviews-ready';
 import { githubUrlOf, toneLabelOf } from '@/lib/contribute/attempt-format';
 import type { ContributeAttempt, ContributeReplyDraft } from '@/lib/contribute/contribute.types';
+import { dismissedNoteOf } from '@/lib/contribute/follow-up-flow';
 import { FOLLOW_UP_STATES, REPLY_STATES, replyBlockOf } from '@/lib/contribute/follow-up-format';
 import { relativeLabel } from '@/lib/contribute/format';
 import { isOrgRestricted, orgAccessOf } from '@/lib/contribute/org-access';
@@ -49,6 +50,8 @@ export function ReplyDraftItem({
   const canApprove = draft.state === 'DRAFT' || draft.state === 'FAILED';
   const followUpState = followUp ? FOLLOW_UP_STATES[followUp.state] : undefined;
   const restricted = draft.state === 'FAILED' && isOrgRestricted(draft.lastError?.reason);
+  const asComment = canApprove && draft.canPostAsComment === true;
+  const version = [draft.state, draft.updatedAt, followUp?.state ?? '', freshness ?? ''].join('|');
 
   return (
     <li
@@ -105,7 +108,9 @@ export function ReplyDraftItem({
       ) : null}
       {draft.state === 'POSTED' ? (
         <span className="text-sm">
-          Posted {where}, {relativeLabel(draft.postedAt ?? draft.updatedAt, now)}.{' '}
+          Posted{' '}
+          {draft.asComment ? `as a comment on ${prNumber ? `pull request #${prNumber}` : 'the pull request'}` : where},{' '}
+          {relativeLabel(draft.postedAt ?? draft.updatedAt, now)}.{' '}
           {postedUrl ? (
             <a href={postedUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-link">
               See it on GitHub ↗
@@ -117,18 +122,30 @@ export function ReplyDraftItem({
         <p role="alert" data-reply-error={draft.lastError?.reason ?? ''} className="text-sm text-warning">
           {draft.lastError?.note || 'It was not posted.'}{' '}
           {restricted
-            ? 'You can approve it again once the organization approves the app.'
-            : 'You can approve it again.'}
+            ? `You can approve it again once the organization approves the app, ${asComment ? 'post it as a comment on the pull request instead, ' : ''}or dismiss it.`
+            : asComment
+              ? 'You can post it as a comment on the pull request instead, or dismiss it.'
+              : 'You can approve it again, or dismiss it.'}
         </p>
+      ) : null}
+      {draft.state === 'DISMISSED' ? (
+        <span data-reply-dismissed={draft.dismissedReason ?? ''} className="text-sm text-muted-foreground">
+          {dismissedNoteOf(draft)}.
+        </span>
       ) : null}
       {restricted ? <OrgAccessLink access={orgAccessOf()} /> : null}
       {canApprove ? (
-        <ApproveReplyButton
+        <ReplyActions
           draftId={draft.draftId}
-          version={[draft.state, draft.updatedAt, followUp?.state ?? '', freshness ?? ''].join('|')}
+          version={version}
           where={where}
+          commentWhere={
+            asComment ? `as a comment on ${prNumber ? `pull request #${prNumber}` : 'the pull request'}` : null
+          }
           again={draft.state === 'FAILED'}
           blocked={followUp ? replyBlockOf(followUp) : null}
+          showApprove
+          who={draft.comment ? draft.comment.author || 'a reviewer' : 'the pull request'}
         />
       ) : null}
     </li>

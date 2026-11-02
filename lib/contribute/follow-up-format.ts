@@ -172,6 +172,7 @@ export const REPLY_STATES: Record<
   POSTING: { label: 'Posting', tone: 'violet' },
   POSTED: { label: 'Posted', tone: 'green' },
   FAILED: { label: 'Not posted', tone: 'red' },
+  DISMISSED: { label: 'Dismissed', tone: 'neutral' },
 };
 
 /** The title a follow-up's approval carries: the API needs one, and ignores it for a follow-up. */

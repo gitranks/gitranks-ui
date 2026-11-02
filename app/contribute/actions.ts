@@ -23,6 +23,7 @@ import {
   CreateMcpTokenDocument,
   DeleteContributeDataDocument,
   DiscardAttemptDocument,
+  DismissReplyDocument,
   FixContributePullRequestDocument,
   IgnoreContributeRepoDocument,
   IgnoreReviewThreadsDocument,
@@ -69,6 +70,7 @@ import type {
   ContributePreferences,
   ContributePreferencesInput,
   ContributeReplyDraft,
+  ContributeReplyUserDismissReason,
   ContributeSet,
   ContributeSetAddResult,
   ContributeSetFallback,
@@ -461,9 +463,30 @@ export async function ignoreReviewThreads(
   );
 }
 
-/** Approves a drafted reply: it is posted publicly on GitHub, in the user's name. */
-export async function approveReply(draftId: string): Promise<ContributeActionResult<ContributeReplyDraft>> {
-  return run(ApproveReplyDocument, { draftId: String(draftId) }, (data) => data.approveReply);
+/**
+ * Approves a drafted reply: it is posted publicly on GitHub, in the user's name. `asComment`: a reply GitHub refused in
+ * its review thread goes as a comment on the pull request instead.
+ */
+export async function approveReply(
+  draftId: string,
+  asComment = false,
+): Promise<ContributeActionResult<ContributeReplyDraft>> {
+  return run(
+    ApproveReplyDocument,
+    { draftId: String(draftId), ...(asComment === true ? { asComment: true } : {}) },
+    (data) => data.approveReply,
+  );
+}
+
+/** Dismisses a drafted or failed reply: it is never posted and no longer waits for the user. */
+export async function dismissReply(
+  draftId: string,
+  reason: ContributeReplyUserDismissReason,
+): Promise<ContributeActionResult<ContributeReplyDraft>> {
+  if (reason !== 'POSTED_BY_HAND' && reason !== 'NOT_NEEDED') {
+    return { ok: false, error: 'INVALID', message: 'Choose why first.' };
+  }
+  return run(DismissReplyDocument, { draftId: String(draftId), reason }, (data) => data.dismissReply);
 }
 
 /** A token for the user's own agent: the token itself comes back this once. */

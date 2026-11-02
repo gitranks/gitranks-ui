@@ -130,13 +130,22 @@ export function replyPreviewOf(prefix: string | null | undefined, text: string):
 
 /** What happened to a thread after the push, in a few words; null while it waits. */
 export function threadAfterOf(draft: ContributeReplyDraft): string | null {
+  if (draft.state === 'DISMISSED') return dismissedNoteOf(draft);
   if (draft.state === 'POSTING') return 'Posting the reply…';
   if (draft.state === 'FAILED') return draft.lastError?.note || 'The reply was not posted.';
   if (draft.state !== 'POSTED') return null;
   if (draft.resolveState === 'RESOLVED') return 'Replied and resolved';
   if (draft.resolveState === 'RESOLVING') return 'Replied, resolving the thread…';
   if (draft.resolveState === 'FAILED') return draft.lastError?.note || 'Replied; the thread could not be resolved.';
+  if (draft.asComment) return 'Posted as a comment on the pull request';
   return draft.comment ? 'Replied, left open for its reviewer' : 'Posted';
+}
+
+/** A dismissed reply, in plain words: why it was not posted. */
+export function dismissedNoteOf(draft: Pick<ContributeReplyDraft, 'dismissedReason'>): string {
+  if (draft.dismissedReason === 'POSTED_BY_HAND') return 'Dismissed: you posted it on GitHub yourself';
+  if (draft.dismissedReason === 'THREAD_RESOLVED') return 'Dismissed: the thread was resolved on GitHub';
+  return 'Dismissed: not needed';
 }
 
 /**

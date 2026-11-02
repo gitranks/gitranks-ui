@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react';
 import { approveFollowUp, discardAttempt, ignoreReviewThreads, setResolveHumanThreads } from '../actions';
 import { ApproveReplyButton } from './approve-reply-button';
 import { ConfirmDialog } from './confirm-dialog';
+import { DismissReplyButton } from './dismiss-reply-button';
 import { HEADING, Pill } from './primitives';
 import { OrgAccessLink, ReplyCopyBar, ReplyText } from './reply-text';
 import { Button } from '@/components/ui/button';
@@ -102,7 +103,9 @@ function ThreadResult({
   const who = draft.comment
     ? `${draft.comment.author || 'a reviewer'}${where ? ` on ${where}` : ''}`
     : 'the pull request';
-  const unsent = postLater && editable(draft) && draft.text.trim();
+  const waiting = Boolean(postLater) && editable(draft);
+  const unsent = waiting && draft.text.trim();
+  const asComment = waiting && draft.canPostAsComment === true;
   const restricted = draft.state === 'FAILED' && isOrgRestricted(draft.lastError?.reason);
   const copyLabel = draft.comment ? `Copy the reply to ${who}` : `Copy the comment on ${pr}`;
 
@@ -187,20 +190,32 @@ function ThreadResult({
           {draft.state === 'FAILED' ? <ReplyCopyBar draft={draft} text={edit.text} label={copyLabel} /> : null}
         </div>
       )}
-      {unsent ? (
+      {waiting && postLater ? (
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm text-muted-foreground">Not posted with the push. Post it now if you want it.</span>
-          <ApproveReplyButton
-            draftId={draft.draftId}
-            version={postLater.version}
-            where={
-              draft.comment
-                ? `as a reply to ${who}`
-                : `as a comment on ${postLater.prNumber ? `pull request #${postLater.prNumber}` : 'the pull request'}`
-            }
-            again={draft.state === 'FAILED'}
-            blocked={null}
-          />
+          <span className="text-sm text-muted-foreground">
+            {asComment
+              ? 'GitHub did not let it into the review thread. Post it as a comment on the pull request instead, or dismiss it if you posted it yourself or no longer need it.'
+              : unsent
+                ? 'Not posted with the push. Post it now if you want it, or dismiss it.'
+                : 'No reply was written. Dismiss it if none is needed.'}
+          </span>
+          <div className="flex flex-wrap items-start gap-2">
+            {unsent ? (
+              <ApproveReplyButton
+                draftId={draft.draftId}
+                version={postLater.version}
+                where={
+                  draft.comment && !asComment
+                    ? `as a reply to ${who}`
+                    : `as a comment on ${postLater.prNumber ? `pull request #${postLater.prNumber}` : 'the pull request'}`
+                }
+                again={draft.state === 'FAILED' && !asComment}
+                blocked={null}
+                asComment={asComment}
+              />
+            ) : null}
+            <DismissReplyButton draftId={draft.draftId} />
+          </div>
         </div>
       ) : null}
       {after ? (

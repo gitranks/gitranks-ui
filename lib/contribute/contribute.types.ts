@@ -578,7 +578,12 @@ export type ContributeReplyTarget = {
   excerpt: string;
 };
 
-export type ContributeReplyState = 'DRAFT' | 'POSTING' | 'POSTED' | 'FAILED';
+export type ContributeReplyState = 'DRAFT' | 'POSTING' | 'POSTED' | 'FAILED' | 'DISMISSED';
+
+/** Why a reply was dismissed: by the user (posted by hand, not needed), or its thread was resolved on GitHub. */
+export type ContributeReplyDismissReason = 'POSTED_BY_HAND' | 'NOT_NEEDED' | 'THREAD_RESOLVED';
+/** The reasons the user gives when dismissing a reply. */
+export type ContributeReplyUserDismissReason = Exclude<ContributeReplyDismissReason, 'THREAD_RESOLVED'>;
 
 /** A reply a follow-up drafted; posted on GitHub only once the user approves it. Its text is untrusted. */
 export type ContributeReplyDraft = {
@@ -603,6 +608,13 @@ export type ContributeReplyDraft = {
   body?: string | null;
   /** Why the last post failed. */
   lastError: ContributeSubmitError | null;
+  /** GitHub refused it in its review thread: it may be posted as a comment on the pull request instead. */
+  canPostAsComment?: boolean;
+  /** Posted (or posting) as a comment on the pull request in place of its review thread. */
+  asComment?: boolean;
+  /** Why it was dismissed, and when. */
+  dismissedReason?: ContributeReplyDismissReason | null;
+  dismissedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 } & Partial<ContributeReplyDraftFlow>;

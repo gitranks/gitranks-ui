@@ -23,7 +23,7 @@ describe('OrgScreen stars rank', () => {
   it('shows the position once the organization has the stars the ranking needs', () => {
     const html = render(MIN_VALUE);
 
-    expect(html).toContain('Position:');
+    expect(html).toMatch(/Position: <span[^>]*>#12<\/span>/);
     expect(html).not.toContain(RANK_DESCRIPTIONS.s.notRankedMessage);
   });
 });

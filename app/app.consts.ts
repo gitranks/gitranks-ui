@@ -55,6 +55,9 @@ export const RANK_DESCRIPTIONS = {
   },
 };
 
+/** The organization page's stars rank, below the minimum. */
+export const ORG_NOT_RANKED_MESSAGE = `An organization needs ${MIN_VALUE}+ stars on repositories it owns to be ranked.`;
+
 export const LANGUAGE = {
   description:
     'See which programming languages are the most popular worldwide. Browse detailed summaries by stars and code size - and dive into rankings for each language, globally or by country.',

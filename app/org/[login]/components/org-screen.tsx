@@ -5,7 +5,7 @@ import { buildOrgSEO } from '../seo';
 import { LayoutLeftColumn } from './layout-left-column';
 import { OrgTopRepos } from './org-top-repos';
 import { OrgPulseSections } from './pulse/org-pulse-sections';
-import { MIN_VALUE, RANK_DESCRIPTIONS } from '@/app/app.consts';
+import { MIN_VALUE, ORG_NOT_RANKED_MESSAGE, RANK_DESCRIPTIONS } from '@/app/app.consts';
 import {
   ProfileCard,
   ProfileCardContent,
@@ -47,7 +47,7 @@ export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts }) => {
           <ProfileCardContent className="mt-4">
             {!hasData && (
               <>
-                <RankCardItem>{RANK_DESCRIPTIONS.s.notRankedMessage}</RankCardItem>
+                <RankCardItem>{ORG_NOT_RANKED_MESSAGE}</RankCardItem>
                 <RankCardTotalValue
                   score={org.s ?? 0}
                   starsNotCounted={org.starsNotCounted}

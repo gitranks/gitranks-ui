@@ -372,23 +372,36 @@ export type ContributePrSignal = {
 /** The pull request needs the user: what happened on it since they last acted on it, newest last. */
 export type ContributeNeedsYou = { since: string; signals: ContributePrSignal[] };
 
-/** A pull request's follow-up rounds; past the last one the pull request is the user's to carry on. */
+/**
+ * A pull request's follow-up runs: no cap on the user's own. Autopilot starts at most `autopilotMax` of them, and none
+ * once the user started one. `recommended`: open, none under way, and something a run can act on waits.
+ */
 export type ContributeFollowUps = {
   used: number;
-  left: number;
-  max: number;
-  handedOff: boolean;
-  handedOffAt: string | null;
+  autopilotRuns: number;
+  autopilotMax: number;
+  manualRuns: number;
+  recommended: boolean;
   /** The follow-up under way. */
   currentAttemptId: string | null;
-  /** Each round so far, oldest first; `undefined` while the API does not answer it. */
+  /** Each run so far, oldest first; `undefined` while the API does not answer it. */
   history?: ContributeFollowUpRound[] | null;
 };
 
-/** One follow-up round as the pull request lines it up: "Round 1 pushed 46de700 · 5 fixed · 2 replied". */
+/** Who started a follow-up run: the user, or autopilot on a maintainer's cue. */
+export type ContributeFollowUpBy = 'user' | 'autopilot';
+/** How it started: by autopilot, by the user while something waited (`recommended`), or by the user alone (`own`). */
+export type ContributeFollowUpTrigger = 'autopilot' | 'recommended' | 'own';
+
+/** One follow-up run as the pull request lines it up: "Run 1 pushed 46de700 · 5 fixed · 2 replied". */
 export type ContributeFollowUpRound = {
   round: number;
   attemptId: string;
+  by: ContributeFollowUpBy;
+  trigger: ContributeFollowUpTrigger | null;
+  /** The user's note to its agent. */
+  reason: string | null;
+  costUsd: number;
   state: ContributeAttemptState;
   endReason: ContributeAttemptEndReason | null;
   /** The pull request's head after the round's push. */
@@ -452,7 +465,15 @@ export type ContributeReplyDraftFlow = {
 };
 
 /** The pull request a follow-up works on, and the first attempt that opened it. */
-export type ContributeFollowUpOf = { attemptId: string; prId: string; number: number; url: string };
+export type ContributeFollowUpOf = {
+  attemptId: string;
+  prId: string;
+  number: number;
+  url: string;
+  trigger: ContributeFollowUpTrigger | null;
+  /** The user's note to its agent. */
+  reason: string | null;
+};
 
 /** The fields of an attempt that came with follow-ups; asked on their own, so an API without them leaves the rest. */
 export type ContributeAttemptFollowUpFields = {

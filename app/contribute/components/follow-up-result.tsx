@@ -379,7 +379,7 @@ export function FollowUpResult({
 
   const pushLabel = hasCommits ? 'Push fixes and reply' : 'Post the replies';
   const summary = [
-    hasCommits ? `pushes the new commits to ${pr}` : 'pushes nothing (no commits this round)',
+    hasCommits ? `pushes the new commits to ${pr}` : 'pushes nothing (no commits this run)',
     sent.length ? `posts ${sent.length} ${sent.length === 1 ? 'reply' : 'replies'}` : 'posts no reply',
     resolving ? `resolves ${resolving} ${resolving === 1 ? 'thread' : 'threads'}` : null,
   ]
@@ -416,7 +416,7 @@ export function FollowUpResult({
       {list('Bots', bots)}
       {list('People', people)}
       {list('Comments on the pull request', comments)}
-      {!drafts.length ? <p className="text-sm text-muted-foreground">The agent drafted no reply this round.</p> : null}
+      {!drafts.length ? <p className="text-sm text-muted-foreground">The agent drafted no reply this run.</p> : null}
       {inReview ? (
         <div className="flex flex-col gap-3 border-t pt-3.5">
           {people.length ? (
@@ -474,14 +474,14 @@ export function FollowUpResult({
             <ConfirmDialog
               trigger={
                 <Button type="button" variant="destructive-outline" disabled={busy} className="min-h-11">
-                  Discard round
+                  Discard run
                 </Button>
               }
               open={confirm === 'discard'}
               onOpenChange={(open) => setConfirm(open ? 'discard' : null)}
-              title="Discard this round?"
+              title="Discard this run?"
               description="Nothing is pushed and no reply is posted. What it cost stays spent; the comments you did not discard stay waiting on the pull request."
-              action="Discard round"
+              action="Discard run"
               pendingAction="Discarding…"
               pending={pending}
               error={confirm === 'discard' ? error : null}

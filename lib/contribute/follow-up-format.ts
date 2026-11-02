@@ -27,26 +27,28 @@ export function signalText(signal: ContributePrSignal, now?: Date): string {
   return `${what}${detail}${when ? ` · ${when}` : ''}`;
 }
 
-/** The pull request's rounds as a line: where it stands, and whether another follow-up may start. */
-export function roundsText(followUps: ContributeFollowUps): string {
-  if (followUps.handedOff || followUps.left <= 0) {
-    return `All ${followUps.max} follow-up rounds are used, so this pull request is handed to you: carry it on on GitHub.`;
-  }
-  if (followUps.currentAttemptId) {
-    return `A follow-up is under way: round ${Math.max(1, followUps.used)} of ${followUps.max}.`;
-  }
-  return `Follow-up round ${followUps.used + 1} of ${followUps.max} · ${followUps.left} left`;
-}
+/** The longest note the user can give a follow-up's agent (the API's). */
+export const FOLLOW_UP_NOTE_MAX = 2_000;
 
-/** A follow-up may start on the pull request now, as far as its rounds go. */
-export const canStartFollowUp = (followUps: ContributeFollowUps) =>
-  !followUps.handedOff && followUps.left > 0 && !followUps.currentAttemptId;
+/** Autopilot's share of the pull request's runs, when its line shows: started so far, and whether it stopped. */
+export function autopilotLineOf(
+  followUps: Pick<ContributeFollowUps, 'autopilotRuns' | 'autopilotMax' | 'manualRuns' | 'history'>,
+) {
+  if (followUps.manualRuns > 0) {
+    // The first run the user started, when the runs are listed.
+    const mine = followUps.history?.find((run) => run.by === 'user')?.round;
+    return `Autopilot stays off on this pull request: you started ${mine ? `run ${mine}` : 'a run'} yourself.`;
+  }
+  if (followUps.autopilotRuns >= followUps.autopilotMax) {
+    return `Autopilot has started its ${followUps.autopilotMax} runs here; any more are yours to start.`;
+  }
+  return `Autopilot has started ${followUps.autopilotRuns} of its ${followUps.autopilotMax} runs here. A run you start yourself turns autopilot off on this pull request.`;
+}
 
 /** Why a follow-up could not start, from the API's refusal, in our words. */
 const FOLLOW_UP_REFUSALS: [RegExp, string][] = [
   [/not open/i, 'The pull request is no longer open, so there is nothing to follow up.'],
   [/under way/i, 'A follow-up is already running on this pull request. Wait for it to finish.'],
-  [/round.*used|no rounds/i, 'Every follow-up round is used: the pull request is yours to carry on on GitHub.'],
   [/no branch/i, 'This pull request has no branch of ours to add commits to.'],
   [/paused on our side/i, 'New agent sessions are paused on our side for now. Try again later.'],
   [/contributing is paused/i, 'Contributing is paused. Resume it in Settings, then start the follow-up.'],

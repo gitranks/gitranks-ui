@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { ignoreReviewThreads, startFollowUp } from '../actions';
+import { FollowUpNote } from './follow-up-buttons';
 import { HEADING, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import { cn } from '@/lib/utils';
 
 type Choice = 'address' | 'ignore';
 
-/** The most comments one round addresses (the API's). */
+/** The most comments one run addresses (the API's). */
 const ROUND_MAX = 20;
 
 /** One waiting thread: who wrote it, where, its first line, and Address / Ignore. Its text is untrusted. */
@@ -106,7 +107,7 @@ export function ReviewFeedbackCard({
   prId: string;
   prNumber: number | null;
   feedback: ContributeReviewFeedback;
-  /** A round may start now (one left, none under way, the pull request open). */
+  /** A run may start now (none under way, the pull request open). */
   canStart: boolean;
   /** Why it cannot, in a line; shown in place of the button. */
   blocked: string | null;
@@ -118,6 +119,7 @@ export function ReviewFeedbackCard({
     Object.fromEntries(feedback.threads.map((thread) => [thread.commentId, thread.ignored ? 'ignore' : 'address'])),
   );
   const [showIgnored, setShowIgnored] = useState(false);
+  const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -142,6 +144,7 @@ export function ReviewFeedbackCard({
       const result = await startFollowUp(
         prId,
         chosen.map((thread) => thread.commentId),
+        note,
       );
       if (!result.ok) {
         setError(followUpErrorMessage(result.error, result.message));
@@ -151,7 +154,7 @@ export function ReviewFeedbackCard({
       router.push(attemptHref(result.data.attemptId));
     });
 
-  // Ignore is kept on the pull request at once (Address undoes it): the comment stays out of every round, autopilot's
+  // Ignore is kept on the pull request at once (Address undoes it): the comment stays out of every run, autopilot's
   // too, until someone comments on it again.
   const choose = (thread: ContributeFeedbackThread, choice: Choice) => {
     const id = thread.commentId;
@@ -216,6 +219,16 @@ export function ReviewFeedbackCard({
         </span>
       ) : null}
       {canStart ? (
+        <FollowUpNote
+          id={`follow-up-note-${prId}`}
+          label="A note for the agent"
+          placeholder="Anything it should know beyond these comments?"
+          value={note}
+          onChange={setNote}
+          disabled={busy}
+        />
+      ) : null}
+      {canStart ? (
         <div className="flex flex-col gap-1.5">
           <Button
             type="button"
@@ -232,14 +245,14 @@ export function ReviewFeedbackCard({
           </Button>
           {tooMany ? (
             <span role="status" className="text-sm text-warning">
-              A round takes {ROUND_MAX} comments at most. Set {chosen.length - ROUND_MAX} to Ignore: they stay out of
-              every round, autopilot&apos;s too, until you address them again or someone comments on them.
+              A run takes {ROUND_MAX} comments at most. Set {chosen.length - ROUND_MAX} to Ignore: they stay out of
+              every run, autopilot&apos;s too, until you address them again or someone comments on them.
             </span>
           ) : null}
           <span className="text-xs text-muted-foreground">
             The agent works on your Claude key
-            {typeof attemptCapUsd === 'number' ? ` within your ${usd(attemptCapUsd)} limit for one attempt` : ''}, runs
-            the tests, and drafts a reply to each comment. You review it all before anything is pushed or posted, unless
+            {typeof attemptCapUsd === 'number' ? ` within your ${usd(attemptCapUsd)} limit per run` : ''}, runs the
+            tests, and drafts a reply to each comment. You review it all before anything is pushed or posted, unless
             your autopilot is on.
           </span>
         </div>

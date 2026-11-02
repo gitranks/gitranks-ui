@@ -442,6 +442,38 @@ describe('the follow-up flow’s actions', () => {
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
+  it('sends the user’s note to the agent trimmed, leaves an empty one out, and refuses one too long', async () => {
+    graphqlDirect.mockResolvedValue({ startFollowUp: { attemptId: 'A_F3' } });
+    await actions.startFollowUp('PR_1', undefined, '  The lint rule is wrong here.  ');
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      StartFollowUpDocument,
+      { prId: 'PR_1', reason: 'The lint rule is wrong here.' },
+      as,
+    );
+    // The review feedback card's start: the comments chosen and the note, together.
+    await actions.startFollowUp('PR_1', ['C_1'], ' Also the flaky test. ');
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      StartFollowUpOnDocument,
+      { prId: 'PR_1', commentIds: ['C_1'], reason: 'Also the flaky test.' },
+      as,
+    );
+
+    graphqlDirect.mockClear();
+    await actions.startFollowUp('PR_1', undefined, '   ');
+    await actions.startFollowUp('PR_1', ['C_1'], '');
+    expect(graphqlDirect.mock.calls.map(([document, variables]) => [document, variables])).toEqual([
+      [StartFollowUpDocument, { prId: 'PR_1' }],
+      [StartFollowUpOnDocument, { prId: 'PR_1', commentIds: ['C_1'] }],
+    ]);
+
+    graphqlDirect.mockClear();
+    expect(await actions.startFollowUp('PR_1', undefined, 'x'.repeat(2_001))).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
   it('approves a follow-up with its replies trimmed, and refuses a reply to post with no text', async () => {
     graphqlDirect.mockResolvedValue({ approveAttempt: { attemptId: 'A_F1', state: 'SUBMITTING' } });
     await actions.approveFollowUp('A_F1', 'Follow-up on pull request #1419', [

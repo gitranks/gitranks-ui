@@ -74,8 +74,8 @@ const ATTEMPT = `attemptId issueId repositoryId nameWithOwner number title url k
 
 // Follow-ups, reply drafts and autopilot: read in operations of their own, so an API without them leaves the rest.
 const NEEDS_YOU = 'needsYou { since signals { kind at detail } }';
-const FOLLOW_UPS = 'followUps { used left max handedOff handedOffAt currentAttemptId }';
-const FOLLOW_UP_FIELDS = `attemptId ${NEEDS_YOU} ${FOLLOW_UPS} followUpOf { attemptId prId number url } autosubmitAt autopilot`;
+const FOLLOW_UPS = 'followUps { used autopilotRuns autopilotMax manualRuns recommended currentAttemptId }';
+const FOLLOW_UP_FIELDS = `attemptId ${NEEDS_YOU} ${FOLLOW_UPS} followUpOf { attemptId prId number url trigger reason } autosubmitAt autopilot`;
 const REPLY_DRAFT = `draftId prId attemptId comment { commentId author path line excerpt } text prefix state posted
   postedAt url commentUrl body lastError { reason note at } createdAt updatedAt`;
 
@@ -421,7 +421,8 @@ export const ContributeAttemptFollowUpsDocument = doc<
 }`);
 
 // The follow-up flow (2026-10-31): what each thread came to, the checks in a word, the threads waiting, the rounds.
-const ROUND = 'round attemptId state endReason pushedSha fixed skipped needsYou replied resolved at';
+const ROUND =
+  'round attemptId by trigger reason costUsd state endReason pushedSha fixed skipped needsYou replied resolved at';
 const FEEDBACK_THREAD = 'threadId commentId author bot path line excerpt url createdAt ignored';
 
 export type FollowUpFlowRead = {
@@ -454,9 +455,11 @@ export const ContributeAttemptFollowUpFlowDocument = doc<
 /** A follow-up on the threads the user chose to address; the pull request's other waiting threads are ignored. */
 export const StartFollowUpOnDocument = doc<
   { startFollowUp: ContributeAttempt },
-  { prId: string; commentIds: string[] }
+  { prId: string; commentIds: string[]; reason?: string | null }
 >(
-  `mutation StartFollowUpOn($prId: ID!, $commentIds: [ID!]) { startFollowUp(prId: $prId, commentIds: $commentIds) { ${ATTEMPT} } }`,
+  `mutation StartFollowUpOn($prId: ID!, $commentIds: [ID!], $reason: String) {
+  startFollowUp(prId: $prId, commentIds: $commentIds, reason: $reason) { ${ATTEMPT} }
+}`,
 );
 
 /** A follow-up's approval with its replies as edited: the commits are pushed, then the replies sent are posted. */
@@ -510,9 +513,10 @@ export const ContributeReplyDraftsDocument = doc<
   { prId: string }
 >(`query ContributeReplyDrafts($prId: ID!) { contributeReplyDrafts(prId: $prId) { ${REPLY_DRAFT} } }`);
 
-export const StartFollowUpDocument = doc<{ startFollowUp: ContributeAttempt }, { prId: string }>(
-  `mutation StartFollowUp($prId: ID!) { startFollowUp(prId: $prId) { ${ATTEMPT} } }`,
-);
+export const StartFollowUpDocument = doc<
+  { startFollowUp: ContributeAttempt },
+  { prId: string; reason?: string | null }
+>(`mutation StartFollowUp($prId: ID!, $reason: String) { startFollowUp(prId: $prId, reason: $reason) { ${ATTEMPT} } }`);
 
 export const MarkNeedsYouHandledDocument = doc<{ markNeedsYouHandled: ContributeAttempt }, { prId: string }>(
   `mutation MarkNeedsYouHandled($prId: ID!) { markNeedsYouHandled(prId: $prId) { ${ATTEMPT} } }`,

@@ -6,9 +6,15 @@ import { useEffect, useState, useTransition } from 'react';
 import { markNeedsYouHandled, retryAttempt, startFollowUp, vetoAutopilot } from '../actions';
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { timeLabel } from '@/lib/contribute/attempt-format';
 import { attemptActionErrorMessage } from '@/lib/contribute/errors';
-import { followUpErrorMessage, handledErrorMessage, vetoErrorMessage } from '@/lib/contribute/follow-up-format';
+import {
+  FOLLOW_UP_NOTE_MAX,
+  followUpErrorMessage,
+  handledErrorMessage,
+  vetoErrorMessage,
+} from '@/lib/contribute/follow-up-format';
 import { relativeLabel } from '@/lib/contribute/format';
 
 const ErrorNote = ({ error }: { error: string | null }) =>
@@ -18,9 +24,70 @@ const ErrorNote = ({ error }: { error: string | null }) =>
     </span>
   ) : null;
 
-/** Starts a follow-up on the pull request, then opens it: its review comes there once the agent is done. */
-export function StartFollowUpButton({ prId }: { prId: string }) {
+/**
+ * The user's optional note to a follow-up's agent: what they think is wrong, or what to focus on. The agent reads it
+ * first and follows it over the comments on the pull request. At most `FOLLOW_UP_NOTE_MAX` characters.
+ */
+export function FollowUpNote({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5" data-follow-up-note="">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label} <span className="font-normal text-muted-foreground">(optional)</span>
+      </label>
+      <Textarea
+        id={id}
+        aria-describedby={`${id}-hint ${id}-count`}
+        rows={3}
+        maxLength={FOLLOW_UP_NOTE_MAX}
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        className="min-h-20"
+      />
+      <span className="flex justify-between gap-3 text-xs text-muted-foreground">
+        <span id={`${id}-hint`}>
+          Your note comes first: where it and a comment on the pull request disagree, the agent follows yours.
+        </span>
+        <span id={`${id}-count`} aria-live="polite" className="shrink-0 font-mono tabular-nums">
+          {value.length.toLocaleString('en-US')} / {FOLLOW_UP_NOTE_MAX.toLocaleString('en-US')}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The next follow-up run: the user's note, then "Start a follow-up", the main action when GitRanks recommends a run
+ * (`primary`), else an outline one. Opens the run once it starts: its review comes there once the agent is done.
+ */
+export function StartFollowUpButton({
+  prId,
+  primary = true,
+  noteLabel = 'A note for the agent',
+  notePlaceholder = 'Anything it should know? For example: the lint rule is wrong here, fix the test instead.',
+}: {
+  prId: string;
+  primary?: boolean;
+  noteLabel?: string;
+  notePlaceholder?: string;
+}) {
   const router = useRouter();
+  const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   /** It went through: the button stays off until the next page lands. */
   const [done, setDone] = useState(false);
@@ -29,7 +96,7 @@ export function StartFollowUpButton({ prId }: { prId: string }) {
   const click = () =>
     startTransition(async () => {
       setError(null);
-      const result = await startFollowUp(prId);
+      const result = await startFollowUp(prId, undefined, note);
       if (!result.ok) {
         setError(followUpErrorMessage(result.error, result.message));
         return;
@@ -39,11 +106,28 @@ export function StartFollowUpButton({ prId }: { prId: string }) {
     });
 
   return (
-    <div className="flex flex-col items-start gap-1.5" data-start-follow-up={prId}>
-      <Button type="button" size="lg" onClick={click} disabled={pending || done} className="px-4 font-semibold">
-        {pending || done ? 'Starting…' : 'Start a follow-up'}
-      </Button>
-      <ErrorNote error={error} />
+    <div className="flex flex-col gap-3" data-start-follow-up={prId}>
+      <FollowUpNote
+        id={`follow-up-note-${prId}`}
+        label={noteLabel}
+        placeholder={notePlaceholder}
+        value={note}
+        onChange={setNote}
+        disabled={pending || done}
+      />
+      <div className="flex flex-col items-start gap-1.5">
+        <Button
+          type="button"
+          size="lg"
+          variant={primary ? 'default' : 'outline'}
+          onClick={click}
+          disabled={pending || done}
+          className="min-h-11 px-4 font-semibold"
+        >
+          {pending || done ? 'Starting…' : 'Start a follow-up'}
+        </Button>
+        <ErrorNote error={error} />
+      </div>
     </div>
   );
 }

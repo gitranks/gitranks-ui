@@ -185,13 +185,25 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       },
       {
         id: 'next-round',
-        title: 'The next round, not started',
-        path: '/contribute/attempts/A_1',
+        title: 'The next run, recommended',
+        path: '/contribute/attempts/A_1?session=next',
         height: 1600,
         render: () =>
           frame(
             <main className={MAIN}>
               <ReviewScreen view={views.active} attempt={followUpAttempts.prNeedsYou} next now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'own-reason',
+        title: 'The next run, nothing waiting: your own reason',
+        path: '/contribute/attempts/A_1?session=next',
+        height: 1600,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <ReviewScreen view={views.active} attempt={followUpAttempts.quiet} next now={NOW} />
             </main>,
           ),
       },

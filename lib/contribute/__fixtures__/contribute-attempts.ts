@@ -5,6 +5,7 @@ import type {
   ContributeContributions,
   ContributeFeedbackThread,
   ContributeFollowUpOf,
+  ContributeFollowUpRound,
   ContributeFollowUps,
   ContributeNeedsYou,
   ContributeReplyDraft,
@@ -297,11 +298,31 @@ export const needsYou = (patch: Partial<ContributeNeedsYou> = {}): ContributeNee
 
 export const followUps = (patch: Partial<ContributeFollowUps> = {}): ContributeFollowUps => ({
   used: 0,
-  left: 2,
-  max: 2,
-  handedOff: false,
-  handedOffAt: null,
+  autopilotRuns: 0,
+  autopilotMax: 2,
+  manualRuns: 0,
+  recommended: false,
   currentAttemptId: null,
+  ...patch,
+});
+
+/** One follow-up run as the pull request's history lists it: pushed by the user, by default. */
+export const followUpRun = (patch: Partial<ContributeFollowUpRound> = {}): ContributeFollowUpRound => ({
+  round: 1,
+  attemptId: 'A_F1',
+  by: 'user',
+  trigger: 'recommended',
+  reason: null,
+  costUsd: 0.31,
+  state: 'DONE',
+  endReason: null,
+  pushedSha: '46de700aa1',
+  fixed: 2,
+  skipped: 0,
+  needsYou: 0,
+  replied: 1,
+  resolved: 0,
+  at: '2026-10-28T14:02:00.000Z',
   ...patch,
 });
 
@@ -310,6 +331,8 @@ export const followUpOf: ContributeFollowUpOf = {
   prId: 'PR_1',
   number: 1419,
   url: 'https://github.com/driftwood-js/driftwood/pull/1419',
+  trigger: 'recommended',
+  reason: null,
 };
 
 /** A follow-up's commit: one more change on the pull request's branch. */
@@ -417,22 +440,45 @@ export const followUp = (patch: Partial<ContributeAttemptDetail> = {}): Contribu
 
 /** First attempts and follow-ups in each state the follow-up views render. */
 export const followUpAttempts = {
-  /** A first attempt whose open pull request needs the user, with both rounds left. */
+  /** A first attempt whose open pull request needs the user: a run is recommended. */
   prNeedsYou: detail({
     ...noFollowUps,
     state: 'PR_OPEN',
     pullRequest: pullRequest({ reviewDecision: 'CHANGES_REQUESTED', checks: 'FAILURE' }),
     needsYou: needsYou(),
-    followUps: followUps(),
+    followUps: followUps({ recommended: true }),
     replyDrafts: [],
   }),
-  /** Both rounds used: the pull request is the user's. */
-  handedOff: detail({
+  /**
+   * Nothing waits on the open pull request after two runs, autopilot's and the user's: the next one is the user's
+   * call, with their own reason.
+   */
+  quiet: detail({
     ...noFollowUps,
     state: 'PR_OPEN',
-    pullRequest: pullRequest(),
-    needsYou: needsYou({ signals: [{ kind: 'COMMENT', at: '2026-10-28T11:30:00.000Z', detail: null }] }),
-    followUps: followUps({ used: 2, left: 0, handedOff: true, handedOffAt: '2026-10-27T10:00:00.000Z' }),
+    pullRequest: pullRequest({ reviewDecision: 'REVIEW_REQUIRED', checks: 'SUCCESS' }),
+    needsYou: null,
+    followUps: followUps({
+      used: 2,
+      autopilotRuns: 1,
+      manualRuns: 1,
+      history: [
+        followUpRun({ by: 'autopilot', trigger: 'autopilot' }),
+        followUpRun({
+          round: 2,
+          attemptId: 'A_F2',
+          trigger: 'own',
+          reason: 'The docs example still uses the old path.',
+          costUsd: 0.12,
+          state: 'STOPPED',
+          endReason: 'NO_GO',
+          pushedSha: null,
+          fixed: 0,
+          replied: 0,
+          at: '2026-10-29T10:40:00.000Z',
+        }),
+      ],
+    }),
     replyDrafts: [],
   }),
   /** A follow-up under way: its first attempt waits in `FOLLOW_UP`. */
@@ -440,7 +486,7 @@ export const followUpAttempts = {
     ...noFollowUps,
     state: 'FOLLOW_UP',
     pullRequest: pullRequest(),
-    followUps: followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' }),
+    followUps: followUps({ used: 1, manualRuns: 1, currentAttemptId: 'A_F1' }),
     replyDrafts: [],
   }),
   review: followUp(),

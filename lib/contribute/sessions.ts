@@ -3,17 +3,16 @@ import type { Route } from 'next';
 import { ATTEMPT_STATES, isOwnAgent, type Tone, timeLabel } from './attempt-format';
 import type { ContributeAttemptDetail, ContributeFollowUpRound } from './contribute.types';
 import { roundTalliesOf, shortSha } from './follow-up-flow';
-import { canStartFollowUp } from './follow-up-format';
 import { usd } from './format';
 import { parsePatch } from './patch';
 
 /**
  * A contribution's sessions, as its page lists them: the first attempt, which opened the pull request, then each
- * follow-up round on it, then the next round while one may start (a draft: the comments to choose), or the note that
- * every round is used. One page for all of them; the session in its address is the one shown.
+ * follow-up run on it, then the next run while one may start (a draft: the comments to choose, the note to write). One
+ * page for all of them; the session in its address is the one shown.
  */
 
-/** The page's address for the round that has not started yet. */
+/** The page's address for the run that has not started yet. */
 export const NEXT_SESSION = 'next';
 
 export const attemptPath = (attemptId: string) => `/contribute/attempts/${encodeURIComponent(attemptId)}` as Route;
@@ -21,7 +20,7 @@ export const nextSessionPath = (attemptId: string) => `${attemptPath(attemptId)}
 
 export type SessionCard = {
   key: string;
-  /** Where its card leads; none for the note that every round is used. */
+  /** Where its card leads. */
   href: Route | null;
   title: string;
   pill: { label: string; tone: Tone } | null;
@@ -29,19 +28,37 @@ export type SessionCard = {
   meta: string;
   note: string | null;
   current: boolean;
-  /** The next round, not started: its card is dashed. */
+  /** The next run, not started: its card is dashed. */
   draft?: boolean;
 };
 
-/** Whether the next round may start on the first attempt's pull request: open, a round left, none under way. */
+/**
+ * Whether the next run may start on the first attempt's pull request: open, none under way, and its branch ours (a
+ * pull request opened by hand takes no run). No cap on runs: whether anything waits only makes one recommended.
+ */
 export const nextRoundOpen = (first: ContributeAttemptDetail): boolean =>
   first.kind === 'FIRST' &&
   first.state === 'PR_OPEN' &&
   first.pullRequest?.state === 'OPEN' &&
+  first.openedBy !== 'HAND' &&
   !!first.followUps &&
-  canStartFollowUp(first.followUps);
+  !first.followUps.currentAttemptId;
 
-/** The review threads that wait for an answer: those not ignored in an earlier round. */
+/** The next run's number: one past the runs so far, as counted or as listed. */
+export const nextRunNumberOf = (first: ContributeAttemptDetail): number =>
+  Math.max(first.followUps?.used ?? 0, first.followUps?.history?.length ?? 0) + 1;
+
+/** Who started a run read on its own: autopilot, the user, or null when its read does not say. */
+function starterOf(run: ContributeAttemptDetail): ContributeFollowUpRound['by'] | null {
+  if (run.followUpOf?.trigger === 'autopilot' || run.autopilot) return 'autopilot';
+  return run.followUpOf?.trigger ? 'user' : null;
+}
+
+/** The next run is recommended: GitRanks sees something a run can act on, or review comments wait for an answer. */
+export const nextRoundRecommended = (first: ContributeAttemptDetail): boolean =>
+  !!first.followUps?.recommended || waitingThreadsOf(first).length > 0;
+
+/** The review threads that wait for an answer: those not ignored in an earlier run. */
 export const waitingThreadsOf = (first: ContributeAttemptDetail) =>
   first.pullRequest?.state === 'OPEN' ? (first.reviewFeedback?.threads ?? []).filter(({ ignored }) => !ignored) : [];
 
@@ -106,8 +123,8 @@ function firstCardOf(first: ContributeAttemptDetail, current: boolean): SessionC
 }
 
 /**
- * The sessions of the contribution whose first attempt is `first`, `selected` marked current (`next`: the round not
- * started). Each round comes from the pull request's history; one the history does not list yet (`selected`, just
+ * The sessions of the contribution whose first attempt is `first`, `selected` marked current (`next`: the run not
+ * started). Each run comes from the pull request's history; one the history does not list yet (`selected`, just
  * started) is added from what was read of it.
  */
 export function sessionsOf(
@@ -117,13 +134,26 @@ export function sessionsOf(
 ): SessionCard[] {
   const cards = [firstCardOf(first, !selected.next && selected.attemptId === first.attemptId)];
   const history = [...(first.followUps?.history ?? [])];
-  // Without the history, a round added here is the latest one: its number is the rounds used.
+  // Without the history, a run added here is the latest one: its number is the runs used.
   const numberOf = () => (first.followUps?.history ? history.length + 1 : first.followUps?.used || history.length + 1);
   const unlisted = (attemptId: string) => !history.some((entry) => entry.attemptId === attemptId);
-  const add = (attemptId: string, state: ContributeFollowUpRound['state'], at: string) =>
+  // Runs added here whose starter is not known: their card names neither.
+  const whoUnknown = new Set<string>();
+  const add = (
+    attemptId: string,
+    state: ContributeFollowUpRound['state'],
+    at: string,
+    by: ContributeFollowUpRound['by'] | null,
+    costUsd = 0,
+  ) => {
+    if (!by) whoUnknown.add(attemptId);
     history.push({
       round: numberOf(),
       attemptId,
+      by: by ?? 'user',
+      trigger: null,
+      reason: null,
+      costUsd,
       state,
       endReason: null,
       pushedSha: null,
@@ -134,18 +164,21 @@ export function sessionsOf(
       resolved: 0,
       at,
     });
-  if (round && unlisted(round.attemptId)) add(round.attemptId, round.state, round.createdAt);
-  // The round under way, before the history lists it: under way is all that is known of it.
+  };
+  if (round && unlisted(round.attemptId)) {
+    add(round.attemptId, round.state, round.createdAt, starterOf(round), round.costUsd);
+  }
+  // The run under way, before the history lists it: under way is all that is known of it.
   const current = first.followUps?.currentAttemptId;
-  if (current && unlisted(current)) add(current, 'RUNNING', '');
+  if (current && unlisted(current)) add(current, 'RUNNING', '', null);
   for (const entry of history) {
     const tallies = roundTalliesOf(entry);
     cards.push({
       key: entry.attemptId,
       href: attemptPath(entry.attemptId),
-      title: `Round ${entry.round} · follow-up`,
+      title: `Run ${entry.round} · ${whoUnknown.has(entry.attemptId) ? 'follow-up' : entry.by === 'autopilot' ? 'autopilot' : 'you'}`,
       pill: roundPillOf(entry),
-      meta: timeLabel(entry.at),
+      meta: [timeLabel(entry.at), entry.costUsd > 0 ? usd(entry.costUsd) : null].filter(Boolean).join(' · '),
       note: tallies.length ? tallies.join(' · ') : null,
       current: !selected.next && selected.attemptId === entry.attemptId,
     });
@@ -154,27 +187,28 @@ export function sessionsOf(
   const followUps = first.followUps;
   if (followUps && nextRoundOpen(first)) {
     const waiting = waitingThreadsOf(first).length;
+    const recommended = nextRoundRecommended(first);
     cards.push({
       key: NEXT_SESSION,
       href: nextSessionPath(first.attemptId),
-      title: `Round ${followUps.used + 1} · follow-up`,
-      pill: { label: 'Not started', tone: 'violet' },
-      meta: followUps.left === 1 ? 'The last round' : `${followUps.left} rounds left`,
+      title: `Run ${nextRunNumberOf(first)} · follow-up`,
+      pill: recommended ? { label: 'Recommended', tone: 'violet' } : { label: 'Not started', tone: 'neutral' },
+      meta: recommended ? 'Not started' : 'Your call',
       note: waiting ? `${waiting} ${waiting === 1 ? 'comment' : 'comments'} waiting` : null,
       current: selected.next,
       draft: true,
     });
-  } else if (followUps && followUps.used > 0 && (followUps.handedOff || followUps.left <= 0)) {
-    cards.push({
-      key: 'handed-off',
-      href: null,
-      title: 'No rounds left',
-      pill: null,
-      meta: followUps.handedOffAt ? `Handed to you ${timeLabel(followUps.handedOffAt)}` : '',
-      note: 'Carry the pull request on on GitHub.',
-      current: false,
-      draft: true,
-    });
   }
   return cards;
+}
+
+/** The sessions header: the follow-up runs so far and what they cost (`2 runs · $0.43`); null before the first. */
+export function runsLabelOf(first: ContributeAttemptDetail): string | null {
+  const followUps = first.followUps;
+  const runs = Math.max(followUps?.used ?? 0, followUps?.history?.length ?? 0);
+  if (!runs) return null;
+  const cost = (followUps?.history ?? []).reduce((sum, run) => sum + (run.costUsd ?? 0), 0);
+  return [`${runs} ${runs === 1 ? 'run' : 'runs'}`, cost > 0 && !isOwnAgent(first) ? usd(cost) : null]
+    .filter(Boolean)
+    .join(' · ');
 }

@@ -40,7 +40,7 @@ describe('manualLimitsOf', () => {
     expect(manualLimitsOf(manualDraftOf({ attempt: '0.25' }))).toMatchObject({
       ok: false,
       field: 'attempt',
-      message: 'Each attempt is between $0.50 and $100.',
+      message: 'Each run is between $0.50 and $100.',
     });
     expect(manualLimitsOf(manualDraftOf({ day: '1.005' }))).toMatchObject({ ok: false, field: 'day' });
   });
@@ -49,12 +49,12 @@ describe('manualLimitsOf', () => {
     expect(manualLimitsOf(manualDraftOf({ month: '4' }))).toEqual({
       ok: false,
       field: 'attempt',
-      message: "Each attempt can't be more than each month ($4): no attempt could start.",
+      message: "Each run can't be more than each month ($4): no run could start.",
     });
     expect(manualLimitsOf(manualDraftOf({ week: '20', day: '3' }))).toMatchObject({
       ok: false,
       field: 'attempt',
-      message: "Each attempt can't be more than each day ($3): no attempt could start.",
+      message: "Each run can't be more than each day ($3): no run could start.",
     });
     // Equal is room for one; a week cap above the month is taken, as Settings takes it: the smallest wins.
     expect(manualLimitsOf(manualDraftOf({ day: '5' })).ok).toBe(true);
@@ -90,7 +90,7 @@ describe('appliedLimitsOf', () => {
     const own = rows('manual', 'MAX_5X', manualDraftOf({ month: '80', day: '10', attempt: '3', pace: 'FAST' }));
 
     expect(own['Each month']).toBe('at most $80, the amount you set');
-    expect(own['Each attempt']).toBe('at most $3, it stops at the cap');
+    expect(own['Each run']).toBe('at most $3, it stops at the cap');
     expect(own['Week and day']).toBe('$10 a day: the smallest cap wins');
     expect(rows('manual', 'MAX_5X', manualDraftOf({ month: '' }))['Each month']).toBe('the amount you set above');
     expect(
@@ -121,7 +121,7 @@ describe('a key connected before', () => {
     const same = rows('plan', 'MAX_5X', manualDraftOf(), { plan: 'MAX_5X', settings: stored });
 
     expect(same['Each month']).toBe('at most $150, your monthly cap as it is');
-    expect(same['Each attempt']).toBe('at most $3, it stops at the cap');
+    expect(same['Each run']).toBe('at most $3, it stops at the cap');
     expect(same['Week and day']).toBe('$40 a week: the smallest cap wins');
     expect(same['At a time']).toBe('2 attempts, and at most 3 of your PRs open');
     expect(same['Each PR']).toBe('at most 250 changed lines in 15 files');
@@ -137,7 +137,7 @@ describe('a key connected before', () => {
     });
 
     expect(moved['Each month']).toBe("up to $20 of your credits, Team Standard's monthly allowance");
-    expect(moved['Each attempt']).toBe('at most $20, it stops at the cap');
+    expect(moved['Each run']).toBe('at most $20, it stops at the cap');
     expect(moved['Week and day']).toBe('$40 a week: the smallest cap wins');
   });
 

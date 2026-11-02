@@ -71,7 +71,7 @@ export function FollowUpApproval({
       <p className="text-sm text-muted-foreground">
         {hasCommits
           ? `The new commits go onto ${pr}'s branch on your fork, in your name, signed off as its first commits were. The pull request shows them at once.`
-          : 'The agent made no commits this round, only the replies below. Approve the replies you want posted, here or once it is finished; finishing it pushes nothing.'}
+          : 'The agent made no commits this run, only the replies below. Approve the replies you want posted, here or once it is finished; finishing it pushes nothing.'}
       </p>
       {error && !confirm ? (
         <span role="alert" className="text-sm text-destructive">

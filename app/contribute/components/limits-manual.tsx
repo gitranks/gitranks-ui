@@ -26,7 +26,7 @@ const PACES: { pace: ContributeConnectPace; title: string; text: string }[] = [
 const OPTIONAL: { field: Exclude<ManualField, 'month'>; label: string; placeholder?: string }[] = [
   { field: 'week', label: 'Each week', placeholder: 'No cap' },
   { field: 'day', label: 'Each day', placeholder: 'No cap' },
-  { field: 'attempt', label: 'Each attempt' },
+  { field: 'attempt', label: 'Each run' },
 ];
 
 /**

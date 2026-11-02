@@ -133,7 +133,7 @@ describe('the contribution page', () => {
         view={views.active}
         attempt={followUpAttempts.review}
         // The round in review is the one under way on its pull request.
-        first={{ ...followUpAttempts.prNeedsYou, followUps: followUps({ used: 1, left: 1, currentAttemptId: 'A_F1' }) }}
+        first={{ ...followUpAttempts.prNeedsYou, followUps: followUps({ used: 1, currentAttemptId: 'A_F1' }) }}
         now={NOW}
       />,
     );
@@ -141,7 +141,7 @@ describe('the contribution page', () => {
     expect(html).toContain('data-pr-state="OPEN"');
     expect(html).not.toContain('data-session="next"');
     expect(html).toMatch(/data-session="A_F1"[^>]*><a[^>]*aria-current="page"/);
-    expect(plain).toContain('Round 1 · follow-up Ready for you');
+    expect(plain).toContain('Run 1 · you Ready for you');
     expect(panel(html, 'replies')).toBe('active');
     expect(html).not.toContain('data-follow-up-of');
   });
@@ -165,16 +165,17 @@ describe('the contribution page', () => {
     expect(review(fixed)).not.toContain('data-needs-you');
   });
 
-  it('still lists the waiting comments, with why, once no round can start', () => {
-    const usedUp = {
-      ...followUpAttempts.handedOff,
-      pullRequest: { ...followUpAttempts.handedOff.pullRequest!, state: 'OPEN' as const },
+  it('still lists the waiting comments, with why, while a run is under way', () => {
+    const busy = {
+      ...followUpAttempts.quiet,
+      state: 'FOLLOW_UP' as const,
+      followUps: followUps({ used: 2, currentAttemptId: 'A_F3' }),
       reviewFeedback: { readAt: null, threads: [feedbackThread()] },
     };
-    expect(review(usedUp)).toContain('href="/contribute/attempts/A_1?session=next"');
-    const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={usedUp} next now={NOW} />);
+    expect(review(busy)).toContain('href="/contribute/attempts/A_1?session=next"');
+    const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={busy} next now={NOW} />);
     expect(html).toContain('data-panel="review-feedback"');
-    expect(text(html)).toContain('Every follow-up round is used: answer these on GitHub.');
+    expect(text(html)).toContain('A follow-up is under way on these comments.');
     expect(html).not.toContain('data-start-follow-up');
   });
 });

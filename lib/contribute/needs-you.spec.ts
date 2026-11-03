@@ -355,8 +355,28 @@ describe('needsYouItemsOf: the runs at work', () => {
     });
     // Its run not read (queued, or past the read): still in place, starting.
     expect(items({ contributions: [prsNeedingYou.working] }).items[0].move).toBe(
-      'Starting. It comes back here when it is ready.',
+      'Under way. It comes back here when it is ready.',
     );
+  });
+
+  it('says a run pushing the commits the user approved, and one back for review as its review', () => {
+    const pushing = { ...runsInFlight[0], state: 'SUBMITTING' as const };
+    expect(rowOf(prsNeedingYou.working, { runs: [pushing] }).move).toBe('Pushing the commits you approved.');
+    const back = { ...runsInFlight[0], state: 'REVIEW' as const };
+    expect(rowOf(prsNeedingYou.working, { runs: [back] })).toMatchObject({
+      kind: 'run-ready',
+      working: false,
+      pill: 'Run 2 ready',
+      action: { label: 'Review run 2', href: '/contribute/attempts/A_FAB2' },
+    });
+  });
+
+  it("says the user's own agent is on a run it did not read, from the pull request's maker", () => {
+    expect(rowOf(prsNeedingYou.ownWorking)).toMatchObject({
+      kind: 'own-working',
+      move: 'Your agent is on it.',
+      working: true,
+    });
   });
 
   it("says how long the user's own agent holds its run", () => {
@@ -374,7 +394,7 @@ describe('needsYouItemsOf: the runs at work', () => {
       pill: 'Run 1 pushed',
       move: 'Pushed · reading the pull request again.',
       working: true,
-      action: { label: 'See run 1', href: '/contribute/attempts/A_PR1502' },
+      action: { label: 'See the pull request', href: '/contribute/attempts/A_PR1502' },
     });
     const done = attempt({
       attemptId: 'A_LOOM1',

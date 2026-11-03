@@ -331,6 +331,16 @@ function DcoCard({
   const repo = first.nameWithOwner || 'This repo';
   const fix = dco.fix;
   const sending = fix?.state === 'SENDING';
+  const handled =
+    pr && dco.missing ? (
+      <MarkHandledButton
+        prId={pr.prId}
+        prNumber={pr.number}
+        kinds={['DCO']}
+        all={allKindsOf(first, ['DCO'])}
+        look="large"
+      />
+    ) : null;
   return (
     <MoveCard
       tone="red"
@@ -339,8 +349,9 @@ function DcoCard({
       pill={<Pill tone="red">Sign-off missing</Pill>}
     >
       <p className="text-sm">
-        {repo} requires a <span className="font-mono text-[13px]">Signed-off-by</span> line on every commit, and ours
-        went out without one. A follow-up run can&apos;t fix that: a new commit leaves the old ones unsigned.
+        {repo} requires a <span className="font-mono text-[13px]">Signed-off-by</span> line on every commit, and{' '}
+        {dco.canPush ? 'ours' : 'yours'} went out without one. A new commit can&apos;t fix that: it leaves the old ones
+        unsigned.
       </p>
       {dco.canPush ? (
         <>
@@ -364,25 +375,20 @@ function DcoCard({
               again={fix?.state === 'FAILED'}
               primary={primary}
             />
-            {pr && dco.missing ? (
-              <MarkHandledButton
-                prId={pr.prId}
-                prNumber={pr.number}
-                kinds={['DCO']}
-                all={allKindsOf(first, ['DCO'])}
-                look="large"
-              />
-            ) : null}
+            {handled}
           </div>
         </>
       ) : (
-        <Steps
-          steps={[
-            'Run git rebase --signoff on your branch, from where it left the base branch.',
-            'Push it with git push --force-with-lease.',
-            'The DCO check runs again: this clears once it passes.',
-          ]}
-        />
+        <>
+          <Steps
+            steps={[
+              'Run git rebase --signoff on your branch, from where it left the base branch.',
+              'Push it with git push --force-with-lease.',
+              'The DCO check runs again: this clears once it passes.',
+            ]}
+          />
+          {handled}
+        </>
       )}
       {/* Always there, so a screen reader hears each change of the sign-off's state. */}
       <p
@@ -501,6 +507,8 @@ function NextRunCard({
   const limit = typeof cap === 'number' ? ` within your ${usd(cap)} limit per run` : '';
   const hint = run.note ? FILLED_NOTE_HINT : undefined;
   const userWaits = step.user.length > 0 || !!step.dco || !!step.rules;
+  // A run that stopped: "Try run N" leads here, so this is the main button.
+  const retry = step.user.some((move) => move.kind === 'stopped');
   const feedback = first.reviewFeedback;
 
   if (feedback?.threads.length) {
@@ -518,7 +526,7 @@ function NextRunCard({
         ) : null}
         <ReviewFeedbackCard
           // A thread arriving in a later read starts the choices afresh: none is shown chosen but left out.
-          key={feedback.threads.map((thread) => thread.commentId).join(',')}
+          key={`${feedback.threads.map((thread) => thread.commentId).join(',')}|${run.note}`}
           prId={pr.prId}
           prNumber={pr.number}
           feedback={feedback}
@@ -557,8 +565,10 @@ function NextRunCard({
       <RunItems signals={run.signals} round={run.round} now={now} />
       {run.open ? (
         <StartFollowUpButton
+          // The note filled in afresh when what waits changes.
+          key={run.note}
           prId={pr.prId}
-          primary={recommended || !userWaits}
+          primary={recommended || !userWaits || retry}
           label={`Start run ${run.round}`}
           noteLabel={recommended ? 'A note for the agent' : 'What’s wrong?'}
           notePlaceholder={
@@ -642,12 +652,20 @@ export function YourMoveLine({
 }) {
   const move = yourMoveOf(first, shown.kind === 'FOLLOW_UP' ? [shown] : [], now);
   if (!move) return null;
+  const here = attemptPath(shown.attemptId);
+  const next = nextSessionPath(first.attemptId);
   const action = move.action && 'href' in move.action ? move.action : null;
-  const link = move.working
-    ? action && action.href !== attemptPath(shown.attemptId)
-      ? { href: action.href, label: `${action.label} →` }
-      : null
-    : { href: nextSessionPath(first.attemptId), label: 'Go to the next step →' };
+  // A run back for review, on its own page: the page is the move.
+  if (action?.href === here && (move.kind === 'run-ready' || move.kind === 'run-autopilot')) return null;
+  // The way to the move: the next step, or the run it waits on (its review, its replies, the run at work).
+  const link =
+    action?.href === here
+      ? null
+      : action && action.href !== next
+        ? { href: action.href, label: `${action.label} →` }
+        : move.working
+          ? null
+          : { href: next, label: 'Go to the next step →' };
   return (
     <p
       data-your-move={move.working ? 'working' : 'waiting'}

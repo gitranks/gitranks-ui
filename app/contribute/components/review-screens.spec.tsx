@@ -179,7 +179,7 @@ describe('the contribution page', () => {
     // On the first attempt's own session: the run at work, and the way to it.
     const line = review(busy);
     expect(line).toContain('data-your-move="working"');
-    expect(text(line)).toContain('Run 2 working Starting. It comes back here when it is ready. Watch run 2 →');
+    expect(text(line)).toContain('Run 2 working Under way. It comes back here when it is ready. Watch run 2 →');
     expect(line).toContain('href="/contribute/attempts/A_F3"');
     const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={busy} next now={NOW} />);
     expect(html).toContain('data-panel="review-feedback"');

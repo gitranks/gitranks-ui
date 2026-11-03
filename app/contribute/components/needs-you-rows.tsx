@@ -40,7 +40,7 @@ function RowAction({ item }: { item: NeedsYouItem }) {
   if (!action && !secondary) return null;
   const className = cn(ROW_ACTION, ROW_ACTION_TONES[item.working ? 'outline' : 'primary']);
   return (
-    <span className="flex flex-none flex-col items-end gap-1 max-sm:items-stretch">
+    <span className="flex flex-none flex-col items-end gap-1 max-sm:w-full max-sm:items-stretch">
       {!action ? null : 'href' in action ? (
         <Link href={action.href} prefetch={false} aria-label={action.aria} className={className}>
           {action.label}
@@ -75,6 +75,7 @@ function RowAction({ item }: { item: NeedsYouItem }) {
       ) : (
         <MarkHandledButton
           prId={secondary.handled.prId}
+          prNumber={secondary.handled.prNumber}
           kinds={secondary.handled.kinds}
           all={secondary.handled.all}
           label={secondary.label}

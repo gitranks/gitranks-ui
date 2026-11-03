@@ -68,7 +68,7 @@ export type NextRun = {
 
 export type NextStep = {
   run: NextRun;
-  /** The user's own moves, in the table's order. */
+  /** The user's own moves, in Needs you's order. */
   user: UserMove[];
   /** The repo's rules card: what the PR fails of them (an agreement left to its own card), or a fix on its way. */
   rules: { issues: ContributePrConventionIssue[]; fix: ContributePrFix | null } | null;
@@ -185,7 +185,11 @@ export function nextStepOf(first: ContributeAttemptDetail): NextStep {
       signals: runSignals,
       threads,
       kinds: [...new Set(runSignals.map(({ kind }) => kind))],
-      note: defaultNoteOf(runSignals, threads),
+      note:
+        defaultNoteOf(runSignals, threads) ||
+        (finding?.outcome === 'stopped'
+          ? `${finding.round ? `Run ${finding.round}` : 'The last run'} stopped before it was done${finding.detail ? ` (${finding.detail})` : ''}. Pick it up and finish it.`
+          : ''),
     },
     user,
     rules: issues.length || ruleFix?.state === 'SENDING' ? { issues, fix: ruleFix } : null,
@@ -232,7 +236,7 @@ export function yourMoveOf(
   first: ContributeAttemptDetail,
   runs: ContributeAttempt[],
   now: Date,
-): Pick<NeedsYouItem, 'move' | 'working' | 'pill' | 'action'> | null {
+): Pick<NeedsYouItem, 'kind' | 'move' | 'working' | 'pill' | 'action'> | null {
   const pr = contributionOf(first);
   if (!pr) return null;
   const item = prItemOf({ pr, drafts: [], runs, now });
@@ -241,6 +245,7 @@ export function yourMoveOf(
   if (!waiting || !nextRoundOpen(first)) return null;
   return {
     move: `${waiting === 1 ? 'A comment waits' : `${waiting} comments wait`} for an answer. Start run ${nextRunNumberOf(first)} on ${waiting === 1 ? 'it' : 'them'}.`,
+    kind: 'changes',
     working: false,
     pill: 'Review comments',
     action: null,

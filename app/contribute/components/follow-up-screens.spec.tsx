@@ -34,6 +34,7 @@ const {
   flowDraft,
   followUpAttempts,
   followUpOf,
+  followUpRun,
   followUps,
   needsYou,
   replyDraft,
@@ -1381,10 +1382,12 @@ describe('the next step, for each thing only the user can do', () => {
     expect(failed).toContain(
       'The sign-off did not go through: The branch moved. Try again, or sign off by hand: git rebase --signoff, then git push --force-with-lease.',
     );
-    // A pull request opened by hand: the steps by hand.
+    // A pull request opened by hand: the steps by hand, its commits the user's, and Mark as handled.
     const byHand = next({ ...nextForDco, openedBy: 'HAND' });
     expect(byHand).not.toContain('data-sign-off');
+    expect(text(byHand)).toContain('and yours went out without one');
     expect(text(byHand)).toContain('Run git rebase --signoff on your branch');
+    expect(byHand).toContain('data-kinds="DCO"');
   });
 
   it('starts the run with the failing checks ticked and the note filled in', () => {
@@ -1402,6 +1405,30 @@ describe('the next step, for each thing only the user can do', () => {
     expect(plain).toContain(
       'Fix the failing checks (lint, test (ubuntu)) and address the 2 review comments from @ana-kelp.',
     );
+  });
+
+  it("never calls a run back for review working: its review on the first attempt's page, no line on its own", () => {
+    const ready = {
+      ...nextForRun,
+      followUps: followUps({
+        used: 2,
+        currentAttemptId: 'A_F2',
+        history: [followUpRun({ attemptId: 'A_F1' }), followUpRun({ round: 2, attemptId: 'A_F2', state: 'REVIEW' })],
+      }),
+    };
+    const html = review(ready);
+    expect(html).toContain('data-your-move="waiting"');
+    expect(text(html)).toContain('Review run 2 →');
+    expect(html).toContain('href="/contribute/attempts/A_F2"');
+    const own = renderToStaticMarkup(
+      <ReviewScreen
+        view={views.active}
+        attempt={{ ...followUpAttempts.review, attemptId: 'A_F2' }}
+        first={ready}
+        now={NOW}
+      />,
+    );
+    expect(own).not.toContain('data-your-move');
   });
 
   it('says the move in one line on the other sessions, with the way to the next step', () => {

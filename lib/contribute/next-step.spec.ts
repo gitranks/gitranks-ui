@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { attempt, feedbackThread, followUpOf, followUps } from './__fixtures__/contribute-attempts';
+import { attempt, feedbackThread, followUpOf, followUpRun, followUps } from './__fixtures__/contribute-attempts';
 import { NOW } from './__fixtures__/contribute-views';
 import { nextForAgreement, nextForChecks, nextForDco, nextForRun, nextForYou, signal } from './__fixtures__/needs-you';
 import { contributionOf, defaultNoteOf, nextStepOf, nextStepWaits, yourMoveOf } from './next-step';
@@ -144,6 +144,21 @@ describe('yourMoveOf', () => {
       move: 'Checks · started 10 minutes ago. It comes back here when it is ready.',
     });
     expect(yourMoveOf({ ...nextForDco, needsYou: null }, [], NOW)).toBeNull();
+    // A run back for review, known from the rounds alone: its review, never "working".
+    const ready = {
+      ...nextForRun,
+      followUps: followUps({
+        used: 2,
+        currentAttemptId: 'A_F2',
+        history: [followUpRun(), followUpRun({ round: 2, attemptId: 'A_F2', state: 'REVIEW', fixed: 1 })],
+      }),
+    };
+    expect(yourMoveOf(ready, [], NOW)).toMatchObject({
+      kind: 'run-ready',
+      working: false,
+      move: 'Run 2 fixed 1 comment. Approve to push it.',
+      action: { label: 'Review run 2', href: '/contribute/attempts/A_F2' },
+    });
   });
 
   it('reads the first attempt as a list reads its pull request, and nothing before there is one', () => {

@@ -23,7 +23,7 @@ import { attemptPath, nextSessionPath } from './sessions';
  * (a live dot, not counted) until it comes back. Pure: both pages and their specs read the same rows.
  */
 
-/** What a row is about, one per reason in the spec's table. */
+/** What a row is about, one per reason Needs you lists. */
 export type NeedsYouKind =
   | 'key'
   | 'no-way'
@@ -65,7 +65,7 @@ export type NeedsYouAction =
  */
 export type NeedsYouSecondary =
   | { label: string; href: Route }
-  | { label: string; handled: { prId: string; kinds: ContributePrSignalKind[]; all: boolean } };
+  | { label: string; handled: { prId: string; prNumber: number; kinds: ContributePrSignalKind[]; all: boolean } };
 
 export type NeedsYouItem = {
   key: string;
@@ -207,7 +207,11 @@ const nextRunOf = (pr: ContributeContribution) =>
   Math.max(pr.followUps?.used ?? 0, pr.followUps?.history?.length ?? 0) + 1;
 
 /** "Run 2 fixed 3 comments and drafted 2 replies. Approve to push and post.", or what its checks say. */
-function runReadyMoveOf(run: ContributeAttempt, round: number | null, drafts: number): string {
+function runReadyMoveOf(
+  run: Pick<ContributeAttempt, 'checkStatus' | 'round'>,
+  round: number | null,
+  drafts: number,
+): string {
   const name = round ? `Run ${round}` : 'The run';
   const status = run.checkStatus?.status;
   if (status === 'FAILED' || status === 'NOT_RUN') return `${name}'s tests did not pass: push anyway or discard it.`;
@@ -346,7 +350,7 @@ const draftsTo = (drafts: ContributeReplyWaiting[]) => {
   return authors.size === 1 && author ? `@${author}` : 'the maintainers';
 };
 
-/** A pull request whose page holds what to do next: what the reads found, by the spec's table, in its order. */
+/** A pull request whose page holds what to do next: what the reads found, and the replies waiting on it. */
 export type PrContext = {
   pr: ContributeContribution;
   /** The reply drafts on it the user can approve now. */
@@ -356,7 +360,7 @@ export type PrContext = {
   now: Date;
 };
 
-/** The reasons on an open pull request, in the table's order. */
+/** The reasons on an open pull request, in Needs you's order: what a run can do first, then the user's own. */
 function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
   const signals = pr.needsYou?.signals ?? [];
   const first = (kind: ContributePrSignalKind) => signals.find((signal) => signal.kind === kind);
@@ -371,13 +375,14 @@ function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
     label,
     handled: {
       prId: pr.pullRequest.prId,
+      prNumber: number,
       kinds,
       all: kinds.length === all.size && kinds.every((kind) => all.has(kind)),
     },
   });
   const onGithub = (label: string): NeedsYouAction =>
     prUrl
-      ? { label: `${label} ↗`, external: prUrl, aria: `${label} #${number} on GitHub` }
+      ? { label: `${label} ↗`, external: prUrl, aria: `${label} #${number} on GitHub (opens in a new tab)` }
       : { label: 'See what to do', href: next, aria: `See what to do on PR #${number}` };
   const toNext = (label: string): NeedsYouAction => ({ label, href: next, aria: `${label} on PR #${number}` });
   const list: Candidate[] = [];
@@ -473,13 +478,13 @@ function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
             kind: 'agreement',
             tone: 'amber',
             pill: 'Agreement to sign',
-            move: `Post this comment on PR #${number}, word for word: "${clipped(signComment, 120)}"`,
+            move: `Post this comment on PR #${number}, word for word: "${clipped(signComment, 300)}"`,
             action: prUrl
               ? {
                   label: 'Copy and open the PR ↗',
                   external: prUrl,
                   copy: signComment,
-                  aria: `Copy the comment and open PR #${number} on GitHub`,
+                  aria: `Copy the comment and open PR #${number} on GitHub (opens in a new tab)`,
                 }
               : toNext('See the comment'),
             secondary: handled('I posted it', ['CLA']),
@@ -495,7 +500,7 @@ function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
                 ? {
                     label: `Sign the ${agreement} ↗`,
                     external: (signUrl ?? prUrl) as string,
-                    aria: `Sign the ${agreement} for PR #${number}`,
+                    aria: `Sign the ${agreement} for PR #${number} (opens in a new tab)`,
                   }
                 : toNext(`Sign the ${agreement}`),
             secondary: handled('I signed it', ['CLA']),
@@ -648,7 +653,7 @@ const FIXED_BY: Record<string, NeedsYouKind> = {
 
 /**
  * An open pull request's row: its run under way (a working row), the sign-off on its way, a push not read back yet,
- * else the first reason of the table's with "and N more"; null when nothing waits on it.
+ * else its first reason with "and N more"; null when nothing waits on it.
  */
 export function prItemOf(context: PrContext): NeedsYouItem | null {
   const { pr, runs, now } = context;
@@ -671,7 +676,29 @@ export function prItemOf(context: PrContext): NeedsYouItem | null {
   const current = pr.followUps?.currentAttemptId;
   if (current) {
     const run = runs.find(({ attemptId }) => attemptId === current);
-    const round = runNumberOf(run, pr) ?? 1;
+    const listed = pr.followUps?.history?.find(({ attemptId }) => attemptId === current);
+    const round = runNumberOf(run, pr) ?? listed?.round ?? 1;
+    const state = run?.state ?? listed?.state;
+    // Back for the user's review (the lists show it as its review's row): what it did, and the way to review it.
+    if (state === 'REVIEW' || state === 'PENDING_AUTOSUBMIT') {
+      const review = {
+        label: `Review run ${round}`,
+        href: attemptPath(current),
+        aria: `Review run ${round} on PR #${number}`,
+      };
+      return {
+        ...base,
+        kind: state === 'REVIEW' ? 'run-ready' : 'run-autopilot',
+        tone: state === 'REVIEW' ? 'violet' : 'amber',
+        pill: state === 'REVIEW' ? `Run ${round} ready` : 'Autopilot',
+        move:
+          state === 'REVIEW'
+            ? runReadyMoveOf(run ?? { round: listed }, round, run?.round?.drafted ?? 0)
+            : `Autopilot pushes run ${round} soon. Check it, or stop it.`,
+        action: review,
+        working: false,
+      };
+    }
     const watch = {
       label: `Watch run ${round}`,
       href: attemptPath(current),
@@ -691,9 +718,12 @@ export function prItemOf(context: PrContext): NeedsYouItem | null {
       kind: 'working',
       pill: `Run ${round} working`,
       move:
-        run?.state === 'SUBMITTING'
+        state === 'SUBMITTING'
           ? 'Pushing the commits you approved.'
-          : `${run ? runStepOf(run) : 'Starting'}${started ? ` · started ${started}` : ''}. It comes back here when it is ready.`,
+          : run
+            ? `${runStepOf(run)}${started ? ` · started ${started}` : ''}. It comes back here when it is ready.`
+            : // Not among the runs read (queued, or past the read): under way is all that is known.
+              'Under way. It comes back here when it is ready.',
       action: watch,
     });
   }
@@ -725,7 +755,7 @@ export function prItemOf(context: PrContext): NeedsYouItem | null {
       move: `Pushed${sha ? ` ${sha}` : ''} · reading the pull request again.`,
       action: latest
         ? { label: `Watch ${name}`, href: attemptPath(latest.attemptId), aria: `Watch ${name} on PR #${number}` }
-        : { label: `See ${name}`, href: attemptPath(pr.attemptId), aria: `See ${name} on PR #${number}` },
+        : { label: 'See the pull request', href: attemptPath(pr.attemptId), aria: `See PR #${number}` },
     });
   }
 

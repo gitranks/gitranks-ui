@@ -365,7 +365,8 @@ export function SignOffButton({
 
 /**
  * A link to GitHub that first puts `copy` on the clipboard: the comment that signs an agreement, to paste there. The
- * link opens either way; a clipboard that refuses leaves the comment on the next step to copy.
+ * link opens either way; it says "Copied" once the clipboard took it, and the row's move shows the comment whole, to
+ * copy by hand when the clipboard refuses.
  */
 export function CopyAndOpenLink({
   href,
@@ -380,20 +381,29 @@ export function CopyAndOpenLink({
   className?: string;
   ariaLabel?: string;
 }) {
+  const [copied, setCopied] = useState(false);
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={ariaLabel}
-      className={className}
-      data-copy-and-open=""
-      onClick={() => {
-        navigator.clipboard?.writeText(copy).catch(() => undefined);
-      }}
-    >
-      {label}
-    </a>
+    <>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={ariaLabel}
+        className={className}
+        data-copy-and-open=""
+        onClick={() => {
+          navigator.clipboard
+            ?.writeText(copy)
+            .then(() => setCopied(true))
+            .catch(() => setCopied(false));
+        }}
+      >
+        {copied ? 'Copied: paste it on GitHub ↗' : label}
+      </a>
+      <span role="status" aria-live="polite" className="sr-only">
+        {copied ? 'The comment is copied' : ''}
+      </span>
+    </>
   );
 }
 

@@ -99,6 +99,26 @@ describe('This repo needs', () => {
     expect(good[2]).toMatchObject({ state: 'todo' });
   });
 
+  it('names a DCO signed by a comment, and the comment', () => {
+    const repo = conventions({
+      title: null,
+      cla: {
+        check: 'DCO',
+        signUrl: 'https://github.com/driftwood-js/dco/blob/main/dco.md',
+        agreement: 'DCO',
+        signComment: 'I have read the DCO document and I hereby sign the DCO.',
+      },
+    });
+    const [cla] = checklistOf(repo, { title: 'fix: x', patch: null });
+    expect(cla).toMatchObject({
+      key: 'cla',
+      label: "A signed DCO: after the PR opens, you comment on it to sign; we can't sign for you",
+      detail:
+        'The comment, word for word: “I have read the DCO document and I hereby sign the DCO.”. The `DCO` check waits for it.',
+      link: 'https://github.com/driftwood-js/dco/blob/main/dco.md',
+    });
+  });
+
   it('says nothing when the repo asks nothing we read', () => {
     expect(checklistOf(null, { title: 'x', patch: null })).toEqual([]);
     expect(checklistOf(conventions({ title: null, titleExamples: [] }), { title: 'x', patch: null })).toEqual([]);

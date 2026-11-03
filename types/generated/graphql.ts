@@ -540,11 +540,16 @@ export enum ContributeChecksState {
 }
 
 /** A CLA the repo's PRs sign */
+/** An agreement the repo's PRs sign: a CLA, or a DCO signed like one */
 export type ContributeClaRule = {
   __typename?: 'ContributeClaRule';
+  /** `CLA` or `DCO`; null from an older contrib (a CLA) */
+  agreement?: Maybe<Scalars['String']['output']>;
   /** The check's name on the PR */
   check: Scalars['String']['output'];
-  /** Where to sign, when the check links it */
+  /** The comment that signs it, word for word, posted on the PR by its author; null when signed elsewhere */
+  signComment?: Maybe<Scalars['String']['output']>;
+  /** Where to sign, when the check links it; for a comment signature, the document to read */
   signUrl?: Maybe<Scalars['String']['output']>;
 };
 

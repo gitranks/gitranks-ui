@@ -388,6 +388,42 @@ describe('the review screen', () => {
     );
   });
 
+  it('gives the comment that signs an agreement signed on the pull request, to copy', () => {
+    const signComment = 'I have read the DCO document and I hereby sign the DCO.';
+    const html = review(
+      detail({
+        state: 'PR_OPEN',
+        pullRequest: pullRequest(),
+        conventions: {
+          ...detail().conventions!,
+          cla: {
+            check: 'DCO',
+            signUrl: 'https://github.com/driftwood-js/dco/blob/main/dco.md',
+            agreement: 'DCO',
+            signComment,
+          },
+        },
+        prIssues: [
+          {
+            kind: 'CLA',
+            check: 'DCO',
+            message: `Sign the repo's DCO: post this comment on the pull request yourself, word for word: "${signComment}". We can't sign for you.`,
+            suggestion: 'https://github.com/driftwood-js/dco/blob/main/dco.md',
+          },
+        ],
+        prFix: null,
+      }),
+    );
+    const plain = text(html);
+    expect(plain).toContain(
+      "Sign the repo's DCO: post this comment on the pull request yourself. We can't sign for you. (DCO)",
+    );
+    expect(plain.split(signComment)).toHaveLength(2);
+    expect(html).toContain('aria-label="Copy the comment"');
+    expect(plain).toContain('Read the DCO first');
+    expect(html).toContain('href="https://github.com/driftwood-js/dco/blob/main/dco.md"');
+  });
+
   it('signs off only where the repo requires it (or the API does not say), with the tick or the standing consent', () => {
     expect(signOffOf(false, 'STANDING', true)).toBe(false);
     expect(signOffOf(false, 'ASK', true)).toBe(false);

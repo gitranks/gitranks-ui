@@ -344,7 +344,7 @@ export const ContributeAttemptSubmitClockDocument = doc<
 
 // The repo's PR conventions and the open PR's fixes: read on their own, so an API without them leaves the page as it was.
 const CONVENTIONS = `title { hard source types scopes requireScope pattern } titleExamples template { path aiAsks }
-  changelog { kind path required source } cla { check signUrl } dco generated notes titlePrefix templateByHuman agentMarker`;
+  changelog { kind path required source } cla { check signUrl agreement signComment } dco generated notes titlePrefix templateByHuman agentMarker`;
 const PR_FIXES = 'prIssues { kind check message suggestion } prTitle prBody prFix { kind state note at }';
 
 export const ContributeAttemptConventionsDocument = doc<

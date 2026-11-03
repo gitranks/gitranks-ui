@@ -60,7 +60,12 @@ vi.mock('@/graphql/helpers/fetch-countries', async () => {
 });
 vi.mock('@/app/contribute/actions', async () => (await import('./inert')).inert());
 vi.mock('@/app/contribute/runs/actions', async () => (await import('./inert')).inert());
-vi.mock('@/app/contribute/maintainers/actions', async () => (await import('./inert')).inert());
+// Named: the sign-in form checks the export exists, which `inert()`'s proxy does not answer.
+vi.mock('@/app/contribute/maintainers/actions', () => ({
+  signInAsMaintainer: async () => {},
+  optOutMaintainerRepos: async () => {},
+  optInMaintainerRepos: async () => {},
+}));
 vi.mock('@/lib/contribute/contribute.data', async () => (await import('./inert')).inert());
 vi.mock('@/lib/contribute/runs.data', async () => (await import('./inert')).inert());
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({

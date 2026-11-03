@@ -23,6 +23,7 @@ import type { ContributeMcpToken } from '@/lib/contribute/contribute.types';
 import { CONNECT_KEY_PATH, MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import {
+  ANTIGRAVITY_RELOAD,
   MCP_CLIENT_NAMES,
   MCP_CLIENTS,
   MCP_TOKENS_MAX,
@@ -331,7 +332,7 @@ export function AgentConnectView({
                 // In the status region, so it is announced when it appears.
                 <span className="text-xs text-muted-foreground" data-agent-hint>
                   {tokenInConfigOf(client) ? (
-                    `Nothing yet? Check that the GitRanks entry in ${name}'s MCP config holds your latest token, then refresh its MCP servers (in the CLI, run /mcp) and ask again.`
+                    `Nothing yet? Check that the gitranks entry in ${name}'s MCP config holds your latest token, then ${ANTIGRAVITY_RELOAD} and ask again.`
                   ) : (
                     <>
                       Nothing yet? The variable must be set where {name} runs. In that terminal,{' '}

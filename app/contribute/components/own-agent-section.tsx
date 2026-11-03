@@ -62,7 +62,8 @@ function NewToken({ token, onDone }: { token: string; onDone: () => void }) {
         <CopyButton text={token} />
       </div>
       <p className="text-sm text-muted-foreground">
-        Put it in your shell profile, so your agent reads it from <code className="font-mono">{MCP_TOKEN_ENV}</code>:
+        Put it in your shell profile, so your agent reads it from <code className="font-mono">{MCP_TOKEN_ENV}</code>.
+        For Antigravity, put it in its MCP config instead, as its setup below shows.
       </p>
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1">

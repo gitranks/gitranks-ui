@@ -9,7 +9,10 @@ export const SEND_BACK_NOTE_MAX = 2_000;
 export const MCP_TOKENS_MAX = 5;
 /** Where the user's own agent connects. */
 export const MCP_URL = 'https://mcp.gitranks.com/mcp';
-/** The environment variable every setup line reads the token from, so the token never sits in a config file. */
+/**
+ * The environment variable the setup lines read the token from, so the token stays out of config files. Not
+ * Antigravity's (`tokenInConfigOf`).
+ */
 export const MCP_TOKEN_ENV = 'GITRANKS_MCP_TOKEN';
 
 export type McpClient = 'claude-code' | 'codex' | 'cursor' | 'gemini-cli' | 'antigravity';
@@ -31,7 +34,7 @@ export const MCP_CLIENT_NAMES: Record<McpClient, string> = {
  */
 export const tokenInConfigOf = (client: McpClient): boolean => client === 'antigravity';
 
-/** What the setup shows in place of the token where it has none (Settings). */
+/** What the setup shows in place of the token where it has none (Settings, the MCP docs). */
 export const MCP_TOKEN_PLACEHOLDER = '<your GitRanks token>';
 
 /** One of our clients, from a query parameter or anything else untrusted. */
@@ -184,8 +187,9 @@ export type McpClientSetup = {
 export const claudeCodeRemoveOf = (os: McpOs): string =>
   `claude mcp remove --scope user gitranks ${os === 'windows' ? '2>$null' : '2>/dev/null'}`;
 
-/** How Antigravity reads its MCP config again, as its docs say (antigravity.google/docs/mcp). */
-const ANTIGRAVITY_RELOAD = 'then refresh its MCP servers (in the CLI, run /mcp)';
+/** How Antigravity reads its MCP config again, as its docs say (antigravity.google/docs/mcp, read 2026-11-03). */
+export const ANTIGRAVITY_RELOAD =
+  'refresh its MCP servers (in the app, the refresh button under Settings → Customizations → Installed MCP Servers; in the CLI, /mcp)';
 
 /**
  * A client's setup on one OS. `replacing`: the token replaces one the agent may hold already, so Claude Code's entry
@@ -221,8 +225,8 @@ export function mcpClientSetupOf(
       label: homePathOf(os, CONFIG_FILES[client]),
       file: true,
       where: replacing
-        ? `Put this in place of the GitRanks entry in Antigravity's MCP config, ${ANTIGRAVITY_RELOAD}. It holds the new token.`
-        : `Add this to Antigravity's MCP config (in the IDE: MCP Servers → Manage MCP Servers → View raw config), ${ANTIGRAVITY_RELOAD}. Antigravity can't read environment variables in this file yet, so the token sits in it${token ? '' : `, in place of ${MCP_TOKEN_PLACEHOLDER}`}: keep the file to yourself.`,
+        ? `In Antigravity's MCP config, put the new token in the Authorization line of the gitranks entry, as below, then ${ANTIGRAVITY_RELOAD}.`
+        : `Add the gitranks entry to Antigravity's MCP config (in the IDE: … at the top of the agent panel → MCP Servers → Manage MCP Servers → View raw config), then ${ANTIGRAVITY_RELOAD}. Antigravity can't read environment variables in this file yet, so the token sits in it${token ? '' : `, in place of ${MCP_TOKEN_PLACEHOLDER}`}: keep the file to yourself.`,
       lines,
     };
   }

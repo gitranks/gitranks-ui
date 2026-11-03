@@ -34,6 +34,29 @@ export function MakeNewToken({ onReplace, pending }: { onReplace: () => void; pe
   );
 }
 
+/** The computer the lines are for, detected and switchable. */
+function OsPicker({ os, onOs }: { os: McpOs; onOs: (os: McpOs) => void }) {
+  return (
+    <fieldset className="inline-flex gap-0.75 rounded-lg bg-muted p-0.75">
+      <legend className="sr-only">Your computer</legend>
+      {MCP_OSES.map((each) => (
+        <button
+          key={each}
+          type="button"
+          aria-pressed={each === os}
+          onClick={() => onOs(each)}
+          className={cn(
+            'min-h-8 rounded-md px-2.5 text-sm font-semibold transition-colors',
+            each === os ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {MCP_OS_NAMES[each]}
+        </button>
+      ))}
+    </fieldset>
+  );
+}
+
 /** What making a new one does, and that creating a token never revokes the others. */
 export const REPLACE_NOTE = `A new one revokes this token, so only one stays live; run the setup it shows again. Claude Code keeps the token it read when GitRanks was added, so its setup removes that entry first; Antigravity holds it in its MCP config, so put the new one there; the other agents read the variable when they start, so restart them. Otherwise, creating a token never revokes the others: up to ${MCP_TOKENS_MAX} stay live, listed in Settings.`;
 
@@ -118,25 +141,7 @@ export function TokenReady({
         <div className={cn('flex flex-col gap-2', rise, 'motion-safe:delay-120 motion-safe:fill-mode-both')}>
           <div className="flex flex-wrap items-center justify-between gap-2.5">
             <span className="text-sm font-semibold">a · Save the token on this computer</span>
-            <fieldset className="inline-flex gap-0.75 rounded-lg bg-muted p-0.75">
-              <legend className="sr-only">Your computer</legend>
-              {MCP_OSES.map((each) => (
-                <button
-                  key={each}
-                  type="button"
-                  aria-pressed={each === os}
-                  onClick={() => onOs(each)}
-                  className={cn(
-                    'min-h-8 rounded-md px-2.5 text-sm font-semibold transition-colors',
-                    each === os
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {MCP_OS_NAMES[each]}
-                </button>
-              ))}
-            </fieldset>
+            <OsPicker os={os} onOs={onOs} />
           </div>
           <span className="text-xs text-muted-foreground" data-save-note>
             {detectedOs === os ? `We detected ${MCP_OS_NAMES[os]}. ` : ''}
@@ -168,9 +173,15 @@ export function TokenReady({
       )}
 
       <div className={cn('flex flex-col gap-2', rise, 'motion-safe:delay-240 motion-safe:fill-mode-both')}>
-        <span className="text-sm font-semibold">
-          {inConfig ? `Add GitRanks to ${setup.name}` : `b · Add GitRanks to ${setup.name}`}
-        </span>
+        {inConfig ? (
+          // No step a here, so the OS (the config's path) is picked beside the setup.
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
+            <span className="text-sm font-semibold">Add GitRanks to {setup.name}</span>
+            <OsPicker os={os} onOs={onOs} />
+          </div>
+        ) : (
+          <span className="text-sm font-semibold">b · Add GitRanks to {setup.name}</span>
+        )}
         <span className="text-xs text-muted-foreground">{setup.where}</span>
         <CodeBlock label={setup.label} file={setup.file} copyLabel="Copy the setup">
           {setup.lines}

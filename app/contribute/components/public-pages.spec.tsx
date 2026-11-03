@@ -53,6 +53,16 @@ describe('the MCP docs', () => {
     expect(said).toContain('What we never ask for');
     expect(said).not.toMatch(/official|partner|endorsed/i);
   });
+
+  it('give Antigravity the placeholder in its config, say what replaces it, and skip the variable for it', () => {
+    const antigravity = MCP_DOC_CLIENTS.find(({ id }) => id === 'antigravity');
+    expect(antigravity?.lines).toContain('Bearer <your GitRanks token>');
+    expect(antigravity?.where).toContain('in place of <your GitRanks token>');
+    expect(antigravity?.windows?.label).toBe('%USERPROFILE%\\.gemini\\config\\mcp_config.json');
+    expect(text(renderToStaticMarkup(<McpDocsScreen />))).toContain(
+      "On Antigravity and VS Code, skip this: Antigravity's setup holds the token",
+    );
+  });
 });
 
 describe('the questions', () => {

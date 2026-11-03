@@ -113,9 +113,22 @@ describe('B1, your own agent', () => {
     expect(plain).toContain(`"Authorization": "Bearer ${TOKEN}"`);
     expect(plain).toContain('keep the file to yourself');
     expect(html).toContain('aria-label="Copy the setup"');
-    expect(b1({ stage: 'added', shown: TOKEN, client: 'antigravity', hint: true }).plain).toContain(
-      "Check that the GitRanks entry in Antigravity's MCP config holds your latest token",
-    );
+    // The OS is picked beside the setup, as the config's path depends on it.
+    expect(html).toContain('aria-pressed="true"');
+    expect(plain).toContain('Installed MCP Servers');
+    const hint = b1({ stage: 'added', shown: TOKEN, client: 'antigravity', hint: true }).plain;
+    expect(hint).toContain("Check that the gitranks entry in Antigravity's MCP config holds your latest token");
+    expect(hint).toContain('in the CLI, /mcp');
+  });
+
+  it("gives Antigravity the Windows path, and the new token's line once it replaced another", () => {
+    const windows = b1({ stage: 'token', shown: TOKEN, client: 'antigravity', os: 'windows', detectedOs: 'mac' });
+    expect(windows.plain).toContain('%USERPROFILE%\\.gemini\\config\\mcp_config.json');
+    expect(windows.plain).not.toContain('~/.gemini');
+
+    const replaced = b1({ stage: 'token', shown: TOKEN, client: 'antigravity', os: 'mac', replaced: true }).plain;
+    expect(replaced).toContain('put the new token in the Authorization line of the gitranks entry');
+    expect(replaced).toContain(`"Authorization": "Bearer ${TOKEN}"`);
   });
 
   it("takes Windows' forms when it is picked, and says nothing was detected for an OS it did not detect", () => {

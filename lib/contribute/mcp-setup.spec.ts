@@ -114,7 +114,7 @@ describe('the setup for each client and computer', () => {
     expect(setup.where).toContain('/mcp');
     expect(setup.where).toContain('keep the file to yourself');
     expect(mcpClientSetupOf('antigravity', 'mac', { token: TOKEN, replacing: true }).where).toContain(
-      'in place of the GitRanks entry',
+      'put the new token in the Authorization line of the gitranks entry',
     );
     expect(setup.where).not.toContain('<your GitRanks token>');
     // Without a token (Settings, the MCP docs), a placeholder, and the text says what goes there.

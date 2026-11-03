@@ -11,7 +11,7 @@ import {
   mcpTokenSaveOf,
 } from './mcp-setup';
 
-/** What the docs put where a token goes: never a real one. */
+/** What the docs put where a token goes: never a real one. The setup's own placeholder. */
 export const TOKEN_PLACEHOLDER = MCP_TOKEN_PLACEHOLDER;
 
 /** One client's setup on the MCP docs page, its anchor the client's id. */

@@ -234,6 +234,8 @@ describe('the lists', () => {
     expect(reasonText('PUSHED')).toBe('No commits in 90 days');
     expect(reasonText('PUSHED', 'source')).toBe('No commits in 12 months');
     expect(reasonText('NO_MANIFEST', 'source')).toBe('No dependency file we can read');
+    expect(reasonText('OUTSIDE_PRS_CLOSED')).toBe('Only collaborators can open PRs');
+    expect(reasonText('GATED_CONTRIBUTORS')).toBe('Only approved contributors can open PRs');
     expect(reasonsText(['FORK', 'ARCHIVED'])).toBe('A fork, Archived');
   });
 });

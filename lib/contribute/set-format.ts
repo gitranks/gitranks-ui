@@ -78,7 +78,7 @@ export const WORK_RULES = [
   'At least one PR from outside the team merged in 90 days',
   'JavaScript/TypeScript, Python, Go, Rust, Java, PHP or Ruby',
   "Maintainers haven't asked us not to send PRs",
-  'Anyone can open a PR (not limited to collaborators)',
+  'Anyone can open a PR',
 ];
 export const SOURCE_RULES = [
   'Public, not a fork, not archived',

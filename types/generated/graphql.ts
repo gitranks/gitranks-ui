@@ -1923,8 +1923,8 @@ export enum ContributeSetReason {
   License = 'LICENSE',
   NoManifest = 'NO_MANIFEST',
   OptedOut = 'OPTED_OUT',
-  OutsidePrsClosed = 'OUTSIDE_PRS_CLOSED',
   OutsideMerges = 'OUTSIDE_MERGES',
+  OutsidePrsClosed = 'OUTSIDE_PRS_CLOSED',
   Private = 'PRIVATE',
   Pushed = 'PUSHED'
 }

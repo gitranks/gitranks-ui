@@ -1062,13 +1062,14 @@ export enum ContributePrIssueKind {
 export type ContributePrSignal = {
   __typename?: 'ContributePrSignal';
   at: Scalars['String']['output'];
-  /** check_failed: the failing checks’ names; cla: the CLA check’s */
+  /** check_failed: the failing checks’ names; cla: the CLA check’s; bot_blocked: the bot and its verdict */
   detail?: Maybe<Scalars['String']['output']>;
   kind: ContributePrSignalKind;
 };
 
-/** What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules */
+/** What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked) */
 export enum ContributePrSignalKind {
+  BotBlocked = 'BOT_BLOCKED',
   ChangesRequested = 'CHANGES_REQUESTED',
   CheckFailed = 'CHECK_FAILED',
   Cla = 'CLA',

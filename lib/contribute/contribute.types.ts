@@ -358,14 +358,15 @@ export type ContributeAttemptPullRequest = {
 
 /**
  * What the last read of an open pull request found: changes requested, a new comment, a check newly failing, a CLA
- * to sign. Each leaves once its cause is gone, or once the user marks it handled.
+ * to sign, a review bot's comment blocking the merge. Each leaves once its cause is gone, or once the user marks it
+ * handled.
  */
-export type ContributePrSignalKind = 'CHANGES_REQUESTED' | 'COMMENT' | 'CHECK_FAILED' | 'CLA' | 'TITLE';
+export type ContributePrSignalKind = 'CHANGES_REQUESTED' | 'COMMENT' | 'CHECK_FAILED' | 'CLA' | 'TITLE' | 'BOT_BLOCKED';
 
 export type ContributePrSignal = {
   kind: ContributePrSignalKind;
   at: string;
-  /** For a failing check: the failing checks' names; for a CLA: its check's. */
+  /** For a failing check: the failing checks' names; for a CLA: its check's; for a bot's block: the bot and its verdict. */
   detail: string | null;
 };
 

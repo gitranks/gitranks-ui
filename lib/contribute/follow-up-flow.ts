@@ -169,6 +169,7 @@ export function prNeedsYouLabelOf(
   if (kinds.has('COMMENT')) return 'Comments to address';
   if (kinds.has('CHECK_FAILED')) return 'A check failed';
   if (kinds.has('CLA')) return 'A CLA to sign';
+  if (kinds.has('BOT_BLOCKED')) return 'A bot blocks the merge';
   // A kind this UI does not know yet still says something.
   return kinds.size ? 'Something changed on it' : null;
 }

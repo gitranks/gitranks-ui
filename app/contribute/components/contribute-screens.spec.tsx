@@ -586,6 +586,13 @@ describe('issues for you', () => {
     }
   });
 
+  it('says when the maintainers keep an issue for first-time contributors, and only then', () => {
+    expect(text(renderToStaticMarkup(<IssueCard issue={{ ...ISSUE, forNewcomers: true }} />))).toContain(
+      'For first-time contributors: the maintainers keep it for people new to the project.',
+    );
+    expect(renderToStaticMarkup(<IssueCard issue={ISSUE} />)).not.toContain('data-first-timers');
+  });
+
   it('reads an issue without a title by its number', () => {
     expect(
       text(renderToStaticMarkup(<IssueCard issue={{ ...ISSUE, title: null, labels: [], kind: null }} />)),
@@ -837,8 +844,11 @@ describe('the confirms before what cannot be undone', () => {
 
     expect(triggersOf(html)).toEqual(['Remove key', 'Revoke', 'Revoke Claude Code on macOS']);
     expect(text(html)).not.toContain('Yes, remove it');
-    // The summary acts on none of them: its dialogs are the filters and autopilot's record.
-    expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />))).toEqual(['Edit', 'Details']);
+    // The summary acts on none of them: its dialogs are the filters and how autopilot works.
+    expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />))).toEqual([
+      'Edit',
+      'How autopilot works',
+    ]);
   });
 });
 

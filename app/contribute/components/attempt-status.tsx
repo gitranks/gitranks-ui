@@ -70,19 +70,31 @@ const Title = ({ children }: { children: ReactNode }) => <h2 className={HEADING.
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
 /** Why autopilot left it for the user's review instead of submitting it; nothing for an ordinary review. */
-const AUTOPILOT_REVIEW_NOTES: Partial<Record<ContributeAutopilotReviewReason, string>> = {
-  no_email: 'Autopilot did not submit it: we have no email to tell you first, so it waits for your review.',
-  notice_late: 'Autopilot did not submit it: we could not email you first, so it waits for your review.',
-  autopilot_off: 'Autopilot did not submit it: autopilot was turned off or locked before it did.',
-  override: 'You chose to work on this one, so you approve its pull request.',
+const AUTOPILOT_REVIEW_NOTES: Partial<Record<ContributeAutopilotReviewReason, (source: string | null) => string>> = {
+  no_email: () => 'Autopilot did not submit it: we have no email to tell you first, so it waits for your review.',
+  notice_late: () => 'Autopilot did not submit it: we could not email you first, so it waits for your review.',
+  autopilot_off: () => 'Autopilot did not submit it: autopilot was turned off or locked before it did.',
+  override: () => 'You chose to work on this one, so you approve its pull request.',
+  beginner_issue: (source) =>
+    `Autopilot did not submit it: it never submits on beginner issues${source ? ` (${source})` : ''}, so it waits for your review.`,
+  issue_unread: () =>
+    'Autopilot did not submit it: we could not read the issue to check its labels, so it waits for your review.',
+  repo_manual_only: (source) =>
+    `Autopilot did not submit it: this repository asks for a person’s review${source ? ` (${source})` : ''}.`,
 };
 
-export function AutopilotReviewNote({ reason }: { reason: ContributeAttempt['reviewReason'] }) {
+export function AutopilotReviewNote({
+  reason,
+  source,
+}: {
+  reason: ContributeAttempt['reviewReason'];
+  source?: ContributeAttempt['reviewReasonSource'];
+}) {
   const note = reason && Object.hasOwn(AUTOPILOT_REVIEW_NOTES, reason) ? AUTOPILOT_REVIEW_NOTES[reason] : undefined;
   if (!note) return null;
   return (
     <p data-autopilot-review-reason={reason} className="text-sm text-warning">
-      {note}
+      {note(source ?? null)}
     </p>
   );
 }
@@ -235,7 +247,7 @@ function followUpStatusOf(attempt: ContributeAttempt | ContributeAttemptDetail, 
           ) : (
             <FollowUpStepper attempt={{ ...attempt, events: events ?? [] }} now={now} />
           )}
-          <AutopilotReviewNote reason={attempt.reviewReason} />
+          <AutopilotReviewNote reason={attempt.reviewReason} source={attempt.reviewReasonSource} />
           <SubmitErrorNote submit={attempt.submit} />
         </Box>
       );
@@ -353,7 +365,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
             Read the change, then submit it as your pull request or discard it. It waits {reviewWaitOf(attempt)} for
             you.
           </Text>
-          <AutopilotReviewNote reason={attempt.reviewReason} />
+          <AutopilotReviewNote reason={attempt.reviewReason} source={attempt.reviewReasonSource} />
           <SubmitErrorNote submit={attempt.submit} />
           {attempt.submit?.lastError ? (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

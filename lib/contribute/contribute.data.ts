@@ -12,6 +12,7 @@ import {
   ContributeAttemptDocument,
   ContributeAttemptFollowUpFlowDocument,
   ContributeAttemptFollowUpsDocument,
+  ContributeAttemptHoldDocument,
   ContributeAttemptMovesDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptProofDocument,
@@ -521,6 +522,8 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   const reviewReason = Promise.resolve(graphqlDirect(ContributeAttemptReviewReasonDocument, { id }, options)).catch(
     () => undefined,
   );
+  // A hold's source and the issue's first-timers label (autopilot limits); left out when not answered.
+  const hold = Promise.resolve(graphqlDirect(ContributeAttemptHoldDocument, { id }, options)).catch(() => undefined);
   // The submission's step clock, for the stepper's durations; left out when the API does not answer it.
   const clock = Promise.resolve(graphqlDirect(ContributeAttemptSubmitClockDocument, { id }, options)).catch(
     () => undefined,
@@ -615,10 +618,19 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
       movesRead?.attemptId === contributeAttempt.attemptId ? movesRead : undefined,
     );
     const proofRead = (await proof)?.contributeAttempt;
-    const withProof =
+    const withProofOnly =
       proofRead?.attemptId === contributeAttempt.attemptId && proofRead.proof !== undefined
         ? { ...withConventions, proof: proofRead.proof }
         : withConventions;
+    const holdRead = (await hold)?.contributeAttempt;
+    const withProof =
+      holdRead?.attemptId === contributeAttempt.attemptId && holdRead.newcomersLabel !== undefined
+        ? {
+            ...withProofOnly,
+            reviewReasonSource: holdRead.reviewReasonSource ?? null,
+            newcomersLabel: holdRead.newcomersLabel ?? null,
+          }
+        : withProofOnly;
     const agent = (await ownAgent)?.contributeAttempt;
     if (agent?.attemptId !== contributeAttempt.attemptId) return withProof;
     const { result, ...fields } = agent;

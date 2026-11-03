@@ -386,6 +386,11 @@ export function ContributionShell({
           )}
           {isOwnAgent(attempt) ? <Pill tone="violet">Your own agent</Pill> : null}
         </span>
+        {attempt.newcomersLabel ? (
+          <p data-first-timers className="text-sm text-muted-foreground">
+            Labelled {attempt.newcomersLabel}: the maintainers keep it for people new to the project.
+          </p>
+        ) : null}
         <h1 className={HEADING.page}>{attemptTitleOf(attempt)}</h1>
         {first?.pullRequest ? (
           <PullRequestStatus pullRequest={first.pullRequest} now={now} />

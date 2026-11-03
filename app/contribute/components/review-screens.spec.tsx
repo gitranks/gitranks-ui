@@ -203,6 +203,10 @@ describe('the review screen', () => {
     expect(plain).toContain('Ready for your review');
     expect(plain).toContain('driftwood-js/driftwood · issue #871');
     expect(plain).toContain('Nested layouts re-render on every navigation');
+    expect(html).not.toContain('data-first-timers');
+    expect(text(review({ ...failing, newcomersLabel: 'first-timers-only' }))).toContain(
+      'Labelled first-timers-only: the maintainers keep it for people new to the project.',
+    );
     expect(plain).toContain('Layout lookups used the raw route path');
     expect(plain).toContain('Low risk');
     expect(plain).toContain('Worth a look normalizePath keeps the case');

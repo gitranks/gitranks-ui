@@ -2,6 +2,11 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { AgentConnectView } from '@/app/contribute/components/agent-connect';
+import {
+  AutopilotConfirmLines,
+  AutopilotHowItWorks,
+  AutopilotRecord,
+} from '@/app/contribute/components/autopilot-section';
 import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
@@ -31,14 +36,40 @@ import {
   nextForYou,
 } from '@/lib/contribute/__fixtures__/needs-you';
 import { pageOf } from '@/lib/contribute/__fixtures__/runs';
-import type {
-  ContributeActivity,
-  ContributeAttemptDetail,
-  ContributeView,
-} from '@/lib/contribute/contribute.types';
+import type { ContributeActivity, ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { NeedsYouRead } from '@/lib/contribute/needs-you';
 import { runsQueryOf } from '@/lib/contribute/runs';
+
+/**
+ * A dialog drawn open over its page: a portal renders nothing on the server, so the catalogue draws its content in the
+ * same box the dialog uses (autopilot limits spec §4).
+ */
+function OpenDialog({ page, title, children }: { page: ReactNode; title: string; children: ReactNode }) {
+  return (
+    <div className="relative">
+      {page}
+      <div className="absolute inset-0 flex items-start justify-center bg-black/50 px-4 pt-28">
+        <div
+          role="dialog"
+          aria-label={title}
+          className="grid w-full max-w-lg gap-4 rounded-lg border bg-background p-6 shadow-lg"
+        >
+          <h2 className="text-lg font-semibold">{title}</h2>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Autopilot open and unlocked, the setting off: what the confirmation shows over. */
+const autopilotOff: ContributeView = {
+  ...views.autopilotUnlocked,
+  contributor: views.autopilotUnlocked.contributor
+    ? { ...views.autopilotUnlocked.contributor, settings: { ...settings, autopilot: false } }
+    : null,
+};
 
 /** A key and a live token the agent has called with: both lanes of Right now. */
 const both: ContributeView = {
@@ -305,6 +336,27 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           frame(
             <main className={MAIN}>
               <ReviewScreen view={views.active} attempt={decisionAttempts.went} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'beginner-held',
+        title: 'A beginner issue: the first-timers line, and why autopilot left it to you',
+        path: '/contribute/attempts/A_1',
+        height: 2000,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <ReviewScreen
+                view={views.active}
+                attempt={{
+                  ...decisionAttempts.went,
+                  newcomersLabel: 'first-timers-only',
+                  reviewReason: 'beginner_issue',
+                  reviewReasonSource: 'first-timers-only',
+                }}
+                now={NOW}
+              />
             </main>,
           ),
       },
@@ -592,6 +644,28 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           ),
       },
       {
+        id: 'first-timers',
+        title: 'A first-timers-only issue says so',
+        path: '/contribute/issues',
+        height: 1800,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <IssuesScreen
+                view={views.active}
+                page={{
+                  ...issuePage,
+                  items: issuePage.items.map((item, index) =>
+                    index === 0 ? { ...item, labels: ['first-timers-only'], forNewcomers: true } : item,
+                  ),
+                }}
+                query={{}}
+                now={NOW}
+              />
+            </main>,
+          ),
+      },
+      {
         id: 'new-account',
         title: 'A new account: smaller limits',
         path: '/contribute/issues',
@@ -639,6 +713,61 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
               <SettingsScreen view={views.active} now={NOW} />
             </main>,
+          ),
+      },
+      {
+        id: 'autopilot-how',
+        title: 'How autopilot works, at launch',
+        path: '/contribute/settings',
+        height: 1800,
+        render: () =>
+          frame(
+            <OpenDialog
+              title="How autopilot works"
+              page={
+                <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+                  <SettingsScreen view={views.autopilotComing} now={NOW} />
+                </main>
+              }
+            >
+              <p className="text-sm text-muted-foreground">
+                Autopilot submits a pull request for you, without your review, when the change is ready. It stays off
+                until you turn it on.
+              </p>
+              <AutopilotHowItWorks autopilot={views.autopilotComing.contributor.autopilot} />
+              <div className="border-t pt-3">
+                <AutopilotRecord autopilot={views.autopilotComing.contributor.autopilot} />
+              </div>
+            </OpenDialog>,
+          ),
+      },
+      {
+        id: 'autopilot-confirm',
+        title: 'Turning autopilot on: confirm first',
+        path: '/contribute/settings',
+        height: 1800,
+        render: () =>
+          frame(
+            <OpenDialog
+              title="Turn on autopilot?"
+              page={
+                <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+                  <SettingsScreen view={autopilotOff} now={NOW} />
+                </main>
+              }
+            >
+              <p className="text-sm text-muted-foreground">
+                Autopilot submits pull requests for you, without your review.
+              </p>
+              <AutopilotConfirmLines />
+              <span className="text-sm font-semibold text-link">How autopilot works</span>
+              <div className="flex justify-end gap-2">
+                <span className="inline-flex h-9 items-center rounded-md border px-4 text-sm font-medium">Cancel</span>
+                <span className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+                  Turn on autopilot
+                </span>
+              </div>
+            </OpenDialog>,
           ),
       },
       {

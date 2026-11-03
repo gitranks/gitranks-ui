@@ -100,6 +100,24 @@ describe('B1, your own agent', () => {
     expect(html).toContain('aria-label="Copy the setup"');
   });
 
+  it("puts the token in Antigravity's config itself, with no step that saves it on the computer", () => {
+    const { html, plain } = b1({ stage: 'token', shown: TOKEN, client: 'antigravity', os: 'mac', detectedOs: 'mac' });
+
+    expect(plain).not.toContain('Save the token on this computer');
+    expect(plain).not.toContain('GITRANKS_MCP_TOKEN');
+    expect(plain).toContain('The setup below already includes it.');
+    expect(plain).toContain('Add GitRanks to Antigravity');
+    expect(plain).not.toContain('b · Add GitRanks');
+    expect(plain).toContain('~/.gemini/config/mcp_config.json');
+    expect(plain).toContain('"serverUrl": "https://mcp.gitranks.com/mcp"');
+    expect(plain).toContain(`"Authorization": "Bearer ${TOKEN}"`);
+    expect(plain).toContain('keep the file to yourself');
+    expect(html).toContain('aria-label="Copy the setup"');
+    expect(b1({ stage: 'added', shown: TOKEN, client: 'antigravity', hint: true }).plain).toContain(
+      "Check that the GitRanks entry in Antigravity's MCP config holds your latest token",
+    );
+  });
+
   it("takes Windows' forms when it is picked, and says nothing was detected for an OS it did not detect", () => {
     const { plain } = b1({ stage: 'token', shown: TOKEN, os: 'windows', detectedOs: 'mac' });
 

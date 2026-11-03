@@ -32,6 +32,7 @@ import {
   mcpTokenCheckOf,
   mcpTokenNameOf,
   type NavigatorLike,
+  tokenInConfigOf,
 } from '@/lib/contribute/mcp-setup';
 import { nextSessionPath } from '@/lib/contribute/sessions';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
@@ -329,12 +330,18 @@ export function AgentConnectView({
               {hint && !connected ? (
                 // In the status region, so it is announced when it appears.
                 <span className="text-xs text-muted-foreground" data-agent-hint>
-                  Nothing yet? The variable must be set where {name} runs. In that terminal,{' '}
-                  <code className="font-mono">{mcpTokenCheckOf(os)}</code> should print your token. If it prints
-                  nothing, open a new terminal, check again, and start {name} from there.{' '}
-                  {client === 'claude-code'
-                    ? 'If you made a new token since you added GitRanks, run the setup again: Claude Code keeps the token it read then.'
-                    : `If you made a new token since, restart ${name}, so it reads the new one.`}
+                  {tokenInConfigOf(client) ? (
+                    `Nothing yet? Check that the GitRanks entry in ${name}'s MCP config holds your latest token, then refresh its MCP servers (in the CLI, run /mcp) and ask again.`
+                  ) : (
+                    <>
+                      Nothing yet? The variable must be set where {name} runs. In that terminal,{' '}
+                      <code className="font-mono">{mcpTokenCheckOf(os)}</code> should print your token. If it prints
+                      nothing, open a new terminal, check again, and start {name} from there.{' '}
+                      {client === 'claude-code'
+                        ? 'If you made a new token since you added GitRanks, run the setup again: Claude Code keeps the token it read then.'
+                        : `If you made a new token since, restart ${name}, so it reads the new one.`}
+                    </>
+                  )}
                 </span>
               ) : null}
             </div>

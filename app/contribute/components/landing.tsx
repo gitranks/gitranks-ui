@@ -47,7 +47,7 @@ const WAYS: {
   {
     path: 'agent',
     who: 'Your agent does the work',
-    title: 'Claude Code, Codex, Cursor or Gemini CLI',
+    title: 'Claude Code, Codex, Cursor, Gemini CLI or Antigravity',
     text: 'Best if you already work with a coding agent. It asks GitRanks for an issue, fixes it on your machine, and hands the change back for your review here. Your agent and its model stay your own.',
     facts: [
       ['You bring', 'An agent that speaks MCP, and a token we give you'],

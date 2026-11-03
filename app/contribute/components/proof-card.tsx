@@ -51,7 +51,7 @@ import { cn } from '@/lib/utils';
 
 type ProofMove = Extract<UserMove, { kind: 'proof' }>;
 
-/** "Claude Code, Codex CLI, Cursor or Gemini CLI": the clients the setup knows; any MCP client works. */
+/** "Claude Code, Codex CLI, Cursor, Gemini CLI or Antigravity": the clients the setup knows; any MCP client works. */
 const CLIENTS = (() => {
   const names = Object.values(MCP_CLIENT_NAMES);
   return `${names.slice(0, -1).join(', ')} or ${names.at(-1)}`;

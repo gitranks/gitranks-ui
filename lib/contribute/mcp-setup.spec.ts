@@ -12,6 +12,7 @@ import {
   mcpTokenCheckOf,
   mcpTokenNameOf,
   mcpTokenSaveOf,
+  tokenInConfigOf,
 } from './mcp-setup';
 
 /** A made-up token of the real shape: `gr_` and 43 base62 characters. */
@@ -77,7 +78,7 @@ describe('the line that saves the token', () => {
 
 describe('the setup for each client and computer', () => {
   it('reads the token from the environment, never the token itself', () => {
-    for (const client of MCP_CLIENTS) {
+    for (const client of MCP_CLIENTS.filter((each) => !tokenInConfigOf(each))) {
       for (const os of ['mac', 'linux', 'windows'] as const) {
         const { lines } = mcpClientSetupOf(client, os);
         expect(lines).toContain(MCP_URL);
@@ -97,6 +98,26 @@ describe('the setup for each client and computer', () => {
     expect(mcpClientSetupOf('codex', 'windows').label).toBe('%USERPROFILE%\\.codex\\config.toml');
     expect(mcpClientSetupOf('cursor', 'windows').label).toBe('%USERPROFILE%\\.cursor\\mcp.json');
     expect(mcpClientSetupOf('gemini-cli', 'windows').label).toBe('%USERPROFILE%\\.gemini\\settings.json');
+    expect(mcpClientSetupOf('antigravity', 'windows').label).toBe('%USERPROFILE%\\.gemini\\config\\mcp_config.json');
+  });
+
+  it("gives Antigravity the token itself, in its config's serverUrl and headers form: it can't read variables there", () => {
+    expect(tokenInConfigOf('antigravity')).toBe(true);
+    expect(MCP_CLIENTS.filter(tokenInConfigOf)).toEqual(['antigravity']);
+    const setup = mcpClientSetupOf('antigravity', 'mac', { token: TOKEN });
+    expect(setup).toMatchObject({ name: 'Antigravity', label: '~/.gemini/config/mcp_config.json', file: true });
+    expect(JSON.parse(setup.lines)).toEqual({
+      mcpServers: { gitranks: { serverUrl: MCP_URL, headers: { Authorization: `Bearer ${TOKEN}` } } },
+    });
+    expect(setup.lines).not.toContain('GITRANKS_MCP_TOKEN');
+    expect(setup.where).toContain('Manage MCP Servers → View raw config');
+    expect(setup.where).toContain('/mcp');
+    expect(setup.where).toContain('keep the file to yourself');
+    expect(mcpClientSetupOf('antigravity', 'mac', { token: TOKEN, replacing: true }).where).toContain(
+      'in place of the GitRanks entry',
+    );
+    // Without a token (Settings), a placeholder: never a token of the right shape.
+    expect(mcpSetupLinesOf('antigravity', 'mac')).toContain('Bearer <your GitRanks token>');
   });
 
   it('runs Claude Code in the terminal the token was saved in, and names the files under ~ elsewhere', () => {

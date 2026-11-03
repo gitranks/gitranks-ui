@@ -54,6 +54,9 @@ import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { NeedsYouRead } from '@/lib/contribute/needs-you';
 import { runsQueryOf } from '@/lib/contribute/runs';
 
+/** A made-up token of the real shape, as the connect page shows it once. */
+const SHOWN_TOKEN = 'gr_8Kq2vN4tXb7RwL1mZc9HpYe3Ud6SfA0jQg5Ko2Ti8Lm';
+
 /**
  * A dialog drawn open over its page: a portal renders nothing on the server, so the catalogue draws the dialog's own
  * parts (its title, lead and body, exported beside it) in the box the dialog uses (autopilot limits spec §4).
@@ -584,6 +587,54 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     route: '/contribute/connect',
     sources: ['app/contribute/components/agent-connect.tsx', 'app/contribute/components/connect-view.tsx'],
     states: [
+      {
+        id: 'token',
+        title: 'The token and its setup: Claude Code',
+        path: '/contribute/connect?path=agent',
+        height: 1400,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 pt-9 pb-16">
+              <AgentConnectView
+                client="claude-code"
+                onClient={noop}
+                stage="token"
+                shown={SHOWN_TOKEN}
+                os="mac"
+                detectedOs="mac"
+                onOs={noop}
+                onCreate={noop}
+                onAdded={noop}
+                onReopen={noop}
+                onReplace={noop}
+              />
+            </main>,
+          ),
+      },
+      {
+        id: 'token-antigravity',
+        title: "The token in Antigravity's config: one step",
+        path: '/contribute/connect?path=agent',
+        height: 1400,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 pt-9 pb-16">
+              <AgentConnectView
+                client="antigravity"
+                onClient={noop}
+                stage="token"
+                shown={SHOWN_TOKEN}
+                os="mac"
+                detectedOs="mac"
+                onOs={noop}
+                onCreate={noop}
+                onAdded={noop}
+                onReopen={noop}
+                onReplace={noop}
+              />
+            </main>,
+          ),
+      },
       {
         id: 'proof-prompt',
         title: 'From a proof card: the proof prompt last',

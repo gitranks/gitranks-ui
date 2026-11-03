@@ -285,6 +285,7 @@ export type ContributeAgentName =
   | 'COPILOT'
   | 'AIDER'
   | 'CLINE'
+  | 'ANTIGRAVITY'
   | 'OTHER';
 /** The agent as it reported itself; the model is shown as reported. */
 export type ContributeAgent = { name: ContributeAgentName; model: string | null };
@@ -677,6 +678,13 @@ export type ContributeAttemptDetail = ContributeAttempt & {
    * False: nothing is asked and nothing is signed off. `undefined` while the API does not answer it.
    */
   dcoRequired?: boolean;
+  /**
+   * What the PR's body gets after the approved text, as Markdown, as the API writes it: the repo's disclosure sentence
+   * (once approved) and the footer line. `undefined` while the API does not answer it.
+   */
+  prFooter?: string;
+  /** The commits carry the gitranks bot's co-author: false on a repo that bans AI trailers; null before the approval. */
+  prCoAuthored?: boolean | null;
   /** What `retryAttempt` would do with this stop: null when it can't be tried again, `undefined` while not answered. */
   retry?: ContributeRetry | null;
   /** The session's latest go/no-go: null when it gave none (an older run); `undefined` while the API does not answer it. */

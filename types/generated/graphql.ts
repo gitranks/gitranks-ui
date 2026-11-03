@@ -118,9 +118,10 @@ export type ContributeAgent = {
   name: ContributeAgentName;
 };
 
-/** The agent an MCP attempt reported: claude-code, codex, cursor, gemini-cli, copilot, aider, cline or other */
+/** The agent an MCP attempt reported: claude-code, codex, cursor, gemini-cli, copilot, aider, cline, antigravity or other */
 export enum ContributeAgentName {
   Aider = 'AIDER',
+  Antigravity = 'ANTIGRAVITY',
   ClaudeCode = 'CLAUDE_CODE',
   Cline = 'CLINE',
   Codex = 'CODEX',
@@ -359,7 +360,11 @@ export type ContributeAttemptDetail = {
   patch?: Maybe<Scalars['String']['output']>;
   /** The PR's description as a fix last set it; null while none did */
   prBody?: Maybe<Scalars['String']['output']>;
+  /** The commits carry the gitranks bot's co-author (not on a repo that bans AI trailers). Null before the approval */
+  prCoAuthored?: Maybe<Scalars['Boolean']['output']>;
   prFix?: Maybe<ContributePrFix>;
+  /** What the PR's body gets after the approved text, as Markdown: the repo's disclosure sentence once the approval took it, then the footer line. Before the approval, the footer in the viewer’s name */
+  prFooter: Scalars['String']['output'];
   /** What its open PR fails of them, with the fixes */
   prIssues: Array<ContributePrConventionIssue>;
   /** The PR's title as last set (the approval's, then a retitle's) */
@@ -1924,6 +1929,7 @@ export enum ContributeSetReason {
   NoManifest = 'NO_MANIFEST',
   OptedOut = 'OPTED_OUT',
   OutsideMerges = 'OUTSIDE_MERGES',
+  OutsidePrsClosed = 'OUTSIDE_PRS_CLOSED',
   Private = 'PRIVATE',
   Pushed = 'PUSHED'
 }

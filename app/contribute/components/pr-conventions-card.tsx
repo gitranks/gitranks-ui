@@ -365,9 +365,7 @@ export function PrConventionsCard({
             onChange={(event) => setDraftBody(event.target.value)}
             className="field-sizing-fixed resize-y rounded-lg font-mono text-xs leading-normal md:text-xs"
           />
-          <span className="text-xs text-muted-foreground">
-            The footer line stays as the pull request opened with it.
-          </span>
+          <span className="text-xs text-muted-foreground">The footer line is kept, in its current wording.</span>
           <div>
             <Button type="submit" size="sm" disabled={busy || !draftBody.trim()}>
               Update the description

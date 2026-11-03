@@ -127,10 +127,11 @@ type ContributeAgent {
 }
 
 """
-The agent an MCP attempt reported: claude-code, codex, cursor, gemini-cli, copilot, aider, cline or other
+The agent an MCP attempt reported: claude-code, codex, cursor, gemini-cli, copilot, aider, cline, antigravity or other
 """
 enum ContributeAgentName {
   AIDER
+  ANTIGRAVITY
   CLAUDE_CODE
   CLINE
   CODEX
@@ -472,7 +473,17 @@ type ContributeAttemptDetail {
 
   """The PR's description as a fix last set it; null while none did"""
   prBody: String
+
+  """
+  The commits carry the gitranks bot's co-author (not on a repo that bans AI trailers). Null before the approval
+  """
+  prCoAuthored: Boolean
   prFix: ContributePrFix
+
+  """
+  What the PR's body gets after the approved text, as Markdown: the repo's disclosure sentence once the approval took it, then the footer line. Before the approval, the footer in the viewer’s name
+  """
+  prFooter: String!
 
   """What its open PR fails of them, with the fixes"""
   prIssues: [ContributePrConventionIssue!]!
@@ -2394,6 +2405,7 @@ enum ContributeSetReason {
   NO_MANIFEST
   OPTED_OUT
   OUTSIDE_MERGES
+  OUTSIDE_PRS_CLOSED
   PRIVATE
   PUSHED
 }

@@ -3,7 +3,8 @@ import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
-import { isContributePath, isLandingPath, isMaintainersPath } from './lib/contribute/contribute-path';
+import { isContributePath, isLandingPath, isLedgerPath, isMaintainersPath } from './lib/contribute/contribute-path';
+import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { contributeOpen, requestMaySeeContribute } from './lib/contribute/preview-gate';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
@@ -68,7 +69,15 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // cache (it would be served to someone who is let in). The page for maintainers is open to everyone, and once
   // Contribute is launched so is the landing, to visitors without a session too.
   const { pathname } = request.nextUrl;
-  if (
+  // The ledger has its own switch (ledger design §6): open, it goes on as any public page; closed, a visitor without a
+  // session gets the 404 here, and a signed-in one goes on to the page, which asks the API whether they are on its list.
+  if (isLedgerPath(pathname)) {
+    if (!(await contributeLedgerOpen()) && !request.cookies.getAll().some(({ name }) => SESSION_COOKIE.test(name))) {
+      const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
+  } else if (
     isContributePath(pathname) &&
     !isMaintainersPath(pathname) &&
     !(isLandingPath(pathname) && (await contributeOpen())) &&

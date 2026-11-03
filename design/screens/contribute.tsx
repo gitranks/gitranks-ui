@@ -6,6 +6,7 @@ import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contr
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
+import { LedgerScreen } from '@/app/contribute/components/ledger-view';
 import { MaintainerReposPanel, MaintainersScreen } from '@/app/contribute/components/maintainers-view';
 import { OverviewScreen, overviewSectionsOf } from '@/app/contribute/components/overview-status';
 import { ReviewScreen } from '@/app/contribute/components/review-view';
@@ -21,6 +22,7 @@ import {
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { issuePage, nowIdle, overviewData } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
+import { emptyLedger, ledger, publicLedger } from '@/lib/contribute/__fixtures__/ledger';
 import { maintainerRepo } from '@/lib/contribute/__fixtures__/maintainers';
 import {
   needsSome,
@@ -157,6 +159,15 @@ const maintainersPage = (view: MaintainerReposView) => (
     <Header section="contribute" />
     <HeaderLine />
     <MaintainersScreen repos={<MaintainerReposPanel view={view} />} />
+  </>
+);
+
+/** The ledger as its page draws it: the site header and its line, no Contribute tabs. */
+const ledgerPage = (view: typeof ledger) => (
+  <>
+    <Header section="contribute" />
+    <HeaderLine />
+    <LedgerScreen ledger={view} />
   </>
 );
 
@@ -694,6 +705,46 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
               ],
             },
           }),
+      },
+    ],
+  },
+  {
+    id: 'contribute-ledger',
+    title: 'Contribute ledger',
+    area: 'contribute',
+    route: '/contribute/ledger',
+    sources: ['app/contribute/ledger/page.tsx', 'app/contribute/components/ledger-view.tsx'],
+    states: [
+      {
+        id: 'preview',
+        title: 'Preview: only the list sees it, the bar on top',
+        path: '/contribute/ledger',
+        height: 2400,
+        render: () => ledgerPage(ledger),
+      },
+      {
+        id: 'public',
+        title: 'Public, signed out',
+        path: '/contribute/ledger',
+        signedOut: true,
+        height: 2200,
+        render: () => ledgerPage(publicLedger),
+      },
+      {
+        id: 'public-phone',
+        title: 'Public · phone',
+        path: '/contribute/ledger',
+        signedOut: true,
+        width: 390,
+        height: 4600,
+        render: () => ledgerPage(publicLedger),
+      },
+      {
+        id: 'empty',
+        title: 'No pull requests yet',
+        path: '/contribute/ledger',
+        height: 1500,
+        render: () => ledgerPage(emptyLedger),
       },
     ],
   },

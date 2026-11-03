@@ -130,6 +130,7 @@ export function SettingsScreen({
           {contributor ? (
             <AutopilotSection
               autopilot={contributor.autopilot}
+              login={contributor.login}
               enabled={settings?.autopilot ?? false}
               canSave={!!settings}
             />

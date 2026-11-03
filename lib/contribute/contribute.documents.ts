@@ -186,6 +186,16 @@ export const ContributeAttemptReviewReasonDocument = doc<
   { id: string }
 >('query ContributeAttemptReviewReason($id: ID!) { contributeAttempt(id: $id) { attemptId reviewReason } }');
 
+/** A hold's source and the issue's first-timers label (autopilot limits): read on their own, like the reason. */
+export const ContributeAttemptHoldDocument = doc<
+  {
+    contributeAttempt: { attemptId: string; reviewReasonSource: string | null; newcomersLabel: string | null } | null;
+  },
+  { id: string }
+>(
+  'query ContributeAttemptHold($id: ID!) { contributeAttempt(id: $id) { attemptId reviewReasonSource newcomersLabel } }',
+);
+
 /** Whether the user is onboarded: read on its own, so an API without it leaves the rest. */
 export const ContributeOnboardingDocument = doc<{
   contribute: {
@@ -218,7 +228,7 @@ export const ContributeIssuesDocument = doc<
   { first?: number; after?: string; filter?: ContributeIssuesFilter }
 >(`query ContributeIssues($first: Int, $after: String, $filter: ContributeIssuesFilter) {
   contributeIssues(first: $first, after: $after, filter: $filter) {
-    items { ${ISSUE} tier }
+    items { ${ISSUE} tier forNewcomers }
     next total computedAt dailyCap { limit reached }
   }
 }`);

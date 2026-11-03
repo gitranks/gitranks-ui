@@ -27,6 +27,7 @@ const {
   ContributeAttemptsInFollowUpsDocument,
   ContributeAttemptsInOwnAgentDocument,
   ContributeAttemptsInReviewAtDocument,
+  ContributeAttemptHoldDocument,
   ContributeAttemptReviewReasonDocument,
   ContributeAttemptRetryDocument,
   ContributeAutopilotDocument,
@@ -580,6 +581,24 @@ describe('the follow-up fields, read on their own', () => {
     expect(await loadAttempt('A_1')).toMatchObject({ reviewReason: 'notice_late' });
     answer({ attemptId: 'A_2', reviewReason: 'notice_late' });
     expect(await loadAttempt('A_1')).not.toHaveProperty('reviewReason');
+  });
+
+  it('merges a hold’s source and the issue’s first-timers label, never another attempt’s, nothing from an older API', async () => {
+    const answer = (hold: Promise<unknown>) =>
+      graphqlDirect.mockImplementation((document) =>
+        document === ContributeAttemptDocument
+          ? Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'REVIEW' } })
+          : document === ContributeAttemptHoldDocument
+            ? hold
+            : NOT_YET(),
+      );
+    const read = { reviewReasonSource: 'good first issue', newcomersLabel: 'first-timers-only' };
+    answer(Promise.resolve({ contributeAttempt: { attemptId: 'A_1', ...read } }));
+    expect(await loadAttempt('A_1')).toMatchObject(read);
+    answer(Promise.resolve({ contributeAttempt: { attemptId: 'A_2', ...read } }));
+    expect(await loadAttempt('A_1')).not.toHaveProperty('newcomersLabel');
+    answer(NOT_YET());
+    expect(await loadAttempt('A_1')).toEqual({ attemptId: 'A_1', state: 'REVIEW' });
   });
 });
 

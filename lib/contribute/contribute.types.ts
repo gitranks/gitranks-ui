@@ -121,10 +121,19 @@ export type ContributeAutopilot = {
 
 /**
  * Why autopilot left a change for the user's review: no email to tell them first (`no_email`), the email not sent in
- * time (`notice_late`), autopilot turned off or locked meanwhile (`autopilot_off`), the user's Stop (`vetoed`), or a
- * run the user forced past a no-go, theirs to approve (`override`).
+ * time (`notice_late`), autopilot turned off or locked meanwhile (`autopilot_off`), the user's Stop (`vetoed`), a
+ * run the user forced past a no-go, theirs to approve (`override`), or a hold: a beginner issue (`beginner_issue`), one
+ * it could not read to check (`issue_unread`), a repo that asks for a person's review (`repo_manual_only`).
  */
-export type ContributeAutopilotReviewReason = 'no_email' | 'notice_late' | 'autopilot_off' | 'vetoed' | 'override';
+export type ContributeAutopilotReviewReason =
+  | 'no_email'
+  | 'notice_late'
+  | 'autopilot_off'
+  | 'vetoed'
+  | 'override'
+  | 'beginner_issue'
+  | 'issue_unread'
+  | 'repo_manual_only';
 
 export type Contributor = {
   status: ContributorStatus;
@@ -206,6 +215,8 @@ export type ContributeIssue = {
   url: string;
   title: string | null;
   labels: string[];
+  /** A label keeps it for first-time contributors (first-timers-only, newcomers). The feed asks it: needs the API that sends it. */
+  forNewcomers?: boolean;
   language: ContributeLanguage | null;
   kind: ContributeIssueKind | null;
   size: ContributeIssueSize | null;
@@ -563,6 +574,8 @@ export type ContributeAttemptFollowUpFields = {
 export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
   /** In the review: why autopilot left it there; null for any other review. Read on its own (`undefined`: not known). */
   reviewReason?: ContributeAutopilotReviewReason | null;
+  /** A hold's source beside the reason: the beginner label as the repo names it, a rule's file. Read on its own. */
+  reviewReasonSource?: string | null;
 } & Partial<ContributeOwnAgentFields> & {
     attemptId: string;
     issueId: string;
@@ -670,6 +683,8 @@ export type ContributeAttemptEvent = { state: ContributeAttemptState; detail: st
 
 /** One attempt for the review screen. `patch` is `git format-patch` text: untrusted, rendered as text only. */
 export type ContributeAttemptDetail = ContributeAttempt & {
+  /** The issue's first-timers-only or newcomers label, as the repo names it; null or absent: none (read on its own). */
+  newcomersLabel?: string | null;
   patch: string | null;
   result: ContributeAttemptResult | null;
   readiness: ContributeRepoReadiness | null;

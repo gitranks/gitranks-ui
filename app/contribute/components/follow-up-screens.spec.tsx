@@ -26,7 +26,14 @@ const { ReviewScreen, grantNeededOf } = await import('./review-view');
 const { ContributionsScreen } = await import('./contributions-view');
 const { SettingsScreen } = await import('./settings-view');
 const { ReplyDraftItem } = await import('./reply-drafts');
-const { AutopilotRecord, autopilotErrorMessage } = await import('./autopilot-section');
+const {
+  AUTOPILOT_CONFIRM_LINES,
+  AUTOPILOT_LAUNCH_LINE,
+  AutopilotConfirmLines,
+  AutopilotHowItWorks,
+  AutopilotRecord,
+  autopilotErrorMessage,
+} = await import('./autopilot-section');
 const { NOW, views, settings: baseSettings } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const {
   attempt,
@@ -830,7 +837,9 @@ describe('refusals, in plain words', () => {
         'INVALID',
         'Autopilot is coming: it opens once GitRanks can tell you before it submits anything for you',
       ),
-    ).toContain('Autopilot is coming soon: it cannot be turned on yet.');
+    ).toBe(
+      'Autopilot opens about a month after launch. Until then every pull request waits for your review, and your record keeps counting.',
+    );
     expect(autopilotErrorMessage('INVALID', 'autopilot unlocks after 3 pull requests merged through GitRanks')).toBe(
       'Autopilot is locked: it unlocks after 3 pull requests merged through GitRanks.',
     );
@@ -839,22 +848,25 @@ describe('refusals, in plain words', () => {
 });
 
 describe('autopilot', () => {
-  /** Its row on the Settings summary, and the record its Details dialog opens. */
+  /** Its row on the Settings summary, and what its How autopilot works dialog opens: the description and the record. */
   const settings = (view: ContributeView) =>
     renderToStaticMarkup(
       <>
         <SettingsScreen view={view} now={NOW} />
+        {view.contributor ? <AutopilotHowItWorks autopilot={view.contributor.autopilot} /> : null}
         {view.contributor ? <AutopilotRecord autopilot={view.contributor.autopilot} /> : null}
       </>,
     );
 
-  it('says it is coming soon while it is not open, with the record and the toggle off', () => {
+  it('says it opens after launch month while it is not open, with the record and the toggle off', () => {
     const html = settings(views.autopilotComing);
     const plain = text(html);
 
     expect(html).toContain('data-autopilot-available="false"');
-    expect(plain).toContain('Coming soon');
-    expect(plain).toContain('Autopilot is coming soon.');
+    expect(plain).toContain('After launch month');
+    expect(plain).toContain(AUTOPILOT_LAUNCH_LINE);
+    expect(plain).toContain('How autopilot works');
+    expect(plain).not.toContain('Details');
     expect(plain).toContain('Merged through GitRanks 2');
     expect(plain).toContain('Still needed to unlock 1');
     expect(plain).toContain('Closed without merging in a row 1 of 2');
@@ -877,15 +889,40 @@ describe('autopilot', () => {
     expect(html).toContain('data-autopilot-available="false"');
     expect(checkbox).toContain('checked=""');
     expect(checkbox).not.toContain('disabled=""');
-    expect(text(html)).toContain('Coming soon');
+    expect(text(html)).toContain('After launch month');
   });
 
   it('says it is not available yet while the API does not answer whether it is open', () => {
     const html = settings(views.active);
 
     expect(html).toContain('data-autopilot-available="unknown"');
-    expect(text(html)).toContain('Autopilot is not available yet.');
+    expect(text(html)).toContain('After launch month');
+    expect(text(html)).toContain(AUTOPILOT_LAUNCH_LINE);
     expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
+  });
+
+  it('says every limit before it is on: when it submits, the hour, what it never does, follow-ups, GitHub, lock', () => {
+    const plain = text(settings(views.autopilotUnlocked));
+
+    expect(plain).not.toContain(AUTOPILOT_LAUNCH_LINE);
+    for (const heading of ['When it submits', 'An hour to stop it', 'What it never does', 'Follow-ups', 'On GitHub']) {
+      expect(plain).toContain(heading);
+    }
+    expect(plain).toContain(
+      'Submit on beginner issues (labels such as good first issue, first-timers-only, newcomers, easy)',
+    );
+    expect(plain).toContain("Submit on a repository whose maintainers don't allow autopilot");
+    expect(plain).toContain('it may start up to 2 runs on that pull request, on your key');
+    expect(plain).toContain("Opened by @you's autopilot, not reviewed by a human");
+    expect(plain).toContain('It unlocks after 3 of your pull requests are merged through GitRanks. Two closed');
+  });
+
+  it('asks before turning it on, in six lines that name the beginner issues', () => {
+    const plain = text(renderToStaticMarkup(<AutopilotConfirmLines />));
+
+    expect(AUTOPILOT_CONFIRM_LINES).toHaveLength(6);
+    expect(plain).toContain("Never on beginner issues, or on repositories that don't allow autopilot");
+    expect(plain).toContain('Up to 2 follow-up runs per pull request, on your key.');
   });
 
   it('lets the user turn it on or off once it is open and unlocked', () => {
@@ -917,7 +954,7 @@ describe('autopilot', () => {
     });
     const mailed = settings(withNotice('m•••@gmail.com'));
     expect(text(mailed)).toContain('Emails before each submission go to m•••@gmail.com');
-    expect(text(mailed)).toContain('Before autopilot submits, we email you at m•••@gmail.com.');
+    expect(text(mailed)).toContain('Before each submission we email you at m•••@gmail.com.');
     expect(mailed).not.toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
 
     const unmailed = settings(withNotice(null));
@@ -979,6 +1016,28 @@ describe('autopilot', () => {
     expect(text(reviewing('override'))).toContain('You chose to work on this one, so you approve its pull request.');
     expect(reviewing('vetoed')).not.toContain('data-autopilot-review-reason');
     expect(reviewing(null)).not.toContain('data-autopilot-review-reason');
+  });
+
+  it('says autopilot left a beginner issue to the user, naming the label, and an issue it could not read', () => {
+    const held = (reviewReason: ContributeAttemptDetail['reviewReason'], reviewReasonSource: string | null) =>
+      text(
+        review({
+          ...followUpAttempts.pendingAutosubmit,
+          state: 'REVIEW',
+          autosubmitAt: null,
+          autopilot: false,
+          reviewReason,
+          reviewReasonSource,
+        }),
+      );
+    expect(held('beginner_issue', 'good first issue')).toContain(
+      'Autopilot did not submit it: it never submits on beginner issues (good first issue), so it waits for your review.',
+    );
+    expect(held('beginner_issue', null)).toContain('it never submits on beginner issues, so it waits');
+    expect(held('issue_unread', null)).toContain('we could not read the issue to check its labels');
+    expect(held('repo_manual_only', 'CONTRIBUTING.md')).toContain(
+      'this repository asks for a person’s review (CONTRIBUTING.md)',
+    );
   });
 
   it('counts down to the submission on an attempt waiting for it, with Stop', () => {

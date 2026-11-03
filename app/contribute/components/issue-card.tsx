@@ -152,6 +152,11 @@ export function IssueCard({
             ) : null}
           </div>
         ) : null}
+        {issue.forNewcomers ? (
+          <p data-first-timers className={cn('text-sm text-muted-foreground', gone && GONE)}>
+            For first-time contributors: the maintainers keep it for people new to the project.
+          </p>
+        ) : null}
         {live || takenHere ? <IssueLiveStatus ref={line} status={status} attemptId={live?.attemptId ?? null} /> : null}
       </div>
       <ConfirmDialog

@@ -66,8 +66,8 @@ export const PACES: Record<ContributePace, { title: string; text: string }> = {
 
 /** The plans the credits come from, with what each gives a month (null: the user says). */
 export const PLANS: { plan: ContributeClaudePlan; title: string; text: string; creditUsd: number | null }[] = [
-  { plan: 'MAX_5X', title: 'Max 5x', text: '$100 credits a month', creditUsd: 100 },
-  { plan: 'MAX_20X', title: 'Max 20x', text: '$200 credits a month', creditUsd: 200 },
+  { plan: 'MAX_5X', title: 'Claude Max', text: '$100 credits a month', creditUsd: 100 },
+  { plan: 'MAX_20X', title: 'Claude Ultra', text: '$200 credits a month', creditUsd: 200 },
   { plan: 'TEAM_STANDARD', title: 'Team, Standard seat', text: '$20 a seat, pooled up to $500', creditUsd: 20 },
   { plan: 'TEAM_PREMIUM', title: 'Team, Premium seat', text: '$100 a seat, pooled up to $500', creditUsd: 100 },
   { plan: 'CREDITS', title: 'Credits I bought', text: 'You set the amount', creditUsd: null },

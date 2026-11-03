@@ -471,7 +471,7 @@ describe('Ways you contribute', () => {
   it('shows a connected key and a connected agent, each with the way to Settings', () => {
     const html = ways(both);
     expect(text(html)).toContain(
-      'Your Claude key Connected Max 20x · ends in …k3Qa · up to $200 a month Manage in Settings →',
+      'Your Claude key Connected Claude Ultra · ends in …k3Qa · up to $200 a month Manage in Settings →',
     );
     expect(text(html)).toContain(
       'Your own agent Connected Claude Code on macOS · 1 token live · last call 3 hours ago Manage in Settings →',

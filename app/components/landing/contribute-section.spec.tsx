@@ -46,18 +46,25 @@ describe('the Contribute section on the home page', () => {
     expect(useContributeAllowed).toHaveBeenCalledWith(null);
   });
 
-  it('leads with the investment, the stack and the track record; the rank comes last', () => {
+  it('leads with the contribution, then the review and the credits, then the public record in one line', () => {
     const html = renderToStaticMarkup(<ContributeSectionView viewer="member" picks={EXAMPLE_PICKS} />);
 
     expect(html).toContain('<h2 id="contribute"');
     for (const title of [
       'Help the projects you depend on',
       'Your agent writes it, you approve it',
-      'A track record that works for you',
+      'A public record of your work',
     ]) {
       expect(html).toContain(title);
     }
-    expect(html.indexOf('can count toward your Contributor rank')).toBeGreaterThan(html.indexOf('next job search'));
+    expect(html).toContain('You review each change');
+    expect(html).toContain('on the API credits your Claude plan');
+    expect(html).toContain(
+      'Merged pull requests stay on your GitHub profile, and can count toward your Contributor rank.',
+    );
+    expect(html.indexOf('You review each change')).toBeLessThan(html.indexOf('on the API credits your Claude plan'));
+    expect(html.indexOf('can count toward your Contributor rank')).toBeGreaterThan(html.indexOf('API credits'));
+    expect(html).not.toMatch(/job search|interview|boost/i);
     expect(html).toContain('Every pull request says it was made with AI.');
   });
 

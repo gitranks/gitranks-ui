@@ -39,7 +39,7 @@ const card = 'flex flex-col rounded-2xl border bg-card p-4.5 sm:p-5.5';
 const cardTitle = HEADING.card;
 
 export type KeyConnectProps = {
-  /** The plan a key was connected with before; the plan's limits start from Max 5x otherwise. */
+  /** The plan a key was connected with before; the plan's limits start from Max otherwise. */
   defaultPlan?: ContributeClaudePlan | null;
   /** "I'll set them myself" as the stored settings have it, for a key connected before. */
   defaultManual?: Partial<ManualLimitsDraft>;
@@ -169,7 +169,9 @@ export function KeyConnect({
             </li>
             <li>
               <span className="font-semibold text-foreground">Set its spend limit, and keep auto-reload off.</span> The
-              Console enforces the limit, whatever happens here; auto-reload would top it up.
+              Console enforces the limit, whatever happens here. Auto-reload looks only at credits you bought, not your
+              plan&apos;s: it can charge your card as soon as it&apos;s on, even while your plan&apos;s credits remain,
+              and once they run out it keeps the agent running on paid credits.
             </li>
             <li>
               <span className="font-semibold text-foreground">Create an API key in that workspace.</span>

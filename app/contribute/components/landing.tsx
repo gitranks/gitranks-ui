@@ -27,7 +27,7 @@ const WAYS: {
     path: 'key',
     who: 'We run the agent',
     title: 'On your Claude key',
-    text: "Best if your Claude Max or Team plan has API credits that expire unused. We pick an issue, run Claude in Anthropic's hosted sandbox, and bring you a tested change to review. You never touch a terminal.",
+    text: "Best if your Claude Max, Ultra or Team plan has API credits that expire unused. We pick an issue, run Claude in Anthropic's hosted sandbox, and bring you a tested change to review. You never touch a terminal.",
     facts: [
       ['You bring', 'A Claude API key, from a workspace with its own spend limit'],
       ['It spends', 'Your API credits, never more than the caps you set'],
@@ -105,7 +105,7 @@ const QUESTIONS = [
   {
     question: 'Does it cost anything?',
     answer:
-      'No. With your Claude key, the agent spends your API credits, never past your caps. With your own agent, nothing is spent through us.',
+      "GitRanks is free. With your Claude key, the agent spends your API credits, never past your caps. Give the key a workspace of its own with a spend limit, and keep auto-reload off: it can charge your card even while your plan's credits remain. With your own agent, nothing is spent through us.",
   },
   {
     question: 'What can you do on my GitHub account?',

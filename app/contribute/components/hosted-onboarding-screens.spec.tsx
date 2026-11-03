@@ -137,7 +137,7 @@ describe('A1, "I\'ll set them myself"', () => {
     expect(plain).toContain('at most $150, your monthly cap as it is');
     expect(plain).toContain('at most $3, it stops at the cap');
     expect(plain).toContain('only on issues you queue');
-    expect(plain).not.toContain("Max 5x's monthly allowance");
+    expect(plain).not.toContain("the Max plan's monthly allowance");
   });
 });
 

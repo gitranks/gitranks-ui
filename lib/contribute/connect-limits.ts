@@ -50,8 +50,8 @@ export const CONNECT_BOUNDS = {
 
 /** The plans "From my Claude plan" offers, by name alone: the buttons show no prices, so none reads as ours. */
 export const PLAN_CHOICES: { plan: ContributeClaudePlan; label: string }[] = [
-  { plan: 'MAX_5X', label: 'Max 5x' },
-  { plan: 'MAX_20X', label: 'Max 20x' },
+  { plan: 'MAX_5X', label: 'Max' },
+  { plan: 'MAX_20X', label: 'Ultra' },
   { plan: 'TEAM_STANDARD', label: 'Team Standard' },
   { plan: 'TEAM_PREMIUM', label: 'Team Premium' },
 ];
@@ -280,7 +280,7 @@ export function appliedLimitsOf(
       : kept && stored?.plan === plan
         ? `at most ${usd(kept.cycleCapUsd)}, your monthly cap as it is`
         : credit !== null && choice
-          ? `up to ${usd(credit)} of your credits, ${choice.label}'s monthly allowance`
+          ? `up to ${usd(credit)} of your credits, the ${choice.label} plan's monthly allowance`
           : 'your monthly allowance';
   const { attemptsAtATime, openPrsAtATime, maxChangedLines, maxFiles, mainModel, helperModel, testModel } =
     kept ?? CONNECT_DEFAULTS;

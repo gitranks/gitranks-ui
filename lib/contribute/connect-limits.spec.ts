@@ -79,10 +79,10 @@ describe('appliedLimitsOf', () => {
 
   it("starts the month from the plan's allowance", () => {
     expect(rows('plan', 'MAX_20X', manualDraftOf())['Each month']).toBe(
-      "up to $200 of your credits, Max 20x's monthly allowance",
+      "up to $200 of your credits, the Ultra plan's monthly allowance",
     );
     expect(rows('plan', 'TEAM_STANDARD', manualDraftOf())['Each month']).toBe(
-      "up to $20 of your credits, Team Standard's monthly allowance",
+      "up to $20 of your credits, the Team Standard plan's monthly allowance",
     );
   });
 
@@ -136,7 +136,7 @@ describe('a key connected before', () => {
       settings: { ...stored, attemptCapUsd: 30 },
     });
 
-    expect(moved['Each month']).toBe("up to $20 of your credits, Team Standard's monthly allowance");
+    expect(moved['Each month']).toBe("up to $20 of your credits, the Team Standard plan's monthly allowance");
     expect(moved['Each run']).toBe('at most $20, it stops at the cap');
     expect(moved['Week and day']).toBe('$40 a week: the smallest cap wins');
   });

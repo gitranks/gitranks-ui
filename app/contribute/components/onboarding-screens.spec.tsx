@@ -95,6 +95,10 @@ describe('the landing', () => {
       'We open at most one PR in a repo at a time, never more than four a month, and pause after two are closed in a row',
     );
     expect(plain).toContain('After three of yours are merged you can turn on autopilot');
+    // The plans by their current names, and auto-reload's real money.
+    expect(plain).toContain('Claude Max, Ultra or Team plan');
+    expect(plain).toContain("keep auto-reload off: it can charge your card even while your plan's credits remain");
+    expect(plain).not.toMatch(/Max 5x|Max 20x/);
   });
 
   it("opens the sign-in from every one of a visitor's buttons, never the steps themselves", () => {

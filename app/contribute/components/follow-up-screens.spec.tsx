@@ -93,12 +93,13 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(html).not.toContain('data-follow-ups');
   });
 
-  it('names what waits in a few words: comments, a check, a CLA', () => {
-    const one = (kind: 'COMMENT' | 'CHECK_FAILED' | 'CLA') =>
+  it('names what waits in a few words: comments, a check, a CLA, a bot blocking the merge', () => {
+    const one = (kind: 'COMMENT' | 'CHECK_FAILED' | 'CLA' | 'BOT_BLOCKED') =>
       mine({ needsYou: { since: NOW.toISOString(), signals: [{ kind, at: NOW.toISOString(), detail: null }] } });
     expect(one('COMMENT')).toContain('data-pr-label="Comments to address"');
     expect(one('CHECK_FAILED')).toContain('data-pr-label="A check failed"');
     expect(one('CLA')).toContain('data-pr-label="A CLA to sign"');
+    expect(one('BOT_BLOCKED')).toContain('data-pr-label="A bot blocks the merge"');
   });
 
   it('says why Mark as handled did not go through', () => {
@@ -219,6 +220,21 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(plain).toContain('2 runs · $0.43');
     expect(html).not.toContain('data-session="handed-off"');
     expect(plain).not.toMatch(/rounds? (used|left)|handed to you/i);
+  });
+
+  it('with only the user’s own signals waiting (a bot blocking the merge), says none is a run’s, not nothing', () => {
+    const blocked = {
+      ...followUpAttempts.quiet,
+      needsYou: {
+        since: NOW.toISOString(),
+        signals: [{ kind: 'BOT_BLOCKED' as const, at: NOW.toISOString(), detail: 'clawsweeper: Blocked before merge' }],
+      },
+    };
+    const html = review(blocked, views.active, true);
+
+    expect(html).toContain('data-next-round="own"');
+    expect(text(html)).toContain("Nothing waiting on #1419 is a run's to fix: what Needs you lists is yours.");
+    expect(text(html)).not.toContain('GitRanks sees nothing waiting');
   });
 
   it('tells autopilot’s share while it is on, and that a run of the user’s turns it off here', () => {

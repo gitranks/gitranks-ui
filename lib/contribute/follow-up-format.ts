@@ -16,7 +16,7 @@ export const SIGNALS: Record<ContributePrSignalKind, string> = {
   CHECK_FAILED: 'A check started failing',
   CLA: 'Sign the contributor license agreement (CLA)',
   TITLE: "The title breaks the repo's rules (retitle it on the pull request's page)",
-  BOT_BLOCKED: "A review bot blocks the merge (see its comment on the pull request's page)",
+  BOT_BLOCKED: 'A review bot blocks the merge',
 };
 
 /** `A check started failing: lint, test · 2 hours ago`. */

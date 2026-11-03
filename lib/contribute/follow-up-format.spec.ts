@@ -20,9 +20,7 @@ describe('a review bot blocking the merge (openclaw#190186: ClawSweeper asked fo
       at: '2026-11-01T09:30:00.000Z',
       detail: 'clawsweeper: Blocked before merge - 1 item remains: Add real behavior proof',
     };
-    expect(signalText(blocked)).toMatch(
-      /^A review bot blocks the merge \(see its comment on the pull request's page\): clawsweeper: Blocked before merge/,
-    );
+    expect(signalText(blocked)).toMatch(/^A review bot blocks the merge: clawsweeper: Blocked before merge/);
     expect(followUpCanHelp([blocked])).toBe(false);
     expect(followUpCanHelp([blocked, { kind: 'CHECK_FAILED', at: blocked.at, detail: 'lint' }])).toBe(true);
   });

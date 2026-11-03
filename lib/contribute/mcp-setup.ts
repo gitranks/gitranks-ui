@@ -1,7 +1,7 @@
 /** The longest name a token may have, and the longest note sent back to the user's own agent. */
 /** What the user's own agent does with us, under its title. */
 export const OWN_AGENT_TEXT =
-  'Claude Code, Codex, Cursor or Gemini CLI on your machine finds issues here, works on one and hands the change back through our MCP server. You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed.';
+  'Claude Code, Codex, Cursor, Gemini CLI or Antigravity on your machine finds issues here, works on one and hands the change back through our MCP server. You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed.';
 
 export const MCP_TOKEN_NAME_MAX = 40;
 export const SEND_BACK_NOTE_MAX = 2_000;
@@ -9,20 +9,33 @@ export const SEND_BACK_NOTE_MAX = 2_000;
 export const MCP_TOKENS_MAX = 5;
 /** Where the user's own agent connects. */
 export const MCP_URL = 'https://mcp.gitranks.com/mcp';
-/** The environment variable every setup line reads the token from, so the token never sits in a config file. */
+/**
+ * The environment variable the setup lines read the token from, so the token stays out of config files. Not
+ * Antigravity's (`tokenInConfigOf`).
+ */
 export const MCP_TOKEN_ENV = 'GITRANKS_MCP_TOKEN';
 
-export type McpClient = 'claude-code' | 'codex' | 'cursor' | 'gemini-cli';
+export type McpClient = 'claude-code' | 'codex' | 'cursor' | 'gemini-cli' | 'antigravity';
 
 /** The clients we have setup for, in the order the pickers list them. */
-export const MCP_CLIENTS: readonly McpClient[] = ['claude-code', 'codex', 'cursor', 'gemini-cli'];
+export const MCP_CLIENTS: readonly McpClient[] = ['claude-code', 'codex', 'cursor', 'gemini-cli', 'antigravity'];
 
 export const MCP_CLIENT_NAMES: Record<McpClient, string> = {
   'claude-code': 'Claude Code',
   codex: 'Codex CLI',
   cursor: 'Cursor',
   'gemini-cli': 'Gemini CLI',
+  antigravity: 'Antigravity',
 };
+
+/**
+ * The token sits in the client's own config file: Antigravity sends `${VAR}` in its MCP config as written
+ * (google-antigravity/antigravity-cli#233, open on 2026-11-03), so nothing is saved in the environment for it.
+ */
+export const tokenInConfigOf = (client: McpClient): boolean => client === 'antigravity';
+
+/** What the setup shows in place of the token where it has none (Settings, the MCP docs). */
+export const MCP_TOKEN_PLACEHOLDER = '<your GitRanks token>';
 
 /** One of our clients, from a query parameter or anything else untrusted. */
 export const isMcpClient = (value: unknown): value is McpClient =>
@@ -106,8 +119,11 @@ export function mcpTokenByHandOf(os: McpOs, token: string): McpTokenByHand {
 export const mcpTokenCheckOf = (os: McpOs): string =>
   os === 'windows' ? `echo $env:${MCP_TOKEN_ENV}` : `echo $${MCP_TOKEN_ENV}`;
 
-/** The lines that add GitRanks to a client, reading the token from the environment, in the OS's form. */
-export function mcpSetupLinesOf(client: McpClient, os: McpOs): string {
+/**
+ * The lines that add GitRanks to a client, reading the token from the environment, in the OS's form. Antigravity's
+ * hold the token itself (`tokenInConfigOf`): `token`, or the placeholder.
+ */
+export function mcpSetupLinesOf(client: McpClient, os: McpOs, token?: string): string {
   switch (client) {
     case 'claude-code': {
       const variable = os === 'windows' ? `$env:${MCP_TOKEN_ENV}` : `$${MCP_TOKEN_ENV}`;
@@ -127,6 +143,16 @@ export function mcpSetupLinesOf(client: McpClient, os: McpOs): string {
         null,
         2,
       );
+    case 'antigravity':
+      return JSON.stringify(
+        {
+          mcpServers: {
+            gitranks: { serverUrl: MCP_URL, headers: { Authorization: `Bearer ${token ?? MCP_TOKEN_PLACEHOLDER}` } },
+          },
+        },
+        null,
+        2,
+      );
   }
 }
 
@@ -134,6 +160,7 @@ const CONFIG_FILES: Record<Exclude<McpClient, 'claude-code'>, string[]> = {
   codex: ['.codex', 'config.toml'],
   cursor: ['.cursor', 'mcp.json'],
   'gemini-cli': ['.gemini', 'settings.json'],
+  antigravity: ['.gemini', 'config', 'mcp_config.json'],
 };
 
 /** A config file under the user's home, in the OS's spelling. */
@@ -160,16 +187,21 @@ export type McpClientSetup = {
 export const claudeCodeRemoveOf = (os: McpOs): string =>
   `claude mcp remove --scope user gitranks ${os === 'windows' ? '2>$null' : '2>/dev/null'}`;
 
+/** How Antigravity reads its MCP config again, as its docs say (antigravity.google/docs/mcp, read 2026-11-03). */
+export const ANTIGRAVITY_RELOAD =
+  'refresh its MCP servers (in the app, the refresh button under Settings → Customizations → Installed MCP Servers; in the CLI, /mcp)';
+
 /**
  * A client's setup on one OS. `replacing`: the token replaces one the agent may hold already, so Claude Code's entry
  * is removed before it is added again, and the clients that read the variable when they start are restarted.
+ * `token`: the token itself, for a client that holds it in its config (`tokenInConfigOf`).
  */
 export function mcpClientSetupOf(
   client: McpClient,
   os: McpOs,
-  { replacing = false }: { replacing?: boolean } = {},
+  { replacing = false, token }: { replacing?: boolean; token?: string } = {},
 ): McpClientSetup {
-  const lines = mcpSetupLinesOf(client, os);
+  const lines = mcpSetupLinesOf(client, os, token);
   const name = MCP_CLIENT_NAMES[client];
   if (client === 'claude-code') {
     // On Windows the saved variable reaches new windows only.
@@ -184,6 +216,18 @@ export function mcpClientSetupOf(
         ? `${run} It removes the GitRanks entry Claude Code has, which keeps the old token, then adds it again.`
         : `${run} It works in every project.`,
       lines: replacing ? `${claudeCodeRemoveOf(os)}; ${lines}` : lines,
+    };
+  }
+  if (client === 'antigravity') {
+    return {
+      client,
+      name,
+      label: homePathOf(os, CONFIG_FILES[client]),
+      file: true,
+      where: replacing
+        ? `In Antigravity's MCP config, put the new token in the Authorization line of the gitranks entry, as below, then ${ANTIGRAVITY_RELOAD}.`
+        : `Add the gitranks entry to Antigravity's MCP config (in the IDE: … at the top of the agent panel → MCP Servers → Manage MCP Servers → View raw config), then ${ANTIGRAVITY_RELOAD}. Antigravity can't read environment variables in this file yet, so the token sits in it${token ? '' : `, in place of ${MCP_TOKEN_PLACEHOLDER}`}: keep the file to yourself.`,
+      lines,
     };
   }
   const where = {
@@ -213,13 +257,14 @@ const SETTINGS_WHERE: Record<McpClient, string> = {
   codex: '~/.codex/config.toml',
   cursor: '~/.cursor/mcp.json (start Cursor from a shell that has the variable)',
   'gemini-cli': '~/.gemini/settings.json',
+  antigravity: `~/.gemini/config/mcp_config.json, with your token in place of ${MCP_TOKEN_PLACEHOLDER}: Antigravity can't read environment variables there yet`,
 };
 
 /**
  * Ready-made setup for each client, as Settings lists it, checked against each client's own docs: every one reads the
- * token from `GITRANKS_MCP_TOKEN`. Claude Code's shell expands it once, when the server is added for every project
- * (`--scope user`), and Claude Code keeps the token in its own config; the other three read the variable each time
- * they start.
+ * token from `GITRANKS_MCP_TOKEN` but Antigravity, which holds it in its config (`tokenInConfigOf`). Claude Code's
+ * shell expands it once, when the server is added for every project (`--scope user`), and Claude Code keeps the token
+ * in its own config; Codex, Cursor and Gemini CLI read the variable each time they start.
  */
 export const MCP_SETUPS: readonly McpSetup[] = MCP_CLIENTS.map((client) => ({
   client,

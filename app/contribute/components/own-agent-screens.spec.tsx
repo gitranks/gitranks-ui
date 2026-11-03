@@ -92,9 +92,15 @@ describe('Settings, your own agent', () => {
 });
 
 describe('the setup lines', () => {
-  it('read the token from the environment in every client, never a pasted token', () => {
-    expect(MCP_SETUPS.map(({ client }) => client)).toEqual(['claude-code', 'codex', 'cursor', 'gemini-cli']);
-    for (const setup of MCP_SETUPS) {
+  it('read the token from the environment in every client but Antigravity, never a pasted token', () => {
+    expect(MCP_SETUPS.map(({ client }) => client)).toEqual([
+      'claude-code',
+      'codex',
+      'cursor',
+      'gemini-cli',
+      'antigravity',
+    ]);
+    for (const setup of MCP_SETUPS.filter(({ client }) => client !== 'antigravity')) {
       expect(setup.lines).toContain(MCP_URL);
       expect(setup.lines).toContain('GITRANKS_MCP_TOKEN');
       expect(setup.lines).not.toMatch(/gr_[0-9A-Za-z]{10,}/);
@@ -108,6 +114,13 @@ describe('the setup lines', () => {
     expect(JSON.parse(MCP_SETUPS.find(({ client }) => client === 'gemini-cli')?.lines ?? '{}')).toEqual({
       mcpServers: { gitranks: { httpUrl: MCP_URL, headers: { Authorization: 'Bearer $GITRANKS_MCP_TOKEN' } } },
     });
+    // Antigravity sends `${VAR}` as written: the placeholder, which the user replaces with the token.
+    const antigravity = MCP_SETUPS.find(({ client }) => client === 'antigravity');
+    expect(JSON.parse(antigravity?.lines ?? '{}')).toEqual({
+      mcpServers: { gitranks: { serverUrl: MCP_URL, headers: { Authorization: 'Bearer <your GitRanks token>' } } },
+    });
+    expect(antigravity?.lines).not.toMatch(/gr_[0-9A-Za-z]{10,}/);
+    expect(antigravity?.where).toContain('~/.gemini/config/mcp_config.json');
     expect(exportLineOf('gr_abc')).toBe('export GITRANKS_MCP_TOKEN="gr_abc"');
   });
 });

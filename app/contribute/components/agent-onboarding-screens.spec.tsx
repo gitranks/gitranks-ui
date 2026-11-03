@@ -100,6 +100,37 @@ describe('B1, your own agent', () => {
     expect(html).toContain('aria-label="Copy the setup"');
   });
 
+  it("puts the token in Antigravity's config itself, with no step that saves it on the computer", () => {
+    const { html, plain } = b1({ stage: 'token', shown: TOKEN, client: 'antigravity', os: 'mac', detectedOs: 'mac' });
+
+    expect(plain).not.toContain('Save the token on this computer');
+    expect(plain).not.toContain('GITRANKS_MCP_TOKEN');
+    expect(plain).toContain('The setup below already includes it.');
+    expect(plain).toContain('Add GitRanks to Antigravity');
+    expect(plain).not.toContain('b · Add GitRanks');
+    expect(plain).toContain('~/.gemini/config/mcp_config.json');
+    expect(plain).toContain('"serverUrl": "https://mcp.gitranks.com/mcp"');
+    expect(plain).toContain(`"Authorization": "Bearer ${TOKEN}"`);
+    expect(plain).toContain('keep the file to yourself');
+    expect(html).toContain('aria-label="Copy the setup"');
+    // The OS is picked beside the setup, as the config's path depends on it.
+    expect(html).toContain('aria-pressed="true"');
+    expect(plain).toContain('Installed MCP Servers');
+    const hint = b1({ stage: 'added', shown: TOKEN, client: 'antigravity', hint: true }).plain;
+    expect(hint).toContain("Check that the gitranks entry in Antigravity's MCP config holds your latest token");
+    expect(hint).toContain('in the CLI, /mcp');
+  });
+
+  it("gives Antigravity the Windows path, and the new token's line once it replaced another", () => {
+    const windows = b1({ stage: 'token', shown: TOKEN, client: 'antigravity', os: 'windows', detectedOs: 'mac' });
+    expect(windows.plain).toContain('%USERPROFILE%\\.gemini\\config\\mcp_config.json');
+    expect(windows.plain).not.toContain('~/.gemini');
+
+    const replaced = b1({ stage: 'token', shown: TOKEN, client: 'antigravity', os: 'mac', replaced: true }).plain;
+    expect(replaced).toContain('put the new token in the Authorization line of the gitranks entry');
+    expect(replaced).toContain(`"Authorization": "Bearer ${TOKEN}"`);
+  });
+
   it("takes Windows' forms when it is picked, and says nothing was detected for an OS it did not detect", () => {
     const { plain } = b1({ stage: 'token', shown: TOKEN, os: 'windows', detectedOs: 'mac' });
 

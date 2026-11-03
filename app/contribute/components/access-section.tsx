@@ -242,7 +242,10 @@ export function AccessSection({
       ) : null}
       <KeyRow credential={credential} now={now} />
       <GrantRow grant={grant} available={grantAvailable} />
-      <Row title="Your own agent (MCP)" detail="Tokens for Claude Code, Codex, Cursor or Gemini CLI on your machine.">
+      <Row
+        title="Your own agent (MCP)"
+        detail="Tokens for Claude Code, Codex, Cursor, Gemini CLI or Antigravity on your machine."
+      >
         <Button asChild variant="outline" className="h-10">
           <Link href={SETTINGS_PATHS.ownAgent} prefetch={false}>
             Tokens

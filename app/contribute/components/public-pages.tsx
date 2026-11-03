@@ -26,7 +26,7 @@ const PUBLIC_PAGES: { page: PublicPage; href: Route; title: string; text: string
     page: 'mcp',
     href: MCP_DOCS_PATH,
     title: 'MCP server',
-    text: 'Connect Claude Code, Codex, Cursor, Gemini CLI or VS Code: setup, tools, limits.',
+    text: 'Connect Claude Code, Codex, Cursor, Gemini CLI, Antigravity or VS Code: setup, tools, limits.',
   },
   {
     page: 'faq',

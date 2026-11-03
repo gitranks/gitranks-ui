@@ -3,6 +3,7 @@ import {
   MCP_OS_NAMES,
   MCP_OSES,
   MCP_TOKEN_ENV,
+  MCP_TOKEN_PLACEHOLDER,
   MCP_TOKENS_MAX,
   MCP_URL,
   type McpClient,
@@ -10,8 +11,8 @@ import {
   mcpTokenSaveOf,
 } from './mcp-setup';
 
-/** What the docs put where a token goes: never a real one. */
-export const TOKEN_PLACEHOLDER = '<your GitRanks token>';
+/** What the docs put where a token goes: never a real one. The setup's own placeholder. */
+export const TOKEN_PLACEHOLDER = MCP_TOKEN_PLACEHOLDER;
 
 /** One client's setup on the MCP docs page, its anchor the client's id. */
 export type McpDocClient = {
@@ -68,7 +69,7 @@ const VS_CODE: McpDocClient = {
   ),
 };
 
-/** The clients the docs show, in the connect flow's order, then VS Code. Antigravity joins when its setup is chosen. */
+/** The clients the docs show, in the connect flow's order, then VS Code. */
 export const MCP_DOC_CLIENTS: readonly McpDocClient[] = [...MCP_CLIENTS.map(connectClientOf), VS_CODE];
 
 /** The line that saves the token, per OS, with the placeholder in it. */

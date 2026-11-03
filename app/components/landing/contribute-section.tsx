@@ -28,7 +28,7 @@ const POINTS = [
   {
     icon: SquareTerminal,
     title: 'Your agent writes it, you approve it',
-    text: 'You review each change on GitRanks before we open the pull request. Use your own Claude Code, Codex, Cursor or Gemini CLI, or let ours run in a sandbox on the API credits your Claude plan includes, under caps you set.',
+    text: 'You review each change on GitRanks before we open the pull request. Use your own Claude Code, Codex, Cursor, Gemini CLI or Antigravity, or let ours run in a sandbox on the API credits your Claude plan includes, under caps you set.',
   },
   {
     icon: GitMerge,

@@ -509,7 +509,7 @@ describe('Ways you contribute', () => {
       "Your Claude key Not set up We run the agent on your plan's API credits, in a sandbox. About two minutes. Add your Claude key →",
     );
     expect(text(html)).toContain(
-      'Your own agent Not set up Claude Code, Codex, Cursor or Gemini CLI asks GitRanks for an issue. About a minute. Connect your own agent →',
+      'Your own agent Not set up Claude Code, Codex, Cursor, Gemini CLI or Antigravity asks GitRanks for an issue. About a minute. Connect your own agent →',
     );
     expect(html).toContain('href="/contribute/connect?path=agent"');
   });

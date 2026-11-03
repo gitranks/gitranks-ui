@@ -611,7 +611,7 @@ export function agentWayOf(view: ContributeView, now = new Date()): WayCopy {
     return {
       title: 'Your own agent',
       state: NOT_SET_UP,
-      text: 'Claude Code, Codex, Cursor or Gemini CLI asks GitRanks for an issue. About a minute.',
+      text: 'Claude Code, Codex, Cursor, Gemini CLI or Antigravity asks GitRanks for an issue. About a minute.',
       action: { href: CONNECT_AGENT_PATH, label: 'Connect your own agent →' },
       dashed: true,
     };

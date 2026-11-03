@@ -481,9 +481,11 @@ export async function loadOverviewImpact(): Promise<ContributeImpactTotals | und
 /**
  * One of the signed-in user's attempts, for the review: null when there is none for them (not theirs, signed out or
  * hidden), which the page answers with a 404; `undefined` when the API does not answer the review yet. An outage throws
- * `ContributeUnavailableError`.
+ * `ContributeUnavailableError`. Read once a request: the contribution's layout and its page both read it.
  */
-export async function loadAttempt(id: string): Promise<ContributeAttemptDetail | null | undefined> {
+export const loadAttempt = cache(readAttempt);
+
+async function readAttempt(id: string): Promise<ContributeAttemptDetail | null | undefined> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return null;
 

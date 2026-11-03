@@ -168,7 +168,7 @@ describe('yourMoveOf', () => {
       kind: 'run-ready',
       working: false,
       move: 'Run 2 fixed 1 comment. Approve to push it.',
-      action: { label: 'Review run 2', href: '/contribute/attempts/A_F2' },
+      action: { label: 'Review run 2', href: '/contribute/attempts/A_8/runs/A_F2' },
     });
   });
 

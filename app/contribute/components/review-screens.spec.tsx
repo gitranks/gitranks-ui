@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/contribute/attempts/A_1',
+  useSearchParams: () => new URLSearchParams(),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
@@ -180,7 +181,7 @@ describe('the contribution page', () => {
     const line = review(busy);
     expect(line).toContain('data-your-move="working"');
     expect(text(line)).toContain('Run 2 working Under way. It comes back here when it is ready. Watch run 2 →');
-    expect(line).toContain('href="/contribute/attempts/A_F3"');
+    expect(line).toContain('href="/contribute/attempts/A_1/runs/A_F3"');
     const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={busy} next now={NOW} />);
     expect(html).toContain('data-panel="review-feedback"');
     expect(text(html)).toContain('A follow-up is under way on these comments.');

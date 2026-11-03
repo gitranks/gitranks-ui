@@ -18,6 +18,15 @@ export const NEXT_SESSION = 'next';
 
 export const attemptPath = (attemptId: string) => `/contribute/attempts/${encodeURIComponent(attemptId)}` as Route;
 export const nextSessionPath = (attemptId: string) => `${attemptPath(attemptId)}?session=${NEXT_SESSION}` as Route;
+/**
+ * A session's address under its contribution's first attempt: the first attempt's own, or a run's beneath it, so moving
+ * between them keeps the contribution's layout (its header and sessions) and reads only the session. A run's own
+ * address (`attemptPath`) still works: its page sends it here.
+ */
+export const sessionPath = (firstId: string, attemptId: string) =>
+  attemptId === firstId
+    ? attemptPath(firstId)
+    : (`${attemptPath(firstId)}/runs/${encodeURIComponent(attemptId)}` as Route);
 
 export type SessionCard = {
   key: string;
@@ -28,7 +37,6 @@ export type SessionCard = {
   /** When, and what it cost: `Oct 31, 20:30 UTC · $0.25`. */
   meta: string;
   note: string | null;
-  current: boolean;
   /** The next run, not started: its card is dashed. */
   draft?: boolean;
 };
@@ -110,7 +118,7 @@ const filesText = (patch: string | null | undefined) => {
 };
 
 /** The first attempt's card: its pull request once there is one, else where it stands. */
-function firstCardOf(first: ContributeAttemptDetail, current: boolean): SessionCard {
+function firstCardOf(first: ContributeAttemptDetail): SessionCard {
   const pr = first.pullRequest;
   const own = isOwnAgent(first);
   return {
@@ -123,21 +131,15 @@ function firstCardOf(first: ContributeAttemptDetail, current: boolean): SessionC
       : (ATTEMPT_STATES[first.state] ?? null),
     meta: [timeLabel(first.createdAt), own ? 'your own agent' : usd(first.costUsd)].filter(Boolean).join(' · '),
     note: filesText(first.patch),
-    current,
   };
 }
 
 /**
- * The sessions of the contribution whose first attempt is `first`, `selected` marked current (`next`: the run not
- * started). Each run comes from the pull request's history; one the history does not list yet (`selected`, just
- * started) is added from what was read of it.
+ * The sessions of the contribution whose first attempt is `first`. Each run comes from the pull request's history; one
+ * the history does not list yet (`round`, just started) is added from what was read of it. The list marks the one shown.
  */
-export function sessionsOf(
-  first: ContributeAttemptDetail,
-  selected: { attemptId: string; next: boolean },
-  round?: ContributeAttemptDetail,
-): SessionCard[] {
-  const cards = [firstCardOf(first, !selected.next && selected.attemptId === first.attemptId)];
+export function sessionsOf(first: ContributeAttemptDetail, round?: ContributeAttemptDetail): SessionCard[] {
+  const cards = [firstCardOf(first)];
   const history = [...(first.followUps?.history ?? [])];
   // Without the history, a run added here is the latest one: its number is the runs used.
   const numberOf = () => (first.followUps?.history ? history.length + 1 : first.followUps?.used || history.length + 1);
@@ -180,12 +182,11 @@ export function sessionsOf(
     const tallies = roundTalliesOf(entry);
     cards.push({
       key: entry.attemptId,
-      href: attemptPath(entry.attemptId),
+      href: sessionPath(first.attemptId, entry.attemptId),
       title: `Run ${entry.round} · ${whoUnknown.has(entry.attemptId) ? 'follow-up' : entry.by === 'autopilot' ? 'autopilot' : 'you'}`,
       pill: roundPillOf(entry),
       meta: [timeLabel(entry.at), entry.costUsd > 0 ? usd(entry.costUsd) : null].filter(Boolean).join(' · '),
       note: tallies.length ? tallies.join(' · ') : null,
-      current: !selected.next && selected.attemptId === entry.attemptId,
     });
   }
 
@@ -205,7 +206,6 @@ export function sessionsOf(
           : { label: 'Not started', tone: 'neutral' },
       meta: recommended ? 'Not started' : yours ? 'Waits for you' : 'Your call',
       note: waiting ? `${waiting} ${waiting === 1 ? 'comment' : 'comments'} waiting` : null,
-      current: selected.next,
       draft: true,
     });
   }

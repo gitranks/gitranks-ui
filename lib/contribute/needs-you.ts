@@ -15,7 +15,7 @@ import { FOLLOW_UP_STEP_LABELS, FOLLOW_UP_STEPS, type FollowUpStep, shortSha } f
 import { PR_SIGNAL_KINDS } from './follow-up-format';
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
 import { httpsOnly, PR_FIX_WORDS } from './pr-conventions';
-import { attemptPath, nextSessionPath } from './sessions';
+import { attemptPath, nextSessionPath, sessionPath } from './sessions';
 
 /**
  * "Needs you" on Overview and My contributions (2026-11-03): one row per thing that waits for the user, each saying
@@ -257,9 +257,9 @@ function reviewRowsOf(
   now: Date,
 ): Ranked[] {
   return reviews.map((attempt): Ranked => {
-    const href = attemptPath(attempt.attemptId);
     // A run's pull request, when its read answers it.
     const of = attempt.kind === 'FOLLOW_UP' ? attempt.followUpOf : null;
+    const href = of ? sessionPath(of.attemptId, attempt.attemptId) : attemptPath(attempt.attemptId);
     const pr = of ? prs.get(of.prId) : undefined;
     const where = of
       ? `${repoName(attempt.nameWithOwner)} · PR #${of.number}`
@@ -457,7 +457,7 @@ function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
       move: `${by ? `Run ${by}` : 'A run'} drafted ${plural(waiting.length, 'reply', 'replies')} to ${draftsTo(waiting)}. Read and post them.`,
       action: {
         label: waiting.length === 1 ? 'Approve the reply' : 'Approve replies',
-        href: attemptPath(waiting[0].attemptId),
+        href: sessionPath(pr.attemptId, waiting[0].attemptId),
         aria: `Approve the replies on PR #${number}`,
       },
       secondary: null,
@@ -473,7 +473,7 @@ function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
       move: 'GitHub refused the reply. Try again, or post it yourself.',
       action: {
         label: 'Retry the reply',
-        href: attemptPath(failed.attemptId),
+        href: sessionPath(pr.attemptId, failed.attemptId),
         aria: `Retry the reply on PR #${number}`,
       },
       secondary: null,
@@ -710,7 +710,7 @@ export function prItemOf(context: PrContext): NeedsYouItem | null {
     if (state === 'REVIEW' || state === 'PENDING_AUTOSUBMIT') {
       const review = {
         label: `Review run ${round}`,
-        href: attemptPath(current),
+        href: sessionPath(pr.attemptId, current),
         aria: `Review run ${round} on PR #${number}`,
       };
       return {
@@ -728,7 +728,7 @@ export function prItemOf(context: PrContext): NeedsYouItem | null {
     }
     const watch = {
       label: `Watch run ${round}`,
-      href: attemptPath(current),
+      href: sessionPath(pr.attemptId, current),
       aria: `Watch run ${round} on PR #${number}`,
     };
     if (run ? isOwnAgent(run) : pr.runner === 'MCP') {
@@ -781,7 +781,11 @@ export function prItemOf(context: PrContext): NeedsYouItem | null {
       pill: round ? `Run ${round} pushed` : 'Run pushed',
       move: `Pushed${sha ? ` ${sha}` : ''} · reading the pull request again.`,
       action: latest
-        ? { label: `Watch ${name}`, href: attemptPath(latest.attemptId), aria: `Watch ${name} on PR #${number}` }
+        ? {
+            label: `Watch ${name}`,
+            href: sessionPath(pr.attemptId, latest.attemptId),
+            aria: `Watch ${name} on PR #${number}`,
+          }
         : { label: 'See the pull request', href: attemptPath(pr.attemptId), aria: `See PR #${number}` },
     });
   }

@@ -55,6 +55,8 @@ const REASONS: Record<ContributeSetReason, string> = {
   OPTED_OUT: 'Maintainers asked us not to send PRs',
   AI_BAN: 'Maintainers asked us not to send PRs',
   CONTRIBUTE_OFF: 'Maintainers asked us not to send PRs',
+  OUTSIDE_PRS_CLOSED: 'Only collaborators can open PRs',
+  GATED_CONTRIBUTORS: 'Only approved contributors can open PRs',
   NO_MANIFEST: 'No dependency file we can read',
 };
 
@@ -76,6 +78,7 @@ export const WORK_RULES = [
   'At least one PR from outside the team merged in 90 days',
   'JavaScript/TypeScript, Python, Go, Rust, Java, PHP or Ruby',
   "Maintainers haven't asked us not to send PRs",
+  'Anyone can open a PR (not limited to collaborators)',
 ];
 export const SOURCE_RULES = [
   'Public, not a fork, not archived',

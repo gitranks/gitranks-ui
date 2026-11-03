@@ -860,6 +860,8 @@ export type ContributeSetReason =
   | 'OPTED_OUT'
   | 'AI_BAN'
   | 'CONTRIBUTE_OFF'
+  | 'OUTSIDE_PRS_CLOSED'
+  | 'GATED_CONTRIBUTORS'
   | 'NO_MANIFEST';
 export type ContributeStackResolveState = 'RESOLVING' | 'READY' | 'FAILED';
 export type ContributeFeedbackTopic = 'GATES' | 'MODES' | 'OTHER';

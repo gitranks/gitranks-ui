@@ -10,7 +10,8 @@ vi.mock('@/app/contribute/maintainers/actions', () => ({
 const { MaintainerReposLoading, MaintainerReposPanel, MaintainersScreen } = await import('./maintainers-view');
 const { OptOutResults } = await import('./maintainer-repos-form');
 
-import type { ContributeMaintainerRepo, ContributeOptOutResult } from '@/lib/contribute/contribute.types';
+import { maintainerRepo } from '@/lib/contribute/__fixtures__/maintainers';
+import type { ContributeOptOutResult } from '@/lib/contribute/contribute.types';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 
 const text = (html: string) =>
@@ -21,16 +22,7 @@ const text = (html: string) =>
     .replaceAll('&quot;', '"')
     .replace(/\s+/g, ' ');
 
-const repo = (patch: Partial<ContributeMaintainerRepo>): ContributeMaintainerRepo => ({
-  repoId: 'R_1',
-  nameWithOwner: 'driftwood-js/driftwood',
-  permission: 'ADMIN',
-  stars: 12_345,
-  isArchived: false,
-  optedOut: false,
-  optedOutAt: null,
-  ...patch,
-});
+const repo = maintainerRepo;
 
 const REPOS = [
   repo({ repoId: 'R_1', optedOut: true, optedOutAt: '2026-10-28T09:00:00.000Z' }),

@@ -2,9 +2,10 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { AgentConnectView } from '@/app/contribute/components/agent-connect';
-import { ContributeTabsNav } from '@/app/contribute/components/contribute-tabs-nav';
+import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
+import { MaintainerReposPanel, MaintainersScreen } from '@/app/contribute/components/maintainers-view';
 import { OverviewScreen, overviewSectionsOf } from '@/app/contribute/components/overview-status';
 import { ReviewScreen } from '@/app/contribute/components/review-view';
 import { RunsScreen } from '@/app/contribute/components/runs-view';
@@ -19,6 +20,7 @@ import {
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { issuePage, nowIdle, overviewData } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
+import { maintainerRepo } from '@/lib/contribute/__fixtures__/maintainers';
 import {
   needsSome,
   nextForAgreement,
@@ -28,7 +30,12 @@ import {
   nextForYou,
 } from '@/lib/contribute/__fixtures__/needs-you';
 import { pageOf } from '@/lib/contribute/__fixtures__/runs';
-import type { ContributeActivity, ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
+import type {
+  ContributeActivity,
+  ContributeAttemptDetail,
+  ContributeView,
+} from '@/lib/contribute/contribute.types';
+import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { NeedsYouRead } from '@/lib/contribute/needs-you';
 import { runsQueryOf } from '@/lib/contribute/runs';
 
@@ -146,6 +153,15 @@ const mine = () => {
     busy,
   );
 };
+
+/** The page for maintainers: open to everyone, the site header with no tabs, the visitor's repos as the panel. */
+const maintainersPage = (view: MaintainerReposView) => (
+  <>
+    <Header section="contribute" />
+    <HeaderLine />
+    <MaintainersScreen repos={<MaintainerReposPanel view={view} />} />
+  </>
+);
 
 export const CONTRIBUTE_SCREENS: Screen[] = [
   {
@@ -606,6 +622,52 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
               <SettingsScreen view={views.newAccount} now={NOW} />
             </main>,
           ),
+      },
+    ],
+  },
+  {
+    id: 'contribute-maintainers',
+    title: 'For maintainers',
+    area: 'contribute',
+    route: '/contribute/maintainers',
+    sources: [
+      'app/contribute/maintainers/page.tsx',
+      'app/contribute/components/maintainers-view.tsx',
+      'app/contribute/components/maintainer-repos-form.tsx',
+    ],
+    states: [
+      {
+        id: 'signed-out',
+        title: 'Signed out',
+        path: '/contribute/maintainers',
+        signedOut: true,
+        height: 1300,
+        render: () => maintainersPage({ state: 'signed-out' }),
+      },
+      {
+        id: 'signed-in',
+        title: 'Signed in: the repos you maintain',
+        path: '/contribute/maintainers',
+        height: 1500,
+        render: () =>
+          maintainersPage({
+            state: 'listed',
+            data: {
+              login: 'octocat',
+              truncated: false,
+              repos: [
+                maintainerRepo({ repoId: 'R_1' }),
+                maintainerRepo({
+                  repoId: 'R_2',
+                  nameWithOwner: 'driftwood-js/driftwood-devtools',
+                  permission: 'MAINTAIN',
+                  stars: 42,
+                  optedOut: true,
+                  optedOutAt: '2026-10-20T09:00:00.000Z',
+                }),
+              ],
+            },
+          }),
       },
     ],
   },

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { noticeCopyOf } from './contribute-notices';
 import { PauseButton } from './pause-button';
 import { HEADING } from './primitives';
 import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
@@ -18,6 +19,10 @@ type StepCopy = { when: string; title: string; text: ReactNode; action?: ReactNo
 export function firstRunCopyOf(step: FirstRunStep, view: ContributeView, now = new Date()): StepCopy {
   const attemptCap = view.contributor?.settings?.attemptCapUsd;
   switch (step.kind) {
+    case 'suspended': {
+      const notice = noticeCopyOf({ kind: 'suspended' });
+      return { when: 'not for now', title: notice.title, text: notice.text };
+    }
     case 'closed':
       return {
         when: 'when Contribute opens',
@@ -147,7 +152,9 @@ export function FirstRunGuide({
 }) {
   const step = firstRunStepOf(view, page, now);
   const copy = firstRunCopyOf(step, view, now);
-  const yours = step.kind === 'paused' || step.kind === 'no-room' || step.kind === 'key-invalid';
+  // A suspended account has nothing to wait for either: step 2 does not come.
+  const yours =
+    step.kind === 'suspended' || step.kind === 'paused' || step.kind === 'no-room' || step.kind === 'key-invalid';
 
   return (
     <section

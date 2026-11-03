@@ -32,6 +32,7 @@ const {
   ContributeAutopilotDocument,
   ContributeAutopilotNoticeDocument,
   ContributeImpactDocument,
+  ContributeLimitsDocument,
   ContributeImpactReposDocument,
   ContributeRepliesWaitingDocument,
   ContributeScheduleCountsDocument,
@@ -127,6 +128,27 @@ describe('loadContribute', () => {
     expect(view?.contributor).not.toHaveProperty('onboardedAt');
     expect(view?.contributor).not.toHaveProperty('onboardedVia');
     expect(view).not.toHaveProperty('attemptsOpen');
+  });
+
+  it('adds the limits when the API answers them, and leaves them out when it does not', async () => {
+    const contributor = { status: 'ACTIVE', login: 'octocat', autopilot: null };
+    const limits = {
+      level: 'REDUCED',
+      reason: 'NEW_ACCOUNT',
+      attemptsAtATime: 1,
+      openPrsAtATime: 2,
+      claimsPerDay: 3,
+      revealsPerDay: 40,
+    };
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
+      if (document === ContributeLimitsDocument) return { contribute: { contributor: { limits } } };
+      throw new Error('[{"message":"Cannot query field"}]');
+    });
+    expect((await loadContribute())?.contributor?.limits).toEqual(limits);
+
+    answer(async () => ({ contribute: { previewAllowed: true, contributor } }));
+    expect((await loadContribute())?.contributor).not.toHaveProperty('limits');
   });
 });
 

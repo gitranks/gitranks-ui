@@ -29,6 +29,23 @@ type Contribute {
   providerInterests: [ContributeComingSoonProvider!]!
 }
 
+"""
+The account's access level: STANDARD (the settings as chosen), REDUCED (smaller limits for now) or SUSPENDED (nothing new starts)
+"""
+enum ContributeAccessLevel {
+  REDUCED
+  STANDARD
+  SUSPENDED
+}
+
+"""
+Why the limits are reduced: NEW_ACCOUNT (every new account starts so) or FOLLOW_THROUGH (recent claims ran out)
+"""
+enum ContributeAccessReason {
+  FOLLOW_THROUGH
+  NEW_ACCOUNT
+}
+
 """The viewer's work in progress; empty items and runs when nothing runs"""
 type ContributeActivity {
   items: [ContributeActivityItem!]!
@@ -1305,6 +1322,31 @@ enum ContributeLanguage {
   RUST
 }
 
+"""
+The access level and the limits it sets now (abuse guards §5.4); the facts and thresholds are never sent
+"""
+type ContributeLimits {
+  """
+  The most attempts at a time that hold now: the settings field’s maximum
+  """
+  attemptsAtATime: Int!
+
+  """New claims a day, every runner together"""
+  claimsPerDay: Int!
+  level: ContributeAccessLevel!
+
+  """
+  The most open pull requests at a time that hold now: the settings field’s maximum
+  """
+  openPrsAtATime: Int!
+
+  """Why REDUCED; null at any other level"""
+  reason: ContributeAccessReason
+
+  """Newly shown issues a day"""
+  revealsPerDay: Int!
+}
+
 """A provider whose keys connect today"""
 enum ContributeLiveProvider {
   ANTHROPIC
@@ -2363,6 +2405,7 @@ enum ContributeSetReason {
   NO_MANIFEST
   OPTED_OUT
   OUTSIDE_MERGES
+  OUTSIDE_PRS_CLOSED
   PRIVATE
   PUSHED
 }
@@ -2659,6 +2702,7 @@ type Contributor {
   autopilot: ContributeAutopilot!
   createdAt: String!
   credentials: [ContributeCredential!]!
+  limits: ContributeLimits!
   login: String!
 
   """

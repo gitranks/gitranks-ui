@@ -143,6 +143,32 @@ export type Contributor = {
   onboardedAt?: string | null;
   /** Which way that was; null until onboarded, `undefined` while the API does not answer it. */
   onboardedVia?: ContributeOnboardedVia | null;
+  /** The access level and the limits it sets now; `undefined` while the API does not answer it. */
+  limits?: ContributeLimits;
+};
+
+/**
+ * The account's access level: the settings as chosen (`STANDARD`), smaller limits for now (`REDUCED`), or nothing new
+ * starts (`SUSPENDED`).
+ */
+export type ContributeAccessLevel = 'STANDARD' | 'REDUCED' | 'SUSPENDED';
+
+/** Why the limits are reduced: every new account starts so, or the recent claims ran out. */
+export type ContributeAccessReason = 'NEW_ACCOUNT' | 'FOLLOW_THROUGH';
+
+/** The limits that hold for the account now: the settings' maxima and the day's counts. */
+export type ContributeLimits = {
+  level: ContributeAccessLevel;
+  /** Why `REDUCED`; null at any other level. */
+  reason: ContributeAccessReason | null;
+  /** The most attempts at a time that hold now: the settings field's maximum. */
+  attemptsAtATime: number;
+  /** The most open pull requests at a time that hold now: the settings field's maximum. */
+  openPrsAtATime: number;
+  /** New claims a day, every runner together. */
+  claimsPerDay: number;
+  /** Newly shown issues a day. */
+  revealsPerDay: number;
 };
 
 export type ContributeGrant = { connected: boolean; login: string | null };
@@ -193,11 +219,18 @@ export type ContributeIssue = {
   tier?: number;
 };
 
+/** The day's cap on newly shown issues: `reached` once no new issue can be shown until 00:00 UTC. */
+export type ContributeDailyCap = { limit: number; reached: boolean };
+
 export type ContributeIssuePage = {
+  /** Can hold fewer than asked for: new issues past the day's cap are left off. */
   items: ContributeIssue[];
+  /** The next page's cursor; null on the last page, and once only issues past the day's cap remain. */
   next: string | null;
   total: number;
   computedAt: string | null;
+  /** The day's cap on new issues; null while well under it, and left out where the page is not read with it. */
+  dailyCap?: ContributeDailyCap | null;
 };
 
 /** Where a shown issue stands now: still free, taken by the user's own agent, or by another contributor. */
@@ -557,7 +590,7 @@ export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
     createdAt: string;
     updatedAt: string;
     /**
-     * When the attempt last became ready for review: its seven days run from it. Asked on its own; `undefined` while
+     * When the attempt last became ready for review: its wait runs from it. Asked on its own; `undefined` while
      * the API does not answer it.
      */
     reviewAt?: string | null;

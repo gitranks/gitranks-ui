@@ -86,7 +86,9 @@ describe('the landing', () => {
     const plain = text(renderToStaticMarkup(<Landing viewer="visitor" />));
 
     // The hold of an issue for the user's own agent.
-    expect(plain).toContain('An issue is held for you 24 hours from its last step, 7 days at most');
+    expect(plain).toContain(
+      'An issue is held for you 24 hours from its last step, 48 hours without a patch that passes the checks, 7 days at most',
+    );
     // GitHub access: asked at the first submit, public_repo only.
     expect(plain).toContain('On your first submit we ask GitHub for one permission, public_repo');
     expect(plain).toContain('Nothing on private repos, never workflow files');

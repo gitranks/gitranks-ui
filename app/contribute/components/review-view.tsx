@@ -15,6 +15,7 @@ import {
 } from './attempt-panels';
 import { SessionsList } from './attempt-sessions';
 import { AttemptStatus, FollowUpOfLink, justOpened, PullRequestStatus } from './attempt-status';
+import { ContributeNotices } from './contribute-notices';
 import { DiffViewer } from './diff-viewer';
 import { FollowUpApproval } from './follow-up-approval';
 import { FollowUpResult } from './follow-up-result';
@@ -28,7 +29,7 @@ import { SubmitPanel } from './submit-panel';
 import { attemptTitleOf, editableBodyOf, githubUrlOf, isOwnAgent, repoOf } from '@/lib/contribute/attempt-format';
 import { loadAttempt, loadContribute, loadResolveHumanThreads } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
-import { isContributePageOpen } from '@/lib/contribute/contribute-state';
+import { accessNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
 import { nextStepOf, nextStepWaits } from '@/lib/contribute/next-step';
@@ -371,6 +372,8 @@ export function ContributionShell({
 
   return (
     <div className="flex flex-col gap-5" data-contribution={first?.attemptId ?? attempt.attemptId}>
+      {/* The access level holds every attempt and run; the key's trouble is Needs you's to say. */}
+      <ContributeNotices notices={accessNoticesOf(view)} />
       <header className="flex flex-col gap-2">
         <BackLink />
         <span className="flex flex-wrap items-center gap-2.5 font-mono text-sm text-muted-foreground">

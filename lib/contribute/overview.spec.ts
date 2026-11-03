@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { attempt } from './__fixtures__/contribute-attempts';
 import { issuePage, nowIdle } from './__fixtures__/contribute-overview';
-import { contributor, firstSpend, mcpToken, NOW, settings, views } from './__fixtures__/contribute-views';
+import { contributor, firstSpend, limits, mcpToken, NOW, settings, views } from './__fixtures__/contribute-views';
 import type { ContributeAttempt, ContributeView } from './contribute.types';
 import { impactTilesOf, lastUsedTokenOf, rankedOf, rightNowOf } from './overview';
 
@@ -50,6 +50,28 @@ describe('rightNowOf', () => {
 
     const twoSlots = { ...both, contributor: contributor({ settings: { ...settings, attemptsAtATime: 2 } }) };
     expect(hostedOf(twoSlots, agentHolds)?.kind).toBe('paced');
+  });
+
+  it('counts the slots and the open PRs cap as the access level holds them, below the settings', () => {
+    const agentHolds = { ...nowIdle, inFlight: [inFlight({ runner: 'MCP' })] };
+    const newAccount = {
+      ...both,
+      contributor: contributor({ settings: { ...settings, attemptsAtATime: 3 }, limits: limits.newAccount }),
+    };
+    expect(hostedOf(newAccount, agentHolds)).toEqual({ kind: 'slots-taken', slots: 1, limited: true });
+    expect(hostedOf(newAccount, { inFlight: [], scheduleCounts: { prBound: 2, queued: 0 } })).toEqual({
+      kind: 'pr-cap',
+      prBound: 2,
+      cap: 2,
+      limited: true,
+    });
+  });
+
+  it('holds a suspended account before anything else, and says nothing will start', () => {
+    const suspended = { ...both, contributor: contributor({ limits: limits.suspended }) };
+    expect(hostedOf(suspended, { inFlight: [], scheduleCounts: { prBound: 0, queued: 3 } })).toEqual({
+      kind: 'suspended',
+    });
   });
 
   it('says the open PRs cap, then nothing queued, in their place after the slots', () => {

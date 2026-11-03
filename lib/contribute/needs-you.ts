@@ -272,7 +272,10 @@ const agreementOf = (cla: { agreement?: string | null } | null | undefined) =>
 // ---------------------------------------------------------------------------------------------------------------------
 // The rows
 
-const DAY = 24 * 60 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+/** How long the user's own agent's first attempt waits in review: its claim lapses then. */
+const OWN_REVIEW_HOURS = 48;
 
 const KNOWN_KINDS = new Set<string>(PR_SIGNAL_KINDS);
 
@@ -284,7 +287,7 @@ const GROUPS = { key: 0, 'no-way': 1, grant: 2, autopilot: 3, review: 4, replies
 
 type Ranked = NeedsYouItem & { group: number; at: number };
 
-/** When the review became ready: its seven days run from it. The last update stands in while it is not answered. */
+/** When the review became ready: its wait runs from it. The last update stands in while it is not answered. */
 const readySince = (attempt: ContributeAttempt) => timeOf(attempt.reviewAt ?? attempt.updatedAt);
 
 const isGrantBounce = (view: ContributeView, attempt: ContributeAttempt) =>
@@ -410,7 +413,7 @@ function reviewRowsOf(
         kind: 'own-review',
         tone: 'violet',
         pill: 'Ready for review',
-        move: 'Your agent made this. Approve it or send it back with a note.',
+        move: `Your agent made this. Approve it or send it back with a note.${ownReviewWaitOf(attempt, now)}`,
         action: { label: 'Review the change', href, aria: `Review the change on ${where}` },
         group: GROUPS.review,
         at: readySince(attempt),
@@ -434,6 +437,22 @@ function reviewRowsOf(
       at: readySince(attempt),
     };
   });
+}
+
+/**
+ * How long the user's own agent's first attempt still waits in review, after the move: " It waits 48 hours.", " It
+ * waits 5 more hours." Nothing for a follow-up run, when the time is not known, or once the wait is up (the claim is
+ * let go at the next sweep).
+ */
+function ownReviewWaitOf(attempt: ContributeAttempt, now: Date): string {
+  if (attempt.kind === 'FOLLOW_UP') return '';
+  const since = readySince(attempt);
+  if (!Number.isFinite(since)) return '';
+  const hoursLeft = Math.ceil((since + OWN_REVIEW_HOURS * HOUR - now.getTime()) / HOUR);
+  if (hoursLeft < 1) return '';
+  return hoursLeft >= OWN_REVIEW_HOURS
+    ? ` It waits ${OWN_REVIEW_HOURS} hours.`
+    : ` It waits ${plural(hoursLeft, 'more hour')}.`;
 }
 
 /** One reason waiting on an open pull request, before the first of them is chosen to lead its row. */

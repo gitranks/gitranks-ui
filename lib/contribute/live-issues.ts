@@ -1,4 +1,9 @@
-import type { ContributeIssue, ContributeIssuePage, ContributeIssueStatus } from './contribute.types';
+import type {
+  ContributeDailyCap,
+  ContributeIssue,
+  ContributeIssuePage,
+  ContributeIssueStatus,
+} from './contribute.types';
 import { type ContributeActionResult, contributeErrorMessage } from './errors';
 
 /** A page of the feed, as the Issues list reads it. */
@@ -10,6 +15,11 @@ export const ISSUE_STATUS_IDS_MAX = 50;
 export const LIVE_EXIT_AFTER_MS = 2_000;
 /** How long it takes to fade and fold away; the classes that animate it last as long. */
 export const LIVE_LEAVE_MS = 300;
+/**
+ * The most pages one fill reads. Past the day's cap a page can come back empty with more after it (the issues past the
+ * cap are left off), so a fill reads on while there is a cursor, up to this many pages.
+ */
+export const FILL_READS_MAX = 5;
 
 /** Where a shown issue stands: free, the user's own agent is on it, or another contributor took it. */
 export type LiveStatus = 'AVAILABLE' | 'CLAIMED_BY_YOU' | 'TAKEN';
@@ -30,6 +40,8 @@ export type LiveSnapshot = {
   total: number;
   /** The cursor after the last issue held; null when the feed has no more. */
   next: string | null;
+  /** The day's cap on new issues as last read; null while well under it or not read with the page. */
+  dailyCap: ContributeDailyCap | null;
 };
 
 /** Why a status read made the reads stop: the API hides it, does not know it yet, or the session ended. */
@@ -39,6 +51,7 @@ export type LiveFeedOptions = {
   items: ContributeIssue[];
   total: number;
   next: string | null;
+  dailyCap?: ContributeDailyCap | null;
   /** How many rows are shown; below it, while the feed has more, the list is filled from the next issues. */
   limit: number;
   readStatus: (issueIds: string[]) => Promise<ContributeActionResult<ContributeIssueStatus[] | null>>;
@@ -53,6 +66,8 @@ export type LiveFeed = {
   getSnapshot: () => LiveSnapshot;
   /** One read of the shown rows; also fills a short list. `'stop'` when the reads should stop for good. */
   poll: () => Promise<PollOutcome>;
+  /** Fills a short list from the next issues, while the feed has more: a page the day's cap left short, at once. */
+  fill: () => Promise<void>;
   /** The statuses read, applied: a taken or claimed row says so, then leaves. */
   apply: (statuses: ContributeIssueStatus[]) => void;
   /**
@@ -68,7 +83,12 @@ export type LiveFeed = {
    * A newer read of the page (a refresh, other filters, another cursor): its rows replace the list, keeping what is
    * known of the ones still in it; a row it drops while it says it was taken stays until it has left.
    */
-  reset: (page: { items: ContributeIssue[]; total: number; next: string | null }) => void;
+  reset: (page: {
+    items: ContributeIssue[];
+    total: number;
+    next: string | null;
+    dailyCap?: ContributeDailyCap | null;
+  }) => void;
   /** Starts it again after `stop`: the rows on their way out are sent out again. */
   start: () => void;
   /** Stops it: no timers, and an answer still on its way is dropped. */
@@ -87,7 +107,8 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
   let rows: LiveRow[] = options.items.map((issue) => ({ issue, status: 'AVAILABLE', attemptId: null, leaving: false }));
   let total = options.total;
   let next = options.next;
-  let snapshot: LiveSnapshot = { rows: rows.slice(0, limit), total, next };
+  let dailyCap = options.dailyCap ?? null;
+  let snapshot: LiveSnapshot = { rows: rows.slice(0, limit), total, next, dailyCap };
   const settled = new Set<string>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const listeners = new Set<() => void>();
@@ -95,12 +116,14 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
   const uncounted = new Set<string>();
   let beforeRemove: ((issueId: string) => void) | null = null;
   let filling = false;
+  /** A fill was asked for while one was under way: one more runs after it, so a row that left meanwhile is filled. */
+  let refillWanted = false;
   let active = true;
   /** Bumped by a stop or a newer read: an answer asked for before it is dropped. */
   let generation = 0;
 
   const emit = () => {
-    snapshot = { rows: rows.slice(0, limit), total, next };
+    snapshot = { rows: rows.slice(0, limit), total, next, dailyCap };
     for (const listener of listeners) listener();
   };
   const fresh = (issue: ContributeIssue): LiveRow => ({ issue, status: 'AVAILABLE', attemptId: null, leaving: false });
@@ -116,28 +139,46 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
     rows = rows.map((row) => (row.issue.issueId === issueId ? { ...row, ...patch } : row));
   };
 
+  /**
+   * Reads the next issues while the list is short and the feed has more: a page that brings none (past the day's cap,
+   * or only rows held or settled here) is read past while its cursor moves on, up to `FILL_READS_MAX` pages a fill.
+   */
   const fill = async (): Promise<void> => {
-    const missing = limit - rows.length;
-    if (!active || filling || !readMore || !next || missing <= 0) return;
+    if (!active || !readMore) return;
+    if (filling) {
+      refillWanted = true;
+      return;
+    }
     filling = true;
+    refillWanted = false;
     const asked = generation;
-    let added = false;
     try {
-      const result = await readMore(next, missing);
-      if (asked !== generation || !result.ok || !result.data) return;
-      const held = new Set(rows.map(({ issue }) => issue.issueId));
-      const more = result.data.items.filter(({ issueId }) => !held.has(issueId) && !settled.has(issueId));
-      rows = [...rows, ...more.map(fresh)];
-      next = result.data.next;
-      added = more.length > 0;
-      emit();
+      for (let reads = 0; reads < FILL_READS_MAX; reads += 1) {
+        const missing = limit - rows.length;
+        const after = next;
+        if (!active || asked !== generation || !after || missing <= 0) break;
+        const result = await readMore(after, missing);
+        if (asked !== generation || !result.ok || !result.data) break;
+        const held = new Set(rows.map(({ issue }) => issue.issueId));
+        const more = result.data.items.filter(({ issueId }) => !held.has(issueId) && !settled.has(issueId));
+        rows = [...rows, ...more.map(fresh)];
+        next = result.data.next;
+        if (result.data.dailyCap !== undefined) dailyCap = result.data.dailyCap;
+        emit();
+        // A cursor that did not move brings the same page again.
+        if (next === after) break;
+      }
     } catch {
       // Tried again at the next read.
     } finally {
       filling = false;
     }
-    // More rows left meanwhile: the next ones are read too, while the reads still bring some.
-    if (added) await fill();
+    // A newer read of the page, or a row that left, came meanwhile: its own fill found this one under way, so one more
+    // (bounded like any fill) runs now.
+    if (active && (refillWanted || asked !== generation)) {
+      refillWanted = false;
+      await fill();
+    }
   };
 
   const remove = (issueId: string) => {
@@ -195,6 +236,7 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
       return () => listeners.delete(listener);
     },
     getSnapshot: () => snapshot,
+    fill,
     apply,
     markTaken: (issueId) => {
       apply([{ issueId, status: 'TAKEN', attemptId: null }]);
@@ -232,6 +274,7 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
       rows = merged;
       total = page.total;
       next = page.next;
+      if (page.dailyCap !== undefined) dailyCap = page.dailyCap;
       emit();
       void fill();
     },

@@ -79,7 +79,7 @@ export function AgentWelcome({ client }: { client: McpClient }) {
 const STEPS = [
   {
     title: '1 · your agent claims an issue',
-    text: "It's held for you 24 hours from your agent's last step, and 7 days at most. Nobody else gets it meanwhile.",
+    text: "It's held for you 24 hours from your agent's last step, 48 hours without a patch that passes the checks, and 7 days at most. Nobody else gets it meanwhile.",
   },
   {
     title: '2 · it hands back the patch',

@@ -106,7 +106,7 @@ export function SettingsScreen({
                 icon={Wallet}
                 href={SETTINGS_PATHS.budget}
                 title="Budget and pacing"
-                value={budgetSummaryOf(settings)}
+                value={budgetSummaryOf(settings, contributor?.limits)}
               />
               <SettingsRow
                 icon={Cpu}

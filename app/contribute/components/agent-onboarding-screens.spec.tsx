@@ -250,7 +250,9 @@ describe('B2, your agent is connected', () => {
     expect(plain).toContain('What happens next');
     expect(plain).toContain('Prompt for Codex CLI');
     expect(plain).toContain(AGENT_WORK_PROMPT);
-    expect(plain).toContain("held for you 24 hours from your agent's last step, and 7 days at most");
+    expect(plain).toContain(
+      "held for you 24 hours from your agent's last step, 48 hours without a patch that passes the checks, and 7 days at most",
+    );
     expect(plain).toContain('The first time, GitHub asks you for one permission');
     expect(plain).toContain("We guessed what you'd like: bugs, Rust first.");
     // Their own agent spends nothing through us: no cap, no pace.

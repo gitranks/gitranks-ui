@@ -12,7 +12,7 @@ const { OverviewScreen, overviewSectionsOf } = await import('./overview-status')
 const { NeedsYouSection, RightNowSection, ImpactSection, WaysSection, UpNextSection } = await import(
   './overview-sections'
 );
-const { NOW, contributor, firstSpend, key, mcpToken, settings, views } = await import(
+const { NOW, contributor, firstSpend, key, limits, mcpToken, settings, views } = await import(
   '@/lib/contribute/__fixtures__/contribute-views'
 );
 const { attempt, followUpOf } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
@@ -230,6 +230,28 @@ describe('Right now', () => {
     expect(text(html)).toContain(
       'driftwood-js/driftwood #871 · Nested layouts re-render on every navigation Started 12 minutes ago, on your key. It shows up under Needs you when it is ready.',
     );
+  });
+
+  it('says a suspended account starts nothing, before any other hold', () => {
+    const html = now({ ...views.suspended, paused: true });
+    expect(html).toContain('data-hosted="suspended"');
+    expect(text(html)).toContain('Paused Contribute is paused for this account No attempt starts on your key for now.');
+    expect(text(html)).not.toContain('Soon');
+  });
+
+  it('offers no way to Settings for slots or open PRs the access level holds below the setting', () => {
+    const reduced = {
+      ...views.active,
+      contributor: contributor({ settings: { ...settings, attemptsAtATime: 3 }, limits: limits.newAccount }),
+    };
+    const busy = now(reduced, hosted({}));
+    expect(text(busy)).toContain('Your one slot is busy.');
+    expect(busy).not.toContain('Attempts at a time in Settings');
+    const prCap = now(reduced, { inFlight: [], scheduleCounts: { prBound: 2, queued: 0 } });
+    expect(text(prCap)).toContain('2 of 2 pull requests are open or on their way.');
+    expect(prCap).not.toContain('Open PRs at a time in Settings');
+    // Held by the setting itself: Settings can change it.
+    expect(now(views.active, hosted({}))).toContain('Attempts at a time in Settings');
   });
 
   it('names a hosted follow-up by its pull request', () => {

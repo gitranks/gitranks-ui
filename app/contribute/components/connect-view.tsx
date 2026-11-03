@@ -7,7 +7,7 @@ import { manualDraftFromSettings, type StoredLimits } from '@/lib/contribute/con
 import { loadAttempt, loadContribute, loadProfileLanguages } from '@/lib/contribute/contribute.data';
 import type { ContributeView } from '@/lib/contribute/contribute.types';
 import { CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
-import { claudeKeyOf, contributeNoticesOf, isOnboarded } from '@/lib/contribute/contribute-state';
+import { claudeKeyOf, contributeNoticesOf, isOnboarded, withoutAccessNotices } from '@/lib/contribute/contribute-state';
 import { LANGUAGES } from '@/lib/contribute/format';
 import { proofParamOf, proofPromptOf } from '@/lib/contribute/proof';
 
@@ -70,7 +70,7 @@ export function ConnectScreen({
   const { contributor } = view;
   const key = claudeKeyOf(view);
   // The key's own trouble shows here; the rest of the notices belong to the other pages.
-  const keyNotices = contributeNoticesOf(view).filter(({ kind }) => kind !== 'no-key');
+  const keyNotices = withoutAccessNotices(contributeNoticesOf(view)).filter(({ kind }) => kind !== 'no-key');
   const preferred = (contributor?.preferences?.languages ?? []).map((language) => LANGUAGES[language]);
   // A key connected before (a plan is set only by a connect): the API keeps these settings, so the screen starts from
   // them and says them. Settings made without a key are not a connect's: a first key takes the defaults over them.

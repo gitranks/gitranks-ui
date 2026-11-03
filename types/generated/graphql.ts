@@ -36,6 +36,19 @@ export type Contribute = {
   providerInterests: Array<ContributeComingSoonProvider>;
 };
 
+/** The account's access level: STANDARD (the settings as chosen), REDUCED (smaller limits for now) or SUSPENDED (nothing new starts) */
+export enum ContributeAccessLevel {
+  Reduced = 'REDUCED',
+  Standard = 'STANDARD',
+  Suspended = 'SUSPENDED'
+}
+
+/** Why the limits are reduced: NEW_ACCOUNT (every new account starts so) or FOLLOW_THROUGH (recent claims ran out) */
+export enum ContributeAccessReason {
+  FollowThrough = 'FOLLOW_THROUGH',
+  NewAccount = 'NEW_ACCOUNT'
+}
+
 /** The viewer's work in progress; empty items and runs when nothing runs */
 export type ContributeActivity = {
   __typename?: 'ContributeActivity';
@@ -1020,6 +1033,22 @@ export enum ContributeLanguage {
   Rust = 'RUST'
 }
 
+/** The access level and the limits it sets now (abuse guards §5.4); the facts and thresholds are never sent */
+export type ContributeLimits = {
+  __typename?: 'ContributeLimits';
+  /** The most attempts at a time that hold now: the settings field’s maximum */
+  attemptsAtATime: Scalars['Int']['output'];
+  /** New claims a day, every runner together */
+  claimsPerDay: Scalars['Int']['output'];
+  level: ContributeAccessLevel;
+  /** The most open pull requests at a time that hold now: the settings field’s maximum */
+  openPrsAtATime: Scalars['Int']['output'];
+  /** Why REDUCED; null at any other level */
+  reason?: Maybe<ContributeAccessReason>;
+  /** Newly shown issues a day */
+  revealsPerDay: Scalars['Int']['output'];
+};
+
 /** A provider whose keys connect today */
 export enum ContributeLiveProvider {
   Anthropic = 'ANTHROPIC'
@@ -1900,6 +1929,7 @@ export enum ContributeSetReason {
   NoManifest = 'NO_MANIFEST',
   OptedOut = 'OPTED_OUT',
   OutsideMerges = 'OUTSIDE_MERGES',
+  OutsidePrsClosed = 'OUTSIDE_PRS_CLOSED',
   Private = 'PRIVATE',
   Pushed = 'PUSHED'
 }
@@ -2163,6 +2193,7 @@ export type Contributor = {
   autopilot: ContributeAutopilot;
   createdAt: Scalars['String']['output'];
   credentials: Array<ContributeCredential>;
+  limits: ContributeLimits;
   login: Scalars['String']['output'];
   /** When a path first worked (a stored key, or their agent’s first call); null until then. Never cleared */
   onboardedAt?: Maybe<Scalars['String']['output']>;

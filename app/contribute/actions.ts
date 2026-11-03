@@ -709,6 +709,8 @@ const REASONS: ContributeSetReason[] = [
   'OPTED_OUT',
   'AI_BAN',
   'CONTRIBUTE_OFF',
+  'OUTSIDE_PRS_CLOSED',
+  'GATED_CONTRIBUTORS',
   'NO_MANIFEST',
 ];
 

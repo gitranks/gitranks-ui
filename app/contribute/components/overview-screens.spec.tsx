@@ -142,11 +142,11 @@ describe('Needs you', () => {
       'Run 2 ready driftwood-js/driftwood · PR #1419 Nested layouts re-render on every navigation Your move: Run 2 fixed 2 comments. Approve to push it. Review run 2',
     );
     expect(plain).toContain(
-      'Agreement to sign carbon-design-system/carbon · PR #23935 a11y: hard-coded ids in text input Your move: The repo merges code only from people who signed its DCO, and only you can sign it: its bot records your signature from a comment. Post this on PR #23935, word for word: "I have read the DCO Document and I hereby sign the DCO" Copy and open the PR ↗ I posted it',
+      `Agreement to sign carbon-design-system/carbon · PR #23935 a11y: hard-coded ids in text input Your move: Only you can sign the repo's DCO; its bot records it from this comment on PR #23935, word for word: "I have read the DCO Document and I hereby sign the DCO" Copy and open the PR ↗ I posted it`,
     );
     expect(html).toContain('data-copy-and-open=""');
     expect(plain).toContain(
-      'Bot blocks merge openclaw/openclaw · PR #190187 sessions.abort loses the typed message Your move: clawsweeper blocks the merge until its ask is met, and a run cannot answer a review bot for you: "Blocked before merge — 1 item remains: Add real behavior proof" Read what it asks. · and 1 more See what it asks',
+      'Bot blocks merge openclaw/openclaw · PR #190187 sessions.abort loses the typed message Your move: clawsweeper holds the merge until you do what it asks: "Blocked before merge — 1 item remains: Add real behavior proof" Read what it asks. · and 1 more See what it asks',
     );
     expect(html).toContain('href="/contribute/attempts/A_PR190187?session=next"');
     expect(plain).toContain('Sign-off missing tern-lang/tern-fmt · PR #4410');
@@ -196,7 +196,7 @@ describe('Needs you', () => {
       'Key refused Claude key …k3Qa Your move: Anthropic refused your Claude key, so no run can start. Connect a working key. Connect a new key',
     );
     expect(text(needs(views.onboardedNoPath, needsNothing))).toContain(
-      'Not set up Your move: Nothing can start yet: GitRanks runs the agent on your Claude key, or your own agent does the work. Add a key or connect your agent. Add your Claude key Connect your own agent',
+      'Not set up Your move: Nothing can start until GitRanks has your Claude key or your own agent is connected. Add your Claude key Connect your own agent',
     );
     // A pause or a used-up key is a state, in Right now.
     expect(needs(views.paused, needsNothing)).toContain('data-needs="clear"');

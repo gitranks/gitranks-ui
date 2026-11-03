@@ -108,8 +108,8 @@ export function SubmitErrorNote({ submit }: { submit: ContributeAttemptSubmit | 
 }
 
 /** What the user does after the attempt ended, by why it ended: the step, and a link to where to take it. */
-function EndMoveNote({ attempt }: { attempt: Pick<ContributeAttempt, 'endReason' | 'kind'> }) {
-  const move = endMoveOf(attempt.endReason, attempt.kind);
+function EndMoveNote({ attempt }: { attempt: ContributeAttempt }) {
+  const move = endMoveOf(attempt);
   if (!move) return null;
   return (
     <p data-end-move={attempt.endReason ?? ''} className="text-sm">
@@ -119,7 +119,7 @@ function EndMoveNote({ attempt }: { attempt: Pick<ContributeAttempt, 'endReason'
         <>
           {' '}
           <Link href={move.href} prefetch={false} className="font-semibold text-link">
-            {move.link} →
+            {move.link} <span aria-hidden="true">→</span>
           </Link>
         </>
       ) : null}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { editableBodyOf, endMoveOf, footerPreviewOf } from './attempt-format';
+import type { ContributeAttemptEndReason } from './contribute.types';
 
 const FOOTER =
   '<sub>Made with [GitRanks Contribute](https://gitranks.com) and Codex (GPT) · Reviewed and submitted by @octocat</sub>';
@@ -44,18 +45,29 @@ describe('footerPreviewOf', () => {
 
 describe('endMoveOf: what the user does after an attempt ended', () => {
   it('says the step and where to take it, for a first attempt', () => {
-    expect(endMoveOf('BUDGET')).toMatchObject({ href: '/contribute/settings/budget', link: 'Open Budget and pacing' });
-    expect(endMoveOf('KEY_INVALID')).toMatchObject({ href: '/contribute/settings/keys' });
-    expect(endMoveOf('EXHAUSTED')?.text).toMatch(/Anthropic Console .* Billing/);
-    expect(endMoveOf('CLAIM_LOST')?.text).toMatch(/^Nothing waits on you/);
-    expect(endMoveOf('USER')).toBeNull();
-    expect(endMoveOf(null)).toBeNull();
+    const end = (endReason: ContributeAttemptEndReason | null, more: Parameters<typeof endMoveOf>[0] | object = {}) =>
+      endMoveOf({ endReason, endDetail: null, ...more });
+    expect(end('BUDGET')).toMatchObject({ href: '/contribute/settings/budget#more-limits', link: 'Open More limits' });
+    expect(end('KEY_INVALID')).toMatchObject({ href: '/contribute/settings/keys' });
+    expect(end('EXHAUSTED')?.text).toMatch(/Claude Console .* Billing/);
+    expect(end('CLAIM_LOST')?.text).toMatch(/^Nothing waits on you/);
+    expect(end('USER')).toBeNull();
+    expect(end(null)).toBeNull();
+    // A failed check links to the user's own limit only when it was one of them.
+    expect(end('CHECKS_FAILED', { endDetail: 'max_files' })).toMatchObject({ href: '/contribute/settings/agent#prs' });
+    expect(end('CHECKS_FAILED', { endDetail: 'secrets' })).toEqual({ text: 'Nothing waits on you.' });
+    // A failed submission points at its note only while there is one.
+    expect(end('SUBMIT_FAILED')).toEqual({ text: 'Nothing was submitted.' });
+    expect(end('SUBMIT_FAILED', { submit: { lastError: { reason: 'x' } } })?.text).toMatch(/note below/);
   });
 
   it("gives a follow-up only the steps that come before its next run: the rest are its page's own words", () => {
-    expect(endMoveOf('BUDGET', 'FOLLOW_UP')).not.toBeNull();
-    expect(endMoveOf('LIMIT_REACHED', 'FOLLOW_UP')).not.toBeNull();
-    expect(endMoveOf('TIMEOUT', 'FOLLOW_UP')).toBeNull();
-    expect(endMoveOf('CHECKS_FAILED', 'FOLLOW_UP')).toBeNull();
+    const run = (endReason: ContributeAttemptEndReason, endDetail: string | null = null) =>
+      endMoveOf({ endReason, endDetail, kind: 'FOLLOW_UP' });
+    expect(run('BUDGET')).not.toBeNull();
+    expect(run('LIMIT_REACHED')).not.toBeNull();
+    expect(run('TIMEOUT')).toBeNull();
+    expect(run('CHECKS_FAILED')).toBeNull();
+    expect(run('CHECKS_FAILED', 'max_changed_lines')).not.toBeNull();
   });
 });

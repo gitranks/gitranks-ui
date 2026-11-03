@@ -210,7 +210,7 @@ function proofCandidateOf(
         kind: 'proof-failed',
         tone: 'red',
         pill: 'Posting failed',
-        move: 'Posting the proof failed. Try again, or discard it.',
+        move: 'Posting the proof failed; its page says why. Try again, or discard it.',
         action: toNext('See what failed'),
         secondary: null,
       };
@@ -266,8 +266,8 @@ export function runStepOf(run: Pick<ContributeAttempt, 'state' | 'followUpStep'>
 }
 
 /**
- * Who asks a PR rule, to open its row: "The repo's CONTRIBUTING.md asks it" style, from the issue's `source` (the
- * repo's file), else `fallback`. Rows say why the user sees them (owner, 2026-11-03).
+ * Who asks a PR rule, to open its row: `fallback` with the repo's file that asks it, "The repo's rules (in its
+ * .github/agents/pr-and-commit-rules.md)", from the issue's `source`. Rows say why the user sees them (owner, 2026-11-03).
  */
 const ruleSource = (issue: ContributePrConventionIssue | undefined, fallback: string): string => {
   const label = issue?.source?.label?.trim();
@@ -436,7 +436,7 @@ function reviewRowsOf(
       kind: 'review',
       tone: 'violet',
       pill: 'Ready for review',
-      move: `GitRanks never opens a pull request without your approval. Check the change, then open it or discard it. ${
+      move: `This pull request opens only when you approve it. Check the change, then open it or discard it. ${
         daysLeft !== null && daysLeft >= 1 && daysLeft < 7
           ? `It waits ${plural(daysLeft, 'more day')}.`
           : 'It waits 7 days.'
@@ -466,6 +466,14 @@ function ownReviewWaitOf(attempt: ContributeAttempt, now: Date): string {
 
 /** One reason waiting on an open pull request, before the first of them is chosen to lead its row. */
 type Candidate = Pick<NeedsYouItem, 'kind' | 'tone' | 'pill' | 'move' | 'action' | 'secondary'> & { at: number };
+
+/** A reply GitHub refused: the API's note (why, and what to do), else the two ways on. */
+const replyFailedMove = (draft: Pick<ContributeReplyWaiting, 'lastError'>): string => {
+  const note = draft.lastError?.note?.trim();
+  return note
+    ? sentence(clipped(note, 200))
+    : "GitHub refused the reply. Retry it, or copy it from the run's page and post it on the pull request yourself.";
+};
 
 /** Who the drafts answer: `@mo`, or "the maintainers" when several or none are named. Logins as GitHub writes them. */
 const draftsTo = (drafts: ContributeReplyWaiting[]) => {
@@ -579,7 +587,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'reply-failed',
       tone: 'red',
       pill: 'Reply not posted',
-      move: 'GitHub refused the reply. Try again, or post it yourself.',
+      move: replyFailedMove(failed),
       action: {
         label: 'Retry the reply',
         href: sessionPath(pr.attemptId, failed.attemptId),
@@ -596,13 +604,14 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
     const agreement = agreementOf(conventions);
     const signComment = conventions?.signComment?.trim();
     const signUrl = httpsOnly(conventions?.signUrl);
+    const claCheck = conventions?.check?.trim() || cla.detail?.trim();
     list.push(
       signComment
         ? {
             kind: 'agreement',
             tone: 'amber',
             pill: 'Agreement to sign',
-            move: `The repo merges code only from people who signed its ${agreement}, and only you can sign it: its bot records your signature from a comment. Post this on PR #${number}, word for word: "${clipped(signComment, 300)}"`,
+            move: `Only you can sign the repo's ${agreement}; its bot records it from this comment on PR #${number}, word for word: "${clipped(signComment, 300)}"`,
             action: prUrl
               ? {
                   label: 'Copy and open the PR ↗',
@@ -619,7 +628,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
             tone: 'amber',
             pill: `${agreement} to sign`,
             move: `The repo merges code only from people who signed its ${agreement}${
-              cla.detail?.trim() ? ` (its check: ${clipped(cla.detail, 80)})` : ''
+              claCheck ? ` (its check: ${clipped(claCheck, 80)})` : ''
             }, and only you can sign it. Sign it on its page; this clears once the check passes.`,
             action:
               signUrl || prUrl
@@ -661,7 +670,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       pill: 'Description rule',
       move: yours
         ? `${ruleSource(template, "The repo's rules")} say the person who tested the change fills in the description, so the agent left it empty. Open it for what to write and tick, section by section.`
-        : `The repo's ${template.check ? `\`${template.check}\`` : 'template'} check fails on the description. Edit it on the rules card, with the check's own words beside it.`,
+        : `The repo's ${template.check ? `"${template.check}"` : 'template'} check fails on the description. Edit it on the rules card, with the check's own words beside it.`,
       action: toNext(yours ? 'Fill in the description' : 'Fix the description'),
       secondary: null,
       at: timeOf(pr.pullRequest.openedAt),
@@ -697,7 +706,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'bot',
       tone: 'amber',
       pill: 'Bot blocks merge',
-      move: `${by ?? 'A review bot'} blocks the merge until its ask is met, and a run cannot answer a review bot for you: "${clipped(verdict || 'Blocked before merge', 120)}" Read what it asks.`,
+      move: `${by ?? 'A review bot'} holds the merge until you do what it asks: "${clipped(verdict || 'Blocked before merge', 120)}" Read what it asks.`,
       action: toNext('See what it asks'),
       secondary: null,
       at: timeOf(blocked.at),
@@ -767,8 +776,8 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       tone: 'red',
       pill: 'Sign-off missing',
       move: byHand
-        ? 'The repo requires a Signed-off-by line on every commit, certifying in your name that you may submit the code; only you can add it. See how; the code stays the same.'
-        : 'The repo requires a Signed-off-by line on every commit, certifying in your name that you may submit the code, so GitRanks waits for your click. One click adds it; the code stays the same.',
+        ? 'The repo needs your Signed-off-by on every commit, and only you can certify it. See how to add it; the code stays the same.'
+        : 'The repo needs your Signed-off-by on every commit, and only you can certify it. One click adds it; the code stays the same.',
       action: toNext(byHand ? 'See how to sign off' : 'Sign off and push'),
       secondary: null,
       at: timeOf(dco.at),
@@ -787,7 +796,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       pill: 'A fix failed',
       move: `${PR_FIX_WORDS[fix.kind]} did not go through${note} ${
         fix.kind === 'SIGN_OFF'
-          ? 'Try again, or sign off by hand: git rebase --signoff, then a force-push.'
+          ? 'Try again, or sign off by hand: git rebase --signoff HEAD~N (N: the commits on the pull request), then git push --force-with-lease.'
           : 'Try again, or make the change on GitHub.'
       }`,
       action: toNext('See what happened'),
@@ -981,7 +990,7 @@ export function needsYouItemsOf({
       pill: 'Not set up',
       where: null,
       title: null,
-      move: 'Nothing can start yet: GitRanks runs the agent on your Claude key, or your own agent does the work. Add a key or connect your agent.',
+      move: 'Nothing can start until GitRanks has your Claude key or your own agent is connected.',
       more: 0,
       action: { label: 'Add your Claude key', href: CONNECT_KEY_PATH, aria: 'Add your Claude key' },
       secondary: { label: 'Connect your own agent', href: CONNECT_AGENT_PATH },
@@ -1036,7 +1045,7 @@ export function needsYouItemsOf({
       where,
       title: null,
       move: failed
-        ? 'GitHub refused the reply. Try again, or post it yourself.'
+        ? replyFailedMove(shown[0])
         : `A run drafted ${plural(shown.length, 'reply', 'replies')} to ${draftsTo(shown)}. Read and post them.`,
       more: 0,
       action: {

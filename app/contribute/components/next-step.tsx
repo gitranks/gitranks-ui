@@ -60,9 +60,14 @@ function FoundCard({ move, first, step, primary, now }: CardProps & { move: Extr
   const pr = first.pullRequest;
   const url = githubUrlOf(pr?.url);
   const by = move.bot?.by ?? 'the review bot';
+  const open = url && pr ? `Open #${pr.number} on GitHub (the button below)` : 'Open the pull request on GitHub';
   const steps = [
-    `Open #${pr?.number} on GitHub (the button below)${move.bot ? ` and find ${by}'s comment: it says what it wants` : ''}.`,
-    move.run?.detail ? `Do this there: ${clipped(move.run.detail, 300)}` : `Do what ${by} asks, on the pull request.`,
+    `${open}${move.bot ? ` and find ${by}'s comment: it says what it wants` : ''}.`,
+    move.run?.detail
+      ? `Do this there: ${clipped(move.run.detail, 300)}`
+      : move.bot
+        ? `Do what ${by} asks, on the pull request.`
+        : 'Do what the run left for you, on the pull request.',
     move.bot
       ? `${by} reads it again: this leaves Needs you once it lets the merge through, or when you click I've done it.`
       : "Come back and click I've done it: this leaves Needs you.",
@@ -99,7 +104,7 @@ function FoundCard({ move, first, step, primary, now }: CardProps & { move: Extr
       ) : null}
       <p className="text-sm text-muted-foreground" data-found-why="">
         {move.bot
-          ? `${by} is a review bot on the repo: it holds the merge until what it asks is done, and it answers the person behind the pull request, so no run can settle it for you.`
+          ? `${by} is a review bot on the repo: it holds the merge until what it asks is done. A review bot's ask is left to you: GitRanks does not start a run for it.`
           : 'The agent reads every review, comment and check on the pull request; it changes what code can fix and leaves you what only you can do (a decision, an account, a proof from your machine).'}
       </p>
       <Steps steps={steps} />
@@ -134,7 +139,9 @@ function StoppedCard({ move, first, step, primary }: CardProps & { move: Extract
     <MoveCard
       tone="red"
       name={unpushed ? 'push-failed' : 'stopped'}
-      heading={`Your move: try run ${step.run.round}, or handle it yourself`}
+      heading={
+        step.run.open ? `Your move: try run ${step.run.round}, or handle it yourself` : 'Your move: handle it yourself'
+      }
       pill={
         <Pill tone="red">
           {unpushed
@@ -162,7 +169,9 @@ function StoppedCard({ move, first, step, primary }: CardProps & { move: Extract
       </p>
       <Steps
         steps={[
-          'Read why it stopped, above: it says what to fix first when the next run would stop the same way.',
+          ...(move.run.detail
+            ? ['Read why it stopped, above: it says what to fix first when the next run would stop the same way.']
+            : []),
           ...(step.run.open
             ? [
                 `Click Try run ${step.run.round}, write in its note what to do differently, and start it. It starts from the pull request as it is now${unpushed ? ' and makes the change again' : ''}.`,
@@ -257,7 +266,7 @@ function AgreementCard({ move, first, primary }: CardProps & { move: Extract<Use
               move.signUrl
                 ? `Click Sign the ${move.agreement} below.`
                 : `Click Sign the ${move.agreement} below, then open the details of the ${move.check ?? 'agreement'} check on the pull request: it links to the page to sign.`,
-              'Sign in with GitHub on its page and accept the agreement.',
+              'Follow its page to sign (most ask you to sign in with GitHub, then accept).',
               'Its check runs again: this clears once it passes, or click I signed it.',
             ]}
           />
@@ -391,7 +400,7 @@ function DcoCard({
           <Steps
             steps={[
               'In your clone, check out the pull request’s branch.',
-              'Run git rebase --signoff <base>, where <base> is the branch the pull request merges into (for example origin/main).',
+              'Run git rebase --signoff HEAD~N, where N is the number of commits on the pull request (its Commits tab counts them).',
               'Push it with git push --force-with-lease.',
               'The DCO check runs again: this clears once it passes.',
             ]}
@@ -408,7 +417,7 @@ function DcoCard({
         {sending
           ? 'Signing off and pushing…'
           : fix?.state === 'FAILED'
-            ? `The sign-off did not go through${fix.note ? `: ${clipped(fix.note, 200)}` : '.'} Try again, or sign off by hand: git rebase --signoff, then git push --force-with-lease.`
+            ? `The sign-off did not go through${fix.note ? `: ${clipped(fix.note, 200)}` : '.'} Try again, or sign off by hand: git rebase --signoff HEAD~N (N: the commits on the pull request), then git push --force-with-lease.`
             : fix?.state === 'DONE' && dco.missing
               ? 'Signed off and pushed. This clears once the DCO check passes.'
               : ''}

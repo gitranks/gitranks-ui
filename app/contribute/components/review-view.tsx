@@ -308,6 +308,8 @@ function SessionDetails({
             }
             defaultBody={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
             login={view.contributor?.login ?? 'you'}
+            footer={attempt.prFooter}
+            coAuthored={attempt.prCoAuthored}
             dcoMode={view.contributor?.settings?.dco ?? null}
             dcoRequired={attempt.dcoRequired}
             again={!!attempt.submit?.lastError}

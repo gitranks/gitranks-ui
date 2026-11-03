@@ -47,6 +47,10 @@ export type PrFormProps = {
   defaultBody: string;
   /** The user's login, named as the reviewer in the footer. */
   login: string;
+  /** What the API adds after the body (the repo's disclosure sentence, the footer line); absent: `prFooterText`. */
+  footer?: string;
+  /** The commits carry the gitranks co-author: false on a repo that bans AI trailers; null or absent: not known yet. */
+  coAuthored?: boolean | null;
   /** The user's DCO setting; null while it is not known. */
   dcoMode: ContributeDcoMode | null;
   /**
@@ -169,6 +173,8 @@ export function PrForm({
   defaultTitle,
   defaultBody,
   login,
+  footer,
+  coAuthored = null,
   dcoMode,
   dcoRequired,
   again,
@@ -315,8 +321,8 @@ export function PrForm({
         <span className="text-sm font-medium">Preview: the Markdown GitHub gets</span>
         <div className="flex max-h-72 flex-col gap-2 overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs">
           <pre className="whitespace-pre-wrap">{prBodyPreview(body, issueNumber)}</pre>
-          <span data-pr-footer className="border-t pt-2 text-muted-foreground">
-            {prFooterText(login)}
+          <span data-pr-footer className="whitespace-pre-wrap border-t pt-2 text-muted-foreground">
+            {footer ?? prFooterText(login)}
           </span>
         </div>
         <span className="text-xs text-muted-foreground">
@@ -365,7 +371,9 @@ export function PrForm({
         </div>
       )}
       <span className="text-xs text-muted-foreground">
-        Opens on {repo} from your fork, in your name, co-authored by gitranks.
+        {coAuthored === false
+          ? `Opens on ${repo} from your fork, in your name. This repo bans AI trailers, so the commits carry no co-author.`
+          : `Opens on ${repo} from your fork, in your name, co-authored by gitranks.`}
       </span>
       {grantNeeded ? (
         <div data-grant-ask className="flex flex-col gap-2 border-t pt-3.5 text-sm text-foreground/80">

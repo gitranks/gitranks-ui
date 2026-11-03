@@ -383,6 +383,14 @@ export const ContributeAttemptDcoDocument = doc<
   contributeAttempt(id: $id) { attemptId dcoRequired }
 }`);
 
+/** The PR's footer as the API writes it, and whether the commits carry the gitranks co-author: read on its own, too. */
+export const ContributeAttemptDisclosureDocument = doc<
+  { contributeAttempt: { attemptId: string; prFooter: string; prCoAuthored: boolean | null } | null },
+  { id: string }
+>(`query ContributeAttemptDisclosure($id: ID!) {
+  contributeAttempt(id: $id) { attemptId prFooter prCoAuthored }
+}`);
+
 /** A no-go at the check's limit: read on its own, as the field above. */
 export const ContributeAttemptCheckStopDocument = doc<
   { contributeAttempt: { attemptId: string; checkLimit: ContributeCheckLimitView | null } | null },

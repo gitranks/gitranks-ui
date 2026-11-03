@@ -143,6 +143,7 @@ export const AGENT_NAMES: Record<ContributeAgentName, string> = {
   COPILOT: 'GitHub Copilot',
   AIDER: 'Aider',
   CLINE: 'Cline',
+  ANTIGRAVITY: 'Antigravity',
   OTHER: 'another AI agent',
 };
 
@@ -233,16 +234,20 @@ export const attemptTitleOf = (attempt: Pick<ContributeAttempt, 'title' | 'numbe
 /** The attempt's repo, `owner/name`, or a placeholder while the API does not know it. */
 export const repoOf = (attempt: Pick<ContributeAttempt, 'nameWithOwner'>) => attempt.nameWithOwner || 'a repo';
 
-/** The one footer line the API adds to every pull request it opens for a reviewed change, as Markdown. */
+/**
+ * The footer line the API adds to a pull request it opens for a reviewed change, as Markdown, for an API that does not
+ * say it (`prFooter`): the hosted runner's, without the model.
+ */
 export const prFooterText = (login: string) =>
-  `🤖 Made with Claude via [gitranks.com](https://gitranks.com) · reviewed by @${login}`;
+  `<sub>Made with [GitRanks Contribute](https://gitranks.com) powered by Claude · Reviewed and submitted by @${login}</sub>`;
 
 /** A pull request body names the issue with a closing keyword, so GitHub closes it on merge. */
 const linksIssue = (body: string, number: number) =>
   new RegExp(`\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\b:?\\s+#${number}\\b`, 'i').test(body);
 
-/** A line that is the footer already: the API drops it and adds its own. */
-const FOOTER_LINE = /^\s*(?:<sub>)?\s*🤖 Made with .* via \[?gitranks\.com/;
+/** A line that is the footer already, the old wording or the new: the API drops it and adds its own. */
+const FOOTER_LINE =
+  /^\s*(?:<sub>)?\s*(?:🤖 Made with .* via \[?gitranks\.com|Made with \[GitRanks Contribute\]\(https:\/\/)/;
 
 /** The body to edit: the footer is the API's to add, so it is taken out of a body the agent copied it into. */
 export const editableBodyOf = (body: string | null | undefined) =>

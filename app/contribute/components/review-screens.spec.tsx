@@ -230,9 +230,23 @@ describe('the review screen', () => {
     expect(html).toMatch(/<textarea[^>]*>Fixes #871\n\n## What changed\nNormalize the route path.<\/textarea>/);
     expect(html).not.toContain('reviewed by @someone');
     expect(html).toContain('data-pr-footer');
-    expect(plain).toContain('🤖 Made with Claude via [gitranks.com](https://gitranks.com) · reviewed by @octocat');
+    expect(plain).toContain(
+      '<sub>Made with [GitRanks Contribute](https://gitranks.com) powered by Claude · Reviewed and submitted by @octocat</sub>',
+    );
+    expect(plain).toContain('co-authored by gitranks');
     expect(plain).toContain('Submit pull request');
     expect(plain).toContain('Discard');
+  });
+
+  it('previews the footer and co-author as the API writes them (PR disclosure spec §5)', () => {
+    const footer =
+      'This PR was written in part with the assistance of generative AI.\n\n<sub>Made with [GitRanks Contribute](https://gitranks.com) and Codex (GPT) · Reviewed and submitted by @octocat</sub>';
+    const plain = text(review(detail({ prFooter: footer, prCoAuthored: false })));
+
+    expect(plain).toContain('This PR was written in part with the assistance of generative AI.');
+    expect(plain).toContain('and Codex (GPT) · Reviewed and submitted by @octocat');
+    expect(plain).toContain('This repo bans AI trailers, so the commits carry no co-author.');
+    expect(plain).not.toContain('co-authored by gitranks');
   });
 
   it('adds the issue link to the preview when the body does not close the issue', () => {

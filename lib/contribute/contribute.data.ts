@@ -8,6 +8,7 @@ import {
   ContributeAttemptConventionsDocument,
   ContributeAttemptDcoDocument,
   ContributeAttemptDecisionsDocument,
+  ContributeAttemptDisclosureDocument,
   ContributeAttemptDocument,
   ContributeAttemptFollowUpFlowDocument,
   ContributeAttemptFollowUpsDocument,
@@ -513,6 +514,10 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   );
   // Whether the repo requires a DCO sign-off; left out when not answered.
   const dco = Promise.resolve(graphqlDirect(ContributeAttemptDcoDocument, { id }, options)).catch(() => undefined);
+  // The PR's footer and co-author as the API writes them; left out when not answered.
+  const disclosure = Promise.resolve(graphqlDirect(ContributeAttemptDisclosureDocument, { id }, options)).catch(
+    () => undefined,
+  );
   // Whether the check ran out; left out when not answered.
   const checkStop = Promise.resolve(graphqlDirect(ContributeAttemptCheckStopDocument, { id }, options)).catch(
     () => undefined,
@@ -557,11 +562,16 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
       dcoRead?.attemptId === contributeAttempt.attemptId && typeof dcoRead.dcoRequired === 'boolean'
         ? { ...withFlow, dcoRequired: dcoRead.dcoRequired }
         : withFlow;
+    const disclosureRead = (await disclosure)?.contributeAttempt;
+    const withDisclosure =
+      disclosureRead?.attemptId === contributeAttempt.attemptId && typeof disclosureRead.prFooter === 'string'
+        ? { ...withDco, prFooter: disclosureRead.prFooter, prCoAuthored: disclosureRead.prCoAuthored ?? null }
+        : withDco;
     const stopRead = (await checkStop)?.contributeAttempt;
     const withStop =
       stopRead?.attemptId === contributeAttempt.attemptId && stopRead.checkLimit !== undefined
-        ? { ...withDco, checkLimit: stopRead.checkLimit ?? null }
-        : withDco;
+        ? { ...withDisclosure, checkLimit: stopRead.checkLimit ?? null }
+        : withDisclosure;
     const retryRead = (await retry)?.contributeAttempt;
     const retryOwn = retryRead?.attemptId === contributeAttempt.attemptId ? retryRead : undefined;
     const withRetry = retryOwn && retryOwn.retry !== undefined ? { ...withStop, retry: retryOwn.retry } : withStop;

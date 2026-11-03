@@ -169,9 +169,9 @@ export function KeyConnect({
             </li>
             <li>
               <span className="font-semibold text-foreground">Set its spend limit, and keep auto-reload off.</span> The
-              Console enforces the limit, whatever happens here. Auto-reload buys credits with your card: it can charge
-              you the moment it&apos;s on, even while your plan&apos;s credits remain, and keeps the work going on real
-              money once they run out.
+              Console enforces the limit, whatever happens here. Auto-reload looks only at credits you bought, not your
+              plan&apos;s: it can charge your card as soon as it&apos;s on, even while your plan&apos;s credits remain,
+              and once they run out it keeps the agent running on paid credits.
             </li>
             <li>
               <span className="font-semibold text-foreground">Create an API key in that workspace.</span>

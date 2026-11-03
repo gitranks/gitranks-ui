@@ -280,7 +280,7 @@ export function appliedLimitsOf(
       : kept && stored?.plan === plan
         ? `at most ${usd(kept.cycleCapUsd)}, your monthly cap as it is`
         : credit !== null && choice
-          ? `up to ${usd(credit)} of your credits, ${choice.label}'s monthly allowance`
+          ? `up to ${usd(credit)} of your credits, the ${choice.label} plan's monthly allowance`
           : 'your monthly allowance';
   const { attemptsAtATime, openPrsAtATime, maxChangedLines, maxFiles, mainModel, helperModel, testModel } =
     kept ?? CONNECT_DEFAULTS;

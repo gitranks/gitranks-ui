@@ -97,7 +97,7 @@ describe('the landing', () => {
     expect(plain).toContain('After three of yours are merged you can turn on autopilot');
     // The plans by their current names, and auto-reload's real money.
     expect(plain).toContain('Claude Max, Ultra or Team plan');
-    expect(plain).toContain('keep auto-reload off: it charges your card, even while credits remain');
+    expect(plain).toContain("keep auto-reload off: it can charge your card even while your plan's credits remain");
     expect(plain).not.toMatch(/Max 5x|Max 20x/);
   });
 

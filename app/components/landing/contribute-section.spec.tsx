@@ -57,8 +57,13 @@ describe('the Contribute section on the home page', () => {
     ]) {
       expect(html).toContain(title);
     }
+    expect(html).toContain('You review each change');
+    expect(html).toContain('on the API credits your Claude plan');
+    expect(html).toContain(
+      'Merged pull requests stay on your GitHub profile, and can count toward your Contributor rank.',
+    );
     expect(html.indexOf('You review each change')).toBeLessThan(html.indexOf('on the API credits your Claude plan'));
-    expect(html.indexOf('count toward your Contributor rank')).toBeGreaterThan(html.indexOf('API credits'));
+    expect(html.indexOf('can count toward your Contributor rank')).toBeGreaterThan(html.indexOf('API credits'));
     expect(html).not.toMatch(/job search|interview|boost/i);
     expect(html).toContain('Every pull request says it was made with AI.');
   });

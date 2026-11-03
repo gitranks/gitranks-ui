@@ -105,7 +105,7 @@ const QUESTIONS = [
   {
     question: 'Does it cost anything?',
     answer:
-      'GitRanks is free. With your Claude key, the agent spends your API credits, never past your caps. Give it a workspace of its own with a spend limit, and keep auto-reload off: it charges your card, even while credits remain. With your own agent, nothing is spent through us.',
+      "GitRanks is free. With your Claude key, the agent spends your API credits, never past your caps. Give the key a workspace of its own with a spend limit, and keep auto-reload off: it can charge your card even while your plan's credits remain. With your own agent, nothing is spent through us.",
   },
   {
     question: 'What can you do on my GitHub account?',

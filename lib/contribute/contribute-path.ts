@@ -41,6 +41,17 @@ export function isMaintainersPath(pathname: string): boolean {
   }
 }
 
+/** The Contribute ledger (ledger design 2026-11-03): its own switch, not the preview's. */
+export const LEDGER_PATH: Route = '/contribute/ledger';
+
+export function isLedgerPath(pathname: string): boolean {
+  try {
+    return /^\/+contribute\/+ledger\/?$/i.test(decodeURIComponent(pathname));
+  } catch {
+    return false;
+  }
+}
+
 /** Where each way of contributing starts: a Claude key we run the agent on, or the user's own agent. */
 export const CONNECT_KEY_PATH: Route = '/contribute/connect';
 export const CONNECT_AGENT_PATH = '/contribute/connect?path=agent' as Route;

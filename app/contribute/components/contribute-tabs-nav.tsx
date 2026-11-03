@@ -8,7 +8,7 @@ import { ChangesProvider } from './live-changes';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
 import type { ContributeActivity } from '@/lib/contribute/contribute.types';
-import { isMaintainersPath } from '@/lib/contribute/contribute-path';
+import { isLedgerPath, isMaintainersPath } from '@/lib/contribute/contribute-path';
 import { isAsVisitor } from '@/lib/contribute/contribute-state';
 
 /** The line under the header where there are no tabs, across the page as the home page draws one. */
@@ -17,12 +17,13 @@ export function HeaderLine() {
 }
 
 /**
- * Whether Contribute's tabs show: only to an onboarded user. Not on the maintainers page (open to everyone), and not
+ * Whether Contribute's tabs show: only to an onboarded user. Not on the maintainers page or the ledger (pages about
+ * Contribute, not the user's workspace), and not
  * under `?as=visitor` on `/contribute`, where a signed-in user sees the landing as a visitor would.
  */
 export function contributeTabsShown(pathname: string, as: string | null, onboarded: boolean): boolean {
   const asVisitor = pathname.replace(/\/+$/, '') === '/contribute' && isAsVisitor(as);
-  return onboarded && !asVisitor && !isMaintainersPath(pathname);
+  return onboarded && !asVisitor && !isMaintainersPath(pathname) && !isLedgerPath(pathname);
 }
 
 /**

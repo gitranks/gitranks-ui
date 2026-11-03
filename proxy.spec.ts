@@ -10,6 +10,8 @@ const { maySeeContribute, open } = vi.hoisted(() => ({
   open: vi.fn(async () => false),
 }));
 vi.mock('./lib/contribute/preview-gate', () => ({ requestMaySeeContribute: maySeeContribute, contributeOpen: open }));
+const { ledgerOpen } = vi.hoisted(() => ({ ledgerOpen: vi.fn(async () => false) }));
+vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: ledgerOpen }));
 
 const { default: proxy, config, ENTITY_PAGE_CACHE_CONTROL, v2BuilderRedirect } = await import('./proxy');
 
@@ -24,6 +26,8 @@ describe('proxy', () => {
     maySeeContribute.mockResolvedValue(false);
     open.mockReset();
     open.mockResolvedValue(false);
+    ledgerOpen.mockReset();
+    ledgerOpen.mockResolvedValue(false);
   });
 
   describe('Contribute', () => {
@@ -69,6 +73,32 @@ describe('proxy', () => {
       expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
       expect(withSession).toHaveBeenCalledOnce();
       expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+    });
+
+    describe('the ledger (its own switch)', () => {
+      it('answers a visitor without a session with a 404 nobody caches while it is closed', async () => {
+        for (const path of ['/contribute/ledger', '/contribute/ledger/']) {
+          const response = await proxy(request(undefined, path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+          expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+        }
+        expect(maySeeContribute).not.toHaveBeenCalled();
+      });
+
+      it('lets a signed-in visitor through to the page, which asks the API, while it is closed', async () => {
+        const response = await proxy(request('authjs.session-token=t', '/contribute/ledger'), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+        expect(maySeeContribute).not.toHaveBeenCalled();
+      });
+
+      it('lets everyone in once public, whatever the Contribute preview says', async () => {
+        ledgerOpen.mockResolvedValue(true);
+        const response = await proxy(request(undefined, '/contribute/ledger'), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(open).not.toHaveBeenCalled();
+        expect(maySeeContribute).not.toHaveBeenCalled();
+      });
     });
 
     it('lets everyone reach the page for maintainers, without asking who may see Contribute', async () => {

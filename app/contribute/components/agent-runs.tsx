@@ -39,7 +39,7 @@ export function useLiveActivity(page: ContributeActivity | null | undefined): Co
 }
 
 /** A dot that breathes while an agent works (solid under reduced motion), green once settled, grey while it waits. */
-function LiveDot({ active, settled }: { active: boolean; settled?: boolean }) {
+export function LiveDot({ active, settled }: { active: boolean; settled?: boolean }) {
   return (
     <span aria-hidden="true" className="relative flex size-2 shrink-0">
       {active ? (

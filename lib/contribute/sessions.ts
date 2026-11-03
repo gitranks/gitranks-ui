@@ -3,6 +3,7 @@ import type { Route } from 'next';
 import { ATTEMPT_STATES, isOwnAgent, type Tone, timeLabel } from './attempt-format';
 import type { ContributeAttemptDetail, ContributeFollowUpRound } from './contribute.types';
 import { roundTalliesOf, shortSha } from './follow-up-flow';
+import { USERS_SIGNALS } from './follow-up-format';
 import { usd } from './format';
 import { parsePatch } from './patch';
 
@@ -57,6 +58,10 @@ function starterOf(run: ContributeAttemptDetail): ContributeFollowUpRound['by'] 
 /** The next run is recommended: GitRanks sees something a run can act on, or review comments wait for an answer. */
 export const nextRoundRecommended = (first: ContributeAttemptDetail): boolean =>
   !!first.followUps?.recommended || waitingThreadsOf(first).length > 0;
+
+/** Only the user's moves wait on the pull request: an agreement, a bot's block, what a run left them, the rules. */
+export const usersMovesWait = (first: ContributeAttemptDetail): boolean =>
+  (first.needsYou?.signals ?? []).some(({ kind }) => USERS_SIGNALS.has(kind)) || !!first.prIssues?.length;
 
 /** The review threads that wait for an answer: those not ignored in an earlier run. */
 export const waitingThreadsOf = (first: ContributeAttemptDetail) =>
@@ -188,12 +193,17 @@ export function sessionsOf(
   if (followUps && nextRoundOpen(first)) {
     const waiting = waitingThreadsOf(first).length;
     const recommended = nextRoundRecommended(first);
+    const yours = !recommended && usersMovesWait(first);
     cards.push({
       key: NEXT_SESSION,
       href: nextSessionPath(first.attemptId),
       title: `Run ${nextRunNumberOf(first)} · follow-up`,
-      pill: recommended ? { label: 'Recommended', tone: 'violet' } : { label: 'Not started', tone: 'neutral' },
-      meta: recommended ? 'Not started' : 'Your call',
+      pill: recommended
+        ? { label: 'Recommended', tone: 'violet' }
+        : yours
+          ? { label: 'Your move', tone: 'amber' }
+          : { label: 'Not started', tone: 'neutral' },
+      meta: recommended ? 'Not started' : yours ? 'Waits for you' : 'Your call',
       note: waiting ? `${waiting} ${waiting === 1 ? 'comment' : 'comments'} waiting` : null,
       current: selected.next,
       draft: true,

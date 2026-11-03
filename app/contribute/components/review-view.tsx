@@ -16,14 +16,11 @@ import { SessionsList } from './attempt-sessions';
 import { AttemptStatus, FollowUpOfLink, justOpened, PullRequestStatus } from './attempt-status';
 import { DiffViewer } from './diff-viewer';
 import { FollowUpApproval } from './follow-up-approval';
-import { StartFollowUpButton } from './follow-up-buttons';
 import { FollowUpResult } from './follow-up-result';
-import { PrConventionsCard } from './pr-conventions-card';
-import { PrSignals } from './pr-follow-ups';
+import { NextStepCards, YourMoveLine } from './next-step';
 import { PrForm } from './pr-form';
 import { HEADING, Pill } from './primitives';
 import { ReplyDrafts } from './reply-drafts';
-import { ReviewFeedbackCard } from './review-feedback';
 import { SendBackForm } from './send-back-form';
 import { type SessionTab, SessionTabs } from './session-tabs';
 import { SubmitPanel } from './submit-panel';
@@ -32,9 +29,8 @@ import { loadAttempt, loadContribute, loadResolveHumanThreads } from '@/lib/cont
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import { isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
-import { autopilotLineOf } from '@/lib/contribute/follow-up-format';
-import { usd } from '@/lib/contribute/format';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
+import { nextStepOf, nextStepWaits } from '@/lib/contribute/next-step';
 import { orgAccessOf } from '@/lib/contribute/org-access';
 import { parsePatch } from '@/lib/contribute/patch';
 import { withoutDraftMarks } from '@/lib/contribute/pr-conventions';
@@ -42,9 +38,6 @@ import {
   attemptPath,
   NEXT_SESSION,
   nextRoundOpen,
-  nextRoundRecommended,
-  nextRunNumberOf,
-  nextSessionPath,
   runsLabelOf,
   sessionsOf,
   waitingThreadsOf,
@@ -101,181 +94,17 @@ const BackLink = () => (
   </Link>
 );
 
+/**
+ * The next step is shown: a run may start, comments wait (listed with why no run can start), or something only the user
+ * can do waits while no run is under way.
+ */
+const nextStepShown = (first: ContributeAttemptDetail): boolean =>
+  nextRoundOpen(first) ||
+  waitingThreadsOf(first).length > 0 ||
+  (first.pullRequest?.state === 'OPEN' && !first.followUps?.currentAttemptId && nextStepWaits(nextStepOf(first)));
+
 /** The pull request's states its first attempt settles in: the header says them, so its session adds no box. */
 const PR_SETTLED = new Set(['PR_OPEN', 'FOLLOW_UP', 'MERGED', 'CLOSED']);
-
-/**
- * "Needs you" under the header: what waits for the user on the open pull request, each with its way out (the comments
- * to choose for the next run, the repo's rules to fix, what changed on GitHub); nothing when nothing waits.
- */
-function NeedsYouStrip({ first, next, now }: { first: ContributeAttemptDetail; next: boolean; now?: Date }) {
-  const pr = first.pullRequest;
-  if (pr?.state !== 'OPEN' || first.kind !== 'FIRST') return null;
-  const waiting = waitingThreadsOf(first).length;
-  const signals = first.needsYou?.signals.length ?? 0;
-  // A fix that settled with nothing left to fix shows nothing (the card says no more), so it is no reason here.
-  const rules = !!first.prIssues?.length || first.prFix?.state === 'SENDING';
-  if (!waiting && !signals && !rules) return null;
-  const round = nextRunNumberOf(first);
-
-  return (
-    <section
-      aria-labelledby="attempt-needs"
-      data-needs-you=""
-      className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-brand-soft p-4"
-    >
-      <h2 id="attempt-needs" className={HEADING.card}>
-        Needs you
-      </h2>
-      {waiting ? (
-        <div
-          data-waiting={waiting}
-          className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border bg-background px-3.5 py-2.5 text-sm"
-        >
-          <Pill tone="amber">Review comments</Pill>
-          <span className="min-w-0 flex-1">
-            {waiting === 1 ? '1 comment waits' : `${waiting} comments wait`} for an answer on #{pr.number}.
-          </span>
-          {nextRoundOpen(first) && next ? (
-            <span className="text-muted-foreground">Choose below what run {round} addresses.</span>
-          ) : nextRoundOpen(first) ? (
-            <Link
-              href={nextSessionPath(first.attemptId)}
-              prefetch={false}
-              scroll={false}
-              className="font-semibold text-link"
-            >
-              Choose what run {round} addresses →
-            </Link>
-          ) : next ? null : (
-            <Link
-              href={nextSessionPath(first.attemptId)}
-              prefetch={false}
-              scroll={false}
-              className="font-semibold text-link"
-            >
-              See the comments →
-            </Link>
-          )}
-        </div>
-      ) : null}
-      {signals ? (
-        <div className="rounded-lg border bg-background px-3.5 py-2.5">
-          <PrSignals needsYou={first.needsYou} now={now} prId={pr.prId} prNumber={pr.number} />
-        </div>
-      ) : null}
-      {rules ? (
-        <PrConventionsCard
-          attemptId={first.attemptId}
-          prNumber={pr.number}
-          issues={first.prIssues ?? []}
-          fix={first.prFix ?? null}
-          title={first.prTitle ?? first.approval?.title ?? ''}
-          body={editableBodyOf(first.prBody ?? first.approval?.body ?? first.result?.prBody)}
-          conventions={first.conventions ?? null}
-        />
-      ) : null}
-    </section>
-  );
-}
-
-/**
- * Autopilot's share of the pull request's runs, while the user's autopilot is on: started so far, and that a run they
- * start turns it off here. Never on a pull request their own agent made: autopilot cannot start that agent.
- */
-function AutopilotLine({ first, view }: { first: ContributeAttemptDetail; view: ContributeView }) {
-  const contributor = view.contributor;
-  const on = !!contributor?.settings?.autopilot && !!contributor.autopilot?.unlocked;
-  if (!on || !first.followUps || isOwnAgent(first)) return null;
-  return (
-    <p data-autopilot-runs={first.followUps.autopilotRuns} className="text-xs text-muted-foreground">
-      {autopilotLineOf(first.followUps)}
-    </p>
-  );
-}
-
-/** Why no run can start on the pull request's waiting comments now, by its cause. */
-function blockedWhy(first: ContributeAttemptDetail): string {
-  if (first.followUps?.currentAttemptId) return 'A follow-up is under way on these comments.';
-  if (first.openedBy === 'HAND') {
-    return 'You opened this pull request yourself, so no run can add to it: answer these on GitHub.';
-  }
-  return 'No run can start on this pull request now: answer these on GitHub.';
-}
-
-/** What GitRanks sees waiting on the pull request, in a few words: "a failing check and a request for changes". */
-function waitingWordsOf(first: ContributeAttemptDetail): string {
-  const kinds = new Set((first.needsYou?.signals ?? []).map((signal) => signal.kind));
-  const words = [
-    kinds.has('CHECK_FAILED') ? 'a failing check' : null,
-    kinds.has('COMMENT') ? 'a new comment' : null,
-    kinds.has('CHANGES_REQUESTED') ? 'a request for changes' : null,
-  ].filter((word): word is string => !!word);
-  if (!words.length) return 'something to act on';
-  return words.length === 1 ? words[0] : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`;
-}
-
-/**
- * The run that has not started: the comments to choose, or with none waiting, the card that starts it. Recommended
- * when GitRanks sees something a run can act on; otherwise the user may still start one when they think something is
- * wrong, with a note saying what. While no run can start, the comments are still listed, with why.
- */
-function NextRound({ first, view, now }: { first: ContributeAttemptDetail; view: ContributeView; now?: Date }) {
-  const pr = first.pullRequest;
-  if (!pr) return null;
-  const feedback = first.reviewFeedback;
-  const cap = view.contributor?.settings?.attemptCapUsd;
-  const run = nextRunNumberOf(first);
-  const limit = typeof cap === 'number' ? ` within your ${usd(cap)} limit per run` : '';
-  if (feedback?.threads.length) {
-    return (
-      <div className="flex flex-col gap-2">
-        <ReviewFeedbackCard
-          // A thread arriving in a later read starts the choices afresh: none is shown chosen but left out.
-          key={feedback.threads.map((thread) => thread.commentId).join(',')}
-          prId={pr.prId}
-          prNumber={pr.number}
-          feedback={feedback}
-          canStart={nextRoundOpen(first)}
-          blocked={nextRoundOpen(first) ? null : blockedWhy(first)}
-          attemptCapUsd={cap}
-          now={now}
-        />
-        <AutopilotLine first={first} view={view} />
-      </div>
-    );
-  }
-  const recommended = nextRoundRecommended(first);
-  return (
-    <section
-      data-next-round={recommended ? 'recommended' : 'own'}
-      className="flex flex-col gap-3 rounded-xl border bg-card p-5"
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className={HEADING.card}>Run {run}</h2>
-        {recommended ? <Pill tone="violet">Recommended</Pill> : null}
-      </div>
-      <p className="text-sm text-muted-foreground">
-        {recommended
-          ? `GitRanks sees ${waitingWordsOf(first)} on #${pr.number}. The agent reads every review, comment and check, fixes what it can and drafts replies, on your Claude key${limit}. Nothing is pushed or posted before you review it.`
-          : `${first.needsYou?.signals?.length ? `Nothing waiting on #${pr.number} is a run's to fix: what Needs you lists is yours.` : `GitRanks sees nothing waiting on #${pr.number}.`} If you think something is wrong, start a run anyway: the agent reads every review, comment and check on the pull request, fixes what it finds, or ends with a note on why nothing needs a change. On your Claude key${limit}.`}
-      </p>
-      {nextRoundOpen(first) ? (
-        <StartFollowUpButton
-          prId={pr.prId}
-          primary={recommended}
-          noteLabel={recommended ? 'A note for the agent' : 'What’s wrong?'}
-          notePlaceholder={
-            recommended
-              ? 'Anything it should know? For example: the lint rule is wrong here, fix the test instead.'
-              : 'Tell the agent what you think is wrong.'
-          }
-        />
-      ) : null}
-      <AutopilotLine first={first} view={view} />
-    </section>
-  );
-}
 
 /** A follow-up run's note from the user to its agent, as they wrote it. */
 function RunNote({ attempt }: { attempt: ContributeAttemptDetail }) {
@@ -479,8 +308,8 @@ export function ReviewScreen({
 
   const followUp = attempt.kind === 'FOLLOW_UP';
   const first = followUp ? firstRead : attempt;
-  // The next run, or while none can start, the comments that wait, listed with why.
-  const showNext = !!first && next && (nextRoundOpen(first) || waitingThreadsOf(first).length > 0);
+  // The next step: the next run, what only the user can do, or while no run can start, the comments that wait.
+  const showNext = !!first && next && nextStepShown(first);
   const issueUrl = githubUrlOf(attempt.url);
   const repo = repoOf(attempt);
   const cards = first
@@ -531,13 +360,13 @@ export function ReviewScreen({
         ) : null}
       </header>
 
-      {first ? <NeedsYouStrip first={first} next={showNext} now={now} /> : null}
+      {first && !showNext ? <YourMoveLine first={first} shown={attempt} now={now} /> : null}
 
       <div className={cn('grid items-start gap-5', cards && 'lg:grid-cols-[17rem_minmax(0,1fr)]')}>
         {cards ? <SessionsList cards={cards} rounds={first ? runsLabelOf(first) : null} /> : null}
         <div className="flex min-w-0 flex-col gap-4">
           {showNext && first ? (
-            <NextRound first={first} view={view} now={now} />
+            <NextStepCards first={first} view={view} now={now} />
           ) : (
             <>
               <RunNote attempt={attempt} />

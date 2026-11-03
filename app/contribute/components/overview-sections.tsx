@@ -7,13 +7,13 @@ import { type LaneNote, LiveRunsLabel, RightNowLanes } from './agent-runs';
 import { ComingSoon } from './coming-soon';
 import { noticeCopyOf } from './contribute-notices';
 import { LiveUpNext } from './live-issues';
+import { NeedsYouRow } from './needs-you-rows';
 import { PauseButton } from './pause-button';
 import { HEADING, Meter, Pill } from './primitives';
-import { attemptHref } from './reviews-ready';
 import { StillRanking } from './still-ranking';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AGENT_HELLO_PROMPT } from '@/lib/contribute/agent-connect';
-import { AGENT_NAMES, attemptTitleOf, isOwnAgent, repoOf, type Tone } from '@/lib/contribute/attempt-format';
+import { attemptTitleOf, repoOf, type Tone } from '@/lib/contribute/attempt-format';
 import type {
   ContributeActivity,
   ContributeAttempt,
@@ -26,13 +26,13 @@ import type {
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, RUNS_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf } from '@/lib/contribute/contribute-state';
 import { dayLabel, MODELS, maskedKey, planOf, relativeLabel, usd } from '@/lib/contribute/format';
+import { needsYouItemsOf, shownItemsOf } from '@/lib/contribute/needs-you';
 import {
   type HostedHold,
   type HostedState,
   impactTilesOf,
   lastUsedTokenOf,
-  type NeedsYouRow,
-  needsYouRowsOf,
+  NEEDS_YOU_MAX,
   type OverviewNeedsRead,
   type OverviewNowRead,
   type OwnAgentState,
@@ -53,12 +53,6 @@ const RISE =
 
 /** An action in a link's colour, tall enough to tap. */
 const ACTION_LINK = 'inline-flex min-h-10 items-center self-start text-sm font-semibold text-link max-sm:min-h-11';
-
-/** A row's action, as a button: full width under the row on a phone. */
-const ROW_ACTION = cn(
-  'inline-flex min-h-10 flex-none items-center justify-center rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90',
-  'max-sm:min-h-11 max-sm:w-full',
-);
 
 const CARD = 'flex min-w-0 flex-col gap-2 rounded-xl border bg-card p-4';
 
@@ -103,122 +97,6 @@ function SectionNote({ children, name }: { children: ReactNode; name: string }) 
 // ---------------------------------------------------------------------------------------------------------------------
 // Needs you
 
-const repliesText = (count: number) => (count === 1 ? 'a reply' : `${count} replies`);
-/** A follow-up's drafts that are part of its review: "with 2 replies". */
-const foldedText = (count: number) => `with ${count === 1 ? '1 reply' : `${count} replies`}`;
-const withReplies = (count: number) => (count ? `, ${foldedText(count)}` : '');
-
-/** The issue a review is about, or the pull request a follow-up works on. */
-const workOf = (attempt: ContributeAttempt) =>
-  attempt.kind === 'FOLLOW_UP' && attempt.followUpOf
-    ? `Follow-up on PR #${attempt.followUpOf.number}`
-    : attemptTitleOf(attempt);
-
-/**
- * What a review cost, or, made by the user's own agent, which agent made it. Whose it is unanswered and nothing
- * spent, it may be the agent's, which spends nothing through us: no "$0", the cost is left out.
- */
-const madeOf = (attempt: ContributeAttempt): string | null => {
-  if (isOwnAgent(attempt)) {
-    return `made by ${attempt.agent ? (AGENT_NAMES[attempt.agent.name] ?? attempt.agent.name) : 'your own agent'}`;
-  }
-  if (attempt.runner === undefined && !(attempt.costUsd > 0)) return null;
-  return usd(attempt.costUsd);
-};
-
-type RowCopy = {
-  kind: string;
-  tone: Tone;
-  where: string | null;
-  what: string;
-  action: string;
-  href: Route;
-  label: string;
-};
-
-/** What a row says, and the one action it offers. */
-export function needsRowCopyOf(row: NeedsYouRow, now = new Date()): RowCopy {
-  switch (row.kind) {
-    case 'key':
-      return {
-        kind: 'Key refused',
-        tone: 'red',
-        where: `Claude key ${maskedKey(row.last4)}`,
-        what: 'Anthropic refused it. Nothing starts until you connect a working one.',
-        action: 'Connect a new key',
-        href: CONNECT_KEY_PATH,
-        label: 'Connect a new Claude key',
-      };
-    case 'no-way':
-      return {
-        kind: 'Not set up',
-        tone: 'neutral',
-        where: null,
-        what: 'Nothing runs until you connect your Claude key or your own agent.',
-        action: 'Add your Claude key',
-        href: CONNECT_KEY_PATH,
-        label: 'Add your Claude key',
-      };
-    case 'grant': {
-      const where = `${repoOf(row.attempt)} #${row.attempt.number}`;
-      const note = row.attempt.submit?.lastError?.note?.trim() || 'GitHub access is needed to open the PR.';
-      return {
-        kind: 'GitHub access',
-        tone: 'amber',
-        where: `${repoOf(row.attempt)} · #${row.attempt.number}`,
-        what: row.replies ? `${note} (${foldedText(row.replies)})` : note,
-        action: 'Allow GitHub access',
-        href: attemptHref(row.attempt.attemptId),
-        label: `Allow GitHub access for ${where}`,
-      };
-    }
-    case 'autopilot': {
-      const when = relativeLabel(row.attempt.autosubmitAt, now) || 'an hour after emailing you';
-      return {
-        kind: 'Autopilot',
-        tone: 'amber',
-        where: `${repoOf(row.attempt)} · #${row.attempt.number}`,
-        what: `Submits ${when}${row.replies ? `, ${foldedText(row.replies)},` : ''} unless you stop it.`,
-        action: 'Review',
-        href: attemptHref(row.attempt.attemptId),
-        label: `Review ${repoOf(row.attempt)} #${row.attempt.number}`,
-      };
-    }
-    case 'review': {
-      const ready = row.attempt.reviewAt ? relativeLabel(row.attempt.reviewAt, now) : '';
-      return {
-        kind: 'Review ready',
-        tone: 'violet',
-        where: `${repoOf(row.attempt)} · #${row.attempt.number}`,
-        what:
-          [workOf(row.attempt), ready ? `ready ${ready}` : null, madeOf(row.attempt)].filter(Boolean).join(' · ') +
-          withReplies(row.replies),
-        action: 'Review',
-        href: attemptHref(row.attempt.attemptId),
-        label: `Review ${repoOf(row.attempt)} #${row.attempt.number}`,
-      };
-    }
-    case 'replies': {
-      const repo = row.nameWithOwner || 'a repo';
-      const authors = new Set(row.drafts.map(({ comment }) => comment?.author ?? null));
-      const [author] = authors;
-      const to = authors.size === 1 && author ? `@${author}` : 'the maintainers';
-      return {
-        kind: 'Reply to approve',
-        tone: 'amber',
-        where: `${repo} · PR #${row.prNumber}`,
-        what: `Your agent drafted ${repliesText(row.drafts.length)} to ${to}`,
-        action: 'Approve reply',
-        href: attemptHref(row.attemptId),
-        label: `Approve the reply on ${repo} PR #${row.prNumber}`,
-      };
-    }
-  }
-}
-
-const rowKeyOf = (row: NeedsYouRow) =>
-  row.kind === 'replies' ? `replies-${row.attemptId}` : 'attempt' in row ? row.attempt.attemptId : row.kind;
-
 const UNCHECKED = (
   <>
     We couldn&apos;t check everything right now.{' '}
@@ -228,14 +106,18 @@ const UNCHECKED = (
   </>
 );
 
+/** "· 1 run working", beside the heading. */
+const workingText = (working: number) => (working === 1 ? '1 run working' : `${working} runs working`);
+
 /**
- * "Needs you": what waits for the user, one row each, at most five. The all-clear only when every read answered; with
- * one failed and no rows, it says it could not check everything.
+ * "Needs you": what waits for the user, each row with their move and the button that leads to it, at most five, the
+ * runs they started after them (not counted). The all-clear only when every read answered; with one failed and no
+ * rows, it says it could not check everything.
  */
 export function NeedsYouSection({ view, read, now }: { view: ContributeView; read: OverviewNeedsRead; now?: Date }) {
-  const { rows, total, complete } = needsYouRowsOf(view, read);
+  const { items, counted, working, complete } = needsYouItemsOf({ view, ...read, now });
 
-  if (!rows.length) {
+  if (!items.length) {
     return (
       <section
         aria-labelledby="overview-needs"
@@ -249,8 +131,8 @@ export function NeedsYouSection({ view, read, now }: { view: ContributeView; rea
           <>
             <CheckIcon aria-hidden="true" strokeWidth={2.4} className="size-4.5 flex-none text-positive" />
             <p>
-              <span className="font-semibold text-foreground">Nothing needs you right now.</span> A review shows up here
-              and in My contributions the moment it&apos;s ready.
+              <span className="font-semibold text-foreground">Nothing needs you right now.</span> A review or anything
+              on your pull requests shows up here and in My contributions the moment it&apos;s ready.
             </p>
           </>
         ) : (
@@ -260,41 +142,27 @@ export function NeedsYouSection({ view, read, now }: { view: ContributeView; rea
     );
   }
 
+  const shown = shownItemsOf(items, NEEDS_YOU_MAX);
+  const hidden = counted - shown.filter((item) => !item.working).length;
   return (
     <section
       aria-labelledby="overview-needs"
-      data-needs={total}
+      data-needs={counted}
+      data-needs-working={working || undefined}
       className={cn('flex flex-col gap-3 rounded-xl border border-primary/20 bg-brand-soft p-4.5', RISE)}
     >
       <h2 id="overview-needs" className={HEADING.card}>
-        {total === 1 ? '1 thing needs you' : `${total} things need you`}
+        {counted === 1 ? '1 thing needs you' : counted ? `${counted} things need you` : 'Nothing needs you'}
+        {working ? <span className="text-sm font-normal text-muted-foreground"> · {workingText(working)}</span> : null}
       </h2>
       <ul className="flex flex-col gap-2">
-        {rows.map((row) => {
-          const copy = needsRowCopyOf(row, now);
-          return (
-            <li
-              key={rowKeyOf(row)}
-              data-row={row.kind}
-              className="flex items-center gap-3 rounded-lg border bg-background px-3.5 py-3 max-sm:flex-col max-sm:items-stretch max-sm:gap-2"
-            >
-              <Pill tone={copy.tone}>{copy.kind}</Pill>
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                {copy.where ? (
-                  <span className="truncate font-mono text-xs text-muted-foreground">{copy.where}</span>
-                ) : null}
-                <span className="text-sm font-medium">{copy.what}</span>
-              </span>
-              <Link href={copy.href} prefetch={false} aria-label={copy.label} className={ROW_ACTION}>
-                {copy.action}
-              </Link>
-            </li>
-          );
-        })}
+        {shown.map((item) => (
+          <NeedsYouRow key={item.key} item={item} look="overview" />
+        ))}
       </ul>
-      {total > rows.length ? (
-        <Link href={ME_PATH} prefetch={false} className={ACTION_LINK} data-needs-more={total - rows.length}>
-          and {total - rows.length} more in My contributions →
+      {hidden > 0 ? (
+        <Link href={ME_PATH} prefetch={false} className={ACTION_LINK} data-needs-more={hidden}>
+          and {hidden} more in My contributions →
         </Link>
       ) : null}
       {complete ? null : <p className="text-sm text-muted-foreground">{UNCHECKED}</p>}

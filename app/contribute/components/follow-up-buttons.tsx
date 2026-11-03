@@ -4,13 +4,13 @@ import { TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
-import { markNeedsYouHandled, retryAttempt, startFollowUp, vetoAutopilot } from '../actions';
+import { fixPullRequest, markNeedsYouHandled, retryAttempt, startFollowUp, vetoAutopilot } from '../actions';
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { timeLabel } from '@/lib/contribute/attempt-format';
-import type { ContributeRetry, ContributeRetryKind } from '@/lib/contribute/contribute.types';
-import { retryErrorMessage } from '@/lib/contribute/errors';
+import type { ContributePrSignalKind, ContributeRetry, ContributeRetryKind } from '@/lib/contribute/contribute.types';
+import { attemptActionErrorMessage, retryErrorMessage } from '@/lib/contribute/errors';
 import {
   FOLLOW_UP_NOTE_MAX,
   followUpErrorMessage,
@@ -82,22 +82,29 @@ export function FollowUpNote({
 }
 
 /**
- * The next follow-up run: the user's note, then "Start a follow-up", the main action when GitRanks recommends a run
- * (`primary`), else an outline one. Opens the run once it starts: its review comes there once the agent is done.
+ * The next follow-up run: the user's note (`defaultNote`: filled in from what waits), then the button that starts it,
+ * the main action when GitRanks recommends a run (`primary`), else an outline one. Opens the run once it starts: its
+ * review comes there once the agent is done.
  */
 export function StartFollowUpButton({
   prId,
   primary = true,
+  label = 'Start a follow-up',
   noteLabel = 'A note for the agent',
   notePlaceholder = 'Anything it should know? For example: the lint rule is wrong here, fix the test instead.',
+  defaultNote = '',
+  noteHint,
 }: {
   prId: string;
   primary?: boolean;
+  label?: string;
   noteLabel?: string;
   notePlaceholder?: string;
+  defaultNote?: string;
+  noteHint?: string;
 }) {
   const router = useRouter();
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(defaultNote);
   const [error, setError] = useState<string | null>(null);
   /** It went through: the button stays off until the next page lands. */
   const [done, setDone] = useState(false);
@@ -124,6 +131,7 @@ export function StartFollowUpButton({
         value={note}
         onChange={setNote}
         disabled={pending || done}
+        hint={noteHint}
       />
       <div className="flex flex-col items-start gap-1.5">
         <Button
@@ -134,7 +142,7 @@ export function StartFollowUpButton({
           disabled={pending || done}
           className="min-h-11 px-4 font-semibold"
         >
-          {pending || done ? 'Starting…' : 'Start a follow-up'}
+          {pending || done ? 'Starting…' : label}
         </Button>
         <ErrorNote error={error} />
       </div>
@@ -234,10 +242,25 @@ export function RetryButton({
 }
 
 /**
- * "Mark as handled": the user took care of what the pull request's reads found, so it leaves Needs you. Something new
- * on it raises it again.
+ * "Mark as handled": the user took care of what the pull request's reads found, so it leaves Needs you. `kinds`: only
+ * those ("I've done it" on one card); `all` when they are every signal on it, so an API that does not take `kinds`
+ * yet clears the same. Something new on it raises it again. `link`: a small link-like button, under a row's action.
  */
-export function MarkHandledButton({ prId, prNumber }: { prId: string; prNumber?: number }) {
+export function MarkHandledButton({
+  prId,
+  prNumber,
+  kinds,
+  all = false,
+  label = 'Mark as handled',
+  look = 'outline',
+}: {
+  prId: string;
+  prNumber?: number;
+  kinds?: ContributePrSignalKind[];
+  all?: boolean;
+  label?: string;
+  look?: 'outline' | 'large' | 'link';
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   /** It went through: the button stays off until the page reads again. */
@@ -247,7 +270,7 @@ export function MarkHandledButton({ prId, prNumber }: { prId: string; prNumber?:
   const click = () =>
     startTransition(async () => {
       setError(null);
-      const result = await markNeedsYouHandled(prId);
+      const result = await markNeedsYouHandled(prId, kinds && !all ? kinds : undefined);
       if (!result.ok) {
         setError(handledErrorMessage(result.error, result.message));
         return;
@@ -256,20 +279,131 @@ export function MarkHandledButton({ prId, prNumber }: { prId: string; prNumber?:
       router.refresh();
     });
 
+  const text = pending || done ? 'Marking…' : label;
+  const aria = prNumber ? `${label} on pull request #${prNumber}` : undefined;
   return (
-    <div className="flex flex-col items-start gap-1.5" data-mark-handled={prId}>
+    <div
+      className={cn('flex flex-col gap-1.5', look === 'link' ? 'items-end max-sm:items-start' : 'items-start')}
+      data-mark-handled={prId}
+      data-kinds={kinds?.join(',')}
+    >
+      {look === 'link' ? (
+        <button
+          type="button"
+          onClick={click}
+          disabled={pending || done}
+          aria-label={aria}
+          className="inline-flex min-h-6 items-center text-xs font-semibold text-link hover:underline disabled:opacity-60 max-sm:min-h-11"
+        >
+          {text}
+        </button>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size={look === 'large' ? 'lg' : 'sm'}
+          onClick={click}
+          disabled={pending || done}
+          aria-label={aria}
+          className={look === 'large' ? 'min-h-11 px-4 font-semibold' : undefined}
+        >
+          {text}
+        </Button>
+      )}
+      <ErrorNote error={error} />
+    </div>
+  );
+}
+
+/**
+ * "Sign off and push": GitRanks rewrites our commits on the pull request's branch with the user's DCO sign-off (the
+ * same code, a force-push). The click is their consent to sign off. Disabled while a sign-off is on its way.
+ */
+export function SignOffButton({
+  attemptId,
+  sending,
+  again,
+  primary = true,
+}: {
+  attemptId: string;
+  sending: boolean;
+  again: boolean;
+  /** The view's main action; else an outline one beside it. */
+  primary?: boolean;
+}) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const click = () =>
+    startTransition(async () => {
+      setError(null);
+      const result = await fixPullRequest({ attemptId, kind: 'SIGN_OFF' });
+      if (!result.ok) {
+        setError(attemptActionErrorMessage(result.error, result.message));
+        return;
+      }
+      router.refresh();
+    });
+
+  return (
+    <div className="flex flex-col items-start gap-1.5" data-sign-off={attemptId}>
       <Button
         type="button"
-        variant="outline"
-        size="sm"
+        size="lg"
+        variant={primary ? 'default' : 'outline'}
         onClick={click}
-        disabled={pending || done}
-        aria-label={prNumber ? `Mark pull request #${prNumber} as handled` : undefined}
+        disabled={pending || sending}
+        className="min-h-11 px-4 font-semibold"
       >
-        {pending || done ? 'Marking…' : 'Mark as handled'}
+        {pending || sending ? 'Signing off…' : again ? 'Try the sign-off again' : 'Sign off and push'}
       </Button>
       <ErrorNote error={error} />
     </div>
+  );
+}
+
+/**
+ * A link to GitHub that first puts `copy` on the clipboard: the comment that signs an agreement, to paste there. The
+ * link opens either way; it says "Copied" once the clipboard took it, and the row's move shows the comment whole, to
+ * copy by hand when the clipboard refuses.
+ */
+export function CopyAndOpenLink({
+  href,
+  copy,
+  label,
+  className,
+  ariaLabel,
+}: {
+  href: string;
+  copy: string;
+  label: string;
+  className?: string;
+  ariaLabel?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={ariaLabel}
+        className={className}
+        data-copy-and-open=""
+        onClick={() => {
+          navigator.clipboard
+            ?.writeText(copy)
+            .then(() => setCopied(true))
+            .catch(() => setCopied(false));
+        }}
+      >
+        {copied ? 'Copied: paste it on GitHub ↗' : label}
+      </a>
+      <span role="status" aria-live="polite" className="sr-only">
+        {copied ? 'The comment is copied' : ''}
+      </span>
+    </>
   );
 }
 

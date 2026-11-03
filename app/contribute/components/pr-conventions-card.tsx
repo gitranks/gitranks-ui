@@ -17,6 +17,7 @@ import {
   type ContributePrFixKind,
   type ContributeRepoConventions,
   httpsOnly,
+  PR_FIX_WORDS,
   titleProblemsOf,
 } from '@/lib/contribute/pr-conventions';
 
@@ -32,16 +33,9 @@ export type PrConventionsCardProps = {
   conventions: ContributeRepoConventions | null;
 };
 
-const FIX_WORDS: Record<ContributePrFix['kind'], string> = {
-  LINK: 'Linking the changelog line to the pull request',
-  CHANGELOG: 'Fixing the changelog line',
-  TITLE: 'Retitling the pull request',
-  BODY: 'Updating the description',
-};
-
 /** The last fix in words: on its way, done, or why it failed. */
 function fixTextOf(fix: ContributePrFix): string {
-  const words = FIX_WORDS[fix.kind];
+  const words = PR_FIX_WORDS[fix.kind];
   if (fix.state === 'SENDING') return `${words}…`;
   if (fix.state === 'DONE') return `${words}: done.`;
   return `${words} did not go through${fix.note ? `: ${fix.note}` : '.'} Try again.`;

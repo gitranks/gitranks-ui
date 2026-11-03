@@ -18,8 +18,16 @@ import {
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { issuePage, nowIdle, overviewData } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
+import {
+  needsSome,
+  nextForAgreement,
+  nextForDco,
+  nextForRun,
+  nextForYou,
+} from '@/lib/contribute/__fixtures__/needs-you';
 import { pageOf } from '@/lib/contribute/__fixtures__/runs';
-import type { ContributeActivity, ContributeView } from '@/lib/contribute/contribute.types';
+import type { ContributeActivity, ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
+import type { NeedsYouRead } from '@/lib/contribute/needs-you';
 import { runsQueryOf } from '@/lib/contribute/runs';
 
 /** A key and a live token the agent has called with: both lanes of Right now. */
@@ -62,7 +70,12 @@ const frame = (children: ReactNode, activity: ContributeActivity = activityOf())
 /** A page's own container, as its `page.tsx` draws it. */
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
 
-const overview = (view: ContributeView, activity: ContributeActivity, working: boolean) =>
+const overview = (
+  view: ContributeView,
+  activity: ContributeActivity,
+  working: boolean,
+  needs: NeedsYouRead = overviewData().needs,
+) =>
   frame(
     <OverviewScreen
       view={view}
@@ -71,6 +84,7 @@ const overview = (view: ContributeView, activity: ContributeActivity, working: b
         view,
         {
           ...overviewData(),
+          needs,
           activity,
           now: working
             ? {
@@ -95,6 +109,31 @@ const overview = (view: ContributeView, activity: ContributeActivity, working: b
 
 const busy = activityOf(WORKING, FOLLOW_UP, own, stopped);
 
+/** A contribution's page: its first attempt, on the next step or its own session. */
+const attemptPage = (first: ContributeAttemptDetail, next: boolean) =>
+  frame(
+    <main className={MAIN}>
+      <ReviewScreen view={views.active} attempt={first} next={next} now={NOW} />
+    </main>,
+  );
+
+/** My contributions with every reason a pull request needs the user, and the runs at work. */
+const mine = () => {
+  const { reviews, replies, contributions: prs, runs } = needsSome();
+  return frame(
+    <main className={MAIN}>
+      <ContributionsScreen
+        view={views.active}
+        contributions={{ ...contributions, items: [...(prs ?? []), contributions.items[0]] }}
+        attempts={[...(reviews ?? []), ...(runs ?? []), attempt({ attemptId: 'A_2', state: 'RUNNING', costUsd: 0.4 })]}
+        replies={replies}
+        now={NOW}
+      />
+    </main>,
+    busy,
+  );
+};
+
 export const CONTRIBUTE_SCREENS: Screen[] = [
   {
     id: 'contribute-overview',
@@ -104,8 +143,10 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     sources: [
       'app/contribute/components/overview-status.tsx',
       'app/contribute/components/overview-sections.tsx',
+      'app/contribute/components/needs-you-rows.tsx',
       'app/contribute/components/agent-runs.tsx',
       'lib/contribute/overview.ts',
+      'lib/contribute/needs-you.ts',
     ],
     states: [
       {
@@ -129,6 +170,21 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         width: 390,
         height: 3400,
         render: () => overview(both, busy, true),
+      },
+      {
+        id: 'needs-you',
+        title: 'Needs you: each move, a run working',
+        path: '/contribute',
+        height: 2100,
+        render: () => overview(both, busy, true, needsSome()),
+      },
+      {
+        id: 'needs-you-phone',
+        title: 'Needs you · phone',
+        path: '/contribute',
+        width: 390,
+        height: 4600,
+        render: () => overview(both, busy, true, needsSome()),
       },
     ],
   },
@@ -162,7 +218,9 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'app/contribute/components/review-view.tsx',
       'app/contribute/components/attempt-sessions.tsx',
       'app/contribute/components/agent-decisions.tsx',
+      'app/contribute/components/next-step.tsx',
       'lib/contribute/sessions.ts',
+      'lib/contribute/next-step.ts',
     ],
     states: [
       {
@@ -243,6 +301,49 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           ),
       },
       {
+        id: 'next-run',
+        title: 'Next step: a run can do it',
+        path: '/contribute/attempts/A_8?session=next',
+        height: 1900,
+        render: () => attemptPage(nextForRun, true),
+      },
+      {
+        id: 'next-only-you',
+        title: 'Next step: only you can do it, after run 1',
+        path: '/contribute/attempts/A_OC?session=next',
+        height: 1700,
+        render: () => attemptPage(nextForYou, true),
+      },
+      {
+        id: 'next-agreement',
+        title: 'Next step: an agreement signed by a comment',
+        path: '/contribute/attempts/A_C?session=next',
+        height: 1500,
+        render: () => attemptPage(nextForAgreement, true),
+      },
+      {
+        id: 'next-dco',
+        title: 'Next step: sign off the commits',
+        path: '/contribute/attempts/A_T?session=next',
+        height: 1500,
+        render: () => attemptPage(nextForDco, true),
+      },
+      {
+        id: 'next-dco-phone',
+        title: 'Next step: sign off · phone',
+        path: '/contribute/attempts/A_T?session=next',
+        width: 390,
+        height: 2200,
+        render: () => attemptPage(nextForDco, true),
+      },
+      {
+        id: 'your-move',
+        title: 'The first attempt, its move in one line',
+        path: '/contribute/attempts/A_OC',
+        height: 1400,
+        render: () => attemptPage(nextForYou, false),
+      },
+      {
         id: 'own-reason',
         title: 'The next run, nothing waiting: your own reason',
         path: '/contribute/attempts/A_1?session=next',
@@ -261,7 +362,11 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     title: 'My contributions',
     area: 'contribute',
     route: '/contribute/me',
-    sources: ['app/contribute/components/contributions-view.tsx'],
+    sources: [
+      'app/contribute/components/contributions-view.tsx',
+      'app/contribute/components/needs-you-rows.tsx',
+      'lib/contribute/needs-you.ts',
+    ],
     states: [
       {
         id: 'list',
@@ -284,6 +389,21 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
               />
             </main>,
           ),
+      },
+      {
+        id: 'needs-you',
+        title: 'Needs you: each move, a run working',
+        path: '/contribute/me',
+        height: 2600,
+        render: () => mine(),
+      },
+      {
+        id: 'needs-you-phone',
+        title: 'Needs you · phone',
+        path: '/contribute/me',
+        width: 390,
+        height: 5200,
+        render: () => mine(),
       },
     ],
   },

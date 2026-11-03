@@ -1,157 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { attempt, followUpOf } from './__fixtures__/contribute-attempts';
-import {
-  followUpInReview,
-  issuePage,
-  needsNothing,
-  nowIdle,
-  replyWaiting,
-  reviewsReady,
-} from './__fixtures__/contribute-overview';
+import { attempt } from './__fixtures__/contribute-attempts';
+import { issuePage, nowIdle } from './__fixtures__/contribute-overview';
 import { contributor, firstSpend, mcpToken, NOW, settings, views } from './__fixtures__/contribute-views';
 import type { ContributeAttempt, ContributeView } from './contribute.types';
-import {
-  impactTilesOf,
-  lastUsedTokenOf,
-  NEEDS_YOU_MAX,
-  NEEDS_YOU_READ,
-  type NeedsYouRow,
-  needsYouRowsOf,
-  rankedOf,
-  rightNowOf,
-} from './overview';
-
-const kinds = (rows: NeedsYouRow[]) => rows.map(({ kind }) => kind);
-const ids = (rows: NeedsYouRow[]) =>
-  rows.map((row) =>
-    row.kind === 'replies' ? `replies:${row.attemptId}` : 'attempt' in row ? row.attempt.attemptId : row.kind,
-  );
-
-const grantBounce = attempt({
-  attemptId: 'A_GRANT',
-  submit: {
-    step: 'FORK',
-    waitUntil: null,
-    fork: null,
-    branch: null,
-    lastError: {
-      reason: 'grant_missing',
-      note: 'GitHub access is needed to open the PR.',
-      at: '2026-10-28T10:00:00.000Z',
-    },
-  },
-});
-const autopilot = attempt({
-  attemptId: 'A_AUTO',
-  state: 'PENDING_AUTOSUBMIT',
-  autosubmitAt: '2026-10-28T12:42:00.000Z',
-});
+import { impactTilesOf, lastUsedTokenOf, rankedOf, rightNowOf } from './overview';
 
 /** Both ways set up: a key and a live token the agent has called with. */
 const both: ContributeView = {
   ...views.active,
   ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken({ lastUsedAt: '2026-10-28T09:00:00.000Z' })] },
 };
-
-describe('needsYouRowsOf', () => {
-  it('orders the rows: the key, GitHub access, autopilot, the reviews oldest ready first, then the replies', () => {
-    const view = {
-      ...views.keyInvalid,
-      grant: { connected: false, login: null },
-      ownAgent: { paths: { hosted: true, mcp: false }, tokens: [] },
-    };
-    const needs = needsYouRowsOf(view, {
-      reviews: [...reviewsReady, autopilot, grantBounce],
-      replies: [replyWaiting()],
-    });
-
-    expect(kinds(needs.rows)).toEqual(['key', 'grant', 'autopilot', 'review', 'review']);
-    expect(ids(needs.rows).slice(3)).toEqual(['A_OLD', 'A_NEW']);
-    expect(needs.total).toBe(6);
-    expect(needs.complete).toBe(true);
-  });
-
-  it('orders the reviews by their last update while reviewAt is not answered', () => {
-    const unanswered = reviewsReady.map(({ reviewAt: _at, ...rest }) => rest as ContributeAttempt);
-    const { rows } = needsYouRowsOf(views.active, { reviews: unanswered, replies: [] });
-
-    expect(ids(rows)).toEqual(['A_NEW', 'A_OLD']);
-  });
-
-  it('never repeats a bounced review as a review row', () => {
-    const { rows } = needsYouRowsOf(views.grantMissing, { reviews: [grantBounce], replies: [] });
-
-    expect(kinds(rows)).toEqual(['grant']);
-  });
-
-  it('shows five rows at most, and counts the rest', () => {
-    const reviews = Array.from({ length: 7 }, (_, index) =>
-      attempt({ attemptId: `A_${index}`, reviewAt: `2026-10-2${index}T00:00:00.000Z` }),
-    );
-    const needs = needsYouRowsOf(views.active, { reviews, replies: [] });
-
-    expect(needs.rows).toHaveLength(NEEDS_YOU_MAX);
-    expect(needs.total).toBe(7);
-  });
-
-  it("folds a follow-up's drafts into its review or autopilot row, never a row of their own", () => {
-    const autoFollowUp = attempt({ attemptId: 'A_F2', state: 'PENDING_AUTOSUBMIT', kind: 'FOLLOW_UP', followUpOf });
-    const { rows } = needsYouRowsOf(views.active, {
-      reviews: [followUpInReview, autoFollowUp],
-      replies: [
-        replyWaiting({ attemptId: 'A_F1', inReview: true }),
-        replyWaiting({ draftId: 'D_2', attemptId: 'A_F1', inReview: true }),
-        replyWaiting({ draftId: 'D_3', attemptId: 'A_F2', inReview: true }),
-      ],
-    });
-
-    expect(rows.map((row) => [row.kind, 'replies' in row ? row.replies : null])).toEqual([
-      ['autopilot', 1],
-      ['review', 2],
-    ]);
-  });
-
-  it('shows nothing of the folded drafts while the reviews are not answered, and is not complete', () => {
-    const needs = needsYouRowsOf(views.active, {
-      reviews: undefined,
-      replies: [replyWaiting({ inReview: true }), replyWaiting({ draftId: 'D_9', attemptId: 'A_F9' })],
-    });
-
-    expect(ids(needs.rows)).toEqual(['replies:A_F9']);
-    expect(needs.complete).toBe(false);
-  });
-
-  it('makes one row of the drafts of each follow-up outside review', () => {
-    const { rows } = needsYouRowsOf(views.active, {
-      reviews: [],
-      replies: [
-        replyWaiting(),
-        replyWaiting({ draftId: 'D_2', comment: null }),
-        replyWaiting({ draftId: 'D_3', attemptId: 'A_F7', prNumber: 7 }),
-      ],
-    });
-
-    expect(rows).toMatchObject([
-      { kind: 'replies', attemptId: 'A_F1', prNumber: 1419, drafts: [{ draftId: 'D_1' }, { draftId: 'D_2' }] },
-      { kind: 'replies', attemptId: 'A_F7', prNumber: 7 },
-    ]);
-  });
-
-  it('is complete only when every read answered', () => {
-    expect(needsYouRowsOf(views.active, needsNothing)).toEqual({ rows: [], total: 0, complete: true });
-    expect(needsYouRowsOf(views.active, { reviews: [], replies: undefined }).complete).toBe(false);
-    expect(needsYouRowsOf(views.active, { reviews: undefined, replies: [] }).complete).toBe(false);
-  });
-
-  it('asks a user with neither way set up for one, and never guesses so while their own agent is unread', () => {
-    expect(kinds(needsYouRowsOf(views.onboardedNoPath, needsNothing).rows)).toEqual(['no-way']);
-
-    const unread = { ...views.onboardedNoPath, ownAgent: undefined };
-    expect(needsYouRowsOf(unread, needsNothing)).toEqual({ rows: [], total: 0, complete: false });
-    expect(needsYouRowsOf(views.agentOnboarded, needsNothing).rows).toEqual([]);
-  });
-});
 
 describe('rightNowOf', () => {
   const inFlight = (patch: Partial<ContributeAttempt>) =>
@@ -334,32 +193,11 @@ describe('the review fixes', () => {
     ).toBe('working');
   });
 
-  it('shows a bounced review as a review once GitHub access is granted, and as GitHub access while unread', () => {
-    const connected = { ...views.active, grant: { connected: true, login: 'octocat' } };
-    expect(kinds(needsYouRowsOf(connected, { reviews: [grantBounce], replies: [] }).rows)).toEqual(['review']);
-    expect(kinds(needsYouRowsOf(views.grantMissing, { reviews: [grantBounce], replies: [] }).rows)).toEqual(['grant']);
-    expect(kinds(needsYouRowsOf(views.fieldsMissing, { reviews: [grantBounce], replies: [] }).rows)).toEqual(['grant']);
-  });
-
   it('never says soon while the feed is unread, and keeps the holds before it', () => {
     const soon = { ...views.active, contributor: contributor({ spend: firstSpend }) };
     expect(rightNowOf(soon, nowIdle, undefined, NOW).hosted).toEqual({ kind: 'unknown' });
     expect(rightNowOf(views.active, nowIdle, undefined, NOW).hosted?.kind).toBe('paced');
     expect(rightNowOf(soon, nowIdle, issuePage, NOW).hosted?.kind).toBe('soon');
-  });
-
-  it('reads every review that can wait, and cuts the newest, counting them all', () => {
-    // At most one first attempt per open PR (10 at the most) and one follow-up per open PR.
-    expect(NEEDS_YOU_READ).toBeGreaterThanOrEqual(20);
-
-    // As the API lists them: newest first.
-    const reviews = Array.from({ length: 20 }, (_, index) =>
-      attempt({ attemptId: `A_${index}`, reviewAt: new Date(Date.UTC(2026, 9, 28 - index)).toISOString() }),
-    );
-    const needs = needsYouRowsOf(views.active, { reviews, replies: [] });
-
-    expect(ids(needs.rows)).toEqual(['A_19', 'A_18', 'A_17', 'A_16', 'A_15']);
-    expect(needs.total).toBe(20);
   });
 });
 

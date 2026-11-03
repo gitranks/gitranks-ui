@@ -13,7 +13,7 @@ const data = vi.hoisted(() => ({
   loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),
-  loadOpenPrDrafts: vi.fn(),
+  loadRepliesWaiting: vi.fn(),
 }));
 const { signIn } = vi.hoisted(() => ({ signIn: vi.fn() }));
 
@@ -329,7 +329,7 @@ describe('the pages that wait for onboarding', () => {
     data.loadAttempts.mockResolvedValue(undefined);
     data.loadAttempt.mockResolvedValue(undefined);
     data.loadContributions.mockResolvedValue(undefined);
-    data.loadOpenPrDrafts.mockResolvedValue({});
+    data.loadRepliesWaiting.mockResolvedValue([]);
     return pages[page]();
   };
 

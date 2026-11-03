@@ -11,6 +11,7 @@ import {
   ContributeAttemptDocument,
   ContributeAttemptFollowUpFlowDocument,
   ContributeAttemptFollowUpsDocument,
+  ContributeAttemptMovesDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptRetryDocument,
   ContributeAttemptReviewReasonDocument,
@@ -19,15 +20,19 @@ import {
   ContributeAttemptsFollowUpsDocument,
   ContributeAttemptsInDocument,
   ContributeAttemptsInFollowUpsDocument,
+  ContributeAttemptsInMovesDocument,
   ContributeAttemptsInOwnAgentDocument,
   ContributeAttemptsInReviewAtDocument,
+  ContributeAttemptsMovesDocument,
   ContributeAttemptsOpenDocument,
   ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
   ContributeAutopilotNoticeDocument,
   ContributeChangesDocument,
   ContributeContributionsDocument,
+  ContributeContributionsFixesDocument,
   ContributeContributionsFollowUpsDocument,
+  ContributeContributionsMovesDocument,
   ContributeContributionsOwnAgentDocument,
   ContributeGrantDocument,
   ContributeImpactDocument,
@@ -40,11 +45,11 @@ import {
   ContributeProfileLanguagesDocument,
   ContributeProviderInterestsDocument,
   ContributeRepliesWaitingDocument,
-  ContributeReplyDraftsDocument,
   ContributeResolveHumansDocument,
   ContributeScheduleCountsDocument,
   ContributeSetDocument,
   type FollowUpFlowRead,
+  type NeedsYouMovesRow,
 } from './contribute.documents';
 import type {
   ContributeActivity,
@@ -54,14 +59,16 @@ import type {
   ContributeAutopilot,
   ContributeComingSoonProvider,
   ContributeContributions,
+  ContributeFollowUps,
   ContributeImpactTotals,
   ContributeIssuePage,
   ContributeIssuesFilter,
   ContributeMcpToken,
+  ContributeNeedsYou,
   ContributeOnboardedVia,
   ContributeOwnAgent,
   ContributePaths,
-  ContributeReplyDraft,
+  ContributeReplyWaiting,
   ContributeSet,
   ContributeView,
 } from './contribute.types';
@@ -348,6 +355,7 @@ export async function loadAttempts(
       graphqlDirect(ContributeAttemptsDocument, variables, options),
       graphqlDirect(ContributeAttemptsFollowUpsDocument, variables, options),
       graphqlDirect(ContributeAttemptsOwnAgentDocument, variables, options),
+      graphqlDirect(ContributeAttemptsMovesDocument, variables, options),
     ]),
   );
 }
@@ -385,33 +393,58 @@ export async function loadAttemptsIn(
       graphqlDirect(ContributeAttemptsInDocument, variables, options),
       graphqlDirect(ContributeAttemptsInFollowUpsDocument, variables, options),
       graphqlDirect(ContributeAttemptsInOwnAgentDocument, variables, options),
+      graphqlDirect(ContributeAttemptsInMovesDocument, variables, options),
     ]),
   );
 }
 
-/** Overview's "Needs you": the attempts waiting for the user, and the replies they can approve. */
+/** The reply drafts the user can approve now, oldest first; `undefined` when the API does not answer them. */
+export async function loadRepliesWaiting(): Promise<ContributeReplyWaiting[] | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+  try {
+    const { contributeRepliesWaiting } = await graphqlDirect(ContributeRepliesWaitingDocument, undefined, {
+      source: 'ssr',
+      githubLogin,
+    });
+    return Array.isArray(contributeRepliesWaiting) ? contributeRepliesWaiting : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Overview's "Needs you": the attempts waiting for the user, the replies they can approve, the open pull requests,
+ * and the runs in flight ("Right now"'s read, once per request).
+ */
 export async function loadOverviewNeeds(): Promise<OverviewNeedsRead> {
   const githubLogin = await viewerLogin();
-  if (!githubLogin) return { reviews: undefined, replies: undefined };
+  if (!githubLogin) return { reviews: undefined, replies: undefined, contributions: undefined, runs: undefined };
 
   const options = { source: 'ssr' as const, githubLogin };
   const variables = { states: NEEDS_YOU_STATES, first: NEEDS_YOU_READ };
-  const [attempts, reviewAt, replies] = await Promise.allSettled([
+  const [attempts, reviewAt, replies, contributions, now] = await Promise.allSettled([
     loadAttemptsIn(NEEDS_YOU_STATES, NEEDS_YOU_READ),
     graphqlDirect(ContributeAttemptsInReviewAtDocument, variables, options),
-    graphqlDirect(ContributeRepliesWaitingDocument, undefined, options),
+    loadRepliesWaiting(),
+    loadContributions(),
+    loadOverviewNow(),
   ]);
   const reviews = settled(attempts);
   const readyAt = byAttemptId(settled(reviewAt)?.contributeAttempts);
-  const waiting = settled(replies)?.contributeRepliesWaiting;
   return {
     reviews: reviews?.map((attempt) => withFields(attempt, readyAt.get(attempt.attemptId))),
-    replies: Array.isArray(waiting) ? waiting : undefined,
+    replies: settled(replies),
+    contributions: settled(contributions)?.items,
+    runs: settled(now)?.inFlight,
   };
 }
 
-/** Overview's "Right now": the attempts in flight, and what the scheduler counts before it starts one. */
-export async function loadOverviewNow(): Promise<OverviewNowRead> {
+/**
+ * Overview's "Right now": the attempts in flight, and what the scheduler counts before it starts one. Read once per
+ * request: Needs you shows the runs under way from it too.
+ */
+export const loadOverviewNow = cache(async (): Promise<OverviewNowRead> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { inFlight: undefined, scheduleCounts: undefined };
 
@@ -427,7 +460,7 @@ export async function loadOverviewNow(): Promise<OverviewNowRead> {
         ? scheduleCounts
         : undefined,
   };
-}
+});
 
 /** Overview's "Your impact": the totals, with `reposHelped` when the API answers it; `undefined` when it does not. */
 export async function loadOverviewImpact(): Promise<ContributeImpactTotals | undefined> {
@@ -490,6 +523,8 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   const conventions = Promise.resolve(graphqlDirect(ContributeAttemptConventionsDocument, { id }, options)).catch(
     () => undefined,
   );
+  // A run that ended with its number and outcome, and when the last run ended; left out when not answered.
+  const moves = Promise.resolve(graphqlDirect(ContributeAttemptMovesDocument, { id }, options)).catch(() => undefined);
   try {
     const { contributeAttempt: read } = await review;
     if (!read) return read;
@@ -538,9 +573,13 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
           }
         : withRetry;
     const conventionsRead = (await conventions)?.contributeAttempt;
-    const withConventions = withConventionsOf(
-      withDecisions,
-      conventionsRead?.attemptId === contributeAttempt.attemptId ? conventionsRead : undefined,
+    const movesRead = (await moves)?.contributeAttempt;
+    const withConventions = withMovesOf(
+      withConventionsOf(
+        withDecisions,
+        conventionsRead?.attemptId === contributeAttempt.attemptId ? conventionsRead : undefined,
+      ),
+      movesRead?.attemptId === contributeAttempt.attemptId ? movesRead : undefined,
     );
     const agent = (await ownAgent)?.contributeAttempt;
     if (agent?.attemptId !== contributeAttempt.attemptId) return withConventions;
@@ -553,6 +592,23 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
     if (error === 'NOT_AVAILABLE_YET') return undefined;
     throw new ContributeUnavailableError();
   }
+}
+
+/**
+ * The signals with their runs (`attemptId`, `round`, `outcome`) over the ones the follow-up fields read, and when the
+ * last run ended. An API that does not answer them leaves the row as it was.
+ */
+export function withMovesOf<T extends { needsYou?: ContributeNeedsYou | null; followUps?: ContributeFollowUps | null }>(
+  row: T,
+  moves: NeedsYouMovesRow | undefined,
+): T {
+  if (!moves) return row;
+  const lastEndedAt = moves.followUps?.lastEndedAt;
+  return {
+    ...row,
+    ...(moves.needsYou !== undefined ? { needsYou: moves.needsYou } : {}),
+    ...(row.followUps && lastEndedAt !== undefined ? { followUps: { ...row.followUps, lastEndedAt } } : {}),
+  };
 }
 
 /**
@@ -621,57 +677,29 @@ export async function loadContributions(first = 50): Promise<ContributeContribut
   if (!githubLogin) return undefined;
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [main, followUps, ownAgent] = await Promise.allSettled([
+  const [main, followUps, ownAgent, moves, fixes] = await Promise.allSettled([
     graphqlDirect(ContributeContributionsDocument, { first }, options),
     graphqlDirect(ContributeContributionsFollowUpsDocument, { first }, options),
     graphqlDirect(ContributeContributionsOwnAgentDocument, { first }, options),
+    graphqlDirect(ContributeContributionsMovesDocument, { first }, options),
+    graphqlDirect(ContributeContributionsFixesDocument, { first }, options),
   ]);
   const contributions = settled(main)?.contributeContributions;
   if (!contributions) return undefined;
   const extras = byAttemptId(settled(followUps)?.contributeContributions?.items);
   const agents = byAttemptId(settled(ownAgent)?.contributeContributions?.items);
+  const runs = byAttemptId(settled(moves)?.contributeContributions?.items);
+  const fixed = byAttemptId(settled(fixes)?.contributeContributions?.items);
   return {
     ...contributions,
     items: contributions.items.map((item) =>
-      withFields(withFields(item, extras.get(item.attemptId)), agents.get(item.attemptId)),
+      withFields(
+        withMovesOf(
+          withFields(withFields(item, extras.get(item.attemptId)), agents.get(item.attemptId)),
+          runs.get(item.attemptId),
+        ),
+        fixed.get(item.attemptId),
+      ),
     ),
   };
-}
-
-/** A pull request's reply drafts, oldest first; `undefined` when the API does not answer them. */
-export async function loadReplyDrafts(prId: string): Promise<ContributeReplyDraft[] | undefined> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-
-  try {
-    const { contributeReplyDrafts } = await graphqlDirect(
-      ContributeReplyDraftsDocument,
-      { prId },
-      { source: 'ssr', githubLogin },
-    );
-    return contributeReplyDrafts ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** The open pull requests whose drafts My contributions reads, at most. */
-export const DRAFTS_READ_MAX = 10;
-
-/**
- * The reply drafts of each open pull request a follow-up ran on, by its id; `undefined` for one the API does not
- * answer. Only a follow-up drafts replies, so a pull request without one (or whose rounds the API does not answer) is
- * not asked about: most loads ask nothing more.
- */
-export async function loadOpenPrDrafts(
-  contributions: ContributeContributions | undefined,
-): Promise<Record<string, ContributeReplyDraft[] | undefined>> {
-  const open = (contributions?.items ?? [])
-    .filter(
-      ({ pullRequest, followUps }) =>
-        pullRequest.state === 'OPEN' && !!followUps && (followUps.used > 0 || !!followUps.currentAttemptId),
-    )
-    .slice(0, DRAFTS_READ_MAX);
-  const lists = await Promise.all(open.map(({ pullRequest }) => loadReplyDrafts(pullRequest.prId)));
-  return Object.fromEntries(open.map(({ pullRequest }, index) => [pullRequest.prId, lists[index]]));
 }

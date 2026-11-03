@@ -48,15 +48,25 @@ export type ContributePrConventionIssue = {
   suggestion: string | null;
 };
 
+/** A fix sent to the open PR: `SIGN_OFF` rewrites our commits with the user's DCO sign-off (a force-push). */
 export type ContributePrFix = {
-  kind: 'LINK' | 'CHANGELOG' | 'TITLE' | 'BODY';
+  kind: 'LINK' | 'CHANGELOG' | 'TITLE' | 'BODY' | 'SIGN_OFF';
   state: 'SENDING' | 'DONE' | 'FAILED';
   note: string | null;
   at: string;
 };
 
-export const PR_FIX_KINDS = ['TITLE', 'BODY', 'CHANGELOG'] as const;
+export const PR_FIX_KINDS = ['TITLE', 'BODY', 'CHANGELOG', 'SIGN_OFF'] as const;
 export type ContributePrFixKind = (typeof PR_FIX_KINDS)[number];
+
+/** What each fix does, in a few words. */
+export const PR_FIX_WORDS: Record<ContributePrFix['kind'], string> = {
+  LINK: 'Linking the changelog line to the pull request',
+  CHANGELOG: 'Fixing the changelog line',
+  TITLE: 'Retitling the pull request',
+  BODY: 'Updating the description',
+  SIGN_OFF: 'Signing off the commits',
+};
 
 /** The fields the attempt carries for them; each absent while the API does not answer it. */
 export type ContributeConventionsFields = {

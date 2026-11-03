@@ -319,9 +319,20 @@ export async function readAttemptLive(
   return result.ok ? { ok: true, data: { attempt: result.data, readAt: new Date().toISOString(), clock } } : result;
 }
 
-/** Tries again, once, an attempt whose check ran out of budget or time: queued, its check on twice the budget. */
-export async function retryAttempt(id: string): Promise<ContributeActionResult<ContributeAttempt>> {
-  return run(RetryAttemptDocument, { id: String(id) }, (data) => data.retryAttempt);
+/**
+ * Tries a stop again, once, as its `retry` says: a check that ran out, on twice the budget, or a no-go the user works on
+ * anyway. A new attempt, queued. `note`: the user's words to the agent, trimmed; none when empty.
+ */
+export async function retryAttempt(id: string, note?: string): Promise<ContributeActionResult<ContributeAttempt>> {
+  const text = typeof note === 'string' ? note.trim() : '';
+  if (text.length > FOLLOW_UP_NOTE_MAX) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `A note takes ${FOLLOW_UP_NOTE_MAX.toLocaleString('en-US')} characters at most.`,
+    };
+  }
+  return run(RetryAttemptDocument, { id: String(id), note: text || null }, (data) => data.retryAttempt);
 }
 
 /** Discards an attempt in review (or queued): its issue goes back to the pool. */

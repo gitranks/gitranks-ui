@@ -547,18 +547,27 @@ export const followUpAttempts = {
 } satisfies Record<string, ContributeAttemptDetail>;
 
 const NO_GO_REASON =
-  'The re-render comes from the app, not the router: layouts here are keyed by `useId`, which changes on every ' +
-  'navigation. The fix belongs in the reporter’s code, and the maintainer said so in the second comment.';
+  'Someone else is on this one. In the third comment a maintainer asked @mira-k to take it, and she replied that she ' +
+  'would open a pull request this week. Giving it back so two people don’t fix the same thing.';
 
-/** Runs with the agent's decisions: a no-go, a check that ran out, a go with its brief, a follow-up's brief. */
+/**
+ * Runs with the agent's decisions: a taken no-go to work on anyway, a check that ran out (a bigger budget), a go with
+ * its brief, a follow-up's brief.
+ */
 export const decisionAttempts = {
   noGo: detail({
     ...stopped('NO_GO', NO_GO_REASON),
     checkLimit: null,
-    retryable: false,
+    retry: { kind: 'OVERRIDE', takenBy: ['mira-k'] },
     costUsd: 0.42,
     cost: { totalUsd: 0.42, goNoGoUsd: 0.42, workUsd: 0, runtimeUsd: 0 },
-    goNoGo: { verdict: 'no_go', reason: NO_GO_REASON, decidedAtLimit: null, at: '2026-10-28T09:16:00.000Z' },
+    goNoGo: {
+      verdict: 'no_go',
+      reason: NO_GO_REASON,
+      decidedAtLimit: null,
+      at: '2026-10-28T09:16:00.000Z',
+      release: 'taken',
+    },
     brief: NO_GO_REASON,
   }),
   ranOut: detail({
@@ -567,7 +576,7 @@ export const decisionAttempts = {
       'No verdict: it was on "Reading src/router/layout-cache.ts" when the check\'s $0.60 budget ran out, after 4 min.',
     ),
     checkLimit: { limit: 'budget', decided: false },
-    retryable: true,
+    retry: { kind: 'BOOST', takenBy: [] },
     costUsd: 0.61,
     cost: { totalUsd: 0.61, goNoGoUsd: 0.61, workUsd: 0, runtimeUsd: 0 },
     goNoGo: null,

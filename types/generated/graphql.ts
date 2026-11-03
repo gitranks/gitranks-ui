@@ -160,7 +160,7 @@ export type ContributeAttempt = {
   repositoryId: Scalars['String']['output'];
   /** When it last reached the review: its 7 days run from it. Set again by a bounce back to the review and by autopilot's veto; null before the first review */
   reviewAt?: Maybe<Scalars['String']['output']>;
-  /** review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed); null for any other review */
+  /** review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed, override: a run the viewer forced past a no-go, theirs to approve); null for any other review */
   reviewReason?: Maybe<Scalars['String']['output']>;
   runner: ContributeAttemptRunner;
   /** An MCP attempt in review: how many more times it may be sent back (0 otherwise) */
@@ -256,6 +256,8 @@ export type ContributeAttemptDetail = {
   followUpOf?: Maybe<ContributeFollowUpOf>;
   /** A first attempt with a PR: the PR's rounds */
   followUps?: Maybe<ContributeFollowUps>;
+  /** The session's latest go/no-go */
+  goNoGo?: Maybe<ContributeGoNoGo>;
   /** The issue's GitHub node id */
   issueId: Scalars['String']['output'];
   kind: ContributeAttemptKind;
@@ -285,13 +287,18 @@ export type ContributeAttemptDetail = {
   replyDrafts: Array<ContributeReplyDraft>;
   repositoryId: Scalars['String']['output'];
   result?: Maybe<ContributeAttemptResult>;
-  /** The check of the issue reached its budget or time limit with no verdict (endDetail says what it was on): retryAttempt tries it again once, on twice the budget */
+  /** What retryAttempt would do with this stop, once: BOOST (the check ran out: twice its budget) or OVERRIDE (a no-go that is a judgement: a new run told the viewer overrode it). Null when it can't be tried again */
+  retry?: Maybe<ContributeRetry>;
+  /**
+   * The check of the issue reached its budget or time limit with no verdict (endDetail says what it was on): retryAttempt tries it again once, on twice the budget
+   * @deprecated Use retry: retryable is retry's kind BOOST
+   */
   retryable: Scalars['Boolean']['output'];
   /** When it last reached the review: its 7 days run from it. Set again by a bounce back to the review and by autopilot's veto; null before the first review */
   reviewAt?: Maybe<Scalars['String']['output']>;
   /** A first attempt's open PR: its review threads waiting for an answer, between rounds */
   reviewFeedback?: Maybe<ContributeReviewFeedback>;
-  /** review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed); null for any other review */
+  /** review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed, override: a run the viewer forced past a no-go, theirs to approve); null for any other review */
   reviewReason?: Maybe<Scalars['String']['output']>;
   /** A follow-up's own round */
   round?: Maybe<ContributeFollowUpRound>;
@@ -754,6 +761,19 @@ export type ContributeFollowUps = {
   left: Scalars['Int']['output'];
   max: Scalars['Int']['output'];
   used: Scalars['Int']['output'];
+};
+
+/** A hosted session's go/no-go: its verdict and whole reason, and the cap it was written at */
+export type ContributeGoNoGo = {
+  __typename?: 'ContributeGoNoGo';
+  at: Scalars['String']['output'];
+  /** budget or time when written at the check’s cap */
+  decidedAtLimit?: Maybe<Scalars['String']['output']>;
+  reason: Scalars['String']['output'];
+  /** A no-go's release (taken, closed, already_fixed, …): taken shows the warning by the retry. Null for a go, on an older run, or when the agent gave none */
+  release?: Maybe<Scalars['String']['output']>;
+  /** go or no_go */
+  verdict: Scalars['String']['output'];
 };
 
 /** The GitHub access Contribute opens PRs with */
@@ -1262,6 +1282,20 @@ export enum ContributeResolveState {
   None = 'NONE',
   Resolved = 'RESOLVED',
   Resolving = 'RESOLVING'
+}
+
+/** What retryAttempt would do with this stop, and for a taken no-go who may be on it */
+export type ContributeRetry = {
+  __typename?: 'ContributeRetry';
+  kind: ContributeRetryKind;
+  /** An override of a taken no-go: who may be working on it (assignees, live claims, active PRs' authors; the viewer left out), at most 3; [] when not known */
+  takenBy: Array<Scalars['String']['output']>;
+};
+
+/** What retryAttempt does with a stop: boost (a check that ran out, on twice its budget), override (work on it anyway, past the agent's no-go) */
+export enum ContributeRetryKind {
+  Boost = 'BOOST',
+  Override = 'OVERRIDE'
 }
 
 /** The PR's review decision */
@@ -2033,7 +2067,7 @@ export type Mutation = {
   resolveContributeStack: ContributeSet;
   /** Contributing again; refused (CONFLICT) without a key, or when the key was refused */
   resumeContributing: Scalars['Boolean']['output'];
-  /** Tries again, once, an attempt whose check of the issue ran out of budget or time before deciding (retryable): a new attempt on the issue, queued, its check on twice the budget. CONFLICT when it is not one */
+  /** Tries a stop again, once, as its retry says: a new attempt on the issue, queued. BOOST: its check on twice the budget. OVERRIDE: the viewer works on it anyway, past the agent’s no-go: the new run is told so, refuses only a hard fact, and stops at the review. note, their words to the agent, either kind. CONFLICT when it is not one, was tried again already, or the issue is closed now */
   retryAttempt: ContributeAttempt;
   /** Deletes the GitHub grant and revokes it at GitHub; false when GitHub could not be told (revoke the app on GitHub). True when there was none */
   revokeGithubGrant: Scalars['Boolean']['output'];
@@ -2159,6 +2193,7 @@ export type MutationRemoveLlmKeyArgs = {
 
 export type MutationRetryAttemptArgs = {
   id: Scalars['ID']['input'];
+  note?: InputMaybe<Scalars['String']['input']>;
 };
 
 

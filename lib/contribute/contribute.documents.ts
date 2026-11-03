@@ -40,6 +40,7 @@ import type {
   ContributeReplyDraftFlow,
   ContributeReplyUserDismissReason,
   ContributeReplyWaiting,
+  ContributeRetry,
   ContributeReviewFeedback,
   ContributeScheduleCounts,
   ContributeSet,
@@ -374,18 +375,29 @@ export const ContributeAttemptDcoDocument = doc<
   contributeAttempt(id: $id) { attemptId dcoRequired }
 }`);
 
-/** A no-go at the check's limit, and whether it can be tried again: read on its own, as the field above. */
+/** A no-go at the check's limit: read on its own, as the field above. */
 export const ContributeAttemptCheckStopDocument = doc<
+  { contributeAttempt: { attemptId: string; checkLimit: ContributeCheckLimitView | null } | null },
+  { id: string }
+>(`query ContributeAttemptCheckStop($id: ID!) {
+  contributeAttempt(id: $id) { attemptId checkLimit { limit decided } }
+}`);
+
+/**
+ * Whether the stop can be tried again, and how (a bigger check budget, or work on it anyway), with the no-go's release
+ * for the taken warning: read on its own, as the fields above.
+ */
+export const ContributeAttemptRetryDocument = doc<
   {
     contributeAttempt: {
       attemptId: string;
-      checkLimit: ContributeCheckLimitView | null;
-      retryable: boolean;
+      retry: ContributeRetry | null;
+      goNoGo: Pick<ContributeGoNoGo, 'release'> | null;
     } | null;
   },
   { id: string }
->(`query ContributeAttemptCheckStop($id: ID!) {
-  contributeAttempt(id: $id) { attemptId checkLimit { limit decided } retryable }
+>(`query ContributeAttemptRetry($id: ID!) {
+  contributeAttempt(id: $id) { attemptId retry { kind takenBy } goNoGo { release } }
 }`);
 
 /** The agent's decisions on the run: its go/no-go and its brief. Read on their own, as the fields above. */
@@ -577,8 +589,8 @@ export const ApproveAttemptDocument = doc<
   approveAttempt(id: $id, title: $title, body: $body, dco: $dco) { ${ATTEMPT} }
 }`);
 
-export const RetryAttemptDocument = doc<{ retryAttempt: ContributeAttempt }, { id: string }>(
-  `mutation RetryAttempt($id: ID!) { retryAttempt(id: $id) { ${ATTEMPT} } }`,
+export const RetryAttemptDocument = doc<{ retryAttempt: ContributeAttempt }, { id: string; note: string | null }>(
+  `mutation RetryAttempt($id: ID!, $note: String) { retryAttempt(id: $id, note: $note) { ${ATTEMPT} } }`,
 );
 
 export const DiscardAttemptDocument = doc<{ discardAttempt: ContributeAttempt }, { id: string }>(

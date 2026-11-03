@@ -189,7 +189,7 @@ type ContributeAttempt {
   reviewAt: String
 
   """
-  review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed); null for any other review
+  review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed, override: a run the viewer forced past a no-go, theirs to approve); null for any other review
   """
   reviewReason: String
   runner: ContributeAttemptRunner!
@@ -311,6 +311,9 @@ type ContributeAttemptDetail {
   """A first attempt with a PR: the PR's rounds"""
   followUps: ContributeFollowUps
 
+  """The session's latest go/no-go"""
+  goNoGo: ContributeGoNoGo
+
   """The issue's GitHub node id"""
   issueId: String!
   kind: ContributeAttemptKind!
@@ -356,9 +359,14 @@ type ContributeAttemptDetail {
   result: ContributeAttemptResult
 
   """
+  What retryAttempt would do with this stop, once: BOOST (the check ran out: twice its budget) or OVERRIDE (a no-go that is a judgement: a new run told the viewer overrode it). Null when it can't be tried again
+  """
+  retry: ContributeRetry
+
+  """
   The check of the issue reached its budget or time limit with no verdict (endDetail says what it was on): retryAttempt tries it again once, on twice the budget
   """
-  retryable: Boolean!
+  retryable: Boolean! @deprecated(reason: "Use retry: retryable is retry's kind BOOST")
 
   """
   When it last reached the review: its 7 days run from it. Set again by a bounce back to the review and by autopilot's veto; null before the first review
@@ -371,7 +379,7 @@ type ContributeAttemptDetail {
   reviewFeedback: ContributeReviewFeedback
 
   """
-  review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed); null for any other review
+  review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed, override: a run the viewer forced past a no-go, theirs to approve); null for any other review
   """
   reviewReason: String
 
@@ -911,6 +919,25 @@ type ContributeFollowUps {
   left: Int!
   max: Int!
   used: Int!
+}
+
+"""
+A hosted session's go/no-go: its verdict and whole reason, and the cap it was written at
+"""
+type ContributeGoNoGo {
+  at: String!
+
+  """budget or time when written at the check’s cap"""
+  decidedAtLimit: String
+  reason: String!
+
+  """
+  A no-go's release (taken, closed, already_fixed, …): taken shows the warning by the retry. Null for a go, on an older run, or when the agent gave none
+  """
+  release: String
+
+  """go or no_go"""
+  verdict: String!
 }
 
 """The GitHub access Contribute opens PRs with"""
@@ -1521,6 +1548,26 @@ enum ContributeResolveState {
   NONE
   RESOLVED
   RESOLVING
+}
+
+"""
+What retryAttempt would do with this stop, and for a taken no-go who may be on it
+"""
+type ContributeRetry {
+  kind: ContributeRetryKind!
+
+  """
+  An override of a taken no-go: who may be working on it (assignees, live claims, active PRs' authors; the viewer left out), at most 3; [] when not known
+  """
+  takenBy: [String!]!
+}
+
+"""
+What retryAttempt does with a stop: boost (a check that ran out, on twice its budget), override (work on it anyway, past the agent's no-go)
+"""
+enum ContributeRetryKind {
+  BOOST
+  OVERRIDE
 }
 
 """The PR's review decision"""
@@ -2442,9 +2489,14 @@ type Mutation {
   resumeContributing: Boolean!
 
   """
-  Tries again, once, an attempt whose check of the issue ran out of budget or time before deciding (retryable): a new attempt on the issue, queued, its check on twice the budget. CONFLICT when it is not one
+  Tries a stop again, once, as its retry says: a new attempt on the issue, queued. BOOST: its check on twice the budget. OVERRIDE: the viewer works on it anyway, past the agent’s no-go: the new run is told so, refuses only a hard fact, and stops at the review. note, their words to the agent, either kind. CONFLICT when it is not one, was tried again already, or the issue is closed now
   """
-  retryAttempt(id: ID!): ContributeAttempt!
+  retryAttempt(
+    id: ID!
+
+    """The viewer's note to the agent, at most 2000 characters"""
+    note: String
+  ): ContributeAttempt!
 
   """
   Deletes the GitHub grant and revokes it at GitHub; false when GitHub could not be told (revoke the app on GitHub). True when there was none

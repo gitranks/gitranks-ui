@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { AgentConnectView } from '@/app/contribute/components/agent-connect';
-import { ContributeTabsNav } from '@/app/contribute/components/contribute-tabs-nav';
+import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
@@ -154,17 +154,24 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     title: 'Landing',
     area: 'contribute',
     route: '/contribute',
-    sources: ['app/contribute/components/landing.tsx', 'app/contribute/components/sign-in-dialog.tsx'],
+    sources: [
+      'app/contribute/components/landing.tsx',
+      'app/contribute/components/coming-soon.tsx',
+      'app/contribute/components/sign-in-dialog.tsx',
+      'lib/contribute/format.ts',
+    ],
     states: [
       {
         id: 'visitor',
         title: 'Signed out, once launched',
         path: '/contribute',
         signedOut: true,
-        height: 3800,
+        height: 3900,
+        // As the layout frames it for a visitor: the header's line, no tabs.
         render: () => (
           <>
             <Header section="contribute" />
+            <HeaderLine />
             <Landing viewer="visitor" noted={[]} />
           </>
         ),

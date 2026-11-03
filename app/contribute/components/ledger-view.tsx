@@ -48,7 +48,7 @@ export function LedgerScreen({ ledger }: { ledger: ContributeLedger }) {
         <>
           <div className="grid gap-5 lg:grid-cols-[2fr_3fr]">
             <WeeksChart weeks={ledger.weeks} />
-            <ReposTable repos={ledger.repos} />
+            <ReposTable repos={ledger.repos} total={totals.repos} />
           </div>
           <RecentTable recent={ledger.recent} />
         </>
@@ -157,9 +157,9 @@ function Totals({ totals }: { totals: ContributeLedgerTotals }) {
 }
 
 const SERIES: { key: 'merged' | 'closed' | 'open'; label: string; className: string }[] = [
-  { key: 'merged', label: 'Merged', className: 'fill-primary bg-primary' },
-  { key: 'closed', label: 'Closed without a merge', className: 'fill-negative bg-negative' },
-  { key: 'open', label: 'Still open', className: 'fill-muted-foreground/35 bg-muted-foreground/35' },
+  { key: 'merged', label: 'Merged', className: 'fill-series-1 bg-series-1' },
+  { key: 'closed', label: 'Closed without a merge', className: 'fill-series-2 bg-series-2' },
+  { key: 'open', label: 'Still open', className: 'fill-series-other bg-series-other' },
 ];
 
 /** PRs opened per week, a stacked bar each, drawn on the server (no chart library here), with the numbers as a table. */
@@ -184,7 +184,8 @@ function WeeksChart({ weeks }: { weeks: ContributeLedgerWeek[] }) {
           return (
             <g key={week.weekStart}>
               {SERIES.map(({ key, className }) => {
-                const h = (week[key] / most) * (height - 4);
+                // A segment of one PR in a busy week still shows: 2 units at least.
+                const h = week[key] ? Math.max(2, (week[key] / most) * (height - 4)) : 0;
                 if (!h) return null;
                 top -= h;
                 return (
@@ -193,7 +194,7 @@ function WeeksChart({ weeks }: { weeks: ContributeLedgerWeek[] }) {
                     x={i * slot + (slot - bar) / 2}
                     y={top}
                     width={bar}
-                    height={Math.max(0, h - 1)}
+                    height={h > 2 ? h - 1 : h}
                     className={className.split(' ')[0]}
                   />
                 );
@@ -243,10 +244,12 @@ function Num({ value }: { value: number }) {
   return <td className={`px-3 py-2.5 text-right font-mono ${value ? '' : 'text-muted-foreground'}`}>{count(value)}</td>;
 }
 
-function ReposTable({ repos }: { repos: ContributeLedgerRepo[] }) {
+function ReposTable({ repos, total }: { repos: ContributeLedgerRepo[]; total: number }) {
   return (
     <section data-ledger="repos" className={CARD}>
-      <h2 className={`${HEADING.card} border-b px-5 py-3.5`}>By repository · {count(repos.length)}</h2>
+      <h2 className={`${HEADING.card} border-b px-5 py-3.5`}>
+        By repository · {repos.length < total ? `newest ${count(repos.length)} of ${count(total)}` : count(total)}
+      </h2>
       <div className="overflow-x-auto">
         <table className="w-full min-w-140 border-collapse text-sm">
           <thead>

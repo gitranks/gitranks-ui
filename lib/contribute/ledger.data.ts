@@ -2,7 +2,7 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import { viewerLogin } from './contribute.data';
+import { viewerEmail, viewerLogin } from './contribute.data';
 import { ContributeLedgerDocument } from './ledger.documents';
 import type { ContributeLedger } from './ledger.types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -14,9 +14,12 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
  */
 export const loadLedger = cache(async (): Promise<ContributeLedger | null> => {
   const githubLogin = await viewerLogin();
+  // The list takes emails too (as the preview's), so a signed-in read carries the viewer's.
+  const accountEmail = githubLogin ? await viewerEmail() : undefined;
   const { contributeLedger } = await graphqlDirect(ContributeLedgerDocument, undefined, {
     source: 'ssr',
     ...(githubLogin ? { githubLogin } : {}),
+    ...(accountEmail ? { accountEmail } : {}),
   });
   return contributeLedger;
 });

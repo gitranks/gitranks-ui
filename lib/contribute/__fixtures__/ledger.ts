@@ -110,4 +110,5 @@ export const emptyLedger: ContributeLedger = {
   weeks: [],
   repos: [],
   recent: [],
+  preview: { prs: 0, merged: 0, peopleBesides: 0, goalPrs: 25, goalMerged: 10, goalPeopleBesides: 5 },
 };

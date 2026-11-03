@@ -21,10 +21,11 @@ import { LedgerScreen } from '@/app/contribute/components/ledger-view';
 import { MaintainerReposPanel, MaintainersScreen } from '@/app/contribute/components/maintainers-view';
 import { McpDocsScreen } from '@/app/contribute/components/mcp-docs';
 import { OverviewScreen, overviewSectionsOf } from '@/app/contribute/components/overview-status';
+import { MorePages } from '@/app/contribute/components/public-pages';
 import { ReviewScreen } from '@/app/contribute/components/review-view';
 import { RunsScreen } from '@/app/contribute/components/runs-view';
 import { SettingsScreen } from '@/app/contribute/components/settings-view';
-import { TermsScreen } from '@/app/terms/page';
+import { TermsScreen } from '@/app/terms/terms';
 import { Header } from '@/components/header/header';
 import { Button } from '@/components/ui/button';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
@@ -210,11 +211,14 @@ const mine = () => {
 };
 
 /** The page for maintainers: open to everyone, the site header with no tabs, the visitor's repos as the panel. */
-const maintainersPage = (view: MaintainerReposView) => (
+const maintainersPage = (view: MaintainerReposView, { shown = false }: { shown?: boolean } = {}) => (
   <>
     <Header section="contribute" />
     <HeaderLine />
-    <MaintainersScreen repos={<MaintainerReposPanel view={view} />} />
+    <MaintainersScreen
+      repos={<MaintainerReposPanel view={view} />}
+      more={shown ? <MorePages current="maintainers" /> : null}
+    />
   </>
 );
 
@@ -848,6 +852,14 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () => maintainersPage({ state: 'signed-out' }),
       },
       {
+        id: 'signed-out-shown',
+        title: 'Signed out, once Contribute is open',
+        path: '/contribute/maintainers',
+        signedOut: true,
+        height: 1300,
+        render: () => maintainersPage({ state: 'signed-out' }, { shown: true }),
+      },
+      {
         id: 'signed-in',
         title: 'Signed in: the repos you maintain',
         path: '/contribute/maintainers',
@@ -940,7 +952,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/contribute/mcp',
         signedOut: true,
         width: 390,
-        height: 8800,
+        height: 9100,
         render: () => publicPage(<McpDocsScreen />),
       },
     ],
@@ -950,7 +962,12 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     title: 'Questions',
     area: 'contribute',
     route: '/contribute/faq',
-    sources: ['app/contribute/faq/page.tsx', 'app/contribute/components/faq.tsx', 'lib/contribute/faq.ts'],
+    sources: [
+      'app/contribute/faq/page.tsx',
+      'app/contribute/components/faq.tsx',
+      'app/contribute/components/public-pages.tsx',
+      'lib/contribute/faq.ts',
+    ],
     states: [
       {
         id: 'signed-out',
@@ -958,6 +975,15 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/contribute/faq',
         signedOut: true,
         height: 2850,
+        render: () => publicPage(<FaqScreen />),
+      },
+      {
+        id: 'phone',
+        title: 'Phone',
+        path: '/contribute/faq',
+        signedOut: true,
+        width: 390,
+        height: 5000,
         render: () => publicPage(<FaqScreen />),
       },
     ],
@@ -975,6 +1001,15 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/terms',
         signedOut: true,
         height: 4650,
+        render: () => <TermsScreen contribute />,
+      },
+      {
+        id: 'launched-phone',
+        title: 'Once Contribute is open, phone',
+        path: '/terms',
+        signedOut: true,
+        width: 390,
+        height: 7100,
         render: () => <TermsScreen contribute />,
       },
     ],

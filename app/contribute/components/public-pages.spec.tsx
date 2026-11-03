@@ -2,11 +2,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/contribute/preview-gate', () => ({ contributeShown: vi.fn() }));
+vi.mock('./scroll-to-hash', () => ({ ScrollToHash: () => <span data-scroll-to-hash /> }));
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
 
 const { FaqScreen } = await import('./faq');
 const { McpDocsScreen } = await import('./mcp-docs');
-const { TermsScreen } = await import('@/app/terms/page');
+const { LaunchedTerms, TermsScreen } = await import('@/app/terms/terms');
+const { LaunchedMorePages } = await import('./launched-more-pages');
+const { contributeShown } = await import('@/lib/contribute/preview-gate');
 const { FAQ_GROUPS, LANDING_QUESTIONS } = await import('@/lib/contribute/faq');
 const { MCP_DOC_CLIENTS, MCP_DOC_SAVES, MCP_DOC_TOOLS } = await import('@/lib/contribute/mcp-docs');
 const { MCP_CLIENTS, mcpSetupLinesOf } = await import('@/lib/contribute/mcp-setup');
@@ -79,5 +82,31 @@ describe('the Terms', () => {
     expect(shown).toContain('gitranks.com/contribute/maintainers');
     expect(hidden).not.toContain('Contribute');
     expect(shown).not.toContain('Claude Code');
+  });
+});
+
+describe('the launch gate', () => {
+  const shown = vi.mocked(contributeShown);
+
+  it('gives the Terms their Contribute section, its date and the scroll to it only when Contribute is shown', async () => {
+    shown.mockResolvedValue(true);
+    const open = renderToStaticMarkup(await LaunchedTerms());
+    expect(open).toContain('id="contribute"');
+    expect(open).toContain('2026-11-03');
+    expect(open).toContain('data-scroll-to-hash');
+
+    shown.mockResolvedValue(false);
+    const closed = renderToStaticMarkup(await LaunchedTerms());
+    expect(closed).not.toContain('id="contribute"');
+    expect(closed).not.toContain('data-scroll-to-hash');
+    expect(text(closed)).not.toContain('Contribute');
+  });
+
+  it('shows the maintainers page the other pages only when Contribute is shown', async () => {
+    shown.mockResolvedValue(true);
+    expect(text(renderToStaticMarkup(await LaunchedMorePages({})))).toContain('More about Contribute');
+
+    shown.mockResolvedValue(false);
+    expect(await LaunchedMorePages({})).toBeNull();
   });
 });

@@ -26,7 +26,10 @@ export function FaqScreen() {
                   <dd className="flex flex-col gap-1.5 text-foreground/80">
                     <p>{answer}</p>
                     {more ? (
-                      <HashSafeLink href={more.href} className="self-start font-semibold text-link hover:underline">
+                      <HashSafeLink
+                        href={more.href}
+                        className="inline-flex items-center max-sm:min-h-11 self-start font-semibold text-link hover:underline"
+                      >
                         {more.label} →
                       </HashSafeLink>
                     ) : null}

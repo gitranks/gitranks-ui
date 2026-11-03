@@ -3,7 +3,13 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { Eyebrow } from './primitives';
-import { CONTRIBUTE_TERMS_PATH, FAQ_PATH, MAINTAINERS_PATH, MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
+import {
+  ABOUT_PATH,
+  CONTRIBUTE_TERMS_PATH,
+  FAQ_PATH,
+  MAINTAINERS_PATH,
+  MCP_DOCS_PATH,
+} from '@/lib/contribute/contribute-path';
 import { cn } from '@/lib/utils';
 
 /** Contribute's pages open to every visitor, linked from each other's foot. */
@@ -12,7 +18,7 @@ export type PublicPage = 'landing' | 'maintainers' | 'mcp' | 'faq' | 'terms';
 const PUBLIC_PAGES: { page: PublicPage; href: Route; title: string; text: string }[] = [
   {
     page: 'landing',
-    href: '/contribute',
+    href: ABOUT_PATH,
     title: 'GitRanks Contribute',
     text: 'What it does, from an issue to a merged pull request.',
   },
@@ -55,7 +61,7 @@ export function PublicPageHead({
   return (
     <div className="flex max-w-3xl flex-col gap-3">
       <Eyebrow className="text-primary">{eyebrow}</Eyebrow>
-      <h1 className="text-4xl font-bold tracking-tight text-balance">{title}</h1>
+      <h1 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">{title}</h1>
       <div className="text-lg text-muted-foreground">{children}</div>
     </div>
   );
@@ -81,7 +87,10 @@ export function DocLayout({ sections, children }: { sections: DocSection[]; chil
         <ol className="flex flex-col gap-1.5 text-sm">
           {sections.map(({ id, title }) => (
             <li key={id}>
-              <a href={`#${id}`} className="text-muted-foreground hover:text-foreground hover:underline">
+              <a
+                href={`#${id}`}
+                className="inline-flex items-center max-sm:min-h-11 text-muted-foreground hover:text-foreground hover:underline"
+              >
                 {title}
               </a>
             </li>

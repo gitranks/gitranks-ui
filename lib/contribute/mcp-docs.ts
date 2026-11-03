@@ -23,8 +23,8 @@ export type McpDocClient = {
   label: string;
   file: boolean;
   lines: string;
-  /** Where Windows differs: the block's header and lines there. */
-  windows?: { label: string; lines: string };
+  /** Where Windows differs: what to do, the block's header and lines there. */
+  windows?: { where: string; label: string; lines: string };
 };
 
 /** A client the connect flow knows, as the docs show it: macOS and Linux first, Windows where it differs. */
@@ -39,8 +39,8 @@ function connectClientOf(client: McpClient): McpDocClient {
     file: unix.file,
     lines: unix.lines,
     windows:
-      windows.label !== unix.label || windows.lines !== unix.lines
-        ? { label: windows.label, lines: windows.lines }
+      windows.label !== unix.label || windows.lines !== unix.lines || windows.where !== unix.where
+        ? { where: windows.where, label: windows.label, lines: windows.lines }
         : undefined,
   };
 }

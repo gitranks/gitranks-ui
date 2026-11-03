@@ -58,6 +58,9 @@ export const MCP_DOCS_PATH = '/contribute/mcp' as Route;
 /** The questions people ask before they start. Everyone's once launched. */
 export const FAQ_PATH = '/contribute/faq' as Route;
 
+/** The landing for anyone, members too (a member's `/contribute` is their overview). */
+export const ABOUT_PATH = '/contribute?about=1' as Route;
+
 /** Contribute's section of the Terms of service. */
 export const CONTRIBUTE_TERMS_PATH = '/terms#contribute' as Route;
 

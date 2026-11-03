@@ -17,7 +17,10 @@ export const OPERATOR_ADDRESS =
 /** Where privacy and removal requests, and every other question, go. */
 export const CONTACT_EMAIL = 'hello@gitranks.com';
 
-/** The day the Privacy policy and the Terms last changed (YYYY-MM-DD). */
+/**
+ * The day the Terms last changed without Contribute's section (YYYY-MM-DD). The Privacy policy and the Terms with that
+ * section carry their own dates (`PRIVACY_UPDATED`, `CONTRIBUTE_TERMS_UPDATED`).
+ */
 export const LAST_UPDATED = '2026-10-31';
 
 /** "27 October 2026", the way the pages show a last-updated day. */

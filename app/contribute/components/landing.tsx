@@ -380,7 +380,10 @@ export function Landing({
             <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
               {FOOT_LINKS.map(({ href, label }) => (
                 <li key={href}>
-                  <HashSafeLink href={href} className="text-muted-foreground hover:text-foreground hover:underline">
+                  <HashSafeLink
+                    href={href}
+                    className="inline-flex items-center max-sm:min-h-11 text-muted-foreground hover:text-foreground hover:underline"
+                  >
                     {label}
                   </HashSafeLink>
                 </li>

@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import { MAINTAINERS_PATH, MCP_DOCS_PATH } from './contribute-path';
+import { CONTACT_EMAIL } from '@/lib/legal';
 
 /** A question, its answer, and where to read more. The id is its anchor on the questions page. */
 export type FaqEntry = { id: string; question: string; answer: string; more?: { href: Route; label: string } };
@@ -122,8 +123,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
       {
         id: 'in-beta',
         question: 'Is Contribute in beta?',
-        answer:
-          'Yes. It is free, its limits may change, and every pull request waits for your review while autopilot is off. We read how every pull request turns out, to tune what we pick and how the agent works. Tell us what to fix at hello@gitranks.com.',
+        answer: `Yes. It is free, its limits may change, and every pull request waits for your review while autopilot is off. We read how every pull request turns out, to tune what we pick and how the agent works. Tell us what to fix at ${CONTACT_EMAIL}.`,
       },
       {
         id: 'record',

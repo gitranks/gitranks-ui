@@ -3,8 +3,8 @@ import Link from 'next/link';
 
 import { CodeBlock } from './code-block';
 import { Pill } from './primitives';
-import { DocLayout, DocSection, MorePages, PublicPageHead } from './public-pages';
-import { FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
+import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
+import { ABOUT_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import {
   MCP_DOC_CLIENTS,
   MCP_DOC_LIMITS,
@@ -16,6 +16,7 @@ import {
   TOKEN_PLACEHOLDER,
 } from '@/lib/contribute/mcp-docs';
 import { CONTACT_EMAIL } from '@/lib/legal';
+import { cn } from '@/lib/utils';
 
 const SECTIONS = [
   { id: 'start', title: 'Before you start' },
@@ -24,7 +25,7 @@ const SECTIONS = [
   { id: 'tools', title: 'Tools' },
   { id: 'auth', title: 'Your token' },
   { id: 'limits', title: 'Limits' },
-  { id: 'privacy', title: 'What is sent to us' },
+  { id: 'privacy', title: 'What is sent to mcp.gitranks.com' },
 ];
 
 const FACTS = [
@@ -48,8 +49,8 @@ const NEVER_ASKED = [
 
 const LINK = 'font-semibold text-link hover:underline';
 
-/** The landing's two ways in: a visitor signs in there, then picks their own agent; the connect page is for members. */
-const LANDING_WAYS_PATH = '/contribute#ways' as Route;
+/** The landing's two ways in, members too: a visitor signs in there and picks their own agent; connect is members-only. */
+const LANDING_WAYS_PATH = `${ABOUT_PATH}#ways` as Route;
 
 /** The public docs of the MCP server: setup per client, the tools, the token, the limits and what reaches us. */
 export function McpDocsScreen() {
@@ -67,7 +68,7 @@ export function McpDocsScreen() {
         {FACTS.map(({ label, value, text }) => (
           <li key={label} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-muted/50 p-5">
             <span className="text-xs text-muted-foreground">{label}</span>
-            <span className="break-all font-mono text-base font-semibold text-primary">{value}</span>
+            <span className="break-all font-mono text-base font-semibold">{value}</span>
             <span className="text-sm text-muted-foreground">{text}</span>
           </li>
         ))}
@@ -78,9 +79,9 @@ export function McpDocsScreen() {
           <ol className="flex list-decimal flex-col gap-2 pl-5">
             <li>
               Sign in with GitHub on{' '}
-              <Link href={LANDING_WAYS_PATH} prefetch={false} className={LINK}>
+              <HashSafeLink href={LANDING_WAYS_PATH} className={LINK}>
                 GitRanks Contribute
-              </Link>{' '}
+              </HashSafeLink>{' '}
               and choose your own agent: it makes you a token. It is shown once, so copy it then.
             </li>
             <li>
@@ -130,7 +131,10 @@ export function McpDocsScreen() {
               </CodeBlock>
               {windows ? (
                 <details className="text-sm">
-                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">On Windows</summary>
+                  <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
+                    On Windows
+                  </summary>
+                  {windows.where !== where ? <p className="mt-1 text-muted-foreground">{windows.where}</p> : null}
                   <CodeBlock
                     label={windows.label}
                     file={file}
@@ -183,7 +187,7 @@ export function McpDocsScreen() {
                     <td className="px-4 py-3">
                       <div className="flex flex-col items-start gap-1.5">
                         <span className="font-mono whitespace-nowrap">{name}</span>
-                        <Pill tone={changes ? 'neutral' : 'green'}>{changes ? 'Changes' : 'Reads'}</Pill>
+                        <Pill>{changes ? 'Changes' : 'Reads'}</Pill>
                       </div>
                     </td>
                     <td className="px-4 py-3">{text}</td>
@@ -209,8 +213,8 @@ export function McpDocsScreen() {
               GitHub account or spend money.
             </li>
             <li>
-              We keep a hash of it and its last 4 characters, never the token. Our proxy and the server keep it out of
-              our logs.
+              We keep a hash of it, its last 4 characters, its name and when it was last used, never the token. Our
+              proxy and the server keep it out of our logs.
             </li>
             <li>Revoke it any time in Contribute&apos;s Settings. A revoked token stops working at once.</li>
           </ul>
@@ -223,9 +227,9 @@ export function McpDocsScreen() {
         >
           <dl className="grid grid-cols-1 rounded-xl border text-sm sm:grid-cols-[200px_1fr]">
             {MCP_DOC_LIMITS.map(({ what, limit }, index) => (
-              <div key={what} className={index ? 'contents [&>*]:border-t' : 'contents'}>
-                <dt className="px-4 pt-3 text-muted-foreground sm:py-3">{what}</dt>
-                <dd className="px-4 pb-3 sm:border-t-0 sm:py-3 max-sm:border-t-0">{limit}</dd>
+              <div key={what} className="contents">
+                <dt className={cn('px-4 pt-3 text-muted-foreground sm:py-3', index > 0 && 'border-t')}>{what}</dt>
+                <dd className={cn('px-4 pb-3 sm:py-3', index > 0 && 'sm:border-t')}>{limit}</dd>
               </div>
             ))}
           </dl>

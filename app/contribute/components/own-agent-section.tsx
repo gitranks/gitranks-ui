@@ -285,7 +285,11 @@ export function OwnAgentSection({
             <h2 className={cn(HEADING.block, 'pt-1')}>Set up your agent</h2>
           )}
           <SetupLines />
-          <Link href={MCP_DOCS_PATH} prefetch={false} className="self-start text-sm font-semibold text-link">
+          <Link
+            href={MCP_DOCS_PATH}
+            prefetch={false}
+            className="inline-flex items-center max-sm:min-h-11 self-start text-sm font-semibold text-link"
+          >
             VS Code, other clients, the tools and the limits: the MCP docs →
           </Link>
           <p data-safety className="text-sm font-medium">

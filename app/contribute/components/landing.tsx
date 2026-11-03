@@ -217,6 +217,9 @@ export function Landing({
 
       <section className={cn(WIDTH, 'flex flex-wrap items-center gap-9 pt-8 pb-11 sm:gap-14 sm:pt-14 sm:pb-16')}>
         <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
+          <span className="w-fit rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-200">
+            Beta
+          </span>
           <h1 className="text-4xl font-bold tracking-tight text-balance md:text-5xl">
             Fix real open-source issues with the AI you already pay for
           </h1>

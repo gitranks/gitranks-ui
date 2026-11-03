@@ -12,6 +12,12 @@ export type FaqGroup = { id: string; title: string; entries: FaqEntry[] };
 export const AUTOPILOT_LAUNCH_LINE =
   'Autopilot opens about a month after launch. Until then every pull request waits for your review, and your record keeps counting.';
 
+const IN_BETA: FaqEntry = {
+  id: 'in-beta',
+  question: 'Is Contribute in beta?',
+  answer: `Yes. It is free, its limits may change, and every pull request waits for your review while autopilot is off. We read how every pull request turns out, to tune what we pick and how the agent works. Tell us what to fix at ${CONTACT_EMAIL}.`,
+};
+
 const COST: FaqEntry = {
   id: 'cost',
   question: 'Does it cost anything?',
@@ -47,8 +53,8 @@ const FAIR: FaqEntry = {
   more: { href: MAINTAINERS_PATH as Route, label: 'The rules for maintainers' },
 };
 
-/** The landing's five, short, in the landing's own order (cost first: its visitors ask that first). */
-export const LANDING_QUESTIONS: readonly FaqEntry[] = [COST, GITHUB, BILL, NOT_GOOD, FAIR];
+/** The landing's six, short, in the landing's own order: that it is in beta, then cost (its visitors ask that first). */
+export const LANDING_QUESTIONS: readonly FaqEntry[] = [IN_BETA, COST, GITHUB, BILL, NOT_GOOD, FAIR];
 
 /** The questions page: contribution first, then the guardrails, the credits, and the record last. */
 export const FAQ_GROUPS: readonly FaqGroup[] = [
@@ -120,11 +126,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
     id: 'beta',
     title: 'Beta and your record',
     entries: [
-      {
-        id: 'in-beta',
-        question: 'Is Contribute in beta?',
-        answer: `Yes. It is free, its limits may change, and every pull request waits for your review while autopilot is off. We read how every pull request turns out, to tune what we pick and how the agent works. Tell us what to fix at ${CONTACT_EMAIL}.`,
-      },
+      IN_BETA,
       {
         id: 'record',
         question: 'Does it count toward my rank?',

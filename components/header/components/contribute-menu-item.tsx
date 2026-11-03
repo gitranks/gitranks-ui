@@ -21,7 +21,7 @@ export function ContributeMenuItem({ active }: Readonly<{ active?: boolean }>) {
         <Link href="/contribute" prefetch={false}>
           Contribute
           <span className="rounded-full bg-violet-100 px-1.5 py-px text-[11px] font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-200">
-            new
+            Beta
           </span>
         </Link>
       </NavigationMenuLink>

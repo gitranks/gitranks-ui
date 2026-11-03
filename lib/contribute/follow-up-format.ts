@@ -21,7 +21,11 @@ export const SIGNALS: Record<ContributePrSignalKind, string> = {
 
 /** `A check started failing: lint, test · 2 hours ago`. */
 export function signalText(signal: ContributePrSignal, now?: Date): string {
-  const what = SIGNALS[signal.kind] ?? 'Something changed on it';
+  // A DCO signed like a CLA (its check names it): the agreement by its own name.
+  const dco = signal.kind === 'CLA' && /\bdco\b/i.test(signal.detail ?? '');
+  const what = dco
+    ? 'Sign the Developer Certificate of Origin (DCO)'
+    : (SIGNALS[signal.kind] ?? 'Something changed on it');
   const named = ['CHECK_FAILED', 'CLA', 'TITLE', 'BOT_BLOCKED'].includes(signal.kind);
   const detail = named && signal.detail?.trim() ? `: ${signal.detail.trim()}` : '';
   const when = relativeLabel(signal.at, now);

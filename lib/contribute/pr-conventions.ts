@@ -20,7 +20,16 @@ export type ContributeRepoConventions = {
   titleExamples: string[];
   template: { path: string; aiAsks: string[] } | null;
   changelog: { kind: 'FILE' | 'CHANGESETS' | 'FRAGMENTS'; path: string; required: boolean; source: string } | null;
-  cla: { check: string; signUrl: string | null } | null;
+  /**
+   * An agreement to sign: a CLA, or a DCO signed like one. `signComment`: the comment that signs it, word for word,
+   * posted on the PR by its author; `signUrl` then links the document to read. Both absent from an older API.
+   */
+  cla: {
+    check: string;
+    signUrl: string | null;
+    agreement?: 'CLA' | 'DCO' | null;
+    signComment?: string | null;
+  } | null;
   dco: boolean;
   generated: string[];
   notes: string[];
@@ -161,6 +170,8 @@ export type ChecklistItem = {
   label: string;
   detail: string | null;
   link: string | null;
+  /** The link's words; absent: "Sign here". */
+  linkText?: string;
 };
 
 /** The added lines of a changelog file in the patch: what the PR adds to the repo's changelog. */
@@ -246,14 +257,22 @@ export function checklistOf(
     });
   }
   if (conventions.cla) {
+    const { check, signUrl, signComment } = conventions.cla;
+    const what = conventions.cla.agreement ?? 'CLA';
     items.push({
       key: 'cla',
       state: 'todo',
-      label: httpsOnly(conventions.cla.signUrl)
-        ? "A signed CLA: sign it after the PR opens; we can't sign for you"
-        : "A signed CLA: the check on the PR links it after it opens; we can't sign for you",
-      detail: `The \`${conventions.cla.check}\` check waits for it.`,
-      link: httpsOnly(conventions.cla.signUrl),
+      label: signComment
+        ? `A signed ${what}: after the PR opens, you comment on it to sign; we can't sign for you`
+        : httpsOnly(signUrl)
+          ? `A signed ${what}: sign it after the PR opens; we can't sign for you`
+          : `A signed ${what}: the check on the PR links it after it opens; we can't sign for you`,
+      detail: signComment
+        ? `The comment, word for word: “${signComment}”. The \`${check}\` check waits for it.`
+        : `The \`${check}\` check waits for it.`,
+      link: httpsOnly(signUrl),
+      // Signed by a comment: the link is the document to read, not where to sign.
+      ...(signComment ? { linkText: `Read the ${what}` } : {}),
     });
   }
   if (conventions.changelog) {

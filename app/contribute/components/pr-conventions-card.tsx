@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useId, useState, useTransition } from 'react';
 
 import { fixPullRequest } from '../actions';
+import { CodeBlock } from './code-block';
 import { HEADING } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,7 +50,7 @@ function fixTextOf(fix: ContributePrFix): string {
 /**
  * What the open pull request fails of its repo's conventions, each with its one-click fix: a retitle to the
  * suggested title (or one the user types), the changelog line fixed in a commit, the description edited; the CLA is
- * a link only, since nobody can sign it for the user.
+ * a link only, or the comment that signs it to copy, since nobody can sign it for the user.
  */
 export function PrConventionsCard({
   attemptId,
@@ -102,7 +103,10 @@ export function PrConventionsCard({
               className="flex flex-col gap-1.5 text-sm"
             >
               <span>
-                {issue.message}
+                {/* The comment shows below, to copy: the line says what to do with it. */}
+                {issue.kind === 'CLA' && conventions?.cla?.signComment
+                  ? `Sign the repo's ${conventions.cla.agreement ?? 'CLA'}: post this comment on the pull request yourself. We can't sign for you.`
+                  : issue.message}
                 {issue.check ? <span className="text-muted-foreground"> ({issue.check})</span> : null}
               </span>
               {issue.kind === 'TITLE' ? (
@@ -169,7 +173,30 @@ export function PrConventionsCard({
                   </Button>
                 </div>
               ) : null}
-              {issue.kind === 'CLA' ? (
+              {issue.kind === 'CLA' && conventions?.cla?.signComment ? (
+                <div className="flex flex-col gap-1.5">
+                  <CodeBlock label="Your comment on the pull request" copyLabel="Copy the comment" wrap>
+                    {conventions.cla.signComment}
+                  </CodeBlock>
+                  <span className="text-xs text-muted-foreground">
+                    Word for word: the repo&apos;s bot records your signature from it.
+                    {httpsOnly(issue.suggestion) ? (
+                      <>
+                        {' '}
+                        <a
+                          href={httpsOnly(issue.suggestion) ?? undefined}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-link"
+                        >
+                          Read the {conventions.cla.agreement ?? 'CLA'} first
+                          <span className="sr-only"> (opens in a new tab)</span>
+                        </a>
+                      </>
+                    ) : null}
+                  </span>
+                </div>
+              ) : issue.kind === 'CLA' ? (
                 httpsOnly(issue.suggestion) ? (
                   <a
                     href={httpsOnly(issue.suggestion) ?? undefined}
@@ -177,7 +204,8 @@ export function PrConventionsCard({
                     rel="noreferrer"
                     className="text-link"
                   >
-                    Sign the CLA<span className="sr-only"> (opens in a new tab)</span>
+                    Sign the {conventions?.cla?.agreement ?? 'CLA'}
+                    <span className="sr-only"> (opens in a new tab)</span>
                   </a>
                 ) : (
                   <span className="text-xs text-muted-foreground">

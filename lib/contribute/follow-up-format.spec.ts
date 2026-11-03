@@ -25,3 +25,15 @@ describe('a review bot blocking the merge (openclaw#190186: ClawSweeper asked fo
     expect(followUpCanHelp([blocked, { kind: 'CHECK_FAILED', at: blocked.at, detail: 'lint' }])).toBe(true);
   });
 });
+
+describe('an agreement to sign', () => {
+  it('names a DCO by its check, a CLA as before', () => {
+    const at = '2026-11-03T10:45:00.000Z';
+    expect(signalText({ kind: 'CLA', at, detail: 'DCO' })).toMatch(
+      /^Sign the Developer Certificate of Origin \(DCO\): DCO/,
+    );
+    expect(signalText({ kind: 'CLA', at, detail: 'license/cla' })).toMatch(
+      /^Sign the contributor license agreement \(CLA\): license\/cla/,
+    );
+  });
+});

@@ -31,11 +31,7 @@ import {
   nextForYou,
 } from '@/lib/contribute/__fixtures__/needs-you';
 import { pageOf } from '@/lib/contribute/__fixtures__/runs';
-import type {
-  ContributeActivity,
-  ContributeAttemptDetail,
-  ContributeView,
-} from '@/lib/contribute/contribute.types';
+import type { ContributeActivity, ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { NeedsYouRead } from '@/lib/contribute/needs-you';
 import { runsQueryOf } from '@/lib/contribute/runs';

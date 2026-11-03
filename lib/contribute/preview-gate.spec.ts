@@ -7,7 +7,9 @@ vi.mock('./session-token', () => ({ sessionTokenOf }));
 const { contributeOpen, contributePreviewAllowed, requestMaySeeContribute, resetContributeOpen } = await import(
   './preview-gate'
 );
-const { isContributePath, isLandingPath, isMaintainersPath } = await import('./contribute-path');
+const { isContributePath, isLandingPath, isMaintainersPath, isOpenAtLaunchPath, isTablessPath } = await import(
+  './contribute-path'
+);
 
 const req = { headers: new Headers({ cookie: 'authjs.session-token=t' }) };
 
@@ -70,6 +72,22 @@ describe('the Contribute preview gate', () => {
     expect(isMaintainersPath('/contribute/maintainers%')).toBe(false);
     expect(isMaintainersPath('/contribute')).toBe(false);
     expect(isMaintainersPath('/maintainers')).toBe(false);
+    expect(isMaintainersPath('/contribute/mcp')).toBe(false);
+  });
+
+  it('opens the landing, the MCP docs and the questions at the launch, and draws no tabs on the pages for anyone', () => {
+    expect(isOpenAtLaunchPath('/contribute')).toBe(true);
+    expect(isOpenAtLaunchPath('/contribute/mcp')).toBe(true);
+    expect(isOpenAtLaunchPath('/Contribute/FAQ/')).toBe(true);
+    expect(isOpenAtLaunchPath('/contribute/%6dcp')).toBe(true);
+    expect(isOpenAtLaunchPath('/contribute/mcp/tokens')).toBe(false);
+    expect(isOpenAtLaunchPath('/contribute/faqs')).toBe(false);
+    expect(isOpenAtLaunchPath('/contribute/maintainers')).toBe(false);
+    expect(isOpenAtLaunchPath('/contribute/settings')).toBe(false);
+    expect(isOpenAtLaunchPath('/contribute/mcp%')).toBe(false);
+    expect(isTablessPath('/contribute/maintainers')).toBe(true);
+    expect(isTablessPath('/contribute/faq')).toBe(true);
+    expect(isTablessPath('/contribute')).toBe(false);
   });
 
   it('matches the decoded path, so an encoded spelling cannot get past it', () => {

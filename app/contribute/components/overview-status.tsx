@@ -1,4 +1,3 @@
-import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -13,7 +12,7 @@ import type {
   ContributeIssuePage,
   ContributeView,
 } from '@/lib/contribute/contribute.types';
-import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
+import { ABOUT_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import { accessNoticesOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
 import { agentFirstRunStepOf, firstRunNoticesOf, firstRunStepOf } from '@/lib/contribute/first-run';
 import type { McpClient } from '@/lib/contribute/mcp-setup';
@@ -21,7 +20,6 @@ import type { OverviewNeedsRead, OverviewNowRead } from '@/lib/contribute/overvi
 import { cn } from '@/lib/utils';
 
 /** The landing again, for a user who is onboarded. */
-export const ABOUT_PATH = '/contribute?about=1' as Route;
 
 /**
  * Overview's sections, each read on its own: the page passes each in a `<Suspense>` of its own, so one that is slow or
@@ -70,9 +68,14 @@ function OverviewFooter() {
           Opt it out →
         </Link>
       </p>
-      <Link href={ABOUT_PATH} prefetch={false} className="inline-flex min-h-10 items-center font-semibold text-link">
-        How Contribute works
-      </Link>
+      <div className="flex flex-wrap gap-x-5">
+        <Link href={ABOUT_PATH} prefetch={false} className="inline-flex min-h-10 items-center font-semibold text-link">
+          How Contribute works
+        </Link>
+        <Link href={FAQ_PATH} prefetch={false} className="inline-flex min-h-10 items-center font-semibold text-link">
+          Questions
+        </Link>
+      </div>
     </footer>
   );
 }

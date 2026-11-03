@@ -1,3 +1,5 @@
+import { headers } from 'next/headers';
+
 import { ContributeOpenDocument, ContributePreviewDocument } from './contribute.documents';
 import { sessionTokenOf } from './session-token';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -55,4 +57,13 @@ export async function requestMaySeeContribute(req: { headers: Headers }): Promis
   const token = await sessionTokenOf(req);
   if (!token?.githubLogin || token.error) return false;
   return contributePreviewAllowed(token.githubLogin);
+}
+
+/**
+ * Whether the current request may see Contribute's pages and blocks for visitors (the Terms section, the links between
+ * the public pages): everyone once launched, until then the preview list. Reads the request, so it renders per request.
+ */
+export async function contributeShown(): Promise<boolean> {
+  const requestHeaders = await headers();
+  return (await contributeOpen()) || requestMaySeeContribute({ headers: requestHeaders });
 }

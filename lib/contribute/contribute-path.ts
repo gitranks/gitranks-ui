@@ -52,6 +52,41 @@ export function isLedgerPath(pathname: string): boolean {
   }
 }
 
+/** The MCP server's docs: setup per client, the tools, the token, the limits and what is sent. Everyone's once launched. */
+export const MCP_DOCS_PATH = '/contribute/mcp' as Route;
+
+/** The questions people ask before they start. Everyone's once launched. */
+export const FAQ_PATH = '/contribute/faq' as Route;
+
+/** The landing for anyone, members too (a member's `/contribute` is their overview). */
+export const ABOUT_PATH = '/contribute?about=1' as Route;
+
+/** Contribute's section of the Terms of service. */
+export const CONTRIBUTE_TERMS_PATH = '/terms#contribute' as Route;
+
+/** Matches the path, decoded as the router reads it, against `pattern`; a path that does not decode never matches. */
+function decodedMatches(pathname: string, pattern: RegExp): boolean {
+  try {
+    return pattern.test(decodeURIComponent(pathname));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether the path is a page every visitor sees once Contribute is launched: the landing, the MCP docs and the
+ * questions, in any spelling the router reads as them. Until then only the preview list sees them.
+ */
+export const isOpenAtLaunchPath = (pathname: string): boolean =>
+  isLandingPath(pathname) || decodedMatches(pathname, /^\/+contribute\/+(?:mcp|faq)\/?$/i);
+
+/**
+ * Whether the path is one of the pages about Contribute rather than the user's workspace, which show no tabs: the
+ * maintainers page, the ledger, the MCP docs and the questions.
+ */
+export const isTablessPath = (pathname: string): boolean =>
+  decodedMatches(pathname, /^\/+contribute\/+(?:maintainers|ledger|mcp|faq)\/?$/i);
+
 /** Where each way of contributing starts: a Claude key we run the agent on, or the user's own agent. */
 export const CONNECT_KEY_PATH: Route = '/contribute/connect';
 export const CONNECT_AGENT_PATH = '/contribute/connect?path=agent' as Route;

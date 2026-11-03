@@ -20,7 +20,7 @@ import {
   unusedTokenOf,
 } from '@/lib/contribute/agent-connect';
 import type { ContributeMcpToken } from '@/lib/contribute/contribute.types';
-import { CONNECT_KEY_PATH } from '@/lib/contribute/contribute-path';
+import { CONNECT_KEY_PATH, MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import {
   MCP_CLIENT_NAMES,
@@ -164,6 +164,13 @@ export function AgentConnectView({
             </button>
           ))}
         </fieldset>
+        <Link
+          href={MCP_DOCS_PATH}
+          prefetch={false}
+          className="inline-flex items-center max-sm:min-h-11 self-start text-sm font-semibold text-link"
+        >
+          VS Code or another agent? The MCP docs →
+        </Link>
       </section>
 
       <section

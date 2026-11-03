@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
+import { LaunchedMorePages } from '../components/launched-more-pages';
 import { MaintainerReposLoading, MaintainerReposPanel, MaintainersScreen } from '../components/maintainers-view';
 import { loadMaintainerRepos } from '@/lib/contribute/maintainers.data';
 
@@ -16,6 +17,11 @@ export default function MaintainersPage() {
       repos={
         <Suspense fallback={<MaintainerReposLoading />}>
           <MaintainerRepos />
+        </Suspense>
+      }
+      more={
+        <Suspense fallback={null}>
+          <LaunchedMorePages />
         </Suspense>
       }
     />

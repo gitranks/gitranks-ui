@@ -14,14 +14,18 @@ import {
 } from '@/app/contribute/components/autopilot-section';
 import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
+import { FaqScreen } from '@/app/contribute/components/faq';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
 import { LedgerScreen } from '@/app/contribute/components/ledger-view';
 import { MaintainerReposPanel, MaintainersScreen } from '@/app/contribute/components/maintainers-view';
+import { McpDocsScreen } from '@/app/contribute/components/mcp-docs';
 import { OverviewScreen, overviewSectionsOf } from '@/app/contribute/components/overview-status';
+import { MorePages } from '@/app/contribute/components/public-pages';
 import { ReviewScreen } from '@/app/contribute/components/review-view';
 import { RunsScreen } from '@/app/contribute/components/runs-view';
 import { SettingsScreen } from '@/app/contribute/components/settings-view';
+import { TermsScreen } from '@/app/terms/terms';
 import { Header } from '@/components/header/header';
 import { Button } from '@/components/ui/button';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
@@ -207,11 +211,14 @@ const mine = () => {
 };
 
 /** The page for maintainers: open to everyone, the site header with no tabs, the visitor's repos as the panel. */
-const maintainersPage = (view: MaintainerReposView) => (
+const maintainersPage = (view: MaintainerReposView, { shown = false }: { shown?: boolean } = {}) => (
   <>
     <Header section="contribute" />
     <HeaderLine />
-    <MaintainersScreen repos={<MaintainerReposPanel view={view} />} />
+    <MaintainersScreen
+      repos={<MaintainerReposPanel view={view} />}
+      more={shown ? <MorePages current="maintainers" /> : null}
+    />
   </>
 );
 
@@ -221,6 +228,15 @@ const ledgerPage = (view: typeof ledger) => (
     <Header section="contribute" />
     <HeaderLine />
     <LedgerScreen ledger={view} />
+  </>
+);
+
+/** A page open to everyone: the site header with no tabs, as a visitor sees it. */
+const publicPage = (page: ReactNode) => (
+  <>
+    <Header section="contribute" />
+    <HeaderLine />
+    {page}
   </>
 );
 
@@ -836,6 +852,14 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () => maintainersPage({ state: 'signed-out' }),
       },
       {
+        id: 'signed-out-shown',
+        title: 'Signed out, once Contribute is open',
+        path: '/contribute/maintainers',
+        signedOut: true,
+        height: 1300,
+        render: () => maintainersPage({ state: 'signed-out' }, { shown: true }),
+      },
+      {
         id: 'signed-in',
         title: 'Signed in: the repos you maintain',
         path: '/contribute/maintainers',
@@ -899,6 +923,94 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/contribute/ledger',
         height: 1500,
         render: () => ledgerPage(emptyLedger),
+      },
+    ],
+  },
+  {
+    id: 'contribute-mcp',
+    title: 'MCP server docs',
+    area: 'contribute',
+    route: '/contribute/mcp',
+    sources: [
+      'app/contribute/mcp/page.tsx',
+      'app/contribute/components/mcp-docs.tsx',
+      'app/contribute/components/public-pages.tsx',
+      'lib/contribute/mcp-docs.ts',
+    ],
+    states: [
+      {
+        id: 'signed-out',
+        title: 'Signed out',
+        path: '/contribute/mcp',
+        signedOut: true,
+        height: 6000,
+        render: () => publicPage(<McpDocsScreen />),
+      },
+      {
+        id: 'phone',
+        title: 'Phone',
+        path: '/contribute/mcp',
+        signedOut: true,
+        width: 390,
+        height: 9100,
+        render: () => publicPage(<McpDocsScreen />),
+      },
+    ],
+  },
+  {
+    id: 'contribute-faq',
+    title: 'Questions',
+    area: 'contribute',
+    route: '/contribute/faq',
+    sources: [
+      'app/contribute/faq/page.tsx',
+      'app/contribute/components/faq.tsx',
+      'app/contribute/components/public-pages.tsx',
+      'lib/contribute/faq.ts',
+    ],
+    states: [
+      {
+        id: 'signed-out',
+        title: 'Signed out',
+        path: '/contribute/faq',
+        signedOut: true,
+        height: 2850,
+        render: () => publicPage(<FaqScreen />),
+      },
+      {
+        id: 'phone',
+        title: 'Phone',
+        path: '/contribute/faq',
+        signedOut: true,
+        width: 390,
+        height: 5000,
+        render: () => publicPage(<FaqScreen />),
+      },
+    ],
+  },
+  {
+    id: 'contribute-terms',
+    title: 'Terms, with the Contribute section',
+    area: 'contribute',
+    route: '/terms',
+    sources: ['app/terms/page.tsx', 'components/legal/legal-page.tsx'],
+    states: [
+      {
+        id: 'launched',
+        title: 'Once Contribute is open',
+        path: '/terms',
+        signedOut: true,
+        height: 4650,
+        render: () => <TermsScreen contribute />,
+      },
+      {
+        id: 'launched-phone',
+        title: 'Once Contribute is open, phone',
+        path: '/terms',
+        signedOut: true,
+        width: 390,
+        height: 7100,
+        render: () => <TermsScreen contribute />,
       },
     ],
   },

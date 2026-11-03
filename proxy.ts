@@ -3,7 +3,12 @@ import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
-import { isContributePath, isLandingPath, isLedgerPath, isMaintainersPath } from './lib/contribute/contribute-path';
+import {
+  isContributePath,
+  isLedgerPath,
+  isMaintainersPath,
+  isOpenAtLaunchPath,
+} from './lib/contribute/contribute-path';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { contributeOpen, requestMaySeeContribute } from './lib/contribute/preview-gate';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
@@ -67,7 +72,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 
   // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared
   // cache (it would be served to someone who is let in). The page for maintainers is open to everyone, and once
-  // Contribute is launched so is the landing, to visitors without a session too.
+  // Contribute is launched so are the landing, the MCP docs and the questions, to visitors without a session too.
   const { pathname } = request.nextUrl;
   // The ledger has its own switch (ledger design §6): open, it goes on as any public page; closed, a visitor without a
   // session gets the 404 here, and a signed-in one goes on to the page, which asks the API whether they are on its list.
@@ -80,7 +85,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   } else if (
     isContributePath(pathname) &&
     !isMaintainersPath(pathname) &&
-    !(isLandingPath(pathname) && (await contributeOpen())) &&
+    !(isOpenAtLaunchPath(pathname) && (await contributeOpen())) &&
     !(await requestMaySeeContribute(request))
   ) {
     const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));

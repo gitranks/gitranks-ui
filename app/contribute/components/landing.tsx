@@ -4,11 +4,20 @@ import { Fragment, type ReactNode } from 'react';
 
 import { ComingSoon } from './coming-soon';
 import { Pill } from './primitives';
+import { HashSafeLink } from './public-pages';
 import { SignInButton, type SignInPath } from './sign-in-dialog';
 import { buttonVariants } from '@/components/ui/button';
 import type { ContributeComingSoonProvider } from '@/lib/contribute/contribute.types';
-import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
+import {
+  CONNECT_AGENT_PATH,
+  CONNECT_KEY_PATH,
+  CONTRIBUTE_TERMS_PATH,
+  FAQ_PATH,
+  MAINTAINERS_PATH,
+  MCP_DOCS_PATH,
+} from '@/lib/contribute/contribute-path';
 import type { LandingViewer } from '@/lib/contribute/contribute-state';
+import { LANDING_QUESTIONS } from '@/lib/contribute/faq';
 import { cn } from '@/lib/utils';
 
 const ACTIONS: Record<SignInPath, { label: string; href: Route }> = {
@@ -30,7 +39,7 @@ const WAYS: {
     text: "Best if your Claude Max, Ultra or Team plan has API credits that expire unused. We pick an issue, run Claude in Anthropic's hosted sandbox, and bring you a tested change to review. You never touch a terminal.",
     facts: [
       ['You bring', 'A Claude API key, from a workspace with its own spend limit'],
-      ['It spends', 'Your API credits, never more than the caps you set'],
+      ['It spends', 'Your API credits; each run stops at the caps you set'],
       ['The pace', 'Spread across your billing cycle, or as fast as your caps allow'],
       ['Setup', 'One step, about two minutes'],
     ],
@@ -104,31 +113,11 @@ const DEFAULTS = [
   },
 ];
 
-const QUESTIONS = [
-  {
-    question: 'Does it cost anything?',
-    answer:
-      "GitRanks is free. With your Claude key, the agent spends your API credits, never past your caps. Give the key a workspace of its own with a spend limit, and keep auto-reload off: it can charge your card even while your plan's credits remain. With your own agent, nothing is spent through us.",
-  },
-  {
-    question: 'What can you do on my GitHub account?',
-    answer:
-      'Only after your first submit, and only public_repo: fork a repo, push a branch to the fork and open the PR. Nothing on private repos, never workflow files. Revoke it any time.',
-  },
-  {
-    question: 'Do you see my Claude bill or my code?',
-    answer:
-      'No. Your key is encrypted and used only for your attempts. Your own agent works on your machine and sends us only the patch you submit.',
-  },
-  {
-    question: "What if a fix isn't good?",
-    answer: 'Discard it, or send it back with a note. Nothing reaches the maintainers until you submit.',
-  },
-  {
-    question: 'Is it fair to maintainers?',
-    answer:
-      'We open at most one PR in a repo at a time, never more than four a month, and pause after two are closed in a row. Every PR says it was made with AI. Maintainers can opt their repo out.',
-  },
+/** The landing's foot: the pages open to every visitor. */
+const FOOT_LINKS: { href: Route; label: string }[] = [
+  { href: MCP_DOCS_PATH, label: 'MCP server docs' },
+  { href: FAQ_PATH, label: 'Questions' },
+  { href: CONTRIBUTE_TERMS_PATH, label: 'Terms' },
 ];
 
 const H2 = 'text-2xl font-bold tracking-tight text-balance md:text-3xl';
@@ -360,9 +349,12 @@ export function Landing({
           <p className="text-muted-foreground">
             Still unsure which way fits you? Start with either. You can add the other later from Settings.
           </p>
+          <Link href={FAQ_PATH} prefetch={false} className="self-start font-semibold text-link hover:underline">
+            All questions →
+          </Link>
         </div>
         <dl className="flex min-w-0 flex-[2_1_560px] flex-col gap-5.5">
-          {QUESTIONS.map(({ question, answer }) => (
+          {LANDING_QUESTIONS.map(({ question, answer }) => (
             <div key={question} className="flex flex-col gap-1">
               <dt className="font-bold">{question}</dt>
               <dd className="text-foreground/80">{answer}</dd>
@@ -384,6 +376,20 @@ export function Landing({
               Opt it out →
             </Link>
           </p>
+          <nav aria-label="More about Contribute" className="basis-full">
+            <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+              {FOOT_LINKS.map(({ href, label }) => (
+                <li key={href}>
+                  <HashSafeLink
+                    href={href}
+                    className="inline-flex items-center max-sm:min-h-11 text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    {label}
+                  </HashSafeLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </section>
     </main>

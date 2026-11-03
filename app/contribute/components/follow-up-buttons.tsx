@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { timeLabel } from '@/lib/contribute/attempt-format';
 import type { ContributeRetry, ContributeRetryKind } from '@/lib/contribute/contribute.types';
-import { attemptActionErrorMessage } from '@/lib/contribute/errors';
+import { retryErrorMessage } from '@/lib/contribute/errors';
 import {
   FOLLOW_UP_NOTE_MAX,
   followUpErrorMessage,
@@ -190,11 +190,7 @@ export function RetryButton({
       setError(null);
       const result = await retryAttempt(attemptId, note);
       if (!result.ok) {
-        setError(
-          result.error === 'INVALID' && /tried again|only a check/i.test(result.message ?? '')
-            ? 'It was tried again already, or it can no longer be (the issue may be closed). Reload the page.'
-            : attemptActionErrorMessage(result.error, result.message),
-        );
+        setError(retryErrorMessage(result.error, result.message));
         return;
       }
       setDone(true);

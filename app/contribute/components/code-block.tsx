@@ -78,7 +78,7 @@ export function CodeBlock({
       <pre
         className={cn(
           'px-3.5 py-3 font-mono text-sm leading-normal',
-          wrap ? 'whitespace-pre-wrap' : 'overflow-x-auto whitespace-pre',
+          wrap ? 'whitespace-pre-wrap [overflow-wrap:anywhere]' : 'overflow-x-auto whitespace-pre',
         )}
       >
         {children}

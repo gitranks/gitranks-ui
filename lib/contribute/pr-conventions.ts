@@ -327,7 +327,7 @@ export function checklistOf(
       state: 'todo',
       label: 'The description, filled in by you on GitHub after the PR opens',
       detail:
-        "The repo's rules for AI agents forbid an agent to fill in its pull request template: the person who tested the change does. So the agent leaves it empty, and once the PR opens we draft each section for you to paste.",
+        "The repo's rules for AI agents forbid an agent to fill in its pull request template: the person who tested the change does. So the agent leaves it empty, and once the PR opens we show what to write in each section and which boxes to tick.",
       link: null,
     });
   } else if (conventions.template?.aiAsks.length) {

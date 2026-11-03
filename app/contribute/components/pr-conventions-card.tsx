@@ -43,23 +43,38 @@ function fixTextOf(fix: ContributePrFix): string {
   return `${words} did not go through${fix.note ? `: ${fix.note}` : '.'} Try again.`;
 }
 
+/** The API's words with their `backticked` names (a check, a title prefix) set as code. */
+function Words({ text }: { text: string }) {
+  return text.split(/`([^`\n]+)`/).map((part, index) =>
+    index % 2 ? (
+      <code key={index} className="rounded bg-muted/60 px-1 font-mono text-xs">
+        {part}
+      </code>
+    ) : (
+      part
+    ),
+  );
+}
+
 /** Why the user sees an issue (and the repo's file that asks it), then what to do, in order. */
 function IssueWhy({ issue }: { issue: ContributePrConventionIssue }) {
   const source = issue.source && httpsOnly(issue.source.url);
   const steps = issue.steps ?? [];
   return (
     <>
-      {issue.why ? (
-        <p className="text-muted-foreground">
-          <span className="font-medium text-foreground">Why you see this: </span>
-          {issue.why}
-          {source ? (
+      {issue.why || source ? (
+        <p className="text-muted-foreground [overflow-wrap:anywhere]">
+          {issue.why ? (
             <>
-              {' '}
-              <a href={source} target="_blank" rel="noreferrer" className="text-link">
-                Read the rule ({issue.source?.label})<span className="sr-only"> (opens in a new tab)</span>
-              </a>
+              <span className="font-medium text-foreground">Why you see this: </span>
+              <Words text={issue.why} />{' '}
             </>
+          ) : null}
+          {source ? (
+            <a href={source} target="_blank" rel="noreferrer" className="text-link">
+              Read the rule{issue.source?.label ? ` (${issue.source.label})` : ''}
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
           ) : null}
         </p>
       ) : null}
@@ -67,8 +82,10 @@ function IssueWhy({ issue }: { issue: ContributePrConventionIssue }) {
         <div className="flex flex-col gap-1">
           <span className="font-medium">What to do</span>
           <ol className="ml-5 flex list-decimal flex-col gap-1">
-            {steps.map((step) => (
-              <li key={step}>{step}</li>
+            {steps.map((step, index) => (
+              <li key={`${index}-${step}`}>
+                <Words text={step} />
+              </li>
             ))}
           </ol>
         </div>
@@ -83,8 +100,8 @@ function IssueFields({ fields }: { fields: ContributePrIssueField[] }) {
   const boxes = fields.filter(({ tick }) => tick != null);
   return (
     <div className="flex flex-col gap-3" data-pr-fields="">
-      {texts.map((field) => (
-        <div key={field.label} className="flex flex-col gap-1.5">
+      {texts.map((field, index) => (
+        <div key={`${index}-${field.label}`} className="flex flex-col gap-1.5">
           {field.value ? (
             <CodeBlock label={`Under “${field.label}”`} copyLabel={`Copy the text for ${field.label}`} wrap>
               {field.value}
@@ -99,8 +116,8 @@ function IssueFields({ fields }: { fields: ContributePrIssueField[] }) {
         <div className="flex flex-col gap-1.5">
           <span className="font-medium">The checklist</span>
           <ul className="flex flex-col gap-2">
-            {boxes.map((field) => (
-              <li key={field.label} className="flex gap-2">
+            {boxes.map((field, index) => (
+              <li key={`${index}-${field.label}`} className="flex gap-2">
                 {field.tick ? (
                   <SquareCheck aria-hidden="true" className="mt-0.5 size-4 flex-none text-positive-strong" />
                 ) : (

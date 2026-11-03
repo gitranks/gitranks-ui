@@ -264,7 +264,7 @@ describe('needsYouItemsOf: an open pull request', () => {
     expect(rowOf(template)).toMatchObject({ kind: 'description', pill: 'Description rule' });
     // No check: the repo leaves its template to the user, who fills it on GitHub from our drafts.
     expect(rowOf(template)).toMatchObject({
-      move: 'The repo wants you, not the agent, to fill in the description. We drafted it for you to paste.',
+      move: 'The repo wants you, not the agent, to fill in the description. Open it for what to write and tick.',
       action: { label: 'Fill in the description' },
     });
     expect(

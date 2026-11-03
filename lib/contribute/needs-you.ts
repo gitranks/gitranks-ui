@@ -549,8 +549,8 @@ function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
       tone: 'amber',
       pill: 'Description rule',
       move: yours
-        ? 'The repo wants you, not the agent, to fill in the description. We drafted it for you to paste.'
-        : "The description misses the repo's template. Fix it in one click.",
+        ? 'The repo wants you, not the agent, to fill in the description. Open it for what to write and tick.'
+        : "The description fails the repo's template check. Edit it on the rules card.",
       action: toNext(yours ? 'Fill in the description' : 'Fix the description'),
       secondary: null,
       at: timeOf(pr.pullRequest.openedAt),

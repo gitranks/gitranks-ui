@@ -3,6 +3,11 @@ import type { ReactNode } from 'react';
 import type { Screen } from '../registry';
 import { AgentConnectView } from '@/app/contribute/components/agent-connect';
 import {
+  AUTOPILOT_CONFIRM_ACTION,
+  AUTOPILOT_CONFIRM_LEAD,
+  AUTOPILOT_CONFIRM_TITLE,
+  AUTOPILOT_HOW_LEAD,
+  AUTOPILOT_HOW_TITLE,
   AutopilotConfirmLines,
   AutopilotHowItWorks,
   AutopilotRecord,
@@ -17,11 +22,13 @@ import { ReviewScreen } from '@/app/contribute/components/review-view';
 import { RunsScreen } from '@/app/contribute/components/runs-view';
 import { SettingsScreen } from '@/app/contribute/components/settings-view';
 import { Header } from '@/components/header/header';
+import { Button } from '@/components/ui/button';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 import {
   attempt,
   contributions,
   decisionAttempts,
+  detail,
   followUpAttempts,
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { issuePage, nowIdle, overviewData } from '@/lib/contribute/__fixtures__/contribute-overview';
@@ -42,8 +49,8 @@ import type { NeedsYouRead } from '@/lib/contribute/needs-you';
 import { runsQueryOf } from '@/lib/contribute/runs';
 
 /**
- * A dialog drawn open over its page: a portal renders nothing on the server, so the catalogue draws its content in the
- * same box the dialog uses (autopilot limits spec §4).
+ * A dialog drawn open over its page: a portal renders nothing on the server, so the catalogue draws the dialog's own
+ * parts (its title, lead and body, exported beside it) in the box the dialog uses (autopilot limits spec §4).
  */
 function OpenDialog({ page, title, children }: { page: ReactNode; title: string; children: ReactNode }) {
   return (
@@ -62,6 +69,17 @@ function OpenDialog({ page, title, children }: { page: ReactNode; title: string;
     </div>
   );
 }
+
+/** A change autopilot would have submitted: every check and test passed, the risk low. */
+const held = detail({
+  ...decisionAttempts.went,
+  result: decisionAttempts.went.result
+    ? {
+        ...decisionAttempts.went.result,
+        tests: decisionAttempts.went.result.tests.map((test) => ({ ...test, passed: true })),
+      }
+    : null,
+});
 
 /** Autopilot open and unlocked, the setting off: what the confirmation shows over. */
 const autopilotOff: ContributeView = {
@@ -350,7 +368,8 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
               <ReviewScreen
                 view={views.active}
                 attempt={{
-                  ...decisionAttempts.went,
+                  // Every check passed and the risk is low: autopilot would have submitted it but for the label.
+                  ...held,
                   newcomersLabel: 'first-timers-only',
                   reviewReason: 'beginner_issue',
                   reviewReasonSource: 'first-timers-only',
@@ -701,7 +720,11 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     title: 'Settings',
     area: 'contribute',
     route: '/contribute/settings',
-    sources: ['app/contribute/components/settings-view.tsx', 'app/contribute/components/settings-pages.tsx'],
+    sources: [
+      'app/contribute/components/settings-view.tsx',
+      'app/contribute/components/settings-pages.tsx',
+      'app/contribute/components/autopilot-section.tsx',
+    ],
     states: [
       {
         id: 'summary',
@@ -723,18 +746,18 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () =>
           frame(
             <OpenDialog
-              title="How autopilot works"
+              title={AUTOPILOT_HOW_TITLE}
               page={
                 <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
                   <SettingsScreen view={views.autopilotComing} now={NOW} />
                 </main>
               }
             >
-              <p className="text-sm text-muted-foreground">
-                Autopilot submits a pull request for you, without your review, when the change is ready. It stays off
-                until you turn it on.
-              </p>
-              <AutopilotHowItWorks autopilot={views.autopilotComing.contributor.autopilot} />
+              <p className="text-sm text-muted-foreground">{AUTOPILOT_HOW_LEAD}</p>
+              <AutopilotHowItWorks
+                autopilot={views.autopilotComing.contributor.autopilot}
+                login={views.autopilotComing.contributor.login}
+              />
               <div className="border-t pt-3">
                 <AutopilotRecord autopilot={views.autopilotComing.contributor.autopilot} />
               </div>
@@ -749,23 +772,21 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () =>
           frame(
             <OpenDialog
-              title="Turn on autopilot?"
+              title={AUTOPILOT_CONFIRM_TITLE}
               page={
                 <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
                   <SettingsScreen view={autopilotOff} now={NOW} />
                 </main>
               }
             >
-              <p className="text-sm text-muted-foreground">
-                Autopilot submits pull requests for you, without your review.
-              </p>
+              <p className="text-sm text-muted-foreground">{AUTOPILOT_CONFIRM_LEAD}</p>
               <AutopilotConfirmLines />
-              <span className="text-sm font-semibold text-link">How autopilot works</span>
+              <span className="text-sm font-semibold text-link">{AUTOPILOT_HOW_TITLE}</span>
               <div className="flex justify-end gap-2">
-                <span className="inline-flex h-9 items-center rounded-md border px-4 text-sm font-medium">Cancel</span>
-                <span className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
-                  Turn on autopilot
-                </span>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+                <Button type="button">{AUTOPILOT_CONFIRM_ACTION}</Button>
               </div>
             </OpenDialog>,
           ),

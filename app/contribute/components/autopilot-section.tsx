@@ -37,6 +37,14 @@ export const AUTOPILOT_LOCK_AT = 2;
 /** Follow-up runs autopilot may start on one pull request, and none once the user started one there. */
 export const AUTOPILOT_FOLLOW_UPS_MAX = 2;
 
+/** The dialogs' titles and leads, shared with the design catalogue so a change reaches its boards. */
+export const AUTOPILOT_HOW_TITLE = 'How autopilot works';
+export const AUTOPILOT_HOW_LEAD =
+  'Autopilot submits a pull request for you, without your review, when the change is ready. It stays off until you turn it on.';
+export const AUTOPILOT_CONFIRM_TITLE = 'Turn on autopilot?';
+export const AUTOPILOT_CONFIRM_LEAD = 'Autopilot submits pull requests for you, without your review.';
+export const AUTOPILOT_CONFIRM_ACTION = 'Turn on autopilot';
+
 /** Autopilot is off for the launch (autopilot limits spec §2): said wherever it cannot be turned on yet. */
 export const AUTOPILOT_LAUNCH_LINE =
   'Autopilot opens about a month after launch. Until then every pull request waits for your review, and your record keeps counting.';
@@ -78,15 +86,20 @@ function recordOf(autopilot: ContributeAutopilot) {
 
 /**
  * Autopilot's row in Settings: the user's record (merged through GitRanks, still needed to unlock, closed without merging in a row) and
- * a toggle they own once it is unlocked, with the full record behind Details. While autopilot is not open (`available` false, or not known yet), it says it
- * is coming and the toggle cannot be turned on; a setting left on can always be turned off.
+ * a toggle they own once it is unlocked, and How autopilot works: every limit, then the record (autopilot limits spec §4).
+ * Turning it on asks first; turning it off saves at once. While autopilot is not open (`available` false, or not known
+ * yet) its pill says it opens after launch month and the toggle cannot be turned on; a setting left on can always be
+ * turned off.
  */
 export function AutopilotSection({
   autopilot,
+  login,
   enabled,
   canSave,
 }: {
   autopilot: ContributeAutopilot;
+  /** The user's login, as the autopilot footer names them. */
+  login?: string;
   enabled: boolean;
   /** Settings exist only once a key is connected. */
   canSave: boolean;
@@ -150,7 +163,7 @@ export function AutopilotSection({
               {error}
             </span>
           ) : null}
-          <HowItWorksDialog autopilot={autopilot} trigger={howItWorksLink()} />
+          <HowItWorksDialog autopilot={autopilot} login={login} trigger={howItWorksLink()} />
         </>
       }
       data={{
@@ -160,6 +173,7 @@ export function AutopilotSection({
     >
       <AutopilotConfirm
         autopilot={autopilot}
+        login={login}
         open={confirming}
         onOpenChange={setConfirming}
         onConfirm={() => toggle(true)}
@@ -226,11 +240,7 @@ export function AutopilotRecord({ autopilot }: { autopilot: ContributeAutopilot 
             </span>
           ) : null}
         </div>
-      ) : (
-        <span className="text-sm text-muted-foreground">
-          Unlocked: {autopilot.mergedCount} of your pull requests were merged through GitRanks.
-        </span>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -241,26 +251,35 @@ export function AutopilotRecord({ autopilot }: { autopilot: ContributeAutopilot 
  */
 function howItWorksLink() {
   return (
-    <button type="button" data-autopilot-how className="block text-sm font-semibold text-link hover:underline">
-      How autopilot works
+    <button
+      type="button"
+      data-autopilot-how
+      className="block rounded-sm text-left text-sm font-semibold text-link underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 max-sm:min-h-11"
+    >
+      {AUTOPILOT_HOW_TITLE}
     </button>
   );
 }
 
 /** "How autopilot works", opened by `trigger`: the full description, then the user's record. */
-function HowItWorksDialog({ autopilot, trigger }: { autopilot: ContributeAutopilot; trigger: ReactElement }) {
+function HowItWorksDialog({
+  autopilot,
+  login,
+  trigger,
+}: {
+  autopilot: ContributeAutopilot;
+  login?: string;
+  trigger: ReactElement;
+}) {
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>How autopilot works</DialogTitle>
-          <DialogDescription>
-            Autopilot submits a pull request for you, without your review, when the change is ready. It stays off until
-            you turn it on.
-          </DialogDescription>
+          <DialogTitle>{AUTOPILOT_HOW_TITLE}</DialogTitle>
+          <DialogDescription>{AUTOPILOT_HOW_LEAD}</DialogDescription>
         </DialogHeader>
-        <AutopilotHowItWorks autopilot={autopilot} />
+        <AutopilotHowItWorks autopilot={autopilot} login={login} />
         <div className="border-t pt-3">
           <AutopilotRecord autopilot={autopilot} />
         </div>
@@ -282,7 +301,7 @@ const HowText = ({ children }: { children: ReactNode }) => <p className="text-sm
  * the launch line while it is not open, then when it submits, the hour, what it never does, follow-ups, how the PR says
  * it, and unlock and lock.
  */
-export function AutopilotHowItWorks({ autopilot }: { autopilot: ContributeAutopilot }) {
+export function AutopilotHowItWorks({ autopilot, login }: { autopilot: ContributeAutopilot; login?: string }) {
   return (
     <div data-autopilot-how-it-works className="flex flex-col gap-4">
       {autopilot.available === true ? null : (
@@ -299,8 +318,8 @@ export function AutopilotHowItWorks({ autopilot }: { autopilot: ContributeAutopi
       <HowSection title="An hour to stop it">
         <HowText>
           Before each submission we email you{autopilot.noticeTo ? ` at ${autopilot.noticeTo}` : ''}. You have one hour
-          from that email to stop it: from the email, the contribution’s page or My contributions. If the email can’t be
-          sent, it waits for your review.
+          from that email to stop it: from the email, the contribution&apos;s page or My contributions. If the email
+          can&apos;t be sent, it waits for your review.
         </HowText>
       </HowSection>
       <HowSection title="What it never does">
@@ -310,11 +329,11 @@ export function AutopilotHowItWorks({ autopilot }: { autopilot: ContributeAutopi
             for your review.
           </li>
           <li>
-            Submit on a repository whose maintainers don’t allow autopilot: it waits for your review, and says which
-            rule.
+            Submit on a repository whose maintainers don&apos;t allow autopilot: it waits for your review, and says
+            which rule.
           </li>
           <li>Pick issues: you start every run.</li>
-          <li>Post a reply you didn’t approve.</li>
+          <li>Post a reply you didn&apos;t approve.</li>
         </ul>
       </HowSection>
       <HowSection title="Follow-ups">
@@ -325,14 +344,14 @@ export function AutopilotHowItWorks({ autopilot }: { autopilot: ContributeAutopi
       </HowSection>
       <HowSection title="On GitHub">
         <HowText>
-          The pull request’s footer says “Opened by @you’s autopilot, not reviewed by a human”. It is still your pull
-          request.
+          The pull request&apos;s footer says &quot;Opened by @{login ?? 'you'}&apos;s autopilot, not reviewed by a
+          human&quot;. It is still your pull request.
         </HowText>
       </HowSection>
       <HowSection title="Unlock and lock">
         <HowText>
-          It unlocks after {AUTOPILOT_UNLOCK_AT} of your pull requests are merged through GitRanks. {AUTOPILOT_LOCK_AT}{' '}
-          closed without merging in a row lock it again.
+          It unlocks after {AUTOPILOT_UNLOCK_AT} of your pull requests are merged through GitRanks. Two closed without
+          merging in a row lock it again.
         </HowText>
       </HowSection>
     </div>
@@ -343,37 +362,39 @@ export function AutopilotHowItWorks({ autopilot }: { autopilot: ContributeAutopi
 export const AUTOPILOT_CONFIRM_LINES = [
   'Only changes that passed every check and that the agent rated low risk.',
   'We email you an hour before each one, so you can stop it.',
-  'Never on beginner issues, or on repositories that don’t allow autopilot: those still wait for your review.',
+  "Never on beginner issues, or on repositories that don't allow autopilot: those still wait for your review.",
   `Up to ${AUTOPILOT_FOLLOW_UPS_MAX} follow-up runs per pull request, on your key.`,
   'The pull request says your autopilot opened it, not reviewed by a human.',
-  `${AUTOPILOT_LOCK_AT} pull requests closed without merging in a row turn it off.`,
+  'Two pull requests closed without merging in a row turn it off.',
 ];
 
 /** "Turn on autopilot?": what changes, and a link to read more; Cancel keeps it off (autopilot limits spec §4.3). */
 function AutopilotConfirm({
   autopilot,
+  login,
   open,
   onOpenChange,
   onConfirm,
 }: {
   autopilot: ContributeAutopilot;
+  login?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent data-autopilot-confirm>
+      <AlertDialogContent data-autopilot-confirm className="max-h-[85dvh] overflow-y-auto">
         <AlertDialogHeader>
-          <AlertDialogTitle>Turn on autopilot?</AlertDialogTitle>
-          <AlertDialogDescription>Autopilot submits pull requests for you, without your review.</AlertDialogDescription>
+          <AlertDialogTitle>{AUTOPILOT_CONFIRM_TITLE}</AlertDialogTitle>
+          <AlertDialogDescription>{AUTOPILOT_CONFIRM_LEAD}</AlertDialogDescription>
         </AlertDialogHeader>
         <AutopilotConfirmLines />
-        <HowItWorksDialog autopilot={autopilot} trigger={howItWorksLink()} />
+        <HowItWorksDialog autopilot={autopilot} login={login} trigger={howItWorksLink()} />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <Button type="button" onClick={onConfirm}>
-            Turn on autopilot
+            {AUTOPILOT_CONFIRM_ACTION}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -880,17 +880,17 @@ describe('autopilot', () => {
     expect(plain).toContain(
       'Submit on beginner issues (labels such as good first issue, first-timers-only, newcomers, easy)',
     );
-    expect(plain).toContain('Submit on a repository whose maintainers don’t allow autopilot');
+    expect(plain).toContain("Submit on a repository whose maintainers don't allow autopilot");
     expect(plain).toContain('it may start up to 2 runs on that pull request, on your key');
-    expect(plain).toContain('Opened by @you’s autopilot, not reviewed by a human');
-    expect(plain).toContain('It unlocks after 3 of your pull requests are merged through GitRanks. 2 closed');
+    expect(plain).toContain("Opened by @you's autopilot, not reviewed by a human");
+    expect(plain).toContain('It unlocks after 3 of your pull requests are merged through GitRanks. Two closed');
   });
 
   it('asks before turning it on, in six lines that name the beginner issues', () => {
     const plain = text(renderToStaticMarkup(<AutopilotConfirmLines />));
 
     expect(AUTOPILOT_CONFIRM_LINES).toHaveLength(6);
-    expect(plain).toContain('Never on beginner issues, or on repositories that don’t allow autopilot');
+    expect(plain).toContain("Never on beginner issues, or on repositories that don't allow autopilot");
     expect(plain).toContain('Up to 2 follow-up runs per pull request, on your key.');
   });
 

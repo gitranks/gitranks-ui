@@ -215,7 +215,7 @@ export type ContributeIssue = {
   url: string;
   title: string | null;
   labels: string[];
-  /** A label keeps it for first-time contributors (first-timers-only, newcomers); absent from an older API. */
+  /** A label keeps it for first-time contributors (first-timers-only, newcomers). The feed asks it: needs the API that sends it. */
   forNewcomers?: boolean;
   language: ContributeLanguage | null;
   kind: ContributeIssueKind | null;

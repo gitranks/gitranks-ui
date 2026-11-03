@@ -204,7 +204,8 @@ export function PrConventionsCard({
                     rel="noreferrer"
                     className="text-link"
                   >
-                    Sign the CLA<span className="sr-only"> (opens in a new tab)</span>
+                    Sign the {conventions?.cla?.agreement ?? 'CLA'}
+                    <span className="sr-only"> (opens in a new tab)</span>
                   </a>
                 ) : (
                   <span className="text-xs text-muted-foreground">

@@ -112,7 +112,8 @@ export function RepoNeeds({ items, titleId }: { items: ChecklistItem[]; titleId?
                   <>
                     {' '}
                     <a href={item.link} target="_blank" rel="noreferrer" className="text-link">
-                      Sign here<span className="sr-only"> (opens in a new tab)</span>
+                      {item.linkText ?? 'Sign here'}
+                      <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   </>
                 ) : null}

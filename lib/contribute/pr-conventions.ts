@@ -170,6 +170,8 @@ export type ChecklistItem = {
   label: string;
   detail: string | null;
   link: string | null;
+  /** The link's words; absent: "Sign here". */
+  linkText?: string;
 };
 
 /** The added lines of a changelog file in the patch: what the PR adds to the repo's changelog. */
@@ -269,6 +271,8 @@ export function checklistOf(
         ? `The comment, word for word: “${signComment}”. The \`${check}\` check waits for it.`
         : `The \`${check}\` check waits for it.`,
       link: httpsOnly(signUrl),
+      // Signed by a comment: the link is the document to read, not where to sign.
+      ...(signComment ? { linkText: `Read the ${what}` } : {}),
     });
   }
   if (conventions.changelog) {

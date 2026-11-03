@@ -116,6 +116,7 @@ describe('This repo needs', () => {
       detail:
         'The comment, word for word: “I have read the DCO document and I hereby sign the DCO.”. The `DCO` check waits for it.',
       link: 'https://github.com/driftwood-js/dco/blob/main/dco.md',
+      linkText: 'Read the DCO',
     });
   });
 

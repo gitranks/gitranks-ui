@@ -539,7 +539,6 @@ export enum ContributeChecksState {
   Success = 'SUCCESS'
 }
 
-/** A CLA the repo's PRs sign */
 /** An agreement the repo's PRs sign: a CLA, or a DCO signed like one */
 export type ContributeClaRule = {
   __typename?: 'ContributeClaRule';

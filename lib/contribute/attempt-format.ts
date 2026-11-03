@@ -1,3 +1,5 @@
+import type { Route } from 'next';
+
 import type {
   ContributeAgent,
   ContributeAgentName,
@@ -93,6 +95,66 @@ export const END_REASONS: Record<ContributeAttemptEndReason, string> = {
   MCP_IDLE: 'Your agent made no call for 24 hours, or no passing submission for 48 hours, so the issue was let go.',
   MCP_EXPIRED: 'It reached the seven days an issue can be held, so it was let go.',
 };
+
+/**
+ * What the user does after an attempt ended, by why it ended (notices say why and what to do: owner, 2026-11-03):
+ * the step, and where to take it (`href`, `link`: a page of ours). Null where nothing waits on the user.
+ */
+export type EndMove = { text: string; href?: Route; link?: string };
+
+const BUDGET_PATH = '/contribute/settings/budget' as Route;
+const AGENT_SETTINGS_PATH = '/contribute/settings/agent#prs' as Route;
+const KEYS_PATH = '/contribute/settings/keys' as Route;
+
+export const END_MOVES: Record<ContributeAttemptEndReason, EndMove | null> = {
+  CLAIM_LOST: { text: 'Nothing waits on you: pick another issue from your list.' },
+  NO_GO: {
+    text: 'Nothing waits on you. If you disagree with its reason and a retry is offered here, it starts the agent again.',
+  },
+  BUDGET: {
+    text: 'To give the next run more room, raise "Each run" in Budget and pacing.',
+    href: BUDGET_PATH,
+    link: 'Open Budget and pacing',
+  },
+  TIMEOUT: { text: 'Nothing waits on you: two hours is the most one attempt runs, so one issue never holds your key.' },
+  FAILED: { text: 'Nothing waits on you: the issue can be taken again by a new attempt.' },
+  CHECKS_FAILED: {
+    text: 'Nothing waits on you. The limits on changed lines and files are yours to raise, under Pull requests in Agent and pull requests.',
+    href: AGENT_SETTINGS_PATH,
+    link: 'Open Agent and pull requests',
+  },
+  KEY_INVALID: {
+    text: 'Connect a working Claude key in Keys and access; nothing starts until you do.',
+    href: KEYS_PATH,
+    link: 'Open Keys and access',
+  },
+  EXHAUSTED: {
+    text: "Add credits in the Anthropic Console (console.anthropic.com, Settings, Billing). Attempts start again once Anthropic accepts the key; GitRanks can't add credits for you.",
+  },
+  LIMIT_REACHED: {
+    text: "Raise your workspace's spend limit in the Anthropic Console (console.anthropic.com, Settings, Limits), or wait for its next month. GitRanks can't change it for you.",
+  },
+  CANCELLED: null,
+  USER: null,
+  REVIEW_EXPIRED: null,
+  SUBMIT_FAILED: { text: 'The note below says why it could not be submitted and what, if anything, is yours to do.' },
+  RELEASED: null,
+  MCP_IDLE: null,
+  MCP_EXPIRED: null,
+};
+
+/** The ends whose move comes before the next follow-up too: the rest of a follow-up's are its page's own words. */
+const BEFORE_NEXT_RUN = new Set<ContributeAttemptEndReason>(['BUDGET', 'KEY_INVALID', 'EXHAUSTED', 'LIMIT_REACHED']);
+
+/** What the user does after `endReason`, or null; a follow-up's only when it comes before the next run. */
+export function endMoveOf(
+  endReason: ContributeAttemptEndReason | null | undefined,
+  kind?: ContributeAttemptKind | null,
+): EndMove | null {
+  if (!endReason || !Object.hasOwn(END_MOVES, endReason)) return null;
+  if (kind === 'FOLLOW_UP' && !BEFORE_NEXT_RUN.has(endReason)) return null;
+  return END_MOVES[endReason];
+}
 
 /** The note the API puts after a no-go the agent wrote when told to wrap up at the check's limit. */
 const DECIDED_AT_LIMIT = /\s*Decided at the check's (budget|time) limit\.$/;

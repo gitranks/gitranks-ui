@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { editableBodyOf, footerPreviewOf } from './attempt-format';
+import { editableBodyOf, endMoveOf, footerPreviewOf } from './attempt-format';
 
 const FOOTER =
   '<sub>Made with [GitRanks Contribute](https://gitranks.com) and Codex (GPT) · Reviewed and submitted by @octocat</sub>';
@@ -39,5 +39,23 @@ describe('footerPreviewOf', () => {
       text: FOOTER,
       sentence: false,
     });
+  });
+});
+
+describe('endMoveOf: what the user does after an attempt ended', () => {
+  it('says the step and where to take it, for a first attempt', () => {
+    expect(endMoveOf('BUDGET')).toMatchObject({ href: '/contribute/settings/budget', link: 'Open Budget and pacing' });
+    expect(endMoveOf('KEY_INVALID')).toMatchObject({ href: '/contribute/settings/keys' });
+    expect(endMoveOf('EXHAUSTED')?.text).toMatch(/Anthropic Console .* Billing/);
+    expect(endMoveOf('CLAIM_LOST')?.text).toMatch(/^Nothing waits on you/);
+    expect(endMoveOf('USER')).toBeNull();
+    expect(endMoveOf(null)).toBeNull();
+  });
+
+  it("gives a follow-up only the steps that come before its next run: the rest are its page's own words", () => {
+    expect(endMoveOf('BUDGET', 'FOLLOW_UP')).not.toBeNull();
+    expect(endMoveOf('LIMIT_REACHED', 'FOLLOW_UP')).not.toBeNull();
+    expect(endMoveOf('TIMEOUT', 'FOLLOW_UP')).toBeNull();
+    expect(endMoveOf('CHECKS_FAILED', 'FOLLOW_UP')).toBeNull();
   });
 });

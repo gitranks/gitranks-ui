@@ -11,6 +11,7 @@ import {
   ATTEMPT_STATES,
   checkLimitOf,
   detailText,
+  endMoveOf,
   endReasonLabelOf,
   endReasonTextOf,
   githubUrlOf,
@@ -103,6 +104,26 @@ export function SubmitErrorNote({ submit }: { submit: ContributeAttemptSubmit | 
       {note}
       <OrgAccessLink access={orgAccessOf()} />
     </>
+  );
+}
+
+/** What the user does after the attempt ended, by why it ended: the step, and a link to where to take it. */
+function EndMoveNote({ attempt }: { attempt: Pick<ContributeAttempt, 'endReason' | 'kind'> }) {
+  const move = endMoveOf(attempt.endReason, attempt.kind);
+  if (!move) return null;
+  return (
+    <p data-end-move={attempt.endReason ?? ''} className="text-sm">
+      <span className="font-semibold">What to do: </span>
+      {move.text}
+      {move.href && move.link ? (
+        <>
+          {' '}
+          <Link href={move.href} prefetch={false} className="font-semibold text-link">
+            {move.link} →
+          </Link>
+        </>
+      ) : null}
+    </p>
   );
 }
 
@@ -292,6 +313,7 @@ function followUpStatusOf(attempt: ContributeAttempt | ContributeAttemptDetail, 
             Nothing was pushed to {pr} and no reply was posted. {usd(attempt.costUsd)} was spent. The comments still
             wait on the pull request: answer them on GitHub, or start another run from its page.
           </Text>
+          <EndMoveNote attempt={attempt} />
           <SubmitErrorNote submit={attempt.submit} />
           <BackToPr attempt={attempt} />
         </Box>
@@ -467,6 +489,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
                 ? ' Nothing was decided about the issue; it went back to the pool.'
                 : ' The issue went back to the pool.'}
           </Text>
+          <EndMoveNote attempt={attempt} />
           {limit?.decided && !shown.limitNote ? (
             <span data-limit-note className="text-xs text-muted-foreground">
               {limitNoteOf(limit)}

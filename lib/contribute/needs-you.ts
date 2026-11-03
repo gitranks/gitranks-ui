@@ -14,7 +14,7 @@ import { claudeKeyOf, contributeNoticesOf } from './contribute-state';
 import { FOLLOW_UP_STEP_LABELS, FOLLOW_UP_STEPS, type FollowUpStep, shortSha } from './follow-up-flow';
 import { PR_SIGNAL_KINDS } from './follow-up-format';
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
-import { httpsOnly, PR_FIX_WORDS } from './pr-conventions';
+import { type ContributePrConventionIssue, httpsOnly, PR_FIX_WORDS } from './pr-conventions';
 import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { attemptPath, nextSessionPath, sessionPath } from './sessions';
 
@@ -265,6 +265,15 @@ export function runStepOf(run: Pick<ContributeAttempt, 'state' | 'followUpStep'>
   }
 }
 
+/**
+ * Who asks a PR rule, to open its row: "The repo's CONTRIBUTING.md asks it" style, from the issue's `source` (the
+ * repo's file), else `fallback`. Rows say why the user sees them (owner, 2026-11-03).
+ */
+const ruleSource = (issue: ContributePrConventionIssue | undefined, fallback: string): string => {
+  const label = issue?.source?.label?.trim();
+  return label ? `${fallback} (in its ${clipped(label, 80)})` : fallback;
+};
+
 /** The repo's agreement by its own name: a CLA, or a DCO signed like one. */
 const agreementOf = (cla: { agreement?: string | null } | null | undefined) =>
   cla?.agreement === 'DCO' ? 'DCO' : 'CLA';
@@ -427,7 +436,7 @@ function reviewRowsOf(
       kind: 'review',
       tone: 'violet',
       pill: 'Ready for review',
-      move: `Check the change, then open the pull request or discard it. ${
+      move: `GitRanks never opens a pull request without your approval. Check the change, then open it or discard it. ${
         daysLeft !== null && daysLeft >= 1 && daysLeft < 7
           ? `It waits ${plural(daysLeft, 'more day')}.`
           : 'It waits 7 days.'
@@ -593,7 +602,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
             kind: 'agreement',
             tone: 'amber',
             pill: 'Agreement to sign',
-            move: `Post this comment on PR #${number}, word for word: "${clipped(signComment, 300)}"`,
+            move: `The repo merges code only from people who signed its ${agreement}, and only you can sign it: its bot records your signature from a comment. Post this on PR #${number}, word for word: "${clipped(signComment, 300)}"`,
             action: prUrl
               ? {
                   label: 'Copy and open the PR ↗',
@@ -609,7 +618,9 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
             kind: 'cla',
             tone: 'amber',
             pill: `${agreement} to sign`,
-            move: `Sign the repo's ${agreement}; this clears once its check passes.`,
+            move: `The repo merges code only from people who signed its ${agreement}${
+              cla.detail?.trim() ? ` (its check: ${clipped(cla.detail, 80)})` : ''
+            }, and only you can sign it. Sign it on its page; this clears once the check passes.`,
             action:
               signUrl || prUrl
                 ? {
@@ -632,9 +643,9 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'title',
       tone: 'amber',
       pill: 'Title rule',
-      move: titleIssue
-        ? "The title breaks the repo's rule. Fix it in one click."
-        : "The title breaks the repo's rule. Retitle the pull request.",
+      move: `${ruleSource(titleIssue, 'The repo sets a rule for pull request titles')}, and this one breaks it. ${
+        titleIssue ? 'Fix it in one click.' : 'Retitle the pull request on GitHub.'
+      }`,
       action: toNext('Fix the title'),
       secondary: null,
       at: timeOf(title?.at ?? pr.pullRequest.openedAt),
@@ -649,8 +660,8 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       tone: 'amber',
       pill: 'Description rule',
       move: yours
-        ? 'The repo wants you, not the agent, to fill in the description. Open it for what to write and tick.'
-        : "The description fails the repo's template check. Edit it on the rules card.",
+        ? `${ruleSource(template, "The repo's rules")} say the person who tested the change fills in the description, so the agent left it empty. Open it for what to write and tick, section by section.`
+        : `The repo's ${template.check ? `\`${template.check}\`` : 'template'} check fails on the description. Edit it on the rules card, with the check's own words beside it.`,
       action: toNext(yours ? 'Fill in the description' : 'Fix the description'),
       secondary: null,
       at: timeOf(pr.pullRequest.openedAt),
@@ -661,7 +672,10 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'changelog',
       tone: 'amber',
       pill: 'Changelog rule',
-      move: 'The changelog line is missing or off. Fix it in one click.',
+      move: `${ruleSource(
+        issues.find(({ kind }) => kind === 'CHANGELOG'),
+        'The repo wants a changelog line for each pull request',
+      )}, and this one is missing or off. Fix it in one click.`,
       action: toNext('Fix the changelog'),
       secondary: null,
       at: timeOf(pr.pullRequest.openedAt),
@@ -683,7 +697,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'bot',
       tone: 'amber',
       pill: 'Bot blocks merge',
-      move: `${by ?? 'A review bot'}: "${clipped(verdict || 'Blocked before merge', 120)}" Read what it asks.`,
+      move: `${by ?? 'A review bot'} blocks the merge until its ask is met, and a run cannot answer a review bot for you: "${clipped(verdict || 'Blocked before merge', 120)}" Read what it asks.`,
       action: toNext('See what it asks'),
       secondary: null,
       at: timeOf(blocked.at),
@@ -752,7 +766,9 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'dco',
       tone: 'red',
       pill: 'Sign-off missing',
-      move: 'The repo wants a Signed-off-by on every commit. Add yours; the code stays the same.',
+      move: byHand
+        ? 'The repo requires a Signed-off-by line on every commit, certifying in your name that you may submit the code; only you can add it. See how; the code stays the same.'
+        : 'The repo requires a Signed-off-by line on every commit, certifying in your name that you may submit the code, so GitRanks waits for your click. One click adds it; the code stays the same.',
       action: toNext(byHand ? 'See how to sign off' : 'Sign off and push'),
       secondary: null,
       at: timeOf(dco.at),
@@ -946,7 +962,7 @@ export function needsYouItemsOf({
       pill: 'Key refused',
       where: `Claude key ${maskedKey(key.last4)}`,
       title: null,
-      move: 'Connect a working key; nothing starts until you do.',
+      move: 'Anthropic refused your Claude key, so no run can start. Connect a working key.',
       more: 0,
       action: { label: 'Connect a new key', href: CONNECT_KEY_PATH, aria: 'Connect a new Claude key' },
       secondary: null,
@@ -965,7 +981,7 @@ export function needsYouItemsOf({
       pill: 'Not set up',
       where: null,
       title: null,
-      move: 'Add your Claude key or connect your own agent.',
+      move: 'Nothing can start yet: GitRanks runs the agent on your Claude key, or your own agent does the work. Add a key or connect your agent.',
       more: 0,
       action: { label: 'Add your Claude key', href: CONNECT_KEY_PATH, aria: 'Add your Claude key' },
       secondary: { label: 'Connect your own agent', href: CONNECT_AGENT_PATH },

@@ -262,6 +262,17 @@ describe('needsYouItemsOf: an open pull request', () => {
       prIssues: [{ kind: 'TEMPLATE' as const, check: null, message: '', suggestion: null }],
     };
     expect(rowOf(template)).toMatchObject({ kind: 'description', pill: 'Description rule' });
+    // No check: the repo leaves its template to the user, who fills it on GitHub from our drafts.
+    expect(rowOf(template)).toMatchObject({
+      move: 'The repo wants you, not the agent, to fill in the description. We drafted it for you to paste.',
+      action: { label: 'Fill in the description' },
+    });
+    expect(
+      rowOf({
+        ...template,
+        prIssues: [{ kind: 'TEMPLATE' as const, check: 'PR body', message: '', suggestion: null }],
+      }),
+    ).toMatchObject({ action: { label: 'Fix the description' } });
     const changelog = {
       ...template,
       prIssues: [{ kind: 'CHANGELOG' as const, check: null, message: '', suggestion: null }],

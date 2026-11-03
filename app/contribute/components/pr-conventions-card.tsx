@@ -1,5 +1,6 @@
 'use client';
 
+import { Square, SquareCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useState, useTransition } from 'react';
 
@@ -15,6 +16,7 @@ import {
   type ContributePrConventionIssue,
   type ContributePrFix,
   type ContributePrFixKind,
+  type ContributePrIssueField,
   type ContributeRepoConventions,
   httpsOnly,
   PR_FIX_WORDS,
@@ -41,10 +43,90 @@ function fixTextOf(fix: ContributePrFix): string {
   return `${words} did not go through${fix.note ? `: ${fix.note}` : '.'} Try again.`;
 }
 
+/** Why the user sees an issue (and the repo's file that asks it), then what to do, in order. */
+function IssueWhy({ issue }: { issue: ContributePrConventionIssue }) {
+  const source = issue.source && httpsOnly(issue.source.url);
+  const steps = issue.steps ?? [];
+  return (
+    <>
+      {issue.why ? (
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Why you see this: </span>
+          {issue.why}
+          {source ? (
+            <>
+              {' '}
+              <a href={source} target="_blank" rel="noreferrer" className="text-link">
+                Read the rule ({issue.source?.label})<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : null}
+      {steps.length ? (
+        <div className="flex flex-col gap-1">
+          <span className="font-medium">What to do</span>
+          <ol className="ml-5 flex list-decimal flex-col gap-1">
+            {steps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+/** What to fill on GitHub: each section's text to paste, then the checklist lines to tick or leave. */
+function IssueFields({ fields }: { fields: ContributePrIssueField[] }) {
+  const texts = fields.filter(({ tick }) => tick == null);
+  const boxes = fields.filter(({ tick }) => tick != null);
+  return (
+    <div className="flex flex-col gap-3" data-pr-fields="">
+      {texts.map((field) => (
+        <div key={field.label} className="flex flex-col gap-1.5">
+          {field.value ? (
+            <CodeBlock label={`Under “${field.label}”`} copyLabel={`Copy the text for ${field.label}`} wrap>
+              {field.value}
+            </CodeBlock>
+          ) : (
+            <span className="font-medium">Under “{field.label}”</span>
+          )}
+          {field.note ? <span className="text-xs text-muted-foreground">{field.note}</span> : null}
+        </div>
+      ))}
+      {boxes.length ? (
+        <div className="flex flex-col gap-1.5">
+          <span className="font-medium">The checklist</span>
+          <ul className="flex flex-col gap-2">
+            {boxes.map((field) => (
+              <li key={field.label} className="flex gap-2">
+                {field.tick ? (
+                  <SquareCheck aria-hidden="true" className="mt-0.5 size-4 flex-none text-positive-strong" />
+                ) : (
+                  <Square aria-hidden="true" className="mt-0.5 size-4 flex-none text-muted-foreground" />
+                )}
+                <span className="flex flex-col gap-0.5">
+                  <span>
+                    <span className="font-medium">{field.tick ? 'Tick: ' : 'Leave unticked: '}</span>
+                    {field.label}
+                  </span>
+                  {field.note ? <span className="text-xs text-muted-foreground">{field.note}</span> : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * What the open pull request fails of its repo's conventions, each with its one-click fix: a retitle to the
  * suggested title (or one the user types), the changelog line fixed in a commit, the description edited; the CLA is
- * a link only, or the comment that signs it to copy, since nobody can sign it for the user.
+ * a link only, or the comment that signs it to copy, since nobody can sign it for the user. Each says why the user
+ * sees it and what to do, step by step; a template the repo leaves to the user comes drafted, section by section.
  */
 export function PrConventionsCard({
   attemptId,
@@ -94,15 +176,16 @@ export function PrConventionsCard({
             <li
               key={`${issue.kind}-${issue.check ?? ''}-${index}`}
               data-pr-issue={issue.kind}
-              className="flex flex-col gap-1.5 text-sm"
+              className="flex flex-col gap-2 text-sm"
             >
-              <span>
+              <span className="font-medium">
                 {/* The comment shows below, to copy: the line says what to do with it. */}
                 {issue.kind === 'CLA' && conventions?.cla?.signComment
                   ? `Sign the repo's ${conventions.cla.agreement ?? 'CLA'}: post this comment on the pull request yourself. We can't sign for you.`
                   : issue.message}
-                {issue.check ? <span className="text-muted-foreground"> ({issue.check})</span> : null}
+                {issue.check ? <span className="font-normal text-muted-foreground"> ({issue.check})</span> : null}
               </span>
+              <IssueWhy issue={issue} />
               {issue.kind === 'TITLE' ? (
                 <div className="flex flex-wrap gap-2">
                   {issue.suggestion ? (
@@ -150,7 +233,7 @@ export function PrConventionsCard({
                   rel="noreferrer"
                   className="text-link"
                 >
-                  Fill it in on GitHub<span className="sr-only"> (opens in a new tab)</span>
+                  Open #{prNumber} on GitHub<span className="sr-only"> (opens in a new tab)</span>
                 </a>
               ) : issue.kind === 'TEMPLATE' ? (
                 <div>
@@ -207,6 +290,7 @@ export function PrConventionsCard({
                   </span>
                 )
               ) : null}
+              {issue.fields?.length ? <IssueFields fields={issue.fields} /> : null}
             </li>
           ))}
         </ul>

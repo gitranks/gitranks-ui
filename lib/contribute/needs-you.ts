@@ -540,13 +540,18 @@ function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
       at: timeOf(title?.at ?? pr.pullRequest.openedAt),
     });
   }
-  if (issues.some(({ kind }) => kind === 'TEMPLATE')) {
+  const template = issues.find(({ kind }) => kind === 'TEMPLATE');
+  if (template) {
+    // The repo leaves its template to the person who tested the change: no one-click fix, the user fills it on GitHub.
+    const yours = !template.check;
     list.push({
       kind: 'description',
       tone: 'amber',
       pill: 'Description rule',
-      move: "The description misses the repo's template. Fix it in one click.",
-      action: toNext('Fix the description'),
+      move: yours
+        ? 'The repo wants you, not the agent, to fill in the description. We drafted it for you to paste.'
+        : "The description misses the repo's template. Fix it in one click.",
+      action: toNext(yours ? 'Fill in the description' : 'Fix the description'),
       secondary: null,
       at: timeOf(pr.pullRequest.openedAt),
     });

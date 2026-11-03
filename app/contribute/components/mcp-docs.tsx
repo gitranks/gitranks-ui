@@ -60,7 +60,7 @@ export function McpDocsScreen() {
         <p>
           Your coding agent finds open-source issues that fit your skills, works on one on your machine and hands the
           change back through our MCP server. You review every pull request on GitRanks before it opens in your name.
-          Works with Claude Code, Codex, Cursor, Gemini CLI, VS Code and any client that can send a header.
+          Works with Claude Code, Codex, Cursor, Gemini CLI, Antigravity, VS Code and any client that can send a header.
         </p>
       </PublicPageHead>
 
@@ -86,7 +86,8 @@ export function McpDocsScreen() {
             </li>
             <li>
               Save it in your environment as <code className="font-mono text-sm">{MCP_TOKEN_ENV}</code>, where the
-              setups below read it. On VS Code, skip this: it asks for the token itself.
+              setups below read it. On Antigravity and VS Code, skip this: Antigravity's setup holds the token, and VS
+              Code asks for it itself.
             </li>
           </ol>
           {MCP_DOC_SAVES.map(({ os, name, shell, line, note }) => (

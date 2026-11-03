@@ -222,7 +222,7 @@ export function mcpClientSetupOf(
       file: true,
       where: replacing
         ? `Put this in place of the GitRanks entry in Antigravity's MCP config, ${ANTIGRAVITY_RELOAD}. It holds the new token.`
-        : `Add this to Antigravity's MCP config (in the IDE: MCP Servers → Manage MCP Servers → View raw config), ${ANTIGRAVITY_RELOAD}. Antigravity can't read environment variables in this file yet, so the token sits in it: keep the file to yourself.`,
+        : `Add this to Antigravity's MCP config (in the IDE: MCP Servers → Manage MCP Servers → View raw config), ${ANTIGRAVITY_RELOAD}. Antigravity can't read environment variables in this file yet, so the token sits in it${token ? '' : `, in place of ${MCP_TOKEN_PLACEHOLDER}`}: keep the file to yourself.`,
       lines,
     };
   }

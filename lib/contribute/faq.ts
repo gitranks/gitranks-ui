@@ -60,7 +60,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
         id: 'who-runs',
         question: 'Who runs the agent?',
         answer:
-          "You choose. Your own agent (Claude Code, Codex, Cursor, Gemini CLI, VS Code or another MCP client) works on your machine and hands the change back through our MCP server. Or ours: Claude on Claude Managed Agents, a hosted agent service Anthropic offers in beta, running in a sandbox in your own Anthropic organization on your API key. Your key serves only your attempts, never anyone else's.",
+          "You choose. Your own agent (Claude Code, Codex, Cursor, Gemini CLI, Antigravity, VS Code or another MCP client) works on your machine and hands the change back through our MCP server. Or ours: Claude on Claude Managed Agents, a hosted agent service Anthropic offers in beta, running in a sandbox in your own Anthropic organization on your API key. Your key serves only your attempts, never anyone else's.",
         more: { href: MCP_DOCS_PATH, label: 'Connect your own agent' },
       },
       {

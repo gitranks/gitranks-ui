@@ -116,8 +116,10 @@ describe('the setup for each client and computer', () => {
     expect(mcpClientSetupOf('antigravity', 'mac', { token: TOKEN, replacing: true }).where).toContain(
       'in place of the GitRanks entry',
     );
-    // Without a token (Settings), a placeholder: never a token of the right shape.
+    expect(setup.where).not.toContain('<your GitRanks token>');
+    // Without a token (Settings, the MCP docs), a placeholder, and the text says what goes there.
     expect(mcpSetupLinesOf('antigravity', 'mac')).toContain('Bearer <your GitRanks token>');
+    expect(mcpClientSetupOf('antigravity', 'mac').where).toContain('in place of <your GitRanks token>');
   });
 
   it('runs Claude Code in the terminal the token was saved in, and names the files under ~ elsewhere', () => {

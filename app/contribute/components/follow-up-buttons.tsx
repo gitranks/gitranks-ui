@@ -18,6 +18,7 @@ import {
   vetoErrorMessage,
 } from '@/lib/contribute/follow-up-format';
 import { relativeLabel } from '@/lib/contribute/format';
+import { sessionPath } from '@/lib/contribute/sessions';
 import { cn } from '@/lib/utils';
 
 const ErrorNote = ({ error }: { error: string | null }) =>
@@ -94,8 +95,11 @@ export function StartFollowUpButton({
   notePlaceholder = 'Anything it should know? For example: the lint rule is wrong here, fix the test instead.',
   defaultNote = '',
   noteHint,
+  firstId,
 }: {
   prId: string;
+  /** The pull request's first attempt: the run opens under it, in the contribution's layout. */
+  firstId: string;
   primary?: boolean;
   label?: string;
   noteLabel?: string;
@@ -119,7 +123,9 @@ export function StartFollowUpButton({
         return;
       }
       setDone(true);
-      router.push(attemptHref(result.data.attemptId));
+      router.push(sessionPath(firstId, result.data.attemptId));
+      // The layout stays as it was on the way: its sessions read again, the new run among them.
+      router.refresh();
     });
 
   return (

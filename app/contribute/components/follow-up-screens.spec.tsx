@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/contribute/me',
+  useSearchParams: () => new URLSearchParams(),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
@@ -138,7 +139,7 @@ describe('a pull request that needs the user, on My contributions', () => {
     );
     expect(ready.match(/data-row=/g)).toHaveLength(1);
     expect(ready).toContain('data-row="run-ready"');
-    expect(ready).toContain('href="/contribute/attempts/A_F1"');
+    expect(ready).toContain('href="/contribute/attempts/A_1/runs/A_F1"');
 
     const running = mine(
       { needsYou: needsYou(), followUps: current },
@@ -346,7 +347,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     const html = review(followUpAttempts.underWay);
 
     expect(html).toContain('data-session="A_F1"');
-    expect(html).toContain('href="/contribute/attempts/A_F1"');
+    expect(html).toContain('href="/contribute/attempts/A_1/runs/A_F1"');
     expect(html).not.toContain('data-session="next"');
   });
 
@@ -1448,7 +1449,7 @@ describe('the next step, for each thing only the user can do', () => {
     const html = review(ready);
     expect(html).toContain('data-your-move="waiting"');
     expect(text(html)).toContain('Review run 2 →');
-    expect(html).toContain('href="/contribute/attempts/A_F2"');
+    expect(html).toContain('href="/contribute/attempts/A_8/runs/A_F2"');
     const own = renderToStaticMarkup(
       <ReviewScreen
         view={views.active}

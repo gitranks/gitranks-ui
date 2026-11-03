@@ -99,7 +99,7 @@ describe('needsYouItemsOf: what waits for a review', () => {
       kind: 'run-autopilot',
       pill: 'Autopilot · 10 min',
       move: 'Autopilot pushes run 3 in 10 minutes. Check it, or stop it.',
-      action: { label: 'Check before it pushes', href: '/contribute/attempts/A_F9' },
+      action: { label: 'Check before it pushes', href: '/contribute/attempts/A_1/runs/A_F9' },
     });
     expect(later).toMatchObject({
       kind: 'autopilot',
@@ -142,7 +142,7 @@ describe('needsYouItemsOf: what waits for a review', () => {
       pill: 'Run 2 ready',
       where: 'driftwood-js/driftwood · PR #1419',
       move: 'Run 2 fixed 2 comments and drafted 2 replies. Approve to push and post.',
-      action: { label: 'Review run 2', href: '/contribute/attempts/A_F1' },
+      action: { label: 'Review run 2', href: '/contribute/attempts/A_1/runs/A_F1' },
     });
   });
 
@@ -208,7 +208,7 @@ describe('needsYouItemsOf: an open pull request', () => {
       kind: 'replies',
       pill: 'Replies to approve',
       move: 'A run drafted 1 reply to @maintainer-mo. Read and post them.',
-      action: { label: 'Approve the reply', href: '/contribute/attempts/A_TIDE1' },
+      action: { label: 'Approve the reply', href: '/contribute/attempts/A_PR2205/runs/A_TIDE1' },
     });
     const failed = [replyWaiting({ prId: 'PR_2205', attemptId: 'A_TIDE1', state: 'FAILED' })];
     expect(rowOf(quiet, { replies: failed })).toMatchObject({
@@ -216,7 +216,7 @@ describe('needsYouItemsOf: an open pull request', () => {
       tone: 'red',
       pill: 'Reply not posted',
       move: 'GitHub refused the reply. Try again, or post it yourself.',
-      action: { label: 'Retry the reply', href: '/contribute/attempts/A_TIDE1' },
+      action: { label: 'Retry the reply', href: '/contribute/attempts/A_PR2205/runs/A_TIDE1' },
     });
   });
 
@@ -365,7 +365,7 @@ describe('needsYouItemsOf: the runs at work', () => {
       pill: 'Run 2 working',
       working: true,
       move: 'Reading comments · started 2 minutes ago. It comes back here when it is ready.',
-      action: { label: 'Watch run 2', href: '/contribute/attempts/A_FAB2' },
+      action: { label: 'Watch run 2', href: '/contribute/attempts/A_PR11195/runs/A_FAB2' },
     });
     // Its run not read (queued, or past the read): still in place, starting.
     expect(items({ contributions: [prsNeedingYou.working] }).items[0].move).toBe(
@@ -381,7 +381,7 @@ describe('needsYouItemsOf: the runs at work', () => {
       kind: 'run-ready',
       working: false,
       pill: 'Run 2 ready',
-      action: { label: 'Review run 2', href: '/contribute/attempts/A_FAB2' },
+      action: { label: 'Review run 2', href: '/contribute/attempts/A_PR11195/runs/A_FAB2' },
     });
   });
 
@@ -419,7 +419,7 @@ describe('needsYouItemsOf: the runs at work', () => {
     });
     expect(rowOf(prsNeedingYou.pushed, { runs: [done] })).toMatchObject({
       move: 'Pushed 46de700 · reading the pull request again.',
-      action: { label: 'Watch run 1', href: '/contribute/attempts/A_LOOM1' },
+      action: { label: 'Watch run 1', href: '/contribute/attempts/A_PR1502/runs/A_LOOM1' },
     });
     const read = {
       ...prsNeedingYou.pushed,

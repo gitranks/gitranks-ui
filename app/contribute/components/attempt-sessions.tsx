@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 
 import { Pill } from './primitives';
+import { type ShownSession, useShownSession } from './shown-session';
 import type { SessionCard } from '@/lib/contribute/sessions';
 import { cn } from '@/lib/utils';
 
@@ -21,9 +24,15 @@ function CardBody({ card }: { card: SessionCard }) {
 
 /**
  * The contribution's sessions, oldest first, the one shown marked: a column beside it, a row that scrolls on a phone.
- * `rounds` says how many follow-up rounds are used.
+ * `rounds` says how many follow-up rounds are used. It sits in the contribution's layout, so the address marks the one
+ * shown as the user moves between them.
  */
-export function SessionsList({ cards, rounds }: { cards: SessionCard[]; rounds: string | null }) {
+export function SessionsList({
+  cards,
+  rounds,
+  ...session
+}: ShownSession & { cards: SessionCard[]; rounds: string | null }) {
+  const shown = useShownSession(session);
   return (
     <nav aria-labelledby="attempt-sessions" data-sessions={cards.length} className="flex min-w-0 flex-col gap-2.5">
       <div className="flex items-baseline justify-between gap-3">
@@ -40,12 +49,12 @@ export function SessionsList({ cards, rounds }: { cards: SessionCard[]; rounds: 
                 href={card.href}
                 prefetch={false}
                 scroll={false}
-                aria-current={card.current ? 'page' : undefined}
+                aria-current={card.key === shown ? 'page' : undefined}
                 className={cn(
                   CARD,
                   'hover:border-primary/40',
                   card.draft && 'border-dashed',
-                  card.current && 'border-primary bg-brand-soft/40 ring-1 ring-primary ring-inset',
+                  card.key === shown && 'border-primary bg-brand-soft/40 ring-1 ring-primary ring-inset',
                 )}
               >
                 <CardBody card={card} />

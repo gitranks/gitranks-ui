@@ -40,7 +40,7 @@ const { ContributeTabs } = await import('./contribute-tabs');
 const { default: ContributeLayout } = await import('../layout');
 const { IssuesView } = await import('./issues-view');
 const { ContributionsView } = await import('./contributions-view');
-const { ReviewView } = await import('./review-view');
+const { ContributionLayout, FirstSessionView } = await import('./review-view');
 const { SettingsView } = await import('./settings-view');
 const { Dialog } = await import('@/components/ui/dialog');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
@@ -319,7 +319,8 @@ describe('the pages that wait for onboarding', () => {
   const pages = {
     issues: () => IssuesView({ searchParams }),
     me: () => ContributionsView(),
-    attempt: () => ReviewView({ params, searchParams: Promise.resolve({}) }),
+    attempt: () => FirstSessionView({ params, searchParams: Promise.resolve({}) }),
+    layout: () => ContributionLayout({ params, children: null }),
     settings: () => SettingsView({ searchParams }),
   };
 
@@ -333,10 +334,13 @@ describe('the pages that wait for onboarding', () => {
     return pages[page]();
   };
 
-  it.each(['issues', 'me', 'attempt'] as const)('sends a user not onboarded from %s to the landing', async (page) => {
-    await expect(visit(page, views.midSetup)).rejects.toThrow('NEXT_REDIRECT /contribute');
-    await expect(visit(page, views.noKey)).rejects.toThrow('NEXT_REDIRECT /contribute');
-  });
+  it.each(['issues', 'me', 'attempt', 'layout'] as const)(
+    'sends a user not onboarded from %s to the landing',
+    async (page) => {
+      await expect(visit(page, views.midSetup)).rejects.toThrow('NEXT_REDIRECT /contribute');
+      await expect(visit(page, views.noKey)).rejects.toThrow('NEXT_REDIRECT /contribute');
+    },
+  );
 
   it.each(['issues', 'me', 'attempt', 'settings'] as const)('opens %s to an onboarded user', async (page) => {
     await expect(visit(page, views.active)).resolves.toBeTruthy();

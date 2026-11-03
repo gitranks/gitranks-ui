@@ -8,6 +8,7 @@ import { MarkHandledButton, SignOffButton, StartFollowUpButton } from './follow-
 import { PrConventionsCard } from './pr-conventions-card';
 import { HEADING, Pill } from './primitives';
 import { ReviewFeedbackCard } from './review-feedback';
+import { HiddenAt } from './shown-session';
 import { Button } from '@/components/ui/button';
 import { editableBodyOf, githubUrlOf, isOwnAgent, timeLabel } from '@/lib/contribute/attempt-format';
 import type { ContributeAttemptDetail, ContributePrSignal, ContributeView } from '@/lib/contribute/contribute.types';
@@ -15,7 +16,7 @@ import { autopilotLineOf, FILLED_NOTE_HINT, signalText } from '@/lib/contribute/
 import { relativeLabel, usd } from '@/lib/contribute/format';
 import { clipped } from '@/lib/contribute/needs-you';
 import { type NextStep, nextStepOf, type RunFinding, type UserMove, yourMoveOf } from '@/lib/contribute/next-step';
-import { attemptPath, nextSessionPath } from '@/lib/contribute/sessions';
+import { nextSessionPath } from '@/lib/contribute/sessions';
 import { cn } from '@/lib/utils';
 
 /** The run's card is anchored: the user's cards link to it ("Start run 3 with a note →"). */
@@ -581,6 +582,7 @@ function NextRunCard({
           // The note filled in afresh when what waits changes.
           key={run.note}
           prId={pr.prId}
+          firstId={first.attemptId}
           primary={recommended || !userWaits || retry}
           label={`Start run ${run.round}`}
           noteLabel={recommended ? 'A note for the agent' : 'What’s wrong?'}
@@ -651,53 +653,64 @@ export function NextStepCards({
 
 /**
  * On the contribution's other sessions, what waits in one line: "Your move: … · Go to the next step →", or the run at
- * work with the way to it. Nothing when nothing waits.
+ * work with the way to it. Nothing when nothing waits, nor on the next step. It sits in the contribution's layout, so
+ * the address says which session is shown, unless `shown` does.
  */
 export function YourMoveLine({
   first,
+  runs = [],
+  nextShown,
   shown,
   now = new Date(),
 }: {
   first: ContributeAttemptDetail;
-  /** The session shown: a run of the pull request is read beside its first attempt. */
-  shown: ContributeAttemptDetail;
+  /** The runs of the pull request read beside its first attempt: the one shown, the one under way. */
+  runs?: ContributeAttemptDetail[];
+  nextShown: boolean;
+  shown?: string;
   now?: Date;
 }) {
-  const move = yourMoveOf(first, shown.kind === 'FOLLOW_UP' ? [shown] : [], now);
+  const move = yourMoveOf(first, runs, now);
   if (!move) return null;
-  const here = attemptPath(shown.attemptId);
+  const session = { firstId: first.attemptId, nextShown, shown };
   const next = nextSessionPath(first.attemptId);
   const action = move.action && 'href' in move.action ? move.action : null;
-  // A run back for review, on its own page: the page is the move.
-  if (action?.href === here && (move.kind === 'run-ready' || move.kind === 'run-autopilot')) return null;
-  // The way to the move: the next step, or the run it waits on (its review, its replies, the run at work).
+  // The next step is the move itself; so is a run back for review, on its own page.
+  const hiddenAt = [
+    next,
+    ...(action && (move.kind === 'run-ready' || move.kind === 'run-autopilot') ? [action.href] : []),
+  ];
+  // The way to the move: the next step, or the run it waits on (its review, its replies, the run at work). None on the
+  // page it leads to.
   const link =
-    action?.href === here
-      ? null
-      : action && action.href !== next
-        ? { href: action.href, label: `${action.label} →` }
-        : move.working
-          ? null
-          : { href: next, label: 'Go to the next step →' };
+    action && action.href !== next
+      ? { href: action.href, label: `${action.label} →` }
+      : move.working
+        ? null
+        : { href: next, label: 'Go to the next step →' };
   return (
-    <p
-      data-your-move={move.working ? 'working' : 'waiting'}
-      className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-primary/20 bg-brand-soft px-4 py-3 text-sm"
-    >
-      {move.working ? (
-        <span className="flex items-center gap-2 font-semibold">
-          <LiveDot active />
-          {move.pill}
-        </span>
-      ) : (
-        <span className="font-semibold">Your move:</span>
-      )}
-      <span className="min-w-0 break-words text-foreground/80">{move.move}</span>
-      {link ? (
-        <Link href={link.href} prefetch={false} scroll={false} className="font-semibold text-link">
-          {link.label}
-        </Link>
-      ) : null}
-    </p>
+    <HiddenAt paths={hiddenAt} {...session}>
+      <p
+        data-your-move={move.working ? 'working' : 'waiting'}
+        className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-primary/20 bg-brand-soft px-4 py-3 text-sm"
+      >
+        {move.working ? (
+          <span className="flex items-center gap-2 font-semibold">
+            <LiveDot active />
+            {move.pill}
+          </span>
+        ) : (
+          <span className="font-semibold">Your move:</span>
+        )}
+        <span className="min-w-0 break-words text-foreground/80">{move.move}</span>
+        {link ? (
+          <HiddenAt paths={[link.href]} {...session}>
+            <Link href={link.href} prefetch={false} scroll={false} className="font-semibold text-link">
+              {link.label}
+            </Link>
+          </HiddenAt>
+        ) : null}
+      </p>
+    </HiddenAt>
   );
 }

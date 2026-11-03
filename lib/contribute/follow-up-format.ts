@@ -16,12 +16,13 @@ export const SIGNALS: Record<ContributePrSignalKind, string> = {
   CHECK_FAILED: 'A check started failing',
   CLA: 'Sign the contributor license agreement (CLA)',
   TITLE: "The title breaks the repo's rules (retitle it on the pull request's page)",
+  BOT_BLOCKED: 'A review bot blocks the merge',
 };
 
 /** `A check started failing: lint, test · 2 hours ago`. */
 export function signalText(signal: ContributePrSignal, now?: Date): string {
   const what = SIGNALS[signal.kind] ?? 'Something changed on it';
-  const named = signal.kind === 'CHECK_FAILED' || signal.kind === 'CLA' || signal.kind === 'TITLE';
+  const named = ['CHECK_FAILED', 'CLA', 'TITLE', 'BOT_BLOCKED'].includes(signal.kind);
   const detail = named && signal.detail?.trim() ? `: ${signal.detail.trim()}` : '';
   const when = relativeLabel(signal.at, now);
   return `${what}${detail}${when ? ` · ${when}` : ''}`;
@@ -121,12 +122,12 @@ export function vetoErrorMessage(error: ContributeErrorCode, message?: string): 
   return contributeErrorMessage(error, message);
 }
 
-/**
- * Whether a follow-up could act on what the pull request needs: anything but a CLA, which only the user signs, and a
- * title, which a retitle fixes (no commit).
- */
+/** What a follow-up cannot do: sign a CLA, retitle (no commit), or give the proof a review bot asks of the user. */
+const USERS_SIGNALS = new Set<ContributePrSignal['kind']>(['CLA', 'TITLE', 'BOT_BLOCKED']);
+
+/** Whether a follow-up could act on what the pull request needs: anything but the user's own (`USERS_SIGNALS`). */
 export const followUpCanHelp = (signals: readonly ContributePrSignal[] | null | undefined): boolean =>
-  (signals ?? []).some((signal) => signal.kind !== 'CLA' && signal.kind !== 'TITLE');
+  (signals ?? []).some((signal) => !USERS_SIGNALS.has(signal.kind));
 
 /** Why "Mark as handled" did not go through, for the user. */
 export function handledErrorMessage(error: ContributeErrorCode, message?: string): string {

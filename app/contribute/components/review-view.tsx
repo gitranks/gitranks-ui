@@ -258,7 +258,7 @@ function NextRound({ first, view, now }: { first: ContributeAttemptDetail; view:
       <p className="text-sm text-muted-foreground">
         {recommended
           ? `GitRanks sees ${waitingWordsOf(first)} on #${pr.number}. The agent reads every review, comment and check, fixes what it can and drafts replies, on your Claude key${limit}. Nothing is pushed or posted before you review it.`
-          : `GitRanks sees nothing waiting on #${pr.number}. If you think something is wrong, start a run anyway: the agent reads every review, comment and check on the pull request, fixes what it finds, or ends with a note on why nothing needs a change. On your Claude key${limit}.`}
+          : `${first.needsYou?.signals?.length ? `Nothing waiting on #${pr.number} is a run's to fix: what Needs you lists is yours.` : `GitRanks sees nothing waiting on #${pr.number}.`} If you think something is wrong, start a run anyway: the agent reads every review, comment and check on the pull request, fixes what it finds, or ends with a note on why nothing needs a change. On your Claude key${limit}.`}
       </p>
       {nextRoundOpen(first) ? (
         <StartFollowUpButton

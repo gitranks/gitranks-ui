@@ -1265,15 +1265,16 @@ enum ContributePrIssueKind {
 type ContributePrSignal {
   at: String!
 
-  """check_failed: the failing checks’ names; cla: the CLA check’s"""
+  """check_failed: the failing checks’ names; cla: the CLA check’s; bot_blocked: the bot and its verdict"""
   detail: String
   kind: ContributePrSignalKind!
 }
 
 """
-What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules
+What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked)
 """
 enum ContributePrSignalKind {
+  BOT_BLOCKED
   CHANGES_REQUESTED
   CHECK_FAILED
   CLA

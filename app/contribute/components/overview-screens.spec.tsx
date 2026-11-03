@@ -162,8 +162,8 @@ describe('Needs you', () => {
   it('shows five rows that need the user, then the runs at work, and the rest in My contributions', () => {
     const html = needs(views.active, needsEverything());
     expect(html.match(/<li data-row=/g)).toHaveLength(9);
-    expect(html).toMatch(/<h2[^>]*>13 things need you/);
-    expect(text(html)).toContain('and 8 more in My contributions →');
+    expect(html).toMatch(/<h2[^>]*>14 things need you/);
+    expect(text(html)).toContain('and 9 more in My contributions →');
   });
 
   it('says only the runs at work when nothing else waits', () => {

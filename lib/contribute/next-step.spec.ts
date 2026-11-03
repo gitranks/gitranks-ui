@@ -71,6 +71,17 @@ describe('nextStepOf', () => {
     ]);
   });
 
+  it('gives a run whose commits failed to push the same card, its note to make the change again', () => {
+    const failed = signal('RUN_ENDED', { detail: 'the branch moved', round: 1, outcome: 'PUSH_FAILED' });
+    const step = nextStepOf({ ...nextForYou, needsYou: { since: '', signals: [failed] } });
+    expect(step.user).toEqual([
+      expect.objectContaining({ kind: 'stopped', run: expect.objectContaining({ round: 1, outcome: 'push_failed' }) }),
+    ]);
+    expect(step.run.note).toBe(
+      "Run 1's commits could not be pushed (the branch moved). Make the change again on the pull request as it is now.",
+    );
+  });
+
   it('gives an agreement signed by a comment its card, and leaves its line out of the rules card', () => {
     const step = nextStepOf(nextForAgreement);
     expect(step.user).toEqual([

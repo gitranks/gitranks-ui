@@ -166,19 +166,30 @@ function FoundCard({ move, first, step, primary, now }: CardProps & { move: Extr
   );
 }
 
-/** A run that stopped before it was done: the next run, or the user's own hands. */
+/** A run that stopped before it was done, or whose commits failed to push: the next run, or the user's own hands. */
 function StoppedCard({ move, first, step, primary }: CardProps & { move: Extract<UserMove, { kind: 'stopped' }> }) {
   const pr = first.pullRequest;
   const name = move.run.round ? `Run ${move.run.round}` : 'The last run';
+  const unpushed = move.run.outcome === 'push_failed';
   return (
     <MoveCard
       tone="red"
-      name="stopped"
+      name={unpushed ? 'push-failed' : 'stopped'}
       heading={`Your move: try run ${step.run.round}, or handle it yourself`}
-      pill={<Pill tone="red">{move.run.round ? `Run ${move.run.round} stopped` : 'Run stopped'}</Pill>}
+      pill={
+        <Pill tone="red">
+          {unpushed
+            ? move.run.round
+              ? `Run ${move.run.round} not pushed`
+              : 'Push failed'
+            : move.run.round
+              ? `Run ${move.run.round} stopped`
+              : 'Run stopped'}
+        </Pill>
+      }
     >
       <p className="text-sm break-words" data-run-finding={move.run.round ?? ''}>
-        <span className="font-semibold">{name} stopped</span>
+        <span className="font-semibold">{unpushed ? `${name}'s commits could not be pushed` : `${name} stopped`}</span>
         <span className="text-muted-foreground">
           {' '}
           · {findingMetaOf(move.run)}
@@ -186,7 +197,9 @@ function StoppedCard({ move, first, step, primary }: CardProps & { move: Extract
         </span>
       </p>
       <p className="text-sm text-muted-foreground">
-        Nothing was pushed. A new run starts from the pull request as it is; tell it what to do differently in its note.
+        {unpushed
+          ? 'They never reached the pull request. A new run starts from the pull request as it is now and makes the change again; tell it what to do differently in its note.'
+          : 'Nothing was pushed. A new run starts from the pull request as it is; tell it what to do differently in its note.'}
       </p>
       <div className="flex flex-wrap items-start gap-3">
         {step.run.open ? (

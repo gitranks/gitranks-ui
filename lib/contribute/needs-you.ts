@@ -46,6 +46,7 @@ export type NeedsYouKind =
   | 'bot'
   | 'run-found'
   | 'run-stopped'
+  | 'push-failed'
   | 'dco'
   | 'fix-failed'
   | 'other'
@@ -125,6 +126,18 @@ const sentence = (text: string) => {
   return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 };
 
+/** Text set in brackets inside a sentence: without its own closing full stop. */
+export const bracketed = (text: string) => text.trim().replace(/[.!?…]+$/, '');
+
+/**
+ * A failed push's detail worth saying: none when it only restates that the push failed (the API's fallback when the
+ * push left no note, `The push failed (patch_conflict)`): the row already says so.
+ */
+export const pushDetailOf = (detail: string | null | undefined): string | null => {
+  const text = detail?.trim();
+  return text && !/^the push failed\b/i.test(text) ? text : null;
+};
+
 /** Untrusted text cut to a line: `max` characters at most, with an ellipsis. */
 export const clipped = (text: string, max = 160) => {
   const line = text.replace(/\s+/g, ' ').trim();
@@ -148,9 +161,11 @@ export function botVerdictOf(signal: Pick<ContributePrSignal, 'detail'>): { by: 
   return at > 0 ? { by: detail.slice(0, at), verdict: detail.slice(at + 2) } : { by: null, verdict: detail };
 }
 
-/** How a run that pushed nothing ended: a stop, else the agent's no-go (also when the API does not say). */
-export const runOutcomeOf = (signal: Pick<ContributePrSignal, 'outcome'>): 'no_go' | 'stopped' =>
-  String(signal.outcome ?? '').toLowerCase() === 'stopped' ? 'stopped' : 'no_go';
+/** How a run that pushed nothing ended: a stop, a failed push, else the agent's no-go (also when the API does not say). */
+export function runOutcomeOf(signal: Pick<ContributePrSignal, 'outcome'>): 'no_go' | 'stopped' | 'push_failed' {
+  const outcome = String(signal.outcome ?? '').toLowerCase();
+  return outcome === 'stopped' || outcome === 'push_failed' ? outcome : 'no_go';
+}
 
 /** The step a follow-up in flight is on: the list's `followUpStep`, else what its state says. */
 export function runStepOf(run: Pick<ContributeAttempt, 'state' | 'followUpStep'>): string {
@@ -566,27 +581,39 @@ function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
   if (ended) {
     const round = ended.round ?? (pr.followUps?.used || null);
     const name = round ? `Run ${round}` : 'The last run';
-    const detail = ended.detail?.trim() ? clipped(ended.detail, 200) : null;
+    const outcome = runOutcomeOf(ended);
+    const said = outcome === 'push_failed' ? pushDetailOf(ended.detail) : ended.detail?.trim();
+    const detail = said ? clipped(said, 200) : null;
     list.push(
-      runOutcomeOf(ended) === 'stopped'
+      outcome === 'push_failed'
         ? {
-            kind: 'run-stopped',
+            kind: 'push-failed',
             tone: 'red',
-            pill: round ? `Run ${round} stopped` : 'Run stopped',
-            move: `${name} stopped${detail ? `: ${sentence(detail)}` : '.'} Start run ${run}, or handle it yourself.`,
+            pill: round ? `Run ${round} not pushed` : 'Push failed',
+            move: `${name}'s commits could not be pushed${detail ? `: ${sentence(detail)}` : '.'} Start run ${run} to make the change again on the pull request as it is now.`,
             action: toNext(`Try run ${run}`),
             secondary: null,
             at: timeOf(ended.at),
           }
-        : {
-            kind: 'run-found',
-            tone: 'amber',
-            pill: 'Only you can do this',
-            move: `${name} changed nothing: ${detail ? sentence(detail) : 'what is left is yours to do.'}`,
-            action: toNext('See what to do'),
-            secondary: null,
-            at: timeOf(ended.at),
-          },
+        : outcome === 'stopped'
+          ? {
+              kind: 'run-stopped',
+              tone: 'red',
+              pill: round ? `Run ${round} stopped` : 'Run stopped',
+              move: `${name} stopped${detail ? `: ${sentence(detail)}` : '.'} Start run ${run}, or handle it yourself.`,
+              action: toNext(`Try run ${run}`),
+              secondary: null,
+              at: timeOf(ended.at),
+            }
+          : {
+              kind: 'run-found',
+              tone: 'amber',
+              pill: 'Only you can do this',
+              move: `${name} changed nothing: ${detail ? sentence(detail) : 'what is left is yours to do.'}`,
+              action: toNext('See what to do'),
+              secondary: null,
+              at: timeOf(ended.at),
+            },
     );
   }
 

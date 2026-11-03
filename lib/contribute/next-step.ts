@@ -7,7 +7,7 @@ import type {
   ContributePrSignalKind,
 } from './contribute.types';
 import { USERS_SIGNALS } from './follow-up-format';
-import { botVerdictOf, type NeedsYouItem, prItemOf, runOutcomeOf } from './needs-you';
+import { botVerdictOf, bracketed, type NeedsYouItem, prItemOf, pushDetailOf, runOutcomeOf } from './needs-you';
 import { type ContributePrConventionIssue, type ContributePrFix, httpsOnly } from './pr-conventions';
 import { nextRoundOpen, nextRoundRecommended, nextRunNumberOf, waitingThreadsOf } from './sessions';
 
@@ -21,7 +21,7 @@ import { nextRoundOpen, nextRoundRecommended, nextRunNumberOf, waitingThreadsOf 
 /** What a run that ended found, for the card: its number, when, and what it cost. Its text is untrusted. */
 export type RunFinding = {
   round: number | null;
-  outcome: 'no_go' | 'stopped';
+  outcome: 'no_go' | 'stopped' | 'push_failed';
   detail: string | null;
   at: string;
   costUsd: number | null;
@@ -36,7 +36,7 @@ export type UserMove =
       bot: { by: string | null; verdict: string; at: string } | null;
       run: RunFinding | null;
     }
-  /** A run that stopped before it was done: try the next one, or handle it. */
+  /** A run that stopped before it was done, or whose commits failed to push: try the next one, or handle it. */
   | { kind: 'stopped'; kinds: ContributePrSignalKind[]; run: RunFinding }
   /** An agreement to sign: by a comment posted word for word, or on a page. */
   | {
@@ -117,10 +117,11 @@ export function defaultNoteOf(signals: ContributePrSignal[], threads: Contribute
 /** What a run that ended found, from its signal and the round the pull request lists for it. */
 function findingOf(first: ContributeAttemptDetail, signal: ContributePrSignal): RunFinding {
   const listed = first.followUps?.history?.find((round) => round.attemptId === signal.attemptId);
+  const outcome = runOutcomeOf(signal);
   return {
     round: signal.round ?? listed?.round ?? (first.followUps?.used || null),
-    outcome: runOutcomeOf(signal),
-    detail: signal.detail?.trim() || null,
+    outcome,
+    detail: (outcome === 'push_failed' ? pushDetailOf(signal.detail) : signal.detail?.trim()) || null,
     at: listed?.at ?? signal.at,
     costUsd: listed && listed.costUsd > 0 ? listed.costUsd : null,
   };
@@ -168,7 +169,9 @@ export function nextStepOf(first: ContributeAttemptDetail): NextStep {
       run: finding?.outcome === 'no_go' ? finding : null,
     });
   }
-  if (finding?.outcome === 'stopped') user.push({ kind: 'stopped', kinds: ['RUN_ENDED'], run: finding });
+  if (finding?.outcome === 'stopped' || finding?.outcome === 'push_failed') {
+    user.push({ kind: 'stopped', kinds: ['RUN_ENDED'], run: finding });
+  }
 
   const fix = first.prFix ?? null;
   const signOff = fix?.kind === 'SIGN_OFF' ? fix : null;
@@ -188,8 +191,10 @@ export function nextStepOf(first: ContributeAttemptDetail): NextStep {
       note:
         defaultNoteOf(runSignals, threads) ||
         (finding?.outcome === 'stopped'
-          ? `${finding.round ? `Run ${finding.round}` : 'The last run'} stopped before it was done${finding.detail ? ` (${finding.detail})` : ''}. Pick it up and finish it.`
-          : ''),
+          ? `${finding.round ? `Run ${finding.round}` : 'The last run'} stopped before it was done${finding.detail ? ` (${bracketed(finding.detail)})` : ''}. Pick it up and finish it.`
+          : finding?.outcome === 'push_failed'
+            ? `${finding.round ? `Run ${finding.round}` : 'The last run'}'s commits could not be pushed${finding.detail ? ` (${bracketed(finding.detail)})` : ''}. Make the change again on the pull request as it is now.`
+            : ''),
     },
     user,
     rules: issues.length || ruleFix?.state === 'SENDING' ? { issues, fix: ruleFix } : null,

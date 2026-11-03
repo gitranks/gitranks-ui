@@ -60,12 +60,17 @@ function FoundCard({ move, first, step, primary, now }: CardProps & { move: Extr
   const pr = first.pullRequest;
   const url = githubUrlOf(pr?.url);
   const by = move.bot?.by ?? 'the review bot';
+  const open = url && pr ? `Open #${pr.number} on GitHub (the button below)` : 'Open the pull request on GitHub';
   const steps = [
-    move.run?.detail ? clipped(move.run.detail, 300) : `Read what ${by} asks in its comment on #${pr?.number}.`,
-    'Do it on the pull request, on GitHub.',
+    `${open}${move.bot ? ` and find ${by}'s comment: it says what it wants` : ''}.`,
+    move.run?.detail
+      ? `Do this there: ${clipped(move.run.detail, 300)}`
+      : move.bot
+        ? `Do what ${by} asks, on the pull request.`
+        : 'Do what the run left for you, on the pull request.',
     move.bot
-      ? `${by} reads it again: this leaves Needs you once it lets the merge through, or when you say you've done it.`
-      : "Say you've done it here: it leaves Needs you.",
+      ? `${by} reads it again: this leaves Needs you once it lets the merge through, or when you click I've done it.`
+      : "Come back and click I've done it: this leaves Needs you.",
   ];
   return (
     <MoveCard
@@ -97,6 +102,11 @@ function FoundCard({ move, first, step, primary, now }: CardProps & { move: Extr
           </span>
         </p>
       ) : null}
+      <p className="text-sm text-muted-foreground" data-found-why="">
+        {move.bot
+          ? `${by} is a review bot on the repo: it holds the merge until what it asks is done. A review bot's ask is left to you: GitRanks does not start a run for it.`
+          : 'The agent reads every review, comment and check on the pull request; it changes what code can fix and leaves you what only you can do (a decision, an account, a proof from your machine).'}
+      </p>
       <Steps steps={steps} />
       <div className="flex flex-wrap items-start gap-3">
         {url && pr ? (
@@ -129,7 +139,9 @@ function StoppedCard({ move, first, step, primary }: CardProps & { move: Extract
     <MoveCard
       tone="red"
       name={unpushed ? 'push-failed' : 'stopped'}
-      heading={`Your move: try run ${step.run.round}, or handle it yourself`}
+      heading={
+        step.run.open ? `Your move: try run ${step.run.round}, or handle it yourself` : 'Your move: handle it yourself'
+      }
       pill={
         <Pill tone="red">
           {unpushed
@@ -152,9 +164,22 @@ function StoppedCard({ move, first, step, primary }: CardProps & { move: Extract
       </p>
       <p className="text-sm text-muted-foreground">
         {unpushed
-          ? 'They never reached the pull request. A new run starts from the pull request as it is now and makes the change again; tell it what to do differently in its note.'
-          : 'Nothing was pushed. A new run starts from the pull request as it is; tell it what to do differently in its note.'}
+          ? 'They never reached the pull request, so it is as it was before the run.'
+          : 'Nothing was pushed or posted, so the pull request is as it was before the run.'}
       </p>
+      <Steps
+        steps={[
+          ...(move.run.detail
+            ? ['Read why it stopped, above: it says what to fix first when the next run would stop the same way.']
+            : []),
+          ...(step.run.open
+            ? [
+                `Click Try run ${step.run.round}, write in its note what to do differently, and start it. It starts from the pull request as it is now${unpushed ? ' and makes the change again' : ''}.`,
+              ]
+            : []),
+          `${step.run.open ? 'Or make' : 'Make'} the change on GitHub yourself, then click I'll handle it: this leaves Needs you.`,
+        ]}
+      />
       <div className="flex flex-wrap items-start gap-3">
         {step.run.open ? (
           <Button asChild size="lg" variant={primary ? 'default' : 'outline'} className="min-h-11 px-4 font-semibold">
@@ -201,9 +226,17 @@ function AgreementCard({ move, first, primary }: CardProps & { move: Extract<Use
       {move.signComment ? (
         <>
           <p className="text-sm">
-            The repo asks every contributor to sign its {move.agreement} by posting this comment on the pull request,
-            word for word. Its bot records your signature from it. Nobody can sign it for you.
+            The repo merges code only from people who signed its {move.agreement}
+            {move.check ? ` (its check: ${move.check})` : ''}, and it records a signature from a comment on the pull
+            request. It is a legal agreement in your name, so neither the agent nor GitRanks can sign it for you.
           </p>
+          <Steps
+            steps={[
+              'Copy the comment below.',
+              `Open PR #${pr?.number ?? ''} on GitHub, paste it into the comment box at the bottom, word for word, and click Comment.`,
+              `The repo's bot records your signature and its check runs again; then click I posted it.`,
+            ]}
+          />
           <CodeBlock label="Your comment on the pull request" copyLabel="Copy the comment" wrap>
             {move.signComment}
           </CodeBlock>
@@ -224,10 +257,19 @@ function AgreementCard({ move, first, primary }: CardProps & { move: Extract<Use
       ) : (
         <>
           <p className="text-sm">
-            The repo asks every contributor to sign its {move.agreement}
-            {move.check ? ` (its check: ${move.check})` : ''}. Sign it on its page; this clears once the check passes.
-            Nobody can sign it for you.
+            The repo merges code only from people who signed its {move.agreement}
+            {move.check ? ` (its check: ${move.check})` : ''}. It is a legal agreement in your name, so neither the
+            agent nor GitRanks can sign it for you.
           </p>
+          <Steps
+            steps={[
+              move.signUrl
+                ? `Click Sign the ${move.agreement} below.`
+                : `Click Sign the ${move.agreement} below, then open the details of the ${move.check ?? 'agreement'} check on the pull request: it links to the page to sign.`,
+              'Follow its page to sign (most ask you to sign in with GitHub, then accept).',
+              'Its check runs again: this clears once it passes, or click I signed it.',
+            ]}
+          />
           <div className="flex flex-wrap items-start gap-3">
             {signUrl ? (
               <GithubButton href={signUrl} primary={primary}>
@@ -254,9 +296,17 @@ function TitleCard({ move, first, primary }: CardProps & { move: Extract<UserMov
       pill={<Pill tone="amber">Title rule</Pill>}
     >
       <p className="text-sm break-words">
-        The title breaks the repo&apos;s rules{move.title ? `: "${clipped(move.title, 200)}"` : ''}. Retitle it on
-        GitHub; this clears once it holds another title.
+        The repo sets a rule for pull request titles, and this one breaks it
+        {move.title ? `: "${clipped(move.title, 200)}"` : ''}. GitRanks found no title it could set for you in one
+        click, so the new title is yours to write.
       </p>
+      <Steps
+        steps={[
+          `Open PR #${pr?.number ?? ''} on GitHub and click Edit beside its title.`,
+          "Write a title that follows the repo's rule (its CONTRIBUTING file, or the titles of its merged pull requests, show the shape) and click Save.",
+          "This clears once the pull request holds another title, or click I've done it.",
+        ]}
+      />
       <div className="flex flex-wrap items-start gap-3">
         {url && pr ? (
           <GithubButton href={url} primary={primary}>
@@ -318,7 +368,7 @@ function DcoCard({
       <p className="text-sm">
         {repo} requires a <span className="font-mono text-[13px]">Signed-off-by</span> line on every commit, and{' '}
         {dco.canPush ? 'ours' : 'yours'} went out without one. A new commit can&apos;t fix that: it leaves the old ones
-        unsigned.
+        unsigned. The line certifies in your name that you may submit the code, so GitRanks adds it only when you click.
       </p>
       {dco.canPush ? (
         <>
@@ -349,7 +399,8 @@ function DcoCard({
         <>
           <Steps
             steps={[
-              'Run git rebase --signoff on your branch, from where it left the base branch.',
+              'In your clone, check out the pull request’s branch.',
+              'Run git rebase --signoff HEAD~N, where N is the number of commits on the pull request (its Commits tab counts them).',
               'Push it with git push --force-with-lease.',
               'The DCO check runs again: this clears once it passes.',
             ]}
@@ -366,7 +417,7 @@ function DcoCard({
         {sending
           ? 'Signing off and pushing…'
           : fix?.state === 'FAILED'
-            ? `The sign-off did not go through${fix.note ? `: ${clipped(fix.note, 200)}` : '.'} Try again, or sign off by hand: git rebase --signoff, then git push --force-with-lease.`
+            ? `The sign-off did not go through${fix.note ? `: ${clipped(fix.note, 200)}` : '.'} Try again, or sign off by hand: git rebase --signoff HEAD~N (N: the commits on the pull request), then git push --force-with-lease.`
             : fix?.state === 'DONE' && dco.missing
               ? 'Signed off and pushed. This clears once the DCO check passes.'
               : ''}

@@ -113,11 +113,15 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(one('COMMENT')).toContain('Your move: Someone commented on it. Let run 1 answer, or reply on GitHub.');
     expect(one('CHECK_FAILED')).toContain('Your move: A check fails on your pull request. Start run 1 to fix it.');
     expect(one('CLA')).toContain(
-      "Your move: Sign the repo's CLA; this clears once its check passes. Sign the CLA ↗ I signed it",
+      'Your move: The repo merges code only from people who signed its CLA, and only you can sign it. Sign it on its page; this clears once the check passes. Sign the CLA ↗ I signed it',
     );
-    expect(one('BOT_BLOCKED')).toContain('Your move: A review bot: "Blocked before merge" Read what it asks.');
-    expect(one('TITLE')).toContain("Your move: The title breaks the repo's rule. Retitle the pull request.");
-    expect(one('DCO')).toContain('Your move: The repo wants a Signed-off-by on every commit.');
+    expect(one('BOT_BLOCKED')).toContain(
+      'Your move: A review bot holds the merge until you do what it asks: "Blocked before merge" Read what it asks.',
+    );
+    expect(one('TITLE')).toContain(
+      'Your move: The repo sets a rule for pull request titles, and this one breaks it. Retitle the pull request on GitHub.',
+    );
+    expect(one('DCO')).toContain('Your move: The repo needs your Signed-off-by on every commit');
     expect(one('RUN_ENDED')).toContain('Your move: The last run changed nothing: what is left is yours to do.');
   });
 
@@ -442,6 +446,14 @@ describe('a follow-up on the review screen', () => {
     expect(text(review(followUpAttempts.stopped))).toContain('Nothing was pushed to pull request #1419');
     expect(text(review(followUpAttempts.discarded))).toContain('You discarded it.');
     expect(text(review(followUpAttempts.discarded))).not.toContain('went back to the pool');
+    // A stop the next run would hit too says what to do first, and where.
+    const html = review(followUpAttempts.stopped);
+    expect(html).toContain('data-end-move="BUDGET"');
+    expect(text(html)).toContain(
+      'What to do: To give the next run more room, raise "Each run" under More limits in Budget and pacing.',
+    );
+    expect(html).toContain('href="/contribute/settings/budget#more-limits"');
+    expect(review(followUpAttempts.discarded)).not.toContain('data-end-move');
   });
 
   it('says the pull request it follows up is not available yet without the field', () => {
@@ -747,9 +759,28 @@ describe('refusals, in plain words', () => {
     ['The pull request is not open', 'The pull request is no longer open'],
     ['A follow-up is already under way on this pull request', 'A follow-up is already running'],
     ['New sessions are paused on our side for now', 'New agent sessions are paused on our side'],
-    ['Contributing is paused', 'Contributing is paused. Resume it in Settings'],
-    ['Your Claude key cannot start a session now', 'Your Claude key cannot start a session now. Check it'],
-    ['Your limits leave no room for another attempt now', 'Your spending limits leave no room'],
+    ['Contributing is paused', 'Contributing is paused. Click Resume contributing'],
+    ['Your Claude key cannot start a session now', 'Your Claude key cannot start a session now: none is connected'],
+    ['Your limits leave no room for another attempt now', 'Your spend limits leave no room'],
+    ['The pull request has no branch of ours to add commits to', 'You opened this pull request yourself'],
+    // The API's words since octoscope#1417: each still maps to its own, never an earlier pattern.
+    ['The pull request is not open, so a run has nothing to add commits to', 'The pull request is no longer open'],
+    [
+      'You opened it by hand, so it has no branch of ours a run can add to: change it on GitHub',
+      'You opened this pull request yourself',
+    ],
+    [
+      'Contributing is paused: click Resume contributing on Overview or in Contribute settings (connect a working Claude key first if it asks), then start the run',
+      'Contributing is paused. Click Resume contributing',
+    ],
+    [
+      'Your Claude key cannot start a session now (none connected, Anthropic refused it, or its credits ran out): connect a working key in Contribute settings, Keys and access, then start the run',
+      'Your Claude key cannot start a session now',
+    ],
+    [
+      'Your spend limits leave no room for another run now: raise them, or lower Each run, in Contribute settings, Budget and pacing, or wait until they reset',
+      'Your spend limits leave no room',
+    ],
     [
       "The repository's maintainers opted out of GitRanks Contribute (or do not accept AI-assisted changes): nothing more is sent there",
       "The repo's maintainers keep it out of GitRanks Contribute",
@@ -1310,8 +1341,10 @@ describe('the next step, for each thing only the user can do', () => {
     expect(plain).toContain('clawsweeper · blocks the merge · 8 hours ago');
     expect(plain).toContain('Run 1 changed nothing · Oct 28, 10:52 UTC · $0.31');
     expect(plain).toContain(
-      'What to do Add real behavior proof to the PR description: redacted terminal output, logs or a recording of a stopped run Do it on the pull request, on GitHub.',
+      "What to do Open #190186 on GitHub (the button below) and find clawsweeper's comment: it says what it wants. Do this there: Add real behavior proof to the PR description: redacted terminal output, logs or a recording of a stopped run",
     );
+    // Why only the user can: a review bot answers the person behind the pull request.
+    expect(plain).toContain('clawsweeper is a review bot on the repo: it holds the merge until what it asks is done');
     expect(plain).toContain('Open PR #190186 on GitHub ↗');
     expect(html).toContain('href="https://github.com/openclaw/openclaw/pull/190186"');
     expect(html).toContain('data-kinds="BOT_BLOCKED,RUN_ENDED"');
@@ -1365,7 +1398,9 @@ describe('the next step, for each thing only the user can do', () => {
     expect(html).toContain('data-next-card="push-failed"');
     expect(plain).toContain('Your move: try run 2, or handle it yourself Run 1 not pushed');
     expect(plain).toContain("Run 1's commits could not be pushed");
-    expect(plain).toContain('They never reached the pull request.');
+    expect(plain).toContain('They never reached the pull request, so it is as it was before the run.');
+    expect(plain).toContain('What to do Read why it stopped, above');
+    expect(plain).toContain('Click Try run 2, write in its note what to do differently');
     expect(plain).toContain("Try run 2 I'll handle it");
     expect(plain).toContain(
       "Run 1's commits could not be pushed (The branch changed on GitHub: the commits no longer apply). Make the change again",
@@ -1410,13 +1445,15 @@ describe('the next step, for each thing only the user can do', () => {
     );
     expect(failed).toContain('Try the sign-off again');
     expect(failed).toContain(
-      'The sign-off did not go through: The branch moved. Try again, or sign off by hand: git rebase --signoff, then git push --force-with-lease.',
+      'The sign-off did not go through: The branch moved. Try again, or sign off by hand: git rebase --signoff HEAD~N (N: the commits on the pull request), then git push --force-with-lease.',
     );
     // A pull request opened by hand: the steps by hand, its commits the user's, and Mark as handled.
     const byHand = next({ ...nextForDco, openedBy: 'HAND' });
     expect(byHand).not.toContain('data-sign-off');
     expect(text(byHand)).toContain('and yours went out without one');
-    expect(text(byHand)).toContain('Run git rebase --signoff on your branch');
+    expect(text(byHand)).toContain(
+      'Run git rebase --signoff HEAD~N, where N is the number of commits on the pull request',
+    );
     expect(byHand).toContain('data-kinds="DCO"');
   });
 
@@ -1464,7 +1501,7 @@ describe('the next step, for each thing only the user can do', () => {
   it('says the move in one line on the other sessions, with the way to the next step', () => {
     const plain = text(review(nextForAgreement));
     expect(plain).toContain(
-      'Your move: Post this comment on PR #23935, word for word: "I have read the DCO Document and I hereby sign the DCO" Go to the next step →',
+      `Your move: Only you can sign the repo's DCO; its bot records it from this comment on PR #23935, word for word: "I have read the DCO Document and I hereby sign the DCO" Go to the next step →`,
     );
   });
 });

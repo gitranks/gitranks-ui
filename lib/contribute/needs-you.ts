@@ -14,7 +14,7 @@ import { claudeKeyOf, contributeNoticesOf } from './contribute-state';
 import { FOLLOW_UP_STEP_LABELS, FOLLOW_UP_STEPS, type FollowUpStep, shortSha } from './follow-up-flow';
 import { PR_SIGNAL_KINDS } from './follow-up-format';
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
-import { httpsOnly, PR_FIX_WORDS } from './pr-conventions';
+import { type ContributePrConventionIssue, httpsOnly, PR_FIX_WORDS } from './pr-conventions';
 import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { attemptPath, nextSessionPath, sessionPath } from './sessions';
 
@@ -210,7 +210,7 @@ function proofCandidateOf(
         kind: 'proof-failed',
         tone: 'red',
         pill: 'Posting failed',
-        move: 'Posting the proof failed. Try again, or discard it.',
+        move: 'Posting the proof failed; its page says why. Try again, or discard it.',
         action: toNext('See what failed'),
         secondary: null,
       };
@@ -264,6 +264,15 @@ export function runStepOf(run: Pick<ContributeAttempt, 'state' | 'followUpStep'>
       return 'Working';
   }
 }
+
+/**
+ * Who asks a PR rule, to open its row: `fallback` with the repo's file that asks it, "The repo's rules (in its
+ * .github/agents/pr-and-commit-rules.md)", from the issue's `source`. Rows say why the user sees them (owner, 2026-11-03).
+ */
+const ruleSource = (issue: ContributePrConventionIssue | undefined, fallback: string): string => {
+  const label = issue?.source?.label?.trim();
+  return label ? `${fallback} (in its ${clipped(label, 80)})` : fallback;
+};
 
 /** The repo's agreement by its own name: a CLA, or a DCO signed like one. */
 const agreementOf = (cla: { agreement?: string | null } | null | undefined) =>
@@ -427,7 +436,7 @@ function reviewRowsOf(
       kind: 'review',
       tone: 'violet',
       pill: 'Ready for review',
-      move: `Check the change, then open the pull request or discard it. ${
+      move: `This pull request opens only when you approve it. Check the change, then open it or discard it. ${
         daysLeft !== null && daysLeft >= 1 && daysLeft < 7
           ? `It waits ${plural(daysLeft, 'more day')}.`
           : 'It waits 7 days.'
@@ -457,6 +466,14 @@ function ownReviewWaitOf(attempt: ContributeAttempt, now: Date): string {
 
 /** One reason waiting on an open pull request, before the first of them is chosen to lead its row. */
 type Candidate = Pick<NeedsYouItem, 'kind' | 'tone' | 'pill' | 'move' | 'action' | 'secondary'> & { at: number };
+
+/** A reply GitHub refused: the API's note (why, and what to do), else the two ways on. */
+const replyFailedMove = (draft: Pick<ContributeReplyWaiting, 'lastError'>): string => {
+  const note = draft.lastError?.note?.trim();
+  return note
+    ? sentence(clipped(note, 200))
+    : "GitHub refused the reply. Retry it, or copy it from the run's page and post it on the pull request yourself.";
+};
 
 /** Who the drafts answer: `@mo`, or "the maintainers" when several or none are named. Logins as GitHub writes them. */
 const draftsTo = (drafts: ContributeReplyWaiting[]) => {
@@ -570,7 +587,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'reply-failed',
       tone: 'red',
       pill: 'Reply not posted',
-      move: 'GitHub refused the reply. Try again, or post it yourself.',
+      move: replyFailedMove(failed),
       action: {
         label: 'Retry the reply',
         href: sessionPath(pr.attemptId, failed.attemptId),
@@ -587,13 +604,14 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
     const agreement = agreementOf(conventions);
     const signComment = conventions?.signComment?.trim();
     const signUrl = httpsOnly(conventions?.signUrl);
+    const claCheck = conventions?.check?.trim() || cla.detail?.trim();
     list.push(
       signComment
         ? {
             kind: 'agreement',
             tone: 'amber',
             pill: 'Agreement to sign',
-            move: `Post this comment on PR #${number}, word for word: "${clipped(signComment, 300)}"`,
+            move: `Only you can sign the repo's ${agreement}; its bot records it from this comment on PR #${number}, word for word: "${clipped(signComment, 300)}"`,
             action: prUrl
               ? {
                   label: 'Copy and open the PR ↗',
@@ -609,7 +627,9 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
             kind: 'cla',
             tone: 'amber',
             pill: `${agreement} to sign`,
-            move: `Sign the repo's ${agreement}; this clears once its check passes.`,
+            move: `The repo merges code only from people who signed its ${agreement}${
+              claCheck ? ` (its check: ${clipped(claCheck, 80)})` : ''
+            }, and only you can sign it. Sign it on its page; this clears once the check passes.`,
             action:
               signUrl || prUrl
                 ? {
@@ -632,9 +652,9 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'title',
       tone: 'amber',
       pill: 'Title rule',
-      move: titleIssue
-        ? "The title breaks the repo's rule. Fix it in one click."
-        : "The title breaks the repo's rule. Retitle the pull request.",
+      move: `${ruleSource(titleIssue, 'The repo sets a rule for pull request titles')}, and this one breaks it. ${
+        titleIssue ? 'Fix it in one click.' : 'Retitle the pull request on GitHub.'
+      }`,
       action: toNext('Fix the title'),
       secondary: null,
       at: timeOf(title?.at ?? pr.pullRequest.openedAt),
@@ -649,8 +669,8 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       tone: 'amber',
       pill: 'Description rule',
       move: yours
-        ? 'The repo wants you, not the agent, to fill in the description. Open it for what to write and tick.'
-        : "The description fails the repo's template check. Edit it on the rules card.",
+        ? `${ruleSource(template, "The repo's rules")} say the person who tested the change fills in the description, so the agent left it empty. Open it for what to write and tick, section by section.`
+        : `The repo's ${template.check ? `"${template.check}"` : 'template'} check fails on the description. Edit it on the rules card, with the check's own words beside it.`,
       action: toNext(yours ? 'Fill in the description' : 'Fix the description'),
       secondary: null,
       at: timeOf(pr.pullRequest.openedAt),
@@ -661,7 +681,10 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'changelog',
       tone: 'amber',
       pill: 'Changelog rule',
-      move: 'The changelog line is missing or off. Fix it in one click.',
+      move: `${ruleSource(
+        issues.find(({ kind }) => kind === 'CHANGELOG'),
+        'The repo wants a changelog line for each pull request',
+      )}, and this one is missing or off. Fix it in one click.`,
       action: toNext('Fix the changelog'),
       secondary: null,
       at: timeOf(pr.pullRequest.openedAt),
@@ -683,7 +706,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'bot',
       tone: 'amber',
       pill: 'Bot blocks merge',
-      move: `${by ?? 'A review bot'}: "${clipped(verdict || 'Blocked before merge', 120)}" Read what it asks.`,
+      move: `${by ?? 'A review bot'} holds the merge until you do what it asks: "${clipped(verdict || 'Blocked before merge', 120)}" Read what it asks.`,
       action: toNext('See what it asks'),
       secondary: null,
       at: timeOf(blocked.at),
@@ -752,7 +775,9 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'dco',
       tone: 'red',
       pill: 'Sign-off missing',
-      move: 'The repo wants a Signed-off-by on every commit. Add yours; the code stays the same.',
+      move: byHand
+        ? 'The repo needs your Signed-off-by on every commit, and only you can certify it. See how to add it; the code stays the same.'
+        : 'The repo needs your Signed-off-by on every commit, and only you can certify it. One click adds it; the code stays the same.',
       action: toNext(byHand ? 'See how to sign off' : 'Sign off and push'),
       secondary: null,
       at: timeOf(dco.at),
@@ -771,7 +796,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       pill: 'A fix failed',
       move: `${PR_FIX_WORDS[fix.kind]} did not go through${note} ${
         fix.kind === 'SIGN_OFF'
-          ? 'Try again, or sign off by hand: git rebase --signoff, then a force-push.'
+          ? 'Try again, or sign off by hand: git rebase --signoff HEAD~N (N: the commits on the pull request), then git push --force-with-lease.'
           : 'Try again, or make the change on GitHub.'
       }`,
       action: toNext('See what happened'),
@@ -946,7 +971,7 @@ export function needsYouItemsOf({
       pill: 'Key refused',
       where: `Claude key ${maskedKey(key.last4)}`,
       title: null,
-      move: 'Connect a working key; nothing starts until you do.',
+      move: 'Anthropic refused your Claude key, so no run can start. Connect a working key.',
       more: 0,
       action: { label: 'Connect a new key', href: CONNECT_KEY_PATH, aria: 'Connect a new Claude key' },
       secondary: null,
@@ -965,7 +990,7 @@ export function needsYouItemsOf({
       pill: 'Not set up',
       where: null,
       title: null,
-      move: 'Add your Claude key or connect your own agent.',
+      move: 'Nothing can start until GitRanks has your Claude key or your own agent is connected.',
       more: 0,
       action: { label: 'Add your Claude key', href: CONNECT_KEY_PATH, aria: 'Add your Claude key' },
       secondary: { label: 'Connect your own agent', href: CONNECT_AGENT_PATH },
@@ -1020,7 +1045,7 @@ export function needsYouItemsOf({
       where,
       title: null,
       move: failed
-        ? 'GitHub refused the reply. Try again, or post it yourself.'
+        ? replyFailedMove(shown[0])
         : `A run drafted ${plural(shown.length, 'reply', 'replies')} to ${draftsTo(shown)}. Read and post them.`,
       more: 0,
       action: {

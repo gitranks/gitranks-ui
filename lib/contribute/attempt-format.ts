@@ -1,3 +1,5 @@
+import type { Route } from 'next';
+
 import type {
   ContributeAgent,
   ContributeAgentName,
@@ -14,6 +16,7 @@ import type {
   ContributeRiskLevel,
   ContributeSubmitStep,
 } from './contribute.types';
+import { movedAnchorOf, SETTINGS_PATHS } from './settings-paths';
 
 export type Tone = 'neutral' | 'green' | 'violet' | 'amber' | 'red';
 
@@ -93,6 +96,85 @@ export const END_REASONS: Record<ContributeAttemptEndReason, string> = {
   MCP_IDLE: 'Your agent made no call for 24 hours, or no passing submission for 48 hours, so the issue was let go.',
   MCP_EXPIRED: 'It reached the seven days an issue can be held, so it was let go.',
 };
+
+/**
+ * What the user does after an attempt ended, by why it ended (notices say why and what to do: owner, 2026-11-03):
+ * the step, and where to take it (`href`, `link`: a page of ours). Null where nothing waits on the user.
+ */
+export type EndMove = { text: string; href?: Route; link?: string };
+
+const NOTHING = 'Nothing waits on you';
+
+const END_MOVES: Record<ContributeAttemptEndReason, EndMove | null> = {
+  CLAIM_LOST: { text: `${NOTHING}: the next attempt takes another issue.` },
+  NO_GO: { text: `${NOTHING}.` },
+  BUDGET: {
+    text: 'To give the next run more room, raise "Each run" under More limits in Budget and pacing.',
+    href: movedAnchorOf('more-limits') ?? SETTINGS_PATHS.budget,
+    link: 'Open More limits',
+  },
+  TIMEOUT: { text: `${NOTHING}: two hours is the most one run takes.` },
+  FAILED: { text: `${NOTHING}: a new attempt can take the issue again.` },
+  CHECKS_FAILED: { text: `${NOTHING}.` },
+  KEY_INVALID: {
+    text: 'Connect a working Claude key in Keys and access; nothing starts until you do.',
+    href: SETTINGS_PATHS.keys,
+    link: 'Open Keys and access',
+  },
+  EXHAUSTED: {
+    text: "Add credits in the Claude Console (platform.claude.com, Settings, Billing), then connect the key again in Keys and access. GitRanks can't add credits for you.",
+    href: SETTINGS_PATHS.keys,
+    link: 'Open Keys and access',
+  },
+  LIMIT_REACHED: {
+    text: "Raise your workspace's spend limit in the Claude Console (platform.claude.com, Settings, Limits), then connect the key again in Keys and access, or wait for its next month. GitRanks can't change it for you.",
+    href: SETTINGS_PATHS.keys,
+    link: 'Open Keys and access',
+  },
+  CANCELLED: null,
+  USER: null,
+  REVIEW_EXPIRED: null,
+  SUBMIT_FAILED: { text: 'The note below says why it could not be submitted and what, if anything, is yours to do.' },
+  RELEASED: null,
+  MCP_IDLE: null,
+  MCP_EXPIRED: null,
+};
+
+/** A check over the user's own limits: raising them lets the next attempt through. */
+const OVER_LIMIT: Record<string, EndMove> = {
+  max_changed_lines: {
+    text: 'To let a larger change through, raise "Changed lines" under Pull requests in Agent and pull requests.',
+    href: movedAnchorOf('prs') ?? SETTINGS_PATHS.agent,
+    link: 'Open Pull requests',
+  },
+  max_files: {
+    text: 'To let a larger change through, raise "Files" under Pull requests in Agent and pull requests.',
+    href: movedAnchorOf('prs') ?? SETTINGS_PATHS.agent,
+    link: 'Open Pull requests',
+  },
+};
+
+/** The ends whose move comes before the next follow-up too: the rest of a follow-up's are its page's own words. */
+const BEFORE_NEXT_RUN = new Set<ContributeAttemptEndReason>(['BUDGET', 'KEY_INVALID', 'EXHAUSTED', 'LIMIT_REACHED']);
+
+/**
+ * What the user does after the attempt ended, or null: a follow-up's only when it comes before the next run; a failed
+ * check's link only for the user's own limits; a failed submission's only while its note is there to read.
+ */
+export function endMoveOf(
+  attempt: Pick<ContributeAttempt, 'endReason' | 'endDetail'> & {
+    kind?: ContributeAttemptKind | null;
+    submit?: { lastError?: unknown } | null;
+  },
+): EndMove | null {
+  const { endReason, kind } = attempt;
+  if (!endReason || !Object.hasOwn(END_MOVES, endReason)) return null;
+  const over = endReason === 'CHECKS_FAILED' ? OVER_LIMIT[String(attempt.endDetail ?? '').toLowerCase()] : undefined;
+  if (over) return over;
+  if (kind === 'FOLLOW_UP' && !BEFORE_NEXT_RUN.has(endReason)) return null;
+  if (endReason === 'SUBMIT_FAILED' && !attempt.submit?.lastError) return { text: 'Nothing was submitted.' };
+  return END_MOVES[endReason];
+}
 
 /** The note the API puts after a no-go the agent wrote when told to wrap up at the check's limit. */
 const DECIDED_AT_LIMIT = /\s*Decided at the check's (budget|time) limit\.$/;

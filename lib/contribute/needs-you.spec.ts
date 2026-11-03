@@ -42,7 +42,7 @@ describe('needsYouItemsOf: the setup', () => {
       tone: 'red',
       pill: 'Key refused',
       where: 'Claude key …k3Qa',
-      move: 'Connect a working key; nothing starts until you do.',
+      move: 'Anthropic refused your Claude key, so no run can start. Connect a working key.',
       action: { label: 'Connect a new key', href: '/contribute/connect' },
     });
 
@@ -50,7 +50,7 @@ describe('needsYouItemsOf: the setup', () => {
     expect(way).toMatchObject({
       kind: 'no-way',
       pill: 'Not set up',
-      move: 'Add your Claude key or connect your own agent.',
+      move: 'Nothing can start until GitRanks has your Claude key or your own agent is connected.',
       action: { label: 'Add your Claude key', href: '/contribute/connect' },
       secondary: { label: 'Connect your own agent', href: '/contribute/connect?path=agent' },
     });
@@ -75,7 +75,7 @@ describe('needsYouItemsOf: what waits for a review', () => {
       pill: 'Ready for review',
       where: 'driftwood-js/driftwood · issue #871',
       title: 'Nested layouts re-render on every navigation',
-      move: 'Check the change, then open the pull request or discard it. It waits 3 more days.',
+      move: 'This pull request opens only when you approve it. Check the change, then open it or discard it. It waits 3 more days.',
       action: { label: 'Review the change', href: '/contribute/attempts/A_1' },
     });
   });
@@ -225,9 +225,23 @@ describe('needsYouItemsOf: an open pull request', () => {
       kind: 'reply-failed',
       tone: 'red',
       pill: 'Reply not posted',
-      move: 'GitHub refused the reply. Try again, or post it yourself.',
+      move: "GitHub refused the reply. Retry it, or copy it from the run's page and post it on the pull request yourself.",
       action: { label: 'Retry the reply', href: '/contribute/attempts/A_PR2205/runs/A_TIDE1' },
     });
+    // The API's note says why, and what to do.
+    const noted = [
+      replyWaiting({
+        prId: 'PR_2205',
+        attemptId: 'A_TIDE1',
+        state: 'FAILED',
+        lastError: {
+          reason: 'forbidden',
+          note: 'GitHub refused the reply: the conversation is locked.',
+          at: '2026-10-28T11:00:00.000Z',
+        },
+      }),
+    ];
+    expect(rowOf(quiet, { replies: noted }).move).toBe('GitHub refused the reply: the conversation is locked.');
   });
 
   it('copies the comment that signs an agreement and opens the pull request, with "I posted it"', () => {
@@ -235,7 +249,7 @@ describe('needsYouItemsOf: an open pull request', () => {
     expect(row).toMatchObject({
       kind: 'agreement',
       pill: 'Agreement to sign',
-      move: 'Post this comment on PR #23935, word for word: "I have read the DCO Document and I hereby sign the DCO"',
+      move: `Only you can sign the repo's DCO; its bot records it from this comment on PR #23935, word for word: "I have read the DCO Document and I hereby sign the DCO"`,
       action: {
         label: 'Copy and open the PR ↗',
         external: 'https://github.com/carbon-design-system/carbon/pull/23935',
@@ -250,7 +264,7 @@ describe('needsYouItemsOf: an open pull request', () => {
     expect(row).toMatchObject({
       kind: 'cla',
       pill: 'CLA to sign',
-      move: "Sign the repo's CLA; this clears once its check passes.",
+      move: 'The repo merges code only from people who signed its CLA (its check: license/cla), and only you can sign it. Sign it on its page; this clears once the check passes.',
       secondary: { label: 'I signed it' },
     });
     expect(externalOf(row)).toBe('https://cla-assistant.io/fern-lang/fern');
@@ -263,7 +277,7 @@ describe('needsYouItemsOf: an open pull request', () => {
     expect(rowOf(prsNeedingYou.title)).toMatchObject({
       kind: 'title',
       pill: 'Title rule',
-      move: "The title breaks the repo's rule. Fix it in one click.",
+      move: 'The repo sets a rule for pull request titles, and this one breaks it. Fix it in one click.',
       action: { label: 'Fix the title', href: '/contribute/attempts/A_PR912?session=next' },
     });
     const template = {
@@ -274,9 +288,14 @@ describe('needsYouItemsOf: an open pull request', () => {
     expect(rowOf(template)).toMatchObject({ kind: 'description', pill: 'Description rule' });
     // No check: the repo leaves its template to the user, who fills it on GitHub from our drafts.
     expect(rowOf(template)).toMatchObject({
-      move: 'The repo wants you, not the agent, to fill in the description. Open it for what to write and tick.',
+      move: "The repo's rules say the person who tested the change fills in the description, so the agent left it empty. Open it for what to write and tick, section by section.",
       action: { label: 'Fill in the description' },
     });
+    // The row names the repo's file that asks it, so the user can see where the ask comes from.
+    const source = { label: '.github/agents/pr-and-commit-rules.md', url: 'https://github.com/a/b/blob/HEAD/x' };
+    expect(rowOf({ ...template, prIssues: [{ ...template.prIssues[0], source }] }).move).toMatch(
+      /^The repo's rules \(in its \.github\/agents\/pr-and-commit-rules\.md\) say the person who tested/,
+    );
     expect(
       rowOf({
         ...template,
@@ -294,7 +313,7 @@ describe('needsYouItemsOf: an open pull request', () => {
     expect(rowOf(prsNeedingYou.bot)).toMatchObject({
       kind: 'bot',
       pill: 'Bot blocks merge',
-      move: 'clawsweeper: "Blocked before merge — 1 item remains: Add real behavior proof" Read what it asks.',
+      move: 'clawsweeper holds the merge until you do what it asks: "Blocked before merge — 1 item remains: Add real behavior proof" Read what it asks.',
       action: { label: 'See what it asks', href: '/contribute/attempts/A_PR190186?session=next' },
     });
   });
@@ -342,7 +361,7 @@ describe('needsYouItemsOf: an open pull request', () => {
       kind: 'dco',
       tone: 'red',
       pill: 'Sign-off missing',
-      move: 'The repo wants a Signed-off-by on every commit. Add yours; the code stays the same.',
+      move: 'The repo needs your Signed-off-by on every commit, and only you can certify it. One click adds it; the code stays the same.',
       action: { label: 'Sign off and push', href: '/contribute/attempts/A_PR4410?session=next' },
     });
     expect(rowOf({ ...prsNeedingYou.dco, openedBy: 'HAND' }).action).toMatchObject({ label: 'See how to sign off' });
@@ -353,7 +372,7 @@ describe('needsYouItemsOf: an open pull request', () => {
       kind: 'fix-failed',
       tone: 'red',
       pill: 'A fix failed',
-      move: 'Signing off the commits did not go through: The branch moved since GitRanks read it. Try again, or sign off by hand: git rebase --signoff, then a force-push.',
+      move: 'Signing off the commits did not go through: The branch moved since GitRanks read it. Try again, or sign off by hand: git rebase --signoff HEAD~N (N: the commits on the pull request), then git push --force-with-lease.',
       more: 0,
       action: { label: 'See what happened', href: '/contribute/attempts/A_PR4411?session=next' },
     });

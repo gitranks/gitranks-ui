@@ -217,7 +217,7 @@ describe("Needs you's row for a proof", () => {
     expect(rowOf(withProof(nextForProof.failed))).toMatchObject({
       kind: 'proof-failed',
       tone: 'red',
-      move: 'Posting the proof failed. Try again, or discard it.',
+      move: 'Posting the proof failed; its page says why. Try again, or discard it.',
     });
     expect(rowOf(withProof(nextForProof.posted))).toMatchObject({
       kind: 'proof-posted',

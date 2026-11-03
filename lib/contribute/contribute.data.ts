@@ -13,6 +13,7 @@ import {
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptMovesDocument,
   ContributeAttemptOwnAgentDocument,
+  ContributeAttemptProofDocument,
   ContributeAttemptRetryDocument,
   ContributeAttemptReviewReasonDocument,
   ContributeAttemptSubmitClockDocument,
@@ -34,6 +35,7 @@ import {
   ContributeContributionsFollowUpsDocument,
   ContributeContributionsMovesDocument,
   ContributeContributionsOwnAgentDocument,
+  ContributeContributionsProofDocument,
   ContributeGrantDocument,
   ContributeImpactDocument,
   ContributeImpactReposDocument,
@@ -527,6 +529,8 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   );
   // A run that ended with its number and outcome, and when the last run ended; left out when not answered.
   const moves = Promise.resolve(graphqlDirect(ContributeAttemptMovesDocument, { id }, options)).catch(() => undefined);
+  // A review bot's ask for proof and the user's own agent's proof; left out when not answered.
+  const proof = Promise.resolve(graphqlDirect(ContributeAttemptProofDocument, { id }, options)).catch(() => undefined);
   try {
     const { contributeAttempt: read } = await review;
     if (!read) return read;
@@ -583,10 +587,15 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
       ),
       movesRead?.attemptId === contributeAttempt.attemptId ? movesRead : undefined,
     );
+    const proofRead = (await proof)?.contributeAttempt;
+    const withProof =
+      proofRead?.attemptId === contributeAttempt.attemptId && proofRead.proof !== undefined
+        ? { ...withConventions, proof: proofRead.proof }
+        : withConventions;
     const agent = (await ownAgent)?.contributeAttempt;
-    if (agent?.attemptId !== contributeAttempt.attemptId) return withConventions;
+    if (agent?.attemptId !== contributeAttempt.attemptId) return withProof;
     const { result, ...fields } = agent;
-    const merged = withFields(withConventions, fields);
+    const merged = withFields(withProof, fields);
     return merged.result && result ? { ...merged, result: { ...merged.result, prTitle: result.prTitle } } : merged;
   } catch (failure) {
     const { error } = contributeErrorOf(failure);
@@ -679,12 +688,13 @@ export async function loadContributions(first = 50): Promise<ContributeContribut
   if (!githubLogin) return undefined;
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [main, followUps, ownAgent, moves, fixes] = await Promise.allSettled([
+  const [main, followUps, ownAgent, moves, fixes, proofs] = await Promise.allSettled([
     graphqlDirect(ContributeContributionsDocument, { first }, options),
     graphqlDirect(ContributeContributionsFollowUpsDocument, { first }, options),
     graphqlDirect(ContributeContributionsOwnAgentDocument, { first }, options),
     graphqlDirect(ContributeContributionsMovesDocument, { first }, options),
     graphqlDirect(ContributeContributionsFixesDocument, { first }, options),
+    graphqlDirect(ContributeContributionsProofDocument, { first }, options),
   ]);
   const contributions = settled(main)?.contributeContributions;
   if (!contributions) return undefined;
@@ -692,15 +702,19 @@ export async function loadContributions(first = 50): Promise<ContributeContribut
   const agents = byAttemptId(settled(ownAgent)?.contributeContributions?.items);
   const runs = byAttemptId(settled(moves)?.contributeContributions?.items);
   const fixed = byAttemptId(settled(fixes)?.contributeContributions?.items);
+  const proved = byAttemptId(settled(proofs)?.contributeContributions?.items);
   return {
     ...contributions,
     items: contributions.items.map((item) =>
       withFields(
-        withMovesOf(
-          withFields(withFields(item, extras.get(item.attemptId)), agents.get(item.attemptId)),
-          runs.get(item.attemptId),
+        withFields(
+          withMovesOf(
+            withFields(withFields(item, extras.get(item.attemptId)), agents.get(item.attemptId)),
+            runs.get(item.attemptId),
+          ),
+          fixed.get(item.attemptId),
         ),
-        fixed.get(item.attemptId),
+        proved.get(item.attemptId),
       ),
     ),
   };

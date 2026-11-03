@@ -1,14 +1,15 @@
 import { notFound } from 'next/navigation';
 
-import { AgentConnect } from './agent-connect';
+import { AgentConnect, type AgentConnectProof } from './agent-connect';
 import { ContributeNotices } from './contribute-notices';
 import { KeyConnect } from './key-connect';
 import { manualDraftFromSettings, type StoredLimits } from '@/lib/contribute/connect-limits';
-import { loadContribute, loadProfileLanguages } from '@/lib/contribute/contribute.data';
+import { loadAttempt, loadContribute, loadProfileLanguages } from '@/lib/contribute/contribute.data';
 import type { ContributeView } from '@/lib/contribute/contribute.types';
 import { CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf, contributeNoticesOf, isOnboarded } from '@/lib/contribute/contribute-state';
 import { LANGUAGES } from '@/lib/contribute/format';
+import { proofParamOf, proofPromptOf } from '@/lib/contribute/proof';
 
 export async function ConnectView({
   searchParams,
@@ -17,7 +18,9 @@ export async function ConnectView({
 }) {
   const [view, params, languages] = await Promise.all([loadContribute(), searchParams, loadProfileLanguages()]);
   if (!view) notFound();
-  if (params?.path === 'agent') return <OwnAgentConnectScreen view={view} />;
+  if (params?.path === 'agent') {
+    return <OwnAgentConnectScreen view={view} proof={await proofOf(proofParamOf(params.proof))} />;
+  }
   return <ConnectScreen view={view} today={new Date().getUTCDate()} profileLanguages={languages} />;
 }
 
@@ -28,8 +31,26 @@ export const OWN_AGENT_PATH = CONNECT_AGENT_PATH;
  * B1, the own-agent path: the agent, a token and its setup, then the agent's first call. Nothing asks for a key or for
  * preferences (guessed, changed in Settings), and GitHub access is asked for on the first review.
  */
-export function OwnAgentConnectScreen({ view }: { view: ContributeView }) {
-  return <AgentConnect onboarded={isOnboarded(view)} tokens={view.ownAgent?.tokens} />;
+export function OwnAgentConnectScreen({
+  view,
+  proof = null,
+}: {
+  view: ContributeView;
+  proof?: AgentConnectProof | null;
+}) {
+  return <AgentConnect onboarded={isOnboarded(view)} tokens={view.ownAgent?.tokens} proof={proof} />;
+}
+
+/**
+ * The proof the page was reached for (`?proof=<attemptId>`): the user's own contribution with an open pull request and
+ * a bot's ask for proof. Anything else, or an API that does not answer, leaves the page as it is.
+ */
+async function proofOf(attemptId: string | null): Promise<AgentConnectProof | null> {
+  if (!attemptId) return null;
+  const attempt = await loadAttempt(attemptId).catch(() => undefined);
+  const pr = attempt?.pullRequest;
+  if (attempt?.kind !== 'FIRST' || pr?.state !== 'OPEN' || !attempt.proof?.ask) return null;
+  return { attemptId: attempt.attemptId, prompt: proofPromptOf(attempt.nameWithOwner, pr.number), prNumber: pr.number };
 }
 
 /**

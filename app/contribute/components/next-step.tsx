@@ -5,8 +5,10 @@ import type { ReactNode } from 'react';
 import { LiveDot } from './agent-runs';
 import { CodeBlock } from './code-block';
 import { MarkHandledButton, SignOffButton, StartFollowUpButton } from './follow-up-buttons';
+import { allKindsOf, GithubButton, MoveCard } from './move-card';
 import { PrConventionsCard } from './pr-conventions-card';
 import { HEADING, Pill } from './primitives';
+import { ProofCard } from './proof-card';
 import { ReviewFeedbackCard } from './review-feedback';
 import { HiddenAt } from './shown-session';
 import { Button } from '@/components/ui/button';
@@ -16,61 +18,12 @@ import { autopilotLineOf, FILLED_NOTE_HINT, signalText } from '@/lib/contribute/
 import { relativeLabel, usd } from '@/lib/contribute/format';
 import { clipped } from '@/lib/contribute/needs-you';
 import { type NextStep, nextStepOf, type RunFinding, type UserMove, yourMoveOf } from '@/lib/contribute/next-step';
+import { agentConnectedOf } from '@/lib/contribute/proof';
 import { nextSessionPath } from '@/lib/contribute/sessions';
 import { cn } from '@/lib/utils';
 
 /** The run's card is anchored: the user's cards link to it ("Start run 3 with a note →"). */
 const RUN_ANCHOR = 'next-run';
-
-/** A card of the next step: amber for a move only the user can make, red for a check that fails, violet for a run. */
-const MOVE_CARD = {
-  amber: 'border-warning/40 ring-warning/10',
-  red: 'border-negative/30 ring-negative/10',
-  violet: 'border-primary/30 ring-primary/10',
-} as const;
-
-function MoveCard({
-  tone,
-  heading,
-  pill,
-  name,
-  id,
-  children,
-}: {
-  tone: keyof typeof MOVE_CARD;
-  heading: string;
-  pill: ReactNode;
-  /** The card's kind, for the specs and the boards. */
-  name: string;
-  id?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section
-      id={id}
-      data-next-card={name}
-      className={cn('flex scroll-mt-20 flex-col gap-4 rounded-xl border bg-card p-5 ring-2', MOVE_CARD[tone])}
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className={HEADING.card}>{heading}</h2>
-        {pill}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-/** A link to GitHub as a button: the card's main one, or beside it. */
-function GithubButton({ href, primary, children }: { href: string; primary: boolean; children: ReactNode }) {
-  return (
-    <Button asChild size="lg" variant={primary ? 'default' : 'outline'} className="min-h-11 px-4 font-semibold">
-      <a href={href} target="_blank" rel="noopener noreferrer">
-        {children}
-        <span className="sr-only"> (opens in a new tab)</span>
-      </a>
-    </Button>
-  );
-}
 
 const Steps = ({ steps }: { steps: string[] }) => (
   <div className="flex flex-col gap-2">
@@ -423,10 +376,6 @@ function DcoCard({
 }
 
 /** Whether `kinds` are every signal on the pull request: an API without `kinds` then clears the same. */
-const allKindsOf = (first: ContributeAttemptDetail, kinds: readonly string[]) => {
-  const all = new Set((first.needsYou?.signals ?? []).map(({ kind }) => kind));
-  return all.size === kinds.length && kinds.every((kind) => all.has(kind as ContributePrSignal['kind']));
-};
 
 /** What a run acts on, one line each: the reads' signals, with when. */
 function RunItems({ signals, round, now }: { signals: ContributePrSignal[]; round: number; now?: Date }) {
@@ -616,14 +565,15 @@ export function NextStepCards({
 }) {
   const pr = first.pullRequest;
   if (!pr) return null;
-  const step = nextStepOf(first);
+  const step = nextStepOf(first, agentConnectedOf(view), now);
   const runLeads = step.run.recommended && step.run.open;
   const cards: ReactNode[] = [];
   const primaryAt = (index: number) => !runLeads && index === 0;
 
   step.user.forEach((move, index) => {
     const props = { first, step, primary: primaryAt(index), now };
-    if (move.kind === 'found') cards.push(<FoundCard key="found" move={move} {...props} />);
+    if (move.kind === 'proof') cards.push(<ProofCard key="proof" move={move} view={view} {...props} />);
+    else if (move.kind === 'found') cards.push(<FoundCard key="found" move={move} {...props} />);
     else if (move.kind === 'stopped') cards.push(<StoppedCard key="stopped" move={move} {...props} />);
     else if (move.kind === 'agreement') cards.push(<AgreementCard key="agreement" move={move} {...props} />);
     else cards.push(<TitleCard key="title" move={move} {...props} />);

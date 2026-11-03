@@ -15,6 +15,7 @@ import { FOLLOW_UP_STEP_LABELS, FOLLOW_UP_STEPS, type FollowUpStep, shortSha } f
 import { PR_SIGNAL_KINDS } from './follow-up-format';
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
 import { httpsOnly, PR_FIX_WORDS } from './pr-conventions';
+import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { attemptPath, nextSessionPath, sessionPath } from './sessions';
 
 /**
@@ -44,6 +45,11 @@ export type NeedsYouKind =
   | 'description'
   | 'changelog'
   | 'bot'
+  | 'proof'
+  | 'proof-working'
+  | 'proof-review'
+  | 'proof-failed'
+  | 'proof-posted'
   | 'run-found'
   | 'run-stopped'
   | 'push-failed'
@@ -152,6 +158,81 @@ export function shortLeftOf(at: string | null | undefined, now: Date): string | 
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.round(minutes / 60);
   return hours < 48 ? `${hours} h` : `${Math.round(hours / 24)} d`;
+}
+
+/**
+ * A review bot's ask for proof, as its row says it: the ask itself, the user's agent at work on it, the proof back for
+ * the user, a post that failed, or one posted that the bot has yet to read. Null when no proof is asked or under way.
+ */
+function proofCandidateOf(
+  pr: ContributeContribution,
+  stage: ProofStage,
+  by: string | null,
+  toNext: (label: string) => NeedsYouAction,
+): Omit<Candidate, 'at'> | null {
+  if (stage === 'ask-cleared') return null;
+  const bot = pr.proof?.ask?.bot ?? by ?? 'The review bot';
+  switch (stage) {
+    case 'working':
+    case 'posting':
+      return {
+        kind: 'proof-working',
+        tone: 'violet',
+        pill: stage === 'posting' ? 'Posting the proof' : 'Your agent',
+        move:
+          stage === 'posting'
+            ? 'GitRanks is posting the proof you checked.'
+            : 'Your own agent is capturing the proof on your machine.',
+        action: toNext('See the proof'),
+        secondary: null,
+      };
+    case 'review':
+    case 'cannot':
+    case 'fix-broken':
+    case 'unreadable':
+      return {
+        kind: 'proof-review',
+        tone: 'amber',
+        pill: 'Check the proof',
+        move:
+          stage === 'review'
+            ? `Your agent captured the proof ${bot} asks for. Check it, then post it.`
+            : stage === 'cannot'
+              ? "Your agent couldn't capture the proof. Read why, and the reply it drafted."
+              : stage === 'fix-broken'
+                ? "Your agent found the fix doesn't work. Read what it saw."
+                : "Your agent's proof can't be shown here. Send it back, or discard it.",
+        action: toNext(stage === 'review' ? 'Check the proof' : 'Read it'),
+        secondary: null,
+      };
+    case 'failed':
+      return {
+        kind: 'proof-failed',
+        tone: 'red',
+        pill: 'Posting failed',
+        move: 'Posting the proof failed. Try again, or discard it.',
+        action: toNext('See what failed'),
+        secondary: null,
+      };
+    case 'posted':
+      return {
+        kind: 'proof-posted',
+        tone: 'violet',
+        pill: 'Bot reads it',
+        move: `Proof posted. ${bot} reads it again; this leaves once it lets the merge through.`,
+        action: toNext('See the proof'),
+        secondary: null,
+      };
+    default:
+      return {
+        kind: 'proof',
+        tone: 'amber',
+        pill: 'Proof needed',
+        move: `${bot} asks for ${askedForOf(pr.proof?.ask?.title ?? 'proof')}. Your own agent can capture it on your machine.`,
+        action: toNext('Get the proof'),
+        secondary: null,
+      };
+  }
 }
 
 /** A review bot's block as its signal tells it: `clawsweeper: Blocked before merge …`. */
@@ -376,7 +457,7 @@ export type PrContext = {
 };
 
 /** The reasons on an open pull request, in Needs you's order: what a run can do first, then the user's own. */
-function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
+function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
   const signals = pr.needsYou?.signals ?? [];
   const first = (kind: ContributePrSignalKind) => signals.find((signal) => signal.kind === kind);
   const number = pr.pullRequest.number;
@@ -568,8 +649,16 @@ function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
     });
   }
 
+  // The proof's row: whenever the proof waits on the user or their agent (it outlives an "I've done it" on the block),
+  // and a posted one while the block it answers stands. A block newer than that is the bot's own row.
   const blocked = first('BOT_BLOCKED');
-  if (blocked) {
+  const stage = byHand ? null : proofStageOf(pr.proof, true, now);
+  const proofRow =
+    stage && (proofWaits(stage) || (blocked && proofTellsBlock(stage, pr.proof?.session, blocked.at)))
+      ? proofCandidateOf(pr, stage, blocked ? botVerdictOf(blocked).by : null, toNext)
+      : null;
+  if (proofRow) list.push({ ...proofRow, at: timeOf(blocked?.at ?? pr.proof?.session?.stateAt) });
+  if (blocked && !proofTellsBlock(stage, pr.proof?.session, blocked.at)) {
     const { by, verdict } = botVerdictOf(blocked);
     list.push({
       kind: 'bot',
@@ -798,7 +887,14 @@ export function prItemOf(context: PrContext): NeedsYouItem | null {
   const candidates = candidatesOf(context);
   if (!candidates.length) return null;
   const [lead, ...rest] = candidates;
-  return { ...base, ...lead, more: rest.length, working: false };
+  // The user's own agent at work on the proof, or the bot reading it: a working row, unless something else needs the
+  // user first.
+  return {
+    ...base,
+    ...lead,
+    more: rest.length,
+    working: lead.kind === 'proof-working' || lead.kind === 'proof-posted',
+  };
 }
 
 /** The pull request's latest follow-up among the attempts read. */

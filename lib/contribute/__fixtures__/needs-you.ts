@@ -2,6 +2,10 @@ import type {
   ContributeAttemptDetail,
   ContributeContribution,
   ContributeNeedsYou,
+  ContributeProof,
+  ContributeProofAsk,
+  ContributeProofResult,
+  ContributeProofSession,
   ContributePrSignal,
 } from '../contribute.types';
 import type { NeedsYouRead } from '../needs-you';
@@ -402,3 +406,173 @@ export const nextForDco = first({
   needsYou: prsNeedingYou.dco.needsYou,
   followUps: followUps(),
 });
+
+// ─── Proof from the user's own agent ─────────────────────────────────────────────────────────────────────────────────
+
+/** ClawSweeper's ask on openclaw#190186, as the API reads it. */
+export const proofAsk = (patch: Partial<ContributeProofAsk> = {}): ContributeProofAsk => ({
+  bot: 'clawsweeper',
+  title: 'Add real behavior proof',
+  detail:
+    'redacted terminal output, logs, or a recording of a live Gateway hitting real SQLite contention while stopping a recovered embedded run, with IPs, API keys, phone numbers and non-public endpoints removed.',
+  at: '2026-10-28T04:00:00.000Z',
+  headSha: '89cc1af0d2b5e7a14f3c9e8b1d6a2c4f5e7b9d01',
+  reReview: '@clawsweeper re-review',
+  ...patch,
+});
+
+const PROVED_MARKDOWN = `Live proof on the PR head \`89cc1af0\`, captured by the contributor's own coding agent on their machine (macOS 15, Node 24.22):
+
+- Started an isolated Gateway on a free port with a real model and an embedded run; restarted it so the run was recovered.
+- From a second process, held \`BEGIN EXCLUSIVE\` on the session database for 12 s.
+- Sent Stop through \`sessions.abort\`: the reply was \`UNAVAILABLE\`, \`errorKind: state_contention\`; Stop applied once, no replay.
+- Same steps on \`main\`: the raw \`database is locked\` error escaped.
+
+<details><summary>Gateway log, redacted · 42 lines</summary>
+
+\`\`\`
+[gateway] listening on 127.0.0.1:[port]
+[run] recovered embedded run contention-embedded-run
+[rpc] sessions.abort → UNAVAILABLE {"errorKind":"state_contention"}
+\`\`\`
+
+</details>
+
+![Terminal: the lock held, Stop sent](proof:1)
+![Control UI: the busy-state Stop notice](proof:2)`;
+
+/** What the agent sent back: the proof, by default. */
+export const proofResult = (patch: Partial<ContributeProofResult> = {}): ContributeProofResult => ({
+  outcome: 'PROVED',
+  summary:
+    'Reproduced the lock on a live Gateway and stopped the recovered run; the typed reply came back, Stop applied once.',
+  section: { heading: '## Evidence', markdown: PROVED_MARKDOWN },
+  reply: null,
+  note: null,
+  redactions: ['2 IP addresses', '1 API key'],
+  headSha: '89cc1af0d2b5e7a14f3c9e8b1d6a2c4f5e7b9d01',
+  files: [
+    {
+      slot: 1,
+      name: 'lock-held.png',
+      caption: 'Terminal: the lock held, Stop sent',
+      bytes: 421_888,
+      width: 1600,
+      height: 900,
+    },
+    {
+      slot: 2,
+      name: 'stop-notice.png',
+      caption: 'Control UI: the busy-state Stop notice',
+      bytes: 704_512,
+      width: 1440,
+      height: 900,
+    },
+  ],
+  ...patch,
+});
+
+/** A proof the user's agent holds, by default; picked up 6 minutes before `NOW`. */
+export const proofSession = (patch: Partial<ContributeProofSession> = {}): ContributeProofSession => ({
+  id: 'PF_1',
+  state: 'RUNNING',
+  agent: { name: 'CLAUDE_CODE', model: null },
+  leaseUntil: '2026-10-28T13:54:00.000Z',
+  round: 1,
+  startedAt: '2026-10-28T11:54:00.000Z',
+  stateAt: '2026-10-28T11:54:00.000Z',
+  checkError: null,
+  result: null,
+  post: null,
+  sendBack: null,
+  endedReason: null,
+  ...patch,
+});
+
+const CANNOT_REPLY =
+  'Thanks for the review. I tried to capture the live proof on the PR head (89cc1af0) and couldn\'t reach the contended write: with a real exclusive lock held from a second process, sessions.abort answers {"ok":true,"status":"no-active-run"} before it reaches the persistence write. So on current main the injected-error regression is the only proof that reaches this path. Could a maintainer decide whether that is enough here?';
+
+/** The openclaw pull request whose bot asks for proof, the proof as given. */
+const withProof = (proof: ContributeProof, extra: ContributePrSignal[] = []): ContributeAttemptDetail => ({
+  ...nextForYou,
+  needsYou: needs(
+    signal('BOT_BLOCKED', {
+      at: '2026-10-28T04:00:00.000Z',
+      detail: 'clawsweeper: Blocked before merge — 1 item remains: Add real behavior proof',
+    }),
+    ...extra,
+  ),
+  proof,
+});
+
+/** Every stage of a proof's card, on the openclaw pull request. */
+export const nextForProof = {
+  notConnected: withProof({ ask: proofAsk(), session: null }),
+  connected: withProof({ ask: proofAsk(), session: null }),
+  working: withProof({ ask: proofAsk(), session: proofSession() }),
+  review: withProof({
+    ask: proofAsk(),
+    session: proofSession({ state: 'REVIEW', stateAt: '2026-10-28T11:46:00.000Z', result: proofResult() }),
+  }),
+  cannot: withProof({
+    ask: proofAsk(),
+    session: proofSession({
+      state: 'REVIEW',
+      stateAt: '2026-10-28T11:40:00.000Z',
+      result: proofResult({
+        outcome: 'CANNOT_PROVE',
+        summary:
+          "A real lock never reaches the code this PR changes on current main: Stop answers no-active-run first. The proof clawsweeper asks for can't be made, by anyone.",
+        section: null,
+        reply: CANNOT_REPLY,
+        redactions: [],
+        files: [],
+      }),
+    }),
+  }),
+  fixBroken: withProof({
+    ask: proofAsk(),
+    session: proofSession({
+      state: 'REVIEW',
+      stateAt: '2026-10-28T11:40:00.000Z',
+      result: proofResult({
+        outcome: 'FIX_BROKEN',
+        summary: 'With the lock held, Stop still replays the typed message on the PR head.',
+        section: null,
+        note: 'On 89cc1af0, with BEGIN EXCLUSIVE held from a second process, sessions.abort returns UNAVAILABLE but the recovered run replays the typed message once the lock is released. Make the abort path drop the queued message when it answers state_contention.',
+        redactions: [],
+        files: [],
+      }),
+    }),
+  }),
+  failed: withProof({
+    ask: proofAsk(),
+    session: proofSession({
+      state: 'FAILED',
+      stateAt: '2026-10-28T11:50:00.000Z',
+      result: proofResult(),
+      post: {
+        step: 'BODY',
+        commitSha: '3f2a9c1e',
+        bodyAt: null,
+        commentUrl: null,
+        error: 'The description is longer than GitHub takes (body_too_long).',
+      },
+    }),
+  }),
+  posted: withProof({
+    ask: proofAsk(),
+    session: proofSession({
+      state: 'POSTED',
+      stateAt: '2026-10-28T11:56:00.000Z',
+      result: proofResult(),
+      post: {
+        step: 'COMMENT',
+        commitSha: '3f2a9c1e',
+        bodyAt: '2026-10-28T11:55:00.000Z',
+        commentUrl: 'https://github.com/openclaw/openclaw/pull/190186#issuecomment-1',
+        error: null,
+      },
+    }),
+  }),
+} satisfies Record<string, ContributeAttemptDetail>;

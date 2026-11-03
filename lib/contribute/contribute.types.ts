@@ -659,6 +659,8 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   events: ContributeAttemptEvent[];
   /** The pull request's reply drafts (a follow-up: the ones it wrote); `undefined` while the API does not answer them. */
   replyDrafts?: ContributeReplyDraft[];
+  /** A review bot's ask for proof, and the user's own agent's proof for it; `undefined` while not answered. */
+  proof?: ContributeProof | null;
 } & Partial<ContributeFollowUpFlowFields> &
   ContributeConventionsFields;
 
@@ -751,6 +753,8 @@ export type ContributeContribution = {
   prFix?: ContributePrFix | null;
   prIssues?: ContributePrConventionIssue[];
   conventions?: { cla: ContributeRepoConventions['cla'] } | null;
+  /** A review bot's ask for proof and the proof under way, as the lists read them; `undefined` while not answered. */
+  proof?: ContributeProofBrief | null;
 };
 
 /** The totals Overview's impact shows; `reposHelped` is asked on its own, `undefined` while it is not answered. */
@@ -1031,4 +1035,109 @@ export type ContributeFeedbackContext = {
   mode?: ContributeSetMode;
   repo?: string;
   reasons?: ContributeSetReason[];
+};
+
+// ─── Proof from the user's own agent ─────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A proof's states: waiting for an agent, held by one (`RUNNING`, `UPLOADING` its screenshots, `CHECKING` them), back
+ * for the user (`REVIEW`), being posted, posted, or ended (`FAILED` waits for a retry; `DISCARDED` is over).
+ */
+export type ContributeProofState =
+  | 'WAITING'
+  | 'RUNNING'
+  | 'UPLOADING'
+  | 'CHECKING'
+  | 'REVIEW'
+  | 'POSTING'
+  | 'FAILED'
+  | 'POSTED'
+  | 'DISCARDED';
+/** What the agent came back with: the proof, why it could not capture it, or that the fix itself does not work. */
+export type ContributeProofOutcome = 'PROVED' | 'CANNOT_PROVE' | 'FIX_BROKEN';
+export type ContributeProofEndedReason = 'DISCARDED' | 'ASK_CLEARED' | 'PR_CLOSED' | 'SUPERSEDED' | 'FIX_BROKEN';
+export type ContributeProofPostStep = 'FILES' | 'BODY' | 'COMMENT';
+
+/**
+ * What a review bot asks for: its open checklist item (`title`, `detail`), when this ask was first seen, the head it
+ * read, and the command that has it read the pull request again (null when it names none). Its text is untrusted.
+ */
+export type ContributeProofAsk = {
+  bot: string;
+  title: string;
+  detail: string;
+  at: string;
+  headSha?: string | null;
+  reReview?: string | null;
+};
+
+/** A screenshot the agent sent, checked and stripped of its metadata. */
+export type ContributeProofFile = {
+  slot: number;
+  name: string;
+  caption: string;
+  bytes: number;
+  width: number | null;
+  height: number | null;
+};
+
+/** What the agent sent back. Every text in it is untrusted. */
+export type ContributeProofResult = {
+  outcome: ContributeProofOutcome;
+  summary: string;
+  /** `PROVED`: the section added to the pull request's description, its images as `proof:<slot>`. */
+  section: { heading: string; markdown: string } | null;
+  /** `CANNOT_PROVE`: the reply drafted for the pull request. */
+  reply: string | null;
+  /** `FIX_BROKEN`: what failed. */
+  note: string | null;
+  /** What the agent says it removed: "2 IP addresses". */
+  redactions: string[];
+  /** The pull request's head the proof ran on. */
+  headSha: string | null;
+  files: ContributeProofFile[];
+};
+
+/** The newest proof for the ask, as the user follows it. */
+export type ContributeProofSession = {
+  id: string;
+  state: ContributeProofState;
+  agent: ContributeAgent | null;
+  leaseUntil: string | null;
+  round: number;
+  startedAt: string | null;
+  /** When it last changed state: back for review, posted. */
+  stateAt: string | null;
+  /** Why the last screenshots were refused: the agent is told too. */
+  checkError: string | null;
+  result: ContributeProofResult | null;
+  post: {
+    step: ContributeProofPostStep | null;
+    commitSha: string | null;
+    bodyAt: string | null;
+    commentUrl: string | null;
+    error: string | null;
+  } | null;
+  sendBack: { note: string } | null;
+  endedReason: ContributeProofEndedReason | null;
+};
+
+/**
+ * A review bot's ask for proof (null when none), the newest proof (null before any), and the pull request's head as
+ * the last read saw it (null when unknown): a proof captured on another head says so.
+ */
+export type ContributeProof = {
+  ask: ContributeProofAsk | null;
+  session: ContributeProofSession | null;
+  prHeadSha?: string | null;
+};
+
+/** The ask and the proof's state alone, as a list reads them. */
+export type ContributeProofBrief = {
+  ask: Pick<ContributeProofAsk, 'bot' | 'title' | 'at'> | null;
+  session:
+    | (Pick<ContributeProofSession, 'id' | 'state' | 'stateAt' | 'endedReason'> & {
+        result: { outcome: ContributeProofOutcome } | null;
+      })
+    | null;
 };

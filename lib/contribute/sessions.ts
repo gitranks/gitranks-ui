@@ -6,6 +6,7 @@ import { roundTalliesOf, shortSha } from './follow-up-flow';
 import { USERS_SIGNALS } from './follow-up-format';
 import { usd } from './format';
 import { parsePatch } from './patch';
+import { type ProofStage, proofStageOf } from './proof';
 
 /**
  * A contribution's sessions, as its page lists them: the first attempt, which opened the pull request, then each
@@ -138,7 +139,11 @@ function firstCardOf(first: ContributeAttemptDetail): SessionCard {
  * The sessions of the contribution whose first attempt is `first`. Each run comes from the pull request's history; one
  * the history does not list yet (`round`, just started) is added from what was read of it. The list marks the one shown.
  */
-export function sessionsOf(first: ContributeAttemptDetail, round?: ContributeAttemptDetail): SessionCard[] {
+export function sessionsOf(
+  first: ContributeAttemptDetail,
+  round?: ContributeAttemptDetail,
+  proofOptions: { agentConnected: boolean; now?: Date } = { agentConnected: false },
+): SessionCard[] {
   const cards = [firstCardOf(first)];
   const history = [...(first.followUps?.history ?? [])];
   // Without the history, a run added here is the latest one: its number is the runs used.
@@ -190,14 +195,31 @@ export function sessionsOf(first: ContributeAttemptDetail, round?: ContributeAtt
     });
   }
 
+  // The proof the user's own agent captures, on the next step's page (shown while no run is under way): its card is there.
+  const stage = proofTileStageOf(first, proofOptions.agentConnected, proofOptions.now ?? new Date());
+  if (stage) {
+    const { pill, meta } = PROOF_TILES[stage];
+    const at = stage === 'posted' ? first.proof?.session?.stateAt : null;
+    cards.push({
+      // The next step's address shows the proof's card: its tile is the one the list marks there.
+      key: NEXT_SESSION,
+      href: nextSessionPath(first.attemptId),
+      title: 'Proof · your agent',
+      pill,
+      meta: at ? `${meta} ${timeLabel(at)}` : meta,
+      note: null,
+    });
+  }
+
   const followUps = first.followUps;
   if (followUps && nextRoundOpen(first)) {
     const waiting = waitingThreadsOf(first).length;
     const recommended = nextRoundRecommended(first);
     const yours = !recommended && usersMovesWait(first);
     cards.push({
-      key: NEXT_SESSION,
-      href: nextSessionPath(first.attemptId),
+      // Beside a proof's tile (which takes the next step's mark), the run's own key.
+      key: stage ? NEXT_RUN_TILE : NEXT_SESSION,
+      href: stage ? (`${nextSessionPath(first.attemptId)}#next-run` as Route) : nextSessionPath(first.attemptId),
       title: `Run ${nextRunNumberOf(first)} · follow-up`,
       pill: recommended
         ? { label: 'Recommended', tone: 'violet' }
@@ -211,6 +233,37 @@ export function sessionsOf(first: ContributeAttemptDetail, round?: ContributeAtt
   }
   return cards;
 }
+
+/**
+ * The proof's stage when its tile and card show: on our own open pull request with no run under way. The next step's
+ * page shows whenever this is not null, so the tile never leads to a page without the card.
+ */
+export const proofTileStageOf = (
+  first: ContributeAttemptDetail,
+  agentConnected: boolean,
+  now: Date,
+): ProofStage | null =>
+  first.openedBy !== 'HAND' && first.pullRequest?.state === 'OPEN' && !first.followUps?.currentAttemptId
+    ? proofStageOf(first.proof, agentConnected, now)
+    : null;
+
+/** The next run's tile beside a proof's: both lead to the next step, the run's to its card. */
+export const NEXT_RUN_TILE = 'next-run';
+
+/** A proof's tile: whose move it is, in the tile's pill and line. */
+const PROOF_TILES: Record<ProofStage, { pill: SessionCard['pill']; meta: string }> = {
+  'not-connected': { pill: { label: 'Your move', tone: 'amber' }, meta: 'Waits for you' },
+  connected: { pill: { label: 'Your move', tone: 'amber' }, meta: 'Waits for you' },
+  working: { pill: { label: 'Your agent', tone: 'violet' }, meta: 'Under way' },
+  review: { pill: { label: 'Check it', tone: 'amber' }, meta: 'Waits for you' },
+  cannot: { pill: { label: 'Your move', tone: 'amber' }, meta: 'Waits for you' },
+  'fix-broken': { pill: { label: 'Your move', tone: 'amber' }, meta: 'Waits for you' },
+  unreadable: { pill: { label: 'Your move', tone: 'amber' }, meta: 'Waits for you' },
+  posting: { pill: { label: 'Posting', tone: 'violet' }, meta: 'Under way' },
+  failed: { pill: { label: 'Posting failed', tone: 'red' }, meta: 'Waits for you' },
+  posted: { pill: { label: 'Bot reads it', tone: 'neutral' }, meta: 'Posted' },
+  'ask-cleared': { pill: { label: 'Not needed', tone: 'neutral' }, meta: 'The bot no longer asks' },
+};
 
 /** The sessions header: the follow-up runs so far and what they cost (`2 runs · $0.43`); null before the first. */
 export function runsLabelOf(first: ContributeAttemptDetail): string | null {

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
+import { AgentConnectView } from '@/app/contribute/components/agent-connect';
 import { ContributeTabsNav } from '@/app/contribute/components/contribute-tabs-nav';
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
@@ -22,6 +23,7 @@ import {
   needsSome,
   nextForAgreement,
   nextForDco,
+  nextForProof,
   nextForRun,
   nextForYou,
 } from '@/lib/contribute/__fixtures__/needs-you';
@@ -110,12 +112,23 @@ const overview = (
 const busy = activityOf(WORKING, FOLLOW_UP, own, stopped);
 
 /** A contribution's page: its first attempt, on the next step or its own session. */
-const attemptPage = (first: ContributeAttemptDetail, next: boolean) =>
+const attemptPage = (first: ContributeAttemptDetail, next: boolean, view: ContributeView = views.active) =>
   frame(
     <main className={MAIN}>
-      <ReviewScreen view={views.active} attempt={first} next={next} now={NOW} />
+      <ReviewScreen view={view} attempt={first} next={next} now={NOW} />
     </main>,
   );
+
+/** The user's own agent has called GitRanks: a proof's card asks only for the prompt. */
+const agentConnected: ContributeView = {
+  ...views.active,
+  ownAgent: {
+    paths: { hosted: true, mcp: true },
+    tokens: [mcpToken({ lastUsedAt: '2026-10-28T10:00:00.000Z' })],
+  },
+};
+
+const noop = () => {};
 
 /** My contributions with every reason a pull request needs the user, and the runs at work. */
 const mine = () => {
@@ -315,6 +328,55 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () => attemptPage(nextForYou, true),
       },
       {
+        id: 'proof-not-connected',
+        title: 'Proof from your agent: connect it first',
+        path: '/contribute/attempts/A_OC?session=next',
+        height: 1900,
+        render: () => attemptPage(nextForProof.notConnected, true),
+      },
+      {
+        id: 'proof-connected',
+        title: 'Proof from your agent: run the prompt',
+        path: '/contribute/attempts/A_OC?session=next',
+        height: 1950,
+        render: () => attemptPage(nextForProof.connected, true, agentConnected),
+      },
+      {
+        id: 'proof-working',
+        title: 'Proof from your agent: it is on it',
+        path: '/contribute/attempts/A_OC?session=next',
+        height: 1700,
+        render: () => attemptPage(nextForProof.working, true, agentConnected),
+      },
+      {
+        id: 'proof-review',
+        title: 'Proof from your agent: check it, then post it',
+        path: '/contribute/attempts/A_OC?session=next',
+        height: 2400,
+        render: () => attemptPage(nextForProof.review, true, agentConnected),
+      },
+      {
+        id: 'proof-cannot',
+        title: "Proof from your agent: it couldn't capture it",
+        path: '/contribute/attempts/A_OC?session=next',
+        height: 1900,
+        render: () => attemptPage(nextForProof.cannot, true, agentConnected),
+      },
+      {
+        id: 'proof-fix-broken',
+        title: "Proof from your agent: the fix doesn't work",
+        path: '/contribute/attempts/A_OC?session=next',
+        height: 1800,
+        render: () => attemptPage(nextForProof.fixBroken, true, agentConnected),
+      },
+      {
+        id: 'proof-posted',
+        title: 'Proof from your agent: posted, the bot reads it',
+        path: '/contribute/attempts/A_OC?session=next',
+        height: 1500,
+        render: () => attemptPage(nextForProof.posted, true, agentConnected),
+      },
+      {
         id: 'next-agreement',
         title: 'Next step: an agreement signed by a comment',
         path: '/contribute/attempts/A_C?session=next',
@@ -352,6 +414,45 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           frame(
             <main className={MAIN}>
               <ReviewScreen view={views.active} attempt={followUpAttempts.quiet} next now={NOW} />
+            </main>,
+          ),
+      },
+    ],
+  },
+  {
+    id: 'contribute-connect-agent',
+    title: 'Connect your own agent',
+    area: 'contribute',
+    route: '/contribute/connect',
+    sources: ['app/contribute/components/agent-connect.tsx', 'app/contribute/components/connect-view.tsx'],
+    states: [
+      {
+        id: 'proof-prompt',
+        title: 'From a proof card: the proof prompt last',
+        path: '/contribute/connect?path=agent&proof=A_OC',
+        height: 1500,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 pt-9 pb-16">
+              <AgentConnectView
+                client="claude-code"
+                onClient={noop}
+                stage="added"
+                shown={null}
+                pending={mcpToken()}
+                os="mac"
+                detectedOs="mac"
+                onOs={noop}
+                onCreate={noop}
+                onAdded={noop}
+                onReopen={noop}
+                onReplace={noop}
+                proof={{
+                  attemptId: 'A_OC',
+                  prompt: 'Prove openclaw/openclaw#190186 for GitRanks',
+                  prNumber: 190186,
+                }}
+              />
             </main>,
           ),
       },

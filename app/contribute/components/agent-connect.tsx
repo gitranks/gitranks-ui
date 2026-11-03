@@ -33,6 +33,7 @@ import {
   mcpTokenNameOf,
   type NavigatorLike,
 } from '@/lib/contribute/mcp-setup';
+import { nextSessionPath } from '@/lib/contribute/sessions';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
 
@@ -77,7 +78,12 @@ export type AgentConnectViewProps = {
   connected?: boolean;
   /** Where focus goes after the button that had it is gone; `n` tells one move from the next. */
   focus?: AgentFocus | null;
+  /** Reached from a proof's card: step 3 is the proof's prompt, and the page goes back to the card once the agent calls. */
+  proof?: AgentConnectProof | null;
 };
+
+/** The proof the page was reached for: its contribution, its prompt and its pull request's number. */
+export type AgentConnectProof = { attemptId: string; prompt: string; prNumber: number };
 
 /** The token's status line, step 2's heading, or step 3's. */
 export type AgentFocus = { target: 'token' | 'connect' | 'hello'; n: number };
@@ -108,6 +114,7 @@ export function AgentConnectView({
   revokedOnly = false,
   connected = false,
   focus = null,
+  proof = null,
 }: AgentConnectViewProps) {
   const id = useId();
   const name = MCP_CLIENT_NAMES[client];
@@ -272,13 +279,17 @@ export function AgentConnectView({
         data-agent-hello={added ? 'waiting' : 'next'}
       >
         <h2 id={`${id}-a3`} ref={helloHeading} tabIndex={-1} className={cn(cardTitle, 'outline-none')}>
-          3 · Say hello from your agent
+          {proof ? '3 · Run the proof prompt' : '3 · Say hello from your agent'}
         </h2>
         {added ? (
-          <div className="flex flex-col gap-3.5">
-            <p className="text-sm text-foreground/80">Start {name} and ask it:</p>
-            <CodeBlock label={`Prompt for ${name}`} copyLabel="Copy the prompt" wrap>
-              {AGENT_HELLO_PROMPT}
+          <div className="flex flex-col gap-3.5" data-agent-prompt={proof ? 'proof' : 'hello'}>
+            <p className="text-sm text-foreground/80">
+              {proof
+                ? `Start ${name} in any folder and ask it. It connects, reads the brief and starts on the proof:`
+                : `Start ${name} and ask it:`}
+            </p>
+            <CodeBlock label={proof ? 'Prompt for your agent' : `Prompt for ${name}`} copyLabel="Copy the prompt" wrap>
+              {proof ? proof.prompt : AGENT_HELLO_PROMPT}
             </CodeBlock>
             <div
               role="status"
@@ -296,7 +307,11 @@ export function AgentConnectView({
                   <span className="absolute inset-0 rounded-full bg-primary" />
                 </span>
                 {connected ? (
-                  <span className="text-sm font-semibold">Your agent is connected. Taking you on…</span>
+                  <span className="text-sm font-semibold">
+                    {proof
+                      ? `Your agent is connected. Taking you back to PR #${proof.prNumber}…`
+                      : 'Your agent is connected. Taking you on…'}
+                  </span>
                 ) : (
                   <span className="text-sm">
                     <span className="font-semibold">Waiting for your agent to connect…</span>{' '}
@@ -334,10 +349,13 @@ export function AgentConnectView({
 export function AgentConnect({
   onboarded,
   tokens,
+  proof = null,
 }: {
   /** Onboarded already (a key, or another agent): the new token's first use is what the page waits for. */
   onboarded: boolean;
   tokens: ContributeMcpToken[] | undefined;
+  /** Reached from a proof's card: once the agent calls, the page goes back to the card. */
+  proof?: AgentConnectProof | null;
 }) {
   const goTo = useOnboardedPush();
   // Mid-setup: the newest token the agent has not called with is the one the user came back to.
@@ -374,8 +392,8 @@ export function AgentConnect({
       setShown(null);
       setConnected(true);
     });
-    goTo(agentWelcomeHref(clientRef.current), { replace: true });
-  }, [goTo]);
+    goTo(proof ? nextSessionPath(proof.attemptId) : agentWelcomeHref(clientRef.current), { replace: true });
+  }, [goTo, proof]);
 
   useEffect(() => {
     const detected = mcpOsOf(typeof navigator === 'undefined' ? null : (navigator as NavigatorLike));
@@ -497,6 +515,7 @@ export function AgentConnect({
       revokedOnly={revokedOnly}
       connected={connected}
       focus={focus}
+      proof={proof}
     />
   );
 }

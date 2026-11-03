@@ -7,6 +7,7 @@ import { viewerEmail, viewerLogin } from '@/lib/contribute/contribute.data';
 import {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
+  ApproveContributeProofDocument,
   ApproveFollowUpDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
@@ -23,6 +24,7 @@ import {
   CreateMcpTokenDocument,
   DeleteContributeDataDocument,
   DiscardAttemptDocument,
+  DiscardContributeProofDocument,
   DismissReplyDocument,
   FixContributePullRequestDocument,
   IgnoreContributeRepoDocument,
@@ -31,13 +33,16 @@ import {
   MarkNeedsYouHandledKindsDocument,
   NoteProviderInterestDocument,
   PauseContributingDocument,
+  PostContributeProofReplyDocument,
   RemoveFromContributeSetDocument,
   RemoveLlmKeyDocument,
   ResolveContributeStackDocument,
   ResumeContributingDocument,
   RetryAttemptDocument,
+  RetryContributeProofDocument,
   RevokeGithubGrantDocument,
   RevokeMcpTokenDocument,
+  SendBackContributeProofDocument,
   SendBackToAgentDocument,
   SendContributeFeedbackDocument,
   SetContributeFallbackDocument,
@@ -48,6 +53,7 @@ import {
   SkipIssueDocument,
   StartFollowUpDocument,
   StartFollowUpOnDocument,
+  TakeBackContributeProofDocument,
   UnignoreContributeRepoDocument,
   VetoAutopilotDocument,
   WithdrawProviderInterestDocument,
@@ -70,6 +76,7 @@ import type {
   ContributeMcpTokenCreated,
   ContributePreferences,
   ContributePreferencesInput,
+  ContributeProofSession,
   ContributePrSignalKind,
   ContributeReplyDraft,
   ContributeReplyUserDismissReason,
@@ -99,6 +106,7 @@ import {
   type ContributePrFixKind,
   PR_FIX_KINDS,
 } from '@/lib/contribute/pr-conventions';
+import { PROOF_NOTE_MAX, PROOF_REPLY_MAX } from '@/lib/contribute/proof';
 import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type DocumentNode from '@/types/typed-document-node';
@@ -597,6 +605,72 @@ export async function sendBackToAgent(
     };
   }
   return run(SendBackToAgentDocument, { attemptId: String(attemptId), note: trimmed }, (data) => data.sendBackToAgent);
+}
+
+/** A proof as an action answers it: its id and state. */
+type ProofMoved = Pick<ContributeProofSession, 'id' | 'state'>;
+const proofMoved = (session: ProofMoved): ProofMoved => ({ id: session.id, state: session.state });
+
+/**
+ * Posts the proof the user's own agent captured, once the user has checked it: its screenshots go to a branch in their
+ * fork, the section to the pull request's description, and the bot is asked to read it again. `checked`: the user ticked
+ * that nothing private is left; without it nothing is posted.
+ */
+export async function approveContributeProof(
+  id: string,
+  checked: boolean,
+): Promise<ContributeActionResult<ProofMoved>> {
+  if (checked !== true) return { ok: false, error: 'INVALID', message: 'Tick that nothing private is left first.' };
+  return run(ApproveContributeProofDocument, { id: String(id), checked: true }, (data) =>
+    proofMoved(data.approveContributeProof),
+  );
+}
+
+/** Sends the proof back to the user's agent with what to change: the same prompt picks it up again. */
+export async function sendBackContributeProof(id: string, note: string): Promise<ContributeActionResult<ProofMoved>> {
+  const trimmed = String(note ?? '').trim();
+  if (!trimmed) return { ok: false, error: 'INVALID', message: 'Say what your agent should change.' };
+  if (trimmed.length > PROOF_NOTE_MAX) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `Keep the note to ${PROOF_NOTE_MAX.toLocaleString('en-US')} characters at most.`,
+    };
+  }
+  return run(SendBackContributeProofDocument, { id: String(id), note: trimmed }, (data) =>
+    proofMoved(data.sendBackContributeProof),
+  );
+}
+
+/** Drops the proof: nothing of it is posted. The bot's ask stays, so a new proof may start. */
+export async function discardContributeProof(id: string): Promise<ContributeActionResult<ProofMoved>> {
+  return run(DiscardContributeProofDocument, { id: String(id) }, (data) => proofMoved(data.discardContributeProof));
+}
+
+/** Takes the proof back from an agent that holds it (stuck, or closed): the prompt can be run again. */
+export async function takeBackContributeProof(id: string): Promise<ContributeActionResult<ProofMoved>> {
+  return run(TakeBackContributeProofDocument, { id: String(id) }, (data) => proofMoved(data.takeBackContributeProof));
+}
+
+/** Posts the reply the agent drafted when it could not capture the proof, as the user edited it, on the pull request. */
+export async function postContributeProofReply(id: string, text: string): Promise<ContributeActionResult<ProofMoved>> {
+  const trimmed = String(text ?? '').trim();
+  if (!trimmed) return { ok: false, error: 'INVALID', message: 'Write the reply first.' };
+  if (trimmed.length > PROOF_REPLY_MAX) {
+    return {
+      ok: false,
+      error: 'INVALID',
+      message: `Keep the reply to ${PROOF_REPLY_MAX.toLocaleString('en-US')} characters at most.`,
+    };
+  }
+  return run(PostContributeProofReplyDocument, { id: String(id), text: trimmed }, (data) =>
+    proofMoved(data.postContributeProofReply),
+  );
+}
+
+/** Tries a failed post again, from the step that failed: what was already posted is not posted twice. */
+export async function retryContributeProof(id: string): Promise<ContributeActionResult<ProofMoved>> {
+  return run(RetryContributeProofDocument, { id: String(id) }, (data) => proofMoved(data.retryContributeProof));
 }
 
 /** What the user works on: shown, and so written, only for the logins the modes are open to. */

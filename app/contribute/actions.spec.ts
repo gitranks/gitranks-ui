@@ -78,6 +78,12 @@ const CALLS: Record<string, unknown[]> = {
   readAttemptLive: ['A_1'],
   readContributeChanges: ['3.1', false],
   sendContributeFeedback: ['GATES', 'lodash is left out', { mode: 'STACK', githubLogin: 'mallory' }],
+  approveContributeProof: ['PF_1', true],
+  sendBackContributeProof: ['PF_1', 'Capture the log too'],
+  discardContributeProof: ['PF_1'],
+  takeBackContributeProof: ['PF_1'],
+  postContributeProofReply: ['PF_1', 'Thanks for the review.'],
+  retryContributeProof: ['PF_1'],
 };
 
 /** The actions about what the user works on: open only to the logins the modes are shown to. */
@@ -861,5 +867,53 @@ describe('readContributeChanges', () => {
 
     graphqlDirect.mockRejectedValueOnce(new Error('down'));
     expect(await actions.readContributeChanges(null, false)).toMatchObject({ ok: false });
+  });
+});
+
+describe('the proof actions', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const session = { id: 'PF_1', state: 'POSTING', round: 1 };
+
+  it('posts nothing until the user ticked that nothing private is left', async () => {
+    expect(await actions.approveContributeProof('PF_1', false)).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    graphqlDirect.mockResolvedValue({ approveContributeProof: session });
+    expect(await actions.approveContributeProof('PF_1', true)).toEqual({
+      ok: true,
+      data: { id: 'PF_1', state: 'POSTING' },
+    });
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ id: 'PF_1', checked: true });
+  });
+
+  it('sends a note back trimmed, never an empty or a long one', async () => {
+    expect(await actions.sendBackContributeProof('PF_1', '   ')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.sendBackContributeProof('PF_1', 'x'.repeat(2_001))).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    graphqlDirect.mockResolvedValue({ sendBackContributeProof: { ...session, state: 'WAITING' } });
+    await actions.sendBackContributeProof('PF_1', '  Capture the log too  ');
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ id: 'PF_1', note: 'Capture the log too' });
+  });
+
+  it('posts a reply trimmed, never an empty or a long one', async () => {
+    expect(await actions.postContributeProofReply('PF_1', '')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.postContributeProofReply('PF_1', 'x'.repeat(4_001))).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    graphqlDirect.mockResolvedValue({ postContributeProofReply: session });
+    await actions.postContributeProofReply('PF_1', ' Thanks. ');
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ id: 'PF_1', text: 'Thanks.' });
   });
 });

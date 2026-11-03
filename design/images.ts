@@ -59,6 +59,21 @@ function identicon(key: string): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
+/**
+ * A screenshot of a proof the user's own agent captured: private to the user, so the boards draw a frame with a picture
+ * icon in its place.
+ */
+function screenshot(): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">` +
+    `<rect width="320" height="180" fill="#ececf1"/>` +
+    `<g fill="none" stroke="#8a8a99" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(142 72)">` +
+    `<rect width="36" height="36" x="0" y="0" rx="4"/><circle cx="12" cy="12" r="4"/><path d="m36 24-6-6a4 4 0 0 0-5.6 0L6 36"/></g></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+const PROOF_FILE = /^\/api\/me\/contribute\/proofs\/[^/]+\/files\/[1-9]$/;
+
 /** The account an avatar URL is of, or null when the URL is not an avatar. */
 function avatarKey(url: URL): string | null {
   if (url.pathname.startsWith('/api/avatar/')) return decodeURIComponent(url.pathname.slice('/api/avatar/'.length));
@@ -109,6 +124,7 @@ export async function drawImages(
     }
     const avatar = avatarKey(url);
     if (avatar) return identicon(avatar);
+    if (url.origin === SITE && PROOF_FILE.test(url.pathname)) return screenshot();
     if (url.origin === SITE && url.pathname.startsWith('/badge/')) {
       const svg = await drawBadge(url);
       if (svg) {

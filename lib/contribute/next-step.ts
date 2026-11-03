@@ -3,12 +3,14 @@ import type {
   ContributeAttemptDetail,
   ContributeContribution,
   ContributeFeedbackThread,
+  ContributeProof,
   ContributePrSignal,
   ContributePrSignalKind,
 } from './contribute.types';
 import { USERS_SIGNALS } from './follow-up-format';
 import { botVerdictOf, bracketed, type NeedsYouItem, prItemOf, pushDetailOf, runOutcomeOf } from './needs-you';
 import { type ContributePrConventionIssue, type ContributePrFix, httpsOnly } from './pr-conventions';
+import { type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { nextRoundOpen, nextRoundRecommended, nextRunNumberOf, waitingThreadsOf } from './sessions';
 
 /**
@@ -35,6 +37,18 @@ export type UserMove =
       kinds: ContributePrSignalKind[];
       bot: { by: string | null; verdict: string; at: string } | null;
       run: RunFinding | null;
+    }
+  /**
+   * A review bot asks for proof only the user's machine can capture: their own agent captures it, they check it, GitRanks
+   * posts it. `stage`: where it stands; `waits`: the user, or their agent, still has something to do.
+   */
+  | {
+      kind: 'proof';
+      kinds: ContributePrSignalKind[];
+      stage: ProofStage;
+      proof: ContributeProof;
+      bot: { by: string | null; verdict: string; at: string } | null;
+      waits: boolean;
     }
   /** A run that stopped before it was done, or whose commits failed to push: try the next one, or handle it. */
   | { kind: 'stopped'; kinds: ContributePrSignalKind[]; run: RunFinding }
@@ -127,8 +141,11 @@ function findingOf(first: ContributeAttemptDetail, signal: ContributePrSignal): 
   };
 }
 
-/** The contribution's next step, from its first attempt (its open pull request and what waits on it). */
-export function nextStepOf(first: ContributeAttemptDetail): NextStep {
+/**
+ * The contribution's next step, from its first attempt (its open pull request and what waits on it). `agentConnected`:
+ * the user's own agent has called GitRanks (a proof's card asks them to connect it first otherwise).
+ */
+export function nextStepOf(first: ContributeAttemptDetail, agentConnected = false, now = new Date()): NextStep {
   const signals = first.needsYou?.signals ?? [];
   const find = (kind: ContributePrSignalKind) => signals.find((signal) => signal.kind === kind);
   const runSignals = signals.filter(({ kind }) => !USERS_SIGNALS.has(kind));
@@ -157,12 +174,27 @@ export function nextStepOf(first: ContributeAttemptDetail): NextStep {
   const blocked = find('BOT_BLOCKED');
   const ended = find('RUN_ENDED');
   const finding = ended ? findingOf(first, ended) : null;
-  if (blocked || finding?.outcome === 'no_go') {
-    const bot = blocked ? { ...botVerdictOf(blocked), at: blocked.at } : null;
+  // A proof's card tells the bot's block while the proof is the answer to it; a block raised after a proof was posted
+  // is the bot's new word, on the found card. The run's no-go finding, if any, gets the found card alone.
+  const stage = first.proof && first.openedBy !== 'HAND' ? proofStageOf(first.proof, agentConnected, now) : null;
+  const proof = stage && first.proof ? first.proof : null;
+  const proofBlock = !!blocked && proofTellsBlock(stage, proof?.session, blocked.at);
+  if (stage && proof) {
+    user.push({
+      kind: 'proof',
+      kinds: proofBlock || !blocked ? ['BOT_BLOCKED'] : [],
+      stage,
+      proof,
+      bot: blocked && proofBlock ? { ...botVerdictOf(blocked), at: blocked.at } : null,
+      waits: proofWaits(stage),
+    });
+  }
+  if ((blocked && !proofBlock) || finding?.outcome === 'no_go') {
+    const bot = blocked && !proofBlock ? { ...botVerdictOf(blocked), at: blocked.at } : null;
     user.push({
       kind: 'found',
       kinds: [
-        ...(blocked ? (['BOT_BLOCKED'] as const) : []),
+        ...(bot ? (['BOT_BLOCKED'] as const) : []),
         ...(finding?.outcome === 'no_go' ? (['RUN_ENDED'] as const) : []),
       ],
       bot,
@@ -204,7 +236,11 @@ export function nextStepOf(first: ContributeAttemptDetail): NextStep {
 
 /** Whether anything waits for the user on the pull request: the next step has a card besides the run's own. */
 export const nextStepWaits = (step: NextStep): boolean =>
-  step.user.length > 0 || !!step.rules || !!step.dco || step.run.signals.length > 0 || step.run.threads.length > 0;
+  step.user.some((move) => move.kind !== 'proof' || move.waits) ||
+  !!step.rules ||
+  !!step.dco ||
+  step.run.signals.length > 0 ||
+  step.run.threads.length > 0;
 
 /**
  * The open pull request of a first attempt as a list reads it, for its Needs-you row on its own page: null before it
@@ -230,6 +266,7 @@ export function contributionOf(first: ContributeAttemptDetail): ContributeContri
     prFix: first.prFix,
     prIssues: first.prIssues,
     conventions: first.conventions ? { cla: first.conventions.cla } : first.conventions,
+    proof: first.proof,
   };
 }
 

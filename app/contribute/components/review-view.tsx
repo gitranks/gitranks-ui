@@ -35,10 +35,12 @@ import { nextStepOf, nextStepWaits } from '@/lib/contribute/next-step';
 import { orgAccessOf } from '@/lib/contribute/org-access';
 import { parsePatch } from '@/lib/contribute/patch';
 import { withoutDraftMarks } from '@/lib/contribute/pr-conventions';
+import { agentConnectedOf } from '@/lib/contribute/proof';
 import {
   attemptPath,
   NEXT_SESSION,
   nextRoundOpen,
+  proofTileStageOf,
   runsLabelOf,
   sessionPath,
   sessionsOf,
@@ -69,14 +71,14 @@ export async function ContributionLayout({
   children: ReactNode;
 }) {
   const { id } = await params;
-  const { attempt } = await gate(id);
+  const { view, attempt } = await gate(id);
   if (!attempt || attempt.kind === 'FOLLOW_UP') return children;
   // The run under way, read beside it: what the line says of it, and its card before the history lists it.
   const current = attempt.followUps?.currentAttemptId;
   const read = current ? await loadAttempt(current).catch(() => undefined) : undefined;
   const run = read?.kind === 'FOLLOW_UP' && read.followUpOf?.attemptId === attempt.attemptId ? read : undefined;
   return (
-    <ContributionShell attempt={attempt} first={attempt} run={run}>
+    <ContributionShell view={view} attempt={attempt} first={attempt} run={run}>
       {children}
     </ContributionShell>
   );
@@ -104,7 +106,7 @@ export async function FirstSessionView({
   const next = query.session === NEXT_SESSION;
   // The next step gone since the layout was read (a run started, say): the address says the first attempt, so the
   // layout marks it too.
-  if (next && !nextStepShown(attempt)) redirect(attemptPath(attempt.attemptId));
+  if (next && !nextStepShown(attempt, view)) redirect(attemptPath(attempt.attemptId));
   return <SessionPane view={view} attempt={attempt} first={attempt} next={next} resolveHumans={resolveHumans} />;
 }
 
@@ -155,10 +157,14 @@ const BackLink = () => (
  * The next step is shown: a run may start, comments wait (listed with why no run can start), or something only the user
  * can do waits while no run is under way.
  */
-const nextStepShown = (first: ContributeAttemptDetail): boolean =>
+const nextStepShown = (first: ContributeAttemptDetail, view: ContributeView, now?: Date): boolean =>
   nextRoundOpen(first) ||
+  // The proof's tile leads here: its card is shown whatever its stage.
+  !!proofTileStageOf(first, agentConnectedOf(view), now ?? new Date()) ||
   waitingThreadsOf(first).length > 0 ||
-  (first.pullRequest?.state === 'OPEN' && !first.followUps?.currentAttemptId && nextStepWaits(nextStepOf(first)));
+  (first.pullRequest?.state === 'OPEN' &&
+    !first.followUps?.currentAttemptId &&
+    nextStepWaits(nextStepOf(first, agentConnectedOf(view), now)));
 
 /** The pull request's states its first attempt settles in: the header says them, so its session adds no box. */
 const PR_SETTLED = new Set(['PR_OPEN', 'FOLLOW_UP', 'MERGED', 'CLOSED']);
@@ -338,6 +344,7 @@ function SessionDetails({
  * (the one shown, or the one under way). The address says which session is shown, unless `shown` does.
  */
 export function ContributionShell({
+  view,
   attempt,
   first,
   run,
@@ -345,6 +352,8 @@ export function ContributionShell({
   now,
   children,
 }: {
+  /** Whose contribution: whether their own agent has called (a proof's tile and its card read it). */
+  view: ContributeView;
   attempt: ContributeAttemptDetail;
   first?: ContributeAttemptDetail;
   run?: ContributeAttemptDetail;
@@ -355,8 +364,8 @@ export function ContributionShell({
   const followUp = attempt.kind === 'FOLLOW_UP';
   const issueUrl = githubUrlOf(attempt.url);
   const repo = repoOf(attempt);
-  const cards = first ? sessionsOf(first, run) : null;
-  const session = first ? { firstId: first.attemptId, nextShown: nextStepShown(first), shown } : null;
+  const cards = first ? sessionsOf(first, run, { agentConnected: agentConnectedOf(view), now }) : null;
+  const session = first ? { firstId: first.attemptId, nextShown: nextStepShown(first, view, now), shown } : null;
 
   return (
     <div className="flex flex-col gap-5" data-contribution={first?.attemptId ?? attempt.attemptId}>
@@ -481,10 +490,11 @@ export function ReviewScreen({
   const followUp = attempt.kind === 'FOLLOW_UP';
   const first = followUp ? firstRead : attempt;
   // The next step: the next run, what only the user can do, or while no run can start, the comments that wait.
-  const showNext = !!first && next && nextStepShown(first);
+  const showNext = !!first && next && nextStepShown(first, view, now);
 
   return (
     <ContributionShell
+      view={view}
       attempt={attempt}
       first={first}
       run={followUp ? attempt : undefined}

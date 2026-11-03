@@ -39,6 +39,9 @@ import type {
   ContributePaths,
   ContributePreferences,
   ContributePreferencesInput,
+  ContributeProof,
+  ContributeProofBrief,
+  ContributeProofSession,
   ContributePrSignalKind,
   ContributeReplyDraft,
   ContributeReplyDraftFlow,
@@ -824,3 +827,60 @@ export const SendContributeFeedbackDocument = doc<
 >(`mutation SendContributeFeedback($topic: ContributeFeedbackTopic!, $text: String!, $context: ContributeFeedbackContextInput) {
   sendContributeFeedback(topic: $topic, text: $text, context: $context)
 }`);
+
+// A review bot's ask for proof and the user's own agent's proof for it (2026-11-03). Read in operations of their own,
+// so an API without them leaves the rest, and the card is left out.
+const PROOF_SESSION = `id state agent { name model } leaseUntil round startedAt stateAt checkError
+  result { outcome summary section { heading markdown } reply note redactions headSha
+    files { slot name caption bytes width height } }
+  post { step commitSha bodyAt commentUrl error } sendBack { note } endedReason`;
+const PROOF = `proof { prHeadSha ask { bot title detail at headSha reReview } session { ${PROOF_SESSION} } }`;
+/** What a proof action answers: its id and its new state (the page reads the rest again). */
+const PROOF_MOVED = 'id state';
+type ProofMoved = Pick<ContributeProofSession, 'id' | 'state'>;
+const PROOF_BRIEF = 'proof { ask { bot title at } session { id state stateAt endedReason result { outcome } } }';
+
+export const ContributeAttemptProofDocument = doc<
+  { contributeAttempt: { attemptId: string; proof: ContributeProof | null } | null },
+  { id: string }
+>(`query ContributeAttemptProof($id: ID!) { contributeAttempt(id: $id) { attemptId ${PROOF} } }`);
+
+export const ContributeContributionsProofDocument = doc<
+  { contributeContributions: { items: { attemptId: string; proof: ContributeProofBrief | null }[] } | null },
+  { first?: number }
+>(`query ContributeContributionsProof($first: Int) {
+  contributeContributions(first: $first) { items { attemptId ${PROOF_BRIEF} } }
+}`);
+
+export const ApproveContributeProofDocument = doc<
+  { approveContributeProof: ProofMoved },
+  { id: string; checked: boolean }
+>(`mutation ApproveContributeProof($id: ID!, $checked: Boolean!) {
+  approveContributeProof(id: $id, checked: $checked) { ${PROOF_MOVED} }
+}`);
+
+export const SendBackContributeProofDocument = doc<
+  { sendBackContributeProof: ProofMoved },
+  { id: string; note: string }
+>(`mutation SendBackContributeProof($id: ID!, $note: String!) {
+  sendBackContributeProof(id: $id, note: $note) { ${PROOF_MOVED} }
+}`);
+
+export const DiscardContributeProofDocument = doc<{ discardContributeProof: ProofMoved }, { id: string }>(
+  `mutation DiscardContributeProof($id: ID!) { discardContributeProof(id: $id) { ${PROOF_MOVED} } }`,
+);
+
+export const TakeBackContributeProofDocument = doc<{ takeBackContributeProof: ProofMoved }, { id: string }>(
+  `mutation TakeBackContributeProof($id: ID!) { takeBackContributeProof(id: $id) { ${PROOF_MOVED} } }`,
+);
+
+export const PostContributeProofReplyDocument = doc<
+  { postContributeProofReply: ProofMoved },
+  { id: string; text: string }
+>(`mutation PostContributeProofReply($id: ID!, $text: String!) {
+  postContributeProofReply(id: $id, text: $text) { ${PROOF_MOVED} }
+}`);
+
+export const RetryContributeProofDocument = doc<{ retryContributeProof: ProofMoved }, { id: string }>(
+  `mutation RetryContributeProof($id: ID!) { retryContributeProof(id: $id) { ${PROOF_MOVED} } }`,
+);

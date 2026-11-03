@@ -5,6 +5,7 @@ import { AgentConnectView } from '@/app/contribute/components/agent-connect';
 import { ContributeTabsNav } from '@/app/contribute/components/contribute-tabs-nav';
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
+import { Landing } from '@/app/contribute/components/landing';
 import { OverviewScreen, overviewSectionsOf } from '@/app/contribute/components/overview-status';
 import { ReviewScreen } from '@/app/contribute/components/review-view';
 import { RunsScreen } from '@/app/contribute/components/runs-view';
@@ -148,6 +149,28 @@ const mine = () => {
 };
 
 export const CONTRIBUTE_SCREENS: Screen[] = [
+  {
+    id: 'contribute-landing',
+    title: 'Landing',
+    area: 'contribute',
+    route: '/contribute',
+    sources: ['app/contribute/components/landing.tsx', 'app/contribute/components/sign-in-dialog.tsx'],
+    states: [
+      {
+        id: 'visitor',
+        title: 'Signed out, once launched',
+        path: '/contribute',
+        signedOut: true,
+        height: 3800,
+        render: () => (
+          <>
+            <Header section="contribute" />
+            <Landing viewer="visitor" noted={[]} />
+          </>
+        ),
+      },
+    ],
+  },
   {
     id: 'contribute-overview',
     title: 'Overview',

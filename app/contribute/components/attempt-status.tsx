@@ -35,6 +35,7 @@ import { shownByDecisions } from '@/lib/contribute/decisions';
 import { roundLineOf } from '@/lib/contribute/follow-up-flow';
 import { relativeLabel, usd } from '@/lib/contribute/format';
 import { isOrgRestricted, orgAccessOf } from '@/lib/contribute/org-access';
+import { sessionPath } from '@/lib/contribute/sessions';
 import { cn } from '@/lib/utils';
 
 function Box({
@@ -424,7 +425,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
           )}
           {attempt.state === 'FOLLOW_UP' && attempt.followUps?.currentAttemptId ? (
             <Link
-              href={attemptHref(attempt.followUps.currentAttemptId)}
+              href={sessionPath(attempt.attemptId, attempt.followUps.currentAttemptId)}
               prefetch={false}
               className="text-sm font-semibold text-link"
             >

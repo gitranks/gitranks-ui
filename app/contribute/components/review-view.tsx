@@ -101,15 +101,11 @@ export async function FirstSessionView({
     if (first) redirect(withQuery(sessionPath(first.attemptId, attempt.attemptId), query));
     return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} />;
   }
-  return (
-    <SessionPane
-      view={view}
-      attempt={attempt}
-      first={attempt}
-      next={query.session === NEXT_SESSION && nextStepShown(attempt)}
-      resolveHumans={resolveHumans}
-    />
-  );
+  const next = query.session === NEXT_SESSION;
+  // The next step gone since the layout was read (a run started, say): the address says the first attempt, so the
+  // layout marks it too.
+  if (next && !nextStepShown(attempt)) redirect(attemptPath(attempt.attemptId));
+  return <SessionPane view={view} attempt={attempt} first={attempt} next={next} resolveHumans={resolveHumans} />;
 }
 
 /** A follow-up run's page, under its first attempt; an address that pairs it with another goes to its own. */

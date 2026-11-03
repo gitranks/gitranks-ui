@@ -297,6 +297,13 @@ describe('needsYouItemsOf: an open pull request', () => {
       move: 'Run 2 stopped: It reached your limit for one attempt before the fix was done. Start run 3, or handle it yourself.',
       action: { label: 'Try run 3' },
     });
+    expect(rowOf(prsNeedingYou.pushFailed)).toMatchObject({
+      kind: 'push-failed',
+      tone: 'red',
+      pill: 'Run 2 not pushed',
+      move: "Run 2's commits could not be pushed: The branch changed on GitHub: the commits no longer apply. Start run 3 to make the change again on the pull request as it is now.",
+      action: { label: 'Try run 3' },
+    });
     // An API that does not answer the outcome yet: the run's no-go.
     const unread = signal('RUN_ENDED', { detail: 'Nothing to change.' });
     expect(rowOf(openPr({ needsYou: { since: '', signals: [unread] } })).kind).toBe('run-found');
@@ -450,12 +457,13 @@ describe('needsYouItemsOf: the order', () => {
       'dco',
       'fix-failed',
       'run-stopped',
+      'push-failed',
       'working',
       'pushed',
       'signing-off',
       'own-working',
     ]);
-    expect([counted, working]).toEqual([14, 4]);
+    expect([counted, working]).toEqual([15, 4]);
     expect(rows.slice(-4).every((row) => row.working)).toBe(true);
   });
 

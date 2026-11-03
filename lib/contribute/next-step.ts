@@ -21,7 +21,7 @@ import { nextRoundOpen, nextRoundRecommended, nextRunNumberOf, waitingThreadsOf 
 /** What a run that ended found, for the card: its number, when, and what it cost. Its text is untrusted. */
 export type RunFinding = {
   round: number | null;
-  outcome: 'no_go' | 'stopped';
+  outcome: 'no_go' | 'stopped' | 'push_failed';
   detail: string | null;
   at: string;
   costUsd: number | null;
@@ -36,7 +36,7 @@ export type UserMove =
       bot: { by: string | null; verdict: string; at: string } | null;
       run: RunFinding | null;
     }
-  /** A run that stopped before it was done: try the next one, or handle it. */
+  /** A run that stopped before it was done, or whose commits failed to push: try the next one, or handle it. */
   | { kind: 'stopped'; kinds: ContributePrSignalKind[]; run: RunFinding }
   /** An agreement to sign: by a comment posted word for word, or on a page. */
   | {
@@ -168,7 +168,9 @@ export function nextStepOf(first: ContributeAttemptDetail): NextStep {
       run: finding?.outcome === 'no_go' ? finding : null,
     });
   }
-  if (finding?.outcome === 'stopped') user.push({ kind: 'stopped', kinds: ['RUN_ENDED'], run: finding });
+  if (finding?.outcome === 'stopped' || finding?.outcome === 'push_failed') {
+    user.push({ kind: 'stopped', kinds: ['RUN_ENDED'], run: finding });
+  }
 
   const fix = first.prFix ?? null;
   const signOff = fix?.kind === 'SIGN_OFF' ? fix : null;
@@ -189,7 +191,9 @@ export function nextStepOf(first: ContributeAttemptDetail): NextStep {
         defaultNoteOf(runSignals, threads) ||
         (finding?.outcome === 'stopped'
           ? `${finding.round ? `Run ${finding.round}` : 'The last run'} stopped before it was done${finding.detail ? ` (${finding.detail})` : ''}. Pick it up and finish it.`
-          : ''),
+          : finding?.outcome === 'push_failed'
+            ? `${finding.round ? `Run ${finding.round}` : 'The last run'}'s commits could not be pushed${finding.detail ? ` (${finding.detail})` : ''}. Make the change again on the pull request as it is now.`
+            : ''),
     },
     user,
     rules: issues.length || ruleFix?.state === 'SENDING' ? { issues, fix: ruleFix } : null,

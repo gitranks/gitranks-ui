@@ -378,8 +378,11 @@ export type ContributePrSignalKind =
   | 'RUN_ENDED'
   | 'DCO';
 
-/** How a run that pushed nothing ended: the agent's no-go, or a stop (a failure, a limit, a check that blocked it). */
-export type ContributeRunOutcome = 'NO_GO' | 'STOPPED';
+/**
+ * How a run that pushed nothing ended: the agent's no-go (or the user's own agent giving it back with what is theirs to
+ * do), a stop (a failure, a limit, a check that blocked it), or its approved commits failing to push.
+ */
+export type ContributeRunOutcome = 'NO_GO' | 'STOPPED' | 'PUSH_FAILED';
 
 export type ContributePrSignal = {
   kind: ContributePrSignalKind;

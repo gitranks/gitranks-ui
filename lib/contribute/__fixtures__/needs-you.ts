@@ -149,6 +149,19 @@ export const prsNeedingYou = {
     ),
     followUps: followUps({ used: 2, manualRuns: 2 }),
   }),
+  /** Run 2's approved commits could not be pushed: the branch moved under them. */
+  pushFailed: pr(78, 'driftwood-js/driftwood', 'Nested layouts re-render on every navigation', {
+    needsYou: needs(
+      signal('RUN_ENDED', {
+        at: '2026-10-28T10:40:00.000Z',
+        detail: 'The branch changed on GitHub: the commits no longer apply',
+        attemptId: 'A_DW3',
+        round: 2,
+        outcome: 'PUSH_FAILED',
+      }),
+    ),
+    followUps: followUps({ used: 2, manualRuns: 2 }),
+  }),
   dco: pr(4410, 'tern-lang/tern-fmt', 'Format nested where clauses', {
     needsYou: needs(signal('DCO', { at: '2026-10-28T09:40:00.000Z', detail: 'DCO' })),
     followUps: followUps(),

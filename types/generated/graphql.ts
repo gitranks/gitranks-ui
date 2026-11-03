@@ -1140,13 +1140,13 @@ export type ContributePrSignal = {
   /** check_failed: the failing checks’ names; cla: the CLA check’s; dco: the DCO check’s; bot_blocked: the bot and its verdict; run_ended: what is left for the viewer (the run’s forYou, else its no-go’s reason, else why it stopped; plain text, at most 300 characters) */
   detail?: Maybe<Scalars['String']['output']>;
   kind: ContributePrSignalKind;
-  /** run_ended: how it ended (NO_GO or STOPPED); null for the other kinds */
+  /** run_ended: how it ended (NO_GO, STOPPED or PUSH_FAILED); null for the other kinds */
   outcome?: Maybe<ContributeRunEndedOutcome>;
   /** run_ended: its number on the PR (run N); null for the other kinds */
   round?: Maybe<Scalars['Int']['output']>;
 };
 
-/** What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked), a DCO sign-off check failing (dco: sign off with fixContributePullRequest(SIGN_OFF)); or a follow-up run that pushed nothing came back (run_ended: a no-go, or a stop), with what is left for the viewer */
+/** What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked), a DCO sign-off check failing (dco: sign off with fixContributePullRequest(SIGN_OFF)); or a follow-up run that pushed nothing came back (run_ended: a no-go, a stop, or a failed push), with what is left for the viewer */
 export enum ContributePrSignalKind {
   BotBlocked = 'BOT_BLOCKED',
   ChangesRequested = 'CHANGES_REQUESTED',
@@ -1438,9 +1438,10 @@ export type ContributeRun = {
   workUsd: Scalars['Float']['output'];
 };
 
-/** How a follow-up run that pushed nothing ended: no_go (the agent's verdict) or stopped (it failed, ran out, or was given back) */
+/** How a follow-up run that pushed nothing ended: no_go (the agent's verdict, or the viewer's own agent giving it back with what only the viewer can do), stopped (it failed, ran out, or was given back), push_failed (its approved commits could not be pushed) */
 export enum ContributeRunEndedOutcome {
   NoGo = 'NO_GO',
+  PushFailed = 'PUSH_FAILED',
   Stopped = 'STOPPED'
 }
 

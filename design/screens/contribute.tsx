@@ -20,6 +20,7 @@ import {
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { issuePage, nowIdle, overviewData } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
+import { maintainerRepo } from '@/lib/contribute/__fixtures__/maintainers';
 import {
   needsSome,
   nextForAgreement,
@@ -32,7 +33,6 @@ import { pageOf } from '@/lib/contribute/__fixtures__/runs';
 import type {
   ContributeActivity,
   ContributeAttemptDetail,
-  ContributeMaintainerRepo,
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
@@ -153,18 +153,6 @@ const mine = () => {
     busy,
   );
 };
-
-/** A repo the maintainers page lists for the signed-in visitor. */
-const maintainerRepo = (patch: Partial<ContributeMaintainerRepo>): ContributeMaintainerRepo => ({
-  repoId: 'R_1',
-  nameWithOwner: 'driftwood-js/driftwood',
-  permission: 'ADMIN',
-  stars: 12_345,
-  isArchived: false,
-  optedOut: false,
-  optedOutAt: null,
-  ...patch,
-});
 
 /** The page for maintainers: open to everyone, the site header with no tabs, the visitor's repos as the panel. */
 const maintainersPage = (view: MaintainerReposView) => (

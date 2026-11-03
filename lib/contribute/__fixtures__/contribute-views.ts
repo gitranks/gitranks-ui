@@ -159,7 +159,7 @@ export const views = {
   },
   active: { contributor: contributor(), grant: connected, paused: false, grantAvailable: true, attemptsOpen: true },
   /**
-   * A key just connected from Max 5x: onboarded, every setting guessed, nothing spent, the first attempt free to start,
+   * A key just connected from Max: onboarded, every setting guessed, nothing spent, the first attempt free to start,
    * and no GitHub access yet.
    */
   firstKey: {

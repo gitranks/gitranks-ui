@@ -50,8 +50,8 @@ export const CONNECT_BOUNDS = {
 
 /** The plans "From my Claude plan" offers, by name alone: the buttons show no prices, so none reads as ours. */
 export const PLAN_CHOICES: { plan: ContributeClaudePlan; label: string }[] = [
-  { plan: 'MAX_5X', label: 'Max 5x' },
-  { plan: 'MAX_20X', label: 'Max 20x' },
+  { plan: 'MAX_5X', label: 'Max' },
+  { plan: 'MAX_20X', label: 'Ultra' },
   { plan: 'TEAM_STANDARD', label: 'Team Standard' },
   { plan: 'TEAM_PREMIUM', label: 'Team Premium' },
 ];

@@ -28,12 +28,12 @@ const POINTS = [
   {
     icon: SquareTerminal,
     title: 'Your agent writes it, you approve it',
-    text: 'Claude Code, Codex, Cursor or Gemini CLI, or ours in a sandbox on your Claude key. You review each change on GitRanks before we open the pull request.',
+    text: 'You review each change on GitRanks before we open the pull request. Use Claude Code, Codex, Cursor or Gemini CLI, or ours in a sandbox, on the API credits your Claude plan includes, under caps you set.',
   },
   {
     icon: BriefcaseBusiness,
-    title: 'A track record that works for you',
-    text: 'Merged pull requests in projects people rely on stay on your GitHub profile: work to point to in your next job search, and to talk through in an interview. They can count toward your Contributor rank too.',
+    title: 'A public record of your work',
+    text: 'Merged pull requests stay on your GitHub profile and count toward your Contributor rank.',
   },
 ];
 

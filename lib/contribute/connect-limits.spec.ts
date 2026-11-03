@@ -79,7 +79,7 @@ describe('appliedLimitsOf', () => {
 
   it("starts the month from the plan's allowance", () => {
     expect(rows('plan', 'MAX_20X', manualDraftOf())['Each month']).toBe(
-      "up to $200 of your credits, Max 20x's monthly allowance",
+      "up to $200 of your credits, Ultra's monthly allowance",
     );
     expect(rows('plan', 'TEAM_STANDARD', manualDraftOf())['Each month']).toBe(
       "up to $20 of your credits, Team Standard's monthly allowance",

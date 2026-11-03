@@ -103,6 +103,7 @@ describe('the connect screen', () => {
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(plain).toContain('Connect your Claude key');
     expect(plain).toContain('The key is from a separate workspace with a monthly spend limit');
+    expect(plain).toContain("it can charge you the moment it's on, even while your plan's credits remain");
     expect(html).toMatch(/type="checkbox"[^>]*required/);
     expect(html).toContain('type="password"');
     expect(html).toContain('href="/contribute/connect?path=agent"');
@@ -114,11 +115,11 @@ describe('the connect screen', () => {
     const plain = text(html);
 
     expect(html).toContain('data-limits="plan"');
-    for (const plan of ['Max 5x', 'Max 20x', 'Team Standard', 'Team Premium']) expect(plain).toContain(plan);
+    for (const plan of ['Max', 'Ultra', 'Team Standard', 'Team Premium']) expect(plain).toContain(plan);
     expect(html).toMatch(/aria-pressed="true"[^>]*>From my Claude plan/);
-    expect(html).toMatch(/aria-pressed="true"[^>]*>Max 5x/);
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Max\b/);
     expect(html.slice(0, html.indexOf('The limits we apply'))).not.toMatch(/\$\d/);
-    expect(plain).toContain("up to $100 of your credits, Max 5x's monthly allowance");
+    expect(plain).toContain("up to $100 of your credits, Max's monthly allowance");
     expect(plain).toContain('at most $5, it stops at the cap');
     expect(plain).toContain('no separate cap: pacing spreads the month');
     expect(plain).toContain('1 attempt, and at most 3 of your PRs open');
@@ -127,7 +128,7 @@ describe('the connect screen', () => {
     expect(plain).toContain("Languages: your profile's first");
 
     // A plan picked before is picked again.
-    expect(text(render(views.noKey))).toContain("up to $200 of your credits, Max 20x's monthly allowance");
+    expect(text(render(views.noKey))).toContain("up to $200 of your credits, Ultra's monthly allowance");
   });
 
   it('guesses the reset day as today, and says it is a guess', () => {

@@ -716,7 +716,7 @@ describe('the review screen', () => {
     const ranOut = detail({
       ...stopped('NO_GO', detailText),
       checkLimit: { limit: 'budget', decided: false },
-      retryable: true,
+      retry: { kind: 'BOOST', takenBy: [] },
     });
     const html = review(ranOut);
     const plain = text(html);
@@ -730,7 +730,7 @@ describe('the review screen', () => {
     expect(plain).toContain('Retry with a bigger check budget');
 
     // Tried again already: the words stay, the button goes.
-    expect(text(review(detail({ ...ranOut, retryable: false })))).not.toContain('Retry with a bigger check budget');
+    expect(text(review(detail({ ...ranOut, retry: null })))).not.toContain('Retry with a bigger check budget');
     // The time limit says time; without the field it is read from the detail.
     const late = text(review(stopped('NO_GO', "No verdict before the check's 15-minute limit ran out, after 16 min.")));
     expect(late).toContain('Stopped: ran out of time while checking the issue.');
@@ -739,13 +739,103 @@ describe('the review screen', () => {
     expect(text(review(stopped('BUDGET')))).toContain(END_REASONS.BUDGET);
   });
 
+  describe('trying a stop again', () => {
+    /** The Stopped box alone (it must be there). */
+    const stopBox = (html: string) => {
+      const start = html.indexOf('data-attempt-status="STOPPED"');
+      expect(start).toBeGreaterThan(-1);
+      return html.slice(start, html.indexOf('</section>', start));
+    };
+    const NOTE_HINT = 'Your note comes first: the agent follows it within the rules and limits.';
+    const OVERRIDE_LINE =
+      'Once: a new run checks the issue again, told you overrode this no-go. You approve its pull request yourself.';
+    const TAKEN_TAIL = 'may be working on this. The pull request opens under your GitHub account.';
+    const withTaken = (takenBy: string[]) => detail({ ...decisionAttempts.noGo, retry: { kind: 'OVERRIDE', takenBy } });
+
+    it('offers "Work on it anyway" on a no-go, with the note box open above it and the line under it', () => {
+      const html = stopBox(review(decisionAttempts.noGo));
+      const plain = text(html);
+      expect(html).toContain('data-retry="OVERRIDE"');
+      expect(html).toContain('data-work-anyway="A_1"');
+      expect(html).not.toContain('data-retry-check');
+      expect(plain).toContain('Work on it anyway');
+      expect(plain).not.toContain('Retry with a bigger check budget');
+      expect(plain).toContain(OVERRIDE_LINE);
+      expect(plain).toContain('A note for the agent (optional)');
+      expect(html).toContain('placeholder="Why go ahead? For example: the maintainer invited anyone, not one person."');
+      expect(plain).toContain(NOTE_HINT);
+      expect(plain).toContain('0 / 2,000');
+      expect(html).toContain('rows="3"');
+      // The note comes before the button; the pool line stays as it is.
+      expect(html.indexOf('data-follow-up-note')).toBeLessThan(html.indexOf('Work on it anyway'));
+      expect(plain).toContain('The issue went back to the pool.');
+    });
+
+    it('warns who may be on a taken issue: one login, three, or someone', () => {
+      expect(text(stopBox(review(decisionAttempts.noGo)))).toContain(`@mira-k ${TAKEN_TAIL}`);
+      const three = stopBox(review(withTaken(['mira-k', 'octocat', 'hubot'])));
+      expect(three).toContain('data-taken-warning="3"');
+      expect(text(three)).toContain(`@mira-k, @octocat and @hubot ${TAKEN_TAIL}`);
+      expect(text(stopBox(review(withTaken(['mira-k', 'octocat']))))).toContain(`@mira-k and @octocat ${TAKEN_TAIL}`);
+      const nobody = stopBox(review(withTaken([])));
+      expect(nobody).toContain('data-taken-warning="0"');
+      expect(text(nobody)).toContain(`Someone ${TAKEN_TAIL}`);
+      // Under the override's line.
+      expect(three.indexOf('data-taken-warning')).toBeGreaterThan(
+        three.indexOf('You approve its pull request yourself.'),
+      );
+    });
+
+    it('warns only over a taken no-go', () => {
+      for (const release of ['too_big', null, undefined]) {
+        const html = review(
+          detail({ ...withTaken(['mira-k']), goNoGo: { ...decisionAttempts.noGo.goNoGo!, release } }),
+        );
+        expect(html).toContain('data-work-anyway="A_1"');
+        expect(html).not.toContain('data-taken-warning');
+        expect(text(html)).not.toContain(TAKEN_TAIL);
+      }
+    });
+
+    it('keeps the bigger check budget as it was, now with the note box, and no taken warning', () => {
+      const html = stopBox(
+        review(detail({ ...decisionAttempts.ranOut, goNoGo: { ...decisionAttempts.noGo.goNoGo!, release: 'taken' } })),
+      );
+      const plain = text(html);
+      expect(html).toContain('data-retry="BOOST"');
+      expect(html).toContain('data-retry-check="A_1"');
+      expect(html).not.toContain('data-work-anyway');
+      expect(plain).toContain('Retry with a bigger check budget');
+      expect(plain).toContain(
+        'Once: the agent checks the issue again with twice the budget and time, as your limits allow.',
+      );
+      expect(plain).not.toContain('Work on it anyway');
+      expect(plain).toContain('A note for the agent (optional)');
+      expect(plain).toContain(NOTE_HINT);
+      expect(html).not.toContain('data-taken-warning');
+    });
+
+    it('offers nothing when the stop cannot be tried again, or the API does not say', () => {
+      for (const attempt of [
+        detail({ ...decisionAttempts.noGo, retry: null }),
+        detail({ ...decisionAttempts.noGo, retry: undefined }),
+        detail({ ...decisionAttempts.noGo, retry: { kind: 'SOMETHING_NEW' as never, takenBy: [] } }),
+      ]) {
+        const html = review(attempt);
+        expect(html).not.toContain('data-retry=');
+        expect(html).not.toContain('data-follow-up-note');
+        expect(text(html)).not.toContain('Work on it anyway');
+      }
+    });
+  });
+
   it("shows the agent's decisions above the tabs, and the Stopped box leaves the no-go's reason to them", () => {
     const noGo = review(decisionAttempts.noGo);
     const plain = text(noGo);
     expect(noGo).toContain('data-go-no-go="no_go"');
-    expect(plain).toContain('What the agent decided Go or no-go No-go The re-render comes from the app');
+    expect(plain).toContain('What the agent decided Go or no-go No-go Someone else is on this one');
     expect(plain).not.toContain('Its reason:');
-    expect(plain.match(/The re-render comes from the app/g)).toHaveLength(1);
+    expect(plain.match(/Someone else is on this one/g)).toHaveLength(1);
     expect(noGo.indexOf('data-panel="decisions"')).toBeLessThan(noGo.indexOf('role="tablist"'));
 
     const went = text(review(decisionAttempts.went));
@@ -779,7 +869,7 @@ describe('the review screen', () => {
     const goNoGo = { ...decisionAttempts.noGo.goNoGo!, decidedAtLimit: 'budget' as const };
     const atCap = text(review({ ...decisionAttempts.noGo, checkLimit: { limit: 'budget', decided: true }, goNoGo }));
     expect(atCap.match(/Decided at the check's budget limit/g)).toHaveLength(1);
-    expect(atCap.match(/The re-render comes from the app/g)).toHaveLength(1);
+    expect(atCap.match(/Someone else is on this one/g)).toHaveLength(1);
 
     const followUpNoGo = text(
       renderToStaticMarkup(
@@ -798,7 +888,7 @@ describe('the review screen', () => {
       ),
     );
     expect(followUpNoGo).not.toContain('Its reason:');
-    expect(followUpNoGo.match(/The re-render comes from the app/g)).toHaveLength(1);
+    expect(followUpNoGo.match(/Someone else is on this one/g)).toHaveLength(1);
     expect(followUpNoGo.match(/Decided at the check's budget limit/g)).toHaveLength(1);
 
     const blank = text(review({ ...decisionAttempts.noGo, goNoGo: { ...goNoGo, reason: '' }, brief: null }));

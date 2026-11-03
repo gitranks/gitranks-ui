@@ -79,6 +79,16 @@ export function attemptActionErrorMessage(error: ContributeErrorCode, message?: 
 }
 
 /**
+ * A failed "Try again" or "Work on it anyway". The stop was tried again already, or can't be: reload to see the new
+ * run. The issue closed since the no-go: the API's own words say so. Anything else as the other attempt calls.
+ */
+export function retryErrorMessage(error: ContributeErrorCode, message?: string): string {
+  if (error === 'INVALID' && /tried again already|can't be tried again/i.test(message ?? ''))
+    return 'It was tried again already, or it can no longer be. Reload the page.';
+  return attemptActionErrorMessage(error, message);
+}
+
+/**
  * Why a maintainers page call failed:
  * - `SIGNED_OUT`: no GitHub sign-in for the page, or GitHub refused its token.
  * - `GITHUB_UNAVAILABLE`: GitHub did not answer for the token, or rate-limited it.

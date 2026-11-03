@@ -30,6 +30,7 @@ const {
   ContributeAttemptsInOwnAgentDocument,
   ContributeAttemptsInReviewAtDocument,
   ContributeAttemptReviewReasonDocument,
+  ContributeAttemptRetryDocument,
   ContributeAutopilotDocument,
   ContributeAutopilotNoticeDocument,
   ContributeImpactDocument,
@@ -217,27 +218,83 @@ describe('loadAttempt: a check that ran out, read on its own', () => {
         : Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'STOPPED' } }),
     );
 
-  it("merges the attempt's own answer, and leaves both fields out otherwise", async () => {
+  it("merges the attempt's own answer, and leaves the field out otherwise", async () => {
     answering(() =>
-      Promise.resolve({
-        contributeAttempt: { attemptId: 'A_1', checkLimit: { limit: 'budget', decided: false }, retryable: true },
-      }),
+      Promise.resolve({ contributeAttempt: { attemptId: 'A_1', checkLimit: { limit: 'budget', decided: false } } }),
     );
     expect(await loadAttempt('A_1')).toEqual({
       attemptId: 'A_1',
       state: 'STOPPED',
       checkLimit: { limit: 'budget', decided: false },
-      retryable: true,
     });
 
     for (const stop of [
-      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', checkLimit: null, retryable: true } }),
-      () => Promise.reject(new Error('[{"message":"Cannot query field \\"retryable\\""}]')),
+      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', checkLimit: null } }),
+      () => Promise.reject(new Error('[{"message":"Cannot query field \\"checkLimit\\""}]')),
     ]) {
       answering(stop);
       const read = await loadAttempt('A_1');
       expect(read).toEqual({ attemptId: 'A_1', state: 'STOPPED' });
-      expect('retryable' in (read ?? {})).toBe(false);
+      expect('checkLimit' in (read ?? {})).toBe(false);
+    }
+  });
+});
+
+describe('loadAttempt: whether a stop can be tried again, read on its own', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const goNoGo = { verdict: 'no_go', reason: 'Someone is on it.', decidedAtLimit: null, at: '2026-11-03T10:00:00Z' };
+  const answering = (retry: () => Promise<unknown>, decisions: unknown = { attemptId: 'A_1', goNoGo, brief: null }) =>
+    graphqlDirect.mockImplementation((document) =>
+      document === ContributeAttemptRetryDocument
+        ? retry()
+        : document === ContributeAttemptDecisionsDocument
+          ? Promise.resolve({ contributeAttempt: decisions })
+          : Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'STOPPED' } }),
+    );
+
+  it("merges the retry and the no-go's release into the attempt's own go/no-go", async () => {
+    const retry = { kind: 'OVERRIDE', takenBy: ['mira-k'] };
+    answering(() => Promise.resolve({ contributeAttempt: { attemptId: 'A_1', retry, goNoGo: { release: 'taken' } } }));
+    expect(await loadAttempt('A_1')).toEqual({
+      attemptId: 'A_1',
+      state: 'STOPPED',
+      retry,
+      goNoGo: { ...goNoGo, release: 'taken' },
+      brief: null,
+    });
+
+    // Not to be tried again, and a run with no go/no-go: nothing to add the release to.
+    answering(() => Promise.resolve({ contributeAttempt: { attemptId: 'A_1', retry: null, goNoGo: null } }), {
+      attemptId: 'A_1',
+      goNoGo: null,
+      brief: null,
+    });
+    expect(await loadAttempt('A_1')).toEqual({
+      attemptId: 'A_1',
+      state: 'STOPPED',
+      retry: null,
+      goNoGo: null,
+      brief: null,
+    });
+  });
+
+  it("leaves the retry and the release out for another attempt's answer or an API without them", async () => {
+    for (const retry of [
+      () =>
+        Promise.resolve({
+          contributeAttempt: { attemptId: 'A_2', retry: { kind: 'BOOST', takenBy: [] }, goNoGo: { release: 'taken' } },
+        }),
+      () => Promise.reject(new Error('[{"message":"Cannot query field \\"retry\\""}]')),
+    ]) {
+      answering(retry);
+      const read = await loadAttempt('A_1');
+      expect(read).toEqual({ attemptId: 'A_1', state: 'STOPPED', goNoGo, brief: null });
+      expect('retry' in (read ?? {})).toBe(false);
     }
   });
 });

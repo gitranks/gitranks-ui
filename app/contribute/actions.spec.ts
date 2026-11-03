@@ -21,6 +21,7 @@ const {
   DismissReplyDocument,
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
+  RetryAttemptDocument,
   DiscardAttemptDocument,
   RevokeMcpTokenDocument,
   SendBackToAgentDocument,
@@ -497,6 +498,31 @@ describe('the follow-up flow’s actions', () => {
       ok: false,
       error: 'INVALID',
     });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('tries a stop again with the user’s note trimmed, null when empty, and refuses one too long', async () => {
+    graphqlDirect.mockResolvedValue({ retryAttempt: { attemptId: 'A_2' } });
+    expect(await actions.retryAttempt('A_1', '  The maintainer invited anyone.  ')).toEqual({
+      ok: true,
+      data: { attemptId: 'A_2' },
+    });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      RetryAttemptDocument,
+      { id: 'A_1', note: 'The maintainer invited anyone.' },
+      as,
+    );
+
+    graphqlDirect.mockClear();
+    await actions.retryAttempt('A_1', '   ');
+    await actions.retryAttempt('A_1');
+    expect(graphqlDirect.mock.calls.map(([document, variables]) => [document, variables])).toEqual([
+      [RetryAttemptDocument, { id: 'A_1', note: null }],
+      [RetryAttemptDocument, { id: 'A_1', note: null }],
+    ]);
+
+    graphqlDirect.mockClear();
+    expect(await actions.retryAttempt('A_1', 'x'.repeat(2_001))).toMatchObject({ ok: false, error: 'INVALID' });
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 

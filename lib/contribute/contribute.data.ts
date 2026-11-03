@@ -12,6 +12,7 @@ import {
   ContributeAttemptFollowUpFlowDocument,
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptOwnAgentDocument,
+  ContributeAttemptRetryDocument,
   ContributeAttemptReviewReasonDocument,
   ContributeAttemptSubmitClockDocument,
   ContributeAttemptsDocument,
@@ -475,10 +476,12 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
   );
   // Whether the repo requires a DCO sign-off; left out when not answered.
   const dco = Promise.resolve(graphqlDirect(ContributeAttemptDcoDocument, { id }, options)).catch(() => undefined);
-  // Whether the check ran out, and can be tried again; left out when not answered.
+  // Whether the check ran out; left out when not answered.
   const checkStop = Promise.resolve(graphqlDirect(ContributeAttemptCheckStopDocument, { id }, options)).catch(
     () => undefined,
   );
+  // Whether the stop can be tried again, and how, with the no-go's release; left out when not answered.
+  const retry = Promise.resolve(graphqlDirect(ContributeAttemptRetryDocument, { id }, options)).catch(() => undefined);
   // The agent's go/no-go and its brief; left out when not answered.
   const decisions = Promise.resolve(graphqlDirect(ContributeAttemptDecisionsDocument, { id }, options)).catch(
     () => undefined,
@@ -515,14 +518,25 @@ export async function loadAttempt(id: string): Promise<ContributeAttemptDetail |
         : withFlow;
     const stopRead = (await checkStop)?.contributeAttempt;
     const withStop =
-      stopRead?.attemptId === contributeAttempt.attemptId && typeof stopRead.retryable === 'boolean'
-        ? { ...withDco, checkLimit: stopRead.checkLimit ?? null, retryable: stopRead.retryable }
+      stopRead?.attemptId === contributeAttempt.attemptId && stopRead.checkLimit !== undefined
+        ? { ...withDco, checkLimit: stopRead.checkLimit ?? null }
         : withDco;
+    const retryRead = (await retry)?.contributeAttempt;
+    const retryOwn = retryRead?.attemptId === contributeAttempt.attemptId ? retryRead : undefined;
+    const withRetry = retryOwn && retryOwn.retry !== undefined ? { ...withStop, retry: retryOwn.retry } : withStop;
     const decisionsRead = (await decisions)?.contributeAttempt;
+    const release = retryOwn?.goNoGo?.release;
     const withDecisions =
       decisionsRead?.attemptId === contributeAttempt.attemptId && decisionsRead.goNoGo !== undefined
-        ? { ...withStop, goNoGo: decisionsRead.goNoGo, brief: decisionsRead.brief ?? null }
-        : withStop;
+        ? {
+            ...withRetry,
+            goNoGo:
+              decisionsRead.goNoGo && release !== undefined
+                ? { ...decisionsRead.goNoGo, release }
+                : decisionsRead.goNoGo,
+            brief: decisionsRead.brief ?? null,
+          }
+        : withRetry;
     const conventionsRead = (await conventions)?.contributeAttempt;
     const withConventions = withConventionsOf(
       withDecisions,

@@ -8,6 +8,7 @@ import {
   contributeSetErrorOf,
   maintainerErrorMessage,
   maintainerErrorOf,
+  retryErrorMessage,
 } from './errors';
 
 const thrown = (errors: unknown[]) => new Error(JSON.stringify(errors));
@@ -78,6 +79,28 @@ describe('attemptActionErrorMessage', () => {
   it('says everything else as the other Contribute calls do', () => {
     expect(attemptActionErrorMessage('INVALID', 'The attempt is not in review')).toBe('The attempt is not in review');
     expect(attemptActionErrorMessage('FAILED')).toBe(contributeErrorMessage('FAILED'));
+  });
+});
+
+describe('retryErrorMessage', () => {
+  const reload = 'It was tried again already, or it can no longer be. Reload the page.';
+
+  it('asks for a reload when the stop was tried again already or cannot be', () => {
+    expect(retryErrorMessage('INVALID', "This stop can't be tried again.")).toBe(reload);
+    expect(retryErrorMessage('INVALID', 'It was tried again already.')).toBe(reload);
+  });
+
+  it("says the API's own words for an issue closed since the no-go, and for the key or a pause", () => {
+    for (const message of [
+      'It can no longer be tried again: the issue is closed now.',
+      'Connect your Claude key before trying again.',
+      'Resume contributing before trying again.',
+    ])
+      expect(retryErrorMessage('INVALID', message)).toBe(message);
+  });
+
+  it('says a missing attempt as the other attempt calls do', () => {
+    expect(retryErrorMessage('NOT_FOUND')).toBe(attemptActionErrorMessage('NOT_FOUND'));
   });
 });
 

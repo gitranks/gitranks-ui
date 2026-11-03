@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { AutosubmitCountdown, RetryCheckButton, StopAutopilotButton } from './follow-up-buttons';
+import { AutosubmitCountdown, RetryButton, StopAutopilotButton } from './follow-up-buttons';
 import { FollowUpStepper } from './follow-up-stepper';
 import { HEADING, Pill } from './primitives';
 import { OrgAccessLink } from './reply-text';
@@ -72,6 +72,7 @@ const AUTOPILOT_REVIEW_NOTES: Partial<Record<ContributeAutopilotReviewReason, st
   no_email: 'Autopilot did not submit it: we have no email to tell you first, so it waits for your review.',
   notice_late: 'Autopilot did not submit it: we could not email you first, so it waits for your review.',
   autopilot_off: 'Autopilot did not submit it: autopilot was turned off or locked before it did.',
+  override: 'You chose to work on this one, so you approve its pull request.',
 };
 
 export function AutopilotReviewNote({ reason }: { reason: ContributeAttempt['reviewReason'] }) {
@@ -466,7 +467,9 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
               {limitNoteOf(limit)}
             </span>
           ) : null}
-          {'retryable' in attempt && attempt.retryable ? <RetryCheckButton attemptId={attempt.attemptId} /> : null}
+          {'retry' in attempt && (attempt.retry?.kind === 'BOOST' || attempt.retry?.kind === 'OVERRIDE') ? (
+            <RetryButton attemptId={attempt.attemptId} retry={attempt.retry} release={attempt.goNoGo?.release} />
+          ) : null}
           {attempt.endReason === 'SUBMIT_FAILED' && attempt.submit && failedAtStep(attempt.submit) ? (
             <SubmitStepsSettled state="STOPPED" submit={attempt.submit} />
           ) : null}

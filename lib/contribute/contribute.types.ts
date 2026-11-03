@@ -116,9 +116,10 @@ export type ContributeAutopilot = {
 
 /**
  * Why autopilot left a change for the user's review: no email to tell them first (`no_email`), the email not sent in
- * time (`notice_late`), autopilot turned off or locked meanwhile (`autopilot_off`), or the user's Stop (`vetoed`).
+ * time (`notice_late`), autopilot turned off or locked meanwhile (`autopilot_off`), the user's Stop (`vetoed`), or a
+ * run the user forced past a no-go, theirs to approve (`override`).
  */
-export type ContributeAutopilotReviewReason = 'no_email' | 'notice_late' | 'autopilot_off' | 'vetoed';
+export type ContributeAutopilotReviewReason = 'no_email' | 'notice_late' | 'autopilot_off' | 'vetoed' | 'override';
 
 export type Contributor = {
   status: ContributorStatus;
@@ -571,6 +572,23 @@ export type ContributeGoNoGo = {
   /** budget or time when the agent wrote it on being told to wrap up at the check's cap; null otherwise. */
   decidedAtLimit: 'budget' | 'time' | null;
   at: string;
+  /**
+   * A no-go's release (`taken`, `closed`, `already_fixed`, …): `taken` warns by the retry. Null for a go, an older
+   * run, or when the agent gave none; `undefined` while the API does not answer it.
+   */
+  release?: string | null;
+};
+
+/**
+ * What `retryAttempt` does with a stop, once: `BOOST`, a check that ran out, again on twice its budget; `OVERRIDE`, a
+ * no-go that is a judgement, worked on anyway by a new run told the user overrode it.
+ */
+export type ContributeRetryKind = 'BOOST' | 'OVERRIDE';
+
+export type ContributeRetry = {
+  kind: ContributeRetryKind;
+  /** An override of a taken no-go: who may be working on it, at most 3 logins; [] when not known. */
+  takenBy: string[];
 };
 
 export type ContributeAttemptEvent = { state: ContributeAttemptState; detail: string | null; at: string };
@@ -585,11 +603,8 @@ export type ContributeAttemptDetail = ContributeAttempt & {
    * False: nothing is asked and nothing is signed off. `undefined` while the API does not answer it.
    */
   dcoRequired?: boolean;
-  /**
-   * The check reached its limit with no verdict: `retryAttempt` tries it again once, on twice the check's budget.
-   * `undefined` while the API does not answer it.
-   */
-  retryable?: boolean;
+  /** What `retryAttempt` would do with this stop: null when it can't be tried again, `undefined` while not answered. */
+  retry?: ContributeRetry | null;
   /** The session's latest go/no-go: null when it gave none (an older run); `undefined` while the API does not answer it. */
   goNoGo?: ContributeGoNoGo | null;
   /**

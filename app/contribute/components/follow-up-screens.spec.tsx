@@ -890,6 +890,8 @@ describe('autopilot', () => {
     expect(text(reviewing('notice_late'))).toContain('we could not email you first');
     expect(text(reviewing('no_email'))).toContain('we have no email to tell you first');
     expect(text(reviewing('autopilot_off'))).toContain('turned off or locked before it did');
+    expect(reviewing('override')).toContain('data-autopilot-review-reason="override"');
+    expect(text(reviewing('override'))).toContain('You chose to work on this one, so you approve its pull request.');
     expect(reviewing('vetoed')).not.toContain('data-autopilot-review-reason');
     expect(reviewing(null)).not.toContain('data-autopilot-review-reason');
   });

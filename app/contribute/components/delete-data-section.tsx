@@ -53,7 +53,7 @@ export function DeleteDataSection() {
         <h2 className={HEADING.section}>Delete all Contribute data</h2>
         <span className="text-sm text-muted-foreground">
           Removes your key, the GitHub access, your settings and attempt history. PRs already on GitHub stay there, and
-          so do our records for stopping abuse, for up to 180 days.
+          so do our records for stopping abuse: up to 180 days, or longer while a flag on your account is still open.
         </span>
         {done ? (
           <span role="status" className="text-sm font-medium">

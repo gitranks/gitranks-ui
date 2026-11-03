@@ -193,7 +193,10 @@ const sections: LegalSection[] = [
             your GitHub settings. Removing your data from GitRanks (see <A href="#removal">Removing your data</A>) does
             the same. Forks, commits, pull requests and comments on GitHub stay there, as does your key at your AI
             provider, and so do the copies of your feedback we received as messages. We may keep records of the pull
-            requests opened through Contribute and that they were AI-assisted.
+            requests opened through Contribute and that they were AI-assisted. We also keep the records we need to stop
+            abuse of Contribute: an access level we set on your account and flags about misuse, for up to 180 days after
+            you delete (an open flag until 180 days after it is resolved), and checks we made of other GitHub accounts,
+            for 30 days. Basis: legitimate interests, in keeping Contribute fair and safe.
           </li>
         </List>
       </>
@@ -328,6 +331,11 @@ const sections: LegalSection[] = [
           <li>
             records of pull requests opened through Contribute and whether they were AI-assisted, and any repository
             opt-out you made as a maintainer, until it is lifted;
+          </li>
+          <li>
+            records for stopping abuse of Contribute, for the periods given under{' '}
+            <A href="#contribute">GitRanks Contribute</A>
+            {';'}
           </li>
           <li>backups, until they are rotated out.</li>
         </List>

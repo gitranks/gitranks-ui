@@ -304,6 +304,13 @@ describe('needsYouItemsOf: an open pull request', () => {
       move: "Run 2's commits could not be pushed: The branch changed on GitHub: the commits no longer apply. Start run 3 to make the change again on the pull request as it is now.",
       action: { label: 'Try run 3' },
     });
+    // The API's fallback when the push left no note only restates the failure: the row says it once.
+    const bare = signal('RUN_ENDED', { detail: 'The push failed (patch_conflict)', round: 2, outcome: 'PUSH_FAILED' });
+    expect(
+      rowOf(openPr({ needsYou: { since: '', signals: [bare] }, followUps: prsNeedingYou.pushFailed.followUps })).move,
+    ).toBe(
+      "Run 2's commits could not be pushed. Start run 3 to make the change again on the pull request as it is now.",
+    );
     // An API that does not answer the outcome yet: the run's no-go.
     const unread = signal('RUN_ENDED', { detail: 'Nothing to change.' });
     expect(rowOf(openPr({ needsYou: { since: '', signals: [unread] } })).kind).toBe('run-found');

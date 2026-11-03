@@ -7,7 +7,7 @@ import type {
   ContributePrSignalKind,
 } from './contribute.types';
 import { USERS_SIGNALS } from './follow-up-format';
-import { botVerdictOf, type NeedsYouItem, prItemOf, runOutcomeOf } from './needs-you';
+import { botVerdictOf, bracketed, type NeedsYouItem, prItemOf, pushDetailOf, runOutcomeOf } from './needs-you';
 import { type ContributePrConventionIssue, type ContributePrFix, httpsOnly } from './pr-conventions';
 import { nextRoundOpen, nextRoundRecommended, nextRunNumberOf, waitingThreadsOf } from './sessions';
 
@@ -117,10 +117,11 @@ export function defaultNoteOf(signals: ContributePrSignal[], threads: Contribute
 /** What a run that ended found, from its signal and the round the pull request lists for it. */
 function findingOf(first: ContributeAttemptDetail, signal: ContributePrSignal): RunFinding {
   const listed = first.followUps?.history?.find((round) => round.attemptId === signal.attemptId);
+  const outcome = runOutcomeOf(signal);
   return {
     round: signal.round ?? listed?.round ?? (first.followUps?.used || null),
-    outcome: runOutcomeOf(signal),
-    detail: signal.detail?.trim() || null,
+    outcome,
+    detail: (outcome === 'push_failed' ? pushDetailOf(signal.detail) : signal.detail?.trim()) || null,
     at: listed?.at ?? signal.at,
     costUsd: listed && listed.costUsd > 0 ? listed.costUsd : null,
   };
@@ -190,9 +191,9 @@ export function nextStepOf(first: ContributeAttemptDetail): NextStep {
       note:
         defaultNoteOf(runSignals, threads) ||
         (finding?.outcome === 'stopped'
-          ? `${finding.round ? `Run ${finding.round}` : 'The last run'} stopped before it was done${finding.detail ? ` (${finding.detail})` : ''}. Pick it up and finish it.`
+          ? `${finding.round ? `Run ${finding.round}` : 'The last run'} stopped before it was done${finding.detail ? ` (${bracketed(finding.detail)})` : ''}. Pick it up and finish it.`
           : finding?.outcome === 'push_failed'
-            ? `${finding.round ? `Run ${finding.round}` : 'The last run'}'s commits could not be pushed${finding.detail ? ` (${finding.detail})` : ''}. Make the change again on the pull request as it is now.`
+            ? `${finding.round ? `Run ${finding.round}` : 'The last run'}'s commits could not be pushed${finding.detail ? ` (${bracketed(finding.detail)})` : ''}. Make the change again on the pull request as it is now.`
             : ''),
     },
     user,

@@ -1342,6 +1342,35 @@ describe('the next step, for each thing only the user can do', () => {
     expect(plain).toContain("Try run 2 I'll handle it");
   });
 
+  it('gives a run whose commits failed to push the next run, or the user’s own hands', () => {
+    const failed = {
+      ...nextForYou,
+      needsYou: {
+        since: '',
+        signals: [
+          {
+            kind: 'RUN_ENDED' as const,
+            at: '2026-10-28T10:52:00.000Z',
+            detail: 'The branch changed on GitHub: the commits no longer apply.',
+            attemptId: 'A_OC1',
+            round: 1,
+            outcome: 'PUSH_FAILED' as const,
+          },
+        ],
+      },
+    };
+    const html = next(failed);
+    const plain = text(html);
+    expect(html).toContain('data-next-card="push-failed"');
+    expect(plain).toContain('Your move: try run 2, or handle it yourself Run 1 not pushed');
+    expect(plain).toContain("Run 1's commits could not be pushed");
+    expect(plain).toContain('They never reached the pull request.');
+    expect(plain).toContain("Try run 2 I'll handle it");
+    expect(plain).toContain(
+      "Run 1's commits could not be pushed (The branch changed on GitHub: the commits no longer apply). Make the change again",
+    );
+  });
+
   it('gives the comment that signs an agreement to copy, and leaves its line out of the rules card', () => {
     const html = next(nextForAgreement);
     const plain = text(html);

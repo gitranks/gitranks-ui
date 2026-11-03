@@ -198,7 +198,7 @@ function StoppedCard({ move, first, step, primary }: CardProps & { move: Extract
       </p>
       <p className="text-sm text-muted-foreground">
         {unpushed
-          ? 'You approved them, but they never reached the pull request. A new run starts from the pull request as it is now and makes the change again; tell it what to do differently in its note.'
+          ? 'They never reached the pull request. A new run starts from the pull request as it is now and makes the change again; tell it what to do differently in its note.'
           : 'Nothing was pushed. A new run starts from the pull request as it is; tell it what to do differently in its note.'}
       </p>
       <div className="flex flex-wrap items-start gap-3">

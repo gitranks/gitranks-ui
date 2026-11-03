@@ -126,6 +126,18 @@ const sentence = (text: string) => {
   return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 };
 
+/** Text set in brackets inside a sentence: without its own closing full stop. */
+export const bracketed = (text: string) => text.trim().replace(/[.!?…]+$/, '');
+
+/**
+ * A failed push's detail worth saying: none when it only restates that the push failed (the API's fallback when the
+ * push left no note, `The push failed (patch_conflict)`): the row already says so.
+ */
+export const pushDetailOf = (detail: string | null | undefined): string | null => {
+  const text = detail?.trim();
+  return text && !/^the push failed\b/i.test(text) ? text : null;
+};
+
 /** Untrusted text cut to a line: `max` characters at most, with an ellipsis. */
 export const clipped = (text: string, max = 160) => {
   const line = text.replace(/\s+/g, ' ').trim();
@@ -569,8 +581,9 @@ function candidatesOf({ pr, drafts, runs }: PrContext): Candidate[] {
   if (ended) {
     const round = ended.round ?? (pr.followUps?.used || null);
     const name = round ? `Run ${round}` : 'The last run';
-    const detail = ended.detail?.trim() ? clipped(ended.detail, 200) : null;
     const outcome = runOutcomeOf(ended);
+    const said = outcome === 'push_failed' ? pushDetailOf(ended.detail) : ended.detail?.trim();
+    const detail = said ? clipped(said, 200) : null;
     list.push(
       outcome === 'push_failed'
         ? {

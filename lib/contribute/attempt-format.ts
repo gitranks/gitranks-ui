@@ -235,11 +235,27 @@ export const attemptTitleOf = (attempt: Pick<ContributeAttempt, 'title' | 'numbe
 export const repoOf = (attempt: Pick<ContributeAttempt, 'nameWithOwner'>) => attempt.nameWithOwner || 'a repo';
 
 /**
- * The footer line the API adds to a pull request it opens for a reviewed change, as Markdown, for an API that does not
- * say it (`prFooter`): the hosted runner's, without the model.
+ * The footer line an API that does not say it (`prFooter`, before the 2026-11-03 wording) adds to a pull request it
+ * opens for a reviewed change, as Markdown.
  */
 export const prFooterText = (login: string) =>
-  `<sub>Made with [GitRanks Contribute](https://gitranks.com) powered by Claude · Reviewed and submitted by @${login}</sub>`;
+  `🤖 Made with Claude via [gitranks.com](https://gitranks.com) · reviewed by @${login}`;
+
+/** The text as words to compare: a sentence the body says already, however it is spaced or cased (the API's own). */
+const sayingOf = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+
+/**
+ * What follows the body in the preview: the API's `prFooter` without the repo's sentence when the body says it already
+ * (the API leaves it out then too), and whether a sentence is shown.
+ */
+export function footerPreviewOf(footer: string, body: string): { text: string; sentence: boolean } {
+  const cut = footer.lastIndexOf('\n\n');
+  if (cut < 0) return { text: footer, sentence: false };
+  const sentence = footer.slice(0, cut);
+  return sayingOf(body).includes(sayingOf(sentence))
+    ? { text: footer.slice(cut + 2), sentence: false }
+    : { text: footer, sentence: true };
+}
 
 /** A pull request body names the issue with a closing keyword, so GitHub closes it on merge. */
 const linksIssue = (body: string, number: number) =>

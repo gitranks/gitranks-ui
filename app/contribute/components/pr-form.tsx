@@ -20,7 +20,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { CONTRIBUTE_PROVIDER } from '@/lib/auth-providers';
-import { PR_BODY_MAX, PR_TITLE_MAX, prBodyPreview, prFooterText } from '@/lib/contribute/attempt-format';
+import {
+  footerPreviewOf,
+  PR_BODY_MAX,
+  PR_TITLE_MAX,
+  prBodyPreview,
+  prFooterText,
+} from '@/lib/contribute/attempt-format';
 import type { ContributeDcoMode } from '@/lib/contribute/contribute.types';
 import { attemptActionErrorMessage } from '@/lib/contribute/errors';
 import {
@@ -198,6 +204,7 @@ export function PrForm({
   const busy = pending || handoff !== null;
 
   const standing = dcoMode === 'STANDING';
+  const tail = footer ? footerPreviewOf(footer, body) : { text: prFooterText(login), sentence: false };
   const titleMissing = !title.trim();
   const asksDco = dcoRequired !== false;
   const signOff = signOffOf(dcoRequired, dcoMode, dco);
@@ -322,11 +329,12 @@ export function PrForm({
         <div className="flex max-h-72 flex-col gap-2 overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs">
           <pre className="whitespace-pre-wrap">{prBodyPreview(body, issueNumber)}</pre>
           <span data-pr-footer className="whitespace-pre-wrap border-t pt-2 text-muted-foreground">
-            {footer ?? prFooterText(login)}
+            {tail.text}
           </span>
         </div>
         <span className="text-xs text-muted-foreground">
           The footer line is added to every pull request, linking gitranks.com.
+          {tail.sentence ? ' This repo asks AI-written pull requests to say so, in its words above the footer.' : ''}
         </span>
       </div>
       {!asksDco ? null : standing ? (

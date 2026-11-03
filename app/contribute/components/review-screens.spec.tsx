@@ -230,9 +230,8 @@ describe('the review screen', () => {
     expect(html).toMatch(/<textarea[^>]*>Fixes #871\n\n## What changed\nNormalize the route path.<\/textarea>/);
     expect(html).not.toContain('reviewed by @someone');
     expect(html).toContain('data-pr-footer');
-    expect(plain).toContain(
-      '<sub>Made with [GitRanks Contribute](https://gitranks.com) powered by Claude · Reviewed and submitted by @octocat</sub>',
-    );
+    // An API that does not say its footer writes the old one.
+    expect(plain).toContain('🤖 Made with Claude via [gitranks.com](https://gitranks.com) · reviewed by @octocat');
     expect(plain).toContain('co-authored by gitranks');
     expect(plain).toContain('Submit pull request');
     expect(plain).toContain('Discard');

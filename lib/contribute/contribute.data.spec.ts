@@ -42,6 +42,7 @@ const {
   ContributeAttemptCheckStopDocument,
   ContributeAttemptDecisionsDocument,
   ContributeAttemptDcoDocument,
+  ContributeAttemptDisclosureDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeProviderInterestsDocument,
@@ -199,6 +200,50 @@ describe('loadAttempt: whether the repo requires DCO, read on its own', () => {
       const read = await loadAttempt('A_1');
       expect(read).toEqual({ attemptId: 'A_1', state: 'REVIEW' });
       expect('dcoRequired' in (read ?? {})).toBe(false);
+    }
+  });
+});
+
+describe('loadAttempt: the PR footer and co-author, read on their own', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const answering = (disclosure: () => Promise<unknown>) =>
+    graphqlDirect.mockImplementation((document) =>
+      document === ContributeAttemptDisclosureDocument
+        ? disclosure()
+        : Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'REVIEW' } }),
+    );
+
+  it("merges the attempt's own answer, a missing co-author as unknown, and leaves both out otherwise", async () => {
+    answering(() =>
+      Promise.resolve({
+        contributeAttempt: { attemptId: 'A_1', prFooter: '<sub>Made with</sub>', prCoAuthored: false },
+      }),
+    );
+    expect(await loadAttempt('A_1')).toEqual({
+      attemptId: 'A_1',
+      state: 'REVIEW',
+      prFooter: '<sub>Made with</sub>',
+      prCoAuthored: false,
+    });
+
+    answering(() => Promise.resolve({ contributeAttempt: { attemptId: 'A_1', prFooter: '<sub>Made with</sub>' } }));
+    expect(await loadAttempt('A_1')).toMatchObject({ prCoAuthored: null });
+
+    // Another attempt's answer, an API without the fields, or a failed read: the form falls back as before.
+    for (const disclosure of [
+      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', prFooter: 'x', prCoAuthored: true } }),
+      () => Promise.reject(new Error('[{"message":"Cannot query field \\"prFooter\\""}]')),
+      () => Promise.reject(new Error('GraphQL error! 502: Bad Gateway')),
+    ]) {
+      answering(disclosure);
+      const read = await loadAttempt('A_1');
+      expect(read).toEqual({ attemptId: 'A_1', state: 'REVIEW' });
+      expect('prFooter' in (read ?? {})).toBe(false);
     }
   });
 });

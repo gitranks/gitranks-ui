@@ -52,22 +52,45 @@ Live boards come from main only. The script refuses anything else.
      `proposals/<slug>/img/`, point its `src` there, and publish them with the boards.
    - Keep the app's classes: they come from `gitranks.css`. Inline `style` is fine for something new.
    - Give options as extra boards (A, B), not as flags.
-   - Place the boards on the screen's page at the row's `y` and the `x` the page's grey "Live boards" note names, which
-     is the proposal column. When live rows move, the redraw moves proposals with their row.
-   - Add a sticky note beside them: what changes, why, and `Status: Proposed`. Note ids must not start with
-     `current-`; those belong to the redraw.
+   - Place the boards on the **To review** page (`page: "review"`). If `pages` has no `review` entry, add
+     `{"id": "review", "name": "To review"}` before Archive. Give the proposal a section of its own:
+     - **Title note** `review-<slug>`, at `x` 0 and `y` = the bottom of the lowest board or note on the page + 300 (0 on
+       an empty page), with `kind: "title1"` and `maxW` = the section's width. It names the proposal and the screens it
+       changes, e.g. "Beta label · Contribute landing and nav".
+     - **One row per screen the proposal changes**, the first at the title's `y` + 260:
+       - its sticky note at `x` 0, `w` 440;
+       - its boards from `x` 520, 80 px apart, all at the row's `y`.
+
+       The next row starts at the row's `y` + its tallest board + 220.
+     - **The first row's sticky** is `<slug>-note`: what changes, why, and `Status: Proposed`. Any other row's sticky
+       (`<slug>-note-2`, …) says what that row shows.
+
+     The redraw never moves anything on this page. Note ids must not start with `current-`; those belong to the redraw.
    - Publish only the new files and the index: read `project/canvas.json` right before, copy that text to
      `<root>/project/canvas.json`, and add only your entries.
 5. **Review.** The owner comments on the canvas. Revise the proposal boards, never the live ones.
-6. **Build** in code once it's approved. Set the note to `Building #<PR>`.
-7. **After the merge,** redraw. Then move the proposal's boards and note to the `archive` page by setting their `page`,
-   and set the note to `Shipped #<PR>`.
+6. **Once approved**, set the status to `Status: Approved`. Then move each row to the page of the screen it changes:
+   - set `page` to that area;
+   - the sticky goes at the `x` the page's grey "Live boards" note names (the proposal column), at that screen's row
+     `y`;
+   - the boards go from that `x` + 520, 80 px apart, at the same `y`.
+
+   Then:
+   - Drop the title note.
+   - If the rows land on different pages, `<slug>-note` keeps the status and goes with the first row.
+   - A new screen (B) has no live row until its catalogue PR merges. It stays on To review until then.
+
+   From then on the redraw moves the rows with their screens. Set `Status: Building #<PR>` when the PR opens. Publish
+   only the index, as in step 4.
+7. **After the merge,** redraw. Then move the proposal's boards and notes to the `archive` page by setting their `page`,
+   and set `Status: Shipped #<PR>`. A proposal the owner drops goes to `archive` the same way, from wherever it is,
+   with `Status: Dropped` and the reason. Drop its title note. Publish only the index, as in step 4.
 
 ## B. A new screen
 
 Add it to the catalogue as soon as it has a component. Until then, start from the nearest live board: copy it to
-`proposals/<slug>/` and keep its header, tabs and container. Never start from a blank board. Put it on the area's page
-in the proposal column, with a note `New: <name>`.
+`proposals/<slug>/` and keep its header, tabs and container. Never start from a blank board. Put it on the To review
+page as in A.4, with a note `New: <name>`. Once approved it stays there until the catalogue PR merges (A.6).
 
 ## C. Tokens, type, the design system
 
@@ -92,7 +115,7 @@ layout), add them to the catalogue in the same PR.
 
 - **Live boards are code.** Never hand-edit `project/current/**`. A wrong live board means a wrong fixture or a missing
   state: fix it in `design/screens/`.
-- **One canvas.** Every GitRanks design goes on it, on the area's page. Earlier canvases are history, linked from the
+- **One canvas.** Every GitRanks design goes on it: on the To review page while proposed, then on the area's page. Earlier canvases are history, linked from the
   Archive page.
 - **Cheap reads.**
   - Read `canvas.json` for positions.

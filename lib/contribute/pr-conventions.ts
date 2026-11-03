@@ -40,12 +40,32 @@ export type ContributeRepoConventions = {
 };
 
 export type ContributePrIssueKind = 'TITLE' | 'CHANGELOG' | 'TEMPLATE' | 'CLA';
+
+/**
+ * What the user fills on GitHub: the text to paste under `label` (a template's heading; `value` null: nothing drafted,
+ * `note` says what to write), or a checklist line to tick or leave (`tick`). `note`: what to check first, or why.
+ */
+export type ContributePrIssueField = {
+  label: string;
+  value: string | null;
+  note: string | null;
+  tick?: boolean | null;
+};
+
 export type ContributePrConventionIssue = {
   kind: ContributePrIssueKind;
   check: string | null;
   message: string;
   /** TITLE: the title the fix sets; CHANGELOG: the line it writes; CLA: where to sign; null: no one-click fix. */
   suggestion: string | null;
+  /** Why the user sees it: what the repo asks, and why neither the agent nor GitRanks does it. Absent from an older API. */
+  why?: string | null;
+  /** What to do, in order. */
+  steps?: string[] | null;
+  /** What to fill on GitHub, section by section (a template the repo leaves to the user). */
+  fields?: ContributePrIssueField[] | null;
+  /** The repo's file that asks it. */
+  source?: { label: string; url: string } | null;
 };
 
 /** A fix sent to the open PR: `SIGN_OFF` rewrites our commits with the user's DCO sign-off (a force-push). */
@@ -305,9 +325,9 @@ export function checklistOf(
     items.push({
       key: 'template',
       state: 'todo',
-      label: 'The template, filled in by you on GitHub after the PR opens',
+      label: 'The description, filled in by you on GitHub after the PR opens',
       detail:
-        "The repo's agent rules leave Description, Testing and the checklist to the person who tested the change.",
+        "The repo's rules for AI agents forbid an agent to fill in its pull request template: the person who tested the change does. So the agent leaves it empty, and once the PR opens we show what to write in each section and which boxes to tick.",
       link: null,
     });
   } else if (conventions.template?.aiAsks.length) {

@@ -372,7 +372,7 @@ describe('the review screen', () => {
     expect(html).toContain('href="https://cla-assistant.io/x/y"');
     expect(html).toContain('data-pr-fix="failed"');
     expect(plain).toContain('Linking the changelog line to the pull request did not go through: The branch moved.');
-    // A repo whose agent rules leave the template for the human: a link to fill it in on GitHub.
+    // A repo whose agent rules leave the template for the human: why, the steps, each section drafted, the link.
     const template = reviewNext(
       detail({
         state: 'PR_OPEN',
@@ -381,15 +381,32 @@ describe('the review screen', () => {
           {
             kind: 'TEMPLATE',
             check: null,
-            message: 'The repo asks the person who tested the change to fill in its template.',
+            message: "Fill in #1419's description on GitHub: Description and Checklist.",
             suggestion: 'https://github.com/driftwood-js/driftwood/pull/1419',
+            why: "driftwood-js/driftwood's rules for AI agents say an agent must leave the pull request template empty.",
+            steps: ['Try the change yourself first.', 'Open #1419 on GitHub, click ··· on the description, then Edit.'],
+            fields: [
+              { label: 'Description', value: 'Nested layouts keep their state.', note: null, tick: null },
+              { label: 'Release notes added', value: null, note: 'The change adds CHANGELOG.md.', tick: true },
+              { label: 'Docs updated', value: null, note: 'The change touches no docs.', tick: false },
+            ],
+            source: { label: 'AGENTS.md', url: 'https://github.com/driftwood-js/driftwood/blob/HEAD/AGENTS.md' },
           },
         ],
         prFix: null,
       }),
     );
-    expect(text(template)).toContain('Fill it in on GitHub');
+    const guide = text(template);
+    expect(guide).toContain('Open #1419 on GitHub');
     expect(template).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
+    expect(guide).toContain("Why you see this: driftwood-js/driftwood's rules for AI agents");
+    expect(template).toContain('href="https://github.com/driftwood-js/driftwood/blob/HEAD/AGENTS.md"');
+    expect(guide).toContain('What to do');
+    expect(template).toContain('<li>Try the change yourself first.</li>');
+    expect(guide).toContain('Under “Description” Nested layouts keep their state.');
+    expect(template).toContain('aria-label="Copy the text for Description"');
+    expect(guide).toContain('Tick: Release notes added The change adds CHANGELOG.md.');
+    expect(guide).toContain('Leave unticked: Docs updated');
     // Nothing to fix, nothing sent: no card.
     expect(
       reviewNext(detail({ state: 'PR_OPEN', pullRequest: pullRequest(), prIssues: [], prFix: null })),

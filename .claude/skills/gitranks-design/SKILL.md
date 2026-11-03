@@ -52,22 +52,31 @@ Live boards come from main only. The script refuses anything else.
      `proposals/<slug>/img/`, point its `src` there, and publish them with the boards.
    - Keep the app's classes: they come from `gitranks.css`. Inline `style` is fine for something new.
    - Give options as extra boards (A, B), not as flags.
-   - Place the boards on the screen's page at the row's `y` and the `x` the page's grey "Live boards" note names, which
-     is the proposal column. When live rows move, the redraw moves proposals with their row.
-   - Add a sticky note beside them: what changes, why, and `Status: Proposed`. Note ids must not start with
-     `current-`; those belong to the redraw.
+   - Place the boards on the **To review** page (`page: "review"`; add `{"id": "review", "name": "To review"}` to
+     `pages`, before Archive, if it is missing). Give the proposal a section of its own below the last one:
+     - a title note (`kind: "title1"`): the proposal and the screens it changes, e.g. "Beta label · Contribute landing
+       and nav";
+     - 260 px below it, a sticky note on the left (`x` 0, `w` 440): what changes, why, and `Status: Proposed`;
+     - the boards in a row to the right of it, from `x` 520, 80 px apart; a second screen gets a row of its own.
+
+     The redraw never moves anything on this page. Note ids must not start with `current-`; those belong to the redraw.
    - Publish only the new files and the index: read `project/canvas.json` right before, copy that text to
      `<root>/project/canvas.json`, and add only your entries.
 5. **Review.** The owner comments on the canvas. Revise the proposal boards, never the live ones.
-6. **Build** in code once it's approved. Set the note to `Building #<PR>`.
+6. **Once approved**, move the boards and their note to the screen's page:
+   - set `page` to the area;
+   - use the row's `y` and the `x` that the page's grey "Live boards" note names (the proposal column);
+   - drop the section's title note.
+
+   From then on the redraw moves them with their row. Build it in code, and set the note to `Building #<PR>`.
 7. **After the merge,** redraw. Then move the proposal's boards and note to the `archive` page by setting their `page`,
    and set the note to `Shipped #<PR>`.
 
 ## B. A new screen
 
 Add it to the catalogue as soon as it has a component. Until then, start from the nearest live board: copy it to
-`proposals/<slug>/` and keep its header, tabs and container. Never start from a blank board. Put it on the area's page
-in the proposal column, with a note `New: <name>`.
+`proposals/<slug>/` and keep its header, tabs and container. Never start from a blank board. Put it on the To review
+page as in A.4, with a note `New: <name>`.
 
 ## C. Tokens, type, the design system
 

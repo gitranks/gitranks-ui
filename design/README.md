@@ -20,16 +20,20 @@ Both links are private to the owner.
 ## The canvas
 
 One canvas, one page per area (Landing, Developer profile, Repository, Organization, Rankings, Badges, Contribute),
-plus Archive.
+plus To review and Archive.
 
 - **Live boards** (`project/current/<area>/<screen>--<state>.dc.html`) are drawn from this repo's code by
   `pnpm design:export`: the real components, rendered from fixtures, with the app's own stylesheet
   (`project/current/gitranks.css`). Each screen is a row, titled with its route; its states run left to right. They are
   never edited by hand: they change when the code does.
 - **Proposals** (`project/proposals/<slug>/<name>.dc.html`) start as copies of the live boards they change and edit
-  only what changes. They sit in the page's proposal column (the grey "Live boards" note names its x) beside the
-  screen's row, with a sticky note: what changes, why, the status (Proposed → Approved → Building #PR → Shipped). When
-  live rows move or widen, the redraw moves the proposal column's boards and notes with their row.
+  only what changes. The status runs Proposed → Approved → Building #PR → Shipped.
+  - **While proposed**, they sit on the **To review** page (`review`), one section per proposal. A title note names
+    the proposal and the screens it changes. A sticky note says what changes and why, with the status. The redraw
+    never moves anything on that page.
+  - **Once approved**, the boards and notes move to the area's page, into its proposal column (the grey "Live boards"
+    note names its x) beside the screen's row. When live rows move or widen, the redraw moves the proposal column's
+    boards and notes with their row.
 - **Archive**: a shipped or dropped proposal moves there (its boards' `page` becomes `archive`), so the history stays
   in one place. Older canvases from before this one are linked from there.
 

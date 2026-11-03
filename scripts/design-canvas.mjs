@@ -106,8 +106,8 @@ for (const [area, screens] of byArea) {
     w: 440,
     text:
       `Live boards: drawn from gitranks-ui main @${commit} by pnpm design:export. Don't edit them. ` +
-      `Proposals go right of the screen they change, from x ${proposalsXOf(page.widest)}, under proposals/<slug>/, ` +
-      'with a note: what, why, status.',
+      'New proposals go on the To review page, under proposals/<slug>/, with a note: what, why, status. Once approved ' +
+      `they move here, right of the screen they change, from x ${proposalsXOf(page.widest)}.`,
     fill: 'gray',
     page: area,
   };

@@ -31,22 +31,32 @@ describe('proxy', () => {
   });
 
   describe('Contribute', () => {
-    it.each(['/contribute', '/contribute/connect', '/contribute/settings', '/contribute/issues'])(
-      'answers %s with a 404 nobody caches, to anyone the API does not let in',
-      async (path) => {
-        for (const cookie of [undefined, 'authjs.session-token=t']) {
-          const response = await proxy(request(cookie, path), event);
+    it.each([
+      '/contribute',
+      '/contribute/connect',
+      '/contribute/settings',
+      '/contribute/issues',
+      '/contribute/mcp',
+      '/contribute/faq',
+    ])('answers %s with a 404 nobody caches, to anyone the API does not let in', async (path) => {
+      for (const cookie of [undefined, 'authjs.session-token=t']) {
+        const response = await proxy(request(cookie, path), event);
 
-          expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
-          expect(response?.headers.get('cache-control')).toBe('private, no-store');
-        }
-        expect(withSession).not.toHaveBeenCalled();
-      },
-    );
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+      }
+      expect(withSession).not.toHaveBeenCalled();
+    });
 
-    it('once launched, lets everyone see the landing, a visitor without a session as any signed-out page', async () => {
+    it('once launched, lets everyone see the landing, the MCP docs and the questions, a visitor without a session as any signed-out page', async () => {
       open.mockResolvedValue(true);
-      for (const path of ['/contribute', '/contribute/', '/contribute?as=visitor']) {
+      for (const path of [
+        '/contribute',
+        '/contribute/',
+        '/contribute?as=visitor',
+        '/contribute/mcp',
+        '/contribute/faq',
+      ]) {
         const signedOut = await proxy(request(undefined, path), event);
         expect(signedOut?.headers.get('x-middleware-rewrite'), path).toBeNull();
         expect(signedOut?.headers.get('cache-control'), path).toBeNull();

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
@@ -9,6 +10,7 @@ import { HEADING, Panel, PanelTitle, SubTitle } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { ContributeMcpToken, ContributeOwnAgent } from '@/lib/contribute/contribute.types';
+import { MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, relativeLabel } from '@/lib/contribute/format';
 import {
@@ -283,6 +285,9 @@ export function OwnAgentSection({
             <h2 className={cn(HEADING.block, 'pt-1')}>Set up your agent</h2>
           )}
           <SetupLines />
+          <Link href={MCP_DOCS_PATH} prefetch={false} className="self-start text-sm font-semibold text-link">
+            VS Code, other clients, the tools and the limits: the MCP docs →
+          </Link>
           <p data-safety className="text-sm font-medium">
             {OWN_AGENT_SAFETY}
           </p>

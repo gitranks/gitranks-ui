@@ -13,7 +13,7 @@ import type {
   ContributeIssuePage,
   ContributeView,
 } from '@/lib/contribute/contribute.types';
-import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
+import { FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import { accessNoticesOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
 import { agentFirstRunStepOf, firstRunNoticesOf, firstRunStepOf } from '@/lib/contribute/first-run';
 import type { McpClient } from '@/lib/contribute/mcp-setup';
@@ -70,9 +70,14 @@ function OverviewFooter() {
           Opt it out →
         </Link>
       </p>
-      <Link href={ABOUT_PATH} prefetch={false} className="inline-flex min-h-10 items-center font-semibold text-link">
-        How Contribute works
-      </Link>
+      <div className="flex flex-wrap gap-x-5">
+        <Link href={ABOUT_PATH} prefetch={false} className="inline-flex min-h-10 items-center font-semibold text-link">
+          How Contribute works
+        </Link>
+        <Link href={FAQ_PATH} prefetch={false} className="inline-flex min-h-10 items-center font-semibold text-link">
+          Questions
+        </Link>
+      </div>
     </footer>
   );
 }

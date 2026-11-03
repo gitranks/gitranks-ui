@@ -28,7 +28,14 @@ const OPT_OUT_TEXT =
   'We check with GitHub that you can administer or maintain each repo, then stop at once. Open PRs stay as they are; close them if you like.';
 
 /** The page for maintainers: what Contribute does in their repo, and the three ways to keep it out. */
-export function MaintainersScreen({ repos }: { repos: ReactNode }) {
+export function MaintainersScreen({
+  repos,
+  more = null,
+}: {
+  repos: ReactNode;
+  /** The other pages about Contribute, at the foot: once it is launched. */
+  more?: ReactNode;
+}) {
   return (
     <main className="mx-auto w-full max-w-7xl px-4 flex flex-col gap-9 pt-10 pb-16">
       <div className="flex max-w-3xl flex-col gap-3">
@@ -68,6 +75,8 @@ export function MaintainersScreen({ repos }: { repos: ReactNode }) {
         <div className="flex min-w-0 flex-[1_1_440px] flex-col">{repos}</div>
         <FileOptions />
       </div>
+
+      {more}
     </main>
   );
 }

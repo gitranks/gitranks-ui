@@ -20,6 +20,9 @@ export const metadata: Metadata = pageMetadata({
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
+/** The Privacy policy's own date: it changed after `LAST_UPDATED` (Contribute's retention, 2026-11-03). */
+const PRIVACY_UPDATED = '2026-11-03';
+
 const sections: LegalSection[] = [
   {
     id: 'who',
@@ -405,5 +408,5 @@ const sections: LegalSection[] = [
 ];
 
 export default function Privacy() {
-  return <LegalPage title="Privacy policy" sections={sections} />;
+  return <LegalPage title="Privacy policy" sections={sections} updated={PRIVACY_UPDATED} />;
 }

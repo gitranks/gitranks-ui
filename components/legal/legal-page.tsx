@@ -10,7 +10,18 @@ export type LegalSection = { id: string; title: string; body: ReactNode };
  * The reading layout of the Privacy policy and the Terms: the site header, the text at reading width, the title, the
  * "Last updated" line, a short contents list with anchors, then the sections.
  */
-export function LegalPage({ title, intro, sections }: { title: string; intro?: ReactNode; sections: LegalSection[] }) {
+export function LegalPage({
+  title,
+  intro,
+  sections,
+  updated = LAST_UPDATED,
+}: {
+  title: string;
+  intro?: ReactNode;
+  sections: LegalSection[];
+  /** The page's own date, when it changed after `LAST_UPDATED`. */
+  updated?: string;
+}) {
   return (
     <>
       <Header />
@@ -18,7 +29,7 @@ export function LegalPage({ title, intro, sections }: { title: string; intro?: R
         <header className="flex flex-col gap-3">
           <h1 className="text-3xl font-semibold md:text-4xl">{title}</h1>
           <p className="text-sm text-muted-foreground">
-            Last updated <time dateTime={LAST_UPDATED}>{legalDate()}</time>
+            Last updated <time dateTime={updated}>{legalDate(updated)}</time>
           </p>
           {intro}
         </header>

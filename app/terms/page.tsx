@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
-import { A, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
+import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
+import { contributeShown } from '@/lib/contribute/preview-gate';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 
@@ -18,7 +20,78 @@ export const metadata: Metadata = pageMetadata({
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
-const sections: LegalSection[] = [
+/** Contribute's section (B5): whose key, whose pull requests, whose service, and the maintainers' say. */
+const CONTRIBUTE: LegalSection = {
+  id: 'contribute',
+  title: 'GitRanks Contribute',
+  body: (
+    <>
+      <P>
+        GitRanks Contribute suggests issues in public repositories and helps you work on them with an AI agent: your own
+        agent, through our MCP server, or an agent we run on your Claude API key. It is in beta: it may change, be
+        limited or stop, and its limits may change. The <A href="/privacy#contribute">Privacy policy</A> says what data
+        it uses.
+      </P>
+      <List>
+        <li>
+          <B>Your key, your usage.</B> When you connect a Claude API key, our agent runs on it in your Anthropic
+          organization, and Anthropic bills that usage to that organization under its own terms. The organization that
+          owns the key is responsible for all usage under it, and you must be allowed to use the key this way. We use
+          your key only for your own attempts; it never serves anyone else.
+        </li>
+        <li>
+          <B>The hosted agent is Anthropic&apos;s beta service.</B> Our agent runs on Claude Managed Agents, a service
+          Anthropic provides in beta. We don&apos;t control it, and we don&apos;t guarantee that it is available, that
+          it works, or what it costs. GitRanks is not affiliated with or endorsed by Anthropic.
+        </li>
+        <li>
+          <B>Your own agent.</B> With your own agent, you are responsible for it, for its provider&apos;s terms, for
+          what it does on your computer and for what it sends us. Keep your GitRanks tokens private, and revoke a token
+          in Contribute&apos;s settings if it may have leaked.
+        </li>
+        <li>
+          <B>What you let us do.</B> You let us store and process what you and your agent send us (changes, test
+          results, reports, pull request text, replies, screenshots) to run Contribute for you, and, once you grant
+          GitHub access, to act on GitHub for you, including: forking repositories and keeping forks in step, pushing
+          commits and branches in your name, opening pull requests, posting and resolving the replies you approve, and
+          the other changes to your pull requests you ask for on GitRanks, such as editing their text, signing off their
+          commits or adding a proof you approve.
+        </li>
+        <li>
+          <B>Your pull requests.</B> While autopilot is off, nothing is sent to GitHub until you approve it, and every
+          pull request is opened under your own GitHub account after your review. If you turn autopilot on, it submits
+          for you under the rules shown in Settings. Either way, each pull request is your contribution: you are
+          responsible for it as for any pull request you open, including your right to submit it under the
+          repository&apos;s license and contribution rules. AI-written code can be wrong; review it as you would anyone
+          else&apos;s.
+        </li>
+        <li>
+          <B>Maintainers decide.</B> We try to skip repositories whose maintainers opted out or whose policy says no to
+          AI contributions, and we limit how many pull requests reach each repository. Our automated reading of a
+          repository&apos;s rules can miss one; you remain responsible for following each repository&apos;s rules.
+          Maintainers can opt a repository out at{' '}
+          <A href="/contribute/maintainers">gitranks.com/contribute/maintainers</A>.
+        </li>
+        <li>
+          <B>Fair use of Contribute.</B> You must not get around a repository&apos;s rules or our limits, open pull
+          requests in bulk, remove or misstate the note that a pull request was made with AI, or share or scrape the
+          lists of issues we show you, or pass them to others to claim. We may lower your limits, pause your use of
+          Contribute or end it if we reasonably believe it harms maintainers, other users or the service.
+        </li>
+        <li>
+          <B>No promised outcome.</B> We don&apos;t guarantee that a change works, that a pull request is merged, or
+          what an attempt costs. Credits that come with a Claude plan are governed by Anthropic&apos;s terms, not ours.
+        </li>
+      </List>
+    </>
+  ),
+};
+
+/** When the Terms last changed with Contribute's section in them: they show that date only once the section shows. */
+const CONTRIBUTE_TERMS_UPDATED = '2026-11-03';
+
+/** The sections; Contribute's only for whoever may see Contribute, as its pages are. */
+const sectionsOf = (contribute: boolean): LegalSection[] => [
   {
     id: 'who',
     title: 'Who we are',
@@ -45,6 +118,12 @@ const sections: LegalSection[] = [
           wrong. They are not an endorsement or an assessment of anyone&apos;s skills, and we don&apos;t guarantee any
           rank or result.
         </li>
+        {contribute ? (
+          <li>
+            GitRanks Contribute helps you work on issues in open-source repositories with an AI agent. Its own terms are
+            in <A href="#contribute">GitRanks Contribute</A>.
+          </li>
+        ) : null}
         <li>GitRanks is not affiliated with or endorsed by GitHub.</li>
       </List>
     ),
@@ -93,6 +172,7 @@ const sections: LegalSection[] = [
       </P>
     ),
   },
+  ...(contribute ? [CONTRIBUTE] : []),
   {
     id: 'use',
     title: 'Fair use',
@@ -210,6 +290,26 @@ const sections: LegalSection[] = [
   },
 ];
 
+/** The Terms as drawn: with Contribute's section or without it. */
+export function TermsScreen({ contribute }: { contribute: boolean }) {
+  return (
+    <LegalPage
+      title="Terms of service"
+      sections={sectionsOf(contribute)}
+      updated={contribute ? CONTRIBUTE_TERMS_UPDATED : undefined}
+    />
+  );
+}
+
+/** The Terms without Contribute's section at once, then with it for whoever may see Contribute: the preview list, everyone once launched. */
 export default function Terms() {
-  return <LegalPage title="Terms of service" sections={sections} />;
+  return (
+    <Suspense fallback={<TermsScreen contribute={false} />}>
+      <LaunchedTerms />
+    </Suspense>
+  );
+}
+
+async function LaunchedTerms() {
+  return <TermsScreen contribute={await contributeShown()} />;
 }

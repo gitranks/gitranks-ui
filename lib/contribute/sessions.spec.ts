@@ -91,6 +91,20 @@ describe("a contribution's sessions", () => {
       pill: { label: 'Not started', tone: 'neutral' },
       meta: 'Your call',
     });
+    // Only the user's moves wait (a bot's block, the repo's rules): the next is theirs.
+    const blocked = {
+      ...quiet,
+      needsYou: {
+        since: '',
+        signals: [{ kind: 'BOT_BLOCKED' as const, at: '2026-10-28T11:00:00.000Z', detail: null }],
+      },
+    };
+    expect(sessionsOf(blocked, at('A_1')).at(-1)).toMatchObject({
+      pill: { label: 'Your move', tone: 'amber' },
+      meta: 'Waits for you',
+    });
+    const rules = { ...quiet, prIssues: [{ kind: 'TITLE' as const, check: null, message: '', suggestion: null }] };
+    expect(sessionsOf(rules, at('A_1')).at(-1)?.pill?.label).toBe('Your move');
     // Never on a pull request opened by hand: its branch is not one a run can add to.
     expect(nextRoundOpen({ ...quiet, openedBy: 'HAND' })).toBe(false);
     // One at a time.

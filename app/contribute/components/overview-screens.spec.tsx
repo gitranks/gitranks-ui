@@ -17,9 +17,10 @@ const { NOW, contributor, firstSpend, key, mcpToken, settings, views } = await i
 );
 const { attempt, followUpOf } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { activityOf, QUEUED, WORKING } = await import('@/lib/contribute/__fixtures__/agent-runs');
-const { followUpInReview, issuePage, needsNothing, nowIdle, overviewData, replyWaiting, reviewsReady } = await import(
+const { issuePage, needsNothing, nowIdle, overviewData } = await import(
   '@/lib/contribute/__fixtures__/contribute-overview'
 );
+const { needsEverything, needsSome, prsNeedingYou } = await import('@/lib/contribute/__fixtures__/needs-you');
 
 import type { OverviewData } from './overview-status';
 import type { ContributeAttempt, ContributeView } from '@/lib/contribute/contribute.types';
@@ -96,7 +97,7 @@ describe('Overview, once there is an attempt', () => {
   it("says each section's failure alone, the others rendered", () => {
     const html = text(
       screen(views.active, {
-        needs: { reviews: undefined, replies: undefined },
+        needs: { reviews: undefined, replies: undefined, contributions: undefined, runs: undefined },
         now: { inFlight: undefined, scheduleCounts: undefined },
         impact: undefined,
         page: undefined,
@@ -115,20 +116,17 @@ describe('Overview, once there is an attempt', () => {
 });
 
 describe('Needs you', () => {
-  const needs = (view: ContributeView, read: Parameters<typeof NeedsYouSection>[0]['read']) =>
-    renderToStaticMarkup(<NeedsYouSection view={view} read={read} now={NOW} />);
+  const needs = (view: ContributeView, read: Partial<Parameters<typeof NeedsYouSection>[0]['read']>) =>
+    renderToStaticMarkup(<NeedsYouSection view={view} read={{ ...needsNothing, ...read }} now={NOW} />);
 
   it('says nothing needs the user only when every read answered', () => {
     const clear = needs(views.active, needsNothing);
     expect(clear).toContain('data-needs="clear"');
     expect(text(clear)).toContain(
-      "Nothing needs you right now. A review shows up here and in My contributions the moment it's ready.",
+      "Nothing needs you right now. A review or anything on your pull requests shows up here and in My contributions the moment it's ready.",
     );
 
-    for (const read of [
-      { reviews: undefined, replies: [] },
-      { reviews: [], replies: undefined },
-    ]) {
+    for (const read of [{ reviews: undefined }, { replies: undefined }, { contributions: undefined }]) {
       const html = needs(views.active, read);
       expect(html).toContain('data-needs="unchecked"');
       expect(text(html)).not.toContain('Nothing needs you');
@@ -136,76 +134,42 @@ describe('Needs you', () => {
     }
   });
 
-  it('titles the rows by their count, oldest review first, each action naming its row', () => {
-    const one = needs(views.active, { reviews: [reviewsReady[0]], replies: [] });
-    expect(one).toMatch(/<h2[^>]*>1 thing needs you<\/h2>/);
-
-    const html = needs(views.active, { reviews: reviewsReady, replies: [replyWaiting()] });
+  it('says each move in a sentence, with its button, the PR rows too, and the runs at work after them, not counted', () => {
+    const html = needs(views.active, needsSome());
     const plain = text(html);
-    expect(html).toMatch(/<h2[^>]*>3 things need you<\/h2>/);
-    expect(plain.indexOf('#77')).toBeLessThan(plain.indexOf('#2481'));
+    expect(html).toMatch(/<h2[^>]*>5 things need you<span[^>]*> · 2 runs working<\/span><\/h2>/);
     expect(plain).toContain(
-      'Review ready fern-lang/fern · #2481 Formatter drops a trailing comment in match arms · ready 2 hours ago · $2.36 Review',
+      'Run 2 ready driftwood-js/driftwood · PR #1419 Nested layouts re-render on every navigation Your move: Run 2 fixed 2 comments. Approve to push it. Review run 2',
     );
-    expect(html).toContain('aria-label="Review fern-lang/fern #2481"');
-    expect(html).toContain('href="/contribute/attempts/A_NEW"');
     expect(plain).toContain(
-      'Reply to approve driftwood-js/driftwood · PR #1419 Your agent drafted a reply to @maintainer-mo Approve reply',
+      'Agreement to sign carbon-design-system/carbon · PR #23935 a11y: hard-coded ids in text input Your move: Post this comment on PR #23935, word for word: "I have read the DCO Document and I hereby sign the DCO" Copy and open the PR ↗ I posted it',
     );
-    expect(html).toContain('aria-label="Approve the reply on driftwood-js/driftwood PR #1419"');
-    expect(html).toContain('href="/contribute/attempts/A_F1"');
+    expect(html).toContain('data-copy-and-open=""');
+    expect(plain).toContain(
+      'Bot blocks merge openclaw/openclaw · PR #190187 sessions.abort loses the typed message Your move: clawsweeper: "Blocked before merge — 1 item remains: Add real behavior proof" Read what it asks. · and 1 more See what it asks',
+    );
+    expect(html).toContain('href="/contribute/attempts/A_PR190187?session=next"');
+    expect(plain).toContain('Sign-off missing tern-lang/tern-fmt · PR #4410');
+    expect(plain).toContain(
+      'Run 2 working fabricjs/fabric.js · PR #11195 loadFromJSON swallows a failed image Reading comments · started 2 minutes ago. It comes back here when it is ready. Watch run 2',
+    );
+    expect(plain).toContain('Run 1 with your agent nimbus-ci/nimbus · PR #640');
+    expect(html.match(/data-working="true"/g)).toHaveLength(2);
+    // The runs at work come last, after every row that needs the user.
+    expect(plain.indexOf('Run 2 working')).toBeGreaterThan(plain.indexOf('CLA to sign'));
   });
 
-  it('leaves "ready" out while reviewAt is not answered', () => {
-    const unanswered = attempt({ reviewAt: undefined });
-    expect(text(needs(views.active, { reviews: [unanswered], replies: [] }))).toContain(
-      'Nested layouts re-render on every navigation · $2.36',
-    );
-    expect(text(needs(views.active, { reviews: [unanswered], replies: [] }))).not.toContain('· ready');
+  it('shows five rows that need the user, then the runs at work, and the rest in My contributions', () => {
+    const html = needs(views.active, needsEverything());
+    expect(html.match(/<li data-row=/g)).toHaveLength(9);
+    expect(html).toMatch(/<h2[^>]*>13 things need you/);
+    expect(text(html)).toContain('and 8 more in My contributions →');
   });
 
-  it("says the user's own agent made a review, in place of a cost", () => {
-    const own = attempt({
-      runner: 'MCP',
-      agent: { name: 'CODEX', model: 'gpt-5' },
-      reviewAt: '2026-10-28T11:00:00.000Z',
-    });
-    expect(text(needs(views.agentOnboarded, { reviews: [own], replies: [] }))).toContain(
-      '· ready 1 hour ago · made by Codex',
-    );
-  });
-
-  it('shows five rows, then the rest in My contributions', () => {
-    const reviews = Array.from({ length: 7 }, (_, index) =>
-      attempt({ attemptId: `A_${index}`, number: index, reviewAt: `2026-10-2${index}T00:00:00.000Z` }),
-    );
-    const html = needs(views.active, { reviews, replies: [] });
-
-    expect(html.match(/data-row="review"/g)).toHaveLength(5);
-    expect(html).toMatch(/<h2[^>]*>7 things need you<\/h2>/);
-    expect(text(html)).toContain('and 2 more in My contributions →');
-  });
-
-  it("folds a follow-up's drafts into its review, and says it could not check them without the reviews", () => {
-    const drafts = [replyWaiting({ inReview: true }), replyWaiting({ draftId: 'D_2', inReview: true, comment: null })];
-    const folded = needs(views.active, { reviews: [followUpInReview], replies: drafts });
-    expect(folded.match(/data-row=/g)).toHaveLength(1);
-    expect(text(folded)).toContain('Follow-up on PR #1419 · ready 1 hour ago · $1.12, with 2 replies');
-
-    const auto = attempt({
-      attemptId: 'A_F1',
-      state: 'PENDING_AUTOSUBMIT',
-      kind: 'FOLLOW_UP',
-      followUpOf,
-      autosubmitAt: '2026-10-28T12:42:00.000Z',
-    });
-    expect(text(needs(views.active, { reviews: [auto], replies: drafts }))).toContain(
-      'Autopilot driftwood-js/driftwood · #871 Submits in 42 minutes, with 2 replies, unless you stop it. Review',
-    );
-
-    const unread = needs(views.active, { reviews: undefined, replies: drafts });
-    expect(unread).not.toContain('data-row=');
-    expect(unread).toContain('data-needs="unchecked"');
+  it('says only the runs at work when nothing else waits', () => {
+    const html = needs(views.active, { contributions: [prsNeedingYou.working], runs: [] });
+    expect(html).toMatch(/<h2[^>]*>Nothing needs you<span[^>]*> · 1 run working<\/span><\/h2>/);
+    expect(html).toContain('data-needs="0"');
   });
 
   it('asks for GitHub access on a bounced first submit, once, from its review', () => {
@@ -218,21 +182,21 @@ describe('Needs you', () => {
         lastError: { reason: 'grant_revoked', note: 'GitHub access was revoked.', at: '2026-10-28T10:00:00.000Z' },
       },
     });
-    const html = needs(views.grantMissing, { reviews: [bounced], replies: [] });
+    const html = needs(views.grantMissing, { reviews: [bounced] });
 
     expect(html.match(/data-row=/g)).toHaveLength(1);
     expect(text(html)).toContain(
-      'GitHub access driftwood-js/driftwood · #871 GitHub access was revoked. Allow GitHub access',
+      'GitHub access driftwood-js/driftwood · issue #871 Nested layouts re-render on every navigation Your move: Allow GitHub access so the pull request opens under your account. Allow GitHub access',
     );
     expect(html).toContain('href="/contribute/attempts/A_1"');
   });
 
   it('asks for a new key when Anthropic refused it, and for a way when there is none', () => {
     expect(text(needs(views.keyInvalid, needsNothing))).toContain(
-      'Key refused Claude key …k3Qa Anthropic refused it. Nothing starts until you connect a working one. Connect a new key',
+      'Key refused Claude key …k3Qa Your move: Connect a working key; nothing starts until you do. Connect a new key',
     );
     expect(text(needs(views.onboardedNoPath, needsNothing))).toContain(
-      'Not set up Nothing runs until you connect your Claude key or your own agent. Add your Claude key',
+      'Not set up Your move: Add your Claude key or connect your own agent. Add your Claude key Connect your own agent',
     );
     // A pause or a used-up key is a state, in Right now.
     expect(needs(views.paused, needsNothing)).toContain('data-needs="clear"');
@@ -663,18 +627,6 @@ describe('Overview before the first attempt', () => {
 });
 
 describe('the review fixes, rendered', () => {
-  it('leaves the cost out of a review whose maker is unread and spent nothing, never "$0"', () => {
-    const { runner: _runner, ...unread } = attempt({ costUsd: 0, reviewAt: '2026-10-28T11:00:00.000Z' });
-    const html = text(
-      renderToStaticMarkup(
-        <NeedsYouSection view={both} read={{ reviews: [unread as ContributeAttempt], replies: [] }} now={NOW} />,
-      ),
-    );
-
-    expect(html).toContain('Nested layouts re-render on every navigation · ready 1 hour ago Review');
-    expect(html).not.toContain('$0');
-  });
-
   it('shows a bounced review as a review, without the bounce note, once GitHub access is granted', () => {
     const bounced = attempt({
       submit: {
@@ -686,7 +638,7 @@ describe('the review fixes, rendered', () => {
       },
     });
     const html = renderToStaticMarkup(
-      <NeedsYouSection view={views.active} read={{ reviews: [bounced], replies: [] }} now={NOW} />,
+      <NeedsYouSection view={views.active} read={{ ...needsNothing, reviews: [bounced] }} now={NOW} />,
     );
 
     expect(html).toContain('data-row="review"');

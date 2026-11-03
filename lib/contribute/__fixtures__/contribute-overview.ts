@@ -70,7 +70,7 @@ export const followUpInReview = attempt({
 });
 
 /** Every read of "Needs you" answered, and nothing waits. */
-export const needsNothing: OverviewNeedsRead = { reviews: [], replies: [] };
+export const needsNothing: OverviewNeedsRead = { reviews: [], replies: [], contributions: [], runs: [] };
 
 /** Every read of "Right now" answered: nothing in flight, nothing counted. */
 export const nowIdle: OverviewNowRead = { inFlight: [], scheduleCounts: { prBound: 0, queued: 0 } };

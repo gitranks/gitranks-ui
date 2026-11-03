@@ -58,6 +58,9 @@ const text = (html: string) =>
 
 const review = (item: ContributeAttemptDetail | undefined, view: ContributeView = views.active) =>
   renderToStaticMarkup(<ReviewScreen view={view} attempt={item} now={NOW} />);
+/** The contribution's next step (`?session=next`), where what waits on its pull request is done. */
+const reviewNext = (item: ContributeAttemptDetail) =>
+  renderToStaticMarkup(<ReviewScreen view={views.active} attempt={item} next now={NOW} />);
 
 describe('the diff viewer', () => {
   it('shows each file with its added and removed lines, and the totals', () => {
@@ -173,7 +176,11 @@ describe('the contribution page', () => {
       followUps: followUps({ used: 2, currentAttemptId: 'A_F3' }),
       reviewFeedback: { readAt: null, threads: [feedbackThread()] },
     };
-    expect(review(busy)).toContain('href="/contribute/attempts/A_1?session=next"');
+    // On the first attempt's own session: the run at work, and the way to it.
+    const line = review(busy);
+    expect(line).toContain('data-your-move="working"');
+    expect(text(line)).toContain('Run 2 working Starting. It comes back here when it is ready. Watch run 2 →');
+    expect(line).toContain('href="/contribute/attempts/A_F3"');
     const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={busy} next now={NOW} />);
     expect(html).toContain('data-panel="review-feedback"');
     expect(text(html)).toContain('A follow-up is under way on these comments.');
@@ -327,7 +334,7 @@ describe('the review screen', () => {
   });
 
   it("offers the open pull request's one-click fixes, and the CLA as a link only", () => {
-    const html = review(
+    const html = reviewNext(
       detail({
         state: 'PR_OPEN',
         pullRequest: pullRequest(),
@@ -365,7 +372,7 @@ describe('the review screen', () => {
     expect(html).toContain('data-pr-fix="failed"');
     expect(plain).toContain('Linking the changelog line to the pull request did not go through: The branch moved.');
     // A repo whose agent rules leave the template for the human: a link to fill it in on GitHub.
-    const template = review(
+    const template = reviewNext(
       detail({
         state: 'PR_OPEN',
         pullRequest: pullRequest(),
@@ -383,14 +390,14 @@ describe('the review screen', () => {
     expect(text(template)).toContain('Fill it in on GitHub');
     expect(template).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
     // Nothing to fix, nothing sent: no card.
-    expect(review(detail({ state: 'PR_OPEN', pullRequest: pullRequest(), prIssues: [], prFix: null }))).not.toContain(
-      'data-panel="pr-conventions"',
-    );
+    expect(
+      reviewNext(detail({ state: 'PR_OPEN', pullRequest: pullRequest(), prIssues: [], prFix: null })),
+    ).not.toContain('data-panel="pr-conventions"');
   });
 
   it('gives the comment that signs an agreement signed on the pull request, to copy', () => {
     const signComment = 'I have read the DCO document and I hereby sign the DCO.';
-    const html = review(
+    const html = reviewNext(
       detail({
         state: 'PR_OPEN',
         pullRequest: pullRequest(),
@@ -1036,7 +1043,8 @@ describe('my contributions', () => {
 
     expect(html).toContain('data-section="needs-you"');
     expect(plain).toContain('Needs you · 1');
-    expect(html).toMatch(/data-attempt="A_1" data-state="REVIEW"/);
+    expect(html).toContain('data-row="review"');
+    expect(html).toContain('href="/contribute/attempts/A_1"');
     expect(html).toContain('data-section="in-progress"');
     expect(plain).toContain('In progress · 2');
     expect(html).toMatch(/data-attempt="A_2" data-state="RUNNING"/);

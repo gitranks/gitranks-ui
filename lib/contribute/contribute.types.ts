@@ -1,4 +1,9 @@
-import type { ContributeConventionsFields } from './pr-conventions';
+import type {
+  ContributeConventionsFields,
+  ContributePrConventionIssue,
+  ContributePrFix,
+  ContributeRepoConventions,
+} from './pr-conventions';
 
 /** GitRanks Contribute as the GitRanks GraphQL API answers it. */
 
@@ -359,16 +364,35 @@ export type ContributeAttemptPullRequest = {
 
 /**
  * What the last read of an open pull request found: changes requested, a new comment, a check newly failing, a CLA
- * to sign, a review bot's comment blocking the merge. Each leaves once its cause is gone, or once the user marks it
- * handled.
+ * to sign, a review bot's comment blocking the merge, a DCO sign-off missing on our commits. And a follow-up run that
+ * ended with nothing pushed (`RUN_ENDED`). Each leaves once its cause is gone, or once the user marks it handled
+ * (`RUN_ENDED`: by those alone, or by the next run's start).
  */
-export type ContributePrSignalKind = 'CHANGES_REQUESTED' | 'COMMENT' | 'CHECK_FAILED' | 'CLA' | 'TITLE' | 'BOT_BLOCKED';
+export type ContributePrSignalKind =
+  | 'CHANGES_REQUESTED'
+  | 'COMMENT'
+  | 'CHECK_FAILED'
+  | 'CLA'
+  | 'TITLE'
+  | 'BOT_BLOCKED'
+  | 'RUN_ENDED'
+  | 'DCO';
+
+/** How a run that pushed nothing ended: the agent's no-go, or a stop (a failure, a limit, a check that blocked it). */
+export type ContributeRunOutcome = 'NO_GO' | 'STOPPED';
 
 export type ContributePrSignal = {
   kind: ContributePrSignalKind;
   at: string;
-  /** For a failing check: the failing checks' names; for a CLA: its check's; for a bot's block: the bot and its verdict. */
+  /**
+   * For a failing check: the failing checks' names; for a CLA or a DCO: its check's; for a bot's block: the bot and
+   * its verdict; for a run that ended: what it left for the user, or why it stopped. Untrusted plain text.
+   */
   detail: string | null;
+  /** A run that ended (`RUN_ENDED`): the run, its number and how it ended; `undefined` while the API does not answer. */
+  attemptId?: string | null;
+  round?: number | null;
+  outcome?: ContributeRunOutcome | null;
 };
 
 /** The pull request needs the user: what happened on it since they last acted on it, newest last. */
@@ -388,6 +412,11 @@ export type ContributeFollowUps = {
   currentAttemptId: string | null;
   /** Each run so far, oldest first; `undefined` while the API does not answer it. */
   history?: ContributeFollowUpRound[] | null;
+  /**
+   * When the last run ended: until the pull request is read again after it (`pullRequest.syncedAt`), what waits on it
+   * is from before the run. `undefined` while the API does not answer it.
+   */
+  lastEndedAt?: string | null;
 };
 
 /** Who started a follow-up run: the user, or autopilot on a maintainer's cue. */
@@ -413,6 +442,8 @@ export type ContributeFollowUpRound = {
   needsYou: number;
   replied: number;
   resolved: number;
+  /** The replies it drafted, posted or not; asked in the lists' own read, `undefined` while not answered. */
+  drafted?: number | null;
   at: string;
 };
 
@@ -526,6 +557,13 @@ export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
      * the API does not answer it.
      */
     reviewAt?: string | null;
+    /**
+     * A follow-up in a list: its round (what it fixed and drafted), our checks in a word, and the step it is on
+     * (`reading`, `fixing`, `checks`). Asked on their own; `undefined` while the API does not answer them.
+     */
+    round?: ContributeFollowUpRound | null;
+    checkStatus?: ContributeCheckStatusView | null;
+    followUpStep?: string | null;
   };
 
 export type ContributeAttemptTest = {
@@ -703,6 +741,13 @@ export type ContributeContribution = {
   runner?: ContributeAttemptRunner;
   agent?: ContributeAgent | null;
   openedBy?: ContributeOpenedBy | null;
+  /**
+   * The open pull request's last fix, what it fails of the repo's rules, and the agreement to sign; `undefined` while
+   * the API does not answer them.
+   */
+  prFix?: ContributePrFix | null;
+  prIssues?: ContributePrConventionIssue[];
+  conventions?: { cla: ContributeRepoConventions['cla'] } | null;
 };
 
 /** The totals Overview's impact shows; `reposHelped` is asked on its own, `undefined` while it is not answered. */

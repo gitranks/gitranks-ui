@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 
 import { LiveRunPhase } from './agent-runs';
 import { ContributeNotices } from './contribute-notices';
+import { NeedsYouRow } from './needs-you-rows';
 import { HEADING, PageTitle, Pill } from './primitives';
-import type { DraftFollowUp } from './reply-drafts';
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,7 +29,7 @@ import {
   loadContribute,
   loadContributeActivity,
   loadContributions,
-  loadOpenPrDrafts,
+  loadRepliesWaiting,
 } from '@/lib/contribute/contribute.data';
 import type {
   ContributeActivity,
@@ -37,52 +37,34 @@ import type {
   ContributeAttemptState,
   ContributeContribution,
   ContributeContributions,
-  ContributeReplyDraft,
+  ContributeReplyWaiting,
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
-import { prNeedsYouLabelOf } from '@/lib/contribute/follow-up-flow';
 import { AUTOPILOT_UNLOCK_AT, dayLabel, relativeLabel, timeLeftLabel, usd } from '@/lib/contribute/format';
+import { type NeedsYouItems, needsYouItemsOf } from '@/lib/contribute/needs-you';
 import { cn } from '@/lib/utils';
 
 export async function ContributionsView() {
-  const [view, contributions, attempts, activity] = await Promise.all([
+  const [view, contributions, attempts, activity, replies] = await Promise.all([
     loadContribute(),
     loadContributions(),
     loadAttempts(undefined, 50),
     loadContributeActivity().catch(() => null),
+    loadRepliesWaiting(),
   ]);
   if (!view) notFound();
   if (!isContributePageOpen(view, 'me')) redirect('/contribute');
-  const drafts = await loadOpenPrDrafts(contributions);
   return (
     <ContributionsScreen
       view={view}
       contributions={contributions}
       attempts={attempts}
-      drafts={drafts}
+      replies={replies}
       activity={activity}
     />
   );
 }
-
-/** The reply drafts of each open pull request, by its id; `undefined` for one the API does not answer. */
-export type DraftsByPr = Record<string, ContributeReplyDraft[] | undefined>;
-
-/** A posted reply stays in its pull request's row this long, with its link. */
-export const POSTED_SHOWN_MS = 24 * 60 * 60 * 1000;
-
-/**
- * The drafts a pull request's row shows: those waiting for the user (draft, failed), those being posted, and those
- * posted in the last day, so an approved reply does not vanish from where it was approved.
- */
-const shownDrafts = (drafts: ContributeReplyDraft[] | undefined, now: Date) =>
-  (drafts ?? []).filter(({ state, postedAt, updatedAt }) => {
-    if (state === 'DRAFT' || state === 'FAILED' || state === 'POSTING') return true;
-    if (state !== 'POSTED') return false;
-    const at = new Date(postedAt ?? updatedAt).getTime();
-    return Number.isFinite(at) && now.getTime() - at <= POSTED_SHOWN_MS;
-  });
 
 function Tile({ label, value, text, name }: { label: string; value: string; text: ReactNode; name: string }) {
   return (
@@ -183,74 +165,11 @@ function AttemptRow({ attempt, action, text }: { attempt: ContributeAttempt; act
 }
 
 /**
- * An open pull request that needs the user, in one line: its repo and title, and one label of what waits (a follow-up
- * ready, replies to approve, comments to address), linking to its attempt page, where the follow-up controls are.
+ * What waits for the user, every row with their move and the button that leads to it; the runs they started after
+ * them, not counted. Nothing when nothing waits.
  */
-function PrNeedsYouRow({
-  contribution,
-  drafts,
-  followUps,
-}: {
-  contribution: ContributeContribution;
-  drafts: ContributeReplyDraft[];
-  followUps: Map<string, DraftFollowUp>;
-}) {
-  const { pullRequest } = contribution;
-  const url = githubUrlOf(pullRequest.url);
-  const current = contribution.followUps?.currentAttemptId;
-  const label = prNeedsYouLabelOf(contribution, drafts, current ? followUps.get(current) : undefined);
-  const href = attemptHref(contribution.attemptId);
-  return (
-    <li
-      data-pr-needs-you={pullRequest.number}
-      className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 last:border-b-0"
-    >
-      <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-0.5">
-        <span className="font-mono text-xs text-muted-foreground">
-          {contribution.nameWithOwner || 'a repo'} ·{' '}
-          {url ? (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-              PR #{pullRequest.number} on GitHub ↗
-            </a>
-          ) : (
-            `PR #${pullRequest.number}`
-          )}
-        </span>
-        <span className="font-medium">
-          {contribution.title?.trim() || `Fix for issue #${contribution.issueNumber}`}
-        </span>
-      </div>
-      <div className="flex flex-none items-center gap-3">
-        {label ? (
-          <span data-pr-label={label}>
-            <Pill tone="amber">{label}</Pill>
-          </span>
-        ) : null}
-        <Button asChild variant="outline" className="min-h-10 px-4 font-semibold">
-          <Link href={href} prefetch={false} aria-label={`Open the follow-ups of pull request #${pullRequest.number}`}>
-            Open
-          </Link>
-        </Button>
-      </div>
-    </li>
-  );
-}
-
-function NeedsYou({
-  attempts,
-  prs,
-  drafts,
-  followUps,
-  now,
-}: {
-  attempts: ContributeAttempt[];
-  prs: ContributeContribution[];
-  drafts: DraftsByPr;
-  followUps: Map<string, DraftFollowUp>;
-  now?: Date;
-}) {
-  const count = attempts.length + prs.length;
-  if (!count) return null;
+function NeedsYou({ needs }: { needs: NeedsYouItems }) {
+  if (!needs.items.length) return null;
   return (
     <section
       aria-labelledby="needs-you"
@@ -264,32 +183,17 @@ function NeedsYou({
           'border-b border-warning/30 bg-warning-soft px-5 py-3.5 text-warning-soft-foreground',
         )}
       >
-        Needs you · {count}
+        Needs you · {needs.counted}
+        {needs.working ? (
+          <span className="text-sm font-normal">
+            {' '}
+            · {needs.working === 1 ? '1 run' : `${needs.working} runs`} working on it
+          </span>
+        ) : null}
       </h2>
       <ul>
-        {attempts.map((attempt) => (
-          <AttemptRow
-            key={attempt.attemptId}
-            attempt={attempt}
-            action="Review"
-            text={
-              attempt.state === 'PENDING_AUTOSUBMIT'
-                ? attempt.autosubmitAt
-                  ? `Autopilot submits it ${relativeLabel(attempt.autosubmitAt, now)}, unless you stop it.`
-                  : 'Autopilot emails you first, then submits it an hour later unless you stop it.'
-                : attempt.submit?.lastError
-                  ? attempt.submit.lastError.note
-                  : `Ready ${relativeLabel(attempt.updatedAt, now)} · ${isOwnAgent(attempt) ? `made by ${costOrAgentOf(attempt, usd)}` : `cost ${usd(attempt.costUsd)}`} · waits seven days for you`
-            }
-          />
-        ))}
-        {prs.map((contribution) => (
-          <PrNeedsYouRow
-            key={contribution.attemptId}
-            contribution={contribution}
-            drafts={shownDrafts(drafts[contribution.pullRequest.prId], now ?? new Date())}
-            followUps={followUps}
-          />
+        {needs.items.map((item) => (
+          <NeedsYouRow key={item.key} item={item} look="list" />
         ))}
       </ul>
     </section>
@@ -545,37 +449,37 @@ export function ContributionsScreen({
   view,
   contributions,
   attempts,
-  drafts = {},
+  replies = [],
   activity,
   now,
 }: {
   view: ContributeView;
   contributions: ContributeContributions | undefined;
   attempts: ContributeAttempt[] | undefined;
-  /** The reply drafts of the open pull requests, by pull request id. */
-  drafts?: DraftsByPr;
+  /** The reply drafts the user can approve now; `undefined` while the API does not answer them. */
+  replies?: ContributeReplyWaiting[];
   /** The work in progress, for the live phase of the runs in progress. */
   activity?: ContributeActivity | null;
   now?: Date;
 }) {
   const spend = view.contributor?.spend;
-  const needsYou = (attempts ?? []).filter(({ state }) => state === 'REVIEW' || state === 'PENDING_AUTOSUBMIT');
-  const followUps = new Map(
-    (attempts ?? []).filter(({ kind }) => kind === 'FOLLOW_UP').map((attempt) => [attempt.attemptId, attempt]),
-  );
-  // An open pull request with something waiting on its attempt page; a follow-up ready has its own Review row above.
-  const prsNeedingYou = (contributions?.items ?? []).filter((contribution) => {
-    if (contribution.pullRequest.state !== 'OPEN') return false;
-    const current = contribution.followUps?.currentAttemptId;
-    const label = prNeedsYouLabelOf(
-      contribution,
-      shownDrafts(drafts[contribution.pullRequest.prId], now ?? new Date()),
-      current ? followUps.get(current) : undefined,
-    );
-    return label !== null && label !== 'Follow-up ready';
+  const needs = needsYouItemsOf({
+    view,
+    reviews: attempts?.filter(({ state }) => state === 'REVIEW' || state === 'PENDING_AUTOSUBMIT'),
+    replies,
+    contributions: contributions?.items,
+    runs: attempts,
+    now,
   });
+  // A run Needs you shows at work is not listed again under In progress.
+  const working = new Set(
+    (contributions?.items ?? []).flatMap(({ followUps, pullRequest }) =>
+      followUps?.currentAttemptId && pullRequest.state === 'OPEN' ? [followUps.currentAttemptId] : [],
+    ),
+  );
   const inProgress = (attempts ?? []).filter(
-    ({ state }) => IN_PROGRESS_STATES.includes(state) && state !== 'PENDING_AUTOSUBMIT',
+    ({ attemptId, state }) =>
+      IN_PROGRESS_STATES.includes(state) && state !== 'PENDING_AUTOSUBMIT' && !working.has(attemptId),
   );
 
   return (
@@ -590,7 +494,7 @@ export function ContributionsScreen({
         }
       />
       <Totals view={view} contributions={contributions} />
-      <NeedsYou attempts={needsYou} prs={prsNeedingYou} drafts={drafts} followUps={followUps} now={now} />
+      <NeedsYou needs={needs} />
       <InProgress attempts={inProgress} activity={activity} now={now} />
       <div className="flex flex-wrap items-start gap-5">
         <PullRequests contributions={contributions} now={now} />

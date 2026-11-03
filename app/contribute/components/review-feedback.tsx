@@ -102,6 +102,8 @@ export function ReviewFeedbackCard({
   canStart,
   blocked,
   attemptCapUsd,
+  defaultNote = '',
+  noteHint,
   now,
 }: {
   prId: string;
@@ -112,6 +114,9 @@ export function ReviewFeedbackCard({
   /** Why it cannot, in a line; shown in place of the button. */
   blocked: string | null;
   attemptCapUsd?: number;
+  /** The note GitRanks filled in from what waits, and the hint that says so. */
+  defaultNote?: string;
+  noteHint?: string;
   now?: Date;
 }) {
   const router = useRouter();
@@ -119,7 +124,7 @@ export function ReviewFeedbackCard({
     Object.fromEntries(feedback.threads.map((thread) => [thread.commentId, thread.ignored ? 'ignore' : 'address'])),
   );
   const [showIgnored, setShowIgnored] = useState(false);
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(defaultNote);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -226,6 +231,7 @@ export function ReviewFeedbackCard({
           value={note}
           onChange={setNote}
           disabled={busy}
+          hint={noteHint}
         />
       ) : null}
       {canStart ? (

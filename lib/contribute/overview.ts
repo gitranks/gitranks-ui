@@ -6,13 +6,13 @@ import type {
   ContributeIssue,
   ContributeIssuePage,
   ContributeMcpToken,
-  ContributeReplyWaiting,
   ContributeScheduleCounts,
   ContributeView,
 } from './contribute.types';
-import { claudeKeyOf, contributeNoticesOf, isPaused } from './contribute-state';
+import { claudeKeyOf, isPaused } from './contribute-state';
 import { type FirstRunStep, firstRunStepOf, isAgentAttempt } from './first-run';
 import { AUTOPILOT_UNLOCK_AT } from './format';
+import type { NeedsYouRead } from './needs-you';
 
 /**
  * Overview, Contribute's home once the user is onboarded: what needs them, what runs right now, their impact, the ways
@@ -31,19 +31,14 @@ export const NEEDS_YOU_READ = 50;
 export const IN_FLIGHT_STATES: ContributeAttemptState[] = ['CLAIMING', 'RUNNING', 'CHECKS'];
 export const IN_FLIGHT_READ = 5;
 
-/** The rows "Needs you" shows at most; the rest are counted, in My contributions. */
+/** The rows "Needs you" shows at most, the runs under way after them; the rest are counted, in My contributions. */
 export const NEEDS_YOU_MAX = 5;
 
 /** The picks "Up next" shows. */
 export const UP_NEXT_PICKS = 3;
 
-/** What "Needs you" reads; a read the API does not answer is `undefined`. */
-export type OverviewNeedsRead = {
-  /** The attempts in review or about to be submitted by autopilot, each with `reviewAt` when the API answers it. */
-  reviews: ContributeAttempt[] | undefined;
-  /** The reply drafts the user can approve now. */
-  replies: ContributeReplyWaiting[] | undefined;
-};
+/** What "Needs you" reads (`needs-you.ts`); a read the API does not answer is `undefined`. */
+export type OverviewNeedsRead = NeedsYouRead;
 
 /** What "Right now" reads beside the view and the feed; a read the API does not answer is `undefined`. */
 export type OverviewNowRead = {
@@ -51,106 +46,10 @@ export type OverviewNowRead = {
   scheduleCounts: ContributeScheduleCounts | undefined;
 };
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Needs you
-
-/** A submission bounced for want of GitHub access: the first submit, before the grant, or after it was revoked. */
-const GRANT_REASONS = new Set(['grant_missing', 'grant_revoked']);
-
-/** One thing that waits for the user. `replies`: the follow-up's drafts, part of the same review. */
-export type NeedsYouRow =
-  | { kind: 'key'; last4: string }
-  | { kind: 'no-way' }
-  | { kind: 'grant'; attempt: ContributeAttempt; replies: number }
-  | { kind: 'autopilot'; attempt: ContributeAttempt; replies: number }
-  | { kind: 'review'; attempt: ContributeAttempt; replies: number }
-  | {
-      kind: 'replies';
-      attemptId: string;
-      nameWithOwner: string | null;
-      prNumber: number;
-      drafts: ContributeReplyWaiting[];
-    };
-
-export type NeedsYou = {
-  /** The rows shown, at most `NEEDS_YOU_MAX`, in order. */
-  rows: NeedsYouRow[];
-  /** Every row there is, shown or not. */
-  total: number;
-  /** Every read of the section answered: only then may it say nothing needs the user. */
-  complete: boolean;
-};
-
 const timeOf = (iso: string | null | undefined) => {
   const time = iso ? Date.parse(iso) : Number.NaN;
   return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY;
 };
-
-/** When the review became ready: its seven days run from it. The last update stands in while it is not answered. */
-const readySince = (attempt: ContributeAttempt) => timeOf(attempt.reviewAt ?? attempt.updatedAt);
-
-/**
- * A review whose submission bounced for want of GitHub access, while the access is not known to be granted: once it
- * is, the bounce note is stale and the review is a review like any other.
- */
-const isGrantBounce = (view: ContributeView, attempt: ContributeAttempt) =>
-  view.grant?.connected !== true &&
-  attempt.state === 'REVIEW' &&
-  GRANT_REASONS.has(attempt.submit?.lastError?.reason?.toLowerCase() ?? '');
-
-/**
- * The rows of "Needs you", in order: the key, no way set up, GitHub access, autopilot, the reviews (oldest ready
- * first, the closest to letting go), then the replies to approve, one row per follow-up. A follow-up's drafts that are
- * part of its own review fold into that row and are never a row of their own; with the reviews unread they show
- * nothing, and the section is not complete.
- */
-export function needsYouRowsOf(view: ContributeView, read: OverviewNeedsRead): NeedsYou {
-  const rows: NeedsYouRow[] = [];
-  const notices = contributeNoticesOf(view);
-  const key = claudeKeyOf(view);
-  if (key && notices.some(({ kind }) => kind === 'key-invalid')) rows.push({ kind: 'key', last4: key.last4 });
-  // Without a key, whether the user's own agent is set up is the own-agent read's: unread, it is not "not set up".
-  const ownAgentRead = !!key || view.ownAgent !== undefined;
-  if (ownAgentRead && notices.some(({ kind }) => kind === 'no-key')) rows.push({ kind: 'no-way' });
-
-  const folded = new Map<string, number>();
-  const groups = new Map<string, ContributeReplyWaiting[]>();
-  for (const draft of read.replies ?? []) {
-    if (draft.inReview) folded.set(draft.attemptId, (folded.get(draft.attemptId) ?? 0) + 1);
-    else groups.set(draft.attemptId, [...(groups.get(draft.attemptId) ?? []), draft]);
-  }
-  const repliesOf = (attempt: ContributeAttempt) => folded.get(attempt.attemptId) ?? 0;
-
-  const reviews = read.reviews ?? [];
-  const grants = reviews
-    .filter((attempt) => isGrantBounce(view, attempt))
-    .sort((a, b) => readySince(a) - readySince(b));
-  const autopilot = reviews
-    .filter(({ state }) => state === 'PENDING_AUTOSUBMIT')
-    .sort((a, b) => timeOf(a.autosubmitAt) - timeOf(b.autosubmitAt));
-  const ready = reviews
-    .filter((attempt) => attempt.state === 'REVIEW' && !isGrantBounce(view, attempt))
-    .sort((a, b) => readySince(a) - readySince(b));
-
-  for (const attempt of grants) rows.push({ kind: 'grant', attempt, replies: repliesOf(attempt) });
-  for (const attempt of autopilot) rows.push({ kind: 'autopilot', attempt, replies: repliesOf(attempt) });
-  for (const attempt of ready) rows.push({ kind: 'review', attempt, replies: repliesOf(attempt) });
-  for (const [attemptId, drafts] of groups) {
-    rows.push({
-      kind: 'replies',
-      attemptId,
-      nameWithOwner: drafts[0].nameWithOwner,
-      prNumber: drafts[0].prNumber,
-      drafts,
-    });
-  }
-
-  return {
-    rows: rows.slice(0, NEEDS_YOU_MAX),
-    total: rows.length,
-    complete: read.reviews !== undefined && read.replies !== undefined && ownAgentRead,
-  };
-}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Right now

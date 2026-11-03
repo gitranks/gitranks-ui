@@ -28,6 +28,7 @@ import {
   IgnoreContributeRepoDocument,
   IgnoreReviewThreadsDocument,
   MarkNeedsYouHandledDocument,
+  MarkNeedsYouHandledKindsDocument,
   NoteProviderInterestDocument,
   PauseContributingDocument,
   RemoveFromContributeSetDocument,
@@ -69,6 +70,7 @@ import type {
   ContributeMcpTokenCreated,
   ContributePreferences,
   ContributePreferencesInput,
+  ContributePrSignalKind,
   ContributeReplyDraft,
   ContributeReplyUserDismissReason,
   ContributeSet,
@@ -87,7 +89,7 @@ import {
   contributeErrorOf,
   contributeSetErrorOf,
 } from '@/lib/contribute/errors';
-import { FOLLOW_UP_NOTE_MAX } from '@/lib/contribute/follow-up-format';
+import { FOLLOW_UP_NOTE_MAX, PR_SIGNAL_KINDS } from '@/lib/contribute/follow-up-format';
 import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
 import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
@@ -434,7 +436,8 @@ export async function vetoAutopilot(attemptId: string): Promise<ContributeAction
 
 /**
  * A one-click fix to the user's open pull request, on their GitHub access: TITLE retitles it, BODY sets its
- * description (the footer kept), CHANGELOG fixes its changelog line in a commit on its branch.
+ * description (the footer kept), CHANGELOG fixes its changelog line in a commit on its branch, SIGN_OFF rewrites our
+ * commits with the user's DCO sign-off (the same code, a force-push).
  */
 export async function fixPullRequest(input: {
   attemptId: string;
@@ -463,10 +466,22 @@ export async function fixPullRequest(input: {
   );
 }
 
-/** Clears what the pull request's last reads found: the user took care of it. Something new raises it again. */
-export async function markNeedsYouHandled(prId: string): Promise<ContributeActionResult<ContributeAttempt>> {
-  return run(MarkNeedsYouHandledDocument, { prId: String(prId) }, (data) => data.markNeedsYouHandled);
+/**
+ * Clears what the pull request's last reads found: the user took care of it. With `kinds`, only those (one card's "I've
+ * done it"); without, all of it. Something new raises it again.
+ */
+export async function markNeedsYouHandled(
+  prId: string,
+  kinds?: ContributePrSignalKind[],
+): Promise<ContributeActionResult<ContributeAttempt>> {
+  const only = (Array.isArray(kinds) ? kinds : []).filter((kind) => SIGNAL_KINDS.has(kind));
+  if (Array.isArray(kinds) && !only.length) return { ok: false, error: 'INVALID', message: 'Nothing to mark.' };
+  return only.length
+    ? run(MarkNeedsYouHandledKindsDocument, { prId: String(prId), kinds: only }, (data) => data.markNeedsYouHandled)
+    : run(MarkNeedsYouHandledDocument, { prId: String(prId) }, (data) => data.markNeedsYouHandled);
 }
+
+const SIGNAL_KINDS = new Set<string>(PR_SIGNAL_KINDS);
 
 /**
  * Ignores review comments on the user's pull request (`ignore: false` brings them back): never addressed or followed up

@@ -16,11 +16,13 @@ import type {
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
   ContributeConnectLimits,
+  ContributeContribution,
   ContributeContributions,
   ContributeDeleteDataResult,
   ContributeFeedbackContext,
   ContributeFeedbackTopic,
   ContributeFollowUpRound,
+  ContributeFollowUps,
   ContributeGoNoGo,
   ContributeGrant,
   ContributeIssue,
@@ -30,12 +32,14 @@ import type {
   ContributeMaintainerRepos,
   ContributeMcpToken,
   ContributeMcpTokenCreated,
+  ContributeNeedsYou,
   ContributeOnboardedVia,
   ContributeOptOutResult,
   ContributeOwnAgentFields,
   ContributePaths,
   ContributePreferences,
   ContributePreferencesInput,
+  ContributePrSignalKind,
   ContributeReplyDraft,
   ContributeReplyDraftFlow,
   ContributeReplyUserDismissReason,
@@ -536,12 +540,6 @@ export const ContributeContributionsFollowUpsDocument = doc<
   contributeContributions(first: $first) { items { attemptId ${NEEDS_YOU} ${FOLLOW_UPS} } }
 }`);
 
-/** A pull request's reply drafts, oldest first. */
-export const ContributeReplyDraftsDocument = doc<
-  { contributeReplyDrafts: ContributeReplyDraft[] | null },
-  { prId: string }
->(`query ContributeReplyDrafts($prId: ID!) { contributeReplyDrafts(prId: $prId) { ${REPLY_DRAFT} } }`);
-
 export const StartFollowUpDocument = doc<
   { startFollowUp: ContributeAttempt },
   { prId: string; reason?: string | null }
@@ -549,6 +547,63 @@ export const StartFollowUpDocument = doc<
 
 export const MarkNeedsYouHandledDocument = doc<{ markNeedsYouHandled: ContributeAttempt }, { prId: string }>(
   `mutation MarkNeedsYouHandled($prId: ID!) { markNeedsYouHandled(prId: $prId) { ${ATTEMPT} } }`,
+);
+
+/** "Mark as handled" for some of the pull request's signals alone: an operation of its own, as it is newer. */
+export const MarkNeedsYouHandledKindsDocument = doc<
+  { markNeedsYouHandled: ContributeAttempt },
+  { prId: string; kinds: ContributePrSignalKind[] }
+>(
+  `mutation MarkNeedsYouHandledKinds($prId: ID!, $kinds: [ContributePrSignalKind!]) {
+  markNeedsYouHandled(prId: $prId, kinds: $kinds) { ${ATTEMPT} }
+}`,
+);
+
+// What Needs you reads beyond the follow-up fields (2026-11-03): a run that ended with its number and outcome, when
+// the last run ended, a follow-up's round and step in the lists, and the open pull request's fixes and agreement.
+// Read in operations of their own, so an API without them leaves the rest.
+const NEEDS_YOU_MOVES =
+  'needsYou { since signals { kind at detail attemptId round outcome } } followUps { lastEndedAt }';
+const RUN_MOVES = `attemptId round { ${ROUND} drafted } checkStatus { status note } followUpStep`;
+
+/** The signals with their run, and when the last run ended, as they merge into what the follow-up fields read. */
+export type NeedsYouMovesRow = {
+  attemptId: string;
+  needsYou: ContributeNeedsYou | null;
+  followUps: Pick<ContributeFollowUps, 'lastEndedAt'> | null;
+};
+
+/** A follow-up's round, our checks and its step, in a list. */
+export type RunMovesRow = Pick<ContributeAttempt, 'attemptId' | 'round' | 'checkStatus' | 'followUpStep'>;
+
+/** The open pull request's last fix, what it fails of the repo's rules, and the agreement to sign. */
+export type ContributionFixesRow = Pick<ContributeContribution, 'attemptId' | 'prFix' | 'prIssues' | 'conventions'>;
+
+export const ContributeContributionsMovesDocument = doc<
+  { contributeContributions: { items: NeedsYouMovesRow[] } | null },
+  { first?: number }
+>(`query ContributeContributionsMoves($first: Int) {
+  contributeContributions(first: $first) { items { attemptId ${NEEDS_YOU_MOVES} } }
+}`);
+
+export const ContributeContributionsFixesDocument = doc<
+  { contributeContributions: { items: ContributionFixesRow[] } | null },
+  { first?: number }
+>(`query ContributeContributionsFixes($first: Int) {
+  contributeContributions(first: $first) {
+    items { attemptId prFix { kind state note at } prIssues { kind check message suggestion } conventions { cla { check signUrl agreement signComment } } }
+  }
+}`);
+
+export const ContributeAttemptsMovesDocument = doc<
+  { contributeAttempts: RunMovesRow[] | null },
+  { state?: ContributeAttemptState; first?: number }
+>(`query ContributeAttemptsMoves($state: ContributeAttemptState, $first: Int) {
+  contributeAttempts(state: $state, first: $first) { ${RUN_MOVES} }
+}`);
+
+export const ContributeAttemptMovesDocument = doc<{ contributeAttempt: NeedsYouMovesRow | null }, { id: string }>(
+  `query ContributeAttemptMoves($id: ID!) { contributeAttempt(id: $id) { attemptId ${NEEDS_YOU_MOVES} } }`,
 );
 
 export const IgnoreReviewThreadsDocument = doc<
@@ -650,6 +705,15 @@ export const ContributeAttemptsInOwnAgentDocument = doc<
 >(
   `query ContributeAttemptsInOwnAgent($states: [ContributeAttemptState!], $first: Int) {
   contributeAttempts(states: $states, first: $first) { ${OWN_AGENT_FIELDS} }
+}`,
+);
+
+export const ContributeAttemptsInMovesDocument = doc<
+  { contributeAttempts: RunMovesRow[] | null },
+  AttemptStatesVariables
+>(
+  `query ContributeAttemptsInMoves($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { ${RUN_MOVES} }
 }`,
 );
 

@@ -18,7 +18,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),
-  loadOpenPrDrafts: vi.fn(),
+  loadRepliesWaiting: vi.fn(),
 }));
 
 const { ReviewScreen, grantNeededOf } = await import('./review-view');
@@ -27,8 +27,21 @@ const { SettingsScreen } = await import('./settings-view');
 const { ReplyDraftItem } = await import('./reply-drafts');
 const { AutopilotRecord, autopilotErrorMessage } = await import('./autopilot-section');
 const { NOW, views, settings: baseSettings } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { attempt, contributions, feedbackThread, flowDraft, followUpAttempts, followUps, needsYou, replyDraft } =
-  await import('@/lib/contribute/__fixtures__/contribute-attempts');
+const {
+  attempt,
+  contributions,
+  feedbackThread,
+  flowDraft,
+  followUpAttempts,
+  followUpOf,
+  followUps,
+  needsYou,
+  replyDraft,
+} = await import('@/lib/contribute/__fixtures__/contribute-attempts');
+const { replyWaiting } = await import('@/lib/contribute/__fixtures__/contribute-overview');
+const { nextForAgreement, nextForChecks, nextForDco, nextForRun, nextForYou } = await import(
+  '@/lib/contribute/__fixtures__/needs-you'
+);
 const { followUpErrorMessage, handledErrorMessage, replyRefusalOf, vetoErrorMessage } = await import(
   '@/lib/contribute/follow-up-format'
 );
@@ -37,6 +50,7 @@ import type {
   ContributeAttemptDetail,
   ContributeContributions,
   ContributeReplyDraft,
+  ContributeReplyWaiting,
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 
@@ -57,7 +71,7 @@ const review = (item: ContributeAttemptDetail, view: ContributeView = views.acti
 /** My contributions with the open pull request (`kelp-db/kelp` #1419) as `patch` makes it. */
 const mine = (
   patch: Partial<ContributeContributions['items'][number]>,
-  drafts: Record<string, ContributeReplyDraft[] | undefined> = {},
+  replies: ContributeReplyWaiting[] = [],
   attempts = [attempt({ attemptId: 'A_F1', kind: 'FOLLOW_UP', state: 'REVIEW' })],
 ) =>
   renderToStaticMarkup(
@@ -70,36 +84,39 @@ const mine = (
         ),
       }}
       attempts={attempts}
-      drafts={drafts}
+      replies={replies}
       now={NOW}
     />,
   );
 
 describe('a pull request that needs the user, on My contributions', () => {
-  it('shows one label of what waits, linking the pull request and its attempt page, and no follow-up controls', () => {
+  it('says the move and its button, leading to the next step, and no follow-up controls', () => {
     const html = mine({ needsYou: needsYou(), followUps: followUps() });
     const plain = text(html);
 
-    expect(html).toContain('data-pr-needs-you="1419"');
-    expect(html).toContain('data-pr-label="Changes requested"');
-    expect(html).toContain('href="https://github.com/kelp-db/kelp/pull/1419"');
-    expect(plain).toContain('PR #1419 on GitHub');
-    expect(html).toContain('href="/contribute/attempts/A_8"');
+    expect(html).toContain('data-row="changes"');
+    expect(plain).toContain(
+      'kelp-db/kelp · PR #1419 Changes requested Add a --json flag to kelp status Your move: A reviewer asked for changes. Start run 1 on them. · and 2 more Start run 1',
+    );
+    expect(html).toContain('href="/contribute/attempts/A_8?session=next"');
     expect(plain).toMatch(/Needs you · 2/);
     // The owner, 2026-11-01: the follow-up management lives on the attempt page only.
-    expect(plain).not.toContain('A reviewer asked for changes');
-    expect(html).not.toContain('data-mark-handled');
     expect(html).not.toContain('data-start-follow-up');
     expect(html).not.toContain('data-follow-ups');
   });
 
-  it('names what waits in a few words: comments, a check, a CLA, a bot blocking the merge', () => {
-    const one = (kind: 'COMMENT' | 'CHECK_FAILED' | 'CLA' | 'BOT_BLOCKED') =>
-      mine({ needsYou: { since: NOW.toISOString(), signals: [{ kind, at: NOW.toISOString(), detail: null }] } });
-    expect(one('COMMENT')).toContain('data-pr-label="Comments to address"');
-    expect(one('CHECK_FAILED')).toContain('data-pr-label="A check failed"');
-    expect(one('CLA')).toContain('data-pr-label="A CLA to sign"');
-    expect(one('BOT_BLOCKED')).toContain('data-pr-label="A bot blocks the merge"');
+  it('names each reason by the move it asks for, with the way to it', () => {
+    const one = (kind: 'COMMENT' | 'CHECK_FAILED' | 'CLA' | 'BOT_BLOCKED' | 'TITLE' | 'DCO' | 'RUN_ENDED') =>
+      text(mine({ needsYou: { since: NOW.toISOString(), signals: [{ kind, at: NOW.toISOString(), detail: null }] } }));
+    expect(one('COMMENT')).toContain('Your move: Someone commented on it. Let run 1 answer, or reply on GitHub.');
+    expect(one('CHECK_FAILED')).toContain('Your move: A check fails on your pull request. Start run 1 to fix it.');
+    expect(one('CLA')).toContain(
+      "Your move: Sign the repo's CLA; this clears once its check passes. Sign the CLA ↗ I signed it",
+    );
+    expect(one('BOT_BLOCKED')).toContain('Your move: A review bot: "Blocked before merge" Read what it asks.');
+    expect(one('TITLE')).toContain("Your move: The title breaks the repo's rule. Retitle the pull request.");
+    expect(one('DCO')).toContain('Your move: The repo wants a Signed-off-by on every commit.');
+    expect(one('RUN_ENDED')).toContain('Your move: The last run changed nothing: what is left is yours to do.');
   });
 
   it('says why Mark as handled did not go through', () => {
@@ -111,22 +128,40 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(handledErrorMessage('INVALID', 'prId must match')).not.toContain('changed just now');
   });
 
-  it('lists a follow-up ready once, as its Review row, and one under way on the pull request', () => {
+  it('lists a follow-up ready once, as its Review row, and one under way in place, not counted nor in progress', () => {
     const current = followUps({ used: 1, manualRuns: 1, currentAttemptId: 'A_F1' });
-    // A follow-up ready is its own Review row; the pull request is not listed twice.
-    const ready = mine({ needsYou: needsYou(), followUps: current });
-    expect(ready).not.toContain('data-pr-needs-you');
+    const ready = mine(
+      { needsYou: needsYou(), followUps: current },
+      [],
+      [attempt({ attemptId: 'A_F1', kind: 'FOLLOW_UP', state: 'REVIEW', followUpOf: { ...followUpOf, prId: 'PR_8' } })],
+    );
+    expect(ready.match(/data-row=/g)).toHaveLength(1);
+    expect(ready).toContain('data-row="run-ready"');
     expect(ready).toContain('href="/contribute/attempts/A_F1"');
 
-    const running = mine({ needsYou: needsYou(), followUps: current }, {}, [
-      attempt({ attemptId: 'A_F1', kind: 'FOLLOW_UP', state: 'RUNNING' }),
-    ]);
-    expect(running).toContain('data-pr-label="Follow-up under way"');
-    expect(running).toContain('href="/contribute/attempts/A_8"');
+    const running = mine(
+      { needsYou: needsYou(), followUps: current },
+      [],
+      [
+        attempt({
+          attemptId: 'A_F1',
+          kind: 'FOLLOW_UP',
+          state: 'RUNNING',
+          followUpStep: 'fixing',
+          createdAt: '2026-10-28T11:30:00.000Z',
+        }),
+      ],
+    );
+    const plain = text(running);
+    expect(running).toContain('data-row="working"');
+    expect(plain).toContain('Needs you · 0 · 1 run working on it');
+    expect(plain).toContain('Run 1 working Add a --json flag to kelp status Fixing · started 30 minutes ago.');
+    expect(plain).toContain('Watch run 1');
+    expect(running).not.toContain('data-section="in-progress"');
   });
 
   it('leaves out a pull request with nothing new, and one that is not open', () => {
-    expect(mine({ needsYou: null, followUps: followUps() })).not.toContain('data-pr-needs-you');
+    expect(mine({ needsYou: null, followUps: followUps() }, [], [])).not.toContain('data-row=');
     const merged = renderToStaticMarkup(
       <ContributionsScreen
         view={views.active}
@@ -138,25 +173,21 @@ describe('a pull request that needs the user, on My contributions', () => {
         now={NOW}
       />,
     );
-    expect(merged).not.toContain('data-pr-needs-you');
+    expect(merged).not.toContain('data-row=');
     // Without the newer fields at all, the page reads as it did.
-    expect(mine({})).not.toContain('data-pr-needs-you');
+    expect(mine({}, [], [])).not.toContain('data-row=');
   });
 
-  it('counts the replies waiting for approval, even with nothing new on GitHub, and keeps their text off the list', () => {
-    const html = mine({ needsYou: null, followUps: followUps({ used: 1, manualRuns: 1 }) }, { PR_8: [replyDraft()] });
+  it('asks to approve the replies waiting, even with nothing new on GitHub, and keeps their text off the list', () => {
+    const html = mine({ needsYou: null, followUps: followUps({ used: 1, manualRuns: 1 }) }, [
+      replyWaiting({ prId: 'PR_8', attemptId: 'A_F1' }),
+    ]);
 
-    expect(html).toContain('data-pr-needs-you="1419"');
-    expect(html).toContain('data-pr-label="1 reply to approve"');
-    expect(html).not.toContain('data-reply-draft');
-  });
-
-  it('leaves out a pull request whose replies are all approved: nothing waits there any more', () => {
-    const posting = mine(
-      { needsYou: null, followUps: followUps({ used: 1, manualRuns: 1 }) },
-      { PR_8: [replyDraft({ state: 'POSTING', updatedAt: '2026-10-28T11:59:00.000Z' })] },
+    expect(html).toContain('data-row="replies"');
+    expect(text(html)).toContain(
+      'Your move: A run drafted 1 reply to @maintainer-mo. Read and post them. Approve the reply',
     );
-    expect(posting).not.toContain('data-pr-needs-you');
+    expect(html).not.toContain('data-reply-draft');
   });
 
   it('says when autopilot submits an attempt waiting for it, with the link to stop it', () => {
@@ -172,20 +203,21 @@ describe('a pull request that needs the user, on My contributions', () => {
       />,
     );
 
-    expect(text(html)).toContain('Autopilot submits it in 42 minutes, unless you stop it.');
+    expect(text(html)).toContain(
+      'Autopilot · 42 min Nested layouts re-render on every navigation Your move: Autopilot opens this pull request in 42 minutes. Check it, or stop it. Check before it submits',
+    );
     expect(html).toContain('href="/contribute/attempts/A_1"');
     expect(text(html)).toContain('Follow-ups pushed 1');
   });
 });
 
 describe('the follow-ups of a pull request, on its first attempt', () => {
-  it('shows what needs the user under the header, and the next run, recommended, as a session to open', () => {
+  it('says the move under the header, and the next step, recommended, as a session to open', () => {
     const html = review(followUpAttempts.prNeedsYou);
     const plain = text(html);
 
-    expect(html).toContain('data-needs-you=""');
-    expect(plain).toContain('A reviewer asked for changes · 3 hours ago');
-    expect(html).toContain('data-mark-handled="PR_1"');
+    expect(html).toContain('data-your-move="waiting"');
+    expect(plain).toContain('Your move: A reviewer asked for changes. Start run 1 on them. Go to the next step →');
     expect(html).toContain('data-session="next"');
     expect(html).toContain('href="/contribute/attempts/A_1?session=next"');
     expect(plain).toContain('Run 1 · follow-up Recommended');
@@ -194,13 +226,23 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(html).not.toContain('data-start-follow-up');
 
     const next = review(followUpAttempts.prNeedsYou, views.active, true);
+    const nextText = text(next);
+    expect(next).not.toContain('data-your-move');
     expect(next).toContain('data-next-round="recommended"');
+    expect(nextText).toContain('Your move: start run 1 Recommended');
+    expect(nextText).toContain(
+      'Run 1 works on A reviewer asked for changes · 3 hours ago Someone else commented on it · 2 hours ago A check started failing: lint, test (ubuntu) · 1 hour ago',
+    );
     expect(next).toContain('data-start-follow-up="PR_1"');
     expect(next).toContain('data-follow-up-note=""');
     expect(next).toContain('maxLength="2000"');
-    expect(text(next)).toContain('GitRanks sees a failing check, a new comment and a request for changes on #1419.');
-    expect(text(next)).toContain('A note for the agent (optional)');
-    expect(text(next)).toContain('the agent follows yours');
+    expect(nextText).toContain(
+      'Fix the failing checks (lint, test (ubuntu)), address the requested changes and answer the new comment on the pull request.',
+    );
+    expect(nextText).toContain('GitRanks filled this in from what waits on the pull request.');
+    expect(nextText).toContain('Start run 1');
+    expect(nextText).toContain('Rather answer it yourself? Reply on GitHub ↗ then mark it as handled');
+    expect(next).toContain('data-kinds="CHANGES_REQUESTED,COMMENT,CHECK_FAILED"');
     expect(next).toContain('data-variant="default"');
   });
 
@@ -213,7 +255,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
       'GitRanks sees nothing waiting on #1419. If you think something is wrong, start a run anyway',
     );
     expect(plain).toContain('What’s wrong? (optional)');
-    expect(html).toContain('data-variant="outline"');
+    expect(html).toContain('data-variant="default"');
     expect(plain).toContain('Run 1 · autopilot');
     expect(plain).toContain('Run 2 · you');
     expect(plain).toContain('Run 3 · follow-up Not started');
@@ -222,7 +264,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(plain).not.toMatch(/rounds? (used|left)|handed to you/i);
   });
 
-  it('with only the user’s own signals waiting (a bot blocking the merge), says none is a run’s, not nothing', () => {
+  it('with only the user’s own moves waiting (a bot blocking the merge), leads with them, a run one link away', () => {
     const blocked = {
       ...followUpAttempts.quiet,
       needsYou: {
@@ -231,10 +273,20 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
       },
     };
     const html = review(blocked, views.active, true);
+    const plain = text(html);
 
+    expect(html).toContain('data-next-card="found"');
+    expect(plain).toContain('Your move: do what clawsweeper asks Only you can do this');
+    expect(plain).toContain('“Blocked before merge”');
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
+    expect(html).toContain('data-kinds="BOT_BLOCKED"');
+    expect(plain).toContain("I've done it");
+    expect(plain).toContain('Think the code needs a change after all? Start run 3 with a note →');
+    expect(html).toContain('href="#next-run"');
     expect(html).toContain('data-next-round="own"');
-    expect(text(html)).toContain("Nothing waiting on #1419 is a run's to fix: what Needs you lists is yours.");
-    expect(text(html)).not.toContain('GitRanks sees nothing waiting');
+    expect(plain).toContain('Think the code needs a change too? Start a run with a note');
+    // The sessions list: the next is the user's move, not a run's.
+    expect(plain).toContain('Run 3 · follow-up Your move');
   });
 
   it('tells autopilot’s share while it is on, and that a run of the user’s turns it off here', () => {
@@ -916,7 +968,10 @@ describe('values the UI does not know yet', () => {
       },
       followUps: followUps(),
     });
-    expect(html).toContain('data-pr-label="Something changed on it"');
+    expect(html).toContain('data-row="other"');
+    expect(text(html)).toContain(
+      'Your move: Something changed on it. Start run 1 to look at it, or see what on GitHub.',
+    );
 
     const draft = renderToStaticMarkup(
       <ul>
@@ -1239,5 +1294,120 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     const html = review(followUpAttempts.review);
     expect(html).not.toContain('data-panel="follow-up-result"');
     expect(html).toContain('data-follow-up-approval="A_F1"');
+  });
+});
+
+describe('the next step, for each thing only the user can do', () => {
+  const next = (item: ContributeAttemptDetail) => review(item, views.active, true);
+
+  it('shows what run 1 found and the bot\'s verdict on one card: the steps, GitHub, "I\'ve done it"', () => {
+    const html = next(nextForYou);
+    const plain = text(html);
+    expect(html).toContain('data-next-card="found"');
+    expect(plain).toContain('Your move: what run 1 left for you Only you can do this');
+    expect(plain).toContain('clawsweeper · blocks the merge · 8 hours ago');
+    expect(plain).toContain('Run 1 changed nothing · Oct 28, 10:52 UTC · $0.31');
+    expect(plain).toContain(
+      'What to do Add real behavior proof to the PR description: redacted terminal output, logs or a recording of a stopped run Do it on the pull request, on GitHub.',
+    );
+    expect(plain).toContain('Open PR #190186 on GitHub ↗');
+    expect(html).toContain('href="https://github.com/openclaw/openclaw/pull/190186"');
+    expect(html).toContain('data-kinds="BOT_BLOCKED,RUN_ENDED"');
+    expect(plain).toContain('Start run 2 with a note →');
+    // The card's GitHub link is the view's main button: no run is recommended.
+    expect(html.indexOf('data-variant="default"')).toBeLessThan(html.indexOf('data-next-round'));
+  });
+
+  it('gives a run that stopped the next run, or the user’s own hands', () => {
+    const stopped = {
+      ...nextForYou,
+      needsYou: {
+        since: '',
+        signals: [
+          {
+            kind: 'RUN_ENDED' as const,
+            at: '2026-10-28T10:52:00.000Z',
+            detail: 'It reached your limit for one attempt',
+            attemptId: 'A_OC1',
+            round: 1,
+            outcome: 'STOPPED' as const,
+          },
+        ],
+      },
+    };
+    const plain = text(next(stopped));
+    expect(plain).toContain('Your move: try run 2, or handle it yourself Run 1 stopped');
+    expect(plain).toContain('Run 1 stopped · Oct 28, 10:52 UTC · $0.31: It reached your limit for one attempt');
+    expect(plain).toContain("Try run 2 I'll handle it");
+  });
+
+  it('gives the comment that signs an agreement to copy, and leaves its line out of the rules card', () => {
+    const html = next(nextForAgreement);
+    const plain = text(html);
+    expect(html).toContain('data-next-card="agreement"');
+    expect(plain).toContain('Your move: sign the DCO Agreement to sign');
+    expect(plain.split('I have read the DCO Document and I hereby sign the DCO')).toHaveLength(2);
+    expect(html).toContain('aria-label="Copy the comment"');
+    expect(plain).toContain('Read the DCO first');
+    expect(plain).toContain('Open PR #23935 on GitHub ↗ (opens in a new tab) I posted it');
+    expect(html).not.toContain('data-panel="pr-conventions"');
+  });
+
+  it('signs off and pushes, says what the force-push does, and how it went', () => {
+    const html = next(nextForDco);
+    const plain = text(html);
+    expect(html).toContain('data-next-card="dco"');
+    expect(plain).toContain('Your move: sign off the commits Sign-off missing');
+    expect(plain).toContain('the branch is rewritten (a force-push)');
+    expect(html).toContain('href="https://developercertificate.org/"');
+    expect(html).toContain('data-sign-off="A_T"');
+    expect(plain).toContain('Sign off and push Mark as handled');
+
+    const sending = text(
+      next({
+        ...nextForDco,
+        prFix: { kind: 'SIGN_OFF', state: 'SENDING', note: null, at: '2026-10-28T11:59:00.000Z' },
+      }),
+    );
+    expect(sending).toContain('Signing off… ');
+    expect(sending).toContain('Signing off and pushing…');
+    const failed = text(
+      next({
+        ...nextForDco,
+        prFix: { kind: 'SIGN_OFF', state: 'FAILED', note: 'The branch moved.', at: '2026-10-28T11:59:00.000Z' },
+      }),
+    );
+    expect(failed).toContain('Try the sign-off again');
+    expect(failed).toContain(
+      'The sign-off did not go through: The branch moved. Try again, or sign off by hand: git rebase --signoff, then git push --force-with-lease.',
+    );
+    // A pull request opened by hand: the steps by hand.
+    const byHand = next({ ...nextForDco, openedBy: 'HAND' });
+    expect(byHand).not.toContain('data-sign-off');
+    expect(text(byHand)).toContain('Run git rebase --signoff on your branch');
+  });
+
+  it('starts the run with the failing checks ticked and the note filled in', () => {
+    const plain = text(next(nextForChecks));
+    expect(plain).toContain('Your move: start run 2 Recommended');
+    expect(plain).toContain('Run 2 works on A check started failing: lint, test (ubuntu) · 2 hours ago');
+    expect(plain).toContain('Fix the failing checks (lint, test (ubuntu)).');
+    expect(plain).toContain('Start run 2');
+  });
+
+  it('leads with the comments to choose, the note filled in from them', () => {
+    const plain = text(next(nextForRun));
+    expect(plain).toContain('Your move: start run 2 Recommended');
+    expect(plain).toContain('Review feedback');
+    expect(plain).toContain(
+      'Fix the failing checks (lint, test (ubuntu)) and address the 2 review comments from @ana-kelp.',
+    );
+  });
+
+  it('says the move in one line on the other sessions, with the way to the next step', () => {
+    const plain = text(review(nextForAgreement));
+    expect(plain).toContain(
+      'Your move: Post this comment on PR #23935, word for word: "I have read the DCO Document and I hereby sign the DCO" Go to the next step →',
+    );
   });
 });

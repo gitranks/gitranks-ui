@@ -15,7 +15,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),
-  loadOpenPrDrafts: vi.fn(),
+  loadRepliesWaiting: vi.fn(),
 }));
 
 const { OwnAgentSection, OWN_AGENT_SAFETY } = await import('./own-agent-section');
@@ -205,7 +205,6 @@ describe('My contributions, with your own agent', () => {
             leaseUntil: '2026-10-29T12:00:00.000Z',
           }),
         ]}
-        drafts={{}}
         now={NOW}
       />,
     );

@@ -17,7 +17,12 @@ export const SIGNALS: Record<ContributePrSignalKind, string> = {
   CLA: 'Sign the contributor license agreement (CLA)',
   TITLE: "The title breaks the repo's rules (retitle it on the pull request's page)",
   BOT_BLOCKED: 'A review bot blocks the merge',
+  RUN_ENDED: 'A run ended with nothing pushed',
+  DCO: 'A sign-off (DCO) is missing on the commits',
 };
+
+/** Every kind this UI knows: what "Mark as handled" may name. */
+export const PR_SIGNAL_KINDS = Object.keys(SIGNALS) as ContributePrSignalKind[];
 
 /** `A check started failing: lint, test · 2 hours ago`. */
 export function signalText(signal: ContributePrSignal, now?: Date): string {
@@ -26,11 +31,15 @@ export function signalText(signal: ContributePrSignal, now?: Date): string {
   const what = dco
     ? 'Sign the Developer Certificate of Origin (DCO)'
     : (SIGNALS[signal.kind] ?? 'Something changed on it');
-  const named = ['CHECK_FAILED', 'CLA', 'TITLE', 'BOT_BLOCKED'].includes(signal.kind);
+  const named = ['CHECK_FAILED', 'CLA', 'TITLE', 'BOT_BLOCKED', 'RUN_ENDED', 'DCO'].includes(signal.kind);
   const detail = named && signal.detail?.trim() ? `: ${signal.detail.trim()}` : '';
   const when = relativeLabel(signal.at, now);
   return `${what}${detail}${when ? ` · ${when}` : ''}`;
 }
+
+/** The note's hint when GitRanks filled it in from what waits on the pull request. */
+export const FILLED_NOTE_HINT =
+  'GitRanks filled this in from what waits on the pull request. Change it if you know better: the agent follows your note first.';
 
 /** The longest note the user can give a follow-up's agent (the API's). */
 export const FOLLOW_UP_NOTE_MAX = 2_000;
@@ -126,8 +135,11 @@ export function vetoErrorMessage(error: ContributeErrorCode, message?: string): 
   return contributeErrorMessage(error, message);
 }
 
-/** What a follow-up cannot do: sign a CLA, retitle (no commit), or give the proof a review bot asks of the user. */
-const USERS_SIGNALS = new Set<ContributePrSignal['kind']>(['CLA', 'TITLE', 'BOT_BLOCKED']);
+/**
+ * What a follow-up cannot do: sign a CLA, retitle (no commit), give the proof a review bot asks of the user, what a run
+ * that ended left for them, or sign off the commits already pushed.
+ */
+export const USERS_SIGNALS = new Set<ContributePrSignal['kind']>(['CLA', 'TITLE', 'BOT_BLOCKED', 'RUN_ENDED', 'DCO']);
 
 /** Whether a follow-up could act on what the pull request needs: anything but the user's own (`USERS_SIGNALS`). */
 export const followUpCanHelp = (signals: readonly ContributePrSignal[] | null | undefined): boolean =>

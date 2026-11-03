@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { views } from './__fixtures__/contribute-views';
+import { contributor, limits, views } from './__fixtures__/contribute-views';
 import {
+  accessNoticesOf,
   contributeHomeOf,
   contributeNoticesOf,
   isContributePageOpen,
   isMidSetup,
   isOnboarded,
   isPaused,
+  withoutAccessNotices,
 } from './contribute-state';
 
 const kinds = (view: Parameters<typeof contributeNoticesOf>[0]) => contributeNoticesOf(view).map(({ kind }) => kind);
@@ -34,6 +36,29 @@ describe('contributeNoticesOf', () => {
     expect(isPaused({ ...views.fieldsMissing, contributor: { ...views.active.contributor, status: 'PAUSED' } })).toBe(
       true,
     );
+  });
+});
+
+describe('accessNoticesOf', () => {
+  it('names a new account, claims that ran out, and a suspended account, with the limits that hold', () => {
+    expect(accessNoticesOf(views.newAccount)).toEqual([{ kind: 'new-account', limits: limits.newAccount }]);
+    expect(accessNoticesOf(views.followThrough)).toEqual([{ kind: 'follow-through', limits: limits.followThrough }]);
+    expect(accessNoticesOf(views.suspended)).toEqual([{ kind: 'suspended' }]);
+  });
+
+  it('says nothing at the standard level, while the limits are not answered, or for limits with no reason', () => {
+    expect(accessNoticesOf({ ...views.active, contributor: contributor({ limits: limits.standard }) })).toEqual([]);
+    expect(accessNoticesOf(views.active)).toEqual([]);
+    const ownerSet = contributor({ limits: { ...limits.followThrough, reason: null } });
+    expect(accessNoticesOf({ ...views.active, contributor: ownerSet })).toEqual([]);
+  });
+
+  it('puts a suspension first, and smaller limits after what the key and the pause need', () => {
+    const suspendedNoKey = { ...views.noKey, contributor: { ...views.noKey.contributor, limits: limits.suspended } };
+    expect(kinds(suspendedNoKey)).toEqual(['suspended', 'no-key']);
+    const newAndPaused = { ...views.paused, contributor: { ...views.paused.contributor, limits: limits.newAccount } };
+    expect(kinds(newAndPaused)).toEqual(['paused', 'new-account']);
+    expect(withoutAccessNotices(contributeNoticesOf(newAndPaused)).map(({ kind }) => kind)).toEqual(['paused']);
   });
 });
 

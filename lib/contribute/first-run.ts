@@ -1,5 +1,5 @@
 import type { ContributeAttempt, ContributeIssuePage, ContributeView } from './contribute.types';
-import { type ContributeNotice, claudeKeyOf, isOnboarded, isPaused } from './contribute-state';
+import { type ContributeNotice, claudeKeyOf, isOnboarded, isPaused, isSuspended } from './contribute-state';
 
 /**
  * The first-run guide ("You're in. Here's what happens next") opens Issues and Overview for a contributor with a
@@ -25,6 +25,8 @@ export const isAgentFirstRun = (view: ContributeView, attempts: ContributeAttemp
 
 /** When the first attempt starts, as far as the user's own state tells it. */
 export type FirstRunStep =
+  /** Contribute is paused for this account by its access level: nothing starts. */
+  | { kind: 'suspended' }
   /** Attempts are not open yet. */
   | { kind: 'closed' }
   /** The user paused contributing. */
@@ -52,6 +54,7 @@ export function firstRunStepOf(
   page: ContributeIssuePage | null | undefined,
   now = new Date(),
 ): FirstRunStep {
+  if (isSuspended(view)) return { kind: 'suspended' };
   if (view.attemptsOpen === false) return { kind: 'closed' };
   if (isPaused(view)) return { kind: 'paused' };
 
@@ -81,6 +84,8 @@ export const agentFirstRunStepOf = (view: ContributeView): Extract<FirstRunStep,
 /** The notice step 1 says again in its own words, or null when it restates none. */
 function restatedNoticeOf(step: FirstRunStep): ContributeNotice['kind'] | null {
   switch (step.kind) {
+    case 'suspended':
+      return 'suspended';
     case 'paused':
       return 'paused';
     case 'key-invalid':

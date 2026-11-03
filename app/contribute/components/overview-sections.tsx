@@ -205,6 +205,12 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
         text: `${started ? `Started ${started}, on your key.` : 'On your key.'} It shows up under Needs you when it is ready.`,
       };
     }
+    case 'suspended':
+      return {
+        label: 'Paused',
+        title: 'Contribute is paused for this account',
+        text: 'No attempt starts on your key for now.',
+      };
     case 'closed':
       return {
         label: 'Waiting',
@@ -241,7 +247,8 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
         label: 'Next attempt',
         title: 'When a slot frees',
         text: state.slots > 1 ? `All ${state.slots} of your slots are busy.` : 'Your one slot is busy.',
-        action: settingsLink('more-limits', 'Attempts at a time in Settings'),
+        // Held below the setting by the account's limits: Settings cannot add a slot.
+        action: state.limited ? undefined : settingsLink('more-limits', 'Attempts at a time in Settings'),
       };
     case 'slots-taken':
       return {
@@ -249,14 +256,14 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
         title:
           state.slots > 1 ? `Your own agent holds all ${state.slots} of your slots` : 'Your own agent holds your slot',
         text: 'A new attempt starts when it hands back its patch or releases the issue.',
-        action: settingsLink('more-limits', 'Attempts at a time in Settings'),
+        action: state.limited ? undefined : settingsLink('more-limits', 'Attempts at a time in Settings'),
       };
     case 'pr-cap':
       return {
         label: 'Waiting',
         title: 'At your open PRs cap',
         text: `${state.prBound} of ${state.cap} pull requests are open or on their way. The next attempt starts when one is merged, closed or discarded.`,
-        action: settingsLink('prs', 'Open PRs at a time in Settings'),
+        action: state.limited ? undefined : settingsLink('prs', 'Open PRs at a time in Settings'),
       };
     case 'nothing-queued':
       return {
@@ -411,7 +418,7 @@ export function hostedLaneOf(view: ContributeView, state: HostedState): LaneNote
 }
 
 /** The holds that stop every attempt (a pause, the key), which keep their own label; the scheduler's say "Next attempt". */
-const STOPS = new Set<HostedHold['kind']>(['closed', 'paused', 'key-invalid', 'key-waiting']);
+const STOPS = new Set<HostedHold['kind']>(['suspended', 'closed', 'paused', 'key-invalid', 'key-waiting']);
 
 /** The card beside the cycle while the hosted agent works: what holds its next attempt. */
 const nextCopyOf = (hold: HostedHold, now?: Date): CardCopy => {

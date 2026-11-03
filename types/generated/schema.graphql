@@ -29,12 +29,34 @@ type Contribute {
   providerInterests: [ContributeComingSoonProvider!]!
 }
 
-"""The viewer's work in progress; empty items when nothing runs"""
+"""
+The account's access level: STANDARD (the settings as chosen), REDUCED (smaller limits for now) or SUSPENDED (nothing new starts)
+"""
+enum ContributeAccessLevel {
+  REDUCED
+  STANDARD
+  SUSPENDED
+}
+
+"""
+Why the limits are reduced: NEW_ACCOUNT (every new account starts so) or FOLLOW_THROUGH (recent claims ran out)
+"""
+enum ContributeAccessReason {
+  FOLLOW_THROUGH
+  NEW_ACCOUNT
+}
+
+"""The viewer's work in progress; empty items and runs when nothing runs"""
 type ContributeActivity {
   items: [ContributeActivityItem!]!
 
   """When contrib read it"""
   readAt: String!
+
+  """
+  Their agent runs: the live ones oldest first, then the settled ones of the last 10 minutes
+  """
+  runs: [ContributeAgentRun!]!
 }
 
 """One piece of work in progress"""
@@ -116,6 +138,79 @@ enum ContributeAgentName {
   CURSOR
   GEMINI_CLI
   OTHER
+}
+
+"""
+One of the viewer's agent runs: live, or settled in the last 10 minutes
+"""
+type ContributeAgentRun {
+  """
+  An agent works on it now; false while it waits (queued, the autopilot hour) or settled
+  """
+  active: Boolean!
+  attemptId: ID!
+
+  """WAITING_FOR_YOU: when the autopilot submits"""
+  autosubmitAt: String
+
+  """A hosted run's cap; null for the viewer's own agent"""
+  budgetUsd: Float
+
+  """
+  Seconds from the start (the queueing while queued) to the settle, or to readAt
+  """
+  elapsedSeconds: Int!
+  endReason: ContributeAttemptEndReason
+  kind: ContributeAttemptKind!
+
+  """
+  One plain line, e.g. "Running checks", "Queued, 2nd in line"
+  """
+  label: String!
+
+  """The viewer's own agent: its last call naming the attempt"""
+  lastCallAt: String
+
+  """The latest line of its timeline"""
+  latestEvent: ContributeAttemptEvent
+  nameWithOwner: String
+
+  """The issue"""
+  number: Int!
+  phase: ContributeAgentRunPhase!
+  prUrl: String
+
+  """Its place among the queued first attempts by queueing time"""
+  queuePosition: Int
+  queuedAt: String!
+  runner: ContributeAttemptRunner!
+
+  """When it settled; null while live"""
+  settledAt: String
+
+  """A hosted run's spend so far; null for the viewer's own agent"""
+  spendUsd: Float
+
+  """When the agent started; null while queued"""
+  startedAt: String
+  state: ContributeAttemptState!
+  title: String
+}
+
+"""
+Where an agent run is: QUEUED, CHECKING_ISSUE, WORKING, ADDRESSING_REVIEW (a follow-up), RUNNING_CHECKS, WAITING_FOR_YOU (the autopilot submits unless the viewer stops it), SUBMITTING; settled: READY (the review), DONE (the PR opened, or a follow-up pushed), STOPPED
+"""
+enum ContributeAgentRunPhase {
+  ADDRESSING_REVIEW
+  CHECKING_ISSUE
+  DONE
+  QUEUED
+  READY
+  RUNNING_CHECKS
+  STOPPED
+  SUBMITTING
+  WAITING_FOR_YOU
+  WORKING
 }
 
 """One attempt: an agent session on one issue, and what came of it"""
@@ -385,6 +480,11 @@ type ContributeAttemptDetail {
   """The PR's title as last set (the approval's, then a retitle's)"""
   prTitle: String
 
+  """
+  Proof from the viewer's own agent: a bot's ask and the newest proof; null when neither
+  """
+  proof: ContributeProof
+
   """Null until the PR opened"""
   pullRequest: ContributeAttemptPullRequest
   readiness: ContributeRepoReadiness
@@ -398,11 +498,6 @@ type ContributeAttemptDetail {
   What retryAttempt would do with this stop, once: BOOST (the check ran out: twice its budget) or OVERRIDE (a no-go that is a judgement: a new run told the viewer overrode it). Null when it can't be tried again
   """
   retry: ContributeRetry
-
-  """
-  The check of the issue reached its budget or time limit with no verdict (endDetail says what it was on): retryAttempt tries it again once, on twice the budget
-  """
-  retryable: Boolean! @deprecated(reason: "Use retry: retryable is retry's kind BOOST")
 
   """
   When it last reached the review: its 7 days run from it. Set again by a bounce back to the review and by autopilot's veto; null before the first review
@@ -495,6 +590,10 @@ type ContributeAttemptPullRequest {
 
 """The agent's result.json, checked and cut to size"""
 type ContributeAttemptResult {
+  """
+  The run's brief for the viewer: what it checked, what it found, what it changed or why nothing
+  """
+  brief: String
   filesChanged: [String!]!
 
   """The agent's PR body, following the repo's template"""
@@ -726,7 +825,9 @@ type ContributeClaRule {
   signUrl: String
 }
 
-"""The Claude plan the credits come from"""
+"""
+The Claude plan the credits come from (MAX_5X is Max, MAX_20X is Ultra)
+"""
 enum ContributeClaudePlan {
   CREDITS
   MAX_5X
@@ -818,6 +919,11 @@ type ContributeContribution {
   What its open PR fails of them, with the fixes; null when not open or unread
   """
   prIssues: [ContributePrConventionIssue!]
+
+  """
+  Proof from the viewer's own agent: a bot's ask and the newest proof; null when neither
+  """
+  proof: ContributeProof
   pullRequest: ContributeAttemptPullRequest!
   repositoryId: String!
   runner: ContributeAttemptRunner!
@@ -864,6 +970,19 @@ type ContributeCredential {
   ready: Boolean!
   state: ContributeKeyState!
   workspaceId: String
+}
+
+"""
+The day's cap on newly shown issues (abuse-guards spec §4.2): every issue shown once today stays on the list; new ones stop at the limit until 00:00 UTC
+"""
+type ContributeDailyCap {
+  """The most new issues the account is shown in a UTC day"""
+  limit: Int!
+
+  """
+  True once no new issue can be shown today: the list ends with what was already shown
+  """
+  reached: Boolean!
 }
 
 """
@@ -938,6 +1057,12 @@ type ContributeFollowUpOf {
   attemptId: ID!
   number: Int!
   prId: ID!
+
+  """The viewer's note to its agent"""
+  reason: String
+
+  """How it started: autopilot, recommended or own; null on an older run"""
+  trigger: String
   url: String!
 }
 
@@ -1111,9 +1236,20 @@ enum ContributeIssueKind {
 type ContributeIssuePage {
   """When the list was last computed; null before the first time"""
   computedAt: String
+
+  """
+  The day's cap on new issues; null while under 80% of it, so a normal day shows nothing
+  """
+  dailyCap: ContributeDailyCap
+
+  """
+  Can hold fewer than first: new issues past the daily cap are left off the page
+  """
   items: [ContributeIssue!]!
 
-  """The next page's after; null on the last page"""
+  """
+  The next page's after; null on the last page, and once only issues past the daily cap remain
+  """
   next: String
 
   """
@@ -1173,6 +1309,31 @@ enum ContributeLanguage {
   PYTHON
   RUBY
   RUST
+}
+
+"""
+The access level and the limits it sets now (abuse guards §5.4); the facts and thresholds are never sent
+"""
+type ContributeLimits {
+  """
+  The most attempts at a time that hold now: the settings field’s maximum
+  """
+  attemptsAtATime: Int!
+
+  """New claims a day, every runner together"""
+  claimsPerDay: Int!
+  level: ContributeAccessLevel!
+
+  """
+  The most open pull requests at a time that hold now: the settings field’s maximum
+  """
+  openPrsAtATime: Int!
+
+  """Why REDUCED; null at any other level"""
+  reason: ContributeAccessReason
+
+  """Newly shown issues a day"""
+  revealsPerDay: Int!
 }
 
 """A provider whose keys connect today"""
@@ -1336,13 +1497,27 @@ type ContributePaths {
 type ContributePrConventionIssue {
   """The failing check that says so"""
   check: String
+
+  """What to fill on GitHub, section by section"""
+  fields: [ContributePrIssueField!]
   kind: ContributePrIssueKind!
   message: String!
+
+  """The repo's file that asks it"""
+  source: ContributePrIssueSource
+
+  """What to do, in order"""
+  steps: [String!]
 
   """
   title: the title the fix sets; changelog: the line it writes; cla: where to sign; null: no fix
   """
   suggestion: String
+
+  """
+  Why the user sees it: what the repo asks, and why the agent and GitRanks do not do it for them
+  """
+  why: String
 }
 
 """The last fix sent to an open PR"""
@@ -1384,6 +1559,23 @@ enum ContributePrFixStep {
 }
 
 """
+A value the user fills on GitHub: text to paste under a heading, or a box to tick
+"""
+type ContributePrIssueField {
+  """A template's heading, or a checklist line"""
+  label: String!
+
+  """What to check first, or why"""
+  note: String
+
+  """A checklist line: tick it, or leave it; null on a text"""
+  tick: Boolean
+
+  """The text to paste; null: nothing drafted (see note)"""
+  value: String
+}
+
+"""
 What an open PR fails of its repo's conventions: the title, the changelog line, the template, the CLA
 """
 enum ContributePrIssueKind {
@@ -1391,6 +1583,12 @@ enum ContributePrIssueKind {
   CLA
   TEMPLATE
   TITLE
+}
+
+"""The repo's file that asks it"""
+type ContributePrIssueSource {
+  label: String!
+  url: String!
 }
 
 """One thing the PR sync found on an open PR"""
@@ -1401,12 +1599,14 @@ type ContributePrSignal {
   attemptId: ID
 
   """
-  check_failed: the failing checks’ names; cla: the CLA check’s; dco: the DCO check’s; bot_blocked: the bot and its verdict; run_ended: what is left for the viewer (the run’s forYou, else its no-go’s reason, else why it stopped; plain text, at most 300 characters)
+  check_failed: the failing checks’ names; cla: the CLA check’s; dco: the DCO check’s; bot_blocked: the bot and its verdict; run_ended: what is left for the viewer (the run’s forYou, else its no-go’s reason, else why it stopped, or a failed push’s note; plain text, at most 300 characters)
   """
   detail: String
   kind: ContributePrSignalKind!
 
-  """run_ended: how it ended (NO_GO, STOPPED or PUSH_FAILED); null for the other kinds"""
+  """
+  run_ended: how it ended (NO_GO, STOPPED or PUSH_FAILED); null for the other kinds
+  """
   outcome: ContributeRunEndedOutcome
 
   """run_ended: its number on the PR (run N); null for the other kinds"""
@@ -1453,6 +1653,146 @@ input ContributePreferencesInput {
   languages: [ContributeLanguage!]
   maxSize: ContributeIssueSize
   topicIds: [String!]
+}
+
+"""
+A PR's proof from the viewer's own agent: the bot's ask and the newest proof
+"""
+type ContributeProof {
+  ask: ContributeProofAsk
+
+  """The PR's head as the sync last read it"""
+  prHeadSha: String
+  session: ContributeProofSession
+}
+
+"""A bot's ask for real behavior proof on the viewer's PR"""
+type ContributeProofAsk {
+  """When this very ask (its text) was first seen"""
+  at: String!
+  bot: String!
+  detail: String!
+
+  """The PR head the sync read with it"""
+  headSha: String
+
+  """The command the bot names to read the PR again"""
+  reReview: String
+
+  """The open checklist item that asks for proof"""
+  title: String!
+}
+
+"""
+Why a proof ended unposted: discarded, ask_cleared (the bot no longer asks), pr_closed, superseded, fix_broken
+"""
+enum ContributeProofEndReason {
+  ASK_CLEARED
+  DISCARDED
+  FIX_BROKEN
+  PR_CLOSED
+  SUPERSEDED
+}
+
+"""A checked screenshot of a proof"""
+type ContributeProofFile {
+  bytes: Int!
+  caption: String!
+  height: Int
+  name: String!
+  slot: Int!
+  width: Int
+}
+
+"""
+What the viewer's agent found: proved (a section to post), cannot_prove (a reply drafted), fix_broken (the fix does not work)
+"""
+enum ContributeProofOutcome {
+  CANNOT_PROVE
+  FIX_BROKEN
+  PROVED
+}
+
+type ContributeProofPost {
+  bodyAt: String
+  commentUrl: String
+  commitSha: String
+  error: String
+  step: ContributeProofPostStep!
+}
+
+"""
+A proof's posting step: files (the screenshots' commit), body (the PR description), comment (the bot's command)
+"""
+enum ContributeProofPostStep {
+  BODY
+  COMMENT
+  FILES
+}
+
+"""What the viewer's agent handed back"""
+type ContributeProofResult {
+  files: [ContributeProofFile!]!
+
+  """The PR head the proof ran on"""
+  headSha: String
+
+  """fix_broken: what failed"""
+  note: String
+  outcome: ContributeProofOutcome!
+
+  """What the agent removed before submitting"""
+  redactions: [String!]!
+
+  """cannot_prove: the reply drafted for the PR"""
+  reply: String
+  section: ContributeProofSection
+  summary: String!
+}
+
+type ContributeProofSection {
+  """A Markdown heading of level 2 or 3"""
+  heading: String!
+
+  """Markdown; its images are `proof:<slot>`"""
+  markdown: String!
+}
+
+type ContributeProofSendBack {
+  note: String!
+}
+
+"""A proof the viewer's own agent captures for a bot's ask"""
+type ContributeProofSession {
+  agent: ContributeAgent
+  checkError: String
+  endedReason: ContributeProofEndReason
+  id: ID!
+  leaseUntil: String
+  post: ContributeProofPost
+  result: ContributeProofResult
+  round: Int!
+  sendBack: ContributeProofSendBack
+  startedAt: String!
+  state: ContributeProofState!
+
+  """When the state last changed"""
+  stateAt: String!
+}
+
+"""
+A proof's state: waiting (for the viewer's agent), running, uploading, checking (the screenshots), review (the viewer's check), posting, failed (posting; try again), posted, discarded
+"""
+enum ContributeProofState {
+  CHECKING
+  DISCARDED
+  FAILED
+  POSTED
+  POSTING
+  REVIEW
+  RUNNING
+  UPLOADING
+  WAITING
 }
 
 """
@@ -1577,6 +1917,11 @@ enum ContributeReplyUserDismissReason {
 A reply draft the viewer can approve now, with its PR. inReview: its follow-up waits in the review (or autopilot's hour) with it, so it folds into that review
 """
 type ContributeReplyWaiting {
+  """
+  Posted (or posting) as a comment on the PR in place of its review thread
+  """
+  asComment: Boolean!
+
   """The follow-up that drafted it"""
   attemptId: ID!
 
@@ -1588,6 +1933,11 @@ type ContributeReplyWaiting {
   """The thread was opened by a bot: it is resolved once answered"""
   bot: Boolean!
 
+  """
+  GitHub refused it in its review thread: approveReply with asComment posts it as a comment on the PR
+  """
+  canPostAsComment: Boolean!
+
   """Null: a top-level comment on the PR"""
   comment: ContributeReplyTarget
 
@@ -1596,6 +1946,10 @@ type ContributeReplyWaiting {
   """
   commentUrl: String
   createdAt: String!
+  dismissedAt: String
+
+  """Why it was dismissed"""
+  dismissedReason: ContributeReplyDismissReason
   draftId: ID!
 
   """
@@ -1787,8 +2141,8 @@ How a follow-up run that pushed nothing ended: no_go (the agent's verdict, or th
 """
 enum ContributeRunEndedOutcome {
   NO_GO
-  STOPPED
   PUSH_FAILED
+  STOPPED
 }
 
 type ContributeRunFollowUpOf {
@@ -2033,6 +2387,7 @@ enum ContributeSetReason {
   CONTRIBUTE_OFF
   DELETED
   FORK
+  GATED_CONTRIBUTORS
   ISSUES_DISABLED
   LANGUAGE
   LICENSE
@@ -2335,6 +2690,7 @@ type Contributor {
   autopilot: ContributeAutopilot!
   createdAt: String!
   credentials: [ContributeCredential!]!
+  limits: ContributeLimits!
   login: String!
 
   """
@@ -2565,6 +2921,11 @@ type Mutation {
   ): ContributeAttempt!
 
   """
+  Posts the proof the viewer's own agent captured (proof from your agent spec §4.5): its screenshots to gitranks-proof/<n> in their fork, its section into the PR's live description, then the bot's re-review command. `checked` is the viewer's tick that nothing private is left (BAD_USER_INPUT without it). CONFLICT when it is not in review, a run works on the PR, or the PR is not open
+  """
+  approveContributeProof(checked: Boolean!, id: ID!): ContributeProofSession!
+
+  """
   Approves a drafted reply: it is posted on the PR in the viewer’s name (a reply in its review thread, or a comment). Never posted otherwise. asComment: a reply GitHub refused in its review thread (canPostAsComment) posted as a comment on the PR instead, linking the thread. CONFLICT when the PR is no longer open, or the reply cannot go as a comment
   """
   approveReply(asComment: Boolean, draftId: ID!): ContributeReplyDraft!
@@ -2588,6 +2949,11 @@ type Mutation {
   Discards a queued attempt or one in review; its issue goes back to the pool. CONFLICT from any other state
   """
   discardAttempt(id: ID!): ContributeAttempt!
+
+  """
+  Discards a proof (a fix_broken one in review ends fix_broken). CONFLICT while it is being posted
+  """
+  discardContributeProof(id: ID!): ContributeProofSession!
 
   """
   Dismisses a drafted or failed reply: never posted, and it no longer waits for the viewer (they posted it on GitHub themselves, or it is not needed). CONFLICT when it is posting or posted
@@ -2637,6 +3003,11 @@ type Mutation {
   pauseContributing: Boolean!
 
   """
+  Posts the reply the viewer edited (at most 4,000 characters) when their agent could not capture the proof (cannot_prove), as one comment on the PR. CONFLICT when it is not in review
+  """
+  postContributeProofReply(id: ID!, text: String!): ContributeProofSession!
+
+  """
   Takes repos off a list, freeing their slots; an id not on it is ignored
   """
   removeFromContributeSet(list: ContributeSetList!, repositoryIds: [ID!]!): ContributeSet!
@@ -2667,6 +3038,11 @@ type Mutation {
   ): ContributeAttempt!
 
   """
+  Tries a failed posting again from the step it failed at. CONFLICT unless it failed
+  """
+  retryContributeProof(id: ID!): ContributeProofSession!
+
+  """
   Deletes the GitHub grant and revokes it at GitHub; false when GitHub could not be told (revoke the app on GitHub). True when there was none
   """
   revokeGithubGrant: Boolean!
@@ -2675,6 +3051,11 @@ type Mutation {
   Revokes a token: its next call answers 401. Revoking the last one ends the claims its agent is working on. False when it was not a live token of the viewer’s
   """
   revokeMcpToken(id: ID!): Boolean!
+
+  """
+  Sends a proof in review back to the viewer's agent with a note (at most 2,000 characters): it runs the proof prompt again. CONFLICT when it is not in review
+  """
+  sendBackContributeProof(id: ID!, note: String!): ContributeProofSession!
 
   """
   Sends an MCP attempt in review back to the viewer’s own agent with a note (at most 2,000 characters): it reads the note and submits again, within 7 days of its claim. At most 3 times an attempt. CONFLICT when it is not an MCP attempt in review, or was sent back 3 times
@@ -2708,7 +3089,7 @@ type Mutation {
   skipIssue(issueId: ID!): Boolean!
 
   """
-  Starts a follow-up on the viewer’s open PR (its node id): an agent session on their key reads the reviews and failing checks, adds commits to the PR’s branch and drafts replies. At most 2 rounds a PR. CONFLICT when it cannot start now (the PR not open, one under way, no rounds left, limits reached)
+  Starts a follow-up run on the viewer’s open PR (its node id), signals or none: an agent session on their key reads the reviews, comments and checks, adds commits to the PR’s branch and drafts replies; reason, their note, comes first in its brief. No cap on runs. CONFLICT when it cannot start now (the PR not open, one under way, limits reached)
   """
   startFollowUp(
     """
@@ -2716,7 +3097,15 @@ type Mutation {
     """
     commentIds: [ID!]
     prId: ID!
+
+    """The viewer's note to the agent, at most 2000 characters"""
+    reason: String
   ): ContributeAttempt!
+
+  """
+  Takes a proof back from the viewer's agent while it works on it. CONFLICT otherwise
+  """
+  takeBackContributeProof(id: ID!): ContributeProofSession!
 
   """Takes a repo off the ignore list"""
   unignoreContributeRepo(repositoryId: ID!): ContributeSet!
@@ -2903,7 +3292,7 @@ type Query {
   contribute: Contribute
 
   """
-  The viewer's work in progress (the stack resolve, new repos' first reads), each with its tabs, a line, counts, an estimate and its repos: the UI polls it while something runs. Null when hidden
+  The viewer's work in progress (the stack resolve, new repos' first reads), each with its tabs, a line, counts, an estimate and its repos, and their agent runs: the UI polls it while something runs. Null when hidden
   """
   contributeActivity: ContributeActivity
 

@@ -1,3 +1,4 @@
+import { effectiveSettingOf } from './access-limits';
 import { AGENT_NAMES } from './attempt-format';
 import type {
   ContributeAttempt,
@@ -62,12 +63,15 @@ export type HostedState =
 /** The first thing that holds the hosted agent's next attempt. */
 export type HostedHold =
   | FirstRunStep
-  /** The user's own agent holds every slot of `attemptsAtATime`. */
-  | { kind: 'slots-taken'; slots: number }
+  /**
+   * The user's own agent holds every slot of `attemptsAtATime`. `limited`: the access level holds the slots below the
+   * setting, so Settings cannot add one.
+   */
+  | { kind: 'slots-taken'; slots: number; limited?: true }
   /** Every slot is busy, an attempt on the key among them: the next starts when one ends. */
-  | { kind: 'slots-busy'; slots: number }
-  /** The pull requests open or on their way reach the user's cap. */
-  | { kind: 'pr-cap'; prBound: number; cap: number }
+  | { kind: 'slots-busy'; slots: number; limited?: true }
+  /** The pull requests open or on their way reach the user's cap; `limited` as for the slots. */
+  | { kind: 'pr-cap'; prBound: number; cap: number; limited?: true }
   /** The pace is "only issues I queue", and none is queued. */
   | { kind: 'nothing-queued' }
   /** A hold cannot be ruled out: a read it needs did not answer. */
@@ -92,7 +96,7 @@ export type RightNow = {
 };
 
 /** The view's own blocks: they hold before anything the scheduler counts. */
-const VIEW_BLOCKS = new Set<FirstRunStep['kind']>(['closed', 'paused', 'key-invalid', 'key-waiting']);
+const VIEW_BLOCKS = new Set<FirstRunStep['kind']>(['suspended', 'closed', 'paused', 'key-invalid', 'key-waiting']);
 
 /**
  * The hosted agent's state: an attempt in flight, with what holds the next one, else that hold: the first of the
@@ -123,12 +127,18 @@ function hostedHoldOf(
   if (VIEW_BLOCKS.has(step.kind)) return step;
 
   const settings = view.contributor?.settings;
-  if (inFlight?.length && settings && inFlight.length >= settings.attemptsAtATime) {
+  // The slots and the open PRs cap as they hold now: the access level may hold them below the settings.
+  const limits = view.contributor?.limits;
+  const slots = settings ? effectiveSettingOf(settings, limits, 'attemptsAtATime') : 0;
+  const prCap = settings ? effectiveSettingOf(settings, limits, 'openPrsAtATime') : 0;
+  if (inFlight?.length && settings && inFlight.length >= slots) {
     // With none of them hosted, the user's own agent holds every slot.
-    return { kind: working ? 'slots-busy' : 'slots-taken', slots: settings.attemptsAtATime };
+    const limited = slots < settings.attemptsAtATime ? ({ limited: true } as const) : {};
+    return { kind: working ? 'slots-busy' : 'slots-taken', slots, ...limited };
   }
-  if (counts && settings && counts.prBound >= settings.openPrsAtATime) {
-    return { kind: 'pr-cap', prBound: counts.prBound, cap: settings.openPrsAtATime };
+  if (counts && settings && counts.prBound >= prCap) {
+    const limited = prCap < settings.openPrsAtATime ? ({ limited: true } as const) : {};
+    return { kind: 'pr-cap', prBound: counts.prBound, cap: prCap, ...limited };
   }
   if (counts && settings?.pace === 'QUEUED' && counts.queued === 0) return { kind: 'nothing-queued' };
   if (step.kind === 'no-room') return step;

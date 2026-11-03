@@ -11,7 +11,7 @@ import {
   ATTEMPT_STATES,
   checkLimitOf,
   detailText,
-  END_REASONS,
+  endReasonLabelOf,
   endReasonTextOf,
   githubUrlOf,
   labelOf,
@@ -20,6 +20,7 @@ import {
   PR_CHECKS,
   PR_STATES,
   REVIEW_DECISIONS,
+  reviewWaitOf,
   timeLabel,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
@@ -275,7 +276,7 @@ function followUpStatusOf(attempt: ContributeAttempt | ContributeAttemptDetail, 
         attempt.endReason === 'CHECKS_FAILED' && attempt.endDetail === 'not_empty'
           ? 'The agent wrote no commit and no reply, so there was nothing to review.'
           : (attempt.endReason && FOLLOW_UP_ENDS[attempt.endReason]) ||
-            (attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'Why it ended is not available yet.');
+            (endReasonLabelOf(attempt) ?? 'Why it ended is not available yet.');
       return (
         <Box state={attempt.state} tone="muted">
           <Title>{attempt.state === 'STOPPED' ? 'Stopped, nothing pushed' : 'Discarded, nothing pushed'}</Title>
@@ -348,7 +349,10 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
           {attempt.submit?.lastError && failedAtStep(attempt.submit) ? (
             <SubmitStepsSettled state="REVIEW" submit={attempt.submit} />
           ) : null}
-          <Text>Read the change, then submit it as your pull request or discard it. It waits seven days for you.</Text>
+          <Text>
+            Read the change, then submit it as your pull request or discard it. It waits {reviewWaitOf(attempt)} for
+            you.
+          </Text>
           <AutopilotReviewNote reason={attempt.reviewReason} />
           <SubmitErrorNote submit={attempt.submit} />
           {attempt.submit?.lastError ? (
@@ -483,9 +487,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
         <Box state="DISCARDED" tone="muted">
           <Title>Discarded</Title>
           <Text>
-            <span data-end-reason={attempt.endReason ?? ''}>
-              {attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : 'It was discarded.'}
-            </span>{' '}
+            <span data-end-reason={attempt.endReason ?? ''}>{endReasonLabelOf(attempt) ?? 'It was discarded.'}</span>{' '}
             The issue went back to the pool, and nothing was submitted.
           </Text>
         </Box>

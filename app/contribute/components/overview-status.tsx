@@ -14,7 +14,7 @@ import type {
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
-import { contributeNoticesOf } from '@/lib/contribute/contribute-state';
+import { accessNoticesOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
 import { agentFirstRunStepOf, firstRunNoticesOf, firstRunStepOf } from '@/lib/contribute/first-run';
 import type { McpClient } from '@/lib/contribute/mcp-setup';
 import type { OverviewNeedsRead, OverviewNowRead } from '@/lib/contribute/overview';
@@ -110,6 +110,8 @@ export function OverviewScreen({
       )}
       data-overview={firstRun || agentFirstRun ? 'first-run' : 'home'}
     >
+      {/* The guides before the first attempt show every notice; the home shows the key's as Needs you rows. */}
+      {firstRun || agentFirstRun ? null : <ContributeNotices notices={accessNoticesOf(view)} />}
       {welcome ? <AgentWelcome client={welcome} /> : <h1 className="sr-only">Overview</h1>}
       {agentFirstRun ? (
         <>

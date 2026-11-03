@@ -4,6 +4,7 @@ import {
   checkLimitOf,
   detailText,
   END_REASONS,
+  endReasonLabelOf,
   noGoReasonOf,
   type Tone,
 } from './attempt-format';
@@ -323,7 +324,7 @@ export function runReasonOf(run: ContributeRun): string {
     case 'NOT_STARTED':
       return (run.endDetail && NOT_STARTED[run.endDetail]) || detailText(run.endDetail) || END_REASONS.CLAIM_LOST;
     default:
-      return run.endReason ? END_REASONS[run.endReason] : detailText(run.endDetail);
+      return endReasonLabelOf(run) ?? detailText(run.endDetail);
   }
 }
 

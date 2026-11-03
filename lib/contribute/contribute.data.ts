@@ -40,6 +40,7 @@ import {
   ContributeImpactDocument,
   ContributeImpactReposDocument,
   ContributeIssuesDocument,
+  ContributeLimitsDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
@@ -65,6 +66,7 @@ import type {
   ContributeImpactTotals,
   ContributeIssuePage,
   ContributeIssuesFilter,
+  ContributeLimits,
   ContributeMcpToken,
   ContributeNeedsYou,
   ContributeOnboardedVia,
@@ -166,7 +168,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   await loadContributeVersion();
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [overview, grant, paused, autopilot, autopilotNotice, ownAgent, onboarding, attemptsOpen] =
+  const [overview, grant, paused, autopilot, autopilotNotice, ownAgent, onboarding, attemptsOpen, limits] =
     await Promise.allSettled([
       graphqlDirect(ContributeOverviewDocument, undefined, options),
       graphqlDirect(ContributeGrantDocument, undefined, options),
@@ -176,6 +178,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
       graphqlDirect(ContributeOwnAgentDocument, undefined, options),
       graphqlDirect(ContributeOnboardingDocument, undefined, options),
       graphqlDirect(ContributeAttemptsOpenDocument, undefined, options),
+      graphqlDirect(ContributeLimitsDocument, undefined, options),
     ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
@@ -185,6 +188,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   const pausedField = settled(paused)?.contribute?.contributor?.paused;
   const onboardingFields = settled(onboarding)?.contribute;
   const attemptsOpenField = settled(attemptsOpen)?.contribute?.attemptsOpen;
+  const limitsField = limitsOf(settled(limits)?.contribute?.contributor?.limits);
   const { contributor } = contribute;
   const withAutopilot = contributor?.autopilot
     ? {
@@ -196,7 +200,13 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
       }
     : contributor;
   return {
-    contributor: withAutopilot ? { ...withAutopilot, ...onboardedOf(onboardingFields?.contributor) } : withAutopilot,
+    contributor: withAutopilot
+      ? {
+          ...withAutopilot,
+          ...onboardedOf(onboardingFields?.contributor),
+          ...(limitsField ? { limits: limitsField } : {}),
+        }
+      : withAutopilot,
     grant: settled(grant)?.contribute?.grant ?? undefined,
     paused: typeof pausedField === 'boolean' ? pausedField : undefined,
     grantAvailable: isGrantAvailable(),
@@ -204,6 +214,13 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
     ...(typeof attemptsOpenField === 'boolean' ? { attemptsOpen: attemptsOpenField } : {}),
   };
 });
+
+/** The limits as the API answered them; `undefined` when it does not answer them (yet) or answers them partly. */
+function limitsOf(limits: ContributeLimits | null | undefined): ContributeLimits | undefined {
+  if (!limits || typeof limits.level !== 'string') return undefined;
+  const counts = [limits.attemptsAtATime, limits.openPrsAtATime, limits.claimsPerDay, limits.revealsPerDay];
+  return counts.every((count) => typeof count === 'number') ? limits : undefined;
+}
 
 /** The onboarding fields the API answered; those it did not are left out, so they read as "not available yet". */
 function onboardedOf(

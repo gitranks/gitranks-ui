@@ -1,6 +1,7 @@
 import type {
   ContributeCredential,
   ContributeGrant,
+  ContributeLimits,
   ContributeMcpToken,
   ContributeSettings,
   ContributeSpend,
@@ -70,6 +71,42 @@ export const contributor = (patch: Partial<Contributor> = {}): Contributor => ({
   onboardedVia: 'HOSTED',
   ...patch,
 });
+
+/** The limits at each access level: a new account's, after claims ran out, and suspended (nothing new starts). */
+export const limits = {
+  standard: {
+    level: 'STANDARD',
+    reason: null,
+    attemptsAtATime: 3,
+    openPrsAtATime: 10,
+    claimsPerDay: 10,
+    revealsPerDay: 150,
+  },
+  newAccount: {
+    level: 'REDUCED',
+    reason: 'NEW_ACCOUNT',
+    attemptsAtATime: 1,
+    openPrsAtATime: 2,
+    claimsPerDay: 3,
+    revealsPerDay: 40,
+  },
+  followThrough: {
+    level: 'REDUCED',
+    reason: 'FOLLOW_THROUGH',
+    attemptsAtATime: 1,
+    openPrsAtATime: 2,
+    claimsPerDay: 3,
+    revealsPerDay: 40,
+  },
+  suspended: {
+    level: 'SUSPENDED',
+    reason: null,
+    attemptsAtATime: 1,
+    openPrsAtATime: 2,
+    claimsPerDay: 0,
+    revealsPerDay: 0,
+  },
+} satisfies Record<string, ContributeLimits>;
 
 /** The spend of a key just connected: nothing spent, the first attempt free to start. */
 export const firstSpend: ContributeSpend = {
@@ -202,6 +239,33 @@ export const views = {
     grantAvailable: true,
   },
   paused: { contributor: contributor({ status: 'PAUSED' }), grant: connected, paused: true, grantAvailable: true },
+  /** A new account, on smaller limits: its settings ask for 3 at a time and 3 open PRs, the limits hold 1 and 2. */
+  newAccount: {
+    contributor: contributor({
+      settings: { ...settings, attemptsAtATime: 3 },
+      limits: limits.newAccount,
+    }),
+    grant: connected,
+    paused: false,
+    grantAvailable: true,
+    attemptsOpen: true,
+  },
+  /** Smaller limits for now: most recent claims ran out without a pull request. */
+  followThrough: {
+    contributor: contributor({ settings: { ...settings, attemptsAtATime: 2 }, limits: limits.followThrough }),
+    grant: connected,
+    paused: false,
+    grantAvailable: true,
+    attemptsOpen: true,
+  },
+  /** Paused by the owner: nothing new starts. */
+  suspended: {
+    contributor: contributor({ limits: limits.suspended }),
+    grant: connected,
+    paused: false,
+    grantAvailable: true,
+    attemptsOpen: true,
+  },
   /** An API that does not answer the grant and the pause yet. */
   fieldsMissing: { contributor: contributor(), grant: undefined, paused: undefined, grantAvailable: true },
   /** An API that does not answer the onboarding yet: the fields are left out. */

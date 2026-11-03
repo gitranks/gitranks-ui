@@ -142,8 +142,16 @@ type ContributeAttempt {
   """
   checkLimit: ContributeCheckLimit
 
+  """Our checks in one word; null before"""
+  checkStatus: ContributeCheckStatusView
+
   """Null until the checks ran"""
   checksPassed: Boolean
+
+  """
+  contributeAttempts: a first attempt's repo conventions (its CLA: signComment, signUrl); null when unread
+  """
+  conventions: ContributeRepoConventions
   costUsd: Float!
   createdAt: String!
 
@@ -153,6 +161,11 @@ type ContributeAttempt {
 
   """A follow-up: the PR it works on"""
   followUpOf: ContributeFollowUpOf
+
+  """
+  contributeAttempts: where a follow-up's run stands (READING, FIXING, CHECKS, READY); null for a first attempt, once past its review, or elsewhere
+  """
+  followUpStep: ContributeFollowUpStep
 
   """A first attempt with a PR: the PR's rounds"""
   followUps: ContributeFollowUps
@@ -179,6 +192,14 @@ type ContributeAttempt {
   """An MCP attempt's PR: through the review, or by hand"""
   openedBy: ContributeOpenedBy
 
+  """A first attempt: the last fix sent to its open PR"""
+  prFix: ContributePrFix
+
+  """
+  contributeAttempts: what its open PR fails of them, with the fixes; null when not open or unread
+  """
+  prIssues: [ContributePrConventionIssue!]
+
   """Null until the PR opened"""
   pullRequest: ContributeAttemptPullRequest
   repositoryId: String!
@@ -192,6 +213,11 @@ type ContributeAttempt {
   review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed, override: a run the viewer forced past a no-go, theirs to approve); null for any other review
   """
   reviewReason: String
+
+  """
+  contributeAttempts: a follow-up's own round (run N, its tallies); null elsewhere
+  """
+  round: ContributeFollowUpRound
   runner: ContributeAttemptRunner!
 
   """
@@ -270,6 +296,11 @@ type ContributeAttemptDetail {
   pending_autosubmit: when autopilot submits it unless the viewer stops it
   """
   autosubmitAt: String
+
+  """
+  The run's brief: the work's, else a no-go's reason; null when the run gave none
+  """
+  brief: String
   budgetUsd: Float!
 
   """An MCP attempt sent back to the agent: the viewer’s note"""
@@ -307,6 +338,11 @@ type ContributeAttemptDetail {
 
   """A follow-up: the PR it works on"""
   followUpOf: ContributeFollowUpOf
+
+  """
+  contributeAttempts: where a follow-up's run stands (READING, FIXING, CHECKS, READY); null for a first attempt, once past its review, or elsewhere
+  """
+  followUpStep: ContributeFollowUpStep
 
   """A first attempt with a PR: the PR's rounds"""
   followUps: ContributeFollowUps
@@ -671,12 +707,22 @@ enum ContributeChecksState {
   SUCCESS
 }
 
-"""A CLA the repo's PRs sign"""
+"""An agreement the repo's PRs sign: a CLA, or a DCO signed like one"""
 type ContributeClaRule {
+  """`CLA` or `DCO`; null from an older contrib (a CLA)"""
+  agreement: String
+
   """The check's name on the PR"""
   check: String!
 
-  """Where to sign, when the check links it"""
+  """
+  The comment that signs it, word for word, posted on the PR by its author; null when signed elsewhere
+  """
+  signComment: String
+
+  """
+  Where to sign, when the check links it; for a comment signature, the document to read
+  """
   signUrl: String
 }
 
@@ -747,6 +793,11 @@ type ContributeContribution {
   agent: ContributeAgent
   attemptId: ID!
 
+  """
+  The repo's conventions (its CLA: signComment, signUrl); null when unread
+  """
+  conventions: ContributeRepoConventions
+
   """The attempt's session cost at list price on the viewer's key"""
   costUsd: Float!
   followUps: ContributeFollowUps!
@@ -759,6 +810,14 @@ type ContributeContribution {
 
   """An MCP attempt: through the review, or by hand"""
   openedBy: ContributeOpenedBy
+
+  """The last fix sent to its open PR"""
+  prFix: ContributePrFix
+
+  """
+  What its open PR fails of them, with the fixes; null when not open or unread
+  """
+  prIssues: [ContributePrConventionIssue!]
   pullRequest: ContributeAttemptPullRequest!
   repositoryId: String!
   runner: ContributeAttemptRunner!
@@ -883,17 +942,29 @@ type ContributeFollowUpOf {
 }
 
 """
-One follow-up round: what it pushed, its threads’ outcomes, the replies posted
+One follow-up run: who started it, what it pushed, its threads’ outcomes, the replies posted
 """
 type ContributeFollowUpRound {
   at: String!
   attemptId: ID!
+
+  """Who started it: user or autopilot"""
+  by: String!
+
+  """What it cost so far, at list price on the viewer’s key (USD)"""
+  costUsd: Float!
+
+  """Replies it drafted, posted or not (the dismissed left out)"""
+  drafted: Int
   endReason: ContributeAttemptEndReason
   fixed: Int!
   needsYou: Int!
 
   """The PR head after its push"""
   pushedSha: String
+
+  """The viewer's note to its agent"""
+  reason: String
 
   """Replies posted"""
   replied: Int!
@@ -903,21 +974,48 @@ type ContributeFollowUpRound {
   round: Int!
   skipped: Int!
   state: ContributeAttemptState!
+
+  """
+  How it started: autopilot, recommended (signals were waiting) or own; null on an older run
+  """
+  trigger: String
 }
 
 """
-A PR's follow-up rounds; past the last the PR is the viewer's to carry on
+Where a follow-up's run stands: reading (the comments, or deciding), fixing (the work sent), checks (ours), ready (for the viewer)
+"""
+enum ContributeFollowUpStep {
+  CHECKS
+  FIXING
+  READING
+  READY
+}
+
+"""
+A PR's follow-up runs: no cap on the viewer's own; autopilot starts at most autopilotMax, and none after the viewer's
 """
 type ContributeFollowUps {
+  autopilotMax: Int!
+  autopilotRuns: Int!
+
   """The follow-up under way"""
   currentAttemptId: ID
-  handedOff: Boolean!
-  handedOffAt: String
 
   """Each round so far, oldest first"""
   history: [ContributeFollowUpRound!]
-  left: Int!
-  max: Int!
+
+  """
+  When the last run that pushed commits ended; null before one did. Until pullRequest.syncedAt passes it, the PR’s signals are from before that push: nothing is recommended, and the PR reads as “Run N pushed · reading the pull request again”
+  """
+  lastEndedAt: String
+
+  """Runs the viewer started"""
+  manualRuns: Int!
+
+  """Open, none under way, and signals a run can act on wait"""
+  recommended: Boolean!
+
+  """Runs so far"""
   used: Int!
 }
 
@@ -929,6 +1027,11 @@ type ContributeGoNoGo {
 
   """budget or time when written at the check’s cap"""
   decidedAtLimit: String
+
+  """
+  A follow-up's no-go: what only the viewer can do next, one sentence the agent wrote (plain text, never markup or a link); null when it left nothing for them
+  """
+  forYou: String
   reason: String!
 
   """
@@ -1253,11 +1356,12 @@ type ContributePrFix {
 }
 
 """
-A one-click fix to an open PR: title (retitle it), body (set its description), changelog (fix the changelog line in a commit)
+A one-click fix to an open PR: title (retitle it), body (set its description), changelog (fix the changelog line in a commit), sign_off (sign off every commit of its branch and force-push it, the code unchanged)
 """
 enum ContributePrFixKind {
   BODY
   CHANGELOG
+  SIGN_OFF
   TITLE
 }
 
@@ -1269,12 +1373,13 @@ enum ContributePrFixState {
 }
 
 """
-A fix sent to an open PR: link (the changelog line's PR number, once it opened), changelog, title, body
+A fix sent to an open PR: link (the changelog line's PR number, once it opened), changelog, title, body, sign_off
 """
 enum ContributePrFixStep {
   BODY
   CHANGELOG
   LINK
+  SIGN_OFF
   TITLE
 }
 
@@ -1292,13 +1397,24 @@ enum ContributePrIssueKind {
 type ContributePrSignal {
   at: String!
 
-  """check_failed: the failing checks’ names; cla: the CLA check’s; bot_blocked: the bot and its verdict"""
+  """run_ended: the follow-up run that ended; null for the other kinds"""
+  attemptId: ID
+
+  """
+  check_failed: the failing checks’ names; cla: the CLA check’s; dco: the DCO check’s; bot_blocked: the bot and its verdict; run_ended: what is left for the viewer (the run’s forYou, else its no-go’s reason, else why it stopped; plain text, at most 300 characters)
+  """
   detail: String
   kind: ContributePrSignalKind!
+
+  """run_ended: how it ended (NO_GO or STOPPED); null for the other kinds"""
+  outcome: ContributeRunEndedOutcome
+
+  """run_ended: its number on the PR (run N); null for the other kinds"""
+  round: Int
 }
 
 """
-What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked)
+What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked), a DCO sign-off check failing (dco: sign off with fixContributePullRequest(SIGN_OFF)); or a follow-up run that pushed nothing came back (run_ended: a no-go, or a stop), with what is left for the viewer
 """
 enum ContributePrSignalKind {
   BOT_BLOCKED
@@ -1306,6 +1422,8 @@ enum ContributePrSignalKind {
   CHECK_FAILED
   CLA
   COMMENT
+  DCO
+  RUN_ENDED
   TITLE
 }
 
@@ -1337,27 +1455,50 @@ input ContributePreferencesInput {
   topicIds: [String!]
 }
 
+"""
+Why a reply was dismissed: posted_by_hand, not_needed (the viewer), thread_resolved (its thread resolved on GitHub)
+"""
+enum ContributeReplyDismissReason {
+  NOT_NEEDED
+  POSTED_BY_HAND
+  THREAD_RESOLVED
+}
+
 """A reply a follow-up drafted; posted only once the viewer approves it"""
 type ContributeReplyDraft {
+  """
+  Posted (or posting) as a comment on the PR in place of its review thread
+  """
+  asComment: Boolean!
+
   """The follow-up that drafted it"""
   attemptId: ID!
 
   """
-  What an approval would post now (the repo's mark, the prefix with its commit), or what was sent
+  The text last sent to GitHub (mark, prefix and text), to post by hand; null until approved once
   """
   body: String
 
   """The thread was opened by a bot: it is resolved once answered"""
   bot: Boolean!
 
+  """
+  GitHub refused it in its review thread: approveReply with asComment posts it as a comment on the PR
+  """
+  canPostAsComment: Boolean!
+
   """Null: a top-level comment on the PR"""
   comment: ContributeReplyTarget
 
   """
-  What it answers on GitHub: the review comment, or the pull request's conversation
+  What it answers on GitHub: the review comment, or the PR's conversation for a top-level comment
   """
   commentUrl: String
   createdAt: String!
+  dismissedAt: String
+
+  """Why it was dismissed"""
+  dismissedReason: ContributeReplyDismissReason
   draftId: ID!
 
   """Why the last post failed"""
@@ -1401,9 +1542,10 @@ input ContributeReplyInput {
 }
 
 """
-A drafted reply: draft, posting (approved), posted, or failed (approve again)
+A drafted reply: draft, posting (approved), posted, failed (approve again), or dismissed (never posted)
 """
 enum ContributeReplyState {
+  DISMISSED
   DRAFT
   FAILED
   POSTED
@@ -1424,6 +1566,14 @@ type ContributeReplyTarget {
 }
 
 """
+Why the viewer dismisses a reply: posted_by_hand (they posted it on GitHub), not_needed
+"""
+enum ContributeReplyUserDismissReason {
+  NOT_NEEDED
+  POSTED_BY_HAND
+}
+
+"""
 A reply draft the viewer can approve now, with its PR. inReview: its follow-up waits in the review (or autopilot's hour) with it, so it folds into that review
 """
 type ContributeReplyWaiting {
@@ -1431,7 +1581,7 @@ type ContributeReplyWaiting {
   attemptId: ID!
 
   """
-  What an approval would post now (the repo's mark, the prefix with its commit), or what was sent
+  The text last sent to GitHub (mark, prefix and text), to post by hand; null until approved once
   """
   body: String
 
@@ -1442,7 +1592,7 @@ type ContributeReplyWaiting {
   comment: ContributeReplyTarget
 
   """
-  What it answers on GitHub: the review comment, or the pull request's conversation
+  What it answers on GitHub: the review comment, or the PR's conversation for a top-level comment
   """
   commentUrl: String
   createdAt: String!
@@ -1630,6 +1780,14 @@ type ContributeRun {
   """Null when the session never read the issue"""
   title: String
   workUsd: Float!
+}
+
+"""
+How a follow-up run that pushed nothing ended: no_go (the agent's verdict) or stopped (it failed, ran out, or was given back)
+"""
+enum ContributeRunEndedOutcome {
+  NO_GO
+  STOPPED
 }
 
 type ContributeRunFollowUpOf {
@@ -2406,9 +2564,9 @@ type Mutation {
   ): ContributeAttempt!
 
   """
-  Approves a drafted reply: it is posted on the PR in the viewer’s name (a reply in its review thread, or a comment). Never posted otherwise. CONFLICT when the PR is no longer open
+  Approves a drafted reply: it is posted on the PR in the viewer’s name (a reply in its review thread, or a comment). Never posted otherwise. asComment: a reply GitHub refused in its review thread (canPostAsComment) posted as a comment on the PR instead, linking the thread. CONFLICT when the PR is no longer open, or the reply cannot go as a comment
   """
-  approveReply(draftId: ID!): ContributeReplyDraft!
+  approveReply(asComment: Boolean, draftId: ID!): ContributeReplyDraft!
 
   """
   Checks a Claude API key (one 1-token request on it), seals and stores it; never answered back. confirmedLimit: the key is in a separate workspace with a monthly spend limit. cycleCapUsd is required for purchased credits and overrides the plan’s credit otherwise; limits sets the week, day and attempt caps and the pace (BAD_USER_INPUT, nothing stored, when the attempt cap is above a cap that is set). A stored key onboards the viewer
@@ -2431,7 +2589,12 @@ type Mutation {
   discardAttempt(id: ID!): ContributeAttempt!
 
   """
-  A one-click fix to the viewer's open PR, on their GitHub grant: TITLE retitles it (CONFLICT when the title fails the repo's checked title rule), BODY sets its description (our footer kept), CHANGELOG fixes its changelog line in a commit on its branch. CONFLICT when another fix is on its way or the PR is not open
+  Dismisses a drafted or failed reply: never posted, and it no longer waits for the viewer (they posted it on GitHub themselves, or it is not needed). CONFLICT when it is posting or posted
+  """
+  dismissReply(draftId: ID!, reason: ContributeReplyUserDismissReason!): ContributeReplyDraft!
+
+  """
+  A one-click fix to the viewer's open PR, on their GitHub grant: TITLE retitles it (CONFLICT when the title fails the repo's checked title rule), BODY sets its description (our footer kept), CHANGELOG fixes its changelog line in a commit on its branch, SIGN_OFF signs off every commit of its branch and force-pushes it, the code unchanged (CONFLICT unless the PR has a DCO signal, or when it was opened by hand). CONFLICT when another fix is on its way or the PR is not open
   """
   fixContributePullRequest(attemptId: ID!, body: String, kind: ContributePrFixKind!, title: String): ContributeAttemptDetail!
 
@@ -2446,9 +2609,13 @@ type Mutation {
   ignoreReviewThreads(commentIds: [ID!]!, ignore: Boolean! = true, prId: ID!): [ID!]!
 
   """
-  Mark as handled: clears the open PR’s needs-you signals (kept on its timeline); a signal found later raises it again. The PR’s first attempt back. NOT_FOUND when not the viewer’s, CONFLICT when the PR is not open
+  Mark as handled: clears the open PR’s needs-you signals (kept on its timeline); a signal found later raises it again. With kinds, only the signals of those kinds (one card’s “I’ve done it”). The PR’s first attempt back. NOT_FOUND when not the viewer’s, CONFLICT when the PR is not open
   """
-  markNeedsYouHandled(prId: ID!): ContributeAttempt!
+  markNeedsYouHandled(
+    """Only these signals leave; left out, all of them"""
+    kinds: [ContributePrSignalKind!]
+    prId: ID!
+  ): ContributeAttempt!
 
   """A "Notify me" on a coming-soon provider"""
   noteProviderInterest(provider: ContributeComingSoonProvider!): Boolean!

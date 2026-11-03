@@ -131,8 +131,12 @@ export type ContributeAttempt = {
   changesRequested?: Maybe<ContributeChangesRequested>;
   /** A no-go decided at the check's budget or time limit (decided), or reached by it with no verdict; null otherwise */
   checkLimit?: Maybe<ContributeCheckLimit>;
+  /** Our checks in one word; null before */
+  checkStatus?: Maybe<ContributeCheckStatusView>;
   /** Null until the checks ran */
   checksPassed?: Maybe<Scalars['Boolean']['output']>;
+  /** contributeAttempts: a first attempt's repo conventions (its CLA: signComment, signUrl); null when unread */
+  conventions?: Maybe<ContributeRepoConventions>;
   costUsd: Scalars['Float']['output'];
   createdAt: Scalars['String']['output'];
   /** A fixed code, or the agent's no-go reason */
@@ -140,6 +144,8 @@ export type ContributeAttempt = {
   endReason?: Maybe<ContributeAttemptEndReason>;
   /** A follow-up: the PR it works on */
   followUpOf?: Maybe<ContributeFollowUpOf>;
+  /** contributeAttempts: where a follow-up's run stands (READING, FIXING, CHECKS, READY); null for a first attempt, once past its review, or elsewhere */
+  followUpStep?: Maybe<ContributeFollowUpStep>;
   /** A first attempt with a PR: the PR's rounds */
   followUps?: Maybe<ContributeFollowUps>;
   /** The issue's GitHub node id */
@@ -155,6 +161,10 @@ export type ContributeAttempt = {
   number: Scalars['Int']['output'];
   /** An MCP attempt's PR: through the review, or by hand */
   openedBy?: Maybe<ContributeOpenedBy>;
+  /** A first attempt: the last fix sent to its open PR */
+  prFix?: Maybe<ContributePrFix>;
+  /** contributeAttempts: what its open PR fails of them, with the fixes; null when not open or unread */
+  prIssues?: Maybe<Array<ContributePrConventionIssue>>;
   /** Null until the PR opened */
   pullRequest?: Maybe<ContributeAttemptPullRequest>;
   repositoryId: Scalars['String']['output'];
@@ -162,6 +172,8 @@ export type ContributeAttempt = {
   reviewAt?: Maybe<Scalars['String']['output']>;
   /** review: why autopilot left it for the viewer (no_email, notice_late, autopilot_off, vetoed, override: a run the viewer forced past a no-go, theirs to approve); null for any other review */
   reviewReason?: Maybe<Scalars['String']['output']>;
+  /** contributeAttempts: a follow-up's own round (run N, its tallies); null elsewhere */
+  round?: Maybe<ContributeFollowUpRound>;
   runner: ContributeAttemptRunner;
   /** An MCP attempt in review: how many more times it may be sent back (0 otherwise) */
   sendBacksLeft: Scalars['Int']['output'];
@@ -231,6 +243,8 @@ export type ContributeAttemptDetail = {
   autopilot: Scalars['Boolean']['output'];
   /** pending_autosubmit: when autopilot submits it unless the viewer stops it */
   autosubmitAt?: Maybe<Scalars['String']['output']>;
+  /** The run's brief: the work's, else a no-go's reason; null when the run gave none */
+  brief?: Maybe<Scalars['String']['output']>;
   budgetUsd: Scalars['Float']['output'];
   /** An MCP attempt sent back to the agent: the viewer’s note */
   changesRequested?: Maybe<ContributeChangesRequested>;
@@ -254,6 +268,8 @@ export type ContributeAttemptDetail = {
   events: Array<ContributeAttemptEvent>;
   /** A follow-up: the PR it works on */
   followUpOf?: Maybe<ContributeFollowUpOf>;
+  /** contributeAttempts: where a follow-up's run stands (READING, FIXING, CHECKS, READY); null for a first attempt, once past its review, or elsewhere */
+  followUpStep?: Maybe<ContributeFollowUpStep>;
   /** A first attempt with a PR: the PR's rounds */
   followUps?: Maybe<ContributeFollowUps>;
   /** The session's latest go/no-go */
@@ -615,6 +631,8 @@ export type ContributeContribution = {
   __typename?: 'ContributeContribution';
   agent?: Maybe<ContributeAgent>;
   attemptId: Scalars['ID']['output'];
+  /** The repo's conventions (its CLA: signComment, signUrl); null when unread */
+  conventions?: Maybe<ContributeRepoConventions>;
   /** The attempt's session cost at list price on the viewer's key */
   costUsd: Scalars['Float']['output'];
   followUps: ContributeFollowUps;
@@ -625,6 +643,10 @@ export type ContributeContribution = {
   needsYou?: Maybe<ContributeNeedsYou>;
   /** An MCP attempt: through the review, or by hand */
   openedBy?: Maybe<ContributeOpenedBy>;
+  /** The last fix sent to its open PR */
+  prFix?: Maybe<ContributePrFix>;
+  /** What its open PR fails of them, with the fixes; null when not open or unread */
+  prIssues?: Maybe<Array<ContributePrConventionIssue>>;
   pullRequest: ContributeAttemptPullRequest;
   repositoryId: Scalars['String']['output'];
   runner: ContributeAttemptRunner;
@@ -734,16 +756,24 @@ export type ContributeFollowUpOf = {
   url: Scalars['String']['output'];
 };
 
-/** One follow-up round: what it pushed, its threads’ outcomes, the replies posted */
+/** One follow-up run: who started it, what it pushed, its threads’ outcomes, the replies posted */
 export type ContributeFollowUpRound = {
   __typename?: 'ContributeFollowUpRound';
   at: Scalars['String']['output'];
   attemptId: Scalars['ID']['output'];
+  /** Who started it: user or autopilot */
+  by: Scalars['String']['output'];
+  /** What it cost so far, at list price on the viewer’s key (USD) */
+  costUsd: Scalars['Float']['output'];
+  /** Replies it drafted, posted or not (the dismissed left out) */
+  drafted?: Maybe<Scalars['Int']['output']>;
   endReason?: Maybe<ContributeAttemptEndReason>;
   fixed: Scalars['Int']['output'];
   needsYou: Scalars['Int']['output'];
   /** The PR head after its push */
   pushedSha?: Maybe<Scalars['String']['output']>;
+  /** The viewer's note to its agent */
+  reason?: Maybe<Scalars['String']['output']>;
   /** Replies posted */
   replied: Scalars['Int']['output'];
   /** Threads resolved */
@@ -751,19 +781,34 @@ export type ContributeFollowUpRound = {
   round: Scalars['Int']['output'];
   skipped: Scalars['Int']['output'];
   state: ContributeAttemptState;
+  /** How it started: autopilot, recommended (signals were waiting) or own; null on an older run */
+  trigger?: Maybe<Scalars['String']['output']>;
 };
 
-/** A PR's follow-up rounds; past the last the PR is the viewer's to carry on */
+/** Where a follow-up's run stands: reading (the comments, or deciding), fixing (the work sent), checks (ours), ready (for the viewer) */
+export enum ContributeFollowUpStep {
+  Checks = 'CHECKS',
+  Fixing = 'FIXING',
+  Reading = 'READING',
+  Ready = 'READY'
+}
+
+/** A PR's follow-up runs: no cap on the viewer's own; autopilot starts at most autopilotMax, and none after the viewer's */
 export type ContributeFollowUps = {
   __typename?: 'ContributeFollowUps';
+  autopilotMax: Scalars['Int']['output'];
+  autopilotRuns: Scalars['Int']['output'];
   /** The follow-up under way */
   currentAttemptId?: Maybe<Scalars['ID']['output']>;
-  handedOff: Scalars['Boolean']['output'];
-  handedOffAt?: Maybe<Scalars['String']['output']>;
   /** Each round so far, oldest first */
   history?: Maybe<Array<ContributeFollowUpRound>>;
-  left: Scalars['Int']['output'];
-  max: Scalars['Int']['output'];
+  /** When the last run that pushed commits ended; null before one did. Until pullRequest.syncedAt passes it, the PR’s signals are from before that push: nothing is recommended, and the PR reads as “Run N pushed · reading the pull request again” */
+  lastEndedAt?: Maybe<Scalars['String']['output']>;
+  /** Runs the viewer started */
+  manualRuns: Scalars['Int']['output'];
+  /** Open, none under way, and signals a run can act on wait */
+  recommended: Scalars['Boolean']['output'];
+  /** Runs so far */
   used: Scalars['Int']['output'];
 };
 
@@ -773,6 +818,8 @@ export type ContributeGoNoGo = {
   at: Scalars['String']['output'];
   /** budget or time when written at the check’s cap */
   decidedAtLimit?: Maybe<Scalars['String']['output']>;
+  /** A follow-up's no-go: what only the viewer can do next, one sentence the agent wrote (plain text, never markup or a link); null when it left nothing for them */
+  forYou?: Maybe<Scalars['String']['output']>;
   reason: Scalars['String']['output'];
   /** A no-go's release (taken, closed, already_fixed, …): taken shows the warning by the retry. Null for a go, on an older run, or when the agent gave none */
   release?: Maybe<Scalars['String']['output']>;
@@ -1052,10 +1099,11 @@ export type ContributePrFix = {
   state: ContributePrFixState;
 };
 
-/** A one-click fix to an open PR: title (retitle it), body (set its description), changelog (fix the changelog line in a commit) */
+/** A one-click fix to an open PR: title (retitle it), body (set its description), changelog (fix the changelog line in a commit), sign_off (sign off every commit of its branch and force-push it, the code unchanged) */
 export enum ContributePrFixKind {
   Body = 'BODY',
   Changelog = 'CHANGELOG',
+  SignOff = 'SIGN_OFF',
   Title = 'TITLE'
 }
 
@@ -1066,11 +1114,12 @@ export enum ContributePrFixState {
   Sending = 'SENDING'
 }
 
-/** A fix sent to an open PR: link (the changelog line's PR number, once it opened), changelog, title, body */
+/** A fix sent to an open PR: link (the changelog line's PR number, once it opened), changelog, title, body, sign_off */
 export enum ContributePrFixStep {
   Body = 'BODY',
   Changelog = 'CHANGELOG',
   Link = 'LINK',
+  SignOff = 'SIGN_OFF',
   Title = 'TITLE'
 }
 
@@ -1086,18 +1135,26 @@ export enum ContributePrIssueKind {
 export type ContributePrSignal = {
   __typename?: 'ContributePrSignal';
   at: Scalars['String']['output'];
-  /** check_failed: the failing checks’ names; cla: the CLA check’s; bot_blocked: the bot and its verdict */
+  /** run_ended: the follow-up run that ended; null for the other kinds */
+  attemptId?: Maybe<Scalars['ID']['output']>;
+  /** check_failed: the failing checks’ names; cla: the CLA check’s; dco: the DCO check’s; bot_blocked: the bot and its verdict; run_ended: what is left for the viewer (the run’s forYou, else its no-go’s reason, else why it stopped; plain text, at most 300 characters) */
   detail?: Maybe<Scalars['String']['output']>;
   kind: ContributePrSignalKind;
+  /** run_ended: how it ended (NO_GO or STOPPED); null for the other kinds */
+  outcome?: Maybe<ContributeRunEndedOutcome>;
+  /** run_ended: its number on the PR (run N); null for the other kinds */
+  round?: Maybe<Scalars['Int']['output']>;
 };
 
-/** What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked) */
+/** What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked), a DCO sign-off check failing (dco: sign off with fixContributePullRequest(SIGN_OFF)); or a follow-up run that pushed nothing came back (run_ended: a no-go, or a stop), with what is left for the viewer */
 export enum ContributePrSignalKind {
   BotBlocked = 'BOT_BLOCKED',
   ChangesRequested = 'CHANGES_REQUESTED',
   CheckFailed = 'CHECK_FAILED',
   Cla = 'CLA',
   Comment = 'COMMENT',
+  Dco = 'DCO',
+  RunEnded = 'RUN_ENDED',
   Title = 'TITLE'
 }
 
@@ -1129,20 +1186,34 @@ export type ContributePreferencesInput = {
   topicIds?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
+/** Why a reply was dismissed: posted_by_hand, not_needed (the viewer), thread_resolved (its thread resolved on GitHub) */
+export enum ContributeReplyDismissReason {
+  NotNeeded = 'NOT_NEEDED',
+  PostedByHand = 'POSTED_BY_HAND',
+  ThreadResolved = 'THREAD_RESOLVED'
+}
+
 /** A reply a follow-up drafted; posted only once the viewer approves it */
 export type ContributeReplyDraft = {
   __typename?: 'ContributeReplyDraft';
+  /** Posted (or posting) as a comment on the PR in place of its review thread */
+  asComment: Scalars['Boolean']['output'];
   /** The follow-up that drafted it */
   attemptId: Scalars['ID']['output'];
-  /** What an approval would post now (the repo's mark, the prefix with its commit), or what was sent */
+  /** The text last sent to GitHub (mark, prefix and text), to post by hand; null until approved once */
   body?: Maybe<Scalars['String']['output']>;
   /** The thread was opened by a bot: it is resolved once answered */
   bot: Scalars['Boolean']['output'];
+  /** GitHub refused it in its review thread: approveReply with asComment posts it as a comment on the PR */
+  canPostAsComment: Scalars['Boolean']['output'];
   /** Null: a top-level comment on the PR */
   comment?: Maybe<ContributeReplyTarget>;
-  /** What it answers on GitHub: the review comment, or the pull request's conversation */
+  /** What it answers on GitHub: the review comment, or the PR's conversation for a top-level comment */
   commentUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
+  dismissedAt?: Maybe<Scalars['String']['output']>;
+  /** Why it was dismissed */
+  dismissedReason?: Maybe<ContributeReplyDismissReason>;
   draftId: Scalars['ID']['output'];
   /** Why the last post failed */
   lastError?: Maybe<ContributeSubmitError>;
@@ -1175,8 +1246,9 @@ export type ContributeReplyInput = {
   text: Scalars['String']['input'];
 };
 
-/** A drafted reply: draft, posting (approved), posted, or failed (approve again) */
+/** A drafted reply: draft, posting (approved), posted, failed (approve again), or dismissed (never posted) */
 export enum ContributeReplyState {
+  Dismissed = 'DISMISSED',
   Draft = 'DRAFT',
   Failed = 'FAILED',
   Posted = 'POSTED',
@@ -1195,18 +1267,24 @@ export type ContributeReplyTarget = {
   path?: Maybe<Scalars['String']['output']>;
 };
 
+/** Why the viewer dismisses a reply: posted_by_hand (they posted it on GitHub), not_needed */
+export enum ContributeReplyUserDismissReason {
+  NotNeeded = 'NOT_NEEDED',
+  PostedByHand = 'POSTED_BY_HAND'
+}
+
 /** A reply draft the viewer can approve now, with its PR. inReview: its follow-up waits in the review (or autopilot's hour) with it, so it folds into that review */
 export type ContributeReplyWaiting = {
   __typename?: 'ContributeReplyWaiting';
   /** The follow-up that drafted it */
   attemptId: Scalars['ID']['output'];
-  /** What an approval would post now (the repo's mark, the prefix with its commit), or what was sent */
+  /** The text last sent to GitHub (mark, prefix and text), to post by hand; null until approved once */
   body?: Maybe<Scalars['String']['output']>;
   /** The thread was opened by a bot: it is resolved once answered */
   bot: Scalars['Boolean']['output'];
   /** Null: a top-level comment on the PR */
   comment?: Maybe<ContributeReplyTarget>;
-  /** What it answers on GitHub: the review comment, or the pull request's conversation */
+  /** What it answers on GitHub: the review comment, or the PR's conversation for a top-level comment */
   commentUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
   draftId: Scalars['ID']['output'];
@@ -1359,6 +1437,12 @@ export type ContributeRun = {
   title?: Maybe<Scalars['String']['output']>;
   workUsd: Scalars['Float']['output'];
 };
+
+/** How a follow-up run that pushed nothing ended: no_go (the agent's verdict) or stopped (it failed, ran out, or was given back) */
+export enum ContributeRunEndedOutcome {
+  NoGo = 'NO_GO',
+  Stopped = 'STOPPED'
+}
 
 export type ContributeRunFollowUpOf = {
   __typename?: 'ContributeRunFollowUpOf';
@@ -2037,7 +2121,7 @@ export type Mutation = {
   addToContributeSet: ContributeSetAddResult;
   /** Approves an attempt in review with the PR’s title and body as edited, and the DCO sign-off (used only on a repo that requires it, `dcoRequired`): the submission starts (fork, push, PR in the viewer’s name). CONFLICT when the attempt is not in review */
   approveAttempt: ContributeAttempt;
-  /** Approves a drafted reply: it is posted on the PR in the viewer’s name (a reply in its review thread, or a comment). Never posted otherwise. CONFLICT when the PR is no longer open */
+  /** Approves a drafted reply: it is posted on the PR in the viewer’s name (a reply in its review thread, or a comment). Never posted otherwise. asComment: a reply GitHub refused in its review thread (canPostAsComment) posted as a comment on the PR instead, linking the thread. CONFLICT when the PR is no longer open, or the reply cannot go as a comment */
   approveReply: ContributeReplyDraft;
   /** Checks a Claude API key (one 1-token request on it), seals and stores it; never answered back. confirmedLimit: the key is in a separate workspace with a monthly spend limit. cycleCapUsd is required for purchased credits and overrides the plan’s credit otherwise; limits sets the week, day and attempt caps and the pace (BAD_USER_INPUT, nothing stored, when the attempt cap is above a cap that is set). A stored key onboards the viewer */
   connectClaudeKey: ContributeConnectKeyResult;
@@ -2047,13 +2131,15 @@ export type Mutation = {
   deleteContributeData: ContributeDeleteDataResult;
   /** Discards a queued attempt or one in review; its issue goes back to the pool. CONFLICT from any other state */
   discardAttempt: ContributeAttempt;
-  /** A one-click fix to the viewer's open PR, on their GitHub grant: TITLE retitles it (CONFLICT when the title fails the repo's checked title rule), BODY sets its description (our footer kept), CHANGELOG fixes its changelog line in a commit on its branch. CONFLICT when another fix is on its way or the PR is not open */
+  /** Dismisses a drafted or failed reply: never posted, and it no longer waits for the viewer (they posted it on GitHub themselves, or it is not needed). CONFLICT when it is posting or posted */
+  dismissReply: ContributeReplyDraft;
+  /** A one-click fix to the viewer's open PR, on their GitHub grant: TITLE retitles it (CONFLICT when the title fails the repo's checked title rule), BODY sets its description (our footer kept), CHANGELOG fixes its changelog line in a commit on its branch, SIGN_OFF signs off every commit of its branch and force-pushes it, the code unchanged (CONFLICT unless the PR has a DCO signal, or when it was opened by hand). CONFLICT when another fix is on its way or the PR is not open */
   fixContributePullRequest: ContributeAttemptDetail;
   /** Takes a repo off every list and the targets and onto the ignore list. LIST_FULL when it holds 50, NOT_FOUND for a repo in no list */
   ignoreContributeRepo: ContributeSet;
   /** Ignores review threads of the viewer’s open PR (first comments’ node ids), or brings them back with ignore: false. An ignored thread is never addressed or followed up again, unless a comment arrives on it after; a follow-up under way drops its unsent reply. The PR’s ignored threads back. NOT_FOUND when not the viewer’s, CONFLICT when the PR is not open */
   ignoreReviewThreads: Array<Scalars['ID']['output']>;
-  /** Mark as handled: clears the open PR’s needs-you signals (kept on its timeline); a signal found later raises it again. The PR’s first attempt back. NOT_FOUND when not the viewer’s, CONFLICT when the PR is not open */
+  /** Mark as handled: clears the open PR’s needs-you signals (kept on its timeline); a signal found later raises it again. With kinds, only the signals of those kinds (one card’s “I’ve done it”). The PR’s first attempt back. NOT_FOUND when not the viewer’s, CONFLICT when the PR is not open */
   markNeedsYouHandled: ContributeAttempt;
   /** A "Notify me" on a coming-soon provider */
   noteProviderInterest: Scalars['Boolean']['output'];
@@ -2118,6 +2204,7 @@ export type MutationApproveAttemptArgs = {
 
 
 export type MutationApproveReplyArgs = {
+  asComment?: InputMaybe<Scalars['Boolean']['input']>;
   draftId: Scalars['ID']['input'];
 };
 
@@ -2142,6 +2229,12 @@ export type MutationDiscardAttemptArgs = {
 };
 
 
+export type MutationDismissReplyArgs = {
+  draftId: Scalars['ID']['input'];
+  reason: ContributeReplyUserDismissReason;
+};
+
+
 export type MutationFixContributePullRequestArgs = {
   attemptId: Scalars['ID']['input'];
   body?: InputMaybe<Scalars['String']['input']>;
@@ -2163,6 +2256,7 @@ export type MutationIgnoreReviewThreadsArgs = {
 
 
 export type MutationMarkNeedsYouHandledArgs = {
+  kinds?: InputMaybe<Array<ContributePrSignalKind>>;
   prId: Scalars['ID']['input'];
 };
 

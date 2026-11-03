@@ -1,7 +1,9 @@
+import { attemptsCapNoteOf } from './access-limits';
 import type {
   ContributeCredential,
   ContributeGrant,
   ContributeIssueSize,
+  ContributeLimits,
   ContributeOwnAgent,
   ContributePreferences,
   ContributeSet,
@@ -97,9 +99,19 @@ export function preferencesSummaryOf(preferences: ContributePreferences | null):
   ].join(' · ');
 }
 
-/** "$100 a cycle · Even, then a final sweep · renews on the 1st". */
-export const budgetSummaryOf = (settings: ContributeSettings) =>
-  `${usd(settings.cycleCapUsd)} a cycle · ${PACES[settings.pace].title} · renews on ${ordinalDay(settings.renewalDay)}`;
+/**
+ * "$100 a cycle · Even, then a final sweep · renews on the 1st", and "· 1 at a time (new-account limit)" while the
+ * access level holds the attempts at a time below the setting.
+ */
+export const budgetSummaryOf = (settings: ContributeSettings, limits?: ContributeLimits | null) =>
+  [
+    `${usd(settings.cycleCapUsd)} a cycle`,
+    PACES[settings.pace].title,
+    `renews on ${ordinalDay(settings.renewalDay)}`,
+    attemptsCapNoteOf(settings, limits),
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
 /** "Claude Sonnet 5.5, high effort · PRs up to 400 lines, 15 files". */
 export const agentSummaryOf = (settings: ContributeSettings) =>

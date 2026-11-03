@@ -22,7 +22,12 @@ import { isGone, useFocusOnGone } from './issue-live-status';
 import { type IssuesQuery, issuesHref } from './issues-filter';
 import { OtherIssuesDivider, SetIssuesHeading } from './issues-mode';
 import { onContributeChanges } from '@/lib/contribute/changes-bus';
-import type { ContributeIssue, ContributeIssuesFilter, ContributeSet } from '@/lib/contribute/contribute.types';
+import type {
+  ContributeDailyCap,
+  ContributeIssue,
+  ContributeIssuesFilter,
+  ContributeSet,
+} from '@/lib/contribute/contribute.types';
 import {
   createLiveFeed,
   ISSUES_PAGE_SIZE,
@@ -33,7 +38,7 @@ import {
 import { tiersOf } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
 
-type LivePage = { items: ContributeIssue[]; total: number; next: string | null };
+type LivePage = { items: ContributeIssue[]; total: number; next: string | null; dailyCap?: ContributeDailyCap | null };
 
 type LiveState = { feed: LiveFeed; snapshot: LiveSnapshot };
 const LiveContext = createContext<LiveState | null>(null);
@@ -45,7 +50,8 @@ const reducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** A newer read of the page (another cursor, the filters, a refresh): the list takes it in. */
-const signatureOf = (page: LivePage) => `${page.total}|${page.next ?? ''}|${page.items.map((i) => i.issueId).join()}`;
+const signatureOf = (page: LivePage) =>
+  `${page.total}|${page.next ?? ''}|${page.dailyCap?.reached ?? ''}|${page.items.map((i) => i.issueId).join()}`;
 
 /**
  * The focus on a row about to leave, moved to the nearest row that stays (the next one first), else to the list
@@ -99,6 +105,8 @@ function useLiveFeed(
   useEffect(() => {
     feed.start();
     feed.onBeforeRemove((issueId) => moveFocusOff(root.current, issueId));
+    // A page that came short (the day's cap left issues off) is filled now, not at the next change.
+    void feed.fill();
     // One status read at a time; a change named while one runs reads once more after it, never lost.
     let reading = false;
     let again = false;
@@ -233,8 +241,27 @@ export function LiveIssueList({ rows, feed, other = false }: { rows: LiveRow[]; 
 }
 
 /**
+ * The end of the list once the day's cap on new issues is reached: the issues shown today stay, new ones come at
+ * 00:00 UTC.
+ */
+export function DailyCapEnd({ cap }: { cap: ContributeDailyCap }) {
+  return (
+    <div data-feed-end="daily-cap" className="flex flex-col gap-1 rounded-xl border bg-card px-4 py-3.5">
+      <span className="font-semibold">That&apos;s today&apos;s new issues</span>
+      <span className="text-sm text-muted-foreground">
+        You&apos;ve seen{' '}
+        <span className="font-mono tabular-nums text-foreground">{cap.limit.toLocaleString('en-US')}</span> new issues
+        today, the most we show in a day. More arrive at 00:00 UTC; the ones you&apos;ve seen stay on this list until
+        then.
+      </span>
+    </div>
+  );
+}
+
+/**
  * The issues as rows, split under the user's list and the other issues where the mode does, and the way to the next
- * page; `empty` once every row has left and the feed has no more.
+ * page; `empty` once every row has left and the feed has no more. The list ends with the day's cap once it is
+ * reached, in place of `empty` when no row is left.
  */
 export function LiveIssuesFeed({
   set,
@@ -257,9 +284,11 @@ export function LiveIssuesFeed({
       )
     : null;
 
+  const capped = snapshot.dailyCap?.reached ? snapshot.dailyCap : null;
+
   return (
     <>
-      {!snapshot.rows.length && !snapshot.next ? empty : null}
+      {!snapshot.rows.length && !snapshot.next && !capped ? empty : null}
       {split && set ? (
         <>
           {split.set.length ? <SetIssuesHeading set={set} /> : null}
@@ -270,6 +299,7 @@ export function LiveIssuesFeed({
       ) : (
         <LiveIssueList rows={snapshot.rows} feed={feed} />
       )}
+      {capped ? <DailyCapEnd cap={capped} /> : null}
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         {query.after ? (
           <Link href={issuesHref({ ...query, after: undefined }) as Route} prefetch={false} className="text-link">

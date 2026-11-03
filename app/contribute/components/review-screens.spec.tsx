@@ -740,6 +740,20 @@ describe('the review screen', () => {
     },
   );
 
+  it("says how long a change waits for review: 48 hours for the user's own agent's claim, seven days otherwise", () => {
+    expect(text(review(detail()))).toContain('It waits seven days for you.');
+    const own = detail({ runner: 'MCP', agent: { name: 'CODEX', model: null } });
+    expect(text(review(own))).toContain('It waits 48 hours for you.');
+
+    expect(text(review(stopped('REVIEW_EXPIRED')))).toContain('It waited seven days for a review, so it was let go.');
+    expect(text(review({ ...stopped('REVIEW_EXPIRED'), runner: 'MCP' }))).toContain(
+      'It waited 48 hours for a review, so it was let go.',
+    );
+    expect(text(review({ ...stopped('MCP_IDLE'), runner: 'MCP' }))).toContain(
+      'Your agent made no call for 24 hours, or no passing submission for 48 hours, so the issue was let go.',
+    );
+  });
+
   it.each(Object.keys(END_REASONS) as ContributeAttemptEndReason[])(
     'says in plain words why it stopped: %s',
     (reason) => {

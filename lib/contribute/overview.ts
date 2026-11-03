@@ -1,3 +1,4 @@
+import { effectiveSettingOf } from './access-limits';
 import { AGENT_NAMES } from './attempt-format';
 import type {
   ContributeAttempt,
@@ -123,12 +124,16 @@ function hostedHoldOf(
   if (VIEW_BLOCKS.has(step.kind)) return step;
 
   const settings = view.contributor?.settings;
-  if (inFlight?.length && settings && inFlight.length >= settings.attemptsAtATime) {
+  // The slots and the open PRs cap as they hold now: the access level may hold them below the settings.
+  const limits = view.contributor?.limits;
+  const slots = settings ? effectiveSettingOf(settings, limits, 'attemptsAtATime') : 0;
+  const prCap = settings ? effectiveSettingOf(settings, limits, 'openPrsAtATime') : 0;
+  if (inFlight?.length && settings && inFlight.length >= slots) {
     // With none of them hosted, the user's own agent holds every slot.
-    return { kind: working ? 'slots-busy' : 'slots-taken', slots: settings.attemptsAtATime };
+    return { kind: working ? 'slots-busy' : 'slots-taken', slots };
   }
-  if (counts && settings && counts.prBound >= settings.openPrsAtATime) {
-    return { kind: 'pr-cap', prBound: counts.prBound, cap: settings.openPrsAtATime };
+  if (counts && settings && counts.prBound >= prCap) {
+    return { kind: 'pr-cap', prBound: counts.prBound, cap: prCap };
   }
   if (counts && settings?.pace === 'QUEUED' && counts.queued === 0) return { kind: 'nothing-queued' };
   if (step.kind === 'no-room') return step;

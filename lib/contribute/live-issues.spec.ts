@@ -3,7 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { issue } from './__fixtures__/contribute-overview';
 import type { ContributeIssue, ContributeIssuePage, ContributeIssueStatus } from './contribute.types';
 import type { ContributeActionResult } from './errors';
-import { createLiveFeed, LIVE_EXIT_AFTER_MS, LIVE_LEAVE_MS, type LiveFeedOptions, skipOutcomeOf } from './live-issues';
+import {
+  createLiveFeed,
+  FILL_READS_MAX,
+  LIVE_EXIT_AFTER_MS,
+  LIVE_LEAVE_MS,
+  type LiveFeedOptions,
+  skipOutcomeOf,
+} from './live-issues';
 
 type StatusRead = ContributeActionResult<ContributeIssueStatus[] | null>;
 
@@ -242,6 +249,85 @@ describe('a live list of issues', () => {
     await feed.poll();
     expect(ids(feed)).toEqual(['I_1', 'I_9']);
     expect(feed.getSnapshot().next).toBeNull();
+  });
+
+  it("reads past a page the day's cap left empty while the feed has more, and takes the cap from it", async () => {
+    const pages: ContributeIssuePage[] = [
+      { items: [], next: 'c3', total: 40, computedAt: null, dailyCap: { limit: 40, reached: true } },
+      { items: [issue({ issueId: 'I_9', rank: 9 })], next: null, total: 40, computedAt: null, dailyCap: null },
+    ];
+    const readMore = vi.fn(
+      async (_after: string): Promise<ContributeActionResult<ContributeIssuePage | null>> => ({
+        ok: true,
+        data: pages.shift() ?? null,
+      }),
+    );
+    const feed = feedOf({ items: ISSUES.slice(0, 1), limit: 2, next: 'c2', readMore });
+
+    await feed.fill();
+
+    expect(readMore.mock.calls.map(([after]) => after)).toEqual(['c2', 'c3']);
+    expect(ids(feed)).toEqual(['I_1', 'I_9']);
+    expect(feed.getSnapshot().next).toBeNull();
+    expect(feed.getSnapshot().dailyCap).toBeNull();
+  });
+
+  it('reads at most a few empty pages a fill, and stops at a cursor that does not move', async () => {
+    let cursor = 0;
+    const readMore = vi.fn(async (): Promise<ContributeActionResult<ContributeIssuePage | null>> => {
+      cursor += 1;
+      return {
+        ok: true,
+        data: {
+          items: [],
+          next: `c${cursor}`,
+          total: 40,
+          computedAt: null,
+          dailyCap: { limit: 40, reached: true },
+        },
+      };
+    });
+    const feed = feedOf({ items: ISSUES.slice(0, 1), limit: 2, next: 'c0', readMore });
+
+    await feed.fill();
+    expect(readMore).toHaveBeenCalledTimes(FILL_READS_MAX);
+    expect(feed.getSnapshot()).toMatchObject({ next: `c${FILL_READS_MAX}`, dailyCap: { limit: 40, reached: true } });
+
+    const stuck = vi.fn(
+      async (): Promise<ContributeActionResult<ContributeIssuePage | null>> => ({
+        ok: true,
+        data: { items: [], next: 'c1', total: 40, computedAt: null },
+      }),
+    );
+    await feedOf({ items: ISSUES.slice(0, 1), limit: 2, next: 'c1', readMore: stuck }).fill();
+    expect(stuck).toHaveBeenCalledTimes(1);
+  });
+
+  it('fills a newer read of the page that came while a fill was under way', async () => {
+    let answer: (value: ContributeActionResult<ContributeIssuePage | null>) => void = () => undefined;
+    const readMore = vi
+      .fn<NonNullable<LiveFeedOptions['readMore']>>()
+      .mockImplementationOnce(() => new Promise((r) => (answer = r)))
+      .mockResolvedValueOnce({
+        ok: true,
+        data: { items: [issue({ issueId: 'I_8', rank: 8 })], next: null, total: 3, computedAt: null },
+      });
+    const feed = feedOf({ items: ISSUES.slice(0, 1), limit: 3, next: 'c2', readMore });
+
+    const first = feed.fill();
+    feed.reset({ items: ISSUES.slice(0, 2), total: 3, next: 'c5' });
+    answer({ ok: true, data: { items: [issue({ issueId: 'I_9' })], next: 'c9', total: 9, computedAt: null } });
+    await first;
+
+    expect(readMore).toHaveBeenLastCalledWith('c5', 1);
+    expect(ids(feed)).toEqual(['I_1', 'I_2', 'I_8']);
+  });
+
+  it("keeps the day's cap the page was read with, and a newer read's", () => {
+    const feed = feedOf({ dailyCap: { limit: 150, reached: true } });
+    expect(feed.getSnapshot().dailyCap).toEqual({ limit: 150, reached: true });
+    feed.reset({ items: ISSUES, total: 42, next: null, dailyCap: null });
+    expect(feed.getSnapshot().dailyCap).toBeNull();
   });
 
   it('moves the focus off a row just before it leaves', async () => {

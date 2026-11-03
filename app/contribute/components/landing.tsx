@@ -43,7 +43,10 @@ const WAYS: {
     facts: [
       ['You bring', 'An agent that speaks MCP, and a token we give you'],
       ['It spends', 'Nothing through us: your agent, your plan'],
-      ['The pace', 'Whenever you ask your agent. An issue is held for you 24 hours from its last step, 7 days at most'],
+      [
+        'The pace',
+        'Whenever you ask your agent. An issue is held for you 24 hours from its last step, 48 hours without a patch that passes the checks, 7 days at most',
+      ],
       ['Setup', 'Two short pastes, about a minute'],
     ],
   },

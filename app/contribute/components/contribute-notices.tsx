@@ -4,11 +4,22 @@ import type { ReactNode } from 'react';
 
 import type { ContributeNotice } from '@/lib/contribute/contribute-state';
 import { dayLabel } from '@/lib/contribute/format';
+import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
 
 type NoticeCopy = { title: string; text: ReactNode; action?: { href: Route; label: string }; tone: 'info' | 'warn' };
 
 const untilText = (until: string | null, fallback: string) => (until ? `on ${dayLabel(until)}` : fallback);
+
+/** A limit in running text: the number in mono, "1 issue", "3 new claims". */
+function Count({ count, one, many = `${one}s` }: { count: number; one: string; many?: string }) {
+  return (
+    <>
+      <span className="font-mono tabular-nums text-foreground">{count.toLocaleString('en-US')}</span>{' '}
+      {count === 1 ? one : many}
+    </>
+  );
+}
 
 /** What each notice says, and where it sends the user. */
 export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
@@ -45,6 +56,50 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         title: 'Contributing is paused',
         text: 'No new attempts start until you resume. Your settings and queue are kept.',
         action: { href: '/contribute/settings', label: 'Resume in Settings' },
+      };
+    case 'new-account':
+      return {
+        tone: 'info',
+        title: 'Smaller limits while your account is new',
+        text: (
+          <>
+            Contribute starts new accounts on smaller limits:{' '}
+            <Count count={notice.limits.attemptsAtATime} one="issue" /> at a time,{' '}
+            <Count count={notice.limits.claimsPerDay} one="new claim" /> a day and{' '}
+            <Count count={notice.limits.revealsPerDay} one="new issue" /> a day in this list. Every new account starts
+            this way, to keep automated accounts from claiming issues meant for people; it isn&apos;t a judgement of
+            you. The limits lift on their own as your account builds a track record.
+          </>
+        ),
+      };
+    case 'follow-through':
+      return {
+        tone: 'warn',
+        title: 'Your limits are lower for now',
+        text: (
+          <>
+            Most of your recent claims ran out without a pull request, and each one kept the issue from other
+            contributors. For now Contribute holds you to <Count count={notice.limits.attemptsAtATime} one="issue" /> at
+            a time and <Count count={notice.limits.claimsPerDay} one="new claim" /> a day. Release an issue you
+            won&apos;t finish instead of letting it run out; the limits come back as your claims turn into pull
+            requests.
+          </>
+        ),
+      };
+    case 'suspended':
+      return {
+        tone: 'warn',
+        title: 'Contribute is paused for this account',
+        text: (
+          <>
+            Activity on this account looks automated, so it can&apos;t see or claim issues for now. If we got this
+            wrong, write to{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-link hover:underline">
+              {CONTACT_EMAIL}
+            </a>{' '}
+            and we&apos;ll look at it.
+          </>
+        ),
       };
   }
 }

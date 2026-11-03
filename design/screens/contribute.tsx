@@ -199,6 +199,20 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         height: 4600,
         render: () => overview(both, busy, true, needsSome()),
       },
+      {
+        id: 'follow-through',
+        title: 'Lower limits: claims ran out',
+        path: '/contribute',
+        height: 1800,
+        render: () => overview(views.followThrough, activityOf(), false),
+      },
+      {
+        id: 'suspended',
+        title: 'Paused for this account',
+        path: '/contribute',
+        height: 1800,
+        render: () => overview(views.suspended, activityOf(), false),
+      },
     ],
   },
   {
@@ -513,7 +527,11 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     title: 'Issues for you',
     area: 'contribute',
     route: '/contribute/issues',
-    sources: ['app/contribute/components/issues-view.tsx'],
+    sources: [
+      'app/contribute/components/issues-view.tsx',
+      'app/contribute/components/live-issues.tsx',
+      'app/contribute/components/contribute-notices.tsx',
+    ],
     states: [
       {
         id: 'feed',
@@ -524,6 +542,35 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           frame(
             <main className={MAIN}>
               <IssuesScreen view={views.active} page={issuePage} query={{}} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'new-account',
+        title: 'A new account: smaller limits',
+        path: '/contribute/issues',
+        height: 1800,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <IssuesScreen view={views.newAccount} page={issuePage} query={{}} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'daily-cap',
+        title: "Today's new issues seen",
+        path: '/contribute/issues',
+        height: 1800,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <IssuesScreen
+                view={views.active}
+                page={{ ...issuePage, dailyCap: { limit: 150, reached: true } }}
+                query={{}}
+                now={NOW}
+              />
             </main>,
           ),
       },
@@ -545,6 +592,18 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
               <SettingsScreen view={views.active} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'new-account',
+        title: 'A new account: the limit beside the budget',
+        path: '/contribute/settings',
+        height: 1900,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen view={views.newAccount} now={NOW} />
             </main>,
           ),
       },

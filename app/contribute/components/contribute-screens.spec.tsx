@@ -22,13 +22,13 @@ const { FormSettingsScreen, KeysSettingsScreen, OwnAgentSettingsScreen } = await
 const { PreferencesFields } = await import('./preferences-fields');
 const { IssuesScreen } = await import('./issues-view');
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
-const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
+const { issuePage, overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
 const { ContributeNotices } = await import('./contribute-notices');
 const { ConnectResult } = await import('./connect-result');
 const { IssueCard } = await import('./issue-card');
 const { LiveAnnouncer, LiveIssueList, LiveRowItem } = await import('./live-issues');
 const { LIVE_EXIT_AFTER_MS, LIVE_LEAVE_MS, createLiveFeed } = await import('@/lib/contribute/live-issues');
-const { NOW, mcpToken, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { NOW, limits, mcpToken, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
 
 import type { ContributeConnectResult, ContributeIssue, ContributeView } from '@/lib/contribute/contribute.types';
@@ -839,5 +839,165 @@ describe('the confirms before what cannot be undone', () => {
     expect(text(html)).not.toContain('Yes, remove it');
     // The summary acts on none of them: its dialogs are the filters and autopilot's record.
     expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />))).toEqual(['Edit', 'Details']);
+  });
+});
+
+describe('the access level', () => {
+  it("tells a new account its smaller limits, with the numbers from the API, and that it isn't a judgement", () => {
+    const html = notices(views.newAccount);
+
+    expect(html).toContain('data-notice="new-account"');
+    expect(html).toContain('bg-brand-soft');
+    expect(text(html)).toContain(
+      "Smaller limits while your account is new Contribute starts new accounts on smaller limits: 1 issue at a time, 3 new claims a day and 40 new issues a day in this list. Every new account starts this way, to keep automated accounts from claiming issues meant for people; it isn't a judgement of you. The limits lift on their own as your account builds a track record.",
+    );
+    expect(html).toContain('<span class="font-mono tabular-nums text-foreground">40</span>');
+  });
+
+  it('says the counts as the API sets them, one or many', () => {
+    const wider = { ...limits.newAccount, attemptsAtATime: 2, claimsPerDay: 1, revealsPerDay: 1500 };
+    const view = { ...views.newAccount, contributor: { ...views.newAccount.contributor, limits: wider } };
+
+    expect(text(notices(view))).toContain('2 issues at a time, 1 new claim a day and 1,500 new issues a day');
+  });
+
+  it('warns of lower limits after claims ran out, and of a paused account with the address to write to', () => {
+    const followThrough = notices(views.followThrough);
+    expect(followThrough).toContain('data-notice="follow-through"');
+    expect(followThrough).toContain('bg-warning-soft');
+    expect(text(followThrough)).toContain(
+      "Your limits are lower for now Most of your recent claims ran out without a pull request, and each one kept the issue from other contributors. For now Contribute holds you to 1 issue at a time and 3 new claims a day. Release an issue you won't finish instead of letting it run out; the limits come back as your claims turn into pull requests.",
+    );
+
+    const suspended = notices(views.suspended);
+    expect(suspended).toContain('data-notice="suspended"');
+    expect(suspended).toContain('bg-warning-soft');
+    expect(suspended).toContain('href="mailto:hello@gitranks.com"');
+    expect(text(suspended)).toContain(
+      "Contribute is paused for this account Activity on this account looks automated, so it can't see or claim issues for now. If we got this wrong, write to hello@gitranks.com and we'll look at it.",
+    );
+  });
+
+  it("shows on the overview, the issues and settings, and not on the key's connect screen", () => {
+    const overview = renderToStaticMarkup(
+      <OverviewScreen
+        view={views.followThrough}
+        sections={overviewSectionsOf(views.followThrough, overviewData(), NOW)}
+        now={NOW}
+      />,
+    );
+    expect(overview).toContain('data-notice="follow-through"');
+    // The home's other notices are Needs you's rows.
+    const pausedHome = renderToStaticMarkup(
+      <OverviewScreen view={views.paused} sections={overviewSectionsOf(views.paused, overviewData(), NOW)} now={NOW} />,
+    );
+    expect(pausedHome).not.toContain('data-notice');
+
+    const issues = renderToStaticMarkup(<IssuesScreen view={views.newAccount} page={issuePage} query={{}} now={NOW} />);
+    expect(issues).toContain('data-notice="new-account"');
+    expect(renderToStaticMarkup(<SettingsScreen view={views.suspended} now={NOW} />)).toContain(
+      'data-notice="suspended"',
+    );
+    expect(renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.newAccount} />)).toContain(
+      'data-notice="new-account"',
+    );
+    expect(renderToStaticMarkup(<ConnectScreen view={views.newAccount} today={30} />)).not.toContain('data-notice');
+  });
+
+  it('adds the attempts the limit holds to the budget line, below the setting alone', () => {
+    expect(text(renderToStaticMarkup(<SettingsScreen view={views.newAccount} now={NOW} />))).toContain(
+      '$200 a cycle · Even, then a final sweep · renews on the 14th · 1 at a time (new-account limit)',
+    );
+    expect(text(renderToStaticMarkup(<SettingsScreen view={views.followThrough} now={NOW} />))).toContain(
+      'renews on the 14th · 1 at a time (limit for now)',
+    );
+    expect(text(renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} />))).not.toContain('at a time');
+  });
+
+  it('caps attempts and open PRs at a time on their pages, with the hint tied to the field', () => {
+    const budget = renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.newAccount} />);
+    expect(text(budget)).toContain('Attempts at a time Up to 1 while your account is new');
+    expect(budget).toMatch(/aria-describedby="([^"]*attemptsAtATime-hint)"[^>]*>.*id="\1"/s);
+
+    const agent = renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.followThrough} />);
+    expect(text(agent)).toContain('Open PRs at a time Up to 2 for now');
+
+    const standard = renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.active} />);
+    expect(standard).not.toContain('data-cap-hint');
+  });
+
+  it('refuses a value typed above the cap on save, and keeps the stored one', async () => {
+    const { pagePatchOf } = await import('./settings-form');
+    const draft = {
+      cycleCapUsd: '$200',
+      weekCapUsd: '',
+      dayCapUsd: '$15',
+      attemptCapUsd: '$5',
+      attemptsAtATime: '2',
+      sweepDays: '3',
+      maxChangedLines: '400',
+      maxFiles: '15',
+      openPrsAtATime: '3',
+      pace: 'EVEN' as const,
+      renewalDay: 14,
+      mainModel: 'CLAUDE_SONNET_5_5' as const,
+      helperModel: 'CLAUDE_HAIKU_5_5' as const,
+      testModel: null,
+      effort: 'MEDIUM' as const,
+      dco: 'ASK' as const,
+    };
+    const caps = { limits: limits.newAccount, stored: { attemptsAtATime: 1, openPrsAtATime: 3 } };
+
+    expect(pagePatchOf('budget', draft, caps)).toEqual({
+      invalid: 'Attempts at a time',
+      message: 'Attempts at a time: up to 1 while your account is new.',
+    });
+    // Open PRs at 3 is as stored: kept for when the limit lifts.
+    expect(pagePatchOf('agent', draft, caps)).toMatchObject({ patch: { openPrsAtATime: 3 } });
+    expect(pagePatchOf('agent', { ...draft, openPrsAtATime: '4' }, caps)).toMatchObject({
+      message: 'Open PRs at a time: up to 2 while your account is new.',
+    });
+    expect(pagePatchOf('budget', { ...draft, attemptsAtATime: '1' }, caps)).toMatchObject({
+      patch: { attemptsAtATime: 1 },
+    });
+    expect(pagePatchOf('budget', draft)).toMatchObject({ patch: { attemptsAtATime: 2 } });
+  });
+
+  it("ends the feed with the day's cap once it is reached, the count in mono", () => {
+    const capped = { ...issuePage, dailyCap: { limit: 150, reached: true } };
+    const html = renderToStaticMarkup(<IssuesScreen view={views.active} page={capped} query={{}} now={NOW} />);
+
+    expect(html).toContain('data-feed-end="daily-cap"');
+    expect(text(html)).toContain(
+      "That's today's new issues You've seen 150 new issues today, the most we show in a day. More arrive at 00:00 UTC; the ones you've seen stay on this list until then.",
+    );
+    expect(html).toContain('<span class="font-mono tabular-nums text-foreground">150</span>');
+    // After the rows.
+    expect(html.indexOf('data-feed-end')).toBeGreaterThan(html.lastIndexOf('data-live-row'));
+
+    const near = { ...issuePage, dailyCap: { limit: 150, reached: false } };
+    expect(renderToStaticMarkup(<IssuesScreen view={views.active} page={near} query={{}} now={NOW} />)).not.toContain(
+      'data-feed-end',
+    );
+  });
+
+  it("says the day's cap, not that nothing is picked, when it leaves the page empty", () => {
+    const empty = {
+      items: [],
+      next: null,
+      total: 40,
+      computedAt: NOW.toISOString(),
+      dailyCap: { limit: 40, reached: true },
+    };
+    const html = renderToStaticMarkup(<IssuesScreen view={views.newAccount} page={empty} query={{}} now={NOW} />);
+
+    expect(html).toContain('data-feed-end="daily-cap"');
+    expect(text(html)).not.toContain('No issues picked for you yet');
+
+    // Empty with more after it: the list reads on, and says nothing is picked only once the feed has no more.
+    const more = { ...empty, next: 'c20', dailyCap: null };
+    const reading = renderToStaticMarkup(<IssuesScreen view={views.active} page={more} query={{}} now={NOW} />);
+    expect(text(reading)).not.toContain('No issues picked for you yet');
+    expect(reading).toContain('More issues');
   });
 });

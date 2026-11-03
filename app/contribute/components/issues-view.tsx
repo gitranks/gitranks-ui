@@ -8,7 +8,7 @@ import { FirstRunGuide } from './first-run-guide';
 import { filterOf, type IssuesQuery, issuesQueryOf } from './issues-filter';
 import { IssuesFilters } from './issues-filters';
 import { ModeSwitcher, SetOnlyEmpty } from './issues-mode';
-import { LiveIssues, LiveIssuesFeed, LiveIssuesTotal } from './live-issues';
+import { DailyCapEnd, LiveIssues, LiveIssuesFeed, LiveIssuesTotal } from './live-issues';
 import { HEADING, Meter } from './primitives';
 import { ReviewsReady } from './reviews-ready';
 import { StillRanking } from './still-ranking';
@@ -144,10 +144,12 @@ export function IssuesScreen({
   } else if (page && !page.computedAt && !page.items.length && !filtered(query)) {
     // The first picks are computed after the key is connected: the page reads itself again until they are in.
     feed = <StillRanking />;
-  } else if (!page?.items.length) {
-    feed = none;
+  } else if (!page?.items.length && !page?.next) {
+    // Past the day's cap the page can be empty: the cap says so, not "nothing matches".
+    feed = page?.dailyCap?.reached ? <DailyCapEnd cap={page.dailyCap} /> : none;
   } else {
-    // Live: an issue taken meanwhile says so and leaves, and the next ones fill the page.
+    // Live: an issue taken meanwhile says so and leaves, and the next ones fill the page; a page left empty by the
+    // day's cap with more after it is filled the same way.
     feed = <LiveIssuesFeed set={set} query={query} empty={none} />;
   }
 

@@ -4,6 +4,8 @@ import type {
   ContributeAttempt,
   ContributeAttemptCheckName,
   ContributeAttemptEndReason,
+  ContributeAttemptKind,
+  ContributeAttemptRunner,
   ContributeAttemptState,
   ContributeCheckLimitView,
   ContributeChecksState,
@@ -88,7 +90,7 @@ export const END_REASONS: Record<ContributeAttemptEndReason, string> = {
   REVIEW_EXPIRED: 'It waited seven days for a review, so it was let go.',
   SUBMIT_FAILED: 'The change could not be submitted as a pull request.',
   RELEASED: 'Your agent gave the issue back.',
-  MCP_IDLE: 'Your agent made no call for it in 24 hours, so the issue was let go.',
+  MCP_IDLE: 'Your agent made no call for 24 hours, or no passing submission for 48 hours, so the issue was let go.',
   MCP_EXPIRED: 'It reached the seven days an issue can be held, so it was let go.',
 };
 
@@ -121,9 +123,30 @@ export const limitNoteOf = ({ limit }: ContributeCheckLimitView): string =>
     ? "Decided at the check's time limit, when the agent was told to wrap up."
     : "Decided at the check's budget limit, when the agent was told to wrap up.";
 
-/** Why an attempt ended, in plain words: a check that ran out says so, the rest as `END_REASONS`. */
+/** The attempt's own fields that pick how long its review waits. */
+type ReviewWaitFields = { runner?: ContributeAttemptRunner | null; kind?: ContributeAttemptKind | null };
+
+/**
+ * How long a change waits in review for the user: 48 hours for a first attempt by the user's own agent (its claim
+ * lapses then), seven days for the rest.
+ */
+export const reviewWaitOf = (attempt: ReviewWaitFields): string =>
+  isOwnAgent(attempt) && attempt.kind !== 'FOLLOW_UP' ? '48 hours' : 'seven days';
+
+/** Why an attempt ended, as `END_REASONS` says it; a review that ran out names the wait the attempt had. */
+export function endReasonLabelOf(
+  attempt: ReviewWaitFields & { endReason: ContributeAttemptEndReason | null | undefined },
+): string | null {
+  if (!attempt.endReason) return null;
+  if (attempt.endReason === 'REVIEW_EXPIRED') {
+    return `It waited ${reviewWaitOf(attempt)} for a review, so it was let go.`;
+  }
+  return labelOf(END_REASONS, attempt.endReason);
+}
+
+/** Why an attempt ended, in plain words: a check that ran out says so, the rest as `endReasonLabelOf`. */
 export function endReasonTextOf(
-  attempt: Pick<ContributeAttempt, 'endReason' | 'endDetail' | 'checkLimit'>,
+  attempt: Pick<ContributeAttempt, 'endReason' | 'endDetail' | 'checkLimit'> & ReviewWaitFields,
 ): string | null {
   const limit = checkLimitOf(attempt);
   if (limit && !limit.decided) {
@@ -131,7 +154,7 @@ export function endReasonTextOf(
       ? 'Stopped: ran out of time while checking the issue.'
       : 'Stopped: ran out of budget while checking the issue.';
   }
-  return attempt.endReason ? labelOf(END_REASONS, attempt.endReason) : null;
+  return endReasonLabelOf(attempt);
 }
 
 /** The agent names of the user's own agent, as the pull request's footer names them. */

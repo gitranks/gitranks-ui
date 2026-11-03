@@ -145,7 +145,11 @@ export function FormSettingsScreen({ page, view }: { page: SettingsFormPage; vie
     <>
       <SettingsPageHead title={title} text={text} />
       <PageNotices view={view} />
-      {settings ? <SettingsForm settings={settings} page={page} /> : <NoSettingsPanel view={view} />}
+      {settings ? (
+        <SettingsForm settings={settings} page={page} limits={view.contributor?.limits} />
+      ) : (
+        <NoSettingsPanel view={view} />
+      )}
       <ScrollToHash />
     </>
   );

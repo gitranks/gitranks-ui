@@ -1,5 +1,5 @@
 import { isAgentWelcome, welcomeClientOf } from './agent-connect';
-import type { ContributeCredential, ContributeSettings, ContributeView } from './contribute.types';
+import type { ContributeCredential, ContributeLimits, ContributeSettings, ContributeView } from './contribute.types';
 import type { McpClient } from './mcp-setup';
 
 /**
@@ -11,7 +11,39 @@ export type ContributeNotice =
   | { kind: 'key-invalid' }
   | { kind: 'exhausted'; until: string | null }
   | { kind: 'limit-reached'; until: string | null }
-  | { kind: 'paused' };
+  | { kind: 'paused' }
+  /** Smaller limits while the account is new: every new account starts so. */
+  | { kind: 'new-account'; limits: ContributeLimits }
+  /** Smaller limits for now: the recent claims ran out without a pull request. */
+  | { kind: 'follow-through'; limits: ContributeLimits }
+  /** Nothing new starts for this account: it can't see or claim issues. */
+  | { kind: 'suspended' };
+
+/** The notices of the account's access level: they belong on every page that shows notices. */
+export const ACCESS_NOTICE_KINDS = [
+  'suspended',
+  'new-account',
+  'follow-through',
+] as const satisfies readonly ContributeNotice['kind'][];
+
+const isAccessKind = (kind: ContributeNotice['kind']) => (ACCESS_NOTICE_KINDS as readonly string[]).includes(kind);
+
+/**
+ * The account's access level as a notice: suspended, or reduced for a new account or for claims that ran out. None at
+ * the standard level, while the API does not answer the limits, or for limits the owner set with no reason to name.
+ */
+export function accessNoticesOf(view: ContributeView): ContributeNotice[] {
+  const limits = view.contributor?.limits;
+  if (!limits) return [];
+  if (limits.level === 'SUSPENDED') return [{ kind: 'suspended' }];
+  if (limits.level !== 'REDUCED') return [];
+  if (limits.reason === 'NEW_ACCOUNT') return [{ kind: 'new-account', limits }];
+  if (limits.reason === 'FOLLOW_THROUGH') return [{ kind: 'follow-through', limits }];
+  return [];
+}
+
+/** The notices other than the access level's: the key's trouble and the pause. */
+export const withoutAccessNotices = (notices: ContributeNotice[]) => notices.filter(({ kind }) => !isAccessKind(kind));
 
 /** The user works with their own agent alone: a live token, no Claude key. */
 export const isOwnAgentOnly = (view: ContributeView | null | undefined): boolean =>
@@ -32,7 +64,9 @@ export const claudeKeyOf = (view: ContributeView | null | undefined): Contribute
 export const isPaused = (view: ContributeView) => view.paused ?? view.contributor?.status === 'PAUSED';
 
 export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
-  const notices: ContributeNotice[] = [];
+  const access = accessNoticesOf(view);
+  // Suspended stops everything new: it comes before what a key would fix.
+  const notices: ContributeNotice[] = access.filter(({ kind }) => kind === 'suspended');
   const key = claudeKeyOf(view);
 
   // Without a key, a user who works with their own agent has nothing missing: a key is one of two ways.
@@ -43,6 +77,7 @@ export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
   else if (key.state === 'LIMIT_REACHED') notices.push({ kind: 'limit-reached', until: key.blockedUntil });
 
   if (view.contributor && isPaused(view)) notices.push({ kind: 'paused' });
+  notices.push(...access.filter(({ kind }) => kind !== 'suspended'));
   return notices;
 }
 

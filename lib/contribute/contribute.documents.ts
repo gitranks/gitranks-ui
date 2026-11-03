@@ -29,6 +29,7 @@ import type {
   ContributeIssuePage,
   ContributeIssueStatus,
   ContributeIssuesFilter,
+  ContributeLimits,
   ContributeMaintainerRepos,
   ContributeMcpToken,
   ContributeMcpTokenCreated,
@@ -205,13 +206,20 @@ export const ContributePausedDocument = doc<{ contribute: { contributor: { pause
   'query ContributePaused { contribute { contributor { paused } } }',
 );
 
+/** The account's access level and the limits it sets now: read on its own, so an API without it leaves the rest. */
+export const ContributeLimitsDocument = doc<{
+  contribute: { contributor: { limits: ContributeLimits } | null } | null;
+}>(
+  'query ContributeLimits { contribute { contributor { limits { level reason attemptsAtATime openPrsAtATime claimsPerDay revealsPerDay } } } }',
+);
+
 export const ContributeIssuesDocument = doc<
   { contributeIssues: ContributeIssuePage | null },
   { first?: number; after?: string; filter?: ContributeIssuesFilter }
 >(`query ContributeIssues($first: Int, $after: String, $filter: ContributeIssuesFilter) {
   contributeIssues(first: $first, after: $after, filter: $filter) {
     items { ${ISSUE} tier }
-    next total computedAt
+    next total computedAt dailyCap { limit reached }
   }
 }`);
 

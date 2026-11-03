@@ -19,7 +19,12 @@ import type {
   ContributeSet,
   ContributeView,
 } from '@/lib/contribute/contribute.types';
-import { contributeNoticesOf, isContributePageOpen, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
+import {
+  contributeNoticesOf,
+  isContributePageOpen,
+  isOwnAgentOnly,
+  isSuspended,
+} from '@/lib/contribute/contribute-state';
 import {
   agentFirstRunStepOf,
   firstRunNoticesOf,
@@ -139,7 +144,11 @@ export function IssuesScreen({
   }
 
   let feed: React.ReactNode;
-  if (page === undefined) {
+  // Suspended: the API answers an empty page that is never ranked; nothing is shown and nothing reads it again.
+  const suspended = isSuspended(view);
+  if (suspended) {
+    feed = <Empty title="No issues for now" text="Contribute is paused for this account, so no issues are shown." />;
+  } else if (page === undefined) {
     feed = <Empty title="Issues are not available yet" text="The feed is coming soon. Check back shortly." />;
   } else if (page && !page.computedAt && !page.items.length && !filtered(query)) {
     // The first picks are computed after the key is connected: the page reads itself again until they are in.
@@ -171,7 +180,7 @@ export function IssuesScreen({
       <ReviewsReady attempts={reviews} />
       <div className="flex flex-wrap items-start gap-6">
         <LiveIssues
-          page={page ?? null}
+          page={suspended ? null : (page ?? null)}
           filter={filterOf(query)}
           className="flex min-w-0 flex-[999_1_640px] flex-col gap-4"
         >
@@ -183,7 +192,7 @@ export function IssuesScreen({
                 </Heading>
                 {set ? <ModeSwitcher set={set} languages={view.contributor?.preferences?.languages ?? []} /> : null}
               </div>
-              {page ? (
+              {page && !suspended ? (
                 <LiveIssuesTotal
                   total={page.total}
                   rest={page.computedAt ? ` · picked ${relativeLabel(page.computedAt, now)}` : ''}

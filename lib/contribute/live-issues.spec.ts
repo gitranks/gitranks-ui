@@ -323,6 +323,34 @@ describe('a live list of issues', () => {
     expect(ids(feed)).toEqual(['I_1', 'I_2', 'I_8']);
   });
 
+  it("fills a row that left while a fill's last read was on its way", async () => {
+    let answer: (value: ContributeActionResult<ContributeIssuePage | null>) => void = () => undefined;
+    const empty = (next: string) => ({ ok: true as const, data: { items: [], next, total: 4, computedAt: null } });
+    const readMore = vi.fn<NonNullable<LiveFeedOptions['readMore']>>();
+    // The fill's first reads bring nothing past the cap; its last one is on its way when a row leaves.
+    for (let read = 1; read < FILL_READS_MAX; read += 1) readMore.mockResolvedValueOnce(empty(`c${read}`));
+    readMore.mockImplementationOnce(() => new Promise((r) => (answer = r)));
+    readMore.mockResolvedValueOnce({
+      ok: true,
+      data: { items: [issue({ issueId: 'I_8', rank: 8 })], next: null, total: 4, computedAt: null },
+    });
+    const feed = feedOf({ items: ISSUES.slice(0, 3), limit: 4, next: 'c0', readMore, reducedMotion: () => true });
+
+    const first = feed.fill();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(readMore).toHaveBeenCalledTimes(FILL_READS_MAX);
+    // The row leaves while that read is on its way: its own fill finds one under way.
+    feed.apply([taken('I_1')]);
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
+    answer({ ok: true, data: { items: [issue({ issueId: 'I_7', rank: 7 })], next: 'c7', total: 4, computedAt: null } });
+    await first;
+
+    // One more fill, after the one that ran out of reads.
+    expect(readMore).toHaveBeenCalledTimes(FILL_READS_MAX + 1);
+    expect(readMore).toHaveBeenLastCalledWith('c7', 1);
+    expect(ids(feed)).toEqual(['I_2', 'I_3', 'I_7', 'I_8']);
+  });
+
   it("keeps the day's cap the page was read with, and a newer read's", () => {
     const feed = feedOf({ dailyCap: { limit: 150, reached: true } });
     expect(feed.getSnapshot().dailyCap).toEqual({ limit: 150, reached: true });

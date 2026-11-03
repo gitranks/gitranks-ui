@@ -58,11 +58,19 @@ describe('rightNowOf', () => {
       ...both,
       contributor: contributor({ settings: { ...settings, attemptsAtATime: 3 }, limits: limits.newAccount }),
     };
-    expect(hostedOf(newAccount, agentHolds)).toEqual({ kind: 'slots-taken', slots: 1 });
+    expect(hostedOf(newAccount, agentHolds)).toEqual({ kind: 'slots-taken', slots: 1, limited: true });
     expect(hostedOf(newAccount, { inFlight: [], scheduleCounts: { prBound: 2, queued: 0 } })).toEqual({
       kind: 'pr-cap',
       prBound: 2,
       cap: 2,
+      limited: true,
+    });
+  });
+
+  it('holds a suspended account before anything else, and says nothing will start', () => {
+    const suspended = { ...both, contributor: contributor({ limits: limits.suspended }) };
+    expect(hostedOf(suspended, { inFlight: [], scheduleCounts: { prBound: 0, queued: 3 } })).toEqual({
+      kind: 'suspended',
     });
   });
 

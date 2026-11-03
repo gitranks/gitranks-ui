@@ -5,8 +5,9 @@ import { attemptsCapNoteOf, capHintOf, capRefusalOf, capsOf, effectiveSettingOf 
 import { budgetSummaryOf } from './settings-summary';
 
 describe('the access level on the settings', () => {
-  it('caps nothing at the standard level, or while the limits are not answered', () => {
+  it('caps nothing at the standard level, while suspended, or while the limits are not answered', () => {
     expect(capsOf(limits.standard)).toBeNull();
+    expect(capsOf(limits.suspended)).toBeNull();
     expect(capsOf(undefined)).toBeNull();
     expect(effectiveSettingOf({ ...settings, attemptsAtATime: 3 }, limits.standard, 'attemptsAtATime')).toBe(3);
     expect(effectiveSettingOf({ ...settings, attemptsAtATime: 3 }, undefined, 'attemptsAtATime')).toBe(3);
@@ -17,13 +18,14 @@ describe('the access level on the settings', () => {
     const stored = { ...settings, attemptsAtATime: 3, openPrsAtATime: 1 };
     expect(effectiveSettingOf(stored, limits.newAccount, 'attemptsAtATime')).toBe(1);
     expect(effectiveSettingOf(stored, limits.newAccount, 'openPrsAtATime')).toBe(1);
-    expect(effectiveSettingOf(stored, limits.suspended, 'openPrsAtATime')).toBe(1);
+    expect(effectiveSettingOf(stored, limits.followThrough, 'openPrsAtATime')).toBe(1);
   });
 
   it('says why the cap holds: while the account is new, else for now', () => {
     expect(capHintOf(limits.newAccount, 'attemptsAtATime')).toEqual({ max: 1, text: 'while your account is new' });
     expect(capHintOf(limits.followThrough, 'openPrsAtATime')).toEqual({ max: 2, text: 'for now' });
-    expect(capHintOf(limits.suspended, 'attemptsAtATime')).toEqual({ max: 1, text: 'for now' });
+    // Suspended: nothing new starts, so no setting is capped and nothing is hinted.
+    expect(capHintOf(limits.suspended, 'attemptsAtATime')).toBeNull();
     // Reduced by the owner, with no reason to name.
     expect(capHintOf({ ...limits.followThrough, reason: null }, 'attemptsAtATime')?.text).toBe('for now');
   });
@@ -34,6 +36,7 @@ describe('the access level on the settings', () => {
     expect(attemptsCapNoteOf(three, limits.followThrough)).toBe('1 at a time (limit for now)');
     expect(attemptsCapNoteOf(settings, limits.newAccount)).toBeNull();
     expect(attemptsCapNoteOf(three, limits.standard)).toBeNull();
+    expect(attemptsCapNoteOf(three, limits.suspended)).toBeNull();
 
     expect(budgetSummaryOf(three, limits.newAccount)).toBe(
       '$200 a cycle · Even, then a final sweep · renews on the 14th · 1 at a time (new-account limit)',

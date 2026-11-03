@@ -740,6 +740,12 @@ describe('the review screen', () => {
     },
   );
 
+  it('says the access level above an attempt and a run, and nothing at the standard level', () => {
+    expect(review(detail(), views.suspended)).toContain('data-notice="suspended"');
+    expect(review(detail(), views.newAccount)).toContain('data-notice="new-account"');
+    expect(review(detail())).not.toContain('data-notice');
+  });
+
   it("says how long a change waits for review: 48 hours for the user's own agent's claim, seven days otherwise", () => {
     expect(text(review(detail()))).toContain('It waits seven days for you.');
     const own = detail({ runner: 'MCP', agent: { name: 'CODEX', model: null } });

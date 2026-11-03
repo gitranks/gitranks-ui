@@ -975,10 +975,31 @@ describe('the access level', () => {
     // After the rows.
     expect(html.indexOf('data-feed-end')).toBeGreaterThan(html.lastIndexOf('data-live-row'));
 
+    // While the feed has more, the list does not end yet: no card.
+    const more = { ...capped, next: 'c20' };
+    expect(renderToStaticMarkup(<IssuesScreen view={views.active} page={more} query={{}} now={NOW} />)).not.toContain(
+      'data-feed-end',
+    );
+
     const near = { ...issuePage, dailyCap: { limit: 150, reached: false } };
     expect(renderToStaticMarkup(<IssuesScreen view={views.active} page={near} query={{}} now={NOW} />)).not.toContain(
       'data-feed-end',
     );
+  });
+
+  it('shows a suspended account no feed: a quiet empty state, never the ranking wait or the filters', () => {
+    const empty = { items: [], next: null, total: 0, computedAt: null };
+    const html = renderToStaticMarkup(<IssuesScreen view={views.suspended} page={empty} query={{}} now={NOW} />);
+    const plain = text(html);
+
+    expect(plain).toContain('No issues for now Contribute is paused for this account, so no issues are shown.');
+    expect(html).not.toContain('data-ranking');
+    expect(plain).not.toContain('still being ranked');
+    expect(html).toContain('data-notice="suspended"');
+    const filtered = renderToStaticMarkup(
+      <IssuesScreen view={views.suspended} page={empty} query={{ kind: 'DOCS' }} now={NOW} />,
+    );
+    expect(text(filtered)).not.toContain('No issues match these filters');
   });
 
   it("says the day's cap, not that nothing is picked, when it leaves the page empty", () => {

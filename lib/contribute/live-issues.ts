@@ -116,6 +116,8 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
   const uncounted = new Set<string>();
   let beforeRemove: ((issueId: string) => void) | null = null;
   let filling = false;
+  /** A fill was asked for while one was under way: one more runs after it, so a row that left meanwhile is filled. */
+  let refillWanted = false;
   let active = true;
   /** Bumped by a stop or a newer read: an answer asked for before it is dropped. */
   let generation = 0;
@@ -142,8 +144,13 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
    * or only rows held or settled here) is read past while its cursor moves on, up to `FILL_READS_MAX` pages a fill.
    */
   const fill = async (): Promise<void> => {
-    if (!active || filling || !readMore) return;
+    if (!active || !readMore) return;
+    if (filling) {
+      refillWanted = true;
+      return;
+    }
     filling = true;
+    refillWanted = false;
     const asked = generation;
     try {
       for (let reads = 0; reads < FILL_READS_MAX; reads += 1) {
@@ -166,8 +173,12 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
     } finally {
       filling = false;
     }
-    // A newer read of the page came meanwhile: its own fill found this one under way, so it is read now.
-    if (active && asked !== generation) await fill();
+    // A newer read of the page, or a row that left, came meanwhile: its own fill found this one under way, so one more
+    // (bounded like any fill) runs now.
+    if (active && (refillWanted || asked !== generation)) {
+      refillWanted = false;
+      await fill();
+    }
   };
 
   const remove = (issueId: string) => {

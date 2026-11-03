@@ -441,15 +441,18 @@ function reviewRowsOf(
 
 /**
  * How long the user's own agent's first attempt still waits in review, after the move: " It waits 48 hours.", " It
- * waits 5 more hours." Nothing for a follow-up run.
+ * waits 5 more hours." Nothing for a follow-up run, when the time is not known, or once the wait is up (the claim is
+ * let go at the next sweep).
  */
 function ownReviewWaitOf(attempt: ContributeAttempt, now: Date): string {
   if (attempt.kind === 'FOLLOW_UP') return '';
   const since = readySince(attempt);
-  const hoursLeft = Number.isFinite(since) ? Math.ceil((since + OWN_REVIEW_HOURS * HOUR - now.getTime()) / HOUR) : null;
-  return hoursLeft !== null && hoursLeft >= 1 && hoursLeft < OWN_REVIEW_HOURS
-    ? ` It waits ${plural(hoursLeft, 'more hour')}.`
-    : ` It waits ${OWN_REVIEW_HOURS} hours.`;
+  if (!Number.isFinite(since)) return '';
+  const hoursLeft = Math.ceil((since + OWN_REVIEW_HOURS * HOUR - now.getTime()) / HOUR);
+  if (hoursLeft < 1) return '';
+  return hoursLeft >= OWN_REVIEW_HOURS
+    ? ` It waits ${OWN_REVIEW_HOURS} hours.`
+    : ` It waits ${plural(hoursLeft, 'more hour')}.`;
 }
 
 /** One reason waiting on an open pull request, before the first of them is chosen to lead its row. */

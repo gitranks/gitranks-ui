@@ -261,7 +261,7 @@ export function DailyCapEnd({ cap }: { cap: ContributeDailyCap }) {
 /**
  * The issues as rows, split under the user's list and the other issues where the mode does, and the way to the next
  * page; `empty` once every row has left and the feed has no more. The list ends with the day's cap once it is
- * reached, in place of `empty` when no row is left.
+ * reached and the feed has no more, in place of `empty` when no row is left.
  */
 export function LiveIssuesFeed({
   set,
@@ -284,7 +284,8 @@ export function LiveIssuesFeed({
       )
     : null;
 
-  const capped = snapshot.dailyCap?.reached ? snapshot.dailyCap : null;
+  // The cap ends the list: only once no page is left to read.
+  const capped = snapshot.dailyCap?.reached && !snapshot.next ? snapshot.dailyCap : null;
 
   return (
     <>

@@ -19,6 +19,10 @@ export type ContributeNotice =
   /** Nothing new starts for this account: it can't see or claim issues. */
   | { kind: 'suspended' };
 
+/** Contribute is paused for this account by its access level: nothing new starts, no issue is shown. */
+export const isSuspended = (view: ContributeView | null | undefined): boolean =>
+  view?.contributor?.limits?.level === 'SUSPENDED';
+
 /** The notices of the account's access level: they belong on every page that shows notices. */
 export const ACCESS_NOTICE_KINDS = [
   'suspended',

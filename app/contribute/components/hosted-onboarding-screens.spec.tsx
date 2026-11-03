@@ -27,7 +27,9 @@ const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-
 /** Overview's sections from reads that all answered. */
 const sections = (view: ContributeView) => overviewSectionsOf(view, overviewData(), NOW);
 const { ReviewScreen, grantNeededOf } = await import('./review-view');
-const { NOW, firstSpend, key, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { NOW, firstSpend, key, limits, settings, views } = await import(
+  '@/lib/contribute/__fixtures__/contribute-views'
+);
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { manualDraftOf } = await import('@/lib/contribute/connect-limits');
 
@@ -206,6 +208,22 @@ describe('A3, what happens next before the first attempt', () => {
 
     expect(html).toContain(`data-first-run="${kind}"`);
     expect(text(html)).toContain(title);
+  });
+
+  it('says a suspended account starts nothing, with no spinner and nothing to wait for', () => {
+    const html = guide(withContributor({ limits: limits.suspended }), {
+      ...page,
+      items: [],
+      total: 0,
+      computedAt: null,
+    });
+    const plain = text(html);
+
+    expect(html).toContain('data-first-run="suspended"');
+    expect(plain).toContain('1 · not for now Contribute is paused for this account');
+    expect(html).toContain('href="mailto:hello@gitranks.com"');
+    expect(html).not.toContain('animate-spin');
+    expect(plain).not.toContain('Nothing for you to do until step 2');
   });
 
   it('says the picks are still being found while the feed is empty', () => {

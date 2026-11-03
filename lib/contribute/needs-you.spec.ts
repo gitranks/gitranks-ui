@@ -160,10 +160,15 @@ describe('needsYouItemsOf: what waits for a review', () => {
       move: 'Your agent made this. Approve it or send it back with a note. It waits 43 more hours.',
       action: { label: 'Review the change' },
     });
-    // Just ready, or the time not known: the whole wait.
+    // Just ready: the whole wait.
     const fresh = attempt({ runner: 'MCP', reviewAt: NOW.toISOString() });
     expect(items({ reviews: [fresh] }).items[0].move).toBe(
       'Your agent made this. Approve it or send it back with a note. It waits 48 hours.',
+    );
+    // The wait is up: no wait is named.
+    const over = attempt({ runner: 'MCP', reviewAt: '2026-10-26T11:00:00.000Z' });
+    expect(items({ reviews: [over] }).items[0].move).toBe(
+      'Your agent made this. Approve it or send it back with a note.',
     );
   });
 });

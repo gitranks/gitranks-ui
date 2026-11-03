@@ -3,9 +3,12 @@ import type { ContributeLimits, ContributeSettings } from './contribute.types';
 /** The settings fields the access level caps. */
 export type CappedSetting = 'attemptsAtATime' | 'openPrsAtATime';
 
-/** The limits that cap the settings now: null at the standard level, or while the API does not answer them. */
+/**
+ * The limits that cap the settings now: the reduced level's. Null at the standard level, while suspended (nothing new
+ * starts, so no setting is worth capping), or while the API does not answer them.
+ */
 export const capsOf = (limits: ContributeLimits | null | undefined): ContributeLimits | null =>
-  limits && limits.level !== 'STANDARD' ? limits : null;
+  limits?.level === 'REDUCED' ? limits : null;
 
 /** What holds of a setting now: the setting, or the level's cap when that is lower. The setting itself is kept. */
 export const effectiveSettingOf = (

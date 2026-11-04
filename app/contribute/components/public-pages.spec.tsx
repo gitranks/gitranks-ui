@@ -72,12 +72,13 @@ describe('the questions', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('give the agreed autopilot line, no cost numbers, and the landing its five', () => {
+  it('give the agreed autopilot line, no cost numbers, and the landing its six', () => {
     const said = text(renderToStaticMarkup(<FaqScreen />));
     expect(said).toContain('Autopilot opens about a month after launch.');
     expect(said).not.toMatch(/\$\d+\.\d\d/);
     expect(said).not.toMatch(/farm|boost your profile|burn tokens|Claude for Open Source/i);
-    expect(LANDING_QUESTIONS).toHaveLength(5);
+    expect(LANDING_QUESTIONS).toHaveLength(6);
+    expect(LANDING_QUESTIONS[0]?.id).toBe('in-beta');
   });
 });
 

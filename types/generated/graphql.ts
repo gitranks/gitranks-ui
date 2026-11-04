@@ -32,7 +32,7 @@ export type Contribute = {
   mcpTokens?: Maybe<Array<ContributeMcpToken>>;
   /** The viewer may connect a key (the preview list holds them, or there is none) */
   previewAllowed: Scalars['Boolean']['output'];
-  /** The coming-soon providers the viewer asked to hear about, in CONTRIB_COMING_SOON_PROVIDERS order; empty with no contributor */
+  /** The coming-soon providers the viewer asked to hear about, in the order ContributeComingSoonProvider lists them; empty with no contributor */
   providerInterests: Array<ContributeComingSoonProvider>;
 };
 
@@ -53,7 +53,7 @@ export enum ContributeAccessReason {
 export type ContributeActivity = {
   __typename?: 'ContributeActivity';
   items: Array<ContributeActivityItem>;
-  /** When contrib read it */
+  /** When GitRanks read it (ISO) */
   readAt: Scalars['String']['output'];
   /** Their agent runs: the live ones oldest first, then the settled ones of the last 10 minutes */
   runs: Array<ContributeAgentRun>;
@@ -554,15 +554,16 @@ export type ContributeAutopilot = {
   unlocked: Scalars['Boolean']['output'];
 };
 
-/** A contributor a maintainer took no more GitRanks PRs from in the repo */
+/** A contributor a maintainer blocked: no more GitRanks pull requests from them in the repository */
 export type ContributeBlockedContributor = {
   __typename?: 'ContributeBlockedContributor';
-  /** The maintainer who blocked them */
+  /** The login of the maintainer who blocked them */
   by: Scalars['String']['output'];
-  /** The report: what Undo takes */
+  /** The report that blocked them: what undoContributePrAction takes */
   feedbackId: Scalars['ID']['output'];
-  /** Null once they deleted their Contribute data */
+  /** Null once they deleted their GitRanks Contribute data */
   login?: Maybe<Scalars['String']['output']>;
+  /** When they were blocked (ISO) */
   since: Scalars['String']['output'];
 };
 
@@ -654,7 +655,7 @@ export enum ContributeClaCoAuthor {
 /** An agreement the repo's PRs sign: a CLA, or a DCO signed like one */
 export type ContributeClaRule = {
   __typename?: 'ContributeClaRule';
-  /** `CLA` or `DCO`; null from an older contrib (a CLA) */
+  /** `CLA` or `DCO`; null when not known (then a CLA) */
   agreement?: Maybe<Scalars['String']['output']>;
   /** The check's name on the PR */
   check: Scalars['String']['output'];
@@ -688,22 +689,23 @@ export enum ContributeComingSoonProvider {
   Xai = 'XAI'
 }
 
-/** A .github/gitranks.yml key: never a value, never how many there are */
+/** A key a repository can set in its .github/gitranks.yml, and what it takes */
 export type ContributeConfigKey = {
   __typename?: 'ContributeConfigKey';
   key: Scalars['String']['output'];
-  /** Its value kind, as shared-constants names it: onOff, yesNo, allowedOff, int, tier, contact */
+  /** The kind of value it takes: one of onOff, yesNo, allowedOff, int, tier, contact */
   kind: Scalars['String']['output'];
-  /** Enforced now: the page shows only live keys */
+  /** Whether GitRanks applies it now; a key that is not live has no effect yet */
   live: Scalars['Boolean']['output'];
   /** A whole-number key: its greatest value */
   max?: Maybe<Scalars['Int']['output']>;
+  /** What it does */
   meaning: Scalars['String']['output'];
   /** A whole-number key: its least value */
   min?: Maybe<Scalars['Int']['output']>;
-  /** Settable on the maintainers page too, not only in the file */
+  /** Whether it can be set on the maintainers page too, not only in the file */
   page: Scalars['Boolean']['output'];
-  /** Its values in words */
+  /** The values it takes, in words */
   values: Scalars['String']['output'];
 };
 
@@ -806,7 +808,7 @@ export type ContributeCredential = {
   workspaceId?: Maybe<Scalars['String']['output']>;
 };
 
-/** The day's cap on newly shown issues (abuse-guards spec §4.2): every issue shown once today stays on the list; new ones stop at the limit until 00:00 UTC */
+/** The day's cap on newly shown issues: every issue shown once today stays on the list; new ones stop at the limit until 00:00 UTC */
 export type ContributeDailyCap = {
   __typename?: 'ContributeDailyCap';
   /** The most new issues the account is shown in a UTC day */
@@ -966,7 +968,7 @@ export type ContributeGrant = {
   login?: Maybe<Scalars['String']['output']>;
 };
 
-/** What a maintainer liked in a GitRanks PR */
+/** What a maintainer liked in a pull request opened through GitRanks Contribute */
 export enum ContributeHelpedLike {
   AnsweredReview = 'ANSWERED_REVIEW',
   FollowedRules = 'FOLLOWED_RULES',
@@ -1204,7 +1206,7 @@ export type ContributeLedgerWeek = {
   weekStart: Scalars['String']['output'];
 };
 
-/** The access level and the limits it sets now (abuse guards §5.4); the facts and thresholds are never sent */
+/** The access level and the limits it sets now; the facts and thresholds are never sent */
 export type ContributeLimits = {
   __typename?: 'ContributeLimits';
   /** The most attempts at a time that hold now: the settings field’s maximum */
@@ -1225,27 +1227,29 @@ export enum ContributeLiveProvider {
   Anthropic = 'ANTHROPIC'
 }
 
-/** The maintainers page's numbers, from the same constants Contribute enforces */
+/** The limits GitRanks Contribute keeps for every repository, and the keys a repository can set */
 export type ContributeMaintainerFacts = {
   __typename?: 'ContributeMaintainerFacts';
-  /** GitRanks attempts at once in one repo */
+  /** The most GitRanks contributions worked on at once in one repository */
   attemptsPerRepo: Scalars['Int']['output'];
-  /** The "help welcome" badge’s priority: the factor its repo’s issues are ranked up by */
+  /** The factor the issues of a repository showing the "help welcome" badge are ranked up by; null when they are not */
   badgeBoost?: Maybe<Scalars['Float']['output']>;
-  /** Every key, live or not: render the live ones */
+  /** Every key, live or not; only live keys have an effect */
   configKeys: Array<ContributeConfigKey>;
+  /** The days `prsPerMonth` counts over */
   monthDays: Scalars['Int']['output'];
+  /** How many days such a pause lasts */
   pauseDays: Scalars['Int']['output'];
-  /** PRs closed unmerged in a row that pause a repo */
+  /** Pull requests closed without a merge in a row that pause GitRanks in a repository */
   pauseStreak: Scalars['Int']['output'];
-  /** GitRanks PRs a repo gets at most in `monthDays` days */
+  /** The most GitRanks pull requests a repository gets in `monthDays` days */
   prsPerMonth: Scalars['Int']['output'];
 };
 
 /** A repository the visitor administers or maintains, and whether it is opted out */
 export type ContributeMaintainerRepo = {
   __typename?: 'ContributeMaintainerRepo';
-  /** Contributors a report took no more GitRanks PRs from in it, each undoable (maintainers page spec §8) */
+  /** Contributors a maintainer blocked in it: no more GitRanks pull requests from them; each undoable */
   blockedContributors: Array<ContributeBlockedContributor>;
   isArchived: Scalars['Boolean']['output'];
   nameWithOwner: Scalars['String']['output'];
@@ -1258,7 +1262,7 @@ export type ContributeMaintainerRepo = {
   /** The repository's GitHub node id: what optOutRepos takes */
   repoId: Scalars['ID']['output'];
   stars: Scalars['Int']['output'];
-  /** Its PRs a report stopped GitRanks work on, each undoable */
+  /** Its pull requests a maintainer stopped GitRanks work on, each undoable */
   stoppedPrs: Array<ContributeStoppedPr>;
 };
 
@@ -1376,45 +1380,50 @@ export type ContributePaths = {
   mcp: Scalars['Boolean']['output'];
 };
 
-/** STOP_PR: stop GitRanks work on the PR; BLOCK_CONTRIBUTOR: no more GitRanks PRs from its contributor in the repo; REPO_OFF: keep GitRanks out of the repo. A maintainer's alone, each undoable */
+/** What a report can do, for a maintainer of the repository only, each one undoable: STOP_PR (GitRanks stops working on the pull request), BLOCK_CONTRIBUTOR (no more GitRanks pull requests from its contributor in the repository), REPO_OFF (the repository is out of GitRanks Contribute: no issue of it is picked and no pull request opened there) */
 export enum ContributePrAction {
   BlockContributor = 'BLOCK_CONTRIBUTOR',
   RepoOff = 'REPO_OFF',
   StopPr = 'STOP_PR'
 }
 
+/** An action a report applied, and whether it was undone */
 export type ContributePrActionState = {
   __typename?: 'ContributePrActionState';
+  /** When it was applied (ISO) */
   appliedAt: Scalars['String']['output'];
   kind: ContributePrAction;
+  /** When it was undone (ISO); null while it holds */
   undoneAt?: Maybe<Scalars['String']['output']>;
 };
 
-/** One of our PRs, as the PR on GitHub shows it */
+/** A pull request opened through GitRanks Contribute, as it shows on GitHub */
 export type ContributePrCard = {
   __typename?: 'ContributePrCard';
-  /** Who made the change, as the PR footer says it */
+  /** Who made the change, in the words of the pull request's footer */
   agentPhrase: Scalars['String']['output'];
-  /** Its first attempt: what the notes take */
+  /** The id of its first attempt: the `from` that reports and helped notes take */
   attemptId: Scalars['ID']['output'];
   contributorLogin?: Maybe<Scalars['String']['output']>;
-  /** The signed-in visitor is its contributor: the page shows no form */
+  /** The signed-in visitor is its contributor, who can neither report it nor say it helped */
   isAuthor: Scalars['Boolean']['output'];
-  /** The repo's current name */
+  /** The repository's current owner/name */
   nameWithOwner: Scalars['String']['output'];
   number: Scalars['Int']['output'];
-  /** ISO */
+  /** When it was opened (ISO) */
   openedAt: Scalars['String']['output'];
+  /** The repository's GitHub node id */
   repositoryId: Scalars['ID']['output'];
-  /** False: opened by the contributor's autopilot, unreviewed */
+  /** Whether its contributor reviewed it before it opened; false when their autopilot opened it */
   reviewed: Scalars['Boolean']['output'];
   title?: Maybe<Scalars['String']['output']>;
 };
 
+/** A pull request opened through GitRanks Contribute, and the signed-in visitor on it */
 export type ContributePrCardView = {
   __typename?: 'ContributePrCardView';
   card: ContributePrCard;
-  /** Null without a token */
+  /** Null when no GitHub token was given */
   viewer?: Maybe<ContributePrViewer>;
 };
 
@@ -1443,19 +1452,20 @@ export enum ContributePrFeedbackKind {
   Report = 'REPORT'
 }
 
-/** A note sent: its number and what it applied */
+/** A report or helped note just sent: its number and the actions it applied */
 export type ContributePrFeedbackResult = {
   __typename?: 'ContributePrFeedbackResult';
-  /** Every action the note applied, undone ones too */
+  /** Every action it applied, undone ones too */
   actions: Array<ContributePrActionState>;
-  /** Appended to the visitor's earlier note on the PR */
+  /** Added to the visitor's earlier note of the same kind on the pull request */
   added: Scalars['Boolean']['output'];
+  /** What undoContributePrAction takes */
   feedbackId: Scalars['ID']['output'];
   kind: ContributePrFeedbackKind;
-  /** R-0042, H-0007 */
+  /** Its label: R-0042 for a report, H-0007 for a helped note */
   label: Scalars['String']['output'];
   number: Scalars['Int']['output'];
-  /** The role GitHub gave at send time */
+  /** The role GitHub gave when it was sent */
   role: ContributePrRole;
 };
 
@@ -1524,28 +1534,31 @@ export type ContributePrIssueSource = {
   url: Scalars['String']['output'];
 };
 
-/** A helped note on the PR, as its contributor sees it */
+/** A "this PR helped" note on the pull request, as its contributor sees it */
 export type ContributePrNote = {
   __typename?: 'ContributePrNote';
+  /** When it was sent (ISO) */
   at: Scalars['String']['output'];
   feedbackId: Scalars['ID']['output'];
+  /** The contributor hid it from their page */
   hidden: Scalars['Boolean']['output'];
   likes: Array<ContributeHelpedLike>;
   login: Scalars['String']['output'];
   role: ContributePrRole;
-  /** A maintainer's or collaborator's word; a user's never */
+  /** The sender's words, kept only from a maintainer or a collaborator */
   word?: Maybe<Scalars['String']['output']>;
 };
 
-/** The maintainers' say on the viewer's PR */
+/** What the repository's maintainers said about the viewer's pull request */
 export type ContributePrNotes = {
   __typename?: 'ContributePrNotes';
   /** Newest first, hidden ones too */
   notes: Array<ContributePrNote>;
+  /** Null while no one stopped it */
   stopped?: Maybe<ContributePrStopped>;
 };
 
-/** The writer's role on the PR's repo, from GitHub at the note: MAINTAINER (admin or maintain), COLLABORATOR (write or triage), USER */
+/** The sender's role on the pull request's repository, as GitHub gave it when the note was sent: MAINTAINER (admin or maintain permission), COLLABORATOR (write or triage permission), USER (anyone else) */
 export enum ContributePrRole {
   Collaborator = 'COLLABORATOR',
   Maintainer = 'MAINTAINER',
@@ -1588,30 +1601,33 @@ export enum ContributePrState {
   Open = 'OPEN'
 }
 
-/** Who stopped GitRanks work on the PR, and when */
+/** Who stopped GitRanks work on the pull request, and when */
 export type ContributePrStopped = {
   __typename?: 'ContributePrStopped';
+  /** When it was stopped (ISO) */
   at: Scalars['String']['output'];
+  /** The login of the maintainer who stopped it */
   login: Scalars['String']['output'];
 };
 
+/** A report's actions after an undo */
 export type ContributePrUndoResult = {
   __typename?: 'ContributePrUndoResult';
   actions: Array<ContributePrActionState>;
   feedbackId: Scalars['ID']['output'];
 };
 
-/** The signed-in visitor on the PR's repo, as GitHub answered for their token now */
+/** The signed-in visitor on the pull request's repository, as GitHub answers for their token now */
 export type ContributePrViewer = {
   __typename?: 'ContributePrViewer';
   /** Null when GitHub could not be asked (roleConfirmed false) */
   login?: Maybe<Scalars['String']['output']>;
-  /** Their primary verified email, for "Reply to" */
+  /** Their primary verified email, offered as the reply-to address */
   replyTo?: Maybe<Scalars['String']['output']>;
-  /** The repo's organization, when the role read as USER there: an org restricting third-party apps may hide a maintainer's role */
+  /** The repository's organization, when the role read as USER there: an organization that restricts third-party apps may hide a maintainer's role */
   restrictedOrg?: Maybe<Scalars['String']['output']>;
   role: ContributePrRole;
-  /** False: GitHub rate-limited the sign-in, did not answer, or named no permission: the role is USER and nothing applies by itself */
+  /** False when GitHub rate-limited the sign-in, did not answer, or named no permission: the role is then USER and no action applies */
   roleConfirmed: Scalars['Boolean']['output'];
 };
 
@@ -1943,7 +1959,7 @@ export type ContributeRepoReadiness = {
   toolchain?: Maybe<Scalars['String']['output']>;
 };
 
-/** What went wrong with a GitRanks PR */
+/** What went wrong with a pull request opened through GitRanks Contribute */
 export enum ContributeReportReason {
   IgnoresContributing = 'IGNORES_CONTRIBUTING',
   LowQuality = 'LOW_QUALITY',
@@ -2440,12 +2456,15 @@ export type ContributeStackTarget = {
   via: ContributeSetRepoVia;
 };
 
-/** A PR a maintainer stopped GitRanks work on */
+/** A pull request a maintainer stopped GitRanks work on */
 export type ContributeStoppedPr = {
   __typename?: 'ContributeStoppedPr';
+  /** The login of the maintainer who stopped it */
   by: Scalars['String']['output'];
+  /** The report that stopped it: what undoContributePrAction takes */
   feedbackId: Scalars['ID']['output'];
   number: Scalars['Int']['output'];
+  /** When it was stopped (ISO) */
   since: Scalars['String']['output'];
 };
 
@@ -2728,13 +2747,13 @@ export type Mutation = {
   addToContributeSet: ContributeSetAddResult;
   /** Approves an attempt in review with the PR’s title and body as edited, and the DCO sign-off (used only on a repo that requires it, `dcoRequired`): the submission starts (fork, push, PR in the viewer’s name). CONFLICT when the attempt is not in review */
   approveAttempt: ContributeAttempt;
-  /** Posts the proof the viewer's own agent captured (proof from your agent spec §4.5): its screenshots to gitranks-proof/<n> in their fork, its section into the PR's live description, then the bot's re-review command. `checked` is the viewer's tick that nothing private is left (BAD_USER_INPUT without it). CONFLICT when it is not in review, a run works on the PR, or the PR is not open */
+  /** Posts the proof the viewer's own agent captured: its screenshots to gitranks-proof/<n> in their fork, its section into the PR's live description, then the bot's re-review command. `checked` is the viewer's tick that nothing private is left (BAD_USER_INPUT without it). CONFLICT when it is not in review, a run works on the PR, or the PR is not open */
   approveContributeProof: ContributeProofSession;
   /** Approves a drafted reply: it is posted on the PR in the viewer’s name (a reply in its review thread, or a comment). Never posted otherwise. asComment: a reply GitHub refused in its review thread (canPostAsComment) posted as a comment on the PR instead, linking the thread. CONFLICT when the PR is no longer open, or the reply cannot go as a comment */
   approveReply: ContributeReplyDraft;
   /** Checks a Claude API key (one 1-token request on it), seals and stores it; never answered back. confirmedLimit: the key is in a separate workspace with a monthly spend limit. cycleCapUsd is required for purchased credits and overrides the plan’s credit otherwise; limits sets the week, day and attempt caps and the pace (BAD_USER_INPUT, nothing stored, when the attempt cap is above a cap that is set). A stored key onboards the viewer */
   connectClaudeKey: ContributeConnectKeyResult;
-  /** Says one of our PRs helped (`from`: its first attempt). `word` reaches its contributor from a maintainer or a collaborator; `mayQuote` lets us ask to quote it. CONFLICT own_pr for the PR’s own contributor */
+  /** Says a pull request opened through GitRanks Contribute helped (`from`: the id in its footer link). `word` reaches its contributor when a maintainer or a collaborator sends it; `mayQuote` lets GitRanks ask to quote it. CONFLICT own_pr for the pull request’s own contributor */
   contributePrHelped: ContributePrFeedbackResult;
   /** A personal token for the MCP server (name at most 40 characters). The token is answered here once and never again. The first one makes the viewer a contributor without a Claude key. CONFLICT at 5 live tokens */
   createMcpToken: ContributeMcpTokenCreated;
@@ -2770,7 +2789,7 @@ export type Mutation = {
   removeFromContributeSet: ContributeSet;
   /** Deletes the sealed key at once (the user deletes it in the Console too); false when there was none */
   removeLlmKey: Scalars['Boolean']['output'];
-  /** Reports one of our PRs (`from`: its first attempt). The actions apply only when GitHub says the token maintains the repo now; anyone else reports only. CONFLICT own_pr for the PR’s own contributor; RATE_LIMITED past 10 a day */
+  /** Reports a pull request opened through GitRanks Contribute (`from`: the id in its footer link). The actions apply only when GitHub says the token maintains the repository now; anyone else only reports. CONFLICT own_pr for the pull request’s own contributor; RATE_LIMITED past 10 a day */
   reportContributePr: ContributePrFeedbackResult;
   /** Runs the stack resolve again ("Try again"); answers the set RESOLVING. RATE_LIMITED past 10 a day */
   resolveContributeStack: ContributeSet;
@@ -2804,7 +2823,7 @@ export type Mutation = {
   startFollowUp: ContributeAttempt;
   /** Takes a proof back from the viewer's agent while it works on it. CONFLICT otherwise */
   takeBackContributeProof: ContributeProofSession;
-  /** Undoes an action a report applied, while it is still that report's. Any maintainer of the repo (GitHub asked now); FORBIDDEN for anyone else */
+  /** Undoes an action a report applied, while that report still holds it. Any maintainer of the repository, as GitHub answers for the token now; FORBIDDEN for anyone else */
   undoContributePrAction: ContributePrUndoResult;
   /** Takes a repo off the ignore list */
   unignoreContributeRepo: ContributeSet;
@@ -3268,13 +3287,13 @@ export type Query = {
   contributeLedger?: Maybe<ContributeLedger>;
   /** The Contribute ledger is public: open to everyone, signed out too */
   contributeLedgerOpen: Scalars['Boolean']['output'];
-  /** The maintainers page's numbers and the .github/gitranks.yml keys, as Contribute enforces them */
+  /** The limits GitRanks Contribute keeps for every repository, and the keys a repository can set in its .github/gitranks.yml */
   contributeMaintainerFacts: ContributeMaintainerFacts;
   /** Contribute is launched: open to everyone, so the landing is shown to signed-out visitors too. False during the preview */
   contributeOpen: Scalars['Boolean']['output'];
-  /** One of our PRs, by its footer link (`from`, the first attempt) or, with a token, by `pr` ("owner/name#123"). With a token, the visitor's role on its repo and their email. NOT_FOUND when it is no PR of ours */
+  /** A pull request opened through GitRanks Contribute, by the `from` id in its footer link or, with a GitHub token, by `pr` ("owner/name#123"). With a token, also the visitor's role on its repository and their email. NOT_FOUND when GitRanks Contribute did not open it */
   contributePrCard: ContributePrCardView;
-  /** The maintainers' say on the viewer's PR (any attempt of it): whether one stopped GitRanks work on it, and the "this PR helped" notes. Null when hidden */
+  /** What the repository's maintainers said about the viewer's pull request (by any attempt of it): whether one stopped GitRanks work on it, and the "this PR helped" notes. Null when hidden */
   contributePrNotes?: Maybe<ContributePrNotes>;
   /** The matching preferences; null before any were set, or when hidden */
   contributePreferences?: Maybe<ContributePreferences>;

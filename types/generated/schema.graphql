@@ -24,7 +24,7 @@ type Contribute {
   previewAllowed: Boolean!
 
   """
-  The coming-soon providers the viewer asked to hear about, in CONTRIB_COMING_SOON_PROVIDERS order; empty with no contributor
+  The coming-soon providers the viewer asked to hear about, in the order ContributeComingSoonProvider lists them; empty with no contributor
   """
   providerInterests: [ContributeComingSoonProvider!]!
 }
@@ -50,7 +50,7 @@ enum ContributeAccessReason {
 type ContributeActivity {
   items: [ContributeActivityItem!]!
 
-  """When contrib read it"""
+  """When GitRanks read it (ISO)"""
   readAt: String!
 
   """
@@ -741,16 +741,20 @@ type ContributeAutopilot {
   unlocked: Boolean!
 }
 
-"""A contributor a maintainer took no more GitRanks PRs from in the repo"""
+"""
+A contributor a maintainer blocked: no more GitRanks pull requests from them in the repository
+"""
 type ContributeBlockedContributor {
-  """The maintainer who blocked them"""
+  """The login of the maintainer who blocked them"""
   by: String!
 
-  """The report: what Undo takes"""
+  """The report that blocked them: what undoContributePrAction takes"""
   feedbackId: ID!
 
-  """Null once they deleted their Contribute data"""
+  """Null once they deleted their GitRanks Contribute data"""
   login: String
+
+  """When they were blocked (ISO)"""
   since: String!
 }
 
@@ -855,7 +859,7 @@ enum ContributeClaCoAuthor {
 
 """An agreement the repo's PRs sign: a CLA, or a DCO signed like one"""
 type ContributeClaRule {
-  """`CLA` or `DCO`; null from an older contrib (a CLA)"""
+  """`CLA` or `DCO`; null when not known (then a CLA)"""
   agreement: String
 
   """The check's name on the PR"""
@@ -900,29 +904,37 @@ enum ContributeComingSoonProvider {
   XAI
 }
 
-"""A .github/gitranks.yml key: never a value, never how many there are"""
+"""
+A key a repository can set in its .github/gitranks.yml, and what it takes
+"""
 type ContributeConfigKey {
   key: String!
 
   """
-  Its value kind, as shared-constants names it: onOff, yesNo, allowedOff, int, tier, contact
+  The kind of value it takes: one of onOff, yesNo, allowedOff, int, tier, contact
   """
   kind: String!
 
-  """Enforced now: the page shows only live keys"""
+  """
+  Whether GitRanks applies it now; a key that is not live has no effect yet
+  """
   live: Boolean!
 
   """A whole-number key: its greatest value"""
   max: Int
+
+  """What it does"""
   meaning: String!
 
   """A whole-number key: its least value"""
   min: Int
 
-  """Settable on the maintainers page too, not only in the file"""
+  """
+  Whether it can be set on the maintainers page too, not only in the file
+  """
   page: Boolean!
 
-  """Its values in words"""
+  """The values it takes, in words"""
   values: String!
 }
 
@@ -1046,7 +1058,7 @@ type ContributeCredential {
 }
 
 """
-The day's cap on newly shown issues (abuse-guards spec §4.2): every issue shown once today stays on the list; new ones stop at the limit until 00:00 UTC
+The day's cap on newly shown issues: every issue shown once today stays on the list; new ones stop at the limit until 00:00 UTC
 """
 type ContributeDailyCap {
   """The most new issues the account is shown in a UTC day"""
@@ -1250,7 +1262,9 @@ type ContributeGrant {
   login: String
 }
 
-"""What a maintainer liked in a GitRanks PR"""
+"""
+What a maintainer liked in a pull request opened through GitRanks Contribute
+"""
 enum ContributeHelpedLike {
   ANSWERED_REVIEW
   FOLLOWED_RULES
@@ -1535,7 +1549,7 @@ type ContributeLedgerWeek {
 }
 
 """
-The access level and the limits it sets now (abuse guards §5.4); the facts and thresholds are never sent
+The access level and the limits it sets now; the facts and thresholds are never sent
 """
 type ContributeLimits {
   """
@@ -1565,26 +1579,32 @@ enum ContributeLiveProvider {
 }
 
 """
-The maintainers page's numbers, from the same constants Contribute enforces
+The limits GitRanks Contribute keeps for every repository, and the keys a repository can set
 """
 type ContributeMaintainerFacts {
-  """GitRanks attempts at once in one repo"""
+  """The most GitRanks contributions worked on at once in one repository"""
   attemptsPerRepo: Int!
 
   """
-  The "help welcome" badge’s priority: the factor its repo’s issues are ranked up by
+  The factor the issues of a repository showing the "help welcome" badge are ranked up by; null when they are not
   """
   badgeBoost: Float
 
-  """Every key, live or not: render the live ones"""
+  """Every key, live or not; only live keys have an effect"""
   configKeys: [ContributeConfigKey!]!
+
+  """The days `prsPerMonth` counts over"""
   monthDays: Int!
+
+  """How many days such a pause lasts"""
   pauseDays: Int!
 
-  """PRs closed unmerged in a row that pause a repo"""
+  """
+  Pull requests closed without a merge in a row that pause GitRanks in a repository
+  """
   pauseStreak: Int!
 
-  """GitRanks PRs a repo gets at most in `monthDays` days"""
+  """The most GitRanks pull requests a repository gets in `monthDays` days"""
   prsPerMonth: Int!
 }
 
@@ -1593,7 +1613,7 @@ A repository the visitor administers or maintains, and whether it is opted out
 """
 type ContributeMaintainerRepo {
   """
-  Contributors a report took no more GitRanks PRs from in it, each undoable (maintainers page spec §8)
+  Contributors a maintainer blocked in it: no more GitRanks pull requests from them; each undoable
   """
   blockedContributors: [ContributeBlockedContributor!]!
   isArchived: Boolean!
@@ -1614,7 +1634,7 @@ type ContributeMaintainerRepo {
   repoId: ID!
   stars: Int!
 
-  """Its PRs a report stopped GitRanks work on, each undoable"""
+  """Its pull requests a maintainer stopped GitRanks work on, each undoable"""
   stoppedPrs: [ContributeStoppedPr!]!
 }
 
@@ -1748,7 +1768,7 @@ type ContributePaths {
 }
 
 """
-STOP_PR: stop GitRanks work on the PR; BLOCK_CONTRIBUTOR: no more GitRanks PRs from its contributor in the repo; REPO_OFF: keep GitRanks out of the repo. A maintainer's alone, each undoable
+What a report can do, for a maintainer of the repository only, each one undoable: STOP_PR (GitRanks stops working on the pull request), BLOCK_CONTRIBUTOR (no more GitRanks pull requests from its contributor in the repository), REPO_OFF (the repository is out of GitRanks Contribute: no issue of it is picked and no pull request opened there)
 """
 enum ContributePrAction {
   BLOCK_CONTRIBUTOR
@@ -1756,41 +1776,58 @@ enum ContributePrAction {
   STOP_PR
 }
 
+"""An action a report applied, and whether it was undone"""
 type ContributePrActionState {
+  """When it was applied (ISO)"""
   appliedAt: String!
   kind: ContributePrAction!
+
+  """When it was undone (ISO); null while it holds"""
   undoneAt: String
 }
 
-"""One of our PRs, as the PR on GitHub shows it"""
+"""
+A pull request opened through GitRanks Contribute, as it shows on GitHub
+"""
 type ContributePrCard {
-  """Who made the change, as the PR footer says it"""
+  """Who made the change, in the words of the pull request's footer"""
   agentPhrase: String!
 
-  """Its first attempt: what the notes take"""
+  """
+  The id of its first attempt: the `from` that reports and helped notes take
+  """
   attemptId: ID!
   contributorLogin: String
 
-  """The signed-in visitor is its contributor: the page shows no form"""
+  """
+  The signed-in visitor is its contributor, who can neither report it nor say it helped
+  """
   isAuthor: Boolean!
 
-  """The repo's current name"""
+  """The repository's current owner/name"""
   nameWithOwner: String!
   number: Int!
 
-  """ISO"""
+  """When it was opened (ISO)"""
   openedAt: String!
+
+  """The repository's GitHub node id"""
   repositoryId: ID!
 
-  """False: opened by the contributor's autopilot, unreviewed"""
+  """
+  Whether its contributor reviewed it before it opened; false when their autopilot opened it
+  """
   reviewed: Boolean!
   title: String
 }
 
+"""
+A pull request opened through GitRanks Contribute, and the signed-in visitor on it
+"""
 type ContributePrCardView {
   card: ContributePrCard!
 
-  """Null without a token"""
+  """Null when no GitHub token was given"""
   viewer: ContributePrViewer
 }
 
@@ -1827,21 +1864,27 @@ enum ContributePrFeedbackKind {
   REPORT
 }
 
-"""A note sent: its number and what it applied"""
+"""
+A report or helped note just sent: its number and the actions it applied
+"""
 type ContributePrFeedbackResult {
-  """Every action the note applied, undone ones too"""
+  """Every action it applied, undone ones too"""
   actions: [ContributePrActionState!]!
 
-  """Appended to the visitor's earlier note on the PR"""
+  """
+  Added to the visitor's earlier note of the same kind on the pull request
+  """
   added: Boolean!
+
+  """What undoContributePrAction takes"""
   feedbackId: ID!
   kind: ContributePrFeedbackKind!
 
-  """R-0042, H-0007"""
+  """Its label: R-0042 for a report, H-0007 for a helped note"""
   label: String!
   number: Int!
 
-  """The role GitHub gave at send time"""
+  """The role GitHub gave when it was sent"""
   role: ContributePrRole!
 }
 
@@ -1919,28 +1962,35 @@ type ContributePrIssueSource {
   url: String!
 }
 
-"""A helped note on the PR, as its contributor sees it"""
+"""
+A "this PR helped" note on the pull request, as its contributor sees it
+"""
 type ContributePrNote {
+  """When it was sent (ISO)"""
   at: String!
   feedbackId: ID!
+
+  """The contributor hid it from their page"""
   hidden: Boolean!
   likes: [ContributeHelpedLike!]!
   login: String!
   role: ContributePrRole!
 
-  """A maintainer's or collaborator's word; a user's never"""
+  """The sender's words, kept only from a maintainer or a collaborator"""
   word: String
 }
 
-"""The maintainers' say on the viewer's PR"""
+"""What the repository's maintainers said about the viewer's pull request"""
 type ContributePrNotes {
   """Newest first, hidden ones too"""
   notes: [ContributePrNote!]!
+
+  """Null while no one stopped it"""
   stopped: ContributePrStopped
 }
 
 """
-The writer's role on the PR's repo, from GitHub at the note: MAINTAINER (admin or maintain), COLLABORATOR (write or triage), USER
+The sender's role on the pull request's repository, as GitHub gave it when the note was sent: MAINTAINER (admin or maintain permission), COLLABORATOR (write or triage permission), USER (anyone else)
 """
 enum ContributePrRole {
   COLLABORATOR
@@ -1996,37 +2046,39 @@ enum ContributePrState {
   OPEN
 }
 
-"""Who stopped GitRanks work on the PR, and when"""
+"""Who stopped GitRanks work on the pull request, and when"""
 type ContributePrStopped {
+  """When it was stopped (ISO)"""
   at: String!
+
+  """The login of the maintainer who stopped it"""
   login: String!
 }
 
+"""A report's actions after an undo"""
 type ContributePrUndoResult {
   actions: [ContributePrActionState!]!
   feedbackId: ID!
 }
 
 """
-The signed-in visitor on the PR's repo, as GitHub answered for their token now
+The signed-in visitor on the pull request's repository, as GitHub answers for their token now
 """
 type ContributePrViewer {
   """Null when GitHub could not be asked (roleConfirmed false)"""
   login: String
 
-  """
-  Their primary verified email, for "Reply to"
-  """
+  """Their primary verified email, offered as the reply-to address"""
   replyTo: String
 
   """
-  The repo's organization, when the role read as USER there: an org restricting third-party apps may hide a maintainer's role
+  The repository's organization, when the role read as USER there: an organization that restricts third-party apps may hide a maintainer's role
   """
   restrictedOrg: String
   role: ContributePrRole!
 
   """
-  False: GitHub rate-limited the sign-in, did not answer, or named no permission: the role is USER and nothing applies by itself
+  False when GitHub rate-limited the sign-in, did not answer, or named no permission: the role is then USER and no action applies
   """
   roleConfirmed: Boolean!
 }
@@ -2441,7 +2493,7 @@ type ContributeRepoReadiness {
   toolchain: String
 }
 
-"""What went wrong with a GitRanks PR"""
+"""What went wrong with a pull request opened through GitRanks Contribute"""
 enum ContributeReportReason {
   IGNORES_CONTRIBUTING
   LOW_QUALITY
@@ -3010,11 +3062,16 @@ type ContributeStackTarget {
   via: ContributeSetRepoVia!
 }
 
-"""A PR a maintainer stopped GitRanks work on"""
+"""A pull request a maintainer stopped GitRanks work on"""
 type ContributeStoppedPr {
+  """The login of the maintainer who stopped it"""
   by: String!
+
+  """The report that stopped it: what undoContributePrAction takes"""
   feedbackId: ID!
   number: Int!
+
+  """When it was stopped (ISO)"""
   since: String!
 }
 
@@ -3336,7 +3393,7 @@ type Mutation {
   ): ContributeAttempt!
 
   """
-  Posts the proof the viewer's own agent captured (proof from your agent spec §4.5): its screenshots to gitranks-proof/<n> in their fork, its section into the PR's live description, then the bot's re-review command. `checked` is the viewer's tick that nothing private is left (BAD_USER_INPUT without it). CONFLICT when it is not in review, a run works on the PR, or the PR is not open
+  Posts the proof the viewer's own agent captured: its screenshots to gitranks-proof/<n> in their fork, its section into the PR's live description, then the bot's re-review command. `checked` is the viewer's tick that nothing private is left (BAD_USER_INPUT without it). CONFLICT when it is not in review, a run works on the PR, or the PR is not open
   """
   approveContributeProof(checked: Boolean!, id: ID!): ContributeProofSession!
 
@@ -3351,7 +3408,7 @@ type Mutation {
   connectClaudeKey(confirmedLimit: Boolean!, cycleCapUsd: Float, key: String!, limits: ContributeConnectLimitsInput, plan: ContributeClaudePlan!, renewalDay: Int!): ContributeConnectKeyResult!
 
   """
-  Says one of our PRs helped (`from`: its first attempt). `word` reaches its contributor from a maintainer or a collaborator; `mayQuote` lets us ask to quote it. CONFLICT own_pr for the PR’s own contributor
+  Says a pull request opened through GitRanks Contribute helped (`from`: the id in its footer link). `word` reaches its contributor when a maintainer or a collaborator sends it; `mayQuote` lets GitRanks ask to quote it. CONFLICT own_pr for the pull request’s own contributor
   """
   contributePrHelped(from: ID!, likes: [ContributeHelpedLike!], mayQuote: Boolean, replyTo: String, token: String!, word: String): ContributePrFeedbackResult!
 
@@ -3443,7 +3500,7 @@ type Mutation {
   removeLlmKey(provider: ContributeLiveProvider!): Boolean!
 
   """
-  Reports one of our PRs (`from`: its first attempt). The actions apply only when GitHub says the token maintains the repo now; anyone else reports only. CONFLICT own_pr for the PR’s own contributor; RATE_LIMITED past 10 a day
+  Reports a pull request opened through GitRanks Contribute (`from`: the id in its footer link). The actions apply only when GitHub says the token maintains the repository now; anyone else only reports. CONFLICT own_pr for the pull request’s own contributor; RATE_LIMITED past 10 a day
   """
   reportContributePr(actions: [ContributePrAction!], details: String, from: ID!, reasons: [ContributeReportReason!]!, replyTo: String, token: String!): ContributePrFeedbackResult!
 
@@ -3538,7 +3595,7 @@ type Mutation {
   takeBackContributeProof(id: ID!): ContributeProofSession!
 
   """
-  Undoes an action a report applied, while it is still that report's. Any maintainer of the repo (GitHub asked now); FORBIDDEN for anyone else
+  Undoes an action a report applied, while that report still holds it. Any maintainer of the repository, as GitHub answers for the token now; FORBIDDEN for anyone else
   """
   undoContributePrAction(feedbackId: ID!, kind: ContributePrAction!, repoId: ID!, token: String!): ContributePrUndoResult!
 
@@ -3770,7 +3827,7 @@ type Query {
   contributeLedgerOpen: Boolean!
 
   """
-  The maintainers page's numbers and the .github/gitranks.yml keys, as Contribute enforces them
+  The limits GitRanks Contribute keeps for every repository, and the keys a repository can set in its .github/gitranks.yml
   """
   contributeMaintainerFacts: ContributeMaintainerFacts!
 
@@ -3780,12 +3837,12 @@ type Query {
   contributeOpen: Boolean!
 
   """
-  One of our PRs, by its footer link (`from`, the first attempt) or, with a token, by `pr` ("owner/name#123"). With a token, the visitor's role on its repo and their email. NOT_FOUND when it is no PR of ours
+  A pull request opened through GitRanks Contribute, by the `from` id in its footer link or, with a GitHub token, by `pr` ("owner/name#123"). With a token, also the visitor's role on its repository and their email. NOT_FOUND when GitRanks Contribute did not open it
   """
   contributePrCard(from: ID, pr: String, token: String): ContributePrCardView!
 
   """
-  The maintainers' say on the viewer's PR (any attempt of it): whether one stopped GitRanks work on it, and the "this PR helped" notes. Null when hidden
+  What the repository's maintainers said about the viewer's pull request (by any attempt of it): whether one stopped GitRanks work on it, and the "this PR helped" notes. Null when hidden
   """
   contributePrNotes(attemptId: ID!): ContributePrNotes
 

@@ -2,7 +2,7 @@ import { CONTRIBUTOR_KEYS, DEFAULT_CONTRIBUTOR_EXTRA, ORG_CONTRIBUTOR_KEYS } fro
 import { type EntityFacts, type OrgFacts, type RepoFacts, type UserFacts, wallOf } from './facts';
 import type { BadgeParams } from './params';
 import { repoRace, userClimbRace, userStarsRace } from './race';
-import type { BadgeFormat, By, ContributorKey, EntityKind } from './types';
+import type { BadgeFormat, By, ContributorKey, EntityKind, Scheme } from './types';
 import { isRankedIn } from '@/badge/utils/is-ranked-in';
 import { UserRankProp } from '@/types/ranking.types';
 
@@ -40,6 +40,8 @@ export type BadgeDefinition = {
   options: readonly BadgeOption[];
   /** A fixed drawing size for cards and charts; walls grow with their rows. */
   size?: { width: number; height: number };
+  /** The scheme a URL without `scheme` draws; Auto when left out. */
+  defaultScheme?: Scheme;
 };
 
 const shield = (
@@ -92,6 +94,8 @@ export const CATALOGUE = [
   ),
   shield('repo', 'sibling', 'sibling repo', ['shared'], null),
   shield('repo', 'tier', 'gitranks', ['level'], null),
+  // A maintainer's invitation to contributors, for any repository: no data, Night by default.
+  { ...shield('repo', 'contribute', 'GitRanks Contribute', [], null), defaultScheme: 'night' },
   panel('repo', 'rank-card', 'card', 'rank', { width: 400, height: 120 }),
   panel('repo', 'stars-card', 'card', 'stars', { width: 400, height: 120 }),
   panel('repo', 'starred-by-card', 'card', 'starred by top developers', { width: 400, height: 140 }),
@@ -240,6 +244,7 @@ function repoAvailability(repo: RepoFacts, id: string, params: BadgeParams, now:
     case 'contributors-chart':
       return either(!!repo.pulse && !!repo.pulseSeries?.months.length, false);
     case 'star-history':
+    case 'contribute':
       return 'available';
     case 'contributors-wall':
       return either(!!repo.pulse && (wallOf(repo, params.order)?.entries.length ?? 0) >= WALL_MIN_PEOPLE, false);

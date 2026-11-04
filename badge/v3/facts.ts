@@ -50,6 +50,8 @@ export type StarPoint = { date: string; stars: number };
 
 export type RepoFacts = {
   kind: 'repo';
+  /** The repository's GitHub node id; `null` where the read does not ask for it (link-preview cards). */
+  githubId: string | null;
   nameWithOwner: string;
   language: string | null;
   stars: number;

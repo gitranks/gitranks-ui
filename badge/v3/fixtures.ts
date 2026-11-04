@@ -60,6 +60,7 @@ export const wallOf = (count: number, total = count): ContributorsWall => ({
 
 const repoBase: RepoFacts = {
   kind: 'repo',
+  githubId: 'R_kgDOAcmeFq',
   nameWithOwner: 'acme/fastqueue',
   language: 'Rust',
   stars: 42,

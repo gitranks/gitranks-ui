@@ -63,6 +63,7 @@ describe('toRankGoal', () => {
 describe('toRepoFacts', () => {
   const data: BadgeRepoQuery = {
     repo: {
+      githubId: 'R_kgDONebula',
       nameWithOwner: 'nebula/ui',
       language: 'TypeScript',
       stars: 54_210,
@@ -79,6 +80,7 @@ describe('toRepoFacts', () => {
 
   it('maps the goal, the pulse counts and the walls by order', () => {
     const repo = toRepoFacts(data);
+    expect(repo?.githubId).toBe('R_kgDONebula');
     expect(repo?.rankGoal).toEqual({
       targetRank: 1_000,
       scope: 'global',

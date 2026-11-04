@@ -75,6 +75,7 @@ describe('the catalogue', () => {
     ['repo', 'starred-by', ['count'], 'count'],
     ['repo', 'sibling', ['shared'], null],
     ['repo', 'tier', ['level'], null],
+    ['repo', 'contribute', [], null],
     ['user', 'rank', ['top', 'month', 'goal'], 'top'],
     ['user', 'language-rank', ['of', 'top', 'month'], 'of'],
     ['user', 'goal', ['togo'], 'togo'],
@@ -102,12 +103,12 @@ const AVAILABLE: [string, EntityFacts, string[]][] = [
   [
     'repo 5–100',
     repoSmall,
-    ['rank', 'language-rank', 'stars', 'month', 'tier', 'rank-card', 'tier-card', 'star-history'],
+    ['rank', 'language-rank', 'stars', 'month', 'tier', 'contribute', 'rank-card', 'tier-card', 'star-history'],
   ],
   [
     'repo 100–1k',
     repoMid,
-    ['rank', 'language-rank', 'goal', 'stars', 'month', 'tier', 'rank-card', 'tier-card', 'star-history'],
+    ['rank', 'language-rank', 'goal', 'stars', 'month', 'tier', 'contribute', 'rank-card', 'tier-card', 'star-history'],
   ],
   [
     'repo 1k+',
@@ -122,6 +123,7 @@ const AVAILABLE: [string, EntityFacts, string[]][] = [
       'contributors',
       'sibling',
       'tier',
+      'contribute',
       'rank-card',
       'stars-card',
       'starred-by-card',
@@ -132,7 +134,7 @@ const AVAILABLE: [string, EntityFacts, string[]][] = [
       'contributors-wall',
     ],
   ],
-  ['repo unranked', repoUnranked, ['star-history']],
+  ['repo unranked', repoUnranked, ['contribute', 'star-history']],
   ['user under 100', userSmall, ['rank', 'language-rank', 'month', 'climb', 'tier', 'profile-card', 'count-chart']],
   ['user 100–1k', userMid, ['rank', 'language-rank', 'month', 'climb', 'tier', 'profile-card', 'count-chart']],
   ['user 1k+', userBig, ['rank', 'language-rank', 'goal', 'month', 'climb', 'tier', 'profile-card', 'count-chart']],
@@ -255,6 +257,20 @@ describe('availability', () => {
   it('draws star history for any repository it holds', () => {
     expect(availability(repoUnranked, 'star-history')).toBe('available');
   });
+
+  it('offers the Contribute badge for any repository it holds, never for developers or organizations', () => {
+    for (const repo of [repoSmall, repoMid, repoBig, repoUnranked]) {
+      expect(availability(repo, 'contribute')).toBe('available');
+    }
+    expect(findBadge('user', 'contribute')).toBeNull();
+    expect(findBadge('org', 'contribute')).toBeNull();
+  });
+
+  it('keeps the Contribute badge out of page promotion', () => {
+    for (const repo of [repoSmall, repoMid, repoBig]) {
+      expect(promotedBadges(repo, NOW).map(({ id }) => id)).not.toContain('contribute');
+    }
+  });
 });
 
 /** Words a value never starts with: no sentence is split across label and value. */
@@ -284,6 +300,20 @@ describe('shield text', () => {
       { label: 'this month', value: '+52 ★', extra: 'beat Sep ↑' },
     ],
     ['repo month, no extra', repoMid, 'month', 'extra=none', { label: 'this month', value: '+38 ★', extra: null }],
+    [
+      'repo contribute',
+      repoUnranked,
+      'contribute',
+      '',
+      { label: 'GitRanks Contribute', value: 'help welcome', extra: null },
+    ],
+    [
+      'repo contribute, own label',
+      repoBig,
+      'contribute',
+      'label=Contributors',
+      { label: 'Contributors', value: 'help welcome', extra: null },
+    ],
     ['repo starred by', repoBig, 'starred-by', '', { label: 'starred by', value: 'dev-0', extra: '+1,283 top devs' }],
     [
       'repo contributors',

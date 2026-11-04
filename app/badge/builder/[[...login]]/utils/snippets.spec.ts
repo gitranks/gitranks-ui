@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   badgeImageUrl,
+  badgeLinkUrl,
   badgePath,
   entityPageUrl,
   htmlSnippet,
@@ -39,6 +40,26 @@ describe('badge URLs', () => {
     expect(entityPageUrl(ORIGIN, 'org', 'nebula')).toBe('https://gitranks.com/org/nebula');
     expect(entityPageUrl(ORIGIN, 'user', 'octo-dev')).toBe('https://gitranks.com/profile/octo-dev');
     expect(entityPageUrl(ORIGIN, 'user', 'octo-dev', 'country')).toBe('https://gitranks.com/profile/octo-dev/country');
+  });
+});
+
+describe('badgeLinkUrl', () => {
+  it('links the Contribute badge to the page for maintainers, any other badge to its entity page', () => {
+    expect(badgeLinkUrl(ORIGIN, 'contribute', 'repo', 'acme/fastqueue')).toBe(
+      'https://gitranks.com/contribute/maintainers',
+    );
+    expect(badgeLinkUrl(ORIGIN, 'rank', 'repo', 'acme/fastqueue')).toBe('https://gitranks.com/repo/acme/fastqueue');
+    expect(badgeLinkUrl(ORIGIN, 'rank', 'user', 'octo-dev', 'country')).toBe(
+      'https://gitranks.com/profile/octo-dev/country',
+    );
+  });
+
+  it('writes the Contribute badge as the maintainers page gives it', () => {
+    const imageUrl = badgeImageUrl(ORIGIN, 'repo', 'owner/name', 'contribute', new URLSearchParams());
+    const pageUrl = badgeLinkUrl(ORIGIN, 'contribute', 'repo', 'owner/name');
+    expect(markdownSnippet({ imageUrl, pageUrl, alt: 'GitRanks Contribute', auto: false })).toBe(
+      '[![GitRanks Contribute](https://gitranks.com/badge/repo/owner/name/contribute.svg)](https://gitranks.com/contribute/maintainers)',
+    );
   });
 });
 

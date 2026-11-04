@@ -1,3 +1,5 @@
+import { after } from 'next/server';
+
 import { findBadge } from './catalogue';
 import type { EntityFacts } from './facts';
 import { BadgeParamsError, resolveParams } from './params';
@@ -129,6 +131,9 @@ export async function getBadgeResponse(
 
   try {
     const rendered = await renderBadge(entity, badge, params, parsed.format, now);
+    if (badge.id === 'contribute' && entity.kind === 'repo') {
+      reportSeen(entity.githubId);
+    }
     return new Response(rendered.body, {
       headers: {
         'Content-Type': rendered.contentType,
@@ -138,6 +143,26 @@ export async function getBadgeResponse(
   } catch (error) {
     console.error('Error drawing a badge:', error);
     return unavailable();
+  }
+}
+
+/**
+ * Reports a drawn Contribute badge after the response, never before it nor in its way: scheduling is guarded too, so a
+ * failure never costs the image. The reporter is server-only, so it loads only when used.
+ */
+function reportSeen(repoId: string | null) {
+  if (!repoId) return;
+  try {
+    after(async () => {
+      try {
+        const { reportContributeBadgeSeen } = await import('./contribute-seen');
+        await reportContributeBadgeSeen(repoId);
+      } catch {
+        // Ignored, as the report itself ignores its errors.
+      }
+    });
+  } catch (error) {
+    console.error('Error scheduling a badge report:', error);
   }
 }
 

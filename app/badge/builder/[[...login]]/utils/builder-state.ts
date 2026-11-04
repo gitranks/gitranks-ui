@@ -168,7 +168,7 @@ export function cleanStyle(badge: BadgeDefinition, style: Style): Style {
   for (const key of STYLE_KEYS) {
     const value = style[key];
     if (value === undefined || !keys.has(key) || key === 'left' || key === 'right') continue;
-    if (DEFAULT_STYLE[key] === value) continue;
+    if ((key === 'scheme' ? (badge.defaultScheme ?? DEFAULT_STYLE.scheme) : DEFAULT_STYLE[key]) === value) continue;
     // The default extra, or "none" where the badge shows no extra by default.
     if (key === 'extra' && (value === badge.defaultExtra || (value === 'none' && badge.defaultExtra === null)))
       continue;

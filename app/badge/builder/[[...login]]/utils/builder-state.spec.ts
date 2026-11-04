@@ -126,6 +126,13 @@ describe('cleanStyle', () => {
     expect(cleanStyle(rank, { scheme: 'night', left: '#111', right: '#222' })).toEqual({ scheme: 'night' });
   });
 
+  it("drops the scheme a badge starts on, so the Contribute badge's Night stays out and its Auto stays in", () => {
+    const contribute = badge('repo', 'contribute');
+    expect(cleanStyle(contribute, { scheme: 'night' })).toEqual({});
+    expect(cleanStyle(contribute, { scheme: 'auto' })).toEqual({ scheme: 'auto' });
+    expect(cleanStyle(badge('repo', 'rank'), { scheme: 'auto' })).toEqual({});
+  });
+
   it('drops a value the badge refuses instead of drawing a 400', () => {
     expect(cleanStyle(badge('repo', 'rank'), { extra: 'of', scheme: 'tier' })).toEqual({});
     expect(cleanStyle(badge('repo', 'tier'), { scheme: 'tier', extra: 'level' })).toEqual({

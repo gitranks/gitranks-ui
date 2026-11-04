@@ -3,6 +3,7 @@
 # check the budget before adding another costly field (pulse-sized, ~25).
 query BadgeRepo($owner: String!, $name: String!) {
   repo(owner: $owner, name: $name) {
+    githubId
     nameWithOwner
     language
     stars

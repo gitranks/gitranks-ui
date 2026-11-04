@@ -13,6 +13,17 @@ const loaders = {
 
 vi.mock('./load', () => ({ loadBadgeUser: loaders.user, loadBadgeOrg: loaders.org, loadBadgeRepo: loaders.repo }));
 
+const { after, reportContributeBadgeSeen } = vi.hoisted(() => ({
+  after: vi.fn<(task: () => Promise<void>) => void>(),
+  reportContributeBadgeSeen: vi.fn<(repoId: string) => Promise<void>>(),
+}));
+
+vi.mock('next/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/server')>()),
+  after,
+}));
+vi.mock('./contribute-seen', () => ({ reportContributeBadgeSeen }));
+
 const { GET: userGet } = await import('@/app/badge/user/[login]/[file]/route');
 const { GET: orgGet } = await import('@/app/badge/org/[login]/[file]/route');
 const { GET: repoGet } = await import('@/app/badge/repo/[owner]/[name]/[file]/route');
@@ -246,5 +257,78 @@ describe('the route handlers', () => {
 
     expect(response.status).toBe(200);
     expect(loaders.repo).toHaveBeenCalledWith('acme', 'fast.queue');
+  });
+});
+
+describe('the Contribute badge', () => {
+  beforeEach(() => {
+    for (const loader of Object.values(loaders)) loader.mockReset();
+    after.mockReset();
+    reportContributeBadgeSeen.mockReset();
+  });
+
+  /** Runs what the response scheduled for after it. */
+  const runAfter = async () => {
+    for (const [task] of after.mock.calls) await task();
+  };
+
+  it.each(['contribute.svg', 'contribute.png'])('draws %s for any repository, on Night', async (file) => {
+    loaders.repo.mockImplementation(resolved(repoUnranked));
+    const response = await repoResponse('acme', 'fastqueue', file);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.badge);
+    if (file.endsWith('.svg')) {
+      const body = await response.text();
+      expect(body).toMatch(/^<svg width="[\d.]+" height="20"/);
+      expect(body).not.toContain('prefers-color-scheme');
+    }
+  });
+
+  it('reports the drawn badge after the response, with the repository id only', async () => {
+    loaders.repo.mockImplementation(resolved(repoMid));
+    reportContributeBadgeSeen.mockResolvedValue();
+    await repoResponse('acme', 'fastqueue', 'contribute.svg', 'v=3');
+
+    expect(reportContributeBadgeSeen).not.toHaveBeenCalled();
+    expect(after).toHaveBeenCalledTimes(1);
+    await runAfter();
+    expect(reportContributeBadgeSeen).toHaveBeenCalledExactlyOnceWith(repoMid.githubId);
+  });
+
+  it('reports no other badge, no redirect and no miss', async () => {
+    loaders.repo.mockImplementation(resolved(repoBig));
+    await repoResponse('nebula', 'ui', 'rank.svg');
+    await repoResponse('nebula', 'ui', 'star-history.svg');
+    await repoResponse('Nebula', 'UI', 'contribute.svg');
+    loaders.repo.mockImplementation(resolved(null));
+    await repoResponse('acme', 'gone', 'contribute.svg');
+    loaders.user.mockImplementation(resolved(userMid));
+    await userResponse('octo-dev', 'contribute.svg');
+
+    expect(after).not.toHaveBeenCalled();
+  });
+
+  it('reports nothing for a repository without an id', async () => {
+    loaders.repo.mockImplementation(resolved({ ...repoMid, githubId: null }));
+    const response = await repoResponse('acme', 'fastqueue', 'contribute.svg');
+
+    expect(response.status).toBe(200);
+    expect(after).not.toHaveBeenCalled();
+  });
+
+  it('keeps the image when the report fails or cannot be scheduled', async () => {
+    loaders.repo.mockImplementation(resolved(repoMid));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    reportContributeBadgeSeen.mockRejectedValue(new Error('down'));
+    const reported = await repoResponse('acme', 'fastqueue', 'contribute.svg');
+    expect(reported.status).toBe(200);
+    await expect(runAfter()).resolves.toBeUndefined();
+
+    after.mockImplementation(() => {
+      throw new Error('outside a request');
+    });
+    const unscheduled = await repoResponse('acme', 'fastqueue', 'contribute.svg');
+    expect(unscheduled.status).toBe(200);
   });
 });

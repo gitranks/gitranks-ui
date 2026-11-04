@@ -40,11 +40,12 @@ describe('offeredBadges', () => {
       'stars',
       'month',
       'tier',
+      'contribute',
       'rank-card',
       'tier-card',
       'star-history',
     ]);
-    expect(ids(repoUnranked)).toEqual(['star-history']);
+    expect(ids(repoUnranked)).toEqual(['contribute', 'star-history']);
     expect(ids(userUnranked)).toEqual([]);
     expect(ids(orgUnranked)).toEqual([]);
   });

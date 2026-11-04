@@ -6,7 +6,7 @@ import { type MouseEvent, type RefObject, useEffect, useId, useRef, useState } f
 
 import { badgeAlt, entityName, paramsOf } from '../utils/badge-options';
 import { type Style, styleQuery } from '../utils/builder-state';
-import { badgeImageUrl, entityPageUrl, SNIPPET_FORMATS, type SnippetFormat, snippetOf } from '../utils/snippets';
+import { badgeImageUrl, badgeLinkUrl, SNIPPET_FORMATS, type SnippetFormat, snippetOf } from '../utils/snippets';
 import { BadgeImage, usePageTheme } from './badge-image';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
 import type { EntityFacts } from '@/badge/v3/facts';
@@ -58,7 +58,7 @@ export function EmbedStep({ headingRef, facts, badge, style, now, editHref, onEd
   const name = entityName(facts);
   const snippet = {
     imageUrl: badgeImageUrl(origin, facts.kind, name, badge.id, styleQuery(badge, style)),
-    pageUrl: entityPageUrl(origin, facts.kind, name, params?.scope),
+    pageUrl: badgeLinkUrl(origin, badge.id, facts.kind, name, params?.scope),
     alt: badgeAlt(facts, badge, style, now),
     auto: (params?.scheme ?? 'auto') === 'auto',
   };

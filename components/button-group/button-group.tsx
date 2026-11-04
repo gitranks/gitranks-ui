@@ -42,15 +42,18 @@ export const LinkGroupItem: FC<LinkGroupItemProps> = ({ href, active, children }
 type ButtonGroupItemProps = {
   onClick: () => void;
   active?: boolean;
+  disabled?: boolean;
+  className?: string;
   children: ReactNode;
 };
-export const ButtonGroupItem: FC<ButtonGroupItemProps> = ({ onClick, active, children }) => {
+export const ButtonGroupItem: FC<ButtonGroupItemProps> = ({ onClick, active, disabled, className, children }) => {
   return (
     <button
       onClick={onClick}
       data-state={active ? 'active' : undefined}
       aria-pressed={!!active}
-      className={ITEM_CLASSNAME}
+      disabled={disabled}
+      className={cn(ITEM_CLASSNAME, className)}
       type="button"
     >
       {children}

@@ -1,5 +1,6 @@
 'use client';
 
+import { Check, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -7,6 +8,7 @@ import { ignoreReviewThreads, startFollowUp } from '../actions';
 import { FollowUpNote } from './follow-up-buttons';
 import { HEADING, Pill } from './primitives';
 import { attemptHref } from './reviews-ready';
+import { ButtonGroup, ButtonGroupItem } from '@/components/button-group/button-group';
 import { Button } from '@/components/ui/button';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeFeedbackThread, ContributeReviewFeedback } from '@/lib/contribute/contribute.types';
@@ -57,21 +59,28 @@ function ThreadRow({
           {thread.excerpt}
         </p>
       </div>
-      <fieldset className="flex flex-none gap-1" aria-label={`For ${thread.author || 'this'} comment`}>
-        {(['address', 'ignore'] as const).map((each) => (
-          <Button
-            key={each}
-            type="button"
-            size="sm"
-            variant={choice === each ? (each === 'address' ? 'default' : 'secondary') : 'outline'}
-            aria-pressed={choice === each}
-            disabled={disabled}
-            onClick={() => onChoose(each)}
-            className="min-h-9 min-w-20"
-          >
-            {each === 'address' ? 'Address' : 'Ignore'}
-          </Button>
-        ))}
+      {/* One segmented switch, not two buttons: the raised half is the comment's state, and a click only moves it. */}
+      <fieldset
+        className="flex-none"
+        aria-label={`Address or ignore ${thread.author ? `${thread.author}'s` : 'this'} comment`}
+      >
+        <ButtonGroup className="h-9 max-sm:h-auto">
+          {(['address', 'ignore'] as const).map((each) => (
+            <ButtonGroupItem
+              key={each}
+              active={choice === each}
+              disabled={disabled}
+              onClick={() => onChoose(each)}
+              className={cn(
+                'min-w-24 px-3 max-sm:min-h-11',
+                choice !== each && 'text-muted-foreground hover:text-foreground dark:hover:text-foreground',
+              )}
+            >
+              {each === 'address' ? <Check aria-hidden /> : <EyeOff aria-hidden />}
+              {each === 'address' ? 'Address' : 'Ignore'}
+            </ButtonGroupItem>
+          ))}
+        </ButtonGroup>
       </fieldset>
     </li>
   );

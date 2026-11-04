@@ -175,11 +175,9 @@ export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: Contri
   >
     <div className="flex min-w-0 flex-col gap-5">
       <div className="flex items-center gap-2">
-        {viewer === 'contributor' ? null : (
-          <span className="rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
-            New
-          </span>
-        )}
+        <span className="rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
+          Beta
+        </span>
         <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           GitRanks Contribute
         </span>

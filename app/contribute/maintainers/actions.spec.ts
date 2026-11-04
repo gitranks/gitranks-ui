@@ -147,4 +147,147 @@ describe('the maintainers page actions', () => {
     expect(options).toMatchObject({ httpOnly: true, maxAge: 300 });
     expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: `/contribute/maintainers?s=${nonce}` });
   });
+
+  it('signs in back to the report page it started on, its query kept; never to a page elsewhere', async () => {
+    const form = new FormData();
+    form.set('returnTo', '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0&kind=helped');
+    await actions.signInAsMaintainer(form);
+    const nonce = jar.set.mock.calls[0][1];
+    expect(signIn).toHaveBeenLastCalledWith('github-basic', {
+      redirectTo: `/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0&kind=helped&s=${nonce}`,
+    });
+
+    form.set('returnTo', 'https://evil.example/contribute/maintainers/report');
+    await actions.signInAsMaintainer(form);
+    expect(signIn).toHaveBeenLastCalledWith('github-basic', {
+      redirectTo: `/contribute/maintainers?s=${jar.set.mock.calls[1][1]}`,
+    });
+  });
+});
+
+describe('the notes on a PR', () => {
+  const FROM = '6650a1b2c3d4e5f6a7b8c9d0';
+  const SENT = {
+    feedbackId: 'F',
+    kind: 'REPORT',
+    number: 42,
+    label: 'R-0042',
+    added: false,
+    role: 'MAINTAINER',
+    actions: [],
+  };
+  const report = {
+    from: FROM,
+    reasons: ['IGNORES_CONTRIBUTING', 'NOPE', 'IGNORES_CONTRIBUTING'] as never[],
+    details: '  It changed our lockfile.  ',
+    replyTo: ' sam@driftwood.dev ',
+    actions: ['STOP_PR', 'DELETE_REPO'] as never[],
+  };
+
+  beforeEach(() => {
+    signedFetch.mockReset();
+    currentSessionToken.mockReset();
+    currentSessionToken.mockResolvedValue(session());
+  });
+
+  it('sends a report with the token as a variable, known reasons and actions alone, trimmed text', async () => {
+    signedFetch.mockResolvedValueOnce(Response.json({ data: { reportContributePr: SENT } }));
+
+    const answer = await actions.sendPrReport(report);
+
+    expect(answer).toEqual({ ok: true, data: SENT });
+    expect(JSON.stringify(answer)).not.toContain(TOKEN);
+    const [{ query, variables }] = bodies();
+    expect(query).toContain('reportContributePr(');
+    expect(query).not.toContain(TOKEN);
+    expect(variables).toEqual({
+      token: TOKEN,
+      from: FROM,
+      reasons: ['IGNORES_CONTRIBUTING'],
+      details: 'It changed our lockfile.',
+      replyTo: 'sam@driftwood.dev',
+      actions: ['STOP_PR'],
+    });
+  });
+
+  it('sends nothing for a report without a reason, a bad address or an id we did not give', async () => {
+    for (const bad of [
+      { ...report, reasons: [] },
+      { ...report, replyTo: 'not an address' },
+      { ...report, details: 'x'.repeat(2001) },
+      { ...report, from: 'R_1' },
+    ]) {
+      expect(await actions.sendPrReport(bad)).toEqual({ ok: false, error: 'INVALID' });
+    }
+    expect(signedFetch).not.toHaveBeenCalled();
+  });
+
+  it('sends "this PR helped" with its likes, word and quote choice', async () => {
+    signedFetch.mockResolvedValueOnce(Response.json({ data: { contributePrHelped: { ...SENT, kind: 'HELPED' } } }));
+
+    await actions.sendPrHelped({
+      from: FROM,
+      likes: ['SOLVED_WELL', 'WHATEVER'] as never[],
+      word: ' Clean fix. ',
+      mayQuote: 'yes' as never,
+      replyTo: '',
+    });
+
+    const [{ query, variables }] = bodies();
+    expect(query).toContain('contributePrHelped(');
+    expect(variables).toEqual({
+      token: TOKEN,
+      from: FROM,
+      likes: ['SOLVED_WELL'],
+      word: 'Clean fix.',
+      mayQuote: false,
+      replyTo: null,
+    });
+  });
+
+  it('undoes an action with the repo it is in', async () => {
+    const undone = { feedbackId: FROM, actions: [] };
+    signedFetch.mockResolvedValueOnce(Response.json({ data: { undoContributePrAction: undone } }));
+
+    expect(await actions.undoPrAction({ feedbackId: FROM, repoId: 'R_kgDOabc', kind: 'STOP_PR' })).toEqual({
+      ok: true,
+      data: undone,
+    });
+    expect(bodies()[0].variables).toEqual({ token: TOKEN, feedbackId: FROM, repoId: 'R_kgDOabc', kind: 'STOP_PR' });
+    expect(await actions.undoPrAction({ feedbackId: FROM, repoId: 'R 1', kind: 'STOP_PR' })).toEqual({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(await actions.undoPrAction({ feedbackId: FROM, repoId: 'R_1', kind: 'DROP' as never })).toEqual({
+      ok: false,
+      error: 'INVALID',
+    });
+  });
+
+  it('asks nothing without the page sign-in', async () => {
+    currentSessionToken.mockResolvedValue(null);
+
+    expect(await actions.sendPrReport(report)).toEqual({ ok: false, error: 'SIGNED_OUT' });
+    expect(await actions.undoPrAction({ feedbackId: FROM, repoId: 'R_1', kind: 'STOP_PR' })).toEqual({
+      ok: false,
+      error: 'SIGNED_OUT',
+    });
+    expect(signedFetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['SERVICE_UNAVAILABLE', 'GITHUB_UNAVAILABLE'],
+    ['CONFLICT', 'OWN_PR'],
+    ['RATE_LIMITED', 'RATE_LIMITED'],
+    ['NOT_FOUND', 'NOT_OURS'],
+  ])('tells %s as %s, never in the words of the answer', async (code, error) => {
+    signedFetch.mockResolvedValueOnce(
+      Response.json({ data: null, errors: [{ message: `refused ${TOKEN}`, extensions: { code } }] }),
+    );
+
+    const answer = await actions.sendPrReport(report);
+
+    expect(answer).toEqual({ ok: false, error });
+    expect(JSON.stringify(answer)).not.toContain(TOKEN);
+  });
 });

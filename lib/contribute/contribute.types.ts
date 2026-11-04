@@ -834,7 +834,25 @@ export type ContributeMaintainerRepo = {
   isArchived: boolean;
   optedOut: boolean;
   optedOutAt: string | null;
+  /** Contributors a report took no more GitRanks PRs from in it, each undoable; absent from an older API. */
+  blockedContributors?: ContributeBlockedContributor[];
+  /** Its PRs a report stopped GitRanks work on, each undoable; absent from an older API. */
+  stoppedPrs?: ContributeStoppedPr[];
 };
+
+/** A contributor a maintainer's report took no more GitRanks PRs from in a repo. */
+export type ContributeBlockedContributor = {
+  /** Null once they deleted their Contribute data. */
+  login: string | null;
+  since: string;
+  /** The maintainer who did it. */
+  by: string;
+  /** The report: what Undo takes. */
+  feedbackId: string;
+};
+
+/** A PR a maintainer's report stopped GitRanks work on. */
+export type ContributeStoppedPr = { number: number; since: string; by: string; feedbackId: string };
 
 export type ContributeMaintainerRepos = {
   /** The GitHub account the sign-in belongs to. */
@@ -1198,4 +1216,119 @@ export type ContributeProofBrief = {
         result: { outcome: ContributeProofOutcome } | null;
       })
     | null;
+};
+
+// ─── The maintainers page: its facts, and the notes on a PR ("Report this PR", "This PR helped") ─────────────────────
+
+/** A `.github/gitranks.yml` key; the page shows the `live` ones alone, and never how many there are. */
+export type ContributeConfigKey = {
+  key: string;
+  /** onOff, yesNo, allowedOff, int, tier or contact. */
+  kind: string;
+  /** Its values in words. */
+  values: string;
+  meaning: string;
+  live: boolean;
+  /** Settable on the page too, not only in the file. */
+  page: boolean;
+  min: number | null;
+  max: number | null;
+};
+
+/** The maintainers page's numbers, as Contribute enforces them. */
+export type ContributeMaintainerFacts = {
+  prsPerMonth: number;
+  monthDays: number;
+  pauseStreak: number;
+  pauseDays: number;
+  attemptsPerRepo: number;
+  /** The badge's priority; null until it applies. */
+  badgeBoost: number | null;
+  configKeys: ContributeConfigKey[];
+};
+
+export type ContributePrFeedbackKind = 'REPORT' | 'HELPED';
+export type ContributeReportReason =
+  | 'IGNORES_CONTRIBUTING'
+  | 'LOW_QUALITY'
+  | 'UNRESPONSIVE'
+  | 'SPAM_OR_DUPLICATE'
+  | 'OTHER';
+export type ContributeHelpedLike =
+  | 'SOLVED_WELL'
+  | 'FOLLOWED_RULES'
+  | 'SMALL_AND_CLEAR'
+  | 'GOOD_TESTS'
+  | 'ANSWERED_REVIEW';
+/** What a maintainer's report may do at once, each undoable. */
+export type ContributePrAction = 'STOP_PR' | 'BLOCK_CONTRIBUTOR' | 'REPO_OFF';
+/** The writer's role in the PR's repo, as GitHub answered for their account. */
+export type ContributePrRole = 'MAINTAINER' | 'COLLABORATOR' | 'USER';
+
+/** One of our PRs, as the PR on GitHub shows it. */
+export type ContributePrCard = {
+  /** Its first attempt: what a note takes. */
+  attemptId: string;
+  repositoryId: string;
+  nameWithOwner: string;
+  number: number;
+  title: string | null;
+  openedAt: string;
+  contributorLogin: string | null;
+  /** False: opened by the contributor's autopilot, unreviewed. */
+  reviewed: boolean;
+  /** Who made the change, as the PR's footer says it. */
+  agentPhrase: string;
+  /** The signed-in visitor is its contributor. */
+  isAuthor: boolean;
+};
+
+/** The signed-in visitor in the PR's repo. */
+export type ContributePrViewer = {
+  /** Null when GitHub could not be asked (`roleConfirmed` false). */
+  login: string | null;
+  role: ContributePrRole;
+  /** False: GitHub could not be asked, so the role is USER and nothing applies by itself. */
+  roleConfirmed: boolean;
+  /** The repo's organization, when it may hide a maintainer's role (third-party app restrictions). */
+  restrictedOrg: string | null;
+  replyTo: string | null;
+};
+
+export type ContributePrCardView = { card: ContributePrCard; viewer: ContributePrViewer | null };
+
+export type ContributePrActionState = { kind: ContributePrAction; appliedAt: string; undoneAt: string | null };
+
+/** A note sent: its number and what it applied. */
+export type ContributePrFeedbackResult = {
+  feedbackId: string;
+  kind: ContributePrFeedbackKind;
+  number: number;
+  /** R-0042, H-0007. */
+  label: string;
+  /** Appended to the visitor's earlier note on the PR. */
+  added: boolean;
+  role: ContributePrRole;
+  actions: ContributePrActionState[];
+};
+
+export type ContributePrUndoResult = { feedbackId: string; actions: ContributePrActionState[] };
+
+/** A "this PR helped" note, as the PR's contributor sees it. */
+export type ContributePrNote = {
+  feedbackId: string;
+  login: string;
+  role: ContributePrRole;
+  likes: ContributeHelpedLike[];
+  /** A maintainer's or collaborator's word; never a user's. */
+  word: string | null;
+  at: string;
+  hidden: boolean;
+};
+
+/** The maintainers' say on the viewer's PR. */
+export type ContributePrNotes = {
+  stopped: { login: string; at: string } | null;
+  /** Newest first, hidden ones too. */
+  notes: ContributePrNote[];
 };

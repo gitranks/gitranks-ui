@@ -125,6 +125,81 @@ export function maintainerErrorMessage(error: MaintainerErrorCode): string {
 }
 
 /**
+ * Why a note on one of our PRs, its Undo or its PR's lookup failed (the maintainers page's report flows):
+ * - `SIGNED_OUT`: no GitHub sign-in for the page, or GitHub refused its token.
+ * - `NOT_OURS`: the PR is not one we opened.
+ * - `OWN_PR`: the visitor is the PR's own contributor.
+ * - `RATE_LIMITED`: the day's notes are used up.
+ * - `FORBIDDEN`: only a maintainer of the repo can do that.
+ * - `GITHUB_UNAVAILABLE`: GitHub could not be read, so nothing was sent: try again.
+ * - `INVALID`, `NOT_AVAILABLE_YET`, `FAILED` as elsewhere; FAILED may be tried again.
+ * Never the API's own words: they are about a call that carried a token.
+ */
+export type PrFeedbackErrorCode =
+  | 'SIGNED_OUT'
+  | 'NOT_OURS'
+  | 'OWN_PR'
+  | 'RATE_LIMITED'
+  | 'FORBIDDEN'
+  | 'GITHUB_UNAVAILABLE'
+  | 'INVALID'
+  | 'NOT_AVAILABLE_YET'
+  | 'FAILED';
+
+export function prFeedbackErrorOf(error: unknown): PrFeedbackErrorCode {
+  const errors = graphqlErrorsOf(error);
+  const codes = errors.map(({ extensions }) => extensions?.code);
+
+  if (codes.includes('UNAUTHENTICATED')) return 'SIGNED_OUT';
+  if (codes.includes('NOT_FOUND')) return 'NOT_OURS';
+  if (codes.includes('CONFLICT')) return 'OWN_PR';
+  if (codes.includes('RATE_LIMITED')) return 'RATE_LIMITED';
+  if (codes.includes('FORBIDDEN')) return 'FORBIDDEN';
+  if (codes.includes('SERVICE_UNAVAILABLE') || codes.includes('GITHUB_UNAVAILABLE')) return 'GITHUB_UNAVAILABLE';
+  if (codes.includes('GRAPHQL_VALIDATION_FAILED') || errors.some(({ message }) => UNKNOWN_FIELD.test(message ?? ''))) {
+    return 'NOT_AVAILABLE_YET';
+  }
+  if (codes.includes('BAD_USER_INPUT')) return 'INVALID';
+  return 'FAILED';
+}
+
+/**
+ * The words for a failed note (`send`), Undo (`undo`) or the PR's lookup (`read`). A send that broke off may have gone
+ * through, so its words never say it did not: another send only adds to the same note.
+ */
+export function prFeedbackErrorMessage(error: PrFeedbackErrorCode, doing: 'send' | 'undo' | 'read' = 'send'): string {
+  if (error === 'GITHUB_UNAVAILABLE' || error === 'FAILED') {
+    if (doing === 'send') return "We couldn't finish sending this. Try again; if it went through, we'll merge the two.";
+    if (doing === 'undo') return "We couldn't finish this. Try again in a minute.";
+    return error === 'GITHUB_UNAVAILABLE'
+      ? 'GitHub did not answer, so we could not check this pull request. Try again in a minute.'
+      : 'Something went wrong while reading this pull request. Try again in a minute.';
+  }
+  switch (error) {
+    case 'SIGNED_OUT':
+      return 'GitHub did not accept your sign-in. Sign in again, then send it.';
+    case 'NOT_OURS':
+      return "We didn't open this PR. Only PRs with our footer can be reported here; write to hello@gitranks.com about anything else.";
+    case 'OWN_PR':
+      return 'This is your own pull request: notes on it come from other people.';
+    case 'RATE_LIMITED':
+      return 'You have sent the most notes we take in a day. Try again tomorrow, or write to hello@gitranks.com.';
+    case 'FORBIDDEN':
+      return 'GitHub says your account does not maintain this repo now, so this can’t be undone from it.';
+    case 'INVALID':
+      return 'Something in the form was not accepted. Check it and send again.';
+    case 'NOT_AVAILABLE_YET':
+      return 'This is not available yet. Write to hello@gitranks.com with the PR link meanwhile.';
+    default:
+      return 'Something went wrong. Try again in a minute.';
+  }
+}
+
+/** A failure worth another try as it is: GitHub or the service did not answer. */
+export const isRetryablePrFeedbackError = (error: PrFeedbackErrorCode) =>
+  error === 'GITHUB_UNAVAILABLE' || error === 'FAILED';
+
+/**
  * Why a call about what the user works on (the mode, the lists, the ignored repos, feedback) failed: the Contribute
  * codes, and
  * - `RATE_LIMITED`: a day's limit is reached, or GitHub asked us to slow down.

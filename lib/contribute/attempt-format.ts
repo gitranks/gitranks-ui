@@ -366,9 +366,13 @@ export function footerPreviewOf(footer: string, body: string): { text: string; s
 const linksIssue = (body: string, number: number) =>
   new RegExp(`\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\b:?\\s+#${number}\\b`, 'i').test(body);
 
-/** A line that is the footer already, the old wording or the new: the API drops it and adds its own. */
+/**
+ * A line that is the footer already, the old wording or the new: the API drops it and adds its own. The footer's first
+ * line links the maintainers page (with or without a `?from=` query); its second line, joined to the first with `<br>`
+ * or on a line of its own, is "Something off? Tell us or opt out in one step".
+ */
 const FOOTER_LINE =
-  /^\s*(?:<sub>)?\s*(?:🤖 Made with .* via \[?gitranks\.com|Made with \[GitRanks Contribute\]\(https:\/\/)/;
+  /^\s*(?:<sub>)?\s*(?:🤖 Made with .* via \[?gitranks\.com|Made with \[GitRanks Contribute\]\(https:\/\/|Something off\? \[Tell us or opt out in one step\]\(https:\/\/)/;
 
 /** The body to edit: the footer is the API's to add, so it is taken out of a body the agent copied it into. */
 export const editableBodyOf = (body: string | null | undefined) =>

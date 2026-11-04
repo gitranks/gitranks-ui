@@ -1,12 +1,11 @@
 import type { ContributeMaintainerRepo, ContributeOptOutResult, ContributeRepoPermission } from './contribute.types';
 
-export const PERMISSIONS: Record<ContributeRepoPermission, string> = {
-  ADMIN: 'Admin',
-  MAINTAIN: 'Maintain',
-  WRITE: 'Write',
-  TRIAGE: 'Triage',
-  READ: 'Read',
-};
+/** GitHub's permission as a role, in plain words: never GitHub's own names. */
+export function roleWordOf(permission: ContributeRepoPermission): string {
+  if (permission === 'ADMIN' || permission === 'MAINTAIN') return 'Maintainer';
+  if (permission === 'WRITE' || permission === 'TRIAGE') return 'Collaborator';
+  return 'User';
+}
 
 export type OptOutChange = 'out' | 'in';
 

@@ -21,14 +21,16 @@ import { FollowUpApproval } from './follow-up-approval';
 import { FollowUpResult } from './follow-up-result';
 import { NextStepCards, YourMoveLine } from './next-step';
 import { PrForm } from './pr-form';
+import { PrNotesPanel } from './pr-notes';
+import { PrStoppedProvider } from './pr-stopped';
 import { HEADING, Pill } from './primitives';
 import { ReplyDrafts } from './reply-drafts';
 import { SendBackForm } from './send-back-form';
 import { type SessionTab, SessionTabs } from './session-tabs';
 import { SubmitPanel } from './submit-panel';
 import { attemptTitleOf, editableBodyOf, githubUrlOf, isOwnAgent, repoOf } from '@/lib/contribute/attempt-format';
-import { loadAttempt, loadContribute, loadResolveHumanThreads } from '@/lib/contribute/contribute.data';
-import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
+import { loadAttempt, loadContribute, loadPrNotes, loadResolveHumanThreads } from '@/lib/contribute/contribute.data';
+import type { ContributeAttemptDetail, ContributePrNotes, ContributeView } from '@/lib/contribute/contribute.types';
 import { accessNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
@@ -76,10 +78,14 @@ export async function ContributionLayout({
   if (!attempt || attempt.kind === 'FOLLOW_UP') return children;
   // The run under way, read beside it: what the line says of it, and its card before the history lists it.
   const current = attempt.followUps?.currentAttemptId;
-  const read = current ? await loadAttempt(current).catch(() => undefined) : undefined;
+  // The maintainers' say on the PR, read beside the run: an API without it leaves the page as it was.
+  const [read, prNotes] = await Promise.all([
+    current ? loadAttempt(current).catch(() => undefined) : undefined,
+    attempt.pullRequest ? loadPrNotes(attempt.attemptId) : undefined,
+  ]);
   const run = read?.kind === 'FOLLOW_UP' && read.followUpOf?.attemptId === attempt.attemptId ? read : undefined;
   return (
-    <ContributionShell view={view} attempt={attempt} first={attempt} run={run}>
+    <ContributionShell view={view} attempt={attempt} first={attempt} run={run} prNotes={prNotes}>
       {children}
     </ContributionShell>
   );
@@ -102,7 +108,8 @@ export async function FirstSessionView({
   if (attempt.kind === 'FOLLOW_UP') {
     const first = await firstOf(attempt);
     if (first) redirect(withQuery(sessionPath(first.attemptId, attempt.attemptId), query));
-    return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} />;
+    const prNotes = await loadPrNotes(attempt.attemptId);
+    return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} prNotes={prNotes} />;
   }
   const next = query.session === NEXT_SESSION;
   // The next step gone since the layout was read (a run started, say): the address says the first attempt, so the
@@ -353,6 +360,7 @@ export function ContributionShell({
   run,
   shown,
   now,
+  prNotes,
   children,
 }: {
   /** Whose contribution: whether their own agent has called (a proof's tile and its card read it). */
@@ -362,6 +370,8 @@ export function ContributionShell({
   run?: ContributeAttemptDetail;
   shown?: string;
   now?: Date;
+  /** The maintainers' say on its PR: a stop, and "this PR helped" notes. */
+  prNotes?: ContributePrNotes;
   children: ReactNode;
 }) {
   const followUp = attempt.kind === 'FOLLOW_UP';
@@ -416,12 +426,16 @@ export function ContributionShell({
         ) : null}
       </header>
 
-      {first && session ? <YourMoveLine first={first} runs={run ? [run] : []} {...session} now={now} /> : null}
+      {prNotes ? <PrNotesPanel notes={prNotes} repo={repo} /> : null}
 
-      <div className={cn('grid items-start gap-5', cards && 'lg:grid-cols-[17rem_minmax(0,1fr)]')}>
-        {cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null}
-        {children}
-      </div>
+      <PrStoppedProvider stopped={!!prNotes?.stopped}>
+        {first && session ? <YourMoveLine first={first} runs={run ? [run] : []} {...session} now={now} /> : null}
+
+        <div className={cn('grid items-start gap-5', cards && 'lg:grid-cols-[17rem_minmax(0,1fr)]')}>
+          {cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null}
+          {children}
+        </div>
+      </PrStoppedProvider>
     </div>
   );
 }
@@ -478,6 +492,7 @@ export function ReviewScreen({
   next = false,
   now,
   resolveHumans,
+  prNotes,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail | undefined;
@@ -486,6 +501,8 @@ export function ReviewScreen({
   now?: Date;
   /** Whether a follow-up's replies resolve people's threads too; `undefined` while the API does not answer it. */
   resolveHumans?: boolean;
+  /** The maintainers' say on its PR. */
+  prNotes?: ContributePrNotes;
 }) {
   if (!attempt) {
     return (
@@ -510,6 +527,7 @@ export function ReviewScreen({
       run={followUp ? attempt : undefined}
       shown={showNext ? NEXT_SESSION : attempt.attemptId}
       now={now}
+      prNotes={prNotes}
     >
       <SessionPane
         view={view}

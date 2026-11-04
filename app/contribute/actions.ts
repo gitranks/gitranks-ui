@@ -27,6 +27,7 @@ import {
   DiscardContributeProofDocument,
   DismissReplyDocument,
   FixContributePullRequestDocument,
+  HideContributePrNoteDocument,
   IgnoreContributeRepoDocument,
   IgnoreReviewThreadsDocument,
   MarkNeedsYouHandledDocument,
@@ -76,6 +77,7 @@ import type {
   ContributeMcpTokenCreated,
   ContributePreferences,
   ContributePreferencesInput,
+  ContributePrNote,
   ContributeProofSession,
   ContributePrSignalKind,
   ContributeReplyDraft,
@@ -106,6 +108,7 @@ import {
   type ContributePrFixKind,
   PR_FIX_KINDS,
 } from '@/lib/contribute/pr-conventions';
+import { objectIdOf } from '@/lib/contribute/pr-feedback';
 import { PROOF_NOTE_MAX, PROOF_REPLY_MAX } from '@/lib/contribute/proof';
 import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -854,5 +857,19 @@ export async function sendContributeFeedback(
     SendContributeFeedbackDocument,
     { topic, text: trimmed, ...(sent ? { context: sent } : {}) },
     (data) => data.sendContributeFeedback,
+  );
+}
+
+/** Hides a "this PR helped" note from the user's contribution page, or shows it again. */
+export async function hidePrNote(
+  feedbackId: string,
+  hidden: boolean,
+): Promise<ContributeActionResult<ContributePrNote>> {
+  const id = objectIdOf(feedbackId);
+  if (!id) return { ok: false, error: 'INVALID' };
+  return run(
+    HideContributePrNoteDocument,
+    { feedbackId: id, hidden: hidden === true },
+    (data) => data.hideContributePrNote,
   );
 }

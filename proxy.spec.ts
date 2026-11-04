@@ -111,8 +111,15 @@ describe('proxy', () => {
       });
     });
 
-    it('lets everyone reach the page for maintainers, without asking who may see Contribute', async () => {
-      for (const path of ['/contribute/maintainers', '/contribute/maintainers/']) {
+    it('lets everyone reach the page for maintainers and its report page, without asking who may see Contribute', async () => {
+      for (const path of [
+        '/contribute/maintainers',
+        '/contribute/maintainers/',
+        '/contribute/maintainers/report',
+        '/contribute/maintainers/report/',
+        '/Contribute/Maintainers/Report',
+        '/contribute//maintainers//report',
+      ]) {
         const signedOut = await proxy(request(undefined, path), event);
         expect(signedOut?.headers.get('x-middleware-rewrite')).toBeNull();
 
@@ -124,7 +131,15 @@ describe('proxy', () => {
     });
 
     it('keeps everything under the page for maintainers, and the other pages, behind the gate', async () => {
-      for (const path of ['/contribute/maintainers/x', '/contribute/maintainers%2F..%2Fsettings', '/contribute/me']) {
+      for (const path of [
+        '/contribute/maintainers/x',
+        '/contribute/maintainers%2F..%2Fsettings',
+        '/contribute/maintainers/report/x',
+        '/contribute/maintainers/reports',
+        '/contribute/maintainers/report%2F..%2F..%2Fme',
+        '/contribute/maintainers/%E0%A4%A',
+        '/contribute/me',
+      ]) {
         const response = await proxy(request(undefined, path), event);
         expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
       }

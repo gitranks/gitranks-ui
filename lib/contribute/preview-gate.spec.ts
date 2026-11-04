@@ -72,6 +72,13 @@ describe('the Contribute preview gate', () => {
     expect(isMaintainersPath('/contribute/maintainers%')).toBe(false);
     expect(isMaintainersPath('/contribute')).toBe(false);
     expect(isMaintainersPath('/maintainers')).toBe(false);
+    expect(isMaintainersPath('/contribute/maintainers/report')).toBe(true);
+    expect(isMaintainersPath('/contribute/maintainers/report/')).toBe(true);
+    expect(isMaintainersPath('/contribute/Maintainers/%72eport')).toBe(true);
+    expect(isMaintainersPath('/contribute/maintainers/report/x')).toBe(false);
+    expect(isMaintainersPath('/contribute/maintainers/reports')).toBe(false);
+    expect(isMaintainersPath('/contribute/maintainers/report%2F..%2F..%2Fme')).toBe(false);
+    expect(isMaintainersPath('/contribute/report')).toBe(false);
     expect(isMaintainersPath('/contribute/mcp')).toBe(false);
   });
 
@@ -87,6 +94,8 @@ describe('the Contribute preview gate', () => {
     expect(isOpenAtLaunchPath('/contribute/mcp%')).toBe(false);
     expect(isTablessPath('/contribute/maintainers')).toBe(true);
     expect(isTablessPath('/contribute/faq')).toBe(true);
+    expect(isTablessPath('/contribute/maintainers/report')).toBe(true);
+    expect(isTablessPath('/contribute/maintainers/x')).toBe(false);
     expect(isTablessPath('/contribute')).toBe(false);
   });
 

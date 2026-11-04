@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 import { fixPullRequest, markNeedsYouHandled, retryAttempt, startFollowUp, vetoAutopilot } from '../actions';
+import { unlessPrStopped } from './pr-stopped';
 import { attemptHref } from './reviews-ready';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -87,7 +88,7 @@ export function FollowUpNote({
  * the main action when GitRanks recommends a run (`primary`), else an outline one. Opens the run once it starts: its
  * review comes there once the agent is done.
  */
-export function StartFollowUpButton({
+function StartFollowUpButtonLive({
   prId,
   primary = true,
   label = 'Start a follow-up',
@@ -181,7 +182,7 @@ const RETRY_COPY: Record<ContributeRetryKind, { label: string; line: string; pla
  * budget (`BOOST`), or a no-go the user overrules (`OVERRIDE`): a new run told so, whose pull request they approve
  * themselves. Over a taken no-go (`release`), a line says who may be on it. Opens the new attempt.
  */
-export function RetryButton({
+function RetryButtonLive({
   attemptId,
   retry,
   release,
@@ -325,7 +326,7 @@ export function MarkHandledButton({
  * "Sign off and push": GitRanks rewrites our commits on the pull request's branch with the user's DCO sign-off (the
  * same code, a force-push). The click is their consent to sign off. Disabled while a sign-off is on its way.
  */
-export function SignOffButton({
+function SignOffButtonLive({
   attemptId,
   sending,
   again,
@@ -470,3 +471,9 @@ export function AutosubmitCountdown({ at, from }: { at: string; from: string }) 
     </span>
   );
 }
+
+export const StartFollowUpButton = unlessPrStopped(StartFollowUpButtonLive);
+
+export const RetryButton = unlessPrStopped(RetryButtonLive);
+
+export const SignOffButton = unlessPrStopped(SignOffButtonLive);

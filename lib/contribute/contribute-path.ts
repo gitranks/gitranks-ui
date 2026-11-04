@@ -29,13 +29,19 @@ export function isLandingPath(pathname: string): boolean {
 /** The page for maintainers: open to every visitor, outside the preview. */
 export const MAINTAINERS_PATH = '/contribute/maintainers';
 
+/** Where a maintainer reports one of our PRs, or says it helped: open to every visitor too. */
+export const MAINTAINERS_REPORT_PATH = '/contribute/maintainers/report';
+
+/** The paths the maintainers page's own sign-in may return to. */
+export const MAINTAINER_RETURN_PATHS: readonly string[] = [MAINTAINERS_PATH, MAINTAINERS_REPORT_PATH];
+
 /**
- * Whether the path is the maintainers page itself, in any spelling the router reads as it; nothing under it, and no
- * path that does not decode, is.
+ * Whether the path is the maintainers page or its report page, in any spelling the router reads as them; nothing else
+ * under them, and no path that does not decode, is.
  */
 export function isMaintainersPath(pathname: string): boolean {
   try {
-    return /^\/+contribute\/+maintainers\/?$/i.test(decodeURIComponent(pathname));
+    return /^\/+contribute\/+maintainers(?:\/+report)?\/?$/i.test(decodeURIComponent(pathname));
   } catch {
     return false;
   }
@@ -82,10 +88,10 @@ export const isOpenAtLaunchPath = (pathname: string): boolean =>
 
 /**
  * Whether the path is one of the pages about Contribute rather than the user's workspace, which show no tabs: the
- * maintainers page, the ledger, the MCP docs and the questions.
+ * maintainers page and its report page, the ledger, the MCP docs and the questions.
  */
 export const isTablessPath = (pathname: string): boolean =>
-  decodedMatches(pathname, /^\/+contribute\/+(?:maintainers|ledger|mcp|faq)\/?$/i);
+  decodedMatches(pathname, /^\/+contribute\/+(?:maintainers(?:\/+report)?|ledger|mcp|faq)\/?$/i);
 
 /** Where each way of contributing starts: a Claude key we run the agent on, or the user's own agent. */
 export const CONNECT_KEY_PATH: Route = '/contribute/connect';

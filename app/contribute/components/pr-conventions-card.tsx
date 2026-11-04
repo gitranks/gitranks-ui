@@ -6,6 +6,7 @@ import { useEffect, useId, useState, useTransition } from 'react';
 
 import { fixPullRequest } from '../actions';
 import { CodeBlock } from './code-block';
+import { unlessPrStopped } from './pr-stopped';
 import { HEADING } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -145,15 +146,7 @@ function IssueFields({ fields }: { fields: ContributePrIssueField[] }) {
  * a link only, or the comment that signs it to copy, since nobody can sign it for the user. Each says why the user
  * sees it and what to do, step by step; a template the repo leaves to the user comes drafted, section by section.
  */
-export function PrConventionsCard({
-  attemptId,
-  prNumber,
-  issues,
-  fix,
-  title,
-  body,
-  conventions,
-}: PrConventionsCardProps) {
+function PrConventionsCardLive({ attemptId, prNumber, issues, fix, title, body, conventions }: PrConventionsCardProps) {
   const router = useRouter();
   const id = useId();
   const [pending, startTransition] = useTransition();
@@ -395,3 +388,5 @@ export function PrConventionsCard({
     </section>
   );
 }
+
+export const PrConventionsCard = unlessPrStopped(PrConventionsCardLive);

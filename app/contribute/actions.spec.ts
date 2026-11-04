@@ -59,6 +59,7 @@ const CALLS: Record<string, unknown[]> = {
   approveFollowUp: ['A_F1', 'Follow-up', [{ draftId: 'D_1', text: 'Renamed it.', send: true }]],
   setResolveHumanThreads: [true],
   vetoAutopilot: ['A_1'],
+  hidePrNote: ['6650a1b2c3d4e5f6a7b8c9d0', true],
   fixPullRequest: [{ attemptId: 'A_1', kind: 'TITLE', title: 'fix: x', githubLogin: 'mallory' }],
   markNeedsYouHandled: ['PR_1'],
   ignoreReviewThreads: ['PR_1', ['C_1']],

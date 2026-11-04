@@ -12,15 +12,18 @@ import {
   AutopilotHowItWorks,
   AutopilotRecord,
 } from '@/app/contribute/components/autopilot-section';
+import { ContributeBadgePreview } from '@/app/contribute/components/contribute-badge-preview';
 import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { FaqScreen } from '@/app/contribute/components/faq';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
 import { LedgerScreen } from '@/app/contribute/components/ledger-view';
-import { MaintainerReposPanel, MaintainersScreen } from '@/app/contribute/components/maintainers-view';
+import { MaintainerReposPanel, MaintainersScreen, PrStrip } from '@/app/contribute/components/maintainers-view';
 import { McpDocsScreen } from '@/app/contribute/components/mcp-docs';
 import { OverviewScreen, overviewSectionsOf } from '@/app/contribute/components/overview-status';
+import { HelpedSent, ReportSent } from '@/app/contribute/components/pr-feedback-forms';
+import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
 import { MorePages } from '@/app/contribute/components/public-pages';
 import { ReviewScreen } from '@/app/contribute/components/review-view';
 import { RunsScreen } from '@/app/contribute/components/runs-view';
@@ -31,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 import {
   attempt,
+  attempts,
   contributions,
   decisionAttempts,
   detail,
@@ -39,7 +43,14 @@ import {
 import { issuePage, nowIdle, overviewData } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import { emptyLedger, ledger, publicLedger } from '@/lib/contribute/__fixtures__/ledger';
-import { maintainerRepo } from '@/lib/contribute/__fixtures__/maintainers';
+import {
+  maintainerFacts,
+  maintainerRepo,
+  prCard,
+  prNotes,
+  prReportSent,
+  prViewer,
+} from '@/lib/contribute/__fixtures__/maintainers';
 import {
   needsSome,
   nextForAgreement,
@@ -52,6 +63,8 @@ import { pageOf } from '@/lib/contribute/__fixtures__/runs';
 import type { ContributeActivity, ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { NeedsYouRead } from '@/lib/contribute/needs-you';
+import { type PrFeedbackFlow, prUrlOf } from '@/lib/contribute/pr-feedback';
+import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
 import { runsQueryOf } from '@/lib/contribute/runs';
 
 /** A made-up token of the real shape, as the connect page shows it once. */
@@ -213,17 +226,67 @@ const mine = () => {
   );
 };
 
-/** The page for maintainers: open to everyone, the site header with no tabs, the visitor's repos as the panel. */
-const maintainersPage = (view: MaintainerReposView, { shown = false }: { shown?: boolean } = {}) => (
+const ORG_ACCESS_URL = 'https://github.com/settings/applications';
+
+/** The page for maintainers: open to everyone, the site header with no tabs, the visitor's repos in "Opt out". */
+const maintainersPage = (
+  view: MaintainerReposView,
+  { shown = false, fromPr = false }: { shown?: boolean; fromPr?: boolean } = {},
+) => (
   <>
     <Header section="contribute" />
     <HeaderLine />
     <MaintainersScreen
-      repos={<MaintainerReposPanel view={view} />}
+      facts={maintainerFacts()}
+      strip={fromPr ? <PrStrip card={prCard()} /> : null}
+      badge={<ContributeBadgePreview />}
+      badgeRepo={fromPr ? prCard().nameWithOwner : undefined}
+      prLink={fromPr ? prUrlOf(prCard()) : undefined}
+      repos={<MaintainerReposPanel view={view} orgAccessUrl={ORG_ACCESS_URL} />}
       more={shown ? <MorePages current="maintainers" /> : null}
     />
   </>
 );
+
+/** A report page, as its route draws it: under the site header, no tabs. */
+const reportPage = (read: PrReportRead, flow: PrFeedbackFlow = 'report', initial = {}) => (
+  <>
+    <Header section="contribute" />
+    <HeaderLine />
+    <PrFeedbackScreen
+      target={{ from: prCard().attemptId }}
+      flow={flow}
+      read={read}
+      orgAccessUrl={ORG_ACCESS_URL}
+      initial={initial}
+    />
+  </>
+);
+
+/** What a report page shows once it is sent: the form's own next state. */
+const sentPage = (flow: PrFeedbackFlow) => (
+  <>
+    <Header section="contribute" />
+    <HeaderLine />
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pt-8 pb-16">
+      <span className="text-xs font-semibold tracking-[0.08em] text-primary uppercase">
+        {flow === 'helped' ? 'This PR helped' : 'Report a pull request'}
+      </span>
+      {flow === 'helped' ? (
+        <HelpedSent card={prCard()} />
+      ) : (
+        <ReportSent card={prCard()} result={prReportSent()} requested={['STOP_PR']} replyTo="sam@driftwood.dev" />
+      )}
+    </main>
+  </>
+);
+
+const REPORT_FILLED = {
+  reasons: ['IGNORES_CONTRIBUTING' as const],
+  details: 'It changed our lockfile and the generated docs, which CONTRIBUTING asks not to touch.',
+  actions: ['STOP_PR' as const],
+};
+const found = (viewer = prViewer()): PrReportRead => ({ state: 'found', card: prCard(), viewer });
 
 /** The ledger as its page draws it: the site header and its line, no Contribute tabs. */
 const ledgerPage = (view: typeof ledger) => (
@@ -375,6 +438,23 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'lib/contribute/next-step.ts',
     ],
     states: [
+      {
+        id: 'maintainer-notes',
+        title: 'A maintainer stopped our work on the PR, and notes from the maintainers',
+        path: '/contribute/attempts/A_1',
+        height: 1700,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <ReviewScreen
+                view={views.active}
+                attempt={attempts.prOpen}
+                now={NOW}
+                prNotes={prNotes({ stopped: { login: 'sam-w', at: '2026-10-28T11:04:00.000Z' } })}
+              />
+            </main>,
+          ),
+      },
       {
         id: 'review',
         title: 'First attempt, ready for review',
@@ -922,7 +1002,13 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
               login: 'octocat',
               truncated: false,
               repos: [
-                maintainerRepo({ repoId: 'R_1' }),
+                maintainerRepo({
+                  repoId: 'R_1',
+                  blockedContributors: [
+                    { login: 'mira-dev', since: '2026-10-27T19:04:00.000Z', by: 'sam-w', feedbackId: 'F_1' },
+                  ],
+                  stoppedPrs: [{ number: 912, since: '2026-10-27T19:04:00.000Z', by: 'sam-w', feedbackId: 'F_1' }],
+                }),
                 maintainerRepo({
                   repoId: 'R_2',
                   nameWithOwner: 'driftwood-js/driftwood-devtools',
@@ -934,6 +1020,136 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
               ],
             },
           }),
+      },
+      {
+        id: 'from-pr',
+        title: 'Arriving from a PR footer',
+        path: '/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0',
+        signedOut: true,
+        height: 3700,
+        render: () => maintainersPage({ state: 'signed-out' }, { shown: true, fromPr: true }),
+      },
+      {
+        id: 'phone',
+        title: 'Phone',
+        path: '/contribute/maintainers',
+        signedOut: true,
+        width: 390,
+        height: 7000,
+        render: () => maintainersPage({ state: 'signed-out' }, { shown: true }),
+      },
+    ],
+  },
+  {
+    id: 'contribute-maintainers-report',
+    title: 'Report a PR, or say it helped',
+    area: 'contribute',
+    route: '/contribute/maintainers/report',
+    sources: [
+      'app/contribute/maintainers/report/page.tsx',
+      'app/contribute/components/pr-feedback-view.tsx',
+      'app/contribute/components/pr-feedback-forms.tsx',
+      'lib/contribute/pr-feedback.ts',
+    ],
+    states: [
+      {
+        id: 'sign-in',
+        title: 'Signed out: sign in first',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0',
+        signedOut: true,
+        height: 900,
+        render: () => reportPage({ state: 'signed-out', card: prCard() }),
+      },
+      {
+        id: 'maintainer',
+        title: 'A maintainer: the actions apply at once',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0',
+        height: 1300,
+        render: () => reportPage(found(), 'report', REPORT_FILLED),
+      },
+      {
+        id: 'collaborator',
+        title: 'A collaborator: reports only',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0',
+        height: 1400,
+        render: () => reportPage(found(prViewer({ role: 'COLLABORATOR', login: 'lee-c' })), 'report', REPORT_FILLED),
+      },
+      {
+        id: 'user',
+        title: 'Anyone else signed in, in an org that may hide roles',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0',
+        height: 1450,
+        render: () =>
+          reportPage(
+            found(
+              prViewer({ role: 'USER', login: 'ana-k', restrictedOrg: 'driftwood-js', replyTo: 'ana@example.org' }),
+            ),
+            'report',
+            REPORT_FILLED,
+          ),
+      },
+      {
+        id: 'unconfirmed',
+        title: 'GitHub did not answer: the role is not confirmed',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0',
+        height: 1400,
+        render: () =>
+          reportPage(found(prViewer({ role: 'USER', roleConfirmed: false, login: null, replyTo: null })), 'report'),
+      },
+      {
+        id: 'own-pr',
+        title: 'The PR’s own contributor',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0',
+        height: 700,
+        render: () =>
+          reportPage({ state: 'found', card: prCard({ isAuthor: true }), viewer: prViewer({ login: 'mira-dev' }) }),
+      },
+      {
+        id: 'github-down',
+        title: 'GitHub did not answer: try again',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0',
+        height: 700,
+        render: () => reportPage({ state: 'failed', error: 'GITHUB_UNAVAILABLE', card: prCard() }),
+      },
+      {
+        id: 'not-ours',
+        title: 'Not one of our PRs',
+        path: '/contribute/maintainers/report?pr=driftwood-js%2Fdriftwood%23913',
+        height: 700,
+        render: () => reportPage({ state: 'failed', error: 'NOT_OURS', card: null }),
+      },
+      {
+        id: 'report-sent',
+        title: 'Report sent: one action applied',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0',
+        height: 950,
+        render: () => sentPage('report'),
+      },
+      {
+        id: 'helped',
+        title: 'This PR helped',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0&kind=helped',
+        height: 1100,
+        render: () =>
+          reportPage(found(), 'helped', {
+            likes: ['SOLVED_WELL', 'SMALL_AND_CLEAR'],
+            word: 'Clean fix, and thanks for the test. More like this welcome.',
+          }),
+      },
+      {
+        id: 'helped-sent',
+        title: 'This PR helped: sent',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0&kind=helped',
+        height: 900,
+        render: () => sentPage('helped'),
+      },
+      {
+        id: 'helped-phone',
+        title: 'This PR helped, on a phone',
+        path: '/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0&kind=helped',
+        width: 390,
+        height: 1500,
+        render: () => reportPage(found(), 'helped', { likes: ['SOLVED_WELL'] }),
       },
     ],
   },

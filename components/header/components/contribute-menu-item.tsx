@@ -20,7 +20,7 @@ export function ContributeMenuItem({ active }: Readonly<{ active?: boolean }>) {
       <NavigationMenuLink className={cn(mainMenuItemClass, 'gap-1.5')} active={active} asChild>
         <Link href="/contribute" prefetch={false}>
           Contribute
-          <span className="rounded-full bg-violet-100 px-1.5 py-px text-[11px] font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-200">
+          <span className="rounded-full bg-brand-soft px-1.5 py-px text-[11px] font-semibold text-brand-soft-foreground">
             Beta
           </span>
         </Link>

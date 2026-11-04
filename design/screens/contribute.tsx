@@ -258,7 +258,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         title: 'Signed out, once launched',
         path: '/contribute',
         signedOut: true,
-        height: 3900,
+        height: 4100,
         // As the layout frames it for a visitor: the header's line, no tabs.
         render: () => (
           <>

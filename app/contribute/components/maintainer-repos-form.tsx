@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 
 import { optInMaintainerRepos, optOutMaintainerRepos, signInAsMaintainer } from '../maintainers/actions';
+import { MaintainerRepoActions } from './maintainer-repo-actions';
+import { MaintainerRepoExtras } from './maintainer-repo-extras';
 import { PanelTitle, Pill } from './primitives';
 import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
@@ -12,7 +14,7 @@ import {
   fullDayLabel,
   type OptOutChange,
   optOutResultText,
-  PERMISSIONS,
+  roleWordOf,
   withOptOutResults,
 } from '@/lib/contribute/maintainers-format';
 
@@ -25,12 +27,15 @@ export function MaintainerReposForm({
   login,
   repos: listed,
   truncated,
+  orgAccessUrl,
 }: {
   title: string;
   text: string;
   login: string;
   repos: ContributeMaintainerRepo[];
   truncated: boolean;
+  /** Where a member of an organization asks it to approve the sign-in's app on GitHub. */
+  orgAccessUrl: string;
 }) {
   const [repos, setRepos] = useState(listed);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
@@ -87,8 +92,10 @@ export function MaintainerReposForm({
           </div>
           <ul className="flex flex-col gap-2">
             {repos.map((repo) => (
-              <li key={repo.repoId}>
+              <li key={repo.repoId} className="flex flex-col gap-2">
                 <RepoRow repo={repo} checked={selected.has(repo.repoId)} onToggle={() => toggle(repo.repoId)} />
+                <MaintainerRepoActions repo={repo} />
+                <MaintainerRepoExtras repoId={repo.repoId} />
               </li>
             ))}
           </ul>
@@ -118,6 +125,14 @@ export function MaintainerReposForm({
           The file works for any repo you can push to.
         </p>
       )}
+
+      <p data-org-hint="" className="text-xs text-muted-foreground">
+        Missing a repo of an organization? If it restricts third-party apps, GitHub may hide your role from us. An org
+        owner can approve GitRanks; until then you can still report its PRs.{' '}
+        <a href={orgAccessUrl} target="_blank" rel="noopener noreferrer" className="text-link hover:underline">
+          Ask for approval on GitHub ↗
+        </a>
+      </p>
 
       {error ? (
         <div role="alert" data-error={error} className="flex flex-col items-start gap-3">
@@ -162,7 +177,7 @@ function RepoRow({
           <Pill tone="amber">{repo.optedOutAt ? `Opted out since ${fullDayLabel(repo.optedOutAt)}` : 'Opted out'}</Pill>
         ) : null}
         {repo.isArchived ? <Pill>Archived</Pill> : null}
-        <Pill tone="violet">{PERMISSIONS[repo.permission] ?? repo.permission}</Pill>
+        <Pill tone="violet">{roleWordOf(repo.permission)}</Pill>
         <span className="font-mono" title={`${repo.stars.toLocaleString('en-US')} stars`}>
           ★ <StarCount stars={repo.stars} format="compact" />
         </span>

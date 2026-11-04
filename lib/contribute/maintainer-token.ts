@@ -3,7 +3,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import type { JWT } from 'next-auth/jwt';
 
-import { MAINTAINERS_PATH } from './contribute-path';
+import { MAINTAINER_RETURN_PATHS, MAINTAINERS_PATH } from './contribute-path';
 import { currentSessionToken } from './session-token';
 
 /**
@@ -37,20 +37,46 @@ export function maintainerSignInCookie(secure = process.env.NODE_ENV === 'produc
   };
 }
 
-/** Marks the sign-in about to start as the maintainers page's own; answers where the sign-in must return to. */
-export async function markMaintainerSignIn(): Promise<string> {
+/** Any local address, read against a base no address of ours has; anything else answers another origin. */
+const LOCAL_BASE = 'https://gitranks.invalid';
+
+/**
+ * Where the page's sign-in may return to: `returnTo` when it is one of the maintainers page's own paths (its query
+ * kept, any nonce in it dropped), else the page itself. Never another path or another site.
+ */
+export function maintainerReturnOf(returnTo: unknown): URL {
+  const fallback = new URL(MAINTAINERS_PATH, LOCAL_BASE);
+  if (typeof returnTo !== 'string' || !returnTo.startsWith('/') || returnTo.startsWith('//')) return fallback;
+  try {
+    const url = new URL(returnTo, LOCAL_BASE);
+    if (url.origin !== LOCAL_BASE || !MAINTAINER_RETURN_PATHS.includes(url.pathname)) return fallback;
+    url.searchParams.delete(NONCE_PARAM);
+    url.hash = '';
+    return url;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Marks the sign-in about to start as the maintainers page's own; answers where the sign-in must return to: `returnTo`
+ * when the page allows it (`maintainerReturnOf`), with the mark's nonce added to its query.
+ */
+export async function markMaintainerSignIn(returnTo: unknown = MAINTAINERS_PATH): Promise<string> {
   const nonce = crypto.randomUUID();
   const { name, options } = maintainerSignInCookie();
   (await cookies()).set(name, nonce, { ...options, maxAge: SIGN_IN_WINDOW_SEC });
-  return `${MAINTAINERS_PATH}?${new URLSearchParams({ [NONCE_PARAM]: nonce })}`;
+  const url = maintainerReturnOf(returnTo);
+  url.searchParams.set(NONCE_PARAM, nonce);
+  return `${url.pathname}${url.search}`;
 }
 
-/** Whether `callbackUrl` returns to the maintainers page with `nonce`. */
+/** Whether `callbackUrl` returns to one of the maintainers page's own paths with `nonce`. */
 const returnsWithNonce = (callbackUrl: string | undefined, nonce: string) => {
   if (!callbackUrl) return false;
   try {
-    const url = new URL(callbackUrl, 'https://gitranks.invalid');
-    return url.pathname === MAINTAINERS_PATH && url.searchParams.get(NONCE_PARAM) === nonce;
+    const url = new URL(callbackUrl, LOCAL_BASE);
+    return MAINTAINER_RETURN_PATHS.includes(url.pathname) && url.searchParams.get(NONCE_PARAM) === nonce;
   } catch {
     return false;
   }

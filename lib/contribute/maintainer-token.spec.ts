@@ -24,6 +24,7 @@ const {
   dropExpiredMaintainerToken,
   lightSignInSession,
   maintainerSignInCookie,
+  maintainerReturnOf,
   maintainerTokenOf,
   markMaintainerSignIn,
   takeMaintainerSignIn,
@@ -105,6 +106,38 @@ describe("the maintainers page's sign-in mark", () => {
     expect(await markMaintainerSignIn()).not.toBe(redirectTo);
   });
 
+  it('returns to the report page with its query kept, the nonce added', async () => {
+    const redirectTo = await markMaintainerSignIn('/contribute/maintainers/report?pr=acme%2Fapp%23912&kind=helped');
+    const nonce = jar.set.mock.calls[0][1];
+
+    expect(redirectTo).toBe(`/contribute/maintainers/report?pr=acme%2Fapp%23912&kind=helped&s=${nonce}`);
+    expect(new URL(redirectTo, 'http://localhost').searchParams.get('pr')).toBe('acme/app#912');
+  });
+
+  it('drops a nonce the address already had, and its hash', () => {
+    expect(String(maintainerReturnOf('/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0&s=old#report'))).toBe(
+      'https://gitranks.invalid/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0',
+    );
+  });
+
+  it.each([
+    'https://evil.example/contribute/maintainers/report',
+    '//evil.example/contribute/maintainers/report',
+    '/\\evil.example/contribute/maintainers',
+    '/contribute/settings',
+    '/contribute/maintainers/report/x',
+    '/contribute/maintainers/../settings',
+    'contribute/maintainers/report',
+    '',
+    42,
+    undefined,
+  ])('refuses %s, returning to the page itself', async (returnTo) => {
+    expect(String(maintainerReturnOf(returnTo))).toBe('https://gitranks.invalid/contribute/maintainers');
+
+    const redirectTo = await markMaintainerSignIn(returnTo);
+    expect(redirectTo).toMatch(/^\/contribute\/maintainers\?s=[0-9a-f-]{36}$/);
+  });
+
   it('is a __Host- cookie in production: Secure, the whole site, no domain', () => {
     expect(maintainerSignInCookie(true)).toEqual({
       name: '__Host-gitranks-maintainer-sign-in',
@@ -120,6 +153,13 @@ describe("the maintainers page's sign-in mark", () => {
     expect(await takeMaintainerSignIn()).toBe(false);
   });
 
+  it('counts for the page sign-in started on the report page', async () => {
+    const redirectTo = await markMaintainerSignIn('/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0');
+    returnsTo(redirectTo);
+
+    expect(await takeMaintainerSignIn()).toBe(true);
+  });
+
   it('counts with the address Auth.js keeps over HTTPS too', async () => {
     const redirectTo = await markMaintainerSignIn();
     returnsTo(redirectTo, '__Secure-authjs.callback-url');
@@ -128,7 +168,13 @@ describe("the maintainers page's sign-in mark", () => {
   });
 
   it('never counts for another sign-in after the page sign-in was abandoned at GitHub', async () => {
-    for (const elsewhere of ['/profile/octocat', '/contribute/maintainers', '/contribute/maintainers?s=other', '/']) {
+    for (const elsewhere of [
+      '/profile/octocat',
+      '/contribute/maintainers',
+      '/contribute/maintainers?s=other',
+      '/contribute/maintainers/report?s=other',
+      '/',
+    ]) {
       store.clear();
       await startPageSignIn();
       // Cancelled at GitHub: no callback ran, the mark is still there. The header's sign-in then starts from elsewhere.

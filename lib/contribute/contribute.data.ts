@@ -47,6 +47,7 @@ import {
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
   ContributePausedDocument,
+  ContributePrNotesDocument,
   ContributeProfileLanguagesDocument,
   ContributeProviderInterestsDocument,
   ContributeRepliesWaitingDocument,
@@ -74,6 +75,7 @@ import type {
   ContributeOnboardedVia,
   ContributeOwnAgent,
   ContributePaths,
+  ContributePrNotes,
   ContributeReplyWaiting,
   ContributeSet,
   ContributeView,
@@ -706,6 +708,21 @@ export function withFollowUpFlow(
       : attempt.result,
     replyDrafts: attempt.replyDrafts?.map((draft) => ({ ...draft, ...drafts.get(draft.draftId) })),
   };
+}
+
+/**
+ * The maintainers' say on the user's PR (any attempt of it): a stop, and the "this PR helped" notes; `undefined` when
+ * the API does not answer it, which leaves the rest of the page.
+ */
+export async function loadPrNotes(attemptId: string): Promise<ContributePrNotes | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+  try {
+    const read = await graphqlDirect(ContributePrNotesDocument, { attemptId }, { source: 'ssr', githubLogin });
+    return read.contributePrNotes ?? undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Whether the user's follow-ups resolve people's threads too; `undefined` when the API does not answer it. */

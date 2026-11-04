@@ -25,11 +25,13 @@ import type {
   ContributeFollowUps,
   ContributeGoNoGo,
   ContributeGrant,
+  ContributeHelpedLike,
   ContributeIssue,
   ContributeIssuePage,
   ContributeIssueStatus,
   ContributeIssuesFilter,
   ContributeLimits,
+  ContributeMaintainerFacts,
   ContributeMaintainerRepos,
   ContributeMcpToken,
   ContributeMcpTokenCreated,
@@ -38,16 +40,23 @@ import type {
   ContributeOptOutResult,
   ContributeOwnAgentFields,
   ContributePaths,
+  ContributePrAction,
+  ContributePrCardView,
   ContributePreferences,
   ContributePreferencesInput,
+  ContributePrFeedbackResult,
+  ContributePrNote,
+  ContributePrNotes,
   ContributeProof,
   ContributeProofBrief,
   ContributeProofSession,
   ContributePrSignalKind,
+  ContributePrUndoResult,
   ContributeReplyDraft,
   ContributeReplyDraftFlow,
   ContributeReplyUserDismissReason,
   ContributeReplyWaiting,
+  ContributeReportReason,
   ContributeRetry,
   ContributeReviewFeedback,
   ContributeScheduleCounts,
@@ -694,7 +703,11 @@ export const MaintainerReposDocument = doc<{ maintainerRepos: ContributeMaintain
   `query MaintainerRepos($token: String!) {
   maintainerRepos(token: $token) {
     login truncated
-    repos { repoId nameWithOwner permission stars isArchived optedOut optedOutAt }
+    repos {
+      repoId nameWithOwner permission stars isArchived optedOut optedOutAt
+      blockedContributors { login since by feedbackId }
+      stoppedPrs { number since by feedbackId }
+    }
   }
 }`,
 );
@@ -708,6 +721,96 @@ export const OptOutReposDocument = doc<{ optOutRepos: ContributeOptOutResult[] }
 export const OptInReposDocument = doc<{ optInRepos: ContributeOptOutResult[] }, { token: string; repoIds: string[] }>(
   `mutation OptInRepos($token: String!, $repoIds: [ID!]!) {
   optInRepos(token: $token, repoIds: $repoIds) { ${OPT_OUT_RESULT} }
+}`,
+);
+
+// The maintainers page's facts, and the notes on a PR. A GitHub token is always a variable.
+const PR_CARD =
+  'attemptId repositoryId nameWithOwner number title openedAt contributorLogin reviewed agentPhrase isAuthor';
+const PR_FEEDBACK_RESULT = 'feedbackId kind number label added role actions { kind appliedAt undoneAt }';
+const PR_NOTE = 'feedbackId login role likes word at hidden';
+
+export const ContributeMaintainerFactsDocument = doc<{ contributeMaintainerFacts: ContributeMaintainerFacts }>(
+  `query ContributeMaintainerFacts {
+  contributeMaintainerFacts {
+    prsPerMonth monthDays pauseStreak pauseDays attemptsPerRepo badgeBoost
+    configKeys { key kind values meaning live page min max }
+  }
+}`,
+);
+
+export const ContributePrCardDocument = doc<
+  { contributePrCard: ContributePrCardView },
+  { from?: string; pr?: string; token?: string }
+>(
+  `query ContributePrCard($from: ID, $pr: String, $token: String) {
+  contributePrCard(from: $from, pr: $pr, token: $token) {
+    card { ${PR_CARD} }
+    viewer { login role roleConfirmed restrictedOrg replyTo }
+  }
+}`,
+);
+
+export const ReportContributePrDocument = doc<
+  { reportContributePr: ContributePrFeedbackResult },
+  {
+    token: string;
+    from: string;
+    reasons: ContributeReportReason[];
+    details: string | null;
+    replyTo: string | null;
+    actions: ContributePrAction[];
+  }
+>(
+  `mutation ReportContributePr($token: String!, $from: ID!, $reasons: [ContributeReportReason!]!, $details: String,
+  $replyTo: String, $actions: [ContributePrAction!]) {
+  reportContributePr(token: $token, from: $from, reasons: $reasons, details: $details, replyTo: $replyTo,
+    actions: $actions) { ${PR_FEEDBACK_RESULT} }
+}`,
+);
+
+export const ContributePrHelpedDocument = doc<
+  { contributePrHelped: ContributePrFeedbackResult },
+  {
+    token: string;
+    from: string;
+    likes: ContributeHelpedLike[];
+    word: string | null;
+    mayQuote: boolean;
+    replyTo: string | null;
+  }
+>(
+  `mutation ContributePrHelped($token: String!, $from: ID!, $likes: [ContributeHelpedLike!], $word: String,
+  $mayQuote: Boolean, $replyTo: String) {
+  contributePrHelped(token: $token, from: $from, likes: $likes, word: $word, mayQuote: $mayQuote,
+    replyTo: $replyTo) { ${PR_FEEDBACK_RESULT} }
+}`,
+);
+
+export const UndoContributePrActionDocument = doc<
+  { undoContributePrAction: ContributePrUndoResult },
+  { token: string; feedbackId: string; repoId: string; kind: ContributePrAction }
+>(
+  `mutation UndoContributePrAction($token: String!, $feedbackId: ID!, $repoId: ID!, $kind: ContributePrAction!) {
+  undoContributePrAction(token: $token, feedbackId: $feedbackId, repoId: $repoId, kind: $kind) {
+    feedbackId actions { kind appliedAt undoneAt }
+  }
+}`,
+);
+
+/** The contributor's own view of the notes on their PR: read on its own, so an API without it leaves the page. */
+export const ContributePrNotesDocument = doc<{ contributePrNotes: ContributePrNotes | null }, { attemptId: string }>(
+  `query ContributePrNotes($attemptId: ID!) {
+  contributePrNotes(attemptId: $attemptId) { stopped { login at } notes { ${PR_NOTE} } }
+}`,
+);
+
+export const HideContributePrNoteDocument = doc<
+  { hideContributePrNote: ContributePrNote },
+  { feedbackId: string; hidden: boolean }
+>(
+  `mutation HideContributePrNote($feedbackId: ID!, $hidden: Boolean!) {
+  hideContributePrNote(feedbackId: $feedbackId, hidden: $hidden) { ${PR_NOTE} }
 }`,
 );
 

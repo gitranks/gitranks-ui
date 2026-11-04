@@ -60,15 +60,21 @@ function ThreadRow({
         </p>
       </div>
       {/* One segmented switch, not two buttons: the raised half is the comment's state, and a click only moves it. */}
-      <fieldset className="m-0 flex-none border-0 p-0" aria-label={`For ${thread.author || 'this'} comment`}>
-        <ButtonGroup className="h-9 max-sm:h-11">
+      <fieldset
+        className="flex-none"
+        aria-label={`Address or ignore ${thread.author ? `${thread.author}'s` : 'this'} comment`}
+      >
+        <ButtonGroup className="h-9 max-sm:h-auto">
           {(['address', 'ignore'] as const).map((each) => (
             <ButtonGroupItem
               key={each}
               active={choice === each}
               disabled={disabled}
               onClick={() => onChoose(each)}
-              className={cn('min-w-24 px-3', choice !== each && 'text-muted-foreground hover:text-foreground')}
+              className={cn(
+                'min-w-24 px-3 max-sm:min-h-11',
+                choice !== each && 'text-muted-foreground hover:text-foreground dark:hover:text-foreground',
+              )}
             >
               {each === 'address' ? <Check aria-hidden /> : <EyeOff aria-hidden />}
               {each === 'address' ? 'Address' : 'Ignore'}

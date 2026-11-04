@@ -1,5 +1,3 @@
-import { after } from 'next/server';
-
 import { findBadge } from './catalogue';
 import type { EntityFacts } from './facts';
 import { BadgeParamsError, resolveParams } from './params';
@@ -63,6 +61,11 @@ export type BadgeLoaders = {
   user: (login: string) => Promise<EntityFacts | null>;
   org: (login: string) => Promise<EntityFacts | null>;
   repo: (owner: string, name: string) => Promise<EntityFacts | null>;
+  /**
+   * Told the repository's GitHub id once a Contribute badge is drawn. It must not delay or throw: the caller schedules
+   * the work after the response. Left out, nothing is reported.
+   */
+  onContributeSeen?: (repoId: string) => void;
 };
 
 /** The entity a route's params name, decoded and checked; `null` when they cannot name one. */
@@ -131,8 +134,12 @@ export async function getBadgeResponse(
 
   try {
     const rendered = await renderBadge(entity, badge, params, parsed.format, now);
-    if (badge.id === 'contribute' && entity.kind === 'repo') {
-      reportSeen(entity.githubId);
+    if (badge.id === 'contribute' && entity.kind === 'repo' && entity.githubId && loaders.onContributeSeen) {
+      try {
+        loaders.onContributeSeen(entity.githubId);
+      } catch (error) {
+        console.error('Error reporting a badge:', error);
+      }
     }
     return new Response(rendered.body, {
       headers: {
@@ -143,26 +150,6 @@ export async function getBadgeResponse(
   } catch (error) {
     console.error('Error drawing a badge:', error);
     return unavailable();
-  }
-}
-
-/**
- * Reports a drawn Contribute badge after the response, never before it nor in its way: scheduling is guarded too, so a
- * failure never costs the image. The reporter is server-only, so it loads only when used.
- */
-function reportSeen(repoId: string | null) {
-  if (!repoId) return;
-  try {
-    after(async () => {
-      try {
-        const { reportContributeBadgeSeen } = await import('./contribute-seen');
-        await reportContributeBadgeSeen(repoId);
-      } catch {
-        // Ignored, as the report itself ignores its errors.
-      }
-    });
-  } catch (error) {
-    console.error('Error scheduling a badge report:', error);
   }
 }
 

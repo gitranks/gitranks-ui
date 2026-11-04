@@ -89,6 +89,8 @@ function panelFact(entity: EntityFacts, badge: BadgeDefinition, params: BadgePar
 
 /** The image's alt text: the entity and the fact it shows, "acme/fastqueue on GitRanks: repo rank #41,206 · top 1%". */
 export function badgeAlt(entity: EntityFacts, badge: BadgeDefinition, params: BadgeParams, now = new Date()): string {
+  // Says nothing about its repository: its name, as the maintainers page writes it.
+  if (badge.id === 'contribute') return 'GitRanks Contribute';
   let fact = badge.title;
   if (badge.format === 'shield') {
     const content = shieldContent(entity, badge, params, now);

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { signInAsMaintainer } from '../maintainers/actions';
 import { CopyButton } from './copy-button';
+import { MAINTAINER_SETTINGS_SHOWN } from './maintainer-repo-extras';
 import { MaintainerReposForm } from './maintainer-repos-form';
 import { PrCardFacts } from './pr-card';
 import { PrLinkForm } from './pr-link-form';
@@ -65,7 +66,9 @@ export function MaintainersScreen({
   strip = null,
   badge = null,
   badgeRepo = BADGE_EXAMPLE_REPO,
+  badgeMarkdown,
   prLink = '',
+  prLinkForm,
   repos,
   more = null,
 }: {
@@ -77,6 +80,10 @@ export function MaintainersScreen({
   badge?: ReactNode;
   /** The repo the badge's Markdown names: the visitor's, when a PR link names it. */
   badgeRepo?: string;
+  /** The badge's Markdown and Copy, in place of `badgeRepo`'s: the page streams the footer link's repo into it. */
+  badgeMarkdown?: ReactNode;
+  /** The PR link form, in place of `prLink`'s: the page streams the footer link's PR into it. */
+  prLinkForm?: ReactNode;
   /** The PR link "Tell us how a PR went" starts with: the one a footer link came from. */
   prLink?: string;
   /** "Your repos": the sign-in, or the visitor's repositories. */
@@ -145,7 +152,7 @@ export function MaintainersScreen({
         text="We read your preferences before every pick and every PR. Set them once; change them any time."
       >
         <div className="grid gap-4 md:grid-cols-3">
-          <BadgeCard facts={facts} badge={badge} repo={badgeRepo} />
+          <BadgeCard facts={facts} badge={badge} repo={badgeRepo} markdown={badgeMarkdown} />
           <ConfigCard facts={facts} />
           <Card className={CARD}>
             <Dot small>3</Dot>
@@ -172,9 +179,7 @@ export function MaintainersScreen({
         text="Good or bad, one note is enough for us to look. We ask GitHub for your role in the repo first."
       >
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <Card className={cn(CARD, 'gap-4 p-6')}>
-            <PrLinkForm defaultValue={prLink} />
-          </Card>
+          <Card className={cn(CARD, 'gap-4 p-6')}>{prLinkForm ?? <PrLinkForm defaultValue={prLink} />}</Card>
           <div className={cn(MUTED, 'flex flex-col gap-3.5 p-6')}>
             <strong className="text-[15px] font-semibold">What you can do depends on your role</strong>
             <Step n={1} title="Anyone signed in">
@@ -432,16 +437,32 @@ function ConfigFile({ lines }: { lines: ConfigExampleLine[] }) {
   );
 }
 
+/** The badge's Markdown for `repo`, with its Copy button. */
+export function BadgeMarkdown({ repo }: { repo: string }) {
+  const markdown = contributeBadgeMarkdown(repo);
+  return (
+    <>
+      <pre className="dark rounded-lg bg-background px-4 py-3 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap text-foreground">
+        {markdown}
+      </pre>
+      <div>
+        <CopyButton text={markdown} label="Copy Markdown" />
+      </div>
+    </>
+  );
+}
+
 function BadgeCard({
   facts,
   badge,
   repo,
+  markdown,
 }: {
   facts: ContributeMaintainerFacts | null;
   badge: ReactNode;
   repo: string;
+  markdown?: ReactNode;
 }) {
-  const markdown = contributeBadgeMarkdown(repo);
   const priority = typeof facts?.badgeBoost === 'number';
   return (
     <Card className={CARD} data-badge-card="">
@@ -452,12 +473,7 @@ function BadgeCard({
         {priority ? ' Repos with the badge come first in their feed.' : null}
       </span>
       {badge ? <div className="dark flex justify-center rounded-lg bg-background p-3.5">{badge}</div> : null}
-      <pre className="dark rounded-lg bg-background px-4 py-3 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap text-foreground">
-        {markdown}
-      </pre>
-      <div>
-        <CopyButton text={markdown} label="Copy Markdown" />
-      </div>
+      {markdown ?? <BadgeMarkdown repo={repo} />}
       {priority ? (
         <span data-badge-priority="" className={SMALL}>
           Priority applies to repos we can suggest: active, with enough stars, and open to outside PRs.
@@ -496,7 +512,7 @@ function ConfigCard({ facts }: { facts: ContributeMaintainerFacts | null }) {
           </dl>
         </details>
       ) : null}
-      {anyPageKey(live) ? (
+      {MAINTAINER_SETTINGS_SHOWN && anyPageKey(live) ? (
         <span className={SMALL}>
           No access to the repo’s files?{' '}
           <a href="#opt-out" className="text-link hover:underline">
@@ -604,7 +620,16 @@ export function MaintainerReposLoading() {
  * "Your repos": a sign-in, the repositories to switch off with what reports did in them, or why they could not be read.
  * `orgAccessUrl` is where an organization's member asks it to approve the sign-in's app.
  */
-export function MaintainerReposPanel({ view, orgAccessUrl }: { view: MaintainerReposView; orgAccessUrl: string }) {
+export function MaintainerReposPanel({
+  view,
+  orgAccessUrl,
+  returnTo = MAINTAINERS_PATH,
+}: {
+  view: MaintainerReposView;
+  orgAccessUrl: string;
+  /** Where the sign-in comes back to: the page with its footer link's `?from=`. */
+  returnTo?: string;
+}) {
   if (view.state === 'listed') {
     return (
       <OptOutCard wide>
@@ -631,16 +656,16 @@ export function MaintainerReposPanel({ view, orgAccessUrl }: { view: MaintainerR
         </p>
       ) : null}
       <div className="mt-auto">
-        <NextStep error={error} />
+        <NextStep error={error} returnTo={returnTo} />
       </div>
     </OptOutCard>
   );
 }
 
 /** A sign-in when there is none or GitHub refused it; after an outage, another try; nothing for what is not there. */
-function NextStep({ error }: { error: MaintainerErrorCode | null }) {
-  if (!error) return <MaintainerSignIn variant="outline" />;
-  if (error === 'SIGNED_OUT') return <MaintainerSignIn label="Sign in again" />;
+function NextStep({ error, returnTo }: { error: MaintainerErrorCode | null; returnTo: string }) {
+  if (!error) return <MaintainerSignIn variant="outline" returnTo={returnTo} />;
+  if (error === 'SIGNED_OUT') return <MaintainerSignIn label="Sign in again" returnTo={returnTo} />;
   if (error === 'NOT_AVAILABLE_YET') return null;
   return (
     <Button asChild variant="outline" className="min-h-11 self-start">

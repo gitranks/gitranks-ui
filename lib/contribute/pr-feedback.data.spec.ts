@@ -7,6 +7,7 @@ const { signedFetch, currentMaintainerToken } = vi.hoisted(() => ({
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/signed-fetch', () => ({ signedFetch }));
 vi.mock('./maintainer-token', () => ({ currentMaintainerToken }));
+vi.mock('next/cache', () => ({ cacheLife: () => {} }));
 
 const { loadMaintainerFacts, loadPrReport, loadPrStrip } = await import('./pr-feedback.data');
 const { maintainerFacts, prCard, prViewer } = await import('./__fixtures__/maintainers');
@@ -69,6 +70,28 @@ describe("the maintainers page's reads", () => {
     });
     signedFetch.mockResolvedValueOnce(refused('NOT_FOUND'));
     expect(await loadPrReport({ from: FROM })).toEqual({ state: 'failed', error: 'NOT_OURS', card: null });
+  });
+
+  it('tells a signed-out visitor an outage as one to try again, never as a PR we did not open', async () => {
+    for (const failure of [refused('SERVICE_UNAVAILABLE'), new Response('', { status: 502 })]) {
+      signedFetch.mockResolvedValueOnce(failure);
+      expect(await loadPrReport({ from: FROM })).toEqual({ state: 'failed', error: 'FAILED', card: null });
+    }
+  });
+
+  it('gives up on a slow strip or facts read rather than hold the page', async () => {
+    vi.useFakeTimers();
+    try {
+      signedFetch.mockReturnValue(new Promise(() => {}));
+      const strip = loadPrStrip(FROM);
+      const facts = loadMaintainerFacts();
+      await vi.advanceTimersByTimeAsync(2500);
+      expect(await strip).toBeNull();
+      expect(await facts).toBeNull();
+    } finally {
+      vi.useRealTimers();
+      signedFetch.mockReset();
+    }
   });
 
   it.each([

@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useId, useState, useTransition } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { sendPrHelped, sendPrReport, signInAsMaintainer, undoPrAction } from '../maintainers/actions';
 import { PrCard } from './pr-card';
@@ -217,7 +217,7 @@ function SendError({ error, returnTo }: { error: PrFeedbackErrorCode; returnTo: 
   return (
     <Alert variant="destructive" data-send-error={error}>
       <AlertTitle className="line-clamp-none">
-        {isRetryablePrFeedbackError(error) ? 'Not sent yet' : 'Not sent'}
+        {isRetryablePrFeedbackError(error) ? 'Not finished' : 'Not sent'}
       </AlertTitle>
       <AlertDescription>
         <p>{prFeedbackErrorMessage(error)}</p>
@@ -259,7 +259,7 @@ function ReplyToField({
         maxLength={PR_FEEDBACK_REPLY_TO_MAX + 1}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={!!error}
-        aria-describedby={`${id}-help`}
+        aria-describedby={error ? `${id}-error ${id}-help` : `${id}-help`}
         className="max-sm:min-h-11"
       />
       <FieldError id={`${id}-error`}>{error}</FieldError>
@@ -276,6 +276,19 @@ const toggled = <T,>(set: Set<T>, value: T, on: boolean) => {
   else next.delete(value);
   return next;
 };
+
+/** Moves focus to the first field a check refused, in the form's order. */
+const focusFirst = (ids: (string | false)[]) => {
+  const first = ids.find((value): value is string => !!value);
+  if (first) document.getElementById(first)?.focus();
+};
+
+/** A sent page's heading takes the focus the replaced form had, so a screen reader hears what happened. */
+function useFocusOnMount<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => ref.current?.focus(), []);
+  return ref;
+}
 
 export type PrReportInitial = { reasons?: ContributeReportReason[]; details?: string; actions?: ContributePrAction[] };
 
@@ -305,13 +318,29 @@ export function PrReportForm({
   const [sent, setSent] = useState<ContributePrFeedbackResult | null>(null);
   const [pending, startTransition] = useTransition();
 
-  if (sent) return <ReportSent card={card} result={sent} replyTo={replyTo.trim() || null} maintainer={maintainer} />;
+  if (sent) {
+    return (
+      <ReportSent
+        card={card}
+        result={sent}
+        requested={maintainer ? [...actions] : []}
+        replyTo={replyTo.trim() || null}
+      />
+    );
+  }
 
   const send = () => {
     const fields = { reasons: [...reasons], details, replyTo };
     const found = reportErrorsOf(fields);
     setErrors(found);
-    if (hasErrors(found)) return;
+    if (hasErrors(found)) {
+      focusFirst([
+        !!found.reasons && `${id}-${REPORT_REASONS[0].value}`,
+        !!found.details && `${id}-details`,
+        !!found.replyTo && `${id}-reply`,
+      ]);
+      return;
+    }
     startTransition(async () => {
       setError(null);
       const result = await sendPrReport({
@@ -341,7 +370,10 @@ export function PrReportForm({
               send();
             }}
           >
-            <fieldset className="flex flex-col gap-3" aria-describedby={`${id}-reasons-error`}>
+            <fieldset
+              className="flex flex-col gap-3"
+              aria-describedby={errors.reasons ? `${id}-reasons-error` : undefined}
+            >
               <legend className="mb-3 text-sm font-medium">What went wrong</legend>
               <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                 {REPORT_REASONS.map(({ value, label }) => (
@@ -364,6 +396,7 @@ export function PrReportForm({
                 maxLength={PR_FEEDBACK_DETAILS_MAX + 1}
                 onChange={(event) => setDetails(event.target.value)}
                 aria-invalid={!!errors.details}
+                aria-describedby={errors.details ? `${id}-details-error` : undefined}
                 placeholder="What happened, in a line or two"
               />
               <FieldError id={`${id}-details-error`}>{errors.details}</FieldError>
@@ -396,11 +429,11 @@ export function PrReportForm({
               error={errors.replyTo}
               hint="we answer every report"
             />
-            {error ? <SendError error={error} returnTo={returnTo} /> : null}
             <Button type="submit" size="lg" className="min-h-11 self-start px-6 font-semibold" disabled={pending}>
               {pending ? 'Sending…' : maintainer && actions.size ? 'Send report and apply' : 'Send report'}
             </Button>
           </form>
+          {error ? <SendError error={error} returnTo={returnTo} /> : null}
         </CardContent>
       </Card>
     </>
@@ -413,14 +446,19 @@ const live = (actions: ContributePrActionState[]) => actions.filter(({ undoneAt 
 export function ReportSent({
   card,
   result,
+  requested = [],
   replyTo,
-  maintainer,
 }: {
   card: ContributePrCard;
   result: ContributePrFeedbackResult;
+  /** What the visitor asked to stop at once: GitHub's answer at the send decides whether it applied. */
+  requested?: ContributePrAction[];
   replyTo: string | null;
-  maintainer: boolean;
 }) {
+  // The role GitHub gave at the send, not the one the form was shown for.
+  const maintainer = result.role === 'MAINTAINER';
+  const dropped = requested.length > 0 && !maintainer;
+  const heading = useFocusOnMount<HTMLHeadingElement>();
   const [actions, setActions] = useState(result.actions);
   const [undone, setUndone] = useState<ContributePrAction[]>([]);
   const [error, setError] = useState<PrFeedbackErrorCode | null>(null);
@@ -440,10 +478,18 @@ export function ReportSent({
   const contributor = card.contributorLogin ?? 'its author';
   return (
     <div data-sent={result.label} className="flex flex-col gap-5">
-      <h1 className={TITLE}>
+      <h1 ref={heading} tabIndex={-1} className={cn(TITLE, 'outline-none')}>
         {applied.length ? 'Thanks. It’s with us, and your choices already apply' : 'Thanks. It’s with us'}
       </h1>
       <PrCard card={card} />
+      {dropped ? (
+        <Alert data-dropped="" className="border-warning/40 bg-warning-soft text-warning-soft-foreground">
+          <AlertTitle className="line-clamp-none">Nothing was applied</AlertTitle>
+          <AlertDescription className="text-current/90">
+            GitHub no longer confirms you maintain {card.nameWithOwner}, so nothing was applied; your report is with us.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {applied.length || undone.length ? (
         <Alert data-applied="" className="border-positive/30 bg-positive/10">
           <AlertTitle>Done at once</AlertTitle>
@@ -469,7 +515,7 @@ export function ReportSent({
             ))}
             {error ? (
               <p role="alert" className="text-destructive">
-                {prFeedbackErrorMessage(error)}
+                {prFeedbackErrorMessage(error, 'undo')}
               </p>
             ) : null}
           </AlertDescription>
@@ -555,7 +601,10 @@ export function PrHelpedForm({
   const send = () => {
     const found = helpedErrorsOf({ word, replyTo });
     setErrors(found);
-    if (hasErrors(found)) return;
+    if (hasErrors(found)) {
+      focusFirst([!!found.details && `${id}-word`, !!found.replyTo && `${id}-reply`]);
+      return;
+    }
     startTransition(async () => {
       setError(null);
       const result = await sendPrHelped({ from: card.attemptId, likes: [...likes], word, mayQuote, replyTo });
@@ -575,7 +624,7 @@ export function PrHelpedForm({
         <RoleAlert viewer={viewer} card={card} returnTo={returnTo} orgAccessUrl={orgAccessUrl} />
       )}
       <Card className="py-6">
-        <CardContent>
+        <CardContent className="flex flex-col gap-6">
           <form
             className="flex flex-col gap-6"
             onSubmit={(event) => {
@@ -607,9 +656,14 @@ export function PrHelpedForm({
                 maxLength={PR_FEEDBACK_DETAILS_MAX + 1}
                 onChange={(event) => setWord(event.target.value)}
                 aria-invalid={!!errors.details}
+                aria-describedby={errors.details ? `${id}-word-error ${id}-word-help` : `${id}-word-help`}
               />
               <FieldError id={`${id}-word-error`}>{errors.details}</FieldError>
-              <span data-word-shown={wordShown ? 'yes' : 'no'} className="text-xs text-muted-foreground">
+              <span
+                id={`${id}-word-help`}
+                data-word-shown={wordShown ? 'yes' : 'no'}
+                className="text-xs text-muted-foreground"
+              >
                 {wordShown
                   ? `We pass it on to ${contributor} on GitRanks, with your login.`
                   : `It reaches us. ${contributor} sees what you liked; only maintainers’ and collaborators’ words are passed on.`}
@@ -629,11 +683,11 @@ export function PrHelpedForm({
               error={errors.replyTo}
               hint="optional, if you’d like an answer"
             />
-            {error ? <SendError error={error} returnTo={returnTo} /> : null}
             <Button type="submit" size="lg" className="min-h-11 self-start px-6 font-semibold" disabled={pending}>
               {pending ? 'Sending…' : 'Send'}
             </Button>
           </form>
+          {error ? <SendError error={error} returnTo={returnTo} /> : null}
         </CardContent>
       </Card>
     </>
@@ -643,9 +697,12 @@ export function PrHelpedForm({
 /** After "This PR helped": it is on the author's page, and how to get more PRs like it. */
 export function HelpedSent({ card }: { card: ContributePrCard }) {
   const contributor = card.contributorLogin ?? 'Its author';
+  const heading = useFocusOnMount<HTMLHeadingElement>();
   return (
     <div data-sent="helped" className="flex flex-col gap-5">
-      <h1 className={TITLE}>Noted. {contributor} will see it</h1>
+      <h1 ref={heading} tabIndex={-1} className={cn(TITLE, 'outline-none')}>
+        Noted. {contributor} will see it
+      </h1>
       <PrCard card={card} />
       <Alert className="border-positive/30 bg-positive/10">
         <AlertTitle>Sent</AlertTitle>

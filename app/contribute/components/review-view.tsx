@@ -22,6 +22,7 @@ import { FollowUpResult } from './follow-up-result';
 import { NextStepCards, YourMoveLine } from './next-step';
 import { PrForm } from './pr-form';
 import { PrNotesPanel } from './pr-notes';
+import { PrStoppedProvider } from './pr-stopped';
 import { HEADING, Pill } from './primitives';
 import { ReplyDrafts } from './reply-drafts';
 import { SendBackForm } from './send-back-form';
@@ -107,7 +108,8 @@ export async function FirstSessionView({
   if (attempt.kind === 'FOLLOW_UP') {
     const first = await firstOf(attempt);
     if (first) redirect(withQuery(sessionPath(first.attemptId, attempt.attemptId), query));
-    return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} />;
+    const prNotes = await loadPrNotes(attempt.attemptId);
+    return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} prNotes={prNotes} />;
   }
   const next = query.session === NEXT_SESSION;
   // The next step gone since the layout was read (a run started, say): the address says the first attempt, so the
@@ -426,12 +428,14 @@ export function ContributionShell({
 
       {prNotes ? <PrNotesPanel notes={prNotes} repo={repo} /> : null}
 
-      {first && session ? <YourMoveLine first={first} runs={run ? [run] : []} {...session} now={now} /> : null}
+      <PrStoppedProvider stopped={!!prNotes?.stopped}>
+        {first && session ? <YourMoveLine first={first} runs={run ? [run] : []} {...session} now={now} /> : null}
 
-      <div className={cn('grid items-start gap-5', cards && 'lg:grid-cols-[17rem_minmax(0,1fr)]')}>
-        {cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null}
-        {children}
-      </div>
+        <div className={cn('grid items-start gap-5', cards && 'lg:grid-cols-[17rem_minmax(0,1fr)]')}>
+          {cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null}
+          {children}
+        </div>
+      </PrStoppedProvider>
     </div>
   );
 }

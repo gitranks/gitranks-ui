@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { maintainerFacts, prCard } from './__fixtures__/maintainers';
-import { prFeedbackErrorOf } from './errors';
+import { prFeedbackErrorMessage, prFeedbackErrorOf } from './errors';
 import { configAbilitiesOf, configExampleOf, contributeBadgeMarkdown, liveKeysOf } from './maintainer-config';
 import {
   agentOf,
@@ -134,6 +134,16 @@ describe('a failed note', () => {
     ['INTERNAL_SERVER_ERROR', 'FAILED'],
   ])('tells %s as %s', (code, error) => {
     expect(prFeedbackErrorOf(failure(code))).toBe(error);
+  });
+
+  it('never says a send that broke off did not go through', () => {
+    for (const error of ['GITHUB_UNAVAILABLE', 'FAILED'] as const) {
+      expect(prFeedbackErrorMessage(error)).toBe(
+        "We couldn't finish sending this. Try again; if it went through, we'll merge the two.",
+      );
+      expect(prFeedbackErrorMessage(error, 'undo')).not.toMatch(/sent/);
+      expect(prFeedbackErrorMessage(error, 'read')).toMatch(/Try again/);
+    }
   });
 
   it('tells an API without the operation, and an outage', () => {

@@ -163,8 +163,18 @@ export function prFeedbackErrorOf(error: unknown): PrFeedbackErrorCode {
   return 'FAILED';
 }
 
-/** The words for a failed note, Undo or lookup. */
-export function prFeedbackErrorMessage(error: PrFeedbackErrorCode): string {
+/**
+ * The words for a failed note (`send`), Undo (`undo`) or the PR's lookup (`read`). A send that broke off may have gone
+ * through, so its words never say it did not: another send only adds to the same note.
+ */
+export function prFeedbackErrorMessage(error: PrFeedbackErrorCode, doing: 'send' | 'undo' | 'read' = 'send'): string {
+  if (error === 'GITHUB_UNAVAILABLE' || error === 'FAILED') {
+    if (doing === 'send') return "We couldn't finish sending this. Try again; if it went through, we'll merge the two.";
+    if (doing === 'undo') return "We couldn't finish this. Try again in a minute.";
+    return error === 'GITHUB_UNAVAILABLE'
+      ? 'GitHub did not answer, so we could not check this pull request. Try again in a minute.'
+      : 'Something went wrong while reading this pull request. Try again in a minute.';
+  }
   switch (error) {
     case 'SIGNED_OUT':
       return 'GitHub did not accept your sign-in. Sign in again, then send it.';
@@ -176,14 +186,12 @@ export function prFeedbackErrorMessage(error: PrFeedbackErrorCode): string {
       return 'You have sent the most notes we take in a day. Try again tomorrow, or write to hello@gitranks.com.';
     case 'FORBIDDEN':
       return 'GitHub says your account does not maintain this repo now, so this can’t be undone from it.';
-    case 'GITHUB_UNAVAILABLE':
-      return 'GitHub did not answer, so we could not check your role and nothing was sent. Try again in a minute.';
     case 'INVALID':
       return 'Something in the form was not accepted. Check it and send again.';
     case 'NOT_AVAILABLE_YET':
       return 'This is not available yet. Write to hello@gitranks.com with the PR link meanwhile.';
     default:
-      return 'Something went wrong and nothing was sent. Try again in a minute.';
+      return 'Something went wrong. Try again in a minute.';
   }
 }
 

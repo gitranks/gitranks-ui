@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { approveReply } from '../actions';
+import { unlessPrStopped } from './pr-stopped';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,7 +23,7 @@ import { replyRefusalOf } from '@/lib/contribute/follow-up-format';
  * follow-up) changes, so pushed commits lift it. `asComment`: a reply GitHub refused in its review thread, posted as a
  * comment on the pull request instead (its first line links the review comment).
  */
-export function ApproveReplyButton({
+function ApproveReplyButtonLive({
   draftId,
   where,
   again,
@@ -136,3 +137,5 @@ export function ApproveReplyButton({
     </div>
   );
 }
+
+export const ApproveReplyButton = unlessPrStopped(ApproveReplyButtonLive);

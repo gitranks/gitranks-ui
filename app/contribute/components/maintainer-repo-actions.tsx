@@ -105,7 +105,7 @@ export function MaintainerRepoActions({ repo }: { repo: ContributeMaintainerRepo
       )}
       {error ? (
         <p role="alert" data-error={error} className="text-sm text-destructive">
-          {prFeedbackErrorMessage(error)}
+          {prFeedbackErrorMessage(error, 'undo')}
         </p>
       ) : null}
     </div>

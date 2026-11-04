@@ -275,7 +275,7 @@ const sentPage = (flow: PrFeedbackFlow) => (
       {flow === 'helped' ? (
         <HelpedSent card={prCard()} />
       ) : (
-        <ReportSent card={prCard()} result={prReportSent()} replyTo="sam@driftwood.dev" maintainer />
+        <ReportSent card={prCard()} result={prReportSent()} requested={['STOP_PR']} replyTo="sam@driftwood.dev" />
       )}
     </main>
   </>

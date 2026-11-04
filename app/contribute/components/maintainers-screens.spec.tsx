@@ -112,7 +112,8 @@ describe('the maintainers page', () => {
     expect(all).toContain('min_account_age_years: 6');
     expect(all).toContain('min_rank: master');
     expect(all).toContain('Lower our limits, keep autopilot out');
-    expect(all).toContain('Set the same rules after signing in');
+    // Not until "Your repos" offers the rules.
+    expect(all).not.toContain('Set the same rules after signing in');
     expect(all).toContain('Good first issues stay with people if you say so');
   });
 
@@ -156,6 +157,18 @@ describe('the maintainers page', () => {
     expect(html).toContain('name="returnTo" value="/contribute/maintainers"');
     expect(text(html)).toContain('no longer use it after an hour');
     expect(html).not.toContain('data-repo=');
+  });
+
+  it('signs in back to the page with the footer link it came from', () => {
+    const html = renderToStaticMarkup(
+      <MaintainerReposPanel
+        view={{ state: 'signed-out' }}
+        orgAccessUrl={ORG_URL}
+        returnTo="/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0"
+      />,
+    );
+
+    expect(html).toContain('name="returnTo" value="/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0"');
   });
 
   it('says it is reading the repos while GitHub answers', () => {
@@ -371,7 +384,7 @@ describe('the report pages', () => {
   it('lists what a report applied with Undo, and what happens next', () => {
     const html = text(
       renderToStaticMarkup(
-        <ReportSent card={prCard()} result={prReportSent()} replyTo="sam@driftwood.dev" maintainer />,
+        <ReportSent card={prCard()} result={prReportSent()} requested={['STOP_PR']} replyTo="sam@driftwood.dev" />,
       ),
     );
 
@@ -383,13 +396,32 @@ describe('the report pages', () => {
 
     const plain = text(
       renderToStaticMarkup(
-        <ReportSent card={prCard()} result={prReportSent({ actions: [] })} replyTo={null} maintainer={false} />,
+        <ReportSent card={prCard()} result={prReportSent({ actions: [], role: 'USER' })} replyTo={null} />,
       ),
     );
     expect(plain).toContain('Thanks. It’s with us');
     expect(plain).not.toContain('Done at once');
     expect(plain).not.toContain('We write to');
     expect(plain).not.toContain('Rules for');
+  });
+
+  it('says plainly when GitHub no longer confirmed the maintainer at the send, and nothing applied', () => {
+    const html = renderToStaticMarkup(
+      <ReportSent
+        card={prCard()}
+        result={prReportSent({ actions: [], role: 'COLLABORATOR' })}
+        requested={['STOP_PR', 'REPO_OFF']}
+        replyTo={null}
+      />,
+    );
+
+    expect(html).toContain('data-dropped');
+    expect(text(html)).toContain(
+      'GitHub no longer confirms you maintain driftwood-js/driftwood, so nothing was applied; your report is with us.',
+    );
+    expect(html).not.toContain('data-applied');
+    expect(text(html)).not.toContain('Rules for');
+    expect(html).toContain('tabindex="-1"');
   });
 
   it('says a helped note is on the author’s page', () => {
@@ -436,5 +468,32 @@ describe('the maintainers’ say on the contributor’s page', () => {
 
   it('shows nothing without a stop or a note', () => {
     expect(renderToStaticMarkup(<PrNotesPanel notes={{ stopped: null, notes: [] }} repo="x/y" />)).toBe('');
+  });
+});
+
+describe('the controls that write to a stopped PR', () => {
+  it('give way to a line saying why, inside a stopped PR alone', async () => {
+    const { PrStoppedProvider, unlessPrStopped } = await import('./pr-stopped');
+    const Approve = unlessPrStopped(({ label }: { label: string }) => <button type="button">{label}</button>);
+
+    const stopped = text(
+      renderToStaticMarkup(
+        <PrStoppedProvider stopped>
+          <Approve label="Approve and post" />
+        </PrStoppedProvider>,
+      ),
+    );
+    expect(stopped).toContain('Not available: a maintainer stopped GitRanks work on this PR.');
+    expect(stopped).not.toContain('Approve and post');
+
+    expect(
+      text(
+        renderToStaticMarkup(
+          <PrStoppedProvider stopped={false}>
+            <Approve label="Approve and post" />
+          </PrStoppedProvider>,
+        ),
+      ),
+    ).toContain('Approve and post');
   });
 });

@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { approveFollowUp, discardAttempt, ignoreReviewThreads, setResolveHumanThreads } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
+import { unlessPrStopped } from './pr-stopped';
 import { HEADING, Pill } from './primitives';
 import { ReplyActions } from './reply-actions';
 import { OrgAccessLink, ReplyCopyBar, ReplyText } from './reply-text';
@@ -240,7 +241,7 @@ function ThreadResult({
  * one approval that pushes the commits and posts the replies chosen (bots' threads resolved after; people's left open
  * unless the user turned that on), or a Discard. After the approval the same card follows each reply until posted.
  */
-export function FollowUpResult({
+function FollowUpResultLive({
   attempt,
   prNumber,
   resolveHumans,
@@ -501,3 +502,5 @@ export function FollowUpResult({
     </section>
   );
 }
+
+export const FollowUpResult = unlessPrStopped(FollowUpResultLive);

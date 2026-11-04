@@ -127,7 +127,7 @@ export function PrFeedbackScreen({
             {read.error === 'NOT_OURS' ? 'Not one of our pull requests' : 'We couldn’t open this pull request'}
           </AlertTitle>
           <AlertDescription>
-            <p>{prFeedbackErrorMessage(read.error)}</p>
+            <p>{prFeedbackErrorMessage(read.error, 'read')}</p>
           </AlertDescription>
         </Alert>
         {read.error === 'SIGNED_OUT' ? (

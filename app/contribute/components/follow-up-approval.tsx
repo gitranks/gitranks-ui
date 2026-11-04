@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { approveAttempt, discardAttempt } from '../actions';
+import { unlessPrStopped } from './pr-stopped';
 import { HEADING } from './primitives';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +24,7 @@ type Confirm = 'approve' | 'discard' | null;
  * A follow-up in review: push its commits onto the pull request, or discard them. A follow-up opens no pull request,
  * so there is no title or description to edit: the commits are signed off like the pull request's were.
  */
-export function FollowUpApproval({
+function FollowUpApprovalLive({
   attemptId,
   prNumber,
   hasCommits,
@@ -139,3 +140,5 @@ export function FollowUpApproval({
     </section>
   );
 }
+
+export const FollowUpApproval = unlessPrStopped(FollowUpApprovalLive);

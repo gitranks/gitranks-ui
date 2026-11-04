@@ -136,6 +136,7 @@ export function toRepoFacts({ repo, repoRankTiers, repoLanguages }: RepoData): R
 
   return {
     kind: 'repo',
+    githubId: repo.githubId,
     nameWithOwner: repo.nameWithOwner,
     language: repo.language ?? null,
     stars: repo.stars,

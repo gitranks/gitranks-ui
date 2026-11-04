@@ -39,8 +39,8 @@ export function factsStamp(facts: EntityFacts): number {
  */
 export function previewSrc(facts: EntityFacts, badge: BadgeDefinition, style: Style, theme: Theme): string {
   const query = styleQuery(badge, style);
-  if ((query.get('scheme') ?? 'auto') === 'auto') query.set('theme', theme);
   const params = paramsOf(badge, style);
+  if ((params?.scheme ?? 'auto') === 'auto') query.set('theme', theme);
   if (params) {
     for (const [key, value] of Object.entries(pendingQuery(facts, badge, params, factsStamp(facts)))) {
       query.set(key, value);

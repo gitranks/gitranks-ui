@@ -24,12 +24,15 @@ const builder = (path: string) => (
 const user = { kind: 'user', name: userBig.login } as const;
 const card = findBadge('user', 'profile-card');
 const repo = { kind: 'repo', name: 'brightfern/tidepool' } as const;
+const contribute = findBadge('repo', 'contribute');
 const BUILDER = {
   find: builderHref({ kind: null }),
   badge: builderHref(user),
   repoBadge: builderHref(repo),
   style: builderHref({ ...user, badge: card }),
   embed: builderHref({ ...user, badge: card, embed: true }),
+  contributeStyle: builderHref({ ...repo, badge: contribute }),
+  contributeEmbed: builderHref({ ...repo, badge: contribute, embed: true }),
 };
 
 export const BADGES_SCREENS: Screen[] = [
@@ -62,6 +65,20 @@ export const BADGES_SCREENS: Screen[] = [
         path: BUILDER.repoBadge,
         height: 1800,
         render: () => builder(BUILDER.repoBadge),
+      },
+      {
+        id: 'style-contribute',
+        title: '3 · Style, the Contribute badge',
+        path: BUILDER.contributeStyle,
+        height: 800,
+        render: () => builder(BUILDER.contributeStyle),
+      },
+      {
+        id: 'embed-contribute',
+        title: '4 · Embed, the Contribute badge',
+        path: BUILDER.contributeEmbed,
+        height: 800,
+        render: () => builder(BUILDER.contributeEmbed),
       },
     ],
   },

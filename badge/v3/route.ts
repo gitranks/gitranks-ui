@@ -61,6 +61,11 @@ export type BadgeLoaders = {
   user: (login: string) => Promise<EntityFacts | null>;
   org: (login: string) => Promise<EntityFacts | null>;
   repo: (owner: string, name: string) => Promise<EntityFacts | null>;
+  /**
+   * Told the repository's GitHub id once a Contribute badge is drawn. It must not delay or throw: the caller schedules
+   * the work after the response. Left out, nothing is reported.
+   */
+  onContributeSeen?: (repoId: string) => void;
 };
 
 /** The entity a route's params name, decoded and checked; `null` when they cannot name one. */
@@ -129,6 +134,13 @@ export async function getBadgeResponse(
 
   try {
     const rendered = await renderBadge(entity, badge, params, parsed.format, now);
+    if (badge.id === 'contribute' && entity.kind === 'repo' && entity.githubId && loaders.onContributeSeen) {
+      try {
+        loaders.onContributeSeen(entity.githubId);
+      } catch (error) {
+        console.error('Error reporting a badge:', error);
+      }
+    }
     return new Response(rendered.body, {
       headers: {
         'Content-Type': rendered.contentType,

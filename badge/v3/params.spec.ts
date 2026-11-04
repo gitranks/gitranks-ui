@@ -29,6 +29,14 @@ describe('resolveParams', () => {
     expect(resolve('org', 'contributors-chart', '').scheme).toBe('auto');
   });
 
+  it('starts the Contribute badge on Night, and takes every shield scheme', () => {
+    expect(resolve('repo', 'contribute', '')).toMatchObject({ scheme: 'night', logo: true, extra: null });
+    for (const scheme of ['auto', 'night', 'violet', 'classic']) {
+      expect(resolve('repo', 'contribute', `scheme=${scheme}`).scheme).toBe(scheme);
+    }
+    expect(() => resolve('repo', 'contribute', 'scheme=tier')).toThrow(BadgeParamsError);
+  });
+
   it('ignores unknown keys, such as a cache-buster', () => {
     expect(resolve('repo', 'rank', 'v=2&utm_source=readme&foo')).toEqual(defaultParams(badge('repo', 'rank')));
   });

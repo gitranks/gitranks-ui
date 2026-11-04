@@ -14,6 +14,8 @@ import {
   settleStyle,
   valueChoices,
 } from './badge-options';
+import { styleQuery } from './builder-state';
+import { badgeImageUrl, badgeLinkUrl, snippetOf } from './snippets';
 import { findBadge } from '@/badge/v3/catalogue';
 import {
   NOW,
@@ -40,11 +42,12 @@ describe('offeredBadges', () => {
       'stars',
       'month',
       'tier',
+      'contribute',
       'rank-card',
       'tier-card',
       'star-history',
     ]);
-    expect(ids(repoUnranked)).toEqual(['star-history']);
+    expect(ids(repoUnranked)).toEqual(['contribute', 'star-history']);
     expect(ids(userUnranked)).toEqual([]);
     expect(ids(orgUnranked)).toEqual([]);
   });
@@ -165,6 +168,21 @@ describe('style choices', () => {
 });
 
 describe('badgeAlt', () => {
+  it("names the Contribute badge alone, so the builder's Markdown is the maintainers page's", () => {
+    const contribute = badge('repo', 'contribute');
+    const alt = badgeAlt(repoMid, contribute, {}, NOW);
+    expect(alt).toBe('GitRanks Contribute');
+    const snippet = {
+      imageUrl: badgeImageUrl('https://gitranks.com', 'repo', 'owner/name', 'contribute', styleQuery(contribute, {})),
+      pageUrl: badgeLinkUrl('https://gitranks.com', 'contribute', 'repo', 'owner/name'),
+      alt,
+      auto: false,
+    };
+    expect(snippetOf('markdown', snippet)).toBe(
+      '[![GitRanks Contribute](https://gitranks.com/badge/repo/owner/name/contribute.svg)](https://gitranks.com/contribute/maintainers)',
+    );
+  });
+
   it('states the fact', () => {
     expect(badgeAlt(repoMid, badge('repo', 'rank'), {}, NOW)).toBe(
       'acme/fastqueue on GitRanks: repo rank #41,206 · top 1%',

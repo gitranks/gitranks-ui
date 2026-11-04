@@ -99,6 +99,7 @@ export function toRepoCardFacts({ repo, repoRankTiers, repoLanguages }: BadgeRep
   const language = rank?.language ?? repo.language ?? null;
   return {
     kind: 'repo',
+    githubId: null,
     nameWithOwner: repo.nameWithOwner,
     language: repo.language ?? null,
     stars: repo.stars,

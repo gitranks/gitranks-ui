@@ -137,6 +137,8 @@ function repoShield(repo: RepoFacts, badge: BadgeDefinition, params: BadgeParams
         { level: () => levelSegment(tier.level, repo.tierLevels[tier.tier] ?? 5) },
       );
     }
+    case 'contribute':
+      return content(params, 'GitRanks Contribute', textSegment('help welcome'));
     default:
       return null;
   }

@@ -35,6 +35,11 @@ export function entityPageUrl(origin: string, kind: EntityKind, name: string, sc
   }
 }
 
+/** Where a badge's image links: the Contribute badge to the page that explains it, any other to its entity's page. */
+export function badgeLinkUrl(origin: string, badgeId: string, kind: EntityKind, name: string, scope?: string): string {
+  return badgeId === 'contribute' ? `${origin}/contribute/maintainers` : entityPageUrl(origin, kind, name, scope);
+}
+
 export type Snippet = { imageUrl: string; pageUrl: string; alt: string; auto: boolean };
 
 /** Parentheses would end a Markdown link early. */

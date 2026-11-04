@@ -7,6 +7,7 @@ import { repoBig, repoMid } from '@/badge/v3/fixtures';
 const starHistory = findBadge('repo', 'star-history')!;
 const rank = findBadge('repo', 'rank')!;
 const starsCard = findBadge('repo', 'stars-card')!;
+const contribute = findBadge('repo', 'contribute')!;
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -44,6 +45,13 @@ describe('previewSrc', () => {
     expect(previewSrc(repoBig, starHistory, {}, 'dark')).toBe('/badge/repo/nebula/ui/star-history.svg?theme=dark');
     expect(previewSrc(repoBig, rank, { scheme: 'classic' }, 'dark')).toBe(
       '/badge/repo/nebula/ui/rank.svg?scheme=classic',
+    );
+  });
+
+  it('pins only an Auto preview to the theme: the Contribute badge starts on Night', () => {
+    expect(previewSrc(repoBig, contribute, {}, 'dark')).toBe('/badge/repo/nebula/ui/contribute.svg');
+    expect(previewSrc(repoBig, contribute, { scheme: 'auto' }, 'dark')).toBe(
+      '/badge/repo/nebula/ui/contribute.svg?scheme=auto&theme=dark',
     );
   });
 });

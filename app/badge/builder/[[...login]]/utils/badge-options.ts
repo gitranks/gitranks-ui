@@ -90,8 +90,9 @@ export function shieldText(entity: EntityFacts, badge: BadgeDefinition, params: 
 /** The entity's name as its URLs write it. */
 export const entityName = (entity: EntityFacts) => (entity.kind === 'repo' ? entity.nameWithOwner : entity.login);
 
-/** The image's alt text: the entity and the fact it shows. */
+/** The image's alt text: the entity and the fact it shows; the Contribute badge's own name, as its page writes it. */
 export function badgeAlt(entity: EntityFacts, badge: BadgeDefinition, style: Style, now = new Date()): string {
+  if (badge.id === 'contribute') return 'GitRanks Contribute';
   const params = paramsOf(badge, style);
   const fact = (params && badge.format === 'shield' && shieldText(entity, badge, params, now)) || badge.title;
   return `${entityName(entity)} on GitRanks: ${fact}`;

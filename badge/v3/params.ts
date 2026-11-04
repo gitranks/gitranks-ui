@@ -83,7 +83,7 @@ export function defaultParams(badge: BadgeDefinition): BadgeParams {
     extra: badge.defaultExtra,
     value: DEFAULT_CONTRIBUTOR_VALUE,
     logo: true,
-    scheme: 'auto',
+    scheme: badge.defaultScheme ?? 'auto',
     colors: null,
     theme: null,
     label: null,

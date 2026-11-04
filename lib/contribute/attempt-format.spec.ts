@@ -18,6 +18,16 @@ describe('editableBodyOf', () => {
         'Done.\n\n<sub>Made with [GitRanks Contribute](https://gitranks.com/maintainers) and Cursor</sub>',
       ),
     ).toBe('Done.');
+    const first =
+      '<sub>Made with [GitRanks Contribute](https://gitranks.com/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0) powered by Claude (Opus) · Reviewed and submitted by @mira-dev</sub>';
+    const second =
+      '<sub>Something off? [Tell us or opt out in one step](https://gitranks.com/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0) — maintainers are always in control</sub>';
+    // Both lines, joined with <br> as the API writes them, on lines of their own, or the second alone.
+    expect(editableBodyOf(`Done.\n\n${first}<br>\n${second}`)).toBe('Done.');
+    expect(editableBodyOf(`Done.\n\n${first}<br>${second}`)).toBe('Done.');
+    expect(editableBodyOf(`Done.\r\n\r\n${first}<br>\r\n${second}\r\n`)).toBe('Done.');
+    expect(editableBodyOf(`Done.\n\n${second}`)).toBe('Done.');
+    expect(editableBodyOf('Something off? Tell us here, by hand.')).toBe('Something off? Tell us here, by hand.');
     expect(editableBodyOf('Made with GitRanks Contribute, then edited by hand.')).toBe(
       'Made with GitRanks Contribute, then edited by hand.',
     );

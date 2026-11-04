@@ -34,6 +34,7 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
           const { githubId, repo } = item;
           // The global tier on every list, as on the repository page: most languages have no tier table of their own.
           // It shows in the Tier column only: neighbouring rows share a tier, so an avatar badge would repeat down the page.
+          // The glyph alone: the name is in its tooltip.
           const { tier } = item;
 
           if (!repo) {
@@ -58,7 +59,7 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
                   )}
                 </div>
               </TableCell>
-              <TableCell className="hidden lg:table-cell">{!!tier && <RepoTierChip tier={tier} />}</TableCell>
+              <TableCell className="hidden lg:table-cell">{!!tier && <RepoTierChip tier={tier} iconOnly />}</TableCell>
               <TableCell className="hidden md:table-cell">
                 {repo.language && (
                   <LinkWithStopPropagation

@@ -9,18 +9,27 @@ import type { Tier } from '@/types/generated/graphql';
 /** "Supernova 5". */
 export const repoTierLabel = (tier: Pick<Tier, 'tier' | 'level'>) => `${REPO_TIER_NAMES[tier.tier - 1]} ${tier.level}`;
 
-/** A repository's tier as a chip: its glyph and name in the tier colour on a 15% fill. */
-export const RepoTierChip: FC<{ tier: Pick<Tier, 'tier' | 'level'>; className?: string }> = ({ tier, className }) => (
+/**
+ * A repository's tier as a chip: its glyph and name in the tier colour on a 15% fill. `iconOnly` drops the name, which
+ * stays in the tooltip and for screen readers.
+ */
+export const RepoTierChip: FC<{ tier: Pick<Tier, 'tier' | 'level'>; iconOnly?: boolean; className?: string }> = ({
+  tier,
+  iconOnly = false,
+  className,
+}) => (
   <span
+    {...(iconOnly && { role: 'img', 'aria-label': repoTierLabel(tier), title: repoTierLabel(tier) })}
     className={cn(
-      'inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-xs font-semibold whitespace-nowrap',
+      'inline-flex items-center gap-1 rounded-sm text-xs font-semibold whitespace-nowrap',
+      iconOnly ? 'p-1' : 'px-2 py-0.5',
       tierChipClass(tier.tier),
       tierStrongTextClass(tier.tier),
       className,
     )}
   >
     <RepoTierIcon tier={tier.tier} className="size-3.5" />
-    {repoTierLabel(tier)}
+    {!iconOnly && repoTierLabel(tier)}
   </span>
 );
 

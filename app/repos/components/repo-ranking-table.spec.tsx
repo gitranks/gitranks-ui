@@ -44,10 +44,12 @@ describe('RepoRankingTable', () => {
     expect(html).not.toContain('Galaxy 1');
   });
 
-  it('shows the tier in its column only, with no badge on the owner avatar', () => {
+  it('shows the tier glyph in its column only, the name in its tooltip, with no badge on the owner avatar', () => {
     const html = renderToStaticMarkup(<RepoRankingTable data={[row({ tier: 7, level: 5 }, null)]} />);
 
-    expect(html).not.toContain('aria-label="Supernova 5"');
+    expect(html.match(/aria-label="Supernova 5"/g)).toHaveLength(1);
+    expect(html).toContain('title="Supernova 5"');
+    expect(html).not.toContain('>Supernova 5<');
     expect(html).not.toContain('ring-background');
   });
 

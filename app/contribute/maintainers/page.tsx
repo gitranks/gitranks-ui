@@ -11,7 +11,7 @@ import {
   PrStrip,
 } from '../components/maintainers-view';
 import { PrLinkForm } from '../components/pr-link-form';
-import type { ContributePrCard } from '@/lib/contribute/contribute.types';
+import type { ContributeMaintainerFacts, ContributePrCard } from '@/lib/contribute/contribute.types';
 import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import { BADGE_EXAMPLE_REPO } from '@/lib/contribute/maintainer-config';
 import { loadMaintainerRepos } from '@/lib/contribute/maintainers.data';
@@ -61,7 +61,7 @@ export default async function MaintainersPage({ searchParams }: PageProps<'/cont
       }
       repos={
         <Suspense fallback={<MaintainerReposLoading />}>
-          <MaintainerRepos searchParams={searchParams} />
+          <MaintainerRepos searchParams={searchParams} facts={facts} />
         </Suspense>
       }
       more={
@@ -87,11 +87,18 @@ async function PrLinkSlot({ card }: { card: Promise<ContributePrCard | null> }) 
   return <PrLinkForm defaultValue={read ? prUrlOf(read) : ''} />;
 }
 
-async function MaintainerRepos({ searchParams }: { searchParams: Query }) {
+async function MaintainerRepos({
+  searchParams,
+  facts,
+}: {
+  searchParams: Query;
+  facts: ContributeMaintainerFacts | null;
+}) {
   const from = attemptIdOf((await searchParams).from);
   return (
     <MaintainerReposPanel
       view={await loadMaintainerRepos()}
+      facts={facts}
       orgAccessUrl={orgAccessOf(process.env.AUTH_GITHUB_BASIC_ID).url}
       returnTo={from ? `${MAINTAINERS_PATH}?${new URLSearchParams({ from })}` : MAINTAINERS_PATH}
     />

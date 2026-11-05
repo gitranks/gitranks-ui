@@ -8,6 +8,7 @@ import { CycleSummary } from './cycle-summary';
 import { DeleteDataSection } from './delete-data-section';
 import { PauseButton } from './pause-button';
 import { PreferencesSection } from './preferences-section';
+import { ReposAskLessNote } from './repo-rules';
 import { SettingsAnchors } from './settings-anchors';
 import { SettingsGroup, SettingsList, SettingsRow } from './settings-rows';
 import { SettingsWorkGroup } from './settings-work-group';
@@ -136,6 +137,7 @@ export function SettingsScreen({
             />
           ) : null}
         </SettingsList>
+        <ReposAskLessNote className="px-1" />
       </SettingsGroup>
 
       <SettingsGroup id="settings-connections" title="Connections">

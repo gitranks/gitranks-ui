@@ -13,6 +13,7 @@ const {
   loadContribute,
   loadContributeSet,
   loadContributions,
+  loadIssues,
   loadOverviewImpact,
   loadOverviewNeeds,
   loadOverviewNow,
@@ -45,6 +46,9 @@ const {
   ContributeAttemptDecisionsDocument,
   ContributeAttemptDcoDocument,
   ContributeAttemptDisclosureDocument,
+  ContributeAttemptRepoRulesDocument,
+  ContributeIssuesDocument,
+  ContributeIssuesWithRulesDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeProviderInterestsDocument,
@@ -224,6 +228,74 @@ describe('loadAttempt: whether the repo requires DCO, read on its own', () => {
       expect(read).toEqual({ attemptId: 'A_1', state: 'REVIEW' });
       expect('dcoRequired' in (read ?? {})).toBe(false);
     }
+  });
+});
+
+describe("loadAttempt: the repo's rules, read on their own", () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const RULES = { manualOnly: false, lines: [], caps: { lines: 400, files: 15, linesSource: null, filesSource: null } };
+  const answering = (rules: () => Promise<unknown>) =>
+    graphqlDirect.mockImplementation((document) =>
+      document === ContributeAttemptRepoRulesDocument
+        ? rules()
+        : Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'REVIEW' } }),
+    );
+
+  it("merges the attempt's own answer, null included, and leaves the field out otherwise", async () => {
+    answering(() => Promise.resolve({ contributeAttempt: { attemptId: 'A_1', repoRules: RULES } }));
+    expect(await loadAttempt('A_1')).toEqual({ attemptId: 'A_1', state: 'REVIEW', repoRules: RULES });
+
+    answering(() => Promise.resolve({ contributeAttempt: { attemptId: 'A_1', repoRules: null } }));
+    expect(await loadAttempt('A_1')).toMatchObject({ repoRules: null });
+
+    for (const rules of [
+      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', repoRules: RULES } }),
+      () => Promise.reject(new Error('[{"message":"Cannot query field \\"repoRules\\""}]')),
+      () => Promise.reject(new Error('GraphQL error! 502: Bad Gateway')),
+    ]) {
+      answering(rules);
+      expect('repoRules' in ((await loadAttempt('A_1')) ?? {})).toBe(false);
+    }
+  });
+});
+
+describe("loadIssues: the repos' rules with the feed", () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const PAGE = { items: [], next: null, total: 0, computedAt: null };
+
+  it('reads the feed with the rules, and as it was from an API without them', async () => {
+    graphqlDirect.mockResolvedValue({ contributeIssues: PAGE });
+    expect(await loadIssues({})).toEqual(PAGE);
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([ContributeIssuesWithRulesDocument]);
+
+    graphqlDirect.mockReset();
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeIssuesWithRulesDocument) {
+        throw new Error('[{"message":"Cannot query field \\"repoRules\\" on type \\"ContributeIssue\\"."}]');
+      }
+      return { contributeIssues: PAGE };
+    });
+    expect(await loadIssues({})).toEqual(PAGE);
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
+      ContributeIssuesWithRulesDocument,
+      ContributeIssuesDocument,
+    ]);
+  });
+
+  it('is undefined on an outage, asked once', async () => {
+    graphqlDirect.mockRejectedValue(new Error('GraphQL error! 502: Bad Gateway'));
+    expect(await loadIssues({})).toBeUndefined();
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
   });
 });
 

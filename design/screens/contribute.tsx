@@ -16,6 +16,7 @@ import { ContributeBadgePreview } from '@/app/contribute/components/contribute-b
 import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { FaqScreen } from '@/app/contribute/components/faq';
+import { IssueRulesOpen } from '@/app/contribute/components/issue-repo-rules';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
 import { LedgerScreen } from '@/app/contribute/components/ledger-view';
@@ -27,6 +28,7 @@ import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
 import { MorePages } from '@/app/contribute/components/public-pages';
 import { ReviewScreen } from '@/app/contribute/components/review-view';
 import { RunsScreen } from '@/app/contribute/components/runs-view';
+import { FormSettingsScreen } from '@/app/contribute/components/settings-pages';
 import { SettingsScreen } from '@/app/contribute/components/settings-view';
 import { TermsScreen } from '@/app/terms/terms';
 import { Header } from '@/components/header/header';
@@ -44,6 +46,7 @@ import { issuePage, nowIdle, overviewData } from '@/lib/contribute/__fixtures__/
 import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import { emptyLedger, ledger, publicLedger } from '@/lib/contribute/__fixtures__/ledger';
 import {
+  allLiveFacts,
   maintainerFacts,
   maintainerRepo,
   prCard,
@@ -59,8 +62,21 @@ import {
   nextForRun,
   nextForYou,
 } from '@/lib/contribute/__fixtures__/needs-you';
+import {
+  attemptNoRules,
+  attemptRules,
+  issueRules,
+  maintainerConfig,
+  maintainerRules,
+} from '@/lib/contribute/__fixtures__/repo-rules';
 import { pageOf } from '@/lib/contribute/__fixtures__/runs';
-import type { ContributeActivity, ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
+import type {
+  ContributeActivity,
+  ContributeAttemptDetail,
+  ContributeIssuePage,
+  ContributeMaintainerFacts,
+  ContributeView,
+} from '@/lib/contribute/contribute.types';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { NeedsYouRead } from '@/lib/contribute/needs-you';
 import { type PrFeedbackFlow, prUrlOf } from '@/lib/contribute/pr-feedback';
@@ -151,6 +167,20 @@ const frame = (children: ReactNode, activity: ContributeActivity = activityOf())
 /** A page's own container, as its `page.tsx` draws it. */
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
 
+/** The feed with its repos' rules: a repo with several, one where autopilot is the only one, and one with none. */
+const rulesPage: ContributeIssuePage = {
+  ...issuePage,
+  items: issuePage.items.map((item, index) => ({
+    ...item,
+    repoRules: [
+      issueRules(),
+      issueRules({ lines: issueRules().lines.slice(0, 3) }),
+      issueRules({ lines: issueRules().lines.slice(0, 3) }),
+      { manualOnly: false, lines: [] },
+    ][index],
+  })),
+};
+
 const overview = (
   view: ContributeView,
   activity: ContributeActivity,
@@ -231,18 +261,22 @@ const ORG_ACCESS_URL = 'https://github.com/settings/applications';
 /** The page for maintainers: open to everyone, the site header with no tabs, the visitor's repos in "Opt out". */
 const maintainersPage = (
   view: MaintainerReposView,
-  { shown = false, fromPr = false }: { shown?: boolean; fromPr?: boolean } = {},
+  {
+    shown = false,
+    fromPr = false,
+    facts = maintainerFacts(),
+  }: { shown?: boolean; fromPr?: boolean; facts?: ContributeMaintainerFacts } = {},
 ) => (
   <>
     <Header section="contribute" />
     <HeaderLine />
     <MaintainersScreen
-      facts={maintainerFacts()}
+      facts={facts}
       strip={fromPr ? <PrStrip card={prCard()} /> : null}
       badge={<ContributeBadgePreview />}
       badgeRepo={fromPr ? prCard().nameWithOwner : undefined}
       prLink={fromPr ? prUrlOf(prCard()) : undefined}
-      repos={<MaintainerReposPanel view={view} orgAccessUrl={ORG_ACCESS_URL} />}
+      repos={<MaintainerReposPanel view={view} orgAccessUrl={ORG_ACCESS_URL} facts={facts} />}
       more={shown ? <MorePages current="maintainers" /> : null}
     />
   </>
@@ -433,6 +467,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'app/contribute/components/review-view.tsx',
       'app/contribute/components/attempt-sessions.tsx',
       'app/contribute/components/agent-decisions.tsx',
+      'app/contribute/components/repo-rules.tsx',
       'app/contribute/components/next-step.tsx',
       'lib/contribute/sessions.ts',
       'lib/contribute/next-step.ts',
@@ -464,6 +499,38 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           frame(
             <main className={MAIN}>
               <ReviewScreen view={views.active} attempt={decisionAttempts.went} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'repo-rules',
+        title: 'This repo’s rules beside the sessions, with the limits the repo set',
+        path: '/contribute/attempts/A_1',
+        height: 2000,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <ReviewScreen
+                view={views.active}
+                attempt={{ ...decisionAttempts.went, repoRules: attemptRules() }}
+                now={NOW}
+              />
+            </main>,
+          ),
+      },
+      {
+        id: 'repo-rules-empty',
+        title: 'A repo with no rules: your limits apply',
+        path: '/contribute/attempts/A_1',
+        height: 2000,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <ReviewScreen
+                view={views.active}
+                attempt={{ ...decisionAttempts.went, repoRules: attemptNoRules() }}
+                now={NOW}
+              />
             </main>,
           ),
       },
@@ -805,6 +872,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     sources: [
       'app/contribute/components/issues-view.tsx',
       'app/contribute/components/live-issues.tsx',
+      'app/contribute/components/issue-repo-rules.tsx',
       'app/contribute/components/contribute-notices.tsx',
     ],
     states: [
@@ -839,6 +907,37 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
                 query={{}}
                 now={NOW}
               />
+            </main>,
+          ),
+      },
+      {
+        id: 'repo-rules',
+        title: 'Each repo’s rules on its card, closed; a repo with none says so',
+        path: '/contribute/issues',
+        height: 1800,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <IssuesScreen view={views.active} page={rulesPage} query={{}} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'repo-rules-open',
+        title: 'The rules opened',
+        path: '/contribute/issues',
+        height: 1800,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <IssueRulesOpen.Provider value>
+                <IssuesScreen
+                  view={views.active}
+                  page={{ ...rulesPage, items: rulesPage.items.slice(0, 1) }}
+                  query={{}}
+                  now={NOW}
+                />
+              </IssueRulesOpen.Provider>
             </main>,
           ),
       },
@@ -964,6 +1063,31 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     ],
   },
   {
+    id: 'contribute-settings-agent',
+    title: 'Agent and pull requests',
+    area: 'contribute',
+    route: '/contribute/settings/agent',
+    sources: [
+      'app/contribute/components/settings-pages.tsx',
+      'app/contribute/components/settings-form.tsx',
+      'app/contribute/components/repo-rules.tsx',
+    ],
+    states: [
+      {
+        id: 'form',
+        title: 'The agent and the pull requests’ limits: repos can ask for less',
+        path: '/contribute/settings/agent',
+        height: 1500,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <FormSettingsScreen page="agent" view={views.active} />
+            </main>,
+          ),
+      },
+    ],
+  },
+  {
     id: 'contribute-maintainers',
     title: 'For maintainers',
     area: 'contribute',
@@ -972,6 +1096,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'app/contribute/maintainers/page.tsx',
       'app/contribute/components/maintainers-view.tsx',
       'app/contribute/components/maintainer-repos-form.tsx',
+      'app/contribute/components/maintainer-repo-settings.tsx',
     ],
     states: [
       {
@@ -1020,6 +1145,42 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
               ],
             },
           }),
+      },
+      {
+        id: 'signed-in-rules',
+        title: 'Your repos: what we read and the settings, one key set in the file',
+        path: '/contribute/maintainers',
+        height: 5200,
+        render: () =>
+          maintainersPage(
+            {
+              state: 'listed',
+              data: {
+                login: 'octocat',
+                truncated: false,
+                repos: [
+                  maintainerRepo({ repoId: 'R_1', config: maintainerConfig(), rules: maintainerRules() }),
+                  maintainerRepo({
+                    repoId: 'R_2',
+                    nameWithOwner: 'driftwood-js/driftwood-devtools',
+                    permission: 'MAINTAIN',
+                    stars: 42,
+                    optedOut: true,
+                    optedOutAt: '2026-10-20T09:00:00.000Z',
+                    config: maintainerConfig().map((value) => ({
+                      ...value,
+                      value: null,
+                      source: null,
+                      setBy: null,
+                      ignoredRaw: null,
+                    })),
+                    rules: { manualOnly: false, lines: [] },
+                  }),
+                ],
+              },
+            },
+            { facts: allLiveFacts() },
+          ),
       },
       {
         id: 'from-pr',

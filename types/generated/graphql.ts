@@ -367,7 +367,7 @@ export type ContributeAttemptDetail = {
   /** The commits carry the gitranks bot's co-author (not on a repo that bans AI trailers). Null before the approval */
   prCoAuthored?: Maybe<Scalars['Boolean']['output']>;
   prFix?: Maybe<ContributePrFix>;
-  /** What the PR's body gets after the approved text, as Markdown: the repo's disclosure sentence once the approval took it, then the footer line. Before the approval, the footer in the viewer’s name */
+  /** What the PR's body gets after the approved text, as Markdown: the repo's disclosure sentence once the approval took it, then the footer (two lines). Before the approval, the footer in the viewer’s name */
   prFooter: Scalars['String']['output'];
   /** What its open PR fails of them, with the fixes */
   prIssues: Array<ContributePrConventionIssue>;
@@ -380,6 +380,8 @@ export type ContributeAttemptDetail = {
   readiness?: Maybe<ContributeRepoReadiness>;
   /** The PR's reply drafts (a follow-up: the ones it wrote), oldest first */
   replyDrafts: Array<ContributeReplyDraft>;
+  /** The repository's rules for AI contributions, in its own words where it wrote them, and the size limits this attempt runs under there; null when not known */
+  repoRules?: Maybe<ContributeRepoRules>;
   repositoryId: Scalars['String']['output'];
   result?: Maybe<ContributeAttemptResult>;
   /** What retryAttempt would do with this stop, once: BOOST (the check ran out: twice its budget) or OVERRIDE (a no-go that is a judgement: a new run told the viewer overrode it). Null when it can't be tried again */
@@ -1000,6 +1002,8 @@ export type ContributeIssue = {
   number: Scalars['Int']['output'];
   /** Its place in the stored list, 1 the best */
   rank: Scalars['Int']['output'];
+  /** The repository's rules for AI contributions, in our words; null when not known */
+  repoRules?: Maybe<ContributeIssueRepoRules>;
   /** The repository's GitHub node id */
   repositoryId: Scalars['String']['output'];
   /** The match, 0 to 1 */
@@ -1039,6 +1043,25 @@ export type ContributeIssuePage = {
   next?: Maybe<Scalars['String']['output']>;
   /** The issues the filter lets through, as of the last compute: it can count a few cards a page leaves off (their repo left the pool since), so treat it as approximate */
   total: Scalars['Int']['output'];
+};
+
+/** One of a repository's rules for AI contributions, in our words */
+export type ContributeIssueRepoRule = {
+  __typename?: 'ContributeIssueRepoRule';
+  kind: ContributeRepoRuleKind;
+  /** Where it comes from: the repository's file on GitHub, or the GitRanks maintainers page; null when unknown */
+  source?: Maybe<ContributePrIssueSource>;
+  /** The rule in plain words */
+  text: Scalars['String']['output'];
+};
+
+/** A repository's rules for AI contributions, as an issue card shows them */
+export type ContributeIssueRepoRules = {
+  __typename?: 'ContributeIssueRepoRules';
+  /** Empty when the repository sets none */
+  lines: Array<ContributeIssueRepoRule>;
+  /** A person reviews and submits every pull request there: autopilot never does */
+  manualOnly: Scalars['Boolean']['output'];
 };
 
 /** An issue size */
@@ -1227,6 +1250,29 @@ export enum ContributeLiveProvider {
   Anthropic = 'ANTHROPIC'
 }
 
+/** Who set this value: the repo's .github/gitranks.yml file (FILE, which wins), or a maintainer on gitranks.com (PAGE) */
+export enum ContributeMaintainerConfigSource {
+  File = 'FILE',
+  Page = 'PAGE'
+}
+
+/** One setting from a repository's .github/gitranks.yml file, as it stands for a repository the visitor maintains */
+export type ContributeMaintainerConfigValue = {
+  __typename?: 'ContributeMaintainerConfigValue';
+  /** When GitRanks last read the file (ISO); null before the first read */
+  fileReadAt?: Maybe<Scalars['String']['output']>;
+  /** The file's value for the key that was not read (outside the key's values); null when there is none */
+  ignoredRaw?: Maybe<Scalars['String']['output']>;
+  /** The key, as the file writes it (min_rank, autopilot…) */
+  key: Scalars['String']['output'];
+  /** The login of the maintainer who set the value on gitranks.com; shown to the repository's maintainers alone */
+  setBy?: Maybe<Scalars['String']['output']>;
+  /** Null when nothing sets it */
+  source?: Maybe<ContributeMaintainerConfigSource>;
+  /** The value in the file's words (allowed, 3, pro…); null when neither the file nor the page sets it */
+  value?: Maybe<Scalars['String']['output']>;
+};
+
 /** The limits GitRanks Contribute keeps for every repository, and the keys a repository can set */
 export type ContributeMaintainerFacts = {
   __typename?: 'ContributeMaintainerFacts';
@@ -1251,6 +1297,8 @@ export type ContributeMaintainerRepo = {
   __typename?: 'ContributeMaintainerRepo';
   /** Contributors a maintainer blocked in it: no more GitRanks pull requests from them; each undoable */
   blockedContributors: Array<ContributeBlockedContributor>;
+  /** Every .github/gitranks.yml setting and its value here: the file's over gitranks.com's, and who set it on gitranks.com */
+  config: Array<ContributeMaintainerConfigValue>;
   isArchived: Scalars['Boolean']['output'];
   nameWithOwner: Scalars['String']['output'];
   /** Out of GitRanks Contribute: no issue of it is picked and no pull request opened there */
@@ -1261,9 +1309,44 @@ export type ContributeMaintainerRepo = {
   permission: ContributeRepoPermission;
   /** The repository's GitHub node id: what optOutRepos takes */
   repoId: Scalars['ID']['output'];
+  /** Its rules for AI contributions as GitRanks follows them: from its docs, workflows, .github/gitranks.yml and gitranks.com, and who set each on gitranks.com; null when not known */
+  rules?: Maybe<ContributeMaintainerRepoRules>;
   stars: Scalars['Int']['output'];
   /** Its pull requests a maintainer stopped GitRanks work on, each undoable */
   stoppedPrs: Array<ContributeStoppedPr>;
+};
+
+/** A repository's settings and its rules after a change on gitranks.com */
+export type ContributeMaintainerRepoConfig = {
+  __typename?: 'ContributeMaintainerRepoConfig';
+  /** Every .github/gitranks.yml setting and its value here: the file's over gitranks.com's, and who set it on gitranks.com */
+  config: Array<ContributeMaintainerConfigValue>;
+  repoId: Scalars['ID']['output'];
+  /** Its rules for AI contributions as GitRanks follows them after the change; null when not known */
+  rules?: Maybe<ContributeMaintainerRepoRules>;
+};
+
+/** One of the repository's rules for AI contributions, and who set it on gitranks.com */
+export type ContributeMaintainerRepoRule = {
+  __typename?: 'ContributeMaintainerRepoRule';
+  kind: ContributeRepoRuleKind;
+  /** The repository's own words for it, verbatim; null when it wrote none */
+  quote?: Maybe<Scalars['String']['output']>;
+  /** The login of the maintainer who set it on gitranks.com; shown to the repository's maintainers alone; null when it was not set there */
+  setBy?: Maybe<Scalars['String']['output']>;
+  /** Where it comes from: the repository's file on GitHub, or the GitRanks maintainers page; null when unknown */
+  source?: Maybe<ContributePrIssueSource>;
+  /** The rule in plain words */
+  text: Scalars['String']['output'];
+};
+
+/** The repository's rules for AI contributions, as GitRanks follows them */
+export type ContributeMaintainerRepoRules = {
+  __typename?: 'ContributeMaintainerRepoRules';
+  /** Empty when the repository sets none */
+  lines: Array<ContributeMaintainerRepoRule>;
+  /** A person reviews and submits every pull request there: autopilot never does */
+  manualOnly: Scalars['Boolean']['output'];
 };
 
 /** The visitor's GitHub account and the public repositories it administers or maintains */
@@ -1527,9 +1610,10 @@ export enum ContributePrIssueKind {
   Title = 'TITLE'
 }
 
-/** The repo's file that asks it */
+/** Where a rule or a convention comes from: the repository's file on GitHub, or the GitRanks maintainers page */
 export type ContributePrIssueSource = {
   __typename?: 'ContributePrIssueSource';
+  /** The file's path, or the page's name */
   label: Scalars['String']['output'];
   url: Scalars['String']['output'];
 };
@@ -1957,6 +2041,59 @@ export type ContributeRepoReadiness = {
   notes?: Maybe<Scalars['String']['output']>;
   test?: Maybe<Scalars['String']['output']>;
   toolchain?: Maybe<Scalars['String']['output']>;
+};
+
+/** One of a repository's rules for AI contributions, and its own words for it */
+export type ContributeRepoRule = {
+  __typename?: 'ContributeRepoRule';
+  kind: ContributeRepoRuleKind;
+  /** The repository's own words for it, verbatim; null when it wrote none */
+  quote?: Maybe<Scalars['String']['output']>;
+  /** Where it comes from: the repository's file on GitHub, or the GitRanks maintainers page; null when unknown */
+  source?: Maybe<ContributePrIssueSource>;
+  /** The rule in plain words */
+  text: Scalars['String']['output'];
+};
+
+/** The size limits that hold for you in a repository: the smaller of yours and its own */
+export type ContributeRepoRuleCaps = {
+  __typename?: 'ContributeRepoRuleCaps';
+  /** Files per pull request, at most */
+  files: Scalars['Int']['output'];
+  /** Null when the file limit is your own setting; else where the repository's limit comes from */
+  filesSource?: Maybe<Scalars['String']['output']>;
+  /** Changed lines per pull request, at most */
+  lines: Scalars['Int']['output'];
+  /** Null when the line limit is your own setting; else where the repository's limit comes from */
+  linesSource?: Maybe<Scalars['String']['output']>;
+};
+
+/** What a repository's rule is about: BAN (AI-generated code turned down, or allowed for GitRanks by its maintainers), APPROVED_CONTRIBUTORS_ONLY, AUTOPILOT (the maintainers allow it or turned it off), NO_AUTONOMOUS (a person's review first), NO_BULK, NO_GFI (no AI work on good first issues), FIRST_TIMERS (a merged pull request first), COORDINATE_FIRST (a maintainer agrees first), ISSUE_GATE (pull requests closed unless the issue is assigned or labeled), HUMAN_WORDS (the description or replies in your own words), DISCLOSURE (AI use disclosed as asked), CAPS (a size or open pull request limit), CONTRIBUTOR_BAR (the least account age or rank) */
+export enum ContributeRepoRuleKind {
+  ApprovedContributorsOnly = 'APPROVED_CONTRIBUTORS_ONLY',
+  Autopilot = 'AUTOPILOT',
+  Ban = 'BAN',
+  Caps = 'CAPS',
+  ContributorBar = 'CONTRIBUTOR_BAR',
+  CoordinateFirst = 'COORDINATE_FIRST',
+  Disclosure = 'DISCLOSURE',
+  FirstTimers = 'FIRST_TIMERS',
+  HumanWords = 'HUMAN_WORDS',
+  IssueGate = 'ISSUE_GATE',
+  NoAutonomous = 'NO_AUTONOMOUS',
+  NoBulk = 'NO_BULK',
+  NoGfi = 'NO_GFI'
+}
+
+/** A repository's rules for AI contributions, as GitRanks follows them */
+export type ContributeRepoRules = {
+  __typename?: 'ContributeRepoRules';
+  /** The size limits this attempt runs under there; null when not known */
+  caps?: Maybe<ContributeRepoRuleCaps>;
+  /** Empty when the repository sets none */
+  lines: Array<ContributeRepoRule>;
+  /** A person reviews and submits every pull request there: autopilot never does */
+  manualOnly: Scalars['Boolean']['output'];
 };
 
 /** What went wrong with a pull request opened through GitRanks Contribute */
@@ -2811,6 +2948,8 @@ export type Mutation = {
   sendContributeFeedback: Scalars['Boolean']['output'];
   /** A list mode's fallback: when its set has nothing ready, wait (SET_ONLY) or work on all issues */
   setContributeFallback: ContributeSet;
+  /** Sets one .github/gitranks.yml key on the maintainers page for a repository the token administers or maintains (checked with GitHub at each call); value null clears it. Answers every key of the repository and its rules after the change. FORBIDDEN when the token is not ADMIN or MAINTAIN there; NOT_FOUND when it cannot see the repository; BAD_USER_INPUT for a key the page does not set or a value outside the key's values; CONFLICT when the repository's .github/gitranks.yml sets the key (the file wins) */
+  setContributeMaintainerConfig: ContributeMaintainerRepoConfig;
   /** Switches the active mode; the other modes keep their lists and fallbacks */
   setContributeMode: ContributeSet;
   /** A field left out keeps its value; a key must be connected first */
@@ -3016,6 +3155,14 @@ export type MutationSendContributeFeedbackArgs = {
 export type MutationSetContributeFallbackArgs = {
   fallback: ContributeSetFallback;
   mode: ContributeSetListMode;
+};
+
+
+export type MutationSetContributeMaintainerConfigArgs = {
+  key: Scalars['String']['input'];
+  repoId: Scalars['ID']['input'];
+  token: Scalars['String']['input'];
+  value?: InputMaybe<Scalars['String']['input']>;
 };
 
 

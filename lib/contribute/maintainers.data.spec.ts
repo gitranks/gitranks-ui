@@ -77,8 +77,25 @@ describe('loadMaintainerRepos', () => {
     expect(JSON.stringify(view)).not.toContain(TOKEN);
   });
 
+  it("asks for each repo's keys and rules, and lists the repos without them from an API that has none", async () => {
+    answer(200, { data: { maintainerRepos: REPOS } });
+    await loadMaintainerRepos();
+    const query = sent().query.replace(/\s+/g, ' ');
+    expect(query).toContain('config { key value source setBy ignoredRaw fileReadAt }');
+    expect(query).toContain('rules { manualOnly lines { kind text quote setBy source { label url } } }');
+
+    signedFetch.mockReset();
+    answer(400, { errors: [{ message: 'Cannot query field "config" on type "ContributeMaintainerRepo".' }] });
+    answer(200, { data: { maintainerRepos: REPOS } });
+    expect(await loadMaintainerRepos()).toEqual({ state: 'listed', data: REPOS });
+    const second = JSON.parse(signedFetch.mock.calls[1][1].body as string) as { query: string };
+    expect(second.query).not.toContain('config');
+  });
+
   it('tells an API that does not know the field yet, and an outage', async () => {
-    answer(400, { errors: [{ message: 'Cannot query field "maintainerRepos" on type "Query".' }] });
+    const unknown = { errors: [{ message: 'Cannot query field "maintainerRepos" on type "Query".' }] };
+    answer(400, unknown);
+    answer(400, unknown);
     expect(await loadMaintainerRepos()).toEqual({ state: 'failed', error: 'NOT_AVAILABLE_YET' });
 
     signedFetch.mockResolvedValueOnce(new Response('', { status: 502, statusText: 'Bad Gateway' }));

@@ -491,7 +491,7 @@ type ContributeAttemptDetail {
   prFix: ContributePrFix
 
   """
-  What the PR's body gets after the approved text, as Markdown: the repo's disclosure sentence once the approval took it, then the footer line. Before the approval, the footer in the viewer’s name
+  What the PR's body gets after the approved text, as Markdown: the repo's disclosure sentence once the approval took it, then the footer (two lines). Before the approval, the footer in the viewer’s name
   """
   prFooter: String!
 
@@ -512,6 +512,11 @@ type ContributeAttemptDetail {
 
   """The PR's reply drafts (a follow-up: the ones it wrote), oldest first"""
   replyDrafts: [ContributeReplyDraft!]!
+
+  """
+  The repository's rules for AI contributions, in its own words where it wrote them, and the size limits this attempt runs under there; null when not known
+  """
+  repoRules: ContributeRepoRules
   repositoryId: String!
   result: ContributeAttemptResult
 
@@ -1299,6 +1304,11 @@ type ContributeIssue {
   """Its place in the stored list, 1 the best"""
   rank: Int!
 
+  """
+  The repository's rules for AI contributions, in our words; null when not known
+  """
+  repoRules: ContributeIssueRepoRules
+
   """The repository's GitHub node id"""
   repositoryId: String!
 
@@ -1357,6 +1367,30 @@ type ContributeIssuePage {
   The issues the filter lets through, as of the last compute: it can count a few cards a page leaves off (their repo left the pool since), so treat it as approximate
   """
   total: Int!
+}
+
+"""One of a repository's rules for AI contributions, in our words"""
+type ContributeIssueRepoRule {
+  kind: ContributeRepoRuleKind!
+
+  """
+  Where it comes from: the repository's file on GitHub, or the GitRanks maintainers page; null when unknown
+  """
+  source: ContributePrIssueSource
+
+  """The rule in plain words"""
+  text: String!
+}
+
+"""A repository's rules for AI contributions, as an issue card shows them"""
+type ContributeIssueRepoRules {
+  """Empty when the repository sets none"""
+  lines: [ContributeIssueRepoRule!]!
+
+  """
+  A person reviews and submits every pull request there: autopilot never does
+  """
+  manualOnly: Boolean!
 }
 
 """An issue size"""
@@ -1579,6 +1613,43 @@ enum ContributeLiveProvider {
 }
 
 """
+Who set this value: the repo's .github/gitranks.yml file (FILE, which wins), or a maintainer on gitranks.com (PAGE)
+"""
+enum ContributeMaintainerConfigSource {
+  FILE
+  PAGE
+}
+
+"""
+One setting from a repository's .github/gitranks.yml file, as it stands for a repository the visitor maintains
+"""
+type ContributeMaintainerConfigValue {
+  """When GitRanks last read the file (ISO); null before the first read"""
+  fileReadAt: String
+
+  """
+  The file's value for the key that was not read (outside the key's values); null when there is none
+  """
+  ignoredRaw: String
+
+  """The key, as the file writes it (min_rank, autopilot…)"""
+  key: String!
+
+  """
+  The login of the maintainer who set the value on gitranks.com; shown to the repository's maintainers alone
+  """
+  setBy: String
+
+  """Null when nothing sets it"""
+  source: ContributeMaintainerConfigSource
+
+  """
+  The value in the file's words (allowed, 3, pro…); null when neither the file nor the page sets it
+  """
+  value: String
+}
+
+"""
 The limits GitRanks Contribute keeps for every repository, and the keys a repository can set
 """
 type ContributeMaintainerFacts {
@@ -1616,6 +1687,11 @@ type ContributeMaintainerRepo {
   Contributors a maintainer blocked in it: no more GitRanks pull requests from them; each undoable
   """
   blockedContributors: [ContributeBlockedContributor!]!
+
+  """
+  Every .github/gitranks.yml setting and its value here: the file's over gitranks.com's, and who set it on gitranks.com
+  """
+  config: [ContributeMaintainerConfigValue!]!
   isArchived: Boolean!
   nameWithOwner: String!
 
@@ -1632,10 +1708,63 @@ type ContributeMaintainerRepo {
 
   """The repository's GitHub node id: what optOutRepos takes"""
   repoId: ID!
+
+  """
+  Its rules for AI contributions as GitRanks follows them: from its docs, workflows, .github/gitranks.yml and gitranks.com, and who set each on gitranks.com; null when not known
+  """
+  rules: ContributeMaintainerRepoRules
   stars: Int!
 
   """Its pull requests a maintainer stopped GitRanks work on, each undoable"""
   stoppedPrs: [ContributeStoppedPr!]!
+}
+
+"""A repository's settings and its rules after a change on gitranks.com"""
+type ContributeMaintainerRepoConfig {
+  """
+  Every .github/gitranks.yml setting and its value here: the file's over gitranks.com's, and who set it on gitranks.com
+  """
+  config: [ContributeMaintainerConfigValue!]!
+  repoId: ID!
+
+  """
+  Its rules for AI contributions as GitRanks follows them after the change; null when not known
+  """
+  rules: ContributeMaintainerRepoRules
+}
+
+"""
+One of the repository's rules for AI contributions, and who set it on gitranks.com
+"""
+type ContributeMaintainerRepoRule {
+  kind: ContributeRepoRuleKind!
+
+  """The repository's own words for it, verbatim; null when it wrote none"""
+  quote: String
+
+  """
+  The login of the maintainer who set it on gitranks.com; shown to the repository's maintainers alone; null when it was not set there
+  """
+  setBy: String
+
+  """
+  Where it comes from: the repository's file on GitHub, or the GitRanks maintainers page; null when unknown
+  """
+  source: ContributePrIssueSource
+
+  """The rule in plain words"""
+  text: String!
+}
+
+"""The repository's rules for AI contributions, as GitRanks follows them"""
+type ContributeMaintainerRepoRules {
+  """Empty when the repository sets none"""
+  lines: [ContributeMaintainerRepoRule!]!
+
+  """
+  A person reviews and submits every pull request there: autopilot never does
+  """
+  manualOnly: Boolean!
 }
 
 """
@@ -1956,8 +2085,11 @@ enum ContributePrIssueKind {
   TITLE
 }
 
-"""The repo's file that asks it"""
+"""
+Where a rule or a convention comes from: the repository's file on GitHub, or the GitRanks maintainers page
+"""
 type ContributePrIssueSource {
+  """The file's path, or the page's name"""
   label: String!
   url: String!
 }
@@ -2491,6 +2623,78 @@ type ContributeRepoReadiness {
   notes: String
   test: String
   toolchain: String
+}
+
+"""
+One of a repository's rules for AI contributions, and its own words for it
+"""
+type ContributeRepoRule {
+  kind: ContributeRepoRuleKind!
+
+  """The repository's own words for it, verbatim; null when it wrote none"""
+  quote: String
+
+  """
+  Where it comes from: the repository's file on GitHub, or the GitRanks maintainers page; null when unknown
+  """
+  source: ContributePrIssueSource
+
+  """The rule in plain words"""
+  text: String!
+}
+
+"""
+The size limits that hold for you in a repository: the smaller of yours and its own
+"""
+type ContributeRepoRuleCaps {
+  """Files per pull request, at most"""
+  files: Int!
+
+  """
+  Null when the file limit is your own setting; else where the repository's limit comes from
+  """
+  filesSource: String
+
+  """Changed lines per pull request, at most"""
+  lines: Int!
+
+  """
+  Null when the line limit is your own setting; else where the repository's limit comes from
+  """
+  linesSource: String
+}
+
+"""
+What a repository's rule is about: BAN (AI-generated code turned down, or allowed for GitRanks by its maintainers), APPROVED_CONTRIBUTORS_ONLY, AUTOPILOT (the maintainers allow it or turned it off), NO_AUTONOMOUS (a person's review first), NO_BULK, NO_GFI (no AI work on good first issues), FIRST_TIMERS (a merged pull request first), COORDINATE_FIRST (a maintainer agrees first), ISSUE_GATE (pull requests closed unless the issue is assigned or labeled), HUMAN_WORDS (the description or replies in your own words), DISCLOSURE (AI use disclosed as asked), CAPS (a size or open pull request limit), CONTRIBUTOR_BAR (the least account age or rank)
+"""
+enum ContributeRepoRuleKind {
+  APPROVED_CONTRIBUTORS_ONLY
+  AUTOPILOT
+  BAN
+  CAPS
+  CONTRIBUTOR_BAR
+  COORDINATE_FIRST
+  DISCLOSURE
+  FIRST_TIMERS
+  HUMAN_WORDS
+  ISSUE_GATE
+  NO_AUTONOMOUS
+  NO_BULK
+  NO_GFI
+}
+
+"""A repository's rules for AI contributions, as GitRanks follows them"""
+type ContributeRepoRules {
+  """The size limits this attempt runs under there; null when not known"""
+  caps: ContributeRepoRuleCaps
+
+  """Empty when the repository sets none"""
+  lines: [ContributeRepoRule!]!
+
+  """
+  A person reviews and submits every pull request there: autopilot never does
+  """
+  manualOnly: Boolean!
 }
 
 """What went wrong with a pull request opened through GitRanks Contribute"""
@@ -3558,6 +3762,11 @@ type Mutation {
   A list mode's fallback: when its set has nothing ready, wait (SET_ONLY) or work on all issues
   """
   setContributeFallback(fallback: ContributeSetFallback!, mode: ContributeSetListMode!): ContributeSet!
+
+  """
+  Sets one .github/gitranks.yml key on the maintainers page for a repository the token administers or maintains (checked with GitHub at each call); value null clears it. Answers every key of the repository and its rules after the change. FORBIDDEN when the token is not ADMIN or MAINTAIN there; NOT_FOUND when it cannot see the repository; BAD_USER_INPUT for a key the page does not set or a value outside the key's values; CONFLICT when the repository's .github/gitranks.yml sets the key (the file wins)
+  """
+  setContributeMaintainerConfig(key: String!, repoId: ID!, token: String!, value: String): ContributeMaintainerRepoConfig!
 
   """
   Switches the active mode; the other modes keep their lists and fallbacks

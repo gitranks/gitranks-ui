@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { MaintainerReposDocument } from './contribute.documents';
+import { MaintainerReposDocument, MaintainerReposWithRulesDocument } from './contribute.documents';
 import type { ContributeMaintainerRepos } from './contribute.types';
 import { type MaintainerErrorCode, maintainerErrorOf } from './errors';
 import { currentMaintainerToken } from './maintainer-token';
@@ -13,13 +13,21 @@ export type MaintainerReposView =
   | { state: 'failed'; error: MaintainerErrorCode };
 
 /**
- * The visitor's repositories, read with the GitHub token of the page's sign-in: passed to the API as a variable,
+ * The visitor's repositories with each one's keys and rules, read with the GitHub token of the page's sign-in: passed to the API as a variable,
  * never returned, logged or put in an error. Asks nothing without that sign-in.
  */
 export async function loadMaintainerRepos(): Promise<MaintainerReposView> {
   const token = await currentMaintainerToken();
   if (!token) return { state: 'signed-out' };
 
+  try {
+    const { maintainerRepos } = await graphqlDirect(MaintainerReposWithRulesDocument, { token }, { source: 'ssr' });
+    return { state: 'listed', data: maintainerRepos };
+  } catch (failure) {
+    const error = maintainerErrorOf(failure);
+    // An API without the repos' keys and rules: the list as it was.
+    if (error !== 'NOT_AVAILABLE_YET') return { state: 'failed', error };
+  }
   try {
     const { maintainerRepos } = await graphqlDirect(MaintainerReposDocument, { token }, { source: 'ssr' });
     return { state: 'listed', data: maintainerRepos };

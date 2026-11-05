@@ -228,6 +228,8 @@ export type ContributeIssue = {
    * list has nothing (more) ready. Read by the feed alone; issues read elsewhere leave it out.
    */
   tier?: number;
+  /** Its repo's rules for AI contributions, in our words; null when not known, absent from an older API (read on its own). */
+  repoRules?: ContributeIssueRepoRules | null;
 };
 
 /** The day's cap on newly shown issues: `reached` once no new issue can be shown until 00:00 UTC. */
@@ -717,6 +719,11 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   replyDrafts?: ContributeReplyDraft[];
   /** A review bot's ask for proof, and the user's own agent's proof for it; `undefined` while not answered. */
   proof?: ContributeProof | null;
+  /**
+   * Its repo's rules for AI contributions, with the repo's own words, and the size limits the attempt runs under there.
+   * Null when not known; `undefined` while the API does not answer it (read on its own).
+   */
+  repoRules?: ContributeRepoRules | null;
 } & Partial<ContributeFollowUpFlowFields> &
   ContributeConventionsFields;
 
@@ -838,6 +845,10 @@ export type ContributeMaintainerRepo = {
   blockedContributors?: ContributeBlockedContributor[];
   /** Its PRs a report stopped GitRanks work on, each undoable; absent from an older API. */
   stoppedPrs?: ContributeStoppedPr[];
+  /** Every `.github/gitranks.yml` key and its value here; absent from an older API. */
+  config?: ContributeMaintainerConfigValue[];
+  /** Its rules as GitRanks follows them, with who set each on the page; null when not known, absent from an older API. */
+  rules?: ContributeMaintainerRepoRules | null;
 };
 
 /** A contributor a maintainer's report took no more GitRanks PRs from in a repo. */
@@ -1216,6 +1227,90 @@ export type ContributeProofBrief = {
         result: { outcome: ContributeProofOutcome } | null;
       })
     | null;
+};
+
+// ─── A repository's rules for AI contributions (the attempt, the issue cards, "Your repos") ─────────────────────────
+
+/** What a repository's rule is about. */
+export type ContributeRepoRuleKind =
+  | 'BAN'
+  | 'APPROVED_CONTRIBUTORS_ONLY'
+  | 'AUTOPILOT'
+  | 'NO_AUTONOMOUS'
+  | 'NO_BULK'
+  | 'NO_GFI'
+  | 'FIRST_TIMERS'
+  | 'COORDINATE_FIRST'
+  | 'ISSUE_GATE'
+  | 'HUMAN_WORDS'
+  | 'DISCLOSURE'
+  | 'CAPS'
+  | 'CONTRIBUTOR_BAR';
+
+/** Where a rule comes from: the repository's file on GitHub, or the GitRanks maintainers page. */
+export type ContributeRuleSource = { label: string; url: string };
+
+/** One of a repository's rules, in our words, as an issue card shows it: never its quote or who set it. */
+export type ContributeIssueRepoRule = {
+  kind: ContributeRepoRuleKind;
+  text: string;
+  source: ContributeRuleSource | null;
+};
+
+export type ContributeIssueRepoRules = {
+  /** Empty when the repository sets none. */
+  lines: ContributeIssueRepoRule[];
+  /** A person reviews and submits every pull request there: autopilot never does. */
+  manualOnly: boolean;
+};
+
+/** One of a repository's rules, with its own words for it (null when it wrote none). */
+export type ContributeRepoRule = ContributeIssueRepoRule & { quote: string | null };
+
+/** The size limits an attempt runs under in a repository: the smaller of the user's and the repo's. */
+export type ContributeRepoRuleCaps = {
+  lines: number;
+  files: number;
+  /** Null when the line limit is the user's own; else where the repo's comes from, in words. */
+  linesSource: string | null;
+  /** Null when the file limit is the user's own; else where the repo's comes from, in words. */
+  filesSource: string | null;
+};
+
+export type ContributeRepoRules = {
+  lines: ContributeRepoRule[];
+  /** Null when not known. */
+  caps: ContributeRepoRuleCaps | null;
+  manualOnly: boolean;
+};
+
+/** One of the repository's rules for its maintainers: who set it on the page (null when it was not set there). */
+export type ContributeMaintainerRepoRule = ContributeRepoRule & { setBy: string | null };
+
+export type ContributeMaintainerRepoRules = { lines: ContributeMaintainerRepoRule[]; manualOnly: boolean };
+
+/** Who set a key's value: the repo's `.github/gitranks.yml` (which wins), or a maintainer on the page. */
+export type ContributeMaintainerConfigSource = 'FILE' | 'PAGE';
+
+/** One `.github/gitranks.yml` key as it stands for a repository the visitor maintains. */
+export type ContributeMaintainerConfigValue = {
+  key: string;
+  /** In the file's words (allowed, 3, pro…); null when neither the file nor the page sets it. */
+  value: string | null;
+  source: ContributeMaintainerConfigSource | null;
+  /** The maintainer who set it on the page; shown on "Your repos" alone. */
+  setBy: string | null;
+  /** The file's value for the key that was not read (outside its values); null when there is none. */
+  ignoredRaw: string | null;
+  /** When the file was last read (ISO); null before the first read. */
+  fileReadAt: string | null;
+};
+
+/** A repository's keys and rules after a change on the page. */
+export type ContributeMaintainerRepoConfig = {
+  repoId: string;
+  config: ContributeMaintainerConfigValue[];
+  rules: ContributeMaintainerRepoRules | null;
 };
 
 // ─── The maintainers page: its facts, and the notes on a PR ("Report this PR", "This PR helped") ─────────────────────

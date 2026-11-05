@@ -125,6 +125,51 @@ export function maintainerErrorMessage(error: MaintainerErrorCode): string {
 }
 
 /**
+ * Why a setting on "Your repos" was not saved:
+ * - `IN_FILE`: the repo's `.github/gitranks.yml` sets the key, and the file wins.
+ * - `NOT_MAINTAINER`: GitHub says the account does not administer or maintain the repo (now), or cannot see it.
+ * - `INVALID`: a value outside the key's values.
+ * - `SIGNED_OUT`, `GITHUB_UNAVAILABLE`, `NOT_AVAILABLE_YET`, `FAILED` as for the maintainers page.
+ * Never the API's own words: they are about a call that carried a token.
+ */
+export type MaintainerConfigErrorCode =
+  | 'IN_FILE'
+  | 'NOT_MAINTAINER'
+  | 'INVALID'
+  | 'SIGNED_OUT'
+  | 'GITHUB_UNAVAILABLE'
+  | 'NOT_AVAILABLE_YET'
+  | 'FAILED';
+
+export function maintainerConfigErrorOf(error: unknown): MaintainerConfigErrorCode {
+  const codes = graphqlErrorsOf(error).map(({ extensions }) => extensions?.code);
+  if (codes.includes('CONFLICT')) return 'IN_FILE';
+  if (codes.includes('FORBIDDEN') || codes.includes('NOT_FOUND')) return 'NOT_MAINTAINER';
+  if (codes.includes('BAD_USER_INPUT')) return 'INVALID';
+  return maintainerErrorOf(error);
+}
+
+/** A setting not saved, in words. */
+export function maintainerConfigErrorMessage(error: MaintainerConfigErrorCode): string {
+  switch (error) {
+    case 'IN_FILE':
+      return 'Not saved: .github/gitranks.yml sets this, and the file wins. Change it there.';
+    case 'NOT_MAINTAINER':
+      return 'Not saved: GitHub says your account does not administer or maintain this repo.';
+    case 'INVALID':
+      return 'Not saved: that value is not one this setting takes.';
+    case 'SIGNED_OUT':
+      return 'Not saved: GitHub did not accept your sign-in. Sign in again, then change it.';
+    case 'GITHUB_UNAVAILABLE':
+      return 'Not saved: GitHub did not answer. Try again in a minute.';
+    case 'NOT_AVAILABLE_YET':
+      return 'Not saved: settings here are not available yet. Use .github/gitranks.yml meanwhile.';
+    default:
+      return 'Not saved: something went wrong. Try again in a minute.';
+  }
+}
+
+/**
  * Why a note on one of our PRs, its Undo or its PR's lookup failed (the maintainers page's report flows):
  * - `SIGNED_OUT`: no GitHub sign-in for the page, or GitHub refused its token.
  * - `NOT_OURS`: the PR is not one we opened.

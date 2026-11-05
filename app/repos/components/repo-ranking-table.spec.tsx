@@ -29,11 +29,12 @@ const row = (starsCheck: { notCounted: number; githubStars: number } | null = nu
   }) as never;
 
 describe('RepoRankingTable', () => {
-  it('has no Tier column and no tier badge on the owner avatar', () => {
+  it('has five columns, none of them a Tier column', () => {
     const html = renderToStaticMarkup(<RepoRankingTable data={[row()]} />);
 
+    expect(html.match(/<th[\s>]/g)).toHaveLength(5);
+    expect(html.match(/<td[\s>]/g)).toHaveLength(5);
     expect(html).not.toContain('>Tier<');
-    expect(html).not.toContain('ring-background');
   });
 
   it('shows the honest stars, with a plain count while every star counts', () => {

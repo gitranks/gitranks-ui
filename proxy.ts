@@ -119,9 +119,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // whatever that cache decides about the request on its own. The hint tells the page to fetch
   // the session; setting it on every signed-in response keeps its expiry in step with the session.
   const response = await withAuth(request, event);
-  // The landing's rank card may be reused by the browser for 5 minutes; it is still private.
-  const cacheControl = request.nextUrl.pathname === RANK_CARD_PATH ? 'private, max-age=300' : 'private, no-cache';
-  response?.headers.set('Cache-Control', cacheControl);
+  // The landing's rank card sets its own, always private: 5 minutes at the viewer's own `?login=`, never stored
+  // otherwise. The proxy cannot tell which login the session holds, nor the route's status.
+  if (request.nextUrl.pathname !== RANK_CARD_PATH) {
+    response?.headers.set('Cache-Control', 'private, no-cache');
+  }
   response?.headers.append('Set-Cookie', SESSION_HINT_SET);
   return response;
 }

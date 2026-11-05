@@ -126,7 +126,7 @@ const YourBadge: FC<{ login: string; ranking: RankingKey; ranked: boolean }> = (
 
 /** The signed-in visitor's own card, opened on their best ranking until they pick another. */
 const YourRankCard: FC<{ login: string }> = ({ login }) => {
-  const { card, state } = useRankCard();
+  const { card, state } = useRankCard(login);
   const [picked, setRanking] = useState<RankingKey | null>(null);
   const ranking = picked ?? (card ? bestRanking(card) : 's');
 
@@ -283,7 +283,8 @@ export const HeroAside: FC<{ examples: ExampleRank[] }> = ({ examples }) => {
   const login = session?.user?.githubLogin;
 
   if (status === 'authenticated' && login) {
-    return <YourRankCard login={login} />;
+    // Keyed by the login: another account's sign-in starts a fresh card instead of showing the last one's.
+    return <YourRankCard key={login} login={login} />;
   }
 
   return <ExampleCards examples={examples} />;

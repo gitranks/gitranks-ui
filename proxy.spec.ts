@@ -247,6 +247,14 @@ describe('proxy', () => {
     ]);
   });
 
+  it("leaves the landing's rank card its own Cache-Control for a signed-in visitor", async () => {
+    const response = await proxy(request('authjs.session-token=t', '/api/me/rank-card?login=octocat'), event);
+
+    expect(withSession).toHaveBeenCalledTimes(1);
+    expect(response?.headers.get('cache-control')).toBeNull();
+    expect(response?.headers.getSetCookie()).toContain('has-session=1; Path=/; Max-Age=2592000; SameSite=Lax');
+  });
+
   it.each([undefined, 'authjs.session-token=t'])(
     'rewrites an invalid ranking url to the 404 page on its own origin, before Auth.js (cookie: %s)',
     async (cookie) => {

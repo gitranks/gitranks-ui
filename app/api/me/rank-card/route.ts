@@ -9,8 +9,11 @@ import { auth } from '@/auth';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { GlobalRankByLoginDocument } from '@/types/generated/graphql';
 
-// The browser may reuse the answer for 5 minutes; it is the viewer's own data, so never a shared cache.
+// The browser may reuse the answer for 5 minutes; it is the viewer's own data, so never a shared cache. The browser
+// keys its copy by URL, so the URL carries the login (`?login=`): an account switch asks anew instead of reusing the
+// previous account's card. The proxy leaves this route's header as it is; every answer here sets one.
 const CACHE_CONTROL = 'private, max-age=300';
+const NO_STORE = { 'Cache-Control': 'private, no-store' };
 
 /** One user's three global ranks with their tiers. Cached per login for 5 minutes. */
 const readRankCard = async (login: string): Promise<RankCardData | null> => {
@@ -54,14 +57,18 @@ const readRankCard = async (login: string): Promise<RankCardData | null> => {
   };
 };
 
-/** The signed-in visitor's rank card for the landing page. */
+/**
+ * The signed-in visitor's rank card for the landing page, at `?login=<their own login>`. The login only keys the
+ * browser's copy: the card is always the session's, and any other login is refused.
+ */
 export const GET = auth(async function GET(req: AuthRequest) {
   const login = req.auth?.user.githubLogin;
   if (!login) {
-    return NextResponse.json(
-      { message: 'Not authenticated' },
-      { status: 401, headers: { 'Cache-Control': 'private, no-store' } },
-    );
+    return NextResponse.json({ message: 'Not authenticated' }, { status: 401, headers: NO_STORE });
+  }
+
+  if (req.nextUrl.searchParams.get('login')?.toLowerCase() !== login.toLowerCase()) {
+    return NextResponse.json({ message: 'Not your login' }, { status: 400, headers: NO_STORE });
   }
 
   try {
@@ -75,9 +82,6 @@ export const GET = auth(async function GET(req: AuthRequest) {
 
     return NextResponse.json(card, { headers: { 'Cache-Control': CACHE_CONTROL } });
   } catch {
-    return NextResponse.json(
-      { message: 'Failed to load the rank card' },
-      { status: 502, headers: { 'Cache-Control': 'private, no-store' } },
-    );
+    return NextResponse.json({ message: 'Failed to load the rank card' }, { status: 502, headers: NO_STORE });
   }
 });

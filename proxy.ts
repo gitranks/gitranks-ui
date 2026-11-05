@@ -1,5 +1,5 @@
 import { type NextFetchEvent, type NextRequest, NextResponse } from 'next/server';
-import NextAuth, { type NextAuthRequest } from 'next-auth';
+import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
@@ -22,18 +22,6 @@ const withAuth = auth((_request: NextRequest, _event: NextFetchEvent) => {});
 
 /** The signed-in visitor's rank card on the landing page. */
 const RANK_CARD_PATH = '/api/me/rank-card';
-
-/**
- * A signed-in response's `Cache-Control`; it replaces the route's own. Private, and revalidated each time, except the
- * landing's rank card, which the browser may reuse for 5 minutes, but only at the viewer's own `?login=`: the browser
- * keys its copy by URL, so another account's sign-in asks anew instead of being shown the previous account's card.
- */
-export const signedInCacheControl = (url: URL, viewer: string | undefined) =>
-  url.pathname === RANK_CARD_PATH &&
-  viewer !== undefined &&
-  url.searchParams.get('login')?.toLowerCase() === viewer.toLowerCase()
-    ? 'private, max-age=300'
-    : 'private, no-cache';
 
 /** Matches no route, so a rewrite here renders `app/not-found.tsx` with a 404 status. */
 const NOT_FOUND_PATH = '/_404';
@@ -131,9 +119,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // whatever that cache decides about the request on its own. The hint tells the page to fetch
   // the session; setting it on every signed-in response keeps its expiry in step with the session.
   const response = await withAuth(request, event);
-  // Auth.js puts the session on the request it hands the callback, which is this one.
-  const viewer = (request as NextAuthRequest).auth?.user?.githubLogin;
-  response?.headers.set('Cache-Control', signedInCacheControl(request.nextUrl, viewer));
+  // The landing's rank card sets its own, always private: 5 minutes at the viewer's own `?login=`, never stored
+  // otherwise. The proxy cannot tell which login the session holds, nor the route's status.
+  if (request.nextUrl.pathname !== RANK_CARD_PATH) {
+    response?.headers.set('Cache-Control', 'private, no-cache');
+  }
   response?.headers.append('Set-Cookie', SESSION_HINT_SET);
   return response;
 }

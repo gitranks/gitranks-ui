@@ -43,6 +43,7 @@ describe('the rank card route', () => {
     const response = await get('octocat');
 
     expect(response.status).toBe(401);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
@@ -65,14 +66,28 @@ describe('the rank card route', () => {
     const response = await get('octocat');
 
     expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, max-age=300');
     expect((await response.json()).login).toBe('OctoCat');
     expect(graphqlDirect).toHaveBeenCalledWith(expect.anything(), { login: 'OctoCat' });
+  });
+
+  it('never lets the browser keep a failed read', async () => {
+    signIn('octocat');
+    graphqlDirect.mockRejectedValueOnce(new Error('down'));
+
+    const response = await get('octocat');
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
   });
 
   it('answers 404 for a session that is not ranked', async () => {
     signIn('newcomer');
     graphqlDirect.mockResolvedValueOnce({ globalRankByLogin: null });
 
-    expect((await get('newcomer')).status).toBe(404);
+    const response = await get('newcomer');
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('cache-control')).toBe('private, max-age=300');
   });
 });

@@ -1,10 +1,7 @@
 import { type NextFetchEvent, NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const withSession = vi.fn(
-  (_request: NextRequest, _event?: NextFetchEvent) =>
-    new Response(null, { headers: { 'set-cookie': 'authjs.csrf-token=x' } }),
-);
+const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'authjs.csrf-token=x' } }));
 
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
@@ -250,30 +247,12 @@ describe('proxy', () => {
     ]);
   });
 
-  describe("the landing's rank card", () => {
-    // Auth.js puts the session on the request before the proxy reads it.
-    const signedInAs = (githubLogin: string) =>
-      withSession.mockImplementationOnce((req: NextRequest) => {
-        Object.assign(req, { auth: { user: { githubLogin }, expires: '2099-01-01T00:00:00.000Z' } });
-        return new Response(null);
-      });
+  it("leaves the landing's rank card its own Cache-Control for a signed-in visitor", async () => {
+    const response = await proxy(request('authjs.session-token=t', '/api/me/rank-card?login=octocat'), event);
 
-    it.each([
-      ['their own login', 'OctoCat', '/api/me/rank-card?login=octocat', 'private, max-age=300'],
-      ['another login', 'octocat', '/api/me/rank-card?login=someone', 'private, no-cache'],
-      ['no login', 'octocat', '/api/me/rank-card', 'private, no-cache'],
-    ])('lets the browser keep the card for 5 minutes only at %s', async (_, viewer, path, cacheControl) => {
-      signedInAs(viewer);
-      const response = await proxy(request('authjs.session-token=t', path), event);
-
-      expect(response?.headers.get('cache-control')).toBe(cacheControl);
-    });
-
-    it('does not let the browser keep it for a session Auth.js could not read', async () => {
-      const response = await proxy(request('authjs.session-token=t', '/api/me/rank-card?login=octocat'), event);
-
-      expect(response?.headers.get('cache-control')).toBe('private, no-cache');
-    });
+    expect(withSession).toHaveBeenCalledTimes(1);
+    expect(response?.headers.get('cache-control')).toBeNull();
+    expect(response?.headers.getSetCookie()).toContain('has-session=1; Path=/; Max-Age=2592000; SameSite=Lax');
   });
 
   it.each([undefined, 'authjs.session-token=t'])(

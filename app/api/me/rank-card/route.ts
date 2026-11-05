@@ -11,7 +11,7 @@ import { GlobalRankByLoginDocument } from '@/types/generated/graphql';
 
 // The browser may reuse the answer for 5 minutes; it is the viewer's own data, so never a shared cache. The browser
 // keys its copy by URL, so the URL carries the login (`?login=`): an account switch asks anew instead of reusing the
-// previous account's card. For a signed-in request the proxy sets the header the browser sees (`signedInCacheControl`).
+// previous account's card. The proxy leaves this route's header as it is; every answer here sets one.
 const CACHE_CONTROL = 'private, max-age=300';
 const NO_STORE = { 'Cache-Control': 'private, no-store' };
 

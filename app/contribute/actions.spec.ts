@@ -17,6 +17,7 @@ const {
   ContributeAttemptLiveDocument,
   ContributeIssueStatusDocument,
   ContributeIssuesDocument,
+  ContributeIssuesWithRulesDocument,
   ContributeOnboardingDocument,
   DismissReplyDocument,
   ContributeOwnAgentDocument,
@@ -773,10 +774,11 @@ describe('readIssueStatuses and readIssuesPage', () => {
       filter: { languages: ['RUST', 'COBOL' as never], kinds: 'BUG' as never, maxSize: 'M' },
     });
     expect(graphqlDirect).toHaveBeenCalledWith(
-      ContributeIssuesDocument,
+      ContributeIssuesWithRulesDocument,
       { first: 20, after: 'c2', filter: { languages: ['RUST'], maxSize: 'M' } },
       { source: 'client', githubLogin: 'octocat' },
     );
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
 
     graphqlDirect.mockClear();
     await actions.readIssuesPage({ after: 'c3', first: 0 });
@@ -785,6 +787,36 @@ describe('readIssueStatuses and readIssuesPage', () => {
     graphqlDirect.mockClear();
     expect(await actions.readIssuesPage({ after: '', first: 2 })).toMatchObject({ ok: false, error: 'INVALID' });
     expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("readIssuesPage on an API without the repos' rules", () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it('reads the page as it was when the API does not know the rules, and only then', async () => {
+    const page = { items: [], next: null, total: 0, computedAt: null };
+    const unknown = new Error(
+      JSON.stringify([{ message: 'Cannot query field "repoRules" on type "ContributeIssue".' }]),
+    );
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeIssuesWithRulesDocument) throw unknown;
+      return { contributeIssues: page };
+    });
+
+    expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toEqual({ ok: true, data: page });
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
+      ContributeIssuesWithRulesDocument,
+      ContributeIssuesDocument,
+    ]);
+
+    graphqlDirect.mockReset();
+    graphqlDirect.mockRejectedValue(new Error('down'));
+    expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toMatchObject({ ok: false, error: 'FAILED' });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
   });
 });
 

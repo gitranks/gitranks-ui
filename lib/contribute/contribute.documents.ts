@@ -32,6 +32,7 @@ import type {
   ContributeIssuesFilter,
   ContributeLimits,
   ContributeMaintainerFacts,
+  ContributeMaintainerRepoConfig,
   ContributeMaintainerRepos,
   ContributeMcpToken,
   ContributeMcpTokenCreated,
@@ -56,6 +57,7 @@ import type {
   ContributeReplyDraftFlow,
   ContributeReplyUserDismissReason,
   ContributeReplyWaiting,
+  ContributeRepoRules,
   ContributeReportReason,
   ContributeRetry,
   ContributeReviewFeedback,
@@ -241,6 +243,32 @@ export const ContributeIssuesDocument = doc<
     next total computedAt dailyCap { limit reached }
   }
 }`);
+
+// A repo's rules for AI contributions: read with the feed, the attempt and "Your repos", each surface its own fields.
+const RULE_SOURCE = 'source { label url }';
+const ISSUE_RULES = `repoRules { manualOnly lines { kind text ${RULE_SOURCE} } }`;
+const ATTEMPT_RULES = `repoRules {
+  manualOnly lines { kind text quote ${RULE_SOURCE} } caps { lines files linesSource filesSource }
+}`;
+const MAINTAINER_CONFIG = 'config { key value source setBy ignoredRaw fileReadAt }';
+const MAINTAINER_RULES = `rules { manualOnly lines { kind text quote setBy ${RULE_SOURCE} } }`;
+
+/** The feed with each issue's repo rules: an API without them answers `ContributeIssuesDocument` instead. */
+export const ContributeIssuesWithRulesDocument = doc<
+  { contributeIssues: ContributeIssuePage | null },
+  { first?: number; after?: string; filter?: ContributeIssuesFilter }
+>(`query ContributeIssuesWithRules($first: Int, $after: String, $filter: ContributeIssuesFilter) {
+  contributeIssues(first: $first, after: $after, filter: $filter) {
+    items { ${ISSUE} tier forNewcomers ${ISSUE_RULES} }
+    next total computedAt dailyCap { limit reached }
+  }
+}`);
+
+/** The attempt's repo rules and the limits it runs under: read on its own, so an API without them leaves the rest. */
+export const ContributeAttemptRepoRulesDocument = doc<
+  { contributeAttempt: { attemptId: string; repoRules: ContributeRepoRules | null } | null },
+  { id: string }
+>(`query ContributeAttemptRepoRules($id: ID!) { contributeAttempt(id: $id) { attemptId ${ATTEMPT_RULES} } }`);
 
 /** The shown issues as they are now, in the order asked (1 to 50 ids); null when the API hides it from the user. */
 export const ContributeIssueStatusDocument = doc<
@@ -711,6 +739,32 @@ export const MaintainerReposDocument = doc<{ maintainerRepos: ContributeMaintain
   }
 }`,
 );
+
+/** "Your repos" with each repo's keys and rules: an API without them answers `MaintainerReposDocument` instead. */
+export const MaintainerReposWithRulesDocument = doc<{ maintainerRepos: ContributeMaintainerRepos }, { token: string }>(
+  `query MaintainerReposWithRules($token: String!) {
+  maintainerRepos(token: $token) {
+    login truncated
+    repos {
+      repoId nameWithOwner permission stars isArchived optedOut optedOutAt
+      blockedContributors { login since by feedbackId }
+      stoppedPrs { number since by feedbackId }
+      ${MAINTAINER_CONFIG}
+      ${MAINTAINER_RULES}
+    }
+  }
+}`,
+);
+
+/** Sets one key on the page for a repo the token maintains (`value` null clears it): its keys and rules after. */
+export const SetContributeMaintainerConfigDocument = doc<
+  { setContributeMaintainerConfig: ContributeMaintainerRepoConfig },
+  { token: string; repoId: string; key: string; value: string | null }
+>(`mutation SetContributeMaintainerConfig($token: String!, $repoId: ID!, $key: String!, $value: String) {
+  setContributeMaintainerConfig(token: $token, repoId: $repoId, key: $key, value: $value) {
+    repoId ${MAINTAINER_CONFIG} ${MAINTAINER_RULES}
+  }
+}`);
 
 export const OptOutReposDocument = doc<{ optOutRepos: ContributeOptOutResult[] }, { token: string; repoIds: string[] }>(
   `mutation OptOutRepos($token: String!, $repoIds: [ID!]!) {

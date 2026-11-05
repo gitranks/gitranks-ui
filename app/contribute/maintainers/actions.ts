@@ -7,10 +7,12 @@ import {
   OptInReposDocument,
   OptOutReposDocument,
   ReportContributePrDocument,
+  SetContributeMaintainerConfigDocument,
   UndoContributePrActionDocument,
 } from '@/lib/contribute/contribute.documents';
 import type {
   ContributeHelpedLike,
+  ContributeMaintainerRepoConfig,
   ContributeOptOutResult,
   ContributePrAction,
   ContributePrFeedbackResult,
@@ -18,7 +20,9 @@ import type {
   ContributeReportReason,
 } from '@/lib/contribute/contribute.types';
 import {
+  type MaintainerConfigError,
   type MaintainerErrorCode,
+  maintainerConfigErrorOf,
   maintainerErrorOf,
   type PrFeedbackErrorCode,
   prFeedbackErrorOf,
@@ -93,6 +97,44 @@ export async function optInMaintainerRepos(repoIds: string[]): Promise<Maintaine
     async (variables) => (await graphqlDirect(OptInReposDocument, variables, { source: 'client' })).optInRepos,
     repoIds,
   );
+}
+
+/** A key's value saved on "Your repos": the repo's keys and rules after it, or why not. The token never comes back. */
+export type MaintainerConfigResult =
+  | { ok: true; data: ContributeMaintainerRepoConfig }
+  | ({ ok: false } & MaintainerConfigError);
+
+const CONFIG_KEY = /^[a-z][a-z0-9_]{0,39}$/;
+/** The longest value a key takes (a contact); the API checks each key's own. */
+const CONFIG_VALUE_MAX = 200;
+
+/**
+ * Sets one `.github/gitranks.yml` key on the page for a repository the visitor maintains, as they change it (no Save);
+ * `value` null clears the page's value. The API checks the role with GitHub on each call.
+ */
+export async function setMaintainerConfig(input: {
+  repoId: string;
+  key: string;
+  value: string | null;
+}): Promise<MaintainerConfigResult> {
+  const repoId = typeof input?.repoId === 'string' && NODE_ID.test(input.repoId) ? input.repoId : null;
+  const key = typeof input?.key === 'string' && CONFIG_KEY.test(input.key) ? input.key : null;
+  const raw = input?.value;
+  const value = typeof raw === 'string' ? raw.trim() : null;
+  if (!repoId || !key || (raw !== null && typeof raw !== 'string') || (value?.length ?? 0) > CONFIG_VALUE_MAX) {
+    return { ok: false, error: 'INVALID' };
+  }
+  const token = await currentMaintainerToken();
+  if (!token) return { ok: false, error: 'SIGNED_OUT' };
+  try {
+    const variables = { token, repoId, key, value: value || null };
+    const { setContributeMaintainerConfig } = await graphqlDirect(SetContributeMaintainerConfigDocument, variables, {
+      source: 'client',
+    });
+    return { ok: true, data: setContributeMaintainerConfig };
+  } catch (failure) {
+    return { ok: false, ...maintainerConfigErrorOf(failure, token) };
+  }
 }
 
 /**

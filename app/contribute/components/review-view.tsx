@@ -25,13 +25,14 @@ import { PrNotesPanel } from './pr-notes';
 import { PrStoppedProvider } from './pr-stopped';
 import { HEADING, Pill } from './primitives';
 import { ReplyDrafts } from './reply-drafts';
+import { AttemptRepoRules } from './repo-rules';
 import { SendBackForm } from './send-back-form';
 import { type SessionTab, SessionTabs } from './session-tabs';
 import { SubmitPanel } from './submit-panel';
 import { attemptTitleOf, editableBodyOf, githubUrlOf, isOwnAgent, repoOf } from '@/lib/contribute/attempt-format';
 import { loadAttempt, loadContribute, loadPrNotes, loadResolveHumanThreads } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributePrNotes, ContributeView } from '@/lib/contribute/contribute.types';
-import { accessNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
+import { accessNoticesOf, isContributePageOpen, settingsOf } from '@/lib/contribute/contribute-state';
 import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
 import { nextStepOf, nextStepWaits } from '@/lib/contribute/next-step';
@@ -39,6 +40,7 @@ import { orgAccessOf } from '@/lib/contribute/org-access';
 import { parsePatch } from '@/lib/contribute/patch';
 import { withoutDraftMarks } from '@/lib/contribute/pr-conventions';
 import { agentConnectedOf } from '@/lib/contribute/proof';
+import { isFinishedAttempt } from '@/lib/contribute/repo-rules';
 import {
   attemptPath,
   NEXT_SESSION,
@@ -432,7 +434,16 @@ export function ContributionShell({
         {first && session ? <YourMoveLine first={first} runs={run ? [run] : []} {...session} now={now} /> : null}
 
         <div className={cn('grid items-start gap-5', cards && 'lg:grid-cols-[17rem_minmax(0,1fr)]')}>
-          {cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null}
+          {cards && first && session ? (
+            <div className="flex min-w-0 flex-col gap-4">
+              <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} />
+              <AttemptRepoRules
+                rules={first.repoRules}
+                settings={settingsOf(view)}
+                finished={isFinishedAttempt(first.state)}
+              />
+            </div>
+          ) : null}
           {children}
         </div>
       </PrStoppedProvider>

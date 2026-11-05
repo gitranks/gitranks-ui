@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { skipIssue } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
 import { GONE, type IssueLive, IssueLiveStatus, isGone, useFocusOnGone } from './issue-live-status';
+import { IssueRepoRules } from './issue-repo-rules';
 import { Pill } from './primitives';
 import { Button } from '@/components/ui/button';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
@@ -19,8 +20,8 @@ const labelOf = (labels: string[]) => labels.find((label) => GOOD_FIRST_LABEL.te
 /**
  * One issue picked for the user, as a row of the Issues list: where and how big, what, why it was picked, and Skip,
  * which asks first. One GitHub label is shown, and the count of the rest. `other` marks an issue from outside the
- * user's own list. `live`: where the issue stands now; once it is taken (or the user's own agent is on it) the card
- * says so, dimmed, its link and Skip off.
+ * user's own list. Its repo's rules sit under it, closed. `live`: where the issue stands now; once it is taken (or
+ * the user's own agent is on it) the card says so, dimmed, its link and Skip off.
  */
 export function IssueCard({
   issue,
@@ -157,6 +158,7 @@ export function IssueCard({
             For first-time contributors: the maintainers keep it for people new to the project.
           </p>
         ) : null}
+        <IssueRepoRules rules={issue.repoRules} className={cn(gone && GONE)} />
         {live || takenHere ? <IssueLiveStatus ref={line} status={status} attemptId={live?.attemptId ?? null} /> : null}
       </div>
       <ConfirmDialog

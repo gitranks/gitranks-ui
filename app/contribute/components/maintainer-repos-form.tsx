@@ -8,7 +8,11 @@ import { MaintainerRepoExtras } from './maintainer-repo-extras';
 import { PanelTitle, Pill } from './primitives';
 import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
-import type { ContributeMaintainerRepo, ContributeOptOutResult } from '@/lib/contribute/contribute.types';
+import type {
+  ContributeConfigKey,
+  ContributeMaintainerRepo,
+  ContributeOptOutResult,
+} from '@/lib/contribute/contribute.types';
 import { type MaintainerErrorCode, maintainerErrorMessage } from '@/lib/contribute/errors';
 import {
   fullDayLabel,
@@ -28,6 +32,7 @@ export function MaintainerReposForm({
   repos: listed,
   truncated,
   orgAccessUrl,
+  configKeys = [],
 }: {
   title: string;
   text: string;
@@ -36,6 +41,8 @@ export function MaintainerReposForm({
   truncated: boolean;
   /** Where a member of an organization asks it to approve the sign-in's app on GitHub. */
   orgAccessUrl: string;
+  /** Every `.github/gitranks.yml` key, as the page's facts list them: each repo's settings come from the live ones. */
+  configKeys?: ContributeConfigKey[];
 }) {
   const [repos, setRepos] = useState(listed);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
@@ -95,7 +102,7 @@ export function MaintainerReposForm({
               <li key={repo.repoId} className="flex flex-col gap-2">
                 <RepoRow repo={repo} checked={selected.has(repo.repoId)} onToggle={() => toggle(repo.repoId)} />
                 <MaintainerRepoActions repo={repo} />
-                <MaintainerRepoExtras repoId={repo.repoId} />
+                <MaintainerRepoExtras repo={repo} keys={configKeys} />
               </li>
             ))}
           </ul>

@@ -112,8 +112,8 @@ describe('the maintainers page', () => {
     expect(all).toContain('min_account_age_years: 6');
     expect(all).toContain('min_rank: master');
     expect(all).toContain('Lower our limits, keep autopilot out');
-    // Not until "Your repos" offers the rules.
-    expect(all).not.toContain('Set the same rules after signing in');
+    // "Your repos" sets the same keys, once a key the page sets is live.
+    expect(all).toContain('No access to the repo’s files? Set the same rules after signing in →');
     expect(all).toContain('Good first issues stay with people if you say so');
   });
 

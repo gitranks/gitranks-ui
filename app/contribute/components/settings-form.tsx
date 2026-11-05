@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useId, useState, useTransition } from 'react
 
 import { saveContributeSettings } from '../actions';
 import { HEADING, Panel } from './primitives';
+import { ReposAskLessNote } from './repo-rules';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -551,6 +552,7 @@ export function SettingsForm({
               </Field>
             </div>
             {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
+            <ReposAskLessNote />
             <div className="flex flex-col gap-2">
               <span id={`${field('dco')}-legend`} className="text-sm font-medium">
                 DCO sign-off, for repos that require it

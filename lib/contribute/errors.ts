@@ -125,6 +125,69 @@ export function maintainerErrorMessage(error: MaintainerErrorCode): string {
 }
 
 /**
+ * Why a setting on "Your repos" was not saved:
+ * - `IN_FILE`: the repo's `.github/gitranks.yml` sets the key, and the file wins.
+ * - `NOT_MAINTAINER`: GitHub says the account does not administer or maintain the repo (now), or cannot see it.
+ * - `INVALID`: a value outside the key's values.
+ * - `SIGNED_OUT`, `GITHUB_UNAVAILABLE`, `NOT_AVAILABLE_YET`, `FAILED` as for the maintainers page.
+ * `IN_FILE` and `INVALID` carry the API's words (its check of the value, naming the key and its values); every other
+ * code is told in ours: those are about a call that carried a token.
+ */
+export type MaintainerConfigErrorCode =
+  | 'IN_FILE'
+  | 'NOT_MAINTAINER'
+  | 'INVALID'
+  | 'SIGNED_OUT'
+  | 'GITHUB_UNAVAILABLE'
+  | 'NOT_AVAILABLE_YET'
+  | 'FAILED';
+
+export type MaintainerConfigError = { error: MaintainerConfigErrorCode; message?: string };
+
+/** The API's words for a value it refused, when they are short and carry no `secret` (the call's token). */
+const validationWordsOf = (message: string | undefined, secret?: string) => {
+  const words = message?.trim();
+  if (!words || words.length > 300 || (secret && words.includes(secret))) return undefined;
+  return words;
+};
+
+export function maintainerConfigErrorOf(error: unknown, secret?: string): MaintainerConfigError {
+  const errors = graphqlErrorsOf(error);
+  const of = (code: string) => errors.find(({ extensions }) => extensions?.code === code);
+  const withWords = (code: MaintainerConfigErrorCode, found: GraphqlError | undefined): MaintainerConfigError => {
+    const message = validationWordsOf(found?.message, secret);
+    return message ? { error: code, message } : { error: code };
+  };
+  if (of('CONFLICT')) return withWords('IN_FILE', of('CONFLICT'));
+  if (of('FORBIDDEN') || of('NOT_FOUND')) return { error: 'NOT_MAINTAINER' };
+  if (of('BAD_USER_INPUT')) return withWords('INVALID', of('BAD_USER_INPUT'));
+  return { error: maintainerErrorOf(error) };
+}
+
+/** A setting not saved, in words: the API's own for a refused value, ours for the rest. */
+export function maintainerConfigErrorMessage(error: MaintainerConfigErrorCode, message?: string): string {
+  if ((error === 'IN_FILE' || error === 'INVALID') && message) {
+    return `Not saved: ${message.charAt(0).toLowerCase()}${message.slice(1)}${/[.!?]$/.test(message) ? '' : '.'}`;
+  }
+  switch (error) {
+    case 'IN_FILE':
+      return 'Not saved: .github/gitranks.yml sets this, and the file wins. Change it there.';
+    case 'NOT_MAINTAINER':
+      return 'Not saved: GitHub says your account does not administer or maintain this repo.';
+    case 'INVALID':
+      return 'Not saved: that value is not one this setting takes.';
+    case 'SIGNED_OUT':
+      return 'Not saved: GitHub did not accept your sign-in. Sign in again, then change it.';
+    case 'GITHUB_UNAVAILABLE':
+      return 'Not saved: GitHub did not answer. Try again in a minute.';
+    case 'NOT_AVAILABLE_YET':
+      return 'Not saved: settings here are not available yet. Use .github/gitranks.yml meanwhile.';
+    default:
+      return 'Not saved: something went wrong. Try again in a minute.';
+  }
+}
+
+/**
  * Why a note on one of our PRs, its Undo or its PR's lookup failed (the maintainers page's report flows):
  * - `SIGNED_OUT`: no GitHub sign-in for the page, or GitHub refused its token.
  * - `NOT_OURS`: the PR is not one we opened.

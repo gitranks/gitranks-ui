@@ -19,6 +19,7 @@ import {
   ContributeFeedComputedDocument,
   ContributeIssueStatusDocument,
   ContributeIssuesDocument,
+  ContributeIssuesWithRulesDocument,
   ContributeOnboardingDocument,
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
@@ -279,11 +280,11 @@ export async function readIssuesPage(
   if (!after || after.length > 512) return invalid('No more issues to read.');
   const first = Math.min(Math.max(Math.trunc(Number(input.first)) || 1, 1), ISSUES_PAGE_SIZE);
   const filter = issuesFilterOf(input.filter);
-  return run(
-    ContributeIssuesDocument,
-    { first, after, ...(Object.keys(filter).length ? { filter } : {}) },
-    (data) => data.contributeIssues,
-  );
+  const variables = { first, after, ...(Object.keys(filter).length ? { filter } : {}) };
+  const read = await run(ContributeIssuesWithRulesDocument, variables, (data) => data.contributeIssues);
+  // An API without the repos' rules: the page as it was.
+  if (read.ok || read.error !== 'NOT_AVAILABLE_YET') return read;
+  return run(ContributeIssuesDocument, variables, (data) => data.contributeIssues);
 }
 
 export type ApproveAttemptInput = { id: string; title: string; body: string; dco: boolean };

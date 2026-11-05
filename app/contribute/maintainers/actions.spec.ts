@@ -291,3 +291,119 @@ describe('the notes on a PR', () => {
     expect(JSON.stringify(answer)).not.toContain(TOKEN);
   });
 });
+
+describe('setMaintainerConfig', () => {
+  const SAVED = {
+    repoId: 'R_1',
+    config: [
+      {
+        key: 'max_files',
+        value: '10',
+        source: 'PAGE',
+        setBy: 'octocat',
+        ignoredRaw: null,
+        fileReadAt: '2026-11-03T08:40:00.000Z',
+      },
+    ],
+    rules: { manualOnly: false, lines: [] },
+  };
+
+  beforeEach(() => {
+    signedFetch.mockReset();
+    currentSessionToken.mockReset();
+    currentSessionToken.mockResolvedValue(session());
+  });
+
+  it('sends one key with the token as a variable, trimmed, and gives back the repo after it', async () => {
+    signedFetch.mockResolvedValueOnce(Response.json({ data: { setContributeMaintainerConfig: SAVED } }));
+
+    const answer = await actions.setMaintainerConfig({ repoId: 'R_1', key: 'max_files', value: ' 10 ' });
+
+    expect(answer).toEqual({ ok: true, data: SAVED });
+    expect(JSON.stringify(answer)).not.toContain(TOKEN);
+    const [{ query, variables }] = bodies();
+    expect(variables).toEqual({ token: TOKEN, repoId: 'R_1', key: 'max_files', value: '10' });
+    expect(query).not.toContain(TOKEN);
+    expect(signedFetch.mock.calls[0][3]).toBeUndefined();
+  });
+
+  it('clears the page value with null, an empty value included', async () => {
+    signedFetch.mockResolvedValue(Response.json({ data: { setContributeMaintainerConfig: SAVED } }));
+
+    await actions.setMaintainerConfig({ repoId: 'R_1', key: 'contact', value: null });
+    await actions.setMaintainerConfig({ repoId: 'R_1', key: 'contact', value: '  ' });
+
+    expect(bodies().map(({ variables }) => (variables as { value: unknown }).value)).toEqual([null, null]);
+  });
+
+  it.each([
+    [{ repoId: 'R 1', key: 'max_files', value: '1' }],
+    [{ repoId: 'R_1', key: 'Max-Files', value: '1' }],
+    [{ repoId: 'R_1', key: 'contact', value: 'x'.repeat(201) }],
+    [{ repoId: 'R_1', key: 'max_files', value: 7 as never }],
+  ])('asks nothing for a malformed input', async (input) => {
+    expect(await actions.setMaintainerConfig(input)).toEqual({ ok: false, error: 'INVALID' });
+    expect(signedFetch).not.toHaveBeenCalled();
+  });
+
+  it('asks nothing without the page sign-in', async () => {
+    currentSessionToken.mockResolvedValue(null);
+
+    expect(await actions.setMaintainerConfig({ repoId: 'R_1', key: 'max_files', value: '1' })).toEqual({
+      ok: false,
+      error: 'SIGNED_OUT',
+    });
+    expect(signedFetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['CONFLICT', 'IN_FILE'],
+    ['FORBIDDEN', 'NOT_MAINTAINER'],
+    ['NOT_FOUND', 'NOT_MAINTAINER'],
+    ['BAD_USER_INPUT', 'INVALID'],
+    ['UNAUTHENTICATED', 'SIGNED_OUT'],
+    ['SERVICE_UNAVAILABLE', 'GITHUB_UNAVAILABLE'],
+    ['INTERNAL_SERVER_ERROR', 'FAILED'],
+  ])('tells %s as %s, never in the words of the answer', async (code, error) => {
+    signedFetch.mockResolvedValueOnce(
+      Response.json({ data: null, errors: [{ message: `refused ${TOKEN}`, extensions: { code } }] }),
+    );
+
+    const answer = await actions.setMaintainerConfig({ repoId: 'R_1', key: 'max_files', value: '1' });
+
+    expect(answer).toEqual({ ok: false, error });
+    expect(JSON.stringify(answer)).not.toContain(TOKEN);
+  });
+});
+
+describe('setMaintainerConfig: the API’s words for a refused value', () => {
+  beforeEach(() => {
+    signedFetch.mockReset();
+    currentSessionToken.mockReset();
+    currentSessionToken.mockResolvedValue(session());
+  });
+
+  it.each([
+    ['CONFLICT', 'IN_FILE', 'Set in .github/gitranks.yml (read 2026-11-03)'],
+    ['BAD_USER_INPUT', 'INVALID', 'max_files takes 1 to 100'],
+  ])('passes %s on as %s with its message', async (code, error, message) => {
+    signedFetch.mockResolvedValueOnce(Response.json({ data: null, errors: [{ message, extensions: { code } }] }));
+
+    expect(await actions.setMaintainerConfig({ repoId: 'R_1', key: 'max_files', value: '500' })).toEqual({
+      ok: false,
+      error,
+      message,
+    });
+  });
+
+  it('never passes on words for other refusals', async () => {
+    signedFetch.mockResolvedValueOnce(
+      Response.json({ data: null, errors: [{ message: 'not yours', extensions: { code: 'FORBIDDEN' } }] }),
+    );
+
+    expect(await actions.setMaintainerConfig({ repoId: 'R_1', key: 'max_files', value: '5' })).toEqual({
+      ok: false,
+      error: 'NOT_MAINTAINER',
+    });
+  });
+});

@@ -624,11 +624,14 @@ export function MaintainerReposPanel({
   view,
   orgAccessUrl,
   returnTo = MAINTAINERS_PATH,
+  facts = null,
 }: {
   view: MaintainerReposView;
   orgAccessUrl: string;
   /** Where the sign-in comes back to: the page with its footer link's `?from=`. */
   returnTo?: string;
+  /** The keys a repo can set: each repo's settings show the live ones the page sets. */
+  facts?: Pick<ContributeMaintainerFacts, 'configKeys'> | null;
 }) {
   if (view.state === 'listed') {
     return (
@@ -640,6 +643,7 @@ export function MaintainerReposPanel({
           repos={view.data.repos}
           truncated={view.data.truncated}
           orgAccessUrl={orgAccessUrl}
+          configKeys={facts?.configKeys ?? []}
         />
       </OptOutCard>
     );

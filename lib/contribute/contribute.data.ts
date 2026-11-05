@@ -16,6 +16,7 @@ import {
   ContributeAttemptMovesDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptProofDocument,
+  ContributeAttemptRepoRulesDocument,
   ContributeAttemptRetryDocument,
   ContributeAttemptReviewReasonDocument,
   ContributeAttemptSubmitClockDocument,
@@ -42,6 +43,7 @@ import {
   ContributeImpactDocument,
   ContributeImpactReposDocument,
   ContributeIssuesDocument,
+  ContributeIssuesWithRulesDocument,
   ContributeLimitsDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
@@ -293,13 +295,20 @@ export async function loadIssues(
   const githubLogin = await viewerLogin();
   if (!githubLogin) return undefined;
 
+  const variables = {
+    first: ISSUES_PAGE_SIZE,
+    ...(after ? { after } : {}),
+    ...(Object.keys(filter).length ? { filter } : {}),
+  };
+  const options = { source: 'ssr' as const, githubLogin };
   try {
-    const { contributeIssues } = await graphqlDirect(
-      ContributeIssuesDocument,
-      { first: ISSUES_PAGE_SIZE, ...(after ? { after } : {}), ...(Object.keys(filter).length ? { filter } : {}) },
-      { source: 'ssr', githubLogin },
-    );
-    return contributeIssues;
+    return (await graphqlDirect(ContributeIssuesWithRulesDocument, variables, options)).contributeIssues;
+  } catch (error) {
+    // An API without the repos' rules: the feed as it was.
+    if (contributeErrorOf(error).error !== 'NOT_AVAILABLE_YET') return undefined;
+  }
+  try {
+    return (await graphqlDirect(ContributeIssuesDocument, variables, options)).contributeIssues;
   } catch {
     return undefined;
   }
@@ -558,6 +567,10 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   const moves = Promise.resolve(graphqlDirect(ContributeAttemptMovesDocument, { id }, options)).catch(() => undefined);
   // A review bot's ask for proof and the user's own agent's proof; left out when not answered.
   const proof = Promise.resolve(graphqlDirect(ContributeAttemptProofDocument, { id }, options)).catch(() => undefined);
+  // The repo's rules and the limits the attempt runs under there; left out when not answered.
+  const repoRules = Promise.resolve(graphqlDirect(ContributeAttemptRepoRulesDocument, { id }, options)).catch(
+    () => undefined,
+  );
   try {
     const { contributeAttempt: read } = await review;
     if (!read) return read;
@@ -624,15 +637,20 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
       proofRead?.attemptId === contributeAttempt.attemptId && proofRead.proof !== undefined
         ? { ...withConventions, proof: proofRead.proof }
         : withConventions;
+    const rulesRead = (await repoRules)?.contributeAttempt;
+    const withRules =
+      rulesRead?.attemptId === contributeAttempt.attemptId && rulesRead.repoRules !== undefined
+        ? { ...withProofOnly, repoRules: rulesRead.repoRules ?? null }
+        : withProofOnly;
     const holdRead = (await hold)?.contributeAttempt;
     const withProof =
       holdRead?.attemptId === contributeAttempt.attemptId && holdRead.newcomersLabel !== undefined
         ? {
-            ...withProofOnly,
+            ...withRules,
             reviewReasonSource: holdRead.reviewReasonSource ?? null,
             newcomersLabel: holdRead.newcomersLabel ?? null,
           }
-        : withProofOnly;
+        : withRules;
     const agent = (await ownAgent)?.contributeAttempt;
     if (agent?.attemptId !== contributeAttempt.attemptId) return withProof;
     const { result, ...fields } = agent;

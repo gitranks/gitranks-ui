@@ -375,3 +375,35 @@ describe('setMaintainerConfig', () => {
     expect(JSON.stringify(answer)).not.toContain(TOKEN);
   });
 });
+
+describe('setMaintainerConfig: the API’s words for a refused value', () => {
+  beforeEach(() => {
+    signedFetch.mockReset();
+    currentSessionToken.mockReset();
+    currentSessionToken.mockResolvedValue(session());
+  });
+
+  it.each([
+    ['CONFLICT', 'IN_FILE', 'Set in .github/gitranks.yml (read 2026-11-03)'],
+    ['BAD_USER_INPUT', 'INVALID', 'max_files takes 1 to 100'],
+  ])('passes %s on as %s with its message', async (code, error, message) => {
+    signedFetch.mockResolvedValueOnce(Response.json({ data: null, errors: [{ message, extensions: { code } }] }));
+
+    expect(await actions.setMaintainerConfig({ repoId: 'R_1', key: 'max_files', value: '500' })).toEqual({
+      ok: false,
+      error,
+      message,
+    });
+  });
+
+  it('never passes on words for other refusals', async () => {
+    signedFetch.mockResolvedValueOnce(
+      Response.json({ data: null, errors: [{ message: 'not yours', extensions: { code: 'FORBIDDEN' } }] }),
+    );
+
+    expect(await actions.setMaintainerConfig({ repoId: 'R_1', key: 'max_files', value: '5' })).toEqual({
+      ok: false,
+      error: 'NOT_MAINTAINER',
+    });
+  });
+});

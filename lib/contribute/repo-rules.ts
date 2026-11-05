@@ -1,11 +1,15 @@
 import type {
+  ContributeAttemptState,
   ContributeConfigKey,
   ContributeIssueRepoRules,
   ContributeMaintainerConfigValue,
+  ContributeMaintainerRepoConfig,
+  ContributeMaintainerRepoRules,
   ContributeRepoRuleCaps,
   ContributeRepoRuleKind,
   ContributeSettings,
 } from './contribute.types';
+import { type MaintainerConfigErrorCode, maintainerConfigErrorMessage } from './errors';
 import { CONFIG_FILE } from './maintainer-config';
 import { fullDayLabel } from './maintainers-format';
 import { TIER_NAMES } from '@/app/app.consts';
@@ -33,6 +37,10 @@ export function rulesSummaryOf(rules: ContributeIssueRepoRules): string[] {
   if (!rules.manualOnly) return rest ? [plural(rest, 'rule', 'rules')] : [];
   return rest ? ['autopilot off', `${rest} more`] : ['autopilot off'];
 }
+
+/** An attempt that is over: its limits no longer meet the user's setting now. */
+const FINISHED: readonly ContributeAttemptState[] = ['MERGED', 'CLOSED', 'STOPPED', 'DISCARDED', 'DONE'];
+export const isFinishedAttempt = (state: ContributeAttemptState) => FINISHED.includes(state);
 
 /** One size limit the attempt runs under: the repo's (with `yours` beside it) or the user's own. */
 export type CapRow = {
@@ -175,3 +183,89 @@ export function configNoteOf(value: ContributeMaintainerConfigValue | undefined)
 /** When the repo's file was last read, from any of its keys; null before the first read. */
 export const fileReadAtOf = (config: ContributeMaintainerConfigValue[]): string | null =>
   config.find(({ fileReadAt }) => fileReadAt)?.fileReadAt ?? null;
+
+// ─── "Your repos": saving a key ───────────────────────────────────────────────────────────────────────────────────────
+
+/** A repo's keys and rules as "Your repos" holds them between saves. */
+export type RepoSettingsState = {
+  config: ContributeMaintainerConfigValue[];
+  rules: ContributeMaintainerRepoRules | null | undefined;
+};
+
+/** What saving one key answered: the repo after it, or why not (with the API's words for a refused value). */
+export type ConfigSaveResult =
+  | { ok: true; data: ContributeMaintainerRepoConfig }
+  | { ok: false; error: MaintainerConfigErrorCode; message?: string };
+
+/** How a save went, for the field: saved, or why not in words. */
+export type SaveOutcome = { ok: true } | { ok: false; text: string };
+
+/**
+ * The keys and rules after a save's answer: the newest save's answer replaces them (an older one arriving late never
+ * undoes a later change); a key the file turned out to set locks, whichever save answered it.
+ */
+export function settingsAfterSave(
+  state: RepoSettingsState,
+  key: string,
+  result: ConfigSaveResult,
+  newest: boolean,
+): RepoSettingsState {
+  if (result.ok) return newest ? { config: result.data.config, rules: result.data.rules } : state;
+  if (result.error !== 'IN_FILE') return state;
+  const config = state.config.map((item) =>
+    item.key === key ? { ...item, source: 'FILE' as const, setBy: null } : item,
+  );
+  return { ...state, config };
+}
+
+export const saveOutcomeOf = (result: ConfigSaveResult): SaveOutcome =>
+  result.ok ? { ok: true } : { ok: false, text: maintainerConfigErrorMessage(result.error, result.message) };
+
+/**
+ * One repo's saves, numbered: each answer goes through `settingsAfterSave` (`update` takes it as a state updater),
+ * and only the newest save's answer replaces the keys and rules.
+ */
+export function configSaverOf(
+  send: (key: string, value: string | null) => Promise<ConfigSaveResult>,
+  update: (next: (state: RepoSettingsState) => RepoSettingsState) => void,
+) {
+  let asked = 0;
+  return async (key: string, value: string | null): Promise<SaveOutcome> => {
+    const ticket = ++asked;
+    const result = await send(key, value);
+    const newest = ticket === asked;
+    update((state) => settingsAfterSave(state, key, result, newest));
+    return saveOutcomeOf(result);
+  };
+}
+
+/**
+ * Shows a pick at once and saves it; when the save fails, the control goes back to the saved value as it is then
+ * (`saved`).
+ */
+export async function pickWithRollback<T>(
+  next: T,
+  show: (value: T) => void,
+  save: (value: T) => Promise<boolean>,
+  saved: () => T,
+): Promise<boolean> {
+  show(next);
+  const ok = await save(next);
+  if (!ok) show(saved());
+  return ok;
+}
+
+/**
+ * What a typed value does when typing pauses or the field is left: nothing when it is the saved value, an error the
+ * field keeps for fixing when the page can't take it, else a save (empty clears the page's value).
+ */
+export function typedCommitOf(
+  control: ConfigControl,
+  typed: string,
+  saved: string | null,
+): { kind: 'same' } | { kind: 'invalid'; text: string } | { kind: 'save'; value: string | null } {
+  const next = typed.trim();
+  if (next === (saved ?? '')) return { kind: 'same' };
+  const error = configDraftErrorOf(control, next);
+  return error ? { kind: 'invalid', text: error } : { kind: 'save', value: next || null };
+}

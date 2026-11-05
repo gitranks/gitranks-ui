@@ -40,6 +40,7 @@ import { orgAccessOf } from '@/lib/contribute/org-access';
 import { parsePatch } from '@/lib/contribute/patch';
 import { withoutDraftMarks } from '@/lib/contribute/pr-conventions';
 import { agentConnectedOf } from '@/lib/contribute/proof';
+import { isFinishedAttempt } from '@/lib/contribute/repo-rules';
 import {
   attemptPath,
   NEXT_SESSION,
@@ -436,7 +437,11 @@ export function ContributionShell({
           {cards && first && session ? (
             <div className="flex min-w-0 flex-col gap-4">
               <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} />
-              <AttemptRepoRules rules={first.repoRules} settings={settingsOf(view)} />
+              <AttemptRepoRules
+                rules={first.repoRules}
+                settings={settingsOf(view)}
+                finished={isFinishedAttempt(first.state)}
+              />
             </div>
           ) : null}
           {children}

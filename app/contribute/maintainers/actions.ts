@@ -20,7 +20,7 @@ import type {
   ContributeReportReason,
 } from '@/lib/contribute/contribute.types';
 import {
-  type MaintainerConfigErrorCode,
+  type MaintainerConfigError,
   type MaintainerErrorCode,
   maintainerConfigErrorOf,
   maintainerErrorOf,
@@ -102,7 +102,7 @@ export async function optInMaintainerRepos(repoIds: string[]): Promise<Maintaine
 /** A key's value saved on "Your repos": the repo's keys and rules after it, or why not. The token never comes back. */
 export type MaintainerConfigResult =
   | { ok: true; data: ContributeMaintainerRepoConfig }
-  | { ok: false; error: MaintainerConfigErrorCode };
+  | ({ ok: false } & MaintainerConfigError);
 
 const CONFIG_KEY = /^[a-z][a-z0-9_]{0,39}$/;
 /** The longest value a key takes (a contact); the API checks each key's own. */
@@ -133,7 +133,7 @@ export async function setMaintainerConfig(input: {
     });
     return { ok: true, data: setContributeMaintainerConfig };
   } catch (failure) {
-    return { ok: false, error: maintainerConfigErrorOf(failure) };
+    return { ok: false, ...maintainerConfigErrorOf(failure, token) };
   }
 }
 

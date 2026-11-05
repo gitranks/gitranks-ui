@@ -4,13 +4,21 @@ import { issueRules } from './__fixtures__/repo-rules';
 import type { ContributeConfigKey } from './contribute.types';
 import {
   type ConfigControl,
+  type ConfigSaveResult,
   capRowsOf,
   configControlOf,
   configDraftErrorOf,
   configNoteOf,
+  configSaverOf,
   fileReadAtOf,
+  isFinishedAttempt,
   pageControlsOf,
+  pickWithRollback,
+  type RepoSettingsState,
   rulesSummaryOf,
+  saveOutcomeOf,
+  settingsAfterSave,
+  typedCommitOf,
   UNSET,
 } from './repo-rules';
 
@@ -156,5 +164,97 @@ describe('configNoteOf', () => {
   it('reads when the file was read from any key', () => {
     expect(fileReadAtOf([base, { ...base, fileReadAt: '2026-11-03T08:40:00.000Z' }])).toBe('2026-11-03T08:40:00.000Z');
     expect(fileReadAtOf([base])).toBeNull();
+  });
+});
+
+describe('saving a key on "Your repos"', () => {
+  const repoConfig = (value: string) => ({
+    repoId: 'R_1',
+    config: [{ key: 'max_files', value, source: 'PAGE' as const, setBy: 'mira-k', ignoredRaw: null, fileReadAt: null }],
+    rules: { manualOnly: false, lines: [] },
+  });
+  const state = (): RepoSettingsState => ({ config: repoConfig('10').config, rules: null });
+
+  it('applies only the newest save’s answer, whatever order the answers come in', async () => {
+    const answers: Record<string, (result: ConfigSaveResult) => void> = {};
+    let held: RepoSettingsState = state();
+    const save = configSaverOf(
+      (_key, value) => new Promise((resolve) => (answers[String(value)] = resolve)),
+      (next) => (held = next(held)),
+    );
+
+    const first = save('max_files', '20');
+    const second = save('max_files', '30');
+    answers['30']({ ok: true, data: repoConfig('30') });
+    await second;
+    answers['20']({ ok: true, data: repoConfig('20') });
+
+    expect(await first).toEqual({ ok: true });
+    expect(held.config[0].value).toBe('30');
+  });
+
+  it('tells a refusal in the API’s words for a value, ours for the rest', () => {
+    expect(saveOutcomeOf({ ok: false, error: 'INVALID', message: 'max_files takes 1 to 100' })).toEqual({
+      ok: false,
+      text: 'Not saved: max_files takes 1 to 100.',
+    });
+    expect(
+      saveOutcomeOf({ ok: false, error: 'IN_FILE', message: 'Set in .github/gitranks.yml (read 2026-11-03)' }),
+    ).toEqual({ ok: false, text: 'Not saved: set in .github/gitranks.yml (read 2026-11-03).' });
+    expect(saveOutcomeOf({ ok: false, error: 'NOT_MAINTAINER' })).toEqual({
+      ok: false,
+      text: 'Not saved: GitHub says your account does not administer or maintain this repo.',
+    });
+  });
+
+  it('locks a key the file sets after a conflict, and keeps the rest as they were on any other refusal', () => {
+    const before = state();
+    const locked = settingsAfterSave(before, 'max_files', { ok: false, error: 'IN_FILE' }, false);
+    expect(locked.config[0]).toMatchObject({ source: 'FILE', setBy: null, value: '10' });
+    expect(settingsAfterSave(before, 'max_files', { ok: false, error: 'FAILED' }, true)).toBe(before);
+  });
+
+  it('goes back to the saved value when a save fails, and keeps the pick when it went through', async () => {
+    const shown: string[] = [];
+    expect(
+      await pickWithRollback(
+        'pro',
+        (value) => shown.push(value),
+        async () => false,
+        () => 'unset',
+      ),
+    ).toBe(false);
+    expect(shown).toEqual(['pro', 'unset']);
+
+    shown.length = 0;
+    expect(
+      await pickWithRollback(
+        'pro',
+        (value) => shown.push(value),
+        async () => true,
+        () => 'unset',
+      ),
+    ).toBe(true);
+    expect(shown).toEqual(['pro']);
+  });
+
+  it('saves a typed value only when it changed and the page can take it', () => {
+    const files = configControlOf(key({ key: 'max_files', kind: 'int', min: 1, max: 100 })) as ConfigControl;
+
+    expect(typedCommitOf(files, ' 10 ', '10')).toEqual({ kind: 'same' });
+    expect(typedCommitOf(files, '500', '10')).toEqual({ kind: 'invalid', text: 'A whole number from 1 to 100.' });
+    expect(typedCommitOf(files, '20', '10')).toEqual({ kind: 'save', value: '20' });
+    expect(typedCommitOf(files, '', '10')).toEqual({ kind: 'save', value: null });
+  });
+});
+
+describe('isFinishedAttempt', () => {
+  it('is an attempt that is over, not one still working or waiting', () => {
+    expect(
+      ['MERGED', 'CLOSED', 'STOPPED', 'DISCARDED', 'DONE'].every((state) => isFinishedAttempt(state as never)),
+    ).toBe(true);
+    expect(['RUNNING', 'REVIEW', 'PR_OPEN', 'FOLLOW_UP'].some((state) => isFinishedAttempt(state as never))).toBe(
+      false,
+    );
   });
 });

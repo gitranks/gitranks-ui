@@ -1,6 +1,6 @@
 'use client';
 
-import { type KeyboardEvent, useId, useState, useTransition } from 'react';
+import { type KeyboardEvent, useId, useRef, useState } from 'react';
 
 import { setMaintainerConfig } from '../maintainers/actions';
 import { RadioPills, useSettledPick } from './radio-pills';
@@ -13,15 +13,18 @@ import type {
   ContributeMaintainerRepo,
   ContributeMaintainerRepoRules,
 } from '@/lib/contribute/contribute.types';
-import { maintainerConfigErrorMessage } from '@/lib/contribute/errors';
 import { CONFIG_FILE } from '@/lib/contribute/maintainer-config';
 import { fullDayLabel } from '@/lib/contribute/maintainers-format';
 import {
   type ConfigControl,
-  configDraftErrorOf,
   configNoteOf,
+  configSaverOf,
   fileReadAtOf,
   pageControlsOf,
+  pickWithRollback,
+  type RepoSettingsState,
+  type SaveOutcome,
+  typedCommitOf,
   UNSET,
 } from '@/lib/contribute/repo-rules';
 import { CONTACT_EMAIL } from '@/lib/legal';
@@ -42,8 +45,12 @@ export function MaintainerRepoSettings({
   /** Every key, as the page's facts list them: the live ones the page sets get a control. */
   keys: ContributeConfigKey[];
 }) {
-  const [config, setConfig] = useState(repo.config ?? []);
-  const [rules, setRules] = useState(repo.rules);
+  const [state, setState] = useState<RepoSettingsState>(() => ({ config: repo.config ?? [], rules: repo.rules }));
+  // Numbered saves: only the newest one's answer replaces the keys and rules (`configSaverOf`).
+  const saver = useRef<ReturnType<typeof configSaverOf> | null>(null);
+  saver.current ??= configSaverOf((key, value) => setMaintainerConfig({ repoId: repo.repoId, key, value }), setState);
+  const save = saver.current;
+  const { config, rules } = state;
   const controls = pageControlsOf(keys);
   const byKey = new Map(config.map((value) => [value.key, value]));
 
@@ -67,13 +74,9 @@ export function MaintainerRepoSettings({
           {controls.map((control) => (
             <ConfigField
               key={control.key}
-              repoId={repo.repoId}
               control={control}
               value={byKey.get(control.key)}
-              onSaved={(next) => {
-                setConfig(next.config);
-                setRules(next.rules);
-              }}
+              save={(value) => save(control.key, value)}
             />
           ))}
         </div>
@@ -131,75 +134,63 @@ function RulesWeRead({
 
 type Status = { kind: 'saving' } | { kind: 'saved' } | { kind: 'error'; text: string } | null;
 
-/** One key: its control, where its value comes from, and how the last change went. */
+/** The control's props: the value shown, whether the file locks it, how it saves, and the ids it is described by. */
+type FieldProps<C extends ConfigControl['type']> = {
+  id: string;
+  control: Extract<ConfigControl, { type: C }>;
+  current: string | null;
+  locked: boolean;
+  describedBy?: string;
+  /** Saves a value (null clears the page's); false when it was not saved, and the control goes back to `current`. */
+  save: (next: string | null) => Promise<boolean>;
+};
+
+/**
+ * One key: its control, where its value comes from, and how the last change went. A control shows the user's pick at
+ * once and goes back to the saved value when the save fails.
+ */
 function ConfigField({
-  repoId,
   control,
   value,
-  onSaved,
+  save,
 }: {
-  repoId: string;
   control: ConfigControl;
   value: ContributeMaintainerConfigValue | undefined;
-  onSaved: (next: { config: ContributeMaintainerConfigValue[]; rules: ContributeMaintainerRepoRules | null }) => void;
+  save: (next: string | null) => Promise<SaveOutcome>;
 }) {
   const id = useId();
   const [status, setStatus] = useState<Status>(null);
-  const [, startTransition] = useTransition();
-  const inFile = value?.source === 'FILE';
+  const locked = value?.source === 'FILE';
   const current = value?.value ?? null;
 
-  const save = (next: string | null) =>
-    startTransition(async () => {
-      setStatus({ kind: 'saving' });
-      const result = await setMaintainerConfig({ repoId, key: control.key, value: next });
-      if (result.ok) {
-        onSaved(result.data);
-        setStatus({ kind: 'saved' });
-      } else {
-        setStatus({ kind: 'error', text: maintainerConfigErrorMessage(result.error) });
-      }
-    });
+  const saveShown = async (next: string | null) => {
+    setStatus({ kind: 'saving' });
+    const outcome = await save(next);
+    setStatus(outcome.ok ? { kind: 'saved' } : { kind: 'error', text: outcome.text });
+    return outcome.ok;
+  };
 
   const help = [control.hint, configNoteOf(value)].filter(Boolean).join(' ') || null;
   const helpId = `${id}-help`;
   const statusId = `${id}-status`;
   const describedBy = [help && helpId, status && statusId].filter(Boolean).join(' ') || undefined;
+  const props = { id, current, locked, describedBy, save: saveShown };
 
   return (
     <div className="flex flex-col gap-1.5" data-config-key={control.key} data-config-source={value?.source ?? 'NONE'}>
       {control.type === 'pills' ? (
-        <PillsField control={control} current={current} locked={inFile} save={save} />
+        <PillsField {...props} control={control} />
       ) : (
         <>
           <label htmlFor={id} className="text-sm font-medium">
             {control.label}
           </label>
           {control.type === 'select' ? (
-            <Select
-              value={current ?? UNSET}
-              disabled={inFile}
-              onValueChange={(next) => save(next === UNSET ? null : next)}
-            >
-              <SelectTrigger id={id} aria-describedby={describedBy} className="w-full max-w-60 max-sm:min-h-11">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {control.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SelectField {...props} control={control} />
           ) : (
             <TypedField
-              id={id}
+              {...props}
               control={control}
-              current={current}
-              locked={inFile}
-              describedBy={describedBy}
-              save={save}
               invalid={(text) => setStatus({ kind: 'error', text })}
               edited={() => setStatus((shown) => (shown?.kind === 'error' ? null : shown))}
             />
@@ -215,6 +206,7 @@ function ConfigField({
         <span
           id={statusId}
           role={status.kind === 'error' ? 'alert' : 'status'}
+          data-config-status={status.kind}
           className={cn('text-xs', status.kind === 'error' ? 'text-destructive' : 'text-muted-foreground')}
         >
           {status.kind === 'saving' ? 'Saving…' : status.kind === 'saved' ? 'Saved.' : status.text}
@@ -224,20 +216,20 @@ function ConfigField({
   );
 }
 
+/** The saved value as of the latest render: what a failed save goes back to. */
+function useLatest<T>(value: T) {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
+}
+
 /** A choice of values, saved once the pick settles (arrowing through the pills saves only the last). */
-function PillsField({
-  control,
-  current,
-  locked,
-  save,
-}: {
-  control: Extract<ConfigControl, { type: 'pills' }>;
-  current: string | null;
-  locked: boolean;
-  save: (next: string | null) => void;
-}) {
+function PillsField({ control, current, locked, describedBy, save }: FieldProps<'pills'>) {
   const [picked, setPicked] = useState(current ?? UNSET);
-  const settle = useSettledPick((next: string) => save(next === UNSET ? null : next));
+  const saved = useLatest(current);
+  const settle = useSettledPick(async (next: string) => {
+    if (!(await save(next === UNSET ? null : next))) setPicked(saved.current ?? UNSET);
+  });
   return (
     <fieldset disabled={locked} className={cn('min-w-0', locked && 'opacity-60')}>
       <RadioPills
@@ -245,6 +237,7 @@ function PillsField({
         legendClassName="mb-1.5"
         options={control.options}
         value={locked ? (current ?? UNSET) : picked}
+        describedBy={describedBy}
         onChange={(next) => {
           setPicked(next);
           settle(next);
@@ -254,7 +247,40 @@ function PillsField({
   );
 }
 
-/** A number or a contact, saved when the field is left or Enter is pressed, and only when it changed. */
+/** A tier: the pick shows at once, saved at once, and goes back when the save fails. */
+function SelectField({ id, control, current, locked, describedBy, save }: FieldProps<'select'>) {
+  const [picked, setPicked] = useState(current ?? UNSET);
+  const saved = useLatest(current);
+  const pick = (next: string) =>
+    pickWithRollback(
+      next,
+      setPicked,
+      (value) => save(value === UNSET ? null : value),
+      () => saved.current ?? UNSET,
+    );
+  return (
+    <Select value={locked ? (current ?? UNSET) : picked} disabled={locked} onValueChange={pick}>
+      <SelectTrigger id={id} aria-describedby={describedBy} className="w-full max-w-60 max-sm:min-h-11">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {control.options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+/** How long typing pauses before a number or a contact saves. */
+const TYPED_SAVE_MS = 600;
+
+/**
+ * A number or a contact, saved once typing pauses, when the field is left or on Enter, and only when it changed. A
+ * value the page can't take is said at once and kept for fixing; one the API refused goes back to the saved value.
+ */
 function TypedField({
   id,
   control,
@@ -264,30 +290,24 @@ function TypedField({
   save,
   invalid,
   edited,
-}: {
-  id: string;
-  control: Extract<ConfigControl, { type: 'number' | 'text' }>;
-  current: string | null;
-  locked: boolean;
-  describedBy?: string;
-  save: (next: string | null) => void;
+}: FieldProps<'number' | 'text'> & {
   /** A value that can't be saved, in words. */
   invalid: (text: string) => void;
   /** The value changed since: an error about the last one goes. */
   edited: () => void;
 }) {
   const [draft, setDraft] = useState(current ?? '');
-  const commit = () => {
-    const next = draft.trim();
-    if (next === (current ?? '')) return;
-    const error = configDraftErrorOf(control, next);
-    if (error) invalid(error);
-    else save(next || null);
-  };
+  const saved = useLatest(current);
+  const settle = useSettledPick(async (typed: string) => {
+    const commit = typedCommitOf(control, typed, saved.current);
+    if (commit.kind === 'invalid') invalid(commit.text);
+    // A value the API refused goes back to the saved one; one the page refused stays for fixing.
+    if (commit.kind === 'save' && !(await save(commit.value))) setDraft(saved.current ?? '');
+  }, TYPED_SAVE_MS);
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
-    commit();
+    settle.flush();
   };
   const number = control.type === 'number';
   return (
@@ -304,8 +324,9 @@ function TypedField({
       onChange={(event) => {
         setDraft(event.target.value);
         edited();
+        settle(event.target.value);
       }}
-      onBlur={commit}
+      onBlur={() => settle.flush()}
       onKeyDown={onKeyDown}
       className={cn(
         'h-auto rounded-lg py-2 text-sm max-sm:min-h-11',

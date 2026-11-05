@@ -130,7 +130,8 @@ export function maintainerErrorMessage(error: MaintainerErrorCode): string {
  * - `NOT_MAINTAINER`: GitHub says the account does not administer or maintain the repo (now), or cannot see it.
  * - `INVALID`: a value outside the key's values.
  * - `SIGNED_OUT`, `GITHUB_UNAVAILABLE`, `NOT_AVAILABLE_YET`, `FAILED` as for the maintainers page.
- * Never the API's own words: they are about a call that carried a token.
+ * `IN_FILE` and `INVALID` carry the API's words (its check of the value, naming the key and its values); every other
+ * code is told in ours: those are about a call that carried a token.
  */
 export type MaintainerConfigErrorCode =
   | 'IN_FILE'
@@ -141,16 +142,33 @@ export type MaintainerConfigErrorCode =
   | 'NOT_AVAILABLE_YET'
   | 'FAILED';
 
-export function maintainerConfigErrorOf(error: unknown): MaintainerConfigErrorCode {
-  const codes = graphqlErrorsOf(error).map(({ extensions }) => extensions?.code);
-  if (codes.includes('CONFLICT')) return 'IN_FILE';
-  if (codes.includes('FORBIDDEN') || codes.includes('NOT_FOUND')) return 'NOT_MAINTAINER';
-  if (codes.includes('BAD_USER_INPUT')) return 'INVALID';
-  return maintainerErrorOf(error);
+export type MaintainerConfigError = { error: MaintainerConfigErrorCode; message?: string };
+
+/** The API's words for a value it refused, when they are short and carry no `secret` (the call's token). */
+const validationWordsOf = (message: string | undefined, secret?: string) => {
+  const words = message?.trim();
+  if (!words || words.length > 300 || (secret && words.includes(secret))) return undefined;
+  return words;
+};
+
+export function maintainerConfigErrorOf(error: unknown, secret?: string): MaintainerConfigError {
+  const errors = graphqlErrorsOf(error);
+  const of = (code: string) => errors.find(({ extensions }) => extensions?.code === code);
+  const withWords = (code: MaintainerConfigErrorCode, found: GraphqlError | undefined): MaintainerConfigError => {
+    const message = validationWordsOf(found?.message, secret);
+    return message ? { error: code, message } : { error: code };
+  };
+  if (of('CONFLICT')) return withWords('IN_FILE', of('CONFLICT'));
+  if (of('FORBIDDEN') || of('NOT_FOUND')) return { error: 'NOT_MAINTAINER' };
+  if (of('BAD_USER_INPUT')) return withWords('INVALID', of('BAD_USER_INPUT'));
+  return { error: maintainerErrorOf(error) };
 }
 
-/** A setting not saved, in words. */
-export function maintainerConfigErrorMessage(error: MaintainerConfigErrorCode): string {
+/** A setting not saved, in words: the API's own for a refused value, ours for the rest. */
+export function maintainerConfigErrorMessage(error: MaintainerConfigErrorCode, message?: string): string {
+  if ((error === 'IN_FILE' || error === 'INVALID') && message) {
+    return `Not saved: ${message.charAt(0).toLowerCase()}${message.slice(1)}${/[.!?]$/.test(message) ? '' : '.'}`;
+  }
   switch (error) {
     case 'IN_FILE':
       return 'Not saved: .github/gitranks.yml sets this, and the file wins. Change it there.';

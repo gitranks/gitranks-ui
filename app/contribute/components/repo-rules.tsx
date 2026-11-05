@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ContributeRepoRules, ContributeRuleSource, ContributeSettings } from '@/lib/contribute/contribute.types';
 import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import { httpsOnly } from '@/lib/contribute/pr-conventions';
@@ -9,14 +8,11 @@ import { cn } from '@/lib/utils';
 
 const ASK_LINK = 'What repos can ask for';
 
-/**
- * Where a rule comes from, as a link to it (the file on GitHub, the maintainers page). The repo's own words for it, when
- * there are some, show on hover or focus. Nothing for a source we can't link.
- */
-export function RuleSource({ source, quote }: { source: ContributeRuleSource | null; quote?: string | null }) {
+/** Where a rule comes from, as a link to it (the file on GitHub, the maintainers page); nothing for one we can't link. */
+export function RuleSource({ source }: { source: ContributeRuleSource | null }) {
   const href = source ? httpsOnly(source.url) : null;
   if (!source || !href) return null;
-  const link = (
+  return (
     <a
       href={href}
       target="_blank"
@@ -27,32 +23,43 @@ export function RuleSource({ source, quote }: { source: ContributeRuleSource | n
       {source.label} ↗<span className="sr-only"> (opens in a new tab)</span>
     </a>
   );
-  if (!quote) return link;
+}
+
+/** The repo's own words for a rule, closed under its source: opened by a tap, a click or the keyboard. */
+function RuleQuote({ quote }: { quote: string | null }) {
+  if (!quote) return null;
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>{link}</TooltipTrigger>
-      <TooltipContent side="bottom" className="max-w-72 text-left" data-rule-quote="">
-        “{quote}”
-      </TooltipContent>
-    </Tooltip>
+    <details data-rule-quote="" className="group text-xs">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 max-sm:min-h-11 [&::-webkit-details-marker]:hidden">
+        <span aria-hidden="true" className="transition-transform group-open:rotate-90 motion-reduce:transition-none">
+          ›
+        </span>
+        Their words
+      </summary>
+      <p className="mt-1 text-muted-foreground">“{quote}”</p>
+    </details>
   );
 }
 
 /**
- * "This repo's rules" beside the sessions (variant A): each rule in a line with its source, the repo's words behind
- * the source, then the size limits the attempt runs under, the repo's beside the user's. A repo with no rules says
- * so. Nothing while the API does not answer the rules.
+ * "This repo's rules" beside the sessions (variant A): each rule in a line with its source, the repo's words closed under
+ * it, then the size limits the attempt runs under, the repo's beside the user's setting now (left out once the attempt
+ * is finished: the setting may have changed since). A repo with no rules says so. Nothing while the API does not
+ * answer the rules.
  */
 export function AttemptRepoRules({
   rules,
   settings,
+  finished = false,
 }: {
   rules: ContributeRepoRules | null | undefined;
-  /** The user's own limits, shown beside the repo's. */
+  /** The user's own limits now, shown beside the repo's. */
   settings?: Pick<ContributeSettings, 'maxChangedLines' | 'maxFiles'> | null;
+  /** The attempt is over: its limits are shown without the user's setting now. */
+  finished?: boolean;
 }) {
   if (!rules) return null;
-  const caps = rules.caps ? capRowsOf(rules.caps, settings) : [];
+  const caps = rules.caps ? capRowsOf(rules.caps, finished ? null : settings) : [];
   const repoCaps = caps.filter(({ source }) => source);
 
   if (!rules.lines.length && !repoCaps.length) {
@@ -95,7 +102,8 @@ export function AttemptRepoRules({
         {rules.lines.map((line, index) => (
           <li key={`${line.kind}-${index}`} data-rule={line.kind} className="flex flex-col items-start gap-0.5">
             <span>{line.text}</span>
-            <RuleSource source={line.source} quote={line.quote} />
+            <RuleSource source={line.source} />
+            <RuleQuote quote={line.quote} />
           </li>
         ))}
       </ul>
@@ -111,7 +119,7 @@ export function AttemptRepoRules({
                   {cap.yours !== null ? (
                     <>
                       {' '}
-                      · yours <span className="font-mono tabular-nums">{cap.yours}</span>
+                      · your setting now <span className="font-mono tabular-nums">{cap.yours}</span>
                     </>
                   ) : null}
                 </span>

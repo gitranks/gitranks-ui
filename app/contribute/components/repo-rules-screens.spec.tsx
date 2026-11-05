@@ -36,6 +36,7 @@ import {
   maintainerConfig,
   maintainerRules,
 } from '@/lib/contribute/__fixtures__/repo-rules';
+import { settingsAfterSave } from '@/lib/contribute/repo-rules';
 
 const text = (html: string) =>
   html
@@ -59,17 +60,22 @@ describe('"This repo\'s rules" on the attempt (block A)', () => {
     expect(words).toContain('This repo’s rules 6');
     expect(words).toContain("The pull request's description says why in the contributor's own words.");
     expect(html).toContain('href="https://github.com/driftwood-js/driftwood/blob/HEAD/CONTRIBUTING.md"');
-    expect(words).toContain('Changed lines: 300 (repo) · yours 400');
-    expect(words).toContain('Files: 10 (repo) · yours 15');
+    expect(words).toContain('Changed lines: 300 (repo) · your setting now 400');
+    expect(words).toContain('Files: 10 (repo) · your setting now 15');
     expect(words).toContain("a maintainer's setting on gitranks.com");
     expect(html).toContain('href="/contribute/maintainers"');
   });
 
-  it('keeps the repo’s words behind the source link, and never says who set a value', () => {
+  it('keeps the repo’s words closed under the source, opened by a tap, and never says who set a value', () => {
     const html = block();
+    const quotes = [...html.matchAll(/<details data-rule-quote=""[^>]*>(.*?)<\/details>/g)].map(([whole]) => whole);
 
-    // The quote is the link's tooltip: drawn on hover or focus, not in the page.
-    expect(text(html)).not.toContain('Agents must not open pull requests on their own');
+    // A <details>, not a tooltip: a tap or the keyboard opens it.
+    expect(quotes).toHaveLength(4);
+    expect(quotes.every((quote) => !quote.includes(' open=""'))).toBe(true);
+    expect(text(quotes[0])).toContain(
+      'Their words “Agents must not open pull requests on their own. A person reviews and submits every change.”',
+    );
     expect(html).toContain('data-rule-source="AI_POLICY.md"');
     expect(html).toContain('data-rule-source="GitRanks maintainers page"');
     expect(html).not.toContain('mira-k');
@@ -89,6 +95,13 @@ describe('"This repo\'s rules" on the attempt (block A)', () => {
 
     expect(words).toContain('Changed lines: 400 (yours)');
     expect(words).not.toContain('(repo)');
+  });
+
+  it('leaves out the user’s setting now once the attempt is finished', () => {
+    const words = text(renderToStaticMarkup(<AttemptRepoRules rules={attemptRules()} settings={settings} finished />));
+
+    expect(words).toContain('Changed lines: 300 (repo)');
+    expect(words).not.toContain('your setting now');
   });
 
   it('shows nothing while the API does not answer the rules', () => {
@@ -223,6 +236,48 @@ describe('"Your repos": what we read and the settings', () => {
       text(extras(maintainerRepo({ config: maintainerConfig(), rules: { manualOnly: false, lines: [] } }))),
     ).toContain('Nothing yet:');
     expect(extras(maintainerRepo({}))).toBe('');
+  });
+
+  it('shows the rules a save answered under "What we read", and locks a key the file turned out to set', () => {
+    const repo = maintainerRepo({ config: maintainerConfig(), rules: maintainerRules() });
+    const before = { config: repo.config ?? [], rules: repo.rules };
+    const answered = maintainerRules({
+      lines: [{ ...maintainerRules().lines[5], text: 'At most 5 files per pull request.' }],
+    });
+    const saved = settingsAfterSave(
+      before,
+      'max_files',
+      { ok: true, data: { repoId: 'R_1', config: before.config, rules: answered } },
+      true,
+    );
+    const words = text(extras(maintainerRepo({ ...saved })));
+    expect(words).toContain('At most 5 files per pull request.');
+    expect(words).not.toContain('At most 10 files per pull request.');
+
+    const refused = settingsAfterSave(before, 'min_account_age_years', { ok: false, error: 'IN_FILE' }, true);
+    const html = extras(maintainerRepo({ ...refused }));
+    const age = html.slice(
+      html.indexOf('data-config-key="min_account_age_years"'),
+      html.indexOf('data-config-key="min_rank"'),
+    );
+    expect(age).toContain('data-config-source="FILE"');
+    expect(age).toContain('disabled=""');
+    expect(text(age)).toContain('Set in .github/gitranks.yml (read Nov 3, 2026). Change it there.');
+  });
+
+  it('links a choice’s hint to its group of pills', () => {
+    const config = maintainerConfig().map((item) =>
+      item.key === 'autopilot' ? { ...item, value: 'off', source: 'PAGE' as const, setBy: 'mira-k' } : item,
+    );
+    const html = extras(maintainerRepo({ config, rules: maintainerRules() }));
+    const autopilot = html.slice(
+      html.indexOf('data-config-key="autopilot"'),
+      html.indexOf('data-config-key="beginner_issues"'),
+    );
+    const hint = autopilot.match(/<span id="([^"]+-help)"/)?.[1];
+
+    expect(text(autopilot)).toContain('Set by @mira-k on this page.');
+    expect(autopilot).toMatch(new RegExp(`<fieldset[^>]*aria-describedby="${hint}"`));
   });
 
   it('says an opted-out repo’s settings wait until it is back in', () => {

@@ -21,7 +21,7 @@ export function useSettledPick<T>(save: (value: T) => void, ms = 350) {
     },
     [],
   );
-  return (value: T) => {
+  const pick = (value: T) => {
     clearTimeout(timer.current);
     waiting.current = { value };
     timer.current = setTimeout(() => {
@@ -29,6 +29,14 @@ export function useSettledPick<T>(save: (value: T) => void, ms = 350) {
       latest.current(value);
     }, ms);
   };
+  /** Saves the pick still waiting now (a field left, Enter pressed); nothing when none waits. */
+  const flush = () => {
+    clearTimeout(timer.current);
+    const pending = waiting.current;
+    waiting.current = null;
+    if (pending) latest.current(pending.value);
+  };
+  return Object.assign(pick, { flush });
 }
 
 /** Choices as pills: native radios, so arrows move between them and the group is read as one. */
@@ -39,6 +47,7 @@ export function RadioPills<T extends string>({
   value,
   onChange,
   className,
+  describedBy,
 }: {
   legend: ReactNode;
   legendClassName?: string;
@@ -46,10 +55,12 @@ export function RadioPills<T extends string>({
   value: T;
   onChange: (value: T) => void;
   className?: string;
+  /** The ids of the group's hint and status, read with it. */
+  describedBy?: string;
 }) {
   const id = useId();
   return (
-    <fieldset className={cn('flex flex-col gap-2', className)}>
+    <fieldset className={cn('flex flex-col gap-2', className)} aria-describedby={describedBy}>
       <legend className={cn('float-left mb-2 w-full text-sm font-medium', legendClassName)}>{legend}</legend>
       <div className="flex flex-wrap gap-1.5">
         {options.map((option) => {

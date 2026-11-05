@@ -3,7 +3,6 @@ import type { FC } from 'react';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { ClickableRow } from '@/components/ranking-table/clickable-row';
 import { RepoLink } from '@/components/repo-link/repo-link';
-import { RepoTierChip } from '@/components/repo-tier-chip/repo-tier-chip';
 import { StarCount } from '@/components/star-count/star-count';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LinkWithStopPropagation } from '@/components/user-card/components/link-with-stop-propagation';
@@ -23,7 +22,6 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
         <TableRow>
           <TableHead className="w-[100px]">Rank</TableHead>
           <TableHead>Repository</TableHead>
-          <TableHead className="hidden lg:table-cell">Tier</TableHead>
           <TableHead className="hidden md:table-cell">Language</TableHead>
           <TableHead className="text-right">Stars</TableHead>
           <TableHead className="hidden sm:table-cell text-right">Stars this month</TableHead>
@@ -32,9 +30,6 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
       <TableBody>
         {data.map((item) => {
           const { githubId, repo } = item;
-          // The global tier on every list, as on the repository page: most languages have no tier table of their own.
-          // It shows in the Tier column only: neighbouring rows share a tier, so an avatar badge would repeat down the page.
-          const { tier } = item;
 
           if (!repo) {
             return null;
@@ -58,7 +53,6 @@ export const RepoRankingTable: FC<RepoRankingTableProps> = ({ data, rankProp = '
                   )}
                 </div>
               </TableCell>
-              <TableCell className="hidden lg:table-cell">{!!tier && <RepoTierChip tier={tier} />}</TableCell>
               <TableCell className="hidden md:table-cell">
                 {repo.language && (
                   <LinkWithStopPropagation

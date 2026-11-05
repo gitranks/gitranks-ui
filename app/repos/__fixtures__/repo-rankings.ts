@@ -19,8 +19,6 @@ const row = (
     sM: rankM,
     l: null,
     lM: null,
-    tier: { tier: 5, level: 3 },
-    languageTier: null,
     repo: {
       githubId: `R_${owner}_${name}`,
       owner,

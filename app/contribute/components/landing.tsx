@@ -105,7 +105,7 @@ const DEFAULTS = [
   { title: 'The agent', text: 'Which models it uses and how large a pull request may get.' },
   {
     title: 'Your review',
-    text: 'Every pull request waits for you. After three of yours are merged you can turn on autopilot, if you want it.',
+    text: 'Every pull request waits for you. Autopilot opens about a month after launch, and only if you turn it on.',
   },
   {
     title: 'Leaving',

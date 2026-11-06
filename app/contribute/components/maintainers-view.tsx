@@ -47,16 +47,16 @@ const SMALL = 'text-[13px] leading-normal text-muted-foreground';
 const STEPS = [
   { title: 'An issue you want fixed', text: 'Open, nobody assigned, no PR yet, and your docs allow AI help.' },
   {
-    title: 'Claude Opus reads it and writes the fix',
+    title: 'An AI agent reads it and writes the fix',
     text: 'It reads the whole thread and your CONTRIBUTING, proves the bug with a failing test, then makes it pass.',
   },
   {
-    title: 'A person reviews every line',
+    title: 'A person reviews the change',
     text: 'On GitRanks, before anything reaches GitHub. They can send it back or drop it.',
   },
   {
     title: 'One pull request, in their name',
-    text: 'It says it was made with AI. They answer your review, not a bot.',
+    text: 'It says it was made with AI. Replies to your review are theirs: an agent may draft one, and they approve it first.',
   },
 ];
 
@@ -301,11 +301,11 @@ function Hero({ facts }: { facts: ContributeMaintainerFacts | null }) {
     'A bot answers your review, or nobody does',
   ];
   const good = [
-    'Claude Opus reads the thread and writes the fix',
-    'A person reviewed every line and submitted it',
+    'An AI agent reads the thread and writes the fix',
+    'A person reviewed the change and submitted it',
     facts && `${facts.attemptsPerRepo} at a time in your repo, ${facts.prsPerMonth} in ${facts.monthDays} days at most`,
     'Your rules first: a “no AI” keeps us out',
-    'The author answers your review themselves',
+    'The author approves every reply to your review',
   ].filter((item): item is string => !!item);
   return (
     <section aria-labelledby="maintainers-title" className="flex flex-col gap-6">
@@ -380,7 +380,7 @@ function LimitTiles({ facts }: { facts: ContributeMaintainerFacts }) {
       title: 'closed in a row',
       text: `pause us for ${countOf(facts.pauseDays, 'day', 'days')}, no ask needed`,
     },
-    { count: 0, title: 'bot comments', text: 'every reply comes from the PR’s author' },
+    { count: 0, title: 'bot comments', text: 'every reply is the PR author’s: an agent may draft it, they approve it' },
     { count: 0, title: 'CI or workflow edits', text: 'nor license files or unrelated lockfiles' },
   ];
   return (

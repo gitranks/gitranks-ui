@@ -380,7 +380,7 @@ function LimitTiles({ facts }: { facts: ContributeMaintainerFacts }) {
       title: 'closed in a row',
       text: `pause us for ${countOf(facts.pauseDays, 'day', 'days')}, no ask needed`,
     },
-    { count: 0, title: 'bot comments', text: 'every reply is the PR author’s: an agent may draft it, they approve it' },
+    { count: 0, title: 'replies without their OK', text: 'an agent may draft one; the PR’s author approves each' },
     { count: 0, title: 'CI or workflow edits', text: 'nor license files or unrelated lockfiles' },
   ];
   return (

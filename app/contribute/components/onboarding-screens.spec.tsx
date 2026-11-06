@@ -92,7 +92,7 @@ describe('the landing', () => {
     // GitHub access: asked at the first submit, public_repo only.
     expect(plain).toContain('On your first submit we ask GitHub for one permission, public_repo');
     expect(plain).toContain('Nothing on private repos, never workflow files');
-    // The maintainers' rails, and autopilot after three merged pull requests.
+    // The maintainers' rails, and autopilot opening about a month after launch.
     expect(plain).toContain(
       'We open at most one PR in a repo at a time, never more than four a month, and pause after two are closed in a row',
     );

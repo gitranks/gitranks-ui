@@ -87,6 +87,13 @@ describe('a run in words', () => {
     expect(runReasonOf(run({ outcome: 'CHECKS_FAILED', endDetail: 'tests_passed' }))).toBe('The tests did not pass');
     expect(runReasonOf(run({ outcome: 'NOT_STARTED', endDetail: 'ref_pr' }))).toBe('Another PR already references it');
     expect(runReasonOf(run({ outcome: 'NOT_STARTED', endDetail: 'brand_new' }))).toBe('brand new');
+    // A claim the repo's rules refused ends discarded (cancelled, the gate's reason): the rule, in a line.
+    expect(runReasonOf(run({ outcome: 'DISCARDED', endReason: 'CANCELLED', endDetail: 'repo_coordinate_first' }))).toBe(
+      'No maintainer has agreed to the issue yet',
+    );
+    expect(runReasonOf(run({ outcome: 'DISCARDED', endReason: 'CANCELLED', endDetail: null }))).toBe(
+      'It was cancelled before it finished.',
+    );
     expect(runReasonOf(run({ outcome: 'STOPPED', endReason: 'BUDGET' }))).toMatch(/limit for one attempt/);
   });
 

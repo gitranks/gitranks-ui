@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { editableBodyOf, endMoveOf, footerPreviewOf } from './attempt-format';
+import { editableBodyOf, endMoveOf, endReasonLabelOf, footerPreviewOf } from './attempt-format';
 import type { ContributeAttemptEndReason } from './contribute.types';
 
 const FOOTER =
@@ -79,5 +79,34 @@ describe('endMoveOf: what the user does after an attempt ended', () => {
     expect(run('TIMEOUT')).toBeNull();
     expect(run('CHECKS_FAILED')).toBeNull();
     expect(run('CHECKS_FAILED', 'max_changed_lines')).not.toBeNull();
+  });
+});
+
+describe("a claim the repo's rules refused at the start", () => {
+  const refused = (endDetail: string | null, endReason: ContributeAttemptEndReason = 'CANCELLED') => ({
+    endReason,
+    endDetail,
+  });
+
+  it('says which rule and what the user can do, for every gate reason', () => {
+    for (const reason of [
+      'blocked_by_maintainer',
+      'contributor_bar',
+      'repo_no_gfi',
+      'repo_coordinate_first',
+      'repo_issue_gate',
+      'first_timers',
+      'repo_open_cap',
+    ]) {
+      expect(endReasonLabelOf(refused(reason))).toMatch(/so the agent did not start\.$/);
+      expect(endMoveOf(refused(reason))?.text).toBeTruthy();
+    }
+    expect(endMoveOf(refused('repo_coordinate_first'))?.text).toMatch(/ask on the issue/);
+  });
+
+  it('keeps the plain words for any other cancel', () => {
+    expect(endReasonLabelOf(refused(null))).toBe('It was cancelled before it finished.');
+    expect(endReasonLabelOf(refused('something_else'))).toBe('It was cancelled before it finished.');
+    expect(endMoveOf(refused('repo_no_gfi', 'USER'))).toBeNull();
   });
 });

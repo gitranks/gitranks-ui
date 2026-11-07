@@ -2,6 +2,7 @@ import {
   AGENT_NAMES,
   CHECK_LABELS,
   checkLimitOf,
+  claimRefusedOf,
   detailText,
   END_REASONS,
   endReasonLabelOf,
@@ -324,7 +325,8 @@ export function runReasonOf(run: ContributeRun): string {
     case 'NOT_STARTED':
       return (run.endDetail && NOT_STARTED[run.endDetail]) || detailText(run.endDetail) || END_REASONS.CLAIM_LOST;
     default:
-      return endReasonLabelOf(run) ?? detailText(run.endDetail);
+      // A claim the repo's rules refused (discarded at the start, nothing spent): which rule, in a line.
+      return claimRefusedOf(run)?.line ?? endReasonLabelOf(run) ?? detailText(run.endDetail);
   }
 }
 

@@ -154,6 +154,63 @@ const OVER_LIMIT: Record<string, EndMove> = {
   },
 };
 
+/**
+ * A claim the repo's maintainers refused when the agent came to start it (the claim gate, `CANCELLED` with the gate's
+ * reason as `endDetail`): why, and what the user can do. The issue was never worked on and nothing was spent.
+ */
+export const CLAIM_REFUSED: Record<string, { why: string; line: string; move: EndMove }> = {
+  blocked_by_maintainer: {
+    why: "The repo's maintainers take no more pull requests from you through GitRanks, so the agent did not start.",
+    line: 'Its maintainers take no more PRs from you',
+    move: { text: 'Nothing waits on you: the next attempt takes an issue in another repo.' },
+  },
+  contributor_bar: {
+    why: "The repo's maintainers take GitRanks pull requests only from GitHub accounts old enough and GitRanks developers of a high enough tier, and yours falls short of one of these (or is not known yet), so the agent did not start.",
+    line: "Below its maintainers' bar for account age or tier",
+    move: { text: 'Nothing waits on you: the next attempt takes an issue in another repo.' },
+  },
+  repo_no_gfi: {
+    why: 'The repo keeps its good first issues for people working without AI tools, and this issue is one, so the agent did not start.',
+    line: 'The repo keeps good first issues for people',
+    move: { text: 'Nothing waits on you: the next attempt takes another issue.' },
+  },
+  repo_coordinate_first: {
+    why: 'The repo wants a pull request only on an issue a maintainer has agreed to, and no maintainer has agreed to this one yet, so the agent did not start.',
+    line: 'No maintainer has agreed to the issue yet',
+    move: {
+      text: 'To work on it, ask on the issue on GitHub whether a fix is welcome, and start it again once a maintainer agrees.',
+    },
+  },
+  repo_issue_gate: {
+    why: "A workflow in the repo closes pull requests on issues not assigned to their author, or without its maintainers' approval label, so the agent did not start.",
+    line: "The repo's workflow wants the issue assigned or approved first",
+    move: {
+      text: 'To work on it, ask on the issue on GitHub to be assigned, or for a maintainer to approve it, then start it again.',
+    },
+  },
+  first_timers: {
+    why: 'The repo takes AI-assisted pull requests only from people who already had a pull request merged there, and you have none yet (or yours could not be read), so the agent did not start.',
+    line: 'The repo wants a merged PR of yours first',
+    move: { text: 'Nothing waits on you: the next attempt takes an issue in another repo.' },
+  },
+  repo_open_cap: {
+    why: 'The repo takes only so many open pull requests at once, from you or from GitRanks, and that many are open there, so the agent did not start.',
+    line: "The repo's limit of open PRs is reached",
+    move: {
+      text: "Nothing waits on you: once one of those pull requests is merged or closed, the repo's issues can be taken again.",
+    },
+  },
+};
+
+/** The gate's refusal an attempt ended with, or undefined. */
+export const claimRefusedOf = (attempt: {
+  endReason: ContributeAttemptEndReason | null | undefined;
+  endDetail?: string | null;
+}) =>
+  attempt.endReason === 'CANCELLED' && attempt.endDetail
+    ? CLAIM_REFUSED[attempt.endDetail.trim().toLowerCase()]
+    : undefined;
+
 /** The ends whose move comes before the next follow-up too: the rest of a follow-up's are its page's own words. */
 const BEFORE_NEXT_RUN = new Set<ContributeAttemptEndReason>(['BUDGET', 'KEY_INVALID', 'EXHAUSTED', 'LIMIT_REACHED']);
 
@@ -169,6 +226,8 @@ export function endMoveOf(
 ): EndMove | null {
   const { endReason, kind } = attempt;
   if (!endReason || !Object.hasOwn(END_MOVES, endReason)) return null;
+  const refused = claimRefusedOf(attempt);
+  if (refused) return refused.move;
   const over = endReason === 'CHECKS_FAILED' ? OVER_LIMIT[String(attempt.endDetail ?? '').toLowerCase()] : undefined;
   if (over) return over;
   if (kind === 'FOLLOW_UP' && !BEFORE_NEXT_RUN.has(endReason)) return null;
@@ -215,11 +274,19 @@ type ReviewWaitFields = { runner?: ContributeAttemptRunner | null; kind?: Contri
 export const reviewWaitOf = (attempt: ReviewWaitFields): string =>
   isOwnAgent(attempt) && attempt.kind !== 'FOLLOW_UP' ? '48 hours' : 'seven days';
 
-/** Why an attempt ended, as `END_REASONS` says it; a review that ran out names the wait the attempt had. */
+/**
+ * Why an attempt ended, as `END_REASONS` says it; a review that ran out names the wait the attempt had, a claim the
+ * repo's rules refused says which rule.
+ */
 export function endReasonLabelOf(
-  attempt: ReviewWaitFields & { endReason: ContributeAttemptEndReason | null | undefined },
+  attempt: ReviewWaitFields & {
+    endReason: ContributeAttemptEndReason | null | undefined;
+    endDetail?: string | null;
+  },
 ): string | null {
   if (!attempt.endReason) return null;
+  const refused = claimRefusedOf(attempt);
+  if (refused) return refused.why;
   if (attempt.endReason === 'REVIEW_EXPIRED') {
     return `It waited ${reviewWaitOf(attempt)} for a review, so it was let go.`;
   }

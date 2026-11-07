@@ -503,6 +503,19 @@ describe('the review screen', () => {
     expect(html).not.toContain('data-pr-form');
   });
 
+  it("names the repo's rule and the user's move when the claim gate refused the attempt at its start", () => {
+    const html = review({ ...attempts.discarded, endReason: 'CANCELLED', endDetail: 'repo_coordinate_first' });
+    const plain = text(html);
+
+    expect(html).toContain('data-attempt-status="DISCARDED"');
+    expect(plain).toContain('no maintainer has agreed to this one yet, so the agent did not start.');
+    expect(plain).toContain('Nothing was submitted.');
+    expect(plain).not.toContain('went back to the pool');
+    expect(plain).toContain('What to do: To work on it, ask on the issue on GitHub');
+    // Any other discard keeps its words and no move.
+    expect(text(review(attempts.discarded))).not.toContain('What to do');
+  });
+
   it('says what is not available yet while the agent works', () => {
     const plain = text(review(attempts.running));
 

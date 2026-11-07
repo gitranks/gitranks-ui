@@ -165,7 +165,7 @@ export const CLAIM_REFUSED: Record<string, { why: string; line: string; move: En
     move: { text: 'Nothing waits on you: the next attempt takes an issue in another repo.' },
   },
   contributor_bar: {
-    why: "The repo's maintainers take GitRanks pull requests only from GitHub accounts of a minimum age or developers of a minimum GitRanks tier, and yours is below that bar (or not known yet), so the agent did not start.",
+    why: "The repo's maintainers take GitRanks pull requests only from GitHub accounts old enough and GitRanks developers of a high enough tier, and yours falls short of one of these (or is not known yet), so the agent did not start.",
     line: "Below its maintainers' bar for account age or tier",
     move: { text: 'Nothing waits on you: the next attempt takes an issue in another repo.' },
   },
@@ -197,7 +197,7 @@ export const CLAIM_REFUSED: Record<string, { why: string; line: string; move: En
     why: 'The repo takes only so many open pull requests at once, from you or from GitRanks, and that many are open there, so the agent did not start.',
     line: "The repo's limit of open PRs is reached",
     move: {
-      text: 'Nothing waits on you: once one of those pull requests is merged or closed, its issues can be taken again.',
+      text: "Nothing waits on you: once one of those pull requests is merged or closed, the repo's issues can be taken again.",
     },
   },
 };

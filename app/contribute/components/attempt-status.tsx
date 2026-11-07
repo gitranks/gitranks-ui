@@ -11,6 +11,7 @@ import {
   ATTEMPT_STATES,
   checkLimitOf,
   detailText,
+  claimRefusedOf,
   endMoveOf,
   endReasonLabelOf,
   endReasonTextOf,
@@ -517,16 +518,21 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
         </Box>
       );
     }
-    case 'DISCARDED':
+    case 'DISCARDED': {
+      // A claim the repo's rules refused: the issue left the pool for this user (or for everyone), so no "back to the
+      // pool", and the user's move instead.
+      const refused = claimRefusedOf(attempt);
       return (
         <Box state="DISCARDED" tone="muted">
           <Title>Discarded</Title>
           <Text>
             <span data-end-reason={attempt.endReason ?? ''}>{endReasonLabelOf(attempt) ?? 'It was discarded.'}</span>{' '}
-            The issue went back to the pool, and nothing was submitted.
+            {refused ? 'Nothing was submitted.' : 'The issue went back to the pool, and nothing was submitted.'}
           </Text>
+          {refused ? <EndMoveNote attempt={attempt} /> : null}
         </Box>
       );
+    }
     default:
       // A state this UI does not know yet: its name, and nothing it cannot back up.
       return (

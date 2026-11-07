@@ -86,8 +86,7 @@ export function McpDocsScreen() {
             </li>
             <li>
               Save it in your environment as <code className="font-mono text-sm">{MCP_TOKEN_ENV}</code>, where the
-              setups below read it. On Antigravity and VS Code, skip this: Antigravity's setup holds the token, and VS
-              Code asks for it itself.
+              setups below read it. On Antigravity, skip this: its setup holds the token.
             </li>
           </ol>
           {MCP_DOC_SAVES.map(({ os, name, shell, line, note }) => (

@@ -68,7 +68,7 @@ const vsCodeLines = JSON.stringify(
   2,
 );
 const VS_CODE_WHERE =
-  "Add this to Copilot's MCP file, or to .mcp.json at your project's root. VS Code reads the token from your environment when it starts, so quit it fully and open it again after you save the token. Then use Agent mode in chat.";
+  "Add this to Copilot's MCP file (%USERPROFILE%\\.copilot\\mcp-config.json on Windows; $COPILOT_HOME/mcp-config.json if you set COPILOT_HOME), or to .mcp.json at your project's root. VS Code reads the token from your environment when it starts, so quit it fully and open it again after you save the token. Then use Agent mode in chat.";
 const VS_CODE: McpDocClient = {
   id: 'vs-code',
   name: 'VS Code',
@@ -76,7 +76,6 @@ const VS_CODE: McpDocClient = {
   label: '~/.copilot/mcp-config.json',
   file: true,
   lines: vsCodeLines,
-  windows: { where: VS_CODE_WHERE, label: '%USERPROFILE%\\.copilot\\mcp-config.json', lines: vsCodeLines },
 };
 
 /** The clients the docs show, in the connect flow's order, then VS Code. */

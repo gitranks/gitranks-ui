@@ -47,26 +47,36 @@ function connectClientOf(client: McpClient): McpDocClient {
 }
 
 /**
- * VS Code asks for the token once and keeps it in its own secret storage (an `inputs` entry with `password: true`),
- * so nothing is saved in the environment or the file. Docs-only: the connect flow does not offer it yet.
+ * VS Code's Copilot reads the portable MCP file (`mcpServers`): `~/.copilot/mcp-config.json`, or `.mcp.json` at a
+ * workspace root. It takes no `${input:…}` prompt (a password input is not forwarded to it, and VS Code marks such a
+ * `.vscode/mcp.json` server "Unsupported"), so the header reads the token from the environment like the other
+ * clients; VS Code reads the environment when it starts. Checked live in VS Code on 2026-11-07. Docs-only: the
+ * connect flow does not offer it yet.
  */
+const vsCodeLines = JSON.stringify(
+  {
+    mcpServers: {
+      gitranks: {
+        type: 'http',
+        url: MCP_URL,
+        headers: { Authorization: `Bearer \${${MCP_TOKEN_ENV}}` },
+        tools: ['*'],
+      },
+    },
+  },
+  null,
+  2,
+);
+const VS_CODE_WHERE =
+  "Add this to Copilot's MCP file, or to .mcp.json at your project's root. VS Code reads the token from your environment when it starts, so quit it fully and open it again after you save the token. Then use Agent mode in chat.";
 const VS_CODE: McpDocClient = {
   id: 'vs-code',
   name: 'VS Code',
-  where:
-    'Add this to your user MCP file (Command Palette → "MCP: Open User Configuration") or to .vscode/mcp.json. VS Code asks for the token the first time it starts the server.',
-  label: 'mcp.json',
+  where: VS_CODE_WHERE,
+  label: '~/.copilot/mcp-config.json',
   file: true,
-  lines: JSON.stringify(
-    {
-      inputs: [{ type: 'promptString', id: 'gitranks-token', description: 'GitRanks token', password: true }],
-      servers: {
-        gitranks: { type: 'http', url: MCP_URL, headers: { Authorization: `Bearer \${input:gitranks-token}` } },
-      },
-    },
-    null,
-    2,
-  ),
+  lines: vsCodeLines,
+  windows: { where: VS_CODE_WHERE, label: '%USERPROFILE%\\.copilot\\mcp-config.json', lines: vsCodeLines },
 };
 
 /** The clients the docs show, in the connect flow's order, then VS Code. */

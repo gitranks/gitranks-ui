@@ -31,8 +31,10 @@ describe('the MCP docs', () => {
       expect(MCP_DOC_CLIENTS.find(({ id }) => id === client)?.lines).toBe(mcpSetupLinesOf(client, 'mac'));
     }
     const vsCode = JSON.parse(MCP_DOC_CLIENTS.find(({ id }) => id === 'vs-code')?.lines ?? '{}');
-    expect(vsCode.inputs[0]).toMatchObject({ type: 'promptString', password: true });
-    expect(vsCode.servers.gitranks.headers.Authorization).toBe(`Bearer \${input:gitranks-token}`);
+    // Copilot's portable file: no `${input:…}` prompt (VS Code marks it unsupported), the token from the environment.
+    expect(vsCode.inputs).toBeUndefined();
+    expect(vsCode.mcpServers.gitranks).toMatchObject({ type: 'http', url: 'https://mcp.gitranks.com/mcp' });
+    expect(vsCode.mcpServers.gitranks.headers.Authorization).toBe(`Bearer \${GITRANKS_MCP_TOKEN}`);
   });
 
   it('save the token per OS, never with a real one', () => {
@@ -60,7 +62,7 @@ describe('the MCP docs', () => {
     expect(antigravity?.where).toContain('in place of <your GitRanks token>');
     expect(antigravity?.windows?.label).toBe('%USERPROFILE%\\.gemini\\config\\mcp_config.json');
     expect(text(renderToStaticMarkup(<McpDocsScreen />))).toContain(
-      "On Antigravity and VS Code, skip this: Antigravity's setup holds the token",
+      'On Antigravity, skip this: its setup holds the token',
     );
   });
 });

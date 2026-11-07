@@ -10,8 +10,8 @@ import { LiveSubmit, SubmitStepsSettled, TryAgainButton } from './submit-stepper
 import {
   ATTEMPT_STATES,
   checkLimitOf,
-  detailText,
   claimRefusedOf,
+  detailText,
   endMoveOf,
   endReasonLabelOf,
   endReasonTextOf,

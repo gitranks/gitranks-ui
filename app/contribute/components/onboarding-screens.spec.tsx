@@ -94,7 +94,7 @@ describe('the landing', () => {
     expect(plain).toContain('Nothing on private repos, never workflow files');
     // The maintainers' rails, and autopilot opening about a month after launch.
     expect(plain).toContain(
-      'We open at most one PR in a repo at a time, never more than four a month, and pause after two are closed in a row',
+      'We open at most one PR in a repo at a time, never more than four a month, and take a repo out of the shared pool for 90 days after two misses there within 90 days: a PR no one answers for 30 days, or one closed as wrong, low quality or harshly.',
     );
     expect(plain).toContain('Autopilot opens about a month after launch, and only if you turn it on');
     // The plans by their current names, and auto-reload's real money.

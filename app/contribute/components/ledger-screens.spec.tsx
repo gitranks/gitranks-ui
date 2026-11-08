@@ -18,6 +18,10 @@ describe('LedgerScreen', () => {
     expect(html).toContain('https://github.com/quill-charts/quill/pull/88');
     expect(html).toContain('Closed');
     expect(html).toContain('Not now');
+    expect(html).toContain(
+      '“Not now”: the repo said no, or a maintainer closed one of our pull requests saying the project takes no AI-made pull requests, or asking us to stay away.',
+    );
+    expect(html).not.toMatch(/60 days|in a row/);
     expect(html).not.toMatch(/Paused to|AI policy says no<\/td>/);
   });
 

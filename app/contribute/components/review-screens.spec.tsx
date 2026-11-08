@@ -503,6 +503,30 @@ describe('the review screen', () => {
     expect(html).not.toContain('data-pr-form');
   });
 
+  it("shows the claim's check step by step while it starts, a failed read with its word", () => {
+    const at = '2026-11-08T12:00:00.000Z';
+    const html = review({
+      ...attempts.queued,
+      state: 'CLAIMING',
+      claimSteps: [
+        { key: 'issue', words: 'Reading the issue and its timeline', at, state: 'done' },
+        { key: 'policy', words: "Reading the repository's rules", at, state: 'failed' },
+        { key: 'conventions', words: "Reading the repository's conventions", at, state: 'running' },
+      ],
+    });
+    const plain = text(html);
+
+    expect(html).toContain('data-attempt-status="CLAIMING"');
+    expect(html).toContain('data-claim-step="conventions" data-state="running"');
+    expect(plain).toContain('Reading the issue and its timeline');
+    expect(plain).toContain("Reading the repository's rules (failed)");
+    expect(plain.indexOf('timeline')).toBeLessThan(plain.indexOf('conventions'));
+
+    // An API without steps, or none yet: the box as before.
+    expect(review({ ...attempts.queued, state: 'CLAIMING' })).not.toContain('data-claim-steps');
+    expect(review({ ...attempts.queued, state: 'CLAIMING', claimSteps: [] })).not.toContain('data-claim-steps');
+  });
+
   it("names the repo's rule and the user's move when the claim gate refused the attempt at its start", () => {
     const html = review({ ...attempts.discarded, endReason: 'CANCELLED', endDetail: 'repo_coordinate_first' });
     const plain = text(html);

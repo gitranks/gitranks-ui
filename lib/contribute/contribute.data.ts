@@ -5,6 +5,7 @@ import { cache } from 'react';
 import {
   ContributeActivityDocument,
   ContributeAttemptCheckStopDocument,
+  ContributeAttemptClaimStepsDocument,
   ContributeAttemptConventionsDocument,
   ContributeAttemptDcoDocument,
   ContributeAttemptDecisionsDocument,
@@ -569,6 +570,10 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   const repoRules = Promise.resolve(graphqlDirect(ContributeAttemptRepoRulesDocument, { id }, options)).catch(
     () => undefined,
   );
+  // The claim's check, step by step; left out when not answered.
+  const claimSteps = Promise.resolve(graphqlDirect(ContributeAttemptClaimStepsDocument, { id }, options)).catch(
+    () => undefined,
+  );
   try {
     const { contributeAttempt: read } = await review;
     if (!read) return read;
@@ -640,15 +645,20 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
       rulesRead?.attemptId === contributeAttempt.attemptId && rulesRead.repoRules !== undefined
         ? { ...withProofOnly, repoRules: rulesRead.repoRules ?? null }
         : withProofOnly;
+    const stepsRead = (await claimSteps)?.contributeAttempt;
+    const withSteps =
+      stepsRead?.attemptId === contributeAttempt.attemptId && Array.isArray(stepsRead.claimSteps)
+        ? { ...withRules, claimSteps: stepsRead.claimSteps }
+        : withRules;
     const holdRead = (await hold)?.contributeAttempt;
     const withProof =
       holdRead?.attemptId === contributeAttempt.attemptId && holdRead.newcomersLabel !== undefined
         ? {
-            ...withRules,
+            ...withSteps,
             reviewReasonSource: holdRead.reviewReasonSource ?? null,
             newcomersLabel: holdRead.newcomersLabel ?? null,
           }
-        : withRules;
+        : withSteps;
     const agent = (await ownAgent)?.contributeAttempt;
     if (agent?.attemptId !== contributeAttempt.attemptId) return withProof;
     const { result, ...fields } = agent;

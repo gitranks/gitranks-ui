@@ -66,7 +66,7 @@ export function PreferencesSection({
   modes = false,
 }: {
   preferences: ContributePreferences | null;
-  /** The modes are shown: these are filters on top of them. */
+  /** What the user works on loaded: these are filters on top of the mode. */
   modes?: boolean;
 }) {
   const router = useRouter();

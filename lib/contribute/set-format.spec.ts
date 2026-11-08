@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { fullReposSet, resolve, setRepo, stackSet } from './__fixtures__/contribute-sets';
-import { contributeModesShown } from './modes-gate';
 import {
   addNoticeOf,
   addTargetOf,
@@ -17,17 +16,6 @@ import {
 } from './set-format';
 
 const noSkips = { ignored: 0, duplicate: 0, unsupported: [], failed: [] };
-
-describe('who sees the modes', () => {
-  it('only the logins they are open to, in any case', () => {
-    expect(contributeModesShown('maslianok')).toBe(true);
-    expect(contributeModesShown('Maslianok')).toBe(true);
-    expect(contributeModesShown('octocat')).toBe(false);
-    expect(contributeModesShown('')).toBe(false);
-    expect(contributeModesShown(null)).toBe(false);
-    expect(contributeModesShown(undefined)).toBe(false);
-  });
-});
 
 describe('the add notice', () => {
   const list = { count: 50, cap: 50, rules: 'work' as const, listed: [] as string[] };

@@ -1,7 +1,6 @@
 'use server';
 
 import { agentConnectedOf } from '@/lib/contribute/agent-connect';
-import { anyActive, runsOf } from '@/lib/contribute/agent-runs';
 import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
 import { viewerEmail, viewerLogin } from '@/lib/contribute/contribute.data';
 import {
@@ -103,7 +102,6 @@ import { FOLLOW_UP_NOTE_MAX, PR_SIGNAL_KINDS } from '@/lib/contribute/follow-up-
 import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
 import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
-import { activityFor, contributeModesShown } from '@/lib/contribute/modes-gate';
 import {
   type ContributeConventionsFields,
   type ContributePrFixKind,
@@ -677,7 +675,7 @@ export async function retryContributeProof(id: string): Promise<ContributeAction
   return run(RetryContributeProofDocument, { id: String(id) }, (data) => proofMoved(data.retryContributeProof));
 }
 
-/** What the user works on: shown, and so written, only for the logins the modes are open to. */
+/** What the user works on: the mode, the lists and the ignored repos. */
 async function runSet<TData, TVariables extends Record<string, unknown>, T>(
   document: DocumentNode<TData, TVariables>,
   variables: TVariables | undefined,
@@ -685,7 +683,6 @@ async function runSet<TData, TVariables extends Record<string, unknown>, T>(
 ): Promise<ContributeSetActionResult<T>> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
-  if (!contributeModesShown(githubLogin)) return { ok: false, error: 'NOT_FOUND' };
   try {
     const accountEmail = await accountEmailFor(document as DocumentNode<unknown, never>);
     const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
@@ -723,13 +720,12 @@ const oneOf = <T extends string>(values: readonly T[], value: unknown): value is
 
 const invalid = (message: string) => ({ ok: false as const, error: 'INVALID' as const, message });
 
-/** What the API is working on for the user now; null when the modes are not shown to them. */
 const VERSION = /^\d{1,15}\.\d{1,15}$/;
 
 /**
  * Contribute's one poll: what moved since `since` (a version a previous read answered; null for none). The work in
  * progress is read in the same call when `withActivity`, when a long read may run, or when it may have started or
- * ended; a failed read of it leaves it out. For a login the modes are not shown to, it holds the agent runs alone.
+ * ended; a failed read of it leaves it out.
  * Null when the API hides Contribute from the user.
  */
 export async function readContributeChanges(
@@ -757,14 +753,9 @@ export async function readContributeChanges(
       source: 'client',
       githubLogin,
     });
-    // The reads of the modes only for a login they are shown to; the agent runs for everyone. For the others, only an
-    // agent at work holds the poll fast: their hidden reads never do.
-    const activity = activityFor(githubLogin, contributeActivity);
-    if (contributeModesShown(githubLogin)) return { ok: true, data: { changes, activity } };
-    return { ok: true, data: { changes: { ...changes, activity: anyActive(runsOf(activity)) }, activity } };
+    return { ok: true, data: { changes, activity: contributeActivity } };
   } catch {
-    if (contributeModesShown(githubLogin)) return { ok: true, data: { changes } };
-    return { ok: true, data: { changes: { ...changes, activity: false } } };
+    return { ok: true, data: { changes } };
   }
 }
 

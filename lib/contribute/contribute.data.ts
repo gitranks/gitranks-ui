@@ -85,7 +85,6 @@ import type {
 import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
 import { ISSUES_PAGE_SIZE } from './live-issues';
-import { activityFor, contributeModesShown } from './modes-gate';
 import {
   IN_FLIGHT_READ,
   IN_FLIGHT_STATES,
@@ -315,17 +314,17 @@ export async function loadIssues(
 }
 
 /**
- * What the signed-in user works on: the mode, the lists and the ignored repos. Null when the modes are not shown to
- * them (nothing is asked then) or the API hides them; `undefined` when the API does not answer. Read once per request.
+ * What the signed-in user works on: the mode, the lists and the ignored repos. Null when signed out (nothing is asked
+ * then) or the API hides them; `undefined` when the API does not answer. Read once per request.
  */
 export const loadContributeSet = cache(async (): Promise<ContributeSet | null | undefined> => {
   const githubLogin = await viewerLogin();
-  if (!contributeModesShown(githubLogin)) return null;
+  if (!githubLogin) return null;
 
   try {
     const { contributeSet } = await graphqlDirect(ContributeSetDocument, undefined, {
       source: 'ssr',
-      githubLogin: githubLogin as string,
+      githubLogin,
     });
     return contributeSet;
   } catch {
@@ -334,9 +333,8 @@ export const loadContributeSet = cache(async (): Promise<ContributeSet | null | 
 });
 
 /**
- * What the API is working on for the signed-in user: new repos read, the stack worked out (only when the modes are
- * shown to them: `activityFor`), and their agent runs. Null when the API hides it or does not answer: no activity is
- * shown then. Read once per request.
+ * What the API is working on for the signed-in user: new repos read, the stack worked out, and their agent runs.
+ * Null when the API hides it or does not answer: no activity is shown then. Read once per request.
  */
 export const loadContributeActivity = cache(async (): Promise<ContributeActivity | null> => {
   const githubLogin = await viewerLogin();
@@ -347,7 +345,7 @@ export const loadContributeActivity = cache(async (): Promise<ContributeActivity
       source: 'ssr',
       githubLogin,
     });
-    return activityFor(githubLogin, contributeActivity);
+    return contributeActivity;
   } catch {
     return null;
   }

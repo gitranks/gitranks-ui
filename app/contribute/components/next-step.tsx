@@ -14,7 +14,14 @@ import { HiddenAt } from './shown-session';
 import { Button } from '@/components/ui/button';
 import { editableBodyOf, githubUrlOf, isOwnAgent, timeLabel } from '@/lib/contribute/attempt-format';
 import type { ContributeAttemptDetail, ContributePrSignal, ContributeView } from '@/lib/contribute/contribute.types';
-import { autopilotLineOf, FILLED_NOTE_HINT, signalText } from '@/lib/contribute/follow-up-format';
+import {
+  autopilotLineOf,
+  FILLED_NOTE_HINT,
+  repoOutTextOf,
+  signalText,
+  silentCloseDayOf,
+  silentTextOf,
+} from '@/lib/contribute/follow-up-format';
 import { relativeLabel, usd } from '@/lib/contribute/format';
 import { clipped } from '@/lib/contribute/needs-you';
 import { type NextStep, nextStepOf, type RunFinding, type UserMove, yourMoveOf } from '@/lib/contribute/next-step';
@@ -328,6 +335,105 @@ function TitleCard({ move, first, primary }: CardProps & { move: Extract<UserMov
   );
 }
 
+/**
+ * The repo left Contribute (a maintainer's word when closing a PR, or our PRs left unanswered): the pull request stays
+ * open until someone closes it, and whether to is the user's call.
+ */
+function RepoOutCard({ move, first, primary, now }: CardProps & { move: Extract<UserMove, { kind: 'repo-out' }> }) {
+  const pr = first.pullRequest;
+  const url = githubUrlOf(pr?.url);
+  const misses = move.reason === 'pr_misses';
+  const when = relativeLabel(move.at, now);
+  return (
+    <MoveCard
+      tone="amber"
+      name="repo-out"
+      heading="Your move: close the pull request, or keep it open"
+      pill={<Pill tone="amber">Repo out of Contribute</Pill>}
+    >
+      <p className="text-sm break-words" data-repo-out={move.reason ?? ''}>
+        <span className="font-semibold">{repoOutTextOf(move.reason)}</span>
+        {when ? <span className="text-muted-foreground"> · {when}</span> : null}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {misses
+          ? 'GitRanks suggests none of its issues to others for now. This pull request stays open until you or a maintainer close it, and no run is offered for this.'
+          : 'GitRanks sends nothing more there: no issue is picked and no pull request opened. This one stays open until you or a maintainer close it, and no run is offered for this.'}
+      </p>
+      <Steps
+        steps={[
+          `${misses ? 'No longer want it? Open' : 'To close it, open'} PR #${pr?.number ?? ''} on GitHub and click Close pull request at the bottom; this leaves Needs you at the next read.`,
+          'To keep it open, click Keep it open: this leaves Needs you.',
+        ]}
+      />
+      <div className="flex flex-wrap items-start gap-3">
+        {url && pr ? (
+          <GithubButton href={url} primary={primary}>
+            Open PR #{pr.number} on GitHub ↗
+          </GithubButton>
+        ) : null}
+        {pr ? (
+          <MarkHandledButton
+            prId={pr.prId}
+            prNumber={pr.number}
+            kinds={move.kinds}
+            all={allKindsOf(first, move.kinds)}
+            label="Keep it open"
+            look="large"
+          />
+        ) : null}
+      </div>
+    </MoveCard>
+  );
+}
+
+/** No one has answered the pull request for 30 days: GitRanks closes it on the day named, unless the user keeps it. */
+function SilentCard({ move, first, primary }: CardProps & { move: Extract<UserMove, { kind: 'silent' }> }) {
+  const pr = first.pullRequest;
+  const url = githubUrlOf(pr?.url);
+  const day = silentCloseDayOf(move.closesOn);
+  return (
+    <MoveCard
+      tone="amber"
+      name="silent"
+      heading="Your move: keep it open, or let it close"
+      pill={<Pill tone="amber">No answer in 30 days</Pill>}
+    >
+      <p className="text-sm break-words" data-silent-closes={move.closesOn ?? ''}>
+        <span className="font-semibold">{silentTextOf(move.closesOn)}</span> Mark as handled to keep it open.
+      </p>
+      <p className="text-sm text-muted-foreground">
+        No review, comment or reply from anyone else since it opened, or since the last word on it. A word from someone
+        else before {day || 'then'} clears this and keeps it open. GitRanks closes it with one short comment, saying it
+        is happy to reopen if it is still wanted.
+      </p>
+      <Steps
+        steps={[
+          "Want it open? Click Keep it open: GitRanks won't close it for silence.",
+          `Done with it? Close it on GitHub yourself, or leave it: GitRanks closes it ${day ? `on ${day}` : 'soon'}.`,
+        ]}
+      />
+      <div className="flex flex-wrap items-start gap-3">
+        {pr ? (
+          <MarkHandledButton
+            prId={pr.prId}
+            prNumber={pr.number}
+            kinds={move.kinds}
+            all={allKindsOf(first, move.kinds)}
+            label="Keep it open"
+            look="large"
+          />
+        ) : null}
+        {url && pr ? (
+          <GithubButton href={url} primary={primary}>
+            Open PR #{pr.number} on GitHub ↗
+          </GithubButton>
+        ) : null}
+      </div>
+    </MoveCard>
+  );
+}
+
 /** The DCO's text, for what signing off certifies. */
 const DCO_URL = 'https://developercertificate.org/';
 
@@ -627,7 +733,9 @@ export function NextStepCards({
     else if (move.kind === 'found') cards.push(<FoundCard key="found" move={move} {...props} />);
     else if (move.kind === 'stopped') cards.push(<StoppedCard key="stopped" move={move} {...props} />);
     else if (move.kind === 'agreement') cards.push(<AgreementCard key="agreement" move={move} {...props} />);
-    else cards.push(<TitleCard key="title" move={move} {...props} />);
+    else if (move.kind === 'title') cards.push(<TitleCard key="title" move={move} {...props} />);
+    else if (move.kind === 'repo-out') cards.push(<RepoOutCard key="repo-out" move={move} {...props} />);
+    else if (move.kind === 'silent') cards.push(<SilentCard key="silent" move={move} {...props} />);
   });
   if (step.dco) cards.push(<DcoCard key="dco" first={first} dco={step.dco} primary={primaryAt(cards.length)} />);
   if (step.rules) {

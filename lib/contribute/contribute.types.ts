@@ -413,7 +413,9 @@ export type ContributeAttemptPullRequest = {
  * What the last read of an open pull request found: changes requested, a new comment, a check newly failing, a CLA
  * to sign, a review bot's comment blocking the merge, a DCO sign-off missing on our commits. And a follow-up run that
  * ended with nothing pushed (`RUN_ENDED`). Each leaves once its cause is gone, or once the user marks it handled
- * (`RUN_ENDED`: by those alone, or by the next run's start).
+ * (`RUN_ENDED`: by those alone, or by the next run's start). GitRanks' own: no word from anyone for 30 days, so it
+ * closes the pull request on the day `detail` names unless the user marks it handled (`SILENT`); the repo left
+ * Contribute, why in `detail` (`REPO_OUT`). The API may answer a kind this UI does not know yet.
  */
 export type ContributePrSignalKind =
   | 'CHANGES_REQUESTED'
@@ -423,7 +425,9 @@ export type ContributePrSignalKind =
   | 'TITLE'
   | 'BOT_BLOCKED'
   | 'RUN_ENDED'
-  | 'DCO';
+  | 'DCO'
+  | 'SILENT'
+  | 'REPO_OUT';
 
 /**
  * How a run that pushed nothing ended: the agent's no-go (or the user's own agent giving it back with what is theirs to
@@ -436,7 +440,9 @@ export type ContributePrSignal = {
   at: string;
   /**
    * For a failing check: the failing checks' names; for a CLA or a DCO: its check's; for a bot's block: the bot and
-   * its verdict; for a run that ended: what it left for the user, or why it stopped. Untrusted plain text.
+   * its verdict; for a run that ended: what it left for the user, or why it stopped; for `SILENT`: the ISO day GitRanks
+   * closes the pull request; for `REPO_OUT`: why the repo left (`closed_no_ai`, `hostile_close`, `pr_misses`).
+   * Untrusted plain text.
    */
   detail: string | null;
   /** A run that ended (`RUN_ENDED`): the run, its number and how it ended; `undefined` while the API does not answer. */
@@ -906,10 +912,13 @@ export type ContributeSetReason =
   | 'ARCHIVED'
   | 'ISSUES_DISABLED'
   | 'PUSHED'
+  | 'NO_PERSON_ACTIVITY'
   | 'LICENSE'
   | 'LANGUAGE'
   | 'OUTSIDE_MERGES'
   | 'OPTED_OUT'
+  | 'CLOSED_NO_AI'
+  | 'HOSTILE_CLOSE'
   | 'AI_BAN'
   | 'CONTRIBUTE_OFF'
   | 'OUTSIDE_PRS_CLOSED'
@@ -1334,8 +1343,11 @@ export type ContributeConfigKey = {
 export type ContributeMaintainerFacts = {
   prsPerMonth: number;
   monthDays: number;
-  pauseStreak: number;
-  pauseDays: number;
+  /** Misses that take Contribute out of a repo: a pull request with no answer for `silentDays`, or closed as wrong. */
+  missesMax: number;
+  silentDays: number;
+  /** The days misses count over, and how long the repo stays out after `missesMax` of them. */
+  outDays: number;
   attemptsPerRepo: number;
   /** The badge's priority; null until it applies. */
   badgeBoost: number | null;

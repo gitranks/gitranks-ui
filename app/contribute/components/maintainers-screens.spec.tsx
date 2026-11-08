@@ -78,14 +78,23 @@ describe('the maintainers page', () => {
   });
 
   it('takes every number from the facts, never its own', () => {
-    const facts = maintainerFacts({ attemptsPerRepo: 2, prsPerMonth: 7, monthDays: 28, pauseStreak: 3, pauseDays: 45 });
+    const facts = maintainerFacts({
+      attemptsPerRepo: 2,
+      prsPerMonth: 7,
+      monthDays: 28,
+      missesMax: 3,
+      silentDays: 21,
+      outDays: 45,
+    });
     const html = text(page(facts));
 
     expect(html).toContain('2 at a time in your repo, 7 in 28 days at most');
     expect(html).toContain('2 attempts at a time');
     expect(html).toContain('7 PRs in 28 days');
-    expect(html).toContain('3 closed in a row pause us for 45 days');
-    expect(html).not.toMatch(/\b60 days\b|\b4 in 30\b/);
+    expect(html).toContain(
+      '3 misses in 45 days take us out of your repo for 45 days, no ask needed: a PR with no answer for 21 days, or one closed as wrong, low quality or harshly. A merge cancels its own miss.',
+    );
+    expect(html).not.toMatch(/\b60 days\b|\b90 days\b|\b4 in 30\b|in a row/);
   });
 
   it('leaves the numbers out while the API does not answer them', () => {

@@ -2,7 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import { attempt, feedbackThread, followUpOf, followUpRun, followUps } from './__fixtures__/contribute-attempts';
 import { NOW } from './__fixtures__/contribute-views';
-import { nextForAgreement, nextForChecks, nextForDco, nextForRun, nextForYou, signal } from './__fixtures__/needs-you';
+import {
+  nextForAgreement,
+  nextForChecks,
+  nextForDco,
+  nextForRepoOut,
+  nextForRun,
+  nextForSilent,
+  nextForYou,
+  signal,
+} from './__fixtures__/needs-you';
 import { contributionOf, defaultNoteOf, nextStepOf, nextStepWaits, yourMoveOf } from './next-step';
 
 describe('defaultNoteOf', () => {
@@ -124,6 +133,25 @@ describe('nextStepOf', () => {
     const title = signal('TITLE', { detail: 'Fix the thing' });
     expect(nextStepOf({ ...nextForDco, needsYou: { since: '', signals: [title] } }).user).toEqual([
       { kind: 'title', kinds: ['TITLE'], title: 'Fix the thing' },
+    ]);
+  });
+
+  it('gives a silent pull request and a repo out of Contribute a card each, and no run for them', () => {
+    const silent = nextStepOf(nextForSilent);
+    expect(silent.user).toEqual([
+      { kind: 'silent', kinds: ['SILENT'], closesOn: '2026-11-12', at: '2026-10-28T06:00:00.000Z' },
+    ]);
+    expect(silent.run).toMatchObject({ recommended: false, signals: [], kinds: [], note: '' });
+    expect(nextStepWaits(silent)).toBe(true);
+
+    const out = nextStepOf(nextForRepoOut);
+    expect(out.user).toEqual([
+      { kind: 'repo-out', kinds: ['REPO_OUT'], reason: 'hostile_close', at: '2026-10-28T07:00:00.000Z' },
+    ]);
+    expect(out.run).toMatchObject({ recommended: false, signals: [] });
+    const unknown = signal('REPO_OUT', { detail: 'something_new' });
+    expect(nextStepOf({ ...nextForRepoOut, needsYou: { since: '', signals: [unknown] } }).user).toEqual([
+      expect.objectContaining({ kind: 'repo-out', reason: null }),
     ]);
   });
 

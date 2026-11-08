@@ -22,7 +22,7 @@ export const ContributeLedgerDocument = doc<{ contributeLedger: ContributeLedger
     weeks { weekStart merged closed open }
     repos { repo opened merged closed open takesNewPrs latestOpenedAt }
     recent { repo number url title state openedAt endedAt }
-    saidNo { total optedOut aiPolicy outsidePrsClosed paused inPool }
+    saidNo { total optedOut hostileClose closedNoAi aiPolicy outsidePrsClosed paused inPool }
     readAt
     preview { prs merged peopleBesides goalPrs goalMerged goalPeopleBesides }
   }

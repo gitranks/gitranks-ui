@@ -199,6 +199,21 @@ export const prsNeedingYou = {
   }),
 } satisfies Record<string, ContributeContribution>;
 
+/**
+ * GitRanks' own signals on a pull request, which only the user acts on: no word from anyone for 30 days (closed on
+ * Nov 12 unless kept open), and a repo that left Contribute.
+ */
+export const prsOutcomes = {
+  silent: pr(5120, 'sable-io/sable', 'Retry DNS lookups on EAI_AGAIN', {
+    needsYou: needs(signal('SILENT', { at: '2026-10-28T06:00:00.000Z', detail: '2026-11-12' })),
+    followUps: followUps(),
+  }),
+  repoOut: pr(5121, 'sable-io/sable-cli', 'Honor NO_COLOR in the progress bar', {
+    needsYou: needs(signal('REPO_OUT', { at: '2026-10-28T07:00:00.000Z', detail: 'hostile_close' })),
+    followUps: followUps(),
+  }),
+} satisfies Record<string, ContributeContribution>;
+
 /** The runs the page read in flight: the follow-up at work on fabric.js, the own agent's on nimbus. */
 export const runsInFlight = [
   attempt({
@@ -405,6 +420,24 @@ export const nextForDco = first({
   }),
   needsYou: prsNeedingYou.dco.needsYou,
   followUps: followUps(),
+});
+
+/** No word from anyone on it for 30 days: GitRanks closes it on Nov 12 unless the user keeps it open. */
+export const nextForSilent = first({
+  ...nextForDco,
+  attemptId: 'A_PR5120',
+  nameWithOwner: 'sable-io/sable',
+  pullRequest: pullRequest({ prId: 'PR_5120', number: 5120, url: 'https://github.com/sable-io/sable/pull/5120' }),
+  needsYou: prsOutcomes.silent.needsYou,
+});
+
+/** The repo left Contribute: a maintainer asked us to stay away when closing another PR there. */
+export const nextForRepoOut = first({
+  ...nextForDco,
+  attemptId: 'A_PR5121',
+  nameWithOwner: 'sable-io/sable-cli',
+  pullRequest: pullRequest({ prId: 'PR_5121', number: 5121, url: 'https://github.com/sable-io/sable-cli/pull/5121' }),
+  needsYou: prsOutcomes.repoOut.needsYou,
 });
 
 // ─── Proof from the user's own agent ─────────────────────────────────────────────────────────────────────────────────

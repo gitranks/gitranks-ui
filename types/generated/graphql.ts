@@ -1181,10 +1181,12 @@ export type ContributeLedgerRepo = {
   takesNewPrs: Scalars['Boolean']['output'];
 };
 
-/** Repositories that said no to Contribute’s pull requests, one reason each: opted out by a maintainer (the maintainers page or .github/gitranks.yml), an AI policy that forbids AI-made PRs, closed to outside PRs by GitHub settings (or approved contributors only), or paused after two closed without a merge in a row */
+/** Repositories that said no to Contribute’s pull requests, one reason each: opted out by a maintainer (the maintainers page or .github/gitranks.yml), a maintainer who closed a GitRanks PR asking us to stay away (hostileClose) or saying the repository takes no AI-made PRs (closedNoAi), an AI policy that forbids AI-made PRs, closed to outside PRs by GitHub settings (or approved contributors only), or paused after two closed without a merge in a row (retired) */
 export type ContributeLedgerSaidNoCounts = {
   __typename?: 'ContributeLedgerSaidNoCounts';
   aiPolicy: Scalars['Int']['output'];
+  closedNoAi: Scalars['Int']['output'];
+  hostileClose: Scalars['Int']['output'];
   /** Repositories Contribute may suggest issues from */
   inPool: Scalars['Int']['output'];
   optedOut: Scalars['Int']['output'];
@@ -1282,14 +1284,26 @@ export type ContributeMaintainerFacts = {
   badgeBoost?: Maybe<Scalars['Float']['output']>;
   /** Every key, live or not; only live keys have an effect */
   configKeys: Array<ContributeConfigKey>;
+  /** Misses that take a repository out of GitRanks Contribute: a pull request with no answer for `silentDays` days, or one closed as wrong, low quality or harshly. Counted over `outDays` days; a merge cancels its own miss */
+  missesMax: Scalars['Int']['output'];
   /** The days `prsPerMonth` counts over */
   monthDays: Scalars['Int']['output'];
-  /** How many days such a pause lasts */
+  /** How many days a repository stays out after `missesMax` misses */
+  outDays: Scalars['Int']['output'];
+  /**
+   * How many days such a pause lasted
+   * @deprecated Read outDays
+   */
   pauseDays: Scalars['Int']['output'];
-  /** Pull requests closed without a merge in a row that pause GitRanks in a repository */
+  /**
+   * Pull requests closed without a merge in a row that paused GitRanks in a repository
+   * @deprecated The pause is retired: read missesMax, silentDays and outDays
+   */
   pauseStreak: Scalars['Int']['output'];
   /** The most GitRanks pull requests a repository gets in `monthDays` days */
   prsPerMonth: Scalars['Int']['output'];
+  /** Days with no word from anyone on a GitRanks pull request that make it a miss */
+  silentDays: Scalars['Int']['output'];
 };
 
 /** A repository the visitor administers or maintains, and whether it is opted out */
@@ -1657,7 +1671,7 @@ export type ContributePrSignal = {
   attemptId?: Maybe<Scalars['ID']['output']>;
   /** cla: the check fails on the gitranks[bot] co-author on the commits, which no one can sign, and how GitRanks knows: NAMED (the CLA bot names it alone: not on the viewer), COUNTED (the CLA counts co-authors, or names the viewer too: they may have to sign as well); fixContributePullRequest(CO_AUTHOR) removes it. Null otherwise and for the other kinds */
   coAuthor?: Maybe<ContributeClaCoAuthor>;
-  /** check_failed: the failing checks’ names; cla: the CLA check’s; dco: the DCO check’s; bot_blocked: the bot and its verdict; run_ended: what is left for the viewer (the run’s forYou, else its no-go’s reason, else why it stopped, or a failed push’s note; plain text, at most 300 characters) */
+  /** check_failed: the failing checks’ names; cla: the CLA check’s; dco: the DCO check’s; bot_blocked: the bot and its verdict; run_ended: what is left for the viewer (the run’s forYou, else its no-go’s reason, else why it stopped, or a failed push’s note; plain text, at most 300 characters); silent: the ISO day GitRanks closes the PR; repo_out: why the repository left (closed_no_ai, hostile_close or pr_misses) */
   detail?: Maybe<Scalars['String']['output']>;
   kind: ContributePrSignalKind;
   /** run_ended: how it ended (NO_GO, STOPPED or PUSH_FAILED); null for the other kinds */
@@ -1666,7 +1680,7 @@ export type ContributePrSignal = {
   round?: Maybe<Scalars['Int']['output']>;
 };
 
-/** What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked), a DCO sign-off check failing (dco: sign off with fixContributePullRequest(SIGN_OFF)); a cla with a coAuthor fails on the gitranks[bot] co-author (fixContributePullRequest(CO_AUTHOR)); or a follow-up run that pushed nothing came back (run_ended: a no-go, a stop, or a failed push), with what is left for the viewer */
+/** What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked), a DCO sign-off check failing (dco: sign off with fixContributePullRequest(SIGN_OFF)); a cla with a coAuthor fails on the gitranks[bot] co-author (fixContributePullRequest(CO_AUTHOR)); or a follow-up run that pushed nothing came back (run_ended: a no-go, a stop, or a failed push), with what is left for the viewer; silent: no word from anyone else for 30 days and nothing waiting on the viewer (detail: the ISO day GitRanks closes it; marking it handled keeps it open); repo_out: the repository left Contribute (detail: closed_no_ai, hostile_close or pr_misses) */
 export enum ContributePrSignalKind {
   BotBlocked = 'BOT_BLOCKED',
   ChangesRequested = 'CHANGES_REQUESTED',
@@ -1674,7 +1688,9 @@ export enum ContributePrSignalKind {
   Cla = 'CLA',
   Comment = 'COMMENT',
   Dco = 'DCO',
+  RepoOut = 'REPO_OUT',
   RunEnded = 'RUN_ENDED',
+  Silent = 'SILENT',
   Title = 'TITLE'
 }
 
@@ -2397,14 +2413,17 @@ export enum ContributeSetMode {
 export enum ContributeSetReason {
   AiBan = 'AI_BAN',
   Archived = 'ARCHIVED',
+  ClosedNoAi = 'CLOSED_NO_AI',
   ContributeOff = 'CONTRIBUTE_OFF',
   Deleted = 'DELETED',
   Fork = 'FORK',
   GatedContributors = 'GATED_CONTRIBUTORS',
+  HostileClose = 'HOSTILE_CLOSE',
   IssuesDisabled = 'ISSUES_DISABLED',
   Language = 'LANGUAGE',
   License = 'LICENSE',
   NoManifest = 'NO_MANIFEST',
+  NoPersonActivity = 'NO_PERSON_ACTIVITY',
   OptedOut = 'OPTED_OUT',
   OutsideMerges = 'OUTSIDE_MERGES',
   OutsidePrsClosed = 'OUTSIDE_PRS_CLOSED',

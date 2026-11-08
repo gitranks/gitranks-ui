@@ -84,7 +84,16 @@ export const ledger: ContributeLedger = {
     ledgerRepo({ repo: 'tidepool-rs/tidepool', latestOpenedAt: '2026-10-15T08:00:00.000Z' }),
   ],
   recent: RECENT,
-  saidNo: { total: 96, optedOut: 1, aiPolicy: 95, outsidePrsClosed: 0, paused: 0, inPool: 8335 },
+  saidNo: {
+    total: 98,
+    optedOut: 1,
+    hostileClose: 1,
+    closedNoAi: 1,
+    aiPolicy: 95,
+    outsidePrsClosed: 0,
+    paused: 0,
+    inPool: 8335,
+  },
   readAt: '2026-10-28T11:50:00.000Z',
   preview: { prs: 4, merged: 1, peopleBesides: 0, goalPrs: 25, goalMerged: 10, goalPeopleBesides: 5 },
 };

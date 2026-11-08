@@ -1529,10 +1529,12 @@ type ContributeLedgerRepo {
 }
 
 """
-Repositories that said no to Contribute’s pull requests, one reason each: opted out by a maintainer (the maintainers page or .github/gitranks.yml), an AI policy that forbids AI-made PRs, closed to outside PRs by GitHub settings (or approved contributors only), or paused after two closed without a merge in a row
+Repositories that said no to Contribute’s pull requests, one reason each: opted out by a maintainer (the maintainers page or .github/gitranks.yml), a maintainer who closed a GitRanks PR asking us to stay away (hostileClose) or saying the repository takes no AI-made PRs (closedNoAi), an AI policy that forbids AI-made PRs, closed to outside PRs by GitHub settings (or approved contributors only), or paused after two closed without a merge in a row (retired)
 """
 type ContributeLedgerSaidNoCounts {
   aiPolicy: Int!
+  closedNoAi: Int!
+  hostileClose: Int!
 
   """Repositories Contribute may suggest issues from"""
   inPool: Int!
@@ -1664,19 +1666,32 @@ type ContributeMaintainerFacts {
   """Every key, live or not; only live keys have an effect"""
   configKeys: [ContributeConfigKey!]!
 
+  """
+  Misses that take a repository out of GitRanks Contribute: a pull request with no answer for `silentDays` days, or one closed as wrong, low quality or harshly. Counted over `outDays` days; a merge cancels its own miss
+  """
+  missesMax: Int!
+
   """The days `prsPerMonth` counts over"""
   monthDays: Int!
 
-  """How many days such a pause lasts"""
-  pauseDays: Int!
+  """How many days a repository stays out after `missesMax` misses"""
+  outDays: Int!
+
+  """How many days such a pause lasted"""
+  pauseDays: Int! @deprecated(reason: "Read outDays")
 
   """
-  Pull requests closed without a merge in a row that pause GitRanks in a repository
+  Pull requests closed without a merge in a row that paused GitRanks in a repository
   """
-  pauseStreak: Int!
+  pauseStreak: Int! @deprecated(reason: "The pause is retired: read missesMax, silentDays and outDays")
 
   """The most GitRanks pull requests a repository gets in `monthDays` days"""
   prsPerMonth: Int!
+
+  """
+  Days with no word from anyone on a GitRanks pull request that make it a miss
+  """
+  silentDays: Int!
 }
 
 """
@@ -2143,7 +2158,7 @@ type ContributePrSignal {
   coAuthor: ContributeClaCoAuthor
 
   """
-  check_failed: the failing checks’ names; cla: the CLA check’s; dco: the DCO check’s; bot_blocked: the bot and its verdict; run_ended: what is left for the viewer (the run’s forYou, else its no-go’s reason, else why it stopped, or a failed push’s note; plain text, at most 300 characters)
+  check_failed: the failing checks’ names; cla: the CLA check’s; dco: the DCO check’s; bot_blocked: the bot and its verdict; run_ended: what is left for the viewer (the run’s forYou, else its no-go’s reason, else why it stopped, or a failed push’s note; plain text, at most 300 characters); silent: the ISO day GitRanks closes the PR; repo_out: why the repository left (closed_no_ai, hostile_close or pr_misses)
   """
   detail: String
   kind: ContributePrSignalKind!
@@ -2158,7 +2173,7 @@ type ContributePrSignal {
 }
 
 """
-What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked), a DCO sign-off check failing (dco: sign off with fixContributePullRequest(SIGN_OFF)); a cla with a coAuthor fails on the gitranks[bot] co-author (fixContributePullRequest(CO_AUTHOR)); or a follow-up run that pushed nothing came back (run_ended: a no-go, a stop, or a failed push), with what is left for the viewer
+What the PR sync found: changes requested, a new comment by another person, a check newly failing, a CLA to sign, a title that fails the repo's rules, a review bot's comment blocking the merge (bot_blocked), a DCO sign-off check failing (dco: sign off with fixContributePullRequest(SIGN_OFF)); a cla with a coAuthor fails on the gitranks[bot] co-author (fixContributePullRequest(CO_AUTHOR)); or a follow-up run that pushed nothing came back (run_ended: a no-go, a stop, or a failed push), with what is left for the viewer; silent: no word from anyone else for 30 days and nothing waiting on the viewer (detail: the ISO day GitRanks closes it; marking it handled keeps it open); repo_out: the repository left Contribute (detail: closed_no_ai, hostile_close or pr_misses)
 """
 enum ContributePrSignalKind {
   BOT_BLOCKED
@@ -2167,7 +2182,9 @@ enum ContributePrSignalKind {
   CLA
   COMMENT
   DCO
+  REPO_OUT
   RUN_ENDED
+  SILENT
   TITLE
 }
 
@@ -3046,14 +3063,17 @@ enum ContributeSetMode {
 enum ContributeSetReason {
   AI_BAN
   ARCHIVED
+  CLOSED_NO_AI
   CONTRIBUTE_OFF
   DELETED
   FORK
   GATED_CONTRIBUTORS
+  HOSTILE_CLOSE
   ISSUES_DISABLED
   LANGUAGE
   LICENSE
   NO_MANIFEST
+  NO_PERSON_ACTIVITY
   OPTED_OUT
   OUTSIDE_MERGES
   OUTSIDE_PRS_CLOSED

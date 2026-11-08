@@ -43,8 +43,13 @@ export type ContributeLedgerPr = {
 export type ContributeLedgerSaidNo = {
   total: number;
   optedOut: number;
+  /** A maintainer asked us to stay away when closing a pull request. */
+  hostileClose: number;
+  /** A maintainer said the repo takes no AI-made pull requests when closing one. */
+  closedNoAi: number;
   aiPolicy: number;
   outsidePrsClosed: number;
+  /** The pause after closed pull requests is retired: old rows only. */
   paused: number;
   inPool: number;
 };

@@ -12,7 +12,7 @@ import type {
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from './contribute-path';
 import { claudeKeyOf, contributeNoticesOf } from './contribute-state';
 import { FOLLOW_UP_STEP_LABELS, FOLLOW_UP_STEPS, type FollowUpStep, shortSha } from './follow-up-flow';
-import { PR_SIGNAL_KINDS } from './follow-up-format';
+import { PR_SIGNAL_KINDS, repoOutReasonOf, repoOutTextOf, silentTextOf } from './follow-up-format';
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
 import { type ContributePrConventionIssue, httpsOnly, PR_FIX_WORDS } from './pr-conventions';
 import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
@@ -54,6 +54,8 @@ export type NeedsYouKind =
   | 'run-stopped'
   | 'push-failed'
   | 'dco'
+  | 'silent'
+  | 'repo-out'
   | 'fix-failed'
   | 'other'
   | 'working'
@@ -781,6 +783,38 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       action: toNext(byHand ? 'See how to sign off' : 'Sign off and push'),
       secondary: null,
       at: timeOf(dco.at),
+    });
+  }
+
+  // GitRanks' own: the repo left Contribute, or no one has answered the pull request for 30 days. Closing it or keeping
+  // it open is the user's call; no run is offered.
+  const out = first('REPO_OUT');
+  if (out) {
+    const reason = repoOutReasonOf(out.detail);
+    list.push({
+      kind: 'repo-out',
+      tone: 'amber',
+      pill: 'Repo out of Contribute',
+      move: `${repoOutTextOf(reason)} ${
+        reason === 'pr_misses'
+          ? 'Close the PR on GitHub if you no longer want it, or mark it as handled to keep it open.'
+          : 'Do it on GitHub, or mark it as handled to keep it open.'
+      }`,
+      action: toNext('See your options'),
+      secondary: handled('Keep it open', ['REPO_OUT']),
+      at: timeOf(out.at),
+    });
+  }
+  const silent = first('SILENT');
+  if (silent) {
+    list.push({
+      kind: 'silent',
+      tone: 'amber',
+      pill: 'No answer in 30 days',
+      move: `${silentTextOf(silent.detail)} Mark as handled to keep it open, or close it yourself on GitHub.`,
+      action: toNext('See your options'),
+      secondary: handled('Keep it open', ['SILENT']),
+      at: timeOf(silent.at),
     });
   }
 

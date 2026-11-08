@@ -7,7 +7,7 @@ import type {
   ContributePrSignal,
   ContributePrSignalKind,
 } from './contribute.types';
-import { USERS_SIGNALS } from './follow-up-format';
+import { type RepoOutReason, repoOutReasonOf, USERS_SIGNALS } from './follow-up-format';
 import { botVerdictOf, bracketed, type NeedsYouItem, prItemOf, pushDetailOf, runOutcomeOf } from './needs-you';
 import { type ContributePrConventionIssue, type ContributePrFix, httpsOnly } from './pr-conventions';
 import { type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
@@ -62,7 +62,11 @@ export type UserMove =
       check: string | null;
     }
   /** The title breaks the repo's rules, with no one-click fix read for it. */
-  | { kind: 'title'; kinds: ContributePrSignalKind[]; title: string | null };
+  | { kind: 'title'; kinds: ContributePrSignalKind[]; title: string | null }
+  /** The repo left Contribute (`reason`: why; null for one this UI does not know): close the PR, or keep it open. */
+  | { kind: 'repo-out'; kinds: ContributePrSignalKind[]; reason: RepoOutReason | null; at: string }
+  /** No one has answered it for 30 days: GitRanks closes it on `closesOn` (its ISO day) unless the user keeps it. */
+  | { kind: 'silent'; kinds: ContributePrSignalKind[]; closesOn: string | null; at: string };
 
 export type NextRun = {
   /** The run's number. */
@@ -203,6 +207,12 @@ export function nextStepOf(first: ContributeAttemptDetail, agentConnected = fals
   }
   if (finding?.outcome === 'stopped' || finding?.outcome === 'push_failed') {
     user.push({ kind: 'stopped', kinds: ['RUN_ENDED'], run: finding });
+  }
+  const out = find('REPO_OUT');
+  if (out) user.push({ kind: 'repo-out', kinds: ['REPO_OUT'], reason: repoOutReasonOf(out.detail), at: out.at });
+  const silent = find('SILENT');
+  if (silent) {
+    user.push({ kind: 'silent', kinds: ['SILENT'], closesOn: silent.detail?.trim() || null, at: silent.at });
   }
 
   const fix = first.prFix ?? null;

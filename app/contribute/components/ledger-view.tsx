@@ -363,6 +363,18 @@ function SaidNo({ saidNo }: { saidNo: ContributeLedgerSaidNo }) {
       text: 'on the maintainers page or in .github/gitranks.yml',
     },
     {
+      name: 'hostile-close',
+      label: 'Asked us to stay away',
+      value: saidNo.hostileClose,
+      text: 'a maintainer said so when closing one of our pull requests',
+    },
+    {
+      name: 'closed-no-ai',
+      label: 'Said no AI-made PRs',
+      value: saidNo.closedNoAi,
+      text: 'a maintainer said so when closing one of our pull requests',
+    },
+    {
       name: 'ai-policy',
       label: 'AI policy says no',
       value: saidNo.aiPolicy,
@@ -374,12 +386,17 @@ function SaidNo({ saidNo }: { saidNo: ContributeLedgerSaidNo }) {
       value: saidNo.outsidePrsClosed,
       text: 'only collaborators, or approved contributors, open pull requests',
     },
-    {
-      name: 'paused',
-      label: 'Paused after 2 closed',
-      value: saidNo.paused,
-      text: 'two closed without a merge in a row: 60 days off',
-    },
+    // Retired: two closed without a merge in a row paused us. Shown while old rows still count.
+    ...(saidNo.paused > 0
+      ? [
+          {
+            name: 'paused',
+            label: 'Paused after 2 closed',
+            value: saidNo.paused,
+            text: 'two closed without a merge in a row, under a rule now retired',
+          },
+        ]
+      : []),
   ];
   return (
     <section data-ledger="said-no" className="flex min-w-0 flex-col gap-3">
@@ -393,7 +410,7 @@ function SaidNo({ saidNo }: { saidNo: ContributeLedgerSaidNo }) {
         Contribute never opens a pull request where a repo said no. These are the repos it leaves alone today, out of{' '}
         {count(saidNo.inPool)} it may suggest issues from.
       </p>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {tiles.map(({ name, label, value, text }) => (
           <Tile key={name} name={name} label={label} value={count(value)} text={text} />
         ))}

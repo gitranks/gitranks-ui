@@ -333,8 +333,8 @@ export const loadContributeSet = cache(async (): Promise<ContributeSet | null | 
 });
 
 /**
- * What the API is working on for the signed-in user: new repos read, the stack worked out, and their agent runs. Null when the API hides it or does not answer: no activity is
- * shown then. Read once per request.
+ * What the API is working on for the signed-in user: new repos read, the stack worked out, and their agent runs.
+ * Null when the API hides it or does not answer: no activity is shown then. Read once per request.
  */
 export const loadContributeActivity = cache(async (): Promise<ContributeActivity | null> => {
   const githubLogin = await viewerLogin();

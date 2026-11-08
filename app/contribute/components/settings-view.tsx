@@ -49,7 +49,7 @@ export async function SettingsView({
   // GitHub's consent comes back here when it was not saved: its answer is on the page of keys and access.
   const grant = grantRefusalOf(params.grant);
   if (grant) redirect(`${SETTINGS_PATHS.keys}?grant=${grant}` as Route);
-  // The modes are shown to the user (the read is not null) but did not load.
+  // What the user works on was asked (the read is not null) but did not load.
   return <SettingsScreen view={view} set={set} setFailed={set === undefined} />;
 }
 
@@ -65,9 +65,9 @@ export function SettingsScreen({
 }: {
   view: ContributeView;
   now?: Date;
-  /** What the user works on; null or `undefined` when the modes are not shown, and then nothing about them is. */
+  /** What the user works on; null when signed out or the API hides it, `undefined` when it did not load. */
   set?: ContributeSet | null;
-  /** The modes are shown to the user, and what they work on did not load. */
+  /** What the user works on did not load. */
   setFailed?: boolean;
 }) {
   const { contributor } = view;

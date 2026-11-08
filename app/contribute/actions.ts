@@ -720,13 +720,12 @@ const oneOf = <T extends string>(values: readonly T[], value: unknown): value is
 
 const invalid = (message: string) => ({ ok: false as const, error: 'INVALID' as const, message });
 
-/** What the API is working on for the user now; null when the modes are not shown to them. */
 const VERSION = /^\d{1,15}\.\d{1,15}$/;
 
 /**
  * Contribute's one poll: what moved since `since` (a version a previous read answered; null for none). The work in
  * progress is read in the same call when `withActivity`, when a long read may run, or when it may have started or
- * ended; a failed read of it leaves it out. For a login the modes are not shown to, it holds the agent runs alone.
+ * ended; a failed read of it leaves it out.
  * Null when the API hides Contribute from the user.
  */
 export async function readContributeChanges(

@@ -223,7 +223,7 @@ describe('Settings, what to work on', () => {
     expect(rowOf(full, 'facebook/react')).toMatch(/disabled=""[^>]*title="Your ignore list is full \(50\)/);
   });
 
-  it('shows nothing about the modes when they are not shown to the user', () => {
+  it('shows nothing about the modes when what the user works on is not there', () => {
     for (const set of [undefined, null]) {
       const html = summary(set);
       const plain = text(html);

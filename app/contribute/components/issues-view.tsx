@@ -102,7 +102,7 @@ export function IssuesScreen({
   firstRun?: boolean;
   /** The user's own agent has made no attempt yet: the page opens with its next steps. */
   agentFirstRun?: boolean;
-  /** What the user works on; null or `undefined` when the modes are not shown, and then nothing about them is. */
+  /** What the user works on; null when signed out or the API hides it, `undefined` when it did not load. */
   set?: ContributeSet | null;
 }) {
   const spend = view.contributor?.spend;

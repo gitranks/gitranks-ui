@@ -385,7 +385,7 @@ describe('needsYouItemsOf: an open pull request', () => {
       kind: 'silent',
       tone: 'amber',
       pill: 'No answer in 30 days',
-      move: "No one has looked at this PR for 30 days. We'll close it on Nov 12 to keep your profile tidy. Mark as handled to keep it open, or close it yourself on GitHub.",
+      move: "No one has looked at this PR for 30 days. We'll close it on Nov 12 to keep your profile tidy. Click Keep it open to keep it, or close it yourself on GitHub.",
       action: { label: 'See your options', href: '/contribute/attempts/A_PR5120?session=next' },
       secondary: { label: 'Keep it open', handled: { prId: 'PR_5120', kinds: ['SILENT'], all: true } },
     });
@@ -406,25 +406,41 @@ describe('needsYouItemsOf: an open pull request', () => {
       kind: 'repo-out',
       tone: 'amber',
       pill: 'Repo out of Contribute',
-      move: 'This repo is out of Contribute: a maintainer asked us to stay away. You may want to close this PR. Do it on GitHub, or mark it as handled to keep it open.',
+      move: 'This repo is out of Contribute: a maintainer asked us to stay away. You may want to close this PR. Close it on GitHub, or click Keep it open.',
       action: { label: 'See your options', href: '/contribute/attempts/A_PR5121?session=next' },
       secondary: { label: 'Keep it open', handled: { prId: 'PR_5121', kinds: ['REPO_OUT'], all: true } },
     });
     expect(out('closed_no_ai').move).toBe(
-      'This repo is out of Contribute: a maintainer said it takes no AI-made PRs. You may want to close this PR. Do it on GitHub, or mark it as handled to keep it open.',
+      'This repo is out of Contribute: a maintainer said it takes no AI-made PRs. You may want to close this PR. Close it on GitHub, or click Keep it open.',
     );
     expect(out('pr_misses').move).toBe(
-      'This repo has left our PRs unanswered; it is out of the shared pool for 90 days. Close the PR on GitHub if you no longer want it, or mark it as handled to keep it open.',
+      'This repo has left our PRs unanswered; it is out of the shared pool for 90 days. Close it on GitHub if you no longer want it, or click Keep it open.',
     );
     // A reason this UI does not know yet: still out, no why.
     expect(out('something_new').move).toBe(
-      'This repo is out of Contribute. You may want to close this PR. Do it on GitHub, or mark it as handled to keep it open.',
+      'This repo is out of Contribute. You may want to close this PR. Close it on GitHub, or click Keep it open.',
     );
-    // With something a run can do on it, that leads, and the repo's word counts as one more.
-    const both = openPr({
-      needsYou: { since: '', signals: [signal('COMMENT'), signal('REPO_OUT', { detail: 'closed_no_ai' })] },
+    // A comment beside the repo's no leads, answered on GitHub: no run goes to a repo that said no.
+    const both = (detail: string) =>
+      rowOf(openPr({ needsYou: { since: '', signals: [signal('COMMENT'), signal('REPO_OUT', { detail })] } }));
+    expect(both('closed_no_ai')).toMatchObject({
+      kind: 'comment',
+      more: 1,
+      move: 'Someone commented on it. Reply on GitHub.',
+      action: { label: 'Reply on GitHub ↗' },
     });
-    expect(rowOf(both)).toMatchObject({ kind: 'comment', more: 1 });
+    expect(
+      rowOf(
+        openPr({
+          needsYou: {
+            since: '',
+            signals: [signal('CHANGES_REQUESTED'), signal('REPO_OUT', { detail: 'hostile_close' })],
+          },
+        }),
+      ).move,
+    ).toBe('A reviewer asked for changes. Make them on GitHub: no run adds to a pull request in a repo that said no.');
+    // Out of the shared pool only: the user's own runs go on.
+    expect(both('pr_misses')).toMatchObject({ kind: 'comment', move: expect.stringContaining('Let run') });
   });
 
   it('still says something of a kind this UI does not know yet', () => {

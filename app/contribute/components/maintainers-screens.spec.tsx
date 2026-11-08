@@ -92,7 +92,7 @@ describe('the maintainers page', () => {
     expect(html).toContain('2 attempts at a time');
     expect(html).toContain('7 PRs in 28 days');
     expect(html).toContain(
-      '3 misses in 45 days take us out of your repo for 45 days, no ask needed: a PR with no answer for 21 days, or one closed as wrong, low quality or harshly. A merge cancels its own miss.',
+      '3 misses in 45 days take your repo out of the shared pool for 45 days, no ask needed: a PR with no answer for 21 days, or one closed as wrong, low quality or harshly. A merge cancels its own miss. Someone who picked your repo themselves may still send one.',
     );
     expect(html).not.toMatch(/\b60 days\b|\b90 days\b|\b4 in 30\b|in a row/);
   });

@@ -132,11 +132,11 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(one('DCO')).toContain('Your move: The repo needs your Signed-off-by on every commit');
     expect(one('RUN_ENDED')).toContain('Your move: The last run changed nothing: what is left is yours to do.');
     expect(one('SILENT', '2026-11-12')).toContain(
-      "No answer in 30 days Add a --json flag to kelp status Your move: No one has looked at this PR for 30 days. We'll close it on Nov 12 to keep your profile tidy. Mark as handled to keep it open, or close it yourself on GitHub. See your options",
+      "No answer in 30 days Add a --json flag to kelp status Your move: No one has looked at this PR for 30 days. We'll close it on Nov 12 to keep your profile tidy. Click Keep it open to keep it, or close it yourself on GitHub. See your options",
     );
     expect(one('SILENT', '2026-11-12')).toContain('Keep it open');
     expect(one('REPO_OUT', 'hostile_close')).toContain(
-      'Repo out of Contribute Add a --json flag to kelp status Your move: This repo is out of Contribute: a maintainer asked us to stay away. You may want to close this PR. Do it on GitHub, or mark it as handled to keep it open. See your options',
+      'Repo out of Contribute Add a --json flag to kelp status Your move: This repo is out of Contribute: a maintainer asked us to stay away. You may want to close this PR. Close it on GitHub, or click Keep it open. See your options',
     );
   });
 
@@ -1530,9 +1530,11 @@ describe('the next step, for each thing only the user can do', () => {
     expect(html).toContain('data-next-card="silent"');
     expect(plain).toContain('Your move: keep it open, or let it close No answer in 30 days');
     expect(plain).toContain(
-      "No one has looked at this PR for 30 days. We'll close it on Nov 12 to keep your profile tidy. Mark as handled to keep it open.",
+      "No one has looked at this PR for 30 days. We'll close it on Nov 12 to keep your profile tidy. Click Keep it open to keep it.",
     );
+    expect(plain).toContain('or when a run last pushed to it, whichever came last');
     expect(plain).toContain('A word from someone else before Nov 12 clears this and keeps it open.');
+    expect(plain).not.toMatch(/mark (it )?as handled/i);
     expect(plain).toContain('Done with it? Close it on GitHub yourself, or leave it: GitRanks closes it on Nov 12.');
     expect(plain).toContain('Keep it open Open PR #5120 on GitHub ↗');
     expect(html).toContain('data-kinds="SILENT"');

@@ -7,7 +7,7 @@ import type {
   ContributePrSignal,
   ContributePrSignalKind,
 } from './contribute.types';
-import { type RepoOutReason, repoOutReasonOf, USERS_SIGNALS } from './follow-up-format';
+import { type RepoOutReason, repoOutReasonOf, repoSaidNoOf, USERS_SIGNALS } from './follow-up-format';
 import { botVerdictOf, bracketed, type NeedsYouItem, prItemOf, pushDetailOf, runOutcomeOf } from './needs-you';
 import { type ContributePrConventionIssue, type ContributePrFix, httpsOnly } from './pr-conventions';
 import { type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
@@ -154,6 +154,8 @@ export function nextStepOf(first: ContributeAttemptDetail, agentConnected = fals
   const find = (kind: ContributePrSignalKind) => signals.find((signal) => signal.kind === kind);
   const runSignals = signals.filter(({ kind }) => !USERS_SIGNALS.has(kind));
   const threads = waitingThreadsOf(first);
+  // A repo that said no to AI-made PRs takes no run, whatever else waits: the rest is the user's, on GitHub.
+  const saidNo = repoSaidNoOf(signals);
   const user: UserMove[] = [];
 
   const cla = find('CLA');
@@ -225,8 +227,8 @@ export function nextStepOf(first: ContributeAttemptDetail, agentConnected = fals
   return {
     run: {
       round: nextRunNumberOf(first),
-      open: nextRoundOpen(first),
-      recommended: nextRoundRecommended(first) || runSignals.length > 0,
+      open: !saidNo && nextRoundOpen(first),
+      recommended: !saidNo && (nextRoundRecommended(first) || runSignals.length > 0),
       signals: runSignals,
       threads,
       kinds: [...new Set(runSignals.map(({ kind }) => kind))],

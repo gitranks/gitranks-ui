@@ -386,14 +386,14 @@ function SaidNo({ saidNo }: { saidNo: ContributeLedgerSaidNo }) {
       value: saidNo.outsidePrsClosed,
       text: 'only collaborators, or approved contributors, open pull requests',
     },
-    // Retired: two closed without a merge in a row paused us. Shown while old rows still count.
+    // Being retired: two closed without a merge in a row paused us. Shown while old rows still count.
     ...(saidNo.paused > 0
       ? [
           {
             name: 'paused',
             label: 'Paused after 2 closed',
             value: saidNo.paused,
-            text: 'two closed without a merge in a row, under a rule now retired',
+            text: 'two closed without a merge in a row, under a rule being retired',
           },
         ]
       : []),

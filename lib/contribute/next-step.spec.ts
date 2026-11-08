@@ -155,6 +155,26 @@ describe('nextStepOf', () => {
     ]);
   });
 
+  it('offers no run in a repo that said no to AI-made PRs, whatever else waits; one out of the pool only keeps it', () => {
+    const beside = (detail: string) =>
+      nextStepOf({
+        ...nextForRun,
+        needsYou: {
+          since: '',
+          signals: [...(nextForRun.needsYou?.signals ?? []), signal('REPO_OUT', { detail })],
+        },
+      });
+    for (const detail of ['hostile_close', 'closed_no_ai']) {
+      const step = beside(detail);
+      expect(step.run).toMatchObject({ open: false, recommended: false });
+      expect(step.user).toEqual([expect.objectContaining({ kind: 'repo-out', reason: detail })]);
+    }
+    expect(beside('pr_misses').run).toMatchObject({ open: true, recommended: true });
+    // On the other sessions, the repo's no leads.
+    const saidNo = { since: '', signals: [signal('REPO_OUT', { detail: 'hostile_close' })] };
+    expect(yourMoveOf({ ...nextForRun, needsYou: saidNo }, [], NOW)?.kind).toBe('repo-out');
+  });
+
   it('sees nothing waiting on a quiet pull request', () => {
     expect(nextStepWaits(nextStepOf({ ...nextForDco, needsYou: null }))).toBe(false);
   });

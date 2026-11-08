@@ -18,6 +18,7 @@ import {
   autopilotLineOf,
   FILLED_NOTE_HINT,
   repoOutTextOf,
+  repoSaidNoOf,
   signalText,
   silentCloseDayOf,
   silentTextOf,
@@ -400,12 +401,13 @@ function SilentCard({ move, first, primary }: CardProps & { move: Extract<UserMo
       pill={<Pill tone="amber">No answer in 30 days</Pill>}
     >
       <p className="text-sm break-words" data-silent-closes={move.closesOn ?? ''}>
-        <span className="font-semibold">{silentTextOf(move.closesOn)}</span> Mark as handled to keep it open.
+        <span className="font-semibold">{silentTextOf(move.closesOn)}</span> Click Keep it open to keep it.
       </p>
       <p className="text-sm text-muted-foreground">
-        No review, comment or reply from anyone else since it opened, or since the last word on it. A word from someone
-        else before {day || 'then'} clears this and keeps it open. GitRanks closes it with one short comment, saying it
-        is happy to reopen if it is still wanted.
+        No review, comment or reply from anyone else for 30 days, counted from when it opened, when anyone else last
+        spoke on it, or when a run last pushed to it, whichever came last. A word from someone else before{' '}
+        {day || 'then'} clears this and keeps it open. GitRanks closes it with one short comment, saying it is happy to
+        reopen if it is still wanted.
       </p>
       <Steps
         steps={[
@@ -598,6 +600,9 @@ function AutopilotLine({ first, view }: { first: ContributeAttemptDetail; view: 
 /** Why no run can start on the pull request now, by its cause. */
 function blockedWhy(first: ContributeAttemptDetail): string {
   if (first.followUps?.currentAttemptId) return 'A follow-up is under way on these comments.';
+  if (repoSaidNoOf(first.needsYou?.signals)) {
+    return 'The repo said no to AI-made pull requests, so no run adds to this one: answer these on GitHub.';
+  }
   if (first.openedBy === 'HAND') {
     return 'You opened this pull request yourself, so no run can add to it: answer these on GitHub.';
   }

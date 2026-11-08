@@ -378,7 +378,7 @@ function LimitTiles({ facts }: { facts: ContributeMaintainerFacts }) {
     {
       count: facts.missesMax,
       title: `misses in ${countOf(facts.outDays, 'day', 'days')}`,
-      text: `take us out of your repo for ${countOf(facts.outDays, 'day', 'days')}, no ask needed: a PR with no answer for ${countOf(facts.silentDays, 'day', 'days')}, or one closed as wrong, low quality or harshly. A merge cancels its own miss.`,
+      text: `take your repo out of the shared pool for ${countOf(facts.outDays, 'day', 'days')}, no ask needed: a PR with no answer for ${countOf(facts.silentDays, 'day', 'days')}, or one closed as wrong, low quality or harshly. A merge cancels its own miss. Someone who picked your repo themselves may still send one.`,
     },
     { count: 0, title: 'replies without their OK', text: 'an agent may draft one; the PR’s author approves each' },
     { count: 0, title: 'CI or workflow edits', text: 'nor license files or unrelated lockfiles' },

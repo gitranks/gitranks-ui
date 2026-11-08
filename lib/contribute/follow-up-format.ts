@@ -75,6 +75,16 @@ export function repoOutReasonOf(detail: string | null | undefined): RepoOutReaso
   return reason === 'closed_no_ai' || reason === 'hostile_close' || reason === 'pr_misses' ? reason : null;
 }
 
+/**
+ * The repo's own no: a maintainer said it takes no AI-made PRs, or asked us to stay away (`REPO_OUT`). No run is
+ * offered on its pull requests then, whatever else waits on them. Not for `pr_misses`: that leaves the shared pool only.
+ */
+export const repoSaidNoOf = (signals: readonly ContributePrSignal[] | null | undefined): boolean =>
+  (signals ?? []).some(({ kind, detail }) => {
+    const reason = kind === 'REPO_OUT' ? repoOutReasonOf(detail) : null;
+    return reason === 'closed_no_ai' || reason === 'hostile_close';
+  });
+
 /** Why the repo is out, in the user's words: "This repo is out of Contribute: … You may want to close this PR." */
 export function repoOutTextOf(reason: RepoOutReason | null): string {
   if (reason === 'pr_misses') {

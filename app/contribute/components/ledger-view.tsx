@@ -288,8 +288,9 @@ function ReposTable({ repos, total }: { repos: ContributeLedgerRepo[]; total: nu
         </table>
       </div>
       <p className="border-t px-5 py-3 text-xs text-muted-foreground">
-        Newest pull request first. “Not now”: the repo said no, or two of our pull requests there in a row closed
-        without a merge (a 60-day pause). Why each repo said no is not shown here; the counts are below.
+        Newest pull request first. “Not now”: the repo said no, or two of our pull requests there missed within 90 days
+        (no answer for 30 days, or closed as wrong, low quality or harshly), which takes it out for 90 days. Why each
+        repo said no is not shown here; the counts are below.
       </p>
     </section>
   );
@@ -386,14 +387,14 @@ function SaidNo({ saidNo }: { saidNo: ContributeLedgerSaidNo }) {
       value: saidNo.outsidePrsClosed,
       text: 'only collaborators, or approved contributors, open pull requests',
     },
-    // Being retired: two closed without a merge in a row paused us. Shown while old rows still count.
+    // Retired: two closed without a merge in a row paused us. Shown while old rows still count.
     ...(saidNo.paused > 0
       ? [
           {
             name: 'paused',
             label: 'Paused after 2 closed',
             value: saidNo.paused,
-            text: 'two closed without a merge in a row, under a rule being retired',
+            text: 'two closed without a merge in a row, under a retired rule',
           },
         ]
       : []),

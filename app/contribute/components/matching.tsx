@@ -132,7 +132,7 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
         <p className="max-w-lg text-muted-foreground">
           {done
             ? 'Ranked by your languages and the repos you know. Your agent starts on one of the top ones shortly.'
-            : 'This takes a few seconds. We look for issues maintainers want solved, in repos that merge outside work.'}
+            : 'This takes a few seconds. We look for issues maintainers want solved, in repos that handle outside PRs.'}
         </p>
       </div>
 

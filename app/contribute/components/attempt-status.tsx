@@ -32,6 +32,7 @@ import type {
   ContributeAttemptPullRequest,
   ContributeAttemptSubmit,
   ContributeAutopilotReviewReason,
+  ContributeClaimStep,
   ContributeFollowUpOf,
 } from '@/lib/contribute/contribute.types';
 import { shownByDecisions } from '@/lib/contribute/decisions';
@@ -69,6 +70,30 @@ function Box({
 }
 
 const Title = ({ children }: { children: ReactNode }) => <h2 className={HEADING.card}>{children}</h2>;
+
+const STEP_MARKS = { running: '…', done: '✓', failed: '✕' } as const;
+
+/** The claim's check as it goes: each step in its words, the latest last; a failed repository read lets it go on. */
+function ClaimSteps({ steps }: { steps: ContributeClaimStep[] }) {
+  if (!steps.length) return null;
+  return (
+    <ol data-claim-steps className="flex flex-col gap-1 text-sm">
+      {steps.map((step) => (
+        <li key={step.key} data-claim-step={step.key} data-state={step.state} className="flex gap-2">
+          <span aria-hidden className={cn('w-4 text-center', step.state === 'failed' && 'text-warning')}>
+            {STEP_MARKS[step.state] ?? '…'}
+          </span>
+          <span className={step.state === 'running' ? 'text-foreground' : 'text-muted-foreground'}>
+            {step.words}
+            {step.state === 'failed' ? ' (failed)' : ''}
+            {step.state === 'running' ? <span className="sr-only"> (in progress)</span> : null}
+            {step.state === 'done' ? <span className="sr-only"> (done)</span> : null}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
 /** Why autopilot left it for the user's review instead of submitting it; nothing for an ordinary review. */
@@ -359,6 +384,7 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
         <Box state="CLAIMING">
           <Title>Starting</Title>
           <Text>Checking that the issue is still open and nobody else is on it, before the agent starts.</Text>
+          {'claimSteps' in attempt && attempt.claimSteps ? <ClaimSteps steps={attempt.claimSteps} /> : null}
         </Box>
       );
     case 'RUNNING':

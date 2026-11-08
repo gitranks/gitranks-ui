@@ -13,6 +13,7 @@ import type {
   ContributeChanges,
   ContributeCheckLimitView,
   ContributeCheckStatusView,
+  ContributeClaimStep,
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
   ContributeConnectLimits,
@@ -269,6 +270,14 @@ export const ContributeAttemptRepoRulesDocument = doc<
   { contributeAttempt: { attemptId: string; repoRules: ContributeRepoRules | null } | null },
   { id: string }
 >(`query ContributeAttemptRepoRules($id: ID!) { contributeAttempt(id: $id) { attemptId ${ATTEMPT_RULES} } }`);
+
+/** The claim's check, step by step: read on its own, so an API without it leaves the rest. */
+export const ContributeAttemptClaimStepsDocument = doc<
+  { contributeAttempt: { attemptId: string; claimSteps: ContributeClaimStep[] } | null },
+  { id: string }
+>(
+  `query ContributeAttemptClaimSteps($id: ID!) { contributeAttempt(id: $id) { attemptId claimSteps { key words at state } } }`,
+);
 
 /** The shown issues as they are now, in the order asked (1 to 50 ids); null when the API hides it from the user. */
 export const ContributeIssueStatusDocument = doc<

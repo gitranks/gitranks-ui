@@ -730,8 +730,13 @@ export type ContributeAttemptDetail = ContributeAttempt & {
    * Null when not known; `undefined` while the API does not answer it (read on its own).
    */
   repoRules?: ContributeRepoRules | null;
+  /** The claim's check, step by step while it starts (oldest first); `undefined` while the API does not answer it. */
+  claimSteps?: ContributeClaimStep[];
 } & Partial<ContributeFollowUpFlowFields> &
   ContributeConventionsFields;
+
+/** One step of the claim's check: what it is doing, in words, and whether it is running, done or failed. */
+export type ContributeClaimStep = { key: string; words: string; at: string; state: 'running' | 'done' | 'failed' };
 
 /** The review comment a reply answers: the first comment of its thread. */
 export type ContributeReplyTarget = {

@@ -919,19 +919,17 @@ describe('what the user works on', () => {
     auth.mockReset();
   });
 
-  it('is not even asked for a login the modes are not shown to', async () => {
-    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
-    expect(await loadContributeSet()).toBeNull();
+  it('is not even asked when signed out', async () => {
     auth.mockResolvedValue(null);
     expect(await loadContributeSet()).toBeNull();
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
-  it('is read as the user the modes are shown to; null when hidden, undefined when not answered', async () => {
-    auth.mockResolvedValue({ user: { githubLogin: 'maslianok' }, expires: '2099-01-01' });
+  it('is read as the signed-in user, whoever they are; null when hidden, undefined when not answered', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
     graphqlDirect.mockResolvedValueOnce({ contributeSet: { mode: 'STACK' } });
     expect(await loadContributeSet()).toEqual({ mode: 'STACK' });
-    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr', githubLogin: 'maslianok' });
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr', githubLogin: 'octocat' });
 
     graphqlDirect.mockResolvedValueOnce({ contributeSet: null });
     expect(await loadContributeSet()).toBeNull();

@@ -88,7 +88,7 @@ const CALLS: Record<string, unknown[]> = {
   retryContributeProof: ['PF_1'],
 };
 
-/** The actions about what the user works on: open only to the logins the modes are shown to. */
+/** The actions about what the user works on: open to every signed-in login. */
 const SET_ACTIONS = [
   'setContributeMode',
   'setContributeFallback',
@@ -183,12 +183,13 @@ describe('the Contribute server actions', () => {
     expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
   });
 
-  it.each(SET_ACTIONS)('%s refuses, and calls nothing, for a login the modes are not shown to', async (name) => {
+  it.each(SET_ACTIONS)('%s goes to the API for any signed-in login: the modes are open to everyone', async (name) => {
     auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
     const action = (actions as unknown as Record<string, Action>)[name];
 
-    expect(await action(...(CALLS[name] as never[]))).toEqual({ ok: false, error: 'NOT_FOUND' });
-    expect(graphqlDirect).not.toHaveBeenCalled();
+    await action(...(CALLS[name] as never[]));
+    expect(graphqlDirect).toHaveBeenCalled();
+    expect(graphqlDirect.mock.calls[0][2]).toMatchObject({ source: 'client', githubLogin: 'octocat' });
   });
 
   it.each(Object.keys(CALLS))(
@@ -863,35 +864,19 @@ describe('readContributeChanges', () => {
     });
   });
 
-  it('reads only the agent runs for a login the modes are not shown to; leaves the activity out when it fails', async () => {
+  it('reads the whole work in progress for any login; leaves the activity out when it fails', async () => {
     as('octocat');
     const changes = { ...CHANGES, activity: true, changed: ['SET'] };
     const reads = { kind: 'FIRST_READS', label: 'Reading issues from 1 of 2 repos' };
     const run = { attemptId: 'a1', phase: 'WORKING', active: true };
+    const activity = { ...ACTIVITY, items: [reads], runs: [run] };
     graphqlDirect
       .mockResolvedValueOnce({ contributeChanges: changes })
-      .mockResolvedValueOnce({ contributeActivity: { ...ACTIVITY, items: [reads], runs: [run] } });
-    // Their runs hold the poll fast while an agent works; their hidden reads never do.
-    expect(await actions.readContributeChanges('3.2', true)).toEqual({
-      ok: true,
-      data: { changes, activity: { ...ACTIVITY, items: [], runs: [run] } },
-    });
-    graphqlDirect
-      .mockResolvedValueOnce({ contributeChanges: changes })
-      .mockResolvedValueOnce({ contributeActivity: { ...ACTIVITY, items: [reads], runs: [] } });
-    expect(await actions.readContributeChanges('3.2', true)).toEqual({
-      ok: true,
-      data: { changes: { ...changes, activity: false }, activity: { ...ACTIVITY, items: [], runs: [] } },
-    });
-    graphqlDirect.mockResolvedValueOnce({ contributeChanges: changes }).mockRejectedValueOnce(new Error('down'));
-    expect(await actions.readContributeChanges('3.2', true)).toEqual({
-      ok: true,
-      data: { changes: { ...changes, activity: false } },
-    });
+      .mockResolvedValueOnce({ contributeActivity: activity });
+    expect(await actions.readContributeChanges('3.2', true)).toEqual({ ok: true, data: { changes, activity } });
 
-    as('maslianok');
-    graphqlDirect.mockResolvedValueOnce({ contributeChanges: CHANGES }).mockRejectedValueOnce(new Error('down'));
-    expect(await actions.readContributeChanges('3.2', true)).toEqual({ ok: true, data: { changes: CHANGES } });
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: changes }).mockRejectedValueOnce(new Error('down'));
+    expect(await actions.readContributeChanges('3.2', true)).toEqual({ ok: true, data: { changes } });
   });
 
   it('answers null when the API hides Contribute, and an error when it fails', async () => {

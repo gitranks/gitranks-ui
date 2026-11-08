@@ -21,7 +21,7 @@ import { SETTINGS_PATHS, switchModeOf } from '@/lib/contribute/settings-paths';
 
 export async function WorkSettingsView() {
   const [, set] = await Promise.all([loadSettingsView(), loadContributeSet()]);
-  // Without the modes there is no list: the filters are on the summary.
+  // No set (the API hides it): there is no list, and the filters are on the summary.
   if (set === null) redirect(SETTINGS_PATHS.summary);
   return <WorkSettingsScreen set={set} setFailed={set === undefined} />;
 }
@@ -34,7 +34,7 @@ export function WorkSettingsScreen({
 }: {
   now?: Date;
   set?: ContributeSet | null;
-  /** The modes are shown to the user, and what they work on did not load. */
+  /** What the user works on did not load. */
   setFailed?: boolean;
 }) {
   const mode = set?.mode;

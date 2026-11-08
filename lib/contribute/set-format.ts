@@ -77,7 +77,7 @@ const lowerFirst = (text: string) => (text ? text[0].toLowerCase() + text.slice(
 export const WORK_RULES = [
   'Public, not a fork, not archived, issues on',
   'An open-source license (OSI)',
-  'Someone on the project committed or merged a PR in the last 90 days',
+  'Repos from your stack: someone on the project committed or merged a PR in the last 90 days',
   'JavaScript/TypeScript, Python, Go, Rust, Java, PHP or Ruby',
   "Maintainers haven't asked us not to send PRs",
   'Anyone can open a PR',

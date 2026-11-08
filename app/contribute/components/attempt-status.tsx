@@ -86,6 +86,8 @@ function ClaimSteps({ steps }: { steps: ContributeClaimStep[] }) {
           <span className={step.state === 'running' ? 'text-foreground' : 'text-muted-foreground'}>
             {step.words}
             {step.state === 'failed' ? ' (failed)' : ''}
+            {step.state === 'running' ? <span className="sr-only"> (in progress)</span> : null}
+            {step.state === 'done' ? <span className="sr-only"> (done)</span> : null}
           </span>
         </li>
       ))}

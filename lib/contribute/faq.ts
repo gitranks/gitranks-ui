@@ -49,7 +49,7 @@ const FAIR: FaqEntry = {
   id: 'fair',
   question: 'Is it fair to maintainers?',
   answer:
-    'We open at most one PR in a repo at a time, never more than four a month, and leave a repo alone for 90 days after two misses there in 90 days: a PR no one answers for 30 days, or one closed as wrong, low quality or harshly. Every PR says it was made with AI. Maintainers can opt their repo out.',
+    'We open at most one PR in a repo at a time, never more than four a month, and take a repo out of the shared pool for 90 days after two misses there within 90 days: a PR no one answers for 30 days, or one closed as wrong, low quality or harshly. Every PR says it was made with AI. Maintainers can opt their repo out.',
   more: { href: MAINTAINERS_PATH as Route, label: 'The rules for maintainers' },
 };
 
@@ -92,7 +92,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
         id: 'agent-wrong',
         question: 'What happens when the agent is wrong?',
         answer:
-          "Usually you find out first. Every change goes through our checks (it stays within your size limits, touches no workflow, CI or license file, adds nothing that looks like a secret, and the tests your agent ran passed) and then waits for you: discard it, or send it back with a note. If a maintainer asks for changes, you or your agent can follow up on the same pull request; if they close it, that's the end of it. A pull request no one answers for 30 days gets you a warning, and we close it at 45 days unless you keep it open. Two misses in one repo within 90 days (no answer for 30 days, or closed as wrong, low quality or harshly) take it out of the shared pool for 90 days; a merge cancels its own miss. A maintainer who closes one saying the project takes no AI-made pull requests takes the repo out for 90 days, one who asks us to stay away for 365. You answer for what you submit, so review it as you would anyone's code.",
+          "Usually you find out first. Every change goes through our checks (it stays within your size limits, touches no workflow, CI or license file, adds nothing that looks like a secret, and the tests your agent ran passed) and then waits for you: discard it, or send it back with a note. If a maintainer asks for changes, you or your agent can follow up on the same pull request; if they close it, that's the end of it. A pull request no one answers for 30 days gets you a warning, and we close it at 45 days, at least 15 days after the warning, unless you keep it open. Two misses in one repo within 90 days (no answer for 30 days, or closed as wrong, low quality or harshly) take it out of the shared pool for 90 days; a merge cancels its own miss. A maintainer who closes one saying the project takes no AI-made pull requests takes the repo out of Contribute for 90 days, one who asks us to stay away for 365. You answer for what you submit, so review it as you would anyone's code.",
       },
       FAIR,
       {

@@ -80,6 +80,17 @@ describe('the questions', () => {
     expect(said).not.toMatch(/\$\d+\.\d\d/);
     expect(said).not.toMatch(/farm|boost your profile|burn tokens|Claude for Open Source/i);
     expect(LANDING_QUESTIONS).toHaveLength(6);
+  });
+
+  it('say the misses rule, never the retired pause', () => {
+    const said = text(renderToStaticMarkup(<FaqScreen />));
+    expect(said).toContain(
+      'A pull request no one answers for 30 days gets you a warning, and we close it at 45 days, at least 15 days after the warning, unless you keep it open. Two misses in one repo within 90 days (no answer for 30 days, or closed as wrong, low quality or harshly) take it out of the shared pool for 90 days; a merge cancels its own miss. A maintainer who closes one saying the project takes no AI-made pull requests takes the repo out of Contribute for 90 days, one who asks us to stay away for 365.',
+    );
+    expect(said).toContain(
+      'take a repo out of the shared pool for 90 days after two misses there within 90 days: a PR no one answers for 30 days, or one closed as wrong, low quality or harshly.',
+    );
+    expect(said).not.toMatch(/60 days|in a row/);
     expect(LANDING_QUESTIONS[0]?.id).toBe('in-beta');
   });
 });

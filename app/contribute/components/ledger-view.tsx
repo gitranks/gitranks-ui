@@ -288,9 +288,9 @@ function ReposTable({ repos, total }: { repos: ContributeLedgerRepo[]; total: nu
         </table>
       </div>
       <p className="border-t px-5 py-3 text-xs text-muted-foreground">
-        Newest pull request first. “Not now”: the repo said no, or two of our pull requests there missed within 90 days
-        (no answer for 30 days, or closed as wrong, low quality or harshly), which takes it out for 90 days. Why each
-        repo said no is not shown here; the counts are below.
+        Newest pull request first. “Not now”: the repo said no, or a maintainer closed one of our pull requests saying
+        the project takes no AI-made pull requests, or asking us to stay away. Why each repo said no is not shown here;
+        the counts are below.
       </p>
     </section>
   );

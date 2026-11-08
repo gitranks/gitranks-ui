@@ -199,7 +199,7 @@ export function IssuesScreen({
                 />
               ) : (
                 <span className="text-sm text-muted-foreground" data-total="">
-                  Open issues that match your languages and topics, in repos that merge outside work.
+                  Open issues that match your languages and topics, in repos that handle outside PRs.
                 </span>
               )}
             </div>
@@ -237,7 +237,7 @@ export function IssuesScreen({
               <ChevronDown aria-hidden="true" className="size-4 text-muted-foreground group-open:rotate-180" />
             </summary>
             <p className="px-4.5 pb-4 text-muted-foreground">
-              Issues come from active repos that merge outside work, matched to your languages and topics, and
+              Issues come from active repos that handle outside PRs, matched to your languages and topics, and
               maintainers agreed each one should be fixed. Skip one and it is not picked for you again. Size is shown
               where it is known.
             </p>

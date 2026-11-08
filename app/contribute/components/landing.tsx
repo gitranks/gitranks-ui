@@ -65,7 +65,7 @@ const STEPS = [
   {
     label: '01 · we pick',
     title: 'Issues worth your time',
-    text: "From active repos that merge outside work and want the issue solved, ranked by your languages and the repos you've worked on.",
+    text: "From active repos that handle outside PRs and want the issue solved, ranked by your languages and the repos you've worked on.",
   },
   {
     label: '02 · the agent works',

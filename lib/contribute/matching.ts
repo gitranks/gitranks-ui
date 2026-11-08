@@ -22,6 +22,6 @@ export const matchingTicksOf = (elapsed: number, computed: boolean): number =>
 export const matchingLinesOf = (languages: string[]): string[] => [
   'Your key works, and your plan is set',
   languages.length ? `Reading your profile: ${languages.join(', ')}` : 'Reading your profile',
-  'Looking across the active repos that merge outside work',
+  'Looking across the active repos that handle outside PRs',
   'Ranking the issues you would be good at',
 ];

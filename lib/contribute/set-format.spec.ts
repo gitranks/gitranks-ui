@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { fullReposSet, resolve, setRepo, stackSet } from './__fixtures__/contribute-sets';
+import type { ContributeSetReason } from './contribute.types';
 import {
   addNoticeOf,
   addTargetOf,
@@ -224,6 +225,10 @@ describe('the lists', () => {
     expect(reasonText('NO_MANIFEST', 'source')).toBe('No dependency file we can read');
     expect(reasonText('OUTSIDE_PRS_CLOSED')).toBe('Only collaborators can open PRs');
     expect(reasonText('GATED_CONTRIBUTORS')).toBe('Only approved contributors can open PRs');
+    expect(reasonText('NO_PERSON_ACTIVITY')).toBe('No commit or merged PR by a person in the last 90 days');
+    expect(reasonText('CLOSED_NO_AI')).toBe('A maintainer said this project takes no AI-made PRs');
+    expect(reasonText('HOSTILE_CLOSE')).toBe('A maintainer asked us to stay away');
+    expect(reasonText('SOMETHING_NEW' as ContributeSetReason)).toBe('Did not pass the rules');
     expect(reasonsText(['FORK', 'ARCHIVED'])).toBe('A fork, Archived');
   });
 });

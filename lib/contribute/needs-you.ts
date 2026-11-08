@@ -12,7 +12,7 @@ import type {
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from './contribute-path';
 import { claudeKeyOf, contributeNoticesOf } from './contribute-state';
 import { FOLLOW_UP_STEP_LABELS, FOLLOW_UP_STEPS, type FollowUpStep, shortSha } from './follow-up-flow';
-import { PR_SIGNAL_KINDS } from './follow-up-format';
+import { PR_SIGNAL_KINDS, repoOutReasonOf, repoOutTextOf, repoSaidNoOf, silentTextOf } from './follow-up-format';
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
 import { type ContributePrConventionIssue, httpsOnly, PR_FIX_WORDS } from './pr-conventions';
 import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
@@ -54,6 +54,8 @@ export type NeedsYouKind =
   | 'run-stopped'
   | 'push-failed'
   | 'dco'
+  | 'silent'
+  | 'repo-out'
   | 'fix-failed'
   | 'other'
   | 'working'
@@ -502,6 +504,9 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
   const run = nextRunOf(pr);
   // A pull request the user opened by hand takes no run: what a run would do is theirs, on GitHub.
   const byHand = pr.openedBy === 'HAND';
+  // Nor does one in a repo that said no to AI-made PRs: what a run would do is the user's, on GitHub.
+  const saidNo = repoSaidNoOf(signals);
+  const noRun = byHand || saidNo;
   const all = new Set(signals.map(({ kind }) => kind));
   const handled = (label: string, kinds: ContributePrSignalKind[]): NeedsYouSecondary => ({
     label,
@@ -525,11 +530,11 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'changes',
       tone: 'amber',
       pill: 'Changes requested',
-      move: byHand
-        ? 'A reviewer asked for changes. Make them on GitHub: no run adds to a pull request you opened yourself.'
+      move: noRun
+        ? `A reviewer asked for changes. Make them on GitHub: no run adds to ${byHand ? 'a pull request you opened yourself' : 'a pull request in a repo that said no'}.`
         : `A reviewer asked for changes. Start run ${run} on them.`,
-      action: byHand ? onGithub('Open the pull request') : toNext(`Start run ${run}`),
-      secondary: byHand ? handled("I've done it", ['CHANGES_REQUESTED']) : null,
+      action: noRun ? onGithub('Open the pull request') : toNext(`Start run ${run}`),
+      secondary: noRun ? handled("I've done it", ['CHANGES_REQUESTED']) : null,
       at: timeOf(changes.at),
     });
   }
@@ -539,11 +544,11 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'comment',
       tone: 'amber',
       pill: 'New comment',
-      move: byHand
+      move: noRun
         ? 'Someone commented on it. Reply on GitHub.'
         : `Someone commented on it. Let run ${run} answer, or reply on GitHub.`,
-      action: byHand ? onGithub('Reply on GitHub') : toNext(`Answer with run ${run}`),
-      secondary: byHand ? handled("I've replied", ['COMMENT']) : null,
+      action: noRun ? onGithub('Reply on GitHub') : toNext(`Answer with run ${run}`),
+      secondary: noRun ? handled("I've replied", ['COMMENT']) : null,
       at: timeOf(comment.at),
     });
   }
@@ -555,11 +560,11 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'check',
       tone: 'red',
       pill: 'Check failing',
-      move: byHand
+      move: noRun
         ? `${names} ${fails} on your pull request. Fix it on your branch.`
         : `${names} ${fails} on your pull request. Start run ${run} to fix it.`,
-      action: byHand ? onGithub('Open the pull request') : toNext(`Fix with run ${run}`),
-      secondary: byHand ? handled("I've fixed it", ['CHECK_FAILED']) : null,
+      action: noRun ? onGithub('Open the pull request') : toNext(`Fix with run ${run}`),
+      secondary: noRun ? handled("I've fixed it", ['CHECK_FAILED']) : null,
       at: timeOf(check.at),
     });
   }
@@ -760,10 +765,10 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       kind: 'other',
       tone: 'amber',
       pill: 'Something changed',
-      move: byHand
+      move: noRun
         ? 'Something changed on it. See what on GitHub.'
         : `Something changed on it. Start run ${run} to look at it, or see what on GitHub.`,
-      action: byHand ? onGithub('Open the pull request') : toNext(`Start run ${run}`),
+      action: noRun ? onGithub('Open the pull request') : toNext(`Start run ${run}`),
       secondary: null,
       at: timeOf(unknown.at),
     });
@@ -781,6 +786,38 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
       action: toNext(byHand ? 'See how to sign off' : 'Sign off and push'),
       secondary: null,
       at: timeOf(dco.at),
+    });
+  }
+
+  // GitRanks' own: the repo left Contribute, or no one has answered the pull request for 30 days. Closing it or keeping
+  // it open is the user's call; no run is offered.
+  const out = first('REPO_OUT');
+  if (out) {
+    const reason = repoOutReasonOf(out.detail);
+    list.push({
+      kind: 'repo-out',
+      tone: 'amber',
+      pill: 'Repo out of Contribute',
+      move: `${repoOutTextOf(reason)} ${
+        reason === 'pr_misses'
+          ? 'Close it on GitHub if you no longer want it, or click Keep it open.'
+          : 'Close it on GitHub, or click Keep it open.'
+      }`,
+      action: toNext('See your options'),
+      secondary: handled('Keep it open', ['REPO_OUT']),
+      at: timeOf(out.at),
+    });
+  }
+  const silent = first('SILENT');
+  if (silent) {
+    list.push({
+      kind: 'silent',
+      tone: 'amber',
+      pill: 'No answer in 30 days',
+      move: `${silentTextOf(silent.detail)} Click Keep it open to keep it, or close it yourself on GitHub.`,
+      action: toNext('See your options'),
+      secondary: handled('Keep it open', ['SILENT']),
+      at: timeOf(silent.at),
     });
   }
 

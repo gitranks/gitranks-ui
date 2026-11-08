@@ -21,6 +21,18 @@ describe('LedgerScreen', () => {
     expect(html).not.toMatch(/Paused to|AI policy says no<\/td>/);
   });
 
+  it('counts the repos that said no, the pause only while old rows count it', () => {
+    const html = renderToStaticMarkup(<LedgerScreen ledger={publicLedger} />);
+    expect(html).toContain('data-total="hostile-close"');
+    expect(html).toContain('Asked us to stay away');
+    expect(html).toContain('data-total="closed-no-ai"');
+    expect(html).toContain('Said no AI-made PRs');
+    expect(html).not.toContain('data-total="paused"');
+
+    const paused = { ...publicLedger, saidNo: { ...publicLedger.saidNo, paused: 3 } };
+    expect(renderToStaticMarkup(<LedgerScreen ledger={paused} />)).toContain('data-total="paused"');
+  });
+
   it('says so before the first PR, with no chart or tables', () => {
     const html = renderToStaticMarkup(<LedgerScreen ledger={emptyLedger} />);
     expect(html).toContain('No pull requests yet');

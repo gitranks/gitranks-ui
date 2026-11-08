@@ -48,9 +48,8 @@ const {
   replyDraft,
 } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { replyWaiting } = await import('@/lib/contribute/__fixtures__/contribute-overview');
-const { nextForAgreement, nextForChecks, nextForDco, nextForRun, nextForYou } = await import(
-  '@/lib/contribute/__fixtures__/needs-you'
-);
+const { nextForAgreement, nextForChecks, nextForDco, nextForRepoOut, nextForRun, nextForSilent, nextForYou } =
+  await import('@/lib/contribute/__fixtures__/needs-you');
 const { followUpErrorMessage, handledErrorMessage, replyRefusalOf, vetoErrorMessage } = await import(
   '@/lib/contribute/follow-up-format'
 );
@@ -115,8 +114,10 @@ describe('a pull request that needs the user, on My contributions', () => {
   });
 
   it('names each reason by the move it asks for, with the way to it', () => {
-    const one = (kind: 'COMMENT' | 'CHECK_FAILED' | 'CLA' | 'BOT_BLOCKED' | 'TITLE' | 'DCO' | 'RUN_ENDED') =>
-      text(mine({ needsYou: { since: NOW.toISOString(), signals: [{ kind, at: NOW.toISOString(), detail: null }] } }));
+    const one = (
+      kind: 'COMMENT' | 'CHECK_FAILED' | 'CLA' | 'BOT_BLOCKED' | 'TITLE' | 'DCO' | 'RUN_ENDED' | 'SILENT' | 'REPO_OUT',
+      detail: string | null = null,
+    ) => text(mine({ needsYou: { since: NOW.toISOString(), signals: [{ kind, at: NOW.toISOString(), detail }] } }));
     expect(one('COMMENT')).toContain('Your move: Someone commented on it. Let run 1 answer, or reply on GitHub.');
     expect(one('CHECK_FAILED')).toContain('Your move: A check fails on your pull request. Start run 1 to fix it.');
     expect(one('CLA')).toContain(
@@ -130,6 +131,13 @@ describe('a pull request that needs the user, on My contributions', () => {
     );
     expect(one('DCO')).toContain('Your move: The repo needs your Signed-off-by on every commit');
     expect(one('RUN_ENDED')).toContain('Your move: The last run changed nothing: what is left is yours to do.');
+    expect(one('SILENT', '2026-11-12')).toContain(
+      "No answer in 30 days Add a --json flag to kelp status Your move: No one has looked at this PR for 30 days. We'll close it on Nov 12 to keep your profile tidy. Click Keep it open to keep it, or close it yourself on GitHub. See your options",
+    );
+    expect(one('SILENT', '2026-11-12')).toContain('Keep it open');
+    expect(one('REPO_OUT', 'hostile_close')).toContain(
+      'Repo out of Contribute Add a --json flag to kelp status Your move: This repo is out of Contribute: a maintainer asked us to stay away. You may want to close this PR. Close it on GitHub, or click Keep it open. See your options',
+    );
   });
 
   it('says why Mark as handled did not go through', () => {
@@ -1514,6 +1522,51 @@ describe('the next step, for each thing only the user can do', () => {
       'Run git rebase --signoff HEAD~N, where N is the number of commits on the pull request',
     );
     expect(byHand).toContain('data-kinds="DCO"');
+  });
+
+  it('warns of the close a silent pull request faces: keep it open, or close it, and no run for it', () => {
+    const html = next(nextForSilent);
+    const plain = text(html);
+    expect(html).toContain('data-next-card="silent"');
+    expect(plain).toContain('Your move: keep it open, or let it close No answer in 30 days');
+    expect(plain).toContain(
+      "No one has looked at this PR for 30 days. We'll close it on Nov 12 to keep your profile tidy. Click Keep it open to keep it.",
+    );
+    expect(plain).toContain('or when a run last pushed to it, whichever came last');
+    expect(plain).toContain('A word from someone else before Nov 12 clears this and keeps it open.');
+    expect(plain).not.toMatch(/mark (it )?as handled/i);
+    expect(plain).toContain('Done with it? Close it on GitHub yourself, or leave it: GitRanks closes it on Nov 12.');
+    expect(plain).toContain('Keep it open Open PR #5120 on GitHub ↗');
+    expect(html).toContain('data-kinds="SILENT"');
+    expect(html).toContain('data-next-round="own"');
+    expect(html).not.toContain('data-run-item');
+  });
+
+  it('says why the repo left Contribute, and leaves closing the pull request to the user', () => {
+    const html = next(nextForRepoOut);
+    const plain = text(html);
+    expect(html).toContain('data-next-card="repo-out"');
+    expect(html).toContain('data-repo-out="hostile_close"');
+    expect(plain).toContain('Your move: close the pull request, or keep it open Repo out of Contribute');
+    expect(plain).toContain(
+      'This repo is out of Contribute: a maintainer asked us to stay away. You may want to close this PR.',
+    );
+    expect(plain).toContain('GitRanks sends nothing more there');
+    expect(plain).toContain('Open PR #5121 on GitHub ↗ (opens in a new tab) Keep it open');
+    expect(html).toContain('data-kinds="REPO_OUT"');
+
+    const misses = (detail: string | null) =>
+      text(
+        next({
+          ...nextForRepoOut,
+          needsYou: { since: '', signals: [{ kind: 'REPO_OUT', at: NOW.toISOString(), detail }] },
+        }),
+      );
+    expect(misses('pr_misses')).toContain(
+      'This repo has left our PRs unanswered; it is out of the shared pool for 90 days.',
+    );
+    expect(misses('pr_misses')).toContain('No longer want it? Open PR #5121 on GitHub');
+    expect(misses(null)).toContain('This repo is out of Contribute. You may want to close this PR.');
   });
 
   it('starts the run with the failing checks ticked and the note filled in', () => {

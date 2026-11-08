@@ -7,7 +7,7 @@ import type {
   ContributePrSignal,
   ContributePrSignalKind,
 } from './contribute.types';
-import { USERS_SIGNALS } from './follow-up-format';
+import { type RepoOutReason, repoOutReasonOf, repoSaidNoOf, USERS_SIGNALS } from './follow-up-format';
 import { botVerdictOf, bracketed, type NeedsYouItem, prItemOf, pushDetailOf, runOutcomeOf } from './needs-you';
 import { type ContributePrConventionIssue, type ContributePrFix, httpsOnly } from './pr-conventions';
 import { type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
@@ -62,7 +62,11 @@ export type UserMove =
       check: string | null;
     }
   /** The title breaks the repo's rules, with no one-click fix read for it. */
-  | { kind: 'title'; kinds: ContributePrSignalKind[]; title: string | null };
+  | { kind: 'title'; kinds: ContributePrSignalKind[]; title: string | null }
+  /** The repo left Contribute (`reason`: why; null for one this UI does not know): close the PR, or keep it open. */
+  | { kind: 'repo-out'; kinds: ContributePrSignalKind[]; reason: RepoOutReason | null; at: string }
+  /** No one has answered it for 30 days: GitRanks closes it on `closesOn` (its ISO day) unless the user keeps it. */
+  | { kind: 'silent'; kinds: ContributePrSignalKind[]; closesOn: string | null; at: string };
 
 export type NextRun = {
   /** The run's number. */
@@ -150,6 +154,8 @@ export function nextStepOf(first: ContributeAttemptDetail, agentConnected = fals
   const find = (kind: ContributePrSignalKind) => signals.find((signal) => signal.kind === kind);
   const runSignals = signals.filter(({ kind }) => !USERS_SIGNALS.has(kind));
   const threads = waitingThreadsOf(first);
+  // A repo that said no to AI-made PRs takes no run, whatever else waits: the rest is the user's, on GitHub.
+  const saidNo = repoSaidNoOf(signals);
   const user: UserMove[] = [];
 
   const cla = find('CLA');
@@ -204,6 +210,12 @@ export function nextStepOf(first: ContributeAttemptDetail, agentConnected = fals
   if (finding?.outcome === 'stopped' || finding?.outcome === 'push_failed') {
     user.push({ kind: 'stopped', kinds: ['RUN_ENDED'], run: finding });
   }
+  const out = find('REPO_OUT');
+  if (out) user.push({ kind: 'repo-out', kinds: ['REPO_OUT'], reason: repoOutReasonOf(out.detail), at: out.at });
+  const silent = find('SILENT');
+  if (silent) {
+    user.push({ kind: 'silent', kinds: ['SILENT'], closesOn: silent.detail?.trim() || null, at: silent.at });
+  }
 
   const fix = first.prFix ?? null;
   const signOff = fix?.kind === 'SIGN_OFF' ? fix : null;
@@ -215,8 +227,8 @@ export function nextStepOf(first: ContributeAttemptDetail, agentConnected = fals
   return {
     run: {
       round: nextRunNumberOf(first),
-      open: nextRoundOpen(first),
-      recommended: nextRoundRecommended(first) || runSignals.length > 0,
+      open: !saidNo && nextRoundOpen(first),
+      recommended: !saidNo && (nextRoundRecommended(first) || runSignals.length > 0),
       signals: runSignals,
       threads,
       kinds: [...new Set(runSignals.map(({ kind }) => kind))],

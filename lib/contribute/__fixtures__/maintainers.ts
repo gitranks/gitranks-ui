@@ -37,8 +37,9 @@ const key = (patch: Partial<ContributeConfigKey> & { key: string }): ContributeC
 export const maintainerFacts = (patch: Partial<ContributeMaintainerFacts> = {}): ContributeMaintainerFacts => ({
   prsPerMonth: 4,
   monthDays: 30,
-  pauseStreak: 2,
-  pauseDays: 60,
+  missesMax: 2,
+  silentDays: 30,
+  outDays: 90,
   attemptsPerRepo: 1,
   badgeBoost: 1.25,
   configKeys: [

@@ -3,8 +3,21 @@ import { describe, expect, it } from 'vitest';
 import { attempt, followUpOf, followUpRun } from './__fixtures__/contribute-attempts';
 import { replyWaiting } from './__fixtures__/contribute-overview';
 import { NOW, views } from './__fixtures__/contribute-views';
-import { needsEverything, openPr, prsNeedingYou, runReady, runsInFlight, signal } from './__fixtures__/needs-you';
-import type { ContributeAttempt, ContributeContribution, ContributeView } from './contribute.types';
+import {
+  needsEverything,
+  openPr,
+  prsNeedingYou,
+  prsOutcomes,
+  runReady,
+  runsInFlight,
+  signal,
+} from './__fixtures__/needs-you';
+import type {
+  ContributeAttempt,
+  ContributeContribution,
+  ContributePrSignalKind,
+  ContributeView,
+} from './contribute.types';
 import {
   botVerdictOf,
   clipped,
@@ -365,6 +378,77 @@ describe('needsYouItemsOf: an open pull request', () => {
       action: { label: 'Sign off and push', href: '/contribute/attempts/A_PR4410?session=next' },
     });
     expect(rowOf({ ...prsNeedingYou.dco, openedBy: 'HAND' }).action).toMatchObject({ label: 'See how to sign off' });
+  });
+
+  it('warns of the close a silent pull request faces, with one click to keep it open and no run', () => {
+    expect(rowOf(prsOutcomes.silent)).toMatchObject({
+      kind: 'silent',
+      tone: 'amber',
+      pill: 'No answer in 30 days',
+      move: "No one has looked at this PR for 30 days. We'll close it on Nov 12 to keep your profile tidy. Click Keep it open to keep it, or close it yourself on GitHub.",
+      action: { label: 'See your options', href: '/contribute/attempts/A_PR5120?session=next' },
+      secondary: { label: 'Keep it open', handled: { prId: 'PR_5120', kinds: ['SILENT'], all: true } },
+    });
+    // A full ISO time names its day too; a day it cannot read says "soon".
+    const at = (detail: string | null) =>
+      rowOf(openPr({ needsYou: { since: '', signals: [signal('SILENT', { detail })] } })).move;
+    expect(at('2026-11-12T06:40:00.000Z')).toContain("We'll close it on Nov 12 to keep");
+    expect(at(null)).toContain("We'll close it soon to keep");
+    expect(at('next week')).toContain("We'll close it soon to keep");
+    // Opened by hand: the same, no run either way.
+    expect(rowOf({ ...prsOutcomes.silent, openedBy: 'HAND' }).kind).toBe('silent');
+  });
+
+  it('says why a repo left Contribute and leaves closing the pull request to the user', () => {
+    const out = (detail: string | null) =>
+      rowOf(openPr({ needsYou: { since: '', signals: [signal('REPO_OUT', { detail })] } }));
+    expect(rowOf(prsOutcomes.repoOut)).toMatchObject({
+      kind: 'repo-out',
+      tone: 'amber',
+      pill: 'Repo out of Contribute',
+      move: 'This repo is out of Contribute: a maintainer asked us to stay away. You may want to close this PR. Close it on GitHub, or click Keep it open.',
+      action: { label: 'See your options', href: '/contribute/attempts/A_PR5121?session=next' },
+      secondary: { label: 'Keep it open', handled: { prId: 'PR_5121', kinds: ['REPO_OUT'], all: true } },
+    });
+    expect(out('closed_no_ai').move).toBe(
+      'This repo is out of Contribute: a maintainer said it takes no AI-made PRs. You may want to close this PR. Close it on GitHub, or click Keep it open.',
+    );
+    expect(out('pr_misses').move).toBe(
+      'This repo has left our PRs unanswered; it is out of the shared pool for 90 days. Close it on GitHub if you no longer want it, or click Keep it open.',
+    );
+    // A reason this UI does not know yet: still out, no why.
+    expect(out('something_new').move).toBe(
+      'This repo is out of Contribute. You may want to close this PR. Close it on GitHub, or click Keep it open.',
+    );
+    // A comment beside the repo's no leads, answered on GitHub: no run goes to a repo that said no.
+    const both = (detail: string) =>
+      rowOf(openPr({ needsYou: { since: '', signals: [signal('COMMENT'), signal('REPO_OUT', { detail })] } }));
+    expect(both('closed_no_ai')).toMatchObject({
+      kind: 'comment',
+      more: 1,
+      move: 'Someone commented on it. Reply on GitHub.',
+      action: { label: 'Reply on GitHub ↗' },
+    });
+    expect(
+      rowOf(
+        openPr({
+          needsYou: {
+            since: '',
+            signals: [signal('CHANGES_REQUESTED'), signal('REPO_OUT', { detail: 'hostile_close' })],
+          },
+        }),
+      ).move,
+    ).toBe('A reviewer asked for changes. Make them on GitHub: no run adds to a pull request in a repo that said no.');
+    // Out of the shared pool only: the user's own runs go on.
+    expect(both('pr_misses')).toMatchObject({ kind: 'comment', move: expect.stringContaining('Let run') });
+  });
+
+  it('still says something of a kind this UI does not know yet', () => {
+    const unknown = signal('SOMETHING_NEW' as ContributePrSignalKind, { detail: 'x' });
+    expect(rowOf(openPr({ needsYou: { since: '', signals: [unknown] } }))).toMatchObject({
+      kind: 'other',
+      pill: 'Something changed',
+    });
   });
 
   it('says a fix that failed in place of what it fixed, and what to do by hand, while that still waits', () => {

@@ -787,7 +787,7 @@ const PR_NOTE = 'feedbackId login role likes word at hidden';
 export const ContributeMaintainerFactsDocument = doc<{ contributeMaintainerFacts: ContributeMaintainerFacts }>(
   `query ContributeMaintainerFacts {
   contributeMaintainerFacts {
-    prsPerMonth monthDays pauseStreak pauseDays attemptsPerRepo badgeBoost
+    prsPerMonth monthDays missesMax silentDays outDays attemptsPerRepo badgeBoost
     configKeys { key kind values meaning live page min max }
   }
 }`,

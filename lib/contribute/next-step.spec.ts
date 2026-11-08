@@ -2,7 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import { attempt, feedbackThread, followUpOf, followUpRun, followUps } from './__fixtures__/contribute-attempts';
 import { NOW } from './__fixtures__/contribute-views';
-import { nextForAgreement, nextForChecks, nextForDco, nextForRun, nextForYou, signal } from './__fixtures__/needs-you';
+import {
+  nextForAgreement,
+  nextForChecks,
+  nextForDco,
+  nextForRepoOut,
+  nextForRun,
+  nextForSilent,
+  nextForYou,
+  signal,
+} from './__fixtures__/needs-you';
 import { contributionOf, defaultNoteOf, nextStepOf, nextStepWaits, yourMoveOf } from './next-step';
 
 describe('defaultNoteOf', () => {
@@ -125,6 +134,45 @@ describe('nextStepOf', () => {
     expect(nextStepOf({ ...nextForDco, needsYou: { since: '', signals: [title] } }).user).toEqual([
       { kind: 'title', kinds: ['TITLE'], title: 'Fix the thing' },
     ]);
+  });
+
+  it('gives a silent pull request and a repo out of Contribute a card each, and no run for them', () => {
+    const silent = nextStepOf(nextForSilent);
+    expect(silent.user).toEqual([
+      { kind: 'silent', kinds: ['SILENT'], closesOn: '2026-11-12', at: '2026-10-28T06:00:00.000Z' },
+    ]);
+    expect(silent.run).toMatchObject({ recommended: false, signals: [], kinds: [], note: '' });
+    expect(nextStepWaits(silent)).toBe(true);
+
+    const out = nextStepOf(nextForRepoOut);
+    expect(out.user).toEqual([
+      { kind: 'repo-out', kinds: ['REPO_OUT'], reason: 'hostile_close', at: '2026-10-28T07:00:00.000Z' },
+    ]);
+    expect(out.run).toMatchObject({ recommended: false, signals: [] });
+    const unknown = signal('REPO_OUT', { detail: 'something_new' });
+    expect(nextStepOf({ ...nextForRepoOut, needsYou: { since: '', signals: [unknown] } }).user).toEqual([
+      expect.objectContaining({ kind: 'repo-out', reason: null }),
+    ]);
+  });
+
+  it('offers no run in a repo that said no to AI-made PRs, whatever else waits; one out of the pool only keeps it', () => {
+    const beside = (detail: string) =>
+      nextStepOf({
+        ...nextForRun,
+        needsYou: {
+          since: '',
+          signals: [...(nextForRun.needsYou?.signals ?? []), signal('REPO_OUT', { detail })],
+        },
+      });
+    for (const detail of ['hostile_close', 'closed_no_ai']) {
+      const step = beside(detail);
+      expect(step.run).toMatchObject({ open: false, recommended: false });
+      expect(step.user).toEqual([expect.objectContaining({ kind: 'repo-out', reason: detail })]);
+    }
+    expect(beside('pr_misses').run).toMatchObject({ open: true, recommended: true });
+    // On the other sessions, the repo's no leads.
+    const saidNo = { since: '', signals: [signal('REPO_OUT', { detail: 'hostile_close' })] };
+    expect(yourMoveOf({ ...nextForRun, needsYou: saidNo }, [], NOW)?.kind).toBe('repo-out');
   });
 
   it('sees nothing waiting on a quiet pull request', () => {

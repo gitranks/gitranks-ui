@@ -111,7 +111,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return response;
   }
 
-  // The landing in markdown, for an agent that asks for it over HTML: rewritten here, before Auth.js, which would turn
+  // The landing in markdown, for an agent that asks for it at least as much as HTML: rewritten here, before Auth.js, which would turn
   // the rewrite into an external one. Never kept by a shared cache: the same URL answers HTML to everyone else. Every
   // other answer of the landing says where its markdown is and that it differs by `Accept`.
   const landing = isLandingPath(pathname);

@@ -12,8 +12,9 @@ export function LaunchBarScript() {
 
 /**
  * The announcement above the header, on every page: one link into Contribute, and an X that hides it in this browser
- * for good. Phones show the lead alone, the cue comes in from `md`, and the sentence after the lead from `xl`, where it fits on the line. Hidden on Contribute's pages and once this
- * browser has opened one, by the `data-launch-bar` attribute on `<html>`.
+ * for good. Phones show the lead alone; the cue comes in from `md`, and the sentence after the lead from `xl`, where
+ * it fits on the line. Hidden on Contribute's pages and once this browser has opened one, by the `data-launch-bar`
+ * attribute on `<html>`.
  */
 export function LaunchBar() {
   return (

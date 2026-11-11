@@ -188,6 +188,11 @@ describe('A3, what happens next before the first attempt', () => {
       'Your agent starts on Nov 14',
     ],
     [
+      'key-waiting',
+      withContributor({ credentials: [key({ state: 'LIMIT_REACHED', blockedUntil: null })] }),
+      'Your agent starts once your key can spend again',
+    ],
+    [
       'no-room',
       withContributor({ spend: { ...spend, nextAttemptAt: null } }),
       'Your caps leave no room for one attempt',

@@ -101,6 +101,8 @@ const tagOf = (params: URLSearchParams, name: string) =>
  */
 function implicitSourceOf(pathname: string, params: URLSearchParams): string | undefined {
   if (params.get('start') === 'agent') return 'mcp_agent';
+  // Where `?start=agent` sends a signed-in visitor, before the page (and this) runs.
+  if (/^\/contribute\/connect\/?$/.test(pathname) && params.get('path') === 'agent') return 'mcp_agent';
   if (/^\/contribute\/maintainers\/?$/.test(pathname) && params.has('from')) return 'pr_footer';
   return undefined;
 }

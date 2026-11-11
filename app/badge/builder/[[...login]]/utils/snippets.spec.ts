@@ -46,7 +46,7 @@ describe('badge URLs', () => {
 describe('badgeLinkUrl', () => {
   it('links the Contribute badge to the page for maintainers, any other badge to its entity page', () => {
     expect(badgeLinkUrl(ORIGIN, 'contribute', 'repo', 'acme/fastqueue')).toBe(
-      'https://gitranks.com/contribute/maintainers',
+      'https://gitranks.com/contribute/maintainers?utm_source=badge&utm_medium=readme',
     );
     expect(badgeLinkUrl(ORIGIN, 'rank', 'repo', 'acme/fastqueue')).toBe('https://gitranks.com/repo/acme/fastqueue');
     expect(badgeLinkUrl(ORIGIN, 'rank', 'user', 'octo-dev', 'country')).toBe(
@@ -58,7 +58,7 @@ describe('badgeLinkUrl', () => {
     const imageUrl = badgeImageUrl(ORIGIN, 'repo', 'owner/name', 'contribute', new URLSearchParams());
     const pageUrl = badgeLinkUrl(ORIGIN, 'contribute', 'repo', 'owner/name');
     expect(markdownSnippet({ imageUrl, pageUrl, alt: 'GitRanks Contribute', auto: false })).toBe(
-      '[![GitRanks Contribute](https://gitranks.com/badge/repo/owner/name/contribute.svg)](https://gitranks.com/contribute/maintainers)',
+      '[![GitRanks Contribute](https://gitranks.com/badge/repo/owner/name/contribute.svg)](https://gitranks.com/contribute/maintainers?utm_source=badge&utm_medium=readme)',
     );
   });
 });

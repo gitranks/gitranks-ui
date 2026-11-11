@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
 import { IssueCardCompact } from '@/app/contribute/components/issue-card-compact';
+import { contributeSource } from '@/lib/contribute/click-tracking';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { PROFILE_ISSUES_MAX, type ProfileIssuesAnswer, profileIssuesUrl } from '@/lib/contribute/profile-issues';
 import { loginFromPath } from '@/utils/login-from-path';
@@ -46,6 +47,7 @@ export function ProfileIssuesBlock({ issues }: { issues: ContributeIssue[] }) {
   return (
     <section
       aria-labelledby="profile-issues-for-you"
+      {...contributeSource('profile_issues_block')}
       className="flex flex-col gap-3.5 rounded-xl border border-violet-200 bg-violet-50/50 px-5 py-4 dark:border-violet-900 dark:bg-violet-950/20"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

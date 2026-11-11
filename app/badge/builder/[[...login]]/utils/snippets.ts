@@ -35,9 +35,12 @@ export function entityPageUrl(origin: string, kind: EntityKind, name: string, sc
   }
 }
 
+/** The Contribute badge's link, tagged so the visits it brings from READMEs are counted apart. */
+export const CONTRIBUTE_BADGE_LINK_PATH = '/contribute/maintainers?utm_source=badge&utm_medium=readme';
+
 /** Where a badge's image links: the Contribute badge to the page that explains it, any other to its entity's page. */
 export function badgeLinkUrl(origin: string, badgeId: string, kind: EntityKind, name: string, scope?: string): string {
-  return badgeId === 'contribute' ? `${origin}/contribute/maintainers` : entityPageUrl(origin, kind, name, scope);
+  return badgeId === 'contribute' ? `${origin}${CONTRIBUTE_BADGE_LINK_PATH}` : entityPageUrl(origin, kind, name, scope);
 }
 
 export type Snippet = { imageUrl: string; pageUrl: string; alt: string; auto: boolean };

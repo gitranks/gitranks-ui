@@ -2,6 +2,7 @@ import { FaGithub } from 'react-icons/fa';
 import { FaBluesky, FaMastodon, FaXTwitter } from 'react-icons/fa6';
 
 import { Link } from '../link/link';
+import { contributeSource } from '@/lib/contribute/click-tracking';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
 
 const SITE_LINKS = [
@@ -19,7 +20,7 @@ const SITE_LINKS = [
 
 export const Footer = () => {
   return (
-    <footer className="mx-auto flex w-full max-w-7xl flex-col gap-3 p-4">
+    <footer className="mx-auto flex w-full max-w-7xl flex-col gap-3 p-4" {...contributeSource('footer')}>
       <nav aria-label="Site">
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
           {SITE_LINKS.map(({ href, label }) => (

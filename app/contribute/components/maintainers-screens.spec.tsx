@@ -129,7 +129,7 @@ describe('the maintainers page', () => {
   it('gives the badge’s Markdown exactly, for the visitor’s repo when a PR names it, and when priority applies', () => {
     const generic = text(page());
     expect(generic).toContain(
-      '[![GitRanks Contribute](https://gitranks.com/badge/repo/your-org/your-repo/contribute.svg)](https://gitranks.com/contribute/maintainers)',
+      '[![GitRanks Contribute](https://gitranks.com/badge/repo/your-org/your-repo/contribute.svg)](https://gitranks.com/contribute/maintainers?utm_source=badge&utm_medium=readme)',
     );
     expect(generic).toContain(
       'Priority applies to repos we can suggest: active, with enough stars, and open to outside PRs.',

@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
+import { type ContributeSource, contributeSource } from '@/lib/contribute/click-tracking';
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from '@/lib/contribute/contribute-path';
 
 /** The way of contributing a visitor picked: a Claude key, or their own agent. */
@@ -47,6 +48,7 @@ export function SignInButton({
   className,
   label,
   defaultOpen = false,
+  source,
   children,
 }: {
   path?: SignInPath;
@@ -57,6 +59,8 @@ export function SignInButton({
   className?: string;
   /** The button's accessible name, when its text alone does not say what it is for. */
   label?: string;
+  /** Where a click on it counts from (`contributeSource`). */
+  source?: ContributeSource;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -71,7 +75,7 @@ export function SignInButton({
         showCloseButton={false}
         className="flex flex-col gap-5 rounded-2xl p-8 shadow-2xl motion-reduce:animate-none sm:max-w-md max-sm:p-6"
       >
-        <SignInPanel path={path} preview={preview} onLeave={() => setOpen(false)} />
+        <SignInPanel path={path} preview={preview} source={source} onLeave={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   );
@@ -81,10 +85,13 @@ export function SignInButton({
 export function SignInPanel({
   path,
   preview = false,
+  source,
   onLeave,
 }: {
   path?: SignInPath;
   preview?: boolean;
+  /** Where a click on its button counts from (`contributeSource`). */
+  source?: ContributeSource;
   /** Closes the dialog as the preview's button goes on, when the page under it stays. */
   onLeave?: () => void;
 }) {
@@ -122,7 +129,13 @@ export function SignInPanel({
       {preview ? (
         // Signed in already: the button goes on to the step, as the sign-in would.
         <Button asChild className={CONTINUE_CLASS}>
-          <Link href={route} prefetch={false} data-sign-in="preview" onClick={onLeave}>
+          <Link
+            href={route}
+            prefetch={false}
+            data-sign-in="preview"
+            onClick={onLeave}
+            {...(source ? contributeSource(source) : {})}
+          >
             {continueWithGithub}
           </Link>
         </Button>
@@ -132,6 +145,7 @@ export function SignInPanel({
           disabled={pending}
           className={CONTINUE_CLASS}
           data-sign-in="github"
+          {...(source ? contributeSource(source) : {})}
           onClick={() => {
             setPending(true);
             startSignIn(path).catch(() => setPending(false));

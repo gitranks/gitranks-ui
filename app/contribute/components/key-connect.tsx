@@ -9,6 +9,7 @@ import { ConnectResult, STORED_RESULTS } from './connect-result';
 import { LimitsManual } from './limits-manual';
 import { ISSUES_PATH, Matching } from './matching';
 import { HEADING } from './primitives';
+import { reportContributeConnect } from '@/components/contribute-click-tracker/contribute-click-tracker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -125,6 +126,7 @@ export function KeyConnect({
       }
       setOutcome(result.data);
       if (!STORED_RESULTS.has(result.data.result)) return;
+      if (firstKey) reportContributeConnect('key');
       setKey('');
       if (firstKey) setMatching(true);
       else router.refresh();

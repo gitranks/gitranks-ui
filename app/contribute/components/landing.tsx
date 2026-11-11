@@ -8,6 +8,7 @@ import { HashSafeLink } from './public-pages';
 import { SignInButton, type SignInPath } from './sign-in-dialog';
 import { buttonVariants } from '@/components/ui/button';
 import { type AgentPageStats, agentPageStatsLineOf } from '@/lib/contribute/agent-page.types';
+import { contributeSource } from '@/lib/contribute/click-tracking';
 import type { ContributeComingSoonProvider } from '@/lib/contribute/contribute.types';
 import {
   AGENTS_DOC_PATH,
@@ -157,13 +158,13 @@ function StartAction({
   );
   if (viewer === 'visitor') {
     return (
-      <SignInButton path={path} preview={preview} defaultOpen={open} className={classes}>
+      <SignInButton path={path} preview={preview} defaultOpen={open} className={classes} source="contribute_landing">
         {label}
       </SignInButton>
     );
   }
   return (
-    <Link href={href} prefetch={false} className={classes}>
+    <Link href={href} prefetch={false} className={classes} {...contributeSource('contribute_landing')}>
       {label}
     </Link>
   );

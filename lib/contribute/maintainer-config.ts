@@ -5,7 +5,7 @@ export const CONFIG_FILE = '.github/gitranks.yml';
 
 /** The badge's Markdown as a README carries it: the repo's badge, linking to this page. Always the public site's. */
 export const contributeBadgeMarkdown = (nameWithOwner: string) =>
-  `[![GitRanks Contribute](https://gitranks.com/badge/repo/${nameWithOwner}/contribute.svg)](https://gitranks.com/contribute/maintainers)`;
+  `[![GitRanks Contribute](https://gitranks.com/badge/repo/${nameWithOwner}/contribute.svg)](https://gitranks.com/contribute/maintainers?utm_source=badge&utm_medium=readme)`;
 
 /** Where the badge's Markdown points when the page does not know the visitor's repo. */
 export const BADGE_EXAMPLE_REPO = 'your-org/your-repo';

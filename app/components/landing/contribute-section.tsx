@@ -10,7 +10,6 @@ import { IssueCardCompact } from '@/app/contribute/components/issue-card-compact
 import { buttonVariants } from '@/components/ui/button';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { type ProfileIssuesAnswer, profileIssuesUrl } from '@/lib/contribute/profile-issues';
-import { useContributeAllowed } from '@/lib/contribute/use-contribute-allowed';
 import { cn } from '@/lib/utils';
 
 const CONTRIBUTE_PATH: Route = '/contribute';
@@ -211,7 +210,7 @@ export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: Contri
   </section>
 );
 
-/** The signed-in user's own top picks, read once they may see the section; none for anybody else or on a failure. */
+/** The signed-in user's own top picks; none for a visitor or on a failure. */
 function useOwnPicks(login: string | null): ContributeIssue[] {
   const [picks, setPicks] = useState<ContributeIssue[]>([]);
 
@@ -235,17 +234,12 @@ function useOwnPicks(login: string | null): ContributeIssue[] {
 }
 
 /**
- * GitRanks Contribute on the home page: the pitch, and picks beside it. Shown on the same answer as the header's
- * Contribute item: to everyone once launched, visitors without a session included; before, to the preview list. A
- * contributor sees their own top picks in place of the examples; a visitor sees the examples.
+ * GitRanks Contribute on the home page, shown to everyone: the pitch, and picks beside it. A contributor sees their own
+ * top picks in place of the examples.
  */
 export const ContributeSection: FC = () => {
-  const { data: session, status } = useSession();
-  const login = session?.user?.githubLogin ?? null;
-  const allowed = useContributeAllowed(login, status === 'loading') === true;
-  const own = useOwnPicks(allowed ? login : null);
-
-  if (!allowed) return null;
+  const { data: session } = useSession();
+  const own = useOwnPicks(session?.user?.githubLogin ?? null);
 
   return (
     <ContributeSectionView viewer={own.length ? 'contributor' : 'member'} picks={own.length ? own : EXAMPLE_PICKS} />

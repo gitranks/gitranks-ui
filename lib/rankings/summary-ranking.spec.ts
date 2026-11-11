@@ -70,7 +70,13 @@ describe('competitionRanks', () => {
       { name: 'b', v: 2 },
       { name: 'd', v: 1 },
     ];
-    expect(competitionRanks(rows, (r) => r.name, (r) => r.v)).toEqual(
+    expect(
+      competitionRanks(
+        rows,
+        (r) => r.name,
+        (r) => r.v,
+      ),
+    ).toEqual(
       new Map([
         ['a', 1],
         ['c', 2],

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { CodeBlock } from './code-block';
 import { Pill } from './primitives';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
-import { ABOUT_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
+import { ABOUT_PATH, AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import {
   EXAMPLE_BRIEF,
   EXAMPLE_BRIEF_CLAIMED_ON,
@@ -196,6 +196,13 @@ export function McpDocsScreen({ signIn = false }: { signIn?: boolean }) {
           Your coding agent finds open-source issues that fit your skills, works on one on your machine and hands the
           change back through our MCP server. You review every pull request on GitRanks before it opens in your name.
           Works with Claude Code, Codex, Cursor, Gemini CLI, Antigravity, VS Code and any client that can send a header.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          For AI agents: the same in markdown at{' '}
+          <a href={AGENTS_DOC_PATH} className="font-mono text-link hover:underline">
+            {AGENTS_DOC_PATH}
+          </a>
+          .
         </p>
       </PublicPageHead>
 

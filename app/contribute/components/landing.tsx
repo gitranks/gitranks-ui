@@ -7,8 +7,10 @@ import { Pill } from './primitives';
 import { HashSafeLink } from './public-pages';
 import { SignInButton, type SignInPath } from './sign-in-dialog';
 import { buttonVariants } from '@/components/ui/button';
+import { type AgentPageStats, agentPageStatsLineOf } from '@/lib/contribute/agent-page.types';
 import type { ContributeComingSoonProvider } from '@/lib/contribute/contribute.types';
 import {
+  AGENTS_DOC_PATH,
   CONNECT_AGENT_PATH,
   CONNECT_KEY_PATH,
   CONTRIBUTE_TERMS_PATH,
@@ -113,9 +115,10 @@ const DEFAULTS = [
   },
 ];
 
-/** The landing's foot: the pages open to every visitor. */
-const FOOT_LINKS: { href: Route; label: string }[] = [
+/** The landing's foot: the pages open to every visitor. `plain`: a file, not a page (a plain link, no router). */
+const FOOT_LINKS: { href: Route; label: string; plain?: boolean }[] = [
   { href: MCP_DOCS_PATH, label: 'MCP server docs' },
+  { href: AGENTS_DOC_PATH as Route, label: 'For AI agents', plain: true },
   { href: FAQ_PATH, label: 'Questions' },
   { href: CONTRIBUTE_TERMS_PATH, label: 'Terms' },
 ];
@@ -133,12 +136,15 @@ function StartAction({
   viewer,
   preview,
   wide = false,
+  open = false,
   className,
 }: {
   path: SignInPath;
   viewer: LandingViewer;
   preview: boolean;
   wide?: boolean;
+  /** The visitor's sign-in opens with the page (`?start=agent`). */
+  open?: boolean;
   className?: string;
 }) {
   const { label, href } = ACTIONS[path];
@@ -151,7 +157,7 @@ function StartAction({
   );
   if (viewer === 'visitor') {
     return (
-      <SignInButton path={path} preview={preview} className={classes}>
+      <SignInButton path={path} preview={preview} defaultOpen={open} className={classes}>
         {label}
       </SignInButton>
     );
@@ -202,12 +208,18 @@ export function Landing({
   viewer,
   preview = false,
   noted,
+  startAgent = false,
+  stats = null,
 }: {
   viewer: LandingViewer;
   preview?: boolean;
   noted?: readonly ContributeComingSoonProvider[];
+  /** An agent sent its person here (`?start=agent`): the hero's own-agent sign-in opens with the page. */
+  startAgent?: boolean;
+  /** The pool's public numbers, a line under the hero's actions; left out when unread. */
+  stats?: AgentPageStats | null;
 }) {
-  const action = (path: SignInPath, props: { wide?: boolean; className?: string } = {}) => (
+  const action = (path: SignInPath, props: { wide?: boolean; open?: boolean; className?: string } = {}) => (
     <StartAction path={path} viewer={viewer} preview={preview} {...props} />
   );
 
@@ -228,11 +240,16 @@ export function Landing({
           </p>
           <div className="flex flex-wrap gap-3">
             {action('key', { wide: true })}
-            {action('agent', { wide: true })}
+            {action('agent', { wide: true, open: startAgent })}
           </div>
           <p className="text-sm text-muted-foreground">
             Free to use. Nothing reaches GitHub without your OK. Leave any time.
           </p>
+          {stats ? (
+            <p className="text-sm text-muted-foreground" data-landing="stats">
+              {agentPageStatsLineOf(stats)}.
+            </p>
+          ) : null}
         </div>
 
         <figure
@@ -379,16 +396,23 @@ export function Landing({
           </p>
           <nav aria-label="More about Contribute" className="basis-full">
             <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-              {FOOT_LINKS.map(({ href, label }) => (
-                <li key={href}>
-                  <HashSafeLink
-                    href={href}
-                    className="inline-flex items-center max-sm:min-h-11 text-muted-foreground hover:text-foreground hover:underline"
-                  >
-                    {label}
-                  </HashSafeLink>
-                </li>
-              ))}
+              {FOOT_LINKS.map(({ href, label, plain }) => {
+                const linkClass =
+                  'inline-flex items-center max-sm:min-h-11 text-muted-foreground hover:text-foreground hover:underline';
+                return (
+                  <li key={href}>
+                    {plain ? (
+                      <a href={href} className={linkClass}>
+                        {label}
+                      </a>
+                    ) : (
+                      <HashSafeLink href={href} className={linkClass}>
+                        {label}
+                      </HashSafeLink>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </nav>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckIcon } from 'lucide-react';
-import { type FC, type ReactNode, useState } from 'react';
+import { type FC, type ReactNode, useRef, useState } from 'react';
 
 import { Flag } from '@/components/flag/flag';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,8 @@ export const PickerPopover: FC<PickerPopoverProps> = ({
   onPick,
 }) => {
   const [open, setOpen] = useState(false);
+  // After a pick, focus stays where the pick takes it instead of going back to the button (and scrolling to it).
+  const picked = useRef(false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -56,7 +58,16 @@ export const PickerPopover: FC<PickerPopoverProps> = ({
           {trigger}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-0" align="end">
+      <PopoverContent
+        className="w-72 p-0"
+        align="end"
+        onCloseAutoFocus={(event) => {
+          if (picked.current) {
+            event.preventDefault();
+            picked.current = false;
+          }
+        }}
+      >
         {/* Search the names only, not the values that keep items apart. */}
         <Command
           filter={(_, search, keywords) =>
@@ -76,6 +87,7 @@ export const PickerPopover: FC<PickerPopoverProps> = ({
                       value={`${groupIndex}~${option.label}`}
                       keywords={[option.label]}
                       onSelect={() => {
+                        picked.current = true;
                         setOpen(false);
                         onPick(option.value);
                       }}

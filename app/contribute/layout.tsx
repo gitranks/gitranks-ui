@@ -4,6 +4,7 @@ import { type ReactNode, Suspense } from 'react';
 import { ContributeTabs } from './components/contribute-tabs';
 import { HeaderLine } from './components/contribute-tabs-nav';
 import { Header } from '@/components/header/header';
+import { LaunchBarSeen } from '@/components/launch-bar/launch-bar-dismiss';
 
 export const metadata: Metadata = {
   title: 'Contribute',
@@ -19,6 +20,8 @@ export const metadata: Metadata = {
 export default function ContributeLayout({ children }: { children: ReactNode }) {
   return (
     <>
+      {/* Opening Contribute ends its launch bar for this browser. */}
+      <LaunchBarSeen />
       <Header section="contribute" />
       {/* The tabs read the viewer and the path (an attempt's is known only per request): the header's line until then. */}
       <Suspense fallback={<HeaderLine />}>

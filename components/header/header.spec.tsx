@@ -28,8 +28,8 @@ describe('the main menu', () => {
     // Rankings' links are in the server HTML for crawlers, hidden while the submenu is closed.
     for (const href of RANKINGS) expect(html).toContain(`href="${href}"`);
     expect(html).toMatch(/<a [^>]*href="\/badge\/gallery">Badges<\/a>/);
-    // Contribute shows only once the client has asked whether it is open, so never in the server HTML.
-    expect(html).not.toContain('href="/contribute"');
+    // Contribute is offered to everyone, in the server HTML.
+    expect(html).toMatch(/<a [^>]*href="\/contribute"[^>]*>Contribute/);
   });
 });
 

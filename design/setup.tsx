@@ -30,10 +30,6 @@ vi.mock('next-auth/react', () => ({
       ? { data: null, status: 'unauthenticated' }
       : { data: { user: { githubLogin: 'octocat', name: 'Octo Cat' } }, status: 'authenticated' },
 }));
-// Contribute is launched: open to everyone, a visitor who is not signed in included.
-vi.mock('@/lib/contribute/use-contribute-allowed', () => ({
-  useContributeAllowed: () => true,
-}));
 // The landing's own rank card, read in the browser: the viewer's from the fixtures.
 vi.mock('@/app/components/landing/use-rank-card', async () => {
   const { viewerRankCard } = await import('@/app/components/landing/__fixtures__/landing');

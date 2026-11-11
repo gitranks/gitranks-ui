@@ -1,15 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { session, useContributeAllowed } = vi.hoisted(() => ({
-  session: { data: null as { user: { githubLogin?: string } } | null, status: 'authenticated' as string },
-  useContributeAllowed: vi.fn<(login: string | null | undefined, pending?: boolean) => boolean | null>(),
+const { session } = vi.hoisted(() => ({
+  session: { data: null as { user: { githubLogin?: string } } | null },
 }));
 
-vi.mock('next-auth/react', () => ({
-  useSession: () => ({ data: session.data, status: session.status }),
-}));
-vi.mock('@/lib/contribute/use-contribute-allowed', () => ({ useContributeAllowed }));
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: session.data }) }));
 
 const { ContributeSection, ContributeSectionView, EXAMPLE_PICKS } = await import('./contribute-section');
 
@@ -26,41 +22,17 @@ const own = {
 describe('the Contribute section on the home page', () => {
   beforeEach(() => {
     session.data = { user: { githubLogin: 'octocat' } };
-    session.status = 'authenticated';
-    useContributeAllowed.mockReset();
   });
 
-  it("asks the header item's question about the signed-in user, and shows only on its yes", () => {
-    useContributeAllowed.mockReturnValue(true);
-    expect(renderToStaticMarkup(<ContributeSection />)).toContain('Invest in the open source you build on');
-    expect(useContributeAllowed).toHaveBeenCalledWith('octocat', false);
-
-    for (const answer of [null, false]) {
-      useContributeAllowed.mockReturnValue(answer);
-      expect(renderToStaticMarkup(<ContributeSection />)).toBe('');
+  it('shows to everyone, a visitor without a session included, with the examples until own picks arrive', () => {
+    for (const data of [session.data, null]) {
+      session.data = data;
+      const html = renderToStaticMarkup(<ContributeSection />);
+      expect(html).toContain('Invest in the open source you build on');
+      expect(html).toContain('data-contribute-viewer="member"');
+      expect(html).toContain('data-picks="example"');
+      expect(html).toContain('Start contributing');
     }
-  });
-
-  it('asks about a visitor when signed out: hidden on a no, the examples on a yes (launched)', () => {
-    session.data = null;
-    useContributeAllowed.mockReturnValue(false);
-    expect(renderToStaticMarkup(<ContributeSection />)).toBe('');
-    expect(useContributeAllowed).toHaveBeenCalledWith(null, false);
-
-    useContributeAllowed.mockReturnValue(true);
-    const html = renderToStaticMarkup(<ContributeSection />);
-    expect(html).toContain('data-contribute-viewer="member"');
-    expect(html).toContain('data-picks="example"');
-    expect(html).toContain('Start contributing');
-  });
-
-  it('asks nothing about a visitor while the session is still loading', () => {
-    session.data = null;
-    session.status = 'loading';
-    useContributeAllowed.mockImplementation((_login, pending) => (pending ? null : true));
-
-    expect(renderToStaticMarkup(<ContributeSection />)).toBe('');
-    expect(useContributeAllowed).toHaveBeenCalledWith(null, true);
   });
 
   it('leads with the contribution, then the review and the credits, then the public record in one line', () => {

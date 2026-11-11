@@ -36,23 +36,35 @@ function send(report: ClickReport) {
   }
 }
 
-/** The tab's entry: read from storage, or worked out on its first page (`first`) and stored. */
-function readEntry(): { entry: Entry; first: boolean } {
+/**
+ * The tab's entry: read from storage, or worked out on its first page and stored. `landing`: this page began a visit,
+ * not a tab opened from one of our own pages (its referrer is ours) and not a page shown with storage off, where a
+ * return from sign-in would look like a new visit (only a tagged address counts then).
+ */
+function readEntry(): { entry: Entry; landing: boolean } {
+  const fresh = () =>
+    entryOf(window.location.pathname, window.location.search, document.referrer, window.location.origin);
+  const fromUs = () => {
+    try {
+      return Boolean(document.referrer) && new URL(document.referrer).origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  };
   try {
     const stored = window.sessionStorage.getItem(ENTRY_KEY);
-    if (stored) return { entry: JSON.parse(stored) as Entry, first: false };
+    if (stored) return { entry: JSON.parse(stored) as Entry, landing: false };
   } catch {
-    // Storage is off: fall through, and count a landing only when it came from another site.
-    const entry = entryOf(window.location.pathname, window.location.search, document.referrer, window.location.origin);
-    return { entry, first: Boolean(entry.referrerHost) };
+    const entry = fresh();
+    return { entry, landing: Boolean(entry.utmSource || entry.utmCampaign) };
   }
-  const entry = entryOf(window.location.pathname, window.location.search, document.referrer, window.location.origin);
+  const entry = fresh();
   try {
     window.sessionStorage.setItem(ENTRY_KEY, JSON.stringify(entry));
   } catch {
-    // Storage is full or off: the entry is still good for this page.
+    // Storage is full: the entry is still good for this page.
   }
-  return { entry, first: true };
+  return { entry, landing: !fromUs() };
 }
 
 const entryNow = (): Entry => {
@@ -78,14 +90,6 @@ export function reportContributeConnect(way: ConnectWay) {
   send({ kind: 'connect', path: window.location.pathname, target: way, source, ...entryNow() });
 }
 
-/** Reports the connect once, when the screen that follows it is shown. */
-export function ContributeConnected({ way }: { way: ConnectWay }) {
-  useEffect(() => {
-    reportContributeConnect(way);
-  }, [way]);
-  return null;
-}
-
 /**
  * Counts the steps into Contribute, from the browser, so pages served from a shared cache count too: a visit that
  * starts on one of Contribute's pages, and every click on a link or button marked with `contributeSource()` or on any
@@ -94,12 +98,15 @@ export function ContributeConnected({ way }: { way: ConnectWay }) {
  */
 export function ContributeClickTracker() {
   useEffect(() => {
-    const { entry, first } = readEntry();
-    if (first && isLanding(window.location.pathname)) {
+    const { entry, landing } = readEntry();
+    // Not a page that answered 404: a closed page of Contribute keeps its address.
+    if (landing && isLanding(window.location.pathname) && !document.querySelector('[data-not-found]')) {
       send({ kind: 'landing', path: window.location.pathname, ...entry });
     }
 
     const onClick = (event: MouseEvent) => {
+      // `auxclick` is also the right button (a menu, to copy the link): only the middle one opens it.
+      if (event.type === 'auxclick' && event.button !== 1) return;
       if (!(event.target instanceof Element)) return;
       const clicked = event.target.closest('a[href], button');
       if (!clicked) return;

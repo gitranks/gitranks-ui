@@ -15,7 +15,9 @@ export default function NotFound() {
     <>
       <Header />
       <Page className="gap-6 items-center text-center py-16">
-        <h1 className="text-2xl md:text-4xl font-semibold">404: Page Not Found</h1>
+        <h1 className="text-2xl md:text-4xl font-semibold" data-not-found>
+          404: Page Not Found
+        </h1>
         <p>This page doesn’t exist, or the ranking doesn’t go this deep.</p>
         <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2">
           <li>

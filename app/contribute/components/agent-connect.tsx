@@ -10,6 +10,7 @@ import { CodeBlock } from './code-block';
 import { HEADING } from './primitives';
 import { MakeNewToken, REPLACE_NOTE, TokenReady } from './token-ready';
 import { useOnboardedPush } from './use-onboarded-push';
+import { reportContributeConnect } from '@/components/contribute-click-tracker/contribute-click-tracker';
 import { Button } from '@/components/ui/button';
 import {
   AGENT_HELLO_PROMPT,
@@ -501,6 +502,7 @@ export function AgentConnect({
       setShown(null);
       setConnected(true);
     });
+    if (!proof) reportContributeConnect('agent');
     goTo(proof ? nextSessionPath(proof.attemptId) : agentWelcomeHref(clientRef.current), { replace: true });
   }, [goTo, proof]);
 

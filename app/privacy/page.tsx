@@ -231,12 +231,12 @@ const sections: LegalSection[] = [
           work.
         </li>
         <li>
-          <B>Ways into Contribute</B>: when you follow a link to GitRanks Contribute on our site, or a visit starts on one
-          of its pages, we count it with the page, which link it was (and the profile, on a profile page), whether you
-          were signed in, the campaign tags in the address and the site you came from, and whether you then connected a
-          key or an agent. Your IP address and browser only tell one day&apos;s visitors apart, as a code that can no
-          longer be traced back after two days; neither is stored. Basis: legitimate interests, in knowing which pages
-          bring people to Contribute.
+          <B>Ways into Contribute</B>: when you follow a link to GitRanks Contribute on our site, or a visit starts on
+          one of its pages, we count it with the page, which link it was (and the profile, on a profile page), whether
+          you were signed in, the campaign tags in the address and the site you came from, and whether you then
+          connected a key or an agent. Your IP address and browser only tell one day&apos;s visitors apart, as a code
+          that can no longer be traced back once the day is over; neither is stored. On your own profile, the profile is
+          not kept. Basis: legitimate interests, in knowing which pages bring people to Contribute.
         </li>
       </List>
     ),

@@ -67,7 +67,7 @@ export function SignInButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button type="button" className={className} aria-label={label} {...(source ? contributeSource(source) : {})}>
+        <button type="button" className={className} aria-label={label}>
           {children}
         </button>
       </DialogTrigger>
@@ -75,7 +75,7 @@ export function SignInButton({
         showCloseButton={false}
         className="flex flex-col gap-5 rounded-2xl p-8 shadow-2xl motion-reduce:animate-none sm:max-w-md max-sm:p-6"
       >
-        <SignInPanel path={path} preview={preview} onLeave={() => setOpen(false)} />
+        <SignInPanel path={path} preview={preview} source={source} onLeave={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   );
@@ -85,10 +85,13 @@ export function SignInButton({
 export function SignInPanel({
   path,
   preview = false,
+  source,
   onLeave,
 }: {
   path?: SignInPath;
   preview?: boolean;
+  /** Where a click on its button counts from (`contributeSource`). */
+  source?: ContributeSource;
   /** Closes the dialog as the preview's button goes on, when the page under it stays. */
   onLeave?: () => void;
 }) {
@@ -126,7 +129,13 @@ export function SignInPanel({
       {preview ? (
         // Signed in already: the button goes on to the step, as the sign-in would.
         <Button asChild className={CONTINUE_CLASS}>
-          <Link href={route} prefetch={false} data-sign-in="preview" onClick={onLeave}>
+          <Link
+            href={route}
+            prefetch={false}
+            data-sign-in="preview"
+            onClick={onLeave}
+            {...(source ? contributeSource(source) : {})}
+          >
             {continueWithGithub}
           </Link>
         </Button>
@@ -136,6 +145,7 @@ export function SignInPanel({
           disabled={pending}
           className={CONTINUE_CLASS}
           data-sign-in="github"
+          {...(source ? contributeSource(source) : {})}
           onClick={() => {
             setPending(true);
             startSignIn(path).catch(() => setPending(false));

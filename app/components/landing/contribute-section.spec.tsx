@@ -38,12 +38,17 @@ describe('the Contribute section on the home page', () => {
     }
   });
 
-  it('asks about nobody when signed out, and stays hidden', () => {
+  it('asks about a visitor when signed out: hidden on a no, the examples on a yes (launched)', () => {
     session.data = null;
-    useContributeAllowed.mockImplementation((login) => !!login);
-
+    useContributeAllowed.mockReturnValue(false);
     expect(renderToStaticMarkup(<ContributeSection />)).toBe('');
     expect(useContributeAllowed).toHaveBeenCalledWith(null);
+
+    useContributeAllowed.mockReturnValue(true);
+    const html = renderToStaticMarkup(<ContributeSection />);
+    expect(html).toContain('data-contribute-viewer="member"');
+    expect(html).toContain('data-picks="example"');
+    expect(html).toContain('Start contributing');
   });
 
   it('leads with the contribution, then the review and the credits, then the public record in one line', () => {

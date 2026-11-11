@@ -8,6 +8,9 @@ const CACHE_MS = 10 * 60 * 1000;
 
 type Cached = { login: string; allowed: boolean; at: number };
 
+/** The cache and request key of a visitor without a session (no GitHub login is empty). */
+const VISITOR = '';
+
 const readCache = (login: string): boolean | null => {
   try {
     const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) ?? 'null') as Cached | null;
@@ -45,25 +48,24 @@ const ask = (login: string): Promise<boolean> => {
 };
 
 /**
- * Whether GitRanks Contribute is open to the signed-in user `login`: null while the answer is on its way, false for
- * nobody and on any failure. Shared by the header's menu item and the home page's section, through one cached answer.
+ * Whether GitRanks Contribute is open to the signed-in user `login`, or to a visitor without a session (`login` null):
+ * null while the answer is on its way, false on any failure. Once launched the API answers yes to everyone, visitors
+ * included; before, only to the preview list. Shared by the header's menu item and the home page's section, through
+ * one cached answer per login.
  */
 export function useContributeAllowed(login: string | null | undefined): boolean | null {
-  const [allowed, setAllowed] = useState<boolean | null>(login ? null : false);
+  const [allowed, setAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!login) {
-      setAllowed(false);
-      return;
-    }
-    const cached = readCache(login);
+    const key = login || VISITOR;
+    const cached = readCache(key);
     if (cached !== null) {
       setAllowed(cached);
       return;
     }
     setAllowed(null);
     let live = true;
-    ask(login).then((value) => {
+    ask(key).then((value) => {
       if (live) setAllowed(value);
     });
     return () => {

@@ -236,8 +236,8 @@ function useOwnPicks(login: string | null): ContributeIssue[] {
 
 /**
  * GitRanks Contribute on the home page: the pitch, and picks beside it. Shown on the same answer as the header's
- * Contribute item, to signed-in users Contribute is open to: the preview list now, everyone signed in at launch. A
- * contributor sees their own top picks in place of the examples.
+ * Contribute item: to everyone once launched, visitors without a session included; before, to the preview list. A
+ * contributor sees their own top picks in place of the examples; a visitor sees the examples.
  */
 export const ContributeSection: FC = () => {
   const { data: session } = useSession();

@@ -106,7 +106,7 @@ export const LanguageRankingScreen: FC<LanguageRankingScreenProps> = ({ scope, o
   const others = LANGUAGE_ORDER_LIST.filter((o) => o !== order);
   const isCountry = scope !== GLOBAL_SCOPE;
   const flag = isCountry ? countries.find((c) => c.name === scope)?.flag : null;
-  const { rows, pageCount, leadShare, languagesCount, date, standOuts, facts } = ranking;
+  const { rows, pageCount, leadShare, sharesKnown, languagesCount, date, standOuts, facts } = ranking;
   const title = isCountry ? `Language ranking in ${scope}` : 'Language ranking';
 
   return (
@@ -140,8 +140,9 @@ export const LanguageRankingScreen: FC<LanguageRankingScreenProps> = ({ scope, o
           )}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {languagesCount.toLocaleString('en-US')} languages ranked by {config.rankedBy}, among developers{' '}
-          {isCountry ? `in ${scope}` : 'on GitRanks'}.{date && ` Monthly count of ${formatSummaryDate(date)}.`}{' '}
+          {languagesCount === null ? 'Languages' : `${languagesCount.toLocaleString('en-US')} languages`} ranked by{' '}
+          {config.rankedBy}, among developers {isCountry ? `in ${scope}` : 'on GitRanks'}.
+          {date && ` Monthly count of ${formatSummaryDate(date)}.`}{' '}
           <Link href="/methodology#countries-and-languages">How it&apos;s counted</Link>
         </p>
       </div>
@@ -222,7 +223,7 @@ export const LanguageRankingScreen: FC<LanguageRankingScreenProps> = ({ scope, o
                   <span className="sm:hidden">{shortMetric(row, order)}</span>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <ShareBar share={row.share} leadShare={leadShare} showShare={config.showShare} />
+                  {sharesKnown && <ShareBar share={row.share} leadShare={leadShare} showShare={config.showShare} />}
                 </TableCell>
                 {isCountry && (
                   <TableCell className="hidden text-right font-mono tabular-nums text-muted-foreground md:table-cell">

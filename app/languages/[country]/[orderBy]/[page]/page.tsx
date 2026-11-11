@@ -34,16 +34,17 @@ export default async function LanguagesPage({ params }: PageProps<'/languages/[c
   const offset = (page - 1) * LANGUAGES_PER_PAGE;
 
   const [all, pageRows, world, countries] = await Promise.all([
-    fetchLanguageSummaryRanks({ order, country: countryName }),
+    // Totals, shares and moves; the page still shows without them.
+    fetchLanguageSummaryRanks({ order, country: countryName }).catch(() => null),
     isGlobal
       ? fetchLanguageSummaries({ order, offset, limit: LANGUAGES_PER_PAGE })
       : fetchCountryLanguageSummaries({ order, offset, limit: LANGUAGES_PER_PAGE, country: scope }),
     // A country's ranking shows each language's place worldwide; the page still shows without it.
-    isGlobal ? null : fetchLanguageSummaryRanks({ order }).catch(() => null),
+    isGlobal ? null : fetchLanguageSummaryRanks({ order, country: null }).catch(() => null),
     fetchCountries(),
   ]);
 
-  const previousDate = previousSnapshotDate(all?.[0]?.date);
+  const previousDate = previousSnapshotDate(pageRows[0]?.date ?? all?.[0]?.date);
   // Last month's order gives each language's move; the page still shows without it.
   const previous = previousDate
     ? await fetchLanguageSummaryRanks({ order, country: countryName, date: previousDate }).catch(() => null)
@@ -53,13 +54,13 @@ export default async function LanguagesPage({ params }: PageProps<'/languages/[c
     scope,
     order,
     page,
-    all: all ?? [],
+    all,
     pageRows,
     previous: previous?.length ? previous : null,
     world: world?.length ? world : null,
   });
 
-  if (!ranking || (!ranking.rows.length && page > 1)) {
+  if (!ranking) {
     notFound();
   }
 

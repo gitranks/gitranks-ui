@@ -4,8 +4,8 @@ import { countriesPagePath } from './country-paths';
 import type { StatsPart } from '@/components/ranking-stats/ranking-stats.utils';
 import {
   biggestClimb,
+  competitionRanks,
   formatShare,
-  positionsByName,
   previousSnapshotDate,
   shareOf,
   snapshotMonth,
@@ -88,7 +88,7 @@ export const countryRankingHref = (country: string, order: CountrySummaryOrder) 
   `/country/${encodeURIComponent(country)}/${COUNTRY_ORDERS[order].rankingType}/1` as Route;
 
 type Summary = CountrySummaryQuery['countrySummary'][number];
-type PreviousRow = { country: string };
+type PreviousRow = { country: string; s: number; c: number; f: number; usersCount: number };
 
 export type CountryRankingRow = {
   rank: number;
@@ -108,7 +108,10 @@ export type CountryRankingRow = {
 export type CountryEntry = {
   name: string;
   flag: string | null;
+  /** Equal values share a rank. */
   rank: number;
+  /** Its place in the list, which gives its page. */
+  position: number;
   previous: number | null;
   value: number;
   usersCount: number;
@@ -128,7 +131,8 @@ export type CountryRanking = {
 const formatNumber = (n: number) => Math.round(n).toLocaleString('en-US');
 
 /**
- * A page of the country ranking from this month's summaries and, when readable, last month's in the same order.
+ * A page of the country ranking from this month's summaries and, when readable, last month's. Equal values share a
+ * rank, so ties never read as moves.
  * Null when the page is past the last country.
  */
 export function buildCountryRanking(
@@ -144,12 +148,15 @@ export function buildCountryRanking(
   }
 
   const total = totalOf(summaries, (row) => row[config.metric]);
-  const previousRanks = previous ? positionsByName(previous, (row) => row.country) : null;
+  const metricOf = (row: PreviousRow) => row[config.metric];
+  const ranks = competitionRanks(summaries, (row) => row.country, metricOf);
+  const previousRanks = previous ? competitionRanks(previous, (row) => row.country, metricOf) : null;
 
   const entries: CountryEntry[] = summaries.map((row, i) => ({
     name: row.country,
     flag: row.countryData?.flag ?? null,
-    rank: i + 1,
+    rank: ranks.get(row.country) ?? i + 1,
+    position: i + 1,
     previous: previousRanks?.get(row.country) ?? null,
     value: row[config.metric],
     usersCount: row.usersCount,
@@ -159,7 +166,7 @@ export function buildCountryRanking(
   const rows: CountryRankingRow[] = summaries.slice(offset, offset + COUNTRIES_PER_PAGE).map((row, i) => {
     const leader = row.topUsers?.[config.leader];
     return {
-      rank: offset + i + 1,
+      rank: entries[offset + i].rank,
       previous: entries[offset + i].previous,
       country: row.country,
       flag: row.countryData?.flag ?? null,

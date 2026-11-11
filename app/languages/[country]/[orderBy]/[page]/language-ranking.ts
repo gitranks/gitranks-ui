@@ -4,9 +4,9 @@ import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
 import type { StatsPart } from '@/components/ranking-stats/ranking-stats.utils';
 import {
   biggestClimb,
+  competitionRanks,
   findStandOuts,
   formatShare,
-  positionsByName,
   previousSnapshotDate,
   shareOf,
   snapshotMonth,
@@ -90,7 +90,10 @@ export type LanguageRanking = {
   rows: LanguageRankingRow[];
   pageCount: number;
   leadShare: number;
-  languagesCount: number;
+  /** Null when the full list couldn't be read. */
+  languagesCount: number | null;
+  /** False when the full list couldn't be read: no totals, so no shares. */
+  sharesKnown: boolean;
   date: string;
   standOuts: LanguageStandOut[];
   facts: StatsPart[];
@@ -101,19 +104,24 @@ type BuildInput = {
   scope: string;
   order: LanguageSummaryOrder;
   page: number;
-  /** Every language this month, in ranking order. */
-  all: readonly RankRow[];
+  /** Every language this month (any order); null when unreadable. */
+  all: readonly RankRow[] | null;
   /** This page's rows, with their leaders and colours. */
   pageRows: readonly PageRow[];
-  /** Every language last month, in the same order; null when unreadable. */
+  /** Every language last month; null when unreadable. */
   previous: readonly RankRow[] | null;
-  /** Every language worldwide this month, in the same order, for a country's ranking. */
+  /** Every language worldwide this month, for a country's ranking. */
   world: readonly RankRow[] | null;
 };
 
 const full = (n: number) => Math.round(n).toLocaleString('en-US');
 
-/** A page of a language ranking. Null when the page is past the last language. */
+/**
+ * A page of a language ranking. Ranks come from values, with equal values sharing a rank, so the page's rows and the
+ * full list (read and cached apart) always agree and a tie never reads as a move. When the full list is missing or
+ * from another month than the page, the page still shows, without totals, shares or moves. Null when the page is past
+ * the last language.
+ */
 export function buildLanguageRanking({
   scope,
   order,
@@ -124,32 +132,40 @@ export function buildLanguageRanking({
   world,
 }: BuildInput): LanguageRanking | null {
   const config = LANGUAGE_ORDERS[order];
-  const pageCount = Math.max(1, Math.ceil(all.length / LANGUAGES_PER_PAGE));
-  if (page > pageCount) {
+  const metricOf = (row: RankRow | PageRow) => row[config.metric];
+  const nameOf = (row: RankRow) => row.language;
+  const offset = (page - 1) * LANGUAGES_PER_PAGE;
+  const date = pageRows[0]?.date ?? all?.[0]?.date ?? '';
+  const complete = all?.length && (!pageRows.length || all[0].date === pageRows[0].date) ? all : null;
+
+  const pageCount = complete
+    ? Math.max(1, Math.ceil(complete.length / LANGUAGES_PER_PAGE))
+    : page + (pageRows.length === LANGUAGES_PER_PAGE ? 1 : 0);
+  if (page > pageCount || (!pageRows.length && page > 1)) {
     return null;
   }
 
-  const total = totalOf(all, (row) => row[config.metric]);
-  const ranks = positionsByName(all, (row) => row.language);
-  const previousRanks = previous ? positionsByName(previous, (row) => row.language) : null;
-  const worldRanks = world ? positionsByName(world, (row) => row.language) : null;
-  const offset = (page - 1) * LANGUAGES_PER_PAGE;
+  const total = complete ? totalOf(complete, metricOf) : 0;
+  const ranks = complete ? competitionRanks(complete, nameOf, metricOf) : null;
+  // Moves and worldwide places only against a full list of this month.
+  const previousRanks = complete && previous?.length ? competitionRanks(previous, nameOf, metricOf) : null;
+  const worldRanks = complete && world?.length ? competitionRanks(world, nameOf, metricOf) : null;
 
   const rows: LanguageRankingRow[] = pageRows.map((row, i) => ({
-    rank: ranks.get(row.language) ?? offset + i + 1,
+    rank: ranks?.get(row.language) ?? offset + i + 1,
     previous: previousRanks?.get(row.language) ?? null,
     language: row.language,
     color: row.languageData?.color || DEFAULT_LANGUAGE_COLOR,
     score: row.score,
     size: row.size,
     usersCount: row.usersCount,
-    share: shareOf(row[config.metric], total),
+    share: shareOf(metricOf(row), total),
     worldRank: worldRanks?.get(row.language) ?? null,
     leader: row.topUser?.login ? { login: row.topUser.login, avatarUrl: row.topUser.avatarUrl } : null,
   }));
 
-  const date = all[0]?.date ?? '';
-  const leadShare = all[0] ? shareOf(all[0][config.metric], total) : 0;
+  const lead = complete?.reduce((best, row) => (metricOf(row) > metricOf(best) ? row : best), complete[0]);
+  const leadShare = lead ? shareOf(metricOf(lead), total) : 0;
   const isCountry = scope !== GLOBAL_SCOPE;
 
   const standOuts: LanguageStandOut[] =
@@ -159,17 +175,32 @@ export function buildLanguageRanking({
     rows,
     pageCount,
     leadShare,
-    languagesCount: all.length,
+    sharesKnown: !!complete,
+    languagesCount: complete?.length ?? null,
     date,
     standOuts,
-    facts: buildLanguageFacts({ scope, order, all, rows, total, leadShare, date, hasPrevious: !!previous }),
+    facts:
+      complete && lead
+        ? buildLanguageFacts({
+            scope,
+            order,
+            lead,
+            count: complete.length,
+            rows,
+            total,
+            leadShare,
+            date,
+            hasPrevious: !!previousRanks,
+          })
+        : [],
   };
 }
 
 function buildLanguageFacts({
   scope,
   order,
-  all,
+  lead,
+  count,
   rows,
   total,
   leadShare,
@@ -178,18 +209,14 @@ function buildLanguageFacts({
 }: {
   scope: string;
   order: LanguageSummaryOrder;
-  all: readonly RankRow[];
+  lead: RankRow;
+  count: number;
   rows: readonly LanguageRankingRow[];
   total: number;
   leadShare: number;
   date: string;
   hasPrevious: boolean;
 }): StatsPart[] {
-  const lead = all[0];
-  if (!lead) {
-    return [];
-  }
-
   const isCountry = scope !== GLOBAL_SCOPE;
   const where = isCountry ? `in ${countryInSentence(scope)}` : 'on GitRanks';
   const leadLink: StatsPart = { text: lead.language, href: getLanguageRankingPath(lead.language, scope) };
@@ -199,14 +226,14 @@ function buildLanguageFacts({
   switch (order) {
     case LanguageSummaryOrder.Score:
       parts.push(
-        `${full(all.length)} languages hold ${full(total)} stars on the repositories of developers ${where}; `,
+        `${full(count)} languages hold ${full(total)} stars on the repositories of developers ${where}; `,
         leadLink,
         ` leads with ${share}. A repository's stars are split by its language mix: 100 stars on a repository that is 60% JavaScript give JavaScript 60. `,
       );
       break;
     case LanguageSummaryOrder.Size:
       parts.push(
-        `${full(all.length)} languages make up ${formatBytes(total)} of code in the public repositories of developers ${where}; `,
+        `${full(count)} languages make up ${formatBytes(total)} of code in the public repositories of developers ${where}; `,
         leadLink,
         ` leads with ${share}. `,
       );

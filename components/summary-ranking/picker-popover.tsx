@@ -1,5 +1,6 @@
 'use client';
 
+import { CheckIcon } from 'lucide-react';
 import { type FC, type ReactNode, useState } from 'react';
 
 import { Flag } from '@/components/flag/flag';
@@ -19,7 +20,7 @@ export type PickerOption = {
 type PickerPopoverProps = {
   /** The trigger button's content. */
   trigger: ReactNode;
-  /** The trigger button's accessible name. */
+  /** The trigger button's accessible name; it should start with the words the button shows. */
   label: string;
   triggerClassName?: string;
   groups: { heading?: string; options: PickerOption[] }[];
@@ -56,7 +57,12 @@ export const PickerPopover: FC<PickerPopoverProps> = ({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="end">
-        <Command>
+        {/* Search the names only, not the values that keep items apart. */}
+        <Command
+          filter={(_, search, keywords) =>
+            keywords?.join(' ').toLowerCase().includes(search.toLowerCase().trim()) ? 1 : 0
+          }
+        >
           <CommandInput placeholder={placeholder} />
           <CommandList>
             <CommandEmpty>{empty}</CommandEmpty>
@@ -69,7 +75,6 @@ export const PickerPopover: FC<PickerPopoverProps> = ({
                       // Unique across groups: the viewer's own country can be listed twice.
                       value={`${groupIndex}~${option.label}`}
                       keywords={[option.label]}
-                      data-checked={option.value === selected || undefined}
                       onSelect={() => {
                         setOpen(false);
                         onPick(option.value);
@@ -82,6 +87,7 @@ export const PickerPopover: FC<PickerPopoverProps> = ({
                       )}
                       <Flag flag={option.flag} />
                       <span className="truncate">{option.label}</span>
+                      {option.value === selected && <CheckIcon className="ml-auto" aria-label="Selected" />}
                     </CommandItem>
                   ))}
                 </CommandGroup>

@@ -25,13 +25,16 @@ export const LanguageScopePicker: FC<LanguageScopePickerProps> = ({ scope, order
   const viewerCountry = useViewerCountry();
   const mine = viewerCountry ? countries.find((c) => c.name === viewerCountry) : undefined;
   const current = scope === WORLDWIDE.value ? WORLDWIDE : countries.find((c) => c.name === scope);
+  const currentLabel = current ? ('label' in current ? current.label : current.name) : scope;
   const toOption = (c: { name: string; flag: string | null }) => ({ value: c.name, label: c.name, flag: c.flag });
 
   return (
     <div className="flex w-full items-center gap-3 sm:w-auto">
-      <span className="shrink-0 text-sm text-muted-foreground">Developers in</span>
+      <span className="shrink-0 text-sm text-muted-foreground" aria-hidden="true">
+        Developers in
+      </span>
       <PickerPopover
-        label="Choose whose languages to rank"
+        label={`Developers in ${currentLabel}: choose whose languages to rank`}
         trigger={
           <>
             <Flag flag={current?.flag} />

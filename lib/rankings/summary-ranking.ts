@@ -29,6 +29,25 @@ export function positionsByName<T>(rows: readonly T[], name: (row: T) => string)
   return new Map(rows.map((row, i) => [name(row), i + 1]));
 }
 
+/**
+ * Each name's rank by its value, highest first, with equal values sharing a rank (1, 2, 2, 4). The order the rows
+ * came in doesn't matter, so two reads that break ties differently still agree, and a tie never reads as a move.
+ */
+export function competitionRanks<T>(
+  rows: readonly T[],
+  name: (row: T) => string,
+  value: (row: T) => number,
+): Map<string, number> {
+  const sorted = rows.toSorted((a, b) => value(b) - value(a));
+  const ranks = new Map<string, number>();
+  sorted.forEach((row, i) => {
+    const previous = sorted[i - 1];
+    const rank = previous && value(previous) === value(row) ? (ranks.get(name(previous)) ?? i + 1) : i + 1;
+    ranks.set(name(row), rank);
+  });
+  return ranks;
+}
+
 /** The sum of one value over every row. */
 export function totalOf<T>(rows: readonly T[], value: (row: T) => number): number {
   return rows.reduce((sum, row) => sum + (value(row) || 0), 0);

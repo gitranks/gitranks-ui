@@ -17,6 +17,8 @@ export type CountryToolEntry = {
   name: string;
   flag: string | null;
   rank: number;
+  /** Its place in the list, which gives its page. */
+  position: number;
   previous: number | null;
   value: number;
   usersCount: number;
@@ -72,7 +74,7 @@ export const CountryRankingTools: FC<CountryRankingToolsProps> = ({
     const entry = entries.find((e) => e.name === name);
     if (!entry) return;
     const anchor = countryAnchor(entry.name);
-    const path = countriesPagePath(order, pageOf(entry.rank, pageSize));
+    const path = countriesPagePath(order, pageOf(entry.position, pageSize));
     setPicked(anchor);
     if (path === pathname) {
       window.history.replaceState(null, '', `#${anchor}`);
@@ -121,7 +123,7 @@ export const CountryRankingTools: FC<CountryRankingToolsProps> = ({
               {mine.name}
             </span>
             <Link
-              href={`${countriesPagePath(order, pageOf(mine.rank, pageSize))}#${countryAnchor(mine.name)}`}
+              href={`${countriesPagePath(order, pageOf(mine.position, pageSize))}#${countryAnchor(mine.name)}`}
               className="font-mono font-semibold tabular-nums text-inherit"
             >
               #{mine.rank}

@@ -58,8 +58,11 @@ export const countrySummaries: CountryRow[] = COUNTRIES.map(([name, flag, s, c, 
   countryData: { code: name.slice(0, 2).toUpperCase(), name, flag },
 }));
 
-/** Last month's order by stars. */
-export const previousCountries = COUNTRIES.toSorted((a, b) => a[6] - b[6]).map(([country]) => ({ country }));
+/** Last month's numbers: made up so that by any metric they rank as the last column says. */
+export const previousCountries = COUNTRIES.map(([country, , , , , , position]) => {
+  const value = 100_000_000 - position;
+  return { country, s: value, c: value, f: value, usersCount: value };
+});
 
 type RankRow = { language: string; date: string; usersCount: number; score: number; size: number };
 
@@ -121,10 +124,12 @@ const BELGIUM: LanguageFixture[] = [
 const ranksOf = (rows: LanguageFixture[]): RankRow[] =>
   rows.map(([language, , score, size, usersCount]) => ({ language, date: SNAPSHOT, usersCount, score, size }));
 
+/** Last month's numbers: made up so that by any metric they rank as the last column says. */
 const previousOf = (rows: LanguageFixture[]): RankRow[] =>
-  rows
-    .toSorted((a, b) => a[5] - b[5])
-    .map(([language, , score, size, usersCount]) => ({ language, date: PREVIOUS_SNAPSHOT, usersCount, score, size }));
+  rows.map(([language, , , , , position]) => {
+    const value = 100_000_000 - position;
+    return { language, date: PREVIOUS_SNAPSHOT, usersCount: value, score: value, size: value };
+  });
 
 const pageRowsOf = (rows: LanguageFixture[], country?: string) =>
   rows.map(([language, color, score, size, usersCount], i) => ({

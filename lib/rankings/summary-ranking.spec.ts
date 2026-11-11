@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   biggestClimb,
+  competitionRanks,
   findStandOuts,
   formatShare,
   positionsByName,
@@ -58,6 +59,25 @@ describe('positions, totals and shares', () => {
     expect(formatShare(0.2555)).toBe('25.6%');
     expect(formatShare(0.0004)).toBe('<0.1%');
     expect(formatShare(0)).toBe('0.0%');
+  });
+});
+
+describe('competitionRanks', () => {
+  it('shares a rank between equal values, whatever order the rows came in', () => {
+    const rows = [
+      { name: 'c', v: 2 },
+      { name: 'a', v: 9 },
+      { name: 'b', v: 2 },
+      { name: 'd', v: 1 },
+    ];
+    expect(competitionRanks(rows, (r) => r.name, (r) => r.v)).toEqual(
+      new Map([
+        ['a', 1],
+        ['c', 2],
+        ['b', 2],
+        ['d', 4],
+      ]),
+    );
   });
 });
 

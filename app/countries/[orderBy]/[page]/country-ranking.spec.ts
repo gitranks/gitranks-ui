@@ -32,7 +32,12 @@ describe('buildCountryRanking', () => {
 
   it('lists every country for the finder, on any page', () => {
     expect(ranking?.entries).toHaveLength(countrySummaries.length);
-    expect(ranking?.entries.find((e) => e.name === 'Ukraine')).toMatchObject({ rank: 25, previous: 25, flag: '🇺🇦' });
+    expect(ranking?.entries.find((e) => e.name === 'Ukraine')).toMatchObject({
+      rank: 25,
+      position: 25,
+      previous: 25,
+      flag: '🇺🇦',
+    });
   });
 
   it('says the facts in words, with the biggest climb', () => {
@@ -45,6 +50,17 @@ describe('buildCountryRanking', () => {
     const fresh = buildCountryRanking(CountrySummaryOrder.Stars, 1, countrySummaries, null);
     expect(fresh?.rows.every((row) => row.previous === null)).toBe(true);
     expect(factsText(fresh)).not.toContain('Biggest climb');
+  });
+
+  it('gives tied countries one rank, so a tie never reads as a move', () => {
+    const tied = countrySummaries.map((row) =>
+      row.country === 'Taiwan' ? { ...row, s: countrySummaries[17].s } : row,
+    );
+    const rows = buildCountryRanking(CountrySummaryOrder.Stars, 1, tied, previousCountries)?.rows ?? [];
+    expect(rows.filter((row) => ['South Korea', 'Taiwan'].includes(row.country)).map((row) => row.rank)).toEqual([
+      18, 18,
+    ]);
+    expect(rows.find((row) => row.country === 'Turkey')?.rank).toBe(20);
   });
 
   it('has no page past the last country', () => {

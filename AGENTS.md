@@ -10,11 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # This repository is public
 
-Commit messages, PR titles and bodies, code comments and issue comments here are world-readable and
-effectively permanent. Force-pushing does **not** reliably remove a pushed commit — the old object
-stays reachable by SHA. Getting it right before posting is the only real control.
-
-Never write any of these into them:
+Commit messages, PR titles and bodies, code comments and issue comments here are world-readable and permanent; a force-push does not remove a pushed commit (it stays reachable by SHA). Never write into them, including text summarised or carried over from another context:
 
 - the name or existence of another repository, or a cross-repo issue/PR reference (`owner/repo#123`)
 - other systems' internals: service or app names, queues, schedulers, background jobs, data stores
@@ -22,16 +18,8 @@ Never write any of these into them:
 - deployment and edge details: CI/CD steps, CDN/WAF/firewall rules, or which protection they skip
 - env var *values*, or secret names paired with what they unlock
 
-Describe the change in this repo, on its own terms. When work here depends on something outside it,
-write "handled outside this repo" and stop — do not name it, link it, or characterise it. If the
-detail needs recording, ask where the private notes belong rather than putting it here.
-
-This applies to anything you generate, including text you are merely summarising or carrying over
-from another context.
-
+Describe the change in this repo on its own terms. When work depends on something outside it, write "handled outside this repo" and stop: do not name, link or characterise it. If the detail needs recording, ask where the private notes belong.
 
 # Design
 
-Design work (new screens, changes, reviews, tokens) follows the `gitranks-design` skill
-(`.claude/skills/gitranks-design/SKILL.md`): rules in `DESIGN.md`, where designs live in `design/README.md`. Start from
-the live screens drawn from code, change only what is asked, and redraw a screen after its PR merges.
+Design work (new screens, changes, reviews, tokens) follows the `gitranks-design` skill. Rules: `DESIGN.md`; where designs live: `design/README.md`.

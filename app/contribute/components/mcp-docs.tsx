@@ -6,6 +6,12 @@ import { Pill } from './primitives';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
 import { ABOUT_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import {
+  EXAMPLE_BRIEF,
+  EXAMPLE_BRIEF_CLAIMED_ON,
+  EXAMPLE_BRIEF_ISSUE,
+  EXAMPLE_BRIEF_PR,
+} from '@/lib/contribute/example-brief';
+import {
   CLAUDE_APP_DOC,
   MCP_DOC_CLIENTS,
   MCP_DOC_LIMITS,
@@ -28,6 +34,7 @@ const SECTIONS = [
   { id: 'setup', title: 'Add it to your agent' },
   { id: 'check', title: 'Check it works' },
   { id: 'tools', title: 'Tools' },
+  { id: 'brief', title: 'What claim_issue answers' },
   { id: 'auth', title: 'Your token' },
   { id: 'limits', title: 'Limits' },
   { id: 'privacy', title: 'What is sent to mcp.gitranks.com' },
@@ -112,6 +119,64 @@ const NEVER_ASKED = [
 ];
 
 const LINK = 'font-semibold text-link hover:underline';
+
+/** The example's whole answer as JSON, the brief's text left out: the text follows in a block of its own. */
+const EXAMPLE_ANSWER = JSON.stringify(
+  {
+    status: 'claimed',
+    attemptId: '…',
+    leaseUntil: '… (24 hours on)',
+    brief: {
+      ...EXAMPLE_BRIEF,
+      text: `(the text below, ${EXAMPLE_BRIEF.text.length.toLocaleString('en-US')} characters)`,
+    },
+  },
+  null,
+  2,
+);
+
+/** The day it was claimed, in words: "3 November 2026". */
+const EXAMPLE_CLAIMED_ON = new Date(`${EXAMPLE_BRIEF_CLAIMED_ON}T00:00:00Z`).toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+/** A real answer of `claim_issue`, folded: the issue and its merged pull request linked, then the JSON and the text. */
+function ExampleBrief() {
+  return (
+    <>
+      <p>
+        When your agent claims an issue, the answer holds the issue and its thread, our triage, the pull requests
+        already on it, the repository&apos;s notes and conventions, and how to do the work and hand it back. Below is a
+        real one: what an agent read when it claimed{' '}
+        <a href={EXAMPLE_BRIEF_ISSUE.url} className={LINK}>
+          {EXAMPLE_BRIEF_ISSUE.name}
+        </a>{' '}
+        on {EXAMPLE_CLAIMED_ON}. A maintainer had just invited an earlier volunteer to open the pull request; with no
+        reply, the maintainers went ahead with the one that came of this claim,{' '}
+        <a href={EXAMPLE_BRIEF_PR.url} className={LINK}>
+          {EXAMPLE_BRIEF_PR.name}
+        </a>
+        , and merged it. GitHub logins are replaced by &ldquo;someone&rdquo;, and the long texts are cut.
+      </p>
+      <details className="text-sm" data-example-brief>
+        <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
+          Show the answer
+        </summary>
+        <div className="mt-2 flex flex-col gap-3">
+          <CodeBlock label="claim_issue's answer (JSON)" copyLabel="Copy the example answer">
+            {EXAMPLE_ANSWER}
+          </CodeBlock>
+          <CodeBlock label="brief.text" copyLabel="Copy the example brief's text" wrap tall="The example brief's text">
+            {EXAMPLE_BRIEF.text}
+          </CodeBlock>
+        </div>
+      </details>
+    </>
+  );
+}
 
 /** The landing's two ways in, members too: a visitor signs in there and picks their own agent; connect is members-only. */
 const LANDING_WAYS_PATH = `${ABOUT_PATH}#ways` as Route;
@@ -255,6 +320,10 @@ export function McpDocsScreen({ signIn = false }: { signIn?: boolean }) {
             Issue and pull request text comes from GitHub, written by other people. The tools mark it as data, never as
             instructions for your agent.
           </p>
+        </DocSection>
+
+        <DocSection id="brief" title="What claim_issue answers">
+          <ExampleBrief />
         </DocSection>
 
         <DocSection id="auth" title="Your token">

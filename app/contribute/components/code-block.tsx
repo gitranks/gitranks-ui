@@ -58,6 +58,7 @@ export function CodeBlock({
   children,
   file = false,
   wrap = false,
+  tall,
   className,
 }: {
   /** Where it goes: a shell, a file's path, or the agent. */
@@ -67,6 +68,11 @@ export function CodeBlock({
   /** The label is a path, set in the mono face. */
   file?: boolean;
   wrap?: boolean;
+  /**
+   * A long text: the block stops at 36rem and scrolls, and takes the keyboard's focus so it scrolls without a mouse too
+   * (Safari focuses no scroll box by itself). Its value names the region for a screen reader.
+   */
+  tall?: string;
   className?: string;
 }) {
   return (
@@ -79,7 +85,9 @@ export function CodeBlock({
         className={cn(
           'px-3.5 py-3 font-mono text-sm leading-normal',
           wrap ? 'whitespace-pre-wrap [overflow-wrap:anywhere]' : 'overflow-x-auto whitespace-pre',
+          tall && 'max-h-[36rem] overflow-y-auto focus-visible:outline-2 focus-visible:outline-ring',
         )}
+        {...(tall ? { tabIndex: 0, role: 'region', 'aria-label': tall } : {})}
       >
         {children}
       </pre>

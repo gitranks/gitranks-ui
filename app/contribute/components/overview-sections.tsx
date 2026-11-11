@@ -211,12 +211,6 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
         title: 'Contribute is paused for this account',
         text: 'No attempt starts on your key for now.',
       };
-    case 'closed':
-      return {
-        label: 'Waiting',
-        title: "Contribute isn't open yet",
-        text: 'Your agent starts on one of your top picks when Contribute opens.',
-      };
     case 'paused':
       return {
         label: 'Paused',
@@ -418,7 +412,7 @@ export function hostedLaneOf(view: ContributeView, state: HostedState): LaneNote
 }
 
 /** The holds that stop every attempt (a pause, the key), which keep their own label; the scheduler's say "Next attempt". */
-const STOPS = new Set<HostedHold['kind']>(['suspended', 'closed', 'paused', 'key-invalid', 'key-waiting']);
+const STOPS = new Set<HostedHold['kind']>(['suspended', 'paused', 'key-invalid', 'key-waiting']);
 
 /** The card beside the cycle while the hosted agent works: what holds its next attempt. */
 const nextCopyOf = (hold: HostedHold, now?: Date): CardCopy => {

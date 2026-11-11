@@ -165,7 +165,6 @@ export const views = {
     paused: false,
     grantAvailable: true,
     ownAgent: { paths: { hosted: false, mcp: true }, tokens: [mcpToken()] },
-    attemptsOpen: true,
   },
   /** Onboarded by their own agent's first call: a used token, no Claude key. */
   agentOnboarded: {
@@ -184,7 +183,6 @@ export const views = {
       paths: { hosted: false, mcp: true },
       tokens: [mcpToken({ lastUsedAt: '2026-10-28T11:05:00.000Z' })],
     },
-    attemptsOpen: true,
   },
   /** Onboarded once, and since then the key removed and the tokens revoked. */
   onboardedNoPath: {
@@ -194,7 +192,7 @@ export const views = {
     grantAvailable: true,
     ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] },
   },
-  active: { contributor: contributor(), grant: connected, paused: false, grantAvailable: true, attemptsOpen: true },
+  active: { contributor: contributor(), grant: connected, paused: false, grantAvailable: true },
   /**
    * A key just connected from Max: onboarded, every setting guessed, nothing spent, the first attempt free to start,
    * and no GitHub access yet.
@@ -210,7 +208,6 @@ export const views = {
     grant: { connected: false, login: null },
     paused: false,
     grantAvailable: true,
-    attemptsOpen: true,
   },
   keyInvalid: {
     contributor: contributor({ credentials: [key({ state: 'INVALID' })] }),
@@ -248,7 +245,6 @@ export const views = {
     grant: connected,
     paused: false,
     grantAvailable: true,
-    attemptsOpen: true,
   },
   /** Smaller limits for now: most recent claims ran out without a pull request. */
   followThrough: {
@@ -256,7 +252,6 @@ export const views = {
     grant: connected,
     paused: false,
     grantAvailable: true,
-    attemptsOpen: true,
   },
   /** Paused by the owner: nothing new starts. */
   suspended: {
@@ -264,7 +259,6 @@ export const views = {
     grant: connected,
     paused: false,
     grantAvailable: true,
-    attemptsOpen: true,
   },
   /** An API that does not answer the grant and the pause yet. */
   fieldsMissing: { contributor: contributor(), grant: undefined, paused: undefined, grantAvailable: true },

@@ -2,9 +2,6 @@
 GitRanks Contribute for the signed-in viewer (the Contribute's overview)
 """
 type Contribute {
-  """Hosted attempts start; false: none starts until Contribute opens"""
-  attemptsOpen: Boolean!
-
   """Null until the viewer did something that keeps a row"""
   contributor: Contributor
 

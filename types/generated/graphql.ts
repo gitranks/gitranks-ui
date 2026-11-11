@@ -22,8 +22,6 @@ export type Scalars = {
 /** GitRanks Contribute for the signed-in viewer (the Contribute's overview) */
 export type Contribute = {
   __typename?: 'Contribute';
-  /** Hosted attempts start; false: none starts until Contribute opens */
-  attemptsOpen: Scalars['Boolean']['output'];
   /** Null until the viewer did something that keeps a row */
   contributor?: Maybe<Contributor>;
   /** The GitHub access Contribute opens PRs with; known with or without a contributor. Null with an error when it cannot be read now */

@@ -268,8 +268,6 @@ export type ContributeView = {
   grantAvailable: boolean;
   /** The user's own agent: their paths and live tokens; `undefined` while the API does not answer them. */
   ownAgent?: ContributeOwnAgent;
-  /** Attempts are open: an agent may start on an issue. `undefined` while the API does not answer it. */
-  attemptsOpen?: boolean;
 };
 
 /** Which ways of contributing the user has set up: a Claude key, a token for their own agent. */

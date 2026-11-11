@@ -44,7 +44,6 @@ describe('isFirstRun', () => {
 
 describe('firstRunStepOf', () => {
   it('takes the first state that holds, in order', () => {
-    expect(kind({ ...base, attemptsOpen: false, paused: true })).toBe('closed');
     expect(kind({ ...withContributor({ status: 'PAUSED' }), paused: true })).toBe('paused');
     expect(kind(withContributor({ credentials: [key({ state: 'INVALID' })] }))).toBe('key-invalid');
     expect(
@@ -76,9 +75,8 @@ describe('firstRunStepOf', () => {
     ).toEqual({ kind: 'paced', at: '2026-10-30T09:00:00.000Z' });
   });
 
-  it('does not call the feed empty while the API does not answer it, nor attempts closed while it does not say', () => {
+  it('does not call the feed empty while the API does not answer it', () => {
     expect(kind(base, undefined)).toBe('soon');
-    expect(kind({ ...base, attemptsOpen: undefined })).toBe('soon');
   });
 });
 
@@ -113,16 +111,15 @@ describe('firstRunNoticesOf', () => {
     expect(kinds([{ kind: 'key-invalid' }, { kind: 'paused' }], { kind: 'key-invalid' })).toEqual(['paused']);
   });
 
-  it('keeps every block while step 1 says something else, attempts closed among them', () => {
-    expect(kinds(all, { kind: 'closed' })).toEqual(['exhausted', 'paused']);
+  it('keeps every block while step 1 says something else', () => {
     expect(kinds(all, { kind: 'soon' })).toEqual(['exhausted', 'paused']);
   });
 });
 
 describe('agentFirstRunStepOf', () => {
-  it("is held by the user's pause alone, so a key's notice and closed attempts stay beside the guide", () => {
+  it("is held by the user's pause alone, so a key's notice stays beside the guide", () => {
     const paused = { ...views.agentOnboarded, paused: true };
-    const invalid = { ...views.keyInvalid, attemptsOpen: false };
+    const invalid = views.keyInvalid;
 
     expect(agentFirstRunStepOf(paused)).toEqual({ kind: 'paused' });
     expect(agentFirstRunStepOf(invalid)).toEqual({ kind: 'soon' });

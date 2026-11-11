@@ -215,11 +215,6 @@ export const ContributeOnboardingDocument = doc<{
   } | null;
 }>('query ContributeOnboarding { contribute { contributor { onboardedAt onboardedVia } } }');
 
-/** Whether attempts are open: read on its own, so a failed read of it never touches the onboarding. */
-export const ContributeAttemptsOpenDocument = doc<{ contribute: { attemptsOpen: boolean | null } | null }>(
-  'query ContributeAttemptsOpen { contribute { attemptsOpen } }',
-);
-
 export const ContributeGrantDocument = doc<{ contribute: { grant: ContributeGrant } | null }>(
   'query ContributeGrant { contribute { grant { connected login } } }',
 );

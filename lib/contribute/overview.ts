@@ -96,7 +96,7 @@ export type RightNow = {
 };
 
 /** The view's own blocks: they hold before anything the scheduler counts. */
-const VIEW_BLOCKS = new Set<FirstRunStep['kind']>(['suspended', 'closed', 'paused', 'key-invalid', 'key-waiting']);
+const VIEW_BLOCKS = new Set<FirstRunStep['kind']>(['suspended', 'paused', 'key-invalid', 'key-waiting']);
 
 /**
  * The hosted agent's state: an attempt in flight, with what holds the next one, else that hold: the first of the

@@ -16,12 +16,15 @@ import { dayLabel, relativeLabel } from '@/lib/contribute/format';
 import {
   exportLineOf,
   MCP_SETUPS,
+  MCP_SIGN_IN_SETUPS,
   MCP_TOKEN_ENV,
   MCP_TOKEN_NAME_MAX,
   MCP_TOKENS_MAX,
   type McpClient,
   OWN_AGENT_TEXT,
+  USE_A_TOKEN_INSTEAD,
 } from '@/lib/contribute/mcp-setup';
+import { isSignedInAgent, personalTokensOf } from '@/lib/contribute/oauth-consent';
 import { cn } from '@/lib/utils';
 
 export const OWN_AGENT_SAFETY = 'Your agent reads issue text written by strangers. Keep its permission prompts on.';
@@ -80,7 +83,25 @@ function NewToken({ token, onDone }: { token: string; onDone: () => void }) {
   );
 }
 
+/** What the row says of a connection: a token's last 4 and when it was made, or when an agent signed in. */
+function connectionLine(token: ContributeMcpToken, now?: Date) {
+  const used = token.lastUsedAt ? `used ${relativeLabel(token.lastUsedAt, now)}` : 'never used';
+  if (isSignedInAgent(token))
+    return (
+      <>
+        signed in {dayLabel(token.createdAt)} · {used}
+      </>
+    );
+  return (
+    <>
+      <span className="font-mono">gr_…{token.last4}</span> · created {dayLabel(token.createdAt)} ·{' '}
+      {token.lastUsedAt ? `last used ${relativeLabel(token.lastUsedAt, now)}` : 'never used'}
+    </>
+  );
+}
+
 function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
+  const signedIn = isSignedInAgent(token);
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,20 +135,19 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
         <span className="font-medium">{token.name}</span>
         {revoked ? (
           <span ref={done} role="status" tabIndex={-1} className="text-sm text-muted-foreground outline-none">
-            Revoked. An agent using it can no longer reach us.
+            {signedIn
+              ? 'Disconnected. It can no longer reach us.'
+              : 'Revoked. An agent using it can no longer reach us.'}
           </span>
         ) : (
-          <span className="text-sm text-muted-foreground">
-            <span className="font-mono">gr_…{token.last4}</span> · created {dayLabel(token.createdAt)} ·{' '}
-            {token.lastUsedAt ? `last used ${relativeLabel(token.lastUsedAt, now)}` : 'never used'}
-          </span>
+          <span className="text-sm text-muted-foreground">{connectionLine(token, now)}</span>
         )}
       </div>
       {revoked ? null : (
         <ConfirmDialog
           trigger={
             <Button type="button" variant="destructive-outline" className="h-10">
-              Revoke
+              {signedIn ? 'Disconnect' : 'Revoke'}
               <span className="sr-only"> {token.name}</span>
             </Button>
           }
@@ -136,10 +156,14 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
             if (open) setError(null);
             setConfirming(open);
           }}
-          title={`Revoke "${token.name}"?`}
-          description="An agent using this token can no longer reach us, and the token cannot be brought back. Create a new one to connect it again."
-          action="Revoke token"
-          pendingAction="Revoking…"
+          title={signedIn ? `Disconnect "${token.name}"?` : `Revoke "${token.name}"?`}
+          description={
+            signedIn
+              ? 'It can no longer reach us, and the claims it is working on end if it is your only connection. Sign in from it again to reconnect.'
+              : 'An agent using this token can no longer reach us, and the token cannot be brought back. Create a new one to connect it again.'
+          }
+          action={signedIn ? 'Disconnect' : 'Revoke token'}
+          pendingAction={signedIn ? 'Disconnecting…' : 'Revoking…'}
           pending={pending}
           error={error}
           onConfirm={revoke}
@@ -149,10 +173,30 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
   );
 }
 
-/** Ready-made setup for each client, reading the token from the environment. */
-export function SetupLines() {
+/** One block of setup: what to do, the file it goes in when it names one, then the lines with their copy button. */
+function SetupBlock({ where, lines, file }: { where: string; lines: string; file?: string }) {
+  return (
+    <>
+      <span className="text-sm text-muted-foreground">{where}</span>
+      {file ? <span className="font-mono text-xs text-muted-foreground">{file}</span> : null}
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <Code>{lines}</Code>
+        </div>
+        <CopyButton text={lines} />
+      </div>
+    </>
+  );
+}
+
+/**
+ * Ready-made setup for each client, reading the token from the environment. `signIn`: agents sign in with GitHub, so
+ * a client's sign-in comes first and its token setup sits in a fold under it (Antigravity keeps the token).
+ */
+export function SetupLines({ signIn = false }: { signIn?: boolean }) {
   const [client, setClient] = useState<McpClient>('claude-code');
   const setup = MCP_SETUPS.find((each) => each.client === client) ?? MCP_SETUPS[0];
+  const viaSignIn = signIn ? MCP_SIGN_IN_SETUPS.find((each) => each.client === setup.client) : undefined;
   return (
     <div className="flex flex-col gap-2.5" data-setup={setup.client}>
       <fieldset className="flex flex-wrap gap-1.5">
@@ -174,13 +218,25 @@ export function SetupLines() {
           </Button>
         ))}
       </fieldset>
-      <span className="text-sm text-muted-foreground">{setup.where}</span>
-      <div className="flex flex-wrap items-start gap-2">
-        <div className="min-w-0 flex-1">
-          <Code>{setup.lines}</Code>
-        </div>
-        <CopyButton text={setup.lines} />
-      </div>
+      {viaSignIn ? (
+        <>
+          <SetupBlock
+            where={viaSignIn.where}
+            lines={viaSignIn.lines}
+            file={viaSignIn.file ? viaSignIn.label : undefined}
+          />
+          <details className="text-sm" data-token-fold>
+            <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
+              {USE_A_TOKEN_INSTEAD}
+            </summary>
+            <div className="mt-2 flex flex-col gap-2.5">
+              <SetupBlock where={setup.where} lines={setup.lines} />
+            </div>
+          </details>
+        </>
+      ) : (
+        <SetupBlock where={setup.where} lines={setup.lines} />
+      )}
     </div>
   );
 }
@@ -209,7 +265,8 @@ export function OwnAgentSection({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const tokens = ownAgent?.tokens ?? [];
-  const full = tokens.length >= MCP_TOKENS_MAX;
+  // The cap counts personal tokens alone: agents that signed in have their own.
+  const full = personalTokensOf(tokens).length >= MCP_TOKENS_MAX;
 
   const create = () =>
     startTransition(async () => {
@@ -285,7 +342,7 @@ export function OwnAgentSection({
           ) : (
             <h2 className={cn(HEADING.block, 'pt-1')}>Set up your agent</h2>
           )}
-          <SetupLines />
+          <SetupLines signIn={ownAgent.signIn === true} />
           <Link
             href={MCP_DOCS_PATH}
             prefetch={false}

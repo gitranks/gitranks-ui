@@ -5,6 +5,7 @@
  * - `NOT_AVAILABLE_YET`: the API does not know the operation or field yet.
  * - `INVALID`: the API refused the input, with its own message.
  * - `ISSUE_TAKEN`: the issue is no longer free: a contributor (or the user's own agent) is on it.
+ * - `EXPIRED`: an agent's sign-in that expired, or was used already.
  * - `FAILED`: anything else.
  */
 export type ContributeErrorCode =
@@ -13,6 +14,7 @@ export type ContributeErrorCode =
   | 'NOT_AVAILABLE_YET'
   | 'INVALID'
   | 'ISSUE_TAKEN'
+  | 'EXPIRED'
   | 'FAILED';
 
 export type ContributeActionResult<T> =
@@ -40,6 +42,7 @@ export function contributeErrorOf(error: unknown): { error: ContributeErrorCode;
   if (codes.includes('NOT_FOUND')) return { error: 'NOT_FOUND' };
   if (codes.includes('UNAUTHENTICATED')) return { error: 'SIGNED_OUT' };
   if (codes.includes('ISSUE_TAKEN')) return { error: 'ISSUE_TAKEN' };
+  if (codes.includes('EXPIRED')) return { error: 'EXPIRED' };
   if (codes.includes('GRAPHQL_VALIDATION_FAILED') || errors.some(({ message }) => UNKNOWN_FIELD.test(message ?? ''))) {
     return { error: 'NOT_AVAILABLE_YET' };
   }
@@ -63,6 +66,8 @@ export function contributeErrorMessage(error: ContributeErrorCode, message?: str
       return message || 'That value was not accepted. Check it and try again.';
     case 'ISSUE_TAKEN':
       return 'Another contributor is on this issue now.';
+    case 'EXPIRED':
+      return 'This sign-in has expired. Start again from your agent.';
     default:
       return 'Something went wrong. Try again in a minute.';
   }

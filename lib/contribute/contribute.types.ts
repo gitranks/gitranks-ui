@@ -273,16 +273,42 @@ export type ContributeView = {
 /** Which ways of contributing the user has set up: a Claude key, a token for their own agent. */
 export type ContributePaths = { hosted: boolean; mcp: boolean };
 
-/** A token for the user's own agent: never the token itself, only its last 4 characters. */
+/** Where a signed-in agent sends the browser back, and how the pages name it. */
+export type ContributeOAuthClientWhere = { kind: 'LOOPBACK' | 'KNOWN' | 'SCHEME' | 'WEB'; label: string };
+
+/**
+ * A connection of the user's own agent: a personal token (never the token itself, only its last 4 characters), or an
+ * agent that signed in with GitHub (`OAUTH`). `kind` is left out by an API that does not answer it yet: a token.
+ */
 export type ContributeMcpToken = {
   id: string;
+  kind?: 'PERSONAL' | 'OAUTH';
   name: string;
-  last4: string;
+  /** A personal token's last 4 characters; null for an agent that signed in. */
+  last4: string | null;
+  clientWhere?: ContributeOAuthClientWhere | null;
   createdAt: string;
   lastUsedAt: string | null;
 };
 
-export type ContributeOwnAgent = { paths: ContributePaths; tokens: ContributeMcpToken[] };
+export type ContributeOwnAgent = {
+  paths: ContributePaths;
+  tokens: ContributeMcpToken[];
+  /** Agents sign in with GitHub: the setup leads with the sign-in, a token is the fallback. */
+  signIn?: boolean;
+};
+
+/** One sign-in of an agent to the MCP server, as the consent page shows it. */
+export type ContributeOAuthWaiting = { count: number; repos: string[] };
+export type ContributeOAuthRequest = {
+  status: 'PENDING' | 'EXPIRED' | 'APPROVED';
+  clientName: string | null;
+  clientWhere: ContributeOAuthClientWhere | null;
+  previewAllowed: boolean;
+  reusesConnection: boolean;
+  replaces: { name: string } | null;
+  waiting: ContributeOAuthWaiting;
+};
 
 /** A token just created: the token itself is shown this once. */
 export type ContributeMcpTokenCreated = { token: string; mcpToken: ContributeMcpToken };

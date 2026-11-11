@@ -26,7 +26,7 @@ export type Contribute = {
   contributor?: Maybe<Contributor>;
   /** The GitHub access Contribute opens PRs with; known with or without a contributor. Null with an error when it cannot be read now */
   grant?: Maybe<ContributeGrant>;
-  /** The viewer's live tokens for the MCP server (their own agent), oldest first; never a token itself. Null with an error when they cannot be read now */
+  /** The viewer's live connections to the MCP server (their own agent), oldest first: personal tokens and clients signed in with OAuth; never a token itself. Null with an error when they cannot be read now */
   mcpTokens?: Maybe<Array<ContributeMcpToken>>;
   /** The viewer may connect a key (the preview list holds them, or there is none) */
   previewAllowed: Scalars['Boolean']['output'];
@@ -324,6 +324,8 @@ export type ContributeAttemptDetail = {
   checks: Array<ContributeAttemptCheck>;
   /** Null until the checks ran */
   checksPassed?: Maybe<Scalars['Boolean']['output']>;
+  /** The claim's check, step by step, oldest first; empty for a claim checked without steps */
+  claimSteps: Array<ContributeClaimStep>;
   /** A first attempt's repo conventions (what the PR form checks); null for a follow-up or when unread */
   conventions?: Maybe<ContributeRepoConventions>;
   cost: ContributeAttemptCost;
@@ -663,6 +665,18 @@ export type ContributeClaRule = {
   signComment?: Maybe<Scalars['String']['output']>;
   /** Where to sign, when the check links it; for a comment signature, the document to read */
   signUrl?: Maybe<Scalars['String']['output']>;
+};
+
+/** One step of the claim's check, as the attempt's page shows it while it is starting */
+export type ContributeClaimStep = {
+  __typename?: 'ContributeClaimStep';
+  at: Scalars['String']['output'];
+  /** The step's key: a phase of the check (issue, repoDue, policy, conventions, repoRules) or verdict */
+  key: Scalars['String']['output'];
+  /** running, done or failed (a failed repository read lets the claim go on) */
+  state: Scalars['String']['output'];
+  /** What the check is doing, in words for the contributor */
+  words: Scalars['String']['output'];
 };
 
 /** The Claude plan the credits come from (MAX_5X is Max, MAX_20X is Ultra) */
@@ -1288,16 +1302,6 @@ export type ContributeMaintainerFacts = {
   monthDays: Scalars['Int']['output'];
   /** How many days a repository stays out after `missesMax` misses */
   outDays: Scalars['Int']['output'];
-  /**
-   * How many days such a pause lasted
-   * @deprecated Read outDays
-   */
-  pauseDays: Scalars['Int']['output'];
-  /**
-   * Pull requests closed without a merge in a row that paused GitRanks in a repository
-   * @deprecated The pause is retired: read missesMax, silentDays and outDays
-   */
-  pauseStreak: Scalars['Int']['output'];
   /** The most GitRanks pull requests a repository gets in `monthDays` days */
   prsPerMonth: Scalars['Int']['output'];
   /** Days with no word from anyone on a GitRanks pull request that make it a miss */
@@ -1372,14 +1376,19 @@ export type ContributeMaintainerRepos = {
   truncated: Scalars['Boolean']['output'];
 };
 
-/** A personal token for the MCP server: never the token, only its last 4 */
+/** A live connection of the viewer's own agent to the MCP server: a personal token (only its last 4) or a client signed in with OAuth; never the token */
 export type ContributeMcpToken = {
   __typename?: 'ContributeMcpToken';
+  /** Where a sign-in's client sends the browser back; null for a personal token */
+  clientWhere?: Maybe<ContributeOAuthClientWhere>;
   createdAt: Scalars['String']['output'];
   id: Scalars['ID']['output'];
-  last4: Scalars['String']['output'];
+  kind: ContributeMcpTokenKind;
+  /** A personal token's last 4 characters; null for a sign-in */
+  last4?: Maybe<Scalars['String']['output']>;
   /** Written at most once every 5 minutes */
   lastUsedAt?: Maybe<Scalars['String']['output']>;
+  /** A personal token's name, or the client's own name for a sign-in */
   name: Scalars['String']['output'];
 };
 
@@ -1390,6 +1399,12 @@ export type ContributeMcpTokenCreated = {
   /** gr_…: shown once; only its hash is kept */
   token: Scalars['String']['output'];
 };
+
+/** PERSONAL: a token made in Settings; OAUTH: a client the viewer signed in to */
+export enum ContributeMcpTokenKind {
+  Oauth = 'OAUTH',
+  Personal = 'PERSONAL'
+}
 
 /** A model an attempt runs on */
 export enum ContributeModel {
@@ -1421,6 +1436,67 @@ export type ContributeNoGoCount = {
   __typename?: 'ContributeNoGoCount';
   category: ContributeNoGoCategory;
   count: Scalars['Int']['output'];
+};
+
+/** Allow: where the browser goes next (the client, with the code) */
+export type ContributeOAuthApproval = {
+  __typename?: 'ContributeOAuthApproval';
+  /** The client's redirect with code and state: check its scheme before going there */
+  redirectTo: Scalars['String']['output'];
+};
+
+/** Where a signed-in client sends the browser back, and how the page names it */
+export type ContributeOAuthClientWhere = {
+  __typename?: 'ContributeOAuthClientWhere';
+  kind: ContributeOAuthClientWhereKind;
+  /** LOOPBACK "this computer", KNOWN the client ("Claude"), SCHEME "cursor://", WEB the host */
+  label: Scalars['String']['output'];
+};
+
+/** Where a signed-in client sends the browser back: LOOPBACK an app on this computer, KNOWN a hosted client named by its exact address, SCHEME an app that opens its own links, WEB any other https host */
+export enum ContributeOAuthClientWhereKind {
+  Known = 'KNOWN',
+  Loopback = 'LOOPBACK',
+  Scheme = 'SCHEME',
+  Web = 'WEB'
+}
+
+/** The connection an Allow would end, past the cap of live sign-ins */
+export type ContributeOAuthReplaces = {
+  __typename?: 'ContributeOAuthReplaces';
+  name: Scalars['String']['output'];
+};
+
+/** One sign-in of an agent to the MCP server, as the consent page shows it */
+export type ContributeOAuthRequest = {
+  __typename?: 'ContributeOAuthRequest';
+  /** The name the client registered (its own claim); null when EXPIRED */
+  clientName?: Maybe<Scalars['String']['output']>;
+  /** Where the browser goes back after Allow; null when EXPIRED */
+  clientWhere?: Maybe<ContributeOAuthClientWhere>;
+  /** The viewer may connect. A viewer off the preview gets a null contributeOAuthRequest instead, so this is false only in the rare case the lists disagree; false shows only Cancel */
+  previewAllowed: Scalars['Boolean']['output'];
+  /** The connection this Allow would disconnect, past the cap; null when none */
+  replaces?: Maybe<ContributeOAuthReplaces>;
+  /** This Allow reuses the viewer's connection of this client */
+  reusesConnection: Scalars['Boolean']['output'];
+  status: ContributeOAuthRequestStatus;
+  waiting: ContributeOAuthWaiting;
+};
+
+/** PENDING: waiting for Allow; EXPIRED: unknown, expired or already used (start again from the agent); APPROVED: Allow was pressed already */
+export enum ContributeOAuthRequestStatus {
+  Approved = 'APPROVED',
+  Expired = 'EXPIRED',
+  Pending = 'PENDING'
+}
+
+/** The viewer's waiting picks: a count and up to 3 repositories, never an issue */
+export type ContributeOAuthWaiting = {
+  __typename?: 'ContributeOAuthWaiting';
+  count: Scalars['Int']['output'];
+  /** owner/name, at most 3 */
+  repos: Array<Scalars['String']['output']>;
 };
 
 /** The first path that worked: a stored Claude key (hosted), or the first call of the contributor's own agent (mcp) */
@@ -2628,7 +2704,7 @@ export type ContributeSubmitError = {
   at: Scalars['String']['output'];
   /** What happened and what to do, for the user */
   note: Scalars['String']['output'];
-  /** A fixed code: the write that failed (grant_revoked, submit_off, …) or ours (no_answer, …) */
+  /** A fixed code: the write that failed (grant_revoked, org_restricted, …) or ours (no_answer, …) */
   reason: Scalars['String']['output'];
 };
 
@@ -2901,6 +2977,8 @@ export type Mutation = {
   addToContributeSet: ContributeSetAddResult;
   /** Approves an attempt in review with the PR’s title and body as edited, and the DCO sign-off (used only on a repo that requires it, `dcoRequired`): the submission starts (fork, push, PR in the viewer’s name). CONFLICT when the attempt is not in review */
   approveAttempt: ContributeAttempt;
+  /** Allow: connects the client as the viewer's agent and answers where the browser goes next. EXPIRED when the sign-in is unknown, expired or already used; NOT_FOUND when Contribute is not open for the account */
+  approveContributeOAuth: ContributeOAuthApproval;
   /** Posts the proof the viewer's own agent captured: its screenshots to gitranks-proof/<n> in their fork, its section into the PR's live description, then the bot's re-review command. `checked` is the viewer's tick that nothing private is left (BAD_USER_INPUT without it). CONFLICT when it is not in review, a run works on the PR, or the PR is not open */
   approveContributeProof: ContributeProofSession;
   /** Approves a drafted reply: it is posted on the PR in the viewer’s name (a reply in its review thread, or a comment). Never posted otherwise. asComment: a reply GitHub refused in its review thread (canPostAsComment) posted as a comment on the PR instead, linking the thread. CONFLICT when the PR is no longer open, or the reply cannot go as a comment */
@@ -2955,7 +3033,7 @@ export type Mutation = {
   retryContributeProof: ContributeProofSession;
   /** Deletes the GitHub grant and revokes it at GitHub; false when GitHub could not be told (revoke the app on GitHub). True when there was none */
   revokeGithubGrant: Scalars['Boolean']['output'];
-  /** Revokes a token: its next call answers 401. Revoking the last one ends the claims its agent is working on. False when it was not a live token of the viewer’s */
+  /** Revokes a token or disconnects a signed-in client: its next call answers 401. Revoking the last one ends the claims its agent is working on. False when it was not a live token of the viewer’s */
   revokeMcpToken: Scalars['Boolean']['output'];
   /** Sends a proof in review back to the viewer's agent with a note (at most 2,000 characters): it runs the proof prompt again. CONFLICT when it is not in review */
   sendBackContributeProof: ContributeProofSession;
@@ -3002,6 +3080,11 @@ export type MutationApproveAttemptArgs = {
   id: Scalars['ID']['input'];
   replies?: InputMaybe<Array<ContributeReplyInput>>;
   title: Scalars['String']['input'];
+};
+
+
+export type MutationApproveContributeOAuthArgs = {
+  requestId: Scalars['String']['input'];
 };
 
 
@@ -3453,6 +3536,10 @@ export type Query = {
   contributeLedgerOpen: Scalars['Boolean']['output'];
   /** The limits GitRanks Contribute keeps for every repository, and the keys a repository can set in its .github/gitranks.yml */
   contributeMaintainerFacts: ContributeMaintainerFacts;
+  /** Agents sign in to the MCP server with OAuth: the setup lines lead with the sign-in, a token is the fallback. False while the sign-in is not open to everyone */
+  contributeMcpSignIn: Scalars['Boolean']['output'];
+  /** One MCP sign-in for the consent page: the client's name, where it goes back to, what Allow would do. EXPIRED when it is unknown, expired or already used. Null when hidden: signed out, or signed in and Contribute is not open for the account yet (off the preview, or no profile here) */
+  contributeOAuthRequest?: Maybe<ContributeOAuthRequest>;
   /** Contribute is launched: open to everyone, so the landing is shown to signed-out visitors too. False during the preview */
   contributeOpen: Scalars['Boolean']['output'];
   /** A pull request opened through GitRanks Contribute, by the `from` id in its footer link or, with a GitHub token, by `pr` ("owner/name#123"). With a token, also the visitor's role on its repository and their email. NOT_FOUND when GitRanks Contribute did not open it */
@@ -3542,6 +3629,11 @@ export type QueryContributeIssuesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<ContributeIssuesFilter>;
   first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryContributeOAuthRequestArgs = {
+  requestId: Scalars['String']['input'];
 };
 
 

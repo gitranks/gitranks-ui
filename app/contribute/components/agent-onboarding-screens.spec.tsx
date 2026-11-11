@@ -59,6 +59,32 @@ const b1 = (props: Partial<ComponentProps<typeof AgentConnectView>> = {}) => {
   return { html, plain: text(html) };
 };
 
+describe('B1, your own agent, once agents sign in', () => {
+  it("shows the client's sign-in line, with the token in a fold under it", () => {
+    const { html, plain } = b1({ signIn: true });
+    expect(html).toContain('data-agent-sign-in="setup"');
+    expect(plain).toContain('claude mcp add --scope user --transport http gitranks https://mcp.gitranks.com/mcp');
+    expect(plain).toContain('choose Authenticate');
+    expect(plain).toContain('I added it');
+    expect(plain).toContain('Use a token instead');
+    expect(plain).toContain('Create a GitRanks token');
+  });
+
+  it('keeps Antigravity on the token', () => {
+    const { html, plain } = b1({ signIn: true, client: 'antigravity' });
+    expect(html).not.toContain('data-agent-sign-in');
+    expect(plain).toContain('Create a GitRanks token');
+  });
+
+  it('once added, waits for the first call with what to check', () => {
+    const { html, plain } = b1({ signIn: true, client: 'codex', stage: 'added', hint: true });
+    expect(html).toContain('data-agent-sign-in="added"');
+    expect(plain).toContain('GitRanks added to Codex CLI. It signs in the first time it calls.');
+    expect(html).toContain('data-agent-hello="waiting"');
+    expect(plain).toContain('Nothing yet? Run codex mcp login gitranks again');
+  });
+});
+
 describe('B1, your own agent', () => {
   it('starts on the agent and the token, the hello still to come', () => {
     const { html, plain } = b1();

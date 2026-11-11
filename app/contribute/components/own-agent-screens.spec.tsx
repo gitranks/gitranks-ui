@@ -50,6 +50,51 @@ const agentOnly: ContributeView = {
   ownAgent: withTokens,
 };
 
+describe('Settings, your own agent, with agents that signed in', () => {
+  const SIGNED_IN = {
+    id: 'T_2',
+    kind: 'OAUTH' as const,
+    name: 'Claude Code',
+    last4: null,
+    clientWhere: { kind: 'LOOPBACK' as const, label: 'this computer' },
+    createdAt: '2026-11-12T09:00:00.000Z',
+    lastUsedAt: new Date(NOW.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+  };
+
+  it('shows a sign-in as when it signed in and was used, with Disconnect, never a last 4', () => {
+    const html = renderToStaticMarkup(
+      <OwnAgentSection ownAgent={{ ...withTokens, tokens: [TOKEN, SIGNED_IN] }} now={NOW} />,
+    );
+    const plain = text(html);
+    expect(html).toContain('data-mcp-token="T_2"');
+    expect(plain).toContain('Claude Code signed in Nov 12 · used 2 hours ago');
+    expect(plain).toContain('Disconnect Claude Code');
+    expect(plain).not.toContain('gr_…null');
+    expect(plain).toContain('gr_…Qx9z');
+  });
+
+  it('counts personal tokens alone against their cap', () => {
+    const signedIn = Array.from({ length: 6 }, (_, at) => ({ ...SIGNED_IN, id: `S_${at}` }));
+    const html = renderToStaticMarkup(
+      <OwnAgentSection ownAgent={{ ...withTokens, tokens: [TOKEN, ...signedIn] }} now={NOW} />,
+    );
+    expect(text(html)).not.toContain('revoke one to create another');
+  });
+
+  it("leads the setup with the client's sign-in, its token setup in a fold, once agents sign in", () => {
+    const html = renderToStaticMarkup(<OwnAgentSection ownAgent={{ ...withTokens, signIn: true }} now={NOW} />);
+    const plain = text(html);
+    expect(plain).toContain(`claude mcp add --scope user --transport http gitranks ${MCP_URL}`);
+    expect(plain).toContain('Use a token instead');
+    expect(html).toContain('data-token-fold');
+    // The token setup is still there, in the fold.
+    expect(plain).toContain('GITRANKS_MCP_TOKEN');
+
+    const off = renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />);
+    expect(off).not.toContain('data-token-fold');
+  });
+});
+
 describe('Settings, your own agent', () => {
   it('lists the tokens by their last 4 alone, with the setup for each client and the safety line', () => {
     const html = renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />);

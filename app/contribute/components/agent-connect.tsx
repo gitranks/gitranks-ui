@@ -30,11 +30,14 @@ import {
   type McpClient,
   type McpOs,
   mcpOsOf,
+  mcpSignInSetupOf,
   mcpTokenCheckOf,
   mcpTokenNameOf,
   type NavigatorLike,
   tokenInConfigOf,
+  USE_A_TOKEN_INSTEAD,
 } from '@/lib/contribute/mcp-setup';
+import { personalTokensOf } from '@/lib/contribute/oauth-consent';
 import { nextSessionPath } from '@/lib/contribute/sessions';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
@@ -82,6 +85,11 @@ export type AgentConnectViewProps = {
   focus?: AgentFocus | null;
   /** Reached from a proof's card: step 3 is the proof's prompt, and the page goes back to the card once the agent calls. */
   proof?: AgentConnectProof | null;
+  /**
+   * The agent signs in with GitHub: step 2 is the client's sign-in setup, with the token in a fold under it. Only for
+   * a client that can (`mcpSignInSetupOf`), and while no token is made or waiting on this page.
+   */
+  signIn?: boolean;
 };
 
 /** The proof the page was reached for: its contribution, its prompt and its pull request's number. */
@@ -117,10 +125,12 @@ export function AgentConnectView({
   connected = false,
   focus = null,
   proof = null,
+  signIn = false,
 }: AgentConnectViewProps) {
   const id = useId();
   const name = MCP_CLIENT_NAMES[client];
   const added = stage === 'added' || connected;
+  const signInSetup = signIn ? mcpSignInSetupOf(client, os) : null;
   const connectHeading = useRef<HTMLHeadingElement>(null);
   const helloHeading = useRef<HTMLHeadingElement>(null);
 
@@ -198,6 +208,20 @@ export function AgentConnectView({
             replaced={replaced}
             focusOnShow={focus?.target === 'token'}
           />
+        ) : signInSetup && added ? (
+          <div className="flex flex-wrap items-center justify-between gap-3" data-agent-sign-in="added">
+            <span className="flex items-center gap-2.5 text-sm">
+              <CheckIcon aria-hidden="true" className="size-4.5 flex-none text-positive" strokeWidth={2.6} />
+              <span>
+                <span className="font-semibold">GitRanks added to {name}.</span> It signs in the first time it calls.
+              </span>
+            </span>
+            {connected ? null : (
+              <Button type="button" variant="outline" onClick={onReopen} className={plainButton}>
+                Show the setup again
+              </Button>
+            )}
+          </div>
         ) : added ? (
           <div className="flex flex-col gap-1.5">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -231,6 +255,58 @@ export function AgentConnectView({
             {shown || connected ? null : (
               <span className="text-xs text-muted-foreground">We showed it only once. {REPLACE_NOTE}</span>
             )}
+          </div>
+        ) : signInSetup ? (
+          <div className="flex flex-col gap-3" data-agent-sign-in="setup">
+            <p className="max-w-2xl text-sm text-foreground/80">
+              {name} signs in to GitRanks with your GitHub account, as you: it finds issues, claims one, hands back the
+              patch and sees your contributions. It can&apos;t open a pull request or spend anything, and you can
+              disconnect it in Settings.
+            </p>
+            <p className="text-sm text-muted-foreground">{signInSetup.where}</p>
+            <CodeBlock label={signInSetup.label} file={signInSetup.file} copyLabel={`Copy the ${name} setup`}>
+              {signInSetup.lines}
+            </CodeBlock>
+            <Button
+              type="button"
+              size="lg"
+              onClick={onAdded}
+              className="min-h-12 flex-none self-start px-5.5 text-base font-semibold"
+            >
+              I added it
+            </Button>
+            <details className="text-sm" data-token-fold>
+              <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
+                {USE_A_TOKEN_INSTEAD}
+              </summary>
+              <div className="mt-2 flex flex-col items-start gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCreate}
+                  disabled={working || full}
+                  className={plainButton}
+                >
+                  {working ? 'Creating…' : 'Create a GitRanks token'}
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {full ? (
+                    <>
+                      You have {MCP_TOKENS_MAX} live tokens.{' '}
+                      <Link href={settingsPathOf('own-agent')} prefetch={false} className="font-semibold text-link">
+                        Revoke one in Settings
+                      </Link>{' '}
+                      to create another.
+                    </>
+                  ) : (
+                    <>
+                      We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and show its setup here. For clients that
+                      can&apos;t sign in, and for scripts.
+                    </>
+                  )}
+                </span>
+              </div>
+            </details>
           </div>
         ) : (
           <div className="flex flex-col items-start gap-3">
@@ -331,7 +407,9 @@ export function AgentConnectView({
               {hint && !connected ? (
                 // In the status region, so it is announced when it appears.
                 <span className="text-xs text-muted-foreground" data-agent-hint>
-                  {tokenInConfigOf(client) ? (
+                  {signInSetup ? (
+                    `Nothing yet? ${signInSetup.check}`
+                  ) : tokenInConfigOf(client) ? (
                     `Nothing yet? Check that the gitranks entry in ${name}'s MCP config holds your latest token, then ${ANTIGRAVITY_RELOAD} and ask again.`
                   ) : (
                     <>
@@ -365,12 +443,18 @@ export function AgentConnect({
   onboarded,
   tokens,
   proof = null,
+  signIn = false,
+  openedAt = null,
 }: {
   /** Onboarded already (a key, or another agent): the new token's first use is what the page waits for. */
   onboarded: boolean;
   tokens: ContributeMcpToken[] | undefined;
   /** Reached from a proof's card: once the agent calls, the page goes back to the card. */
   proof?: AgentConnectProof | null;
+  /** Agents sign in with GitHub: the setup leads with the sign-in, a token is the fallback. */
+  signIn?: boolean;
+  /** When the server rendered the page: a sign-in used after it is the agent calling, for a user onboarded before. */
+  openedAt?: string | null;
 }) {
   const goTo = useOnboardedPush();
   // Mid-setup: the newest token the agent has not called with is the one the user came back to.
@@ -390,10 +474,14 @@ export function AgentConnect({
   const [hint, setHint] = useState(false);
   const [focus, setFocus] = useState<AgentFocus | null>(null);
   // Live tokens: those listed, and those made or revoked here since.
-  const [live, setLive] = useState(tokens?.length ?? 0);
+  const [live, setLive] = useState(personalTokensOf(tokens).length);
   const [working, startTransition] = useTransition();
   const pending = madeId || replaced ? undefined : unused;
   const watchId = madeId ?? pending?.id ?? null;
+  // The sign-in path, while no token is made or waiting here: the view shows it for a client that can sign in.
+  const viaSignIn = signIn && !madeId && !pending && !revokedOnly && !replaced;
+  // Its setup done: the page waits for the agent's first call, with no token to watch.
+  const watchSignIn = viaSignIn && stage === 'added' && !!mcpSignInSetupOf(client, os);
   const moveFocus = (target: AgentFocus['target']) => setFocus((last) => ({ target, n: (last?.n ?? 0) + 1 }));
 
   const clientRef = useRef(client);
@@ -418,7 +506,7 @@ export function AgentConnect({
 
   // Whether the agent has called, asked while the tab is shown, until it has.
   useEffect(() => {
-    if (!watchId) return;
+    if (!watchId && !watchSignIn) return;
     // Shown again (Back to a page the router kept): it may go on again.
     gone.current = false;
     let stopped = false;
@@ -431,7 +519,7 @@ export function AgentConnect({
       if (stopped || asking || document.visibilityState !== 'visible') return;
       asking = true;
       try {
-        const result = await readAgentConnected({ tokenId: watchId, onboarded });
+        const result = await readAgentConnected({ tokenId: watchId, onboarded, since: watchId ? null : openedAt });
         if (!stopped && result.ok && result.data) {
           stop();
           goOn();
@@ -445,7 +533,7 @@ export function AgentConnect({
     const timer = setInterval(ask, AGENT_POLL_MS);
     void ask();
     return stop;
-  }, [watchId, onboarded, goOn]);
+  }, [watchId, watchSignIn, openedAt, onboarded, goOn]);
 
   // Long without a call once the setup is done: the hint.
   useEffect(() => {
@@ -517,6 +605,11 @@ export function AgentConnect({
         moveFocus('hello');
       }}
       onReopen={() => {
+        if (viaSignIn && !shown) {
+          setStage('none');
+          moveFocus('connect');
+          return;
+        }
         setStage('token');
         moveFocus('token');
       }}
@@ -531,6 +624,7 @@ export function AgentConnect({
       connected={connected}
       focus={focus}
       proof={proof}
+      signIn={viaSignIn}
     />
   );
 }

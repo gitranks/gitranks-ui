@@ -272,3 +272,88 @@ export const MCP_SETUPS: readonly McpSetup[] = MCP_CLIENTS.map((client) => ({
   where: SETTINGS_WHERE[client],
   lines: mcpSetupLinesOf(client, 'mac'),
 }));
+
+/**
+ * A client's setup when agents sign in with GitHub: no token, nothing in the environment. The first time the agent
+ * calls, it opens GitRanks in the browser, and the user allows it there.
+ */
+export type McpSignInSetup = {
+  client: McpClient;
+  name: string;
+  /** The header of the block: the shell to run it in, or the file to add it to. */
+  label: string;
+  file: boolean;
+  /** What to do with the lines, and how the sign-in starts. */
+  where: string;
+  lines: string;
+  /** Where to look when the agent has not called yet. */
+  check: string;
+};
+
+/** Where the browser goes the first time: the one step every sign-in shares. */
+const ALLOW_IN_BROWSER = 'your browser opens GitRanks, where you allow it.';
+
+/**
+ * A client's sign-in setup on one OS; null for a client that connects with a token only (Antigravity, until its
+ * sign-in is checked).
+ */
+export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup | null {
+  const name = MCP_CLIENT_NAMES[client];
+  const shell = os === 'windows' ? 'PowerShell' : 'Terminal';
+  switch (client) {
+    case 'claude-code':
+      return {
+        client,
+        name,
+        label: shell,
+        file: false,
+        where: `Run this once. Then, in Claude Code, type /mcp, pick gitranks and choose Authenticate: ${ALLOW_IN_BROWSER}`,
+        lines: `claude mcp add --scope user --transport http gitranks ${MCP_URL}`,
+        check:
+          'In Claude Code, type /mcp: gitranks should show as connected. If it needs authentication, choose Authenticate and allow it in your browser.',
+      };
+    case 'codex':
+      return {
+        client,
+        name,
+        label: shell,
+        file: false,
+        where: `Run these once. The second one signs in: ${ALLOW_IN_BROWSER}`,
+        lines: [`codex mcp add gitranks --url ${MCP_URL}`, 'codex mcp login gitranks'].join('\n'),
+        check: 'Run codex mcp login gitranks again and allow it in your browser, then start Codex again.',
+      };
+    case 'cursor':
+      return {
+        client,
+        name,
+        label: homePathOf(os, CONFIG_FILES.cursor),
+        file: true,
+        where: `Add this to the Cursor MCP file. Cursor offers to sign in to gitranks: ${ALLOW_IN_BROWSER}`,
+        lines: JSON.stringify({ mcpServers: { gitranks: { url: MCP_URL } } }, null, 2),
+        check:
+          "In Cursor's MCP settings, gitranks should show as connected. If it shows a sign-in button, press it and allow it in your browser.",
+      };
+    case 'gemini-cli':
+      return {
+        client,
+        name,
+        label: shell,
+        file: false,
+        where: `Run this once. Then, in Gemini CLI, run /mcp auth gitranks: ${ALLOW_IN_BROWSER}`,
+        lines: `gemini mcp add --transport http gitranks ${MCP_URL}`,
+        check:
+          'In Gemini CLI, run /mcp: gitranks should show as connected. If not, run /mcp auth gitranks and allow it.',
+      };
+    case 'antigravity':
+      return null;
+  }
+}
+
+/** The sign-in setup of each client, as Settings and the connect page list it (macOS); Antigravity has none. */
+export const MCP_SIGN_IN_SETUPS: readonly McpSignInSetup[] = MCP_CLIENTS.flatMap((client) => {
+  const setup = mcpSignInSetupOf(client, 'mac');
+  return setup ? [setup] : [];
+});
+
+/** The fold that holds a client's token setup, under its sign-in setup. */
+export const USE_A_TOKEN_INSTEAD = 'Use a token instead';

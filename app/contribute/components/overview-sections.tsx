@@ -611,13 +611,16 @@ export function agentWayOf(view: ContributeView, now = new Date()): WayCopy {
     };
   }
   const last = lastUsedTokenOf(own.tokens);
+  // Agents that signed in are no tokens: the count says connections once there is one.
+  const connectionNounOf = (tokens: { kind?: string }[], count: number) =>
+    `${tokens.some(({ kind }) => kind === 'OAUTH') ? 'connection' : 'token'}${count === 1 ? '' : 's'}`;
   const live = own.tokens.length;
   return {
     title: 'Your own agent',
     state: { label: 'Connected', tone: 'green' },
     text: [
       (last ?? own.tokens[0])?.name,
-      live ? `${live} ${live === 1 ? 'token' : 'tokens'} live` : null,
+      live ? `${live} ${connectionNounOf(own.tokens, live)} live` : null,
       last?.lastUsedAt ? `last call ${relativeLabel(last.lastUsedAt, now)}` : 'no call yet',
     ]
       .filter(Boolean)

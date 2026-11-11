@@ -24,6 +24,27 @@ const text = (html: string) =>
     .replaceAll('&amp;', '&')
     .replace(/\s+/g, ' ');
 
+describe('the MCP docs, once agents sign in', () => {
+  it('lead each client with its sign-in, its token setup in a fold; Antigravity keeps the token; claude.ai joins', () => {
+    const html = renderToStaticMarkup(<McpDocsScreen signIn />);
+    const plain = text(html);
+    expect(plain).toContain('GitHub, in your browser');
+    expect(html).toContain('data-sign-in-start');
+    expect(plain).toContain('codex mcp login gitranks');
+    expect(plain).toContain('/mcp auth gitranks');
+    expect(html).toContain('id="claude-app"');
+    expect(plain).toContain('Add custom connector');
+    expect(plain).toContain('"servers"');
+    // Four agents and VS Code fold their token setup; Antigravity and claude.ai have one way only.
+    expect(html.match(/data-token-fold/g)).toHaveLength(5);
+
+    const off = renderToStaticMarkup(<McpDocsScreen />);
+    expect(off).not.toContain('data-token-fold');
+    expect(off).not.toContain('id="claude-app"');
+    expect(text(off)).toContain('Personal token');
+  });
+});
+
 describe('the MCP docs', () => {
   it('show every client the connect flow knows with the same lines, then VS Code', () => {
     expect(MCP_DOC_CLIENTS.map(({ id }) => id)).toEqual([...MCP_CLIENTS, 'vs-code']);

@@ -45,6 +45,7 @@ import {
   ContributeIssuesDocument,
   ContributeIssuesWithRulesDocument,
   ContributeLimitsDocument,
+  ContributeMcpConnectionsDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
@@ -85,6 +86,7 @@ import type {
 import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
 import { ISSUES_PAGE_SIZE } from './live-issues';
+import { contributeMcpSignIn } from './mcp-sign-in';
 import {
   IN_FLIGHT_READ,
   IN_FLIGHT_STATES,
@@ -173,16 +175,19 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   await loadContributeVersion();
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [overview, grant, paused, autopilot, autopilotNotice, ownAgent, onboarding, limits] = await Promise.allSettled([
-    graphqlDirect(ContributeOverviewDocument, undefined, options),
-    graphqlDirect(ContributeGrantDocument, undefined, options),
-    graphqlDirect(ContributePausedDocument, undefined, options),
-    graphqlDirect(ContributeAutopilotDocument, undefined, options),
-    graphqlDirect(ContributeAutopilotNoticeDocument, undefined, options),
-    graphqlDirect(ContributeOwnAgentDocument, undefined, options),
-    graphqlDirect(ContributeOnboardingDocument, undefined, options),
-    graphqlDirect(ContributeLimitsDocument, undefined, options),
-  ]);
+  const [overview, grant, paused, autopilot, autopilotNotice, ownAgent, onboarding, limits, connections, signIn] =
+    await Promise.allSettled([
+      graphqlDirect(ContributeOverviewDocument, undefined, options),
+      graphqlDirect(ContributeGrantDocument, undefined, options),
+      graphqlDirect(ContributePausedDocument, undefined, options),
+      graphqlDirect(ContributeAutopilotDocument, undefined, options),
+      graphqlDirect(ContributeAutopilotNoticeDocument, undefined, options),
+      graphqlDirect(ContributeOwnAgentDocument, undefined, options),
+      graphqlDirect(ContributeOnboardingDocument, undefined, options),
+      graphqlDirect(ContributeLimitsDocument, undefined, options),
+      graphqlDirect(ContributeMcpConnectionsDocument, undefined, options),
+      contributeMcpSignIn(),
+    ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
   const { contribute } = overview.value;
@@ -212,7 +217,11 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
     grant: settled(grant)?.contribute?.grant ?? undefined,
     paused: typeof pausedField === 'boolean' ? pausedField : undefined,
     grantAvailable: isGrantAvailable(),
-    ownAgent: ownAgentOf(settled(ownAgent)?.contribute),
+    ownAgent: ownAgentOf(
+      settled(ownAgent)?.contribute,
+      settled(connections)?.contribute?.mcpTokens,
+      settled(signIn) === true,
+    ),
   };
 });
 
@@ -234,14 +243,24 @@ function onboardedOf(
   };
 }
 
-/** The user's own agent as the API answered it; `undefined` when it does not answer it (yet). */
-function ownAgentOf(
+/**
+ * The user's own agent as the API answered it; `undefined` when it does not answer it (yet). Each connection's kind
+ * and where its agent goes back come from their own read (`connections`): a connection it does not name is a token.
+ */
+export function ownAgentOf(
   contribute: { contributor: { paths: ContributePaths } | null; mcpTokens: ContributeMcpToken[] } | null | undefined,
+  connections?: Pick<ContributeMcpToken, 'id' | 'kind' | 'clientWhere'>[] | null,
+  signIn = false,
 ): ContributeOwnAgent | undefined {
   if (!contribute || !Array.isArray(contribute.mcpTokens)) return undefined;
+  const byId = new Map((Array.isArray(connections) ? connections : []).map((each) => [each.id, each]));
   return {
     paths: contribute.contributor?.paths ?? { hosted: false, mcp: contribute.mcpTokens.length > 0 },
-    tokens: contribute.mcpTokens,
+    tokens: contribute.mcpTokens.map((token) => {
+      const known = byId.get(token.id);
+      return known ? { ...token, kind: known.kind, clientWhere: known.clientWhere ?? null } : token;
+    }),
+    signIn,
   };
 }
 

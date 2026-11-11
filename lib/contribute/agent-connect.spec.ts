@@ -102,6 +102,13 @@ describe('unusedTokenOf', () => {
     expect(unusedTokenOf([used])).toBeUndefined();
     expect(unusedTokenOf(undefined)).toBeUndefined();
   });
+
+  it('is never an agent that signed in: there is no token of it to come back to', () => {
+    const token = mcpToken({ id: 'T_1' });
+    const signedIn = mcpToken({ id: 'T_2', kind: 'OAUTH', last4: null });
+    expect(unusedTokenOf([token, signedIn])?.id).toBe('T_1');
+    expect(unusedTokenOf([signedIn])).toBeUndefined();
+  });
 });
 
 describe('forgetWelcomeOf', () => {

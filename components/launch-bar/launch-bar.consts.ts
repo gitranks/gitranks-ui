@@ -31,10 +31,15 @@ export function hideLaunchBar(reason: 'dismissed' | 'seen') {
 
 /**
  * Plain JS run inline in the head, before the body paints: hides the bar on Contribute's own pages and in a browser
- * done with it, so it never flashes there. Later moves are the app's (`hideLaunchBar`).
+ * done with it, so it never flashes there. Contribute's pages are decided as `isContributePath` does (the spec holds
+ * them together). Later moves are the app's (`hideLaunchBar`).
  */
 export const LAUNCH_BAR_SCRIPT = `(function () {
-  var off = /^\\/+contribute(?:[\\/\\\\]|$)/i.test(location.pathname);
+  var path = location.pathname;
+  try {
+    path = decodeURIComponent(path);
+  } catch (e) {}
+  var off = /^\\/+contribute(?:[\\/\\\\]|$)/i.test(path);
   if (!off) {
     try {
       off = Boolean(localStorage.getItem(${JSON.stringify(LAUNCH_BAR_KEY)}));

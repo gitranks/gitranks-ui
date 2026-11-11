@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import { LAUNCH_BAR_KEY, LAUNCH_BAR_LEAD, LAUNCH_BAR_SCRIPT, LAUNCH_BAR_TAIL } from './launch-bar.consts';
+import { isContributePath } from '@/lib/contribute/contribute-path';
 
 vi.mock('@next/third-parties/google', () => ({ sendGAEvent: vi.fn() }));
 
@@ -53,6 +54,22 @@ describe('the head script', () => {
     expect(runScript('/contribute', {})).toBe('off');
     expect(runScript('/contribute/faq', {})).toBe('off');
     expect(runScript('//Contribute/', {})).toBe('off');
+  });
+
+  it("decides Contribute's pages as the app does", () => {
+    const paths = [
+      '/',
+      '/contribute',
+      '/contribute/',
+      '/Contribute/faq',
+      '//contribute',
+      '/%63ontribute',
+      '/contribute%2Fx',
+      '/contributors',
+      '/profile/contribute',
+      '/%E0%A4%A',
+    ];
+    for (const path of paths) expect(runScript(path, {}) === 'off', path).toBe(isContributePath(path));
   });
 
   it('hides it once this browser dismissed it or opened Contribute', () => {

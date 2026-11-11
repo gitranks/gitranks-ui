@@ -2,7 +2,7 @@
 
 import { sendGAEvent } from '@next/third-parties/google';
 import { XIcon } from 'lucide-react';
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 
 import { hideLaunchBar } from './launch-bar.consts';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,8 @@ export function LaunchBarDismiss() {
       onClick={() => {
         sendGAEvent('event', 'launch_bar_dismiss');
         hideLaunchBar('dismissed');
+        // The X is gone with the bar: keyboard focus moves to the page's first link, the logo.
+        document.querySelector<HTMLElement>('header a')?.focus();
       }}
     >
       <XIcon />
@@ -25,9 +27,12 @@ export function LaunchBarDismiss() {
   );
 }
 
-/** On Contribute's pages: this browser has seen Contribute, so the bar stays hidden from now on. Renders nothing. */
+/**
+ * On Contribute's pages: this browser has seen Contribute, so the bar stays hidden from now on. Before paint, so a move
+ * into Contribute never shows it for a frame. Renders nothing.
+ */
 export function LaunchBarSeen() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     hideLaunchBar('seen');
   }, []);
   return null;

@@ -370,14 +370,15 @@
   }
 }
 
+/* The launch bar (components/launch-bar), hidden on Contribute's pages and once this browser is done with it. Outside
+   the layers, so no utility on the bar can win over it. */
+html[data-launch-bar='off'] [data-launch-bar-root] {
+  display: none;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
-  }
-
-  /* The launch bar (components/launch-bar), hidden on Contribute's pages and once this browser is done with it. */
-  html[data-launch-bar='off'] [data-launch-bar-root] {
-    display: none;
   }
 
   body {

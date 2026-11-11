@@ -401,7 +401,8 @@ const sections: LegalSection[] = [
         <li>
           <B>In your browser only</B>: your theme, which post links have already been counted in this tab and, for
           Contribute, a few details for the open tab, such as a step to finish after you grant GitHub access, how the
-          tab&apos;s visit began, and the last link to Contribute you followed (for 30 days, to count a connect).
+          tab&apos;s visit began, and the last link to Contribute you followed and the first site or campaign that
+          brought you (for 30 days, to count a connect).
         </li>
       </List>
     ),

@@ -46,7 +46,14 @@ export const PickerPopover: FC<PickerPopoverProps> = ({
   const picked = useRef(false);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        // Reopened before the close finished: a pick no longer decides where focus goes.
+        if (next) picked.current = false;
+        setOpen(next);
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="outline"

@@ -42,6 +42,9 @@ const pageOf = (position: number, pageSize: number) => Math.ceil(position / page
 
 const ANCHOR = /^country-[a-z0-9-]+$/;
 
+/** A row picked on another page, revealed once that page opens; Back and Forward keep their own scroll. */
+let pendingReveal: string | null = null;
+
 /** Scrolls a country's row to the middle of the screen and moves focus to its link, once the page has painted. */
 const reveal = (anchor: string) =>
   requestAnimationFrame(() => {
@@ -71,13 +74,16 @@ export const CountryRankingTools: FC<CountryRankingToolsProps> = ({
   const viewerCountry = useViewerCountry();
   const [picked, setPicked] = useState<string | null>(null);
 
-  // A link to a row (`#country-ukraine`) marks it and brings it into view, after a picked country's page opens too.
+  // A link to a row (`#country-ukraine`) marks it; a country picked on another page is brought into view there.
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-read the hash when the page changes
   useEffect(() => {
     const read = () => {
       const hash = window.location.hash.slice(1);
       setPicked(hash || null);
-      if (ANCHOR.test(hash)) reveal(hash);
+      if (ANCHOR.test(hash) && hash === pendingReveal) {
+        pendingReveal = null;
+        reveal(hash);
+      }
     };
     read();
     window.addEventListener('hashchange', read);
@@ -94,6 +100,7 @@ export const CountryRankingTools: FC<CountryRankingToolsProps> = ({
       window.history.replaceState(null, '', `#${anchor}`);
       reveal(anchor);
     } else {
+      pendingReveal = anchor;
       router.push(`${path}#${anchor}` as Route);
     }
   };

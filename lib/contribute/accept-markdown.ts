@@ -9,9 +9,9 @@ const entriesOf = (accept: string) =>
   });
 
 /**
- * Whether a request's `Accept` asks for markdown over HTML: `text/markdown` is named with a q above the one HTML gets
- * (an explicit `text/html`, else `text/*`, else `*\/*`, else 0). So `text/markdown, *\/*;q=0.1` is markdown, while `*\/*`
- * alone, `text/html`, and the tie `text/markdown, text/html` stay HTML.
+ * Whether a request's `Accept` asks for markdown at least as much as HTML: `text/markdown` is named with a q at or above
+ * the one HTML gets (an explicit `text/html`, else `text/*`, else `*\/*`, else 0). Browsers never name markdown, so a
+ * tie is an agent's (`text/markdown, text/html` is markdown); `*\/*` alone and `text/html` stay HTML.
  */
 export function prefersMarkdown(accept: string | null | undefined): boolean {
   if (!accept) return false;
@@ -20,5 +20,5 @@ export function prefersMarkdown(accept: string | null | undefined): boolean {
   const markdown = qOf('text/markdown');
   if (markdown === undefined || markdown <= 0) return false;
   const html = qOf('text/html') ?? qOf('text/*') ?? qOf('*/*') ?? 0;
-  return markdown > html;
+  return markdown >= html;
 }

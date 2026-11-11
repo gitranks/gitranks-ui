@@ -14,7 +14,7 @@ import { contributeHomeOf, isOwnAgentOnly } from '@/lib/contribute/contribute-st
 import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
 import { contributeOpen } from '@/lib/contribute/preview-gate';
 
-/** The landing's markdown, for agents (agent page spec §2.1): named in the head, and served on `Accept: text/markdown`. */
+/** The landing's markdown, for agents: named in the head, and served on `Accept: text/markdown`. */
 export const metadata: Metadata = { alternates: { types: { 'text/markdown': AGENTS_DOC_PATH } } };
 
 /** The attempts the welcome reads to tell whether the user's own agent has made one. */
@@ -42,15 +42,17 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   const attempts = loadAttempts(undefined, isAgentWelcome(params.welcome) ? AGENT_ATTEMPTS_READ : 1).catch(
     () => undefined,
   );
+  // The landing's numbers line, read beside the view: it never holds the page up, and a failed read leaves it out.
+  const agentPage = loadAgentPage();
   const view = await loadContribute();
-  // Where an agent sends its person (agent page spec §2.1): a visitor gets the own-agent sign-in open over the landing,
+  // Where an agent sends its person: a visitor gets the own-agent sign-in open over the landing,
   // anyone signed in goes straight to connecting their agent (an onboarded member's landing is the overview).
   const startAgent = params.start === 'agent';
   if (startAgent && view) redirect(CONNECT_AGENT_PATH);
   if (!view) {
     // Launched, the landing is everyone's (§9.3): a visitor without a session, or one Contribute does not know yet.
     if (await contributeOpen()) {
-      return <Landing viewer="visitor" noted={[]} startAgent={startAgent} stats={(await loadAgentPage())?.stats} />;
+      return <Landing viewer="visitor" noted={[]} startAgent={startAgent} stats={(await agentPage)?.stats} />;
     }
     notFound();
   }
@@ -88,5 +90,5 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   }
   // A visitor's page starts with nothing noted, the preview of it too.
   const noted = home.viewer === 'visitor' ? [] : await loadProviderInterests();
-  return <Landing viewer={home.viewer} preview={home.preview} noted={noted} stats={(await loadAgentPage())?.stats} />;
+  return <Landing viewer={home.viewer} preview={home.preview} noted={noted} stats={(await agentPage)?.stats} />;
 }

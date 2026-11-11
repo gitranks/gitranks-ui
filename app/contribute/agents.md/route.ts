@@ -19,6 +19,7 @@ export async function GET(): Promise<Response> {
   return new Response(agentsDocOf(page, { signIn }), {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
+      'X-Content-Type-Options': 'nosniff',
       'Cache-Control': open ? 'public, max-age=300, s-maxage=300' : 'private, no-store',
       Vary: 'Accept',
     },

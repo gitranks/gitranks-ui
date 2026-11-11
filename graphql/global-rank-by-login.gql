@@ -14,6 +14,7 @@ query GlobalRankByLogin($login: String!) {
       c
       f
       location
+      country
     }
   }
 }

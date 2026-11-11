@@ -1,10 +1,11 @@
+import { GLOBAL_SCOPE } from './global-scope';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { fetchRepoLanguages } from '@/graphql/helpers/fetch-repo-languages';
 import { fetchTopLanguages } from '@/graphql/helpers/top-languages';
 import { matchRouteName } from '@/utils/match-route-name';
 
 /** The `global` pseudo-country used by the language routes. */
-export const GLOBAL_SCOPE = 'global';
+export { GLOBAL_SCOPE };
 
 /**
  * The stored spelling of a country from the URL (`germany` → `Germany`), or `undefined` when

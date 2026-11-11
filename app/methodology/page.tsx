@@ -25,8 +25,8 @@ const formatNumber = (value: number) => value.toLocaleString('en-US');
 
 const formatShare = (fraction: number) => `${Math.round(fraction * 100)}%`;
 
-const Section = ({ title, children }: { title: string; children: ReactNode }) => (
-  <section className="flex flex-col gap-3">
+const Section = ({ id, title, children }: { id?: string; title: string; children: ReactNode }) => (
+  <section id={id} className="flex scroll-mt-20 flex-col gap-3">
     <h2 className="text-xl font-semibold">{title}</h2>
     {children}
   </section>
@@ -160,7 +160,7 @@ export default function MethodologyPage() {
           </p>
         </Section>
 
-        <Section title="Countries, languages and organizations">
+        <Section id="countries-and-languages" title="Countries, languages and organizations">
           <p>
             <strong>Country rankings</strong> use the location on the developer&apos;s GitHub profile. GitRanks
             recognizes country names as well as regions and cities, so &quot;Berlin&quot; counts as Germany, and a

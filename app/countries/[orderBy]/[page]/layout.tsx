@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { CountryOrderSwitcher } from './components/country-order-switcher';
 import { isCountrySummaryOrder } from './utils/is-country-summary-order';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
@@ -20,7 +19,7 @@ const ORDER_DESCRIPTIONS: Record<CountrySummaryOrder, string> = {
   [CountrySummaryOrder.Contributions]:
     'Countries ranked by the stars on external GitHub repositories where their developers have merged pull requests',
   [CountrySummaryOrder.Followers]: 'Countries ranked by the combined GitHub followers of their developers',
-  [CountrySummaryOrder.Users]: 'Countries ranked by their number of ranked GitHub developers',
+  [CountrySummaryOrder.Users]: 'Countries ranked by how many of their GitHub developers are on GitRanks',
 };
 
 export async function generateMetadata({ params }: LayoutProps<'/countries/[orderBy]/[page]'>): Promise<Metadata> {
@@ -61,37 +60,7 @@ export default async function CountriesLayout({ children, params }: LayoutProps<
   return (
     <>
       <Header section="rankings" />
-      <Page className="gap-8">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <h1 className="text-2xl font-semibold flex items-center gap-2">Country Rankings</h1>
-            <CountryOrderSwitcher orderBy={orderBy} />
-          </div>
-          <div>
-            <p>
-              Explore how every nation’s dev community stacks up. Each country card shows three metrics, refreshed on
-              the 1st of every month:
-            </p>
-            <ul className="list-disc pl-6 mb-4">
-              <li>
-                <strong>User Stars:</strong> stars on repos owned by developers from this country
-              </li>
-              <li>
-                <strong>Contrib Stars:</strong> stars on external repos where they&apos;ve merged PRs
-              </li>
-              <li>
-                <strong>Followers:</strong> combined GitHub followers of those developers
-              </li>
-            </ul>
-            <p>
-              You’ll also spot the current Rockstar, Contributor, and Influencer leading each category for their
-              country. Dive in and see where your flag ranks!
-            </p>
-          </div>
-        </div>
-
-        {children}
-      </Page>
+      <Page className="max-w-5xl gap-6">{children}</Page>
     </>
   );
 }

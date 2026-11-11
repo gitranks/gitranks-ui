@@ -20,6 +20,8 @@ export type RankCardData = {
   name?: string | null;
   avatarUrl: string | null;
   location?: string | null;
+  /** The country GitRanks reads from the location, as the country rankings name it. */
+  country?: string | null;
   flag?: string | null;
   rankings: Partial<Record<RankingKey, RankCardEntry>>;
 };

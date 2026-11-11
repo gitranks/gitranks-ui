@@ -1,5 +1,5 @@
-query CountrySummary($order: CountrySummaryOrder) {
-  countrySummary(order: $order) {
+query CountrySummary($order: CountrySummaryOrder, $date: String) {
+  countrySummary(order: $order, date: $date) {
     country
     usersCount
     date

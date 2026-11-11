@@ -49,6 +49,7 @@ const readRankCard = async (login: string): Promise<RankCardData | null> => {
   return {
     login: rank.user.login,
     avatarUrl: rank.user.avatarUrl ?? null,
+    country: rank.user.country ?? null,
     rankings: {
       s: entry(rank.s, rank.sM, rank.user.s, tiers?.sUsers, tiers?.sTiers),
       c: entry(rank.c, rank.cM, rank.user.c, tiers?.cUsers, tiers?.cTiers),

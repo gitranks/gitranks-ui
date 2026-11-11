@@ -38,7 +38,20 @@ type CountryRankingToolsProps = {
   tabs: ReactNode;
 };
 
-const pageOf = (rank: number, pageSize: number) => Math.ceil(rank / pageSize);
+const pageOf = (position: number, pageSize: number) => Math.ceil(position / pageSize);
+
+const ANCHOR = /^country-[a-z0-9-]+$/;
+
+/** A row picked on another page, revealed once that page opens; Back and Forward keep their own scroll. */
+let pendingReveal: string | null = null;
+
+/** Scrolls a country's row to the middle of the screen and moves focus to its link, once the page has painted. */
+const reveal = (anchor: string) =>
+  requestAnimationFrame(() => {
+    const row = document.getElementById(anchor);
+    row?.scrollIntoView({ block: 'center' });
+    row?.querySelector<HTMLElement>('a')?.focus({ preventScroll: true });
+  });
 
 const moveText = ({ rank, previous }: CountryToolEntry) => {
   if (!previous) return null;
@@ -61,10 +74,17 @@ export const CountryRankingTools: FC<CountryRankingToolsProps> = ({
   const viewerCountry = useViewerCountry();
   const [picked, setPicked] = useState<string | null>(null);
 
-  // A link to a row (`#country-ukraine`) marks it, after a picked country's page opens too.
+  // A link to a row (`#country-ukraine`) marks it; a country picked on another page is brought into view there.
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-read the hash when the page changes
   useEffect(() => {
-    const read = () => setPicked(window.location.hash.slice(1) || null);
+    const read = () => {
+      const hash = window.location.hash.slice(1);
+      setPicked(hash || null);
+      if (ANCHOR.test(hash) && hash === pendingReveal) {
+        pendingReveal = null;
+        reveal(hash);
+      }
+    };
     read();
     window.addEventListener('hashchange', read);
     return () => window.removeEventListener('hashchange', read);
@@ -78,15 +98,16 @@ export const CountryRankingTools: FC<CountryRankingToolsProps> = ({
     setPicked(anchor);
     if (path === pathname) {
       window.history.replaceState(null, '', `#${anchor}`);
-      document.getElementById(anchor)?.scrollIntoView({ block: 'center' });
+      reveal(anchor);
     } else {
+      pendingReveal = anchor;
       router.push(`${path}#${anchor}` as Route);
     }
   };
 
   const mine = viewerCountry ? entries.find((e) => e.name === viewerCountry) : undefined;
   const marks = [
-    picked && /^country-[a-z0-9-]+$/.test(picked) ? `#${picked}{background-color:var(--muted)}` : '',
+    picked && ANCHOR.test(picked) ? `#${picked}{background-color:var(--muted)}` : '',
     mine ? `#${countryAnchor(mine.name)}{background-color:var(--brand-soft)}` : '',
   ].join('');
 

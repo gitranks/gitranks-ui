@@ -173,11 +173,12 @@ function TokenRow({ token, now }: { token: ContributeMcpToken; now?: Date }) {
   );
 }
 
-/** One block of setup: what to do, then the lines with their copy button. */
-function SetupBlock({ where, lines }: { where: string; lines: string }) {
+/** One block of setup: what to do, the file it goes in when it names one, then the lines with their copy button. */
+function SetupBlock({ where, lines, file }: { where: string; lines: string; file?: string }) {
   return (
     <>
       <span className="text-sm text-muted-foreground">{where}</span>
+      {file ? <span className="font-mono text-xs text-muted-foreground">{file}</span> : null}
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1">
           <Code>{lines}</Code>
@@ -219,7 +220,11 @@ export function SetupLines({ signIn = false }: { signIn?: boolean }) {
       </fieldset>
       {viaSignIn ? (
         <>
-          <SetupBlock where={viaSignIn.where} lines={viaSignIn.lines} />
+          <SetupBlock
+            where={viaSignIn.where}
+            lines={viaSignIn.lines}
+            file={viaSignIn.file ? viaSignIn.label : undefined}
+          />
           <details className="text-sm" data-token-fold>
             <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
               {USE_A_TOKEN_INSTEAD}

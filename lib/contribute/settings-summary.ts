@@ -139,5 +139,7 @@ export function ownAgentSummaryOf(ownAgent: ContributeOwnAgent | undefined, now?
     .filter((at): at is string => !!at)
     .sort()
     .at(-1);
-  return `${plural(tokens.length, 'token')} · ${used ? `last used ${relativeLabel(used, now)}` : 'never used'}`;
+  // Agents that signed in are no tokens: the count says connections once there is one.
+  const noun = tokens.some(({ kind }) => kind === 'OAUTH') ? 'connection' : 'token';
+  return `${plural(tokens.length, noun)} · ${used ? `last used ${relativeLabel(used, now)}` : 'never used'}`;
 }

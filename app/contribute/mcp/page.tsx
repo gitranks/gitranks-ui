@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { connection } from 'next/server';
 import { Suspense } from 'react';
 
 import { McpDocsScreen } from '../components/mcp-docs';
@@ -23,5 +24,7 @@ export default function McpDocsPage() {
 }
 
 async function McpDocs() {
+  // Per request: the flag is read with the clock, which a prerender may not touch.
+  await connection();
   return <McpDocsScreen signIn={await contributeMcpSignIn()} />;
 }

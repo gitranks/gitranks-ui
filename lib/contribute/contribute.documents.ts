@@ -132,6 +132,11 @@ export const ContributeMcpConnectionsDocument = doc<{
   } | null;
 }>('query ContributeMcpConnections { contribute { mcpTokens { id kind clientWhere { kind label } } } }');
 
+/** When each connection was last used, by kind: the connect page's watch for an agent that signs in. */
+export const ContributeMcpConnectionsUsedDocument = doc<{
+  contribute: { mcpTokens: { id: string; kind: 'PERSONAL' | 'OAUTH'; lastUsedAt: string | null }[] | null } | null;
+}>('query ContributeMcpConnectionsUsed { contribute { mcpTokens { id kind lastUsedAt } } }');
+
 /** Agents sign in with GitHub: the setup leads with the sign-in. Public, like `contributeOpen`. */
 export const ContributeMcpSignInDocument = doc<{ contributeMcpSignIn: boolean }>(
   'query ContributeMcpSignIn { contributeMcpSignIn }',

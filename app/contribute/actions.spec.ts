@@ -19,6 +19,7 @@ const {
   ContributeIssueStatusDocument,
   ContributeIssuesDocument,
   ContributeIssuesWithRulesDocument,
+  ContributeMcpConnectionsUsedDocument,
   ContributeOnboardingDocument,
   DismissReplyDocument,
   ContributeOwnAgentDocument,
@@ -655,19 +656,28 @@ describe('readAgentConnected', () => {
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
-  it('takes a connection used since the page opened as the agent that signed in, for a user onboarded already', async () => {
+  it('takes an agent that signed in and was used since the page opened as connected, for a user onboarded already', async () => {
     const since = '2026-11-12T10:00:00.000Z';
-    graphqlDirect.mockResolvedValueOnce(tokens('2026-11-12T09:59:00.000Z'));
+    const used = (rows: { kind: 'PERSONAL' | 'OAUTH'; lastUsedAt: string }[]) => ({
+      contribute: { mcpTokens: rows.map((row, at) => ({ id: `T_${at}`, ...row })) },
+    });
+    // A token used since, or a sign-in used before, is not it.
+    graphqlDirect.mockResolvedValueOnce(
+      used([
+        { kind: 'PERSONAL', lastUsedAt: '2026-11-12T10:05:00.000Z' },
+        { kind: 'OAUTH', lastUsedAt: '2026-11-12T09:59:00.000Z' },
+      ]),
+    );
     expect(await actions.readAgentConnected({ tokenId: null, onboarded: true, since })).toEqual({
       ok: true,
       data: false,
     });
-    graphqlDirect.mockResolvedValueOnce(tokens('2026-11-12T10:01:00.000Z'));
+    graphqlDirect.mockResolvedValueOnce(used([{ kind: 'OAUTH', lastUsedAt: '2026-11-12T10:01:00.000Z' }]));
     expect(await actions.readAgentConnected({ tokenId: null, onboarded: true, since })).toEqual({
       ok: true,
       data: true,
     });
-    expect(graphqlDirect).toHaveBeenLastCalledWith(ContributeOwnAgentDocument, undefined, as);
+    expect(graphqlDirect).toHaveBeenLastCalledWith(ContributeMcpConnectionsUsedDocument, undefined, as);
   });
 
   it('reads the onboarded stamp alone for an agent signing in for a user not onboarded yet', async () => {
@@ -713,7 +723,23 @@ describe('approveContributeOAuth', () => {
       'not a url',
     ]) {
       graphqlDirect.mockResolvedValueOnce({ approveContributeOAuth: { redirectTo } });
-      expect(await actions.approveContributeOAuth(REQUEST_ID), redirectTo).toMatchObject({ ok: false, error: 'FAILED' });
+      expect(await actions.approveContributeOAuth(REQUEST_ID), redirectTo).toMatchObject({
+        ok: false,
+        error: 'FAILED',
+      });
+    }
+  });
+
+  it("says Contribute isn't open for the account when Allow is refused for the preview", async () => {
+    for (const code of ['FORBIDDEN', 'NOT_FOUND']) {
+      graphqlDirect.mockRejectedValueOnce(
+        new Error(JSON.stringify([{ message: 'Contribute is in preview', extensions: { code } }])),
+      );
+      expect(await actions.approveContributeOAuth(REQUEST_ID), code).toEqual({
+        ok: false,
+        error: 'NOT_FOUND',
+        message: "Contribute isn't open for your account yet.",
+      });
     }
   });
 

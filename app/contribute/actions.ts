@@ -20,6 +20,7 @@ import {
   ContributeIssueStatusDocument,
   ContributeIssuesDocument,
   ContributeIssuesWithRulesDocument,
+  ContributeMcpConnectionsUsedDocument,
   ContributeOnboardingDocument,
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
@@ -565,6 +566,10 @@ export async function approveContributeOAuth(
   const id = requestIdOf(String(requestId ?? ''));
   if (!id) return { ok: false, error: 'EXPIRED' };
   const result = await run(ApproveContributeOAuthDocument, { requestId: id }, (data) => data.approveContributeOAuth);
+  // Hidden (off the preview) or refused for it: the only refusals Allow has besides EXPIRED.
+  if (!result.ok && (result.error === 'NOT_FOUND' || result.error === 'INVALID')) {
+    return { ok: false, error: 'NOT_FOUND', message: "Contribute isn't open for your account yet." };
+  }
   if (!result.ok) return result;
   const redirectTo = result.data?.redirectTo;
   if (!isSafeRedirect(redirectTo)) {
@@ -582,14 +587,23 @@ export type AgentWatch = {
   tokenId: string | null;
   /** The user was onboarded when the page opened: the stamp cannot tell this call apart. */
   onboarded: boolean;
-  /** No token, an agent signing in: when the page opened, so a connection used since is the agent calling. */
+  /**
+   * No token, an agent signing in: when the page opened (the server's clock). An agent that signed in and was used
+   * since is taken as connected, which Allow itself marks: for a user onboarded before, the page goes on at Allow.
+   */
   since?: string | null;
 };
 
-/** A connection used after `since` (ISO, from the server): an agent that signed in has called. */
-const usedSince = (tokens: { lastUsedAt: string | null }[] | null | undefined, since: string): string | undefined => {
+/** An agent that signed in, used after `since`: its use. Personal tokens and other uses before it don't count. */
+const signedInUsedSince = (
+  tokens: { kind: 'PERSONAL' | 'OAUTH'; lastUsedAt: string | null }[] | null | undefined,
+  since: string,
+): string | undefined => {
   const after = Date.parse(since);
-  return tokens?.find(({ lastUsedAt }) => !!lastUsedAt && Date.parse(lastUsedAt) > after)?.lastUsedAt ?? undefined;
+  return (
+    tokens?.find(({ kind, lastUsedAt }) => kind === 'OAUTH' && !!lastUsedAt && Date.parse(lastUsedAt) > after)
+      ?.lastUsedAt ?? undefined
+  );
 };
 
 /**
@@ -619,9 +633,13 @@ export async function readAgentConnected(watch: AgentWatch): Promise<ContributeA
   }
   if (!tokenId && !since) return { ok: true, data: false };
   try {
+    if (!tokenId) {
+      const data = await graphqlDirect(ContributeMcpConnectionsUsedDocument, undefined, options);
+      const tokenUsedAt = signedInUsedSince(data?.contribute?.mcpTokens, since ?? '');
+      return { ok: true, data: agentConnectedOf({ onboardedBefore, onboardedAt, tokenUsedAt }) };
+    }
     const data = await graphqlDirect(ContributeOwnAgentDocument, undefined, options);
-    const tokens = data?.contribute?.mcpTokens;
-    const tokenUsedAt = tokenId ? tokens?.find(({ id }) => id === tokenId)?.lastUsedAt : usedSince(tokens, since ?? '');
+    const tokenUsedAt = data?.contribute?.mcpTokens?.find(({ id }) => id === tokenId)?.lastUsedAt;
     return { ok: true, data: agentConnectedOf({ onboardedBefore, onboardedAt, tokenUsedAt }) };
   } catch (error) {
     return { ok: false, ...contributeErrorOf(error) };

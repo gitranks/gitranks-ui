@@ -67,6 +67,47 @@ describe('proxy', () => {
       expect(maySeeContribute).not.toHaveBeenCalled();
     });
 
+    describe('the landing for agents (markdown)', () => {
+      const md = (accept: string, cookie?: string) =>
+        new NextRequest('https://gitranks.com/contribute', {
+          headers: { accept, ...(cookie ? { cookie } : {}) },
+        });
+
+      it('rewrites to the markdown when Accept prefers it, never kept by a shared cache', async () => {
+        open.mockResolvedValue(true);
+        for (const cookie of [undefined, 'authjs.session-token=t']) {
+          const response = await proxy(md('text/markdown, */*;q=0.1', cookie), event);
+          expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/contribute/agents.md');
+          expect(response?.headers.get('vary')).toBe('Accept');
+          expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+        }
+        expect(withSession).not.toHaveBeenCalled();
+      });
+
+      it('serves the HTML with the Link header and Vary on every branch', async () => {
+        open.mockResolvedValue(true);
+        for (const cookie of [undefined, 'has-session=1', 'authjs.session-token=t']) {
+          const response = await proxy(md('text/html,*/*;q=0.8', cookie), event);
+          expect(response?.headers.get('x-middleware-rewrite'), cookie).toBeNull();
+          expect(response?.headers.get('link'), cookie).toBe(
+            '</contribute/agents.md>; rel="alternate"; type="text/markdown"',
+          );
+          expect(response?.headers.get('vary'), cookie).toContain('Accept');
+        }
+      });
+
+      it('keeps the 404 before the launch, for markdown too', async () => {
+        const response = await proxy(md('text/markdown'), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+      });
+
+      it('opens /contribute/agents.md with the landing', async () => {
+        open.mockResolvedValue(true);
+        const response = await proxy(request(undefined, '/contribute/agents.md'), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+      });
+    });
+
     it('once launched, keeps every other Contribute page for signed-in users the API lets in', async () => {
       open.mockResolvedValue(true);
       for (const path of ['/contribute/connect', '/contribute/issues', '/contribute/settings', '/contribute%2Fme']) {

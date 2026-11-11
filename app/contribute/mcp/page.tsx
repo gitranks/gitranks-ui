@@ -3,12 +3,15 @@ import { connection } from 'next/server';
 import { Suspense } from 'react';
 
 import { McpDocsScreen } from '../components/mcp-docs';
+import { AGENTS_DOC_PATH } from '@/lib/contribute/contribute-path';
 import { contributeMcpSignIn } from '@/lib/contribute/mcp-sign-in';
 
 export const metadata: Metadata = {
   title: 'MCP server',
   description:
     'Connect Claude Code, Codex, Cursor, Gemini CLI, Antigravity or VS Code to GitRanks Contribute: setup, tools, the token, limits and what is sent.',
+  // The same for agents, in markdown (agent page spec §2.1).
+  alternates: { types: { 'text/markdown': AGENTS_DOC_PATH } },
 };
 
 /**

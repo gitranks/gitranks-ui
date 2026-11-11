@@ -1,0 +1,35 @@
+/** The pool's public numbers. */
+export type AgentPageStats = {
+  readyIssues: number;
+  repos: number;
+  languages: { language: string; issues: number }[];
+  checkedAt: string | null;
+};
+
+/** One issue of the day's sample: the same for everyone. */
+export type AgentPageIssue = {
+  repo: string;
+  number: number;
+  url: string;
+  title: string | null;
+  labels: string[];
+  language: string | null;
+  kind: string | null;
+  size: string | null;
+  why: string[];
+  testCommand: boolean;
+};
+
+/** What the page for AI agents shows: the numbers, the day's sample, and whether the token-less try is open. */
+export type AgentPage = {
+  stats: AgentPageStats | null;
+  sample: { day: string | null; items: AgentPageIssue[] };
+  tryWithoutToken: boolean;
+};
+
+/** "3,124 issues ready in 1,412 repositories, checked at 12:04 UTC": the landing's and the page's numbers line. */
+export function agentPageStatsLineOf(stats: AgentPageStats): string {
+  const n = (value: number) => value.toLocaleString('en-US');
+  const checked = stats.checkedAt ? `, checked at ${new Date(stats.checkedAt).toISOString().slice(11, 16)} UTC` : '';
+  return `${n(stats.readyIssues)} issues ready in ${n(stats.repos)} repositories${checked}`;
+}

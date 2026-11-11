@@ -20,8 +20,8 @@ export const metadata: Metadata = pageMetadata({
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
-/** The Privacy policy's own date: it changed after `LAST_UPDATED` (Contribute's retention, 2026-11-03). */
-const PRIVACY_UPDATED = '2026-11-03';
+/** The Privacy policy's own date: it changed after `LAST_UPDATED` (the agents' example issues, 2026-11-11). */
+const PRIVACY_UPDATED = '2026-11-11';
 
 const sections: LegalSection[] = [
   {
@@ -159,7 +159,9 @@ const sections: LegalSection[] = [
             <B>Your own agent</B>: if you create a token for your own agent, we keep a hash of it, its last four
             characters, the name you give it and when it was last used. We keep what your agent sends us, such as the
             issues it claims, its changes, the build and test commands it reports, and its name and model. Your agent
-            and the AI it uses are yours; we receive what your agent sends us.
+            and the AI it uses are yours; we receive what your agent sends us. An agent can ask for the day&apos;s
+            example issues without a token; to count how many of those later connect with one, we keep a keyed hash of
+            its network address for 7 days, never the address itself.
           </li>
           <li>
             <B>GitHub access for pull requests</B>: if you allow it, GitHub gives us a token that can act for you on

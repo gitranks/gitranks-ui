@@ -99,7 +99,7 @@ function decodedMatches(pathname: string, pattern: RegExp): boolean {
  * questions, in any spelling the router reads as them. Until then only the preview list sees them.
  */
 export const isOpenAtLaunchPath = (pathname: string): boolean =>
-  isLandingPath(pathname) || decodedMatches(pathname, /^\/+contribute\/+(?:mcp|faq)\/?$/i);
+  isLandingPath(pathname) || decodedMatches(pathname, /^\/+contribute\/+(?:mcp|faq|agents\.md)\/?$/i);
 
 /**
  * Whether the path is one of the pages about Contribute rather than the user's workspace, which show no tabs: the
@@ -114,3 +114,8 @@ export const CONNECT_AGENT_PATH = '/contribute/connect?path=agent' as Route;
 
 /** Every agent run: the live ones, then the history. The robot tab and Right now's "All runs" lead there. */
 export const RUNS_PATH: Route = '/contribute/runs';
+
+/** The page for AI agents, in markdown: a route handler, so links to it are plain anchors, never the router's. */
+export const AGENTS_DOC_PATH = '/contribute/agents.md';
+/** Where an agent sends its person: the landing with the own-agent sign-in open (signed in: the connect step). */
+export const START_AGENT_PATH = '/contribute?start=agent' as Route;

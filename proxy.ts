@@ -3,9 +3,12 @@ import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
+import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import {
+  AGENTS_DOC_PATH,
   isAuthorizePath,
   isContributePath,
+  isLandingPath,
   isLedgerPath,
   isMaintainersPath,
   isOpenAtLaunchPath,
@@ -38,6 +41,18 @@ const BUILDER_PATH = /^\/badge\/builder(?:\/(?<login>[^/]+))?\/?$/;
  * again. So for visitors without a session they carry the header they had while they rendered per request.
  */
 const ENTITY_PAGE = /^\/(?:profile|org|repo|insights)\/[^/]/;
+
+/** The landing's pointer to its markdown for agents, on every answer that serves the landing. */
+const AGENTS_DOC_LINK = `<${AGENTS_DOC_PATH}>; rel="alternate"; type="text/markdown"`;
+
+/** A landing answer, told where its markdown is and that it differs by `Accept`. */
+function withAgentsDocLink<T>(response: T): T {
+  if (response instanceof Response) {
+    response.headers.set('Link', AGENTS_DOC_LINK);
+    response.headers.append('Vary', 'Accept');
+  }
+  return response;
+}
 export const ENTITY_PAGE_CACHE_CONTROL = 'private, no-cache, no-store, max-age=0, must-revalidate';
 
 /**
@@ -96,6 +111,18 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return response;
   }
 
+  // The landing in markdown, for an agent that asks for it over HTML: rewritten here, before Auth.js, which would turn
+  // the rewrite into an external one. Never kept by a shared cache: the same URL answers HTML to everyone else. Every
+  // other answer of the landing says where its markdown is and that it differs by `Accept`.
+  const landing = isLandingPath(pathname);
+  if (landing && request.method === 'GET' && prefersMarkdown(request.headers.get('accept'))) {
+    const response = NextResponse.rewrite(new URL(AGENTS_DOC_PATH, request.url));
+    response.headers.set('Vary', 'Accept');
+    response.headers.set('Cache-Control', 'private, no-cache');
+    return response;
+  }
+  const served = <T>(response: T): T => (landing ? withAgentsDocLink(response) : response);
+
   // Auth.js sets its CSRF and callback-url cookies on every response it touches, and a shared
   // cache will not store a response that sets a cookie. Visitors without a session skip it, so
   // their pages can be cached: sign-in gets its CSRF token from `/api/auth/csrf`, and the
@@ -103,7 +130,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   if (!request.cookies.getAll().some(({ name }) => SESSION_COOKIE.test(name))) {
     if (!request.cookies.has(SESSION_HINT_COOKIE)) {
       if (!ENTITY_PAGE.test(request.nextUrl.pathname)) {
-        return NextResponse.next();
+        return served(NextResponse.next());
       }
       const response = NextResponse.next();
       response.headers.set('Cache-Control', ENTITY_PAGE_CACHE_CONTROL);
@@ -115,7 +142,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     const response = NextResponse.next();
     response.headers.set('Cache-Control', 'private, no-store');
     response.headers.append('Set-Cookie', SESSION_HINT_CLEAR);
-    return response;
+    return served(response);
   }
 
   // A signed-in response carries the rotated session cookie: never let a shared cache keep it,
@@ -128,7 +155,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     response?.headers.set('Cache-Control', 'private, no-cache');
   }
   response?.headers.append('Set-Cookie', SESSION_HINT_SET);
-  return response;
+  return served(response);
 }
 
 /** Static assets and the always-anonymous routes never need the proxy. */

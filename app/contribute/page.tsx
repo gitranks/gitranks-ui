@@ -1,4 +1,5 @@
-import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { Landing } from './components/landing';
@@ -6,10 +7,15 @@ import { overviewReadSectionsOf } from './components/overview-home';
 import { OverviewScreen } from './components/overview-status';
 import { ContributePageSkeleton } from './components/page-skeleton';
 import { isAgentWelcome } from '@/lib/contribute/agent-connect';
+import { loadAgentPage } from '@/lib/contribute/agent-page';
 import { loadAttempts, loadContribute, loadIssues, loadProviderInterests } from '@/lib/contribute/contribute.data';
+import { AGENTS_DOC_PATH, CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
 import { contributeHomeOf, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
 import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
 import { contributeOpen } from '@/lib/contribute/preview-gate';
+
+/** The landing's markdown, for agents (agent page spec §2.1): named in the head, and served on `Accept: text/markdown`. */
+export const metadata: Metadata = { alternates: { types: { 'text/markdown': AGENTS_DOC_PATH } } };
 
 /** The attempts the welcome reads to tell whether the user's own agent has made one. */
 const AGENT_ATTEMPTS_READ = 20;
@@ -37,9 +43,15 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
     () => undefined,
   );
   const view = await loadContribute();
+  // Where an agent sends its person (agent page spec §2.1): a visitor gets the own-agent sign-in open over the landing,
+  // anyone signed in goes straight to connecting their agent (an onboarded member's landing is the overview).
+  const startAgent = params.start === 'agent';
+  if (startAgent && view) redirect(CONNECT_AGENT_PATH);
   if (!view) {
     // Launched, the landing is everyone's (§9.3): a visitor without a session, or one Contribute does not know yet.
-    if (await contributeOpen()) return <Landing viewer="visitor" noted={[]} />;
+    if (await contributeOpen()) {
+      return <Landing viewer="visitor" noted={[]} startAgent={startAgent} stats={(await loadAgentPage())?.stats} />;
+    }
     notFound();
   }
 
@@ -76,5 +88,5 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   }
   // A visitor's page starts with nothing noted, the preview of it too.
   const noted = home.viewer === 'visitor' ? [] : await loadProviderInterests();
-  return <Landing viewer={home.viewer} preview={home.preview} noted={noted} />;
+  return <Landing viewer={home.viewer} preview={home.preview} noted={noted} stats={(await loadAgentPage())?.stats} />;
 }

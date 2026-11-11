@@ -30,7 +30,15 @@ const signIn = (githubLogin: string) => {
 };
 
 const ranked = (login: string) => ({
-  globalRankByLogin: { s: 1, sM: 2, c: null, cM: null, f: null, fM: null, user: { login, s: 10, c: 0, f: 0 } },
+  globalRankByLogin: {
+    s: 1,
+    sM: 2,
+    c: null,
+    cM: null,
+    f: null,
+    fM: null,
+    user: { login, s: 10, c: 0, f: 0, country: 'Ukraine' },
+  },
 });
 
 describe('the rank card route', () => {
@@ -67,7 +75,10 @@ describe('the rank card route', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('private, max-age=300');
-    expect((await response.json()).login).toBe('OctoCat');
+    const card = await response.json();
+    expect(card.login).toBe('OctoCat');
+    // The country rankings mark the viewer's own country with it.
+    expect(card.country).toBe('Ukraine');
     expect(graphqlDirect).toHaveBeenCalledWith(expect.anything(), { login: 'OctoCat' });
   });
 

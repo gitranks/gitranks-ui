@@ -2,17 +2,17 @@
 import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
+import { CountryRankingScreen } from './components/country-ranking-screen';
+import { buildCountryRanking } from './country-ranking';
 import { isCountrySummaryOrder } from './utils/is-country-summary-order';
-import { CountryCard } from '@/components/country-card/country-card';
-import { PageGrid } from '@/components/grid/grid';
-import { Pagination } from '@/components/pagination/pagination';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
+import { fetchCountrySummaryRanks } from '@/graphql/helpers/fetch-summary-ranks';
+import { previousSnapshotDate } from '@/lib/rankings/summary-ranking';
+import type { CountrySummaryOrder } from '@/types/generated/graphql';
 import { parsePageParam } from '@/utils/parse-page-param';
 
 // Allowed to block for unlisted params, like the layout.
 export const instant = false;
-
-const ITEMS_PER_PAGE = 24;
 
 export default async function CountriesPage({ params }: PageProps<'/countries/[orderBy]/[page]'>) {
   cacheLife('hours');
@@ -24,27 +24,17 @@ export default async function CountriesPage({ params }: PageProps<'/countries/[o
     return notFound();
   }
 
-  const countrySummaries = await fetchCountrySummaries(orderBy);
+  const order = orderBy.toUpperCase() as CountrySummaryOrder;
+  const summaries = await fetchCountrySummaries(order);
+  const previousDate = previousSnapshotDate(summaries[0]?.date);
+  // Last month's order gives each country's move; the page still shows without it.
+  const previous = previousDate ? await fetchCountrySummaryRanks(order, previousDate).catch(() => null) : null;
 
-  const data = countrySummaries.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const ranking = buildCountryRanking(order, page, summaries, previous?.length ? previous : null);
 
-  if (!data.length && page > 1) {
+  if (!ranking || (!ranking.rows.length && page > 1)) {
     notFound();
   }
 
-  const basePath = `/countries/${orderBy.toLowerCase()}`;
-
-  return (
-    <>
-      <PageGrid>
-        {data.map((item) => (
-          <CountryCard key={item.country} countrySummary={item} />
-        ))}
-      </PageGrid>
-      <Pagination
-        prev={page > 1 ? `${basePath}/${page - 1}` : undefined}
-        next={countrySummaries.length > page * ITEMS_PER_PAGE ? `${basePath}/${page + 1}` : undefined}
-      />
-    </>
-  );
+  return <CountryRankingScreen order={order} page={page} ranking={ranking} />;
 }

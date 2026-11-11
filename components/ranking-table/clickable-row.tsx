@@ -11,9 +11,11 @@ type ClickableRowProps = {
   href: string;
   children: React.ReactNode;
   className?: string;
+  /** The row's anchor, for links that open the page at it. */
+  id?: string;
 };
 
-export const ClickableRow: FC<ClickableRowProps> = ({ children, href, className }) => {
+export const ClickableRow: FC<ClickableRowProps> = ({ children, href, className, id }) => {
   const router = useRouter();
   // Profile and org pages have no loading.tsx: show the progress bar until the page is ready.
   const [isPending, startTransition] = useTransition();
@@ -26,7 +28,7 @@ export const ClickableRow: FC<ClickableRowProps> = ({ children, href, className 
   };
 
   return (
-    <TableRow className={className} onClick={onClick}>
+    <TableRow id={id} className={className} onClick={onClick}>
       {children}
     </TableRow>
   );

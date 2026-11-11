@@ -1,0 +1,36 @@
+query CountrySummaryRanks($order: CountrySummaryOrder, $date: String) {
+  countrySummary(order: $order, date: $date) {
+    country
+    date
+    usersCount
+    s
+    c
+    f
+  }
+}
+
+query LanguageSummaryRanks($order: LanguageSummaryOrder, $date: String, $offset: Int = 0, $limit: Int = 100) {
+  languageSummary(order: $order, date: $date, offset: $offset, limit: $limit) {
+    language
+    date
+    usersCount
+    score
+    size
+  }
+}
+
+query CountryLanguageSummaryRanks(
+  $country: String!
+  $order: LanguageSummaryOrder
+  $date: String
+  $offset: Int = 0
+  $limit: Int = 100
+) {
+  countryLanguageSummary(country: $country, order: $order, date: $date, offset: $offset, limit: $limit) {
+    language
+    date
+    usersCount
+    score
+    size
+  }
+}

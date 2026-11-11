@@ -58,16 +58,5 @@ export const RANK_DESCRIPTIONS = {
 /** The organization page's stars rank, below the minimum. */
 export const ORG_NOT_RANKED_MESSAGE = `An organization needs ${MIN_VALUE}+ stars on repositories it owns to be ranked.`;
 
-export const LANGUAGE = {
-  description:
-    'See which programming languages are the most popular worldwide. Browse detailed summaries by stars and code size - and dive into rankings for each language, globally or by country.',
-  order: {
-    stars:
-      "Calculated from repository stars, weighted by each repo's language breakdown. For example, if a repo has 100 stars and is 60% JavaScript, then JavaScript receives 60 stars from that repo. We aggregate this across the public repositories of developers on GitRanks.",
-    size: 'The total code size of the language, summed across the public repositories of developers on GitRanks.',
-    users: 'How many developers on GitRanks have this language among their top 5.',
-  },
-};
-
 export const DEFAULT_LANGUAGE_COLOR = '#64748B';
 export const ORIGINAL_USER_AGENT_HEADER = 'x-original-user-agent';

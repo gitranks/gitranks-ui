@@ -399,7 +399,7 @@ export const ContributeAttemptDocument = doc<{ contributeAttempt: ContributeAtte
 
 // The submission's step clock: read in operations of its own, so an API without it leaves the stepper without durations.
 const SUBMIT = 'step waitUntil fork branch lastError { reason note at }';
-const SUBMIT_CLOCK = 'steps { step startedAt doneAt } stepStartedAt forkPending retryAt';
+const SUBMIT_CLOCK = 'steps { step startedAt doneAt } stepStartedAt forkPending retryAt syncBranch';
 
 export const ContributeAttemptSubmitClockDocument = doc<
   { contributeAttempt: { attemptId: string; submit: ContributeAttemptSubmit | null } | null },

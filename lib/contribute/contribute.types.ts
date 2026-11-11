@@ -386,6 +386,8 @@ export type ContributeAttemptSubmit = {
   stepStartedAt?: string | null;
   forkPending?: boolean | null;
   retryAt?: string | null;
+  /** The fork's branch the sync brings up to date (read with the clock): where the user syncs by hand. */
+  syncBranch?: string | null;
 };
 
 /** The parts of an attempt the submission's stepper reads again while it submits, and when they were read. */

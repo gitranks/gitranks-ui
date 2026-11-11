@@ -7,6 +7,7 @@ import { HEADING, Pill } from './primitives';
 import { OrgAccessLink } from './reply-text';
 import { attemptHref } from './reviews-ready';
 import { LiveSubmit, SubmitStepsSettled, TryAgainButton } from './submit-stepper';
+import { Button } from '@/components/ui/button';
 import {
   ATTEMPT_STATES,
   checkLimitOf,
@@ -37,6 +38,7 @@ import type {
 } from '@/lib/contribute/contribute.types';
 import { shownByDecisions } from '@/lib/contribute/decisions';
 import { roundLineOf } from '@/lib/contribute/follow-up-flow';
+import { forkSyncUrlOf } from '@/lib/contribute/fork-sync';
 import { relativeLabel, usd } from '@/lib/contribute/format';
 import { isOrgRestricted, orgAccessOf } from '@/lib/contribute/org-access';
 import { sessionPath } from '@/lib/contribute/sessions';
@@ -142,6 +144,18 @@ export function SubmitErrorNote({ submit }: { submit: ContributeAttemptSubmit | 
       {note}
       <OrgAccessLink access={orgAccessOf()} />
     </>
+  );
+}
+
+/** The fork's page on GitHub, where the user syncs it when GitRanks may not (upstream changed its workflows). */
+function ForkSyncButton({ href }: { href: string | null }) {
+  if (!href) return null;
+  return (
+    <Button asChild size="sm" variant="outline" className="self-start">
+      <a href={href} target="_blank" rel="noopener noreferrer" data-fork-sync>
+        Open your fork on GitHub ↗
+      </a>
+    </Button>
   );
 }
 
@@ -418,6 +432,9 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
           <SubmitErrorNote submit={attempt.submit} />
           {attempt.submit?.lastError ? (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <ForkSyncButton
+                href={forkSyncUrlOf(attempt.submit.lastError.reason, attempt.submit.fork, attempt.submit.syncBranch)}
+              />
               <TryAgainButton />
               {isOrgRestricted(attempt.submit.lastError.reason) ? (
                 <span data-org-wait className="text-sm text-muted-foreground">

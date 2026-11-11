@@ -113,14 +113,19 @@ function implicitSourceOf(pathname: string, params: URLSearchParams): string | u
 export function entryOf(pathname: string, search: string, referrer: string, origin: string): Entry {
   const params = new URLSearchParams(search);
   let referrerHost: string | undefined;
+  let fromUs = false;
   try {
     const url = referrer ? new URL(referrer) : null;
-    if (url && url.origin !== origin) referrerHost = url.hostname.toLowerCase();
+    fromUs = url?.origin === origin;
+    if (url && !fromUs) referrerHost = url.hostname.toLowerCase();
   } catch {
     // not an address: no referrer
   }
   const entry: Entry = {
-    utmSource: tagOf(params, 'utm_source') ?? tagOf(params, 'ref') ?? implicitSourceOf(pathname, params),
+    // Our own links that say where they were put mean it only from outside: a profile's link to `?start=agent`, opened
+    // in a new tab, is the profile's click, not an agent's.
+    utmSource:
+      tagOf(params, 'utm_source') ?? tagOf(params, 'ref') ?? (fromUs ? undefined : implicitSourceOf(pathname, params)),
     utmMedium: tagOf(params, 'utm_medium'),
     utmCampaign: tagOf(params, 'utm_campaign'),
     referrerHost,

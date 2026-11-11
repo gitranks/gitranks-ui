@@ -90,6 +90,7 @@ describe('entryOf: how the visit began', () => {
       referrerHost: 'github.com',
     });
     expect(entryOf('/contribute', '?start=agent&utm_source=x', '', origin)).toEqual({ utmSource: 'x' });
+    expect(entryOf('/contribute', '?start=agent', `${origin}/profile/a`, origin)).toEqual({});
   });
 
   it('reads Product Hunt’s own `ref` when the link has no utm_source', () => {

@@ -10,6 +10,7 @@ import { BrowserCheck } from '@/components/browser-check/browser-check';
 import { ContributeClickTracker } from '@/components/contribute-click-tracker/contribute-click-tracker';
 import { Footer } from '@/components/footer/footer';
 import { JsonLd } from '@/components/json-ld/json-ld';
+import { LaunchBar, LaunchBarScript } from '@/components/launch-bar/launch-bar';
 import { NavigationProgress } from '@/components/navigation-progress/navigation-progress';
 import { SessionProvider } from '@/components/session-provider/session-provider';
 import { ThemeProvider } from '@/components/theme-provider/theme-provider';
@@ -57,6 +58,7 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         <BrowserCheck />
+        <LaunchBarScript />
         <link rel="preconnect" href="https://avatars.githubusercontent.com" crossOrigin="anonymous" />
       </head>
       <body className="antialiased">
@@ -69,6 +71,8 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
               <CtaClickTracker />
               <ContributeClickTracker />
               <div className="flex flex-col min-h-screen">
+                {/* Contribute's launch, above every page's header. The same HTML for everyone: the browser hides it. */}
+                <LaunchBar />
                 {/* No Suspense around the page: React streams a large finished boundary into a hidden
                     segment after the footer, and a fallback here would also turn every notFound()
                     into a 200. Routes that need a fallback add their own boundary. */}

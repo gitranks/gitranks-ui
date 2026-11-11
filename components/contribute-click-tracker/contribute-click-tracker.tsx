@@ -23,11 +23,17 @@ const LAST_CLICK_KEY = 'contribute_last_click_v1';
 /** The first visit that came from a channel (tags or another site), kept so a later connect can name it. */
 const FIRST_ENTRY_KEY = 'contribute_first_entry_v1';
 
-/** Keeps the entry as the browser's first one, unless a recent one is on record already. */
+/**
+ * Keeps the entry as the browser's first one, unless a recent one is on record already. A tagged visit (a campaign, or
+ * Product Hunt's `ref`) takes the place of one that only had another site: most visits come from GitHub, and a launch
+ * post would otherwise never get the credit for a visitor who had once followed a README link.
+ */
 function keepFirstEntry(entry: Entry) {
   if (!namesChannel(entry)) return;
+  const tagged = (value: Entry) => Boolean(value.utmSource || value.utmCampaign);
   try {
-    if (firstEntryOf(window.localStorage.getItem(FIRST_ENTRY_KEY), Date.now())) return;
+    const stored = firstEntryOf(window.localStorage.getItem(FIRST_ENTRY_KEY), Date.now());
+    if (stored && (tagged(stored) || !tagged(entry))) return;
     window.localStorage.setItem(FIRST_ENTRY_KEY, JSON.stringify({ entry, at: Date.now() }));
   } catch {
     // Storage is off: a connect is read by the tab's own entry.

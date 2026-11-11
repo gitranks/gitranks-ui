@@ -20,11 +20,10 @@ export type AgentPageIssue = {
   testCommand: boolean;
 };
 
-/** What the page for AI agents shows: the numbers, the day's sample, and whether the token-less try is open. */
+/** What the page for AI agents shows: the numbers and the day's sample. */
 export type AgentPage = {
   stats: AgentPageStats | null;
   sample: { day: string | null; items: AgentPageIssue[] };
-  tryWithoutToken: boolean;
 };
 
 /** "3,124 issues ready in 1,412 repositories, checked at 12:04 UTC": the landing's and the page's numbers line. */

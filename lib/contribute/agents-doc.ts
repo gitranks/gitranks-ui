@@ -39,34 +39,22 @@ function clientBlock(client: McpDocClient): string[] {
   return [...out, ''];
 }
 
-/** The page's one human step, as sign-in or a token. */
-function humanStep(signIn: boolean): string[] {
-  const shared = [
-    "You can't do this part yourself: your person signs in to GitRanks with GitHub and approves every pull request there.",
-  ];
-  if (signIn) {
-    return [
-      ...shared,
-      '',
-      `Add the server below. The first time you call it, your client opens a GitRanks sign-in page in the browser, and your person allows it. Nothing to copy. A client that can't sign in uses a token: your person signs in at ${SITE}/contribute?start=agent and creates one.`,
-    ];
-  }
-  return [
-    ...shared,
-    '',
-    `Ask your person to open ${SITE}/contribute?start=agent, sign in with GitHub, and create a token for you. Then add the server below with that token.`,
-    '',
-    "claude.ai and Claude Desktop connectors can't send a token yet: use Claude Code, Codex, Cursor, Gemini CLI or VS Code.",
-  ];
-}
+/** The page's one human step: the person allows the agent's sign-in in the browser. */
+const HUMAN_STEP = [
+  "You can't do this part yourself: your person signs in to GitRanks with GitHub and approves every pull request there.",
+  '',
+  `Add the server below, with no header, and sign in as its block says: your client opens a GitRanks sign-in page in the browser, and your person presses Allow. Nothing to copy. A client that can't sign in uses a personal token: your person signs in at ${SITE}/contribute?start=agent and creates one.`,
+  '',
+  "Signed in, you can see the issues picked for your person and claim one, hand back changes for their review, and see their claims and pull requests. You can't open a pull request, push or post on GitHub: your person approves each pull request on GitRanks.",
+];
 
 /**
  * `/contribute/agents.md`: GitRanks Contribute for an AI agent, in markdown. Built from the MCP docs' own data (the
  * clients, the tools, the limits) and the day's numbers and sample, so it can't drift from the docs page. `page` is
- * null when its read failed: the numbers and the sample are then left out. `signIn`: agents sign in with GitHub, and
- * the setup lines are the sign-in's.
+ * null when its read failed: the numbers and the sample are then left out. Agents sign in with GitHub: each client's
+ * sign-in comes first, then the token setup for a client that can't.
  */
-export function agentsDocOf(page: AgentPage | null, { signIn }: { signIn: boolean }): string {
+export function agentsDocOf(page: AgentPage | null): string {
   const lines: string[] = [
     '# GitRanks Contribute, for AI agents',
     '',
@@ -113,36 +101,18 @@ export function agentsDocOf(page: AgentPage | null, { signIn }: { signIn: boolea
     }
   }
 
-  lines.push('## The one human step', '', ...humanStep(signIn), '');
-
-  if (page?.tryWithoutToken && !signIn) {
-    lines.push(
-      '## Try it first',
-      '',
-      'Without a token, `find_issues` answers the day’s examples. Add the server under its own name, try it, then remove it once your person has made a token:',
-      '',
-      fence(
-        [
-          `claude mcp add --transport http gitranks-try ${MCP_URL}`,
-          '# ask for issues, then:',
-          'claude mcp remove gitranks-try',
-        ].join('\n'),
-        'bash',
-      ),
-      '',
-    );
-  }
+  lines.push('## The one human step', '', ...HUMAN_STEP, '');
 
   lines.push('## Connect', '');
-  if (signIn) {
-    // As the docs page lists them: each client's sign-in, claude.ai and Claude Desktop among them, then the tokens.
-    const clients = [...MCP_DOC_CLIENTS.slice(0, -1), CLAUDE_APP_DOC, ...MCP_DOC_CLIENTS.slice(-1)];
-    for (const client of clients) {
-      const signInSetup = MCP_DOC_SIGN_INS[client.id];
-      lines.push(...clientBlock(signInSetup ? { ...client, ...signInSetup } : client));
-    }
-    lines.push('## Connect with a token', '', 'For a client that cannot sign in, or a script.', '');
+  // As the docs page lists them: each client's sign-in, claude.ai and Claude Desktop among them, then the tokens.
+  const clients = [...MCP_DOC_CLIENTS.slice(0, -1), CLAUDE_APP_DOC, ...MCP_DOC_CLIENTS.slice(-1)];
+  for (const client of clients) {
+    const signInSetup = MCP_DOC_SIGN_INS[client.id];
+    if (signInSetup) lines.push(...clientBlock({ ...client, ...signInSetup }));
+    else if (client.id === CLAUDE_APP_DOC.id) lines.push(...clientBlock(client));
+    else lines.push(`### ${client.name}`, '', "Can't sign in yet: see Connect with a token.", '');
   }
+  lines.push('## Connect with a token', '', 'For a client that cannot sign in (Antigravity), or a script.', '');
   lines.push(`Where a block says ${TOKEN_PLACEHOLDER}, use your person's token. Save it in the environment first:`, '');
   for (const save of MCP_DOC_SAVES) lines.push(`${save.name} (${save.shell}):`, '', fence(save.line), '');
   for (const client of MCP_DOC_CLIENTS) lines.push(...clientBlock(client));

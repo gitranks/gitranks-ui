@@ -133,7 +133,7 @@ export function grantSummaryOf(grant: ContributeGrant | undefined, available: bo
 export function ownAgentSummaryOf(ownAgent: ContributeOwnAgent | undefined, now?: Date): string {
   if (ownAgent === undefined) return 'Not available yet. It is coming soon.';
   const { tokens } = ownAgent;
-  if (!tokens.length) return 'No token yet';
+  if (!tokens.length) return ownAgent.signIn ? 'No agent connected yet' : 'No token yet';
   const used = tokens
     .map(({ lastUsedAt }) => lastUsedAt)
     .filter((at): at is string => !!at)

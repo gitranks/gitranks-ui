@@ -70,6 +70,13 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
         more: { href: MCP_DOCS_PATH, label: 'Connect your own agent' },
       },
       {
+        id: 'agent-sign-in',
+        question: 'How does my own agent connect?',
+        answer:
+          "It signs in with your GitHub account. Add our MCP server to your agent and sign in as its setup says: your browser opens GitRanks, where you press Allow. It can then see the issues picked for you and claim one, hand back changes for your review, and see your claims and pull requests. It can't open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub access. Settings lists every agent you connected, each with Disconnect. A client that can't sign in yet, like Antigravity, uses a personal token you make in Settings.",
+        more: { href: MCP_DOCS_PATH, label: 'Setup for each agent' },
+      },
+      {
         id: 'whose-name',
         question: 'Whose name is on the pull request?',
         answer:
@@ -136,7 +143,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
         id: 'leave',
         question: 'How do I stop?',
         answer:
-          'Pause any time. Remove your key, revoke your tokens or the GitHub access, or delete your Contribute data in Settings (a few records stay a while; the Privacy policy says which). Your merged pull requests stay yours.',
+          'Pause any time. Remove your key, disconnect your agent, revoke the GitHub access, or delete your Contribute data in Settings (a few records stay a while; the Privacy policy says which). Your merged pull requests stay yours.',
         more: { href: '/privacy#contribute' as Route, label: 'What the Privacy policy says stays' },
       },
     ],

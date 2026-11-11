@@ -24,9 +24,9 @@ const text = (html: string) =>
     .replaceAll('&amp;', '&')
     .replace(/\s+/g, ' ');
 
-describe('the MCP docs, once agents sign in', () => {
+describe('the MCP docs, sign-in first', () => {
   it('lead each client with its sign-in, its token setup in a fold; Antigravity keeps the token; claude.ai joins', () => {
-    const html = renderToStaticMarkup(<McpDocsScreen signIn />);
+    const html = renderToStaticMarkup(<McpDocsScreen />);
     const plain = text(html);
     expect(plain).toContain('GitHub, in your browser');
     expect(html).toContain('data-sign-in-start');
@@ -37,11 +37,22 @@ describe('the MCP docs, once agents sign in', () => {
     expect(plain).toContain('"servers"');
     // Four agents and VS Code fold their token setup; Antigravity and claude.ai have one way only.
     expect(html.match(/data-token-fold/g)).toHaveLength(5);
+    expect(html.match(/data-token-only/g)).toHaveLength(1);
+    expect(plain).toContain("Antigravity can't sign in with GitHub yet, so it connects with a personal token");
+    // The token steps sit in a fold of their own, after the sign-in.
+    expect(html.indexOf('data-sign-in-start')).toBeLessThan(html.indexOf('data-token-start'));
+  });
 
-    const off = renderToStaticMarkup(<McpDocsScreen />);
-    expect(off).not.toContain('data-token-fold');
-    expect(off).not.toContain('id="claude-app"');
-    expect(text(off)).toContain('Personal token');
+  it('say what a sign-in can and cannot do, how long it lasts, what is kept and how to disconnect it', () => {
+    const plain = text(renderToStaticMarkup(<McpDocsScreen />));
+    expect(plain).toContain('Sign-in and tokens');
+    expect(plain).toContain('see the issues picked for you and claim one');
+    expect(plain).toContain("It can't open a pull request, push or post on GitHub");
+    expect(plain).toContain('Its access lasts an hour');
+    expect(plain).toContain('Unused for 30 days, it has to sign in again.');
+    expect(plain).toContain('hashes of its tokens');
+    expect(plain).toContain('Disconnect there stops it at once.');
+    expect(plain).not.toContain('Your token ');
   });
 });
 
@@ -103,6 +114,15 @@ describe('the questions', () => {
     expect(LANDING_QUESTIONS).toHaveLength(6);
   });
 
+  it('say the agent signs in with GitHub, what it can and cannot do, and the token as the fallback', () => {
+    const said = text(renderToStaticMarkup(<FaqScreen />));
+    expect(said).toContain('How does my own agent connect?');
+    expect(said).toContain('It signs in with your GitHub account.');
+    expect(said).toContain("It can't open a pull request, push or post on GitHub");
+    expect(said).toContain('uses a personal token you make in Settings');
+    expect(said).not.toContain('revoke your tokens');
+  });
+
   it('say the misses rule, never the retired pause', () => {
     const said = text(renderToStaticMarkup(<FaqScreen />));
     expect(said).toContain(
@@ -121,7 +141,7 @@ describe('the Terms', () => {
     const shown = text(renderToStaticMarkup(<TermsScreen contribute />));
     const hidden = text(renderToStaticMarkup(<TermsScreen contribute={false} />));
     expect(shown).toContain('GitRanks Contribute');
-    expect(shown).toContain('3 November 2026');
+    expect(shown).toContain('11 November 2026');
     expect(hidden).toContain('31 October 2026');
     expect(shown).toContain('not affiliated with or endorsed by Anthropic');
     expect(shown).toContain('gitranks.com/contribute/maintainers');
@@ -137,7 +157,7 @@ describe('the launch gate', () => {
     shown.mockResolvedValue(true);
     const open = renderToStaticMarkup(await LaunchedTerms());
     expect(open).toContain('id="contribute"');
-    expect(open).toContain('2026-11-03');
+    expect(open).toContain('2026-11-11');
     expect(open).toContain('data-scroll-to-hash');
 
     shown.mockResolvedValue(false);

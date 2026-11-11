@@ -15,7 +15,7 @@ import { loadContributeSet } from '@/lib/contribute/contribute.data';
 import type { ContributeSet, ContributeSetListMode, ContributeView } from '@/lib/contribute/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, settingsOf } from '@/lib/contribute/contribute-state';
 import { type GrantRefusal, grantRefusalOf } from '@/lib/contribute/grant-refusal';
-import { OWN_AGENT_TEXT } from '@/lib/contribute/mcp-setup';
+import { ownAgentTextOf } from '@/lib/contribute/mcp-setup';
 import { MODES, modeTitleOf } from '@/lib/contribute/set-format';
 import { SETTINGS_PATHS, switchModeOf } from '@/lib/contribute/settings-paths';
 
@@ -186,6 +186,7 @@ export function KeysSettingsScreen({
         grant={view.grant}
         grantAvailable={view.grantAvailable}
         grantRefusal={grantRefusal}
+        signIn={view.ownAgent?.signIn === true}
         now={now}
       />
     </>
@@ -196,11 +197,11 @@ export async function OwnAgentSettingsView() {
   return <OwnAgentSettingsScreen view={await loadSettingsView()} />;
 }
 
-/** The tokens for the user's own agent, and its setup. */
+/** The user's own agent: the agents that signed in, the tokens, and the setup. */
 export function OwnAgentSettingsScreen({ view, now }: { view: ContributeView; now?: Date }) {
   return (
     <>
-      <SettingsPageHead title="Your own agent (MCP)" text={OWN_AGENT_TEXT} />
+      <SettingsPageHead title="Your own agent (MCP)" text={ownAgentTextOf(view.ownAgent?.signIn === true)} />
       <OwnAgentSection ownAgent={view.ownAgent} now={now} titled={false} />
     </>
   );

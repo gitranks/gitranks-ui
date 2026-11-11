@@ -68,12 +68,15 @@ describe('B1, your own agent, once agents sign in', () => {
     expect(plain).toContain('I added it');
     expect(plain).toContain('Use a token instead');
     expect(plain).toContain('Create a GitRanks token');
+    expect(plain).toContain("It can't open a pull request, push or post on GitHub");
   });
 
-  it('keeps Antigravity on the token', () => {
+  it('keeps Antigravity on the token, and says why', () => {
     const { html, plain } = b1({ signIn: true, client: 'antigravity' });
     expect(html).not.toContain('data-agent-sign-in');
+    expect(plain).toContain("Antigravity can't sign in with GitHub yet, so it connects with a personal token.");
     expect(plain).toContain('Create a GitRanks token');
+    expect(b1({ client: 'antigravity' }).html).not.toContain('data-agent-token-only');
   });
 
   it('once added, waits for the first call with what to check', () => {

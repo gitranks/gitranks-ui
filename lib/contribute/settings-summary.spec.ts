@@ -29,6 +29,9 @@ describe('the Settings summary', () => {
     const token = { id: 't', name: 'laptop', last4: 'ab12', createdAt: '2026-10-01T00:00:00.000Z' };
     expect(ownAgentSummaryOf(undefined)).toBe('Not available yet. It is coming soon.');
     expect(ownAgentSummaryOf({ paths: { mcp: true } as never, tokens: [] })).toBe('No token yet');
+    expect(ownAgentSummaryOf({ paths: { mcp: true } as never, tokens: [], signIn: true })).toBe(
+      'No agent connected yet',
+    );
     expect(
       ownAgentSummaryOf(
         {

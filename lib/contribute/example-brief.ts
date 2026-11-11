@@ -292,10 +292,14 @@ export const EXAMPLE_BRIEF = {
       'prBody',
       'replies',
       'agent',
+      'brief',
     ],
   },
   changesRequested: null,
 };
+
+/** The day the example was claimed (UTC): the brief's "Today is". */
+export const EXAMPLE_BRIEF_CLAIMED_ON = '2026-11-03';
 
 /** The issue the example was claimed on, and the pull request it led to (merged). */
 export const EXAMPLE_BRIEF_ISSUE = {

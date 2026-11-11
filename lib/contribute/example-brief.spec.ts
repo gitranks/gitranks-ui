@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { EXAMPLE_BRIEF, EXAMPLE_BRIEF_ISSUE, EXAMPLE_BRIEF_PR } from './example-brief';
+import { EXAMPLE_BRIEF, EXAMPLE_BRIEF_CLAIMED_ON, EXAMPLE_BRIEF_ISSUE, EXAMPLE_BRIEF_PR } from './example-brief';
 
 describe('EXAMPLE_BRIEF', () => {
   it('is the shape claim_issue answers, for the linked issue', () => {
@@ -9,6 +9,14 @@ describe('EXAMPLE_BRIEF', () => {
     expect(EXAMPLE_BRIEF.text).toContain('Issue #21438 in eslint/eslint');
     expect(EXAMPLE_BRIEF_ISSUE.url).toBe('https://github.com/eslint/eslint/issues/21438');
     expect(EXAMPLE_BRIEF_PR.url).toBe('https://github.com/eslint/eslint/pull/21487');
+    expect(EXAMPLE_BRIEF.text).toContain(`Today is ${EXAMPLE_BRIEF_CLAIMED_ON} (UTC).`);
+    expect(EXAMPLE_BRIEF.submit.fields).toContain('brief');
+  });
+
+  it('names no comment author: every one is "someone"', () => {
+    const authors = [...EXAMPLE_BRIEF.text.matchAll(/^--- Comment by (\S+)/gm)].map(([, author]) => author);
+    expect(authors.length).toBeGreaterThan(0);
+    expect(new Set(authors)).toEqual(new Set(['someone']));
   });
 
   it('names no one: every @mention is @someone, but a team or a scoped package', () => {

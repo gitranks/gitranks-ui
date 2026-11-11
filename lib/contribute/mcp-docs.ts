@@ -210,5 +210,5 @@ export const MCP_DOC_LIMITS: readonly { what: string; limit: string }[] = [
     limit:
       '24 hours from the last call that names it; it lapses after 48 hours without a passing patch; 7 days at most',
   },
-  { what: 'Live tokens', limit: `${MCP_TOKENS_MAX} at once` },
+  { what: 'Personal tokens', limit: `${MCP_TOKENS_MAX} live at once; agents that sign in don't count` },
 ];

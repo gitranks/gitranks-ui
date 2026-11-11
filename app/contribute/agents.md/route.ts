@@ -2,7 +2,6 @@ import { connection } from 'next/server';
 
 import { loadAgentPage } from '@/lib/contribute/agent-page';
 import { agentsDocOf } from '@/lib/contribute/agents-doc';
-import { contributeMcpSignIn } from '@/lib/contribute/mcp-sign-in';
 import { contributeOpen, contributeShown } from '@/lib/contribute/preview-gate';
 
 /**
@@ -15,8 +14,8 @@ export async function GET(): Promise<Response> {
   if (!(await contributeShown())) {
     return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'private, no-store' } });
   }
-  const [page, signIn, open] = await Promise.all([loadAgentPage(), contributeMcpSignIn(), contributeOpen()]);
-  return new Response(agentsDocOf(page, { signIn }), {
+  const [page, open] = await Promise.all([loadAgentPage(), contributeOpen()]);
+  return new Response(agentsDocOf(page), {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
       'X-Content-Type-Options': 'nosniff',

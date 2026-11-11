@@ -244,11 +244,11 @@ export function AccessSection({
       <GrantRow grant={grant} available={grantAvailable} />
       <Row
         title="Your own agent (MCP)"
-        detail="Tokens for Claude Code, Codex, Cursor, Gemini CLI or Antigravity on your machine."
+        detail="The agents you connected, signed in with GitHub, and the tokens for a client that can't sign in."
       >
         <Button asChild variant="outline" className="h-10">
           <Link href={SETTINGS_PATHS.ownAgent} prefetch={false}>
-            Tokens
+            Manage
           </Link>
         </Button>
       </Row>

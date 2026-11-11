@@ -52,13 +52,13 @@ const WAYS: {
     title: 'Claude Code, Codex, Cursor, Gemini CLI or Antigravity',
     text: 'Best if you already work with a coding agent. It asks GitRanks for an issue, fixes it on your machine, and hands the change back for your review here. Your agent and its model stay your own.',
     facts: [
-      ['You bring', 'An agent that speaks MCP, and a token we give you'],
+      ['You bring', "An agent that speaks MCP. It signs in with your GitHub account; a client that can't gets a token"],
       ['It spends', 'Nothing through us: your agent, your plan'],
       [
         'The pace',
         'Whenever you ask your agent. An issue is held for you 24 hours from its last step, 48 hours without a patch that passes the checks, 7 days at most',
       ],
-      ['Setup', 'Two short pastes, about a minute'],
+      ['Setup', 'One paste, then Allow in your browser. About a minute'],
     ],
   },
 ];
@@ -111,7 +111,7 @@ const DEFAULTS = [
   },
   {
     title: 'Leaving',
-    text: 'Remove your key, revoke your tokens and GitHub access, or delete your data. Your merged PRs stay yours.',
+    text: 'Remove your key, disconnect your agent, revoke GitHub access, or delete your data. Your merged PRs stay yours.',
   },
 ];
 

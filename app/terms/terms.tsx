@@ -36,9 +36,10 @@ const CONTRIBUTE: LegalSection = {
           it works, or what it costs. GitRanks is not affiliated with or endorsed by Anthropic.
         </li>
         <li>
-          <B>Your own agent.</B> With your own agent, you are responsible for it, for its provider&apos;s terms, for
-          what it does on your computer and for what it sends us. Keep your GitRanks tokens private, and revoke a token
-          in Contribute&apos;s settings if it may have leaked.
+          <B>Your own agent.</B> Your own agent connects by signing in with your GitHub account, which you allow on
+          GitRanks, or with a personal GitRanks token. You are responsible for it, for its provider&apos;s terms, for
+          what it does on your computer and for what it sends us. Keep your tokens private, and disconnect an agent or
+          revoke a token in Contribute&apos;s settings if it may be misused or may have leaked.
         </li>
         <li>
           <B>What you let us do.</B> You let us store and process what you and your agent send us (changes, test
@@ -79,7 +80,7 @@ const CONTRIBUTE: LegalSection = {
 };
 
 /** When the Terms last changed with Contribute's section in them: they show that date only once the section shows. */
-const CONTRIBUTE_TERMS_UPDATED = '2026-11-03';
+const CONTRIBUTE_TERMS_UPDATED = '2026-11-11';
 
 /** The sections; Contribute's only for whoever may see Contribute, as its pages are. */
 const sectionsOf = (contribute: boolean): LegalSection[] => [

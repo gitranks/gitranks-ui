@@ -90,8 +90,21 @@ describe('Settings, your own agent, with agents that signed in', () => {
     // The token setup is still there, in the fold.
     expect(plain).toContain('GITRANKS_MCP_TOKEN');
 
+    // The setup leads; the personal tokens follow it.
+    expect(plain.indexOf('Set up your agent')).toBeLessThan(plain.indexOf('Personal tokens'));
+    expect(plain.indexOf('Personal tokens')).toBeLessThan(plain.indexOf('Create token'));
+
     const off = renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />);
     expect(off).not.toContain('data-token-fold');
+    expect(text(off).indexOf('Create token')).toBeLessThan(text(off).indexOf('Set up your agent'));
+  });
+
+  it('says no agent is connected yet, not that there is no token', () => {
+    const plain = text(
+      renderToStaticMarkup(<OwnAgentSection ownAgent={{ ...withTokens, tokens: [], signIn: true }} now={NOW} />),
+    );
+    expect(plain).toContain('No agent connected yet.');
+    expect(plain).not.toContain('No token yet');
   });
 });
 

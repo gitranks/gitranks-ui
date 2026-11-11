@@ -20,7 +20,7 @@ export const metadata: Metadata = pageMetadata({
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
-/** The Privacy policy's own date: it changed after `LAST_UPDATED` (the agents' example issues, 2026-11-11). */
+/** The Privacy policy's own date: it changed after `LAST_UPDATED` (agents' example issues and sign-in, 2026-11-11). */
 const PRIVACY_UPDATED = '2026-11-11';
 
 const sections: LegalSection[] = [
@@ -156,12 +156,16 @@ const sections: LegalSection[] = [
             Your provider&apos;s own terms and privacy policy apply to what it processes under your key.
           </li>
           <li>
-            <B>Your own agent</B>: if you create a token for your own agent, we keep a hash of it, its last four
-            characters, the name you give it and when it was last used. We keep what your agent sends us, such as the
-            issues it claims, its changes, the build and test commands it reports, and its name and model. Your agent
-            and the AI it uses are yours; we receive what your agent sends us. An agent can ask for the day&apos;s
-            example issues without a token; to count how many of those later connect with one, we keep a keyed hash of
-            its network address for 7 days, never the address itself.
+            <B>Your own agent</B>: when your agent signs in with your GitHub account and you allow it, we keep the name
+            its client gives itself, the address the sign-in returns it to, hashes of the tokens we give it (each access
+            token lasts an hour, and a refresh token 30 days from its last use), and when it connected and was last
+            used. Disconnecting it in Contribute&apos;s settings stops its tokens at once. If you create a personal
+            token instead, we keep a hash of it, its last four characters, the name you give it and when it was last
+            used; revoking it stops it at once. We keep what your agent sends us, such as the issues it claims, its
+            changes, the build and test commands it reports, and its name and model. Your agent and the AI it uses are
+            yours; we receive what your agent sends us. An agent can ask for the day&apos;s example issues without a
+            token; to count how many of those later connect with one, we keep a keyed hash of its network address for 7
+            days, never the address itself.
           </li>
           <li>
             <B>GitHub access for pull requests</B>: if you allow it, GitHub gives us a token that can act for you on
@@ -194,14 +198,15 @@ const sections: LegalSection[] = [
           <li>
             <B>Deleting it</B>: in Contribute&apos;s settings, choose <B>Delete all Contribute data</B>. It stops runs
             under way, deletes your key, settings, preferences, suggestions, runs and their history, drafted replies,
-            agent tokens and feedback, and revokes the GitHub access. If GitHub can&apos;t be told, revoke the access in
-            your GitHub settings. Removing your data from GitRanks (see <A href="#removal">Removing your data</A>) does
-            the same. Forks, commits, pull requests and comments on GitHub stay there, as does your key at your AI
-            provider, and so do the copies of your feedback we received as messages. We may keep records of the pull
-            requests opened through Contribute and that they were AI-assisted. We also keep the records we need to stop
-            abuse of Contribute: an access level we set on your account and flags about misuse, for up to 180 days after
-            you delete (an open flag until 180 days after it is resolved), and checks we made of other GitHub accounts,
-            for 30 days. Basis: legitimate interests, in keeping Contribute fair and safe.
+            agent connections and tokens and feedback, and revokes the GitHub access. If GitHub can&apos;t be told,
+            revoke the access in your GitHub settings. Removing your data from GitRanks (see{' '}
+            <A href="#removal">Removing your data</A>) does the same. Forks, commits, pull requests and comments on
+            GitHub stay there, as does your key at your AI provider, and so do the copies of your feedback we received
+            as messages. We may keep records of the pull requests opened through Contribute and that they were
+            AI-assisted. We also keep the records we need to stop abuse of Contribute: an access level we set on your
+            account and flags about misuse, for up to 180 days after you delete (an open flag until 180 days after it is
+            resolved), and checks we made of other GitHub accounts, for 30 days. Basis: legitimate interests, in keeping
+            Contribute fair and safe.
           </li>
         </List>
       </>

@@ -89,6 +89,11 @@ describe('the landing', () => {
     expect(plain).toContain(
       'An issue is held for you 24 hours from its last step, 48 hours without a patch that passes the checks, 7 days at most',
     );
+    // The own agent signs in with GitHub; a token is the fallback.
+    expect(plain).toContain(
+      "An agent that speaks MCP. It signs in with your GitHub account; a client that can't gets a token",
+    );
+    expect(plain).not.toContain('a token we give you');
     // GitHub access: asked at the first submit, public_repo only.
     expect(plain).toContain('On your first submit we ask GitHub for one permission, public_repo');
     expect(plain).toContain('Nothing on private repos, never workflow files');

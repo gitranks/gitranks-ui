@@ -35,16 +35,18 @@ const SECTIONS = [
   { id: 'check', title: 'Check it works' },
   { id: 'tools', title: 'Tools' },
   { id: 'brief', title: 'What claim_issue answers' },
-  { id: 'auth', title: 'Your token' },
+  { id: 'auth', title: 'Sign-in and tokens' },
   { id: 'limits', title: 'Limits' },
   { id: 'privacy', title: 'What is sent to mcp.gitranks.com' },
 ];
 
-const factsOf = (signIn: boolean) => [
+const FACTS = [
   { label: 'Server', value: MCP_URL, text: 'Streamable HTTP' },
-  signIn
-    ? { label: 'Sign-in', value: 'GitHub, in your browser', text: 'or a personal token (gr_…), made in Contribute' }
-    : { label: 'Sign-in', value: 'Personal token', text: 'gr_…, made in Contribute' },
+  {
+    label: 'Sign-in',
+    value: 'GitHub, in your browser',
+    text: "or a personal token (gr_…), for a client that can't sign in",
+  },
   { label: 'Price', value: 'Free', text: "Your agent runs on your own plan; we don't see it" },
 ];
 
@@ -78,11 +80,11 @@ function DocSetup({ name, setup }: { name: string; setup: McpDocSignIn }) {
 }
 
 /**
- * A client's setup on the docs: with `signIn`, its sign-in first and the token setup in a fold under it; a client that
- * can't sign in (Antigravity) keeps the token.
+ * A client's setup on the docs: its sign-in first and the token setup in a fold under it; a client that can't sign in
+ * (Antigravity) keeps the token, and one that can only sign in (claude.ai) has no fold.
  */
-function DocClient({ client, signIn }: { client: McpDocClient; signIn: boolean }) {
-  const viaSignIn = signIn ? MCP_DOC_SIGN_INS[client.id] : undefined;
+function DocClient({ client }: { client: McpDocClient }) {
+  const viaSignIn = MCP_DOC_SIGN_INS[client.id];
   return (
     <div id={client.id} className="flex scroll-mt-6 flex-col gap-2">
       <h3 className="text-base font-semibold">{client.name}</h3>
@@ -106,7 +108,7 @@ function DocClient({ client, signIn }: { client: McpDocClient; signIn: boolean }
 }
 
 const SENT = [
-  'Your token, in a header, on every request, and the name and version of your client when it connects. Like any server, we see your IP address.',
+  "Your agent's sign-in, or your token, in a header on every request, and the name and version of your client when it connects. Like any server, we see your IP address.",
   'What your agent passes the tools: the filters, the issue it claims, the repo commands it found.',
   'The patch it hands back (git format-patch of its own commits), the tests it ran and their output, its report and the notes it writes for you, the pull request text and the replies it drafts.',
   "Your agent's name and model, as it reports them, for the pull request's footer.",
@@ -181,21 +183,23 @@ function ExampleBrief() {
 /** The landing's two ways in, members too: a visitor signs in there and picks their own agent; connect is members-only. */
 const LANDING_WAYS_PATH = `${ABOUT_PATH}#ways` as Route;
 
+/** The clients the docs list: the connect flow's, then claude.ai (which can only sign in), then VS Code. */
+const CLIENTS = [...MCP_DOC_CLIENTS.slice(0, -1), CLAUDE_APP_DOC, ...MCP_DOC_CLIENTS.slice(-1)];
+
 /**
- * The public docs of the MCP server: setup per client, the tools, the token, the limits and what reaches us. `signIn`:
- * agents sign in with GitHub, so each client's sign-in comes first, its token setup in a fold, and claude.ai joins.
+ * The public docs of the MCP server: setup per client, the tools, the sign-in and the token, the limits and what
+ * reaches us. Agents sign in with GitHub, so each client's sign-in comes first and its token setup sits in a fold.
  */
-export function McpDocsScreen({ signIn = false }: { signIn?: boolean }) {
-  const clients = signIn
-    ? [...MCP_DOC_CLIENTS.slice(0, -1), CLAUDE_APP_DOC, ...MCP_DOC_CLIENTS.slice(-1)]
-    : MCP_DOC_CLIENTS;
+export function McpDocsScreen() {
   return (
     <main className="mx-auto w-full max-w-7xl px-4 flex flex-col gap-9 pt-10 pb-16">
       <PublicPageHead eyebrow="Contribute · MCP server" title="Connect your own agent to GitRanks">
         <p>
           Your coding agent finds open-source issues that fit your skills, works on one on your machine and hands the
           change back through our MCP server. You review every pull request on GitRanks before it opens in your name.
-          Works with Claude Code, Codex, Cursor, Gemini CLI, Antigravity, VS Code and any client that can send a header.
+          Your agent signs in with your GitHub account, and you allow it on GitRanks. Works with Claude Code, Codex,
+          Cursor, Gemini CLI, VS Code, claude.ai, Claude Desktop, Antigravity and any client that can sign in to an MCP
+          server or send a header.
         </p>
         <p className="text-sm text-muted-foreground">
           For AI agents: the same in markdown at{' '}
@@ -207,7 +211,7 @@ export function McpDocsScreen({ signIn = false }: { signIn?: boolean }) {
       </PublicPageHead>
 
       <ul className="grid gap-3.5 sm:grid-cols-3">
-        {factsOf(signIn).map(({ label, value, text }) => (
+        {FACTS.map(({ label, value, text }) => (
           <li key={label} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-muted/50 p-5">
             <span className="text-xs text-muted-foreground">{label}</span>
             <span className="break-all font-mono text-base font-semibold">{value}</span>
@@ -218,41 +222,46 @@ export function McpDocsScreen({ signIn = false }: { signIn?: boolean }) {
 
       <DocLayout sections={SECTIONS}>
         <DocSection id="start" title="Before you start">
-          {signIn ? (
-            <p data-sign-in-start>
-              Most agents sign in with GitHub: add GitRanks to yours below, and the first time it calls, your browser
-              opens GitRanks, where you allow it. Nothing to copy. For Antigravity, scripts, or an agent that can&apos;t
-              sign in, use a token:
-            </p>
-          ) : null}
-          <ol className="flex list-decimal flex-col gap-2 pl-5">
-            <li>
-              Sign in with GitHub on{' '}
-              <HashSafeLink href={LANDING_WAYS_PATH} className={LINK}>
-                GitRanks Contribute
-              </HashSafeLink>{' '}
-              and choose your own agent: it makes you a token. It is shown once, so copy it then.
-            </li>
-            <li>
-              Save it in your environment as <code className="font-mono text-sm">{MCP_TOKEN_ENV}</code>, where the
-              setups below read it. On Antigravity, skip this: its setup holds the token.
-            </li>
-          </ol>
-          {MCP_DOC_SAVES.map(({ os, name, shell, line, note }) => (
-            <div key={os} className="flex flex-col gap-1.5">
-              <span className="text-sm text-muted-foreground">
-                {name}: {note}
-              </span>
-              <CodeBlock label={shell} copyLabel={`Copy the ${name} line`}>
-                {line}
-              </CodeBlock>
+          <p data-sign-in-start>
+            Your agent signs in with your GitHub account. Add GitRanks to it below, and the first time it calls, your
+            browser opens GitRanks, where you sign in with GitHub and press Allow. Nothing to copy, and nothing secret
+            to keep. Every agent you connect is listed in Contribute&apos;s Settings, each with Disconnect.
+          </p>
+          <details className="text-sm" data-token-start>
+            <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
+              {USE_A_TOKEN_INSTEAD}: for Antigravity, scripts, or a client that can&apos;t sign in
+            </summary>
+            <div className="mt-2 flex flex-col gap-3 text-base">
+              <ol className="flex list-decimal flex-col gap-2 pl-5">
+                <li>
+                  Sign in with GitHub on{' '}
+                  <HashSafeLink href={LANDING_WAYS_PATH} className={LINK}>
+                    GitRanks Contribute
+                  </HashSafeLink>
+                  , choose your own agent and create a token there, or in Settings. It is shown once, so copy it then.
+                </li>
+                <li>
+                  Save it in your environment as <code className="font-mono text-sm">{MCP_TOKEN_ENV}</code>, where the
+                  token setups below read it. On Antigravity, skip this: its setup holds the token.
+                </li>
+              </ol>
+              {MCP_DOC_SAVES.map(({ os, name, shell, line, note }) => (
+                <div key={os} className="flex flex-col gap-1.5">
+                  <span className="text-sm text-muted-foreground">
+                    {name}: {note}
+                  </span>
+                  <CodeBlock label={shell} copyLabel={`Copy the ${name} line`}>
+                    {line}
+                  </CodeBlock>
+                </div>
+              ))}
             </div>
-          ))}
+          </details>
         </DocSection>
 
         <DocSection id="setup" title="Add it to your agent" text="Pick your agent:">
           <ul className="flex flex-wrap gap-1.5">
-            {clients.map(({ id, name }) => (
+            {CLIENTS.map(({ id, name }) => (
               <li key={id}>
                 <a
                   href={`#${id}`}
@@ -271,14 +280,15 @@ export function McpDocsScreen({ signIn = false }: { signIn?: boolean }) {
               </a>
             </li>
           </ul>
-          {clients.map((client) => (
-            <DocClient key={client.id} client={client} signIn={signIn} />
+          {CLIENTS.map((client) => (
+            <DocClient key={client.id} client={client} />
           ))}
           <div id="other" className="flex scroll-mt-6 flex-col gap-2">
             <h3 className="text-base font-semibold">Other clients</h3>
             <p className="text-sm text-muted-foreground">
-              Any client that speaks Streamable HTTP and can send a header works. Point it at{' '}
-              <code className="font-mono">{MCP_URL}</code> and send the token as{' '}
+              Any client that speaks Streamable HTTP works. Point it at <code className="font-mono">{MCP_URL}</code>{' '}
+              with no header: a client that supports MCP sign-in opens GitRanks in your browser the first time, where
+              you allow it. A client that can only send a header uses a token: send it as{' '}
               <code className="font-mono">Authorization: Bearer {TOKEN_PLACEHOLDER}</code>. If its header box takes the
               value as typed, <code className="font-mono">Authorization: {TOKEN_PLACEHOLDER}</code> works too, and so
               does <code className="font-mono">X-GitRanks-Token: {TOKEN_PLACEHOLDER}</code> where{' '}
@@ -333,11 +343,32 @@ export function McpDocsScreen({ signIn = false }: { signIn?: boolean }) {
           <ExampleBrief />
         </DocSection>
 
-        <DocSection id="auth" title="Your token">
+        <DocSection id="auth" title="Sign-in and tokens">
+          <h3 className="text-base font-semibold">An agent that signs in</h3>
           <ul className="flex list-disc flex-col gap-2 pl-5">
             <li>
-              A personal token starts with <code className="font-mono text-sm">gr_</code>. Make one per computer or
-              agent, up to {MCP_TOKENS_MAX} at once; each has a name you can see in Settings.
+              You allow it on GitRanks, signed in with GitHub. It can see the issues picked for you and claim one, hand
+              back changes for your review, and see your claims and pull requests.
+            </li>
+            <li>
+              It can&apos;t open a pull request, push or post on GitHub (you approve each pull request on GitRanks), or
+              see your Claude key, settings or GitHub access.
+            </li>
+            <li>
+              Its access lasts an hour, and the agent renews it by itself. Unused for 30 days, it has to sign in again.
+            </li>
+            <li>
+              We keep the name its client gives itself, the address it returns to after signing in, hashes of its
+              tokens, and when it connected and was last used. Nothing for you to copy or keep secret.
+            </li>
+            <li>It is listed in Contribute&apos;s Settings. Disconnect there stops it at once.</li>
+          </ul>
+          <h3 className="text-base font-semibold">A personal token</h3>
+          <ul className="flex list-disc flex-col gap-2 pl-5">
+            <li>
+              For a client that can&apos;t sign in, or a script. It starts with{' '}
+              <code className="font-mono text-sm">gr_</code>. Make one per computer or agent, up to {MCP_TOKENS_MAX} at
+              once; each has a name you can see in Settings.
             </li>
             <li>
               It lets an agent find, claim and hand back work for you. It can&apos;t open a pull request, read your
@@ -348,19 +379,13 @@ export function McpDocsScreen({ signIn = false }: { signIn?: boolean }) {
               proxy and the server keep it out of our logs.
             </li>
             <li>Revoke it any time in Contribute&apos;s Settings. A revoked token stops working at once.</li>
-            {signIn ? (
-              <li>
-                An agent that signed in with GitHub holds no token of yours to copy. It is listed in Settings too, and
-                Disconnect there stops it at once.
-              </li>
-            ) : null}
           </ul>
         </DocSection>
 
         <DocSection
           id="limits"
           title="Limits"
-          text="Per account, across all your tokens. A call past a limit gets an error that says how long to wait."
+          text="Per account, across all your agents and tokens. A call past a limit gets an error that says how long to wait."
         >
           <dl className="grid grid-cols-1 rounded-xl border text-sm sm:grid-cols-[200px_1fr]">
             {MCP_DOC_LIMITS.map(({ what, limit }, index) => (

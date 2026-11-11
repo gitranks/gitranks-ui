@@ -225,7 +225,7 @@ export function AgentNextSteps({
               <span className="text-xs font-semibold text-primary">1 · paused by you</span>
               <span className="font-bold">Contributing is paused</span>
               <span className="text-sm text-foreground/80">
-                Your agent can&apos;t claim an issue until you resume. Your token and picks are kept.
+                Your agent can&apos;t claim an issue until you resume. Its connection and your picks are kept.
               </span>
               <div className="flex pt-1 [&>div]:items-start">
                 <PauseButton paused />

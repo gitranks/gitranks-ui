@@ -317,7 +317,7 @@ export function AgentConnectView({
               </p>
             ) : null}
             <p className="max-w-2xl text-sm text-foreground/80">
-              Your agent signs in to GitRanks with this token, as you: it finds issues, claims one, hands back the patch
+              Your agent connects to GitRanks with this token, as you: it finds issues, claims one, hands back the patch
               and sees your contributions. It can&apos;t open a pull request or spend anything, and you can revoke it in
               Settings.
             </p>

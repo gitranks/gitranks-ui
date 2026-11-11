@@ -58,7 +58,7 @@ const WAYS: {
         'The pace',
         'Whenever you ask your agent. An issue is held for you 24 hours from its last step, 48 hours without a patch that passes the checks, 7 days at most',
       ],
-      ['Setup', 'One paste, then Allow in your browser. About a minute'],
+      ['Setup', 'Add GitRanks, then sign in and Allow in your browser. About a minute'],
     ],
   },
 ];

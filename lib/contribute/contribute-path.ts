@@ -73,7 +73,7 @@ export function isLedgerPath(pathname: string): boolean {
   }
 }
 
-/** The MCP server's docs: setup per client, the tools, the token, the limits and what is sent. Everyone's once launched. */
+/** The MCP server's docs: setup per client, the tools, sign-in and tokens, the limits, what is sent. Everyone's once launched. */
 export const MCP_DOCS_PATH = '/contribute/mcp' as Route;
 
 /** The questions people ask before they start. Everyone's once launched. */

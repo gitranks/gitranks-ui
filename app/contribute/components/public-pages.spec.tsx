@@ -37,6 +37,8 @@ describe('the MCP docs, sign-in first', () => {
     expect(plain).toContain('"servers"');
     // Four agents and VS Code fold their token setup; Antigravity and claude.ai have one way only.
     expect(html.match(/data-token-fold/g)).toHaveLength(5);
+    expect(html.match(/data-token-only/g)).toHaveLength(1);
+    expect(plain).toContain("Antigravity can't sign in with GitHub yet, so it connects with a personal token");
     // The token steps sit in a fold of their own, after the sign-in.
     expect(html.indexOf('data-sign-in-start')).toBeLessThan(html.indexOf('data-token-start'));
   });

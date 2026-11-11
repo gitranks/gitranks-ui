@@ -92,11 +92,27 @@ describe('Settings, your own agent, with agents that signed in', () => {
 
     // The setup leads; the personal tokens follow it.
     expect(plain.indexOf('Set up your agent')).toBeLessThan(plain.indexOf('Personal tokens'));
-    expect(plain.indexOf('Personal tokens')).toBeLessThan(plain.indexOf('Create token'));
+    expect(plain.indexOf('Personal tokens')).toBeLessThan(plain.indexOf('gr_…Qx9z'));
+    expect(plain.indexOf('gr_…Qx9z')).toBeLessThan(plain.indexOf('Create token'));
+    expect(plain).toContain('No agent connected yet.');
 
     const off = renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />);
     expect(off).not.toContain('data-token-fold');
     expect(text(off).indexOf('Create token')).toBeLessThan(text(off).indexOf('Set up your agent'));
+  });
+
+  it('lists the agents that signed in above the setup, and the personal tokens under theirs', () => {
+    const plain = text(
+      renderToStaticMarkup(
+        <OwnAgentSection ownAgent={{ ...withTokens, tokens: [TOKEN, SIGNED_IN], signIn: true }} now={NOW} />,
+      ),
+    );
+    expect(plain.indexOf('Disconnect Claude Code')).toBeLessThan(plain.indexOf('Set up your agent'));
+    expect(plain.indexOf('Personal tokens')).toBeLessThan(plain.indexOf('Revoke laptop'));
+    expect(plain).toContain('It signs in with your GitHub account');
+    expect(text(renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />))).not.toContain(
+      'It signs in with your GitHub account',
+    );
   });
 
   it('says no agent is connected yet, not that there is no token', () => {

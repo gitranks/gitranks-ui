@@ -220,6 +220,7 @@ export function AccessSection({
   grant,
   grantAvailable,
   grantRefusal,
+  signIn = false,
   now,
 }: {
   credential: ContributeCredential | undefined;
@@ -227,6 +228,8 @@ export function AccessSection({
   grantAvailable: boolean;
   /** GitHub sent back another account than the one signed in, or a grant that cannot be stored here. */
   grantRefusal?: GrantRefusal;
+  /** Agents sign in with GitHub: the own-agent row says so, the tokens second. */
+  signIn?: boolean;
   now?: Date;
 }) {
   return (
@@ -244,11 +247,15 @@ export function AccessSection({
       <GrantRow grant={grant} available={grantAvailable} />
       <Row
         title="Your own agent (MCP)"
-        detail="The agents you connected, signed in with GitHub, and the tokens for a client that can't sign in."
+        detail={
+          signIn
+            ? "Agents signed in with GitHub, and tokens for a client that can't sign in."
+            : 'Tokens for Claude Code, Codex, Cursor, Gemini CLI or Antigravity on your machine.'
+        }
       >
         <Button asChild variant="outline" className="h-10">
           <Link href={SETTINGS_PATHS.ownAgent} prefetch={false}>
-            Manage
+            {signIn ? 'Manage' : 'Tokens'}
           </Link>
         </Button>
       </Row>

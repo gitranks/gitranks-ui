@@ -43,7 +43,7 @@ function clientBlock(client: McpDocClient): string[] {
 const HUMAN_STEP = [
   "You can't do this part yourself: your person signs in to GitRanks with GitHub and approves every pull request there.",
   '',
-  `Add the server below, with no header. The first time you call it, your client opens a GitRanks sign-in page in the browser, and your person presses Allow. Nothing to copy. A client that can't sign in uses a personal token: your person signs in at ${SITE}/contribute?start=agent and creates one.`,
+  `Add the server below, with no header, and sign in as its block says: your client opens a GitRanks sign-in page in the browser, and your person presses Allow. Nothing to copy. A client that can't sign in uses a personal token: your person signs in at ${SITE}/contribute?start=agent and creates one.`,
   '',
   "Signed in, you can see the issues picked for your person and claim one, hand back changes for their review, and see their claims and pull requests. You can't open a pull request, push or post on GitHub: your person approves each pull request on GitRanks.",
 ];
@@ -108,7 +108,9 @@ export function agentsDocOf(page: AgentPage | null): string {
   const clients = [...MCP_DOC_CLIENTS.slice(0, -1), CLAUDE_APP_DOC, ...MCP_DOC_CLIENTS.slice(-1)];
   for (const client of clients) {
     const signInSetup = MCP_DOC_SIGN_INS[client.id];
-    lines.push(...clientBlock(signInSetup ? { ...client, ...signInSetup } : client));
+    if (signInSetup) lines.push(...clientBlock({ ...client, ...signInSetup }));
+    else if (client.id === CLAUDE_APP_DOC.id) lines.push(...clientBlock(client));
+    else lines.push(`### ${client.name}`, '', "Can't sign in yet: see Connect with a token.", '');
   }
   lines.push('## Connect with a token', '', 'For a client that cannot sign in (Antigravity), or a script.', '');
   lines.push(`Where a block says ${TOKEN_PLACEHOLDER}, use your person's token. Save it in the environment first:`, '');

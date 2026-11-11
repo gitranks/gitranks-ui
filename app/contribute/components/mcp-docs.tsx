@@ -101,14 +101,25 @@ function DocClient({ client }: { client: McpDocClient }) {
           </details>
         </>
       ) : (
-        <DocSetup name={client.name} setup={client} />
+        <>
+          {client.id === CLAUDE_APP_DOC.id ? null : (
+            <p className="text-sm" data-token-only>
+              {client.name} can&apos;t sign in with GitHub yet, so it connects with a personal token: make one as{' '}
+              <a href="#start" className={LINK}>
+                Before you start
+              </a>{' '}
+              shows, under &ldquo;{USE_A_TOKEN_INSTEAD}&rdquo;.
+            </p>
+          )}
+          <DocSetup name={client.name} setup={client} />
+        </>
       )}
     </div>
   );
 }
 
 const SENT = [
-  "Your agent's sign-in, or your token, in a header on every request, and the name and version of your client when it connects. Like any server, we see your IP address.",
+  "The access token from your agent's sign-in, or your personal token, in a header on every request, and the name and version of your client when it connects. Like any server, we see your IP address.",
   'What your agent passes the tools: the filters, the issue it claims, the repo commands it found.',
   'The patch it hands back (git format-patch of its own commits), the tests it ran and their output, its report and the notes it writes for you, the pull request text and the replies it drafts.',
   "Your agent's name and model, as it reports them, for the pull request's footer.",
@@ -223,7 +234,7 @@ export function McpDocsScreen() {
       <DocLayout sections={SECTIONS}>
         <DocSection id="start" title="Before you start">
           <p data-sign-in-start>
-            Your agent signs in with your GitHub account. Add GitRanks to it below, and the first time it calls, your
+            Your agent signs in with your GitHub account. Add GitRanks to it below and sign in as its setup says: your
             browser opens GitRanks, where you sign in with GitHub and press Allow. Nothing to copy, and nothing secret
             to keep. Every agent you connect is listed in Contribute&apos;s Settings, each with Disconnect.
           </p>

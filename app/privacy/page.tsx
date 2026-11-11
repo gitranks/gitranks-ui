@@ -163,9 +163,9 @@ const sections: LegalSection[] = [
             token instead, we keep a hash of it, its last four characters, the name you give it and when it was last
             used; revoking it stops it at once. We keep what your agent sends us, such as the issues it claims, its
             changes, the build and test commands it reports, and its name and model. Your agent and the AI it uses are
-            yours; we receive what your agent sends us. An agent can ask for the day&apos;s example issues without a
-            token; to count how many of those later connect with one, we keep a keyed hash of its network address for 7
-            days, never the address itself.
+            yours; we receive what your agent sends us. Until 11 November 2026, an agent could ask for the day&apos;s
+            example issues without a token; to count how many of those later connected with one, we kept a keyed hash of
+            its network address for 7 days, never the address itself.
           </li>
           <li>
             <B>GitHub access for pull requests</B>: if you allow it, GitHub gives us a token that can act for you on

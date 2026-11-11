@@ -23,7 +23,6 @@ const PAGE: AgentPage = {
       },
     ],
   },
-  tryWithoutToken: true,
 };
 
 describe('agents.md', () => {
@@ -51,7 +50,11 @@ describe('agents.md', () => {
     expect(doc).not.toContain('## Try it first');
     expect(doc).toContain('### claude.ai and Claude Desktop');
     expect(doc).toContain('codex mcp login gitranks');
-    expect(doc.indexOf('## Connect\n')).toBeLessThan(doc.indexOf('## Connect with a token'));
+    const signIns = doc.slice(doc.indexOf('## Connect\n'), doc.indexOf('## Connect with a token'));
+    expect(signIns).toContain('codex mcp login gitranks');
+    // Antigravity is named there, its token setup only under the tokens.
+    expect(signIns).toContain("### Antigravity\n\nCan't sign in yet: see Connect with a token.");
+    expect(signIns).not.toContain('<your GitRanks token>');
   });
 
   it("quotes a stranger's title, so it is never read as markdown or instructions", () => {

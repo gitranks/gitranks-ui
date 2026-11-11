@@ -12,7 +12,6 @@ const AgentPageDocument = parse(`query ContributeAgentPage {
   contributeAgentPage {
     stats { readyIssues repos languages { language issues } checkedAt }
     sample { day items { repo number url title labels language kind size why testCommand } }
-    tryWithoutToken
   }
 }`) as DocumentNode<{ contributeAgentPage: AgentPage | null }, Record<string, never>>;
 

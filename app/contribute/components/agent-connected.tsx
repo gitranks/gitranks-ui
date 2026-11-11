@@ -7,6 +7,7 @@ import { ForgetWelcome } from './forget-welcome';
 import { PauseButton } from './pause-button';
 import { HEADING } from './primitives';
 import { StillRanking } from './still-ranking';
+import { ContributeConnected } from '@/components/contribute-click-tracker/contribute-click-tracker';
 import { AGENT_WORK_PROMPT } from '@/lib/contribute/agent-connect';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
@@ -37,6 +38,7 @@ export function AgentWelcome({ client }: { client: McpClient }) {
   return (
     <section className="flex flex-wrap items-center gap-6" data-agent-welcome={client}>
       <ForgetWelcome />
+      <ContributeConnected way="agent" />
       <div aria-hidden="true" className="relative size-22 flex-none">
         {BURST.map(({ dx, dy, tone }) => (
           <span

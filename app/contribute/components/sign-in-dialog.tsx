@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
+import { type ContributeSource, contributeSource } from '@/lib/contribute/click-tracking';
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from '@/lib/contribute/contribute-path';
 
 /** The way of contributing a visitor picked: a Claude key, or their own agent. */
@@ -47,6 +48,7 @@ export function SignInButton({
   className,
   label,
   defaultOpen = false,
+  source,
   children,
 }: {
   path?: SignInPath;
@@ -57,13 +59,15 @@ export function SignInButton({
   className?: string;
   /** The button's accessible name, when its text alone does not say what it is for. */
   label?: string;
+  /** Where a click on it counts from (`contributeSource`). */
+  source?: ContributeSource;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button type="button" className={className} aria-label={label}>
+        <button type="button" className={className} aria-label={label} {...(source ? contributeSource(source) : {})}>
           {children}
         </button>
       </DialogTrigger>

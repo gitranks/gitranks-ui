@@ -179,7 +179,7 @@ describe('badgeAlt', () => {
       auto: false,
     };
     expect(snippetOf('markdown', snippet)).toBe(
-      '[![GitRanks Contribute](https://gitranks.com/badge/repo/owner/name/contribute.svg)](https://gitranks.com/contribute/maintainers)',
+      '[![GitRanks Contribute](https://gitranks.com/badge/repo/owner/name/contribute.svg)](https://gitranks.com/contribute/maintainers?utm_source=badge&utm_medium=readme)',
     );
   });
 

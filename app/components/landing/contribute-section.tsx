@@ -8,6 +8,7 @@ import { type FC, useEffect, useState } from 'react';
 
 import { IssueCardCompact } from '@/app/contribute/components/issue-card-compact';
 import { buttonVariants } from '@/components/ui/button';
+import { contributeSource } from '@/lib/contribute/click-tracking';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { type ProfileIssuesAnswer, profileIssuesUrl } from '@/lib/contribute/profile-issues';
 import { cn } from '@/lib/utils';
@@ -170,6 +171,7 @@ export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: Contri
   <section
     aria-labelledby="contribute"
     data-contribute-viewer={viewer}
+    {...contributeSource('landing_block')}
     className="grid items-center gap-10 py-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:py-20"
   >
     <div className="flex min-w-0 flex-col gap-5">

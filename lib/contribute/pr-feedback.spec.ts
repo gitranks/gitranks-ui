@@ -179,7 +179,7 @@ describe('the keys the page shows', () => {
 
   it('give the badge’s Markdown exactly', () => {
     expect(contributeBadgeMarkdown('owner/name')).toBe(
-      '[![GitRanks Contribute](https://gitranks.com/badge/repo/owner/name/contribute.svg)](https://gitranks.com/contribute/maintainers)',
+      '[![GitRanks Contribute](https://gitranks.com/badge/repo/owner/name/contribute.svg)](https://gitranks.com/contribute/maintainers?utm_source=badge&utm_medium=readme)',
     );
   });
 });

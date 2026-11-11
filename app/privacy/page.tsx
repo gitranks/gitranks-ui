@@ -20,7 +20,7 @@ export const metadata: Metadata = pageMetadata({
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
-/** The Privacy policy's own date: it changed after `LAST_UPDATED` (agents' example issues and sign-in, 2026-11-11). */
+/** The Privacy policy's own date: it changed after `LAST_UPDATED` (agents' example issues and sign-in, ways into Contribute, 2026-11-11). */
 const PRIVACY_UPDATED = '2026-11-11';
 
 const sections: LegalSection[] = [
@@ -230,6 +230,14 @@ const sections: LegalSection[] = [
           with your IP address, browser and the page you came from. Basis: legitimate interests, in knowing which posts
           work.
         </li>
+        <li>
+          <B>Ways into Contribute</B>: when you follow a link to GitRanks Contribute on our site, or a visit starts on one
+          of its pages, we count it with the page, which link it was (and the profile, on a profile page), whether you
+          were signed in, the campaign tags in the address and the site you came from, and whether you then connected a
+          key or an agent. Your IP address and browser only tell one day&apos;s visitors apart, as a code that can no
+          longer be traced back after two days; neither is stored. Basis: legitimate interests, in knowing which pages
+          bring people to Contribute.
+        </li>
       </List>
     ),
   },
@@ -294,7 +302,7 @@ const sections: LegalSection[] = [
         <li>Logs and security data: deleted automatically after a fixed rotation period.</li>
         <li>
           Analytics: as set in our Google Analytics settings. Clicks on links in our posts: until the statistics about
-          those posts no longer need them.
+          those posts no longer need them. Ways into Contribute: six months.
         </li>
         <li>
           Backups: deleted automatically at the end of a fixed rotation. Removed data leaves the backups when the last
@@ -392,7 +400,8 @@ const sections: LegalSection[] = [
         </li>
         <li>
           <B>In your browser only</B>: your theme, which post links have already been counted in this tab and, for
-          Contribute, a few details for the open tab, such as a step to finish after you grant GitHub access.
+          Contribute, a few details for the open tab, such as a step to finish after you grant GitHub access, how the
+          tab&apos;s visit began, and the last link to Contribute you followed (for 30 days, to count a connect).
         </li>
       </List>
     ),

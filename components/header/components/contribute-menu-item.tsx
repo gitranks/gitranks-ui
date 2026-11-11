@@ -8,10 +8,10 @@ import { NavigationMenuItem, NavigationMenuLink } from '@/components/ui/navigati
 import { useContributeAllowed } from '@/lib/contribute/use-contribute-allowed';
 import { cn } from '@/lib/utils';
 
-/** "Contribute", shown only to a signed-in user GitRanks Contribute is open to. */
+/** "Contribute", shown to whoever GitRanks Contribute is open to: everyone once launched, visitors included. */
 export function ContributeMenuItem({ active }: Readonly<{ active?: boolean }>) {
-  const { data: session } = useSession();
-  const allowed = useContributeAllowed(session?.user?.githubLogin);
+  const { data: session, status } = useSession();
+  const allowed = useContributeAllowed(session?.user?.githubLogin, status === 'loading');
 
   if (allowed !== true) return null;
 

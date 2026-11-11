@@ -432,7 +432,9 @@ export function AttemptStatus({ attempt, now }: { attempt: ContributeAttempt | C
           <SubmitErrorNote submit={attempt.submit} />
           {attempt.submit?.lastError ? (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <ForkSyncButton href={forkSyncUrlOf(attempt.submit.lastError.reason, attempt.submit.fork)} />
+              <ForkSyncButton
+                href={forkSyncUrlOf(attempt.submit.lastError.reason, attempt.submit.fork, attempt.submit.syncBranch)}
+              />
               <TryAgainButton />
               {isOrgRestricted(attempt.submit.lastError.reason) ? (
                 <span data-org-wait className="text-sm text-muted-foreground">

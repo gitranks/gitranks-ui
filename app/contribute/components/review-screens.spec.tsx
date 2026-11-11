@@ -706,6 +706,7 @@ describe('the review screen', () => {
         {
           step: 'SYNC',
           fork: 'octo-cat/driftwood',
+          syncBranch: 'develop',
           steps: [
             { step: 'FORK', startedAt: '2026-10-28T11:59:50.000Z', doneAt: '2026-10-28T11:59:51.000Z' },
             { step: 'SYNC', startedAt: '2026-10-28T11:59:51.000Z', doneAt: null },
@@ -720,7 +721,7 @@ describe('the review screen', () => {
     );
 
     expect(html).toContain('data-step="SYNC" data-step-state="failed"');
-    expect(html).toMatch(/href="https:\/\/github.com\/octo-cat\/driftwood"[^>]*data-fork-sync/);
+    expect(html).toMatch(/href="https:\/\/github.com\/octo-cat\/driftwood\/tree\/develop"[^>]*data-fork-sync/);
     expect(text(html)).toContain('Open your fork on GitHub ↗');
     expect(text(html)).toContain('Try again');
   });

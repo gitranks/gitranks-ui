@@ -699,6 +699,46 @@ describe('the review screen', () => {
     expect(html).toContain('id="pr-form"');
   });
 
+  it('a fork sync refused for upstream’s workflow changes links the fork, where the user syncs it', () => {
+    const html = review(
+      clocked(
+        { state: 'REVIEW' },
+        {
+          step: 'SYNC',
+          fork: 'octo-cat/driftwood',
+          steps: [
+            { step: 'FORK', startedAt: '2026-10-28T11:59:50.000Z', doneAt: '2026-10-28T11:59:51.000Z' },
+            { step: 'SYNC', startedAt: '2026-10-28T11:59:51.000Z', doneAt: null },
+          ],
+          lastError: {
+            reason: 'sync_workflows',
+            note: 'Open your fork on GitHub, click Sync fork and Update branch, then approve again here.',
+            at: NOW.toISOString(),
+          },
+        },
+      ),
+    );
+
+    expect(html).toContain('data-step="SYNC" data-step-state="failed"');
+    expect(html).toMatch(/href="https:\/\/github.com\/octo-cat\/driftwood"[^>]*data-fork-sync/);
+    expect(text(html)).toContain('Open your fork on GitHub ↗');
+    expect(text(html)).toContain('Try again');
+  });
+
+  it('any other refusal shows no fork link', () => {
+    const html = review(
+      clocked(
+        { state: 'REVIEW' },
+        {
+          fork: 'octo-cat/driftwood',
+          lastError: { reason: 'branch_conflict', note: 'Delete the branch.', at: NOW.toISOString() },
+        },
+      ),
+    );
+
+    expect(html).not.toContain('data-fork-sync');
+  });
+
   it("refused at the pull request by the repository's organization: where to ask it, and that Try again waits on it", () => {
     const html = review(
       clocked(

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { clickOf, contributeSource, entryOf, isLanding, LAST_CLICK_DAYS, lastClickOf } from './click-tracking';
+import {
+  clickOf,
+  contributeSource,
+  entryOf,
+  firstEntryOf,
+  isLanding,
+  LAST_CLICK_DAYS,
+  lastClickOf,
+} from './click-tracking';
 
 const origin = 'https://gitranks.com';
 
@@ -83,6 +91,14 @@ describe('entryOf: how the visit began', () => {
     });
     expect(entryOf('/contribute', '?start=agent&utm_source=x', '', origin)).toEqual({ utmSource: 'x' });
   });
+
+  it('reads Product Hunt’s own `ref` when the link has no utm_source', () => {
+    expect(entryOf('/contribute', '?ref=producthunt', 'https://www.producthunt.com/', origin)).toEqual({
+      utmSource: 'producthunt',
+      referrerHost: 'www.producthunt.com',
+    });
+    expect(entryOf('/contribute', '?ref=producthunt&utm_source=x', '', origin)).toEqual({ utmSource: 'x' });
+  });
 });
 
 describe('isLanding', () => {
@@ -105,5 +121,19 @@ describe('lastClickOf', () => {
     expect(lastClickOf('{"source":1}', now)).toBeNull();
     expect(lastClickOf('not json', now)).toBeNull();
     expect(lastClickOf(null, now)).toBeNull();
+  });
+});
+
+describe('firstEntryOf', () => {
+  const now = Date.UTC(2026, 10, 11);
+  it('keeps a recent entry that names a channel, and only its known fields', () => {
+    const stored = { entry: { utmSource: 'hackernews', utmCampaign: 'show-hn', extra: 'x' }, at: now - 1000 };
+    expect(firstEntryOf(JSON.stringify(stored), now)).toEqual({ utmSource: 'hackernews', utmCampaign: 'show-hn' });
+  });
+  it('drops an old one, one without a channel and a malformed one', () => {
+    const old = { entry: { utmSource: 'x' }, at: now - (LAST_CLICK_DAYS + 1) * 24 * 60 * 60 * 1000 };
+    expect(firstEntryOf(JSON.stringify(old), now)).toBeNull();
+    expect(firstEntryOf(JSON.stringify({ entry: {}, at: now }), now)).toBeNull();
+    expect(firstEntryOf('[', now)).toBeNull();
   });
 });

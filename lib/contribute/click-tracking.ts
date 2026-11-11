@@ -106,8 +106,9 @@ function implicitSourceOf(pathname: string, params: URLSearchParams): string | u
 }
 
 /**
- * The visit's entry, read once from its first page: `utm_source`, `utm_medium`, `utm_campaign` (else what the link
- * itself says, `implicitSourceOf`) and the other site it came from.
+ * The visit's entry, read once from its first page: `utm_source` (else `ref`, which Product Hunt adds to the links it
+ * sends, else what the link itself says, `implicitSourceOf`), `utm_medium`, `utm_campaign` and the other site it came
+ * from.
  */
 export function entryOf(pathname: string, search: string, referrer: string, origin: string): Entry {
   const params = new URLSearchParams(search);
@@ -119,7 +120,7 @@ export function entryOf(pathname: string, search: string, referrer: string, orig
     // not an address: no referrer
   }
   const entry: Entry = {
-    utmSource: tagOf(params, 'utm_source') ?? implicitSourceOf(pathname, params),
+    utmSource: tagOf(params, 'utm_source') ?? tagOf(params, 'ref') ?? implicitSourceOf(pathname, params),
     utmMedium: tagOf(params, 'utm_medium'),
     utmCampaign: tagOf(params, 'utm_campaign'),
     referrerHost,
@@ -129,6 +130,12 @@ export function entryOf(pathname: string, search: string, referrer: string, orig
 
 /** A visit that started on Contribute: its first page is one of Contribute's. */
 export const isLanding = (pagePath: string) => isContributePath(pagePath);
+
+/** Whether an entry names a channel: campaign tags or another site. A visit typed in or bookmarked names none. */
+export const namesChannel = (entry: Entry) => Boolean(entry.utmSource || entry.utmCampaign || entry.referrerHost);
+
+/** The first visit's entry that named a channel, kept in this browser for the connect it may lead to. */
+export type FirstEntry = { entry: Entry; at: number };
 
 /** How long a click is remembered for the connect it may lead to. */
 export const LAST_CLICK_DAYS = 30;
@@ -144,6 +151,26 @@ export function lastClickOf(stored: string | null, now: number): LastClick | nul
       return null;
     const age = now - value.at;
     return age >= 0 && age <= LAST_CLICK_DAYS * 24 * 60 * 60 * 1000 ? (value as LastClick) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The first entry on record, when it is whole and recent enough (`LAST_CLICK_DAYS`) to have led to this connect. */
+export function firstEntryOf(stored: string | null, now: number): Entry | null {
+  if (!stored) return null;
+  try {
+    const value = JSON.parse(stored) as Partial<FirstEntry> | null;
+    if (!value?.entry || typeof value.entry !== 'object' || typeof value.at !== 'number') return null;
+    const age = now - value.at;
+    if (age < 0 || age > LAST_CLICK_DAYS * 24 * 60 * 60 * 1000) return null;
+    const entry = Object.fromEntries(
+      Object.entries(value.entry).filter(
+        ([key, field]) =>
+          ['utmSource', 'utmMedium', 'utmCampaign', 'referrerHost'].includes(key) && typeof field === 'string',
+      ),
+    ) as Entry;
+    return namesChannel(entry) ? entry : null;
   } catch {
     return null;
   }

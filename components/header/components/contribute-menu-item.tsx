@@ -1,20 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 
 import { mainMenuItemClass } from './menu-styles';
 import { NavigationMenuItem, NavigationMenuLink } from '@/components/ui/navigation-menu';
-import { useContributeAllowed } from '@/lib/contribute/use-contribute-allowed';
 import { cn } from '@/lib/utils';
 
-/** "Contribute", shown to whoever GitRanks Contribute is open to: everyone once launched, visitors included. */
+/** "Contribute", shown to everyone. */
 export function ContributeMenuItem({ active }: Readonly<{ active?: boolean }>) {
-  const { data: session, status } = useSession();
-  const allowed = useContributeAllowed(session?.user?.githubLogin, status === 'loading');
-
-  if (allowed !== true) return null;
-
   return (
     <NavigationMenuItem>
       <NavigationMenuLink className={cn(mainMenuItemClass, 'gap-1.5')} active={active} asChild>

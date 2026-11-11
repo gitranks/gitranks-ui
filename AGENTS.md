@@ -18,8 +18,8 @@ Commit messages, PR titles and bodies, code comments and issue comments here are
 - deployment and edge details: CI/CD steps, CDN/WAF/firewall rules, or which protection they skip
 - env var *values*, or secret names paired with what they unlock
 
-Describe the change in this repo on its own terms. When work depends on something outside it, write "handled outside this repo" and stop: do not name, link or characterise it. If the detail needs recording, ask where the private notes belong.
+Describe the change in this repo on its own terms. When work depends on something outside it, write "handled outside this repo" and stop: do not name, link or characterise it. If the detail needs recording, ask where the private notes belong rather than putting it here.
 
 # Design
 
-Design work (new screens, changes, reviews, tokens) follows the `gitranks-design` skill. Rules: `DESIGN.md`; where designs live: `design/README.md`.
+Design work (new screens, changes, reviews, tokens) follows the `gitranks-design` skill (`.claude/skills/gitranks-design/SKILL.md`). Rules: `DESIGN.md`; where designs live: `design/README.md`. Start from the live screens drawn from code, change only what is asked, and redraw a screen after its PR merges.

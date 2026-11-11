@@ -4,6 +4,7 @@ import NextAuth from 'next-auth';
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
 import {
+  isAuthorizePath,
   isContributePath,
   isLedgerPath,
   isMaintainersPath,
@@ -71,7 +72,8 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   }
 
   // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared
-  // cache (it would be served to someone who is let in). The page for maintainers is open to everyone, and once
+  // cache (it would be served to someone who is let in). The page for maintainers and the agent sign-in's consent page
+  // (which tells a visitor off the preview so itself) are open to everyone, and once
   // Contribute is launched so are the landing, the MCP docs and the questions, to visitors without a session too.
   const { pathname } = request.nextUrl;
   // The ledger has its own switch (ledger design §6): open, it goes on as any public page; closed, a visitor without a
@@ -85,6 +87,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   } else if (
     isContributePath(pathname) &&
     !isMaintainersPath(pathname) &&
+    !isAuthorizePath(pathname) &&
     !(isOpenAtLaunchPath(pathname) && (await contributeOpen())) &&
     !(await requestMaySeeContribute(request))
   ) {

@@ -7,9 +7,8 @@ vi.mock('./session-token', () => ({ sessionTokenOf }));
 const { contributeOpen, contributePreviewAllowed, requestMaySeeContribute, resetContributeOpen } = await import(
   './preview-gate'
 );
-const { isContributePath, isLandingPath, isMaintainersPath, isOpenAtLaunchPath, isTablessPath } = await import(
-  './contribute-path'
-);
+const { isAuthorizePath, isContributePath, isLandingPath, isMaintainersPath, isOpenAtLaunchPath, isTablessPath } =
+  await import('./contribute-path');
 
 const req = { headers: new Headers({ cookie: 'authjs.session-token=t' }) };
 
@@ -96,7 +95,27 @@ describe('the Contribute preview gate', () => {
     expect(isTablessPath('/contribute/faq')).toBe(true);
     expect(isTablessPath('/contribute/maintainers/report')).toBe(true);
     expect(isTablessPath('/contribute/maintainers/x')).toBe(false);
+    expect(isTablessPath('/contribute/authorize')).toBe(true);
     expect(isTablessPath('/contribute')).toBe(false);
+  });
+
+  it("takes the agent sign-in's consent page alone as it, in the spellings the router reads as it", () => {
+    for (const path of [
+      '/contribute/authorize',
+      '/contribute/authorize/',
+      '/Contribute//Authorize',
+      '/contribute/%61uthorize',
+    ]) {
+      expect(isAuthorizePath(path), path).toBe(true);
+    }
+    for (const path of [
+      '/contribute/authorize/x',
+      '/contribute/authorize%2F..%2Fsettings',
+      '/contribute',
+      '/contribute/%E0%A4%A',
+    ]) {
+      expect(isAuthorizePath(path), path).toBe(false);
+    }
   });
 
   it('matches the decoded path, so an encoded spelling cannot get past it', () => {

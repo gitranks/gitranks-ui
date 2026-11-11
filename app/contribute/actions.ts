@@ -6,6 +6,7 @@ import { viewerEmail, viewerLogin } from '@/lib/contribute/contribute.data';
 import {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
+  ApproveContributeOAuthDocument,
   ApproveContributeProofDocument,
   ApproveFollowUpDocument,
   ApproveReplyDocument,
@@ -102,6 +103,7 @@ import { FOLLOW_UP_NOTE_MAX, PR_SIGNAL_KINDS } from '@/lib/contribute/follow-up-
 import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
 import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
+import { isSafeRedirect, requestIdOf } from '@/lib/contribute/oauth-consent';
 import {
   type ContributeConventionsFields,
   type ContributePrFixKind,
@@ -552,11 +554,42 @@ export async function revokeMcpToken(id: string): Promise<ContributeActionResult
   return run(RevokeMcpTokenDocument, { id: String(id) }, (data) => data.revokeMcpToken);
 }
 
+/**
+ * Allow, on the consent page of an agent's sign-in: the agent is connected as the session's user, and the answer is
+ * where the browser goes back to it. Checked here and again in the browser before it goes: `https:`, `http:` to this
+ * computer, or an app's own scheme; never a script or a file.
+ */
+export async function approveContributeOAuth(
+  requestId: string,
+): Promise<ContributeActionResult<{ redirectTo: string }>> {
+  const id = requestIdOf(String(requestId ?? ''));
+  if (!id) return { ok: false, error: 'EXPIRED' };
+  const result = await run(ApproveContributeOAuthDocument, { requestId: id }, (data) => data.approveContributeOAuth);
+  if (!result.ok) return result;
+  const redirectTo = result.data?.redirectTo;
+  if (!isSafeRedirect(redirectTo)) {
+    return {
+      ok: false,
+      error: 'FAILED',
+      message: "We can't send you back to this app: its address isn't one we allow.",
+    };
+  }
+  return { ok: true, data: { redirectTo } };
+}
+
 export type AgentWatch = {
   /** The token the page shows, or the unused one it came back to; null without one. */
   tokenId: string | null;
   /** The user was onboarded when the page opened: the stamp cannot tell this call apart. */
   onboarded: boolean;
+  /** No token, an agent signing in: when the page opened, so a connection used since is the agent calling. */
+  since?: string | null;
+};
+
+/** A connection used after `since` (ISO, from the server): an agent that signed in has called. */
+const usedSince = (tokens: { lastUsedAt: string | null }[] | null | undefined, since: string): string | undefined => {
+  const after = Date.parse(since);
+  return tokens?.find(({ lastUsedAt }) => !!lastUsedAt && Date.parse(lastUsedAt) > after)?.lastUsedAt ?? undefined;
 };
 
 /**
@@ -569,6 +602,8 @@ export async function readAgentConnected(watch: AgentWatch): Promise<ContributeA
   const options = { source: 'client' as const, githubLogin };
   const onboardedBefore = watch?.onboarded === true;
   const tokenId = typeof watch?.tokenId === 'string' && watch.tokenId ? watch.tokenId : null;
+  const since =
+    !tokenId && typeof watch?.since === 'string' && Number.isFinite(Date.parse(watch.since)) ? watch.since : null;
 
   let onboardedAt: string | null | undefined;
   if (!onboardedBefore) {
@@ -578,14 +613,15 @@ export async function readAgentConnected(watch: AgentWatch): Promise<ContributeA
     } catch {
       onboardedAt = undefined;
     }
-    if (onboardedAt !== undefined || !tokenId) {
+    if (onboardedAt !== undefined || (!tokenId && !since)) {
       return { ok: true, data: agentConnectedOf({ onboardedBefore, onboardedAt, tokenUsedAt: undefined }) };
     }
   }
-  if (!tokenId) return { ok: true, data: false };
+  if (!tokenId && !since) return { ok: true, data: false };
   try {
     const data = await graphqlDirect(ContributeOwnAgentDocument, undefined, options);
-    const tokenUsedAt = data?.contribute?.mcpTokens?.find(({ id }) => id === tokenId)?.lastUsedAt;
+    const tokens = data?.contribute?.mcpTokens;
+    const tokenUsedAt = tokenId ? tokens?.find(({ id }) => id === tokenId)?.lastUsedAt : usedSince(tokens, since ?? '');
     return { ok: true, data: agentConnectedOf({ onboardedBefore, onboardedAt, tokenUsedAt }) };
   } catch (error) {
     return { ok: false, ...contributeErrorOf(error) };

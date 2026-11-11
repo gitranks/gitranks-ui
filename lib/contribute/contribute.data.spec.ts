@@ -18,6 +18,7 @@ const {
   loadOverviewNeeds,
   loadOverviewNow,
   loadProviderInterests,
+  ownAgentOf,
 } = await import('./contribute.data');
 const {
   ContributeAttemptDocument,
@@ -916,5 +917,34 @@ describe('what the user works on', () => {
     expect(await loadContributeSet()).toBeNull();
     graphqlDirect.mockRejectedValueOnce(new Error('GraphQL error! 502'));
     expect(await loadContributeSet()).toBeUndefined();
+  });
+});
+
+describe('ownAgentOf', () => {
+  const token = (id: string) => ({ id, name: id, last4: 'abcd', createdAt: '', lastUsedAt: null });
+
+  it("takes each connection's kind and where its agent goes back from their own read, and says whether agents sign in", () => {
+    const agent = ownAgentOf(
+      {
+        contributor: { paths: { hosted: false, mcp: true } },
+        mcpTokens: [token('T_1'), { ...token('T_2'), last4: null }],
+      },
+      [{ id: 'T_2', kind: 'OAUTH', clientWhere: { kind: 'LOOPBACK', label: 'this computer' } }],
+      true,
+    );
+    expect(agent?.tokens).toEqual([
+      token('T_1'),
+      { ...token('T_2'), last4: null, kind: 'OAUTH', clientWhere: { kind: 'LOOPBACK', label: 'this computer' } },
+    ]);
+    expect(agent?.signIn).toBe(true);
+  });
+
+  it('keeps the list as tokens when the kinds are not answered, and is undefined without a list', () => {
+    expect(ownAgentOf({ contributor: null, mcpTokens: [token('T_1')] }, undefined)).toEqual({
+      paths: { hosted: false, mcp: true },
+      tokens: [token('T_1')],
+      signIn: false,
+    });
+    expect(ownAgentOf(null)).toBeUndefined();
   });
 });

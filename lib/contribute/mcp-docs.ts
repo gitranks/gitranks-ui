@@ -8,6 +8,7 @@ import {
   MCP_URL,
   type McpClient,
   mcpClientSetupOf,
+  mcpSignInSetupOf,
   mcpTokenSaveOf,
 } from './mcp-setup';
 
@@ -80,6 +81,55 @@ const VS_CODE: McpDocClient = {
 
 /** The clients the docs show, in the connect flow's order, then VS Code. */
 export const MCP_DOC_CLIENTS: readonly McpDocClient[] = [...MCP_CLIENTS.map(connectClientOf), VS_CODE];
+
+/** A client's setup when agents sign in with GitHub: no token, the agent opens GitRanks in the browser to allow it. */
+export type McpDocSignIn = Omit<McpDocClient, 'id' | 'name'>;
+
+/** A client the connect flow knows, signing in; null for one that connects with a token only. */
+function connectSignInOf(client: McpClient): McpDocSignIn | null {
+  const unix = mcpSignInSetupOf(client, 'mac');
+  const windows = mcpSignInSetupOf(client, 'windows');
+  if (!unix || !windows) return null;
+  return {
+    where: unix.where,
+    label: unix.label,
+    file: unix.file,
+    lines: unix.lines,
+    windows:
+      windows.label !== unix.label || windows.lines !== unix.lines || windows.where !== unix.where
+        ? { where: windows.where, label: windows.label, lines: windows.lines }
+        : undefined,
+  };
+}
+
+/** VS Code's own MCP file, with no header: it asks to sign in when it starts the server. */
+const VS_CODE_SIGN_IN: McpDocSignIn = {
+  where:
+    'Add this with MCP: Open User Configuration (or to .vscode/mcp.json in your project). VS Code asks you to sign in when it starts the server: your browser opens GitRanks, where you allow it. Then use Agent mode in chat.',
+  label: 'mcp.json',
+  file: true,
+  lines: JSON.stringify({ servers: { gitranks: { type: 'http', url: MCP_URL } } }, null, 2),
+};
+
+/** Each client's sign-in setup by its id; a client without one (Antigravity) is left out. */
+export const MCP_DOC_SIGN_INS: Readonly<Record<string, McpDocSignIn>> = Object.fromEntries([
+  ...MCP_CLIENTS.flatMap((client) => {
+    const setup = connectSignInOf(client);
+    return setup ? [[client, setup] as const] : [];
+  }),
+  [VS_CODE.id, VS_CODE_SIGN_IN],
+]);
+
+/** claude.ai and Claude Desktop: a connector by URL, which can only sign in (it sends no header of ours). */
+export const CLAUDE_APP_DOC: McpDocClient = {
+  id: 'claude-app',
+  name: 'claude.ai and Claude Desktop',
+  where:
+    'In Claude, open Settings → Connectors → Add custom connector, and paste this URL. Claude opens GitRanks in your browser, where you allow it.',
+  label: 'Connector URL',
+  file: false,
+  lines: MCP_URL,
+};
 
 /** The line that saves the token, per OS, with the placeholder in it. */
 export const MCP_DOC_SAVES = MCP_OSES.map((os) => ({

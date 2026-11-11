@@ -130,6 +130,21 @@ describe('proxy', () => {
       expect(maySeeContribute).not.toHaveBeenCalled();
     });
 
+    it("lets everyone reach the agent sign-in's consent page, which says itself who may allow it", async () => {
+      for (const path of ['/contribute/authorize', '/contribute/authorize/']) {
+        const signedOut = await proxy(request(undefined, path), event);
+        expect(signedOut?.headers.get('x-middleware-rewrite')).toBeNull();
+
+        const signedIn = await proxy(request('authjs.session-token=t', path), event);
+        expect(signedIn?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(signedIn?.headers.get('cache-control')).toBe('private, no-cache');
+      }
+      expect(maySeeContribute).not.toHaveBeenCalled();
+
+      const under = await proxy(request(undefined, '/contribute/authorize/x'), event);
+      expect(under?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+    });
+
     it('keeps everything under the page for maintainers, and the other pages, behind the gate', async () => {
       for (const path of [
         '/contribute/maintainers/x',

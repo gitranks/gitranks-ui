@@ -38,7 +38,15 @@ export function OwnAgentConnectScreen({
   view: ContributeView;
   proof?: AgentConnectProof | null;
 }) {
-  return <AgentConnect onboarded={isOnboarded(view)} tokens={view.ownAgent?.tokens} proof={proof} />;
+  return (
+    <AgentConnect
+      onboarded={isOnboarded(view)}
+      tokens={view.ownAgent?.tokens}
+      proof={proof}
+      signIn={view.ownAgent?.signIn === true}
+      openedAt={new Date().toISOString()}
+    />
+  );
 }
 
 /**

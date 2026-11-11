@@ -38,6 +38,8 @@ import type {
   ContributeMcpToken,
   ContributeMcpTokenCreated,
   ContributeNeedsYou,
+  ContributeOAuthClientWhere,
+  ContributeOAuthRequest,
   ContributeOnboardedVia,
   ContributeOptOutResult,
   ContributeOwnAgentFields,
@@ -121,6 +123,36 @@ export const CreateMcpTokenDocument = doc<{ createMcpToken: ContributeMcpTokenCr
 
 export const RevokeMcpTokenDocument = doc<{ revokeMcpToken: boolean }, { id: string }>(
   'mutation RevokeMcpToken($id: ID!) { revokeMcpToken(id: $id) }',
+);
+
+/** What tells an agent that signed in from a personal token: read on its own, so an API without it leaves the list. */
+export const ContributeMcpConnectionsDocument = doc<{
+  contribute: {
+    mcpTokens: { id: string; kind: 'PERSONAL' | 'OAUTH'; clientWhere: ContributeOAuthClientWhere | null }[] | null;
+  } | null;
+}>('query ContributeMcpConnections { contribute { mcpTokens { id kind clientWhere { kind label } } } }');
+
+/** Agents sign in with GitHub: the setup leads with the sign-in. Public, like `contributeOpen`. */
+export const ContributeMcpSignInDocument = doc<{ contributeMcpSignIn: boolean }>(
+  'query ContributeMcpSignIn { contributeMcpSignIn }',
+);
+
+/** The consent page's read of one agent sign-in; null when Contribute is hidden from the user. */
+export const ContributeOAuthRequestDocument = doc<
+  { contributeOAuthRequest: ContributeOAuthRequest | null },
+  { requestId: string }
+>(`query ContributeOAuthRequest($requestId: String!) {
+  contributeOAuthRequest(requestId: $requestId) {
+    status clientName clientWhere { kind label } previewAllowed reusesConnection replaces { name } waiting { count repos }
+  }
+}`);
+
+/** Allow: the agent is connected, and the answer is where the browser goes back to it. */
+export const ApproveContributeOAuthDocument = doc<
+  { approveContributeOAuth: { redirectTo: string } },
+  { requestId: string }
+>(
+  'mutation ApproveContributeOAuth($requestId: String!) { approveContributeOAuth(requestId: $requestId) { redirectTo } }',
 );
 
 export const SendBackToAgentDocument = doc<

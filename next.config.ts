@@ -62,14 +62,17 @@ const nextConfig: NextConfig = {
         source,
         headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, s-maxage=604800' }],
       })),
-      // The page for maintainers opts repos out with a click: no other site may frame it.
-      ...['/contribute/maintainers', '/contribute/maintainers/'].map((source) => ({
-        source,
-        headers: [
-          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
-          { key: 'X-Frame-Options', value: 'DENY' },
-        ],
-      })),
+      // The page for maintainers opts repos out with a click, and the consent page connects an agent with one: no
+      // other site may frame them.
+      ...['/contribute/maintainers', '/contribute/maintainers/', '/contribute/authorize', '/contribute/authorize/'].map(
+        (source) => ({
+          source,
+          headers: [
+            { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+            { key: 'X-Frame-Options', value: 'DENY' },
+          ],
+        }),
+      ),
     ];
   },
   async redirects() {

@@ -9,6 +9,7 @@ const actions = await import('./actions');
 const {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
+  ApproveContributeOAuthDocument,
   ApproveFollowUpDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
@@ -69,6 +70,7 @@ const CALLS: Record<string, unknown[]> = {
   createMcpToken: ['laptop'],
   revokeMcpToken: ['T_1'],
   readAgentConnected: [{ tokenId: 'T_1', onboarded: true, githubLogin: 'mallory' }],
+  approveContributeOAuth: ['aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789-_abcde'],
   sendBackToAgent: ['A_1', 'Add a test for tabs'],
   setContributeMode: ['STACK'],
   setContributeFallback: ['REPOS', 'SET_ONLY'],
@@ -650,6 +652,76 @@ describe('readAgentConnected', () => {
 
   it('asks nothing of the tokens without one to watch', async () => {
     expect(await actions.readAgentConnected({ tokenId: null, onboarded: true })).toEqual({ ok: true, data: false });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('takes a connection used since the page opened as the agent that signed in, for a user onboarded already', async () => {
+    const since = '2026-11-12T10:00:00.000Z';
+    graphqlDirect.mockResolvedValueOnce(tokens('2026-11-12T09:59:00.000Z'));
+    expect(await actions.readAgentConnected({ tokenId: null, onboarded: true, since })).toEqual({
+      ok: true,
+      data: false,
+    });
+    graphqlDirect.mockResolvedValueOnce(tokens('2026-11-12T10:01:00.000Z'));
+    expect(await actions.readAgentConnected({ tokenId: null, onboarded: true, since })).toEqual({
+      ok: true,
+      data: true,
+    });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(ContributeOwnAgentDocument, undefined, as);
+  });
+
+  it('reads the onboarded stamp alone for an agent signing in for a user not onboarded yet', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contribute: { contributor: { onboardedAt: '2026-11-12T10:01:00Z' } } });
+    expect(
+      await actions.readAgentConnected({ tokenId: null, onboarded: false, since: '2026-11-12T10:00:00.000Z' }),
+    ).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('approveContributeOAuth', () => {
+  const REQUEST_ID = 'aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789-_abcde';
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it("answers the agent's redirect when it is one the browser may go to", async () => {
+    for (const redirectTo of [
+      'http://127.0.0.1:53682/callback?code=c&state=s',
+      'http://localhost:3000/cb?code=c',
+      'https://claude.ai/api/mcp/auth_callback?code=c&state=s',
+      'cursor://anysphere.cursor-mcp/oauth/callback?code=c',
+    ]) {
+      graphqlDirect.mockResolvedValueOnce({ approveContributeOAuth: { redirectTo } });
+      expect(await actions.approveContributeOAuth(REQUEST_ID)).toEqual({ ok: true, data: { redirectTo } });
+    }
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ApproveContributeOAuthDocument,
+      { requestId: REQUEST_ID },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
+
+  it('never answers a script, a file or a web address over plain http', async () => {
+    for (const redirectTo of [
+      'javascript:alert(1)',
+      'data:text/html,hi',
+      'file:///etc/passwd',
+      'http://evil.example/cb',
+      'not a url',
+    ]) {
+      graphqlDirect.mockResolvedValueOnce({ approveContributeOAuth: { redirectTo } });
+      expect(await actions.approveContributeOAuth(REQUEST_ID), redirectTo).toMatchObject({ ok: false, error: 'FAILED' });
+    }
+  });
+
+  it('is EXPIRED for an expired sign-in, and for an id the server could not have made, without asking', async () => {
+    graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify([{ extensions: { code: 'EXPIRED' } }])));
+    expect(await actions.approveContributeOAuth(REQUEST_ID)).toEqual({ ok: false, error: 'EXPIRED' });
+    graphqlDirect.mockClear();
+    expect(await actions.approveContributeOAuth('../x')).toEqual({ ok: false, error: 'EXPIRED' });
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });

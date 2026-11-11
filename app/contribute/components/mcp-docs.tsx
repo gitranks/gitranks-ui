@@ -6,15 +6,20 @@ import { Pill } from './primitives';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
 import { ABOUT_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import {
+  CLAUDE_APP_DOC,
   MCP_DOC_CLIENTS,
   MCP_DOC_LIMITS,
   MCP_DOC_SAVES,
+  MCP_DOC_SIGN_INS,
   MCP_DOC_TOOLS,
   MCP_TOKEN_ENV,
   MCP_TOKENS_MAX,
   MCP_URL,
+  type McpDocClient,
+  type McpDocSignIn,
   TOKEN_PLACEHOLDER,
 } from '@/lib/contribute/mcp-docs';
+import { USE_A_TOKEN_INSTEAD } from '@/lib/contribute/mcp-setup';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
 
@@ -28,11 +33,70 @@ const SECTIONS = [
   { id: 'privacy', title: 'What is sent to mcp.gitranks.com' },
 ];
 
-const FACTS = [
+const factsOf = (signIn: boolean) => [
   { label: 'Server', value: MCP_URL, text: 'Streamable HTTP' },
-  { label: 'Sign-in', value: 'Personal token', text: 'gr_…, made in Contribute' },
+  signIn
+    ? { label: 'Sign-in', value: 'GitHub, in your browser', text: 'or a personal token (gr_…), made in Contribute' }
+    : { label: 'Sign-in', value: 'Personal token', text: 'gr_…, made in Contribute' },
   { label: 'Price', value: 'Free', text: "Your agent runs on your own plan; we don't see it" },
 ];
+
+/** One way to add GitRanks to a client: what to do, its lines, and Windows' where they differ. */
+function DocSetup({ name, setup }: { name: string; setup: McpDocSignIn }) {
+  const { where, label, file, lines, windows } = setup;
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">{where}</p>
+      <CodeBlock label={label} file={file} copyLabel={`Copy the ${name} setup`}>
+        {lines}
+      </CodeBlock>
+      {windows ? (
+        <details className="text-sm">
+          <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
+            On Windows
+          </summary>
+          {windows.where !== where ? <p className="mt-1 text-muted-foreground">{windows.where}</p> : null}
+          <CodeBlock
+            label={windows.label}
+            file={file}
+            copyLabel={`Copy the ${name} setup for Windows`}
+            className="mt-2"
+          >
+            {windows.lines}
+          </CodeBlock>
+        </details>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * A client's setup on the docs: with `signIn`, its sign-in first and the token setup in a fold under it; a client that
+ * can't sign in (Antigravity) keeps the token.
+ */
+function DocClient({ client, signIn }: { client: McpDocClient; signIn: boolean }) {
+  const viaSignIn = signIn ? MCP_DOC_SIGN_INS[client.id] : undefined;
+  return (
+    <div id={client.id} className="flex scroll-mt-6 flex-col gap-2">
+      <h3 className="text-base font-semibold">{client.name}</h3>
+      {viaSignIn ? (
+        <>
+          <DocSetup name={client.name} setup={viaSignIn} />
+          <details className="text-sm" data-token-fold>
+            <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
+              {USE_A_TOKEN_INSTEAD}
+            </summary>
+            <div className="mt-2 flex flex-col gap-2">
+              <DocSetup name={`${client.name} token`} setup={client} />
+            </div>
+          </details>
+        </>
+      ) : (
+        <DocSetup name={client.name} setup={client} />
+      )}
+    </div>
+  );
+}
 
 const SENT = [
   'Your token, in a header, on every request, and the name and version of your client when it connects. Like any server, we see your IP address.',
@@ -52,8 +116,14 @@ const LINK = 'font-semibold text-link hover:underline';
 /** The landing's two ways in, members too: a visitor signs in there and picks their own agent; connect is members-only. */
 const LANDING_WAYS_PATH = `${ABOUT_PATH}#ways` as Route;
 
-/** The public docs of the MCP server: setup per client, the tools, the token, the limits and what reaches us. */
-export function McpDocsScreen() {
+/**
+ * The public docs of the MCP server: setup per client, the tools, the token, the limits and what reaches us. `signIn`:
+ * agents sign in with GitHub, so each client's sign-in comes first, its token setup in a fold, and claude.ai joins.
+ */
+export function McpDocsScreen({ signIn = false }: { signIn?: boolean }) {
+  const clients = signIn
+    ? [...MCP_DOC_CLIENTS.slice(0, -1), CLAUDE_APP_DOC, ...MCP_DOC_CLIENTS.slice(-1)]
+    : MCP_DOC_CLIENTS;
   return (
     <main className="mx-auto w-full max-w-7xl px-4 flex flex-col gap-9 pt-10 pb-16">
       <PublicPageHead eyebrow="Contribute · MCP server" title="Connect your own agent to GitRanks">
@@ -65,7 +135,7 @@ export function McpDocsScreen() {
       </PublicPageHead>
 
       <ul className="grid gap-3.5 sm:grid-cols-3">
-        {FACTS.map(({ label, value, text }) => (
+        {factsOf(signIn).map(({ label, value, text }) => (
           <li key={label} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-muted/50 p-5">
             <span className="text-xs text-muted-foreground">{label}</span>
             <span className="break-all font-mono text-base font-semibold">{value}</span>
@@ -76,6 +146,13 @@ export function McpDocsScreen() {
 
       <DocLayout sections={SECTIONS}>
         <DocSection id="start" title="Before you start">
+          {signIn ? (
+            <p data-sign-in-start>
+              Most agents sign in with GitHub: add GitRanks to yours below, and the first time it calls, your browser
+              opens GitRanks, where you allow it. Nothing to copy. For Antigravity, scripts, or an agent that can&apos;t
+              sign in, use a token:
+            </p>
+          ) : null}
           <ol className="flex list-decimal flex-col gap-2 pl-5">
             <li>
               Sign in with GitHub on{' '}
@@ -103,7 +180,7 @@ export function McpDocsScreen() {
 
         <DocSection id="setup" title="Add it to your agent" text="Pick your agent:">
           <ul className="flex flex-wrap gap-1.5">
-            {MCP_DOC_CLIENTS.map(({ id, name }) => (
+            {clients.map(({ id, name }) => (
               <li key={id}>
                 <a
                   href={`#${id}`}
@@ -122,30 +199,8 @@ export function McpDocsScreen() {
               </a>
             </li>
           </ul>
-          {MCP_DOC_CLIENTS.map(({ id, name, where, label, file, lines, windows }) => (
-            <div key={id} id={id} className="flex scroll-mt-6 flex-col gap-2">
-              <h3 className="text-base font-semibold">{name}</h3>
-              <p className="text-sm text-muted-foreground">{where}</p>
-              <CodeBlock label={label} file={file} copyLabel={`Copy the ${name} setup`}>
-                {lines}
-              </CodeBlock>
-              {windows ? (
-                <details className="text-sm">
-                  <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
-                    On Windows
-                  </summary>
-                  {windows.where !== where ? <p className="mt-1 text-muted-foreground">{windows.where}</p> : null}
-                  <CodeBlock
-                    label={windows.label}
-                    file={file}
-                    copyLabel={`Copy the ${name} setup for Windows`}
-                    className="mt-2"
-                  >
-                    {windows.lines}
-                  </CodeBlock>
-                </details>
-              ) : null}
-            </div>
+          {clients.map((client) => (
+            <DocClient key={client.id} client={client} signIn={signIn} />
           ))}
           <div id="other" className="flex scroll-mt-6 flex-col gap-2">
             <h3 className="text-base font-semibold">Other clients</h3>
@@ -217,6 +272,12 @@ export function McpDocsScreen() {
               proxy and the server keep it out of our logs.
             </li>
             <li>Revoke it any time in Contribute&apos;s Settings. A revoked token stops working at once.</li>
+            {signIn ? (
+              <li>
+                An agent that signed in with GitHub holds no token of yours to copy. It is listed in Settings too, and
+                Disconnect there stops it at once.
+              </li>
+            ) : null}
           </ul>
         </DocSection>
 

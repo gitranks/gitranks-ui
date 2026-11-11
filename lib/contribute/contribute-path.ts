@@ -47,6 +47,21 @@ export function isMaintainersPath(pathname: string): boolean {
   }
 }
 
+/**
+ * Where an agent's sign-in to the MCP server asks the user to allow it (`?request=<id>`). Open to every visitor, like
+ * the page for maintainers: signed out it offers the sign-in, and off the preview it says Contribute is not open yet.
+ */
+export const AUTHORIZE_PATH = '/contribute/authorize';
+
+/** Whether the path is the sign-in's consent page, in any spelling the router reads as it; nothing under it is. */
+export function isAuthorizePath(pathname: string): boolean {
+  try {
+    return /^\/+contribute\/+authorize\/?$/i.test(decodeURIComponent(pathname));
+  } catch {
+    return false;
+  }
+}
+
 /** The Contribute ledger (ledger design 2026-11-03): its own switch, not the preview's. */
 export const LEDGER_PATH: Route = '/contribute/ledger';
 
@@ -88,10 +103,10 @@ export const isOpenAtLaunchPath = (pathname: string): boolean =>
 
 /**
  * Whether the path is one of the pages about Contribute rather than the user's workspace, which show no tabs: the
- * maintainers page and its report page, the ledger, the MCP docs and the questions.
+ * maintainers page and its report page, the ledger, the MCP docs, the questions and the agent sign-in's consent page.
  */
 export const isTablessPath = (pathname: string): boolean =>
-  decodedMatches(pathname, /^\/+contribute\/+(?:maintainers(?:\/+report)?|ledger|mcp|faq)\/?$/i);
+  decodedMatches(pathname, /^\/+contribute\/+(?:maintainers(?:\/+report)?|ledger|mcp|faq|authorize)\/?$/i);
 
 /** Where each way of contributing starts: a Claude key we run the agent on, or the user's own agent. */
 export const CONNECT_KEY_PATH: Route = '/contribute/connect';

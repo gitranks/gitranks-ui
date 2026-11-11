@@ -11,7 +11,7 @@ type Contribute {
   grant: ContributeGrant
 
   """
-  The viewer's live tokens for the MCP server (their own agent), oldest first; never a token itself. Null with an error when they cannot be read now
+  The viewer's live connections to the MCP server (their own agent), oldest first: personal tokens and clients signed in with OAuth; never a token itself. Null with an error when they cannot be read now
   """
   mcpTokens: [ContributeMcpToken!]
 
@@ -415,6 +415,11 @@ type ContributeAttemptDetail {
 
   """Null until the checks ran"""
   checksPassed: Boolean
+
+  """
+  The claim's check, step by step, oldest first; empty for a claim checked without steps
+  """
+  claimSteps: [ContributeClaimStep!]!
 
   """
   A first attempt's repo conventions (what the PR form checks); null for a follow-up or when unread
@@ -876,6 +881,26 @@ type ContributeClaRule {
   Where to sign, when the check links it; for a comment signature, the document to read
   """
   signUrl: String
+}
+
+"""
+One step of the claim's check, as the attempt's page shows it while it is starting
+"""
+type ContributeClaimStep {
+  at: String!
+
+  """
+  The step's key: a phase of the check (issue, repoDue, policy, conventions, repoRules) or verdict
+  """
+  key: String!
+
+  """
+  running, done or failed (a failed repository read lets the claim go on)
+  """
+  state: String!
+
+  """What the check is doing, in words for the contributor"""
+  words: String!
 }
 
 """
@@ -1674,14 +1699,6 @@ type ContributeMaintainerFacts {
   """How many days a repository stays out after `missesMax` misses"""
   outDays: Int!
 
-  """How many days such a pause lasted"""
-  pauseDays: Int! @deprecated(reason: "Read outDays")
-
-  """
-  Pull requests closed without a merge in a row that paused GitRanks in a repository
-  """
-  pauseStreak: Int! @deprecated(reason: "The pause is retired: read missesMax, silentDays and outDays")
-
   """The most GitRanks pull requests a repository gets in `monthDays` days"""
   prsPerMonth: Int!
 
@@ -1793,14 +1810,25 @@ type ContributeMaintainerRepos {
   truncated: Boolean!
 }
 
-"""A personal token for the MCP server: never the token, only its last 4"""
+"""
+A live connection of the viewer's own agent to the MCP server: a personal token (only its last 4) or a client signed in with OAuth; never the token
+"""
 type ContributeMcpToken {
+  """
+  Where a sign-in's client sends the browser back; null for a personal token
+  """
+  clientWhere: ContributeOAuthClientWhere
   createdAt: String!
   id: ID!
-  last4: String!
+  kind: ContributeMcpTokenKind!
+
+  """A personal token's last 4 characters; null for a sign-in"""
+  last4: String
 
   """Written at most once every 5 minutes"""
   lastUsedAt: String
+
+  """A personal token's name, or the client's own name for a sign-in"""
   name: String!
 }
 
@@ -1812,6 +1840,14 @@ type ContributeMcpTokenCreated {
 
   """gr_…: shown once; only its hash is kept"""
   token: String!
+}
+
+"""
+PERSONAL: a token made in Settings; OAUTH: a client the viewer signed in to
+"""
+enum ContributeMcpTokenKind {
+  OAUTH
+  PERSONAL
 }
 
 """A model an attempt runs on"""
@@ -1846,6 +1882,86 @@ enum ContributeNoGoCategory {
 type ContributeNoGoCount {
   category: ContributeNoGoCategory!
   count: Int!
+}
+
+"""Allow: where the browser goes next (the client, with the code)"""
+type ContributeOAuthApproval {
+  """
+  The client's redirect with code and state: check its scheme before going there
+  """
+  redirectTo: String!
+}
+
+"""
+Where a signed-in client sends the browser back, and how the page names it
+"""
+type ContributeOAuthClientWhere {
+  kind: ContributeOAuthClientWhereKind!
+
+  """
+  LOOPBACK "this computer", KNOWN the client ("Claude"), SCHEME "cursor://", WEB the host
+  """
+  label: String!
+}
+
+"""
+Where a signed-in client sends the browser back: LOOPBACK an app on this computer, KNOWN a hosted client named by its exact address, SCHEME an app that opens its own links, WEB any other https host
+"""
+enum ContributeOAuthClientWhereKind {
+  KNOWN
+  LOOPBACK
+  SCHEME
+  WEB
+}
+
+"""The connection an Allow would end, past the cap of live sign-ins"""
+type ContributeOAuthReplaces {
+  name: String!
+}
+
+"""
+One sign-in of an agent to the MCP server, as the consent page shows it
+"""
+type ContributeOAuthRequest {
+  """The name the client registered (its own claim); null when EXPIRED"""
+  clientName: String
+
+  """Where the browser goes back after Allow; null when EXPIRED"""
+  clientWhere: ContributeOAuthClientWhere
+
+  """
+  The viewer may connect. A viewer off the preview gets a null contributeOAuthRequest instead, so this is false only in the rare case the lists disagree; false shows only Cancel
+  """
+  previewAllowed: Boolean!
+
+  """
+  The connection this Allow would disconnect, past the cap; null when none
+  """
+  replaces: ContributeOAuthReplaces
+
+  """This Allow reuses the viewer's connection of this client"""
+  reusesConnection: Boolean!
+  status: ContributeOAuthRequestStatus!
+  waiting: ContributeOAuthWaiting!
+}
+
+"""
+PENDING: waiting for Allow; EXPIRED: unknown, expired or already used (start again from the agent); APPROVED: Allow was pressed already
+"""
+enum ContributeOAuthRequestStatus {
+  APPROVED
+  EXPIRED
+  PENDING
+}
+
+"""
+The viewer's waiting picks: a count and up to 3 repositories, never an issue
+"""
+type ContributeOAuthWaiting {
+  count: Int!
+
+  """owner/name, at most 3"""
+  repos: [String!]!
 }
 
 """
@@ -3304,7 +3420,7 @@ type ContributeSubmitError {
   note: String!
 
   """
-  A fixed code: the write that failed (grant_revoked, submit_off, …) or ours (no_answer, …)
+  A fixed code: the write that failed (grant_revoked, org_restricted, …) or ours (no_answer, …)
   """
   reason: String!
 }
@@ -3614,6 +3730,11 @@ type Mutation {
   ): ContributeAttempt!
 
   """
+  Allow: connects the client as the viewer's agent and answers where the browser goes next. EXPIRED when the sign-in is unknown, expired or already used; NOT_FOUND when Contribute is not open for the account
+  """
+  approveContributeOAuth(requestId: String!): ContributeOAuthApproval!
+
+  """
   Posts the proof the viewer's own agent captured: its screenshots to gitranks-proof/<n> in their fork, its section into the PR's live description, then the bot's re-review command. `checked` is the viewer's tick that nothing private is left (BAD_USER_INPUT without it). CONFLICT when it is not in review, a run works on the PR, or the PR is not open
   """
   approveContributeProof(checked: Boolean!, id: ID!): ContributeProofSession!
@@ -3756,7 +3877,7 @@ type Mutation {
   revokeGithubGrant: Boolean!
 
   """
-  Revokes a token: its next call answers 401. Revoking the last one ends the claims its agent is working on. False when it was not a live token of the viewer’s
+  Revokes a token or disconnects a signed-in client: its next call answers 401. Revoking the last one ends the claims its agent is working on. False when it was not a live token of the viewer’s
   """
   revokeMcpToken(id: ID!): Boolean!
 
@@ -4056,6 +4177,16 @@ type Query {
   The limits GitRanks Contribute keeps for every repository, and the keys a repository can set in its .github/gitranks.yml
   """
   contributeMaintainerFacts: ContributeMaintainerFacts!
+
+  """
+  Agents sign in to the MCP server with OAuth: the setup lines lead with the sign-in, a token is the fallback. False while the sign-in is not open to everyone
+  """
+  contributeMcpSignIn: Boolean!
+
+  """
+  One MCP sign-in for the consent page: the client's name, where it goes back to, what Allow would do. EXPIRED when it is unknown, expired or already used. Null when hidden: signed out, or signed in and Contribute is not open for the account yet (off the preview, or no profile here)
+  """
+  contributeOAuthRequest(requestId: String!): ContributeOAuthRequest
 
   """
   Contribute is launched: open to everyone, so the landing is shown to signed-out visitors too. False during the preview

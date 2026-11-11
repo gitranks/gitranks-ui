@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   MCP_CLIENTS,
   MCP_SETUPS,
+  MCP_SIGN_IN_SETUPS,
   MCP_TOKEN_NAME_MAX,
   MCP_URL,
   mcpClientSetupOf,
   mcpOsOf,
   mcpSetupLinesOf,
+  mcpSignInSetupOf,
   mcpTokenByHandOf,
   mcpTokenCheckOf,
   mcpTokenNameOf,
@@ -160,5 +162,38 @@ describe('mcpTokenNameOf', () => {
     for (const client of MCP_CLIENTS) {
       expect(mcpTokenNameOf(client, 'windows').length).toBeLessThanOrEqual(MCP_TOKEN_NAME_MAX);
     }
+  });
+});
+
+describe('the sign-in setups', () => {
+  it('add GitRanks with no token and no header, for every client but Antigravity', () => {
+    expect(MCP_SIGN_IN_SETUPS.map(({ client }) => client)).toEqual(['claude-code', 'codex', 'cursor', 'gemini-cli']);
+    expect(mcpSignInSetupOf('antigravity', 'mac')).toBeNull();
+    for (const os of ['mac', 'linux', 'windows'] as const) {
+      for (const client of MCP_CLIENTS) {
+        const setup = mcpSignInSetupOf(client, os);
+        if (!setup) continue;
+        expect(setup.lines, `${client} ${os}`).toContain(MCP_URL);
+        expect(setup.lines, `${client} ${os}`).not.toMatch(/Authorization|Bearer|GITRANKS_MCP_TOKEN|header/i);
+        expect(setup.where, `${client} ${os}`).toContain('your browser opens GitRanks');
+        expect(setup.check.length, `${client} ${os}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('gives each client the line its own docs name', () => {
+    expect(mcpSignInSetupOf('claude-code', 'mac')?.lines).toBe(
+      `claude mcp add --scope user --transport http gitranks ${MCP_URL}`,
+    );
+    expect(mcpSignInSetupOf('claude-code', 'mac')?.where).toContain('/mcp');
+    expect(mcpSignInSetupOf('codex', 'mac')?.lines).toBe(
+      `codex mcp add gitranks --url ${MCP_URL}\ncodex mcp login gitranks`,
+    );
+    expect(JSON.parse(mcpSignInSetupOf('cursor', 'mac')?.lines ?? '{}')).toEqual({
+      mcpServers: { gitranks: { url: MCP_URL } },
+    });
+    expect(mcpSignInSetupOf('cursor', 'windows')?.label).toBe('%USERPROFILE%\\.cursor\\mcp.json');
+    expect(mcpSignInSetupOf('gemini-cli', 'mac')?.lines).toBe(`gemini mcp add --transport http gitranks ${MCP_URL}`);
+    expect(mcpSignInSetupOf('gemini-cli', 'mac')?.where).toContain('/mcp auth gitranks');
   });
 });

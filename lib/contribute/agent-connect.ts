@@ -43,11 +43,11 @@ export function forgetWelcomeOf(href: string): string | null {
 }
 
 /**
- * The live token a user who left mid-setup comes back to: the newest one their agent has not used. Making a new one
- * replaces it.
+ * The live token a user who left mid-setup comes back to: the newest one their agent has not used (an agent that signed
+ * in is not one). Making a new one replaces it.
  */
 export const unusedTokenOf = (tokens: ContributeMcpToken[] | undefined): ContributeMcpToken | undefined =>
-  tokens?.findLast((token) => !token.lastUsedAt);
+  tokens?.findLast((token) => !token.lastUsedAt && token.kind !== 'OAUTH');
 
 /**
  * Whether the agent has called, from what the page asked: the onboarded stamp for a user not onboarded before, else

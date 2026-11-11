@@ -200,7 +200,9 @@ describe('Settings, what to work on', () => {
   it('explains both sets of rules in their dialog', () => {
     const plain = text(renderToStaticMarkup(<RulesContent />));
 
-    expect(plain).toContain('Repos from your stack: someone on the project committed or merged a PR in the last 90 days');
+    expect(plain).toContain(
+      'Repos from your stack: someone on the project committed or merged a PR in the last 90 days',
+    );
     expect(plain).not.toContain('At least one PR from outside the team merged in 90 days');
     expect(plain).toContain('A dependency file GitHub can read');
     expect(plain).toContain('A commit in the last 12 months');

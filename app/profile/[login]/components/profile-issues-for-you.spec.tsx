@@ -1,10 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-const { useSession } = vi.hoisted(() => ({ useSession: vi.fn() }));
-vi.mock('next-auth/react', () => ({ useSession }));
-
-const { ProfileIssuesBlock, ProfileIssuesForYou } = await import('./profile-issues-for-you');
+const { ProfileIssuesBlock } = await import('./profile-issues-for-you');
 const { isProfileOwner, profileIssuesUrl } = await import('@/lib/contribute/profile-issues');
 
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
@@ -43,13 +40,6 @@ describe('the profile block "Issues for you"', () => {
     expect(html).toContain('Rust');
     expect(html).not.toContain('Skip');
     expect(html).not.toContain('Why:');
-  });
-
-  it('renders nothing before the issues arrive, for the owner or anyone else', () => {
-    for (const data of [null, { user: { githubLogin: 'octocat' } }, { user: { githubLogin: 'someone' } }]) {
-      useSession.mockReturnValue({ data });
-      expect(renderToStaticMarkup(<ProfileIssuesForYou login="octocat" />)).toBe('');
-    }
   });
 });
 

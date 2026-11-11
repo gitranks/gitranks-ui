@@ -16,7 +16,7 @@ import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { OwnProjectsCard } from './overview-cards/own-projects-card';
 import { MoreLink, ProfileSection } from './profile-card';
-import { ProfileIssuesForYou } from './profile-issues-for-you';
+import { ProfileContribute } from './profile-contribute';
 import { ProfileSummary } from './profile-summary';
 import { RankHistoryTable } from './rank-history-table';
 import { StarsReviewNote } from './stars-review-note';
@@ -24,6 +24,7 @@ import type { UserFacts } from '@/badge/v3/facts';
 import { BadgesCard } from '@/components/badges-card/badges-card';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import type { ProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
+import { profileLanguageOf } from '@/lib/contribute/profile-picks';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { countryInSentence } from '@/utils/country-in-sentence';
 
@@ -95,8 +96,9 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, badgeFacts, 
       <div className="flex flex-col gap-4">
         <h2 className="sr-only">Profile overview</h2>
         <StarsReviewNote login={login} starsReview={starsReview} />
-        {/* The owner's own block, read in the browser after the cached page loads: nothing for anyone else. */}
-        <ProfileIssuesForYou login={login} />
+        {/* GitRanks Contribute, chosen in the browser after the cached page loads: the visitor's picks of the profile's
+            language, or the owner's own (their Issues for you once they contribute). */}
+        <ProfileContribute login={login} language={profileLanguageOf(sLangs, cLangs)} />
 
         <OverviewCardsContainer>
           <ProfileRankCard

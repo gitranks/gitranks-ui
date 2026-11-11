@@ -1,44 +1,9 @@
-'use client';
-
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
 
 import { IssueCardCompact } from '@/app/contribute/components/issue-card-compact';
 import { contributeSource } from '@/lib/contribute/click-tracking';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
-import { PROFILE_ISSUES_MAX, type ProfileIssuesAnswer, profileIssuesUrl } from '@/lib/contribute/profile-issues';
-import { loginFromPath } from '@/utils/login-from-path';
-
-/**
- * "Issues for you", on the signed-in owner's own profile. The page is cached for everyone, so the session is read here,
- * in the browser, and the issues asked for only by the owner, after the page has loaded: nobody else waits for them
- * or asks. Nothing renders until there are issues to show.
- */
-export function ProfileIssuesForYou({ login }: { login: string }) {
-  const { data: session } = useSession();
-  const viewer = session && !session.error ? session.user?.githubLogin : undefined;
-  const url = profileIssuesUrl(viewer, loginFromPath(login));
-  const [issues, setIssues] = useState<ContributeIssue[]>([]);
-
-  useEffect(() => {
-    setIssues([]);
-    if (!url) return;
-
-    let live = true;
-    fetch(url)
-      .then((res) => (res.ok ? (res.json() as Promise<Partial<ProfileIssuesAnswer>>) : null))
-      .then((data) => {
-        if (live && Array.isArray(data?.issues)) setIssues(data.issues);
-      })
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [url]);
-
-  return <ProfileIssuesBlock issues={issues} />;
-}
+import { PROFILE_ISSUES_MAX } from '@/lib/contribute/profile-issues';
 
 /** The block itself: up to three compact cards and the way to the rest; nothing at all without issues. */
 export function ProfileIssuesBlock({ issues }: { issues: ContributeIssue[] }) {

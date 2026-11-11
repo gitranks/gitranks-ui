@@ -23,12 +23,6 @@ export function firstRunCopyOf(step: FirstRunStep, view: ContributeView, now = n
       const notice = noticeCopyOf({ kind: 'suspended' });
       return { when: 'not for now', title: notice.title, text: notice.text };
     }
-    case 'closed':
-      return {
-        when: 'when Contribute opens',
-        title: 'Your agent will start on one of your top picks when Contribute opens',
-        text: 'Attempts are switched off during the preview. Your picks are ready, and we start the moment they open.',
-      };
     case 'paused':
       return {
         when: 'paused by you',

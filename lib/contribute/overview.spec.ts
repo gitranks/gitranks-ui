@@ -34,7 +34,6 @@ describe('rightNowOf', () => {
 
   it("holds the view's own blocks before anything the scheduler counts", () => {
     const counts = { inFlight: [], scheduleCounts: { prBound: 9, queued: 0 } };
-    expect(hostedOf({ ...views.active, attemptsOpen: false }, counts)?.kind).toBe('closed');
     expect(hostedOf(views.paused, counts)?.kind).toBe('paused');
     expect(hostedOf(views.keyInvalid, counts)?.kind).toBe('key-invalid');
     expect(hostedOf(views.exhausted, counts)).toEqual({

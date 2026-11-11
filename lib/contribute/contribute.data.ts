@@ -29,7 +29,6 @@ import {
   ContributeAttemptsInOwnAgentDocument,
   ContributeAttemptsInReviewAtDocument,
   ContributeAttemptsMovesDocument,
-  ContributeAttemptsOpenDocument,
   ContributeAttemptsOwnAgentDocument,
   ContributeAutopilotDocument,
   ContributeAutopilotNoticeDocument,
@@ -174,18 +173,16 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   await loadContributeVersion();
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [overview, grant, paused, autopilot, autopilotNotice, ownAgent, onboarding, attemptsOpen, limits] =
-    await Promise.allSettled([
-      graphqlDirect(ContributeOverviewDocument, undefined, options),
-      graphqlDirect(ContributeGrantDocument, undefined, options),
-      graphqlDirect(ContributePausedDocument, undefined, options),
-      graphqlDirect(ContributeAutopilotDocument, undefined, options),
-      graphqlDirect(ContributeAutopilotNoticeDocument, undefined, options),
-      graphqlDirect(ContributeOwnAgentDocument, undefined, options),
-      graphqlDirect(ContributeOnboardingDocument, undefined, options),
-      graphqlDirect(ContributeAttemptsOpenDocument, undefined, options),
-      graphqlDirect(ContributeLimitsDocument, undefined, options),
-    ]);
+  const [overview, grant, paused, autopilot, autopilotNotice, ownAgent, onboarding, limits] = await Promise.allSettled([
+    graphqlDirect(ContributeOverviewDocument, undefined, options),
+    graphqlDirect(ContributeGrantDocument, undefined, options),
+    graphqlDirect(ContributePausedDocument, undefined, options),
+    graphqlDirect(ContributeAutopilotDocument, undefined, options),
+    graphqlDirect(ContributeAutopilotNoticeDocument, undefined, options),
+    graphqlDirect(ContributeOwnAgentDocument, undefined, options),
+    graphqlDirect(ContributeOnboardingDocument, undefined, options),
+    graphqlDirect(ContributeLimitsDocument, undefined, options),
+  ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
   const { contribute } = overview.value;
@@ -193,7 +190,6 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
 
   const pausedField = settled(paused)?.contribute?.contributor?.paused;
   const onboardingFields = settled(onboarding)?.contribute;
-  const attemptsOpenField = settled(attemptsOpen)?.contribute?.attemptsOpen;
   const limitsField = limitsOf(settled(limits)?.contribute?.contributor?.limits);
   const { contributor } = contribute;
   const withAutopilot = contributor?.autopilot
@@ -217,7 +213,6 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
     paused: typeof pausedField === 'boolean' ? pausedField : undefined,
     grantAvailable: isGrantAvailable(),
     ownAgent: ownAgentOf(settled(ownAgent)?.contribute),
-    ...(typeof attemptsOpenField === 'boolean' ? { attemptsOpen: attemptsOpenField } : {}),
   };
 });
 

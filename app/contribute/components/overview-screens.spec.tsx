@@ -260,11 +260,6 @@ describe('Right now', () => {
 
   it.each([
     [
-      'closed',
-      { ...views.active, attemptsOpen: false },
-      "Waiting Contribute isn't open yet Your agent starts on one of your top picks when Contribute opens.",
-    ],
-    [
       'paused',
       views.paused,
       'Paused Contributing is paused No attempt starts until you resume. Your picks and settings are kept. Resume contributing',

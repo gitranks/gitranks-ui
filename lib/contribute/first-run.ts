@@ -27,8 +27,6 @@ export const isAgentFirstRun = (view: ContributeView, attempts: ContributeAttemp
 export type FirstRunStep =
   /** Contribute is paused for this account by its access level: nothing starts. */
   | { kind: 'suspended' }
-  /** Attempts are not open yet. */
-  | { kind: 'closed' }
   /** The user paused contributing. */
   | { kind: 'paused' }
   /** Anthropic refuses the stored key: nothing starts until a new one is connected. */
@@ -55,7 +53,6 @@ export function firstRunStepOf(
   now = new Date(),
 ): FirstRunStep {
   if (isSuspended(view)) return { kind: 'suspended' };
-  if (view.attemptsOpen === false) return { kind: 'closed' };
   if (isPaused(view)) return { kind: 'paused' };
 
   const key = claudeKeyOf(view);
@@ -75,8 +72,8 @@ export function firstRunStepOf(
 }
 
 /**
- * Step 1 of the own agent's guide (B2): what holds its first claim. Only the user's pause does: attempts closed and a
- * key's state hold the agent we run, not theirs, so those notices stay beside the guide.
+ * Step 1 of the own agent's guide (B2): what holds its first claim. Only the user's pause does: a key's state holds the
+ * agent we run, not theirs, so those notices stay beside the guide.
  */
 export const agentFirstRunStepOf = (view: ContributeView): Extract<FirstRunStep, { kind: 'paused' | 'soon' }> =>
   isPaused(view) ? { kind: 'paused' } : { kind: 'soon' };
@@ -99,7 +96,7 @@ function restatedNoticeOf(step: FirstRunStep): ContributeNotice['kind'] | null {
 
 /**
  * The notices beside the guide: all of them but the one its step 1 restates. Step 1 shows only the first state that
- * holds, so every other block (a pause beside a used-up key, either while attempts are closed) stays said above it.
+ * holds, so every other block (a pause beside a used-up key) stays said above it.
  */
 export const firstRunNoticesOf = (notices: ContributeNotice[], step: FirstRunStep): ContributeNotice[] => {
   const restated = restatedNoticeOf(step);

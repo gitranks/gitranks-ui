@@ -181,11 +181,6 @@ describe('A3, what happens next before the first attempt', () => {
   });
 
   it.each([
-    [
-      'closed',
-      { ...views.firstKey, attemptsOpen: false },
-      'Your agent will start on one of your top picks when Contribute opens',
-    ],
     ['paused', { ...withContributor({ status: 'PAUSED' }), paused: true }, 'Contributing is paused'],
     [
       'key-waiting',
@@ -292,26 +287,6 @@ describe('A3, what happens next before the first attempt', () => {
       expect(both).toContain('data-first-run="paused"');
       expect(both).toContain('data-notice="exhausted"');
       expect(both).not.toContain('data-notice="paused"');
-
-      // Attempts closed: step 1 says so, and every block is still said above it.
-      const closed = render({
-        ...views.firstKey,
-        contributor: { ...paused, ...exhausted },
-        paused: true,
-        attemptsOpen: false,
-      });
-      expect(closed).toContain('data-first-run="closed"');
-      expect(closed).toContain('data-notice="paused"');
-      expect(closed).toContain('data-notice="exhausted"');
-      const limit = render({
-        ...views.firstKey,
-        contributor: {
-          ...views.firstKey.contributor,
-          credentials: [key({ state: 'LIMIT_REACHED', blockedUntil: null })],
-        },
-        attemptsOpen: false,
-      });
-      expect(limit).toContain('data-notice="limit-reached"');
     }
   });
 

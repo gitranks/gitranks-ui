@@ -132,8 +132,8 @@ export const CLAUDE_APP_DOC: McpDocClient = {
 };
 
 /**
- * Whether the docs show the plugin for Claude Code and the extension for Gemini CLI. Off until the plugin's repository
- * is public: before that, its install commands fail for everyone else. Flip to true once it is.
+ * Whether the docs show the plugin for Claude Code and the extension for Gemini CLI. Off until the plugin is published:
+ * before that, its install commands fail. Flip to true once it is.
  */
 export const MCP_PLUGIN_DOCS_SHOWN = false;
 
@@ -207,7 +207,7 @@ export const MCP_DOC_MORE_CLIENTS: readonly McpDocClient[] = [
   {
     id: 'kiro',
     name: 'Kiro',
-    where: `Use Add to Kiro, or add this to Kiro's MCP file (.kiro/settings/mcp.json in a workspace). Kiro signs in when it connects: ${ALLOW}`,
+    where: `Use the Kiro install link, or add this to Kiro's MCP file (.kiro/settings/mcp.json in a workspace). Kiro signs in when it connects: ${ALLOW}`,
     label: '~/.kiro/settings/mcp.json',
     file: true,
     lines: JSON.stringify({ mcpServers: { gitranks: { url: MCP_URL } } }, null, 2),

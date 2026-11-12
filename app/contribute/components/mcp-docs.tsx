@@ -1,8 +1,9 @@
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, ChevronRight } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 
 import { CodeBlock } from './code-block';
+import { OpenOnHash } from './open-on-hash';
 import { Pill } from './primitives';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
 import { Button } from '@/components/ui/button';
@@ -95,6 +96,7 @@ function InstallButton({ link }: { link: McpInstallLink }) {
       <a href={link.href} target="_blank" rel="noopener noreferrer">
         {link.label}
         <ArrowUpRight aria-hidden="true" />
+        <span className="sr-only"> (opens in a new tab)</span>
       </a>
     </Button>
   );
@@ -368,7 +370,7 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
           </ul>
           <div className="flex flex-col gap-3 rounded-xl bg-muted/50 p-4" data-install-links>
             <p className="text-sm">
-              In one click for {INSTALL_LINK_NAMES}: each opens the app, which asks you to confirm before it adds
+              In one click for {INSTALL_LINK_NAMES}: each opens the client, which asks you to confirm before it adds
               GitRanks. Then sign in as its setup below says.
             </p>
             <ul className="flex flex-wrap gap-2">
@@ -382,8 +384,12 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
           {CLIENTS.map((client) => (
             <DocClient key={client.id} client={client} plugin={plugin} />
           ))}
-          <details id="more-clients" className="scroll-mt-6" data-more-clients>
-            <summary className="flex cursor-pointer items-center text-base font-semibold hover:text-link max-sm:min-h-11">
+          <details id="more-clients" className="group scroll-mt-6" data-more-clients>
+            <summary className="flex cursor-pointer items-center gap-1.5 text-base font-semibold hover:text-link max-sm:min-h-11">
+              <ChevronRight
+                aria-hidden="true"
+                className="size-4 flex-none transition-transform group-open:rotate-90 motion-reduce:transition-none"
+              />
               More clients: {MORE_CLIENT_NAMES}
             </summary>
             <div className="mt-3 flex flex-col gap-4">
@@ -392,6 +398,7 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
               ))}
             </div>
           </details>
+          <OpenOnHash id="more-clients" />
           <div id="other" className="flex scroll-mt-6 flex-col gap-2">
             <h3 className="text-base font-semibold">Other clients</h3>
             <p className="text-sm text-muted-foreground">

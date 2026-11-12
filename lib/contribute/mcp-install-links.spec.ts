@@ -16,8 +16,17 @@ describe('the MCP install links', () => {
   });
 
   it('are built from the server URL, and say what they do', () => {
-    const other = mcpInstallLinksOf('https://example.test/mcp');
-    expect(other.every(({ href }) => !href.includes('mcp.gitranks.com'))).toBe(true);
+    const url = 'https://example.test/mcp';
+    const configs = Object.fromEntries(
+      mcpInstallLinksOf(url).map(({ client, href }) => {
+        const query = new URL(href).searchParams;
+        return [client, query.get('connectorUrl') ?? query.get('config')];
+      }),
+    );
+    expect(configs['claude-app']).toBe(url);
+    expect(JSON.parse(atob(configs.cursor ?? ''))).toEqual({ url });
+    expect(JSON.parse(configs['vs-code'] ?? '')).toEqual({ type: 'http', url });
+    expect(JSON.parse(configs.kiro ?? '')).toEqual({ url });
     expect(MCP_INSTALL_LINKS.map(({ label }) => label)).toEqual([
       'Add to Claude',
       'Add to Cursor',

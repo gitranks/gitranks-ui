@@ -16,7 +16,7 @@ import {
   type McpDocPlugin,
   TOKEN_PLACEHOLDER,
 } from './mcp-docs';
-import { MCP_INSTALL_LINKS } from './mcp-install-links';
+import { MCP_INSTALL_LINKS, type McpInstallClient } from './mcp-install-links';
 
 const SITE = 'https://gitranks.com';
 
@@ -53,7 +53,7 @@ function pluginBlock(plugin: McpDocPlugin): string[] {
 }
 
 /** What each install link opens, by client id. */
-const INSTALL_LINK_NAMES: Record<string, string> = {
+const INSTALL_LINK_NAMES: Record<McpInstallClient, string> = {
   'claude-app': 'claude.ai and Claude Desktop',
   cursor: 'Cursor',
   'vs-code': 'VS Code',
@@ -129,7 +129,7 @@ export function agentsDocOf(
 
   lines.push('## Connect', '');
   lines.push(
-    "Install links, for your person to open: each opens the app, which asks them to confirm before it adds GitRanks. Then sign in as the client's block below says.",
+    "Install links, for your person to open: each opens the client, which asks them to confirm before it adds GitRanks. Then sign in as the client's block below says.",
     '',
   );
   for (const link of MCP_INSTALL_LINKS) lines.push(`- ${INSTALL_LINK_NAMES[link.client]}: ${link.href}`);
@@ -149,7 +149,7 @@ export function agentsDocOf(
   lines.push(
     '### Other clients',
     '',
-    `Any client that speaks Streamable HTTP and supports MCP sign-in: ${MCP_URL}, no header. A client that runs local servers only can use the mcp-remote bridge as its command; it opens the sign-in in the browser the first time:`,
+    `Any client that speaks Streamable HTTP and supports MCP sign-in: ${MCP_URL}, no header. A client that can only send a header uses a token: see Connect with a token. A client that runs local servers only can use the mcp-remote bridge as its command; it opens the sign-in in the browser the first time:`,
     '',
     fence(MCP_REMOTE_BRIDGE),
     '',
@@ -158,6 +158,10 @@ export function agentsDocOf(
   lines.push(`Where a block says ${TOKEN_PLACEHOLDER}, use your person's token. Save it in the environment first:`, '');
   for (const save of MCP_DOC_SAVES) lines.push(`${save.name} (${save.shell}):`, '', fence(save.line), '');
   for (const client of MCP_DOC_CLIENTS) lines.push(...clientBlock(client));
+  lines.push(
+    `Any other client that sends a header: \`Authorization: Bearer ${TOKEN_PLACEHOLDER}\`, or \`X-GitRanks-Token: ${TOKEN_PLACEHOLDER}\` where \`Authorization\` is taken.`,
+    '',
+  );
 
   lines.push('## The tools, in the order you use them', '');
   for (const tool of MCP_DOC_TOOLS) lines.push(`- \`${tool.name}\`: ${tool.text}`);

@@ -6,7 +6,7 @@ import { AGENTS_DOC_PATH } from '@/lib/contribute/contribute-path';
 export const metadata: Metadata = {
   title: 'MCP server',
   description:
-    'Connect Claude Code, Codex, Cursor, Gemini CLI, VS Code, claude.ai or Antigravity to GitRanks Contribute: sign in with GitHub or use a token, the tools, limits and what is sent.',
+    'Connect Claude Code, Codex, Cursor, Gemini CLI, VS Code, claude.ai, Kiro and more to GitRanks Contribute: one-click links, sign in with GitHub or use a token, the tools, limits and what is sent.',
   // The same for agents, in markdown.
   alternates: { types: { 'text/markdown': AGENTS_DOC_PATH } },
 };

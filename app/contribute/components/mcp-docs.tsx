@@ -1,9 +1,11 @@
+import { ArrowUpRight } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 
 import { CodeBlock } from './code-block';
 import { Pill } from './primitives';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
+import { Button } from '@/components/ui/button';
 import { ABOUT_PATH, AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import {
   EXAMPLE_BRIEF,
@@ -15,16 +17,23 @@ import {
   CLAUDE_APP_DOC,
   MCP_DOC_CLIENTS,
   MCP_DOC_LIMITS,
+  MCP_DOC_MORE_CLIENTS,
+  MCP_DOC_PLUGINS,
   MCP_DOC_SAVES,
   MCP_DOC_SIGN_INS,
   MCP_DOC_TOOLS,
+  MCP_PLUGIN_DOCS_SHOWN,
+  MCP_REMOTE_BRIDGE,
   MCP_TOKEN_ENV,
   MCP_TOKENS_MAX,
   MCP_URL,
   type McpDocClient,
+  type McpDocPlugin,
   type McpDocSignIn,
+  OR_INSTALL_THE_PLUGIN,
   TOKEN_PLACEHOLDER,
 } from '@/lib/contribute/mcp-docs';
+import { MCP_INSTALL_LINKS, type McpInstallLink, mcpInstallLinkOf } from '@/lib/contribute/mcp-install-links';
 import { USE_A_TOKEN_INSTEAD } from '@/lib/contribute/mcp-setup';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
@@ -79,18 +88,61 @@ function DocSetup({ name, setup }: { name: string; setup: McpDocSignIn }) {
   );
 }
 
+/** A client's install link as our own button: it opens the client, which asks to confirm before it adds anything. */
+function InstallButton({ link }: { link: McpInstallLink }) {
+  return (
+    <Button asChild variant="outline" className="min-h-11 self-start px-4 font-semibold sm:min-h-9" data-install-link>
+      <a href={link.href} target="_blank" rel="noopener noreferrer">
+        {link.label}
+        <ArrowUpRight aria-hidden="true" />
+      </a>
+    </Button>
+  );
+}
+
+/** The plugin's install for a client, in a fold under its setup. */
+function DocPlugin({ name, plugin }: { name: string; plugin: McpDocPlugin }) {
+  return (
+    <details className="text-sm" data-plugin>
+      <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
+        {OR_INSTALL_THE_PLUGIN}
+      </summary>
+      <div className="mt-2 flex flex-col gap-2">
+        <p className="text-muted-foreground">{plugin.where}</p>
+        <CodeBlock label={plugin.label} copyLabel={`Copy the ${name} plugin install`}>
+          {plugin.lines}
+        </CodeBlock>
+        {plugin.older ? (
+          <>
+            <p className="text-muted-foreground">{plugin.older.where}</p>
+            <CodeBlock label={plugin.label} copyLabel={`Copy the ${name} plugin install for older versions`}>
+              {plugin.older.lines}
+            </CodeBlock>
+          </>
+        ) : null}
+        <p className="text-muted-foreground">{plugin.after}</p>
+      </div>
+    </details>
+  );
+}
+
 /**
- * A client's setup on the docs: its sign-in first and the token setup in a fold under it; a client that can't sign in
- * (Antigravity) keeps the token, and one that can only sign in (claude.ai) has no fold.
+ * A client's setup on the docs: its install link, its sign-in, the plugin where it has one (and `plugin`), and the
+ * token setup in a fold under it; a client that can't sign in (Antigravity) keeps the token, and one that can only
+ * sign in (claude.ai) has no fold.
  */
-function DocClient({ client }: { client: McpDocClient }) {
+function DocClient({ client, plugin }: { client: McpDocClient; plugin: boolean }) {
   const viaSignIn = MCP_DOC_SIGN_INS[client.id];
+  const link = mcpInstallLinkOf(client.id);
+  const viaPlugin = plugin ? MCP_DOC_PLUGINS[client.id] : undefined;
   return (
     <div id={client.id} className="flex scroll-mt-6 flex-col gap-2">
       <h3 className="text-base font-semibold">{client.name}</h3>
+      {link ? <InstallButton link={link} /> : null}
       {viaSignIn ? (
         <>
           <DocSetup name={client.name} setup={viaSignIn} />
+          {viaPlugin ? <DocPlugin name={client.name} plugin={viaPlugin} /> : null}
           <details className="text-sm" data-token-fold>
             <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
               {USE_A_TOKEN_INSTEAD}
@@ -197,11 +249,35 @@ const LANDING_WAYS_PATH = `${ABOUT_PATH}#ways` as Route;
 /** The clients the docs list: the connect flow's, then claude.ai (which can only sign in), then VS Code. */
 const CLIENTS = [...MCP_DOC_CLIENTS.slice(0, -1), CLAUDE_APP_DOC, ...MCP_DOC_CLIENTS.slice(-1)];
 
+/** A client from "More clients": sign-in only, its install link where it has one. */
+function MoreClient({ client }: { client: McpDocClient }) {
+  const link = mcpInstallLinkOf(client.id);
+  return (
+    <div id={client.id} className="flex scroll-mt-6 flex-col gap-2">
+      <h3 className="text-base font-semibold">{client.name}</h3>
+      {link ? <InstallButton link={link} /> : null}
+      <DocSetup name={client.name} setup={client} />
+    </div>
+  );
+}
+
+const CHIP = 'inline-flex min-h-9 items-center rounded-md border px-3 text-sm hover:bg-muted max-sm:min-h-11';
+
+/** Names as a sentence: "A, B and C". */
+const andList = (names: string[]) => `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+
+/** The names in "More clients", for its summary. */
+const MORE_CLIENT_NAMES = andList(MCP_DOC_MORE_CLIENTS.map(({ name }) => name));
+
+/** The install links' clients, by name: "Claude, Cursor, VS Code and Kiro". */
+const INSTALL_LINK_NAMES = andList(MCP_INSTALL_LINKS.map(({ label }) => label.replace(/^Add to /, '')));
+
 /**
  * The public docs of the MCP server: setup per client, the tools, the sign-in and the token, the limits and what
  * reaches us. Agents sign in with GitHub, so each client's sign-in comes first and its token setup sits in a fold.
+ * `plugin`: show the plugin installs (`MCP_PLUGIN_DOCS_SHOWN`, off until the plugin's repository is public).
  */
-export function McpDocsScreen() {
+export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boolean } = {}) {
   return (
     <main className="mx-auto w-full max-w-7xl px-4 flex flex-col gap-9 pt-10 pb-16">
       <PublicPageHead eyebrow="Contribute · MCP server" title="Connect your own agent to GitRanks">
@@ -209,8 +285,8 @@ export function McpDocsScreen() {
           Your coding agent finds open-source issues that fit your skills, works on one on your machine and hands the
           change back through our MCP server. You review every pull request on GitRanks before it opens in your name.
           Your agent signs in with your GitHub account, and you allow it on GitRanks. Works with Claude Code, Codex,
-          Cursor, Gemini CLI, VS Code, claude.ai, Claude Desktop, Antigravity and any client that can sign in to an MCP
-          server or send a header.
+          Cursor, Gemini CLI, VS Code, claude.ai, Claude Desktop, Antigravity, Copilot CLI, Kiro, Zed and any client
+          that can sign in to an MCP server or send a header.
         </p>
         <p className="text-sm text-muted-foreground">
           For AI agents: the same in markdown at{' '}
@@ -274,26 +350,48 @@ export function McpDocsScreen() {
           <ul className="flex flex-wrap gap-1.5">
             {CLIENTS.map(({ id, name }) => (
               <li key={id}>
-                <a
-                  href={`#${id}`}
-                  className="inline-flex min-h-9 items-center rounded-md border px-3 text-sm hover:bg-muted max-sm:min-h-11"
-                >
+                <a href={`#${id}`} className={CHIP}>
                   {name}
                 </a>
               </li>
             ))}
             <li>
-              <a
-                href="#other"
-                className="inline-flex min-h-9 items-center rounded-md border px-3 text-sm hover:bg-muted max-sm:min-h-11"
-              >
+              <a href="#more-clients" className={CHIP}>
+                More clients
+              </a>
+            </li>
+            <li>
+              <a href="#other" className={CHIP}>
                 Other clients
               </a>
             </li>
           </ul>
+          <div className="flex flex-col gap-3 rounded-xl bg-muted/50 p-4" data-install-links>
+            <p className="text-sm">
+              In one click for {INSTALL_LINK_NAMES}: each opens the app, which asks you to confirm before it adds
+              GitRanks. Then sign in as its setup below says.
+            </p>
+            <ul className="flex flex-wrap gap-2">
+              {MCP_INSTALL_LINKS.map((link) => (
+                <li key={link.client} className="flex">
+                  <InstallButton link={link} />
+                </li>
+              ))}
+            </ul>
+          </div>
           {CLIENTS.map((client) => (
-            <DocClient key={client.id} client={client} />
+            <DocClient key={client.id} client={client} plugin={plugin} />
           ))}
+          <details id="more-clients" className="scroll-mt-6" data-more-clients>
+            <summary className="flex cursor-pointer items-center text-base font-semibold hover:text-link max-sm:min-h-11">
+              More clients: {MORE_CLIENT_NAMES}
+            </summary>
+            <div className="mt-3 flex flex-col gap-4">
+              {MCP_DOC_MORE_CLIENTS.map((client) => (
+                <MoreClient key={client.id} client={client} />
+              ))}
+            </div>
+          </details>
           <div id="other" className="flex scroll-mt-6 flex-col gap-2">
             <h3 className="text-base font-semibold">Other clients</h3>
             <p className="text-sm text-muted-foreground">
@@ -305,6 +403,13 @@ export function McpDocsScreen() {
               does <code className="font-mono">X-GitRanks-Token: {TOKEN_PLACEHOLDER}</code> where{' '}
               <code className="font-mono">Authorization</code> is taken by something else.
             </p>
+            <p className="text-sm text-muted-foreground">
+              A client that runs local servers only can reach GitRanks through the mcp-remote bridge: make this its
+              command. Your browser opens GitRanks the first time, where you allow it.
+            </p>
+            <CodeBlock label="Command" copyLabel="Copy the mcp-remote command">
+              {MCP_REMOTE_BRIDGE}
+            </CodeBlock>
           </div>
         </DocSection>
 

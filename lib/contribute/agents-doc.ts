@@ -3,16 +3,22 @@ import {
   CLAUDE_APP_DOC,
   MCP_DOC_CLIENTS,
   MCP_DOC_LIMITS,
+  MCP_DOC_MORE_CLIENTS,
+  MCP_DOC_PLUGINS,
   MCP_DOC_SAVES,
   MCP_DOC_SIGN_INS,
   MCP_DOC_TOOLS,
+  MCP_PLUGIN_DOCS_SHOWN,
+  MCP_PLUGIN_REPO_URL,
+  MCP_REMOTE_BRIDGE,
   MCP_URL,
   type McpDocClient,
+  type McpDocPlugin,
   TOKEN_PLACEHOLDER,
 } from './mcp-docs';
+import { MCP_INSTALL_LINKS } from './mcp-install-links';
 
 const SITE = 'https://gitranks.com';
-const PLUGIN_REPO = 'https://github.com/gitranks/contribute';
 
 const fence = (lines: string, lang = '') => `\`\`\`${lang}\n${lines}\n\`\`\``;
 
@@ -39,6 +45,21 @@ function clientBlock(client: McpDocClient): string[] {
   return [...out, ''];
 }
 
+/** A client's plugin install, under its setup. */
+function pluginBlock(plugin: McpDocPlugin): string[] {
+  const out = [`Or install the plugin. ${plugin.where}`, '', fence(plugin.lines)];
+  if (plugin.older) out.push('', plugin.older.where, '', fence(plugin.older.lines));
+  return [...out, '', plugin.after, ''];
+}
+
+/** What each install link opens, by client id. */
+const INSTALL_LINK_NAMES: Record<string, string> = {
+  'claude-app': 'claude.ai and Claude Desktop',
+  cursor: 'Cursor',
+  'vs-code': 'VS Code',
+  kiro: 'Kiro',
+};
+
 /** The page's one human step: the person allows the agent's sign-in in the browser. */
 const HUMAN_STEP = [
   "You can't do this part yourself: your person signs in to GitRanks with GitHub and approves every pull request there.",
@@ -54,7 +75,10 @@ const HUMAN_STEP = [
  * null when its read failed: the numbers and the sample are then left out. Agents sign in with GitHub: each client's
  * sign-in comes first, then the token setup for a client that can't.
  */
-export function agentsDocOf(page: AgentPage | null): string {
+export function agentsDocOf(
+  page: AgentPage | null,
+  { plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boolean } = {},
+): string {
   const lines: string[] = [
     '# GitRanks Contribute, for AI agents',
     '',
@@ -104,14 +128,32 @@ export function agentsDocOf(page: AgentPage | null): string {
   lines.push('## The one human step', '', ...HUMAN_STEP, '');
 
   lines.push('## Connect', '');
+  lines.push(
+    "Install links, for your person to open: each opens the app, which asks them to confirm before it adds GitRanks. Then sign in as the client's block below says.",
+    '',
+  );
+  for (const link of MCP_INSTALL_LINKS) lines.push(`- ${INSTALL_LINK_NAMES[link.client]}: ${link.href}`);
+  lines.push('');
   // As the docs page lists them: each client's sign-in, claude.ai and Claude Desktop among them, then the tokens.
   const clients = [...MCP_DOC_CLIENTS.slice(0, -1), CLAUDE_APP_DOC, ...MCP_DOC_CLIENTS.slice(-1)];
   for (const client of clients) {
     const signInSetup = MCP_DOC_SIGN_INS[client.id];
-    if (signInSetup) lines.push(...clientBlock({ ...client, ...signInSetup }));
-    else if (client.id === CLAUDE_APP_DOC.id) lines.push(...clientBlock(client));
+    if (signInSetup) {
+      lines.push(...clientBlock({ ...client, ...signInSetup }));
+      const viaPlugin = plugin ? MCP_DOC_PLUGINS[client.id] : undefined;
+      if (viaPlugin) lines.push(...pluginBlock(viaPlugin));
+    } else if (client.id === CLAUDE_APP_DOC.id) lines.push(...clientBlock(client));
     else lines.push(`### ${client.name}`, '', "Can't sign in yet: see Connect with a token.", '');
   }
+  for (const client of MCP_DOC_MORE_CLIENTS) lines.push(...clientBlock(client));
+  lines.push(
+    '### Other clients',
+    '',
+    `Any client that speaks Streamable HTTP and supports MCP sign-in: ${MCP_URL}, no header. A client that runs local servers only can use the mcp-remote bridge as its command; it opens the sign-in in the browser the first time:`,
+    '',
+    fence(MCP_REMOTE_BRIDGE),
+    '',
+  );
   lines.push('## Connect with a token', '', 'For a client that cannot sign in (Antigravity), or a script.', '');
   lines.push(`Where a block says ${TOKEN_PLACEHOLDER}, use your person's token. Save it in the environment first:`, '');
   for (const save of MCP_DOC_SAVES) lines.push(`${save.name} (${save.shell}):`, '', fence(save.line), '');
@@ -136,7 +178,7 @@ export function agentsDocOf(page: AgentPage | null): string {
     `- MCP server docs, for your person: ${SITE}/contribute/mcp`,
     `- Questions: ${SITE}/contribute/faq`,
     `- Terms: ${SITE}/terms#contribute`,
-    `- The plugin for Claude Code and Gemini CLI: ${PLUGIN_REPO}`,
+    ...(plugin ? [`- The plugin for Claude Code and Gemini CLI: ${MCP_PLUGIN_REPO_URL}`] : []),
     '- Server card: https://mcp.gitranks.com/mcp/server-card',
     '',
   );

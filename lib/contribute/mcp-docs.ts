@@ -125,11 +125,133 @@ export const CLAUDE_APP_DOC: McpDocClient = {
   id: 'claude-app',
   name: 'claude.ai and Claude Desktop',
   where:
-    'In Claude, open Settings → Connectors → Add custom connector, and paste this URL. Claude opens GitRanks in your browser, where you allow it.',
+    'In Claude, open Customize → Connectors → Add → Add custom connector, and paste this URL. Then press Connect: Claude opens GitRanks in your browser, where you allow it.',
   label: 'Connector URL',
   file: false,
   lines: MCP_URL,
 };
+
+/**
+ * Whether the docs show the plugin for Claude Code and the extension for Gemini CLI. Off until the plugin's repository
+ * is public: before that, its install commands fail for everyone else. Flip to true once it is.
+ */
+export const MCP_PLUGIN_DOCS_SHOWN = false;
+
+/** Where the plugin lives, for the links to it. */
+export const MCP_PLUGIN_REPO = 'gitranks/contribute';
+export const MCP_PLUGIN_REPO_URL = `https://github.com/${MCP_PLUGIN_REPO}`;
+
+/** The plugin's install for one client: the lines, an older client's lines where they differ, and what comes after. */
+export type McpDocPlugin = {
+  where: string;
+  label: string;
+  lines: string;
+  /** For an older version of the client. */
+  older?: { where: string; lines: string };
+  /** How it signs in, and what the plugin adds. */
+  after: string;
+};
+
+/** The plugin installs, by client id: the server plus the contribute skill. */
+export const MCP_DOC_PLUGINS: Readonly<Record<string, McpDocPlugin>> = {
+  'claude-code': {
+    where: 'Run this once (Claude Code 2.1.292 or later).',
+    label: 'Terminal',
+    lines: `claude plugin install gitranks-contribute --marketplace ${MCP_PLUGIN_REPO}`,
+    older: {
+      where: 'On an older Claude Code:',
+      lines: [
+        `claude plugin marketplace add ${MCP_PLUGIN_REPO}`,
+        'claude plugin install gitranks-contribute@gitranks',
+      ].join('\n'),
+    },
+    after:
+      'If it offers a token field, leave it empty. Then type /mcp, pick plugin:gitranks-contribute:gitranks and choose Authenticate: your browser opens GitRanks, where you allow it. The plugin adds the contribute skill and the /gitranks-contribute:find and /gitranks-contribute:status commands.',
+  },
+  'gemini-cli': {
+    where: 'Run this once.',
+    label: 'Terminal',
+    lines: `gemini extensions install ${MCP_PLUGIN_REPO_URL}`,
+    after:
+      'If it asks for a token, leave it empty. Then, in Gemini CLI, run /mcp auth gitranks: your browser opens GitRanks, where you allow it.',
+  },
+};
+
+/** The fold that holds a client's plugin install, under its setup. */
+export const OR_INSTALL_THE_PLUGIN = 'Or install the plugin';
+
+/** Where the browser goes the first time a client signs in. */
+const ALLOW = 'your browser opens GitRanks, where you allow it.';
+
+/**
+ * More clients that sign in, docs only (the connect flow does not offer them), each as its own docs say
+ * (checked 2026-11-11). No token setup: a client here that can't sign in uses "Other clients".
+ */
+export const MCP_DOC_MORE_CLIENTS: readonly McpDocClient[] = [
+  {
+    id: 'copilot-cli',
+    name: 'GitHub Copilot CLI',
+    where: `Run this once. Copilot CLI asks you to sign in the first time it uses gitranks: ${ALLOW} To sign in again, run /mcp auth gitranks in Copilot CLI.`,
+    label: 'Terminal',
+    file: false,
+    lines: `copilot mcp add --transport http gitranks ${MCP_URL}`,
+  },
+  {
+    id: 'devin',
+    name: 'Devin',
+    where: `Run these once with the Devin CLI. The second one signs in: ${ALLOW}`,
+    label: 'Terminal',
+    file: false,
+    lines: [`devin mcp add gitranks ${MCP_URL}`, 'devin mcp login gitranks'].join('\n'),
+  },
+  {
+    id: 'kiro',
+    name: 'Kiro',
+    where: `Use Add to Kiro, or add this to Kiro's MCP file (.kiro/settings/mcp.json in a workspace). Kiro signs in when it connects: ${ALLOW}`,
+    label: '~/.kiro/settings/mcp.json',
+    file: true,
+    lines: JSON.stringify({ mcpServers: { gitranks: { url: MCP_URL } } }, null, 2),
+  },
+  {
+    id: 'zed',
+    name: 'Zed',
+    where: `Add this to Zed's settings, or use Settings → AI → MCP Servers → Add Server → Add Remote Server. Zed asks you to sign in: ${ALLOW}`,
+    label: 'settings.json',
+    file: true,
+    lines: JSON.stringify({ context_servers: { gitranks: { url: MCP_URL } } }, null, 2),
+  },
+  {
+    id: 'cline',
+    name: 'Cline',
+    where: `Add this to Cline's MCP settings. Keep the type: without it, Cline uses an older transport. Then sign in when Cline offers it for gitranks: ${ALLOW}`,
+    label: 'cline_mcp_settings.json',
+    file: true,
+    lines: JSON.stringify(
+      { mcpServers: { gitranks: { type: 'streamableHttp', url: MCP_URL, disabled: false, autoApprove: [] } } },
+      null,
+      2,
+    ),
+  },
+  {
+    id: 'opencode',
+    name: 'opencode',
+    where: `Run these once. The second one signs in: ${ALLOW}`,
+    label: 'Terminal',
+    file: false,
+    lines: [`opencode mcp add gitranks --url ${MCP_URL}`, 'opencode mcp auth gitranks'].join('\n'),
+  },
+  {
+    id: 'amp',
+    name: 'Amp',
+    where: `Run this once. The next time Amp starts, ${ALLOW}`,
+    label: 'Terminal',
+    file: false,
+    lines: `amp mcp add gitranks ${MCP_URL}`,
+  },
+];
+
+/** For a client that runs local MCP servers only: the bridge that signs in to ours for it. */
+export const MCP_REMOTE_BRIDGE = `npx -y mcp-remote ${MCP_URL} --transport http-only`;
 
 /** The line that saves the token, per OS, with the placeholder in it. */
 export const MCP_DOC_SAVES = MCP_OSES.map((os) => ({

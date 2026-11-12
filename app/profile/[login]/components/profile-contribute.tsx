@@ -1,23 +1,17 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
 import { ProfileContributeBlock } from './profile-contribute-block';
-import { ProfileIssuesBlock } from './profile-issues-for-you';
-import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { isProfileOwner } from '@/lib/contribute/profile-issues';
 import {
-  type LanguagePicksAnswer,
-  languagePicksUrl,
   OWN_PROFILE_BLOCK_PATH,
   type OwnProfileBlockAnswer,
-  type ProfileLanguage,
+  ownIssueOf,
+  ownMatchOf,
 } from '@/lib/contribute/profile-picks';
 import { loginFromPath } from '@/utils/login-from-path';
-
-const NO_PICKS: LanguagePicksAnswer = { issues: [], stats: null };
 
 /** One JSON read; null on any failure (the block is left out, never an error). */
 async function read<T>(url: string): Promise<T | null> {
@@ -30,63 +24,49 @@ async function read<T>(url: string): Promise<T | null> {
 }
 
 /**
- * GitRanks Contribute on a profile, chosen in the browser after the cached page loads:
- * - anyone but the owner (signed out, or signed in on someone else's profile): the profile's main language's picks of
- *   the day, the same for everyone, read from a cached route;
- * - the signed-in owner: their "Issues for you" once they are a contributor, else their own picks; until that answer
- *   comes, nothing;
- * - nothing when the profile writes no pool language (a visitor), or there is nothing to show.
+ * GitRanks Contribute on the signed-in owner's own profile, and nobody else's, read in the browser after the cached
+ * page loads: their own list's top once they are a contributor, else ready issues picked for their languages. Nothing
+ * for anyone else, before the answer comes, or when there is nothing to show.
  */
-export function ProfileContribute({ login, language }: { login: string; language: ProfileLanguage | null }) {
-  const { data: session, status } = useSession();
-  const pathname = usePathname();
+export function ProfileContribute({ login }: { login: string }) {
+  const { data: session } = useSession();
   const viewer = session && !session.error ? session.user?.githubLogin : undefined;
   const profile = loginFromPath(login);
   const owner = isProfileOwner(viewer, profile);
-  const [visitor, setVisitor] = useState<LanguagePicksAnswer>(NO_PICKS);
-  const [own, setOwn] = useState<OwnProfileBlockAnswer>({ kind: 'none' });
+  const [answer, setAnswer] = useState<OwnProfileBlockAnswer>({ kind: 'none' });
 
   useEffect(() => {
-    setVisitor(NO_PICKS);
-    const pool = language?.language;
-    if (status === 'loading' || owner || !pool) return;
+    setAnswer({ kind: 'none' });
+    const url = ownProfileBlockUrl(viewer, profile);
+    if (!url) return;
     let live = true;
-    read<LanguagePicksAnswer>(languagePicksUrl(pool)).then((answer) => {
-      if (live && Array.isArray(answer?.issues)) setVisitor({ issues: answer.issues, stats: answer.stats ?? null });
+    read<OwnProfileBlockAnswer>(url).then((got) => {
+      if (live && got && (got.kind === 'contributor' || got.kind === 'own')) setAnswer(got);
     });
     return () => {
       live = false;
     };
-  }, [status, owner, language?.language]);
+  }, [viewer, profile]);
 
-  useEffect(() => {
-    setOwn({ kind: 'none' });
-    if (!owner) return;
-    let live = true;
-    read<OwnProfileBlockAnswer>(`${OWN_PROFILE_BLOCK_PATH}?login=${encodeURIComponent(profile.trim())}`).then(
-      (answer) => {
-        if (live && answer && (answer.kind === 'contributor' || answer.kind === 'own')) setOwn(answer);
-      },
-    );
-    return () => {
-      live = false;
-    };
-  }, [owner, profile]);
+  return owner ? <ProfileContributeView answer={answer} /> : null;
+}
 
-  if (owner) {
-    if (own.kind === 'contributor') return <ProfileIssuesBlock issues={own.issues} />;
-    if (own.kind === 'own') {
-      return <ProfileContributeBlock audience="own" picks={own.issues} stats={own.stats} language={language} />;
-    }
-    return null;
+/** Where the block asks, for the owner of `profile`; null, nothing asked, for anyone else or nobody. */
+export const ownProfileBlockUrl = (viewer: string | null | undefined, profile: string): string | null =>
+  isProfileOwner(viewer, profile) ? `${OWN_PROFILE_BLOCK_PATH}?login=${encodeURIComponent(profile.trim())}` : null;
+
+/** The block for an answer: a contributor's own list, the owner's picks, or nothing. */
+export function ProfileContributeView({ answer }: { answer: OwnProfileBlockAnswer }) {
+  if (answer.kind === 'none') return null;
+  if (answer.kind === 'contributor') {
+    return <ProfileContributeBlock state="connected" issues={answer.issues.map(ownIssueOf)} />;
   }
   return (
     <ProfileContributeBlock
-      audience="visitor"
-      picks={visitor.issues}
-      stats={visitor.stats}
-      language={language}
-      onSignIn={status === 'unauthenticated' ? () => signIn(IDENTITY_PROVIDER, { redirectTo: pathname }) : undefined}
+      state="not_connected"
+      issues={answer.issues.map(ownIssueOf)}
+      readyIssues={answer.stats?.readyIssues ?? null}
+      matchedTo={ownMatchOf(answer.issues)}
     />
   );
 }

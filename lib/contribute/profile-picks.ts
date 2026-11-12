@@ -1,113 +1,55 @@
-import type { AgentPageIssue } from './agent-page.types';
-import type { ContributeIssue, ContributeLanguage } from './contribute.types';
-import { LANGUAGES } from './format';
+import type { OwnerIssue } from '@/app/profile/[login]/components/profile-contribute-block';
 
 /**
- * Contribute on a profile whose owner has not connected: three ready issues matched to the profile. A visitor sees its
- * main language's picks of the day (the same for everyone); the signed-in owner sees their own.
+ * Contribute on the signed-in owner's own profile (owner-approved design 2026-11-12): before they connect, ready issues
+ * picked for their repos and languages; once they are a contributor, the top of their own list. Nobody else's profile
+ * shows it.
  */
 
 /** The pool's numbers the block names; null when the API could not read them. */
 export type ProfilePicksStats = { screenedRepos: number; issuesRead: number; readyIssues: number };
 
-/** One pick: a public issue of the day, and for the owner why it is theirs. */
-export type ProfilePick = AgentPageIssue & { fit?: 'contributed' | 'language' | string };
-
-/** `GET /api/contribute/language-picks?language=`: a language's picks of the day, the same for everyone. */
-export type LanguagePicksAnswer = { issues: ProfilePick[]; stats: ProfilePicksStats | null };
+/** One issue of the block, as the API answers it. */
+export type ProfilePick = {
+  repo: string;
+  number: number;
+  url: string;
+  title: string | null;
+  labels: string[];
+  /** The pool's language family (`js-ts`); the row shows `repoLanguage`. */
+  language: string | null;
+  kind: string | null;
+  size: string | null;
+  why: string[];
+  testCommand: boolean;
+  /** contributed: a repository they contributed to; language: one of their languages; listed: their own list. */
+  fit: 'contributed' | 'language' | 'listed' | string;
+  repoLanguage: { name: string; color: string } | null;
+};
 
 /** `GET /api/me/contribute/profile-block?login=`: what the owner's own profile shows them. */
 export type OwnProfileBlockAnswer =
-  | { kind: 'contributor'; issues: ContributeIssue[] }
+  | { kind: 'contributor'; issues: ProfilePick[] }
   | { kind: 'own'; issues: ProfilePick[]; stats: ProfilePicksStats | null }
   | { kind: 'none' };
 
-export const LANGUAGE_PICKS_PATH = '/api/contribute/language-picks';
 export const OWN_PROFILE_BLOCK_PATH = '/api/me/contribute/profile-block';
 
-/** GitHub's language names as the pool counts them; any other name is no pool language. */
-const POOL_LANGUAGES: Readonly<Record<string, ContributeLanguage>> = {
-  javascript: 'JS_TS',
-  typescript: 'JS_TS',
-  python: 'PYTHON',
-  go: 'GO',
-  rust: 'RUST',
-  java: 'JAVA',
-  php: 'PHP',
-  ruby: 'RUBY',
-};
-
-export const POOL_LANGUAGE_VALUES = Object.keys(LANGUAGES) as ContributeLanguage[];
-
-export const isPoolLanguage = (value: string | null | undefined): value is ContributeLanguage =>
-  !!value && (POOL_LANGUAGE_VALUES as string[]).includes(value);
-
-/** A profile's main pool language and the name GitHub gives it ("TypeScript"); null when it writes none of them. */
-export type ProfileLanguage = { language: ContributeLanguage; name: string };
-
-/**
- * The profile's main pool language: the first of its owned repos' top 3 languages the pool holds issues in, else of its
- * contributed repos' top 3. Null when neither has one: the profile shows no block.
- */
-export function profileLanguageOf(
-  owned: readonly { name?: string | null }[] | null | undefined,
-  contributed: readonly { name?: string | null }[] | null | undefined,
-): ProfileLanguage | null {
-  for (const { name } of [...(owned ?? []).slice(0, 3), ...(contributed ?? []).slice(0, 3)]) {
-    const language = name ? POOL_LANGUAGES[name.trim().toLowerCase()] : undefined;
-    if (language && name) return { language, name: name.trim() };
-  }
-  return null;
-}
-
-export const languagePicksUrl = (language: ContributeLanguage) =>
-  `${LANGUAGE_PICKS_PATH}?language=${encodeURIComponent(language)}`;
-
-/** The API's pool language (`js-ts`) as the UI names it (`JS_TS`); null for any other. */
-export const uiLanguageOf = (language: string | null | undefined): ContributeLanguage | null => {
-  const value = language?.toUpperCase().replace(/[^A-Z0-9]+/g, '_') ?? null;
-  return isPoolLanguage(value) ? value : null;
-};
-
-const WHY_FIT = {
-  contributed: () => 'You contributed to this repository',
-  language: (language: ContributeLanguage | null) => (language ? `Your language: ${LANGUAGES[language]}` : null),
-} as const;
-
-/** A pick as a compact card shows it: where, what, and why (for the owner, why it is theirs first). */
-export function cardOfPick(pick: ProfilePick): ContributeIssue {
-  const language = uiLanguageOf(pick.language);
-  const fit =
-    pick.fit === 'contributed' ? WHY_FIT.contributed() : pick.fit === 'language' ? WHY_FIT.language(language) : null;
+/** A pick as the owner's block shows it: for the owner's own picks, why it is theirs first. */
+export function ownIssueOf(pick: ProfilePick): OwnerIssue {
   return {
-    issueId: `${pick.repo}#${pick.number}`,
-    repositoryId: pick.repo,
-    nameWithOwner: pick.repo,
+    repo: pick.repo,
     number: pick.number,
     url: pick.url,
     title: pick.title,
-    labels: pick.labels,
-    language,
-    kind: null,
-    size: pick.size === 'S' || pick.size === 'M' || pick.size === 'L' ? pick.size : null,
-    score: 0,
-    rank: 0,
-    why: [fit, ...pick.why].filter(Boolean).join(' · '),
+    language: pick.repoLanguage,
+    why: pick.fit === 'contributed' ? 'You contributed to this repository' : (pick.why[0] ?? null),
   };
 }
 
-/** "your TypeScript, Go and Rust" (or "repos you contributed to and your Go"): what the owner's picks were matched to. */
-export function ownMatchOf(picks: readonly ProfilePick[]): string {
-  const languages = [
-    ...new Set(
-      picks.flatMap((pick) => {
-        const language = pick.fit === 'language' ? uiLanguageOf(pick.language) : null;
-        return language ? [LANGUAGES[language]] : [];
-      }),
-    ),
-  ];
-  const list = languages.length > 1 ? `${languages.slice(0, -1).join(', ')} and ${languages.at(-1)}` : languages[0];
-  const contributed = picks.some((pick) => pick.fit === 'contributed');
-  if (contributed) return list ? `repos you contributed to and your ${list}` : 'repos you contributed to';
-  return list ? `your ${list}` : 'you';
+/** "TypeScript and Go": the repos' languages the owner's picks came from, in order, each once. */
+export function ownMatchOf(picks: readonly ProfilePick[]): string | undefined {
+  const names = [...new Set(picks.flatMap((pick) => (pick.repoLanguage ? [pick.repoLanguage.name] : [])))];
+  if (!names.length) return undefined;
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
 }

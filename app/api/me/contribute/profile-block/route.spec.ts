@@ -19,7 +19,6 @@ vi.mock('@/auth', () => ({
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
 const { GET } = (await import('./route')) as unknown as { GET: (req: NextRequest) => Promise<Response> };
-const { IssuesForProfileDocument } = await import('@/lib/contribute/contribute.documents');
 const { OwnProfilePicksDocument } = await import('@/lib/contribute/profile-picks.data');
 
 const get = (login?: string) =>
@@ -60,13 +59,13 @@ describe("the owner's profile block route", () => {
     );
   });
 
-  it('answers a contributor their Issues for you', async () => {
+  it('answers a contributor the top of their own list, in one call', async () => {
     signIn('octocat');
-    graphqlDirect
-      .mockResolvedValueOnce({ ownProfilePicks: { contributor: true, items: [], stats: null } })
-      .mockResolvedValueOnce({ issuesForProfile: [{ issueId: 'I_1' }] });
-    expect(await (await get('octocat')).json()).toEqual({ kind: 'contributor', issues: [{ issueId: 'I_1' }] });
-    expect(graphqlDirect.mock.calls[1][0]).toBe(IssuesForProfileDocument);
+    graphqlDirect.mockResolvedValueOnce({
+      ownProfilePicks: { contributor: true, items: [1, 2].map(pick), stats: null },
+    });
+    expect(await (await get('octocat')).json()).toEqual({ kind: 'contributor', issues: [1, 2].map(pick) });
+    expect(graphqlDirect).toHaveBeenCalledOnce();
   });
 
   it('answers none when there is nothing to show, or the API fails', async () => {

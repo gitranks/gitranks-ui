@@ -1,154 +1,124 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, BookMarked, CircleCheck } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
 
-import { IssueCardCompact } from '@/app/contribute/components/issue-card-compact';
 import { buttonVariants } from '@/components/ui/button';
 import { contributeSource } from '@/lib/contribute/click-tracking';
-import { LANGUAGES } from '@/lib/contribute/format';
-import {
-  cardOfPick,
-  ownMatchOf,
-  type ProfileLanguage,
-  type ProfilePick,
-  type ProfilePicksStats,
-} from '@/lib/contribute/profile-picks';
 import { cn } from '@/lib/utils';
 
-/** Whose block: the signed-in owner of the profile (not connected yet), or anyone else looking at it. */
-export type ContributeBlockAudience = 'own' | 'visitor';
+/** One issue as the owner's block shows it: where, what, the repository's language, and why it is a good one. */
+export type OwnerIssue = {
+  repo: string;
+  number: number;
+  url: string;
+  title: string | null;
+  /** The repository's language as GitHub names and colours it. */
+  language: { name: string; color: string | null } | null;
+  why: string | null;
+};
 
-const START_AGENT = '/contribute?start=agent' as Route;
-const CONTRIBUTE: Route = '/contribute';
-const SOURCE = contributeSource('profile_visitor_block');
+/** The owner before they connect (picked from the pool for their languages), or after (their own list's top). */
+export type OwnerBlockState = 'not_connected' | 'connected';
+
+export const OWNER_BLOCK_SHOWN = 3;
 
 const n = (value: number) => <span className="font-mono tabular-nums">{value.toLocaleString('en-US')}</span>;
-const millions = (value: number) =>
-  value >= 1_000_000 ? (
-    <span className="font-mono tabular-nums">{(value / 1_000_000).toFixed(1)} million</span>
-  ) : (
-    n(value)
-  );
 
-/** What the pool is, in its true numbers when they were read. */
-function poolLine(stats: ProfilePicksStats | null): ReactNode {
-  if (!stats) {
-    return 'GitRanks reads the issues of active open-source repositories and keeps the ones ready for an AI agent:';
-  }
-  return (
-    <>
-      GitRanks screened {n(stats.screenedRepos)} active repositories and read {millions(stats.issuesRead)} of their
-      issues. {n(stats.readyIssues)} are ready for an AI agent today:
-    </>
-  );
-}
-
-const STEPS = [
-  { title: 'Connect your agent', text: 'Claude Code, Codex, Cursor, Gemini CLI or Antigravity. About a minute.' },
-  { title: 'It fixes an issue', text: 'It picks one of these, writes the change and runs the tests.' },
-  { title: 'You approve it', text: 'The pull request opens in your name, on your GitHub profile.' },
-];
+/** One issue, drawn like a repository row: the title, then the repo, its language (colour dot) and why. */
+const IssueRow: FC<{ issue: OwnerIssue }> = ({ issue }) => (
+  <article data-issue={`${issue.repo}#${issue.number}`} className="flex min-w-0 flex-col gap-1.5 px-4 py-3">
+    <a
+      href={issue.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="min-w-0 font-semibold [overflow-wrap:anywhere] hover:underline"
+    >
+      {issue.title?.trim() || `Issue #${issue.number}`}
+    </a>
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <span className="flex min-w-0 items-center gap-1">
+        <BookMarked className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="sr-only">Repository:</span>
+        <span className="truncate">
+          {issue.repo} <span className="font-mono text-muted-foreground tabular-nums">#{issue.number}</span>
+        </span>
+      </span>
+      {issue.language ? (
+        <span className="flex items-center gap-1.5">
+          <span
+            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-border"
+            style={{ backgroundColor: issue.language.color ?? undefined }}
+            aria-hidden
+          />
+          {issue.language.name}
+        </span>
+      ) : null}
+      {issue.why ? (
+        <span className="flex min-w-0 items-center gap-1 text-muted-foreground">
+          <CircleCheck className="size-4 shrink-0" aria-hidden />
+          {issue.why}
+        </span>
+      ) : null}
+    </div>
+  </article>
+);
 
 /**
- * GitRanks Contribute on a profile whose owner hasn't connected: three ready issues matched to the profile, what they
- * are (the pool's true numbers), the steps to a first pull request, and why. `own`: the signed-in owner, "for you";
- * `visitor`: anyone else, worded about the profile's language, never "for you". Nothing without picks.
+ * GitRanks Contribute on the signed-in owner's own profile, and nobody else's: a suggestion, framed in the "yours"
+ * violet so it never reads as part of the profile. Before they connect, three ready issues picked for their languages
+ * and the way to connect their agent; after, the top three of their own list and the way to it.
  */
 export const ProfileContributeBlock: FC<{
-  audience: ContributeBlockAudience;
-  picks: ProfilePick[];
-  stats: ProfilePicksStats | null;
-  /** The profile's main pool language, for a visitor's words. */
-  language: ProfileLanguage | null;
-  /** Signed out: the visitor may be the owner, so the block offers the sign-in back to this profile. */
-  onSignIn?: () => void;
-}> = ({ audience, picks, stats, language, onSignIn }) => {
-  if (!picks.length || (audience === 'visitor' && !language)) return null;
-  const own = audience === 'own';
-  const languageName = language?.name ?? '';
-  const poolLanguage = language ? LANGUAGES[language.language] : '';
+  state: OwnerBlockState;
+  issues: OwnerIssue[];
+  /** Before connecting: the pool's ready issues now, for the line under the title. */
+  readyIssues?: number | null;
+  /** Before connecting: the profile's languages the picks were matched to ("TypeScript and JavaScript"). */
+  matchedTo?: string;
+}> = ({ state, issues, readyIssues, matchedTo }) => {
+  if (!issues.length) return null;
+  const connected = state === 'connected';
+
+  const lead: ReactNode = connected ? (
+    'The top of your list, picked for your stack. Your agent fixes one, you approve the pull request.'
+  ) : (
+    <>
+      Picked for your {matchedTo ?? 'languages'} from {readyIssues ? n(readyIssues) : 'the'} open-source issues ready
+      for an AI agent today. Connect your agent: it fixes one, you approve, the pull request opens in your name.
+    </>
+  );
 
   return (
     <section
       aria-labelledby="profile-contribute"
-      data-contribute-block={audience}
-      {...SOURCE}
-      className="grid overflow-hidden rounded-xl border bg-card shadow-sm lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] dark:shadow-none"
+      data-contribute-block={state}
+      {...contributeSource('profile_issues_block')}
+      className="flex flex-col gap-4 rounded-xl border border-violet-200 bg-violet-50/50 p-4 dark:border-violet-900 dark:bg-violet-950/20"
     >
-      <div className="flex min-w-0 flex-col gap-4 p-5 lg:p-6">
-        <div className="flex items-center gap-2">
-          <span className="rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
-            Beta
-          </span>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-1">
           <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-            GitRanks Contribute
+            GitRanks Contribute · Only you see this
           </span>
-        </div>
-        <div className="flex flex-col gap-2">
           <h2 id="profile-contribute" className="text-xl font-semibold tracking-tight text-balance">
-            {own ? 'Open-source issues your agent can fix today' : `${languageName} issues an AI agent can fix today`}
+            Issues for you to fix
           </h2>
-          <p className="text-sm text-muted-foreground">
-            {poolLine(stats)}{' '}
-            {own
-              ? 'clear, wanted by the maintainers, nobody on them. These three fit your stack.'
-              : `clear, wanted by the maintainers, nobody on them. Here are today's best in ${languageName}, the main language on this profile.`}
-          </p>
+          <p className="max-w-prose text-sm text-muted-foreground">{lead}</p>
         </div>
-        <ol className="flex flex-col gap-3">
-          {STEPS.map((step, index) => (
-            <li key={step.title} className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-3">
-              <span className="flex size-6 items-center justify-center rounded-full bg-brand-soft font-mono text-xs font-semibold text-brand-soft-foreground">
-                {index + 1}
-              </span>
-              <span className="flex flex-col">
-                <span className="text-sm font-semibold">{step.title}</span>
-                <span className="text-xs text-muted-foreground">{step.text}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Link
-            href={START_AGENT}
-            prefetch={false}
-            className={cn(buttonVariants(), 'font-semibold max-sm:min-h-11 max-sm:w-full')}
-          >
-            {own ? 'Let my agent fix one' : 'Fix one with your agent'}
-            <ArrowRight aria-hidden />
-          </Link>
-          <Link href={CONTRIBUTE} prefetch={false} className="text-sm font-medium text-link hover:underline">
-            How it works
-          </Link>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Help the projects you use. Merged pull requests stay on your GitHub profile and can count toward your
-          Contributor rank.
-        </p>
+        <Link
+          href={(connected ? '/contribute/issues' : '/contribute?start=agent') as Route}
+          prefetch={false}
+          className={cn(buttonVariants({ size: 'sm' }), 'shrink-0 font-semibold max-sm:min-h-11 max-sm:w-full')}
+        >
+          {connected ? 'All my issues' : 'Connect my agent'}
+          <ArrowRight aria-hidden />
+        </Link>
       </div>
-      <div className="flex min-w-0 flex-col border-t bg-muted/30 lg:border-t-0 lg:border-l">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b px-4 py-3">
-          <h3 className="text-sm font-semibold">
-            {own ? `Picked for ${ownMatchOf(picks)}` : `Today's best in ${poolLanguage}`}
-          </h3>
-          <span className="text-xs text-muted-foreground">
-            {own ? 'Only you see this' : 'Ready for an agent, nobody on them'}
-          </span>
-        </div>
-        <div className="flex flex-col divide-y bg-card">
-          {picks.slice(0, 3).map((pick) => (
-            <IssueCardCompact key={`${pick.repo}#${pick.number}`} issue={cardOfPick(pick)} variant="pick" />
-          ))}
-        </div>
-        {!own && onSignIn ? (
-          <p className="px-4 py-3 text-xs text-muted-foreground">
-            Is this your profile?{' '}
-            <button type="button" onClick={onSignIn} className="font-medium text-link hover:underline">
-              Sign in to see issues picked for you
-            </button>
-          </p>
-        ) : null}
+      <div className="flex flex-col divide-y rounded-lg border bg-card text-card-foreground">
+        {issues.slice(0, OWNER_BLOCK_SHOWN).map((issue) => (
+          <IssueRow key={`${issue.repo}#${issue.number}`} issue={issue} />
+        ))}
       </div>
     </section>
   );

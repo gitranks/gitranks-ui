@@ -11,7 +11,10 @@ const { LaunchedTerms, TermsScreen } = await import('@/app/terms/terms');
 const { LaunchedMorePages } = await import('./launched-more-pages');
 const { contributeShown } = await import('@/lib/contribute/preview-gate');
 const { FAQ_GROUPS, LANDING_QUESTIONS } = await import('@/lib/contribute/faq');
-const { MCP_DOC_CLIENTS, MCP_DOC_SAVES, MCP_DOC_TOOLS } = await import('@/lib/contribute/mcp-docs');
+const { MCP_DOC_CLIENTS, MCP_DOC_MORE_CLIENTS, MCP_DOC_SAVES, MCP_DOC_TOOLS, MCP_PLUGIN_DOCS_SHOWN } = await import(
+  '@/lib/contribute/mcp-docs'
+);
+const { MCP_INSTALL_LINKS } = await import('@/lib/contribute/mcp-install-links');
 const { MCP_CLIENTS, mcpSetupLinesOf } = await import('@/lib/contribute/mcp-setup');
 
 const text = (html: string) =>
@@ -53,6 +56,57 @@ describe('the MCP docs, sign-in first', () => {
     expect(plain).toContain('hashes of its tokens');
     expect(plain).toContain('Disconnect there stops it at once.');
     expect(plain).not.toContain('Your token ');
+  });
+});
+
+describe('the MCP docs, one click and more clients', () => {
+  it('give Claude, Cursor, VS Code and Kiro their install links, as our own buttons, at the top and in their setups', () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    for (const { href, label } of MCP_INSTALL_LINKS) {
+      const attr = `href="${href.replaceAll('&', '&amp;')}"`;
+      // The row at the top, then the client's own setup.
+      expect(html.split(attr)).toHaveLength(3);
+      expect(text(html)).toContain(label);
+    }
+    expect(html).toContain('data-install-links');
+    expect(html).not.toMatch(/<img[^>]+(cursor|kiro|vscode|claude)/i);
+    expect(text(html)).toContain('Customize → Connectors → Add → Add custom connector');
+    expect(text(html)).not.toContain('Settings → Connectors');
+  });
+
+  it('list the docs-only clients in a fold, each with its sign-in, and the mcp-remote bridge', () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    const plain = text(html);
+    expect(html).toContain('data-more-clients');
+    for (const id of ['copilot-cli', 'devin', 'kiro', 'zed', 'cline', 'opencode', 'amp']) {
+      expect(html).toContain(`id="${id}"`);
+    }
+    expect(MCP_DOC_MORE_CLIENTS.every(({ where }) => where.includes('your browser opens GitRanks'))).toBe(true);
+    expect(plain).toContain('"type": "streamableHttp"');
+    expect(plain).toContain('copilot mcp add --transport http gitranks https://mcp.gitranks.com/mcp');
+    expect(plain).toContain('opencode mcp auth gitranks');
+    expect(plain).toContain('npx -y mcp-remote https://mcp.gitranks.com/mcp --transport http-only');
+    // Docs only: the connect flow's clients are unchanged, and the new ones get no token setup.
+    expect(MCP_CLIENTS).toEqual(['claude-code', 'codex', 'cursor', 'gemini-cli', 'antigravity']);
+    expect(html.match(/data-token-fold/g)).toHaveLength(5);
+  });
+
+  it('show the plugin for Claude Code and Gemini CLI only behind its switch', () => {
+    const off = renderToStaticMarkup(<McpDocsScreen plugin={false} />);
+    expect(off).not.toContain('data-plugin');
+    expect(text(off)).not.toContain('claude plugin install');
+    expect(text(off)).not.toContain('gemini extensions install');
+
+    const on = text(renderToStaticMarkup(<McpDocsScreen plugin />));
+    expect(on).toContain('claude plugin install gitranks-contribute --marketplace gitranks/contribute');
+    expect(on).toContain('claude plugin marketplace add gitranks/contribute');
+    expect(on).toContain('claude plugin install gitranks-contribute@gitranks');
+    expect(on).toContain('plugin:gitranks-contribute:gitranks');
+    expect(on).toContain('/gitranks-contribute:find');
+    expect(on).toContain('gemini extensions install https://github.com/gitranks/contribute');
+    expect(renderToStaticMarkup(<McpDocsScreen plugin />).match(/data-plugin/g)).toHaveLength(2);
+
+    expect(renderToStaticMarkup(<McpDocsScreen />).includes('data-plugin')).toBe(MCP_PLUGIN_DOCS_SHOWN);
   });
 });
 

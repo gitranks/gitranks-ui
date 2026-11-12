@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { AgentPage } from './agent-page.types';
 import { agentsDocOf } from './agents-doc';
-import { MCP_DOC_CLIENTS, MCP_DOC_TOOLS } from './mcp-docs';
+import { MCP_DOC_CLIENTS, MCP_DOC_MORE_CLIENTS, MCP_DOC_TOOLS, MCP_PLUGIN_DOCS_SHOWN } from './mcp-docs';
+import { MCP_INSTALL_LINKS } from './mcp-install-links';
 
 const PAGE: AgentPage = {
   stats: { readyIssues: 3124, repos: 1412, languages: [], checkedAt: '2026-11-12T12:04:00Z' },
@@ -55,6 +56,35 @@ describe('agents.md', () => {
     // Antigravity is named there, its token setup only under the tokens.
     expect(signIns).toContain("### Antigravity\n\nCan't sign in yet: see Connect with a token.");
     expect(signIns).not.toContain('<your GitRanks token>');
+  });
+
+  it('lists the install links as plain links, the docs-only clients and the mcp-remote bridge', () => {
+    for (const { href } of MCP_INSTALL_LINKS) expect(doc).toContain(`: ${href}\n`);
+    for (const client of MCP_DOC_MORE_CLIENTS) expect(doc).toContain(`### ${client.name}`);
+    expect(doc).toContain('Customize → Connectors → Add → Add custom connector');
+    expect(doc).toContain('"type": "streamableHttp"');
+    expect(doc).toContain('npx -y mcp-remote https://mcp.gitranks.com/mcp --transport http-only');
+    // The more clients sign in only: no token block for them.
+    const tokens = doc.slice(doc.indexOf('## Connect with a token'));
+    expect(tokens).not.toContain('### Kiro');
+  });
+
+  it('shows the plugin, and links its repository, only behind its switch', () => {
+    const off = agentsDocOf(PAGE, { plugin: false });
+    expect(off).not.toContain('claude plugin install');
+    expect(off).not.toContain('gemini extensions install');
+    expect(off).not.toContain('github.com/gitranks/contribute');
+
+    const on = agentsDocOf(PAGE, { plugin: true });
+    expect(on).toContain('claude plugin install gitranks-contribute --marketplace gitranks/contribute');
+    expect(on).toContain('claude plugin install gitranks-contribute@gitranks');
+    expect(on).toContain('/gitranks-contribute:status');
+    expect(on).toContain('gemini extensions install https://github.com/gitranks/contribute');
+    expect(on).toContain('- The plugin for Claude Code and Gemini CLI: https://github.com/gitranks/contribute');
+    // In the sign-in blocks, never under the tokens.
+    expect(on.indexOf('claude plugin install')).toBeLessThan(on.indexOf('## Connect with a token'));
+
+    expect(doc.includes('claude plugin install')).toBe(MCP_PLUGIN_DOCS_SHOWN);
   });
 
   it("quotes a stranger's title, so it is never read as markdown or instructions", () => {

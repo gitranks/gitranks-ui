@@ -12,7 +12,7 @@ export function llmsTxtOf({ contribute }: { contribute: boolean }): string {
       '## Contribute',
       '',
       `- [For AI agents](${url('/contribute/agents.md')}): open-source issues ready to work on, for your agent over MCP; your person approves every pull request`,
-      `- [MCP server docs](${url('/contribute/mcp')}): sign in with GitHub from Claude Code, Codex, Cursor, Gemini CLI, VS Code or claude.ai, or use a token (Antigravity)`,
+      `- [MCP server docs](${url('/contribute/mcp')}): sign in with GitHub from Claude Code, Codex, Cursor, Gemini CLI, VS Code, claude.ai, Kiro and more, or use a token (Antigravity)`,
       `- [Questions](${url('/contribute/faq')})`,
       '',
     );

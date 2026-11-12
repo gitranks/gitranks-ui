@@ -1,5 +1,6 @@
 import { withBadgeFacts } from '../images';
 import type { Screen } from '../registry';
+import { CONNECTED_ISSUES, NOT_CONNECTED_ISSUES } from '@/app/profile/[login]/__fixtures__/contribute-owner';
 import {
   newcomerExtras,
   newcomerProfile,
@@ -9,6 +10,7 @@ import {
   strongProfileStarsNotCounted,
 } from '@/app/profile/[login]/__fixtures__/overview';
 import { OverviewPage } from '@/app/profile/[login]/components/overview-page';
+import { ProfileContributeBlock } from '@/app/profile/[login]/components/profile-contribute-block';
 import { ProfileFrame } from '@/app/profile/[login]/components/profile-frame';
 import type { UserFacts } from '@/badge/v3/facts';
 import { userBig, userUnranked } from '@/badge/v3/fixtures';
@@ -22,6 +24,19 @@ const overview = (user: ProfileUser, badgeFacts: UserFacts, extras = strongExtra
     <OverviewPage user={user} extras={extras} badgeFacts={badgeFacts} isGlobalContext />
   </ProfileFrame>
 );
+
+/** The block alone, at the overview's width: it loads in the browser, so the overview boards never show it. */
+const alone = (block: React.ReactNode) => <div className="mx-auto max-w-7xl px-4 py-6">{block}</div>;
+
+const notConnected = (
+  <ProfileContributeBlock
+    state="not_connected"
+    issues={NOT_CONNECTED_ISSUES}
+    readyIssues={3105}
+    matchedTo="TypeScript and JavaScript"
+  />
+);
+const connected = <ProfileContributeBlock state="connected" issues={CONNECTED_ISSUES} />;
 
 export const PROFILE_SCREENS: Screen[] = [
   {
@@ -64,6 +79,40 @@ export const PROFILE_SCREENS: Screen[] = [
         width: 390,
         height: 4400,
         render: () => overview(strongProfile, strongBadges),
+      },
+    ],
+  },
+  {
+    id: 'profile-contribute',
+    title: 'Profile · Contribute, the owner alone',
+    area: 'profile',
+    route: '/profile/[login]',
+    sources: [
+      'app/profile/[login]/components/profile-contribute.tsx',
+      'app/profile/[login]/components/profile-contribute-block.tsx',
+    ],
+    states: [
+      {
+        id: 'owner-not-connected',
+        title: 'The owner, not connected yet',
+        path: `/profile/${strongProfile.login}`,
+        height: 520,
+        render: () => alone(notConnected),
+      },
+      {
+        id: 'owner-connected',
+        title: 'The owner, connected',
+        path: `/profile/${strongProfile.login}`,
+        height: 520,
+        render: () => alone(connected),
+      },
+      {
+        id: 'owner-not-connected-phone',
+        title: 'The owner, not connected · phone',
+        path: `/profile/${strongProfile.login}`,
+        width: 390,
+        height: 1100,
+        render: () => alone(notConnected),
       },
     ],
   },

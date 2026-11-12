@@ -16,7 +16,7 @@ import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { OwnProjectsCard } from './overview-cards/own-projects-card';
 import { MoreLink, ProfileSection } from './profile-card';
-import { ProfileIssuesForYou } from './profile-issues-for-you';
+import { ProfileContribute } from './profile-contribute';
 import { ProfileSummary } from './profile-summary';
 import { RankHistoryTable } from './rank-history-table';
 import { StarsReviewNote } from './stars-review-note';
@@ -95,8 +95,6 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, badgeFacts, 
       <div className="flex flex-col gap-4">
         <h2 className="sr-only">Profile overview</h2>
         <StarsReviewNote login={login} starsReview={starsReview} />
-        {/* The owner's own block, read in the browser after the cached page loads: nothing for anyone else. */}
-        <ProfileIssuesForYou login={login} />
 
         <OverviewCardsContainer>
           <ProfileRankCard
@@ -129,6 +127,10 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, badgeFacts, 
         </OverviewCardsContainer>
         <ProfileSummary parts={summary} />
       </div>
+
+      {/* GitRanks Contribute on the owner's own profile alone, read in the browser after the cached page loads: their
+          picks, or their own list's top once they contribute. Below the cards, so it never pushes them down. */}
+      <ProfileContribute login={login} />
 
       {!!repositoriesCount && (
         <ProfileSection

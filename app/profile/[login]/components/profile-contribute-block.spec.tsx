@@ -29,10 +29,10 @@ describe("the Contribute block on the owner's own profile", () => {
     expect(plain).not.toMatch(/Size [SML]/);
   });
 
-  it('once connected: the top of their own list, and the way to all of it', () => {
+  it('once connected: their own picks, best first, and the way to all of them', () => {
     const html = renderToStaticMarkup(<ProfileContributeBlock state="connected" issues={CONNECTED_ISSUES} />);
     const plain = text(html);
-    expect(plain).toContain('The top of your list');
+    expect(plain).toContain('Picked for you, best first');
     expect(plain).toContain('All my issues');
     expect(html).toContain('href="/contribute/issues"');
     expect(plain).toContain('kunchenguid/gh-axi #195');

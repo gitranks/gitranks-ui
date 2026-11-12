@@ -81,7 +81,7 @@ export const ProfileContributeBlock: FC<{
   const connected = state === 'connected';
 
   const lead: ReactNode = connected ? (
-    'The top of your list, picked for your stack. Your agent fixes one, you approve the pull request.'
+    'Picked for you, best first. Your agent fixes one, you approve the pull request.'
   ) : (
     <>
       Picked for your {matchedTo ?? 'languages'} from {readyIssues ? n(readyIssues) : 'the'} open-source issues ready

@@ -294,14 +294,14 @@ const KNOWN_KINDS = new Set<string>(PR_SIGNAL_KINDS);
 const GRANT_REASONS = new Set(['grant_missing', 'grant_revoked']);
 
 /** The order of the groups: the setup, GitHub access, autopilot, the reviews, the replies, the pull requests. */
-const GROUPS = { key: 0, 'no-way': 1, grant: 2, autopilot: 3, review: 4, replies: 5, pr: 6 } as const;
+export const GROUPS = { key: 0, 'no-way': 1, grant: 2, autopilot: 3, review: 4, replies: 5, pr: 6 } as const;
 
 type Ranked = NeedsYouItem & { group: number; at: number };
 
 /** When the review became ready: its wait runs from it. The last update stands in while it is not answered. */
 const readySince = (attempt: ContributeAttempt) => timeOf(attempt.reviewAt ?? attempt.updatedAt);
 
-const isGrantBounce = (view: ContributeView, attempt: ContributeAttempt) =>
+export const isGrantBounce = (view: ContributeView, attempt: ContributeAttempt) =>
   view.grant?.connected !== true &&
   attempt.state === 'REVIEW' &&
   GRANT_REASONS.has(attempt.submit?.lastError?.reason?.toLowerCase() ?? '');
@@ -467,7 +467,7 @@ function ownReviewWaitOf(attempt: ContributeAttempt, now: Date): string {
 }
 
 /** One reason waiting on an open pull request, before the first of them is chosen to lead its row. */
-type Candidate = Pick<NeedsYouItem, 'kind' | 'tone' | 'pill' | 'move' | 'action' | 'secondary'> & { at: number };
+export type Candidate = Pick<NeedsYouItem, 'kind' | 'tone' | 'pill' | 'move' | 'action' | 'secondary'> & { at: number };
 
 /** A reply GitHub refused: the API's note (why, and what to do), else the two ways on. */
 const replyFailedMove = (draft: Pick<ContributeReplyWaiting, 'lastError'>): string => {
@@ -495,7 +495,7 @@ export type PrContext = {
 };
 
 /** The reasons on an open pull request, in Needs you's order: what a run can do first, then the user's own. */
-function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
+export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
   const signals = pr.needsYou?.signals ?? [];
   const first = (kind: ContributePrSignalKind) => signals.find((signal) => signal.kind === kind);
   const number = pr.pullRequest.number;
@@ -845,7 +845,7 @@ function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
 }
 
 /** The row each fix stands for: the sign-off's DCO, the retitle's title, the description's template, the changelog. */
-const FIXED_BY: Record<string, NeedsYouKind> = {
+export const FIXED_BY: Record<string, NeedsYouKind> = {
   SIGN_OFF: 'dco',
   TITLE: 'title',
   BODY: 'description',

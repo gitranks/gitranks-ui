@@ -12,6 +12,9 @@ import type {
  * it did about each thread, and the round it adds up to. Pure, so the screens and their specs read the same words.
  */
 
+/** The most comments one run addresses (the API's). */
+export const FOLLOW_UP_THREADS_MAX = 20;
+
 /** The run's steps as the user sees them, in order. */
 export const FOLLOW_UP_STEPS = ['reading', 'fixing', 'checks', 'ready'] as const;
 export type FollowUpStep = (typeof FOLLOW_UP_STEPS)[number];

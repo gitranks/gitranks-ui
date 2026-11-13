@@ -1,14 +1,20 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
+import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { LearnAttemptScreen } from '@/app/learn/components/learn-attempt';
+import { LearnLanding } from '@/app/learn/components/learn-landing';
+import { LearnMaintainers } from '@/app/learn/components/learn-maintainers';
+import { LearnProfileScreen } from '@/app/learn/components/learn-profile';
 import { LearnTabs } from '@/app/learn/components/learn-tabs';
 import type { LessonFlowStart } from '@/app/learn/components/lesson-flow';
+import { MyLessonsScreen } from '@/app/learn/components/my-lessons';
 import { Header } from '@/components/header/header';
 import { detail, pullRequest } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { views } from '@/lib/contribute/__fixtures__/contribute-views';
 import type { ContributeAttemptDetail } from '@/lib/contribute/contribute.types';
 import { CAUSE_HINT, CAUSE_QUESTION, FIX_QUESTION, FIX_WHY, lessons } from '@/lib/learn/__fixtures__/lesson';
+import { emptyProfile, filledProfile, myLessons } from '@/lib/learn/__fixtures__/profile';
 import type { LearnAttemptLesson } from '@/lib/learn/learn.types';
 import { DONT_KNOW } from '@/lib/learn/question';
 
@@ -21,6 +27,15 @@ const frame = (children: ReactNode) => (
     <Header section="learn" />
     <LearnTabs />
     <main className={MAIN}>{children}</main>
+  </>
+);
+
+/** A page that draws its own `main` (the front door, the page for maintainers), under the header and `line`. */
+const bare = (children: ReactNode, line: ReactNode = <LearnTabs />) => (
+  <>
+    <Header section="learn" />
+    {line}
+    {children}
   </>
 );
 
@@ -75,6 +90,113 @@ const page = (lesson: LearnAttemptLesson, attempt: ContributeAttemptDetail = lea
 const PATH = '/learn/attempts/A_1';
 
 export const LEARN_SCREENS: Screen[] = [
+  {
+    id: 'learn-landing',
+    title: 'Learn',
+    area: 'learn',
+    route: '/learn',
+    sources: [
+      'app/learn/page.tsx',
+      'app/learn/components/learn-landing.tsx',
+      'app/learn/components/example-question.tsx',
+      'app/learn/components/learn-sign-in.tsx',
+      'app/learn/components/diagram.tsx',
+      'lib/learn/example-lesson.ts',
+      'app/contribute/components/landing.tsx',
+    ],
+    states: [
+      {
+        id: 'signed-out',
+        title: 'The front door, signed out: an example lesson, the handoff, what a lesson covers',
+        path: '/learn',
+        signedOut: true,
+        height: 2160,
+        render: () => bare(<LearnLanding viewer="visitor" />, <HeaderLine />),
+      },
+      {
+        id: 'phone',
+        title: 'The front door on a phone',
+        path: '/learn',
+        signedOut: true,
+        width: 390,
+        height: 3950,
+        render: () => bare(<LearnLanding viewer="visitor" />, <HeaderLine />),
+      },
+    ],
+  },
+  {
+    id: 'learn-maintainers',
+    title: 'Learn for maintainers',
+    area: 'learn',
+    route: '/learn/maintainers',
+    sources: ['app/learn/maintainers/page.tsx', 'app/learn/components/learn-maintainers.tsx'],
+    states: [
+      {
+        id: 'default',
+        title: 'What a Learn pull request is, learn: welcome, set rules or report it',
+        path: '/learn/maintainers',
+        signedOut: true,
+        height: 1030,
+        render: () => bare(<LearnMaintainers />),
+      },
+    ],
+  },
+  {
+    id: 'learn-profile',
+    title: 'Goal and level',
+    area: 'learn',
+    route: '/learn/profile',
+    sources: [
+      'app/learn/profile/page.tsx',
+      'app/learn/components/learn-profile.tsx',
+      'app/learn/components/learn-profile-form.tsx',
+      'lib/learn/profile-form.ts',
+    ],
+    states: [
+      {
+        id: 'empty',
+        title: 'First visit: no goal yet, the levels guessed, the agent not set up',
+        path: '/learn/profile',
+        height: 1170,
+        render: () => frame(<LearnProfileScreen profile={emptyProfile} view={views.onboardedNoPath} />),
+      },
+      {
+        id: 'filled',
+        title: 'Saved: learn TypeScript, a level set, two focus picks, the agent connected',
+        path: '/learn/profile',
+        height: 1220,
+        render: () => frame(<LearnProfileScreen profile={filledProfile} view={views.agentOnboarded} />),
+      },
+    ],
+  },
+  {
+    id: 'my-lessons',
+    title: 'My lessons',
+    area: 'learn',
+    route: '/learn/lessons',
+    sources: [
+      'app/learn/lessons/page.tsx',
+      'app/learn/components/my-lessons.tsx',
+      'lib/learn/my-lessons.ts',
+      'app/contribute/components/contributions-view.tsx',
+    ],
+    states: [
+      {
+        id: 'empty',
+        title: 'No lessons yet: the prompt that starts one',
+        path: '/learn/lessons',
+        height: 550,
+        render: () => frame(<MyLessonsScreen lessons={[]} />),
+      },
+      {
+        id: 'filled',
+        title: 'In progress, then done: own attempts and a shared lesson passed',
+        path: '/learn/lessons',
+        height: 820,
+        render: () => frame(<MyLessonsScreen lessons={myLessons} />),
+      },
+    ],
+  },
   {
     id: 'learn-attempt',
     title: 'A lesson',

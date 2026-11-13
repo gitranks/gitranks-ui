@@ -2,8 +2,8 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import { LearnAttemptLessonDocument } from './learn.documents';
-import type { LearnAttemptLesson } from './learn.types';
+import { LearnAttemptLessonDocument, LearnProfileDocument, MyLessonsDocument } from './learn.documents';
+import type { LearnAttemptLesson, LearnProfile, MyLesson } from './learn.types';
 import { learnOpenFor } from './learn-gate';
 import { ContributeUnavailableError, viewerLogin } from '@/lib/contribute/contribute.data';
 import { contributeErrorOf } from '@/lib/contribute/errors';
@@ -33,5 +33,40 @@ export const loadAttemptLesson = cache(async (attemptId: string): Promise<LearnA
       return null;
     }
     throw new ContributeUnavailableError();
+  }
+});
+
+/**
+ * The viewer's goal, levels and focus: null when the API has none for them (signed out, or Learn not open to them). An
+ * outage throws `ContributeUnavailableError`. Read once per request.
+ */
+export const loadLearnProfile = cache(async (): Promise<LearnProfile | null> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+  try {
+    const { learnProfile } = await graphqlDirect(LearnProfileDocument, undefined, { source: 'ssr', githubLogin });
+    return learnProfile;
+  } catch (failure) {
+    const { error } = contributeErrorOf(failure);
+    if (error === 'NOT_FOUND' || error === 'SIGNED_OUT' || error === 'NOT_AVAILABLE_YET') return null;
+    throw new ContributeUnavailableError();
+  }
+});
+
+/**
+ * The viewer's lessons: their Learn attempts and the shared lessons they passed, as the API orders them. Empty signed
+ * out or when Learn is not open to them; undefined when the API does not answer, which the page says. Read once per
+ * request.
+ */
+export const loadMyLessons = cache(async (): Promise<MyLesson[] | undefined> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return [];
+  try {
+    const { myLessons } = await graphqlDirect(MyLessonsDocument, undefined, { source: 'ssr', githubLogin });
+    return myLessons ?? [];
+  } catch (failure) {
+    const { error } = contributeErrorOf(failure);
+    if (error === 'NOT_FOUND' || error === 'SIGNED_OUT') return [];
+    return undefined;
   }
 });

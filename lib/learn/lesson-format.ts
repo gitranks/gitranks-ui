@@ -1,5 +1,8 @@
 import type { LearnStage, LessonBlock, LessonHead, LessonQuestion, LessonStep } from './learn.types';
 
+/** What the user asks their own agent to start a lesson. */
+export const LEARN_AGENT_PROMPT = 'Find me an issue to learn from on GitRanks';
+
 /** Where a stage of the strip is: done, the one now, or still to come. */
 export type StageMark = 'done' | 'now' | 'next';
 

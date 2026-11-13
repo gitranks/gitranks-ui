@@ -12,6 +12,7 @@ import {
   entryOf,
   firstEntryOf,
   isLanding,
+  type LearnEvent,
   lastClickOf,
   namesChannel,
 } from '@/lib/contribute/click-tracking';
@@ -114,6 +115,14 @@ export function reportContributeConnect(way: ConnectWay) {
   }
   // The channel of the first visit that named one, else this tab's.
   send({ kind: 'connect', path: window.location.pathname, target: way, source, ...(first ?? entryNow()) });
+}
+
+/**
+ * Tells us a Learn page was opened or clicked on, for visitors without a sign-in too (the pages are served the same to
+ * everyone): the event, the lesson and the page, never who the visitor is.
+ */
+export function reportLearnEvent(event: LearnEvent, lesson: string) {
+  send({ ...event, path: window.location.pathname, lesson });
 }
 
 /**

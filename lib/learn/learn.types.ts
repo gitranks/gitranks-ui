@@ -198,3 +198,38 @@ export type MyLesson = {
   state: MyLessonState;
   passedAt: string | null;
 };
+
+/** A maintainer's answer to "Did this help you review the pull request?". */
+export type LessonReaction = 'YES' | 'NO';
+
+/** An option with its key: shown on a result page, where the kind allows it. */
+export type LessonOptionKeyed = { id: string; text: string; correct: boolean; why: string };
+export type LessonQuestionKeyed = Omit<LessonQuestion, 'options'> & { options: LessonOptionKeyed[] };
+
+/** A lesson anyone with the link may read: its head and every step, never a question's key. */
+export type LessonPage = { __typename: 'LessonPage'; head: LessonHead; steps: LessonStep[] };
+
+/** A lesson that is not public: its visibility alone, no title, author or subject. */
+export type LessonStub = { __typename: 'LessonStub'; visibility: LessonVisibility };
+
+/** A signed-in reaction on a result page; `role` is the person's role on the repository (maintainer, collaborator). */
+export type LessonResultReaction = { login: string; role: string; reaction: LessonReaction };
+
+/** One login's passed run of a lesson, as anyone may read it: the proof of a pass. */
+export type LessonResultPage = {
+  __typename: 'LessonResultPage';
+  head: LessonHead;
+  /** The GitHub account's current login. */
+  login: string;
+  /** The login when the run passed. */
+  loginAtPass: string;
+  githubId: number;
+  version: number;
+  passedAt: string;
+  minutes: number;
+  steps: LessonStep[];
+  results: LessonStepResult[];
+  /** The step questions the run was asked, with their key; empty when the kind keeps its key. */
+  asked: LessonQuestionKeyed[];
+  reactions: LessonResultReaction[];
+};

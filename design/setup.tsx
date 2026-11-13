@@ -56,7 +56,28 @@ vi.mock('@/graphql/helpers/fetch-countries', async () => {
 });
 vi.mock('@/app/contribute/actions', async () => (await import('./inert')).inert());
 vi.mock('@/app/contribute/runs/actions', async () => (await import('./inert')).inert());
-vi.mock('@/app/learn/actions', async () => (await import('./inert')).inert());
+// Named, with the one a form posts to: a form's action checks the export exists, which `inert()`'s proxy does not answer.
+vi.mock('@/app/learn/actions', async () => ({
+  ...Object.fromEntries(
+    [
+      'startLessonRun',
+      'startSharedLessonRun',
+      'answerWarmup',
+      'markStepShown',
+      'answerLessonQuestion',
+      'sendQuestionFeedback',
+      'reportQuestion',
+      'logCopyForAgent',
+      'rateLesson',
+      'shareMyResult',
+      'removeLesson',
+      'saveLearnProfile',
+      'reactToLessonResult',
+      'reactOnReturn',
+    ].map((name) => [name, async () => undefined]),
+  ),
+  signInToReact: async () => {},
+}));
 vi.mock('@/lib/learn/learn.data', async () => (await import('./inert')).inert());
 // The menu's "Learn" is asked in the browser: the Learn boards draw it open, every other board as a visitor sees it.
 vi.mock('@/lib/learn/learn-open', async (importOriginal) => ({

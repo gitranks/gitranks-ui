@@ -6,8 +6,16 @@ import { type ReactNode, useState } from 'react';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 
-/** A visitor's "Start learning": the GitHub sign-in, back to Goal and level. */
-export function LearnSignInButton({ className, children }: { className?: string; children: ReactNode }) {
+/** A visitor's "Start learning": the GitHub sign-in, back to Goal and level (or `redirectTo`, a path of ours). */
+export function LearnSignInButton({
+  className,
+  children,
+  redirectTo = LEARN_PROFILE_PATH,
+}: {
+  className?: string;
+  children: ReactNode;
+  redirectTo?: string;
+}) {
   const [pending, setPending] = useState(false);
   return (
     <button
@@ -17,7 +25,7 @@ export function LearnSignInButton({ className, children }: { className?: string;
       data-sign-in="learn"
       onClick={() => {
         setPending(true);
-        signIn(IDENTITY_PROVIDER, { redirectTo: LEARN_PROFILE_PATH }).catch(() => setPending(false));
+        signIn(IDENTITY_PROVIDER, { redirectTo }).catch(() => setPending(false));
       }}
     >
       {children}

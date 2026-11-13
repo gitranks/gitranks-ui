@@ -27,6 +27,7 @@ export function LessonSteps({
   shownId,
   reachable,
   onOpen,
+  anchors = false,
 }: {
   steps: readonly LessonStep[];
   results: readonly LessonStepResult[];
@@ -35,6 +36,8 @@ export function LessonSteps({
   /** The steps the user may open: the ones passed and the current one. */
   reachable?: ReadonlySet<string>;
   onOpen?: (stepId: string) => void;
+  /** Every step links to its article further down the page: a lesson read whole. */
+  anchors?: boolean;
 }) {
   const byStep = new Map(results.map((result) => [result.stepId, result]));
   const passed = steps.filter((step) => isStepDone(byStep.get(step.id))).length;
@@ -68,7 +71,15 @@ export function LessonSteps({
           );
           return (
             <li key={step.id} className="w-56 shrink-0 lg:w-auto" data-step={step.id} data-state={result?.state}>
-              {open ? (
+              {anchors ? (
+                <a
+                  href={`#${stepAnchorOf(step)}`}
+                  aria-current={shown ? 'step' : undefined}
+                  className={cn(box, 'hover:border-primary/40')}
+                >
+                  {body}
+                </a>
+              ) : open ? (
                 <a
                   href={`#${stepAnchorOf(step)}`}
                   aria-current={shown ? 'step' : undefined}

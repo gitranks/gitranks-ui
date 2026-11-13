@@ -12,10 +12,11 @@ import {
   reportQuestion,
   sendQuestionFeedback,
   startLessonRun,
+  startSharedLessonRun,
 } from '../actions';
 import { LessonBlock, RichText } from './lesson-block';
 import { LessonSteps, stepAnchorOf } from './lesson-steps';
-import { LessonSummary } from './lesson-summary';
+import { LessonSummary, type SummaryShare } from './lesson-summary';
 import { QuestionCard } from './question-card';
 import { WrittenFor } from './written-for';
 import { CopyButton } from '@/app/contribute/components/copy-button';
@@ -111,9 +112,13 @@ export function phaseOf(stage: LearnStage, run: LessonRun | null, rightShown = f
  * hint and asks the step's other question), then the summary. `pane` is what the page adds under it: the pull
  * request's form once the lesson is passed, the share card once the pull request is open. Every answer is checked by
  * the API, which alone holds the key.
+ *
+ * The lesson of the user's own Learn attempt (`attemptId`), or a shared lesson taken from its link (`shared`): no gate
+ * at its end, only the summary with "Share my result".
  */
 export function LessonFlow({
   attemptId,
+  shared,
   stage,
   head,
   steps,
@@ -121,7 +126,8 @@ export function LessonFlow({
   pane,
   start,
 }: {
-  attemptId: string;
+  attemptId?: string;
+  shared?: SummaryShare;
   stage: LearnStage;
   head: LessonHead | null;
   steps: readonly LessonStep[];
@@ -148,21 +154,23 @@ export function LessonFlow({
   useEffect(() => {
     if (phase !== 'starting' || starting.current === tries) return;
     starting.current = tries;
-    startLessonRun(attemptId).then((result) => {
+    const opening = shared ? startSharedLessonRun(shared.slug) : startLessonRun(attemptId ?? '');
+    opening.then((result) => {
       if (result.ok) setRun(result.data);
       else setError(contributeErrorMessage(result.error, result.message));
     });
-  }, [phase, attemptId, tries]);
+  }, [phase, attemptId, shared, tries]);
 
   // The run passed, or two steps had every question reported: once the user has moved on, the page reads the lesson
   // again, which opens the pull request's form, or says the questions need fixing with the send-back.
   const refreshed = useRef(false);
   const wanted = run?.passedAt ? 'READY_TO_APPROVE' : run?.blocked ? 'BLOCKED' : null;
   useEffect(() => {
-    if (!wanted || wanted === stage || checked?.correct || refreshed.current) return;
+    // A shared lesson has no stage to move to: its summary is the end.
+    if (shared || !wanted || wanted === stage || checked?.correct || refreshed.current) return;
     refreshed.current = true;
     router.refresh();
-  }, [wanted, stage, checked?.correct, router]);
+  }, [shared, wanted, stage, checked?.correct, router]);
 
   const current = run?.current ?? null;
   // The question on screen: the one just answered right, else the one to answer.
@@ -267,7 +275,7 @@ export function LessonFlow({
               onCopy={() => run && void logCopyForAgent(run.id, step.id)}
             />
           </div>
-          <WrittenFor writtenFor={head?.writtenFor} className="max-lg:hidden" short />
+          <WrittenFor writtenFor={head?.writtenFor} className="max-lg:hidden" short author={!!shared} />
         </>
       ) : null}
     </div>
@@ -315,14 +323,17 @@ export function LessonFlow({
     body = (
       <>
         <Box state="LEARN_WARMUP">
-          <h2 className={HEADING.card}>The fix is ready. First, {run.warmup.length} quick questions</h2>
+          <h2 className={HEADING.card}>
+            {shared ? 'First' : 'The fix is ready. First'}, {run.warmup.length} quick questions
+          </h2>
           <p className="text-sm text-muted-foreground">
             They show what you already know, so the lesson can skip it. A wrong answer or “I don't know yet” costs
             nothing.
           </p>
           <p className="text-sm text-muted-foreground">
-            The pull request will link to your result. Per step it says whether you knew it, passed first try or needed
-            more tries. It never lists the wrong answers you picked.
+            {shared
+              ? 'Your result stays private unless you share it at the end. Per step it says whether you knew it, passed first try or needed more tries. It never lists the wrong answers you picked.'
+              : 'The pull request will link to your result. Per step it says whether you knew it, passed first try or needed more tries. It never lists the wrong answers you picked.'}
           </p>
         </Box>
         {run.warmup.map((question, index) => (
@@ -420,13 +431,14 @@ export function LessonFlow({
       <Box state="LEARN_BLOCKED" tone="warn">
         <h2 className={HEADING.card}>The questions need fixing</h2>
         <p className="text-sm text-muted-foreground">
-          You reported every question of two steps, so this lesson cannot check what you learned. Send it back to your
-          agent to write better questions; you keep the steps you passed.
+          {shared
+            ? 'You reported every question of two steps, so this lesson cannot check what you learned. We read every report; your run stays open with the steps you passed.'
+            : 'You reported every question of two steps, so this lesson cannot check what you learned. Send it back to your agent to write better questions; you keep the steps you passed.'}
         </p>
       </Box>
     );
   } else if (phase === 'done' && run) {
-    body = <LessonSummary run={run} head={head} steps={steps} />;
+    body = <LessonSummary run={run} head={head} steps={steps} share={shared} />;
   }
 
   return (

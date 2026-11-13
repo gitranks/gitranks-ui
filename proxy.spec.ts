@@ -248,13 +248,40 @@ describe('proxy', () => {
         '/learn/lessons/route-cache-miss-8f3k',
         '/learn/lessons/route-cache-miss-8f3k/',
         '/learn/lessons/route-cache-miss-8f3k/passes/octocat',
-        '/learn/lessons/route-cache-miss-8f3k/passes/octocat.json',
       ]) {
         const signedOut = await proxy(request(undefined, path), event);
         expect(signedOut?.headers.get('x-middleware-rewrite'), path).toBeNull();
         expect(signedOut?.headers.get('cache-control'), path).toBeNull();
       }
       expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+
+    it("answers a result page's .json from its route handler, signed in or not, before Auth.js", async () => {
+      for (const cookie of [undefined, 'authjs.session-token=t']) {
+        const response = await proxy(
+          request(cookie, '/learn/lessons/route-cache-miss-8f3k/passes/Octo-cat.json'),
+          event,
+        );
+        expect(response?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/api/learn/lessons/route-cache-miss-8f3k/passes/Octo-cat',
+        );
+        expect(response?.headers.get('set-cookie')).toBeNull();
+      }
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it('rewrites no other .json address, nor one whose slug or login is not shaped as ours', async () => {
+      for (const path of [
+        '/learn/lessons/route-cache-miss-8f3k.json',
+        '/learn/lessons/route-cache-miss-8f3k/passes/octo.cat.json',
+        '/learn/lessons/route%2Fcache/passes/octocat.json',
+        '/learn/lessons/route-cache-miss-8f3k/passes/octocat.json/x',
+        '/learn/lessons/route-cache-miss-8f3k/passes/octocat/x.json',
+        '/learn/lessons/route-cache-miss-8f3k/passes/octocat.JSON',
+      ]) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite') ?? '', path).not.toContain('/api/learn/');
+      }
     });
 
     it('leaves paths that only start alike alone', async () => {

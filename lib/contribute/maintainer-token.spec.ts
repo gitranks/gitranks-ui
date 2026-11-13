@@ -138,6 +138,43 @@ describe("the maintainers page's sign-in mark", () => {
     expect(redirectTo).toMatch(/^\/contribute\/maintainers\?s=[0-9a-f-]{36}$/);
   });
 
+  it("returns to a Learn result page with only its reaction kept, and counts for that page's sign-in", async () => {
+    const redirectTo = await markMaintainerSignIn(
+      '/learn/lessons/route-cache-miss-8f3k/passes/octocat?react=yes&s=old&next=https://evil.example#x',
+    );
+    const nonce = jar.set.mock.calls[0][1];
+    expect(redirectTo).toBe(`/learn/lessons/route-cache-miss-8f3k/passes/octocat?react=yes&s=${nonce}`);
+
+    returnsTo(redirectTo);
+    expect(await takeMaintainerSignIn()).toBe(true);
+
+    expect(String(maintainerReturnOf('/learn/lessons/a-1/passes/Mona-Lisa?react=no'))).toBe(
+      'https://gitranks.invalid/learn/lessons/a-1/passes/Mona-Lisa?react=no',
+    );
+    expect(String(maintainerReturnOf('/learn/lessons/a-1/passes/mona?react=maybe'))).toBe(
+      'https://gitranks.invalid/learn/lessons/a-1/passes/mona',
+    );
+  });
+
+  it.each([
+    '/learn/lessons/route-cache-miss-8f3k',
+    '/learn/lessons',
+    '/learn/lessons/route-cache-miss-8f3k/passes',
+    '/learn/lessons/route-cache-miss-8f3k/passes/octocat/',
+    '/learn/lessons/route-cache-miss-8f3k/passes/octocat/x',
+    '/learn/lessons/route-cache-miss-8f3k/passes/octocat.json',
+    '/learn/lessons/route-cache-miss-8f3k/passes/octo.cat',
+    '/learn/lessons/route%2Fx/passes/octocat',
+    '/learn/lessons/x/passes/../../../contribute/settings',
+    '/learn/lessons/x/passes/%2e%2e',
+    '/LEARN/lessons/x/passes/octocat',
+    '/learn/attempts/A_1',
+    '//evil.example/learn/lessons/x/passes/octocat',
+    'https://evil.example/learn/lessons/x/passes/octocat',
+  ])('refuses %s, which is no result page as the site writes it', (returnTo) => {
+    expect(String(maintainerReturnOf(returnTo))).toBe('https://gitranks.invalid/contribute/maintainers');
+  });
+
   it('is a __Host- cookie in production: Secure, the whole site, no domain', () => {
     expect(maintainerSignInCookie(true)).toEqual({
       name: '__Host-gitranks-maintainer-sign-in',

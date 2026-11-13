@@ -41,13 +41,26 @@ const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>(['contribu
 
 export const CLICK_REPORT_PATH = '/api/contribute/click';
 
-export type ClickKind = 'click' | 'landing' | 'connect';
+/** `learn_view` and `learn_click`: a Learn page opened, a click on one, named by `source` and the lesson's slug. */
+export type ClickKind = 'click' | 'landing' | 'connect' | 'learn_view' | 'learn_click';
 export type ConnectWay = 'key' | 'agent';
+
+/** What a Learn report counts: a page opened (`learn_view`) or a click on one (`learn_click`). */
+export type LearnEvent =
+  | { kind: 'learn_view'; source: 'lesson_opened' | 'result_opened' }
+  | { kind: 'learn_click'; source: 'reaction_clicked'; target: 'yes' | 'no' };
 
 /** How the visit began: the address's campaign tags and the other site it came from. */
 export type Entry = { utmSource?: string; utmMedium?: string; utmCampaign?: string; referrerHost?: string };
 
-export type ClickReport = Entry & { kind: ClickKind; path: string; source?: string; target?: string };
+export type ClickReport = Entry & {
+  kind: ClickKind;
+  path: string;
+  source?: string;
+  target?: string;
+  /** A Learn report's lesson. */
+  lesson?: string;
+};
 
 /** The link's path when it stays on this site, without query or hash. */
 function pathOf(href: string | null | undefined, origin: string): string | null {

@@ -7,12 +7,23 @@ const SESSION_COOKIE = /^(__Secure-)?authjs\.session-token(\.\d+)?$/;
 
 /** A report is a few short fields; anything larger is not one. */
 const MAX_BODY = 2_000;
-const FIELDS = ['kind', 'source', 'path', 'target', 'utmSource', 'utmMedium', 'utmCampaign', 'referrerHost'] as const;
+const FIELDS = [
+  'kind',
+  'source',
+  'path',
+  'target',
+  'lesson',
+  'utmSource',
+  'utmMedium',
+  'utmCampaign',
+  'referrerHost',
+] as const;
 
 const done = () => new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'private, no-store' } });
 
 /**
- * A step into Contribute, reported by the page (`ContributeClickTracker`): passed on with whether the visitor has a
+ * A step into Contribute, reported by the page (`ContributeClickTracker`), or a Learn page opened or clicked on
+ * (`reportLearnEvent`, with the lesson's slug): passed on with whether the visitor has a
  * sign-in session, never who they are. The address and browser go along only to tell one day's visitors apart; neither
  * is stored. Sets no cookie. Always 204: the page has moved on and nothing here is its concern.
  */

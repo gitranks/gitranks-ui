@@ -80,7 +80,7 @@ describe('replyLinkOf', () => {
   it('links the thread, or the pull request for a top-level comment, while it is not posted', () => {
     expect(replyLinkOf(replyDraft({ commentUrl: thread }))).toEqual({
       href: thread,
-      label: 'Open the thread on GitHub ↗',
+      label: 'Open the thread ↗',
     });
     expect(
       replyLinkOf(replyDraft({ comment: null, commentUrl: 'https://github.com/driftwood-js/driftwood/pull/1419' })),

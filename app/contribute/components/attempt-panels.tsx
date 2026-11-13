@@ -77,8 +77,8 @@ const SUMMARY =
  * what the check was on when it ran out, its brief, or that it is not ready yet), what is worth a look, who made it
  * when it is the user's own agent, and its notes behind a disclosure. Nothing for an ended session with nothing to say.
  */
-export function AgentDidPanel({ attempt, now }: { attempt: ContributeAttemptDetail; now?: Date }) {
-  const did = agentDidOf(attempt, now);
+export function AgentDidPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
+  const did = agentDidOf(attempt);
   if (!did) return null;
   const { verdict, risk, text, limitNote, worthALook, notes, ownAgent } = did;
 
@@ -117,11 +117,6 @@ export function AgentDidPanel({ attempt, now }: { attempt: ContributeAttemptDeta
       {ownAgent?.agent ? (
         <p data-agent-meta="" className="text-xs text-muted-foreground">
           Made by {ownAgent.agent}, as your agent reported it.
-        </p>
-      ) : null}
-      {ownAgent?.heldFor ? (
-        <p data-agent-meta="" className="text-xs text-muted-foreground">
-          The issue is held for it for another {ownAgent.heldFor}.
         </p>
       ) : null}
       {notes ? (

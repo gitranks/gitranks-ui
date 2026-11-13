@@ -253,7 +253,7 @@ export function endMoveOf(
 /** The note the API puts after a no-go the agent wrote when told to wrap up at the check's limit. */
 const DECIDED_AT_LIMIT = /\s*Decided at the check's (budget|time) limit\.$/;
 /** The API's words for a check that reached its limit with no verdict. */
-const RAN_OUT = /^No verdict(?::| before) .*the check's (?:\$[\d.]+ budget|(\d+)-minute limit) ran out/;
+const RAN_OUT = /^No verdict(?::| before) .*the check's (?:(\$[\d.]+) budget|(\d+)-minute limit) ran out/;
 
 /**
  * A no-go at the go/no-go check's budget or time limit: `decided` when the agent wrote it on being told to wrap up,
@@ -267,7 +267,17 @@ export function checkLimitOf(
   const decided = DECIDED_AT_LIMIT.exec(attempt.endDetail);
   if (decided) return { limit: decided[1] === 'time' ? 'time' : 'budget', decided: true };
   const ranOut = RAN_OUT.exec(attempt.endDetail);
-  return ranOut ? { limit: ranOut[1] ? 'time' : 'budget', decided: false } : null;
+  return ranOut ? { limit: ranOut[2] ? 'time' : 'budget', decided: false } : null;
+}
+
+/**
+ * What a check that ran out with no verdict had to spend, as its detail names it: the budget (`$0.60`) or the time
+ * (`15-minute`); null when the detail names neither.
+ */
+export function ranOutCapOf(endDetail: string | null | undefined): { amount: string | null } {
+  const ranOut = endDetail ? RAN_OUT.exec(endDetail) : null;
+  if (!ranOut) return { amount: null };
+  return { amount: ranOut[1] ?? (ranOut[2] ? `${ranOut[2]}-minute` : null) };
 }
 
 /** A no-go's reason without the "decided at the limit" note (the page says it apart). */

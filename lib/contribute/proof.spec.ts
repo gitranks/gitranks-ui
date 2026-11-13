@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { mcpToken, NOW, views } from './__fixtures__/contribute-views';
 import { nextForProof, nextForYou, proofAsk, proofResult, proofSession, prsNeedingYou } from './__fixtures__/needs-you';
 import type { ContributeContribution, ContributeProof } from './contribute.types';
+import { contributionMovesOf } from './contribution-moves';
 import { needsYouItemsOf } from './needs-you';
-import { contributionOf, nextStepOf, nextStepWaits } from './next-step';
+import { contributionOf, nextStepOf } from './next-step';
 import {
   agentConnectedOf,
   askedForOf,
@@ -123,7 +124,6 @@ describe('the next step with a proof', () => {
     const [first, second] = step.user;
     expect(first).toMatchObject({ kind: 'proof', kinds: ['BOT_BLOCKED'], stage: 'connected', waits: true });
     expect(second).toMatchObject({ kind: 'found', kinds: ['RUN_ENDED'], bot: null });
-    expect(nextStepWaits(step)).toBe(true);
   });
 
   it('keeps the found card for a block when no proof is asked, and for a pull request opened by hand', () => {
@@ -151,7 +151,6 @@ describe('the next step with a proof', () => {
       { kind: 'proof', stage: 'posted', kinds: [], bot: null },
       { kind: 'found', kinds: ['BOT_BLOCKED'], bot: { by: 'clawsweeper', verdict: 'Needs changes' } },
     ]);
-    expect(nextStepWaits(later)).toBe(true);
   });
 
   it('tells a posted proof without counting it as waiting', () => {
@@ -168,20 +167,26 @@ describe('the next step with a proof', () => {
   });
 
   it("lists a proof's tile beside the runs, marked on the next step", () => {
-    const tiles = sessionsOf(nextForProof.review, undefined, { agentConnected: true, now: NOW });
-    // The proof's tile has the next step's key, so the address marks it; the run's tile beside it its own.
+    const connected = {
+      ...views.active,
+      ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken({ lastUsedAt: NOW.toISOString() })] },
+    };
+    const tilesOf = (first: typeof nextForYou) =>
+      sessionsOf(first, undefined, contributionMovesOf({ view: connected, first, now: NOW }));
+    const tiles = tilesOf(nextForProof.review);
+    // The proof's tile has the next step's key, so the address marks it, with its move; the run's tile beside it its own.
     expect(tiles.map(({ key, href }) => [key, href])).toEqual([
       ['A_OC', '/contribute/attempts/A_OC'],
       ['A_OC1', '/contribute/attempts/A_OC/runs/A_OC1'],
-      ['next', '/contribute/attempts/A_OC?session=next'],
-      ['next-run', '/contribute/attempts/A_OC?session=next#next-run'],
+      ['next', '/contribute/attempts/A_OC?session=next&move=proof-review'],
+      ['next-run', '/contribute/attempts/A_OC?session=next'],
     ]);
     expect(tiles.find(({ key }) => key === 'next')).toMatchObject({
       title: 'Proof',
       pill: { label: 'Check it', tone: 'amber' },
       meta: 'Waits for you',
     });
-    const none = sessionsOf(nextForYou, undefined, { agentConnected: true, now: NOW });
+    const none = tilesOf(nextForYou);
     expect(none.map(({ key }) => key)).toEqual(['A_OC', 'A_OC1', 'next']);
   });
 });

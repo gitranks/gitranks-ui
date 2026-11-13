@@ -184,14 +184,18 @@ describe('the contribution page', () => {
     expect(html).toContain('data-pr-form="A_1"');
   });
 
-  it('opens the form by itself after a submit that bounced, adding no error line of its own', () => {
+  it('opens the form by itself after a submit that bounced, the note said once, in the card', () => {
     const html = review(attempts.bounced);
     expect(html).toContain('data-submit-panel="open"');
-    expect(text(html).match(/GitHub is still making your fork/g)).toHaveLength(1);
-    const error = html.indexOf('data-submit-error');
+    expect(html).toContain('data-move="review"');
+    expect(text(html)).toContain(
+      'First attempt · the submit failed GitHub is still making your fork Try again in a few minutes.',
+    );
+    expect(text(html).match(/Approve again in a few minutes/g)).toHaveLength(1);
+    const error = html.indexOf('data-submit-error="fork_timeout"');
     expect(error).toBeGreaterThan(-1);
-    expect(html.indexOf('GitHub is still making your fork')).toBeGreaterThan(error);
-    expect(html.indexOf('GitHub is still making your fork')).toBeLessThan(html.indexOf('data-pr-form'));
+    expect(html.indexOf('Approve again in a few minutes')).toBeGreaterThan(error);
+    expect(html.indexOf('Approve again in a few minutes')).toBeLessThan(html.indexOf('data-pr-form'));
   });
 
   it('opens a pull request on its change, the header saying where it stands and no box saying it again', () => {
@@ -280,10 +284,10 @@ describe('the contribution page', () => {
     expect(html).toContain('data-pr-state="OPEN"');
     expect(html).not.toContain('data-session="next"');
     expect(html).toMatch(/data-session="A_F1"[^>]*><a[^>]*aria-current="page"/);
-    expect(plain).toContain('Run 1 Ready for you');
-    // The run's comments sit above the details; the details open on its new commits.
-    expect(html.indexOf('data-panel="replies"')).toBeGreaterThan(-1);
-    expect(html.indexOf('data-panel="replies"')).toBeLessThan(html.indexOf('data-session-tabs'));
+    expect(plain).toContain('Run 1 Your move');
+    // The head, then the run's comments above the details; the details open on its new commits.
+    expect(html.indexOf('data-move="run-ready"')).toBeLessThan(html.indexOf('data-panel="review-comments"'));
+    expect(html.indexOf('data-panel="review-comments"')).toBeLessThan(html.indexOf('data-session-tabs'));
     expect(html).not.toContain('data-tab="replies"');
     expect(panel(html, 'changes')).toBe('active');
     expect(html).not.toContain('data-follow-up-of');
@@ -310,7 +314,7 @@ describe('the contribution page', () => {
     expect(review(fixed)).not.toContain('data-needs-you');
   });
 
-  it('still lists the waiting comments, with why, while a run is under way', () => {
+  it('points at the run while one is under way, and leaves the waiting comments for after it', () => {
     const busy = {
       ...followUpAttempts.quiet,
       state: 'FOLLOW_UP' as const,
@@ -319,13 +323,14 @@ describe('the contribution page', () => {
     };
     // On the first attempt's own session: the run at work, and the way to it.
     const line = review(busy);
-    expect(line).toContain('data-your-move="working"');
-    expect(text(line)).toContain('Run 2 working Under way. It comes back here when it is ready. Watch run 2 →');
+    expect(line).toContain('data-status="RUN_UNDER_WAY"');
+    expect(text(line)).toContain('Watch the run →');
     expect(line).toContain('href="/contribute/attempts/A_1/runs/A_F3"');
+    // The next step is not shown while a run works: the page is the first attempt's.
     const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={busy} next now={NOW} />);
-    expect(html).toContain('data-panel="review-feedback"');
-    expect(text(html)).toContain('A follow-up is under way on these comments.');
-    expect(html).not.toContain('data-start-follow-up');
+    expect(html).toContain('data-shown-session="A_1"');
+    expect(html).not.toContain('data-panel="review-comments"');
+    expect(html).not.toContain('data-start=');
   });
 });
 
@@ -340,7 +345,8 @@ describe('the review screen', () => {
     const html = review(failing);
     const plain = text(html);
 
-    expect(plain).toContain('Ready for your review');
+    expect(plain).toContain('First attempt · ready for you');
+    expect(plain).toContain('Review the change, then open the pull request');
     expect(plain).toContain('driftwood-js/driftwood · issue #871');
     expect(plain).toContain('Nested layouts re-render on every navigation');
     expect(html).not.toContain('data-first-timers');
@@ -626,10 +632,15 @@ describe('the review screen', () => {
       }),
     );
     const plain = text(html);
-    expect(html).toContain('data-panel="pr-conventions"');
+    expect(html).toContain('data-move="rules"');
+    expect(plain).toContain("The pull request breaks 4 of the repo's rules");
     expect(plain).toContain('Retitle to “fix: layout cache drops nested routes”');
     expect(plain).toContain('Fix the changelog line');
     expect(plain).toContain('Edit the description');
+    // The first item's fix is the card's main button; the others are outline.
+    expect(html).toMatch(/data-variant="default"[^>]*>Retitle to/);
+    // The changelog's link fix failed: its own button reads Try again, outline.
+    expect(html).toMatch(/data-variant="outline"[^>]*>Try again</);
     expect(html).toContain('href="https://cla-assistant.io/x/y"');
     expect(html).toContain('data-pr-fix="failed"');
     expect(plain).toContain('Linking the changelog line to the pull request did not go through: The branch moved.');
@@ -658,6 +669,7 @@ describe('the review screen', () => {
       }),
     );
     const guide = text(template);
+    expect(guide).toContain('Fill in the description on GitHub');
     expect(guide).toContain('Open #1419 on GitHub');
     expect(template).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
     expect(guide).toContain("Why you see this: driftwood-js/driftwood's rules for AI agents");
@@ -671,7 +683,7 @@ describe('the review screen', () => {
     // Nothing to fix, nothing sent: no card.
     expect(
       reviewNext(detail({ state: 'PR_OPEN', pullRequest: pullRequest(), prIssues: [], prFix: null })),
-    ).not.toContain('data-panel="pr-conventions"');
+    ).not.toContain('data-move="rules"');
   });
 
   it('gives the comment that signs an agreement signed on the pull request, to copy', () => {
@@ -701,9 +713,9 @@ describe('the review screen', () => {
       }),
     );
     const plain = text(html);
-    expect(plain).toContain(
-      "Sign the repo's DCO: post this comment on the pull request yourself. We can't sign for you. (DCO)",
-    );
+    // A CLA rule with no CLA signal is the rules card's, alone: its kind is cla.
+    expect(html).toContain('data-move="rules"');
+    expect(plain).toContain('DCO to sign Sign the DCO');
     expect(plain.split(signComment)).toHaveLength(2);
     expect(html).toContain('aria-label="Copy the comment"');
     expect(plain).toContain('Read the DCO first');
@@ -721,11 +733,11 @@ describe('the review screen', () => {
     expect(signOffOf(undefined, 'ASK', false)).toBe(false);
   });
 
-  it('asks to approve again after a submission bounced back, with its note and the edited text', () => {
+  it('asks to submit again after a submission bounced back, with its note and the edited text', () => {
     const html = review(attempts.bounced);
     const plain = text(html);
 
-    expect(plain).toContain('Back for your approval');
+    expect(plain).toContain('First attempt · the submit failed');
     expect(html).toContain('data-submit-error="fork_timeout"');
     expect(plain).toContain('GitHub is still making your fork. Approve again in a few minutes.');
     expect(html).toContain('value="Normalize route paths"');
@@ -734,17 +746,27 @@ describe('the review screen', () => {
   });
 
   it.each([
-    ['queued', 'QUEUED', 'It starts when your limits allow the next attempt.'],
+    ['queued', 'QUEUED', 'Queued starts when your limits allow'],
     ['running', 'RUNNING', 'The agent is working on it'],
     ['checks', 'CHECKS', 'Running our checks'],
-    ['pendingAutosubmit', 'PENDING_AUTOSUBMIT', 'Autopilot submits this unless you stop it'],
     ['discarded', 'DISCARDED', 'You discarded it.'],
     ['expired', 'DISCARDED', 'It waited seven days for a review'],
-  ] as const)('renders the %s state', (name, state, words) => {
+  ] as const)('renders the %s state in one line', (name, state, words) => {
     const html = review(attempts[name]);
 
-    expect(html).toContain(`data-attempt-status="${state}"`);
+    expect(html).toContain(`data-status="${state}"`);
     expect(text(html)).toContain(words);
+    expect(html).not.toContain('data-pr-form');
+  });
+
+  it('renders autopilot’s countdown as its move card', () => {
+    const html = review(attempts.pendingAutosubmit);
+    expect(html).toContain('data-move="autopilot"');
+    // An API that does not say when it submits: said, and no Stop to offer.
+    expect(text(html)).toContain(
+      'Autopilot opens this pull request When it submits, and stopping it, are not available yet.',
+    );
+    expect(html).not.toContain('data-stop-autopilot');
     expect(html).not.toContain('data-pr-form');
   });
 
@@ -761,7 +783,8 @@ describe('the review screen', () => {
     });
     const plain = text(html);
 
-    expect(html).toContain('data-attempt-status="CLAIMING"');
+    expect(html).toContain('data-status="CLAIMING"');
+    expect(text(html)).toContain('Checking the issue is still free');
     expect(html).toContain('data-claim-step="conventions" data-state="running"');
     expect(plain).toContain('Reading the issue and its timeline');
     expect(plain).toContain("Reading the repository's rules (failed)");
@@ -776,20 +799,20 @@ describe('the review screen', () => {
     const html = review({ ...attempts.discarded, endReason: 'CANCELLED', endDetail: 'repo_coordinate_first' });
     const plain = text(html);
 
-    expect(html).toContain('data-attempt-status="DISCARDED"');
+    expect(html).toContain('data-status="DISCARDED"');
     expect(plain).toContain('no maintainer has agreed to this one yet, so the agent did not start.');
     expect(plain).toContain('Nothing was submitted.');
     expect(plain).not.toContain('went back to the pool');
-    expect(plain).toContain('What to do: To work on it, ask on the issue on GitHub');
+    expect(plain).toContain('To work on it, ask on the issue on GitHub');
     // Any other discard keeps its words and no move.
-    expect(text(review(attempts.discarded))).not.toContain('What to do');
+    expect(text(review(attempts.discarded))).not.toContain('To work on it');
   });
 
   it('says what is not available yet while the agent works', () => {
     const plain = text(review(attempts.running));
 
     const html = review(attempts.running);
-    expect(plain).toContain('Started 3 hours ago. $0.40 of the $5 limit spent so far.');
+    expect(plain).toContain('The agent is working on it started 3 hours ago · $0.40 of $5');
     expect(plain).toContain("The agent's summary isn't ready yet. It shows here when the agent is done.");
     expect(plain).toContain('Our checks have not run yet.');
     expect(plain).toContain('The diff is not available yet.');
@@ -807,7 +830,7 @@ describe('the review screen', () => {
     const html = review(attempts[name]);
     const plain = text(html);
 
-    expect(html).toContain('data-attempt-status="SUBMITTING"');
+    expect(html).toContain('data-status="SUBMITTING"');
     expect(plain).toContain(words);
     expect(plain).toContain('From octocat/driftwood, branch gitranks/871-nested-layouts.');
     if (current)
@@ -846,23 +869,20 @@ describe('the review screen', () => {
   const stepOf = (html: string, step: string) =>
     text(html.match(new RegExp(`<li data-step="${step}"[^>]*>.*?</li>`))?.[0] ?? '');
 
-  it('shows each done step with how long it took, and the running one with its time so far', () => {
+  it('shows each done step’s time in Details, and the running one lit in the bar', () => {
     const html = review(clocked());
 
     expect(html).toContain('data-step="FORK" data-step-state="done"');
-    expect(stepOf(html, 'FORK')).toContain('2.7 s');
-    expect(stepOf(html, 'SYNC')).toContain('3.3 s');
     expect(html).toMatch(/data-step="PUSH" data-step-state="current" aria-current="step"/);
-    expect(stepOf(html, 'PUSH')).toContain('Push : in progress 4 s');
-    expect(stepOf(html, 'PULL_REQUEST')).toContain('Pull request : not started');
-    // The lines fill behind the done steps only.
-    expect((html.match(/data-step-line="filled"/g) ?? []).length).toBe(2);
+    expect(stepOf(html, 'PUSH')).toContain('Push : now');
+    expect(stepOf(html, 'PULL_REQUEST')).toContain(': next');
+    expect(text(html)).toContain('Fork: 2.7 s · Sync: 3.3 s');
     expect(html).toContain('role="status"');
     expect(text(html)).toContain('Pushing the change to a branch on your fork.');
   });
 
-  it('spins and pulses only under motion-safe, so reduced motion keeps the stepper still', () => {
-    const html = review(clocked()).match(/<ol aria-label="Submission steps".*?<\/ol>/)?.[0] ?? '';
+  it('pulses only under motion-safe, so reduced motion keeps the bar still', () => {
+    const html = review(clocked()).match(/<ol aria-label="Steps".*?<\/ol>/)?.[0] ?? '';
     const animated = [...html.matchAll(/class="([^"]*(?:animate-|transition)[^"]*)"/g)].map(([, classes]) => classes);
 
     expect(animated.length).toBeGreaterThan(0);
@@ -880,7 +900,7 @@ describe('the review screen', () => {
     expect(html).toMatch(/data-step="FORK" data-step-state="current"/);
   });
 
-  it('marks a step tried again after a passing failure, and says when', () => {
+  it('marks a step tried again after a passing failure, its note in Details', () => {
     const html = review(
       clocked(
         {},
@@ -896,10 +916,9 @@ describe('the review screen', () => {
     );
 
     expect(html).toMatch(/data-step="PUSH" data-step-state="retrying" aria-current="step"/);
-    expect(stepOf(html, 'PUSH')).toContain('Again in 45 s');
-    // The countdown sits on the step; the live line keeps the note alone, so it is not read out every second.
+    expect(stepOf(html, 'PUSH')).toContain('trying again');
     expect(text(html)).toContain('GitHub did not answer; trying again shortly. From octocat/driftwood');
-    // Said once, in the stepper's line.
+    // Said once, in the line's Details.
     expect(html).not.toContain('data-submit-error');
   });
 
@@ -919,8 +938,7 @@ describe('the review screen', () => {
     );
 
     expect(html).toContain('data-step="SYNC" data-step-state="skipped"');
-    expect(stepOf(html, 'SYNC')).toContain('Not needed');
-    expect((html.match(/data-step-line="filled"/g) ?? []).length).toBe(3);
+    expect(stepOf(html, 'SYNC')).toContain('not needed');
   });
 
   it('shows where a submission failed, with its note and a way to try again', () => {
@@ -937,12 +955,14 @@ describe('the review screen', () => {
       ),
     );
 
-    expect(html).toContain('data-attempt-status="REVIEW"');
-    expect(html).toContain('data-step="FORK" data-step-state="done"');
-    expect(html).toContain('data-step="PUSH" data-step-state="failed"');
-    expect(stepOf(html, 'PUSH')).toContain('Push : failed Failed');
+    expect(html).toContain('data-move="review"');
+    expect(text(html)).toContain('Your fork already has a branch of this name');
+    expect(text(html)).toContain('Fork ✓ · Sync ✓ · Push ✕');
     expect(text(html)).toContain('Your fork already has this branch with other commits.');
-    expect(text(html)).toContain('Try again');
+    expect(text(html)).toContain("Open your fork's branches ↗");
+    expect(html).toContain('href="https://github.com/octocat/driftwood/branches"');
+    // The form is open after the bounce: its Submit again is the way to try again.
+    expect(text(html)).toContain('Submit again');
     expect(html).toContain('id="pr-form"');
   });
 
@@ -967,13 +987,13 @@ describe('the review screen', () => {
       ),
     );
 
-    expect(html).toContain('data-step="SYNC" data-step-state="failed"');
-    expect(html).toMatch(/href="https:\/\/github.com\/octo-cat\/driftwood\/tree\/develop"[^>]*data-fork-sync/);
+    expect(text(html)).toContain('Sync your fork on GitHub, then try again');
+    expect(text(html)).toContain('Fork ✓ · Sync ✕');
+    expect(html).toMatch(/href="https:\/\/github.com\/octo-cat\/driftwood\/tree\/develop"[^>]*data-link="fork-sync"/);
     expect(text(html)).toContain('Open your fork on GitHub ↗');
-    expect(text(html)).toContain('Try again');
   });
 
-  it('any other refusal shows no fork link', () => {
+  it('any other refusal shows no fork sync link', () => {
     const html = review(
       clocked(
         { state: 'REVIEW' },
@@ -984,10 +1004,10 @@ describe('the review screen', () => {
       ),
     );
 
-    expect(html).not.toContain('data-fork-sync');
+    expect(html).not.toContain('data-link="fork-sync"');
   });
 
-  it("refused at the pull request by the repository's organization: where to ask it, and that Try again waits on it", () => {
+  it("refused at the pull request by the repository's organization: where to ask it, and that it waits on it", () => {
     const html = review(
       clocked(
         { state: 'REVIEW' },
@@ -1007,15 +1027,35 @@ describe('the review screen', () => {
       ),
     );
 
-    expect(html).toContain('data-step="PULL_REQUEST" data-step-state="failed"');
+    expect(text(html)).toContain("The organization hasn't approved GitRanks yet");
     expect(text(html)).toContain("The repository's organization has not approved the app.");
     expect(html).toContain('data-org-access');
-    expect(text(html)).toContain('Try again');
     expect(text(html)).toContain('It goes through only once the organization approves the app.');
     expect(text(html)).not.toContain('Allow on GitHub');
   });
 
-  it('shows the steps done and links the pull request when it just opened', () => {
+  it('a repo limit keeps the change in review with no Try again, and points at the repo’s rules', () => {
+    const html = review(
+      clocked(
+        { state: 'REVIEW' },
+        {
+          step: 'QUEUED',
+          steps: [],
+          lastError: {
+            reason: 'repo_busy',
+            note: 'The repo has too many open PRs from GitRanks.',
+            at: NOW.toISOString(),
+          },
+        },
+      ),
+    );
+    expect(text(html)).toContain('The repo takes no more pull requests from GitRanks for now');
+    expect(text(html)).toContain("See the repo's rules");
+    const head = html.slice(html.indexOf('data-session-head'), html.indexOf('data-panel="agent-did"'));
+    expect(text(head)).not.toContain('Try again');
+  });
+
+  it('shows the steps done when the pull request just opened', () => {
     const opened = clocked(
       { state: 'PR_OPEN', pullRequest: pullRequest({ openedAt: '2026-10-28T11:59:59.000Z' }) },
       {
@@ -1030,22 +1070,23 @@ describe('the review screen', () => {
     );
     const html = review(opened);
 
-    expect(html).toContain('data-attempt-status="PR_OPEN"');
-    expect((html.match(/data-step-state="done"/g) ?? []).length).toBe(4);
-    expect(stepOf(html, 'PULL_REQUEST')).toContain('Pull request #1419 ↗');
-    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
+    expect(html).toContain('data-status="PR_OPENED"');
     expect(text(html)).toContain('Your pull request is open');
+    expect(text(html)).toContain('Fork ✓ · Sync ✓ · Push ✓ · Open PR ✓');
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
 
-    // Opened a while ago: the PR card alone.
-    expect(review(attempts.prOpen)).not.toContain('data-step-state');
+    // Opened a while ago: the maintainers' wait, no steps.
+    expect(review(attempts.prOpen)).toContain('data-status="PR_OPEN"');
+    expect(text(review(attempts.prOpen))).not.toContain('Open PR ✓');
   });
 
   it("waits for tomorrow under the day's cap, and says when it goes on", () => {
-    const plain = text(review(attempts.waitingCap));
+    const html = review(attempts.waitingCap);
+    const plain = text(html);
 
-    expect(plain).toContain('Waiting for tomorrow');
-    expect(plain).toContain('the pull requests for today are all open');
-    expect(plain).toContain('It goes on in 12 hours, at Oct 29, 00:00 UTC.');
+    expect(html).toContain('data-status="WAITING_CAP"');
+    expect(plain).toContain("Waiting for tomorrow's pull request slot opens at Oct 29, 00:00 UTC");
+    expect(plain).toContain('Your pull requests for today are all open.');
   });
 
   it("shows a step's last error while it is tried again", () => {
@@ -1065,21 +1106,20 @@ describe('the review screen', () => {
   });
 
   it.each([
-    ['prOpen', 'OPEN', 'PR #1419 open', 'Waiting for review'],
-    ['merged', 'MERGED', 'PR #1419 merged', 'merged 5 minutes ago'],
-    ['closed', 'CLOSED', 'PR #1419 closed', 'closed without merging'],
+    ['prOpen', 'OPEN', 'PR open', 'Waiting for review'],
+    ['merged', 'MERGED', 'Merged', 'merged 5 minutes ago'],
+    ['closed', 'CLOSED', 'Closed', 'closed without merging'],
   ] as const)(
-    'links the pull request once it exists, in the header and its session: %s',
-    (name, prState, title, words) => {
+    'links the pull request once it exists, in the header, its state on the first attempt’s tile: %s',
+    (name, prState, pill, words) => {
       const html = review(attempts[name]);
-      const plain = text(html);
       const header = text(html.slice(html.indexOf('<header'), html.indexOf('</header>')));
+      const rail = text(html.slice(html.indexOf('<nav'), html.indexOf('</nav>')));
 
       expect(html).toContain(`data-pr-state="${prState}"`);
       expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
       expect(header).toContain('Pull request #1419');
-      expect(plain).not.toContain('on GitHub ↗');
-      expect(plain).toContain(title);
+      expect(rail).toContain(`First attempt ${pill}`);
       expect(header).toContain(words);
       // A closed pull request shows no checks.
       if (name === 'closed') expect(header).not.toContain('Checks failed');
@@ -1127,8 +1167,8 @@ describe('the review screen', () => {
   it('hides nothing for a suspension: the page offers what it offers to an active account', () => {
     const page = (view: ContributeView) =>
       renderToStaticMarkup(<ReviewScreen view={view} attempt={followUpAttempts.prNeedsYou} next now={NOW} />);
-    expect(page(views.active)).toContain('data-start-follow-up');
-    expect(page(views.suspended)).toContain('data-start-follow-up');
+    expect(page(views.active)).toContain('data-start="next-run"');
+    expect(page(views.suspended)).toContain('data-start="next-run"');
   });
 
   describe('the header says the pull request’s state once', () => {
@@ -1226,9 +1266,10 @@ describe('the review screen', () => {
   });
 
   it("says how long a change waits for review: 48 hours for the user's own agent's claim, seven days otherwise", () => {
-    expect(text(review(detail()))).toContain('It waits seven days for you.');
+    expect(text(review(detail()))).toContain('First attempt · ready for you · 7 days left');
+    expect(text(review(detail()))).toContain('It waits 7 more days for you.');
     const own = detail({ runner: 'MCP', agent: { name: 'CODEX', model: null } });
-    expect(text(review(own))).toContain('It waits 48 hours for you.');
+    expect(text(review(own))).toContain('First attempt · ready for you · 2 days left');
 
     expect(text(review(stopped('REVIEW_EXPIRED')))).toContain('It waited seven days for a review, so it was let go.');
     expect(text(review({ ...stopped('REVIEW_EXPIRED'), runner: 'MCP' }))).toContain(
@@ -1245,8 +1286,13 @@ describe('the review screen', () => {
       const html = review(stopped(reason, reason === 'NO_GO' ? 'needs a design decision' : 'session_failed'));
       const plain = text(html);
 
-      expect(html).toContain('data-attempt-status="STOPPED"');
-      expect(html).toContain(`data-end-reason="${reason}"`);
+      if (reason === 'SUBMIT_FAILED') {
+        expect(html).toContain('data-status="SUBMIT_FAILED"');
+        expect(plain).toContain('Stopped: the pull request could not be opened');
+        return;
+      }
+      expect(html).toContain('data-status="STOPPED"');
+      expect(plain).toMatch(/Stopped(: [a-z'$ 0-9.-]+)? /i);
       expect(plain).toContain(END_REASONS[reason]);
       expect(plain).toContain(reason === 'NO_GO' ? 'Its reason: needs a design decision' : 'Detail: session failed');
     },
@@ -1259,9 +1305,11 @@ describe('the review screen', () => {
       checkLimit: { limit: 'budget', decided: true },
     });
     const plain = text(review(decided));
+    expect(plain).toContain('Stopped: the agent said no-go');
     expect(plain).toContain(END_REASONS.NO_GO);
     expect(plain).toContain(`Its reason: ${reason}`);
-    expect(plain).not.toContain(`${reason} Decided at`);
+    // The API's note comes off the reason, and is said as its own line.
+    expect(plain).not.toContain(`${reason} Decided at the check's budget limit.`);
     expect(plain).toContain("Decided at the check's budget limit, when the agent was told to wrap up.");
     expect(plain).not.toContain('Retry with a bigger check budget');
     // Without the field (an older API, a list): read from the detail alike.
@@ -1280,19 +1328,22 @@ describe('the review screen', () => {
     });
     const html = review(ranOut);
     const plain = text(html);
-    expect(plain).toContain('Stopped while checking the issue');
+    expect(html).toContain('data-move="retry"');
+    expect(plain).toContain('First attempt · stopped Retry with a bigger check budget');
+    expect(plain).toContain('The check ran out of its $0.50 budget before it decided.');
     expect(plain).toContain('Stopped: ran out of budget while checking the issue.');
-    expect(plain).toContain(detailText);
     expect(plain).not.toContain('Detail: No verdict');
     expect(plain).not.toContain('decided not to go ahead');
-    expect(plain).toContain('Nothing was decided about the issue');
-    expect(html).toContain('data-check-limit="budget"');
-    expect(plain).toContain('Retry with a bigger check budget');
 
-    // Tried again already: the words stay, the button goes.
-    expect(text(review(detail({ ...ranOut, retry: null })))).not.toContain('Retry with a bigger check budget');
+    // Tried again already: the line says it, with the detail, and no retry.
+    const done = review(detail({ ...ranOut, retry: null }));
+    expect(text(done)).toContain('Stopped: ran out of the $0.50 check budget');
+    expect(text(done)).toContain('nothing was decided, and the issue went back to the pool');
+    expect(text(done)).toContain(detailText);
+    expect(text(done)).not.toContain('Retry with a bigger check budget');
     // The time limit says time; without the field it is read from the detail.
     const late = text(review(stopped('NO_GO', "No verdict before the check's 15-minute limit ran out, after 16 min.")));
+    expect(late).toContain('Stopped: ran out of the 15-minute check limit');
     expect(late).toContain('Stopped: ran out of time while checking the issue.');
     expect(late).not.toContain('Retry with a bigger check budget');
     // A budget stop in the work is the attempt's limit, as before.
@@ -1300,9 +1351,9 @@ describe('the review screen', () => {
   });
 
   describe('trying a stop again', () => {
-    /** The Stopped box alone (it must be there). */
+    /** The retry's card alone (it must be there). */
     const stopBox = (html: string) => {
-      const start = html.indexOf('data-attempt-status="STOPPED"');
+      const start = html.indexOf('data-move="retry"');
       expect(start).toBeGreaterThan(-1);
       return html.slice(start, html.indexOf('</section>', start));
     };
@@ -1327,8 +1378,8 @@ describe('the review screen', () => {
       expect(plain).toContain('0 / 2,000');
       expect(html).toContain('rows="3"');
       // The note comes before the button; the pool line stays as it is.
-      expect(html.indexOf('data-follow-up-note')).toBeLessThan(html.indexOf('Work on it anyway'));
-      expect(plain).toContain('The issue went back to the pool.');
+      expect(html.indexOf('data-follow-up-note')).toBeLessThan(html.lastIndexOf('Work on it anyway'));
+      expect(plain).toContain('If you leave it, nothing waits on you: the issue went back to the pool.');
     });
 
     it('warns who may be on a taken issue: one login, three, or someone', () => {

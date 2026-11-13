@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { type ReactNode, useSyncExternalStore } from 'react';
 
 import { useActivity } from './activity';
-import { Pill } from './primitives';
+import { LiveDot, Pill } from './primitives';
+
+export { LiveDot };
+
 import { Tab } from '@/components/tabs/tabs';
 import {
   durationLabel,
@@ -36,23 +39,6 @@ import { cn } from '@/lib/utils';
 export function useLiveActivity(page: ContributeActivity | null | undefined): ContributeActivity | null {
   const polled = useSyncExternalStore(onContributeActivity, contributeActivitySnapshot, () => null);
   return newerActivity(page, polled);
-}
-
-/** A dot that breathes while an agent works (solid under reduced motion), green once settled, grey while it waits. */
-export function LiveDot({ active, settled }: { active: boolean; settled?: boolean }) {
-  return (
-    <span aria-hidden="true" className="relative flex size-2 shrink-0">
-      {active ? (
-        <span className="absolute inset-0 rounded-full bg-primary opacity-0 motion-safe:animate-contribute-pulse" />
-      ) : null}
-      <span
-        className={cn(
-          'relative size-2 rounded-full',
-          active ? 'bg-primary' : settled ? 'bg-positive' : 'bg-muted-foreground/60',
-        )}
-      />
-    </span>
-  );
 }
 
 /** The steps a run walks, the one it is on lit: a hint, not a promise of time. */

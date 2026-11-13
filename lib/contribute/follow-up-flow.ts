@@ -1,7 +1,6 @@
 import type {
   ContributeAttemptDetail,
   ContributeCheckStatus,
-  ContributeFeedbackThread,
   ContributeFollowUpRound,
   ContributeReplyDraft,
   ContributeThreadOutcome,
@@ -11,6 +10,9 @@ import type {
  * The follow-up flow (2026-10-31): the review threads waiting on a pull request, the agent's run as four steps, what
  * it did about each thread, and the round it adds up to. Pure, so the screens and their specs read the same words.
  */
+
+/** The most comments one run addresses (the API's). */
+export const FOLLOW_UP_THREADS_MAX = 20;
 
 /** The run's steps as the user sees them, in order. */
 export const FOLLOW_UP_STEPS = ['reading', 'fixing', 'checks', 'ready'] as const;
@@ -52,7 +54,7 @@ export const OUTCOMES: Record<
 > = {
   FIXED: { label: 'Fixed', tone: 'green', hint: 'The new commits address it.' },
   SKIPPED: { label: 'Not changed', tone: 'neutral', hint: 'The agent left the code as it is, and says why.' },
-  NEEDS_YOU: { label: 'Needs you', tone: 'amber', hint: 'Only you can decide this one.' },
+  NEEDS_YOU: { label: 'Question for you', tone: 'amber', hint: 'Only you can decide this one.' },
 };
 
 /** Our checks in plain words, with the tone the result card shows them in. */
@@ -66,14 +68,6 @@ export const CHECK_STATUSES: Record<ContributeCheckStatus, { title: string; tone
 /** A draft of the follow-up flow: one per thread the user chose, with its outcome (absent on an older API). */
 export const hasOutcomes = (drafts: ContributeReplyDraft[] | undefined): drafts is ContributeReplyDraft[] =>
   Array.isArray(drafts) && drafts.some((draft) => draft.outcome !== undefined);
-
-/** The waiting threads by who opened them: bots' (CodeRabbit, Copilot) and people's, each in the API's order. */
-export function threadsByWho<T extends { bot?: boolean }>(threads: T[]): { bots: T[]; people: T[] } {
-  return { bots: threads.filter((thread) => thread.bot === true), people: threads.filter((thread) => !thread.bot) };
-}
-
-/** The threads a new round can take: waiting, and not ignored before (those are listed apart). */
-export const openThreadsOf = (threads: ContributeFeedbackThread[]) => threads.filter((thread) => !thread.ignored);
 
 /** `src/a.ts:12`, or nothing for a thread on the whole diff. */
 export const whereOfThread = (thread: { path: string | null; line: number | null }) =>
@@ -123,24 +117,4 @@ export function roundLineOf(round: ContributeFollowUpRound): string {
 export function replyPreviewOf(prefix: string | null | undefined, text: string): string {
   const shown = (prefix ?? '').replace('<commit>', 'the new commit');
   return `${shown}${text.trim()}`;
-}
-
-/** What happened to a thread after the push, in a few words; null while it waits. */
-export function threadAfterOf(draft: ContributeReplyDraft): string | null {
-  if (draft.state === 'DISMISSED') return dismissedNoteOf(draft);
-  if (draft.state === 'POSTING') return 'Posting the reply…';
-  if (draft.state === 'FAILED') return draft.lastError?.note || 'The reply was not posted.';
-  if (draft.state !== 'POSTED') return null;
-  if (draft.resolveState === 'RESOLVED') return 'Replied and resolved';
-  if (draft.resolveState === 'RESOLVING') return 'Replied, resolving the thread…';
-  if (draft.resolveState === 'FAILED') return draft.lastError?.note || 'Replied; the thread could not be resolved.';
-  if (draft.asComment) return 'Posted as a comment on the pull request';
-  return draft.comment ? 'Replied, left open for its reviewer' : 'Posted';
-}
-
-/** A dismissed reply, in plain words: why it was not posted. */
-export function dismissedNoteOf(draft: Pick<ContributeReplyDraft, 'dismissedReason'>): string {
-  if (draft.dismissedReason === 'POSTED_BY_HAND') return 'Dismissed: you posted it on GitHub yourself';
-  if (draft.dismissedReason === 'THREAD_RESOLVED') return 'Dismissed: the thread was resolved on GitHub';
-  return 'Dismissed: not needed';
 }

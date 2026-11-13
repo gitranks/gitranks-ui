@@ -14,14 +14,17 @@ import {
   TimelinePanel,
   YourNotePanel,
 } from '@/app/contribute/components/attempt-panels';
-import { Box } from '@/app/contribute/components/attempt-status';
 import { DiffViewer } from '@/app/contribute/components/diff-viewer';
+import { CardError, DiscardAttemptButton } from '@/app/contribute/components/head-actions';
 import { PrForm } from '@/app/contribute/components/pr-form';
 import { HEADING } from '@/app/contribute/components/primitives';
 import { prFormPropsOf } from '@/app/contribute/components/review-view';
 import { SendBackForm } from '@/app/contribute/components/send-back-form';
+import { SessionActionsProvider } from '@/app/contribute/components/session-actions';
 import { type SessionTab, SessionTabs } from '@/app/contribute/components/session-tabs';
+import { Box } from '@/app/contribute/components/status-box';
 import { isOwnAgent } from '@/lib/contribute/attempt-format';
+import type { CommentActionsInit } from '@/lib/contribute/comment-actions';
 import { loadAttempt, loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import { parsePatch } from '@/lib/contribute/patch';
@@ -144,6 +147,24 @@ function Details({ attempt, steps }: { attempt: ContributeAttemptDetail; steps: 
   return <SessionTabs tabs={tabs} defaultValue="changes" label="This lesson's attempt" />;
 }
 
+/** The session's actions for a lesson's attempt in review: its submit and its Discard, nothing of a run. */
+const reviewInitOf = (attempt: ContributeAttemptDetail): CommentActionsInit => ({
+  session: 'first',
+  prId: null,
+  prNumber: null,
+  attemptId: attempt.attemptId,
+  runState: null,
+  approvedAt: attempt.approvedAt,
+  flow: false,
+  checkStatus: null,
+  hasCommits: !!attempt.patch?.trim(),
+  drafts: [],
+  threads: [],
+  resolveHumans: undefined,
+  blocked: new Set(),
+  canStart: false,
+});
+
 /** What the page adds under the lesson at its stage: the send-back, the pull request's form, the share card. */
 function paneOf(view: ContributeView, attempt: ContributeAttemptDetail, lesson: LearnAttemptLesson): ReactNode {
   const steps = lesson.steps ?? [];
@@ -167,7 +188,16 @@ function paneOf(view: ContributeView, attempt: ContributeAttemptDetail, lesson: 
               can then take the lesson. You can take it down at any time.
             </Text>
           </section>
-          {inReview ? <PrForm {...prFormPropsOf(view, attempt)} /> : null}
+          {inReview ? (
+            // The submit and Discard share one pending state, as on a contribution's review card.
+            <SessionActionsProvider init={reviewInitOf(attempt)}>
+              <PrForm {...prFormPropsOf(view, attempt)} />
+              <div className="flex flex-col items-start gap-2">
+                <DiscardAttemptButton />
+                <CardError sources={['submit', 'discard-attempt']} />
+              </div>
+            </SessionActionsProvider>
+          ) : null}
           {sendBack}
           <Details attempt={attempt} steps={steps} />
         </>

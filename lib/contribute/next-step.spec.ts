@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { attempt, feedbackThread, followUpOf, followUpRun, followUps } from './__fixtures__/contribute-attempts';
-import { NOW } from './__fixtures__/contribute-views';
+import { feedbackThread, followUp, followUps } from './__fixtures__/contribute-attempts';
+import { NOW, views } from './__fixtures__/contribute-views';
 import {
   nextForAgreement,
   nextForChecks,
@@ -12,7 +12,13 @@ import {
   nextForYou,
   signal,
 } from './__fixtures__/needs-you';
-import { contributionOf, defaultNoteOf, nextStepOf, nextStepWaits, yourMoveOf } from './next-step';
+import type { ContributeAttemptDetail } from './contribute.types';
+import { contributionMovesOf, headOf } from './contribution-moves';
+import { contributionOf, defaultNoteOf, nextStepOf } from './next-step';
+
+/** The contribution's moves, as the page reads them beside the first attempt. */
+const movesOf = (first: ContributeAttemptDetail, current?: ContributeAttemptDetail) =>
+  contributionMovesOf({ view: views.active, first, current, now: NOW });
 
 describe('defaultNoteOf', () => {
   it('fills the note in from the failing checks and the comments, with who wrote them', () => {
@@ -45,7 +51,7 @@ describe('nextStepOf', () => {
     });
     expect(step.user).toEqual([]);
     expect([step.rules, step.dco]).toEqual([null, null]);
-    expect(nextStepWaits(step)).toBe(true);
+    expect(movesOf(nextForRun).moves.map(({ card }) => card)).toEqual(['next-run']);
   });
 
   it("gives a bot's block and a run's finding one card, what the run found, and \"I've done it\" for both", () => {
@@ -142,7 +148,7 @@ describe('nextStepOf', () => {
       { kind: 'silent', kinds: ['SILENT'], closesOn: '2026-11-12', at: '2026-10-28T06:00:00.000Z' },
     ]);
     expect(silent.run).toMatchObject({ recommended: false, signals: [], kinds: [], note: '' });
-    expect(nextStepWaits(silent)).toBe(true);
+    expect(movesOf(nextForSilent).moves.map(({ card }) => card)).toEqual(['silent']);
 
     const out = nextStepOf(nextForRepoOut);
     expect(out.user).toEqual([
@@ -170,54 +176,42 @@ describe('nextStepOf', () => {
       expect(step.user).toEqual([expect.objectContaining({ kind: 'repo-out', reason: detail })]);
     }
     expect(beside('pr_misses').run).toMatchObject({ open: true, recommended: true });
-    // On the other sessions, the repo's no leads.
+    // On the other sessions, the repo's no leads: the first attempt's line points at it.
     const saidNo = { since: '', signals: [signal('REPO_OUT', { detail: 'hostile_close' })] };
-    expect(yourMoveOf({ ...nextForRun, needsYou: saidNo }, [], NOW)?.kind).toBe('repo-out');
+    const head = headOf(movesOf({ ...nextForRun, reviewFeedback: null, needsYou: saidNo }), 'first');
+    expect(head.kind === 'status' && head.elsewhere?.kinds).toEqual(['repo-out']);
   });
 
   it('sees nothing waiting on a quiet pull request', () => {
-    expect(nextStepWaits(nextStepOf({ ...nextForDco, needsYou: null }))).toBe(false);
+    const quiet = nextStepOf({ ...nextForDco, needsYou: null });
+    expect([quiet.user, quiet.rules, quiet.dco, quiet.run.signals]).toEqual([[], null, null, []]);
+    expect(movesOf({ ...nextForDco, needsYou: null }).moves).toEqual([]);
   });
 });
 
-describe('yourMoveOf', () => {
-  it("says the pull request's move as Needs you does, the comments too, and the run at work", () => {
-    expect(yourMoveOf(nextForChecks, [], NOW)?.move).toBe(
-      'lint, test (ubuntu) fail on your pull request. Start run 2 to fix it.',
-    );
-    expect(yourMoveOf({ ...nextForRun, needsYou: null }, [], NOW)).toMatchObject({
-      move: '2 comments wait for an answer. Start run 2 on them.',
-      working: false,
+describe('the move on the other sessions', () => {
+  it("leads with the pull request's move as Needs you does, the comments too, and points at the run at work", () => {
+    const checks = movesOf(nextForChecks);
+    expect(checks.moves[0]).toMatchObject({ card: 'next-run', kinds: ['check'], session: 'next' });
+    expect(movesOf({ ...nextForRun, needsYou: null }).moves[0]).toMatchObject({
+      kinds: ['threads'],
+      title: 'Address 2 comments from ana-kelp',
     });
-    const run = attempt({
+    const run = followUp({
       attemptId: 'A_F2',
-      kind: 'FOLLOW_UP',
       state: 'CHECKS',
-      followUpOf,
       createdAt: '2026-10-28T11:50:00.000Z',
+      followUpOf: { ...followUp().followUpOf!, attemptId: 'A_8', prId: 'PR_8' },
     });
     const underWay = { ...nextForRun, followUps: followUps({ used: 2, currentAttemptId: 'A_F2' }) };
-    expect(yourMoveOf(underWay, [run], NOW)).toMatchObject({
-      working: true,
-      pill: 'Run 2 working',
-      move: 'Checks · started 10 minutes ago. It comes back here when it is ready.',
-    });
-    expect(yourMoveOf({ ...nextForDco, needsYou: null }, [], NOW)).toBeNull();
-    // A run back for review, known from the rounds alone: its review, never "working".
-    const ready = {
-      ...nextForRun,
-      followUps: followUps({
-        used: 2,
-        currentAttemptId: 'A_F2',
-        history: [followUpRun(), followUpRun({ round: 2, attemptId: 'A_F2', state: 'REVIEW', fixed: 1 })],
-      }),
-    };
-    expect(yourMoveOf(ready, [], NOW)).toMatchObject({
-      kind: 'run-ready',
-      working: false,
-      move: 'Run 2 fixed 1 comment. Approve to push it.',
-      action: { label: 'Review run 2', href: '/contribute/attempts/A_8/runs/A_F2' },
-    });
+    const working = movesOf(underWay, run);
+    expect(working.moves).toEqual([]);
+    expect(working.sessions.first?.statusLead).toBe('Run 2 is running checks');
+    expect(working.sessions['run:A_F2']?.pill).toEqual({ label: 'Working', tone: 'violet', live: true });
+    expect(movesOf({ ...nextForDco, needsYou: null }).moves).toEqual([]);
+    // A run back for review: its own move, held by the run, never "working".
+    const ready = movesOf(underWay, { ...run, state: 'REVIEW' });
+    expect(ready.moves[0]).toMatchObject({ card: 'run-ready', session: 'run:A_F2', kindLine: 'Run 2 · ready for you' });
   });
 
   it('reads the first attempt as a list reads its pull request, and nothing before there is one', () => {

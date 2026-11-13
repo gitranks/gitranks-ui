@@ -82,6 +82,6 @@ export function replyLinkOf(
   if (!href) return null;
   return {
     href,
-    label: draft.comment ? 'Open the thread on GitHub ↗' : 'Open the pull request on GitHub ↗',
+    label: draft.comment ? 'Open the thread ↗' : 'Open the pull request on GitHub ↗',
   };
 }

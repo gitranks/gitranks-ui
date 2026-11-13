@@ -2,33 +2,14 @@ import type { Route } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import {
-  AgentDidPanel,
-  ApprovalPanel,
-  ChecksPanel,
-  CostPanel,
-  ReadinessPanel,
-  TimelinePanel,
-  YourNotePanel,
-} from './attempt-panels';
 import { SessionsList } from './attempt-sessions';
-import { AttemptStatus, justOpened } from './attempt-status';
 import { ContributeNotices } from './contribute-notices';
 import { BackLink, ContributionHeader } from './contribution-header';
-import { DiffViewer } from './diff-viewer';
-import { FollowUpApproval } from './follow-up-approval';
-import { FollowUpResult } from './follow-up-result';
-import { NextStepCards, YourMoveLine } from './next-step';
-import { PrForm, type PrFormProps } from './pr-form';
 import { PrNotesPanel } from './pr-notes';
-import { PrStoppedProvider } from './pr-stopped';
 import { HEADING } from './primitives';
-import { ReplyDrafts } from './reply-drafts';
 import { AttemptRepoRules } from './repo-rules';
-import { SendBackForm } from './send-back-form';
-import { type SessionTab, SessionTabs } from './session-tabs';
-import { SubmitPanel } from './submit-panel';
-import { editableBodyOf, isOwnAgent, repoOf } from '@/lib/contribute/attempt-format';
+import type { SessionActionsSeed } from './session-actions';
+import { SessionPane } from './session-pane';
 import {
   loadAttempt,
   loadContribute,
@@ -43,26 +24,21 @@ import type {
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 import { accessNoticesOf, isContributePageOpen, settingsOf } from '@/lib/contribute/contribute-state';
-import { isWorking } from '@/lib/contribute/decisions';
-import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
-import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
-import { nextStepOf, nextStepWaits } from '@/lib/contribute/next-step';
+import { type ContributionMoves, contributionMovesOf, onPane } from '@/lib/contribute/contribution-moves';
+import { RESUME_PARAM } from '@/lib/contribute/grant-resume';
 import { orgAccessOf, orgRestrictionOf } from '@/lib/contribute/org-access';
-import { parsePatch } from '@/lib/contribute/patch';
-import { withoutDraftMarks } from '@/lib/contribute/pr-conventions';
-import { agentConnectedOf } from '@/lib/contribute/proof';
 import { isFinishedAttempt } from '@/lib/contribute/repo-rules';
 import {
   attemptPath,
   NEXT_SESSION,
-  nextRoundOpen,
-  proofTileStageOf,
   runsLabelOf,
   sessionPath,
   sessionsOf,
   waitingThreadsOf,
 } from '@/lib/contribute/sessions';
 import { learnAttemptPath } from '@/lib/learn/learn-path';
+
+type Query = Record<string, string | string[] | undefined>;
 
 /** The gates every page of a contribution passes: signed in, let in, and the attempt theirs. */
 async function gate(id: string) {
@@ -73,11 +49,36 @@ async function gate(id: string) {
   return { view, attempt };
 }
 
+/** One value of a query parameter. */
+const paramOf = (query: Query, key: string) => {
+  const value = query[key];
+  return (Array.isArray(value) ? value[0] : value) ?? null;
+};
+
 /**
- * The contribution's layout, read from its first attempt: the issue and its pull request on top, what waits for the
- * user, and its sessions beside the one shown (`children`). Moving between the sessions keeps it and reads only the
- * session. Any other attempt in the address (a run's own address, or a review the API does not answer) leaves the
- * page to itself.
+ * What a contribution's moves read, around its first attempt: the run under way, the pull request's waiting replies
+ * and the maintainers' say. The layout and every session's page read the same, with the same ids, so a request reads
+ * each once.
+ */
+async function contributionOf(first: ContributeAttemptDetail) {
+  const currentId = first.followUps?.currentAttemptId;
+  const open = first.pullRequest?.state === 'OPEN';
+  const [read, prNotes, waiting] = await Promise.all([
+    currentId ? loadAttempt(currentId).catch(() => undefined) : undefined,
+    first.pullRequest ? loadPrNotes(first.attemptId) : undefined,
+    open ? loadRepliesWaiting() : undefined,
+  ]);
+  const current = read?.kind === 'FOLLOW_UP' && read.followUpOf?.attemptId === first.attemptId ? read : undefined;
+  // The pull request's own, a run's review included: the repo rules count a refusal there; the moves leave them out.
+  const replies = waiting?.filter(({ prId }) => prId === first.pullRequest?.prId);
+  return { current, prNotes, replies };
+}
+
+/**
+ * The contribution's layout, read from its first attempt: the issue and its pull request on top, then its sessions
+ * beside the one shown (`children`), its repo's rules and the maintainers' notes. Moving between the sessions keeps it
+ * and reads only the session. Any other attempt in the address (a run's own address, or a review the API does not
+ * answer) leaves the page to itself.
  */
 export async function ContributionLayout({
   params,
@@ -89,61 +90,128 @@ export async function ContributionLayout({
   const { id } = await params;
   const { view, attempt } = await gate(id);
   if (!attempt || attempt.kind === 'FOLLOW_UP') return children;
-  // The run under way, read beside it: what the line says of it, and its card before the history lists it.
-  const current = attempt.followUps?.currentAttemptId;
-  // The maintainers' say on the PR and its waiting replies (a refusal among them names the org's block), read beside
-  // the run: an API without them leaves the page as it was.
-  const open = attempt.pullRequest?.state === 'OPEN';
-  const [read, prNotes, waiting] = await Promise.all([
-    current ? loadAttempt(current).catch(() => undefined) : undefined,
-    attempt.pullRequest ? loadPrNotes(attempt.attemptId) : undefined,
-    open ? loadRepliesWaiting() : undefined,
-  ]);
-  const run = read?.kind === 'FOLLOW_UP' && read.followUpOf?.attemptId === attempt.attemptId ? read : undefined;
-  const replies = waiting?.filter(({ prId }) => prId === attempt.pullRequest?.prId);
+  const { current, prNotes, replies } = await contributionOf(attempt);
+  const now = new Date();
+  const model = contributionMovesOf({ view, first: attempt, current, replies, prNotes, now });
   return (
-    <ContributionShell view={view} attempt={attempt} first={attempt} run={run} prNotes={prNotes} replies={replies}>
+    <ContributionShell
+      view={view}
+      attempt={attempt}
+      first={attempt}
+      run={current}
+      prNotes={prNotes}
+      replies={replies}
+      model={model}
+      now={now}
+    >
       {children}
     </ContributionShell>
   );
 }
 
+/** The address with the query it came with (a grant's resume, the move named). */
+function withQuery(path: Route, query: Query): Route {
+  const params = new URLSearchParams(path.includes('?') ? path.slice(path.indexOf('?') + 1) : '');
+  for (const [key, value] of Object.entries(query)) {
+    if (key === 'session') continue;
+    for (const one of Array.isArray(value) ? value : value === undefined ? [] : [value]) params.append(key, one);
+  }
+  const base = path.includes('?') ? path.slice(0, path.indexOf('?')) : path;
+  const search = params.toString();
+  return (search ? `${base}?${search}` : base) as Route;
+}
+
+/**
+ * Whether the next step's pane has something to show: a move the next step or the proof holds, the proof's line, the
+ * comments that wait, or a run that may start.
+ */
+export const nextPaneShows = (model: ContributionMoves, first: ContributeAttemptDetail) =>
+  model.moves.some((move) => onPane(move, 'next')) ||
+  !!model.proofStage ||
+  waitingThreadsOf(first).length > 0 ||
+  model.mayStart;
+
 /**
  * The first attempt's page, or the next step (`?session=next`). A run's own address goes under its first attempt, so it
- * shows in the contribution's layout; one whose first attempt is not known shows on its own.
+ * shows in the contribution's layout; one whose first attempt is not known shows on its own. The next step goes to the
+ * run under way while there is one, and to the first attempt when it would show nothing.
  */
 export async function FirstSessionView({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<Query>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const [{ view, attempt }, resolveHumans] = await Promise.all([gate(id), loadResolveHumanThreads()]);
   if (!attempt) return <ReviewScreen view={view} attempt={undefined} />;
+  const move = paramOf(query, 'move');
   if (attempt.kind === 'FOLLOW_UP') {
     const first = await firstOf(attempt);
     if (first) redirect(withQuery(sessionPath(first.attemptId, attempt.attemptId), query));
     const prNotes = await loadPrNotes(attempt.attemptId);
-    return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} prNotes={prNotes} />;
+    return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} prNotes={prNotes} move={move} />;
   }
-  const next = query.session === NEXT_SESSION;
+  const next = paramOf(query, 'session') === NEXT_SESSION;
   // A Learn attempt's page is its lesson; its next step (follow-ups on its pull request) stays here.
   if (attempt.mode === 'LEARN' && !next) redirect(learnAttemptPath(attempt.attemptId));
-  // The next step gone since the layout was read (a run started, say): the address says the first attempt, so the
-  // layout marks it too.
-  if (next && !nextStepShown(attempt, view)) redirect(attemptPath(attempt.attemptId));
-  return <SessionPane view={view} attempt={attempt} first={attempt} next={next} resolveHumans={resolveHumans} />;
+  const { current, prNotes, replies } = await contributionOf(attempt);
+  const now = new Date();
+  const model = contributionMovesOf({ view, first: attempt, current, shown: attempt, replies, prNotes, now });
+  if (next) {
+    const underWay = attempt.followUps?.currentAttemptId;
+    if (underWay) redirect(withQuery(sessionPath(attempt.attemptId, underWay), query));
+    if (attempt.pullRequest?.state !== 'OPEN' || !nextPaneShows(model, attempt)) {
+      redirect(withQuery(attemptPath(attempt.attemptId), query));
+    }
+  }
+  return (
+    <SessionPane
+      view={view}
+      attempt={attempt}
+      first={attempt}
+      current={current}
+      model={model}
+      next={next}
+      move={move}
+      resumed={!!paramOf(query, RESUME_PARAM)}
+      now={now}
+      resolveHumans={resolveHumans}
+    />
+  );
 }
 
 /** A follow-up run's page, under its first attempt; an address that pairs it with another goes to its own. */
-export async function RunSessionView({ params }: { params: Promise<{ id: string; runId: string }> }) {
-  const { id, runId } = await params;
+export async function RunSessionView({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string; runId: string }>;
+  searchParams: Promise<Query>;
+}) {
+  const [{ id, runId }, query] = await Promise.all([params, searchParams]);
   const [{ view, attempt }, resolveHumans] = await Promise.all([gate(runId), loadResolveHumanThreads()]);
   if (!attempt) return <ReviewScreen view={view} attempt={undefined} />;
   if (attempt.kind !== 'FOLLOW_UP' || attempt.followUpOf?.attemptId !== id) redirect(attemptPath(runId));
-  return <SessionPane view={view} attempt={attempt} resolveHumans={resolveHumans} />;
+  const first = await firstOf(attempt);
+  const { current, prNotes, replies } = first
+    ? await contributionOf(first)
+    : { current: undefined, prNotes: await loadPrNotes(attempt.attemptId), replies: undefined };
+  const now = new Date();
+  const model = contributionMovesOf({ view, first, current, shown: attempt, replies, prNotes, now });
+  return (
+    <SessionPane
+      view={view}
+      attempt={attempt}
+      first={first}
+      current={current}
+      model={model}
+      move={paramOf(query, 'move')}
+      now={now}
+      resolveHumans={resolveHumans}
+    />
+  );
 }
 
 /** A run's first attempt, the one whose pull request it follows up; undefined when that read is no part of its page. */
@@ -151,199 +219,6 @@ async function firstOf(run: ContributeAttemptDetail): Promise<ContributeAttemptD
   const of = run.followUpOf;
   const read = of ? await loadAttempt(of.attemptId).catch(() => undefined) : undefined;
   return read?.kind === 'FIRST' && (!read.pullRequest || read.pullRequest.prId === of?.prId) ? read : undefined;
-}
-
-/** The address with the query it came with (a grant's resume, say). */
-function withQuery(path: Route, query: Record<string, string | string[] | undefined>): Route {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
-    for (const one of Array.isArray(value) ? value : value === undefined ? [] : [value]) params.append(key, one);
-  }
-  const search = params.toString();
-  return (search ? `${path}?${search}` : path) as Route;
-}
-
-/**
- * The submit asks for GitHub access first: it is not connected, or the last submit bounced for want of it (revoked on
- * GitHub, say). A bounce for a missing grant asks no more once it is connected again (in Settings, say); a revoked one
- * still does, as only GitHub knows it. Not while it cannot be granted here, nor while the API does not answer the grant.
- */
-export const grantNeededOf = (view: ContributeView, attempt: ContributeAttemptDetail): boolean => {
-  const reason = attempt.submit?.lastError?.reason ?? '';
-  const bounced = GRANT_BOUNCES.has(reason) && !(reason === 'grant_missing' && view.grant?.connected === true);
-  return view.grantAvailable && (view.grant?.connected === false || bounced);
-};
-
-/**
- * What the pull request's form is drawn with for a first attempt in review: the title (the approved one, the agent's,
- * else the issue's, each without its WIP or draft marks), the body without the footer, the user's DCO setting, the
- * repo's asks, and whether the submit asks for GitHub access first.
- */
-export const prFormPropsOf = (view: ContributeView, attempt: ContributeAttemptDetail): PrFormProps => ({
-  attemptId: attempt.attemptId,
-  issueNumber: attempt.number,
-  repo: repoOf(attempt),
-  defaultTitle:
-    // Each candidate without its WIP or draft marks: one that is nothing but a mark gives way.
-    [attempt.approval?.title, attempt.result?.prTitle, attempt.title]
-      .map((title) => withoutDraftMarks(title ?? ''))
-      .find(Boolean) ?? `Fix #${attempt.number}`,
-  defaultBody: editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody),
-  login: view.contributor?.login ?? 'you',
-  footer: attempt.prFooter,
-  coAuthored: attempt.prCoAuthored,
-  dcoMode: view.contributor?.settings?.dco ?? null,
-  dcoRequired: attempt.dcoRequired,
-  again: !!attempt.submit?.lastError,
-  grantNeeded: grantNeededOf(view, attempt),
-  grantConnected: view.grant?.connected === true,
-  conventions: attempt.conventions,
-  patch: attempt.patch,
-});
-
-/**
- * The next step is shown: a run may start, comments wait (listed with why no run can start), or something only the user
- * can do waits while no run is under way.
- */
-const nextStepShown = (first: ContributeAttemptDetail, view: ContributeView, now?: Date): boolean =>
-  nextRoundOpen(first) ||
-  // The proof's tile leads here: its card is shown whatever its stage.
-  !!proofTileStageOf(first, agentConnectedOf(view), now ?? new Date()) ||
-  waitingThreadsOf(first).length > 0 ||
-  (first.pullRequest?.state === 'OPEN' &&
-    !first.followUps?.currentAttemptId &&
-    nextStepWaits(nextStepOf(first, agentConnectedOf(view), now)));
-
-/** The pull request's states its first attempt settles in: the header says them, so its session adds no box. */
-const PR_SETTLED = new Set(['PR_OPEN', 'FOLLOW_UP', 'MERGED', 'CLOSED']);
-
-/** What the details' Changes tab says when the session has no change to show. */
-function emptyDiffOf(attempt: ContributeAttemptDetail): string | undefined {
-  if (attempt.patch || isWorking(attempt)) return undefined;
-  if (attempt.kind === 'FOLLOW_UP') return 'This run made no commits.';
-  if (attempt.state === 'STOPPED' || attempt.state === 'DISCARDED') return 'The agent changed no files.';
-  return undefined;
-}
-
-/**
- * One session: what the agent did, then what the user acts on (the pull request's form, or a run's comments), then its
- * details a tab each: its changes, its checks, and what it cost and when.
- */
-function SessionDetails({
-  attempt,
-  view,
-  now,
-  resolveHumans,
-}: {
-  attempt: ContributeAttemptDetail;
-  view: ContributeView;
-  now?: Date;
-  resolveHumans?: boolean;
-}) {
-  const inReview = attempt.state === 'REVIEW';
-  const followUp = attempt.kind === 'FOLLOW_UP';
-  const ownAgent = isOwnAgent(attempt);
-  const prNumber = followUp ? (attempt.followUpOf?.number ?? null) : (attempt.pullRequest?.number ?? null);
-  // The follow-up flow: one card per thread with its outcome, and one approval (an older API: the drafts). An API with
-  // the flow answers `checkStatus` (null before the checks), so a run with no reply is one too.
-  const flow = followUp && (attempt.checkStatus !== undefined || hasOutcomes(attempt.replyDrafts));
-  const files = parsePatch(attempt.patch).files.length;
-  const checks = attempt.checksPassed === true ? '✓' : attempt.checksPassed === false ? '✗' : undefined;
-
-  // A run's comments, as the run left them; a first attempt's own drafts, from an API before the flow.
-  const comments: ReactNode = followUp ? (
-    flow ? (
-      <FollowUpResult
-        // A push that came back to the review starts the card afresh (its buttons on again).
-        key={`${attempt.state}|${attempt.submit?.lastError?.at ?? ''}`}
-        attempt={attempt}
-        prNumber={prNumber}
-        resolveHumans={resolveHumans}
-        orgAccess={orgAccessOf()}
-      />
-    ) : (
-      <ReplyDrafts
-        drafts={attempt.replyDrafts}
-        prNumber={prNumber}
-        followUps={new Map([[attempt.attemptId, attempt]])}
-        freshness={[attempt.state, attempt.updatedAt].join('|')}
-        now={now}
-      />
-    )
-  ) : attempt.pullRequest && attempt.replyDrafts?.length ? (
-    <ReplyDrafts
-      drafts={attempt.replyDrafts}
-      prNumber={prNumber}
-      freshness={[attempt.state, attempt.updatedAt, attempt.followUps?.currentAttemptId ?? ''].join('|')}
-      now={now}
-    />
-  ) : null;
-
-  const tabs: SessionTab[] = [
-    {
-      value: 'changes',
-      label: 'Changes',
-      badge: files ? `${files} ${files === 1 ? 'file' : 'files'}` : undefined,
-      content: (
-        <DiffViewer patch={attempt.patch} title={followUp ? 'The new commits' : 'Diff'} empty={emptyDiffOf(attempt)} />
-      ),
-    },
-    {
-      value: 'checks',
-      label: 'Checks',
-      badge: checks,
-      content: (
-        <>
-          <ChecksPanel attempt={attempt} />
-          <ReadinessPanel attempt={attempt} />
-        </>
-      ),
-    },
-    {
-      value: 'activity',
-      label: 'Activity',
-      content: (
-        <>
-          <CostPanel attempt={attempt} />
-          <TimelinePanel attempt={attempt} />
-          <YourNotePanel attempt={attempt} />
-        </>
-      ),
-    },
-  ];
-  // The change itself when there is one; else our checks when they ran; else what it spent and when.
-  const opening = attempt.patch?.trim() ? 'changes' : attempt.checks.length ? 'checks' : 'activity';
-  const showStatus = followUp || !PR_SETTLED.has(attempt.state) || justOpened(attempt.pullRequest, now);
-
-  return (
-    <div className="flex min-w-0 flex-col gap-4" data-session-details={attempt.attemptId}>
-      {showStatus ? <AttemptStatus attempt={attempt} now={now} /> : null}
-      <AgentDidPanel attempt={attempt} now={now} />
-      {/* In review the form holds the approved title and description already. */}
-      {!followUp && attempt.approval && !inReview ? <ApprovalPanel attempt={attempt} /> : null}
-      {inReview && !followUp ? (
-        <SubmitPanel open={!!attempt.submit?.lastError}>
-          <PrForm {...prFormPropsOf(view, attempt)} />
-        </SubmitPanel>
-      ) : null}
-      {inReview && followUp && !flow ? (
-        <FollowUpApproval
-          attemptId={attempt.attemptId}
-          prNumber={prNumber}
-          hasCommits={!!attempt.patch?.trim()}
-          again={!!attempt.submit?.lastError}
-        />
-      ) : null}
-      {inReview && ownAgent ? <SendBackForm attemptId={attempt.attemptId} left={attempt.sendBacksLeft ?? 0} /> : null}
-      {comments}
-      <SessionTabs
-        key={attempt.attemptId}
-        tabs={tabs}
-        defaultValue={opening}
-        label={followUp ? 'This follow-up run' : 'The first attempt'}
-      />
-    </div>
-  );
 }
 
 /** The two limits the rail's rules read: a client component, so nothing else of the settings goes to the browser. */
@@ -363,10 +238,11 @@ const orgOf = (attempt: ContributeAttemptDetail) => attempt.nameWithOwner?.split
 
 /**
  * A contribution, one layout for all its sessions, in the phone's order: the account's notice, the header (the issue,
- * its pull request's state, a maintainer's stop), what waits for the user, then the sessions, the one shown
- * (`children`), the repo's rules and the maintainers' notes. From `lg` the sessions, rules and notes stack in a rail
- * beside the one shown. `attempt` names the issue; `first` is the contribution's first attempt, and `run` the run read
- * beside it (the one shown, or the one under way). The address says which session is shown, unless `shown` does.
+ * its pull request's state, a maintainer's stop), then the sessions, the one shown (`children`), the repo's rules and
+ * the maintainers' notes. From `lg` the sessions, rules and notes stack in a rail beside the one shown. `attempt` names
+ * the issue; `first` is the contribution's first attempt, and `run` the run read beside it (the one under way). The
+ * tiles' pills come from the contribution's moves (`model`), as the session heads do. The address says which session is
+ * shown, unless `shown` does.
  */
 export function ContributionShell({
   view,
@@ -377,9 +253,9 @@ export function ContributionShell({
   now,
   prNotes,
   replies,
+  model,
   children,
 }: {
-  /** Whose contribution: whether their own agent has called (a proof's tile and its card read it). */
   view: ContributeView;
   attempt: ContributeAttemptDetail;
   first?: ContributeAttemptDetail;
@@ -388,12 +264,15 @@ export function ContributionShell({
   now?: Date;
   /** The maintainers' say on its PR: a stop, and "this PR helped" notes. */
   prNotes?: ContributePrNotes;
-  /** Its pull request's replies waiting for the user, in a run's review too: a refusal names the org's block. */
+  /** Its pull request's replies waiting for the user: a refusal names the org's block. */
   replies?: ContributeReplyWaiting[];
+  model: ContributionMoves;
   children: ReactNode;
 }) {
-  const cards = first ? sessionsOf(first, run, { agentConnected: agentConnectedOf(view), now }) : null;
-  const session = first ? { firstId: first.attemptId, nextShown: nextStepShown(first, view, now), shown } : null;
+  const cards = first ? sessionsOf(first, run, model) : null;
+  const session = first
+    ? { firstId: first.attemptId, nextShown: !!model.nextTileTitle || !!model.proofStage, shown }
+    : null;
 
   return (
     <div className="flex flex-col gap-5" data-contribution={first?.attemptId ?? attempt.attemptId}>
@@ -401,98 +280,65 @@ export function ContributionShell({
       <ContributeNotices notices={accessNoticesOf(view)} variant="line" />
       <ContributionHeader attempt={attempt} first={first} prNotes={prNotes} now={now} />
 
-      <PrStoppedProvider stopped={!!prNotes?.stopped}>
-        {first && session ? <YourMoveLine first={first} runs={run ? [run] : []} {...session} now={now} /> : null}
-
-        <div className={cards ? RAIL_GRID : PANE_GRID}>
-          {cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null}
-          <div className={cards ? '[grid-area:pane] min-w-0 mt-5 lg:mt-0' : '[grid-area:pane] min-w-0'}>{children}</div>
-          {cards && first ? (
-            <AttemptRepoRules
-              rules={first.repoRules}
-              settings={railSettingsOf(view)}
-              finished={isFinishedAttempt(first.state)}
-              // Never the session shown: the layout stays as the user moves between them.
-              access={orgRestrictionOf({ first, current: run, replies })}
-              org={orgOf(first)}
-              orgAccess={orgAccessOf()}
-            />
-          ) : null}
-          {prNotes ? (
-            <PrNotesPanel
-              notes={prNotes}
-              className={cards ? '[grid-area:notes] mt-5 lg:mt-4' : '[grid-area:notes] mt-5'}
-            />
-          ) : null}
-        </div>
-      </PrStoppedProvider>
-    </div>
-  );
-}
-
-/**
- * One session of a contribution, beside its sessions: what it did and what waits in it, or the next step (`next`, with
- * the contribution's `first` attempt).
- */
-export function SessionPane({
-  view,
-  attempt,
-  first,
-  next = false,
-  now,
-  resolveHumans,
-}: {
-  view: ContributeView;
-  attempt: ContributeAttemptDetail;
-  first?: ContributeAttemptDetail;
-  next?: boolean;
-  now?: Date;
-  /** Whether a follow-up's replies resolve people's threads too; `undefined` while the API does not answer it. */
-  resolveHumans?: boolean;
-}) {
-  const showNext = next && !!first;
-  return (
-    <div
-      className="flex min-w-0 flex-col gap-4"
-      data-review={attempt.attemptId}
-      data-state={attempt.state}
-      data-shown-session={showNext ? NEXT_SESSION : attempt.attemptId}
-    >
-      {showNext && first ? (
-        <NextStepCards first={first} view={view} now={now} />
-      ) : (
-        <SessionDetails attempt={attempt} view={view} now={now} resolveHumans={resolveHumans} />
-      )}
+      <div className={cards ? RAIL_GRID : PANE_GRID}>
+        {cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null}
+        <div className={cards ? '[grid-area:pane] min-w-0 mt-5 lg:mt-0' : '[grid-area:pane] min-w-0'}>{children}</div>
+        {cards && first ? (
+          <AttemptRepoRules
+            rules={first.repoRules}
+            settings={railSettingsOf(view)}
+            finished={isFinishedAttempt(first.state)}
+            // Never the session shown: the layout stays as the user moves between them.
+            access={orgRestrictionOf({ first, current: run, replies })}
+            org={orgOf(first)}
+            orgAccess={orgAccessOf()}
+          />
+        ) : null}
+        {prNotes ? (
+          <PrNotesPanel
+            notes={prNotes}
+            className={cards ? '[grid-area:notes] mt-5 lg:mt-4' : '[grid-area:notes] mt-5'}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
 
 /**
  * A contribution's page in one: its layout around the session in `attempt` (`undefined` while the API does not answer
- * it). `first` is a run's first attempt, read beside it (a first attempt is its own); `next` shows the run not started.
- * A run whose first attempt is not known shows on its own, with the pull request it follows up.
+ * it). `first` is a run's first attempt, read beside it (a first attempt is its own); `next` shows the next step;
+ * `current` the run under way; `move` the held card to show. A run whose first attempt is not known shows on its own,
+ * with the pull request it follows up.
  */
 export function ReviewScreen({
   view,
   attempt,
   first: firstRead,
+  current,
   next = false,
-  now,
+  move,
+  now = new Date(),
   resolveHumans,
   prNotes,
   replies,
+  seed,
+  resumed = false,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail | undefined;
   first?: ContributeAttemptDetail;
+  current?: ContributeAttemptDetail;
   next?: boolean;
+  move?: string | null;
   now?: Date;
-  /** Whether a follow-up's replies resolve people's threads too; `undefined` while the API does not answer it. */
   resolveHumans?: boolean;
   /** The maintainers' say on its PR. */
   prNotes?: ContributePrNotes;
-  /** Its pull request's replies waiting for the user, in a run's review too. */
+  /** Its pull request's replies waiting for the user. */
   replies?: ContributeReplyWaiting[];
+  seed?: SessionActionsSeed;
+  resumed?: boolean;
 }) {
   if (!attempt) {
     return (
@@ -506,28 +352,40 @@ export function ReviewScreen({
 
   const followUp = attempt.kind === 'FOLLOW_UP';
   const first = followUp ? firstRead : attempt;
-  // The next step: the next run, what only the user can do, or while no run can start, the comments that wait.
-  const showNext = !!first && next && nextStepShown(first, view, now);
+  // The run under way: the one read beside it, or the run shown when it is the one.
+  const underWay = first?.followUps?.currentAttemptId;
+  const run = current ?? (followUp && attempt.attemptId === underWay ? attempt : undefined);
+  const waiting = replies?.filter(({ prId }) => prId === first?.pullRequest?.prId);
+  const model = contributionMovesOf({ view, first, current: run, shown: attempt, replies: waiting, prNotes, now });
+  const showNext = !!first && next && !underWay && first.pullRequest?.state === 'OPEN' && nextPaneShows(model, first);
 
   return (
     <ContributionShell
       view={view}
       attempt={attempt}
       first={first}
-      run={followUp ? attempt : undefined}
+      run={run}
       shown={showNext ? NEXT_SESSION : attempt.attemptId}
       now={now}
       prNotes={prNotes}
-      replies={replies}
+      replies={waiting}
+      model={model}
     >
       <SessionPane
         view={view}
         attempt={attempt}
         first={first}
+        current={run}
+        model={model}
         next={showNext}
+        move={move}
+        resumed={resumed}
+        seed={seed}
         now={now}
         resolveHumans={resolveHumans}
       />
     </ContributionShell>
   );
 }
+
+export { grantNeededOf, prFormPropsOf } from './session-pane';

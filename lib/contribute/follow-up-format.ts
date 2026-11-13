@@ -1,6 +1,5 @@
 import type {
   ContributeAttempt,
-  ContributeAttemptState,
   ContributeFollowUps,
   ContributePrSignal,
   ContributePrSignalKind,
@@ -235,19 +234,6 @@ export function handledErrorMessage(error: ContributeErrorCode, message?: string
   }
   return contributeErrorMessage(error, message);
 }
-
-/** A follow-up's state in a few words, beside the replies it drafted. */
-export const FOLLOW_UP_STATES: Partial<Record<ContributeAttemptState, string>> = {
-  QUEUED: 'starting',
-  RUNNING: 'the agent is working',
-  CHECKS: 'running our checks',
-  REVIEW: 'waiting for your review',
-  PENDING_AUTOSUBMIT: 'waiting for autopilot',
-  SUBMITTING: 'pushing its commits',
-  DONE: 'pushed to the pull request',
-  STOPPED: 'stopped, nothing pushed',
-  DISCARDED: 'discarded, nothing pushed',
-};
 
 /**
  * Why a reply drafted by `followUp` cannot be posted yet, when its commits are known: they must reach the pull request

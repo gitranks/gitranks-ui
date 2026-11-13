@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
+import { changedCommentStates, reviewCommentStates, sessionHeadStates } from './contribute-moves';
 import { AgentConnectView } from '@/app/contribute/components/agent-connect';
 import { ChecksPanel, ReadinessPanel } from '@/app/contribute/components/attempt-panels';
 import {
@@ -175,6 +176,9 @@ const frame = (children: ReactNode, activity: ContributeActivity = activityOf())
 
 /** A page's own container, as its `page.tsx` draws it. */
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
+
+/** A contribution's page inside the Contribute frame. */
+const page = (children: ReactNode) => frame(<main className={MAIN}>{children}</main>);
 
 /** The feed with its repos' rules: a repo with several, one where autopilot is the only one, and one with none. */
 const rulesPage: ContributeIssuePage = {
@@ -550,10 +554,35 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'app/contribute/components/pr-form.tsx',
       'app/contribute/components/submit-panel.tsx',
       'app/contribute/components/repo-rules.tsx',
-      'app/contribute/components/next-step.tsx',
+      'app/contribute/components/session-pane.tsx',
+      'app/contribute/components/session-head.tsx',
+      'app/contribute/components/status-line.tsx',
+      'app/contribute/components/move-card.tsx',
+      'app/contribute/components/also-waiting.tsx',
+      'app/contribute/components/moves-first.tsx',
+      'app/contribute/components/moves-run.tsx',
+      'app/contribute/components/moves-pr.tsx',
+      'app/contribute/components/moves-yours.tsx',
+      'app/contribute/components/proof-card.tsx',
+      'app/contribute/components/head-actions.tsx',
+      'app/contribute/components/reply-batch-actions.tsx',
+      'app/contribute/components/session-actions.tsx',
+      'app/contribute/components/review-comments.tsx',
+      'app/contribute/components/comment-row.tsx',
+      'app/contribute/components/comment-row-open.tsx',
+      'app/contribute/components/comment-row-actions.tsx',
       'app/contribute/components/contribution-header.tsx',
       'app/contribute/components/contribute-notices.tsx',
       'app/contribute/components/pr-notes.tsx',
+      'lib/contribute/contribution-moves.ts',
+      'lib/contribute/move-cards.ts',
+      'lib/contribute/move-cards-pr.ts',
+      'lib/contribute/session-status.ts',
+      'lib/contribute/run-status.ts',
+      'lib/contribute/submit-bounce.ts',
+      'lib/contribute/reply-trouble.ts',
+      'lib/contribute/review-comments.ts',
+      'lib/contribute/comment-actions.ts',
       'lib/contribute/sessions.ts',
       'lib/contribute/next-step.ts',
       'lib/contribute/hard-stop.ts',
@@ -783,20 +812,10 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       },
       {
         id: 'follow-up-run',
-        title: 'A follow-up run, ready for review',
-        path: '/contribute/attempts/A_F1',
-        height: 2000,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <ReviewScreen
-                view={views.active}
-                attempt={decisionAttempts.followUp}
-                first={followUpAttempts.underWay}
-                now={NOW}
-              />
-            </main>,
-          ),
+        title: "A follow-up run, ready for review: a question for you and a bot's thread",
+        path: '/contribute/attempts/A_1/runs/A_F1',
+        height: 2600,
+        render: () => changedCommentStates.followUpRun(page),
       },
       {
         id: 'pr-open',
@@ -812,15 +831,10 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       },
       {
         id: 'next-round',
-        title: 'The next run, recommended',
+        title: 'The next run, recommended: the waiting comments, one ignored before',
         path: '/contribute/attempts/A_1?session=next',
-        height: 1600,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <ReviewScreen view={views.active} attempt={followUpAttempts.prNeedsYou} next now={NOW} />
-            </main>,
-          ),
+        height: 1900,
+        render: () => changedCommentStates.nextRound(page),
       },
       {
         id: 'next-run',
@@ -906,13 +920,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         width: 390,
         height: 2200,
         render: () => attemptPage(nextForDco, true),
-      },
-      {
-        id: 'your-move',
-        title: 'The first attempt, its move in one line',
-        path: '/contribute/attempts/A_OC',
-        height: 1400,
-        render: () => attemptPage(nextForYou, false),
       },
       {
         id: 'own-reason',
@@ -1071,6 +1078,8 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         height: 1300,
         render: () => sessionPage(attempts.bare),
       },
+      ...sessionHeadStates(page),
+      ...reviewCommentStates(page),
     ],
   },
   {

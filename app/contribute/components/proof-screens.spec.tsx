@@ -52,22 +52,23 @@ const page = (first: ContributeAttemptDetail, view: ContributeView = connected) 
 describe('the proof card', () => {
   it('A: asks to connect the agent first, from the connect page that shows the proof prompt', () => {
     const { html, plain } = page(nextForProof.notConnected, views.active);
-    expect(html).toContain('data-next-card="proof"');
-    expect(plain).toContain('Your move: prove the fix on your machine');
+    expect(html).toContain('data-move="proof"');
+    expect(plain).toContain('Proof needed Prove the fix on your machine');
     expect(plain).toContain('clawsweeper · blocks the merge');
     expect(plain).toContain('“Add real behavior proof”');
     expect(plain).toContain('Why only you');
     expect(html).toContain('href="/contribute/connect?path=agent&amp;proof=A_OC"');
-    expect(html).toMatch(/data-proof-step="1" data-state="active"/);
+    expect(plain).toContain('Connect your agent →');
     expect(plain).toContain('gitranks-proof/190186');
+    expect(plain).toContain('Add it on GitHub yourself ↗');
     expect(plain).toContain("I've done it");
     // The proof card tells the block: no found card beside it.
-    expect(html).not.toContain('data-next-card="found"');
+    expect(html).not.toContain('data-move="found"');
   });
 
   it('B: shows the one-line prompt for any agent once one has called, and waits for it', () => {
     const { html, plain } = page(nextForProof.connected);
-    expect(html).toMatch(/data-proof-step="1" data-state="done"/);
+    expect(plain).toContain('Proof needed Run the proof prompt in your agent');
     expect(plain).toContain('Claude Code on macOS · last used 2 hours ago');
     expect(plain).toContain('Prompt for your agent');
     expect(plain).toContain('Prove openclaw/openclaw#190186 for GitRanks');
@@ -90,9 +91,11 @@ describe('the proof card', () => {
   });
 
   it('C: tells the agent at work with its lease, and offers to take it back; checking offers nothing', () => {
-    const { plain } = page(nextForProof.working);
+    const { html, plain } = page(nextForProof.working);
+    // Nothing waits on the user: the next step's line, not a card.
+    expect(html).toContain('data-status="proof-working"');
     expect(plain).toContain('Your agent is capturing the proof');
-    expect(plain).toContain('Picked up 6 minutes ago; it holds the proof until 13:54 UTC');
+    expect(plain).toContain('picked up 6 minutes ago; holds it until 13:54 UTC');
     expect(plain).toContain('Take it back');
 
     const checking = page({
@@ -109,8 +112,9 @@ describe('the proof card', () => {
 
   it('D: shows the proof as it will be posted, what gets posted, and Post waits for the tick', () => {
     const { html, plain } = page(nextForProof.review);
-    expect(plain).toContain('Your move: check the proof, then post it');
-    expect(plain).toContain('Your agent captured it · Claude Code · 14 minutes ago');
+    expect(html).toContain('data-move="proof-review"');
+    expect(plain).toContain('Check the proof Check the proof, then post it');
+    expect(plain).toContain('Claude Code · 14 minutes ago: “Reproduced the lock');
     expect(html).toContain('src="/api/me/contribute/proofs/PF_1/files/1"');
     expect(html).toContain('src="/api/me/contribute/proofs/PF_1/files/2"');
     expect(html).toContain('<details');
@@ -147,8 +151,8 @@ describe('the proof card', () => {
       },
     };
     const { html, plain } = page(unknown);
-    expect(html).toContain('data-next-card="proof-unreadable"');
-    expect(plain).toContain("Your move: the proof can't be shown");
+    expect(html).toContain('data-move="proof-review"');
+    expect(plain).toContain("Check the proof The proof can't be shown");
     expect(plain).toContain('Send back to your agent');
     expect(plain).not.toContain('Post the proof');
     expect(plain).not.toContain('Take it back');
@@ -169,31 +173,37 @@ describe('the proof card', () => {
       },
     };
     const { html, plain } = page(later);
-    expect(html).toContain('data-next-card="proof-posted"');
-    expect(html).toContain('data-next-card="found"');
+    expect(html).toContain('data-move="found"');
+    // The posted proof rides under the card in one muted line.
+    expect(html).toContain('data-proof-rider="proof-posted"');
+    expect(plain).toContain('Proof: Proof posted: clawsweeper reads it again');
     expect(plain).toContain('Rename the flag');
   });
 
   it("E: the agent's reason and its reply to edit; the fix broken offers the next run with its note", () => {
     const cannot = page(nextForProof.cannot);
-    expect(cannot.plain).toContain("Your move: your agent couldn't capture the proof");
+    expect(cannot.plain).toContain("Check the proof Your agent couldn't capture the proof");
     expect(cannot.plain).toContain('A reply for the pull request, written by your agent');
     expect(cannot.plain).toContain('Post the reply');
     expect(cannot.plain).toContain('Try again with a note');
 
     const broken = page(nextForProof.fixBroken);
-    expect(broken.html).toContain('data-next-card="proof-fix-broken"');
+    expect(broken.html).toContain('data-move="proof-review"');
+    expect(broken.plain).toContain("Your agent found the fix doesn't work");
     expect(broken.plain).toContain('Start run 2 with this note');
     expect(broken.plain).toContain('Make the abort path drop the queued message');
   });
 
   it('F: posted, with links to the description and the comment; a failed post offers the retry', () => {
     const posted = page(nextForProof.posted);
-    expect(posted.plain).toContain('Proof posted: clawsweeper reads it again');
+    expect(posted.html).toContain('data-status="proof-posted"');
+    expect(posted.plain).toContain('Bot reads it Proof posted: clawsweeper reads it again');
     expect(posted.plain).toContain('2 screenshots on gitranks-proof/190186 in your fork');
     expect(posted.html).toContain('href="https://github.com/openclaw/openclaw/pull/190186#issuecomment-1"');
 
     const failed = page(nextForProof.failed);
+    expect(failed.html).toContain('data-move="proof-failed"');
+    expect(failed.plain).toContain('Posting failed Posting the proof failed');
     expect(failed.plain).toContain("It stopped adding the section to the pull request's description");
     expect(failed.plain).toContain('body_too_long');
     expect(failed.plain).toContain('Try again');

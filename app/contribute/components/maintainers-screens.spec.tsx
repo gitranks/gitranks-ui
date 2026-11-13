@@ -538,28 +538,20 @@ describe('the maintainers’ say on the contributor’s page', () => {
 });
 
 describe('the controls that write to a stopped PR', () => {
-  it('give way to a line saying why, inside a stopped PR alone', async () => {
-    const { PrStoppedProvider, unlessPrStopped } = await import('./pr-stopped');
-    const Approve = unlessPrStopped(({ label }: { label: string }) => <button type="button">{label}</button>);
+  it('are not drawn under a stop, with no line per control: the header says it once', async () => {
+    const { nextForRun } = await import('@/lib/contribute/__fixtures__/needs-you');
+    const { hardStopOf } = await import('@/lib/contribute/hard-stop');
+    const stopped = prNotes({ stopped: { login: 'sam-w', at: '2026-10-28T11:04:00Z' } });
+    expect(hardStopOf({ first: nextForRun, prNotes: stopped })?.blocked.has('start_run')).toBe(true);
 
-    const stopped = text(
-      renderToStaticMarkup(
-        <PrStoppedProvider stopped>
-          <Approve label="Approve and post" />
-        </PrStoppedProvider>,
-      ),
-    );
-    expect(stopped).toContain('Not available: a maintainer stopped GitRanks work on this PR.');
-    expect(stopped).not.toContain('Approve and post');
-
-    expect(
+    const page = (notes?: ReturnType<typeof prNotes>) =>
       text(
-        renderToStaticMarkup(
-          <PrStoppedProvider stopped={false}>
-            <Approve label="Approve and post" />
-          </PrStoppedProvider>,
-        ),
-      ),
-    ).toContain('Approve and post');
+        renderToStaticMarkup(<ReviewScreen view={views.active} attempt={nextForRun} next now={NOW} prNotes={notes} />),
+      );
+    const held = page(stopped);
+    expect(held).not.toContain('Start run 2');
+    expect(held).not.toContain('Not available');
+    expect(held).toContain('Make the requested changes on GitHub');
+    expect(page()).toContain('Start run 2');
   });
 });

@@ -100,6 +100,7 @@ import {
   contributeErrorOf,
   contributeSetErrorOf,
 } from '@/lib/contribute/errors';
+import { FOLLOW_UP_THREADS_MAX } from '@/lib/contribute/follow-up-flow';
 import { FOLLOW_UP_NOTE_MAX, PR_SIGNAL_KINDS } from '@/lib/contribute/follow-up-format';
 import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
 import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
@@ -391,8 +392,6 @@ export async function startFollowUp(
     : run(StartFollowUpDocument, { prId: String(prId), ...withNote }, (data) => data.startFollowUp);
 }
 
-/** The most review threads one follow-up addresses (the API's; the review-feedback card keeps to it). */
-const FOLLOW_UP_THREADS_MAX = 20;
 /** The longest reply GitHub takes from us (the API's). */
 const REPLY_MAX = 8_000;
 

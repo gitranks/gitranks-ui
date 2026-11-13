@@ -6,10 +6,13 @@ import { RunSessionView } from '../../../../components/review-view';
 
 export const metadata: Metadata = { title: 'A contribution' };
 
-export default function ContributeRunPage({ params }: PageProps<'/contribute/attempts/[id]/runs/[runId]'>) {
+export default function ContributeRunPage({
+  params,
+  searchParams,
+}: PageProps<'/contribute/attempts/[id]/runs/[runId]'>) {
   return (
     <Suspense fallback={<ContributeSessionSkeleton />}>
-      <RunSessionView params={params} />
+      <RunSessionView params={params} searchParams={searchParams} />
     </Suspense>
   );
 }

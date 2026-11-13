@@ -9,7 +9,6 @@ import {
   toneLabelOf,
 } from './attempt-format';
 import type { ContributeAttempt, ContributeAttemptDetail, ContributeAttemptState } from './contribute.types';
-import { timeLeftLabel } from './format';
 
 /** The agent's own verdict on its change, as the card's pill says it. */
 export const VERDICTS = { DONE: 'Done', PARTIAL: 'Partly done', NO_GO: 'No-go' } as const;
@@ -43,8 +42,8 @@ export type AgentDid = {
   worthALook: string | null;
   /** Behind "The agent's notes": the brief, and why it went ahead. */
   notes: { brief: string | null; goReason: string | null } | null;
-  /** The user's own agent: who made it, and how long the issue is held for it. */
-  ownAgent: { agent: string | null; heldFor: string | null } | null;
+  /** The user's own agent: who made it (the hold time is the session head's to say). */
+  ownAgent: { agent: string | null } | null;
 } | null;
 
 /**
@@ -67,7 +66,7 @@ const MISSING = "The agent's summary is not available yet.";
  * check's cap, what is worth a look, and its notes (the brief and why it went ahead) when the paragraph is not them
  * already. Null when an ended session left nothing to say: the status box says why it ended.
  */
-export function agentDidOf(attempt: AgentDidFields, now?: Date): AgentDid {
+export function agentDidOf(attempt: AgentDidFields): AgentDid {
   // An API that does not serve the decisions leaves them out: the status box keeps saying the reason.
   const served = attempt.goNoGo !== undefined;
   const goNoGo = served ? (attempt.goNoGo ?? null) : null;
@@ -137,9 +136,7 @@ export function agentDidOf(attempt: AgentDidFields, now?: Date): AgentDid {
     limitNote: goNoGo?.decidedAtLimit ? limitNoteOf({ limit: goNoGo.decidedAtLimit, decided: true }) : null,
     worthALook: result?.riskNotes || null,
     notes: notesBrief || goReason ? { brief: notesBrief, goReason } : null,
-    ownAgent: own
-      ? { agent: agentLabelOf(attempt.agent), heldFor: timeLeftLabel(attempt.leaseUntil, now) || null }
-      : null,
+    ownAgent: own ? { agent: agentLabelOf(attempt.agent) } : null,
   };
 }
 

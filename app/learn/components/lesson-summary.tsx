@@ -4,8 +4,8 @@ import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useState } from 'react';
 
 import { rateLesson } from '../actions';
-import { Box } from '@/app/contribute/components/attempt-status';
 import { HEADING } from '@/app/contribute/components/primitives';
+import { Box } from '@/app/contribute/components/status-box';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { LessonHead, LessonRun, LessonStep } from '@/lib/learn/learn.types';

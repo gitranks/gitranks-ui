@@ -32,6 +32,7 @@ export function ConfirmDialog({
   error,
   onConfirm,
   onCloseAutoFocus,
+  actionVariant = 'destructive',
 }: {
   trigger: ReactElement;
   open: boolean;
@@ -47,6 +48,8 @@ export function ConfirmDialog({
   onConfirm: () => void;
   /** Where the focus goes on close, when not back to the trigger (which may be off by then). */
   onCloseAutoFocus?: (event: Event) => void;
+  /** The confirm button's look: destructive (a discard), or the default for an action that posts or pushes. */
+  actionVariant?: 'default' | 'destructive';
 }) {
   return (
     <AlertDialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
@@ -63,7 +66,7 @@ export function ConfirmDialog({
         ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
-          <Button type="button" variant="destructive" onClick={onConfirm} disabled={pending}>
+          <Button type="button" variant={actionVariant} onClick={onConfirm} disabled={pending}>
             {pending ? pendingAction : action}
           </Button>
         </AlertDialogFooter>

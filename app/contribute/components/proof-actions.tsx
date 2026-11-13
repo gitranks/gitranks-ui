@@ -12,7 +12,7 @@ import {
   startFollowUp,
   takeBackContributeProof,
 } from '../actions';
-import { unlessPrStopped } from './pr-stopped';
+import { offOf, useSessionActions } from './session-actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { holdFastChanges } from '@/lib/contribute/changes-bus';
@@ -46,7 +46,8 @@ function useProofAction() {
       if (then) then();
       else router.refresh();
     });
-  return { act, error, busy: pending || done, router };
+  const actions = useSessionActions();
+  return { act, error, busy: pending || done || offOf(actions), router };
 }
 
 function ErrorLine({ error }: { error: string | null }) {
@@ -118,7 +119,7 @@ function DiscardButton({ id, disabled }: { id: string; disabled?: boolean }) {
  * The proof checked, then posted: "Post the proof" waits for the tick that nothing private is left. Send back takes a
  * note; Discard drops it.
  */
-function ProofReviewActionsLive({ id, redactions }: { id: string; redactions: string[] }) {
+export function ProofReviewActions({ id, redactions }: { id: string; redactions: string[] }) {
   const tick = useId();
   const [checked, setChecked] = useState(false);
   const [sendingBack, setSendingBack] = useState(false);
@@ -190,7 +191,7 @@ function ProofReviewActionsLive({ id, redactions }: { id: string; redactions: st
 }
 
 /** The agent could not capture it: the reply it drafted, edited, then posted on the pull request; or another try. */
-function ProofReplyActionsLive({ id, reply, prNumber }: { id: string; reply: string; prNumber: number }) {
+export function ProofReplyActions({ id, reply, prNumber }: { id: string; reply: string; prNumber: number }) {
   const field = useId();
   const [text, setText] = useState(reply);
   const [sendingBack, setSendingBack] = useState(false);
@@ -249,7 +250,7 @@ function ProofReplyActionsLive({ id, reply, prNumber }: { id: string; reply: str
  * The agent found the fix itself doesn't work: the next run starts with its note (editable), and the proof ends. A
  * pull request a run can't take (one under way, or closed) says so.
  */
-function ProofFixBrokenActionsLive({
+export function ProofFixBrokenActions({
   id,
   prId,
   round,
@@ -341,7 +342,7 @@ export function ProofUnreadableActions({ id }: { id: string }) {
 }
 
 /** Posting failed: try again from the step that failed (nothing posted twice), or drop it. */
-function ProofRetryActionsLive({ id }: { id: string }) {
+export function ProofRetryActions({ id }: { id: string }) {
   const { act, error, busy } = useProofAction();
   return (
     <div className="flex flex-col gap-2">
@@ -379,11 +380,3 @@ export function ProofTakeBack({ id }: { id: string }) {
     </span>
   );
 }
-
-export const ProofReviewActions = unlessPrStopped(ProofReviewActionsLive);
-
-export const ProofReplyActions = unlessPrStopped(ProofReplyActionsLive);
-
-export const ProofFixBrokenActions = unlessPrStopped(ProofFixBrokenActionsLive);
-
-export const ProofRetryActions = unlessPrStopped(ProofRetryActionsLive);

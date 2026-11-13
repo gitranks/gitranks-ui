@@ -167,3 +167,7 @@ export function parsePatch(text: string | null | undefined): ParsedPatch {
     removed: files.reduce((sum, { removed }) => sum + removed, 0),
   };
 }
+
+/** The commits a `git format-patch` text holds: one per `From <sha>` line. */
+export const commitsOf = (text: string | null | undefined): number =>
+  (text ?? '').split('\n').filter((line) => COMMIT_START.test(line)).length;

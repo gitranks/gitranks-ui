@@ -365,18 +365,24 @@ describe('A4, GitHub access at the first submit', () => {
     });
 
     expect(grantNeededOf(views.active, bounced)).toBe(true);
-    const again = review(views.active, bounced);
+    // Access not connected: the grant card, the form open with the page.
+    const again = review(views.firstKey, bounced);
     expect(again).toContain('data-submit-panel="open"');
+    expect(again).toContain('data-move="grant"');
+    expect(text(again)).toContain('Allow GitHub access to open the pull request');
     expect(text(again)).toContain('GitHub asks you once more for public_repo.');
     expect(text(again)).not.toContain('GitHub access for pull requests is not connected');
-    // The bounce's note is the status box's to say, once.
+    // The bounce's note is the card's to say, once.
     expect(text(again).match(/Allow it again from this page\./g)).toHaveLength(1);
     const errorAt = again.indexOf('data-submit-error');
     const noteAt = again.indexOf('Allow it again from this page.');
     expect(errorAt).toBeGreaterThan(-1);
     expect(noteAt).toBeGreaterThan(errorAt);
-    // Said in the status box, not again inside the form that follows it.
+    // Said in the card, not again inside the form that follows it.
     expect(noteAt).toBeLessThan(again.indexOf('data-pr-form'));
+    // The form is open: the card draws no primary, the form's Submit is the one.
+    const head = again.slice(again.indexOf('data-session-head'), again.indexOf('data-pr-form'));
+    expect(head).not.toContain('data-variant="default"');
     expect(grantNeededOf(views.active, detail())).toBe(false);
     // A grant missing at the submit and connected since asks no more.
     const missing = detail({

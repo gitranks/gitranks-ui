@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { type ComponentProps, type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
 
-import { approveAttempt, discardAttempt } from '../actions';
+import { approveAttempt } from '../actions';
 import { HEADING } from './primitives';
+import { offOf, useSessionActions } from './session-actions';
 import { reducedMotion } from './submit-stepper';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -30,12 +31,10 @@ import {
   prFooterText,
 } from '@/lib/contribute/attempt-format';
 import type { ContributeDcoMode } from '@/lib/contribute/contribute.types';
-import { attemptActionErrorMessage } from '@/lib/contribute/errors';
 import {
   RESUME_PARAM,
   resumeHrefOf,
   savePendingApproval,
-  sendPendingApproval,
   tabStoreOf,
   takePendingApproval,
 } from '@/lib/contribute/grant-resume';
@@ -45,6 +44,7 @@ import {
   checklistOf,
   titleBlocks,
 } from '@/lib/contribute/pr-conventions';
+import { runLong } from '@/lib/contribute/session-head-logic';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
 
@@ -226,20 +226,18 @@ const nonceOf = () =>
     ? crypto.randomUUID()
     : Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('');
 
-type Confirm = 'approve' | 'discard' | null;
-
 /** Up to the top of the page, where the submission's progress shows once it starts. */
 const scrollToProgress = () => window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
 
-/** The focus on the attempt's status box, which shows the progress, without scrolling to it a second time. */
-const focusProgress = () =>
-  document.querySelector<HTMLElement>('[data-attempt-status]')?.focus({ preventScroll: true });
+/** The focus on the session's head, which shows the progress, without scrolling to it a second time. */
+const focusProgress = () => document.querySelector<HTMLElement>('[data-session-head]')?.focus({ preventScroll: true });
 
 /**
  * The pull request as it will open: an editable title and body (written, or previewed as GitHub gets it), what the
- * repo asks and what GitRanks adds, then Submit or Discard. On the first one, before GitHub access is connected,
- * Submit asks for it: the approval waits in the tab, GitHub asks, and back here with the access (and the nonce the tab
- * kept) it is sent at once.
+ * repo asks and what GitRanks adds, then Submit (the review card has Discard). On the first one, before GitHub access
+ * is connected, Submit asks for it: the approval waits in the tab, GitHub asks, and back here with the access (and the
+ * nonce the tab kept) it is sent at once. The submit runs through the session's actions: one pending state with the
+ * card's Discard, and its error in the dialog while it is open, else in the card.
  */
 export function PrForm({
   attemptId,
@@ -260,19 +258,29 @@ export function PrForm({
   defaultPane = 'write',
 }: PrFormProps) {
   const router = useRouter();
+  const actions = useSessionActions();
   const id = useId();
   const [title, setTitle] = useState(defaultTitle);
   const [body, setBody] = useState(defaultBody);
   const [pane, setPane] = useState<Pane>(defaultPane);
   const [dco, setDco] = useState(false);
-  const [confirm, setConfirm] = useState<Confirm>(null);
+  const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** On the way to GitHub, or back from it with the pull request opening. */
   const [handoff, setHandoff] = useState<'github' | 'opening' | null>(null);
   const [pending, startTransition] = useTransition();
   /** The approval went through: the closing dialog hands the focus to the progress, not back to Submit. */
   const approved = useRef(false);
-  const busy = pending || handoff !== null;
+  const busy = pending || handoff !== null || offOf(actions);
+  const submitting = actions?.submitState.busy || pending;
+  /** A refusal found here, before any call: the session's error, or the form's own outside a session. */
+  const fail = (text: string) => (actions ? actions.fail('submit', text) : setError(text));
+  const shownError = actions ? (actions.error?.source === 'submit' ? actions.error.text : null) : error;
+  // The card shows the submit's error unless this dialog is open to show it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the form's setter is stable for the session.
+  useEffect(() => {
+    actions?.setDialog(confirm ? 'submit' : null);
+  }, [confirm]);
 
   const standing = dcoMode === 'STANDING';
   const tail = footer ? footerPreviewOf(footer, body) : { text: prFooterText(login), sentence: false };
@@ -373,23 +381,34 @@ export function PrForm({
     },
   ];
 
-  const act = (which: Exclude<Confirm, null>) =>
+  /** Sends the approval through the session's actions (or on its own outside one); `then` once it went through. */
+  const send = (approval: { title: string; body: string; dco: boolean }, then: () => void) => {
+    let ok = false;
+    const call = async () => {
+      const result = await approveAttempt({ id: attemptId, ...approval });
+      ok = result.ok;
+      return result;
+    };
+    const done = actions
+      ? actions.submitting(call)
+      : runLong(call).then((failure) => {
+          setError(failure);
+          if (!failure) router.refresh();
+        });
+    return done.then(() => {
+      if (ok) then();
+      return ok;
+    });
+  };
+
+  const approve = () =>
     startTransition(async () => {
       setError(null);
-      const result =
-        which === 'approve'
-          ? await approveAttempt({ id: attemptId, title, body, dco: signOff })
-          : await discardAttempt(attemptId);
-      if (!result.ok) {
-        setError(attemptActionErrorMessage(result.error, result.message));
-        return;
-      }
-      if (which === 'approve') {
+      await send({ title, body, dco: signOff }, () => {
         approved.current = true;
+        setConfirm(false);
         scrollToProgress();
-      }
-      setConfirm(null);
-      router.refresh();
+      });
     });
 
   // Keep the approval in the tab, then let GitHub ask for access; it sends the user back here with the nonce.
@@ -397,13 +416,13 @@ export function PrForm({
     setError(null);
     const nonce = nonceOf();
     if (!savePendingApproval(tabStoreOf(window), { attemptId, title, body, dco: signOff, nonce })) {
-      setError('This browser keeps nothing for the way back. Allow GitHub access in Settings, then submit here.');
+      fail('This browser keeps nothing for the way back. Allow GitHub access in Settings, then submit here.');
       return;
     }
     setHandoff('github');
     signIn(CONTRIBUTE_PROVIDER, { redirectTo: resumeHrefOf(attemptId, nonce) }).catch(() => {
       setHandoff(null);
-      setError('GitHub could not be opened. Try again.');
+      fail('GitHub could not be opened. Try again.');
     });
   };
 
@@ -427,14 +446,11 @@ export function PrForm({
     setDco(approval.dco);
     setHandoff('opening');
     // The edits stay in the form's state: a refusal or a failed send gives the form back as the user left it.
-    void sendPendingApproval(approval, approveAttempt).then((failure) => {
-      if (failure) {
-        setHandoff(null);
-        setError(failure);
-      } else {
-        scrollToProgress();
-        focusProgress();
-      }
+    void send({ title: approval.title, body: approval.body, dco: approval.dco }, () => {
+      scrollToProgress();
+      focusProgress();
+    }).then((ok) => {
+      if (!ok) setHandoff(null);
       router.replace(clean as never, { scroll: false });
       router.refresh();
     });
@@ -446,7 +462,7 @@ export function PrForm({
       data-pr-form={attemptId}
       onSubmit={(event) => {
         event.preventDefault();
-        if (!waits) setConfirm('approve');
+        if (!waits) setConfirm(true);
       }}
       className="flex scroll-mt-20 flex-col gap-3.5 rounded-xl border-2 border-primary bg-card p-4.5"
     >
@@ -524,7 +540,7 @@ export function PrForm({
           Opening your PR…
         </p>
       ) : null}
-      {error && !confirm ? (
+      {!actions && error && !confirm ? (
         <span role="alert" className="text-sm text-destructive">
           {error}
         </span>
@@ -547,15 +563,6 @@ export function PrForm({
                   ? 'Submit again'
                   : 'Submit pull request'}
         </Button>
-        <Button
-          type="button"
-          variant="destructive-outline"
-          onClick={() => setConfirm('discard')}
-          disabled={busy}
-          className="min-h-11.5 max-sm:w-full"
-        >
-          Discard
-        </Button>
       </div>
       {waits ? (
         <p id={`${id}-waits`} data-submit-waits={waits.tokens} className="text-sm text-muted-foreground">
@@ -569,7 +576,7 @@ export function PrForm({
         </p>
       ) : null}
 
-      <Dialog open={confirm !== null} onOpenChange={(open) => !pending && !open && setConfirm(null)}>
+      <Dialog open={confirm} onOpenChange={(open) => !submitting && !open && setConfirm(false)}>
         <DialogContent
           onCloseAutoFocus={(event) => {
             if (!approved.current) return;
@@ -579,44 +586,32 @@ export function PrForm({
         >
           <DialogHeader>
             <DialogTitle>
-              {confirm === 'discard'
-                ? 'Discard this attempt?'
-                : grantNeeded
-                  ? 'Allow GitHub access and open this pull request?'
-                  : 'Submit this pull request?'}
+              {grantNeeded ? 'Allow GitHub access and open this pull request?' : 'Submit this pull request?'}
             </DialogTitle>
             <DialogDescription>
-              {confirm === 'discard'
-                ? 'Nothing is submitted, and the issue goes back to the pool. What it cost stays spent.'
-                : grantNeeded
-                  ? `GitHub asks you for public_repo. Then you come back here, and it opens on ${repo} in your name, from your fork, with the title and description as you left them. Revoke the access any time, on GitHub or in Settings.`
-                  : `It opens on ${repo} in your name, from your fork, with the title and description as you left them.`}
+              {grantNeeded
+                ? `GitHub asks you for public_repo. Then you come back here, and it opens on ${repo} in your name, from your fork, with the title and description as you left them. Revoke the access any time, on GitHub or in Settings.`
+                : `It opens on ${repo} in your name, from your fork, with the title and description as you left them.`}
             </DialogDescription>
           </DialogHeader>
-          {error ? (
-            <span role="alert" className="text-sm text-destructive">
-              {error}
+          {shownError ? (
+            <span role="alert" className="text-sm text-destructive" data-submit-error="">
+              {shownError}
             </span>
           ) : null}
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => setConfirm(null)} disabled={pending}>
+            <Button type="button" variant="secondary" onClick={() => setConfirm(false)} disabled={submitting}>
               Cancel
             </Button>
-            {confirm === 'discard' ? (
-              <Button type="button" variant="destructive" onClick={() => act('discard')} disabled={pending}>
-                {pending ? 'Discarding…' : 'Discard'}
-              </Button>
-            ) : (
-              <Button type="button" onClick={() => (grantNeeded ? allowAndOpen() : act('approve'))} disabled={busy}>
-                {handoff === 'github'
-                  ? 'Opening GitHub…'
-                  : pending
-                    ? 'Submitting…'
-                    : grantNeeded
-                      ? 'Continue to GitHub'
-                      : 'Submit'}
-              </Button>
-            )}
+            <Button type="button" onClick={() => (grantNeeded ? allowAndOpen() : approve())} disabled={busy}>
+              {handoff === 'github'
+                ? 'Opening GitHub…'
+                : submitting
+                  ? 'Submitting…'
+                  : grantNeeded
+                    ? 'Continue to GitHub'
+                    : 'Submit'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

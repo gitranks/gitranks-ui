@@ -250,7 +250,9 @@ describe('the review of a change made by your own agent', () => {
       leaseUntil: '2026-10-29T12:00:00.000Z',
       changesRequested: { note: 'Add a test for the trailing slash.', at: '2026-10-28T10:00:00.000Z' },
     });
-    expect(text(card(html))).toContain('The issue is held for it for another 1 day.');
+    // The hold is the head's kind line to say; the decisions card no longer says it.
+    expect(text(html)).toContain('First attempt · ready for you · 1 day left');
+    expect(text(card(html))).not.toContain('held for it');
     expect(text(card(html))).not.toContain('Add a test for the trailing slash.');
     const activity = text(html.slice(html.indexOf('data-tab-panel="activity"')));
     expect(activity).toContain('You sent it back on Oct 28: Add a test for the trailing slash.');
@@ -263,14 +265,17 @@ describe('the review of a change made by your own agent', () => {
 
   it('offers to send it back, with how many times are left, and stops offering at none', () => {
     const plain = text(renderToStaticMarkup(<ReviewScreen view={views.active} attempt={ownAgentDetail} now={NOW} />));
-    expect(plain).toContain('Send back to my agent');
-    expect(plain).toContain('2 more times');
+    expect(plain).toContain(
+      'Your agent sent a change Check it, then open the pull request or send it back with a note.',
+    );
+    expect(plain).toContain('Send back to my agent (2 left)');
     const none = text(
       renderToStaticMarkup(
         <ReviewScreen view={views.active} attempt={{ ...ownAgentDetail, sendBacksLeft: 0 }} now={NOW} />,
       ),
     );
-    expect(none).toContain('Submit it as it is, or discard it');
+    expect(none).toContain('It was sent back as many times as it can be.');
+    expect(none).not.toContain('Send back to my agent');
   });
 
   it('starts the title from the one the agent proposed', () => {

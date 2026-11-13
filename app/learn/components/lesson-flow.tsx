@@ -18,9 +18,9 @@ import { LessonSteps, stepAnchorOf } from './lesson-steps';
 import { LessonSummary } from './lesson-summary';
 import { QuestionCard } from './question-card';
 import { WrittenFor } from './written-for';
-import { Box } from '@/app/contribute/components/attempt-status';
 import { CopyButton } from '@/app/contribute/components/copy-button';
 import { HEADING } from '@/app/contribute/components/primitives';
+import { Box } from '@/app/contribute/components/status-box';
 import { Button } from '@/components/ui/button';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import type {

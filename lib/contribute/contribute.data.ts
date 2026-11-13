@@ -443,8 +443,11 @@ export async function loadAttemptsIn(
   );
 }
 
-/** The reply drafts the user can approve now, oldest first; `undefined` when the API does not answer them. */
-export async function loadRepliesWaiting(): Promise<ContributeReplyWaiting[] | undefined> {
+/**
+ * The reply drafts the user can approve now, oldest first; `undefined` when the API does not answer them. Read once per
+ * request: a contribution's layout and its page share it.
+ */
+export const loadRepliesWaiting = cache(async (): Promise<ContributeReplyWaiting[] | undefined> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return undefined;
   try {
@@ -456,7 +459,7 @@ export async function loadRepliesWaiting(): Promise<ContributeReplyWaiting[] | u
   } catch {
     return undefined;
   }
-}
+});
 
 /**
  * Overview's "Needs you": the attempts waiting for the user, the replies they can approve, the open pull requests,
@@ -752,9 +755,9 @@ export function withFollowUpFlow(
 
 /**
  * The maintainers' say on the user's PR (any attempt of it): a stop, and the "this PR helped" notes; `undefined` when
- * the API does not answer it, which leaves the rest of the page.
+ * the API does not answer it, which leaves the rest of the page. Read once per request and attempt.
  */
-export async function loadPrNotes(attemptId: string): Promise<ContributePrNotes | undefined> {
+export const loadPrNotes = cache(async (attemptId: string): Promise<ContributePrNotes | undefined> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return undefined;
   try {
@@ -763,7 +766,7 @@ export async function loadPrNotes(attemptId: string): Promise<ContributePrNotes 
   } catch {
     return undefined;
   }
-}
+});
 
 /** Whether the user's follow-ups resolve people's threads too; `undefined` when the API does not answer it. */
 export async function loadResolveHumanThreads(): Promise<boolean | undefined> {

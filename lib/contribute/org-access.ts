@@ -1,5 +1,5 @@
 import { githubUrlOf } from './attempt-format';
-import type { ContributeReplyDraft } from './contribute.types';
+import type { ContributeAttemptDetail, ContributeReplyDraft, ContributeReplyWaiting } from './contribute.types';
 import { replyPreviewOf } from './follow-up-flow';
 
 /** Where a user sees, and revokes, the OAuth Apps they allowed. */
@@ -12,6 +12,36 @@ export const GITHUB_APPS_URL = 'https://github.com/settings/applications';
 export const ORG_RESTRICTED = 'org_restricted';
 
 export const isOrgRestricted = (reason: string | null | undefined): boolean => reason === ORG_RESTRICTED;
+
+/**
+ * What proves now that the repository's organization keeps GitRanks out: a submit refused for it (the first attempt's,
+ * or the run under way's: `current` counts only when it is the run under way), else a waiting reply of this pull
+ * request refused for it, in a run's review or not. Never the session shown: the contribution's layout reads only these.
+ * `replies` may hold other pull requests' replies; they are left out here.
+ */
+export function orgRestrictionOf({
+  first,
+  current,
+  replies,
+}: {
+  first: ContributeAttemptDetail;
+  /** The run under way, or undefined: never the shown run. */
+  current?: ContributeAttemptDetail;
+  replies?: ContributeReplyWaiting[];
+}): 'submit' | 'replies' | null {
+  const underWay = !!current && current.attemptId === first.followUps?.currentAttemptId;
+  if (
+    isOrgRestricted(first.submit?.lastError?.reason) ||
+    (underWay && isOrgRestricted(current?.submit?.lastError?.reason))
+  ) {
+    return 'submit';
+  }
+  const prId = first.pullRequest?.prId;
+  const refused = (replies ?? []).some(
+    (reply) => !!prId && reply.prId === prId && reply.state === 'FAILED' && isOrgRestricted(reply.lastError?.reason),
+  );
+  return refused ? 'replies' : null;
+}
 
 /**
  * Where the user asks an organization to approve the app: the app's own page on GitHub (`app`), where each organization

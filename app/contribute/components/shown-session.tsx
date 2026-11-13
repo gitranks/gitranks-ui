@@ -1,7 +1,6 @@
 'use client';
 
 import { usePathname, useSearchParams } from 'next/navigation';
-import type { ReactNode } from 'react';
 
 import { NEXT_SESSION, nextSessionPath, sessionPath } from '@/lib/contribute/sessions';
 
@@ -30,9 +29,3 @@ export function useShownSession({ firstId, nextShown, shown }: ShownSession): st
 /** The shown session's address, as the layout's links name it. */
 export const shownPathOf = (firstId: string, shown: string) =>
   shown === NEXT_SESSION ? nextSessionPath(firstId) : sessionPath(firstId, shown);
-
-/** Its children, except on the sessions at `paths`: a line that points at the session shown says nothing there. */
-export function HiddenAt({ paths, children, ...session }: ShownSession & { paths: string[]; children: ReactNode }) {
-  const shown = useShownSession(session);
-  return paths.includes(shownPathOf(session.firstId, shown)) ? null : children;
-}

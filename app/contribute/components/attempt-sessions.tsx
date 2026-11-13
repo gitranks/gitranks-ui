@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-import { Pill } from './primitives';
+import { LiveDot, Pill } from './primitives';
 import { type ShownSession, useShownSession } from './shown-session';
 import type { SessionCard } from '@/lib/contribute/sessions';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,12 @@ function CardBody({ card }: { card: SessionCard }) {
     <>
       <span className="flex items-center justify-between gap-2">
         <span className="text-sm font-semibold">{card.title}</span>
-        {card.pill ? <Pill tone={card.pill.tone}>{card.pill.label}</Pill> : null}
+        {card.pill ? (
+          <Pill tone={card.pill.tone}>
+            {card.pill.live ? <LiveDot active /> : null}
+            {card.pill.label}
+          </Pill>
+        ) : null}
       </span>
       {card.meta ? <span className="font-mono text-xs text-muted-foreground tabular-nums">{card.meta}</span> : null}
     </>

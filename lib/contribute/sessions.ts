@@ -2,8 +2,6 @@ import type { Route } from 'next';
 
 import { ATTEMPT_STATES, isOwnAgent, type Tone, timeLabel } from './attempt-format';
 import type { ContributeAttemptDetail, ContributeFollowUpRound } from './contribute.types';
-import { shortSha } from './follow-up-flow';
-import { USERS_SIGNALS } from './follow-up-format';
 import { dayLabel, usd } from './format';
 import { type ProofStage, proofStageOf } from './proof';
 
@@ -33,7 +31,7 @@ export type SessionCard = {
   /** Where its card leads. */
   href: Route | null;
   title: string;
-  pill: { label: string; tone: Tone } | null;
+  pill: { label: string; tone: Tone; live?: boolean } | null;
   /** When, and what it cost: `Oct 31 · $0.25`; for the next run, what waits for it. */
   meta: string;
   /** The next run, not started: its card is dashed. */
@@ -66,66 +64,29 @@ function starterOf(run: ContributeAttemptDetail): ContributeFollowUpRound['by'] 
 export const nextRoundRecommended = (first: ContributeAttemptDetail): boolean =>
   !!first.followUps?.recommended || waitingThreadsOf(first).length > 0;
 
-/** Only the user's moves wait on the pull request: an agreement, a bot's block, what a run left them, the rules. */
-export const usersMovesWait = (first: ContributeAttemptDetail): boolean =>
-  (first.needsYou?.signals ?? []).some(({ kind }) => USERS_SIGNALS.has(kind)) || !!first.prIssues?.length;
-
 /** The review threads that wait for an answer: those not ignored in an earlier run. */
 export const waitingThreadsOf = (first: ContributeAttemptDetail) =>
   first.pullRequest?.state === 'OPEN' ? (first.reviewFeedback?.threads ?? []).filter(({ ignored }) => !ignored) : [];
 
-const PR_PILLS = {
-  OPEN: (number: number) => ({ label: `PR #${number} open`, tone: 'green' as const }),
-  MERGED: (number: number) => ({ label: `PR #${number} merged`, tone: 'violet' as const }),
-  CLOSED: (number: number) => ({ label: `PR #${number} closed`, tone: 'neutral' as const }),
-};
-
-/** A round's card pill, from where its line stands. */
-function roundPillOf(round: ContributeFollowUpRound): { label: string; tone: Tone } {
-  switch (round.state) {
-    case 'DONE': {
-      const sha = shortSha(round.pushedSha);
-      return { label: sha ? `Pushed ${sha}` : 'Done', tone: 'green' };
-    }
-    case 'DISCARDED':
-      return { label: 'Discarded', tone: 'neutral' };
-    case 'STOPPED':
-      return { label: 'Stopped', tone: 'neutral' };
-    case 'REVIEW':
-    case 'PENDING_AUTOSUBMIT':
-      return { label: 'Ready for you', tone: 'violet' };
-    case 'SUBMITTING':
-      return { label: 'Pushing', tone: 'violet' };
-    case 'QUEUED':
-      return { label: 'Queued', tone: 'neutral' };
-    case 'CLAIMING':
-    case 'RUNNING':
-    case 'CHECKS':
-      return { label: 'Working', tone: 'violet' };
-    default:
-      // A state the UI does not know yet: its own words, nothing implied.
-      return { label: ATTEMPT_STATES[round.state]?.label ?? capitalized(String(round.state)), tone: 'neutral' };
-  }
-}
-
-const capitalized = (text: string) =>
-  text ? `${text[0].toUpperCase()}${text.slice(1).toLowerCase().replaceAll('_', ' ')}` : text;
-
-/** The first attempt's card: its pull request once there is one, else where it stands. */
-function firstCardOf(first: ContributeAttemptDetail): SessionCard {
-  const pr = first.pullRequest;
+/** The first attempt's card: its pill from the contribution's model (its pull request's state, or where it stands). */
+function firstCardOf(first: ContributeAttemptDetail, model: TileModel): SessionCard {
   const own = isOwnAgent(first);
   return {
     key: first.attemptId,
     href: attemptPath(first.attemptId),
     title: 'First attempt',
-    // A state the UI does not know yet still names the pull request.
-    pill: pr
-      ? (PR_PILLS[pr.state as keyof typeof PR_PILLS]?.(pr.number) ?? { label: `PR #${pr.number}`, tone: 'neutral' })
-      : (ATTEMPT_STATES[first.state] ?? null),
+    pill: model.sessions.first?.pill ?? ATTEMPT_STATES[first.state] ?? null,
     meta: [dayLabel(first.createdAt), own ? 'your own agent' : usd(first.costUsd)].filter(Boolean).join(' · '),
   };
 }
+
+/** What the tiles read of the contribution's model: each session's pill, the next tile's title and the moves' kinds. */
+export type TileModel = {
+  sessions: Partial<Record<string, { pill: { label: string; tone: Tone; live?: boolean } }>>;
+  nextTileTitle: string | null;
+  proofStage: ProofStage | null;
+  moves: { session: string; kinds: string[]; card: string }[];
+};
 
 /**
  * The sessions of the contribution whose first attempt is `first`. Each run comes from the pull request's history; one
@@ -133,10 +94,10 @@ function firstCardOf(first: ContributeAttemptDetail): SessionCard {
  */
 export function sessionsOf(
   first: ContributeAttemptDetail,
-  round?: ContributeAttemptDetail,
-  proofOptions: { agentConnected: boolean; now?: Date } = { agentConnected: false },
+  round: ContributeAttemptDetail | undefined,
+  model: TileModel,
 ): SessionCard[] {
-  const cards = [firstCardOf(first)];
+  const cards = [firstCardOf(first, model)];
   const history = [...(first.followUps?.history ?? [])];
   // Without the history, a run added here is the latest one: its number is the runs used.
   const numberOf = () => (first.followUps?.history ? history.length + 1 : first.followUps?.used || history.length + 1);
@@ -181,50 +142,48 @@ export function sessionsOf(
       key: entry.attemptId,
       href: sessionPath(first.attemptId, entry.attemptId),
       title: `Run ${entry.round}`,
-      pill: roundPillOf(entry),
+      pill: model.sessions[`run:${entry.attemptId}`]?.pill ?? null,
       meta: [dayLabel(entry.at), entry.costUsd > 0 ? usd(entry.costUsd) : null, byAutopilot ? 'by autopilot' : null]
         .filter(Boolean)
         .join(' · '),
     });
   }
 
-  // The proof the user's own agent captures, on the next step's page (shown while no run is under way): its card is there.
-  const stage = proofTileStageOf(first, proofOptions.agentConnected, proofOptions.now ?? new Date());
+  // The proof the user's own agent captures, on the next step's page: its own stage words win over "Your move".
+  const stage = model.proofStage;
+  const moveOf = (sessions: string[], cardKind?: string) =>
+    model.moves.find((move) => sessions.includes(move.session) && (!cardKind || move.card === cardKind));
+  const withMove = (kind: string | undefined) =>
+    (kind
+      ? `${nextSessionPath(first.attemptId)}&move=${encodeURIComponent(kind)}`
+      : nextSessionPath(first.attemptId)) as Route;
   if (stage) {
-    const { pill, meta } = PROOF_TILES[stage];
+    const { meta } = PROOF_TILES[stage];
     const at = stage === 'posted' ? first.proof?.session?.stateAt : null;
     cards.push({
-      // The next step's address shows the proof's card: its tile is the one the list marks there.
+      // The next step's address shows the proof's line or card: its tile is the one the list marks there.
       key: NEXT_SESSION,
-      href: nextSessionPath(first.attemptId),
+      href: withMove(moveOf(['proof'])?.kinds[0]),
       title: 'Proof',
-      pill,
+      pill: model.sessions.proof?.pill ?? null,
       meta: at ? `${meta} ${timeLabel(at)}` : meta,
     });
   }
 
-  const followUps = first.followUps;
-  if (followUps && nextRoundOpen(first)) {
+  if (model.nextTileTitle) {
     const waiting = waitingThreadsOf(first).length;
-    const recommended = nextRoundRecommended(first);
-    const yours = !recommended && usersMovesWait(first);
+    const holds = !!moveOf(['next']);
     cards.push({
       // Beside a proof's tile (which takes the next step's mark), the run's own key.
       key: stage ? NEXT_RUN_TILE : NEXT_SESSION,
-      href: stage ? (`${nextSessionPath(first.attemptId)}#next-run` as Route) : nextSessionPath(first.attemptId),
-      title: `Run ${nextRunNumberOf(first)}`,
-      pill: recommended
-        ? { label: 'Recommended', tone: 'violet' }
-        : yours
-          ? { label: 'Your move', tone: 'amber' }
-          : { label: 'Not started', tone: 'neutral' },
+      href: withMove(moveOf(['next'], 'next-run')?.kinds[0]),
+      title: model.nextTileTitle,
+      pill: model.sessions.next?.pill ?? { label: 'Not started', tone: 'neutral' },
       meta: waiting
         ? `${waiting} ${waiting === 1 ? 'comment waits' : 'comments wait'}`
-        : recommended
-          ? 'Not started'
-          : yours
-            ? 'Waits for you'
-            : 'Your call',
+        : holds
+          ? 'Waits for you'
+          : 'Your call',
       draft: true,
     });
   }
@@ -247,19 +206,19 @@ export const proofTileStageOf = (
 /** The next run's tile beside a proof's: both lead to the next step, the run's to its card. */
 export const NEXT_RUN_TILE = 'next-run';
 
-/** A proof's tile: whose move it is, in the tile's pill and line. */
-const PROOF_TILES: Record<ProofStage, { pill: SessionCard['pill']; meta: string }> = {
-  'not-connected': { pill: { label: 'Your move', tone: 'amber' }, meta: 'Waits for you' },
-  connected: { pill: { label: 'Your move', tone: 'amber' }, meta: 'Waits for you' },
-  working: { pill: { label: 'Your agent', tone: 'violet' }, meta: 'Under way' },
-  review: { pill: { label: 'Check it', tone: 'amber' }, meta: 'Waits for you' },
-  cannot: { pill: { label: 'Your move', tone: 'amber' }, meta: 'Waits for you' },
-  'fix-broken': { pill: { label: 'Your move', tone: 'amber' }, meta: 'Waits for you' },
-  unreadable: { pill: { label: 'Your move', tone: 'amber' }, meta: 'Waits for you' },
-  posting: { pill: { label: 'Posting', tone: 'violet' }, meta: 'Under way' },
-  failed: { pill: { label: 'Posting failed', tone: 'red' }, meta: 'Waits for you' },
-  posted: { pill: { label: 'Bot reads it', tone: 'neutral' }, meta: 'Posted' },
-  'ask-cleared': { pill: { label: 'Not needed', tone: 'neutral' }, meta: 'The bot no longer asks' },
+/** A proof's tile: whose move it is, in the tile's line (its pill is the model's). */
+const PROOF_TILES: Record<ProofStage, { meta: string }> = {
+  'not-connected': { meta: 'Waits for you' },
+  connected: { meta: 'Waits for you' },
+  working: { meta: 'Under way' },
+  review: { meta: 'Waits for you' },
+  cannot: { meta: 'Waits for you' },
+  'fix-broken': { meta: 'Waits for you' },
+  unreadable: { meta: 'Waits for you' },
+  posting: { meta: 'Under way' },
+  failed: { meta: 'Waits for you' },
+  posted: { meta: 'Posted' },
+  'ask-cleared': { meta: 'The bot no longer asks' },
 };
 
 /** The sessions header: the follow-up runs so far and what they cost (`2 runs · $0.43`); null before the first. */

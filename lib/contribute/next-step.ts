@@ -1,5 +1,4 @@
 import type {
-  ContributeAttempt,
   ContributeAttemptDetail,
   ContributeContribution,
   ContributeFeedbackThread,
@@ -8,7 +7,7 @@ import type {
   ContributePrSignalKind,
 } from './contribute.types';
 import { type RepoOutReason, repoOutReasonOf, repoSaidNoOf, USERS_SIGNALS } from './follow-up-format';
-import { botVerdictOf, bracketed, type NeedsYouItem, prItemOf, pushDetailOf, runOutcomeOf } from './needs-you';
+import { botVerdictOf, bracketed, pushDetailOf, runOutcomeOf } from './needs-you';
 import { type ContributePrConventionIssue, type ContributePrFix, httpsOnly } from './pr-conventions';
 import { type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { nextRoundOpen, nextRoundRecommended, nextRunNumberOf, waitingThreadsOf } from './sessions';
@@ -246,14 +245,6 @@ export function nextStepOf(first: ContributeAttemptDetail, agentConnected = fals
   };
 }
 
-/** Whether anything waits for the user on the pull request: the next step has a card besides the run's own. */
-export const nextStepWaits = (step: NextStep): boolean =>
-  step.user.some((move) => move.kind !== 'proof' || move.waits) ||
-  !!step.rules ||
-  !!step.dco ||
-  step.run.signals.length > 0 ||
-  step.run.threads.length > 0;
-
 /**
  * The open pull request of a first attempt as a list reads it, for its Needs-you row on its own page: null before it
  * has one.
@@ -279,29 +270,5 @@ export function contributionOf(first: ContributeAttemptDetail): ContributeContri
     prIssues: first.prIssues,
     conventions: first.conventions ? { cla: first.conventions.cla } : first.conventions,
     proof: first.proof,
-  };
-}
-
-/**
- * The pull request's row as Needs you shows it, for the line on the contribution's other sessions: what the user's
- * move is, or the run at work. The comments that wait count too (the lists do not read them). Null: nothing waits.
- */
-export function yourMoveOf(
-  first: ContributeAttemptDetail,
-  runs: ContributeAttempt[],
-  now: Date,
-): Pick<NeedsYouItem, 'kind' | 'move' | 'working' | 'pill' | 'action'> | null {
-  const pr = contributionOf(first);
-  if (!pr) return null;
-  const item = prItemOf({ pr, drafts: [], runs, now });
-  if (item) return item;
-  const waiting = waitingThreadsOf(first).length;
-  if (!waiting || !nextRoundOpen(first)) return null;
-  return {
-    move: `${waiting === 1 ? 'A comment waits' : `${waiting} comments wait`} for an answer. Start run ${nextRunNumberOf(first)} on ${waiting === 1 ? 'it' : 'them'}.`,
-    kind: 'changes',
-    working: false,
-    pill: 'Review comments',
-    action: null,
   };
 }

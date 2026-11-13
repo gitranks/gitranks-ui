@@ -140,7 +140,7 @@ describe('what the agent did', () => {
       }),
       NOW,
     );
-    expect(own?.ownAgent).toEqual({ agent: 'Codex (gpt-5.5-codex)', heldFor: '5 hours' });
+    expect(own?.ownAgent).toEqual({ agent: 'Codex (gpt-5.5-codex)' });
     expect(agentDidOf(detail())?.ownAgent).toBeNull();
   });
 

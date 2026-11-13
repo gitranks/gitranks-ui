@@ -20,7 +20,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
 }));
 
 const { ReviewScreen } = await import('./review-view');
-const { signOffOf } = await import('./pr-form');
+const { signOffOf, submitWaitsOf } = await import('./pr-form');
 const { DiffViewer, LARGE_FILE_LINES, MAX_FILE_LINES, MAX_TOTAL_LINES } = await import('./diff-viewer');
 const { ContributionsScreen } = await import('./contributions-view');
 const { ReviewsReady } = await import('./reviews-ready');
@@ -37,9 +37,11 @@ const {
   followUpAttempts,
   followUps,
   pullRequest,
+  repoConventions,
   stopped,
 } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { END_REASONS, LIVE_STATES } = await import('@/lib/contribute/attempt-format');
+const { settingsPathOf } = await import('@/lib/contribute/settings-paths');
 
 import type {
   ContributeAttemptDetail,
@@ -56,6 +58,10 @@ const text = (html: string) =>
     .replaceAll('&gt;', '>')
     .replaceAll('&amp;', '&')
     .replace(/\s+/g, ' ');
+
+/** Whether a tab's panel is the one shown: `active`, else `inactive` (rendered, hidden). */
+const panel = (html: string, tab: string) =>
+  html.match(new RegExp(`<div data-state="(\\w+)"[^>]*data-tab-panel="${tab}"`))?.[1];
 
 const review = (item: ContributeAttemptDetail | undefined, view: ContributeView = views.active) =>
   renderToStaticMarkup(<ReviewScreen view={view} attempt={item} now={NOW} />);
@@ -107,29 +113,97 @@ describe('the diff viewer', () => {
 });
 
 describe('the contribution page', () => {
-  /** Whether a tab's panel is the one shown: `active`, else `inactive` (rendered, hidden). */
-  const panel = (html: string, tab: string) =>
-    html.match(new RegExp(`<div data-state="(\\w+)"[^>]*data-tab-panel="${tab}"`))?.[1];
-
   it("opens a review on the change itself, the pull request's form behind its button", () => {
     const html = review(attempts.review);
     expect(panel(html, 'changes')).toBe('active');
-    expect(panel(html, 'summary')).toBe('inactive');
+    expect(html).not.toContain('data-tab-panel="summary"');
     expect(html).toContain('data-submit-panel="closed"');
-    expect(text(html)).toContain('Write the pull request…');
+    expect(text(html)).toContain('Write the pull request');
+    expect(text(html)).not.toContain('Write the pull request…');
+    expect(text(html)).not.toContain('Its title and text');
     // The form is there, hidden: the way back from GitHub's access screen runs either way.
     expect(html).toContain('data-pr-form="A_1"');
   });
 
-  it('opens the form by itself after a submit that bounced', () => {
-    expect(review(attempts.bounced)).toContain('data-submit-panel="open"');
+  it('opens the form by itself after a submit that bounced, adding no error line of its own', () => {
+    const html = review(attempts.bounced);
+    expect(html).toContain('data-submit-panel="open"');
+    expect(text(html).match(/GitHub is still making your fork/g)).toHaveLength(1);
+    const error = html.indexOf('data-submit-error');
+    expect(error).toBeGreaterThan(-1);
+    expect(html.indexOf('GitHub is still making your fork')).toBeGreaterThan(error);
   });
 
-  it('opens a pull request on its summary, the header saying where it stands and no box saying it again', () => {
+  it('opens a pull request on its change, the header saying where it stands and no box saying it again', () => {
     const html = review(attempts.prOpen);
-    expect(panel(html, 'summary')).toBe('active');
+    expect(panel(html, 'changes')).toBe('active');
+    expect(html).toMatch(/<details data-panel="approval" class=/);
     expect(html).toContain('data-pr-state="OPEN"');
     expect(html).not.toContain('data-attempt-status="PR_OPEN"');
+  });
+
+  it('opens on Changes, else Checks, else Activity', () => {
+    for (const item of [attempts.review, attempts.pendingAutosubmit, attempts.prOpen]) {
+      expect(panel(review(item), 'changes')).toBe('active');
+    }
+    const run = renderToStaticMarkup(
+      <ReviewScreen
+        view={views.active}
+        attempt={followUpAttempts.repliesOnly}
+        first={followUpAttempts.underWay}
+        now={NOW}
+      />,
+    );
+    expect(panel(run, 'checks')).toBe('active');
+    for (const item of [attempts.running, stopped('FAILED'), decisionAttempts.noGo, attempts.bare]) {
+      expect(panel(review(item), 'activity')).toBe('active');
+    }
+  });
+
+  it('has three tabs, the same on a first attempt and a run', () => {
+    const html = review(attempts.review);
+    expect(html.match(/data-tab="\w+"/g)).toEqual(['data-tab="changes"', 'data-tab="checks"', 'data-tab="activity"']);
+  });
+
+  it('says a session made no change in its own words', () => {
+    const html = review(decisionAttempts.noGo);
+    const changes = html.slice(html.indexOf('data-tab-panel="changes"'), html.indexOf('data-tab-panel="checks"'));
+    expect(text(changes)).toContain('The agent changed no files.');
+  });
+
+  it('keeps spend out of what the agent did, and says it in Activity', () => {
+    /** The markup of the "What the agent did" card. */
+    const card = (html: string) => {
+      const start = html.indexOf('data-panel="agent-did"');
+      expect(start).toBeGreaterThan(-1);
+      return html.slice(start, html.indexOf('</section>', start));
+    };
+    const activity = (html: string) => html.slice(html.indexOf('data-tab-panel="activity"'));
+
+    const ready = review(attempts.review);
+    expect(card(ready)).not.toContain('$');
+    expect(text(activity(ready))).toContain('$2.36 of your $5 limit');
+
+    const ranOut = review(decisionAttempts.ranOut);
+    // The check's cap is why it stopped, not spend: it may be named; what was spent is not.
+    expect(card(ranOut)).not.toContain('$0.61');
+    expect(card(ranOut)).not.toContain('after $');
+    expect(card(ranOut)).not.toContain('data-panel="cost"');
+    expect(text(activity(ranOut))).toContain('$0.61 of your $5 limit');
+  });
+
+  it('says how many files changed only on the tab and the diff', () => {
+    const html = review(attempts.review);
+    const details = html.slice(html.indexOf('data-session-details'));
+    expect(text(details).match(/3 files/g)).toHaveLength(2);
+    expect(text(details)).not.toContain('files changed');
+  });
+
+  it('hides the approved row in review, where the form holds it', () => {
+    expect(review(attempts.bounced)).not.toContain('data-panel="approval"');
+    const html = review(attempts.prOpen);
+    expect(html).toContain('data-panel="approval"');
+    expect(text(html)).toContain('What you approved Normalize route paths · Oct 28');
   });
 
   it("shows a round with its pull request's sessions, read from the first attempt", () => {
@@ -147,7 +221,11 @@ describe('the contribution page', () => {
     expect(html).not.toContain('data-session="next"');
     expect(html).toMatch(/data-session="A_F1"[^>]*><a[^>]*aria-current="page"/);
     expect(plain).toContain('Run 1 · you Ready for you');
-    expect(panel(html, 'replies')).toBe('active');
+    // The run's comments sit above the details; the details open on its new commits.
+    expect(html.indexOf('data-panel="replies"')).toBeGreaterThan(-1);
+    expect(html.indexOf('data-panel="replies"')).toBeLessThan(html.indexOf('data-session-tabs'));
+    expect(html).not.toContain('data-tab="replies"');
+    expect(panel(html, 'changes')).toBe('active');
     expect(html).not.toContain('data-follow-up-of');
   });
 
@@ -157,7 +235,9 @@ describe('the contribution page', () => {
       runner: 'MCP' as const,
       agent: { name: 'CLAUDE_CODE' as const, model: null },
     };
-    expect(review(round)).toContain('data-panel="own-agent"');
+    const html = review(round);
+    expect(html).toContain('data-agent-meta');
+    expect(text(html)).toContain('Made by Claude Code, as your agent reported it.');
   });
 
   it('says nothing needs the user once a fix settled with nothing left to fix', () => {
@@ -224,6 +304,11 @@ describe('the review screen', () => {
     expect(plain).toContain('The agent started · claimed');
     expect(html).toContain('data-file="src/router/layout-cache.ts"');
     expect(plain).toContain('Install pnpm install');
+    expect(html).toMatch(/<details data-panel="readiness" class="[^"]*"><summary/);
+    expect(html.indexOf('data-panel="agent-did"')).toBeGreaterThan(-1);
+    expect(html.indexOf('data-panel="agent-did"')).toBeLessThan(html.indexOf('data-session-tabs'));
+    // The rail's tile keeps its own note; the session says it on the tab and the diff.
+    expect(text(html.slice(html.indexOf('data-session-details')))).not.toContain('3 files changed');
   });
 
   it('pre-fills the pull request from the agent, without its footer, and previews the footer the API adds', () => {
@@ -236,9 +321,23 @@ describe('the review screen', () => {
     expect(html).toContain('data-pr-footer');
     // An API that does not say its footer writes the old one.
     expect(plain).toContain('🤖 Made with Claude via [gitranks.com](https://gitranks.com) · reviewed by @octocat');
-    expect(plain).toContain('co-authored by gitranks');
+    expect(plain).toContain('Each commit names gitranks as co-author');
     expect(plain).toContain('Submit pull request');
     expect(plain).toContain('Discard');
+    // Write and Preview: the preview is drawn, hidden, beside the textarea.
+    expect(html).toMatch(/<div data-state="inactive"[^>]*data-pr-preview/);
+    expect(html).toMatch(/<div data-state="active"[^>]*>\s*<textarea/);
+    expect(html).toMatch(/<button[^>]*role="tab"[^>]*>Write<\/button>/);
+    expect(html).toMatch(/<button[^>]*role="tab"[^>]*>Preview<\/button>/);
+  });
+
+  it('switches the description to Write and Preview, a phone-sized target each', () => {
+    const html = review(attempts.review);
+    const form = html.slice(html.indexOf('data-pr-form'));
+    const list = form.match(/<div role="tablist"[^>]*>/)?.[0] ?? '';
+    expect(list).toContain('aria-label="Description"');
+    expect(list).toContain('max-sm:h-11');
+    expect(form.match(/role="tab"[^>]*class="[^"]*max-sm:min-h-11/g)).toHaveLength(2);
   });
 
   it('previews the footer and co-author as the API writes them (PR disclosure spec §5)', () => {
@@ -248,8 +347,11 @@ describe('the review screen', () => {
 
     expect(plain).toContain('This PR was written in part with the assistance of generative AI.');
     expect(plain).toContain('and Codex (GPT) · Reviewed and submitted by @octocat');
-    expect(plain).toContain('This repo bans AI trailers, so the commits carry no co-author.');
-    expect(plain).not.toContain('co-authored by gitranks');
+    expect(plain).toContain('No co-author line: the repo bans AI trailers');
+    expect(plain).not.toContain('Each commit names gitranks as co-author');
+    expect(plain).toContain(
+      'A footer line linking gitranks.com, added to every pull request Preview This repo asks AI-written pull requests to say so, in its words above the footer.',
+    );
   });
 
   it('adds the issue link to the preview when the body does not close the issue', () => {
@@ -261,13 +363,17 @@ describe('the review screen', () => {
   it('asks for the DCO sign-off only where the repo requires it, says what DCO is, and not under a standing consent', () => {
     const required = detail({ dcoRequired: true });
     const html = review(required);
-    expect(html).toContain('data-dco="required"');
+    expect(html).toMatch(/data-need="dco" data-state="blocked"[^>]*data-dco="required"/);
     expect(html).toContain('type="checkbox"');
-    expect(text(html)).toContain('This repo requires a DCO sign-off.');
+    expect(html).toMatch(/<button type="button" role="checkbox" aria-checked="false"/);
+    expect(text(html)).toContain(
+      'Sign off the commits (DCO): the repo requires it. I certify the Developer Certificate of Origin for this change.',
+    );
     expect(html).toContain('data-dco-explained');
     expect(html).toContain('href="https://developercertificate.org/"');
     // Unticked, Submit waits: an unsigned PR would fail the repo's DCO check.
-    expect(html).toContain('data-dco-missing');
+    expect(html).toContain('data-submit-waits="dco"');
+    expect(text(html)).toContain('Tick the DCO sign-off to submit');
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
 
     // A repo that requires none: nothing about DCO, whatever its notes say.
@@ -278,6 +384,7 @@ describe('the review screen', () => {
       }),
     );
     expect(none).not.toContain('data-dco');
+    expect(none).not.toContain('data-need="dco"');
     expect(none).not.toContain('type="checkbox"');
 
     // An API that does not say yet: the old ask, in case the repo does.
@@ -288,67 +395,139 @@ describe('the review screen', () => {
       contributor: { ...views.active.contributor, settings: { ...settings, dco: 'STANDING' as const } },
     };
     const consented = review(required, standing);
-    expect(consented).toContain('data-dco="standing"');
+    expect(consented).toMatch(/data-need="dco" data-state="ok"[^>]*data-dco="standing"/);
     expect(text(consented)).toContain(
-      'This repo requires a DCO sign-off: the commits are signed off under your standing',
+      'Commits signed off (DCO): the repo requires it, and your settings give it. Change',
     );
+    expect(consented).toContain(`href="${settingsPathOf('prs')}">Change</a>`);
     expect(consented).not.toContain('type="checkbox"');
-    expect(consented).not.toContain('data-dco-missing');
+    expect(consented).not.toContain('data-submit-waits');
     expect(review(detail({ dcoRequired: false }), standing)).not.toContain('data-dco');
   });
 
   it('shows what the repo needs, checks the title live against its rule, and blocks only a failing hard rule', () => {
-    const repoConventions = {
-      title: {
-        hard: true,
-        source: '`.github/semantic.yml`',
-        types: ['feat', 'fix', 'docs'],
-        scopes: null,
-        requireScope: false,
-        pattern: null,
-      },
-      titleExamples: ['fix(router): keep the cache'],
-      template: { path: '.github/pull_request_template.md', aiAsks: ['If you are an AI agent, name your model'] },
-      changelog: { kind: 'FILE' as const, path: 'CHANGELOG.md', required: true, source: '9 of the last 10' },
-      cla: { check: 'license/cla', signUrl: 'https://cla-assistant.io/driftwood-js/driftwood' },
-      dco: false,
-      generated: ['test-vr/__snapshots__/'],
-      notes: [],
-    };
+    const conventions = repoConventions();
     // The agent proposed a title that passes: the form opens with it, Submit open.
     const passing = review(
       detail({
-        conventions: repoConventions,
+        conventions,
         result: { ...attempts.review.result!, prTitle: 'fix(router): keep the layout cache' },
       }),
     );
-    expect(passing).toContain('data-repo-needs');
+    expect(passing).toContain('data-pr-checklist');
+    expect(text(passing)).toContain('Before it opens');
     expect(passing).toContain('value="fix(router): keep the layout cache"');
     expect(passing).toMatch(/data-need="title" data-state="ok"/);
     expect(passing).toMatch(/data-need="cla" data-state="todo"/);
     expect(passing).toContain('href="https://cla-assistant.io/driftwood-js/driftwood"');
     expect(text(passing)).toContain("A signed CLA: sign it after the PR opens; we can't sign for you");
     expect(passing).toMatch(/data-need="changelog" data-state="todo"/);
-    expect(passing).not.toContain('data-title-rule-fails');
+    expect(passing).not.toContain('data-submit-waits');
     expect(passing).not.toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+    // The rows in order: what Submit waits on, the repo's asks after it opens, what GitRanks adds.
+    expect(passing.match(/data-need="\w+"/g)).toEqual([
+      'data-need="title"',
+      'data-need="dco"',
+      'data-need="cla"',
+      'data-need="changelog"',
+      'data-need="template"',
+      'data-need="generated"',
+      'data-need="coauthor"',
+      'data-need="footer"',
+    ]);
 
     // The issue's own title fails the repo's checked rule: said, and Submit waits.
-    const failing = review(detail({ conventions: repoConventions, title: 'Layout cache drops nested routes' }));
+    const failing = review(detail({ conventions, title: 'Layout cache drops nested routes' }));
     expect(failing).toMatch(/data-need="title" data-state="blocked"/);
     expect(failing).toContain('aria-invalid="true"');
-    expect(failing).toContain('data-title-rule-fails');
+    expect(failing).toContain('data-submit-waits="title"');
     expect(failing).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
 
-    // A rule the repo only asks for: told, never blocking. No conventions read: no section.
+    // A rule the repo only asks for: told, never blocking. No conventions read: only the DCO and GitRanks' own rows.
     const soft = review(
       detail({
-        conventions: { ...repoConventions, title: { ...repoConventions.title, hard: false } },
+        conventions: { ...conventions, title: { ...conventions.title!, hard: false } },
         title: 'Layout',
       }),
     );
     expect(soft).toMatch(/data-need="title" data-state="todo"/);
-    expect(soft).not.toContain('data-title-rule-fails');
-    expect(review(detail())).not.toContain('data-repo-needs');
+    expect(soft).not.toContain('data-submit-waits');
+    expect(review(detail()).match(/data-need="\w+"/g)).toEqual([
+      'data-need="dco"',
+      'data-need="coauthor"',
+      'data-need="footer"',
+    ]);
+  });
+
+  it('offers to add the prefix the repo requires', () => {
+    const html = review(
+      detail({
+        conventions: repoConventions({ title: null, titleExamples: [], titlePrefix: '[AI]' }),
+        title: 'Fix the null error',
+      }),
+    );
+    expect(html).toMatch(/data-need="title" data-state="blocked"/);
+    expect(html).toMatch(/<button[^>]*type="button" aria-label="Start the title with \[AI\]">Add “\[AI\]”<\/button>/);
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+    expect(html).toContain('data-submit-waits="title"');
+  });
+
+  it('says what Submit waits on in one line', () => {
+    const html = review(
+      detail({ conventions: repoConventions(), title: 'Layout cache drops nested routes', dcoRequired: true }),
+    );
+    expect(html).toContain('data-submit-waits="title dco"');
+    expect(text(html).match(/Fix the title and tick the DCO sign-off to submit\./g)).toHaveLength(1);
+    expect(html.match(/data-submit-waits=/g)).toHaveLength(1);
+
+    const none = { titleMissing: false, titleRuleFails: false, signOffMissing: false };
+    expect(submitWaitsOf(none)).toBeNull();
+    expect(submitWaitsOf({ ...none, titleMissing: true })).toEqual({
+      tokens: 'title-missing',
+      words: 'Add a title to submit.',
+    });
+    expect(submitWaitsOf({ ...none, titleRuleFails: true })).toEqual({
+      tokens: 'title',
+      words: "Fix the title to submit: as it is, it would fail the repo's rules on the pull request.",
+    });
+    expect(submitWaitsOf({ ...none, signOffMissing: true })).toEqual({
+      tokens: 'dco',
+      words: 'Tick the DCO sign-off to submit: this repo checks every commit for one.',
+    });
+    expect(submitWaitsOf({ ...none, titleMissing: true, signOffMissing: true })).toEqual({
+      tokens: 'title-missing dco',
+      words: 'Add a title and tick the DCO sign-off to submit.',
+    });
+    expect(submitWaitsOf({ ...none, titleRuleFails: true, signOffMissing: true })).toEqual({
+      tokens: 'title dco',
+      words: 'Fix the title and tick the DCO sign-off to submit.',
+    });
+  });
+
+  it('has one submit button: every other button in the form is a plain button', () => {
+    const form = (html: string) => {
+      const start = html.indexOf('<form id="pr-form"');
+      expect(start).toBeGreaterThan(-1);
+      return html.slice(start, html.indexOf('</form>', start));
+    };
+    const prefixed = detail({
+      conventions: repoConventions({ titlePrefix: '[AI]' }),
+      result: { ...attempts.review.result!, prTitle: 'fix(router): keep the layout cache' },
+    });
+    for (const [item, view] of [
+      [attempts.review, views.active],
+      [attempts.bounced, views.active],
+      [detail({ conventions: repoConventions() }), views.active],
+      [prefixed, views.active],
+      [attempts.review, views.firstKey],
+    ] as const) {
+      const html = form(review(item, view));
+      expect(html.match(/type="submit"/g)).toHaveLength(1);
+      expect(html.match(/<button(?![^>]*type=)/g)).toBeNull();
+    }
+    const withFix = form(review(prefixed));
+    expect(withFix).toMatch(/<button[^>]*type="button"[^>]*>Add “\[AI\]”<\/button>/);
+    expect(withFix).toMatch(/<button[^>]*type="button"[^>]*>Preview<\/button>/);
   });
 
   it("offers the open pull request's one-click fixes, and the CLA as a link only", () => {
@@ -486,6 +665,7 @@ describe('the review screen', () => {
     expect(plain).toContain('GitHub is still making your fork. Approve again in a few minutes.');
     expect(html).toContain('value="Normalize route paths"');
     expect(plain).toContain('Submit again');
+    expect(html).not.toContain('data-panel="approval"');
   });
 
   it.each([
@@ -543,10 +723,12 @@ describe('the review screen', () => {
   it('says what is not available yet while the agent works', () => {
     const plain = text(review(attempts.running));
 
+    const html = review(attempts.running);
     expect(plain).toContain('Started 3 hours ago. $0.40 of the $5 limit spent so far.');
-    expect(plain).toContain("The agent's summary is not available yet.");
+    expect(plain).toContain("The agent's summary isn't ready yet. It shows here when the agent is done.");
     expect(plain).toContain('Our checks have not run yet.');
     expect(plain).toContain('The diff is not available yet.');
+    expect(panel(html, 'activity')).toBe('active');
   });
 
   it.each([
@@ -566,7 +748,7 @@ describe('the review screen', () => {
     if (current)
       expect(html).toMatch(new RegExp(`data-step="${current}" data-step-state="current" aria-current="step"`));
     else expect(html).not.toContain('data-step-state="current"');
-    expect(html).toContain('data-panel="approval"');
+    expect(html).toMatch(/<details data-panel="approval" class=/);
     expect(html).not.toContain('data-pr-form');
   });
 
@@ -1005,26 +1187,35 @@ describe('the review screen', () => {
     });
   });
 
-  it("shows the agent's decisions above the tabs, and the Stopped box leaves the no-go's reason to them", () => {
+  it("shows what the agent did above the tabs, and the Stopped box leaves the no-go's reason to it", () => {
     const noGo = review(decisionAttempts.noGo);
     const plain = text(noGo);
     expect(noGo).toContain('data-go-no-go="no_go"');
-    expect(plain).toContain('What the agent decided Go or no-go No-go Someone else is on this one');
+    expect(plain).toContain('What the agent did No-go Someone else is on this one');
     expect(plain).not.toContain('Its reason:');
+    expect(plain).not.toContain('Go or no-go');
     expect(plain.match(/Someone else is on this one/g)).toHaveLength(1);
-    expect(noGo.indexOf('data-panel="decisions"')).toBeLessThan(noGo.indexOf('role="tablist"'));
+    expect(noGo.indexOf('data-panel="agent-did"')).toBeGreaterThan(-1);
+    expect(noGo.indexOf('data-panel="agent-did"')).toBeLessThan(noGo.indexOf('data-session-tabs'));
 
-    const went = text(review(decisionAttempts.went));
-    expect(went).toContain('Go or no-go Go Reproduced it');
-    expect(went).toContain('What the agent found Checked the layout cache');
+    const wentHtml = review(decisionAttempts.went);
+    const went = text(wentHtml);
+    expect(went).toContain('What the agent did Done Low risk');
+    expect(went).toContain("The agent's notes Checked the layout cache");
+    expect(went).toContain('Why it went ahead: Reproduced it');
+    // The go's reason only behind the notes.
+    const notes = wentHtml.slice(
+      wentHtml.indexOf('data-agent-notes'),
+      wentHtml.indexOf('</details>', wentHtml.indexOf('data-agent-notes')),
+    );
+    expect(text(wentHtml.replace(notes, '')).match(/Reproduced it/g)).toBeNull();
 
     const ranOut = review(decisionAttempts.ranOut);
-    expect(ranOut).toContain('data-limit-stop=""');
-    expect(text(ranOut)).toContain('Where the agent stopped');
-    expect(text(ranOut)).toContain('Stopped at the $0.60 check limit after $0.61.');
+    expect(ranOut).toContain('data-agent-text="ran_out"');
+    expect(text(ranOut)).not.toContain('Stopped at the $0.60 check limit');
     expect(text(ranOut).match(/No verdict: it was on/g)).toHaveLength(1);
 
-    // A follow-up's brief alone titles the card.
+    // A follow-up's brief sits behind its notes.
     const run = text(
       renderToStaticMarkup(
         <ReviewScreen
@@ -1035,10 +1226,25 @@ describe('the review screen', () => {
         />,
       ),
     );
-    expect(run).toContain('What the agent found Read the review and the failing check.');
-    expect(run).not.toContain('What the agent decided');
+    expect(run).toContain("The agent's notes Read the review and the failing check.");
     // An older run: no card, and the box keeps the reason.
-    expect(review(stopped('NO_GO', 'needs a design decision'))).not.toContain('data-panel="decisions"');
+    const older = review(stopped('NO_GO', 'needs a design decision'));
+    expect(older).not.toContain('data-panel="agent-did"');
+    expect(text(older)).toContain('Its reason: needs a design decision');
+  });
+
+  it('a go that ended says its reason, the box saying why it stopped', () => {
+    const html = review(
+      detail({
+        ...stopped('BUDGET'),
+        goNoGo: { verdict: 'go', reason: 'Reproduced it.', decidedAtLimit: null, at: '2026-10-28T09:15:00.000Z' },
+        brief: null,
+      }),
+    );
+    const plain = text(html);
+    expect(plain).toContain('What the agent did Go Reproduced it.');
+    expect(plain.match(/It reached your limit for one attempt before the fix was done\./g)).toHaveLength(1);
+    expect(panel(html, 'activity')).toBe('active');
   });
 
   it("shows a decision at the check's cap, a follow-up's no-go and a blank reason once each", () => {
@@ -1068,7 +1274,7 @@ describe('the review screen', () => {
     expect(followUpNoGo.match(/Decided at the check's budget limit/g)).toHaveLength(1);
 
     const blank = text(review({ ...decisionAttempts.noGo, goNoGo: { ...goNoGo, reason: '' }, brief: null }));
-    expect(blank).toContain('No-go The agent gave no reason.');
+    expect(blank).toContain('What the agent did No-go The agent gave no reason.');
   });
 
   it('says a stop with no reason yet is not available yet', () => {

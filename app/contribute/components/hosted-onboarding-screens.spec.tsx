@@ -337,12 +337,12 @@ describe('A4, GitHub access at the first submit', () => {
     const plain = text(html);
 
     expect(html).toContain('data-grant-ask');
-    expect(plain).toContain('This is your first one, so GitHub asks you once to let us open PRs as you.');
-    expect(plain).toContain('public_repo');
-    expect(plain).toContain('never private repos, never workflow files');
+    expect(plain).toContain('GitHub asks you once for one permission, public_repo');
+    expect(plain).toContain('never on private repos or workflow files');
+    expect(plain).toContain('You come back here and the PR opens.');
     expect(plain).toContain('Allow GitHub access and open the PR');
-    expect(plain).toContain('You come back here and the PR opens straight away.');
     expect(plain).not.toContain('Submit pull request');
+    expect(plain).not.toContain('This is your first one');
   });
 
   it('is the plain submit once the grant is connected, or while it cannot be granted or is not answered', () => {
@@ -365,7 +365,13 @@ describe('A4, GitHub access at the first submit', () => {
     });
 
     expect(grantNeededOf(views.active, bounced)).toBe(true);
-    expect(text(review(views.active, bounced))).toContain('GitHub asks you once more');
+    const again = review(views.active, bounced);
+    expect(again).toContain('data-submit-panel="open"');
+    expect(text(again)).toContain('GitHub asks you once more for public_repo.');
+    expect(text(again)).not.toContain('GitHub access for pull requests is not connected');
+    // The bounce's note is the status box's to say, once.
+    expect(text(again).match(/Allow it again from this page\./g)).toHaveLength(1);
+    expect(again.indexOf('Allow it again from this page.')).toBeGreaterThan(again.indexOf('data-submit-error'));
     expect(grantNeededOf(views.active, detail())).toBe(false);
     // A grant missing at the submit and connected since asks no more.
     const missing = detail({

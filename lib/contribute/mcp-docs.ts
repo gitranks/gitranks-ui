@@ -166,7 +166,7 @@ export const MCP_DOC_PLUGINS: Readonly<Record<string, McpDocPlugin>> = {
       ].join('\n'),
     },
     after:
-      'If it offers a token field, leave it empty. Then type /mcp, pick plugin:gitranks-contribute:gitranks and choose Authenticate: your browser opens GitRanks, where you allow it. The plugin adds the contribute skill and the /gitranks-contribute:find and /gitranks-contribute:status commands.',
+      'Then type /mcp, pick plugin:gitranks-contribute:gitranks and choose Authenticate: your browser opens GitRanks, where you allow it. The plugin adds the contribute skill and the /gitranks-contribute:find and /gitranks-contribute:status commands.',
   },
   'gemini-cli': {
     where: 'Run this once.',

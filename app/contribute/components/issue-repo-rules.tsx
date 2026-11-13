@@ -1,14 +1,11 @@
 'use client';
 
-import { createContext, useContext } from 'react';
+import { useContext } from 'react';
 
-import { RuleSource } from './repo-rules';
+import { RuleSource, RulesOpen } from './repo-rules';
 import type { ContributeIssueRepoRules } from '@/lib/contribute/contribute.types';
 import { RULES_NONE, rulesSummaryOf } from '@/lib/contribute/repo-rules';
 import { cn } from '@/lib/utils';
-
-/** Whether the issue cards' rules start open: closed on the site; the design catalogue draws them open too. */
-export const IssueRulesOpen = createContext(false);
 
 /**
  * The issue card's rules: closed, one line ("This repo's rules · autopilot off · 2 more"), opening to each rule with
@@ -21,7 +18,7 @@ export function IssueRepoRules({
   rules: ContributeIssueRepoRules | null | undefined;
   className?: string;
 }) {
-  const open = useContext(IssueRulesOpen);
+  const open = useContext(RulesOpen);
   if (!rules) return null;
   if (!rules.lines.length) {
     return (

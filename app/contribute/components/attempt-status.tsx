@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { FollowUpOfLink, PullRequestStatus } from './contribution-header';
 import { AutosubmitCountdown, RetryButton, StopAutopilotButton } from './follow-up-buttons';
 import { FollowUpStepper } from './follow-up-stepper';
-import { HEADING, Pill } from './primitives';
+import { HEADING } from './primitives';
 import { OrgAccessLink } from './reply-text';
 import { attemptHref } from './reviews-ready';
 import { LiveSubmit, SubmitStepsSettled, TryAgainButton } from './submit-stepper';
@@ -16,13 +17,8 @@ import {
   endMoveOf,
   endReasonLabelOf,
   endReasonTextOf,
-  githubUrlOf,
-  labelOf,
   limitNoteOf,
   noGoReasonOf,
-  PR_CHECKS,
-  PR_STATES,
-  REVIEW_DECISIONS,
   reviewWaitOf,
   timeLabel,
   toneLabelOf,
@@ -34,7 +30,6 @@ import type {
   ContributeAttemptSubmit,
   ContributeAutopilotReviewReason,
   ContributeClaimStep,
-  ContributeFollowUpOf,
 } from '@/lib/contribute/contribute.types';
 import { shownByDecisions } from '@/lib/contribute/decisions';
 import { roundLineOf } from '@/lib/contribute/follow-up-flow';
@@ -188,55 +183,6 @@ export const justOpened = (pullRequest: ContributeAttemptPullRequest | null | un
 
 /** The submission stopped at one of the four steps (not before the fork: a busy repo, say). */
 const failedAtStep = (submit: ContributeAttemptSubmit) => submit.step !== 'QUEUED' && submit.step !== 'WAITING_CAP';
-
-/** The pull request once it is open: a link, its state on GitHub, and when the last sync read it. */
-export function PullRequestStatus({ pullRequest, now }: { pullRequest: ContributeAttemptPullRequest; now?: Date }) {
-  const state = toneLabelOf(PR_STATES, pullRequest.state);
-  const url = githubUrlOf(pullRequest.url);
-  const ended =
-    pullRequest.state === 'MERGED'
-      ? `merged ${relativeLabel(pullRequest.mergedAt, now)}`
-      : pullRequest.state === 'CLOSED'
-        ? `closed ${relativeLabel(pullRequest.closedAt, now)}`
-        : null;
-
-  return (
-    <div data-pr-state={pullRequest.state} className="flex flex-col gap-1.5">
-      <div className="flex flex-wrap items-center gap-2.5">
-        <Pill tone={state.tone}>{state.label}</Pill>
-        {url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-link hover:underline">
-            Pull request #{pullRequest.number} on GitHub ↗
-          </a>
-        ) : (
-          <span className="font-semibold">Pull request #{pullRequest.number}</span>
-        )}
-      </div>
-      <Text>
-        Opened {relativeLabel(pullRequest.openedAt, now)}
-        {ended ? `, ${ended}` : ''}.
-        {pullRequest.state === 'OPEN' && pullRequest.reviewDecision
-          ? ` ${labelOf(REVIEW_DECISIONS, pullRequest.reviewDecision)}.`
-          : ''}
-        {pullRequest.checks ? ` ${labelOf(PR_CHECKS, pullRequest.checks)}.` : ''}
-        {pullRequest.syncedAt ? ` Read from GitHub ${relativeLabel(pullRequest.syncedAt, now)}.` : ''}
-      </Text>
-    </div>
-  );
-}
-
-/** The pull request a follow-up works on: `pull request #1419 ↗`, or words while it is not known. */
-export function FollowUpOfLink({ followUpOf }: { followUpOf: ContributeFollowUpOf | null | undefined }) {
-  if (!followUpOf) return <>the pull request</>;
-  const url = githubUrlOf(followUpOf.url);
-  return url ? (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-link hover:underline">
-      pull request #{followUpOf.number} ↗
-    </a>
-  ) : (
-    <>pull request #{followUpOf.number}</>
-  );
-}
 
 /** Autopilot's hour: when it submits, and the user's Stop. Kept even while autopilot is off for everyone. */
 function AutosubmitStatus({ attempt, now }: { attempt: ContributeAttempt; now?: Date }) {

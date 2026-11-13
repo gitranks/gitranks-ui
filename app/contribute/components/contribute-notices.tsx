@@ -1,3 +1,4 @@
+import { TriangleAlert } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -104,14 +105,110 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
   }
 }
 
-/** The notices above a Contribute page; nothing when there are none. */
-export function ContributeNotices({ notices, className }: { notices: ContributeNotice[]; className?: string }) {
+const TONES = {
+  warn: 'border-warning/30 bg-warning-soft',
+  info: 'border-primary/20 bg-brand-soft',
+} as const;
+
+/**
+ * A notice in one line, its explanation one click away under "Why?": the account's access level on a contribution's
+ * page, and the maintainer's stop in its header.
+ */
+export function NoticeLine({
+  tone,
+  icon,
+  title,
+  fact,
+  why,
+  role,
+  data,
+}: {
+  tone: 'info' | 'warn';
+  /** Draws `TriangleAlert` before the title. */
+  icon: boolean;
+  title: ReactNode;
+  fact?: ReactNode;
+  /** The body of "Why?". */
+  why: ReactNode;
+  /** `role="status"`: the account's notice only. */
+  role?: 'status';
+  /** Spread on the root: what marks the notice for the page and its specs. */
+  data: Record<`data-${string}`, string>;
+}) {
+  return (
+    <div role={role} {...data} className={cn('rounded-xl border px-4 py-2.5', TONES[tone])}>
+      <details className="group">
+        <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-2 rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:min-h-0 [&::-webkit-details-marker]:hidden">
+          {icon ? <TriangleAlert aria-hidden="true" className="size-4 shrink-0 text-warning" /> : null}
+          <span className="text-sm font-semibold">{title}</span>
+          {fact ? <span className="text-sm text-muted-foreground">{fact}</span> : null}
+          <span className="ml-auto text-sm font-medium text-link">Why?</span>
+        </summary>
+        <div className="mt-2 text-sm text-muted-foreground">{why}</div>
+      </details>
+    </div>
+  );
+}
+
+/** The limits a reduced access level holds the account to, in a line: `1 issue at a time · 3 new claims a day`. */
+function limitsFactOf(notice: ContributeNotice): ReactNode {
+  if (notice.kind !== 'new-account' && notice.kind !== 'follow-through') return null;
+  return (
+    <>
+      <Count count={notice.limits.attemptsAtATime} one="issue" /> at a time ·{' '}
+      <Count count={notice.limits.claimsPerDay} one="new claim" /> a day
+    </>
+  );
+}
+
+const ActionLink = ({ action }: { action: NonNullable<NoticeCopy['action']> }) => (
+  <Link href={action.href} prefetch={false} className="text-sm font-semibold text-link">
+    {action.label} →
+  </Link>
+);
+
+/**
+ * The notices above a Contribute page; nothing when there are none. A box each (`box`), or a line each with its
+ * explanation under "Why?" (`line`, on a contribution's page).
+ */
+export function ContributeNotices({
+  notices,
+  className,
+  variant = 'box',
+}: {
+  notices: ContributeNotice[];
+  className?: string;
+  variant?: 'box' | 'line';
+}) {
   if (!notices.length) return null;
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
       {notices.map((notice) => {
         const copy = noticeCopyOf(notice);
+        if (variant === 'line') {
+          return (
+            <NoticeLine
+              key={notice.kind}
+              tone={copy.tone}
+              icon={copy.tone === 'warn'}
+              title={copy.title}
+              fact={limitsFactOf(notice)}
+              why={
+                <>
+                  {copy.text}
+                  {copy.action ? (
+                    <span className="mt-1.5 block">
+                      <ActionLink action={copy.action} />
+                    </span>
+                  ) : null}
+                </>
+              }
+              role="status"
+              data={{ 'data-notice': notice.kind, 'data-notice-line': '' }}
+            />
+          );
+        }
         return (
           <div
             key={notice.kind}
@@ -119,18 +216,14 @@ export function ContributeNotices({ notices, className }: { notices: ContributeN
             data-notice={notice.kind}
             className={cn(
               'flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3',
-              copy.tone === 'warn' ? 'border-warning/30 bg-warning-soft' : 'border-primary/20 bg-brand-soft',
+              TONES[copy.tone],
             )}
           >
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="font-semibold">{copy.title}</span>
               <span className="text-sm text-muted-foreground">{copy.text}</span>
             </div>
-            {copy.action ? (
-              <Link href={copy.action.href} prefetch={false} className="text-sm font-semibold text-link">
-                {copy.action.label} →
-              </Link>
-            ) : null}
+            {copy.action ? <ActionLink action={copy.action} /> : null}
           </div>
         );
       })}

@@ -177,7 +177,7 @@ describe('the next step with a proof', () => {
       ['next-run', '/contribute/attempts/A_OC?session=next#next-run'],
     ]);
     expect(tiles.find(({ key }) => key === 'next')).toMatchObject({
-      title: 'Proof · your agent',
+      title: 'Proof',
       pill: { label: 'Check it', tone: 'amber' },
       meta: 'Waits for you',
     });

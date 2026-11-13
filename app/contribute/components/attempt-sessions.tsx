@@ -17,13 +17,13 @@ function CardBody({ card }: { card: SessionCard }) {
         {card.pill ? <Pill tone={card.pill.tone}>{card.pill.label}</Pill> : null}
       </span>
       {card.meta ? <span className="font-mono text-xs text-muted-foreground tabular-nums">{card.meta}</span> : null}
-      {card.note ? <span className="text-xs text-muted-foreground">{card.note}</span> : null}
     </>
   );
 }
 
 /**
  * The contribution's sessions, oldest first, the one shown marked: a column beside it, a row that scrolls on a phone.
+ * Each tile is its title and pill over one meta line.
  * `rounds` says how many follow-up rounds are used. It sits in the contribution's layout, so the address marks the one
  * shown as the user moves between them.
  */
@@ -34,7 +34,11 @@ export function SessionsList({
 }: ShownSession & { cards: SessionCard[]; rounds: string | null }) {
   const shown = useShownSession(session);
   return (
-    <nav aria-labelledby="attempt-sessions" data-sessions={cards.length} className="flex min-w-0 flex-col gap-2.5">
+    <nav
+      aria-labelledby="attempt-sessions"
+      data-sessions={cards.length}
+      className="flex min-w-0 flex-col gap-2.5 [grid-area:sessions]"
+    >
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="attempt-sessions" className="text-sm font-semibold">
           Sessions

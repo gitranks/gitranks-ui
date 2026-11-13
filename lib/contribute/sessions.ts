@@ -2,10 +2,9 @@ import type { Route } from 'next';
 
 import { ATTEMPT_STATES, isOwnAgent, type Tone, timeLabel } from './attempt-format';
 import type { ContributeAttemptDetail, ContributeFollowUpRound } from './contribute.types';
-import { roundTalliesOf, shortSha } from './follow-up-flow';
+import { shortSha } from './follow-up-flow';
 import { USERS_SIGNALS } from './follow-up-format';
-import { usd } from './format';
-import { parsePatch } from './patch';
+import { dayLabel, usd } from './format';
 import { type ProofStage, proofStageOf } from './proof';
 
 /**
@@ -35,9 +34,8 @@ export type SessionCard = {
   href: Route | null;
   title: string;
   pill: { label: string; tone: Tone } | null;
-  /** When, and what it cost: `Oct 31, 20:30 UTC · $0.25`. */
+  /** When, and what it cost: `Oct 31 · $0.25`; for the next run, what waits for it. */
   meta: string;
-  note: string | null;
   /** The next run, not started: its card is dashed. */
   draft?: boolean;
 };
@@ -113,11 +111,6 @@ function roundPillOf(round: ContributeFollowUpRound): { label: string; tone: Ton
 const capitalized = (text: string) =>
   text ? `${text[0].toUpperCase()}${text.slice(1).toLowerCase().replaceAll('_', ' ')}` : text;
 
-const filesText = (patch: string | null | undefined) => {
-  const files = parsePatch(patch).files.length;
-  return files ? `${files} ${files === 1 ? 'file' : 'files'} changed` : null;
-};
-
 /** The first attempt's card: its pull request once there is one, else where it stands. */
 function firstCardOf(first: ContributeAttemptDetail): SessionCard {
   const pr = first.pullRequest;
@@ -130,8 +123,7 @@ function firstCardOf(first: ContributeAttemptDetail): SessionCard {
     pill: pr
       ? (PR_PILLS[pr.state as keyof typeof PR_PILLS]?.(pr.number) ?? { label: `PR #${pr.number}`, tone: 'neutral' })
       : (ATTEMPT_STATES[first.state] ?? null),
-    meta: [timeLabel(first.createdAt), own ? 'your own agent' : usd(first.costUsd)].filter(Boolean).join(' · '),
-    note: filesText(first.patch),
+    meta: [dayLabel(first.createdAt), own ? 'your own agent' : usd(first.costUsd)].filter(Boolean).join(' · '),
   };
 }
 
@@ -149,7 +141,7 @@ export function sessionsOf(
   // Without the history, a run added here is the latest one: its number is the runs used.
   const numberOf = () => (first.followUps?.history ? history.length + 1 : first.followUps?.used || history.length + 1);
   const unlisted = (attemptId: string) => !history.some((entry) => entry.attemptId === attemptId);
-  // Runs added here whose starter is not known: their card names neither.
+  // Runs added here whose starter is not known: their card does not say who started them.
   const whoUnknown = new Set<string>();
   const add = (
     attemptId: string,
@@ -184,14 +176,15 @@ export function sessionsOf(
   const current = first.followUps?.currentAttemptId;
   if (current && unlisted(current)) add(current, 'RUNNING', '', null);
   for (const entry of history) {
-    const tallies = roundTalliesOf(entry);
+    const byAutopilot = entry.by === 'autopilot' && !whoUnknown.has(entry.attemptId);
     cards.push({
       key: entry.attemptId,
       href: sessionPath(first.attemptId, entry.attemptId),
-      title: `Run ${entry.round} · ${whoUnknown.has(entry.attemptId) ? 'follow-up' : entry.by === 'autopilot' ? 'autopilot' : 'you'}`,
+      title: `Run ${entry.round}`,
       pill: roundPillOf(entry),
-      meta: [timeLabel(entry.at), entry.costUsd > 0 ? usd(entry.costUsd) : null].filter(Boolean).join(' · '),
-      note: tallies.length ? tallies.join(' · ') : null,
+      meta: [dayLabel(entry.at), entry.costUsd > 0 ? usd(entry.costUsd) : null, byAutopilot ? 'by autopilot' : null]
+        .filter(Boolean)
+        .join(' · '),
     });
   }
 
@@ -204,10 +197,9 @@ export function sessionsOf(
       // The next step's address shows the proof's card: its tile is the one the list marks there.
       key: NEXT_SESSION,
       href: nextSessionPath(first.attemptId),
-      title: 'Proof · your agent',
+      title: 'Proof',
       pill,
       meta: at ? `${meta} ${timeLabel(at)}` : meta,
-      note: null,
     });
   }
 
@@ -220,14 +212,19 @@ export function sessionsOf(
       // Beside a proof's tile (which takes the next step's mark), the run's own key.
       key: stage ? NEXT_RUN_TILE : NEXT_SESSION,
       href: stage ? (`${nextSessionPath(first.attemptId)}#next-run` as Route) : nextSessionPath(first.attemptId),
-      title: `Run ${nextRunNumberOf(first)} · follow-up`,
+      title: `Run ${nextRunNumberOf(first)}`,
       pill: recommended
         ? { label: 'Recommended', tone: 'violet' }
         : yours
           ? { label: 'Your move', tone: 'amber' }
           : { label: 'Not started', tone: 'neutral' },
-      meta: recommended ? 'Not started' : yours ? 'Waits for you' : 'Your call',
-      note: waiting ? `${waiting} ${waiting === 1 ? 'comment' : 'comments'} waiting` : null,
+      meta: waiting
+        ? `${waiting} ${waiting === 1 ? 'comment waits' : 'comments wait'}`
+        : recommended
+          ? 'Not started'
+          : yours
+            ? 'Waits for you'
+            : 'Your call',
       draft: true,
     });
   }

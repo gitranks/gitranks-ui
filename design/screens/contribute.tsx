@@ -17,7 +17,6 @@ import { ContributeBadgePreview } from '@/app/contribute/components/contribute-b
 import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { FaqScreen } from '@/app/contribute/components/faq';
-import { IssueRulesOpen } from '@/app/contribute/components/issue-repo-rules';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
 import { LedgerScreen } from '@/app/contribute/components/ledger-view';
@@ -28,6 +27,7 @@ import { HelpedSent, ReportSent } from '@/app/contribute/components/pr-feedback-
 import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
 import { PrForm, type PrFormProps } from '@/app/contribute/components/pr-form';
 import { MorePages } from '@/app/contribute/components/public-pages';
+import { RulesOpen } from '@/app/contribute/components/repo-rules';
 import { prFormPropsOf, ReviewScreen } from '@/app/contribute/components/review-view';
 import { RunsScreen } from '@/app/contribute/components/runs-view';
 import { FormSettingsScreen } from '@/app/contribute/components/settings-pages';
@@ -48,7 +48,7 @@ import {
   repoConventions,
   stopped as stoppedAttempt,
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
-import { issuePage, nowIdle, overviewData } from '@/lib/contribute/__fixtures__/contribute-overview';
+import { issuePage, nowIdle, overviewData, replyWaiting } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import { emptyLedger, ledger, publicLedger } from '@/lib/contribute/__fixtures__/ledger';
 import {
@@ -81,6 +81,9 @@ import type {
   ContributeAttemptDetail,
   ContributeIssuePage,
   ContributeMaintainerFacts,
+  ContributePrNotes,
+  ContributeReplyWaiting,
+  ContributeSubmitError,
   ContributeView,
 } from '@/lib/contribute/contribute.types';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
@@ -252,6 +255,35 @@ const sessionPage = (session: ContributeAttemptDetail, first?: ContributeAttempt
       <ReviewScreen view={views.active} attempt={session} first={first} now={NOW} />
     </main>,
   );
+
+/** A contribution's page drawn whole: its maintainers' say and its waiting replies beside it, the rules open or not. */
+const contributionPage = (
+  first: ContributeAttemptDetail,
+  {
+    view = views.active,
+    notes,
+    replies,
+    rulesOpen = false,
+  }: { view?: ContributeView; notes?: ContributePrNotes; replies?: ContributeReplyWaiting[]; rulesOpen?: boolean } = {},
+) => {
+  const page = <ReviewScreen view={view} attempt={first} now={NOW} prNotes={notes} replies={replies} />;
+  return frame(
+    <main className={MAIN}>{rulesOpen ? <RulesOpen.Provider value>{page}</RulesOpen.Provider> : page}</main>,
+  );
+};
+
+/** GitHub refused a write: the repository's organization has not approved the app. */
+const ORG_REFUSED: ContributeSubmitError = {
+  reason: 'org_restricted',
+  note: "The repository's organization only lets apps it approved act there.",
+  at: '2026-10-28T11:30:00.000Z',
+};
+
+/** The pull request's state in the header, each as GitHub may say it. */
+const prOpenWith = (patch: Partial<NonNullable<ContributeAttemptDetail['pullRequest']>>) => ({
+  ...attempts.prOpen,
+  pullRequest: { ...attempts.prOpen.pullRequest!, ...patch },
+});
 
 /** A day after the catalogue's clock: how long an issue is still held for the user's own agent. */
 const A_DAY_ON = '2026-10-29T12:00:00.000Z';
@@ -519,26 +551,122 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'app/contribute/components/submit-panel.tsx',
       'app/contribute/components/repo-rules.tsx',
       'app/contribute/components/next-step.tsx',
+      'app/contribute/components/contribution-header.tsx',
+      'app/contribute/components/contribute-notices.tsx',
+      'app/contribute/components/pr-notes.tsx',
       'lib/contribute/sessions.ts',
       'lib/contribute/next-step.ts',
+      'lib/contribute/hard-stop.ts',
     ],
     states: [
       {
         id: 'maintainer-notes',
-        title: 'A maintainer stopped our work on the PR, and notes from the maintainers',
+        title: 'A maintainer stopped our work on the PR, and notes from the maintainers in the rail',
         path: '/contribute/attempts/A_1',
-        height: 1700,
+        height: 1300,
         render: () =>
-          frame(
-            <main className={MAIN}>
-              <ReviewScreen
-                view={views.active}
-                attempt={attempts.prOpen}
-                now={NOW}
-                prNotes={prNotes({ stopped: { login: 'sam-w', at: '2026-10-28T11:04:00.000Z' } })}
-              />
-            </main>,
-          ),
+          contributionPage(attempts.prOpen, {
+            notes: prNotes({ stopped: { login: 'sam-w', at: '2026-10-28T11:04:00.000Z' } }),
+          }),
+      },
+      {
+        id: 'notes-hidden',
+        title: 'Notes from the maintainers, one hidden',
+        path: '/contribute/attempts/A_1',
+        height: 1200,
+        render: () =>
+          contributionPage(attempts.prOpen, {
+            notes: prNotes({ notes: prNotes().notes.map((note, index) => ({ ...note, hidden: index === 1 })) }),
+          }),
+      },
+      {
+        id: 'notes-all-hidden',
+        title: 'Notes from the maintainers, every one hidden',
+        path: '/contribute/attempts/A_1',
+        height: 1200,
+        render: () =>
+          contributionPage(attempts.prOpen, {
+            notes: prNotes({ notes: prNotes().notes.map((note) => ({ ...note, hidden: true })) }),
+          }),
+      },
+      {
+        id: 'account-new',
+        title: 'A new account: its smaller limits in one line',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () => contributionPage(attempts.prOpen, { view: views.newAccount }),
+      },
+      {
+        id: 'account-reduced',
+        title: 'Lower limits after claims ran out, in one line',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () => contributionPage(attempts.prOpen, { view: views.followThrough }),
+      },
+      {
+        id: 'account-suspended',
+        title: 'A suspended account, in one line',
+        path: '/contribute/attempts/A_1',
+        height: 1400,
+        render: () => contributionPage(decisionAttempts.went, { view: views.suspended }),
+      },
+      {
+        id: 'pr-checks-running',
+        title: 'Pull request open, waiting for review, checks running',
+        path: '/contribute/attempts/A_1',
+        height: 1200,
+        render: () => contributionPage(prOpenWith({ checks: 'PENDING' })),
+      },
+      {
+        id: 'pr-changes-requested',
+        title: 'Pull request open, changes requested',
+        path: '/contribute/attempts/A_1',
+        height: 1200,
+        render: () => contributionPage(prOpenWith({ reviewDecision: 'CHANGES_REQUESTED' })),
+      },
+      {
+        id: 'pr-checks-failed',
+        title: 'Pull request open, checks failed',
+        path: '/contribute/attempts/A_1',
+        height: 1200,
+        render: () => contributionPage(prOpenWith({ checks: 'FAILURE' })),
+      },
+      {
+        id: 'pr-approved',
+        title: 'Pull request approved',
+        path: '/contribute/attempts/A_1',
+        height: 1200,
+        render: () => contributionPage(prOpenWith({ reviewDecision: 'APPROVED' })),
+      },
+      {
+        id: 'pr-merged',
+        title: 'Pull request merged',
+        path: '/contribute/attempts/A_1',
+        height: 1200,
+        render: () => contributionPage(attempts.merged),
+      },
+      {
+        id: 'pr-closed',
+        title: 'Pull request closed without merging',
+        path: '/contribute/attempts/A_1',
+        height: 1200,
+        render: () => contributionPage(attempts.closed),
+      },
+      {
+        id: 'follow-up-alone',
+        title: 'A run whose first attempt is not known: the pull request it follows up, the notes after it',
+        path: '/contribute/attempts/A_F1',
+        height: 2000,
+        render: () => contributionPage(followUpAttempts.review, { notes: prNotes() }),
+      },
+      {
+        id: 'contribution-phone',
+        title: 'The sessions, the session shown, the rules and the notes, in phone order · phone',
+        path: '/contribute/attempts/A_1',
+        width: 390,
+        height: 1900,
+        render: () =>
+          contributionPage({ ...followUpAttempts.prNeedsYou, repoRules: attemptRules() }, { notes: prNotes() }),
       },
       {
         id: 'review',
@@ -554,39 +682,62 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       },
       {
         id: 'repo-rules',
-        title: 'This repo’s rules beside the sessions, with the limits the repo set',
+        title: 'Repo rules in the rail, closed to one line',
         path: '/contribute/attempts/A_1',
         height: 2000,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <ReviewScreen
-                view={views.active}
-                attempt={{ ...decisionAttempts.went, repoRules: attemptRules() }}
-                now={NOW}
-              />
-            </main>,
-          ),
+        render: () => contributionPage({ ...decisionAttempts.went, repoRules: attemptRules() }),
+      },
+      {
+        id: 'repo-rules-open',
+        title: 'Repo rules opened: each rule, the repo’s words under it, the limits',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () => contributionPage({ ...decisionAttempts.went, repoRules: attemptRules() }, { rulesOpen: true }),
       },
       {
         id: 'repo-rules-empty',
         title: 'A repo with no rules: your limits apply',
         path: '/contribute/attempts/A_1',
         height: 2000,
+        render: () => contributionPage({ ...decisionAttempts.went, repoRules: attemptNoRules() }, { rulesOpen: true }),
+      },
+      {
+        id: 'repo-rules-caps',
+        title: 'A repo that sets only limits',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
         render: () =>
-          frame(
-            <main className={MAIN}>
-              <ReviewScreen
-                view={views.active}
-                attempt={{ ...decisionAttempts.went, repoRules: attemptNoRules() }}
-                now={NOW}
-              />
-            </main>,
+          contributionPage({ ...decisionAttempts.went, repoRules: attemptRules({ lines: [] }) }, { rulesOpen: true }),
+      },
+      {
+        id: 'repo-rules-org',
+        title: 'Repo rules: the organization blocks replies in review threads',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () =>
+          contributionPage(
+            { ...attempts.prOpen, repoRules: attemptRules() },
+            { rulesOpen: true, replies: [replyWaiting({ state: 'FAILED', lastError: ORG_REFUSED })] },
+          ),
+      },
+      {
+        id: 'repo-rules-submit-org',
+        title: 'Repo rules: the organization blocked the submit',
+        path: '/contribute/attempts/A_1',
+        height: 2100,
+        render: () =>
+          contributionPage(
+            {
+              ...attempts.bounced,
+              submit: { ...attempts.bounced.submit!, lastError: ORG_REFUSED },
+              repoRules: attemptRules(),
+            },
+            { rulesOpen: true },
           ),
       },
       {
         id: 'beginner-held',
-        title: 'A beginner issue: the first-timers line, and why autopilot left it to you',
+        title: 'A beginner issue: the first-timers chip, and why autopilot left it to you',
         path: '/contribute/attempts/A_1',
         height: 2000,
         render: () =>
@@ -1256,14 +1407,14 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () =>
           frame(
             <main className={MAIN}>
-              <IssueRulesOpen.Provider value>
+              <RulesOpen.Provider value>
                 <IssuesScreen
                   view={views.active}
                   page={{ ...rulesPage, items: rulesPage.items.slice(0, 1) }}
                   query={{}}
                   now={NOW}
                 />
-              </IssueRulesOpen.Provider>
+              </RulesOpen.Provider>
             </main>,
           ),
       },

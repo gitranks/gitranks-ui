@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { flowDraft, replyDraft } from './__fixtures__/contribute-attempts';
-import { GITHUB_APPS_URL, isOrgRestricted, orgAccessOf, replyCopyOf, replyLinkOf } from './org-access';
+import { flowDraft, followUp, followUpAttempts, replyDraft } from './__fixtures__/contribute-attempts';
+import { replyWaiting } from './__fixtures__/contribute-overview';
+import type { ContributeSubmitError } from './contribute.types';
+import {
+  GITHUB_APPS_URL,
+  isOrgRestricted,
+  orgAccessOf,
+  orgRestrictionOf,
+  replyCopyOf,
+  replyLinkOf,
+} from './org-access';
 
 describe('orgAccessOf', () => {
   it("links the app's own page, where each organization has a Request button", () => {
@@ -86,5 +95,43 @@ describe('replyLinkOf', () => {
     expect(replyLinkOf(replyDraft())).toBeNull();
     expect(replyLinkOf(replyDraft({ commentUrl: 'javascript:alert(1)' }))).toBeNull();
     expect(replyLinkOf(replyDraft({ commentUrl: 'https://github.com.evil.example/x' }))).toBeNull();
+  });
+});
+
+describe('orgRestrictionOf', () => {
+  const REFUSED: ContributeSubmitError = {
+    reason: 'org_restricted',
+    note: 'The organization only lets apps it approved act in its repositories.',
+    at: '2026-10-28T11:59:00.000Z',
+  };
+  const submitRefused = { step: 'PUSH' as const, waitUntil: null, fork: null, branch: null, lastError: REFUSED };
+  const first = followUpAttempts.underWay;
+  const refusedReply = replyWaiting({ state: 'FAILED', lastError: REFUSED });
+
+  it("says the submit was refused, from the first attempt's submit or the run under way's", () => {
+    expect(orgRestrictionOf({ first: { ...first, submit: submitRefused } })).toBe('submit');
+    expect(orgRestrictionOf({ first, current: followUp({ submit: submitRefused }) })).toBe('submit');
+  });
+
+  it('ignores a run that is not the one under way', () => {
+    expect(orgRestrictionOf({ first, current: followUp({ attemptId: 'A_F9', submit: submitRefused }) })).toBeNull();
+  });
+
+  it("says the replies were refused from this pull request's waiting replies alone, in a run's review too", () => {
+    expect(orgRestrictionOf({ first, replies: [refusedReply] })).toBe('replies');
+    expect(orgRestrictionOf({ first, replies: [{ ...refusedReply, prId: 'PR_9' }] })).toBeNull();
+    expect(orgRestrictionOf({ first, replies: [{ ...refusedReply, inReview: true }] })).toBe('replies');
+    expect(
+      orgRestrictionOf({
+        first,
+        replies: [replyWaiting({ state: 'FAILED', lastError: { ...REFUSED, reason: 'forbidden' } })],
+      }),
+    ).toBeNull();
+  });
+
+  it('lets the submit win when both hold, and says nothing without either', () => {
+    expect(orgRestrictionOf({ first: { ...first, submit: submitRefused }, replies: [refusedReply] })).toBe('submit');
+    expect(orgRestrictionOf({ first, current: followUp(), replies: [replyWaiting()] })).toBeNull();
+    expect(orgRestrictionOf({ first })).toBeNull();
   });
 });

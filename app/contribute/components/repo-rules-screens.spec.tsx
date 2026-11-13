@@ -10,6 +10,8 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/app/contribute/actions', () => ({}));
+// The fold's opener runs in the browser alone: the block says which fold it opens.
+vi.mock('./open-on-hash', () => ({ OpenOnHash: ({ id }: { id: string }) => <i data-open-on-hash={id} /> }));
 vi.mock('@/app/contribute/maintainers/actions', () => ({ setMaintainerConfig: vi.fn() }));
 vi.mock('@/lib/contribute/contribute.data', () => ({
   loadContribute: vi.fn(),
@@ -18,15 +20,15 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadResolveHumanThreads: vi.fn(async () => undefined),
 }));
 
-const { AttemptRepoRules, ReposAskLessNote } = await import('./repo-rules');
-const { IssueRepoRules, IssueRulesOpen } = await import('./issue-repo-rules');
+const { AttemptRepoRules, openRepoRules, ReposAskLessNote, RulesOpen } = await import('./repo-rules');
+const { IssueRepoRules } = await import('./issue-repo-rules');
 const { MaintainerRepoExtras } = await import('./maintainer-repo-extras');
 const { ReviewScreen } = await import('./review-view');
 const { IssueCard } = await import('./issue-card');
 const { SettingsScreen } = await import('./settings-view');
 
-import { decisionAttempts } from '@/lib/contribute/__fixtures__/contribute-attempts';
-import { issue } from '@/lib/contribute/__fixtures__/contribute-overview';
+import { attempts, followUpAttempts } from '@/lib/contribute/__fixtures__/contribute-attempts';
+import { issue, replyWaiting } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import { allLiveFacts, maintainerFacts, maintainerRepo } from '@/lib/contribute/__fixtures__/maintainers';
 import {
@@ -36,6 +38,8 @@ import {
   maintainerConfig,
   maintainerRules,
 } from '@/lib/contribute/__fixtures__/repo-rules';
+import type { ContributeAttemptDetail, ContributeSubmitError } from '@/lib/contribute/contribute.types';
+import { GITHUB_APPS_URL } from '@/lib/contribute/org-access';
 import { settingsAfterSave } from '@/lib/contribute/repo-rules';
 
 const text = (html: string) =>
@@ -49,20 +53,44 @@ const text = (html: string) =>
     .replaceAll(/ ([.,])(?=\s|$)/g, '$1');
 
 describe('"This repo\'s rules" on the attempt (block A)', () => {
-  const block = (rules = attemptRules()) =>
-    renderToStaticMarkup(<AttemptRepoRules rules={rules} settings={settings} />);
+  const ORG_ACCESS = { url: GITHUB_APPS_URL, app: false };
+  type Props = Parameters<typeof AttemptRepoRules>[0];
+  const block = (rules: Props['rules'] = attemptRules(), props: Partial<Props> = {}) =>
+    renderToStaticMarkup(
+      <AttemptRepoRules
+        rules={rules}
+        settings={settings}
+        access={null}
+        org="driftwood-js"
+        orgAccess={ORG_ACCESS}
+        {...props}
+      />,
+    );
+  const opened = (rules: Props['rules'] = attemptRules(), props: Partial<Props> = {}) =>
+    renderToStaticMarkup(
+      <RulesOpen.Provider value>
+        <AttemptRepoRules
+          rules={rules}
+          settings={settings}
+          access={null}
+          org="driftwood-js"
+          orgAccess={ORG_ACCESS}
+          {...props}
+        />
+      </RulesOpen.Provider>,
+    );
+  const summaryOf = (html: string) => text(html.match(/<summary[^>]*>(.*?)<\/summary>/)?.[1] ?? '').trim();
 
   it('lists each rule in a line with its file, the limits the repo set beside the user’s, and what repos can ask', () => {
-    const html = block();
+    const html = opened();
     const words = text(html);
 
     expect(html).toContain('data-repo-rules="listed"');
-    expect(words).toContain('This repo’s rules 6');
+    expect(summaryOf(html)).toBe('Repo rules · 6 · 300 lines');
     expect(words).toContain("The pull request's description says why in the contributor's own words.");
     expect(html).toContain('href="https://github.com/driftwood-js/driftwood/blob/HEAD/CONTRIBUTING.md"');
-    expect(words).toContain('Changed lines: 300 (repo) · your setting now 400');
-    expect(words).toContain('Files: 10 (repo) · your setting now 15');
-    expect(words).toContain("a maintainer's setting on gitranks.com");
+    expect(words).toContain("300 changed lines the repo's, from .github/gitranks.yml · yours is 400");
+    expect(words).toContain("10 files the repo's, from a maintainer's setting on gitranks.com · yours is 15");
     expect(html).toContain('href="/contribute/maintainers"');
   });
 
@@ -70,52 +98,169 @@ describe('"This repo\'s rules" on the attempt (block A)', () => {
     const html = block();
     const quotes = [...html.matchAll(/<details data-rule-quote=""[^>]*>(.*?)<\/details>/g)].map(([whole]) => whole);
 
-    // A <details>, not a tooltip: a tap or the keyboard opens it.
+    // A <details>, not a tooltip: a tap or the keyboard opens it, from the rule's own text.
     expect(quotes).toHaveLength(4);
     expect(quotes.every((quote) => !quote.includes(' open=""'))).toBe(true);
-    expect(text(quotes[0])).toContain(
-      'Their words “Agents must not open pull requests on their own. A person reviews and submits every change.”',
+    expect(summaryOf(quotes[0])).toBe(
+      "› AI-made changes need a person's review: autopilot never submits here, the contributor reviews and submits each pull request.",
     );
+    expect(text(quotes[0])).toContain(
+      '“Agents must not open pull requests on their own. A person reviews and submits every change.”',
+    );
+    expect(text(html)).not.toContain('Their words');
     expect(html).toContain('data-rule-source="AI_POLICY.md"');
     expect(html).toContain('data-rule-source="GitRanks maintainers page"');
     expect(html).not.toContain('mira-k');
   });
 
-  it('says a repo with no rules sets none, with the user’s own limits', () => {
-    const words = text(block(attemptNoRules()));
+  it('puts a rule’s source after its quote, outside it, as an arrow named for screen readers', () => {
+    const html = block();
+    const rule = html.match(/<li data-rule="NO_AUTONOMOUS"[^>]*>(.*?)<\/li>/)?.[1] ?? '';
+    const source = rule.slice(rule.indexOf('</details>'));
 
+    expect(rule).toMatch(/^<details data-rule-quote=""/);
+    expect(source).toContain('data-rule-source="AI_POLICY.md"');
+    expect(source).toContain('title="AI_POLICY.md"');
+    expect(text(source).trim()).toBe('↗ AI_POLICY.md, opens in a new tab');
+  });
+
+  it('says a repo with no rules sets none, with the user’s own limits', () => {
+    const html = opened(attemptNoRules());
+    const words = text(html);
+
+    expect(summaryOf(html)).toBe('Repo rules · none · 400 lines');
     expect(words).toContain(
       'This repo sets no rules for AI contributions beyond its CONTRIBUTING. Every PR waits for your review.',
     );
     expect(words).toContain('Your limits apply: 400 changed lines, 15 files.');
   });
 
-  it('shows the user’s own limits as theirs when the repo’s are higher', () => {
-    const words = text(block(attemptRules({ caps: { lines: 400, files: 15, linesSource: null, filesSource: null } })));
+  it('shows only the limits when the repo sets no rule but a limit', () => {
+    const html = opened(attemptRules({ lines: [] }));
+    const words = text(html);
 
-    expect(words).toContain('Changed lines: 400 (yours)');
-    expect(words).not.toContain('(repo)');
+    expect(html).toContain('data-repo-rules="caps"');
+    expect(html).toContain('data-repo-caps');
+    expect(summaryOf(html)).toBe('Repo rules · 300 lines');
+    expect(words).toContain("300 changed lines the repo's, from .github/gitranks.yml");
+    expect(html).toContain('href="/contribute/maintainers"');
+    expect(html).not.toContain('data-rule=');
+    expect(words).not.toContain('This repo sets no rules');
+  });
+
+  it('shows the user’s own limits as theirs when the repo’s are higher', () => {
+    const words = text(opened(attemptRules({ caps: { lines: 400, files: 15, linesSource: null, filesSource: null } })));
+
+    expect(words).toContain('400 changed lines yours');
+    expect(words).not.toContain("the repo's");
   });
 
   it('leaves out the user’s setting now once the attempt is finished', () => {
-    const words = text(renderToStaticMarkup(<AttemptRepoRules rules={attemptRules()} settings={settings} finished />));
+    const words = text(opened(attemptRules(), { finished: true }));
 
-    expect(words).toContain('Changed lines: 300 (repo)');
-    expect(words).not.toContain('your setting now');
+    expect(words).toContain("300 changed lines the repo's, from .github/gitranks.yml");
+    expect(words).not.toContain('yours is');
   });
 
   it('shows nothing while the API does not answer the rules', () => {
-    expect(renderToStaticMarkup(<AttemptRepoRules rules={undefined} />)).toBe('');
-    expect(renderToStaticMarkup(<AttemptRepoRules rules={null} />)).toBe('');
+    const none = (rules: undefined | null, access: Props['access'] = null) =>
+      renderToStaticMarkup(
+        <AttemptRepoRules rules={rules} access={access} org="driftwood-js" orgAccess={ORG_ACCESS} />,
+      );
+    expect(none(undefined)).toBe('');
+    expect(none(null)).toBe('');
+    // Without the rules, nothing at all: the access fact too waits for them.
+    expect(none(null, 'replies')).toBe('');
   });
 
-  it('sits under the sessions on the contribution page', () => {
-    const html = renderToStaticMarkup(
-      <ReviewScreen view={views.active} attempt={{ ...decisionAttempts.went, repoRules: attemptRules() }} now={NOW} />,
-    );
+  it('starts closed, a fold of its own, its title in the summary as no heading', () => {
+    const html = block();
+    const fold = html.match(/<details id="repo-rules"[^>]*>/)?.[0] ?? '';
 
-    expect(html.indexOf('data-repo-rules="listed"')).toBeGreaterThan(html.indexOf('data-sessions'));
-    expect(html.indexOf('data-repo-rules="listed"')).toBeLessThan(html.indexOf('data-shown-session'));
+    expect(fold).toContain('data-repo-rules="listed"');
+    expect(fold).not.toContain(' open=""');
+    expect(html.match(/<summary[^>]*>(.*?)<\/summary>/)?.[1]).not.toContain('<h2');
+    expect(html).toContain('id="repo-rules-title"');
+  });
+
+  it('opens from the address and from a move card', () => {
+    expect(block()).toContain('data-open-on-hash="repo-rules"');
+
+    const scrollIntoView = vi.fn();
+    const fold = { open: false, scrollIntoView };
+    expect(openRepoRules({ getElementById: (id: string) => (id === 'repo-rules' ? fold : null) } as never)).toBe(true);
+    expect(fold.open).toBe(true);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+    expect(openRepoRules({ getElementById: () => null })).toBe(false);
+  });
+
+  it('says how GitHub lets GitRanks act here when a refusal proves the organization keeps it out', () => {
+    const replies = opened(attemptRules(), { access: 'replies' });
+    expect(summaryOf(replies)).toBe('Repo rules · 6 · replies blocked');
+    expect(text(replies)).toContain(
+      "driftwood-js only lets apps it approved reply in review threads, and GitRanks isn't one yet.",
+    );
+    expect(replies).toContain('data-repo-access="replies"');
+    expect(replies).toContain('data-org-access');
+
+    const submit = opened(attemptRules(), { access: 'submit' });
+    expect(summaryOf(submit)).toBe('Repo rules · 6 · access blocked');
+    expect(text(submit)).toContain(
+      "driftwood-js only lets apps it approved act in its repositories, and GitRanks isn't one yet.",
+    );
+    expect(submit).toContain('data-repo-access="submit"');
+  });
+
+  it('sits under the sessions on the contribution page, after the session shown', () => {
+    const html = renderToStaticMarkup(
+      <ReviewScreen
+        view={views.active}
+        attempt={{ ...followUpAttempts.prNeedsYou, repoRules: attemptRules() }}
+        now={NOW}
+      />,
+    );
+    const panel = html.match(/<section [^>]*aria-labelledby="repo-rules-title"[^>]*>/)?.[0] ?? '';
+
+    expect(html.indexOf('data-shown-session')).toBeGreaterThan(html.indexOf('data-sessions'));
+    expect(html.indexOf('data-repo-rules="listed"')).toBeGreaterThan(html.indexOf('data-shown-session'));
+    expect(panel).toContain('[grid-area:rules]');
+  });
+
+  describe('on the contribution page, from its waiting replies', () => {
+    const REFUSED: ContributeSubmitError = {
+      reason: 'org_restricted',
+      note: 'The organization only lets apps it approved post there.',
+      at: '2026-10-28T11:59:00.000Z',
+    };
+    const first: ContributeAttemptDetail = { ...followUpAttempts.prNeedsYou, repoRules: attemptRules() };
+    const page = (replies: Parameters<typeof ReviewScreen>[0]['replies']) =>
+      renderToStaticMarkup(<ReviewScreen view={views.active} attempt={first} now={NOW} replies={replies} />);
+    const refused = replyWaiting({ state: 'FAILED', lastError: REFUSED });
+
+    it('says the replies are blocked when one of this pull request’s replies was refused for it', () => {
+      expect(text(page([refused]))).toContain('Repo rules · 6 · replies blocked');
+    });
+
+    it('leaves out another pull request’s replies', () => {
+      const html = page([{ ...refused, prId: 'PR_9' }]);
+      expect(text(html)).toContain('Repo rules · 6 · 300 lines');
+      expect(html).not.toContain('data-repo-access');
+    });
+
+    it('counts a reply that is part of a run’s review', () => {
+      expect(page([{ ...refused, inReview: true }])).toContain('data-repo-access="replies"');
+    });
+
+    it('says the submit is blocked from the first attempt’s submit', () => {
+      const bounced = {
+        ...attempts.bounced,
+        repoRules: attemptRules(),
+        submit: { ...attempts.bounced.submit!, lastError: REFUSED },
+      };
+      const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={bounced} now={NOW} />);
+      expect(html).toContain('data-repo-access="submit"');
+    });
   });
 });
 
@@ -128,6 +273,9 @@ describe('the rules on an issue card', () => {
     expect(words).toContain('This repo’s rules · autopilot off · 5 more');
     expect(words).toContain('No AI-assisted work on good first issues: GitRanks leaves them to newcomers.');
     expect(html).toContain('href="https://github.com/driftwood-js/driftwood/blob/HEAD/AI_POLICY.md"');
+    // The issue card keeps the source's full label; only the contribution's rail uses the compact one.
+    expect(words).toContain('AI_POLICY.md ↗');
+    expect(html).not.toContain('title="AI_POLICY.md"');
     expect(words).not.toContain('Agents must not');
   });
 
@@ -141,9 +289,9 @@ describe('the rules on an issue card', () => {
   it('starts closed, and open where the design catalogue draws it so', () => {
     expect(renderToStaticMarkup(<IssueRepoRules rules={issueRules()} />)).not.toContain(' open=""');
     const open = renderToStaticMarkup(
-      <IssueRulesOpen.Provider value>
+      <RulesOpen.Provider value>
         <IssueRepoRules rules={issueRules()} />
-      </IssueRulesOpen.Provider>,
+      </RulesOpen.Provider>,
     );
     expect(open).toContain(' open=""');
   });

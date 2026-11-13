@@ -37,10 +37,10 @@ describe("a contribution's sessions", () => {
     expect(card).toMatchObject({
       title: 'First attempt',
       pill: { label: 'Ready for your review' },
-      meta: 'Oct 28, 09:12 UTC · $2.36',
-      note: '3 files changed',
+      meta: 'Oct 28 · $2.36',
       href: '/contribute/attempts/A_1',
     });
+    expect(card).not.toHaveProperty('note');
   });
 
   it('names the pull request on the first attempt once there is one, a state not known yet too', () => {
@@ -63,13 +63,13 @@ describe("a contribution's sessions", () => {
     };
     const cards = sessionsOf(first);
     expect(cards.map(({ key }) => key)).toEqual(['A_1', 'A_F1', 'A_F2', 'next']);
-    expect(cards[1]).toMatchObject({ title: 'Run 1 · autopilot', pill: { label: 'Pushed 46de700' } });
-    expect(cards[1].meta).toBe('Oct 28, 12:00 UTC · $0.31');
-    expect(cards[1].note).toBe('5 fixed · 2 replied');
-    expect(cards[2]).toMatchObject({ title: 'Run 2 · you', pill: { label: 'Discarded' } });
+    expect(cards[1]).toMatchObject({ title: 'Run 1', pill: { label: 'Pushed 46de700' } });
+    expect(cards[1].meta).toBe('Oct 28 · $0.31 · by autopilot');
+    expect(cards.every((card) => !('note' in card))).toBe(true);
+    expect(cards[2]).toMatchObject({ title: 'Run 2', pill: { label: 'Discarded' }, meta: 'Oct 28 · $0.12' });
     expect(cards[2].href).toBe('/contribute/attempts/A_1/runs/A_F2');
     expect(cards[3]).toMatchObject({
-      title: 'Run 3 · follow-up',
+      title: 'Run 3',
       pill: { label: 'Recommended', tone: 'violet' },
       meta: 'Not started',
       href: '/contribute/attempts/A_1?session=next',
@@ -83,7 +83,7 @@ describe("a contribution's sessions", () => {
     expect(nextRoundOpen(quiet)).toBe(true);
     expect(nextRoundRecommended(quiet)).toBe(false);
     expect(sessionsOf(quiet).at(-1)).toMatchObject({
-      title: 'Run 3 · follow-up',
+      title: 'Run 3',
       pill: { label: 'Not started', tone: 'neutral' },
       meta: 'Your call',
     });
@@ -126,13 +126,31 @@ describe("a contribution's sessions", () => {
       ...followUpAttempts.prNeedsYou,
       followUps: followUps({ used: 3, currentAttemptId: 'A_F3' }),
     };
-    expect(sessionsOf(first)[1].title).toBe('Run 3 · follow-up');
-    // The run read on its own names who started it.
+    expect(sessionsOf(first)[1]).toMatchObject({ title: 'Run 3', meta: '' });
+    // The run read on its own names who started it, in its meta.
     const byAutopilot = { ...followUpAttempts.review, attemptId: 'A_F3', autopilot: true };
-    expect(sessionsOf(first, byAutopilot)[1].title).toBe('Run 3 · autopilot');
+    expect(sessionsOf(first, byAutopilot)[1]).toMatchObject({ title: 'Run 3', meta: 'Oct 28 · $1.12 · by autopilot' });
     expect(nextRunNumberOf(followUpAttempts.quiet)).toBe(3);
     const odd = { ...first, followUps: followUps({ history: [round({ state: 'SHELVED' as never })] }) };
     expect(sessionsOf(odd)[1].pill).toEqual({ label: 'Shelved', tone: 'neutral' });
+  });
+
+  it('says on the next run how many comments wait for it', () => {
+    const thread = { threadId: 'T', commentId: 'C', author: 'bot', bot: true, path: null, line: null, excerpt: 'x' };
+    const threads = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        ...thread,
+        commentId: `C${index}`,
+        url: null,
+        createdAt: null,
+        ignored: false,
+      }));
+    const withThreads = (count: number) => ({
+      ...followUpAttempts.prNeedsYou,
+      reviewFeedback: { readAt: null, threads: threads(count) },
+    });
+    expect(sessionsOf(withThreads(7)).at(-1)).toMatchObject({ title: 'Run 1', meta: '7 comments wait' });
+    expect(sessionsOf(withThreads(1)).at(-1)).toMatchObject({ title: 'Run 1', meta: '1 comment waits' });
   });
 
   it('counts only the threads that wait, on an open pull request', () => {

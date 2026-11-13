@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -12,13 +12,14 @@ export function Eyebrow({ children, className }: { children: ReactNode; classNam
   );
 }
 
-/** A bordered block of a Contribute page. */
+/** A bordered block of a Contribute page. Other attributes (`aria-*`, `data-*`) go on its `section`. */
 export function Panel({
   children,
   className,
   id,
   tone = 'default',
-}: {
+  ...rest
+}: Omit<ComponentProps<'section'>, 'children' | 'className' | 'id'> & {
   children: ReactNode;
   className?: string;
   id?: string;
@@ -26,6 +27,7 @@ export function Panel({
 }) {
   return (
     <section
+      {...rest}
       id={id}
       className={cn(
         'flex scroll-mt-20 flex-col gap-4 rounded-xl border bg-card p-5 sm:p-6',

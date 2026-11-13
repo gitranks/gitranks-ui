@@ -10,13 +10,26 @@ vi.mock('@/app/contribute/maintainers/actions', () => ({
   undoPrAction: vi.fn(),
 }));
 vi.mock('@/app/contribute/actions', () => ({ hidePrNote: vi.fn() }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
+  usePathname: () => '/contribute/attempts/A_1',
+  useSearchParams: () => new URLSearchParams(),
+}));
+vi.mock('@/lib/contribute/contribute.data', () => ({
+  loadContribute: vi.fn(),
+  loadAttempt: vi.fn(),
+  loadResolveHumanThreads: vi.fn(async () => undefined),
+}));
 
 const { MaintainerReposLoading, MaintainerReposPanel, MaintainersScreen, PrStrip } = await import('./maintainers-view');
 const { OptOutResults } = await import('./maintainer-repos-form');
 const { PrFeedbackScreen } = await import('./pr-feedback-view');
 const { HelpedSent, ReportSent } = await import('./pr-feedback-forms');
 const { PrNotesPanel } = await import('./pr-notes');
+const { ReviewScreen } = await import('./review-view');
+const { attempts, followUpAttempts } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
+const { NOW, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { attemptRules } = await import('@/lib/contribute/__fixtures__/repo-rules');
 
 import {
   allLiveFacts,
@@ -443,40 +456,84 @@ describe('the report pages', () => {
 
 describe('the maintainers’ say on the contributor’s page', () => {
   it('shows the notes with the role in plain words, likes, the word and Hide', () => {
-    const html = renderToStaticMarkup(<PrNotesPanel notes={prNotes()} repo="driftwood-js/driftwood" />);
+    const html = renderToStaticMarkup(<PrNotesPanel notes={prNotes()} />);
     const notes = html.split('data-note=').slice(1).map(text);
 
     expect(text(html)).toContain('From the maintainers');
-    expect(notes[0]).toContain('sam-w · maintainer · Oct 28, 2026');
-    expect(notes[0]).toContain('Liked: solved the issue well, small and easy to review');
-    expect(notes[0]).toContain('Clean fix, and thanks for the test.');
+    // The word first, then who, their role, when and what they liked, in one line.
+    expect(notes[0]).toContain(
+      '“Clean fix, and thanks for the test. More like this welcome.” sam-w · maintainer · Oct 28 · liked: solved the issue well, small and easy to review',
+    );
     expect(notes[0]).toContain('Hide');
-    expect(notes[1]).toContain('ana-k · user');
+    expect(notes[1]).toContain('ana-k · user · Oct 27 · liked: good tests');
     expect(html).not.toContain('data-pr-stopped');
   });
 
   it('keeps hidden notes to a line, to show again', () => {
     const read = prNotes();
     const html = renderToStaticMarkup(
-      <PrNotesPanel notes={{ ...read, notes: [{ ...read.notes[0], hidden: true }] }} repo="driftwood-js/driftwood" />,
+      <PrNotesPanel notes={{ ...read, notes: [{ ...read.notes[0], hidden: true }, read.notes[1]] }} />,
     );
 
-    expect(html).not.toContain('data-note=');
-    expect(text(html)).toContain('Hidden: sam-w Show');
+    expect(html.split('data-note=')).toHaveLength(2);
+    expect(html).toContain('data-hidden-notes="1"');
+    expect(text(html)).toContain('1 hidden · Show');
+    expect(text(html)).not.toContain('Hidden:');
   });
 
-  it('says a maintainer stopped GitRanks work on the PR', () => {
-    const stopped = { stopped: { login: 'sam-w', at: '2026-10-28T11:04:00Z' }, notes: [] };
-    const html = renderToStaticMarkup(<PrNotesPanel notes={stopped} repo="driftwood-js/driftwood" />);
-
-    expect(text(html)).toContain(
-      'A maintainer of driftwood-js/driftwood stopped GitRanks work on this PR. Reply on GitHub yourself if you like.',
+  it('keeps the heading and the line when every note is hidden', () => {
+    const read = prNotes();
+    const html = renderToStaticMarkup(
+      <PrNotesPanel notes={{ ...read, notes: read.notes.map((note) => ({ ...note, hidden: true })) }} />,
     );
-    expect(html).not.toContain('From the maintainers');
+
+    expect(text(html)).toContain('From the maintainers');
+    expect(text(html)).toContain('2 hidden · Show');
+    expect(html).not.toContain('data-note=');
+  });
+
+  it('takes its place in the layout from the page', () => {
+    const html = renderToStaticMarkup(<PrNotesPanel notes={prNotes()} className="mt-5" />);
+
+    expect(html).toMatch(/^<section [^>]*class="[^"]*\bmt-5\b[^"]*"/);
+    expect(html).toMatch(/^<section [^>]*data-pr-notes=""/);
+  });
+
+  it('says a maintainer stopped GitRanks work on the PR in the header, never in the notes', () => {
+    const stopped = { login: 'sam-w', at: '2026-10-28T11:04:00Z' };
+    const page = renderToStaticMarkup(
+      <ReviewScreen view={views.active} attempt={attempts.prOpen} now={NOW} prNotes={prNotes({ stopped })} />,
+    );
+    const header = page.slice(page.indexOf('<header'), page.indexOf('</header>'));
+
+    expect(header).toContain('data-pr-stopped=""');
+    expect(text(header)).toContain('A maintainer of driftwood-js/driftwood stopped GitRanks work on this PR.');
+    expect(renderToStaticMarkup(<PrNotesPanel notes={{ stopped, notes: [] }} />)).toBe('');
   });
 
   it('shows nothing without a stop or a note', () => {
-    expect(renderToStaticMarkup(<PrNotesPanel notes={{ stopped: null, notes: [] }} repo="x/y" />)).toBe('');
+    expect(renderToStaticMarkup(<PrNotesPanel notes={{ stopped: null, notes: [] }} />)).toBe('');
+  });
+
+  it('sits in the rail under the repo rules, and after the session without a rail', () => {
+    const html = renderToStaticMarkup(
+      <ReviewScreen
+        view={views.active}
+        attempt={{ ...followUpAttempts.prNeedsYou, repoRules: attemptRules() }}
+        now={NOW}
+        prNotes={prNotes()}
+      />,
+    );
+    const notes = html.match(/<section [^>]*data-pr-notes=""[^>]*>/)?.[0] ?? '';
+
+    expect(html.indexOf('data-pr-notes')).toBeGreaterThan(html.indexOf('data-repo-rules'));
+    expect(notes).toContain('[grid-area:notes]');
+    expect(notes).toContain('aria-labelledby="pr-notes-title"');
+
+    const alone = renderToStaticMarkup(
+      <ReviewScreen view={views.active} attempt={followUpAttempts.review} now={NOW} prNotes={prNotes()} />,
+    );
+    expect(alone.indexOf('data-pr-notes')).toBeGreaterThan(alone.indexOf('data-shown-session'));
   });
 });
 

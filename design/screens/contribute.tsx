@@ -17,7 +17,6 @@ import { ContributeBadgePreview } from '@/app/contribute/components/contribute-b
 import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { FaqScreen } from '@/app/contribute/components/faq';
-import { IssueRulesOpen } from '@/app/contribute/components/issue-repo-rules';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
 import { LedgerScreen } from '@/app/contribute/components/ledger-view';
@@ -28,6 +27,7 @@ import { HelpedSent, ReportSent } from '@/app/contribute/components/pr-feedback-
 import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
 import { PrForm, type PrFormProps } from '@/app/contribute/components/pr-form';
 import { MorePages } from '@/app/contribute/components/public-pages';
+import { RulesOpen } from '@/app/contribute/components/repo-rules';
 import { prFormPropsOf, ReviewScreen } from '@/app/contribute/components/review-view';
 import { RunsScreen } from '@/app/contribute/components/runs-view';
 import { FormSettingsScreen } from '@/app/contribute/components/settings-pages';
@@ -1256,14 +1256,14 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () =>
           frame(
             <main className={MAIN}>
-              <IssueRulesOpen.Provider value>
+              <RulesOpen.Provider value>
                 <IssuesScreen
                   view={views.active}
                   page={{ ...rulesPage, items: rulesPage.items.slice(0, 1) }}
                   query={{}}
                   now={NOW}
                 />
-              </IssueRulesOpen.Provider>
+              </RulesOpen.Provider>
             </main>,
           ),
       },

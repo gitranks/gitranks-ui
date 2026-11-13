@@ -42,6 +42,7 @@ const {
 } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { END_REASONS, LIVE_STATES } = await import('@/lib/contribute/attempt-format');
 const { settingsPathOf } = await import('@/lib/contribute/settings-paths');
+const { attemptRules } = await import('@/lib/contribute/__fixtures__/repo-rules');
 
 import type {
   ContributeAttemptDetail,
@@ -113,6 +114,64 @@ describe('the diff viewer', () => {
 });
 
 describe('the contribution page', () => {
+  describe('lays the frame out in phone order', () => {
+    const notes = {
+      stopped: null,
+      notes: [
+        {
+          feedbackId: 'N_1',
+          login: 'sam-w',
+          role: 'MAINTAINER' as const,
+          likes: [],
+          word: 'Clean fix.',
+          at: '2026-10-28T09:00:00.000Z',
+          hidden: false,
+        },
+      ],
+    };
+    const gridOf = (html: string) => (html.match(/<div class="(grid [^"]*)"/)?.[1] ?? '').replaceAll('&#x27;', "'");
+    const paneOf = (html: string) => html.match(/<div class="(\[grid-area:pane\][^"]*)"/)?.[1];
+    const notesOf = (html: string) => html.match(/<section [^>]*data-pr-notes=""[^>]*>/)?.[0] ?? '';
+
+    it('with the rail: sessions, the session shown, the rules, the notes', () => {
+      const html = renderToStaticMarkup(
+        <ReviewScreen
+          view={views.active}
+          attempt={{ ...followUpAttempts.prNeedsYou, repoRules: attemptRules() }}
+          now={NOW}
+          prNotes={notes}
+        />,
+      );
+      const order = ['data-sessions', 'data-shown-session', 'data-repo-rules', 'data-pr-notes'].map((mark) =>
+        html.indexOf(mark),
+      );
+      expect(order.every((at) => at > -1)).toBe(true);
+      expect(order).toEqual([...order].sort((a, b) => a - b));
+      expect(gridOf(html)).toContain('gap-y-0');
+      expect(gridOf(html)).toContain("[grid-template-areas:'sessions'_'pane'_'rules'_'notes']");
+      expect(gridOf(html)).toContain("lg:[grid-template-areas:'sessions_pane'_'rules_pane'_'notes_pane']");
+      expect(paneOf(html)).toBe('[grid-area:pane] min-w-0 mt-5 lg:mt-0');
+      expect(notesOf(html)).toContain('lg:mt-4');
+    });
+
+    it('renders no area for rules or notes it does not have', () => {
+      const html = review({ ...followUpAttempts.prNeedsYou, repoRules: null });
+      expect(html).not.toContain('[grid-area:rules]');
+      expect(html).not.toContain('[grid-area:notes]');
+    });
+
+    it('without the rail: the session shown, then the notes, in one column', () => {
+      const html = renderToStaticMarkup(
+        <ReviewScreen view={views.active} attempt={followUpAttempts.review} now={NOW} prNotes={notes} />,
+      );
+      expect(gridOf(html)).toBe("grid gap-y-0 [grid-template-areas:'pane'_'notes']");
+      expect(paneOf(html)).toBe('[grid-area:pane] min-w-0');
+      expect(notesOf(html)).toContain('mt-5');
+      expect(notesOf(html)).not.toContain('lg:mt-4');
+      expect(html.indexOf('data-pr-notes')).toBeGreaterThan(html.indexOf('data-shown-session'));
+    });
+  });
+
   it("opens a review on the change itself, the pull request's form behind its button", () => {
     const html = review(attempts.review);
     expect(panel(html, 'changes')).toBe('active');
@@ -221,7 +280,7 @@ describe('the contribution page', () => {
     expect(html).toContain('data-pr-state="OPEN"');
     expect(html).not.toContain('data-session="next"');
     expect(html).toMatch(/data-session="A_F1"[^>]*><a[^>]*aria-current="page"/);
-    expect(plain).toContain('Run 1 · you Ready for you');
+    expect(plain).toContain('Run 1 Ready for you');
     // The run's comments sit above the details; the details open on its new commits.
     expect(html.indexOf('data-panel="replies"')).toBeGreaterThan(-1);
     expect(html.indexOf('data-panel="replies"')).toBeLessThan(html.indexOf('data-session-tabs'));
@@ -285,9 +344,12 @@ describe('the review screen', () => {
     expect(plain).toContain('driftwood-js/driftwood · issue #871');
     expect(plain).toContain('Nested layouts re-render on every navigation');
     expect(html).not.toContain('data-first-timers');
-    expect(text(review({ ...failing, newcomersLabel: 'first-timers-only' }))).toContain(
-      'Labelled first-timers-only: the maintainers keep it for people new to the project.',
-    );
+    // The label as a chip on the repo line, what it means on a hover or a tap, and for screen readers.
+    const labelled = review({ ...failing, newcomersLabel: 'first-timers-only' });
+    const chip = labelled.match(/<button[^>]*data-first-timers=""[^>]*>(.*?)<\/button>/)?.[1] ?? '';
+    expect(text(chip)).toContain('first-timers-only');
+    expect(chip).toContain('<span class="sr-only">: the maintainers keep it for people new to the project</span>');
+    expect(text(labelled)).not.toContain('Labelled first-timers-only');
     expect(plain).toContain('Layout lookups used the raw route path');
     expect(plain).toContain('Low risk');
     expect(plain).toContain('Worth a look normalizePath keeps the case');
@@ -1003,20 +1065,24 @@ describe('the review screen', () => {
   });
 
   it.each([
-    ['prOpen', 'OPEN', 'PR #1419 open', 'Waiting for a maintainer review'],
+    ['prOpen', 'OPEN', 'PR #1419 open', 'Waiting for review'],
     ['merged', 'MERGED', 'PR #1419 merged', 'merged 5 minutes ago'],
-    ['closed', 'CLOSED', 'PR #1419 closed', 'Checks failed'],
+    ['closed', 'CLOSED', 'PR #1419 closed', 'closed without merging'],
   ] as const)(
     'links the pull request once it exists, in the header and its session: %s',
     (name, prState, title, words) => {
       const html = review(attempts[name]);
       const plain = text(html);
+      const header = text(html.slice(html.indexOf('<header'), html.indexOf('</header>')));
 
       expect(html).toContain(`data-pr-state="${prState}"`);
       expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
-      expect(plain).toContain('Pull request #1419 on GitHub');
+      expect(header).toContain('Pull request #1419');
+      expect(plain).not.toContain('on GitHub ↗');
       expect(plain).toContain(title);
-      expect(plain).toContain(words);
+      expect(header).toContain(words);
+      // A closed pull request shows no checks.
+      if (name === 'closed') expect(header).not.toContain('Checks failed');
     },
   );
 
@@ -1024,6 +1090,139 @@ describe('the review screen', () => {
     expect(review(detail(), views.suspended)).toContain('data-notice="suspended"');
     expect(review(detail(), views.newAccount)).toContain('data-notice="new-account"');
     expect(review(detail())).not.toContain('data-notice');
+  });
+
+  it('says the access level in one line, its explanation under "Why?"', () => {
+    const html = review(attempts.prOpen, views.newAccount);
+    const notice = html.match(/<div role="status" data-notice="new-account"[^>]*>(.*?)<\/details><\/div>/)?.[0] ?? '';
+    const summary = notice.match(/<summary[^>]*>(.*?)<\/summary>/)?.[1] ?? '';
+
+    expect(notice).toContain('data-notice-line=""');
+    expect(notice).toContain('<details class="group">');
+    expect(notice).not.toContain(' open=""');
+    expect(text(summary).trim()).toBe(
+      'Smaller limits while your account is new 1 issue at a time · 3 new claims a day Why?',
+    );
+    expect(text(notice)).toContain('Every new account starts this way');
+    expect(text(notice.slice(notice.indexOf('</summary>')))).toContain('Every new account starts this way');
+  });
+
+  it('draws a suspension and lower limits in the warning tone, the limits with their fact', () => {
+    const suspended = review(attempts.prOpen, views.suspended).match(
+      /<div role="status" data-notice="suspended"[^>]*>/,
+    )?.[0];
+    expect(suspended).toContain('border-warning/30 bg-warning-soft');
+    const suspendedLine = review(attempts.prOpen, views.suspended);
+    const summary = suspendedLine.slice(suspendedLine.indexOf('data-notice="suspended"'));
+    expect(text(summary.match(/<summary[^>]*>(.*?)<\/summary>/)?.[1] ?? '').trim()).toBe(
+      'Contribute is paused for this account Why?',
+    );
+
+    const lower = review(attempts.prOpen, views.followThrough);
+    const line = lower.match(/<div role="status" data-notice="follow-through"[^>]*>/)?.[0];
+    expect(line).toContain('border-warning/30 bg-warning-soft');
+    expect(text(lower)).toContain('Your limits are lower for now 1 issue at a time · 3 new claims a day Why?');
+  });
+
+  it('hides nothing for a suspension: the page offers what it offers to an active account', () => {
+    const page = (view: ContributeView) =>
+      renderToStaticMarkup(<ReviewScreen view={view} attempt={followUpAttempts.prNeedsYou} next now={NOW} />);
+    expect(page(views.active)).toContain('data-start-follow-up');
+    expect(page(views.suspended)).toContain('data-start-follow-up');
+  });
+
+  describe('the header says the pull request’s state once', () => {
+    const headerOf = (pr: Partial<ReturnType<typeof pullRequest>>) => {
+      const html = review({ ...attempts.prOpen, pullRequest: pullRequest(pr) });
+      return html.slice(html.indexOf('<header'), html.indexOf('</header>'));
+    };
+    const pillOf = (html: string, part: 'review' | 'checks') =>
+      html.match(new RegExp(`data-pr-${part}="[A-Z_]+"><span[^>]*data-slot="badge"[^>]*class="([^"]*)"`))?.[1];
+
+    it('marks changes requested in amber, failed or errored checks in red, an approval in green', () => {
+      const changes = headerOf({ reviewDecision: 'CHANGES_REQUESTED' });
+      expect(text(changes)).toContain('Changes requested');
+      expect(pillOf(changes, 'review')).toContain('bg-warning-soft');
+
+      const failed = headerOf({ checks: 'FAILURE' });
+      expect(text(failed)).toContain('Checks failed');
+      expect(pillOf(failed, 'checks')).toContain('bg-negative/10');
+      const errored = headerOf({ checks: 'ERROR' });
+      expect(text(errored)).toContain('Checks errored');
+      expect(pillOf(errored, 'checks')).toContain('bg-negative/10');
+
+      const approved = headerOf({ reviewDecision: 'APPROVED' });
+      expect(text(approved)).toContain('Approved');
+      expect(pillOf(approved, 'review')).toContain('bg-positive/10');
+    });
+
+    it('says a review waiting and checks running in muted words, and when it was read', () => {
+      const html = headerOf({ checks: 'PENDING', syncedAt: '2026-10-28T11:48:00.000Z' });
+      expect(text(html)).toContain(
+        'Open · Pull request #1419 ↗ · Waiting for review · Checks running · read 12 minutes ago',
+      );
+      expect(pillOf(html, 'review')).toBeUndefined();
+      expect(pillOf(html, 'checks')).toBeUndefined();
+      expect(html).toContain('<span class="max-sm:sr-only">Pull request </span>');
+    });
+
+    it('says only when a merged or closed pull request ended, without its review, checks or read', () => {
+      for (const [name, words] of [
+        ['merged', 'Merged · Pull request #1419 ↗ · merged 5 minutes ago'],
+        ['closed', 'Closed · Pull request #1419 ↗ · closed without merging, 5 minutes ago'],
+      ] as const) {
+        const html = review(attempts[name]);
+        const line = text(html.slice(html.indexOf('data-pr-state'), html.indexOf('</header>')));
+        expect(line).toContain(words);
+        expect(line).not.toContain('read ');
+        expect(html.slice(0, html.indexOf('</header>'))).not.toMatch(/data-pr-(review|checks)/);
+      }
+    });
+  });
+
+  describe('the header says a maintainer’s stop once', () => {
+    const STOPPED = { stopped: { login: 'sam-w', at: '2026-10-28T11:04:00.000Z' }, notes: [] };
+
+    it('as one line under the pull request’s, its why closed', () => {
+      const html = renderToStaticMarkup(
+        <ReviewScreen view={views.active} attempt={attempts.prOpen} now={NOW} prNotes={STOPPED} />,
+      );
+      const header = html.slice(html.indexOf('<header'), html.indexOf('</header>'));
+      const line = header.slice(header.indexOf('data-pr-stopped'));
+
+      expect(html.match(/data-pr-stopped=""/g)).toHaveLength(1);
+      expect(header.indexOf('data-pr-stopped')).toBeGreaterThan(header.indexOf('data-pr-state'));
+      expect(header).toMatch(/<div data-pr-stopped=""/);
+      expect(line).not.toMatch(/^data-pr-stopped=""[^>]*role=/);
+      expect(line).not.toContain(' open=""');
+      expect(text(line.match(/<summary[^>]*>(.*?)<\/summary>/)?.[1] ?? '').trim()).toBe(
+        'GitRanks work on this PR stopped sam-w · Oct 28 Why?',
+      );
+      expect(text(line)).toContain(
+        'A maintainer of driftwood-js/driftwood stopped GitRanks work on this PR. No run, push, reply, sign-off or proof goes out from GitRanks. You can still answer on GitHub yourself. Open #1419 on GitHub ↗ (opens in a new tab)',
+      );
+      expect(line).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
+    });
+
+    it('says nothing without a stop, also where the repo said no (that stop is not the header’s)', () => {
+      const saidNo = {
+        ...followUpAttempts.prNeedsYou,
+        needsYou: {
+          since: '',
+          signals: [{ kind: 'REPO_OUT' as const, at: NOW.toISOString(), detail: 'closed_no_ai' }],
+        },
+      };
+      expect(review(attempts.prOpen)).not.toContain('data-pr-stopped');
+      expect(review(saidNo)).not.toContain('data-pr-stopped');
+    });
+
+    it('sits under the line of the pull request a run follows up, when its first attempt is not known', () => {
+      const html = renderToStaticMarkup(
+        <ReviewScreen view={views.active} attempt={followUpAttempts.review} now={NOW} prNotes={STOPPED} />,
+      );
+      expect(html.indexOf('data-pr-stopped')).toBeGreaterThan(html.indexOf('data-follow-up-of'));
+      expect(html.indexOf('data-pr-stopped')).toBeLessThan(html.indexOf('</header>'));
+    });
   });
 
   it("says how long a change waits for review: 48 hours for the user's own agent's claim, seven days otherwise", () => {

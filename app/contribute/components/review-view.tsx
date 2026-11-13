@@ -1,5 +1,4 @@
 import type { Route } from 'next';
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
@@ -13,8 +12,9 @@ import {
   YourNotePanel,
 } from './attempt-panels';
 import { SessionsList } from './attempt-sessions';
-import { AttemptStatus, FollowUpOfLink, justOpened, PullRequestStatus } from './attempt-status';
+import { AttemptStatus, justOpened } from './attempt-status';
 import { ContributeNotices } from './contribute-notices';
+import { BackLink, ContributionHeader } from './contribution-header';
 import { DiffViewer } from './diff-viewer';
 import { FollowUpApproval } from './follow-up-approval';
 import { FollowUpResult } from './follow-up-result';
@@ -22,21 +22,32 @@ import { NextStepCards, YourMoveLine } from './next-step';
 import { PrForm, type PrFormProps } from './pr-form';
 import { PrNotesPanel } from './pr-notes';
 import { PrStoppedProvider } from './pr-stopped';
-import { HEADING, Pill } from './primitives';
+import { HEADING } from './primitives';
 import { ReplyDrafts } from './reply-drafts';
 import { AttemptRepoRules } from './repo-rules';
 import { SendBackForm } from './send-back-form';
 import { type SessionTab, SessionTabs } from './session-tabs';
 import { SubmitPanel } from './submit-panel';
-import { attemptTitleOf, editableBodyOf, githubUrlOf, isOwnAgent, repoOf } from '@/lib/contribute/attempt-format';
-import { loadAttempt, loadContribute, loadPrNotes, loadResolveHumanThreads } from '@/lib/contribute/contribute.data';
-import type { ContributeAttemptDetail, ContributePrNotes, ContributeView } from '@/lib/contribute/contribute.types';
+import { editableBodyOf, isOwnAgent, repoOf } from '@/lib/contribute/attempt-format';
+import {
+  loadAttempt,
+  loadContribute,
+  loadPrNotes,
+  loadRepliesWaiting,
+  loadResolveHumanThreads,
+} from '@/lib/contribute/contribute.data';
+import type {
+  ContributeAttemptDetail,
+  ContributePrNotes,
+  ContributeReplyWaiting,
+  ContributeView,
+} from '@/lib/contribute/contribute.types';
 import { accessNoticesOf, isContributePageOpen, settingsOf } from '@/lib/contribute/contribute-state';
 import { isWorking } from '@/lib/contribute/decisions';
 import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
 import { nextStepOf, nextStepWaits } from '@/lib/contribute/next-step';
-import { orgAccessOf } from '@/lib/contribute/org-access';
+import { orgAccessOf, orgRestrictionOf } from '@/lib/contribute/org-access';
 import { parsePatch } from '@/lib/contribute/patch';
 import { withoutDraftMarks } from '@/lib/contribute/pr-conventions';
 import { agentConnectedOf } from '@/lib/contribute/proof';
@@ -51,7 +62,6 @@ import {
   sessionsOf,
   waitingThreadsOf,
 } from '@/lib/contribute/sessions';
-import { cn } from '@/lib/utils';
 
 /** The gates every page of a contribution passes: signed in, let in, and the attempt theirs. */
 async function gate(id: string) {
@@ -80,14 +90,18 @@ export async function ContributionLayout({
   if (!attempt || attempt.kind === 'FOLLOW_UP') return children;
   // The run under way, read beside it: what the line says of it, and its card before the history lists it.
   const current = attempt.followUps?.currentAttemptId;
-  // The maintainers' say on the PR, read beside the run: an API without it leaves the page as it was.
-  const [read, prNotes] = await Promise.all([
+  // The maintainers' say on the PR and its waiting replies (a refusal among them names the org's block), read beside
+  // the run: an API without them leaves the page as it was.
+  const open = attempt.pullRequest?.state === 'OPEN';
+  const [read, prNotes, waiting] = await Promise.all([
     current ? loadAttempt(current).catch(() => undefined) : undefined,
     attempt.pullRequest ? loadPrNotes(attempt.attemptId) : undefined,
+    open ? loadRepliesWaiting() : undefined,
   ]);
   const run = read?.kind === 'FOLLOW_UP' && read.followUpOf?.attemptId === attempt.attemptId ? read : undefined;
+  const replies = waiting?.filter(({ prId }) => prId === attempt.pullRequest?.prId);
   return (
-    <ContributionShell view={view} attempt={attempt} first={attempt} run={run} prNotes={prNotes}>
+    <ContributionShell view={view} attempt={attempt} first={attempt} run={run} prNotes={prNotes} replies={replies}>
       {children}
     </ContributionShell>
   );
@@ -183,12 +197,6 @@ export const prFormPropsOf = (view: ContributeView, attempt: ContributeAttemptDe
   conventions: attempt.conventions,
   patch: attempt.patch,
 });
-
-const BackLink = () => (
-  <Link href="/contribute/me" prefetch={false} className="text-sm font-semibold text-link">
-    ← My contributions
-  </Link>
-);
 
 /**
  * The next step is shown: a run may start, comments wait (listed with why no run can start), or something only the user
@@ -335,11 +343,21 @@ function SessionDetails({
   );
 }
 
+/** The grid with the sessions' rail: one column on a phone, the rail's column beside the pane from `lg`. */
+const RAIL_GRID =
+  "grid items-start gap-x-5 gap-y-0 [grid-template-areas:'sessions'_'pane'_'rules'_'notes'] lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr] lg:[grid-template-areas:'sessions_pane'_'rules_pane'_'notes_pane']";
+/** The grid of a run whose first attempt is not known: the pane, then the notes. */
+const PANE_GRID = "grid gap-y-0 [grid-template-areas:'pane'_'notes']";
+
+/** The organization a repo belongs to, as the repo rules name it: "driftwood-js". */
+const orgOf = (attempt: ContributeAttemptDetail) => attempt.nameWithOwner?.split('/')[0] || 'The organization';
+
 /**
- * A contribution, one layout for all its sessions: the issue and its pull request on top, what waits for the user under
- * them, the sessions (the first attempt, each follow-up run, the next run while one may start) beside the one shown
- * (`children`). `attempt` names the issue; `first` is the contribution's first attempt, and `run` the run read beside it
- * (the one shown, or the one under way). The address says which session is shown, unless `shown` does.
+ * A contribution, one layout for all its sessions, in the phone's order: the account's notice, the header (the issue,
+ * its pull request's state, a maintainer's stop), what waits for the user, then the sessions, the one shown
+ * (`children`), the repo's rules and the maintainers' notes. From `lg` the sessions, rules and notes stack in a rail
+ * beside the one shown. `attempt` names the issue; `first` is the contribution's first attempt, and `run` the run read
+ * beside it (the one shown, or the one under way). The address says which session is shown, unless `shown` does.
  */
 export function ContributionShell({
   view,
@@ -349,6 +367,7 @@ export function ContributionShell({
   shown,
   now,
   prNotes,
+  replies,
   children,
 }: {
   /** Whose contribution: whether their own agent has called (a proof's tile and its card read it). */
@@ -360,77 +379,42 @@ export function ContributionShell({
   now?: Date;
   /** The maintainers' say on its PR: a stop, and "this PR helped" notes. */
   prNotes?: ContributePrNotes;
+  /** Its pull request's replies waiting for the user, in a run's review too: a refusal names the org's block. */
+  replies?: ContributeReplyWaiting[];
   children: ReactNode;
 }) {
-  const followUp = attempt.kind === 'FOLLOW_UP';
-  const issueUrl = githubUrlOf(attempt.url);
-  const repo = repoOf(attempt);
   const cards = first ? sessionsOf(first, run, { agentConnected: agentConnectedOf(view), now }) : null;
   const session = first ? { firstId: first.attemptId, nextShown: nextStepShown(first, view, now), shown } : null;
 
   return (
     <div className="flex flex-col gap-5" data-contribution={first?.attemptId ?? attempt.attemptId}>
       {/* The access level holds every attempt and run; the key's trouble is Needs you's to say. */}
-      <ContributeNotices notices={accessNoticesOf(view)} />
-      <header className="flex flex-col gap-2">
-        <BackLink />
-        <span className="flex flex-wrap items-center gap-2.5 font-mono text-sm text-muted-foreground">
-          {issueUrl ? (
-            <a href={issueUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-              {repo} · issue #{attempt.number} ↗
-            </a>
-          ) : (
-            `${repo} · issue #${attempt.number}`
-          )}
-          {isOwnAgent(attempt) ? <Pill tone="violet">Your own agent</Pill> : null}
-        </span>
-        {attempt.newcomersLabel ? (
-          <p data-first-timers className="text-sm text-muted-foreground">
-            Labelled {attempt.newcomersLabel}: the maintainers keep it for people new to the project.
-          </p>
-        ) : null}
-        <h1 className={HEADING.page}>{attemptTitleOf(attempt)}</h1>
-        {first?.pullRequest ? (
-          <PullRequestStatus pullRequest={first.pullRequest} now={now} />
-        ) : followUp ? (
-          <p data-follow-up-of={attempt.followUpOf?.number ?? ''} className="text-sm text-muted-foreground">
-            {attempt.followUpOf === undefined ? (
-              'The pull request it follows up is not available yet.'
-            ) : (
-              <>
-                A follow-up of <FollowUpOfLink followUpOf={attempt.followUpOf} />
-                {attempt.followUpOf ? (
-                  <>
-                    {' '}
-                    ·{' '}
-                    <Link href={attemptPath(attempt.followUpOf.attemptId)} prefetch={false} className="text-link">
-                      the change that opened it
-                    </Link>
-                  </>
-                ) : null}
-              </>
-            )}
-          </p>
-        ) : null}
-      </header>
-
-      {prNotes ? <PrNotesPanel notes={prNotes} repo={repo} /> : null}
+      <ContributeNotices notices={accessNoticesOf(view)} variant="line" />
+      <ContributionHeader attempt={attempt} first={first} prNotes={prNotes} now={now} />
 
       <PrStoppedProvider stopped={!!prNotes?.stopped}>
         {first && session ? <YourMoveLine first={first} runs={run ? [run] : []} {...session} now={now} /> : null}
 
-        <div className={cn('grid items-start gap-5', cards && 'lg:grid-cols-[17rem_minmax(0,1fr)]')}>
-          {cards && first && session ? (
-            <div className="flex min-w-0 flex-col gap-4">
-              <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} />
-              <AttemptRepoRules
-                rules={first.repoRules}
-                settings={settingsOf(view)}
-                finished={isFinishedAttempt(first.state)}
-              />
-            </div>
+        <div className={cards ? RAIL_GRID : PANE_GRID}>
+          {cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null}
+          <div className={cards ? '[grid-area:pane] min-w-0 mt-5 lg:mt-0' : '[grid-area:pane] min-w-0'}>{children}</div>
+          {cards && first ? (
+            <AttemptRepoRules
+              rules={first.repoRules}
+              settings={settingsOf(view)}
+              finished={isFinishedAttempt(first.state)}
+              // Never the session shown: the layout stays as the user moves between them.
+              access={orgRestrictionOf({ first, current: run, replies })}
+              org={orgOf(first)}
+              orgAccess={orgAccessOf()}
+            />
           ) : null}
-          {children}
+          {prNotes ? (
+            <PrNotesPanel
+              notes={prNotes}
+              className={cards ? '[grid-area:notes] mt-5 lg:mt-4' : '[grid-area:notes] mt-5'}
+            />
+          ) : null}
         </div>
       </PrStoppedProvider>
     </div>
@@ -487,6 +471,7 @@ export function ReviewScreen({
   now,
   resolveHumans,
   prNotes,
+  replies,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail | undefined;
@@ -497,6 +482,8 @@ export function ReviewScreen({
   resolveHumans?: boolean;
   /** The maintainers' say on its PR. */
   prNotes?: ContributePrNotes;
+  /** Its pull request's replies waiting for the user, in a run's review too. */
+  replies?: ContributeReplyWaiting[];
 }) {
   if (!attempt) {
     return (
@@ -522,6 +509,7 @@ export function ReviewScreen({
       shown={showNext ? NEXT_SESSION : attempt.attemptId}
       now={now}
       prNotes={prNotes}
+      replies={replies}
     >
       <SessionPane
         view={view}

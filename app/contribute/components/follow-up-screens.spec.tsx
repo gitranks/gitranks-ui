@@ -241,7 +241,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(plain).toContain('Your move: A reviewer asked for changes. Start run 1 on them. Go to the next step →');
     expect(html).toContain('data-session="next"');
     expect(html).toContain('href="/contribute/attempts/A_1?session=next"');
-    expect(plain).toContain('Run 1 · follow-up Recommended');
+    expect(plain).toContain('Run 1 Recommended');
     expect(plain).not.toMatch(/rounds? (used|left)/);
     // The run is started from its own session, not from the first attempt's.
     expect(html).not.toContain('data-start-follow-up');
@@ -277,9 +277,9 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     );
     expect(plain).toContain('What’s wrong? (optional)');
     expect(html).toContain('data-variant="default"');
-    expect(plain).toContain('Run 1 · autopilot');
-    expect(plain).toContain('Run 2 · you');
-    expect(plain).toContain('Run 3 · follow-up Not started');
+    expect(plain).toContain('Run 1 Pushed 46de700 Oct 28 · $0.31 · by autopilot');
+    expect(plain).toContain('Run 2 Stopped Oct 29 · $0.12');
+    expect(plain).toContain('Run 3 Not started');
     expect(plain).toContain('2 runs · $0.43');
     expect(html).not.toContain('data-session="handed-off"');
     expect(plain).not.toMatch(/rounds? (used|left)|handed to you/i);
@@ -307,7 +307,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(html).toContain('data-next-round="own"');
     expect(plain).toContain('Think the code needs a change too? Start a run with a note');
     // The sessions list: the next is the user's move, not a run's.
-    expect(plain).toContain('Run 3 · follow-up Your move');
+    expect(plain).toContain('Run 3 Your move');
   });
 
   it('tells autopilot’s share while it is on, and that a run of the user’s turns it off here', () => {
@@ -413,7 +413,7 @@ describe('a follow-up on the review screen', () => {
     const plain = text(html);
 
     expect(html).toContain('data-follow-up-of="1419"');
-    expect(plain).toContain('A follow-up of pull request #1419');
+    expect(plain).toContain('Follows up pull request #1419');
     expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
     expect(html).toContain('href="/contribute/attempts/A_1"');
     expect(plain).toContain('The new commits');
@@ -1323,54 +1323,55 @@ describe('the follow-up flow: review feedback, the run, the result and the round
   });
 
   it('lines the rounds up on the pull request’s page', () => {
-    const plain = text(
-      prOpen({
-        followUps: followUps({
-          used: 2,
-          autopilotRuns: 1,
-          manualRuns: 1,
-          history: [
-            {
-              round: 1,
-              attemptId: 'A_F1',
-              by: 'autopilot',
-              trigger: 'autopilot',
-              reason: null,
-              costUsd: 0.31,
-              state: 'DONE',
-              endReason: null,
-              pushedSha: '46de700aa1',
-              fixed: 5,
-              skipped: 0,
-              needsYou: 0,
-              replied: 2,
-              resolved: 0,
-              at: '2026-10-28T12:00:00.000Z',
-            },
-            {
-              round: 2,
-              attemptId: 'A_F2',
-              by: 'user',
-              trigger: 'own',
-              reason: 'The docs example is wrong.',
-              costUsd: 0.12,
-              state: 'STOPPED',
-              endReason: 'NO_GO',
-              pushedSha: null,
-              fixed: 0,
-              skipped: 0,
-              needsYou: 0,
-              replied: 0,
-              resolved: 0,
-              at: '2026-10-28T13:00:00.000Z',
-            },
-          ],
-        }),
+    const html = prOpen({
+      followUps: followUps({
+        used: 2,
+        autopilotRuns: 1,
+        manualRuns: 1,
+        history: [
+          {
+            round: 1,
+            attemptId: 'A_F1',
+            by: 'autopilot',
+            trigger: 'autopilot',
+            reason: null,
+            costUsd: 0.31,
+            state: 'DONE',
+            endReason: null,
+            pushedSha: '46de700aa1',
+            fixed: 5,
+            skipped: 0,
+            needsYou: 0,
+            replied: 2,
+            resolved: 0,
+            at: '2026-10-28T12:00:00.000Z',
+          },
+          {
+            round: 2,
+            attemptId: 'A_F2',
+            by: 'user',
+            trigger: 'own',
+            reason: 'The docs example is wrong.',
+            costUsd: 0.12,
+            state: 'STOPPED',
+            endReason: 'NO_GO',
+            pushedSha: null,
+            fixed: 0,
+            skipped: 0,
+            needsYou: 0,
+            replied: 0,
+            resolved: 0,
+            at: '2026-10-28T13:00:00.000Z',
+          },
+        ],
       }),
-    );
-    expect(plain).toContain('Run 1 · autopilot Pushed 46de700');
-    expect(plain).toContain('5 fixed · 2 replied');
-    expect(plain).toContain('Run 2 · you Stopped');
+    });
+    const plain = text(html);
+    const rail = text(html.slice(html.indexOf('<nav'), html.indexOf('</nav>')));
+    expect(plain).toContain('Run 1 Pushed 46de700');
+    expect(plain).toContain('Run 2 Stopped');
+    // A tile is its title, its pill and one line: the tallies are the run's own page's to say.
+    expect(rail).not.toContain('5 fixed · 2 replied');
     expect(plain).toContain('2 runs · $0.43');
     expect(plain).not.toMatch(/rounds? (used|left)/);
   });

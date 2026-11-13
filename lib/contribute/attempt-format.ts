@@ -378,9 +378,9 @@ export const PR_STATES: Record<ContributePrState, { label: string; tone: Tone }>
 };
 
 export const REVIEW_DECISIONS: Record<ContributeReviewDecision, string> = {
-  APPROVED: 'Approved by a maintainer',
+  APPROVED: 'Approved',
   CHANGES_REQUESTED: 'Changes requested',
-  REVIEW_REQUIRED: 'Waiting for a maintainer review',
+  REVIEW_REQUIRED: 'Waiting for review',
 };
 
 export const PR_CHECKS: Record<ContributeChecksState, string> = {

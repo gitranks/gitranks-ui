@@ -14,3 +14,6 @@ export const AI_CATALOG = {
     },
   ],
 } as const;
+
+/** The catalog as served: the same bytes, and so the same ETag, as `mcp.gitranks.com`'s. */
+export const AI_CATALOG_TEXT = JSON.stringify(AI_CATALOG);

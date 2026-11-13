@@ -385,6 +385,10 @@ describe('proxy', () => {
       expect(matches(path)).toBe(false);
     });
 
+    it('leaves the AI Catalog alone', () => {
+      expect(matches('/.well-known/ai-catalog.json')).toBe(false);
+    });
+
     it.each([
       '/logo-light.svg',
       '/logo-dark.svg',

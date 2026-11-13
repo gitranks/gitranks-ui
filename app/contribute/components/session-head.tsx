@@ -5,17 +5,9 @@ import { type AlsoRow, AlsoWaiting, HeadSwitch, HeldCard, StartAnyway } from './
 import { StartRun } from './head-actions';
 import type { CardProps } from './move-props';
 import { AutopilotCard, GrantCard, RetryCard, ReviewCard } from './moves-first';
-import {
-  AgreementCard,
-  DcoCard,
-  FoundCard,
-  NextRunCard,
-  RepoOutCard,
-  RulesCard,
-  SilentCard,
-  StoppedCard,
-} from './moves-pr';
+import { AgreementCard, NextRunCard, RulesCard } from './moves-pr';
 import { RepliesCard, ReplyFailedCard, RunAutopilotCard, RunGrantCard, RunReadyCard } from './moves-run';
+import { DcoCard, FoundCard, RepoOutCard, SilentCard, StoppedCard } from './moves-yours';
 import { ProofMoveCard, ProofStatus } from './proof-card';
 import { ClaimSteps, StatusLine, StatusLinkView } from './status-line';
 import { LiveSubmit, SubmitStepsSettled } from './submit-stepper';

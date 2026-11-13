@@ -1,22 +1,19 @@
 import { AutosubmitCountdown, StopAutopilotButton } from './follow-up-buttons';
 import {
   CardError,
-  CopyAll,
   DiscardRunButton,
-  DismissSeveral,
   GrantButton,
-  PostSeveral,
   PushButton,
   PushTitle,
   RepoRulesLink,
   ResolveHumansSetting,
   ResolveLine,
-  RetrySeveral,
   SendBack,
 } from './head-actions';
 import { GithubButton, MoveCard } from './move-card';
 import type { CardProps } from './move-props';
 import { OrgAccessButton } from './moves-first';
+import { CopyAll, DismissSeveral, PostSeveral, RetrySeveral } from './reply-batch-actions';
 import { Button } from '@/components/ui/button';
 import { githubUrlOf, isOwnAgent, timeLabel } from '@/lib/contribute/attempt-format';
 import type { ContributeReplyDraft } from '@/lib/contribute/contribute.types';

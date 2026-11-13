@@ -209,6 +209,62 @@ describe('proxy', () => {
     });
   });
 
+  describe('Learn', () => {
+    const CLOSED = [
+      '/learn',
+      '/learn/',
+      '/learn/profile',
+      '/learn/lessons',
+      '/learn/lessons/',
+      '/learn/attempts/A_1',
+      '/Learn/Attempts/A_1',
+      '//learn//attempts//A_1',
+      '/learn%2Fattempts%2FA_1',
+      '/learn/maintainers/x',
+      '/learn/%E0%A4%A',
+    ];
+
+    it.each(CLOSED)('answers %s with a 404 nobody caches, to a visitor without a session', async (path) => {
+      const response = await proxy(request(undefined, path), event);
+
+      expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+      expect(response?.headers.get('cache-control')).toBe('private, no-store');
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it('lets a signed-in visitor through to the closed pages, which ask the API whether Learn is open to them', async () => {
+      for (const path of CLOSED.slice(0, 7)) {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-cache');
+      }
+      expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+
+    it('lets everyone reach a shared lesson, its result pages and the page for maintainers', async () => {
+      for (const path of [
+        '/learn/maintainers',
+        '/learn/maintainers/',
+        '/learn/lessons/route-cache-miss-8f3k',
+        '/learn/lessons/route-cache-miss-8f3k/',
+        '/learn/lessons/route-cache-miss-8f3k/passes/octocat',
+        '/learn/lessons/route-cache-miss-8f3k/passes/octocat.json',
+      ]) {
+        const signedOut = await proxy(request(undefined, path), event);
+        expect(signedOut?.headers.get('x-middleware-rewrite'), path).toBeNull();
+        expect(signedOut?.headers.get('cache-control'), path).toBeNull();
+      }
+      expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+
+    it('leaves paths that only start alike alone', async () => {
+      for (const path of ['/learning', '/learners/1']) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();
+      }
+    });
+  });
+
   it('lets a visitor without a session through untouched, so the page stays cacheable', async () => {
     const response = await proxy(request(undefined, '/by/stars/1'), event);
 

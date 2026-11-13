@@ -98,6 +98,7 @@ import {
 import { auth } from '@/auth';
 import type { ContributeConventionsFields } from '@/lib/contribute/pr-conventions';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { ContributeAttemptLearnDocument } from '@/lib/learn/learn.documents';
 
 /**
  * The signed-in user's GitHub login, for calls made on their behalf; null without a usable session. Read once per
@@ -591,6 +592,8 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   const claimSteps = Promise.resolve(graphqlDirect(ContributeAttemptClaimStepsDocument, { id }, options)).catch(
     () => undefined,
   );
+  // A Learn attempt's mode and lesson state; left out when not answered.
+  const learn = Promise.resolve(graphqlDirect(ContributeAttemptLearnDocument, { id }, options)).catch(() => undefined);
   try {
     const { contributeAttempt: read } = await review;
     if (!read) return read;
@@ -676,10 +679,20 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
             newcomersLabel: holdRead.newcomersLabel ?? null,
           }
         : withSteps;
+    const learnRead = (await learn)?.contributeAttempt;
+    const withLearn =
+      learnRead?.attemptId === contributeAttempt.attemptId && (learnRead.mode === 'LEARN' || learnRead.mode === 'FIX')
+        ? {
+            ...withProof,
+            mode: learnRead.mode,
+            learnActiveAt: learnRead.learnActiveAt ?? null,
+            learnGatePassed: learnRead.learnGatePassed ?? null,
+          }
+        : withProof;
     const agent = (await ownAgent)?.contributeAttempt;
-    if (agent?.attemptId !== contributeAttempt.attemptId) return withProof;
+    if (agent?.attemptId !== contributeAttempt.attemptId) return withLearn;
     const { result, ...fields } = agent;
-    const merged = withFields(withProof, fields);
+    const merged = withFields(withLearn, fields);
     return merged.result && result ? { ...merged, result: { ...merged.result, prTitle: result.prTitle } } : merged;
   } catch (failure) {
     const { error } = contributeErrorOf(failure);

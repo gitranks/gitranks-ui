@@ -451,13 +451,16 @@ function reviewRowsOf(
 }
 
 /**
- * How long the user's own agent's first attempt still waits in review, after the move: " It waits 48 hours.", " It
+ * How long the user's own agent's first attempt still waits in review (a Learn attempt, from its lesson's last passed
+ * step when that is later), after the move: " It waits 48 hours.", " It
  * waits 5 more hours." Nothing for a follow-up run, when the time is not known, or once the wait is up (the claim is
  * let go at the next sweep).
  */
 function ownReviewWaitOf(attempt: ContributeAttempt, now: Date): string {
   if (attempt.kind === 'FOLLOW_UP') return '';
-  const since = readySince(attempt);
+  // A Learn attempt waits from the later of the review and the last step its user passed in the lesson.
+  const active = attempt.learnActiveAt ? timeOf(attempt.learnActiveAt) : Number.NaN;
+  const since = Number.isFinite(active) ? Math.max(readySince(attempt), active) : readySince(attempt);
   if (!Number.isFinite(since)) return '';
   const hoursLeft = Math.ceil((since + OWN_REVIEW_HOURS * HOUR - now.getTime()) / HOUR);
   if (hoursLeft < 1) return '';

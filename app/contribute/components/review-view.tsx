@@ -62,6 +62,7 @@ import {
   sessionsOf,
   waitingThreadsOf,
 } from '@/lib/contribute/sessions';
+import { learnAttemptPath } from '@/lib/learn/learn-path';
 
 /** The gates every page of a contribution passes: signed in, let in, and the attempt theirs. */
 async function gate(id: string) {
@@ -128,6 +129,8 @@ export async function FirstSessionView({
     return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} prNotes={prNotes} />;
   }
   const next = query.session === NEXT_SESSION;
+  // A Learn attempt's page is its lesson; its next step (follow-ups on its pull request) stays here.
+  if (attempt.mode === 'LEARN' && !next) redirect(learnAttemptPath(attempt.attemptId));
   // The next step gone since the layout was read (a run started, say): the address says the first attempt, so the
   // layout marks it too.
   if (next && !nextStepShown(attempt, view)) redirect(attemptPath(attempt.attemptId));

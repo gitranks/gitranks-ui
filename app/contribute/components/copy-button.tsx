@@ -6,8 +6,21 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-/** An outline button that copies `text`, says "Copied" for a moment, and tells a screen reader so. */
-export function CopyButton({ text, label, className }: { text: string; label: string; className?: string }) {
+/**
+ * An outline button that copies `text`, says "Copied" for a moment, and tells a screen reader so. `onCopy` hears of
+ * each copy that went through.
+ */
+export function CopyButton({
+  text,
+  label,
+  className,
+  onCopy,
+}: {
+  text: string;
+  label: string;
+  className?: string;
+  onCopy?: () => void;
+}) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -16,6 +29,7 @@ export function CopyButton({ text, label, className }: { text: string; label: st
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+      onCopy?.();
       clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 1500);
     } catch {

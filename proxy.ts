@@ -15,6 +15,7 @@ import {
 } from './lib/contribute/contribute-path';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { contributeOpen, requestMaySeeContribute } from './lib/contribute/preview-gate';
+import { isLearnOpenPath, isLearnPath } from './lib/learn/learn-path';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
@@ -32,6 +33,9 @@ const NOT_FOUND_PATH = '/_404';
 
 // `__Secure-` over HTTPS, bare in local dev; `.0`, `.1`… when the JWT is split across cookies.
 const SESSION_COOKIE = /^(__Secure-)?authjs\.session-token(\.\d+)?$/;
+
+/** Whether the request carries a session cookie (valid or not: the page decides). */
+const hasSession = (request: NextRequest) => request.cookies.getAll().some(({ name }) => SESSION_COOKIE.test(name));
 
 const BUILDER_PATH = /^\/badge\/builder(?:\/(?<login>[^/]+))?\/?$/;
 
@@ -91,10 +95,18 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // (which tells a visitor off the preview so itself) are open to everyone, and once
   // Contribute is launched so are the landing, the MCP docs and the questions, to visitors without a session too.
   const { pathname } = request.nextUrl;
+  // Learn is behind its own list of people, which the proxy cannot read: a closed Learn page answers a visitor without
+  // a session with the 404 here, and a signed-in one goes on to the page, which asks the API whether Learn is open to
+  // them. A shared lesson, its result pages and the page for maintainers are open to everyone.
+  if (isLearnPath(pathname) && !isLearnOpenPath(pathname) && !hasSession(request)) {
+    const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
+  }
   // The ledger has its own switch (ledger design §6): open, it goes on as any public page; closed, a visitor without a
   // session gets the 404 here, and a signed-in one goes on to the page, which asks the API whether they are on its list.
   if (isLedgerPath(pathname)) {
-    if (!(await contributeLedgerOpen()) && !request.cookies.getAll().some(({ name }) => SESSION_COOKIE.test(name))) {
+    if (!(await contributeLedgerOpen()) && !hasSession(request)) {
       const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
       response.headers.set('Cache-Control', 'private, no-store');
       return response;
@@ -127,7 +139,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // cache will not store a response that sets a cookie. Visitors without a session skip it, so
   // their pages can be cached: sign-in gets its CSRF token from `/api/auth/csrf`, and the
   // session-aware API routes wrap their handlers in `auth()` themselves.
-  if (!request.cookies.getAll().some(({ name }) => SESSION_COOKIE.test(name))) {
+  if (!hasSession(request)) {
     if (!request.cookies.has(SESSION_HINT_COOKIE)) {
       if (!ENTITY_PAGE.test(request.nextUrl.pathname)) {
         return served(NextResponse.next());

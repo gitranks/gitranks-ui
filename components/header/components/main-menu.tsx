@@ -9,6 +9,7 @@ import { GoRepo } from 'react-icons/go';
 import { GrLocation } from 'react-icons/gr';
 
 import { ContributeMenuItem } from './contribute-menu-item';
+import { LearnMenuItem } from './learn-menu-item';
 import { mainMenuItemClass } from './menu-styles';
 import { PhoneMenu } from './phone-menu';
 import {
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/navigation-menu';
 import { cn } from '@/lib/utils';
 
-export type MenuSection = 'rankings' | 'badges' | 'contribute';
+export type MenuSection = 'rankings' | 'badges' | 'contribute' | 'learn';
 
 export function MainMenu({ className, section }: Readonly<{ className?: string; section?: MenuSection }>) {
   // The shared viewport mounts menu content on the client only, so the menu runs without it.
@@ -73,6 +74,7 @@ export function MainMenu({ className, section }: Readonly<{ className?: string; 
         </NavigationMenuLink>
       </NavigationMenuItem>
       <ContributeMenuItem active={section === 'contribute'} />
+      <LearnMenuItem active={section === 'learn'} />
     </PhoneMenu>
   );
 }

@@ -13,16 +13,18 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: 
 vi.mock('@/app/learn/actions', () => ({ saveLearnProfile: vi.fn() }));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn() }));
-vi.mock('@/lib/learn/learn.data', () => ({
+const data = vi.hoisted(() => ({
   loadLearnOpen: vi.fn(),
   loadLearnProfile: vi.fn(),
   loadMyLessons: vi.fn(),
+  loadOwnAgent: vi.fn(),
 }));
+vi.mock('@/lib/learn/learn.data', () => data);
 
-const { LearnLanding } = await import('./learn-landing');
+const { LearnHomeView, LearnLanding } = await import('./learn-landing');
 const { LearnMaintainers } = await import('./learn-maintainers');
-const { LearnProfileScreen } = await import('./learn-profile');
-const { MyLessonsScreen } = await import('./my-lessons');
+const { LearnProfileScreen, LearnProfileView } = await import('./learn-profile');
+const { MyLessonsScreen, MyLessonsView } = await import('./my-lessons');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { emptyProfile, filledProfile, myLessons } = await import('@/lib/learn/__fixtures__/profile');
 
@@ -72,7 +74,9 @@ describe('Learn for maintainers', () => {
 
 describe('Goal and level', () => {
   it('starts with no goal picked, the levels guessed and marked, no domain, and Save off', () => {
-    const html = renderToStaticMarkup(<LearnProfileScreen profile={emptyProfile} view={views.onboardedNoPath} />);
+    const html = renderToStaticMarkup(
+      <LearnProfileScreen profile={emptyProfile} ownAgent={views.onboardedNoPath.ownAgent} />,
+    );
     expect(html).toContain('data-learn-profile="empty"');
     expect(text(html)).toContain('A language');
     expect(text(html)).toContain('How one project works');
@@ -86,7 +90,9 @@ describe('Goal and level', () => {
   });
 
   it('shows a saved profile: the goal with its language, Your goal first, the focus ticked, the agent connected', () => {
-    const html = renderToStaticMarkup(<LearnProfileScreen profile={filledProfile} view={views.agentOnboarded} />);
+    const html = renderToStaticMarkup(
+      <LearnProfileScreen profile={filledProfile} ownAgent={views.agentOnboarded.ownAgent} />,
+    );
     expect(html).toContain('data-learn-profile="filled"');
     expect(html).toMatch(/data-goal="LANGUAGE"[^>]*class="[^"]*border-primary/);
     expect(text(html)).toContain('TypeScript Your goal · 2 repos, since Oct 2026');
@@ -98,9 +104,9 @@ describe('Goal and level', () => {
     expect(text(html)).toContain('Find me an issue to learn from on GitRanks');
   });
 
-  it("works without Contribute's view: the agent is offered", () => {
-    const html = renderToStaticMarkup(<LearnProfileScreen profile={null} view={null} />);
-    expect(html).toContain('data-learn-agent="Not set up"');
+  it('says when the agent could not be read, and when there are no languages yet', () => {
+    const html = renderToStaticMarkup(<LearnProfileScreen profile={null} ownAgent={undefined} />);
+    expect(text(html)).toContain("We can't check your agent right now.");
     expect(text(html)).toContain('No languages yet.');
   });
 });
@@ -123,5 +129,31 @@ describe('My lessons', () => {
     expect(empty).toContain('href="/learn/profile"');
     const failed = renderToStaticMarkup(<MyLessonsScreen lessons={undefined} />);
     expect(text(failed)).toContain('Your lessons are not available right now.');
+  });
+});
+
+describe("Learn's gate on its own pages", () => {
+  const closed = () => {
+    data.loadLearnOpen.mockResolvedValue(false);
+    data.loadLearnProfile.mockRejectedValue(new Error('down'));
+    data.loadMyLessons.mockResolvedValue(undefined);
+    data.loadOwnAgent.mockResolvedValue(undefined);
+  };
+
+  it('answers not found to anyone Learn is not open to, whatever the other reads do', async () => {
+    closed();
+    await expect(LearnHomeView()).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(MyLessonsView()).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('draws the pages for a user Learn is open to', async () => {
+    data.loadLearnOpen.mockResolvedValue(true);
+    data.loadLearnProfile.mockResolvedValue(filledProfile);
+    data.loadMyLessons.mockResolvedValue(myLessons);
+    data.loadOwnAgent.mockResolvedValue(views.agentOnboarded.ownAgent);
+    expect(renderToStaticMarkup(await LearnHomeView())).toContain('data-landing-viewer="signed-in"');
+    expect(renderToStaticMarkup(await LearnProfileView())).toContain('data-learn-profile="filled"');
+    expect(renderToStaticMarkup(await MyLessonsView())).toContain('data-lesson="A_3"');
   });
 });

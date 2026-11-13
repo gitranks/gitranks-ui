@@ -5,10 +5,8 @@ import { notFound } from 'next/navigation';
 import { LearnProfileForm } from './learn-profile-form';
 import { agentWayOf } from '@/app/contribute/components/overview-sections';
 import { HEADING, Pill } from '@/app/contribute/components/primitives';
-import { loadContribute } from '@/lib/contribute/contribute.data';
-import type { ContributeView } from '@/lib/contribute/contribute.types';
-import { CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
-import { loadLearnOpen, loadLearnProfile } from '@/lib/learn/learn.data';
+import type { ContributeOwnAgent } from '@/lib/contribute/contribute.types';
+import { loadLearnOpen, loadLearnProfile, loadOwnAgent } from '@/lib/learn/learn.data';
 import type { LearnProfile } from '@/lib/learn/learn.types';
 import { LEARN_AGENT_PROMPT } from '@/lib/learn/lesson-format';
 
@@ -21,18 +19,11 @@ const LESSON_STEPS = [
 ];
 
 /**
- * The user's own agent, as Contribute's overview reads it: connected (its name, its connections, its last call), or
- * not set up yet. Without Contribute's view (never set up, or not read) it offers the connection.
+ * The user's own agent, as Contribute's overview reads it: connected (its name, its connections, its last call), not
+ * set up yet, or, unread, that it cannot be checked now.
  */
-function AgentCard({ view, now }: { view: ContributeView | null; now?: Date }) {
-  const way = view
-    ? agentWayOf(view, now)
-    : {
-        title: 'Your own agent',
-        state: { label: 'Not set up', tone: 'neutral' as const },
-        text: 'Claude Code, Codex, Cursor, Gemini CLI or Antigravity asks GitRanks for an issue. About a minute.',
-        action: { href: CONNECT_AGENT_PATH, label: 'Connect your own agent →' },
-      };
+function AgentCard({ ownAgent, now }: { ownAgent: ContributeOwnAgent | undefined; now?: Date }) {
+  const way = agentWayOf({ ownAgent }, now);
   const connected = way.state?.label === 'Connected';
   return (
     <section aria-labelledby="learn-agent" className={SIDE_CARD} data-learn-agent={way.state?.label ?? 'unknown'}>
@@ -84,11 +75,12 @@ function HowALessonGoes() {
  */
 export function LearnProfileScreen({
   profile,
-  view,
+  ownAgent,
   now,
 }: {
   profile: LearnProfile | null;
-  view: ContributeView | null;
+  /** The user's own agent; undefined when it was not read. */
+  ownAgent: ContributeOwnAgent | undefined;
   now?: Date;
 }) {
   return (
@@ -102,7 +94,7 @@ export function LearnProfileScreen({
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <LearnProfileForm profile={profile} />
         <aside className="flex min-w-0 flex-col gap-4">
-          <AgentCard view={view} now={now} />
+          <AgentCard ownAgent={ownAgent} now={now} />
           <HowALessonGoes />
         </aside>
       </div>
@@ -112,10 +104,10 @@ export function LearnProfileScreen({
 
 /** Goal and level, read per request. Behind Learn's gate: not found for anyone Learn is not open to. */
 export async function LearnProfileView() {
-  // Read together; the gate is answered first, so a closed Learn is a 404 whatever the other reads do.
   const profile = loadLearnProfile();
-  const view = loadContribute().catch(() => null);
+  const ownAgent = loadOwnAgent();
+  // Read together; a closed Learn is a 404 whatever the profile read does.
   profile.catch(() => {});
   if (!(await loadLearnOpen())) notFound();
-  return <LearnProfileScreen profile={await profile} view={await view} />;
+  return <LearnProfileScreen profile={await profile} ownAgent={await ownAgent} />;
 }

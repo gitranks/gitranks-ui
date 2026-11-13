@@ -147,8 +147,11 @@ export function ListRow({
   href,
   action,
   quiet = false,
+  kind = 'attempt',
 }: {
   id: string;
+  /** What the row is: its id goes in `data-attempt` or `data-lesson`. */
+  kind?: 'attempt' | 'lesson';
   state: string;
   meta: ReactNode;
   pills: ReactNode;
@@ -161,7 +164,8 @@ export function ListRow({
 }) {
   return (
     <li
-      data-attempt={id}
+      data-attempt={kind === 'attempt' ? id : undefined}
+      data-lesson={kind === 'lesson' ? id : undefined}
       data-state={state}
       className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 last:border-b-0"
     >

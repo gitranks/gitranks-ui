@@ -15,6 +15,7 @@ function Rows({ rows, quiet = false }: { rows: MyLessonRow[]; quiet?: boolean })
     <ListRow
       key={row.key}
       id={row.key}
+      kind="lesson"
       state={row.state}
       meta={row.meta}
       pills={<Pill tone={row.pill.tone}>{row.pill.label}</Pill>}

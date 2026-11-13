@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { ContributePageSkeleton } from '@/app/contribute/components/page-skeleton';
-import { LearnLanding } from '@/app/learn/components/learn-landing';
-import { loadLearnOpen } from '@/lib/learn/learn.data';
+import { LearnHomeView } from '@/app/learn/components/learn-landing';
 
 export const metadata: Metadata = {
   title: 'Learn from real open-source fixes',
@@ -21,12 +19,7 @@ export default function LearnHomePage() {
         </main>
       }
     >
-      <LearnHome />
+      <LearnHomeView />
     </Suspense>
   );
-}
-
-async function LearnHome() {
-  if (!(await loadLearnOpen())) notFound();
-  return <LearnLanding viewer="signed-in" />;
 }

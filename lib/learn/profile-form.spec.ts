@@ -124,17 +124,22 @@ describe('the Learn profile form', () => {
     expect(inputOf(empty)).toBeNull();
   });
 
-  it('sends the goal, every level shown and the focus', () => {
+  it("sends the goal, the levels the user set with the goal's, and the focus; guesses stay guesses", () => {
     expect(inputOf(formOf(filledProfile))).toEqual({
       goalKind: 'LANGUAGE',
       goalValue: 'TypeScript',
-      levels: [
-        { language: 'TypeScript', level: 1 },
-        { language: 'JavaScript', level: 2 },
-        { language: 'Python', level: 0 },
-      ],
+      levels: [{ language: 'TypeScript', level: 1 }],
       focus: ['LANGUAGE', 'PATTERNS'],
     });
+    const set = withLevel(formOf(filledProfile), 'Python', 2);
+    expect(inputOf(set)?.levels).toEqual([
+      { language: 'TypeScript', level: 1 },
+      { language: 'Python', level: 2 },
+    ]);
+    // The goal's own level goes even while it is a guess: the page shows it as the goal's.
+    const guessedGoal = { ...formOf(emptyProfile), goalKind: 'LANGUAGE' as const, language: 'JavaScript' };
+    expect(inputOf(guessedGoal)?.levels).toEqual([{ language: 'JavaScript', level: 2 }]);
+    expect(inputOf({ ...formOf(emptyProfile), goalKind: 'PROJECT', project: 'a/b' })?.levels).toEqual([]);
     const project = { ...formOf(emptyProfile), goalKind: 'PROJECT' as const, project: 'github.com/vercel/next.js' };
     expect(inputOf(project)).toMatchObject({ goalKind: 'PROJECT', goalValue: 'vercel/next.js' });
     // Switching goals keeps the other goal's value in the form, and sends only the picked one.

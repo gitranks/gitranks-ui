@@ -173,8 +173,8 @@ export function formProblemOf(form: LearnProfileForm): string | null {
 }
 
 /**
- * What Save sends: the goal, every level the page shows (the goal's language included), and the focus. Null while the
- * form has a problem (`formProblemOf`).
+ * What Save sends: the goal, the levels the user set (and the goal's language, which the page shows first), and the
+ * focus. A level still guessed is left out, so it stays a guess. Null while the form has a problem (`formProblemOf`).
  */
 export function inputOf(form: LearnProfileForm): LearnProfileInput | null {
   if (formProblemOf(form) || !form.goalKind) return null;
@@ -187,7 +187,9 @@ export function inputOf(form: LearnProfileForm): LearnProfileInput | null {
   return {
     goalKind: form.goalKind,
     goalValue,
-    levels: levelRowsOf(form).map(({ language, level }) => ({ language, level })),
+    levels: levelRowsOf(form)
+      .filter((row) => row.goal || !row.guessed)
+      .map(({ language, level }) => ({ language, level })),
     focus: [...form.focus],
   };
 }

@@ -48,7 +48,7 @@ function Section({ id, title, text, children }: { id: string; title: string; tex
 function GoalValue({ kind, form, onChange }: { kind: LearnGoalKind; form: Form; onChange: (form: Form) => void }) {
   if (kind === 'LANGUAGE') {
     return (
-      <Select value={form.language || undefined} onValueChange={(language) => onChange({ ...form, language })}>
+      <Select value={form.language} onValueChange={(language) => onChange({ ...form, language })}>
         <SelectTrigger aria-label="Language" className="mt-1.5 w-full max-w-60 max-sm:min-h-11">
           <SelectValue placeholder="Pick a language">{form.language || undefined}</SelectValue>
         </SelectTrigger>
@@ -97,22 +97,27 @@ export function LearnProfileForm({ profile }: { profile: LearnProfile | null }) 
 
   const save = async () => {
     const input = inputOf(form);
-    if (!input) return;
+    if (!input || saving) return;
     setSaving(true);
-    const result = await saveLearnProfile(input);
-    setSaving(false);
-    if (result.ok) {
-      setForm(formOf(result.data));
-      setStatus({ saved: true, error: null });
-    } else {
-      setStatus({
-        saved: false,
-        // Not found: Learn is closed to this account now; the page says so plainly, as the API never names why.
-        error:
-          result.error === 'NOT_FOUND'
-            ? 'Your goal and level could not be saved. Reload the page and try again.'
-            : contributeErrorMessage(result.error, result.message),
-      });
+    try {
+      const result = await saveLearnProfile(input);
+      if (result.ok) {
+        setForm(formOf(result.data));
+        setStatus({ saved: true, error: null });
+      } else {
+        setStatus({
+          saved: false,
+          // Not found: Learn is closed to this account now; the page says so plainly, as the API never names why.
+          error:
+            result.error === 'NOT_FOUND'
+              ? 'Your goal and level could not be saved. Reload the page and try again.'
+              : contributeErrorMessage(result.error, result.message),
+        });
+      }
+    } catch {
+      setStatus({ saved: false, error: contributeErrorMessage('FAILED') });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -125,135 +130,142 @@ export function LearnProfileForm({ profile }: { profile: LearnProfile | null }) 
         void save();
       }}
     >
-      <Section
-        id={`${id}-goal`}
-        title="What do you want to learn?"
-        text="One goal at a time. It picks your issues and the deep dive of each lesson."
-      >
-        <RadioGroup
-          aria-labelledby={`${id}-goal`}
-          value={form.goalKind ?? ''}
-          onValueChange={(kind) => change({ ...form, goalKind: kind as LearnGoalKind })}
-          className="gap-2"
+      {/* Held while saving: the saved answer replaces the form, so nothing typed meanwhile is lost. */}
+      <fieldset disabled={saving} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
+        <Section
+          id={`${id}-goal`}
+          title="What do you want to learn?"
+          text="One goal at a time. It picks your issues and the deep dive of each lesson."
         >
-          {goalKindsOf(form).map((kind) => {
-            const on = form.goalKind === kind;
-            return (
-              <div
-                key={kind}
-                data-goal={kind}
-                className={cn('flex flex-col rounded-lg border p-3.5 text-sm', on && PICKED)}
-              >
-                <label htmlFor={`${id}-goal-${kind}`} className="flex cursor-pointer items-start gap-3">
-                  <RadioGroupItem id={`${id}-goal-${kind}`} value={kind} className="mt-0.5" />
-                  <span className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="font-semibold">{GOALS[kind].title}</span>
-                    <span className="text-muted-foreground">{GOALS[kind].text}</span>
-                  </span>
-                </label>
-                {on ? (
-                  <div className="flex flex-col ps-7">
-                    <GoalValue kind={kind} form={form} onChange={change} />
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </RadioGroup>
-      </Section>
-
-      <Section
-        id={`${id}-levels`}
-        title="Your level"
-        text={
-          rows.some((row) => row.guessed)
-            ? 'We guessed from your public GitHub work. Correct anything that is off.'
-            : 'Your level in each language. Lessons explain less of what you know well.'
-        }
-      >
-        {rows.length ? (
-          <div className="flex flex-col">
-            {rows.map((row) => (
-              <div
-                key={row.language}
-                data-level={row.language}
-                data-guessed={row.guessed || undefined}
-                className="grid items-center gap-x-4 gap-y-2 border-t py-3 first:border-t-0 sm:grid-cols-[200px_1fr]"
-              >
-                <div className="flex flex-col">
-                  <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
-                    {row.language}
-                    {row.guessed ? <Pill>Guessed</Pill> : null}
-                  </span>
-                  {row.note ? <span className="text-xs text-muted-foreground">{row.note}</span> : null}
-                </div>
-                <RadioGroup
-                  aria-label={`${row.language} level`}
-                  value={String(row.level)}
-                  onValueChange={(level) => change(withLevel(form, row.language, Number(level)))}
-                  className="flex flex-wrap gap-x-5 gap-y-2"
+          <RadioGroup
+            aria-labelledby={`${id}-goal`}
+            value={form.goalKind ?? ''}
+            onValueChange={(kind) => change({ ...form, goalKind: kind as LearnGoalKind })}
+            className="gap-2"
+          >
+            {goalKindsOf(form).map((kind) => {
+              const on = form.goalKind === kind;
+              return (
+                <div
+                  key={kind}
+                  data-goal={kind}
+                  className={cn('flex flex-col rounded-lg border p-3.5 text-sm', on && PICKED)}
                 >
-                  {LEVELS.map((label, level) => {
-                    const radio = `${id}-level-${row.language}-${level}`;
-                    return (
-                      <label
-                        key={label}
-                        htmlFor={radio}
-                        className="flex cursor-pointer items-center gap-2 text-sm max-sm:min-h-11"
-                      >
-                        <RadioGroupItem id={radio} value={String(level)} />
-                        <span>{label}</span>
-                      </label>
-                    );
-                  })}
-                </RadioGroup>
-              </div>
-            ))}
+                  <label htmlFor={`${id}-goal-${kind}`} className="flex cursor-pointer items-start gap-3">
+                    <RadioGroupItem id={`${id}-goal-${kind}`} value={kind} className="mt-0.5" />
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="font-semibold">{GOALS[kind].title}</span>
+                      <span className="text-muted-foreground">{GOALS[kind].text}</span>
+                    </span>
+                  </label>
+                  {on ? (
+                    <div className="flex flex-col ps-7">
+                      <GoalValue kind={kind} form={form} onChange={change} />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </RadioGroup>
+        </Section>
+
+        <Section
+          id={`${id}-levels`}
+          title="Your level"
+          text={
+            rows.some((row) => row.guessed)
+              ? 'We guessed from your public GitHub work. Correct anything that is off.'
+              : 'Your level in each language. Lessons explain less of what you know well.'
+          }
+        >
+          {rows.length ? (
+            <div className="flex flex-col">
+              {rows.map((row) => (
+                <div
+                  key={row.language}
+                  data-level={row.language}
+                  data-guessed={row.guessed || undefined}
+                  className="grid items-center gap-x-4 gap-y-2 border-t py-3 first:border-t-0 sm:grid-cols-[200px_1fr]"
+                >
+                  <div className="flex flex-col">
+                    <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
+                      {row.language}
+                      {row.guessed ? <Pill>Guessed</Pill> : null}
+                    </span>
+                    {row.note ? <span className="text-xs text-muted-foreground">{row.note}</span> : null}
+                  </div>
+                  <RadioGroup
+                    aria-label={`${row.language} level`}
+                    value={String(row.level)}
+                    onValueChange={(level) => change(withLevel(form, row.language, Number(level)))}
+                    className="flex flex-wrap gap-x-5 gap-y-2"
+                  >
+                    {LEVELS.map((label, level) => {
+                      const radio = `${id}-level-${row.language}-${level}`;
+                      return (
+                        <label
+                          key={label}
+                          htmlFor={radio}
+                          className="flex cursor-pointer items-center gap-2 text-sm max-sm:min-h-11"
+                        >
+                          <RadioGroupItem id={radio} value={String(level)} />
+                          <span>{label}</span>
+                        </label>
+                      );
+                    })}
+                  </RadioGroup>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground" data-levels="none">
+              No languages yet. Pick a language as your goal and set your level in it.
+            </p>
+          )}
+        </Section>
+
+        <Section
+          id={`${id}-focus`}
+          title="What should lessons focus on?"
+          text="Pick any. Lessons spend more of their steps there."
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            {FOCUS.map(({ value, label }) => {
+              const on = form.focus.includes(value);
+              return (
+                <label
+                  key={value}
+                  htmlFor={`${id}-focus-${value}`}
+                  data-focus={value}
+                  className={cn(
+                    'flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm max-sm:min-h-11',
+                    on && PICKED,
+                  )}
+                >
+                  <Checkbox
+                    id={`${id}-focus-${value}`}
+                    checked={on}
+                    onCheckedChange={(checked) => change(withFocus(form, value, checked === true))}
+                    className="mt-0.5"
+                  />
+                  <span>{label}</span>
+                </label>
+              );
+            })}
           </div>
-        ) : (
-          <p className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground" data-levels="none">
-            No languages yet. Pick a language as your goal and set your level in it.
-          </p>
-        )}
-      </Section>
-
-      <Section
-        id={`${id}-focus`}
-        title="What should lessons focus on?"
-        text="Pick any. Lessons spend more of their steps there."
-      >
-        <div className="grid gap-2 sm:grid-cols-2">
-          {FOCUS.map(({ value, label }) => {
-            const on = form.focus.includes(value);
-            return (
-              <label
-                key={value}
-                htmlFor={`${id}-focus-${value}`}
-                data-focus={value}
-                className={cn(
-                  'flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm max-sm:min-h-11',
-                  on && PICKED,
-                )}
-              >
-                <Checkbox
-                  id={`${id}-focus-${value}`}
-                  checked={on}
-                  onCheckedChange={(checked) => change(withFocus(form, value, checked === true))}
-                  className="mt-0.5"
-                />
-                <span>{label}</span>
-              </label>
-            );
-          })}
-        </div>
-      </Section>
-
+        </Section>
+      </fieldset>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={!!problem || saving} className="min-h-11 px-5 font-semibold">
           {saving ? 'Saving…' : 'Save'}
         </Button>
-        <span role="status" aria-live="polite" className="text-sm text-muted-foreground">
-          {status.saved ? 'Saved. Used from your next lesson.' : (problem ?? 'Used from your next lesson.')}
+        {status.saved ? null : (
+          <span className="text-sm text-muted-foreground" data-form-hint="">
+            {problem ?? 'Used from your next lesson.'}
+          </span>
+        )}
+        <span role="status" aria-live="polite" className="text-sm text-muted-foreground empty:hidden">
+          {status.saved ? 'Saved. Used from your next lesson.' : ''}
         </span>
       </div>
       {status.error ? (

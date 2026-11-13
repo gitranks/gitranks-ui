@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { FaGithub } from 'react-icons/fa';
 
 import { Diagram } from './diagram';
@@ -8,6 +9,7 @@ import { H2, MUTED_SECTION, WIDTH } from '@/app/contribute/components/landing';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { EXAMPLE_LESSON } from '@/lib/learn/example-lesson';
+import { loadLearnOpen } from '@/lib/learn/learn.data';
 import { LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
 
@@ -263,4 +265,10 @@ export function LearnLanding({ viewer }: { viewer: LearnLandingViewer }) {
       </section>
     </main>
   );
+}
+
+/** The front door, behind Learn's gate: not found for anyone Learn is not open to (a visitor never gets this far). */
+export async function LearnHomeView() {
+  if (!(await loadLearnOpen())) notFound();
+  return <LearnLanding viewer="signed-in" />;
 }

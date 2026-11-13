@@ -14,5 +14,7 @@ export default defineConfig({
     setupFiles: ['design/setup.tsx'],
     // The site's address, as production sets it: the badge snippets and links the boards show are absolute.
     env: { NEXT_PUBLIC_URI: 'https://gitranks.com' },
+    // Every board is drawn in one test: past vitest's 5 seconds on a busy machine.
+    testTimeout: 60_000,
   },
 });

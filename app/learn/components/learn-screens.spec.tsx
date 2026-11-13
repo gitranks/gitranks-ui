@@ -20,6 +20,7 @@ vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(), loadAttemptLe
 
 const { QuestionCard } = await import('./question-card');
 const { LearnAttemptScreen } = await import('./learn-attempt');
+const { phaseOf } = await import('./lesson-flow');
 const { Diagram } = await import('./diagram');
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
@@ -144,6 +145,22 @@ describe('a diagram', () => {
 const attempt = detail({ mode: 'LEARN', runner: 'MCP', sendBacksLeft: 2, prFooter: 'footer' });
 const screen = (lesson: Parameters<typeof LearnAttemptScreen>[0]['lesson'], at = attempt) =>
   renderToStaticMarkup(<LearnAttemptScreen view={views.active} attempt={at} lesson={lesson} />);
+
+describe("the lesson's phase", () => {
+  it('runs from opening to the warm-up, the steps and the summary, by the run', () => {
+    expect(phaseOf('WARMUP', null)).toBe('starting');
+    expect(phaseOf('WARMUP', lessons.warmup.run)).toBe('warmup');
+    expect(phaseOf('LESSON', lessons.step.run)).toBe('step');
+    expect(phaseOf('LESSON', lessons.blocked.run)).toBe('blocked');
+    expect(phaseOf('LESSON', lessons.ready.run)).toBe('done');
+    for (const stage of ['PR_OPEN', 'HAND_PR', 'ENDED'] as const)
+      expect(phaseOf(stage, lessons.ready.run)).toBe('static');
+  });
+
+  it('keeps the answer that passed the lesson on its step until the user moves on', () => {
+    expect(phaseOf('LESSON', lessons.ready.run, true)).toBe('step');
+  });
+});
 
 describe("a Learn attempt's page", () => {
   it('while the agent works, says the lesson comes next', () => {

@@ -103,7 +103,7 @@ export function QuestionFeedback({
 }) {
   const [open, setOpen] = useState(false);
   const report = (
-    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 px-3 text-muted-foreground">
+    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 px-3 text-muted-foreground max-sm:min-h-11">
       <Flag aria-hidden="true" className="size-4" />
       Report
     </Button>

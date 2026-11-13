@@ -186,6 +186,28 @@ describe('needsYouItemsOf: what waits for a review', () => {
   });
 });
 
+describe('needsYouItemsOf: a Learn attempt', () => {
+  it('asks to take the lesson, and waits from the later of the review and the last step passed', () => {
+    const learn = attempt({
+      runner: 'MCP',
+      mode: 'LEARN',
+      reviewAt: '2026-10-26T11:00:00.000Z',
+      learnActiveAt: '2026-10-28T07:00:00.000Z',
+    });
+    expect(items({ reviews: [learn] }).items[0]).toMatchObject({
+      kind: 'own-review',
+      pill: 'Lesson ready',
+      move: 'Your agent fixed this and wrote a lesson on it. Take the lesson, then approve the pull request. It waits 43 more hours.',
+      action: { label: 'Take the lesson', href: '/learn/attempts/A_1' },
+    });
+    // No step passed yet: from the review alone, whose wait is up.
+    const idle = attempt({ runner: 'MCP', mode: 'LEARN', reviewAt: '2026-10-26T11:00:00.000Z' });
+    expect(items({ reviews: [idle] }).items[0].move).toBe(
+      'Your agent fixed this and wrote a lesson on it. Take the lesson, then approve the pull request.',
+    );
+  });
+});
+
 describe('needsYouItemsOf: an open pull request', () => {
   it('leads with changes requested, starts the next run on the next step, and says what more waits', () => {
     expect(rowOf(prsNeedingYou.changes)).toMatchObject({

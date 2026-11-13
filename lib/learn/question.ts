@@ -87,9 +87,11 @@ export function warmupAnswersOf(
   });
 }
 
-/** How many warm-up questions have an answer, "I don't know yet" included. */
-export const answeredCountOf = (picks: Readonly<Record<string, readonly string[]>>) =>
-  Object.values(picks).filter((picked) => picked.length > 0).length;
+/** How many of the warm-up's questions have an answer, "I don't know yet" included (a reported one is gone). */
+export const answeredCountOf = (
+  picks: Readonly<Record<string, readonly string[]>>,
+  questions: readonly Pick<LessonQuestion, 'id'>[],
+) => questions.filter(({ id }) => (picks[id]?.length ?? 0) > 0).length;
 
 /** A step's state as its rail badge says it; nothing while it is open. */
 export const STEP_BADGES: Record<

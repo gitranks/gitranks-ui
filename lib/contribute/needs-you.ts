@@ -17,6 +17,7 @@ import { maskedKey, relativeLabel, timeLeftLabel } from './format';
 import { type ContributePrConventionIssue, httpsOnly, PR_FIX_WORDS } from './pr-conventions';
 import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { attemptPath, nextSessionPath, sessionPath } from './sessions';
+import { learnAttemptPath } from '@/lib/learn/learn-path';
 
 /**
  * "Needs you" on Overview and My contributions (2026-11-03): one row per thing that waits for the user, each saying
@@ -416,6 +417,22 @@ function reviewRowsOf(
         action: { label: 'Check before it submits', href, aria: `Check ${where} before it submits` },
         group: GROUPS.autopilot,
         at: timeOf(attempt.autosubmitAt),
+      };
+    }
+    if (isOwnAgent(attempt) && attempt.mode === 'LEARN') {
+      return {
+        ...base,
+        kind: 'own-review',
+        tone: 'violet',
+        pill: 'Lesson ready',
+        move: `Your agent fixed this and wrote a lesson on it. Take the lesson, then approve the pull request.${ownReviewWaitOf(attempt, now)}`,
+        action: {
+          label: 'Take the lesson',
+          href: learnAttemptPath(attempt.attemptId),
+          aria: `Take the lesson on ${where}`,
+        },
+        group: GROUPS.review,
+        at: readySince(attempt),
       };
     }
     if (isOwnAgent(attempt)) {

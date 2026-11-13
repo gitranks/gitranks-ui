@@ -98,7 +98,11 @@ import {
 import { auth } from '@/auth';
 import type { ContributeConventionsFields } from '@/lib/contribute/pr-conventions';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { ContributeAttemptLearnDocument } from '@/lib/learn/learn.documents';
+import {
+  ContributeAttemptLearnDocument,
+  ContributeAttemptsInLearnDocument,
+  ContributeAttemptsLearnDocument,
+} from '@/lib/learn/learn.documents';
 
 /**
  * The signed-in user's GitHub login, for calls made on their behalf; null without a usable session. Read once per
@@ -402,6 +406,7 @@ export async function loadAttempts(
       graphqlDirect(ContributeAttemptsFollowUpsDocument, variables, options),
       graphqlDirect(ContributeAttemptsOwnAgentDocument, variables, options),
       graphqlDirect(ContributeAttemptsMovesDocument, variables, options),
+      graphqlDirect(ContributeAttemptsLearnDocument, variables, options),
     ]),
   );
 }
@@ -422,7 +427,7 @@ function attemptsOf([main, ...extras]: [
 }
 
 /**
- * The signed-in user's attempts in any of `states`, newest first, with their follow-up and own-agent fields;
+ * The signed-in user's attempts in any of `states`, newest first, with their follow-up, own-agent and Learn fields;
  * `undefined` when the API does not answer (an API that does not take `states` yet among them).
  */
 export async function loadAttemptsIn(
@@ -440,6 +445,7 @@ export async function loadAttemptsIn(
       graphqlDirect(ContributeAttemptsInFollowUpsDocument, variables, options),
       graphqlDirect(ContributeAttemptsInOwnAgentDocument, variables, options),
       graphqlDirect(ContributeAttemptsInMovesDocument, variables, options),
+      graphqlDirect(ContributeAttemptsInLearnDocument, variables, options),
     ]),
   );
 }

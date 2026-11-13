@@ -133,7 +133,7 @@ function Details({ attempt, steps }: { attempt: ContributeAttemptDetail; steps: 
           {
             value: 'lesson',
             label: 'Lesson',
-            badge: `${steps.length} steps`,
+            badge: `${steps.length} ${steps.length === 1 ? 'step' : 'steps'}`,
             content: steps.map((step, index) => (
               <StepArticle key={step.id} step={step} index={index} count={steps.length} copy="tab-" />
             )),
@@ -310,9 +310,13 @@ export function LearnAttemptScreen({
  */
 export async function LearnAttemptView({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!(await loadLearnOpen())) notFound();
-  const [view, attempt, lesson] = await Promise.all([loadContribute(), loadAttempt(id), loadAttemptLesson(id)]);
-  if (!view || !attempt) notFound();
+  const [open, view, attempt, lesson] = await Promise.all([
+    loadLearnOpen(),
+    loadContribute(),
+    loadAttempt(id),
+    loadAttemptLesson(id),
+  ]);
+  if (!open || !view || !attempt) notFound();
   if (attempt.mode === 'FIX' || !lesson) {
     if (attempt.mode === 'FIX') redirect(attemptPath(attempt.attemptId));
     notFound();

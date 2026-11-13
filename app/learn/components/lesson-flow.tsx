@@ -92,9 +92,14 @@ export function StepArticle({
 /** Where the flow is, from the run as it stands. */
 type Phase = 'starting' | 'warmup' | 'step' | 'blocked' | 'done' | 'static';
 
-export function phaseOf(stage: LearnStage, run: LessonRun | null): Phase {
+/**
+ * The flow's phase: a right answer stays on its step until the user moves on (`rightShown`), even the one that passed
+ * the lesson, so its why lines are read before the summary.
+ */
+export function phaseOf(stage: LearnStage, run: LessonRun | null, rightShown = false): Phase {
   if (stage === 'PR_OPEN' || stage === 'HAND_PR' || stage === 'ENDED') return 'static';
   if (!run) return 'starting';
+  if (rightShown) return 'step';
   if (run.passedAt) return 'done';
   if (run.blocked) return 'blocked';
   if (run.warmup.length) return 'warmup';
@@ -135,20 +140,33 @@ export function LessonFlow({
   const [viewing, setViewing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const phase = phaseOf(stage, run);
+  const phase = phaseOf(stage, run, checked?.correct === true);
 
-  // A lesson with no run yet opens one as soon as the page shows: the open one, or a new one.
-  const starting = useRef(false);
+  // A lesson with no run yet opens one as soon as the page shows: the open one, or a new one. "Try again" asks again.
+  const [tries, setTries] = useState(0);
+  const starting = useRef(-1);
   useEffect(() => {
-    if (phase !== 'starting' || starting.current) return;
-    starting.current = true;
+    if (phase !== 'starting' || starting.current === tries) return;
+    starting.current = tries;
     startLessonRun(attemptId).then((result) => {
       if (result.ok) setRun(result.data);
       else setError(contributeErrorMessage(result.error, result.message));
     });
-  }, [phase, attemptId]);
+  }, [phase, attemptId, tries]);
+
+  // The run passed, or two steps had every question reported: once the user has moved on, the page reads the lesson
+  // again, which opens the pull request's form, or says the questions need fixing with the send-back.
+  const refreshed = useRef(false);
+  const wanted = run?.passedAt ? 'READY_TO_APPROVE' : run?.blocked ? 'BLOCKED' : null;
+  useEffect(() => {
+    if (!wanted || wanted === stage || checked?.correct || refreshed.current) return;
+    refreshed.current = true;
+    router.refresh();
+  }, [wanted, stage, checked?.correct, router]);
 
   const current = run?.current ?? null;
+  // The question on screen: the one just answered right, else the one to answer.
+  const shownQuestion = checked?.correct ? checked.question : (current?.question ?? null);
   // The step on screen: the one just answered right (until "Next step"), else the current question's.
   const stepId = checked?.correct ? checked.question.stepId : (current?.question.stepId ?? null);
   const shownId = viewing ?? (phase === 'step' ? stepId : null);
@@ -189,8 +207,6 @@ export function LessonFlow({
     setRun(result.data);
     if (checked?.question.id === questionId) setChecked(null);
     setPicked([]);
-    // The questions need fixing: the page says so, with what to do.
-    if (result.data.blocked) router.refresh();
     return null;
   };
 
@@ -213,8 +229,6 @@ export function LessonFlow({
   const next = () => {
     setChecked(null);
     setViewing(null);
-    // Passed: the page reads the lesson again, and opens the pull request's form.
-    if (run?.passedAt) router.refresh();
   };
 
   const startLesson = () => {
@@ -247,7 +261,7 @@ export function LessonFlow({
               Copy this step as a prompt and ask your agent to explain it another way. Answer here afterwards.
             </p>
             <CopyButton
-              text={copyPromptOf(step, step.id === stepId ? (current?.question ?? null) : null, head)}
+              text={copyPromptOf(step, step.id === stepId ? shownQuestion : null, head)}
               label="Copy for my agent"
               className="min-h-8 self-start sm:min-h-8"
               onCopy={() => run && void logCopyForAgent(run.id, step.id)}
@@ -265,6 +279,19 @@ export function LessonFlow({
       <Box state="LEARN_START" tone="warn">
         <h2 className={HEADING.card}>Your lesson did not open</h2>
         <p className="text-sm text-muted-foreground">{error}</p>
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setError(null);
+              setTries((count) => count + 1);
+            }}
+            className="max-sm:min-h-11"
+          >
+            Try again
+          </Button>
+        </div>
       </Box>
     ) : (
       <Box state="LEARN_START">
@@ -284,7 +311,7 @@ export function LessonFlow({
       </>
     );
   } else if (phase === 'warmup' && run) {
-    const answered = answeredCountOf(warmupPicks);
+    const answered = answeredCountOf(warmupPicks, run.warmup);
     body = (
       <>
         <Box state="LEARN_WARMUP">
@@ -312,7 +339,13 @@ export function LessonFlow({
           />
         ))}
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" size="lg" onClick={startLesson} disabled={pending} className="h-10 px-6 font-semibold">
+          <Button
+            type="button"
+            size="lg"
+            onClick={startLesson}
+            disabled={pending}
+            className="h-10 px-6 font-semibold max-sm:min-h-11"
+          >
             {pending ? 'Starting…' : 'Start the lesson'}
             <ArrowRight aria-hidden="true" className="size-4" />
           </Button>

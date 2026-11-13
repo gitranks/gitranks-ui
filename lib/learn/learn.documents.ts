@@ -70,6 +70,23 @@ export const ContributeAttemptLearnDocument = doc<
   contributeAttempt(id: $id) { attemptId mode learnActiveAt learnGatePassed }
 }`);
 
+type LearnRow = { attemptId: string; mode: ContributeAttemptMode; learnActiveAt: string | null };
+
+/** The attempts' Learn fields, read beside a list of attempts. */
+export const ContributeAttemptsLearnDocument = doc<
+  { contributeAttempts: LearnRow[] | null },
+  { state?: string; first?: number }
+>(`query ContributeAttemptsLearn($state: ContributeAttemptState, $first: Int) {
+  contributeAttempts(state: $state, first: $first) { attemptId mode learnActiveAt }
+}`);
+
+export const ContributeAttemptsInLearnDocument = doc<
+  { contributeAttempts: LearnRow[] | null },
+  { states: string[]; first?: number }
+>(`query ContributeAttemptsInLearn($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { attemptId mode learnActiveAt }
+}`);
+
 export const StartLessonRunDocument = doc<{ startLessonRun: LessonRun }, { attemptId: string }>(
   `mutation StartLessonRun($attemptId: ID!) { startLessonRun(attemptId: $attemptId) { ${RUN} } }`,
 );

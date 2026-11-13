@@ -56,7 +56,9 @@ describe("a lesson's question", () => {
       { questionId: 'w2', picked: [], dontKnow: true },
       { questionId: 'w3', picked: [], dontKnow: true },
     ]);
-    expect(answeredCountOf({ w1: ['w1a'], w2: [DONT_KNOW], w3: [] })).toBe(2);
+    expect(answeredCountOf({ w1: ['w1a'], w2: [DONT_KNOW], w3: [] }, WARMUP)).toBe(2);
+    // A question reported away no longer counts.
+    expect(answeredCountOf({ w1: ['w1a'], w2: [DONT_KNOW] }, WARMUP.slice(1))).toBe(1);
   });
 
   it('names what a step covers, and how it went', () => {

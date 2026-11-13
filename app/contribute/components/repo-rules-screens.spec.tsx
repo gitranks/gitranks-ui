@@ -273,6 +273,9 @@ describe('the rules on an issue card', () => {
     expect(words).toContain('This repo’s rules · autopilot off · 5 more');
     expect(words).toContain('No AI-assisted work on good first issues: GitRanks leaves them to newcomers.');
     expect(html).toContain('href="https://github.com/driftwood-js/driftwood/blob/HEAD/AI_POLICY.md"');
+    // The issue card keeps the source's full label; only the contribution's rail uses the compact one.
+    expect(words).toContain('AI_POLICY.md ↗');
+    expect(html).not.toContain('title="AI_POLICY.md"');
     expect(words).not.toContain('Agents must not');
   });
 

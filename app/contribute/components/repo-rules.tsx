@@ -83,7 +83,7 @@ function Rule({ line }: { line: ContributeRepoRules['lines'][number] }) {
             </span>
             <span>{line.text}</span>
           </summary>
-          <p className="mt-1 pl-3 text-muted-foreground">“{line.quote}”</p>
+          <p className="mt-1 pl-3 break-words text-muted-foreground">“{line.quote}”</p>
         </details>
       ) : (
         <span className="min-w-0 flex-1">{line.text}</span>

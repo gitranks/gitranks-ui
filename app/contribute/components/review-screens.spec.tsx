@@ -164,7 +164,7 @@ describe('the contribution page', () => {
       const html = renderToStaticMarkup(
         <ReviewScreen view={views.active} attempt={followUpAttempts.review} now={NOW} prNotes={notes} />,
       );
-      expect(gridOf(html)).toBe("grid gap-y-0 [grid-template-areas:'pane'_'notes']");
+      expect(gridOf(html)).toBe("grid grid-cols-[minmax(0,1fr)] gap-y-0 [grid-template-areas:'pane'_'notes']");
       expect(paneOf(html)).toBe('[grid-area:pane] min-w-0');
       expect(notesOf(html)).toContain('mt-5');
       expect(notesOf(html)).not.toContain('lg:mt-4');
@@ -1193,7 +1193,7 @@ describe('the review screen', () => {
       expect(html.match(/data-pr-stopped=""/g)).toHaveLength(1);
       expect(header.indexOf('data-pr-stopped')).toBeGreaterThan(header.indexOf('data-pr-state'));
       expect(header).toMatch(/<div data-pr-stopped=""/);
-      expect(line).not.toMatch(/^data-pr-stopped=""[^>]*role=/);
+      expect(header.match(/<div [^>]*data-pr-stopped=""[^>]*>/)?.[0]).not.toContain('role=');
       expect(line).not.toContain(' open=""');
       expect(text(line.match(/<summary[^>]*>(.*?)<\/summary>/)?.[1] ?? '').trim()).toBe(
         'GitRanks work on this PR stopped sam-w · Oct 28 Why?',

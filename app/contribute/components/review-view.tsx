@@ -343,11 +343,17 @@ function SessionDetails({
   );
 }
 
+/** The two limits the rail's rules read: a client component, so nothing else of the settings goes to the browser. */
+const railSettingsOf = (view: ContributeView) => {
+  const settings = settingsOf(view);
+  return settings ? { maxChangedLines: settings.maxChangedLines, maxFiles: settings.maxFiles } : null;
+};
+
 /** The grid with the sessions' rail: one column on a phone, the rail's column beside the pane from `lg`. */
 const RAIL_GRID =
-  "grid items-start gap-x-5 gap-y-0 [grid-template-areas:'sessions'_'pane'_'rules'_'notes'] lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr] lg:[grid-template-areas:'sessions_pane'_'rules_pane'_'notes_pane']";
+  "grid grid-cols-[minmax(0,1fr)] items-start gap-x-5 gap-y-0 [grid-template-areas:'sessions'_'pane'_'rules'_'notes'] lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr] lg:[grid-template-areas:'sessions_pane'_'rules_pane'_'notes_pane']";
 /** The grid of a run whose first attempt is not known: the pane, then the notes. */
-const PANE_GRID = "grid gap-y-0 [grid-template-areas:'pane'_'notes']";
+const PANE_GRID = "grid grid-cols-[minmax(0,1fr)] gap-y-0 [grid-template-areas:'pane'_'notes']";
 
 /** The organization a repo belongs to, as the repo rules name it: "driftwood-js". */
 const orgOf = (attempt: ContributeAttemptDetail) => attempt.nameWithOwner?.split('/')[0] || 'The organization';
@@ -401,7 +407,7 @@ export function ContributionShell({
           {cards && first ? (
             <AttemptRepoRules
               rules={first.repoRules}
-              settings={settingsOf(view)}
+              settings={railSettingsOf(view)}
               finished={isFinishedAttempt(first.state)}
               // Never the session shown: the layout stays as the user moves between them.
               access={orgRestrictionOf({ first, current: run, replies })}

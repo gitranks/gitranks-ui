@@ -296,7 +296,7 @@ export function PrForm({
     id: item.key === 'title' ? `${id}-title-rule` : undefined,
     action:
       item.key === 'title' && item.fix && prefix ? (
-        <RowButton aria-label={`Start the title with ${prefix}`} onClick={() => setTitle(item.fix ?? title)}>
+        <RowButton aria-label={`Add “${prefix}” to the start of the title`} onClick={() => setTitle(item.fix ?? title)}>
           Add “{prefix}”
         </RowButton>
       ) : undefined,

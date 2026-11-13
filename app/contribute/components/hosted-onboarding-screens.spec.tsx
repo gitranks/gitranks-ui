@@ -371,7 +371,12 @@ describe('A4, GitHub access at the first submit', () => {
     expect(text(again)).not.toContain('GitHub access for pull requests is not connected');
     // The bounce's note is the status box's to say, once.
     expect(text(again).match(/Allow it again from this page\./g)).toHaveLength(1);
-    expect(again.indexOf('Allow it again from this page.')).toBeGreaterThan(again.indexOf('data-submit-error'));
+    const errorAt = again.indexOf('data-submit-error');
+    const noteAt = again.indexOf('Allow it again from this page.');
+    expect(errorAt).toBeGreaterThan(-1);
+    expect(noteAt).toBeGreaterThan(errorAt);
+    // Said in the status box, not again inside the form that follows it.
+    expect(noteAt).toBeLessThan(again.indexOf('data-pr-form'));
     expect(grantNeededOf(views.active, detail())).toBe(false);
     // A grant missing at the submit and connected since asks no more.
     const missing = detail({

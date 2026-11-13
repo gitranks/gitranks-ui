@@ -132,6 +132,7 @@ describe('the contribution page', () => {
     const error = html.indexOf('data-submit-error');
     expect(error).toBeGreaterThan(-1);
     expect(html.indexOf('GitHub is still making your fork')).toBeGreaterThan(error);
+    expect(html.indexOf('GitHub is still making your fork')).toBeLessThan(html.indexOf('data-pr-form'));
   });
 
   it('opens a pull request on its change, the header saying where it stands and no box saying it again', () => {
@@ -467,7 +468,9 @@ describe('the review screen', () => {
       }),
     );
     expect(html).toMatch(/data-need="title" data-state="blocked"/);
-    expect(html).toMatch(/<button[^>]*type="button" aria-label="Start the title with \[AI\]">Add “\[AI\]”<\/button>/);
+    expect(html).toMatch(
+      /<button[^>]*type="button" aria-label="Add “\[AI\]” to the start of the title">Add “\[AI\]”<\/button>/,
+    );
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
     expect(html).toContain('data-submit-waits="title"');
   });

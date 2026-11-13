@@ -825,7 +825,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       },
       {
         id: 'brief-only',
-        title: 'A run stopped at your limit after a go, with its brief',
+        title: 'First attempt stopped at your limit after a go, with its brief',
         path: '/contribute/attempts/A_1',
         height: 1300,
         render: () =>

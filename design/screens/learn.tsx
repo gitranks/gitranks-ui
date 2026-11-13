@@ -97,7 +97,7 @@ const PATH = '/learn/attempts/A_1';
 const LESSON_PATH = '/learn/lessons/route-cache-miss-8f3k';
 const RESULT_PATH = `${LESSON_PATH}/passes/octocat`;
 const open = (children: ReactNode) => bare(children, <HeaderLine />);
-const stubPage = (visibility: LessonVisibility) => open(<LessonStubScreen visibility={visibility} />);
+const stubPage = (visibility: LessonVisibility | 'MISSING') => open(<LessonStubScreen visibility={visibility} />);
 
 /** A maintainer from the pull request, without the light sign-in: nothing stored yet. */
 const MAINTAINER: ResultViewer = { canReact: false, mine: null, returned: null };
@@ -369,6 +369,7 @@ export const LEARN_SCREENS: Screen[] = [
       'app/learn/components/shared-lesson.tsx',
       'app/learn/components/lesson-header.tsx',
       'app/learn/components/lesson-stub.tsx',
+      'app/learn/lessons/[slug]/not-found.tsx',
       'app/learn/components/lesson-flow.tsx',
       'app/learn/components/lesson-summary.tsx',
       'lib/learn/lesson-public.ts',
@@ -465,11 +466,11 @@ export const LEARN_SCREENS: Screen[] = [
       },
       {
         id: 'hidden',
-        title: 'Hidden by GitRanks: not available',
+        title: 'Hidden by GitRanks, or not there: a 404 that says it is not available',
         path: LESSON_PATH,
         signedOut: true,
         height: 520,
-        render: () => stubPage('HIDDEN'),
+        render: () => stubPage('MISSING'),
       },
     ],
   },
@@ -548,11 +549,11 @@ export const LEARN_SCREENS: Screen[] = [
       },
       {
         id: 'hidden',
-        title: 'Hidden by GitRanks: not available',
+        title: 'Hidden, or no public pass: a 404 that says it is not available',
         path: RESULT_PATH,
         signedOut: true,
         height: 520,
-        render: () => stubPage('HIDDEN'),
+        render: () => stubPage('MISSING'),
       },
     ],
   },

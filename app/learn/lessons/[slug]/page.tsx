@@ -6,7 +6,7 @@ import { lessonPageMetadata } from '@/lib/learn/lesson-seo';
 
 /**
  * A blocking route: the lesson is read before the page starts, so an unknown lesson answers a real 404. The lesson is
- * the same for everyone and not cached here: the API keeps it a minute and drops it on a take-down.
+ * the same for everyone, and not cached here.
  */
 export const instant = false;
 

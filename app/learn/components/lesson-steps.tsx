@@ -4,6 +4,12 @@ import type { LessonStep, LessonStepResult } from '@/lib/learn/learn.types';
 import { isStepDone, partsLabelOf, STEP_BADGES } from '@/lib/learn/question';
 import { cn } from '@/lib/utils';
 
+/**
+ * The grid of the lesson's pages: the rail of steps beside the pane from `lg`, above it on a phone. Here, outside any
+ * client module, so server components read the string itself.
+ */
+export const LESSON_GRID = 'grid items-start gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]';
+
 /** A step's anchor on the page. */
 export const stepAnchorOf = (step: Pick<LessonStep, 'id'>) => `step-${step.id}`;
 

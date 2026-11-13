@@ -33,6 +33,7 @@ import {
 } from '@/lib/learn/lesson-public';
 import { loadLessonResult, loadMyResultReaction } from '@/lib/learn/lesson-public.data';
 import { stepResultLabel } from '@/lib/learn/question';
+import { hasReactionMark } from '@/lib/learn/react-mark';
 
 const CARD = 'flex flex-col gap-2 rounded-xl border bg-card p-4.5';
 
@@ -254,7 +255,8 @@ export function LessonResultScreen({ result, viewer }: { result: LessonResultPag
 
 /**
  * The page's reads: the result, the same for everyone; a renamed login goes to the account's current one; and, with
- * the light GitHub sign-in, the visitor's reaction. No public passed run is a 404; a removed or hidden lesson its stub.
+ * the light GitHub sign-in, the visitor's reaction. No public passed run, or a hidden lesson, is a 404 (`not-found.tsx`);
+ * a removed lesson its stub.
  */
 export async function LessonResultView({
   slug,
@@ -266,12 +268,14 @@ export async function LessonResultView({
   react: string | string[] | undefined;
 }) {
   const answer = await loadLessonResult(slug, login);
-  if (!answer) notFound();
+  if (!answer || (answer.kind === 'stub' && answer.visibility === 'HIDDEN')) notFound();
   if (answer.kind === 'stub') return <LessonStubScreen visibility={answer.visibility} />;
   const result = answer.value;
   if (result.login !== login) redirect(lessonResultPath(result.head.slug, result.login));
 
-  const returned = reactionParamOf(react);
+  // A pick back from the sign-in this browser started for this page; `?react=` on a link alone picks nothing.
+  const pick = reactionParamOf(react);
+  const returned = pick && (await hasReactionMark(result.head.slug, result.login, pick)) ? pick : null;
   const { canReact, reaction } = await loadMyResultReaction(result.head.slug, result.login);
   return <LessonResultScreen result={result} viewer={{ canReact, mine: reaction, returned }} />;
 }

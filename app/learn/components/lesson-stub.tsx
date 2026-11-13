@@ -5,10 +5,11 @@ import { LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
 import { stubTextOf } from '@/lib/learn/lesson-public';
 
 /**
- * A lesson link that no longer opens a lesson: removed by its author, hidden by GitRanks, or (the lesson page alone)
- * paused while reports on its questions are read. It names no title, author or subject: the API gives none.
+ * A lesson link that no longer opens a lesson: removed by its author, or (the lesson page alone) paused while reports
+ * on its questions are read; `MISSING` is the 404 of an unknown or hidden lesson, or a login with no public pass. It
+ * names no title, author or subject: the API gives none.
  */
-export function LessonStubScreen({ visibility }: { visibility: LessonVisibility }) {
+export function LessonStubScreen({ visibility }: { visibility: LessonVisibility | 'MISSING' }) {
   const { title, text } = stubTextOf(visibility);
   return (
     <main className="flex flex-col" data-lesson-stub={visibility}>

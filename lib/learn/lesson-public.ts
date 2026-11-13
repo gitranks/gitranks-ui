@@ -29,10 +29,11 @@ export type LessonPageAnswer = PublicAnswer<LessonPage>;
 export type LessonResultAnswer = PublicAnswer<LessonResultPage>;
 
 /**
- * What a stub says, by why the lesson is closed: removed by its author, hidden by GitRanks, or (the lesson page alone)
- * held while reports on its questions are read. A public lesson never answers a stub; it reads as not available.
+ * What a stub says, by why the lesson is closed: removed by its author, or (the lesson page alone) held while reports
+ * on its questions are read. A hidden lesson reads as one that is not there (`MISSING`, the 404's words): it is not
+ * available, and the address names nothing more.
  */
-export function stubTextOf(visibility: LessonVisibility): { title: string; text: string } {
+export function stubTextOf(visibility: LessonVisibility | 'MISSING'): { title: string; text: string } {
   switch (visibility) {
     case 'REMOVED':
       return {
@@ -47,7 +48,7 @@ export function stubTextOf(visibility: LessonVisibility): { title: string; text:
     default:
       return {
         title: 'This lesson is not available',
-        text: 'It cannot be opened. Any pull request it belonged to is still on GitHub.',
+        text: 'The address may be wrong, or the lesson was hidden. Any pull request it belonged to is still on GitHub.',
       };
   }
 }
@@ -140,7 +141,6 @@ const jsonStateOf = (state: LessonStepResult['state']) => state.toLowerCase();
 export function resultFactsOf(page: LessonResultPage, origin: string) {
   return {
     login: page.login,
-    loginAtPass: page.loginAtPass,
     githubId: page.githubId,
     lesson: {
       slug: page.head.slug,

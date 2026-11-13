@@ -15,7 +15,7 @@ import {
   startSharedLessonRun,
 } from '../actions';
 import { LessonBlock, RichText } from './lesson-block';
-import { LessonSteps, stepAnchorOf } from './lesson-steps';
+import { LESSON_GRID, LessonSteps, stepAnchorOf } from './lesson-steps';
 import { LessonSummary, type SummaryShare } from './lesson-summary';
 import { QuestionCard } from './question-card';
 import { WrittenFor } from './written-for';
@@ -51,9 +51,6 @@ export type LessonFlowStart = {
   warmupPicks?: Record<string, string[]>;
   reportDrawn?: boolean;
 };
-
-/** The grid of the lesson's pages: the rail of steps beside the pane from `lg`, above it on a phone. */
-export const LESSON_GRID = 'grid items-start gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]';
 
 /**
  * A step: what it covers, its title, and its blocks. `copy` names a second drawing of it on the page (the details'

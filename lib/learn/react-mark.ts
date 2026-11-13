@@ -36,6 +36,15 @@ export async function markReaction(slug: unknown, login: unknown, reaction: Less
   return true;
 }
 
+/**
+ * Whether the mark names this result page and this pick, leaving it in place: the page reads it to tell a pick back
+ * from its own sign-in from a link that only carries `?react=`.
+ */
+export async function hasReactionMark(slug: string, login: string, reaction: LessonReaction): Promise<boolean> {
+  const mark = (await cookies()).get(reactMarkCookie().name)?.value;
+  return mark === markOf(slug, login, reaction);
+}
+
 /** Whether the mark names this result page and this pick. Any mark is used up. */
 export async function takeReactionMark(slug: string, login: string, reaction: LessonReaction): Promise<boolean> {
   const jar = await cookies();

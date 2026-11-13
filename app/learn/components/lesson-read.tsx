@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
 import { LearnSignInButton } from './learn-sign-in';
-import { LESSON_GRID, StepArticle } from './lesson-flow';
-import { LessonSteps } from './lesson-steps';
+import { StepArticle } from './lesson-flow';
+import { LESSON_GRID, LessonSteps } from './lesson-steps';
 import { WrittenFor } from './written-for';
 import { buttonVariants } from '@/components/ui/button';
 import type { LessonHead, LessonStep } from '@/lib/learn/learn.types';

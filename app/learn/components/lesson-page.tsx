@@ -79,11 +79,11 @@ export function LessonPageScreen({
 
 /**
  * The page's reads: the lesson, the same for everyone; signed in, whether Learn is open to the viewer and their run.
- * An unknown lesson is a 404; a removed, hidden or held one its stub.
+ * An unknown or hidden lesson is a 404 (`not-found.tsx`); a removed or held one its stub.
  */
 export async function LessonPageView({ slug }: { slug: string }) {
   const answer = await loadLessonPage(slug);
-  if (!answer) notFound();
+  if (!answer || (answer.kind === 'stub' && answer.visibility === 'HIDDEN')) notFound();
   if (answer.kind === 'stub') return <LessonStubScreen visibility={answer.visibility} />;
 
   const login = await viewerLogin();

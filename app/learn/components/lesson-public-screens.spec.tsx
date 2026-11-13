@@ -17,6 +17,7 @@ vi.mock('@/app/learn/actions', () => ({ signInToReact: vi.fn() }));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({ viewerLogin: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn() }));
+vi.mock('@/lib/learn/react-mark', () => ({ hasReactionMark: vi.fn() }));
 vi.mock('@/lib/learn/lesson-public.data', () => ({
   loadLessonPage: vi.fn(),
   loadLessonResult: vi.fn(),
@@ -28,6 +29,7 @@ const { LessonPageScreen, LessonPageView } = await import('./lesson-page');
 const { LessonResultScreen, LessonResultView } = await import('./lesson-result');
 const { LessonStubScreen } = await import('./lesson-stub');
 const data = await import('@/lib/learn/lesson-public.data');
+const { hasReactionMark } = await import('@/lib/learn/react-mark');
 const { viewerLogin } = await import('@/lib/contribute/contribute.data');
 const { loadLearnOpen } = await import('@/lib/learn/learn.data');
 const { lessonPage, PUBLIC_HEAD, result, sharedRuns } = await import('@/lib/learn/__fixtures__/shared');
@@ -133,6 +135,9 @@ describe('a shared lesson', () => {
 
     vi.mocked(data.loadLessonPage).mockResolvedValue(null);
     await expect(LessonPageView({ slug: 'x' })).rejects.toThrow('NEXT_NOT_FOUND');
+
+    vi.mocked(data.loadLessonPage).mockResolvedValue({ kind: 'stub', visibility: 'HIDDEN' });
+    await expect(LessonPageView({ slug: 'x' })).rejects.toThrow('NEXT_NOT_FOUND');
   });
 });
 
@@ -183,7 +188,7 @@ describe('a result page', () => {
     vi.mocked(data.loadLessonResult).mockResolvedValue({ kind: 'found', value: result() });
     vi.mocked(data.loadMyResultReaction).mockResolvedValue({ canReact: true, reaction: 'YES' });
     const html = renderToStaticMarkup(
-      await LessonResultView({ slug: 'route-cache-miss-8f3k', login: 'octocat', react: 'yes' }),
+      await LessonResultView({ slug: 'route-cache-miss-8f3k', login: 'octocat', react: undefined }),
     );
     expect(text(html)).toContain('Thank you: you said it helped.');
 
@@ -194,6 +199,25 @@ describe('a result page', () => {
 
     vi.mocked(data.loadLessonResult).mockResolvedValue(null);
     await expect(LessonResultView({ slug: 'x', login: 'y', react: undefined })).rejects.toThrow('NEXT_NOT_FOUND');
+
+    vi.mocked(data.loadLessonResult).mockResolvedValue({ kind: 'stub', visibility: 'HIDDEN' });
+    await expect(LessonResultView({ slug: 'x', login: 'y', react: undefined })).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('takes a ?react= pick only when this browser started the sign-in for it', async () => {
+    vi.mocked(data.loadLessonResult).mockResolvedValue({ kind: 'found', value: result() });
+    vi.mocked(data.loadMyResultReaction).mockResolvedValue({ canReact: false, reaction: null });
+
+    vi.mocked(hasReactionMark).mockResolvedValue(false);
+    const linked = renderToStaticMarkup(
+      await LessonResultView({ slug: 'route-cache-miss-8f3k', login: 'octocat', react: 'no' }),
+    );
+    expect(linked).not.toContain('data-react-sign-in');
+    expect(hasReactionMark).toHaveBeenLastCalledWith('route-cache-miss-8f3k', 'octocat', 'NO');
+
+    vi.mocked(hasReactionMark).mockClear();
+    await LessonResultView({ slug: 'route-cache-miss-8f3k', login: 'octocat', react: 'maybe' });
+    expect(hasReactionMark).not.toHaveBeenCalled();
   });
 });
 

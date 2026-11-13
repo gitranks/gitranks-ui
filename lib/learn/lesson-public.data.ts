@@ -28,7 +28,7 @@ function missingOrThrow(failure: unknown): null {
 
 /**
  * A shared lesson as anyone reads it: never as the viewer (no login is sent), so every visitor gets the same answer.
- * Not cached here: the API keeps it for a minute and drops it at once on a take-down, a hide or a hold.
+ * Not cached here, so a take-down shows at once.
  */
 export async function readLessonPage(slug: unknown): Promise<LessonPageAnswer> {
   const id = lessonSlugOf(slug);

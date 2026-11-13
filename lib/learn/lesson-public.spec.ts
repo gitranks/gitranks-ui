@@ -123,7 +123,6 @@ describe('the public reads', () => {
     const facts = resultFactsOf(result({ login: 'octo-renamed' }), 'https://gitranks.com');
     expect(facts).toEqual({
       login: 'octo-renamed',
-      loginAtPass: 'octocat',
       githubId: 583231,
       lesson: {
         slug: 'route-cache-miss-8f3k',
@@ -143,7 +142,7 @@ describe('the public reads', () => {
       ],
       url: 'https://gitranks.com/learn/lessons/route-cache-miss-8f3k/passes/octo-renamed',
     });
-    expect(JSON.stringify(facts)).not.toMatch(/picked|options|why/);
+    expect(JSON.stringify(facts)).not.toMatch(/picked|options|why|"octocat"/);
   });
 });
 

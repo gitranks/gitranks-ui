@@ -61,7 +61,7 @@ export function ResultReactions({
   canReact: boolean;
   /** The visitor's stored reaction. */
   mine: LessonReaction | null;
-  /** The pick that came back from the sign-in (`?react=`), stored once on arrival. */
+  /** The pick that came back from the sign-in this browser started (`?react=`), stored once on arrival. */
   returned: LessonReaction | null;
   /** The sign-in prompt, open for this pick (the catalogue's board). */
   prompt?: LessonReaction | null;

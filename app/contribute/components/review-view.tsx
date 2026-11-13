@@ -36,6 +36,7 @@ import {
   sessionsOf,
   waitingThreadsOf,
 } from '@/lib/contribute/sessions';
+import { learnAttemptPath } from '@/lib/learn/learn-path';
 
 type Query = Record<string, string | string[] | undefined>;
 
@@ -152,10 +153,12 @@ export async function FirstSessionView({
     const prNotes = await loadPrNotes(attempt.attemptId);
     return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} prNotes={prNotes} move={move} />;
   }
+  const next = paramOf(query, 'session') === NEXT_SESSION;
+  // A Learn attempt's page is its lesson; its next step (follow-ups on its pull request) stays here.
+  if (attempt.mode === 'LEARN' && !next) redirect(learnAttemptPath(attempt.attemptId));
   const { current, prNotes, replies } = await contributionOf(attempt);
   const now = new Date();
   const model = contributionMovesOf({ view, first: attempt, current, shown: attempt, replies, prNotes, now });
-  const next = paramOf(query, 'session') === NEXT_SESSION;
   if (next) {
     const underWay = attempt.followUps?.currentAttemptId;
     if (underWay) redirect(withQuery(sessionPath(attempt.attemptId, underWay), query));

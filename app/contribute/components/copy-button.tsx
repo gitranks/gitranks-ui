@@ -6,13 +6,17 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-/** A button (outline unless `variant` says) that copies `text`, says "Copied" for a moment, and tells a screen reader so. */
+/**
+ * A button (outline unless `variant` says) that copies `text`, says "Copied" for a moment, and tells a screen reader
+ * so. `onCopy` hears of each copy that went through.
+ */
 export function CopyButton({
   text,
   label,
   className,
   variant = 'outline',
   disabled = false,
+  onCopy,
 }: {
   text: string;
   label: string;
@@ -20,6 +24,7 @@ export function CopyButton({
   /** `default` where copying is the view's main action; else an outline button (today's callers). */
   variant?: 'outline' | 'default';
   disabled?: boolean;
+  onCopy?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -29,6 +34,7 @@ export function CopyButton({
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+      onCopy?.();
       clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 1500);
     } catch {

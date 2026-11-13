@@ -592,7 +592,7 @@ export function keyWayOf(view: ContributeView): WayCopy {
 }
 
 /** The own agent's card: connected with a live token, or not set up; unread, it says so. */
-export function agentWayOf(view: ContributeView, now = new Date()): WayCopy {
+export function agentWayOf(view: Pick<ContributeView, 'ownAgent'>, now = new Date()): WayCopy {
   const own = view.ownAgent;
   if (!own) {
     return {

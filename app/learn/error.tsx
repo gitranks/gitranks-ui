@@ -1,0 +1,26 @@
+'use client';
+
+import Link from 'next/link';
+
+import { HEADING } from '@/app/contribute/components/primitives';
+import { Button } from '@/components/ui/button';
+
+/** A Learn page that could not load its data: an outage, never "not found". */
+export default function LearnError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return (
+    <main className="mx-auto flex w-full max-w-3xl flex-col items-start gap-3 px-4 pt-12 pb-16">
+      <h1 className={HEADING.page}>This page did not load</h1>
+      <p className="text-muted-foreground">
+        Your progress is safe; we could not read it just now. Try again in a minute.
+      </p>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button type="button" onClick={reset} className="min-h-11 px-5 font-semibold">
+          Try again
+        </Button>
+        <Link href="/" prefetch={false} className="text-sm font-semibold text-link">
+          Back to GitRanks
+        </Link>
+      </div>
+    </main>
+  );
+}

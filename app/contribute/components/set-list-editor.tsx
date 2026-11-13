@@ -29,6 +29,7 @@ import {
   statusOf,
   viaGroupsOf,
 } from '@/lib/contribute/set-format';
+import { setRepoEmptyLineOf } from '@/lib/contribute/set-issues-format';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
 
@@ -328,6 +329,7 @@ function RepoRow({
   const status = statusOf(repo, rules);
   const failed = repo.status === 'FAILED';
   const unsupported = repo.status === 'UNSUPPORTED';
+  const emptyLine = setRepoEmptyLineOf(repo);
 
   const remove = () =>
     startTransition(async () => {
@@ -395,6 +397,11 @@ function RepoRow({
           </Button>
         )}
       </span>
+      {emptyLine ? (
+        <span data-empty-line className="basis-full text-xs text-muted-foreground">
+          {emptyLine}
+        </span>
+      ) : null}
       {error ? (
         <span role="alert" className="basis-full text-xs text-destructive">
           {error}

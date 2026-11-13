@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 /** A file with more lines than this starts collapsed. */
 export const LARGE_FILE_LINES = 120;
 
-const LINE_CLASSES: Record<PatchLineKind, string> = {
+/** Each kind of diff line's colours. */
+export const LINE_CLASSES: Record<PatchLineKind, string> = {
   hunk: 'bg-brand-soft text-brand-soft-foreground',
   context: 'text-foreground/80',
   add: 'bg-positive/10 text-foreground',
@@ -21,7 +22,8 @@ const STATUS_LABELS: Record<PatchFile['status'], string | null> = {
   renamed: 'renamed',
 };
 
-function Counts({ added, removed }: { added: number; removed: number }) {
+/** A file's lines added and removed: `+3 −1`. */
+export function Counts({ added, removed }: { added: number; removed: number }) {
   return (
     <span className="font-mono text-xs whitespace-nowrap">
       <span className="text-positive">+{added}</span> <span className="text-negative">−{removed}</span>

@@ -1,57 +1,46 @@
 'use client';
 
-import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useId, useRef } from 'react';
 
+import { useSessionActions } from './session-actions';
 import { Button } from '@/components/ui/button';
-import { RESUME_PARAM } from '@/lib/contribute/grant-resume';
-
-/** Opens the pull request's form: "Try again" after a submit that bounced. */
-export const OPEN_SUBMIT_EVENT = 'contribute:open-submit';
-
-export const openSubmitForm = () => window.dispatchEvent(new Event(OPEN_SUBMIT_EVENT));
 
 /**
- * The pull request's form behind one button, so the review opens on the change itself. It opens by itself after a
- * submit that bounced (`open`), on the way back from GitHub's access screen, and when "Try again" asks for it. It is
- * rendered closed too, so its own work (the way back from GitHub) runs either way.
+ * The pull request's form (M6), closed until the review card opens it ("Write the pull request", "Try again"), and
+ * open with the page after a submit that bounced or on the way back from GitHub's access screen. Its open state is the
+ * session's, so the card and the form agree. It is rendered closed too, so its own work (the way back from GitHub)
+ * runs either way. While it is open, "Hide the pull request" closes it.
  */
-export function SubmitPanel({ open: initiallyOpen, children }: { open: boolean; children: ReactNode }) {
-  const [open, setOpen] = useState(initiallyOpen);
+export function SubmitPanel({ children }: { children: ReactNode }) {
+  const form = useSessionActions()?.form ?? null;
+  const open = form?.open ?? false;
   const id = useId();
   const panel = useRef<HTMLDivElement>(null);
-  const opened = useRef(initiallyOpen);
+  const opened = useRef(open);
 
+  // Opened by the user, the title takes the focus (unless the opener moved it already); opened with the page, nothing.
   useEffect(() => {
-    // Back from GitHub the form opens with the page: nothing moves the focus.
-    if (new URLSearchParams(window.location.search).has(RESUME_PARAM)) {
-      opened.current = true;
-      setOpen(true);
+    if (open && !opened.current && !panel.current?.contains(document.activeElement)) {
+      panel.current?.querySelector<HTMLElement>('input, textarea')?.focus({ preventScroll: true });
     }
-    const show = () => setOpen(true);
-    window.addEventListener(OPEN_SUBMIT_EVENT, show);
-    return () => window.removeEventListener(OPEN_SUBMIT_EVENT, show);
-  }, []);
-
-  // Opened by the user, the title takes the focus; opened with the page, nothing moves it.
-  useEffect(() => {
-    if (open && !opened.current) panel.current?.querySelector<HTMLElement>('input, textarea')?.focus();
     opened.current = open;
   }, [open]);
 
   return (
     <div data-submit-panel={open ? 'open' : 'closed'} className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
+      {open && form ? (
         <Button
           type="button"
           size="lg"
-          variant={open ? 'outline' : 'default'}
-          aria-expanded={open}
+          variant="outline"
+          aria-expanded
           aria-controls={id}
-          onClick={() => setOpen((value) => !value)}
+          onClick={() => form.setOpen(false)}
+          className="self-start"
         >
-          {open ? 'Hide the pull request' : 'Write the pull request'}
+          Hide the pull request
         </Button>
-      </div>
+      ) : null}
       <div id={id} ref={panel} hidden={!open}>
         {children}
       </div>

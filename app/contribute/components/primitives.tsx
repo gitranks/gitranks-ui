@@ -134,3 +134,80 @@ export function Meter({ value, max, label }: { value: number; max: number; label
     </div>
   );
 }
+
+/** A dot that breathes while an agent works (solid under reduced motion), green once settled, grey while it waits. */
+export function LiveDot({ active, settled }: { active: boolean; settled?: boolean }) {
+  return (
+    <span aria-hidden="true" className="relative flex size-2 shrink-0">
+      {active ? (
+        <span className="absolute inset-0 rounded-full bg-primary opacity-0 motion-safe:animate-contribute-pulse" />
+      ) : null}
+      <span
+        className={cn(
+          'relative size-2 rounded-full',
+          active ? 'bg-primary' : settled ? 'bg-positive' : 'bg-muted-foreground/60',
+        )}
+      />
+    </span>
+  );
+}
+
+export type SteppedMeterStep = {
+  label: string;
+  state: 'done' | 'current' | 'retrying' | 'failed' | 'skipped' | 'pending';
+};
+
+const STEP_WORDS: Record<SteppedMeterStep['state'], string> = {
+  done: 'done',
+  current: 'now',
+  retrying: 'trying again',
+  failed: 'failed',
+  skipped: 'not needed',
+  pending: 'next',
+};
+
+/**
+ * `Meter`, in steps: the same track and fill, one segment per step, the step's name under it. Done steps are filled,
+ * the current one pulses (motion-safe), a retry is amber, a failure red, a skipped step struck through.
+ */
+export function SteppedMeter({ steps, label }: { steps: SteppedMeterStep[]; label: string }) {
+  return (
+    <ol
+      aria-label={label}
+      className="grid w-full min-w-0 gap-1.5"
+      style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+    >
+      {steps.map((step) => (
+        <li
+          key={step.label}
+          data-step={step.label}
+          data-step-state={step.state}
+          aria-current={step.state === 'current' || step.state === 'retrying' ? 'step' : undefined}
+          className="flex min-w-0 flex-col gap-1"
+        >
+          <span
+            aria-hidden="true"
+            className={cn(
+              'h-1.5 rounded bg-muted',
+              (step.state === 'done' || step.state === 'current') && 'bg-primary',
+              step.state === 'current' && 'motion-safe:animate-pulse',
+              step.state === 'retrying' && 'bg-warning',
+              step.state === 'failed' && 'bg-destructive',
+            )}
+          />
+          <span
+            className={cn(
+              'truncate text-xs',
+              step.state === 'pending' || step.state === 'skipped' ? 'text-muted-foreground' : 'font-medium',
+              step.state === 'skipped' && 'line-through',
+              step.state === 'failed' && 'text-destructive',
+            )}
+          >
+            {step.label}
+            <span className="sr-only">: {STEP_WORDS[step.state]}</span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}

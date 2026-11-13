@@ -1,10 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   type PendingApproval,
   resumeHrefOf,
   savePendingApproval,
-  sendPendingApproval,
   tabStoreOf,
   takePendingApproval,
 } from './grant-resume';
@@ -77,28 +76,5 @@ describe('the approval kept for the way back from GitHub', () => {
 
   it('sends GitHub back to the review with the nonce', () => {
     expect(resumeHrefOf('A_1', 'n 1')).toBe('/contribute/attempts/A_1?resume=n%201');
-  });
-});
-
-describe('sending the kept approval', () => {
-  it('sends the title and body the user left, and says nothing once it is through', async () => {
-    const approve = vi.fn().mockResolvedValue({ ok: true });
-
-    await expect(sendPendingApproval(approval, approve)).resolves.toBeNull();
-    expect(approve).toHaveBeenCalledWith({ id: 'A_1', title: 'Fix it', body: 'Fixes #1', dco: true });
-  });
-
-  it("says the API's refusal", async () => {
-    const approve = vi
-      .fn()
-      .mockResolvedValue({ ok: false, error: 'INVALID', message: 'Give the pull request a title.' });
-
-    await expect(sendPendingApproval(approval, approve)).resolves.toBe('Give the pull request a title.');
-  });
-
-  it('turns a failed send into a message, so the form never stays on "Opening your PR…"', async () => {
-    const approve = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
-
-    await expect(sendPendingApproval(approval, approve)).resolves.toContain('the connection failed');
   });
 });

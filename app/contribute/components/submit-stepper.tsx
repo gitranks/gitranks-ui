@@ -1,31 +1,26 @@
 'use client';
 
-import { Check, Minus, RotateCw, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type CSSProperties, type ReactNode, useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 
 import { readAttemptLive } from '../actions';
-import { HEADING } from './primitives';
-import { openSubmitForm } from './submit-panel';
-import { Button } from '@/components/ui/button';
+import { StatusLine } from './status-line';
 import { githubUrlOf, labelOf, SUBMIT_STEP_TEXT, timeLabel } from '@/lib/contribute/attempt-format';
 import type {
   ContributeAttempt,
   ContributeAttemptLive,
   ContributeAttemptPullRequest,
-  ContributeAttemptState,
   ContributeAttemptSubmit,
   ContributeSubmitStep,
 } from '@/lib/contribute/contribute.types';
 import { relativeLabel } from '@/lib/contribute/format';
+import { settledStepsOf } from '@/lib/contribute/session-status';
 import {
   durationLabel,
   type SubmitProgress,
-  type SubmitStepView,
   submitPollDelayOf,
   submitProgressOf,
 } from '@/lib/contribute/submit-progress';
-import { cn } from '@/lib/utils';
 
 /** Steps that finished between two reads light up one after another, this far apart. */
 const STAGGER_MS = 380;
@@ -38,195 +33,6 @@ export const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
 type Delays = Partial<Record<ContributeSubmitStep, number>>;
-
-/**
- * A step's dot: a check once done, a spinning ring while it runs, a cross where it failed. Shared with the follow-up's
- * run (`FollowUpStepper`), so both steppers read alike.
- */
-export function StepDot({
-  view,
-  index,
-  changed,
-}: {
-  view: Pick<SubmitStepView, 'state'>;
-  index: number;
-  changed: boolean;
-}) {
-  const base = 'relative flex size-8 flex-none items-center justify-center rounded-full text-sm font-semibold';
-  switch (view.state) {
-    case 'done':
-      return (
-        <span
-          className={cn(
-            base,
-            'bg-positive text-background',
-            changed && 'motion-safe:animate-contribute-pop motion-safe:[animation-delay:var(--step-delay)]',
-          )}
-        >
-          <Check className="size-4" strokeWidth={3} aria-hidden="true" />
-        </span>
-      );
-    case 'current':
-    case 'retrying': {
-      const warn = view.state === 'retrying';
-      return (
-        <span
-          className={cn(
-            base,
-            'border-2 bg-background',
-            warn ? 'border-warning text-warning' : 'border-primary text-primary',
-            changed &&
-              'motion-safe:animate-in motion-safe:fade-in motion-safe:fill-mode-both motion-safe:[animation-delay:var(--step-delay)]',
-          )}
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              'absolute inset-0 rounded-full opacity-0 motion-safe:animate-contribute-pulse',
-              warn ? 'bg-warning/30' : 'bg-primary/30',
-            )}
-          />
-          <span
-            aria-hidden="true"
-            className={cn(
-              'absolute -inset-1 rounded-full border-2 border-transparent motion-safe:animate-spin motion-reduce:hidden',
-              warn ? 'border-t-warning' : 'border-t-primary',
-            )}
-          />
-          {warn ? <RotateCw className="size-3.5" aria-hidden="true" /> : <span aria-hidden="true">{index + 1}</span>}
-        </span>
-      );
-    }
-    case 'failed':
-      return (
-        <span className={cn(base, 'bg-destructive text-destructive-foreground')}>
-          <X className="size-4" strokeWidth={3} aria-hidden="true" />
-        </span>
-      );
-    case 'skipped':
-      return (
-        <span className={cn(base, 'border border-dashed text-muted-foreground')}>
-          <Minus className="size-4" aria-hidden="true" />
-        </span>
-      );
-    default:
-      return (
-        <span className={cn(base, 'border bg-background text-muted-foreground')} aria-hidden="true">
-          {index + 1}
-        </span>
-      );
-  }
-}
-
-/** Under a step's name: how long it took, how long it has run, when it is tried again. */
-function stepMetaOf(view: SubmitStepView, nowMs: number | null, retryAt: string | null | undefined): string {
-  switch (view.state) {
-    case 'done':
-      return view.durationMs === null ? 'Done' : durationLabel(view.durationMs);
-    case 'current': {
-      const started = view.startedAt ? Date.parse(view.startedAt) : Number.NaN;
-      if (nowMs === null || Number.isNaN(started)) return 'Now';
-      return durationLabel(nowMs - started, { tenths: false });
-    }
-    case 'retrying': {
-      const at = retryAt ? Date.parse(retryAt) : Number.NaN;
-      if (nowMs === null || Number.isNaN(at) || at <= nowMs) return 'Trying again';
-      return `Again in ${durationLabel(at - nowMs, { tenths: false })}`;
-    }
-    case 'failed':
-      return 'Failed';
-    case 'skipped':
-      return 'Not needed';
-    default:
-      return '';
-  }
-}
-
-const STEP_STATE_WORDS: Record<SubmitStepView['state'], string> = {
-  done: 'done',
-  current: 'in progress',
-  retrying: 'trying again',
-  failed: 'failed',
-  skipped: 'not needed',
-  pending: 'not started',
-};
-
-/**
- * Fork, sync, push, pull request: each step's dot, joined by lines that fill as steps finish. The running step spins
- * and counts up; a finished one shows how long it took; the last one links to the pull request once it is open. A step
- * that changed since the last read (in `delays`) pops or fades in at its turn; on a first render nothing replays. Every
- * motion is under `motion-safe`.
- */
-export function SubmitStepper({
-  progress,
-  submit,
-  pullRequest,
-  nowMs = null,
-  delays = {},
-}: {
-  progress: SubmitProgress;
-  submit: ContributeAttemptSubmit;
-  pullRequest?: ContributeAttemptPullRequest | null;
-  nowMs?: number | null;
-  delays?: Delays;
-}) {
-  const prUrl = githubUrlOf(pullRequest?.url);
-  return (
-    <ol aria-label="Submission steps" className="grid grid-cols-4 pt-1">
-      {progress.steps.map((view, index) => {
-        const filled = view.state === 'done' || view.state === 'skipped';
-        const meta = stepMetaOf(view, nowMs, submit.retryAt);
-        const last = index === progress.steps.length - 1;
-        return (
-          <li
-            key={view.step}
-            data-step={view.step}
-            data-step-state={view.state}
-            aria-current={view.state === 'current' || view.state === 'retrying' ? 'step' : undefined}
-            style={{ '--step-delay': `${delays[view.step] ?? 0}ms` } as CSSProperties}
-            className="relative flex min-w-0 flex-col items-center gap-1.5 px-0.5 text-center"
-          >
-            {last ? null : (
-              <span
-                aria-hidden="true"
-                className="absolute top-4 right-[calc(-50%+1.25rem)] left-[calc(50%+1.25rem)] h-0.5 -translate-y-1/2 overflow-hidden rounded-full bg-border"
-              >
-                <span
-                  data-step-line={filled ? 'filled' : 'empty'}
-                  className={cn(
-                    'block h-full origin-left bg-positive motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-safe:[transition-delay:var(--step-delay)]',
-                    filled ? 'scale-x-100' : 'scale-x-0',
-                  )}
-                />
-              </span>
-            )}
-            <StepDot key={view.state} view={view} index={index} changed={view.step in delays} />
-            <span
-              className={cn(
-                'text-sm leading-tight',
-                view.state === 'pending' || view.state === 'skipped' ? 'text-muted-foreground' : 'font-medium',
-                view.state === 'failed' && 'text-destructive',
-              )}
-            >
-              {last && prUrl && view.state === 'done' ? (
-                <a href={prUrl} target="_blank" rel="noopener noreferrer" className="text-link hover:underline">
-                  {view.label}
-                  <span className="hidden sm:inline"> #{pullRequest?.number}</span> ↗
-                </a>
-              ) : (
-                view.label
-              )}
-              <span className="sr-only">: {STEP_STATE_WORDS[view.state]}</span>
-            </span>
-            <span className="min-h-4 text-xs text-muted-foreground tabular-nums">{meta}</span>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-const Title = ({ children }: { children: ReactNode }) => <h2 className={HEADING.card}>{children}</h2>;
 
 /** What is happening now, in a sentence; once the pull request is open, its link. */
 function NowLine({
@@ -323,7 +129,7 @@ export function LiveSubmit({
   now?: Date;
 }) {
   const router = useRouter();
-  const [{ live, delays }, dispatch] = useReducer(liveReducer, { live: attempt, delays: {} });
+  const [{ live }, dispatch] = useReducer(liveReducer, { live: attempt, delays: {} });
   // Our clock against the server's (the read's time), so a step's elapsed time does not drift with the device's.
   const offset = useRef(0);
   const [clock, setClock] = useState<number | null>(now ? now.getTime() : null);
@@ -425,76 +231,44 @@ export function LiveSubmit({
   }, [attempt.attemptId, attempt.updatedAt, pollable]);
 
   const waiting = live.submit?.step === 'WAITING_CAP';
+  const title = progress?.finished
+    ? 'Your pull request is open'
+    : live.state === 'REVIEW'
+      ? 'Back for your approval'
+      : live.state === 'STOPPED'
+        ? 'Stopped'
+        : waiting
+          ? "Waiting for tomorrow's pull request slot"
+          : 'Opening your pull request';
+  const times = progress?.steps.flatMap((view) =>
+    view.state === 'done' && view.durationMs !== null ? [`${view.label}: ${durationLabel(view.durationMs)}`] : [],
+  );
   return (
-    <>
-      <Title>
-        {progress?.finished
-          ? 'Your pull request is open'
-          : live.state === 'REVIEW'
-            ? 'Back for your approval'
-            : live.state === 'STOPPED'
-              ? 'Stopped'
-              : waiting
-                ? 'Waiting for tomorrow'
-                : 'Submitting your pull request'}
-      </Title>
-      {live.submit && progress ? (
-        <>
-          {waiting ? null : (
-            <SubmitStepper
-              progress={progress}
-              submit={live.submit}
-              pullRequest={live.pullRequest}
-              nowMs={clock}
-              delays={delays}
-            />
-          )}
-          <p role="status" className="text-sm text-muted-foreground" data-submit-now={live.submit.step}>
-            <NowLine progress={progress} submit={live.submit} pullRequest={live.pullRequest} nowMs={clock} />
-          </p>
-        </>
-      ) : (
-        <p className="text-sm text-muted-foreground">Approved. The steps are not available yet.</p>
-      )}
-    </>
+    <StatusLine
+      name={waiting ? 'WAITING_CAP' : live.state}
+      lead={
+        waiting ? { kind: 'pill', label: 'Submitting', tone: 'violet' } : running ? { kind: 'dot' } : { kind: 'check' }
+      }
+      title={title}
+      bar={progress && !waiting ? progress.steps.map((view) => ({ label: view.label, state: view.state })) : null}
+      live={running}
+      details={
+        live.submit && progress ? (
+          <>
+            <p data-submit-now={live.submit.step}>
+              <NowLine progress={progress} submit={live.submit} pullRequest={live.pullRequest} nowMs={clock} />
+            </p>
+            {times?.length ? <p className="font-mono text-xs">{times.join(' · ')}</p> : null}
+          </>
+        ) : (
+          <p>Approved. The steps are not available yet.</p>
+        )
+      }
+    />
   );
 }
 
-/** The steps as they ended, for a pull request just opened or a submission that failed: no reads, no clock. */
-export function SubmitStepsSettled({
-  state,
-  submit,
-  pullRequest,
-}: {
-  state: ContributeAttemptState;
-  submit: ContributeAttemptSubmit;
-  pullRequest?: ContributeAttemptPullRequest | null;
-}) {
-  return <SubmitStepper progress={submitProgressOf(state, submit)} submit={submit} pullRequest={pullRequest} />;
-}
-
-/** Back in the review after a step failed: to the pull request form, to approve it again. */
-export function TryAgainButton() {
-  return (
-    <Button
-      type="button"
-      size="sm"
-      className="self-start"
-      onClick={() => {
-        // The form sits behind its button until asked for: it opens first, then takes the focus once it shows.
-        openSubmitForm();
-        requestAnimationFrame(() => {
-          const form = document.getElementById('pr-form');
-          if (!form) return;
-          form.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' });
-          const target =
-            form.querySelector<HTMLElement>('button[type="submit"]:not(:disabled)') ??
-            form.querySelector<HTMLElement>('input, textarea');
-          target?.focus({ preventScroll: true });
-        });
-      }}
-    >
-      Try again
-    </Button>
-  );
+/** The steps as they ended, for a pull request just opened or a submission that failed: one line, no reads. */
+export function SubmitStepsSettled({ submit }: { submit: ContributeAttemptSubmit }) {
+  return <span className="font-mono text-xs">{settledStepsOf(submit)}</span>;
 }

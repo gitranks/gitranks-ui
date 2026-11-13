@@ -1,7 +1,5 @@
 import type { Route } from 'next';
 
-import { attemptActionErrorMessage, type ContributeErrorCode } from './errors';
-
 /**
  * The first pull request asks for the GitHub grant from its submit button: the approval waits in the tab while GitHub
  * asks, and the review page sends it once the user is back with the grant. Kept in `sessionStorage`, so it never
@@ -76,32 +74,6 @@ export function takePendingApproval(
     return stored;
   } catch {
     return null;
-  }
-}
-
-/**
- * Sends the approval kept for the way back. Never rejects: a failed send (the network, right after GitHub's redirect)
- * is an error message like any refusal, so the form comes back with the title and body the user left.
- */
-export async function sendPendingApproval(
-  approval: PendingApproval,
-  approve: (input: {
-    id: string;
-    title: string;
-    body: string;
-    dco: boolean;
-  }) => Promise<{ ok: true } | { ok: false; error: ContributeErrorCode; message?: string }>,
-): Promise<string | null> {
-  try {
-    const result = await approve({
-      id: approval.attemptId,
-      title: approval.title,
-      body: approval.body,
-      dco: approval.dco,
-    });
-    return result.ok ? null : attemptActionErrorMessage(result.error, result.message);
-  } catch {
-    return 'Your PR could not be opened: the connection failed. Your title and description are as you left them. Submit again.';
   }
 }
 

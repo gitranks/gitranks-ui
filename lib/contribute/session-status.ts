@@ -661,11 +661,12 @@ export function settledStepsOf(submit: {
   const order = ['FORK', 'SYNC', 'PUSH', 'PULL_REQUEST'];
   const words: Record<string, string> = { FORK: 'Fork', SYNC: 'Sync', PUSH: 'Push', PULL_REQUEST: 'Open PR' };
   const at = order.indexOf(submit.step);
-  const marks = order.map((step, index) => {
+  const marks = order.flatMap((step, index) => {
     const timed = submit.steps?.find((each) => each.step === step);
     const done = timed ? !!timed.doneAt : at > index;
     const failed = index === at && !!submit.lastError;
-    return `${words[step]} ${failed ? '✕' : done ? '✓' : '·'}`;
+    // Steps not reached are left out: the line says how far it got.
+    return failed || done ? [`${words[step]} ${failed ? '✕' : '✓'}`] : [];
   });
   return [...marks, submit.lastError ? timeLabel(submit.lastError.at) : null].filter(Boolean).join(' · ');
 }

@@ -6,8 +6,21 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-/** An outline button that copies `text`, says "Copied" for a moment, and tells a screen reader so. */
-export function CopyButton({ text, label, className }: { text: string; label: string; className?: string }) {
+/** A button (outline unless `variant` says) that copies `text`, says "Copied" for a moment, and tells a screen reader so. */
+export function CopyButton({
+  text,
+  label,
+  className,
+  variant = 'outline',
+  disabled = false,
+}: {
+  text: string;
+  label: string;
+  className?: string;
+  /** `default` where copying is the view's main action; else an outline button (today's callers). */
+  variant?: 'outline' | 'default';
+  disabled?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -25,7 +38,13 @@ export function CopyButton({ text, label, className }: { text: string; label: st
 
   return (
     <>
-      <Button type="button" variant="outline" onClick={copy} className={cn('min-h-11 sm:min-h-10', className)}>
+      <Button
+        type="button"
+        variant={variant}
+        onClick={copy}
+        disabled={disabled}
+        className={cn('min-h-11 sm:min-h-10', className)}
+      >
         {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
         {copied ? 'Copied' : label}
       </Button>

@@ -337,7 +337,7 @@ describe('a submit that came back for approval', () => {
           { step: 'SYNC', doneAt: '2026-10-28T11:01:00.000Z' },
         ],
       }),
-    ).toBe('Fork ✓ · Sync ✓ · Push ✕ · Open PR · · Oct 28, 11:30 UTC');
+    ).toBe('Fork ✓ · Sync ✓ · Push ✕ · Oct 28, 11:30 UTC');
   });
 
   it('gives a run whose branch moved no "again": discard, then the next run', () => {

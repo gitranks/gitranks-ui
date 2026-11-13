@@ -49,11 +49,8 @@ export function SubmitPanel({ open: initiallyOpen, children }: { open: boolean; 
           aria-controls={id}
           onClick={() => setOpen((value) => !value)}
         >
-          {open ? 'Hide the pull request' : 'Write the pull request…'}
+          {open ? 'Hide the pull request' : 'Write the pull request'}
         </Button>
-        {open ? null : (
-          <span className="text-sm text-muted-foreground">Its title and text, then submit or discard.</span>
-        )}
       </div>
       <div id={id} ref={panel} hidden={!open}>
         {children}

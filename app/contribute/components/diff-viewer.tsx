@@ -103,8 +103,22 @@ function FileDiff({ file, room }: { file: PatchFile; room: number }) {
   );
 }
 
-/** The patch, file by file, as text: never HTML, whatever it holds. Long files and patches are cut, and say so. */
-export function DiffViewer({ patch, title = 'Diff' }: { patch: string | null | undefined; title?: string }) {
+const NOT_YET = 'The diff is not available yet.';
+
+/**
+ * The patch, file by file, as text: never HTML, whatever it holds. Long files and patches are cut, and say so. `empty`:
+ * what it says with no patch (a session that changed nothing says so in its own words); absent, that it is not
+ * available yet.
+ */
+export function DiffViewer({
+  patch,
+  title = 'Diff',
+  empty = NOT_YET,
+}: {
+  patch: string | null | undefined;
+  title?: string;
+  empty?: string;
+}) {
   const parsed = parsePatch(patch);
   let room = MAX_TOTAL_LINES;
   const files = parsed.files.map((file) => {
@@ -132,7 +146,7 @@ export function DiffViewer({ patch, title = 'Diff' }: { patch: string | null | u
         files.map(({ file, room: fileRoom }) => <FileDiff key={file.path} file={file} room={fileRoom} />)
       ) : (
         <p className="px-5 py-4 text-sm text-muted-foreground">
-          {patch ? 'The patch has no file changes to show.' : 'The diff is not available yet.'}
+          {patch ? 'The patch has no file changes to show.' : empty}
         </p>
       )}
     </section>

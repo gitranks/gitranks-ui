@@ -202,6 +202,8 @@ export type ChecklistItem = {
   link: string | null;
   /** The link's words; absent: "Sign here". */
   linkText?: string;
+  /** The title with the repo's required prefix added, when that prefix is all it misses. */
+  fix?: string;
 };
 
 /** The added lines of a changelog file in the patch: what the PR adds to the repo's changelog. */
@@ -265,6 +267,9 @@ export function checklistOf(
     const bare = withoutDraftMarks(input.title);
     const problem = titleProblemsOf(bare, conventions) ?? (draft ? DRAFT_NOTE : null);
     const blocks = titleBlocks(input.title, conventions);
+    // A missing required prefix is the one problem the form can fix itself: when the title passes once it is added.
+    const prefixed = prefix && bare && !bare.startsWith(prefix) ? `${prefix} ${bare}` : null;
+    const fix = prefixed && !titleProblemsOf(prefixed, conventions) ? prefixed : undefined;
     const form = rule?.pattern ? `the repo's own form` : rule ? `\`type(scope): summary\`` : null;
     const starts = prefix ? `starting with \`${prefix}\`` : null;
     const what = ['A title', form ? `in ${form}` : null, starts].filter(Boolean).join(' ');
@@ -284,6 +289,7 @@ export function checklistOf(
             ? `Like: ${conventions.titleExamples[0]}`
             : null),
       link: null,
+      ...(fix ? { fix } : {}),
     });
   }
   if (conventions.cla) {

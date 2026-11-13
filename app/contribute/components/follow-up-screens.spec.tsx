@@ -357,8 +357,12 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
       followUpOf: { ...followUpAttempts.review.followUpOf!, trigger: 'own' as const, reason: 'Fix the docs example.' },
     };
     const html = review(noted);
-    expect(html).toContain('data-run-note=""');
-    expect(text(html)).toContain('Your note Fix the docs example.');
+    const activity = html.slice(html.indexOf('data-tab-panel="activity"'));
+    expect(activity).toContain('data-run-note=""');
+    expect(text(activity)).toContain('Your note Fix the docs example.');
+    // In the details, after the cost and the timeline: not above what the agent did.
+    expect(html.indexOf('data-run-note')).toBeGreaterThan(html.indexOf('data-panel="agent-did"'));
+    expect(html.indexOf('data-run-note')).toBeGreaterThan(html.indexOf('data-panel="timeline"'));
     expect(review(followUpAttempts.review)).not.toContain('data-run-note');
   });
 
@@ -415,7 +419,26 @@ describe('a follow-up on the review screen', () => {
     expect(plain).toContain('The new commits');
     expect(html).toContain('data-file="src/router/normalize-path.ts"');
     expect(html).toContain('data-check="SECRETS"');
-    expect(plain).toContain('$1.12 of your $5 limit');
+    expect(text(html.slice(html.indexOf('data-tab-panel="activity"')))).toContain('$1.12 of your $5 limit');
+  });
+
+  it('a run without commits says so, and opens on its checks', () => {
+    const html = review(followUpAttempts.repliesOnly);
+    const changes = html.slice(html.indexOf('data-tab-panel="changes"'), html.indexOf('data-tab-panel="checks"'));
+    expect(text(changes)).toContain('This run made no commits.');
+    expect(html).toMatch(/<div data-state="active"[^>]*data-tab-panel="checks"/);
+  });
+
+  it("a run's DONE event says what it did", () => {
+    const done = { state: 'DONE' as const, detail: null, at: '2026-10-28T11:58:00.000Z' };
+    const timeline = (item: ContributeAttemptDetail) => {
+      const html = review({ ...item, state: 'DONE', events: [...item.events, done] });
+      return text(html.slice(html.indexOf('data-panel="timeline"')));
+    };
+    const repliesOnly = timeline(followUpAttempts.repliesOnly);
+    expect(repliesOnly).toContain('11:58 Done');
+    expect(repliesOnly).not.toContain('Pushed to the pull request');
+    expect(timeline(followUpAttempts.review)).toContain('11:58 Pushed the new commits');
   });
 
   it('pushes its commits with no title or description to edit', () => {
@@ -1222,6 +1245,13 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     );
     expect(html).not.toContain('data-follow-up-approval');
     expect(html).not.toContain('data-panel="replies"');
+    // What the agent did, then the comments, then the details: no Replies tab, no second "What the agent did".
+    expect(plain).toContain('The review comments');
+    expect(plain.match(/What the agent did/g)).toHaveLength(1);
+    expect(html.indexOf('data-panel="agent-did"')).toBeGreaterThan(-1);
+    expect(html.indexOf('data-panel="agent-did"')).toBeLessThan(html.indexOf('data-panel="follow-up-result"'));
+    expect(html.indexOf('data-panel="follow-up-result"')).toBeLessThan(html.indexOf('data-session-tabs'));
+    expect(html).not.toContain('data-tab="replies"');
   });
 
   it('blocks the push on a failed rail, saying so, and keeps Discard', () => {

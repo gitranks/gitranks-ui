@@ -6,6 +6,7 @@ import type {
   ContributeAttempt,
   ContributeAttemptCheckName,
   ContributeAttemptEndReason,
+  ContributeAttemptEvent,
   ContributeAttemptKind,
   ContributeAttemptRunner,
   ContributeAttemptState,
@@ -55,6 +56,20 @@ export const EVENT_LABELS: Record<ContributeAttemptState, string> = {
   DISCARDED: 'Discarded',
   DONE: 'Pushed to the pull request',
 };
+
+/**
+ * One timeline event in words: a run's `DONE` says what it pushed (the new commits, or nothing but its replies); every
+ * other state as `EVENT_LABELS` says it.
+ */
+export const eventLabelOf = (
+  event: Pick<ContributeAttemptEvent, 'state'>,
+  attempt: { patch?: string | null },
+): string =>
+  event.state === 'DONE'
+    ? attempt.patch?.trim()
+      ? 'Pushed the new commits'
+      : 'Done'
+    : labelOf(EVENT_LABELS, event.state);
 
 /** States an attempt is still moving in, before a pull request. */
 export const IN_PROGRESS_STATES: ContributeAttemptState[] = [

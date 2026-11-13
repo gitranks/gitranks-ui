@@ -10,6 +10,7 @@ import type {
   ContributeNeedsYou,
   ContributeReplyDraft,
 } from '../contribute.types';
+import type { ContributeRepoConventions } from '../pr-conventions';
 
 /** A two-commit format-patch: a changed file, a new one, and the mail headers and signature around them. */
 export const PATCH = `From 3f1c2a9d0b7e Mon Sep 17 00:00:00 2001
@@ -230,6 +231,41 @@ export const attempts = {
 
 export const stopped = (endReason: NonNullable<ContributeAttempt['endReason']>, endDetail: string | null = null) =>
   detail({ state: 'STOPPED', endReason, endDetail, patch: null, result: null, checks: [], checksPassed: null });
+
+/** A change made by the user's own agent, in review: the agent as it reported itself, nothing spent on a key. */
+export const ownAgentAttempt = detail({
+  runner: 'MCP',
+  agent: { name: 'CODEX', model: 'gpt-5.5-codex' },
+  sendBacksLeft: 2,
+  changesRequested: null,
+  leaseUntil: null,
+  openedBy: null,
+  costUsd: 0,
+  budgetUsd: 0,
+});
+
+/**
+ * Everything a repo may ask of a pull request: a checked title rule, a template asking AI-written PRs to say so, a
+ * required changelog line, a CLA, generated files.
+ */
+export const repoConventions = (patch: Partial<ContributeRepoConventions> = {}): ContributeRepoConventions => ({
+  title: {
+    hard: true,
+    source: '`.github/semantic.yml`',
+    types: ['feat', 'fix', 'docs'],
+    scopes: null,
+    requireScope: false,
+    pattern: null,
+  },
+  titleExamples: ['fix(router): keep the cache'],
+  template: { path: '.github/pull_request_template.md', aiAsks: ['If you are an AI agent, name your model'] },
+  changelog: { kind: 'FILE', path: 'CHANGELOG.md', required: true, source: '9 of the last 10' },
+  cla: { check: 'license/cla', signUrl: 'https://cla-assistant.io/driftwood-js/driftwood' },
+  dco: false,
+  generated: ['test-vr/__snapshots__/'],
+  notes: [],
+  ...patch,
+});
 
 export const contributions: ContributeContributions = {
   items: [

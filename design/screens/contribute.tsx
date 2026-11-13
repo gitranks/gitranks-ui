@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { AgentConnectView } from '@/app/contribute/components/agent-connect';
+import { ChecksPanel, ReadinessPanel } from '@/app/contribute/components/attempt-panels';
 import {
   AUTOPILOT_CONFIRM_ACTION,
   AUTOPILOT_CONFIRM_LEAD,
@@ -25,8 +26,9 @@ import { McpDocsScreen } from '@/app/contribute/components/mcp-docs';
 import { OverviewScreen, overviewSectionsOf } from '@/app/contribute/components/overview-status';
 import { HelpedSent, ReportSent } from '@/app/contribute/components/pr-feedback-forms';
 import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
+import { PrForm, type PrFormProps } from '@/app/contribute/components/pr-form';
 import { MorePages } from '@/app/contribute/components/public-pages';
-import { ReviewScreen } from '@/app/contribute/components/review-view';
+import { prFormPropsOf, ReviewScreen } from '@/app/contribute/components/review-view';
 import { RunsScreen } from '@/app/contribute/components/runs-view';
 import { FormSettingsScreen } from '@/app/contribute/components/settings-pages';
 import { SettingsScreen } from '@/app/contribute/components/settings-view';
@@ -41,6 +43,10 @@ import {
   decisionAttempts,
   detail,
   followUpAttempts,
+  ownAgentAttempt,
+  PATCH,
+  repoConventions,
+  stopped as stoppedAttempt,
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { issuePage, nowIdle, overviewData } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
@@ -238,6 +244,48 @@ const agentConnected: ContributeView = {
 };
 
 const noop = () => {};
+
+/** A session's page, the first attempt or a run read under its first attempt (`first`). */
+const sessionPage = (session: ContributeAttemptDetail, first?: ContributeAttemptDetail) =>
+  frame(
+    <main className={MAIN}>
+      <ReviewScreen view={views.active} attempt={session} first={first} now={NOW} />
+    </main>,
+  );
+
+/** A day after the catalogue's clock: how long an issue is still held for the user's own agent. */
+const A_DAY_ON = '2026-10-29T12:00:00.000Z';
+
+/** The go the "went" fixture decided, alone: a session that said go and then stopped. */
+const wentGo = decisionAttempts.went.goNoGo ?? null;
+
+/** The pull request's form, drawn open in the page frame, with what the page passes it and `patch` on top. */
+const prFormPage = (attemptRead: ContributeAttemptDetail, patch: Partial<PrFormProps> = {}) =>
+  frame(
+    <main className={MAIN}>
+      <div className="w-full max-w-4xl">
+        <PrForm {...prFormPropsOf(views.active, attemptRead)} {...patch} />
+      </div>
+    </main>,
+  );
+
+/** The change with a line for the repo's changelog, as a repo that asks for one gets it. */
+const PATCH_WITH_CHANGELOG = `${PATCH}diff --git a/CHANGELOG.md b/CHANGELOG.md
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,2 +1,3 @@
+ ## Unreleased
++- fix(router): keep the layout cache for paths with a trailing slash
+`;
+
+/** Everything the repo asks, met: a title its check passes, the changelog line, the DCO under a standing consent. */
+const repoAsks = detail({
+  conventions: repoConventions(),
+  dcoRequired: true,
+  patch: PATCH_WITH_CHANGELOG,
+  result: attempts.review.result && { ...attempts.review.result, prTitle: 'fix(router): keep the layout cache' },
+});
+const repoAsksProps: Partial<PrFormProps> = { dcoMode: 'STANDING' };
 
 /** My contributions with every reason a pull request needs the user, and the runs at work. */
 const mine = () => {
@@ -466,7 +514,9 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     sources: [
       'app/contribute/components/review-view.tsx',
       'app/contribute/components/attempt-sessions.tsx',
-      'app/contribute/components/agent-decisions.tsx',
+      'app/contribute/components/attempt-panels.tsx',
+      'app/contribute/components/pr-form.tsx',
+      'app/contribute/components/submit-panel.tsx',
       'app/contribute/components/repo-rules.tsx',
       'app/contribute/components/next-step.tsx',
       'lib/contribute/sessions.ts',
@@ -722,6 +772,282 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           frame(
             <main className={MAIN}>
               <ReviewScreen view={views.active} attempt={followUpAttempts.quiet} next now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'partial',
+        title: 'First attempt, partly done, medium risk, worth a look',
+        path: '/contribute/attempts/A_1',
+        height: 2000,
+        render: () =>
+          sessionPage({
+            ...decisionAttempts.went,
+            result: decisionAttempts.went.result && {
+              ...decisionAttempts.went.result,
+              verdict: 'PARTIAL',
+              risk: 'MEDIUM',
+            },
+          }),
+      },
+      {
+        id: 'decided-at-limit',
+        title: "First attempt, a no-go decided at the check's cap",
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () =>
+          sessionPage({
+            ...decisionAttempts.noGo,
+            checkLimit: { limit: 'budget', decided: true },
+            goNoGo: decisionAttempts.noGo.goNoGo && { ...decisionAttempts.noGo.goNoGo, decidedAtLimit: 'budget' },
+          }),
+      },
+      {
+        id: 'working',
+        title: 'First attempt, the agent working',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () => sessionPage(attempts.running),
+      },
+      {
+        id: 'working-go',
+        title: 'First attempt working, the go decided',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () => sessionPage({ ...attempts.running, goNoGo: wentGo }),
+      },
+      {
+        id: 'go-then-stopped',
+        title: 'First attempt, the agent said go, then hit your limit',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () => sessionPage({ ...stoppedAttempt('BUDGET'), goNoGo: wentGo, brief: null }),
+      },
+      {
+        id: 'brief-only',
+        title: 'First attempt stopped at your limit after a go, with its brief',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () =>
+          sessionPage({ ...stoppedAttempt('BUDGET'), goNoGo: wentGo, brief: decisionAttempts.went.brief ?? null }),
+      },
+      {
+        id: 'bounced',
+        title: 'Back for your approval: the form opened with the approved text',
+        path: '/contribute/attempts/A_1',
+        height: 2600,
+        render: () => sessionPage(attempts.bounced),
+      },
+      {
+        id: 'own-agent-review',
+        title: "Your own agent's change, ready for review",
+        path: '/contribute/attempts/A_1',
+        height: 2200,
+        render: () =>
+          sessionPage({
+            ...ownAgentAttempt,
+            leaseUntil: A_DAY_ON,
+            changesRequested: { note: 'Add a test for the trailing slash.', at: '2026-10-28T10:00:00.000Z' },
+          }),
+      },
+      {
+        id: 'own-agent-working',
+        title: 'Your own agent holds the issue, nothing submitted yet',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () =>
+          sessionPage({
+            ...ownAgentAttempt,
+            state: 'RUNNING',
+            result: null,
+            agent: null,
+            patch: null,
+            checks: [],
+            checksPassed: null,
+            leaseUntil: A_DAY_ON,
+          }),
+      },
+      {
+        id: 'own-agent-activity',
+        title: 'Your own agent let the issue go: the Activity tab',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () =>
+          sessionPage({
+            ...ownAgentAttempt,
+            state: 'STOPPED',
+            endReason: 'MCP_IDLE',
+            patch: null,
+            checks: [],
+            checksPassed: null,
+            result: null,
+            changesRequested: { note: 'Add a test for the trailing slash.', at: '2026-10-28T10:00:00.000Z' },
+          }),
+      },
+      {
+        id: 'run-note',
+        title: 'A run that stopped, with your note',
+        path: '/contribute/attempts/A_1/runs/A_F1',
+        height: 1300,
+        render: () =>
+          sessionPage(
+            {
+              ...followUpAttempts.stopped,
+              patch: null,
+              checks: [],
+              checksPassed: null,
+              result: null,
+              followUpOf: followUpAttempts.stopped.followUpOf && {
+                ...followUpAttempts.stopped.followUpOf,
+                trigger: 'own',
+                reason: 'Fix the docs example.',
+              },
+            },
+            followUpAttempts.underWay,
+          ),
+      },
+      {
+        id: 'run-replies-only',
+        title: 'A run that made replies only: the Checks tab open',
+        path: '/contribute/attempts/A_1/runs/A_F1',
+        height: 1800,
+        render: () => sessionPage(followUpAttempts.repliesOnly, followUpAttempts.underWay),
+      },
+      {
+        id: 'bare',
+        title: 'The API answered without the optional parts',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () => sessionPage(attempts.bare),
+      },
+    ],
+  },
+  {
+    id: 'contribute-pr-form',
+    title: 'The pull request form',
+    area: 'contribute',
+    route: '/contribute/attempts/[id]',
+    sources: ['app/contribute/components/pr-form.tsx', 'lib/contribute/pr-conventions.ts'],
+    states: [
+      {
+        id: 'plain',
+        title: 'No repo rules read',
+        path: '/contribute/attempts/A_1',
+        height: 1100,
+        render: () => prFormPage(attempts.review, { conventions: null, dcoRequired: undefined, dcoMode: 'ASK' }),
+      },
+      {
+        id: 'repo-asks',
+        title: 'Everything the repo asks, met',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () => prFormPage(repoAsks, repoAsksProps),
+      },
+      {
+        id: 'title-blocked',
+        title: "A title the repo's check would fail, DCO not ticked",
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () =>
+          prFormPage(detail({ conventions: repoConventions(), title: 'Layout cache drops nested routes' }), {
+            dcoRequired: true,
+            dcoMode: 'ASK',
+          }),
+      },
+      {
+        id: 'prefix',
+        title: "The repo's agent prefix missing; AI trailers banned",
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () =>
+          prFormPage(
+            detail({
+              conventions: repoConventions({ titlePrefix: '[AI]' }),
+              result: attempts.review.result && {
+                ...attempts.review.result,
+                prTitle: 'fix(router): keep the layout cache',
+              },
+              prCoAuthored: false,
+              prFooter:
+                'This PR was written in part with the assistance of generative AI.\n\n<sub>Made with [GitRanks Contribute](https://gitranks.com) · Reviewed and submitted by @octocat</sub>',
+            }),
+          ),
+      },
+      {
+        id: 'by-human',
+        title: 'A template the repo leaves to you, a CLA signed by comment, no changelog line',
+        path: '/contribute/attempts/A_1',
+        height: 1400,
+        render: () =>
+          prFormPage(
+            detail({
+              conventions: repoConventions({
+                templateByHuman: true,
+                cla: {
+                  check: 'cla-check',
+                  signUrl: 'https://github.com/driftwood-js/driftwood/blob/main/CLA.md',
+                  agreement: 'CLA',
+                  signComment: 'I have read the CLA document and I hereby sign the CLA.',
+                },
+                changelog: { kind: 'FILE', path: 'CHANGELOG.md', required: true, source: '9 of the last 10' },
+              }),
+              result: attempts.review.result && {
+                ...attempts.review.result,
+                prTitle: 'fix(router): keep the layout cache',
+              },
+            }),
+          ),
+      },
+      {
+        id: 'grant-first',
+        title: 'GitHub access asked on the button',
+        path: '/contribute/attempts/A_1',
+        height: 1100,
+        render: () => prFormPage(attempts.review, { grantNeeded: true, again: false }),
+      },
+      {
+        id: 'grant-again',
+        title: 'GitHub access asked again',
+        path: '/contribute/attempts/A_1',
+        height: 1100,
+        render: () => prFormPage(attempts.review, { grantNeeded: true, again: true }),
+      },
+      {
+        id: 'preview',
+        title: "The description's Preview pane",
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () => prFormPage(repoAsks, { ...repoAsksProps, defaultPane: 'preview' }),
+      },
+      {
+        id: 'phone',
+        title: 'Everything the repo asks · phone',
+        path: '/contribute/attempts/A_1',
+        width: 390,
+        height: 2000,
+        render: () => prFormPage(repoAsks, repoAsksProps),
+      },
+    ],
+  },
+  {
+    id: 'contribute-attempt-checks',
+    title: 'The Checks tab',
+    area: 'contribute',
+    route: '/contribute/attempts/[id]',
+    sources: ['app/contribute/components/attempt-panels.tsx'],
+    states: [
+      {
+        id: 'readiness-open',
+        title: 'Our checks and the tests, with how the repo builds open',
+        path: '/contribute/attempts/A_1',
+        height: 1100,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <div className="flex w-full max-w-4xl flex-col gap-4">
+                <ChecksPanel attempt={attempts.review} />
+                <ReadinessPanel attempt={attempts.review} open />
+              </div>
             </main>,
           ),
       },

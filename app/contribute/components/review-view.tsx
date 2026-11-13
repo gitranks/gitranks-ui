@@ -3,15 +3,14 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { AgentDecisions } from './agent-decisions';
 import {
+  AgentDidPanel,
   ApprovalPanel,
   ChecksPanel,
   CostPanel,
-  OwnAgentPanel,
   ReadinessPanel,
-  ResultPanel,
   TimelinePanel,
+  YourNotePanel,
 } from './attempt-panels';
 import { SessionsList } from './attempt-sessions';
 import { AttemptStatus, FollowUpOfLink, justOpened, PullRequestStatus } from './attempt-status';
@@ -20,7 +19,7 @@ import { DiffViewer } from './diff-viewer';
 import { FollowUpApproval } from './follow-up-approval';
 import { FollowUpResult } from './follow-up-result';
 import { NextStepCards, YourMoveLine } from './next-step';
-import { PrForm } from './pr-form';
+import { PrForm, type PrFormProps } from './pr-form';
 import { PrNotesPanel } from './pr-notes';
 import { PrStoppedProvider } from './pr-stopped';
 import { HEADING, Pill } from './primitives';
@@ -33,6 +32,7 @@ import { attemptTitleOf, editableBodyOf, githubUrlOf, isOwnAgent, repoOf } from 
 import { loadAttempt, loadContribute, loadPrNotes, loadResolveHumanThreads } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributePrNotes, ContributeView } from '@/lib/contribute/contribute.types';
 import { accessNoticesOf, isContributePageOpen, settingsOf } from '@/lib/contribute/contribute-state';
+import { isWorking } from '@/lib/contribute/decisions';
 import { hasOutcomes } from '@/lib/contribute/follow-up-flow';
 import { GRANT_BOUNCES } from '@/lib/contribute/grant-resume';
 import { nextStepOf, nextStepWaits } from '@/lib/contribute/next-step';
@@ -157,6 +157,33 @@ export const grantNeededOf = (view: ContributeView, attempt: ContributeAttemptDe
   return view.grantAvailable && (view.grant?.connected === false || bounced);
 };
 
+/**
+ * What the pull request's form is drawn with for a first attempt in review: the title (the approved one, the agent's,
+ * else the issue's, each without its WIP or draft marks), the body without the footer, the user's DCO setting, the
+ * repo's asks, and whether the submit asks for GitHub access first.
+ */
+export const prFormPropsOf = (view: ContributeView, attempt: ContributeAttemptDetail): PrFormProps => ({
+  attemptId: attempt.attemptId,
+  issueNumber: attempt.number,
+  repo: repoOf(attempt),
+  defaultTitle:
+    // Each candidate without its WIP or draft marks: one that is nothing but a mark gives way.
+    [attempt.approval?.title, attempt.result?.prTitle, attempt.title]
+      .map((title) => withoutDraftMarks(title ?? ''))
+      .find(Boolean) ?? `Fix #${attempt.number}`,
+  defaultBody: editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody),
+  login: view.contributor?.login ?? 'you',
+  footer: attempt.prFooter,
+  coAuthored: attempt.prCoAuthored,
+  dcoMode: view.contributor?.settings?.dco ?? null,
+  dcoRequired: attempt.dcoRequired,
+  again: !!attempt.submit?.lastError,
+  grantNeeded: grantNeededOf(view, attempt),
+  grantConnected: view.grant?.connected === true,
+  conventions: attempt.conventions,
+  patch: attempt.patch,
+});
+
 const BackLink = () => (
   <Link href="/contribute/me" prefetch={false} className="text-sm font-semibold text-link">
     ← My contributions
@@ -179,19 +206,18 @@ const nextStepShown = (first: ContributeAttemptDetail, view: ContributeView, now
 /** The pull request's states its first attempt settles in: the header says them, so its session adds no box. */
 const PR_SETTLED = new Set(['PR_OPEN', 'FOLLOW_UP', 'MERGED', 'CLOSED']);
 
-/** A follow-up run's note from the user to its agent, as they wrote it. */
-function RunNote({ attempt }: { attempt: ContributeAttemptDetail }) {
-  const reason = attempt.kind === 'FOLLOW_UP' ? attempt.followUpOf?.reason?.trim() : null;
-  if (!reason) return null;
-  return (
-    <section data-run-note="" className="flex flex-col gap-1.5 rounded-xl border bg-card p-4">
-      <h2 className="text-sm font-semibold">Your note</h2>
-      <p className="text-sm break-words whitespace-pre-line">{reason}</p>
-    </section>
-  );
+/** What the details' Changes tab says when the session has no change to show. */
+function emptyDiffOf(attempt: ContributeAttemptDetail): string | undefined {
+  if (attempt.patch || isWorking(attempt)) return undefined;
+  if (attempt.kind === 'FOLLOW_UP') return 'This run made no commits.';
+  if (attempt.state === 'STOPPED' || attempt.state === 'DISCARDED') return 'The agent changed no files.';
+  return undefined;
 }
 
-/** One session's details, a tab each: what it did, its changes, its checks, and what it cost and when. */
+/**
+ * One session: what the agent did, then what the user acts on (the pull request's form, or a run's comments), then its
+ * details a tab each: its changes, its checks, and what it cost and when.
+ */
 function SessionDetails({
   attempt,
   view,
@@ -203,7 +229,6 @@ function SessionDetails({
   now?: Date;
   resolveHumans?: boolean;
 }) {
-  const repo = repoOf(attempt);
   const inReview = attempt.state === 'REVIEW';
   const followUp = attempt.kind === 'FOLLOW_UP';
   const ownAgent = isOwnAgent(attempt);
@@ -214,65 +239,43 @@ function SessionDetails({
   const files = parsePatch(attempt.patch).files.length;
   const checks = attempt.checksPassed === true ? '✓' : attempt.checksPassed === false ? '✗' : undefined;
 
-  const replies: ReactNode = flow ? (
-    <FollowUpResult
-      // A push that came back to the review starts the card afresh (its buttons on again).
-      key={`${attempt.state}|${attempt.submit?.lastError?.at ?? ''}`}
-      attempt={attempt}
-      prNumber={prNumber}
-      resolveHumans={resolveHumans}
-      orgAccess={orgAccessOf()}
-    />
-  ) : (
+  // A run's comments, as the run left them; a first attempt's own drafts, from an API before the flow.
+  const comments: ReactNode = followUp ? (
+    flow ? (
+      <FollowUpResult
+        // A push that came back to the review starts the card afresh (its buttons on again).
+        key={`${attempt.state}|${attempt.submit?.lastError?.at ?? ''}`}
+        attempt={attempt}
+        prNumber={prNumber}
+        resolveHumans={resolveHumans}
+        orgAccess={orgAccessOf()}
+      />
+    ) : (
+      <ReplyDrafts
+        drafts={attempt.replyDrafts}
+        prNumber={prNumber}
+        followUps={new Map([[attempt.attemptId, attempt]])}
+        freshness={[attempt.state, attempt.updatedAt].join('|')}
+        now={now}
+      />
+    )
+  ) : attempt.pullRequest && attempt.replyDrafts?.length ? (
     <ReplyDrafts
       drafts={attempt.replyDrafts}
       prNumber={prNumber}
-      followUps={new Map([[attempt.attemptId, attempt]])}
-      freshness={[attempt.state, attempt.updatedAt].join('|')}
+      freshness={[attempt.state, attempt.updatedAt, attempt.followUps?.currentAttemptId ?? ''].join('|')}
       now={now}
     />
-  );
-  // A first attempt's own drafts, from an API before the flow: kept where they were read, under its summary.
-  const firstDrafts = !followUp && attempt.pullRequest && attempt.replyDrafts?.length;
+  ) : null;
 
   const tabs: SessionTab[] = [
-    followUp
-      ? {
-          value: 'replies',
-          label: 'Replies',
-          badge: attempt.replyDrafts?.length || undefined,
-          content: (
-            <>
-              <ResultPanel attempt={attempt} />
-              {ownAgent ? <OwnAgentPanel attempt={attempt} now={now} /> : null}
-              {replies}
-            </>
-          ),
-        }
-      : {
-          value: 'summary',
-          label: 'Summary',
-          content: (
-            <>
-              <ResultPanel attempt={attempt} />
-              {ownAgent ? <OwnAgentPanel attempt={attempt} now={now} /> : null}
-              <ApprovalPanel attempt={attempt} />
-              {firstDrafts ? (
-                <ReplyDrafts
-                  drafts={attempt.replyDrafts}
-                  prNumber={prNumber}
-                  freshness={[attempt.state, attempt.updatedAt, attempt.followUps?.currentAttemptId ?? ''].join('|')}
-                  now={now}
-                />
-              ) : null}
-            </>
-          ),
-        },
     {
       value: 'changes',
       label: 'Changes',
       badge: files ? `${files} ${files === 1 ? 'file' : 'files'}` : undefined,
-      content: <DiffViewer patch={attempt.patch} title={followUp ? 'The new commits' : 'Diff'} />,
+      content: (
+        <DiffViewer patch={attempt.patch} title={followUp ? 'The new commits' : 'Diff'} empty={emptyDiffOf(attempt)} />
+      ),
     },
     {
       value: 'checks',
@@ -290,44 +293,26 @@ function SessionDetails({
       label: 'Activity',
       content: (
         <>
-          {ownAgent ? null : <CostPanel attempt={attempt} />}
+          <CostPanel attempt={attempt} />
           <TimelinePanel attempt={attempt} />
+          <YourNotePanel attempt={attempt} />
         </>
       ),
     },
   ];
-  // The review opens on the change itself; a run, on what it did with the comments.
-  const opening = followUp ? 'replies' : inReview || attempt.state === 'PENDING_AUTOSUBMIT' ? 'changes' : 'summary';
+  // The change itself when there is one; else our checks when they ran; else what it spent and when.
+  const opening = attempt.patch?.trim() ? 'changes' : attempt.checks.length ? 'checks' : 'activity';
   const showStatus = followUp || !PR_SETTLED.has(attempt.state) || justOpened(attempt.pullRequest, now);
 
   return (
     <div className="flex min-w-0 flex-col gap-4" data-session-details={attempt.attemptId}>
       {showStatus ? <AttemptStatus attempt={attempt} now={now} /> : null}
-      <AgentDecisions attempt={attempt} />
+      <AgentDidPanel attempt={attempt} now={now} />
+      {/* In review the form holds the approved title and description already. */}
+      {!followUp && attempt.approval && !inReview ? <ApprovalPanel attempt={attempt} /> : null}
       {inReview && !followUp ? (
         <SubmitPanel open={!!attempt.submit?.lastError}>
-          <PrForm
-            attemptId={attempt.attemptId}
-            issueNumber={attempt.number}
-            repo={repo}
-            defaultTitle={
-              // Each candidate without its WIP or draft marks: one that is nothing but a mark gives way.
-              [attempt.approval?.title, attempt.result?.prTitle, attempt.title]
-                .map((title) => withoutDraftMarks(title ?? ''))
-                .find(Boolean) ?? `Fix #${attempt.number}`
-            }
-            defaultBody={editableBodyOf(attempt.approval?.body ?? attempt.result?.prBody)}
-            login={view.contributor?.login ?? 'you'}
-            footer={attempt.prFooter}
-            coAuthored={attempt.prCoAuthored}
-            dcoMode={view.contributor?.settings?.dco ?? null}
-            dcoRequired={attempt.dcoRequired}
-            again={!!attempt.submit?.lastError}
-            grantNeeded={grantNeededOf(view, attempt)}
-            grantConnected={view.grant?.connected === true}
-            conventions={attempt.conventions}
-            patch={attempt.patch}
-          />
+          <PrForm {...prFormPropsOf(view, attempt)} />
         </SubmitPanel>
       ) : null}
       {inReview && followUp && !flow ? (
@@ -339,6 +324,7 @@ function SessionDetails({
         />
       ) : null}
       {inReview && ownAgent ? <SendBackForm attemptId={attempt.attemptId} left={attempt.sendBacksLeft ?? 0} /> : null}
+      {comments}
       <SessionTabs
         key={attempt.attemptId}
         tabs={tabs}
@@ -482,10 +468,7 @@ export function SessionPane({
       {showNext && first ? (
         <NextStepCards first={first} view={view} now={now} />
       ) : (
-        <>
-          <RunNote attempt={attempt} />
-          <SessionDetails attempt={attempt} view={view} now={now} resolveHumans={resolveHumans} />
-        </>
+        <SessionDetails attempt={attempt} view={view} now={now} resolveHumans={resolveHumans} />
       )}
     </div>
   );

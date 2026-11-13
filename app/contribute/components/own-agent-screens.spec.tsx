@@ -26,7 +26,9 @@ const { OwnAgentConnectScreen, ConnectScreen } = await import('./connect-view');
 const { ReviewScreen } = await import('./review-view');
 const { ContributionsScreen } = await import('./contributions-view');
 const { NOW, views, contributor } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { attempt, contributions, detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
+const { attempt, contributions, detail, ownAgentAttempt } = await import(
+  '@/lib/contribute/__fixtures__/contribute-attempts'
+);
 const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
 const { MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/contribute/mcp-setup');
 
@@ -221,24 +223,42 @@ describe('Connect, with your own agent', () => {
 });
 
 describe('the review of a change made by your own agent', () => {
-  const ownAgentDetail = detail({
-    runner: 'MCP',
-    agent: { name: 'CODEX', model: 'gpt-5.5-codex' },
-    sendBacksLeft: 2,
-    changesRequested: null,
-    leaseUntil: null,
-    openedBy: null,
-    costUsd: 0,
-    budgetUsd: 0,
-  });
+  const ownAgentDetail = ownAgentAttempt;
+  const page = (item: typeof ownAgentAttempt) =>
+    renderToStaticMarkup(<ReviewScreen view={views.active} attempt={item} now={NOW} />);
+  /** The markup of the "What the agent did" card. */
+  const card = (html: string) => {
+    const start = html.indexOf('data-panel="agent-did"');
+    expect(start).toBeGreaterThan(-1);
+    return html.slice(start, html.indexOf('</section>', start));
+  };
 
   it('names the agent as reported in place of a cost, and the tests as reported', () => {
-    const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={ownAgentDetail} now={NOW} />);
+    const html = page(ownAgentDetail);
     const plain = text(html);
-    expect(html).toContain('data-panel="own-agent"');
-    expect(plain).toContain('Codex (gpt-5.5-codex)');
+    expect(card(html)).toContain('data-agent-meta');
+    expect(text(card(html))).toContain('Made by Codex (gpt-5.5-codex), as your agent reported it.');
+    expect(html).toContain('data-panel="cost" data-own-agent=""');
+    expect(plain).toContain('Nothing on your Claude key: your agent ran on your machine.');
+    expect(plain).not.toContain('$0 of your');
     expect(plain).toContain('Tests reported by your agent');
-    expect(html).not.toContain('data-panel="cost"');
+  });
+
+  it('says how long the issue is held for it, and what you sent it back with in Activity', () => {
+    const html = page({
+      ...ownAgentDetail,
+      leaseUntil: '2026-10-29T12:00:00.000Z',
+      changesRequested: { note: 'Add a test for the trailing slash.', at: '2026-10-28T10:00:00.000Z' },
+    });
+    expect(text(card(html))).toContain('The issue is held for it for another 1 day.');
+    expect(text(card(html))).not.toContain('Add a test for the trailing slash.');
+    const activity = text(html.slice(html.indexOf('data-tab-panel="activity"')));
+    expect(activity).toContain('You sent it back on Oct 28: Add a test for the trailing slash.');
+  });
+
+  it('says your agent has not submitted yet while it works', () => {
+    const html = page({ ...ownAgentDetail, state: 'RUNNING', result: null, agent: null });
+    expect(text(card(html))).toContain("Your agent hasn't submitted yet.");
   });
 
   it('offers to send it back, with how many times are left, and stops offering at none', () => {
@@ -270,6 +290,7 @@ describe('the review of a change made by your own agent', () => {
   it('keeps the hosted review as it was', () => {
     const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={detail()} now={NOW} />);
     expect(html).toContain('data-panel="cost"');
+    expect(html).not.toContain('data-own-agent');
     expect(text(html)).not.toContain('Send back to my agent');
   });
 });

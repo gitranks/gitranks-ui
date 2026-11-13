@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { editableBodyOf, endMoveOf, endReasonLabelOf, footerPreviewOf } from './attempt-format';
+import { editableBodyOf, endMoveOf, endReasonLabelOf, eventLabelOf, footerPreviewOf } from './attempt-format';
 import type { ContributeAttemptEndReason } from './contribute.types';
 
 const FOOTER =
@@ -108,5 +108,18 @@ describe("a claim the repo's rules refused at the start", () => {
     expect(endReasonLabelOf(refused(null))).toBe('It was cancelled before it finished.');
     expect(endReasonLabelOf(refused('something_else'))).toBe('It was cancelled before it finished.');
     expect(endMoveOf(refused('repo_no_gfi', 'USER'))).toBeNull();
+  });
+});
+
+describe('eventLabelOf', () => {
+  it("says what a run's DONE pushed: its new commits, or nothing", () => {
+    expect(eventLabelOf({ state: 'DONE' }, { patch: 'diff --git a/x b/x' })).toBe('Pushed the new commits');
+    expect(eventLabelOf({ state: 'DONE' }, { patch: null })).toBe('Done');
+    expect(eventLabelOf({ state: 'DONE' }, { patch: '  ' })).toBe('Done');
+  });
+
+  it('says every other state as before', () => {
+    expect(eventLabelOf({ state: 'RUNNING' }, { patch: null })).toBe('The agent started');
+    expect(eventLabelOf({ state: 'PR_OPEN' }, { patch: 'x' })).toBe('Pull request opened');
   });
 });

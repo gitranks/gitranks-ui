@@ -1,42 +1,56 @@
-import type { ReactNode } from 'react';
+import { ChevronDown } from 'lucide-react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { HEADING, Pill, SubTitle } from './primitives';
 import {
-  agentLabelOf,
   CHECK_LABELS,
   detailText,
-  EVENT_LABELS,
+  eventLabelOf,
   isOwnAgent,
   labelOf,
-  RISKS,
   timeLabel,
-  toneLabelOf,
 } from '@/lib/contribute/attempt-format';
 import type {
   ContributeAttemptDetail,
   ContributeAttemptTest,
   ContributeModel,
 } from '@/lib/contribute/contribute.types';
-import { MODELS, timeLeftLabel, usd } from '@/lib/contribute/format';
+import { agentDidOf } from '@/lib/contribute/decisions';
+import { dayLabel, MODELS, usd } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
 const NOT_YET = 'Not available yet.';
 
-/** A block of the review, with its heading. */
+/** A block of the review, with its heading, and what sits beside the heading (`aside`: its pills, say). */
 function Block({
   title,
+  aside,
   children,
   className,
   name,
+  ...rest
 }: {
   title: string;
+  aside?: ReactNode;
   children: ReactNode;
   className?: string;
   name: string;
-}) {
+} & Omit<ComponentProps<'section'>, 'title' | 'children' | 'className'>) {
+  const heading = <h2 className={HEADING.card}>{title}</h2>;
   return (
-    <section data-panel={name} className={cn('flex flex-col gap-2.5 rounded-xl border bg-card p-5', className)}>
-      <h2 className={HEADING.card}>{title}</h2>
+    <section
+      data-panel={name}
+      {...rest}
+      className={cn('flex flex-col gap-2.5 rounded-xl border bg-card p-5', className)}
+    >
+      {aside ? (
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+          {heading}
+          {aside}
+        </div>
+      ) : (
+        heading
+      )}
       {children}
     </section>
   );
@@ -44,39 +58,89 @@ function Block({
 
 const Muted = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
-const VERDICTS = { DONE: 'Done', PARTIAL: 'Partly done', NO_GO: 'No-go' } as const;
+/** The chevron a closed `<details className="group">` turns when it opens. */
+const Chevron = ({ className }: { className?: string }) => (
+  <ChevronDown
+    aria-hidden="true"
+    className={cn(
+      'size-4 flex-none text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none',
+      className,
+    )}
+  />
+);
 
-/** What the agent changed, in its own words, and what it thinks is worth a second look. */
-export function ResultPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
-  const { result } = attempt;
-  if (!result) {
-    return (
-      <Block title="What the agent changed" name="result">
-        <Muted>The agent&apos;s summary is {NOT_YET.toLowerCase()}</Muted>
-      </Block>
-    );
-  }
-  const risk = result.risk ? toneLabelOf(RISKS, result.risk) : null;
+const SUMMARY =
+  'flex cursor-pointer list-none items-center gap-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden';
+
+/**
+ * What the agent did on the session, said once: its verdict and risk, one paragraph (a no-go's reason, its summary,
+ * what the check was on when it ran out, its brief, or that it is not ready yet), what is worth a look, who made it
+ * when it is the user's own agent, and its notes behind a disclosure. Nothing for an ended session with nothing to say.
+ */
+export function AgentDidPanel({ attempt, now }: { attempt: ContributeAttemptDetail; now?: Date }) {
+  const did = agentDidOf(attempt, now);
+  if (!did) return null;
+  const { verdict, risk, text, limitNote, worthALook, notes, ownAgent } = did;
 
   return (
-    <Block title="What the agent changed" name="result">
-      <div className="flex flex-wrap gap-1.5">
-        {result.verdict ? (
-          <Pill tone={result.verdict === 'DONE' ? 'green' : 'amber'}>{labelOf(VERDICTS, result.verdict)}</Pill>
-        ) : null}
-        {risk ? <Pill tone={risk.tone}>{risk.label}</Pill> : <Pill>Risk not rated</Pill>}
-      </div>
-      <p className="whitespace-pre-line text-foreground/90">{result.summary || 'No summary was given.'}</p>
-      {result.riskNotes ? (
+    <Block
+      title="What the agent did"
+      name="agent-did"
+      data-verdict={verdict?.key}
+      data-go-no-go={attempt.goNoGo?.verdict}
+      data-agent-text={text.kind}
+      aside={
+        verdict || risk ? (
+          <>
+            {verdict ? <Pill tone={verdict.tone}>{verdict.label}</Pill> : null}
+            {risk ? <Pill tone={risk.tone}>{risk.label}</Pill> : null}
+          </>
+        ) : null
+      }
+    >
+      {text.muted ? (
+        <Muted>{text.words}</Muted>
+      ) : (
+        <p className="break-words whitespace-pre-line text-foreground/90">{text.words}</p>
+      )}
+      {limitNote ? (
+        <span data-decided-at-limit="" className="text-xs text-muted-foreground">
+          {limitNote}
+        </span>
+      ) : null}
+      {worthALook ? (
         <div className="flex flex-col gap-1 border-t pt-2.5">
           <span className="text-xs font-semibold text-muted-foreground">Worth a look</span>
-          <span className="whitespace-pre-line text-sm text-foreground/90">{result.riskNotes}</span>
+          <span className="whitespace-pre-line text-sm text-foreground/90">{worthALook}</span>
         </div>
       ) : null}
-      {result.filesChanged.length ? (
-        <p className="text-sm text-muted-foreground">
-          {result.filesChanged.length} file{result.filesChanged.length === 1 ? '' : 's'} changed
+      {ownAgent?.agent ? (
+        <p data-agent-meta="" className="text-xs text-muted-foreground">
+          Made by {ownAgent.agent}, as your agent reported it.
         </p>
+      ) : null}
+      {ownAgent?.heldFor ? (
+        <p data-agent-meta="" className="text-xs text-muted-foreground">
+          The issue is held for it for another {ownAgent.heldFor}.
+        </p>
+      ) : null}
+      {notes ? (
+        <details data-agent-notes="" className="group border-t pt-2.5">
+          <summary className={cn(SUMMARY, 'min-h-11 justify-between text-sm font-medium sm:min-h-0')}>
+            The agent&apos;s notes
+            <Chevron />
+          </summary>
+          <div className="flex flex-col gap-2 pt-2">
+            {notes.brief ? (
+              <p className="break-words whitespace-pre-line text-sm text-foreground/90">{notes.brief}</p>
+            ) : null}
+            {notes.goReason ? (
+              <p className="break-words whitespace-pre-line text-sm text-foreground/90">
+                <span className="font-medium">Why it went ahead:</span> {notes.goReason}
+              </p>
+            ) : null}
+          </div>
+        </details>
       ) : null}
     </Block>
   );
@@ -153,8 +217,18 @@ export function ChecksPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
 /** `Sonnet 5.5`; a model this UI does not know yet by its raw name. */
 const modelName = (model: ContributeModel | null) => (model ? (MODELS[model]?.replace(/^Claude /, '') ?? model) : null);
 
-/** What the attempt cost on the user's key, split by phase, against the attempt's limit. */
+/**
+ * What the attempt cost on the user's key, split by phase, against the attempt's limit. The user's own agent ran on
+ * their machine: nothing was spent on their key.
+ */
 export function CostPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
+  if (isOwnAgent(attempt)) {
+    return (
+      <Block title="What it cost" name="cost" data-own-agent="" className="p-4.5">
+        <p className="text-sm text-foreground/90">Nothing on your Claude key: your agent ran on your machine.</p>
+      </Block>
+    );
+  }
   const { cost } = attempt;
   const model = modelName(attempt.model);
 
@@ -177,33 +251,6 @@ export function CostPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
   );
 }
 
-/**
- * Made by the user's own agent, in place of a cost: nothing was spent on their key. The model is as the agent
- * reported it.
- */
-export function OwnAgentPanel({ attempt, now }: { attempt: ContributeAttemptDetail; now?: Date }) {
-  const agent = agentLabelOf(attempt.agent);
-  return (
-    <Block title="Made by your own agent" name="own-agent" className="p-4.5">
-      <span className="text-lg font-semibold">{agent ?? 'Your agent has not submitted yet'}</span>
-      <span className="text-xs text-muted-foreground">
-        As your agent reported it. It ran on your machine, so nothing was spent on a Claude key.
-      </span>
-      {timeLeftLabel(attempt.leaseUntil, now) ? (
-        <span className="text-sm text-muted-foreground">
-          The issue is held for it for another {timeLeftLabel(attempt.leaseUntil, now)}.
-        </span>
-      ) : null}
-      {attempt.changesRequested ? (
-        <div className="flex flex-col gap-1 border-t pt-2.5">
-          <span className="text-xs font-semibold text-muted-foreground">You sent it back with</span>
-          <span className="whitespace-pre-line text-sm text-foreground/90">{attempt.changesRequested.note}</span>
-        </div>
-      ) : null}
-    </Block>
-  );
-}
-
 /** Every change of the attempt, oldest first. */
 export function TimelinePanel({ attempt }: { attempt: ContributeAttemptDetail }) {
   return (
@@ -222,7 +269,7 @@ export function TimelinePanel({ attempt }: { attempt: ContributeAttemptDetail })
                   {timeLabel(event.at).replace(' UTC', '')}
                 </time>
                 <span className="text-foreground/90">
-                  {labelOf(EVENT_LABELS, event.state)}
+                  {eventLabelOf(event, attempt)}
                   {detail ? <span className="text-muted-foreground"> · {detail}</span> : null}
                 </span>
               </li>
@@ -237,8 +284,37 @@ export function TimelinePanel({ attempt }: { attempt: ContributeAttemptDetail })
   );
 }
 
-/** How the repo installs, builds and tests, as the agent found it. */
-export function ReadinessPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
+/**
+ * The notes the user gave the agent: a run's note, and what they sent their own agent back with. Nothing when there
+ * is neither.
+ */
+export function YourNotePanel({ attempt }: { attempt: ContributeAttemptDetail }) {
+  const reason = attempt.kind === 'FOLLOW_UP' ? attempt.followUpOf?.reason?.trim() : null;
+  const sentBack = attempt.changesRequested ?? null;
+  if (!reason && !sentBack) return null;
+
+  return (
+    <Block title="Your note" name="your-note" className="p-4.5">
+      {reason ? (
+        <p data-run-note="" className="text-sm break-words whitespace-pre-line">
+          {reason}
+        </p>
+      ) : null}
+      {sentBack ? (
+        <div data-sent-back="" className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">You sent it back on {dayLabel(sentBack.at)}:</span>
+          <p className="text-sm break-words whitespace-pre-line">{sentBack.note}</p>
+        </div>
+      ) : null}
+    </Block>
+  );
+}
+
+/**
+ * How the repo installs, builds and tests, as the agent found it: closed until opened (`open`: drawn open). Nothing
+ * when the agent found none.
+ */
+export function ReadinessPanel({ attempt, open = false }: { attempt: ContributeAttemptDetail; open?: boolean }) {
   const { readiness } = attempt;
   const rows = readiness
     ? (
@@ -253,37 +329,48 @@ export function ReadinessPanel({ attempt }: { attempt: ContributeAttemptDetail }
   if (!readiness || (!rows.length && !readiness.notes)) return null;
 
   return (
-    <Block title="How the repo builds" name="readiness" className="p-4.5">
-      {rows.length ? (
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
-          {rows.map(([label, value]) => (
-            <div key={label} className="contents">
-              <dt className="text-muted-foreground">{label}</dt>
-              <dd className="font-mono break-all">{value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-      {readiness.notes ? <p className="whitespace-pre-line text-sm text-foreground/90">{readiness.notes}</p> : null}
-    </Block>
+    <details data-panel="readiness" open={open} className="group rounded-xl border bg-card">
+      <summary className={cn(SUMMARY, 'min-h-11 justify-between rounded-xl p-4.5')}>
+        <span className={HEADING.card}>How the repo builds</span>
+        <Chevron />
+      </summary>
+      <div className="flex flex-col gap-2.5 px-4.5 pb-4.5">
+        {rows.length ? (
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
+            {rows.map(([label, value]) => (
+              <div key={label} className="contents">
+                <dt className="text-muted-foreground">{label}</dt>
+                <dd className="font-mono break-all">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {readiness.notes ? <p className="whitespace-pre-line text-sm text-foreground/90">{readiness.notes}</p> : null}
+      </div>
+    </details>
   );
 }
 
-/** The title and body the user approved, once they did. */
+/** The title and body the user approved, once they did: one line that opens in place. */
 export function ApprovalPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
   const { approval } = attempt;
   if (!approval) return null;
 
   return (
-    <Block title="What you approved" name="approval" className="p-4.5">
-      <span className="font-semibold">{approval.title}</span>
-      <pre className="max-h-72 overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs whitespace-pre-wrap">
-        {approval.body}
-      </pre>
-      <span className="text-xs text-muted-foreground">
-        Approved {timeLabel(approval.at)}
-        {approval.dco ? ', signed off (DCO)' : ''}.
-      </span>
-    </Block>
+    <details data-panel="approval" className="group rounded-xl border bg-card">
+      <summary className={cn(SUMMARY, 'min-h-11 rounded-xl px-4.5 py-3')}>
+        <span className="flex-none text-sm font-semibold">What you approved</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          {approval.title} · {dayLabel(approval.at)}
+        </span>
+        <Chevron />
+      </summary>
+      <div className="flex flex-col gap-2 px-4.5 pb-4.5">
+        <pre className="max-h-72 overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs whitespace-pre-wrap">
+          {approval.body}
+        </pre>
+        {approval.dco ? <span className="text-xs text-muted-foreground">Signed off (DCO).</span> : null}
+      </div>
+    </details>
   );
 }

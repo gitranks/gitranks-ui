@@ -420,7 +420,7 @@ function FollowUpResultLive({
 
   return (
     <section data-panel="follow-up-result" className="flex flex-col gap-3.5 rounded-xl border bg-card p-4 sm:p-5">
-      <h2 className={HEADING.card}>{inReview ? 'What the agent did' : 'The review comments'}</h2>
+      <h2 className={HEADING.card}>The review comments</h2>
       <CheckStatusNote status={attempt.checkStatus} />
       {list('Bots', bots)}
       {list('People', people)}

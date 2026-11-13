@@ -11,13 +11,35 @@ import { cn } from '@/lib/utils';
 export function WrittenFor({
   writtenFor,
   short = false,
+  author = false,
   className,
 }: {
   writtenFor: string | null | undefined;
   short?: boolean;
+  /** A shared lesson: written for its author's goal, which the reader cannot change. */
+  author?: boolean;
   className?: string;
 }) {
   const parts = writtenForOf(writtenFor);
+  if (author) {
+    return (
+      <p className={cn('text-xs text-muted-foreground', className)}>
+        {parts ? (
+          <>
+            Written for its author's goal: <span className="font-medium text-foreground">{parts.goal}</span>
+            {parts.level ? (
+              <>
+                , level <span className="font-medium text-foreground">{parts.level}</span>
+              </>
+            ) : null}
+            .
+          </>
+        ) : (
+          "Written for its author's goal and level."
+        )}
+      </p>
+    );
+  }
   const change = (
     <Link href={LEARN_PROFILE_PATH} prefetch={false} className="text-link hover:underline">
       {short ? 'Change' : 'Change goal and level'}

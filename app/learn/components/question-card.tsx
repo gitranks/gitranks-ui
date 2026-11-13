@@ -180,9 +180,10 @@ export type QuestionCardProps = {
   nextLabel?: string;
   /** A failed check's message, under the button. */
   error?: string | null;
-  liked: boolean | null;
-  onLike: (liked: boolean) => void;
-  onReport: (reason: LessonReportReason) => Promise<string | null>;
+  /** Like, dislike and report: left out on a result page, where nobody answers. */
+  liked?: boolean | null;
+  onLike?: (liked: boolean) => void;
+  onReport?: (reason: LessonReportReason) => Promise<string | null>;
   reportDrawn?: boolean;
 };
 
@@ -288,14 +289,17 @@ export function QuestionCard({
       </fieldset>
     );
 
-  const feedback = <QuestionFeedback liked={liked} onLike={onLike} onReport={onReport} reportDrawn={reportDrawn} />;
+  const feedback =
+    onLike && onReport ? (
+      <QuestionFeedback liked={liked ?? null} onLike={onLike} onReport={onReport} reportDrawn={reportDrawn} />
+    ) : null;
   const asking = current && !graded;
 
   return (
     <section
       className={cn(
         'flex flex-col rounded-xl bg-card p-4.5',
-        asking || right ? 'gap-3.5 border-2 border-primary' : 'gap-3 border',
+        asking || (right && current) ? 'gap-3.5 border-2 border-primary' : 'gap-3 border',
       )}
       data-question={question.id}
       data-graded={graded ? (graded.correct ? 'right' : 'wrong') : undefined}
@@ -343,9 +347,9 @@ export function QuestionCard({
           </div>
           {feedback}
         </div>
-      ) : (
+      ) : feedback ? (
         <div className="flex justify-end">{feedback}</div>
-      )}
+      ) : null}
     </section>
   );
 }

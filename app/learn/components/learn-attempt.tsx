@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { LESSON_GRID, LessonFlow, type LessonFlowStart, StepArticle } from './lesson-flow';
+import { LessonFlow, type LessonFlowStart, StepArticle } from './lesson-flow';
 import { LessonShare } from './lesson-share';
+import { LESSON_GRID } from './lesson-steps';
 import { StageStrip } from './stage-strip';
 import { WrittenFor } from './written-for';
 import {

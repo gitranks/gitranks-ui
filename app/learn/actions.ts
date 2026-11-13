@@ -1,7 +1,15 @@
 'use server';
 
+import { signIn } from '@/auth';
+import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
-import { type ContributeActionResult, contributeErrorOf } from '@/lib/contribute/errors';
+import {
+  type ContributeActionResult,
+  contributeErrorOf,
+  type PrFeedbackErrorCode,
+  prFeedbackErrorOf,
+} from '@/lib/contribute/errors';
+import { currentMaintainerToken, markMaintainerSignIn } from '@/lib/contribute/maintainer-token';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import {
   AnswerLessonQuestionDocument,
@@ -9,21 +17,28 @@ import {
   LogCopyForAgentDocument,
   MarkStepShownDocument,
   RateLessonDocument,
+  ReactToResultDocument,
   RemoveLessonDocument,
   ReportQuestionDocument,
   SaveLearnProfileDocument,
   SendQuestionFeedbackDocument,
+  ShareMyResultDocument,
   StartLessonRunDocument,
+  StartSharedLessonRunDocument,
 } from '@/lib/learn/learn.documents';
 import type {
   LearnProfile,
   LessonAnswerResult,
+  LessonReaction,
   LessonReportReason,
+  LessonResultReaction,
   LessonRun,
   LessonWarmupAnswer,
 } from '@/lib/learn/learn.types';
+import { githubLoginOf, lessonResultPath, lessonSlugOf, REACT_PARAM } from '@/lib/learn/learn-path';
 import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
+import { markReaction, takeReactionMark } from '@/lib/learn/react-mark';
 import type DocumentNode from '@/types/typed-document-node';
 
 /** Ids as the API takes them: short strings, never anything else from the browser. */
@@ -161,4 +176,83 @@ export async function saveLearnProfile(input: unknown): Promise<ContributeAction
   const clean = cleanProfileInput(input);
   if (!clean) return invalid();
   return run(SaveLearnProfileDocument, { input: clean }, (data) => data.saveLearnProfile);
+}
+
+/** Opens the viewer's run of a shared lesson: the open one when there is one, else a new one. */
+export async function startSharedLessonRun(slug: string): Promise<ContributeActionResult<LessonRun>> {
+  const id = lessonSlugOf(slug);
+  if (!id) return invalid();
+  return run(StartSharedLessonRunDocument, { slug: id }, (data) => data.startLessonRun);
+}
+
+/** "Share my result": the viewer's passed run of a shared lesson shows on their result page, or stops showing. */
+export async function shareMyResult(runId: string, share: boolean): Promise<ContributeActionResult<LessonRun>> {
+  const id = idOf(runId);
+  if (!id || typeof share !== 'boolean') return invalid();
+  return run(ShareMyResultDocument, { runId: id, share }, (data) => data.shareMyResult);
+}
+
+/** A reaction stored, with the result page's reactions after it, or why not. The GitHub token never comes back. */
+export type ReactionResult = { ok: true; data: LessonResultReaction[] } | { ok: false; error: PrFeedbackErrorCode };
+
+const reactionOf = (value: unknown): LessonReaction | null => (value === 'YES' || value === 'NO' ? value : null);
+
+async function react(slug: string, login: string, reaction: LessonReaction): Promise<ReactionResult> {
+  const token = await currentMaintainerToken();
+  if (!token) return { ok: false, error: 'SIGNED_OUT' };
+  try {
+    const { reactToResult } = await graphqlDirect(
+      ReactToResultDocument,
+      { slug, login, reaction, token },
+      { source: 'client' },
+    );
+    return { ok: true, data: reactToResult };
+  } catch (failure) {
+    return { ok: false, error: prFeedbackErrorOf(failure) };
+  }
+}
+
+/**
+ * "Did this help you review the pull request?": stores the answer with the visitor's GitHub account, from the light
+ * sign-in's token, read here from the session. A new answer replaces the last.
+ */
+export async function reactToLessonResult(
+  slug: string,
+  login: string,
+  reaction: LessonReaction,
+): Promise<ReactionResult> {
+  const id = lessonSlugOf(slug);
+  const githubLogin = githubLoginOf(login);
+  const pick = reactionOf(reaction);
+  if (!id || !githubLogin || !pick) return { ok: false, error: 'INVALID' };
+  return react(id, githubLogin, pick);
+}
+
+/**
+ * The answer picked before the sign-in, stored on the way back: only when this browser started that sign-in for this
+ * result page and this pick (`takeReactionMark`), so a link carrying `?react=` stores nothing by itself.
+ */
+export async function reactOnReturn(slug: string, login: string, reaction: LessonReaction): Promise<ReactionResult> {
+  const id = lessonSlugOf(slug);
+  const githubLogin = githubLoginOf(login);
+  const pick = reactionOf(reaction);
+  if (!id || !githubLogin || !pick) return { ok: false, error: 'INVALID' };
+  if (!(await takeReactionMark(id, githubLogin, pick))) return { ok: false, error: 'INVALID' };
+  return react(id, githubLogin, pick);
+}
+
+/**
+ * The light GitHub sign-in for a reaction picked while signed out: back to the result page with the pick in its
+ * address (`?react=yes|no`), stored on return with no second click.
+ */
+export async function signInToReact(form: FormData): Promise<void> {
+  const slug = lessonSlugOf(form.get('slug'));
+  const login = githubLoginOf(form.get('login'));
+  const reaction = reactionOf(form.get('reaction'));
+  const marked = slug && login && reaction ? await markReaction(slug, login, reaction) : false;
+  const returnTo =
+    marked && slug && login && reaction
+      ? `${lessonResultPath(slug, login)}?${REACT_PARAM}=${reaction.toLowerCase()}`
+      : undefined;
+  await signIn(IDENTITY_PROVIDER, { redirectTo: await markMaintainerSignIn(returnTo) });
 }

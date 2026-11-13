@@ -15,7 +15,7 @@ import {
 } from './lib/contribute/contribute-path';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { contributeOpen, requestMaySeeContribute } from './lib/contribute/preview-gate';
-import { isLearnOpenPath, isLearnPath } from './lib/learn/learn-path';
+import { isLearnOpenPath, isLearnPath, lessonResultJsonRouteOf } from './lib/learn/learn-path';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
@@ -88,6 +88,13 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // which would turn this rewrite into an external one. It also keeps session cookies off 404s.
   if (isInvalidRankingPath(request.nextUrl.pathname) || isImpossibleEntityPath(request.nextUrl.pathname)) {
     return NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+  }
+
+  // A result page's facts as JSON: a page and a route handler cannot share the `[login]` segment, so the address ending
+  // in `.json` is answered by the route handler over the same read. Rewritten before Auth.js, like the 404s above.
+  const resultJson = lessonResultJsonRouteOf(request.nextUrl.pathname);
+  if (resultJson) {
+    return NextResponse.rewrite(new URL(resultJson, request.url));
   }
 
   // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared

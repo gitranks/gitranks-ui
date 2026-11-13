@@ -4,6 +4,12 @@ import type { LessonStep, LessonStepResult } from '@/lib/learn/learn.types';
 import { isStepDone, partsLabelOf, STEP_BADGES } from '@/lib/learn/question';
 import { cn } from '@/lib/utils';
 
+/**
+ * The grid of the lesson's pages: the rail of steps beside the pane from `lg`, above it on a phone. Here, outside any
+ * client module, so server components read the string itself.
+ */
+export const LESSON_GRID = 'grid items-start gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]';
+
 /** A step's anchor on the page. */
 export const stepAnchorOf = (step: Pick<LessonStep, 'id'>) => `step-${step.id}`;
 
@@ -27,6 +33,7 @@ export function LessonSteps({
   shownId,
   reachable,
   onOpen,
+  anchors = false,
 }: {
   steps: readonly LessonStep[];
   results: readonly LessonStepResult[];
@@ -35,6 +42,8 @@ export function LessonSteps({
   /** The steps the user may open: the ones passed and the current one. */
   reachable?: ReadonlySet<string>;
   onOpen?: (stepId: string) => void;
+  /** Every step links to its article further down the page: a lesson read whole. */
+  anchors?: boolean;
 }) {
   const byStep = new Map(results.map((result) => [result.stepId, result]));
   const passed = steps.filter((step) => isStepDone(byStep.get(step.id))).length;
@@ -68,7 +77,15 @@ export function LessonSteps({
           );
           return (
             <li key={step.id} className="w-56 shrink-0 lg:w-auto" data-step={step.id} data-state={result?.state}>
-              {open ? (
+              {anchors ? (
+                <a
+                  href={`#${stepAnchorOf(step)}`}
+                  aria-current={shown ? 'step' : undefined}
+                  className={cn(box, 'hover:border-primary/40')}
+                >
+                  {body}
+                </a>
+              ) : open ? (
                 <a
                   href={`#${stepAnchorOf(step)}`}
                   aria-current={shown ? 'step' : undefined}

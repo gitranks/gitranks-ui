@@ -5,6 +5,7 @@ import type { JWT } from 'next-auth/jwt';
 
 import { MAINTAINER_RETURN_PATHS, MAINTAINERS_PATH } from './contribute-path';
 import { currentSessionToken } from './session-token';
+import { isLessonResultPath, REACT_PARAM, reactionParamOf } from '@/lib/learn/learn-path';
 
 /**
  * The maintainers page lists a visitor's repositories with the GitHub token of their light sign-in, which the site
@@ -40,18 +41,28 @@ export function maintainerSignInCookie(secure = process.env.NODE_ENV === 'produc
 /** Any local address, read against a base no address of ours has; anything else answers another origin. */
 const LOCAL_BASE = 'https://gitranks.invalid';
 
+/** The paths the light sign-in returns to: the maintainers page, its report page, and a Learn result page. */
+const isReturnPath = (pathname: string) => MAINTAINER_RETURN_PATHS.includes(pathname) || isLessonResultPath(pathname);
+
 /**
  * Where the page's sign-in may return to: `returnTo` when it is one of the maintainers page's own paths (its query
- * kept, any nonce in it dropped), else the page itself. Never another path or another site.
+ * kept, any nonce in it dropped) or a Learn result page (only its `?react=yes|no` kept), else the maintainers page.
+ * Never another path or another site.
  */
 export function maintainerReturnOf(returnTo: unknown): URL {
   const fallback = new URL(MAINTAINERS_PATH, LOCAL_BASE);
   if (typeof returnTo !== 'string' || !returnTo.startsWith('/') || returnTo.startsWith('//')) return fallback;
   try {
     const url = new URL(returnTo, LOCAL_BASE);
-    if (url.origin !== LOCAL_BASE || !MAINTAINER_RETURN_PATHS.includes(url.pathname)) return fallback;
-    url.searchParams.delete(NONCE_PARAM);
+    if (url.origin !== LOCAL_BASE || !isReturnPath(url.pathname)) return fallback;
     url.hash = '';
+    if (isLessonResultPath(url.pathname)) {
+      const reaction = reactionParamOf(url.searchParams.get(REACT_PARAM));
+      url.search = '';
+      if (reaction) url.searchParams.set(REACT_PARAM, reaction.toLowerCase());
+      return url;
+    }
+    url.searchParams.delete(NONCE_PARAM);
     return url;
   } catch {
     return fallback;
@@ -71,12 +82,12 @@ export async function markMaintainerSignIn(returnTo: unknown = MAINTAINERS_PATH)
   return `${url.pathname}${url.search}`;
 }
 
-/** Whether `callbackUrl` returns to one of the maintainers page's own paths with `nonce`. */
+/** Whether `callbackUrl` returns to one of the paths the sign-in may return to, with `nonce`. */
 const returnsWithNonce = (callbackUrl: string | undefined, nonce: string) => {
   if (!callbackUrl) return false;
   try {
     const url = new URL(callbackUrl, LOCAL_BASE);
-    return MAINTAINER_RETURN_PATHS.includes(url.pathname) && url.searchParams.get(NONCE_PARAM) === nonce;
+    return isReturnPath(url.pathname) && url.searchParams.get(NONCE_PARAM) === nonce;
   } catch {
     return false;
   }

@@ -8,6 +8,9 @@ import { LearnMaintainers } from '@/app/learn/components/learn-maintainers';
 import { LearnProfileScreen } from '@/app/learn/components/learn-profile';
 import { LearnTabs } from '@/app/learn/components/learn-tabs';
 import type { LessonFlowStart } from '@/app/learn/components/lesson-flow';
+import { LessonPageScreen } from '@/app/learn/components/lesson-page';
+import { LessonResultScreen, type ResultViewer } from '@/app/learn/components/lesson-result';
+import { LessonStubScreen } from '@/app/learn/components/lesson-stub';
 import { MyLessonsScreen } from '@/app/learn/components/my-lessons';
 import { Header } from '@/components/header/header';
 import { detail, pullRequest } from '@/lib/contribute/__fixtures__/contribute-attempts';
@@ -15,7 +18,8 @@ import { views } from '@/lib/contribute/__fixtures__/contribute-views';
 import type { ContributeAttemptDetail } from '@/lib/contribute/contribute.types';
 import { CAUSE_HINT, CAUSE_QUESTION, FIX_QUESTION, FIX_WHY, lessons } from '@/lib/learn/__fixtures__/lesson';
 import { emptyProfile, filledProfile, myLessons } from '@/lib/learn/__fixtures__/profile';
-import type { LearnAttemptLesson } from '@/lib/learn/learn.types';
+import { lessonPage, result, sharedRuns } from '@/lib/learn/__fixtures__/shared';
+import type { LearnAttemptLesson, LessonResultPage, LessonVisibility } from '@/lib/learn/learn.types';
 import { DONT_KNOW } from '@/lib/learn/question';
 
 /** A page's own container, as its `page.tsx` draws it. */
@@ -88,6 +92,17 @@ const page = (lesson: LearnAttemptLesson, attempt: ContributeAttemptDetail = lea
   frame(<LearnAttemptScreen view={views.active} attempt={attempt} lesson={lesson} start={start} />);
 
 const PATH = '/learn/attempts/A_1';
+
+/** A shared lesson's page and its result pages: open to everyone, so under the header's line, without Learn's tabs. */
+const LESSON_PATH = '/learn/lessons/route-cache-miss-8f3k';
+const RESULT_PATH = `${LESSON_PATH}/passes/octocat`;
+const open = (children: ReactNode) => bare(children, <HeaderLine />);
+const stubPage = (visibility: LessonVisibility | 'MISSING') => open(<LessonStubScreen visibility={visibility} />);
+
+/** A maintainer from the pull request, without the light sign-in: nothing stored yet. */
+const MAINTAINER: ResultViewer = { canReact: false, mine: null, returned: null };
+const resultPage = (page: LessonResultPage = result(), viewer: ResultViewer = MAINTAINER) =>
+  open(<LessonResultScreen result={page} viewer={viewer} />);
 
 export const LEARN_SCREENS: Screen[] = [
   {
@@ -339,6 +354,206 @@ export const LEARN_SCREENS: Screen[] = [
             lessons.ended,
             learnAttempt({ state: 'DISCARDED', endReason: 'USER', endDetail: null, checksPassed: true }),
           ),
+      },
+    ],
+  },
+  {
+    id: 'lesson-page',
+    title: 'A shared lesson',
+    area: 'learn',
+    route: '/learn/lessons/[slug]',
+    sources: [
+      'app/learn/lessons/[slug]/page.tsx',
+      'app/learn/components/lesson-page.tsx',
+      'app/learn/components/lesson-read.tsx',
+      'app/learn/components/shared-lesson.tsx',
+      'app/learn/components/lesson-header.tsx',
+      'app/learn/components/lesson-stub.tsx',
+      'app/learn/lessons/[slug]/not-found.tsx',
+      'app/learn/components/lesson-flow.tsx',
+      'app/learn/components/lesson-summary.tsx',
+      'lib/learn/lesson-public.ts',
+      'lib/learn/lesson-seo.ts',
+    ],
+    states: [
+      {
+        id: 'signed-out',
+        title: 'Signed out: every step to read, sign in to answer',
+        path: LESSON_PATH,
+        signedOut: true,
+        height: 4300,
+        render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'visitor' }} />),
+      },
+      {
+        id: 'phone',
+        title: 'Signed out on a phone',
+        path: LESSON_PATH,
+        signedOut: true,
+        width: 390,
+        height: 6900,
+        render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'visitor' }} />),
+      },
+      {
+        id: 'reader',
+        title: 'Signed in, answering not open to the account yet: read only',
+        path: LESSON_PATH,
+        height: 3900,
+        render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'reader', login: 'mona' }} />),
+      },
+      {
+        id: 'start',
+        title: 'Signed in, no run yet: Start the lesson',
+        path: LESSON_PATH,
+        height: 3900,
+        render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'taker', login: 'mona', run: null }} />),
+      },
+      {
+        id: 'taking',
+        title: 'Taking it: a step and its question, an answer picked',
+        path: LESSON_PATH,
+        height: 1250,
+        render: () =>
+          open(
+            <LessonPageScreen
+              page={lessonPage}
+              viewer={{ kind: 'taker', login: 'mona', run: sharedRuns.step }}
+              start={{ picked: ['q2a2'] }}
+            />,
+          ),
+      },
+      {
+        id: 'passed',
+        title: 'Passed: the summary and Share my result, no gate',
+        path: LESSON_PATH,
+        height: 900,
+        render: () =>
+          open(
+            <LessonPageScreen page={lessonPage} viewer={{ kind: 'taker', login: 'mona', run: sharedRuns.passed }} />,
+          ),
+      },
+      {
+        id: 'shared',
+        title: 'Passed and shared: the link to the result page',
+        path: LESSON_PATH,
+        height: 940,
+        render: () =>
+          open(
+            <LessonPageScreen
+              page={lessonPage}
+              viewer={{
+                kind: 'taker',
+                login: 'mona',
+                run: { ...sharedRuns.passed, resultPublic: true, worthIt: true },
+              }}
+            />,
+          ),
+      },
+      {
+        id: 'held',
+        title: 'Held while reports are read: the lesson page is closed',
+        path: LESSON_PATH,
+        signedOut: true,
+        height: 520,
+        render: () => stubPage('HELD'),
+      },
+      {
+        id: 'removed',
+        title: 'Removed by its author',
+        path: LESSON_PATH,
+        signedOut: true,
+        height: 520,
+        render: () => stubPage('REMOVED'),
+      },
+      {
+        id: 'hidden',
+        title: 'Hidden by GitRanks, or not there: a 404 that says it is not available',
+        path: LESSON_PATH,
+        signedOut: true,
+        height: 520,
+        render: () => stubPage('MISSING'),
+      },
+    ],
+  },
+  {
+    id: 'lesson-result',
+    title: 'A lesson result',
+    area: 'learn',
+    route: '/learn/lessons/[slug]/passes/[login]',
+    sources: [
+      'app/learn/lessons/[slug]/passes/[login]/page.tsx',
+      'app/learn/components/lesson-result.tsx',
+      'app/learn/components/result-reactions.tsx',
+      'app/learn/components/lesson-header.tsx',
+      'app/learn/components/question-card.tsx',
+      'app/api/learn/lessons/[slug]/passes/[login]/route.ts',
+      'lib/learn/lesson-public.ts',
+      'lib/learn/lesson-seo.ts',
+    ],
+    states: [
+      {
+        id: 'review',
+        title: 'From the pull request: the result per step, the lesson with the answers, a reaction',
+        path: RESULT_PATH,
+        signedOut: true,
+        height: 4700,
+        render: () => resultPage(),
+      },
+      {
+        id: 'no-reactions',
+        title: 'No reaction yet',
+        path: RESULT_PATH,
+        signedOut: true,
+        height: 4700,
+        render: () => resultPage(result({ reactions: [] })),
+      },
+      {
+        id: 'sign-in',
+        title: 'After a click on “Yes, it helped”, signed out: the GitHub sign-in',
+        path: RESULT_PATH,
+        signedOut: true,
+        height: 4700,
+        render: () => resultPage(result(), { ...MAINTAINER, prompt: 'YES' }),
+      },
+      {
+        id: 'reacted',
+        title: 'Back from the sign-in: the reaction stored, with the name',
+        path: RESULT_PATH,
+        height: 4700,
+        render: () =>
+          resultPage(
+            result({
+              reactions: [
+                { login: 'mona', role: 'maintainer', reaction: 'YES' },
+                { login: 'hubot', role: 'collaborator', reaction: 'YES' },
+              ],
+            }),
+            { canReact: true, mine: 'YES', returned: null },
+          ),
+      },
+      {
+        id: 'phone',
+        title: 'On a phone',
+        path: RESULT_PATH,
+        signedOut: true,
+        width: 390,
+        height: 7400,
+        render: () => resultPage(),
+      },
+      {
+        id: 'removed',
+        title: 'Removed by its author',
+        path: RESULT_PATH,
+        signedOut: true,
+        height: 520,
+        render: () => stubPage('REMOVED'),
+      },
+      {
+        id: 'hidden',
+        title: 'Hidden, or no public pass: a 404 that says it is not available',
+        path: RESULT_PATH,
+        signedOut: true,
+        height: 520,
+        render: () => stubPage('MISSING'),
       },
     ],
   },

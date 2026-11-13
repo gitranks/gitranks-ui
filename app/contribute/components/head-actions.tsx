@@ -32,12 +32,16 @@ const ErrorLine = ({ text }: { text: string | null | undefined }) =>
     </p>
   ) : null;
 
-/** The provider's error, in the card, for the card's own sources (the submit's only while its dialog is closed). */
+/**
+ * The provider's error, in the card, for the card's own sources: not the submit's or a discard's while their dialog is
+ * open (it shows there), nor a start "Start a run anyway" made (it shows under its own button).
+ */
 export function CardError({ sources }: { sources: ActionSource[] }) {
   const actions = useSessionActions();
   const error = actions?.error;
   if (!error || !sources.includes(error.source)) return null;
-  if (errorPlaceOf(error.source, { dialogOpen: actions?.form?.dialog ?? false }) !== 'card') return null;
+  if (errorPlaceOf(error.source, { dialog: actions?.dialog ?? null }) !== 'card') return null;
+  if (error.source === 'start' && error.key === 'anyway') return null;
   return (
     <p
       role="alert"
@@ -93,12 +97,16 @@ export function DiscardAttemptButton() {
         </Button>
       }
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(next) => {
+        setOpen(next);
+        actions.setDialog(next ? 'discard-attempt' : null);
+      }}
       title="Discard this attempt?"
       description="Nothing is submitted, and the issue goes back to the pool. What it cost stays spent."
       action="Discard"
       pendingAction="Discarding…"
       pending={busy}
+      error={actions.error?.source === 'discard-attempt' ? actions.error.text : null}
       onConfirm={() => void actions.discardAttempt()}
     />
   );
@@ -124,12 +132,16 @@ export function DiscardRunButton({ primary = false }: { primary?: boolean }) {
         </Button>
       }
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(next) => {
+        setOpen(next);
+        actions.setDialog(next ? 'discard-run' : null);
+      }}
       title="Discard this run?"
       description="Nothing is pushed and no reply is posted. What it cost stays spent; the comments you did not discard stay waiting on the pull request."
       action="Discard run"
       pendingAction="Discarding…"
       pending={busy}
+      error={actions.error?.source === 'discard-run' ? actions.error.text : null}
       onConfirm={() => void actions.discardRun()}
     />
   );
@@ -286,7 +298,7 @@ export function StartRun({
       </p>
     ) : null;
   }
-  const error = actions.error?.source === 'start' ? actions.error.text : null;
+  const error = actions.error?.source === 'start' && actions.error.key === card ? actions.error.text : null;
   return (
     <div className="flex flex-col gap-3" data-start={card}>
       <FollowUpNote
@@ -304,7 +316,7 @@ export function StartRun({
           size="lg"
           variant={primary ? 'default' : 'outline'}
           disabled={offOf(actions, state)}
-          onClick={() => void actions.start(note, startArgsOf(card, actions.threads))}
+          onClick={() => void actions.start(note, startArgsOf(card, actions.threads), card)}
           className={`${BIG} self-start`}
         >
           {state.busy ? 'Starting…' : label}

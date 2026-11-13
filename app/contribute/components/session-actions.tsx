@@ -32,7 +32,7 @@ import {
 } from '@/lib/contribute/comment-actions';
 import { attemptActionErrorMessage, type ContributeActionResult } from '@/lib/contribute/errors';
 import { followUpErrorMessage } from '@/lib/contribute/follow-up-format';
-import { runLong } from '@/lib/contribute/session-head-logic';
+import { CONNECTION_FAILED_OF, runLong } from '@/lib/contribute/session-head-logic';
 
 export type { ActionError, ActionSource, ActionState, PendingSource } from '@/lib/contribute/comment-actions';
 
@@ -67,7 +67,8 @@ export type SessionActions = {
     summary: string;
   } | null;
   flow: boolean;
-  start(note: string, scope: { commentIds?: string[] }): Promise<void>;
+  /** `origin`: the control that started it (`next-run`, `try-run`, `anyway`): its error is that control's key. */
+  start(note: string, scope: { commentIds?: string[] }, origin?: string): Promise<void>;
   startState: ActionState;
   startPlainState: ActionState;
   push(): Promise<void>;
@@ -83,11 +84,11 @@ export type SessionActions = {
   pending: PendingSource | null;
   done: PendingSource | null;
   error: ActionError | null;
-  /**
-   * The pull request form's open state: on a first attempt in review only. `dialog`: its confirm is open, so a submit
-   * error shows there and not in the card.
-   */
-  form: { open: boolean; setOpen(open: boolean): void; dialog: boolean; setDialog(open: boolean): void } | null;
+  /** The pull request form's open state: on a first attempt in review only. */
+  form: { open: boolean; setOpen(open: boolean): void } | null;
+  /** The action whose dialog is open (the submit's, a discard's): its error shows there, not in the card. */
+  dialog: ActionSource | null;
+  setDialog(source: ActionSource | null): void;
   /** Sets the error without a call: a refusal found on the client (the grant's way to GitHub, say). */
   fail(source: ActionSource, text: string): void;
 };
@@ -125,7 +126,7 @@ export function SessionActionsProvider({
     error: seed?.error ?? null,
   }));
   const [formOpen, setFormOpen] = useState(seed?.formOpen ?? formInit ?? false);
-  const [dialog, setDialog] = useState(false);
+  const [dialog, setDialog] = useState<ActionSource | null>(null);
   const view: CommentView = useMemo(() => commentViewOf(init, state), [init, state]);
 
   const long = async (
@@ -135,7 +136,7 @@ export function SessionActionsProvider({
   ) => {
     if (state.pending || state.done) return;
     dispatch({ type: 'start', source });
-    const failure = await runLong(call);
+    const failure = await runLong(call, CONNECTION_FAILED_OF[source]);
     if (failure) {
       dispatch({ type: 'failed', source, text: failure });
       return;
@@ -197,7 +198,7 @@ export function SessionActionsProvider({
       },
     },
     flow: init.flow,
-    async start(note, scope) {
+    async start(note, scope, origin) {
       if (state.pending || state.done) return;
       dispatch({ type: 'start', source: 'start' });
       const result = await callStart(init, note, scope, { startFollowUp }).catch(() => null);
@@ -205,7 +206,8 @@ export function SessionActionsProvider({
         dispatch({
           type: 'failed',
           source: 'start',
-          text: result ? followUpErrorMessage(result.error, result.message) : followUpErrorMessage('FAILED'),
+          text: result ? followUpErrorMessage(result.error, result.message) : CONNECTION_FAILED_OF.start,
+          ...(origin ? { key: origin } : {}),
         });
         return;
       }
@@ -247,7 +249,9 @@ export function SessionActionsProvider({
     pending: state.pending,
     done: state.done,
     error: state.error,
-    form: formInit === undefined ? null : { open: formOpen, setOpen: setFormOpen, dialog, setDialog },
+    form: formInit === undefined ? null : { open: formOpen, setOpen: setFormOpen },
+    dialog,
+    setDialog,
     fail(source, text) {
       dispatch({ type: 'failed', source, text });
     },

@@ -6,18 +6,12 @@ import { useSearchParams } from 'next/navigation';
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 
 import { Eyebrow, Pill } from './primitives';
+import { useSessionActions } from './session-actions';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { mergeMove } from '@/lib/contribute/session-head-logic';
-
-/** The cards a pane holds, by their `?move=` id and every kind they cover. */
-type Held = { id: string; kinds: string[] };
+import { type HeldIds, heldPickOf, mergeMove, shownPickOf } from '@/lib/contribute/session-head-logic';
 
 const Swap = createContext<{ shown: string; swap: (kind: string) => void } | null>(null);
-
-/** The held card a `move` names (any kind of it), else the first: the server's pick, so hydration matches. */
-const pickIdOf = (held: Held[], move: string | null) =>
-  (move && held.find(({ kinds }) => kinds.includes(move))?.id) || held[0]?.id || '';
 
 /**
  * The pane's head when it holds moves: every card it holds is rendered, one shown and the rest hidden (each keeps its
@@ -25,9 +19,17 @@ const pickIdOf = (held: Held[], move: string | null) =>
  * `move=<kind>` with `history.replaceState`, so the swap is linkable and survives a reload, and no server component
  * renders again (the comments' edits stay).
  */
-export function HeadSwitch({ held, children }: { held: Held[]; children: ReactNode }) {
+export function HeadSwitch({ held, children }: { held: HeldIds; children: ReactNode }) {
   const move = useSearchParams().get('move');
-  const [shown, setShown] = useState(() => pickIdOf(held, move));
+  const [picked, setPicked] = useState(() => heldPickOf(held, move));
+  // The address's move changed (back, a link, a swap): its card is the pick.
+  const [seen, setSeen] = useState(move);
+  if (seen !== move) {
+    setSeen(move);
+    setPicked(heldPickOf(held, move));
+  }
+  // A fresh read of the page may no longer hold the picked card: the move named, else the first.
+  const shown = shownPickOf(held, picked, move);
   const moved = useRef(false);
 
   useEffect(() => {
@@ -37,9 +39,8 @@ export function HeadSwitch({ held, children }: { held: Held[]; children: ReactNo
   }, [shown]);
 
   const swap = (kind: string) => {
-    const id = pickIdOf(held, kind);
     moved.current = true;
-    setShown(id);
+    setPicked(heldPickOf(held, kind));
     window.history.replaceState(null, '', `${window.location.pathname}${mergeMove(window.location.search, kind)}`);
   };
   return (
@@ -116,7 +117,11 @@ export function AlsoWaiting({ rows }: { rows: AlsoRow[] }) {
  * head is a card, in the status line's Details otherwise. Its note takes the focus when it opens.
  */
 export function StartAnyway({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+  const error = useSessionActions()?.error;
+  // Its own start failed: it stays open, its error under its button.
+  const failed = error?.source === 'start' && error.key === 'anyway';
+  const [chosen, setOpen] = useState(false);
+  const open = chosen || failed;
   const content = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (open) content.current?.querySelector<HTMLElement>('textarea')?.focus();

@@ -366,7 +366,7 @@ export function commentViewOf(init: CommentActionsInit, state: CommentState): Co
   };
 }
 
-/** Whether a control is off by §9.3's one rule: its own state, or any long action pending or gone through. */
+/** Whether a control is off: its own state, or any long action pending or gone through. */
 export const isOff = (
   state: Pick<ActionState, 'disabled' | 'busy'> | null | undefined,
   { pending, done }: { pending: PendingSource | null; done: PendingSource | null },

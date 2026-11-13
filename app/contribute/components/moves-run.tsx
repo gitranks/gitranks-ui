@@ -206,7 +206,7 @@ export function RunGrantCard({ move, run, view, rider }: CardProps) {
       }
       primary={view.grantAvailable ? <GrantButton label="Allow GitHub access" primary /> : null}
       secondary={<DiscardRunButton />}
-      error={<CardError sources={['discard-run']} />}
+      error={<CardError sources={['discard-run', 'discard', 'send-back']} />}
       whyLabel="Details"
       whyBody={error ? <p>{`${error.note} (${timeLabel(error.at)})`}</p> : null}
       rider={rider}
@@ -290,6 +290,8 @@ export function ReplyFailedCard({ move, first, view, blocked, orgAccess, rider }
   const retryable = trouble.shared.filter(({ reason }) => RETRY_REASONS.has(reason));
   const grantOnly = retryable.length > 0 && retryable.every(({ reason }) => reason.startsWith('grant_'));
   const canPost = !blocked.has('post_reply');
+  // The grant's way on: a secondary while only grant reasons can be retried, else (once) in Why.
+  const grantSecondary = canPost && grantOnly && view.grant?.connected !== true && view.grantAvailable;
   const retry =
     !canPost || !retryable.length ? null : grantOnly && view.grant?.connected !== true ? (
       view.grantAvailable ? (
@@ -336,7 +338,9 @@ export function ReplyFailedCard({ move, first, view, blocked, orgAccess, rider }
         restricted || grant || notes.length ? (
           <div className="flex flex-col gap-2" data-reply-trouble={runId}>
             {restricted ? <OrgWhy org={org} access={orgAccess} /> : null}
-            {grant && view.grantAvailable && !restricted ? <GrantButton label="Allow GitHub access again" /> : null}
+            {grant && view.grantAvailable && view.grant?.connected !== true && !grantSecondary && !restricted ? (
+              <GrantButton label="Allow GitHub access again" />
+            ) : null}
             {notes}
           </div>
         ) : null

@@ -135,6 +135,19 @@ const refused = (count: number, reason = 'org_restricted'): ContributeReplyWaiti
     }),
   );
 
+/** The proof back for review and a sign-off missing: two held cards on the next step, a run that may start. */
+const proofAndDco = () =>
+  detail({
+    ...nextForProof.review,
+    needsYou: { since: NOW.toISOString(), signals: [...nextForProof.review.needsYou!.signals, signal('DCO')] },
+  });
+
+/** The section a page's head draws: its status line's title, or its shown card's. */
+const headTitle = (html: string) => {
+  const at = html.indexOf('data-session-head=');
+  return text(html.slice(at, at + 4000).match(/<h2[^>]*>(.*?)<\/h2>/)?.[1] ?? '').trim();
+};
+
 /** Every state these specs draw, for the page-wide rules. */
 const STATES: [string, () => string][] = [
   ['review', () => page(decisionAttempts.went)],
@@ -157,6 +170,8 @@ const STATES: [string, () => string][] = [
   ['run ready', () => page(followUpAttempts.review)],
   ['run done, refused', () => page(runOf({ replyDrafts: refused(7) }), { first: afterRun(), replies: refused(7) })],
   ['stopped next run', () => page(nextForRun, { next: true, prNotes: stop })],
+  ['proof held back by a stop', () => page(nextForProof.review, { next: true, prNotes: stop })],
+  ['proof and dco, a run may start', () => page(proofAndDco(), { next: true })],
 ];
 
 beforeEach(() => {
@@ -164,9 +179,10 @@ beforeEach(() => {
 });
 
 describe('the session head, page-wide', () => {
-  it.each(STATES)('%s: one head, at most one visible main button, note ids unique', (_name, render) => {
+  it.each(STATES)('%s: one head with a title, at most one visible main button, note ids unique', (_name, render) => {
     const html = render();
     expect(heads(html)).toHaveLength(1);
+    expect(headTitle(html)).not.toBe('');
     expect(visiblePrimaries(html).length).toBeLessThanOrEqual(1);
     const ids = html.match(/id="note-[^"]+"/g) ?? [];
     expect(new Set(ids).size).toBe(ids.length);
@@ -577,5 +593,88 @@ describe('where ?session=next goes', () => {
   it('stays on the next step when something is there', async () => {
     const element = await view(nextForRun, { session: 'next' });
     expect(element).toBeTruthy();
+  });
+});
+
+describe('fixes from the review', () => {
+  it('falls back to the next step’s line when a stop holds the proof back, its tile neutral', () => {
+    const html = page(nextForProof.review, { next: true, prNotes: stop });
+    expect(html).toContain('data-session-head="status"');
+    expect(html).not.toContain('data-move="proof-review"');
+    const model = contributionMovesOf({ view: views.active, first: nextForProof.review, prNotes: stop, now: NOW });
+    expect(model.sessions.proof?.pill).toEqual({ label: 'Stopped', tone: 'neutral' });
+  });
+
+  it('ends the proof’s line with the move another session holds, its own link in Details', () => {
+    const working = detail({
+      ...nextForProof.working,
+      followUps: followUps({ used: 1, history: [followUpRun({ attemptId: 'A_OC1' })] }),
+    });
+    const replies = refused(2).map((reply) => ({ ...reply, prId: 'PR_OC', attemptId: 'A_OC1' }));
+    const html = page(working, { next: true, replies });
+    expect(html).toContain('data-status="proof-working"');
+    const line = text(html.slice(html.indexOf('data-session-head='), html.indexOf('data-status-details')));
+    expect(line).toContain('Your move is on run 1 →');
+    expect(line).not.toContain('Take it back');
+    expect(text(html)).toContain('Take it back');
+  });
+
+  it('draws the rider once under the held cards, not per card', () => {
+    const html = page(proofAndDco(), { next: true });
+    expect((html.match(/data-held="/g) ?? []).length).toBe(2);
+    expect((text(html).match(/Start a run anyway/g) ?? []).length).toBe(1);
+    expect(html).toContain('data-head-rider=""');
+  });
+
+  it('shows a failed "Start a run anyway" under its own button, open, and not in the card', () => {
+    const error = { source: 'start' as const, key: 'anyway', text: 'Contributing is paused.' };
+    for (const html of [
+      page(followUpAttempts.quiet, { next: true, seed: { error } }),
+      page(nextForYou, { next: true, seed: { error } }),
+    ]) {
+      expect((text(html).match(/Contributing is paused\./g) ?? []).length).toBe(1);
+      expect(html).not.toContain('data-move-error="start"');
+      expect(html).toContain('data-start="anyway"');
+    }
+    // A start from a card is the card's to say.
+    const fromCard = page(nextForRun, { next: true, seed: { error: { ...error, key: 'next-run' } } });
+    expect(fromCard).toContain('data-move-error="start"');
+  });
+
+  it('shows a discard’s error in the card while its dialog is closed', () => {
+    const run = followUpAttempts.review;
+    const html = page(run, {
+      first: followUpAttempts.underWay,
+      seed: { error: { source: 'discard-run', text: 'Not now.' } },
+    });
+    expect(html).toContain('data-move-error="discard-run"');
+    const first = page(decisionAttempts.went, { seed: { error: { source: 'discard-attempt', text: 'Not now.' } } });
+    expect(first).toContain('data-move-error="discard-attempt"');
+  });
+
+  it('offers "Allow GitHub access again" once on replies refused for want of access', () => {
+    const view: ContributeView = { ...views.active, grant: { connected: false, login: null }, grantAvailable: true };
+    const replies = refused(2, 'grant_revoked');
+    const html = page(runOf({ replyDrafts: replies }), { view, first: afterRun(), replies });
+    expect(buttons(html).filter((label) => label === 'Allow GitHub access again')).toHaveLength(1);
+  });
+
+  it('lists a discard-comment and a send-back error on a run waiting for GitHub access', () => {
+    const view: ContributeView = { ...views.active, grant: { connected: false, login: null }, grantAvailable: true };
+    const run = followUp({
+      submit: {
+        step: 'PUSH',
+        waitUntil: null,
+        fork: null,
+        branch: null,
+        lastError: { reason: 'grant_missing', note: 'No access.', at: '2026-10-28T11:30:00.000Z' },
+      },
+    });
+    const first = detail({ ...afterRun(), followUps: followUps({ used: 1, currentAttemptId: 'A_F1' }) });
+    for (const source of ['discard', 'send-back'] as const) {
+      const html = page(run, { view, first, current: run, seed: { error: { source, text: 'Not now.' } } });
+      expect(html).toContain('data-move="grant"');
+      expect(html).toContain(`data-move-error="${source}"`);
+    }
   });
 });

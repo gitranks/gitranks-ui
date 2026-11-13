@@ -279,7 +279,7 @@ export function PrForm({
   // The card shows the submit's error unless this dialog is open to show it.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the form's setter is stable for the session.
   useEffect(() => {
-    actions?.form?.setDialog(confirm);
+    actions?.setDialog(confirm ? 'submit' : null);
   }, [confirm]);
 
   const standing = dcoMode === 'STANDING';

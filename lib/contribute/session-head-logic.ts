@@ -1,4 +1,4 @@
-import type { ActionSource, CommentView } from './comment-actions';
+import type { ActionSource, CommentView, PendingSource } from './comment-actions';
 import type { ContributeAttemptDetail } from './contribute.types';
 import type { Move, MoveKind } from './contribution-moves';
 import { attemptActionErrorMessage, type ContributeActionResult } from './errors';
@@ -30,23 +30,56 @@ export function startArgsOf(
   return card === 'next-run' ? (threads?.scope ?? {}) : {};
 }
 
-/** Said when a long action's call itself failed (the connection), with the form as the user left it. */
+/** Said when a submit's call itself failed (the connection), with the form as the user left it. */
 export const CONNECTION_FAILED =
   'Your PR could not be opened: the connection failed. Your title and description are as you left them. Submit again.';
 
-/** Runs a long action: null when it went through, else its words (a refusal in our words, a throw as the connection). */
-export async function runLong(call: () => Promise<ContributeActionResult<unknown>>): Promise<string | null> {
+/** What each long action says when its call itself failed (the connection): what did not happen, and what to do. */
+export const CONNECTION_FAILED_OF: Record<PendingSource, string> = {
+  submit: CONNECTION_FAILED,
+  push: 'The push could not be sent: the connection failed. Nothing was pushed or posted. Try again.',
+  'discard-run': 'The run could not be discarded: the connection failed. Try again.',
+  'discard-attempt': 'It could not be discarded: the connection failed. Try again.',
+  'send-back': 'It could not be sent back: the connection failed. Your note is as you left it. Send it again.',
+  start: 'The run could not be started: the connection failed. Your note is as you left it. Start it again.',
+};
+
+/**
+ * Runs a long action: null when it went through, else its words (a refusal in our words, a throw as the connection's
+ * sentence for that action; the submit's by default).
+ */
+export async function runLong(
+  call: () => Promise<ContributeActionResult<unknown>>,
+  connection: string = CONNECTION_FAILED,
+): Promise<string | null> {
   try {
     const result = await call();
     return result.ok ? null : attemptActionErrorMessage(result.error, result.message);
   } catch {
-    return CONNECTION_FAILED;
+    return connection;
   }
 }
 
-/** Where an action's error shows: the submit's inside the form's open dialog, the push's in its confirm, else the card. */
-export const errorPlaceOf = (source: ActionSource, { dialogOpen }: { dialogOpen: boolean }): 'dialog' | 'card' =>
-  (source === 'submit' && dialogOpen) || source === 'push' ? 'dialog' : 'card';
+/** The sources whose control asks first in a dialog: their error shows there while it is open. */
+const DIALOG_SOURCES: ReadonlySet<ActionSource> = new Set(['submit', 'discard-run', 'discard-attempt']);
+
+/**
+ * Where an action's error shows: the push's in its confirm; the submit's and the discards' inside their dialog while it
+ * is open (`dialog`: the source whose dialog is open); else the card.
+ */
+export const errorPlaceOf = (source: ActionSource, { dialog }: { dialog: ActionSource | null }): 'dialog' | 'card' =>
+  source === 'push' || (DIALOG_SOURCES.has(source) && dialog === source) ? 'dialog' : 'card';
+
+/** The cards a pane holds, by their `?move=` id and every kind they cover. */
+export type HeldIds = { id: string; kinds: readonly string[] }[];
+
+/** The held card a `move` names (any kind of it), else the first: the server's pick, so hydration matches. */
+export const heldPickOf = (held: HeldIds, move: string | null | undefined): string =>
+  (move && held.find(({ kinds }) => kinds.includes(move))?.id) || held[0]?.id || '';
+
+/** The card to show now: the one shown while the pane still holds it, else the pick `move` names, else the first. */
+export const shownPickOf = (held: HeldIds, shown: string | null, move: string | null | undefined): string =>
+  shown && held.some(({ id }) => id === shown) ? shown : heldPickOf(held, move);
 
 /**
  * One action over several replies, in turn: how many went through, which did not, and the line a partial failure

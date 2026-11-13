@@ -97,7 +97,9 @@ function Several({
         actionVariant={variant}
         onConfirm={() =>
           startTransition(async () => {
-            const result = await runBatch(left, call, verb);
+            // The replies still to do: those of a fresh read the last run left (or every one, the first time).
+            const list = left.filter((id) => ids.includes(id));
+            const result = await runBatch(list.length ? list : ids, call, verb);
             setLine(result.line);
             setLeft(result.failed);
             setOpen(false);

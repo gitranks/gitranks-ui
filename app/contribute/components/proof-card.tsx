@@ -496,12 +496,15 @@ export function ProofStatus({
   now,
   compact = false,
   details,
+  moveLink,
 }: {
   first: ContributeAttemptDetail;
   stage: ProofStage | null;
   now: Date;
   compact?: boolean;
   details?: ReactNode;
+  /** A move another session holds: it takes the line's link, and the proof's own link goes into Details. */
+  moveLink?: ReactNode;
 }) {
   const session = first.proof?.session;
   const pr = first.pullRequest;
@@ -599,13 +602,14 @@ export function ProofStatus({
       lead={line.lead}
       title={line.title}
       fact={line.fact}
-      link={line.link}
+      link={moveLink ?? line.link}
       live={line.poll}
       poll={line.poll ? <ProofPoll /> : null}
       details={
-        line.extra || details ? (
+        line.extra || details || (moveLink && line.link) ? (
           <>
             {line.extra}
+            {moveLink && line.link ? <p>{line.link}</p> : null}
             {details}
           </>
         ) : null

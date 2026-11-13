@@ -110,7 +110,7 @@ const NEXT = '/contribute/attempts/A_1?session=next';
 const FIRST = '/contribute/attempts/A_1';
 const RUN = '/contribute/attempts/A_1/runs/A_F1';
 
-/** The session head's states: S2's list. */
+/** The session head's states: each status line, move card and variant. */
 export const sessionHeadStates = (page: Page): ScreenState[] => [
   {
     id: 'replies-refused-org',
@@ -469,7 +469,7 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
 const commentsAlone = (page: Page, children: ReactNode) =>
   page(<div className="mx-auto w-full max-w-4xl px-4 pt-7 pb-16">{children}</div>);
 
-/** The review comments' states: S4's list. */
+/** The review comments' states: each mode and row state the list draws. */
 export const reviewCommentStates = (page: Page): ScreenState[] => [
   {
     id: 'replies-all-resolved',
@@ -625,7 +625,7 @@ export const reviewCommentStates = (page: Page): ScreenState[] => [
   },
 ];
 
-/** The two states S4 changes: a run in review with a question and a bot's thread, and the waiting comments. */
+/** Two states drawn anew: a run in review with a question and a bot's thread, and the waiting comments. */
 export const changedCommentStates = {
   followUpRun: (page: Page) => runPage(page, { ...runInReview(), attemptId: 'A_F1' }),
   nextRound: (page: Page) =>

@@ -6,12 +6,15 @@ import type { Move } from './contribution-moves';
 import type { ActionId } from './hard-stop';
 import {
   CONNECTION_FAILED,
+  CONNECTION_FAILED_OF,
   errorPlaceOf,
+  heldPickOf,
   mayStartOf,
   mergeMove,
   pickOf,
   runBatch,
   runLong,
+  shownPickOf,
   startArgsOf,
 } from './session-head-logic';
 
@@ -62,12 +65,46 @@ describe('the session head’s logic', () => {
     ).toBe(CONNECTION_FAILED);
   });
 
-  it('places the submit’s error in its open dialog, the push’s in its confirm, the rest in the card', () => {
-    expect(errorPlaceOf('submit', { dialogOpen: true })).toBe('dialog');
-    expect(errorPlaceOf('submit', { dialogOpen: false })).toBe('card');
-    expect(errorPlaceOf('push', { dialogOpen: false })).toBe('dialog');
-    expect(errorPlaceOf('start', { dialogOpen: true })).toBe('card');
-    expect(errorPlaceOf('discard-attempt', { dialogOpen: false })).toBe('card');
+  it('places the submit’s and the discards’ errors in their open dialog, the push’s in its confirm, else the card', () => {
+    expect(errorPlaceOf('submit', { dialog: 'submit' })).toBe('dialog');
+    expect(errorPlaceOf('submit', { dialog: null })).toBe('card');
+    expect(errorPlaceOf('submit', { dialog: 'discard-attempt' })).toBe('card');
+    expect(errorPlaceOf('push', { dialog: null })).toBe('dialog');
+    expect(errorPlaceOf('start', { dialog: 'submit' })).toBe('card');
+    expect(errorPlaceOf('discard-attempt', { dialog: null })).toBe('card');
+    expect(errorPlaceOf('discard-attempt', { dialog: 'discard-attempt' })).toBe('dialog');
+    expect(errorPlaceOf('discard-run', { dialog: 'discard-run' })).toBe('dialog');
+    expect(errorPlaceOf('discard-run', { dialog: null })).toBe('card');
+  });
+
+  it('says a lost connection in each long action’s own words', async () => {
+    const lost = (source: keyof typeof CONNECTION_FAILED_OF) =>
+      runLong(async () => {
+        throw new Error('network');
+      }, CONNECTION_FAILED_OF[source]);
+    expect(await lost('submit')).toBe(CONNECTION_FAILED);
+    expect(await lost('push')).toBe(
+      'The push could not be sent: the connection failed. Nothing was pushed or posted. Try again.',
+    );
+    expect(await lost('discard-run')).toBe('The run could not be discarded: the connection failed. Try again.');
+    expect(await lost('discard-attempt')).toBe('It could not be discarded: the connection failed. Try again.');
+    expect(await lost('send-back')).toMatch(/^It could not be sent back: the connection failed\./);
+    expect(new Set(Object.values(CONNECTION_FAILED_OF)).size).toBe(Object.keys(CONNECTION_FAILED_OF).length);
+  });
+
+  it('keeps the card shown while the pane holds it, else the move named, else the first', () => {
+    const held = [
+      { id: 'title', kinds: ['title', 'fix-failed'] },
+      { id: 'dco', kinds: ['dco'] },
+    ];
+    expect(heldPickOf(held, 'fix-failed')).toBe('title');
+    expect(heldPickOf(held, 'proof')).toBe('title');
+    expect(heldPickOf([], 'dco')).toBe('');
+    expect(shownPickOf(held, 'dco', 'title')).toBe('dco');
+    // A fresh read no longer holds the card shown: the move named, else the first.
+    expect(shownPickOf(held, 'proof-review', 'dco')).toBe('dco');
+    expect(shownPickOf(held, 'proof-review', 'stale')).toBe('title');
+    expect(shownPickOf(held, null, null)).toBe('title');
   });
 
   it('runs one action over several replies in turn, and says a partial failure', async () => {

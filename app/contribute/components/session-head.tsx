@@ -25,6 +25,9 @@ import type { OrgAccess } from '@/lib/contribute/org-access';
 import { firstStatusOf, nextStatusOf, runStatusOf, type SessionStatus } from '@/lib/contribute/session-status';
 import { attemptPath, nextSessionPath, sessionPath, waitingThreadsOf } from '@/lib/contribute/sessions';
 
+/** The proof's stages that wait for nobody: a status line, or one line under the card. */
+const PASSIVE_PROOF: ReadonlySet<string> = new Set(['working', 'posting', 'posted', 'ask-cleared']);
+
 /** A move's address: its session, with `move=` naming it. */
 export function moveHrefOf(firstId: string, move: Pick<Move, 'session' | 'kinds'>): Route {
   const kind = encodeURIComponent(move.kinds[0]);
@@ -78,8 +81,11 @@ function Card(props: CardProps) {
   }
 }
 
-/** "Start a run anyway": a run with the user's own note when nothing a run would act on waits. */
-function StartAnywayRider({ model, inCard }: { model: ContributionMoves; inCard: boolean }) {
+/**
+ * "Start a run anyway": a run with the user's own note when nothing a run would act on waits. Its start's error shows
+ * under its own button, wherever it rides.
+ */
+function StartAnywayRider({ model }: { model: ContributionMoves }) {
   return (
     <StartAnyway>
       <StartRun
@@ -90,7 +96,7 @@ function StartAnywayRider({ model, inCard }: { model: ContributionMoves; inCard:
         placeholder="Tell the agent what you think is wrong."
         hint={undefined}
         primary={false}
-        errorHere={!inCard}
+        errorHere
       />
     </StartAnyway>
   );
@@ -133,8 +139,12 @@ export function SessionHead({ model, pane, move, first, shown, current, view, no
     return undefined;
   };
   const nextRunHeld = model.moves.some(({ card }) => card === 'next-run');
+  // The proof's line only for the stages that wait for nobody; a stage that waits is a move (or held back by a stop).
+  const passiveProof = !!model.proofStage && PASSIVE_PROOF.has(model.proofStage);
   const proofLine =
-    pane === 'next' && first ? <ProofStatus first={first} stage={model.proofStage} now={now} compact /> : null;
+    pane === 'next' && first && passiveProof ? (
+      <ProofStatus first={first} stage={model.proofStage} now={now} compact />
+    ) : null;
   const anyway = pane === 'next' && model.mayStart && !nextRunHeld;
 
   if (head.kind === 'card') {
@@ -161,16 +171,16 @@ export function SessionHead({ model, pane, move, first, shown, current, view, no
               now={now}
               blocked={blocked}
               orgAccess={orgAccess}
-              rider={
-                <>
-                  {proofLine}
-                  {anyway ? <StartAnywayRider model={model} inCard /> : null}
-                  <AlsoWaiting rows={rowsOf(card)} />
-                </>
-              }
+              rider={<AlsoWaiting rows={rowsOf(card)} />}
             />
           </HeldCard>
         ))}
+        {proofLine || anyway ? (
+          <div className="flex flex-col gap-3 px-1 pt-3" data-head-rider="">
+            {proofLine}
+            {anyway ? <StartAnywayRider model={model} /> : null}
+          </div>
+        ) : null}
       </HeadSwitch>
     );
   }
@@ -214,9 +224,9 @@ export function SessionHead({ model, pane, move, first, shown, current, view, no
 
   if (pane === 'next' && first) {
     const pr = first.pullRequest;
-    const rider = anyway ? <StartAnywayRider model={model} inCard={false} /> : null;
-    const proof = model.proofStage ? (
-      <ProofStatus first={first} stage={model.proofStage} now={now} details={rider} />
+    const rider = anyway ? <StartAnywayRider model={model} /> : null;
+    const proof = passiveProof ? (
+      <ProofStatus first={first} stage={model.proofStage} now={now} details={rider} moveLink={moveLink} />
     ) : null;
     if (proof) {
       return (

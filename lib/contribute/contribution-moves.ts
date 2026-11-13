@@ -392,8 +392,10 @@ export function contributionMovesOf({
   // The next step and the proof.
   const proofStage = open ? proofTileStageOf(first, agentConnectedOf(view), now) : null;
   if (proofStage) {
+    // A stage that waits for the user but holds no move (a stop held it back): no "Your move", nothing to do there.
+    const heldBack = !holds('proof') && !PROOF_LEADS[proofStage];
     sessions.proof = {
-      pill: PROOF_PILLS[proofStage],
+      pill: heldBack ? { label: 'Stopped', tone: 'neutral' } : PROOF_PILLS[proofStage],
       statusLead: holds('proof') ? null : (PROOF_LEADS[proofStage] ?? null),
     };
   }

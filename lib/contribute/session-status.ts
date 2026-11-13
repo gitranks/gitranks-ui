@@ -670,6 +670,8 @@ export function settledStepsOf(submit: {
     // Steps not reached are left out: the line says how far it got.
     return failed || done ? [`${words[step]} ${failed ? '✕' : '✓'}`] : [];
   });
+  // Nothing reached: no line (the note says when).
+  if (!marks.length) return '';
   return [...marks, submit.lastError ? timeLabel(submit.lastError.at) : null].filter(Boolean).join(' · ');
 }
 

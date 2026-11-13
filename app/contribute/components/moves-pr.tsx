@@ -14,7 +14,7 @@ import type {
   ContributePrSignal,
   ContributePrSignalKind,
 } from '@/lib/contribute/contribute.types';
-import { ruleItemTitleOf } from '@/lib/contribute/contribution-moves';
+import { type RuleItem, ruleItemTitleOf } from '@/lib/contribute/contribution-moves';
 import { FOLLOW_UP_THREADS_MAX } from '@/lib/contribute/follow-up-flow';
 import {
   autopilotLineOf,
@@ -25,6 +25,7 @@ import {
   silentTextOf,
 } from '@/lib/contribute/follow-up-format';
 import { relativeLabel, usd } from '@/lib/contribute/format';
+import type { ActionId } from '@/lib/contribute/hard-stop';
 import { clipped } from '@/lib/contribute/needs-you';
 import { PR_FIX_WORDS } from '@/lib/contribute/pr-conventions';
 import { noRunWhyOf } from '@/lib/contribute/session-status';
@@ -265,6 +266,20 @@ export function AgreementCard({ move, first, rider }: CardProps) {
   );
 }
 
+/** A rule item whose own main control is GitHub (no one-click fix, or one a stop holds back): the card adds none. */
+const linksGithub = (item: RuleItem, blocked: ReadonlySet<ActionId>) => {
+  switch (item.kind) {
+    case 'title':
+      return !item.issue || blocked.has('retitle');
+    case 'description':
+      return !item.issue?.check || blocked.has('edit_description');
+    case 'changelog':
+      return !item.issue?.suggestion || blocked.has('fix_changelog') || blocked.has('fix_link');
+    case 'cla':
+      return false;
+  }
+};
+
 /** The repo's rules the pull request breaks: one item, or several, each with its fix; GitHub beside them. */
 export function RulesCard({ move, first, blocked, rider }: CardProps) {
   if (!first || move.data.card !== 'rules') return null;
@@ -343,7 +358,7 @@ export function RulesCard({ move, first, blocked, rider }: CardProps) {
         </>
       }
       secondary={
-        pr.url && !(one && !one.issue) ? (
+        pr.url && !items.some((item) => linksGithub(item, blocked)) ? (
           <GithubButton href={pr.url} primary={false}>{`Open #${pr.number} on GitHub ↗`}</GithubButton>
         ) : null
       }
@@ -391,7 +406,7 @@ export function DcoCard({ move, first, rider }: CardProps) {
     variant === 'by-hand'
       ? `${repo} requires a Signed-off-by line on every commit, and ${first.openedBy === 'HAND' ? 'yours' : 'ours'} went out without one. Only you can certify it.`
       : variant === 'failed'
-        ? `The sign-off didn't go through${fix?.note ? `: ${clipped(fix.note, 200)}` : ''}.`
+        ? `The sign-off didn't go through${fix?.note ? `: ${clipped(fix.note, 200).replace(/[.!?…]+$/, '')}` : ''}.`
         : variant === 'sent'
           ? 'Signed off and pushed. This clears once the DCO check passes.'
           : `${repo} requires a Signed-off-by line, and ours went out without one. GitRanks can add it and force-push.`;

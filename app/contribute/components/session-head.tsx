@@ -246,7 +246,7 @@ export function SessionHead({ model, pane, move, first, shown, current, view, no
   if (shown.kind === 'FOLLOW_UP') {
     const entry = first?.followUps?.history?.find(({ attemptId }) => attemptId === shown.attemptId);
     const latest = first?.followUps?.history?.at(-1)?.attemptId === shown.attemptId;
-    const round = shown.round?.round ?? entry?.round ?? null;
+    const round = runRoundOf(first, shown) ?? entry?.round ?? null;
     const status = runStatusOf(shown, {
       now,
       round,

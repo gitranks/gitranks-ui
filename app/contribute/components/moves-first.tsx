@@ -120,7 +120,7 @@ function BounceDetails({ attempt, more }: { attempt: ContributeAttemptDetail; mo
   if (!submit || !error) return null;
   return (
     <>
-      <p className="font-mono text-xs">{settledStepsOf(submit)}</p>
+      {settledStepsOf(submit) ? <p className="font-mono text-xs">{settledStepsOf(submit)}</p> : null}
       <p data-submit-error={error.reason}>
         {error.note || 'The last step did not go through.'} ({timeLabel(error.at)})
       </p>

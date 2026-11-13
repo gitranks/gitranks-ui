@@ -975,7 +975,8 @@ export const ContributeImpactReposDocument = doc<{
 
 // What the user works on: the mode, the lists and the ignored repos. Read and written in operations of their own, so
 // an API without them leaves the rest of the pages working.
-const SET_REPO = 'repositoryId nameWithOwner stars language via { kind login } addedAt status reasons';
+const SET_REPO =
+  'repositoryId nameWithOwner stars language via { kind login } addedAt status reasons issues { open waiting skipped { kind count } }';
 const SET = `mode version
   stack { sources { ${SET_REPO} } count fallback
     resolve { state startedAt endedAt packages unlinked targets { ${SET_REPO} usage packages } failed { repositoryId nameWithOwner usage reasons } } }

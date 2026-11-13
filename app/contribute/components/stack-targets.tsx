@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import type { ContributeSet, ContributeStackTarget } from '@/lib/contribute/contribute.types';
 import { relativeLabel } from '@/lib/contribute/format';
 import { plural, reasonsText, statusOf } from '@/lib/contribute/set-format';
+import { setRepoEmptyLineOf } from '@/lib/contribute/set-issues-format';
 import { cn } from '@/lib/utils';
 
 /** Libraries shown before "Show all". */
@@ -203,6 +204,7 @@ function TargetRow({
   const [error, setError] = useState<string | null>(null);
   const status = statusOf(target, 'work');
   const extra = target.packages.length - PACKAGES_SHOWN;
+  const emptyLine = setRepoEmptyLineOf(target);
 
   const ignore = () =>
     startTransition(async () => {
@@ -249,6 +251,11 @@ function TargetRow({
           Ignore
         </Button>
       </span>
+      {emptyLine ? (
+        <span data-empty-line className="basis-full text-xs text-muted-foreground">
+          {emptyLine}
+        </span>
+      ) : null}
       {error ? (
         <span role="alert" className="basis-full text-xs text-destructive">
           {error}

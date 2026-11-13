@@ -194,4 +194,19 @@ describe("the repo's agent rules and our own (actualbudget/actual#9396)", () => 
       state: 'todo',
     });
   });
+
+  it('offers the title with the prefix added, when the prefix is all it misses', () => {
+    const titleOf = (over: Partial<ContributeRepoConventions>, title: string) =>
+      checklistOf(conventions(over), { title, patch: null }).find((item) => item.key === 'title');
+    const prefixOnly = { title: null, titleExamples: [], titlePrefix: '[AI]' };
+    expect(titleOf(prefixOnly, 'Fix the null error')?.fix).toBe('[AI] Fix the null error');
+    expect(titleOf(prefixOnly, '[WIP] Fix the null error')?.fix).toBe('[AI] Fix the null error');
+    // A title that also fails the repo's conventional form: the form cannot make one up, so no fix.
+    expect(titleOf({ titlePrefix: '[AI]' }, 'Fix the null error')).not.toHaveProperty('fix');
+    // With the prefix there, or no title typed: nothing to add.
+    expect(titleOf(prefixOnly, '[AI] Fix the null error')).not.toHaveProperty('fix');
+    expect(titleOf(prefixOnly, '')).not.toHaveProperty('fix');
+    // A conventional title the rule passes: the prefix is all it misses.
+    expect(titleOf({ titlePrefix: '[AI]' }, 'fix: the null error')?.fix).toBe('[AI] fix: the null error');
+  });
 });

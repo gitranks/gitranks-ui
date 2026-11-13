@@ -1,82 +1,165 @@
 import { describe, expect, it } from 'vitest';
 
-import { decisionAttempts, detail, stopped } from './__fixtures__/contribute-attempts';
-import { limitStopOf, runDecisionsOf, shownByDecisions } from './decisions';
+import { attempt, attempts, decisionAttempts, detail, followUp, stopped } from './__fixtures__/contribute-attempts';
+import { NOW } from './__fixtures__/contribute-views';
+import type { ContributeGoNoGo } from './contribute.types';
+import { agentDidOf, shownByDecisions } from './decisions';
 
-describe('a stop at a limit, in words', () => {
-  it("names the check's cap from the API's words, and what was spent", () => {
-    expect(limitStopOf(decisionAttempts.ranOut)).toBe('Stopped at the $0.60 check limit after $0.61.');
-    const late = detail({
-      ...stopped('NO_GO', "No verdict before the check's 15-minute limit ran out, after 16 min."),
-      costUsd: 0.4,
-    });
-    expect(limitStopOf(late)).toBe('Stopped at the 15-minute check limit after $0.40.');
+const AT = '2026-10-28T09:15:00.000Z';
+const go = (reason = 'Reproduced it.'): ContributeGoNoGo => ({ verdict: 'go', reason, decidedAtLimit: null, at: AT });
+const noGo = (reason: string): ContributeGoNoGo => ({ verdict: 'no_go', reason, decidedAtLimit: null, at: AT });
+
+describe('what the agent did', () => {
+  it('a done change: its verdict, risk, summary, what is worth a look, and its notes', () => {
+    const did = agentDidOf(decisionAttempts.went);
+    expect(did?.verdict).toMatchObject({ label: 'Done', tone: 'green' });
+    expect(did?.risk).toEqual({ label: 'Low risk', tone: 'green' });
+    expect(did?.text.kind).toBe('summary');
+    expect(did?.worthALook).toBe('normalizePath keeps the case of the path as it is.');
+    expect(did?.notes?.brief).toMatch(/^Checked the layout cache/);
+    expect(did?.notes?.goReason).toMatch(/^Reproduced it/);
   });
 
-  it("says the check's limit plainly when the words do not name the cap", () => {
-    const ranOut = (limit: 'budget' | 'time') =>
-      detail({ ...stopped('NO_GO', 'No verdict.'), checkLimit: { limit, decided: false }, costUsd: 0.5 });
-    expect(limitStopOf(ranOut('budget'))).toBe("Stopped at the check's budget limit after $0.50.");
-    expect(limitStopOf(ranOut('time'))).toBe("Stopped at the check's time limit after $0.50.");
+  it('a no-go: its reason, no risk, and no notes when the brief only repeats it', () => {
+    const did = agentDidOf(decisionAttempts.noGo);
+    expect(did?.verdict).toMatchObject({ label: 'No-go', tone: 'amber' });
+    expect(did?.risk).toBeNull();
+    expect(did?.text.kind).toBe('no_go');
+    expect(did?.notes).toBeNull();
   });
 
-  it("names the run's own budget and time limits, and nothing for any other end", () => {
-    expect(limitStopOf(detail({ ...stopped('BUDGET'), budgetUsd: 3, costUsd: 3.02 }))).toBe(
-      'Stopped at your $3 limit per run after $3.02.',
-    );
-    expect(limitStopOf(detail({ ...stopped('TIMEOUT'), costUsd: 2.1 }))).toBe(
-      'Stopped at the two-hour limit per run after $2.10.',
-    );
-    expect(limitStopOf(decisionAttempts.noGo)).toBeNull();
-    expect(limitStopOf(stopped('FAILED', 'session_failed'))).toBeNull();
-    // A no-go the agent wrote at the cap is a decision, not a stop.
-    const decided = detail({
-      ...stopped('NO_GO', "Needs a GPU. Decided at the check's budget limit."),
-      checkLimit: { limit: 'budget', decided: true },
-    });
-    expect(limitStopOf(decided)).toBeNull();
-  });
-});
-
-describe("the agent's decisions on a run", () => {
-  it("shows a no-go's reason once: its brief only repeats it", () => {
-    expect(runDecisionsOf(decisionAttempts.noGo)).toMatchObject({
-      goNoGo: { verdict: 'no_go' },
-      stop: null,
-      brief: null,
-    });
-  });
-
-  it('keeps a go with its brief, and a limit note when the agent decided at the cap', () => {
-    expect(runDecisionsOf(decisionAttempts.went)).toMatchObject({ goNoGo: { verdict: 'go' }, limitNote: null });
-    expect(runDecisionsOf(decisionAttempts.went)?.brief).toMatch(/^Checked the layout cache/);
-    const atCap = runDecisionsOf({
+  it("a no-go decided at the check's cap carries the note", () => {
+    const did = agentDidOf({
       ...decisionAttempts.noGo,
-      goNoGo: { ...decisionAttempts.noGo.goNoGo!, decidedAtLimit: 'time' },
+      goNoGo: { ...decisionAttempts.noGo.goNoGo!, decidedAtLimit: 'budget' },
     });
-    expect(atCap?.limitNote).toBe("Decided at the check's time limit, when the agent was told to wrap up.");
+    expect(did?.limitNote).toBe("Decided at the check's budget limit, when the agent was told to wrap up.");
+    expect(agentDidOf(decisionAttempts.noGo)?.limitNote).toBeNull();
   });
 
-  it('carries what the check was on when it ran out', () => {
-    expect(runDecisionsOf(decisionAttempts.ranOut)?.stop).toEqual({
-      text: 'Stopped at the $0.60 check limit after $0.61.',
-      detail: expect.stringMatching(/^No verdict: it was on "Reading/),
+  it('a no-go with a blank reason says the agent gave none', () => {
+    const did = agentDidOf({ ...decisionAttempts.noGo, goNoGo: noGo('  '), brief: null });
+    expect(did?.text).toEqual({ kind: 'no_go', words: 'The agent gave no reason.', muted: true });
+  });
+
+  it('a check that ran out: no verdict, what it was on as the API words it', () => {
+    const did = agentDidOf(decisionAttempts.ranOut);
+    expect(did?.verdict).toBeNull();
+    expect(did?.text.kind).toBe('ran_out');
+    expect(did?.text.words).toBe(decisionAttempts.ranOut.endDetail);
+  });
+
+  it("a run's brief goes behind the notes", () => {
+    const did = agentDidOf(decisionAttempts.followUp);
+    expect(did?.verdict?.label).toBe('Done');
+    expect(did?.text.kind).toBe('summary');
+    expect(did?.notes?.brief).toMatch(/^Read the review/);
+  });
+
+  it('a brief alone is the paragraph, the go reason behind the notes', () => {
+    const did = agentDidOf(detail({ ...stopped('BUDGET'), goNoGo: go(), brief: 'x' }));
+    expect(did?.verdict?.label).toBe('Go');
+    expect(did?.text.kind).toBe('brief');
+    expect(did?.notes).toEqual({ brief: null, goReason: 'Reproduced it.' });
+    expect(agentDidOf(detail({ ...stopped('BUDGET'), goNoGo: go(''), brief: 'x' }))?.notes).toBeNull();
+  });
+
+  it.each(['BUDGET', 'TIMEOUT', 'FAILED', 'KEY_INVALID'] as const)(
+    'a go that stopped at %s with nothing else says its reason',
+    (reason) => {
+      const did = agentDidOf(detail({ ...stopped(reason), goNoGo: go(), brief: null }));
+      expect(did?.verdict?.label).toBe('Go');
+      expect(did?.text).toEqual({ kind: 'go', words: 'Reproduced it.', muted: false });
+      expect(did?.notes).toBeNull();
+      expect(agentDidOf(detail({ ...stopped(reason), goNoGo: go(''), brief: null }))).toBeNull();
+    },
+  );
+
+  it('a session at work with a known go: the go, the waiting words, the reason behind the notes', () => {
+    const did = agentDidOf({ ...attempts.running, goNoGo: go() });
+    expect(did?.verdict?.label).toBe('Go');
+    expect(did?.text.kind).toBe('waiting');
+    expect(did?.notes?.goReason).toBe('Reproduced it.');
+  });
+
+  it('a no-go over a result wins the paragraph and the pill; the risk only from its own no-go result', () => {
+    const over = agentDidOf(detail({ goNoGo: noGo('Fixed on main.') }));
+    expect(over?.verdict?.label).toBe('No-go');
+    expect(over?.risk).toBeNull();
+    expect(over?.text.kind).toBe('no_go');
+    const own = agentDidOf(
+      detail({ goNoGo: noGo('Fixed on main.'), result: { ...attempts.review.result!, verdict: 'NO_GO' } }),
+    );
+    expect(own?.risk?.label).toBe('Low risk');
+  });
+
+  it('a result with no verdict: the go when known, else no pill; the risk still', () => {
+    const result = { ...attempts.review.result!, verdict: null };
+    expect(agentDidOf(detail({ result, goNoGo: go() }))?.verdict?.label).toBe('Go');
+    const none = agentDidOf(detail({ result, goNoGo: null }));
+    expect(none?.verdict).toBeNull();
+    expect(none?.risk?.label).toBe('Low risk');
+    expect(agentDidOf(detail({ result: { ...result, risk: null } }))?.risk).toEqual({
+      label: 'Risk not rated',
+      tone: 'neutral',
     });
   });
 
-  it('is nothing for a run that recorded none, an older API, or a blank brief', () => {
-    expect(runDecisionsOf(detail())).toBeNull();
-    expect(runDecisionsOf(detail({ goNoGo: null, brief: '  ' }))).toBeNull();
-    expect(runDecisionsOf(decisionAttempts.followUp)).toMatchObject({ goNoGo: null, stop: null });
+  it('says it is not ready while the agent works: the hosted agent and your own', () => {
+    expect(agentDidOf(attempts.running)?.text).toEqual({
+      kind: 'waiting',
+      words: "The agent's summary isn't ready yet. It shows here when the agent is done.",
+      muted: true,
+    });
+    expect(agentDidOf({ ...attempts.running, runner: 'MCP' })?.text.words).toBe(
+      "Your agent hasn't submitted yet. Its summary shows here when it does.",
+    );
   });
 
-  it("is nothing on an API that doesn't serve the decisions, a stop at a limit too", () => {
-    expect(runDecisionsOf(stopped('BUDGET'))).toBeNull();
-    expect(runDecisionsOf({ ...decisionAttempts.ranOut, goNoGo: undefined, brief: undefined })).toBeNull();
+  it('says the summary is not available on an API gap', () => {
+    expect(agentDidOf(attempts.bare)?.text).toEqual({
+      kind: 'missing',
+      words: "The agent's summary is not available yet.",
+      muted: true,
+    });
+  });
+
+  it('is not drawn for an ended session with nothing to say, or an API that does not serve the decisions', () => {
+    expect(agentDidOf(stopped('NO_GO', 'needs a design decision'))).toBeNull();
+    expect(agentDidOf(stopped('BUDGET'))).toBeNull();
+    expect(agentDidOf({ ...stopped('BUDGET'), goNoGo: null, brief: null })).toBeNull();
+    expect(agentDidOf({ ...decisionAttempts.ranOut, goNoGo: undefined, brief: undefined })).toBeNull();
+  });
+
+  it('names your own agent as it reported itself, and how long the issue is held for it', () => {
+    const own = agentDidOf(
+      detail({
+        runner: 'MCP',
+        agent: { name: 'CODEX', model: 'gpt-5.5-codex' },
+        leaseUntil: new Date(NOW.getTime() + 5 * 60 * 60 * 1000).toISOString(),
+      }),
+      NOW,
+    );
+    expect(own?.ownAgent).toEqual({ agent: 'Codex (gpt-5.5-codex)', heldFor: '5 hours' });
+    expect(agentDidOf(detail())?.ownAgent).toBeNull();
+  });
+
+  it('words a verdict and a risk this UI does not know yet', () => {
+    const did = agentDidOf(
+      detail({
+        result: {
+          ...attempts.review.result!,
+          verdict: 'MAYBE' as unknown as 'DONE',
+          risk: 'EXTREME' as unknown as 'LOW',
+        },
+      }),
+    );
+    expect(did?.verdict).toMatchObject({ label: 'Maybe', tone: 'neutral' });
+    expect(did?.risk).toEqual({ label: 'Extreme', tone: 'neutral' });
   });
 });
 
-describe('what the status box leaves to the decisions card', () => {
+describe('what the status box leaves to the card', () => {
   it("leaves a no-go's reason, and the note that it was decided at the check's cap", () => {
     expect(shownByDecisions(decisionAttempts.noGo)).toEqual({ noGoDetail: true, limitNote: false });
     expect(
@@ -91,6 +174,27 @@ describe('what the status box leaves to the decisions card', () => {
 
   it('leaves nothing on an older API', () => {
     expect(shownByDecisions(stopped('NO_GO', 'needs a design decision'))).toEqual({
+      noGoDetail: false,
+      limitNote: false,
+    });
+  });
+
+  it("leaves a run's brief-only no-go, and keeps the reason when the card shows a summary", () => {
+    const briefOnly = followUp({
+      state: 'STOPPED',
+      endReason: 'NO_GO',
+      endDetail: 'Fixed on main already.',
+      result: null,
+      goNoGo: null,
+      brief: 'Fixed on main already.',
+    });
+    expect(shownByDecisions(briefOnly)).toEqual({ noGoDetail: true, limitNote: false });
+    const summary = detail({ state: 'STOPPED', endReason: 'NO_GO', endDetail: 'x', goNoGo: null });
+    expect(shownByDecisions(summary)).toEqual({ noGoDetail: false, limitNote: false });
+  });
+
+  it("reads a list's attempt, with none of the session's own fields", () => {
+    expect(shownByDecisions(attempt({ state: 'STOPPED', endReason: 'NO_GO', endDetail: 'x' }))).toEqual({
       noGoDetail: false,
       limitNote: false,
     });

@@ -1073,7 +1073,8 @@ export type ContributeSetRepo = {
 
 /** Why an open issue did not pass our checks. */
 export type ContributeSetSkipKind =
-  | 'HAS_PR'
+  | 'FIXED'
+  | 'DUPLICATE'
   | 'TAKEN'
   | 'DECLINED'
   | 'NO_GO_AHEAD'

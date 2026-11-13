@@ -415,6 +415,74 @@ export function ProofMoveCard({ move: model, first, view, blocked, now, rider }:
   }
 }
 
+/** What a posted proof put where: the description, the screenshots on the fork, the bot's command (or a reply). */
+function PostedList({
+  first,
+  reply,
+  bot,
+  now,
+}: {
+  first: ContributeAttemptDetail;
+  reply: boolean;
+  bot: string;
+  now: Date;
+}) {
+  const session = first.proof?.session;
+  const pr = first.pullRequest;
+  if (!session || !pr) return null;
+  const url = githubUrlOf(pr.url);
+  const post = session.post;
+  const files = session.result?.files.length ?? 0;
+  const commentUrl = githubUrlOf(post?.commentUrl);
+  const link = (href: string | null, label: string) =>
+    href ? (
+      <a className="font-semibold text-link" href={href} target="_blank" rel="noopener noreferrer">
+        {label}
+      </a>
+    ) : (
+      label
+    );
+  const items: ReactNode[] = reply
+    ? [
+        <>
+          Your reply is on {link(commentUrl, `#${pr.number} ↗`)}
+          {session.stateAt ? ` · ${relativeLabel(session.stateAt, now)}` : ''}
+        </>,
+      ]
+    : [
+        <>
+          The proof is in the {link(url, "pull request's description ↗")}
+          {post?.bodyAt ? ` · ${relativeLabel(post.bodyAt, now)}` : ''}
+        </>,
+        ...(files
+          ? [
+              <>
+                {screenshotsOf(files)} on <span className="font-mono">{proofBranchOf(pr.number)}</span> in your fork
+              </>,
+            ]
+          : []),
+        commentUrl ? (
+          <>
+            Asked {bot} to read it again in {link(commentUrl, 'a comment ↗')}
+          </>
+        ) : (
+          <>
+            {bot} names no command to read it again: ask it on GitHub
+            {url ? <> {link(url, `on #${pr.number} ↗`)}</> : null}
+          </>
+        ),
+      ];
+  return (
+    <ul className="flex flex-col gap-1.5" data-proof-posted="">
+      {items.map((item, index) => (
+        <li key={index} className="break-words">
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** The proof's line while it waits for nobody: its agent at work, posting, posted, or the ask gone. */
 export type ProofLine = { title: string; node: ReactNode };
 
@@ -491,10 +559,13 @@ export function ProofStatus({
                   />
                 ) : null,
               extra: (
-                <p>
-                  This leaves Needs you when {bot} lets the merge through. If it asks for more, the ask shows here and
-                  your agent can try again.
-                </p>
+                <>
+                  <PostedList first={first} reply={reply} bot={bot} now={now} />
+                  <p>
+                    This leaves Needs you when {bot} lets the merge through. If it asks for more, the ask shows here and
+                    your agent can try again.
+                  </p>
+                </>
               ),
               poll: false,
             }

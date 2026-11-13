@@ -153,6 +153,8 @@ export function LiveDot({ active, settled }: { active: boolean; settled?: boolea
 }
 
 export type SteppedMeterStep = {
+  /** `data-step`: the step's own key, else its label. */
+  id?: string;
   label: string;
   state: 'done' | 'current' | 'retrying' | 'failed' | 'skipped' | 'pending';
 };
@@ -179,8 +181,8 @@ export function SteppedMeter({ steps, label }: { steps: SteppedMeterStep[]; labe
     >
       {steps.map((step) => (
         <li
-          key={step.label}
-          data-step={step.label}
+          key={step.id ?? step.label}
+          data-step={step.id ?? step.label}
           data-step-state={step.state}
           aria-current={step.state === 'current' || step.state === 'retrying' ? 'step' : undefined}
           className="flex min-w-0 flex-col gap-1"

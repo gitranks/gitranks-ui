@@ -170,8 +170,10 @@ function stopDetailsOf(attempt: ContributeAttemptDetail): string[] {
   const ranOut = !!limit && !limit.decided;
   return [
     endReasonTextOf(attempt) ?? 'Why it stopped is not available yet.',
-    detail && !ranOut
-      ? `${attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}${detailText(noGoReasonOf(detail))}`
+    detail
+      ? ranOut
+        ? detailText(detail)
+        : `${attempt.endReason === 'NO_GO' ? 'Its reason: ' : 'Detail: '}${detailText(noGoReasonOf(detail))}`
       : null,
     limit?.decided && !shown.limitNote ? limitNoteOf(limit) : null,
     move && !move.href ? move.text : null,

@@ -250,7 +250,11 @@ export function LiveSubmit({
         waiting ? { kind: 'pill', label: 'Submitting', tone: 'violet' } : running ? { kind: 'dot' } : { kind: 'check' }
       }
       title={title}
-      bar={progress && !waiting ? progress.steps.map((view) => ({ label: view.label, state: view.state })) : null}
+      bar={
+        progress && !waiting
+          ? progress.steps.map((view) => ({ id: view.step, label: view.label, state: view.state }))
+          : null
+      }
       live={running}
       details={
         live.submit && progress ? (

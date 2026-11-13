@@ -53,6 +53,9 @@ describe('the session head’s logic', () => {
     expect(await runLong(async () => ({ ok: true, data: null }))).toBeNull();
     expect(await runLong(async () => ({ ok: false, error: 'NOT_FOUND' }))).toMatch(/gone|no longer/i);
     expect(
+      await runLong(async () => ({ ok: false, error: 'INVALID', message: 'Give the pull request a title.' })),
+    ).toBe('Give the pull request a title.');
+    expect(
       await runLong(async () => {
         throw new Error('network');
       }),

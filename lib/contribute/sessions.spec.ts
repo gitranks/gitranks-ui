@@ -1,15 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
 import { attempts, followUpAttempts, followUps } from './__fixtures__/contribute-attempts';
-import type { ContributeFollowUpRound } from './contribute.types';
+import { NOW, views } from './__fixtures__/contribute-views';
+import type { ContributeAttemptDetail, ContributeFollowUpRound } from './contribute.types';
+import { contributionMovesOf } from './contribution-moves';
 import {
   nextRoundOpen,
   nextRoundRecommended,
   nextRunNumberOf,
   runsLabelOf,
-  sessionsOf,
+  sessionsOf as tilesOf,
   waitingThreadsOf,
 } from './sessions';
+
+/** The tiles as the layout draws them: their pills and the next tile from the contribution's model. */
+const sessionsOf = (first: ContributeAttemptDetail, run?: ContributeAttemptDetail) =>
+  tilesOf(first, run, contributionMovesOf({ view: views.active, first, current: run, now: NOW }));
 
 const round = (patch: Partial<ContributeFollowUpRound> = {}): ContributeFollowUpRound => ({
   round: 1,
@@ -36,7 +42,7 @@ describe("a contribution's sessions", () => {
     expect(rest).toEqual([]);
     expect(card).toMatchObject({
       title: 'First attempt',
-      pill: { label: 'Ready for your review' },
+      pill: { label: 'Your move', tone: 'amber' },
       meta: 'Oct 28 · $2.36',
       href: '/contribute/attempts/A_1',
     });
@@ -44,7 +50,7 @@ describe("a contribution's sessions", () => {
   });
 
   it('names the pull request on the first attempt once there is one, a state not known yet too', () => {
-    expect(sessionsOf(attempts.merged)[0].pill).toEqual({ label: 'PR #1419 merged', tone: 'violet' });
+    expect(sessionsOf(attempts.merged)[0].pill).toEqual({ label: 'Merged', tone: 'violet' });
     const draft = { ...attempts.prOpen, pullRequest: { ...attempts.prOpen.pullRequest!, state: 'DRAFT' as never } };
     expect(sessionsOf(draft)[0].pill).toEqual({ label: 'PR #1419', tone: 'neutral' });
   });
@@ -70,9 +76,9 @@ describe("a contribution's sessions", () => {
     expect(cards[2].href).toBe('/contribute/attempts/A_1/runs/A_F2');
     expect(cards[3]).toMatchObject({
       title: 'Run 3',
-      pill: { label: 'Recommended', tone: 'violet' },
-      meta: 'Not started',
-      href: '/contribute/attempts/A_1?session=next',
+      pill: { label: 'Your move', tone: 'amber' },
+      meta: 'Waits for you',
+      href: '/contribute/attempts/A_1?session=next&move=changes',
       draft: true,
     });
     expect(runsLabelOf(first)).toBe('2 runs · $0.43');
@@ -113,12 +119,13 @@ describe("a contribution's sessions", () => {
       followUps: followUps({ used: 1, currentAttemptId: 'A_F1' }),
     };
     expect(sessionsOf(first).map(({ key, pill }) => [key, pill?.label])).toEqual([
-      ['A_1', 'PR #1419 open'],
+      ['A_1', 'PR open'],
       ['A_F1', 'Working'],
     ]);
     const shown = sessionsOf(first, followUpAttempts.review);
     expect(shown.map(({ key }) => key)).toEqual(['A_1', 'A_F1']);
-    expect(shown[1]).toMatchObject({ pill: { label: 'Ready for you' }, href: '/contribute/attempts/A_1/runs/A_F1' });
+    // A run back for review holds its move: "Your move", never "Ready for you".
+    expect(shown[1]).toMatchObject({ pill: { label: 'Your move' }, href: '/contribute/attempts/A_1/runs/A_F1' });
   });
 
   it('numbers a run added without the history as the latest, and words a state it does not know', () => {

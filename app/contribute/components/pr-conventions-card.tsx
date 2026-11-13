@@ -302,9 +302,28 @@ export function RuleItemControls({
       ) : null}
       {kind === 'description' && !issue?.check && issue?.fields?.length ? <IssueFields fields={issue.fields} /> : null}
       {kind === 'cla' && conventions?.cla?.signComment ? (
-        <CodeBlock label="Your comment on the pull request" copyLabel="Copy the comment" wrap>
-          {conventions.cla.signComment}
-        </CodeBlock>
+        <div className="flex flex-col gap-1.5">
+          <CodeBlock label="Your comment on the pull request" copyLabel="Copy the comment" wrap>
+            {conventions.cla.signComment}
+          </CodeBlock>
+          <span className="text-xs text-muted-foreground">
+            Word for word: the repo&apos;s bot records your signature from it.
+            {httpsOnly(issue?.suggestion) ? (
+              <>
+                {' '}
+                <a
+                  href={httpsOnly(issue?.suggestion) ?? undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-link"
+                >
+                  Read the {conventions.cla.agreement ?? 'CLA'} first
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </>
+            ) : null}
+          </span>
+        </div>
       ) : null}
       {controls ? <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">{controls}</div> : null}
       {editing === 'TITLE' ? (

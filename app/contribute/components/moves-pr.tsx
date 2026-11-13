@@ -288,7 +288,10 @@ export function RulesCard({ move, first, blocked, rider }: CardProps) {
       case 'changelog':
         return 'The repo wants a changelog line for each pull request, and this one is missing or off.';
       case 'cla':
-        return item.issue?.message ?? `Sign the repo's ${agreement}.`;
+        // The comment shows below, to copy: the line says what to do with it.
+        return first.conventions?.cla?.signComment
+          ? `Sign the repo's ${agreement}: post this comment on the pull request yourself. We can't sign for you.`
+          : (item.issue?.message ?? `Sign the repo's ${agreement}.`);
     }
   };
   const controls = (item: (typeof items)[number], index: number) => (

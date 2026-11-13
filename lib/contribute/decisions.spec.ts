@@ -138,7 +138,6 @@ describe('what the agent did', () => {
         agent: { name: 'CODEX', model: 'gpt-5.5-codex' },
         leaseUntil: new Date(NOW.getTime() + 5 * 60 * 60 * 1000).toISOString(),
       }),
-      NOW,
     );
     expect(own?.ownAgent).toEqual({ agent: 'Codex (gpt-5.5-codex)' });
     expect(agentDidOf(detail())?.ownAgent).toBeNull();

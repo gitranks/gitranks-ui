@@ -1,4 +1,4 @@
-import { ATTEMPT_STATES, isOwnAgent, type Tone } from './attempt-format';
+import { ATTEMPT_STATES, isOwnAgent, type Tone, wordsOf } from './attempt-format';
 import type {
   ContributeAttemptDetail,
   ContributeFollowUpRound,
@@ -206,7 +206,7 @@ function firstPillOf(first: ContributeAttemptDetail): SessionPill {
     case 'DISCARDED':
       return { label: 'Discarded', tone: 'neutral' };
     default:
-      return ATTEMPT_STATES[first.state] ?? { label: String(first.state), tone: 'neutral' };
+      return ATTEMPT_STATES[first.state] ?? { label: wordsOf(String(first.state)), tone: 'neutral' };
   }
 }
 
@@ -236,7 +236,7 @@ export function runPillOf(
     case 'DISCARDED':
       return { label: 'Discarded', tone: 'neutral' };
     default:
-      return ATTEMPT_STATES[run.state] ?? { label: String(run.state), tone: 'neutral' };
+      return ATTEMPT_STATES[run.state] ?? { label: wordsOf(String(run.state)), tone: 'neutral' };
   }
 }
 
@@ -378,6 +378,10 @@ export function contributionMovesOf({
       pill: holds(ref) ? YOUR_MOVE : runPillOf({ ...run, pushedSha: run.round?.pushedSha ?? null }, own),
       statusLead: holds(ref) ? null : runStatusOf(run, { now, round: runRoundOf(first, run) }).title,
     };
+  }
+  // The run under way before the history lists it, not read: under way is all that is known of it.
+  if (underWay && !sessions[`run:${underWay}`]) {
+    sessions[`run:${underWay}`] = { pill: { label: 'Working', tone: 'violet', live: true }, statusLead: null };
   }
   // Runs that hold replies but neither the history nor the read lists.
   for (const move of moves) {

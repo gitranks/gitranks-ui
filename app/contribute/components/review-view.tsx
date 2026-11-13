@@ -99,7 +99,8 @@ async function contributionOf(first: ContributeAttemptDetail) {
     open ? loadRepliesWaiting() : undefined,
   ]);
   const current = read?.kind === 'FOLLOW_UP' && read.followUpOf?.attemptId === first.attemptId ? read : undefined;
-  const replies = waiting?.filter(({ prId, inReview }) => prId === first.pullRequest?.prId && !inReview);
+  // The pull request's own, a run's review included: the repo rules count a refusal there; the moves leave them out.
+  const replies = waiting?.filter(({ prId }) => prId === first.pullRequest?.prId);
   return { current, prNotes, replies };
 }
 
@@ -678,7 +679,7 @@ export function ReviewScreen({
   // The run under way: the one read beside it, or the run shown when it is the one.
   const underWay = first?.followUps?.currentAttemptId;
   const run = current ?? (followUp && attempt.attemptId === underWay ? attempt : undefined);
-  const waiting = replies?.filter(({ prId, inReview }) => prId === first?.pullRequest?.prId && !inReview);
+  const waiting = replies?.filter(({ prId }) => prId === first?.pullRequest?.prId);
   const model = contributionMovesOf({ view, first, current: run, shown: attempt, replies: waiting, prNotes, now });
   const showNext = !!first && next && !underWay && first.pullRequest?.state === 'OPEN' && nextPaneShows(model, first);
 

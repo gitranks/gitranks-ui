@@ -1067,6 +1067,25 @@ export type ContributeSetRepo = {
   status: ContributeSetRepoStatus;
   /** Why it did not pass; empty otherwise. */
   reasons: ContributeSetReason[];
+  /** An active, read repo with no issue ready: why it shows none. Null or absent otherwise. */
+  issues?: ContributeSetRepoIssues | null;
+};
+
+/** Why an open issue did not pass our checks. */
+export type ContributeSetSkipKind =
+  | 'HAS_PR'
+  | 'TAKEN'
+  | 'DECLINED'
+  | 'NO_GO_AHEAD'
+  | 'UNCLEAR'
+  | 'OLD'
+  | 'NOT_AGENT_WORK';
+
+/** A repo with no issue ready: its open issues, those still being sorted, the rest by kind (most first). */
+export type ContributeSetRepoIssues = {
+  open: number;
+  waiting: number;
+  skipped: { kind: ContributeSetSkipKind; count: number }[];
 };
 
 /** A library the user's stack uses. */

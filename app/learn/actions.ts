@@ -11,10 +11,18 @@ import {
   RateLessonDocument,
   RemoveLessonDocument,
   ReportQuestionDocument,
+  SaveLearnProfileDocument,
   SendQuestionFeedbackDocument,
   StartLessonRunDocument,
 } from '@/lib/learn/learn.documents';
-import type { LessonAnswerResult, LessonReportReason, LessonRun, LessonWarmupAnswer } from '@/lib/learn/learn.types';
+import type {
+  LearnProfile,
+  LessonAnswerResult,
+  LessonReportReason,
+  LessonRun,
+  LessonWarmupAnswer,
+} from '@/lib/learn/learn.types';
+import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
 import type DocumentNode from '@/types/typed-document-node';
 
@@ -146,4 +154,11 @@ export async function removeLesson(slug: string): Promise<ContributeActionResult
   const id = idOf(slug);
   if (!id) return invalid();
   return run(RemoveLessonDocument, { slug: id }, (data) => data.removeLesson);
+}
+
+/** Saves the viewer's goal, levels and focus; the next lesson is written for them. */
+export async function saveLearnProfile(input: unknown): Promise<ContributeActionResult<LearnProfile>> {
+  const clean = cleanProfileInput(input);
+  if (!clean) return invalid();
+  return run(SaveLearnProfileDocument, { input: clean }, (data) => data.saveLearnProfile);
 }

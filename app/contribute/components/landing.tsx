@@ -124,9 +124,10 @@ const FOOT_LINKS: { href: Route; label: string; plain?: boolean }[] = [
   { href: CONTRIBUTE_TERMS_PATH, label: 'Terms' },
 ];
 
-const H2 = 'text-2xl font-bold tracking-tight text-balance md:text-3xl';
-const WIDTH = 'mx-auto w-full max-w-7xl px-4';
-const MUTED_SECTION = 'border-y bg-muted/40';
+/** The landing's section heading, width and muted band; Learn's front door is built from them too. */
+export const H2 = 'text-2xl font-bold tracking-tight text-balance md:text-3xl';
+export const WIDTH = 'mx-auto w-full max-w-7xl px-4';
+export const MUTED_SECTION = 'border-y bg-muted/40';
 
 /**
  * One of the two ways in. A visitor's opens the sign-in first; a signed-in user's goes straight to the step. `wide`:

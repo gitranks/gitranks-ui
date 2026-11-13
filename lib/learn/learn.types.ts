@@ -154,3 +154,47 @@ export type LearnAttemptLesson = {
   counts: LessonCounts | null;
   visibility: LessonVisibility | null;
 };
+
+/** What the user wants to learn: a language, a domain, or how one project works. */
+export type LearnGoalKind = 'LANGUAGE' | 'DOMAIN' | 'PROJECT';
+/** What lessons spend more of their steps on. */
+export type LearnFocus = 'LANGUAGE' | 'STRUCTURE' | 'PATTERNS' | 'TESTS';
+
+/** The user's level in a language: 0 New to it, 1 Some, 2 Comfortable, 3 Expert. */
+export type LearnLevel = {
+  language: string;
+  level: number;
+  /** Read from the user's public work, not set by them yet. */
+  guessed: boolean;
+  /** What the guess is based on: "2 repos, since Oct 2026". */
+  hint: string | null;
+};
+
+/** The user's goal, levels and focus; every lesson is written for them. */
+export type LearnProfile = {
+  goalKind: LearnGoalKind | null;
+  goalValue: string | null;
+  levels: LearnLevel[];
+  focus: LearnFocus[];
+  updatedAt: string | null;
+};
+
+export type LearnLevelInput = { language: string; level: number };
+export type LearnProfileInput = {
+  goalKind: LearnGoalKind;
+  goalValue: string;
+  levels: LearnLevelInput[];
+  focus: LearnFocus[];
+};
+
+export type MyLessonState = 'IN_PROGRESS' | 'PASSED' | 'PR_OPEN' | 'REMOVED' | 'ENDED';
+
+/** One of the user's lessons: a Learn attempt of theirs (`attemptId`), or a shared lesson they passed (`slug`). */
+export type MyLesson = {
+  slug: string | null;
+  attemptId: string | null;
+  title: string;
+  repo: string | null;
+  state: MyLessonState;
+  passedAt: string | null;
+};

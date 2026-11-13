@@ -3,10 +3,13 @@ import { parse } from 'graphql';
 import type {
   ContributeAttemptMode,
   LearnAttemptLesson,
+  LearnProfile,
+  LearnProfileInput,
   LessonAnswerResult,
   LessonReportReason,
   LessonRun,
   LessonWarmupAnswer,
+  MyLesson,
 } from './learn.types';
 import type DocumentNode from '@/types/typed-document-node';
 
@@ -136,4 +139,20 @@ export const RateLessonDocument = doc<{ rateLesson: boolean }, { runId: string; 
 
 export const RemoveLessonDocument = doc<{ removeLesson: boolean }, { slug: string }>(
   'mutation RemoveLesson($slug: String!) { removeLesson(slug: $slug) }',
+);
+
+const PROFILE = 'goalKind goalValue levels { language level guessed hint } focus updatedAt';
+
+/** The viewer's goal, levels and focus; null when Learn is not open to them. */
+export const LearnProfileDocument = doc<{ learnProfile: LearnProfile | null }>(
+  `query LearnProfile { learnProfile { ${PROFILE} } }`,
+);
+
+export const SaveLearnProfileDocument = doc<{ saveLearnProfile: LearnProfile }, { input: LearnProfileInput }>(
+  `mutation SaveLearnProfile($input: LearnProfileInput!) { saveLearnProfile(input: $input) { ${PROFILE} } }`,
+);
+
+/** The viewer's Learn attempts and the shared lessons they passed. */
+export const MyLessonsDocument = doc<{ myLessons: MyLesson[] }>(
+  'query MyLessons { myLessons { slug attemptId title repo state passedAt } }',
 );

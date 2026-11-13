@@ -9,6 +9,7 @@ export const AREAS = {
   rankings: 'Rankings',
   badges: 'Badges',
   contribute: 'Contribute',
+  learn: 'Learn',
 } as const;
 
 export type Area = keyof typeof AREAS;

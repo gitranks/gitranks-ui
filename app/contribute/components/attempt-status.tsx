@@ -39,7 +39,8 @@ import { isOrgRestricted, orgAccessOf } from '@/lib/contribute/org-access';
 import { sessionPath } from '@/lib/contribute/sessions';
 import { cn } from '@/lib/utils';
 
-function Box({
+/** A status box above a session: what is happening, in a word and a line. */
+export function Box({
   children,
   tone = 'info',
   state,

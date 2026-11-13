@@ -98,6 +98,11 @@ import {
 import { auth } from '@/auth';
 import type { ContributeConventionsFields } from '@/lib/contribute/pr-conventions';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import {
+  ContributeAttemptLearnDocument,
+  ContributeAttemptsInLearnDocument,
+  ContributeAttemptsLearnDocument,
+} from '@/lib/learn/learn.documents';
 
 /**
  * The signed-in user's GitHub login, for calls made on their behalf; null without a usable session. Read once per
@@ -401,6 +406,7 @@ export async function loadAttempts(
       graphqlDirect(ContributeAttemptsFollowUpsDocument, variables, options),
       graphqlDirect(ContributeAttemptsOwnAgentDocument, variables, options),
       graphqlDirect(ContributeAttemptsMovesDocument, variables, options),
+      graphqlDirect(ContributeAttemptsLearnDocument, variables, options),
     ]),
   );
 }
@@ -421,7 +427,7 @@ function attemptsOf([main, ...extras]: [
 }
 
 /**
- * The signed-in user's attempts in any of `states`, newest first, with their follow-up and own-agent fields;
+ * The signed-in user's attempts in any of `states`, newest first, with their follow-up, own-agent and Learn fields;
  * `undefined` when the API does not answer (an API that does not take `states` yet among them).
  */
 export async function loadAttemptsIn(
@@ -439,6 +445,7 @@ export async function loadAttemptsIn(
       graphqlDirect(ContributeAttemptsInFollowUpsDocument, variables, options),
       graphqlDirect(ContributeAttemptsInOwnAgentDocument, variables, options),
       graphqlDirect(ContributeAttemptsInMovesDocument, variables, options),
+      graphqlDirect(ContributeAttemptsInLearnDocument, variables, options),
     ]),
   );
 }
@@ -591,6 +598,8 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   const claimSteps = Promise.resolve(graphqlDirect(ContributeAttemptClaimStepsDocument, { id }, options)).catch(
     () => undefined,
   );
+  // A Learn attempt's mode and lesson state; left out when not answered.
+  const learn = Promise.resolve(graphqlDirect(ContributeAttemptLearnDocument, { id }, options)).catch(() => undefined);
   try {
     const { contributeAttempt: read } = await review;
     if (!read) return read;
@@ -676,10 +685,20 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
             newcomersLabel: holdRead.newcomersLabel ?? null,
           }
         : withSteps;
+    const learnRead = (await learn)?.contributeAttempt;
+    const withLearn =
+      learnRead?.attemptId === contributeAttempt.attemptId && (learnRead.mode === 'LEARN' || learnRead.mode === 'FIX')
+        ? {
+            ...withProof,
+            mode: learnRead.mode,
+            learnActiveAt: learnRead.learnActiveAt ?? null,
+            learnGatePassed: learnRead.learnGatePassed ?? null,
+          }
+        : withProof;
     const agent = (await ownAgent)?.contributeAttempt;
-    if (agent?.attemptId !== contributeAttempt.attemptId) return withProof;
+    if (agent?.attemptId !== contributeAttempt.attemptId) return withLearn;
     const { result, ...fields } = agent;
-    const merged = withFields(withProof, fields);
+    const merged = withFields(withLearn, fields);
     return merged.result && result ? { ...merged, result: { ...merged.result, prTitle: result.prTitle } } : merged;
   } catch (failure) {
     const { error } = contributeErrorOf(failure);

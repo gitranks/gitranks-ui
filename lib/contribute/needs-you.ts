@@ -17,6 +17,7 @@ import { maskedKey, relativeLabel, timeLeftLabel } from './format';
 import { type ContributePrConventionIssue, httpsOnly, PR_FIX_WORDS } from './pr-conventions';
 import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { attemptPath, nextSessionPath, sessionPath } from './sessions';
+import { learnAttemptPath } from '@/lib/learn/learn-path';
 
 /**
  * "Needs you" on Overview and My contributions (2026-11-03): one row per thing that waits for the user, each saying
@@ -418,6 +419,22 @@ function reviewRowsOf(
         at: timeOf(attempt.autosubmitAt),
       };
     }
+    if (isOwnAgent(attempt) && attempt.mode === 'LEARN') {
+      return {
+        ...base,
+        kind: 'own-review',
+        tone: 'violet',
+        pill: 'Lesson ready',
+        move: `Your agent fixed this and wrote a lesson on it. Take the lesson, then approve the pull request.${ownReviewWaitOf(attempt, now)}`,
+        action: {
+          label: 'Take the lesson',
+          href: learnAttemptPath(attempt.attemptId),
+          aria: `Take the lesson on ${where}`,
+        },
+        group: GROUPS.review,
+        at: readySince(attempt),
+      };
+    }
     if (isOwnAgent(attempt)) {
       return {
         ...base,
@@ -451,13 +468,16 @@ function reviewRowsOf(
 }
 
 /**
- * How long the user's own agent's first attempt still waits in review, after the move: " It waits 48 hours.", " It
+ * How long the user's own agent's first attempt still waits in review (a Learn attempt, from its lesson's last passed
+ * step when that is later), after the move: " It waits 48 hours.", " It
  * waits 5 more hours." Nothing for a follow-up run, when the time is not known, or once the wait is up (the claim is
  * let go at the next sweep).
  */
 function ownReviewWaitOf(attempt: ContributeAttempt, now: Date): string {
   if (attempt.kind === 'FOLLOW_UP') return '';
-  const since = readySince(attempt);
+  // A Learn attempt waits from the later of the review and the last step its user passed in the lesson.
+  const active = attempt.learnActiveAt ? timeOf(attempt.learnActiveAt) : Number.NaN;
+  const since = Number.isFinite(active) ? Math.max(readySince(attempt), active) : readySince(attempt);
   if (!Number.isFinite(since)) return '';
   const hoursLeft = Math.ceil((since + OWN_REVIEW_HOURS * HOUR - now.getTime()) / HOUR);
   if (hoursLeft < 1) return '';

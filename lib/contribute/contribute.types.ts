@@ -4,6 +4,7 @@ import type {
   ContributePrFix,
   ContributeRepoConventions,
 } from './pr-conventions';
+import type { ContributeAttemptMode } from '@/lib/learn/learn.types';
 
 /** GitRanks Contribute as the GitRanks GraphQL API answers it. */
 
@@ -648,6 +649,15 @@ export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
     round?: ContributeFollowUpRound | null;
     checkStatus?: ContributeCheckStatusView | null;
     followUpStep?: string | null;
+    /** `LEARN`: the user takes a lesson on the fix before approving it. Read on its own; `undefined`: not known. */
+    mode?: ContributeAttemptMode;
+    /**
+     * A Learn attempt: when the user last passed a step of its lesson; its review waits from the later of this and
+     * `reviewAt`. Read on its own.
+     */
+    learnActiveAt?: string | null;
+    /** A Learn attempt: whether the user passed its lesson, so it can be approved. Read on its own. */
+    learnGatePassed?: boolean | null;
   };
 
 export type ContributeAttemptTest = {

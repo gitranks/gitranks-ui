@@ -357,6 +357,17 @@ describe('the pages that wait for onboarding', () => {
     await expect(visit(page, views.active)).resolves.toBeTruthy();
   });
 
+  it("sends a Learn attempt's page to its lesson, and keeps its next step (follow-ups) here", async () => {
+    const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
+    data.loadContribute.mockResolvedValue(views.active);
+    data.loadAttempt.mockResolvedValue(detail({ mode: 'LEARN' }));
+    await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).rejects.toThrow(
+      'NEXT_REDIRECT /learn/attempts/A_1',
+    );
+    data.loadAttempt.mockResolvedValue(detail({ mode: 'FIX' }));
+    await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).resolves.toBeTruthy();
+  });
+
   it('keeps Settings open to a contributor mid-setup, and sends a user with no contributor row to the landing', async () => {
     await expect(visit('settings', views.midSetup)).resolves.toBeTruthy();
     await expect(visit('settings', views.newcomer)).rejects.toThrow('NEXT_REDIRECT /contribute');

@@ -277,7 +277,7 @@ const INSTALL_LINK_NAMES = andList(MCP_INSTALL_LINKS.map(({ label }) => label.re
 /**
  * The public docs of the MCP server: setup per client, the tools, the sign-in and the token, the limits and what
  * reaches us. Agents sign in with GitHub, so each client's sign-in comes first and its token setup sits in a fold.
- * `plugin`: show the plugin installs (`MCP_PLUGIN_DOCS_SHOWN`, off until the plugin's repository is public).
+ * `plugin`: show the plugin installs (`MCP_PLUGIN_DOCS_SHOWN`, on since the plugin's repository went public).
  */
 export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boolean } = {}) {
   return (

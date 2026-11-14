@@ -5,6 +5,7 @@ import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 import authConfig from './auth.config';
 import { createAuthCallbacks } from './lib/auth-callbacks';
 import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from './lib/auth-providers';
+import { askFirstFetch } from './lib/contribute/first-fetch';
 import { type RemoveOtherGrants, withContributeGrant } from './lib/contribute/grant-adapter';
 import { currentSessionToken } from './lib/contribute/session-token';
 import mongoClientPromise from './lib/mongo-client';
@@ -51,6 +52,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // profile - user entity from github
       // user - user entity from the database
       // account - OAuth account information
+
+      // A new GitHub account is read at once, so Contribute opens for it minutes later. Not awaited: the sign-in never
+      // waits on it, and a page it lands on asks again.
+      if (account?.provider === IDENTITY_PROVIDER || account?.provider === TOKEN_PROVIDER) {
+        void askFirstFetch(profile?.login as string | undefined, profile?.email);
+      }
 
       // Only the token sign-in's account row carries what refreshes run on.
       if (account?.provider === TOKEN_PROVIDER) {

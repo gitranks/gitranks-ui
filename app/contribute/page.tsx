@@ -6,9 +6,16 @@ import { Landing } from './components/landing';
 import { overviewReadSectionsOf } from './components/overview-home';
 import { OverviewScreen } from './components/overview-status';
 import { ContributePageSkeleton } from './components/page-skeleton';
+import { ContributeSettingUp } from './components/setting-up';
 import { isAgentWelcome } from '@/lib/contribute/agent-connect';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
-import { loadAttempts, loadContribute, loadIssues, loadProviderInterests } from '@/lib/contribute/contribute.data';
+import {
+  loadAttempts,
+  loadContribute,
+  loadContributeSetup,
+  loadIssues,
+  loadProviderInterests,
+} from '@/lib/contribute/contribute.data';
 import { AGENTS_DOC_PATH, CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
 import { contributeHomeOf, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
 import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
@@ -50,6 +57,14 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   const startAgent = params.start === 'agent';
   if (startAgent && view) redirect(CONNECT_AGENT_PATH);
   if (!view) {
+    // A new GitHub account, signed in and read for the first time now: what happens, until its account is ready.
+    if (await loadContributeSetup()) {
+      return (
+        <main className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16">
+          <ContributeSettingUp />
+        </main>
+      );
+    }
     // Launched, the landing is everyone's (§9.3): a visitor without a session, or one Contribute does not know yet.
     if (await contributeOpen()) {
       return <Landing viewer="visitor" noted={[]} startAgent={startAgent} stats={(await agentPage)?.stats} />;

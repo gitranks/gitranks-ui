@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { AuthorizeScreen, type AuthorizeState } from '../components/authorize-view';
+import { AuthorizeScreen, type AuthorizeState, authorizeStateFor } from '../components/authorize-view';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { ContributeOAuthRequestDocument } from '@/lib/contribute/contribute.documents';
 import { requestIdOf } from '@/lib/contribute/oauth-consent';
@@ -37,20 +37,15 @@ async function authorizeStateOf(value: string | string[] | undefined): Promise<A
   if (!requestId) return { kind: 'expired' };
   const login = await viewerLogin();
   if (!login) return { kind: 'signed-out', requestId };
-  let request: Awaited<ReturnType<typeof readRequest>>;
+  let read: Awaited<ReturnType<typeof readRequest>>;
   try {
-    request = await readRequest(requestId, login);
+    read = await readRequest(requestId, login);
   } catch {
     return { kind: 'unavailable', requestId };
   }
-  // Null: Contribute is hidden from this account (off the preview, or no profile here).
-  if (!request) return { kind: 'not-open', requestId };
-  if (request.status === 'EXPIRED') return { kind: 'expired' };
-  if (request.status === 'APPROVED') return { kind: 'approved', requestId, clientName: request.clientName };
-  if (!request.previewAllowed) return { kind: 'not-open', requestId };
-  return { kind: 'pending', requestId, login, request };
+  return authorizeStateFor(read, requestId, login);
 }
 
+/** The request, and in the same API call (one read of the viewer) whether their account is being set up. */
 const readRequest = async (requestId: string, githubLogin: string) =>
-  (await graphqlDirect(ContributeOAuthRequestDocument, { requestId }, { source: 'ssr', githubLogin }))
-    .contributeOAuthRequest;
+  graphqlDirect(ContributeOAuthRequestDocument, { requestId }, { source: 'ssr', githubLogin });

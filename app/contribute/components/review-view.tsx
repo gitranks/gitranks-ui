@@ -13,6 +13,7 @@ import { SessionPane } from './session-pane';
 import {
   loadAttempt,
   loadContribute,
+  loadContributeSetup,
   loadPrNotes,
   loadRepliesWaiting,
   loadResolveHumanThreads,
@@ -36,6 +37,7 @@ import {
   sessionsOf,
   waitingThreadsOf,
 } from '@/lib/contribute/sessions';
+import { contributeHidden } from '@/lib/contribute/setting-up';
 import { learnAttemptPath } from '@/lib/learn/learn-path';
 
 type Query = Record<string, string | string[] | undefined>;
@@ -43,7 +45,7 @@ type Query = Record<string, string | string[] | undefined>;
 /** The gates every page of a contribution passes: signed in, let in, and the attempt theirs. */
 async function gate(id: string) {
   const [view, attempt] = await Promise.all([loadContribute(), loadAttempt(id)]);
-  if (!view) notFound();
+  if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
   if (attempt === null) notFound();
   return { view, attempt };

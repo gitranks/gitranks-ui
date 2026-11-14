@@ -1,6 +1,6 @@
 import { Cpu, GitPullRequest, KeyRound, LayoutGrid, SquareTerminal, Wallet } from 'lucide-react';
 import type { Route } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 import { AutopilotSection } from './autopilot-section';
 import { ContributeNotices } from './contribute-notices';
@@ -12,7 +12,7 @@ import { ReposAskLessNote } from './repo-rules';
 import { SettingsAnchors } from './settings-anchors';
 import { SettingsGroup, SettingsList, SettingsRow } from './settings-rows';
 import { SettingsWorkGroup } from './settings-work-group';
-import { loadContribute, loadContributeSet } from '@/lib/contribute/contribute.data';
+import { loadContribute, loadContributeSet, loadContributeSetup } from '@/lib/contribute/contribute.data';
 import type { ContributeSet, ContributeView } from '@/lib/contribute/contribute.types';
 import {
   claudeKeyOf,
@@ -23,6 +23,7 @@ import {
   settingsOf,
 } from '@/lib/contribute/contribute-state';
 import { grantRefusalOf } from '@/lib/contribute/grant-refusal';
+import { contributeHidden } from '@/lib/contribute/setting-up';
 import { SETTINGS_PATHS } from '@/lib/contribute/settings-paths';
 import {
   agentSummaryOf,
@@ -35,7 +36,7 @@ import {
 /** Reads the user for a Settings page: a 404 to someone Contribute is not open to, Contribute's home before signing up. */
 export async function loadSettingsView(): Promise<ContributeView> {
   const view = await loadContribute();
-  if (!view) notFound();
+  if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'settings')) redirect('/contribute');
   return view;
 }

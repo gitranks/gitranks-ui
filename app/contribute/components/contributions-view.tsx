@@ -1,6 +1,6 @@
 import type { Route } from 'next';
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { LiveRunPhase } from './agent-runs';
@@ -29,6 +29,7 @@ import {
   loadAttempts,
   loadContribute,
   loadContributeActivity,
+  loadContributeSetup,
   loadContributions,
   loadRepliesWaiting,
 } from '@/lib/contribute/contribute.data';
@@ -44,6 +45,7 @@ import type {
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { AUTOPILOT_UNLOCK_AT, dayLabel, relativeLabel, timeLeftLabel, usd } from '@/lib/contribute/format';
 import { type NeedsYouItems, needsYouItemsOf } from '@/lib/contribute/needs-you';
+import { contributeHidden } from '@/lib/contribute/setting-up';
 import { cn } from '@/lib/utils';
 
 export async function ContributionsView() {
@@ -54,7 +56,7 @@ export async function ContributionsView() {
     loadContributeActivity().catch(() => null),
     loadRepliesWaiting(),
   ]);
-  if (!view) notFound();
+  if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'me')) redirect('/contribute');
   return (
     <ContributionsScreen

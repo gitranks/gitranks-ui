@@ -132,10 +132,10 @@ export const CLAUDE_APP_DOC: McpDocClient = {
 };
 
 /**
- * Whether the docs show the plugin for Claude Code and the extension for Gemini CLI. Off until the plugin is published:
- * before that, its install commands fail. Flip to true once it is.
+ * Whether the docs show the plugin for Claude Code and the extension for Gemini CLI. On since 2026-11-14, when the
+ * plugin's repository went public and its install commands started to work.
  */
-export const MCP_PLUGIN_DOCS_SHOWN = false;
+export const MCP_PLUGIN_DOCS_SHOWN = true;
 
 /** Where the plugin lives, for the links to it. */
 export const MCP_PLUGIN_REPO = 'gitranks/contribute';

@@ -1,3 +1,4 @@
+import { MCP_CONNECTOR_NAME } from './mcp-install-links';
 import {
   MCP_CLIENTS,
   MCP_OS_NAMES,
@@ -25,6 +26,8 @@ export type McpDocClient = {
   label: string;
   file: boolean;
   lines: string;
+  /** A line under the block: another way to add it, or what the client can do with GitRanks. */
+  after?: string;
   /** Where Windows differs: what to do, the block's header and lines there. */
   windows?: { where: string; label: string; lines: string };
 };
@@ -110,9 +113,18 @@ const VS_CODE_SIGN_IN: McpDocSignIn = {
   lines: JSON.stringify({ servers: { gitranks: { type: 'http', url: MCP_URL } } }, null, 2),
 };
 
+/**
+ * The Codex app and the IDE extension add a server in their settings, not with the CLI's lines (checked 2026-11-14).
+ * Docs only: the connect flow sets up the CLI.
+ */
+const CODEX_APP = `In the Codex app or the IDE extension: Settings → MCP servers → Add server → Streamable HTTP, enter ${MCP_URL}, then restart Codex.`;
+
 /** Each client's sign-in setup by its id. */
 export const MCP_DOC_SIGN_INS: Readonly<Record<string, McpDocSignIn>> = Object.fromEntries([
-  ...MCP_CLIENTS.map((client) => [client, connectSignInOf(client)] as const),
+  ...MCP_CLIENTS.map((client) => {
+    const setup = connectSignInOf(client);
+    return [client, client === 'codex' ? { ...setup, after: CODEX_APP } : setup] as const;
+  }),
   [VS_CODE.id, VS_CODE_SIGN_IN],
 ]);
 
@@ -180,9 +192,20 @@ const ALLOW = 'your browser opens GitRanks, where you allow it.';
 
 /**
  * More clients that sign in, docs only (the connect flow does not offer them), each as its own docs say
- * (checked 2026-11-11). No token setup: a client here that can't sign in uses "Other clients".
+ * (checked 2026-11-11; ChatGPT 2026-11-14). No token setup: a client here that can't sign in uses "Other clients".
+ * ChatGPT has no install link: there is none until our listing is published in its directory.
  */
 export const MCP_DOC_MORE_CLIENTS: readonly McpDocClient[] = [
+  {
+    id: 'chatgpt',
+    name: 'ChatGPT',
+    where: `On chatgpt.com/plugins, press + and choose Add custom MCP server. Name it ${MCP_CONNECTOR_NAME}, paste this URL and choose OAuth for authentication. Tick "I understand and want to continue" and press Create as a plugin. ChatGPT asks you to sign in: ${ALLOW} Then pick it with @ in a chat.`,
+    label: 'MCP server URL',
+    file: false,
+    lines: MCP_URL,
+    after:
+      'In ChatGPT, on the web or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell.',
+  },
   {
     id: 'copilot-cli',
     name: 'GitHub Copilot CLI',

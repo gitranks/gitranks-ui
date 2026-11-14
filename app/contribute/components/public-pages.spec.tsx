@@ -92,7 +92,7 @@ describe('the MCP docs, one click and more clients', () => {
     const html = renderToStaticMarkup(<McpDocsScreen />);
     const plain = text(html);
     expect(html).toContain('data-more-clients');
-    for (const id of ['copilot-cli', 'devin', 'kiro', 'zed', 'cline', 'opencode', 'amp']) {
+    for (const id of ['chatgpt', 'copilot-cli', 'devin', 'kiro', 'zed', 'cline', 'opencode', 'amp']) {
       expect(html).toContain(`id="${id}"`);
     }
     expect(MCP_DOC_MORE_CLIENTS.every(({ where }) => where.includes('your browser opens GitRanks'))).toBe(true);
@@ -103,6 +103,36 @@ describe('the MCP docs, one click and more clients', () => {
     // Docs only: the connect flow's clients are unchanged, and the new ones get no token setup.
     expect(MCP_CLIENTS).toEqual(['claude-code', 'codex', 'cursor', 'gemini-cli', 'antigravity']);
     expect(html.match(/data-token-fold/g)).toHaveLength(6);
+  });
+
+  it("give ChatGPT its manual steps and the URL, what it can do there, and no button until there's a listing", () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    const plain = text(html);
+    const chatgptHtml = html.slice(html.indexOf('id="chatgpt"'), html.indexOf('id="copilot-cli"'));
+    const chatgpt = text(chatgptHtml);
+    expect(chatgpt).toContain(
+      'On chatgpt.com/plugins, press + and choose Add custom MCP server. Name it GitRanks Contribute, paste this URL and choose OAuth for authentication. Tick "I understand and want to continue" and press Create as a plugin.',
+    );
+    expect(chatgpt).toContain('Then pick it with @ in a chat.');
+    expect(chatgpt).toContain('MCP server URL');
+    expect(chatgpt).toContain('https://mcp.gitranks.com/mcp');
+    expect(chatgpt).toContain(
+      'In ChatGPT, on the web or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell.',
+    );
+    expect(chatgptHtml).not.toContain('data-install-link');
+    expect(plain).not.toContain('Add to ChatGPT');
+    expect(plain).toContain('More clients: ChatGPT, GitHub Copilot CLI');
+    expect(plain).toContain('In one click for Claude, Cursor, VS Code and Kiro:');
+  });
+
+  it('add the Codex app and IDE line under the Codex CLI sign-in, never under its token setup', () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    const codex = html.slice(html.indexOf('id="codex"'), html.indexOf('id="cursor"'));
+    const line =
+      'In the Codex app or the IDE extension: Settings → MCP servers → Add server → Streamable HTTP, enter https://mcp.gitranks.com/mcp, then restart Codex.';
+    expect(text(codex)).toContain(`codex mcp add gitranks --url https://mcp.gitranks.com/mcp codex mcp login gitranks`);
+    expect(text(codex).split(line)).toHaveLength(2);
+    expect(codex.indexOf(line)).toBeLessThan(codex.indexOf('data-token-fold'));
   });
 
   it('show the plugin for Claude Code and Gemini CLI only behind its switch', () => {

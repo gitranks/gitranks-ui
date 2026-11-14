@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { AuthorizeActions, AuthorizeCancel, AuthorizeSignIn } from './authorize-actions';
-import { SETTING_UP_TITLE } from './setting-up';
+import { NO_PROFILE_TITLE, SETTING_UP_TITLE } from './setting-up';
 import { SettingUpAutoRefresh } from './setting-up-refresh';
 import { LearnSetupRefresh } from '@/app/learn/components/learn-setting-up';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -187,8 +187,8 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
     case 'no-profile':
       return (
         <Frame
-          title="We couldn't set up your GitRanks account yet"
-          text="GitRanks couldn't read your GitHub profile just now, so your agent can't connect yet. Try again in an hour: start again from your agent."
+          title={NO_PROFILE_TITLE}
+          text="GitRanks couldn't read your GitHub profile just now, so your agent can't connect yet. Try again later: start again from your agent."
         >
           <CardFooter>
             <AuthorizeCancel requestId={state.requestId} />

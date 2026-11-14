@@ -108,7 +108,7 @@ describe('the consent page of an agent sign-in', () => {
     const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'no-profile', requestId: ID }} />);
     const plain = text(html);
     expect(plain).toContain("We couldn't set up your GitRanks account yet");
-    expect(plain).toContain('Try again in an hour');
+    expect(plain).toContain('Try again later');
     expect(plain).not.toMatch(/preview/i);
     expect(html).toContain(`href="${CANCEL}"`);
     expect(html).not.toContain('data-authorize="allow"');

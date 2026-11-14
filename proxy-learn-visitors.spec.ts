@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 // The proxy with Learn's front door open to visitors: the switch on, everything else as it is.
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => vi.fn(() => new Response(null)) }) }));
 vi.mock('./lib/contribute/preview-gate', () => ({
-  requestMaySeeContribute: async () => false,
+  requestContributeAccess: async () => 'hidden',
   contributeOpen: async () => false,
 }));
 vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: async () => false }));

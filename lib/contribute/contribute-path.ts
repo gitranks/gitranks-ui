@@ -108,6 +108,16 @@ export const isOpenAtLaunchPath = (pathname: string): boolean =>
 export const isTablessPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+contribute\/+(?:maintainers(?:\/+report)?|ledger|mcp|faq|authorize)\/?$/i);
 
+/**
+ * Where a Contribute page sends an account being set up: Contribute's home, which says so and reads itself again until
+ * the account is ready, carrying the way of contributing the user picked (`start`), so the home goes on to its first
+ * step then.
+ */
+export function settingUpHomeOf(url: { pathname: string; searchParams: URLSearchParams }): string {
+  if (!/^\/+contribute\/+connect\/?$/i.test(url.pathname)) return '/contribute';
+  return url.searchParams.get('path') === 'agent' ? '/contribute?start=agent' : '/contribute?start=key';
+}
+
 /** Where each way of contributing starts: a Claude key we run the agent on, or the user's own agent. */
 export const CONNECT_KEY_PATH: Route = '/contribute/connect';
 export const CONNECT_AGENT_PATH = '/contribute/connect?path=agent' as Route;

@@ -216,9 +216,10 @@ export const ContributeFirstFetchDocument = doc<{ contributeFirstFetch: boolean 
   'mutation ContributeFirstFetch { contributeFirstFetch }',
 );
 
-export const ContributePreviewDocument = doc<{ contribute: { previewAllowed: boolean } | null }>(
-  'query ContributePreview { contribute { previewAllowed } }',
-);
+export const ContributePreviewDocument = doc<{
+  contribute: { previewAllowed: boolean } | null;
+  contributeSetup: boolean;
+}>('query ContributePreview { contribute { previewAllowed } contributeSetup }');
 
 export const ContributeOverviewDocument = doc<{
   contribute: { previewAllowed: boolean; contributor: Contributor | null } | null;

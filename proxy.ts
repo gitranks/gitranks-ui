@@ -12,9 +12,10 @@ import {
   isLedgerPath,
   isMaintainersPath,
   isOpenAtLaunchPath,
+  settingUpHomeOf,
 } from './lib/contribute/contribute-path';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
-import { contributeOpen, requestMaySeeContribute } from './lib/contribute/preview-gate';
+import { contributeOpen, requestContributeAccess } from './lib/contribute/preview-gate';
 import {
   isLearnHomePath,
   isLearnOpenPath,
@@ -134,12 +135,20 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     isContributePath(pathname) &&
     !isMaintainersPath(pathname) &&
     !isAuthorizePath(pathname) &&
-    !(isOpenAtLaunchPath(pathname) && (await contributeOpen())) &&
-    !(await requestMaySeeContribute(request))
+    !(isOpenAtLaunchPath(pathname) && (await contributeOpen()))
   ) {
-    const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
-    response.headers.set('Cache-Control', 'private, no-store');
-    return response;
+    const access = await requestContributeAccess(request);
+    // A new account being set up goes to Contribute's home, which says so (and is let through itself).
+    if (access === 'setting-up' && !isLandingPath(pathname)) {
+      const response = NextResponse.redirect(new URL(settingUpHomeOf(request.nextUrl), request.url));
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
+    if (access === 'hidden') {
+      const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
   }
 
   // The landing in markdown, for an agent that asks for it at least as much as HTML: rewritten here, before Auth.js, which would turn

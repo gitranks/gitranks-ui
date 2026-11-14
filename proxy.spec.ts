@@ -5,11 +5,16 @@ const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'a
 
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
-const { maySeeContribute, open } = vi.hoisted(() => ({
-  maySeeContribute: vi.fn(async () => false),
+const { maySeeContribute, settingUp, open } = vi.hoisted(() => ({
+  maySeeContribute: vi.fn(async (_req?: unknown) => false),
+  settingUp: vi.fn(async () => false),
   open: vi.fn(async () => false),
 }));
-vi.mock('./lib/contribute/preview-gate', () => ({ requestMaySeeContribute: maySeeContribute, contributeOpen: open }));
+vi.mock('./lib/contribute/preview-gate', () => ({
+  requestContributeAccess: async (req: unknown) =>
+    (await maySeeContribute(req)) ? 'allowed' : (await settingUp()) ? 'setting-up' : 'hidden',
+  contributeOpen: open,
+}));
 const { ledgerOpen } = vi.hoisted(() => ({ ledgerOpen: vi.fn(async () => false) }));
 vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: ledgerOpen }));
 
@@ -24,6 +29,8 @@ describe('proxy', () => {
     withSession.mockClear();
     maySeeContribute.mockReset();
     maySeeContribute.mockResolvedValue(false);
+    settingUp.mockReset();
+    settingUp.mockResolvedValue(false);
     open.mockReset();
     open.mockResolvedValue(false);
     ledgerOpen.mockReset();
@@ -115,6 +122,27 @@ describe('proxy', () => {
         expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
       }
       expect(open).not.toHaveBeenCalled();
+    });
+
+    it("sends a new account being set up to Contribute's home, with the way it picked, never cached", async () => {
+      settingUp.mockResolvedValue(true);
+      for (const [path, to] of [
+        ['/contribute/connect?path=agent', 'https://gitranks.com/contribute?start=agent'],
+        ['/contribute/connect', 'https://gitranks.com/contribute?start=key'],
+        ['/contribute/settings', 'https://gitranks.com/contribute'],
+      ]) {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.headers.get('location'), path).toBe(to);
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+      }
+    });
+
+    it('lets the home itself through for an account being set up before the launch, which says so there', async () => {
+      settingUp.mockResolvedValue(true);
+      const response = await proxy(request('authjs.session-token=t', '/contribute'), event);
+
+      expect(response?.headers.get('location')).toBeNull();
+      expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
     });
 
     it('lets in a signed-in user the API lets in, as any signed-in page', async () => {

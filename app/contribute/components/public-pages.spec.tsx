@@ -49,6 +49,13 @@ describe('the MCP docs, sign-in first', () => {
     expect(html.indexOf('data-sign-in-start')).toBeLessThan(html.indexOf('data-token-start'));
   });
 
+  it('open with the clip of the Claude Code setup, served outside /contribute', () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    expect(html).toContain('data-setup-clip');
+    expect(html).toContain('src="/media/contribute-one-command.gif"');
+    expect(html.indexOf('data-setup-clip')).toBeLessThan(html.indexOf('data-sign-in-start'));
+  });
+
   it('say what a sign-in can and cannot do, how long it lasts, what is kept and how to disconnect it', () => {
     const plain = text(renderToStaticMarkup(<McpDocsScreen />));
     expect(plain).toContain('Sign-in and tokens');
@@ -72,7 +79,8 @@ describe('the MCP docs, one click and more clients', () => {
       expect(text(html)).toContain(label);
     }
     expect(html).toContain('data-install-links');
-    expect(html).not.toMatch(/<img[^>]+(cursor|kiro|vscode|claude)/i);
+    // No vendor's badge image: the setup clip's alt names Claude Code, its source is ours.
+    expect(html).not.toMatch(/<img[^>]+src="[^"]*(cursor|kiro|vscode|claude)/i);
     expect(text(html)).toContain('Customize → Connectors → Add → Add custom connector');
     expect(text(html)).not.toContain('Settings → Connectors');
   });

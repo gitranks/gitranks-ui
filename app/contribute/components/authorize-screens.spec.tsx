@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock('@/app/contribute/actions', () => ({ approveContributeOAuth: vi.fn() }));
+vi.mock('@/app/contribute/review-sign-in.actions', () => ({ approveContributeOAuthAsReviewer: vi.fn() }));
 
 const { AuthorizeScreen, authorizeStateFor } = await import('./authorize-view');
 
@@ -83,6 +84,18 @@ describe('the consent page of an agent sign-in', () => {
     expect(text(html)).toContain('Sign in with GitHub to connect your agent');
     expect(html).toContain('data-authorize="sign-in"');
     expect(html).toContain(`href="${CANCEL}"`);
+    expect(html).not.toContain('data-authorize="allow"');
+    // The directory reviewers' link, to this request's review sign-in.
+    expect(html).toContain(`href="/contribute/authorize?request=${ID}&amp;review=1"`);
+  });
+
+  it("shows the review sign-in's form, with Cancel and the way back to GitHub sign-in", () => {
+    const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'review-sign-in', requestId: ID }} />);
+    expect(text(html)).toContain('Review sign-in');
+    expect(html).toContain('data-authorize="review-form"');
+    expect(html).toContain('autoComplete="current-password"');
+    expect(html).toContain(`href="${CANCEL}"`);
+    expect(html).toContain(`href="/contribute/authorize?request=${ID}"`);
     expect(html).not.toContain('data-authorize="allow"');
   });
 

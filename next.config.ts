@@ -62,6 +62,11 @@ const nextConfig: NextConfig = {
         source,
         headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, s-maxage=604800' }],
       })),
+      // Media files are versioned by name (a new cut gets a new file), so they keep for a year.
+      {
+        source: '/media/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
       // The page for maintainers opts repos out with a click, and the consent page connects an agent with one: no
       // other site may frame them.
       ...['/contribute/maintainers', '/contribute/maintainers/', '/contribute/authorize', '/contribute/authorize/'].map(

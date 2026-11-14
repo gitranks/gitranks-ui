@@ -6,6 +6,7 @@ import { CodeBlock } from './code-block';
 import { OpenOnHash } from './open-on-hash';
 import { Pill } from './primitives';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
+import { SetupClip } from './setup-clip';
 import { Button } from '@/components/ui/button';
 import { ABOUT_PATH, AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import {
@@ -286,6 +287,8 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
           .
         </p>
       </PublicPageHead>
+
+      <SetupClip />
 
       <ul className="grid gap-3.5 sm:grid-cols-3">
         {FACTS.map(({ label, value, text }) => (

@@ -49,6 +49,17 @@ describe('the MCP docs, sign-in first', () => {
     expect(html.indexOf('data-sign-in-start')).toBeLessThan(html.indexOf('data-token-start'));
   });
 
+  it('open with the clip of the Claude Code setup: muted, with controls, never playing from the markup', () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    expect(html).toContain('data-setup-clip');
+    expect(html).toContain('src="/media/contribute-one-command-v1.mp4"');
+    expect(html).toContain('poster="/media/contribute-one-command-v1.jpg"');
+    expect(html).toMatch(/<video[^>]+controls/);
+    expect(html).toMatch(/<video[^>]+preload="none"/);
+    expect(html).not.toMatch(/<video[^>]+autoplay/i);
+    expect(html.indexOf('data-setup-clip')).toBeLessThan(html.indexOf('data-sign-in-start'));
+  });
+
   it('say what a sign-in can and cannot do, how long it lasts, what is kept and how to disconnect it', () => {
     const plain = text(renderToStaticMarkup(<McpDocsScreen />));
     expect(plain).toContain('Sign-in and tokens');
@@ -72,7 +83,7 @@ describe('the MCP docs, one click and more clients', () => {
       expect(text(html)).toContain(label);
     }
     expect(html).toContain('data-install-links');
-    expect(html).not.toMatch(/<img[^>]+(cursor|kiro|vscode|claude)/i);
+    expect(html).not.toMatch(/<img[^>]+(cursor|kiro|vs[\s_-]?code|claude)/i);
     expect(text(html)).toContain('Customize → Connectors → Add → Add custom connector');
     expect(text(html)).not.toContain('Settings → Connectors');
   });

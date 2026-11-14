@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { AddressSwitch } from './address-switch';
-import { Pill } from './primitives';
+import { LiveDot, Pill } from './primitives';
 import { offOf, useSessionActions } from './session-actions';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 
 /** Rows whose reply the user edits and ticks, in a run's review. */
 const EDITABLE = new Set(['needs-you', 'draft-review']);
-const POSTED = new Set(['posted', 'posted-comment', 'posted-resolved', 'resolve-failed']);
+const POSTED = new Set(['posted', 'posted-comment', 'posted-one-comment', 'posted-resolved', 'resolve-failed']);
 
 /**
  * One review comment, closed: line 1 (its outcome, who, where, and its reply's state at the right end), then the
@@ -113,7 +113,8 @@ export function CommentRow({
             </AdaptiveTooltip>
           ) : null}
           {chip ? (
-            <span aria-hidden="true" className="ml-auto">
+            <span aria-hidden="true" className="ml-auto flex items-center gap-1.5">
+              {chip.live ? <LiveDot active /> : null}
               <Pill tone={chip.tone}>
                 {chip.label}
                 {chip.check ? <Check aria-hidden className="size-3" /> : null}

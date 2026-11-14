@@ -425,3 +425,153 @@ export const olderReview = followUp({
 
 /** A reply in a state this page does not know. */
 export const unknownState = () => [posted('D_1'), flowDraft({ draftId: 'D_2', state: 'ARCHIVED' as never })];
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Replies as one comment: the organization keeps them out of their threads, so they go together, quoting each thread.
+
+const since = '2026-10-21T09:00:00.000Z';
+const BATCH = 'B_1';
+const COMMENT_URL = 'https://github.com/driftwood-js/driftwood/pull/1419#issuecomment-5001';
+
+/** The organization's refusal of review-thread replies, as GitRanks keeps it. */
+export const threadsBlocked = { org: 'driftwood-js', since, lastRefusedAt: at };
+
+/** A reply's plan fields: to its thread, free to go in a new comment unless told otherwise. */
+const planned = (draft: ContributeReplyDraft, patch: Partial<ContributeReplyDraft> = {}): ContributeReplyDraft => ({
+  ...draft,
+  postAs: 'THREAD',
+  batchId: null,
+  waitsForProbe: false,
+  canGoInOneComment: false,
+  heldBack: null,
+  batchRetry: null,
+  ...patch,
+});
+
+/** One comment's text for `count` replies to maintainer-mo, as the API builds it (made-up words). */
+export const oneCommentBody = (count: number) =>
+  [
+    count === 1
+      ? 'A reply to a review comment by maintainer-mo. It could not be posted in its thread, so it is here; the link opens the thread.'
+      : `Replies to ${count} review comments by maintainer-mo. They could not be posted in their threads, so they are here together; each one links its thread.`,
+    ...Array.from(
+      { length: count },
+      (_, index) =>
+        `**[normalize-path.ts:${index + 3}](https://github.com/driftwood-js/driftwood/pull/1419#discussion_r90${index + 1})** · maintainer-mo\n> Should the root path keep its slash?\n\nFixed in 46de700: Kept it, with a test.`,
+    ),
+  ].join('\n\n');
+
+const ids = (count: number) => Array.from({ length: count }, (_, index) => `D_${index + 1}`);
+
+/** Seven replies the organization refused in their threads, now free to go as one comment. */
+export const orgRefusedOneComment = () => orgRefusedRun().map((draft) => planned(draft, { canGoInOneComment: true }));
+
+/** The run's detail for them: what one comment would post, its text to copy, the organization's refusal kept. */
+export const oneCommentPlan = (count = 7): Partial<ContributeAttemptDetail> => ({
+  threadRepliesBlocked: threadsBlocked,
+  probeFirst: true,
+  oneComment: { draftIds: ids(count), bodies: [oneCommentBody(count)] },
+  copyBodies: [oneCommentBody(count)],
+  replyBatches: [],
+});
+
+/** Seven replies whose one comment failed: `retry` says what Try again does. */
+export const oneCommentFailed = (reason: string, note: string, retry: 'RESEND' | 'REBUILD' | null) => {
+  const lastError = { reason, note, at };
+  const drafts = orgRefusedRun().map((draft) =>
+    planned(draft, {
+      lastError,
+      asComment: true,
+      postAs: 'ONE_COMMENT',
+      batchId: BATCH,
+      batchRetry: retry,
+      canGoInOneComment: retry === 'REBUILD',
+    }),
+  );
+  const plan: Partial<ContributeAttemptDetail> = {
+    threadRepliesBlocked: threadsBlocked,
+    probeFirst: true,
+    oneComment: retry === 'REBUILD' ? { draftIds: ids(7), bodies: [oneCommentBody(7)] } : null,
+    copyBodies: [oneCommentBody(7)],
+    replyBatches: [
+      {
+        batchId: BATCH,
+        part: 1,
+        parts: 1,
+        draftIds: ids(7),
+        state: 'FAILED',
+        url: null,
+        postedAt: null,
+        lastError,
+        retry,
+      },
+    ],
+  };
+  return { drafts, plan };
+};
+
+/** Six replies approved with the push and given back: the run's first reply did not reach its thread. */
+export const heldBackRun = () => {
+  const drafts = [
+    notPosted('D_1', 'no_answer', {
+      lastError: { reason: 'no_answer', note: 'GitHub did not answer when GitRanks posted it.', at },
+    }),
+    ...ids(7)
+      .slice(1)
+      .map((draftId) =>
+        planned(replyDraft({ draftId, state: 'DRAFT', send: false }), {
+          canGoInOneComment: true,
+          heldBack: {
+            reason: 'no_answer',
+            note: 'The first reply got no answer from GitHub. Post them as one comment, or one by one.',
+            at,
+          },
+        }),
+      ),
+  ];
+  return {
+    drafts,
+    plan: {
+      probeFirst: true,
+      threadRepliesBlocked: null,
+      oneComment: { draftIds: ids(7).slice(1), bodies: [oneCommentBody(6)] },
+      copyBodies: [oneCommentBody(7)],
+      replyBatches: [],
+    } satisfies Partial<ContributeAttemptDetail>,
+  };
+};
+
+/** A made-up review bot's thread on line `line`. */
+const botThread = (draftId: string, line: number) => ({
+  commentId: `C_${draftId}`,
+  author: 'tidy-review-bot',
+  path: 'src/router/normalize-path.ts',
+  line,
+  excerpt: 'Use a const for the root path.',
+});
+
+/** After the push: the first reply on its way to its thread, the others waiting for it. */
+export const waitingForProbe = () => [
+  planned(flowDraft({ draftId: 'D_1', state: 'POSTING', send: true, comment: botThread('D_1', 3) })),
+  ...['D_2', 'D_3', 'D_4'].map((draftId, index) =>
+    planned(flowDraft({ draftId, state: 'DRAFT', send: true, comment: botThread(draftId, 10 + index) }), {
+      waitsForProbe: true,
+      postAs: 'ONE_COMMENT',
+    }),
+  ),
+];
+
+/** The organization refused the first reply, and the seven went as one comment. */
+export const postedInOneComment = () =>
+  ids(7).map((draftId) =>
+    planned(posted(draftId, { url: COMMENT_URL, asComment: true, comment: botThread(draftId, 3) }), {
+      postAs: 'ONE_COMMENT',
+      batchId: BATCH,
+    }),
+  );
+
+/** A run ready to push, in an organization that refused GitRanks' thread replies before. */
+export const runReadyBlocked = () => runInReview({ threadRepliesBlocked: threadsBlocked, probeFirst: true });
+
+/** A run ready to push, in an organization where no reply of GitRanks has posted yet. */
+export const runReadyFirstInOrg = () => runInReview({ threadRepliesBlocked: null, probeFirst: true });

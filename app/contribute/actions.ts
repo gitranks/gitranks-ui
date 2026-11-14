@@ -9,6 +9,7 @@ import {
   ApproveContributeOAuthDocument,
   ApproveContributeProofDocument,
   ApproveFollowUpDocument,
+  ApproveRepliesAsOneCommentDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
@@ -82,6 +83,7 @@ import type {
   ContributePrNote,
   ContributeProofSession,
   ContributePrSignalKind,
+  ContributeRepliesOneComment,
   ContributeReplyDraft,
   ContributeReplyUserDismissReason,
   ContributeSet,
@@ -106,6 +108,7 @@ import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
 import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/contribute/mcp-setup';
 import { isSafeRedirect, requestIdOf } from '@/lib/contribute/oauth-consent';
+import { isRequestKey, ONE_COMMENT_DRAFTS_MAX } from '@/lib/contribute/one-comment';
 import {
   type ContributeConventionsFields,
   type ContributePrFixKind,
@@ -525,6 +528,34 @@ export async function approveReply(
     ApproveReplyDocument,
     { draftId: String(draftId), ...(asComment === true ? { asComment: true } : {}) },
     (data) => data.approveReply,
+  );
+}
+
+/**
+ * Posts a run's thread replies as one comment on the pull request, in the user's name (`draftIds`: one or more), or
+ * tries one failed comment again (`batchId`). Each reply is quoted and linked to its thread. `requestId` is the click's
+ * key: the same key never posts twice, so a click whose answer was lost is sent again with it.
+ */
+export async function approveRepliesAsOneComment(
+  attemptId: string,
+  target: { draftIds: string[] } | { batchId: string },
+  requestId: string,
+): Promise<ContributeActionResult<ContributeRepliesOneComment>> {
+  const key = String(requestId ?? '');
+  const draftIds =
+    target && 'draftIds' in target && Array.isArray(target.draftIds) ? target.draftIds.map(String) : null;
+  const batchId = target && 'batchId' in target && typeof target.batchId === 'string' ? target.batchId : null;
+  if (
+    !attemptId ||
+    !isRequestKey(key) ||
+    (draftIds ? !draftIds.length || draftIds.length > ONE_COMMENT_DRAFTS_MAX || batchId : !batchId)
+  ) {
+    return { ok: false, error: 'INVALID', message: 'Those replies cannot go as one comment. Reload the page.' };
+  }
+  return run(
+    ApproveRepliesAsOneCommentDocument,
+    { attemptId: String(attemptId), requestId: key, ...(draftIds ? { draftIds } : { batchId: String(batchId) }) },
+    (data) => data.approveRepliesAsOneComment,
   );
 }
 

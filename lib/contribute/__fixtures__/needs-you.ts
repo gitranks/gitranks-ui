@@ -7,6 +7,7 @@ import type {
   ContributeProofResult,
   ContributeProofSession,
   ContributePrSignal,
+  ContributeReplyWaiting,
 } from '../contribute.types';
 import type { NeedsYouRead } from '../needs-you';
 import {
@@ -278,6 +279,75 @@ export const needsSome = (): NeedsYouRead => ({
     prsNeedingYou.ownWorking,
   ],
   runs: runsInFlight,
+});
+
+/**
+ * Replies that did not post, one row per pull request (made-up repos, accounts and words): seven the organization kept
+ * out of their threads on kelp; six held back on loam after the first reply got no answer; a one comment that failed
+ * on sorrel.
+ */
+export const replyRowsPrs = {
+  org: pr(1880, 'kelp-db/kelp', 'Keep the trailing newline in kelp dump', { followUps: followUps({ used: 1 }) }),
+  heldBack: pr(77, 'loam-dev/loam', 'Accept a glob in --exclude', { followUps: followUps({ used: 2 }) }),
+  comment: pr(312, 'sorrel-ui/sorrel', 'Close the menu on Escape', { followUps: followUps({ used: 1 }) }),
+} satisfies Record<string, ContributeContribution>;
+
+const replyOn = (pull: ContributeContribution, runId: string, index: number, patch: Partial<ContributeReplyWaiting>) =>
+  replyWaiting({
+    draftId: `D_${pull.pullRequest.number}_${index}`,
+    prId: pull.pullRequest.prId,
+    attemptId: runId,
+    nameWithOwner: pull.nameWithOwner,
+    prNumber: pull.pullRequest.number,
+    postAs: 'THREAD',
+    batchId: null,
+    waitsForProbe: false,
+    canGoInOneComment: false,
+    heldBack: null,
+    batchRetry: null,
+    ...patch,
+  });
+
+const refusedAt = '2026-10-28T09:30:00.000Z';
+
+/** Needs you with the three pull requests' replies. */
+export const needsReplies = (): NeedsYouRead => ({
+  reviews: [],
+  replies: [
+    ...Array.from({ length: 7 }, (_, index) =>
+      replyOn(replyRowsPrs.org, 'A_KELP1', index, {
+        state: 'FAILED',
+        canGoInOneComment: true,
+        lastError: {
+          reason: 'org_restricted',
+          note: 'GitHub did not let GitRanks post it in its thread.',
+          at: refusedAt,
+        },
+      }),
+    ),
+    ...Array.from({ length: 6 }, (_, index) =>
+      replyOn(replyRowsPrs.heldBack, 'A_LOAM2', index, {
+        canGoInOneComment: true,
+        heldBack: { reason: 'no_answer', note: 'GitHub did not answer the first reply in time.', at: refusedAt },
+      }),
+    ),
+    ...Array.from({ length: 3 }, (_, index) =>
+      replyOn(replyRowsPrs.comment, 'A_SOR1', index, {
+        state: 'FAILED',
+        postAs: 'ONE_COMMENT',
+        batchId: 'B_SOR',
+        asComment: true,
+        batchRetry: 'RESEND',
+        lastError: {
+          reason: 'no_answer',
+          note: 'GitHub did not answer clearly, so the comment may be there already. Try again: it is sent exactly as before and never posted twice.',
+          at: refusedAt,
+        },
+      }),
+    ),
+  ],
+  contributions: Object.values(replyRowsPrs),
+  runs: [],
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

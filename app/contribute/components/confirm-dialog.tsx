@@ -30,6 +30,7 @@ export function ConfirmDialog({
   pendingAction,
   pending,
   error,
+  body,
   onConfirm,
   onCloseAutoFocus,
   actionVariant = 'destructive',
@@ -45,6 +46,8 @@ export function ConfirmDialog({
   pendingAction: string;
   pending: boolean;
   error?: ReactNode;
+  /** Under the description: what the action sends, to read before it goes (a comment's text). */
+  body?: ReactNode;
   onConfirm: () => void;
   /** Where the focus goes on close, when not back to the trigger (which may be off by then). */
   onCloseAutoFocus?: (event: Event) => void;
@@ -59,6 +62,7 @@ export function ConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {body}
         {error ? (
           <span role="alert" className="text-sm text-destructive">
             {error}

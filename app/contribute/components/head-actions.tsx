@@ -10,6 +10,7 @@ import { openRepoRules } from './repo-rules';
 import { offOf, useSessionActions } from './session-actions';
 import { reducedMotion } from './submit-stepper';
 import { useGrantGithub } from './use-grant-github';
+import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -223,14 +224,65 @@ export function PushButton({
   );
 }
 
-/** What the push resolves: the bots' threads it fixed; people's stay open unless the setting says so. */
-export function ResolveLine() {
+/**
+ * What the push resolves: the bots' threads it fixed; people's stay open unless the setting says so. `probe`: the run's
+ * first reply is tried in its thread first, so the threads resolve only if the replies go to them.
+ */
+export function ResolveLine({ probe = false }: { probe?: boolean }) {
   const replies = useSessionActions()?.replies;
   if (!replies?.botThreads) return null;
   return (
     <p className="text-sm text-muted-foreground" data-resolve-line="">
-      Resolves the {replies.botThreads} bot {replies.botThreads === 1 ? 'thread' : 'threads'} it fixed. People&apos;s
-      threads stay open for their reviewer.
+      Resolves the {replies.botThreads} bot {replies.botThreads === 1 ? 'thread' : 'threads'} it fixed
+      {probe ? ', if the replies post in their threads' : ''}. People&apos;s threads stay open for their reviewer.
+    </p>
+  );
+}
+
+/**
+ * The run's approval line when its first reply is tried in its thread first: the organization refused GitRanks' thread
+ * replies before (`blocked`), or none of them has posted there yet. Shown while a thread reply is ticked to post; the
+ * organization's name holds why.
+ */
+export function ProbeLine({
+  org,
+  blocked,
+  prNumber,
+  threadDraftIds,
+}: {
+  org: string;
+  blocked: boolean;
+  prNumber: number | null;
+  /** The run's replies to review threads (a top-level reply never tests the setting). */
+  threadDraftIds: string[];
+}) {
+  const replies = useSessionActions()?.replies;
+  const threads = new Set(threadDraftIds);
+  const ticked = replies
+    ? replies.input().some(({ draftId, send }) => send && threads.has(draftId))
+    : threadDraftIds.length > 0;
+  if (!ticked) return null;
+  const why = blocked
+    ? `${org} only lets apps it has approved post in review threads, and it refused GitRanks' replies there before.`
+    : `No reply of GitRanks has posted in ${org}'s review threads yet, and an organization can keep apps it hasn't approved out of them.`;
+  return (
+    <p className="text-sm text-muted-foreground" data-probe-line={blocked ? 'blocked' : 'first'}>
+      GitRanks tries the first reply in its thread. If{' '}
+      <AdaptiveTooltip
+        trigger={
+          <button
+            type="button"
+            aria-label={`${org}: ${why}`}
+            className="font-medium text-foreground underline decoration-dotted underline-offset-2"
+          >
+            {org}
+          </button>
+        }
+      >
+        <span className="block max-w-xs">{why}</span>
+      </AdaptiveTooltip>{' '}
+      {blocked ? 'still blocks' : 'blocks'} it, the replies go as one comment on{' '}
+      {prNumber ? `#${prNumber}` : 'the pull request'}.
     </p>
   );
 }

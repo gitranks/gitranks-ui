@@ -23,23 +23,31 @@ import {
   firstAttempt,
   firstWithDrafts,
   handOpened,
+  heldBackRun,
   leftOut,
   manyThreads,
   mixedRefusals,
   noGrant,
   olderReview,
+  oneCommentFailed,
+  oneCommentPlan,
   oneRefused,
+  orgRefusedOneComment,
   orgRefusedRun,
+  postedInOneComment,
   proof,
   repoOut,
   rules,
   runDone,
   runEnded,
   runInReview,
+  runReadyBlocked,
+  runReadyFirstInOrg,
   runs,
   severalMoves,
   underWay,
   unknownState,
+  waitingForProbe,
   waitingOf,
 } from '@/lib/contribute/__fixtures__/session-head';
 import type { ContributeAttemptDetail, ContributeReplyDraft, ContributeView } from '@/lib/contribute/contribute.types';
@@ -125,6 +133,86 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     path: RUN,
     height: 2100,
     render: () => runPage(page, runDone(mixedRefusals())),
+  },
+  {
+    id: 'replies-one-comment',
+    title: 'The organization refused 7 replies in their threads: post them as one comment, copy them, or dismiss them',
+    path: RUN,
+    height: 2200,
+    render: () => runPage(page, runDone(orgRefusedOneComment(), oneCommentPlan())),
+  },
+  {
+    id: 'replies-one-comment-alone',
+    title: 'One reply refused in its thread: post it as a comment, quoting its thread',
+    path: RUN,
+    height: 1900,
+    render: () => runPage(page, runDone(orgRefusedOneComment().slice(0, 1), oneCommentPlan(1))),
+  },
+  {
+    id: 'replies-one-comment-unanswered',
+    title: 'The one comment got no clear answer: Try again sends it exactly as before',
+    path: RUN,
+    height: 2200,
+    render: () => {
+      const { drafts, plan } = oneCommentFailed(
+        'no_answer',
+        'GitHub did not answer clearly, so the comment may be there already. Try again: it is sent exactly as before and never posted twice.',
+        'RESEND',
+      );
+      return runPage(page, runDone(drafts, plan));
+    },
+  },
+  {
+    id: 'replies-one-comment-refused',
+    title: 'GitHub refused the one comment too: copy the replies, or dismiss them',
+    path: RUN,
+    height: 2200,
+    render: () => {
+      const { drafts, plan } = oneCommentFailed(
+        'org_restricted',
+        "GitHub refused the comment too: this repository's organization keeps GitRanks Contribute from commenting here. Copy the replies and post them on the pull request yourself.",
+        null,
+      );
+      return runPage(page, runDone(drafts, plan));
+    },
+  },
+  {
+    id: 'replies-held-back',
+    title: 'The first reply did not reach its thread: the other 6 were held back, to post as one comment',
+    path: RUN,
+    height: 2200,
+    render: () => {
+      const { drafts, plan } = heldBackRun();
+      return runPage(page, runDone(drafts, plan));
+    },
+  },
+  {
+    id: 'replies-wait-for-probe',
+    title: 'After the push: the first reply on its way to its thread, the others wait for it',
+    path: RUN,
+    height: 1800,
+    render: () => runPage(page, runDone(waitingForProbe(), { probeFirst: true })),
+  },
+  {
+    id: 'replies-posted-one-comment',
+    title: 'The 7 replies posted in one comment',
+    path: RUN,
+    height: 1800,
+    render: () => runPage(page, runDone(postedInOneComment(), { probeFirst: true })),
+  },
+  {
+    id: 'run-ready-org-blocks',
+    title: 'A run ready in an organization that refused thread replies: the first reply is tried in its thread',
+    path: RUN,
+    height: 2400,
+    render: () => runPage(page, runReadyBlocked()),
+  },
+  {
+    id: 'run-ready-first-in-org',
+    title: 'A run ready in an organization where no reply of GitRanks has posted yet',
+    path: RUN,
+    height: 2400,
+    render: () => runPage(page, runReadyFirstInOrg()),
   },
   {
     id: 'reply-failed-alone',

@@ -47,6 +47,7 @@ const {
 const { nextForDco, nextForProof, nextForRepoOut, nextForRun, nextForSilent, nextForYou, proofSession, signal } =
   await import('@/lib/contribute/__fixtures__/needs-you');
 const { contributionMovesOf } = await import('@/lib/contribute/contribution-moves');
+const fixtures = await import('@/lib/contribute/__fixtures__/session-head');
 
 import type { ComponentProps } from 'react';
 
@@ -346,6 +347,132 @@ describe('replies that did not reach GitHub', () => {
     expect(card).toContain('href="#comment-D_0"');
     expect(card).not.toContain('GitHub did not let us post it.');
     expect(html).toContain('data-reply-error="transient"');
+  });
+});
+
+describe('replies as one comment', () => {
+  const waiting = (drafts: ContributeAttemptDetail['replyDrafts']) => fixtures.waitingOf(drafts ?? []);
+  const cardOf = (html: string) =>
+    html.slice(
+      html.indexOf('data-move="reply-failed"'),
+      html.indexOf('</section>', html.indexOf('data-move="reply-failed"')),
+    );
+
+  it('leads with "Post them as one comment", Copy all from the comment’s text, and Dismiss', () => {
+    const drafts = fixtures.orgRefusedOneComment();
+    const html = page(runOf({ replyDrafts: drafts, ...fixtures.oneCommentPlan() }), {
+      first: afterRun(),
+      replies: waiting(drafts),
+    });
+    const card = cardOf(html);
+    expect(buttons(card).slice(0, 3)).toEqual(['Post them as one comment on #1419', 'Copy all 7', 'Dismiss']);
+    expect(card.match(/data-variant="default"/g)).toHaveLength(1);
+    expect(text(card)).toContain("Why can't GitRanks reply in the threads?");
+    // The rows keep no per-row "Post as a comment": the card posts one or more.
+    expect(text(html)).not.toContain('Post as a comment instead');
+    expect(html.match(/data-row-state="not-posted-elsewhere"/g)).toHaveLength(7);
+  });
+
+  it('posts a lone refused reply as a comment from the card, and shows it', () => {
+    const drafts = fixtures.orgRefusedOneComment().slice(0, 1);
+    const html = page(runOf({ replyDrafts: drafts, ...fixtures.oneCommentPlan(1) }), {
+      first: afterRun(),
+      replies: waiting(drafts),
+    });
+    const card = cardOf(html);
+    expect(buttons(card)).toEqual(['Post it as a comment on #1419', 'Show it']);
+    expect(text(html)).not.toContain('Post as a comment instead');
+  });
+
+  it('keeps an older API’s per-row "Post as a comment instead"', () => {
+    const drafts = fixtures.orgRefusedRun();
+    const html = page(runOf({ replyDrafts: drafts }), { first: afterRun(), replies: waiting(drafts) });
+    expect(buttons(cardOf(html))).not.toContain('Post them as one comment on #1419');
+  });
+
+  it('tries a comment GitHub did not answer again, sent exactly as before', () => {
+    const { drafts, plan } = fixtures.oneCommentFailed(
+      'no_answer',
+      'GitHub did not answer clearly, so the comment may be there already. Try again: it is sent exactly as before.',
+      'RESEND',
+    );
+    const html = page(runOf({ replyDrafts: drafts, ...plan }), { first: afterRun(), replies: waiting(drafts) });
+    const card = cardOf(html);
+    expect(text(card)).toContain("Your 7 replies didn't post as one comment");
+    expect(text(card)).toContain('Not posted GitHub did not answer clearly, so the comment may be there already.');
+    expect(buttons(card)).toEqual(['Try again', 'Dismiss']);
+    // Its rows offer no Try again of their own: the comment is tried again whole.
+    expect(buttons(html).filter((label) => label.startsWith('Try again'))).toHaveLength(1);
+  });
+
+  it('builds a comment refused as invalid again, beside Copy all', () => {
+    const { drafts, plan } = fixtures.oneCommentFailed(
+      'invalid',
+      "GitHub refused the comment as invalid. Check the replies' text, then try again.",
+      'REBUILD',
+    );
+    const html = page(runOf({ replyDrafts: drafts, ...plan }), { first: afterRun(), replies: waiting(drafts) });
+    expect(buttons(cardOf(html))).toEqual(['Try again', 'Copy all 7', 'Dismiss']);
+  });
+
+  it('offers no Try again on a comment the organization refused, nor on one the page is not served', () => {
+    const { drafts, plan } = fixtures.oneCommentFailed(
+      'org_restricted',
+      "GitHub refused the comment too: this repository's organization keeps GitRanks Contribute from commenting here. Copy the replies and post them on the pull request yourself.",
+      null,
+    );
+    const html = page(runOf({ replyDrafts: drafts, ...plan }), { first: afterRun(), replies: waiting(drafts) });
+    expect(buttons(cardOf(html)).slice(0, 2)).toEqual(['Copy all 7', 'Dismiss']);
+    expect(buttons(cardOf(html))).not.toContain('Try again');
+    const unanswered = fixtures.oneCommentFailed('no_answer', 'GitHub did not answer clearly.', 'RESEND');
+    const unserved = page(runOf({ replyDrafts: unanswered.drafts, ...unanswered.plan, replyBatches: [] }), {
+      first: afterRun(),
+      replies: waiting(unanswered.drafts),
+    });
+    expect(buttons(unserved)).not.toContain('Try again');
+  });
+
+  it('says replies held back once, and posts them as one comment', () => {
+    const { drafts, plan } = fixtures.heldBackRun();
+    const html = page(runOf({ replyDrafts: drafts, ...plan }), { first: afterRun(), replies: waiting(drafts) });
+    const card = cardOf(html);
+    expect(text(card)).toContain("7 replies didn't reach GitHub");
+    expect(text(card)).toContain(
+      "6 replies were held back: the first reply didn't reach its thread (The first reply got no answer from GitHub).",
+    );
+    expect(buttons(card)[0]).toBe('Post them as one comment on #1419');
+    // Held back, they are not also replies to approve.
+    expect(html).not.toContain('data-move="replies"');
+    expect(html.match(/data-row-state="held-back"/g)).toHaveLength(6);
+  });
+
+  it('draws the rows waiting for the first reply, and the replies posted in one comment', () => {
+    const waitingHtml = page(runOf({ replyDrafts: fixtures.waitingForProbe(), probeFirst: true }), {
+      first: afterRun(),
+      replies: waiting(fixtures.waitingForProbe()),
+    });
+    expect(waitingHtml.match(/data-row-state="waits-for-probe"/g)).toHaveLength(3);
+    expect(text(waitingHtml)).toContain('Waits for the first reply');
+    expect(waitingHtml).not.toContain('data-move="replies"');
+    const postedHtml = page(runOf({ replyDrafts: fixtures.postedInOneComment() }), { first: afterRun() });
+    expect(postedHtml.match(/data-row-state="posted-one-comment"/g)).toHaveLength(7);
+    expect(text(postedHtml)).toContain('Posted in one comment');
+  });
+
+  it('says, under the push, that the first reply is tried in its thread first', () => {
+    const blocked = text(page(fixtures.runReadyBlocked(), { first: fixtures.underWay(fixtures.runReadyBlocked()) }));
+    expect(blocked).toContain(
+      'GitRanks tries the first reply in its thread. If driftwood-js still blocks it, the replies go as one comment on #1419.',
+    );
+    expect(blocked).toContain('if the replies post in their threads');
+    const first = text(
+      page(fixtures.runReadyFirstInOrg(), { first: fixtures.underWay(fixtures.runReadyFirstInOrg()) }),
+    );
+    expect(first).toContain('If driftwood-js blocks it, the replies go as one comment on #1419.');
+    // A personal account's run, or an API that does not say: no line.
+    expect(text(page(fixtures.runInReview(), { first: fixtures.underWay(fixtures.runInReview()) }))).not.toContain(
+      'GitRanks tries the first reply',
+    );
   });
 });
 

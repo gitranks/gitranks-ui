@@ -514,3 +514,40 @@ describe('a first attempt’s own threads', () => {
     expect(moves.sessions.next?.statusLead).toBe('Nothing waits on #1419');
   });
 });
+
+describe('the run’s replies as one comment', () => {
+  const heldBack = { reason: 'no_answer', note: 'The first reply got no answer.', at: '2026-10-28T11:59:00.000Z' };
+  const draft = (id: string, patch: Partial<ContributeReplyWaiting> = {}) =>
+    replyWaiting({ draftId: id, state: 'DRAFT', send: false, ...patch });
+
+  it('says replies held back with the ones not posted, never as replies to approve', () => {
+    const replies = [
+      failed('D_1', 'no_answer'),
+      ...['D_2', 'D_3'].map((id) => draft(id, { heldBack, canGoInOneComment: true })),
+      draft('D_4'),
+    ];
+    const moves = model(afterRun(), { replies });
+    const notPosted = moves.moves.find(({ card }) => card === 'reply-failed');
+    expect(notPosted?.title).toBe("Your 3 replies didn't reach GitHub");
+    expect(notPosted?.data).toMatchObject({ heldBack: [{ draftId: 'D_2' }, { draftId: 'D_3' }] });
+    const toApprove = moves.moves.find(({ card }) => card === 'replies');
+    expect(toApprove?.data).toMatchObject({ drafts: [{ draftId: 'D_4' }] });
+    expect([...cardReasonsOf(moves, 'A_F1')]).toContain('held_back');
+  });
+
+  it('titles a card of replies held back only, and of a failed comment', () => {
+    const held = model(afterRun(), { replies: ['D_1', 'D_2'].map((id) => draft(id, { heldBack })) });
+    expect(held.moves.map(({ title, tone }) => `${title} (${tone})`)).toEqual([
+      'Your 2 replies were held back (amber)',
+    ]);
+    const comment = model(afterRun(), {
+      replies: ['D_1', 'D_2'].map((id) => failed(id, 'no_answer', { batchId: 'B_1', postAs: 'ONE_COMMENT' })),
+    });
+    expect(comment.moves[0]?.title).toBe("Your 2 replies didn't post as one comment");
+  });
+
+  it('makes no move of replies waiting for the run’s first reply', () => {
+    const replies = ['D_1', 'D_2'].map((id) => draft(id, { send: true, waitsForProbe: true, postAs: 'ONE_COMMENT' }));
+    expect(model(afterRun(), { replies }).moves).toEqual([]);
+  });
+});

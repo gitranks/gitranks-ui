@@ -38,6 +38,8 @@ const {
   ContributeLimitsDocument,
   ContributeImpactReposDocument,
   ContributeRepliesWaitingDocument,
+  ContributeRepliesWaitingPlanDocument,
+  ContributeAttemptRepliesPlanDocument,
   ContributeScheduleCountsDocument,
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
@@ -242,6 +244,59 @@ describe("loadAttempt: the repo's rules, read on their own", () => {
     ]) {
       answering(rules);
       expect('repoRules' in ((await loadAttempt('A_1')) ?? {})).toBe(false);
+    }
+  });
+});
+
+describe("loadAttempt: the run's replies plan, read on its own", () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const draft = { draftId: 'D_1', state: 'FAILED' };
+  const PLAN = {
+    attemptId: 'A_1',
+    threadRepliesBlocked: {
+      org: 'driftwood-js',
+      since: '2026-10-21T09:00:00.000Z',
+      lastRefusedAt: '2026-10-28T11:00:00.000Z',
+    },
+    probeFirst: true,
+    oneComment: { draftIds: ['D_1'], bodies: ['A reply to a review comment…'] },
+    copyBodies: ['A reply to a review comment…'],
+    replyBatches: [],
+    replyDrafts: [{ draftId: 'D_1', postAs: 'THREAD', batchId: null, canGoInOneComment: true }],
+  };
+  const answering = (plan: () => Promise<unknown>) =>
+    graphqlDirect.mockImplementation((document) => {
+      if (document === ContributeAttemptRepliesPlanDocument) return plan();
+      if (document === ContributeAttemptFollowUpsDocument)
+        return Promise.resolve({ contributeAttempt: { attemptId: 'A_1', replyDrafts: [draft] } });
+      return Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'DONE' } });
+    });
+
+  it("merges the run's plan and each reply's, and leaves them out otherwise", async () => {
+    answering(() => Promise.resolve({ contributeAttempt: PLAN }));
+    expect(await loadAttempt('A_1')).toMatchObject({
+      threadRepliesBlocked: PLAN.threadRepliesBlocked,
+      probeFirst: true,
+      oneComment: PLAN.oneComment,
+      copyBodies: PLAN.copyBodies,
+      replyBatches: [],
+      replyDrafts: [{ draftId: 'D_1', state: 'FAILED', postAs: 'THREAD', canGoInOneComment: true }],
+    });
+
+    for (const plan of [
+      () => Promise.resolve({ contributeAttempt: { ...PLAN, attemptId: 'A_2' } }),
+      () => Promise.reject(new Error('[{"message":"Cannot query field \\"probeFirst\\""}]')),
+      () => Promise.reject(new Error('GraphQL error! 502: Bad Gateway')),
+    ]) {
+      answering(plan);
+      const read = await loadAttempt('A_1');
+      expect('probeFirst' in (read ?? {})).toBe(false);
+      expect(read?.replyDrafts).toEqual([draft]);
     }
   });
 });
@@ -736,6 +791,21 @@ describe("Overview's loaders, each operation settled on its own", () => {
     const needs = await loadOverviewNeeds();
     expect(needs.replies).toEqual([]);
     expect(needs.reviews?.map((attempt) => attempt.reviewAt)).toEqual([undefined, '2026-10-27T00:00:00.000Z']);
+  });
+
+  it("merges each waiting reply's plan by id, and leaves it out when it is not answered", async () => {
+    const waiting = { draftId: 'D_1', state: 'DRAFT', attemptId: 'A_F1' };
+    const answering = (plan: () => Promise<unknown>) =>
+      graphqlDirect.mockImplementation(async (document) => {
+        if (document === ContributeRepliesWaitingDocument) return { contributeRepliesWaiting: [waiting] };
+        if (document === ContributeRepliesWaitingPlanDocument) return plan();
+        return notYet();
+      });
+    const held = { reason: 'no_answer', note: 'No answer.', at: '2026-10-28T11:00:00.000Z' };
+    answering(async () => ({ contributeRepliesWaiting: [{ draftId: 'D_1', heldBack: held, waitsForProbe: false }] }));
+    expect((await loadOverviewNeeds()).replies).toEqual([{ ...waiting, heldBack: held, waitsForProbe: false }]);
+    answering(() => notYet());
+    expect((await loadOverviewNeeds()).replies).toEqual([waiting]);
   });
 
   it('leaves the replies undefined when they are not answered, and the reviews when the attempts are not', async () => {

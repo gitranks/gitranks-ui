@@ -18,6 +18,7 @@ import type {
   ContributePrSignalKind,
   ContributeView,
 } from './contribute.types';
+import * as needsYouModule from './needs-you';
 import {
   botVerdictOf,
   clipped,
@@ -261,7 +262,7 @@ describe('needsYouItemsOf: an open pull request', () => {
       tone: 'red',
       pill: 'Reply not posted',
       move: "GitHub refused the reply. Retry it, or copy it from the run's page and post it on the pull request yourself.",
-      action: { label: 'Retry the reply', href: '/contribute/attempts/A_PR2205/runs/A_TIDE1' },
+      action: { label: 'Retry the reply', href: '/contribute/attempts/A_PR2205/runs/A_TIDE1?move=reply-failed' },
     });
     // The API's note says why, and what to do.
     const noted = [
@@ -698,5 +699,161 @@ describe('the review fixes', () => {
       'A_15',
     ]);
     expect(needs.counted).toBe(20);
+  });
+});
+
+describe('needsYouItemsOf: replies that did not post (one comment)', () => {
+  const pr = { ...prsNeedingYou.comment, needsYou: null };
+  const prId = pr.pullRequest.prId;
+  const at = '2026-10-28T11:00:00.000Z';
+  const reply = (runId: string, index: number, patch: Parameters<typeof replyWaiting>[0] = {}) =>
+    replyWaiting({
+      draftId: `D_${runId}_${index}`,
+      prId,
+      attemptId: runId,
+      nameWithOwner: pr.nameWithOwner,
+      prNumber: pr.pullRequest.number,
+      postAs: 'THREAD',
+      batchId: null,
+      waitsForProbe: false,
+      canGoInOneComment: false,
+      heldBack: null,
+      batchRetry: null,
+      ...patch,
+    });
+  const refused = (runId: string, count: number, reason = 'org_restricted', patch = {}) =>
+    Array.from({ length: count }, (_, index) =>
+      reply(runId, index, {
+        state: 'FAILED',
+        canGoInOneComment: reason === 'org_restricted' || reason === 'forbidden',
+        lastError: { reason, note: `GitHub refused it (${reason}). Post it yourself.`, at },
+        ...patch,
+      }),
+    );
+  const runs = [
+    attempt({ attemptId: 'A_R1', kind: 'FOLLOW_UP', round: followUpRun({ round: 1, attemptId: 'A_R1' }) }),
+    attempt({ attemptId: 'A_R2', kind: 'FOLLOW_UP', round: followUpRun({ round: 2, attemptId: 'A_R2' }) }),
+  ];
+  const href = (runId: string) => `/contribute/attempts/${pr.attemptId}/runs/${runId}?move=reply-failed`;
+  const notPosted = (replies: ContributeReplyWaitingList) => {
+    const row = items({ contributions: [pr], replies, runs }).items.find(({ kind }) => kind === 'reply-failed');
+    expect(row).toBeDefined();
+    return row!;
+  };
+  type ContributeReplyWaitingList = ReturnType<typeof refused>;
+
+  it('posts several replies the organization kept out of their threads as one comment', () => {
+    expect(notPosted(refused('A_R2', 7))).toMatchObject({
+      tone: 'red',
+      pill: 'Replies not posted',
+      move: "Your 7 replies didn't reach GitHub: tidewave only lets apps it has approved post in review threads. Post them as one comment.",
+      action: { label: 'Post as one comment', href: href('A_R2') },
+    });
+    expect(notPosted(refused('A_R2', 2, 'forbidden')).move).toBe(
+      "Your 2 replies didn't reach their threads. Post them as one comment.",
+    );
+  });
+
+  it('posts a lone refused reply as a comment, through the same path', () => {
+    expect(notPosted(refused('A_R2', 1, 'forbidden'))).toMatchObject({
+      pill: 'Reply not posted',
+      move: "Your reply didn't reach its thread. Post it as a comment.",
+      action: { label: 'Post as a comment', href: href('A_R2') },
+    });
+    expect(notPosted(refused('A_R2', 1)).move).toBe(
+      "Your reply didn't reach its thread: tidewave only lets apps it has approved post in review threads. Post it as a comment.",
+    );
+  });
+
+  it('leads with a failed comment: Try again by what it does, else Copy all, or Dismiss once the PR is gone', () => {
+    const inComment = (retry: 'RESEND' | 'REBUILD' | null, reason: string) =>
+      refused('A_R2', 3, reason, {
+        batchId: 'B_1',
+        postAs: 'ONE_COMMENT',
+        batchRetry: retry,
+        canGoInOneComment: false,
+        lastError: { reason, note: 'GitHub did not answer clearly. Try again.', at },
+      });
+    expect(notPosted(inComment('RESEND', 'no_answer'))).toMatchObject({
+      move: "Your 3 replies didn't post as one comment. GitHub did not answer clearly.",
+      action: { label: 'Try again' },
+    });
+    expect(notPosted(inComment('REBUILD', 'invalid')).action).toMatchObject({ label: 'Try again' });
+    expect(notPosted(inComment(null, 'org_restricted')).action).toMatchObject({ label: 'Copy all 3' });
+    expect(notPosted(inComment(null, 'not_found')).action).toMatchObject({ label: 'Dismiss' });
+  });
+
+  it('says replies held back once, and they are not also replies to approve', () => {
+    const held = Array.from({ length: 6 }, (_, index) =>
+      reply('A_R2', index, {
+        canGoInOneComment: true,
+        heldBack: { reason: 'no_answer', note: 'GitHub did not answer the first reply in time.', at },
+      }),
+    );
+    const fresh = reply('A_R2', 9);
+    const rows = items({ contributions: [pr], replies: [...held, fresh], runs }).items;
+    expect(rows).toHaveLength(1);
+    const { candidatesOf } = needsYouModule;
+    const candidates = candidatesOf({ pr, drafts: [...held, fresh], runs, now: NOW });
+    expect(candidates.find(({ kind }) => kind === 'replies')?.move).toBe(
+      'Run 2 drafted 1 reply to @maintainer-mo. Read and post them.',
+    );
+    expect(candidates.find(({ kind }) => kind === 'reply-failed')).toMatchObject({
+      tone: 'amber',
+      move: "Your 6 replies were held back: the first one didn't reach its thread (GitHub did not answer the first reply in time). Post them as one comment.",
+      action: { label: 'Post as one comment', href: href('A_R2') },
+    });
+  });
+
+  it('leaves out replies waiting for the run’s first reply: no row at all', () => {
+    const waiting = Array.from({ length: 3 }, (_, index) =>
+      reply('A_R2', index, { send: true, waitsForProbe: true, postAs: 'ONE_COMMENT' }),
+    );
+    expect(items({ contributions: [pr], replies: waiting, runs }).items).toEqual([]);
+    // The same on a pull request the contributions read does not list.
+    expect(items({ contributions: [], replies: waiting, runs }).items).toEqual([]);
+  });
+
+  it('takes one run: the newest with the leading case, the others named in one sentence', () => {
+    const row = notPosted([...refused('A_R1', 2), ...refused('A_R2', 3)]);
+    expect(row.move).toBe(
+      "Your 3 replies didn't reach GitHub: tidewave only lets apps it has approved post in review threads. Post them as one comment. 2 from run 1 wait too: open the pull request's runs.",
+    );
+    expect(row.action).toMatchObject({ href: href('A_R2') });
+  });
+
+  it('leads with the first case on a mix, and names the rest', () => {
+    const mix = [
+      ...refused('A_R2', 4),
+      ...refused('A_R2', 1, 'invalid').map((draft) => ({ ...draft, draftId: 'D_X' })),
+    ];
+    expect(notPosted(mix).move).toBe(
+      "Your 4 replies didn't reach GitHub: tidewave only lets apps it has approved post in review threads. Post them as one comment. 1 more reply didn't post for another reason.",
+    );
+    const both = [...mix, ...refused('A_R1', 2)];
+    expect(notPosted(both).move).toContain(
+      "1 more reply didn't post for another reason, and 2 from run 1 wait too: open the pull request's runs.",
+    );
+  });
+
+  it('retries other failures as before: several sharing a reason, or one', () => {
+    expect(notPosted(refused('A_R2', 2, 'no_answer'))).toMatchObject({
+      move: "Your 2 replies didn't reach GitHub. GitHub refused it (no_answer).",
+      action: { label: 'Retry the replies' },
+    });
+    expect(notPosted(refused('A_R2', 1, 'no_answer'))).toMatchObject({
+      move: 'GitHub refused it (no_answer). Post it yourself.',
+      action: { label: 'Retry the reply' },
+    });
+  });
+
+  it('applies the same rule to replies on a pull request the contributions read does not list', () => {
+    const [row] = items({ contributions: [], replies: refused('A_R2', 7), runs }).items;
+    expect(row).toMatchObject({
+      key: `replies-${prId}`,
+      kind: 'reply-failed',
+      action: { label: 'Post as one comment', href: '/contribute/attempts/A_R2' },
+    });
+    expect(row.move).toContain("Your 7 replies didn't reach GitHub");
   });
 });

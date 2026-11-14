@@ -17,6 +17,7 @@ import {
   ContributeAttemptMovesDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptProofDocument,
+  ContributeAttemptRepliesPlanDocument,
   ContributeAttemptRepoRulesDocument,
   ContributeAttemptRetryDocument,
   ContributeAttemptReviewReasonDocument,
@@ -54,6 +55,7 @@ import {
   ContributeProfileLanguagesDocument,
   ContributeProviderInterestsDocument,
   ContributeRepliesWaitingDocument,
+  ContributeRepliesWaitingPlanDocument,
   ContributeResolveHumansDocument,
   ContributeScheduleCountsDocument,
   ContributeSetDocument,
@@ -87,6 +89,7 @@ import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
 import { ISSUES_PAGE_SIZE } from './live-issues';
 import { contributeMcpSignIn } from './mcp-sign-in';
+import { withRepliesPlanOf, withReplyPlansOf } from './one-comment';
 import {
   IN_FLIGHT_READ,
   IN_FLIGHT_STATES,
@@ -458,11 +461,14 @@ export const loadRepliesWaiting = cache(async (): Promise<ContributeReplyWaiting
   const githubLogin = await viewerLogin();
   if (!githubLogin) return undefined;
   try {
-    const { contributeRepliesWaiting } = await graphqlDirect(ContributeRepliesWaitingDocument, undefined, {
-      source: 'ssr',
-      githubLogin,
-    });
-    return Array.isArray(contributeRepliesWaiting) ? contributeRepliesWaiting : undefined;
+    const options = { source: 'ssr' as const, githubLogin };
+    // Each reply's plan (one comment, the run's first reply, held back): read on its own, left out when not answered.
+    const plans = Promise.resolve(graphqlDirect(ContributeRepliesWaitingPlanDocument, undefined, options)).catch(
+      () => undefined,
+    );
+    const { contributeRepliesWaiting } = await graphqlDirect(ContributeRepliesWaitingDocument, undefined, options);
+    if (!Array.isArray(contributeRepliesWaiting)) return undefined;
+    return withReplyPlansOf(contributeRepliesWaiting, (await plans)?.contributeRepliesWaiting);
   } catch {
     return undefined;
   }
@@ -598,6 +604,10 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   const claimSteps = Promise.resolve(graphqlDirect(ContributeAttemptClaimStepsDocument, { id }, options)).catch(
     () => undefined,
   );
+  // The run's replies plan (one comment, the org's refusal, the first reply in its thread); left out when not answered.
+  const repliesPlan = Promise.resolve(graphqlDirect(ContributeAttemptRepliesPlanDocument, { id }, options)).catch(
+    () => undefined,
+  );
   // A Learn attempt's mode and lesson state; left out when not answered.
   const learn = Promise.resolve(graphqlDirect(ContributeAttemptLearnDocument, { id }, options)).catch(() => undefined);
   try {
@@ -617,9 +627,9 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
       extra?.attemptId === contributeAttempt.attemptId ? extra : undefined,
     );
     const flowRead = (await flow)?.contributeAttempt;
-    const withFlow = withFollowUpFlow(
-      withFollowUps,
-      flowRead?.attemptId === contributeAttempt.attemptId ? flowRead : undefined,
+    const withFlow = withRepliesPlanOf(
+      withFollowUpFlow(withFollowUps, flowRead?.attemptId === contributeAttempt.attemptId ? flowRead : undefined),
+      (await repliesPlan)?.contributeAttempt,
     );
     const dcoRead = (await dco)?.contributeAttempt;
     const withDco =

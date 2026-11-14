@@ -16,7 +16,7 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: 
 vi.mock('@/app/learn/actions', () => ({ signInToReact: vi.fn() }));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({ viewerLogin: vi.fn() }));
-vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn() }));
+vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(), loadLearnSetup: vi.fn() }));
 vi.mock('@/lib/learn/react-mark', () => ({ hasReactionMark: vi.fn() }));
 vi.mock('@/lib/learn/lesson-public.data', () => ({
   loadLessonPage: vi.fn(),
@@ -31,7 +31,7 @@ const { LessonStubScreen } = await import('./lesson-stub');
 const data = await import('@/lib/learn/lesson-public.data');
 const { hasReactionMark } = await import('@/lib/learn/react-mark');
 const { viewerLogin } = await import('@/lib/contribute/contribute.data');
-const { loadLearnOpen } = await import('@/lib/learn/learn.data');
+const { loadLearnOpen, loadLearnSetup } = await import('@/lib/learn/learn.data');
 const { lessonPage, PUBLIC_HEAD, result, sharedRuns } = await import('@/lib/learn/__fixtures__/shared');
 const { STEPS } = await import('@/lib/learn/__fixtures__/lesson');
 
@@ -125,6 +125,13 @@ describe('a shared lesson', () => {
     expect(data.loadMyLessonRun).not.toHaveBeenCalled();
 
     vi.mocked(loadLearnOpen).mockResolvedValue(true);
+    vi.mocked(loadLearnSetup).mockResolvedValue(true);
+    const setup = renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' }));
+    expect(setup).toContain('data-viewer="setup"');
+    expect(text(setup)).toContain('Setting up your GitRanks account. This takes about a minute. Refresh');
+    expect(data.loadMyLessonRun).not.toHaveBeenCalled();
+
+    vi.mocked(loadLearnSetup).mockResolvedValue(false);
     vi.mocked(data.loadMyLessonRun).mockResolvedValue(null);
     expect(renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' }))).toContain(
       'data-viewer="taker"',

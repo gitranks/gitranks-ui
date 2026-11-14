@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 
+import { LEARN_SETTING_UP_TEXT, LearnSetupRefresh } from './learn-setting-up';
 import { LearnViewReport } from './learn-view-report';
 import type { LessonFlowStart } from './lesson-flow';
 import { LessonEyebrow, LessonMeta } from './lesson-header';
@@ -8,7 +9,7 @@ import { LessonStubScreen } from './lesson-stub';
 import { SharedLesson } from './shared-lesson';
 import { HEADING } from '@/app/contribute/components/primitives';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
-import { loadLearnOpen } from '@/lib/learn/learn.data';
+import { loadLearnOpen, loadLearnSetup } from '@/lib/learn/learn.data';
 import type { LessonPage, LessonRun } from '@/lib/learn/learn.types';
 import { lessonPath } from '@/lib/learn/learn-path';
 import { passesShown } from '@/lib/learn/lesson-public';
@@ -19,12 +20,20 @@ export const LESSON_MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt
 
 /**
  * Who looks at a shared lesson: a visitor (reads it, signs in to answer), a signed-in reader Learn is not open to yet
- * (reads it), or a taker (answers it, in their own run).
+ * (reads it), a taker whose new GitRanks account is still being set up (reads it, refreshes), or a taker (answers it,
+ * in their own run).
  */
 export type LessonViewer =
   | { kind: 'visitor' }
   | { kind: 'reader'; login: string }
+  | { kind: 'setup'; login: string }
   | { kind: 'taker'; login: string; run: LessonRun | null };
+
+const INTRO_TEXT: Record<Exclude<LessonViewer['kind'], 'taker'>, string> = {
+  visitor: 'Reading is free. Answering needs a GitHub account, so a pass counts a real person.',
+  reader: 'Reading is open to everyone. Answering is not open to your account yet.',
+  setup: LEARN_SETTING_UP_TEXT,
+};
 
 /**
  * A shared lesson (`/learn/lessons/<slug>`): its title, who created it with which agent, the issue and the pull
@@ -63,12 +72,14 @@ export function LessonPageScreen({
         <>
           <LessonIntro
             steps={steps.length}
-            text={
-              viewer.kind === 'visitor'
-                ? 'Reading is free. Answering needs a GitHub account, so a pass counts a real person.'
-                : 'Reading is open to everyone. Answering is not open to your account yet.'
+            text={INTRO_TEXT[viewer.kind]}
+            action={
+              viewer.kind === 'visitor' ? (
+                <SignInToTake returnTo={path} />
+              ) : viewer.kind === 'setup' ? (
+                <LearnSetupRefresh className="shrink-0 max-sm:w-full" />
+              ) : undefined
             }
-            action={viewer.kind === 'visitor' ? <SignInToTake returnTo={path} /> : undefined}
           />
           <ReadLesson head={head} steps={steps} signInTo={viewer.kind === 'visitor' ? path : undefined} />
         </>
@@ -89,6 +100,7 @@ export async function LessonPageView({ slug }: { slug: string }) {
   const login = await viewerLogin();
   if (!login) return <LessonPageScreen page={answer.value} viewer={{ kind: 'visitor' }} />;
   if (!(await loadLearnOpen())) return <LessonPageScreen page={answer.value} viewer={{ kind: 'reader', login }} />;
+  if (await loadLearnSetup()) return <LessonPageScreen page={answer.value} viewer={{ kind: 'setup', login }} />;
   const run = await loadMyLessonRun(answer.value.head.slug);
   return <LessonPageScreen page={answer.value} viewer={{ kind: 'taker', login, run }} />;
 }

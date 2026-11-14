@@ -16,6 +16,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn() }))
 const data = vi.hoisted(() => ({
   loadLearnOpen: vi.fn(),
   loadLearnProfile: vi.fn(),
+  loadLearnSetup: vi.fn(),
   loadMyLessons: vi.fn(),
   loadOwnAgent: vi.fn(),
 }));
@@ -145,6 +146,20 @@ describe("Learn's gate on its own pages", () => {
     await expect(LearnHomeView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(MyLessonsView()).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('says a new account is being set up, in place of the form and the list, with a refresh', async () => {
+    data.loadLearnOpen.mockResolvedValue(true);
+    data.loadLearnSetup.mockResolvedValue(true);
+    data.loadLearnProfile.mockResolvedValue(null);
+    data.loadMyLessons.mockResolvedValue([]);
+    data.loadOwnAgent.mockResolvedValue(undefined);
+    for (const html of [renderToStaticMarkup(await LearnProfileView()), renderToStaticMarkup(await MyLessonsView())]) {
+      expect(html).toContain('data-learn-setting-up');
+      expect(text(html)).toContain('Setting up your GitRanks account. This takes about a minute. Refresh');
+      expect(html).not.toContain('data-learn-profile=');
+    }
+    data.loadLearnSetup.mockResolvedValue(false);
   });
 
   it('draws the pages for a user Learn is open to', async () => {

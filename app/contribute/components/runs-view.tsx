@@ -1,6 +1,6 @@
 import type { Route } from 'next';
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { WorkingNowSection } from './agent-runs';
@@ -8,7 +8,7 @@ import { ContributeNotices } from './contribute-notices';
 import { HEADING, PageTitle } from './primitives';
 import { RunsFilters } from './runs-filters';
 import { RunsList } from './runs-list';
-import { loadContribute, loadContributeActivity } from '@/lib/contribute/contribute.data';
+import { loadContribute, loadContributeActivity, loadContributeSetup } from '@/lib/contribute/contribute.data';
 import type { ContributeActivity, ContributeView } from '@/lib/contribute/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/contribute/contribute-state';
 import { usd } from '@/lib/contribute/format';
@@ -25,6 +25,7 @@ import {
   runsQueryOf,
 } from '@/lib/contribute/runs';
 import { loadRuns } from '@/lib/contribute/runs.data';
+import { contributeHidden } from '@/lib/contribute/setting-up';
 import { cn } from '@/lib/utils';
 
 export async function RunsView({
@@ -40,7 +41,7 @@ export async function RunsView({
     loadRuns(filter),
     loadContributeActivity().catch(() => null),
   ]);
-  if (!view) notFound();
+  if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'runs')) redirect('/contribute');
   return <RunsScreen view={view} page={page} query={query} activity={activity} from={filter.from} now={now} />;
 }

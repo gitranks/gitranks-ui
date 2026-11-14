@@ -2,9 +2,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock('@/app/contribute/actions', () => ({ approveContributeOAuth: vi.fn() }));
 
-const { AuthorizeScreen } = await import('./authorize-view');
+const { AuthorizeScreen, authorizeStateFor } = await import('./authorize-view');
 
 import type { ContributeOAuthRequest } from '@/lib/contribute/contribute.types';
 
@@ -92,6 +93,27 @@ describe('the consent page of an agent sign-in', () => {
     expect(html).not.toContain('data-authorize="allow"');
   });
 
+  it('says a new account is being set up, with Refresh and Cancel, and never blames the preview', () => {
+    const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'setting-up', requestId: ID }} />);
+    const plain = text(html);
+    expect(plain).toContain('Setting up your GitRanks account');
+    expect(plain).toContain('GitRanks is reading your GitHub profile for the first time');
+    expect(plain).toContain('Refresh');
+    expect(plain).not.toMatch(/preview/i);
+    expect(html).toContain(`href="${CANCEL}"`);
+    expect(html).not.toContain('data-authorize="allow"');
+  });
+
+  it('says GitRanks could not read the account yet once launched, never the preview', () => {
+    const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'no-profile', requestId: ID }} />);
+    const plain = text(html);
+    expect(plain).toContain("We couldn't set up your GitRanks account yet");
+    expect(plain).toContain('Try again later');
+    expect(plain).not.toMatch(/preview/i);
+    expect(html).toContain(`href="${CANCEL}"`);
+    expect(html).not.toContain('data-authorize="allow"');
+  });
+
   it('says an expired sign-in has expired, with no button', () => {
     const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'expired' }} />);
     expect(text(html)).toContain('This sign-in has expired');
@@ -105,5 +127,36 @@ describe('the consent page of an agent sign-in', () => {
     );
     expect(text(html)).toContain('You allowed Codex already');
     expect(html).not.toContain('data-authorize="allow"');
+  });
+});
+
+describe("the consent page's state, from the API's one read", () => {
+  const read = (request: ContributeOAuthRequest | null, contributeSetup = false, contributeOpen = true) => ({
+    contributeOAuthRequest: request,
+    contributeSetup,
+    contributeOpen,
+  });
+
+  it('says setting up while a new account is read, before anything else', () => {
+    expect(authorizeStateFor(read(null, true), ID, 'newbie')).toEqual({ kind: 'setting-up', requestId: ID });
+    expect(authorizeStateFor(read(null, true, false), ID, 'newbie')).toEqual({ kind: 'setting-up', requestId: ID });
+  });
+
+  it('says no profile once launched, and names the preview only before the launch', () => {
+    expect(authorizeStateFor(read(null), ID, 'newbie')).toEqual({ kind: 'no-profile', requestId: ID });
+    expect(authorizeStateFor(read(null, false, false), ID, 'newbie')).toEqual({ kind: 'not-open', requestId: ID });
+  });
+
+  it('asks to allow a pending request, and reads expired and approved ones as such', () => {
+    expect(authorizeStateFor(read(REQUEST), ID, 'octocat')).toEqual({
+      kind: 'pending',
+      requestId: ID,
+      login: 'octocat',
+      request: REQUEST,
+    });
+    expect(authorizeStateFor(read({ ...REQUEST, status: 'EXPIRED' }), ID, 'octocat')).toEqual({ kind: 'expired' });
+    expect(authorizeStateFor(read({ ...REQUEST, status: 'APPROVED' }), ID, 'octocat')).toMatchObject({
+      kind: 'approved',
+    });
   });
 });

@@ -41,22 +41,43 @@ export function resetContributeOpen(): void {
   asking = null;
 }
 
+/**
+ * Whether Contribute is open to a signed-in user: `allowed`; `setting-up` while their GitRanks account is being set up
+ * (a new GitHub account, read for the first time now), which Contribute's home says; `hidden` otherwise (off the
+ * preview, no profile, or any failure).
+ */
+export type ContributeAccess = 'allowed' | 'setting-up' | 'hidden';
+
+/** Whether the API opens Contribute to this GitHub login, or is setting up its account; hidden on any failure. */
+export async function contributeAccessOf(githubLogin: string | null | undefined): Promise<ContributeAccess> {
+  if (!githubLogin) return 'hidden';
+  try {
+    const { contribute, contributeSetup } = await graphqlDirect(ContributePreviewDocument, undefined, {
+      source: 'ssr',
+      githubLogin,
+    });
+    if (contribute?.previewAllowed === true) return 'allowed';
+    return contributeSetup === true ? 'setting-up' : 'hidden';
+  } catch {
+    return 'hidden';
+  }
+}
+
 /** Whether the API opens Contribute to this GitHub login (the preview list); false on any failure. */
 export async function contributePreviewAllowed(githubLogin: string | null | undefined): Promise<boolean> {
-  if (!githubLogin) return false;
-  try {
-    const { contribute } = await graphqlDirect(ContributePreviewDocument, undefined, { source: 'ssr', githubLogin });
-    return contribute?.previewAllowed === true;
-  } catch {
-    return false;
-  }
+  return (await contributeAccessOf(githubLogin)) === 'allowed';
+}
+
+/** The request's signed-in user's `ContributeAccess`; a visitor without a session is always hidden. */
+export async function requestContributeAccess(req: { headers: Headers }): Promise<ContributeAccess> {
+  const token = await sessionTokenOf(req);
+  if (!token?.githubLogin || token.error) return 'hidden';
+  return contributeAccessOf(token.githubLogin);
 }
 
 /** Whether the request's signed-in user may see Contribute; a visitor without a session never may. */
 export async function requestMaySeeContribute(req: { headers: Headers }): Promise<boolean> {
-  const token = await sessionTokenOf(req);
-  if (!token?.githubLogin || token.error) return false;
-  return contributePreviewAllowed(token.githubLogin);
+  return (await requestContributeAccess(req)) === 'allowed';
 }
 
 /**

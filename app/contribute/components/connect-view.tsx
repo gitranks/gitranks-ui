@@ -1,15 +1,19 @@
-import { notFound } from 'next/navigation';
-
 import { AgentConnect, type AgentConnectProof } from './agent-connect';
 import { ContributeNotices } from './contribute-notices';
 import { KeyConnect } from './key-connect';
 import { manualDraftFromSettings, type StoredLimits } from '@/lib/contribute/connect-limits';
-import { loadAttempt, loadContribute, loadProfileLanguages } from '@/lib/contribute/contribute.data';
+import {
+  loadAttempt,
+  loadContribute,
+  loadContributeSetup,
+  loadProfileLanguages,
+} from '@/lib/contribute/contribute.data';
 import type { ContributeView } from '@/lib/contribute/contribute.types';
 import { CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf, contributeNoticesOf, isOnboarded, withoutAccessNotices } from '@/lib/contribute/contribute-state';
 import { LANGUAGES } from '@/lib/contribute/format';
 import { proofParamOf, proofPromptOf } from '@/lib/contribute/proof';
+import { contributeHidden } from '@/lib/contribute/setting-up';
 
 export async function ConnectView({
   searchParams,
@@ -17,7 +21,7 @@ export async function ConnectView({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [view, params, languages] = await Promise.all([loadContribute(), searchParams, loadProfileLanguages()]);
-  if (!view) notFound();
+  if (!view) contributeHidden(await loadContributeSetup());
   if (params?.path === 'agent') {
     return <OwnAgentConnectScreen view={view} proof={await proofOf(proofParamOf(params.proof))} />;
   }

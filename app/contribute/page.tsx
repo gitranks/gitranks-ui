@@ -6,10 +6,18 @@ import { Landing } from './components/landing';
 import { overviewReadSectionsOf } from './components/overview-home';
 import { OverviewScreen } from './components/overview-status';
 import { ContributePageSkeleton } from './components/page-skeleton';
+import { ContributeNoProfile, ContributeSettingUp } from './components/setting-up';
 import { isAgentWelcome } from '@/lib/contribute/agent-connect';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
-import { loadAttempts, loadContribute, loadIssues, loadProviderInterests } from '@/lib/contribute/contribute.data';
-import { AGENTS_DOC_PATH, CONNECT_AGENT_PATH } from '@/lib/contribute/contribute-path';
+import {
+  loadAttempts,
+  loadContribute,
+  loadContributeSetup,
+  loadIssues,
+  loadProviderInterests,
+  viewerLogin,
+} from '@/lib/contribute/contribute.data';
+import { AGENTS_DOC_PATH, CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from '@/lib/contribute/contribute-path';
 import { contributeHomeOf, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
 import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
 import { contributeOpen } from '@/lib/contribute/preview-gate';
@@ -49,9 +57,28 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   // anyone signed in goes straight to connecting their agent (an onboarded member's landing is the overview).
   const startAgent = params.start === 'agent';
   if (startAgent && view) redirect(CONNECT_AGENT_PATH);
+  // Back from setting up a new account (`settingUpHomeOf`): on to the Claude key's first step.
+  if (params.start === 'key' && view) redirect(CONNECT_KEY_PATH);
   if (!view) {
-    // Launched, the landing is everyone's (§9.3): a visitor without a session, or one Contribute does not know yet.
-    if (await contributeOpen()) {
+    // A new GitHub account, signed in and read for the first time now: what happens, until its account is ready.
+    if (await loadContributeSetup()) {
+      return (
+        <main className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16">
+          <ContributeSettingUp />
+        </main>
+      );
+    }
+    const open = await contributeOpen();
+    // Launched, signed in, and no profile here nor one on its way: the landing's sign-in would lead nowhere.
+    if (open && (await viewerLogin())) {
+      return (
+        <main className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16">
+          <ContributeNoProfile />
+        </main>
+      );
+    }
+    // Launched, the landing is everyone's (§9.3): a visitor without a session.
+    if (open) {
       return <Landing viewer="visitor" noted={[]} startAgent={startAgent} stats={(await agentPage)?.stats} />;
     }
     notFound();

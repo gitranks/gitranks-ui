@@ -155,12 +155,14 @@ export const ContributeMcpSignInDocument = doc<{ contributeMcpSignIn: boolean }>
 
 /** The consent page's read of one agent sign-in; null when Contribute is hidden from the user. */
 export const ContributeOAuthRequestDocument = doc<
-  { contributeOAuthRequest: ContributeOAuthRequest | null },
+  { contributeOAuthRequest: ContributeOAuthRequest | null; contributeSetup: boolean; contributeOpen: boolean },
   { requestId: string }
 >(`query ContributeOAuthRequest($requestId: String!) {
   contributeOAuthRequest(requestId: $requestId) {
     status clientName clientWhere { kind label } previewAllowed reusesConnection replaces { name } waiting { count repos }
   }
+  contributeSetup
+  contributeOpen
 }`);
 
 /** Allow: the agent is connected, and the answer is where the browser goes back to it. */
@@ -206,9 +208,18 @@ export const ContributeContributionsOwnAgentDocument = doc<
 /** Contribute is launched (`CONTRIBUTE_PREVIEW=true` on the API): open to everyone, signed-out visitors included. */
 export const ContributeOpenDocument = doc<{ contributeOpen: boolean }>('query ContributeOpen { contributeOpen }');
 
-export const ContributePreviewDocument = doc<{ contribute: { previewAllowed: boolean } | null }>(
-  'query ContributePreview { contribute { previewAllowed } }',
+/** The viewer's GitRanks account is being set up: a new account, read for the first time now. */
+export const ContributeSetupDocument = doc<{ contributeSetup: boolean }>('query ContributeSetup { contributeSetup }');
+
+/** Asked on every sign-in: a new account's first read, when GitRanks has none of it yet. */
+export const ContributeFirstFetchDocument = doc<{ contributeFirstFetch: boolean }>(
+  'mutation ContributeFirstFetch { contributeFirstFetch }',
 );
+
+export const ContributePreviewDocument = doc<{
+  contribute: { previewAllowed: boolean } | null;
+  contributeSetup: boolean;
+}>('query ContributePreview { contribute { previewAllowed } contributeSetup }');
 
 export const ContributeOverviewDocument = doc<{
   contribute: { previewAllowed: boolean; contributor: Contributor | null } | null;

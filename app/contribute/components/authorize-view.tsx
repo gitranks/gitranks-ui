@@ -3,6 +3,9 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { AuthorizeActions, AuthorizeCancel, AuthorizeSignIn } from './authorize-actions';
+import { NO_PROFILE_TITLE, SETTING_UP_TITLE } from './setting-up';
+import { SettingUpAutoRefresh } from './setting-up-refresh';
+import { LearnSetupRefresh } from '@/app/learn/components/learn-setting-up';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ContributeOAuthRequest } from '@/lib/contribute/contribute.types';
 import { MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
@@ -15,14 +18,40 @@ export type AuthorizeState =
   | { kind: 'signed-out'; requestId: string }
   /** Signed in, and the request waits for Allow. */
   | { kind: 'pending'; requestId: string; login: string; request: ContributeOAuthRequest }
-  /** Contribute is not open for this account yet: Cancel alone. */
+  /** The preview, and this account is not on it: Cancel alone. */
   | { kind: 'not-open'; requestId: string }
+  /** A new account, read for the first time now: Refresh and Cancel, and the page reads itself again. */
+  | { kind: 'setting-up'; requestId: string }
+  /** Launched, and GitRanks has no profile of the account, nor is one on its way: Cancel alone. */
+  | { kind: 'no-profile'; requestId: string }
   /** Allowed already. */
   | { kind: 'approved'; requestId: string; clientName: string | null }
   /** Unknown, expired or used, or a link without a request. */
   | { kind: 'expired' }
   /** The request could not be read now. */
   | { kind: 'unavailable'; requestId: string };
+
+/** What the API answered for the consent page: the request, and whether the account is being set up or launched. */
+export type AuthorizeRead = {
+  contributeOAuthRequest: ContributeOAuthRequest | null;
+  contributeSetup: boolean;
+  contributeOpen: boolean;
+};
+
+/** The signed-in viewer's state for one request, from the API's one read. */
+export function authorizeStateFor(read: AuthorizeRead, requestId: string, login: string): AuthorizeState {
+  const { contributeOAuthRequest: request, contributeSetup, contributeOpen } = read;
+  // Null: Contribute is hidden from this account: being set up (a new account, read now), no profile here (launched),
+  // or off the preview.
+  if (!request) {
+    if (contributeSetup) return { kind: 'setting-up', requestId };
+    return { kind: contributeOpen ? 'no-profile' : 'not-open', requestId };
+  }
+  if (request.status === 'EXPIRED') return { kind: 'expired' };
+  if (request.status === 'APPROVED') return { kind: 'approved', requestId, clientName: request.clientName };
+  if (!request.previewAllowed) return { kind: 'not-open', requestId };
+  return { kind: 'pending', requestId, login, request };
+}
 
 const LINK = 'font-semibold text-link hover:underline';
 
@@ -113,8 +142,8 @@ function PendingCard({
 }
 
 /**
- * The consent page of an agent's sign-in to the MCP server, one card per state: the sign-in, the ask, not open yet,
- * allowed already, expired, or not readable now.
+ * The consent page of an agent's sign-in to the MCP server, one card per state: the sign-in, the ask, the account being
+ * set up, no profile, not open yet (the preview), allowed already, expired, or not readable now.
  */
 export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
   switch (state.kind) {
@@ -136,6 +165,30 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
         <Frame
           title="Contribute isn't open for your account yet"
           text="GitRanks Contribute is in preview, so your agent can't connect to it yet."
+        >
+          <CardFooter>
+            <AuthorizeCancel requestId={state.requestId} />
+          </CardFooter>
+        </Frame>
+      );
+    case 'setting-up':
+      return (
+        <Frame
+          title={SETTING_UP_TITLE}
+          text="GitRanks is reading your GitHub profile for the first time. This takes about a minute; then you can allow your agent here. This page updates by itself."
+        >
+          <CardFooter className="flex flex-wrap gap-2.5">
+            <LearnSetupRefresh />
+            <AuthorizeCancel requestId={state.requestId} />
+            <SettingUpAutoRefresh />
+          </CardFooter>
+        </Frame>
+      );
+    case 'no-profile':
+      return (
+        <Frame
+          title={NO_PROFILE_TITLE}
+          text="GitRanks couldn't read your GitHub profile just now, so your agent can't connect yet. Try again later: start again from your agent."
         >
           <CardFooter>
             <AuthorizeCancel requestId={state.requestId} />

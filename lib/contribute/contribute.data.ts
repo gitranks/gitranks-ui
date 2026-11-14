@@ -59,6 +59,7 @@ import {
   ContributeResolveHumansDocument,
   ContributeScheduleCountsDocument,
   ContributeSetDocument,
+  ContributeSetupDocument,
   type FollowUpFlowRead,
   type NeedsYouMovesRow,
 } from './contribute.documents';
@@ -169,6 +170,21 @@ export class ContributeUnavailableError extends Error {
     this.name = 'ContributeUnavailableError';
   }
 }
+
+/**
+ * Whether the viewer's GitRanks account is being set up: a new GitHub account GitRanks is reading for the first time,
+ * so Contribute cannot answer for it yet. False signed out and on any failure. Read once per request.
+ */
+export const loadContributeSetup = cache(async (): Promise<boolean> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return false;
+  try {
+    const { contributeSetup } = await graphqlDirect(ContributeSetupDocument, undefined, { source: 'ssr', githubLogin });
+    return contributeSetup === true;
+  } catch {
+    return false;
+  }
+});
 
 /**
  * Everything the Contribute pages show for the signed-in user; null when Contribute is hidden from them (signed out,

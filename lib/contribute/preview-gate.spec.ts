@@ -4,11 +4,22 @@ const { graphqlDirect, sessionTokenOf } = vi.hoisted(() => ({ graphqlDirect: vi.
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('./session-token', () => ({ sessionTokenOf }));
 
-const { contributeOpen, contributePreviewAllowed, requestMaySeeContribute, resetContributeOpen } = await import(
-  './preview-gate'
-);
-const { isAuthorizePath, isContributePath, isLandingPath, isMaintainersPath, isOpenAtLaunchPath, isTablessPath } =
-  await import('./contribute-path');
+const {
+  contributeOpen,
+  contributePreviewAllowed,
+  requestContributeAccess,
+  requestMaySeeContribute,
+  resetContributeOpen,
+} = await import('./preview-gate');
+const {
+  isAuthorizePath,
+  isContributePath,
+  isLandingPath,
+  isMaintainersPath,
+  isOpenAtLaunchPath,
+  isTablessPath,
+  settingUpHomeOf,
+} = await import('./contribute-path');
 
 const req = { headers: new Headers({ cookie: 'authjs.session-token=t' }) };
 
@@ -150,5 +161,31 @@ describe('the Contribute preview gate', () => {
 
     graphqlDirect.mockRejectedValue(new Error('GraphQL error! 502'));
     expect(await contributePreviewAllowed('octocat')).toBe(false);
+  });
+
+  it("says when a new account's GitRanks account is being set up, and lets it in once it is ready", async () => {
+    sessionTokenOf.mockResolvedValue({ githubLogin: 'newbie' });
+    graphqlDirect.mockResolvedValue({ contribute: null, contributeSetup: true });
+    expect(await requestContributeAccess(req)).toBe('setting-up');
+    expect(await requestMaySeeContribute(req)).toBe(false);
+
+    graphqlDirect.mockResolvedValue({ contribute: null, contributeSetup: false });
+    expect(await requestContributeAccess(req)).toBe('hidden');
+    graphqlDirect.mockResolvedValue({ contribute: { previewAllowed: true }, contributeSetup: false });
+    expect(await requestContributeAccess(req)).toBe('allowed');
+    graphqlDirect.mockRejectedValue(new Error('GraphQL error! 502'));
+    expect(await requestContributeAccess(req)).toBe('hidden');
+  });
+
+  it('sends an account being set up home, keeping the way of contributing it picked', () => {
+    const at = (path: string) => {
+      const url = new URL(`https://gitranks.com${path}`);
+      return settingUpHomeOf({ pathname: url.pathname, searchParams: url.searchParams });
+    };
+    expect(at('/contribute/connect?path=agent')).toBe('/contribute?start=agent');
+    expect(at('/contribute/connect')).toBe('/contribute?start=key');
+    expect(at('/contribute/connect/')).toBe('/contribute?start=key');
+    expect(at('/contribute/settings')).toBe('/contribute');
+    expect(at('/contribute/issues?x=1')).toBe('/contribute');
   });
 });

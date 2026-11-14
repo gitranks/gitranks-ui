@@ -1,6 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 import { AgentNextSteps } from './agent-connected';
 import { ContributeNotices } from './contribute-notices';
@@ -12,7 +12,13 @@ import { DailyCapEnd, LiveIssues, LiveIssuesFeed, LiveIssuesTotal } from './live
 import { HEADING, Meter } from './primitives';
 import { ReviewsReady } from './reviews-ready';
 import { StillRanking } from './still-ranking';
-import { loadAttempts, loadContribute, loadContributeSet, loadIssues } from '@/lib/contribute/contribute.data';
+import {
+  loadAttempts,
+  loadContribute,
+  loadContributeSet,
+  loadContributeSetup,
+  loadIssues,
+} from '@/lib/contribute/contribute.data';
 import type {
   ContributeAttempt,
   ContributeIssuePage,
@@ -33,6 +39,7 @@ import {
   isFirstRun,
 } from '@/lib/contribute/first-run';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
+import { contributeHidden } from '@/lib/contribute/setting-up';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
 
 export async function IssuesView({
@@ -48,7 +55,7 @@ export async function IssuesView({
     loadAttempts(undefined, 1),
     loadContributeSet(),
   ]);
-  if (!view) notFound();
+  if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'issues')) redirect('/contribute');
   const firstRun = isFirstRun(view, latest);
   return (

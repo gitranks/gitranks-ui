@@ -165,6 +165,7 @@ export const LEARN_SCREENS: Screen[] = [
       'app/learn/profile/page.tsx',
       'app/learn/components/learn-profile.tsx',
       'app/learn/components/learn-profile-form.tsx',
+      'app/learn/components/learn-setting-up.tsx',
       'lib/learn/profile-form.ts',
     ],
     states: [
@@ -181,6 +182,13 @@ export const LEARN_SCREENS: Screen[] = [
         path: '/learn/profile',
         height: 1220,
         render: () => frame(<LearnProfileScreen profile={filledProfile} ownAgent={views.agentOnboarded.ownAgent} />),
+      },
+      {
+        id: 'setting-up',
+        title: 'A new account: its GitRanks account is still being set up',
+        path: '/learn/profile',
+        height: 900,
+        render: () => frame(<LearnProfileScreen profile={null} ownAgent={undefined} settingUp />),
       },
     ],
   },

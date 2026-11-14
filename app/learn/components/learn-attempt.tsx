@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { LearnSettingUp } from './learn-setting-up';
 import { LessonFlow, type LessonFlowStart, StepArticle } from './lesson-flow';
 import { LessonShare } from './lesson-share';
 import { LESSON_GRID } from './lesson-steps';
@@ -18,7 +19,7 @@ import {
 import { DiffViewer } from '@/app/contribute/components/diff-viewer';
 import { CardError, DiscardAttemptButton } from '@/app/contribute/components/head-actions';
 import { PrForm } from '@/app/contribute/components/pr-form';
-import { HEADING } from '@/app/contribute/components/primitives';
+import { HEADING, PageTitle } from '@/app/contribute/components/primitives';
 import { prFormPropsOf } from '@/app/contribute/components/review-view';
 import { SendBackForm } from '@/app/contribute/components/send-back-form';
 import { SessionActionsProvider } from '@/app/contribute/components/session-actions';
@@ -30,7 +31,7 @@ import { loadAttempt, loadContribute } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import { parsePatch } from '@/lib/contribute/patch';
 import { attemptPath } from '@/lib/contribute/sessions';
-import { loadAttemptLesson, loadLearnOpen } from '@/lib/learn/learn.data';
+import { loadAttemptLesson, loadLearnOpen, loadLearnSetup } from '@/lib/learn/learn.data';
 import type { LearnAttemptLesson, LessonStep } from '@/lib/learn/learn.types';
 import { MY_LESSONS_PATH } from '@/lib/learn/learn-path';
 import { subjectLineOf } from '@/lib/learn/lesson-format';
@@ -341,12 +342,22 @@ export function LearnAttemptScreen({
  */
 export async function LearnAttemptView({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [open, view, attempt, lesson] = await Promise.all([
+  const [open, settingUp, view, attempt, lesson] = await Promise.all([
     loadLearnOpen(),
+    loadLearnSetup(),
     loadContribute(),
     loadAttempt(id),
     loadAttemptLesson(id),
   ]);
+  // A new account's GitRanks account is still being set up: no attempt of theirs can be read until it is.
+  if (open && settingUp) {
+    return (
+      <>
+        <PageTitle title="Your lesson" />
+        <LearnSettingUp />
+      </>
+    );
+  }
   if (!open || !view || !attempt) notFound();
   if (attempt.mode === 'FIX' || !lesson) {
     if (attempt.mode === 'FIX') redirect(attemptPath(attempt.attemptId));

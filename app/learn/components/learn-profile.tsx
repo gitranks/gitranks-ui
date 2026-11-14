@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { LearnProfileForm } from './learn-profile-form';
+import { LearnSettingUp } from './learn-setting-up';
 import { agentWayOf } from '@/app/contribute/components/overview-sections';
 import { HEADING, Pill } from '@/app/contribute/components/primitives';
 import type { ContributeOwnAgent } from '@/lib/contribute/contribute.types';
-import { loadLearnOpen, loadLearnProfile, loadOwnAgent } from '@/lib/learn/learn.data';
+import { loadLearnOpen, loadLearnProfile, loadLearnSetup, loadOwnAgent } from '@/lib/learn/learn.data';
 import type { LearnProfile } from '@/lib/learn/learn.types';
 import { LEARN_AGENT_PROMPT } from '@/lib/learn/lesson-format';
 
@@ -71,16 +72,19 @@ function HowALessonGoes() {
 
 /**
  * Goal and level: the form every lesson is written for, beside the user's agent and how a lesson goes. `profile` is
- * null before the user has one.
+ * null before the user has one. While a new account is being set up, the setup line stands in for the form.
  */
 export function LearnProfileScreen({
   profile,
   ownAgent,
+  settingUp = false,
   now,
 }: {
   profile: LearnProfile | null;
   /** The user's own agent; undefined when it was not read. */
   ownAgent: ContributeOwnAgent | undefined;
+  /** The viewer's GitRanks account is still being set up: nothing can be saved yet. */
+  settingUp?: boolean;
   now?: Date;
 }) {
   return (
@@ -92,7 +96,7 @@ export function LearnProfileScreen({
         </p>
       </header>
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <LearnProfileForm profile={profile} />
+        {settingUp ? <LearnSettingUp /> : <LearnProfileForm profile={profile} />}
         <aside className="flex min-w-0 flex-col gap-4">
           <AgentCard ownAgent={ownAgent} now={now} />
           <HowALessonGoes />
@@ -106,8 +110,9 @@ export function LearnProfileScreen({
 export async function LearnProfileView() {
   const profile = loadLearnProfile();
   const ownAgent = loadOwnAgent();
+  const settingUp = loadLearnSetup();
   // Read together; a closed Learn is a 404 whatever the profile read does.
   profile.catch(() => {});
   if (!(await loadLearnOpen())) notFound();
-  return <LearnProfileScreen profile={await profile} ownAgent={await ownAgent} />;
+  return <LearnProfileScreen profile={await profile} ownAgent={await ownAgent} settingUp={await settingUp} />;
 }

@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { LearnSettingUp } from './learn-setting-up';
 import { CodeBlock } from '@/app/contribute/components/code-block';
 import { ListRow, ListSection } from '@/app/contribute/components/contributions-view';
 import { PageTitle, Pill } from '@/app/contribute/components/primitives';
-import { loadLearnOpen, loadMyLessons } from '@/lib/learn/learn.data';
+import { loadLearnOpen, loadLearnSetup, loadMyLessons } from '@/lib/learn/learn.data';
 import type { MyLesson } from '@/lib/learn/learn.types';
 import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { LEARN_AGENT_PROMPT } from '@/lib/learn/lesson-format';
@@ -60,8 +61,23 @@ function FirstLesson() {
  * What is still going (in progress, or passed with the pull request to approve) first, then the rest. `lessons` is
  * undefined when the API does not answer.
  */
-export function MyLessonsScreen({ lessons }: { lessons: MyLesson[] | undefined }) {
+export function MyLessonsScreen({
+  lessons,
+  settingUp = false,
+}: {
+  lessons: MyLesson[] | undefined;
+  /** The viewer's GitRanks account is still being set up: no lessons can be read yet. */
+  settingUp?: boolean;
+}) {
   const title = <PageTitle title="My lessons" text="Your Learn attempts, and the shared lessons you passed." />;
+  if (settingUp) {
+    return (
+      <>
+        {title}
+        <LearnSettingUp />
+      </>
+    );
+  }
   if (!lessons) {
     return (
       <>
@@ -104,6 +120,7 @@ export function MyLessonsScreen({ lessons }: { lessons: MyLesson[] | undefined }
 /** My lessons, read per request. Behind Learn's gate: not found for anyone Learn is not open to. */
 export async function MyLessonsView() {
   const lessons = loadMyLessons();
+  const settingUp = loadLearnSetup();
   if (!(await loadLearnOpen())) notFound();
-  return <MyLessonsScreen lessons={await lessons} />;
+  return <MyLessonsScreen lessons={await lessons} settingUp={await settingUp} />;
 }

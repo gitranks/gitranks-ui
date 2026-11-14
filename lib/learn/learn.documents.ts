@@ -27,6 +27,9 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 /** Whether Learn is open to the signed-in viewer. */
 export const LearnOpenDocument = doc<{ learnOpen: boolean }>('query LearnOpen { learnOpen }');
 
+/** Whether the viewer's GitRanks account is still being set up (a new account), so Learn cannot answer for it yet. */
+export const LearnSetupDocument = doc<{ learnSetup: boolean }>('query LearnSetup { learnSetup }');
+
 /** A question as a taker sees it: never its key. */
 const QUESTION = 'id stepId role type prompt options { id text }';
 const WHY = 'optionId correct why';

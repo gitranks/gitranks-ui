@@ -2,7 +2,12 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import { LearnAttemptLessonDocument, LearnProfileDocument, MyLessonsDocument } from './learn.documents';
+import {
+  LearnAttemptLessonDocument,
+  LearnProfileDocument,
+  LearnSetupDocument,
+  MyLessonsDocument,
+} from './learn.documents';
 import type { LearnAttemptLesson, LearnProfile, MyLesson } from './learn.types';
 import { learnOpenFor } from './learn-gate';
 import { ContributeUnavailableError, ownAgentOf, viewerLogin } from '@/lib/contribute/contribute.data';
@@ -13,6 +18,21 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /** Whether Learn is open to the signed-in viewer; closed signed out. Read once per request. */
 export const loadLearnOpen = cache(async (): Promise<boolean> => learnOpenFor(await viewerLogin()));
+
+/**
+ * Whether the viewer's GitRanks account is still being set up: a new account Learn is open to, which GitRanks has not
+ * read yet. False signed out and on any failure. Read once per request.
+ */
+export const loadLearnSetup = cache(async (): Promise<boolean> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return false;
+  try {
+    const { learnSetup } = await graphqlDirect(LearnSetupDocument, undefined, { source: 'ssr', githubLogin });
+    return learnSetup === true;
+  } catch {
+    return false;
+  }
+});
 
 /**
  * The viewer's lesson in one of their Learn attempts: null when there is none for them (not theirs, not a Learn

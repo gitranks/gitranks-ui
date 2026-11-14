@@ -1,5 +1,8 @@
 import type { LearnStage, LessonBlock, LessonHead, LessonQuestion, LessonStep } from './learn.types';
 
+/** What a new account reads while GitRanks sets up its account, before Learn can answer for it. */
+export const LEARN_SETTING_UP_TEXT = 'Setting up your GitRanks account. This takes about a minute.';
+
 /** What the user asks their own agent to start a lesson. */
 export const LEARN_AGENT_PROMPT = 'Find me an issue to learn from on GitRanks';
 

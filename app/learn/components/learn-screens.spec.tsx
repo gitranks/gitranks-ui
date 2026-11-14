@@ -16,10 +16,15 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: 
 vi.mock('@/app/learn/actions', () => ({}));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadAttempt: vi.fn() }));
-vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(), loadAttemptLesson: vi.fn() }));
+vi.mock('@/lib/learn/learn.data', () => ({
+  loadLearnOpen: vi.fn(),
+  loadLearnSetup: vi.fn(),
+  loadAttemptLesson: vi.fn(),
+}));
 
 const { QuestionCard } = await import('./question-card');
-const { LearnAttemptScreen } = await import('./learn-attempt');
+const { LearnAttemptScreen, LearnAttemptView } = await import('./learn-attempt');
+const learnData = await import('@/lib/learn/learn.data');
 const { phaseOf } = await import('./lesson-flow');
 const { Diagram } = await import('./diagram');
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
@@ -229,5 +234,17 @@ describe("a Learn attempt's page", () => {
       expect(screen(lesson)).not.toContain('Where you are');
     }
     expect(text(screen(lessons.handPr))).toContain('You opened the pull request yourself');
+  });
+});
+
+describe("a Learn attempt's page while the account is being set up", () => {
+  it('says so with a refresh, in place of a not found; closed to anyone Learn is not open to', async () => {
+    vi.mocked(learnData.loadLearnOpen).mockResolvedValue(true);
+    vi.mocked(learnData.loadLearnSetup).mockResolvedValue(true);
+    const html = renderToStaticMarkup(await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) }));
+    expect(text(html)).toContain('Setting up your GitRanks account. This takes about a minute. Refresh');
+
+    vi.mocked(learnData.loadLearnOpen).mockResolvedValue(false);
+    await expect(LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) })).rejects.toThrow('NEXT_NOT_FOUND');
   });
 });

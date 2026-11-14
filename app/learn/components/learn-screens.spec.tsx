@@ -29,6 +29,9 @@ const { phaseOf } = await import('./lesson-flow');
 const { Diagram } = await import('./diagram');
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
+const { ExampleQuestion } = await import('./example-question');
+const { EXAMPLE_LESSON } = await import('@/lib/learn/example-lesson');
 const { CAUSE_HINT, CAUSE_QUESTION, FIX_QUESTION, FIX_WHY, lessons, STEPS, WARMUP } = await import(
   '@/lib/learn/__fixtures__/lesson'
 );
@@ -59,6 +62,37 @@ const card = (props: Partial<ComponentProps<typeof QuestionCard>> = {}) =>
   );
 
 describe('the question card', () => {
+  it('names every radio button and checkbox by its option text, "I don\'t know yet" and the report reasons too', () => {
+    expect(controlNames(card(), 'radio')).toEqual(CAUSE_QUESTION.options.map((option) => option.text));
+    expect(controlNames(card({ question: FIX_QUESTION }), 'checkbox')).toEqual(
+      FIX_QUESTION.options.map((option) => option.text),
+    );
+    const warmup = controlNames(card({ question: WARMUP[0], warmup: true }), 'radio');
+    expect(warmup.at(-1)).toBe("I don't know yet");
+    expect(controlNames(card({ reportDrawn: true }), 'radio').slice(-4)).toEqual([
+      'The marked answer is wrong',
+      'The question is unclear',
+      'It is not about this fix',
+      'More than one answer fits',
+    ]);
+  });
+
+  it("describes a graded option's control by its why, and a right one as the right answer", () => {
+    const html = card({ question: FIX_QUESTION, picked: ['q3a1', 'q3a3'], graded: { correct: true, why: FIX_WHY } });
+    const described = controlDescriptions(html, 'checkbox');
+    expect(described).toHaveLength(4);
+    FIX_QUESTION.options.forEach((option, at) => {
+      const why = FIX_WHY.find((item) => item.optionId === option.id);
+      expect(described[at]).toContain((why?.why ?? '').replaceAll('`', ''));
+      expect(described[at].startsWith('Right answer')).toBe(why?.correct === true);
+    });
+  });
+
+  it("names the front door's example question's radio buttons by their text", () => {
+    const html = renderToStaticMarkup(<ExampleQuestion />);
+    expect(controlNames(html, 'radio')).toEqual(EXAMPLE_LESSON.question.options.map((option) => option.text));
+  });
+
   it('asks a single-answer question with radio buttons, and checks it once an answer is picked', () => {
     const empty = card({ current: true, onCheck: () => {} });
     expect(empty.match(/role="radio"/g)).toHaveLength(3);

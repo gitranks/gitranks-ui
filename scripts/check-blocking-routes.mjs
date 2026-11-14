@@ -12,6 +12,8 @@ export const BLOCKING_ROUTES = [
   '/insights/[id]',
   '/repos/language/[language]/[page]',
   '/repos/no-language/[page]',
+  '/learn/lessons/[slug]',
+  '/learn/lessons/[slug]/passes/[login]',
 ];
 
 /** The problems with a prerender manifest's entries for `BLOCKING_ROUTES`; empty when every one has no shell. */

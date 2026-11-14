@@ -28,6 +28,7 @@ const { LearnProfileScreen, LearnProfileView } = await import('./learn-profile')
 const { MyLessonsScreen, MyLessonsView } = await import('./my-lessons');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { emptyProfile, filledProfile, myLessons } = await import('@/lib/learn/__fixtures__/profile');
+const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
 
 const text = (html: string) =>
   html
@@ -103,6 +104,23 @@ describe('Goal and level', () => {
     expect(html).not.toContain('type="submit" disabled=""');
     expect(html).toContain('data-learn-agent="Connected"');
     expect(text(html)).toContain('Find me an issue to learn from on GitRanks');
+  });
+
+  it('names every goal, level and focus control by its text', () => {
+    const html = renderToStaticMarkup(
+      <LearnProfileScreen profile={filledProfile} ownAgent={views.agentOnboarded.ownAgent} />,
+    );
+    const radios = controlNames(html, 'radio');
+    expect(radios).toContain('A language');
+    expect(radios).toContain('How one project works');
+    for (const name of radios) expect(name).toBeTruthy();
+    expect(controlDescriptions(html, 'radio').filter(Boolean).length).toBeGreaterThan(0);
+    expect(controlNames(html, 'checkbox')).toEqual([
+      'How the language works',
+      'How the project is organised',
+      'Patterns the project uses',
+      'Tests and tooling',
+    ]);
   });
 
   it('says when the agent could not be read, and when there are no languages yet', () => {

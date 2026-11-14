@@ -152,10 +152,20 @@ export function LearnProfileForm({ profile }: { profile: LearnProfile | null }) 
                   className={cn('flex flex-col rounded-lg border p-3.5 text-sm', on && PICKED)}
                 >
                   <label htmlFor={`${id}-goal-${kind}`} className="flex cursor-pointer items-start gap-3">
-                    <RadioGroupItem id={`${id}-goal-${kind}`} value={kind} className="mt-0.5" />
+                    <RadioGroupItem
+                      id={`${id}-goal-${kind}`}
+                      value={kind}
+                      aria-labelledby={`${id}-goal-${kind}-title`}
+                      aria-describedby={`${id}-goal-${kind}-text`}
+                      className="mt-0.5"
+                    />
                     <span className="flex min-w-0 flex-1 flex-col gap-1">
-                      <span className="font-semibold">{GOALS[kind].title}</span>
-                      <span className="text-muted-foreground">{GOALS[kind].text}</span>
+                      <span id={`${id}-goal-${kind}-title`} className="font-semibold">
+                        {GOALS[kind].title}
+                      </span>
+                      <span id={`${id}-goal-${kind}-text`} className="text-muted-foreground">
+                        {GOALS[kind].text}
+                      </span>
                     </span>
                   </label>
                   {on ? (
@@ -208,7 +218,7 @@ export function LearnProfileForm({ profile }: { profile: LearnProfile | null }) 
                           htmlFor={radio}
                           className="flex cursor-pointer items-center gap-2 text-sm max-sm:min-h-11"
                         >
-                          <RadioGroupItem id={radio} value={String(level)} />
+                          <RadioGroupItem id={radio} value={String(level)} aria-label={label} />
                           <span>{label}</span>
                         </label>
                       );
@@ -246,6 +256,7 @@ export function LearnProfileForm({ profile }: { profile: LearnProfile | null }) 
                     id={`${id}-focus-${value}`}
                     checked={on}
                     onCheckedChange={(checked) => change(withFocus(form, value, checked === true))}
+                    aria-label={label}
                     className="mt-0.5"
                   />
                   <span>{label}</span>

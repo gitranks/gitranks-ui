@@ -311,6 +311,14 @@ export const LEARN_SCREENS: Screen[] = [
         render: () => page(lessons.step, undefined, { picked: ['q2a2'] }),
       },
       {
+        id: 'mid-width',
+        title: 'A step at 720px: the stages stack, their lines whole',
+        path: PATH,
+        width: 720,
+        height: 1500,
+        render: () => page(lessons.step, undefined, { picked: ['q2a2'] }),
+      },
+      {
         id: 'blocked',
         title: 'Two steps with every question reported: the questions need fixing',
         path: PATH,

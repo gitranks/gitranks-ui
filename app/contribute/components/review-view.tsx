@@ -109,8 +109,8 @@ export async function ContributionLayout({
   );
 }
 
-/** The address with the query it came with (a grant's resume, the move named). */
-function withQuery(path: Route, query: Query): Route {
+/** The address with the query it came with (a grant's resume, the move named), `session` aside. */
+export function withQuery(path: Route, query: Query): Route {
   const params = new URLSearchParams(path.includes('?') ? path.slice(path.indexOf('?') + 1) : '');
   for (const [key, value] of Object.entries(query)) {
     if (key === 'session') continue;
@@ -154,8 +154,9 @@ export async function FirstSessionView({
     return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} prNotes={prNotes} move={move} />;
   }
   const next = paramOf(query, 'session') === NEXT_SESSION;
-  // A Learn attempt's page is its lesson; its next step (follow-ups on its pull request) stays here.
-  if (attempt.mode === 'LEARN' && !next) redirect(learnAttemptPath(attempt.attemptId));
+  // A Learn attempt's page is its lesson; its next step (follow-ups on its pull request) stays here. The query goes
+  // along: back from GitHub's access screen, the grant's resume opens the pull request there.
+  if (attempt.mode === 'LEARN' && !next) redirect(withQuery(learnAttemptPath(attempt.attemptId), query));
   const { current, prNotes, replies } = await contributionOf(attempt);
   const now = new Date();
   const model = contributionMovesOf({ view, first: attempt, current, shown: attempt, replies, prNotes, now });

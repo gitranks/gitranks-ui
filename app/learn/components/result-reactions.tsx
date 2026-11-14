@@ -3,7 +3,6 @@
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
@@ -15,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { MAINTAINERS_REPORT_PATH } from '@/lib/contribute/contribute-path';
 import type { LessonReaction, LessonResultReaction } from '@/lib/learn/learn.types';
 import { reactionRoleOf, reactionWordsOf } from '@/lib/learn/lesson-public';
+import { dropReturnQuery, storeThenClean } from '@/lib/learn/react-return';
 import { cn } from '@/lib/utils';
 
 const BUTTONS: { value: LessonReaction; label: string; Icon: typeof ThumbsUp }[] = [
@@ -66,43 +66,55 @@ export function ResultReactions({
   /** The sign-in prompt, open for this pick (the catalogue's board). */
   prompt?: LessonReaction | null;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const [reactions, setReactions] = useState<readonly LessonResultReaction[]>(firstReactions);
   const [mine, setMine] = useState<LessonReaction | null>(firstMine);
   const [prompt, setPrompt] = useState<LessonReaction | null>(firstPrompt);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const store = (reaction: LessonReaction, ask: typeof reactToLessonResult) =>
-    startTransition(async () => {
-      setError(null);
-      const result = await ask(slug, login, reaction);
-      if (result.ok) {
-        setMine(reaction);
-        setReactions(result.data);
-        setPrompt(null);
-        return;
-      }
-      if (result.error === 'SIGNED_OUT') {
-        setPrompt(reaction);
-        return;
-      }
-      // A pick back from a sign-in this browser did not start is not stored: nothing to say about it.
-      if (ask === reactOnReturn && result.error === 'INVALID') return;
-      setError(FAILED[result.error] ?? 'Something went wrong. Try again in a minute.');
-    });
+  /** Sends one pick and shows its answer. */
+  const send = async (reaction: LessonReaction, ask: typeof reactToLessonResult) => {
+    setError(null);
+    let result: Awaited<ReturnType<typeof ask>>;
+    try {
+      result = await ask(slug, login, reaction);
+    } catch {
+      setError('Something went wrong. Try again in a minute.');
+      return;
+    }
+    if (result.ok) {
+      setMine(reaction);
+      setReactions(result.data);
+      setPrompt(null);
+      return;
+    }
+    if (result.error === 'SIGNED_OUT') {
+      setPrompt(reaction);
+      return;
+    }
+    // A pick back from a sign-in this browser did not start is not stored: nothing to say about it.
+    if (ask === reactOnReturn && result.error === 'INVALID') return;
+    setError(FAILED[result.error] ?? 'Something went wrong. Try again in a minute.');
+  };
 
-  // Back from the sign-in: the pick it carried is stored once, then the address drops it.
+  const store = (reaction: LessonReaction, ask: typeof reactToLessonResult) =>
+    startTransition(() => send(reaction, ask));
+
+  // Back from the sign-in: the pick it carried is stored once, and only then does the address drop it, through the
+  // browser's history: a router navigation while the store is on its way would cancel it.
   const returnedOnce = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, on the way back.
   useEffect(() => {
     if (!returned || returnedOnce.current) return;
     returnedOnce.current = true;
+    const clean = () => dropReturnQuery(window);
     // Stored with the sign-in's token; without one (the sign-in did not keep it), the pick asks for it again.
-    if (canReact) store(returned, reactOnReturn);
-    else setPrompt(returned);
-    router.replace(pathname as Route, { scroll: false });
+    if (!canReact) {
+      setPrompt(returned);
+      clean();
+      return;
+    }
+    startTransition(() => storeThenClean(() => send(returned, reactOnReturn), clean));
   }, []);
 
   const click = (reaction: LessonReaction) => {

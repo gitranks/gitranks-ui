@@ -6,6 +6,7 @@ import { CodeBlock } from './code-block';
 import { OpenOnHash } from './open-on-hash';
 import { Pill } from './primitives';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
+import { SetupClip } from './setup-clip';
 import { Button } from '@/components/ui/button';
 import { ABOUT_PATH, AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import {
@@ -267,28 +268,6 @@ const INSTALL_LINK_NAMES = andList(MCP_INSTALL_LINKS.map(({ label }) => label.re
  * reaches us. Agents sign in with GitHub, so each client's sign-in comes first and its token setup sits in a fold.
  * `plugin`: show the plugin installs (`MCP_PLUGIN_DOCS_SHOWN`, on since the plugin's repository went public).
  */
-/** Where the clip of the Claude Code setup is served: outside `/contribute`, so the proxy never gates it. */
-export const SETUP_CLIP_SRC = '/media/contribute-one-command.gif';
-
-/** The Claude Code setup in one loop: install the plugin, sign in once here, ask for an issue, the picks. */
-function SetupClip() {
-  return (
-    <figure className="flex max-w-3xl flex-col gap-2" data-setup-clip>
-      {/* A GIF loops by itself and has nothing for the image optimizer to do. */}
-      <img
-        src={SETUP_CLIP_SRC}
-        width={960}
-        height={600}
-        alt="In Claude Code: install the plugin with one command, sign in once on GitRanks, then ask for an open-source issue and get your picks"
-        className="h-auto w-full rounded-xl border"
-      />
-      <figcaption className="text-sm text-muted-foreground">
-        Claude Code: install the plugin, sign in once on GitRanks, ask for an issue.
-      </figcaption>
-    </figure>
-  );
-}
-
 export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boolean } = {}) {
   return (
     <main className="mx-auto w-full max-w-7xl px-4 flex flex-col gap-9 pt-10 pb-16">

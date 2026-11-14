@@ -484,6 +484,11 @@ describe('proxy', () => {
       expect(matches(path)).toBe(false);
     });
 
+    it('leaves the media files alone', () => {
+      expect(matches('/media/contribute-one-command-v1.mp4')).toBe(false);
+      expect(matches('/media/contribute-one-command-v1.jpg')).toBe(false);
+    });
+
     it('still runs for the repository page', () => {
       expect(matches('/repo/vercel/next.js')).toBe(true);
     });

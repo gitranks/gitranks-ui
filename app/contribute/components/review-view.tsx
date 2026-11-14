@@ -26,7 +26,7 @@ import type {
 import { accessNoticesOf, isContributePageOpen, settingsOf } from '@/lib/contribute/contribute-state';
 import { type ContributionMoves, contributionMovesOf, onPane } from '@/lib/contribute/contribution-moves';
 import { RESUME_PARAM } from '@/lib/contribute/grant-resume';
-import { orgAccessOf, orgRestrictionOf } from '@/lib/contribute/org-access';
+import { orgAccessOf, orgRestrictionOf, threadsBlockedOf } from '@/lib/contribute/org-access';
 import { isFinishedAttempt } from '@/lib/contribute/repo-rules';
 import {
   attemptPath,
@@ -290,6 +290,7 @@ export function ContributionShell({
             finished={isFinishedAttempt(first.state)}
             // Never the session shown: the layout stays as the user moves between them.
             access={orgRestrictionOf({ first, current: run, replies })}
+            threadsBlocked={!!threadsBlockedOf({ first, current: run })}
             org={orgOf(first)}
             orgAccess={orgAccessOf()}
           />

@@ -1,5 +1,10 @@
 import { githubUrlOf } from './attempt-format';
-import type { ContributeAttemptDetail, ContributeReplyDraft, ContributeReplyWaiting } from './contribute.types';
+import type {
+  ContributeAttemptDetail,
+  ContributeReplyDraft,
+  ContributeReplyWaiting,
+  ContributeThreadRepliesBlocked,
+} from './contribute.types';
 import { replyPreviewOf } from './follow-up-flow';
 
 /** Where a user sees, and revokes, the OAuth Apps they allowed. */
@@ -15,9 +20,10 @@ export const isOrgRestricted = (reason: string | null | undefined): boolean => r
 
 /**
  * What proves now that the repository's organization keeps GitRanks out: a submit refused for it (the first attempt's,
- * or the run under way's: `current` counts only when it is the run under way), else a waiting reply of this pull
- * request refused for it, in a run's review or not. Never the session shown: the contribution's layout reads only these.
- * `replies` may hold other pull requests' replies; they are left out here.
+ * or the run under way's: `current` counts only when it is the run under way), else the organization's refusal of
+ * review-thread replies as GitRanks keeps it (`threadsBlockedOf`), else a waiting reply of this pull request refused
+ * for it, in a run's review or not. Never the session shown: the contribution's layout reads only these. `replies` may
+ * hold other pull requests' replies; they are left out here.
  */
 export function orgRestrictionOf({
   first,
@@ -36,11 +42,27 @@ export function orgRestrictionOf({
   ) {
     return 'submit';
   }
+  if (threadsBlockedOf({ first, current })) return 'replies';
   const prId = first.pullRequest?.prId;
   const refused = (replies ?? []).some(
     (reply) => !!prId && reply.prId === prId && reply.state === 'FAILED' && isOrgRestricted(reply.lastError?.reason),
   );
   return refused ? 'replies' : null;
+}
+
+/**
+ * The organization's refusal of GitRanks' review-thread replies, as GitRanks keeps it for every contributor: the first
+ * attempt's read, else the run under way's. Null when it does not refuse them (or it is a personal account), or the
+ * API does not say.
+ */
+export function threadsBlockedOf({
+  first,
+  current,
+}: {
+  first: Pick<ContributeAttemptDetail, 'threadRepliesBlocked'>;
+  current?: Pick<ContributeAttemptDetail, 'threadRepliesBlocked'>;
+}): ContributeThreadRepliesBlocked | null {
+  return first.threadRepliesBlocked ?? current?.threadRepliesBlocked ?? null;
 }
 
 /**

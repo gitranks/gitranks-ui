@@ -150,11 +150,63 @@ describe('a reply’s post action', () => {
     });
   });
 
+  it('leaves posting as a comment to the card once the API says which replies may go in one comment', () => {
+    const draft = failed('org_restricted', { canPostAsComment: true, canGoInOneComment: true });
+    expect(rowActionsOf('not-posted-elsewhere', draft, { ...post(), byCard: true }).post).toBeNull();
+    expect(rowActionsOf('not-posted-own', draft, { ...post(), byCard: false })).toEqual({
+      post: null,
+      dismiss: true,
+      discard: false,
+    });
+    // A reply in a comment that failed: the card tries the comment again, never the reply alone.
+    const member = failed('no_answer', { asComment: true, batchId: 'B_1', postAs: 'ONE_COMMENT' });
+    expect(postActionOf(member, post())).toBeNull();
+    // Replies held back: the card says them; without one, a reply can still be dismissed.
+    const held = flowDraft({ heldBack: { reason: 'no_answer', note: 'No answer.', at: 'x' } });
+    expect(rowActionsOf('held-back', held, { ...post(), byCard: true })).toEqual({
+      post: null,
+      dismiss: false,
+      discard: false,
+    });
+    expect(rowActionsOf('held-back', held, { ...post(), byCard: false }).dismiss).toBe(true);
+  });
+
   it('offers Discard comment only on a thread’s reply in review, even under a stop', () => {
     const stopped = { ...post({ blocked: new Set<ActionId>(['push', 'post_reply']) }), byCard: false };
     expect(rowActionsOf('draft-review', flowDraft(), stopped).discard).toBe(true);
     expect(rowActionsOf('draft-review', flowDraft({ comment: null }), stopped).discard).toBe(false);
     expect(rowActionsOf('posted', flowDraft(), stopped).discard).toBe(false);
+  });
+});
+
+describe('the rows of replies as one comment', () => {
+  it('reads a reply waiting for the first, held back, posting and posted in one comment', () => {
+    const waits = flowDraft({ send: true, waitsForProbe: true, postAs: 'ONE_COMMENT' });
+    const held = flowDraft({ send: false, heldBack: { reason: 'no_answer', note: 'No answer.', at: 'x' } });
+    const posted = flowDraft({ state: 'POSTED', asComment: true, postAs: 'ONE_COMMENT', batchId: 'B_1' });
+    expect(rowStateOf('perReply', waits, ctx())).toBe('waits-for-probe');
+    expect(rowStateOf('perReply', held, ctx())).toBe('held-back');
+    expect(rowStateOf('perReply', posted, ctx())).toBe('posted-one-comment');
+    // A reply posted as its own comment keeps its words.
+    expect(rowStateOf('perReply', flowDraft({ state: 'POSTED', asComment: true, postAs: 'COMMENT' }), ctx())).toBe(
+      'posted-comment',
+    );
+    expect(chipOf('waits-for-probe')).toEqual({ label: 'Waits for the first reply', tone: 'neutral', check: false });
+    expect(chipOf('held-back')).toEqual({ label: 'Held back', tone: 'amber', check: false });
+    expect(chipOf('posted-one-comment')).toEqual({ label: 'Posted in one comment', tone: 'green', check: true });
+    expect(chipOf('posting')?.live).toBe(true);
+    const groups = groupsOf(
+      [
+        { key: 'W', state: 'waits-for-probe', draft: waits },
+        { key: 'H', state: 'held-back', draft: held },
+        { key: 'P', state: 'posted-one-comment', draft: posted },
+      ],
+      'perReply',
+    );
+    expect(groups.map(({ id, rows }) => `${id}:${rows.map(({ key }) => key).join('')}`)).toEqual([
+      'not-posted:H',
+      'posted:WP',
+    ]);
   });
 });
 

@@ -9,6 +9,7 @@ import { OUTCOMES } from './follow-up-flow';
 import { REPLY_STATES } from './follow-up-format';
 import { relativeLabel } from './format';
 import type { ActionId } from './hard-stop';
+import { inOneComment, isHeldBack, waitsForProbe } from './one-comment';
 import { BLOCK_REASONS, RETRY_REASONS, reasonKeyOf, replyTroubleOf } from './reply-trouble';
 
 /**
@@ -29,6 +30,7 @@ export type RowState =
   | 'posting'
   | 'posted'
   | 'posted-comment'
+  | 'posted-one-comment'
   | 'posted-resolved'
   | 'resolve-failed'
   | 'not-posted-elsewhere'
@@ -36,6 +38,8 @@ export type RowState =
   | 'left-for-github'
   | 'no-reply'
   | 'draft-not-sent'
+  | 'waits-for-probe'
+  | 'held-back'
   | 'dismissed-by-hand'
   | 'dismissed'
   | 'thread-resolved'
@@ -72,6 +76,7 @@ export function rowStateOf(mode: RowMode, draft: ContributeReplyDraft, ctx: RowC
       return 'posting';
     case 'POSTED':
       if (draft.resolveState === 'RESOLVING') return 'posting';
+      if (inOneComment(draft)) return 'posted-one-comment';
       if (draft.asComment) return 'posted-comment';
       if (draft.resolveState === 'RESOLVED') return 'posted-resolved';
       if (draft.resolveState === 'FAILED') return 'resolve-failed';
@@ -79,6 +84,9 @@ export function rowStateOf(mode: RowMode, draft: ContributeReplyDraft, ctx: RowC
     case 'FAILED':
       return ctx.saidElsewhere.has(reasonKeyOf(draft)) ? 'not-posted-elsewhere' : 'not-posted-own';
     case 'DRAFT':
+      // The run's plan: held until its first reply answers in its thread, or given back when that did not go.
+      if (waitsForProbe(draft)) return 'waits-for-probe';
+      if (isHeldBack(draft)) return 'held-back';
       if (draft.send === true && (ctx.runState === 'SUBMITTING' || ctx.runState === 'DONE')) return 'posting';
       if (!draft.text.trim()) return draft.outcome === 'NEEDS_YOU' ? 'left-for-github' : 'no-reply';
       return 'draft-not-sent';
@@ -104,7 +112,10 @@ const GROUP_OF: Record<RowState, GroupId> = {
   'draft-not-sent': 'ready',
   'not-posted-elsewhere': 'not-posted',
   'not-posted-own': 'not-posted',
+  'held-back': 'not-posted',
   posting: 'posted',
+  'waits-for-probe': 'posted',
+  'posted-one-comment': 'posted',
   posted: 'posted',
   'posted-comment': 'posted',
   'posted-resolved': 'posted',
@@ -183,17 +194,24 @@ export function rowTargetOf(
   return null;
 }
 
-export type Chip = { label: string; tone: Tone; check: boolean };
+/** `live`: a dot that breathes beside it while the reply is on its way. */
+export type Chip = { label: string; tone: Tone; check: boolean; live?: boolean };
 
 /** The words at a row's right end; null where the group says it (resolved on GitHub) or the row has a control. */
 export function chipOf(state: RowState, draft?: ContributeReplyDraft): Chip | null {
   switch (state) {
     case 'posting':
-      return { label: 'Posting…', tone: 'violet', check: false };
+      return { label: 'Posting…', tone: 'violet', check: false, live: true };
     case 'posted':
       return { label: 'Replied', tone: 'green', check: true };
     case 'posted-comment':
       return { label: 'Replied in a comment', tone: 'green', check: true };
+    case 'posted-one-comment':
+      return { label: 'Posted in one comment', tone: 'green', check: true };
+    case 'waits-for-probe':
+      return { label: 'Waits for the first reply', tone: 'neutral', check: false };
+    case 'held-back':
+      return { label: 'Held back', tone: 'amber', check: false };
     case 'posted-resolved':
       return { label: 'Replied · resolved', tone: 'green', check: true };
     case 'resolve-failed':
@@ -248,17 +266,21 @@ export const canPostOf = (ctx: PostContext) => !ctx.blocked.has('post_reply') &&
 
 /** The post action of a reply that failed for a reason of its own (and of those M7's own line covers), first match. */
 export function postActionOf(
-  draft: Pick<ContributeReplyDraft, 'lastError' | 'asComment' | 'canPostAsComment'>,
+  draft: Pick<ContributeReplyDraft, 'lastError' | 'asComment' | 'canPostAsComment' | 'batchId' | 'canGoInOneComment'>,
   ctx: PostContext,
 ): PostAction {
   if (!canPostOf(ctx)) return null;
+  // In a comment that failed: the move card tries the comment again, never the reply alone.
+  if (draft.batchId) return null;
   const reason = reasonKeyOf(draft);
   if (GRANT_REASONS.has(reason)) {
     if (ctx.grantConnected) return { kind: 'retry', asComment: draft.asComment === true };
     return ctx.grantAvailable ? { kind: 'grant' } : null;
   }
   if (draft.asComment === true) return RETRY_REASONS.has(reason) ? { kind: 'retry', asComment: true } : null;
-  if (draft.canPostAsComment === true) return { kind: 'as-comment' };
+  // GitHub refused it in its thread: the move card posts it as a comment (one or more replies, each quoting its
+  // thread). Only an API that does not say which replies may go so keeps the reply's own "Post as a comment instead".
+  if (draft.canPostAsComment === true) return draft.canGoInOneComment === undefined ? { kind: 'as-comment' } : null;
   if (RETRY_REASONS.has(reason)) return { kind: 'retry', asComment: false };
   return null;
 }
@@ -286,14 +308,24 @@ export function rowActionsOf(
       return { post: postActionOf(draft, ctx), dismiss: true, discard: false };
     case 'not-posted-elsewhere':
       if (ctx.byCard) {
-        // Until replies post as one comment, a reply refused in its thread may still go as a comment of its own.
+        // The move card posts them as one comment. Only an API that does not say which replies may go so keeps a
+        // reply's own "Post as a comment instead".
         return {
-          post: canPostOf(ctx) && draft.canPostAsComment === true && !draft.asComment ? { kind: 'as-comment' } : null,
+          post:
+            canPostOf(ctx) &&
+            draft.canPostAsComment === true &&
+            !draft.asComment &&
+            draft.canGoInOneComment === undefined
+              ? { kind: 'as-comment' }
+              : null,
           dismiss: false,
           discard: false,
         };
       }
       return { post: postActionOf(draft, ctx), dismiss: true, discard: false };
+    case 'held-back':
+      // The move card posts them as one comment, or dismisses them; without a card, the reply can be dismissed here.
+      return { ...none, dismiss: !ctx.byCard };
     case 'draft-not-sent':
       return { post: canPostOf(ctx) ? { kind: 'post' } : null, dismiss: true, discard: false };
     case 'left-for-github':

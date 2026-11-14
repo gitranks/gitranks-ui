@@ -15,6 +15,7 @@ import type {
   ContributeFeedbackThread,
   ContributeReplyDraft,
 } from '@/lib/contribute/contribute.types';
+import { HELD_BACK_REASON } from '@/lib/contribute/contribution-moves';
 import { replyBlockOf } from '@/lib/contribute/follow-up-format';
 import type { ActionId } from '@/lib/contribute/hard-stop';
 import type { OrgAccess } from '@/lib/contribute/org-access';
@@ -192,7 +193,10 @@ export function ReviewComments(props: ReviewCommentsProps) {
             actions={
               mode === 'readOnly' || (mode === 'review' && !EDITABLE.has(state))
                 ? null
-                : rowActionsOf(state, draft, { ...ctx, byCard: cardOf(draft.attemptId).has(reasonKeyOf(draft)) })
+                : rowActionsOf(state, draft, {
+                    ...ctx,
+                    byCard: cardOf(draft.attemptId).has(state === 'held-back' ? HELD_BACK_REASON : reasonKeyOf(draft)),
+                  })
             }
             version={
               run

@@ -769,6 +769,7 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   /** The claim's check, step by step while it starts (oldest first); `undefined` while the API does not answer it. */
   claimSteps?: ContributeClaimStep[];
 } & Partial<ContributeFollowUpFlowFields> &
+  Partial<ContributeRepliesPlanFields> &
   ContributeConventionsFields;
 
 /** One step of the claim's check: what it is doing, in words, and whether it is running, done or failed. */
@@ -823,7 +824,74 @@ export type ContributeReplyDraft = {
   dismissedAt?: string | null;
   createdAt: string;
   updatedAt: string;
-} & Partial<ContributeReplyDraftFlow>;
+} & Partial<ContributeReplyDraftFlow> &
+  Partial<ContributeReplyPlanFields>;
+
+/** How a reply goes or went: in its review thread, as its own comment, or in one comment with its run's others. */
+export type ContributeReplyPostAs = 'THREAD' | 'COMMENT' | 'ONE_COMMENT';
+
+/** What a failed one comment's Try again does: send the same comment again, or build one of the replies still failed. */
+export type ContributeReplyBatchRetry = 'RESEND' | 'REBUILD';
+
+/** Why the run's plan gave a reply approved with the push back to the user. `note` is the API's words. */
+export type ContributeReplyHeldBack = { reason: string; note: string; at: string };
+
+/**
+ * A reply's plan fields (2026-11-14): how it goes, the one comment it is in, whether it waits for the run's first reply,
+ * whether it may go in a new one comment, and why it was held back. `undefined` while the API does not answer them.
+ */
+export type ContributeReplyPlanFields = {
+  postAs: ContributeReplyPostAs;
+  /** The one comment it went (or goes) in; null otherwise. */
+  batchId: string | null;
+  /** Approved with the push, held until the run's first reply answers in its thread. */
+  waitsForProbe: boolean;
+  /** It may go into a new one comment now. */
+  canGoInOneComment: boolean;
+  heldBack: ContributeReplyHeldBack | null;
+  /** A failed one comment's member: what that comment's Try again does; null otherwise. */
+  batchRetry: ContributeReplyBatchRetry | null;
+};
+
+export type ContributeReplyBatchState = 'POSTING' | 'POSTED' | 'FAILED';
+
+/** A run's replies posted as one comment on the pull request (one part of it, when split). */
+export type ContributeReplyBatch = {
+  batchId: string;
+  part: number;
+  parts: number;
+  draftIds: string[];
+  state: ContributeReplyBatchState;
+  /** The posted comment on GitHub. */
+  url: string | null;
+  postedAt: string | null;
+  lastError: ContributeSubmitError | null;
+  /** What Try again does; null: none. */
+  retry: ContributeReplyBatchRetry | null;
+};
+
+/** The repository's organization refuses GitRanks' review-thread replies, since its first refusal. */
+export type ContributeThreadRepliesBlocked = { org: string; since: string; lastRefusedAt: string };
+
+/** What "Post them as one comment" would post now: the replies, and the comment's text in parts. */
+export type ContributeOneCommentPreview = { draftIds: string[]; bodies: string[] };
+
+/** A run's replies plan on its detail; each `undefined` while the API does not answer it (read on its own). */
+export type ContributeRepliesPlanFields = {
+  /** The repo's organization refuses thread replies; null when it does not, or a personal account. */
+  threadRepliesBlocked: ContributeThreadRepliesBlocked | null;
+  /** A run's approval tries one reply in its thread first. */
+  probeFirst: boolean;
+  /** A run: what "Post them as one comment" would post now; null when no reply can go. */
+  oneComment: ContributeOneCommentPreview | null;
+  /** A run: every thread reply not posted, as the one comment's text in parts, for Copy all. */
+  copyBodies: string[];
+  /** A run: its one comments, oldest first. */
+  replyBatches: ContributeReplyBatch[];
+};
+
+/** What posting replies as one comment answers: the comments made (or found), and the run's drafts after. */
+export type ContributeRepliesOneComment = { batches: ContributeReplyBatch[]; drafts: ContributeReplyDraft[] };
 
 /**
  * A reply draft the user can approve now, with its pull request. `inReview`: its follow-up is itself waiting for the

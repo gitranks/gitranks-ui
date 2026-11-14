@@ -56,8 +56,11 @@ import type {
   ContributeProofSession,
   ContributePrSignalKind,
   ContributePrUndoResult,
+  ContributeRepliesOneComment,
+  ContributeRepliesPlanFields,
   ContributeReplyDraft,
   ContributeReplyDraftFlow,
+  ContributeReplyPlanFields,
   ContributeReplyUserDismissReason,
   ContributeReplyWaiting,
   ContributeRepoRules,
@@ -106,6 +109,14 @@ const REPLY_DRAFT = `draftId prId attemptId comment { commentId author path line
   createdAt updatedAt`;
 
 type FollowUpFieldsOf<T> = T & { attemptId: string };
+
+// Replies as one comment (2026-11-14): each reply's plan, and a run's comments. Read in operations of their own, so an
+// API without them leaves the rest.
+const REPLY_PLAN = 'postAs batchId waitsForProbe canGoInOneComment heldBack { reason note at } batchRetry';
+const REPLY_BATCH = 'batchId part parts draftIds state url postedAt lastError { reason note at } retry';
+
+/** A reply's plan fields, by id, to merge into the drafts read. */
+export type ReplyPlanRow = Partial<ContributeReplyPlanFields> & { draftId: string };
 
 // The user's own agent: read in operations of their own too, so an API without them leaves the rest.
 const MCP_TOKEN = 'id name last4 createdAt lastUsedAt';
@@ -561,6 +572,42 @@ export const ContributeAttemptFollowUpsDocument = doc<
   contributeAttempt(id: $id) { ${FOLLOW_UP_FIELDS} replyDrafts { ${REPLY_DRAFT} } }
 }`);
 
+/** A run's replies plan: the org's refusal, the probe, what one comment would post, its comments, each reply's plan. */
+export type RepliesPlanRead = Partial<ContributeRepliesPlanFields> & {
+  attemptId: string;
+  replyDrafts?: ReplyPlanRow[] | null;
+};
+
+export const ContributeAttemptRepliesPlanDocument = doc<{ contributeAttempt: RepliesPlanRead | null }, { id: string }>(
+  `query ContributeAttemptRepliesPlan($id: ID!) {
+  contributeAttempt(id: $id) {
+    attemptId
+    threadRepliesBlocked { org since lastRefusedAt }
+    probeFirst
+    oneComment { draftIds bodies }
+    copyBodies
+    replyBatches { ${REPLY_BATCH} }
+    replyDrafts { draftId ${REPLY_PLAN} }
+  }
+}`,
+);
+
+/**
+ * Posts a run's thread replies that did not reach their threads as one comment on the pull request (`draftIds`), or
+ * tries one failed comment again (`batchId`). `requestId` is the click's key: the same key never posts twice.
+ */
+export const ApproveRepliesAsOneCommentDocument = doc<
+  { approveRepliesAsOneComment: ContributeRepliesOneComment },
+  { attemptId: string; requestId: string; draftIds?: string[]; batchId?: string }
+>(
+  `mutation ApproveRepliesAsOneComment($attemptId: ID!, $requestId: String!, $draftIds: [ID!], $batchId: ID) {
+    approveRepliesAsOneComment(attemptId: $attemptId, requestId: $requestId, draftIds: $draftIds, batchId: $batchId) {
+      batches { ${REPLY_BATCH} }
+      drafts { ${REPLY_DRAFT} ${REPLY_PLAN} }
+    }
+  }`,
+);
+
 // The follow-up flow (2026-10-31): what each thread came to, the checks in a word, the threads waiting, the rounds.
 const ROUND =
   'round attemptId by trigger reason costUsd state endReason pushedSha fixed skipped needsYou replied resolved at';
@@ -956,6 +1003,11 @@ export const ContributeAttemptsInReviewAtDocument = doc<
 /** The reply drafts the user can approve now, oldest first. */
 export const ContributeRepliesWaitingDocument = doc<{ contributeRepliesWaiting: ContributeReplyWaiting[] | null }>(
   `query ContributeRepliesWaiting { contributeRepliesWaiting { ${REPLY_DRAFT} nameWithOwner prNumber inReview } }`,
+);
+
+/** Each waiting reply's plan fields, merged into the waiting replies by id. */
+export const ContributeRepliesWaitingPlanDocument = doc<{ contributeRepliesWaiting: ReplyPlanRow[] | null }>(
+  `query ContributeRepliesWaitingPlan { contributeRepliesWaiting { draftId ${REPLY_PLAN} } }`,
 );
 
 /** What the scheduler counts before it starts an attempt. */

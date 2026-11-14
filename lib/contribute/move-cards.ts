@@ -12,8 +12,9 @@ import { hasOutcomes, shortSha } from './follow-up-flow';
 import { timeLeftLabel } from './format';
 import type { ActionId } from './hard-stop';
 import { GROUPS, isGrantBounce, shortLeftOf } from './needs-you';
+import { inOneComment, isHeldBack, isToApprove } from './one-comment';
 import { commitsOf } from './patch';
-import { BLOCK_REASONS, reasonKeyOf, replyTroubleOf } from './reply-trouble';
+import { BLOCK_REASONS, type RunTrouble, reasonKeyOf, replyTroubleOf } from './reply-trouble';
 import { bounceOf, runNameOf } from './session-status';
 
 /**
@@ -279,6 +280,16 @@ export function runMovesOf(view: ContributeView, run: ContributeAttemptDetail, r
 export type RunRead = { attemptId: string; state: string; round: number | null };
 
 /** The reply moves of each run: replies left out of a push still to post, and replies GitHub did not take. */
+/** The replies-not-posted card's title: refused, refused as one comment, or held back by the run's plan. */
+export function notPostedTitleOf(failed: ContributeReplyDraft[], heldBack: ContributeReplyDraft[]): string {
+  const count = failed.length + heldBack.length;
+  if (!failed.length) return count === 1 ? 'A reply was held back' : `Your ${count} replies were held back`;
+  if (!heldBack.length && failed.every(inOneComment)) {
+    return count === 1 ? "Your reply didn't post as a comment" : `Your ${count} replies didn't post as one comment`;
+  }
+  return count === 1 ? "One reply didn't post" : `Your ${count} replies didn't reach GitHub`;
+}
+
 export function replyMovesOf({
   first,
   drafts,
@@ -303,7 +314,8 @@ export function replyMovesOf({
     const round = run?.round ?? null;
     const name = runNameOf(round);
     const approved = run?.state === 'SUBMITTING' || run?.state === 'DONE';
-    const waiting = list.filter((draft) => draft.state === 'DRAFT' && !(approved && draft.send === true));
+    // Held back, or waiting for the run's first reply: not to approve (the first is said as not posted).
+    const waiting = list.filter((draft) => isToApprove(draft) && !(approved && draft.send === true));
     if (waiting.length) {
       unsent.push({
         card: 'replies',
@@ -320,7 +332,10 @@ export function replyMovesOf({
         data: { card: 'replies', runId, round, drafts: waiting },
       });
     }
-    const trouble = replyTroubleOf(list).find((each) => each.runId === runId);
+    const heldBack = list.filter(isHeldBack);
+    const trouble: RunTrouble | undefined =
+      replyTroubleOf(list).find((each) => each.runId === runId) ??
+      (heldBack.length ? { runId, failed: [], shared: [], alone: [] } : undefined);
     if (trouble) {
       const blockedOnly = [...trouble.shared.map(({ reason }) => reason), ...trouble.alone.map(reasonKeyOf)].every(
         (reason) => BLOCK_REASONS.has(reason),
@@ -332,13 +347,10 @@ export function replyMovesOf({
         session: `run:${runId}`,
         tone: blockedOnly ? 'amber' : 'red',
         kindLine: `${name} · replies not posted`,
-        title:
-          trouble.failed.length === 1
-            ? "One reply didn't post"
-            : `Your ${trouble.failed.length} replies didn't reach GitHub`,
+        title: notPostedTitleOf(trouble.failed, heldBack),
         chip: name,
         actions: ['post_reply'],
-        data: { card: 'reply-failed', runId, round, trouble, pushed },
+        data: { card: 'reply-failed', runId, round, trouble, pushed, heldBack },
       });
     }
   }

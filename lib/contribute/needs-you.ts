@@ -14,6 +14,8 @@ import { claudeKeyOf, contributeNoticesOf } from './contribute-state';
 import { FOLLOW_UP_STEP_LABELS, FOLLOW_UP_STEPS, type FollowUpStep, shortSha } from './follow-up-flow';
 import { PR_SIGNAL_KINDS, repoOutReasonOf, repoOutTextOf, repoSaidNoOf, silentTextOf } from './follow-up-format';
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
+import { replyRowOf } from './needs-you-replies';
+import { isToApprove } from './one-comment';
 import { type ContributePrConventionIssue, httpsOnly, PR_FIX_WORDS } from './pr-conventions';
 import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { attemptPath, nextSessionPath, sessionPath } from './sessions';
@@ -309,6 +311,9 @@ export const isGrantBounce = (view: ContributeView, attempt: ContributeAttempt) 
 
 const repoName = (nameWithOwner: string | null | undefined) => nameWithOwner || 'a repo';
 
+/** The organization, as reply rows name it: the owner part of the repo's name. */
+const orgOf = (nameWithOwner: string | null | undefined) => nameWithOwner?.split('/')[0] || 'the organization';
+
 /** The run's number: its round, else the runs the pull request counts. */
 const runNumberOf = (run: Pick<ContributeAttempt, 'round'> | undefined, pr: ContributeContribution | undefined) =>
   run?.round?.round ?? (pr?.followUps?.used ? pr.followUps.used : null);
@@ -489,14 +494,6 @@ function ownReviewWaitOf(attempt: ContributeAttempt, now: Date): string {
 /** One reason waiting on an open pull request, before the first of them is chosen to lead its row. */
 export type Candidate = Pick<NeedsYouItem, 'kind' | 'tone' | 'pill' | 'move' | 'action' | 'secondary'> & { at: number };
 
-/** A reply GitHub refused: the API's note (why, and what to do), else the two ways on. */
-const replyFailedMove = (draft: Pick<ContributeReplyWaiting, 'lastError'>): string => {
-  const note = draft.lastError?.note?.trim();
-  return note
-    ? sentence(clipped(note, 200))
-    : "GitHub refused the reply. Retry it, or copy it from the run's page and post it on the pull request yourself.";
-};
-
 /** Who the drafts answer: `@mo`, or "the maintainers" when several or none are named. Logins as GitHub writes them. */
 const draftsTo = (drafts: ContributeReplyWaiting[]) => {
   const authors = new Set(drafts.map(({ comment }) => comment?.author ?? null));
@@ -589,7 +586,8 @@ export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] 
     });
   }
 
-  const waiting = drafts.filter(({ state }) => state === 'DRAFT');
+  // Held back by the run's plan (the not-posted row says them), or waiting for its first reply (no row): not to approve.
+  const waiting = drafts.filter(isToApprove);
   if (waiting.length) {
     const by = runs.find(({ attemptId }) => attemptId === waiting[0].attemptId)?.round?.round;
     list.push({
@@ -606,20 +604,20 @@ export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] 
       at: Math.min(...waiting.map(({ createdAt }) => timeOf(createdAt))),
     });
   }
-  const failed = drafts.find(({ state }) => state === 'FAILED');
-  if (failed) {
+  const notPosted = replyRowOf(drafts, runs, orgOf(pr.nameWithOwner));
+  if (notPosted) {
     list.push({
       kind: 'reply-failed',
-      tone: 'red',
-      pill: 'Reply not posted',
-      move: replyFailedMove(failed),
+      tone: notPosted.tone,
+      pill: notPosted.pill,
+      move: notPosted.move,
       action: {
-        label: 'Retry the reply',
-        href: sessionPath(pr.attemptId, failed.attemptId),
-        aria: `Retry the reply on PR #${number}`,
+        label: notPosted.label,
+        href: `${sessionPath(pr.attemptId, notPosted.runId)}?move=reply-failed` as Route,
+        aria: `${notPosted.label} on PR #${number}`,
       },
       secondary: null,
-      at: timeOf(failed.updatedAt),
+      at: Math.min(...notPosted.drafts.map(({ updatedAt }) => timeOf(updatedAt))),
     });
   }
 
@@ -1090,25 +1088,28 @@ export function needsYouItemsOf({
   // Drafts on a pull request this read does not list (the list unread): a row of their own, by the run that drafted them.
   for (const [prId, drafts] of draftsByPr) {
     if (prs.has(prId) || inReview.has(prId)) continue;
-    const waitingDrafts = drafts.filter(({ state }) => state === 'DRAFT');
-    const shown = waitingDrafts.length ? waitingDrafts : drafts;
-    const failed = !waitingDrafts.length;
+    // Held back (the not-posted words say them) or waiting for the run's first reply (no row): not to approve.
+    const waitingDrafts = drafts.filter(isToApprove);
+    const notPosted = waitingDrafts.length ? null : replyRowOf(drafts, read, orgOf(drafts[0]?.nameWithOwner));
+    if (!waitingDrafts.length && !notPosted) continue;
+    const shown = notPosted ? notPosted.drafts : waitingDrafts;
     const where = `${repoName(shown[0].nameWithOwner)} · PR #${shown[0].prNumber}`;
+    const label = notPosted ? notPosted.label : shown.length === 1 ? 'Approve the reply' : 'Approve replies';
     rows.push({
       key: `replies-${prId}`,
-      kind: failed ? 'reply-failed' : 'replies',
-      tone: failed ? 'red' : 'amber',
-      pill: failed ? 'Reply not posted' : 'Replies to approve',
+      kind: notPosted ? 'reply-failed' : 'replies',
+      tone: notPosted ? notPosted.tone : 'amber',
+      pill: notPosted ? notPosted.pill : 'Replies to approve',
       where,
       title: null,
-      move: failed
-        ? replyFailedMove(shown[0])
+      move: notPosted
+        ? notPosted.move
         : `A run drafted ${plural(shown.length, 'reply', 'replies')} to ${draftsTo(shown)}. Read and post them.`,
       more: 0,
       action: {
-        label: failed ? 'Retry the reply' : shown.length === 1 ? 'Approve the reply' : 'Approve replies',
-        href: attemptPath(shown[0].attemptId),
-        aria: `${failed ? 'Retry the reply' : 'Approve the replies'} on ${where}`,
+        label,
+        href: attemptPath(notPosted ? notPosted.runId : shown[0].attemptId),
+        aria: `${notPosted ? label : 'Approve the replies'} on ${where}`,
       },
       secondary: null,
       working: false,

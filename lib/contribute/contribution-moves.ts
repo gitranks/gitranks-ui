@@ -79,7 +79,15 @@ export type MoveData =
   | { card: 'retry'; attemptId: string; retry: 'BOOST' | 'OVERRIDE' }
   | { card: 'run-ready'; attemptId: string; round: number | null; variant: RunVariant; commits: number }
   | { card: 'run-autopilot'; attemptId: string; round: number | null; at: string | null | undefined }
-  | { card: 'reply-failed'; runId: string; round: number | null; trouble: RunTrouble; pushed: boolean }
+  | {
+      card: 'reply-failed';
+      runId: string;
+      round: number | null;
+      trouble: RunTrouble;
+      pushed: boolean;
+      /** Replies the run's plan gave back: its first reply did not reach its thread. */
+      heldBack: ContributeReplyDraft[];
+    }
   | { card: 'replies'; runId: string; round: number | null; drafts: ContributeReplyDraft[] }
   | {
       card: 'next-run';
@@ -448,10 +456,20 @@ export function headOf(
   return { kind: 'status', lead: model.sessions[ref]?.statusLead ?? '', elsewhere: model.moves[0] ?? null };
 }
 
-/** The shared reasons of the replies-not-posted move covering `attemptId`'s drafts; empty when there is none. */
+/** What the replies-not-posted card says for held-back replies, among its reasons: their rows say only "Held back". */
+export const HELD_BACK_REASON = 'held_back';
+
+/**
+ * The shared reasons of the replies-not-posted move covering `attemptId`'s drafts (with `HELD_BACK_REASON` when it
+ * holds replies the run's plan gave back); empty when there is none.
+ */
 export function cardReasonsOf(model: ContributionMoves, attemptId: string): ReadonlySet<string> {
   const move = model.moves.find((each) => each.data.card === 'reply-failed' && each.data.runId === attemptId);
-  return new Set(move && move.data.card === 'reply-failed' ? move.data.trouble.shared.map(({ reason }) => reason) : []);
+  if (move?.data.card !== 'reply-failed') return new Set();
+  return new Set([
+    ...move.data.trouble.shared.map(({ reason }) => reason),
+    ...(move.data.heldBack.length ? [HELD_BACK_REASON] : []),
+  ]);
 }
 
 /** The words a status line's link says when the move is held elsewhere. */

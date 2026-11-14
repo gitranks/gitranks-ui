@@ -11,6 +11,7 @@ const {
   ApproveAttemptDocument,
   ApproveContributeOAuthDocument,
   ApproveFollowUpDocument,
+  ApproveRepliesAsOneCommentDocument,
   ApproveReplyDocument,
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
@@ -67,6 +68,7 @@ const CALLS: Record<string, unknown[]> = {
   markNeedsYouHandled: ['PR_1'],
   ignoreReviewThreads: ['PR_1', ['C_1']],
   approveReply: ['D_1'],
+  approveRepliesAsOneComment: ['A_F1', { draftIds: ['D_1', 'D_2'] }, 'key-0123456789'],
   dismissReply: ['D_1', 'NOT_NEEDED'],
   createMcpToken: ['laptop'],
   revokeMcpToken: ['T_1'],
@@ -407,6 +409,58 @@ describe('the follow-up actions', () => {
       ok: false,
       error: 'INVALID',
     });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('posts replies as one comment, or tries a failed comment again, with the click’s key', async () => {
+    graphqlDirect.mockResolvedValue({ approveRepliesAsOneComment: { batches: [], drafts: [] } });
+    expect(await actions.approveRepliesAsOneComment('A_F1', { draftIds: ['D_1', 'D_2'] }, 'key-0123456789')).toEqual({
+      ok: true,
+      data: { batches: [], drafts: [] },
+    });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      ApproveRepliesAsOneCommentDocument,
+      { attemptId: 'A_F1', requestId: 'key-0123456789', draftIds: ['D_1', 'D_2'] },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    await actions.approveRepliesAsOneComment('A_F1', { batchId: 'B_1' }, 'key-0123456789');
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      ApproveRepliesAsOneCommentDocument,
+      { attemptId: 'A_F1', requestId: 'key-0123456789', batchId: 'B_1' },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    // The API's refusal comes back with its words: the card says them.
+    graphqlDirect.mockRejectedValueOnce(
+      new Error(
+        JSON.stringify([
+          {
+            message: 'This request was already used for other replies. Reload the page.',
+            extensions: { code: 'CONFLICT' },
+          },
+        ]),
+      ),
+    );
+    expect(await actions.approveRepliesAsOneComment('A_F1', { draftIds: ['D_1'] }, 'key-0123456789')).toEqual({
+      ok: false,
+      error: 'INVALID',
+      message: 'This request was already used for other replies. Reload the page.',
+    });
+
+    // A key not of the API's shape, no reply, too many, or both a batch and replies: refused here, nothing sent.
+    graphqlDirect.mockClear();
+    for (const [target, key] of [
+      [{ draftIds: ['D_1'] }, 'short'],
+      [{ draftIds: ['D_1'] }, 'has spaces in it'],
+      [{ draftIds: [] }, 'key-0123456789'],
+      [{ draftIds: Array.from({ length: 31 }, (_, index) => `D_${index}`) }, 'key-0123456789'],
+      [{ draftIds: ['D_1'], batchId: 'B_1' }, 'key-0123456789'],
+      [{}, 'key-0123456789'],
+    ] as const) {
+      expect(await actions.approveRepliesAsOneComment('A_F1', target as never, key)).toMatchObject({
+        ok: false,
+        error: 'INVALID',
+      });
+    }
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 

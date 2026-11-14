@@ -62,6 +62,7 @@ import {
   prViewer,
 } from '@/lib/contribute/__fixtures__/maintainers';
 import {
+  needsReplies,
   needsSome,
   nextForAgreement,
   nextForDco,
@@ -498,6 +499,13 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () => overview(both, busy, true, needsSome()),
       },
       {
+        id: 'needs-you-replies',
+        title: 'Needs you: replies kept out of their threads, held back, and a one comment that failed',
+        path: '/contribute',
+        height: 1900,
+        render: () => overview(both, activityOf(), false, needsReplies()),
+      },
+      {
         id: 'needs-you-phone',
         title: 'Needs you · phone',
         path: '/contribute',
@@ -747,6 +755,21 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           contributionPage(
             { ...attempts.prOpen, repoRules: attemptRules() },
             { rulesOpen: true, replies: [replyWaiting({ state: 'FAILED', lastError: ORG_REFUSED })] },
+          ),
+      },
+      {
+        id: 'repo-rules-org-kept',
+        title: 'Repo rules: the organization’s refusal of thread replies, as GitRanks keeps it for every run',
+        path: '/contribute/attempts/A_1',
+        height: 1300,
+        render: () =>
+          contributionPage(
+            {
+              ...attempts.prOpen,
+              repoRules: attemptRules(),
+              threadRepliesBlocked: { org: 'driftwood-js', since: NOW.toISOString(), lastRefusedAt: NOW.toISOString() },
+            },
+            { rulesOpen: true },
           ),
       },
       {

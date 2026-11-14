@@ -212,6 +212,34 @@ describe('"This repo\'s rules" on the attempt (block A)', () => {
     expect(submit).toContain('data-repo-access="submit"');
   });
 
+  it('says what GitRanks does where the organization’s refusal of thread replies is kept', () => {
+    const kept = opened(attemptRules(), { access: 'replies', threadsBlocked: true });
+    expect(summaryOf(kept)).toBe('Repo rules · 6 · replies blocked');
+    expect(kept).toMatch(/<summary[^>]*>.*bg-warning-soft[^>]*>replies blocked<\/span>/);
+    expect(text(kept)).toContain(
+      'driftwood-js blocks review-thread replies: GitRanks tries the first reply in its thread, then posts the rest as one comment.',
+    );
+    expect(kept).toContain('data-threads-blocked="true"');
+    expect(kept).toContain('data-org-access');
+    // A refused submit says its own line, the kept refusal or not.
+    expect(text(opened(attemptRules(), { access: 'submit', threadsBlocked: true }))).toContain(
+      'driftwood-js only lets apps it approved act in its repositories',
+    );
+    // On the contribution page, the first attempt's read of the kept refusal is enough.
+    const page = renderToStaticMarkup(
+      <ReviewScreen
+        view={views.active}
+        attempt={{
+          ...followUpAttempts.prNeedsYou,
+          repoRules: attemptRules(),
+          threadRepliesBlocked: { org: 'driftwood-js', since: NOW.toISOString(), lastRefusedAt: NOW.toISOString() },
+        }}
+        now={NOW}
+      />,
+    );
+    expect(page).toContain('data-threads-blocked="true"');
+  });
+
   it('sits under the sessions on the contribution page, after the session shown', () => {
     const html = renderToStaticMarkup(
       <ReviewScreen

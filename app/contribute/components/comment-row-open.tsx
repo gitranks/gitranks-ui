@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CommentRowActions } from './comment-row-actions';
 import { OrgAccessLink, ReplyCopyBar, ReplyText } from './reply-text';
 import { offOf, useSessionActions } from './session-actions';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import { editAfterTyping } from '@/lib/contribute/comment-actions';
@@ -126,7 +127,23 @@ export function DraftOpen({
         <p className="text-sm text-muted-foreground">No reply was written. Dismiss it if none is needed.</p>
       ) : null}
       {link ? <ExternalLink href={link.href}>{link.label}</ExternalLink> : null}
-      {draft.state === 'POSTED' && postedUrl ? <ExternalLink href={postedUrl}>See it on GitHub ↗</ExternalLink> : null}
+      {draft.state === 'POSTED' && postedUrl ? (
+        state === 'posted-one-comment' ? (
+          <Button asChild variant="link" className="h-auto self-start p-0 max-sm:min-h-11">
+            <a href={postedUrl} target="_blank" rel="noopener noreferrer" data-one-comment-link="">
+              See the comment on GitHub ↗<span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </Button>
+        ) : (
+          <ExternalLink href={postedUrl}>See it on GitHub ↗</ExternalLink>
+        )
+      ) : null}
+      {state === 'waits-for-probe' ? (
+        <p className="text-sm text-muted-foreground">
+          It goes with the run&apos;s first reply: in its thread if that one gets through; if the organization blocks
+          it, in one comment with the others.
+        </p>
+      ) : null}
       {own ? (
         <p role="alert" data-reply-error={reason} className="text-sm break-words text-warning">
           {draft.lastError?.note?.trim() ||

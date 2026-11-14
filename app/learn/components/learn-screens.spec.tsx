@@ -29,6 +29,9 @@ const { phaseOf } = await import('./lesson-flow');
 const { Diagram } = await import('./diagram');
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
+const { ExampleQuestion } = await import('./example-question');
+const { EXAMPLE_LESSON } = await import('@/lib/learn/example-lesson');
 const { CAUSE_HINT, CAUSE_QUESTION, FIX_QUESTION, FIX_WHY, lessons, STEPS, WARMUP } = await import(
   '@/lib/learn/__fixtures__/lesson'
 );
@@ -58,22 +61,6 @@ const card = (props: Partial<ComponentProps<typeof QuestionCard>> = {}) =>
     />,
   );
 
-/**
- * Each radio or checkbox's accessible name: the text of the element its `aria-labelledby` points at. Fails when a
- * control has none, or points at nothing.
- */
-const controlNames = (html: string, role: 'radio' | 'checkbox') =>
-  [...html.matchAll(new RegExp(`<button[^>]*role="${role}"[^>]*>`, 'g'))].map(([tag]) => {
-    const labelledBy = tag.match(/aria-labelledby="([^"]+)"/)?.[1];
-    expect(labelledBy, `${tag} has no aria-labelledby`).toBeTruthy();
-    const at = html.indexOf(`id="${labelledBy}"`);
-    expect(at, `nothing has id ${labelledBy}`).toBeGreaterThan(-1);
-    const open = html.lastIndexOf('<', at);
-    const tagName = html.slice(open + 1).match(/^\w+/)?.[0];
-    const close = html.indexOf(`</${tagName}>`, at);
-    return text(html.slice(html.indexOf('>', at) + 1, close));
-  });
-
 describe('the question card', () => {
   it('names every radio button and checkbox by its option text, "I don\'t know yet" and the report reasons too', () => {
     expect(controlNames(card(), 'radio')).toEqual(CAUSE_QUESTION.options.map((option) => option.text));
@@ -90,11 +77,20 @@ describe('the question card', () => {
     ]);
   });
 
-  it("describes a graded option's control by its why", () => {
+  it("describes a graded option's control by its why, and a right one as the right answer", () => {
     const html = card({ question: FIX_QUESTION, picked: ['q3a1', 'q3a3'], graded: { correct: true, why: FIX_WHY } });
-    const described = [...html.matchAll(/role="checkbox"[^>]*aria-describedby="([^"]+)"/g)].map(([, id]) => id);
+    const described = controlDescriptions(html, 'checkbox');
     expect(described).toHaveLength(4);
-    for (const id of described) expect(html).toMatch(new RegExp(`id="${id}"[^>]*data-why=""`));
+    FIX_QUESTION.options.forEach((option, at) => {
+      const why = FIX_WHY.find((item) => item.optionId === option.id);
+      expect(described[at]).toContain((why?.why ?? '').replaceAll('`', ''));
+      expect(described[at].startsWith('Right answer')).toBe(why?.correct === true);
+    });
+  });
+
+  it("names the front door's example question's radio buttons by their text", () => {
+    const html = renderToStaticMarkup(<ExampleQuestion />);
+    expect(controlNames(html, 'radio')).toEqual(EXAMPLE_LESSON.question.options.map((option) => option.text));
   });
 
   it('asks a single-answer question with radio buttons, and checks it once an answer is picked', () => {

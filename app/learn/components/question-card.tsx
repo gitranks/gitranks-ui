@@ -227,15 +227,18 @@ export function QuestionCard({
     if (!locked) onPick?.(pickOf(question, picked, optionId, on));
   };
 
-  // Each control is named by its option's text and described by its why (when shown): the row's <label> alone does
-  // not name a radio or checkbox drawn as a button, so the accessibility tree would list it without a name.
+  // Each control is named by its option's text and described by "Right answer" and its why (when shown): the row's
+  // <label> alone does not name a radio or checkbox drawn as a button, so the accessibility tree would list it unnamed.
   const controlId = (optionId: string) => `${promptId}-${optionId}`;
   const textId = (optionId: string) => `${controlId(optionId)}-text`;
   const whyId = (optionId: string) => `${controlId(optionId)}-why`;
-  const controlNaming = (optionId: string, why: string | null) => ({
+  const rightId = (optionId: string) => `${controlId(optionId)}-right`;
+  const controlNaming = (optionId: string, why: string | null, mark: OptionMark) => ({
     id: controlId(optionId),
     'aria-labelledby': textId(optionId),
-    'aria-describedby': why ? whyId(optionId) : undefined,
+    'aria-describedby':
+      [mark === 'right' ? rightId(optionId) : null, why ? whyId(optionId) : null].filter(Boolean).join(' ') ||
+      undefined,
   });
 
   const optionBody = (optionId: string, text: string, why: string | null, mark: OptionMark): ReactNode => (
@@ -252,7 +255,11 @@ export function QuestionCard({
       </span>
       {mark === 'right' ? (
         <span className="ms-auto flex-none font-bold text-positive">
-          ✓<span className="sr-only"> Right answer</span>
+          ✓
+          <span id={rightId(optionId)} className="sr-only">
+            {' '}
+            Right answer
+          </span>
         </span>
       ) : null}
     </>
@@ -278,7 +285,7 @@ export function QuestionCard({
             data-option={option.id}
             data-mark={mark}
           >
-            <RadioGroupItem {...controlNaming(option.id, why)} value={option.id} className="mt-0.5" />
+            <RadioGroupItem {...controlNaming(option.id, why, mark)} value={option.id} className="mt-0.5" />
             {optionBody(option.id, option.text, why, mark)}
           </label>
         ))}
@@ -294,7 +301,7 @@ export function QuestionCard({
             data-mark={mark}
           >
             <Checkbox
-              {...controlNaming(option.id, why)}
+              {...controlNaming(option.id, why, mark)}
               checked={on}
               onCheckedChange={(checked) => pick(option.id, checked === true)}
               className="mt-0.5"

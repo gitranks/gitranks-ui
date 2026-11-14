@@ -42,12 +42,15 @@ export function ExampleQuestion() {
                 id={`${id}-${option.id}`}
                 value={option.id}
                 aria-labelledby={`${id}-${option.id}-text`}
+                aria-describedby={on && !option.correct ? `${id}-${option.id}-hint` : undefined}
                 className="mt-0.5"
               />
               <span className="flex min-w-0 flex-col gap-1">
                 <span id={`${id}-${option.id}-text`}>{option.text}</span>
                 {on && !option.correct ? (
-                  <span className="text-xs">Not this: the cache kept its entries. Try the other one.</span>
+                  <span id={`${id}-${option.id}-hint`} className="text-xs">
+                    Not this: the cache kept its entries. Try the other one.
+                  </span>
                 ) : null}
               </span>
               {on && option.correct ? (

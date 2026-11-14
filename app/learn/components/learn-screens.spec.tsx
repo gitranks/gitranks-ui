@@ -58,7 +58,45 @@ const card = (props: Partial<ComponentProps<typeof QuestionCard>> = {}) =>
     />,
   );
 
+/**
+ * Each radio or checkbox's accessible name: the text of the element its `aria-labelledby` points at. Fails when a
+ * control has none, or points at nothing.
+ */
+const controlNames = (html: string, role: 'radio' | 'checkbox') =>
+  [...html.matchAll(new RegExp(`<button[^>]*role="${role}"[^>]*>`, 'g'))].map(([tag]) => {
+    const labelledBy = tag.match(/aria-labelledby="([^"]+)"/)?.[1];
+    expect(labelledBy, `${tag} has no aria-labelledby`).toBeTruthy();
+    const at = html.indexOf(`id="${labelledBy}"`);
+    expect(at, `nothing has id ${labelledBy}`).toBeGreaterThan(-1);
+    const open = html.lastIndexOf('<', at);
+    const tagName = html.slice(open + 1).match(/^\w+/)?.[0];
+    const close = html.indexOf(`</${tagName}>`, at);
+    return text(html.slice(html.indexOf('>', at) + 1, close));
+  });
+
 describe('the question card', () => {
+  it('names every radio button and checkbox by its option text, "I don\'t know yet" and the report reasons too', () => {
+    expect(controlNames(card(), 'radio')).toEqual(CAUSE_QUESTION.options.map((option) => option.text));
+    expect(controlNames(card({ question: FIX_QUESTION }), 'checkbox')).toEqual(
+      FIX_QUESTION.options.map((option) => option.text),
+    );
+    const warmup = controlNames(card({ question: WARMUP[0], warmup: true }), 'radio');
+    expect(warmup.at(-1)).toBe("I don't know yet");
+    expect(controlNames(card({ reportDrawn: true }), 'radio').slice(-4)).toEqual([
+      'The marked answer is wrong',
+      'The question is unclear',
+      'It is not about this fix',
+      'More than one answer fits',
+    ]);
+  });
+
+  it("describes a graded option's control by its why", () => {
+    const html = card({ question: FIX_QUESTION, picked: ['q3a1', 'q3a3'], graded: { correct: true, why: FIX_WHY } });
+    const described = [...html.matchAll(/role="checkbox"[^>]*aria-describedby="([^"]+)"/g)].map(([, id]) => id);
+    expect(described).toHaveLength(4);
+    for (const id of described) expect(html).toMatch(new RegExp(`id="${id}"[^>]*data-why=""`));
+  });
+
   it('asks a single-answer question with radio buttons, and checks it once an answer is picked', () => {
     const empty = card({ current: true, onCheck: () => {} });
     expect(empty.match(/role="radio"/g)).toHaveLength(3);

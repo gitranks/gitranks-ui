@@ -24,13 +24,15 @@ function Mark({ mark }: { mark: StageMark }) {
 
 /**
  * Where the user is in a Learn attempt: the agent fixes the issue (in their terminal), they take the lesson, they
- * approve the pull request. On a phone only the stage they are at shows. Nothing for an attempt that left the flow.
+ * approve the pull request. On a phone only the stage they are at shows; up to `lg` the stages stack, since three
+ * columns leave too little room for their lines. The lines wrap, never cut off. Nothing for an attempt that left the
+ * flow.
  */
 export function StageStrip({ stage }: { stage: LearnStage }) {
   const marks = stageMarksOf(stage);
   if (!marks) return null;
   return (
-    <ol aria-label="Where you are" className="grid gap-2 sm:grid-cols-3">
+    <ol aria-label="Where you are" className="grid gap-2 lg:grid-cols-3">
       {STAGES.map((item, index) => {
         const Icon = ICONS[item.key];
         const now = marks[index] === 'now';
@@ -52,10 +54,12 @@ export function StageStrip({ stage }: { stage: LearnStage }) {
               <Icon aria-hidden="true" className="size-4 shrink-0" />
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="font-mono text-xs text-muted-foreground">{item.where}</span>
-              <span className="truncate text-sm font-semibold">{item.title}</span>
+              <span className="font-mono text-xs break-words text-muted-foreground">{item.where}</span>
+              <span className="text-sm font-semibold break-words">{item.title}</span>
             </span>
-            <Mark mark={marks[index]} />
+            <span className="flex-none">
+              <Mark mark={marks[index]} />
+            </span>
           </li>
         );
       })}

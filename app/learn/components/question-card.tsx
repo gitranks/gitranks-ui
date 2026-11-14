@@ -64,8 +64,13 @@ export function ReportForm({
             htmlFor={`${titleId}-${item.value}`}
             className="flex cursor-pointer items-start gap-2.5 text-sm"
           >
-            <RadioGroupItem id={`${titleId}-${item.value}`} value={item.value} className="mt-0.5" />
-            <span>{item.label}</span>
+            <RadioGroupItem
+              id={`${titleId}-${item.value}`}
+              value={item.value}
+              aria-labelledby={`${titleId}-${item.value}-text`}
+              className="mt-0.5"
+            />
+            <span id={`${titleId}-${item.value}-text`}>{item.label}</span>
           </label>
         ))}
       </RadioGroup>
@@ -222,14 +227,25 @@ export function QuestionCard({
     if (!locked) onPick?.(pickOf(question, picked, optionId, on));
   };
 
-  const optionBody = (text: string, why: string | null, mark: OptionMark): ReactNode => (
+  // Each control is named by its option's text and described by its why (when shown): the row's <label> alone does
+  // not name a radio or checkbox drawn as a button, so the accessibility tree would list it without a name.
+  const controlId = (optionId: string) => `${promptId}-${optionId}`;
+  const textId = (optionId: string) => `${controlId(optionId)}-text`;
+  const whyId = (optionId: string) => `${controlId(optionId)}-why`;
+  const controlNaming = (optionId: string, why: string | null) => ({
+    id: controlId(optionId),
+    'aria-labelledby': textId(optionId),
+    'aria-describedby': why ? whyId(optionId) : undefined,
+  });
+
+  const optionBody = (optionId: string, text: string, why: string | null, mark: OptionMark): ReactNode => (
     <>
       <span className="flex min-w-0 flex-col gap-1">
-        <span>
+        <span id={textId(optionId)}>
           <RichText text={text} />
         </span>
         {why ? (
-          <span className={cn('text-xs', mark !== 'hint' && 'text-muted-foreground')} data-why="">
+          <span id={whyId(optionId)} className={cn('text-xs', mark !== 'hint' && 'text-muted-foreground')} data-why="">
             <RichText text={why} />
           </span>
         ) : null}
@@ -257,13 +273,13 @@ export function QuestionCard({
         {shown.map(({ option, mark, why }) => (
           <label
             key={option.id}
-            htmlFor={`${promptId}-${option.id}`}
+            htmlFor={controlId(option.id)}
             className={boxClass(mark)}
             data-option={option.id}
             data-mark={mark}
           >
-            <RadioGroupItem id={`${promptId}-${option.id}`} value={option.id} className="mt-0.5" />
-            {optionBody(option.text, why, mark)}
+            <RadioGroupItem {...controlNaming(option.id, why)} value={option.id} className="mt-0.5" />
+            {optionBody(option.id, option.text, why, mark)}
           </label>
         ))}
       </RadioGroup>
@@ -272,18 +288,18 @@ export function QuestionCard({
         {shown.map(({ option, mark, why, picked: on }) => (
           <label
             key={option.id}
-            htmlFor={`${promptId}-${option.id}`}
+            htmlFor={controlId(option.id)}
             className={boxClass(mark)}
             data-option={option.id}
             data-mark={mark}
           >
             <Checkbox
-              id={`${promptId}-${option.id}`}
+              {...controlNaming(option.id, why)}
               checked={on}
               onCheckedChange={(checked) => pick(option.id, checked === true)}
               className="mt-0.5"
             />
-            {optionBody(option.text, why, mark)}
+            {optionBody(option.id, option.text, why, mark)}
           </label>
         ))}
       </fieldset>

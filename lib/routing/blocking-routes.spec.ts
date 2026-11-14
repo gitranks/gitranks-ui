@@ -4,9 +4,11 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { githubLoginOf, lessonSlugOf } from '@/lib/learn/learn-path';
 import { BLOCKING_ROUTES, blockingRouteProblems } from '@/scripts/check-blocking-routes.mjs';
 
 vi.mock('server-only', () => ({}));
+vi.mock('@/auth', () => ({ auth: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-repo-languages', () => ({
   fetchRepoLanguages: async () => [{ language: null }, { language: 'Rust' }],
 }));
@@ -36,6 +38,12 @@ const ROUTES = [
     module: () => import('@/app/repos/no-language/[page]/layout'),
     params: ['page'],
   },
+  { segment: 'learn/lessons/[slug]', module: () => import('@/app/learn/lessons/[slug]/page'), params: ['slug'] },
+  {
+    segment: 'learn/lessons/[slug]/passes/[login]',
+    module: () => import('@/app/learn/lessons/[slug]/passes/[login]/page'),
+    params: ['slug', 'login'],
+  },
 ];
 
 describe('routes whose missing pages answer 404', () => {
@@ -58,6 +66,16 @@ describe('routes whose missing pages answer 404', () => {
     const parts = segment.split('/');
     for (let depth = 0; depth <= parts.length; depth++) {
       expect(existsSync(join(APP, ...parts.slice(0, depth), 'loading.tsx'))).toBe(false);
+    }
+  });
+
+  it('lists Learn params no lesson or result can have, so the build reads nothing for them', async () => {
+    const lesson = await import('@/app/learn/lessons/[slug]/page');
+    const pass = await import('@/app/learn/lessons/[slug]/passes/[login]/page');
+    for (const { slug } of await lesson.generateStaticParams()) expect(lessonSlugOf(slug)).toBeNull();
+    for (const { slug, login } of await pass.generateStaticParams()) {
+      expect(lessonSlugOf(slug)).toBeNull();
+      expect(githubLoginOf(login)).toBeNull();
     }
   });
 

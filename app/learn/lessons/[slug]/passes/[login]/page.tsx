@@ -5,10 +5,18 @@ import { loadLessonResult } from '@/lib/learn/lesson-public.data';
 import { lessonResultMetadata } from '@/lib/learn/lesson-seo';
 
 /**
- * A blocking route: the result is read before the page starts, so a login with no public pass answers a real 404 and a
- * renamed login a real redirect to the current one.
+ * A blocking route: the result is read before the page starts, so a login with no public pass (or a lesson that is not
+ * public) answers a real 404 and a renamed login a real redirect to the current one. generateStaticParams lists params
+ * no result can have, so there is no fallback shell: every real one renders on request as a whole page.
  */
 export const instant = false;
+
+/** Params no result can have (neither has its shape), so the build renders the not-found page without asking for data. */
+const NO_RESULT = { slug: '_', login: '_' };
+
+export async function generateStaticParams() {
+  return [NO_RESULT];
+}
 
 export async function generateMetadata({
   params,

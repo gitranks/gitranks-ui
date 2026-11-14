@@ -1,4 +1,4 @@
-import { ArrowRight, BookMarked, CircleCheck } from 'lucide-react';
+import { ArrowRight, BookMarked, CircleCheck, type LucideIcon } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
@@ -25,8 +25,14 @@ export const OWNER_BLOCK_SHOWN = 3;
 
 const n = (value: number) => <span className="font-mono tabular-nums">{value.toLocaleString('en-US')}</span>;
 
-/** One issue, drawn like a repository row: the title, then the repo, its language (colour dot) and why. */
-const IssueRow: FC<{ issue: OwnerIssue }> = ({ issue }) => (
+/**
+ * One issue, drawn like a repository row: the title, then the repo, its language (colour dot) and why, after `whyIcon`.
+ * The owner's Contribute and Learn blocks both list issues this way.
+ */
+export const OwnerIssueRow: FC<{ issue: OwnerIssue; whyIcon?: LucideIcon }> = ({
+  issue,
+  whyIcon: WhyIcon = CircleCheck,
+}) => (
   <article data-issue={`${issue.repo}#${issue.number}`} className="flex min-w-0 flex-col gap-1.5 px-4 py-3">
     <a
       href={issue.url}
@@ -56,7 +62,7 @@ const IssueRow: FC<{ issue: OwnerIssue }> = ({ issue }) => (
       ) : null}
       {issue.why ? (
         <span className="flex min-w-0 items-center gap-1 text-muted-foreground">
-          <CircleCheck className="size-4 shrink-0" aria-hidden />
+          <WhyIcon className="size-4 shrink-0" aria-hidden />
           {issue.why}
         </span>
       ) : null}
@@ -117,7 +123,7 @@ export const ProfileContributeBlock: FC<{
       </div>
       <div className="flex flex-col divide-y rounded-lg border bg-card text-card-foreground">
         {issues.slice(0, OWNER_BLOCK_SHOWN).map((issue) => (
-          <IssueRow key={`${issue.repo}#${issue.number}`} issue={issue} />
+          <OwnerIssueRow key={`${issue.repo}#${issue.number}`} issue={issue} />
         ))}
       </div>
     </section>

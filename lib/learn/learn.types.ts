@@ -233,3 +233,21 @@ export type LessonResultPage = {
   asked: LessonQuestionKeyed[];
   reactions: LessonResultReaction[];
 };
+
+/** Where a Learn suggestion shows: the home page, or the owner's own profile. */
+export type LearnPromoPlacement = 'LANDING' | 'PROFILE';
+
+/** An open issue the suggestion offers, with the lesson's topic it would teach. */
+export type LearnPromoIssue = {
+  title: string;
+  repo: string;
+  number: number;
+  language: string | null;
+  topic: string | null;
+};
+
+/** Whether to suggest Learn to the viewer, and why: `reason` is one line about them ("You started…"). */
+export type LearnPromo = { show: boolean; reason: string | null; language: string | null; issues: LearnPromoIssue[] };
+
+/** A login's Learn record, from their public passes: lessons, topics learned, pull requests opened and merged. */
+export type LearnRecord = { lessons: number; topics: string[]; prsOpened: number; prsMerged: number };

@@ -12,8 +12,11 @@ import {
 import { OverviewPage } from '@/app/profile/[login]/components/overview-page';
 import { ProfileContributeBlock } from '@/app/profile/[login]/components/profile-contribute-block';
 import { ProfileFrame } from '@/app/profile/[login]/components/profile-frame';
+import { ProfileLearnBlock } from '@/app/profile/[login]/components/profile-learn-block';
+import { LearnRecordCard } from '@/app/profile/[login]/components/profile-learn-record';
 import type { UserFacts } from '@/badge/v3/facts';
 import { userBig, userUnranked } from '@/badge/v3/fixtures';
+import { learnRecord, profilePromo, promoColors } from '@/lib/learn/__fixtures__/promo';
 
 // The strong profile is the badge fixtures' `userBig`; the newcomer has nothing a badge could show yet.
 const strongBadges = withBadgeFacts(userBig);
@@ -37,6 +40,14 @@ const notConnected = (
   />
 );
 const connected = <ProfileContributeBlock state="connected" issues={CONNECTED_ISSUES} />;
+
+/** Learn's suggestion in the Contribute block's place, and the Learn record under it, as the owner reads them. */
+const learn = (record: boolean) => (
+  <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 py-6">
+    <ProfileLearnBlock promo={profilePromo} colors={promoColors} />
+    <LearnRecordCard record={record ? learnRecord : null} own />
+  </div>
+);
 
 export const PROFILE_SCREENS: Screen[] = [
   {
@@ -113,6 +124,56 @@ export const PROFILE_SCREENS: Screen[] = [
         width: 390,
         height: 1100,
         render: () => alone(notConnected),
+      },
+    ],
+  },
+  {
+    id: 'profile-learn',
+    title: 'Profile · Learn, suggested to the owner, and the Learn record',
+    area: 'profile',
+    route: '/profile/[login]',
+    sources: [
+      'app/profile/[login]/components/profile-contribute.tsx',
+      'app/profile/[login]/components/profile-learn-block.tsx',
+      'app/profile/[login]/components/profile-learn-record.tsx',
+    ],
+    states: [
+      {
+        id: 'owner-promo',
+        title: 'The owner Learn may suit, with a record',
+        path: `/profile/${strongProfile.login}`,
+        height: 660,
+        render: () => learn(true),
+      },
+      {
+        id: 'owner-promo-no-record',
+        title: 'The owner Learn may suit, no public pass yet: no record',
+        path: `/profile/${strongProfile.login}`,
+        height: 440,
+        render: () => learn(false),
+      },
+      {
+        id: 'owner-promo-no-issues',
+        title: 'The owner Learn may suit, no issues to list',
+        path: `/profile/${strongProfile.login}`,
+        height: 240,
+        render: () => alone(<ProfileLearnBlock promo={{ ...profilePromo, issues: [] }} />),
+      },
+      {
+        id: 'record',
+        title: 'The Learn record, as anyone reads it',
+        path: `/profile/${strongProfile.login}`,
+        signedOut: true,
+        height: 260,
+        render: () => alone(<LearnRecordCard record={learnRecord} />),
+      },
+      {
+        id: 'owner-promo-phone',
+        title: 'The owner Learn may suit, with a record · phone',
+        path: `/profile/${strongProfile.login}`,
+        width: 390,
+        height: 1020,
+        render: () => learn(true),
       },
     ],
   },

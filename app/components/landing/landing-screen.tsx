@@ -1,6 +1,5 @@
 import type { FC } from 'react';
 
-import { ContributeSection } from './contribute-section';
 import type { ExampleRank } from './hero-aside';
 import type {
   fetchFeaturedOrg,
@@ -10,6 +9,7 @@ import type {
   fetchTopOrgs,
   fetchTopRepos,
 } from './landing-data';
+import { LandingPromos } from './landing-promos';
 import {
   BadgesSection,
   Container,
@@ -26,9 +26,12 @@ import {
 } from './landing-sections';
 import { formatCompact, tierAt } from './landing-ui';
 import type { Leaderboard } from './leaderboard-tabs';
+import { LearnSectionView } from './learn-section';
 import type { ReadmeShowcase } from './readme-showcase';
 import { ReposSection } from './repos-section';
 import { Header } from '@/components/header/header';
+import { LEARN_OPEN_TO_VISITORS } from '@/lib/learn/learn-path';
+import type { ShownPromo } from '@/lib/learn/learn-promo';
 import type { CountryQuery, CountrySummaryQuery, LanguageSummaryQuery } from '@/types/generated/graphql';
 
 const EXAMPLE_COUNT = 3;
@@ -53,8 +56,14 @@ export type LandingData = {
   showcase: ReadmeShowcase;
 };
 
+/**
+ * GitRanks Learn on the landing, for the design catalogue alone: `forVisitors` draws the visitors' section whatever the
+ * switch says; `promo` draws the suggestion for a signed-in user Learn may suit, without asking for it.
+ */
+export type LandingLearn = { forVisitors?: boolean; promo?: ShownPromo };
+
 /** The landing page from its data: the same for every visitor, apart from the parts read in the browser. */
-export const LandingScreen: FC<LandingData> = ({
+export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
   insights,
   leaderboards,
   tiers,
@@ -65,6 +74,7 @@ export const LandingScreen: FC<LandingData> = ({
   countryList,
   repos,
   showcase,
+  learn,
 }) => {
   const flags = new Map(countryList.map((country) => [country.name, country.flag]));
 
@@ -134,7 +144,12 @@ export const LandingScreen: FC<LandingData> = ({
       <main>
         <Hero developersRanked={developersRanked} examples={examples} stats={stats} />
         <Container>
-          <ContributeSection />
+          {/* One suggestion: Contribute's section, then Learn's once Learn is open to visitors (static, with the
+              page); for a signed-in user Learn may suit, Learn's own in their place, read in the browser. */}
+          <LandingPromos
+            learnForVisitors={(learn?.forVisitors ?? LEARN_OPEN_TO_VISITORS) ? <LearnSectionView /> : null}
+            promo={learn?.promo}
+          />
           <LeaderboardSection boards={boards} />
           <InsightsSection insights={insights} />
           <OrganizationsSection orgs={orgs} flags={flags} featured={featured} />

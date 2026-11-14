@@ -14,6 +14,7 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import {
   AnswerLessonQuestionDocument,
   AnswerWarmupDocument,
+  DismissLearnPromoDocument,
   LogCopyForAgentDocument,
   MarkStepShownDocument,
   RateLessonDocument,
@@ -255,4 +256,9 @@ export async function signInToReact(form: FormData): Promise<void> {
       ? `${lessonResultPath(slug, login)}?${REACT_PARAM}=${reaction.toLowerCase()}`
       : undefined;
   await signIn(IDENTITY_PROVIDER, { redirectTo: await markMaintainerSignIn(returnTo) });
+}
+
+/** "Not for me": the viewer's Learn suggestions stay hidden, on the home page and their profile, from then on. */
+export async function dismissLearnPromo(): Promise<ContributeActionResult<boolean>> {
+  return run(DismissLearnPromoDocument, {}, (data) => data.dismissLearnPromo);
 }

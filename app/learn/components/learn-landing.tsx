@@ -2,15 +2,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FaGithub } from 'react-icons/fa';
 
-import { Diagram } from './diagram';
-import { ExampleQuestion } from './example-question';
+import { ExampleLessonCard } from './example-lesson-card';
 import { LearnSignInButton } from './learn-sign-in';
 import { H2, MUTED_SECTION, WIDTH } from '@/app/contribute/components/landing';
-import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
-import { EXAMPLE_LESSON } from '@/lib/learn/example-lesson';
+import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
-import { LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
+import { LEARN_MAINTAINERS_PATH, LEARN_OPEN_TO_VISITORS, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
 
 /** Who reads the front door: a visitor signs in first, a signed-in user goes straight to Goal and level. */
@@ -89,41 +87,9 @@ function StartLearning({ viewer, className }: { viewer: LearnLandingViewer; clas
 
 /** The hero's example: one step of a lesson, with its diagram and its question to try. Static, from a fixed lesson. */
 function ExampleLesson() {
-  const { subject, parts, part, title, diagram } = EXAMPLE_LESSON;
   return (
     <figure id="lesson" aria-label="Example lesson" className="m-0 flex min-w-0 flex-[1_1_400px] scroll-mt-4 flex-col">
-      <div className="relative overflow-hidden rounded-xl border bg-card shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-4 py-3">
-          <h2 className="flex items-baseline gap-2">
-            <span className={EYEBROW}>Example lesson</span>{' '}
-            <span className="text-sm text-muted-foreground">about 10 minutes</span>
-          </h2>
-          <span className="font-mono text-xs text-muted-foreground">{subject}</span>
-        </div>
-        <div className="flex flex-col gap-3 p-4">
-          <ul aria-label="The lesson's parts" className="flex flex-wrap gap-1.5">
-            {parts.map((name) => (
-              <li key={name}>
-                <Badge
-                  variant="outline"
-                  className={cn(name === part && 'border-transparent bg-brand-soft text-brand-soft-foreground')}
-                  aria-current={name === part ? 'step' : undefined}
-                >
-                  {name}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-          <span className="font-semibold text-foreground">{title}</span>
-          <figure className="m-0 flex flex-col gap-2.5 rounded-lg border bg-muted/40 p-4">
-            <Diagram id="learn-example" nodes={diagram.nodes} edges={diagram.edges} label={diagram.label} />
-            <figcaption className="text-xs text-muted-foreground">
-              Every step has a picture or the code, and a few lines of text.
-            </figcaption>
-          </figure>
-        </div>
-        <ExampleQuestion />
-      </div>
+      <ExampleLessonCard />
     </figure>
   );
 }
@@ -267,8 +233,12 @@ export function LearnLanding({ viewer }: { viewer: LearnLandingViewer }) {
   );
 }
 
-/** The front door, behind Learn's gate: not found for anyone Learn is not open to (a visitor never gets this far). */
+/**
+ * The front door, behind Learn's gate: not found for anyone Learn is not open to. A visitor gets this far only once the
+ * front door is open to visitors, and then reads its visitor version.
+ */
 export async function LearnHomeView() {
-  if (!(await loadLearnOpen())) notFound();
-  return <LearnLanding viewer="signed-in" />;
+  if (await loadLearnOpen()) return <LearnLanding viewer="signed-in" />;
+  if (LEARN_OPEN_TO_VISITORS && !(await viewerLogin())) return <LearnLanding viewer="visitor" />;
+  notFound();
 }

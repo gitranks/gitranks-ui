@@ -15,7 +15,13 @@ import {
 } from './lib/contribute/contribute-path';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { contributeOpen, requestMaySeeContribute } from './lib/contribute/preview-gate';
-import { isLearnOpenPath, isLearnPath, lessonResultJsonRouteOf } from './lib/learn/learn-path';
+import {
+  isLearnHomePath,
+  isLearnOpenPath,
+  isLearnPath,
+  LEARN_OPEN_TO_VISITORS,
+  lessonResultJsonRouteOf,
+} from './lib/learn/learn-path';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
@@ -104,8 +110,14 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   const { pathname } = request.nextUrl;
   // Learn is behind its own list of people, which the proxy cannot read: a closed Learn page answers a visitor without
   // a session with the 404 here, and a signed-in one goes on to the page, which asks the API whether Learn is open to
-  // them. A shared lesson, its result pages and the page for maintainers are open to everyone.
-  if (isLearnPath(pathname) && !isLearnOpenPath(pathname) && !hasSession(request)) {
+  // them. A shared lesson, its result pages and the page for maintainers are open to everyone; the front door too once
+  // its switch is on (the home page's Learn section links there and follows the same switch).
+  if (
+    isLearnPath(pathname) &&
+    !isLearnOpenPath(pathname) &&
+    !(LEARN_OPEN_TO_VISITORS && isLearnHomePath(pathname)) &&
+    !hasSession(request)
+  ) {
     const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
     response.headers.set('Cache-Control', 'private, no-store');
     return response;

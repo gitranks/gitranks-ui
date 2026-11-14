@@ -12,6 +12,8 @@ const FIELDS = [
   'source',
   'path',
   'target',
+  'event',
+  'detail',
   'lesson',
   'utmSource',
   'utmMedium',
@@ -22,8 +24,8 @@ const FIELDS = [
 const done = () => new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'private, no-store' } });
 
 /**
- * A step into Contribute, reported by the page (`ContributeClickTracker`), or a Learn page opened or clicked on
- * (`reportLearnEvent`, with the lesson's slug): passed on with whether the visitor has a
+ * A step into Contribute, reported by the page (`ContributeClickTracker`), or something of Learn's shown or clicked
+ * on (`reportLearnEvent`: its event, its detail and, on a lesson's pages, the lesson's slug): passed on with whether the visitor has a
  * sign-in session, never who they are. The address and browser go along only to tell one day's visitors apart; neither
  * is stored. Sets no cookie. Always 204: the page has moved on and nothing here is its concern.
  */

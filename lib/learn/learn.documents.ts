@@ -5,6 +5,9 @@ import type {
   LearnAttemptLesson,
   LearnProfile,
   LearnProfileInput,
+  LearnPromo,
+  LearnPromoPlacement,
+  LearnRecord,
   LessonAnswerResult,
   LessonPage,
   LessonReaction,
@@ -221,3 +224,25 @@ export const ReactToResultDocument = doc<
 >(`mutation ReactToResult($slug: String!, $login: String!, $reaction: LessonReaction!, $token: String!) {
   reactToResult(slug: $slug, login: $login, reaction: $reaction, token: $token) { login role reaction }
 }`);
+
+/**
+ * Whether to suggest Learn to the signed-in viewer here, read with `learnOpen` so the suggestion shows only to someone
+ * Learn is open to. `login`: the profile, which must be the viewer's own.
+ */
+export const LearnPromoDocument = doc<
+  { learnOpen: boolean; learnPromo: LearnPromo | null },
+  { placement: LearnPromoPlacement; login: string | null }
+>(`query LearnPromo($placement: LearnPromoPlacement!, $login: String) {
+  learnOpen
+  learnPromo(placement: $placement, login: $login) { show reason language issues { title repo number language topic } }
+}`);
+
+/** "Not for me": the viewer's Learn suggestions stay hidden from then on. */
+export const DismissLearnPromoDocument = doc<{ dismissLearnPromo: boolean }>(
+  'mutation DismissLearnPromo { dismissLearnPromo }',
+);
+
+/** A login's public Learn record, the same for every reader; null without a public pass. */
+export const LearnRecordDocument = doc<{ learnRecord: LearnRecord | null }, { login: string }>(
+  'query LearnRecord($login: String!) { learnRecord(login: $login) { lessons topics prsOpened prsMerged } }',
+);

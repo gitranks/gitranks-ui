@@ -111,7 +111,12 @@ export function ResultReactions({
       return;
     }
     reportLearnEvent(
-      { kind: 'learn_click', source: 'reaction_clicked', target: reaction === 'YES' ? 'yes' : 'no' },
+      {
+        kind: 'learn_click',
+        event: 'reaction_clicked',
+        source: 'learn_result',
+        detail: reaction === 'YES' ? 'yes' : 'no',
+      },
       slug,
     );
     setPrompt(reaction);

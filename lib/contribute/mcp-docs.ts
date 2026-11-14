@@ -173,7 +173,7 @@ export const MCP_DOC_PLUGINS: Readonly<Record<string, McpDocPlugin>> = {
     label: 'Terminal',
     lines: `gemini extensions install ${MCP_PLUGIN_REPO_URL}`,
     after:
-      'If it asks for a token, leave it empty. Then, in Gemini CLI, run /mcp auth gitranks: your browser opens GitRanks, where you allow it.',
+      'In Gemini CLI, run /mcp auth gitranks: your browser opens GitRanks, where you allow it.',
   },
 };
 

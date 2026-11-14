@@ -166,13 +166,11 @@ describe('mcpTokenNameOf', () => {
 });
 
 describe('the sign-in setups', () => {
-  it('add GitRanks with no token and no header, for every client but Antigravity', () => {
-    expect(MCP_SIGN_IN_SETUPS.map(({ client }) => client)).toEqual(['claude-code', 'codex', 'cursor', 'gemini-cli']);
-    expect(mcpSignInSetupOf('antigravity', 'mac')).toBeNull();
+  it('add GitRanks with no token and no header, for every client', () => {
+    expect(MCP_SIGN_IN_SETUPS.map(({ client }) => client)).toEqual([...MCP_CLIENTS]);
     for (const os of ['mac', 'linux', 'windows'] as const) {
       for (const client of MCP_CLIENTS) {
         const setup = mcpSignInSetupOf(client, os);
-        if (!setup) continue;
         expect(setup.lines, `${client} ${os}`).toContain(MCP_URL);
         expect(setup.lines, `${client} ${os}`).not.toMatch(/Authorization|Bearer|GITRANKS_MCP_TOKEN|header/i);
         expect(setup.where, `${client} ${os}`).toContain('your browser opens GitRanks');
@@ -182,18 +180,31 @@ describe('the sign-in setups', () => {
   });
 
   it('gives each client the line its own docs name', () => {
-    expect(mcpSignInSetupOf('claude-code', 'mac')?.lines).toBe(
+    expect(mcpSignInSetupOf('claude-code', 'mac').lines).toBe(
       `claude mcp add --scope user --transport http gitranks ${MCP_URL}`,
     );
-    expect(mcpSignInSetupOf('claude-code', 'mac')?.where).toContain('/mcp');
-    expect(mcpSignInSetupOf('codex', 'mac')?.lines).toBe(
+    expect(mcpSignInSetupOf('claude-code', 'mac').where).toContain('/mcp');
+    expect(mcpSignInSetupOf('codex', 'mac').lines).toBe(
       `codex mcp add gitranks --url ${MCP_URL}\ncodex mcp login gitranks`,
     );
-    expect(JSON.parse(mcpSignInSetupOf('cursor', 'mac')?.lines ?? '{}')).toEqual({
+    expect(JSON.parse(mcpSignInSetupOf('cursor', 'mac').lines ?? '{}')).toEqual({
       mcpServers: { gitranks: { url: MCP_URL } },
     });
-    expect(mcpSignInSetupOf('cursor', 'windows')?.label).toBe('%USERPROFILE%\\.cursor\\mcp.json');
-    expect(mcpSignInSetupOf('gemini-cli', 'mac')?.lines).toBe(`gemini mcp add --transport http gitranks ${MCP_URL}`);
-    expect(mcpSignInSetupOf('gemini-cli', 'mac')?.where).toContain('/mcp auth gitranks');
+    expect(mcpSignInSetupOf('cursor', 'windows').label).toBe('%USERPROFILE%\\.cursor\\mcp.json');
+    expect(mcpSignInSetupOf('gemini-cli', 'mac').lines).toBe(`gemini mcp add --transport http gitranks ${MCP_URL}`);
+    expect(mcpSignInSetupOf('gemini-cli', 'mac').where).toContain('/mcp auth gitranks');
+  });
+
+  it("signs Antigravity in from the agent window's Customizations, and warns off the main window's Authenticate", () => {
+    const setup = mcpSignInSetupOf('antigravity', 'mac');
+    expect(JSON.parse(setup.lines)).toEqual({ mcpServers: { gitranks: { serverUrl: MCP_URL } } });
+    expect(setup).toMatchObject({ label: '~/.gemini/config/mcp_config.json', file: true });
+    expect(mcpSignInSetupOf('antigravity', 'windows').label).toBe('%USERPROFILE%\\.gemini\\config\\mcp_config.json');
+    expect(setup.where).toContain('Manage MCP Servers → View raw config');
+    expect(setup.where).toContain(
+      "in the agent's window, click Customizations, scroll down to MCP servers and click Sign in next to gitranks",
+    );
+    expect(setup.where).toContain("Not the Authenticate button on the main window's Manage MCP servers page");
+    expect(setup.check).toContain('Customizations');
   });
 });

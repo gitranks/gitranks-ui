@@ -53,8 +53,12 @@ describe('agents.md', () => {
     expect(doc).toContain('codex mcp login gitranks');
     const signIns = doc.slice(doc.indexOf('## Connect\n'), doc.indexOf('## Connect with a token'));
     expect(signIns).toContain('codex mcp login gitranks');
-    // Antigravity is named there, its token setup only under the tokens.
-    expect(signIns).toContain("### Antigravity\n\nCan't sign in yet: see Connect with a token.");
+    // Antigravity signs in from the agent window's Customizations, never the main window's Authenticate button.
+    expect(signIns).toContain('### Antigravity');
+    expect(signIns).toContain('"serverUrl": "https://mcp.gitranks.com/mcp"');
+    expect(signIns).toContain('click Customizations, scroll down to MCP servers and click Sign in next to gitranks');
+    expect(signIns).toContain("Not the Authenticate button on the main window's Manage MCP servers page");
+    expect(doc).not.toContain("Can't sign in yet");
     expect(signIns).not.toContain('<your GitRanks token>');
   });
 

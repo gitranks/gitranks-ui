@@ -203,7 +203,7 @@ function SetupBlock({ where, lines, file }: { where: string; lines: string; file
 
 /**
  * Ready-made setup for each client, reading the token from the environment. `signIn`: agents sign in with GitHub, so
- * a client's sign-in comes first and its token setup sits in a fold under it (Antigravity keeps the token).
+ * a client's sign-in comes first and its token setup sits in a fold under it.
  */
 export function SetupLines({ signIn = false }: { signIn?: boolean }) {
   const [client, setClient] = useState<McpClient>('claude-code');
@@ -357,8 +357,7 @@ export function OwnAgentSection({
               <SetupLines signIn />
               {heading('Personal tokens')}
               <p className="text-sm text-muted-foreground">
-                For Antigravity, scripts, or a client that can&apos;t sign in. Pick the client above for its token
-                setup.
+                For scripts, or a client that can&apos;t sign in. Pick the client above for its token setup.
               </p>
               {created ? <NewToken token={created} onDone={() => setCreated(null)} /> : null}
               {personal.length ? <TokenList tokens={personal} now={now} /> : null}

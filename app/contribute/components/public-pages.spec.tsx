@@ -28,7 +28,7 @@ const text = (html: string) =>
     .replace(/\s+/g, ' ');
 
 describe('the MCP docs, sign-in first', () => {
-  it('lead each client with its sign-in, its token setup in a fold; Antigravity keeps the token; claude.ai joins', () => {
+  it('lead each client with its sign-in, its token setup in a fold; claude.ai joins', () => {
     const html = renderToStaticMarkup(<McpDocsScreen />);
     const plain = text(html);
     expect(plain).toContain('GitHub, in your browser');
@@ -38,10 +38,13 @@ describe('the MCP docs, sign-in first', () => {
     expect(html).toContain('id="claude-app"');
     expect(plain).toContain('Add custom connector');
     expect(plain).toContain('"servers"');
-    // Four agents and VS Code fold their token setup; Antigravity and claude.ai have one way only.
-    expect(html.match(/data-token-fold/g)).toHaveLength(5);
-    expect(html.match(/data-token-only/g)).toHaveLength(1);
-    expect(plain).toContain("Antigravity can't sign in with GitHub yet, so it connects with a personal token");
+    // Five agents and VS Code fold their token setup; claude.ai signs in only.
+    expect(html.match(/data-token-fold/g)).toHaveLength(6);
+    expect(html).not.toContain('data-token-only');
+    expect(plain).not.toContain("can't sign in with GitHub yet");
+    // Antigravity signs in from the agent window, and the page warns off the main window's Authenticate button.
+    expect(plain).toContain('click Sign in next to gitranks');
+    expect(plain).toContain("Not the Authenticate button on the main window's Manage MCP servers page");
     // The token steps sit in a fold of their own, after the sign-in.
     expect(html.indexOf('data-sign-in-start')).toBeLessThan(html.indexOf('data-token-start'));
   });
@@ -88,7 +91,7 @@ describe('the MCP docs, one click and more clients', () => {
     expect(plain).toContain('npx -y mcp-remote https://mcp.gitranks.com/mcp --transport http-only');
     // Docs only: the connect flow's clients are unchanged, and the new ones get no token setup.
     expect(MCP_CLIENTS).toEqual(['claude-code', 'codex', 'cursor', 'gemini-cli', 'antigravity']);
-    expect(html.match(/data-token-fold/g)).toHaveLength(5);
+    expect(html.match(/data-token-fold/g)).toHaveLength(6);
   });
 
   it('show the plugin for Claude Code and Gemini CLI only behind its switch', () => {

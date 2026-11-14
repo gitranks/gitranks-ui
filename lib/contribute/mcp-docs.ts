@@ -85,11 +85,10 @@ export const MCP_DOC_CLIENTS: readonly McpDocClient[] = [...MCP_CLIENTS.map(conn
 /** A client's setup when agents sign in with GitHub: no token, the agent opens GitRanks in the browser to allow it. */
 export type McpDocSignIn = Omit<McpDocClient, 'id' | 'name'>;
 
-/** A client the connect flow knows, signing in; null for one that connects with a token only. */
-function connectSignInOf(client: McpClient): McpDocSignIn | null {
+/** A client the connect flow knows, signing in. */
+function connectSignInOf(client: McpClient): McpDocSignIn {
   const unix = mcpSignInSetupOf(client, 'mac');
   const windows = mcpSignInSetupOf(client, 'windows');
-  if (!unix || !windows) return null;
   return {
     where: unix.where,
     label: unix.label,
@@ -111,12 +110,9 @@ const VS_CODE_SIGN_IN: McpDocSignIn = {
   lines: JSON.stringify({ servers: { gitranks: { type: 'http', url: MCP_URL } } }, null, 2),
 };
 
-/** Each client's sign-in setup by its id; a client without one (Antigravity) is left out. */
+/** Each client's sign-in setup by its id. */
 export const MCP_DOC_SIGN_INS: Readonly<Record<string, McpDocSignIn>> = Object.fromEntries([
-  ...MCP_CLIENTS.flatMap((client) => {
-    const setup = connectSignInOf(client);
-    return setup ? [[client, setup] as const] : [];
-  }),
+  ...MCP_CLIENTS.map((client) => [client, connectSignInOf(client)] as const),
   [VS_CODE.id, VS_CODE_SIGN_IN],
 ]);
 
@@ -172,8 +168,7 @@ export const MCP_DOC_PLUGINS: Readonly<Record<string, McpDocPlugin>> = {
     where: 'Run this once.',
     label: 'Terminal',
     lines: `gemini extensions install ${MCP_PLUGIN_REPO_URL}`,
-    after:
-      'In Gemini CLI, run /mcp auth gitranks: your browser opens GitRanks, where you allow it.',
+    after: 'In Gemini CLI, run /mcp auth gitranks: your browser opens GitRanks, where you allow it.',
   },
 };
 

@@ -47,7 +47,7 @@ describe('the way back from a reaction sign-in', () => {
     const store = deferred();
     const prompt = vi.fn();
     const clean = vi.fn();
-    const done = settleReturnedPick(true, { store: () => store.promise, prompt, clean });
+    const done = settleReturnedPick({ canReact: true }, { store: () => store.promise, prompt, clean });
     await Promise.resolve();
     expect(clean).not.toHaveBeenCalled();
     store.resolve();
@@ -60,12 +60,24 @@ describe('the way back from a reaction sign-in', () => {
     const store = vi.fn();
     const prompt = vi.fn();
     const clean = vi.fn();
-    const done = settleReturnedPick(false, { store, prompt, clean });
+    const done = settleReturnedPick({ canReact: false }, { store, prompt, clean });
     expect(prompt).toHaveBeenCalledOnce();
     expect(clean).not.toHaveBeenCalled();
     await done;
     expect(clean).toHaveBeenCalledOnce();
     expect(store).not.toHaveBeenCalled();
+  });
+
+  it("for the result's own person, neither stores nor asks: only cleans the address, after the mount", async () => {
+    const store = vi.fn();
+    const prompt = vi.fn();
+    const clean = vi.fn();
+    const done = settleReturnedPick({ canReact: true, own: true }, { store, prompt, clean });
+    expect(clean).not.toHaveBeenCalled();
+    await done;
+    expect(clean).toHaveBeenCalledOnce();
+    expect(store).not.toHaveBeenCalled();
+    expect(prompt).not.toHaveBeenCalled();
   });
 
   it("drops the query through the history alone, keeping the path, the hash and the history's state", () => {

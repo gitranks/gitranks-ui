@@ -13,7 +13,13 @@ import { reportLearnEvent } from '@/components/contribute-click-tracker/contribu
 import { Button } from '@/components/ui/button';
 import { MAINTAINERS_REPORT_PATH } from '@/lib/contribute/contribute-path';
 import type { LessonReaction, LessonResultReaction } from '@/lib/learn/learn.types';
-import { reactionRoleOf, reactionWordsOf } from '@/lib/learn/lesson-public';
+import {
+  ownResultLineOf,
+  reactionErrorMessage,
+  reactionOutcomeOf,
+  reactionRoleOf,
+  reactionWordsOf,
+} from '@/lib/learn/lesson-public';
 import { dropReturnQuery, settleReturnedPick } from '@/lib/learn/react-return';
 import { cn } from '@/lib/utils';
 
@@ -28,17 +34,12 @@ const reportHrefOf = (repo: string | null, pr: number | null) =>
     ? `${MAINTAINERS_REPORT_PATH}?pr=${encodeURIComponent(`${repo}#${pr}`)}`
     : MAINTAINERS_REPORT_PATH) as Route;
 
-const FAILED: Record<string, string> = {
-  RATE_LIMITED: 'You have sent the most answers we take in a day. Try again tomorrow.',
-  NOT_OURS: 'This result is no longer on GitRanks.',
-  NOT_AVAILABLE_YET: 'This is not available yet. It is coming soon.',
-};
-
 /**
  * "Did this help you review the pull request?" on a result page, for everyone. With the light GitHub sign-in a click
  * is stored at once, with the person's name and role on the repository. Without it the click is counted (never shown),
  * and the page asks for the sign-in, which comes back with the pick in its address and stores it with no second click
- * (`returned`). The signed-in reactions are listed under the buttons.
+ * (`returned`). The signed-in reactions are listed under the buttons. The result's own person (`own`, or the API's
+ * `OWN_PR` answer) sees a line saying so in place of the buttons: their result takes no reaction.
  */
 export function ResultReactions({
   slug,
@@ -50,6 +51,8 @@ export function ResultReactions({
   mine: firstMine,
   returned,
   prompt: firstPrompt = null,
+  own: firstOwn = false,
+  author = false,
 }: {
   slug: string;
   /** The result page's login. */
@@ -65,12 +68,25 @@ export function ResultReactions({
   returned: LessonReaction | null;
   /** The sign-in prompt, open for this pick (the catalogue's board). */
   prompt?: LessonReaction | null;
+  /** The signed-in visitor is the result's own person. */
+  own?: boolean;
+  /** The result is the lesson author's, whose pull request it is (the own person's line names it). */
+  author?: boolean;
 }) {
   const [reactions, setReactions] = useState<readonly LessonResultReaction[]>(firstReactions);
   const [mine, setMine] = useState<LessonReaction | null>(firstMine);
   const [prompt, setPrompt] = useState<LessonReaction | null>(firstPrompt);
+  const [own, setOwn] = useState(firstOwn);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // The own person's line takes the focus when a click turned the buttons into it, so it is not lost with them.
+  const ownLine = useRef<HTMLParagraphElement>(null);
+  const focusOwnLine = useRef(false);
+  useEffect(() => {
+    if (!own || !focusOwnLine.current) return;
+    focusOwnLine.current = false;
+    ownLine.current?.focus();
+  }, [own]);
 
   /** Sends one pick and shows its answer. */
   const send = async (reaction: LessonReaction, ask: typeof reactToLessonResult) => {
@@ -79,22 +95,29 @@ export function ResultReactions({
     try {
       result = await ask(slug, login, reaction);
     } catch {
-      setError('Something went wrong. Try again in a minute.');
+      setError(reactionErrorMessage('FAILED'));
       return;
     }
-    if (result.ok) {
-      setMine(reaction);
-      setReactions(result.data);
-      setPrompt(null);
-      return;
+    const outcome = reactionOutcomeOf(result, ask === reactOnReturn);
+    switch (outcome.kind) {
+      case 'stored':
+        setMine(reaction);
+        setReactions(outcome.reactions);
+        setPrompt(null);
+        return;
+      case 'prompt':
+        setPrompt(reaction);
+        return;
+      case 'own':
+        focusOwnLine.current = true;
+        setOwn(true);
+        setPrompt(null);
+        return;
+      case 'silent':
+        return;
+      case 'error':
+        setError(outcome.message);
     }
-    if (result.error === 'SIGNED_OUT') {
-      setPrompt(reaction);
-      return;
-    }
-    // A pick back from a sign-in this browser did not start is not stored: nothing to say about it.
-    if (ask === reactOnReturn && result.error === 'INVALID') return;
-    setError(FAILED[result.error] ?? 'Something went wrong. Try again in a minute.');
   };
 
   const store = (reaction: LessonReaction, ask: typeof reactToLessonResult) =>
@@ -108,11 +131,14 @@ export function ResultReactions({
     if (!returned || returnedOnce.current) return;
     returnedOnce.current = true;
     startTransition(() =>
-      settleReturnedPick(canReact, {
-        store: () => send(returned, reactOnReturn),
-        prompt: () => setPrompt(returned),
-        clean: () => dropReturnQuery(window),
-      }),
+      settleReturnedPick(
+        { canReact, own },
+        {
+          store: () => send(returned, reactOnReturn),
+          prompt: () => setPrompt(returned),
+          clean: () => dropReturnQuery(window),
+        },
+      ),
     );
   }, []);
 
@@ -138,23 +164,32 @@ export function ResultReactions({
       <h2 className="text-base font-semibold" id={`react-${slug}`}>
         Did this help you review the pull request?
       </h2>
-      <fieldset className="m-0 flex flex-wrap gap-2 border-0 p-0" aria-labelledby={`react-${slug}`}>
-        {BUTTONS.map(({ value, label, Icon }) => (
-          <Button
-            key={value}
-            type="button"
-            variant="outline"
-            aria-pressed={mine === value || prompt === value}
-            disabled={pending}
-            onClick={() => click(value)}
-            className={cn('max-sm:min-h-11', (mine === value || prompt === value) && 'border-primary bg-brand-soft/40')}
-          >
-            <Icon aria-hidden="true" className="size-4" />
-            {label}
-          </Button>
-        ))}
-      </fieldset>
-      {prompt ? (
+      {own ? (
+        <p ref={ownLine} tabIndex={-1} className="text-sm text-muted-foreground outline-none" data-own-result="">
+          {ownResultLineOf(author)}
+        </p>
+      ) : (
+        <fieldset className="m-0 flex flex-wrap gap-2 border-0 p-0" aria-labelledby={`react-${slug}`}>
+          {BUTTONS.map(({ value, label, Icon }) => (
+            <Button
+              key={value}
+              type="button"
+              variant="outline"
+              aria-pressed={mine === value || prompt === value}
+              disabled={pending}
+              onClick={() => click(value)}
+              className={cn(
+                'max-sm:min-h-11',
+                (mine === value || prompt === value) && 'border-primary bg-brand-soft/40',
+              )}
+            >
+              <Icon aria-hidden="true" className="size-4" />
+              {label}
+            </Button>
+          ))}
+        </fieldset>
+      )}
+      {prompt && !own ? (
         <form
           action={signInToReact}
           className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-brand-soft px-4 py-3"
@@ -170,7 +205,7 @@ export function ResultReactions({
           </Button>
         </form>
       ) : null}
-      {mine && !prompt ? (
+      {mine && !prompt && !own ? (
         <p className="text-sm text-muted-foreground" role="status">
           Thank you: you {reactionWordsOf(mine)}.
         </p>

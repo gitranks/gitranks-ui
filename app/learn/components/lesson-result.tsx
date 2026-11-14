@@ -14,6 +14,7 @@ import { GithubAvatar } from '@/app/components/landing/landing-ui';
 import { HEADING, Pill } from '@/app/contribute/components/primitives';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
+import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { fullDayLabel } from '@/lib/contribute/maintainers-format';
 import type {
   LessonQuestion,
@@ -26,6 +27,7 @@ import { LEARN_MAINTAINERS_PATH, lessonPath, lessonResultPath, reactionParamOf }
 import {
   askedByStepOf,
   isAuthorOf,
+  isOwnResult,
   passesShown,
   pullRequestOf,
   resultFiguresOf,
@@ -196,6 +198,8 @@ export type ResultViewer = {
   returned: LessonReaction | null;
   /** The sign-in prompt, drawn open (the catalogue's board). */
   prompt?: LessonReaction | null;
+  /** The signed-in visitor is the result's own person, whose result takes no reaction. */
+  own?: boolean;
 };
 
 /**
@@ -244,6 +248,8 @@ export function LessonResultScreen({ result, viewer }: { result: LessonResultPag
             mine={viewer.mine}
             returned={viewer.returned}
             prompt={viewer.prompt}
+            own={viewer.own}
+            author={isAuthorOf(head, result.login)}
           />
           <WhatThisPageIs result={result} />
           <TakeItYourself result={result} />
@@ -254,9 +260,9 @@ export function LessonResultScreen({ result, viewer }: { result: LessonResultPag
 }
 
 /**
- * The page's reads: the result, the same for everyone; a renamed login goes to the account's current one; and, with
- * the light GitHub sign-in, the visitor's reaction. No public passed run, or a hidden lesson, is a 404 (`not-found.tsx`);
- * a removed lesson its stub.
+ * The page's reads: the result, the same for everyone; a renamed login goes to the account's current one; with the
+ * light GitHub sign-in, the visitor's reaction; and whether the signed-in visitor is the result's own person. No public
+ * passed run, or a hidden lesson, is a 404 (`not-found.tsx`); a removed lesson its stub.
  */
 export async function LessonResultView({
   slug,
@@ -276,6 +282,10 @@ export async function LessonResultView({
   // A pick back from the sign-in this browser started for this page; `?react=` on a link alone picks nothing.
   const pick = reactionParamOf(react);
   const returned = pick && (await hasReactionMark(result.head.slug, result.login, pick)) ? pick : null;
-  const { canReact, reaction } = await loadMyResultReaction(result.head.slug, result.login);
-  return <LessonResultScreen result={result} viewer={{ canReact, mine: reaction, returned }} />;
+  // The result's own person takes no reaction: their stored one is not read.
+  const own = isOwnResult(await viewerLogin(), result.login);
+  const { canReact, reaction } = own
+    ? { canReact: false, reaction: null }
+    : await loadMyResultReaction(result.head.slug, result.login);
+  return <LessonResultScreen result={result} viewer={{ canReact, mine: reaction, returned, own }} />;
 }

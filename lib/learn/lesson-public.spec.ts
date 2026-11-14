@@ -13,14 +13,19 @@ import {
 import {
   askedByStepOf,
   isAuthorOf,
+  isOwnResult,
+  ownResultLineOf,
   passesShown,
   publicAnswerOf,
+  reactionErrorMessage,
+  reactionOutcomeOf,
   resultFactsOf,
   resultFiguresOf,
   resultRowsOf,
   stubTextOf,
 } from './lesson-public';
 import { lessonPageMetadata, lessonResultMetadata } from './lesson-seo';
+import type { PrFeedbackErrorCode } from '@/lib/contribute/errors';
 
 describe('the result addresses', () => {
   it('writes a result page and knows it, exactly', () => {
@@ -117,6 +122,58 @@ describe('the public reads', () => {
   it("knows the author's own result", () => {
     expect(isAuthorOf(PUBLIC_HEAD, 'OctoCat')).toBe(true);
     expect(isAuthorOf(PUBLIC_HEAD, 'mona')).toBe(false);
+  });
+
+  it('knows the signed-in person on their own result, whatever the case, and nobody signed out', () => {
+    expect(isOwnResult('OctoCat', 'octocat')).toBe(true);
+    expect(isOwnResult('mona', 'octocat')).toBe(false);
+    expect(isOwnResult(null, 'octocat')).toBe(false);
+    expect(isOwnResult('', 'octocat')).toBe(false);
+  });
+
+  it('answers a refused reaction with its own words, the generic line only for a failure with no cause', () => {
+    const codes: PrFeedbackErrorCode[] = [
+      'SIGNED_OUT',
+      'NOT_OURS',
+      'OWN_PR',
+      'RATE_LIMITED',
+      'FORBIDDEN',
+      'GITHUB_UNAVAILABLE',
+      'INVALID',
+      'NOT_AVAILABLE_YET',
+    ];
+    const generic = reactionErrorMessage('FAILED');
+    expect(generic).toBe('Something went wrong. Try again in a minute.');
+    const words = codes.map(reactionErrorMessage);
+    for (const line of words) expect(line).not.toBe(generic);
+    expect(new Set(words).size).toBe(codes.length);
+    expect(reactionErrorMessage('OWN_PR')).toBe('This is your pull request: only its reviewers answer here.');
+    expect(reactionErrorMessage('OWN_PR')).toBe(ownResultLineOf(true));
+    expect(reactionErrorMessage('RATE_LIMITED')).toContain('Try again tomorrow');
+    expect(reactionErrorMessage('UNKNOWN' as PrFeedbackErrorCode)).toBe(generic);
+  });
+
+  it("names the pull request on the author's own result, and the result on another taker's", () => {
+    expect(ownResultLineOf(true)).toBe('This is your pull request: only its reviewers answer here.');
+    expect(ownResultLineOf(false)).toBe('This is your own result: other people answer here.');
+  });
+
+  it('turns an answer into what the card does', () => {
+    const reactions = [{ login: 'mona', role: 'maintainer', reaction: 'YES' as const }];
+    expect(reactionOutcomeOf({ ok: true, data: reactions }, false)).toEqual({ kind: 'stored', reactions });
+    expect(reactionOutcomeOf({ ok: false, error: 'SIGNED_OUT' }, false)).toEqual({ kind: 'prompt' });
+    expect(reactionOutcomeOf({ ok: false, error: 'OWN_PR' }, false)).toEqual({ kind: 'own' });
+    expect(reactionOutcomeOf({ ok: false, error: 'OWN_PR' }, true)).toEqual({ kind: 'own' });
+    // A pick back from a sign-in this browser did not start says nothing; a click's refusal says why.
+    expect(reactionOutcomeOf({ ok: false, error: 'INVALID' }, true)).toEqual({ kind: 'silent' });
+    expect(reactionOutcomeOf({ ok: false, error: 'INVALID' }, false)).toEqual({
+      kind: 'error',
+      message: reactionErrorMessage('INVALID'),
+    });
+    expect(reactionOutcomeOf({ ok: false, error: 'RATE_LIMITED' }, false)).toEqual({
+      kind: 'error',
+      message: 'You have sent the most answers we take in a day. Try again tomorrow.',
+    });
   });
 
   it('answers the facts of a pass as JSON: who, which lesson and version, when, each step; never a pick', () => {

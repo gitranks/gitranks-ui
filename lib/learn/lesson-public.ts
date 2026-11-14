@@ -11,6 +11,7 @@ import type {
 } from './learn.types';
 import { lessonPath, lessonResultPath } from './learn-path';
 import { isStepDone, partsLabelOf } from './question';
+import type { PrFeedbackErrorCode } from '@/lib/contribute/errors';
 
 /** A public read as the pages use it: the lesson (or result), a stub naming why it is closed, or nothing (a 404). */
 export type PublicAnswer<T> = { kind: 'found'; value: T } | { kind: 'stub'; visibility: LessonVisibility } | null;
@@ -130,6 +131,60 @@ export const reactionWordsOf = (reaction: LessonReaction) =>
 /** "maintainer of driftwood-js/driftwood"; the role alone without a repository. */
 export const reactionRoleOf = (reaction: Pick<LessonResultReaction, 'role'>, repo: string | null) =>
   repo ? `${reaction.role} of ${repo}` : reaction.role;
+
+/**
+ * The line a result page's own person sees in place of the reaction buttons, since their own result takes no reaction:
+ * the lesson's author, whose pull request it is, or another taker of a shared lesson.
+ */
+export const ownResultLineOf = (author: boolean) =>
+  author
+    ? 'This is your pull request: only its reviewers answer here.'
+    : 'This is your own result: other people answer here.';
+
+/**
+ * Whether the signed-in login is the result's own person, who cannot react to it. Best-effort, by login: a session
+ * from before a rename is not recognised (its click is refused with `OWN_PR`, which then shows the same line).
+ */
+export const isOwnResult = (viewer: string | null | undefined, resultLogin: string) =>
+  !!viewer && viewer.toLowerCase() === resultLogin.toLowerCase();
+
+const REACTION_ERRORS: Record<PrFeedbackErrorCode, string> = {
+  SIGNED_OUT: 'GitHub did not accept your sign-in. Sign in again, then send your answer.',
+  NOT_OURS: 'This result is no longer open to answers.',
+  OWN_PR: ownResultLineOf(true),
+  RATE_LIMITED: 'You have sent the most answers we take in a day. Try again tomorrow.',
+  FORBIDDEN: 'This GitHub account cannot answer here.',
+  GITHUB_UNAVAILABLE: 'GitHub did not answer. Try again in a minute.',
+  INVALID: 'This answer was not accepted. Reload the page and pick again.',
+  NOT_AVAILABLE_YET: 'This is not available yet. It is coming soon.',
+  FAILED: 'Something went wrong. Try again in a minute.',
+};
+
+/** The words for a reaction the API refused, by its code. */
+export const reactionErrorMessage = (error: PrFeedbackErrorCode): string =>
+  REACTION_ERRORS[error] ?? REACTION_ERRORS.FAILED;
+
+/**
+ * What the reactions card does with an answer: show the stored reactions, ask for the sign-in again, show the own
+ * person's line, say nothing (a pick back from a sign-in this browser did not start), or say why it failed.
+ */
+export type ReactionOutcome =
+  | { kind: 'stored'; reactions: LessonResultReaction[] }
+  | { kind: 'prompt' }
+  | { kind: 'own' }
+  | { kind: 'silent' }
+  | { kind: 'error'; message: string };
+
+export function reactionOutcomeOf(
+  answer: { ok: true; data: LessonResultReaction[] } | { ok: false; error: PrFeedbackErrorCode },
+  returning: boolean,
+): ReactionOutcome {
+  if (answer.ok) return { kind: 'stored', reactions: answer.data };
+  if (answer.error === 'SIGNED_OUT') return { kind: 'prompt' };
+  if (answer.error === 'OWN_PR') return { kind: 'own' };
+  if (returning && answer.error === 'INVALID') return { kind: 'silent' };
+  return { kind: 'error', message: reactionErrorMessage(answer.error) };
+}
 
 /** A step state as the JSON form writes it: lower case, as stored. */
 const jsonStateOf = (state: LessonStepResult['state']) => state.toLowerCase();

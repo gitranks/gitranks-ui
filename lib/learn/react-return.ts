@@ -25,12 +25,13 @@ export async function storeThenClean(store: () => Promise<unknown>, clean: () =>
 
 /**
  * The pick back from the sign-in, on arrival: stored with the sign-in's token, else (the sign-in did not keep one)
- * asked for again. Either way the address is cleaned after, never while the page is still mounting or the store is on
- * its way.
+ * asked for again; for the result's own person (`own`), neither, since their result takes no reaction. Either way the
+ * address is cleaned after, never while the page is still mounting or the store is on its way.
  */
 export function settleReturnedPick(
-  canReact: boolean,
+  { canReact, own = false }: { canReact: boolean; own?: boolean },
   { store, prompt, clean }: { store: () => Promise<unknown>; prompt: () => void; clean: () => void },
 ): Promise<void> {
+  if (own) return storeThenClean(async () => undefined, clean);
   return storeThenClean(canReact ? store : async () => prompt(), clean);
 }

@@ -13,9 +13,10 @@ export const LEARN_MAINTAINERS_PATH = '/learn/maintainers' as Route;
 export const learnAttemptPath = (attemptId: string) => `/learn/attempts/${encodeURIComponent(attemptId)}` as Route;
 
 /**
- * Whether Learn is open to visitors without a session. Off while Learn is open only to the people the API lets in: the
- * proxy answers a visitor's request for a closed Learn page with a 404, and the home page leaves out its Learn section.
- * Turning it on lets visitors past the proxy and shows the section; each page keeps its own check of who it is open to.
+ * Whether Learn's front door is open to visitors without a session. Off while Learn is open only to the people the API
+ * lets in: the proxy answers a visitor's `/learn` with a 404, and the home page leaves out its Learn section. Turning it
+ * on opens both: the proxy lets visitors through to `/learn`, which shows them its visitor version, and the home page
+ * shows the section that links there. Learn's other closed pages stay closed to visitors.
  */
 export const LEARN_OPEN_TO_VISITORS = false as boolean;
 
@@ -47,6 +48,9 @@ export function isLearnPath(pathname: string): boolean {
 export const isLearnOpenPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+learn\/+maintainers\/?$/i) ||
   decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i);
+
+/** Learn's front door, `/learn`, in any spelling the router reads as it. */
+export const isLearnHomePath = (pathname: string): boolean => decodedMatches(pathname, /^\/+learn\/?$/i);
 
 /** The Learn pages that show no tabs: the ones open to every visitor. */
 export const isLearnTablessPath = isLearnOpenPath;

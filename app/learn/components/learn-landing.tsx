@@ -6,8 +6,9 @@ import { ExampleLessonCard } from './example-lesson-card';
 import { LearnSignInButton } from './learn-sign-in';
 import { H2, MUTED_SECTION, WIDTH } from '@/app/contribute/components/landing';
 import { buttonVariants } from '@/components/ui/button';
+import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
-import { LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
+import { LEARN_MAINTAINERS_PATH, LEARN_OPEN_TO_VISITORS, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
 
 /** Who reads the front door: a visitor signs in first, a signed-in user goes straight to Goal and level. */
@@ -232,8 +233,12 @@ export function LearnLanding({ viewer }: { viewer: LearnLandingViewer }) {
   );
 }
 
-/** The front door, behind Learn's gate: not found for anyone Learn is not open to (a visitor never gets this far). */
+/**
+ * The front door, behind Learn's gate: not found for anyone Learn is not open to. A visitor gets this far only once the
+ * front door is open to visitors, and then reads its visitor version.
+ */
 export async function LearnHomeView() {
-  if (!(await loadLearnOpen())) notFound();
-  return <LearnLanding viewer="signed-in" />;
+  if (await loadLearnOpen()) return <LearnLanding viewer="signed-in" />;
+  if (LEARN_OPEN_TO_VISITORS && !(await viewerLogin())) return <LearnLanding viewer="visitor" />;
+  notFound();
 }

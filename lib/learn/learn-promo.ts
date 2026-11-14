@@ -1,6 +1,7 @@
 import type { LearnPromo, LearnPromoIssue, LearnPromoPlacement, LearnRecord } from './learn.types';
 import { githubLoginOf } from './learn-path';
 import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
+import type { OwnerIssue } from '@/app/profile/[login]/components/profile-contribute-block';
 import { isProfileOwner } from '@/lib/contribute/profile-issues';
 
 /**
@@ -127,3 +128,13 @@ export function languageColorsOf(
   }
   return colors;
 }
+
+/** An issue of the suggestion as the owner's blocks list it: its issue on GitHub, its language, the lesson's topic. */
+export const ownerIssueOf = (issue: LearnPromoIssue, colors?: Readonly<Record<string, string>>): OwnerIssue => ({
+  repo: issue.repo,
+  number: issue.number,
+  url: `https://github.com/${issue.repo}/issues/${issue.number}`,
+  title: issue.title,
+  language: issue.language ? { name: issue.language, color: languageColorOf(issue.language, colors) } : null,
+  why: issue.topic ? `Lesson: ${issue.topic}` : null,
+});

@@ -153,6 +153,13 @@ export const PROFILE_SCREENS: Screen[] = [
         render: () => learn(false),
       },
       {
+        id: 'owner-promo-no-issues',
+        title: 'The owner Learn may suit, no issues to list',
+        path: `/profile/${strongProfile.login}`,
+        height: 240,
+        render: () => alone(<ProfileLearnBlock promo={{ ...profilePromo, issues: [] }} />),
+      },
+      {
         id: 'record',
         title: 'The Learn record, as anyone reads it',
         path: `/profile/${strongProfile.login}`,

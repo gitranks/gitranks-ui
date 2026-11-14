@@ -6,6 +6,7 @@ import {
   learnPromoUrl,
   learnRecordOf,
   learnRecordUrl,
+  ownerIssueOf,
   promoPlacementOf,
   promoTitleOf,
   reasonLineOf,
@@ -95,6 +96,20 @@ describe('which Learn suggestion shows', () => {
     expect(languageColorOf('TypeScript', colors)).toBe('#3178c6');
     expect(languageColorOf('Go', colors)).toBe(DEFAULT_LANGUAGE_COLOR);
     expect(languageColorOf(null)).toBe(DEFAULT_LANGUAGE_COLOR);
+  });
+});
+
+describe("the suggestion's issues as the owner's block lists them", () => {
+  it('links the issue on GitHub, colours its language and names the lesson', () => {
+    expect(ownerIssueOf(issue(7), { typescript: '#3178c6' })).toEqual({
+      repo: 'o/r',
+      number: 7,
+      url: 'https://github.com/o/r/issues/7',
+      title: 'Issue 7',
+      language: { name: 'TypeScript', color: '#3178c6' },
+      why: 'Lesson: cache keys',
+    });
+    expect(ownerIssueOf({ ...issue(8), language: null, topic: null })).toMatchObject({ language: null, why: null });
   });
 });
 

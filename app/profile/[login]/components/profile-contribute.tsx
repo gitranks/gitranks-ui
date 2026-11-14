@@ -60,15 +60,28 @@ export function ProfileContribute({ login, colors }: { login: string; colors?: R
   }, [viewer, profile]);
 
   if (!owner) return null;
-  if (learn) {
-    // "Not for me": Learn's suggestion goes for good, and Contribute's block takes its place.
-    const dismiss = () => {
-      reportPromo('promo_dismissed', 'learn_promo_profile');
-      setLearn(null);
-      void dismissLearnPromo().catch(() => {});
-    };
-    return <ProfileLearnBlock promo={learn} onDismiss={dismiss} colors={colors} />;
-  }
+  // "Not for me": Learn's suggestion goes for good, and Contribute's block takes its place.
+  const dismiss = () => {
+    reportPromo('promo_dismissed', 'learn_promo_profile');
+    setLearn(null);
+    void dismissLearnPromo().catch(() => {});
+  };
+  return <OwnerSuggestionView answer={answer} learn={learn} onDismiss={dismiss} colors={colors} />;
+}
+
+/** The owner's one suggestion, as drawn: Learn's when it may suit them, else Contribute's block for its answer. */
+export function OwnerSuggestionView({
+  answer,
+  learn,
+  onDismiss,
+  colors,
+}: {
+  answer: OwnProfileBlockAnswer;
+  learn: ShownPromo | null;
+  onDismiss?: () => void;
+  colors?: Readonly<Record<string, string>>;
+}) {
+  if (learn) return <ProfileLearnBlock promo={learn} onDismiss={onDismiss} colors={colors} />;
   return <ProfileContributeView answer={answer} />;
 }
 

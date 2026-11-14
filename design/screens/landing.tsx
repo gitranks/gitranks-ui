@@ -59,6 +59,14 @@ export const LANDING_SCREENS: Screen[] = [
         render: () => <LandingScreen {...landingData} learn={{ promo: landingPromo }} />,
       },
       {
+        id: 'likely-learner-phone',
+        title: 'Signed in, Learn suggested in place of Contribute · phone',
+        path: '/',
+        width: 390,
+        height: 6500,
+        render: () => <LandingScreen {...landingData} learn={{ promo: landingPromo }} />,
+      },
+      {
         id: 'signed-out-phone',
         title: 'Signed out · phone',
         path: '/',

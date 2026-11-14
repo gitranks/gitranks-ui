@@ -4,42 +4,13 @@ import { ArrowRight, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import type { FC } from 'react';
 
+import { OwnerIssueRow } from './profile-contribute-block';
 import { reportPromo, usePromoShown } from '@/app/learn/components/use-promo-report';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { contributeSource } from '@/lib/contribute/click-tracking';
-import type { LearnPromoIssue } from '@/lib/learn/learn.types';
 import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
-import { languageColorOf, promoTitleOf, reasonLineOf, type ShownPromo } from '@/lib/learn/learn-promo';
+import { ownerIssueOf, promoTitleOf, reasonLineOf, type ShownPromo } from '@/lib/learn/learn-promo';
 import { cn } from '@/lib/utils';
-
-/** One issue, drawn like the Contribute block's rows: the title, then the repository, its language and the lesson. */
-const IssueRow: FC<{ issue: LearnPromoIssue; colors?: Readonly<Record<string, string>> }> = ({ issue, colors }) => (
-  <article data-issue={`${issue.repo}#${issue.number}`} className="flex min-w-0 flex-col gap-1.5 px-4 py-3">
-    <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">{issue.title}</span>
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-      <span className="truncate">
-        <span className="sr-only">Repository: </span>
-        {issue.repo} <span className="font-mono text-muted-foreground tabular-nums">#{issue.number}</span>
-      </span>
-      {issue.language ? (
-        <span className="flex items-center gap-1.5">
-          <span
-            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-border"
-            style={{ backgroundColor: languageColorOf(issue.language, colors) }}
-            aria-hidden
-          />
-          {issue.language}
-        </span>
-      ) : null}
-      {issue.topic ? (
-        <span className="flex min-w-0 items-center gap-1 text-muted-foreground">
-          <GraduationCap className="size-4 shrink-0" aria-hidden />
-          Lesson: {issue.topic}
-        </span>
-      ) : null}
-    </div>
-  </article>
-);
 
 /**
  * GitRanks Learn suggested on the signed-in owner's own profile, in the Contribute block's place and frame ("only you
@@ -103,7 +74,11 @@ export const ProfileLearnBlock: FC<{
       {promo.issues.length ? (
         <div className="flex flex-col divide-y rounded-lg border bg-card text-card-foreground">
           {promo.issues.map((issue) => (
-            <IssueRow key={`${issue.repo}#${issue.number}`} issue={issue} colors={colors} />
+            <OwnerIssueRow
+              key={`${issue.repo}#${issue.number}`}
+              issue={ownerIssueOf(issue, colors)}
+              whyIcon={GraduationCap}
+            />
           ))}
         </div>
       ) : null}

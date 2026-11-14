@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { LEARN_SETTING_UP_TEXT, LearnSetupRefresh } from './learn-setting-up';
+import { LearnSetupRefresh } from './learn-setting-up';
 import { LearnViewReport } from './learn-view-report';
 import type { LessonFlowStart } from './lesson-flow';
 import { LessonEyebrow, LessonMeta } from './lesson-header';
@@ -12,6 +12,7 @@ import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { loadLearnOpen, loadLearnSetup } from '@/lib/learn/learn.data';
 import type { LessonPage, LessonRun } from '@/lib/learn/learn.types';
 import { lessonPath } from '@/lib/learn/learn-path';
+import { LEARN_SETTING_UP_TEXT } from '@/lib/learn/lesson-format';
 import { passesShown } from '@/lib/learn/lesson-public';
 import { loadLessonPage, loadMyLessonRun } from '@/lib/learn/lesson-public.data';
 
@@ -100,7 +101,7 @@ export async function LessonPageView({ slug }: { slug: string }) {
   const login = await viewerLogin();
   if (!login) return <LessonPageScreen page={answer.value} viewer={{ kind: 'visitor' }} />;
   if (!(await loadLearnOpen())) return <LessonPageScreen page={answer.value} viewer={{ kind: 'reader', login }} />;
-  if (await loadLearnSetup()) return <LessonPageScreen page={answer.value} viewer={{ kind: 'setup', login }} />;
-  const run = await loadMyLessonRun(answer.value.head.slug);
+  const [settingUp, run] = await Promise.all([loadLearnSetup(), loadMyLessonRun(answer.value.head.slug)]);
+  if (settingUp) return <LessonPageScreen page={answer.value} viewer={{ kind: 'setup', login }} />;
   return <LessonPageScreen page={answer.value} viewer={{ kind: 'taker', login, run }} />;
 }

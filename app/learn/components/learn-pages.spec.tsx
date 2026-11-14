@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
@@ -141,8 +141,13 @@ describe("Learn's gate on its own pages", () => {
     data.loadOwnAgent.mockResolvedValue(undefined);
   };
 
+  afterEach(() => {
+    data.loadLearnSetup.mockReset();
+  });
+
   it('answers not found to anyone Learn is not open to, whatever the other reads do', async () => {
     closed();
+    data.loadLearnSetup.mockResolvedValue(true);
     await expect(LearnHomeView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(MyLessonsView()).rejects.toThrow('NEXT_NOT_FOUND');
@@ -159,7 +164,6 @@ describe("Learn's gate on its own pages", () => {
       expect(text(html)).toContain('Setting up your GitRanks account. This takes about a minute. Refresh');
       expect(html).not.toContain('data-learn-profile=');
     }
-    data.loadLearnSetup.mockResolvedValue(false);
   });
 
   it('draws the pages for a user Learn is open to', async () => {

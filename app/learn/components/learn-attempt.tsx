@@ -19,7 +19,7 @@ import {
 import { DiffViewer } from '@/app/contribute/components/diff-viewer';
 import { CardError, DiscardAttemptButton } from '@/app/contribute/components/head-actions';
 import { PrForm } from '@/app/contribute/components/pr-form';
-import { HEADING } from '@/app/contribute/components/primitives';
+import { HEADING, PageTitle } from '@/app/contribute/components/primitives';
 import { prFormPropsOf } from '@/app/contribute/components/review-view';
 import { SendBackForm } from '@/app/contribute/components/send-back-form';
 import { SessionActionsProvider } from '@/app/contribute/components/session-actions';
@@ -350,7 +350,14 @@ export async function LearnAttemptView({ params }: { params: Promise<{ id: strin
     loadAttemptLesson(id),
   ]);
   // A new account's GitRanks account is still being set up: no attempt of theirs can be read until it is.
-  if (open && settingUp) return <LearnSettingUp />;
+  if (open && settingUp) {
+    return (
+      <>
+        <PageTitle title="Your lesson" />
+        <LearnSettingUp />
+      </>
+    );
+  }
   if (!open || !view || !attempt) notFound();
   if (attempt.mode === 'FIX' || !lesson) {
     if (attempt.mode === 'FIX') redirect(attemptPath(attempt.attemptId));

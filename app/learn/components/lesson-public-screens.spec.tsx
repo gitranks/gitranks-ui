@@ -119,17 +119,18 @@ describe('a shared lesson', () => {
 
     vi.mocked(viewerLogin).mockResolvedValue('mona');
     vi.mocked(loadLearnOpen).mockResolvedValue(false);
+    // A reader stays a reader whatever the setup answer: Learn is not open to them.
+    vi.mocked(loadLearnSetup).mockResolvedValue(true);
     expect(renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' }))).toContain(
       'data-viewer="reader"',
     );
     expect(data.loadMyLessonRun).not.toHaveBeenCalled();
+    expect(loadLearnSetup).not.toHaveBeenCalled();
 
     vi.mocked(loadLearnOpen).mockResolvedValue(true);
-    vi.mocked(loadLearnSetup).mockResolvedValue(true);
     const setup = renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' }));
     expect(setup).toContain('data-viewer="setup"');
     expect(text(setup)).toContain('Setting up your GitRanks account. This takes about a minute. Refresh');
-    expect(data.loadMyLessonRun).not.toHaveBeenCalled();
 
     vi.mocked(loadLearnSetup).mockResolvedValue(false);
     vi.mocked(data.loadMyLessonRun).mockResolvedValue(null);

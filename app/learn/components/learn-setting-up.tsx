@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
-
-/** What a new account reads while GitRanks sets up its account, before Learn can answer for it. */
-export const LEARN_SETTING_UP_TEXT = 'Setting up your GitRanks account. This takes about a minute.';
+import { LEARN_SETTING_UP_TEXT } from '@/lib/learn/lesson-format';
 
 /** "Refresh": reads the page again, so the setup line goes once the account is ready. */
 export function LearnSetupRefresh({ className }: { className?: string }) {
@@ -22,7 +20,7 @@ export function LearnSetupRefresh({ className }: { className?: string }) {
       onClick={() => startTransition(() => router.refresh())}
     >
       {pending ? (
-        <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+        <Loader2 aria-hidden="true" className="size-4 motion-safe:animate-spin" />
       ) : (
         <RefreshCw aria-hidden="true" className="size-4" />
       )}
@@ -38,12 +36,12 @@ export function LearnSetupRefresh({ className }: { className?: string }) {
 export function LearnSettingUp() {
   return (
     <section
-      aria-live="polite"
+      role="status"
       data-learn-setting-up=""
       className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-brand-soft px-5 py-4"
     >
       <p className="flex min-w-0 items-center gap-2 text-sm">
-        <Loader2 aria-hidden="true" className="size-4 shrink-0 animate-spin text-muted-foreground" />
+        <Loader2 aria-hidden="true" className="size-4 shrink-0 text-muted-foreground motion-safe:animate-spin" />
         <span>{LEARN_SETTING_UP_TEXT}</span>
       </p>
       <LearnSetupRefresh className="shrink-0" />

@@ -29,10 +29,9 @@ const quoted = (text: string) => {
   return `${ticks} ${line} ${ticks}`;
 };
 
-/** One client's setup: where the lines go, then the lines and the line under them, Windows apart where it differs. */
+/** One client's setup: where the lines go, then the lines, Windows apart where it differs, then the line under them. */
 function clientBlock(client: McpDocClient): string[] {
   const out = [`### ${client.name}`, '', client.where, '', `${client.label}:`, '', fence(client.lines)];
-  if (client.after) out.push('', client.after);
   if (client.windows) {
     out.push(
       '',
@@ -43,6 +42,7 @@ function clientBlock(client: McpDocClient): string[] {
       fence(client.windows.lines),
     );
   }
+  if (client.after) out.push('', client.after);
   return [...out, ''];
 }
 

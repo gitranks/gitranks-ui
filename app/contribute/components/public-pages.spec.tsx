@@ -111,13 +111,13 @@ describe('the MCP docs, one click and more clients', () => {
     const chatgptHtml = html.slice(html.indexOf('id="chatgpt"'), html.indexOf('id="copilot-cli"'));
     const chatgpt = text(chatgptHtml);
     expect(chatgpt).toContain(
-      'On chatgpt.com/plugins, press + and choose Add custom MCP server. Name it GitRanks Contribute, paste this URL and choose OAuth for authentication. Tick "I understand and want to continue" and press Create as a plugin.',
+      'On chatgpt.com/plugins, press + and choose Add custom MCP server. Name it GitRanks Contribute, paste this URL and set authentication to OAuth. Confirm the warning with I understand and want to continue, press Create as a plugin, then install it.',
     );
-    expect(chatgpt).toContain('Then pick it with @ in a chat.');
+    expect(chatgpt).toContain('Then start a new chat and pick it with @.');
     expect(chatgpt).toContain('MCP server URL');
     expect(chatgpt).toContain('https://mcp.gitranks.com/mcp');
     expect(chatgpt).toContain(
-      'In ChatGPT, on the web or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell.',
+      'In ChatGPT, on the web, desktop or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell, signed in to the same account: it picks up your claim.',
     );
     expect(chatgptHtml).not.toContain('data-install-link');
     expect(plain).not.toContain('Add to ChatGPT');
@@ -129,7 +129,7 @@ describe('the MCP docs, one click and more clients', () => {
     const html = renderToStaticMarkup(<McpDocsScreen />);
     const codex = html.slice(html.indexOf('id="codex"'), html.indexOf('id="cursor"'));
     const line =
-      'In the Codex app or the IDE extension: Settings → MCP servers → Add server → Streamable HTTP, enter https://mcp.gitranks.com/mcp, then restart Codex.';
+      'In the Codex app or the IDE extension: Settings → MCP servers → Add server → Streamable HTTP, enter https://mcp.gitranks.com/mcp, then restart Codex. If it asks you to sign in, your browser opens GitRanks, where you allow it.';
     expect(text(codex)).toContain(`codex mcp add gitranks --url https://mcp.gitranks.com/mcp codex mcp login gitranks`);
     expect(text(codex).split(line)).toHaveLength(2);
     expect(codex.indexOf(line)).toBeLessThan(codex.indexOf('data-token-fold'));

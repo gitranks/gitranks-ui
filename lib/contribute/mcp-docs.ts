@@ -117,7 +117,7 @@ const VS_CODE_SIGN_IN: McpDocSignIn = {
  * The Codex app and the IDE extension add a server in their settings, not with the CLI's lines (checked 2026-11-14).
  * Docs only: the connect flow sets up the CLI.
  */
-const CODEX_APP = `In the Codex app or the IDE extension: Settings → MCP servers → Add server → Streamable HTTP, enter ${MCP_URL}, then restart Codex.`;
+const CODEX_APP = `In the Codex app or the IDE extension: Settings → MCP servers → Add server → Streamable HTTP, enter ${MCP_URL}, then restart Codex. If it asks you to sign in, your browser opens GitRanks, where you allow it.`;
 
 /** Each client's sign-in setup by its id. */
 export const MCP_DOC_SIGN_INS: Readonly<Record<string, McpDocSignIn>> = Object.fromEntries([
@@ -199,12 +199,12 @@ export const MCP_DOC_MORE_CLIENTS: readonly McpDocClient[] = [
   {
     id: 'chatgpt',
     name: 'ChatGPT',
-    where: `On chatgpt.com/plugins, press + and choose Add custom MCP server. Name it ${MCP_CONNECTOR_NAME}, paste this URL and choose OAuth for authentication. Tick "I understand and want to continue" and press Create as a plugin. ChatGPT asks you to sign in: ${ALLOW} Then pick it with @ in a chat.`,
+    where: `On chatgpt.com/plugins, press + and choose Add custom MCP server. Name it ${MCP_CONNECTOR_NAME}, paste this URL and set authentication to OAuth. Confirm the warning with I understand and want to continue, press Create as a plugin, then install it. ChatGPT asks you to sign in: ${ALLOW} Then start a new chat and pick it with @.`,
     label: 'MCP server URL',
     file: false,
     lines: MCP_URL,
     after:
-      'In ChatGPT, on the web or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell.',
+      'In ChatGPT, on the web, desktop or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell, signed in to the same account: it picks up your claim.',
   },
   {
     id: 'copilot-cli',

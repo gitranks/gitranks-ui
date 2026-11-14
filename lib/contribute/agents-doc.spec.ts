@@ -79,11 +79,15 @@ describe('agents.md', () => {
     expect(signIns).toContain('On chatgpt.com/plugins, press + and choose Add custom MCP server.');
     expect(signIns).toContain('MCP server URL:\n\n```\nhttps://mcp.gitranks.com/mcp\n```');
     expect(signIns).toContain(
-      'In ChatGPT, on the web or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell.',
+      'In ChatGPT, on the web, desktop or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell, signed in to the same account: it picks up your claim.',
     );
     expect(signIns).toContain(
-      'In the Codex app or the IDE extension: Settings → MCP servers → Add server → Streamable HTTP, enter https://mcp.gitranks.com/mcp, then restart Codex.',
+      'In the Codex app or the IDE extension: Settings → MCP servers → Add server → Streamable HTTP, enter https://mcp.gitranks.com/mcp, then restart Codex. If it asks you to sign in, your browser opens GitRanks, where you allow it.',
     );
+    // The app line comes after the CLI's Windows lines, so the Windows part reads as the CLI's.
+    const codex = signIns.slice(signIns.indexOf('### Codex'));
+    expect(codex.indexOf('On Windows: ')).toBeGreaterThan(-1);
+    expect(codex.indexOf('On Windows: ')).toBeLessThan(codex.indexOf('In the Codex app'));
     // No install link for ChatGPT yet, and the token setups don't repeat the Codex app line.
     expect(doc).not.toContain('chatgpt.com/plugins/');
     expect(doc.slice(doc.indexOf('## Connect with a token'))).not.toContain('Codex app');

@@ -194,7 +194,8 @@ export async function RunSessionView({
   const [{ id, runId }, query] = await Promise.all([params, searchParams]);
   const [{ view, attempt }, resolveHumans] = await Promise.all([gate(runId), loadResolveHumanThreads()]);
   if (!attempt) return <ReviewScreen view={view} attempt={undefined} />;
-  if (attempt.kind !== 'FOLLOW_UP' || attempt.followUpOf?.attemptId !== id) redirect(withQuery(attemptPath(runId), query));
+  if (attempt.kind !== 'FOLLOW_UP' || attempt.followUpOf?.attemptId !== id)
+    redirect(withQuery(attemptPath(runId), query));
   const first = await firstOf(attempt);
   const { current, prNotes, replies } = first
     ? await contributionOf(first)

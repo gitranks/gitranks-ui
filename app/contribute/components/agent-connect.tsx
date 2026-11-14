@@ -214,7 +214,7 @@ export function AgentConnectView({
             <span className="flex items-center gap-2.5 text-sm">
               <CheckIcon aria-hidden="true" className="size-4.5 flex-none text-positive" strokeWidth={2.6} />
               <span>
-                <span className="font-semibold">GitRanks added to {name}.</span> It signs in the first time it calls.
+                <span className="font-semibold">GitRanks added to {name}.</span> {signInSetup.added}
               </span>
             </span>
             {connected ? null : (

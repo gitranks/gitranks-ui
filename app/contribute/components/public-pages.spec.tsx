@@ -44,7 +44,7 @@ describe('the MCP docs, sign-in first', () => {
     expect(plain).not.toContain("can't sign in with GitHub yet");
     // Antigravity signs in from the agent window, and the page warns off the main window's Authenticate button.
     expect(plain).toContain('click Sign in next to gitranks');
-    expect(plain).toContain("Not the Authenticate button on the main window's Manage MCP servers page");
+    expect(plain).toContain("Don't use the Authenticate button on the Manage MCP Servers page");
     // The token steps sit in a fold of their own, after the sign-in.
     expect(html.indexOf('data-sign-in-start')).toBeLessThan(html.indexOf('data-token-start'));
   });

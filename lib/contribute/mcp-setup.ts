@@ -205,13 +205,13 @@ export const ANTIGRAVITY_RELOAD =
 const ANTIGRAVITY_RAW_CONFIG = '… at the top of the agent panel → MCP Servers → Manage MCP Servers → View raw config';
 
 /**
- * Antigravity's sign-in button, and the one that looks like it but isn't: "Authenticate" on the main window's Manage
- * MCP servers page only opens Settings → Customizations, which lists no MCP servers (the owner, 2026-11-14).
+ * Antigravity's sign-in button, and the one that looks like it but isn't: "Authenticate" on the Manage MCP servers
+ * page only opens Settings → Customizations, which lists no MCP servers (the owner, 2026-11-14).
  */
 const ANTIGRAVITY_SIGN_IN =
-  "Then, in the agent's window, click Customizations, scroll down to MCP servers and click Sign in next to gitranks";
+  "In the agent's window, click Customizations, scroll down to MCP servers and click Sign in next to gitranks";
 const ANTIGRAVITY_NOT_AUTHENTICATE =
-  "Not the Authenticate button on the main window's Manage MCP servers page: it only opens Settings, which has no MCP servers.";
+  "Don't use the Authenticate button on the Manage MCP Servers page: it only opens Settings, which has no MCP servers.";
 
 /**
  * A client's setup on one OS. `replacing`: the token replaces one the agent may hold already, so Claude Code's entry
@@ -310,7 +310,12 @@ export type McpSignInSetup = {
   lines: string;
   /** Where to look when the agent has not called yet. */
   check: string;
+  /** What happens next, once the user says they added it. */
+  added: string;
 };
+
+/** What happens next for a client that signs in by itself the first time it calls. */
+const SIGNS_IN_ON_CALL = 'It signs in the first time it calls.';
 
 /** Where the browser goes the first time: the one step every sign-in shares. */
 const ALLOW_IN_BROWSER = 'your browser opens GitRanks, where you allow it.';
@@ -333,6 +338,7 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup {
         lines: `claude mcp add --scope user --transport http gitranks ${MCP_URL}`,
         check:
           'In Claude Code, type /mcp: gitranks should show as connected. If it needs authentication, choose Authenticate and allow it in your browser.',
+        added: SIGNS_IN_ON_CALL,
       };
     case 'codex':
       return {
@@ -343,6 +349,7 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup {
         where: `Run these once. The second one signs in: ${ALLOW_IN_BROWSER}`,
         lines: [`codex mcp add gitranks --url ${MCP_URL}`, 'codex mcp login gitranks'].join('\n'),
         check: 'Run codex mcp login gitranks again and allow it in your browser, then start Codex again.',
+        added: SIGNS_IN_ON_CALL,
       };
     case 'cursor':
       return {
@@ -354,6 +361,7 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup {
         lines: JSON.stringify({ mcpServers: { gitranks: { url: MCP_URL } } }, null, 2),
         check:
           "In Cursor's MCP settings, gitranks should show as connected. If it shows a sign-in button, press it and allow it in your browser.",
+        added: SIGNS_IN_ON_CALL,
       };
     case 'gemini-cli':
       return {
@@ -365,6 +373,7 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup {
         lines: `gemini mcp add --transport http gitranks ${MCP_URL}`,
         check:
           'In Gemini CLI, run /mcp: gitranks should show as connected. If not, run /mcp auth gitranks and allow it.',
+        added: SIGNS_IN_ON_CALL,
       };
     case 'antigravity':
       return {
@@ -372,10 +381,11 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup {
         name,
         label: homePathOf(os, CONFIG_FILES.antigravity),
         file: true,
-        where: `Add this to Antigravity's MCP config (in the IDE: ${ANTIGRAVITY_RAW_CONFIG}). ${ANTIGRAVITY_SIGN_IN}: ${ALLOW_IN_BROWSER} ${ANTIGRAVITY_NOT_AUTHENTICATE}`,
+        where: `Add this to Antigravity's MCP config (in the IDE: ${ANTIGRAVITY_RAW_CONFIG}). Then sign in. ${ANTIGRAVITY_SIGN_IN}: ${ALLOW_IN_BROWSER} ${ANTIGRAVITY_NOT_AUTHENTICATE}`,
         lines: JSON.stringify({ mcpServers: { gitranks: { serverUrl: MCP_URL } } }, null, 2),
         check:
           "In the agent's window, open Customizations and scroll down to MCP servers: gitranks should show as connected. If it shows Sign in, click it and allow it in your browser.",
+        added: `Now sign in. ${ANTIGRAVITY_SIGN_IN}.`,
       };
   }
 }

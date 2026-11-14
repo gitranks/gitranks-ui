@@ -202,9 +202,9 @@ describe('the sign-in setups', () => {
     expect(mcpSignInSetupOf('antigravity', 'windows').label).toBe('%USERPROFILE%\\.gemini\\config\\mcp_config.json');
     expect(setup.where).toContain('Manage MCP Servers → View raw config');
     expect(setup.where).toContain(
-      "in the agent's window, click Customizations, scroll down to MCP servers and click Sign in next to gitranks",
+      "In the agent's window, click Customizations, scroll down to MCP servers and click Sign in next to gitranks",
     );
-    expect(setup.where).toContain("Not the Authenticate button on the main window's Manage MCP servers page");
+    expect(setup.where).toContain("Don't use the Authenticate button on the Manage MCP Servers page");
     expect(setup.check).toContain('Customizations');
   });
 });

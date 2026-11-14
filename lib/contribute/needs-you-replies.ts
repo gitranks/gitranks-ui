@@ -40,6 +40,9 @@ export type ReplyRowWords = {
   label: string;
 };
 
+/** A failed comment's Try again waits for GitHub access after these. */
+const GRANT_REASONS: ReadonlySet<string> = new Set(['grant_missing', 'grant_revoked']);
+
 const reasonOf = (draft: Pick<ContributeReplyWaiting, 'lastError'>) =>
   draft.lastError?.reason?.trim().toLowerCase() || 'unknown';
 
@@ -112,7 +115,14 @@ function wordsOf(
         tone: 'red',
         pill,
         move: `${count === 1 ? "Your reply didn't post as a comment." : `Your ${count} replies didn't post as one comment.`}${note ? ` ${sentence(note)}` : ''}`,
-        label: retry ? 'Try again' : reasonOf(one) === 'not_found' ? 'Dismiss' : `Copy all ${count}`,
+        label:
+          retry && GRANT_REASONS.has(reasonOf(one))
+            ? 'Allow GitHub access'
+            : retry
+              ? 'Try again'
+              : reasonOf(one) === 'not_found'
+                ? 'Dismiss'
+                : `Copy all ${count}`,
       };
     }
     case 'held-back': {

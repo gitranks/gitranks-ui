@@ -459,6 +459,32 @@ describe('replies as one comment', () => {
     expect(text(postedHtml)).toContain('Posted in one comment');
   });
 
+  it('never posts a draft left out of the push with a failed reply', () => {
+    const [refused] = fixtures.orgRefusedOneComment();
+    const leftOut = flowDraft({ draftId: 'D_9', state: 'DRAFT', send: false, canGoInOneComment: true });
+    const run = runOf({
+      replyDrafts: [refused, leftOut],
+      ...fixtures.oneCommentPlan(),
+      oneComment: { draftIds: ['D_1', 'D_9'], bodies: ['Replies to 2 review comments…'] },
+    });
+    const html = page(run, { first: afterRun(), replies: waiting([refused, leftOut]) });
+    // One reply goes: the failed one; the left-out draft stays the user's.
+    expect(buttons(cardOf(html))[0]).toBe('Post it as a comment on #1419');
+  });
+
+  it('leads with Dismiss once the pull request is gone', () => {
+    const { drafts, plan } = fixtures.oneCommentFailed('not_found', 'The pull request is no longer on GitHub.', null);
+    const html = page(runOf({ replyDrafts: drafts, ...plan }), { first: afterRun(), replies: waiting(drafts) });
+    expect(buttons(cardOf(html))).toEqual(['Dismiss']);
+  });
+
+  it('says the first reply is tried in its thread on a push that came back too', () => {
+    const bounced = { ...fixtures.runs.bounced, probeFirst: true, threadRepliesBlocked: fixtures.threadsBlocked };
+    expect(text(page(bounced, { first: fixtures.underWay(bounced) }))).toContain(
+      'GitRanks tries the first reply in its thread. If driftwood-js still blocks it',
+    );
+  });
+
   it('says, under the push, that the first reply is tried in its thread first', () => {
     const blocked = text(page(fixtures.runReadyBlocked(), { first: fixtures.underWay(fixtures.runReadyBlocked()) }));
     expect(blocked).toContain(

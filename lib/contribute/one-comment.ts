@@ -1,10 +1,5 @@
 import type { RepliesPlanRead, ReplyPlanRow } from './contribute.documents';
-import type {
-  ContributeAttemptDetail,
-  ContributeOneCommentPreview,
-  ContributeReplyBatch,
-  ContributeReplyDraft,
-} from './contribute.types';
+import type { ContributeAttemptDetail, ContributeReplyBatch, ContributeReplyDraft } from './contribute.types';
 
 /**
  * A run's thread replies posted together as one comment on the pull request (2026-11-14): what the page reads of the
@@ -99,7 +94,8 @@ export function batchOfferOf(batch: Pick<ContributeReplyBatch, 'retry' | 'lastEr
   return {
     tryAgain,
     grantFirst: tryAgain && GRANT_REASONS.has(reason),
-    copy: COPY_AFTER.has(reason),
+    // A comment GitHub may have posted already is sent again exactly, never copied by hand.
+    copy: batch.retry !== 'RESEND' && COPY_AFTER.has(reason),
   };
 }
 
@@ -115,8 +111,12 @@ export type FailedBatch = {
 
 /** The replies-not-posted card's model: what one click posts, what Copy all copies, the failed comments. */
 export type OneCommentCard = {
-  /** What "Post them as one comment" posts now; null when none can go (or the API does not say). */
-  post: ContributeOneCommentPreview | null;
+  /**
+   * What "Post them as one comment" posts now: only the replies the card is about (failed, or held back), never a draft
+   * the user left out. `bodies` is the comment's text when it holds exactly those replies, else empty (the confirm then
+   * lists the replies). Null when none can go (or the API does not say).
+   */
+  post: { draftIds: string[]; bodies: string[]; drafts: ContributeReplyDraft[] } | null;
   /** Copy all: every thread reply of the run not posted, as the comment's text; null when the API does not say. */
   copy: { text: string; count: number } | null;
   /** The comments that failed, with a reply still failed in them. */
@@ -147,6 +147,7 @@ const unpostedThreadsOf = (drafts: readonly ContributeReplyDraft[]) =>
  */
 export function oneCommentCardOf(
   run: Pick<ContributeAttemptDetail, 'oneComment' | 'copyBodies' | 'replyBatches' | 'replyDrafts'> | undefined,
+  runId: string,
   failed: readonly ContributeReplyDraft[],
   heldBack: readonly ContributeReplyDraft[] = [],
 ): OneCommentCard {
@@ -161,20 +162,28 @@ export function oneCommentCardOf(
   const retried = new Set(
     failedBatches.filter(({ offer }) => offer.tryAgain).flatMap(({ drafts }) => drafts.map(({ draftId }) => draftId)),
   );
+  // Only the card's own replies go: a draft left out of the push stays the user's to post or not.
+  const mine = new Map([...failed, ...heldBack].map((draft) => [draft.draftId, draft]));
   const preview = run?.oneComment;
-  const post =
-    preview?.draftIds.length && preview.bodies.length && preview.draftIds.some((id) => !retried.has(id))
-      ? preview
-      : null;
+  const going = (preview?.draftIds ?? []).filter((id) => mine.has(id) && !retried.has(id));
+  const exact = !!preview && going.length === preview.draftIds.length;
+  const post = going.length
+    ? {
+        draftIds: going,
+        bodies: exact ? preview.bodies : [],
+        drafts: going.flatMap((id) => mine.get(id) ?? []),
+      }
+    : null;
   const bodies = run?.copyBodies?.filter((body) => body.trim()) ?? [];
-  const counted = unpostedThreadsOf(run?.replyDrafts ?? []).length;
+  const counted = unpostedThreadsOf((run?.replyDrafts ?? []).filter((draft) => draft.attemptId === runId)).length;
   return {
     post,
     copy: bodies.length
       ? { text: bodies.join('\n\n'), count: counted || unpostedThreadsOf([...failed, ...heldBack]).length || 1 }
       : null,
     failedBatches,
-    threadFailed: failed.filter(({ draftId }) => !inBatch.has(draftId)),
+    // A reply in a comment is the comment's to say and try again, never its thread's.
+    threadFailed: failed.filter((draft) => !inBatch.has(draft.draftId) && !draft.batchId),
     heldBack: [...heldBack],
   };
 }

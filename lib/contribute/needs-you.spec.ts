@@ -781,6 +781,8 @@ describe('needsYouItemsOf: replies that did not post (one comment)', () => {
     expect(notPosted(inComment('REBUILD', 'invalid')).action).toMatchObject({ label: 'Try again' });
     expect(notPosted(inComment(null, 'org_restricted')).action).toMatchObject({ label: 'Copy all 3' });
     expect(notPosted(inComment(null, 'not_found')).action).toMatchObject({ label: 'Dismiss' });
+    // GitHub access first, as the card asks for it.
+    expect(notPosted(inComment('REBUILD', 'grant_revoked')).action).toMatchObject({ label: 'Allow GitHub access' });
   });
 
   it('says replies held back once, and they are not also replies to approve', () => {

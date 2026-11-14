@@ -89,7 +89,7 @@ describe('a reply’s place in the plan', () => {
 describe('a failed comment’s offer', () => {
   it.each([
     ['no_answer', 'RESEND', { tryAgain: true, grantFirst: false, copy: false }],
-    ['invalid', 'RESEND', { tryAgain: true, grantFirst: false, copy: true }],
+    ['invalid', 'RESEND', { tryAgain: true, grantFirst: false, copy: false }],
     ['invalid', 'REBUILD', { tryAgain: true, grantFirst: false, copy: true }],
     ['not_sent', 'REBUILD', { tryAgain: true, grantFirst: false, copy: false }],
     ['grant_revoked', 'REBUILD', { tryAgain: true, grantFirst: true, copy: true }],
@@ -103,7 +103,7 @@ describe('a failed comment’s offer', () => {
 describe('the replies-not-posted card', () => {
   it('posts what the API says one click would post, and copies every reply not posted', () => {
     const drafts = orgRefusedOneComment();
-    const card = oneCommentCardOf({ ...oneCommentPlan(), replyDrafts: drafts }, drafts);
+    const card = oneCommentCardOf({ ...oneCommentPlan(), replyDrafts: drafts }, 'A_F1', drafts);
     expect(card.post?.draftIds).toHaveLength(7);
     expect(card.copy?.count).toBe(7);
     expect(card.copy?.text).toContain('Replies to 7 review comments by maintainer-mo.');
@@ -111,27 +111,56 @@ describe('the replies-not-posted card', () => {
     expect(card.threadFailed).toHaveLength(7);
   });
 
+  it('posts only the replies it is about, never a draft left out of the push', () => {
+    const [refused] = orgRefusedOneComment();
+    const leftOut = flowDraft({ draftId: 'D_9', canGoInOneComment: true });
+    const run = {
+      ...oneCommentPlan(),
+      oneComment: { draftIds: ['D_1', 'D_9'], bodies: ['Replies to 2 review comments…'] },
+      replyDrafts: [refused, leftOut],
+    };
+    const card = oneCommentCardOf(run, 'A_F1', [refused]);
+    expect(card.post?.draftIds).toEqual(['D_1']);
+    // The API's text holds the left-out draft too: not shown as what goes; the confirm lists the reply instead.
+    expect(card.post?.bodies).toEqual([]);
+    expect(card.post?.drafts.map(({ draftId }) => draftId)).toEqual(['D_1']);
+    // None of the card's own replies in the preview: no button at all.
+    expect(
+      oneCommentCardOf({ ...run, oneComment: { draftIds: ['D_9'], bodies: ['x'] } }, 'A_F1', [refused]).post,
+    ).toBeNull();
+  });
+
+  it('counts Copy all over this run’s replies only, and leaves replies in a comment out of the thread lines', () => {
+    const drafts = orgRefusedOneComment();
+    const other = flowDraft({ draftId: 'D_OTHER', attemptId: 'A_F2', state: 'FAILED' });
+    expect(oneCommentCardOf({ ...oneCommentPlan(), replyDrafts: [...drafts, other] }, 'A_F1', drafts).copy?.count).toBe(
+      7,
+    );
+    const inComment = flowDraft({ draftId: 'D_C', state: 'FAILED', batchId: 'B_GONE' });
+    expect(oneCommentCardOf(oneCommentPlan(), 'A_F1', [...drafts, inComment]).threadFailed).toHaveLength(7);
+  });
+
   it('offers nothing of its own without the API’s plan', () => {
     const drafts = orgRefusedOneComment();
-    expect(oneCommentCardOf(undefined, drafts)).toMatchObject({ post: null, copy: null, failedBatches: [] });
+    expect(oneCommentCardOf(undefined, 'A_F1', drafts)).toMatchObject({ post: null, copy: null, failedBatches: [] });
   });
 
   it('serves a failed comment only with a reply still failed in it, and posts nothing it would try again', () => {
     const { drafts, plan } = oneCommentFailed('invalid', 'Refused. Check the text.', 'REBUILD');
-    const card = oneCommentCardOf({ ...plan, replyDrafts: drafts }, drafts);
+    const card = oneCommentCardOf({ ...plan, replyDrafts: drafts }, 'A_F1', drafts);
     expect(card.failedBatches).toHaveLength(1);
     expect(card.failedBatches[0]).toMatchObject({ lead: 'Refused.', rest: 'Check the text.' });
     // Its own Try again builds it again: no second way to post the same replies.
     expect(card.post).toBeNull();
     expect(card.threadFailed).toEqual([]);
     // Its replies dismissed or posted since: not served.
-    expect(oneCommentCardOf({ ...plan, replyDrafts: drafts }, []).failedBatches).toEqual([]);
+    expect(oneCommentCardOf({ ...plan, replyDrafts: drafts }, 'A_F1', []).failedBatches).toEqual([]);
   });
 
   it('keeps the replies held back apart', () => {
     const { drafts, plan } = heldBackRun();
     const held = drafts.filter(isHeldBack);
-    const card = oneCommentCardOf({ ...plan, replyDrafts: drafts }, drafts.slice(0, 1), held);
+    const card = oneCommentCardOf({ ...plan, replyDrafts: drafts }, 'A_F1', drafts.slice(0, 1), held);
     expect(card.heldBack).toHaveLength(6);
     expect(card.post?.draftIds).toHaveLength(6);
   });

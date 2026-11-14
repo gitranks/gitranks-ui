@@ -85,6 +85,16 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
     error: errors,
   };
   const status = run.checkStatus;
+  // The run's first reply is tried in its thread first: said under the push, never promising one comment.
+  const probe = probeLineOf(run);
+  const probeLine = probe ? (
+    <ProbeLine
+      org={probe.org}
+      blocked={probe.blocked}
+      prNumber={pr.number}
+      threadDraftIds={(run.replyDrafts ?? []).flatMap((draft) => (draft.comment ? [draft.draftId] : []))}
+    />
+  ) : null;
 
   if (variant === 'blocked') {
     return (
@@ -127,6 +137,7 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
         {...common}
         title={move.title}
         why={<p>{`${firstSentence(error?.note)} Nothing was posted.`.trim()}</p>}
+        body={probeLine}
         primary={<PushButton commits={commits} prNumber={pr.number} flow={flow} again />}
         secondary={
           <>
@@ -158,6 +169,7 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
               : 'The agent made no commits this run, only the replies below. Approve the replies you want posted, here or once it is finished; finishing it pushes nothing.'}
           </p>
         }
+        body={probeLine}
         primary={<PushButton commits={commits} prNumber={pr.number} flow={false} />}
         secondary={
           <>
@@ -170,8 +182,6 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
     );
   }
   const tests = variant === 'tests';
-  // The run's first reply is tried in its thread first: said under the push, never promising one comment.
-  const probe = probeLineOf(run);
   const what = `The commits go onto #${pr.number ?? ''}'s branch on your fork; each reply posts in its thread${probe ? ', or in one comment with the others if the organization blocks the first' : ''}, in your name. Nothing goes to GitHub before you approve it.`;
   return (
     <MoveCard
@@ -186,14 +196,7 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
       }
       body={
         <div className="flex flex-col gap-2">
-          {probe ? (
-            <ProbeLine
-              org={probe.org}
-              blocked={probe.blocked}
-              prNumber={pr.number}
-              threadDraftIds={(run.replyDrafts ?? []).flatMap((draft) => (draft.comment ? [draft.draftId] : []))}
-            />
-          ) : null}
+          {probeLine}
           <ResolveLine probe={!!probe} />
           <ResolveHumansSetting />
         </div>
@@ -302,7 +305,7 @@ export function ReplyFailedCard({ move, first, run, view, blocked, orgAccess, ri
     rider,
   };
   const shown = run?.attemptId === runId ? run : undefined;
-  const card = oneCommentCardOf(shown, trouble.failed, heldBack);
+  const card = oneCommentCardOf(shown, runId, trouble.failed, heldBack);
   const canPost = !blocked.has('post_reply');
   const prNumber = first?.pullRequest?.number ?? shown?.followUpOf?.number ?? null;
   const all = [...trouble.failed, ...heldBack];
@@ -312,6 +315,7 @@ export function ReplyFailedCard({ move, first, run, view, blocked, orgAccess, ri
         attemptId={runId}
         draftIds={card.post.draftIds}
         bodies={card.post.bodies}
+        drafts={card.post.drafts}
         prNumber={prNumber}
         primary={primary}
       />
@@ -367,7 +371,8 @@ export function ReplyFailedCard({ move, first, run, view, blocked, orgAccess, ri
   const copyOff =
     !card.threadFailed.length &&
     !heldBack.length &&
-    card.failedBatches.every(({ offer }) => offer.tryAgain && !offer.copy);
+    card.failedBatches.length > 0 &&
+    card.failedBatches.every(({ offer }) => !offer.copy);
   const copy = copyOff ? null : card.copy ? (
     <CopyAllBodies text={card.copy.text} count={card.copy.count} primary={!tries.length && !post} />
   ) : (

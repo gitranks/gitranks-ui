@@ -208,6 +208,10 @@ export function CopyAllBodies({ text, count, primary }: { text: string; count: n
 function CommentPreview({ bodies }: { bodies: readonly string[] }) {
   return (
     <div
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region, reachable by keyboard to read it all
+      tabIndex={0}
+      role="region"
+      aria-label="The comment as it will post"
       data-one-comment-preview=""
       className="flex max-h-72 flex-col gap-3 overflow-y-auto rounded-lg bg-muted/60 p-3 text-foreground"
     >
@@ -218,6 +222,23 @@ function CommentPreview({ bodies }: { bodies: readonly string[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/** The replies that go, one line each (whom each answers, and where), when the comment's text is not known for them. */
+function RepliesGoing({ drafts }: { drafts: ContributeReplyDraft[] }) {
+  return (
+    <ul data-one-comment-replies="" className="flex max-h-72 flex-col gap-1 overflow-y-auto text-sm">
+      {drafts.map((draft) => {
+        const where = draft.comment ? whereOfThread(draft.comment) : '';
+        return (
+          <li key={draft.draftId} className="break-words">
+            {draft.comment ? (draft.comment.author ?? 'A reviewer') : 'On the pull request'}
+            {where ? ` on ${where}` : ''}: {draft.text.trim()}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -238,6 +259,7 @@ function OneCommentAction({
   title,
   description,
   bodies,
+  replies,
   action,
 }: {
   attemptId: string;
@@ -247,6 +269,8 @@ function OneCommentAction({
   description: string;
   /** What goes: the comment's text, when it is known before it is sent. */
   bodies: readonly string[] | null;
+  /** Else the replies that go, by whom they answer and where. */
+  replies?: ContributeReplyDraft[] | null;
   action: string;
 }) {
   const actions = useSessionActions();
@@ -265,7 +289,9 @@ function OneCommentAction({
       }}
       title={title}
       description={description}
-      body={bodies?.length ? <CommentPreview bodies={bodies} /> : null}
+      body={
+        bodies?.length ? <CommentPreview bodies={bodies} /> : replies?.length ? <RepliesGoing drafts={replies} /> : null
+      }
       action={action}
       pendingAction="Posting…"
       pending={pending}
@@ -273,11 +299,21 @@ function OneCommentAction({
       actionVariant="default"
       onConfirm={() =>
         startTransition(async () => {
-          const result = await approveRepliesAsOneComment(attemptId, target, key);
+          const result = await approveRepliesAsOneComment(attemptId, target, key).catch(() => null);
           // Only an answer that says what happened takes a new key; a lost one is sent again as it was.
+          if (!result) {
+            setError(
+              "GitRanks couldn't be reached, so the comment may not have gone. Check your connection, then post again.",
+            );
+            return;
+          }
           if (result.ok || result.error !== 'FAILED') renew();
           if (!result.ok) {
-            setError(contributeErrorMessage(result.error, result.message));
+            setError(
+              result.error === 'NOT_FOUND'
+                ? 'These replies are gone, or no longer yours. Reload the page.'
+                : contributeErrorMessage(result.error, result.message),
+            );
             return;
           }
           setOpen(false);
@@ -293,12 +329,15 @@ export function PostAsOneComment({
   attemptId,
   draftIds,
   bodies,
+  drafts,
   prNumber,
   primary,
 }: {
   attemptId: string;
   draftIds: string[];
+  /** The comment's text; empty when it is not known for exactly these replies (they are listed then). */
   bodies: string[];
+  drafts: ContributeReplyDraft[];
   prNumber: number | null;
   primary: boolean;
 }) {
@@ -317,6 +356,7 @@ export function PostAsOneComment({
       title={one ? `Post the reply as a comment on ${pr}?` : `Post ${draftIds.length} replies as one comment on ${pr}?`}
       description={`It is posted publicly on GitHub in your name. ${one ? 'It quotes the review comment and links its thread, then gives your reply' : 'It quotes each review comment and links its thread, then gives your reply'}${bodies.length > 1 ? `, in ${bodies.length} comments, as GitHub limits a comment's length` : ''}:`}
       bodies={bodies}
+      replies={bodies.length ? null : drafts}
       action={one ? 'Post the comment' : 'Post as one comment'}
     />
   );

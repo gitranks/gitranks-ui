@@ -140,8 +140,8 @@ export function DraftOpen({
       ) : null}
       {state === 'waits-for-probe' ? (
         <p className="text-sm text-muted-foreground">
-          It goes with the run&apos;s first reply: in its thread if that one gets through, else in one comment with the
-          others.
+          It goes with the run&apos;s first reply: in its thread if that one gets through; if the organization blocks
+          it, in one comment with the others.
         </p>
       ) : null}
       {own ? (

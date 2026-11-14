@@ -90,13 +90,13 @@ export const prsNeedingYou = {
     needsYou: needs(signal('CHECK_FAILED', { at: '2026-10-28T08:40:00.000Z', detail: 'lint' })),
     followUps: followUps({ recommended: true }),
   }),
-  agreement: pr(23935, 'carbon-design-system/carbon', 'a11y: hard-coded ids in text input', {
+  agreement: pr(4021, 'lantern-ui/lantern', 'a11y: duplicate ids in the input field', {
     needsYou: needs(signal('CLA', { at: '2026-10-28T09:10:00.000Z', detail: 'DCO' })),
     followUps: followUps(),
     conventions: {
       cla: {
         check: 'DCO',
-        signUrl: 'https://github.com/carbon-design-system/carbon/blob/main/.github/DCO.md',
+        signUrl: 'https://github.com/lantern-ui/lantern/blob/main/.github/DCO.md',
         agreement: 'DCO',
         signComment: 'I have read the DCO Document and I hereby sign the DCO',
       },
@@ -443,14 +443,14 @@ export const nextForYou = first({
 /** An agreement signed by a comment on the pull request (CLA Assistant Lite's `DCO`). */
 export const nextForAgreement = first({
   attemptId: 'A_C',
-  nameWithOwner: 'carbon-design-system/carbon',
-  number: 18389,
-  title: 'a11y: hard-coded ids in text input',
-  url: 'https://github.com/carbon-design-system/carbon/issues/18389',
+  nameWithOwner: 'lantern-ui/lantern',
+  number: 3870,
+  title: 'a11y: duplicate ids in the input field',
+  url: 'https://github.com/lantern-ui/lantern/issues/3870',
   pullRequest: pullRequest({
     prId: 'PR_C',
-    number: 23935,
-    url: 'https://github.com/carbon-design-system/carbon/pull/23935',
+    number: 4021,
+    url: 'https://github.com/lantern-ui/lantern/pull/4021',
     checks: 'FAILURE',
   }),
   needsYou: prsNeedingYou.agreement.needsYou,
@@ -470,7 +470,7 @@ export const nextForAgreement = first({
       kind: 'CLA',
       check: 'DCO',
       message: 'Sign the DCO',
-      suggestion: 'https://github.com/carbon-design-system/carbon/blob/main/.github/DCO.md',
+      suggestion: 'https://github.com/lantern-ui/lantern/blob/main/.github/DCO.md',
     },
   ],
 });

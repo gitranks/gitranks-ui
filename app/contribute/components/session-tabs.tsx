@@ -26,16 +26,18 @@ export function SessionTabs({
 }) {
   return (
     <TabsPrimitive.Root defaultValue={defaultValue} className="flex min-w-0 flex-col gap-4" data-session-tabs="">
+      {/* Scrolls sideways on a phone only: overflow-x alone makes the other axis scroll too, and the wheel stops here. The
+          baseline is an inset shadow, so the active tab's underline sits on it without spilling out of the list. */}
       <TabsPrimitive.List
         aria-label={label}
-        className="-mx-4 flex gap-5 overflow-x-auto border-b px-4 [scrollbar-width:none] sm:mx-0 sm:px-0"
+        className="-mx-4 flex gap-5 overflow-x-auto overflow-y-hidden px-4 shadow-[inset_0_-1px_0_var(--color-border)] [scrollbar-width:none] sm:mx-0 sm:px-0"
       >
         {tabs.map((tab) => (
           <TabsPrimitive.Trigger
             key={tab.value}
             value={tab.value}
             data-tab={tab.value}
-            className="-mb-px inline-flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 border-transparent text-sm whitespace-nowrap text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=active]:border-foreground data-[state=active]:font-medium data-[state=active]:text-foreground"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 border-transparent text-sm whitespace-nowrap text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=active]:border-foreground data-[state=active]:font-medium data-[state=active]:text-foreground"
           >
             {tab.label}
             {tab.badge ? (

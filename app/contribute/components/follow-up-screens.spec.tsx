@@ -1333,7 +1333,7 @@ describe('the next step, for each thing only the user can do', () => {
     expect(plain.split('I have read the DCO Document and I hereby sign the DCO')).toHaveLength(2);
     expect(html).toContain('aria-label="Copy the comment"');
     expect(plain).toContain('Read the DCO first');
-    expect(plain).toContain('Open #23935 on GitHub ↗ (opens in a new tab) I posted it');
+    expect(plain).toContain('Open #4021 on GitHub ↗ (opens in a new tab) I posted it');
     expect(html).not.toContain('data-move="rules"');
   });
 

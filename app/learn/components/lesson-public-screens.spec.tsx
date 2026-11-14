@@ -177,6 +177,54 @@ describe('a result page', () => {
     expect(text(html)).toContain('Sign in with GitHub to send your answer.');
   });
 
+  it("shows the result's own person a line in place of the buttons, and no sign-in", () => {
+    const html = renderToStaticMarkup(
+      <LessonResultScreen result={result()} viewer={{ ...MAINTAINER, own: true, prompt: 'YES' }} />,
+    );
+    expect(html).toContain('data-own-result');
+    expect(text(html)).toContain('This is your pull request: only its reviewers answer here.');
+    expect(text(html)).not.toMatch(/Yes, it helped|Sign in with GitHub/);
+    expect(html).not.toContain('data-react-sign-in');
+    // The reactions and the report link stay.
+    expect(text(html)).toContain('mona (maintainer of driftwood-js/driftwood) said it helped.');
+    expect(text(html)).toContain('Report this pull request');
+
+    // Another taker's own result is theirs, not a pull request of theirs.
+    const taker = renderToStaticMarkup(
+      <LessonResultScreen
+        result={result({ login: 'mona', loginAtPass: 'mona' })}
+        viewer={{ ...MAINTAINER, own: true }}
+      />,
+    );
+    expect(text(taker)).toContain('This is your own result: other people answer here.');
+    expect(text(taker)).not.toContain('Yes, it helped');
+
+    const other = renderToStaticMarkup(<LessonResultScreen result={result()} viewer={MAINTAINER} />);
+    expect(other).not.toContain('data-own-result');
+    expect(text(other)).toContain('Yes, it helped');
+  });
+
+  it('knows the signed-in person on their own result page, and only there', async () => {
+    vi.mocked(data.loadLessonResult).mockResolvedValue({ kind: 'found', value: result() });
+    vi.mocked(data.loadMyResultReaction).mockResolvedValue({ canReact: true, reaction: null });
+    vi.mocked(hasReactionMark).mockResolvedValue(false);
+    const view = () => LessonResultView({ slug: 'route-cache-miss-8f3k', login: 'octocat', react: undefined });
+
+    vi.mocked(viewerLogin).mockResolvedValue('OctoCat');
+    vi.mocked(data.loadMyResultReaction).mockClear();
+    const own = text(renderToStaticMarkup(await view()));
+    expect(own).toContain('This is your pull request: only its reviewers answer here.');
+    expect(own).not.toContain('Yes, it helped');
+    // Their own result takes no reaction: none is read.
+    expect(data.loadMyResultReaction).not.toHaveBeenCalled();
+
+    vi.mocked(viewerLogin).mockResolvedValue('mona');
+    expect(text(renderToStaticMarkup(await view()))).toContain('Yes, it helped');
+
+    vi.mocked(viewerLogin).mockResolvedValue(null);
+    expect(text(renderToStaticMarkup(await view()))).toContain('Yes, it helped');
+  });
+
   it("says another taker's result is theirs, not the author's", () => {
     const html = renderToStaticMarkup(
       <LessonResultScreen result={result({ login: 'mona', loginAtPass: 'mona' })} viewer={MAINTAINER} />,

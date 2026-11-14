@@ -547,6 +547,13 @@ export const LEARN_SCREENS: Screen[] = [
           ),
       },
       {
+        id: 'own',
+        title: 'Its own person, signed in: a line in place of the buttons',
+        path: RESULT_PATH,
+        height: 4700,
+        render: () => resultPage(result(), { ...MAINTAINER, own: true }),
+      },
+      {
         id: 'phone',
         title: 'On a phone',
         path: RESULT_PATH,

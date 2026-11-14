@@ -87,8 +87,8 @@ export type AgentConnectViewProps = {
   /** Reached from a proof's card: step 3 is the proof's prompt, and the page goes back to the card once the agent calls. */
   proof?: AgentConnectProof | null;
   /**
-   * The agent signs in with GitHub: step 2 is the client's sign-in setup, with the token in a fold under it. Only for
-   * a client that can (`mcpSignInSetupOf`), and while no token is made or waiting on this page.
+   * The agent signs in with GitHub: step 2 is the client's sign-in setup (`mcpSignInSetupOf`), with the token in a fold
+   * under it, while no token is made or waiting on this page.
    */
   signIn?: boolean;
 };
@@ -214,7 +214,7 @@ export function AgentConnectView({
             <span className="flex items-center gap-2.5 text-sm">
               <CheckIcon aria-hidden="true" className="size-4.5 flex-none text-positive" strokeWidth={2.6} />
               <span>
-                <span className="font-semibold">GitRanks added to {name}.</span> It signs in the first time it calls.
+                <span className="font-semibold">GitRanks added to {name}.</span> {signInSetup.added}
               </span>
             </span>
             {connected ? null : (
@@ -312,11 +312,6 @@ export function AgentConnectView({
           </div>
         ) : (
           <div className="flex flex-col items-start gap-3">
-            {signIn ? (
-              <p className="max-w-2xl text-sm font-medium" data-agent-token-only>
-                {name} can&apos;t sign in with GitHub yet, so it connects with a personal token.
-              </p>
-            ) : null}
             <p className="max-w-2xl text-sm text-foreground/80">
               Your agent connects to GitRanks with this token, as you: it finds issues, claims one, hands back the patch
               and sees your contributions. It can&apos;t open a pull request or spend anything, and you can revoke it in
@@ -485,10 +480,10 @@ export function AgentConnect({
   const [working, startTransition] = useTransition();
   const pending = madeId || replaced ? undefined : unused;
   const watchId = madeId ?? pending?.id ?? null;
-  // The sign-in path, while no token is made or waiting here: the view shows it for a client that can sign in.
+  // The sign-in path, while no token is made or waiting here.
   const viaSignIn = signIn && !madeId && !pending && !revokedOnly && !replaced;
   // Its setup done: the page waits for the agent's first call, with no token to watch.
-  const watchSignIn = viaSignIn && stage === 'added' && !!mcpSignInSetupOf(client, os);
+  const watchSignIn = viaSignIn && stage === 'added';
   const moveFocus = (target: AgentFocus['target']) => setFocus((last) => ({ target, n: (last?.n ?? 0) + 1 }));
 
   const clientRef = useRef(client);

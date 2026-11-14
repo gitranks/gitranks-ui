@@ -130,8 +130,7 @@ function DocPlugin({ name, plugin }: { name: string; plugin: McpDocPlugin }) {
 
 /**
  * A client's setup on the docs: its install link, its sign-in, the plugin where it has one (and `plugin`), and the
- * token setup in a fold under it; a client that can't sign in (Antigravity) keeps the token, and one that can only
- * sign in (claude.ai) has no fold.
+ * token setup in a fold under it; one that can only sign in (claude.ai) has no fold.
  */
 function DocClient({ client, plugin }: { client: McpDocClient; plugin: boolean }) {
   const viaSignIn = MCP_DOC_SIGN_INS[client.id];
@@ -155,18 +154,7 @@ function DocClient({ client, plugin }: { client: McpDocClient; plugin: boolean }
           </details>
         </>
       ) : (
-        <>
-          {client.id === CLAUDE_APP_DOC.id ? null : (
-            <p className="text-sm" data-token-only>
-              {client.name} can&apos;t sign in with GitHub yet, so it connects with a personal token: make one as{' '}
-              <a href="#start" className={LINK}>
-                Before you start
-              </a>{' '}
-              shows, under &ldquo;{USE_A_TOKEN_INSTEAD}&rdquo;.
-            </p>
-          )}
-          <DocSetup name={client.name} setup={client} />
-        </>
+        <DocSetup name={client.name} setup={client} />
       )}
     </div>
   );
@@ -318,7 +306,7 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
           </p>
           <details className="text-sm" data-token-start>
             <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
-              {USE_A_TOKEN_INSTEAD}: for Antigravity, scripts, or a client that can&apos;t sign in
+              {USE_A_TOKEN_INSTEAD}: for scripts, or a client that can&apos;t sign in
             </summary>
             <div className="mt-2 flex flex-col gap-3 text-base">
               <ol className="flex list-decimal flex-col gap-2 pl-5">

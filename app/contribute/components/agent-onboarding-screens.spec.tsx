@@ -71,12 +71,19 @@ describe('B1, your own agent, once agents sign in', () => {
     expect(plain).toContain("It can't open a pull request, push or post on GitHub");
   });
 
-  it('keeps Antigravity on the token, and says why', () => {
+  it("signs Antigravity in from the agent window's Customizations, the token in a fold", () => {
     const { html, plain } = b1({ signIn: true, client: 'antigravity' });
-    expect(html).not.toContain('data-agent-sign-in');
-    expect(plain).toContain("Antigravity can't sign in with GitHub yet, so it connects with a personal token.");
-    expect(plain).toContain('Create a GitRanks token');
-    expect(b1({ client: 'antigravity' }).html).not.toContain('data-agent-token-only');
+    expect(html).toContain('data-agent-sign-in="setup"');
+    expect(plain).toContain('"serverUrl": "https://mcp.gitranks.com/mcp"');
+    expect(plain).toContain('click Sign in next to gitranks');
+    expect(plain).toContain("Don't use the Authenticate button on the Manage MCP Servers page");
+    expect(plain).toContain('Use a token instead');
+    expect(plain).not.toContain("can't sign in with GitHub yet");
+    const hint = b1({ signIn: true, client: 'antigravity', stage: 'added', hint: true }).plain;
+    expect(hint).toContain("In the agent's window, open Customizations");
+    // Once added, the next step is the sign-in click, not a sign-in on the first call.
+    expect(hint).toContain('GitRanks added to Antigravity. Now sign in.');
+    expect(hint).not.toContain('It signs in the first time it calls.');
   });
 
   it('once added, waits for the first call with what to check', () => {
@@ -144,7 +151,7 @@ describe('B1, your own agent', () => {
     expect(html).toContain('aria-label="Copy the setup"');
     // The OS is picked beside the setup, as the config's path depends on it.
     expect(html).toContain('aria-pressed="true"');
-    expect(plain).toContain('Installed MCP Servers');
+    expect(plain).toContain('⋮ next to gitranks → Restart');
     const hint = b1({ stage: 'added', shown: TOKEN, client: 'antigravity', hint: true }).plain;
     expect(hint).toContain("Check that the gitranks entry in Antigravity's MCP config holds your latest token");
     expect(hint).toContain('in the CLI, /mcp');

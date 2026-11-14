@@ -142,8 +142,7 @@ export function agentsDocOf(
       lines.push(...clientBlock({ ...client, ...signInSetup }));
       const viaPlugin = plugin ? MCP_DOC_PLUGINS[client.id] : undefined;
       if (viaPlugin) lines.push(...pluginBlock(viaPlugin));
-    } else if (client.id === CLAUDE_APP_DOC.id) lines.push(...clientBlock(client));
-    else lines.push(`### ${client.name}`, '', "Can't sign in yet: see Connect with a token.", '');
+    } else lines.push(...clientBlock(client));
   }
   for (const client of MCP_DOC_MORE_CLIENTS) lines.push(...clientBlock(client));
   lines.push(
@@ -154,7 +153,7 @@ export function agentsDocOf(
     fence(MCP_REMOTE_BRIDGE),
     '',
   );
-  lines.push('## Connect with a token', '', 'For a client that cannot sign in (Antigravity), or a script.', '');
+  lines.push('## Connect with a token', '', 'For a client that cannot sign in, or a script.', '');
   lines.push(`Where a block says ${TOKEN_PLACEHOLDER}, use your person's token. Save it in the environment first:`, '');
   for (const save of MCP_DOC_SAVES) lines.push(`${save.name} (${save.shell}):`, '', fence(save.line), '');
   for (const client of MCP_DOC_CLIENTS) lines.push(...clientBlock(client));

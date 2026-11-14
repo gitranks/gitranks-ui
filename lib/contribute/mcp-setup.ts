@@ -35,8 +35,9 @@ export const MCP_CLIENT_NAMES: Record<McpClient, string> = {
 };
 
 /**
- * The token sits in the client's own config file: Antigravity sends `${VAR}` in its MCP config as written
- * (google-antigravity/antigravity-cli#233, open on 2026-11-03), so nothing is saved in the environment for it.
+ * A token setup with the token in the client's own config file: Antigravity sends `${VAR}` in its MCP config as written
+ * (google-antigravity/antigravity-cli#233, open on 2026-11-03), so nothing is saved in the environment for it. Its
+ * sign-in needs no token at all (`mcpSignInSetupOf`).
  */
 export const tokenInConfigOf = (client: McpClient): boolean => client === 'antigravity';
 
@@ -193,9 +194,24 @@ export type McpClientSetup = {
 export const claudeCodeRemoveOf = (os: McpOs): string =>
   `claude mcp remove --scope user gitranks ${os === 'windows' ? '2>$null' : '2>/dev/null'}`;
 
-/** How Antigravity reads its MCP config again, as its docs say (antigravity.google/docs/mcp, read 2026-11-03). */
+/**
+ * How Antigravity reads its MCP config again, as its docs say (antigravity.google/docs/mcp, read 2026-11-14): the MCP
+ * servers live under Customizations in the agent's window, not under Settings (the owner, 2026-11-14).
+ */
 export const ANTIGRAVITY_RELOAD =
-  'refresh its MCP servers (in the app, the refresh button under Settings → Customizations → Installed MCP Servers; in the CLI, /mcp)';
+  "restart its gitranks server (in the agent's window: Customizations, MCP servers, ⋮ next to gitranks → Restart; in the CLI, /mcp)";
+
+/** Where Antigravity's MCP config opens in the IDE. */
+const ANTIGRAVITY_RAW_CONFIG = '… at the top of the agent panel → MCP Servers → Manage MCP Servers → View raw config';
+
+/**
+ * Antigravity's sign-in button, and the one that looks like it but isn't: "Authenticate" on the Manage MCP servers
+ * page only opens Settings → Customizations, which lists no MCP servers (the owner, 2026-11-14).
+ */
+const ANTIGRAVITY_SIGN_IN =
+  "In the agent's window, click Customizations, scroll down to MCP servers and click Sign in next to gitranks";
+const ANTIGRAVITY_NOT_AUTHENTICATE =
+  "Don't use the Authenticate button on the Manage MCP Servers page: it only opens Settings, which has no MCP servers.";
 
 /**
  * A client's setup on one OS. `replacing`: the token replaces one the agent may hold already, so Claude Code's entry
@@ -232,7 +248,7 @@ export function mcpClientSetupOf(
       file: true,
       where: replacing
         ? `In Antigravity's MCP config, put the new token in the Authorization line of the gitranks entry, as below, then ${ANTIGRAVITY_RELOAD}.`
-        : `Add the gitranks entry to Antigravity's MCP config (in the IDE: … at the top of the agent panel → MCP Servers → Manage MCP Servers → View raw config), then ${ANTIGRAVITY_RELOAD}. Antigravity can't read environment variables in this file yet, so the token sits in it${token ? '' : `, in place of ${MCP_TOKEN_PLACEHOLDER}`}: keep the file to yourself.`,
+        : `Add the gitranks entry to Antigravity's MCP config (in the IDE: ${ANTIGRAVITY_RAW_CONFIG}), then ${ANTIGRAVITY_RELOAD}. Antigravity can't read environment variables in this file yet, so the token sits in it${token ? '' : `, in place of ${MCP_TOKEN_PLACEHOLDER}`}: keep the file to yourself.`,
       lines,
     };
   }
@@ -294,16 +310,21 @@ export type McpSignInSetup = {
   lines: string;
   /** Where to look when the agent has not called yet. */
   check: string;
+  /** What happens next, once the user says they added it. */
+  added: string;
 };
+
+/** What happens next for a client that signs in by itself the first time it calls. */
+const SIGNS_IN_ON_CALL = 'It signs in the first time it calls.';
 
 /** Where the browser goes the first time: the one step every sign-in shares. */
 const ALLOW_IN_BROWSER = 'your browser opens GitRanks, where you allow it.';
 
 /**
- * A client's sign-in setup on one OS; null for a client that connects with a token only (Antigravity, until its
- * sign-in is checked).
+ * A client's sign-in setup on one OS. Antigravity's sign-in was checked by the owner on 2026-11-14: it registers as
+ * "Google Antigravity" and signs in from the agent window's Customizations.
  */
-export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup | null {
+export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup {
   const name = MCP_CLIENT_NAMES[client];
   const shell = os === 'windows' ? 'PowerShell' : 'Terminal';
   switch (client) {
@@ -317,6 +338,7 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup |
         lines: `claude mcp add --scope user --transport http gitranks ${MCP_URL}`,
         check:
           'In Claude Code, type /mcp: gitranks should show as connected. If it needs authentication, choose Authenticate and allow it in your browser.',
+        added: SIGNS_IN_ON_CALL,
       };
     case 'codex':
       return {
@@ -327,6 +349,7 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup |
         where: `Run these once. The second one signs in: ${ALLOW_IN_BROWSER}`,
         lines: [`codex mcp add gitranks --url ${MCP_URL}`, 'codex mcp login gitranks'].join('\n'),
         check: 'Run codex mcp login gitranks again and allow it in your browser, then start Codex again.',
+        added: SIGNS_IN_ON_CALL,
       };
     case 'cursor':
       return {
@@ -338,6 +361,7 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup |
         lines: JSON.stringify({ mcpServers: { gitranks: { url: MCP_URL } } }, null, 2),
         check:
           "In Cursor's MCP settings, gitranks should show as connected. If it shows a sign-in button, press it and allow it in your browser.",
+        added: SIGNS_IN_ON_CALL,
       };
     case 'gemini-cli':
       return {
@@ -349,17 +373,27 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup |
         lines: `gemini mcp add --transport http gitranks ${MCP_URL}`,
         check:
           'In Gemini CLI, run /mcp: gitranks should show as connected. If not, run /mcp auth gitranks and allow it.',
+        added: SIGNS_IN_ON_CALL,
       };
     case 'antigravity':
-      return null;
+      return {
+        client,
+        name,
+        label: homePathOf(os, CONFIG_FILES.antigravity),
+        file: true,
+        where: `Add this to Antigravity's MCP config (in the IDE: ${ANTIGRAVITY_RAW_CONFIG}). Then sign in. ${ANTIGRAVITY_SIGN_IN}: ${ALLOW_IN_BROWSER} ${ANTIGRAVITY_NOT_AUTHENTICATE}`,
+        lines: JSON.stringify({ mcpServers: { gitranks: { serverUrl: MCP_URL } } }, null, 2),
+        check:
+          "In the agent's window, open Customizations and scroll down to MCP servers: gitranks should show as connected. If it shows Sign in, click it and allow it in your browser.",
+        added: `Now sign in. ${ANTIGRAVITY_SIGN_IN}.`,
+      };
   }
 }
 
-/** The sign-in setup of each client, as Settings and the connect page list it (macOS); Antigravity has none. */
-export const MCP_SIGN_IN_SETUPS: readonly McpSignInSetup[] = MCP_CLIENTS.flatMap((client) => {
-  const setup = mcpSignInSetupOf(client, 'mac');
-  return setup ? [setup] : [];
-});
+/** The sign-in setup of each client, as Settings and the connect page list it (macOS). */
+export const MCP_SIGN_IN_SETUPS: readonly McpSignInSetup[] = MCP_CLIENTS.map((client) =>
+  mcpSignInSetupOf(client, 'mac'),
+);
 
 /** The fold that holds a client's token setup, under its sign-in setup. */
 export const USE_A_TOKEN_INSTEAD = 'Use a token instead';

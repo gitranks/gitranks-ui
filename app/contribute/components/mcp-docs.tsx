@@ -61,9 +61,9 @@ const FACTS = [
   { label: 'Price', value: 'Free', text: "Your agent runs on your own plan; we don't see it" },
 ];
 
-/** One way to add GitRanks to a client: what to do, its lines, and Windows' where they differ. */
+/** One way to add GitRanks to a client: what to do, its lines, Windows' where they differ, then the line under them. */
 function DocSetup({ name, setup }: { name: string; setup: McpDocSignIn }) {
-  const { where, label, file, lines, windows } = setup;
+  const { where, label, file, lines, after, windows } = setup;
   return (
     <>
       <p className="text-sm text-muted-foreground">{where}</p>
@@ -86,6 +86,7 @@ function DocSetup({ name, setup }: { name: string; setup: McpDocSignIn }) {
           </CodeBlock>
         </details>
       ) : null}
+      {after ? <p className="text-sm text-muted-foreground">{after}</p> : null}
     </>
   );
 }

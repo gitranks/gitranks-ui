@@ -28,7 +28,7 @@ const HANDOFF = [
   {
     where: '03 · on gitranks.com',
     title: 'You take the lesson',
-    text: 'Five short steps, each with a picture or the code and one question. No essays: you tick the answer.',
+    text: 'A few short steps, each with a picture or the code and one question. No essays: you tick the answer.',
   },
   {
     where: '04 · on gitranks.com',

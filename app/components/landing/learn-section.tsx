@@ -13,11 +13,11 @@ import { promoTitleOf, reasonLineOf, type ShownPromo } from '@/lib/learn/learn-p
 import { cn } from '@/lib/utils';
 
 const POINTS = [
-  { icon: Target, title: 'Starts from your goal', text: 'A language, a domain or one project, at your level.' },
+  { icon: Target, title: 'Starts from your goal', text: 'A language or one project, at your level.' },
   {
     icon: GraduationCap,
     title: 'A lesson, not a wall of text',
-    text: 'Five short steps with a picture or the code, and one question each.',
+    text: 'A few short steps with a picture or the code, and one question each.',
   },
   {
     icon: GitPullRequest,

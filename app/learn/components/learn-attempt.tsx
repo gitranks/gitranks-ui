@@ -20,7 +20,7 @@ import { DiffViewer } from '@/app/contribute/components/diff-viewer';
 import { CardError, DiscardAttemptButton } from '@/app/contribute/components/head-actions';
 import { PrForm } from '@/app/contribute/components/pr-form';
 import { HEADING, PageTitle } from '@/app/contribute/components/primitives';
-import { prFormPropsOf } from '@/app/contribute/components/review-view';
+import { prFormPropsOf, withQuery } from '@/app/contribute/components/review-view';
 import { SendBackForm } from '@/app/contribute/components/send-back-form';
 import { SessionActionsProvider } from '@/app/contribute/components/session-actions';
 import { type SessionTab, SessionTabs } from '@/app/contribute/components/session-tabs';
@@ -340,8 +340,14 @@ export function LearnAttemptScreen({
  * The page's reads: Learn open to the viewer, their attempt, and its lesson. Anything else is a 404; a Fix attempt goes
  * to its Contribute page.
  */
-export async function LearnAttemptView({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export async function LearnAttemptView({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [{ id }, query] = await Promise.all([params, searchParams ?? Promise.resolve({})]);
   const [open, settingUp, view, attempt, lesson] = await Promise.all([
     loadLearnOpen(),
     loadLearnSetup(),
@@ -360,7 +366,7 @@ export async function LearnAttemptView({ params }: { params: Promise<{ id: strin
   }
   if (!open || !view || !attempt) notFound();
   if (attempt.mode === 'FIX' || !lesson) {
-    if (attempt.mode === 'FIX') redirect(attemptPath(attempt.attemptId));
+    if (attempt.mode === 'FIX') redirect(withQuery(attemptPath(attempt.attemptId), query));
     notFound();
   }
   return <LearnAttemptScreen view={view} attempt={attempt} lesson={lesson} />;

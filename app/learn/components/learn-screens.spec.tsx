@@ -247,6 +247,8 @@ describe("a Learn attempt's page", () => {
     expect(html).toContain('1 of 3');
     expect(html).toContain('This lesson goes public when the pull request opens');
     expect(html).toContain('Submit pull request');
+    // The same form as a contribution's page: back from GitHub's access screen (`?resume=`), it opens the pull request.
+    expect(screen(lessons.ready)).toContain(`data-pr-form="${attempt.attemptId}"`);
   });
 
   it('once the pull request is open, shares the lesson and offers to take it down', () => {

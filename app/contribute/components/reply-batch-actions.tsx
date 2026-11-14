@@ -207,10 +207,9 @@ export function CopyAllBodies({ text, count, primary }: { text: string; count: n
 /** The one comment as it will read on GitHub: each part under its number when it is split. */
 function CommentPreview({ bodies }: { bodies: readonly string[] }) {
   return (
-    <div
+    <section
       // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region, reachable by keyboard to read it all
       tabIndex={0}
-      role="region"
       aria-label="The comment as it will post"
       data-one-comment-preview=""
       className="flex max-h-72 flex-col gap-3 overflow-y-auto rounded-lg bg-muted/60 p-3 text-foreground"
@@ -221,7 +220,7 @@ function CommentPreview({ bodies }: { bodies: readonly string[] }) {
           <pre className="font-mono text-xs break-words whitespace-pre-wrap">{body}</pre>
         </div>
       ))}
-    </div>
+    </section>
   );
 }
 

@@ -17,6 +17,7 @@ import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { OwnProjectsCard } from './overview-cards/own-projects-card';
 import { MoreLink, ProfileSection } from './profile-card';
 import { ProfileContribute } from './profile-contribute';
+import { ProfileLearnRecord } from './profile-learn-record';
 import { ProfileSummary } from './profile-summary';
 import { RankHistoryTable } from './rank-history-table';
 import { StarsReviewNote } from './stars-review-note';
@@ -24,6 +25,7 @@ import type { UserFacts } from '@/badge/v3/facts';
 import { BadgesCard } from '@/components/badges-card/badges-card';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import type { ProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
+import { languageColorsOf } from '@/lib/learn/learn-promo';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { countryInSentence } from '@/utils/country-in-sentence';
 
@@ -128,9 +130,13 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, badgeFacts, 
         <ProfileSummary parts={summary} />
       </div>
 
-      {/* GitRanks Contribute on the owner's own profile alone, read in the browser after the cached page loads: their
-          picks, or their own list's top once they contribute. Below the cards, so it never pushes them down. */}
-      <ProfileContribute login={login} />
+      {/* One suggestion on the owner's own profile alone, read in the browser after the cached page loads: GitRanks
+          Learn when it may suit them, else Contribute's picks, or their own list's top once they contribute. Below the
+          cards, so it never pushes them down. */}
+      <ProfileContribute login={login} colors={languageColorsOf([...(sLangs ?? []), ...(cLangs ?? [])])} />
+
+      {/* Their GitRanks Learn record, the same for every reader, read in the browser: nothing without a public pass. */}
+      <ProfileLearnRecord login={login} />
 
       {!!repositoriesCount && (
         <ProfileSection

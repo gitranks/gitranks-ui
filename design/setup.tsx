@@ -74,6 +74,7 @@ vi.mock('@/app/learn/actions', async () => ({
       'saveLearnProfile',
       'reactToLessonResult',
       'reactOnReturn',
+      'dismissLearnPromo',
     ].map((name) => [name, async () => undefined]),
   ),
   signInToReact: async () => {},

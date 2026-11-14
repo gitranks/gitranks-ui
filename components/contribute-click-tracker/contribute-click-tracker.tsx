@@ -118,11 +118,11 @@ export function reportContributeConnect(way: ConnectWay) {
 }
 
 /**
- * Tells us a Learn page was opened or clicked on, for visitors without a sign-in too (the pages are served the same to
- * everyone): the event, the lesson and the page, never who the visitor is.
+ * Tells us something of Learn's was shown or clicked on, for visitors without a sign-in too (the pages are served the
+ * same to everyone): the event, where, the lesson when there is one, and the page, never who the visitor is.
  */
-export function reportLearnEvent(event: LearnEvent, lesson: string) {
-  send({ ...event, path: window.location.pathname, lesson });
+export function reportLearnEvent(event: LearnEvent, lesson?: string) {
+  send({ ...event, path: window.location.pathname, ...(lesson ? { lesson } : {}) });
 }
 
 /**

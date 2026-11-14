@@ -12,6 +12,13 @@ export const LEARN_MAINTAINERS_PATH = '/learn/maintainers' as Route;
 /** A Learn attempt's page: the lesson, then the pull request. */
 export const learnAttemptPath = (attemptId: string) => `/learn/attempts/${encodeURIComponent(attemptId)}` as Route;
 
+/**
+ * Whether Learn is open to visitors without a session. Off while Learn is open only to the people the API lets in: the
+ * proxy answers a visitor's request for a closed Learn page with a 404, and the home page leaves out its Learn section.
+ * Turning it on lets visitors past the proxy and shows the section; each page keeps its own check of who it is open to.
+ */
+export const LEARN_OPEN_TO_VISITORS = false as boolean;
+
 /** Matches the path, decoded as the router reads it, against `pattern`; a path that does not decode never matches. */
 function decodedMatches(pathname: string, pattern: RegExp): boolean {
   try {

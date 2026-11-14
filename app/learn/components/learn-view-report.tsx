@@ -10,7 +10,10 @@ import { reportLearnEvent } from '@/components/contribute-click-tracker/contribu
  */
 export function LearnViewReport({ source, lesson }: { source: 'lesson_opened' | 'result_opened'; lesson: string }) {
   useEffect(() => {
-    reportLearnEvent({ kind: 'learn_view', source }, lesson);
+    reportLearnEvent(
+      { kind: 'learn_view', event: source, source: source === 'lesson_opened' ? 'learn_lesson' : 'learn_result' },
+      lesson,
+    );
   }, [source, lesson]);
   return null;
 }

@@ -22,6 +22,15 @@ export const CONTRIBUTE_SOURCES = [
   'footer',
   /** The action buttons of Contribute's own landing: the step from reading about it to starting. */
   'contribute_landing',
+  /** GitRanks Learn: a shared lesson's page, and a result page. */
+  'learn_lesson',
+  'learn_result',
+  /** GitRanks Learn's section of the home page, as a visitor sees it. */
+  'learn_promo_landing',
+  /** GitRanks Learn suggested on the home page to a signed-in user it may suit, in the Contribute section's place. */
+  'learn_promo_signed_in',
+  /** GitRanks Learn suggested on the signed-in user's own profile, in the Contribute block's place. */
+  'learn_promo_profile',
   /** A link to Contribute that carries no mark. */
   'other',
 ] as const;
@@ -41,14 +50,25 @@ const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>(['contribu
 
 export const CLICK_REPORT_PATH = '/api/contribute/click';
 
-/** `learn_view` and `learn_click`: a Learn page opened, a click on one, named by `source` and the lesson's slug. */
+/** `learn_view` and `learn_click`: something of Learn's shown, or a click on it, named by `event` and `source`. */
 export type ClickKind = 'click' | 'landing' | 'connect' | 'learn_view' | 'learn_click';
 export type ConnectWay = 'key' | 'agent';
 
-/** What a Learn report counts: a page opened (`learn_view`) or a click on one (`learn_click`). */
+/** Where a Learn event happened: one of Learn's pages, or one of its suggestions. */
+export type LearnSource = Extract<ContributeSource, `learn_${string}`>;
+
+/**
+ * What a Learn report counts: something shown (`learn_view`: a lesson's page, a result page, a suggestion) or a click
+ * (`learn_click`: a reaction, a suggestion followed or turned down), where (`source`), and one short detail (`yes`/`no`).
+ */
 export type LearnEvent =
-  | { kind: 'learn_view'; source: 'lesson_opened' | 'result_opened' }
-  | { kind: 'learn_click'; source: 'reaction_clicked'; target: 'yes' | 'no' };
+  | { kind: 'learn_view'; event: 'lesson_opened' | 'result_opened' | 'promo_shown'; source: LearnSource }
+  | {
+      kind: 'learn_click';
+      event: 'reaction_clicked' | 'promo_clicked' | 'promo_dismissed';
+      source: LearnSource;
+      detail?: string;
+    };
 
 /** How the visit began: the address's campaign tags and the other site it came from. */
 export type Entry = { utmSource?: string; utmMedium?: string; utmCampaign?: string; referrerHost?: string };
@@ -58,7 +78,9 @@ export type ClickReport = Entry & {
   path: string;
   source?: string;
   target?: string;
-  /** A Learn report's lesson. */
+  /** A Learn report's event, its detail and its lesson. */
+  event?: string;
+  detail?: string;
   lesson?: string;
 };
 

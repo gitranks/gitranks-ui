@@ -2908,6 +2908,7 @@ export type Entities = {
 
 export enum InsightCategory {
   CountryAnalysis = 'COUNTRY_ANALYSIS',
+  CountryCrowns = 'COUNTRY_CROWNS',
   CountryTrends = 'COUNTRY_TRENDS',
   LanguageAnalysis = 'LANGUAGE_ANALYSIS',
   LanguageTrends = 'LANGUAGE_TRENDS',

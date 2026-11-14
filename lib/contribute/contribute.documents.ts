@@ -173,6 +173,14 @@ export const ApproveContributeOAuthDocument = doc<
   'mutation ApproveContributeOAuth($requestId: String!) { approveContributeOAuth(requestId: $requestId) { redirectTo } }',
 );
 
+/** A directory reviewer's Allow: the review sign-in's username and password, no session; the answer is as Allow's. */
+export const ApproveContributeOAuthAsReviewerDocument = doc<
+  { approveContributeOAuthAsReviewer: { redirectTo: string } },
+  { requestId: string; username: string; password: string }
+>(
+  'mutation ApproveContributeOAuthAsReviewer($requestId: String!, $username: String!, $password: String!) { approveContributeOAuthAsReviewer(requestId: $requestId, username: $username, password: $password) { redirectTo } }',
+);
+
 export const SendBackToAgentDocument = doc<
   { sendBackToAgent: Pick<ContributeAttempt, 'attemptId' | 'state'> },
   { attemptId: string; note: string }

@@ -35,6 +35,30 @@ const graphqlErrorsOf = (error: unknown): GraphqlError[] => {
 
 const UNKNOWN_FIELD = /Cannot query field|Unknown type|Unknown argument/i;
 
+/**
+ * What the directory reviewers' sign-in says for each refusal the API answers (octoscope's OpenAI directory spec §4):
+ * a wrong pair, the sign-in off, or a request that can't be used any more.
+ */
+export const REVIEW_SIGN_IN_REFUSALS = {
+  UNAUTHENTICATED: { error: 'INVALID', message: 'Wrong username or password.' },
+  FORBIDDEN: { error: 'INVALID', message: 'The review sign-in is not available right now.' },
+  EXPIRED: {
+    error: 'EXPIRED',
+    message: 'This sign-in has expired or had too many tries. Start it again from the app.',
+  },
+} as const satisfies Record<string, { error: ContributeErrorCode; message: string }>;
+
+/** A failed review sign-in, as its form says it; anything else is `FAILED`. */
+export function reviewSignInErrorOf(error: unknown): { error: ContributeErrorCode; message?: string } {
+  for (const { extensions } of graphqlErrorsOf(error)) {
+    const code = extensions?.code;
+    if (code && Object.hasOwn(REVIEW_SIGN_IN_REFUSALS, code)) {
+      return REVIEW_SIGN_IN_REFUSALS[code as keyof typeof REVIEW_SIGN_IN_REFUSALS];
+    }
+  }
+  return { error: 'FAILED' };
+}
+
 export function contributeErrorOf(error: unknown): { error: ContributeErrorCode; message?: string } {
   const errors = graphqlErrorsOf(error);
   const codes = errors.map(({ extensions }) => extensions?.code);

@@ -2,20 +2,30 @@ import { CheckIcon, XIcon } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { AuthorizeActions, AuthorizeCancel, AuthorizeSignIn } from './authorize-actions';
+import { AuthorizeActions, AuthorizeCancel, AuthorizeReviewSignIn, AuthorizeSignIn } from './authorize-actions';
 import { NO_PROFILE_TITLE, SETTING_UP_TITLE } from './setting-up';
 import { SettingUpAutoRefresh } from './setting-up-refresh';
 import { LearnSetupRefresh } from '@/app/learn/components/learn-setting-up';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ContributeOAuthRequest } from '@/lib/contribute/contribute.types';
 import { MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
-import { AGENT_CAN, AGENT_CANNOT, clientWhereTextOf, waitingLineOf } from '@/lib/contribute/oauth-consent';
+import {
+  AGENT_CAN,
+  AGENT_CANNOT,
+  authorizeHrefOf,
+  authorizeReviewHrefOf,
+  clientWhereTextOf,
+  REVIEW_SIGN_IN_SHOWN,
+  waitingLineOf,
+} from '@/lib/contribute/oauth-consent';
 import { settingsPathOf } from '@/lib/contribute/settings-paths';
 
 /** What the consent page shows: one state per variant of the copy. */
 export type AuthorizeState =
   /** No session: the sign-in first, back to this page. */
   | { kind: 'signed-out'; requestId: string }
+  /** Signed out, on the directory reviewers' sign-in (`&review=1`): username and password, no session. */
+  | { kind: 'review-sign-in'; requestId: string }
   /** Signed in, and the request waits for Allow. */
   | { kind: 'pending'; requestId: string; login: string; request: ContributeOAuthRequest }
   /** The preview, and this account is not on it: Cancel alone. */
@@ -155,8 +165,38 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
           title="Sign in with GitHub to connect your agent"
           text="Your agent asks to work on GitRanks Contribute as you. Sign in first; you come straight back here to allow it. GitHub shares your public profile and email with us, read-only."
         >
-          <CardFooter>
+          <CardFooter className="flex flex-col items-start gap-4">
             <AuthorizeSignIn requestId={state.requestId} />
+            {REVIEW_SIGN_IN_SHOWN ? (
+              <p className="text-sm text-muted-foreground">
+                Reviewing this app for a directory?{' '}
+                <Link
+                  href={authorizeReviewHrefOf(state.requestId)}
+                  prefetch={false}
+                  className={LINK}
+                  data-authorize="review-link"
+                >
+                  Use the review sign-in
+                </Link>
+              </p>
+            ) : null}
+          </CardFooter>
+        </Frame>
+      );
+    case 'review-sign-in':
+      return (
+        <Frame
+          title="Review sign-in"
+          text="For app directory reviewers: sign in with the review account you were given. It connects the app to GitRanks Contribute's review account, nothing else."
+        >
+          <CardFooter className="flex flex-col items-stretch gap-4">
+            <AuthorizeReviewSignIn requestId={state.requestId} />
+            <p className="text-sm text-muted-foreground">
+              Not a reviewer?{' '}
+              <Link href={authorizeHrefOf(state.requestId)} prefetch={false} className={LINK}>
+                Sign in with GitHub instead
+              </Link>
+            </p>
           </CardFooter>
         </Frame>
       );

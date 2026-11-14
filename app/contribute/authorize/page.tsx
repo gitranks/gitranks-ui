@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { AuthorizeScreen, type AuthorizeState, authorizeStateFor } from '../components/authorize-view';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { ContributeOAuthRequestDocument } from '@/lib/contribute/contribute.documents';
-import { requestIdOf } from '@/lib/contribute/oauth-consent';
+import { REVIEW_SIGN_IN_SHOWN, requestIdOf } from '@/lib/contribute/oauth-consent';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 export const metadata: Metadata = {
@@ -28,15 +28,17 @@ export default function AuthorizePage({ searchParams }: PageProps<'/contribute/a
 }
 
 async function Authorize({ searchParams }: Pick<PageProps<'/contribute/authorize'>, 'searchParams'>) {
-  return <AuthorizeScreen state={await authorizeStateOf((await searchParams).request)} />;
+  const params = await searchParams;
+  return <AuthorizeScreen state={await authorizeStateOf(params.request, params.review === '1')} />;
 }
 
 /** What the page shows for the request in its query, for the session's user. */
-async function authorizeStateOf(value: string | string[] | undefined): Promise<AuthorizeState> {
+async function authorizeStateOf(value: string | string[] | undefined, review: boolean): Promise<AuthorizeState> {
   const requestId = requestIdOf(value);
   if (!requestId) return { kind: 'expired' };
   const login = await viewerLogin();
-  if (!login) return { kind: 'signed-out', requestId };
+  // The directory reviewers' sign-in (`&review=1`): signed out only; a signed-in user allows as themselves.
+  if (!login) return { kind: review && REVIEW_SIGN_IN_SHOWN ? 'review-sign-in' : 'signed-out', requestId };
   let read: Awaited<ReturnType<typeof readRequest>>;
   try {
     read = await readRequest(requestId, login);

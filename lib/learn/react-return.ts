@@ -6,12 +6,12 @@
 
 type Place = {
   readonly location: Pick<Location, 'pathname' | 'hash'>;
-  readonly history: Pick<History, 'replaceState'>;
+  readonly history: Pick<History, 'replaceState' | 'state'>;
 };
 
-/** Drops the query (the pick and the sign-in's state) from the address, with no navigation. */
+/** Drops the query (the pick and the sign-in's state) from the address, with no navigation and the history's state kept. */
 export function dropReturnQuery(place: Place): void {
-  place.history.replaceState(null, '', `${place.location.pathname}${place.location.hash}`);
+  place.history.replaceState(place.history.state, '', `${place.location.pathname}${place.location.hash}`);
 }
 
 /** Stores the returned pick, then cleans the address, whether the store went through or not. */
@@ -21,4 +21,16 @@ export async function storeThenClean(store: () => Promise<unknown>, clean: () =>
   } finally {
     clean();
   }
+}
+
+/**
+ * The pick back from the sign-in, on arrival: stored with the sign-in's token, else (the sign-in did not keep one)
+ * asked for again. Either way the address is cleaned after, never while the page is still mounting or the store is on
+ * its way.
+ */
+export function settleReturnedPick(
+  canReact: boolean,
+  { store, prompt, clean }: { store: () => Promise<unknown>; prompt: () => void; clean: () => void },
+): Promise<void> {
+  return storeThenClean(canReact ? store : async () => prompt(), clean);
 }

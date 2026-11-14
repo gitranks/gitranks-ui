@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { dropReturnQuery, storeThenClean } from './react-return';
+import { dropReturnQuery, settleReturnedPick, storeThenClean } from './react-return';
 
 const deferred = () => {
   let resolve!: () => void;
@@ -43,12 +43,38 @@ describe('the way back from a reaction sign-in', () => {
     expect(clean).toHaveBeenCalledOnce();
   });
 
-  it('drops the query through the history alone, keeping the path and the hash', () => {
+  it("stores a pick with the sign-in's token before the address changes, and never asks again", async () => {
+    const store = deferred();
+    const prompt = vi.fn();
+    const clean = vi.fn();
+    const done = settleReturnedPick(true, { store: () => store.promise, prompt, clean });
+    await Promise.resolve();
+    expect(clean).not.toHaveBeenCalled();
+    store.resolve();
+    await done;
+    expect(clean).toHaveBeenCalledOnce();
+    expect(prompt).not.toHaveBeenCalled();
+  });
+
+  it('without the token, asks for the sign-in again and cleans the address after the mount, not during it', async () => {
+    const store = vi.fn();
+    const prompt = vi.fn();
+    const clean = vi.fn();
+    const done = settleReturnedPick(false, { store, prompt, clean });
+    expect(prompt).toHaveBeenCalledOnce();
+    expect(clean).not.toHaveBeenCalled();
+    await done;
+    expect(clean).toHaveBeenCalledOnce();
+    expect(store).not.toHaveBeenCalled();
+  });
+
+  it("drops the query through the history alone, keeping the path, the hash and the history's state", () => {
     const replaceState = vi.fn();
+    const state = { tree: 'kept' };
     dropReturnQuery({
       location: { pathname: '/learn/lessons/route-cache-miss-8f3k/passes/octocat', hash: '#react' },
-      history: { replaceState },
+      history: { replaceState, state },
     });
-    expect(replaceState).toHaveBeenCalledWith(null, '', '/learn/lessons/route-cache-miss-8f3k/passes/octocat#react');
+    expect(replaceState).toHaveBeenCalledWith(state, '', '/learn/lessons/route-cache-miss-8f3k/passes/octocat#react');
   });
 });

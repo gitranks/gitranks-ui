@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { MAINTAINERS_REPORT_PATH } from '@/lib/contribute/contribute-path';
 import type { LessonReaction, LessonResultReaction } from '@/lib/learn/learn.types';
 import { reactionRoleOf, reactionWordsOf } from '@/lib/learn/lesson-public';
-import { dropReturnQuery, storeThenClean } from '@/lib/learn/react-return';
+import { dropReturnQuery, settleReturnedPick } from '@/lib/learn/react-return';
 import { cn } from '@/lib/utils';
 
 const BUTTONS: { value: LessonReaction; label: string; Icon: typeof ThumbsUp }[] = [
@@ -107,14 +107,13 @@ export function ResultReactions({
   useEffect(() => {
     if (!returned || returnedOnce.current) return;
     returnedOnce.current = true;
-    const clean = () => dropReturnQuery(window);
-    // Stored with the sign-in's token; without one (the sign-in did not keep it), the pick asks for it again.
-    if (!canReact) {
-      setPrompt(returned);
-      clean();
-      return;
-    }
-    startTransition(() => storeThenClean(() => send(returned, reactOnReturn), clean));
+    startTransition(() =>
+      settleReturnedPick(canReact, {
+        store: () => send(returned, reactOnReturn),
+        prompt: () => setPrompt(returned),
+        clean: () => dropReturnQuery(window),
+      }),
+    );
   }, []);
 
   const click = (reaction: LessonReaction) => {

@@ -285,13 +285,13 @@ describe('needsYouItemsOf: an open pull request', () => {
     expect(row).toMatchObject({
       kind: 'agreement',
       pill: 'Agreement to sign',
-      move: `Only you can sign the repo's DCO; its bot records it from this comment on PR #23935, word for word: "I have read the DCO Document and I hereby sign the DCO"`,
+      move: `Only you can sign the repo's DCO; its bot records it from this comment on PR #4021, word for word: "I have read the DCO Document and I hereby sign the DCO"`,
       action: {
         label: 'Copy and open the PR ↗',
-        external: 'https://github.com/carbon-design-system/carbon/pull/23935',
+        external: 'https://github.com/lantern-ui/lantern/pull/4021',
         copy: 'I have read the DCO Document and I hereby sign the DCO',
       },
-      secondary: { label: 'I posted it', handled: { prId: 'PR_23935', kinds: ['CLA'], all: true } },
+      secondary: { label: 'I posted it', handled: { prId: 'PR_4021', kinds: ['CLA'], all: true } },
     });
   });
 

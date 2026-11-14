@@ -105,7 +105,7 @@ describe('nextStepOf', () => {
         kinds: ['CLA'],
         agreement: 'DCO',
         signComment: 'I have read the DCO Document and I hereby sign the DCO',
-        signUrl: 'https://github.com/carbon-design-system/carbon/blob/main/.github/DCO.md',
+        signUrl: 'https://github.com/lantern-ui/lantern/blob/main/.github/DCO.md',
         check: 'DCO',
       },
     ]);
@@ -217,7 +217,7 @@ describe('the move on the other sessions', () => {
   it('reads the first attempt as a list reads its pull request, and nothing before there is one', () => {
     expect(contributionOf(nextForAgreement)).toMatchObject({
       attemptId: 'A_C',
-      issueNumber: 18389,
+      issueNumber: 3870,
       conventions: { cla: { signComment: 'I have read the DCO Document and I hereby sign the DCO' } },
     });
     expect(contributionOf({ ...nextForAgreement, pullRequest: null })).toBeNull();

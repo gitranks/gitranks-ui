@@ -142,7 +142,7 @@ describe('Needs you', () => {
       'Run 2 ready driftwood-js/driftwood · PR #1419 Nested layouts re-render on every navigation Your move: Run 2 fixed 2 comments. Approve to push it. Review run 2',
     );
     expect(plain).toContain(
-      `Agreement to sign carbon-design-system/carbon · PR #23935 a11y: hard-coded ids in text input Your move: Only you can sign the repo's DCO; its bot records it from this comment on PR #23935, word for word: "I have read the DCO Document and I hereby sign the DCO" Copy and open the PR ↗ I posted it`,
+      `Agreement to sign lantern-ui/lantern · PR #4021 a11y: duplicate ids in the input field Your move: Only you can sign the repo's DCO; its bot records it from this comment on PR #4021, word for word: "I have read the DCO Document and I hereby sign the DCO" Copy and open the PR ↗ I posted it`,
     );
     expect(html).toContain('data-copy-and-open=""');
     expect(plain).toContain(

@@ -37,7 +37,7 @@ export function SessionTabs({
             key={tab.value}
             value={tab.value}
             data-tab={tab.value}
-            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 border-transparent text-sm whitespace-nowrap text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=active]:border-foreground data-[state=active]:font-medium data-[state=active]:text-foreground"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 border-transparent text-sm whitespace-nowrap text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset data-[state=active]:border-foreground data-[state=active]:font-medium data-[state=active]:text-foreground"
           >
             {tab.label}
             {tab.badge ? (

@@ -101,14 +101,14 @@ export const REPO_SCREENS: Screen[] = [
       },
       {
         id: 'young-daily-pick',
-        title: 'On daily updates, picked: nobody is named',
+        title: 'On daily updates, added by someone: nobody is named',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
         render: () => youngOnDailyUpdates(DailyUpdateReason.Pick),
       },
       {
         id: 'young-pick-off',
-        title: 'Signed in with a pick left: “Update daily”',
+        title: 'Signed in, can add a repo: “Update daily”',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
         viewer: picker('none'),
@@ -116,7 +116,7 @@ export const REPO_SCREENS: Screen[] = [
       },
       {
         id: 'young-your-pick',
-        title: 'Your pick',
+        title: 'On your daily updates',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
         viewer: picker('this'),
@@ -124,7 +124,7 @@ export const REPO_SCREENS: Screen[] = [
       },
       {
         id: 'young-picks-full',
-        title: 'Signed in, all 3 picks used: Refresh',
+        title: 'Signed in, 3 repos on daily updates already: Refresh',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
         viewer: picker('full'),

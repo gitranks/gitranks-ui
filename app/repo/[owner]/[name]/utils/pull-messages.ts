@@ -54,7 +54,7 @@ export const PULL_MESSAGES = {
     photo: true,
     title: 'This fetch costs 1 star ⭐',
     paragraphs: [
-      'Star our repo gitranks/gitranks-ui on GitHub to unlock one free star history fetch a day.',
+      'Star our repo gitranks/gitranks-ui on GitHub to unlock one star history fetch a day.',
       'That’s the full price. No card, no ads. Then press the button again.',
     ],
     signature: '— Vitalii',
@@ -64,7 +64,7 @@ export const PULL_MESSAGES = {
   used: {
     title: 'Easy, tiger 🐯',
     paragraphs: [
-      'Your free fetch of today is used. The next one is in {time}.',
+      'Today’s fetch is used. The next one is in {time}.',
       `Too long? Use your own GitHub token for up to ${TOKEN_PULLS_PER_DAY} fetches a day. They run on your GitHub limits, not ours.`,
     ],
     ...TOKEN_NOTE,

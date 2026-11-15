@@ -288,7 +288,7 @@ describe('PullButton: one button', () => {
       expect(toast.success).toHaveBeenCalledExactlyOnceWith(
         'This repository is on daily updates. Its first update comes soon.',
       );
-      expect(text()).toBe('Updates daily Your pick.');
+      expect(text()).toBe('Updates daily You added it.');
     });
 
     it('asks for no refresh when today’s fetch is known to be used', async () => {
@@ -322,7 +322,7 @@ describe('PullButton: one button', () => {
           new Response(JSON.stringify({ status: 'picked', picks: picked('acme/fastqueue'), newPicksLeftToday: 2 })),
         ),
       );
-      expect(text()).toBe('Updates daily Your pick.');
+      expect(text()).toBe('Updates daily You added it.');
     });
 
     it('asks to remove one when all 3 are used, from the picks as they are now, then "Done" picks and refreshes', async () => {
@@ -333,8 +333,8 @@ describe('PullButton: one button', () => {
       answer(PICKS, { status: 'full' });
       answer(VIEWER, viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas'), newPicksLeftToday: 1 }));
       await press('Update daily');
-      expect(dialogTitle()).toBe('All 3 picks are used');
-      expect(dialogText()).toContain('Remove one to update acme/fastqueue every day.');
+      expect(dialogTitle()).toBe('You update 3 repos daily');
+      expect(dialogText()).toContain('Remove one to add this repo.');
       expect(dialogText()).not.toContain('Your profile');
 
       answer(REMOVE, { status: 'removed', picks: picked('octo/rocket', 'octo/lantern') });
@@ -352,7 +352,7 @@ describe('PullButton: one button', () => {
       expect(bodies(PICKS)).toHaveLength(2);
       expect(calls(PULL)).toHaveLength(1);
       expect(dialog()).toBeNull();
-      expect(text()).toBe('Updates daily Your pick.');
+      expect(text()).toBe('Updates daily You added it.');
     });
 
     it('"Cancel" with all 3 picks used picks nothing', async () => {
@@ -377,8 +377,8 @@ describe('PullButton: one button', () => {
       answer(PICKS, { status: 'daily_limit', nextAt: iso(NOW + 12 * HOUR) });
       await press('Update daily');
 
-      expect(dialogTitle()).toBe('No new picks left today');
-      expect(dialogText()).toContain('You can add 3 picks a day. The next one opens in 12 h.');
+      expect(dialogTitle()).toBe('No more repos today');
+      expect(dialogText()).toContain('You can add another repo in 12 h.');
       expect(calls(PULL)).toHaveLength(0);
     });
 
@@ -390,8 +390,8 @@ describe('PullButton: one button', () => {
       answer(VIEWER, viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas'), newPicksLeftToday: 0 }));
       await press('Update daily');
 
-      expect(dialogTitle()).toBe('No new picks left today');
-      expect(dialogText()).toContain('The next one opens in 12 h.');
+      expect(dialogTitle()).toBe('No more repos today');
+      expect(dialogText()).toContain('You can add another repo in 12 h.');
       expect(buttonNamed('Remove')).toBeUndefined();
     });
 
@@ -477,22 +477,22 @@ describe('PullButton: one button', () => {
     it('on the visitor’s pick: lists their daily updates, refreshes now, and removes one', async () => {
       answer(VIEWER, viewerOf({ picks: picked('ACME/fastqueue', 'octo/rocket') }));
       await mount(onDaily(DailyUpdateReason.Pick));
-      expect(text()).toBe('Updates daily Your pick. Next update in 5 h.');
+      expect(text()).toBe('Updates daily You added it. Next update in 5 h.');
 
       await press('Updates daily');
       expect(dialogTitle()).toBe('Your daily updates');
       expect(dialogText()).toContain('Next update in 5 h.');
       expect(dialogText()).toContain('We update these every day. They stay on for 7 days after your last visit.');
       expect(dialogText()).toContain('Mona-DevYour profile');
-      expect(dialogText()).toContain('1 pick left');
-      expect(dialogText()).toContain('You can add 3 picks a day.');
+      expect(dialogText()).toContain('You can add 1 more repo.');
+      expect(dialogText()).not.toMatch(/\bpicks?\b|a day/i);
       expect(buttonNamed('Refresh now')).toBeDefined();
 
       answer(REMOVE, { status: 'removed', picks: picked('ACME/fastqueue') });
       await press('Remove', rowOf('octo/rocket'));
       expect(bodies(REMOVE)).toEqual([{ owner: 'octo', name: 'rocket' }]);
       expect(dialogText()).not.toContain('octo/rocket');
-      expect(dialogText()).toContain('2 picks left');
+      expect(dialogText()).toContain('You can add 2 more repos.');
 
       answer(PULL, { status: 'running' });
       await press('Refresh now');

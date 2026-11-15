@@ -100,7 +100,7 @@ export const REFRESH_MESSAGES = {
     steps: ['Sign in with GitHub. We only see your name and email.', 'Star our repo.'],
     closing: [
       'Then we update your profile every day. It stays on for 7 days after your last visit.',
-      'You also get 3 picks: repositories we update every day, too.',
+      'You can also update up to 3 repos daily.',
     ],
     note: 'Don’t want to star? Add a GitRanks badge to your GitHub profile. While the badge is there, we update your profile every day. No sign-in, no 7-day limit. Already added it? Check my badge.',
     noteLinks: [{ text: 'GitRanks badge', href: '/badge/builder' }, { text: CHECK_BADGE_LINK }],

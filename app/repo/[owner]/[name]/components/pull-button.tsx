@@ -8,7 +8,6 @@ import { ClipLoader } from 'react-spinners';
 import { toast } from 'sonner';
 
 import {
-  fillRepo,
   ON_DAILY_DIALOG,
   PICK_DIALOGS,
   PICK_LABELS,
@@ -558,13 +557,12 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
             onCloseAutoFocus={focusBack}
           />
         );
-      case 'allPicksUsed': {
-        const copy = PICK_DIALOGS.allPicksUsed;
+      case 'allPicksUsed':
         return (
           <PicksDialog
             open
             onOpenChange={onOpenChange}
-            copy={{ ...copy, paragraph: fillRepo(copy.paragraph, nameWithOwner) }}
+            copy={PICK_DIALOGS.allPicksUsed}
             picks={picks}
             onRemove={remove}
             removing={removing}
@@ -573,7 +571,6 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
             onCloseAutoFocus={focusBack}
           />
         );
-      }
       case 'dailyLimit': {
         const copy = PICK_DIALOGS.dailyLimit;
         return (
@@ -592,7 +589,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
           ? { primary: ON_DAILY_DIALOG.refresh, secondary: ON_DAILY_DIALOG.close }
           : { primary: dialog.yours ? yours.primary : ON_DAILY_DIALOG.done };
         const copy: PicksDialogCopy = dialog.yours
-          ? { title: yours.title, paragraph: yours.paragraph, note: yours.note, ...buttons }
+          ? { title: yours.title, paragraph: yours.paragraph, ...buttons }
           : { title: ON_DAILY_DIALOG.title, ...buttons };
         return (
           <PicksDialog

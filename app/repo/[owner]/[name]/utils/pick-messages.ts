@@ -7,8 +7,9 @@ import {
 } from '@/components/refresh-dialogs/refresh-messages';
 
 /**
- * Every word of a repository's daily updates for a signed-in visitor: their picks, in one place. Who else picked a
- * repository is never said. `{repo}` is filled with the repository's `owner/name`, `{time}` with the time left.
+ * Every word of a repository's daily updates for a signed-in visitor, in one place. Who else added a repository is
+ * never said. `{time}` is filled with the time left. The copy says "repos" and "daily updates", never "picks", and
+ * never "free": no update costs anything. ("Pick" stays a word of the code only.)
  */
 
 /** Repositories a visitor may pick at a time. */
@@ -25,8 +26,8 @@ export const PICK_LABELS = {
 export const PICK_LINES = {
   /** Under "Update daily". */
   off: 'Update up to 3 repos daily.',
-  /** Before "Next update in {time}." */
-  yourPick: 'Your pick.',
+  /** The visitor's own pick, before "Next update in {time}." */
+  yourPick: 'You added it.',
 } as const;
 
 /** A dialog with the visitor's picks: a title, one paragraph, the list, small print and its buttons. */
@@ -43,21 +44,20 @@ export const PICK_DIALOGS = {
   yourDailyUpdates: {
     title: 'Your daily updates',
     paragraph: 'We update these every day. They stay on for 7 days after your last visit.',
-    note: 'You can add 3 picks a day.',
     primary: 'Done',
     secondary: 'Close',
   },
   /** A fourth pick: one has to go first. */
   allPicksUsed: {
-    title: 'All 3 picks are used',
-    paragraph: 'Remove one to update {repo} every day.',
+    title: 'You update 3 repos daily',
+    paragraph: 'Remove one to add this repo.',
     primary: 'Done',
     secondary: 'Cancel',
   },
-  /** Three new picks today already; removing one does not give a new one back. */
+  /** No new pick left today; removing one does not give a new one back. */
   dailyLimit: {
-    title: 'No new picks left today',
-    paragraph: 'You can add 3 picks a day. The next one opens in {time}.',
+    title: 'No more repos today',
+    paragraph: 'You can add another repo in {time}.',
     primary: 'OK',
   },
 } as const satisfies Record<string, PicksDialogCopy>;
@@ -79,8 +79,9 @@ export const PICK_LIST = {
   remove: 'Remove',
 } as const;
 
-/** The muted last row of the list: "1 pick left". */
-export const picksLeftText = (left: number) => (left === 1 ? '1 pick left' : `${left} picks left`);
+/** The muted last row of the list, while one more can be added: "You can add 1 more repo." */
+export const picksLeftText = (left: number) =>
+  left === 1 ? 'You can add 1 more repo.' : `You can add ${left} more repos.`;
 
 /** Before a pick: the star check, as the profile's Refresh says it. */
 export const PICK_MESSAGES = {
@@ -94,7 +95,7 @@ export const PICK_TOASTS = {
   notHeld: 'This repository can’t be updated daily right now.',
   failed: REFRESH_TOASTS.checkFailed,
   busy: REFRESH_TOASTS.busy,
-  removeFailed: 'The pick was not removed. Please try again.',
+  removeFailed: 'The repo was not removed. Please try again.',
   /** Picked, and today's refresh of it started. */
   pickedRefreshing: 'Refreshing now. This repository is on daily updates.',
   /** Picked, and today's refresh of it is not allowed now: the pick stands. */
@@ -115,5 +116,3 @@ export function pickedOutcomeOf(outcome: PullOutcome | null): PullOutcome {
   }
   return { kind: 'toast', tone: 'success', text: PICK_TOASTS.pickedNoRefresh };
 }
-
-export const fillRepo = (text: string, nameWithOwner: string) => text.replaceAll('{repo}', nameWithOwner);

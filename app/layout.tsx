@@ -72,7 +72,10 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
               <FlagEmojiPolyfill />
               <CtaClickTracker />
               <ContributeClickTracker />
-              <DailyUpdatesVisit />
+              {/* Reads the pathname, which can suspend on routes rendered on request. */}
+              <Suspense fallback={null}>
+                <DailyUpdatesVisit />
+              </Suspense>
               <div className="flex flex-col min-h-screen">
                 {/* Contribute's launch, above every page's header. The same HTML for everyone: the browser hides it. */}
                 <LaunchBar />

@@ -9,7 +9,7 @@ import {
   LAUNCH_BAR_TAIL,
   PRODUCT_HUNT_BARS,
 } from './launch-bar.consts';
-import { LaunchBarDismiss, ProductHuntBarLink } from './launch-bar-dismiss';
+import { LaunchBarClock, LaunchBarDismiss, ProductHuntBarLink } from './launch-bar-dismiss';
 import { contributeSource } from '@/lib/contribute/click-tracking';
 
 /** In the head: picks the bar before it paints, and hides it where it should not show (see `LAUNCH_BAR_SCRIPT`). */
@@ -19,7 +19,8 @@ export function LaunchBarScript() {
 
 /**
  * The announcement above the header, on every page: all three bars are in the HTML, and the `data-launch-bar`
- * attribute on `<html>` shows the one for this minute, or none. Each is an `<aside>`, so tools that copy a page's main
+ * attribute on `<html>` shows the one for this minute, or none, and moves on at the switch in a tab left open. Each
+ * is an `<aside>`, so tools that copy a page's main
  * text (directory listings, readers) skip it.
  */
 export function LaunchBar() {
@@ -28,6 +29,7 @@ export function LaunchBar() {
       <ProductHuntBar bar="ph-soon" />
       <ProductHuntBar bar="ph-live" />
       <ContributeBar />
+      <LaunchBarClock />
     </>
   );
 }
@@ -53,7 +55,7 @@ function ProductHuntBar({ bar }: { bar: 'ph-soon' | 'ph-live' }) {
         >
           <SiProducthunt aria-hidden className="size-5 shrink-0 text-producthunt" />
           <span className="min-w-0 truncate font-semibold text-foreground">{copy.lead}</span>
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-producthunt px-2 text-[11px] leading-5 font-semibold tracking-wide text-white uppercase">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-producthunt-strong px-2 text-[11px] leading-5 font-semibold tracking-wide text-white uppercase">
             {bar === 'ph-live' && (
               <span aria-hidden className="relative flex size-1.5">
                 <span className="absolute inline-flex size-full rounded-full bg-white opacity-75 motion-safe:animate-ping" />

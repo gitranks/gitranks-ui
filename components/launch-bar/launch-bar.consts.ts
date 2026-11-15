@@ -6,6 +6,8 @@
  * launch week, then Contribute's own bar again.
  */
 
+import { isContributePath } from '@/lib/contribute/contribute-path';
+
 /** The bars, in the order they run. */
 export type LaunchBarId = 'ph-soon' | 'ph-live' | 'contribute';
 
@@ -68,6 +70,21 @@ export const LAUNCH_BAR_KEYS: Record<LaunchBarId, string> = {
 export const LAUNCH_BAR_ATTR = 'data-launch-bar';
 export const LAUNCH_BAR_OFF = 'off';
 
+/** Whether this browser leaves `bar` off on the page at `pathname`, as the head script decides. */
+export function launchBarOff(bar: LaunchBarId, pathname: string) {
+  if (bar === 'contribute' && isContributePath(pathname)) return true;
+  try {
+    return Boolean(window.localStorage.getItem(LAUNCH_BAR_KEYS[bar]));
+  } catch {
+    return false;
+  }
+}
+
+/** The next time the bar changes after `now` (ms), or null after the last one. */
+export function nextLaunchBarSwitch(now: number) {
+  return [PRODUCT_HUNT_LIVE_AT, PRODUCT_HUNT_END_AT].find((at) => at > now) ?? null;
+}
+
 /** Notes that this browser is done with `bar`, and hides it if it is the one showing. `reason`: what ended it. */
 export function hideLaunchBar(bar: LaunchBarId, reason: 'dismissed' | 'seen') {
   const root = document.documentElement;
@@ -83,7 +100,7 @@ export function hideLaunchBar(bar: LaunchBarId, reason: 'dismissed' | 'seen') {
  * Plain JS run inline in the head, before the body paints: picks the bar for this minute (as `launchBarAt` does) and
  * leaves it off in a browser done with it. Contribute's bar is also off on Contribute's own pages, decided as
  * `isContributePath` does (the spec holds them together); the Product Hunt bars show there too. Later moves are the
- * app's (`hideLaunchBar`).
+ * app's (`hideLaunchBar`, and `LaunchBarClock` at a switch).
  */
 export const LAUNCH_BAR_SCRIPT = `(function () {
   var now = Date.now();

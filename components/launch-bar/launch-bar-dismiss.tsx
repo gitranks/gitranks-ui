@@ -2,9 +2,17 @@
 
 import { sendGAEvent } from '@next/third-parties/google';
 import { XIcon } from 'lucide-react';
-import { type ReactNode, useLayoutEffect } from 'react';
+import { type ReactNode, useEffect, useLayoutEffect } from 'react';
 
-import { hideLaunchBar, type LaunchBarId } from './launch-bar.consts';
+import {
+  hideLaunchBar,
+  LAUNCH_BAR_ATTR,
+  LAUNCH_BAR_OFF,
+  type LaunchBarId,
+  launchBarAt,
+  launchBarOff,
+  nextLaunchBarSwitch,
+} from './launch-bar.consts';
 import { Button } from '@/components/ui/button';
 
 /** A bar's X: hides that bar in this browser for good. A 44px target on phones. */
@@ -60,6 +68,36 @@ export function ProductHuntBarLink({
 export function LaunchBarSeen() {
   useLayoutEffect(() => {
     hideLaunchBar('contribute', 'seen');
+  }, []);
+  return null;
+}
+
+/**
+ * In a tab left open across a switch (the launch, the end of its week), moves the bar on at that minute, as a fresh
+ * page load would: the head script picks once per load. Renders nothing.
+ */
+export function LaunchBarClock() {
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      const at = nextLaunchBarSwitch(Date.now());
+      if (at === null) return;
+      // setTimeout holds at most ~24.8 days; a longer wait just checks again.
+      timer = setTimeout(
+        () => {
+          const now = Date.now();
+          if (now >= at) {
+            const bar = launchBarAt(now);
+            const off = launchBarOff(bar, window.location.pathname);
+            document.documentElement.setAttribute(LAUNCH_BAR_ATTR, off ? LAUNCH_BAR_OFF : bar);
+          }
+          schedule();
+        },
+        Math.min(at - Date.now() + 1000, 2 ** 31 - 1),
+      );
+    };
+    schedule();
+    return () => clearTimeout(timer);
   }, []);
   return null;
 }

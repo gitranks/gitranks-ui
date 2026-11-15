@@ -7,6 +7,8 @@ import {
   LAUNCH_BAR_SCRIPT,
   LAUNCH_BAR_TAIL,
   launchBarAt,
+  launchBarOff,
+  nextLaunchBarSwitch,
   PRODUCT_HUNT_BARS,
   PRODUCT_HUNT_END_AT,
   PRODUCT_HUNT_LIVE_AT,
@@ -128,6 +130,19 @@ describe('the schedule', () => {
   it('goes live at 00:01 in San Francisco on Wed Nov 18, and ends a week later', () => {
     expect(new Date(PRODUCT_HUNT_LIVE_AT).toISOString()).toBe('2026-11-18T08:01:00.000Z');
     expect(PRODUCT_HUNT_END_AT - PRODUCT_HUNT_LIVE_AT).toBe(7 * 24 * 60 * 60 * 1000);
+  });
+
+  it('names the next switch, for a tab left open', () => {
+    expect(nextLaunchBarSwitch(BEFORE)).toBe(PRODUCT_HUNT_LIVE_AT);
+    expect(nextLaunchBarSwitch(PRODUCT_HUNT_LIVE_AT)).toBe(PRODUCT_HUNT_END_AT);
+    expect(nextLaunchBarSwitch(DURING)).toBe(PRODUCT_HUNT_END_AT);
+    expect(nextLaunchBarSwitch(PRODUCT_HUNT_END_AT)).toBeNull();
+  });
+
+  it("leaves Contribute's bar off on Contribute's pages at a switch, as the head script does", () => {
+    expect(launchBarOff('contribute', '/contribute/faq')).toBe(true);
+    expect(launchBarOff('contribute', '/')).toBe(false);
+    expect(launchBarOff('ph-live', '/contribute')).toBe(false);
   });
 
   it('picks the same bar in the head script as in the app', () => {

@@ -77,7 +77,7 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
                 <DailyUpdatesVisit />
               </Suspense>
               <div className="flex flex-col min-h-screen">
-                {/* Contribute's launch, above every page's header. The same HTML for everyone: the browser hides it. */}
+                {/* The announcement above every page's header. The same HTML for everyone: the browser picks the bar. */}
                 <LaunchBar />
                 {/* No Suspense around the page: React streams a large finished boundary into a hidden
                     segment after the footer, and a fallback here would also turn every notFound()

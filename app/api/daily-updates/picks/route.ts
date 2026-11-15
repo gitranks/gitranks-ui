@@ -30,7 +30,7 @@ export const POST = auth(async function POST(req: AuthRequest) {
   }
 
   const answer = await callDailyUpdates<DailyUpdatesPickResult>(githubLogin, '/daily-updates/picks', 'POST', repo);
-  return answer.ok ? json(answer.body) : json({ message: 'The pick failed' }, answer.status);
+  return answer.ok ? json(answer.body) : json({ message: 'The repo was not added' }, answer.status);
 });
 
 /** Removes one of the visitor's picks. */
@@ -54,5 +54,5 @@ export const DELETE = auth(async function DELETE(req: AuthRequest) {
     'POST',
     repo,
   );
-  return answer.ok ? json(answer.body) : json({ message: 'The pick was not removed' }, answer.status);
+  return answer.ok ? json(answer.body) : json({ message: 'The repo was not removed' }, answer.status);
 });

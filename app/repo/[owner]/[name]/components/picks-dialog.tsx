@@ -18,6 +18,8 @@ type PicksDialogProps = {
   onOpenChange: (open: boolean) => void;
   /** The copy, its `{repo}` and `{time}` filled. */
   copy: PicksDialogCopy;
+  /** A line before the paragraph, such as when the next update comes. */
+  lead?: string | null;
   /** The visitor's picks as `owner/name`; none for a dialog without the list. */
   picks?: string[];
   /** The visitor's own login, first in the list: their profile updates daily with their picks. */
@@ -38,6 +40,7 @@ export const PicksDialog: FC<PicksDialogProps> = ({
   open,
   onOpenChange,
   copy,
+  lead,
   picks,
   profileLogin,
   showLeft = false,
@@ -47,16 +50,25 @@ export const PicksDialog: FC<PicksDialogProps> = ({
   onCloseAutoFocus,
 }) => {
   const left = Math.max(0, PICKS_MAX - (picks?.length ?? 0));
+  // The first line describes the dialog; the rest follow as paragraphs.
+  const [description, ...paragraphs] = [lead, copy.paragraph].filter((line): line is string => !!line);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
+      <DialogContent
+        className="sm:max-w-md"
+        onCloseAutoFocus={onCloseAutoFocus}
+        {...(description ? {} : { 'aria-describedby': undefined })}
+      >
         <DialogHeader className="text-left">
           <DialogTitle className="text-lg leading-snug">{copy.title}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-3 text-sm">
-          <DialogDescription className="text-foreground">{copy.paragraph}</DialogDescription>
+          {description && <DialogDescription className="text-foreground">{description}</DialogDescription>}
+          {paragraphs.map((paragraph) => (
+            <p key={paragraph}>{paragraph}</p>
+          ))}
           {picks && (
             <ul className="overflow-hidden rounded-lg border">
               {profileLogin && (

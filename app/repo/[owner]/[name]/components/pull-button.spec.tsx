@@ -12,7 +12,7 @@ const on = (...reasons: DailyUpdateReason[]): DailyUpdatesFacts => ({
   nextUpdateAt: '2026-11-15T17:00:00Z',
 });
 
-// The buttons as text, the way a reader of the HTML gets it.
+// The button and its line as text, the way a reader of the cached HTML gets it: no visitor's state, no time yet.
 const render = (dailyUpdates?: DailyUpdatesFacts) =>
   renderToStaticMarkup(<PullButton owner="acme" name="fastqueue" dailyUpdates={dailyUpdates} />)
     .replaceAll('<!-- -->', '')
@@ -22,16 +22,18 @@ const render = (dailyUpdates?: DailyUpdatesFacts) =>
     .trim();
 
 describe('PullButton', () => {
-  it('shows Refresh alone while the repository is not on daily updates', () => {
+  it('shows Refresh while the repository is not on daily updates', () => {
     expect(render(null)).toBe('Refresh');
     expect(render(undefined)).toBe('Refresh');
   });
 
-  it('says a badge in its README keeps it on', () => {
-    expect(render(on(DailyUpdateReason.Badge))).toBe('Refresh Updates daily: it has a GitRanks badge in its README.');
+  it('shows "Updates daily" and says a badge in its README keeps it on', () => {
+    expect(render(on(DailyUpdateReason.Badge))).toBe(
+      'Updates daily Updates daily: it has a GitRanks badge in its README.',
+    );
   });
 
-  it('says only that a picked repository updates daily', () => {
-    expect(render(on(DailyUpdateReason.Pick))).toBe('Refresh Updates daily.');
+  it('shows "Updates daily" and says only that a picked repository updates daily', () => {
+    expect(render(on(DailyUpdateReason.Pick))).toBe('Updates daily Updates daily.');
   });
 });

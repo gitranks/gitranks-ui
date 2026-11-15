@@ -10,6 +10,9 @@ const TAG = /^(repo|profile):[a-z0-9._/-]{1,140}$/;
 
 const MAX_TAGS = 100;
 
+/** How old a token may be, whatever end date it names; a token with no end date is refused. */
+const TOKEN_MAX_AGE = '10m';
+
 const NO_STORE = { 'Cache-Control': 'private, no-store' };
 
 const refuse = (status: number, message: string) => NextResponse.json({ message }, { status, headers: NO_STORE });
@@ -23,8 +26,8 @@ function verifiedClaims(request: NextRequest): Record<string, unknown> | null {
   }
 
   try {
-    const claims = jwt.verify(token, secret, { algorithms: ['HS256'] });
-    return typeof claims === 'object' ? (claims as Record<string, unknown>) : null;
+    const claims = jwt.verify(token, secret, { algorithms: ['HS256'], maxAge: TOKEN_MAX_AGE });
+    return typeof claims === 'object' && typeof claims.exp === 'number' ? (claims as Record<string, unknown>) : null;
   } catch {
     return null;
   }

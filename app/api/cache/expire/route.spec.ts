@@ -62,6 +62,11 @@ describe('POST /api/cache/expire', () => {
     ['a made-up token', 'Bearer not-a-token'],
     ['a wrong secret', `Bearer ${tokenOf({ source: 'gitranks' }, 'another-secret')}`],
     ['an expired token', `Bearer ${tokenOf({ source: 'gitranks' }, SECRET, { expiresIn: '-1s' })}`],
+    ['a token with no end date', `Bearer ${tokenOf({ source: 'gitranks' }, SECRET, {})}`],
+    [
+      'a token issued an hour ago',
+      `Bearer ${tokenOf({ source: 'gitranks', iat: Math.floor(Date.now() / 1000) - 3600 }, SECRET, { expiresIn: '2h' })}`,
+    ],
     ['another algorithm', `Bearer ${tokenOf({ source: 'gitranks' }, SECRET, { algorithm: 'HS512', expiresIn: '5m' })}`],
     ['an unsigned token', `Bearer ${tokenOf({ source: 'gitranks' }, '', { algorithm: 'none' })}`],
   ])('answers 401 for %s', async (_name, authorization) => {

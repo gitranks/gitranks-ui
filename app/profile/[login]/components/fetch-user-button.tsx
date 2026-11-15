@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 
 import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
 import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
+import { useDailyUpdatesViewer } from '@/components/daily-updates/use-daily-updates-viewer';
 import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-dialogs/refresh-dialog';
 import {
   DAILY_UPDATES_LINES,
@@ -39,6 +40,7 @@ import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
 import { cn } from '@/lib/utils';
 import type { DailyRefreshResult, DailyRefreshStatus } from '@/types/daily-refresh.types';
+import type { DailyUpdatesStartResult } from '@/types/daily-updates.types';
 import { ProfileFetchingStatusDocument, type UserFetchingStatus } from '@/types/generated/graphql';
 import { type DailyUpdatesFacts, profileUpdatesViewOf } from '@/utils/daily-updates-view';
 import { timeLeftUntil } from '@/utils/format-time-left';
@@ -55,10 +57,15 @@ type FetchUserButtonProps = {
   dailyUpdates?: DailyUpdatesFacts;
   /** The profile's login as GitHub writes it, for the copy; the URL's spelling when missing. */
   profileLogin?: string;
+  /** Offers the owner their daily updates on their own profile, once the API says they are open to them. */
+  ownerStates?: boolean;
 };
 
-/** The dialog on screen; `until` fills its `{time}`. */
-type OpenDialog = { kind: RefreshDialogKind; until?: string } | null;
+/**
+ * The dialog on screen; `until` fills its `{time}`. `retry` is what "I starred it" presses again: today's refresh, or
+ * the start of daily updates.
+ */
+type OpenDialog = { kind: RefreshDialogKind; until?: string; retry?: 'refresh' | 'start' } | null;
 
 const REFRESH_INTERVAL = 1_000;
 const CHECK_STATUS_INTERVAL = 20_000;
@@ -81,15 +88,21 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   dailyLabel,
   dailyUpdates,
   profileLogin,
+  ownerStates = false,
 }) => {
   const { data: session, status } = useSession();
   const { login } = useParams<{ login: string }>();
   const router = useRouter();
   const mode = refreshModeOf(session, login, status);
-  const view = profileUpdatesViewOf(mode, dailyUpdates);
+  // The owner's own state is read after load, never from the cached page.
+  const { viewer, read: viewerRead, setViewer } = useDailyUpdatesViewer(ownerStates && mode === 'daily');
+  const open = !!viewer?.open;
+  const view = profileUpdatesViewOf(mode, dailyUpdates, viewer);
   const shownLogin = profileLogin ?? login;
   const containerRef = useRef<HTMLDivElement>(null);
   const [daily, setDaily] = useState<DailyRefreshStatus | null>(null);
+  // Today's manual refresh: from the owner's daily updates while open to them, else from the daily refresh as before.
+  const manual = open ? (viewer?.manual ?? null) : daily;
   const [checking, setChecking] = useState(false);
   const [dialog, setDialog] = useState<OpenDialog>(null);
   const fetchAttempt = useRef(0);
@@ -160,8 +173,11 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     }
   };
 
+  // While daily updates are open to the owner, their state carries today's manual refresh: this read is not needed.
+  const waitForViewer = ownerStates && (viewerRead !== 'done' || open);
+
   useEffect(() => {
-    if (mode !== 'daily') {
+    if (mode !== 'daily' || waitForViewer) {
       return;
     }
 
@@ -169,7 +185,16 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       .then((res) => (res.ok ? (res.json() as Promise<DailyRefreshStatus>) : null))
       .then(setDaily)
       .catch(() => setDaily(null));
-  }, [mode]);
+  }, [mode, waitForViewer]);
+
+  /** Today's manual refresh after a press, wherever the button reads it from. */
+  const setManual = (next: DailyRefreshStatus) => {
+    if (open) {
+      setViewer((current) => current && { ...current, manual: next });
+    } else {
+      setDaily(next);
+    }
+  };
 
   const openDialog = (next: NonNullable<OpenDialog>) => {
     sendGAEvent('event', 'refresh_dialog_open', { kind: next.kind });
@@ -197,7 +222,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 
       switch (result.status) {
         case 'started':
-          setDaily({ available: false, nextAt: result.nextAt });
+          setManual({ available: false, nextAt: result.nextAt });
           toast.success(REFRESH_TOASTS.started);
           setFetchingDuration(0);
           break;
@@ -205,14 +230,82 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
           setFetchingDuration(0);
           break;
         case 'not_starred':
-          openDialog({ kind: 'needStar' });
+          openDialog({ kind: 'needStar', retry: 'refresh' });
           break;
         case 'blocked':
           openDialog({ kind: 'blocked', until: result.until });
           break;
         case 'used':
-          setDaily({ available: false, nextAt: result.nextAt });
-          openDialog({ kind: 'used', until: result.nextAt });
+          setManual({ available: false, nextAt: result.nextAt });
+          openDialog({ kind: open ? 'manualUsed' : 'used', until: result.nextAt });
+          break;
+        case 'not_own':
+          openDialog({ kind: 'otherProfile' });
+          break;
+        case 'busy':
+          toast.info(REFRESH_TOASTS.busy);
+          break;
+      }
+    } catch {
+      toast.error(REFRESH_TOASTS.checkFailed);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  /**
+   * Starts daily updates of the owner's own profile: the server asks GitHub for the star, unless it saw it in the last
+   * day, then refreshes the profile with today's manual refresh when it is unused.
+   */
+  const startDailyUpdates = async () => {
+    setDialog(null);
+    setChecking(true);
+
+    try {
+      const res = await fetch('/api/daily-updates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login }),
+      });
+
+      if (res.status === 403) {
+        // Daily updates closed to this visitor since the page read them: today's button again.
+        setViewer(null);
+        return;
+      }
+      if (!res.ok) {
+        toast.error(res.status === 410 ? REFRESH_TOASTS.removed : REFRESH_TOASTS.checkFailed);
+        return;
+      }
+
+      const result = (await res.json()) as DailyUpdatesStartResult;
+
+      switch (result.status) {
+        case 'started':
+          setViewer(
+            (current) =>
+              current && {
+                ...current,
+                state: 'on',
+                until: result.until,
+                manual: { available: false, nextAt: result.nextAt },
+              },
+          );
+          if (result.refreshed) {
+            toast.success(REFRESH_TOASTS.updatesStarted);
+            setFetchingDuration(0);
+          } else {
+            toast.success(REFRESH_TOASTS.updatesStartedNoRefresh);
+          }
+          break;
+        case 'fetching':
+          setFetchingDuration(0);
+          break;
+        case 'not_starred':
+          openDialog({ kind: 'needStar', retry: 'start' });
+          break;
+        case 'blocked':
+          openDialog({ kind: 'blocked', until: result.until });
           break;
         case 'not_own':
           openDialog({ kind: 'otherProfile' });
@@ -270,8 +363,8 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       case 'token':
         return fetchUser();
       case 'daily':
-        if (daily?.nextAt && new Date(daily.nextAt).getTime() > Date.now()) {
-          return openDialog({ kind: 'used', until: daily.nextAt });
+        if (manual?.nextAt && new Date(manual.nextAt).getTime() > Date.now()) {
+          return openDialog({ kind: open ? 'manualUsed' : 'used', until: manual.nextAt });
         }
         return claimDailyRefresh();
     }
@@ -300,6 +393,17 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 
   const child = Children.only(children);
   const busyLabel = fetchingDuration !== null ? loadingLabel : checking ? REFRESH_LABELS.checking : null;
+  const idleLabel =
+    view === 'owner-on' ? (
+      <>
+        {REFRESH_LABELS.refreshNow}
+        <RefreshCw className="size-4" />
+      </>
+    ) : mode === 'daily' && manual?.available && dailyLabel ? (
+      dailyLabel
+    ) : (
+      child.props.children
+    );
   const childWithOnClick = cloneElement(child, {
     onClick: onRefreshClick,
     disabled: busyLabel !== null,
@@ -309,10 +413,8 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
           {busyLabel}
           <ClipLoader loading size={16} color="currentColor" />
         </>
-      ) : mode === 'daily' && daily?.available && dailyLabel ? (
-        dailyLabel
       ) : (
-        child.props.children
+        idleLabel
       ),
   });
 
@@ -327,8 +429,13 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   const signInWithToken = () => signIn(TOKEN_PROVIDER);
   const dialogActions: Record<RefreshDialogKind, { primary: RefreshDialogAction; secondary?: RefreshDialogAction }> = {
     signIn: { primary: { onClick: () => signIn(IDENTITY_PROVIDER) } },
-    needStar: { primary: { href: STAR_REPO_URL }, secondary: { onClick: claimDailyRefresh } },
+    needStar: {
+      primary: { href: STAR_REPO_URL },
+      secondary: { onClick: dialog?.retry === 'start' ? startDailyUpdates : claimDailyRefresh },
+    },
     used: { primary: { onClick: signInWithToken } },
+    manualUsed: { primary: { onClick: signInWithToken } },
+    ownBadge: { primary: { onClick: startDailyUpdates } },
     otherProfile: { primary: { onClick: signInWithToken } },
     blocked: { primary: { href: STAR_REPO_URL } },
     whyDailyOwner: { primary: { onClick: getDailyUpdates } },
@@ -336,34 +443,75 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   };
 
   // Someone else's profile that updates every day: the press says why. A fetch in flight keeps today's button.
-  const updatesDaily = (view === 'visitor-on-owner' || view === 'visitor-on-badge') && busyLabel === null;
+  const idle = busyLabel === null;
+  const updatesDaily = (view === 'visitor-on-owner' || view === 'visitor-on-badge') && idle;
+  // The owner's own profile with nothing to refresh now: the press says why.
+  const ownerDailyOn = (view === 'owner-manual-used' || view === 'owner-on-badge-only') && idle;
+
+  const ownerButtons =
+    view === 'owner-off' && idle ? (
+      <>
+        <Button type="button" size="sm" className={child.props.className} onClick={startDailyUpdates}>
+          {REFRESH_LABELS.startDaily}
+          <RefreshCw className="size-4" />
+        </Button>
+        <div className="text-xs text-muted-foreground">{DAILY_UPDATES_LINES.ownerOff}</div>
+      </>
+    ) : ownerDailyOn ? (
+      <>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className={child.props.className}
+          onClick={() =>
+            view === 'owner-on-badge-only'
+              ? openDialog({ kind: 'ownBadge' })
+              : openDialog({ kind: 'manualUsed', until: manual?.nextAt ?? undefined })
+          }
+        >
+          <Check className="size-4" aria-hidden />
+          {REFRESH_LABELS.dailyOn}
+        </Button>
+        <DailyUpdatesLine
+          lead={view === 'owner-on-badge-only' ? DAILY_UPDATES_LINES.ownerBadge : ''}
+          nextUpdateAt={view === 'owner-on-badge-only' ? dailyUpdates?.nextUpdateAt : manual?.nextAt}
+        />
+      </>
+    ) : view === 'owner-on' && idle ? (
+      <>
+        {childWithOnClick}
+        <DailyUpdatesLine lead={DAILY_UPDATES_LINES.ownerOn} nextUpdateAt={dailyUpdates?.nextUpdateAt} />
+      </>
+    ) : null;
 
   return (
     <div ref={containerRef} className={cn('flex flex-col gap-2', className)}>
-      {updatesDaily ? (
-        <>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className={child.props.className}
-            onClick={onUpdatesDailyClick}
-          >
-            <Check className="size-4" aria-hidden />
-            {REFRESH_LABELS.updatesDaily}
-          </Button>
-          <DailyUpdatesLine
-            lead={
-              view === 'visitor-on-badge'
-                ? DAILY_UPDATES_LINES.byBadge
-                : fillLogin(DAILY_UPDATES_LINES.byOwner, shownLogin)
-            }
-            nextUpdateAt={dailyUpdates?.nextUpdateAt}
-          />
-        </>
-      ) : (
-        childWithOnClick
-      )}
+      {ownerButtons ??
+        (updatesDaily ? (
+          <>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className={child.props.className}
+              onClick={onUpdatesDailyClick}
+            >
+              <Check className="size-4" aria-hidden />
+              {REFRESH_LABELS.updatesDaily}
+            </Button>
+            <DailyUpdatesLine
+              lead={
+                view === 'visitor-on-badge'
+                  ? DAILY_UPDATES_LINES.byBadge
+                  : fillLogin(DAILY_UPDATES_LINES.byOwner, shownLogin)
+              }
+              nextUpdateAt={dailyUpdates?.nextUpdateAt}
+            />
+          </>
+        ) : (
+          childWithOnClick
+        ))}
       {dialog && (
         <RefreshDialog
           open
@@ -399,6 +547,7 @@ export const FetchUserButtonForProfilePage: FC<Omit<FetchUserButtonProps, 'child
   return (
     <FetchUserButton
       {...props}
+      ownerStates
       className={cn('flex-grow', props.className)}
       dailyLabel={
         <>

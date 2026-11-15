@@ -28,7 +28,20 @@ vi.mock('next-auth/react', () => ({
   useSession: () =>
     (globalThis as DesignGlobals).__designSignedOut
       ? { data: null, status: 'unauthenticated' }
-      : { data: { user: { githubLogin: 'octocat', name: 'Octo Cat' } }, status: 'authenticated' },
+      : {
+          data: {
+            user: { githubLogin: (globalThis as DesignGlobals).__designViewerLogin ?? 'octocat', name: 'Octo Cat' },
+          },
+          status: 'authenticated',
+        },
+}));
+// The viewer's own daily updates, read in the browser after load: the state's, when it names them.
+vi.mock('@/components/daily-updates/use-daily-updates-viewer', () => ({
+  useDailyUpdatesViewer: (enabled: boolean) => ({
+    viewer: enabled ? ((globalThis as DesignGlobals).__designDailyUpdates ?? null) : null,
+    read: enabled ? 'done' : 'idle',
+    setViewer: () => {},
+  }),
 }));
 // The landing's own rank card, read in the browser: the viewer's from the fixtures.
 vi.mock('@/app/components/landing/use-rank-card', async () => {

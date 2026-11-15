@@ -55,6 +55,8 @@ it('exports the screens', async () => {
         __designParams: paramsOf(screen.route, pathname),
         __designSearch: search,
         __designSignedOut: !!state.signedOut,
+        __designViewerLogin: state.viewer?.login,
+        __designDailyUpdates: state.viewer?.dailyUpdates,
       });
       const drawn = await drawImages(await markupOf(state.render()), path);
       for (const [image, svg] of drawn.images) {

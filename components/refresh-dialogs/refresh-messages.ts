@@ -1,7 +1,7 @@
 /**
  * Every word the Refresh button says, in one place, so the copy can be read and changed without the code.
  * Plain words and short sentences on purpose: many readers are not native English speakers. `{time}` is filled with
- * the time left, like "13 h 20 min"; `{login}` with the profile's login.
+ * the time left, like "13 h 20 min", in a title or a paragraph; `{login}` with the profile's login.
  */
 
 export const MAKER = {
@@ -99,6 +99,28 @@ export const REFRESH_MESSAGES = {
     secondary: 'OK',
   },
 
+  /** The owner, on daily updates, presses "Daily updates on" once today's manual refresh is used. */
+  manualUsed: {
+    title: 'Next update in {time}',
+    paragraphs: [
+      'Your profile updates by itself every 24 hours. Today’s manual refresh is used.',
+      'Need it sooner? Use your own GitHub token. It runs on your GitHub limits, not ours.',
+    ],
+    primary: 'Use my GitHub token',
+    secondary: 'OK',
+  },
+
+  /** The owner presses "Daily updates on" while their badge alone keeps the profile on daily updates. */
+  ownBadge: {
+    title: 'Your badge keeps this on',
+    paragraphs: [
+      'Your GitRanks badge on GitHub keeps your profile on daily updates. We update it every 24 hours while the badge is there.',
+      'Want a refresh now, too? Star our repo and start your own daily updates.',
+    ],
+    primary: 'Start daily updates',
+    secondary: 'Close',
+  },
+
   /** Anyone presses "Updates daily" on a profile its owner turned daily updates on for. */
   whyDailyOwner: {
     title: 'This profile updates every day',
@@ -131,21 +153,43 @@ export const REFRESH_LABELS = {
   checking: 'Checking…',
   /** Someone else's profile that updates every day; a press says why. */
   updatesDaily: 'Updates daily',
+  /** The owner's own profile while their daily updates are off. */
+  startDaily: 'Start daily updates',
+  /** The owner's own profile while on, with today's manual refresh unused. */
+  refreshNow: 'Refresh now',
+  /** The owner's own profile while on, with nothing to press for. */
+  dailyOn: 'Daily updates on',
 } as const;
 
 /** The line under "Updates daily", before "Next update in {time}." */
 export const DAILY_UPDATES_LINES = {
   byOwner: 'Turned on by @{login}.',
   byBadge: 'Has a GitRanks badge on GitHub.',
+  /** The owner's own profile: under "Start daily updates", with no time after it. */
+  ownerOff: 'Refreshes now, then every day for 7 days.',
+  /** The owner's own profile: under "Refresh now". */
+  ownerOn: 'Daily updates on.',
+  /** The owner's own profile, on by their badge alone. */
+  ownerBadge: 'Your badge on GitHub keeps this on.',
 } as const;
 
 export const REFRESH_TOASTS = {
   started: 'Thanks for the star! ⭐ Refreshing your profile now.',
+  /** "Start daily updates" found the star and refreshes the profile now. */
+  updatesStarted: 'Thanks for the star! Refreshing now. Daily updates are on for 7 days.',
+  /** "Start daily updates" found the star; today's manual refresh was used, so nothing is fetched now. */
+  updatesStartedNoRefresh: 'Thanks for the star! Daily updates are on for 7 days.',
   checkFailed: 'GitHub didn’t answer. Please try again in a minute.',
   /** Another tab is checking the star right now. */
   busy: 'We are already checking. Try again in a moment.',
   /** The account's data was removed at its owner's request (410): GitRanks doesn't fetch it again. */
   removed: 'This account’s data was removed from GitRanks at its owner’s request.',
+} as const;
+
+/** A starrer back after their 7 days ran out: the visit started daily updates again. Stays until closed. */
+export const WELCOME_BACK = {
+  title: 'Welcome back',
+  text: 'Daily updates stopped after 7 days without a visit. They are on again, and your profile is refreshing now.',
 } as const;
 
 export const fillTime = (text: string, time?: string) => (time ? text.replaceAll('{time}', time) : text);

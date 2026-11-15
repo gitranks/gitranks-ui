@@ -8,6 +8,7 @@ import { CtaClickTracker } from './components/cta-click-tracker';
 import { FlagEmojiPolyfill } from './components/flag-emoji-polyfill';
 import { BrowserCheck } from '@/components/browser-check/browser-check';
 import { ContributeClickTracker } from '@/components/contribute-click-tracker/contribute-click-tracker';
+import { DailyUpdatesVisit } from '@/components/daily-updates-visit/daily-updates-visit';
 import { Footer } from '@/components/footer/footer';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { LaunchBar, LaunchBarScript } from '@/components/launch-bar/launch-bar';
@@ -71,6 +72,7 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
               <FlagEmojiPolyfill />
               <CtaClickTracker />
               <ContributeClickTracker />
+              <DailyUpdatesVisit />
               <div className="flex flex-col min-h-screen">
                 {/* Contribute's launch, above every page's header. The same HTML for everyone: the browser hides it. */}
                 <LaunchBar />

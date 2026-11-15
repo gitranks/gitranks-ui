@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
 
+import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
+
 /** The product areas, one page each on the designs canvas, in this order. */
 export const AREAS = {
   landing: 'Landing',
@@ -20,6 +22,10 @@ export type DesignGlobals = {
   __designParams?: Record<string, string>;
   __designSearch?: string;
   __designSignedOut?: boolean;
+  /** The signed-in viewer's login, when not the catalogue's own. */
+  __designViewerLogin?: string;
+  /** The viewer's own daily updates, as the browser reads them after load. */
+  __designDailyUpdates?: DailyUpdatesViewer;
 };
 
 /** One state of a screen, drawn from fixtures: a board on the canvas. */
@@ -30,6 +36,8 @@ export type ScreenState = {
   path: string;
   /** Drawn for a visitor who is not signed in; otherwise for the catalogue's signed-in viewer. */
   signedOut?: boolean;
+  /** The signed-in viewer, when the state needs another login or the viewer's own daily updates. */
+  viewer?: { login?: string; dailyUpdates?: DailyUpdatesViewer };
   /** The board's width; 390 is a phone. */
   width?: number;
   /** The board's height: the page's height at `width`, rounded up. */

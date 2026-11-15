@@ -17,6 +17,7 @@ import { LearnRecordCard } from '@/app/profile/[login]/components/profile-learn-
 import type { UserFacts } from '@/badge/v3/facts';
 import { userBig, userUnranked } from '@/badge/v3/fixtures';
 import { learnRecord, profilePromo, promoColors } from '@/lib/learn/__fixtures__/promo';
+import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 
 // The strong profile is the badge fixtures' `userBig`; the newcomer has nothing a badge could show yet.
@@ -31,6 +32,20 @@ const onDailyUpdates = (reason: DailyUpdateReason): ProfileUser => ({
     nextUpdateAt: '2026-10-28T17:00:00.000Z',
     lastUpdatedAt: '2026-10-27T17:00:00.000Z',
   },
+});
+
+/** The owner signed in on their own profile, with their daily updates as the browser reads them. */
+const ownerViewer = (overrides: Partial<DailyUpdatesViewer>) => ({
+  login: strongProfile.login,
+  dailyUpdates: {
+    open: true,
+    state: 'on',
+    until: '2026-11-04T12:00:00.000Z',
+    manual: { available: true, nextAt: null },
+    picks: [],
+    newPicksLeftToday: 3,
+    ...overrides,
+  } satisfies DailyUpdatesViewer,
 });
 
 const overview = (user: ProfileUser, badgeFacts: UserFacts, extras = strongExtras) => (
@@ -106,6 +121,38 @@ export const PROFILE_SCREENS: Screen[] = [
         title: 'On daily updates, kept on by a badge',
         path: `/profile/${strongProfile.login}`,
         height: 3000,
+        render: () => overview(onDailyUpdates(DailyUpdateReason.Badge), strongBadges),
+      },
+      {
+        id: 'daily-owner-off',
+        title: 'Your profile, daily updates off',
+        path: `/profile/${strongProfile.login}`,
+        height: 3000,
+        viewer: ownerViewer({ state: 'never', until: null }),
+        render: () => overview(strongProfile, strongBadges),
+      },
+      {
+        id: 'daily-owner-on',
+        title: 'Your profile, daily updates on',
+        path: `/profile/${strongProfile.login}`,
+        height: 3000,
+        viewer: ownerViewer({}),
+        render: () => overview(onDailyUpdates(DailyUpdateReason.Owner), strongBadges),
+      },
+      {
+        id: 'daily-owner-used',
+        title: 'Your profile, manual refresh used',
+        path: `/profile/${strongProfile.login}`,
+        height: 3000,
+        viewer: ownerViewer({ manual: { available: false, nextAt: '2026-10-29T11:10:00.000Z' } }),
+        render: () => overview(onDailyUpdates(DailyUpdateReason.Owner), strongBadges),
+      },
+      {
+        id: 'daily-owner-badge',
+        title: 'Your profile, on by your badge, no star',
+        path: `/profile/${strongProfile.login}`,
+        height: 3000,
+        viewer: ownerViewer({ state: 'never', until: null }),
         render: () => overview(onDailyUpdates(DailyUpdateReason.Badge), strongBadges),
       },
       {

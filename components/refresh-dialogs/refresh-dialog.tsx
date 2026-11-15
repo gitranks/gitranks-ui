@@ -93,7 +93,7 @@ export const RefreshDialog: FC<RefreshDialogProps> = ({
               unoptimized
             />
           )}
-          <DialogTitle className="text-lg leading-snug">{message.title}</DialogTitle>
+          <DialogTitle className="text-lg leading-snug">{fillTime(message.title, time)}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-3 text-sm">

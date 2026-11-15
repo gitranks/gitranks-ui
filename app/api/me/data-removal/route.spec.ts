@@ -103,8 +103,7 @@ describe('data removal route', () => {
     const [[accountsFilter]] = collections.accounts.deleteMany.mock.calls;
     expect(String(accountsFilter.userId)).toBe(USER_ID);
     expect(String(collections.users.deleteOne.mock.calls[0][0]._id)).toBe(USER_ID);
-    expect(revalidateTag).toHaveBeenCalledWith('profile:OctoCat', { expire: 0 });
-    expect(revalidateTag).toHaveBeenCalledWith('profile:octocat', { expire: 0 });
+    expect(revalidateTag.mock.calls).toEqual([['profile:octocat', { expire: 0 }]]);
   });
 
   it('refuses a body that is not JSON, as a cross-site form would send', async () => {
@@ -121,7 +120,7 @@ describe('data removal route', () => {
     try {
       const response = await post({ confirm: 'OctoCat' });
       expect(response.status).toBe(200);
-      expect(revalidateTag).toHaveBeenCalledWith('profile:OctoCat', { expire: 0 });
+      expect(revalidateTag).toHaveBeenCalledWith('profile:octocat', { expire: 0 });
     } finally {
       error.mockRestore();
     }

@@ -30,8 +30,11 @@ describe('isGithubLogin', () => {
 });
 
 describe('profileCacheTag', () => {
-  it('keeps the login as given', () => {
-    expect(profileCacheTag('OctoCat')).toBe('profile:OctoCat');
+  it('is one tag for every spelling of a login', () => {
+    for (const login of ['octocat', 'OctoCat', 'OCTOCAT', 'octoCAT']) {
+      expect(profileCacheTag(login)).toBe('profile:octocat');
+    }
+    expect(profileCacheTag('-Jerry-')).toBe('profile:-jerry-');
   });
 });
 

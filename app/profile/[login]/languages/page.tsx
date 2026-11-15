@@ -6,6 +6,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 import { buildProfileTabSEO } from '../seo';
 import { LanguagesPage } from './components/languages-page';
 import { fetchProfilePageLanguages } from '@/graphql/helpers/fetch-profile-page-languages';
+import { profileCacheTag } from '@/utils/profile-refresh';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/languages'>): Promise<Metadata> {
   const { login } = await params;
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: PageProps<'/profile/[login]/l
 export default async function ProfileLanguages({ params }: PageProps<'/profile/[login]/languages'>) {
   const { login } = await params;
   cacheLife('hours');
-  cacheTag(`profile:${login}`);
+  cacheTag(profileCacheTag(login));
 
   const user = await fetchProfilePageLanguages(login);
 

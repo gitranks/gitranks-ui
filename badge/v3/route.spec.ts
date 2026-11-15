@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { EntityFacts } from './facts';
 import { NOW, orgBig, repoBig, repoMid, repoUnranked, userMid } from './fixtures';
@@ -358,5 +358,132 @@ describe('the Contribute badge', () => {
       expect((await get('contribute.svg')).status).toBe(200);
       await expect(runAfter()).resolves.toBeUndefined();
     });
+  });
+});
+
+describe('the badge cache switch', () => {
+  type CacheHeaders = { cacheControl: string | null; edge: string | null };
+
+  const headersOf = (response: Response): CacheHeaders => ({
+    cacheControl: response.headers.get('cache-control'),
+    edge: response.headers.get('cloudflare-cdn-cache-control'),
+  });
+
+  /** One answer of each kind under `query`: the long-kept ones, then the ones kept for minutes. */
+  const answers = async (query = '') => {
+    loaders.repo.mockImplementation(resolved(repoMid));
+    const image = await repoResponse('acme', 'fastqueue', 'rank.svg', query);
+    const redirect = await repoResponse('ACME', 'FastQueue', 'rank.svg', query);
+    const badRequest = await repoResponse('acme', 'fastqueue', 'rank.svg', `scheme=tint&${query}`);
+    const noBadge = await repoResponse('acme', 'fastqueue', 'nope.svg', query);
+    const notYet = await repoResponse('acme', 'fastqueue', 'contributors.svg', query);
+    loaders.repo.mockImplementation(resolved(null));
+    const notFound = await repoResponse('acme', 'nothing', 'rank.svg', query);
+    loaders.repo.mockRejectedValue(new Error('x'));
+    const unavailable = await repoResponse('acme', 'fastqueue', 'rank.svg', query);
+
+    expect([image, redirect, badRequest, noBadge, notYet, notFound, unavailable].map(({ status }) => status)).toEqual([
+      200, 308, 400, 404, 200, 404, 503,
+    ]);
+    return {
+      long: {
+        image: headersOf(image),
+        redirect: headersOf(redirect),
+        badRequest: headersOf(badRequest),
+        noBadge: headersOf(noBadge),
+        notFound: headersOf(notFound),
+      },
+      short: { notYet: headersOf(notYet), unavailable: headersOf(unavailable) },
+      location: redirect.headers.get('location'),
+    };
+  };
+
+  const TODAY = {
+    long: {
+      image: { cacheControl: BADGE_CACHE_CONTROL.badge, edge: null },
+      redirect: { cacheControl: BADGE_CACHE_CONTROL.badge, edge: null },
+      badRequest: { cacheControl: 'public, max-age=300, s-maxage=86400', edge: null },
+      noBadge: { cacheControl: 'public, max-age=300, s-maxage=86400', edge: null },
+      notFound: { cacheControl: 'public, max-age=300, s-maxage=86400', edge: null },
+    },
+    short: {
+      notYet: { cacheControl: 'public, max-age=60, s-maxage=300', edge: null },
+      unavailable: { cacheControl: 'public, max-age=60, s-maxage=60', edge: null },
+    },
+  };
+
+  /** The long-kept answers with the browser's lifetime in `Cache-Control` and `edge` in the edge's own header. */
+  const split = (badge: string | null, miss: string | null) => ({
+    image: { cacheControl: 'public, max-age=300', edge: badge },
+    redirect: { cacheControl: 'public, max-age=300', edge: badge },
+    badRequest: { cacheControl: 'public, max-age=300', edge: miss },
+    noBadge: { cacheControl: 'public, max-age=300', edge: miss },
+    notFound: { cacheControl: 'public, max-age=300', edge: miss },
+  });
+
+  beforeEach(() => {
+    for (const loader of Object.values(loaders)) loader.mockReset();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    [undefined, ''],
+    ['', ''],
+    ['off', 'probe=1'],
+    ['probe', ''],
+    ['probe', 'probe=2'],
+    ['enabled', 'probe=1'],
+  ])("sends today's one header when the switch is %s and the query is '%s'", async (mode, query) => {
+    vi.stubEnv('BADGE_CACHE_SPLIT', mode);
+    const { long, short } = await answers(query);
+
+    expect({ long, short }).toEqual(TODAY);
+  });
+
+  it.each([
+    ['on', ''],
+    ['probe', 'probe=1'],
+  ])("splits the long-kept answers when the switch is %s and the query is '%s'", async (mode, query) => {
+    vi.stubEnv('BADGE_CACHE_SPLIT', mode);
+    const { long, short, location } = await answers(query);
+
+    expect(long).toEqual(split('max-age=86400, stale-while-revalidate=604800, stale-if-error=604800', 'max-age=86400'));
+    expect(short).toEqual(TODAY.short);
+    expect(location).toBe(`/badge/repo/acme/fastqueue/rank.svg${query ? `?${query}` : ''}`);
+  });
+
+  it('on-no-swr leaves stale-while-revalidate out of the edge header', async () => {
+    vi.stubEnv('BADGE_CACHE_SPLIT', 'on-no-swr');
+    const { long, short } = await answers();
+
+    expect(long).toEqual(split('max-age=86400, stale-if-error=604800', 'max-age=86400'));
+    expect(short).toEqual(TODAY.short);
+  });
+
+  it('short sends the browser lifetime alone', async () => {
+    vi.stubEnv('BADGE_CACHE_SPLIT', 'short');
+    const { long, short } = await answers();
+
+    expect(long).toEqual(split(null, null));
+    expect(short).toEqual(TODAY.short);
+  });
+
+  it('reads the query the route handler was asked with', async () => {
+    vi.stubEnv('BADGE_CACHE_SPLIT', 'probe');
+    loaders.repo.mockImplementation(resolved(repoMid));
+    const get = (query: string) =>
+      repoGet(new NextRequest(`http://localhost/badge/repo/acme/fastqueue/rank.svg${query}`), {
+        params: Promise.resolve({ owner: 'acme', name: 'fastqueue', file: 'rank.svg' }),
+      });
+
+    expect(headersOf(await get(''))).toEqual(TODAY.long.image);
+    expect(headersOf(await get('?probe=1'))).toEqual(
+      split('max-age=86400, stale-while-revalidate=604800, stale-if-error=604800', null).image,
+    );
   });
 });

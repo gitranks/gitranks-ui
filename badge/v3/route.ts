@@ -3,6 +3,7 @@ import type { EntityFacts } from './facts';
 import { BadgeParamsError, resolveParams } from './params';
 import { renderBadge } from './render';
 import type { EntityKind, ImageFormat } from './types';
+import { type BadgeCacheHeaders, badgeCacheHeaders } from '@/badge/cache-headers';
 import { isGithubLogin } from '@/utils/profile-refresh';
 import { parseRepoParams } from '@/utils/repo-paths';
 
@@ -36,13 +37,11 @@ const decode = (value: string) => {
   }
 };
 
-const text = (body: string, status: number, cacheControl: string) =>
+const text = (body: string, status: number, cacheHeaders: BadgeCacheHeaders) =>
   new Response(body, {
     status,
-    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': cacheControl },
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', ...cacheHeaders },
   });
-
-const notFound = () => text('Badge not found', 404, BADGE_CACHE_CONTROL.notFound);
 
 /** The entity a badge URL names, as the request spells it. */
 export type BadgeEntityRef = { kind: 'user' | 'org'; login: string } | { kind: 'repo'; owner: string; name: string };
@@ -92,6 +91,10 @@ export async function getBadgeResponse(
   loaders: BadgeLoaders,
   now = new Date(),
 ): Promise<Response> {
+  // The long-kept answers: under the badge cache switch their two lifetimes go out as two headers.
+  const kept = (cacheControl: string) => badgeCacheHeaders(cacheControl, search);
+  const notFound = () => text('Badge not found', 404, kept(BADGE_CACHE_CONTROL.notFound));
+
   const parsed = parseBadgeFile(file);
   const badge = ref && parsed ? findBadge(ref.kind, parsed.id) : null;
   if (!ref || !parsed || !badge) {
@@ -103,7 +106,7 @@ export async function getBadgeResponse(
     params = resolveParams(badge, search);
   } catch (error) {
     if (error instanceof BadgeParamsError) {
-      return text(`Invalid query: ${error.message}`, 400, BADGE_CACHE_CONTROL.badRequest);
+      return text(`Invalid query: ${error.message}`, 400, kept(BADGE_CACHE_CONTROL.badRequest));
     }
     throw error;
   }
@@ -127,7 +130,7 @@ export async function getBadgeResponse(
       status: 308,
       headers: {
         Location: `${pathOf(ref.kind, entity)}/${file}${query ? `?${query}` : ''}`,
-        'Cache-Control': BADGE_CACHE_CONTROL.badge,
+        ...kept(BADGE_CACHE_CONTROL.badge),
       },
     });
   }
@@ -144,7 +147,9 @@ export async function getBadgeResponse(
     return new Response(rendered.body, {
       headers: {
         'Content-Type': rendered.contentType,
-        'Cache-Control': rendered.state === 'badge' ? BADGE_CACHE_CONTROL.badge : BADGE_CACHE_CONTROL.provisional,
+        ...(rendered.state === 'badge'
+          ? kept(BADGE_CACHE_CONTROL.badge)
+          : { 'Cache-Control': BADGE_CACHE_CONTROL.provisional }),
       },
     });
   } catch (error) {

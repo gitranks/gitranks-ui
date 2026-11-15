@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 
+import { badgeCacheHeaders } from '@/badge/cache-headers';
 import { parseCanonicalBadgeFile } from '@/badge/canonical-badge';
 import { renderCanonicalBadge } from '@/badge/render-canonical-badge';
 
@@ -23,34 +24,35 @@ function decodeLoginParam(rawLogin: string): string | null {
   }
 }
 
-function badgeNotFound(): Response {
+function badgeNotFound(search: URLSearchParams): Response {
   return new Response('Badge not found', {
     status: 404,
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': NOT_FOUND_CACHE_CONTROL,
+      ...badgeCacheHeaders(NOT_FOUND_CACHE_CONTROL, search),
     },
   });
 }
 
-export async function GET(_req: NextRequest, { params }: Props) {
+export async function GET(req: NextRequest, { params }: Props) {
   const { login: rawLogin, file } = await params;
+  const search = req.nextUrl.searchParams;
   const login = decodeLoginParam(rawLogin);
   const parsed = parseCanonicalBadgeFile(file);
 
   if (!parsed || !login) {
-    return badgeNotFound();
+    return badgeNotFound(search);
   }
 
   const result = await renderCanonicalBadge(login, parsed.variant, parsed.format);
   if (!result) {
-    return badgeNotFound();
+    return badgeNotFound(search);
   }
 
   return new Response(result.body, {
     headers: {
       'Content-Type': result.contentType,
-      'Cache-Control': BADGE_CACHE_CONTROL,
+      ...badgeCacheHeaders(BADGE_CACHE_CONTROL, search),
     },
   });
 }

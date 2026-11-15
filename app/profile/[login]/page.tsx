@@ -9,6 +9,7 @@ import { readBadgeFacts } from '@/badge/v3/card-facts';
 import { loadBadgeUserCard } from '@/badge/v3/load';
 import { fetchProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
 import { fetchProfilePageOverview } from '@/graphql/helpers/fetch-profile-page-overview';
+import { profileCacheTag } from '@/utils/profile-refresh';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]'>): Promise<Metadata> {
   const { login } = await params;
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<'/profile/[login]'>
 
 export default async function ProfileOverviewPage({ params }: PageProps<'/profile/[login]'>) {
   const { login } = await params;
-  cacheTag(`profile:${login}`);
+  cacheTag(profileCacheTag(login));
 
   const user = await fetchProfilePageOverview(login);
   const [extras, badges] = await Promise.all([

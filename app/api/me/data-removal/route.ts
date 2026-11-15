@@ -64,8 +64,9 @@ export const POST = auth(async function POST(req: AuthRequest) {
   // The removal went through: what follows only tidies up, so its own failure never reports the removal as failed.
   const result = (await response.json().catch(() => null)) as { profile?: boolean; login?: string } | null;
 
-  for (const login of new Set([githubLogin, githubLogin.toLowerCase(), result?.login].filter(Boolean) as string[])) {
-    revalidateTag(profileCacheTag(login), { expire: 0 });
+  const logins = [githubLogin, result?.login].filter(Boolean) as string[];
+  for (const tag of new Set(logins.map(profileCacheTag))) {
+    revalidateTag(tag, { expire: 0 });
   }
 
   // The server removes the sign-in rows it can find by GitHub id and login; this session's own row goes here too,

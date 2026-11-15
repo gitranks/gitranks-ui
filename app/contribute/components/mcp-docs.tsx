@@ -291,15 +291,16 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
 
       <SetupClip />
 
-      <ul className="grid gap-3.5 sm:grid-cols-3">
+      {/* A list of terms, each line its own block, so a copy of the page's text keeps them apart. */}
+      <dl className="grid gap-3.5 sm:grid-cols-3">
         {FACTS.map(({ label, value, text }) => (
-          <li key={label} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-muted/50 p-5">
-            <span className="text-xs text-muted-foreground">{label}</span>
-            <span className="break-all font-mono text-base font-semibold">{value}</span>
-            <span className="text-sm text-muted-foreground">{text}</span>
-          </li>
+          <div key={label} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-muted/50 p-5">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="break-all font-mono text-base font-semibold">{value}</dd>
+            <dd className="text-sm text-muted-foreground">{text}</dd>
+          </div>
         ))}
-      </ul>
+      </dl>
 
       <DocLayout sections={SECTIONS}>
         <DocSection id="start" title="Before you start">

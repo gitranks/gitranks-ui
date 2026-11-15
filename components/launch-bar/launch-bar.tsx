@@ -14,11 +14,11 @@ export function LaunchBarScript() {
  * The announcement above the header, on every page: one link into Contribute, and an X that hides it in this browser
  * for good. Phones show the lead alone; the cue comes in from `md`, and the sentence after the lead from `xl`, where
  * it fits on the line. Hidden on Contribute's pages and once this browser has opened one, by the `data-launch-bar`
- * attribute on `<html>`.
+ * attribute on `<html>`. An `<aside>`, so tools that copy a page's main text (directory listings, readers) skip it.
  */
 export function LaunchBar() {
   return (
-    <div data-launch-bar-root className="border-b bg-muted/40">
+    <aside data-launch-bar-root aria-label="Announcement" className="border-b bg-muted/40">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-4 text-sm">
         <Link
           href="/contribute"
@@ -40,6 +40,6 @@ export function LaunchBar() {
         </Link>
         <LaunchBarDismiss />
       </div>
-    </div>
+    </aside>
   );
 }

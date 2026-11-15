@@ -42,8 +42,28 @@ export async function callDailyUpdates<T>(
   }
 }
 
-/** The JSON body of a request, or `null` when it has none or it is not an object. */
-export async function bodyOf(req: Request): Promise<Record<string, unknown> | null> {
-  const body: unknown = await req.json().catch(() => null);
-  return body && typeof body === 'object' ? (body as Record<string, unknown>) : null;
+/** A body here is a login or a repository's owner and name; anything larger is not one. */
+export const MAX_BODY = 1_000;
+
+export const tooLarge = () => json({ message: 'Body too large' }, 413);
+
+/**
+ * The JSON body of a request: `too-large` past `MAX_BODY` characters (refused by its declared length before it is
+ * read), `null` when it has none or it is not an object.
+ */
+export async function bodyOf(req: Request): Promise<Record<string, unknown> | 'too-large' | null> {
+  if (Number(req.headers.get('content-length')) > MAX_BODY) {
+    return 'too-large';
+  }
+
+  try {
+    const text = await req.text();
+    if (text.length > MAX_BODY) {
+      return 'too-large';
+    }
+    const body: unknown = JSON.parse(text);
+    return body && typeof body === 'object' ? (body as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
 }

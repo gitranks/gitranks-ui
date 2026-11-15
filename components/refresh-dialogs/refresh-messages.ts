@@ -167,6 +167,8 @@ export const DAILY_UPDATES_LINES = {
   byBadge: 'Has a GitRanks badge on GitHub.',
   /** The owner's own profile: under "Start daily updates", with no time after it. */
   ownerOff: 'Refreshes now, then every day for 7 days.',
+  /** The same once today's manual refresh is used: the start fetches nothing now. */
+  ownerOffUsed: 'Updates every day for 7 days, from your next update.',
   /** The owner's own profile: under "Refresh now". */
   ownerOn: 'Daily updates on.',
   /** The owner's own profile, on by their badge alone. */

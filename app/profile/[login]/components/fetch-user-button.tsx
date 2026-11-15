@@ -455,7 +455,9 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
           {REFRESH_LABELS.startDaily}
           <RefreshCw className="size-4" />
         </Button>
-        <div className="text-xs text-muted-foreground">{DAILY_UPDATES_LINES.ownerOff}</div>
+        <div className="text-xs text-muted-foreground">
+          {manual?.available === false ? DAILY_UPDATES_LINES.ownerOffUsed : DAILY_UPDATES_LINES.ownerOff}
+        </div>
       </>
     ) : ownerDailyOn ? (
       <>

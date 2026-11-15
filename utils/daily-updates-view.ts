@@ -82,13 +82,18 @@ export function profileUpdatesViewOf(
   return has(facts, DailyUpdateReason.Owner) ? 'visitor-on-owner' : 'visitor-off';
 }
 
-/** Whether the viewer picked this repository; GitHub's names are not case-sensitive. */
-export const isViewerPick = (viewer: ViewerFacts, nameWithOwner: string) =>
+/** Whether the viewer holds a pick of this repository, live or not; GitHub's names are not case-sensitive. */
+export const holdsPick = (viewer: ViewerFacts, nameWithOwner: string) =>
   !!viewer?.open && viewer.picks.some((pick) => pick.nameWithOwner.toLowerCase() === nameWithOwner.toLowerCase());
 
+/** Whether this repository is the viewer's pick and updates for it: held, while their daily updates are on. */
+export const isViewerPick = (viewer: ViewerFacts, nameWithOwner: string) =>
+  viewer?.state === 'on' && holdsPick(viewer, nameWithOwner);
+
 /**
- * The repository's state for this visitor: their own pick first, then for anyone the badge, then a pick that names
- * nobody. When a badge and a pick both hold, the badge is named.
+ * The repository's state for this visitor: their own live pick first, then for anyone the badge, then a pick that
+ * names nobody. When a badge and a pick both hold, the badge is named. A pick held while the viewer's daily updates
+ * are off shows as anyone sees the repository: the day's visit starts them again.
  */
 export function repoUpdatesViewOf(
   facts: DailyUpdatesFacts | undefined,
@@ -106,8 +111,16 @@ export function repoUpdatesViewOf(
   return has(facts, DailyUpdateReason.Pick) ? 'repo-on-pick' : 'repo-off';
 }
 
-/** Whether the repository page offers "Update daily": open to the visitor, and not on daily updates yet. */
-export const canPickRepo = (view: RepoUpdatesView, viewer: ViewerFacts) => view === 'repo-off' && !!viewer?.open;
+/**
+ * Whether the repository page offers "Update daily": open to the visitor, not on daily updates yet, and not held by
+ * them already (a press on a held pick would change nothing).
+ */
+export const canPickRepo = (view: RepoUpdatesView, viewer: ViewerFacts, nameWithOwner = '') =>
+  view === 'repo-off' && !!viewer?.open && !holdsPick(viewer, nameWithOwner);
+
+/** The page's facts without its pick reason: after the visitor removed this repository's pick, it may be stale. */
+export const withoutPickReason = (facts: DailyUpdatesFacts | undefined): DailyUpdatesFacts | undefined =>
+  facts && { ...facts, reasons: facts.reasons.filter((reason) => reason !== DailyUpdateReason.Pick) };
 
 /**
  * "Next update in 5 h." from the next update's time and the browser's clock, so a cached page stays right; "Next

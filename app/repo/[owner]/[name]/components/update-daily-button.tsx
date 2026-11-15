@@ -22,10 +22,16 @@ import { PicksDialog } from './picks-dialog';
 import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
 import { useDailyUpdatesViewer } from '@/components/daily-updates/use-daily-updates-viewer';
 import { RefreshDialog } from '@/components/refresh-dialogs/refresh-dialog';
-import { fillTime, REFRESH_LABELS, STAR_REPO_URL } from '@/components/refresh-dialogs/refresh-messages';
+import { fillTime, REFRESH_LABELS, REFRESH_TOASTS, STAR_REPO_URL } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
 import type { DailyUpdatesPickResult, DailyUpdatesRemoveResult } from '@/types/daily-updates.types';
-import { canPickRepo, type DailyUpdatesFacts, repoUpdatesViewOf } from '@/utils/daily-updates-view';
+import {
+  canPickRepo,
+  type DailyUpdatesFacts,
+  holdsPick,
+  repoUpdatesViewOf,
+  withoutPickReason,
+} from '@/utils/daily-updates-view';
 import { timeLeftUntil } from '@/utils/format-time-left';
 
 type UpdateDailyButtonProps = {
@@ -45,6 +51,16 @@ type OpenDialog =
 
 const PICKS_URL = '/api/daily-updates/picks';
 
+/** When the next new pick opens: the next UTC day, as the API counts them. */
+export const nextPickDayOf = (now: number) => {
+  const day = new Date(now);
+  return new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 1)).toISOString();
+};
+
+/** The toast for a refused call, by its HTTP status: a removed account, a name the API refuses, or a failure. */
+const refusedToast = (status: number, failed: string) =>
+  status === 410 ? REFRESH_TOASTS.removed : status === 400 ? PICK_TOASTS.notHeld : failed;
+
 const request = (method: 'POST' | 'DELETE', nameWithOwner: string) => {
   const [owner, name] = nameWithOwner.split('/');
   return fetch(PICKS_URL, {
@@ -62,9 +78,12 @@ const request = (method: 'POST' | 'DELETE', nameWithOwner: string) => {
 export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dailyUpdates }) => {
   const { data: session, status } = useSession();
   const login = status === 'authenticated' ? session?.user?.githubLogin : undefined;
-  const { viewer, setViewer } = useDailyUpdatesViewer(!!login);
+  const { viewer, setViewer, reload } = useDailyUpdatesViewer(!!login);
   const nameWithOwner = `${owner}/${name}`;
-  const view = repoUpdatesViewOf(dailyUpdates, viewer, nameWithOwner);
+  // The visitor removed this repository's pick here: the page's pick reason may be theirs, so their state decides.
+  const [removedHere, setRemovedHere] = useState(false);
+  const facts = removedHere ? withoutPickReason(dailyUpdates) : dailyUpdates;
+  const view = repoUpdatesViewOf(facts, viewer, nameWithOwner);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dialog, setDialog] = useState<OpenDialog>(null);
   const [picking, setPicking] = useState(false);
@@ -92,7 +111,7 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
         return close();
       }
       if (!res.ok) {
-        toast.error(PICK_TOASTS.failed);
+        toast.error(refusedToast(res.status, PICK_TOASTS.failed));
         return;
       }
 
@@ -100,19 +119,29 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
 
       switch (result.status) {
         case 'picked':
+          // A new pick starts the visitor's daily updates when they were off; one held already changes nothing.
           setViewer(
             (current) =>
               current && {
                 ...current,
-                state: 'on',
+                state: holdsPick(current, nameWithOwner) ? current.state : 'on',
                 picks: result.picks,
                 newPicksLeftToday: result.newPicksLeftToday,
               },
           );
+          setRemovedHere(false);
           break;
-        case 'full':
-          openDialog({ kind: 'allPicksUsed' });
+        case 'full': {
+          // The picks as they are now (another tab may have changed them). With no new pick left today, a removal
+          // would not let this one in: say when the next one opens instead.
+          const fresh = await reload();
+          if (fresh && fresh.newPicksLeftToday === 0) {
+            openDialog({ kind: 'dailyLimit', until: nextPickDayOf(Date.now()) });
+          } else {
+            openDialog({ kind: 'allPicksUsed' });
+          }
           break;
+        }
         case 'daily_limit':
           openDialog({ kind: 'dailyLimit', until: result.nextAt });
           break;
@@ -145,12 +174,15 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
         return close();
       }
       if (!res.ok) {
-        toast.error(PICK_TOASTS.removeFailed);
+        toast.error(refusedToast(res.status, PICK_TOASTS.removeFailed));
         return;
       }
 
       const result = (await res.json()) as DailyUpdatesRemoveResult;
       setViewer((current) => current && { ...current, picks: result.picks });
+      if (picked.toLowerCase() === nameWithOwner.toLowerCase()) {
+        setRemovedHere(true);
+      }
     } catch {
       toast.error(PICK_TOASTS.removeFailed);
     } finally {
@@ -230,18 +262,24 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
     return null;
   };
 
+  // A dialog stays on screen until its action ends, whatever the state under it becomes.
+  const dialogs = picksDialog();
+
   if (view === 'repo-on-badge' || view === 'repo-on-pick') {
     return (
-      <DailyUpdatesLine
-        lead={view === 'repo-on-badge' ? DAILY_UPDATES_NOTES.byBadge : DAILY_UPDATES_NOTES.byPick}
-        nextUpdateAt={dailyUpdates?.nextUpdateAt}
-      />
+      <>
+        <DailyUpdatesLine
+          lead={view === 'repo-on-badge' ? DAILY_UPDATES_NOTES.byBadge : DAILY_UPDATES_NOTES.byPick}
+          nextUpdateAt={facts?.nextUpdateAt}
+        />
+        {dialogs}
+      </>
     );
   }
 
   const yourPick = view === 'repo-your-pick';
-  if (!yourPick && !canPickRepo(view, viewer)) {
-    return null;
+  if (!yourPick && !canPickRepo(view, viewer, nameWithOwner)) {
+    return dialogs;
   }
 
   return (
@@ -269,11 +307,11 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
         )}
       </Button>
       {yourPick ? (
-        <DailyUpdatesLine lead={PICK_LINES.yourPick} nextUpdateAt={dailyUpdates?.nextUpdateAt} />
+        <DailyUpdatesLine lead={PICK_LINES.yourPick} nextUpdateAt={facts?.nextUpdateAt} />
       ) : (
         <div className="text-xs text-muted-foreground">{PICK_LINES.off}</div>
       )}
-      {picksDialog()}
+      {dialogs}
     </div>
   );
 };

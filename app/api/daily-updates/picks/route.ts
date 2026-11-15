@@ -1,12 +1,15 @@
-import { bodyOf, callDailyUpdates, json, notSignedIn, viewerOf } from '../api-call';
+import { bodyOf, callDailyUpdates, json, notSignedIn, tooLarge, viewerOf } from '../api-call';
 import type { AuthRequest } from '@/app/api/profile/[login]/route';
 import { auth } from '@/auth';
 import type { DailyUpdatesPickResult, DailyUpdatesRemoveResult } from '@/types/daily-updates.types';
 import { parseRepoParams } from '@/utils/repo-paths';
 
-/** The repository the body names, as `{ owner, name }`, or `null`. */
+/** The repository the body names, as `{ owner, name }`; `null` when it names none, `too-large` past the cap. */
 async function repoOf(req: Request) {
   const body = await bodyOf(req);
+  if (body === 'too-large') {
+    return body;
+  }
   const { owner, name } = body ?? {};
   return typeof owner === 'string' && typeof name === 'string' ? parseRepoParams(owner, name) : null;
 }
@@ -19,6 +22,9 @@ export const POST = auth(async function POST(req: AuthRequest) {
   }
 
   const repo = await repoOf(req);
+  if (repo === 'too-large') {
+    return tooLarge();
+  }
   if (!repo) {
     return json({ message: 'Invalid repository' }, 400);
   }
@@ -35,6 +41,9 @@ export const DELETE = auth(async function DELETE(req: AuthRequest) {
   }
 
   const repo = await repoOf(req);
+  if (repo === 'too-large') {
+    return tooLarge();
+  }
   if (!repo) {
     return json({ message: 'Invalid repository' }, 400);
   }

@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FetchUserButtonForProfilePage } from './fetch-user-button';
+import { DailyUpdatesVisit } from '@/components/daily-updates-visit/daily-updates-visit';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 import type { DailyUpdatesFacts } from '@/utils/daily-updates-view';
@@ -16,7 +17,11 @@ const { session, toast } = vi.hoisted(() => ({
 }));
 
 vi.mock('next-auth/react', () => ({ useSession: () => session.current, signIn: vi.fn() }));
-vi.mock('next/navigation', () => ({ useParams: () => ({ login: 'octo-dev' }), useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('next/navigation', () => ({
+  useParams: () => ({ login: 'octo-dev' }),
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => '/profile/octo-dev',
+}));
 vi.mock('@next/third-parties/google', () => ({ sendGAEvent: vi.fn() }));
 vi.mock('sonner', () => ({ toast }));
 vi.mock('@/lib/graphql/graphql-client', () => ({
@@ -92,6 +97,7 @@ describe("the owner's daily updates on their own profile", () => {
     vi.stubGlobal('fetch', fetchMock);
     for (const fn of [toast.success, toast.error, toast.info]) fn.mockReset();
     session.current = OWNER;
+    window.localStorage.clear();
     container = document.createElement('div');
     document.body.append(container);
     root = createRoot(container);
@@ -161,6 +167,7 @@ describe("the owner's daily updates on their own profile", () => {
   it('starts without a fetch when today’s manual refresh is used, and then has nothing to press for', async () => {
     answer('GET /api/daily-updates', viewerOf({ state: 'lapsed', manual: USED }));
     await mount();
+    expect(text()).toBe('Start daily updates Updates every day for 7 days, from your next update.');
 
     answer('POST /api/daily-updates', {
       status: 'started',
@@ -230,5 +237,52 @@ describe("the owner's daily updates on their own profile", () => {
     answer('POST /api/daily-updates', { status: 'blocked', until: iso(NOW + HOUR) });
     await press('Start daily updates');
     expect(dialogTitle()).toBe('Our robot needs a break 🥱');
+  });
+
+  describe('with the day’s visit', () => {
+    const RESTARTED = { state: 'on', until: iso(NOW + 7 * 24 * HOUR), restarted: true, retry: false };
+    const gets = () => calls().filter((call) => call === 'GET /api/daily-updates').length;
+
+    it('reads the state once the visit that started daily updates again has answered', async () => {
+      let visited: (response: Response) => void = () => {};
+      fetchMock.mockImplementationOnce(() => new Promise<Response>((resolve) => (visited = resolve)));
+      await act(async () => {
+        root.render(
+          <>
+            <DailyUpdatesVisit />
+            <FetchUserButtonForProfilePage profileLogin="octo-dev" />
+          </>,
+        );
+      });
+      await act(async () => {});
+
+      expect(calls()).toEqual(['POST /api/daily-updates/visit']);
+      expect(text()).toBe('Refresh');
+
+      answer('GET /api/daily-updates', viewerOf({ manual: USED }));
+      await act(async () => visited(new Response(JSON.stringify(RESTARTED))));
+      await act(async () => {});
+
+      expect(gets()).toBe(1);
+      expect(toast.success).toHaveBeenCalledWith('Welcome back', expect.anything());
+      expect(text()).toBe('Daily updates on Next update in 23 h 10 min.');
+    });
+
+    it('reads the state again when a visit started daily updates again after the first read', async () => {
+      answer('GET /api/daily-updates', viewerOf({ state: 'lapsed' }));
+      await mount();
+      expect(text()).toMatch(/^Start daily updates/);
+
+      answer('POST /api/daily-updates/visit', RESTARTED);
+      answer('GET /api/daily-updates', viewerOf({ manual: USED }));
+      const other = createRoot(document.createElement('div'));
+      await act(async () => other.render(<DailyUpdatesVisit />));
+      await act(async () => {});
+      await act(async () => {});
+
+      expect(gets()).toBe(2);
+      expect(text()).toBe('Daily updates on Next update in 23 h 10 min.');
+      act(() => other.unmount());
+    });
   });
 });

@@ -68,6 +68,18 @@ describe('/api/daily-updates/picks', () => {
     expect(signedFetch).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['POST', POST],
+    ['DELETE', DELETE],
+  ] as const)('%s refuses a body past 1,000 characters before calling the API', async (method, handler) => {
+    signIn();
+
+    const response = await call(handler, method, { owner: 'octo', name: 'rocket', pad: 'x'.repeat(1_000) });
+
+    expect(response.status).toBe(413);
+    expect(signedFetch).not.toHaveBeenCalled();
+  });
+
   it('POST picks the repository and passes the answer through', async () => {
     signIn();
     const answer = { status: 'picked', picks: PICKS, newPicksLeftToday: 2 };

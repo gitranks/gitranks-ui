@@ -95,7 +95,8 @@ export const PicksDialog: FC<PicksDialogProps> = ({
               {copy.secondary}
             </Button>
           )}
-          <Button type="button" onClick={onPrimary}>
+          {/* Off while a removal runs: its answer decides what the press does. */}
+          <Button type="button" onClick={onPrimary} disabled={removing !== null}>
             {copy.primary}
           </Button>
         </DialogFooter>

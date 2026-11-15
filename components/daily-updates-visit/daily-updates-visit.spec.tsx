@@ -3,17 +3,19 @@ import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DailyUpdatesVisit, WELCOME_BACK_TOAST } from './daily-updates-visit';
+import { DailyUpdatesVisit, VISIT_RETRY_AFTER, WELCOME_BACK_TOAST } from './daily-updates-visit';
 import { stampVisit, visitDayOf, visitedToday } from './visit-stamp';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const { session, toast } = vi.hoisted(() => ({
+const { session, toast, path } = vi.hoisted(() => ({
   session: { current: { data: null, status: 'loading' } as { data: unknown; status: string } },
   toast: { success: vi.fn() },
+  path: { current: '/' },
 }));
 
 vi.mock('next-auth/react', () => ({ useSession: () => session.current }));
+vi.mock('next/navigation', () => ({ usePathname: () => path.current }));
 vi.mock('sonner', () => ({ toast }));
 
 const NOW = Date.parse('2026-11-15T12:00:00Z');
@@ -59,6 +61,7 @@ describe('DailyUpdatesVisit', () => {
     toast.success.mockReset();
     window.localStorage.clear();
     session.current = SIGNED_IN;
+    path.current = '/';
     container = document.createElement('div');
     document.body.append(container);
   });
@@ -138,6 +141,45 @@ describe('DailyUpdatesVisit', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(toast.success).toHaveBeenCalledOnce();
     storage.mockRestore();
+  });
+
+  it('asks again at a later page after a retry or a failure, at most once a minute and one call at a time', async () => {
+    root = createRoot(container);
+    const go = async (pathname: string) => {
+      path.current = pathname;
+      await act(async () => root.render(<DailyUpdatesVisit />));
+      await act(async () => {});
+    };
+
+    answerWith({ ...ON, retry: true });
+    await go('/');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Within the minute a new page asks nothing.
+    await go('/profile/octo-dev');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(NOW + VISIT_RETRY_AFTER);
+    fetchMock.mockRejectedValueOnce(new Error('offline'));
+    await go('/repo/acme/fastqueue');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    // One call at a time: a page change while it runs asks nothing more.
+    vi.setSystemTime(NOW + 2 * VISIT_RETRY_AFTER);
+    let answered: (response: Response) => void = () => {};
+    fetchMock.mockImplementationOnce(() => new Promise<Response>((resolve) => (answered = resolve)));
+    await go('/by/stars/1');
+    vi.setSystemTime(NOW + 3 * VISIT_RETRY_AFTER);
+    await go('/by/stars/2');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    await act(async () => answered(new Response(JSON.stringify(ON))));
+    expect(visitedToday('octo-dev', Date.now())).toBe(true);
+
+    // Counted: no more today.
+    vi.setSystemTime(NOW + 4 * VISIT_RETRY_AFTER);
+    await go('/');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    act(() => root.unmount());
   });
 
   it('keeps one day per login', async () => {

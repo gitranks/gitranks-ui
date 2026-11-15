@@ -41,6 +41,7 @@ vi.mock('@/components/daily-updates/use-daily-updates-viewer', () => ({
     viewer: enabled ? ((globalThis as DesignGlobals).__designDailyUpdates ?? null) : null,
     read: enabled ? 'done' : 'idle',
     setViewer: () => {},
+    reload: async () => null,
   }),
 }));
 // The landing's own rank card, read in the browser: the viewer's from the fixtures.

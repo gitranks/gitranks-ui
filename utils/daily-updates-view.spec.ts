@@ -7,6 +7,7 @@ import {
   profileUpdatesViewOf,
   repoUpdatesViewOf,
   type ViewerFacts,
+  withoutPickReason,
 } from './daily-updates-view';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 import type { RefreshMode } from '@/utils/refresh-mode';
@@ -121,6 +122,14 @@ describe('repoUpdatesViewOf', () => {
     expect(repoUpdatesViewOf(facts(Pick), mine, 'octo/lantern')).toBe('repo-on-pick');
     expect(repoUpdatesViewOf(facts(Pick), { ...mine!, open: false }, 'octo/rocket')).toBe('repo-on-pick');
   });
+
+  it('shows a pick held while the visitor’s daily updates are off as anyone sees the repository', () => {
+    for (const state of ['lapsed', 'never'] as const) {
+      const off = { ...mine!, state };
+      expect(repoUpdatesViewOf(facts(Pick), off, 'octo/rocket')).toBe('repo-on-pick');
+      expect(repoUpdatesViewOf(null, off, 'octo/rocket')).toBe('repo-off');
+    }
+  });
 });
 
 describe('canPickRepo', () => {
@@ -134,6 +143,23 @@ describe('canPickRepo', () => {
     for (const view of ['repo-your-pick', 'repo-on-badge', 'repo-on-pick'] as const) {
       expect(canPickRepo(view, viewer())).toBe(false);
     }
+  });
+
+  it('offers no pick of a repository the visitor holds already, live or not: the press would change nothing', () => {
+    const held = viewer({
+      state: 'lapsed',
+      picks: [{ nameWithOwner: 'Octo/Rocket', pickedAt: '2026-11-15T10:00:00Z' }],
+    });
+    expect(canPickRepo('repo-off', held, 'octo/rocket')).toBe(false);
+    expect(canPickRepo('repo-off', held, 'octo/lantern')).toBe(true);
+  });
+});
+
+describe('withoutPickReason', () => {
+  it('drops the pick reason only', () => {
+    expect(withoutPickReason(facts(Pick, Badge))?.reasons).toEqual([Badge]);
+    expect(withoutPickReason(null)).toBeNull();
+    expect(withoutPickReason(undefined)).toBeUndefined();
   });
 });
 

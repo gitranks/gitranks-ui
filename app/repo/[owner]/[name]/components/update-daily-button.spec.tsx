@@ -183,19 +183,31 @@ describe('UpdateDailyButton', () => {
     expect(dialog()).toBeNull();
   });
 
-  it('asks to remove one when all 3 are used, then "Done" picks this repository', async () => {
-    answer('GET /api/daily-updates', viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas') }));
+  it('asks to remove one when all 3 are used, from the picks as they are now, then "Done" picks this repository', async () => {
+    answer('GET /api/daily-updates', viewerOf({ picks: picked('octo/rocket', 'octo/lantern') }));
     await mount();
 
+    // Another tab added a third pick since the page read them.
     answer('POST /api/daily-updates/picks', { status: 'full' });
+    answer(
+      'GET /api/daily-updates',
+      viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas'), newPicksLeftToday: 1 }),
+    );
     await press('Update daily');
     expect(dialogText()).toContain('All 3 picks are used');
     expect(dialogText()).toContain('Remove one to update acme/fastqueue every day.');
     expect(dialogText()).not.toContain('Your profile');
 
-    answer('DELETE /api/daily-updates/picks', { status: 'removed', picks: picked('octo/rocket', 'octo/lantern') });
+    // "Done" is off while the removal runs.
+    let removed: (response: Response) => void = () => {};
+    fetchMock.mockImplementationOnce(() => new Promise<Response>((resolve) => (removed = resolve)));
     const atlas = [...(dialog()?.querySelectorAll('li') ?? [])].find((row) => row.textContent?.includes('quiet/atlas'));
     await press('Remove', atlas);
+    expect((buttonNamed('Done') as HTMLButtonElement).disabled).toBe(true);
+    await act(async () =>
+      removed(new Response(JSON.stringify({ status: 'removed', picks: picked('octo/rocket', 'octo/lantern') }))),
+    );
+    expect((buttonNamed('Done') as HTMLButtonElement).disabled).toBe(false);
 
     answer('POST /api/daily-updates/picks', {
       status: 'picked',
@@ -210,10 +222,13 @@ describe('UpdateDailyButton', () => {
   });
 
   it('"Cancel" with all 3 picks used picks nothing', async () => {
-    answer('GET /api/daily-updates', viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas') }));
+    const three = viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas'), newPicksLeftToday: 2 });
+    answer('GET /api/daily-updates', three);
     await mount();
     answer('POST /api/daily-updates/picks', { status: 'full' });
+    answer('GET /api/daily-updates', three);
     await press('Update daily');
+    expect(dialogText()).toContain('All 3 picks are used');
 
     await press('Cancel');
 
@@ -230,6 +245,63 @@ describe('UpdateDailyButton', () => {
 
     expect(dialogText()).toContain('No new picks left today');
     expect(dialogText()).toContain('You can add 3 picks a day. The next one opens in 12 h.');
+  });
+
+  it('does not ask for a removal when no new pick is left today: says when the next one opens', async () => {
+    const spent = viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas'), newPicksLeftToday: 0 });
+    answer('GET /api/daily-updates', spent);
+    await mount();
+
+    answer('POST /api/daily-updates/picks', { status: 'full' });
+    answer('GET /api/daily-updates', spent);
+    await press('Update daily');
+
+    expect(dialogText()).toContain('No new picks left today');
+    expect(dialogText()).toContain('The next one opens in 12 h.');
+    expect(buttonNamed('Remove')).toBeUndefined();
+  });
+
+  it('removes this repository’s own pick with the dialog still open, then offers it again', async () => {
+    answer('GET /api/daily-updates', viewerOf({ picks: picked('acme/fastqueue', 'octo/rocket') }));
+    await mount({ reasons: [DailyUpdateReason.Pick], nextUpdateAt: iso(NOW + 5 * HOUR) });
+    await press('Updates daily');
+
+    answer('DELETE /api/daily-updates/picks', { status: 'removed', picks: picked('octo/rocket') });
+    const own = [...(dialog()?.querySelectorAll('li') ?? [])].find((row) =>
+      row.textContent?.includes('acme/fastqueue'),
+    );
+    await press('Remove', own);
+
+    expect(dialogText()).toContain('Your daily updates');
+    expect(dialogText()).not.toContain('acme/fastqueue');
+    await press('Done');
+    expect(dialog()).toBeNull();
+    expect(text()).toBe('Update daily Uses 1 of your 3 picks.');
+  });
+
+  it('shows a held pick as anyone sees it while the visitor’s daily updates are off, and offers no pick of it', async () => {
+    answer('GET /api/daily-updates', viewerOf({ state: 'lapsed', picks: picked('acme/fastqueue') }));
+    await mount({ reasons: [DailyUpdateReason.Pick], nextUpdateAt: iso(NOW + 5 * HOUR) });
+    expect(container.textContent).toBe('Updates daily. Next update in 5 h.');
+
+    answers = {};
+    answer('GET /api/daily-updates', viewerOf({ state: 'lapsed', picks: picked('acme/fastqueue') }));
+    await mount(null);
+    expect(container.innerHTML).toBe('');
+  });
+
+  it.each([
+    [410, 'This account’s data was removed from GitRanks at its owner’s request.'],
+    [400, 'This repository can’t be updated daily right now.'],
+    [502, 'GitHub didn’t answer. Please try again in a minute.'],
+  ])('says why a pick answered %i', async (status, message) => {
+    answer('GET /api/daily-updates', viewerOf());
+    await mount();
+
+    answer('POST /api/daily-updates/picks', { message: 'refused' }, status);
+    await press('Update daily');
+
+    expect(toast.error).toHaveBeenCalledExactlyOnceWith(message);
   });
 
   it('asks for the star, and "I starred it, pick" asks again', async () => {

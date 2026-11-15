@@ -97,6 +97,16 @@ describe('/api/daily-updates', () => {
     await expect(response.json()).resolves.toEqual({ message: 'Failed to load daily updates' });
   });
 
+  it('POST refuses a body past 1,000 characters before calling the API', async () => {
+    signIn();
+
+    const response = await start({ login: 'octo-dev', pad: 'x'.repeat(1_000) });
+
+    expect(response.status).toBe(413);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(signedFetch).not.toHaveBeenCalled();
+  });
+
   it('POST refuses a body without a login', async () => {
     signIn();
 

@@ -1,6 +1,6 @@
 import { revalidateTag } from 'next/cache';
 
-import { bodyOf, callDailyUpdates, json, notSignedIn, viewerOf } from './api-call';
+import { bodyOf, callDailyUpdates, json, notSignedIn, tooLarge, viewerOf } from './api-call';
 import type { AuthRequest } from '@/app/api/profile/[login]/route';
 import { auth } from '@/auth';
 import type { DailyUpdatesStartResult, DailyUpdatesViewer } from '@/types/daily-updates.types';
@@ -24,7 +24,11 @@ export const POST = auth(async function POST(req: AuthRequest) {
     return notSignedIn();
   }
 
-  const login = (await bodyOf(req))?.login;
+  const body = await bodyOf(req);
+  if (body === 'too-large') {
+    return tooLarge();
+  }
+  const login = body?.login;
   if (!isGithubLogin(login)) {
     return json({ message: 'Bad login' }, 400);
   }

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 import {
   allowanceAfter,
+  DAILY_UPDATES_NOTES,
   PULL_MESSAGES,
   PULL_TOASTS,
   type PullDialogKind,
@@ -21,11 +22,13 @@ import {
   refreshNoteOf,
 } from '../utils/pull-messages';
 import { reloadWithPullNote, showKeptPullNote } from '../utils/pull-note';
+import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
 import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-dialogs/refresh-dialog';
 import { REFRESH_LABELS, STAR_REPO_URL } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
 import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
 import type { RepoPullAllowance, RepoPullResult, RepoPullStatus } from '@/types/repo-pull.types';
+import { type DailyUpdatesFacts, repoUpdatesViewOf } from '@/utils/daily-updates-view';
 import { timeLeftUntil } from '@/utils/format-time-left';
 
 type PullButtonProps = {
@@ -33,6 +36,8 @@ type PullButtonProps = {
   name: string;
   /** The repository's latest fetch, as the page was rendered with it. */
   pull?: { status: string; requestedAt?: unknown } | null;
+  /** The repository's daily updates, as the page's data has them; `null` or missing while it is not on them. */
+  dailyUpdates?: DailyUpdatesFacts;
 };
 
 type OpenDialog = { kind: PullDialogKind; until?: string } | null;
@@ -48,7 +53,7 @@ const pullUrl = (owner: string, name: string) =>
 const sinceRequest = (requestedAt: unknown) =>
   typeof requestedAt === 'string' ? Date.now() - new Date(requestedAt).getTime() : Number.NaN;
 
-export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
+export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdates }) => {
   const { data: session, status } = useSession();
   const mode = pullModeOf(session, status);
   const url = pullUrl(owner, name);
@@ -274,6 +279,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
       : checking
         ? REFRESH_LABELS.checking
         : null;
+  const updatesView = repoUpdatesViewOf(dailyUpdates);
 
   return (
     <div ref={containerRef} className="flex flex-grow flex-col gap-2">
@@ -294,6 +300,12 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull }) => {
         <div className="text-xs text-muted-foreground">
           Next check in {Math.floor((CHECK_STATUS_INTERVAL - (elapsed % CHECK_STATUS_INTERVAL)) / 1000)} s
         </div>
+      )}
+      {(updatesView === 'repo-on-badge' || updatesView === 'repo-on-pick') && (
+        <DailyUpdatesLine
+          lead={updatesView === 'repo-on-badge' ? DAILY_UPDATES_NOTES.byBadge : DAILY_UPDATES_NOTES.byPick}
+          nextUpdateAt={dailyUpdates?.nextUpdateAt}
+        />
       )}
       {dialog && (
         <RefreshDialog

@@ -3,6 +3,7 @@ query PageProfileOverview($login: String!, $isGlobalContext: Boolean! = true) {
     firstSeenAt
     ...UserBaseFields
     ...UserFetchingStatus
+    ...UserDailyUpdates
     ...UserSeo
     starsNotCounted {
       stars

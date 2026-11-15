@@ -17,10 +17,21 @@ import { LearnRecordCard } from '@/app/profile/[login]/components/profile-learn-
 import type { UserFacts } from '@/badge/v3/facts';
 import { userBig, userUnranked } from '@/badge/v3/fixtures';
 import { learnRecord, profilePromo, promoColors } from '@/lib/learn/__fixtures__/promo';
+import { DailyUpdateReason } from '@/types/generated/graphql';
 
 // The strong profile is the badge fixtures' `userBig`; the newcomer has nothing a badge could show yet.
 const strongBadges = withBadgeFacts(userBig);
 const newcomerBadges = withBadgeFacts({ ...userUnranked, login: newcomerProfile.login });
+
+/** The strong profile on daily updates for one reason, as anyone but its owner sees it. */
+const onDailyUpdates = (reason: DailyUpdateReason): ProfileUser => ({
+  ...strongProfile,
+  dailyUpdates: {
+    reasons: [reason],
+    nextUpdateAt: '2026-10-28T17:00:00.000Z',
+    lastUpdatedAt: '2026-10-27T17:00:00.000Z',
+  },
+});
 
 const overview = (user: ProfileUser, badgeFacts: UserFacts, extras = strongExtras) => (
   <ProfileFrame login={user.login}>
@@ -82,6 +93,20 @@ export const PROFILE_SCREENS: Screen[] = [
         path: `/profile/${strongProfile.login}`,
         height: 3000,
         render: () => overview(strongProfileStarsNotCounted, strongBadges),
+      },
+      {
+        id: 'daily-by-owner',
+        title: 'On daily updates, turned on by the owner',
+        path: `/profile/${strongProfile.login}`,
+        height: 3000,
+        render: () => overview(onDailyUpdates(DailyUpdateReason.Owner), strongBadges),
+      },
+      {
+        id: 'daily-by-badge',
+        title: 'On daily updates, kept on by a badge',
+        path: `/profile/${strongProfile.login}`,
+        height: 3000,
+        render: () => overview(onDailyUpdates(DailyUpdateReason.Badge), strongBadges),
       },
       {
         id: 'strong-phone',

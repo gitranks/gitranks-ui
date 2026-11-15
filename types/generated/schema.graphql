@@ -3629,6 +3629,18 @@ type CountryTopUsers {
   s: UserBasic
 }
 
+enum DailyUpdateReason {
+  BADGE
+  OWNER
+  PICK
+}
+
+type DailyUpdates {
+  lastUpdatedAt: DateTime
+  nextUpdateAt: DateTime
+  reasons: [DailyUpdateReason!]!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -4485,6 +4497,7 @@ type Repo {
   """
   contributorsWall(order: ContributorsWallOrder! = POPULAR): ContributorsWall
   createdAt: DateTime
+  dailyUpdates: DailyUpdates
   description: String
   gainedThisMonth: Int
   githubId: String!
@@ -4732,6 +4745,7 @@ type User {
   country: String
   countryFlag: String
   createdAt: DateTime!
+  dailyUpdates: DailyUpdates
   email: String
   f: Int
   fD: Int

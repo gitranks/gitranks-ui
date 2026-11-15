@@ -1,7 +1,7 @@
 /**
  * Every word the Refresh button says, in one place, so the copy can be read and changed without the code.
  * Plain words and short sentences on purpose: many readers are not native English speakers. `{time}` is filled with
- * the time left, like "13 h 20 min".
+ * the time left, like "13 h 20 min"; `{login}` with the profile's login.
  */
 
 export const MAKER = {
@@ -98,6 +98,28 @@ export const REFRESH_MESSAGES = {
     primary: '⭐ Open our repo',
     secondary: 'OK',
   },
+
+  /** Anyone presses "Updates daily" on a profile its owner turned daily updates on for. */
+  whyDailyOwner: {
+    title: 'This profile updates every day',
+    paragraphs: [
+      '@{login} signed in and starred our repo. So we update this profile every 24 hours.',
+      'Want the same for your profile?',
+    ],
+    primary: 'Get daily updates',
+    secondary: 'Close',
+  },
+
+  /** Anyone presses "Updates daily" on a profile a GitRanks badge on GitHub keeps on daily updates. */
+  whyDailyBadge: {
+    title: 'This profile updates every day',
+    paragraphs: [
+      '@{login} has a GitRanks badge on GitHub. So we update this profile every 24 hours.',
+      'Want the same? Add a badge to your GitHub profile.',
+    ],
+    primary: 'Make a badge',
+    secondary: 'Close',
+  },
 } satisfies Record<string, RefreshMessage>;
 
 export type RefreshDialogKind = keyof typeof REFRESH_MESSAGES;
@@ -107,6 +129,14 @@ export const REFRESH_LABELS = {
   dailyAvailable: 'Refresh · 1 left',
   /** While the star check runs. */
   checking: 'Checking…',
+  /** Someone else's profile that updates every day; a press says why. */
+  updatesDaily: 'Updates daily',
+} as const;
+
+/** The line under "Updates daily", before "Next update in {time}." */
+export const DAILY_UPDATES_LINES = {
+  byOwner: 'Turned on by @{login}.',
+  byBadge: 'Has a GitRanks badge on GitHub.',
 } as const;
 
 export const REFRESH_TOASTS = {
@@ -119,3 +149,11 @@ export const REFRESH_TOASTS = {
 } as const;
 
 export const fillTime = (text: string, time?: string) => (time ? text.replaceAll('{time}', time) : text);
+
+export const fillLogin = (text: string, login: string) => text.replaceAll('{login}', login);
+
+/** The message with `{login}` filled in its paragraphs. */
+export const withLogin = (message: RefreshMessage, login: string): RefreshMessage => ({
+  ...message,
+  paragraphs: message.paragraphs.map((paragraph) => fillLogin(paragraph, login)),
+});

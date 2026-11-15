@@ -2,6 +2,7 @@ query PageProfileRanks($login: String!, $isGlobalContext: Boolean! = true) {
   user(login: $login) {
     ...UserBaseFields
     ...UserFetchingStatus
+    ...UserDailyUpdates
     ...UserSeo
     starsNotCounted {
       stars

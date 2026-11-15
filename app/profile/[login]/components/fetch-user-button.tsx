@@ -1,8 +1,9 @@
 'use client';
 
 import { sendGAEvent } from '@next/third-parties/google';
-import { RefreshCw } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { Check, RefreshCw } from 'lucide-react';
+import type { Route } from 'next';
+import { useParams, useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import {
   Children,
@@ -20,13 +21,18 @@ import {
 import { ClipLoader } from 'react-spinners';
 import { toast } from 'sonner';
 
+import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
+import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
 import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-dialogs/refresh-dialog';
 import {
+  DAILY_UPDATES_LINES,
+  fillLogin,
   REFRESH_LABELS,
   REFRESH_MESSAGES,
   REFRESH_TOASTS,
   type RefreshDialogKind,
   STAR_REPO_URL,
+  withLogin,
 } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
 import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
@@ -34,6 +40,7 @@ import { graphqlClient } from '@/lib/graphql/graphql-client';
 import { cn } from '@/lib/utils';
 import type { DailyRefreshResult, DailyRefreshStatus } from '@/types/daily-refresh.types';
 import { ProfileFetchingStatusDocument, type UserFetchingStatus } from '@/types/generated/graphql';
+import { type DailyUpdatesFacts, profileUpdatesViewOf } from '@/utils/daily-updates-view';
 import { timeLeftUntil } from '@/utils/format-time-left';
 import { refreshModeOf } from '@/utils/refresh-mode';
 
@@ -44,6 +51,10 @@ type FetchUserButtonProps = {
   children: ReactElement<ComponentProps<'button'>>;
   /** The label on the user's own profile while today's refresh on our token is unused. */
   dailyLabel?: ReactNode;
+  /** The profile's daily updates, as the page's data has them; `null` or missing while it is not on them. */
+  dailyUpdates?: DailyUpdatesFacts;
+  /** The profile's login as GitHub writes it, for the copy; the URL's spelling when missing. */
+  profileLogin?: string;
 };
 
 /** The dialog on screen; `until` fills its `{time}`. */
@@ -68,10 +79,15 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   className,
   children,
   dailyLabel,
+  dailyUpdates,
+  profileLogin,
 }) => {
   const { data: session, status } = useSession();
   const { login } = useParams<{ login: string }>();
+  const router = useRouter();
   const mode = refreshModeOf(session, login, status);
+  const view = profileUpdatesViewOf(mode, dailyUpdates);
+  const shownLogin = profileLogin ?? login;
   const containerRef = useRef<HTMLDivElement>(null);
   const [daily, setDaily] = useState<DailyRefreshStatus | null>(null);
   const [checking, setChecking] = useState(false);
@@ -212,6 +228,25 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     }
   };
 
+  const onUpdatesDailyClick = () =>
+    openDialog({ kind: view === 'visitor-on-badge' ? 'whyDailyBadge' : 'whyDailyOwner' });
+
+  /** Until a visitor can turn daily updates on here, "Get daily updates" leads to their own profile. */
+  const getDailyUpdates = () => {
+    const ownLogin = session?.user?.githubLogin;
+    if (!ownLogin) {
+      return openDialog({ kind: 'signIn' });
+    }
+    setDialog(null);
+    router.push(`/profile/${encodeURIComponent(ownLogin)}`);
+  };
+
+  /** The badge builder, on a developer's badges: the visitor's own when signed in. */
+  const makeBadge = () => {
+    setDialog(null);
+    router.push(builderHref({ kind: 'user', name: session?.user?.githubLogin ?? '' }) as Route);
+  };
+
   const onRefreshClick = () => {
     switch (mode) {
       case 'loading':
@@ -284,16 +319,44 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     used: { primary: { onClick: signInWithToken } },
     otherProfile: { primary: { onClick: signInWithToken } },
     blocked: { primary: { href: STAR_REPO_URL } },
+    whyDailyOwner: { primary: { onClick: getDailyUpdates } },
+    whyDailyBadge: { primary: { onClick: makeBadge } },
   };
+
+  // Someone else's profile that updates every day: the press says why. A fetch in flight keeps today's button.
+  const updatesDaily = (view === 'visitor-on-owner' || view === 'visitor-on-badge') && busyLabel === null;
 
   return (
     <div ref={containerRef} className={cn('flex flex-col gap-2', className)}>
-      {childWithOnClick}
+      {updatesDaily ? (
+        <>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className={child.props.className}
+            onClick={onUpdatesDailyClick}
+          >
+            <Check className="size-4" aria-hidden />
+            {REFRESH_LABELS.updatesDaily}
+          </Button>
+          <DailyUpdatesLine
+            lead={
+              view === 'visitor-on-badge'
+                ? DAILY_UPDATES_LINES.byBadge
+                : fillLogin(DAILY_UPDATES_LINES.byOwner, shownLogin)
+            }
+            nextUpdateAt={dailyUpdates?.nextUpdateAt}
+          />
+        </>
+      ) : (
+        childWithOnClick
+      )}
       {dialog && (
         <RefreshDialog
           open
           onOpenChange={(open) => !open && setDialog(null)}
-          message={REFRESH_MESSAGES[dialog.kind]}
+          message={withLogin(REFRESH_MESSAGES[dialog.kind], shownLogin)}
           time={dialog.until ? timeLeftUntil(dialog.until) : undefined}
           primary={cta(dialog.kind, dialogActions[dialog.kind].primary)}
           secondary={dialogActions[dialog.kind].secondary}

@@ -1,0 +1,7 @@
+fragment UserDailyUpdates on User {
+  dailyUpdates {
+    reasons
+    nextUpdateAt
+    lastUpdatedAt
+  }
+}

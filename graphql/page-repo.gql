@@ -5,6 +5,11 @@ query PageRepo($owner: String!, $name: String!) {
     isInOrganization
     createdAt
     renamedTo
+    dailyUpdates {
+      reasons
+      nextUpdateAt
+      lastUpdatedAt
+    }
     rank {
       language
       s

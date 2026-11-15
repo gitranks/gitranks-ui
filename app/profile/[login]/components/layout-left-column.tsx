@@ -73,6 +73,8 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
           <FetchUserButtonForProfilePage
             fetchingStatus={user.fetchingStatus}
             fetchingUpdatedAt={user.fetchingUpdatedAt}
+            dailyUpdates={user.dailyUpdates}
+            profileLogin={user.login}
           />
           <Button size="sm" variant="outline" className="flex-grow" asChild>
             <Link href={`https://github.com/${user.login}`} target="_blank" rel="noopener noreferrer">

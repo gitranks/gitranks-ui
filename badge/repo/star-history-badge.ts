@@ -9,6 +9,7 @@ import {
   svgToPng,
 } from './render-star-history-badge';
 import { fetchBadgeRepo } from './star-history-badge.loader';
+import { type BadgeCacheHeaders, badgeCacheHeaders } from '@/badge/cache-headers';
 import type { StarHistoryRepoQuery } from '@/types/generated/graphql';
 import { parseRepoParams } from '@/utils/repo-paths';
 
@@ -55,15 +56,25 @@ async function readNotTracked(format: StarHistoryBadgeFormat) {
   return notTrackedCache[format];
 }
 
-function imageResponse(body: Uint8Array<ArrayBuffer> | string, format: StarHistoryBadgeFormat, cacheControl: string) {
-  return new Response(body, { headers: { 'Content-Type': CONTENT_TYPE[format], 'Cache-Control': cacheControl } });
+function imageResponse(
+  body: Uint8Array<ArrayBuffer> | string,
+  format: StarHistoryBadgeFormat,
+  cacheHeaders: BadgeCacheHeaders,
+) {
+  return new Response(body, { headers: { 'Content-Type': CONTENT_TYPE[format], ...cacheHeaders } });
 }
 
 /**
  * The star history badge at `/repo-badges/<owner>/<name>/<file>`. A well-formed path gets an image,
- * a redirect to the stored spelling, or a short-cached 503 when the data cannot be read.
+ * a redirect to the stored spelling, or a short-cached 503 when the data cannot be read. `search` is the request's
+ * query: it only tells how the chart and its redirect send their cache lifetimes (see `badgeCacheHeaders`).
  */
-export async function getStarHistoryBadgeResponse(ownerParam: string, nameParam: string, file: string) {
+export async function getStarHistoryBadgeResponse(
+  ownerParam: string,
+  nameParam: string,
+  file: string,
+  search = new URLSearchParams(),
+) {
   const format = parseStarHistoryFile(file);
   const repoParams = parseRepoParams(ownerParam, nameParam);
 
@@ -75,7 +86,7 @@ export async function getStarHistoryBadgeResponse(ownerParam: string, nameParam:
   }
 
   try {
-    return await renderBadgeResponse(repoParams.owner, repoParams.name, file, format);
+    return await renderBadgeResponse(repoParams.owner, repoParams.name, file, format, search);
   } catch (error) {
     console.error('Error rendering the star history badge:', error);
     return new Response(null, {
@@ -85,12 +96,22 @@ export async function getStarHistoryBadgeResponse(ownerParam: string, nameParam:
   }
 }
 
-async function renderBadgeResponse(owner: string, name: string, file: string, format: StarHistoryBadgeFormat) {
+async function renderBadgeResponse(
+  owner: string,
+  name: string,
+  file: string,
+  format: StarHistoryBadgeFormat,
+  search: URLSearchParams,
+) {
   const repo = await fetchBadgeRepo(owner, name);
 
   if (!repo) {
-    return imageResponse(await readNotTracked(format), format, STAR_HISTORY_CACHE_CONTROL.notTracked);
+    return imageResponse(await readNotTracked(format), format, {
+      'Cache-Control': STAR_HISTORY_CACHE_CONTROL.notTracked,
+    });
   }
+
+  const chartHeaders = badgeCacheHeaders(STAR_HISTORY_CACHE_CONTROL.chart, search);
 
   // Case variants and old names share the stored spelling's cache entry.
   if (repo.nameWithOwner !== `${owner}/${name}`) {
@@ -99,14 +120,15 @@ async function renderBadgeResponse(owner: string, name: string, file: string, fo
       status: 308,
       headers: {
         Location: `/repo-badges/${encodeURIComponent(storedOwner)}/${encodeURIComponent(storedName)}/${file}`,
-        'Cache-Control': STAR_HISTORY_CACHE_CONTROL.chart,
+        ...chartHeaders,
       },
     });
   }
 
   const input = getStarHistoryBadgeInput(repo);
   const svg = await renderStarHistorySvg(input);
-  const cacheControl = input.kind === 'chart' ? STAR_HISTORY_CACHE_CONTROL.chart : STAR_HISTORY_CACHE_CONTROL.preparing;
+  const cacheHeaders =
+    input.kind === 'chart' ? chartHeaders : { 'Cache-Control': STAR_HISTORY_CACHE_CONTROL.preparing };
 
-  return imageResponse(format === 'svg' ? svg : await svgToPng(svg), format, cacheControl);
+  return imageResponse(format === 'svg' ? svg : await svgToPng(svg), format, cacheHeaders);
 }

@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { StarHistoryRepoQuery } from '@/types/generated/graphql';
 
@@ -8,6 +9,7 @@ vi.mock('./star-history-badge.loader', () => ({ fetchBadgeRepo }));
 const { getStarHistoryBadgeResponse, parseStarHistoryFile, STAR_HISTORY_CACHE_CONTROL } = await import(
   './star-history-badge'
 );
+const { GET } = await import('@/app/repo-badges/[owner]/[name]/[file]/route');
 
 const history = {
   points: [
@@ -134,5 +136,109 @@ describe('getStarHistoryBadgeResponse', () => {
 
     expect(response.headers.get('content-type')).toBe('image/png');
     expect([...body.subarray(1, 4)]).toEqual([0x50, 0x4e, 0x47]);
+  });
+});
+
+describe('the badge cache switch', () => {
+  const get = (owner: string, name: string, file: string, query = '') =>
+    GET(new NextRequest(`http://localhost/repo-badges/${owner}/${name}/${file}${query}`), {
+      params: Promise.resolve({ owner, name, file }),
+    });
+
+  const headersOf = (response: Response) => ({
+    cacheControl: response.headers.get('cache-control'),
+    edge: response.headers.get('cloudflare-cdn-cache-control'),
+  });
+
+  /** One answer of each kind under `query`: the chart and its redirect, kept long, then the ones kept shorter. */
+  const answers = async (query = '') => {
+    fetchBadgeRepo.mockResolvedValue(repo({ history }));
+    const chart = await get('octo', 'widgets', 'star-history.svg', query);
+    const redirect = await get('OCTO', 'Widgets', 'star-history.svg', query);
+    const notFound = await get('octo', 'widgets', 'history.svg', query);
+    fetchBadgeRepo.mockResolvedValue(repo());
+    const preparing = await get('octo', 'widgets', 'star-history.svg', query);
+    fetchBadgeRepo.mockResolvedValue(null);
+    const notTracked = await get('octo', 'unknown', 'star-history.svg', query);
+    fetchBadgeRepo.mockRejectedValue(new Error('x'));
+    const unavailable = await get('octo', 'widgets', 'star-history.svg', query);
+
+    expect([chart, redirect, notFound, preparing, notTracked, unavailable].map(({ status }) => status)).toEqual([
+      200, 308, 404, 200, 200, 503,
+    ]);
+    return {
+      long: { chart: headersOf(chart), redirect: headersOf(redirect) },
+      short: {
+        notFound: headersOf(notFound),
+        preparing: headersOf(preparing),
+        notTracked: headersOf(notTracked),
+        unavailable: headersOf(unavailable),
+      },
+    };
+  };
+
+  const CHART = 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800';
+
+  const TODAY = {
+    long: { chart: { cacheControl: CHART, edge: null }, redirect: { cacheControl: CHART, edge: null } },
+    short: {
+      notFound: { cacheControl: 'public, max-age=300, s-maxage=300', edge: null },
+      preparing: { cacheControl: 'public, max-age=300, s-maxage=3600', edge: null },
+      notTracked: { cacheControl: 'public, max-age=3600, s-maxage=3600', edge: null },
+      unavailable: { cacheControl: 'public, max-age=60, s-maxage=60', edge: null },
+    },
+  };
+
+  /** The chart and its redirect with the browser's lifetime in `Cache-Control` and `edge` in the edge's own header. */
+  const split = (edge: string | null) => ({
+    chart: { cacheControl: 'public, max-age=300', edge },
+    redirect: { cacheControl: 'public, max-age=300', edge },
+  });
+
+  beforeEach(() => {
+    fetchBadgeRepo.mockReset();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    [undefined, ''],
+    ['', ''],
+    ['off', '?probe=1'],
+    ['probe', ''],
+    ['probe', '?probe=2'],
+    ['enabled', '?probe=1'],
+  ])("sends today's one header when the switch is %s and the query is '%s'", async (mode, query) => {
+    vi.stubEnv('BADGE_CACHE_SPLIT', mode);
+
+    expect(await answers(query)).toEqual(TODAY);
+  });
+
+  it.each([
+    ['on', ''],
+    ['probe', '?probe=1'],
+  ])("splits the chart and its redirect when the switch is %s and the query is '%s'", async (mode, query) => {
+    vi.stubEnv('BADGE_CACHE_SPLIT', mode);
+
+    expect(await answers(query)).toEqual({
+      long: split('max-age=86400, stale-while-revalidate=604800, stale-if-error=604800'),
+      short: TODAY.short,
+    });
+  });
+
+  it('on-no-swr leaves stale-while-revalidate out of the edge header', async () => {
+    vi.stubEnv('BADGE_CACHE_SPLIT', 'on-no-swr');
+
+    expect(await answers()).toEqual({ long: split('max-age=86400, stale-if-error=604800'), short: TODAY.short });
+  });
+
+  it('short sends the browser lifetime alone', async () => {
+    vi.stubEnv('BADGE_CACHE_SPLIT', 'short');
+
+    expect(await answers()).toEqual({ long: split(null), short: TODAY.short });
   });
 });

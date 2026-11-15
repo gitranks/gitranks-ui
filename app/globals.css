@@ -211,6 +211,11 @@
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-warning-soft-foreground: var(--warning-soft-foreground);
+  /* Product Hunt's brand colour, the same in both themes: only for the launch week's Product Hunt bar
+     (components/launch-bar). Goes with that bar. */
+  --color-producthunt: #ff6154;
+  /* Darker, for white text on it (4.7:1). */
+  --color-producthunt-strong: #d23f26;
   --color-tier-1-strong: var(--tier-1-strong);
   --color-tier-2-strong: var(--tier-2-strong);
   --color-tier-3-strong: var(--tier-3-strong);
@@ -370,9 +375,12 @@
   }
 }
 
-/* The launch bar (components/launch-bar), hidden on Contribute's pages and once this browser is done with it. Outside
-   the layers, so no utility on the bar can win over it. */
-html[data-launch-bar='off'] [data-launch-bar-root] {
+/* The launch bar (components/launch-bar): a bar shows only while `data-launch-bar` on <html> names it, so at most one
+   at a time and none once this browser is done with it. With no attribute (scripts off), Contribute's bar shows, as it
+   always has. Outside the layers, so no utility on a bar can win over it. */
+html:not([data-launch-bar='ph-soon']) [data-launch-bar-root='ph-soon'],
+html:not([data-launch-bar='ph-live']) [data-launch-bar-root='ph-live'],
+html[data-launch-bar]:not([data-launch-bar='contribute']) [data-launch-bar-root='contribute'] {
   display: none;
 }
 

@@ -16,7 +16,7 @@ vi.mock('next/server', async (importOriginal) => ({
 }));
 vi.mock('../badge-seen', () => ({ reportBadgeSeen }));
 
-const { getStarHistoryBadgeResponse, parseStarHistoryFile, STAR_HISTORY_CACHE_CONTROL } = await import(
+const { getStarHistoryBadgeResponse, parseStarHistoryFile, STAR_HISTORY_CACHE_HEADERS } = await import(
   './star-history-badge'
 );
 const { GET } = await import('@/app/repo-badges/[owner]/[name]/[file]/route');
@@ -65,7 +65,7 @@ describe('getStarHistoryBadgeResponse', () => {
     const response = await getStarHistoryBadgeResponse(owner, name, file);
 
     expect(response.status).toBe(404);
-    expect(response.headers.get('cache-control')).toBe(STAR_HISTORY_CACHE_CONTROL.notFound);
+    expect(response.headers.get('cache-control')).toBe(STAR_HISTORY_CACHE_HEADERS.notFound['Cache-Control']);
     expect(fetchBadgeRepo).not.toHaveBeenCalled();
   });
 
@@ -85,8 +85,9 @@ describe('getStarHistoryBadgeResponse', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/svg+xml; charset=utf-8');
-    expect(response.headers.get('cache-control')).toBe(
-      'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800',
+    expect(response.headers.get('cache-control')).toBe('public, max-age=300');
+    expect(response.headers.get('cloudflare-cdn-cache-control')).toBe(
+      'max-age=86400, stale-while-revalidate=604800, stale-if-error=604800',
     );
     expect(svg).toContain('fill-opacity="0.2"');
     expect(fetchBadgeRepo).toHaveBeenCalledWith('octo', 'widgets');
@@ -123,7 +124,10 @@ describe('getStarHistoryBadgeResponse', () => {
 
     expect(response.status).toBe(308);
     expect(response.headers.get('location')).toBe('/repo-badges/Octo/Widgets.js/star-history.png');
-    expect(response.headers.get('cache-control')).toBe(STAR_HISTORY_CACHE_CONTROL.chart);
+    expect(response.headers.get('cache-control')).toBe(STAR_HISTORY_CACHE_HEADERS.chart['Cache-Control']);
+    expect(response.headers.get('cloudflare-cdn-cache-control')).toBe(
+      STAR_HISTORY_CACHE_HEADERS.chart['Cloudflare-CDN-Cache-Control'],
+    );
   });
 
   it('answers a short-cached 503 when the data cannot be read', async () => {
@@ -149,9 +153,9 @@ describe('getStarHistoryBadgeResponse', () => {
   });
 });
 
-describe('the badge cache switch', () => {
-  const get = (owner: string, name: string, file: string, query = '') =>
-    GET(new NextRequest(`http://localhost/repo-badges/${owner}/${name}/${file}${query}`), {
+describe('the cache headers of each answer', () => {
+  const get = (owner: string, name: string, file: string) =>
+    GET(new NextRequest(`https://gitranks.com/repo-badges/${owner}/${name}/${file}`), {
       params: Promise.resolve({ owner, name, file }),
     });
 
@@ -160,18 +164,18 @@ describe('the badge cache switch', () => {
     edge: response.headers.get('cloudflare-cdn-cache-control'),
   });
 
-  /** One answer of each kind under `query`: the chart and its redirect, kept long, then the ones kept shorter. */
-  const answers = async (query = '') => {
+  /** One answer of each kind: the chart and its redirect, kept long, then the ones kept shorter. */
+  const answers = async () => {
     fetchBadgeRepo.mockResolvedValue(repo({ history }));
-    const chart = await get('octo', 'widgets', 'star-history.svg', query);
-    const redirect = await get('OCTO', 'Widgets', 'star-history.svg', query);
-    const notFound = await get('octo', 'widgets', 'history.svg', query);
+    const chart = await get('octo', 'widgets', 'star-history.svg');
+    const redirect = await get('OCTO', 'Widgets', 'star-history.svg');
+    const notFound = await get('octo', 'widgets', 'history.svg');
     fetchBadgeRepo.mockResolvedValue(repo());
-    const preparing = await get('octo', 'widgets', 'star-history.svg', query);
+    const preparing = await get('octo', 'widgets', 'star-history.svg');
     fetchBadgeRepo.mockResolvedValue(null);
-    const notTracked = await get('octo', 'unknown', 'star-history.svg', query);
+    const notTracked = await get('octo', 'unknown', 'star-history.svg');
     fetchBadgeRepo.mockRejectedValue(new Error('x'));
-    const unavailable = await get('octo', 'widgets', 'star-history.svg', query);
+    const unavailable = await get('octo', 'widgets', 'star-history.svg');
 
     expect([chart, redirect, notFound, preparing, notTracked, unavailable].map(({ status }) => status)).toEqual([
       200, 308, 404, 200, 200, 503,
@@ -187,76 +191,37 @@ describe('the badge cache switch', () => {
     };
   };
 
-  const CHART = 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800';
-
-  const TODAY = {
-    long: { chart: { cacheControl: CHART, edge: null }, redirect: { cacheControl: CHART, edge: null } },
-    short: {
-      notFound: { cacheControl: 'public, max-age=300, s-maxage=300', edge: null },
-      preparing: { cacheControl: 'public, max-age=300, s-maxage=3600', edge: null },
-      notTracked: { cacheControl: 'public, max-age=3600, s-maxage=3600', edge: null },
-      unavailable: { cacheControl: 'public, max-age=60, s-maxage=60', edge: null },
-    },
-  };
-
-  /** The chart and its redirect with the browser's lifetime in `Cache-Control` and `edge` in the edge's own header. */
-  const split = (edge: string | null) => ({
-    chart: { cacheControl: 'public, max-age=300', edge },
-    redirect: { cacheControl: 'public, max-age=300', edge },
-  });
-
   beforeEach(() => {
     fetchBadgeRepo.mockReset();
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
-  it.each([
-    [undefined, ''],
-    ['', ''],
-    ['off', '?probe=1'],
-    ['probe', ''],
-    ['probe', '?probe=2'],
-    ['enabled', '?probe=1'],
-  ])("sends today's one header when the switch is %s and the query is '%s'", async (mode, query) => {
-    vi.stubEnv('BADGE_CACHE_SPLIT', mode);
+  it('keeps the chart and its redirect minutes in the browser and a day at the edge, the rest as they were', async () => {
+    const chart = {
+      cacheControl: 'public, max-age=300',
+      edge: 'max-age=86400, stale-while-revalidate=604800, stale-if-error=604800',
+    };
 
-    expect(await answers(query)).toEqual(TODAY);
-  });
-
-  it.each([
-    ['on', ''],
-    ['probe', '?probe=1'],
-  ])("splits the chart and its redirect when the switch is %s and the query is '%s'", async (mode, query) => {
-    vi.stubEnv('BADGE_CACHE_SPLIT', mode);
-
-    expect(await answers(query)).toEqual({
-      long: split('max-age=86400, stale-while-revalidate=604800, stale-if-error=604800'),
-      short: TODAY.short,
+    expect(await answers()).toEqual({
+      long: { chart, redirect: chart },
+      short: {
+        notFound: { cacheControl: 'public, max-age=300, s-maxage=300', edge: null },
+        preparing: { cacheControl: 'public, max-age=300, s-maxage=3600', edge: null },
+        notTracked: { cacheControl: 'public, max-age=3600, s-maxage=3600', edge: null },
+        unavailable: { cacheControl: 'public, max-age=60, s-maxage=60', edge: null },
+      },
     });
-  });
-
-  it('on-no-swr leaves stale-while-revalidate out of the edge header', async () => {
-    vi.stubEnv('BADGE_CACHE_SPLIT', 'on-no-swr');
-
-    expect(await answers()).toEqual({ long: split('max-age=86400, stale-if-error=604800'), short: TODAY.short });
-  });
-
-  it('short sends the browser lifetime alone', async () => {
-    vi.stubEnv('BADGE_CACHE_SPLIT', 'short');
-
-    expect(await answers()).toEqual({ long: split(null), short: TODAY.short });
   });
 });
 
 describe("the report of GitHub's image proxy", () => {
   const onImageServed = vi.fn<(kind: 'user' | 'repo', name: string) => void>();
   const respond = (owner: string, name: string, file = 'star-history.svg') =>
-    getStarHistoryBadgeResponse(owner, name, file, new URLSearchParams(), onImageServed);
+    getStarHistoryBadgeResponse(owner, name, file, onImageServed);
 
   beforeEach(() => {
     fetchBadgeRepo.mockReset();

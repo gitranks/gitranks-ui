@@ -73,12 +73,10 @@ jobs:
           AUTH_GITHUB_CONTRIBUTE_ID: ${{ vars.AUTH_GITHUB_CONTRIBUTE_ID }}
           AUTH_GITHUB_CONTRIBUTE_SECRET: ${{ secrets.AUTH_GITHUB_CONTRIBUTE_SECRET }}
           CONTRIBUTE_GRANT_SEAL_KEYS: ${{ secrets.CONTRIBUTE_GRANT_SEAL_KEYS }}
-          # How badge answers send their cache lifetimes: optional, and unset keeps the one header they send today.
-          BADGE_CACHE_SPLIT: ${{ vars.BADGE_CACHE_SPLIT }}
         run: |
           set -euo pipefail
           names="INTERNAL_JWT_SECRET AUTH_SECRET AUTH_GITHUB_SECRET AUTH_GITHUB_ID AUTH_GITHUB_BASIC_SECRET AUTH_GITHUB_BASIC_ID AUTH_URL NEXT_PUBLIC_URI"
-          optional="AUTH_GITHUB_CONTRIBUTE_ID AUTH_GITHUB_CONTRIBUTE_SECRET CONTRIBUTE_GRANT_SEAL_KEYS BADGE_CACHE_SPLIT"
+          optional="AUTH_GITHUB_CONTRIBUTE_ID AUTH_GITHUB_CONTRIBUTE_SECRET CONTRIBUTE_GRANT_SEAL_KEYS"
           for n in $names; do
             [ -n "${!n}" ] || { echo "$n is not set"; exit 1; }
           done

@@ -10,7 +10,6 @@ import {
 } from './render-star-history-badge';
 import { fetchBadgeRepo } from './star-history-badge.loader';
 import type { BadgeSeenReporter } from '@/badge/badge-seen-reporter';
-import { type BadgeCacheHeaders, badgeCacheHeaders } from '@/badge/cache-headers';
 import type { StarHistoryRepoQuery } from '@/types/generated/graphql';
 import { parseRepoParams } from '@/utils/repo-paths';
 
@@ -19,16 +18,22 @@ const FILES: Record<string, StarHistoryBadgeFormat> = {
   'star-history.png': 'png',
 };
 
-export const STAR_HISTORY_CACHE_CONTROL = {
-  /** The history moves at most daily: long at the edge, short in the browser; the last good chart outlives an outage. */
-  chart: 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800',
+export const STAR_HISTORY_CACHE_HEADERS = {
+  /**
+   * The history moves at most daily: a day at the edge in its own header, minutes in the browser; the last good chart
+   * outlives an outage.
+   */
+  chart: {
+    'Cache-Control': 'public, max-age=300',
+    'Cloudflare-CDN-Cache-Control': 'max-age=86400, stale-while-revalidate=604800, stale-if-error=604800',
+  },
   /** Short at the edge, so the chart replaces it soon after the history arrives. */
-  preparing: 'public, max-age=300, s-maxage=3600',
+  preparing: { 'Cache-Control': 'public, max-age=300, s-maxage=3600' },
   /** Short at the edge too: a repository can become known during the day. */
-  notTracked: 'public, max-age=3600, s-maxage=3600',
-  notFound: 'public, max-age=300, s-maxage=300',
-  unavailable: 'public, max-age=60, s-maxage=60',
-} as const;
+  notTracked: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' },
+  notFound: { 'Cache-Control': 'public, max-age=300, s-maxage=300' },
+  unavailable: { 'Cache-Control': 'public, max-age=60, s-maxage=60' },
+} as const satisfies Record<string, Record<string, string>>;
 
 /** Served as-is for a repository without data, so made-up names cost no drawing. */
 const NOT_TRACKED_FILE: Record<StarHistoryBadgeFormat, string> = {
@@ -60,15 +65,14 @@ async function readNotTracked(format: StarHistoryBadgeFormat) {
 function imageResponse(
   body: Uint8Array<ArrayBuffer> | string,
   format: StarHistoryBadgeFormat,
-  cacheHeaders: BadgeCacheHeaders,
+  cacheHeaders: Record<string, string>,
 ) {
   return new Response(body, { headers: { 'Content-Type': CONTENT_TYPE[format], ...cacheHeaders } });
 }
 
 /**
  * The star history badge at `/repo-badges/<owner>/<name>/<file>`. A well-formed path gets an image,
- * a redirect to the stored spelling, or a short-cached 503 when the data cannot be read. `search` is the request's
- * query: it only tells how the chart and its redirect send their cache lifetimes (see `badgeCacheHeaders`).
+ * a redirect to the stored spelling, or a short-cached 503 when the data cannot be read.
  * `onImageServed` is told the stored name once the chart or its placeholder is drawn; never for an unknown repository,
  * a redirect or an error answer. It must not delay or throw: the caller schedules the work after the response.
  */
@@ -76,7 +80,6 @@ export async function getStarHistoryBadgeResponse(
   ownerParam: string,
   nameParam: string,
   file: string,
-  search = new URLSearchParams(),
   onImageServed?: BadgeSeenReporter,
 ) {
   const format = parseStarHistoryFile(file);
@@ -85,17 +88,17 @@ export async function getStarHistoryBadgeResponse(
   if (!format || !repoParams) {
     return new Response('Badge not found', {
       status: 404,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': STAR_HISTORY_CACHE_CONTROL.notFound },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', ...STAR_HISTORY_CACHE_HEADERS.notFound },
     });
   }
 
   try {
-    return await renderBadgeResponse(repoParams.owner, repoParams.name, file, format, search, onImageServed);
+    return await renderBadgeResponse(repoParams.owner, repoParams.name, file, format, onImageServed);
   } catch (error) {
     console.error('Error rendering the star history badge:', error);
     return new Response(null, {
       status: 503,
-      headers: { 'Cache-Control': STAR_HISTORY_CACHE_CONTROL.unavailable, 'Retry-After': '60' },
+      headers: { ...STAR_HISTORY_CACHE_HEADERS.unavailable, 'Retry-After': '60' },
     });
   }
 }
@@ -105,18 +108,13 @@ async function renderBadgeResponse(
   name: string,
   file: string,
   format: StarHistoryBadgeFormat,
-  search: URLSearchParams,
   onImageServed?: BadgeSeenReporter,
 ) {
   const repo = await fetchBadgeRepo(owner, name);
 
   if (!repo) {
-    return imageResponse(await readNotTracked(format), format, {
-      'Cache-Control': STAR_HISTORY_CACHE_CONTROL.notTracked,
-    });
+    return imageResponse(await readNotTracked(format), format, STAR_HISTORY_CACHE_HEADERS.notTracked);
   }
-
-  const chartHeaders = badgeCacheHeaders(STAR_HISTORY_CACHE_CONTROL.chart, search);
 
   // Case variants and old names share the stored spelling's cache entry.
   if (repo.nameWithOwner !== `${owner}/${name}`) {
@@ -125,15 +123,14 @@ async function renderBadgeResponse(
       status: 308,
       headers: {
         Location: `/repo-badges/${encodeURIComponent(storedOwner)}/${encodeURIComponent(storedName)}/${file}`,
-        ...chartHeaders,
+        ...STAR_HISTORY_CACHE_HEADERS.chart,
       },
     });
   }
 
   const input = getStarHistoryBadgeInput(repo);
   const svg = await renderStarHistorySvg(input);
-  const cacheHeaders =
-    input.kind === 'chart' ? chartHeaders : { 'Cache-Control': STAR_HISTORY_CACHE_CONTROL.preparing };
+  const cacheHeaders = input.kind === 'chart' ? STAR_HISTORY_CACHE_HEADERS.chart : STAR_HISTORY_CACHE_HEADERS.preparing;
 
   const body = format === 'svg' ? svg : await svgToPng(svg);
   reportServed(onImageServed, repo.nameWithOwner);

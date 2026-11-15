@@ -6,6 +6,8 @@ import {
   fillTime,
   REFRESH_LABELS,
   REFRESH_MESSAGES,
+  REFRESH_TOASTS,
+  WELCOME_BACK,
   withLogin,
 } from './refresh-messages';
 import { DAILY_UPDATES_NOTES } from '@/app/repo/[owner]/[name]/utils/pull-messages';
@@ -20,7 +22,40 @@ describe('refresh messages', () => {
       .filter(([, message]) => JSON.stringify(message).includes('{time}'))
       .map(([kind]) => kind);
 
-    expect(withTime.sort()).toEqual(['blocked', 'used']);
+    expect(withTime.sort()).toEqual(['blocked', 'manualUsed', 'used']);
+  });
+
+  it("speaks the owner's daily updates in the words of the design", () => {
+    expect(fillTime(REFRESH_MESSAGES.manualUsed.title, '23 h 10 min')).toBe('Next update in 23 h 10 min');
+    expect(REFRESH_MESSAGES.manualUsed).toEqual({
+      title: 'Next update in {time}',
+      paragraphs: [
+        'Your profile updates by itself every 24 hours. Today’s manual refresh is used.',
+        'Need it sooner? Use your own GitHub token. It runs on your GitHub limits, not ours.',
+      ],
+      primary: 'Use my GitHub token',
+      secondary: 'OK',
+    });
+    expect([REFRESH_LABELS.startDaily, REFRESH_LABELS.refreshNow, REFRESH_LABELS.dailyOn]).toEqual([
+      'Start daily updates',
+      'Refresh now',
+      'Daily updates on',
+    ]);
+    expect([DAILY_UPDATES_LINES.ownerOff, DAILY_UPDATES_LINES.ownerOn, DAILY_UPDATES_LINES.ownerBadge]).toEqual([
+      'Refreshes now, then every day for 7 days.',
+      'Daily updates on.',
+      'Your badge on GitHub keeps this on.',
+    ]);
+    expect(REFRESH_TOASTS.updatesStarted).toBe('Thanks for the star! Refreshing now. Daily updates are on for 7 days.');
+    expect(WELCOME_BACK).toEqual({
+      title: 'Welcome back',
+      text: 'Daily updates stopped after 7 days without a visit. They are on again, and your profile is refreshing now.',
+    });
+  });
+
+  it('says "refreshing" only when a fetch starts', () => {
+    expect(REFRESH_TOASTS.updatesStartedNoRefresh).not.toMatch(/refresh/i);
+    expect(REFRESH_MESSAGES.ownBadge.primary).toBe(REFRESH_LABELS.startDaily);
   });
 
   it('never calls a refresh "free": the ones on a token are free too', () => {

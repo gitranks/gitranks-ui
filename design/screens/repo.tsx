@@ -10,6 +10,7 @@ import {
 } from '@/app/repo/[owner]/[name]/__fixtures__/repo';
 import { RepoScreen } from '@/app/repo/[owner]/[name]/components/repo-screen';
 import { repoBig } from '@/badge/v3/fixtures';
+import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 
 const badges = withBadgeFacts(repoBig);
@@ -30,6 +31,18 @@ const youngOnDailyUpdates = (reason: DailyUpdateReason) =>
       lastUpdatedAt: '2026-10-27T17:00:00.000Z',
     },
   });
+
+/** A signed-in visitor's own daily updates, as the browser reads them: with this repository picked, or not. */
+const picker = (picked: boolean) => ({
+  dailyUpdates: {
+    open: true,
+    state: 'on',
+    until: '2026-11-04T12:00:00.000Z',
+    manual: { available: true, nextAt: null },
+    picks: picked ? [{ nameWithOwner: youngRepo.nameWithOwner, pickedAt: '2026-10-28T09:00:00.000Z' }] : [],
+    newPicksLeftToday: picked ? 2 : 3,
+  } satisfies DailyUpdatesViewer,
+});
 
 export const REPO_SCREENS: Screen[] = [
   {
@@ -80,6 +93,22 @@ export const REPO_SCREENS: Screen[] = [
         title: 'On daily updates, picked: nobody is named',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
+        render: () => youngOnDailyUpdates(DailyUpdateReason.Pick),
+      },
+      {
+        id: 'young-pick-off',
+        title: 'Signed in, not picked: update it daily',
+        path: `/repo/${youngRepo.nameWithOwner}`,
+        height: 2000,
+        viewer: picker(false),
+        render: () => young(),
+      },
+      {
+        id: 'young-your-pick',
+        title: 'Your pick',
+        path: `/repo/${youngRepo.nameWithOwner}`,
+        height: 2000,
+        viewer: picker(true),
         render: () => youngOnDailyUpdates(DailyUpdateReason.Pick),
       },
       {

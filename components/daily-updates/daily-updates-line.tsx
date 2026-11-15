@@ -23,7 +23,7 @@ function useMinuteClock(): number | null {
 }
 
 type DailyUpdatesLineProps = {
-  /** Why it updates every day, as one sentence. */
+  /** Why it updates every day, as one sentence; empty when the time says it all. */
   lead: string;
   nextUpdateAt?: string | null;
 };
@@ -32,6 +32,7 @@ type DailyUpdatesLineProps = {
 export const DailyUpdatesLine: FC<DailyUpdatesLineProps> = ({ lead, nextUpdateAt }) => {
   const now = useMinuteClock();
   const next = now === null ? null : nextUpdateText(nextUpdateAt, now);
+  const text = [lead, next].filter(Boolean).join(' ');
 
-  return <div className="text-xs text-muted-foreground">{next ? `${lead} ${next}` : lead}</div>;
+  return text ? <div className="text-xs text-muted-foreground">{text}</div> : null;
 };

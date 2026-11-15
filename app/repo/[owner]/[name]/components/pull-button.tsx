@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 
 import {
   allowanceAfter,
-  DAILY_UPDATES_NOTES,
   PULL_MESSAGES,
   PULL_TOASTS,
   type PullDialogKind,
@@ -22,13 +21,13 @@ import {
   refreshNoteOf,
 } from '../utils/pull-messages';
 import { reloadWithPullNote, showKeptPullNote } from '../utils/pull-note';
-import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
+import { UpdateDailyButton } from './update-daily-button';
 import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-dialogs/refresh-dialog';
 import { REFRESH_LABELS, STAR_REPO_URL } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
 import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
 import type { RepoPullAllowance, RepoPullResult, RepoPullStatus } from '@/types/repo-pull.types';
-import { type DailyUpdatesFacts, repoUpdatesViewOf } from '@/utils/daily-updates-view';
+import type { DailyUpdatesFacts } from '@/utils/daily-updates-view';
 import { timeLeftUntil } from '@/utils/format-time-left';
 
 type PullButtonProps = {
@@ -279,7 +278,6 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
       : checking
         ? REFRESH_LABELS.checking
         : null;
-  const updatesView = repoUpdatesViewOf(dailyUpdates);
 
   return (
     <div ref={containerRef} className="flex flex-grow flex-col gap-2">
@@ -301,12 +299,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
           Next check in {Math.floor((CHECK_STATUS_INTERVAL - (elapsed % CHECK_STATUS_INTERVAL)) / 1000)} s
         </div>
       )}
-      {(updatesView === 'repo-on-badge' || updatesView === 'repo-on-pick') && (
-        <DailyUpdatesLine
-          lead={updatesView === 'repo-on-badge' ? DAILY_UPDATES_NOTES.byBadge : DAILY_UPDATES_NOTES.byPick}
-          nextUpdateAt={dailyUpdates?.nextUpdateAt}
-        />
-      )}
+      <UpdateDailyButton owner={owner} name={name} dailyUpdates={dailyUpdates} />
       {dialog && (
         <RefreshDialog
           open

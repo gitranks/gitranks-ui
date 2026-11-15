@@ -1,3 +1,4 @@
+import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 import { formatTimeLeft } from '@/utils/format-time-left';
 import type { RefreshMode } from '@/utils/refresh-mode';
@@ -12,12 +13,21 @@ export type DailyUpdatesFacts = {
 } | null;
 
 /**
+ * The signed-in visitor's own daily updates, read in the browser after the page loads: never in the cached page.
+ * `null` until it is read, for a visitor who is not signed in, and when the read failed.
+ */
+export type ViewerFacts = Pick<DailyUpdatesViewer, 'open' | 'state' | 'manual' | 'picks'> | null;
+
+/**
  * What the profile's Refresh button shows:
  * - `visitor-off`: today's button;
  * - `visitor-on-owner`, `visitor-on-badge`: the profile updates every day, turned on by its owner or kept on by a
  *   GitRanks badge on GitHub; a press explains why;
- * - `owner-off`, `owner-on`, `owner-manual-used`, `owner-on-badge-only`: the owner's own states, for their own
- *   profile.
+ * - the owner's own states, on their own profile once the API says daily updates are open to them:
+ *   - `owner-off`: "Start daily updates";
+ *   - `owner-on`: "Refresh now", today's manual refresh is unused;
+ *   - `owner-manual-used`: on, and today's manual refresh is used;
+ *   - `owner-on-badge-only`: on by their badge alone, with no daily updates of their own: no manual refresh.
  */
 export type ProfileUpdatesView =
   | 'visitor-off'
@@ -30,7 +40,7 @@ export type ProfileUpdatesView =
 
 /**
  * What the repository page shows under Refresh:
- * - `repo-off`: nothing new;
+ * - `repo-off`: not on daily updates; a visitor the API lets pick sees "Update daily";
  * - `repo-your-pick`: the visitor's own pick;
  * - `repo-on-badge`: it updates every day, kept on by a GitRanks badge in its README;
  * - `repo-on-pick`: it updates every day, and nothing more: who picked it is never shown.
@@ -44,8 +54,23 @@ const has = (facts: DailyUpdatesFacts | undefined, reason: DailyUpdateReason) =>
  * their own profile, and anyone signed in with their own token. While the session loads, the profile's own state is
  * shown, as most visitors are not its owner. When both reasons hold, the badge is named: it tells less about the
  * owner than their visits do.
+ *
+ * The owner's states need the viewer's own facts with `open`; until they are read, or when the API keeps daily
+ * updates closed to them, the owner sees today's button.
  */
-export function profileUpdatesViewOf(mode: RefreshMode, facts: DailyUpdatesFacts | undefined): ProfileUpdatesView {
+export function profileUpdatesViewOf(
+  mode: RefreshMode,
+  facts: DailyUpdatesFacts | undefined,
+  viewer: ViewerFacts = null,
+): ProfileUpdatesView {
+  if (mode === 'daily' && viewer?.open) {
+    if (viewer.state === 'on') {
+      return viewer.manual.available ? 'owner-on' : 'owner-manual-used';
+    }
+
+    return has(facts, DailyUpdateReason.Badge) ? 'owner-on-badge-only' : 'owner-off';
+  }
+
   if (mode === 'daily' || mode === 'token') {
     return 'visitor-off';
   }
@@ -57,14 +82,45 @@ export function profileUpdatesViewOf(mode: RefreshMode, facts: DailyUpdatesFacts
   return has(facts, DailyUpdateReason.Owner) ? 'visitor-on-owner' : 'visitor-off';
 }
 
-/** The repository's state for any visitor. When a badge and a pick both hold, the badge is named. */
-export function repoUpdatesViewOf(facts: DailyUpdatesFacts | undefined): RepoUpdatesView {
+/** Whether the viewer holds a pick of this repository, live or not; GitHub's names are not case-sensitive. */
+export const holdsPick = (viewer: ViewerFacts, nameWithOwner: string) =>
+  !!viewer?.open && viewer.picks.some((pick) => pick.nameWithOwner.toLowerCase() === nameWithOwner.toLowerCase());
+
+/** Whether this repository is the viewer's pick and updates for it: held, while their daily updates are on. */
+export const isViewerPick = (viewer: ViewerFacts, nameWithOwner: string) =>
+  viewer?.state === 'on' && holdsPick(viewer, nameWithOwner);
+
+/**
+ * The repository's state for this visitor: their own live pick first, then for anyone the badge, then a pick that
+ * names nobody. When a badge and a pick both hold, the badge is named. A pick held while the viewer's daily updates
+ * are off shows as anyone sees the repository: the day's visit starts them again.
+ */
+export function repoUpdatesViewOf(
+  facts: DailyUpdatesFacts | undefined,
+  viewer: ViewerFacts = null,
+  nameWithOwner = '',
+): RepoUpdatesView {
+  if (isViewerPick(viewer, nameWithOwner)) {
+    return 'repo-your-pick';
+  }
+
   if (has(facts, DailyUpdateReason.Badge)) {
     return 'repo-on-badge';
   }
 
   return has(facts, DailyUpdateReason.Pick) ? 'repo-on-pick' : 'repo-off';
 }
+
+/**
+ * Whether the repository page offers "Update daily": open to the visitor, not on daily updates yet, and not held by
+ * them already (a press on a held pick would change nothing).
+ */
+export const canPickRepo = (view: RepoUpdatesView, viewer: ViewerFacts, nameWithOwner = '') =>
+  view === 'repo-off' && !!viewer?.open && !holdsPick(viewer, nameWithOwner);
+
+/** The page's facts without its pick reason: after the visitor removed this repository's pick, it may be stale. */
+export const withoutPickReason = (facts: DailyUpdatesFacts | undefined): DailyUpdatesFacts | undefined =>
+  facts && { ...facts, reasons: facts.reasons.filter((reason) => reason !== DailyUpdateReason.Pick) };
 
 /**
  * "Next update in 5 h." from the next update's time and the browser's clock, so a cached page stays right; "Next

@@ -112,7 +112,7 @@ export type PullOutcome =
   | { kind: 'poll'; toast?: string }
   | { kind: 'reload'; note: string }
   | { kind: 'dialog'; dialog: PullDialogKind; until?: string }
-  | { kind: 'toast'; tone: 'info' | 'error'; text: string };
+  | { kind: 'toast'; tone: 'info' | 'error' | 'success'; text: string };
 
 const info = (text: string): PullOutcome => ({ kind: 'toast', tone: 'info', text });
 

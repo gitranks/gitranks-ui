@@ -1,4 +1,4 @@
-import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
+import type { PullOutcome } from './pull-messages';
 import {
   REFRESH_LABELS,
   REFRESH_MESSAGES,
@@ -15,15 +15,16 @@ import {
 export const PICKS_MAX = 3;
 
 export const PICK_LABELS = {
-  /** A repository that does not update every day yet: a press uses a pick. */
+  /** A repository that does not update every day yet: a press uses a pick, then refreshes it now. */
   updateDaily: 'Update daily',
-  /** The visitor's own pick: a press opens their list. */
+  /** A repository on daily updates, for any reason: a press opens the dialog of when next. */
   updatesDaily: REFRESH_LABELS.updatesDaily,
 } as const;
 
 /** The line under the button. */
 export const PICK_LINES = {
-  off: 'Uses 1 of your 3 picks.',
+  /** Under "Update daily". */
+  off: 'Update up to 3 repos daily.',
   /** Before "Next update in {time}." */
   yourPick: 'Your pick.',
 } as const;
@@ -31,7 +32,7 @@ export const PICK_LINES = {
 /** A dialog with the visitor's picks: a title, one paragraph, the list, small print and its buttons. */
 export type PicksDialogCopy = {
   title: string;
-  paragraph: string;
+  paragraph?: string;
   note?: string;
   primary: string;
   secondary?: string;
@@ -61,6 +62,17 @@ export const PICK_DIALOGS = {
   },
 } as const satisfies Record<string, PicksDialogCopy>;
 
+/**
+ * Anyone presses "Updates daily": when the next update comes, "Refresh now" while today's refresh is unused, and on
+ * the visitor's own pick their list. The title on their own pick is `yourDailyUpdates`'.
+ */
+export const ON_DAILY_DIALOG = {
+  title: 'This repository updates every day',
+  refresh: REFRESH_LABELS.refreshNow,
+  close: 'Close',
+  done: 'OK',
+} as const;
+
 /** In a pick's row of the list. */
 export const PICK_LIST = {
   profile: 'Your profile',
@@ -70,34 +82,11 @@ export const PICK_LIST = {
 /** The muted last row of the list: "1 pick left". */
 export const picksLeftText = (left: number) => (left === 1 ? '1 pick left' : `${left} picks left`);
 
-/** The small print's link to the badge builder, for this repository. */
-const BADGE_LINK = 'GitRanks badge';
-
-/** Before a pick: the deal for a visitor not signed in, then the star check, as the profile's Refresh says them. */
+/** Before a pick: the star check, as the profile's Refresh says it. */
 export const PICK_MESSAGES = {
-  /** Not signed in, presses "Update daily": the deal, with a badge as the way for the repository's own people. */
-  picksDeal: {
-    photo: true,
-    title: 'Hi, I’m Vitalii 👋',
-    paragraphs: [
-      'I made GitRanks. Bots press these buttons a lot, and our GitHub limits are small. So here is the deal:',
-    ],
-    steps: ['Sign in with GitHub. We only see your name and email.', 'Star our repo.'],
-    closing: ['Then you pick 3 repositories. We update them, and your profile, every day.'],
-    note: 'Is this your repository? Add a GitRanks badge to its README. While the badge is there, we update it every day. No sign-in needed.',
-    noteLinks: [{ text: BADGE_LINK, href: '/badge/builder' }],
-    primary: 'Sign in with GitHub',
-    secondary: 'Maybe later',
-  },
   starStep: REFRESH_MESSAGES.starStep,
   blocked: REFRESH_MESSAGES.blocked,
 } satisfies Record<string, RefreshMessage>;
-
-/** The deal on this repository's page: its badge link opens the builder for it. */
-export const picksDealOf = (nameWithOwner: string): RefreshMessage => ({
-  ...PICK_MESSAGES.picksDeal,
-  noteLinks: [{ text: BADGE_LINK, href: builderHref({ kind: 'repo', name: nameWithOwner }) }],
-});
 
 export type PickMessageKind = keyof typeof PICK_MESSAGES;
 
@@ -106,8 +95,25 @@ export const PICK_TOASTS = {
   failed: REFRESH_TOASTS.checkFailed,
   busy: REFRESH_TOASTS.busy,
   removeFailed: 'The pick was not removed. Please try again.',
-  /** Back from the deal's sign-in, and the API keeps daily updates closed to this account. */
-  notOpen: 'Daily updates aren’t open to your account yet. Please try again later.',
+  /** Picked, and today's refresh of it started. */
+  pickedRefreshing: 'Refreshing now. This repository is on daily updates.',
+  /** Picked, and today's refresh of it is not allowed now: the pick stands. */
+  pickedNoRefresh: 'This repository is on daily updates. Its first update comes soon.',
 } as const;
+
+/**
+ * What a refresh right after a pick leads to: a refresh that runs says so with the pick, one that ends reloads the page
+ * as always. Any refusal (today's fetch used, not ready, an error) is no failure of the pick, which stands: the
+ * repository is on daily updates and its first update comes soon. `null`: no refresh was asked.
+ */
+export function pickedOutcomeOf(outcome: PullOutcome | null): PullOutcome {
+  if (outcome?.kind === 'poll') {
+    return { kind: 'poll', toast: PICK_TOASTS.pickedRefreshing };
+  }
+  if (outcome?.kind === 'reload') {
+    return outcome;
+  }
+  return { kind: 'toast', tone: 'success', text: PICK_TOASTS.pickedNoRefresh };
+}
 
 export const fillRepo = (text: string, nameWithOwner: string) => text.replaceAll('{repo}', nameWithOwner);

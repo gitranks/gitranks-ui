@@ -1,5 +1,4 @@
 import { withBadgeFacts } from '../images';
-import { OpenRefreshDialog } from '../open-refresh-dialog';
 import type { Screen } from '../registry';
 import {
   bigRepo,
@@ -10,7 +9,6 @@ import {
   youngRepoFacts,
 } from '@/app/repo/[owner]/[name]/__fixtures__/repo';
 import { RepoScreen } from '@/app/repo/[owner]/[name]/components/repo-screen';
-import { picksDealOf } from '@/app/repo/[owner]/[name]/utils/pick-messages';
 import { repoBig } from '@/badge/v3/fixtures';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
@@ -34,15 +32,25 @@ const youngOnDailyUpdates = (reason: DailyUpdateReason) =>
     },
   });
 
-/** A signed-in visitor's own daily updates, as the browser reads them: with this repository picked, or not. */
-const picker = (picked: boolean) => ({
+const pickOf = (nameWithOwner: string) => ({ nameWithOwner, pickedAt: '2026-10-28T09:00:00.000Z' });
+
+/**
+ * A signed-in visitor's own daily updates, as the browser reads them: with this repository picked, with none, or with
+ * all 3 picks on other repositories.
+ */
+const picker = (picks: 'this' | 'none' | 'full') => ({
   dailyUpdates: {
     open: true,
     state: 'on',
     until: '2026-11-04T12:00:00.000Z',
     manual: { available: true, nextAt: null },
-    picks: picked ? [{ nameWithOwner: youngRepo.nameWithOwner, pickedAt: '2026-10-28T09:00:00.000Z' }] : [],
-    newPicksLeftToday: picked ? 2 : 3,
+    picks:
+      picks === 'this'
+        ? [pickOf(youngRepo.nameWithOwner)]
+        : picks === 'full'
+          ? [pickOf('quiet/atlas'), pickOf('octo/rocket'), pickOf('octo/lantern')]
+          : [],
+    newPicksLeftToday: picks === 'none' ? 3 : 2,
   } satisfies DailyUpdatesViewer,
 });
 
@@ -59,6 +67,7 @@ export const REPO_SCREENS: Screen[] = [
       'app/repo/[owner]/[name]/components/who-builds-it-card.tsx',
       'app/repo/[owner]/[name]/components/stars-best-section.tsx',
       'app/repo/[owner]/[name]/components/repo-pulse-area.tsx',
+      'app/repo/[owner]/[name]/components/pull-button.tsx',
     ],
     states: [
       {
@@ -85,7 +94,7 @@ export const REPO_SCREENS: Screen[] = [
       },
       {
         id: 'young-daily-badge',
-        title: 'On daily updates, kept on by a badge',
+        title: 'On daily updates, kept on by a badge: “Updates daily”',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
         render: () => youngOnDailyUpdates(DailyUpdateReason.Badge),
@@ -99,10 +108,10 @@ export const REPO_SCREENS: Screen[] = [
       },
       {
         id: 'young-pick-off',
-        title: 'Signed in, not picked: update it daily',
+        title: 'Signed in with a pick left: “Update daily”',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
-        viewer: picker(false),
+        viewer: picker('none'),
         render: () => young(),
       },
       {
@@ -110,24 +119,24 @@ export const REPO_SCREENS: Screen[] = [
         title: 'Your pick',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
-        viewer: picker(true),
+        viewer: picker('this'),
         render: () => youngOnDailyUpdates(DailyUpdateReason.Pick),
       },
       {
+        id: 'young-picks-full',
+        title: 'Signed in, all 3 picks used: Refresh',
+        path: `/repo/${youngRepo.nameWithOwner}`,
+        height: 2000,
+        viewer: picker('full'),
+        render: () => young(),
+      },
+      {
         id: 'young-signed-out',
-        title: 'Signed out: update it daily',
+        title: 'Signed out: Refresh',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
         signedOut: true,
         render: () => young(),
-      },
-      {
-        id: 'young-pick-deal',
-        title: 'Signed out, presses “Update daily”: the deal',
-        path: `/repo/${youngRepo.nameWithOwner}`,
-        height: 1000,
-        signedOut: true,
-        render: () => <OpenRefreshDialog page={young()} message={picksDealOf(youngRepo.nameWithOwner)} />,
       },
       {
         id: 'young-phone',

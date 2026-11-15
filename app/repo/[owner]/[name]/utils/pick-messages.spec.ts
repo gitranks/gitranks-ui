@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   fillRepo,
+  ON_DAILY_DIALOG,
   PICK_DIALOGS,
   PICK_LABELS,
   PICK_LINES,
   PICK_MESSAGES,
+  PICK_TOASTS,
   PICKS_MAX,
-  picksDealOf,
+  pickedOutcomeOf,
   picksLeftText,
 } from './pick-messages';
 import { fillTime, REFRESH_MESSAGES } from '@/components/refresh-dialogs/refresh-messages';
@@ -15,7 +17,16 @@ import { fillTime, REFRESH_MESSAGES } from '@/components/refresh-dialogs/refresh
 describe('pick messages', () => {
   it('labels the button and its line as the design does', () => {
     expect(PICK_LABELS).toEqual({ updateDaily: 'Update daily', updatesDaily: 'Updates daily' });
-    expect(PICK_LINES).toEqual({ off: 'Uses 1 of your 3 picks.', yourPick: 'Your pick.' });
+    expect(PICK_LINES).toEqual({ off: 'Update up to 3 repos daily.', yourPick: 'Your pick.' });
+  });
+
+  it('words the dialog of a repository on daily updates', () => {
+    expect(ON_DAILY_DIALOG).toEqual({
+      title: 'This repository updates every day',
+      refresh: 'Refresh now',
+      close: 'Close',
+      done: 'OK',
+    });
   });
 
   it('words the list and the full dialog as the design does', () => {
@@ -49,27 +60,34 @@ describe('pick messages', () => {
 
   it('asks for the star with the profile’s own star step', () => {
     expect(PICK_MESSAGES.starStep).toBe(REFRESH_MESSAGES.starStep);
-    expect(Object.keys(PICK_MESSAGES)).toEqual(['picksDeal', 'starStep', 'blocked']);
+    expect(Object.keys(PICK_MESSAGES)).toEqual(['starStep', 'blocked']);
   });
 
-  it('offers the deal signed out in the words of the design, its badge link for this repository', () => {
-    expect(picksDealOf('brightfern/tidepool')).toEqual({
-      photo: true,
-      title: 'Hi, I’m Vitalii 👋',
-      paragraphs: [
-        'I made GitRanks. Bots press these buttons a lot, and our GitHub limits are small. So here is the deal:',
-      ],
-      steps: ['Sign in with GitHub. We only see your name and email.', 'Star our repo.'],
-      closing: ['Then you pick 3 repositories. We update them, and your profile, every day.'],
-      note: 'Is this your repository? Add a GitRanks badge to its README. While the badge is there, we update it every day. No sign-in needed.',
-      noteLinks: [{ text: 'GitRanks badge', href: '/badge/builder?repo=brightfern/tidepool' }],
-      primary: 'Sign in with GitHub',
-      secondary: 'Maybe later',
+  it('keeps the pick when the refresh after it is refused, and says its first update comes soon', () => {
+    const stands = { kind: 'toast', tone: 'success', text: PICK_TOASTS.pickedNoRefresh };
+    expect(PICK_TOASTS.pickedNoRefresh).toBe('This repository is on daily updates. Its first update comes soon.');
+    expect(pickedOutcomeOf(null)).toEqual(stands);
+    expect(pickedOutcomeOf({ kind: 'dialog', dialog: 'used', until: '2026-11-16T00:00:00Z' })).toEqual(stands);
+    expect(pickedOutcomeOf({ kind: 'dialog', dialog: 'signIn' })).toEqual(stands);
+    expect(pickedOutcomeOf({ kind: 'toast', tone: 'error', text: 'GitHub didn’t answer.' })).toEqual(stands);
+  });
+
+  it('says the pick with a refresh that runs, and reloads as always when one ended', () => {
+    expect(pickedOutcomeOf({ kind: 'poll', toast: 'Fetching the star history now.' })).toEqual({
+      kind: 'poll',
+      toast: 'Refreshing now. This repository is on daily updates.',
     });
+    expect(pickedOutcomeOf({ kind: 'poll' })).toEqual({ kind: 'poll', toast: PICK_TOASTS.pickedRefreshing });
+    expect(pickedOutcomeOf({ kind: 'reload', note: 'Updated.' })).toEqual({ kind: 'reload', note: 'Updated.' });
   });
 
   it('never names anyone who picked a repository', () => {
-    const copy = JSON.stringify({ PICK_LABELS, PICK_LINES, PICK_DIALOGS, PICK_MESSAGES });
+    const copy = JSON.stringify({ PICK_LABELS, PICK_LINES, PICK_DIALOGS, ON_DAILY_DIALOG, PICK_MESSAGES, PICK_TOASTS });
     expect(copy).not.toMatch(/@|\{login\}|picked by|someone/i);
+  });
+
+  it('never calls an update free: none of them costs anything', () => {
+    const copy = JSON.stringify({ PICK_LABELS, PICK_LINES, PICK_DIALOGS, ON_DAILY_DIALOG, PICK_TOASTS });
+    expect(copy).not.toMatch(/\bfree\b/i);
   });
 });

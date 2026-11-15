@@ -228,11 +228,23 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     }
   };
 
-  const onUpdatesDailyClick = () =>
+  // While the session loads a press does nothing, as Refresh: read as signed out, the dialog would offer the light
+  // sign-in to a token user, and taking it would swap their token session for a light one.
+  const onUpdatesDailyClick = () => {
+    if (mode === 'loading') {
+      return;
+    }
     openDialog({ kind: view === 'visitor-on-badge' ? 'whyDailyBadge' : 'whyDailyOwner' });
+  };
 
-  /** Until a visitor can turn daily updates on here, "Get daily updates" leads to their own profile. */
+  /**
+   * Until a visitor can turn daily updates on here, "Get daily updates" leads to their own profile; signed out, to the
+   * sign-in. Nothing while the session loads, for the reason above.
+   */
   const getDailyUpdates = () => {
+    if (mode === 'loading') {
+      return;
+    }
     const ownLogin = session?.user?.githubLogin;
     if (!ownLogin) {
       return openDialog({ kind: 'signIn' });

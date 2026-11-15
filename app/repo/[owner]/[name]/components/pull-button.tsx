@@ -303,10 +303,13 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
       : null;
   };
 
-  /** Whether today's refresh is there to press: a daily visitor's unused fetch, or a token visitor's fetches left. */
+  /**
+   * Whether today's refresh is there to press: a daily visitor's unused fetch, or a token visitor's fetches left. Until
+   * the allowance is known (its read pending or failed), it is: the API decides, and a used fetch opens its dialog.
+   */
   const refreshAvailable =
     mode === 'daily'
-      ? !!allowance?.daily.available
+      ? !allowance || allowance.daily.available
       : mode === 'token' && (!allowance || allowance.token.used < allowance.token.limit);
 
   /** Today's refresh. Right after a pick, a refusal is no failure: the pick stands, and the toast says so. */
@@ -449,16 +452,17 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
     }
   };
 
-  // The page this sign-in comes back to presses the button by itself.
+  // The page this sign-in comes back to runs today's refresh by itself.
   const signInFromButton = () => {
     keepDealSignIn(dealPageOf('repo', nameWithOwner));
     return signIn(IDENTITY_PROVIDER);
   };
 
   /**
-   * Back from a sign-in that started at this button: once the visitor's state is read, the press is made by itself,
-   * picking and refreshing, or refreshing. A repository on daily updates opens nothing by itself. Back signed out (the
-   * sign-in was given up), the mark is dropped, so a later sign-in takes no step by itself. Once a page.
+   * Back from a sign-in that started at Refresh's sign-in: once the visitor's state is read, today's refresh runs by
+   * itself, as that sign-in promised. It never adds the repository to daily updates: "Update daily" waits for a press of
+   * its own. A repository on daily updates opens nothing by itself. Back signed out (the sign-in was given up), the mark
+   * is dropped, so a later sign-in takes no step by itself. Once a page.
    */
   useEffect(() => {
     if (followedUp.current || status === 'loading') {
@@ -478,9 +482,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
     if (!takeDealSignIn(page) || onDaily) {
       return;
     }
-    if (canPick) {
-      pick();
-    } else if (mode === 'daily' || mode === 'token') {
+    if (mode === 'daily' || mode === 'token') {
       startPull();
     }
   });

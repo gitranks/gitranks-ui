@@ -474,6 +474,47 @@ describe('PullButton: one button', () => {
       expect(calls(PULL)).toHaveLength(0);
     });
 
+    it('offers the refresh while the allowance is unknown: the API decides', async () => {
+      answer(PULL_STATUS, { message: 'Bad Gateway' }, 502);
+      answer(VIEWER, viewerOf());
+      await mount(onDaily(DailyUpdateReason.Badge));
+
+      await press('Updates daily');
+      answer(PULL, { status: 'used', nextAt: iso(NOW + 6 * HOUR) });
+      await press('Refresh now');
+      expect(calls(PULL)).toHaveLength(1);
+      expect(dialogTitle()).toBe('Easy, tiger 🐯');
+      expect(dialogText()).toContain('Today’s fetch is used. The next one is in 6 h.');
+    });
+
+    it.each<[string, RepoPullAllowance | null]>([
+      ['fetches left', { ...allowanceOf(false), token: { used: 3, limit: 20, nextAt: null } }],
+      ['an unknown allowance', null],
+    ])('offers a token visitor the refresh with %s', async (_, tokenAllowance) => {
+      session.current = { data: { user: { githubLogin: 'Mona-Dev', authMode: 'token' } }, status: 'authenticated' };
+      allowance = tokenAllowance;
+      answer(VIEWER, viewerOf());
+      await mount(onDaily(DailyUpdateReason.Pick));
+
+      await press('Updates daily');
+      answer(PULL, { status: 'started', pullId: 'p1' });
+      await press('Refresh now');
+      expect(calls(PULL)).toHaveLength(1);
+      expect(toast.success).toHaveBeenCalledExactlyOnceWith('Fetching the star history now.');
+    });
+
+    it('offers a token visitor no refresh once their fetches of today are used', async () => {
+      session.current = { data: { user: { githubLogin: 'Mona-Dev', authMode: 'token' } }, status: 'authenticated' };
+      allowance = { ...allowanceOf(false), token: { used: 20, limit: 20, nextAt: iso(NOW + 6 * HOUR) } };
+      answer(VIEWER, viewerOf());
+      await mount(onDaily(DailyUpdateReason.Pick));
+
+      await press('Updates daily');
+      expect(buttonNamed('Refresh now')).toBeUndefined();
+      await press('OK');
+      expect(calls(PULL)).toHaveLength(0);
+    });
+
     it('on the visitor’s pick: lists their daily updates, refreshes now, and removes one', async () => {
       answer(VIEWER, viewerOf({ picks: picked('ACME/fastqueue', 'octo/rocket') }));
       await mount(onDaily(DailyUpdateReason.Pick));
@@ -529,41 +570,47 @@ describe('PullButton: one button', () => {
     });
   });
 
-  describe('back from a sign-in started at this button', () => {
-    it('picks the repository and refreshes it by itself, once', async () => {
+  describe('back from a sign-in started at Refresh’s sign-in', () => {
+    it('refreshes by itself, once, and leaves "Update daily" for a press of its own', async () => {
       sessionStorage.setItem(MARK, JSON.stringify({ page: 'repo:acme/fastqueue', at: NOW - 60_000 }));
       answer(VIEWER, viewerOf({ state: 'never' }));
-      answer(PICKS, { status: 'picked', picks: picked('acme/fastqueue'), newPicksLeftToday: 2 });
       answer(PULL, { status: 'up_to_date' });
       await mount();
       await act(async () => {});
 
-      expect(bodies(PICKS)).toEqual([{ owner: 'acme', name: 'fastqueue' }]);
+      expect(calls(PICKS)).toHaveLength(0);
       expect(calls(PULL)).toHaveLength(1);
+      expect(toast.info).toHaveBeenCalledExactlyOnceWith('The star history is already up to date.');
+      expect(text()).toBe('Update daily Update up to 3 repos daily.');
       expect(sessionStorage.getItem(MARK)).toBeNull();
 
       await remount();
-      expect(bodies(PICKS)).toHaveLength(1);
+      expect(calls(PULL)).toHaveLength(1);
     });
 
-    it('asks for the star when the pick finds none', async () => {
+    it('asks for the star when the refresh finds none', async () => {
       sessionStorage.setItem(MARK, JSON.stringify({ page: 'repo:acme/fastqueue', at: NOW }));
       answer(VIEWER, viewerOf({ state: 'never' }));
-      answer(PICKS, { status: 'not_starred' });
-      await mount();
-
-      expect(dialogTitle()).toBe('One step left: star our repo');
-    });
-
-    it('refreshes by itself when no pick is left or daily updates are closed', async () => {
-      sessionStorage.setItem(MARK, JSON.stringify({ page: 'repo:acme/fastqueue', at: NOW }));
-      answer(VIEWER, viewerOf({ open: false, state: 'never' }));
       answer(PULL, { status: 'not_starred' });
       await mount();
 
       expect(calls(PICKS)).toHaveLength(0);
-      expect(calls(PULL)).toHaveLength(1);
       expect(dialogTitle()).toBe('This fetch costs 1 star ⭐');
+    });
+
+    it.each([
+      ['daily updates are closed', viewerOf({ open: false, state: 'never' })],
+      ['3 repos are on daily updates', viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas') })],
+      ['no new repo can be added today', viewerOf({ picks: picked('octo/rocket'), newPicksLeftToday: 0 })],
+    ])('refreshes by itself when %s', async (_, viewer) => {
+      sessionStorage.setItem(MARK, JSON.stringify({ page: 'repo:acme/fastqueue', at: NOW }));
+      answer(VIEWER, viewer);
+      answer(PULL, { status: 'started', pullId: 'p1', nextAt: iso(NOW + 24 * HOUR) });
+      await mount();
+
+      expect(calls(PICKS)).toHaveLength(0);
+      expect(calls(PULL)).toHaveLength(1);
+      expect(text()).toBe('Fetching… Next check in 20 s');
     });
 
     it('opens nothing on a repository on daily updates, and leaves another page’s mark', async () => {

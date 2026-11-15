@@ -107,6 +107,7 @@ async function describeResponse(response: Response) {
     status: response.status,
     type: response.headers.get('content-type'),
     cache: response.headers.get('cache-control'),
+    edgeCache: response.headers.get('cloudflare-cdn-cache-control'),
     location: response.headers.get('location'),
     sha256: sha(await response.arrayBuffer()),
   };

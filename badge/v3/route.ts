@@ -3,25 +3,30 @@ import type { EntityFacts } from './facts';
 import { BadgeParamsError, resolveParams } from './params';
 import { renderBadge } from './render';
 import type { EntityKind, ImageFormat } from './types';
-import { type BadgeCacheHeaders, badgeCacheHeaders } from '@/badge/cache-headers';
 import { isGithubLogin } from '@/utils/profile-refresh';
 import { parseRepoParams } from '@/utils/repo-paths';
 
-/** Cache rules of the v3 badge URLs (spec §5.3, §5.4). */
-export const BADGE_CACHE_CONTROL = {
+/**
+ * Cache rules of the v3 badge URLs (spec §5.3, §5.4). A long-kept answer tells browsers and image proxies to keep it
+ * for minutes in `Cache-Control`, and the edge to keep it for a day in the edge's own header.
+ */
+export const BADGE_CACHE_HEADERS = {
   /** Badge data moves at most daily: long at the edge, short in the browser; the last good image outlives an outage. */
-  badge: 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800',
+  badge: {
+    'Cache-Control': 'public, max-age=300',
+    'Cloudflare-CDN-Cache-Control': 'max-age=86400, stale-while-revalidate=604800, stale-if-error=604800',
+  },
   /**
    * "not yet" and star history being prepared, which a fetch of the entity can turn into the real image: kept for
    * minutes, so the image shows up soon after the fetch.
    */
-  provisional: 'public, max-age=60, s-maxage=300',
+  provisional: { 'Cache-Control': 'public, max-age=60, s-maxage=300' },
   /** Misses are cached too, so a made-up name costs no data read or drawing at every request. */
-  notFound: 'public, max-age=300, s-maxage=86400',
-  badRequest: 'public, max-age=300, s-maxage=86400',
+  notFound: { 'Cache-Control': 'public, max-age=300', 'Cloudflare-CDN-Cache-Control': 'max-age=86400' },
+  badRequest: { 'Cache-Control': 'public, max-age=300', 'Cloudflare-CDN-Cache-Control': 'max-age=86400' },
   /** A failed read or drawing: the edge keeps serving its last good copy meanwhile. */
-  unavailable: 'public, max-age=60, s-maxage=60',
-} as const;
+  unavailable: { 'Cache-Control': 'public, max-age=60, s-maxage=60' },
+} as const satisfies Record<string, Record<string, string>>;
 
 /** `{badge}.svg` or `{badge}.png`. */
 export function parseBadgeFile(file: string): { id: string; format: ImageFormat } | null {
@@ -37,11 +42,13 @@ const decode = (value: string) => {
   }
 };
 
-const text = (body: string, status: number, cacheHeaders: BadgeCacheHeaders) =>
+const text = (body: string, status: number, cacheHeaders: Record<string, string>) =>
   new Response(body, {
     status,
     headers: { 'Content-Type': 'text/plain; charset=utf-8', ...cacheHeaders },
   });
+
+const notFound = () => text('Badge not found', 404, BADGE_CACHE_HEADERS.notFound);
 
 /** The entity a badge URL names, as the request spells it. */
 export type BadgeEntityRef = { kind: 'user' | 'org'; login: string } | { kind: 'repo'; owner: string; name: string };
@@ -97,10 +104,6 @@ export async function getBadgeResponse(
   loaders: BadgeLoaders,
   now = new Date(),
 ): Promise<Response> {
-  // The long-kept answers: under the badge cache switch their two lifetimes go out as two headers.
-  const kept = (cacheControl: string) => badgeCacheHeaders(cacheControl, search);
-  const notFound = () => text('Badge not found', 404, kept(BADGE_CACHE_CONTROL.notFound));
-
   const parsed = parseBadgeFile(file);
   const badge = ref && parsed ? findBadge(ref.kind, parsed.id) : null;
   if (!ref || !parsed || !badge) {
@@ -112,7 +115,7 @@ export async function getBadgeResponse(
     params = resolveParams(badge, search);
   } catch (error) {
     if (error instanceof BadgeParamsError) {
-      return text(`Invalid query: ${error.message}`, 400, kept(BADGE_CACHE_CONTROL.badRequest));
+      return text(`Invalid query: ${error.message}`, 400, BADGE_CACHE_HEADERS.badRequest);
     }
     throw error;
   }
@@ -136,7 +139,7 @@ export async function getBadgeResponse(
       status: 308,
       headers: {
         Location: `${pathOf(ref.kind, entity)}/${file}${query ? `?${query}` : ''}`,
-        ...kept(BADGE_CACHE_CONTROL.badge),
+        ...BADGE_CACHE_HEADERS.badge,
       },
     });
   }
@@ -160,9 +163,7 @@ export async function getBadgeResponse(
     return new Response(rendered.body, {
       headers: {
         'Content-Type': rendered.contentType,
-        ...(rendered.state === 'badge'
-          ? kept(BADGE_CACHE_CONTROL.badge)
-          : { 'Cache-Control': BADGE_CACHE_CONTROL.provisional }),
+        ...(rendered.state === 'badge' ? BADGE_CACHE_HEADERS.badge : BADGE_CACHE_HEADERS.provisional),
       },
     });
   } catch (error) {
@@ -174,6 +175,6 @@ export async function getBadgeResponse(
 function unavailable() {
   return new Response(null, {
     status: 503,
-    headers: { 'Cache-Control': BADGE_CACHE_CONTROL.unavailable, 'Retry-After': '60' },
+    headers: { ...BADGE_CACHE_HEADERS.unavailable, 'Retry-After': '60' },
   });
 }

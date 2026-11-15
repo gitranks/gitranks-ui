@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { EntityFacts } from './facts';
 import { NOW, orgBig, repoBig, repoMid, repoUnranked, userMid } from './fixtures';
-import { BADGE_CACHE_CONTROL, type BadgeLoaders, getBadgeResponse, parseBadgeFile, parseEntityRef } from './route';
+import { BADGE_CACHE_HEADERS, type BadgeLoaders, getBadgeResponse, parseBadgeFile, parseEntityRef } from './route';
 
 const loaders = {
   user: vi.fn<BadgeLoaders['user']>(),
@@ -38,6 +38,13 @@ const userResponse = (login: string, file: string, query = '') =>
 
 const resolved = (entity: EntityFacts | null) => async () => entity;
 
+/** The answer carries `headers` as its cache headers, and no other. */
+const expectHeaders = (response: Response, headers: Record<string, string>) =>
+  expect({
+    'Cache-Control': response.headers.get('cache-control'),
+    'Cloudflare-CDN-Cache-Control': response.headers.get('cloudflare-cdn-cache-control'),
+  }).toEqual({ 'Cloudflare-CDN-Cache-Control': null, ...headers });
+
 describe('parseBadgeFile', () => {
   it('takes an id and svg or png', () => {
     expect(parseBadgeFile('rank.svg')).toEqual({ id: 'rank', format: 'svg' });
@@ -60,9 +67,10 @@ describe('getBadgeResponse', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/svg+xml; charset=utf-8');
-    expect(response.headers.get('cache-control')).toBe(
-      'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800',
-    );
+    expectHeaders(response, {
+      'Cache-Control': 'public, max-age=300',
+      'Cloudflare-CDN-Cache-Control': 'max-age=86400, stale-while-revalidate=604800, stale-if-error=604800',
+    });
     expect(body).toMatch(/^<svg width="[\d.]+" height="20"/);
     expect(loaders.repo).toHaveBeenCalledWith('acme', 'fastqueue');
   });
@@ -106,13 +114,13 @@ describe('getBadgeResponse', () => {
     const response = await repoResponse('acme', 'fastqueue', 'month.svg');
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.badge);
+    expectHeaders(response, BADGE_CACHE_HEADERS.badge);
   });
 
   it('draws star history as the old route does, and "preparing" without a history', async () => {
     loaders.repo.mockImplementation(resolved(repoBig));
     const chart = await repoResponse('nebula', 'ui', 'star-history.svg');
-    expect(chart.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.badge);
+    expectHeaders(chart, BADGE_CACHE_HEADERS.badge);
     expect(await chart.text()).toContain('fill-opacity="0.2"');
 
     loaders.repo.mockImplementation(resolved(repoUnranked));
@@ -128,7 +136,7 @@ describe('getBadgeResponse', () => {
     const response = await repoResponse('acme', 'nothing', 'rank.svg');
 
     expect(response.status).toBe(404);
-    expect(response.headers.get('cache-control')).toBe('public, max-age=300, s-maxage=86400');
+    expectHeaders(response, BADGE_CACHE_HEADERS.notFound);
   });
 
   it.each([
@@ -150,7 +158,7 @@ describe('getBadgeResponse', () => {
 
     expect(response.status).toBe(308);
     expect(response.headers.get('location')).toBe('/badge/repo/acme/fastqueue/rank.svg?scheme=violet&v=2');
-    expect(response.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.badge);
+    expectHeaders(response, BADGE_CACHE_HEADERS.badge);
   });
 
   it('redirects an old name of a renamed or moved repository to its current one', async () => {
@@ -161,7 +169,7 @@ describe('getBadgeResponse', () => {
     expect(loaders.repo).toHaveBeenCalledWith('old-owner', 'old-name');
     expect(response.status).toBe(308);
     expect(response.headers.get('location')).toBe('/badge/repo/acme/fastqueue/stars.svg?scheme=violet');
-    expect(response.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.badge);
+    expectHeaders(response, BADGE_CACHE_HEADERS.badge);
   });
 
   it("redirects a developer's login to its stored case", async () => {
@@ -280,7 +288,7 @@ describe('the Contribute badge', () => {
     const response = await contributeResponse('acme', 'fastqueue', file);
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.badge);
+    expectHeaders(response, BADGE_CACHE_HEADERS.badge);
     if (file.endsWith('.svg')) {
       const body = await response.text();
       expect(body).toMatch(/^<svg width="[\d.]+" height="20"/);
@@ -363,7 +371,7 @@ describe('the Contribute badge', () => {
   });
 });
 
-describe('the badge cache switch', () => {
+describe('the cache headers of each answer', () => {
   type CacheHeaders = { cacheControl: string | null; edge: string | null };
 
   const headersOf = (response: Response): CacheHeaders => ({
@@ -371,18 +379,18 @@ describe('the badge cache switch', () => {
     edge: response.headers.get('cloudflare-cdn-cache-control'),
   });
 
-  /** One answer of each kind under `query`: the long-kept ones, then the ones kept for minutes. */
-  const answers = async (query = '') => {
+  /** One answer of each kind: the long-kept ones, then the ones kept for minutes. */
+  const answers = async () => {
     loaders.repo.mockImplementation(resolved(repoMid));
-    const image = await repoResponse('acme', 'fastqueue', 'rank.svg', query);
-    const redirect = await repoResponse('ACME', 'FastQueue', 'rank.svg', query);
-    const badRequest = await repoResponse('acme', 'fastqueue', 'rank.svg', `scheme=tint&${query}`);
-    const noBadge = await repoResponse('acme', 'fastqueue', 'nope.svg', query);
-    const notYet = await repoResponse('acme', 'fastqueue', 'contributors.svg', query);
+    const image = await repoResponse('acme', 'fastqueue', 'rank.svg');
+    const redirect = await repoResponse('ACME', 'FastQueue', 'rank.svg');
+    const badRequest = await repoResponse('acme', 'fastqueue', 'rank.svg', 'scheme=tint');
+    const noBadge = await repoResponse('acme', 'fastqueue', 'nope.svg');
+    const notYet = await repoResponse('acme', 'fastqueue', 'contributors.svg');
     loaders.repo.mockImplementation(resolved(null));
-    const notFound = await repoResponse('acme', 'nothing', 'rank.svg', query);
+    const notFound = await repoResponse('acme', 'nothing', 'rank.svg');
     loaders.repo.mockRejectedValue(new Error('x'));
-    const unavailable = await repoResponse('acme', 'fastqueue', 'rank.svg', query);
+    const unavailable = await repoResponse('acme', 'fastqueue', 'rank.svg');
 
     expect([image, redirect, badRequest, noBadge, notYet, notFound, unavailable].map(({ status }) => status)).toEqual([
       200, 308, 400, 404, 200, 404, 503,
@@ -396,32 +404,14 @@ describe('the badge cache switch', () => {
         notFound: headersOf(notFound),
       },
       short: { notYet: headersOf(notYet), unavailable: headersOf(unavailable) },
-      location: redirect.headers.get('location'),
     };
   };
 
-  const TODAY = {
-    long: {
-      image: { cacheControl: BADGE_CACHE_CONTROL.badge, edge: null },
-      redirect: { cacheControl: BADGE_CACHE_CONTROL.badge, edge: null },
-      badRequest: { cacheControl: 'public, max-age=300, s-maxage=86400', edge: null },
-      noBadge: { cacheControl: 'public, max-age=300, s-maxage=86400', edge: null },
-      notFound: { cacheControl: 'public, max-age=300, s-maxage=86400', edge: null },
-    },
-    short: {
-      notYet: { cacheControl: 'public, max-age=60, s-maxage=300', edge: null },
-      unavailable: { cacheControl: 'public, max-age=60, s-maxage=60', edge: null },
-    },
+  const badge = {
+    cacheControl: 'public, max-age=300',
+    edge: 'max-age=86400, stale-while-revalidate=604800, stale-if-error=604800',
   };
-
-  /** The long-kept answers with the browser's lifetime in `Cache-Control` and `edge` in the edge's own header. */
-  const split = (badge: string | null, miss: string | null) => ({
-    image: { cacheControl: 'public, max-age=300', edge: badge },
-    redirect: { cacheControl: 'public, max-age=300', edge: badge },
-    badRequest: { cacheControl: 'public, max-age=300', edge: miss },
-    noBadge: { cacheControl: 'public, max-age=300', edge: miss },
-    notFound: { cacheControl: 'public, max-age=300', edge: miss },
-  });
+  const miss = { cacheControl: 'public, max-age=300', edge: 'max-age=86400' };
 
   beforeEach(() => {
     for (const loader of Object.values(loaders)) loader.mockReset();
@@ -429,64 +419,26 @@ describe('the badge cache switch', () => {
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
-  it.each([
-    [undefined, ''],
-    ['', ''],
-    ['off', 'probe=1'],
-    ['probe', ''],
-    ['probe', 'probe=2'],
-    ['enabled', 'probe=1'],
-  ])("sends today's one header when the switch is %s and the query is '%s'", async (mode, query) => {
-    vi.stubEnv('BADGE_CACHE_SPLIT', mode);
-    const { long, short } = await answers(query);
-
-    expect({ long, short }).toEqual(TODAY);
+  it('keeps the long-kept answers minutes in the browser and a day at the edge, the rest as they were', async () => {
+    expect(await answers()).toEqual({
+      long: { image: badge, redirect: badge, badRequest: miss, noBadge: miss, notFound: miss },
+      short: {
+        notYet: { cacheControl: 'public, max-age=60, s-maxage=300', edge: null },
+        unavailable: { cacheControl: 'public, max-age=60, s-maxage=60', edge: null },
+      },
+    });
   });
 
-  it.each([
-    ['on', ''],
-    ['probe', 'probe=1'],
-  ])("splits the long-kept answers when the switch is %s and the query is '%s'", async (mode, query) => {
-    vi.stubEnv('BADGE_CACHE_SPLIT', mode);
-    const { long, short, location } = await answers(query);
-
-    expect(long).toEqual(split('max-age=86400, stale-while-revalidate=604800, stale-if-error=604800', 'max-age=86400'));
-    expect(short).toEqual(TODAY.short);
-    expect(location).toBe(`/badge/repo/acme/fastqueue/rank.svg${query ? `?${query}` : ''}`);
-  });
-
-  it('on-no-swr leaves stale-while-revalidate out of the edge header', async () => {
-    vi.stubEnv('BADGE_CACHE_SPLIT', 'on-no-swr');
-    const { long, short } = await answers();
-
-    expect(long).toEqual(split('max-age=86400, stale-if-error=604800', 'max-age=86400'));
-    expect(short).toEqual(TODAY.short);
-  });
-
-  it('short sends the browser lifetime alone', async () => {
-    vi.stubEnv('BADGE_CACHE_SPLIT', 'short');
-    const { long, short } = await answers();
-
-    expect(long).toEqual(split(null, null));
-    expect(short).toEqual(TODAY.short);
-  });
-
-  it('reads the query the route handler was asked with', async () => {
-    vi.stubEnv('BADGE_CACHE_SPLIT', 'probe');
+  it('answers the route handler with the same headers', async () => {
     loaders.repo.mockImplementation(resolved(repoMid));
-    const get = (query: string) =>
-      repoGet(new NextRequest(`http://localhost/badge/repo/acme/fastqueue/rank.svg${query}`), {
-        params: Promise.resolve({ owner: 'acme', name: 'fastqueue', file: 'rank.svg' }),
-      });
+    const response = await repoGet(new NextRequest('https://gitranks.com/badge/repo/acme/fastqueue/rank.svg'), {
+      params: Promise.resolve({ owner: 'acme', name: 'fastqueue', file: 'rank.svg' }),
+    });
 
-    expect(headersOf(await get(''))).toEqual(TODAY.long.image);
-    expect(headersOf(await get('?probe=1'))).toEqual(
-      split('max-age=86400, stale-while-revalidate=604800, stale-if-error=604800', null).image,
-    );
+    expect(headersOf(response)).toEqual(badge);
   });
 });
 
@@ -520,7 +472,7 @@ describe("the report of GitHub's image proxy", () => {
     loaders.repo.mockImplementation(resolved(repoMid));
     const notYet = await respond(parseEntityRef('repo', { owner: 'acme', name: 'fastqueue' }), 'contributors.svg');
 
-    expect(notYet.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.provisional);
+    expectHeaders(notYet, BADGE_CACHE_HEADERS.provisional);
     expect(onImageServed).toHaveBeenCalledExactlyOnceWith('repo', 'acme/fastqueue');
   });
 

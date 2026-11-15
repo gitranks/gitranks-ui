@@ -27,7 +27,9 @@ describe('the launch bar', () => {
     const html = renderToStaticMarkup(<LaunchBar />);
     const link = html.match(/<a [^>]*>/)?.[0] ?? '';
 
-    expect(html).toMatch(/^<div data-launch-bar-root="true" class="border-b bg-muted\/40">/);
+    expect(html).toMatch(
+      /^<aside data-launch-bar-root="true" aria-label="Announcement" class="border-b bg-muted\/40">/,
+    );
     expect(link).toContain('href="/contribute"');
     expect(link).toContain('data-contribute-source="top_bar"');
     expect(link).toContain('max-md:min-h-11');

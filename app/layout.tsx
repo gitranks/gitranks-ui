@@ -59,10 +59,11 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
       <head>
         <BrowserCheck />
         <LaunchBarScript />
+        {/* In the head, not the body: tools that copy the page's text (directory listings, readers) then leave it out. */}
+        <JsonLd payloads={buildSiteJsonLd()} />
         <link rel="preconnect" href="https://avatars.githubusercontent.com" crossOrigin="anonymous" />
       </head>
       <body className="antialiased">
-        <JsonLd payloads={buildSiteJsonLd()} />
         <SessionProvider>
           <NuqsAdapter>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

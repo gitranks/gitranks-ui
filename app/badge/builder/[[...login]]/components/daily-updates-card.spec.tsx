@@ -108,6 +108,26 @@ describe('DailyUpdatesCard', () => {
     expect(text(container)).toBe('Get daily updates No more checks for now. The next one opens in 12 h.');
   });
 
+  it('offers the check again once the limit’s time has passed, without a reload', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], now: NOW });
+    mount('user', 'octo-dev');
+    answers.push({ body: { status: 'limit', nextAt: iso(NOW + 60_000) } });
+    await press('Check my badge');
+    expect(text(container)).toBe('Get daily updates No more checks for now. The next one opens in 1 min.');
+
+    await act(async () => vi.advanceTimersByTime(61_000));
+    expect(text(container)).toBe('Get daily updates You can check again now. Check again');
+  });
+
+  it('reads an answer of another shape as a failed check', async () => {
+    mount('user', 'octo-dev');
+    answers.push({ body: { status: 'not_found' } });
+    await press('Check my badge');
+
+    expect(text(container)).toContain('We could not check the README of octo-dev/octo-dev just now.');
+    expect(text(container)).not.toContain('undefined');
+  });
+
   it('shows the failure without a count for an unknown name, an error answer and a failed call', async () => {
     const failed =
       'Get daily updates We could not check the README of octo-dev/octo-dev just now. Please try again later. Check again';

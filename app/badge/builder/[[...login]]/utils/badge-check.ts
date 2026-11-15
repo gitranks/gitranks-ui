@@ -19,8 +19,32 @@ export const BADGE_CHECK_COPY = {
   foundNote: 'We look again each week. If the badge is gone, daily updates stop.',
   notFound: 'We read the README of {readme} and did not find the badge yet. Just added it? GitHub can take a minute.',
   limit: 'No more checks for now. The next one opens in {time}.',
+  limitOver: 'You can check again now.',
   failed: 'We could not check the README of {readme} just now. Please try again later.',
 } as const;
+
+const isDate = (value: unknown) => typeof value === 'string' && !Number.isNaN(Date.parse(value));
+
+/** An answer of one of the five shapes, each with the field its status needs; anything else is not one. */
+export function isBadgeCheckResult(value: unknown): value is BadgeCheckResult {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const answer = value as Record<string, unknown>;
+  switch (answer.status) {
+    case 'found':
+      return isDate(answer.until);
+    case 'not_found':
+      return typeof answer.checksLeft === 'number' && Number.isFinite(answer.checksLeft);
+    case 'limit':
+      return isDate(answer.nextAt);
+    case 'unknown':
+    case 'unavailable':
+      return true;
+    default:
+      return false;
+  }
+}
 
 /** "2 checks left today." under a badge not found yet. */
 export const checksLeftText = (left: number) =>
@@ -68,12 +92,15 @@ export function badgeCheckViewOf(
         action: result.checksLeft > 0 ? BADGE_CHECK_COPY.again : null,
       };
     case 'limit':
-      return {
-        state: 'limit',
-        text: BADGE_CHECK_COPY.limit.replace('{time}', timeLeftUntil(result.nextAt, now)),
-        note: null,
-        action: null,
-      };
+      // Once the time has passed, the check opens again.
+      return Date.parse(result.nextAt) > now
+        ? {
+            state: 'limit',
+            text: BADGE_CHECK_COPY.limit.replace('{time}', timeLeftUntil(result.nextAt, now)),
+            note: null,
+            action: null,
+          }
+        : { state: 'limit', text: BADGE_CHECK_COPY.limitOver, note: null, action: BADGE_CHECK_COPY.again };
     case 'unknown':
     case 'unavailable':
       return { state: 'failed', text: fill(BADGE_CHECK_COPY.failed), note: null, action: BADGE_CHECK_COPY.again };

@@ -36,7 +36,9 @@ import {
   REFRESH_TOASTS,
   type RefreshDialogKind,
   STAR_REPO_URL,
+  STAR_STEP_REFRESH,
   withLogin,
+  withoutBadgeCheck,
 } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
 import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
@@ -62,13 +64,29 @@ type FetchUserButtonProps = {
   profileLogin?: string;
   /** Offers the owner their daily updates on their own profile, once the API says they are open to them. */
   ownerStates?: boolean;
+  /**
+   * Signed out, Refresh opens the deal: daily updates, and a badge with "Check my badge" as the way without a star.
+   * Off where GitRanks has no such profile: there it opens today's sign-in.
+   */
+  dealOffered?: boolean;
 };
 
 /**
  * The dialog on screen; `until` fills its `{time}`. `retry` is what "I starred it" presses again: today's refresh, or
- * the start of daily updates.
+ * the start of daily updates. `check`: the deal offers "Check my badge" of the profile on screen.
  */
-type OpenDialog = { kind: RefreshDialogKind; until?: string; retry?: 'refresh' | 'start' } | null;
+type OpenDialog = { kind: RefreshDialogKind; until?: string; retry?: 'refresh' | 'start'; check?: boolean } | null;
+
+/** The dialog's words: the star step says what "I starred it" will do, and the deal drops a check it does not offer. */
+const messageOf = (dialog: NonNullable<OpenDialog>) => {
+  if (dialog.kind === 'starStep' && dialog.retry === 'refresh') {
+    return STAR_STEP_REFRESH;
+  }
+  if (dialog.kind === 'deal' && !dialog.check) {
+    return withoutBadgeCheck(REFRESH_MESSAGES.deal);
+  }
+  return REFRESH_MESSAGES[dialog.kind];
+};
 
 const REFRESH_INTERVAL = 1_000;
 const CHECK_STATUS_INTERVAL = 20_000;
@@ -92,6 +110,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   dailyUpdates,
   profileLogin,
   ownerStates = false,
+  dealOffered = true,
 }) => {
   const { data: session, status } = useSession();
   const { login } = useParams<{ login: string }>();
@@ -333,7 +352,13 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
    * asks for the star when there is none. Once the visitor's state is read, and once a page.
    */
   useEffect(() => {
-    if (followedUp.current || mode === 'loading' || mode === 'signed-out') {
+    if (followedUp.current || mode === 'loading') {
+      return;
+    }
+    // Back signed out (the sign-in was given up): the mark is dropped, so a later sign-in takes no step by itself.
+    if (mode === 'signed-out') {
+      followedUp.current = true;
+      takeDealSignIn(dealPageOf('profile', login));
       return;
     }
     if (mode === 'daily' && ownerStates && viewerRead !== 'done') {
@@ -372,7 +397,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     }
     const ownLogin = session?.user?.githubLogin;
     if (!ownLogin) {
-      return openDialog({ kind: 'deal' });
+      return openDialog({ kind: 'deal', check: false });
     }
     setDialog(null);
     router.push(`/profile/${encodeURIComponent(ownLogin)}`);
@@ -389,7 +414,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       case 'loading':
         return;
       case 'signed-out':
-        return openDialog({ kind: 'deal' });
+        return openDialog(dealOffered ? { kind: 'deal', check: true } : { kind: 'signIn' });
       case 'other':
         return openDialog({ kind: 'otherProfile' });
       case 'token':
@@ -465,6 +490,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     return signIn(IDENTITY_PROVIDER);
   };
   const dialogActions: Record<RefreshDialogKind, { primary: RefreshDialogAction; secondary?: RefreshDialogAction }> = {
+    signIn: { primary: { onClick: () => signIn(IDENTITY_PROVIDER) } },
     deal: { primary: { onClick: signInFromDeal } },
     starStep: {
       primary: { href: STAR_REPO_URL },
@@ -555,7 +581,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
         <RefreshDialog
           open
           onOpenChange={(open) => !open && setDialog(null)}
-          message={withLogin(REFRESH_MESSAGES[dialog.kind], shownLogin)}
+          message={withLogin(messageOf(dialog), shownLogin)}
           time={dialog.until ? timeLeftUntil(dialog.until) : undefined}
           primary={cta(dialog.kind, dialogActions[dialog.kind].primary)}
           secondary={dialogActions[dialog.kind].secondary}
@@ -563,9 +589,9 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
             event.preventDefault();
             containerRef.current?.querySelector('button')?.focus();
           }}
-          onNoteAction={dialog.kind === 'deal' ? badgeCheck.check : undefined}
+          onNoteAction={dialog.kind === 'deal' && dialog.check ? badgeCheck.check : undefined}
           noteStatus={
-            dialog.kind === 'deal' ? (
+            dialog.kind === 'deal' && dialog.check ? (
               <BadgeCheckStatus
                 kind="user"
                 name={shownLogin}
@@ -587,7 +613,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 
 export const FetchUserButtonForNotFoundPage: FC<Omit<FetchUserButtonProps, 'children'>> = (props) => {
   return (
-    <FetchUserButton {...props}>
+    <FetchUserButton {...props} dealOffered={false}>
       <Button size="lg">Fetch profile from GitHub</Button>
     </FetchUserButton>
   );

@@ -135,6 +135,15 @@ describe('UpdateDailyButton', () => {
     });
   });
 
+  it('drops the mark of a sign-in given up, once the page settles signed out', async () => {
+    session.current = { data: null, status: 'unauthenticated' };
+    sessionStorage.setItem('daily-updates-deal', JSON.stringify({ page: 'repo:acme/fastqueue', at: NOW }));
+    await mount();
+
+    expect(sessionStorage.getItem('daily-updates-deal')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('signed out, says why a repository on daily updates updates, and offers no pick', async () => {
     session.current = { data: null, status: 'unauthenticated' };
     await mount({ reasons: [DailyUpdateReason.Pick], nextUpdateAt: iso(NOW + 5 * HOUR) });
@@ -153,7 +162,7 @@ describe('UpdateDailyButton', () => {
     expect(sessionStorage.getItem('daily-updates-deal')).toBeNull();
   });
 
-  it('back from the sign-in of the deal, picks nothing already picked, closed, or started on another page', async () => {
+  it('back from the sign-in of the deal, picks nothing already picked or started on another page, and says when daily updates are closed', async () => {
     sessionStorage.setItem('daily-updates-deal', JSON.stringify({ page: 'repo:acme/fastqueue', at: NOW }));
     answer('GET /api/daily-updates', viewerOf({ picks: picked('acme/fastqueue') }));
     await mount();
@@ -165,6 +174,10 @@ describe('UpdateDailyButton', () => {
     answer('GET /api/daily-updates', viewerOf({ open: false, state: 'never' }));
     await mount();
     expect(bodies('POST /api/daily-updates/picks')).toEqual([]);
+    expect(toast.info).toHaveBeenCalledExactlyOnceWith(
+      'Daily updates aren’t open to your account yet. Please try again later.',
+    );
+    expect(sessionStorage.getItem('daily-updates-deal')).toBeNull();
 
     act(() => root.unmount());
     root = createRoot(container);

@@ -204,15 +204,31 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
 
   /**
    * Back from a sign-in that started at the deal on this repository: once the visitor's state is read, the pick is made
-   * when they may pick it and have not yet; it asks for the star when there is none. Once a page.
+   * when they may pick it and have not yet; it asks for the star when there is none. A visitor the API keeps out of
+   * daily updates is told so. Back signed out (the sign-in was given up), the mark is dropped, so a later sign-in takes
+   * no step by itself. Once a page.
    */
   useEffect(() => {
-    if (followedUp.current || !login || read !== 'done') {
+    if (followedUp.current || status === 'loading') {
+      return;
+    }
+    const page = dealPageOf('repo', nameWithOwner);
+    if (signedOut) {
+      followedUp.current = true;
+      takeDealSignIn(page);
+      return;
+    }
+    if (!login || read !== 'done') {
       return;
     }
 
     followedUp.current = true;
-    if (takeDealSignIn(dealPageOf('repo', nameWithOwner)) && canPickRepo(view, viewer, nameWithOwner)) {
+    if (!takeDealSignIn(page)) {
+      return;
+    }
+    if (!viewer?.open) {
+      toast.info(PICK_TOASTS.notOpen);
+    } else if (canPickRepo(view, viewer, nameWithOwner)) {
       pick();
     }
   });

@@ -10,8 +10,10 @@ import {
   REFRESH_MESSAGES,
   REFRESH_TOASTS,
   type RefreshMessage,
+  STAR_STEP_REFRESH,
   WELCOME_BACK,
   withLogin,
+  withoutBadgeCheck,
 } from './refresh-messages';
 import { DAILY_UPDATES_NOTES } from '@/app/repo/[owner]/[name]/utils/pull-messages';
 
@@ -75,7 +77,7 @@ describe('refresh messages', () => {
       .filter(([, message]) => 'signature' in message)
       .map(([kind]) => kind);
 
-    expect(withPhoto.sort()).toEqual(['deal', 'starStep']);
+    expect(withPhoto.sort()).toEqual(['deal', 'signIn', 'starStep']);
     expect(signed).toEqual([]);
   });
 
@@ -120,9 +122,35 @@ describe('refresh messages', () => {
     });
   });
 
-  it('keeps no copy of the dialogs the deal and the star step replaced', () => {
-    expect(Object.keys(REFRESH_MESSAGES)).not.toContain('signIn');
+  it('keeps today’s sign-in for pages that do not show daily updates on, and no other star dialog', () => {
+    expect(REFRESH_MESSAGES.signIn.steps).toEqual([
+      'Sign in with GitHub. We only see your name and email.',
+      'Star our repo.',
+      'Get 1 refresh of your profile every day.',
+    ]);
+    expect(JSON.stringify(REFRESH_MESSAGES.signIn)).not.toMatch(/daily updates|picks|badge/i);
     expect(Object.keys(REFRESH_MESSAGES)).not.toContain('needStar');
+  });
+
+  it('says what "I starred it" does: a refresh, or the start of daily updates', () => {
+    expect(STAR_STEP_REFRESH).toEqual({
+      ...REFRESH_MESSAGES.starStep,
+      paragraphs: ['Then come back and press “I starred it”. We check the star and refresh your profile.'],
+    });
+  });
+
+  it('drops the badge check from the deal where the profile on screen is not the visitor’s', () => {
+    const deal = withoutBadgeCheck(REFRESH_MESSAGES.deal);
+
+    expect(deal.note).toBe(
+      'Don’t want to star? Add a GitRanks badge to your GitHub profile. While the badge is there, we update your profile every day. No sign-in, no 7-day limit.',
+    );
+    expect(deal.noteLinks).toEqual([{ text: 'GitRanks badge', href: '/badge/builder' }]);
+    expect({ ...deal, note: undefined, noteLinks: undefined }).toEqual({
+      ...REFRESH_MESSAGES.deal,
+      note: undefined,
+      noteLinks: undefined,
+    });
   });
 
   it('keeps every note link inside its note', () => {

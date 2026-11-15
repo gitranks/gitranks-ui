@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { isBadgeCheckResult } from '../utils/badge-check';
 import type { BadgeCheckKind, BadgeCheckResult } from '@/types/daily-updates.types';
 
 const UNAVAILABLE: BadgeCheckResult = { status: 'unavailable' };
@@ -14,8 +15,8 @@ export type BadgeCheckState = {
 };
 
 /**
- * "Check my badge" for one profile or repository: no sign-in, and nothing kept in the browser. A failed call reads as
- * `unavailable`. The answer is dropped when the entity changes.
+ * "Check my badge" for one profile or repository: no sign-in, and nothing kept in the browser. A failed call, or an
+ * answer of another shape, reads as `unavailable`. The answer is dropped when the entity changes.
  */
 export function useBadgeCheck(kind: BadgeCheckKind, name: string): BadgeCheckState {
   const [result, setResult] = useState<BadgeCheckResult | null>(null);
@@ -45,7 +46,8 @@ export function useBadgeCheck(kind: BadgeCheckKind, name: string): BadgeCheckSta
       body: JSON.stringify({ kind, name }),
       cache: 'no-store',
     })
-      .then((res) => (res.ok ? (res.json() as Promise<BadgeCheckResult>) : UNAVAILABLE))
+      .then((res) => (res.ok ? res.json() : UNAVAILABLE))
+      .then((answer: unknown) => (isBadgeCheckResult(answer) ? answer : UNAVAILABLE))
       .catch(() => UNAVAILABLE)
       .then((answer) => {
         if (current.current === asked) {
@@ -55,6 +57,17 @@ export function useBadgeCheck(kind: BadgeCheckKind, name: string): BadgeCheckSta
         }
       });
   }, [kind, name]);
+
+  // At the limit, the view changes when the next check opens: one render then.
+  const [, setOpened] = useState(0);
+  const nextAt = result?.status === 'limit' ? Date.parse(result.nextAt) : Number.NaN;
+  useEffect(() => {
+    if (Number.isNaN(nextAt)) {
+      return;
+    }
+    const timer = window.setTimeout(() => setOpened((count) => count + 1), Math.max(0, nextAt - Date.now()) + 500);
+    return () => window.clearTimeout(timer);
+  }, [nextAt]);
 
   return { result, checking, check };
 }

@@ -3,8 +3,10 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FetchUserButtonForProfilePage } from './fetch-user-button';
+import { FetchUserButtonForNotFoundPage, FetchUserButtonForProfilePage } from './fetch-user-button';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
+import { DailyUpdateReason } from '@/types/generated/graphql';
+import type { DailyUpdatesFacts } from '@/utils/daily-updates-view';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -71,9 +73,9 @@ describe('the deal on the profile', () => {
   let container: HTMLDivElement;
   let root: Root;
 
-  const mount = async () => {
+  const mount = async (dailyUpdates: DailyUpdatesFacts = null) => {
     await act(async () => {
-      root.render(<FetchUserButtonForProfilePage profileLogin="octo-dev" />);
+      root.render(<FetchUserButtonForProfilePage profileLogin="octo-dev" dailyUpdates={dailyUpdates} />);
     });
     await act(async () => {});
   };
@@ -181,6 +183,44 @@ describe('the deal on the profile', () => {
 
     expect(calls()).toContain('POST /api/daily-refresh');
     expect(dialogTitle()).toBe('One step left: star our repo');
+    // "I starred it" claims today's refresh here: no daily updates start from it.
+    expect(dialogText()).toContain('We check the star and refresh your profile.');
+    expect(dialogText()).not.toContain('daily updates');
+  });
+
+  it('"Get daily updates" on someone else’s profile opens the deal without a badge check of that profile', async () => {
+    session.current = SIGNED_OUT;
+    await mount({ reasons: [DailyUpdateReason.Owner], nextUpdateAt: iso(NOW + 5 * HOUR) });
+    await press('Updates daily');
+    await press('Get daily updates');
+
+    expect(dialogTitle()).toBe('Hi, I’m Vitalii 👋');
+    expect(dialogText()).toContain('No sign-in, no 7-day limit.');
+    expect(dialogText()).not.toContain('Check my badge');
+    expect(elementNamed('GitRanks badge')?.getAttribute('href')).toBe('/badge/builder');
+  });
+
+  it('offers today’s sign-in, with no badge, where GitRanks has no such profile', async () => {
+    session.current = SIGNED_OUT;
+    await act(async () => {
+      root.render(<FetchUserButtonForNotFoundPage profileLogin="octo-dev" />);
+    });
+    await press('Fetch profile from GitHub');
+
+    expect(dialogText()).toContain('Get 1 refresh of your profile every day.');
+    expect(dialogText()).not.toMatch(/badge|daily updates/i);
+    await press('Sign in with GitHub');
+    expect(signIn).toHaveBeenCalledExactlyOnceWith('github-basic');
+    expect(sessionStorage.getItem(MARK)).toBeNull();
+  });
+
+  it('drops the mark of a sign-in given up, once the page settles signed out', async () => {
+    session.current = SIGNED_OUT;
+    mark('profile:octo-dev');
+    await mount();
+
+    expect(sessionStorage.getItem(MARK)).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('does nothing more when daily updates are on already, on someone else’s profile, or without the mark', async () => {

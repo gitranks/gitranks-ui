@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { badgeCheckViewOf, checksLeftText, readmeOf } from './badge-check';
+import { badgeCheckViewOf, checksLeftText, isBadgeCheckResult, readmeOf } from './badge-check';
 
 const NOW = Date.parse('2026-11-15T12:00:00Z');
 const HOUR = 3_600_000;
@@ -61,6 +61,15 @@ describe('badgeCheckViewOf', () => {
     );
   });
 
+  it('opens the check again once the limit’s time has passed', () => {
+    expect(badgeCheckViewOf('user', 'octo-dev', { status: 'limit', nextAt: iso(NOW) }, NOW)).toEqual({
+      state: 'limit',
+      text: 'You can check again now.',
+      note: null,
+      action: 'Check again',
+    });
+  });
+
   it('shows the failure, without a count, for a name GitRanks does not know and for a check that could not run', () => {
     for (const result of [{ status: 'unknown' } as const, { status: 'unavailable' } as const]) {
       expect(badgeCheckViewOf('repo', 'brightfern/tidepool', result, NOW)).toEqual({
@@ -86,5 +95,35 @@ describe('badge check words', () => {
       'No checks left today.',
       'No checks left today.',
     ]);
+  });
+});
+
+describe('isBadgeCheckResult', () => {
+  it('takes each answer with the field its status needs', () => {
+    for (const answer of [
+      { status: 'found', until: iso(NOW) },
+      { status: 'not_found', checksLeft: 0 },
+      { status: 'limit', nextAt: iso(NOW) },
+      { status: 'unknown' },
+      { status: 'unavailable' },
+    ]) {
+      expect(isBadgeCheckResult(answer), answer.status).toBe(true);
+    }
+  });
+
+  it('refuses an answer without the field its status needs, or of another shape', () => {
+    for (const answer of [
+      null,
+      'found',
+      {},
+      { status: 'found' },
+      { status: 'found', until: 'tomorrow' },
+      { status: 'not_found' },
+      { status: 'not_found', checksLeft: Number.NaN },
+      { status: 'limit', nextAt: 42 },
+      { status: 'maybe' },
+    ]) {
+      expect(isBadgeCheckResult(answer), JSON.stringify(answer)).toBe(false);
+    }
   });
 });

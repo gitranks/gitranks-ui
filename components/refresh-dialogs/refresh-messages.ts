@@ -47,6 +47,8 @@ export const TOKEN_NOTE = {
 
 /** The small print's link that checks the profile's badge now, in the deal. */
 export const CHECK_BADGE_LINK = 'Check my badge';
+/** The deal's last sentence: the badge check of the profile on screen. */
+const CHECK_BADGE_SENTENCE = `Already added it? ${CHECK_BADGE_LINK}.`;
 
 /** The second step of the deal: what it says once the visitor is signed in and has not starred our repo yet. */
 const STAR_STEP: RefreshMessage = {
@@ -60,10 +62,34 @@ const STAR_STEP: RefreshMessage = {
   secondary: 'I starred it',
 };
 
+/** The star step when "I starred it" claims today's refresh: no daily updates start from it. */
+export const STAR_STEP_REFRESH: RefreshMessage = {
+  ...STAR_STEP,
+  paragraphs: ['Then come back and press “I starred it”. We check the star and refresh your profile.'],
+};
+
 export const REFRESH_MESSAGES = {
+  /** Not signed in, presses "Fetch profile from GitHub" on a profile GitRanks does not have: no badge to offer yet. */
+  signIn: {
+    photo: true,
+    title: 'Hi, I’m Vitalii 👋',
+    paragraphs: [
+      'I made GitRanks. Bots press this button a lot, and our GitHub limits are small.',
+      'So here is the deal:',
+    ],
+    steps: [
+      'Sign in with GitHub. We only see your name and email.',
+      'Star our repo.',
+      'Get 1 refresh of your profile every day.',
+    ],
+    closing: ['Need more? Later you can use your own GitHub token.'],
+    primary: 'Sign in with GitHub',
+    secondary: 'Maybe later',
+  },
+
   /**
    * Not signed in, presses Refresh or "Get daily updates": the deal, with a badge as the way in without a star. Its
-   * "Check my badge" checks the profile on screen.
+   * "Check my badge" checks the profile on screen, and is left out where that profile is someone else's.
    */
   deal: {
     photo: true,
@@ -211,6 +237,13 @@ export const WELCOME_BACK = {
   title: 'Welcome back',
   text: 'Daily updates stopped after 7 days without a visit. They are on again, and your profile is refreshing now.',
 } as const;
+
+/** The deal without its badge check: opened where the profile on screen is not the visitor's own. */
+export const withoutBadgeCheck = (message: RefreshMessage): RefreshMessage => ({
+  ...message,
+  note: message.note?.replace(` ${CHECK_BADGE_SENTENCE}`, ''),
+  noteLinks: message.noteLinks?.filter((link) => link.text !== CHECK_BADGE_LINK),
+});
 
 export const fillTime = (text: string, time?: string) => (time ? text.replaceAll('{time}', time) : text);
 

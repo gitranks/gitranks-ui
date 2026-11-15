@@ -106,6 +106,8 @@ export const PICK_TOASTS = {
   failed: REFRESH_TOASTS.checkFailed,
   busy: REFRESH_TOASTS.busy,
   removeFailed: 'The pick was not removed. Please try again.',
+  /** Back from the deal's sign-in, and the API keeps daily updates closed to this account. */
+  notOpen: 'Daily updates aren’t open to your account yet. Please try again later.',
 } as const;
 
 export const fillRepo = (text: string, nameWithOwner: string) => text.replaceAll('{repo}', nameWithOwner);

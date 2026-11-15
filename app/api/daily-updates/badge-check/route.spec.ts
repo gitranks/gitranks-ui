@@ -81,6 +81,10 @@ describe('/api/daily-updates/badge-check', () => {
   it.each([
     ['an error status', () => upstream(503, { message: 'down' })],
     ['an answer of another shape', () => upstream(200, { status: 'maybe' })],
+    ['found without its date', () => upstream(200, { status: 'found' })],
+    ['not found without its count', () => upstream(200, { status: 'not_found' })],
+    ['not found with a count that is not a number', () => upstream(200, { status: 'not_found', checksLeft: '2' })],
+    ['a limit with a date that is not one', () => upstream(200, { status: 'limit', nextAt: 'soon' })],
     ['an answer that is not JSON', () => signedFetch.mockResolvedValueOnce(new Response('<html>', { status: 200 }))],
     ['a call that throws', () => signedFetch.mockRejectedValueOnce(new Error('timeout'))],
   ])('answers unavailable for %s', async (_case, arrange) => {
@@ -91,6 +95,20 @@ describe('/api/daily-updates/badge-check', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
     await expect(response.json()).resolves.toEqual({ status: 'unavailable' });
+  });
+
+  it('refuses a body by its stated size before reading it', async () => {
+    const response = await check({ kind: 'user', name: 'octo-dev' }, { 'content-length': '5000' });
+
+    expect(response.status).toBe(400);
+    expect(signedFetch).not.toHaveBeenCalled();
+  });
+
+  it('takes a repository whose owner has a login from GitHub’s early years, with a hyphen at either end', async () => {
+    upstream(200, { status: 'unknown' });
+
+    expect((await check({ kind: 'repo', name: '-Jerry-/repo' })).status).toBe(200);
+    expect(sent()).toMatchObject({ kind: 'repo', name: '-Jerry-/repo' });
   });
 
   it('passes every answer of the API through', async () => {

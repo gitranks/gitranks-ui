@@ -30,8 +30,9 @@ export const LAUNCH_BAR_TAIL =
   'We pick issues that fit your stack, your agent fixes them, you approve, the PR opens in your name.';
 export const LAUNCH_BAR_CUE = 'See how it works';
 
-/** GitRanks on Product Hunt: the upcoming launch, then the launch itself. */
-export const PRODUCT_HUNT_URL = 'https://www.producthunt.com/products/gitranks';
+/** GitRanks Contribute on Product Hunt: the upcoming launch on GitRanks' page, then the launch post itself. */
+export const PRODUCT_HUNT_SOON_URL = 'https://www.producthunt.com/products/gitranks?launch=gitranks-contribute';
+export const PRODUCT_HUNT_LIVE_URL = 'https://www.producthunt.com/posts/gitranks-contribute';
 
 /** The Product Hunt bars' words. `chipShort` is the chip on phones. None of them asks for a vote (Product Hunt's rules). */
 export const PRODUCT_HUNT_BARS = {
@@ -41,7 +42,7 @@ export const PRODUCT_HUNT_BARS = {
     chipShort: 'Nov 18',
     tail: 'GitRanks Contribute: your AI agent fixes open-source issues, you approve every PR.',
     cue: 'Get a first look',
-    href: PRODUCT_HUNT_URL,
+    href: PRODUCT_HUNT_SOON_URL,
   },
   'ph-live': {
     lead: 'We’re live on Product Hunt',
@@ -49,7 +50,7 @@ export const PRODUCT_HUNT_BARS = {
     chipShort: 'Live',
     tail: 'Tell us what you think of GitRanks Contribute. The founder answers every comment.',
     cue: 'Watch the demo',
-    href: PRODUCT_HUNT_URL,
+    href: PRODUCT_HUNT_LIVE_URL,
   },
 } as const;
 

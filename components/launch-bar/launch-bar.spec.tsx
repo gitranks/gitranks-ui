@@ -100,6 +100,13 @@ describe('the launch bar', () => {
     },
   );
 
+  it('links the soon bar to the upcoming launch and the live bar to the launch post', () => {
+    expect(barHtml('ph-soon')).toContain(
+      'href="https://www.producthunt.com/products/gitranks?launch=gitranks-contribute"',
+    );
+    expect(barHtml('ph-live')).toContain('href="https://www.producthunt.com/posts/gitranks-contribute"');
+  });
+
   it('marks the launch with a live dot that pulses only with motion on', () => {
     expect(barHtml('ph-live')).toContain('motion-safe:animate-ping');
     expect(barHtml('ph-soon')).not.toContain('animate-ping');

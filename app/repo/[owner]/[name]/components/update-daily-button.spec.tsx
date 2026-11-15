@@ -10,12 +10,13 @@ import type { DailyUpdatesFacts } from '@/utils/daily-updates-view';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const { session, toast } = vi.hoisted(() => ({
+const { session, toast, signIn } = vi.hoisted(() => ({
   session: { current: { data: null, status: 'loading' } as { data: unknown; status: string } },
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+  signIn: vi.fn(),
 }));
 
-vi.mock('next-auth/react', () => ({ useSession: () => session.current }));
+vi.mock('next-auth/react', () => ({ useSession: () => session.current, signIn }));
 vi.mock('@next/third-parties/google', () => ({ sendGAEvent: vi.fn() }));
 vi.mock('sonner', () => ({ toast }));
 
@@ -90,6 +91,8 @@ describe('UpdateDailyButton', () => {
     fetchMock.mockClear();
     vi.stubGlobal('fetch', fetchMock);
     for (const fn of Object.values(toast)) fn.mockReset();
+    signIn.mockReset();
+    sessionStorage.clear();
     session.current = SIGNED_IN;
     container = document.createElement('div');
     document.body.append(container);
@@ -104,12 +107,72 @@ describe('UpdateDailyButton', () => {
     vi.useRealTimers();
   });
 
-  it('shows nothing new signed out, and reads nothing', async () => {
-    session.current = { data: null, status: 'unauthenticated' };
+  it('shows nothing while the session loads, and reads nothing', async () => {
+    session.current = { data: null, status: 'loading' };
     await mount();
 
     expect(container.innerHTML).toBe('');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('offers "Update daily" signed out, and its press opens the deal; reads nothing', async () => {
+    session.current = { data: null, status: 'unauthenticated' };
+    await mount();
+
+    expect(text()).toBe('Update daily');
+    await press('Update daily');
+    expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe('Hi, I’m Vitalii 👋');
+    expect(dialogText()).toContain('Then you pick 3 repositories. We update them, and your profile, every day.');
+    expect(buttonNamed('GitRanks badge')?.getAttribute('href')).toBe('/badge/builder?repo=acme/fastqueue');
+    expect(buttonNamed('GitRanks badge')?.getAttribute('target')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await press('Sign in with GitHub');
+    expect(signIn).toHaveBeenCalledExactlyOnceWith('github-basic');
+    expect(JSON.parse(sessionStorage.getItem('daily-updates-deal') ?? '{}')).toEqual({
+      page: 'repo:acme/fastqueue',
+      at: NOW,
+    });
+  });
+
+  it('signed out, says why a repository on daily updates updates, and offers no pick', async () => {
+    session.current = { data: null, status: 'unauthenticated' };
+    await mount({ reasons: [DailyUpdateReason.Pick], nextUpdateAt: iso(NOW + 5 * HOUR) });
+
+    expect(container.textContent).toBe('Updates daily. Next update in 5 h.');
+  });
+
+  it('back from the sign-in of the deal, picks the repository by itself, once', async () => {
+    sessionStorage.setItem('daily-updates-deal', JSON.stringify({ page: 'repo:acme/fastqueue', at: NOW - 60_000 }));
+    answer('GET /api/daily-updates', viewerOf({ state: 'never' }));
+    answer('POST /api/daily-updates/picks', { status: 'not_starred' });
+    await mount();
+
+    expect(bodies('POST /api/daily-updates/picks')).toEqual([{ owner: 'acme', name: 'fastqueue' }]);
+    expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe('One step left: star our repo');
+    expect(sessionStorage.getItem('daily-updates-deal')).toBeNull();
+  });
+
+  it('back from the sign-in of the deal, picks nothing already picked, closed, or started on another page', async () => {
+    sessionStorage.setItem('daily-updates-deal', JSON.stringify({ page: 'repo:acme/fastqueue', at: NOW }));
+    answer('GET /api/daily-updates', viewerOf({ picks: picked('acme/fastqueue') }));
+    await mount();
+    expect(bodies('POST /api/daily-updates/picks')).toEqual([]);
+
+    act(() => root.unmount());
+    root = createRoot(container);
+    sessionStorage.setItem('daily-updates-deal', JSON.stringify({ page: 'repo:acme/fastqueue', at: NOW }));
+    answer('GET /api/daily-updates', viewerOf({ open: false, state: 'never' }));
+    await mount();
+    expect(bodies('POST /api/daily-updates/picks')).toEqual([]);
+
+    act(() => root.unmount());
+    root = createRoot(container);
+    sessionStorage.setItem('daily-updates-deal', JSON.stringify({ page: 'repo:octo/rocket', at: NOW }));
+    answer('GET /api/daily-updates', viewerOf());
+    await mount();
+    expect(bodies('POST /api/daily-updates/picks')).toEqual([]);
+    expect(sessionStorage.getItem('daily-updates-deal')).not.toBeNull();
   });
 
   it('shows nothing new while the API keeps daily updates closed to the visitor, or the read fails', async () => {
@@ -304,16 +367,17 @@ describe('UpdateDailyButton', () => {
     expect(toast.error).toHaveBeenCalledExactlyOnceWith(message);
   });
 
-  it('asks for the star, and "I starred it, pick" asks again', async () => {
+  it('asks for the star as the next step, and "I starred it" asks again', async () => {
     answer('GET /api/daily-updates', viewerOf({ state: 'never' }));
     await mount();
 
     answer('POST /api/daily-updates/picks', { status: 'not_starred' });
     await press('Update daily');
-    expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe('Picks cost 1 star ⭐');
+    expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe('One step left: star our repo');
+    expect(buttonNamed('Star on GitHub')?.getAttribute('href')).toBe('https://github.com/gitranks/gitranks-ui');
 
     answer('POST /api/daily-updates/picks', { status: 'blocked', until: iso(NOW + HOUR) });
-    await press('I starred it, pick');
+    await press('I starred it');
     expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe('Our robot needs a break 🥱');
     expect(dialogText()).toContain('Try again in 1 h.');
   });

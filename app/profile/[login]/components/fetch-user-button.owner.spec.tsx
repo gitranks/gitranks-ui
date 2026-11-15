@@ -187,10 +187,10 @@ describe("the owner's daily updates on their own profile", () => {
 
     answer('POST /api/daily-updates', { status: 'not_starred' });
     await press('Start daily updates');
-    expect(dialogTitle()).toBe('Your refresh costs 1 star ⭐');
+    expect(dialogTitle()).toBe('One step left: star our repo');
 
     answer('POST /api/daily-updates', { status: 'busy' });
-    await press('I starred it, refresh');
+    await press('I starred it');
     expect(calls().filter((call) => call === 'POST /api/daily-updates')).toHaveLength(2);
     expect(toast.info).toHaveBeenCalledOnce();
   });

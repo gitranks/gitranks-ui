@@ -1,4 +1,5 @@
 import { withBadgeFacts } from '../images';
+import { OpenRefreshDialog } from '../open-refresh-dialog';
 import type { Screen } from '../registry';
 import { CONNECTED_ISSUES, NOT_CONNECTED_ISSUES } from '@/app/profile/[login]/__fixtures__/contribute-owner';
 import {
@@ -16,6 +17,7 @@ import { ProfileLearnBlock } from '@/app/profile/[login]/components/profile-lear
 import { LearnRecordCard } from '@/app/profile/[login]/components/profile-learn-record';
 import type { UserFacts } from '@/badge/v3/facts';
 import { userBig, userUnranked } from '@/badge/v3/fixtures';
+import { REFRESH_MESSAGES } from '@/components/refresh-dialogs/refresh-messages';
 import { learnRecord, profilePromo, promoColors } from '@/lib/learn/__fixtures__/promo';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
@@ -154,6 +156,26 @@ export const PROFILE_SCREENS: Screen[] = [
         height: 3000,
         viewer: ownerViewer({ state: 'never', until: null }),
         render: () => overview(onDailyUpdates(DailyUpdateReason.Badge), strongBadges),
+      },
+      {
+        id: 'daily-deal',
+        title: 'Signed out, presses Refresh: the deal',
+        path: `/profile/${strongProfile.login}`,
+        height: 1000,
+        signedOut: true,
+        render: () => (
+          <OpenRefreshDialog page={overview(strongProfile, strongBadges)} message={REFRESH_MESSAGES.deal} />
+        ),
+      },
+      {
+        id: 'daily-star-step',
+        title: 'After the sign-in, no star yet',
+        path: `/profile/${strongProfile.login}`,
+        height: 1000,
+        viewer: ownerViewer({ state: 'never', until: null }),
+        render: () => (
+          <OpenRefreshDialog page={overview(strongProfile, strongBadges)} message={REFRESH_MESSAGES.starStep} />
+        ),
       },
       {
         id: 'strong-phone',

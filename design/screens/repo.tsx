@@ -1,4 +1,5 @@
 import { withBadgeFacts } from '../images';
+import { OpenRefreshDialog } from '../open-refresh-dialog';
 import type { Screen } from '../registry';
 import {
   bigRepo,
@@ -9,6 +10,7 @@ import {
   youngRepoFacts,
 } from '@/app/repo/[owner]/[name]/__fixtures__/repo';
 import { RepoScreen } from '@/app/repo/[owner]/[name]/components/repo-screen';
+import { picksDealOf } from '@/app/repo/[owner]/[name]/utils/pick-messages';
 import { repoBig } from '@/badge/v3/fixtures';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
@@ -110,6 +112,22 @@ export const REPO_SCREENS: Screen[] = [
         height: 2000,
         viewer: picker(true),
         render: () => youngOnDailyUpdates(DailyUpdateReason.Pick),
+      },
+      {
+        id: 'young-signed-out',
+        title: 'Signed out: update it daily',
+        path: `/repo/${youngRepo.nameWithOwner}`,
+        height: 2000,
+        signedOut: true,
+        render: () => young(),
+      },
+      {
+        id: 'young-pick-deal',
+        title: 'Signed out, presses “Update daily”: the deal',
+        path: `/repo/${youngRepo.nameWithOwner}`,
+        height: 1000,
+        signedOut: true,
+        render: () => <OpenRefreshDialog page={young()} message={picksDealOf(youngRepo.nameWithOwner)} />,
       },
       {
         id: 'young-phone',

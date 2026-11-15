@@ -2,8 +2,8 @@
 
 import { sendGAEvent } from '@next/third-parties/google';
 import { Check } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { type FC, useRef, useState } from 'react';
+import { signIn, useSession } from 'next-auth/react';
+import { type FC, useEffect, useRef, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 import { toast } from 'sonner';
 
@@ -16,14 +16,17 @@ import {
   PICK_TOASTS,
   PICKS_MAX,
   type PickMessageKind,
+  picksDealOf,
 } from '../utils/pick-messages';
 import { DAILY_UPDATES_NOTES } from '../utils/pull-messages';
 import { PicksDialog } from './picks-dialog';
 import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
 import { useDailyUpdatesViewer } from '@/components/daily-updates/use-daily-updates-viewer';
+import { dealPageOf, keepDealSignIn, takeDealSignIn } from '@/components/refresh-dialogs/deal-sign-in';
 import { RefreshDialog } from '@/components/refresh-dialogs/refresh-dialog';
 import { fillTime, REFRESH_LABELS, REFRESH_TOASTS, STAR_REPO_URL } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
+import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { DailyUpdatesPickResult, DailyUpdatesRemoveResult } from '@/types/daily-updates.types';
 import {
   canPickRepo,
@@ -41,7 +44,7 @@ type UpdateDailyButtonProps = {
   dailyUpdates?: DailyUpdatesFacts;
 };
 
-/** The dialog on screen: the visitor's list, the full or daily-limit note, or a star dialog. */
+/** The dialog on screen: the visitor's list, the full or daily-limit note, the deal or a star dialog. */
 type OpenDialog =
   | { kind: 'yourDailyUpdates' }
   | { kind: 'allPicksUsed' }
@@ -72,13 +75,15 @@ const request = (method: 'POST' | 'DELETE', nameWithOwner: string) => {
 
 /**
  * Under the repository's Refresh: why it updates every day, and for a signed-in visitor the API lets pick, "Update
- * daily" or their own pick. Their state is read after load, never from the cached page. Signed out, and while the
- * API keeps daily updates closed to the visitor, nothing new shows. Who else picked a repository is never said.
+ * daily" or their own pick. Their state is read after load, never from the cached page. Signed out, "Update daily"
+ * opens the deal; back from its sign-in, the pick is made by itself. While the API keeps daily updates closed to a
+ * signed-in visitor, nothing new shows. Who else picked a repository is never said.
  */
 export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dailyUpdates }) => {
   const { data: session, status } = useSession();
   const login = status === 'authenticated' ? session?.user?.githubLogin : undefined;
-  const { viewer, setViewer, reload } = useDailyUpdatesViewer(!!login);
+  const signedOut = status === 'unauthenticated';
+  const { viewer, read, setViewer, reload } = useDailyUpdatesViewer(!!login);
   const nameWithOwner = `${owner}/${name}`;
   // The visitor removed this repository's pick here: the page's pick reason may be theirs, so their state decides.
   const [removedHere, setRemovedHere] = useState(false);
@@ -88,6 +93,7 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
   const [dialog, setDialog] = useState<OpenDialog>(null);
   const [picking, setPicking] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const followedUp = useRef(false);
   const picks = viewer?.picks.map((pick) => pick.nameWithOwner) ?? [];
 
   const openDialog = (next: NonNullable<OpenDialog>) => {
@@ -149,7 +155,7 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
           toast.info(PICK_TOASTS.notHeld);
           break;
         case 'not_starred':
-          openDialog({ kind: 'needStar' });
+          openDialog({ kind: 'starStep' });
           break;
         case 'blocked':
           openDialog({ kind: 'blocked', until: result.until });
@@ -189,6 +195,27 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
       setRemoving(null);
     }
   };
+
+  // The page this sign-in comes back to makes the pick by itself.
+  const signInFromDeal = () => {
+    keepDealSignIn(dealPageOf('repo', nameWithOwner));
+    return signIn(IDENTITY_PROVIDER);
+  };
+
+  /**
+   * Back from a sign-in that started at the deal on this repository: once the visitor's state is read, the pick is made
+   * when they may pick it and have not yet; it asks for the star when there is none. Once a page.
+   */
+  useEffect(() => {
+    if (followedUp.current || !login || read !== 'done') {
+      return;
+    }
+
+    followedUp.current = true;
+    if (takeDealSignIn(dealPageOf('repo', nameWithOwner)) && canPickRepo(view, viewer, nameWithOwner)) {
+      pick();
+    }
+  });
 
   const focusBack = (event: Event) => {
     event.preventDefault();
@@ -245,7 +272,19 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
       );
     }
 
-    if (dialog?.kind === 'needStar' || dialog?.kind === 'blocked') {
+    if (dialog?.kind === 'picksDeal') {
+      return (
+        <RefreshDialog
+          open
+          onOpenChange={onOpenChange}
+          message={picksDealOf(nameWithOwner)}
+          primary={{ onClick: signInFromDeal }}
+          onCloseAutoFocus={focusBack}
+        />
+      );
+    }
+
+    if (dialog?.kind === 'starStep' || dialog?.kind === 'blocked') {
       return (
         <RefreshDialog
           open
@@ -253,7 +292,7 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
           message={PICK_MESSAGES[dialog.kind]}
           time={dialog.until ? timeLeftUntil(dialog.until) : undefined}
           primary={{ href: STAR_REPO_URL }}
-          secondary={dialog.kind === 'needStar' ? { onClick: pick } : undefined}
+          secondary={dialog.kind === 'starStep' ? { onClick: pick } : undefined}
           onCloseAutoFocus={focusBack}
         />
       );
@@ -274,6 +313,24 @@ export const UpdateDailyButton: FC<UpdateDailyButtonProps> = ({ owner, name, dai
         />
         {dialogs}
       </>
+    );
+  }
+
+  // Signed out, a repository not on daily updates offers "Update daily": a press opens the deal.
+  if (signedOut && view === 'repo-off') {
+    return (
+      <div ref={containerRef} className="flex flex-col gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="flex-grow"
+          onClick={() => openDialog({ kind: 'picksDeal' })}
+        >
+          {PICK_LABELS.updateDaily}
+        </Button>
+        {dialogs}
+      </div>
     );
   }
 

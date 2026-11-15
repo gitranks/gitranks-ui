@@ -21,9 +21,12 @@ import {
 import { ClipLoader } from 'react-spinners';
 import { toast } from 'sonner';
 
+import { BadgeCheckStatus } from '@/app/badge/builder/[[...login]]/components/badge-check-status';
+import { useBadgeCheck } from '@/app/badge/builder/[[...login]]/hooks/use-badge-check';
 import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
 import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
 import { useDailyUpdatesViewer } from '@/components/daily-updates/use-daily-updates-viewer';
+import { dealPageOf, keepDealSignIn, takeDealSignIn } from '@/components/refresh-dialogs/deal-sign-in';
 import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-dialogs/refresh-dialog';
 import {
   DAILY_UPDATES_LINES,
@@ -105,6 +108,9 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   const manual = open ? (viewer?.manual ?? null) : daily;
   const [checking, setChecking] = useState(false);
   const [dialog, setDialog] = useState<OpenDialog>(null);
+  // "Check my badge" in the deal checks the profile on screen.
+  const badgeCheck = useBadgeCheck('user', shownLogin);
+  const followedUp = useRef(false);
   const fetchAttempt = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [loadingLabel, setLoadingLabel] = useState(FETCH_MESSAGES[fetchAttempt.current]);
@@ -230,7 +236,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
           setFetchingDuration(0);
           break;
         case 'not_starred':
-          openDialog({ kind: 'needStar', retry: 'refresh' });
+          openDialog({ kind: 'starStep', retry: 'refresh' });
           break;
         case 'blocked':
           openDialog({ kind: 'blocked', until: result.until });
@@ -302,7 +308,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
           setFetchingDuration(0);
           break;
         case 'not_starred':
-          openDialog({ kind: 'needStar', retry: 'start' });
+          openDialog({ kind: 'starStep', retry: 'start' });
           break;
         case 'blocked':
           openDialog({ kind: 'blocked', until: result.until });
@@ -320,6 +326,32 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       setChecking(false);
     }
   };
+
+  /**
+   * Back from a sign-in that started at the deal on this profile: the next step comes by itself. On their own profile
+   * the visitor's daily updates start, or today's refresh is claimed while daily updates are closed to them; either
+   * asks for the star when there is none. Once the visitor's state is read, and once a page.
+   */
+  useEffect(() => {
+    if (followedUp.current || mode === 'loading' || mode === 'signed-out') {
+      return;
+    }
+    if (mode === 'daily' && ownerStates && viewerRead !== 'done') {
+      return;
+    }
+
+    followedUp.current = true;
+    if (!takeDealSignIn(dealPageOf('profile', login)) || mode !== 'daily') {
+      return;
+    }
+    if (open) {
+      if (viewer?.state !== 'on') {
+        startDailyUpdates();
+      }
+    } else {
+      claimDailyRefresh();
+    }
+  });
 
   // While the session loads a press does nothing, as Refresh: read as signed out, the dialog would offer the light
   // sign-in to a token user, and taking it would swap their token session for a light one.
@@ -340,7 +372,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     }
     const ownLogin = session?.user?.githubLogin;
     if (!ownLogin) {
-      return openDialog({ kind: 'signIn' });
+      return openDialog({ kind: 'deal' });
     }
     setDialog(null);
     router.push(`/profile/${encodeURIComponent(ownLogin)}`);
@@ -357,7 +389,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       case 'loading':
         return;
       case 'signed-out':
-        return openDialog({ kind: 'signIn' });
+        return openDialog({ kind: 'deal' });
       case 'other':
         return openDialog({ kind: 'otherProfile' });
       case 'token':
@@ -427,9 +459,14 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   });
 
   const signInWithToken = () => signIn(TOKEN_PROVIDER);
+  // The page this sign-in comes back to takes the next step by itself.
+  const signInFromDeal = () => {
+    keepDealSignIn(dealPageOf('profile', login));
+    return signIn(IDENTITY_PROVIDER);
+  };
   const dialogActions: Record<RefreshDialogKind, { primary: RefreshDialogAction; secondary?: RefreshDialogAction }> = {
-    signIn: { primary: { onClick: () => signIn(IDENTITY_PROVIDER) } },
-    needStar: {
+    deal: { primary: { onClick: signInFromDeal } },
+    starStep: {
       primary: { href: STAR_REPO_URL },
       secondary: { onClick: dialog?.retry === 'start' ? startDailyUpdates : claimDailyRefresh },
     },
@@ -526,6 +563,17 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
             event.preventDefault();
             containerRef.current?.querySelector('button')?.focus();
           }}
+          onNoteAction={dialog.kind === 'deal' ? badgeCheck.check : undefined}
+          noteStatus={
+            dialog.kind === 'deal' ? (
+              <BadgeCheckStatus
+                kind="user"
+                name={shownLogin}
+                result={badgeCheck.result}
+                checking={badgeCheck.checking}
+              />
+            ) : undefined
+          }
         />
       )}
       {fetchingDuration !== null && (

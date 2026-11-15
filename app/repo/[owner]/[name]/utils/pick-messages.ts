@@ -1,3 +1,4 @@
+import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
 import {
   REFRESH_LABELS,
   REFRESH_MESSAGES,
@@ -69,21 +70,34 @@ export const PICK_LIST = {
 /** The muted last row of the list: "1 pick left". */
 export const picksLeftText = (left: number) => (left === 1 ? '1 pick left' : `${left} picks left`);
 
-/** The star check before a pick, as the Refresh button's dialogs. */
+/** The small print's link to the badge builder, for this repository. */
+const BADGE_LINK = 'GitRanks badge';
+
+/** Before a pick: the deal for a visitor not signed in, then the star check, as the profile's Refresh says them. */
 export const PICK_MESSAGES = {
-  needStar: {
+  /** Not signed in, presses "Update daily": the deal, with a badge as the way for the repository's own people. */
+  picksDeal: {
     photo: true,
-    title: 'Picks cost 1 star ⭐',
+    title: 'Hi, I’m Vitalii 👋',
     paragraphs: [
-      'That’s the full price. No card, no ads.',
-      'Star our repo on GitHub, then press the button. Stars keep GitRanks alive.',
+      'I made GitRanks. Bots press these buttons a lot, and our GitHub limits are small. So here is the deal:',
     ],
-    signature: '— Vitalii',
-    primary: '⭐ Star on GitHub',
-    secondary: 'I starred it, pick',
+    steps: ['Sign in with GitHub. We only see your name and email.', 'Star our repo.'],
+    closing: ['Then you pick 3 repositories. We update them, and your profile, every day.'],
+    note: 'Is this your repository? Add a GitRanks badge to its README. While the badge is there, we update it every day. No sign-in needed.',
+    noteLinks: [{ text: BADGE_LINK, href: '/badge/builder' }],
+    primary: 'Sign in with GitHub',
+    secondary: 'Maybe later',
   },
+  starStep: REFRESH_MESSAGES.starStep,
   blocked: REFRESH_MESSAGES.blocked,
 } satisfies Record<string, RefreshMessage>;
+
+/** The deal on this repository's page: its badge link opens the builder for it. */
+export const picksDealOf = (nameWithOwner: string): RefreshMessage => ({
+  ...PICK_MESSAGES.picksDeal,
+  noteLinks: [{ text: BADGE_LINK, href: builderHref({ kind: 'repo', name: nameWithOwner }) }],
+});
 
 export type PickMessageKind = keyof typeof PICK_MESSAGES;
 

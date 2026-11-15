@@ -33,6 +33,7 @@ const BUILDER = {
   embed: builderHref({ ...user, badge: card, embed: true }),
   contributeStyle: builderHref({ ...repo, badge: contribute }),
   contributeEmbed: builderHref({ ...repo, badge: contribute, embed: true }),
+  repoEmbed: builderHref({ ...repo, badge: findBadge('repo', 'rank'), embed: true }),
 };
 
 export const BADGES_SCREENS: Screen[] = [
@@ -47,6 +48,7 @@ export const BADGES_SCREENS: Screen[] = [
       'app/badge/builder/[[...login]]/components/badge-step.tsx',
       'app/badge/builder/[[...login]]/components/style-step.tsx',
       'app/badge/builder/[[...login]]/components/embed-step.tsx',
+      'app/badge/builder/[[...login]]/components/daily-updates-card.tsx',
     ],
     states: [
       { id: 'find', title: '1 · Find', path: BUILDER.find, height: 800, render: () => builder(BUILDER.find) },
@@ -58,7 +60,46 @@ export const BADGES_SCREENS: Screen[] = [
         render: () => builder(BUILDER.badge),
       },
       { id: 'style', title: '3 · Style', path: BUILDER.style, height: 800, render: () => builder(BUILDER.style) },
-      { id: 'embed', title: '4 · Embed', path: BUILDER.embed, height: 800, render: () => builder(BUILDER.embed) },
+      { id: 'embed', title: '4 · Embed', path: BUILDER.embed, height: 1000, render: () => builder(BUILDER.embed) },
+      {
+        id: 'embed-check-found',
+        title: '4 · Embed, badge found',
+        path: BUILDER.embed,
+        height: 1000,
+        badgeCheck: { status: 'found', until: '2026-11-04T12:00:00.000Z' },
+        render: () => builder(BUILDER.embed),
+      },
+      {
+        id: 'embed-check-missing',
+        title: '4 · Embed, badge not found yet',
+        path: BUILDER.embed,
+        height: 1000,
+        badgeCheck: { status: 'not_found', checksLeft: 2 },
+        render: () => builder(BUILDER.embed),
+      },
+      {
+        id: 'embed-check-limit',
+        title: '4 · Embed, no checks left for now',
+        path: BUILDER.embed,
+        height: 1000,
+        badgeCheck: { status: 'limit', nextAt: '2026-10-29T00:00:00.000Z' },
+        render: () => builder(BUILDER.embed),
+      },
+      {
+        id: 'embed-check-failed',
+        title: '4 · Embed, the check failed',
+        path: BUILDER.embed,
+        height: 1000,
+        badgeCheck: { status: 'unavailable' },
+        render: () => builder(BUILDER.embed),
+      },
+      {
+        id: 'embed-repo',
+        title: '4 · Embed, for a repository',
+        path: BUILDER.repoEmbed,
+        height: 1000,
+        render: () => builder(BUILDER.repoEmbed),
+      },
       {
         id: 'badge-repo',
         title: '2 · Pick a badge, for a repository',

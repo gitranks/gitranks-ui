@@ -11,7 +11,8 @@ type FetchingState = { fetchingStatus?: string | null; fetchingUpdatedAt?: numbe
 
 export const isGithubLogin = (value: unknown): value is string => typeof value === 'string' && GITHUB_LOGIN.test(value);
 
-export const profileCacheTag = (login: string) => `profile:${login}`;
+/** One cache tag per profile, whatever the spelling of the login. */
+export const profileCacheTag = (login: string) => `profile:${login}`.toLowerCase();
 
 /**
  * The profile's fetch status as one key, or null when the status did not change within
@@ -37,9 +38,10 @@ export function recentRefreshState(user: FetchingState | null | undefined, now: 
 export const REPEAT_EXPIRY_AFTER = 15 * 1_000;
 
 /**
- * Profile URLs match logins in any letter case, and each spelling has its own cache tag. The stored
- * spelling, which the site's own links use, is always expired; besides it, a status is expired for at
- * most this many spellings.
+ * Profile URLs match logins in any letter case, and every spelling shares one cache tag. A status is
+ * still claimed per spelling, as each spelling's page asks for the expiry on its own: the stored spelling,
+ * which the site's own links use, is always expired; besides it, a status is expired for at most this
+ * many spellings.
  */
 export const MAX_SPELLINGS_PER_STATUS = 3;
 

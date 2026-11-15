@@ -1,6 +1,7 @@
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { ProfileFrame } from './components/profile-frame';
+import { profileCacheTag } from '@/utils/profile-refresh';
 
 // Every profile renders as one piece, with no Suspense boundary or loading.tsx: React streams a
 // large finished boundary into a hidden segment after the footer, so the profile would be missing
@@ -21,7 +22,7 @@ export default async function ProfileLayout({ children, params }: LayoutProps<'/
   'use cache';
   const { login } = await params;
   cacheLife('hours');
-  cacheTag(`profile:${login}`);
+  cacheTag(profileCacheTag(login));
 
   return <ProfileFrame login={login}>{children}</ProfileFrame>;
 }

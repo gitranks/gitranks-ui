@@ -11,6 +11,7 @@ import { UserContributionsList } from './components/user-contributions-list';
 import { UserRepositoriesList } from './components/user-repositories-list';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { fetchProfilePageRepositories } from '@/graphql/helpers/fetch-profile-page-repositories';
+import { profileCacheTag } from '@/utils/profile-refresh';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/repositories'>): Promise<Metadata> {
   const { login } = await params;
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: PageProps<'/profile/[login]/r
 export default async function ProfileRepositories({ params }: PageProps<'/profile/[login]/repositories'>) {
   const { login } = await params;
   cacheLife('hours');
-  cacheTag(`profile:${login}`);
+  cacheTag(profileCacheTag(login));
 
   const user = await fetchProfilePageRepositories(login);
 

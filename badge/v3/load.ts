@@ -31,6 +31,7 @@ import {
   RankGoalScope,
   RankGoalUnit,
 } from '@/types/generated/graphql';
+import { profileCacheTag } from '@/utils/profile-refresh';
 import { getRepoCacheTag } from '@/utils/repo-paths';
 
 type Json = Record<string, unknown> | null | undefined;
@@ -308,7 +309,7 @@ export async function loadBadgeRepo(owner: string, name: string): Promise<RepoFa
 /** A developer's badge data (see `keepFor`); `null` when the profile is unknown. */
 export async function loadBadgeUser(login: string): Promise<UserFacts | null> {
   'use cache';
-  cacheTag(`profile:${login}`);
+  cacheTag(profileCacheTag(login));
   const facts = toUserFacts(await graphqlDirect(BadgeUserDocument, { login }, { source: 'badge' }));
   keepFor(facts);
   return facts;
@@ -325,7 +326,7 @@ export async function loadBadgeOrg(login: string): Promise<OrgFacts | null> {
 /** A developer's Badges card data (see `card-facts.ts` and `keepFor`); `null` when the profile is unknown. */
 export async function loadBadgeUserCard(login: string): Promise<UserFacts | null> {
   'use cache';
-  cacheTag(`profile:${login}`);
+  cacheTag(profileCacheTag(login));
   const facts = toUserCardFacts(await graphqlDirect(BadgeUserCardDocument, { login }, { source: 'badge' }));
   keepFor(facts);
   return facts;

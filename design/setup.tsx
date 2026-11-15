@@ -44,6 +44,14 @@ vi.mock('@/components/daily-updates/use-daily-updates-viewer', () => ({
     reload: async () => null,
   }),
 }));
+// "Check my badge", answered in the browser: the state's answer, when it names one.
+vi.mock('@/app/badge/builder/[[...login]]/hooks/use-badge-check', () => ({
+  useBadgeCheck: () => ({
+    result: (globalThis as DesignGlobals).__designBadgeCheck ?? null,
+    checking: false,
+    check: () => {},
+  }),
+}));
 // The landing's own rank card, read in the browser: the viewer's from the fixtures.
 vi.mock('@/app/components/landing/use-rank-card', async () => {
   const { viewerRankCard } = await import('@/app/components/landing/__fixtures__/landing');

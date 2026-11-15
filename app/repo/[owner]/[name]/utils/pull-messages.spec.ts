@@ -65,7 +65,7 @@ describe('pullOutcomeOf', () => {
   it('reloads after a refresh, with the note on badges for the page after it', () => {
     expect(pullOutcomeOf({ status: 'refreshed', stars: 171, nextAt: IN_2H }, 'daily', NOW)).toEqual({
       kind: 'reload',
-      note: 'Updated. Badges are cached for 24 hours, so the ones in your README can take up to a day to show it.',
+      note: 'Updated. Badges in your README show it in about 5 minutes.',
     });
   });
 
@@ -73,8 +73,7 @@ describe('pullOutcomeOf', () => {
     expect(pullOutcomeOf({ status: 'refreshed', stars: 171, historyUntil: IN_2H }, 'daily', NOW)).toEqual({
       kind: 'reload',
       note:
-        'Updated. Badges are cached for 24 hours, so the ones in your README can take up to a day to show it. ' +
-        'The full star history is read again in 2 h.',
+        'Updated. Badges in your README show it in about 5 minutes. ' + 'The full star history is read again in 2 h.',
     });
   });
 

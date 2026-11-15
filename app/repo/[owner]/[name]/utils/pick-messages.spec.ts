@@ -7,9 +7,10 @@ import {
   PICK_LINES,
   PICK_MESSAGES,
   PICKS_MAX,
+  picksDealOf,
   picksLeftText,
 } from './pick-messages';
-import { fillTime } from '@/components/refresh-dialogs/refresh-messages';
+import { fillTime, REFRESH_MESSAGES } from '@/components/refresh-dialogs/refresh-messages';
 
 describe('pick messages', () => {
   it('labels the button and its line as the design does', () => {
@@ -46,11 +47,24 @@ describe('pick messages', () => {
     expect(PICKS_MAX).toBe(3);
   });
 
-  it('asks for the star in the voice of the other star dialogs', () => {
-    expect(PICK_MESSAGES.needStar).toMatchObject({
+  it('asks for the star with the profile’s own star step', () => {
+    expect(PICK_MESSAGES.starStep).toBe(REFRESH_MESSAGES.starStep);
+    expect(Object.keys(PICK_MESSAGES)).toEqual(['picksDeal', 'starStep', 'blocked']);
+  });
+
+  it('offers the deal signed out in the words of the design, its badge link for this repository', () => {
+    expect(picksDealOf('brightfern/tidepool')).toEqual({
       photo: true,
-      signature: '— Vitalii',
-      secondary: 'I starred it, pick',
+      title: 'Hi, I’m Vitalii 👋',
+      paragraphs: [
+        'I made GitRanks. Bots press these buttons a lot, and our GitHub limits are small. So here is the deal:',
+      ],
+      steps: ['Sign in with GitHub. We only see your name and email.', 'Star our repo.'],
+      closing: ['Then you pick 3 repositories. We update them, and your profile, every day.'],
+      note: 'Is this your repository? Add a GitRanks badge to its README. While the badge is there, we update it every day. No sign-in needed.',
+      noteLinks: [{ text: 'GitRanks badge', href: '/badge/builder?repo=brightfern/tidepool' }],
+      primary: 'Sign in with GitHub',
+      secondary: 'Maybe later',
     });
   });
 

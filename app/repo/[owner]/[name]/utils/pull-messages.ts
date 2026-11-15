@@ -96,7 +96,7 @@ export const PULL_TOASTS = {
   failed: REFRESH_TOASTS.checkFailed,
   pullFailed: 'The star history fetch failed. Please try again later.',
   timedOut: 'The fetch is taking long. Come back later: the chart updates when it is done.',
-  updated: 'Updated. Badges are cached for 24 hours, so the ones in your README can take up to a day to show it.',
+  updated: 'Updated. Badges in your README show it in about 5 minutes.',
   historyAgain: 'The full star history is read again in {time}.',
 } as const;
 

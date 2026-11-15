@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CHECK_BADGE_LINK,
   DAILY_UPDATES_LINES,
   fillLogin,
   fillTime,
+  GITHUB_AUTHORIZATIONS_URL,
   REFRESH_LABELS,
   REFRESH_MESSAGES,
   REFRESH_TOASTS,
+  type RefreshMessage,
+  STAR_STEP_REFRESH,
   WELCOME_BACK,
   withLogin,
+  withoutBadgeCheck,
 } from './refresh-messages';
 import { DAILY_UPDATES_NOTES } from '@/app/repo/[owner]/[name]/utils/pull-messages';
 
@@ -72,16 +77,88 @@ describe('refresh messages', () => {
       .filter(([, message]) => 'signature' in message)
       .map(([kind]) => kind);
 
-    expect(withPhoto.sort()).toEqual(['needStar', 'signIn']);
-    expect(signed).toEqual(['needStar']);
+    expect(withPhoto.sort()).toEqual(['deal', 'signIn', 'starStep']);
+    expect(signed).toEqual([]);
   });
 
   it("explains GitHub's consent screen only on someone else's profile", () => {
     const noted = Object.entries(REFRESH_MESSAGES)
-      .filter(([, message]) => 'noteLink' in message)
+      .filter(([, message]) => JSON.stringify(message).includes(GITHUB_AUTHORIZATIONS_URL))
       .map(([kind]) => kind);
 
     expect(noted).toEqual(['otherProfile']);
+  });
+
+  it('offers the deal signed out in the words of the design, with a badge as the way without a star', () => {
+    expect(REFRESH_MESSAGES.deal).toEqual({
+      photo: true,
+      title: 'Hi, I’m Vitalii 👋',
+      paragraphs: [
+        'I made GitRanks. Bots press this button a lot, and our GitHub limits are small. So here is the deal:',
+      ],
+      steps: ['Sign in with GitHub. We only see your name and email.', 'Star our repo.'],
+      closing: [
+        'Then we update your profile every day. It stays on for 7 days after your last visit.',
+        'You also get 3 picks: repositories we update every day, too.',
+      ],
+      note: 'Don’t want to star? Add a GitRanks badge to your GitHub profile. While the badge is there, we update your profile every day. No sign-in, no 7-day limit. Already added it? Check my badge.',
+      noteLinks: [{ text: 'GitRanks badge', href: '/badge/builder' }, { text: CHECK_BADGE_LINK }],
+      primary: 'Sign in with GitHub',
+      secondary: 'Maybe later',
+    });
+    expect(REFRESH_MESSAGES.deal.note.endsWith(`${CHECK_BADGE_LINK}.`)).toBe(true);
+  });
+
+  it('asks for the star as the next step, not an error', () => {
+    expect(REFRESH_MESSAGES.starStep).toEqual({
+      photo: true,
+      title: 'One step left: star our repo',
+      checklist: [{ text: 'Signed in with GitHub.', done: true }, { text: 'Star our repo.' }],
+      paragraphs: ['Then come back and press “I starred it”. We check the star and start your daily updates.'],
+      note: 'That’s the full price. No card, no ads.',
+      primary: 'Star on GitHub',
+      primaryIcon: 'star',
+      secondary: 'I starred it',
+    });
+  });
+
+  it('keeps today’s sign-in for pages that do not show daily updates on, and no other star dialog', () => {
+    expect(REFRESH_MESSAGES.signIn.steps).toEqual([
+      'Sign in with GitHub. We only see your name and email.',
+      'Star our repo.',
+      'Get 1 refresh of your profile every day.',
+    ]);
+    expect(JSON.stringify(REFRESH_MESSAGES.signIn)).not.toMatch(/daily updates|picks|badge/i);
+    expect(Object.keys(REFRESH_MESSAGES)).not.toContain('needStar');
+  });
+
+  it('says what "I starred it" does: a refresh, or the start of daily updates', () => {
+    expect(STAR_STEP_REFRESH).toEqual({
+      ...REFRESH_MESSAGES.starStep,
+      paragraphs: ['Then come back and press “I starred it”. We check the star and refresh your profile.'],
+    });
+  });
+
+  it('drops the badge check from the deal where the profile on screen is not the visitor’s', () => {
+    const deal = withoutBadgeCheck(REFRESH_MESSAGES.deal);
+
+    expect(deal.note).toBe(
+      'Don’t want to star? Add a GitRanks badge to your GitHub profile. While the badge is there, we update your profile every day. No sign-in, no 7-day limit.',
+    );
+    expect(deal.noteLinks).toEqual([{ text: 'GitRanks badge', href: '/badge/builder' }]);
+    expect({ ...deal, note: undefined, noteLinks: undefined }).toEqual({
+      ...REFRESH_MESSAGES.deal,
+      note: undefined,
+      noteLinks: undefined,
+    });
+  });
+
+  it('keeps every note link inside its note', () => {
+    for (const message of Object.values(REFRESH_MESSAGES) as RefreshMessage[]) {
+      for (const link of message.noteLinks ?? []) {
+        expect(message.note).toContain(link.text);
+      }
+    }
   });
 
   it('says why a profile updates every day, in the words of the design', () => {

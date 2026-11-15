@@ -31,6 +31,11 @@ export function isGithubLogin(login: string): boolean {
   return REPO_OWNER.test(login);
 }
 
+/** True when `name` can be a GitHub repository's name, without its owner. */
+export function isRepoName(name: string): boolean {
+  return REPO_NAME.test(name);
+}
+
 /** True when `owner` and `name` can name a GitHub repository. */
 export function isRepoSlug(owner: string, name: string): boolean {
   return REPO_OWNER.test(owner) && REPO_NAME.test(name);

@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 
-import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
+import type { BadgeCheckResult, DailyUpdatesViewer } from '@/types/daily-updates.types';
 
 /** The product areas, one page each on the designs canvas, in this order. */
 export const AREAS = {
@@ -26,6 +26,8 @@ export type DesignGlobals = {
   __designViewerLogin?: string;
   /** The viewer's own daily updates, as the browser reads them after load. */
   __designDailyUpdates?: DailyUpdatesViewer;
+  /** What "Check my badge" answered, in the browser. */
+  __designBadgeCheck?: BadgeCheckResult;
 };
 
 /** One state of a screen, drawn from fixtures: a board on the canvas. */
@@ -38,6 +40,8 @@ export type ScreenState = {
   signedOut?: boolean;
   /** The signed-in viewer, when the state needs another login or the viewer's own daily updates. */
   viewer?: { login?: string; dailyUpdates?: DailyUpdatesViewer };
+  /** What "Check my badge" answered, when the state shows an answer. */
+  badgeCheck?: BadgeCheckResult;
   /** The board's width; 390 is a phone. */
   width?: number;
   /** The board's height: the page's height at `width`, rounded up. */

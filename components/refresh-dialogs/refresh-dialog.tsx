@@ -1,9 +1,10 @@
 'use client';
 
+import { Check, Star } from 'lucide-react';
 import Image from 'next/image';
 import type { FC, ReactNode } from 'react';
 
-import { fillTime, MAKER, type RefreshMessage } from './refresh-messages';
+import { fillTime, MAKER, type NoteLink, type RefreshMessage } from './refresh-messages';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,41 +31,141 @@ type RefreshDialogProps = {
   secondary?: RefreshDialogAction;
   /** Where focus goes on close: the dialog has no trigger of its own to return to. */
   onCloseAutoFocus?: (event: Event) => void;
+  /** What a note link without `href` does. */
+  onNoteAction?: () => void;
+  /** Under the small print: what the note's action answered. */
+  noteStatus?: ReactNode;
 };
 
-const withLink = (text: string, link?: RefreshMessage['noteLink']): ReactNode => {
-  if (!link || !text.includes(link.text)) {
+const LINK_CLASS = 'underline underline-offset-2';
+
+/** A note link: another site opens in a new tab, a page of this one in the same tab, and one without `href` acts. */
+const NoteAnchor: FC<{ link: NoteLink; onAction?: () => void }> = ({ link, onAction }) => {
+  if (!link.href) {
+    return (
+      <button type="button" className={`${LINK_CLASS} cursor-pointer`} onClick={onAction}>
+        {link.text}
+      </button>
+    );
+  }
+
+  return link.href.startsWith('/') ? (
+    <a href={link.href} className={LINK_CLASS}>
+      {link.text}
+    </a>
+  ) : (
+    <a href={link.href} target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>
+      {link.text}
+    </a>
+  );
+};
+
+/** The small print with each link's text, at its first place, made a link. */
+const withLinks = (text: string, links: NoteLink[] = [], onAction?: () => void): ReactNode => {
+  const link = links.find((candidate) => text.includes(candidate.text));
+  if (!link) {
     return text;
   }
 
-  const [before, after] = text.split(link.text);
+  const at = text.indexOf(link.text);
+  const others = links.filter((candidate) => candidate !== link);
   return (
     <>
-      {before}
-      <a href={link.href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
-        {link.text}
-      </a>
-      {after}
+      {withLinks(text.slice(0, at), others, onAction)}
+      <NoteAnchor link={link} onAction={onAction} />
+      {withLinks(text.slice(at + link.text.length), others, onAction)}
     </>
   );
 };
 
-const ActionButton: FC<{ action: RefreshDialogAction; label: string; variant: 'default' | 'secondary' }> = ({
-  action,
-  label,
-  variant,
-}) =>
-  action.href ? (
+/** The deal's steps so far: a done one is checked and muted, the next ones numbered by their place. */
+const Checklist: FC<{ items: NonNullable<RefreshMessage['checklist']> }> = ({ items }) => (
+  <ol className="flex flex-col gap-1">
+    {items.map((item, index) => (
+      <li
+        key={item.text}
+        className={item.done ? 'flex items-center gap-2 text-muted-foreground' : 'flex items-center gap-2'}
+      >
+        {item.done ? (
+          <>
+            <Check className="size-4 shrink-0" aria-hidden />
+            <span className="sr-only">Done: </span>
+          </>
+        ) : (
+          <span className="w-4 shrink-0 text-center">{index + 1}.</span>
+        )}
+        <span>{item.text}</span>
+      </li>
+    ))}
+  </ol>
+);
+
+export const ActionButton: FC<{
+  action: RefreshDialogAction;
+  label: string;
+  variant: 'default' | 'secondary';
+  icon?: RefreshMessage['primaryIcon'];
+}> = ({ action, label, variant, icon }) => {
+  const content = (
+    <>
+      {icon === 'star' && <Star aria-hidden />}
+      {label}
+    </>
+  );
+
+  return action.href ? (
     <Button asChild variant={variant}>
       <a href={action.href} target="_blank" rel="noopener noreferrer" onClick={action.onClick}>
-        {label}
+        {content}
       </a>
     </Button>
   ) : (
     <Button type="button" variant={variant} onClick={action.onClick}>
-      {label}
+      {content}
     </Button>
   );
+};
+
+type RefreshMessageBodyProps = Pick<RefreshDialogProps, 'message' | 'time' | 'onNoteAction' | 'noteStatus'> & {
+  /** The first paragraph: the dialog's description in a dialog. */
+  renderLead: (text: string) => ReactNode;
+};
+
+/** A message's text between its title and its buttons: the same in the dialog and on the design boards. */
+export const RefreshMessageBody: FC<RefreshMessageBodyProps> = ({
+  message,
+  time,
+  onNoteAction,
+  noteStatus,
+  renderLead,
+}) => {
+  const [lead, ...rest] = message.paragraphs.map((paragraph) => fillTime(paragraph, time));
+
+  return (
+    <div className="flex flex-col gap-3 text-sm">
+      {message.checklist && <Checklist items={message.checklist} />}
+      {renderLead(lead)}
+      {rest.map((paragraph) => (
+        <p key={paragraph}>{paragraph}</p>
+      ))}
+      {message.steps && (
+        <ol className="list-decimal pl-5 flex flex-col gap-1">
+          {message.steps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      )}
+      {message.closing?.map((paragraph) => (
+        <p key={paragraph}>{fillTime(paragraph, time)}</p>
+      ))}
+      {message.note && (
+        <p className="text-xs text-muted-foreground">{withLinks(message.note, message.noteLinks, onNoteAction)}</p>
+      )}
+      {noteStatus}
+      {message.signature && <p className="text-muted-foreground">{message.signature}</p>}
+    </div>
+  );
+};
 
 /** A short note on what the Refresh button needs and why; the maker's own notes carry his photo. */
 export const RefreshDialog: FC<RefreshDialogProps> = ({
@@ -75,9 +176,9 @@ export const RefreshDialog: FC<RefreshDialogProps> = ({
   primary,
   secondary,
   onCloseAutoFocus,
+  onNoteAction,
+  noteStatus,
 }) => {
-  const [lead, ...rest] = message.paragraphs.map((paragraph) => fillTime(paragraph, time));
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
@@ -96,24 +197,13 @@ export const RefreshDialog: FC<RefreshDialogProps> = ({
           <DialogTitle className="text-lg leading-snug">{fillTime(message.title, time)}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 text-sm">
-          <DialogDescription className="text-foreground">{lead}</DialogDescription>
-          {rest.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
-          {message.steps && (
-            <ol className="list-decimal pl-5 flex flex-col gap-1">
-              {message.steps.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-          )}
-          {message.closing?.map((paragraph) => (
-            <p key={paragraph}>{fillTime(paragraph, time)}</p>
-          ))}
-          {message.note && <p className="text-xs text-muted-foreground">{withLink(message.note, message.noteLink)}</p>}
-          {message.signature && <p className="text-muted-foreground">{message.signature}</p>}
-        </div>
+        <RefreshMessageBody
+          message={message}
+          time={time}
+          onNoteAction={onNoteAction}
+          noteStatus={noteStatus}
+          renderLead={(lead) => <DialogDescription className="text-foreground">{lead}</DialogDescription>}
+        />
 
         <DialogFooter>
           <ActionButton
@@ -121,7 +211,7 @@ export const RefreshDialog: FC<RefreshDialogProps> = ({
             label={message.secondary}
             variant="secondary"
           />
-          <ActionButton action={primary} label={message.primary} variant="default" />
+          <ActionButton action={primary} label={message.primary} variant="default" icon={message.primaryIcon} />
         </DialogFooter>
       </DialogContent>
     </Dialog>

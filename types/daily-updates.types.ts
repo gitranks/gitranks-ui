@@ -51,3 +51,18 @@ export type DailyUpdatesPickResult =
 
 /** A pick's removal. */
 export type DailyUpdatesRemoveResult = { status: 'removed'; picks: DailyUpdatesPick[] };
+
+/** What "Check my badge" checks: a profile by login, or a repository by `owner/name`. */
+export type BadgeCheckKind = 'user' | 'repo';
+
+/**
+ * "Check my badge": the README was read now. `found`: a badge is there, and daily updates are on until `until`;
+ * `not_found`: no badge, `checksLeft` today for this profile or repository; `limit`: no check until `nextAt`;
+ * `unknown`: GitRanks has no such profile or repository; `unavailable`: the README could not be read now.
+ */
+export type BadgeCheckResult =
+  | { status: 'found'; until: string }
+  | { status: 'not_found'; checksLeft: number }
+  | { status: 'limit'; nextAt: string }
+  | { status: 'unknown' }
+  | { status: 'unavailable' };

@@ -20,8 +20,8 @@ export const metadata: Metadata = pageMetadata({
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
-/** The Privacy policy's own date: it changed after `LAST_UPDATED` (agents' example issues and sign-in, ways into Contribute, 2026-11-11). */
-const PRIVACY_UPDATED = '2026-11-11';
+/** The Privacy policy's own date: it changed after `LAST_UPDATED` (daily updates, 2026-11-15). */
+const PRIVACY_UPDATED = '2026-11-15';
 
 const sections: LegalSection[] = [
   {
@@ -112,6 +112,12 @@ const sections: LegalSection[] = [
           <B>Refreshes</B>: when you ask for a refresh that needs a star on our repository, we check with GitHub at that
           moment whether you have starred it. We record the refreshes, star checks and repository updates you ask for,
           so the limits shown on the site can be applied.
+        </li>
+        <li>
+          <B>Daily updates</B>: when you turn on daily updates of your profile, we record the repositories you pick and
+          when you last visited GitRanks while signed in, since daily updates stay on for 7 days after your last visit.
+          A profile on daily updates shows that its owner turned them on, which tells others the owner visited GitRanks
+          in the last 7 days. Your picks are not shown to anyone.
         </li>
         <li>
           <B>Basis</B>: contract (Article 6(1)(b)), to provide what you ask for.
@@ -238,6 +244,12 @@ const sections: LegalSection[] = [
           Your IP address and browser only tell one day&apos;s visitors apart, as a code that can no longer be traced
           back once the day is over; neither is stored. On your own profile, the profile is not kept. Basis: legitimate
           interests, in knowing which pages bring people to Contribute.
+        </li>
+        <li>
+          <B>Check my badge</B>: when you check a badge, we read the README of that profile or repository on GitHub.
+          Your IP address only limits how many checks one visitor makes in a day, as a code that can no longer be traced
+          back once the day is over; it is not stored. Basis: legitimate interests, in keeping the check from being
+          misused.
         </li>
       </List>
     ),

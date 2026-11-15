@@ -8,6 +8,7 @@ import { badgeAlt, entityName, paramsOf } from '../utils/badge-options';
 import { type Style, styleQuery } from '../utils/builder-state';
 import { badgeImageUrl, badgeLinkUrl, SNIPPET_FORMATS, type SnippetFormat, snippetOf } from '../utils/snippets';
 import { BadgeImage, usePageTheme } from './badge-image';
+import { DailyUpdatesCard } from './daily-updates-card';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
 import type { EntityFacts } from '@/badge/v3/facts';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,11 @@ type EmbedStepProps = {
   onEdit: () => void;
 };
 
-/** Step 4: the code in three forms, Copy, Edit (back to step 3) and the gallery. */
+/**
+ * Step 4: the code in three forms, Copy, Edit (back to step 3) and the gallery. Under it, for a profile's or a
+ * repository's badge, "Get daily updates": not for the Contribute badge, which shows none of the repository's numbers
+ * and so does not keep it on daily updates.
+ */
 export function EmbedStep({ headingRef, facts, badge, style, now, editHref, onEdit }: Readonly<EmbedStepProps>) {
   const theme = usePageTheme();
   const ids = useId();
@@ -91,67 +96,75 @@ export function EmbedStep({ headingRef, facts, badge, style, now, editHref, onEd
     onEdit();
   };
 
+  const dailyUpdates = facts.kind !== 'org' && badge.id !== 'contribute';
+
   return (
-    <section className="flex flex-col gap-4" aria-labelledby={`${ids}-heading`}>
-      <h2 id={`${ids}-heading`} ref={headingRef} tabIndex={-1} className="text-xl font-semibold outline-none">
-        Copy the code
-      </h2>
+    <>
+      <section className="flex flex-col gap-4" aria-labelledby={`${ids}-heading`}>
+        <h2 id={`${ids}-heading`} ref={headingRef} tabIndex={-1} className="text-xl font-semibold outline-none">
+          Copy the code
+        </h2>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
-        <div className="min-w-0 max-w-full">
-          <BadgeImage facts={facts} badge={badge} style={style} theme={theme} alt={snippet.alt} />
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
+          <div className="min-w-0 max-w-full">
+            <BadgeImage facts={facts} badge={badge} style={style} theme={theme} alt={snippet.alt} />
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <a href={editHref} onClick={edit}>
+              Edit<span className="sr-only"> the badge style</span>
+            </a>
+          </Button>
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <a href={editHref} onClick={edit}>
-            Edit<span className="sr-only"> the badge style</span>
-          </a>
-        </Button>
-      </div>
 
-      <Tabs value={format} onValueChange={(value) => setFormat(value as SnippetFormat)}>
-        <TabsList aria-label="Code format">
+        <Tabs value={format} onValueChange={(value) => setFormat(value as SnippetFormat)}>
+          <TabsList aria-label="Code format">
+            {SNIPPET_FORMATS.map(({ value, name: label }) => (
+              <TabsTrigger key={value} value={value}>
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
           {SNIPPET_FORMATS.map(({ value, name: label }) => (
-            <TabsTrigger key={value} value={value}>
-              {label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {SNIPPET_FORMATS.map(({ value, name: label }) => (
-          <TabsContent key={value} value={value} className="flex flex-col gap-3">
-            <pre className="max-w-full overflow-x-auto rounded-md bg-muted px-3 py-2 font-mono text-[13px] leading-5 whitespace-pre-wrap break-all">
-              <code id={`${ids}-${value}`}>{snippetOf(value, snippet)}</code>
-            </pre>
-            <p className="text-xs text-muted-foreground">
-              {value === 'markdown' &&
-                (snippet.auto
-                  ? 'Auto colors follow the reader’s system theme. On GitHub, pick HTML: it follows GitHub’s own theme.'
-                  : 'Paste it into a README or any page that takes Markdown.')}
-              {value === 'html' &&
-                (snippet.auto
-                  ? 'A light and a dark image in <picture>, so the badge follows the page’s theme on GitHub.'
-                  : 'For GitHub READMEs and any page that takes HTML.')}
-              {value === 'url' && 'The image alone, for anywhere that takes an image link.'}
-            </p>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Link href="/badge/gallery" className="text-sm font-medium text-link underline-offset-2 hover:underline">
-                See all badges
-              </Link>
-              <Button type="button" onClick={() => copy(value)} className="min-w-28">
-                {copied === value ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-                {copied === value ? 'Copied' : `Copy ${label}`}
-              </Button>
-            </div>
-            {selected === value && (
-              <p className="text-right text-sm font-medium" aria-hidden="true">
-                Selected. {COPY_KEYS}
+            <TabsContent key={value} value={value} className="flex flex-col gap-3">
+              <pre className="max-w-full overflow-x-auto rounded-md bg-muted px-3 py-2 font-mono text-[13px] leading-5 whitespace-pre-wrap break-all">
+                <code id={`${ids}-${value}`}>{snippetOf(value, snippet)}</code>
+              </pre>
+              <p className="text-xs text-muted-foreground">
+                {value === 'markdown' &&
+                  (snippet.auto
+                    ? 'Auto colors follow the reader’s system theme. On GitHub, pick HTML: it follows GitHub’s own theme.'
+                    : 'Paste it into a README or any page that takes Markdown.')}
+                {value === 'html' &&
+                  (snippet.auto
+                    ? 'A light and a dark image in <picture>, so the badge follows the page’s theme on GitHub.'
+                    : 'For GitHub READMEs and any page that takes HTML.')}
+                {value === 'url' && 'The image alone, for anywhere that takes an image link.'}
               </p>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
-      <p aria-live="polite" className="sr-only">
-        {status}
-      </p>
-    </section>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Link
+                  href="/badge/gallery"
+                  className="text-sm font-medium text-link underline-offset-2 hover:underline"
+                >
+                  See all badges
+                </Link>
+                <Button type="button" onClick={() => copy(value)} className="min-w-28">
+                  {copied === value ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                  {copied === value ? 'Copied' : `Copy ${label}`}
+                </Button>
+              </div>
+              {selected === value && (
+                <p className="text-right text-sm font-medium" aria-hidden="true">
+                  Selected. {COPY_KEYS}
+                </p>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
+        <p aria-live="polite" className="sr-only">
+          {status}
+        </p>
+      </section>
+      {dailyUpdates && <DailyUpdatesCard kind={facts.kind} name={name} />}
+    </>
   );
 }

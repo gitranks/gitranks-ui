@@ -12,31 +12,64 @@ export const MAKER = {
 export const STAR_REPO_URL = 'https://github.com/gitranks/gitranks-ui';
 export const GITHUB_AUTHORIZATIONS_URL = 'https://github.com/settings/apps/authorizations';
 
+/**
+ * A link inside a message's small print: its text, as written there, and where it goes. Without `href` it is an action
+ * the dialog does (`onNoteAction`).
+ */
+export type NoteLink = { text: string; href?: string };
+
 export type RefreshMessage = {
   /** The maker's photo beside the title: on the notes that read as from him. */
   photo?: boolean;
   title: string;
+  /** Before the paragraphs: the steps of a deal, each done or not, numbered by its place. */
+  checklist?: { text: string; done?: boolean }[];
   paragraphs: string[];
   /** A numbered list after the paragraphs. */
   steps?: string[];
   /** Paragraphs after the steps. */
   closing?: string[];
-  /** Small print after the steps. `noteLink` inside it becomes a link. */
+  /** Small print after the steps. Each of `noteLinks` inside it becomes a link. */
   note?: string;
-  noteLink?: { text: string; href: string };
+  noteLinks?: NoteLink[];
   /** Signed under the text. */
   signature?: string;
   primary: string;
+  /** A star before the primary button's label. */
+  primaryIcon?: 'star';
   secondary: string;
 };
 
 export const TOKEN_NOTE = {
   note: 'GitHub will say we can “act on your behalf”. We only read GitHub data to build stats. You can remove access any time in GitHub settings.',
-  noteLink: { text: 'GitHub settings', href: GITHUB_AUTHORIZATIONS_URL },
+  noteLinks: [{ text: 'GitHub settings', href: GITHUB_AUTHORIZATIONS_URL }],
+};
+
+/** The small print's link that checks the profile's badge now, in the deal. */
+export const CHECK_BADGE_LINK = 'Check my badge';
+/** The deal's last sentence: the badge check of the profile on screen. */
+const CHECK_BADGE_SENTENCE = `Already added it? ${CHECK_BADGE_LINK}.`;
+
+/** The second step of the deal: what it says once the visitor is signed in and has not starred our repo yet. */
+const STAR_STEP: RefreshMessage = {
+  photo: true,
+  title: 'One step left: star our repo',
+  checklist: [{ text: 'Signed in with GitHub.', done: true }, { text: 'Star our repo.' }],
+  paragraphs: ['Then come back and press “I starred it”. We check the star and start your daily updates.'],
+  note: 'That’s the full price. No card, no ads.',
+  primary: 'Star on GitHub',
+  primaryIcon: 'star',
+  secondary: 'I starred it',
+};
+
+/** The star step when "I starred it" claims today's refresh: no daily updates start from it. */
+export const STAR_STEP_REFRESH: RefreshMessage = {
+  ...STAR_STEP,
+  paragraphs: ['Then come back and press “I starred it”. We check the star and refresh your profile.'],
 };
 
 export const REFRESH_MESSAGES = {
-  /** Not signed in, presses Refresh. */
+  /** Not signed in, presses "Fetch profile from GitHub" on a profile GitRanks does not have: no badge to offer yet. */
   signIn: {
     photo: true,
     title: 'Hi, I’m Vitalii 👋',
@@ -54,18 +87,29 @@ export const REFRESH_MESSAGES = {
     secondary: 'Maybe later',
   },
 
-  /** Signed in, own profile, the check found no star. */
-  needStar: {
+  /**
+   * Not signed in, presses Refresh or "Get daily updates": the deal, with a badge as the way in without a star. Its
+   * "Check my badge" checks the profile on screen, and is left out where that profile is someone else's.
+   */
+  deal: {
     photo: true,
-    title: 'Your refresh costs 1 star ⭐',
+    title: 'Hi, I’m Vitalii 👋',
     paragraphs: [
-      'That’s the full price. No card, no ads.',
-      'Star our repo on GitHub, then press the button. Stars keep GitRanks alive.',
+      'I made GitRanks. Bots press this button a lot, and our GitHub limits are small. So here is the deal:',
     ],
-    signature: '— Vitalii',
-    primary: '⭐ Star on GitHub',
-    secondary: 'I starred it, refresh',
+    steps: ['Sign in with GitHub. We only see your name and email.', 'Star our repo.'],
+    closing: [
+      'Then we update your profile every day. It stays on for 7 days after your last visit.',
+      'You also get 3 picks: repositories we update every day, too.',
+    ],
+    note: 'Don’t want to star? Add a GitRanks badge to your GitHub profile. While the badge is there, we update your profile every day. No sign-in, no 7-day limit. Already added it? Check my badge.',
+    noteLinks: [{ text: 'GitRanks badge', href: '/badge/builder' }, { text: CHECK_BADGE_LINK }],
+    primary: 'Sign in with GitHub',
+    secondary: 'Maybe later',
   },
+
+  /** Signed in, own profile, the check found no star: also opens by itself after a sign-in from the deal. */
+  starStep: STAR_STEP,
 
   /** Signed in, own profile, today's refresh is used. */
   used: {
@@ -193,6 +237,13 @@ export const WELCOME_BACK = {
   title: 'Welcome back',
   text: 'Daily updates stopped after 7 days without a visit. They are on again, and your profile is refreshing now.',
 } as const;
+
+/** The deal without its badge check: opened where the profile on screen is not the visitor's own. */
+export const withoutBadgeCheck = (message: RefreshMessage): RefreshMessage => ({
+  ...message,
+  note: message.note?.replace(` ${CHECK_BADGE_SENTENCE}`, ''),
+  noteLinks: message.noteLinks?.filter((link) => link.text !== CHECK_BADGE_LINK),
+});
 
 export const fillTime = (text: string, time?: string) => (time ? text.replaceAll('{time}', time) : text);
 

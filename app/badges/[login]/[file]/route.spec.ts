@@ -6,6 +6,16 @@ import type { renderCanonicalBadge as RenderCanonicalBadge } from '@/badge/rende
 const renderCanonicalBadge = vi.fn<typeof RenderCanonicalBadge>();
 vi.mock('@/badge/render-canonical-badge', () => ({ renderCanonicalBadge }));
 
+const { after, reportBadgeSeen } = vi.hoisted(() => ({
+  after: vi.fn<(task: () => Promise<void>) => void>(),
+  reportBadgeSeen: vi.fn<(kind: 'user' | 'repo', name: string) => Promise<void>>(),
+}));
+vi.mock('next/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/server')>()),
+  after,
+}));
+vi.mock('@/badge/badge-seen', () => ({ reportBadgeSeen }));
+
 const { GET } = await import('./route');
 
 const get = (login: string, file: string, query = '') =>
@@ -105,5 +115,37 @@ describe('GET /badges/[login]/[file]', () => {
       cacheControl: 'public, max-age=300',
       edge: null,
     });
+  });
+});
+
+describe("GET /badges/[login]/[file]: the report of GitHub's image proxy", () => {
+  const getAs = (userAgent: string, login = 'OctoCat', file = 'stars-rank.svg') =>
+    GET(new NextRequest(`https://gitranks.com/badges/${login}/${file}`, { headers: { 'User-Agent': userAgent } }), {
+      params: Promise.resolve({ login, file }),
+    });
+
+  beforeEach(() => {
+    renderCanonicalBadge.mockReset();
+    renderCanonicalBadge.mockResolvedValue({ body: '<svg/>', contentType: 'image/svg+xml' });
+    after.mockReset();
+    reportBadgeSeen.mockReset();
+    reportBadgeSeen.mockResolvedValue();
+  });
+
+  it('reports a drawn badge after the response, with the login as requested', async () => {
+    expect((await getAs('github-camo (876de43e)')).status).toBe(200);
+
+    expect(reportBadgeSeen).not.toHaveBeenCalled();
+    for (const [task] of after.mock.calls) await task();
+    expect(reportBadgeSeen).toHaveBeenCalledExactlyOnceWith('user', 'OctoCat');
+  });
+
+  it('schedules nothing for a browser, or for a 404', async () => {
+    await getAs('Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X)');
+    await getAs('github-camo (876de43e)', 'octocat', 'nope.gif');
+    renderCanonicalBadge.mockResolvedValue(null);
+    await getAs('github-camo (876de43e)', 'nobody');
+
+    expect(after).not.toHaveBeenCalled();
   });
 });

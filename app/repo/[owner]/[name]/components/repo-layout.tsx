@@ -103,6 +103,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
             owner={owner}
             name={name}
             pull={repo.pull && { status: repo.pull.status, requestedAt: repo.pull.requestedAt }}
+            dailyUpdates={repo.dailyUpdates}
           />
           <Button size="sm" variant="outline" className="flex-grow" asChild>
             <Link href={`https://github.com/${nameWithOwner}`} target="_blank" rel="noopener noreferrer">

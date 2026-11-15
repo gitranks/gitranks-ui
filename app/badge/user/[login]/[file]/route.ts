@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 
+import { badgeSeenReporterFor } from '@/badge/badge-seen-reporter';
 import { loadBadgeOrg, loadBadgeRepo, loadBadgeUser } from '@/badge/v3/load';
 import { getBadgeResponse, parseEntityRef } from '@/badge/v3/route';
 
@@ -9,5 +10,6 @@ export async function GET(req: NextRequest, { params }: RouteContext<'/badge/use
     user: loadBadgeUser,
     org: loadBadgeOrg,
     repo: loadBadgeRepo,
+    onImageServed: badgeSeenReporterFor(req),
   });
 }

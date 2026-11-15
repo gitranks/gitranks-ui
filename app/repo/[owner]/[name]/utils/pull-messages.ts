@@ -76,6 +76,13 @@ export const PULL_MESSAGES = {
 
 export type PullDialogKind = keyof typeof PULL_MESSAGES;
 
+/** The line under Refresh on a repository that updates every day, before "Next update in {time}." */
+export const DAILY_UPDATES_NOTES = {
+  byBadge: 'Updates daily: it has a GitRanks badge in its README.',
+  /** Says only that it updates daily: who picked it is never shown. */
+  byPick: 'Updates daily.',
+} as const;
+
 export const PULL_TOASTS = {
   startedDaily: 'Thanks for the star! ⭐ Fetching the star history now.',
   started: 'Fetching the star history now.',

@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 
+import { badgeSeenReporterFor } from '@/badge/badge-seen-reporter';
 import { badgeCacheHeaders } from '@/badge/cache-headers';
 import { parseCanonicalBadgeFile } from '@/badge/canonical-badge';
 import { renderCanonicalBadge } from '@/badge/render-canonical-badge';
@@ -48,6 +49,8 @@ export async function GET(req: NextRequest, { params }: Props) {
   if (!result) {
     return badgeNotFound(search);
   }
+
+  badgeSeenReporterFor(req)?.('user', login);
 
   return new Response(result.body, {
     headers: {

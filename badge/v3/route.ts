@@ -65,6 +65,12 @@ export type BadgeLoaders = {
    * the work after the response. Left out, nothing is reported.
    */
   onContributeSeen?: (repoId: string) => void;
+  /**
+   * Told the stored name once an image of a developer or a repository is drawn: never for an organization, the
+   * Contribute badge (it shows none of the repository's numbers), a redirect or an error answer. It must not delay or
+   * throw: the caller schedules the work after the response. Left out, nothing is reported.
+   */
+  onImageServed?: (kind: 'user' | 'repo', name: string) => void;
 };
 
 /** The entity a route's params name, decoded and checked; `null` when they cannot name one. */
@@ -140,6 +146,13 @@ export async function getBadgeResponse(
     if (badge.id === 'contribute' && entity.kind === 'repo' && entity.githubId && loaders.onContributeSeen) {
       try {
         loaders.onContributeSeen(entity.githubId);
+      } catch (error) {
+        console.error('Error reporting a badge:', error);
+      }
+    }
+    if (badge.id !== 'contribute' && entity.kind !== 'org' && loaders.onImageServed) {
+      try {
+        loaders.onImageServed(entity.kind, stored);
       } catch (error) {
         console.error('Error reporting a badge:', error);
       }

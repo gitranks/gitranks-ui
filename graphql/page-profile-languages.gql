@@ -3,6 +3,7 @@ query PageProfileLanguages($login: String!, $isGlobalContext: Boolean! = true) {
     firstSeenAt
     ...UserBaseFields
     ...UserFetchingStatus
+    ...UserDailyUpdates
     ...UserSeo
     sLangs(limit: 10) {
       name

@@ -9,6 +9,7 @@ import {
   svgToPng,
 } from './render-star-history-badge';
 import { fetchBadgeRepo } from './star-history-badge.loader';
+import type { BadgeSeenReporter } from '@/badge/badge-seen-reporter';
 import { type BadgeCacheHeaders, badgeCacheHeaders } from '@/badge/cache-headers';
 import type { StarHistoryRepoQuery } from '@/types/generated/graphql';
 import { parseRepoParams } from '@/utils/repo-paths';
@@ -68,12 +69,15 @@ function imageResponse(
  * The star history badge at `/repo-badges/<owner>/<name>/<file>`. A well-formed path gets an image,
  * a redirect to the stored spelling, or a short-cached 503 when the data cannot be read. `search` is the request's
  * query: it only tells how the chart and its redirect send their cache lifetimes (see `badgeCacheHeaders`).
+ * `onImageServed` is told the stored name once the chart or its placeholder is drawn; never for an unknown repository,
+ * a redirect or an error answer. It must not delay or throw: the caller schedules the work after the response.
  */
 export async function getStarHistoryBadgeResponse(
   ownerParam: string,
   nameParam: string,
   file: string,
   search = new URLSearchParams(),
+  onImageServed?: BadgeSeenReporter,
 ) {
   const format = parseStarHistoryFile(file);
   const repoParams = parseRepoParams(ownerParam, nameParam);
@@ -86,7 +90,7 @@ export async function getStarHistoryBadgeResponse(
   }
 
   try {
-    return await renderBadgeResponse(repoParams.owner, repoParams.name, file, format, search);
+    return await renderBadgeResponse(repoParams.owner, repoParams.name, file, format, search, onImageServed);
   } catch (error) {
     console.error('Error rendering the star history badge:', error);
     return new Response(null, {
@@ -102,6 +106,7 @@ async function renderBadgeResponse(
   file: string,
   format: StarHistoryBadgeFormat,
   search: URLSearchParams,
+  onImageServed?: BadgeSeenReporter,
 ) {
   const repo = await fetchBadgeRepo(owner, name);
 
@@ -130,5 +135,15 @@ async function renderBadgeResponse(
   const cacheHeaders =
     input.kind === 'chart' ? chartHeaders : { 'Cache-Control': STAR_HISTORY_CACHE_CONTROL.preparing };
 
-  return imageResponse(format === 'svg' ? svg : await svgToPng(svg), format, cacheHeaders);
+  const body = format === 'svg' ? svg : await svgToPng(svg);
+  reportServed(onImageServed, repo.nameWithOwner);
+  return imageResponse(body, format, cacheHeaders);
+}
+
+function reportServed(onImageServed: BadgeSeenReporter | undefined, nameWithOwner: string) {
+  try {
+    onImageServed?.('repo', nameWithOwner);
+  } catch (error) {
+    console.error('Error reporting a badge:', error);
+  }
 }

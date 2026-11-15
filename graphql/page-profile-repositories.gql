@@ -2,6 +2,7 @@ query PageProfileRepositories($login: String!) {
   user(login: $login) {
     ...UserBaseFields
     ...UserFetchingStatus
+    ...UserDailyUpdates
     ...UserSeo
     repositoriesCount
     repositories(limit: 10) {

@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import type { NextRequest } from 'next/server';
 
 import { BadgeV2ZodSchema } from '@/badge/badge.zod';
-import { renderInlineBadge } from '@/badge/templates/inline/inline.render';
+import { badgeSeenReporterFor } from '@/badge/badge-seen-reporter';
+import { renderInlineBadgeResult } from '@/badge/templates/inline/inline.render';
 
 type Props = { params: Promise<{ login: string }> };
 
@@ -32,10 +33,15 @@ export async function GET(req: NextRequest, { params }: Props) {
   //   properties: { userAgent, referer },
   // });
 
-  const svg = await renderInlineBadge({ login, params: validationResult.data });
+  const { svg, error } = await renderInlineBadgeResult({ login, params: validationResult.data });
 
   if (!svg) {
     return notFound();
+  }
+
+  // An unknown login is drawn as an error image: only a badge with data is reported.
+  if (!error) {
+    badgeSeenReporterFor(req)?.('user', login);
   }
 
   return new Response(svg, {

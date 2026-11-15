@@ -13,9 +13,10 @@ const loaders = {
 
 vi.mock('./load', () => ({ loadBadgeUser: loaders.user, loadBadgeOrg: loaders.org, loadBadgeRepo: loaders.repo }));
 
-const { after, reportContributeBadgeSeen } = vi.hoisted(() => ({
+const { after, reportContributeBadgeSeen, reportBadgeSeen } = vi.hoisted(() => ({
   after: vi.fn<(task: () => Promise<void>) => void>(),
   reportContributeBadgeSeen: vi.fn<(repoId: string) => Promise<void>>(),
+  reportBadgeSeen: vi.fn<(kind: 'user' | 'repo', name: string) => Promise<void>>(),
 }));
 
 vi.mock('next/server', async (importOriginal) => ({
@@ -23,6 +24,7 @@ vi.mock('next/server', async (importOriginal) => ({
   after,
 }));
 vi.mock('./contribute-seen', () => ({ reportContributeBadgeSeen }));
+vi.mock('../badge-seen', () => ({ reportBadgeSeen }));
 
 const { GET: userGet } = await import('@/app/badge/user/[login]/[file]/route');
 const { GET: orgGet } = await import('@/app/badge/org/[login]/[file]/route');
@@ -485,5 +487,127 @@ describe('the badge cache switch', () => {
     expect(headersOf(await get('?probe=1'))).toEqual(
       split('max-age=86400, stale-while-revalidate=604800, stale-if-error=604800', null).image,
     );
+  });
+});
+
+describe("the report of GitHub's image proxy", () => {
+  const onImageServed = vi.fn<(kind: 'user' | 'repo', name: string) => void>();
+  const withHook = { ...loaders, onImageServed };
+  const respond = (ref: ReturnType<typeof parseEntityRef>, file: string, query = '') =>
+    getBadgeResponse(ref, file, new URLSearchParams(query), withHook, NOW);
+
+  beforeEach(() => {
+    for (const loader of Object.values(loaders)) loader.mockReset();
+    onImageServed.mockReset();
+    after.mockReset();
+    reportBadgeSeen.mockReset();
+    reportBadgeSeen.mockResolvedValue();
+  });
+
+  it("tells the hook the stored name once a developer's or a repository's image is drawn", async () => {
+    loaders.user.mockImplementation(resolved(userMid));
+    loaders.repo.mockImplementation(resolved(repoMid));
+    expect((await respond(parseEntityRef('user', { login: 'octo-dev' }), 'rank.svg')).status).toBe(200);
+    expect((await respond(parseEntityRef('repo', { owner: 'acme', name: 'fastqueue' }), 'stars.png')).status).toBe(200);
+
+    expect(onImageServed.mock.calls).toEqual([
+      ['user', 'octo-dev'],
+      ['repo', 'acme/fastqueue'],
+    ]);
+  });
+
+  it('tells it for an image that is not ready yet: the entity is known', async () => {
+    loaders.repo.mockImplementation(resolved(repoMid));
+    const notYet = await respond(parseEntityRef('repo', { owner: 'acme', name: 'fastqueue' }), 'contributors.svg');
+
+    expect(notYet.headers.get('cache-control')).toBe(BADGE_CACHE_CONTROL.provisional);
+    expect(onImageServed).toHaveBeenCalledExactlyOnceWith('repo', 'acme/fastqueue');
+  });
+
+  it('tells it nothing for an organization, the Contribute badge, a redirect or an error answer', async () => {
+    loaders.org.mockImplementation(resolved(orgBig));
+    expect((await respond(parseEntityRef('org', { login: 'nebula' }), 'stars.svg')).status).toBe(200);
+
+    loaders.repo.mockImplementation(resolved(repoMid));
+    const repo = parseEntityRef('repo', { owner: 'acme', name: 'fastqueue' });
+    expect((await respond(repo, 'contribute.svg')).status).toBe(200);
+    expect((await respond(parseEntityRef('repo', { owner: 'ACME', name: 'FastQueue' }), 'rank.svg')).status).toBe(308);
+    expect((await respond(repo, 'rank.svg', 'scheme=tint')).status).toBe(400);
+    expect((await respond(repo, 'nope.svg')).status).toBe(404);
+    loaders.repo.mockImplementation(resolved(null));
+    expect((await respond(repo, 'rank.svg')).status).toBe(404);
+    loaders.repo.mockRejectedValue(new Error('down'));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect((await respond(repo, 'rank.svg')).status).toBe(503);
+
+    expect(onImageServed).not.toHaveBeenCalled();
+  });
+
+  it('keeps the image when the hook throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    loaders.user.mockImplementation(resolved(userMid));
+    onImageServed.mockImplementation(() => {
+      throw new Error('outside a request');
+    });
+
+    expect((await respond(parseEntityRef('user', { login: 'octo-dev' }), 'rank.svg')).status).toBe(200);
+  });
+
+  describe('the route handlers', () => {
+    const PROXY = 'github-camo (876de43e)';
+    const BROWSER = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0 Safari/537.36';
+    const request = (path: string, userAgent: string) =>
+      new NextRequest(`https://gitranks.com${path}`, { headers: { 'User-Agent': userAgent } });
+    const runAfter = async () => {
+      for (const [task] of after.mock.calls) await task();
+    };
+
+    const getUser = (userAgent: string, file = 'rank.svg') =>
+      userGet(request(`/badge/user/octo-dev/${file}`, userAgent), {
+        params: Promise.resolve({ login: 'octo-dev', file }),
+      });
+    const getRepo = (userAgent: string, file = 'rank.svg') =>
+      repoGet(request(`/badge/repo/acme/fastqueue/${file}`, userAgent), {
+        params: Promise.resolve({ owner: 'acme', name: 'fastqueue', file }),
+      });
+    const getOrg = (userAgent: string) =>
+      orgGet(request('/badge/org/nebula/stars.svg', userAgent), {
+        params: Promise.resolve({ login: 'nebula', file: 'stars.svg' }),
+      });
+
+    it("reports a developer's and a repository's image after the response, for the proxy only", async () => {
+      loaders.user.mockImplementation(resolved(userMid));
+      loaders.repo.mockImplementation(resolved(repoMid));
+      expect((await getUser(PROXY)).status).toBe(200);
+      expect((await getRepo(PROXY)).status).toBe(200);
+
+      expect(reportBadgeSeen).not.toHaveBeenCalled();
+      await runAfter();
+      expect(reportBadgeSeen.mock.calls).toEqual([
+        ['user', 'octo-dev'],
+        ['repo', 'acme/fastqueue'],
+      ]);
+    });
+
+    it('schedules nothing for a browser', async () => {
+      loaders.user.mockImplementation(resolved(userMid));
+      loaders.repo.mockImplementation(resolved(repoMid));
+      await getUser(BROWSER);
+      await getRepo(BROWSER);
+
+      expect(after).not.toHaveBeenCalled();
+    });
+
+    it('never reports an organization or the Contribute badge, even for the proxy', async () => {
+      loaders.org.mockImplementation(resolved(orgBig));
+      loaders.repo.mockImplementation(resolved(repoMid));
+      reportContributeBadgeSeen.mockResolvedValue();
+      expect((await getOrg(PROXY)).status).toBe(200);
+      expect((await getRepo(PROXY, 'contribute.svg')).status).toBe(200);
+      await runAfter();
+
+      expect(reportBadgeSeen).not.toHaveBeenCalled();
+      expect(reportContributeBadgeSeen).toHaveBeenCalledExactlyOnceWith(repoMid.githubId);
+    });
   });
 });

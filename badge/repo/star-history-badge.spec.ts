@@ -6,6 +6,16 @@ import type { StarHistoryRepoQuery } from '@/types/generated/graphql';
 const fetchBadgeRepo = vi.fn<(owner: string, name: string) => Promise<StarHistoryRepoQuery['repo']>>();
 vi.mock('./star-history-badge.loader', () => ({ fetchBadgeRepo }));
 
+const { after, reportBadgeSeen } = vi.hoisted(() => ({
+  after: vi.fn<(task: () => Promise<void>) => void>(),
+  reportBadgeSeen: vi.fn<(kind: 'user' | 'repo', name: string) => Promise<void>>(),
+}));
+vi.mock('next/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/server')>()),
+  after,
+}));
+vi.mock('../badge-seen', () => ({ reportBadgeSeen }));
+
 const { getStarHistoryBadgeResponse, parseStarHistoryFile, STAR_HISTORY_CACHE_CONTROL } = await import(
   './star-history-badge'
 );
@@ -240,5 +250,73 @@ describe('the badge cache switch', () => {
     vi.stubEnv('BADGE_CACHE_SPLIT', 'short');
 
     expect(await answers()).toEqual({ long: split(null), short: TODAY.short });
+  });
+});
+
+describe("the report of GitHub's image proxy", () => {
+  const onImageServed = vi.fn<(kind: 'user' | 'repo', name: string) => void>();
+  const respond = (owner: string, name: string, file = 'star-history.svg') =>
+    getStarHistoryBadgeResponse(owner, name, file, new URLSearchParams(), onImageServed);
+
+  beforeEach(() => {
+    fetchBadgeRepo.mockReset();
+    onImageServed.mockReset();
+    after.mockReset();
+    reportBadgeSeen.mockReset();
+    reportBadgeSeen.mockResolvedValue();
+  });
+
+  it('tells the hook the stored name once the chart or its placeholder is drawn', async () => {
+    fetchBadgeRepo.mockResolvedValue(repo({ history }));
+    expect((await respond('octo', 'widgets')).status).toBe(200);
+    fetchBadgeRepo.mockResolvedValue(repo());
+    expect((await respond('octo', 'widgets', 'star-history.png')).status).toBe(200);
+
+    expect(onImageServed.mock.calls).toEqual([
+      ['repo', 'octo/widgets'],
+      ['repo', 'octo/widgets'],
+    ]);
+  });
+
+  it('tells it nothing for an unknown repository, a redirect or an error answer', async () => {
+    fetchBadgeRepo.mockResolvedValue(null);
+    expect((await respond('octo', 'unknown')).status).toBe(200);
+    fetchBadgeRepo.mockResolvedValue(repo({ nameWithOwner: 'Octo/Widgets', history }));
+    expect((await respond('octo', 'widgets')).status).toBe(308);
+    expect((await respond('octo', 'widgets', 'history.svg')).status).toBe(404);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    fetchBadgeRepo.mockRejectedValue(new Error('x'));
+    expect((await respond('octo', 'widgets')).status).toBe(503);
+
+    expect(onImageServed).not.toHaveBeenCalled();
+  });
+
+  it('keeps the image when the hook throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    fetchBadgeRepo.mockResolvedValue(repo({ history }));
+    onImageServed.mockImplementation(() => {
+      throw new Error('outside a request');
+    });
+
+    expect((await respond('octo', 'widgets')).status).toBe(200);
+  });
+
+  it('the route reports after the response for the proxy only', async () => {
+    fetchBadgeRepo.mockResolvedValue(repo({ history }));
+    const get = (userAgent: string) =>
+      GET(
+        new NextRequest('https://gitranks.com/repo-badges/octo/widgets/star-history.svg', {
+          headers: { 'User-Agent': userAgent },
+        }),
+        { params: Promise.resolve({ owner: 'octo', name: 'widgets', file: 'star-history.svg' }) },
+      );
+
+    expect((await get('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).status).toBe(200);
+    expect(after).not.toHaveBeenCalled();
+
+    expect((await get('github-camo (876de43e)')).status).toBe(200);
+    expect(reportBadgeSeen).not.toHaveBeenCalled();
+    for (const [task] of after.mock.calls) await task();
+    expect(reportBadgeSeen).toHaveBeenCalledExactlyOnceWith('repo', 'octo/widgets');
   });
 });

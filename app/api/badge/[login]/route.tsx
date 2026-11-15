@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 
 import { BadgeTemplateType } from '@/badge/badge.types';
 import { BadgeZodSchema } from '@/badge/badge.zod';
+import { badgeSeenReporterFor } from '@/badge/badge-seen-reporter';
 import { renderMediumBadge } from '@/badge/templates/medium/medium.render';
 import { renderSmallBadge } from '@/badge/templates/small/small.render';
 
@@ -41,6 +42,8 @@ export async function GET(req: NextRequest, { params }: Props) {
   if (!svg) {
     return notFound();
   }
+
+  badgeSeenReporterFor(req)?.('user', login);
 
   return new Response(svg, {
     headers: {

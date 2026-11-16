@@ -16,6 +16,7 @@ import { NavigationProgress } from '@/components/navigation-progress/navigation-
 import { SessionProvider } from '@/components/session-provider/session-provider';
 import { ThemeProvider } from '@/components/theme-provider/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { WebAnalytics } from '@/components/web-analytics/web-analytics';
 import { buildSiteJsonLd } from '@/lib/seo/json-ld';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_X_HANDLE } from '@/lib/seo/site';
 
@@ -95,6 +96,7 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
         </SessionProvider>
       </body>
       <GoogleAnalytics gaId="G-YKY54NVEGK" />
+      <WebAnalytics />
     </html>
   );
 }

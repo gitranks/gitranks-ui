@@ -411,7 +411,16 @@ export function AddressTitle({ fallback, byAuthor }: { fallback: string; byAutho
 }
 
 /** A run's ready title over what pushing does now: the commits, and the replies ticked. */
-export function PushTitle({ commits, fallback }: { commits: number; fallback: string }) {
+export function PushTitle({
+  commits,
+  fallback,
+  describes = false,
+}: {
+  commits: number;
+  fallback: string;
+  /** The run also replaces the pull request's description: with nothing else ticked, that is what it does. */
+  describes?: boolean;
+}) {
   const actions = useSessionActions();
   const replies = actions?.replies;
   if (!replies) return <>{fallback}</>;
@@ -419,7 +428,17 @@ export function PushTitle({ commits, fallback }: { commits: number; fallback: st
   const c = `${commits} ${commits === 1 ? 'commit' : 'commits'}`;
   const r = `${posting} ${posting === 1 ? 'reply' : 'replies'}`;
   return (
-    <>{commits && posting ? `Push ${c} and post ${r}` : commits ? `Push ${c}` : posting ? `Post ${r}` : fallback}</>
+    <>
+      {commits && posting
+        ? `Push ${c} and post ${r}`
+        : commits
+          ? `Push ${c}`
+          : posting
+            ? `Post ${r}`
+            : describes
+              ? 'Update the description'
+              : fallback}
+    </>
   );
 }
 

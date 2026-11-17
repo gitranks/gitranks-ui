@@ -579,6 +579,9 @@ describe('a follow-up on the review screen', () => {
     expect(plain).toContain('Update the description');
     expect(plain).toContain("It changes only the pull request's description: check the new one below.");
     expect(plain).toContain('The new description.');
+    // Beside a thread that asks nothing (no reply ticked), the same.
+    const asked = text(review({ ...run, replyDrafts: [noReplyDraft()] }));
+    expect(asked).toContain("It changes only the pull request's description: check the new one below.");
   });
 
   it('finishes one with replies only', () => {

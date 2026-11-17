@@ -26,6 +26,7 @@ import {
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { githubUrlOf, isOwnAgent, timeLabel } from '@/lib/contribute/attempt-format';
+import { sendsByDefault } from '@/lib/contribute/comment-actions';
 import type { ContributeReplyDraft } from '@/lib/contribute/contribute.types';
 import { runFlowOf } from '@/lib/contribute/contribution-moves';
 import { bracketed } from '@/lib/contribute/needs-you';
@@ -199,12 +200,12 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
   return (
     <MoveCard
       {...common}
-      title={<PushTitle commits={commits} fallback={move.title} />}
+      title={<PushTitle commits={commits} fallback={move.title} describes={!!run.prBodyUpdate} />}
       why={
         <p>
           {tests
             ? `${status?.status === 'NOT_RUN' ? 'The tests could not run' : 'A test failed'}${status?.note ? `: ${status.note}` : ''}. You can push anyway or discard the run.`
-            : run.prBodyUpdate && !commits && !run.replyDrafts?.length
+            : run.prBodyUpdate && !commits && !(run.replyDrafts ?? []).some(sendsByDefault)
               ? `${didOf(run)}It changes only the pull request's description: check the new one below.`
               : `${didOf(run)}Check the replies below; untick any you don't want posted.`}
         </p>

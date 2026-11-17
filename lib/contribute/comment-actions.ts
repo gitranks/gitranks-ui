@@ -59,6 +59,8 @@ export type CommentActionsInit = {
   /** BLOCKED: the push is the blocked card's, not `pushState`'s. */
   checkStatus: ContributeCheckStatus | null;
   hasCommits: boolean;
+  /** The run replaces its pull request's description (`prBodyUpdate`): a change to push without commits or replies. */
+  hasBodyUpdate?: boolean;
   /** The shown run's drafts ([] when not answered). */
   drafts: ContributeReplyDraft[];
   /** `first.reviewFeedback?.threads ?? []` on the next step, else []. */
@@ -356,7 +358,9 @@ export function commentViewOf(init: CommentActionsInit, state: CommentState): Co
   const pushBusy = state.pending === 'push';
   const pushState = shown(
     blocked.has('push') || (init.checkStatus === 'BLOCKED' && init.hasCommits),
-    init.flow && !init.hasCommits && (replies?.posting ?? 0) === 0 ? 'Tick a reply to post, or discard the run' : null,
+    init.flow && !init.hasCommits && !init.hasBodyUpdate && (replies?.posting ?? 0) === 0
+      ? 'Tick a reply to post, or discard the run'
+      : null,
     pushBusy,
   );
 

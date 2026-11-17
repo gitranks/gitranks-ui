@@ -293,6 +293,7 @@ export function SessionPane({
     flow: followUp && runFlowOf(attempt),
     checkStatus: attempt.checkStatus?.status ?? null,
     hasCommits: !!attempt.patch?.trim(),
+    hasBodyUpdate: !!attempt.prBodyUpdate,
     drafts: followUp ? (attempt.replyDrafts ?? []) : [],
     threads,
     resolveHumans,

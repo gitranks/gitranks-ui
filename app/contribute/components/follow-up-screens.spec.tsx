@@ -566,6 +566,8 @@ describe('a follow-up on the review screen', () => {
     expect(text(panel)).toContain('New pull request description Replaces the current one when you approve this run');
     expect(text(panel)).toContain('Normalizes the path before matching.');
     expect(review(followUpAttempts.review)).not.toContain('data-panel="description-update"');
+    const pushing = text(review({ ...followUpAttempts.submitting, prBodyUpdate }));
+    expect(pushing).toContain('Replacing the current one now');
     expect(review({ ...followUpAttempts.review, prBodyUpdate: null })).not.toContain('data-panel="description-update"');
   });
 

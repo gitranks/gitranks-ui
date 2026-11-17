@@ -421,7 +421,9 @@ export function DescriptionUpdatePanel({ attempt }: { attempt: ContributeAttempt
       <summary className={cn(SUMMARY, 'min-h-11 rounded-xl px-4.5 py-3')}>
         <span className="flex-none text-sm font-semibold">New pull request description</span>
         <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-          Replaces the current one when you approve this run
+          {attempt.state === 'SUBMITTING'
+            ? 'Replacing the current one now'
+            : 'Replaces the current one when you approve this run'}
         </span>
         <Chevron />
       </summary>

@@ -177,7 +177,9 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
           <p>
             {commits
               ? `The new commits go onto pull request #${pr.number ?? ''}'s branch on your fork, in your name, signed off as its first commits were. The pull request shows them at once.`
-              : 'The agent made no commits this run, only the replies below. Approve the replies you want posted, here or once it is finished; finishing it pushes nothing.'}
+              : run.prBodyUpdate
+                ? "The agent made no commits this run. Finishing it replaces the pull request's description with the new one shown below; approve the replies you want posted, here or once it is finished."
+                : 'The agent made no commits this run, only the replies below. Approve the replies you want posted, here or once it is finished; finishing it pushes nothing.'}
           </p>
         }
         body={probeLine}

@@ -180,7 +180,9 @@ export function PushButton({
         ? 'Push and reply'
         : commits
           ? 'Push the commits'
-          : 'Post the replies'
+          : describes && !posting
+            ? 'Update the description'
+            : 'Post the replies'
       : commits
         ? 'Push the commits'
         : 'Finish the follow-up');
@@ -189,7 +191,9 @@ export function PushButton({
   const title = flow
     ? commits
       ? `Push the fixes to ${pr}?`
-      : `Post the replies on ${pr}?`
+      : describes && !posting
+        ? `Update the description of ${pr}?`
+        : `Post the replies on ${pr}?`
     : commits
       ? `Push the commits to ${pr}?`
       : 'Finish this follow-up?';

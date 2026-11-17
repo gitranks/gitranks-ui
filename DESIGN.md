@@ -96,6 +96,7 @@ Tokens keep shadcn's names, so stock `components/ui` restyle with no edits. Ligh
 
 - `components/ui/*` stay stock shadcn: restyle through tokens and call-site classes; pull new variants with
   `npx shadcn add`.
-- GitRanks components (`TierChip`, `RankDelta`, `RankCard`, `RankingTable`, the Contribute `Pill`, `Meter`, …) compose
-  those primitives. Reuse before adding: search `components/` and the area's `components/` folder first.
+- GitRanks components (`TierChip`, `RankDelta`, `RankCard`, `RankingTable`, `Meter`, the shared `Pill` in
+  `components/pill` with its `small` size for the mark beside a menu item, …) compose those primitives. Reuse before
+  adding: search `components/` and the area's `components/` folder first.
 - One `primary` button per view; beside it `outline` or `secondary`; `ghost` for icon buttons.

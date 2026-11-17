@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
 import { mainMenuItemClass } from './menu-styles';
+import { Pill } from '@/components/pill/pill';
 import { NavigationMenuItem, NavigationMenuLink } from '@/components/ui/navigation-menu';
 import { learnOpenInBrowser, learnOpenKnown } from '@/lib/learn/learn-open';
 import { LEARN_PATH } from '@/lib/learn/learn-path';
@@ -17,9 +18,9 @@ export function LearnMenuLink({ active }: Readonly<{ active?: boolean }>) {
       <NavigationMenuLink className={cn(mainMenuItemClass, 'gap-1.5')} active={active} asChild>
         <Link href={LEARN_PATH} prefetch={false}>
           Learn
-          <span className="rounded-full bg-brand-soft px-1.5 py-px text-[11px] font-semibold text-brand-soft-foreground">
+          <Pill tone="violet" size="small">
             New
-          </span>
+          </Pill>
         </Link>
       </NavigationMenuLink>
     </NavigationMenuItem>

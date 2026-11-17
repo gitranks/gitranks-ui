@@ -6,9 +6,10 @@ import { type FormEvent, useId, useState, useTransition } from 'react';
 
 import { addToContributeSet, ignoreContributeRepo, removeFromContributeSet } from '../actions';
 import type { FeedbackOpen } from './feedback-dialog';
-import { Meter, Pill, SubTitle } from './primitives';
+import { Meter, SubTitle } from './primitives';
 import { RulesDialog } from './set-panels';
 import type { SetWrite } from './set-section';
+import { Pill } from '@/components/pill/pill';
 import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

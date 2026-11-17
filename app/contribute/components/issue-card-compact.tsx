@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 
 import { GONE, IssueLiveStatus, isGone } from './issue-live-status';
-import { Pill } from './primitives';
+import { Pill } from '@/components/pill/pill';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
 import { GOOD_FIRST_LABEL, LANGUAGES } from '@/lib/contribute/format';

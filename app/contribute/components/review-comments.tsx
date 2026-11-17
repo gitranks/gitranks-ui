@@ -5,8 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 
 import { CommentRow } from './comment-row';
 import { DraftOpen, ThreadOpen } from './comment-row-open';
-import { HEADING, Pill } from './primitives';
+import { HEADING } from './primitives';
 import { useSessionActions } from './session-actions';
+import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';

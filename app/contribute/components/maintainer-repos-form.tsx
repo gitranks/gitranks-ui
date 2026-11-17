@@ -5,7 +5,8 @@ import { useState, useTransition } from 'react';
 import { optInMaintainerRepos, optOutMaintainerRepos, signInAsMaintainer } from '../maintainers/actions';
 import { MaintainerRepoActions } from './maintainer-repo-actions';
 import { MaintainerRepoExtras } from './maintainer-repo-extras';
-import { PanelTitle, Pill } from './primitives';
+import { PanelTitle } from './primitives';
+import { Pill } from '@/components/pill/pill';
 import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
 import type {

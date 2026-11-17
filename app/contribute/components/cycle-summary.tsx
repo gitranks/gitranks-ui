@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
-import { Meter, Pill } from './primitives';
+import { Meter } from './primitives';
+import { Pill } from '@/components/pill/pill';
 import type { ContributeView } from '@/lib/contribute/contribute.types';
 import { claudeKeyOf, isPaused } from '@/lib/contribute/contribute-state';
 import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';

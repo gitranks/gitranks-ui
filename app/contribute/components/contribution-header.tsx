@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { Fragment, type ReactNode } from 'react';
 
 import { NoticeLine } from './contribute-notices';
-import { HEADING, Pill } from './primitives';
+import { HEADING } from './primitives';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
+import { Pill } from '@/components/pill/pill';
 import {
   attemptTitleOf,
   githubUrlOf,

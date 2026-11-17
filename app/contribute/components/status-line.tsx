@@ -3,7 +3,8 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { LiveDot, Pill, SteppedMeter, type SteppedMeterStep } from './primitives';
+import { LiveDot, SteppedMeter, type SteppedMeterStep } from './primitives';
+import { Pill } from '@/components/pill/pill';
 import type { ContributeClaimStep } from '@/lib/contribute/contribute.types';
 import type { StatusLead, StatusLink } from '@/lib/contribute/session-status';
 import { cn } from '@/lib/utils';

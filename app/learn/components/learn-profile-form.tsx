@@ -2,8 +2,8 @@
 
 import { type ReactNode, useId, useState } from 'react';
 
-import { Pill } from '@/app/contribute/components/primitives';
 import { saveLearnProfile } from '@/app/learn/actions';
+import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';

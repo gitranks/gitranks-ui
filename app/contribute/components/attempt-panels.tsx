@@ -1,7 +1,8 @@
 import { ChevronDown } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 
-import { HEADING, Pill, SubTitle } from './primitives';
+import { HEADING, SubTitle } from './primitives';
+import { Pill } from '@/components/pill/pill';
 import {
   CHECK_LABELS,
   detailText,

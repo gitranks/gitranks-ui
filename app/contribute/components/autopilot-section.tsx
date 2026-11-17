@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { type ReactElement, type ReactNode, useId, useState, useTransition } from 'react';
 
 import { saveContributeSettings } from '../actions';
-import { Pill } from './primitives';
 import { SettingsRow } from './settings-rows';
+import { Pill } from '@/components/pill/pill';
 import {
   AlertDialog,
   AlertDialogCancel,

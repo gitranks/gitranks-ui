@@ -4,9 +4,10 @@ import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { AddressSwitch } from './address-switch';
-import { LiveDot, Pill } from './primitives';
+import { LiveDot } from './primitives';
 import { offOf, useSessionActions } from './session-actions';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
+import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';

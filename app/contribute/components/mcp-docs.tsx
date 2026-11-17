@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { CodeBlock } from './code-block';
 import { InstallButton } from './install-button';
 import { OpenOnHash } from './open-on-hash';
-import { Pill } from './primitives';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
 import { SetupClip } from './setup-clip';
+import { Pill } from '@/components/pill/pill';
 import { ABOUT_PATH, AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import {
   EXAMPLE_BRIEF,

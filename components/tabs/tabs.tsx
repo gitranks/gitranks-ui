@@ -5,6 +5,7 @@ import Link, { useLinkStatus } from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { FC, ReactNode } from 'react';
 
+import { formatFull } from '@/badge/v3/format';
 import { useReportPendingNavigation } from '@/components/navigation-progress/navigation-progress';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +14,8 @@ type TabProps = {
   children: ReactNode;
   exact?: boolean;
   pathnames?: string[];
+  /** A number after the label, in a small pill: how many the tab holds. */
+  count?: number;
   /** Classes for the tab's list item, as one held at the end of the bar. */
   className?: string;
 };
@@ -38,7 +41,7 @@ const TabPendingHint: FC = () => {
   );
 };
 
-export const Tab: FC<TabProps> = ({ href, children, exact, pathnames, className }) => {
+export const Tab: FC<TabProps> = ({ href, children, exact, pathnames, count, className }) => {
   const pathname = usePathname();
   let active = false;
 
@@ -62,6 +65,21 @@ export const Tab: FC<TabProps> = ({ href, children, exact, pathnames, className 
         })}
       >
         {children}
+        {/* A real space before the count, so the label and the count are read as two words; the margin tops the gap up. */}
+        {count === undefined ? null : (
+          <>
+            {' '}
+            <span
+              data-tab-count=""
+              className={cn(
+                'ms-0.5 rounded-full bg-muted px-1.5 font-mono text-[11px] tabular-nums',
+                active ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {formatFull(count)}
+            </span>
+          </>
+        )}
         <TabPendingHint />
       </Link>
     </li>

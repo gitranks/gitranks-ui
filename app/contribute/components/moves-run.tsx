@@ -14,7 +14,6 @@ import {
 import { GithubButton, MoveCard } from './move-card';
 import type { CardProps } from './move-props';
 import { OrgAccessButton } from './moves-first';
-import { Pill } from './primitives';
 import {
   CopyAll,
   CopyAllBodies,
@@ -24,6 +23,7 @@ import {
   RetrySeveral,
   TryCommentAgain,
 } from './reply-batch-actions';
+import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { githubUrlOf, isOwnAgent, timeLabel } from '@/lib/contribute/attempt-format';
 import type { ContributeReplyDraft } from '@/lib/contribute/contribute.types';

@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 
-import { LiveDot, Pill } from './primitives';
+import { LiveDot } from './primitives';
 import { type ShownSession, useShownSession } from './shown-session';
+import { Pill } from '@/components/pill/pill';
 import type { SessionCard } from '@/lib/contribute/sessions';
 import { cn } from '@/lib/utils';
 

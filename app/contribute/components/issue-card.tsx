@@ -6,7 +6,7 @@ import { skipIssue } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
 import { GONE, type IssueLive, IssueLiveStatus, isGone, useFocusOnGone } from './issue-live-status';
 import { IssueRepoRules } from './issue-repo-rules';
-import { Pill } from './primitives';
+import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';

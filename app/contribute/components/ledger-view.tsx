@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { HEADING, PageTitle, Pill } from './primitives';
+import { HEADING, PageTitle } from './primitives';
+import { Pill } from '@/components/pill/pill';
 import { dayLabel } from '@/lib/contribute/format';
 import type {
   ContributeLedger,

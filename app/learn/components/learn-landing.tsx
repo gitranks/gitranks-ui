@@ -5,6 +5,7 @@ import { FaGithub } from 'react-icons/fa';
 import { ExampleLessonCard } from './example-lesson-card';
 import { LearnSignInButton } from './learn-sign-in';
 import { H2, MUTED_SECTION, WIDTH } from '@/app/contribute/components/landing';
+import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { buttonVariants } from '@/components/ui/button';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
@@ -220,14 +221,7 @@ export function LearnLanding({ viewer }: { viewer: LearnLandingViewer }) {
           <p className="text-muted-foreground">Ready? Set your goal and connect your agent.</p>
           <StartLearning viewer={viewer} className="self-start" />
         </div>
-        <dl className="flex min-w-0 flex-[2_1_560px] flex-col gap-5.5">
-          {QUESTIONS.map(({ question, answer }) => (
-            <div key={question} className="flex flex-col gap-1">
-              <dt className="font-semibold">{question}</dt>
-              <dd className="text-muted-foreground">{answer}</dd>
-            </div>
-          ))}
-        </dl>
+        <QuestionsBlock items={QUESTIONS} className="flex min-w-0 flex-[2_1_560px] flex-col gap-5.5" />
       </section>
     </main>
   );

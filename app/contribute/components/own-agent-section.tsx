@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { createMcpToken, revokeMcpToken } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
+import { InstallButton } from './install-button';
 import { HEADING, Panel, PanelTitle, SubTitle } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,16 +16,14 @@ import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, relativeLabel } from '@/lib/contribute/format';
 import {
   exportLineOf,
-  MCP_SETUPS,
-  MCP_SIGN_IN_SETUPS,
   MCP_TOKEN_ENV,
   MCP_TOKEN_NAME_MAX,
   MCP_TOKENS_MAX,
-  type McpClient,
   ownAgentTextOf,
   USE_A_TOKEN_INSTEAD,
 } from '@/lib/contribute/mcp-setup';
 import { isSignedInAgent, personalTokensOf } from '@/lib/contribute/oauth-consent';
+import { OWN_AGENT_SETUPS } from '@/lib/contribute/own-agent-setups';
 import { cn } from '@/lib/utils';
 
 export const OWN_AGENT_SAFETY = 'Your agent reads issue text written by strangers. Keep its permission prompts on.';
@@ -203,26 +202,27 @@ function SetupBlock({ where, lines, file }: { where: string; lines: string; file
 
 /**
  * Ready-made setup for each client, reading the token from the environment. `signIn`: agents sign in with GitHub, so
- * a client's sign-in comes first and its token setup sits in a fold under it.
+ * a client's sign-in comes first (with its one-click install, where it has one) and its token setup sits in a fold
+ * under it.
  */
 export function SetupLines({ signIn = false }: { signIn?: boolean }) {
-  const [client, setClient] = useState<McpClient>('claude-code');
-  const setup = MCP_SETUPS.find((each) => each.client === client) ?? MCP_SETUPS[0];
-  const viaSignIn = signIn ? MCP_SIGN_IN_SETUPS.find((each) => each.client === setup.client) : undefined;
+  const [client, setClient] = useState(OWN_AGENT_SETUPS[0].id);
+  const setup = OWN_AGENT_SETUPS.find((each) => each.id === client) ?? OWN_AGENT_SETUPS[0];
+  const install = signIn ? setup.install : undefined;
   return (
-    <div className="flex flex-col gap-2.5" data-setup={setup.client}>
+    <div className="flex flex-col gap-2.5" data-setup={setup.id}>
       <fieldset className="flex flex-wrap gap-1.5">
         <legend className="sr-only">Your agent</legend>
-        {MCP_SETUPS.map((each) => (
+        {OWN_AGENT_SETUPS.map((each) => (
           <Button
-            key={each.client}
+            key={each.id}
             type="button"
             variant="outline"
-            aria-pressed={each.client === client}
-            onClick={() => setClient(each.client)}
+            aria-pressed={each.id === client}
+            onClick={() => setClient(each.id)}
             className={cn(
               'px-3 font-normal',
-              each.client === client &&
+              each.id === client &&
                 'border-primary bg-primary/10 font-semibold hover:bg-primary/10 dark:border-primary dark:bg-primary/10 dark:hover:bg-primary/10',
             )}
           >
@@ -230,24 +230,25 @@ export function SetupLines({ signIn = false }: { signIn?: boolean }) {
           </Button>
         ))}
       </fieldset>
-      {viaSignIn ? (
+      {signIn ? (
         <>
+          {install ? <InstallButton link={install} /> : null}
           <SetupBlock
-            where={viaSignIn.where}
-            lines={viaSignIn.lines}
-            file={viaSignIn.file ? viaSignIn.label : undefined}
+            where={install ? `Or by hand: ${setup.signIn.where}` : setup.signIn.where}
+            lines={setup.signIn.lines}
+            file={setup.signIn.file ? setup.signIn.label : undefined}
           />
           <details className="text-sm" data-token-fold>
             <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
               {USE_A_TOKEN_INSTEAD}
             </summary>
             <div className="mt-2 flex flex-col gap-2.5">
-              <SetupBlock where={setup.where} lines={setup.lines} />
+              <SetupBlock where={setup.token.where} lines={setup.token.lines} file={setup.token.file} />
             </div>
           </details>
         </>
       ) : (
-        <SetupBlock where={setup.where} lines={setup.lines} />
+        <SetupBlock where={setup.token.where} lines={setup.token.lines} file={setup.token.file} />
       )}
     </div>
   );
@@ -377,7 +378,7 @@ export function OwnAgentSection({
             prefetch={false}
             className="inline-flex items-center max-sm:min-h-11 self-start text-sm font-semibold text-link"
           >
-            VS Code, other clients, the tools and the limits: the MCP docs →
+            Other clients, the tools and the limits: the MCP docs →
           </Link>
           <p data-safety className="text-sm font-medium">
             {OWN_AGENT_SAFETY}

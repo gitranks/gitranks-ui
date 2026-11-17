@@ -1,7 +1,7 @@
 /** What the user's own agent does with us, under its title. `signIn`: agents sign in with GitHub, a token the fallback. */
 export const ownAgentTextOf = (signIn: boolean): string =>
   [
-    'Claude Code, Codex, Cursor, Gemini CLI or Antigravity on your machine finds issues here, works on one and hands the change back through our MCP server.',
+    'Claude Code, Codex, Cursor, Gemini CLI, Antigravity or VS Code on your machine finds issues here, works on one and hands the change back through our MCP server.',
     signIn ? "It signs in with your GitHub account; a personal token is there for a client that can't." : null,
     'You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed.',
   ]
@@ -390,7 +390,7 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup {
   }
 }
 
-/** The sign-in setup of each client, as Settings and the connect page list it (macOS). */
+/** The sign-in setup of each client, as Settings lists it (macOS), in `MCP_CLIENTS` order. */
 export const MCP_SIGN_IN_SETUPS: readonly McpSignInSetup[] = MCP_CLIENTS.map((client) =>
   mcpSignInSetupOf(client, 'mac'),
 );

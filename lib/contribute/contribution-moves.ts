@@ -54,6 +54,8 @@ export type CardKind =
   | 'stopped'
   | 'repo-out'
   | 'silent'
+  | 'conversation'
+  | 'check-yours'
   | 'proof';
 export type MoveTone = 'violet' | 'amber' | 'red';
 
@@ -106,6 +108,8 @@ export type MoveData =
   | (Extract<UserMove, { kind: 'stopped' }> & { card: 'stopped'; round: number; noRun: NoRun | null })
   | { card: 'repo-out'; reason: RepoOutReason | null; at: string }
   | { card: 'silent'; closesOn: string | null; at: string }
+  | { card: 'conversation'; at: string }
+  | { card: 'check-yours'; detail: string | null; round: number | null; at: string }
   | (Extract<UserMove, { kind: 'proof' }> & { card: 'proof'; round: number; mayStart: boolean });
 
 export type Move = {

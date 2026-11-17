@@ -20,6 +20,8 @@ export const SIGNALS: Record<ContributePrSignalKind, string> = {
   DCO: 'A sign-off (DCO) is missing on the commits',
   SILENT: 'No one has looked at it for 30 days',
   REPO_OUT: 'The repo is out of GitRanks Contribute',
+  CHECK_YOURS: 'A check only you can clear',
+  CONVERSATION: "Someone commented in the pull request's conversation",
 };
 
 /** Every kind this UI knows: what "Mark as handled" may name. */
@@ -46,7 +48,9 @@ function signalDetailOf(signal: ContributePrSignal): string {
     const reason = repoOutReasonOf(signal.detail);
     return reason ? `: ${REPO_OUT_WHY[reason]}` : '';
   }
-  const named = ['CHECK_FAILED', 'CLA', 'TITLE', 'BOT_BLOCKED', 'RUN_ENDED', 'DCO'].includes(signal.kind);
+  const named = ['CHECK_FAILED', 'CLA', 'TITLE', 'BOT_BLOCKED', 'RUN_ENDED', 'DCO', 'CHECK_YOURS'].includes(
+    signal.kind,
+  );
   return named && signal.detail?.trim() ? `: ${signal.detail.trim()}` : '';
 }
 
@@ -206,8 +210,9 @@ export function vetoErrorMessage(error: ContributeErrorCode, message?: string): 
 
 /**
  * What a follow-up cannot do: sign a CLA, retitle (no commit), give the proof a review bot asks of the user, what a run
- * that ended left for them, sign off the commits already pushed, keep a silent pull request open, or close one in a
- * repo that left Contribute.
+ * that ended left for them, sign off the commits already pushed, keep a silent pull request open, close one in a
+ * repo that left Contribute, clear a check only the user can, or read a comment in the conversation (theirs to answer;
+ * they may still start a run with a note).
  */
 export const USERS_SIGNALS = new Set<ContributePrSignal['kind']>([
   'CLA',
@@ -217,6 +222,8 @@ export const USERS_SIGNALS = new Set<ContributePrSignal['kind']>([
   'DCO',
   'SILENT',
   'REPO_OUT',
+  'CHECK_YOURS',
+  'CONVERSATION',
 ]);
 
 /** Whether a follow-up could act on what the pull request needs: anything but the user's own (`USERS_SIGNALS`). */

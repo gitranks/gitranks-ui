@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { attempt, followUpOf, followUpRun } from './__fixtures__/contribute-attempts';
+import { attempt, followUpOf, followUpRun, followUps } from './__fixtures__/contribute-attempts';
 import { replyWaiting } from './__fixtures__/contribute-overview';
 import { NOW, views } from './__fixtures__/contribute-views';
 import {
@@ -8,6 +8,7 @@ import {
   openPr,
   prsNeedingYou,
   prsOutcomes,
+  prsYours,
   runReady,
   runsInFlight,
   signal,
@@ -21,6 +22,7 @@ import type {
 import * as needsYouModule from './needs-you';
 import {
   botVerdictOf,
+  candidatesOf,
   clipped,
   type NeedsYouItem,
   type NeedsYouRead,
@@ -464,6 +466,117 @@ describe('needsYouItemsOf: an open pull request', () => {
     ).toBe('A reviewer asked for changes. Make them on GitHub: no run adds to a pull request in a repo that said no.');
     // Out of the shared pool only: the user's own runs go on.
     expect(both('pr_misses')).toMatchObject({ kind: 'comment', move: expect.stringContaining('Let run') });
+  });
+
+  it("leaves a comment in the conversation to the user: See the comment, I've replied, and no run for it", () => {
+    expect(rowOf(prsYours.conversation)).toMatchObject({
+      kind: 'conversation',
+      tone: 'amber',
+      pill: 'Conversation comment',
+      where: 'marlin-db/marlin · PR #733',
+      move: "Someone commented in the pull request's conversation. Read it, and reply on GitHub if it asks for one.",
+      more: 0,
+      action: { label: 'See the comment', href: '/contribute/attempts/A_PR733?session=next' },
+      secondary: {
+        label: "I've replied",
+        handled: { prId: 'PR_733', prNumber: 733, kinds: ['CONVERSATION'], all: true },
+      },
+    });
+    // The same on a pull request opened by hand: it never was a run's.
+    expect(rowOf({ ...prsYours.conversation, openedBy: 'HAND' })).toMatchObject({
+      kind: 'conversation',
+      action: { label: 'See the comment' },
+    });
+  });
+
+  it('says each check only the user can clear with what to do, opens the pull request, and takes "I\'ve done it"', () => {
+    const row = rowOf(prsYours.checkYours);
+    expect(row).toMatchObject({
+      kind: 'check-yours',
+      tone: 'amber',
+      pill: 'Check only you can clear',
+      move: 'deploy-preview: a maintainer must approve the preview for a fork, ask in the pull request; e2e (merge): bring the base branch into yours, it fails only on the merge.',
+      more: 0,
+      action: { label: 'Open the pull request ↗' },
+      secondary: {
+        label: "I've done it",
+        handled: { prId: 'PR_734', prNumber: 734, kinds: ['CHECK_YOURS'], all: true },
+      },
+    });
+    expect(externalOf(row)).toBe('https://github.com/marlin-db/marlin-cli/pull/734');
+    // Never a "Start run N" row: a kind this UI did not know fell to one.
+    expect(row.move).not.toMatch(/run \d/i);
+    // Without the checks named, it still says whose they are; a long detail is cut to a line.
+    const bare = (detail: string | null) =>
+      rowOf(openPr({ needsYou: { since: '', signals: [signal('CHECK_YOURS', { detail })] } })).move;
+    expect(bare(null)).toBe('A failing check is yours to clear: no run can. See it on GitHub.');
+    expect(bare('  ')).toBe('A failing check is yours to clear: no run can. See it on GitHub.');
+    expect(bare(`e2e: ${'x'.repeat(400)}`)).toHaveLength(300);
+  });
+
+  it('holds a review comment and a conversation comment apart: each its own row, handled on its own', () => {
+    const both = openPr({
+      needsYou: { since: '', signals: [signal('COMMENT'), signal('CONVERSATION')] },
+      followUps: followUps({ recommended: true }),
+    });
+    const list = candidatesOf({ pr: both, drafts: [], runs: [], now: NOW });
+    expect(list.map(({ kind }) => kind)).toEqual(['comment', 'conversation']);
+    // The review comment keeps its row and its words; it leads, the conversation comment counted beside it.
+    expect(rowOf(both)).toMatchObject({
+      kind: 'comment',
+      pill: 'New comment',
+      move: 'Someone commented on it. Let run 1 answer, or reply on GitHub.',
+      more: 1,
+    });
+    // "I've replied" names the conversation alone, so the review comment stays.
+    expect(list[1].secondary).toMatchObject({
+      label: "I've replied",
+      handled: { kinds: ['CONVERSATION'], all: false },
+    });
+    // Once it is marked handled, the review comment's row is as it was alone; and the other way round.
+    const without = (kind: ContributePrSignalKind) =>
+      openPr({
+        ...both,
+        needsYou: { since: '', signals: (both.needsYou?.signals ?? []).filter((each) => each.kind !== kind) },
+      });
+    expect(rowOf(without('CONVERSATION'))).toMatchObject({ kind: 'comment', more: 0 });
+    expect(rowOf(without('COMMENT'))).toMatchObject({ kind: 'conversation', more: 0 });
+  });
+
+  it("puts the user's own two after what a run can do and the replies, before the rest of theirs", () => {
+    const all = openPr({
+      needsYou: {
+        since: '',
+        signals: [
+          signal('SILENT', { detail: '2026-11-12' }),
+          signal('CLA', { detail: 'license/cla' }),
+          signal('CHECK_YOURS', { detail: 'deploy-preview: approve it', round: 1 }),
+          signal('CONVERSATION'),
+          signal('CHECK_FAILED', { detail: 'lint' }),
+          signal('COMMENT'),
+          signal('CHANGES_REQUESTED'),
+        ],
+      },
+    });
+    const drafts = [replyWaiting({ prId: 'PR_8', attemptId: 'A_F1' })];
+    expect(candidatesOf({ pr: all, drafts, runs: [], now: NOW }).map(({ kind }) => kind)).toEqual([
+      'changes',
+      'comment',
+      'check',
+      'replies',
+      'conversation',
+      'check-yours',
+      'cla',
+      'silent',
+    ]);
+    // On a pull request no run adds to, each still has its own row and its own words.
+    const byHand = candidatesOf({ pr: { ...all, openedBy: 'HAND' }, drafts: [], runs: [], now: NOW });
+    expect(byHand.find(({ kind }) => kind === 'check')?.secondary).toMatchObject({
+      handled: { kinds: ['CHECK_FAILED'], all: false },
+    });
+    expect(byHand.find(({ kind }) => kind === 'check-yours')?.secondary).toMatchObject({
+      handled: { kinds: ['CHECK_YOURS'], all: false },
+    });
   });
 
   it('still says something of a kind this UI does not know yet', () => {

@@ -5,6 +5,8 @@ import { NOW, views } from './__fixtures__/contribute-views';
 import {
   nextForAgreement,
   nextForChecks,
+  nextForCheckYours,
+  nextForConversation,
   nextForDco,
   nextForRepoOut,
   nextForRun,
@@ -158,6 +160,78 @@ describe('nextStepOf', () => {
     const unknown = signal('REPO_OUT', { detail: 'something_new' });
     expect(nextStepOf({ ...nextForRepoOut, needsYou: { since: '', signals: [unknown] } }).user).toEqual([
       expect.objectContaining({ kind: 'repo-out', reason: null }),
+    ]);
+  });
+
+  it('gives a comment in the conversation and the checks only the user can clear a card each, and no run for them', () => {
+    const talk = nextStepOf(nextForConversation);
+    expect(talk.user).toEqual([{ kind: 'conversation', kinds: ['CONVERSATION'], at: '2026-10-28T09:30:00.000Z' }]);
+    // A run may still start with the user's own note; none is recommended, nothing is ticked or filled in for it.
+    expect(talk.run).toMatchObject({ open: true, recommended: false, signals: [], kinds: [], note: '' });
+    expect(movesOf(nextForConversation).moves.map(({ card, kinds }) => `${card}:${kinds}`)).toEqual([
+      'conversation:conversation',
+    ]);
+
+    const yours = nextStepOf(nextForCheckYours);
+    expect(yours.user).toEqual([
+      {
+        kind: 'check-yours',
+        kinds: ['CHECK_YOURS'],
+        detail:
+          'deploy-preview: a maintainer must approve the preview for a fork, ask in the pull request; e2e (merge): bring the base branch into yours, it fails only on the merge',
+        round: 2,
+        at: '2026-10-28T10:20:00.000Z',
+      },
+    ]);
+    expect(yours.run).toMatchObject({ recommended: false, signals: [], kinds: [], note: '' });
+    expect(movesOf(nextForCheckYours).moves.map(({ card, kinds }) => `${card}:${kinds}`)).toEqual([
+      'check-yours:check-yours',
+    ]);
+    // No "run recommended" card for either, alone or together.
+    const together = {
+      ...nextForConversation,
+      needsYou: { since: '', signals: [signal('CONVERSATION'), signal('CHECK_YOURS', { detail: null })] },
+    };
+    expect(nextStepOf(together).run).toMatchObject({ recommended: false, signals: [] });
+    expect(movesOf(together).moves.map(({ card }) => card)).toEqual(['conversation', 'check-yours']);
+    expect(nextStepOf(together).user[1]).toMatchObject({ kind: 'check-yours', detail: null, round: null });
+  });
+
+  it('still recommends the run for what it can act on beside them, and leaves both out of it', () => {
+    const beside = {
+      ...nextForRun,
+      needsYou: {
+        since: '',
+        signals: [
+          ...(nextForRun.needsYou?.signals ?? []),
+          signal('CONVERSATION'),
+          signal('CHECK_YOURS', { detail: 'deploy-preview: approve it', round: 1 }),
+        ],
+      },
+    };
+    const step = nextStepOf(beside);
+    expect(step.run).toMatchObject({
+      open: true,
+      recommended: true,
+      kinds: ['CHANGES_REQUESTED', 'CHECK_FAILED'],
+      // The note is the run's own work: neither the conversation nor the user's checks are in it.
+      note: 'Fix the failing checks (lint, test (ubuntu)) and address the 2 review comments from @ana-kelp.',
+    });
+    expect(step.user.map(({ kind }) => kind)).toEqual(['conversation', 'check-yours']);
+    expect(movesOf(beside).moves.map(({ card }) => card)).toEqual(['next-run', 'conversation', 'check-yours']);
+    // A review comment and a conversation comment at once: the run answers the first, the second is the user's.
+    const comments = {
+      ...nextForChecks,
+      needsYou: { since: '', signals: [signal('COMMENT'), signal('CONVERSATION')] },
+    };
+    expect(nextStepOf(comments).run).toMatchObject({
+      recommended: true,
+      kinds: ['COMMENT'],
+      note: 'Answer the new comment on the pull request.',
+    });
+    expect(movesOf(comments).moves.map(({ card, kinds }) => `${card}:${kinds}`)).toEqual([
+      'next-run:comment',
+      'conversation:conversation',
     ]);
   });
 

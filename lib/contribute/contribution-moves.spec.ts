@@ -15,6 +15,8 @@ import { NOW, views } from './__fixtures__/contribute-views';
 import { prNotes } from './__fixtures__/maintainers';
 import {
   nextForAgreement,
+  nextForCheckYours,
+  nextForConversation,
   nextForDco,
   nextForProof,
   nextForRepoOut,
@@ -166,6 +168,31 @@ describe('the contribution’s moves: cards and who holds them', () => {
       },
     });
     expect(model(stopped).moves[0]).toMatchObject({ card: 'stopped', kinds: ['run-stopped'], title: 'Run 1 stopped' });
+  });
+
+  it('tells a comment in the conversation and the checks only the user can clear, each on its card', () => {
+    expect(cards(nextForConversation)).toEqual(['conversation:conversation@next']);
+    expect(model(nextForConversation).moves[0]).toMatchObject({
+      tone: 'amber',
+      kindLine: 'Conversation comment',
+      title: 'Read the new comment on the pull request',
+      chip: 'Next step',
+      actions: [],
+      data: { card: 'conversation', at: '2026-10-28T09:30:00.000Z' },
+    });
+    expect(cards(nextForCheckYours)).toEqual(['check-yours:check-yours@next']);
+    expect(model(nextForCheckYours).moves[0]).toMatchObject({
+      tone: 'amber',
+      kindLine: 'Check only you can clear',
+      title: 'Clear the failing checks yourself',
+      data: { card: 'check-yours', round: 2 },
+    });
+    // The next step's tile holds a move: "Your move", and a run may still start from it.
+    expect(model(nextForConversation)).toMatchObject({ nextTileTitle: 'Run 1', mayStart: true });
+    expect(model(nextForConversation).sessions.next?.pill).toEqual({ label: 'Your move', tone: 'amber' });
+    // Opened by hand: no run may start, the cards stay.
+    expect(cards({ ...nextForConversation, openedBy: 'HAND' })).toEqual(['conversation:conversation@next']);
+    expect(model({ ...nextForConversation, openedBy: 'HAND' }).nextTileTitle).toBe('Next step');
   });
 
   it('holds the proof on its own session, shown on the next step’s pane', () => {
@@ -474,6 +501,8 @@ describe('the order', () => {
       nextForSilent,
       nextForRepoOut,
       nextForProof.review,
+      nextForConversation,
+      nextForCheckYours,
     ];
     for (const page of pages) {
       const pr = contributionOf(page);
@@ -485,6 +514,28 @@ describe('the order', () => {
       const lead = moves.find(({ kinds }) => !kinds.includes('threads') && !kinds.includes('run-recommended'));
       expect(lead?.kinds).toContain(item.kind === 'fix-failed' ? lead?.kinds[0] : item.kind);
     }
+  });
+
+  it('slots the replies after the run’s reasons and before the conversation comment and the user’s checks', () => {
+    const page = detail({
+      ...nextForRun,
+      needsYou: {
+        since: '',
+        signals: [
+          ...(nextForRun.needsYou?.signals ?? []),
+          signal('CHECK_YOURS', { detail: 'deploy-preview: approve it', round: 1 }),
+          signal('CONVERSATION'),
+        ],
+      },
+      followUps: followUps({ used: 1, recommended: true, history: [followUpRun()] }),
+    });
+    const replies = [failed('D_1', 'transient', { prId: 'PR_8' }), failed('D_2', 'transient', { prId: 'PR_8' })];
+    expect(cards(page, { replies })).toEqual([
+      'next-run:changes+check@next',
+      'reply-failed:reply-failed@run:A_F1',
+      'conversation:conversation@next',
+      'check-yours:check-yours@next',
+    ]);
   });
 
   it('puts the session moves first, then the pull request’s, the reply slot after the run’s reasons', () => {

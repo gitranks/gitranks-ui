@@ -44,6 +44,7 @@ const {
   ContributeContributionsDocument,
   ContributeContributionsFollowUpsDocument,
   ContributeGrantDocument,
+  ContributeAttemptCheckNotesDocument,
   ContributeAttemptCheckStopDocument,
   ContributeAttemptDecisionsDocument,
   ContributeAttemptDcoDocument,
@@ -244,6 +245,64 @@ describe("loadAttempt: the repo's rules, read on their own", () => {
     ]) {
       answering(rules);
       expect('repoRules' in ((await loadAttempt('A_1')) ?? {})).toBe(false);
+    }
+  });
+});
+
+describe("loadAttempt: the pull request's check notes and a run's check verdicts, read on their own", () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const NOTES = [{ name: 'Fast checks', kind: 'NOT_PR', why: 'It fails on the base branch too.', by: null, round: 3 }];
+  const VERDICTS = [{ name: 'lint', whose: 'PR', why: 'The new file misses a semicolon.' }];
+  const answering = (notes: () => Promise<unknown>) =>
+    graphqlDirect.mockImplementation((document) =>
+      document === ContributeAttemptCheckNotesDocument
+        ? notes()
+        : Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'PR_OPEN' } }),
+    );
+
+  it("asks for both lists in one operation of its own, by the attempt's id", async () => {
+    answering(() =>
+      Promise.resolve({ contributeAttempt: { attemptId: 'A_1', checkNotes: NOTES, checkVerdicts: null } }),
+    );
+    await loadAttempt('A_1');
+    const asked = graphqlDirect.mock.calls.find(([document]) => document === ContributeAttemptCheckNotesDocument);
+    expect(asked?.[1]).toEqual({ id: 'A_1' });
+    const source = ContributeAttemptCheckNotesDocument.loc?.source.body ?? '';
+    expect(source).toContain('checkNotes { name kind why by round }');
+    expect(source).toContain('checkVerdicts { name whose why }');
+  });
+
+  it("merges the attempt's own answer, nulls included, and leaves both fields out otherwise", async () => {
+    answering(() =>
+      Promise.resolve({ contributeAttempt: { attemptId: 'A_1', checkNotes: NOTES, checkVerdicts: null } }),
+    );
+    expect(await loadAttempt('A_1')).toEqual({
+      attemptId: 'A_1',
+      state: 'PR_OPEN',
+      checkNotes: NOTES,
+      checkVerdicts: null,
+    });
+
+    answering(() =>
+      Promise.resolve({ contributeAttempt: { attemptId: 'A_1', checkNotes: null, checkVerdicts: VERDICTS } }),
+    );
+    expect(await loadAttempt('A_1')).toMatchObject({ checkNotes: null, checkVerdicts: VERDICTS });
+
+    for (const notes of [
+      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', checkNotes: NOTES, checkVerdicts: VERDICTS } }),
+      () => Promise.resolve({ contributeAttempt: null }),
+      () => Promise.reject(new Error('[{"message":"Cannot query field \\"checkNotes\\""}]')),
+      () => Promise.reject(new Error('GraphQL error! 502: Bad Gateway')),
+    ]) {
+      answering(notes);
+      const read = (await loadAttempt('A_1')) ?? {};
+      expect(['checkNotes' in read, 'checkVerdicts' in read]).toEqual([false, false]);
+      expect(read).toEqual({ attemptId: 'A_1', state: 'PR_OPEN' });
     }
   });
 });

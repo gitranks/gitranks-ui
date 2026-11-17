@@ -341,6 +341,19 @@ export const ContributeAttemptClaimStepsDocument = doc<
   `query ContributeAttemptClaimSteps($id: ID!) { contributeAttempt(id: $id) { attemptId claimSteps { key words at state } } }`,
 );
 
+/** The pull request's check notes and a run's check verdicts, by attempt, to merge into the attempt read. */
+export type CheckNotesRead = Pick<ContributeAttemptDetail, 'attemptId' | 'checkNotes' | 'checkVerdicts'>;
+
+/**
+ * An open pull request's failing checks that call nobody, each with why, and a run's verdicts on the failing checks:
+ * read on their own, so an API without them leaves the rest.
+ */
+export const ContributeAttemptCheckNotesDocument = doc<{ contributeAttempt: CheckNotesRead | null }, { id: string }>(
+  `query ContributeAttemptCheckNotes($id: ID!) {
+  contributeAttempt(id: $id) { attemptId checkNotes { name kind why by round } checkVerdicts { name whose why } }
+}`,
+);
+
 /** The shown issues as they are now, in the order asked (1 to 50 ids); null when the API hides it from the user. */
 export const ContributeIssueStatusDocument = doc<
   { contributeIssueStatus: ContributeIssueStatus[] | null },

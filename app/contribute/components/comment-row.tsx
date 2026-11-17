@@ -15,7 +15,14 @@ import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import { resolvesOf } from '@/lib/contribute/comment-actions';
 import { replyPreviewOf, whereOfThread } from '@/lib/contribute/follow-up-flow';
 import type { ActionId } from '@/lib/contribute/hard-stop';
-import { type CommentRowItem, chipOf, isMuted, outcomePillOf, shortWhereOf } from '@/lib/contribute/review-comments';
+import {
+  type CommentRowItem,
+  chipOf,
+  isMuted,
+  noReplyLineOf,
+  outcomePillOf,
+  shortWhereOf,
+} from '@/lib/contribute/review-comments';
 import { cn } from '@/lib/utils';
 
 /** Rows whose reply the user edits and ticks, in a run's review. */
@@ -60,6 +67,8 @@ export function CommentRow({
   const edit = draft ? (session?.replies?.edits[draft.draftId] ?? { text: draft.text, send: false }) : null;
   const editable = EDITABLE.has(item.state) && !!session?.replies && !blocked.has('push');
   const reply = draft ? replyPreviewOf(null, edit?.text ?? draft.text) : '';
+  // A thread the run found asks nothing: its line says so with the reason, in place of a reply.
+  const noReply = draft && item.state === 'no-reply-needed' ? noReplyLineOf(draft) : null;
   const contentId = `comment-${item.key}-content`;
   const postedUrl = draft && POSTED.has(item.state) ? githubUrlOf(draft.url) : null;
   const ticked = !!edit && edit.send && !!edit.text.trim();
@@ -69,6 +78,7 @@ export function CommentRow({
     target ? `${target.author || 'A reviewer'}${path ? ` on ${path}` : ''}` : 'On the pull request',
     outcome?.label,
     chip?.label,
+    noReply && open ? noReply : null,
   ]
     .filter(Boolean)
     .join(', ');
@@ -134,7 +144,13 @@ export function CommentRow({
             <span className={cn('w-full truncate text-sm', ignored && 'line-through')}>
               {draft ? (draft.comment?.excerpt ?? 'A comment on the pull request') : thread?.excerpt}
             </span>
-            {reply.trim() && !open ? (
+            {noReply ? (
+              open ? null : (
+                <span data-no-reply="" className="w-full truncate text-xs text-muted-foreground">
+                  {noReply}
+                </span>
+              )
+            ) : reply.trim() && !open ? (
               <span className="w-full truncate text-xs text-muted-foreground max-sm:hidden">Reply · {reply}</span>
             ) : null}
           </Button>

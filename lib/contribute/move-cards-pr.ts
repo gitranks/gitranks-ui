@@ -9,8 +9,9 @@ import { waitingThreadsOf } from './sessions';
 
 /**
  * The moves an open pull request's next step and proof hold (2026-11-13), on their cards, in Needs you's order
- * (`candidatesOf`): the next run, an agreement, the rules, the sign-off, what a bot or a run left the user, a stopped
- * run, the repo out of Contribute, silence, the proof. Pure: `contributionMovesOf` puts them among the others.
+ * (`candidatesOf`): the next run, a comment in the conversation, the checks only the user can clear, an agreement, the
+ * rules, the sign-off, what a bot or a run left the user, a stopped run, the repo out of Contribute, silence, the
+ * proof. Pure: `contributionMovesOf` puts them among the others.
  */
 
 /** The kinds of the next-run card, in its `?move=` order. */
@@ -29,6 +30,8 @@ const PILLS: Partial<Record<MoveKind, string>> = {
   threads: 'Review comments',
   'run-recommended': 'Recommended',
   replies: 'Replies to approve',
+  conversation: 'Conversation comment',
+  'check-yours': 'Check only you can clear',
   agreement: 'Agreement to sign',
   title: 'Title rule',
   description: 'Description rule',
@@ -151,6 +154,42 @@ export function prCardsOf({
           threads,
           note: step.run.note,
         },
+      },
+    });
+  }
+
+  // A comment in the conversation, and the checks only the user can clear: theirs alone, no run for either.
+  const talk = step.user.find((move) => move.kind === 'conversation');
+  if (talk && talk.kind === 'conversation') {
+    cards.push({
+      slot: slotOf('conversation'),
+      move: {
+        card: 'conversation',
+        kinds: ['conversation'],
+        session: next,
+        tone: 'amber',
+        kindLine: 'Conversation comment',
+        title: 'Read the new comment on the pull request',
+        chip: nextChip,
+        actions: [],
+        data: { card: 'conversation', at: talk.at },
+      },
+    });
+  }
+  const yours = step.user.find((move) => move.kind === 'check-yours');
+  if (yours && yours.kind === 'check-yours') {
+    cards.push({
+      slot: slotOf('check-yours'),
+      move: {
+        card: 'check-yours',
+        kinds: ['check-yours'],
+        session: next,
+        tone: 'amber',
+        kindLine: 'Check only you can clear',
+        title: 'Clear the failing checks yourself',
+        chip: nextChip,
+        actions: [],
+        data: { card: 'check-yours', detail: yours.detail, round: yours.round, at: yours.at },
       },
     });
   }

@@ -8,6 +8,7 @@ import type { ContributeActionResult } from './errors';
 import { FOLLOW_UP_THREADS_MAX } from './follow-up-flow';
 import { followUpApprovalTitle } from './follow-up-format';
 import type { ActionId } from './hard-stop';
+import { isNoReply } from './one-comment';
 
 /**
  * The comments' part of a session's actions: the next step's choices (Address or Ignore per waiting thread), a run's
@@ -100,7 +101,9 @@ export type CommentEvent =
 /** The words a failed people's-threads setting shows. */
 export const SETTING_ERROR = 'Your choice could not be saved. Try again.';
 
-const editable = (draft: Pick<ContributeReplyDraft, 'state'>) => draft.state === 'DRAFT' || draft.state === 'FAILED';
+/** A reply the user edits and ticks in a run's review: never one the run found needs no reply. */
+const editable = (draft: Pick<ContributeReplyDraft, 'state' | 'outcome' | 'dismissedReason'>) =>
+  (draft.state === 'DRAFT' || draft.state === 'FAILED') && !isNoReply(draft);
 
 /** A reply goes by default when it has words and answers what was done; a question waits for the user's own. */
 export const sendsByDefault = (draft: ContributeReplyDraft) =>
@@ -305,7 +308,7 @@ export function commentViewOf(init: CommentActionsInit, state: CommentState): Co
         const resolving = sent.filter((draft) => resolvesOf(draft, state.resolveHumans)).length;
         const botThreads = sent.filter((draft) => draft.bot === true && resolvesOf(draft, undefined)).length;
         const peopleThreads = init.drafts.filter(
-          (draft) => draft.comment && draft.bot !== true && !dropped.has(draft.draftId),
+          (draft) => draft.comment && draft.bot !== true && !dropped.has(draft.draftId) && !isNoReply(draft),
         ).length;
         return {
           edits: state.edits,

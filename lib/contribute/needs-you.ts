@@ -42,6 +42,8 @@ export type NeedsYouKind =
   | 'check'
   | 'replies'
   | 'reply-failed'
+  | 'conversation'
+  | 'check-yours'
   | 'agreement'
   | 'cla'
   | 'title'
@@ -511,7 +513,11 @@ export type PrContext = {
   now: Date;
 };
 
-/** The reasons on an open pull request, in Needs you's order: what a run can do first, then the user's own. */
+/**
+ * The reasons on an open pull request, in Needs you's order: what a run can do first (changes requested, a review
+ * comment, a failing check), the replies, then the user's own, led by a comment in the conversation and the checks
+ * only they can clear.
+ */
 export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
   const signals = pr.needsYou?.signals ?? [];
   const first = (kind: ContributePrSignalKind) => signals.find((signal) => signal.kind === kind);
@@ -618,6 +624,34 @@ export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] 
       },
       secondary: null,
       at: Math.min(...notPosted.drafts.map(({ updatedAt }) => timeOf(updatedAt))),
+    });
+  }
+
+  // The user's own, with no run for either: a comment in the conversation is theirs to read and answer, and a run
+  // judged these checks theirs to clear. Each its own row, so marking one handled leaves the other.
+  const talk = first('CONVERSATION');
+  if (talk) {
+    list.push({
+      kind: 'conversation',
+      tone: 'amber',
+      pill: 'Conversation comment',
+      move: "Someone commented in the pull request's conversation. Read it, and reply on GitHub if it asks for one.",
+      action: toNext('See the comment'),
+      secondary: handled("I've replied", ['CONVERSATION']),
+      at: timeOf(talk.at),
+    });
+  }
+  const yours = first('CHECK_YOURS');
+  if (yours) {
+    const todo = yours.detail?.trim();
+    list.push({
+      kind: 'check-yours',
+      tone: 'amber',
+      pill: 'Check only you can clear',
+      move: todo ? sentence(clipped(todo, 300)) : 'A failing check is yours to clear: no run can. See it on GitHub.',
+      action: onGithub('Open the pull request'),
+      secondary: handled("I've done it", ['CHECK_YOURS']),
+      at: timeOf(yours.at),
     });
   }
 

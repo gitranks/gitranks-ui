@@ -44,11 +44,21 @@ const {
   followUpRun,
   followUps,
   needsYou,
+  noReplyDraft,
   replyDraft,
 } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { replyWaiting } = await import('@/lib/contribute/__fixtures__/contribute-overview');
-const { nextForAgreement, nextForChecks, nextForDco, nextForRepoOut, nextForRun, nextForSilent, nextForYou } =
-  await import('@/lib/contribute/__fixtures__/needs-you');
+const {
+  nextForAgreement,
+  nextForChecks,
+  nextForCheckYours,
+  nextForConversation,
+  nextForDco,
+  nextForRepoOut,
+  nextForRun,
+  nextForSilent,
+  nextForYou,
+} = await import('@/lib/contribute/__fixtures__/needs-you');
 const { followUpErrorMessage, handledErrorMessage, replyRefusalOf, vetoErrorMessage } = await import(
   '@/lib/contribute/follow-up-format'
 );
@@ -136,6 +146,43 @@ describe('a pull request that needs the user, on My contributions', () => {
     expect(one('SILENT', '2026-11-12')).toContain('Keep it open');
     expect(one('REPO_OUT', 'hostile_close')).toContain(
       'Repo out of Contribute Add a --json flag to kelp status Your move: This repo is out of Contribute: a maintainer asked us to stay away. You may want to close this PR. Close it on GitHub, or click Keep it open. See your options',
+    );
+  });
+
+  it('leaves a conversation comment and a check only the user can clear to them: no run in either row', () => {
+    const at = NOW.toISOString();
+    const row = (signals: { kind: 'COMMENT' | 'CONVERSATION' | 'CHECK_YOURS'; detail: string | null }[]) =>
+      mine({
+        needsYou: { since: at, signals: signals.map((signal) => ({ ...signal, at })) },
+        followUps: followUps(),
+      });
+
+    const talk = row([{ kind: 'CONVERSATION', detail: null }]);
+    expect(talk).toContain('data-row="conversation"');
+    expect(text(talk)).toContain(
+      "kelp-db/kelp · PR #1419 Conversation comment Add a --json flag to kelp status Your move: Someone commented in the pull request's conversation. Read it, and reply on GitHub if it asks for one. See the comment I've replied",
+    );
+    expect(talk).toContain('href="/contribute/attempts/A_8?session=next"');
+    expect(talk).toContain('data-kinds="CONVERSATION"');
+    expect(text(talk)).not.toMatch(/Start run|Answer with run|Something changed/);
+
+    const yours = row([{ kind: 'CHECK_YOURS', detail: 'deploy-preview: approve the preview for the fork' }]);
+    expect(yours).toContain('data-row="check-yours"');
+    expect(text(yours)).toContain(
+      "kelp-db/kelp · PR #1419 Check only you can clear Add a --json flag to kelp status Your move: deploy-preview: approve the preview for the fork. Open the pull request ↗ I've done it",
+    );
+    expect(yours).toContain('href="https://github.com/kelp-db/kelp/pull/1419"');
+    expect(yours).toContain('data-kinds="CHECK_YOURS"');
+    expect(text(yours)).not.toMatch(/Start run|Fix with run|Something changed/);
+
+    // A review comment and a conversation comment held at once: the review comment leads as before, the other counted.
+    const both = row([
+      { kind: 'COMMENT', detail: null },
+      { kind: 'CONVERSATION', detail: null },
+    ]);
+    expect(both).toContain('data-row="comment"');
+    expect(text(both)).toContain(
+      'New comment Add a --json flag to kelp status Your move: Someone commented on it. Let run 1 answer, or reply on GitHub. · and 1 more Answer with run 1',
     );
   });
 
@@ -369,6 +416,61 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(html).toContain('data-session="A_F1"');
     expect(html).toContain('href="/contribute/attempts/A_1/runs/A_F1"');
     expect(html).not.toContain('data-session="next"');
+  });
+
+  it('lists under the pull request’s checks the failing ones that call nobody, each with why', () => {
+    const withNotes = (
+      checkNotes: ContributeAttemptDetail['checkNotes'],
+      patch: Partial<ContributeAttemptDetail> = {},
+    ) => review({ ...followUpAttempts.prNeedsYou, checkNotes, ...patch });
+    const html = withNotes([
+      { name: 'Fast checks', kind: 'NOT_PR', why: 'It fails on the base branch too.', by: null, round: 3 },
+      { name: 'deploy-preview', kind: 'CONTRIBUTOR', why: 'Approve the preview for the fork.', by: null, round: 3 },
+      { name: 'e2e (merge)', kind: 'BASE', why: 'It fails only on the merge.', by: null, round: 2 },
+      { name: 'docs-links', kind: 'SOMEONE_ELSE', why: null, by: 'sam-w', round: null },
+      { name: 'build', kind: 'SETTLING', why: null, by: null, round: null },
+    ]);
+    const plain = text(html);
+    expect(html).toContain('data-check-notes="5"');
+    expect(plain).toContain(
+      'Checks failed · read 15 minutes ago Fast checks fails: not from this pull request (run 3: It fails on the base branch too) deploy-preview: yours to clear (run 3: Approve the preview for the fork) e2e (merge) needs the base branch (run 2: It fails only on the merge) docs-links started failing on a commit by sam-w build: checks still running',
+    );
+    // Under the pull request's line, in the header, in the secondary line's style.
+    expect(html.indexOf('data-pr-checks="FAILURE"')).toBeLessThan(html.indexOf('data-check-notes'));
+    expect(html.indexOf('data-check-notes')).toBeLessThan(html.indexOf('</header>'));
+    expect(html).toMatch(/<li data-check-note="NOT_PR" class="text-sm break-words text-muted-foreground">/);
+
+    // A part the API leaves out is dropped; untrusted text stays text.
+    const bare = text(
+      withNotes([
+        { name: 'Fast checks', kind: 'NOT_PR', why: null, by: null, round: null },
+        { name: 'docs-links', kind: 'SOMEONE_ELSE', why: null, by: null, round: null },
+        { name: '<b>e2e</b>', kind: 'BASE', why: '<i>base</i>', by: null, round: null },
+      ]),
+    );
+    expect(bare).toContain(
+      'Fast checks fails: not from this pull request docs-links started failing on a commit by someone else <b>e2e</b> needs the base branch (<i>base</i>)',
+    );
+  });
+
+  it('draws the pull request’s line as before with no notes: null, empty, not answered, or once it is not open', () => {
+    const base = review(followUpAttempts.prNeedsYou);
+    expect(base).not.toContain('data-check-notes');
+    expect(review({ ...followUpAttempts.prNeedsYou, checkNotes: null })).toBe(base);
+    expect(review({ ...followUpAttempts.prNeedsYou, checkNotes: [] })).toBe(base);
+    expect(review({ ...followUpAttempts.prNeedsYou, checkNotes: undefined })).toBe(base);
+    const merged = review({
+      ...followUpAttempts.prNeedsYou,
+      state: 'DONE',
+      pullRequest: {
+        ...followUpAttempts.prNeedsYou.pullRequest!,
+        state: 'MERGED',
+        mergedAt: '2026-10-28T11:50:00.000Z',
+      },
+      needsYou: null,
+      checkNotes: [{ name: 'build', kind: 'SETTLING', why: null, by: null, round: null }],
+    });
+    expect(merged).not.toContain('data-check-notes');
   });
 
   it('offers no next round on a merged or closed pull request', () => {
@@ -1103,6 +1205,112 @@ describe('the follow-up flow: review feedback, the run, the result and the round
     expect(html).not.toContain('data-tab="replies"');
   });
 
+  it('lists a run’s verdicts on the failing checks where it says what it did, whose each is in words', () => {
+    const html = review(
+      inReview({
+        checkVerdicts: [
+          { name: 'lint', whose: 'PR', why: 'The new file misses a semicolon: fixed in this run.' },
+          { name: 'Fast checks', whose: 'NOT_PR', why: 'It fails on the base branch too.' },
+          { name: 'deploy-preview', whose: 'CONTRIBUTOR', why: 'A maintainer must approve the preview for a fork.' },
+          { name: 'e2e (merge)', whose: 'BASE', why: 'It fails only on the merge with the base branch.' },
+        ],
+      }),
+    );
+    const plain = text(html);
+    expect(html).toContain('data-check-verdicts="4"');
+    expect(html.match(/data-check-verdict="[A-Z_]+"/g)).toEqual([
+      'data-check-verdict="PR"',
+      'data-check-verdict="NOT_PR"',
+      'data-check-verdict="CONTRIBUTOR"',
+      'data-check-verdict="BASE"',
+    ]);
+    expect(plain).toContain(
+      "The pull request's failing checks lint : this pull request's The new file misses a semicolon: fixed in this run. Fast checks : not from this pull request It fails on the base branch too. deploy-preview : yours to clear A maintainer must approve the preview for a fork. e2e (merge) : needs the base branch It fails only on the merge with the base branch.",
+    );
+    // Inside the one "What the agent did" card, before the comments.
+    expect(plain.match(/What the agent did/g)).toHaveLength(1);
+    expect(html.indexOf('data-panel="agent-did"')).toBeLessThan(html.indexOf('data-check-verdicts'));
+    expect(html.indexOf('data-check-verdicts')).toBeLessThan(html.indexOf('data-panel="review-comments"'));
+    // Its name and reason are untrusted: text only.
+    const odd = review(inReview({ checkVerdicts: [{ name: '<b>lint</b>', whose: 'PR', why: '<img src=x>' }] }));
+    expect(odd).toContain('&lt;b&gt;lint&lt;/b&gt;');
+    expect(odd).not.toContain('<img src=x>');
+    // An ended run that left nothing else to say still says them.
+    const only = review(
+      inReview({
+        state: 'STOPPED',
+        endReason: 'NO_GO',
+        result: null,
+        patch: null,
+        replyDrafts: [],
+        checkVerdicts: [{ name: 'Fast checks', whose: 'NOT_PR', why: 'It fails on the base branch too.' }],
+      }),
+    );
+    expect(only).toContain('data-check-verdicts="1"');
+  });
+
+  it('draws the run as before with no verdicts: null, empty, not answered, or on a first attempt', () => {
+    const base = review(inReview());
+    expect(base).not.toContain('data-check-verdicts');
+    expect(review(inReview({ checkVerdicts: null }))).toBe(base);
+    expect(review(inReview({ checkVerdicts: [] }))).toBe(base);
+    expect(review(inReview({ checkVerdicts: undefined }))).toBe(base);
+    // A first attempt has no verdicts of its own to list.
+    const first = review({
+      ...followUpAttempts.prNeedsYou,
+      checkVerdicts: [{ name: 'lint', whose: 'PR', why: 'x' }],
+    });
+    expect(first).not.toContain('data-check-verdicts');
+  });
+
+  it('lists the threads that need no reply with the reason, and offers nothing on them', () => {
+    const none = [
+      noReplyDraft(),
+      noReplyDraft({
+        draftId: 'D_NR2',
+        bot: false,
+        comment: { ...noReplyDraft().comment!, commentId: 'C_NR2', author: 'maintainer-mo', excerpt: 'Thanks, LGTM.' },
+        reason: 'The maintainer only said thanks.',
+      }),
+    ];
+    const html = review(inReview({ replyDrafts: [...(inReview().replyDrafts ?? []), ...none] }));
+    const plain = text(html);
+    expect(html.match(/data-row-state="no-reply-needed"/g)).toHaveLength(2);
+    expect(plain).toContain('No reply needed · 2');
+    expect(plain).toContain('No reply needed: The bot only confirmed the earlier fix.');
+    expect(plain).toContain('No reply needed: The maintainer only said thanks.');
+    // The review's own rows and counts are as they were: four replies, three ready, one question.
+    expect(plain).toContain('Needs you · 1');
+    expect(plain).toContain('Ready to post · 3');
+    expect(plain).toContain('2 fixed · 1 not changed · 1 for you · 2 need no reply');
+    const before = review(inReview());
+    const ticks = (page: string) => page.match(/aria-label="Post the reply to [^"]+"/g) ?? [];
+    expect(ticks(html)).toEqual(ticks(before));
+    expect(ticks(html)).toHaveLength(4);
+    const fields = (page: string) => page.match(/<textarea/g)?.length ?? 0;
+    expect(fields(html)).toBe(fields(before));
+    // The card's push says the same replies as without them.
+    const pushOf = (page: string) => page.match(/data-move="run-ready".*?<\/section>/s)?.[0] ?? '';
+    expect(text(pushOf(html))).toBe(text(pushOf(before)));
+
+    // After the run too: listed, open, with no post, approve, dismiss or discard control.
+    const done = review(inReview({ state: 'DONE', replyDrafts: none }));
+    expect(text(done)).toContain('Review comments 2 2 need no reply');
+    expect(text(done)).toContain('No reply needed: The bot only confirmed the earlier fix.');
+    for (const control of [
+      'data-approve-reply',
+      'data-dismiss-reply',
+      'data-row-actions',
+      'Discard comment',
+      '<textarea',
+    ]) {
+      expect(done).not.toContain(control);
+    }
+    // Their text is untrusted.
+    const odd = review(inReview({ state: 'DONE', replyDrafts: [noReplyDraft({ reason: '<script>x</script>' })] }));
+    expect(odd).toContain('No reply needed: &lt;script&gt;x&lt;/script&gt;');
+  });
+
   it('blocks the push on a failed rail, saying so, and makes Discard run the main button', () => {
     const html = review(
       inReview({ checkStatus: { status: 'BLOCKED', note: 'It cannot be pushed: it changes a GitHub workflow.' } }),
@@ -1371,6 +1579,94 @@ describe('the next step, for each thing only the user can do', () => {
       'Run git rebase --signoff HEAD~N, where N is the number of commits on the pull request',
     );
     expect(byHand).toContain('data-kinds="DCO"');
+  });
+
+  it('leaves a comment in the conversation to the user: GitHub, "I\'ve replied", a run one disclosure away', () => {
+    const html = next(nextForConversation);
+    const plain = text(html);
+    expect(html).toContain('data-move="conversation"');
+    expect(plain).toContain('Conversation comment Read the new comment on the pull request');
+    expect(plain).toContain(
+      "Someone commented in the pull request's conversation 3 hours ago. It is yours to read: GitRanks starts no run for it.",
+    );
+    expect(plain).toContain("Reply on GitHub ↗ (opens in a new tab) I've replied");
+    expect(html).toContain('href="https://github.com/marlin-db/marlin/pull/733"');
+    // The GitHub link is the view's main button; "I've replied" marks the conversation alone.
+    expect(html).toMatch(/href="https:\/\/github.com\/marlin-db\/marlin\/pull\/733"[^>]*data-variant="default"/);
+    expect(html).toContain('data-kinds="CONVERSATION"');
+    expect(plain).toContain(
+      "What to do Open PR #733 on GitHub and read the new comment in its conversation. Reply there if it asks you something. If it asks for a change, start run 1 below, with a note that says what to change. Come back and click I've replied: this leaves Needs you.",
+    );
+    // No run is offered for it: nothing ticked, no note filled in; the user's own run is one disclosure away.
+    expect(html).not.toContain('data-move="next-run"');
+    expect(html).not.toContain('data-run-item');
+    expect(html).toContain('data-start-anyway=""');
+    expect(plain).not.toContain('Recommended');
+    // The first attempt's page points at it.
+    expect(text(review(nextForConversation))).toContain('Your move is in the next step →');
+
+    // On a pull request opened by hand no run may start: the card stays, without the run's step.
+    const byHand = text(next({ ...nextForConversation, openedBy: 'HAND' }));
+    expect(byHand).toContain('Read the new comment on the pull request');
+    expect(byHand).not.toContain('start run');
+  });
+
+  it('says each check only the user can clear with what to do: GitHub, "I\'ve done it", and no run for them', () => {
+    const html = next(nextForCheckYours);
+    const plain = text(html);
+    expect(html).toContain('data-move="check-yours"');
+    expect(plain).toContain('Check only you can clear Clear the failing checks yourself');
+    expect(plain).toContain('Run 2 found failing checks only you can clear. GitRanks starts no run for them.');
+    expect(plain).toContain(
+      'Run 2 · 2 hours ago deploy-preview: a maintainer must approve the preview for a fork, ask in the pull request; e2e (merge): bring the base branch into yours, it fails only on the merge',
+    );
+    expect(plain).toContain("Open #734 on GitHub ↗ (opens in a new tab) I've done it");
+    expect(html).toMatch(/href="https:\/\/github.com\/marlin-db\/marlin-cli\/pull\/734"[^>]*data-variant="default"/);
+    expect(html).toContain('data-kinds="CHECK_YOURS"');
+    expect(plain).toContain(
+      "What to do Open PR #734 on GitHub and find its failing checks. Do what is said above for each check. Come back and click I've done it: this leaves Needs you.",
+    );
+    expect(html).not.toContain('data-move="next-run"');
+    expect(html).not.toContain('data-run-item');
+    expect(plain).not.toContain('Recommended');
+
+    // Without the checks named or the run's number: still a card, no empty block.
+    const bare = next({
+      ...nextForCheckYours,
+      needsYou: { since: '', signals: [{ kind: 'CHECK_YOURS', at: '2026-10-28T10:20:00.000Z', detail: null }] },
+    });
+    expect(bare).not.toContain('data-check-yours');
+    expect(text(bare)).toContain('A run found failing checks only you can clear.');
+    expect(text(bare)).toContain('Open each failing check: it says what it waits for.');
+  });
+
+  it('holds both beside what a run can act on: the run stays recommended, each has its card under it', () => {
+    const html = next({
+      ...nextForRun,
+      needsYou: {
+        since: '',
+        signals: [
+          ...(nextForRun.needsYou?.signals ?? []),
+          { kind: 'CONVERSATION', at: '2026-10-28T09:30:00.000Z', detail: null },
+          { kind: 'CHECK_YOURS', at: '2026-10-28T10:20:00.000Z', detail: 'deploy-preview: approve it', round: 1 },
+        ],
+      },
+    });
+    const plain = text(html);
+    // The run's card leads, with only what a run acts on ticked.
+    expect(html).toContain('data-move="next-run"');
+    expect(html.match(/data-run-item="[A-Z_]+"/g)).toEqual([
+      'data-run-item="CHANGES_REQUESTED"',
+      'data-run-item="CHECK_FAILED"',
+    ]);
+    expect(plain).toContain(
+      'Fix the failing checks (lint, test (ubuntu)) and address the 2 review comments from @ana-kelp.',
+    );
+    // The other two wait under it, each a row that swaps its card in.
+    expect(plain).toContain('Read the new comment on the pull request');
+    expect(plain).toContain('Clear the failing checks yourself');
+    expect(html).toContain('data-move="conversation"');
+    expect(html).toContain('data-move="check-yours"');
   });
 
   it('warns of the close a silent pull request faces: keep it open, or close it, and no run for it', () => {

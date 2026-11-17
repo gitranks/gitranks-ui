@@ -35,6 +35,7 @@ const {
   FixContributePullRequestDocument,
   IgnoreReviewThreadsDocument,
   MarkNeedsYouHandledDocument,
+  MarkNeedsYouHandledKindsDocument,
   VetoAutopilotDocument,
 } = await import('@/lib/contribute/contribute.documents');
 
@@ -405,7 +406,26 @@ describe('the follow-up actions', () => {
       { source: 'client', githubLogin: 'octocat' },
     );
     graphqlDirect.mockClear();
-    expect(await actions.dismissReply('D_1', 'THREAD_RESOLVED' as never)).toMatchObject({
+    // The two reasons the API alone gives are never the user's to send.
+    for (const reason of ['THREAD_RESOLVED', 'NO_REPLY']) {
+      expect(await actions.dismissReply('D_1', reason as never)).toMatchObject({ ok: false, error: 'INVALID' });
+    }
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('marks the kinds a row names as handled, the two the user alone acts on among them', async () => {
+    graphqlDirect.mockResolvedValue({ markNeedsYouHandled: { ok: 'PR_1' } });
+    for (const kinds of [['CHECK_YOURS'], ['CONVERSATION'], ['CONVERSATION', 'CHECK_YOURS']] as const) {
+      expect(await actions.markNeedsYouHandled('PR_1', [...kinds])).toEqual({ ok: true, data: { ok: 'PR_1' } });
+      expect(graphqlDirect).toHaveBeenLastCalledWith(
+        MarkNeedsYouHandledKindsDocument,
+        { prId: 'PR_1', kinds: [...kinds] },
+        { source: 'client', githubLogin: 'octocat' },
+      );
+    }
+    // A kind this UI does not know is never sent; with none left, nothing is.
+    graphqlDirect.mockClear();
+    expect(await actions.markNeedsYouHandled('PR_1', ['SOMETHING_NEW' as never])).toMatchObject({
       ok: false,
       error: 'INVALID',
     });

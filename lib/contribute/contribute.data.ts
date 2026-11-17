@@ -3,7 +3,9 @@ import 'server-only';
 import { cache } from 'react';
 
 import {
+  type CheckNotesRead,
   ContributeActivityDocument,
+  ContributeAttemptCheckNotesDocument,
   ContributeAttemptCheckStopDocument,
   ContributeAttemptClaimStepsDocument,
   ContributeAttemptConventionsDocument,
@@ -620,6 +622,10 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   const claimSteps = Promise.resolve(graphqlDirect(ContributeAttemptClaimStepsDocument, { id }, options)).catch(
     () => undefined,
   );
+  // The failing checks that call nobody, and a run's verdicts on the failing checks; left out when not answered.
+  const checkNotes = Promise.resolve(graphqlDirect(ContributeAttemptCheckNotesDocument, { id }, options)).catch(
+    () => undefined,
+  );
   // The run's replies plan (one comment, the org's refusal, the first reply in its thread); left out when not answered.
   const repliesPlan = Promise.resolve(graphqlDirect(ContributeAttemptRepliesPlanDocument, { id }, options)).catch(
     () => undefined,
@@ -702,15 +708,16 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
       stepsRead?.attemptId === contributeAttempt.attemptId && Array.isArray(stepsRead.claimSteps)
         ? { ...withRules, claimSteps: stepsRead.claimSteps }
         : withRules;
+    const withNotes = withCheckNotesOf(withSteps, (await checkNotes)?.contributeAttempt);
     const holdRead = (await hold)?.contributeAttempt;
     const withProof =
       holdRead?.attemptId === contributeAttempt.attemptId && holdRead.newcomersLabel !== undefined
         ? {
-            ...withSteps,
+            ...withNotes,
             reviewReasonSource: holdRead.reviewReasonSource ?? null,
             newcomersLabel: holdRead.newcomersLabel ?? null,
           }
-        : withSteps;
+        : withNotes;
     const learnRead = (await learn)?.contributeAttempt;
     const withLearn =
       learnRead?.attemptId === contributeAttempt.attemptId && (learnRead.mode === 'LEARN' || learnRead.mode === 'FIX')
@@ -732,6 +739,22 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
     if (error === 'NOT_AVAILABLE_YET') return undefined;
     throw new ContributeUnavailableError();
   }
+}
+
+/**
+ * The attempt with its pull request's check notes and its own check verdicts, each as answered (null included).
+ * Another attempt's read, or an API that does not answer them, leaves the attempt as it was.
+ */
+export function withCheckNotesOf(
+  attempt: ContributeAttemptDetail,
+  read: CheckNotesRead | null | undefined,
+): ContributeAttemptDetail {
+  if (!read || read.attemptId !== attempt.attemptId) return attempt;
+  return {
+    ...attempt,
+    ...(read.checkNotes !== undefined ? { checkNotes: read.checkNotes } : {}),
+    ...(read.checkVerdicts !== undefined ? { checkVerdicts: read.checkVerdicts } : {}),
+  };
 }
 
 /**

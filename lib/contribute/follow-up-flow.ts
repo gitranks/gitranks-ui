@@ -55,6 +55,7 @@ export const OUTCOMES: Record<
   FIXED: { label: 'Fixed', tone: 'green', hint: 'The new commits address it.' },
   SKIPPED: { label: 'Not changed', tone: 'neutral', hint: 'The agent left the code as it is, and says why.' },
   NEEDS_YOU: { label: 'Question for you', tone: 'amber', hint: 'Only you can decide this one.' },
+  NO_REPLY: { label: 'No reply needed', tone: 'neutral', hint: 'Its last word asks nothing of you.' },
 };
 
 /** Our checks in plain words, with the tone the result card shows them in. */

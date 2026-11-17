@@ -35,7 +35,7 @@ const VIEWER = 'GET /api/daily-updates';
 const MARK = 'daily-updates-deal';
 
 const picked = (...names: string[]): DailyUpdatesPick[] =>
-  names.map((nameWithOwner) => ({ nameWithOwner, pickedAt: iso(NOW - HOUR) }));
+  names.map((name) => ({ kind: 'repo', name, pickedAt: iso(NOW - HOUR) }));
 const viewerOf = (overrides: Partial<DailyUpdatesViewer> = {}): DailyUpdatesViewer => ({
   open: true,
   state: 'on',
@@ -262,7 +262,7 @@ describe('PullButton: one button', () => {
       answer(PULL, { status: 'started', pullId: 'p1', nextAt: iso(NOW + 24 * HOUR) });
       await press('Update daily');
 
-      expect(bodies(PICKS)).toEqual([{ owner: 'acme', name: 'fastqueue' }]);
+      expect(bodies(PICKS)).toEqual([{ kind: 'repo', name: 'acme/fastqueue' }]);
       expect(calls(PULL)).toHaveLength(1);
       expect(toast.success).toHaveBeenCalledExactlyOnceWith('Refreshing now. This repository is on daily updates.');
       expect(text()).toBe('Fetching… Next check in 20 s');
@@ -339,7 +339,7 @@ describe('PullButton: one button', () => {
 
       answer(REMOVE, { status: 'removed', picks: picked('octo/rocket', 'octo/lantern') });
       await press('Remove', rowOf('quiet/atlas'));
-      expect(bodies(REMOVE)).toEqual([{ owner: 'quiet', name: 'atlas' }]);
+      expect(bodies(REMOVE)).toEqual([{ kind: 'repo', name: 'quiet/atlas' }]);
 
       answer(PICKS, {
         status: 'picked',
@@ -531,7 +531,7 @@ describe('PullButton: one button', () => {
 
       answer(REMOVE, { status: 'removed', picks: picked('ACME/fastqueue') });
       await press('Remove', rowOf('octo/rocket'));
-      expect(bodies(REMOVE)).toEqual([{ owner: 'octo', name: 'rocket' }]);
+      expect(bodies(REMOVE)).toEqual([{ kind: 'repo', name: 'octo/rocket' }]);
       expect(dialogText()).not.toContain('octo/rocket');
       expect(dialogText()).toContain('You can add 2 more repos.');
 

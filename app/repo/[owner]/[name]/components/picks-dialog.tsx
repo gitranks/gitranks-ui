@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import type { PickRef } from '@/types/daily-updates.types';
 
 type PicksDialogProps = {
   open: boolean;
@@ -20,15 +21,15 @@ type PicksDialogProps = {
   copy: PicksDialogCopy;
   /** A line before the paragraph, such as when the next update comes. */
   lead?: string | null;
-  /** The visitor's picks as `owner/name`; none for a dialog without the list. */
-  picks?: string[];
+  /** The visitor's picks, each drawn by its name (a repository's `owner/name`); none for a dialog without the list. */
+  picks?: PickRef[];
   /** The visitor's own login, first in the list: their profile updates daily with their picks. */
   profileLogin?: string;
   /** The muted last row says how many picks are left. */
   showLeft?: boolean;
-  onRemove?: (nameWithOwner: string) => void;
-  /** A pick whose removal is under way: its Remove is off. */
-  removing?: string | null;
+  onRemove?: (pick: PickRef) => void;
+  /** A pick whose removal is under way: every Remove is off. */
+  removing?: PickRef | null;
   onPrimary: () => void;
   onCloseAutoFocus?: (event: Event) => void;
 };
@@ -77,17 +78,17 @@ export const PicksDialog: FC<PicksDialogProps> = ({
                   <span className="text-xs text-muted-foreground">{PICK_LIST.profile}</span>
                 </li>
               )}
-              {picks.map((nameWithOwner) => (
-                <li key={nameWithOwner} className={`${ROW} border-t first:border-t-0`}>
+              {picks.map((pick) => (
+                <li key={`${pick.kind}:${pick.name}`} className={`${ROW} border-t first:border-t-0`}>
                   <span className="min-w-0 [overflow-wrap:anywhere]" translate="no">
-                    {nameWithOwner}
+                    {pick.name}
                   </span>
                   <button
                     type="button"
                     className="shrink-0 text-sm font-medium text-link underline-offset-2 hover:underline disabled:opacity-50 max-sm:min-h-11"
                     disabled={removing !== null}
-                    aria-label={`${PICK_LIST.remove} ${nameWithOwner}`}
-                    onClick={() => onRemove?.(nameWithOwner)}
+                    aria-label={`${PICK_LIST.remove} ${pick.name}`}
+                    onClick={() => onRemove?.(pick)}
                   >
                     {PICK_LIST.remove}
                   </button>

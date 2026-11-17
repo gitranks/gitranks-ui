@@ -6,8 +6,14 @@
 /** `never`: not started; `on`: the 7 days run; `lapsed`: started before, and the 7 days ran out. */
 export type DailyUpdatesState = 'never' | 'on' | 'lapsed';
 
-/** One of the visitor's picks: a repository updated every day while their daily updates are on. */
-export type DailyUpdatesPick = { nameWithOwner: string; pickedAt: string };
+/** What a pick names: `repo`, a repository by `owner/name`. */
+export type PickKind = 'repo';
+
+/** A pick as the site names it: its kind and its name (a repository's `owner/name`). */
+export type PickRef = { kind: PickKind; name: string };
+
+/** One of the visitor's picks: updated every day while their daily updates are on. */
+export type DailyUpdatesPick = PickRef & { pickedAt: string };
 
 /** The visitor's state. With `open: false` the site shows today's buttons and asks nothing else. */
 export type DailyUpdatesViewer = {

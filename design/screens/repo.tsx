@@ -32,7 +32,7 @@ const youngOnDailyUpdates = (reason: DailyUpdateReason) =>
     },
   });
 
-const pickOf = (nameWithOwner: string) => ({ nameWithOwner, pickedAt: '2026-10-28T09:00:00.000Z' });
+const pickOf = (name: string) => ({ kind: 'repo' as const, name, pickedAt: '2026-10-28T09:00:00.000Z' });
 
 /**
  * A signed-in visitor's own daily updates, as the browser reads them: with this repository picked, with none, or with

@@ -50,7 +50,7 @@ const ME = {
   state: 'on',
   until: '2026-11-22T10:00:00.000Z',
   manual: { available: true, nextAt: null },
-  picks: [{ nameWithOwner: 'octo/rocket', pickedAt: '2026-11-15T10:00:00.000Z' }],
+  picks: [{ kind: 'repo', name: 'octo/rocket', pickedAt: '2026-11-15T10:00:00.000Z' }],
   newPicksLeftToday: 2,
 };
 

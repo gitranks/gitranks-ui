@@ -13,9 +13,7 @@ import {
   PICK_LABELS,
   PICK_LINES,
   PICK_MESSAGES,
-  PICK_TOASTS,
   PICKS_MAX,
-  type PickMessageKind,
   type PicksDialogCopy,
   pickedOutcomeOf,
 } from '../utils/pick-messages';
@@ -37,19 +35,19 @@ import { reloadWithPullNote, showKeptPullNote } from '../utils/pull-note';
 import { PicksDialog } from './picks-dialog';
 import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
 import { useDailyUpdatesViewer } from '@/components/daily-updates/use-daily-updates-viewer';
+import { usePicks } from '@/components/daily-updates/use-picks';
 import { dealPageOf, keepDealSignIn, takeDealSignIn } from '@/components/refresh-dialogs/deal-sign-in';
 import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-dialogs/refresh-dialog';
-import { fillTime, REFRESH_LABELS, REFRESH_TOASTS, STAR_REPO_URL } from '@/components/refresh-dialogs/refresh-messages';
+import { fillTime, REFRESH_LABELS, STAR_REPO_URL } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
 import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
-import type { DailyUpdatesPickResult, DailyUpdatesRemoveResult, DailyUpdatesViewer } from '@/types/daily-updates.types';
+import type { PickRef } from '@/types/daily-updates.types';
 import type { RepoPullAllowance, RepoPullResult, RepoPullStatus } from '@/types/repo-pull.types';
 import {
-  canPickRepo,
+  canPick as canPickOf,
   type DailyUpdatesFacts,
-  holdsPick,
   nextUpdateText,
-  repoUpdatesViewOf,
+  pickableUpdatesViewOf,
   withoutPickReason,
 } from '@/utils/daily-updates-view';
 import { timeLeftUntil } from '@/utils/format-time-left';
@@ -64,51 +62,21 @@ type PullButtonProps = {
 };
 
 /**
- * The dialog on screen: one of Refresh's, a pick's star step, the full or daily-limit note, or, on a repository on
- * daily updates, when next (`yours`: with the visitor's list, as it was their pick when it opened).
+ * The button's own dialog on screen: one of Refresh's, or, on a repository on daily updates, when next (`yours`: with
+ * the visitor's list, as it was their pick when it opened). A pick's dialogs are `usePicks`'.
  */
-type OpenDialog =
-  | { kind: 'pull'; pull: PullDialogKind; until?: string }
-  | { kind: 'pick'; pick: PickMessageKind; until?: string }
-  | { kind: 'allPicksUsed' }
-  | { kind: 'dailyLimit'; until: string }
-  | { kind: 'onDaily'; yours: boolean }
-  | null;
+type OpenDialog = { kind: 'pull'; pull: PullDialogKind; until?: string } | { kind: 'onDaily'; yours: boolean } | null;
 
 const TICK_INTERVAL = 1_000;
 const CHECK_STATUS_INTERVAL = 20_000;
 const PULL_TIMEOUT = 10 * 60 * 1_000;
 const FETCH_MESSAGES = ['Fetching…', '🚬 Still fetching', '👀 👀 👀', 'Ping! Still not ready…'];
-const PICKS_URL = '/api/daily-updates/picks';
 
 const pullUrl = (owner: string, name: string) =>
   `/api/repo/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/pull`;
 
 const sinceRequest = (requestedAt: unknown) =>
   typeof requestedAt === 'string' ? Date.now() - new Date(requestedAt).getTime() : Number.NaN;
-
-/** When the next new pick opens: the next UTC day, as the API counts them. */
-const nextPickDayOf = (now: number) => {
-  const day = new Date(now);
-  return new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 1)).toISOString();
-};
-
-/** Whether the visitor may add a pick now: fewer than 3 held, and a new one left today. */
-const hasPickLeft = (viewer: DailyUpdatesViewer | null) =>
-  !!viewer && viewer.picks.length < PICKS_MAX && viewer.newPicksLeftToday > 0;
-
-/** The toast for a refused pick call, by its HTTP status: a removed account, a name the API refuses, or a failure. */
-const refusedToast = (status: number, failed: string) =>
-  status === 410 ? REFRESH_TOASTS.removed : status === 400 ? PICK_TOASTS.notHeld : failed;
-
-const pickRequest = (method: 'POST' | 'DELETE', nameWithOwner: string) => {
-  const [owner, name] = nameWithOwner.split('/');
-  return fetch(PICKS_URL, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ owner, name }),
-  });
-};
 
 /**
  * The repository's one button, like the profile's. Its label follows the state:
@@ -125,13 +93,21 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
   const login = status === 'authenticated' ? session?.user?.githubLogin : undefined;
   const { viewer, read, setViewer, reload } = useDailyUpdatesViewer(!!login);
   const nameWithOwner = `${owner}/${name}`;
+  const target: PickRef = { kind: 'repo', name: nameWithOwner };
   const url = pullUrl(owner, name);
-  // The visitor removed this repository's pick here: the page's pick reason may be theirs, so their state decides.
-  const [removedHere, setRemovedHere] = useState(false);
-  const facts = removedHere ? withoutPickReason(dailyUpdates) : dailyUpdates;
-  const view = repoUpdatesViewOf(facts, viewer, nameWithOwner);
-  const onDaily = view !== 'repo-off';
-  const canPick = canPickRepo(view, viewer, nameWithOwner) && hasPickLeft(viewer);
+  const [dialog, setDialog] = useState<OpenDialog>(null);
+  const picks = usePicks({
+    target,
+    viewer,
+    setViewer,
+    reload,
+    onPicked: () => refreshAfterPick(),
+    onCloseDialog: () => setDialog(null),
+  });
+  const facts = picks.removedHere ? withoutPickReason(dailyUpdates) : dailyUpdates;
+  const view = pickableUpdatesViewOf(facts, viewer, target);
+  const onDaily = view !== 'off';
+  const canPick = canPickOf(view, viewer, target) && picks.hasPickLeft;
   const containerRef = useRef<HTMLDivElement>(null);
   const attempt = useRef(0);
   const inFlight = useRef(false);
@@ -141,13 +117,9 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
   const followedUp = useRef(false);
   const [allowance, setAllowance] = useState<RepoPullAllowance | null>(null);
   const [checking, setChecking] = useState(false);
-  const [picking, setPicking] = useState(false);
-  const [removing, setRemoving] = useState<string | null>(null);
   const [reloading, setReloading] = useState(false);
-  const [dialog, setDialog] = useState<OpenDialog>(null);
   const [elapsed, setElapsed] = useState<number | null>(null);
   const [loadingLabel, setLoadingLabel] = useState(FETCH_MESSAGES[0]);
-  const picks = viewer?.picks.map((held) => held.nameWithOwner) ?? [];
 
   // The note a refresh left before the reload stays until the visitor closes it.
   useEffect(() => {
@@ -264,8 +236,9 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
     if (next.kind === 'pull') {
       sendGAEvent('event', 'repo_pull_dialog_open', { kind: next.pull });
     } else {
-      sendGAEvent('event', 'daily_updates_dialog_open', { kind: next.kind === 'pick' ? next.pick : next.kind });
+      sendGAEvent('event', 'daily_updates_dialog_open', { kind: next.kind });
     }
+    picks.closeDialog();
     setDialog(next);
   };
 
@@ -315,6 +288,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
   /** Today's refresh. Right after a pick, a refusal is no failure: the pick stands, and the toast says so. */
   const startPull = async (afterPick = false) => {
     setDialog(null);
+    picks.closeDialog();
     setChecking(true);
     const settle = (outcome: PullOutcome) => apply(afterPick ? pickedOutcomeOf(outcome) : outcome);
 
@@ -348,108 +322,6 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
       return;
     }
     return startPull(true);
-  };
-
-  // Daily updates closed to this visitor since the page read them: Refresh again.
-  const close = () => {
-    setDialog(null);
-    setViewer(null);
-  };
-
-  /** Picks the repository; once picked, refreshes it now. */
-  const pick = async () => {
-    setDialog(null);
-    setPicking(true);
-    let picked = false;
-
-    try {
-      const res = await pickRequest('POST', nameWithOwner);
-      if (res.status === 403) {
-        return close();
-      }
-      if (!res.ok) {
-        toast.error(refusedToast(res.status, PICK_TOASTS.failed));
-        return;
-      }
-
-      const result = (await res.json()) as DailyUpdatesPickResult;
-
-      switch (result.status) {
-        case 'picked':
-          // A new pick starts the visitor's daily updates when they were off; one held already changes nothing.
-          setViewer(
-            (current) =>
-              current && {
-                ...current,
-                state: holdsPick(current, nameWithOwner) ? current.state : 'on',
-                picks: result.picks,
-                newPicksLeftToday: result.newPicksLeftToday,
-              },
-          );
-          setRemovedHere(false);
-          picked = true;
-          break;
-        case 'full': {
-          // The picks as they are now (another tab may have changed them). With no new pick left today, a removal
-          // would not let this one in: say when the next one opens instead.
-          const fresh = await reload();
-          if (fresh && fresh.newPicksLeftToday === 0) {
-            openDialog({ kind: 'dailyLimit', until: nextPickDayOf(Date.now()) });
-          } else {
-            openDialog({ kind: 'allPicksUsed' });
-          }
-          break;
-        }
-        case 'daily_limit':
-          openDialog({ kind: 'dailyLimit', until: result.nextAt });
-          break;
-        case 'not_held':
-          toast.info(PICK_TOASTS.notHeld);
-          break;
-        case 'not_starred':
-          openDialog({ kind: 'pick', pick: 'starStep' });
-          break;
-        case 'blocked':
-          openDialog({ kind: 'pick', pick: 'blocked', until: result.until });
-          break;
-        case 'busy':
-          toast.info(PICK_TOASTS.busy);
-          break;
-      }
-    } catch {
-      toast.error(PICK_TOASTS.failed);
-    } finally {
-      setPicking(false);
-    }
-
-    if (picked) {
-      await refreshAfterPick();
-    }
-  };
-
-  const remove = async (held: string) => {
-    setRemoving(held);
-
-    try {
-      const res = await pickRequest('DELETE', held);
-      if (res.status === 403) {
-        return close();
-      }
-      if (!res.ok) {
-        toast.error(refusedToast(res.status, PICK_TOASTS.removeFailed));
-        return;
-      }
-
-      const result = (await res.json()) as DailyUpdatesRemoveResult;
-      setViewer((current) => current && { ...current, picks: result.picks });
-      if (held.toLowerCase() === nameWithOwner.toLowerCase()) {
-        setRemovedHere(true);
-      }
-    } catch {
-      toast.error(PICK_TOASTS.removeFailed);
-    } finally {
-      setRemoving(null);
-    }
   };
 
   // The page this sign-in comes back to runs today's refresh by itself.
@@ -492,10 +364,10 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
       return;
     }
     if (onDaily) {
-      return openDialog({ kind: 'onDaily', yours: view === 'repo-your-pick' });
+      return openDialog({ kind: 'onDaily', yours: view === 'your-pick' });
     }
     if (canPick) {
-      return pick();
+      return picks.pick();
     }
 
     switch (mode) {
@@ -532,8 +404,58 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
 
   const onOpenChange = (open: boolean) => !open && setDialog(null);
 
+  const onPickOpenChange = (open: boolean) => !open && picks.closeDialog();
+
+  /** A pick's dialog on screen. */
+  const pickDialogOf = (dialog: NonNullable<typeof picks.dialog>) => {
+    switch (dialog.kind) {
+      case 'pick':
+        return (
+          <RefreshDialog
+            open
+            onOpenChange={onPickOpenChange}
+            message={PICK_MESSAGES[dialog.pick]}
+            time={dialog.until ? timeLeftUntil(dialog.until) : undefined}
+            primary={{ href: STAR_REPO_URL }}
+            secondary={dialog.pick === 'starStep' ? { onClick: picks.pick } : undefined}
+            onCloseAutoFocus={focusBack}
+          />
+        );
+      case 'allPicksUsed':
+        return (
+          <PicksDialog
+            open
+            onOpenChange={onPickOpenChange}
+            copy={PICK_DIALOGS.allPicksUsed}
+            picks={picks.picks}
+            onRemove={picks.remove}
+            removing={picks.removing}
+            // Once one is removed, "Done" picks this repository.
+            onPrimary={() => (picks.picks.length < PICKS_MAX ? picks.pick() : picks.closeDialog())}
+            onCloseAutoFocus={focusBack}
+          />
+        );
+      case 'dailyLimit': {
+        const copy = PICK_DIALOGS.dailyLimit;
+        return (
+          <PicksDialog
+            open
+            onOpenChange={onPickOpenChange}
+            copy={{ ...copy, paragraph: fillTime(copy.paragraph, timeLeftUntil(dialog.until)) }}
+            onPrimary={picks.closeDialog}
+            onCloseAutoFocus={focusBack}
+          />
+        );
+      }
+    }
+  };
+
   /** The dialog on screen; it stays until its action ends, whatever the state under it becomes. */
   const openDialogOf = () => {
+    if (picks.dialog) {
+      return pickDialogOf(picks.dialog);
+    }
+
     switch (dialog?.kind) {
       case 'pull':
         return (
@@ -547,44 +469,6 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
             onCloseAutoFocus={focusBack}
           />
         );
-      case 'pick':
-        return (
-          <RefreshDialog
-            open
-            onOpenChange={onOpenChange}
-            message={PICK_MESSAGES[dialog.pick]}
-            time={dialog.until ? timeLeftUntil(dialog.until) : undefined}
-            primary={{ href: STAR_REPO_URL }}
-            secondary={dialog.pick === 'starStep' ? { onClick: pick } : undefined}
-            onCloseAutoFocus={focusBack}
-          />
-        );
-      case 'allPicksUsed':
-        return (
-          <PicksDialog
-            open
-            onOpenChange={onOpenChange}
-            copy={PICK_DIALOGS.allPicksUsed}
-            picks={picks}
-            onRemove={remove}
-            removing={removing}
-            // Once one is removed, "Done" picks this repository.
-            onPrimary={() => (picks.length < PICKS_MAX ? pick() : setDialog(null))}
-            onCloseAutoFocus={focusBack}
-          />
-        );
-      case 'dailyLimit': {
-        const copy = PICK_DIALOGS.dailyLimit;
-        return (
-          <PicksDialog
-            open
-            onOpenChange={onOpenChange}
-            copy={{ ...copy, paragraph: fillTime(copy.paragraph, timeLeftUntil(dialog.until)) }}
-            onPrimary={() => setDialog(null)}
-            onCloseAutoFocus={focusBack}
-          />
-        );
-      }
       case 'onDaily': {
         const yours = PICK_DIALOGS.yourDailyUpdates;
         const buttons = refreshAvailable
@@ -601,7 +485,13 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
             // When next, while it still updates every day: after its own pick is removed here, it may not.
             lead={onDaily ? nextUpdateText(facts?.nextUpdateAt, Date.now()) : null}
             {...(dialog.yours
-              ? { picks, profileLogin: login, showLeft: true, onRemove: remove, removing }
+              ? {
+                  picks: picks.picks,
+                  profileLogin: login,
+                  showLeft: true,
+                  onRemove: picks.remove,
+                  removing: picks.removing,
+                }
               : { removing: null })}
             onPrimary={refreshAvailable ? () => startPull() : () => setDialog(null)}
             onCloseAutoFocus={focusBack}
@@ -617,7 +507,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
     ? 'Reloading…'
     : elapsed !== null
       ? loadingLabel
-      : checking || picking
+      : checking || picks.picking
         ? REFRESH_LABELS.checking
         : null;
 
@@ -641,9 +531,9 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
     ) : onDaily ? (
       <DailyUpdatesLine
         lead={
-          view === 'repo-your-pick'
+          view === 'your-pick'
             ? PICK_LINES.yourPick
-            : view === 'repo-on-badge'
+            : view === 'on-badge'
               ? DAILY_UPDATES_NOTES.byBadge
               : DAILY_UPDATES_NOTES.byPick
         }

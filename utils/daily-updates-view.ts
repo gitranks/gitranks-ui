@@ -1,4 +1,4 @@
-import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
+import type { DailyUpdatesViewer, PickKind, PickRef } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 import { formatTimeLeft } from '@/utils/format-time-left';
 import type { RefreshMode } from '@/utils/refresh-mode';
@@ -39,13 +39,18 @@ export type ProfileUpdatesView =
   | 'owner-on-badge-only';
 
 /**
- * What the repository page shows under Refresh:
- * - `repo-off`: not on daily updates; a visitor the API lets pick sees "Update daily";
- * - `repo-your-pick`: the visitor's own pick;
- * - `repo-on-badge`: it updates every day, kept on by a GitRanks badge in its README;
- * - `repo-on-pick`: it updates every day, and nothing more: who picked it is never shown.
+ * What a page that can be picked shows under its button:
+ * - `off`: not on daily updates; a visitor the API lets pick sees "Update daily";
+ * - `your-pick`: the visitor's own pick;
+ * - `on-badge`: it updates every day, kept on by a GitRanks badge in its README;
+ * - `on-pick`: it updates every day, and nothing more: who picked it is never shown.
  */
-export type RepoUpdatesView = 'repo-off' | 'repo-your-pick' | 'repo-on-badge' | 'repo-on-pick';
+export type PickableUpdatesView = 'off' | 'your-pick' | 'on-badge' | 'on-pick';
+
+/** The kinds of pick this site knows. */
+const PICK_KINDS: readonly PickKind[] = ['repo'];
+
+export const isPickKind = (value: unknown): value is PickKind => PICK_KINDS.includes(value as PickKind);
 
 const has = (facts: DailyUpdatesFacts | undefined, reason: DailyUpdateReason) => !!facts?.reasons.includes(reason);
 
@@ -82,41 +87,43 @@ export function profileUpdatesViewOf(
   return has(facts, DailyUpdateReason.Owner) ? 'visitor-on-owner' : 'visitor-off';
 }
 
-/** Whether the viewer holds a pick of this repository, live or not; GitHub's names are not case-sensitive. */
-export const holdsPick = (viewer: ViewerFacts, nameWithOwner: string) =>
-  !!viewer?.open && viewer.picks.some((pick) => pick.nameWithOwner.toLowerCase() === nameWithOwner.toLowerCase());
+/** Whether two picks name the same thing; GitHub's names are not case-sensitive, so neither is a repository's. */
+export const samePick = (a: PickRef, b: PickRef) => a.kind === b.kind && a.name.toLowerCase() === b.name.toLowerCase();
 
-/** Whether this repository is the viewer's pick and updates for it: held, while their daily updates are on. */
-export const isViewerPick = (viewer: ViewerFacts, nameWithOwner: string) =>
-  viewer?.state === 'on' && holdsPick(viewer, nameWithOwner);
+/** Whether the viewer holds this pick, live or not. */
+export const holdsPick = (viewer: ViewerFacts, pick: PickRef) =>
+  !!viewer?.open && viewer.picks.some((held) => samePick(held, pick));
+
+/** Whether this is the viewer's pick and updates for it: held, while their daily updates are on. */
+export const isViewerPick = (viewer: ViewerFacts, pick: PickRef) => viewer?.state === 'on' && holdsPick(viewer, pick);
 
 /**
- * The repository's state for this visitor: their own live pick first, then for anyone the badge, then a pick that
- * names nobody. When a badge and a pick both hold, the badge is named. A pick held while the viewer's daily updates
- * are off shows as anyone sees the repository: the day's visit starts them again.
+ * The page's state for this visitor: their own live pick first, then for anyone the badge, then a pick that names
+ * nobody. When a badge and a pick both hold, the badge is named. A pick held while the viewer's daily updates are off
+ * shows as anyone sees the page: the day's visit starts them again.
  */
-export function repoUpdatesViewOf(
+export function pickableUpdatesViewOf(
   facts: DailyUpdatesFacts | undefined,
-  viewer: ViewerFacts = null,
-  nameWithOwner = '',
-): RepoUpdatesView {
-  if (isViewerPick(viewer, nameWithOwner)) {
-    return 'repo-your-pick';
+  viewer: ViewerFacts,
+  pick: PickRef,
+): PickableUpdatesView {
+  if (isViewerPick(viewer, pick)) {
+    return 'your-pick';
   }
 
   if (has(facts, DailyUpdateReason.Badge)) {
-    return 'repo-on-badge';
+    return 'on-badge';
   }
 
-  return has(facts, DailyUpdateReason.Pick) ? 'repo-on-pick' : 'repo-off';
+  return has(facts, DailyUpdateReason.Pick) ? 'on-pick' : 'off';
 }
 
 /**
- * Whether the repository page offers "Update daily": open to the visitor, not on daily updates yet, and not held by
- * them already (a press on a held pick would change nothing).
+ * Whether the page offers "Update daily": open to the visitor, not on daily updates yet, and not held by them already
+ * (a press on a held pick would change nothing).
  */
-export const canPickRepo = (view: RepoUpdatesView, viewer: ViewerFacts, nameWithOwner = '') =>
-  view === 'repo-off' && !!viewer?.open && !holdsPick(viewer, nameWithOwner);
+export const canPick = (view: PickableUpdatesView, viewer: ViewerFacts, pick: PickRef) =>
+  view === 'off' && !!viewer?.open && !holdsPick(viewer, pick);
 
 /** The page's facts without its pick reason: after the visitor removed this repository's pick, it may be stale. */
 export const withoutPickReason = (facts: DailyUpdatesFacts | undefined): DailyUpdatesFacts | undefined =>

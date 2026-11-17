@@ -8,19 +8,19 @@ import { isGithubLogin, profileCacheTag } from '@/utils/profile-refresh';
 
 /** The signed-in visitor's daily updates: whether they are open to them, on, and their picks. */
 export const GET = auth(async function GET(req: AuthRequest) {
-  const githubLogin = viewerOf(req);
-  if (!githubLogin) {
+  const viewer = viewerOf(req);
+  if (!viewer) {
     return notSignedIn();
   }
 
-  const answer = await callDailyUpdates<DailyUpdatesViewer>(githubLogin, '/daily-updates/me', 'GET');
+  const answer = await callDailyUpdates<DailyUpdatesViewer>(viewer, '/daily-updates/me', 'GET');
   return answer.ok ? json(answer.body) : json({ message: 'Failed to load daily updates' }, answer.status);
 });
 
 /** Starts daily updates of the visitor's own profile: the API checks the star and refreshes it when it can. */
 export const POST = auth(async function POST(req: AuthRequest) {
-  const githubLogin = viewerOf(req);
-  if (!githubLogin) {
+  const viewer = viewerOf(req);
+  if (!viewer) {
     return notSignedIn();
   }
 
@@ -33,7 +33,7 @@ export const POST = auth(async function POST(req: AuthRequest) {
     return json({ message: 'Bad login' }, 400);
   }
 
-  const answer = await callDailyUpdates<DailyUpdatesStartResult>(githubLogin, '/daily-updates/start', 'POST', {
+  const answer = await callDailyUpdates<DailyUpdatesStartResult>(viewer, '/daily-updates/start', 'POST', {
     login,
   });
   if (!answer.ok) {

@@ -1,5 +1,6 @@
 import type { ContributeReplyDraft } from './contribute.types';
 import { clipped } from './needs-you';
+import { isNoReply } from './one-comment';
 
 /**
  * Replies GitHub did not take, as the contribution's page says them: grouped by the run that drafted them, then by why.
@@ -54,12 +55,12 @@ const oldest = (drafts: ContributeReplyDraft[]) => Math.min(...drafts.map(({ upd
 
 /**
  * The replies that did not post, per run: only `FAILED` drafts count, never one in a run's review (it is an editable
- * reply there). Runs and reasons with the oldest failure first among equals.
+ * reply there) nor a thread the run found needs no reply. Runs and reasons with the oldest failure first among equals.
  */
 export function replyTroubleOf(drafts: readonly ContributeReplyDraft[] | null | undefined): RunTrouble[] {
   const byRun = new Map<string, ContributeReplyDraft[]>();
   for (const draft of drafts ?? []) {
-    if (draft.state !== 'FAILED' || ('inReview' in draft && draft.inReview === true)) continue;
+    if (draft.state !== 'FAILED' || isNoReply(draft) || ('inReview' in draft && draft.inReview === true)) continue;
     byRun.set(draft.attemptId, [...(byRun.get(draft.attemptId) ?? []), draft]);
   }
   return [...byRun.entries()]

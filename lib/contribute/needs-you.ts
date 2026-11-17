@@ -12,7 +12,14 @@ import type {
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from './contribute-path';
 import { claudeKeyOf, contributeNoticesOf } from './contribute-state';
 import { FOLLOW_UP_STEP_LABELS, FOLLOW_UP_STEPS, type FollowUpStep, shortSha } from './follow-up-flow';
-import { PR_SIGNAL_KINDS, repoOutReasonOf, repoOutTextOf, repoSaidNoOf, silentTextOf } from './follow-up-format';
+import {
+  clearsAllOf,
+  PR_SIGNAL_KINDS,
+  repoOutReasonOf,
+  repoOutTextOf,
+  repoSaidNoOf,
+  silentTextOf,
+} from './follow-up-format';
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
 import { replyRowOf } from './needs-you-replies';
 import { isToApprove } from './one-comment';
@@ -75,7 +82,8 @@ export type NeedsYouAction =
 
 /**
  * The row's small second action: a page of ours, or "I signed it": the signals of `kinds` marked handled. `all`: they
- * are every signal on the pull request, so an API that does not take `kinds` yet clears the same.
+ * are every signal on the pull request, so an API that does not take `kinds` yet clears the same; never for a
+ * conversation comment or the checks only the user can clear, which always name their own kind.
  */
 export type NeedsYouSecondary =
   | { label: string; href: Route }
@@ -530,15 +538,10 @@ export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] 
   // Nor does one in a repo that said no to AI-made PRs: what a run would do is the user's, on GitHub.
   const saidNo = repoSaidNoOf(signals);
   const noRun = byHand || saidNo;
-  const all = new Set(signals.map(({ kind }) => kind));
+  const held = signals.map(({ kind }) => kind);
   const handled = (label: string, kinds: ContributePrSignalKind[]): NeedsYouSecondary => ({
     label,
-    handled: {
-      prId: pr.pullRequest.prId,
-      prNumber: number,
-      kinds,
-      all: kinds.length === all.size && kinds.every((kind) => all.has(kind)),
-    },
+    handled: { prId: pr.pullRequest.prId, prNumber: number, kinds, all: clearsAllOf(held, kinds) },
   });
   const onGithub = (label: string): NeedsYouAction =>
     prUrl

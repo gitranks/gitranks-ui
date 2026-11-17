@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { attempt, followUpOf, followUpRun, followUps } from './__fixtures__/contribute-attempts';
+import { attempt, followUpOf, followUpRun, followUps, noReplyDraft } from './__fixtures__/contribute-attempts';
 import { replyWaiting } from './__fixtures__/contribute-overview';
 import { NOW, views } from './__fixtures__/contribute-views';
 import {
@@ -19,6 +19,7 @@ import type {
   ContributePrSignalKind,
   ContributeView,
 } from './contribute.types';
+import { handledKindsOf } from './follow-up-format';
 import * as needsYouModule from './needs-you';
 import {
   botVerdictOf,
@@ -31,6 +32,7 @@ import {
   shortLeftOf,
   shownItemsOf,
 } from './needs-you';
+import { isUnposted, replyRowOf } from './needs-you-replies';
 import { NEEDS_YOU_MAX, NEEDS_YOU_READ } from './overview';
 
 const read = (patch: Partial<NeedsYouRead> = {}): NeedsYouRead => ({
@@ -479,7 +481,7 @@ describe('needsYouItemsOf: an open pull request', () => {
       action: { label: 'See the comment', href: '/contribute/attempts/A_PR733?session=next' },
       secondary: {
         label: "I've replied",
-        handled: { prId: 'PR_733', prNumber: 733, kinds: ['CONVERSATION'], all: true },
+        handled: { prId: 'PR_733', prNumber: 733, kinds: ['CONVERSATION'], all: false },
       },
     });
     // The same on a pull request opened by hand: it never was a run's.
@@ -500,7 +502,7 @@ describe('needsYouItemsOf: an open pull request', () => {
       action: { label: 'Open the pull request ↗' },
       secondary: {
         label: "I've done it",
-        handled: { prId: 'PR_734', prNumber: 734, kinds: ['CHECK_YOURS'], all: true },
+        handled: { prId: 'PR_734', prNumber: 734, kinds: ['CHECK_YOURS'], all: false },
       },
     });
     expect(externalOf(row)).toBe('https://github.com/marlin-db/marlin-cli/pull/734');
@@ -512,6 +514,48 @@ describe('needsYouItemsOf: an open pull request', () => {
     expect(bare(null)).toBe('A failing check is yours to clear: no run can. See it on GitHub.');
     expect(bare('  ')).toBe('A failing check is yours to clear: no run can. See it on GitHub.');
     expect(bare(`e2e: ${'x'.repeat(400)}`)).toHaveLength(300);
+  });
+
+  it('always names its own kind on "I\'ve replied" and "I\'ve done it", even as the only signal held', () => {
+    // Alone on the pull request, an older row clears every signal; these two never do, so a signal that arrives
+    // between the page's read and the click stays.
+    for (const [pr, kind] of [
+      [prsYours.conversation, 'CONVERSATION'],
+      [prsYours.checkYours, 'CHECK_YOURS'],
+    ] as const) {
+      expect(pr.needsYou?.signals.map((each) => each.kind)).toEqual([kind]);
+      const { secondary } = rowOf(pr);
+      if (!secondary || !('handled' in secondary)) throw new Error('no handled action');
+      expect(secondary.handled).toMatchObject({ kinds: [kind], all: false });
+      expect(handledKindsOf(secondary.handled.kinds, secondary.handled.all)).toEqual([kind]);
+    }
+    // The older rows are as they were: alone, "Keep it open" clears the pull request's signals as a whole.
+    const silent = rowOf(prsOutcomes.silent).secondary;
+    if (!silent || !('handled' in silent)) throw new Error('no handled action');
+    expect(silent.handled).toMatchObject({ kinds: ['SILENT'], all: true });
+    expect(handledKindsOf(silent.handled.kinds, silent.handled.all)).toBeUndefined();
+  });
+
+  it('shows a thread that needs no reply on no replies row, even one that arrives failed or held back', () => {
+    const pr = openPr();
+    const heldBack = { reason: 'no_answer', note: 'GitHub did not answer the first reply in time.', at: '' };
+    const failed = { reason: 'transient', note: 'GitHub did not answer.', at: '2026-10-28T11:59:00.000Z' };
+    const none = [
+      replyWaiting({ ...noReplyDraft(), prId: 'PR_8', state: 'FAILED', lastError: failed, canGoInOneComment: true }),
+      replyWaiting({ ...noReplyDraft({ draftId: 'D_NR2' }), prId: 'PR_8', state: 'DRAFT', heldBack }),
+      replyWaiting({ ...noReplyDraft({ draftId: 'D_NR3' }), prId: 'PR_8', state: 'DRAFT', text: 'Thanks!' }),
+    ];
+    expect(none.some(isUnposted)).toBe(false);
+    expect(replyRowOf(none, [], 'kelp-db')).toBeNull();
+    expect(candidatesOf({ pr, drafts: none, runs: [], now: NOW })).toEqual([]);
+    expect(items({ contributions: [pr], replies: none }).items).toEqual([]);
+    // On a pull request the list did not read, they make no row of their own either.
+    expect(items({ replies: none }).items).toEqual([]);
+    // Beside a reply that did fail, the row is about that one alone.
+    const real = replyWaiting({ draftId: 'D_9', prId: 'PR_8', state: 'FAILED', lastError: failed });
+    const row = replyRowOf([...none, real], [], 'kelp-db');
+    expect(row?.drafts.map(({ draftId }) => draftId)).toEqual(['D_9']);
+    expect(row?.move).not.toMatch(/more repl/);
   });
 
   it('holds a review comment and a conversation comment apart: each its own row, handled on its own', () => {

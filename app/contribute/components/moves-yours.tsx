@@ -330,7 +330,7 @@ export function ConversationCard({ move, first, model, now, rider }: CardProps) 
             `Open PR #${pr.number} on GitHub and read the new comment in its conversation.`,
             'Reply there if it asks you something.',
             ...(model.mayStart
-              ? [`If it asks for a change, start run ${model.nextRound} below, with a note that says what to change.`]
+              ? [`If it asks for a change, start run ${model.nextRound} with a note that says what to change.`]
               : []),
             "Come back and click I've replied: this leaves Needs you.",
           ]}

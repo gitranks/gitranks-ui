@@ -18,7 +18,8 @@ function verdictOf({ round, why }: Pick<ContributeCheckNote, 'round' | 'why'>): 
  * the base branch too)". A part the API leaves out is dropped; a kind this UI does not know yet names the check alone.
  */
 export function checkNoteLineOf(note: ContributeCheckNote): string {
-  const name = clipped(note.name?.trim() || 'A check', 80);
+  const name = clipped(note.name, 80);
+  const by = note.by?.trim();
   switch (note.kind) {
     case 'NOT_PR':
       return `${name} fails: not from this pull request${verdictOf(note)}`;
@@ -27,7 +28,7 @@ export function checkNoteLineOf(note: ContributeCheckNote): string {
     case 'BASE':
       return `${name} needs the base branch${verdictOf(note)}`;
     case 'SOMEONE_ELSE':
-      return `${name} started failing on a commit by ${note.by?.trim() ? clipped(note.by, 40) : 'someone else'}`;
+      return `${name} started failing on a commit by ${by ? clipped(by, 40) : 'someone else'}`;
     case 'SETTLING':
       return `${name}: checks still running`;
     default:
@@ -35,7 +36,7 @@ export function checkNoteLineOf(note: ContributeCheckNote): string {
   }
 }
 
-/** The notes to list: none on a list the API does not answer, or leaves null or empty. */
+/** The notes to list: none on a list the API does not answer, or leaves null or empty; a note names its check. */
 export const checkNotesOf = (notes: readonly ContributeCheckNote[] | null | undefined): ContributeCheckNote[] =>
   Array.isArray(notes) ? notes.filter((note) => !!note?.name?.trim()) : [];
 
@@ -50,13 +51,13 @@ export const CHECK_VERDICT_WORDS: Record<ContributeCheckVerdict['whose'], string
 /** A run's verdict on one failing check: its name, whose it is in words, and the reason; null parts left out. */
 export function checkVerdictOf(verdict: ContributeCheckVerdict): { name: string; whose: string | null; why: string } {
   return {
-    name: clipped(verdict.name?.trim() || 'A check', 80),
+    name: clipped(verdict.name, 80),
     whose: CHECK_VERDICT_WORDS[verdict.whose] ?? null,
     why: verdict.why?.trim() ? clipped(verdict.why, 300) : '',
   };
 }
 
-/** The verdicts to list: none on a list the API does not answer, or leaves null or empty. */
+/** The verdicts to list: none on a list the API does not answer, or leaves null or empty; each names its check. */
 export const checkVerdictsOf = (
   verdicts: readonly ContributeCheckVerdict[] | null | undefined,
 ): ContributeCheckVerdict[] => (Array.isArray(verdicts) ? verdicts.filter((verdict) => !!verdict?.name?.trim()) : []);

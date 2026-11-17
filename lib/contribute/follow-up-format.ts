@@ -48,9 +48,7 @@ function signalDetailOf(signal: ContributePrSignal): string {
     const reason = repoOutReasonOf(signal.detail);
     return reason ? `: ${REPO_OUT_WHY[reason]}` : '';
   }
-  const named = ['CHECK_FAILED', 'CLA', 'TITLE', 'BOT_BLOCKED', 'RUN_ENDED', 'DCO', 'CHECK_YOURS'].includes(
-    signal.kind,
-  );
+  const named = ['CHECK_FAILED', 'CLA', 'TITLE', 'BOT_BLOCKED', 'RUN_ENDED', 'DCO'].includes(signal.kind);
   return named && signal.detail?.trim() ? `: ${signal.detail.trim()}` : '';
 }
 
@@ -225,6 +223,32 @@ export const USERS_SIGNALS = new Set<ContributePrSignal['kind']>([
   'CHECK_YOURS',
   'CONVERSATION',
 ]);
+
+/**
+ * The kinds whose "I've replied" and "I've done it" always name them, whatever else is held: marking one handled never
+ * clears a signal that arrived after the page was read.
+ */
+const OWN_HANDLED = new Set<ContributePrSignalKind>(['CONVERSATION', 'CHECK_YOURS']);
+
+/**
+ * Whether "Mark as handled" for `kinds` may clear the pull request's signals as a whole: they are every kind held (so
+ * an API that does not take `kinds` yet clears the same), and none of them always names itself.
+ */
+export function clearsAllOf(
+  held: readonly ContributePrSignalKind[],
+  kinds: readonly ContributePrSignalKind[],
+): boolean {
+  const all = new Set(held);
+  return (
+    !kinds.some((kind) => OWN_HANDLED.has(kind)) && all.size === kinds.length && kinds.every((kind) => all.has(kind))
+  );
+}
+
+/** The kinds "Mark as handled" sends: the ones named, or none (every signal) when they are all of them. */
+export const handledKindsOf = (
+  kinds: ContributePrSignalKind[] | undefined,
+  all: boolean,
+): ContributePrSignalKind[] | undefined => (kinds && !all ? kinds : undefined);
 
 /** Whether a follow-up could act on what the pull request needs: anything but the user's own (`USERS_SIGNALS`). */
 export const followUpCanHelp = (signals: readonly ContributePrSignal[] | null | undefined): boolean =>

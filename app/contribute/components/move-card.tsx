@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Eyebrow, HEADING } from './primitives';
 import { Button } from '@/components/ui/button';
 import type { ContributeAttemptDetail, ContributePrSignal } from '@/lib/contribute/contribute.types';
+import { clearsAllOf } from '@/lib/contribute/follow-up-format';
 import { cn } from '@/lib/utils';
 
 /**
@@ -113,8 +114,12 @@ export const Steps = ({ steps, title = 'What to do' }: { steps: string[]; title?
   </div>
 );
 
-/** The kinds are every signal on the pull request: an API that does not take `kinds` yet clears the same. */
-export const allKindsOf = (first: ContributeAttemptDetail, kinds: readonly string[]) => {
-  const all = new Set((first.needsYou?.signals ?? []).map(({ kind }) => kind));
-  return all.size === kinds.length && kinds.every((kind) => all.has(kind as ContributePrSignal['kind']));
-};
+/**
+ * The kinds are every signal on the pull request: an API that does not take `kinds` yet clears the same. Never for a
+ * conversation comment or the checks only the user can clear: they always name their own kind.
+ */
+export const allKindsOf = (first: ContributeAttemptDetail, kinds: readonly string[]) =>
+  clearsAllOf(
+    (first.needsYou?.signals ?? []).map(({ kind }) => kind),
+    kinds as ContributePrSignal['kind'][],
+  );

@@ -12,7 +12,7 @@ import { hasOutcomes, shortSha } from './follow-up-flow';
 import { timeLeftLabel } from './format';
 import type { ActionId } from './hard-stop';
 import { GROUPS, isGrantBounce, shortLeftOf } from './needs-you';
-import { inOneComment, isHeldBack, isToApprove } from './one-comment';
+import { inOneComment, isHeldBack, isNoReply, isToApprove } from './one-comment';
 import { commitsOf } from './patch';
 import { BLOCK_REASONS, type RunTrouble, reasonKeyOf, replyTroubleOf } from './reply-trouble';
 import { bounceOf, runNameOf } from './session-status';
@@ -301,8 +301,9 @@ export function replyMovesOf({
 }): Move[] {
   const byRun = new Map<string, ContributeReplyWaiting[]>();
   for (const draft of drafts) {
-    // A first attempt's own drafts (an older API) make no move: the comments' list says them.
-    if (draft.attemptId === first.attemptId) continue;
+    // A first attempt's own drafts (an older API) make no move: the comments' list says them. Nor does a thread the
+    // run found needs no reply, whatever state it arrives in: nothing of it is to approve, post or try again.
+    if (draft.attemptId === first.attemptId || isNoReply(draft)) continue;
     byRun.set(draft.attemptId, [...(byRun.get(draft.attemptId) ?? []), draft]);
   }
   const oldest = (list: ContributeReplyDraft[]) => Math.min(...list.map(({ createdAt }) => timeOf(createdAt)));

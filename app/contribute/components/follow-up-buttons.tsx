@@ -12,7 +12,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { timeLabel } from '@/lib/contribute/attempt-format';
 import type { ContributePrSignalKind, ContributeRetry, ContributeRetryKind } from '@/lib/contribute/contribute.types';
 import { attemptActionErrorMessage, retryErrorMessage } from '@/lib/contribute/errors';
-import { FOLLOW_UP_NOTE_MAX, handledErrorMessage, vetoErrorMessage } from '@/lib/contribute/follow-up-format';
+import {
+  FOLLOW_UP_NOTE_MAX,
+  handledErrorMessage,
+  handledKindsOf,
+  vetoErrorMessage,
+} from '@/lib/contribute/follow-up-format';
 import { relativeLabel } from '@/lib/contribute/format';
 import { cn } from '@/lib/utils';
 
@@ -202,7 +207,7 @@ export function MarkHandledButton({
   const click = () =>
     startTransition(async () => {
       setError(null);
-      const result = await markNeedsYouHandled(prId, kinds && !all ? kinds : undefined);
+      const result = await markNeedsYouHandled(prId, handledKindsOf(kinds, all));
       if (!result.ok) {
         setError(handledErrorMessage(result.error, result.message));
         return;

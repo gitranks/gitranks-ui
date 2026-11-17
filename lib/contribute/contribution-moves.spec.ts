@@ -7,6 +7,7 @@ import {
   followUpAttempts,
   followUpRun,
   followUps,
+  noReplyDraft,
   ownAgentAttempt,
   pullRequest,
 } from './__fixtures__/contribute-attempts';
@@ -308,6 +309,27 @@ describe('replies per run', () => {
     expect(failedMove.title).toBe("Your 2 replies didn't reach GitHub");
     expect([...cardReasonsOf(moves, 'A_F1')]).toEqual(['org_restricted']);
     expect([...cardReasonsOf(moves, 'A_F2')]).toEqual([]);
+  });
+
+  it('makes no move of a thread that needs no reply, even one that arrives failed, held back or as a draft', () => {
+    const page = afterRun();
+    const none = (patch: Partial<ContributeReplyWaiting>) =>
+      replyWaiting({ ...noReplyDraft(), prId: page.pullRequest?.prId ?? '', ...patch });
+    const heldBack = { reason: 'no_answer', note: 'GitHub did not answer the first reply in time.', at: '' };
+    const replies = [
+      none({ draftId: 'N_1', state: 'FAILED', lastError: { reason: 'transient', note: 'No answer.', at: '' } }),
+      none({ draftId: 'N_2', state: 'DRAFT', heldBack }),
+      none({ draftId: 'N_3', state: 'DRAFT', text: 'Thanks!' }),
+    ];
+    expect(cards(page, { replies })).toEqual([]);
+    // Beside a reply that did fail, the card is about that one alone.
+    const real = failed('D_1', 'transient', { prId: page.pullRequest?.prId ?? '' });
+    const [move] = model(page, { replies: [...replies, real] }).moves;
+    expect(move).toMatchObject({ card: 'reply-failed', session: 'run:A_F1' });
+    expect(move.data.card === 'reply-failed' && move.data.trouble.failed.map(({ draftId }) => draftId)).toEqual([
+      'D_1',
+    ]);
+    expect(move.data.card === 'reply-failed' && move.data.heldBack).toEqual([]);
   });
 
   it('does not double drafts in review, nor count an approved reply the push sends', () => {

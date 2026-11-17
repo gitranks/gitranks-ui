@@ -474,9 +474,11 @@ export function summaryOf(
     return { count, fact: tallies ?? `${drafted} drafted` };
   }
   if (run?.state === 'REVIEW' && !run.flow) return { count, fact: `${drafted} drafted` };
+  // The threads that need no reply have nothing to resolve: "all resolved" is said of the others.
+  const replies = drafts.filter((draft) => !isNoReply(draft));
   if (
-    drafts.length &&
-    drafts.every((draft) => draft.state === 'DISMISSED' && draft.dismissedReason === 'THREAD_RESOLVED')
+    replies.length &&
+    replies.every((draft) => draft.state === 'DISMISSED' && draft.dismissedReason === 'THREAD_RESOLVED')
   ) {
     return { count, fact: [tallies, 'all resolved'].filter(Boolean).join(' · ') };
   }

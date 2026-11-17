@@ -42,6 +42,12 @@ describe('a failing check that calls nobody, in a line', () => {
     expect(checkNoteLineOf(note({ kind: 'SOMEONE_ELSE', by: null }))).toBe(
       'Fast checks started failing on a commit by someone else',
     );
+    expect(checkNoteLineOf(note({ kind: 'SOMEONE_ELSE', by: '   ' }))).toBe(
+      'Fast checks started failing on a commit by someone else',
+    );
+    expect(checkNoteLineOf(note({ kind: 'SOMEONE_ELSE', by: `  ${'s'.repeat(60)}  ` }))).toBe(
+      `Fast checks started failing on a commit by ${'s'.repeat(39)}…`,
+    );
     // A reason on a kind that has none in its line is left out, never guessed into it.
     expect(checkNoteLineOf(note({ kind: 'SETTLING' }))).toBe('Fast checks: checks still running');
   });

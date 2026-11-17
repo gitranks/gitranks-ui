@@ -24,6 +24,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
 
 const { ReviewScreen, grantNeededOf } = await import('./review-view');
 const { ContributionsScreen } = await import('./contributions-view');
+const { allKindsOf } = await import('./move-card');
 const { SettingsScreen } = await import('./settings-view');
 const {
   AUTOPILOT_CONFIRM_LINES,
@@ -1595,7 +1596,7 @@ describe('the next step, for each thing only the user can do', () => {
     expect(html).toMatch(/href="https:\/\/github.com\/marlin-db\/marlin\/pull\/733"[^>]*data-variant="default"/);
     expect(html).toContain('data-kinds="CONVERSATION"');
     expect(plain).toContain(
-      "What to do Open PR #733 on GitHub and read the new comment in its conversation. Reply there if it asks you something. If it asks for a change, start run 1 below, with a note that says what to change. Come back and click I've replied: this leaves Needs you.",
+      "What to do Open PR #733 on GitHub and read the new comment in its conversation. Reply there if it asks you something. If it asks for a change, start run 1 with a note that says what to change. Come back and click I've replied: this leaves Needs you.",
     );
     // No run is offered for it: nothing ticked, no note filled in; the user's own run is one disclosure away.
     expect(html).not.toContain('data-move="next-run"');
@@ -1604,6 +1605,27 @@ describe('the next step, for each thing only the user can do', () => {
     expect(plain).not.toContain('Recommended');
     // The first attempt's page points at it.
     expect(text(review(nextForConversation))).toContain('Your move is in the next step →');
+
+    // "I've replied" names the conversation even as the only signal held; an older card alone clears them all.
+    expect(allKindsOf(nextForConversation, ['CONVERSATION'])).toBe(false);
+    expect(allKindsOf(nextForCheckYours, ['CHECK_YOURS'])).toBe(false);
+    expect(allKindsOf(nextForSilent, ['SILENT'])).toBe(true);
+    // The step about a run is true beside a next-run card too, where the run is another card, not under this one.
+    const beside = next({
+      ...nextForConversation,
+      needsYou: {
+        since: '',
+        signals: [
+          { kind: 'COMMENT', at: '2026-10-28T09:00:00.000Z', detail: null },
+          { kind: 'CONVERSATION', at: '2026-10-28T09:30:00.000Z', detail: null },
+        ],
+      },
+      followUps: followUps({ recommended: true }),
+    });
+    expect(beside).toContain('data-move="next-run"');
+    expect(beside).not.toContain('data-start-anyway');
+    expect(text(beside)).toContain('If it asks for a change, start run 1 with a note that says what to change.');
+    expect(text(beside)).not.toMatch(/start run 1 below/);
 
     // On a pull request opened by hand no run may start: the card stays, without the run's step.
     const byHand = text(next({ ...nextForConversation, openedBy: 'HAND' }));

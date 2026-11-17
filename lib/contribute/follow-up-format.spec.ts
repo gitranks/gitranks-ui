@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import type { ContributePrSignalKind } from './contribute.types';
 import {
+  clearsAllOf,
   followUpCanHelp,
+  handledKindsOf,
   PR_SIGNAL_KINDS,
   repoOutReasonOf,
   repoOutTextOf,
@@ -52,10 +54,8 @@ describe("the user's own: a check only they can clear, a comment in the conversa
   const yours = { kind: 'CHECK_YOURS' as const, at, detail: 'deploy-preview: approve the preview; e2e: needs main' };
   const talk = { kind: 'CONVERSATION' as const, at, detail: null };
 
-  it('names each, the check with what to do, and is no work for a follow-up', () => {
-    expect(signalText(yours)).toMatch(
-      /^A check only you can clear: deploy-preview: approve the preview; e2e: needs main · /,
-    );
+  it('names each, and is no work for a follow-up', () => {
+    expect(signalText(yours)).toMatch(/^A check only you can clear · /);
     expect(signalText(talk)).toMatch(/^Someone commented in the pull request's conversation · /);
     expect(followUpCanHelp([yours])).toBe(false);
     expect(followUpCanHelp([talk])).toBe(false);
@@ -74,6 +74,26 @@ describe("the user's own: a check only they can clear, a comment in the conversa
     expect(['COMMENT', 'CHECK_FAILED', 'CHANGES_REQUESTED'].some((kind) => USERS_SIGNALS.has(kind as never))).toBe(
       false,
     );
+  });
+});
+
+describe('what "Mark as handled" sends', () => {
+  it('clears every signal only when the kinds are all that is held, and names them otherwise', () => {
+    expect(clearsAllOf(['SILENT'], ['SILENT'])).toBe(true);
+    expect(clearsAllOf(['BOT_BLOCKED', 'RUN_ENDED'], ['RUN_ENDED', 'BOT_BLOCKED'])).toBe(true);
+    expect(clearsAllOf(['SILENT', 'COMMENT'], ['SILENT'])).toBe(false);
+    expect(clearsAllOf([], ['SILENT'])).toBe(false);
+    expect(handledKindsOf(['SILENT'], true)).toBeUndefined();
+    expect(handledKindsOf(['SILENT'], false)).toEqual(['SILENT']);
+    expect(handledKindsOf(undefined, false)).toBeUndefined();
+  });
+
+  it('always names a conversation comment and the checks only the user can clear, even alone', () => {
+    for (const kind of ['CONVERSATION', 'CHECK_YOURS'] as const) {
+      expect(clearsAllOf([kind], [kind])).toBe(false);
+      expect(handledKindsOf([kind], clearsAllOf([kind], [kind]))).toEqual([kind]);
+    }
+    expect(clearsAllOf(['CONVERSATION', 'CHECK_YOURS'], ['CONVERSATION', 'CHECK_YOURS'])).toBe(false);
   });
 });
 

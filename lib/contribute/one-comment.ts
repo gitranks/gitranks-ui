@@ -149,7 +149,11 @@ export function noteSplitOf(note: string | null | undefined): { lead: string; re
 /** A run's thread replies not posted, with words: what Copy all counts. */
 const unpostedThreadsOf = (drafts: readonly ContributeReplyDraft[]) =>
   drafts.filter(
-    (draft) => !!draft.comment && (draft.state === 'DRAFT' || draft.state === 'FAILED') && !!draft.text.trim(),
+    (draft) =>
+      !!draft.comment &&
+      !isNoReply(draft) &&
+      (draft.state === 'DRAFT' || draft.state === 'FAILED') &&
+      !!draft.text.trim(),
   );
 
 /**

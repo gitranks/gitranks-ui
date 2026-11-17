@@ -5,8 +5,8 @@ import { loadLessonPage } from '@/lib/learn/lesson-public.data';
 import { lessonPageMetadata } from '@/lib/learn/lesson-seo';
 
 /**
- * A blocking route: the lesson is read before the page starts, so an unknown lesson answers a real 404. The lesson is
- * the same for everyone, and not cached here.
+ * The lesson is the same for everyone, and not cached here. The page streams, so its own notFound() reaches the browser
+ * with a 200: an unknown or hidden lesson gets its real 404 from the proxy, which asks first (`lib/learn/lesson-gate.ts`).
  */
 export const instant = false;
 

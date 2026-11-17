@@ -17,6 +17,13 @@ vi.mock('./lib/contribute/preview-gate', () => ({
 }));
 const { ledgerOpen } = vi.hoisted(() => ({ ledgerOpen: vi.fn(async () => false) }));
 vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: ledgerOpen }));
+const { lessonGate } = vi.hoisted(() => ({
+  lessonGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
+}));
+vi.mock('./lib/learn/lesson-gate', () => ({
+  LESSON_MISSING_PATH: '/learn/lessons/_missing',
+  lessonGateOf: lessonGate,
+}));
 
 const { default: proxy, config, ENTITY_PAGE_CACHE_CONTROL, v2BuilderRedirect } = await import('./proxy');
 
@@ -35,6 +42,8 @@ describe('proxy', () => {
     open.mockResolvedValue(false);
     ledgerOpen.mockReset();
     ledgerOpen.mockResolvedValue(false);
+    lessonGate.mockReset();
+    lessonGate.mockResolvedValue({ kind: 'page' });
   });
 
   describe('Contribute', () => {
@@ -282,6 +291,62 @@ describe('proxy', () => {
         expect(signedOut?.headers.get('cache-control'), path).toBeNull();
       }
       expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+
+    it('asks whether a shared lesson or a result is there before its page, which streams', async () => {
+      await proxy(request(undefined, '/learn/lessons/route-cache-miss-8f3k/'), event);
+      await proxy(request('authjs.session-token=t', '/learn/lessons/route-cache-miss-8f3k/passes/octocat'), event);
+      expect(lessonGate.mock.calls).toEqual([
+        [{ slug: 'route-cache-miss-8f3k' }],
+        [{ slug: 'route-cache-miss-8f3k', login: 'octocat' }],
+      ]);
+    });
+
+    it("answers a missing lesson or result with the lesson's 404 nobody caches, signed in or not, before Auth.js", async () => {
+      lessonGate.mockResolvedValue({ kind: 'missing' });
+      for (const cookie of [undefined, 'authjs.session-token=t']) {
+        for (const path of ['/learn/lessons/gone-1a2b', '/learn/lessons/gone-1a2b/passes/octocat']) {
+          const response = await proxy(request(cookie, path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBe(
+            'https://gitranks.com/learn/lessons/_missing',
+          );
+          expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+          expect(response?.headers.get('set-cookie'), path).toBeNull();
+        }
+      }
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it("sends a renamed login to its current result page, with the page's query", async () => {
+      lessonGate.mockResolvedValue({ kind: 'redirect', path: '/learn/lessons/route-cache-miss-8f3k/passes/octo-cat' });
+      const response = await proxy(
+        request(undefined, '/learn/lessons/route-cache-miss-8f3k/passes/octocat?react=yes'),
+        event,
+      );
+      expect(response?.status).toBe(307);
+      expect(response?.headers.get('location')).toBe(
+        'https://gitranks.com/learn/lessons/route-cache-miss-8f3k/passes/octo-cat?react=yes',
+      );
+      expect(response?.headers.get('cache-control')).toBe('private, no-store');
+    });
+
+    it('answers a HEAD request for a missing lesson as a GET', async () => {
+      lessonGate.mockResolvedValue({ kind: 'missing' });
+      const head = new NextRequest('https://gitranks.com/learn/lessons/gone-1a2b', { method: 'HEAD' });
+      const response = await proxy(head, event);
+      expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/learn/lessons/_missing');
+    });
+
+    it("asks nothing for a lesson page's form posts, nor for paths that are not a lesson's page", async () => {
+      const post = new NextRequest('https://gitranks.com/learn/lessons/route-cache-miss-8f3k', {
+        method: 'POST',
+        headers: { cookie: 'authjs.session-token=t' },
+      });
+      await proxy(post, event);
+      for (const path of ['/learn/lessons', '/learn/lessons/', '/learn/maintainers', '/learn/lessons/x/passes']) {
+        await proxy(request('authjs.session-token=t', path), event);
+      }
+      expect(lessonGate).not.toHaveBeenCalled();
     });
 
     it("answers a result page's .json from its route handler, signed in or not, before Auth.js", async () => {

@@ -8,6 +8,10 @@ vi.mock('./lib/contribute/preview-gate', () => ({
   contributeOpen: async () => false,
 }));
 vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: async () => false }));
+vi.mock('./lib/learn/lesson-gate', () => ({
+  LESSON_MISSING_PATH: '/learn/lessons/_missing',
+  lessonGateOf: async () => ({ kind: 'page' }),
+}));
 vi.mock('./lib/learn/learn-path', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./lib/learn/learn-path')>()),
   LEARN_OPEN_TO_VISITORS: true,

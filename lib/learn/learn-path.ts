@@ -94,6 +94,23 @@ export function lessonResultJsonRouteOf(pathname: string): string | null {
   return match ? `/api/learn/lessons/${match[1]}/passes/${match[2]}` : null;
 }
 
+const LESSON_PAGE_ROUTE = new RegExp(`^/learn/lessons/(${SLUG})/?$`);
+const RESULT_PAGE_ROUTE = new RegExp(`^/learn/lessons/(${SLUG})/passes/(${LOGIN})/?$`);
+
+/** A shared lesson's page (no `login`) or one of its result pages. */
+export type LessonRoute = { slug: string; login?: string };
+
+/**
+ * The lesson, and the login for a result page, of a path as `lessonPath` and `lessonResultPath` write it (a trailing
+ * slash allowed); null for any other path, including other spellings the router also reads as one.
+ */
+export function lessonRouteOf(pathname: string): LessonRoute | null {
+  const result = RESULT_PAGE_ROUTE.exec(pathname);
+  if (result) return { slug: result[1], login: result[2] };
+  const lesson = LESSON_PAGE_ROUTE.exec(pathname);
+  return lesson ? { slug: lesson[1] } : null;
+}
+
 /** The query parameter a result page's reaction travels in through the sign-in: `?react=yes|no`. */
 export const REACT_PARAM = 'react';
 

@@ -22,7 +22,9 @@ import {
   isLearnPath,
   LEARN_OPEN_TO_VISITORS,
   lessonResultJsonRouteOf,
+  lessonRouteOf,
 } from './lib/learn/learn-path';
+import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
@@ -102,6 +104,22 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   const resultJson = lessonResultJsonRouteOf(request.nextUrl.pathname);
   if (resultJson) {
     return NextResponse.rewrite(new URL(resultJson, request.url));
+  }
+
+  // A shared lesson's page and its result pages stream, so their own notFound() comes too late for a 404 status: the
+  // lesson is asked for here first. Missing, the lesson's 404 page answers; a renamed login goes to its current result
+  // page. Neither is kept by a shared cache: the lesson goes public, and the login may change again.
+  const lesson = request.method === 'GET' || request.method === 'HEAD' ? lessonRouteOf(request.nextUrl.pathname) : null;
+  if (lesson) {
+    const gate = await lessonGateOf(lesson);
+    if (gate.kind !== 'page') {
+      const response =
+        gate.kind === 'missing'
+          ? NextResponse.rewrite(new URL(LESSON_MISSING_PATH, request.url))
+          : NextResponse.redirect(new URL(`${gate.path}${request.nextUrl.search}`, request.url));
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
   }
 
   // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared

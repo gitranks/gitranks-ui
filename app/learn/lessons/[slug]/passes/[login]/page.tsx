@@ -5,8 +5,9 @@ import { loadLessonResult } from '@/lib/learn/lesson-public.data';
 import { lessonResultMetadata } from '@/lib/learn/lesson-seo';
 
 /**
- * A blocking route: the result is read before the page starts, so a login with no public pass answers a real 404 and a
- * renamed login a real redirect to the current one.
+ * The page streams, so its own notFound() and redirect() reach the browser after a 200: the proxy asks first
+ * (`lib/learn/lesson-gate.ts`), so a login with no public pass gets a real 404 and a renamed login a real redirect to
+ * the current one.
  */
 export const instant = false;
 

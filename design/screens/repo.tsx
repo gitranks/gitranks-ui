@@ -62,6 +62,8 @@ export const REPO_SCREENS: Screen[] = [
     route: '/repo/[owner]/[name]',
     sources: [
       'app/repo/[owner]/[name]/components/repo-screen.tsx',
+      'app/repo/[owner]/[name]/components/repo-overview-sections.tsx',
+      'app/repo/[owner]/[name]/components/repo-contributors-sections.tsx',
       'app/repo/[owner]/[name]/components/repo-layout.tsx',
       'app/repo/[owner]/[name]/components/repo-tier-card.tsx',
       'app/repo/[owner]/[name]/components/who-builds-it-card.tsx',

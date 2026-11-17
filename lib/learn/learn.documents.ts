@@ -181,6 +181,29 @@ export const LessonPageDocument = doc<{ lessonPage: LessonPage | LessonStub | nu
 }`,
 );
 
+/** Whether a shared lesson is there, and its stub when it is closed: the proxy's check before the page. */
+export const LessonPageGateDocument = doc<
+  { lessonPage: { __typename: 'LessonPage' } | LessonStub | null },
+  { slug: string }
+>(`query LessonPageGate($slug: String!) {
+  lessonPage(slug: $slug) {
+    __typename
+    ... on LessonStub { visibility }
+  }
+}`);
+
+/** Whether a login's result is there, under which login and slug, and the stub when closed: the proxy's check. */
+export const LessonResultGateDocument = doc<
+  { lessonResult: { __typename: 'LessonResultPage'; login: string; head: { slug: string } } | LessonStub | null },
+  { slug: string; login: string }
+>(`query LessonResultGate($slug: String!, $login: String!) {
+  lessonResult(slug: $slug, login: $login) {
+    __typename
+    ... on LessonResultPage { login head { slug } }
+    ... on LessonStub { visibility }
+  }
+}`);
+
 /** One login's passed run of a lesson, as anyone reads it. */
 export const LessonResultDocument = doc<
   { lessonResult: LessonResultPage | LessonStub | null },

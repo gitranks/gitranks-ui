@@ -1949,6 +1949,13 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         height: 7100,
         render: () => <TermsScreen contribute />,
       },
+      {
+        id: 'learn',
+        title: 'With the Learn section, for whoever Learn is open to',
+        path: '/terms#learn',
+        height: 5400,
+        render: () => <TermsScreen contribute learn />,
+      },
     ],
   },
 ];

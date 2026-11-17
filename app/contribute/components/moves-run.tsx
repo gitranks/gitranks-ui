@@ -147,7 +147,9 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
         title={move.title}
         why={<p>{`${firstSentence(error?.note)} Nothing was posted.`.trim()}</p>}
         body={probeLine}
-        primary={<PushButton commits={commits} prNumber={pr.number} flow={flow} again />}
+        primary={
+          <PushButton commits={commits} prNumber={pr.number} description={!!run.prBodyUpdate} flow={flow} again />
+        }
         secondary={
           <>
             {answer}
@@ -175,11 +177,13 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
           <p>
             {commits
               ? `The new commits go onto pull request #${pr.number ?? ''}'s branch on your fork, in your name, signed off as its first commits were. The pull request shows them at once.`
-              : 'The agent made no commits this run, only the replies below. Approve the replies you want posted, here or once it is finished; finishing it pushes nothing.'}
+              : run.prBodyUpdate
+                ? "The agent made no commits this run. Finishing it replaces the pull request's description with the new one shown below; approve the replies you want posted, here or once it is finished."
+                : 'The agent made no commits this run, only the replies below. Approve the replies you want posted, here or once it is finished; finishing it pushes nothing.'}
           </p>
         }
         body={probeLine}
-        primary={<PushButton commits={commits} prNumber={pr.number} flow={false} />}
+        primary={<PushButton commits={commits} prNumber={pr.number} description={!!run.prBodyUpdate} flow={false} />}
         secondary={
           <>
             {answer}
@@ -191,7 +195,7 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
     );
   }
   const tests = variant === 'tests';
-  const what = `The commits go onto #${pr.number ?? ''}'s branch on your fork; each reply posts in its thread${probe ? ', or in one comment with the others if the organization blocks the first' : ''}, in your name. Nothing goes to GitHub before you approve it.`;
+  const what = `The commits go onto #${pr.number ?? ''}'s branch on your fork; each reply posts in its thread${probe ? ', or in one comment with the others if the organization blocks the first' : ''}, in your name.${run.prBodyUpdate ? " The pull request's description is replaced by the new one shown below, before any reply." : ''} Nothing goes to GitHub before you approve it.`;
   return (
     <MoveCard
       {...common}
@@ -211,7 +215,13 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
         </div>
       }
       primary={
-        <PushButton commits={commits} prNumber={pr.number} flow={flow} label={tests ? 'Push anyway' : undefined} />
+        <PushButton
+          commits={commits}
+          prNumber={pr.number}
+          description={!!run.prBodyUpdate}
+          flow={flow}
+          label={tests ? 'Push anyway' : undefined}
+        />
       }
       secondary={
         <>

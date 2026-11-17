@@ -156,6 +156,9 @@ describe('the comments’ state', () => {
     expect(commentViewOf(only, commentActionsInit(only)).pushState.disabled).toBe(
       'Tick a reply to post, or discard the run',
     );
+    // A new description for the pull request is a change to push on its own.
+    const described = init({ hasCommits: false, hasBodyUpdate: true, drafts: [noReplyDraft()] });
+    expect(commentViewOf(described, commentActionsInit(described)).pushState.disabled).toBeNull();
   });
 
   it('starts with the chosen comments, none when every thread was ignored at read, none from a plain Start', async () => {

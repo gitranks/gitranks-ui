@@ -406,3 +406,32 @@ export function ApprovalPanel({ attempt }: { attempt: ContributeAttemptDetail })
     </details>
   );
 }
+
+/**
+ * A follow-up run's new description for its pull request, as approving the run sets it (footer included): it replaces
+ * the current description after the run's commits are pushed and before its replies are posted. Nothing while the run
+ * changes none.
+ */
+export function DescriptionUpdatePanel({ attempt }: { attempt: ContributeAttemptDetail }) {
+  const body = attempt.prBodyUpdate;
+  if (!body) return null;
+
+  return (
+    <details open data-panel="description-update" className="group rounded-xl border bg-card">
+      <summary className={cn(SUMMARY, 'min-h-11 rounded-xl px-4.5 py-3')}>
+        <span className="flex-none text-sm font-semibold">New pull request description</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          {attempt.state === 'SUBMITTING'
+            ? 'Replacing the current one now'
+            : 'Replaces the current one when you approve this run'}
+        </span>
+        <Chevron />
+      </summary>
+      <div className="flex flex-col gap-2 px-4.5 pb-4.5">
+        <pre className="max-h-72 overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs whitespace-pre-wrap">
+          {body}
+        </pre>
+      </div>
+    </details>
+  );
+}

@@ -379,6 +379,7 @@ export const SUBMIT_STEP_TEXT: Record<ContributeSubmitStep, string> = {
   SYNC: 'Bringing your fork up to date with the repo.',
   PUSH: 'Pushing the change to a branch on your fork.',
   PULL_REQUEST: 'Opening the pull request.',
+  BODY: "Updating the pull request's description.",
 };
 
 export const PR_STATES: Record<ContributePrState, { label: string; tone: Tone }> = {

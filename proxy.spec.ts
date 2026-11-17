@@ -330,6 +330,13 @@ describe('proxy', () => {
       expect(response?.headers.get('cache-control')).toBe('private, no-store');
     });
 
+    it('answers a HEAD request for a missing lesson as a GET', async () => {
+      lessonGate.mockResolvedValue({ kind: 'missing' });
+      const head = new NextRequest('https://gitranks.com/learn/lessons/gone-1a2b', { method: 'HEAD' });
+      const response = await proxy(head, event);
+      expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/learn/lessons/_missing');
+    });
+
     it("asks nothing for a lesson page's form posts, nor for paths that are not a lesson's page", async () => {
       const post = new NextRequest('https://gitranks.com/learn/lessons/route-cache-miss-8f3k', {
         method: 'POST',

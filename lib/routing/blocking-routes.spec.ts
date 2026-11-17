@@ -4,7 +4,12 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { BLOCKING_ROUTES, blockingRouteProblems } from '@/scripts/check-blocking-routes.mjs';
+import {
+  BLOCKING_ROUTES,
+  blockingRouteProblems,
+  STATIC_404_PAGES,
+  static404Problems,
+} from '@/scripts/check-blocking-routes.mjs';
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/graphql/helpers/fetch-repo-languages', () => ({
@@ -85,5 +90,21 @@ describe('the post-build check', () => {
     const { dynamicRoutes } = manifest(null);
     delete (dynamicRoutes as Record<string, unknown>)['/org/[login]'];
     expect(blockingRouteProblems({ dynamicRoutes })).toEqual(['/org/[login]: not in the prerender manifest']);
+  });
+
+  it('checks that the static 404 pages are prerendered with a 404 status', () => {
+    expect(static404Problems(() => ({ status: 404 }))).toEqual([]);
+    expect(static404Problems(() => ({ status: 200 }))).toEqual([
+      '/learn/lessons/_missing: prerendered with status 200, not 404',
+    ]);
+    expect(static404Problems(() => ({}))).toEqual([
+      '/learn/lessons/_missing: prerendered with status undefined, not 404',
+    ]);
+    expect(static404Problems(() => null)).toEqual(['/learn/lessons/_missing: not prerendered']);
+  });
+
+  it("lists the proxy's lesson 404 page", async () => {
+    const { LESSON_MISSING_PATH } = await import('@/lib/learn/lesson-gate');
+    expect(STATIC_404_PAGES).toContain(LESSON_MISSING_PATH);
   });
 });

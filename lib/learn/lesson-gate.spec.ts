@@ -58,8 +58,11 @@ describe('lessonGateOf', () => {
     expect(await lessonGateOf({ slug: SLUG })).toEqual({ kind: 'missing' });
     graphqlDirect.mockResolvedValueOnce({ lessonPage: { __typename: 'LessonStub', visibility: 'HIDDEN' } });
     expect(await lessonGateOf({ slug: SLUG })).toEqual({ kind: 'missing' });
-    graphqlDirect.mockRejectedValueOnce(apiError('NOT_FOUND'));
-    expect(await lessonGateOf({ slug: SLUG })).toEqual({ kind: 'missing' });
+    // As the pages read them: the API's "not there" and "not a valid ask" are a 404.
+    for (const code of ['NOT_FOUND', 'BAD_USER_INPUT', 'FORBIDDEN']) {
+      graphqlDirect.mockRejectedValueOnce(apiError(code));
+      expect(await lessonGateOf({ slug: SLUG }), code).toEqual({ kind: 'missing' });
+    }
   });
 
   it('leaves any other failure to the page', async () => {
@@ -70,6 +73,18 @@ describe('lessonGateOf', () => {
     ]) {
       graphqlDirect.mockRejectedValueOnce(failure);
       expect(await lessonGateOf({ slug: SLUG })).toEqual({ kind: 'page' });
+    }
+  });
+
+  it('leaves a slow answer to the page, rather than hold the response', async () => {
+    vi.useFakeTimers();
+    try {
+      graphqlDirect.mockReturnValueOnce(new Promise(() => {}));
+      const gate = lessonGateOf({ slug: SLUG }, 2000);
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(await gate).toEqual({ kind: 'page' });
+    } finally {
+      vi.useRealTimers();
     }
   });
 

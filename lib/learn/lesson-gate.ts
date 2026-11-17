@@ -15,10 +15,15 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 /** Where the proxy sends a missing lesson or result: a page that is always the lesson's 404. */
 export const LESSON_MISSING_PATH = '/learn/lessons/_missing' as Route;
 
+/** How long the proxy waits for the answer before leaving it to the page: nothing is sent while it waits. */
+export const LESSON_GATE_TIMEOUT_MS = 2000;
+
 /**
  * What the proxy does with a lesson's page: `missing` for a 404 (no such lesson, a hidden one, or no public pass of
  * that login), a redirect to the result's current address (a renamed login), else `page`, which reads it as before
- * (a removed or held lesson's stub, or the lesson). A failed ask is `page` too: the page then answers as it did.
+ * (a removed or held lesson's stub, or the lesson). A failed or slow ask is `page` too: the page then answers as it
+ * did. The API's "not there" and "not a valid ask" are missing, as the pages read them; a field the API does not
+ * know yet (a deploy in between) is left to the page.
  */
 export type LessonGate = { kind: 'page' } | { kind: 'missing' } | { kind: 'redirect'; path: Route };
 
@@ -29,7 +34,7 @@ const MISSING: LessonGate = { kind: 'missing' };
 const isMissing = (answer: { __typename: string; visibility?: string } | null | undefined) =>
   !answer || (answer.__typename === 'LessonStub' && answer.visibility === 'HIDDEN');
 
-export async function lessonGateOf({ slug, login }: LessonRoute): Promise<LessonGate> {
+async function askGate({ slug, login }: LessonRoute): Promise<LessonGate> {
   try {
     if (login === undefined) {
       const { lessonPage } = await graphqlDirect(LessonPageGateDocument, { slug }, { source: 'ssr' });
@@ -42,7 +47,19 @@ export async function lessonGateOf({ slug, login }: LessonRoute): Promise<Lesson
     }
     return PAGE;
   } catch (failure) {
-    // Only the API's "not there" is missing; any other failure leaves the answer to the page.
-    return contributeErrorOf(failure).error === 'NOT_FOUND' ? MISSING : PAGE;
+    const { error } = contributeErrorOf(failure);
+    return error === 'NOT_FOUND' || error === 'INVALID' ? MISSING : PAGE;
+  }
+}
+
+export async function lessonGateOf(route: LessonRoute, timeoutMs = LESSON_GATE_TIMEOUT_MS): Promise<LessonGate> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<LessonGate>((resolve) => {
+    timer = setTimeout(() => resolve(PAGE), timeoutMs);
+  });
+  try {
+    return await Promise.race([askGate(route), late]);
+  } finally {
+    clearTimeout(timer);
   }
 }

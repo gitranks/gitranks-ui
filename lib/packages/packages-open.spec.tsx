@@ -62,9 +62,34 @@ describe('usePackagesOpen', () => {
     expect(container.textContent).toBe('open');
   });
 
-  it('is false signed out, without asking', async () => {
+  it('is false signed out while the route says no, asked once', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ open: false })));
     expect(await render()).toBe('closed');
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(PACKAGES_OPEN_PATH);
+
+    await render();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('is open signed out once the route says so, and for a session that needs a new sign-in', async () => {
+    expect(await render()).toBe('open');
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    act(() => root.unmount());
+    root = createRoot(container);
+    session.current = { data: { user: { githubLogin: 'octocat' }, error: 'RefreshTokenError' } };
+    expect(await render()).toBe('open');
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('asks again when the viewer signs in, keeping the signed-in answer apart', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ open: false })));
+    expect(await render()).toBe('closed');
+
+    session.current = signedIn('octocat');
+    expect(await render()).toBe('open');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('is false when the route says no, and when it fails', async () => {

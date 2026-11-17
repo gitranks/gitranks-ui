@@ -8,8 +8,11 @@ const ALLOWED_SOURCE = 'gitranks';
 /** A repository's or a profile's cache tag, as `getRepoCacheTag` and `profileCacheTag` write them. */
 const TAG = /^(repo|profile):[a-z0-9._/-]{1,140}$/;
 
-/** A package's cache tag, lower case: `package:npm/<name>`, a name of up to 214 characters, `@scope/name` included. */
-const PACKAGE_TAG = /^package:npm\/[a-z0-9@/._~-]{1,214}$/;
+/**
+ * A package's cache tag, as `packageCacheTag` writes it: `package:npm/<name>`, lower case, a name of up to 214
+ * characters, `@scope/name` included, in any character a registry name can hold (older names hold `~'!()*`).
+ */
+const PACKAGE_TAG = /^package:npm\/[a-z0-9@/._~'!()*-]{1,214}$/;
 
 const isTag = (tag: unknown) => typeof tag === 'string' && (TAG.test(tag) || PACKAGE_TAG.test(tag));
 

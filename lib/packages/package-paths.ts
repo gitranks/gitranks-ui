@@ -32,3 +32,11 @@ export function isPackagePath(pathname: string): boolean {
   }
   return PAGE.test(decoded);
 }
+
+/**
+ * One cache tag per npm package, lower case whatever the spelling: `package:npm/<name>`. Whatever sets or expires a
+ * package's cache tag writes it with this.
+ */
+export function packageCacheTag(name: string) {
+  return `package:npm/${name}`.toLowerCase();
+}

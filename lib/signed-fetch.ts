@@ -8,7 +8,7 @@ export type RequestSource = 'ssr' | 'client' | 'badge';
 type InternalClaims = {
   source: RequestSource | 'build';
   githubLogin?: string;
-  /** The signed-in user's email, on Contribute's calls only: the address its emails go to. */
+  /** The signed-in person's email, sent beside `githubLogin` when the session holds a valid one. */
   accountEmail?: string;
 };
 

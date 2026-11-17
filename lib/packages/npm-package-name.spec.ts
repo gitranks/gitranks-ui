@@ -12,8 +12,7 @@ describe('isNpmPackageName', () => {
     '@types/node',
     '@nebula/ui',
     '@a/b',
-    // Scoped names may start with a period or an underscore.
-    '@scope/.hidden',
+    // A scoped name part may start with an underscore.
     '@scope/_private',
     // Older names: capital letters and `~'!()*` are refused for new names only.
     'JSONStream',
@@ -32,6 +31,8 @@ describe('isNpmPackageName', () => {
     ['over 214 characters with its scope', `@${'s'.repeat(100)}/${'n'.repeat(NPM_NAME_MAX_LENGTH - 101)}`],
     ['a leading period', '.env'],
     ['a leading underscore', '_private'],
+    ['a scoped name part with a leading period', '@scope/.hidden'],
+    ['a scoped name part that is two periods', '@scope/..'],
     ['a space', 'a b'],
     ['a leading space', ' react'],
     ['a slash without a scope', 'a/b'],

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isPackagePath } from './package-paths';
+import { isPackagePath, packageCacheTag } from './package-paths';
 
 describe('isPackagePath', () => {
   it.each([
@@ -46,5 +46,14 @@ describe('isPackagePath', () => {
     '/api/me/packages/open',
   ])('leaves %s alone', (path) => {
     expect(isPackagePath(path)).toBe(false);
+  });
+});
+
+describe('packageCacheTag', () => {
+  it('is one lower-case tag per package, whatever the spelling', () => {
+    expect(packageCacheTag('react')).toBe('package:npm/react');
+    expect(packageCacheTag('@types/node')).toBe('package:npm/@types/node');
+    expect(packageCacheTag('JSONStream')).toBe(packageCacheTag('jsonstream'));
+    expect(packageCacheTag("It's(OK)!*")).toBe("package:npm/it's(ok)!*");
   });
 });

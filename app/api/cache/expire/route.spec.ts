@@ -6,6 +6,8 @@ const { revalidateTag } = vi.hoisted(() => ({ revalidateTag: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidateTag }));
 
 const { POST } = await import('./route');
+const { isNpmPackageName, NPM_NAME_MAX_LENGTH } = await import('@/lib/packages/npm-package-name');
+const { packageCacheTag } = await import('@/lib/packages/package-paths');
 
 const SECRET = 'spec-secret';
 
@@ -63,12 +65,31 @@ describe('POST /api/cache/expire', () => {
       'package:npm/lodash.debounce',
       'package:npm/@types/node',
       'package:npm/~tilde_name-1.0',
+      // An older name, lower-cased: `~'!()*` are refused for new names only.
+      "package:npm/it's(ok)!*",
       `package:npm/${'a'.repeat(214)}`,
     ];
     const response = await signed({ tags });
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ expired: tags.length });
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
+  });
+
+  it('takes the tag of any name the npm name rule takes, as packageCacheTag writes it', async () => {
+    const names = [
+      'JSONStream',
+      "It's(OK)!*",
+      'pkg~Tilde',
+      '@Scope/_Private',
+      '@types/node',
+      'x'.repeat(NPM_NAME_MAX_LENGTH),
+    ];
+    expect(names.every(isNpmPackageName)).toBe(true);
+    const tags = names.map(packageCacheTag);
+    const response = await signed({ tags });
+
+    expect(response.status).toBe(200);
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
   });
 
@@ -138,7 +159,8 @@ describe('POST /api/cache/expire', () => {
     ['a package tag in capitals', { tags: ['package:npm/React'] }],
     ['a package tag over 214 characters', { tags: [`package:npm/${'a'.repeat(215)}`] }],
     ['a package tag with a space', { tags: ['package:npm/a b'] }],
-    ['a package tag with a character the tag does not take', { tags: ['package:npm/a!b'] }],
+    ['a package tag with a character no registry name holds', { tags: ['package:npm/a:b'] }],
+    ['a package tag with a percent sign', { tags: ['package:npm/a%20b'] }],
     ['a repository tag with an @', { tags: ['repo:@octo/x'] }],
     ['a profile tag with a ~', { tags: ['profile:octo~cat'] }],
     ['a repository tag over 140 characters, even under 214', { tags: [`repo:${'a'.repeat(141)}`] }],

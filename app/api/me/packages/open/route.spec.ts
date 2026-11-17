@@ -19,19 +19,31 @@ describe('the packages open route', () => {
     resetPackagesGate();
   });
 
-  it('answers closed signed out, without asking the API, never kept by a shared cache', async () => {
+  it('answers closed signed out until public, asking only whether it is public, never kept by any cache', async () => {
     sessionTokenOf.mockResolvedValue(null);
+    graphqlDirect.mockResolvedValueOnce(gate(false));
     const res = await get();
 
     expect(await res.json()).toEqual({ open: false });
-    expect(res.headers.get('cache-control')).toBe('private, max-age=60');
-    expect(graphqlDirect).not.toHaveBeenCalled();
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
+    expect(graphqlDirect).toHaveBeenCalledOnce();
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr' });
   });
 
-  it('answers closed for a session that needs a new sign-in, without asking the API', async () => {
+  it('answers open signed out once public, without reading the session', async () => {
+    graphqlDirect.mockResolvedValueOnce(gate(true));
+    const res = await get();
+
+    expect(await res.json()).toEqual({ open: true });
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
+    expect(sessionTokenOf).not.toHaveBeenCalled();
+  });
+
+  it('answers closed for a session that needs a new sign-in until public, without asking for the viewer', async () => {
     sessionTokenOf.mockResolvedValue({ githubLogin: 'octocat', error: 'RefreshTokenError' });
+    graphqlDirect.mockResolvedValueOnce(gate(false));
     expect(await (await get()).json()).toEqual({ open: false });
-    expect(graphqlDirect).not.toHaveBeenCalled();
+    expect(graphqlDirect).toHaveBeenCalledOnce();
   });
 
   it("answers what the API says of the signed-in viewer, asked with the session's login and email", async () => {
@@ -40,7 +52,7 @@ describe('the packages open route', () => {
 
     const res = await get();
     expect(await res.json()).toEqual({ open: true });
-    expect(res.headers.get('cache-control')).toBe('private, max-age=60');
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
     expect(graphqlDirect.mock.calls[1][2]).toEqual({
       source: 'ssr',
       githubLogin: 'octocat',

@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/contribute/preview-gate', () => ({ contributeShown: vi.fn() }));
+vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
 vi.mock('./scroll-to-hash', () => ({ ScrollToHash: () => <span data-scroll-to-hash /> }));
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
 
@@ -10,6 +11,7 @@ const { McpDocsScreen } = await import('./mcp-docs');
 const { LaunchedTerms, TermsScreen } = await import('@/app/terms/terms');
 const { LaunchedMorePages } = await import('./launched-more-pages');
 const { contributeShown } = await import('@/lib/contribute/preview-gate');
+const { loadLearnOpen } = await import('@/lib/learn/learn.data');
 const { FAQ_GROUPS, LANDING_QUESTIONS } = await import('@/lib/contribute/faq');
 const { MCP_DOC_CLIENTS, MCP_DOC_MORE_CLIENTS, MCP_DOC_SAVES, MCP_DOC_TOOLS, MCP_PLUGIN_DOCS_SHOWN } = await import(
   '@/lib/contribute/mcp-docs'
@@ -245,6 +247,21 @@ describe('the Terms', () => {
     expect(shown).toContain('gitranks.com/contribute/maintainers');
     expect(hidden).not.toContain('Contribute');
     expect(shown).not.toContain('Claude Code');
+    expect(shown).not.toContain('GitRanks Learn');
+  });
+
+  it('carry the Learn section, and its date, only with Contribute and Learn open to the reader', () => {
+    const learn = renderToStaticMarkup(<TermsScreen contribute learn />);
+    const plain = text(learn);
+    expect(learn).toContain('id="learn"');
+    expect(plain).toContain('17 November 2026');
+    expect(plain).toContain('the lesson becomes public under your GitHub username');
+    expect(plain).toContain('never the options you got wrong');
+    expect(plain).toContain('You can take a lesson down at any time');
+    expect(plain).toContain('Learn is only for people aged 16 and over');
+    expect(learn).toContain('href="/learn/maintainers"');
+    // Learn sits on Contribute's terms, so it never shows without them.
+    expect(text(renderToStaticMarkup(<TermsScreen contribute={false} learn />))).not.toContain('GitRanks Learn');
   });
 });
 
@@ -263,6 +280,20 @@ describe('the launch gate', () => {
     expect(closed).not.toContain('id="contribute"');
     expect(closed).not.toContain('data-scroll-to-hash');
     expect(text(closed)).not.toContain('Contribute');
+  });
+
+  it("gives the Terms Learn's section only when Learn is open to the reader", async () => {
+    const learnOpen = vi.mocked(loadLearnOpen);
+    shown.mockResolvedValue(true);
+    learnOpen.mockResolvedValue(true);
+    const open = renderToStaticMarkup(await LaunchedTerms());
+    expect(open).toContain('id="learn"');
+    expect(open).toContain('2026-11-17');
+
+    learnOpen.mockResolvedValue(false);
+    const closed = renderToStaticMarkup(await LaunchedTerms());
+    expect(closed).not.toContain('id="learn"');
+    expect(closed).toContain('2026-11-11');
   });
 
   it('shows the maintainers page the other pages only when Contribute is shown', async () => {

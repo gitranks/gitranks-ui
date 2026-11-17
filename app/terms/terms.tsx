@@ -1,6 +1,8 @@
 import { ScrollToHash } from '@/app/contribute/components/scroll-to-hash';
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
 import { contributeShown } from '@/lib/contribute/preview-gate';
+import { loadLearnOpen } from '@/lib/learn/learn.data';
+import { LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
 
 /*
@@ -79,11 +81,64 @@ const CONTRIBUTE: LegalSection = {
   ),
 };
 
+/**
+ * Learn's section: Contribute's terms apply, lessons are AI-written, what goes public when the pull request opens and
+ * under whose name, taking it down, reactions, and the age rule.
+ */
+const LEARN: LegalSection = {
+  id: 'learn',
+  title: 'GitRanks Learn',
+  body: (
+    <>
+      <P>
+        GitRanks Learn is a way of working with Contribute: your agent fixes an issue and writes a short lesson on its
+        fix, you take the lesson on GitRanks, and the pull request can be approved only after you pass it. The terms of{' '}
+        <A href="#contribute">GitRanks Contribute</A> apply to Learn too. Learn is in beta, may be open only to some
+        accounts, and may change or stop.
+      </P>
+      <List>
+        <li>
+          <B>Lessons are written by AI.</B> Your agent writes each lesson and its questions, and we check them with AI.
+          A lesson can be wrong or incomplete. Passing one shows that you answered its questions; it doesn&apos;t mean
+          the change is correct, and you stay responsible for the pull request as for any other.
+        </li>
+        <li>
+          <B>What goes public.</B> When GitRanks opens the pull request, the lesson becomes public under your GitHub
+          username, with the issue, the pull request and the agent that wrote it, and so does your result: how each step
+          went and the questions you were asked with their right answers, never the options you got wrong. Anyone with
+          the link can read them, and the pull request links to your result. A lesson whose pull request never opens
+          stays private. You let us store, show and publish the lesson and your result this way.
+        </li>
+        <li>
+          <B>Taking it down.</B> You can take a lesson down at any time from its attempt page. Its page and every result
+          on it close for good. The pull request and its link stay on GitHub. We may also pause or hide a lesson that is
+          reported, breaks these terms or the law, or when a repository&apos;s maintainers ask.
+        </li>
+        <li>
+          <B>Taking someone else&apos;s lesson.</B> Anyone can read a public lesson; answering needs your GitHub
+          sign-in. Your result stays private unless you choose to share it, and a shared result is public as above.
+        </li>
+        <li>
+          <B>Reactions.</B> If you react to a result as a maintainer or collaborator of its repository, your reaction
+          may be shown on the result page with your username and your role. See{' '}
+          <A href={LEARN_MAINTAINERS_PATH}>what Learn is for maintainers</A>.
+        </li>
+        <li>
+          <B>Age.</B> As for signing in, Learn is only for people aged 16 and over.
+        </li>
+      </List>
+    </>
+  ),
+};
+
 /** When the Terms last changed with Contribute's section in them: they show that date only once the section shows. */
 const CONTRIBUTE_TERMS_UPDATED = '2026-11-11';
 
-/** The sections; Contribute's only for whoever may see Contribute, as its pages are. */
-const sectionsOf = (contribute: boolean): LegalSection[] => [
+/** When the Terms last changed with Learn's section in them: shown only with the section. */
+const LEARN_TERMS_UPDATED = '2026-11-17';
+
+/** The sections; Contribute's only for whoever may see Contribute, and Learn's for whoever Learn is open to. */
+const sectionsOf = (contribute: boolean, learn: boolean): LegalSection[] => [
   {
     id: 'who',
     title: 'Who we are',
@@ -165,6 +220,7 @@ const sectionsOf = (contribute: boolean): LegalSection[] => [
     ),
   },
   ...(contribute ? [CONTRIBUTE] : []),
+  ...(contribute && learn ? [LEARN] : []),
   {
     id: 'use',
     title: 'Fair use',
@@ -282,26 +338,27 @@ const sectionsOf = (contribute: boolean): LegalSection[] => [
   },
 ];
 
-/** The Terms as drawn: with Contribute's section or without it. */
-export function TermsScreen({ contribute }: { contribute: boolean }) {
+/** The Terms as drawn: with Contribute's section or without it, and with Learn's (which needs Contribute's). */
+export function TermsScreen({ contribute, learn = false }: { contribute: boolean; learn?: boolean }) {
+  const withLearn = contribute && learn;
   return (
     <LegalPage
       title="Terms of service"
-      sections={sectionsOf(contribute)}
-      updated={contribute ? CONTRIBUTE_TERMS_UPDATED : undefined}
+      sections={sectionsOf(contribute, learn)}
+      updated={withLearn ? LEARN_TERMS_UPDATED : contribute ? CONTRIBUTE_TERMS_UPDATED : undefined}
     />
   );
 }
 
 /**
- * The Terms for whoever may see Contribute (the preview list, everyone once launched): with its section, and a scroll
- * to `#contribute`, which streamed in after the browser looked for it.
+ * The Terms for whoever may see Contribute (the preview list, everyone once launched): with its section, Learn's for
+ * whoever Learn is open to, and a scroll to `#contribute` or `#learn`, which streamed in after the browser looked.
  */
 export async function LaunchedTerms() {
-  const contribute = await contributeShown();
+  const [contribute, learn] = await Promise.all([contributeShown(), loadLearnOpen()]);
   return (
     <>
-      <TermsScreen contribute={contribute} />
+      <TermsScreen contribute={contribute} learn={learn} />
       {contribute ? <ScrollToHash /> : null}
     </>
   );

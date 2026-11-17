@@ -1,14 +1,28 @@
 import { describe, expect, it } from 'vitest';
 
-import { detail, feedbackThread, flowDraft, followUp, followUps, replyDraft } from './__fixtures__/contribute-attempts';
-import { resolvesOf } from './comment-actions';
+import {
+  detail,
+  feedbackThread,
+  flowDraft,
+  followUp,
+  followUps,
+  noReplyDraft,
+  replyDraft,
+} from './__fixtures__/contribute-attempts';
+import { resolvesOf, sendsByDefault } from './comment-actions';
 import type { ContributeAttemptState, ContributeReplyDraft } from './contribute.types';
 import type { ActionId } from './hard-stop';
+import { isNoReply, isToApprove, oneCommentCardOf } from './one-comment';
+import { replyTroubleOf } from './reply-trouble';
 import {
   type CommentRowItem,
   chipOf,
   firstAttemptDraftsOf,
+  GROUP_TITLES,
   groupsOf,
+  isMuted,
+  noReplyLineOf,
+  outcomePillOf,
   ownLinesOf,
   type PostContext,
   postActionOf,
@@ -98,6 +112,75 @@ describe('a review comment’s row state', () => {
 
   it('keeps a dismissed reply’s own state in a read-only list', () => {
     expect(rowStateOf('readOnly', flowDraft({ state: 'DISMISSED' }), ctx('DISCARDED'))).toBe('dismissed');
+  });
+
+  it('lists a thread that needs no reply as that in every mode, whatever state it arrives in', () => {
+    for (const mode of ['review', 'readOnly', 'perReply'] as const) {
+      expect(rowStateOf(mode, noReplyDraft(), ctx('REVIEW'))).toBe('no-reply-needed');
+      // Never a draft to edit, tick or post: not even one that came as a draft, or failed.
+      expect(rowStateOf(mode, noReplyDraft({ state: 'DRAFT', dismissedReason: null }), ctx('REVIEW'))).toBe(
+        'no-reply-needed',
+      );
+      expect(rowStateOf(mode, noReplyDraft({ state: 'FAILED', outcome: undefined }), ctx())).toBe('no-reply-needed');
+    }
+    // An empty reply the run left with another outcome keeps its own state.
+    expect(rowStateOf('perReply', flowDraft({ text: '' }), ctx())).toBe('no-reply');
+  });
+
+  it('offers nothing on a thread that needs no reply: no post, no dismiss, no discard, no chip, no pill', () => {
+    const none = { post: null, dismiss: false, discard: false };
+    expect(rowActionsOf('no-reply-needed', noReplyDraft(), { ...post(), byCard: false })).toEqual(none);
+    expect(rowActionsOf('no-reply-needed', noReplyDraft({ state: 'DRAFT' }), { ...post(), byCard: true })).toEqual(
+      none,
+    );
+    expect(chipOf('no-reply-needed', noReplyDraft())).toBeNull();
+    expect(outcomePillOf(noReplyDraft())).toBeNull();
+    expect(outcomePillOf(flowDraft())).toMatchObject({ label: 'Fixed' });
+    expect(isMuted('no-reply-needed')).toBe(true);
+    expect(noReplyLineOf(noReplyDraft())).toBe('No reply needed: The bot only confirmed the earlier fix.');
+    expect(noReplyLineOf(noReplyDraft({ reason: ' ' }))).toBe('No reply needed');
+    expect(noReplyLineOf(noReplyDraft({ reason: null }))).toBe('No reply needed');
+  });
+
+  it('never says a thread that needs no reply was not posted, even one that arrives failed', () => {
+    const error = { reason: 'transient', note: 'GitHub did not answer.', at: '2026-10-28T11:59:00.000Z' };
+    const none = [
+      noReplyDraft({ state: 'FAILED', lastError: error }),
+      noReplyDraft({ draftId: 'D_NR2', state: 'FAILED', lastError: error }),
+    ];
+    // No shared-reason line under the list, no trouble for the card, and nothing counted to copy.
+    expect(ownLinesOf(none, () => NONE)).toEqual([]);
+    expect(replyTroubleOf(none)).toEqual([]);
+    expect(replyTroubleOf([...none, failed('transient')])[0].failed.map(({ draftId }) => draftId)).toEqual(['D_1']);
+    const card = oneCommentCardOf(
+      { oneComment: null, copyBodies: ['> a\n\nb'], replyBatches: [], replyDrafts: [...none, failed('transient')] },
+      'A_F1',
+      [failed('transient')],
+    );
+    expect(card.copy?.count).toBe(1);
+    // Its row stays the listed one, with no retry, post or dismiss.
+    for (const draft of none) {
+      const state = rowStateOf('perReply', draft, ctx());
+      expect(state).toBe('no-reply-needed');
+      expect(rowActionsOf(state, draft, { ...post({ grantConnected: true }), byCard: false })).toEqual({
+        post: null,
+        dismiss: false,
+        discard: false,
+      });
+    }
+  });
+
+  it('never counts a thread that needs no reply as a reply to approve or to send', () => {
+    expect(isNoReply(noReplyDraft())).toBe(true);
+    expect(isNoReply(noReplyDraft({ outcome: undefined }))).toBe(true);
+    expect(isNoReply(noReplyDraft({ dismissedReason: undefined }))).toBe(true);
+    expect(isNoReply(flowDraft())).toBe(false);
+    expect(isNoReply(flowDraft({ state: 'DISMISSED', dismissedReason: 'NOT_NEEDED' }))).toBe(false);
+    expect(isToApprove(noReplyDraft())).toBe(false);
+    expect(isToApprove(noReplyDraft({ state: 'DRAFT', text: 'Thanks!' }))).toBe(false);
+    expect(isToApprove(flowDraft())).toBe(true);
+    expect(sendsByDefault(noReplyDraft({ state: 'DRAFT', text: 'Thanks!' }))).toBe(false);
+    expect(sendsByDefault(flowDraft())).toBe(true);
   });
 
   it('reads a run’s mode from its state and its API', () => {
@@ -247,6 +330,17 @@ describe('the rows’ words and groups', () => {
       ['dismissed', ['D_6']],
     ]);
     expect(groups.find(({ id }) => id === 'resolved')?.collapsed).toBe(true);
+    // The threads that need no reply: a group of their own after the posted ones, open, so each is listed.
+    const withNone = groupsOf(rows([...drafts, noReplyDraft(), noReplyDraft({ draftId: 'D_NR2' })]), 'perReply');
+    expect(withNone.map(({ id, rows: list }) => [id, list.map(({ key }) => key)])).toEqual([
+      ['not-posted', ['D_3']],
+      ['posted', ['D_2', 'D_4', 'D_5']],
+      ['no-reply', ['D_NR', 'D_NR2']],
+      ['resolved', ['D_1']],
+      ['dismissed', ['D_6']],
+    ]);
+    expect(withNone.find(({ id }) => id === 'no-reply')?.collapsed).toBe(false);
+    expect(GROUP_TITLES['no-reply']).toBe('No reply needed');
     const review = groupsOf(
       rows([flowDraft({ draftId: 'Q', outcome: 'NEEDS_YOU', text: '' }), flowDraft()], 'review'),
       'review',
@@ -390,6 +484,31 @@ describe('the section’s header', () => {
     expect(summaryOf(resolved, 'perReply', { state: 'DONE', hasPatch: true, flow: true }).fact).toBe(
       '7 fixed · all resolved',
     );
+    // Threads that need no reply are tallied as such, and never as drafted or replied.
+    const withNone = rows([...review.map(({ draft }) => draft!), noReplyDraft()], 'review');
+    expect(summaryOf(withNone, 'review', { state: 'REVIEW', hasPatch: true, flow: true })).toEqual({
+      count: { label: '4', tone: 'neutral' },
+      fact: '1 fixed · 1 not changed · 1 for you · 1 needs no reply',
+    });
+    const onlyNone = rows([noReplyDraft(), noReplyDraft({ draftId: 'D_NR2' })]);
+    expect(summaryOf(onlyNone, 'perReply', { state: 'DONE', hasPatch: false, flow: true }).fact).toBe(
+      '2 need no reply',
+    );
+    const olderWithNone = rows([replyDraft(), noReplyDraft({ outcome: undefined })]);
+    expect(summaryOf(olderWithNone, 'perReply', { state: 'REVIEW', hasPatch: true, flow: false }).fact).toBe(
+      '1 drafted',
+    );
+    // "All resolved" is said of the replies: a thread that needs no reply has nothing to resolve.
+    const resolvedWithNone = rows([
+      flowDraft({ draftId: 'D_1', state: 'DISMISSED', dismissedReason: 'THREAD_RESOLVED' }),
+      flowDraft({ draftId: 'D_2', state: 'DISMISSED', dismissedReason: 'THREAD_RESOLVED' }),
+      noReplyDraft(),
+    ]);
+    expect(summaryOf(resolvedWithNone, 'perReply', { state: 'DONE', hasPatch: true, flow: true }).fact).toBe(
+      '2 fixed · 1 needs no reply · all resolved',
+    );
+    // With no reply at all there is nothing to call resolved.
+    expect(summaryOf(onlyNone, 'perReply', { state: 'DONE', hasPatch: true, flow: true }).fact).toBe('2 need no reply');
     const nothing = rows([failed('transient'), failed('transient', { draftId: 'D_2' })]);
     expect(summaryOf(nothing, 'perReply', { state: 'DONE', hasPatch: true, flow: true }).fact).toBe('2 fixed');
     expect(

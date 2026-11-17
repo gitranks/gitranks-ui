@@ -9,7 +9,7 @@ import { OUTCOMES } from './follow-up-flow';
 import { REPLY_STATES } from './follow-up-format';
 import { relativeLabel } from './format';
 import type { ActionId } from './hard-stop';
-import { inOneComment, isHeldBack, waitsForProbe } from './one-comment';
+import { inOneComment, isHeldBack, isNoReply, waitsForProbe } from './one-comment';
 import { BLOCK_REASONS, RETRY_REASONS, reasonKeyOf, replyTroubleOf } from './reply-trouble';
 
 /**
@@ -37,6 +37,7 @@ export type RowState =
   | 'not-posted-own'
   | 'left-for-github'
   | 'no-reply'
+  | 'no-reply-needed'
   | 'draft-not-sent'
   | 'waits-for-probe'
   | 'held-back'
@@ -45,7 +46,16 @@ export type RowState =
   | 'thread-resolved'
   | 'unknown';
 
-export type GroupId = 'list' | 'needs-you' | 'ready' | 'not-posted' | 'posted' | 'resolved' | 'dismissed' | 'ignored';
+export type GroupId =
+  | 'list'
+  | 'needs-you'
+  | 'ready'
+  | 'not-posted'
+  | 'posted'
+  | 'no-reply'
+  | 'resolved'
+  | 'dismissed'
+  | 'ignored';
 
 /** What a row's state reads besides its draft. */
 export type RowContext = {
@@ -65,8 +75,12 @@ export function runModeOf(run: Pick<ContributeAttemptDetail, 'state' | 'patch'>,
 
 const editable = (draft: Pick<ContributeReplyDraft, 'state'>) => draft.state === 'DRAFT' || draft.state === 'FAILED';
 
-/** A reply's state in each mode: the mode first, then the draft's state. */
+/**
+ * A reply's state in each mode: a thread the run found needs no reply first (listed, nothing to do with it), then the
+ * mode, then the draft's state.
+ */
 export function rowStateOf(mode: RowMode, draft: ContributeReplyDraft, ctx: RowContext): RowState {
+  if (isNoReply(draft)) return 'no-reply-needed';
   if (mode === 'review' && editable(draft)) {
     return draft.outcome === 'NEEDS_YOU' && !draft.text.trim() ? 'needs-you' : 'draft-review';
   }
@@ -122,6 +136,7 @@ const GROUP_OF: Record<RowState, GroupId> = {
   'resolve-failed': 'posted',
   'left-for-github': 'posted',
   'no-reply': 'posted',
+  'no-reply-needed': 'no-reply',
   'thread-resolved': 'resolved',
   'dismissed-by-hand': 'dismissed',
   dismissed: 'dismissed',
@@ -134,6 +149,7 @@ export const GROUP_ORDER: GroupId[] = [
   'ready',
   'not-posted',
   'posted',
+  'no-reply',
   'resolved',
   'dismissed',
   'ignored',
@@ -145,6 +161,7 @@ export const GROUP_TITLES: Record<GroupId, string> = {
   ready: 'Ready to post',
   'not-posted': 'Not posted',
   posted: 'Posted',
+  'no-reply': 'No reply needed',
   resolved: 'Resolved on GitHub',
   dismissed: 'Dismissed',
   ignored: 'Ignored',
@@ -242,8 +259,15 @@ export function chipOf(state: RowState, draft?: ContributeReplyDraft): Chip | nu
   }
 }
 
-/** Rows whose lines are muted: the dismissed. */
-export const isMuted = (state: RowState) => state === 'dismissed' || state === 'dismissed-by-hand';
+/** Rows whose lines are muted: the dismissed, and the threads that need no reply. */
+export const isMuted = (state: RowState) =>
+  state === 'dismissed' || state === 'dismissed-by-hand' || state === 'no-reply-needed';
+
+/** "No reply needed: the bot only confirmed the fix": a thread the run found asks nothing, with its reason. */
+export const noReplyLineOf = (draft: Pick<ContributeReplyDraft, 'reason'>): string => {
+  const reason = draft.reason?.trim();
+  return reason ? `${OUTCOMES.NO_REPLY.label}: ${reason}` : OUTCOMES.NO_REPLY.label;
+};
 
 /** What a reply's post control needs besides its draft. */
 export type PostContext = {
@@ -405,13 +429,15 @@ export function rowVersionOf(
   ].join('|');
 }
 
-/** "4 fixed · 1 not changed · 1 for you", from the rows' outcomes; null when none has one. */
+/** "4 fixed · 1 not changed · 1 for you · 2 need no reply", from the rows' outcomes; null when none has one. */
 function talliesOf(drafts: ContributeReplyDraft[]): string | null {
   const count = (outcome: string) => drafts.filter((draft) => draft.outcome === outcome).length;
+  const none = drafts.filter(isNoReply).length;
   const parts = [
     count('FIXED') ? `${count('FIXED')} fixed` : null,
     count('SKIPPED') ? `${count('SKIPPED')} not changed` : null,
     count('NEEDS_YOU') ? `${count('NEEDS_YOU')} for you` : null,
+    none ? `${none} ${none === 1 ? 'needs' : 'need'} no reply` : null,
   ].filter(Boolean);
   return parts.length ? parts.join(' · ') : null;
 }
@@ -439,16 +465,20 @@ export function summaryOf(
   const drafts = rows.flatMap((row) => (row.draft ? [row.draft] : []));
   const count = { label: String(rows.length), tone: 'neutral' as const };
   const tallies = talliesOf(drafts);
+  // A thread that needs no reply has none drafted.
+  const drafted = drafts.filter((draft) => !isNoReply(draft)).length;
   if (run && (run.state === 'STOPPED' || run.state === 'DISCARDED') && run.hasPatch) {
     return { count, fact: 'Nothing posted' };
   }
   if (mode === 'review' || mode === 'readOnly') {
-    return { count, fact: tallies ?? `${drafts.length} drafted` };
+    return { count, fact: tallies ?? `${drafted} drafted` };
   }
-  if (run?.state === 'REVIEW' && !run.flow) return { count, fact: `${drafts.length} drafted` };
+  if (run?.state === 'REVIEW' && !run.flow) return { count, fact: `${drafted} drafted` };
+  // The threads that need no reply have nothing to resolve: "all resolved" is said of the others.
+  const replies = drafts.filter((draft) => !isNoReply(draft));
   if (
-    drafts.length &&
-    drafts.every((draft) => draft.state === 'DISMISSED' && draft.dismissedReason === 'THREAD_RESOLVED')
+    replies.length &&
+    replies.every((draft) => draft.state === 'DISMISSED' && draft.dismissedReason === 'THREAD_RESOLVED')
   ) {
     return { count, fact: [tallies, 'all resolved'].filter(Boolean).join(' · ') };
   }
@@ -467,6 +497,9 @@ export function summaryOf(
   return { count, fact: tallies };
 }
 
-/** The outcome pill's words; null for a draft without one (an older API). */
+/**
+ * The outcome pill's words; null for a draft without one (an older API), one this UI does not know yet, and a thread
+ * that needs no reply (its row's line says so, with the reason).
+ */
 export const outcomePillOf = (draft: Pick<ContributeReplyDraft, 'outcome'>) =>
-  draft.outcome ? OUTCOMES[draft.outcome] : null;
+  draft.outcome && draft.outcome !== 'NO_REPLY' ? (OUTCOMES[draft.outcome] ?? null) : null;

@@ -442,7 +442,9 @@ export type ContributeAttemptPullRequest = {
  * ended with nothing pushed (`RUN_ENDED`). Each leaves once its cause is gone, or once the user marks it handled
  * (`RUN_ENDED`: by those alone, or by the next run's start). GitRanks' own: no word from anyone for 30 days, so it
  * closes the pull request on the day `detail` names unless the user marks it handled (`SILENT`); the repo left
- * Contribute, why in `detail` (`REPO_OUT`). The API may answer a kind this UI does not know yet.
+ * Contribute, why in `detail` (`REPO_OUT`). The user's own to act on, with no run for them: failing checks only they
+ * can clear, as a run judged them (`CHECK_YOURS`), and a new comment in the pull request's conversation
+ * (`CONVERSATION`; `COMMENT` is a review thread on the code). The API may answer a kind this UI does not know yet.
  */
 export type ContributePrSignalKind =
   | 'CHANGES_REQUESTED'
@@ -454,7 +456,9 @@ export type ContributePrSignalKind =
   | 'RUN_ENDED'
   | 'DCO'
   | 'SILENT'
-  | 'REPO_OUT';
+  | 'REPO_OUT'
+  | 'CHECK_YOURS'
+  | 'CONVERSATION';
 
 /**
  * How a run that pushed nothing ended: the agent's no-go (or the user's own agent giving it back with what is theirs to
@@ -468,11 +472,15 @@ export type ContributePrSignal = {
   /**
    * For a failing check: the failing checks' names; for a CLA or a DCO: its check's; for a bot's block: the bot and
    * its verdict; for a run that ended: what it left for the user, or why it stopped; for `SILENT`: the ISO day GitRanks
-   * closes the pull request; for `REPO_OUT`: why the repo left (`closed_no_ai`, `hostile_close`, `pr_misses`).
-   * Untrusted plain text.
+   * closes the pull request; for `REPO_OUT`: why the repo left (`closed_no_ai`, `hostile_close`, `pr_misses`); for
+   * `CHECK_YOURS`: each check with what to do about it (`<check>: <what to do>`, joined with `; `). Untrusted plain
+   * text.
    */
   detail: string | null;
-  /** A run that ended (`RUN_ENDED`): the run, its number and how it ended; `undefined` while the API does not answer. */
+  /**
+   * A run that ended (`RUN_ENDED`): the run, its number and how it ended. `CHECK_YOURS`: the run that judged the
+   * checks, and its number. `undefined` while the API does not answer.
+   */
   attemptId?: string | null;
   round?: number | null;
   outcome?: ContributeRunOutcome | null;
@@ -552,8 +560,11 @@ export type ContributeFeedbackThread = {
 };
 export type ContributeReviewFeedback = { threads: ContributeFeedbackThread[]; readAt: string | null };
 
-/** What a follow-up did about a review thread. */
-export type ContributeThreadOutcome = 'FIXED' | 'SKIPPED' | 'NEEDS_YOU';
+/**
+ * What a follow-up did about a review thread. `NO_REPLY`: its last word asks nothing of the user, so no reply was
+ * drafted; its reason says why.
+ */
+export type ContributeThreadOutcome = 'FIXED' | 'SKIPPED' | 'NEEDS_YOU' | 'NO_REPLY';
 export type ContributeResolveState = 'NONE' | 'RESOLVING' | 'RESOLVED' | 'FAILED';
 
 /** The fields of the follow-up flow (2026-10-31), asked on their own: an API without them leaves the rest. */
@@ -768,9 +779,44 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   repoRules?: ContributeRepoRules | null;
   /** The claim's check, step by step while it starts (oldest first); `undefined` while the API does not answer it. */
   claimSteps?: ContributeClaimStep[];
+  /**
+   * A first attempt's open pull request: its failing checks that no signal names, each with why it calls nobody. Null
+   * otherwise; `undefined` while the API does not answer it (read on its own).
+   */
+  checkNotes?: ContributeCheckNote[] | null;
+  /**
+   * A follow-up run: its verdicts on the pull request's failing checks. Null when it gave none; `undefined` while the
+   * API does not answer it (read on its own).
+   */
+  checkVerdicts?: ContributeCheckVerdict[] | null;
 } & Partial<ContributeFollowUpFlowFields> &
   Partial<ContributeRepliesPlanFields> &
   ContributeConventionsFields;
+
+/**
+ * Why a failing check of the open pull request's head calls nobody: a run's verdict on it (not from this pull request,
+ * the user's to clear, needs the base branch), a commit someone else pushed, or checks still running.
+ */
+export type ContributeCheckNoteKind = 'NOT_PR' | 'CONTRIBUTOR' | 'BASE' | 'SOMEONE_ELSE' | 'SETTLING';
+
+/**
+ * A failing check no signal names, and why. `why` and `round`: a run's verdict, its reason in one sentence and the
+ * run's number; `by`: the login of who pushed the commit it started failing on. Each null otherwise. `name` and `why`
+ * are untrusted plain text.
+ */
+export type ContributeCheckNote = {
+  name: string;
+  kind: ContributeCheckNoteKind;
+  why: string | null;
+  by: string | null;
+  round: number | null;
+};
+
+/** Whose a failing check is, as a follow-up run judged it. */
+export type ContributeCheckVerdictWhose = 'PR' | 'NOT_PR' | 'CONTRIBUTOR' | 'BASE';
+
+/** A run's verdict on one failing check of the pull request, with its reason in one sentence. Untrusted plain text. */
+export type ContributeCheckVerdict = { name: string; whose: ContributeCheckVerdictWhose; why: string };
 
 /** One step of the claim's check: what it is doing, in words, and whether it is running, done or failed. */
 export type ContributeClaimStep = { key: string; words: string; at: string; state: 'running' | 'done' | 'failed' };
@@ -787,10 +833,13 @@ export type ContributeReplyTarget = {
 
 export type ContributeReplyState = 'DRAFT' | 'POSTING' | 'POSTED' | 'FAILED' | 'DISMISSED';
 
-/** Why a reply was dismissed: by the user (posted by hand, not needed), or its thread was resolved on GitHub. */
-export type ContributeReplyDismissReason = 'POSTED_BY_HAND' | 'NOT_NEEDED' | 'THREAD_RESOLVED';
-/** The reasons the user gives when dismissing a reply. */
-export type ContributeReplyUserDismissReason = Exclude<ContributeReplyDismissReason, 'THREAD_RESOLVED'>;
+/**
+ * Why a reply was dismissed: by the user (posted by hand, not needed), its thread was resolved on GitHub, or the run
+ * found its thread asks nothing (`NO_REPLY`: listed on the run, never to approve).
+ */
+export type ContributeReplyDismissReason = 'POSTED_BY_HAND' | 'NOT_NEEDED' | 'THREAD_RESOLVED' | 'NO_REPLY';
+/** The reasons the user gives when dismissing a reply: never the two the API alone gives. */
+export type ContributeReplyUserDismissReason = Exclude<ContributeReplyDismissReason, 'THREAD_RESOLVED' | 'NO_REPLY'>;
 
 /** A reply a follow-up drafted; posted on GitHub only once the user approves it. Its text is untrusted. */
 export type ContributeReplyDraft = {

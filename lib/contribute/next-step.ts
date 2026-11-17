@@ -15,8 +15,9 @@ import { nextRoundOpen, nextRoundRecommended, nextRunNumberOf, waitingThreadsOf 
 /**
  * A contribution's next step (`?session=next`, 2026-11-03): what waits on its open pull request, as the cards that
  * lead the user through it. A run's card when a run can act (the items ticked, the note filled in from them); a card
- * for each thing only the user can do (what was found, the steps, the GitHub link, "I've done it"); the repo's rules;
- * the DCO sign-off. Pure: the page and its specs read the same.
+ * for each thing only the user can do (what was found, the steps, the GitHub link, "I've done it"), a comment in the
+ * conversation and the checks only they can clear among them; the repo's rules; the DCO sign-off. Pure: the page and
+ * its specs read the same.
  */
 
 /** What a run that ended found, for the card: its number, when, and what it cost. Its text is untrusted. */
@@ -30,6 +31,13 @@ export type RunFinding = {
 
 /** A thing only the user can do, one card each. `kinds`: what "I've done it" marks handled. */
 export type UserMove =
+  /** A new comment in the pull request's conversation: theirs to read, and to answer on GitHub. */
+  | { kind: 'conversation'; kinds: ContributePrSignalKind[]; at: string }
+  /**
+   * Failing checks only the user can clear, as a run judged them: each check with what to do (`detail`, untrusted),
+   * and the run's number.
+   */
+  | { kind: 'check-yours'; kinds: ContributePrSignalKind[]; detail: string | null; round: number | null; at: string }
   /** A review bot blocks the merge, or a run found the rest is the user's (a no-go), or both. */
   | {
       kind: 'found';
@@ -156,6 +164,19 @@ export function nextStepOf(first: ContributeAttemptDetail, agentConnected = fals
   // A repo that said no to AI-made PRs takes no run, whatever else waits: the rest is the user's, on GitHub.
   const saidNo = repoSaidNoOf(signals);
   const user: UserMove[] = [];
+
+  const talk = find('CONVERSATION');
+  if (talk) user.push({ kind: 'conversation', kinds: ['CONVERSATION'], at: talk.at });
+  const yours = find('CHECK_YOURS');
+  if (yours) {
+    user.push({
+      kind: 'check-yours',
+      kinds: ['CHECK_YOURS'],
+      detail: yours.detail?.trim() || null,
+      round: yours.round ?? null,
+      at: yours.at,
+    });
+  }
 
   const cla = find('CLA');
   if (cla) {

@@ -20,6 +20,8 @@ export const SIGNALS: Record<ContributePrSignalKind, string> = {
   DCO: 'A sign-off (DCO) is missing on the commits',
   SILENT: 'No one has looked at it for 30 days',
   REPO_OUT: 'The repo is out of GitRanks Contribute',
+  CHECK_YOURS: 'A check only you can clear',
+  CONVERSATION: "Someone commented in the pull request's conversation",
 };
 
 /** Every kind this UI knows: what "Mark as handled" may name. */
@@ -206,8 +208,9 @@ export function vetoErrorMessage(error: ContributeErrorCode, message?: string): 
 
 /**
  * What a follow-up cannot do: sign a CLA, retitle (no commit), give the proof a review bot asks of the user, what a run
- * that ended left for them, sign off the commits already pushed, keep a silent pull request open, or close one in a
- * repo that left Contribute.
+ * that ended left for them, sign off the commits already pushed, keep a silent pull request open, close one in a
+ * repo that left Contribute, clear a check only the user can, or read a comment in the conversation (theirs to answer;
+ * they may still start a run with a note).
  */
 export const USERS_SIGNALS = new Set<ContributePrSignal['kind']>([
   'CLA',
@@ -217,7 +220,35 @@ export const USERS_SIGNALS = new Set<ContributePrSignal['kind']>([
   'DCO',
   'SILENT',
   'REPO_OUT',
+  'CHECK_YOURS',
+  'CONVERSATION',
 ]);
+
+/**
+ * The kinds whose "I've replied" and "I've done it" always name them, whatever else is held: marking one handled never
+ * clears a signal that arrived after the page was read.
+ */
+const OWN_HANDLED = new Set<ContributePrSignalKind>(['CONVERSATION', 'CHECK_YOURS']);
+
+/**
+ * Whether "Mark as handled" for `kinds` may clear the pull request's signals as a whole: they are every kind held (so
+ * an API that does not take `kinds` yet clears the same), and none of them always names itself.
+ */
+export function clearsAllOf(
+  held: readonly ContributePrSignalKind[],
+  kinds: readonly ContributePrSignalKind[],
+): boolean {
+  const all = new Set(held);
+  return (
+    !kinds.some((kind) => OWN_HANDLED.has(kind)) && all.size === kinds.length && kinds.every((kind) => all.has(kind))
+  );
+}
+
+/** The kinds "Mark as handled" sends: the ones named, or none (every signal) when they are all of them. */
+export const handledKindsOf = (
+  kinds: ContributePrSignalKind[] | undefined,
+  all: boolean,
+): ContributePrSignalKind[] | undefined => (kinds && !all ? kinds : undefined);
 
 /** Whether a follow-up could act on what the pull request needs: anything but the user's own (`USERS_SIGNALS`). */
 export const followUpCanHelp = (signals: readonly ContributePrSignal[] | null | undefined): boolean =>

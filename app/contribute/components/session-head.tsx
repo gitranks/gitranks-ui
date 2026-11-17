@@ -7,7 +7,15 @@ import type { CardProps } from './move-props';
 import { AutopilotCard, GrantCard, RetryCard, ReviewCard } from './moves-first';
 import { AgreementCard, NextRunCard, RulesCard } from './moves-pr';
 import { RepliesCard, ReplyFailedCard, RunAutopilotCard, RunGrantCard, RunReadyCard } from './moves-run';
-import { DcoCard, FoundCard, RepoOutCard, SilentCard, StoppedCard } from './moves-yours';
+import {
+  CheckYoursCard,
+  ConversationCard,
+  DcoCard,
+  FoundCard,
+  RepoOutCard,
+  SilentCard,
+  StoppedCard,
+} from './moves-yours';
 import { ProofMoveCard, ProofStatus } from './proof-card';
 import { ClaimSteps, StatusLine, StatusLinkView } from './status-line';
 import { LiveSubmit, SubmitStepsSettled } from './submit-stepper';
@@ -76,6 +84,10 @@ function Card(props: CardProps) {
       return <RepoOutCard {...props} />;
     case 'silent':
       return <SilentCard {...props} />;
+    case 'conversation':
+      return <ConversationCard {...props} />;
+    case 'check-yours':
+      return <CheckYoursCard {...props} />;
     case 'proof':
       return <ProofMoveCard {...props} />;
   }

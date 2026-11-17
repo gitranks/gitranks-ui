@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ContributePrSignalKind } from './contribute.types';
-import { followUpCanHelp, repoOutReasonOf, repoOutTextOf, signalText, silentTextOf } from './follow-up-format';
+import {
+  clearsAllOf,
+  followUpCanHelp,
+  handledKindsOf,
+  PR_SIGNAL_KINDS,
+  repoOutReasonOf,
+  repoOutTextOf,
+  signalText,
+  silentTextOf,
+  USERS_SIGNALS,
+} from './follow-up-format';
 
 describe('the title signal (a title that breaks the repo rules)', () => {
   it('names the title, and is no work for a follow-up: a retitle fixes it', () => {
@@ -36,6 +46,54 @@ describe('an agreement to sign', () => {
     expect(signalText({ kind: 'CLA', at, detail: 'license/cla' })).toMatch(
       /^Sign the contributor license agreement \(CLA\): license\/cla/,
     );
+  });
+});
+
+describe("the user's own: a check only they can clear, a comment in the conversation", () => {
+  const at = '2026-11-17T09:00:00.000Z';
+  const yours = { kind: 'CHECK_YOURS' as const, at, detail: 'deploy-preview: approve the preview; e2e: needs main' };
+  const talk = { kind: 'CONVERSATION' as const, at, detail: null };
+
+  it('names each, and is no work for a follow-up', () => {
+    expect(signalText(yours)).toMatch(/^A check only you can clear · /);
+    expect(signalText(talk)).toMatch(/^Someone commented in the pull request's conversation · /);
+    expect(followUpCanHelp([yours])).toBe(false);
+    expect(followUpCanHelp([talk])).toBe(false);
+    expect(followUpCanHelp([yours, talk])).toBe(false);
+  });
+
+  it('keeps a run for what it can act on beside them: a review comment, a failing check', () => {
+    expect(followUpCanHelp([talk, { kind: 'COMMENT', at, detail: null }])).toBe(true);
+    expect(followUpCanHelp([yours, { kind: 'CHECK_FAILED', at, detail: 'lint' }])).toBe(true);
+  });
+
+  it('knows both kinds, so "Mark as handled" may name them and neither reads as unknown', () => {
+    expect(PR_SIGNAL_KINDS).toEqual(expect.arrayContaining(['CHECK_YOURS', 'CONVERSATION']));
+    expect([USERS_SIGNALS.has('CHECK_YOURS'), USERS_SIGNALS.has('CONVERSATION')]).toEqual([true, true]);
+    // The run's kinds stay a run's.
+    expect(['COMMENT', 'CHECK_FAILED', 'CHANGES_REQUESTED'].some((kind) => USERS_SIGNALS.has(kind as never))).toBe(
+      false,
+    );
+  });
+});
+
+describe('what "Mark as handled" sends', () => {
+  it('clears every signal only when the kinds are all that is held, and names them otherwise', () => {
+    expect(clearsAllOf(['SILENT'], ['SILENT'])).toBe(true);
+    expect(clearsAllOf(['BOT_BLOCKED', 'RUN_ENDED'], ['RUN_ENDED', 'BOT_BLOCKED'])).toBe(true);
+    expect(clearsAllOf(['SILENT', 'COMMENT'], ['SILENT'])).toBe(false);
+    expect(clearsAllOf([], ['SILENT'])).toBe(false);
+    expect(handledKindsOf(['SILENT'], true)).toBeUndefined();
+    expect(handledKindsOf(['SILENT'], false)).toEqual(['SILENT']);
+    expect(handledKindsOf(undefined, false)).toBeUndefined();
+  });
+
+  it('always names a conversation comment and the checks only the user can clear, even alone', () => {
+    for (const kind of ['CONVERSATION', 'CHECK_YOURS'] as const) {
+      expect(clearsAllOf([kind], [kind])).toBe(false);
+      expect(handledKindsOf([kind], clearsAllOf([kind], [kind]))).toEqual([kind]);
+    }
+    expect(clearsAllOf(['CONVERSATION', 'CHECK_YOURS'], ['CONVERSATION', 'CHECK_YOURS'])).toBe(false);
   });
 });
 

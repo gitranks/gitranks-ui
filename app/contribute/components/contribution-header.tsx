@@ -15,9 +15,11 @@ import {
   repoOf,
   toneLabelOf,
 } from '@/lib/contribute/attempt-format';
+import { checkNoteLineOf, checkNotesOf } from '@/lib/contribute/check-notes';
 import type {
   ContributeAttemptDetail,
   ContributeAttemptPullRequest,
+  ContributeCheckNote,
   ContributeFollowUpOf,
   ContributePrNotes,
 } from '@/lib/contribute/contribute.types';
@@ -118,6 +120,28 @@ export function PullRequestStatus({ pullRequest, now }: { pullRequest: Contribut
         </Fragment>
       ))}
     </div>
+  );
+}
+
+/**
+ * Under the pull request's line: its failing checks that call nobody, one line each, with why (a run's verdict, a
+ * commit someone else pushed, checks still running). Nothing without a note.
+ */
+export function CheckNotes({ notes }: { notes: readonly ContributeCheckNote[] | null | undefined }) {
+  const lines = checkNotesOf(notes);
+  if (!lines.length) return null;
+  return (
+    <ul data-check-notes={lines.length} aria-label="Notes on the failing checks" className="flex flex-col gap-0.5">
+      {lines.map((note, index) => (
+        <li
+          key={`${index}-${note.name}`}
+          data-check-note={note.kind}
+          className="text-sm break-words text-muted-foreground"
+        >
+          {checkNoteLineOf(note)}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -224,7 +248,8 @@ function MaintainerStoppedLine({
 
 /**
  * The contribution's header: back to the list, the issue and its chips, its title, then the pull request's state in
- * one line (or, for a run whose first attempt is not known, the pull request it follows up), and a maintainer's stop.
+ * one line with its failing checks that call nobody under it (or, for a run whose first attempt is not known, the pull
+ * request it follows up), and a maintainer's stop.
  */
 export function ContributionHeader({
   attempt,
@@ -259,7 +284,10 @@ export function ContributionHeader({
       </span>
       <h1 className={HEADING.page}>{attemptTitleOf(attempt)}</h1>
       {first?.pullRequest ? (
-        <PullRequestStatus pullRequest={first.pullRequest} now={now} />
+        <>
+          <PullRequestStatus pullRequest={first.pullRequest} now={now} />
+          {first.pullRequest.state === 'OPEN' ? <CheckNotes notes={first.checkNotes} /> : null}
+        </>
       ) : attempt.kind === 'FOLLOW_UP' ? (
         <FollowUpOfLine followUpOf={attempt.followUpOf} />
       ) : null}

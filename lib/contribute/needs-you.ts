@@ -12,7 +12,14 @@ import type {
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from './contribute-path';
 import { claudeKeyOf, contributeNoticesOf } from './contribute-state';
 import { FOLLOW_UP_STEP_LABELS, FOLLOW_UP_STEPS, type FollowUpStep, shortSha } from './follow-up-flow';
-import { PR_SIGNAL_KINDS, repoOutReasonOf, repoOutTextOf, repoSaidNoOf, silentTextOf } from './follow-up-format';
+import {
+  clearsAllOf,
+  PR_SIGNAL_KINDS,
+  repoOutReasonOf,
+  repoOutTextOf,
+  repoSaidNoOf,
+  silentTextOf,
+} from './follow-up-format';
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
 import { replyRowOf } from './needs-you-replies';
 import { isToApprove } from './one-comment';
@@ -42,6 +49,8 @@ export type NeedsYouKind =
   | 'check'
   | 'replies'
   | 'reply-failed'
+  | 'conversation'
+  | 'check-yours'
   | 'agreement'
   | 'cla'
   | 'title'
@@ -73,7 +82,8 @@ export type NeedsYouAction =
 
 /**
  * The row's small second action: a page of ours, or "I signed it": the signals of `kinds` marked handled. `all`: they
- * are every signal on the pull request, so an API that does not take `kinds` yet clears the same.
+ * are every signal on the pull request, so an API that does not take `kinds` yet clears the same; never for a
+ * conversation comment or the checks only the user can clear, which always name their own kind.
  */
 export type NeedsYouSecondary =
   | { label: string; href: Route }
@@ -511,7 +521,11 @@ export type PrContext = {
   now: Date;
 };
 
-/** The reasons on an open pull request, in Needs you's order: what a run can do first, then the user's own. */
+/**
+ * The reasons on an open pull request, in Needs you's order: what a run can do first (changes requested, a review
+ * comment, a failing check), the replies, then the user's own, led by a comment in the conversation and the checks
+ * only they can clear.
+ */
 export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] {
   const signals = pr.needsYou?.signals ?? [];
   const first = (kind: ContributePrSignalKind) => signals.find((signal) => signal.kind === kind);
@@ -524,15 +538,10 @@ export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] 
   // Nor does one in a repo that said no to AI-made PRs: what a run would do is the user's, on GitHub.
   const saidNo = repoSaidNoOf(signals);
   const noRun = byHand || saidNo;
-  const all = new Set(signals.map(({ kind }) => kind));
+  const held = signals.map(({ kind }) => kind);
   const handled = (label: string, kinds: ContributePrSignalKind[]): NeedsYouSecondary => ({
     label,
-    handled: {
-      prId: pr.pullRequest.prId,
-      prNumber: number,
-      kinds,
-      all: kinds.length === all.size && kinds.every((kind) => all.has(kind)),
-    },
+    handled: { prId: pr.pullRequest.prId, prNumber: number, kinds, all: clearsAllOf(held, kinds) },
   });
   const onGithub = (label: string): NeedsYouAction =>
     prUrl
@@ -618,6 +627,34 @@ export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] 
       },
       secondary: null,
       at: Math.min(...notPosted.drafts.map(({ updatedAt }) => timeOf(updatedAt))),
+    });
+  }
+
+  // The user's own, with no run for either: a comment in the conversation is theirs to read and answer, and a run
+  // judged these checks theirs to clear. Each its own row, so marking one handled leaves the other.
+  const talk = first('CONVERSATION');
+  if (talk) {
+    list.push({
+      kind: 'conversation',
+      tone: 'amber',
+      pill: 'Conversation comment',
+      move: "Someone commented in the pull request's conversation. Read it, and reply on GitHub if it asks for one.",
+      action: toNext('See the comment'),
+      secondary: handled("I've replied", ['CONVERSATION']),
+      at: timeOf(talk.at),
+    });
+  }
+  const yours = first('CHECK_YOURS');
+  if (yours) {
+    const todo = yours.detail?.trim();
+    list.push({
+      kind: 'check-yours',
+      tone: 'amber',
+      pill: 'Check only you can clear',
+      move: todo ? sentence(clipped(todo, 300)) : 'A failing check is yours to clear: no run can. See it on GitHub.',
+      action: onGithub('Open the pull request'),
+      secondary: handled("I've done it", ['CHECK_YOURS']),
+      at: timeOf(yours.at),
     });
   }
 

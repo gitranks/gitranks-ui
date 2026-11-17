@@ -64,9 +64,20 @@ export const waitsForProbe = (draft: Pick<ContributeReplyDraft, 'state' | 'waits
 export const isHeldBack = (draft: Pick<ContributeReplyDraft, 'state' | 'heldBack'>) =>
   draft.state === 'DRAFT' && !!draft.heldBack;
 
-/** A draft the user still approves: neither held back (said as not posted) nor waiting for the first reply. */
-export const isToApprove = (draft: Pick<ContributeReplyDraft, 'state' | 'heldBack' | 'waitsForProbe'>) =>
-  draft.state === 'DRAFT' && !isHeldBack(draft) && !waitsForProbe(draft);
+/**
+ * The run found the thread's last word asks nothing of the user: no reply was drafted. It is listed on the run with its
+ * reason, and never approved, edited, posted or counted as waiting, whatever state it arrives in.
+ */
+export const isNoReply = (draft: Pick<ContributeReplyDraft, 'outcome' | 'dismissedReason'>) =>
+  draft.outcome === 'NO_REPLY' || draft.dismissedReason === 'NO_REPLY';
+
+/**
+ * A draft the user still approves: neither held back (said as not posted), nor waiting for the first reply, nor one
+ * the run found needs no reply.
+ */
+export const isToApprove = (
+  draft: Pick<ContributeReplyDraft, 'state' | 'heldBack' | 'waitsForProbe' | 'outcome' | 'dismissedReason'>,
+) => draft.state === 'DRAFT' && !isNoReply(draft) && !isHeldBack(draft) && !waitsForProbe(draft);
 
 /** In one comment, or going in one. */
 export const inOneComment = (draft: Pick<ContributeReplyDraft, 'postAs' | 'batchId'>) =>
@@ -138,7 +149,11 @@ export function noteSplitOf(note: string | null | undefined): { lead: string; re
 /** A run's thread replies not posted, with words: what Copy all counts. */
 const unpostedThreadsOf = (drafts: readonly ContributeReplyDraft[]) =>
   drafts.filter(
-    (draft) => !!draft.comment && (draft.state === 'DRAFT' || draft.state === 'FAILED') && !!draft.text.trim(),
+    (draft) =>
+      !!draft.comment &&
+      !isNoReply(draft) &&
+      (draft.state === 'DRAFT' || draft.state === 'FAILED') &&
+      !!draft.text.trim(),
   );
 
 /**

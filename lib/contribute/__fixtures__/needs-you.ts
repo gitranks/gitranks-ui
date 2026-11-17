@@ -215,6 +215,29 @@ export const prsOutcomes = {
   }),
 } satisfies Record<string, ContributeContribution>;
 
+/**
+ * The user's own to act on, with no run for either: a new comment in the pull request's conversation, and failing
+ * checks only they can clear, as run 2 judged them.
+ */
+export const prsYours = {
+  conversation: pr(733, 'marlin-db/marlin', 'Trim trailing slashes from the data dir', {
+    needsYou: needs(signal('CONVERSATION', { at: '2026-10-28T09:30:00.000Z' })),
+    followUps: followUps(),
+  }),
+  checkYours: pr(734, 'marlin-db/marlin-cli', 'Print the config path with --verbose', {
+    needsYou: needs(
+      signal('CHECK_YOURS', {
+        at: '2026-10-28T10:20:00.000Z',
+        detail:
+          'deploy-preview: a maintainer must approve the preview for a fork, ask in the pull request; e2e (merge): bring the base branch into yours, it fails only on the merge',
+        attemptId: 'A_ML2',
+        round: 2,
+      }),
+    ),
+    followUps: followUps({ used: 2, manualRuns: 2 }),
+  }),
+} satisfies Record<string, ContributeContribution>;
+
 /** The runs the page read in flight: the follow-up at work on fabric.js, the own agent's on nimbus. */
 export const runsInFlight = [
   attempt({
@@ -508,6 +531,40 @@ export const nextForRepoOut = first({
   nameWithOwner: 'sable-io/sable-cli',
   pullRequest: pullRequest({ prId: 'PR_5121', number: 5121, url: 'https://github.com/sable-io/sable-cli/pull/5121' }),
   needsYou: prsOutcomes.repoOut.needsYou,
+});
+
+/** A new comment in the conversation: the user's to read and answer; a run may start with their note, none is offered. */
+export const nextForConversation = first({
+  ...nextForDco,
+  attemptId: 'A_PR733',
+  nameWithOwner: 'marlin-db/marlin',
+  number: 702,
+  title: 'Trim trailing slashes from the data dir',
+  url: 'https://github.com/marlin-db/marlin/issues/702',
+  pullRequest: pullRequest({ prId: 'PR_733', number: 733, url: 'https://github.com/marlin-db/marlin/pull/733' }),
+  needsYou: prsYours.conversation.needsYou,
+});
+
+/** Failing checks only the user can clear, as run 2 judged them, and two more that call nobody under the checks. */
+export const nextForCheckYours = first({
+  ...nextForDco,
+  attemptId: 'A_PR734',
+  nameWithOwner: 'marlin-db/marlin-cli',
+  number: 118,
+  title: 'Print the config path with --verbose',
+  url: 'https://github.com/marlin-db/marlin-cli/issues/118',
+  pullRequest: pullRequest({
+    prId: 'PR_734',
+    number: 734,
+    url: 'https://github.com/marlin-db/marlin-cli/pull/734',
+    checks: 'FAILURE',
+  }),
+  needsYou: prsYours.checkYours.needsYou,
+  followUps: prsYours.checkYours.followUps,
+  checkNotes: [
+    { name: 'Fast checks', kind: 'NOT_PR', why: 'It fails on the base branch too.', by: null, round: 2 },
+    { name: 'docs-links', kind: 'SOMEONE_ELSE', why: null, by: 'sam-w', round: null },
+  ],
 });
 
 // ─── Proof from the user's own agent ─────────────────────────────────────────────────────────────────────────────────

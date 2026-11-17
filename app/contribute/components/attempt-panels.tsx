@@ -10,9 +10,11 @@ import {
   labelOf,
   timeLabel,
 } from '@/lib/contribute/attempt-format';
+import { checkVerdictOf, checkVerdictsOf } from '@/lib/contribute/check-notes';
 import type {
   ContributeAttemptDetail,
   ContributeAttemptTest,
+  ContributeCheckVerdict,
   ContributeModel,
 } from '@/lib/contribute/contribute.types';
 import { agentDidOf } from '@/lib/contribute/decisions';
@@ -73,13 +75,46 @@ const SUMMARY =
   'flex cursor-pointer list-none items-center gap-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden';
 
 /**
+ * A run's verdicts on the pull request's failing checks, one line each: the check, whose it is in words, and the
+ * reason under it.
+ */
+function CheckVerdicts({ verdicts, first }: { verdicts: ContributeCheckVerdict[]; first: boolean }) {
+  return (
+    <div data-check-verdicts={verdicts.length} className={cn('flex flex-col gap-1.5', !first && 'border-t pt-2.5')}>
+      <span className="text-xs font-semibold text-muted-foreground">The pull request&apos;s failing checks</span>
+      <ul className="flex flex-col gap-1.5 text-sm">
+        {verdicts.map((verdict, index) => {
+          const { name, whose, why } = checkVerdictOf(verdict);
+          return (
+            <li key={`${index}-${verdict.name}`} data-check-verdict={verdict.whose} className="min-w-0 break-words">
+              <span className="font-medium">{name}</span>
+              {whose ? <span className="text-foreground/90">: {whose}</span> : null}
+              {why ? <span className="block text-muted-foreground">{why}</span> : null}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/**
  * What the agent did on the session, said once: its verdict and risk, one paragraph (a no-go's reason, its summary,
- * what the check was on when it ran out, its brief, or that it is not ready yet), what is worth a look, who made it
- * when it is the user's own agent, and its notes behind a disclosure. Nothing for an ended session with nothing to say.
+ * what the check was on when it ran out, its brief, or that it is not ready yet), what is worth a look, a run's
+ * verdicts on the pull request's failing checks, who made it when it is the user's own agent, and its notes behind a
+ * disclosure. Nothing for an ended session with nothing to say.
  */
 export function AgentDidPanel({ attempt }: { attempt: ContributeAttemptDetail }) {
   const did = agentDidOf(attempt);
-  if (!did) return null;
+  const verdicts = attempt.kind === 'FOLLOW_UP' ? checkVerdictsOf(attempt.checkVerdicts) : [];
+  if (!did) {
+    // An ended run that left only its verdicts on the checks still says them.
+    return verdicts.length ? (
+      <Block title="What the agent did" name="agent-did">
+        <CheckVerdicts verdicts={verdicts} first />
+      </Block>
+    ) : null;
+  }
   const { verdict, risk, text, limitNote, worthALook, notes, ownAgent } = did;
 
   return (
@@ -114,6 +149,7 @@ export function AgentDidPanel({ attempt }: { attempt: ContributeAttemptDetail })
           <span className="whitespace-pre-line text-sm text-foreground/90">{worthALook}</span>
         </div>
       ) : null}
+      {verdicts.length ? <CheckVerdicts verdicts={verdicts} first={false} /> : null}
       {ownAgent?.agent ? (
         <p data-agent-meta="" className="text-xs text-muted-foreground">
           Made by {ownAgent.agent}, as your agent reported it.

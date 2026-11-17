@@ -10,7 +10,8 @@ import { clipped } from '@/lib/contribute/needs-you';
 
 /**
  * The next step's cards for what only the user can do on the open pull request: the DCO sign-off, what a review bot
- * or a run left them, a run that stopped or did not push, the repo out of Contribute, no answer in 30 days.
+ * or a run left them, a run that stopped or did not push, the repo out of Contribute, no answer in 30 days, a comment
+ * in the conversation, the checks only they can clear.
  */
 
 /** The DCO's text, for what signing off certifies. */
@@ -291,6 +292,89 @@ export function SilentCard({ move, first, rider }: CardProps) {
             ]}
           />
         </>
+      }
+      rider={rider}
+    />
+  );
+}
+
+/** A new comment in the pull request's conversation: the user's to read and answer on GitHub; no run starts for it. */
+export function ConversationCard({ move, first, model, now, rider }: CardProps) {
+  if (!first || move.data.card !== 'conversation') return null;
+  const pr = prOf(first);
+  const when = relativeLabel(move.data.at, now);
+  return (
+    <MoveCard
+      id={move.kinds[0]}
+      name="conversation"
+      tone={move.tone}
+      kindLine={move.kindLine}
+      title={move.title}
+      why={
+        <p data-conversation="">
+          Someone commented in the pull request&apos;s conversation{when ? ` ${when}` : ''}. It is yours to read:
+          GitRanks starts no run for it.
+        </p>
+      }
+      primary={
+        pr.url ? (
+          <GithubButton href={pr.url} primary>
+            Reply on GitHub ↗
+          </GithubButton>
+        ) : null
+      }
+      secondary={<Handled first={first} kinds={['CONVERSATION']} label="I've replied" />}
+      whyBody={
+        <Steps
+          steps={[
+            `Open PR #${pr.number} on GitHub and read the new comment in its conversation.`,
+            'Reply there if it asks you something.',
+            ...(model.mayStart
+              ? [`If it asks for a change, start run ${model.nextRound} with a note that says what to change.`]
+              : []),
+            "Come back and click I've replied: this leaves Needs you.",
+          ]}
+        />
+      }
+      rider={rider}
+    />
+  );
+}
+
+/** Failing checks only the user can clear, as a run judged them: each with what to do, GitHub, "I've done it". */
+export function CheckYoursCard({ move, first, now, rider }: CardProps) {
+  if (!first || move.data.card !== 'check-yours') return null;
+  const { detail, round, at } = move.data;
+  const pr = prOf(first);
+  const run = round ? `Run ${round}` : 'A run';
+  return (
+    <MoveCard
+      id={move.kinds[0]}
+      name="check-yours"
+      tone={move.tone}
+      kindLine={move.kindLine}
+      title={move.title}
+      why={<p>{run} found failing checks only you can clear. GitRanks starts no run for them.</p>}
+      body={
+        detail ? (
+          <div className="flex flex-col gap-1.5 rounded-lg border bg-muted/40 px-4 py-3 text-sm" data-check-yours="">
+            <span className="font-mono text-xs text-muted-foreground">
+              {[run, relativeLabel(at, now)].filter(Boolean).join(' · ')}
+            </span>
+            <span className="font-medium break-words">{clipped(detail, 300)}</span>
+          </div>
+        ) : null
+      }
+      primary={pr.url ? <GithubButton href={pr.url} primary>{`Open #${pr.number} on GitHub ↗`}</GithubButton> : null}
+      secondary={<Handled first={first} kinds={['CHECK_YOURS']} label="I've done it" />}
+      whyBody={
+        <Steps
+          steps={[
+            `Open PR #${pr.number} on GitHub and find its failing checks.`,
+            detail ? 'Do what is said above for each check.' : 'Open each failing check: it says what it waits for.',
+            "Come back and click I've done it: this leaves Needs you.",
+          ]}
+        />
       }
       rider={rider}
     />

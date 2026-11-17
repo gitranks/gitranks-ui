@@ -1,5 +1,5 @@
 import type { ContributeAttempt, ContributeReplyWaiting } from './contribute.types';
-import { firstSentenceOf, isHeldBack } from './one-comment';
+import { firstSentenceOf, isHeldBack, isNoReply } from './one-comment';
 
 /**
  * Needs you's row for a pull request's replies that did not post (2026-11-14): one row however many there are, led by
@@ -64,12 +64,16 @@ export const replyFailedMove = (draft: Pick<ContributeReplyWaiting, 'lastError'>
   return sentence(note.length > 200 ? `${note.slice(0, 199).trimEnd()}…` : note);
 };
 
-/** The replies that did not post and are the user's to act on: failed, or held back by the run's plan. */
-export const isUnposted = (draft: Pick<ContributeReplyWaiting, 'state' | 'heldBack'>) =>
-  draft.state === 'FAILED' || isHeldBack(draft);
+/**
+ * The replies that did not post and are the user's to act on: failed, or held back by the run's plan. Never a thread
+ * the run found needs no reply: there is nothing to post for it.
+ */
+export const isUnposted = (draft: Pick<ContributeReplyWaiting, 'state' | 'heldBack' | 'outcome' | 'dismissedReason'>) =>
+  !isNoReply(draft) && (draft.state === 'FAILED' || isHeldBack(draft));
 
 /** One run's replies in each case, the first case first; empty cases left out. */
-function casesOf(list: ContributeReplyWaiting[]): { case: ReplyCase; drafts: ContributeReplyWaiting[] }[] {
+function casesOf(all: ContributeReplyWaiting[]): { case: ReplyCase; drafts: ContributeReplyWaiting[] }[] {
+  const list = all.filter((draft) => !isNoReply(draft));
   const failed = list.filter((draft) => draft.state === 'FAILED');
   const inComment = failed.filter((draft) => !!draft.batchId);
   const held = list.filter(isHeldBack);

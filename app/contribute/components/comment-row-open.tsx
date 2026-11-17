@@ -13,13 +13,14 @@ import type { ContributeFeedbackThread, ContributeReplyDraft } from '@/lib/contr
 import { whereOfThread } from '@/lib/contribute/follow-up-flow';
 import { isOrgRestricted, type OrgAccess, replyLinkOf } from '@/lib/contribute/org-access';
 import { reasonKeyOf } from '@/lib/contribute/reply-trouble';
-import type { RowState, rowActionsOf } from '@/lib/contribute/review-comments';
+import { noReplyLineOf, type RowState, type rowActionsOf } from '@/lib/contribute/review-comments';
 import { sessionPath } from '@/lib/contribute/sessions';
 
 const REASON_LABELS = {
   FIXED: "Why it's fixed: ",
   SKIPPED: 'Why not changed: ',
   NEEDS_YOU: 'Question for you: ',
+  NO_REPLY: 'No reply needed: ',
 } as const;
 
 const ExternalLink = ({ href, children }: { href: string; children: string }) => (
@@ -125,6 +126,8 @@ export function DraftOpen({
         </div>
       ) : state === 'no-reply' ? (
         <p className="text-sm text-muted-foreground">No reply was written. Dismiss it if none is needed.</p>
+      ) : state === 'no-reply-needed' && !(draft.reason && draft.outcome) ? (
+        <p className="text-sm">{noReplyLineOf(draft)}</p>
       ) : null}
       {link ? <ExternalLink href={link.href}>{link.label}</ExternalLink> : null}
       {draft.state === 'POSTED' && postedUrl ? (

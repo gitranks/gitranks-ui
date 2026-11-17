@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { feedbackThread, flowDraft } from './__fixtures__/contribute-attempts';
+import { feedbackThread, flowDraft, noReplyDraft } from './__fixtures__/contribute-attempts';
 import {
   type CommentActionsInit,
   type CommentState,
@@ -124,6 +124,38 @@ describe('the comments’ state', () => {
     expect(view.replies?.peopleThreads).toBe(1);
     const on = reduce(state, { type: 'setting', on: true }, { type: 'setting-saved' });
     expect(commentViewOf(base, on).replies?.resolving).toBe(1);
+  });
+
+  it('leaves a thread that needs no reply out of the push: not edited, not sent, not counted', () => {
+    const person = { ...noReplyDraft().comment!, author: 'maintainer-mo' };
+    const review = init({
+      drafts: [
+        flowDraft(),
+        noReplyDraft(),
+        // Even one that came as a draft with words, on a person's thread.
+        noReplyDraft({
+          draftId: 'D_NR2',
+          state: 'DRAFT',
+          dismissedReason: null,
+          text: 'Thanks!',
+          bot: false,
+          comment: person,
+        }),
+      ],
+    });
+    const state = commentActionsInit(review);
+    expect(Object.keys(state.edits)).toEqual(['D_1']);
+    const view = commentViewOf(review, state);
+    expect(view.replies?.input).toEqual([{ draftId: 'D_1', text: 'Made it a const.', send: true }]);
+    expect(view.replies).toMatchObject({ posting: 1, peopleThreads: 0 });
+    expect(view.replies?.summary).toBe(
+      'pushes the new commits to pull request #1419, posts 1 reply, resolves 1 thread',
+    );
+    // Nothing but such threads, and no commits: nothing to push or post.
+    const only = init({ hasCommits: false, drafts: [noReplyDraft()] });
+    expect(commentViewOf(only, commentActionsInit(only)).pushState.disabled).toBe(
+      'Tick a reply to post, or discard the run',
+    );
   });
 
   it('starts with the chosen comments, none when every thread was ignored at read, none from a plain Start', async () => {

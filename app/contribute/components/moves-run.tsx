@@ -29,7 +29,14 @@ import { githubUrlOf, isOwnAgent, timeLabel } from '@/lib/contribute/attempt-for
 import type { ContributeReplyDraft } from '@/lib/contribute/contribute.types';
 import { runFlowOf } from '@/lib/contribute/contribution-moves';
 import { bracketed } from '@/lib/contribute/needs-you';
-import { firstSentenceOf, noteSplitOf, oneCommentCardOf, partOf, probeLineOf } from '@/lib/contribute/one-comment';
+import {
+  firstSentenceOf,
+  isNoReply,
+  noteSplitOf,
+  oneCommentCardOf,
+  partOf,
+  probeLineOf,
+} from '@/lib/contribute/one-comment';
 import {
   orgNameOf,
   RETRY_REASONS,
@@ -92,7 +99,9 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
       org={probe.org}
       blocked={probe.blocked}
       prNumber={pr.number}
-      threadDraftIds={(run.replyDrafts ?? []).flatMap((draft) => (draft.comment ? [draft.draftId] : []))}
+      threadDraftIds={(run.replyDrafts ?? []).flatMap((draft) =>
+        draft.comment && !isNoReply(draft) ? [draft.draftId] : [],
+      )}
     />
   ) : null;
 

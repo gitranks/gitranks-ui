@@ -449,6 +449,30 @@ export const flowDraft = (patch: Partial<ContributeReplyDraft> = {}): Contribute
     ...patch,
   });
 
+/**
+ * A thread the run found needs no reply (its last word asks nothing of the user): no text, dismissed with that reason
+ * from the start, with why.
+ */
+export const noReplyDraft = (patch: Partial<ContributeReplyDraft> = {}): ContributeReplyDraft =>
+  flowDraft({
+    draftId: 'D_NR',
+    comment: {
+      commentId: 'C_NR',
+      author: 'coderabbitai',
+      path: 'src/router/layout-cache.ts',
+      line: 41,
+      excerpt: 'Confirmed: the cache key is normalized now. Thanks!',
+    },
+    text: '',
+    prefix: null,
+    outcome: 'NO_REPLY',
+    reason: 'The bot only confirmed the earlier fix.',
+    state: 'DISMISSED',
+    dismissedReason: 'NO_REPLY',
+    dismissedAt: '2026-10-28T11:40:00.000Z',
+    ...patch,
+  });
+
 /** The follow-up fields an API that answers them gives a first attempt with no pull request yet. */
 const noFollowUps = { needsYou: null, followUps: null, followUpOf: null, autosubmitAt: null, autopilot: false };
 

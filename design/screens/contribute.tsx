@@ -69,6 +69,9 @@ import {
   nextForProof,
   nextForRun,
   nextForYou,
+  openPr,
+  prsYours,
+  signal,
 } from '@/lib/contribute/__fixtures__/needs-you';
 import {
   attemptNoRules,
@@ -340,6 +343,39 @@ const mine = () => {
     busy,
   );
 };
+
+/**
+ * My contributions with the user's own two: a comment in the conversation, the checks only they can clear, and a review
+ * comment held beside a conversation comment.
+ */
+const mineYours = () =>
+  frame(
+    <main className={MAIN}>
+      <ContributionsScreen
+        view={views.active}
+        contributions={{
+          ...contributions,
+          items: [
+            prsYours.conversation,
+            prsYours.checkYours,
+            openPr({
+              needsYou: {
+                since: '2026-10-28T08:30:00.000Z',
+                signals: [
+                  signal('COMMENT', { at: '2026-10-28T08:30:00.000Z' }),
+                  signal('CONVERSATION', { at: '2026-10-28T09:00:00.000Z' }),
+                ],
+              },
+            }),
+          ],
+        }}
+        attempts={[]}
+        replies={[]}
+        now={NOW}
+      />
+    </main>,
+    busy,
+  );
 
 const ORG_ACCESS_URL = 'https://github.com/settings/applications';
 
@@ -1370,6 +1406,13 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         width: 390,
         height: 5200,
         render: () => mine(),
+      },
+      {
+        id: 'needs-you-yours',
+        title: 'Needs you: a conversation comment, checks only you can clear, a review comment beside one',
+        path: '/contribute/me',
+        height: 1300,
+        render: () => mineYours(),
       },
     ],
   },

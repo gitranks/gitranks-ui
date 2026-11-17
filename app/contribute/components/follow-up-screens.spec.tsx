@@ -571,6 +571,16 @@ describe('a follow-up on the review screen', () => {
     expect(review({ ...followUpAttempts.review, prBodyUpdate: null })).not.toContain('data-panel="description-update"');
   });
 
+  it('names a run whose only change is the description by that change', () => {
+    const prBodyUpdate = 'Fixes #12\n\nThe new description.';
+    // A run with the follow-up flow (its checks' status answered), no commits and no replies.
+    const run = { ...followUpAttempts.repliesOnly, replyDrafts: [], prBodyUpdate, checkStatus: null };
+    const plain = text(review(run));
+    expect(plain).toContain('Update the description');
+    expect(plain).toContain("It changes only the pull request's description: check the new one below.");
+    expect(plain).toContain('The new description.');
+  });
+
   it('finishes one with replies only', () => {
     const plain = text(review(followUpAttempts.repliesOnly));
 

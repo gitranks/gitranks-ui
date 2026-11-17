@@ -204,7 +204,9 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
         <p>
           {tests
             ? `${status?.status === 'NOT_RUN' ? 'The tests could not run' : 'A test failed'}${status?.note ? `: ${status.note}` : ''}. You can push anyway or discard the run.`
-            : `${didOf(run)}Check the replies below; untick any you don't want posted.`}
+            : run.prBodyUpdate && !commits && !run.replyDrafts?.length
+              ? `${didOf(run)}It changes only the pull request's description: check the new one below.`
+              : `${didOf(run)}Check the replies below; untick any you don't want posted.`}
         </p>
       }
       body={

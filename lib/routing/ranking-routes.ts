@@ -15,12 +15,22 @@ export const RANKING_MAX_PAGE = {
   repo: 51,
   /** The language summaries: far past the last language, and keeps the query offset in range. */
   languageSummary: 1000,
+  /** Every package ranking. */
+  package: 51,
 } as const;
 
 // Literal copies so the proxy does not load the generated GraphQL module; a spec keeps them in sync.
 export const RANKING_TYPES = new Set(['stars', 'contributions', 'followers']);
 export const COUNTRY_SUMMARY_ORDERS = new Set(['stars', 'contributions', 'followers', 'users']);
 export const LANGUAGE_SUMMARY_ORDERS = new Set(['score', 'size', 'users']);
+
+/** The registries packages are drawn for (their pages and rankings), and the orders of each ranking. */
+export const PACKAGE_REGISTRIES = new Set(['npm']);
+export const PACKAGE_RANKING_ORDERS = new Set(['downloads', 'dependents-stars', 'dependents']);
+
+/** A repository's tabs past its own page, `/repo/<owner>/<name>/<tab>`; any other third segment is a 404. */
+export const REPO_TABS = ['used-by', 'contributors'] as const;
+const REPO_TAB_SET: ReadonlySet<string> = new Set(REPO_TABS);
 
 // GitHub's rules: an owner is 1-39 of [A-Za-z0-9-] not starting with '-'; a name is 1-100 of [A-Za-z0-9._-].
 const REPO_OWNER = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
@@ -62,6 +72,25 @@ function isInvalidRepoRankingPath(rest: string[]): boolean {
 }
 
 /**
+ * `/packages/<registry>/<order>/<page>`. `/packages` and `/packages/<registry>` are left to their pages, which send a
+ * visitor on to the first ranking; anything else under `/packages/` can never render a ranking.
+ */
+function isInvalidPackageRankingPath(rest: string[]): boolean {
+  if (rest.length === 0) return false;
+  const [registry, order, page] = rest;
+  if (!PACKAGE_REGISTRIES.has(registry)) return true;
+  if (rest.length === 1) return false;
+  return !(rest.length === 3 && PACKAGE_RANKING_ORDERS.has(order) && isPage(page, RANKING_MAX_PAGE.package));
+}
+
+/** `/repo/<owner>/<name>` and its tabs; anything deeper, or another third segment, can never render. */
+function isInvalidRepoPath(rest: string[]): boolean {
+  const [owner, name, tab] = rest;
+  if (rest.length === 2) return !isRepoSlug(owner, name);
+  return !(rest.length === 3 && isRepoSlug(owner, name) && REPO_TAB_SET.has(tab));
+}
+
+/**
  * True for a ranking URL whose type, order or page number can never render a ranking.
  *
  * The proxy answers these with a 404 before anything renders, so they cost no render and leave no
@@ -93,7 +122,9 @@ export function isInvalidRankingPath(pathname: string): boolean {
     case 'repos':
       return isInvalidRepoRankingPath(rest);
     case 'repo':
-      return !(rest.length === 2 && isRepoSlug(rest[0], rest[1]));
+      return isInvalidRepoPath(rest);
+    case 'packages':
+      return isInvalidPackageRankingPath(rest);
     default:
       return false;
   }

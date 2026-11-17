@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { ORIGINAL_USER_AGENT_HEADER } from '@/app/app.consts';
 import { auth } from '@/auth';
+import { accountEmailOf } from '@/lib/account-email';
 import { request } from '@/lib/graphql/request';
 import { rejectNotAllowedGraphqlOperations } from '@/utils/reject-not-allowed-graphql-operations';
 import { rejectWrongOrigin } from '@/utils/reject-wrong-origin';
@@ -24,8 +25,15 @@ export async function POST(req: NextRequest) {
     // inside signedFetch, which also runs under "use cache" during page renders.
     const session = await auth();
     const githubLogin = session?.user?.githubLogin && !session.error ? session.user.githubLogin : undefined;
+    // The session's email goes beside its login, so the API can tell who is asking by either.
+    const accountEmail = githubLogin ? accountEmailOf(session?.user?.email) : undefined;
 
-    const { data, status } = await request(query, variables, { originalUserAgent, source: 'client', githubLogin });
+    const { data, status } = await request(query, variables, {
+      originalUserAgent,
+      source: 'client',
+      githubLogin,
+      ...(accountEmail ? { accountEmail } : {}),
+    });
 
     return NextResponse.json(data, { status });
   } catch {

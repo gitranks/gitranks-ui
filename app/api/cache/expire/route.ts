@@ -8,6 +8,11 @@ const ALLOWED_SOURCE = 'gitranks';
 /** A repository's or a profile's cache tag, as `getRepoCacheTag` and `profileCacheTag` write them. */
 const TAG = /^(repo|profile):[a-z0-9._/-]{1,140}$/;
 
+/** A package's cache tag, lower case: `package:npm/<name>`, a name of up to 214 characters, `@scope/name` included. */
+const PACKAGE_TAG = /^package:npm\/[a-z0-9@/._~-]{1,214}$/;
+
+const isTag = (tag: unknown) => typeof tag === 'string' && (TAG.test(tag) || PACKAGE_TAG.test(tag));
+
 const MAX_TAGS = 100;
 
 /** How old a token may be, whatever end date it names; a token with no end date is refused. */
@@ -34,15 +39,12 @@ function verifiedClaims(request: NextRequest): Record<string, unknown> | null {
 }
 
 const isTagList = (value: unknown): value is string[] =>
-  Array.isArray(value) &&
-  value.length >= 1 &&
-  value.length <= MAX_TAGS &&
-  value.every((tag) => typeof tag === 'string' && TAG.test(tag));
+  Array.isArray(value) && value.length >= 1 && value.length <= MAX_TAGS && value.every(isTag);
 
 /**
- * Expires the cached data of repositories and profiles whose data changed: `{ tags }`, 1 to `MAX_TAGS` tags of a
- * repository or a profile. Only a call signed with the internal secret and naming the API as its source is served; a
- * visitor's own refresh goes through `/api/revalidate` instead.
+ * Expires the cached data of repositories, profiles and packages whose data changed: `{ tags }`, 1 to `MAX_TAGS` tags
+ * of a repository, a profile or a package. Only a call signed with the internal secret and naming the API as its
+ * source is served; a visitor's own refresh goes through `/api/revalidate` instead.
  */
 export async function POST(request: NextRequest) {
   const claims = verifiedClaims(request);
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const tags: unknown = body?.tags;
   if (!isTagList(tags)) {
-    return refuse(400, `Expected 1 to ${MAX_TAGS} repository or profile tags`);
+    return refuse(400, `Expected 1 to ${MAX_TAGS} repository, profile or package tags`);
   }
 
   // `expire: 0`: the next read gets the new data, never the stale copy served while a fresh one is made.

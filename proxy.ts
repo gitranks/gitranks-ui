@@ -25,6 +25,8 @@ import {
   lessonRouteOf,
 } from './lib/learn/learn-path';
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
+import { isPackagePath } from './lib/packages/package-paths';
+import { packagesPublic, requestMaySeePackages } from './lib/packages/packages-gate';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
@@ -49,11 +51,11 @@ const hasSession = (request: NextRequest) => request.cookies.getAll().some(({ na
 const BUILDER_PATH = /^\/badge\/builder(?:\/(?<login>[^/]+))?\/?$/;
 
 /**
- * A developer's, an organization's or a repository's page, or one post. They render as whole pages and are kept in
- * memory, which a refresh a visitor starts clears before the page reloads; a shared cache would show the old page
- * again. So for visitors without a session they carry the header they had while they rendered per request.
+ * A developer's, an organization's, a repository's or a package's page, or one post. They render as whole pages and
+ * are kept in memory, which a refresh a visitor starts clears before the page reloads; a shared cache would show the
+ * old page again. So for visitors without a session they carry the header they had while they rendered per request.
  */
-const ENTITY_PAGE = /^\/(?:profile|org|repo|insights)\/[^/]/;
+const ENTITY_PAGE = /^\/(?:profile|org|repo|insights|package)\/[^/]/;
 
 /** The landing's pointer to its markdown for agents, on every answer that serves the landing. */
 const AGENTS_DOC_LINK = `<${AGENTS_DOC_PATH}>; rel="alternate"; type="text/markdown"`;
@@ -122,11 +124,21 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     }
   }
 
+  const { pathname } = request.nextUrl;
+  // Package pages are shown only to visitors the API lets see them, decided here so no page reads who is asking: until
+  // they are open to everyone, a visitor without a session gets a real 404 without a question to the API about them,
+  // and a signed-in one is asked about by login and email. The 404 is never kept by a shared cache (it would be served
+  // to someone who may see the page). Checked after the 404s above, so an impossible path costs no question.
+  if (isPackagePath(pathname) && !(await (hasSession(request) ? requestMaySeePackages(request) : packagesPublic()))) {
+    const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
+  }
+
   // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared
   // cache (it would be served to someone who is let in). The page for maintainers and the agent sign-in's consent page
   // (which tells a visitor off the preview so itself) are open to everyone, and once
   // Contribute is launched so are the landing, the MCP docs and the questions, to visitors without a session too.
-  const { pathname } = request.nextUrl;
   // Learn is behind its own list of people, which the proxy cannot read: a closed Learn page answers a visitor without
   // a session with the 404 here, and a signed-in one goes on to the page, which asks the API whether Learn is open to
   // them. A shared lesson, its result pages and the page for maintainers are open to everyone; the front door too once

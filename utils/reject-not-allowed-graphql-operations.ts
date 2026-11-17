@@ -2,6 +2,10 @@ import { type FieldNode, type OperationDefinitionNode, parse, visit } from 'grap
 
 const ALLOWED_ROOT_FIELDS = new Set(['globalRankByLogin', 'insight', 'insights', 'organization', 'user']);
 
+/**
+ * Whether the browser's query is refused: anything but the allowed root fields, written as plain fields. A fragment
+ * spread or an inline fragment on the operation's root is refused too, as it could name any field of the root type.
+ */
 export function rejectNotAllowedGraphqlOperations(query: string): boolean {
   try {
     if (!query) {
@@ -14,11 +18,9 @@ export function rejectNotAllowedGraphqlOperations(query: string): boolean {
 
     visit(ast, {
       OperationDefinition(node: OperationDefinitionNode) {
-        if (node.selectionSet.selections) {
-          for (const selection of node.selectionSet.selections) {
-            if (selection.kind === 'Field' && !ALLOWED_ROOT_FIELDS.has(selection.name.value)) {
-              isRejected = true;
-            }
+        for (const selection of node.selectionSet.selections) {
+          if (selection.kind !== 'Field' || !ALLOWED_ROOT_FIELDS.has(selection.name.value)) {
+            isRejected = true;
           }
         }
       },

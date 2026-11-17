@@ -102,6 +102,7 @@ import {
   type OverviewNowRead,
 } from './overview';
 import { auth } from '@/auth';
+import { accountEmailOf } from '@/lib/account-email';
 import type { ContributeConventionsFields } from '@/lib/contribute/pr-conventions';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import {
@@ -131,10 +132,7 @@ export const viewerLogin = cache(async (): Promise<string | null> => {
  */
 export const viewerEmail = cache(async (): Promise<string | undefined> => {
   const session = await viewerSession();
-  const email = session?.user?.email?.trim();
-  return email && !session?.error && email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
-    ? email
-    : undefined;
+  return session?.error ? undefined : accountEmailOf(session?.user?.email);
 });
 
 const settled = <T>(result: PromiseSettledResult<T>): T | undefined =>

@@ -56,6 +56,22 @@ describe('POST /api/cache/expire', () => {
     expect(revalidateTag).toHaveBeenCalledTimes(100);
   });
 
+  it('takes package tags: a scoped name, the characters of a registry name, and the longest name', async () => {
+    const tags = [
+      'package:npm/react-resize-detector',
+      'package:npm/@nebula/ui',
+      'package:npm/lodash.debounce',
+      'package:npm/@types/node',
+      'package:npm/~tilde_name-1.0',
+      `package:npm/${'a'.repeat(214)}`,
+    ];
+    const response = await signed({ tags });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ expired: tags.length });
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
+  });
+
   it.each([
     ['no token', undefined],
     ['a token that is not a bearer', `Basic ${tokenOf({ source: 'gitranks' })}`],
@@ -116,6 +132,16 @@ describe('POST /api/cache/expire', () => {
     ['a tag with a space', { tags: ['repo:octo/hello world'] }],
     ['a tag with a line break', { tags: ['profile:octocat\n'] }],
     ['one bad tag among good ones', { tags: [...TAGS, 'ranking:global'] }],
+    ['a package tag of another registry', { tags: ['package:pypi/requests'] }],
+    ['a package tag without a registry', { tags: ['package:react'] }],
+    ['a package tag with nothing after the registry', { tags: ['package:npm/'] }],
+    ['a package tag in capitals', { tags: ['package:npm/React'] }],
+    ['a package tag over 214 characters', { tags: [`package:npm/${'a'.repeat(215)}`] }],
+    ['a package tag with a space', { tags: ['package:npm/a b'] }],
+    ['a package tag with a character the tag does not take', { tags: ['package:npm/a!b'] }],
+    ['a repository tag with an @', { tags: ['repo:@octo/x'] }],
+    ['a profile tag with a ~', { tags: ['profile:octo~cat'] }],
+    ['a repository tag over 140 characters, even under 214', { tags: [`repo:${'a'.repeat(141)}`] }],
   ])('answers 400 for %s and expires nothing', async (_name, body) => {
     const response = await signed(body);
 

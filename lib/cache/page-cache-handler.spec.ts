@@ -46,17 +46,29 @@ const setCtx = { cacheControl: { revalidate: 3600, expire: 86400 }, isRoutePPREn
 const onDisk = (pathname: string) => existsSync(join(distDir, `${ROUTE}${pathname}.html`));
 
 describe('page cache handler', () => {
-  it('keeps the pages of a developer, an organization, a repository or a post in memory only', () => {
+  it('keeps the pages of a developer, an organization, a repository, a package or a post in memory only', () => {
     for (const pathname of [
       '/profile/torvalds',
       '/profile/torvalds/ranks',
       '/org/vercel',
       '/repo/react/react',
+      '/repo/react/react/used-by',
       '/insights/6650f0c2a1b2c3d4e5f60718',
+      '/package/npm/react',
+      '/package/npm/@types/node',
     ]) {
       expect(isMemoryOnly(`${ROUTE}${pathname}`)).toBe(true);
     }
-    for (const pathname of ['/by/stars/2', '/orgs/3', '/repos/1', '/insights', '/', '/repository/x']) {
+    for (const pathname of [
+      '/by/stars/2',
+      '/orgs/3',
+      '/repos/1',
+      '/insights',
+      '/',
+      '/repository/x',
+      '/packages/npm/downloads/1',
+      '/methodology/packages',
+    ]) {
       expect(isMemoryOnly(`${ROUTE}${pathname}`)).toBe(false);
     }
     expect(isMemoryOnly('a-fetch-cache-key')).toBe(false);

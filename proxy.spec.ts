@@ -25,6 +25,16 @@ vi.mock('./lib/learn/lesson-gate', () => ({
   lessonGateOf: lessonGate,
 }));
 
+const { packagesPublic, maySeePackages } = vi.hoisted(() => ({
+  packagesPublic: vi.fn(async () => false),
+  maySeePackages: vi.fn(async (_req?: unknown) => false),
+}));
+vi.mock('./lib/packages/packages-gate', () => ({
+  packagesPublic,
+  // As the gate itself: public lets everyone in without reading the session.
+  requestMaySeePackages: async (req: unknown) => (await packagesPublic()) || maySeePackages(req),
+}));
+
 const { default: proxy, config, ENTITY_PAGE_CACHE_CONTROL, v2BuilderRedirect } = await import('./proxy');
 
 const event = {} as NextFetchEvent;
@@ -44,6 +54,153 @@ describe('proxy', () => {
     ledgerOpen.mockResolvedValue(false);
     lessonGate.mockReset();
     lessonGate.mockResolvedValue({ kind: 'page' });
+    packagesPublic.mockReset();
+    packagesPublic.mockResolvedValue(false);
+    maySeePackages.mockReset();
+    maySeePackages.mockResolvedValue(false);
+  });
+
+  describe('packages', () => {
+    const PACKAGE_PATHS = [
+      '/package/npm/react',
+      '/package/npm/@types/node',
+      '/package/npm/%40types/node',
+      '/packages',
+      '/packages/npm',
+      '/packages/npm/downloads/1',
+      '/packages/npm/dependents-stars/51',
+      '/packages/npm/dependents/2',
+      '/methodology/packages',
+      '/repo/facebook/react/used-by',
+      '/repo/facebook/react/used-by/',
+      '/repo/facebook/react/contributors',
+    ];
+    const SIGNED_IN = 'authjs.session-token=t';
+
+    it.each(PACKAGE_PATHS)(
+      'answers %s with a 404 nobody caches to a visitor without a session, asking nothing about them',
+      async (path) => {
+        const response = await proxy(request(undefined, path), event);
+
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        expect(maySeePackages).not.toHaveBeenCalled();
+        expect(withSession).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(PACKAGE_PATHS)(
+      'answers %s with a 404 nobody caches to a signed-in visitor the API says no to',
+      async (path) => {
+        const response = await proxy(request(SIGNED_IN, path), event);
+
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        expect(response?.headers.get('set-cookie')).toBeNull();
+        expect(maySeePackages).toHaveBeenCalledOnce();
+        expect(withSession).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(PACKAGE_PATHS)(
+      'lets a signed-in visitor the API says yes to through to %s, as any signed-in page',
+      async (path) => {
+        maySeePackages.mockResolvedValue(true);
+        const response = await proxy(request(SIGNED_IN, path), event);
+
+        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+        expect(withSession).toHaveBeenCalledOnce();
+      },
+    );
+
+    it.each(PACKAGE_PATHS)('lets everyone through to %s once public', async (path) => {
+      packagesPublic.mockResolvedValue(true);
+      const signedOut = await proxy(request(undefined, path), event);
+      expect(signedOut?.headers.get('x-middleware-rewrite')).toBeNull();
+
+      const signedIn = await proxy(request(SIGNED_IN, path), event);
+      expect(signedIn?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(signedIn?.headers.get('cache-control')).toBe('private, no-cache');
+      expect(maySeePackages).not.toHaveBeenCalled();
+    });
+
+    it("keeps a package's page out of shared caches for a visitor without a session once public, as a repository's", async () => {
+      packagesPublic.mockResolvedValue(true);
+      const page = await proxy(request(undefined, '/package/npm/react'), event);
+      expect(page?.headers.get('cache-control')).toBe(ENTITY_PAGE_CACHE_CONTROL);
+      expect(page?.headers.get('set-cookie')).toBeNull();
+
+      const ranking = await proxy(request(undefined, '/packages/npm/downloads/1'), event);
+      expect(ranking?.headers.get('cache-control')).toBeNull();
+    });
+
+    it('gates the spellings the router reads as a package page', async () => {
+      for (const path of ['/%70ackage/npm/react', '//packages//npm', '/Methodology/Packages']) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+      }
+    });
+
+    it("leaves a repository's own page untouched, whoever asks and whatever the gate says", async () => {
+      for (const [publicNow, maySee] of [
+        [false, false],
+        [false, true],
+        [true, true],
+      ]) {
+        packagesPublic.mockResolvedValue(publicNow);
+        maySeePackages.mockResolvedValue(maySee);
+        for (const path of ['/repo/facebook/react', '/repo/facebook/react/']) {
+          const signedOut = await proxy(request(undefined, path), event);
+          expect(signedOut?.headers.get('x-middleware-rewrite'), path).toBeNull();
+          expect(signedOut?.headers.get('cache-control'), path).toBe(ENTITY_PAGE_CACHE_CONTROL);
+
+          const signedIn = await proxy(request(SIGNED_IN, path), event);
+          expect(signedIn?.headers.get('x-middleware-rewrite'), path).toBeNull();
+          expect(signedIn?.headers.get('cache-control'), path).toBe('private, no-cache');
+        }
+      }
+      expect(maySeePackages).not.toHaveBeenCalled();
+      expect(packagesPublic).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      '/repo/facebook/react/overview',
+      '/repo/facebook/react/Used-By',
+      '/repo/facebook/react/used-by/x',
+      '/packages/npm/downloads',
+      '/packages/npm/downloads/0',
+      '/packages/npm/downloads/52',
+      '/packages/npm/stars/1',
+      '/packages/pypi/downloads/1',
+      '/package/pypi/requests',
+      '/package/npm/.env',
+      '/package/npm/_private',
+      '/package/npm/a%20b',
+      '/package/npm/@types',
+      '/package/npm/react/extra',
+      `/package/npm/${'x'.repeat(215)}`,
+    ])('answers %s with a 404 before asking anything, even to a visitor who may see packages', async (path) => {
+      packagesPublic.mockResolvedValue(true);
+      maySeePackages.mockResolvedValue(true);
+      for (const cookie of [undefined, SIGNED_IN]) {
+        const response = await proxy(request(cookie, path), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+      }
+      expect(packagesPublic).not.toHaveBeenCalled();
+      expect(maySeePackages).not.toHaveBeenCalled();
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it('asks nothing for the other pages', async () => {
+      for (const path of ['/contributors', '/by/stars/1', '/repos/1', '/profile/torvalds', '/methodology']) {
+        await proxy(request(SIGNED_IN, path), event);
+        await proxy(request(undefined, path), event);
+      }
+      expect(packagesPublic).not.toHaveBeenCalled();
+      expect(maySeePackages).not.toHaveBeenCalled();
+    });
   });
 
   describe('Contribute', () => {

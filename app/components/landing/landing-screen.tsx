@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 
-import type { ExampleRank } from './hero-aside';
+import type { ExampleRank } from './example-cards';
 import type {
   fetchFeaturedOrg,
   fetchGlobalTiers,

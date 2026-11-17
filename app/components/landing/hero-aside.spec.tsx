@@ -1,9 +1,18 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type ExampleRank, HeroAside } from './hero-aside';
+import type { ExampleRank } from './example-cards';
 
-vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }));
+const { session } = vi.hoisted(() => ({
+  session: {
+    data: null as { user: { githubLogin?: string } } | null,
+    status: 'unauthenticated' as 'unauthenticated' | 'authenticated' | 'loading',
+  },
+}));
+
+vi.mock('next-auth/react', () => ({ useSession: () => session }));
+
+const { HeroAside } = await import('./hero-aside');
 
 const example = (notCounted: { stars: number; repositories: number } | null): ExampleRank => ({
   login: 'cy-labs',
@@ -17,6 +26,11 @@ const example = (notCounted: { stars: number; repositories: number } | null): Ex
 });
 
 describe('HeroAside', () => {
+  beforeEach(() => {
+    session.data = null;
+    session.status = 'unauthenticated';
+  });
+
   it("shows an example developer's plain stars while every star counts", () => {
     const html = renderToStaticMarkup(<HeroAside examples={[example(null)]} />);
 
@@ -28,5 +42,34 @@ describe('HeroAside', () => {
     const html = renderToStaticMarkup(<HeroAside examples={[example({ stars: 12_300, repositories: 2 })]} />);
 
     expect(html).toMatch(/<s [^>]*>.*168,300.*<\/s><span>156,000<\/span>/);
+  });
+
+  it('shows the example cards to a signed-out visitor and while the session is still loading', () => {
+    for (const status of ['unauthenticated', 'loading'] as const) {
+      session.status = status;
+      const html = renderToStaticMarkup(<HeroAside examples={[example(null)]} />);
+
+      expect(html).toContain('aria-label="Example rank card"');
+      expect(html).not.toContain('Your rank');
+    }
+  });
+
+  it("shows the signed-in visitor's own card in place of the examples", () => {
+    session.data = { user: { githubLogin: 'octocat' } };
+    session.status = 'authenticated';
+    const html = renderToStaticMarkup(<HeroAside examples={[example(null)]} />);
+
+    expect(html).toContain('Your rank');
+    expect(html).toContain('href="/profile/octocat"');
+    expect(html).not.toContain('Example rank card');
+  });
+
+  it('keeps the examples for a session without a GitHub login', () => {
+    session.data = { user: {} };
+    session.status = 'authenticated';
+    const html = renderToStaticMarkup(<HeroAside examples={[example(null)]} />);
+
+    expect(html).toContain('Example rank card');
+    expect(html).not.toContain('Your rank');
   });
 });

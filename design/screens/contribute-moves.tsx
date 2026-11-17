@@ -9,12 +9,20 @@ import {
   flowDraft,
   followUp,
   followUpAttempts,
+  noReplyDraft,
   ownAgentAttempt,
   replyDraft,
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { NOW, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import { prNotes } from '@/lib/contribute/__fixtures__/maintainers';
-import { nextForProof, nextForRun, nextForSilent, nextForYou } from '@/lib/contribute/__fixtures__/needs-you';
+import {
+  nextForCheckYours,
+  nextForConversation,
+  nextForProof,
+  nextForRun,
+  nextForSilent,
+  nextForYou,
+} from '@/lib/contribute/__fixtures__/needs-you';
 import { commentsInit, notPosted, posted, waitingThreads } from '@/lib/contribute/__fixtures__/review-comments';
 import {
   afterRun,
@@ -397,6 +405,20 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     render: () => firstPage(page, nextForSilent, { next: true }),
   },
   {
+    id: 'conversation',
+    title: 'A new comment in the conversation: read it, reply on GitHub, a run one disclosure away',
+    path: NEXT,
+    height: 1400,
+    render: () => firstPage(page, nextForConversation, { next: true }),
+  },
+  {
+    id: 'check-yours',
+    title: 'Checks only you can clear, and under the pull request’s line the failing ones that call nobody',
+    path: NEXT,
+    height: 1500,
+    render: () => firstPage(page, nextForCheckYours, { next: true }),
+  },
+  {
     id: 'repo-out-pr-misses',
     title: 'The repo is out of Contribute: close the pull request or keep it open',
     path: NEXT,
@@ -592,6 +614,46 @@ export const reviewCommentStates = (page: Page): ScreenState[] => [
         ]),
       ),
   })),
+  {
+    id: 'run-verdicts-no-reply',
+    title: 'A run’s verdicts on the failing checks, and two threads that need no reply',
+    path: RUN,
+    height: 1900,
+    render: () =>
+      runPage(
+        page,
+        runDone(
+          [
+            posted('D_1', { resolveState: 'RESOLVED' }),
+            noReplyDraft(),
+            noReplyDraft({
+              draftId: 'D_NR2',
+              bot: false,
+              comment: {
+                commentId: 'C_NR2',
+                author: 'maintainer-mo',
+                path: 'src/router/normalize-path.ts',
+                line: 3,
+                excerpt: 'Thanks, that reads better.',
+              },
+              reason: 'The maintainer only said thanks.',
+            }),
+          ],
+          {
+            checkVerdicts: [
+              { name: 'lint', whose: 'PR', why: 'The new file missed a semicolon: fixed in this run.' },
+              { name: 'Fast checks', whose: 'NOT_PR', why: 'It fails on the base branch too.' },
+              {
+                name: 'deploy-preview',
+                whose: 'CONTRIBUTOR',
+                why: 'A maintainer must approve the preview for a fork.',
+              },
+              { name: 'e2e (merge)', whose: 'BASE', why: 'It fails only on the merge with the base branch.' },
+            ],
+          },
+        ),
+      ),
+  },
   {
     id: 'replies-resolve-failed',
     title: 'Two threads not resolved for one reason (one line), one alone (its note)',

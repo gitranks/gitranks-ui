@@ -4,7 +4,8 @@ import type { CSSProperties, FC, ReactNode } from 'react';
 import { FaTelegramPlane, FaWhatsapp } from 'react-icons/fa';
 
 import { SearchProfile } from '../search-profile';
-import { type ExampleRank, HeroAside } from './hero-aside';
+import type { ExampleRank } from './example-cards';
+import { HeroAside } from './hero-aside';
 import { HeroSignIn } from './hero-sign-in';
 import { FEATURED_ORG, LEADERBOARD_ROWS } from './landing-data';
 import { formatCompact, formatFull, GithubAvatar, LandingSection } from './landing-ui';

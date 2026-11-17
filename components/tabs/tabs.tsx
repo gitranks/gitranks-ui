@@ -65,16 +65,20 @@ export const Tab: FC<TabProps> = ({ href, children, exact, pathnames, count, cla
         })}
       >
         {children}
+        {/* A real space before the count, so the label and the count are read as two words; the margin tops the gap up. */}
         {count === undefined ? null : (
-          <span
-            data-tab-count=""
-            className={cn(
-              'ms-1.5 rounded-full bg-muted px-1.5 font-mono text-[11px] tabular-nums',
-              active ? 'text-foreground' : 'text-muted-foreground',
-            )}
-          >
-            {formatFull(count)}
-          </span>
+          <>
+            {' '}
+            <span
+              data-tab-count=""
+              className={cn(
+                'ms-0.5 rounded-full bg-muted px-1.5 font-mono text-[11px] tabular-nums',
+                active ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {formatFull(count)}
+            </span>
+          </>
         )}
         <TabPendingHint />
       </Link>

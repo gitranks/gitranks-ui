@@ -9,6 +9,9 @@ const { Tab } = await import('./tabs');
 const PENDING_HINT =
   '<span aria-hidden="true" class="absolute inset-x-0 -bottom-0.5 h-0.5 bg-foreground opacity-0 transition-opacity"></span>';
 
+/** The link's text content: what is left of its markup once the tags are gone. */
+const textOfLink = (html: string) => (html.match(/<a [^>]*>(.*)<\/a>/)?.[1] ?? '').replace(/<[^>]+>/g, '');
+
 describe('Tab', () => {
   it('draws the label alone without a count, on the open tab and on the others', () => {
     expect(renderToStaticMarkup(<Tab href="/profile/octocat/ranks">Ranks</Tab>)).toBe(
@@ -28,9 +31,19 @@ describe('Tab', () => {
       </Tab>,
     );
     expect(html).toContain(
-      'Ranks<span data-tab-count="" class="ms-1.5 rounded-full bg-muted px-1.5 font-mono text-[11px] tabular-nums text-muted-foreground">12,345</span>' +
+      'Ranks <span data-tab-count="" class="ms-0.5 rounded-full bg-muted px-1.5 font-mono text-[11px] tabular-nums text-muted-foreground">12,345</span>' +
         PENDING_HINT,
     );
+  });
+
+  it('keeps a space between the label and the count in the text of the link, so they are read as two words', () => {
+    const html = renderToStaticMarkup(
+      <Tab href="/profile/octocat/ranks" count={12345}>
+        Ranks
+      </Tab>,
+    );
+    expect(textOfLink(html)).toBe('Ranks 12,345');
+    expect(textOfLink(renderToStaticMarkup(<Tab href="/profile/octocat/ranks">Ranks</Tab>))).toBe('Ranks');
   });
 
   it("keeps the count in the open tab's text colour, and shows a zero", () => {

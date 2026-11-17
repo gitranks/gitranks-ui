@@ -6,6 +6,8 @@ const { revalidateTag } = vi.hoisted(() => ({ revalidateTag: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidateTag }));
 
 const { POST } = await import('./route');
+const { isNpmPackageName, NPM_NAME_MAX_LENGTH } = await import('@/lib/packages/npm-package-name');
+const { packageCacheTag } = await import('@/lib/packages/package-paths');
 
 const SECRET = 'spec-secret';
 
@@ -54,6 +56,41 @@ describe('POST /api/cache/expire', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ expired: 100 });
     expect(revalidateTag).toHaveBeenCalledTimes(100);
+  });
+
+  it('takes package tags: a scoped name, the characters of a registry name, and the longest name', async () => {
+    const tags = [
+      'package:npm/react-resize-detector',
+      'package:npm/@nebula/ui',
+      'package:npm/lodash.debounce',
+      'package:npm/@types/node',
+      'package:npm/~tilde_name-1.0',
+      // An older name, lower-cased: `~'!()*` are refused for new names only.
+      "package:npm/it's(ok)!*",
+      `package:npm/${'a'.repeat(214)}`,
+    ];
+    const response = await signed({ tags });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ expired: tags.length });
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
+  });
+
+  it('takes the tag of any name the npm name rule takes, as packageCacheTag writes it', async () => {
+    const names = [
+      'JSONStream',
+      "It's(OK)!*",
+      'pkg~Tilde',
+      '@Scope/_Private',
+      '@types/node',
+      'x'.repeat(NPM_NAME_MAX_LENGTH),
+    ];
+    expect(names.every(isNpmPackageName)).toBe(true);
+    const tags = names.map(packageCacheTag);
+    const response = await signed({ tags });
+
+    expect(response.status).toBe(200);
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
   });
 
   it.each([
@@ -116,6 +153,17 @@ describe('POST /api/cache/expire', () => {
     ['a tag with a space', { tags: ['repo:octo/hello world'] }],
     ['a tag with a line break', { tags: ['profile:octocat\n'] }],
     ['one bad tag among good ones', { tags: [...TAGS, 'ranking:global'] }],
+    ['a package tag of another registry', { tags: ['package:pypi/requests'] }],
+    ['a package tag without a registry', { tags: ['package:react'] }],
+    ['a package tag with nothing after the registry', { tags: ['package:npm/'] }],
+    ['a package tag in capitals', { tags: ['package:npm/React'] }],
+    ['a package tag over 214 characters', { tags: [`package:npm/${'a'.repeat(215)}`] }],
+    ['a package tag with a space', { tags: ['package:npm/a b'] }],
+    ['a package tag with a character no registry name holds', { tags: ['package:npm/a:b'] }],
+    ['a package tag with a percent sign', { tags: ['package:npm/a%20b'] }],
+    ['a repository tag with an @', { tags: ['repo:@octo/x'] }],
+    ['a profile tag with a ~', { tags: ['profile:octo~cat'] }],
+    ['a repository tag over 140 characters, even under 214', { tags: [`repo:${'a'.repeat(141)}`] }],
   ])('answers 400 for %s and expires nothing', async (_name, body) => {
     const response = await signed(body);
 

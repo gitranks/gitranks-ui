@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { COUNTRY_SUMMARY_ORDERS, isInvalidRankingPath, LANGUAGE_SUMMARY_ORDERS, RANKING_TYPES } from './ranking-routes';
+import {
+  COUNTRY_SUMMARY_ORDERS,
+  isInvalidRankingPath,
+  LANGUAGE_SUMMARY_ORDERS,
+  RANKING_MAX_PAGE,
+  RANKING_TYPES,
+} from './ranking-routes';
 import { CountrySummaryOrder, LanguageSummaryOrder } from '@/types/generated/graphql';
 import { RankingTypeClient } from '@/types/ranking.types';
 
@@ -44,6 +50,17 @@ describe('isInvalidRankingPath', () => {
     '/repo/vercel/next.js',
     '/repo/facebook/.github',
     `/repo/${'a'.repeat(39)}/${'b'.repeat(100)}`,
+    // A repository's tabs: the packages gate decides who sees them.
+    '/repo/vercel/next.js/used-by',
+    '/repo/vercel/next.js/used-by/',
+    '/repo/vercel/next.js/contributors',
+    // Package rankings; `/packages` and `/packages/npm` are left to their pages.
+    '/packages',
+    '/packages/npm',
+    '/packages/npm/',
+    '/packages/npm/downloads/1',
+    '/packages/npm/dependents-stars/2',
+    '/packages/npm/dependents/51',
     '/profile/karpathy',
     '/org/openai',
     '/insights/abc',
@@ -88,7 +105,28 @@ describe('isInvalidRankingPath', () => {
     '/repo/-a/b',
     '/repo/vercel',
     '/repo/vercel/next.js/extra',
+    '/repo/vercel/next.js/overview',
+    '/repo/vercel/next.js/Used-By',
+    '/repo/vercel/next.js/used-by/x',
+    '/repo/vercel/next.js/contributors/1',
+    '/repo/-vercel/next.js/used-by',
+    '/repo/vercel/next.js%20x/contributors',
+    '/packages/pypi',
+    '/packages/NPM',
+    '/packages/pypi/downloads/1',
+    '/packages/npm/downloads',
+    '/packages/npm/downloads/0',
+    '/packages/npm/downloads/01',
+    '/packages/npm/downloads/52',
+    '/packages/npm/dependents/x',
+    '/packages/npm/stars/1',
+    '/packages/npm/Downloads/1',
+    '/packages/npm/downloads/1/extra',
   ])('rejects %s', (path) => {
     expect(isInvalidRankingPath(path)).toBe(true);
+  });
+
+  it('serves package rankings to page 51', () => {
+    expect(RANKING_MAX_PAGE.package).toBe(51);
   });
 });

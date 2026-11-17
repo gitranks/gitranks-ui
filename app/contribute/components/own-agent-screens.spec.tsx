@@ -31,6 +31,7 @@ const { attempt, contributions, detail, ownAgentAttempt } = await import(
 );
 const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
 const { MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/contribute/mcp-setup');
+const { OWN_AGENT_SETUPS } = await import('@/lib/contribute/mcp-docs');
 
 import type { ContributeOwnAgent, ContributeView } from '@/lib/contribute/contribute.types';
 
@@ -198,6 +199,23 @@ describe('the setup lines', () => {
     expect(antigravity?.lines).not.toMatch(/gr_[0-9A-Za-z]{10,}/);
     expect(antigravity?.where).toContain('~/.gemini/config/mcp_config.json');
     expect(exportLineOf('gr_abc')).toBe('export GITRANKS_MCP_TOKEN="gr_abc"');
+  });
+});
+
+describe('the setup picker', () => {
+  it("offers VS Code after the connect flow's clients, with its sign-in, one-click install and token setup", () => {
+    expect(OWN_AGENT_SETUPS.map(({ id }) => id)).toEqual([...MCP_SETUPS.map(({ client }) => client), 'vs-code']);
+    const vsCode = OWN_AGENT_SETUPS.find(({ id }) => id === 'vs-code');
+    expect(JSON.parse(vsCode?.signIn.lines ?? '{}')).toEqual({ servers: { gitranks: { type: 'http', url: MCP_URL } } });
+    expect(vsCode?.install?.href).toContain('https://vscode.dev/redirect/mcp/install');
+    expect(JSON.parse(vsCode?.token.lines ?? '{}').mcpServers.gitranks.headers.Authorization).toBe(
+      `Bearer \${GITRANKS_MCP_TOKEN}`,
+    );
+    expect(vsCode?.token.where).toContain('~/.copilot/mcp-config.json');
+
+    const plain = text(renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />));
+    expect(plain).toContain('VS Code');
+    expect(plain).not.toContain('VS Code, other clients');
   });
 });
 

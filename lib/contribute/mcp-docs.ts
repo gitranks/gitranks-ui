@@ -1,8 +1,9 @@
-import { MCP_CONNECTOR_NAME } from './mcp-install-links';
+import { MCP_CONNECTOR_NAME, type McpInstallLink, mcpInstallLinkOf } from './mcp-install-links';
 import {
   MCP_CLIENTS,
   MCP_OS_NAMES,
   MCP_OSES,
+  MCP_SETUPS,
   MCP_TOKEN_ENV,
   MCP_TOKEN_PLACEHOLDER,
   MCP_TOKENS_MAX,
@@ -112,6 +113,37 @@ const VS_CODE_SIGN_IN: McpDocSignIn = {
   file: true,
   lines: JSON.stringify({ servers: { gitranks: { type: 'http', url: MCP_URL } } }, null, 2),
 };
+
+/** A client in Settings' "Set up your agent" picker: its token setup, and its setup when agents sign in. */
+export type OwnAgentSetup = {
+  id: string;
+  name: string;
+  token: { where: string; lines: string };
+  signIn: { where: string; label: string; file: boolean; lines: string };
+  /** A one-click install, for when agents sign in: it adds the server with no token. */
+  install?: McpInstallLink;
+};
+
+/** The clients Settings offers: the connect flow's, then VS Code, which the connect flow does not offer yet. */
+export const OWN_AGENT_SETUPS: readonly OwnAgentSetup[] = [
+  ...MCP_SETUPS.map((setup) => ({
+    id: setup.client,
+    name: setup.name,
+    token: setup,
+    signIn: mcpSignInSetupOf(setup.client, 'mac'),
+  })),
+  {
+    id: VS_CODE.id,
+    name: VS_CODE.name,
+    token: {
+      where:
+        "~/.copilot/mcp-config.json, or .mcp.json at your project's root (quit VS Code fully and open it again once the variable is set)",
+      lines: VS_CODE.lines,
+    },
+    signIn: VS_CODE_SIGN_IN,
+    install: mcpInstallLinkOf(VS_CODE.id),
+  },
+];
 
 /**
  * The Codex app and the IDE extension add a server in their settings, not with the CLI's lines (checked 2026-11-14).

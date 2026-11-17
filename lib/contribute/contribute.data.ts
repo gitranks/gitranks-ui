@@ -5,6 +5,7 @@ import { cache } from 'react';
 import {
   type CheckNotesRead,
   ContributeActivityDocument,
+  ContributeAttemptBodyUpdateDocument,
   ContributeAttemptCheckNotesDocument,
   ContributeAttemptCheckStopDocument,
   ContributeAttemptClaimStepsDocument,
@@ -628,6 +629,10 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   const repliesPlan = Promise.resolve(graphqlDirect(ContributeAttemptRepliesPlanDocument, { id }, options)).catch(
     () => undefined,
   );
+  // A follow-up run's new description for its pull request; left out when not answered.
+  const bodyUpdate = Promise.resolve(graphqlDirect(ContributeAttemptBodyUpdateDocument, { id }, options)).catch(
+    () => undefined,
+  );
   // A Learn attempt's mode and lesson state; left out when not answered.
   const learn = Promise.resolve(graphqlDirect(ContributeAttemptLearnDocument, { id }, options)).catch(() => undefined);
   try {
@@ -726,10 +731,15 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
             learnGatePassed: learnRead.learnGatePassed ?? null,
           }
         : withProof;
+    const bodyRead = (await bodyUpdate)?.contributeAttempt;
+    const withBody =
+      bodyRead?.attemptId === contributeAttempt.attemptId && bodyRead.prBodyUpdate !== undefined
+        ? { ...withLearn, prBodyUpdate: bodyRead.prBodyUpdate ?? null }
+        : withLearn;
     const agent = (await ownAgent)?.contributeAttempt;
-    if (agent?.attemptId !== contributeAttempt.attemptId) return withLearn;
+    if (agent?.attemptId !== contributeAttempt.attemptId) return withBody;
     const { result, ...fields } = agent;
-    const merged = withFields(withLearn, fields);
+    const merged = withFields(withBody, fields);
     return merged.result && result ? { ...merged, result: { ...merged.result, prTitle: result.prTitle } } : merged;
   } catch (failure) {
     const { error } = contributeErrorOf(failure);

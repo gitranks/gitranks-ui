@@ -150,7 +150,8 @@ export function DiscardRunButton({ primary = false }: { primary?: boolean }) {
 
 /**
  * Push and reply, Push anyway, Post the replies, Push the commits, … again: the run's push, after its confirm. Its label
- * follows what pushing does now (the commits, the replies ticked), unless the card names it (`label`).
+ * follows what pushing does now (the commits, the replies ticked), unless the card names it (`label`). `description`:
+ * the run also replaces the pull request's description, which its confirm says.
  */
 export function PushButton({
   commits,
@@ -158,12 +159,14 @@ export function PushButton({
   flow,
   again = false,
   label: named,
+  description: describes = false,
 }: {
   commits: number;
   prNumber: number | null;
   flow: boolean;
   again?: boolean;
   label?: string;
+  description?: boolean;
 }) {
   const actions = useSessionActions();
   const [open, setOpen] = useState(false);
@@ -190,11 +193,14 @@ export function PushButton({
     : commits
       ? `Push the commits to ${pr}?`
       : 'Finish this follow-up?';
-  const description = flow
+  const what = flow
     ? `This ${actions.replies?.summary ?? 'pushes the new commits'}, publicly on GitHub in your name.`
     : commits
       ? `They are pushed publicly to ${pr} on GitHub, in your name.`
       : 'Nothing is pushed. Its replies are posted only once you approve each one.';
+  const description = describes
+    ? `${what} It also replaces the pull request's description with the new one shown on this page, before any reply is posted.`
+    : what;
   const error = actions.error?.source === 'push' ? actions.error.text : null;
   return (
     <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">

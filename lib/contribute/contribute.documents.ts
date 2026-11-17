@@ -333,6 +333,12 @@ export const ContributeAttemptRepoRulesDocument = doc<
   { id: string }
 >(`query ContributeAttemptRepoRules($id: ID!) { contributeAttempt(id: $id) { attemptId ${ATTEMPT_RULES} } }`);
 
+/** A follow-up run's new description for its pull request: read on its own, so an API without it leaves the rest. */
+export const ContributeAttemptBodyUpdateDocument = doc<
+  { contributeAttempt: { attemptId: string; prBodyUpdate?: string | null } | null },
+  { id: string }
+>('query ContributeAttemptBodyUpdate($id: ID!) { contributeAttempt(id: $id) { attemptId prBodyUpdate } }');
+
 /** The claim's check, step by step: read on its own, so an API without it leaves the rest. */
 export const ContributeAttemptClaimStepsDocument = doc<
   { contributeAttempt: { attemptId: string; claimSteps: ContributeClaimStep[] } | null },

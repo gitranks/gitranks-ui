@@ -5,6 +5,7 @@ import {
   ApprovalPanel,
   ChecksPanel,
   CostPanel,
+  DescriptionUpdatePanel,
   ReadinessPanel,
   TimelinePanel,
   YourNotePanel,
@@ -214,6 +215,7 @@ function SessionDetails({
           <PrForm {...prFormPropsOf(view, attempt)} />
         </SubmitPanel>
       ) : null}
+      {followUp ? <DescriptionUpdatePanel attempt={attempt} /> : null}
       {comments}
       <SessionTabs
         key={attempt.attemptId}

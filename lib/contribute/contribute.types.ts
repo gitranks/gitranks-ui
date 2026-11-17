@@ -372,7 +372,7 @@ export type ContributeAttemptEndReason =
   | 'RELEASED'
   | 'MCP_IDLE'
   | 'MCP_EXPIRED';
-export type ContributeSubmitStep = 'QUEUED' | 'WAITING_CAP' | 'FORK' | 'SYNC' | 'PUSH' | 'PULL_REQUEST';
+export type ContributeSubmitStep = 'QUEUED' | 'WAITING_CAP' | 'FORK' | 'SYNC' | 'PUSH' | 'PULL_REQUEST' | 'BODY';
 export type ContributePrState = 'OPEN' | 'MERGED' | 'CLOSED';
 export type ContributeReviewDecision = 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED';
 export type ContributeChecksState = 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED';
@@ -755,6 +755,11 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   prFooter?: string;
   /** The commits carry the gitranks bot's co-author: false on a repo that bans AI trailers; null before the approval. */
   prCoAuthored?: boolean | null;
+  /**
+   * A follow-up run's new description for its pull request, as it will be set (footer included) before its replies are
+   * posted: null when the run changes none or its push is over; `undefined` while the API does not answer it.
+   */
+  prBodyUpdate?: string | null;
   /** What `retryAttempt` would do with this stop: null when it can't be tried again, `undefined` while not answered. */
   retry?: ContributeRetry | null;
   /** The session's latest go/no-go: null when it gave none (an older run); `undefined` while the API does not answer it. */

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  canPickRepo,
+  canPick,
   type DailyUpdatesFacts,
+  isPickKind,
   nextUpdateText,
+  pickableUpdatesViewOf,
   profileUpdatesViewOf,
-  repoUpdatesViewOf,
+  samePick,
   type ViewerFacts,
   withoutPickReason,
 } from './daily-updates-view';
@@ -28,6 +30,8 @@ const viewer = (overrides: Partial<NonNullable<ViewerFacts>> = {}): ViewerFacts 
   picks: [],
   ...overrides,
 });
+const repo = (name: string) => ({ kind: 'repo' as const, name });
+const ROCKET = repo('octo/rocket');
 const USED = { available: false, nextAt: new Date(NOW + 23 * HOUR).toISOString() };
 
 describe('profileUpdatesViewOf', () => {
@@ -95,63 +99,77 @@ describe("profileUpdatesViewOf, the owner's states", () => {
   });
 });
 
-describe('repoUpdatesViewOf', () => {
+describe('pickableUpdatesViewOf', () => {
   it('shows nothing new while the repository is not on daily updates', () => {
-    expect(repoUpdatesViewOf(null)).toBe('repo-off');
-    expect(repoUpdatesViewOf(undefined)).toBe('repo-off');
-    expect(repoUpdatesViewOf(facts())).toBe('repo-off');
+    expect(pickableUpdatesViewOf(null, null, ROCKET)).toBe('off');
+    expect(pickableUpdatesViewOf(undefined, null, ROCKET)).toBe('off');
+    expect(pickableUpdatesViewOf(facts(), null, ROCKET)).toBe('off');
   });
 
   it('names the badge, and the badge when both hold', () => {
-    expect(repoUpdatesViewOf(facts(Badge))).toBe('repo-on-badge');
-    expect(repoUpdatesViewOf(facts(Pick, Badge))).toBe('repo-on-badge');
+    expect(pickableUpdatesViewOf(facts(Badge), null, ROCKET)).toBe('on-badge');
+    expect(pickableUpdatesViewOf(facts(Pick, Badge), null, ROCKET)).toBe('on-badge');
   });
 
   it('says only that a picked repository updates daily', () => {
-    expect(repoUpdatesViewOf(facts(Pick))).toBe('repo-on-pick');
+    expect(pickableUpdatesViewOf(facts(Pick), null, ROCKET)).toBe('on-pick');
   });
 
-  const mine = viewer({ picks: [{ nameWithOwner: 'Octo/Rocket', pickedAt: '2026-11-15T10:00:00.000Z' }] });
+  const mine = viewer({ picks: [{ kind: 'repo', name: 'Octo/Rocket', pickedAt: '2026-11-15T10:00:00.000Z' }] });
 
   it("shows the visitor's own pick first, in any letter case, before it is on the page", () => {
-    expect(repoUpdatesViewOf(null, mine, 'octo/rocket')).toBe('repo-your-pick');
-    expect(repoUpdatesViewOf(facts(Pick, Badge), mine, 'OCTO/ROCKET')).toBe('repo-your-pick');
+    expect(pickableUpdatesViewOf(null, mine, ROCKET)).toBe('your-pick');
+    expect(pickableUpdatesViewOf(facts(Pick, Badge), mine, repo('OCTO/ROCKET'))).toBe('your-pick');
   });
 
   it('shows the repository as anyone sees it when it is not their pick, or the API keeps daily updates closed', () => {
-    expect(repoUpdatesViewOf(facts(Pick), mine, 'octo/lantern')).toBe('repo-on-pick');
-    expect(repoUpdatesViewOf(facts(Pick), { ...mine!, open: false }, 'octo/rocket')).toBe('repo-on-pick');
+    expect(pickableUpdatesViewOf(facts(Pick), mine, repo('octo/lantern'))).toBe('on-pick');
+    expect(pickableUpdatesViewOf(facts(Pick), { ...mine!, open: false }, ROCKET)).toBe('on-pick');
   });
 
   it('shows a pick held while the visitor’s daily updates are off as anyone sees the repository', () => {
     for (const state of ['lapsed', 'never'] as const) {
       const off = { ...mine!, state };
-      expect(repoUpdatesViewOf(facts(Pick), off, 'octo/rocket')).toBe('repo-on-pick');
-      expect(repoUpdatesViewOf(null, off, 'octo/rocket')).toBe('repo-off');
+      expect(pickableUpdatesViewOf(facts(Pick), off, ROCKET)).toBe('on-pick');
+      expect(pickableUpdatesViewOf(null, off, ROCKET)).toBe('off');
     }
   });
 });
 
-describe('canPickRepo', () => {
+describe('canPick', () => {
   it('offers a pick on a repository not on daily updates, to a visitor the API lets pick', () => {
-    expect(canPickRepo('repo-off', viewer({ state: 'never' }))).toBe(true);
+    expect(canPick('off', viewer({ state: 'never' }), ROCKET)).toBe(true);
   });
 
   it('offers nothing new signed out, before the read, while closed, or on a repository that updates daily', () => {
-    expect(canPickRepo('repo-off', null)).toBe(false);
-    expect(canPickRepo('repo-off', viewer({ open: false }))).toBe(false);
-    for (const view of ['repo-your-pick', 'repo-on-badge', 'repo-on-pick'] as const) {
-      expect(canPickRepo(view, viewer())).toBe(false);
+    expect(canPick('off', null, ROCKET)).toBe(false);
+    expect(canPick('off', viewer({ open: false }), ROCKET)).toBe(false);
+    for (const view of ['your-pick', 'on-badge', 'on-pick'] as const) {
+      expect(canPick(view, viewer(), ROCKET)).toBe(false);
     }
   });
 
   it('offers no pick of a repository the visitor holds already, live or not: the press would change nothing', () => {
     const held = viewer({
       state: 'lapsed',
-      picks: [{ nameWithOwner: 'Octo/Rocket', pickedAt: '2026-11-15T10:00:00Z' }],
+      picks: [{ kind: 'repo', name: 'Octo/Rocket', pickedAt: '2026-11-15T10:00:00Z' }],
     });
-    expect(canPickRepo('repo-off', held, 'octo/rocket')).toBe(false);
-    expect(canPickRepo('repo-off', held, 'octo/lantern')).toBe(true);
+    expect(canPick('off', held, ROCKET)).toBe(false);
+    expect(canPick('off', held, repo('octo/lantern'))).toBe(true);
+  });
+});
+
+describe('samePick and isPickKind', () => {
+  it('matches a repository by its kind and its name in any letter case', () => {
+    expect(samePick(ROCKET, repo('Octo/ROCKET'))).toBe(true);
+    expect(samePick(ROCKET, repo('octo/lantern'))).toBe(false);
+  });
+
+  it('knows the repository kind only', () => {
+    expect(isPickKind('repo')).toBe(true);
+    for (const kind of ['user', 'Repo', '', null, undefined, 1]) {
+      expect(isPickKind(kind)).toBe(false);
+    }
   });
 });
 

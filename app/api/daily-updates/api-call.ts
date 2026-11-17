@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import type { AuthRequest } from '@/app/api/profile/[login]/route';
+import { accountEmailOf } from '@/lib/account-email';
 import { signedFetch } from '@/lib/signed-fetch';
 
 /** The visitor's own state: never kept by a browser or the edge cache. */
@@ -10,17 +11,30 @@ export const json = (body: unknown, status = 200) => NextResponse.json(body, { s
 
 export const notSignedIn = () => json({ message: 'Not authenticated' }, 401);
 
-/** The signed-in visitor, from the session; the API takes them from the signed call, never from a body. */
-export const viewerOf = (req: AuthRequest) => req.auth?.user.githubLogin;
+/** The signed-in visitor: their login, and their email when the session holds a valid one. */
+export type DailyUpdatesCaller = { githubLogin: string; accountEmail?: string };
+
+/**
+ * The signed-in visitor, from the session; the API takes them from the signed call, never from a body. `undefined`
+ * without a login.
+ */
+export const viewerOf = (req: AuthRequest): DailyUpdatesCaller | undefined => {
+  const githubLogin = req.auth?.user.githubLogin;
+  if (!githubLogin) {
+    return undefined;
+  }
+  const accountEmail = accountEmailOf(req.auth?.user.email);
+  return accountEmail ? { githubLogin, accountEmail } : { githubLogin };
+};
 
 export type ApiAnswer<T> = { ok: true; body: T } | { ok: false; status: number };
 
 /**
- * One call to the API's daily updates, signed for the visitor. An answer that is not a JSON object, or a call that
- * throws, reads as a 502.
+ * One call to the API's daily updates, signed for the visitor: their login, and their email beside it when there is
+ * one. An answer that is not a JSON object, or a call that throws, reads as a 502.
  */
 export async function callDailyUpdates<T>(
-  githubLogin: string,
+  { githubLogin, accountEmail }: DailyUpdatesCaller,
   path: string,
   method: 'GET' | 'POST',
   body?: Record<string, string>,
@@ -30,7 +44,10 @@ export async function callDailyUpdates<T>(
     : { method };
 
   try {
-    const response = await signedFetch(path, { ...init, cache: 'no-store' }, 'client', githubLogin);
+    const signed = { ...init, cache: 'no-store' } as const;
+    const response = accountEmail
+      ? await signedFetch(path, signed, 'client', githubLogin, accountEmail)
+      : await signedFetch(path, signed, 'client', githubLogin);
     if (!response.ok) {
       return { ok: false, status: response.status };
     }
@@ -42,7 +59,7 @@ export async function callDailyUpdates<T>(
   }
 }
 
-/** A body here is a login or a repository's owner and name; anything larger is not one. */
+/** A body here is a login or a pick's kind and name; anything larger is not one. */
 export const MAX_BODY = 1_000;
 
 export const tooLarge = () => json({ message: 'Body too large' }, 413);

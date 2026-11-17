@@ -241,23 +241,28 @@ describe('the Terms', () => {
     const shown = text(renderToStaticMarkup(<TermsScreen contribute />));
     const hidden = text(renderToStaticMarkup(<TermsScreen contribute={false} />));
     expect(shown).toContain('GitRanks Contribute');
-    expect(shown).toContain('11 November 2026');
+    expect(shown).toContain('17 November 2026');
     expect(hidden).toContain('31 October 2026');
     expect(shown).toContain('not affiliated with or endorsed by Anthropic');
     expect(shown).toContain('gitranks.com/contribute/maintainers');
     expect(hidden).not.toContain('Contribute');
     expect(shown).not.toContain('Claude Code');
     expect(shown).not.toContain('GitRanks Learn');
+    // Maintainers who react are not on Learn's list: the reactions line is in Contribute's section.
+    expect(shown).toContain('your reaction may be shown on the result page with your username, avatar and role');
   });
 
-  it('carry the Learn section, and its date, only with Contribute and Learn open to the reader', () => {
+  it('carry the Learn section only with Contribute and Learn open to the reader', () => {
     const learn = renderToStaticMarkup(<TermsScreen contribute learn />);
     const plain = text(learn);
     expect(learn).toContain('id="learn"');
-    expect(plain).toContain('17 November 2026');
     expect(plain).toContain('the lesson becomes public under your GitHub username');
+    expect(plain).toContain('the goal and level it was written for');
+    expect(plain).toContain('search engines may list them');
+    expect(plain).toContain('Learn record on your GitRanks profile');
+    expect(plain).toContain('or by writing to');
+    expect(plain).toContain("closes if the lesson's author takes the lesson down");
     expect(plain).toContain('never the options you got wrong');
-    expect(plain).toContain('You can take a lesson down at any time');
     expect(plain).toContain('Learn is only for people aged 16 and over');
     expect(learn).toContain('href="/learn/maintainers"');
     // Learn sits on Contribute's terms, so it never shows without them.
@@ -272,7 +277,7 @@ describe('the launch gate', () => {
     shown.mockResolvedValue(true);
     const open = renderToStaticMarkup(await LaunchedTerms());
     expect(open).toContain('id="contribute"');
-    expect(open).toContain('2026-11-11');
+    expect(open).toContain('2026-11-17');
     expect(open).toContain('data-scroll-to-hash');
 
     shown.mockResolvedValue(false);
@@ -288,12 +293,20 @@ describe('the launch gate', () => {
     learnOpen.mockResolvedValue(true);
     const open = renderToStaticMarkup(await LaunchedTerms());
     expect(open).toContain('id="learn"');
-    expect(open).toContain('2026-11-17');
 
     learnOpen.mockResolvedValue(false);
-    const closed = renderToStaticMarkup(await LaunchedTerms());
-    expect(closed).not.toContain('id="learn"');
-    expect(closed).toContain('2026-11-11');
+    expect(renderToStaticMarkup(await LaunchedTerms())).not.toContain('id="learn"');
+
+    // A failed check leaves Learn's section out, never the Terms.
+    learnOpen.mockRejectedValue(new Error('down'));
+    const failed = renderToStaticMarkup(await LaunchedTerms());
+    expect(failed).toContain('id="contribute"');
+    expect(failed).not.toContain('id="learn"');
+
+    // Learn's section needs Contribute's.
+    shown.mockResolvedValue(false);
+    learnOpen.mockResolvedValue(true);
+    expect(renderToStaticMarkup(await LaunchedTerms())).not.toContain('id="learn"');
   });
 
   it('shows the maintainers page the other pages only when Contribute is shown', async () => {

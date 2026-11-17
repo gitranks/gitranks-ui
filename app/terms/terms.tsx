@@ -67,6 +67,12 @@ const CONTRIBUTE: LegalSection = {
           <A href="/contribute/maintainers">gitranks.com/contribute/maintainers</A>.
         </li>
         <li>
+          <B>Lessons on pull requests.</B> Some pull requests link to a lesson on GitRanks and their author&apos;s
+          result on it. The lesson was written by the author&apos;s AI agent and can be wrong. If you react to a result
+          as a maintainer or collaborator of its repository, your reaction may be shown on the result page with your
+          username, avatar and role. See <A href={LEARN_MAINTAINERS_PATH}>what these lessons are for maintainers</A>.
+        </li>
+        <li>
           <B>Fair use of Contribute.</B> You must not get around a repository&apos;s rules or our limits, open pull
           requests in bulk, remove or misstate the note that a pull request was made with AI, or share or scrape the
           lists of issues we show you, or pass them to others to claim. We may lower your limits, pause your use of
@@ -83,7 +89,8 @@ const CONTRIBUTE: LegalSection = {
 
 /**
  * Learn's section: Contribute's terms apply, lessons are AI-written, what goes public when the pull request opens and
- * under whose name, taking it down, reactions, and the age rule.
+ * under whose name, taking it down, someone else's lesson, and the age rule. Reactions are in Contribute's section,
+ * which every reader sees: the maintainers who react are not on Learn's list.
  */
 const LEARN: LegalSection = {
   id: 'learn',
@@ -104,24 +111,24 @@ const LEARN: LegalSection = {
         </li>
         <li>
           <B>What goes public.</B> When GitRanks opens the pull request, the lesson becomes public under your GitHub
-          username, with the issue, the pull request and the agent that wrote it, and so does your result: how each step
-          went and the questions you were asked with their right answers, never the options you got wrong. Anyone with
-          the link can read them, and the pull request links to your result. A lesson whose pull request never opens
-          stays private. You let us store, show and publish the lesson and your result this way.
+          username, with the issue, the pull request, the agent that wrote it and the goal and level it was written for.
+          So does your result: how each step went, when you passed and how long it took, and the questions you were
+          asked with their right answers, never the options you got wrong. The pull request links to your result, anyone
+          can read both, and search engines may list them. Your public results also show as a Learn record on your
+          GitRanks profile (lessons, topics and pull requests). A lesson whose pull request never opens stays private.
+          You let us store, show and publish the lesson and your results this way. The{' '}
+          <A href="/privacy">Privacy policy</A> says what data GitRanks uses.
         </li>
         <li>
-          <B>Taking it down.</B> You can take a lesson down at any time from its attempt page. Its page and every result
-          on it close for good. The pull request and its link stay on GitHub. We may also pause or hide a lesson that is
-          reported, breaks these terms or the law, or when a repository&apos;s maintainers ask.
+          <B>Taking it down.</B> You can take a public lesson down from its attempt page, or by writing to {mail}. Its
+          page and every result on it, other people&apos;s included, close for good; we keep them privately for our
+          records. The pull request and its link stay on GitHub. We may also pause or hide a lesson that is reported,
+          breaks these terms or the law, or when a repository&apos;s maintainers ask.
         </li>
         <li>
           <B>Taking someone else&apos;s lesson.</B> Anyone can read a public lesson; answering needs your GitHub
-          sign-in. Your result stays private unless you choose to share it, and a shared result is public as above.
-        </li>
-        <li>
-          <B>Reactions.</B> If you react to a result as a maintainer or collaborator of its repository, your reaction
-          may be shown on the result page with your username and your role. See{' '}
-          <A href={LEARN_MAINTAINERS_PATH}>what Learn is for maintainers</A>.
+          sign-in. Your result stays private unless you choose to share it, which you can undo. A shared result is
+          public as above, and closes if the lesson&apos;s author takes the lesson down.
         </li>
         <li>
           <B>Age.</B> As for signing in, Learn is only for people aged 16 and over.
@@ -132,10 +139,7 @@ const LEARN: LegalSection = {
 };
 
 /** When the Terms last changed with Contribute's section in them: they show that date only once the section shows. */
-const CONTRIBUTE_TERMS_UPDATED = '2026-11-11';
-
-/** When the Terms last changed with Learn's section in them: shown only with the section. */
-const LEARN_TERMS_UPDATED = '2026-11-17';
+const CONTRIBUTE_TERMS_UPDATED = '2026-11-17';
 
 /** The sections; Contribute's only for whoever may see Contribute, and Learn's for whoever Learn is open to. */
 const sectionsOf = (contribute: boolean, learn: boolean): LegalSection[] => [
@@ -340,12 +344,11 @@ const sectionsOf = (contribute: boolean, learn: boolean): LegalSection[] => [
 
 /** The Terms as drawn: with Contribute's section or without it, and with Learn's (which needs Contribute's). */
 export function TermsScreen({ contribute, learn = false }: { contribute: boolean; learn?: boolean }) {
-  const withLearn = contribute && learn;
   return (
     <LegalPage
       title="Terms of service"
       sections={sectionsOf(contribute, learn)}
-      updated={withLearn ? LEARN_TERMS_UPDATED : contribute ? CONTRIBUTE_TERMS_UPDATED : undefined}
+      updated={contribute ? CONTRIBUTE_TERMS_UPDATED : undefined}
     />
   );
 }
@@ -355,7 +358,8 @@ export function TermsScreen({ contribute, learn = false }: { contribute: boolean
  * whoever Learn is open to, and a scroll to `#contribute` or `#learn`, which streamed in after the browser looked.
  */
 export async function LaunchedTerms() {
-  const [contribute, learn] = await Promise.all([contributeShown(), loadLearnOpen()]);
+  // Learn's section is extra: a failed check leaves it out rather than fail the Terms.
+  const [contribute, learn] = await Promise.all([contributeShown(), loadLearnOpen().catch(() => false)]);
   return (
     <>
       <TermsScreen contribute={contribute} learn={learn} />

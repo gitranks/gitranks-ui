@@ -1,13 +1,13 @@
-import { ArrowUpRight, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 
 import { CodeBlock } from './code-block';
+import { InstallButton } from './install-button';
 import { OpenOnHash } from './open-on-hash';
 import { Pill } from './primitives';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
 import { SetupClip } from './setup-clip';
-import { Button } from '@/components/ui/button';
 import { ABOUT_PATH, AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import {
   EXAMPLE_BRIEF,
@@ -35,7 +35,7 @@ import {
   OR_INSTALL_THE_PLUGIN,
   TOKEN_PLACEHOLDER,
 } from '@/lib/contribute/mcp-docs';
-import { MCP_INSTALL_LINKS, type McpInstallLink, mcpInstallLinkOf } from '@/lib/contribute/mcp-install-links';
+import { MCP_INSTALL_LINKS, mcpInstallLinkOf } from '@/lib/contribute/mcp-install-links';
 import { USE_A_TOKEN_INSTEAD } from '@/lib/contribute/mcp-setup';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
@@ -88,19 +88,6 @@ function DocSetup({ name, setup }: { name: string; setup: McpDocSignIn }) {
       ) : null}
       {after ? <p className="text-sm text-muted-foreground">{after}</p> : null}
     </>
-  );
-}
-
-/** A client's install link as our own button: it opens the client, which asks to confirm before it adds anything. */
-function InstallButton({ link }: { link: McpInstallLink }) {
-  return (
-    <Button asChild variant="outline" className="min-h-11 self-start px-4 font-semibold sm:min-h-9" data-install-link>
-      <a href={link.href} target="_blank" rel="noopener noreferrer">
-        {link.label}
-        <ArrowUpRight aria-hidden="true" />
-        <span className="sr-only"> (opens in a new tab)</span>
-      </a>
-    </Button>
   );
 }
 

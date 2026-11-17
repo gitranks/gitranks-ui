@@ -19,7 +19,7 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadRepliesWaiting: vi.fn(),
 }));
 
-const { OwnAgentSection, OWN_AGENT_SAFETY } = await import('./own-agent-section');
+const { OwnAgentSection, OWN_AGENT_SAFETY, SetupLines } = await import('./own-agent-section');
 const { SettingsScreen } = await import('./settings-view');
 const { OwnAgentSettingsScreen } = await import('./settings-pages');
 const { OwnAgentConnectScreen, ConnectScreen } = await import('./connect-view');
@@ -31,7 +31,7 @@ const { attempt, contributions, detail, ownAgentAttempt } = await import(
 );
 const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
 const { MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/contribute/mcp-setup');
-const { OWN_AGENT_SETUPS } = await import('@/lib/contribute/mcp-docs');
+const { OWN_AGENT_SETUPS } = await import('@/lib/contribute/own-agent-setups');
 
 import type { ContributeOwnAgent, ContributeView } from '@/lib/contribute/contribute.types';
 
@@ -211,11 +211,25 @@ describe('the setup picker', () => {
     expect(JSON.parse(vsCode?.token.lines ?? '{}').mcpServers.gitranks.headers.Authorization).toBe(
       `Bearer \${GITRANKS_MCP_TOKEN}`,
     );
-    expect(vsCode?.token.where).toContain('~/.copilot/mcp-config.json');
+    expect(vsCode?.token.where).toContain('.copilot\\mcp-config.json on Windows');
+    // Every client with a one-click install gets it: Cursor and VS Code.
+    expect(OWN_AGENT_SETUPS.filter(({ install }) => install).map(({ id }) => id)).toEqual(['cursor', 'vs-code']);
 
     const plain = text(renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />));
     expect(plain).toContain('VS Code');
     expect(plain).not.toContain('VS Code, other clients');
+  });
+
+  it("shows a client's one-click install and its lines by hand when agents sign in, and no install with tokens alone", () => {
+    const cursor = OWN_AGENT_SETUPS.find(({ id }) => id === 'cursor');
+    const tokensOnly = renderToStaticMarkup(<SetupLines />);
+    expect(tokensOnly).not.toContain('data-install-link');
+
+    // The picker starts on Claude Code, which has no install link: no button, and its sign-in lines as they are.
+    const signIn = renderToStaticMarkup(<SetupLines signIn />);
+    expect(signIn).not.toContain('data-install-link');
+    expect(text(signIn)).not.toContain('Or by hand:');
+    expect(cursor?.install?.label).toBe('Add to Cursor');
   });
 });
 

@@ -1,12 +1,12 @@
 'use client';
 
-import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { createMcpToken, revokeMcpToken } from '../actions';
 import { ConfirmDialog } from './confirm-dialog';
+import { InstallButton } from './install-button';
 import { HEADING, Panel, PanelTitle, SubTitle } from './primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,6 @@ import type { ContributeMcpToken, ContributeOwnAgent } from '@/lib/contribute/co
 import { MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, relativeLabel } from '@/lib/contribute/format';
-import { OWN_AGENT_SETUPS } from '@/lib/contribute/mcp-docs';
 import {
   exportLineOf,
   MCP_TOKEN_ENV,
@@ -24,6 +23,7 @@ import {
   USE_A_TOKEN_INSTEAD,
 } from '@/lib/contribute/mcp-setup';
 import { isSignedInAgent, personalTokensOf } from '@/lib/contribute/oauth-consent';
+import { OWN_AGENT_SETUPS } from '@/lib/contribute/own-agent-setups';
 import { cn } from '@/lib/utils';
 
 export const OWN_AGENT_SAFETY = 'Your agent reads issue text written by strangers. Keep its permission prompts on.';
@@ -232,15 +232,7 @@ export function SetupLines({ signIn = false }: { signIn?: boolean }) {
       </fieldset>
       {signIn ? (
         <>
-          {install ? (
-            <Button asChild variant="outline" className="h-10 self-start font-semibold" data-install-link>
-              <a href={install.href} target="_blank" rel="noopener noreferrer">
-                {install.label}
-                <ArrowUpRight aria-hidden="true" />
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
-            </Button>
-          ) : null}
+          {install ? <InstallButton link={install} /> : null}
           <SetupBlock
             where={install ? `Or by hand: ${setup.signIn.where}` : setup.signIn.where}
             lines={setup.signIn.lines}
@@ -251,12 +243,12 @@ export function SetupLines({ signIn = false }: { signIn?: boolean }) {
               {USE_A_TOKEN_INSTEAD}
             </summary>
             <div className="mt-2 flex flex-col gap-2.5">
-              <SetupBlock where={setup.token.where} lines={setup.token.lines} />
+              <SetupBlock where={setup.token.where} lines={setup.token.lines} file={setup.token.file} />
             </div>
           </details>
         </>
       ) : (
-        <SetupBlock where={setup.token.where} lines={setup.token.lines} />
+        <SetupBlock where={setup.token.where} lines={setup.token.lines} file={setup.token.file} />
       )}
     </div>
   );

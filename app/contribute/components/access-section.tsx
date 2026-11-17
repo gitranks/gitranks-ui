@@ -250,7 +250,7 @@ export function AccessSection({
         detail={
           signIn
             ? "Agents signed in with GitHub, and tokens for a client that can't sign in."
-            : 'Tokens for Claude Code, Codex, Cursor, Gemini CLI or Antigravity on your machine.'
+            : 'Tokens for Claude Code, Codex, Cursor, Gemini CLI, Antigravity or VS Code on your machine.'
         }
       >
         <Button asChild variant="outline" className="h-10">

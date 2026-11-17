@@ -4,8 +4,9 @@ import { useState, useTransition } from 'react';
 
 import { ignoreContributeRepo, resolveContributeStack } from '../actions';
 import type { FeedbackOpen } from './feedback-dialog';
-import { Pill, SubTitle } from './primitives';
+import { SubTitle } from './primitives';
 import type { SetWrite } from './set-section';
+import { Pill } from '@/components/pill/pill';
 import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
 import type { ContributeSet, ContributeStackTarget } from '@/lib/contribute/contribute.types';

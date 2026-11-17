@@ -15,8 +15,8 @@ import { RANK_DESCRIPTIONS, TELEGRAM_BOT_URL, TIER_FRACTIONS, TIER_NAMES, WHATSA
 import { Flag } from '@/components/flag/flag';
 import { InsightPostCard } from '@/components/insight/insight-post-card';
 import InsightText from '@/components/insight/insight-text';
-import { JsonLd } from '@/components/json-ld/json-ld';
 import { seriesColor } from '@/components/pulse/pulse.utils';
+import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { StarTotalCount } from '@/components/star-count/star-count';
 import { TierIcon } from '@/components/tier-icon/tier-icon';
@@ -454,29 +454,15 @@ const FAQ: { q: string; a: string; link?: { href: string; label: string; nofollo
 
 export const FaqSection = () => (
   <LandingSection id="faq" eyebrow="Questions" title="How GitRanks works">
-    <JsonLd
-      payloads={[
-        {
-          '@context': 'https://schema.org',
-          '@type': 'FAQPage',
-          mainEntity: FAQ.map(({ q, a }) => ({
-            '@type': 'Question',
-            name: q,
-            acceptedAnswer: { '@type': 'Answer', text: a },
-          })),
-        },
-      ]}
-    />
-    <div className="grid gap-x-8 lg:grid-cols-2">
-      {FAQ.map(({ q, a, link }) => (
-        <details key={q} className="group border-b py-4">
-          <summary className="flex cursor-pointer list-none items-center [&::-webkit-details-marker]:hidden justify-between gap-4 font-medium">
-            {q}
-            <span aria-hidden="true" className="text-muted-foreground transition-transform group-open:rotate-45">
-              +
-            </span>
-          </summary>
-          <p className="mt-2 text-sm text-muted-foreground">
+    <QuestionsBlock
+      variant="details"
+      jsonLd
+      className="grid gap-x-8 lg:grid-cols-2"
+      items={FAQ.map(({ q, a, link }) => ({
+        question: q,
+        answerText: a,
+        answer: (
+          <>
             {a}
             {link && (
               <>
@@ -491,10 +477,10 @@ export const FaqSection = () => (
                 </Link>
               </>
             )}
-          </p>
-        </details>
-      ))}
-    </div>
+          </>
+        ),
+      }))}
+    />
   </LandingSection>
 );
 

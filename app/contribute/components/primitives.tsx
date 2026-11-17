@@ -1,6 +1,5 @@
 import type { ComponentProps, ReactNode } from 'react';
 
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 /** A small uppercase label in the mono face, above a block. */
@@ -106,22 +105,6 @@ export function PanelTitle({
 /** A part's h3 inside a section or a card. */
 export function SubTitle({ children, className }: { children: ReactNode; className?: string }) {
   return <h3 className={cn(HEADING.block, className)}>{children}</h3>;
-}
-
-const PILL_TONES = {
-  neutral: 'bg-muted text-foreground/80',
-  green: 'bg-positive/10 text-positive-strong',
-  violet: 'bg-brand-soft text-brand-soft-foreground',
-  amber: 'bg-warning-soft text-warning-soft-foreground',
-  red: 'bg-negative/10 text-negative-strong',
-} as const;
-
-export function Pill({ children, tone = 'neutral' }: { children: ReactNode; tone?: keyof typeof PILL_TONES }) {
-  return (
-    <Badge variant="secondary" className={PILL_TONES[tone]}>
-      {children}
-    </Badge>
-  );
 }
 
 /** A thin bar for spend against a cap. */

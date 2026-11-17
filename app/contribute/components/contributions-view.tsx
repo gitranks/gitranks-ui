@@ -6,8 +6,9 @@ import type { ReactNode } from 'react';
 import { LiveRunPhase } from './agent-runs';
 import { ContributeNotices } from './contribute-notices';
 import { NeedsYouRow } from './needs-you-rows';
-import { HEADING, PageTitle, Pill } from './primitives';
+import { HEADING, PageTitle } from './primitives';
 import { attemptHref } from './reviews-ready';
+import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import {
   ATTEMPT_STATES,

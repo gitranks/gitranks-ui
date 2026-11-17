@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { type ReactNode, useSyncExternalStore } from 'react';
 
 import { useActivity } from './activity';
-import { LiveDot, Pill } from './primitives';
+import { LiveDot } from './primitives';
+import { Pill } from '@/components/pill/pill';
 
 export { LiveDot };
 

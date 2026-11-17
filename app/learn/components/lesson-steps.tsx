@@ -1,4 +1,4 @@
-import { Pill } from '@/app/contribute/components/primitives';
+import { Pill } from '@/components/pill/pill';
 import { Badge } from '@/components/ui/badge';
 import type { LessonStep, LessonStepResult } from '@/lib/learn/learn.types';
 import { isStepDone, partsLabelOf, STEP_BADGES } from '@/lib/learn/question';

@@ -1,6 +1,6 @@
 import { GitPullRequest, GraduationCap, Lock, type LucideIcon, Terminal } from 'lucide-react';
 
-import { Pill } from '@/app/contribute/components/primitives';
+import { Pill } from '@/components/pill/pill';
 import type { LearnStage } from '@/lib/learn/learn.types';
 import { STAGES, type StageMark, stageMarksOf } from '@/lib/learn/lesson-format';
 import { cn } from '@/lib/utils';

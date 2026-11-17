@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { LiveDot } from './agent-runs';
 import { CopyAndOpenLink, MarkHandledButton } from './follow-up-buttons';
-import { Pill } from './primitives';
+import { Pill } from '@/components/pill/pill';
 import type { NeedsYouItem } from '@/lib/contribute/needs-you';
 import { cn } from '@/lib/utils';
 

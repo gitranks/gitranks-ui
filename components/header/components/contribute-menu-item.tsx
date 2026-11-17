@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { mainMenuItemClass } from './menu-styles';
+import { Pill } from '@/components/pill/pill';
 import { NavigationMenuItem, NavigationMenuLink } from '@/components/ui/navigation-menu';
 import { contributeSource } from '@/lib/contribute/click-tracking';
 import { cn } from '@/lib/utils';
@@ -14,9 +15,9 @@ export function ContributeMenuItem({ active }: Readonly<{ active?: boolean }>) {
       <NavigationMenuLink className={cn(mainMenuItemClass, 'gap-1.5')} active={active} asChild>
         <Link href="/contribute" prefetch={false} {...contributeSource('main_menu')}>
           Contribute
-          <span className="rounded-full bg-brand-soft px-1.5 py-px text-[11px] font-semibold text-brand-soft-foreground">
+          <Pill tone="violet" size="small">
             Beta
-          </span>
+          </Pill>
         </Link>
       </NavigationMenuLink>
     </NavigationMenuItem>

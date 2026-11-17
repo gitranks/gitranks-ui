@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 
-import { Eyebrow, Pill } from './primitives';
+import { Eyebrow } from './primitives';
 import { useSessionActions } from './session-actions';
+import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { type HeldIds, heldPickOf, mergeMove, shownPickOf } from '@/lib/contribute/session-head-logic';

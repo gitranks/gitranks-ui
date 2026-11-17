@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { createContext, type ReactNode, useContext } from 'react';
 
 import { OpenOnHash } from './open-on-hash';
-import { Panel, Pill } from './primitives';
+import { Panel } from './primitives';
 import { OrgAccessLink } from './reply-text';
+import { Pill } from '@/components/pill/pill';
 import type { ContributeRepoRules, ContributeRuleSource, ContributeSettings } from '@/lib/contribute/contribute.types';
 import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
 import type { OrgAccess } from '@/lib/contribute/org-access';

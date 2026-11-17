@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { Fragment, type ReactNode } from 'react';
 
 import { ComingSoon } from './coming-soon';
-import { Pill } from './primitives';
 import { HashSafeLink } from './public-pages';
 import { SignInButton, type SignInPath } from './sign-in-dialog';
+import { Pill } from '@/components/pill/pill';
 import { buttonVariants } from '@/components/ui/button';
 import { type AgentPageStats, agentPageStatsLineOf } from '@/lib/contribute/agent-page.types';
 import { contributeSource } from '@/lib/contribute/click-tracking';

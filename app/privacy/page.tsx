@@ -101,7 +101,8 @@ const sections: LegalSection[] = [
         <li>
           <B>Sign in with GitHub</B>: we receive your GitHub username, account id, name, email address and avatar link.
           The basic sign-in lets us read your profile and email address when you sign in; we don&apos;t keep the access
-          it grants, except briefly for the maintainers page (see <A href="#contribute">GitRanks Contribute</A>).
+          it grants, except briefly for the maintainers page and lesson result pages (see{' '}
+          <A href="#contribute">GitRanks Contribute</A>).
         </li>
         <li>
           <B>Sign in with your own token</B>: if you choose it, GitHub gives us a token that can act on your behalf. We
@@ -197,10 +198,10 @@ const sections: LegalSection[] = [
           <li>
             <B>Maintainers</B>: the maintainers page has you sign in with GitHub to list the repositories you maintain
             and let you opt them out of Contribute. The token GitHub gives that sign-in is kept in your encrypted
-            sign-in cookie and used for up to one hour, on that page only (and, to store a reaction to a lesson result,
-            on that result page; see <A href="#learn">GitRanks Learn</A>). When you opt a repository out, we keep your
-            GitHub account id and username and when you did it, until the repository is opted back in. Basis: legitimate
-            interests, in respecting maintainers&apos; choices.
+            sign-in cookie and used for up to one hour, on that page only and, to store and show your reaction to a
+            lesson result, on lesson result pages (see <A href="#learn">GitRanks Learn</A>). When you opt a repository
+            out, we keep your GitHub account id and username and when you did it, until the repository is opted back in.
+            Basis: legitimate interests, in respecting maintainers&apos; choices.
           </li>
           <li>
             <B>Deleting it</B>: in Contribute&apos;s settings, choose <B>Delete all Contribute data</B>. It stops runs
@@ -233,20 +234,22 @@ const sections: LegalSection[] = [
         </P>
         <List>
           <li>
-            <B>Your Learn profile</B>: your goal (a language or a project), a level per language and the focus you write
-            in your own words. Lessons are written for it.
+            <B>Your Learn profile</B>: your goal (a language, a project or a domain, which you name), a level per
+            language (we suggest them from the languages GitRanks ranks you in, and you correct them) and what lessons
+            should focus on. Your agent receives it with each issue, to write the lesson for you.
           </li>
           <li>
             <B>Lessons</B>: what your agent sends us for a lesson (its steps, text, diagrams, code and questions), with
             your GitHub username and id and the agent and model that wrote it. We check each lesson with AI before you
-            see it, so we send it, with the issue and the change, to our AI providers.
+            see it, so we send it, with the change and the issue&apos;s address, to our AI providers.
           </li>
           <li>
             <B>Taking a lesson</B>: your answers, tries, how each step went, when you started and passed, how long it
             took, your rating, and your likes, dislikes and reports on questions. We also record events as you go (steps
             shown, questions answered, hints shown, copying a step for your agent) to see which lessons and questions
-            work and to improve them. Basis for the events: legitimate interests, in lessons that teach. Two reports on
-            a lesson pause it and tell us, so a person reads them.
+            work and to improve them. Basis for the events: legitimate interests, in lessons that teach. Reports from
+            two people close a lesson&apos;s page until a person reads them; we are told by a notification. We may also
+            hide a lesson ourselves, for example after abuse or a legal request.
           </li>
           <li>
             <B>What becomes public</B>: when GitRanks opens a lesson&apos;s pull request, the lesson becomes public
@@ -254,14 +257,16 @@ const sections: LegalSection[] = [
             level it was written for. So does your result: how each step went, when you passed and how long it took, and
             the questions you were asked with their right answers, never the options you got wrong. Its form for
             machines also gives your GitHub account id. Anyone can read them, search engines may list them, and the pull
-            request links to your result. Your public results also show as a Learn record on your profile. If you take
-            someone else&apos;s lesson, your result stays private unless you share it.
+            request links to your result. Your public results also show as a Learn record on your profile (lessons,
+            topics, and the Learn pull requests opened and merged). If you take someone else&apos;s lesson, your result
+            stays private unless you share it.
           </li>
           <li>
-            <B>Reactions</B>: maintainers and collaborators of a repository can say whether a lesson result helped them
-            review its pull request. A reaction is stored with the person&apos;s GitHub username and id, their role on
-            the repository and when they reacted, and may be shown on the result page with their username, avatar and
-            role. A click on these buttons while signed out is counted as described under{' '}
+            <B>Reactions</B>: anyone signed in with GitHub can say whether a lesson result helped review its pull
+            request. A reaction is stored with the person&apos;s GitHub username and id, their role on the repository
+            (read from GitHub with their sign-in) and when they reacted. Reactions from the repository&apos;s
+            maintainers and collaborators may be shown on the result page with their username, avatar and role; others
+            are never shown. A click on these buttons while signed out is counted as described under{' '}
             <A href="#visitors">Visiting the site</A>, never shown. Basis: legitimate interests, in showing what
             maintainers think of a lesson.
           </li>
@@ -338,9 +343,10 @@ const sections: LegalSection[] = [
         </li>
         <li>
           <B>Learn pages</B>: when a lesson or a result page is opened, or a block about Learn is shown, clicked or
-          closed, we count it the same way, with the lesson and whether you were signed in. A reaction picked while
-          signed out is counted, never shown, and carried through the sign-in it starts (see{' '}
-          <A href="#learn">GitRanks Learn</A>). Basis: legitimate interests, in knowing how lessons are used.
+          closed, we count it with the page, the lesson, whether you were signed in and, for a reaction, the pick; your
+          IP address and browser are used as above and not stored. A reaction picked while signed out is counted, never
+          shown, and carried through the sign-in it starts (see <A href="#learn">GitRanks Learn</A>). Basis: legitimate
+          interests, in knowing how lessons are used.
         </li>
         <li>
           <B>Check my badge</B>: when you check a badge, we read the README of that profile or repository on GitHub.
@@ -466,6 +472,10 @@ const sections: LegalSection[] = [
           <li>
             records of pull requests opened through Contribute and whether they were AI-assisted, and any repository
             opt-out you made as a maintainer, until it is lifted;
+          </li>
+          <li>
+            counts of visits to pages that name your account (your profile, or your result on a lesson), until they
+            expire after six months;
           </li>
           <li>
             records for stopping abuse of Contribute, for the periods given under{' '}

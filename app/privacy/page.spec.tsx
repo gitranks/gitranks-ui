@@ -27,7 +27,11 @@ describe('the Privacy policy', () => {
     expect(plain).toContain('the lesson becomes public under your GitHub username');
     expect(plain).toContain('never the options you got wrong');
     expect(plain).toContain('Its form for machines also gives your GitHub account id');
-    expect(plain).toContain('may be shown on the result page with their username, avatar and role');
+    expect(plain).toContain('anyone signed in with GitHub can say whether a lesson result helped');
+    expect(plain).toContain(
+      'may be shown on the result page with their username, avatar and role; others are never shown',
+    );
+    expect(plain).toContain('counts of visits to pages that name your account');
     expect(plain).toContain("other people's results on them included");
     expect(plain).toContain('Learn data: until you delete it or remove your data');
     expect(plain).toContain('Ways into Contribute and Learn pages: six months');

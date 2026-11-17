@@ -273,6 +273,17 @@ describe('usePicks', () => {
     expect(toast.error).toHaveBeenCalledExactlyOnceWith(PICK_TOASTS.removeFailed);
   });
 
+  it('toasts a removal call that throws, and keeps the picks', async () => {
+    mount(viewerOf({ picks: picked('octo/rocket') }));
+    fetchMock.mockRejectedValueOnce(new Error('offline'));
+
+    await act(() => state.remove({ kind: 'repo', name: 'octo/rocket' }));
+
+    expect(toast.error).toHaveBeenCalledExactlyOnceWith(PICK_TOASTS.removeFailed);
+    expect(state.removing).toBeNull();
+    expect(viewer?.picks).toEqual(picked('octo/rocket'));
+  });
+
   it.each([
     [410, REFRESH_TOASTS.removed],
     [400, PICK_TOASTS.notHeld],

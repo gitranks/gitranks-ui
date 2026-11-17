@@ -56,8 +56,7 @@ const nextPickDayOf = (now: number) => {
   return new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 1)).toISOString();
 };
 
-/** Whether the visitor may add a pick now: fewer than 3 held, and a new one left today. */
-export const hasPickLeft = (viewer: DailyUpdatesViewer | null) =>
+const hasPickLeft = (viewer: DailyUpdatesViewer | null) =>
   !!viewer && viewer.picks.length < PICKS_MAX && viewer.newPicksLeftToday > 0;
 
 /** The toast for a refused pick call, by its HTTP status: a removed account, a name the API refuses, or a failure. */

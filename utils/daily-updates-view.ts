@@ -48,7 +48,7 @@ export type ProfileUpdatesView =
 export type PickableUpdatesView = 'off' | 'your-pick' | 'on-badge' | 'on-pick';
 
 /** The kinds of pick this site knows. */
-export const PICK_KINDS: readonly PickKind[] = ['repo'];
+const PICK_KINDS: readonly PickKind[] = ['repo'];
 
 export const isPickKind = (value: unknown): value is PickKind => PICK_KINDS.includes(value as PickKind);
 

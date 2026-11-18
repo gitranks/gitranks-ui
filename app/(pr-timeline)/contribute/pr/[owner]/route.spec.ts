@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 const { target } = vi.hoisted(() => ({ target: vi.fn(async (_id: string) => '/contribute/pr/a/b/1') }));
 vi.mock('@/lib/contribute/pr-timeline-gate', () => ({ prTimelineShortTargetOf: target }));
+vi.mock('@/lib/seo/site', () => ({ SITE_URL: 'https://gitranks.com' }));
 
 const { GET } = await import('./route');
 
+// As behind the proxy: the request URL is the server's bind address, never the site's.
 const call = (owner: string) =>
-  GET(new Request(`https://gitranks.com/contribute/pr/${owner}`), {
+  GET(new Request(`https://0.0.0.0:3000/contribute/pr/${owner}`), {
     params: Promise.resolve({ owner }),
   } as never);
 

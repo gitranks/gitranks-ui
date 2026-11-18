@@ -287,6 +287,10 @@ const sections: LegalSection[] = [
             the reactions others left on your results. Pull requests and their links stay on GitHub.
           </li>
         </List>
+      </>
+    ),
+  },
+  {
     id: 'following',
     title: 'Following a package',
     body: (

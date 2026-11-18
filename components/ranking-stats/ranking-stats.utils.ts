@@ -166,6 +166,8 @@ type PackageRankingStatsInput = {
   /** When the dependents were last read, and when the ranks were last worked out, as written in text. */
   readOn?: string | null;
   ranksOn?: string | null;
+  /** For a ranking by downloads: the last of its 7 days, as written in text, said in place of the read. */
+  downloadsTo?: string | null;
   leaders: PackageRankingLeader[];
 };
 
@@ -183,6 +185,7 @@ export function buildPackageRankingStats({
   ranked,
   readOn,
   ranksOn,
+  downloadsTo,
   leaders,
 }: PackageRankingStatsInput): StatsPart[] {
   const parts: StatsPart[] = [];
@@ -209,7 +212,8 @@ export function buildPackageRankingStats({
     );
   }
 
-  parts.push(`Only ${registry}, only direct dependents${readOn ? `, read ${readOn}` : ''}. `);
+  const dates = [readOn ? `read ${readOn}` : '', downloadsTo ? `downloads to ${downloadsTo}` : ''].filter(Boolean);
+  parts.push(`Only ${registry}, only direct dependents${dates.map((date) => `, ${date}`).join('')}. `);
 
   if (ranksOn) {
     parts.push(`Ranks as of ${ranksOn}. `);

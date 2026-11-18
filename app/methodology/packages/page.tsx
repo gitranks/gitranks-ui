@@ -18,7 +18,7 @@ export const metadata: Metadata = pageMetadata({
 /** What each ranking ranks by, and what its change column compares. */
 const RANKINGS: Record<(typeof PACKAGE_RANKING_ORDER_LIST)[number], { ranksBy: string; change: string }> = {
   downloads: {
-    ranksBy: 'Downloads from the npm registry in the last 7 days',
+    ranksBy: 'Downloads from the npm registry over 7 days; the ranking says which day those 7 days end on',
     change: 'Against the 7 days before',
   },
   'dependents-stars': {
@@ -107,7 +107,8 @@ export default function PackageMethodologyPage() {
           <p>
             Dependents are read once a month. Ranks are worked out again after each monthly read and at least once a
             week, so the downloads ranking follows the latest week. Every number carries the date it was read: the
-            ranking pages say when the dependents were read and when the ranks were worked out.
+            dependents&apos; rankings say when the dependents were read, the downloads ranking names the last of its 7
+            days, and each ranking says when its ranks were worked out.
           </p>
           <p>
             A package&apos;s own page can show newer numbers than its ranks: they move on the page as soon as they are

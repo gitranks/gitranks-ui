@@ -32,7 +32,7 @@ describe('PackageRankingFrame', () => {
     );
     const text = visibleText(html);
 
-    expect(html).toMatch(/<h1 [^>]*>Package Ranking · Dependents&#x27; stars <span[^>]*>Beta<\/span><\/h1>/);
+    expect(html).toMatch(/<h1 [^>]*>Package Ranking · Dependents&#x27; stars<\/h1><span[^>]*>Beta<\/span>/);
     expect(text).toContain('Rank by:');
     for (const order of ['downloads', 'dependents-stars', 'dependents']) {
       expect(html).toContain(`href="/packages/npm/${order}/1"`);
@@ -48,6 +48,46 @@ describe('PackageRankingFrame', () => {
   });
 });
 
+describe('the downloads ranking header', () => {
+  it('names the last of its 7 days, and no day when it is not known', () => {
+    const dated = visibleText(
+      renderToStaticMarkup(
+        <PackageRankingFrame registry="npm" order="downloads" downloadsThrough="2026-11-15T00:00:00.000Z">
+          {null}
+        </PackageRankingFrame>,
+      ),
+    );
+    expect(dated).toContain('Rank is based on npm downloads in the 7 days to November 15, 2026.');
+
+    const undated = visibleText(
+      renderToStaticMarkup(
+        <PackageRankingFrame registry="npm" order="downloads">
+          {null}
+        </PackageRankingFrame>,
+      ),
+    );
+    expect(undated).toContain('Rank is based on npm downloads over 7 days.');
+  });
+});
+
+describe('the dependents ranking', () => {
+  it("says the read's date, not the downloads' days", () => {
+    const text = visibleText(
+      renderToStaticMarkup(
+        <PackageRankingScreen
+          {...PAGE}
+          order="dependents"
+          page={1}
+          rows={downloadsRanking}
+          facts={packageRankingFacts}
+        />,
+      ),
+    );
+    expect(text).toContain('Only npm, only direct dependents, read November 16, 2026. ');
+    expect(text).not.toContain('downloads to');
+  });
+});
+
 describe('PackageRankingScreen', () => {
   it('draws the first page with its summary, its questions and their structured data', () => {
     const html = renderToStaticMarkup(
@@ -57,7 +97,10 @@ describe('PackageRankingScreen', () => {
 
     expect(jsonLdTypes(html)).toEqual(['ItemList', 'BreadcrumbList', 'FAQPage']);
     expect(text).toContain('At the latest monthly read, 41,870 npm packages are used directly');
-    expect(text).toContain('read November 16, 2026. Ranks as of November 17, 2026.');
+    expect(text).toContain(
+      'Only npm, only direct dependents, downloads to November 15, 2026. Ranks as of November 17, 2026.',
+    );
+    expect(text).toContain('moss-date, with 5,806,310 downloads in the 7 days to November 15, 2026.');
     expect(text).toContain('Which npm package is first by weekly downloads?');
     // Twelve rows are less than a page: no next page.
     expect(html).not.toContain('aria-label="Go to next page"');

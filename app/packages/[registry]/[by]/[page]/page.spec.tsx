@@ -98,12 +98,42 @@ describe('a package ranking page', () => {
     expect(metadata.title).toBe('npm Package Ranking by Downloads');
     expect(metadata.robots).toBeUndefined();
 
+    vi.mocked(cacheLife).mockReset();
     vi.mocked(fetchPackageRankings).mockResolvedValue(undefined);
     expect((await generateMetadata(params())).robots).toEqual({ index: false });
+    expect(vi.mocked(cacheLife).mock.calls).toEqual([['minutes']]);
+  });
+
+  it('keeps its metadata as long as the page', async () => {
+    await generateMetadata(params());
+    expect(vi.mocked(cacheLife).mock.calls).toEqual([['hours']]);
   });
 });
 
 describe('the package ranking layout', () => {
+  const layout = (overrides: Partial<Params> = {}) =>
+    PackageRankingLayout({
+      children: null,
+      ...params(overrides),
+    } as unknown as LayoutProps<'/packages/[registry]/[by]/[page]'>) as Promise<ReactElement<Record<string, unknown>>>;
+
+  beforeEach(() => {
+    vi.mocked(cacheLife).mockReset();
+    vi.mocked(fetchPackageRankingFacts).mockReset().mockResolvedValue(packageRankingFacts);
+  });
+
+  it('gives the downloads header the last of its 7 days, kept for hours', async () => {
+    expect((await layout()).props.downloadsThrough).toBe(packageRankingFacts.downloadsThrough);
+    expect(vi.mocked(cacheLife).mock.calls).toEqual([['hours']]);
+  });
+
+  it('draws the header with no day, kept for minutes, when the facts cannot be read', async () => {
+    vi.mocked(fetchPackageRankingFacts).mockResolvedValue(undefined);
+
+    expect((await layout()).props.downloadsThrough).toBeUndefined();
+    expect(vi.mocked(cacheLife).mock.calls).toEqual([['minutes']]);
+  });
+
   it('lists the first page of each ranking, so an unlisted page renders whole and answers a real 404', async () => {
     expect(await generateStaticParams()).toEqual([
       { registry: 'npm', by: 'downloads', page: '1' },
@@ -118,7 +148,10 @@ describe('the package ranking layout', () => {
       ...params({ by: 'dependents' }),
     } as unknown as LayoutProps<'/packages/[registry]/[by]/[page]'>)) as ReactElement<Record<string, unknown>>;
 
-    expect(frame.props).toMatchObject({ registry: 'npm', registryLabel: 'npm', order: 'dependents' });
+    expect(frame.props).toMatchObject({ registry: 'npm', order: 'dependents' });
+    expect(frame.props).not.toHaveProperty('registryLabel');
+    // Only the downloads ranking's header needs the facts.
+    expect(fetchPackageRankingFacts).not.toHaveBeenCalled();
     await expect(
       PackageRankingLayout({
         children: null,

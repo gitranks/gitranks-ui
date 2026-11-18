@@ -48,6 +48,15 @@ describe('PackageRankingTable', () => {
     expect(all[11]).not.toContain('href="/repo/');
   });
 
+  it("draws the registry's mark, never an avatar with no owner to name, when the repository is not known", () => {
+    const row = { ...downloadsRanking[0], repo: null, repositoryName: null };
+    const html = renderToStaticMarkup(<PackageRankingTable ranking={PACKAGE_RANKINGS.downloads} data={[row]} />);
+
+    expect(html).not.toContain('<img');
+    expect(html).not.toContain('undefined avatar');
+    expect(html).toContain('<svg');
+  });
+
   it("names the dependents' stars ranking's columns, rounds sums, and leaves a change out until there is one", () => {
     const html = renderToStaticMarkup(
       <PackageRankingTable ranking={PACKAGE_RANKINGS['dependents-stars']} data={dependentsStarsRanking} />,

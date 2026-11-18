@@ -18,6 +18,7 @@ query PackageRankingFacts($registry: PackageRegistry!) {
   packageRankingFacts(registry: $registry) {
     ranked
     dependentsReadAt
+    downloadsThrough
     ranksAt
   }
 }

@@ -43,6 +43,13 @@ export async function generateMetadata({ params }: PageProps<'/packages/[registr
   }
 
   const [rows, facts] = await readPage(ranking);
+  // Kept as long as the page it describes.
+  if (rows && facts !== undefined) {
+    cacheLife('hours');
+  } else {
+    cacheLife('minutes');
+  }
+
   const metadata = buildPackageRankingMetadata({
     registry: ranking.registry,
     registryLabel: ranking.registryInfo.label,

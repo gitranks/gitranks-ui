@@ -165,6 +165,12 @@ describe('buildPackageRankingStats', () => {
     ]);
   });
 
+  it("says a downloads ranking's last day in place of the read", () => {
+    expect(text(buildPackageRankingStats({ ...input, downloadsTo: 'November 15, 2026' }))).toContain(
+      'Only npm, only direct dependents, downloads to November 15, 2026. ',
+    );
+  });
+
   it('leaves out the facts it has no data for', () => {
     expect(text(buildPackageRankingStats({ ...input, leaders: input.leaders.slice(0, 1) }))).toBe(
       'By weekly downloads, the top package is moss-date (5,806,310). Only npm, only direct dependents. How package rankings work.',

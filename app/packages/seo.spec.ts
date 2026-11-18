@@ -81,6 +81,7 @@ describe('buildPackageRankingQuestions', () => {
       rows: downloadsRanking,
       readOn: 'November 16, 2026',
       ranksOn: 'November 17, 2026',
+      downloadsTo: 'November 15, 2026',
     });
 
     expect(items.map(({ question }) => question)).toEqual([
@@ -89,10 +90,31 @@ describe('buildPackageRankingQuestions', () => {
       'What counts as a dependent?',
       'How often are package rankings updated?',
     ]);
-    expect(items[1].answer).toBe('moss-date, with 5,806,310 downloads last week. Then @orbit/fetch and kite-router.');
+    expect(items[0].answer).toMatch(/^Rank is based on npm downloads in the 7 days to November 15, 2026\. /);
+    expect(items[1].answer).toBe(
+      'moss-date, with 5,806,310 downloads in the 7 days to November 15, 2026. Then @orbit/fetch and kite-router.',
+    );
     expect(items[3].answer).toBe(
       'Dependents are read once a month, last on November 16, 2026. Ranks are worked out again after each monthly read and at least once a week; these are of November 17, 2026.',
     );
+  });
+
+  it('names no day for the downloads when it is not known, never one from the calendar', () => {
+    const items = buildPackageRankingQuestions({ ...PAGE, rows: downloadsRanking });
+
+    expect(items[0].answer).toMatch(/^Rank is based on npm downloads over 7 days\. /);
+    expect(items[1].answer).toBe('moss-date, with 5,806,310 downloads over 7 days. Then @orbit/fetch and kite-router.');
+  });
+
+  it("keeps the dependents' rankings' answers free of the downloads' days", () => {
+    const items = buildPackageRankingQuestions({
+      ...PAGE,
+      order: 'dependents',
+      rows: downloadsRanking.slice(0, 1),
+      downloadsTo: 'November 15, 2026',
+    });
+
+    expect(items.map(({ answer }) => answer).join(' ')).not.toContain('7 days');
   });
 
   it('leaves out the leader without rows, and the dates it does not have', () => {

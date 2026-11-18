@@ -71,5 +71,6 @@ export const dependentsRanking: PackageRankRows = [
 export const packageRankingFacts: PackageRankingFactsData = {
   ranked: 41_870,
   dependentsReadAt: '2026-11-16T04:12:00.000Z',
+  downloadsThrough: '2026-11-15T00:00:00.000Z',
   ranksAt: '2026-11-17T06:00:00.000Z',
 };

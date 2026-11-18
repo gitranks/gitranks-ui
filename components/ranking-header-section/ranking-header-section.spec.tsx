@@ -24,13 +24,13 @@ describe('RankingHeaderSection', () => {
     expect(html).toContain('<div class="text-sm text-muted-foreground">Rank is based on downloads.</div>');
   });
 
-  it('sets a pill beside the title', () => {
+  it('sets a pill beside the heading, not in it', () => {
     const html = renderToStaticMarkup(
       <RankingHeaderSection title="Package Ranking" pill={<span>Beta</span>} options={OPTIONS} subtitle="" />,
     );
 
     expect(html).toContain(
-      '<h1 class="text-2xl font-semibold flex items-center gap-2">Package Ranking <span>Beta</span></h1>',
+      '<div class="flex items-center gap-2"><h1 class="text-2xl font-semibold">Package Ranking</h1><span>Beta</span></div>',
     );
   });
 });

@@ -2,9 +2,11 @@ import type { Metadata } from 'next';
 
 import {
   DEPENDENT_MIN_STARS,
+  downloadsWindow,
   formatPackageCount,
   PACKAGE_RANKINGS,
   type PackageRankingOrder,
+  packageRankingBasis,
 } from './package-rankings';
 import type { QuestionItem } from '@/components/questions-block/questions-block';
 import { buildPackageRankingItemList } from '@/components/ranking-table/ranking-item-list';
@@ -103,23 +105,30 @@ export function buildPackageRankingJsonLd(input: PackageRankingPage & { rows: Pa
  * is, and how fresh the numbers are. A question whose answer has no data is left out.
  */
 export function buildPackageRankingQuestions(
-  input: PackageRankingPage & { rows: PackageRankRows; readOn?: string | null; ranksOn?: string | null },
+  input: PackageRankingPage & {
+    rows: PackageRankRows;
+    readOn?: string | null;
+    ranksOn?: string | null;
+    /** The last of the downloads ranking's 7 days, as written in text; no date when unknown. */
+    downloadsTo?: string | null;
+  },
 ): QuestionItem[] {
-  const { registryLabel, order, rows, readOn, ranksOn } = input;
+  const { registryLabel, order, rows, readOn, ranksOn, downloadsTo } = input;
   const ranking = PACKAGE_RANKINGS[order];
   const [first, ...next] = rows;
   const items: QuestionItem[] = [
     {
       question: `What does the ${registryLabel} package ranking by ${ranking.label.toLowerCase()} count?`,
-      answer: `${ranking.basis} A package is ranked once at least one repository with ${DEPENDENT_MIN_STARS}+ stars uses it directly.`,
+      answer: `${packageRankingBasis(order, downloadsTo)} A package is ranked once at least one repository with ${DEPENDENT_MIN_STARS}+ stars uses it directly.`,
     },
   ];
 
   if (first) {
     const after = next.slice(0, 2).map(({ name }) => name);
+    const window = order === 'downloads' ? ` ${downloadsWindow(downloadsTo)}` : '';
     items.push({
       question: `Which ${registryLabel} package is first by ${ranking.metricInSentence}?`,
-      answer: `${first.name}, with ${count(first.value, ranking.unit)}.${after.length ? ` Then ${joinNames(after)}.` : ''}`,
+      answer: `${first.name}, with ${count(first.value, ranking.unit)}${window}.${after.length ? ` Then ${joinNames(after)}.` : ''}`,
     });
   }
 

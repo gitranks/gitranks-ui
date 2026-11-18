@@ -57,7 +57,7 @@ export function GoToPackageField({ registry = 'npm' }: Readonly<{ registry?: str
         </Button>
       </div>
       {invalid && (
-        <p id={errorId} className="text-xs text-destructive">
+        <p id={errorId} role="alert" className="text-xs text-destructive">
           That is not an npm package name. Try one like react or @scope/name.
         </p>
       )}

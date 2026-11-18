@@ -64,7 +64,11 @@ export const PackageRankingTable: FC<PackageRankingTableProps> = ({ ranking, dat
             <TableCell className="whitespace-normal">
               <div className="flex min-w-0 flex-col gap-1">
                 <LinkWithStopPropagation href={href}>
-                  {row.ownerAvatarUrl ? <ProfileAvatar url={row.ownerAvatarUrl} login={owner} /> : <RegistryMark />}
+                  {row.ownerAvatarUrl && owner ? (
+                    <ProfileAvatar url={row.ownerAvatarUrl} login={owner} />
+                  ) : (
+                    <RegistryMark />
+                  )}
                   <span translate="no" className="min-w-0 [overflow-wrap:anywhere]">
                     {row.name}
                   </span>

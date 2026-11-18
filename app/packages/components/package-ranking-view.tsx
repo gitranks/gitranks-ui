@@ -6,6 +6,7 @@ import {
   PACKAGE_RANKING_ORDER_LIST,
   PACKAGE_RANKINGS,
   type PackageRankingOrder,
+  packageRankingBasis,
 } from '../package-rankings';
 import { buildPackageRankingJsonLd, buildPackageRankingQuestions } from '../seo';
 import { GoToPackageField } from './go-to-package-field';
@@ -31,15 +32,17 @@ type PackageRankingProps = {
   order: PackageRankingOrder;
 };
 
+type PackageRankingFrameProps = Omit<PackageRankingProps, 'registryLabel'> & {
+  /** The last of the downloads ranking's 7 days, as the facts give it; no date when unknown. */
+  downloadsThrough?: unknown;
+  children: ReactNode;
+};
+
 /**
  * A package ranking's frame, as its layout draws it: the title with its Beta pill, "Rank by", what the rank is based
  * on, the "Go to a package" field and the Beta notice, around a page of the ranking.
  */
-export const PackageRankingFrame: FC<PackageRankingProps & { children: ReactNode }> = ({
-  registry,
-  order,
-  children,
-}) => (
+export const PackageRankingFrame: FC<PackageRankingFrameProps> = ({ registry, order, downloadsThrough, children }) => (
   <>
     <Header section="rankings" />
     <Page className="max-w-5xl gap-6">
@@ -56,7 +59,7 @@ export const PackageRankingFrame: FC<PackageRankingProps & { children: ReactNode
           label: PACKAGE_RANKINGS[option].label,
           active: option === order,
         }))}
-        subtitle={PACKAGE_RANKINGS[order].basis}
+        subtitle={packageRankingBasis(order, formatPackageDate(downloadsThrough))}
       />
       <GoToPackageField registry={registry} />
       <PackageBetaNotice />
@@ -111,6 +114,8 @@ export const PackageRankingScreen: FC<PackageRankingScreenProps> = ({
   const pageProps = { registry, registryLabel, order, page };
   const readOn = formatPackageDate(facts?.dependentsReadAt);
   const ranksOn = formatPackageDate(facts?.ranksAt);
+  const downloadsTo = formatPackageDate(facts?.downloadsThrough);
+  const isDownloads = order === 'downloads';
   const isFirstPage = page === 1;
   const stats = isFirstPage
     ? buildPackageRankingStats({
@@ -119,7 +124,9 @@ export const PackageRankingScreen: FC<PackageRankingScreenProps> = ({
         metric: ranking.metricInSentence,
         minStars: DEPENDENT_MIN_STARS,
         ranked: facts?.ranked,
-        readOn,
+        // The downloads ranking's numbers are of its 7 days, not of the monthly read.
+        readOn: isDownloads ? null : readOn,
+        downloadsTo: isDownloads ? downloadsTo : null,
         ranksOn,
         leaders: rows.slice(0, 3).map(({ name, value }) => ({ name, value })),
       })
@@ -140,7 +147,7 @@ export const PackageRankingScreen: FC<PackageRankingScreenProps> = ({
         <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Questions</h2>
           <QuestionsBlock
-            items={buildPackageRankingQuestions({ ...pageProps, rows, readOn, ranksOn })}
+            items={buildPackageRankingQuestions({ ...pageProps, rows, readOn, ranksOn, downloadsTo })}
             jsonLd
             className="flex flex-col gap-4 text-sm"
           />

@@ -32,9 +32,10 @@ export const RankingHeaderSection: FC<RankingHeaderSectionProps> = ({
   <>
     <div className="flex items-center justify-between gap-4 flex-wrap">
       {pill ? (
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          {title} {pill}
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">{title}</h1>
+          {pill}
+        </div>
       ) : (
         <h1 className="text-2xl font-semibold">{title}</h1>
       )}

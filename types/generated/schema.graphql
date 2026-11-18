@@ -4143,6 +4143,7 @@ type PackageRankRow {
 
 type PackageRankingFacts {
   dependentsReadAt: DateTime
+  downloadsThrough: DateTime
   ranked: Int!
   ranksAt: DateTime
 }

@@ -18,7 +18,7 @@ export type PackageRanking = {
   type: PackageRankingType;
   /** Its option in "Rank by", and the end of its title. */
   label: string;
-  /** What the rank is based on, as the header says it. */
+  /** What the rank is based on, as the header says it (the downloads ranking's with no date: see `packageRankingBasis`). */
   basis: string;
   /** What the ranking orders packages by, in running text: "npm packages ranked by …". */
   rankedBy: string;
@@ -28,7 +28,7 @@ export type PackageRanking = {
   change: string;
   /** The metric, in a sentence: "By weekly downloads, the top three are …". */
   metricInSentence: string;
-  /** A package's number, after the number: "5,806,310 weekly downloads"; one, then many. */
+  /** A package's number, after the number: "5,806,310 downloads"; one, then many. */
   unit: readonly [string, string];
 };
 
@@ -37,12 +37,12 @@ export const PACKAGE_RANKINGS = {
   downloads: {
     type: PackageRankingType.Downloads,
     label: 'Downloads',
-    basis: 'Rank is based on npm downloads in the last 7 days.',
+    basis: 'Rank is based on npm downloads over 7 days.',
     rankedBy: 'weekly downloads',
     metric: 'Weekly downloads',
     change: 'vs last week',
     metricInSentence: 'weekly downloads',
-    unit: ['download last week', 'downloads last week'],
+    unit: ['download', 'downloads'],
   },
   'dependents-stars': {
     type: PackageRankingType.DependentsStars,
@@ -77,6 +77,21 @@ export function isPackageRankingOrder(value: string): value is PackageRankingOrd
   return Object.hasOwn(PACKAGE_RANKINGS, value);
 }
 
+/**
+ * The downloads ranking's 7 days, by their last day as the ranks' read gives it: "in the 7 days to November 15, 2026".
+ * With no such day, no date at all: one is never worked out from the calendar.
+ */
+export function downloadsWindow(downloadsTo: string | null | undefined) {
+  return downloadsTo ? `in the 7 days to ${downloadsTo}` : 'over 7 days';
+}
+
+/** What a ranking's rank is based on, as its header says it; the downloads ranking with its 7 days' last day. */
+export function packageRankingBasis(order: PackageRankingOrder, downloadsTo?: string | null) {
+  return order === 'downloads'
+    ? `Rank is based on npm downloads ${downloadsWindow(downloadsTo)}.`
+    : PACKAGE_RANKINGS[order].basis;
+}
+
 /** "npm Package Ranking by Downloads". */
 export function packageRankingTitle(registryLabel: string, order: PackageRankingOrder) {
   return `${registryLabel} Package Ranking by ${PACKAGE_RANKINGS[order].label}`;
@@ -92,7 +107,7 @@ export function formatPackageChange(value: number) {
   return `${rounded > 0 ? '+' : '−'}${Math.abs(rounded).toLocaleString('en-US')}`;
 }
 
-/** A read or a walk's date, `November 16, 2026`, in UTC; null when it does not parse. */
+/** A read's or a ranking's date, `November 16, 2026`, in UTC; null when it does not parse. */
 const DATE = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 export function formatPackageDate(value: unknown): string | null {

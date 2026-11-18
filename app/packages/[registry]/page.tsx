@@ -3,7 +3,8 @@ import { notFound, redirect } from 'next/navigation';
 import { packageRankingRegistryOf } from '../package-rankings';
 import { packageRankingPath } from '@/utils/package-paths';
 
-// Unlisted registries render on request before the response starts, so the 404 is a real one.
+// The proxy answers an unknown registry with a 404 before anything renders, so only a known one reaches this page; the
+// check below keeps the page safe on its own. One registry is listed so the redirect is prerendered.
 export const instant = false;
 
 export async function generateStaticParams() {

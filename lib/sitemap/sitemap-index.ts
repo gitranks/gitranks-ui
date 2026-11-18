@@ -2,13 +2,18 @@ import { startOfMonth } from 'date-fns';
 
 import { fetchOrgSitemapParts } from '@/graphql/helpers/fetch-org-sitemap-parts';
 import { fetchRepoSitemapParts } from '@/graphql/helpers/fetch-repo-sitemap-parts';
+import { fetchPackageSitemapParts, fetchRepoTabSitemapParts } from '@/lib/sitemap/package-sitemap-data';
+import { packagesPublicNow } from '@/lib/sitemap/packages-public';
 import {
   SITEMAP_ORG_PARTS_MAX,
+  SITEMAP_PACKAGE_PARTS_MAX,
   SITEMAP_REPO_PARTS_MAX,
+  SITEMAP_REPO_TAB_PARTS_MAX,
   SITEMAP_SEGMENTS,
   type SitemapSegment,
 } from '@/lib/sitemap/sitemap.consts';
 import { absoluteSitemapUrl } from '@/lib/sitemap/sitemap-url';
+import { PackageRegistry, RepoSitemapTab } from '@/types/generated/graphql';
 
 export function childSitemapLoc(segment: SitemapSegment): string {
   return absoluteSitemapUrl(`/sitemaps/${segment}/sitemap.xml`);
@@ -22,6 +27,21 @@ export function repoSitemapLoc(part: number): string {
 /** The organization-page sitemap of one part, as `generateSitemaps` names it. */
 export function orgSitemapLoc(part: number): string {
   return absoluteSitemapUrl(`/sitemaps/orgs/pages/sitemap/${part}.xml`);
+}
+
+/** The package rankings' pages. */
+export function packageRankingsSitemapLoc(): string {
+  return absoluteSitemapUrl('/sitemaps/packages/rankings/sitemap.xml');
+}
+
+/** The package-page sitemap of one part, as `generateSitemaps` names it. */
+export function packageSitemapLoc(part: number): string {
+  return absoluteSitemapUrl(`/sitemaps/packages/sitemap/${part}.xml`);
+}
+
+/** A repository tab's sitemap of one part, as `generateSitemaps` names it. */
+export function repoTabSitemapLoc(tab: 'used-by' | 'contributors', part: number): string {
+  return absoluteSitemapUrl(`/sitemaps/repo-${tab}/sitemap/${part}.xml`);
 }
 
 /** `count` parts, at most `max`: a count that cannot be trusted lists none or the most there can be. */
@@ -38,6 +58,35 @@ export function listChildSitemapLocs(repoParts = 0, orgParts = 0): string[] {
     ...partsOf(repoParts, SITEMAP_REPO_PARTS_MAX, repoSitemapLoc),
     ...partsOf(orgParts, SITEMAP_ORG_PARTS_MAX, orgSitemapLoc),
   ];
+}
+
+/**
+ * The package sitemaps: the package rankings, then the first `packageParts` package-page parts, the first `usedByParts`
+ * parts of the repositories' Used by tab and the first `contributorsParts` of their Contributors tab.
+ */
+export function listPackageSitemapLocs(packageParts = 0, usedByParts = 0, contributorsParts = 0): string[] {
+  return [
+    packageRankingsSitemapLoc(),
+    ...partsOf(packageParts, SITEMAP_PACKAGE_PARTS_MAX, packageSitemapLoc),
+    ...partsOf(usedByParts, SITEMAP_REPO_TAB_PARTS_MAX, (part) => repoTabSitemapLoc('used-by', part)),
+    ...partsOf(contributorsParts, SITEMAP_REPO_TAB_PARTS_MAX, (part) => repoTabSitemapLoc('contributors', part)),
+  ];
+}
+
+/**
+ * The package sitemaps once package pages are open to everyone; none before, so the index is then exactly what it was
+ * without them (whoever asks: a preview list of viewers lists nothing).
+ */
+async function packageSitemapLocs(): Promise<string[]> {
+  if (!(await packagesPublicNow())) {
+    return [];
+  }
+  const [packageParts, usedByParts, contributorsParts] = await Promise.all([
+    fetchPackageSitemapParts(PackageRegistry.Npm),
+    fetchRepoTabSitemapParts(RepoSitemapTab.UsedBy),
+    fetchRepoTabSitemapParts(RepoSitemapTab.Contributors),
+  ]);
+  return listPackageSitemapLocs(packageParts, usedByParts, contributorsParts);
 }
 
 /**
@@ -65,7 +114,7 @@ ${entries}
 export async function sitemapIndexResponse(): Promise<Response> {
   // The locs resolve the base URL and throw on misconfig.
   const [repoParts, orgParts] = await Promise.all([fetchRepoSitemapParts(), fetchOrgSitemapParts()]);
-  const locs = listChildSitemapLocs(repoParts, orgParts);
+  const locs = [...listChildSitemapLocs(repoParts, orgParts), ...(await packageSitemapLocs())];
   return new Response(buildSitemapIndexXml(locs), {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',

@@ -19,6 +19,8 @@ export const SITEMAP_PAGE_DEPTH = {
   orgs: 20,
   /** The global repository ranking, every page. */
   repos: 50,
+  /** Each package ranking, every page. */
+  packages: 50,
 } as const;
 
 /** The most repository sitemaps there can be (40,000 repositories each); the index lists those that hold any. */
@@ -29,6 +31,14 @@ export const SITEMAP_REPO_PARTS_MAX = 10;
  * lists those that hold any.
  */
 export const SITEMAP_ORG_PARTS_MAX = 5;
+
+/**
+ * The most package-page sitemaps there can be (40,000 packages each), and the most of each repository tab's (Used by,
+ * Contributors; 40,000 repositories each); the index lists those that hold any, and only while package pages are open
+ * to everyone.
+ */
+export const SITEMAP_PACKAGE_PARTS_MAX = 10;
+export const SITEMAP_REPO_TAB_PARTS_MAX = 10;
 
 export const SITEMAP_COUNTRY_LIMIT = 100;
 export const SITEMAP_LANGUAGE_LIMIT = 10;

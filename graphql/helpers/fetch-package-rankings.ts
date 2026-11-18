@@ -42,8 +42,8 @@ export const fetchPackageRankings = async (props: {
 };
 
 /**
- * How many packages the rankings hold and the dates of their numbers: `null` before the first ranks, `undefined` when
- * it cannot be read now (kept a few minutes, as above).
+ * How many packages the rankings hold and the dates of their numbers: `null` when there are none to show (kept a few
+ * minutes), `undefined` when it cannot be read now (kept a few minutes, as above).
  */
 export const fetchPackageRankingFacts = async (
   registry: PackageRegistry,
@@ -52,7 +52,10 @@ export const fetchPackageRankingFacts = async (
 
   try {
     const { packageRankingFacts } = (await graphqlDirect(PackageRankingFactsDocument, { registry })) ?? {};
-    cacheLife('hours');
+    // No facts is kept for minutes only: it may be an answer to a moment the rankings were not open, which must not
+    // outlast their opening by hours.
+    if (packageRankingFacts) cacheLife('hours');
+    else cacheLife('minutes');
     return packageRankingFacts ?? null;
   } catch {
     cacheLife('minutes');

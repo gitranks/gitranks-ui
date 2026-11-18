@@ -1,0 +1,15 @@
+query PackageSitemapParts($registry: PackageRegistry!) {
+  packageSitemapParts(registry: $registry)
+}
+
+query PackagesForSitemap($registry: PackageRegistry!, $part: Int!) {
+  packagesForSitemap(registry: $registry, part: $part)
+}
+
+query RepoTabSitemapParts($tab: RepoSitemapTab!) {
+  repoTabSitemapParts(tab: $tab)
+}
+
+query RepoTabsForSitemap($tab: RepoSitemapTab!, $part: Int!) {
+  repoTabsForSitemap(tab: $tab, part: $part)
+}

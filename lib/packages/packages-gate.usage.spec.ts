@@ -8,7 +8,8 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 /**
  * The only files that may import the packages gate. It decides before anything renders who a page is drawn for, so a
- * page or a layout never reads it: the proxy and route handlers do.
+ * page or a layout never reads it: the proxy and route handlers do. The sitemaps and llms.txt ask, through one module,
+ * only whether package pages are open to everyone.
  */
 const ALLOWED = new Set([
   'proxy.ts',
@@ -28,7 +29,31 @@ const ALLOWED = new Set([
   'lib/packages/packages-gate.ts',
   'lib/packages/packages-gate.spec.ts',
   'lib/packages/packages-gate.usage.spec.ts',
+  'lib/sitemap/packages-public.ts',
+  'lib/sitemap/packages-public.spec.ts',
+  'lib/sitemap/hidden-packages-unchanged.spec.ts',
 ]);
+
+/**
+ * The only files that may import the sitemaps' and llms.txt's question (`packages-public`), which reaches the gate one
+ * step removed: a page or a layout must not read it either.
+ */
+const PUBLIC_ALLOWED = new Set([
+  'app/llms.txt/route.ts',
+  'app/sitemaps/packages/rankings/sitemap.ts',
+  'app/sitemaps/packages/rankings/sitemap.spec.ts',
+  'app/sitemaps/packages/sitemap.ts',
+  'app/sitemaps/packages/sitemap.spec.ts',
+  'lib/packages/packages-gate.usage.spec.ts',
+  'lib/sitemap/packages-public.spec.ts',
+  'lib/sitemap/repo-tab-sitemap.ts',
+  'lib/sitemap/repo-tab-sitemap.spec.ts',
+  'lib/sitemap/sitemap-index.ts',
+  'lib/sitemap/sitemap-index.spec.ts',
+]);
+
+/** A module specifier naming the sitemaps' question, however it is reached. */
+const PUBLIC_SPECIFIER = /['"`](?:[^'"`\n]*\/)?packages-public(?:\.tsx?)?['"`]/;
 
 /** A module specifier naming the gate, however it is reached: `@/lib/packages/packages-gate`, `./packages-gate`… */
 const GATE_SPECIFIER = /['"`](?:[^'"`\n]*\/)?packages-gate(?:\.tsx?)?['"`]/;
@@ -46,13 +71,22 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe('the packages gate', () => {
-  it('is imported only by the proxy, its route handlers and its own specs', () => {
+  it('is imported only by the proxy, its route handlers, the sitemaps and llms.txt, and its own specs', () => {
     const importers = sourceFiles(ROOT)
       .filter((path) => GATE_SPECIFIER.test(readFileSync(path, 'utf8')))
       .map((path) => relative(ROOT, path).split(sep).join('/'));
 
     expect(importers.filter((path) => !ALLOWED.has(path))).toEqual([]);
     expect(importers).toContain('proxy.ts');
+  });
+
+  it('is reached one step removed only by the sitemaps and llms.txt', () => {
+    const importers = sourceFiles(ROOT)
+      .filter((path) => PUBLIC_SPECIFIER.test(readFileSync(path, 'utf8')))
+      .map((path) => relative(ROOT, path).split(sep).join('/'));
+
+    expect(importers.filter((path) => !PUBLIC_ALLOWED.has(path))).toEqual([]);
+    expect(importers).toContain('lib/sitemap/sitemap-index.ts');
   });
 
   it('spots an import from a page or a layout', () => {

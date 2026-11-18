@@ -100,10 +100,11 @@ export async function LessonPageView({ slug }: { slug: string }) {
   const answer = await loadLessonPage(slug);
   if (!answer || (answer.kind === 'stub' && answer.visibility === 'HIDDEN')) notFound();
   if (answer.kind === 'stub') return <LessonStubScreen visibility={answer.visibility} />;
+  const [frontDoorOpen, viewer] = await Promise.all([learnOpenToEveryone(), lessonViewerOf(answer.value)]);
   return (
     <>
-      <JsonLd payloads={lessonJsonLd(answer.value, { frontDoorOpen: await learnOpenToEveryone() })} />
-      <LessonPageScreen page={answer.value} viewer={await lessonViewerOf(answer.value)} />
+      <JsonLd payloads={lessonJsonLd(answer.value, { frontDoorOpen })} />
+      <LessonPageScreen page={answer.value} viewer={viewer} />
     </>
   );
 }

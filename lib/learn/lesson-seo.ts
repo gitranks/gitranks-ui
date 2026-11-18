@@ -96,7 +96,7 @@ export function learnHomeMetadata(open: boolean): Metadata {
  * person who made it with their agent, its steps: what the page shows), and where it sits on the site. Learn's front door is a crumb only
  * once it is open to visitors.
  */
-export function lessonJsonLd(page: LessonPage, { frontDoorOpen = false }: { frontDoorOpen?: boolean } = {}): object[] {
+export function lessonJsonLd(page: LessonPage, { frontDoorOpen }: { frontDoorOpen: boolean }): object[] {
   const { head, steps } = page;
   const url = absoluteUrl(lessonPath(head.slug));
   const { repo } = head.subject;

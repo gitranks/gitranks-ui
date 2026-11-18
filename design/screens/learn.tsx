@@ -12,12 +12,14 @@ import { LessonPageScreen } from '@/app/learn/components/lesson-page';
 import { LessonResultScreen, type ResultViewer } from '@/app/learn/components/lesson-result';
 import { LessonStubScreen } from '@/app/learn/components/lesson-stub';
 import { MyLessonsScreen } from '@/app/learn/components/my-lessons';
+import { RecentLessons } from '@/app/learn/components/recent-lessons';
 import { Header } from '@/components/header/header';
 import { detail, pullRequest } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { views } from '@/lib/contribute/__fixtures__/contribute-views';
 import type { ContributeAttemptDetail } from '@/lib/contribute/contribute.types';
 import { CAUSE_HINT, CAUSE_QUESTION, FIX_QUESTION, FIX_WHY, lessons } from '@/lib/learn/__fixtures__/lesson';
 import { emptyProfile, filledProfile, myLessons } from '@/lib/learn/__fixtures__/profile';
+import { recentLessons } from '@/lib/learn/__fixtures__/recent-lessons';
 import { lessonPage, result, sharedRuns } from '@/lib/learn/__fixtures__/shared';
 import type { LearnAttemptLesson, LessonResultPage, LessonVisibility } from '@/lib/learn/learn.types';
 import { DONT_KNOW } from '@/lib/learn/question';
@@ -113,6 +115,7 @@ export const LEARN_SCREENS: Screen[] = [
     sources: [
       'app/learn/page.tsx',
       'app/learn/components/learn-landing.tsx',
+      'app/learn/components/recent-lessons.tsx',
       'app/learn/components/example-question.tsx',
       'app/learn/components/learn-sign-in.tsx',
       'app/learn/components/diagram.tsx',
@@ -122,11 +125,15 @@ export const LEARN_SCREENS: Screen[] = [
     states: [
       {
         id: 'signed-out',
-        title: 'The front door, signed out: an example lesson, the handoff, what a lesson covers',
+        title: 'The front door, signed out: an example lesson, the handoff, what a lesson covers, recent lessons',
         path: '/learn',
         signedOut: true,
-        height: 2160,
-        render: () => bare(<LearnLanding viewer="visitor" />, <HeaderLine />),
+        height: 2480,
+        render: () =>
+          bare(
+            <LearnLanding viewer="visitor" recentLessons={<RecentLessons lessons={recentLessons} />} />,
+            <HeaderLine />,
+          ),
       },
       {
         id: 'phone',
@@ -134,8 +141,12 @@ export const LEARN_SCREENS: Screen[] = [
         path: '/learn',
         signedOut: true,
         width: 390,
-        height: 3950,
-        render: () => bare(<LearnLanding viewer="visitor" />, <HeaderLine />),
+        height: 4500,
+        render: () =>
+          bare(
+            <LearnLanding viewer="visitor" recentLessons={<RecentLessons lessons={recentLessons} />} />,
+            <HeaderLine />,
+          ),
       },
     ],
   },

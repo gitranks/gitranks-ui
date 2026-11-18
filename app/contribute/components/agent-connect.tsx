@@ -13,7 +13,6 @@ import { useOnboardedPush } from './use-onboarded-push';
 import { reportContributeConnect } from '@/components/contribute-click-tracker/contribute-click-tracker';
 import { Button } from '@/components/ui/button';
 import {
-  AGENT_HELLO_PROMPT,
   AGENT_HINT_MS,
   AGENT_POLL_MS,
   agentWelcomeHref,
@@ -24,6 +23,7 @@ import type { ContributeMcpToken } from '@/lib/contribute/contribute.types';
 import { CONNECT_KEY_PATH, MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import {
+  AGENT_FIRST_PROMPT,
   ANTIGRAVITY_RELOAD,
   MCP_CLIENT_NAMES,
   MCP_CLIENTS,
@@ -376,7 +376,7 @@ export function AgentConnectView({
                 : `Start ${name} and ask it:`}
             </p>
             <CodeBlock label={proof ? 'Prompt for your agent' : `Prompt for ${name}`} copyLabel="Copy the prompt" wrap>
-              {proof ? proof.prompt : AGENT_HELLO_PROMPT}
+              {proof ? proof.prompt : AGENT_FIRST_PROMPT}
             </CodeBlock>
             <div
               role="status"

@@ -175,13 +175,16 @@ function ExampleCard({ children }: { children: ReactNode }) {
   return <div className="flex flex-col gap-2.5 rounded-xl border bg-card px-5 py-4 shadow-xs">{children}</div>;
 }
 
-/** A user whose agent token is live and whose agent has not called yet: carry on, or manage the token. */
+/**
+ * A user who chose their own agent and whose agent has not connected yet (`isMidSetup`: the path chosen, a token or not):
+ * carry on, or Settings.
+ */
 function MidSetupStrip() {
   return (
     <div className="border-b border-primary/20 bg-brand-soft" data-landing="mid-setup">
       <div className={cn(WIDTH, 'flex flex-wrap items-center justify-between gap-3 py-3 text-sm')}>
         <span>
-          <span className="font-semibold">Almost there.</span> Your token is ready, and your agent hasn't connected yet.
+          <span className="font-semibold">Almost there.</span> Your agent hasn't connected yet.
         </span>
         <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link href={CONNECT_AGENT_PATH} prefetch={false} className="font-semibold text-link">

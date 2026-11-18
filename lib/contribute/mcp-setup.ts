@@ -13,6 +13,11 @@ export const MCP_TOKEN_NAME_MAX = 40;
 export const SEND_BACK_NOTE_MAX = 2_000;
 /** Live tokens a user may hold at once. Creating one never revokes the others. */
 export const MCP_TOKENS_MAX = 5;
+/**
+ * What the user asks their own agent first, once it is connected: one prompt everywhere we show one (the connect step,
+ * the consent page, Settings, Overview, the MCP docs).
+ */
+export const AGENT_FIRST_PROMPT = 'Find me an open-source issue to work on with GitRanks.';
 /** Where the user's own agent connects. */
 export const MCP_URL = 'https://mcp.gitranks.com/mcp';
 /**

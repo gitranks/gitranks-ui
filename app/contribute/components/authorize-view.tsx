@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { AuthorizeActions, AuthorizeCancel, AuthorizeReviewSignIn, AuthorizeSignIn } from './authorize-actions';
+import { AuthorizeDocsLine, AuthorizeNextStep } from './authorize-next-step';
 import { NO_PROFILE_TITLE, SETTING_UP_TITLE } from './setting-up';
 import { SettingUpAutoRefresh } from './setting-up-refresh';
 import { LearnSetupRefresh } from '@/app/learn/components/learn-setting-up';
@@ -153,7 +154,8 @@ function PendingCard({
 
 /**
  * The consent page of an agent's sign-in to the MCP server, one card per state: the sign-in, the ask, the account being
- * set up, no profile, not open yet (the preview), allowed already, expired, or not readable now.
+ * set up, no profile, not open yet (the preview), allowed already, expired, or not readable now. No state is a dead
+ * end: each one that can't go on says where the setup help is, and allowed already says what to ask the agent.
  */
 export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
   switch (state.kind) {
@@ -206,8 +208,9 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
           title="Contribute isn't open for your account yet"
           text="GitRanks Contribute is in preview, so your agent can't connect to it yet."
         >
-          <CardFooter>
+          <CardFooter className="flex flex-col items-start gap-4">
             <AuthorizeCancel requestId={state.requestId} />
+            <AuthorizeDocsLine contact />
           </CardFooter>
         </Frame>
       );
@@ -230,8 +233,9 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
           title={NO_PROFILE_TITLE}
           text="GitRanks couldn't read your GitHub profile just now, so your agent can't connect yet. Try again later: start again from your agent."
         >
-          <CardFooter>
+          <CardFooter className="flex flex-col items-start gap-4">
             <AuthorizeCancel requestId={state.requestId} />
+            <AuthorizeDocsLine contact />
           </CardFooter>
         </Frame>
       );
@@ -240,7 +244,11 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
         <Frame
           title="Already allowed"
           text={`You allowed ${state.clientName?.trim() || 'this app'} already. Go back to it: it is connected, or it starts the sign-in again.`}
-        />
+        >
+          <CardFooter className="flex flex-col items-stretch">
+            <AuthorizeNextStep clientName={state.clientName?.trim() || undefined} />
+          </CardFooter>
+        </Frame>
       );
     case 'expired':
       return (
@@ -263,8 +271,9 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
           title="We can't read this sign-in right now"
           text="Reload the page in a minute, or cancel and start again from your agent."
         >
-          <CardFooter>
+          <CardFooter className="flex flex-col items-start gap-4">
             <AuthorizeCancel requestId={state.requestId} />
+            <AuthorizeDocsLine contact />
           </CardFooter>
         </Frame>
       );

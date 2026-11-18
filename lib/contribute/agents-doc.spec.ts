@@ -29,6 +29,13 @@ const PAGE: AgentPage = {
 describe('agents.md', () => {
   const doc = agentsDocOf(PAGE);
 
+  it('has the agent hand its person the review link after submit_patch, as nothing opens on GitHub before', () => {
+    expect(doc).toContain(
+      'After `submit_patch`, give your person the review link from its answer (https://gitranks.com/contribute/attempts/<id>)',
+    );
+    expect(doc).toContain('While their autopilot is off, nothing opens on GitHub until they approve it.');
+  });
+
   it('names every tool and every client, and holds no token', () => {
     for (const tool of MCP_DOC_TOOLS) expect(doc).toContain(`\`${tool.name}\``);
     for (const client of MCP_DOC_CLIENTS) expect(doc).toContain(`### ${client.name}`);

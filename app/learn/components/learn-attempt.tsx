@@ -16,6 +16,7 @@ import {
   TimelinePanel,
   YourNotePanel,
 } from '@/app/contribute/components/attempt-panels';
+import { AttemptSignIn } from '@/app/contribute/components/attempt-sign-in';
 import { DiffViewer } from '@/app/contribute/components/diff-viewer';
 import { CardError, DiscardAttemptButton } from '@/app/contribute/components/head-actions';
 import { PrForm } from '@/app/contribute/components/pr-form';
@@ -27,7 +28,7 @@ import { type SessionTab, SessionTabs } from '@/app/contribute/components/sessio
 import { Box } from '@/app/contribute/components/status-box';
 import { isOwnAgent } from '@/lib/contribute/attempt-format';
 import type { CommentActionsInit } from '@/lib/contribute/comment-actions';
-import { loadAttempt, loadContribute } from '@/lib/contribute/contribute.data';
+import { loadAttempt, loadContribute, viewerLogin } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import { parsePatch } from '@/lib/contribute/patch';
 import { attemptPath } from '@/lib/contribute/sessions';
@@ -348,6 +349,8 @@ export async function LearnAttemptView({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams ?? Promise.resolve({})]);
+  // Signed out: the link an agent hands its person, opened where they are not signed in. The sign-in, back here.
+  if (!(await viewerLogin())) return <AttemptSignIn what="lesson" />;
   const [open, settingUp, view, attempt, lesson] = await Promise.all([
     loadLearnOpen(),
     loadLearnSetup(),

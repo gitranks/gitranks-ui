@@ -15,6 +15,7 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: 
 vi.mock('@/app/learn/actions', () => ({}));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({
+  viewerLogin: vi.fn(async () => 'octocat'),
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
   loadPrNotes: vi.fn(async () => undefined),

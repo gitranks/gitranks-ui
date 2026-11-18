@@ -51,6 +51,7 @@ export function PrFeedbackScreen({
   read,
   orgAccessUrl,
   initial,
+  timelinePath = null,
 }: {
   target: PrTarget | null;
   flow: PrFeedbackFlow;
@@ -58,6 +59,8 @@ export function PrFeedbackScreen({
   orgAccessUrl: string;
   /** The form as it starts: the catalogue draws it filled in. */
   initial?: PrReportInitial & PrHelpedInitial;
+  /** The PR's public timeline, when it has one: the sent screens link back to it. */
+  timelinePath?: string | null;
 }) {
   if (!target || !read) {
     return (
@@ -166,9 +169,23 @@ export function PrFeedbackScreen({
   return (
     <Column flow={flow}>
       {flow === 'helped' ? (
-        <PrHelpedForm card={card} viewer={viewer} returnTo={returnTo} orgAccessUrl={orgAccessUrl} initial={initial} />
+        <PrHelpedForm
+          card={card}
+          viewer={viewer}
+          returnTo={returnTo}
+          orgAccessUrl={orgAccessUrl}
+          initial={initial}
+          timelinePath={timelinePath}
+        />
       ) : (
-        <PrReportForm card={card} viewer={viewer} returnTo={returnTo} orgAccessUrl={orgAccessUrl} initial={initial} />
+        <PrReportForm
+          card={card}
+          viewer={viewer}
+          returnTo={returnTo}
+          orgAccessUrl={orgAccessUrl}
+          initial={initial}
+          timelinePath={timelinePath}
+        />
       )}
     </Column>
   );

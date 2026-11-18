@@ -69,19 +69,20 @@ async function within<T>(ask: Promise<T>, late: T, timeoutMs: number): Promise<T
 /**
  * What the proxy does with a public page: `page` (it is shown; `partial` when its reviews could not be read), a 307 to
  * the address the PR lives at now, or `missing` for the 404. A failed or slow ask is `page`: the page then reads it
- * itself and answers as it can.
+ * itself and answers as it can; `confirmed` says the API answered that it is shown.
  */
 export type PrTimelineGate =
-  | { kind: 'page'; partial: boolean }
+  | { kind: 'page'; partial: boolean; confirmed: boolean }
   | { kind: 'missing' }
   | { kind: 'redirect'; path: Route };
 
 export async function prTimelineGateOf(pr: PrRef, timeoutMs = PR_TIMELINE_GATE_TIMEOUT_MS): Promise<PrTimelineGate> {
-  const page: PrTimelineGate = { kind: 'page', partial: false };
+  // No answer (a failure, or none in time): the page decides; nothing about it is confirmed.
+  const page: PrTimelineGate = { kind: 'page', partial: false, confirmed: false };
   const [owner, repo] = pr.nameWithOwner.split('/');
   const ask = graphqlDirect(PrTimelineDocument, { owner, repo, number: pr.number }, { source: 'ssr' }).then(
     ({ contributePrTimeline: answer }): PrTimelineGate => {
-      if (answer?.timeline) return { kind: 'page', partial: answer.timeline.partial };
+      if (answer?.timeline) return { kind: 'page', partial: answer.timeline.partial, confirmed: true };
       if (answer?.movedTo && answer.movedNumber) {
         return {
           kind: 'redirect',

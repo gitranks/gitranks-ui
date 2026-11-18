@@ -3,8 +3,12 @@ import { notFound } from 'next/navigation';
 
 import { PrTimelineScreen } from '@/app/contribute/components/pr-timeline-view';
 import { Header } from '@/components/header/header';
+import { JsonLd } from '@/components/json-ld/json-ld';
 import { parsePrLink } from '@/lib/contribute/pr-feedback';
 import { NO_PR, publicPrTimeline } from '@/lib/contribute/pr-timeline.data';
+import { prTimelineMarkdownPath, prTimelinePath } from '@/lib/contribute/pr-timeline-path';
+import { prTimelineDescriptionOf, prTimelineJsonLdOf, prTimelineTitleOf } from '@/lib/contribute/pr-timeline-seo';
+import { pageMetadata } from '@/lib/seo/page-metadata';
 
 // No PR is known at build time: generateStaticParams lists one no repository has, so every real page renders on
 // request as a whole page before the response starts, then is kept for its cache life. The proxy has asked the API
@@ -26,9 +30,19 @@ async function prOf(params: Params) {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const pr = await prOf(params);
   const timeline = pr ? await publicPrTimeline(pr) : null;
-  if (!timeline) return { title: 'Pull request timeline', robots: { index: false, follow: false } };
+  if (!pr || !timeline) return { title: 'Pull request timeline', robots: { index: false, follow: false } };
+  const base = pageMetadata({
+    title: prTimelineTitleOf(timeline),
+    description: prTimelineDescriptionOf(timeline),
+    path: prTimelinePath(timeline),
+    openGraphType: 'article',
+    publishedTime: timeline.openedAt,
+  });
+  // The page answers only once timelines are public (the proxy's gate): then it is indexed.
   return {
-    title: `${timeline.title ?? `Pull request #${timeline.number}`} · ${timeline.nameWithOwner}#${timeline.number}`,
+    ...base,
+    alternates: { ...base.alternates, types: { 'text/markdown': prTimelineMarkdownPath(timeline) } },
+    robots: { index: true, follow: true },
   };
 }
 
@@ -39,6 +53,7 @@ export default async function PrTimelinePage({ params }: { params: Params }) {
   if (!timeline) notFound();
   return (
     <>
+      <JsonLd payloads={prTimelineJsonLdOf(timeline)} />
       <Header section="contribute" />
       <PrTimelineScreen timeline={timeline} />
     </>

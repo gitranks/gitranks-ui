@@ -299,6 +299,7 @@ export function PrReportForm({
   returnTo,
   orgAccessUrl,
   initial,
+  timelinePath = null,
 }: {
   card: ContributePrCard;
   viewer: ContributePrViewer;
@@ -306,6 +307,8 @@ export function PrReportForm({
   orgAccessUrl: string;
   /** The form as it starts: the catalogue draws it filled in. */
   initial?: PrReportInitial;
+  /** The PR's public timeline, when it has one: the sent screen links back to it. */
+  timelinePath?: string | null;
 }) {
   const id = useId();
   const maintainer = viewer.roleConfirmed && viewer.role === 'MAINTAINER';
@@ -325,6 +328,7 @@ export function PrReportForm({
         result={sent}
         requested={maintainer ? [...actions] : []}
         replyTo={replyTo.trim() || null}
+        timelinePath={timelinePath}
       />
     );
   }
@@ -448,9 +452,12 @@ export function ReportSent({
   result,
   requested = [],
   replyTo,
+  timelinePath = null,
 }: {
   card: ContributePrCard;
   result: ContributePrFeedbackResult;
+  /** The PR's public timeline, when it has one: linked back to. */
+  timelinePath?: string | null;
   /** What the visitor asked to stop at once: GitHub's answer at the send decides whether it applied. */
   requested?: ContributePrAction[];
   replyTo: string | null;
@@ -540,6 +547,11 @@ export function ReportSent({
         <Button asChild variant="outline" className="min-h-11 sm:min-h-9">
           <a href={prUrlOf(card)}>Back to the PR on GitHub</a>
         </Button>
+        {timelinePath ? (
+          <Button asChild variant="outline" className="min-h-11 sm:min-h-9">
+            <a href={timelinePath}>See how this PR was made</a>
+          </Button>
+        ) : null}
         {maintainer ? (
           <Button asChild variant="outline" className="min-h-11 sm:min-h-9">
             <a href={maintainersSectionPath('opt-out')}>Rules for {card.nameWithOwner}</a>
@@ -576,12 +588,15 @@ export function PrHelpedForm({
   returnTo,
   orgAccessUrl,
   initial,
+  timelinePath = null,
 }: {
   card: ContributePrCard;
   viewer: ContributePrViewer;
   returnTo: string;
   orgAccessUrl: string;
   initial?: PrHelpedInitial;
+  /** The PR's public timeline, when it has one: the sent screen links back to it. */
+  timelinePath?: string | null;
 }) {
   const id = useId();
   const [likes, setLikes] = useState(() => new Set(initial?.likes ?? []));
@@ -596,7 +611,7 @@ export function PrHelpedForm({
   // A user's word reaches us alone; a maintainer's or collaborator's reaches the PR's author too.
   const wordShown = viewer.roleConfirmed && viewer.role !== 'USER';
 
-  if (sent) return <HelpedSent card={card} />;
+  if (sent) return <HelpedSent card={card} timelinePath={timelinePath} />;
 
   const send = () => {
     const found = helpedErrorsOf({ word, replyTo });
@@ -695,7 +710,7 @@ export function PrHelpedForm({
 }
 
 /** After "This PR helped": it is on the author's page, and how to get more PRs like it. */
-export function HelpedSent({ card }: { card: ContributePrCard }) {
+export function HelpedSent({ card, timelinePath = null }: { card: ContributePrCard; timelinePath?: string | null }) {
   const contributor = card.contributorLogin ?? 'Its author';
   const heading = useFocusOnMount<HTMLHeadingElement>();
   return (
@@ -726,9 +741,16 @@ export function HelpedSent({ card }: { card: ContributePrCard }) {
           </Button>
         </div>
       </Card>
-      <Button asChild variant="outline" className="min-h-11 self-start sm:min-h-9">
-        <a href={prUrlOf(card)}>Back to the PR on GitHub</a>
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline" className="min-h-11 sm:min-h-9">
+          <a href={prUrlOf(card)}>Back to the PR on GitHub</a>
+        </Button>
+        {timelinePath ? (
+          <Button asChild variant="outline" className="min-h-11 sm:min-h-9">
+            <a href={timelinePath}>See how this PR was made</a>
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

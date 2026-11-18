@@ -18,6 +18,7 @@ import { loadMaintainerRepos } from '@/lib/contribute/maintainers.data';
 import { orgAccessOf } from '@/lib/contribute/org-access';
 import { attemptIdOf, prUrlOf } from '@/lib/contribute/pr-feedback';
 import { loadMaintainerFacts, loadPrStrip } from '@/lib/contribute/pr-feedback.data';
+import { publicTimelinePathOf } from '@/lib/contribute/pr-timeline.data';
 
 export const metadata: Metadata = {
   title: 'For maintainers',
@@ -75,7 +76,8 @@ export default async function MaintainersPage({ searchParams }: PageProps<'/cont
 
 async function StripSlot({ card }: { card: Promise<ContributePrCard | null> }) {
   const read = await card;
-  return read ? <PrStrip card={read} /> : null;
+  if (!read) return null;
+  return <PrStrip card={read} timelinePath={await publicTimelinePathOf(read.attemptId)} />;
 }
 
 async function BadgeMarkdownSlot({ card }: { card: Promise<ContributePrCard | null> }) {

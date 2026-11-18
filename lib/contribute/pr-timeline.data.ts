@@ -3,8 +3,14 @@ import 'server-only';
 import { cacheLife, cacheTag } from 'next/cache';
 
 import type { PrRef } from './pr-feedback';
-import { PrTimelineDocument } from './pr-timeline.documents';
-import type { PrTimeline } from './pr-timeline.types';
+import {
+  PrTimelineByAttemptDocument,
+  PrTimelineDocument,
+  PrTimelineOpenDocument,
+  PublicPrTimelinesDocument,
+} from './pr-timeline.documents';
+import type { PrTimeline, PublicPrTimeline } from './pr-timeline.types';
+import { prTimelinePath } from './pr-timeline-path';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /** A build-time param no repository has: the build renders the not-found page without asking for data. */
@@ -42,4 +48,43 @@ export async function publicPrTimeline(pr: PrRef): Promise<PrTimeline | null> {
       : { stale: 60, revalidate: 120, expire: 300 },
   );
   return timeline;
+}
+
+/**
+ * The shown pages for the sitemap, newest first (empty until timelines are public). Kept an hour once it answers; a
+ * failed read is null, kept minutes.
+ */
+export async function readPublicPrTimelines(): Promise<PublicPrTimeline[] | null> {
+  'use cache';
+  const answer = await graphqlDirect(PublicPrTimelinesDocument, undefined, { source: 'ssr' }).catch(() => null);
+  // An empty list (closed, or nothing shown yet) is asked again within minutes: opening reaches the sitemap soon.
+  if (answer?.publicPrTimelines.length) cacheLife('hours');
+  else cacheLife('minutes');
+  return answer?.publicPrTimelines ?? null;
+}
+
+const ATTEMPT_ID = /^[a-f\d]{24}$/;
+
+/**
+ * A PR's public timeline address by its footer's id, for the links into it (the maintainers strip, the sent screens):
+ * only once timelines are public and this one is shown; null otherwise or on a failed read. Asked signed out, kept
+ * minutes.
+ */
+export async function publicTimelinePathOf(attemptId: string | null | undefined): Promise<string | null> {
+  'use cache';
+  cacheLife('minutes');
+  if (!attemptId || !ATTEMPT_ID.test(attemptId)) return null;
+  try {
+    const { contributePrTimelineOpen } = await graphqlDirect(PrTimelineOpenDocument, undefined, { source: 'ssr' });
+    if (!contributePrTimelineOpen) return null;
+    const { contributePrTimelineByAttempt } = await graphqlDirect(
+      PrTimelineByAttemptDocument,
+      { id: attemptId },
+      { source: 'ssr' },
+    );
+    const page = contributePrTimelineByAttempt?.timeline;
+    return page ? prTimelinePath(page) : null;
+  } catch {
+    return null;
+  }
 }

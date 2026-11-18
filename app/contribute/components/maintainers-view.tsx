@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -525,7 +526,7 @@ function ConfigCard({ facts }: { facts: ContributeMaintainerFacts | null }) {
 }
 
 /** The PR a footer link came from, with the two notes on it. */
-export function PrStrip({ card }: { card: ContributePrCard }) {
+export function PrStrip({ card, timelinePath = null }: { card: ContributePrCard; timelinePath?: string | null }) {
   return (
     <Card
       data-pr-strip={card.attemptId}
@@ -534,6 +535,11 @@ export function PrStrip({ card }: { card: ContributePrCard }) {
       <div className="flex min-w-0 flex-col gap-1">
         <span className={SMALL}>You came here from this pull request</span>
         <PrCardFacts card={card} />
+        {timelinePath ? (
+          <Link href={timelinePath as Route} prefetch={false} className="text-sm font-medium text-link hover:underline">
+            See how this PR was made →
+          </Link>
+        ) : null}
       </div>
       <div className="flex flex-none flex-wrap gap-2">
         <Button asChild variant="outline" size="lg" className="max-sm:min-h-11">

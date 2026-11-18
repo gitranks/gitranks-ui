@@ -10,6 +10,8 @@ export const SITEMAP_SEGMENTS = [
   'orgs',
   'insights',
   'learn',
+  /** Public pull request timelines: empty until they are public. */
+  'contribute-prs',
 ] as const;
 
 export type SitemapSegment = (typeof SITEMAP_SEGMENTS)[number];

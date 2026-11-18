@@ -17,7 +17,12 @@ import {
 } from './lib/contribute/contribute-path';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { contributePrTimelineOpen, prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
-import { isPrTimelinePath, PR_TIMELINE_PREVIEW_ROOT, prTimelineRouteOf } from './lib/contribute/pr-timeline-path';
+import {
+  isPrTimelinePath,
+  PR_TIMELINE_PREVIEW_ROOT,
+  prTimelineMarkdownPath,
+  prTimelineRouteOf,
+} from './lib/contribute/pr-timeline-path';
 import { contributeOpen, requestContributeAccess } from './lib/contribute/preview-gate';
 import { learnOpenToEveryone } from './lib/learn/learn-everyone';
 import {
@@ -168,6 +173,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // question to the API, and a signed-in one is rewritten to the page's per-request twin, which asks the API as them and
   // is never cached. The short address the footer links is its own route handler, outside every gate. The per-request
   // twin is reachable only through this rewrite. Rewritten before Auth.js, like the 404s above.
+  let shownTimeline = false;
   const timeline =
     request.method === 'GET' || request.method === 'HEAD' ? prTimelineRouteOf(request.nextUrl.pathname) : null;
   if (request.nextUrl.pathname.toLowerCase().startsWith(PR_TIMELINE_PREVIEW_ROOT)) {
@@ -178,6 +184,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   if (timeline && timeline.kind !== 'short') {
     if (await contributePrTimelineOpen()) {
       const gate = await prTimelineGateOf(timeline.pr);
+      shownTimeline = gate.kind === 'page' && gate.confirmed;
       if (gate.kind !== 'page') {
         const response =
           gate.kind === 'missing'
@@ -316,7 +323,15 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     response.headers.set('Cache-Control', 'private, no-cache');
     return response;
   }
-  const served = <T>(response: T): T => (landing ? withAgentsDocLink(response) : response);
+  // A shown public timeline says where its Markdown twin is (an answer the gate above let through).
+  const twinLink =
+    shownTimeline && timeline?.kind === 'page'
+      ? `<${prTimelineMarkdownPath(timeline.pr)}>; rel="alternate"; type="text/markdown"`
+      : null;
+  const served = <T>(response: T): T => {
+    if (twinLink && response instanceof Response) response.headers.set('Link', twinLink);
+    return landing ? withAgentsDocLink(response) : response;
+  };
 
   // Auth.js sets its CSRF and callback-url cookies on every response it touches, and a shared
   // cache will not store a response that sets a cookie. Visitors without a session skip it, so

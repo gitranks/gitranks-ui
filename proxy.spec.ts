@@ -19,7 +19,7 @@ const { ledgerOpen } = vi.hoisted(() => ({ ledgerOpen: vi.fn(async () => false) 
 vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: ledgerOpen }));
 const { timelineOpen, timelineGate } = vi.hoisted(() => ({
   timelineOpen: vi.fn(async () => false),
-  timelineGate: vi.fn(async (_pr: unknown): Promise<unknown> => ({ kind: 'page', partial: false })),
+  timelineGate: vi.fn(async (_pr: unknown): Promise<unknown> => ({ kind: 'page', partial: false, confirmed: true })),
 }));
 vi.mock('./lib/contribute/pr-timeline-gate', () => ({
   contributePrTimelineOpen: timelineOpen,
@@ -71,7 +71,7 @@ describe('proxy', () => {
     timelineOpen.mockReset();
     timelineOpen.mockResolvedValue(false);
     timelineGate.mockReset();
-    timelineGate.mockResolvedValue({ kind: 'page', partial: false });
+    timelineGate.mockResolvedValue({ kind: 'page', partial: false, confirmed: true });
     lessonGate.mockReset();
     lessonGate.mockResolvedValue({ kind: 'page' });
     packagesPublic.mockReset();
@@ -509,6 +509,17 @@ describe('proxy', () => {
         expect(response?.status).toBe(200);
         expect(timelineGate).toHaveBeenCalledWith({ nameWithOwner: 'acme/widgets', number: 42 });
         expect(maySeeContribute).not.toHaveBeenCalled();
+      });
+
+      it('public: a shown page says where its Markdown twin is', async () => {
+        timelineOpen.mockResolvedValue(true);
+        const response = await proxy(request(undefined, PAGE), event);
+        expect(response?.headers.get('link')).toBe(`<${PAGE}/timeline.md>; rel="alternate"; type="text/markdown"`);
+        const twin = await proxy(request(undefined, `${PAGE}/timeline.md`), event);
+        expect(twin?.headers.get('link')).toBeNull();
+        timelineGate.mockResolvedValueOnce({ kind: 'page', partial: false, confirmed: false });
+        const unconfirmed = await proxy(request(undefined, PAGE), event);
+        expect(unconfirmed?.headers.get('link')).toBeNull();
       });
 
       it('public: a missing page is a 404, a moved one a 307 to its address now, neither kept', async () => {

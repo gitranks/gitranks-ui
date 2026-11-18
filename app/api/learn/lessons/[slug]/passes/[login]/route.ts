@@ -3,8 +3,11 @@ import { NextResponse } from 'next/server';
 import { resultFactsOf } from '@/lib/learn/lesson-public';
 import { readLessonResult } from '@/lib/learn/lesson-public.data';
 
-/** Never kept: a take-down must reach the address at once. */
-const HEADERS = { 'Cache-Control': 'no-store' };
+/**
+ * Never kept: a take-down must reach the address at once. Never indexed either: it names a person, as its result page
+ * does, which links it.
+ */
+const HEADERS = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' };
 
 /** The site's own address, for the absolute links in the answer. */
 const originOf = (request: Request) => process.env.NEXT_PUBLIC_URI || new URL(request.url).origin;

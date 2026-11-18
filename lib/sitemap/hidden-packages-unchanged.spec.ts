@@ -19,6 +19,7 @@ vi.mock('@/graphql/helpers/fetch-repo-sitemap-parts', () => ({ fetchRepoSitemapP
 vi.mock('@/graphql/helpers/fetch-org-sitemap-parts', () => ({ fetchOrgSitemapParts: vi.fn() }));
 vi.mock('@/lib/contribute/preview-gate', () => ({ contributeOpen: vi.fn() }));
 vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic: vi.fn() }));
+vi.mock('@/lib/learn/public-lessons.data', () => ({ readPublicLessons: vi.fn(async () => []) }));
 vi.mock('@/lib/sitemap/package-sitemap-data', () => ({
   fetchPackageSitemapParts: vi.fn(),
   fetchPackagesForSitemap: vi.fn(),
@@ -27,7 +28,7 @@ vi.mock('@/lib/sitemap/package-sitemap-data', () => ({
 }));
 
 /**
- * The sitemap index and llms.txt, byte for byte and with their headers, as they were before package pages existed.
+ * The sitemap index and llms.txt, byte for byte and with their headers, with nothing of package pages in them.
  * While package pages are not open to everyone (hidden, or shown to a preview list alone), both must answer exactly
  * this, and nothing about packages is read for them.
  */
@@ -97,6 +98,10 @@ describe('while package pages are not open to everyone', () => {
           <lastmod>2026-11-01T00:00:00.000Z</lastmod>
         </sitemap>
         <sitemap>
+          <loc>https://example.test/sitemaps/learn/sitemap.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
           <loc>https://example.test/sitemaps/repos/sitemap/0.xml</loc>
           <lastmod>2026-11-01T00:00:00.000Z</lastmod>
         </sitemap>
@@ -112,7 +117,7 @@ describe('while package pages are not open to everyone', () => {
       ",
         "cacheControl": "public, max-age=3600, s-maxage=3600",
         "contentType": "application/xml; charset=utf-8",
-        "sha256": "a30bd50a811941d37873f484cb4e348140a347ef407145b67d6a69e6ea9960cc",
+        "sha256": "67e67024c816b2fbc3cc52d8f27538a7bc0821887637cf52444c61ccf01e54c7",
         "status": 200,
       }
     `);
@@ -154,11 +159,15 @@ describe('while package pages are not open to everyone', () => {
           <loc>https://example.test/sitemaps/insights/sitemap.xml</loc>
           <lastmod>2026-11-01T00:00:00.000Z</lastmod>
         </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/learn/sitemap.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
       </sitemapindex>
       ",
         "cacheControl": "public, max-age=3600, s-maxage=3600",
         "contentType": "application/xml; charset=utf-8",
-        "sha256": "ef8fee3f43bb523f5c53be89fb14b59df16312b4b4b59d328d269bd0ba577054",
+        "sha256": "888ecf32b2a5494aa07fb36a83631121c8c7bf1b2e662e5d8a17b2f2c6e2469c",
         "status": 200,
       }
     `);

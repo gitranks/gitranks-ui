@@ -26,7 +26,7 @@ import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { Button } from '@/components/ui/button';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages, RepoUsedBy } from '@/graphql/repo-packages';
-import { registryLabelList } from '@/lib/packages/registries';
+import { registryLabelList, spelledNameOf } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 type UsedByScreenProps = {
@@ -80,7 +80,7 @@ const NoDependents: FC<{ nameWithOwner: string; packages: RepoPackages }> = ({ n
       <div className="flex flex-wrap justify-center gap-2">
         <FollowSlot
           packages={(one ? [one] : packages.items).map(repoPackageRefOf)}
-          label={one ? one.name : `${nameWithOwner} packages`}
+          label={one ? spelledNameOf(one) : `${nameWithOwner} packages`}
           placement="used-by-empty"
         />
         {one && (

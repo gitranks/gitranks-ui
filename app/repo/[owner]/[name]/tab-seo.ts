@@ -8,6 +8,7 @@ import { badgeImagePath } from '@/badge/v3/links';
 import type { PulseFactsData } from '@/components/pulse/pulse.utils';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages, RepoUsedByItem } from '@/graphql/repo-packages';
+import { spelledNameOf } from '@/lib/packages/registries';
 import { clipText } from '@/lib/seo/clip-text';
 import { buildRankingItemList, type EntityImages } from '@/lib/seo/json-ld';
 import { entityPreviewImages, pageMetadata } from '@/lib/seo/page-metadata';
@@ -47,7 +48,7 @@ function tabBreadcrumbs(nameWithOwner: string, tab: { name: string; path: string
 
 /** The packages in a description: up to three names, then how many more. */
 function packageNames(packages: RepoPackages): string {
-  const names = packages.items.slice(0, 3).map(({ name }) => name);
+  const names = packages.items.slice(0, 3).map(spelledNameOf);
   const more = packages.total - names.length;
   if (more > 0) return `${names.join(', ')} and ${formatCount(more)} more`;
   return names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;

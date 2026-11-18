@@ -7,6 +7,7 @@ import {
   notReadPackage,
   quietPackage,
   rankedPackage,
+  spelledPackage,
 } from '@/app/package/[registry]/[...name]/__fixtures__/package';
 
 const {
@@ -257,6 +258,33 @@ describe('package routes', () => {
 
       expect(response.status).toBe(502);
       expect(response.headers.get('Content-Type')).toBe('text/markdown; charset=utf-8');
+    });
+
+    it('keeps an npm name the API answers as written, capitals included, with no redirect', async () => {
+      requestMaySeePackages.mockResolvedValue(true);
+      fetchPackage.mockResolvedValue({ ...rankedPackage, name: 'React-Resize-Detector' });
+      const response = await call('GET', 'npm/React-Resize-Detector/facts.md');
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Location')).toBeNull();
+      expect(await response.text()).toMatch(/^# React-Resize-Detector \(npm package\)\n/);
+    });
+
+    it('sends another spelling, on a registry that folds names, to the address the API answers, read or not', async () => {
+      requestMaySeePackages.mockResolvedValue(true);
+      fetchPackage.mockResolvedValue(spelledPackage);
+      const moved = await call('GET', 'npm/Zope_Interface/facts.md');
+      expect(moved.status).toBe(308);
+      expect(moved.headers.get('Location')).toBe('https://gitranks.com/package/npm/zope-interface/facts.md');
+
+      const kept = await call('GET', 'npm/zope-interface/facts.md');
+      expect(kept.status).toBe(200);
+      expect(await kept.text()).toMatch(/^# zope\.interface \(npm package\)\n/);
+
+      fetchPackage.mockResolvedValue(notReadPackage);
+      const notRead = await call('GET', 'npm/Left-Pad-Next/facts.md');
+      expect(notRead.status).toBe(308);
+      expect(notRead.headers.get('Location')).toBe('https://gitranks.com/package/npm/left-pad-next/facts.md');
     });
 
     it("sends the registry's own spelling to its address", async () => {

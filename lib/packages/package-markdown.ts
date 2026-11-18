@@ -2,7 +2,7 @@ import { ITEMS_PER_PAGE } from '@/app/app.consts';
 import { DEPENDENT_MIN_STARS, PACKAGE_RANKINGS } from '@/app/packages/package-rankings';
 import { formatCount, formatDay } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import type { PackagePage, PackageRanks } from '@/graphql/package-page';
-import { DEFAULT_REGISTRY, REGISTRIES, type RegistryId } from '@/lib/packages/registries';
+import { DEFAULT_REGISTRY, REGISTRIES, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
 import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { absoluteUrl } from '@/lib/seo/site';
 import { PACKAGE_METHODOLOGY_PATH, packagePath, packageRankingPath } from '@/utils/package-paths';
@@ -64,7 +64,7 @@ export function packageMarkdownOf(pkg: PackagePage, registry: RegistryId): strin
   );
 
   return [
-    `# ${pkg.name} (${label} package)`,
+    `# ${spelledNameOf(pkg)} (${label} package)`,
     '',
     ...(pkg.description ? [`> ${oneLine(pkg.description)}`, ''] : []),
     ...facts.filter(Boolean),

@@ -7,6 +7,9 @@ vi.mock('@/app/contribute/actions', () => ({ approveContributeOAuth: vi.fn() }))
 vi.mock('@/app/contribute/review-sign-in.actions', () => ({ approveContributeOAuthAsReviewer: vi.fn() }));
 
 const { AuthorizeScreen, authorizeStateFor } = await import('./authorize-view');
+const { AuthorizeNextStep } = await import('./authorize-next-step');
+const { AGENT_FIRST_PROMPT } = await import('@/lib/contribute/mcp-setup');
+const { CONTACT_EMAIL } = await import('@/lib/legal');
 
 import type { ContributeOAuthRequest } from '@/lib/contribute/contribute.types';
 
@@ -104,6 +107,8 @@ describe('the consent page of an agent sign-in', () => {
     expect(text(html)).toContain("Contribute isn't open for your account yet");
     expect(html).toContain(`href="${CANCEL}"`);
     expect(html).not.toContain('data-authorize="allow"');
+    expect(html).toContain('href="/contribute/mcp"');
+    expect(html).toContain(`href="mailto:${CONTACT_EMAIL}"`);
   });
 
   it('says a new account is being set up, with Refresh and Cancel, and never blames the preview', () => {
@@ -140,6 +145,27 @@ describe('the consent page of an agent sign-in', () => {
     );
     expect(text(html)).toContain('You allowed Codex already');
     expect(html).not.toContain('data-authorize="allow"');
+  });
+
+  it('tells a user who allowed already what to ask the agent, where pull requests wait, and the docs', () => {
+    const html = renderToStaticMarkup(
+      <AuthorizeScreen state={{ kind: 'approved', requestId: ID, clientName: 'Codex' }} />,
+    );
+    const plain = text(html);
+    expect(plain).toContain('Prompt for Codex');
+    expect(plain).toContain(AGENT_FIRST_PROMPT);
+    expect(plain).toContain('Each pull request waits for your approval at gitranks.com/contribute');
+    expect(html).toContain('href="/contribute"');
+    expect(html).toContain('href="/contribute/mcp"');
+    expect(text(renderToStaticMarkup(<AuthorizeNextStep />))).toContain('Prompt for your agent');
+  });
+
+  it('leads a sign-in it cannot read now to the docs and the contact address', () => {
+    const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'unavailable', requestId: ID }} />);
+    expect(text(html)).toContain("We can't read this sign-in right now");
+    expect(html).toContain(`href="${CANCEL}"`);
+    expect(html).toContain('href="/contribute/mcp"');
+    expect(html).toContain(`href="mailto:${CONTACT_EMAIL}"`);
   });
 });
 

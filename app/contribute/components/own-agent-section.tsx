@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { createMcpToken, revokeMcpToken } from '../actions';
+import { CodeBlock } from './code-block';
 import { ConfirmDialog } from './confirm-dialog';
 import { InstallButton } from './install-button';
 import { HEADING, Panel, PanelTitle, SubTitle } from './primitives';
@@ -15,6 +16,7 @@ import { MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import { dayLabel, relativeLabel } from '@/lib/contribute/format';
 import {
+  AGENT_FIRST_PROMPT,
   exportLineOf,
   MCP_TOKEN_ENV,
   MCP_TOKEN_NAME_MAX,
@@ -43,6 +45,25 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
     <Button type="button" variant="outline" onClick={copy} className="h-10">
       <span aria-live="polite">{copied ? 'Copied' : label}</span>
     </Button>
+  );
+}
+
+/** Once an agent is connected: what to ask it, so the panel leads on to the first issue. */
+function AskYourAgent() {
+  return (
+    <div data-own-agent-next className="flex flex-col gap-2">
+      <span className="text-sm font-semibold">Ask your agent:</span>
+      <CodeBlock label="Prompt for your agent" copyLabel="Copy the prompt" wrap>
+        {AGENT_FIRST_PROMPT}
+      </CodeBlock>
+      <p className="text-sm text-muted-foreground">
+        It shows you a few issues to choose from. Each pull request waits for your approval on{' '}
+        <Link href="/contribute" prefetch={false} className="font-semibold text-link hover:underline">
+          Contribute
+        </Link>
+        .
+      </p>
+    </div>
   );
 }
 
@@ -255,8 +276,8 @@ export function SetupLines({ signIn = false }: { signIn?: boolean }) {
 }
 
 /**
- * Settings, "Your own agent (MCP)": the agents that signed in and the user's tokens (disconnect or revoke one), the
- * setup for each client, a new token (shown once), and the safety line. Once agents sign in with GitHub, the agents
+ * Settings, "Your own agent (MCP)": the agents that signed in and the user's tokens (disconnect or revoke one), what
+ * to ask a connected agent, the setup for each client, a new token (shown once), and the safety line. Once agents sign in with GitHub, the agents
  * that signed in and the setup lead, and the personal tokens follow; before, the tokens come first. `ownAgent` is `undefined` while the API does not
  * answer it yet.
  */
@@ -284,6 +305,8 @@ export function OwnAgentSection({
   const signedIn = tokens.filter(isSignedInAgent);
   // The cap counts personal tokens alone: agents that signed in have their own.
   const full = personal.length >= MCP_TOKENS_MAX;
+  // An agent signed in, or a token was used: the next step is the agent's, and the panel says what to ask it.
+  const connected = signedIn.length > 0 || personal.some((token) => !!token.lastUsedAt);
 
   const create = () =>
     startTransition(async () => {
@@ -354,6 +377,7 @@ export function OwnAgentSection({
           {signIn ? (
             <>
               <TokenList tokens={signedIn} now={now} empty="No agent connected yet." />
+              {connected ? <AskYourAgent /> : null}
               {heading('Set up your agent')}
               <SetupLines signIn />
               {heading('Personal tokens')}
@@ -368,6 +392,7 @@ export function OwnAgentSection({
             <>
               {created ? <NewToken token={created} onDone={() => setCreated(null)} /> : null}
               <TokenList tokens={tokens} now={now} empty="No token yet." />
+              {connected ? <AskYourAgent /> : null}
               {tokenForm}
               {heading('Set up your agent')}
               <SetupLines />

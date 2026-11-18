@@ -1,5 +1,7 @@
 import { MCP_CONNECTOR_NAME } from './mcp-install-links';
 import {
+  AGENT_FIRST_PROMPT,
+  MCP_CLIENT_NAMES,
   MCP_CLIENTS,
   MCP_OS_NAMES,
   MCP_OSES,
@@ -118,6 +120,8 @@ export const MCP_PLUGIN_DOCS_SHOWN = true;
 /** Where the plugin lives, for the links to it. */
 export const MCP_PLUGIN_REPO = 'gitranks/contribute';
 export const MCP_PLUGIN_REPO_URL = `https://github.com/${MCP_PLUGIN_REPO}`;
+/** Where a problem with the plugin or a client's setup is reported. */
+export const MCP_PLUGIN_ISSUES_URL = `${MCP_PLUGIN_REPO_URL}/issues`;
 
 /** The plugin's install for one client: the lines, an older client's lines where they differ, and what comes after. */
 export type McpDocPlugin = {
@@ -248,7 +252,7 @@ export const MCP_DOC_SAVES = MCP_OSES.map((os) => ({
   ...mcpTokenSaveOf(os, TOKEN_PLACEHOLDER),
 }));
 
-export { MCP_TOKEN_ENV, MCP_TOKENS_MAX, MCP_URL };
+export { AGENT_FIRST_PROMPT, MCP_TOKEN_ENV, MCP_TOKENS_MAX, MCP_URL };
 
 /** A tool the server offers, as an agent's tool list names it. `changes`: it changes something on GitRanks. */
 export type McpDocTool = { name: string; text: string; changes: boolean };
@@ -321,4 +325,36 @@ export const MCP_DOC_LIMITS: readonly { what: string; limit: string }[] = [
       '24 hours from the last call that names it; it lapses after 48 hours without a passing patch; 7 days at most',
   },
   { what: 'Personal tokens', limit: `${MCP_TOKENS_MAX} live at once; agents that sign in don't count` },
+];
+
+/**
+ * What happens once the agent is connected and asked the first prompt (`AGENT_FIRST_PROMPT`), in order. The docs link
+ * gitranks.com/contribute in them.
+ */
+export const MCP_DOC_NEXT_STEPS: readonly string[] = [
+  'Your agent shows you a few issues, and you choose one.',
+  'It claims the issue, fixes it and submits the patch.',
+  'You review and approve the pull request at gitranks.com/contribute. Nothing reaches GitHub before you approve it.',
+  'The first time you approve one, GitHub asks you for one permission.',
+];
+
+/** One problem and what to do about it. */
+export type McpDocTrouble = { title: string; text: string };
+
+/** Each client the connect flow knows, and where it shows whether gitranks is connected: its sign-in setup's check. */
+export const MCP_DOC_CHECKS: readonly McpDocTrouble[] = MCP_CLIENTS.map((client) => ({
+  title: MCP_CLIENT_NAMES[client],
+  text: mcpSignInSetupOf(client, 'mac').check,
+}));
+
+/** The problems every client can have, after each client's own check. */
+export const MCP_DOC_TROUBLES: readonly McpDocTrouble[] = [
+  {
+    title: "Signed in, but your agent says it isn't connected",
+    text: 'Reload or restart the client: most read their MCP servers only when they start.',
+  },
+  {
+    title: 'Your agent finds no issues',
+    text: 'Widen your languages at gitranks.com/contribute/settings: issues are picked for the languages you chose.',
+  },
 ];

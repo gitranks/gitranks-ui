@@ -130,12 +130,13 @@ describe('the landing', () => {
     expect(html).not.toContain('data-landing="mid-setup"');
   });
 
-  it('offers a user mid-setup to carry on, and Settings for the token', () => {
+  it('offers a user mid-setup to carry on, and Settings, in words that fit either sign-in', () => {
     const html = renderToStaticMarkup(<Landing viewer="mid-setup" />);
     const plain = text(html);
 
     expect(html).toContain('data-landing="mid-setup"');
-    expect(plain).toContain("Almost there. Your token is ready, and your agent hasn't connected yet.");
+    expect(plain).toContain("Almost there. Your agent hasn't connected yet.");
+    expect(plain).not.toContain('Your token is ready');
     expect(plain).toContain('Continue setup →');
     expect(count(html, AGENT_HREF)).toBe(4);
     expect(html).toContain('href="/contribute/settings"');

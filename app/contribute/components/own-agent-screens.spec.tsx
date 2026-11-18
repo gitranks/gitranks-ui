@@ -30,7 +30,7 @@ const { attempt, contributions, detail, ownAgentAttempt } = await import(
   '@/lib/contribute/__fixtures__/contribute-attempts'
 );
 const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
-const { MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/contribute/mcp-setup');
+const { AGENT_FIRST_PROMPT, MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/contribute/mcp-setup');
 const { OWN_AGENT_SETUPS } = await import('@/lib/contribute/own-agent-setups');
 
 import type { ContributeOwnAgent, ContributeView } from '@/lib/contribute/contribute.types';
@@ -116,6 +116,17 @@ describe('Settings, your own agent, with agents that signed in', () => {
     expect(text(renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />))).not.toContain(
       'It signs in with your GitHub account',
     );
+  });
+
+  it('says what to ask an agent once one is connected, and nothing before', () => {
+    const asked = (ownAgent: ContributeOwnAgent) => {
+      const html = renderToStaticMarkup(<OwnAgentSection ownAgent={ownAgent} now={NOW} />);
+      return html.includes('data-own-agent-next') && text(html).includes(AGENT_FIRST_PROMPT);
+    };
+    expect(asked({ ...withTokens, tokens: [SIGNED_IN], signIn: true })).toBe(true);
+    expect(asked({ ...withTokens, tokens: [{ ...TOKEN, lastUsedAt: NOW.toISOString() }] })).toBe(true);
+    expect(asked({ ...withTokens, tokens: [TOKEN], signIn: true })).toBe(false);
+    expect(asked(withTokens)).toBe(false);
   });
 
   it('says no agent is connected yet, not that there is no token', () => {

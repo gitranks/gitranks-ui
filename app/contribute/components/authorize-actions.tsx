@@ -6,6 +6,7 @@ import { FaGithub } from 'react-icons/fa';
 
 import { approveContributeOAuth } from '../actions';
 import { approveContributeOAuthAsReviewer } from '../review-sign-in.actions';
+import { AuthorizeNextStep } from './authorize-next-step';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,7 +36,7 @@ export function AuthorizeCancel({ requestId, label = 'Cancel' }: { requestId: st
 /**
  * Allow and Cancel. Allow connects the agent, then the browser goes back to it, only to an address that passes the
  * check (`https:`, `http:` to this computer, or an app's own scheme): a server action's own redirect can't open an
- * app's scheme, so the page assigns it.
+ * app's scheme, so the page assigns it. An app's scheme leaves this page open, so it says what to ask the agent next.
  */
 export function AuthorizeActions({ requestId, clientName }: { requestId: string; clientName: string }) {
   const [pending, startTransition] = useTransition();
@@ -67,9 +68,12 @@ export function AuthorizeActions({ requestId, clientName }: { requestId: string;
         {left ? null : <AuthorizeCancel requestId={requestId} />}
       </div>
       {left ? (
-        <p role="status" className="text-sm font-medium">
-          Allowed. Go back to {clientName}: it is connected.
-        </p>
+        <>
+          <p role="status" className="text-sm font-medium">
+            Allowed. Go back to {clientName}: it is connected.
+          </p>
+          <AuthorizeNextStep clientName={clientName} />
+        </>
       ) : null}
       {error ? (
         <p role="alert" className="text-sm font-medium text-destructive">
@@ -166,9 +170,12 @@ export function AuthorizeReviewSignIn({ requestId }: { requestId: string }) {
         {left ? null : <AuthorizeCancel requestId={requestId} />}
       </div>
       {left ? (
-        <p role="status" className="text-sm font-medium">
-          Allowed. Go back to the app: it is connected.
-        </p>
+        <>
+          <p role="status" className="text-sm font-medium">
+            Allowed. Go back to the app: it is connected.
+          </p>
+          <AuthorizeNextStep />
+        </>
       ) : null}
       {error ? (
         <p role="alert" className="text-sm font-medium text-destructive">

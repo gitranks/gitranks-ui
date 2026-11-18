@@ -6,6 +6,7 @@ import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
 import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import {
   AGENTS_DOC_PATH,
+  isAttemptPagePath,
   isAuthorizePath,
   isContributePath,
   isLandingPath,
@@ -196,11 +197,14 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // Learn is behind its own list of people, which the proxy cannot read: a closed Learn page answers a visitor without
   // a session with the 404 here, and a signed-in one goes on to the page, which asks the API whether Learn is open to
   // them. A shared lesson, its result pages and the page for maintainers are open to everyone; the front door too once
-  // its switch is on (the home page's Learn section links there and follows the same switch).
+  // its switch is on (the home page's Learn section links there and follows the same switch). A contribution's or a
+  // lesson's own page lets a visitor without a session through: it is the link an agent hands its person, and the page
+  // asks them to sign in and comes back to itself (`isAttemptPagePath`).
   if (
     isLearnPath(pathname) &&
     !isLearnOpenPath(pathname) &&
     !(LEARN_OPEN_TO_VISITORS && isLearnHomePath(pathname)) &&
+    !isAttemptPagePath(pathname) &&
     !hasSession(request)
   ) {
     const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
@@ -219,6 +223,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     isContributePath(pathname) &&
     !isMaintainersPath(pathname) &&
     !isAuthorizePath(pathname) &&
+    !(isAttemptPagePath(pathname) && !hasSession(request)) &&
     !(isOpenAtLaunchPath(pathname) && (await contributeOpen()))
   ) {
     const access = await requestContributeAccess(request);

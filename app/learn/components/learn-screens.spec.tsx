@@ -15,7 +15,11 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/app/learn/actions', () => ({}));
 vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadAttempt: vi.fn() }));
+vi.mock('@/lib/contribute/contribute.data', () => ({
+  viewerLogin: vi.fn(async () => 'octocat'),
+  loadContribute: vi.fn(),
+  loadAttempt: vi.fn(),
+}));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnOpen: vi.fn(),
   loadLearnSetup: vi.fn(),
@@ -282,5 +286,15 @@ describe("a Learn attempt's page while the account is being set up", () => {
 
     vi.mocked(learnData.loadLearnOpen).mockResolvedValue(false);
     await expect(LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) })).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('asks a visitor without a session to sign in, in place of a not found, before reading anything', async () => {
+    const data = await import('@/lib/contribute/contribute.data');
+    vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
+    vi.mocked(learnData.loadLearnOpen).mockClear();
+    const html = renderToStaticMarkup(await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) }));
+    expect(html).toContain('data-attempt-sign-in="lesson"');
+    expect(text(html)).toContain('Sign in to see this lesson');
+    expect(learnData.loadLearnOpen).not.toHaveBeenCalled();
   });
 });

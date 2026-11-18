@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { SessionsList } from './attempt-sessions';
+import { AttemptSignIn } from './attempt-sign-in';
 import { ContributeNotices } from './contribute-notices';
 import { BackLink, ContributionHeader } from './contribution-header';
 import { PrNotesPanel } from './pr-notes';
@@ -17,6 +18,7 @@ import {
   loadPrNotes,
   loadRepliesWaiting,
   loadResolveHumanThreads,
+  viewerLogin,
 } from '@/lib/contribute/contribute.data';
 import type {
   ContributeAttemptDetail,
@@ -42,8 +44,12 @@ import { learnAttemptPath } from '@/lib/learn/learn-path';
 
 type Query = Record<string, string | string[] | undefined>;
 
-/** The gates every page of a contribution passes: signed in, let in, and the attempt theirs. */
+/**
+ * The gates every page of a contribution passes: signed in, let in, and the attempt theirs. Null signed out: the layout
+ * asks the visitor to sign in (the link an agent hands its person), and the session's page shows nothing under it.
+ */
 async function gate(id: string) {
+  if (!(await viewerLogin())) return null;
   const [view, attempt] = await Promise.all([loadContribute(), loadAttempt(id)]);
   if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
@@ -90,7 +96,9 @@ export async function ContributionLayout({
   children: ReactNode;
 }) {
   const { id } = await params;
-  const { view, attempt } = await gate(id);
+  const gated = await gate(id);
+  if (!gated) return <AttemptSignIn what="contribution" />;
+  const { view, attempt } = gated;
   if (!attempt || attempt.kind === 'FOLLOW_UP') return children;
   const { current, prNotes, replies } = await contributionOf(attempt);
   const now = new Date();
@@ -146,7 +154,9 @@ export async function FirstSessionView({
   searchParams: Promise<Query>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const [{ view, attempt }, resolveHumans] = await Promise.all([gate(id), loadResolveHumanThreads()]);
+  const [gated, resolveHumans] = await Promise.all([gate(id), loadResolveHumanThreads()]);
+  if (!gated) return null;
+  const { view, attempt } = gated;
   if (!attempt) return <ReviewScreen view={view} attempt={undefined} />;
   const move = paramOf(query, 'move');
   if (attempt.kind === 'FOLLOW_UP') {
@@ -194,7 +204,9 @@ export async function RunSessionView({
   searchParams: Promise<Query>;
 }) {
   const [{ id, runId }, query] = await Promise.all([params, searchParams]);
-  const [{ view, attempt }, resolveHumans] = await Promise.all([gate(runId), loadResolveHumanThreads()]);
+  const [gated, resolveHumans] = await Promise.all([gate(runId), loadResolveHumanThreads()]);
+  if (!gated) return null;
+  const { view, attempt } = gated;
   if (!attempt) return <ReviewScreen view={view} attempt={undefined} />;
   if (attempt.kind !== 'FOLLOW_UP' || attempt.followUpOf?.attemptId !== id)
     redirect(withQuery(attemptPath(runId), query));

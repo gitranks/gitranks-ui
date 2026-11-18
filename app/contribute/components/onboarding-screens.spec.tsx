@@ -337,6 +337,7 @@ describe('the pages that wait for onboarding', () => {
   };
 
   const visit = (page: keyof typeof pages, view: ContributeView) => {
+    data.viewerLogin.mockResolvedValue('octocat');
     data.loadContribute.mockResolvedValue(view);
     data.loadIssues.mockResolvedValue(undefined);
     data.loadAttempts.mockResolvedValue(undefined);
@@ -358,7 +359,29 @@ describe('the pages that wait for onboarding', () => {
     await expect(visit(page, views.active)).resolves.toBeTruthy();
   });
 
+  it("asks a visitor without a session to sign in on a contribution's page, the link their agent handed them", async () => {
+    data.viewerLogin.mockResolvedValue(null);
+    data.loadContribute.mockClear();
+    data.loadAttempt.mockClear();
+    const html = renderToStaticMarkup(await ContributionLayout({ params, children: <span data-session /> }));
+    expect(html).toContain('data-attempt-sign-in="contribution"');
+    expect(text(html)).toContain('Sign in to see this contribution');
+    expect(html).toContain('data-sign-in="attempt"');
+    expect(html).not.toContain('data-session');
+    await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).resolves.toBeNull();
+    expect(data.loadContribute).not.toHaveBeenCalled();
+    expect(data.loadAttempt).not.toHaveBeenCalled();
+  });
+
+  it('keeps the 404 for a signed-in user whose attempt it is not', async () => {
+    data.viewerLogin.mockResolvedValue('octocat');
+    data.loadContribute.mockResolvedValue(views.active);
+    data.loadAttempt.mockResolvedValue(null);
+    await expect(ContributionLayout({ params, children: null })).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
   it("sends a Learn attempt's page to its lesson, and keeps its next step (follow-ups) here", async () => {
+    data.viewerLogin.mockResolvedValue('octocat');
     const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
     data.loadContribute.mockResolvedValue(views.active);
     data.loadAttempt.mockResolvedValue(detail({ mode: 'LEARN' }));

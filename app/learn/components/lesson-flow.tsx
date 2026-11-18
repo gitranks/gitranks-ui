@@ -354,7 +354,7 @@ export function LessonFlow({
             disabled={pending}
             className="h-10 px-6 font-semibold max-sm:min-h-11"
           >
-            {pending ? 'Starting…' : 'Start the lesson'}
+            {pending ? 'Starting…' : 'Continue to the lesson'}
             <ArrowRight aria-hidden="true" className="size-4" />
           </Button>
           <span className="text-sm text-muted-foreground" aria-live="polite">

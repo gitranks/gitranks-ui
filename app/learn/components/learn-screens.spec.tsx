@@ -223,7 +223,7 @@ describe("a Learn attempt's page", () => {
     const warmup = screen(lessons.warmup);
     expect(warmup).toContain('data-lesson-phase="warmup"');
     expect(text(warmup)).toContain('Warm-up 3 of 3');
-    expect(text(warmup)).toContain('Start the lesson');
+    expect(text(warmup)).toContain('Continue to the lesson');
 
     const step = screen(lessons.step);
     expect(step).toContain('data-lesson-phase="step"');

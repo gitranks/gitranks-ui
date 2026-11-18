@@ -95,6 +95,12 @@ describe('a shared lesson', () => {
     expect(html).toContain('data-share-result="off"');
     expect(html).toMatch(/role="switch"/);
     expect(text(html)).not.toContain('pull request is now yours');
+    // What comes next: a lesson on the user's own fix, and where it shows.
+    expect(html).toContain('data-next-lesson');
+    expect(text(html)).toContain('Next: a lesson on your own fix');
+    expect(text(html)).toContain('Find me an issue to learn from on GitRanks');
+    expect(html).toContain('href="/learn/lessons"');
+    expect(text(html)).toContain('What this lesson covers');
 
     const shared = renderToStaticMarkup(
       <LessonPageScreen
@@ -103,6 +109,15 @@ describe('a shared lesson', () => {
       />,
     );
     expect(shared).toContain('href="/learn/lessons/route-cache-miss-8f3k/passes/mona"');
+    // A rating already given says it was taken.
+    const rated = renderToStaticMarkup(
+      <LessonPageScreen
+        page={lessonPage}
+        viewer={{ kind: 'taker', login: 'mona', run: { ...sharedRuns.passed, worthIt: true } }}
+      />,
+    );
+    expect(text(rated)).toContain('Thanks: that helps us write better lessons.');
+    expect(text(html)).not.toContain('Thanks: that helps us');
 
     const author = renderToStaticMarkup(
       <LessonPageScreen page={lessonPage} viewer={{ kind: 'taker', login: 'octocat', run: sharedRuns.passed }} />,
@@ -174,7 +189,9 @@ describe('a result page', () => {
     expect(html).toContain('data-react-sign-in="NO"');
     expect(html).toContain('name="reaction" value="NO"');
     expect(html).toContain('name="login" value="octocat"');
-    expect(text(html)).toContain('Sign in with GitHub to send your answer.');
+    expect(text(html)).toContain(
+      'Sign in with GitHub to send your answer: it checks your role on driftwood-js/driftwood, and your answer appears here with your name.',
+    );
   });
 
   it("shows the result's own person a line in place of the buttons, and no sign-in", () => {
@@ -189,15 +206,14 @@ describe('a result page', () => {
     expect(text(html)).toContain('mona (maintainer of driftwood-js/driftwood) said it helped.');
     expect(text(html)).toContain('Report this pull request');
 
-    // Another taker's own result is theirs, not a pull request of theirs.
-    const taker = renderToStaticMarkup(
-      <LessonResultScreen
-        result={result({ login: 'mona', loginAtPass: 'mona' })}
-        viewer={{ ...MAINTAINER, own: true }}
-      />,
-    );
-    expect(text(taker)).toContain('This is your own result: other people answer here.');
-    expect(text(taker)).not.toContain('Yes, it helped');
+    // Another taker's result is linked from no pull request: it asks nothing about one, theirs to read or not.
+    for (const viewer of [{ ...MAINTAINER, own: true }, MAINTAINER]) {
+      const taker = renderToStaticMarkup(
+        <LessonResultScreen result={result({ login: 'mona', loginAtPass: 'mona' })} viewer={viewer} />,
+      );
+      expect(taker).not.toContain('data-result-reactions');
+      expect(text(taker)).not.toMatch(/Did this help you review|Yes, it helped|This is your own result/);
+    }
 
     const other = renderToStaticMarkup(<LessonResultScreen result={result()} viewer={MAINTAINER} />);
     expect(other).not.toContain('data-own-result');

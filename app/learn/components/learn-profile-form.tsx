@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import type { LearnGoalKind, LearnProfile } from '@/lib/learn/learn.types';
+import { LEARN_AGENT_PROMPT } from '@/lib/learn/lesson-format';
 import {
   FOCUS,
   type LearnProfileForm as Form,
@@ -276,7 +277,7 @@ export function LearnProfileForm({ profile }: { profile: LearnProfile | null }) 
           </span>
         )}
         <span role="status" aria-live="polite" className="text-sm text-muted-foreground empty:hidden">
-          {status.saved ? 'Saved. Used from your next lesson.' : ''}
+          {status.saved ? `Saved. Next, ask your agent: “${LEARN_AGENT_PROMPT}”.` : ''}
         </span>
       </div>
       {status.error ? (

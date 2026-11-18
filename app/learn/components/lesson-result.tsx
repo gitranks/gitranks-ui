@@ -239,19 +239,22 @@ export function LessonResultScreen({ result, viewer }: { result: LessonResultPag
           <LessonWithAnswers result={result} />
         </div>
         <aside className="flex min-w-0 flex-col gap-4">
-          <ResultReactions
-            slug={head.slug}
-            login={result.login}
-            repo={head.subject.repo}
-            pr={head.subject.pr}
-            reactions={result.reactions}
-            canReact={viewer.canReact}
-            mine={viewer.mine}
-            returned={viewer.returned}
-            prompt={viewer.prompt}
-            own={viewer.own}
-            author={isAuthorOf(head, result.login)}
-          />
+          {/* "Did this help you review the pull request?" fits the author's result alone: the pull request links it. */}
+          {isAuthorOf(head, result.login) ? (
+            <ResultReactions
+              slug={head.slug}
+              login={result.login}
+              repo={head.subject.repo}
+              pr={head.subject.pr}
+              reactions={result.reactions}
+              canReact={viewer.canReact}
+              mine={viewer.mine}
+              returned={viewer.returned}
+              prompt={viewer.prompt}
+              own={viewer.own}
+              author
+            />
+          ) : null}
           <WhatThisPageIs result={result} />
           <TakeItYourself result={result} />
         </aside>

@@ -13,9 +13,12 @@ import { Sparkline } from './sparkline';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import type { PackageDownloads } from '@/graphql/package-page';
+import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { cn } from '@/lib/utils';
 
 type PackageDownloadsCardProps = {
+  /** The registry the package is on: its downloads are counted in its own unit. */
+  registry: RegistryId;
   downloads: PackageDownloads;
   /** The repository that publishes it, for the per-star line. */
   repo?: { nameWithOwner: string; stars: number } | null;
@@ -54,10 +57,11 @@ const Period: FC<{ period: DownloadsPeriod }> = ({ period }) => (
 );
 
 /**
- * The package's downloads from npm: the 7 days to the last day counted, or the last whole month, each against the
+ * The package's downloads from its registry: the 7 days to the last day counted, or the last whole month, each against the
  * period before and a year before, with a small line; and its downloads a week per star of its repository.
  */
-export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ downloads, repo }) => {
+export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ registry, downloads, repo }) => {
+  const unit = REGISTRIES[registry].downloads ?? 'week';
   const month = monthPeriodOf(downloads);
   const [picked, setPicked] = useState<'week' | 'month'>('week');
   const view = picked === 'month' && month ? 'month' : 'week';
@@ -91,8 +95,9 @@ export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ downloads,
       <Period period={period} />
       {perStar !== null && repo && (
         <p className="text-xs text-muted-foreground">
-          <span className="font-mono tabular-nums">{formatCount(Math.round(perStar))}</span> downloads a week per GitHub
-          star (<span className="font-mono tabular-nums">{formatCount(repo.stars)}</span> stars on {repo.nameWithOwner}
+          <span className="font-mono tabular-nums">{formatCount(Math.round(perStar))}</span>
+          {` downloads a ${unit} per GitHub star (`}
+          <span className="font-mono tabular-nums">{formatCount(repo.stars)}</span> stars on {repo.nameWithOwner}
           ).
         </p>
       )}

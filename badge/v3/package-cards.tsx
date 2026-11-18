@@ -9,13 +9,15 @@ import { Mark } from './glyphs';
 import type { BadgeParams } from './params';
 import { type CardPalette, toneColor } from './schemes';
 import { MONO_FONT } from './shield';
+import { REGISTRIES, registryDownloadsText } from '@/lib/packages/registries';
 
 /** A package's cards and chart. A package no repository with 100+ stars uses yet says "new", never "0". */
 
 const dot = ' · ';
 
 /** "npm · react", at the right of a card's eyebrow. */
-export const packageFrameName = (pkg: Pick<PackageFacts, 'registry' | 'name'>) => `${pkg.registry}${dot}${pkg.name}`;
+export const packageFrameName = (pkg: Pick<PackageFacts, 'registry' | 'name'>) =>
+  `${REGISTRIES[pkg.registry].label}${dot}${pkg.name}`;
 
 const repos = (count: number) => (count === 1 ? 'repo' : 'repos');
 
@@ -106,7 +108,7 @@ export function packageDownloadsCard(pkg: PackageFacts, params: BadgeParams): Dr
           <Num size={22} color={palette.text}>
             {formatCompact(downloads.lastWeek)}
           </Num>
-          <Words> npm downloads a week</Words>
+          <Words>{` ${registryDownloadsText(pkg.registry)}`}</Words>
           {growth !== null ? (
             <Words color={growth > 0 ? toneColor('positive', palette.ground, palette.text) : palette.muted}>
               {`${dot}${growthText(growth)} year over year`}

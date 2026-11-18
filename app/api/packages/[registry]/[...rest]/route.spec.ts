@@ -100,7 +100,10 @@ describe('package routes', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe(PRIVATE);
     expect(await response.json()).toEqual({ page: PAGE });
-    expect(fetchPackageDependents).toHaveBeenCalledExactlyOnceWith('@nebula/ui', { offset: 25, hideArchived: true });
+    expect(fetchPackageDependents).toHaveBeenCalledExactlyOnceWith('npm', '@nebula/ui', {
+      offset: 25,
+      hideArchived: true,
+    });
   });
 
   it('lets a shared cache keep a page once packages are public, and says when package data is unavailable', async () => {
@@ -211,7 +214,7 @@ describe('package routes', () => {
       expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
       expect(response.headers.get('Cache-Control')).toBe(PRIVATE);
       expect(await response.text()).toMatch(/^# react-resize-detector \(npm package\)\n/);
-      expect(fetchPackage).toHaveBeenCalledWith('react-resize-detector');
+      expect(fetchPackage).toHaveBeenCalledWith('npm', 'react-resize-detector');
     });
 
     it('may be kept by a shared cache once package pages are open to everyone, but not while a refresh runs', async () => {
@@ -230,7 +233,7 @@ describe('package routes', () => {
       fetchPackage.mockResolvedValue(quietPackage);
 
       expect((await call('GET', 'npm/@nebula/ui/facts.md')).status).toBe(200);
-      expect(fetchPackage).toHaveBeenCalledWith('@nebula/ui');
+      expect(fetchPackage).toHaveBeenCalledWith('npm', '@nebula/ui');
     });
 
     it('answers 404 for a name nobody has read or the registry does not have, and 503 without package data', async () => {

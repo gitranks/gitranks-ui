@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Link } from '@/components/link/link';
 import type { FollowPackage } from '@/lib/link-token/follow-links.types';
 import { type LinkTrouble, packageLabelOf } from '@/lib/link-token/follow-pages';
+import { DEFAULT_REGISTRY, isRegistryId } from '@/lib/packages/registries';
 import { cn } from '@/lib/utils';
 import { packagePath } from '@/utils/package-paths';
 
@@ -27,10 +28,14 @@ export function LinkHead({ eyebrow, title }: Readonly<{ eyebrow?: string; title:
   );
 }
 
-/** A package's name, linked to its page. */
+/** A package's name, linked to its page on a registry the site lists (in any letter case, the default one if none). */
 export function PackageName({ pkg, className }: Readonly<{ pkg: FollowPackage; className?: string }>) {
+  const registry = pkg.registry ? pkg.registry.toLowerCase() : DEFAULT_REGISTRY;
+  if (!isRegistryId(registry)) {
+    return <span className={cn('font-medium break-all', className)}>{packageLabelOf(pkg)}</span>;
+  }
   return (
-    <Link href={packagePath(pkg.name, pkg.registry || 'npm')} className={cn('font-medium break-all', className)}>
+    <Link href={packagePath(pkg.name, registry)} className={cn('font-medium break-all', className)}>
       {packageLabelOf(pkg)}
     </Link>
   );

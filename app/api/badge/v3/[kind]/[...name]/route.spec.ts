@@ -63,7 +63,7 @@ describe('/api/badge/v3/<kind>/<name>', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
     await expect(response.json()).resolves.toMatchObject({ kind: 'package', name: 'react-resize-detector' });
-    expect(loaders.package).toHaveBeenCalledWith('react-resize-detector');
+    expect(loaders.package).toHaveBeenCalledWith('npm', 'react-resize-detector');
 
     loaders.package.mockResolvedValueOnce(null);
     const missing = await get('package', 'npm', '@nebula', 'ui');

@@ -5,14 +5,18 @@ import type { MouseEvent } from 'react';
 import { entityName } from '../utils/badge-options';
 import { entityLabel } from '../utils/builder-state';
 import type { EntityFacts } from '@/badge/v3/facts';
+import { REGISTRIES } from '@/lib/packages/registries';
 import { cn } from '@/lib/utils';
 
-export const KIND_LABELS = {
+const KIND_LABELS = {
   user: 'developer',
   org: 'organization',
   repo: 'repository',
-  package: 'npm package',
 } as const;
+
+/** "developer", "repository", "npm package": what an entity is, a package with its registry. */
+export const kindLabelOf = (facts: EntityFacts) =>
+  facts.kind === 'package' ? `${REGISTRIES[facts.registry].label} package` : KIND_LABELS[facts.kind];
 
 const githubAvatar = (owner: string) => `https://avatars.githubusercontent.com/${encodeURIComponent(owner)}?s=64`;
 
@@ -61,7 +65,7 @@ export function EntityChip({
         className={`size-6 shrink-0 ${facts.kind === 'package' ? 'rounded-md' : 'rounded-full'} bg-muted`}
       />
       <span className="min-w-0 truncate font-medium">{entityLabel(facts.kind, entityName(facts))}</span>
-      <span className="text-muted-foreground">· {KIND_LABELS[facts.kind]}</span>
+      <span className="text-muted-foreground">· {kindLabelOf(facts)}</span>
       <a href={changeHref} onClick={change} className="ml-1 font-medium text-link underline-offset-2 hover:underline">
         Change<span className="sr-only"> who the badge is for</span>
       </a>

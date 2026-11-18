@@ -1,3 +1,4 @@
+import { DEFAULT_REGISTRY, type RegistryId } from '@/lib/packages/registries';
 import { buildRankingItemList } from '@/lib/seo/json-ld';
 import type {
   CountryRankingsQuery,
@@ -93,7 +94,7 @@ export function buildPackageRankingItemList(
   name: string,
   path: string,
   rows: NonNullable<PackageRankingsQuery['packageRankings']>,
-  registry = 'npm',
+  registry: RegistryId = DEFAULT_REGISTRY,
 ) {
   return buildRankingItemList(
     name,

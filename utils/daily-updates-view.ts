@@ -1,3 +1,4 @@
+import { isRegistryId, type PackageRef, packageDisplayNameOf, packageKeyOf } from '@/lib/packages/registries';
 import type { DailyUpdatesViewer, PickKind, PickRef } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 import { formatTimeLeft } from '@/utils/format-time-left';
@@ -87,15 +88,17 @@ export function profileUpdatesViewOf(
   return has(facts, DailyUpdateReason.Owner) ? 'visitor-on-owner' : 'visitor-off';
 }
 
-/** The prefix of a package pick's name: its registry. */
-const PACKAGE_PICK_PREFIX = 'npm/';
+/** A package's pick, by its registry and name: `<registry>/<name>`. */
+export const packagePickOf = (pkg: PackageRef): PickRef => ({ kind: 'package', name: packageKeyOf(pkg) });
 
-/** A package's pick, by its name: `npm/<name>`. */
-export const packagePickOf = (name: string): PickRef => ({ kind: 'package', name: `${PACKAGE_PICK_PREFIX}${name}` });
-
-/** A pick as a list shows it: a repository's `owner/name`, a package's own name. */
-export const pickDisplayName = ({ kind, name }: PickRef) =>
-  kind === 'package' && name.startsWith(PACKAGE_PICK_PREFIX) ? name.slice(PACKAGE_PICK_PREFIX.length) : name;
+/** A pick as a list shows it: a repository's `owner/name`, a package's name as people know it. */
+export function pickDisplayName({ kind, name }: PickRef) {
+  const slash = name.indexOf('/');
+  const registry = name.slice(0, slash);
+  return kind === 'package' && isRegistryId(registry)
+    ? packageDisplayNameOf({ registry, name: name.slice(slash + 1) })
+    : name;
+}
 
 /** Whether two picks name the same thing; GitHub's names are not case-sensitive, so neither is a repository's. */
 export const samePick = (a: PickRef, b: PickRef) => a.kind === b.kind && a.name.toLowerCase() === b.name.toLowerCase();

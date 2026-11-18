@@ -12,7 +12,7 @@ type RepoOverviewScreenProps = {
   repo: NonNullable<PageRepoQuery['repo']>;
   languages: readonly RepoLanguagesQuery['repoLanguages'][number][];
   tiers: RepoRankTiersQuery['repoRankTiers'];
-  /** Its npm packages: `null` when it publishes none, "unavailable" when they could not be read. */
+  /** Its packages: `null` when it publishes none, "unavailable" when they could not be read. */
   packages: RepoPackages | null | Unavailable;
   /** Its most-starred dependents; `null` when there are none to show. */
   dependents: RepoUsedBy | null | Unavailable;

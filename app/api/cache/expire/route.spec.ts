@@ -86,7 +86,7 @@ describe('POST /api/cache/expire', () => {
       'x'.repeat(NPM_NAME_MAX_LENGTH),
     ];
     expect(names.every(isNpmPackageName)).toBe(true);
-    const tags = names.map(packageCacheTag);
+    const tags = names.map((name) => packageCacheTag('npm', name));
     const response = await signed({ tags });
 
     expect(response.status).toBe(200);

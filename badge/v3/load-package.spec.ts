@@ -34,7 +34,10 @@ describe("a package's badge data", () => {
   it("is read as a badge, by its exact name, under the package's tag, and kept for hours", async () => {
     vi.mocked(graphqlDirect).mockResolvedValueOnce(read('READ'));
 
-    await expect(loadBadgePackage('React-Tools')).resolves.toMatchObject({ kind: 'package', name: 'React-Tools' });
+    await expect(loadBadgePackage('npm', 'React-Tools')).resolves.toMatchObject({
+      kind: 'package',
+      name: 'React-Tools',
+    });
     expect(graphqlDirect).toHaveBeenCalledWith(
       expect.anything(),
       { registry: 'NPM', name: 'React-Tools', limit: 8 },
@@ -46,34 +49,34 @@ describe("a package's badge data", () => {
 
   it('is "not read yet" for a name held and not read, kept for minutes so its first read shows soon', async () => {
     vi.mocked(graphqlDirect).mockResolvedValueOnce(read('NOT_READ'));
-    await expect(loadBadgePackage('react-tools')).resolves.toBe('not-read');
+    await expect(loadBadgePackage('npm', 'react-tools')).resolves.toBe('not-read');
     expect(cacheLife).toHaveBeenCalledWith('minutes');
 
     vi.mocked(graphqlDirect).mockResolvedValueOnce(read('NOT_READ'));
-    await expect(loadBadgePackageCard('react-tools')).resolves.toBeNull();
+    await expect(loadBadgePackageCard('npm', 'react-tools')).resolves.toBeNull();
   });
 
   it('is none for a name the registry does not have, kept for hours', async () => {
     vi.mocked(graphqlDirect).mockResolvedValueOnce({ package: null });
-    await expect(loadBadgePackage('react-tools')).resolves.toBeNull();
+    await expect(loadBadgePackage('npm', 'react-tools')).resolves.toBeNull();
     expect(cacheLife).toHaveBeenCalledWith('hours');
   });
 
   it('throws for the images and is none for the page while package data cannot be read, kept for minutes', async () => {
     vi.mocked(graphqlDirect).mockRejectedValueOnce(unavailable());
-    await expect(loadBadgePackage('react-tools')).rejects.toThrow();
+    await expect(loadBadgePackage('npm', 'react-tools')).rejects.toThrow();
     expect(cacheLife).toHaveBeenCalledWith('minutes');
 
     vi.mocked(graphqlDirect).mockRejectedValueOnce(unavailable());
-    await expect(loadBadgePackageCard('react-tools')).resolves.toBeNull();
+    await expect(loadBadgePackageCard('npm', 'react-tools')).resolves.toBeNull();
   });
 
   it('throws any other failure, and asks nothing while the site is built', async () => {
     vi.mocked(graphqlDirect).mockRejectedValueOnce(new Error('boom'));
-    await expect(loadBadgePackageCard('react-tools')).rejects.toThrow('boom');
+    await expect(loadBadgePackageCard('npm', 'react-tools')).rejects.toThrow('boom');
 
     vi.stubEnv('NEXT_PHASE', 'phase-production-build');
-    await expect(loadBadgePackageCard('react-tools')).resolves.toBeNull();
+    await expect(loadBadgePackageCard('npm', 'react-tools')).resolves.toBeNull();
     expect(graphqlDirect).toHaveBeenCalledOnce();
   });
 });

@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import { MIN_VALUE } from '@/app/app.consts';
+import type { RegistryId } from '@/lib/packages/registries';
 import { RankingTypeClient } from '@/types/ranking.types';
 import { countryInSentence } from '@/utils/country-in-sentence';
 import { formatSummaryDate } from '@/utils/format-summary-date';
@@ -156,7 +157,7 @@ type PackageRankingStatsInput = {
   /** The registry, as written in text: `npm`. */
   registry: string;
   /** The registry's name in URLs: `npm`. */
-  registrySlug: string;
+  registrySlug: RegistryId;
   /** The ranking's metric in a sentence: "weekly downloads". */
   metric: string;
   /** The stars a repository needs for its use of a package to count. */

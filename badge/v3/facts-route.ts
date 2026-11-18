@@ -18,8 +18,9 @@ export const FACTS_CACHE_CONTROL = {
 const KINDS: readonly EntityKind[] = ['user', 'org', 'repo', 'package'];
 
 /**
- * The entity a facts path names: a login, `owner/name`, or `npm/<name>` (a scoped name in two parts), a package's only
- * as its badges spell it (`spelled`, the path as asked), so every answer sits under the one address that is expired.
+ * The entity a facts path names: a login, `owner/name`, or `<registry>/<name>` (a scoped npm name in two parts), a
+ * package's only as its badges spell it (`spelled`, the path as asked), so every answer sits under the one address that
+ * is expired.
  */
 function refOf(kind: EntityKind | undefined, name: string[], spelled?: string): BadgeEntityRef | null {
   switch (kind) {
@@ -68,7 +69,7 @@ export async function getEntityFactsResponse(
         facts = await loaders.repo(ref.owner, ref.name);
         break;
       case 'package':
-        facts = loaders.package ? await loaders.package(ref.name) : null;
+        facts = loaders.package ? await loaders.package(ref.registry, ref.name) : null;
         break;
       default:
         facts = await loaders[ref.kind](ref.login);

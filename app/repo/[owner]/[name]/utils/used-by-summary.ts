@@ -1,6 +1,8 @@
+import { registryOfRepoPackage, sharedRegistryOf } from './repo-package-registry';
 import type { SummaryPart } from '@/app/profile/[login]/utils/profile-summary';
 import type { QuestionItem } from '@/components/questions-block/questions-block';
 import type { RepoPackage, RepoPackages, RepoUsedByItem } from '@/graphql/repo-packages';
+import { REGISTRIES, registryManifestList } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
@@ -32,7 +34,24 @@ function listParts(parts: SummaryPart[][]): SummaryPart[] {
 export const listText = (items: readonly string[]) =>
   items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
 
-const packageLink = (pkg: Pick<RepoPackage, 'name'>): SummaryPart => ({ text: pkg.name, href: packagePath(pkg.name) });
+const packageLink = (pkg: Pick<RepoPackage, 'name' | 'registry'>): SummaryPart => ({
+  text: pkg.name,
+  href: packagePath(pkg.name, registryOfRepoPackage(pkg)),
+});
+
+/** "npm packages" when every package is on one registry, "packages" across several; "npm package" for one. */
+function packagesWord(packages: Pick<RepoPackages, 'items'>, one = false): string {
+  const registry = sharedRegistryOf(packages.items);
+  const word = one ? 'package' : 'packages';
+  return registry ? `${REGISTRIES[registry].label} ${word}` : word;
+}
+
+/** "a week on npm" on one registry, "a week" across several. */
+export function downloadsPer(packages: Pick<RepoPackages, 'items'>): string {
+  const registry = sharedRegistryOf(packages.items);
+  const unit = registry ? (REGISTRIES[registry].downloads ?? 'week') : 'week';
+  return registry ? `a ${unit} on ${REGISTRIES[registry].label}` : `a ${unit}`;
+}
 const repoLink = (nameWithOwner: string): SummaryPart => ({ text: nameWithOwner, href: getRepoPath(nameWithOwner) });
 
 /** The read dates, last: "Dependents read on …; downloads updated on …." */
@@ -50,23 +69,23 @@ function readDates(packages: RepoPackages): string[] {
 function publishes(nameWithOwner: string, packages: RepoPackages): SummaryPart[] {
   const { total, items } = packages;
   if (total === 1) {
-    return [`${nameWithOwner} publishes one npm package, `, packageLink(items[0]), '.'];
+    return [`${nameWithOwner} publishes one ${packagesWord(packages, true)}, `, packageLink(items[0]), '.'];
   }
   if (total <= 3 && items.length === total) {
     return [
-      `${nameWithOwner} publishes ${total} npm packages: `,
+      `${nameWithOwner} publishes ${total} ${packagesWord(packages)}: `,
       ...listParts(items.map((pkg) => [packageLink(pkg)])),
       '.',
     ];
   }
-  return [`${nameWithOwner} publishes ${formatCount(total)} npm packages.`];
+  return [`${nameWithOwner} publishes ${formatCount(total)} ${packagesWord(packages)}.`];
 }
 
 function downloadsSentence(packages: RepoPackages): string {
   const downloads = formatCount(packages.downloadsLastWeek);
   return packages.total === 1
-    ? ` It is downloaded ${downloads} times a week on npm.`
-    : ` Together ${packages.total <= 3 ? 'the packages are' : 'they are'} downloaded ${downloads} times a week on npm.`;
+    ? ` It is downloaded ${downloads} times ${downloadsPer(packages)}.`
+    : ` Together ${packages.total <= 3 ? 'the packages are' : 'they are'} downloaded ${downloads} times ${downloadsPer(packages)}.`;
 }
 
 /**
@@ -133,8 +152,8 @@ export function usedByCardLine(packages: RepoPackages): { dependents: string; wh
     dependents: formatCount(packages.dependents),
     what: `${packages.dependents === 1 ? 'repository' : 'repositories'} with 100+ stars ${packages.dependents === 1 ? 'depends' : 'depend'} on ${
       packages.total === 1
-        ? `its npm package ${packages.items[0].name}`
-        : `its ${formatCount(packages.total)} npm packages`
+        ? `its ${packagesWord(packages, true)} ${packages.items[0].name}`
+        : `its ${formatCount(packages.total)} ${packagesWord(packages)}`
     }, `,
     downloads: formatDownloadsShort(packages.downloadsLastWeek),
   };
@@ -157,8 +176,7 @@ export function noDependentsNote(packages: RepoPackages): string {
 }
 
 /** "How is this counted?", on the Used by tab and wherever its numbers are explained. */
-export const USED_BY_COUNTED =
-  "From each repository's own package.json files, workspaces included. Lockfiles, forks and example, docs or test folders don't count. We read every repository with 100+ stars once a month.";
+export const USED_BY_COUNTED = `From each repository's own ${registryManifestList()} files, workspaces included. Lockfiles, forks and example, docs or test folders don't count. We read every repository with 100+ stars once a month.`;
 
 /**
  * The Used by tab's questions, each answered from the tab's own numbers: who uses it, which package is used most (with

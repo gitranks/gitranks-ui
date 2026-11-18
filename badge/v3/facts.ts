@@ -1,5 +1,6 @@
 import type { WallOrder } from './types';
 import type { RepoUnsungHeroFacts } from './unsung-hero-badge';
+import { packageKeyOf, type RegistryId } from '@/lib/packages/registries';
 
 /** What a badge knows about its entity: the API's answer, flattened. */
 
@@ -173,13 +174,13 @@ export type PackageDownloadsFacts = {
 };
 
 /**
- * An npm package GitRanks has read. Its dependents are the repositories with 100+ stars that use it directly: their
+ * A package GitRanks has read. Its dependents are the repositories with 100+ stars that use it directly: their
  * count, their stars added up, and the most-starred few.
  */
 export type PackageFacts = {
   kind: 'package';
-  registry: 'npm';
-  /** The registry's spelling: `x` or `@scope/x`. */
+  registry: RegistryId;
+  /** The registry's spelling: on npm `x` or `@scope/x`. */
   name: string;
   /** The repository that publishes it, when GitRanks has its page. */
   repo: { nameWithOwner: string; stars: number } | null;
@@ -202,8 +203,8 @@ export type EntityFacts = RepoFacts | UserFacts | OrgFacts | PackageFacts;
 export const PACKAGE_NOT_READ = 'not-read';
 export type PackageNotRead = typeof PACKAGE_NOT_READ;
 
-/** How a package's badges name it in their URL, after the kind: `npm/<name>`. */
-export const packageBadgeName = (pkg: Pick<PackageFacts, 'registry' | 'name'>) => `${pkg.registry}/${pkg.name}`;
+/** How a package's badges name it in their URL, after the kind: `<registry>/<name>`. */
+export const packageBadgeName = (pkg: Pick<PackageFacts, 'registry' | 'name'>) => packageKeyOf(pkg);
 
 /** The entity's wall in an order, if it has one; a package has none. */
 export const wallOf = (entity: EntityFacts, order: WallOrder): ContributorsWall | null =>

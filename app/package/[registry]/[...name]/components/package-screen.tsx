@@ -46,9 +46,12 @@ import { Pill } from '@/components/pill/pill';
 import { RepoLink } from '@/components/repo-link/repo-link';
 import { Button } from '@/components/ui/button';
 import type { PackagePage } from '@/graphql/package-page';
+import { REGISTRIES, type RegistryId, registryOf } from '@/lib/packages/registries';
 import { PACKAGE_METHODOLOGY_PATH } from '@/utils/package-paths';
 
 type PackageScreenProps = {
+  /** The registry the package is on. */
+  registry: RegistryId;
   /** The package's name as the URL names it: shown while its data cannot be read. */
   name: string;
   /** Its data; "unavailable" while package data cannot be read. */
@@ -68,8 +71,6 @@ const shortDate = (value: string | null | undefined) => {
   return date && !Number.isNaN(date.getTime()) ? SHORT_DATE.format(date) : undefined;
 };
 
-const npmUrl = (name: string) => `https://www.npmjs.com/package/${name}` as Route;
-
 /** The name as a heading: a scope muted before the name, as a repository's owner is. */
 const PackageName: FC<{ name: string }> = ({ name }) => {
   const slash = name.startsWith('@') ? name.indexOf('/') : -1;
@@ -87,18 +88,20 @@ const PackageName: FC<{ name: string }> = ({ name }) => {
   );
 };
 
-const OpenOnNpm: FC<{ name: string }> = ({ name }) => (
+/** "Open on npm": the package's page on the registry's own site. */
+const OpenOnRegistry: FC<{ registry: RegistryId; name: string }> = ({ registry, name }) => (
   <Button size="sm" variant="outline" className="flex-grow" asChild>
-    <Link href={npmUrl(name)} target="_blank" rel="noopener noreferrer">
+    <Link href={REGISTRIES[registry].pageUrl(name) as Route} target="_blank" rel="noopener noreferrer">
       <Package aria-hidden />
-      Open on npm
+      {`Open on ${REGISTRIES[registry].label}`}
       <ExternalLink className="size-4 text-muted-foreground" aria-hidden />
     </Link>
   </Button>
 );
 
 /** The left column's top: the name, the "npm package" chip and the description with the registry's deprecation. */
-const Head: FC<{ name: string; description?: string | null; deprecated?: string | null }> = ({
+const Head: FC<{ registry: RegistryId; name: string; description?: string | null; deprecated?: string | null }> = ({
+  registry,
   name,
   description,
   deprecated,
@@ -107,7 +110,7 @@ const Head: FC<{ name: string; description?: string | null; deprecated?: string 
     <div className="flex min-w-0 flex-col gap-2">
       <PackageName name={name} />
       <span className="self-start">
-        <Pill>npm package</Pill>
+        <Pill>{`${REGISTRIES[registry].label} package`}</Pill>
       </span>
     </div>
     {!!description && <p className="text-sm [overflow-wrap:anywhere]">{description}</p>}
@@ -132,7 +135,7 @@ function latestText({ latestVersion, releaseCount }: Pick<PackagePage, 'latestVe
   return [latestVersion, releases].filter(Boolean).join(' · ') || undefined;
 }
 
-const Facts: FC<{ pkg: PackagePage }> = ({ pkg }) => {
+const Facts: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, pkg }) => {
   const downloadsRead = shortDate(pkg.downloadsReadAt);
   const dependentsRead = shortDate(pkg.dependentsReadAt);
   const firstPublished = shortDate(pkg.firstPublishedAt);
@@ -152,7 +155,7 @@ const Facts: FC<{ pkg: PackagePage }> = ({ pkg }) => {
           prefix="Repository: "
           Icon={GitBranch}
         />
-        <ProfileListItem value="npm" prefix="Registry: " Icon={Package} />
+        <ProfileListItem value={REGISTRIES[registry].label} prefix="Registry: " Icon={Package} />
         <ProfileListItem value={latest} prefix="Latest: " Icon={Tag} />
         <ProfileListItem value={firstPublished} prefix="First published: " Icon={CalendarDays} />
         <ProfileListItem value={maintainersText(pkg)} prefix="Maintainers: " Icon={Users} />
@@ -189,20 +192,21 @@ const COUNTED =
   "Counted from each repository's own manifests, workspaces included. Lockfiles, forks, and examples, docs or test folders don't count. We read every repository with 100+ stars once a month";
 
 /** Who uses it: the sentence, the list with "Show more" and how it is counted; with none yet, the empty state. */
-const UsedBy: FC<{ pkg: PackagePage }> = ({ pkg }) => {
+const UsedBy: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, pkg }) => {
+  const { label, manifest, downloads: unit } = registryOf(registry);
   const { name, dependentsCount: count, dependentsStars: stars, dependents } = pkg;
   const read = shortDate(pkg.dependentsReadAt);
   const next = formatDay(pkg.nextDependentsReadAt);
   const intro =
     count > 0
-      ? `${formatCount(count)} ${count === 1 ? 'repository' : 'repositories'} with 100+ stars ${count === 1 ? 'lists' : 'list'} ${name} in their own package.json.${count > 1 ? ` Together they have ${formatCount(stars)} stars.` : ''}`
+      ? `${formatCount(count)} ${count === 1 ? 'repository' : 'repositories'} with 100+ stars ${count === 1 ? 'lists' : 'list'} ${name} in their own ${manifest}.${count > 1 ? ` Together they have ${formatCount(stars)} stars.` : ''}`
       : undefined;
 
   return (
     <ProfileSection id="used-by" title="Used by" intro={intro}>
       {count > 0 && dependents && dependents.items.length > 0 ? (
         <>
-          <PackageDependentsList name={name} initial={dependents} />
+          <PackageDependentsList registry={registry} name={name} initial={dependents} />
           <p className="text-xs text-muted-foreground">
             {COUNTED}
             {read ? `; last read ${read}.` : '.'}{' '}
@@ -217,7 +221,9 @@ const UsedBy: FC<{ pkg: PackagePage }> = ({ pkg }) => {
           text={[
             'We read every repository with 100+ stars once a month.',
             next ? ` The next read is on ${next}.` : '',
-            pkg.downloads ? ` It is downloaded ${formatCount(pkg.downloads.lastWeek)} times a week on npm.` : '',
+            pkg.downloads && unit
+              ? ` It is downloaded ${formatCount(pkg.downloads.lastWeek)} times a ${unit} on ${label}.`
+              : '',
           ].join('')}
         />
       )}
@@ -226,8 +232,12 @@ const UsedBy: FC<{ pkg: PackagePage }> = ({ pkg }) => {
 };
 
 /** Its weekly downloads over the last 52 weeks, with their total. */
-const Downloads: FC<{ downloads: NonNullable<PackagePage['downloads']> }> = ({ downloads }) => {
+const Downloads: FC<{ registry: RegistryId; downloads: NonNullable<PackagePage['downloads']> }> = ({
+  registry,
+  downloads,
+}) => {
   const range = weeksRangeText(downloads);
+  const from = `Weekly downloads from ${REGISTRIES[registry].label}`;
   return (
     <ProfileCard className="gap-3">
       <ProfileCardHeader>
@@ -241,11 +251,16 @@ const Downloads: FC<{ downloads: NonNullable<PackagePage['downloads']> }> = ({ d
         <div className="h-[220px]">
           <DownloadsChart
             points={(downloads.weeks ?? []).slice(-52)}
-            label={`Weekly downloads from npm${range ? `, ${range}` : ''}: ${formatCountLong(downloads.last52Weeks)} in the last 12 months`}
+            label={`${from}${range ? `, ${range}` : ''}: ${formatCountLong(downloads.last52Weeks)} in the last 12 months`}
           />
         </div>
       )}
-      {range && <p className="text-xs text-muted-foreground">Weekly downloads from npm, {range}.</p>}
+      {range && (
+        <p className="text-xs text-muted-foreground">
+          {`${from}, `}
+          {range}.
+        </p>
+      )}
     </ProfileCard>
   );
 };
@@ -255,15 +270,15 @@ const Downloads: FC<{ downloads: NonNullable<PackagePage['downloads']> }> = ({ d
  * downloads, the summary, who uses it, its downloads over a year and its badge. A package nobody has read yet shows
  * its name, Refresh and one empty state; while package data cannot be read, one line says so.
  */
-export const PackageScreen: FC<PackageScreenProps> = ({ name, pkg, jsonLd }) => {
+export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jsonLd }) => {
   if (pkg === 'unavailable') {
     return (
       <Frame
         left={
           <>
-            <Head name={name} />
+            <Head registry={registry} name={name} />
             <ActionsContainer>
-              <OpenOnNpm name={name} />
+              <OpenOnRegistry registry={registry} name={name} />
             </ActionsContainer>
           </>
         }
@@ -277,6 +292,7 @@ export const PackageScreen: FC<PackageScreenProps> = ({ name, pkg, jsonLd }) => 
 
   const button = (
     <PackageUpdatesButton
+      registry={registry}
       name={pkg.name}
       repository={pkg.repo?.nameWithOwner ?? pkg.repositoryName}
       dailyUpdates={pkg.dailyUpdates}
@@ -289,10 +305,10 @@ export const PackageScreen: FC<PackageScreenProps> = ({ name, pkg, jsonLd }) => 
       <Frame
         left={
           <>
-            <Head name={pkg.name} />
+            <Head registry={registry} name={pkg.name} />
             <ActionsContainer>
               {button}
-              <OpenOnNpm name={pkg.name} />
+              <OpenOnRegistry registry={registry} name={pkg.name} />
             </ActionsContainer>
           </>
         }
@@ -308,29 +324,30 @@ export const PackageScreen: FC<PackageScreenProps> = ({ name, pkg, jsonLd }) => 
     <Frame
       left={
         <>
-          <Head name={pkg.name} description={pkg.description} deprecated={pkg.deprecated} />
+          <Head registry={registry} name={pkg.name} description={pkg.description} deprecated={pkg.deprecated} />
           <ActionsContainer>
-            <FollowSlot packages={[{ registry: 'npm', name: pkg.name }]} label={pkg.name} placement="package-page" />
+            <FollowSlot packages={[{ registry, name: pkg.name }]} label={pkg.name} placement="package-page" />
             {button}
-            <OpenOnNpm name={pkg.name} />
+            <OpenOnRegistry registry={registry} name={pkg.name} />
           </ActionsContainer>
-          <Facts pkg={pkg} />
+          <Facts registry={registry} pkg={pkg} />
         </>
       }
     >
       {!!jsonLd?.length && <JsonLd payloads={jsonLd} />}
       <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))]">
         <PackageRanksCard
+          registry={registry}
           dependentsCount={pkg.dependentsCount}
           dependentsStars={pkg.dependentsStars}
           ranks={pkg.ranks}
         />
-        {pkg.downloads && <PackageDownloadsCard downloads={pkg.downloads} repo={pkg.repo} />}
+        {pkg.downloads && <PackageDownloadsCard registry={registry} downloads={pkg.downloads} repo={pkg.repo} />}
       </ProfileCardsGrid>
-      <ProfileSummary parts={buildPackageSummary(pkg, top)} />
-      <UsedBy pkg={pkg} />
-      {pkg.downloads && <Downloads downloads={pkg.downloads} />}
-      <PackageBadgeSection name={pkg.name} />
+      <ProfileSummary parts={buildPackageSummary(registry, pkg, top)} />
+      <UsedBy registry={registry} pkg={pkg} />
+      {pkg.downloads && <Downloads registry={registry} downloads={pkg.downloads} />}
+      <PackageBadgeSection registry={registry} name={pkg.name} />
     </Frame>
   );
 };

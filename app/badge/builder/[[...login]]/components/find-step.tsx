@@ -7,20 +7,31 @@ import { ClipLoader } from 'react-spinners';
 import { fetchEntityFacts } from '../hooks/use-entity-facts';
 import { usePackagesShown } from '../hooks/use-packages-shown';
 import { entityName } from '../utils/badge-options';
-import { entityLabel, packageNameOf, searchLookups } from '../utils/builder-state';
+import { anyPackageRefOf, entityLabel, searchLookups } from '../utils/builder-state';
 import { FORMAT_NAMES } from '../utils/builder-view';
-import { EntityAvatar, KIND_LABELS } from './entity-chip';
+import { EntityAvatar, kindLabelOf } from './entity-chip';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
 import type { EntityFacts } from '@/badge/v3/facts';
 import { formatCompact } from '@/badge/v3/format';
 import type { EntityKind } from '@/badge/v3/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { anyRegistryPackageText, DEFAULT_REGISTRY, REGISTRIES, registryLabelList } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
 /** The words for a search of any kind once packages are shown: today's, with packages beside. */
 type Scope = EntityKind | 'any' | 'any-with-packages';
+
+/** "npm package", or each registry the site lists: "npm or PyPI package". */
+const PACKAGE = anyRegistryPackageText();
+/** The same with its article: "an npm package". */
+const A_PACKAGE = anyRegistryPackageText(true);
+/** The registries a package's name is looked for on: "npm", "npm or PyPI". */
+const ON_REGISTRIES = registryLabelList('or');
+/** "react or @types/node": names a visitor knows, from the registry a bare name is looked for on. */
+const EXAMPLES = REGISTRIES[DEFAULT_REGISTRY].examples.join(' or ');
+const [, SCOPED_EXAMPLE = EXAMPLES] = REGISTRIES[DEFAULT_REGISTRY].examples;
 
 const HEADINGS: Record<Scope, string> = {
   any: 'Who is the badge for?',
@@ -28,14 +39,14 @@ const HEADINGS: Record<Scope, string> = {
   user: 'Which developer is the badge for?',
   org: 'Which organization is the badge for?',
   repo: 'Which repository is the badge for?',
-  package: 'Which npm package is the badge for?',
+  package: `Which ${PACKAGE} is the badge for?`,
 };
 
 const YOUR: Record<EntityKind, string> = {
   user: 'your GitHub account',
   org: 'your organization',
   repo: 'your repository',
-  package: 'your npm package',
+  package: `your ${PACKAGE}`,
 };
 
 /** The step's heading; with a badge picked before the entity (in the gallery), it names that badge. */
@@ -46,30 +57,29 @@ export function findHeading(kind: EntityKind | null, badge: BadgeDefinition | nu
 
 const LABELS: Record<Scope, string> = {
   any: 'A developer, an organization or a repository',
-  'any-with-packages': 'A developer, an organization, a repository or an npm package',
+  'any-with-packages': `A developer, an organization, a repository or ${A_PACKAGE}`,
   user: 'GitHub login',
   org: 'Organization login',
   repo: 'Repository',
-  package: 'npm package',
+  package: PACKAGE,
 };
 
 const HINTS: Record<Scope, string> = {
   any: '“owner/name” finds a repository; a login finds a developer or an organization.',
-  'any-with-packages':
-    '“owner/name” finds a repository; a login finds a developer or an organization; a package’s name finds it on npm.',
+  'any-with-packages': `“owner/name” finds a repository; a login finds a developer or an organization; a package’s name finds it on ${ON_REGISTRIES}.`,
   user: 'The developer’s GitHub login, for example torvalds.',
   org: 'The organization’s GitHub login, for example vercel.',
   repo: 'The repository as owner/name, for example react/react.',
-  package: 'The package’s name on npm, for example react or @types/node.',
+  package: `The package’s name on ${ON_REGISTRIES}, for example ${EXAMPLES}.`,
 };
 
 const PLACEHOLDERS: Record<Scope, string> = {
   any: 'torvalds, vercel or react/react',
-  'any-with-packages': 'torvalds, vercel, react/react or @types/node',
+  'any-with-packages': `torvalds, vercel, react/react or ${SCOPED_EXAMPLE}`,
   user: 'torvalds',
   org: 'vercel',
   repo: 'react/react',
-  package: 'react or @types/node',
+  package: EXAMPLES,
 };
 
 type Lookup =
@@ -94,16 +104,16 @@ type FindStepProps = {
 
 const INVALID: Record<Scope, string> = {
   any: 'Enter a GitHub login or owner/name',
-  'any-with-packages': 'Enter a GitHub login, owner/name or an npm package’s name',
+  'any-with-packages': `Enter a GitHub login, owner/name or ${A_PACKAGE}’s name`,
   user: 'Enter a GitHub login',
   org: 'Enter an organization login',
   repo: 'Enter the repository as owner/name',
-  package: 'Enter an npm package’s name',
+  package: `Enter ${A_PACKAGE}’s name`,
 };
 
 /**
  * Step 1: one search box; a login finds developers and organizations, `owner/name` a repository, and, once packages
- * are shown to the visitor, a package's name an npm package.
+ * are shown to the visitor, a package's name a package.
  */
 export function FindStep({
   headingRef,
@@ -259,7 +269,7 @@ export function FindStep({
                         </span>
                       )}
                     </span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{KIND_LABELS[facts.kind]}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{kindLabelOf(facts)}</span>
                   </button>
                 </li>
               ))}
@@ -272,11 +282,14 @@ export function FindStep({
 }
 
 /**
- * Nothing found: the page that fetches it from GitHub, an organization's when the search is for organizations; for an
- * npm package (`npm/<name>`), its page, where a refresh reads it.
+ * Nothing found: the page that fetches it from GitHub, an organization's when the search is for organizations; for a
+ * package (`<registry>/<name>`), its page, where a refresh reads it.
  */
 export function missingHref(name: string, kind: EntityKind | null): string {
-  if (kind === 'package') return packagePath(packageNameOf(name) ?? name.replace(/^npm\//, ''));
+  if (kind === 'package') {
+    const pkg = anyPackageRefOf(name);
+    return packagePath(pkg.name, pkg.registry);
+  }
   if (name.includes('/')) return getRepoPath(name);
   return kind === 'org' ? `/org/${encodeURIComponent(name)}` : `/profile/${encodeURIComponent(name)}`;
 }
@@ -290,7 +303,9 @@ function MissingNote({ name, kind }: Readonly<{ name: string; kind: EntityKind |
       <a href={href} className="font-medium text-link underline">
         Open its GitRanks page
       </a>{' '}
-      {pkg ? 'to read it from npm, then come back.' : 'to fetch it from GitHub, then come back.'}
+      {pkg
+        ? `to read it from ${REGISTRIES[anyPackageRefOf(name).registry].label}, then come back.`
+        : 'to fetch it from GitHub, then come back.'}
     </p>
   );
 }

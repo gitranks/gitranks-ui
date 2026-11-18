@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server';
 
 import { json } from '../api-call';
 import { isBadgeCheckResult } from '@/app/badge/builder/[[...login]]/utils/badge-check';
-import { packageNameOf } from '@/app/badge/builder/[[...login]]/utils/builder-state';
+import { packageRefOf } from '@/app/badge/builder/[[...login]]/utils/builder-state';
 import { accountEmailOf } from '@/lib/account-email';
 import { sessionTokenOf } from '@/lib/contribute/session-token';
 import { isRepoName } from '@/lib/routing/ranking-routes';
@@ -19,7 +19,10 @@ const MAX_ADDRESS = 64;
 
 const UNAVAILABLE: BadgeCheckResult = { status: 'unavailable' };
 
-/** The entity to check, from the body: a profile's login, a repository's `owner/name` or a package's `npm/<name>`. */
+/**
+ * The entity to check, from the body: a profile's login, a repository's `owner/name` or a package's
+ * `<registry>/<name>`.
+ */
 function entityOf(text: string): { kind: BadgeCheckKind; name: string } | null {
   let body: unknown;
   try {
@@ -40,7 +43,7 @@ function entityOf(text: string): { kind: BadgeCheckKind; name: string } | null {
     return rest.length === 0 && repo !== undefined && isGithubLogin(owner) && isRepoName(repo) ? { kind, name } : null;
   }
   if (kind === 'package') {
-    return packageNameOf(name) !== null ? { kind, name } : null;
+    return packageRefOf(name) !== null ? { kind, name } : null;
   }
   return null;
 }

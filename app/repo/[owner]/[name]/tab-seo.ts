@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { repoImagesOf } from './seo';
 import { topContributorOf } from './utils/contributors-summary';
 import { repoTabPath } from './utils/repo-tabs';
-import { formatCount } from './utils/used-by-summary';
+import { downloadsPer, formatCount } from './utils/used-by-summary';
 import { badgeImagePath } from '@/badge/v3/links';
 import type { PulseFactsData } from '@/components/pulse/pulse.utils';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
@@ -92,7 +92,7 @@ export function buildUsedBySEO(
         ? `${plural(dependents, 'repository', 'repositories')} with 100+ stars ${dependents === 1 ? 'depends' : 'depend'} on ${packageNames(packages)}.`
         : `No repository with 100+ stars depends on ${packageNames(packages)} yet.`,
       first ? `The most-starred is ${first.nameWithOwner} (${plural(first.stars, 'star', 'stars')}).` : undefined,
-      `${formatCount(packages.downloadsLastWeek)} downloads a week on npm.`,
+      `${formatCount(packages.downloadsLastWeek)} downloads ${downloadsPer(packages)}.`,
     ]
       .filter(Boolean)
       .join(' '),

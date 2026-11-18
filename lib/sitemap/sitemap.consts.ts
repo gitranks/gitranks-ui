@@ -1,3 +1,5 @@
+import { REGISTRY_IDS, type RegistryId } from '@/lib/packages/registries';
+
 /** Child sitemap segments under `/sitemaps/<id>/sitemap.xml`. */
 export const SITEMAP_SEGMENTS = [
   'static',
@@ -40,6 +42,20 @@ export const SITEMAP_ORG_PARTS_MAX = 5;
  */
 export const SITEMAP_PACKAGE_PARTS_MAX = 10;
 export const SITEMAP_REPO_TAB_PARTS_MAX = 10;
+
+/**
+ * A package-page sitemap's id, as `generateSitemaps` names it: each registry its own run of `SITEMAP_PACKAGE_PARTS_MAX`
+ * ids, in the registry table's order (npm's parts are 0 to 9).
+ */
+export const packageSitemapIdOf = (registry: RegistryId, part: number) =>
+  REGISTRY_IDS.indexOf(registry) * SITEMAP_PACKAGE_PARTS_MAX + part;
+
+/** The registry and part a package-page sitemap's id names; `null` for an id past the last registry's. */
+export function packageSitemapPartOf(id: number): { registry: RegistryId; part: number } | null {
+  if (!Number.isInteger(id) || id < 0) return null;
+  const registry = REGISTRY_IDS[Math.floor(id / SITEMAP_PACKAGE_PARTS_MAX)];
+  return registry ? { registry, part: id % SITEMAP_PACKAGE_PARTS_MAX } : null;
+}
 
 export const SITEMAP_COUNTRY_LIMIT = 100;
 export const SITEMAP_LANGUAGE_LIMIT = 10;

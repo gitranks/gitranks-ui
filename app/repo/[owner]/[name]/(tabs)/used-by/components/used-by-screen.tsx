@@ -15,12 +15,18 @@ import { PackagesTable } from './packages-table';
 import { UsedByList } from './used-by-list';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { ProfileSummary } from '@/app/profile/[login]/components/profile-summary';
+import {
+  registryOfRepoPackage,
+  repoPackageRefOf,
+  spansRegistries,
+} from '@/app/repo/[owner]/[name]/utils/repo-package-registry';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { FollowSlot } from '@/components/package-follow/follow-slot';
 import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { Button } from '@/components/ui/button';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages, RepoUsedBy } from '@/graphql/repo-packages';
+import { registryLabelList } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 type UsedByScreenProps = {
@@ -33,8 +39,7 @@ type UsedByScreenProps = {
   jsonLd?: object[];
 };
 
-const INTRO =
-  "Repositories with 100+ stars that depend directly on a package this repository publishes. Forks, lockfiles and example folders don't count. Read monthly; downloads from npm, weekly.";
+const INTRO = `Repositories with 100+ stars that depend directly on a package this repository publishes. Forks, lockfiles and example folders don't count. Read monthly; downloads from ${registryLabelList()}, weekly.`;
 
 const Heading: FC = () => (
   <div className="flex flex-col gap-1">
@@ -49,10 +54,11 @@ const PackagesBlock: FC<{ packages: RepoPackages }> = ({ packages }) => {
     return <PackageCard pkg={packages.items[0]} wide />;
   }
   if (packages.total <= 3) {
+    const registryChip = spansRegistries(packages.items);
     return (
       <div className={packages.items.length === 2 ? 'grid gap-4 md:grid-cols-2' : 'grid gap-4 md:grid-cols-3'}>
         {packages.items.map((pkg) => (
-          <PackageCard key={pkg.name} pkg={pkg} />
+          <PackageCard key={`${pkg.registry}/${pkg.name}`} pkg={pkg} registryChip={registryChip} />
         ))}
       </div>
     );
@@ -73,13 +79,13 @@ const NoDependents: FC<{ nameWithOwner: string; packages: RepoPackages }> = ({ n
       <p className="text-sm text-muted-foreground">{noDependentsNote(packages)}</p>
       <div className="flex flex-wrap justify-center gap-2">
         <FollowSlot
-          packages={(one ? [one] : packages.items).map(({ name }) => ({ registry: 'npm', name }))}
+          packages={(one ? [one] : packages.items).map(repoPackageRefOf)}
           label={one ? one.name : `${nameWithOwner} packages`}
           placement="used-by-empty"
         />
         {one && (
           <Button variant="outline" asChild>
-            <NextLink href={packagePath(one.name) as Route} prefetch={false}>
+            <NextLink href={packagePath(one.name, registryOfRepoPackage(one)) as Route} prefetch={false}>
               <Package aria-hidden />
               Package page
             </NextLink>
@@ -91,7 +97,7 @@ const NoDependents: FC<{ nameWithOwner: string; packages: RepoPackages }> = ({ n
 };
 
 /**
- * A repository's Used by tab: the repositories with 100+ stars that depend directly on the npm packages it publishes,
+ * A repository's Used by tab: the repositories with 100+ stars that depend directly on the packages it publishes,
  * by how many packages it has (one, two or three, more) and with none yet; or the one state while package data cannot
  * be read.
  */

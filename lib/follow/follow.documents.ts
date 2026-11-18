@@ -1,5 +1,6 @@
 import { parse } from 'graphql';
 
+import type { PackageRegistry } from '@/graphql/repo-packages';
 import type {
   PackageFollow as SettingsFollow,
   FollowSubscriber as SettingsSubscriber,
@@ -15,7 +16,7 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
   parse(source) as DocumentNode<TData, TVariables>;
 
 type ApiPackage = { registry: string; name: string };
-type ApiPackageInput = { registry: 'NPM'; name: string };
+type ApiPackageInput = { registry: PackageRegistry; name: string };
 type ApiEvents = { notable: boolean; digest: boolean; milestones: boolean };
 
 export type ApiFollow = { id: string; channel: string; package: ApiPackage; status: string; events: ApiEvents };

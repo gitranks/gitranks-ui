@@ -19,6 +19,8 @@ const ALL = '';
 type PackageFilterProps = {
   /** The repository's packages, as the filter lists them. */
   names: readonly string[];
+  /** Each package's registry, by its name: given only when the packages are on more than one registry. */
+  registryLabels?: Readonly<Record<string, string>>;
   /** How many it publishes: more than the names when the API lists only the top ones. */
   total: number;
   /** The package the list is cut to; `null` for all of them. */
@@ -30,7 +32,17 @@ type PackageFilterProps = {
 };
 
 /** Cuts a repository's dependents to the ones that use one of its packages. */
-export const PackageFilter: FC<PackageFilterProps> = ({ names, total, value, onChange, variant, disabled }) => {
+export const PackageFilter: FC<PackageFilterProps> = ({
+  names,
+  registryLabels,
+  total,
+  value,
+  onChange,
+  variant,
+  disabled,
+}) => {
+  const registryOf = (name: string) =>
+    registryLabels?.[name] && <span className="ml-1 font-sans font-normal opacity-70">{registryLabels[name]}</span>;
   if (variant === 'chips') {
     const chip = (label: string, chipValue: string | null) => {
       const on = value === chipValue;
@@ -48,6 +60,7 @@ export const PackageFilter: FC<PackageFilterProps> = ({ names, total, value, onC
           )}
         >
           {label}
+          {chipValue !== null && registryOf(chipValue)}
         </button>
       );
     };
@@ -76,6 +89,7 @@ export const PackageFilter: FC<PackageFilterProps> = ({ names, total, value, onC
           {names.map((name) => (
             <DropdownMenuRadioItem key={name} value={name} className="font-mono">
               {name}
+              {registryOf(name)}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

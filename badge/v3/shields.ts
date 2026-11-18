@@ -28,6 +28,7 @@ import { type RaceState, repoRace, userClimbRace, userStarsRace } from './race';
 import type { By, Segment, ShieldContent } from './types';
 import { UNSUNG_HERO_BADGE, unsungHeroMonth } from './unsung-hero-badge';
 import { REPO_TIER_NAMES, TIER_NAMES } from '@/app/app.consts';
+import { REGISTRIES } from '@/lib/packages/registries';
 import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
 
 /** The neutral value of a badge with nothing to show right now. */
@@ -347,6 +348,8 @@ function growthRun(change: number) {
 
 function packageShield(pkg: PackageFacts, badge: BadgeDefinition, params: BadgeParams): ShieldContent | null {
   const used = pkg.dependentsCount > 0;
+  const { label: registry, downloads: unit } = REGISTRIES[pkg.registry];
+  const downloadsLabel = `${registry} downloads`;
   const repos = (count: number) => (count === 1 ? 'repo' : 'repos');
   switch (badge.id) {
     case 'used-by':
@@ -367,13 +370,17 @@ function packageShield(pkg: PackageFacts, badge: BadgeDefinition, params: BadgeP
         ),
       );
     case 'downloads':
-      if (!pkg.downloads) return content(params, 'npm downloads', DASH);
-      return content(params, 'npm downloads', segment(mono(formatCompact(pkg.downloads.lastWeek)), quiet('a week')));
-    case 'downloads-year':
-      if (!pkg.downloads) return content(params, 'npm downloads', DASH);
+      if (!pkg.downloads) return content(params, downloadsLabel, DASH);
       return content(
         params,
-        'npm downloads',
+        downloadsLabel,
+        segment(mono(formatCompact(pkg.downloads.lastWeek)), quiet(`a ${unit ?? 'week'}`)),
+      );
+    case 'downloads-year':
+      if (!pkg.downloads) return content(params, downloadsLabel, DASH);
+      return content(
+        params,
+        downloadsLabel,
         segment(mono(formatCompact(pkg.downloads.last52Weeks)), quiet('last 12 months')),
       );
     case 'downloads-growth': {

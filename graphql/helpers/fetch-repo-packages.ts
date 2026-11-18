@@ -52,7 +52,7 @@ const readPackages = async (owner: string, name: string) => {
 };
 
 /**
- * The npm packages a repository publishes: `null` when it publishes none, "unavailable" when the API could not read
+ * The packages a repository publishes: `null` when it publishes none, "unavailable" when the API could not read
  * them just now.
  */
 export const fetchRepoPackages = (owner: string, name: string): Promise<RepoPackages | null | Unavailable> =>

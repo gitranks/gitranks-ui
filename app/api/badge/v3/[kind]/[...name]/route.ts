@@ -8,7 +8,7 @@ import { packagesPublic, requestMaySeePackages } from '@/lib/packages/packages-g
 const LOADERS = { user: loadBadgeUser, org: loadBadgeOrg, repo: loadBadgeRepo };
 
 /**
- * What the badge builder knows about a developer, an organization, a repository or an npm package: the facts its
+ * What the badge builder knows about a developer, an organization, a repository or a package: the facts its
  * badges read. A package's only for a visitor who may see packages (anyone else gets the not-found answer), and kept by
  * nobody until packages are open to everyone.
  */

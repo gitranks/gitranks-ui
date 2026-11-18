@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { FollowDialog } from './follow-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import type { FollowRow } from '@/lib/follow/follow.types';
+import type { FollowPackage, FollowRow } from '@/lib/follow/follow.types';
 import { fetchFollowState } from '@/lib/follow/follow-client';
 import { FOLLOW_CARD_TEXT, FOLLOW_CARD_TITLE, FOLLOW_SLOT_LEAD } from '@/lib/follow/follow-copy';
 import { followsAll } from '@/lib/follow/follow-state';
@@ -15,7 +15,7 @@ import { usePackagesOpen } from '@/lib/packages/packages-open';
 
 export type FollowSlotProps = {
   /** The packages one press follows: one, or every package of a repository. */
-  packages: { registry: 'npm'; name: string }[];
+  packages: FollowPackage[];
   /** "react-resize-detector", "@nebula/ui", or "nebula/ui packages". */
   label: string;
   placement: 'package-page' | 'used-by' | 'used-by-empty';

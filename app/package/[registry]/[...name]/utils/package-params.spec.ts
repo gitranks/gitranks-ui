@@ -37,7 +37,7 @@ describe('parseDecodedPackageParams', () => {
 
 describe('packageApiPath', () => {
   it('names the route of a package, scoped or not', () => {
-    expect(packageApiPath('react', 'dependents')).toBe('/api/packages/npm/react/dependents');
-    expect(packageApiPath('@nebula/ui', 'refresh')).toBe('/api/packages/npm/@nebula/ui/refresh');
+    expect(packageApiPath('npm', 'react', 'dependents')).toBe('/api/packages/npm/react/dependents');
+    expect(packageApiPath('npm', '@nebula/ui', 'refresh')).toBe('/api/packages/npm/@nebula/ui/refresh');
   });
 });

@@ -1,12 +1,10 @@
-import { isNpmPackageName } from '@/lib/packages/npm-package-name';
+import { isRegistryId, nameOfSegments, type RegistryId } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
-/** The registries a package page is drawn for, by the name in its URL (exact, letter case included). */
-const REGISTRIES = new Set(['npm']);
-
 export type PackageParams = {
-  registry: 'npm';
-  /** The package's name: `x` or `@scope/x`. */
+  /** The registry, by its name in URLs (exact, letter case included). */
+  registry: RegistryId;
+  /** The package's name as the registry writes it: on npm `x` or `@scope/x`. */
   name: string;
 };
 
@@ -20,16 +18,17 @@ const decode = (value: string) => {
 
 /** The package that a registry and the name's parts, as they are, name; `null` when they cannot name one. */
 function packageOf(registry: string, parts: readonly (string | null)[]): PackageParams | null {
-  if (!REGISTRIES.has(registry) || parts.length === 0 || parts.length > 2 || parts.some((part) => part === null)) {
+  if (!isRegistryId(registry) || parts.some((part) => part === null)) {
     return null;
   }
-  const name = parts.join('/');
-  return isNpmPackageName(name) ? { registry: 'npm', name } : null;
+  const name = nameOfSegments(registry, parts as string[]);
+  return name === null ? null : { registry, name };
 }
 
 /**
- * The package a page's params name, or `null` when they cannot name one: a registry other than `npm`, more than two
- * name segments, a scope without `@`, or a name npm's rules refuse. A page gets each segment percent-encoded whatever
+ * The package a page's params name, or `null` when they cannot name one: a registry the site does not list, more or
+ * fewer name segments than the registry's names take (npm: one or two), or a name the registry's rules refuse (npm: a
+ * scope without `@`). A page gets each segment percent-encoded whatever
  * the URL spelled (`@scope` and `%40scope` both arrive as `%40scope`), so each is decoded once here; the `%40`
  * spelling is sent to the plain one before the page, by the proxy.
  */
@@ -45,8 +44,8 @@ export function parseDecodedPackageParams(registry: string, segments: readonly s
   return packageOf(registry, segments);
 }
 
-/** Where the browser reads a package's dependents or its refresh: `/api/packages/npm/<name>/<action>`. */
-export const packageApiPath = (name: string, action: 'dependents' | 'refresh') =>
-  `/api/${packagePath(name)
+/** Where the browser reads a package's dependents or its refresh: `/api/packages/<registry>/<name>/<action>`. */
+export const packageApiPath = (registry: RegistryId, name: string, action: 'dependents' | 'refresh') =>
+  `/api/${packagePath(name, registry)
     .slice(1)
     .replace(/^package\//, 'packages/')}/${action}`;

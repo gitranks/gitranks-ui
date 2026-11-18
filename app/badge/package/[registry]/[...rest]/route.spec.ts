@@ -50,7 +50,7 @@ describe('/badge/package/npm/<name>/<badge>', () => {
     vi.clearAllMocks();
     packagesPublic.mockResolvedValue(false);
     requestMaySeePackages.mockResolvedValue(false);
-    loadBadgePackage.mockImplementation(async (name: string) =>
+    loadBadgePackage.mockImplementation(async (_registry: string, name: string) =>
       name === packageBig.name ? packageBig : name === packageNew.name ? packageNew : null,
     );
   });
@@ -74,7 +74,7 @@ describe('/badge/package/npm/<name>/<badge>', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toMatch(/^image\/svg\+xml/);
     expect(cacheHeaders(response)).toEqual(PRIVATE);
-    expect(loadBadgePackage).toHaveBeenCalledWith('react-resize-detector');
+    expect(loadBadgePackage).toHaveBeenCalledWith('npm', 'react-resize-detector');
   });
 
   it('keeps every answer private while packages are not open to everyone: a redirect, a miss, a bad query', async () => {
@@ -107,7 +107,7 @@ describe('/badge/package/npm/<name>/<badge>', () => {
     const scoped = await get('/badge/package/npm/@nebula/ui/downloads.png');
     expect(scoped.status).toBe(200);
     expect(scoped.headers.get('Content-Type')).toBe('image/png');
-    expect(loadBadgePackage).toHaveBeenLastCalledWith('@nebula/ui');
+    expect(loadBadgePackage).toHaveBeenLastCalledWith('npm', '@nebula/ui');
   });
 
   it('is not found for a path that names no package, as every badge', async () => {

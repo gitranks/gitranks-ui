@@ -8,7 +8,7 @@ import {
   type FollowPackage,
   type FollowStartBody,
 } from './follow.types';
-import { isNpmPackageName } from '@/lib/packages/npm-package-name';
+import { isPackageName, isRegistryId, packageKeyOf } from '@/lib/packages/registries';
 
 // What the follow routes take from the browser, checked before anything is asked: a body of another shape is refused
 // whole. Who is asking is never read from a body: the route reads it from the session.
@@ -28,18 +28,23 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 /** Whether a text looks like an email address. */
 export const isEmailShape = (value: string): boolean => value.length <= EMAIL_MAX_LENGTH && EMAIL.test(value);
 
-/** 1 to `FOLLOW_PACKAGES_MAX` npm packages by name, each once, in their order; null for anything else. */
+/** One package of a body: a registry the site lists and a name the registry takes; null for anything else. */
+function packageOf(item: unknown): FollowPackage | null {
+  if (!isRecord(item) || !isRegistryId(item.registry) || typeof item.name !== 'string') return null;
+  return isPackageName(item.registry, item.name) ? { registry: item.registry, name: item.name } : null;
+}
+
+/** 1 to `FOLLOW_PACKAGES_MAX` packages by registry and name, each once, in their order; null for anything else. */
 export function packagesOf(value: unknown): FollowPackage[] | null {
   if (!Array.isArray(value) || value.length === 0 || value.length > FOLLOW_PACKAGES_MAX) return null;
   const packages: FollowPackage[] = [];
   const seen = new Set<string>();
   for (const item of value) {
-    if (!isRecord(item) || item.registry !== 'npm' || typeof item.name !== 'string' || !isNpmPackageName(item.name)) {
-      return null;
-    }
-    if (!seen.has(item.name)) {
-      seen.add(item.name);
-      packages.push({ registry: 'npm', name: item.name });
+    const pkg = packageOf(item);
+    if (!pkg) return null;
+    if (!seen.has(packageKeyOf(pkg))) {
+      seen.add(packageKeyOf(pkg));
+      packages.push(pkg);
     }
   }
   return packages;

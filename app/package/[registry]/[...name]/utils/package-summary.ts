@@ -1,6 +1,7 @@
 import type { SummaryPart } from '@/app/profile/[login]/utils/profile-summary';
 import { formatCount, formatDay } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import type { PackageDependent, PackagePage } from '@/graphql/package-page';
+import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { getRepoPath } from '@/utils/repo-paths';
 
 const COMPACT_LONG = new Intl.NumberFormat('en-US', {
@@ -29,11 +30,12 @@ type SummaryPackage = Pick<
   | 'dependentsReadAt'
 >;
 
-function downloadsSentence({ name, downloads }: SummaryPackage): string {
+function downloadsSentence(registry: RegistryId, { name, downloads }: SummaryPackage): string {
+  const { article, label } = REGISTRIES[registry];
   if (!downloads) {
-    return `${name} is an npm package.`;
+    return `${name} is ${article} ${label} package.`;
   }
-  return `${name} is an npm package downloaded ${formatCount(downloads.lastWeek)} times last week and ${formatCountLong(downloads.last52Weeks)} times in the last 12 months.`;
+  return `${name} is ${article} ${label} package downloaded ${formatCount(downloads.lastWeek)} times last week and ${formatCountLong(downloads.last52Weeks)} times in the last 12 months.`;
 }
 
 function dependentsParts(pkg: SummaryPackage, top: Pick<PackageDependent, 'nameWithOwner' | 'stars'> | undefined) {
@@ -72,12 +74,13 @@ function versionSentence({ latestVersion, firstPublishedAt }: SummaryPackage): s
  * stars that depend on it and the most-starred of them, its source repository, its versions, then the read date.
  */
 export function buildPackageSummary(
+  registry: RegistryId,
   pkg: SummaryPackage,
   top?: Pick<PackageDependent, 'nameWithOwner' | 'stars'>,
 ): SummaryPart[] {
   const read = formatDay(pkg.dependentsReadAt);
   return [
-    downloadsSentence(pkg),
+    downloadsSentence(registry, pkg),
     ...dependentsParts(pkg, top),
     ...sourceParts(pkg),
     ...versionSentence(pkg),

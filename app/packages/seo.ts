@@ -11,6 +11,7 @@ import {
 import type { QuestionItem } from '@/components/questions-block/questions-block';
 import { buildPackageRankingItemList } from '@/components/ranking-table/ranking-item-list';
 import type { PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
+import type { RegistryId } from '@/lib/packages/registries';
 import { clipText } from '@/lib/seo/clip-text';
 import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
@@ -21,7 +22,7 @@ export const PACKAGE_RANKINGS_IMAGE = '/social/package-rankings.png';
 
 type PackageRankingPage = {
   /** The registry's name in URLs, `npm`, and as written, `npm`. */
-  registry: string;
+  registry: RegistryId;
   registryLabel: string;
   order: PackageRankingOrder;
   page: number;
@@ -113,13 +114,13 @@ export function buildPackageRankingQuestions(
     downloadsTo?: string | null;
   },
 ): QuestionItem[] {
-  const { registryLabel, order, rows, readOn, ranksOn, downloadsTo } = input;
+  const { registry, registryLabel, order, rows, readOn, ranksOn, downloadsTo } = input;
   const ranking = PACKAGE_RANKINGS[order];
   const [first, ...next] = rows;
   const items: QuestionItem[] = [
     {
       question: `What does the ${registryLabel} package ranking by ${ranking.label.toLowerCase()} count?`,
-      answer: `${packageRankingBasis(order, downloadsTo)} A package is ranked once at least one repository with ${DEPENDENT_MIN_STARS}+ stars uses it directly.`,
+      answer: `${packageRankingBasis(order, downloadsTo, registry)} A package is ranked once at least one repository with ${DEPENDENT_MIN_STARS}+ stars uses it directly.`,
     },
   ];
 

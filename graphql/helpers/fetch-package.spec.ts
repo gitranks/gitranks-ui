@@ -28,7 +28,7 @@ describe('fetchPackage and fetchPackageDependents', () => {
   it('keep a package for hours under its cache tag, read as the site with no viewer, by its exact name', async () => {
     graphqlDirect.mockResolvedValue({ package: rankedPackage });
 
-    await expect(fetchPackage('@Nebula/UI')).resolves.toEqual(rankedPackage);
+    await expect(fetchPackage('npm', '@Nebula/UI')).resolves.toEqual(rankedPackage);
     expect(graphqlDirect).toHaveBeenCalledExactlyOnceWith(expect.anything(), {
       registry: 'NPM',
       name: '@Nebula/UI',
@@ -40,35 +40,35 @@ describe('fetchPackage and fetchPackageDependents', () => {
 
   it('keep a package not read yet, or one being refreshed, for minutes; a name the registry lacks is null', async () => {
     graphqlDirect.mockResolvedValueOnce({ package: notReadPackage });
-    await expect(fetchPackage('left-pad-next')).resolves.toEqual(notReadPackage);
+    await expect(fetchPackage('npm', 'left-pad-next')).resolves.toEqual(notReadPackage);
     expect(cacheLife).toHaveBeenLastCalledWith('minutes');
 
     graphqlDirect.mockResolvedValueOnce({ package: { ...rankedPackage, refreshRunning: true } });
-    await fetchPackage('react-resize-detector');
+    await fetchPackage('npm', 'react-resize-detector');
     expect(cacheLife).toHaveBeenLastCalledWith('minutes');
 
     graphqlDirect.mockResolvedValueOnce({ package: null });
-    await expect(fetchPackage('gone')).resolves.toBeNull();
+    await expect(fetchPackage('npm', 'gone')).resolves.toBeNull();
   });
 
   it('read no package data now as "unavailable", kept for minutes, and throw any other failure', async () => {
     graphqlDirect.mockRejectedValueOnce(apiError('PACKAGES_UNAVAILABLE'));
-    await expect(fetchPackage('react')).resolves.toBe(PACKAGE_UNAVAILABLE);
+    await expect(fetchPackage('npm', 'react')).resolves.toBe(PACKAGE_UNAVAILABLE);
     expect(cacheLife).toHaveBeenLastCalledWith('minutes');
 
     graphqlDirect.mockRejectedValueOnce(apiError('PACKAGES_UNAVAILABLE'));
-    await expect(fetchPackageDependents('react', { offset: 0, hideArchived: false })).resolves.toBe(
+    await expect(fetchPackageDependents('npm', 'react', { offset: 0, hideArchived: false })).resolves.toBe(
       PACKAGE_UNAVAILABLE,
     );
 
     graphqlDirect.mockRejectedValueOnce(apiError('INTERNAL_SERVER_ERROR'));
-    await expect(fetchPackage('react')).rejects.toThrow();
+    await expect(fetchPackage('npm', 'react')).rejects.toThrow();
   });
 
   it('read a page of dependents, and nothing during the build', async () => {
     const page = { total: 16, archived: 1, items: dependentRows };
     graphqlDirect.mockResolvedValueOnce({ package: { dependents: page } });
-    await expect(fetchPackageDependents('react', { offset: 25, hideArchived: true })).resolves.toEqual(page);
+    await expect(fetchPackageDependents('npm', 'react', { offset: 25, hideArchived: true })).resolves.toEqual(page);
     expect(graphqlDirect).toHaveBeenLastCalledWith(expect.anything(), {
       registry: 'NPM',
       name: 'react',
@@ -78,7 +78,7 @@ describe('fetchPackage and fetchPackageDependents', () => {
     });
 
     vi.stubEnv('NEXT_PHASE', 'phase-production-build');
-    await expect(fetchPackage('react')).resolves.toBe(PACKAGE_UNAVAILABLE);
+    await expect(fetchPackage('npm', 'react')).resolves.toBe(PACKAGE_UNAVAILABLE);
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
   });
 });

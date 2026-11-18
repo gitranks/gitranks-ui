@@ -1,18 +1,26 @@
 import { ITEMS_PER_PAGE } from '@/app/app.consts';
+import {
+  apiRegistryOf,
+  DEFAULT_REGISTRY,
+  isRegistryId,
+  REGISTRIES,
+  type RegistryId,
+  registryHasDownloads,
+} from '@/lib/packages/registries';
 import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
-import { PackageRankingType, PackageRegistry } from '@/types/generated/graphql';
+import { PackageRankingType } from '@/types/generated/graphql';
 
 /** The stars a repository needs for its use of a package to count. */
 export const DEPENDENT_MIN_STARS = 100;
 
-/** The registries a package ranking is drawn for, by the name in its URL. */
-export const PACKAGE_RANKING_REGISTRIES: Readonly<Record<string, { registry: PackageRegistry; label: string }>> = {
-  npm: { registry: PackageRegistry.Npm, label: 'npm' },
-};
-
-/** The registry a package ranking's URL names, or null for one no ranking is drawn for (exact, letter case included). */
+/**
+ * The registry a package ranking's URL names: its name in URLs, as the API names it and as written; null for one no
+ * ranking is drawn for (exact, letter case included).
+ */
 export function packageRankingRegistryOf(registry: string) {
-  return Object.hasOwn(PACKAGE_RANKING_REGISTRIES, registry) ? PACKAGE_RANKING_REGISTRIES[registry] : null;
+  return isRegistryId(registry)
+    ? { id: registry, registry: apiRegistryOf(registry), label: REGISTRIES[registry].label }
+    : null;
 }
 
 /** What a package ranking ranks by, and how its page names it. */
@@ -39,7 +47,7 @@ export const PACKAGE_RANKINGS = {
   downloads: {
     type: PackageRankingType.Downloads,
     label: 'Downloads',
-    basis: 'Rank is based on npm downloads over 7 days.',
+    basis: `Rank is based on ${REGISTRIES[DEFAULT_REGISTRY].label} downloads over 7 days.`,
     rankedBy: 'weekly downloads',
     metric: 'Weekly downloads',
     change: 'vs last week',
@@ -79,6 +87,18 @@ export function isPackageRankingOrder(value: string): value is PackageRankingOrd
   return Object.hasOwn(PACKAGE_RANKINGS, value);
 }
 
+/** The rankings a registry has, in the menu's order: Downloads only where the registry counts downloads. */
+export const packageRankingOrdersOf = (registry: RegistryId): PackageRankingOrder[] =>
+  PACKAGE_RANKING_ORDER_LIST.filter((order) => order !== 'downloads' || registryHasDownloads(registry));
+
+/** Whether a registry has this ranking. */
+export const isPackageRankingOrderOf = (registry: RegistryId, value: string): value is PackageRankingOrder =>
+  isPackageRankingOrder(value) && packageRankingOrdersOf(registry).includes(value);
+
+/** The ranking a registry's rankings open on: Downloads where the registry counts downloads, else Dependents' stars. */
+export const packageRankingFirstOrder = (registry: RegistryId = DEFAULT_REGISTRY): PackageRankingOrder =>
+  registryHasDownloads(registry) ? 'downloads' : 'dependents-stars';
+
 /**
  * The downloads ranking's 7 days, by their last day as the ranks' read gives it: "in the 7 days to November 15, 2026".
  * With no such day, no date at all: one is never worked out from the calendar.
@@ -88,9 +108,13 @@ export function downloadsWindow(downloadsTo: string | null | undefined) {
 }
 
 /** What a ranking's rank is based on, as its header says it; the downloads ranking with its 7 days' last day. */
-export function packageRankingBasis(order: PackageRankingOrder, downloadsTo?: string | null) {
+export function packageRankingBasis(
+  order: PackageRankingOrder,
+  downloadsTo?: string | null,
+  registry: RegistryId = DEFAULT_REGISTRY,
+) {
   return order === 'downloads'
-    ? `Rank is based on npm downloads ${downloadsWindow(downloadsTo)}.`
+    ? `Rank is based on ${REGISTRIES[registry].label} downloads ${downloadsWindow(downloadsTo)}.`
     : PACKAGE_RANKINGS[order].basis;
 }
 

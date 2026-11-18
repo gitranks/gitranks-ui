@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 
+import { packageRankingFirstOrder } from '@/app/packages/package-rankings';
 import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { SOCIAL_CARD_SIZE, socialCardPath } from '@/badge/v3/links';
 import type { PackageDependent, PackagePage } from '@/graphql/package-page';
 import { packageMarkdownPath } from '@/lib/packages/package-markdown';
+import { DEFAULT_REGISTRY, REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { clipText } from '@/lib/seo/clip-text';
 import { buildRankingItemList } from '@/lib/seo/json-ld';
 import { type PreviewImage, pageMetadata } from '@/lib/seo/page-metadata';
@@ -25,19 +27,20 @@ const NOT_INDEXED: Metadata['robots'] = { index: false };
 
 const plural = (count: number, one: string, many: string) => `${formatCount(count)} ${count === 1 ? one : many}`;
 
-export const packageTitle = (name: string) => `${name} - npm package dependents, downloads and ranks`;
+export const packageTitle = (name: string, registry: RegistryId = DEFAULT_REGISTRY) =>
+  `${name} - ${REGISTRIES[registry].label} package dependents, downloads and ranks`;
 
 /** "#12 by downloads, #40 by dependents' stars": the ranks it has, in the rankings' order. */
-function ranksText(ranks: PackagePage['ranks']): string | undefined {
+function ranksText(registry: RegistryId, ranks: PackagePage['ranks']): string | undefined {
   const parts = [
     ranks?.downloads && `#${formatCount(ranks.downloads.rank)} by downloads`,
     ranks?.dependentsStars && `#${formatCount(ranks.dependentsStars.rank)} by dependents' stars`,
     ranks?.dependents && `#${formatCount(ranks.dependents.rank)} by dependents`,
   ].filter(Boolean);
-  return parts.length ? `npm rank ${parts.join(', ')}.` : undefined;
+  return parts.length ? `${REGISTRIES[registry].label} rank ${parts.join(', ')}.` : undefined;
 }
 
-function buildDescription(pkg: PackagePage): string {
+function buildDescription(registry: RegistryId, pkg: PackagePage): string {
   const { dependentsCount: count, dependentsStars: stars, downloads } = pkg;
   return clipText(
     [
@@ -45,7 +48,7 @@ function buildDescription(pkg: PackagePage): string {
         ? `Used by ${plural(count, 'repository', 'repositories')} with 100+ stars (${plural(stars, 'star', 'stars')} between them).`
         : 'No repository with 100+ stars uses it directly yet.',
       downloads ? `${formatCount(downloads.lastWeek)} downloads last week.` : undefined,
-      ranksText(pkg.ranks),
+      ranksText(registry, pkg.ranks),
       pkg.description || undefined,
     ]
       .filter(Boolean)
@@ -55,10 +58,13 @@ function buildDescription(pkg: PackagePage): string {
 }
 
 /** Home, the package rankings, then the package. */
-function buildBreadcrumbs(name: string, url: string) {
+function buildBreadcrumbs(registry: RegistryId, name: string, url: string) {
   const crumbs = [
     { name: 'Home', item: absoluteUrl('/') },
-    { name: 'Package rankings', item: absoluteUrl(packageRankingPath('downloads')) },
+    {
+      name: 'Package rankings',
+      item: absoluteUrl(packageRankingPath(packageRankingFirstOrder(registry), 1, registry)),
+    },
     { name, item: url },
   ];
   return {
@@ -69,7 +75,7 @@ function buildBreadcrumbs(name: string, url: string) {
 }
 
 /** The package as a schema.org `SoftwareApplication`. */
-function buildApplication(pkg: PackagePage, url: string) {
+function buildApplication(registry: RegistryId, pkg: PackagePage, url: string) {
   const source = pkg.repo?.nameWithOwner ?? pkg.repositoryName;
   return {
     '@type': 'SoftwareApplication',
@@ -80,7 +86,7 @@ function buildApplication(pkg: PackagePage, url: string) {
     softwareVersion: pkg.latestVersion || undefined,
     license: pkg.license || undefined,
     codeRepository: source ? `https://github.com/${source}` : undefined,
-    sameAs: [`https://www.npmjs.com/package/${pkg.name}`],
+    sameAs: [REGISTRIES[registry].pageUrl(pkg.name)],
     interactionStatistic: pkg.downloads
       ? {
           '@type': 'InteractionCounter',
@@ -92,12 +98,12 @@ function buildApplication(pkg: PackagePage, url: string) {
 }
 
 /** The link preview: the package's card drawn at 1200×630, which every read package has. */
-function previewImages(name: string): PreviewImage[] {
+function previewImages(registry: RegistryId, name: string): PreviewImage[] {
   return [
     {
-      url: absoluteUrl(socialCardPath({ kind: 'package', registry: 'npm', name })),
+      url: absoluteUrl(socialCardPath({ kind: 'package', registry, name })),
       ...SOCIAL_CARD_SIZE,
-      alt: `${packageTitle(name)} on GitRanks`,
+      alt: `${packageTitle(name, registry)} on GitRanks`,
     },
   ];
 }
@@ -105,10 +111,10 @@ function previewImages(name: string): PreviewImage[] {
 type SEO = { metadata: Metadata; jsonLd: object[] };
 
 /** A page kept out of search engines, with no structured data: not read yet, or no package data now. */
-function quietSEO(name: string, description: string): SEO {
+function quietSEO(registry: RegistryId, name: string, description: string): SEO {
   return {
     metadata: {
-      ...pageMetadata({ title: packageTitle(name), description, path: packagePath(name) }),
+      ...pageMetadata({ title: packageTitle(name, registry), description, path: packagePath(name, registry) }),
       robots: NOT_INDEXED,
     },
     jsonLd: [],
@@ -123,30 +129,32 @@ export function buildPackageSEO(
   pkg: PackagePage | 'unavailable',
   name: string,
   rows: readonly Pick<PackageDependent, 'nameWithOwner'>[] = [],
+  registry: RegistryId = DEFAULT_REGISTRY,
 ): SEO {
+  const { label } = REGISTRIES[registry];
   if (pkg === 'unavailable') {
-    return quietSEO(name, PACKAGE_UNAVAILABLE_TEXT);
+    return quietSEO(registry, name, PACKAGE_UNAVAILABLE_TEXT);
   }
   if (pkg.state === 'NOT_READ') {
-    return quietSEO(pkg.name, `We have not read the npm package ${pkg.name} yet.`);
+    return quietSEO(registry, pkg.name, `We have not read the ${label} package ${pkg.name} yet.`);
   }
 
-  const path = packagePath(pkg.name);
+  const path = packagePath(pkg.name, registry);
   const url = absoluteUrl(path);
-  const title = packageTitle(pkg.name);
-  const description = buildDescription(pkg);
+  const title = packageTitle(pkg.name, registry);
+  const description = buildDescription(registry, pkg);
   const itemList = buildRankingItemList(
     `Repositories with 100+ stars that use ${pkg.name}`,
     path,
     rows.map((row, i) => ({ position: i + 1, name: row.nameWithOwner, path: getRepoPath(row.nameWithOwner) })),
   );
 
-  const metadata = pageMetadata({ title, description, path, images: previewImages(pkg.name) });
+  const metadata = pageMetadata({ title, description, path, images: previewImages(registry, pkg.name) });
   return {
     metadata: {
       ...metadata,
       // The same facts in markdown, for AI agents.
-      alternates: { ...metadata.alternates, types: { 'text/markdown': packageMarkdownPath(pkg.name) } },
+      alternates: { ...metadata.alternates, types: { 'text/markdown': packageMarkdownPath(pkg.name, registry) } },
       robots: pkg.dependentsCount > 0 && rows.length > 0 ? INDEXED : NOT_INDEXED,
     },
     jsonLd: [
@@ -156,10 +164,10 @@ export function buildPackageSEO(
         url,
         name: title,
         description,
-        mainEntity: buildApplication(pkg, url),
+        mainEntity: buildApplication(registry, pkg, url),
       },
       ...(itemList ? [itemList] : []),
-      buildBreadcrumbs(pkg.name, url),
+      buildBreadcrumbs(registry, pkg.name, url),
     ],
   };
 }

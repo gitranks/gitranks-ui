@@ -1,6 +1,7 @@
 import 'server-only';
 
 import type { PackageRefreshStatus } from '@/app/package/[registry]/[...name]/utils/package-refresh.types';
+import type { RegistryId } from '@/lib/packages/registries';
 import { signedFetch } from '@/lib/signed-fetch';
 
 // What the package routes keep between requests on this server: each package's refresh status for a few seconds, and
@@ -56,14 +57,15 @@ export function resetPackageRefreshState() {
 }
 
 /** The package's refresh status from the API, read as the site; kept a few seconds per package, one call at a time. */
-export function readStatus(name: string, now: number): Promise<StatusRead> {
-  const kept = statuses.get(name);
+export function readStatus(registry: RegistryId, name: string, now: number): Promise<StatusRead> {
+  const key = `${registry}/${name}`;
+  const kept = statuses.get(key);
   if (kept && now - kept.at < STATUS_TTL_MS) {
     return kept.read;
   }
   const read = readUpstream<PackageRefreshStatus>(() =>
-    signedFetch(`/packages/refresh/status?${new URLSearchParams({ registry: 'npm', name })}`, { cache: 'no-store' }),
+    signedFetch(`/packages/refresh/status?${new URLSearchParams({ registry, name })}`, { cache: 'no-store' }),
   );
-  keep(statuses, name, { at: now, read });
+  keep(statuses, key, { at: now, read });
   return read;
 }

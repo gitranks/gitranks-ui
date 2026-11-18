@@ -7,6 +7,7 @@ import { renderBadge } from './render';
 import type { EntityKind, ImageFormat } from './types';
 import { UNSUNG_HERO_BADGE } from './unsung-hero-badge';
 import { parseDecodedPackageParams } from '@/app/package/[registry]/[...name]/utils/package-params';
+import type { RegistryId } from '@/lib/packages/registries';
 import { isGithubLogin } from '@/utils/profile-refresh';
 import { parseRepoParams } from '@/utils/repo-paths';
 
@@ -76,7 +77,7 @@ async function unsungHeroBadgeOpen(): Promise<boolean> {
 export type BadgeEntityRef =
   | { kind: 'user' | 'org'; login: string }
   | { kind: 'repo'; owner: string; name: string }
-  | { kind: 'package'; registry: 'npm'; name: string; canonical: boolean };
+  | { kind: 'package'; registry: RegistryId; name: string; canonical: boolean };
 
 /** The entity's stored name in a badge path's terms. */
 function badgePathOf(entity: EntityFacts): BadgeEntityPath {
@@ -95,7 +96,7 @@ function pathOf(kind: EntityKind, entity: EntityFacts): string {
   return `/badge/${kind}/${badgeNamePath(badgePathOf(entity))}`;
 }
 
-/** The name the API is told and a badge is reported by: a login, `owner/name`, or `npm/<name>`. */
+/** The name the API is told and a badge is reported by: a login, `owner/name`, or `<registry>/<name>`. */
 function storedNameOf(entity: EntityFacts) {
   switch (entity.kind) {
     case 'repo':
@@ -123,10 +124,10 @@ export type BadgeLoaders = {
   org: (login: string) => Promise<EntityFacts | null>;
   repo: (owner: string, name: string) => Promise<EntityFacts | null>;
   /**
-   * An npm package by its exact name; "not read yet" for one held and not read, which has no badges until its first
-   * read. Left out, a package is never found.
+   * A package by its registry and exact name; "not read yet" for one held and not read, which has no badges until its
+   * first read. Left out, a package is never found.
    */
-  package?: (name: string) => Promise<EntityFacts | PackageNotRead | null>;
+  package?: (registry: RegistryId, name: string) => Promise<EntityFacts | PackageNotRead | null>;
   /**
    * Told the repository's GitHub id once a Contribute badge is drawn. It must not delay or throw: the caller schedules
    * the work after the response. Left out, nothing is reported.
@@ -146,7 +147,7 @@ function loadEntity(ref: BadgeEntityRef, loaders: BadgeLoaders): Promise<EntityF
     case 'repo':
       return loaders.repo(ref.owner, ref.name);
     case 'package':
-      return loaders.package ? loaders.package(ref.name) : Promise.resolve(null);
+      return loaders.package ? loaders.package(ref.registry, ref.name) : Promise.resolve(null);
     default:
       return loaders[ref.kind](ref.login);
   }
@@ -170,7 +171,7 @@ export const PACKAGE_IMAGE_BASE = '/badge/package/';
 export const PACKAGE_FACTS_BASE = '/api/badge/v3/package/';
 
 /**
- * The package a badge path names: its registry and the name's one or two parts, decoded (as a route handler gets
+ * The package a badge path names: its registry and the name's parts (npm: one or two), decoded (as a route handler gets
  * them); `null` when they cannot name one. `spelled`, the path as it was asked for, tells whether it spelled the name
  * as the package's badges do (`@scope`, nothing else encoded), after `base`. Left out, it did.
  */

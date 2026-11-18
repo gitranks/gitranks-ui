@@ -1,7 +1,7 @@
 import { bodyOf, callDailyUpdates, json, notSignedIn, tooLarge, viewerOf } from '../api-call';
 import type { AuthRequest } from '@/app/api/profile/[login]/route';
 import { auth } from '@/auth';
-import { isNpmPackageName } from '@/lib/packages/npm-package-name';
+import { packageOfKey } from '@/lib/packages/registries';
 import type { DailyUpdatesPickResult, DailyUpdatesRemoveResult, PickRef } from '@/types/daily-updates.types';
 import { isPickKind, packagePickOf } from '@/utils/daily-updates-view';
 import { parseRepoParams } from '@/utils/repo-paths';
@@ -12,16 +12,15 @@ const repoPickOf = (owner: unknown, name: unknown): PickRef | null => {
   return repo && { kind: 'repo', name: `${repo.owner}/${repo.name}` };
 };
 
-/** A package pick of `npm/<name>`, by npm's rules for names; `null` when it names none. */
+/** A package pick of `<registry>/<name>`, by the registry's rules for names; `null` when it names none. */
 const packagePickOfName = (name: string): PickRef | null => {
-  const [registry, ...rest] = name.split('/');
-  const packageName = rest.join('/');
-  return registry === 'npm' && isNpmPackageName(packageName) ? packagePickOf(packageName) : null;
+  const pkg = packageOfKey(name);
+  return pkg && packagePickOf(pkg);
 };
 
 /**
  * The pick the body names, as `{ kind, name }`: a known kind, for a repository its `owner/name`, for a package its
- * `npm/<name>`. Whether the visitor may pick a package is the API's to say. A body of
+ * `<registry>/<name>`. Whether the visitor may pick a package is the API's to say. A body of
  * `{ owner, name }` without a kind, as a page loaded before picks had a kind sends it, names a repository. `null` when
  * it names none, `too-large` past the cap.
  */

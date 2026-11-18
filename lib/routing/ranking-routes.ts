@@ -1,3 +1,4 @@
+import { isRegistryId, REGISTRY_IDS, registryHasDownloads } from '@/lib/packages/registries';
 import { parsePageParam } from '@/utils/parse-page-param';
 
 /**
@@ -25,7 +26,7 @@ export const COUNTRY_SUMMARY_ORDERS = new Set(['stars', 'contributions', 'follow
 export const LANGUAGE_SUMMARY_ORDERS = new Set(['score', 'size', 'users']);
 
 /** The registries packages are drawn for (their pages and rankings), and the orders of each ranking. */
-export const PACKAGE_REGISTRIES = new Set(['npm']);
+export const PACKAGE_REGISTRIES: ReadonlySet<string> = new Set(REGISTRY_IDS);
 export const PACKAGE_RANKING_ORDERS = new Set(['downloads', 'dependents-stars', 'dependents']);
 
 /** A repository's tabs past its own page, `/repo/<owner>/<name>/<tab>`; any other third segment is a 404. */
@@ -78,9 +79,11 @@ function isInvalidRepoRankingPath(rest: string[]): boolean {
 function isInvalidPackageRankingPath(rest: string[]): boolean {
   if (rest.length === 0) return false;
   const [registry, order, page] = rest;
-  if (!PACKAGE_REGISTRIES.has(registry)) return true;
+  if (!isRegistryId(registry)) return true;
   if (rest.length === 1) return false;
-  return !(rest.length === 3 && PACKAGE_RANKING_ORDERS.has(order) && isPage(page, RANKING_MAX_PAGE.package));
+  // A registry with no download counts has no downloads ranking.
+  const hasOrder = PACKAGE_RANKING_ORDERS.has(order) && (order !== 'downloads' || registryHasDownloads(registry));
+  return !(rest.length === 3 && hasOrder && isPage(page, RANKING_MAX_PAGE.package));
 }
 
 /** `/repo/<owner>/<name>` and its tabs; anything deeper, or another third segment, can never render. */

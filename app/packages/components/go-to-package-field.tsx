@@ -7,13 +7,15 @@ import { packageNameOfInput } from './go-to-package';
 import { useReportPendingNavigation } from '@/components/navigation-progress/navigation-progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DEFAULT_REGISTRY, REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 /**
- * "Go to a package": takes an npm package's name and opens its page. A name npm would never take is refused here, with
- * a line saying so, before anything opens.
+ * "Go to a package": takes a package's name on the ranking's registry and opens its page. A name the registry would
+ * never take is refused here, with a line saying so, before anything opens.
  */
-export function GoToPackageField({ registry = 'npm' }: Readonly<{ registry?: string }>) {
+export function GoToPackageField({ registry = DEFAULT_REGISTRY }: Readonly<{ registry?: RegistryId }>) {
+  const { article, label, nameHint } = REGISTRIES[registry];
   const router = useRouter();
   const inputId = useId();
   const errorId = useId();
@@ -24,7 +26,7 @@ export function GoToPackageField({ registry = 'npm' }: Readonly<{ registry?: str
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const name = packageNameOfInput(value);
+    const name = packageNameOfInput(value, registry);
     setInvalid(!name);
     if (name) {
       startTransition(() => router.push(packagePath(name, registry)));
@@ -45,7 +47,7 @@ export function GoToPackageField({ registry = 'npm' }: Readonly<{ registry?: str
             setValue(event.target.value);
             if (invalid) setInvalid(false);
           }}
-          placeholder="react or @scope/name"
+          placeholder={nameHint}
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
@@ -58,7 +60,7 @@ export function GoToPackageField({ registry = 'npm' }: Readonly<{ registry?: str
       </div>
       {invalid && (
         <p id={errorId} role="alert" className="text-xs text-destructive">
-          That is not an npm package name. Try one like react or @scope/name.
+          {`That is not ${article} ${label} package name. Try one like ${nameHint}.`}
         </p>
       )}
     </form>

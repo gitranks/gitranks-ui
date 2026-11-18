@@ -1,17 +1,18 @@
 import { parse } from 'graphql';
 
+import type { REGISTRIES, RegistryId } from '@/lib/packages/registries';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
- * A repository's npm packages and the repositories that use them, written out here rather than in `.gql` files: the
+ * A repository's packages and the repositories that use them, written out here rather than in `.gql` files: the
  * fields are newer than the generated schema, and an API that does not answer them yet fails only these operations.
  * The types are written as the generator writes them, so moving these into `.gql` files later changes no caller.
  */
 const doc = <TData, TVariables extends Record<string, unknown>>(source: string) =>
   parse(source) as DocumentNode<TData, TVariables>;
 
-/** The registries a package can be on. */
-export type PackageRegistry = 'NPM';
+/** The registries a package can be on, as the API names them: the site's registry table's. */
+export type PackageRegistry = (typeof REGISTRIES)[RegistryId]['api'];
 
 /** One package a repository publishes, with how many repositories of 100+ stars use it. */
 export type RepoPackage = {

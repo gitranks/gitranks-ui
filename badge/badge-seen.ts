@@ -2,7 +2,7 @@ import 'server-only';
 
 import { signedFetch } from '@/lib/signed-fetch';
 
-/** What a reported badge shows: a developer's numbers, a repository's or a package's (named `npm/<name>`). */
+/** What a reported badge shows: a developer's numbers, a repository's or a package's (named `<registry>/<name>`). */
 export type BadgeSeenKind = 'user' | 'repo' | 'package';
 
 /**

@@ -1,4 +1,4 @@
-import { packageNameOf } from './builder-state';
+import { anyPackageRefOf } from './builder-state';
 import type { EntityKind, ImageFormat, Theme } from '@/badge/v3/types';
 import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
@@ -39,8 +39,10 @@ export function entityPageUrl(origin: string, kind: EntityKind, name: string, sc
       return `${origin}/org/${encodeURIComponent(name)}`;
     case 'user':
       return `${origin}/profile/${encodeURIComponent(name)}${scope === 'country' ? '/country' : ''}`;
-    case 'package':
-      return `${origin}${packagePath(packageNameOf(name) ?? name.replace(/^npm\//, ''))}`;
+    case 'package': {
+      const pkg = anyPackageRefOf(name);
+      return `${origin}${packagePath(pkg.name, pkg.registry)}`;
+    }
   }
 }
 

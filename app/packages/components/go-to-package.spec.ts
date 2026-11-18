@@ -4,9 +4,9 @@ import { packageNameOfInput } from './go-to-package';
 
 describe('packageNameOfInput', () => {
   it('takes an npm name, scoped or not, without the spaces around it', () => {
-    expect(packageNameOfInput('react')).toBe('react');
-    expect(packageNameOfInput('  @orbit/fetch ')).toBe('@orbit/fetch');
-    expect(packageNameOfInput('JSONStream')).toBe('JSONStream');
+    expect(packageNameOfInput('react', 'npm')).toBe('react');
+    expect(packageNameOfInput('  @orbit/fetch ', 'npm')).toBe('@orbit/fetch');
+    expect(packageNameOfInput('JSONStream', 'npm')).toBe('JSONStream');
   });
 
   it('refuses what npm would never take', () => {
@@ -21,7 +21,7 @@ describe('packageNameOfInput', () => {
       'node_modules',
       'x'.repeat(215),
     ]) {
-      expect(packageNameOfInput(input), input).toBeNull();
+      expect(packageNameOfInput(input, 'npm'), input).toBeNull();
     }
   });
 });

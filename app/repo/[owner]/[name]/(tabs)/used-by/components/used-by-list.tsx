@@ -4,12 +4,18 @@ import { type FC, type ReactNode, useRef, useState } from 'react';
 
 import { PackageFilter } from './package-filter';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
+import {
+  registryOfRepoPackage,
+  repoPackageRefOf,
+  spansRegistries,
+} from '@/app/repo/[owner]/[name]/utils/repo-package-registry';
 import { DEPENDENTS_MAX_OFFSET, DEPENDENTS_PAGE_SIZE } from '@/components/dependents/dependents.consts';
 import { DependentsTable } from '@/components/dependents/dependents-table';
 import { HideArchivedToggle } from '@/components/dependents/hide-archived-toggle';
 import { ShowMore } from '@/components/dependents/show-more';
 import { FollowSlot, type FollowSlotProps } from '@/components/package-follow/follow-slot';
 import type { RepoPackage, RepoUsedBy } from '@/graphql/repo-packages';
+import { REGISTRIES } from '@/lib/packages/registries';
 
 /** Where the browser reads more rows of a repository's dependents. */
 export const usedByRoutePath = (nameWithOwner: string) => {
@@ -30,25 +36,32 @@ export function usedByRouteQuery(offset: number, pkg: string | null, hideArchive
 /** What one press of Follow covers: the package the list is cut to, else the tab's own choice. */
 export function followOf(
   nameWithOwner: string,
-  packages: readonly Pick<RepoPackage, 'name'>[],
+  packages: readonly Pick<RepoPackage, 'name' | 'registry'>[],
   total: number,
   filter: string | null,
 ): Pick<FollowSlotProps, 'packages' | 'label'> {
-  const one = (name: string) => ({ packages: [{ registry: 'npm' as const, name }], label: name });
-  if (filter !== null) return one(filter);
+  const one = (pkg: Pick<RepoPackage, 'name' | 'registry'>) => ({ packages: [repoPackageRefOf(pkg)], label: pkg.name });
+  // The list is cut by a package's name: the package of that name it lists, else one of that name on its first
+  // package's registry.
+  if (filter !== null) {
+    return one(packages.find(({ name }) => name === filter) ?? { name: filter, registry: packages[0].registry });
+  }
   // Four or more: all of them at once; fewer: the most used.
   if (total >= 4) {
-    return {
-      packages: packages.map(({ name }) => ({ registry: 'npm' as const, name })),
-      label: `${nameWithOwner} packages`,
-    };
+    return { packages: packages.map(repoPackageRefOf), label: `${nameWithOwner} packages` };
   }
-  return one(packages[0].name);
+  return one(packages[0]);
 }
+
+/** Each package's registry by its name, for the filter: only when the packages are on more than one registry. */
+const registryLabelsOf = (packages: readonly Pick<RepoPackage, 'name' | 'registry'>[]) =>
+  spansRegistries(packages)
+    ? Object.fromEntries(packages.map((pkg) => [pkg.name, REGISTRIES[registryOfRepoPackage(pkg)].label]))
+    : undefined;
 
 type UsedByListProps = {
   nameWithOwner: string;
-  packages: Pick<RepoPackage, 'name'>[];
+  packages: Pick<RepoPackage, 'name' | 'registry'>[];
   /** How many packages it publishes. */
   total: number;
   /** The first page, unfiltered, as the page drew it. */
@@ -139,6 +152,7 @@ export const UsedByList: FC<UsedByListProps> = ({ nameWithOwner, packages, total
               {several && (
                 <PackageFilter
                   names={packages.map(({ name }) => name)}
+                  registryLabels={registryLabelsOf(packages)}
                   total={total}
                   value={shown.pkg}
                   onChange={(pkg) => read(0, pkg, shown.hideArchived)}

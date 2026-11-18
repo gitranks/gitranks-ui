@@ -68,7 +68,7 @@ describe('a package page', () => {
     vi.mocked(fetchPackage).mockResolvedValue(quietPackage);
 
     expect(await render('npm', '%40nebula', 'ui')).toMatchObject({ name: '@nebula/ui', pkg: quietPackage });
-    expect(fetchPackage).toHaveBeenCalledWith('@nebula/ui');
+    expect(fetchPackage).toHaveBeenCalledWith('npm', '@nebula/ui');
     expect(permanentRedirect).not.toHaveBeenCalled();
     expect((await generateMetadata(params('npm', '%40nebula', 'ui'))).alternates?.canonical).toBe(
       '/package/npm/@nebula/ui',

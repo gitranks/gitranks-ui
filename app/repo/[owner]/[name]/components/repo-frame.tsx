@@ -21,7 +21,7 @@ import { getRepoLanguageRankingPath } from '@/utils/repo-paths';
 
 type RepoFrameProps = {
   repo: NonNullable<PageRepoQuery['repo']>;
-  /** Its npm packages: `null` when it publishes none (no Used by tab), "unavailable" when they could not be read. */
+  /** Its packages: `null` when it publishes none (no Used by tab), "unavailable" when they could not be read. */
   packages: RepoPackages | null | Unavailable;
   /** Active contributors of the last 12 months, from its analytics; `null` without analytics. */
   contributors: number | null;

@@ -1,5 +1,4 @@
 import type { FC } from 'react';
-import { SiNpm } from 'react-icons/si';
 
 import { formatPackageChange, formatPackageCount, type PackageRanking } from '../package-rankings';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
@@ -8,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { LinkWithStopPropagation } from '@/components/user-card/components/link-with-stop-propagation';
 import { ProfileAvatar } from '@/components/user-card/components/profile-avatar';
 import type { PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
+import { DEFAULT_REGISTRY, type RegistryId } from '@/lib/packages/registries';
+import { REGISTRY_ICONS } from '@/lib/packages/registry-icons';
 import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
@@ -15,15 +16,18 @@ type PackageRankingTableProps = {
   ranking: Pick<PackageRanking, 'metric' | 'change'>;
   data: PackageRankRows;
   /** The registry's name in URLs: `npm`. */
-  registry?: string;
+  registry?: RegistryId;
 };
 
 /** The registry's mark, where a package has no repository whose owner's avatar could stand for it. */
-const RegistryMark: FC = () => (
-  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-    <SiNpm className="size-4" aria-hidden="true" />
-  </span>
-);
+const RegistryMark: FC<{ registry: RegistryId }> = ({ registry }) => {
+  const Icon = REGISTRY_ICONS[registry];
+  return (
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <Icon className="size-4" aria-hidden="true" />
+    </span>
+  );
+};
 
 /** A rise in the positive colour and a fall in the negative one; no change in the row's own. */
 const changeClass = (change: number) => {
@@ -36,7 +40,7 @@ const changeClass = (change: number) => {
  * A page of a package ranking: the rank and its move, the package with its description, the repository that publishes
  * it, the ranking's number and its change.
  */
-export const PackageRankingTable: FC<PackageRankingTableProps> = ({ ranking, data, registry = 'npm' }) => (
+export const PackageRankingTable: FC<PackageRankingTableProps> = ({ ranking, data, registry = DEFAULT_REGISTRY }) => (
   <Table>
     <TableHeader className="[&_tr]:border-b-0">
       <TableRow>
@@ -67,7 +71,7 @@ export const PackageRankingTable: FC<PackageRankingTableProps> = ({ ranking, dat
                   {row.ownerAvatarUrl && owner ? (
                     <ProfileAvatar url={row.ownerAvatarUrl} login={owner} />
                   ) : (
-                    <RegistryMark />
+                    <RegistryMark registry={registry} />
                   )}
                   <span translate="no" className="min-w-0 [overflow-wrap:anywhere]">
                     {row.name}

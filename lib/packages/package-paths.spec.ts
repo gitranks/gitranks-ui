@@ -51,10 +51,10 @@ describe('isPackagePath', () => {
 
 describe('packageCacheTag', () => {
   it('is one lower-case tag per package, whatever the spelling', () => {
-    expect(packageCacheTag('react')).toBe('package:npm/react');
-    expect(packageCacheTag('@types/node')).toBe('package:npm/@types/node');
-    expect(packageCacheTag('JSONStream')).toBe(packageCacheTag('jsonstream'));
-    expect(packageCacheTag("It's(OK)!*")).toBe("package:npm/it's(ok)!*");
+    expect(packageCacheTag('npm', 'react')).toBe('package:npm/react');
+    expect(packageCacheTag('npm', '@types/node')).toBe('package:npm/@types/node');
+    expect(packageCacheTag('npm', 'JSONStream')).toBe(packageCacheTag('npm', 'jsonstream'));
+    expect(packageCacheTag('npm', "It's(OK)!*")).toBe("package:npm/it's(ok)!*");
   });
 });
 

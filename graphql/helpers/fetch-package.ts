@@ -10,6 +10,7 @@ import {
 } from '@/graphql/package-page';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { packageCacheTag } from '@/lib/packages/package-paths';
+import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 
 /** The API's error code for package data it could not read just now (never an answer that there is none). */
 const PACKAGES_UNAVAILABLE_CODE = 'PACKAGES_UNAVAILABLE';
@@ -34,9 +35,9 @@ export const isPackageSettling = (pkg: Pick<PackagePage, 'state' | 'refreshRunni
 // The cached reads take the name as the registry spells it (old npm names may hold capitals): one entry per name,
 // tagged with the package's tag in lower case, so a refresh of it expires every entry.
 
-const readPackage = async (name: string) => {
+const readPackage = async (registry: RegistryId, name: string) => {
   'use cache';
-  cacheTag(packageCacheTag(name));
+  cacheTag(packageCacheTag(registry, name));
 
   if (isBuild()) {
     cacheLife('minutes');
@@ -44,7 +45,11 @@ const readPackage = async (name: string) => {
   }
   try {
     const { package: pkg } =
-      (await graphqlDirect(PackagePageDocument, { registry: 'NPM', name, limit: DEPENDENTS_PAGE_SIZE })) ?? {};
+      (await graphqlDirect(PackagePageDocument, {
+        registry: REGISTRIES[registry].api,
+        name,
+        limit: DEPENDENTS_PAGE_SIZE,
+      })) ?? {};
     // A refresh under way, or a package not read yet, changes soon: kept for minutes.
     if (pkg && isPackageSettling(pkg)) {
       cacheLife('minutes');
@@ -60,17 +65,20 @@ const readPackage = async (name: string) => {
 };
 
 /**
- * An npm package's page data by its exact name: `null` when the registry does not have it, "unavailable" when the API
- * could not read package data just now. A valid name nobody has read yet is a package with `state: 'NOT_READ'`.
+ * A package's page data by its registry and exact name: `null` when the registry does not have it, "unavailable" when
+ * the API could not read package data just now. A valid name nobody has read yet is a package with
+ * `state: 'NOT_READ'`.
  */
-export const fetchPackage = (name: string): Promise<PackagePage | null | Unavailable> => readPackage(name);
+export const fetchPackage = (registry: RegistryId, name: string): Promise<PackagePage | null | Unavailable> =>
+  readPackage(registry, name);
 
-const readDependents = async (name: string, offset: number, hideArchived: boolean) => {
+const readDependents = async (registry: RegistryId, name: string, offset: number, hideArchived: boolean) => {
   'use cache';
-  cacheTag(packageCacheTag(name));
+  cacheTag(packageCacheTag(registry, name));
 
   try {
-    const variables = { registry: 'NPM' as const, name, offset, limit: DEPENDENTS_PAGE_SIZE, hideArchived };
+    const api = REGISTRIES[registry].api;
+    const variables = { registry: api, name, offset, limit: DEPENDENTS_PAGE_SIZE, hideArchived };
     const { package: pkg } = (await graphqlDirect(PackageDependentsDocument, variables)) ?? {};
     cacheLife('hours');
     return pkg?.dependents ?? null;
@@ -82,10 +90,11 @@ const readDependents = async (name: string, offset: number, hideArchived: boolea
 };
 
 /**
- * One page of the repositories with 100+ stars that depend on an npm package, most-starred first: `null` for a name the
+ * One page of the repositories with 100+ stars that depend on a package, most-starred first: `null` for a name the
  * registry does not have or one not read yet, "unavailable" when the API could not read them just now.
  */
 export const fetchPackageDependents = (
+  registry: RegistryId,
   name: string,
   query: { offset: number; hideArchived: boolean },
-): Promise<PackageDependents | null | Unavailable> => readDependents(name, query.offset, query.hideArchived);
+): Promise<PackageDependents | null | Unavailable> => readDependents(registry, name, query.offset, query.hideArchived);

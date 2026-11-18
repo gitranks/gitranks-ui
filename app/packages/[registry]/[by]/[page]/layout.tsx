@@ -4,15 +4,18 @@ import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { PackageRankingFrame } from '../../../components/package-ranking-view';
-import { isPackageRankingOrder, PACKAGE_RANKING_ORDER_LIST, packageRankingRegistryOf } from '../../../package-rankings';
+import { isPackageRankingOrderOf, packageRankingOrdersOf, packageRankingRegistryOf } from '../../../package-rankings';
 import { fetchPackageRankingFacts } from '@/graphql/helpers/fetch-package-rankings';
+import { REGISTRY_IDS } from '@/lib/packages/registries';
 
 // Params not listed in generateStaticParams render on request as a whole page, which is then
 // cached; there is no fallback shell, so the route is allowed to block. The page says the same.
 export const instant = false;
 
 export async function generateStaticParams() {
-  return PACKAGE_RANKING_ORDER_LIST.map((by) => ({ registry: 'npm', by, page: '1' }));
+  return REGISTRY_IDS.flatMap((registry) =>
+    packageRankingOrdersOf(registry).map((by) => ({ registry, by, page: '1' })),
+  );
 }
 
 export default async function PackageRankingLayout({
@@ -22,7 +25,7 @@ export default async function PackageRankingLayout({
   const { registry, by } = await params;
   const registryInfo = packageRankingRegistryOf(registry);
 
-  if (!registryInfo || !isPackageRankingOrder(by)) {
+  if (!registryInfo || !isPackageRankingOrderOf(registryInfo.id, by)) {
     cacheLife('hours');
     notFound();
   }
@@ -37,7 +40,7 @@ export default async function PackageRankingLayout({
   }
 
   return (
-    <PackageRankingFrame registry={registry} order={by} downloadsThrough={facts?.downloadsThrough}>
+    <PackageRankingFrame registry={registryInfo.id} order={by} downloadsThrough={facts?.downloadsThrough}>
       {children}
     </PackageRankingFrame>
   );

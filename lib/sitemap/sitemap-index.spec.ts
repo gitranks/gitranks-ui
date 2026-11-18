@@ -121,6 +121,45 @@ describe('sitemap index', () => {
     expect(fetchRepoTabSitemapParts).not.toHaveBeenCalled();
   });
 
+  it('pins the index XML once package pages are open to everyone', async () => {
+    vi.useFakeTimers({ now: new Date('2026-11-18T12:00:00Z'), toFake: ['Date'] });
+    vi.mocked(fetchRepoSitemapParts).mockResolvedValue(1);
+    vi.mocked(packagesPublicNow).mockResolvedValue(true);
+    vi.mocked(fetchPackageSitemapParts).mockResolvedValue(2);
+    vi.mocked(fetchRepoTabSitemapParts).mockResolvedValue(1);
+
+    const xml = await (await sitemapIndexResponse()).text();
+    vi.useRealTimers();
+
+    expect(xml.slice(xml.indexOf('/sitemaps/repos/sitemap/0.xml'))).toMatchInlineSnapshot(`
+      "/sitemaps/repos/sitemap/0.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/rankings/sitemap.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/0.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/1.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/repo-used-by/sitemap/0.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/repo-contributors/sitemap/0.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+      </sitemapindex>
+      "
+    `);
+  });
+
   it('lists the package sitemaps after the others once package pages are open to everyone', async () => {
     vi.mocked(fetchRepoSitemapParts).mockResolvedValue(1);
     vi.mocked(packagesPublicNow).mockResolvedValue(true);

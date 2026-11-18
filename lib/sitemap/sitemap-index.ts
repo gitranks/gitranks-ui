@@ -2,9 +2,11 @@ import { startOfMonth } from 'date-fns';
 
 import { fetchOrgSitemapParts } from '@/graphql/helpers/fetch-org-sitemap-parts';
 import { fetchRepoSitemapParts } from '@/graphql/helpers/fetch-repo-sitemap-parts';
+import { apiRegistryOf, DEFAULT_REGISTRY, REGISTRY_IDS, type RegistryId } from '@/lib/packages/registries';
 import { fetchPackageSitemapParts, fetchRepoTabSitemapParts } from '@/lib/sitemap/package-sitemap-data';
 import { packagesPublicNow } from '@/lib/sitemap/packages-public';
 import {
+  packageSitemapIdOf,
   SITEMAP_ORG_PARTS_MAX,
   SITEMAP_PACKAGE_PARTS_MAX,
   SITEMAP_REPO_PARTS_MAX,
@@ -13,7 +15,7 @@ import {
   type SitemapSegment,
 } from '@/lib/sitemap/sitemap.consts';
 import { absoluteSitemapUrl } from '@/lib/sitemap/sitemap-url';
-import { PackageRegistry, RepoSitemapTab } from '@/types/generated/graphql';
+import { RepoSitemapTab } from '@/types/generated/graphql';
 
 export function childSitemapLoc(segment: SitemapSegment): string {
   return absoluteSitemapUrl(`/sitemaps/${segment}/sitemap.xml`);
@@ -34,10 +36,13 @@ export function packageRankingsSitemapLoc(): string {
   return absoluteSitemapUrl('/sitemaps/packages/rankings/sitemap.xml');
 }
 
-/** The package-page sitemap of one part, as `generateSitemaps` names it. */
-export function packageSitemapLoc(part: number): string {
-  return absoluteSitemapUrl(`/sitemaps/packages/sitemap/${part}.xml`);
+/** The package-page sitemap of one part, as `generateSitemaps` names it; a registry's own run of parts. */
+export function packageSitemapLoc(part: number, registry: RegistryId = DEFAULT_REGISTRY): string {
+  return absoluteSitemapUrl(`/sitemaps/packages/sitemap/${packageSitemapIdOf(registry, part)}.xml`);
 }
+
+/** How many package-page parts each registry has: a number is the default registry's alone. */
+type PackageParts = number | Readonly<Partial<Record<RegistryId, number>>>;
 
 /** A repository tab's sitemap of one part, as `generateSitemaps` names it. */
 export function repoTabSitemapLoc(tab: 'used-by' | 'contributors', part: number): string {
@@ -61,13 +66,20 @@ export function listChildSitemapLocs(repoParts = 0, orgParts = 0): string[] {
 }
 
 /**
- * The package sitemaps: the package rankings, then the first `packageParts` package-page parts, the first `usedByParts`
- * parts of the repositories' Used by tab and the first `contributorsParts` of their Contributors tab.
+ * The package sitemaps: the package rankings, then each registry's first `packageParts` package-page parts, the first
+ * `usedByParts` parts of the repositories' Used by tab and the first `contributorsParts` of their Contributors tab.
  */
-export function listPackageSitemapLocs(packageParts = 0, usedByParts = 0, contributorsParts = 0): string[] {
+export function listPackageSitemapLocs(
+  packageParts: PackageParts = 0,
+  usedByParts = 0,
+  contributorsParts = 0,
+): string[] {
+  const parts = typeof packageParts === 'number' ? { [DEFAULT_REGISTRY]: packageParts } : packageParts;
   return [
     packageRankingsSitemapLoc(),
-    ...partsOf(packageParts, SITEMAP_PACKAGE_PARTS_MAX, packageSitemapLoc),
+    ...REGISTRY_IDS.flatMap((registry) =>
+      partsOf(parts[registry] ?? 0, SITEMAP_PACKAGE_PARTS_MAX, (part) => packageSitemapLoc(part, registry)),
+    ),
     ...partsOf(usedByParts, SITEMAP_REPO_TAB_PARTS_MAX, (part) => repoTabSitemapLoc('used-by', part)),
     ...partsOf(contributorsParts, SITEMAP_REPO_TAB_PARTS_MAX, (part) => repoTabSitemapLoc('contributors', part)),
   ];
@@ -81,11 +93,12 @@ async function packageSitemapLocs(): Promise<string[]> {
   if (!(await packagesPublicNow())) {
     return [];
   }
-  const [packageParts, usedByParts, contributorsParts] = await Promise.all([
-    fetchPackageSitemapParts(PackageRegistry.Npm),
+  const [registryParts, usedByParts, contributorsParts] = await Promise.all([
+    Promise.all(REGISTRY_IDS.map((registry) => fetchPackageSitemapParts(apiRegistryOf(registry)))),
     fetchRepoTabSitemapParts(RepoSitemapTab.UsedBy),
     fetchRepoTabSitemapParts(RepoSitemapTab.Contributors),
   ]);
+  const packageParts = Object.fromEntries(REGISTRY_IDS.map((registry, i) => [registry, registryParts[i]]));
   return listPackageSitemapLocs(packageParts, usedByParts, contributorsParts);
 }
 

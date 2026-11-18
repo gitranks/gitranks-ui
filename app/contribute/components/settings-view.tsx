@@ -6,14 +6,20 @@ import { AutopilotSection } from './autopilot-section';
 import { ContributeNotices } from './contribute-notices';
 import { CycleSummary } from './cycle-summary';
 import { DeleteDataSection } from './delete-data-section';
+import { EmailSection, isShownEmail } from './email-section';
 import { PauseButton } from './pause-button';
 import { PreferencesSection } from './preferences-section';
 import { ReposAskLessNote } from './repo-rules';
 import { SettingsAnchors } from './settings-anchors';
 import { SettingsGroup, SettingsList, SettingsRow } from './settings-rows';
 import { SettingsWorkGroup } from './settings-work-group';
-import { loadContribute, loadContributeSet, loadContributeSetup } from '@/lib/contribute/contribute.data';
-import type { ContributeSet, ContributeView } from '@/lib/contribute/contribute.types';
+import {
+  loadContribute,
+  loadContributeEmail,
+  loadContributeSet,
+  loadContributeSetup,
+} from '@/lib/contribute/contribute.data';
+import type { ContributeEmail, ContributeSet, ContributeView } from '@/lib/contribute/contribute.types';
 import {
   claudeKeyOf,
   contributeNoticesOf,
@@ -46,23 +52,30 @@ export async function SettingsView({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params, set] = await Promise.all([loadSettingsView(), searchParams, loadContributeSet()]);
+  const [view, params, set, email] = await Promise.all([
+    loadSettingsView(),
+    searchParams,
+    loadContributeSet(),
+    loadContributeEmail(),
+  ]);
   // GitHub's consent comes back here when it was not saved: its answer is on the page of keys and access.
   const grant = grantRefusalOf(params.grant);
   if (grant) redirect(`${SETTINGS_PATHS.keys}?grant=${grant}` as Route);
   // What the user works on was asked (the read is not null) but did not load.
-  return <SettingsScreen view={view} set={set} setFailed={set === undefined} />;
+  return <SettingsScreen view={view} set={set} setFailed={set === undefined} email={email} />;
 }
 
 /**
  * Settings, at rest: where things stand and Pause, then each setting as a row with its value in plain words, grouped by
- * what it is about, and Delete last. Each row opens the page it is changed on; autopilot's toggle is on its row.
+ * what it is about, and Delete last. Each row opens the page it is changed on; autopilot's and email's toggles are on
+ * their rows.
  */
 export function SettingsScreen({
   view,
   now,
   set,
   setFailed = false,
+  email = null,
 }: {
   view: ContributeView;
   now?: Date;
@@ -70,6 +83,8 @@ export function SettingsScreen({
   set?: ContributeSet | null;
   /** What the user works on did not load. */
   setFailed?: boolean;
+  /** GitRanks email; its row is left out when null (hidden, or not answered) or without an address to send to. */
+  email?: ContributeEmail | null;
 }) {
   const { contributor } = view;
   const settings = settingsOf(view);
@@ -164,6 +179,14 @@ export function SettingsScreen({
           />
         </SettingsList>
       </SettingsGroup>
+
+      {isShownEmail(email) ? (
+        <SettingsGroup id="settings-email" title="Email">
+          <SettingsList>
+            <EmailSection email={email} />
+          </SettingsList>
+        </SettingsGroup>
+      ) : null}
 
       <DeleteDataSection />
       <SettingsAnchors />

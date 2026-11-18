@@ -49,6 +49,7 @@ import {
   SendBackContributeProofDocument,
   SendBackToAgentDocument,
   SendContributeFeedbackDocument,
+  SetContributeEmailDocument,
   SetContributeFallbackDocument,
   SetContributeModeDocument,
   SetContributeSettingsDocument,
@@ -72,6 +73,7 @@ import type {
   ContributeConnectKeyResult,
   ContributeConnectLimits,
   ContributeDeleteDataResult,
+  ContributeEmail,
   ContributeFeedbackContext,
   ContributeFeedbackTopic,
   ContributeIssuePage,
@@ -238,6 +240,11 @@ export async function pauseContributing(): Promise<ContributeActionResult<boolea
 
 export async function resumeContributing(): Promise<ContributeActionResult<boolean>> {
   return run(ResumeContributingDocument, undefined, (data) => data.resumeContributing);
+}
+
+/** Turns GitRanks email on or off for the user: the same switch as an email's unsubscribe link. */
+export async function setContributeEmail(on: boolean): Promise<ContributeActionResult<ContributeEmail>> {
+  return run(SetContributeEmailDocument, { on: on === true }, (data) => data.setContributeEmail);
 }
 
 export async function skipIssue(issueId: string): Promise<ContributeActionResult<boolean>> {

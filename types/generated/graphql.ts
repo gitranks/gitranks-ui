@@ -854,6 +854,15 @@ export enum ContributeEffort {
   Xhigh = 'XHIGH'
 }
 
+/** GitRanks email for the viewer: review reminders and other updates from Contribute */
+export type ContributeEmail = {
+  __typename?: 'ContributeEmail';
+  /** False once they unsubscribed, by an email’s one-click link or in Settings */
+  on: Scalars['Boolean']['output'];
+  /** Where it goes, masked; null when no address is known */
+  to?: Maybe<Scalars['String']['output']>;
+};
+
 export type ContributeFeedbackContextInput = {
   /** Left out: the viewer's own mode */
   mode?: InputMaybe<ContributeSetMode>;
@@ -3055,6 +3064,8 @@ export type Mutation = {
   sendBackToAgent: ContributeAttempt;
   /** Feedback to the GitRanks team (at most 2,000 characters), with where the dialog was opened. RATE_LIMITED past 10 a day */
   sendContributeFeedback: Scalars['Boolean']['output'];
+  /** Turns GitRanks email on or off for the viewer (the same switch as an email’s unsubscribe link) */
+  setContributeEmail: ContributeEmail;
   /** A list mode's fallback: when its set has nothing ready, wait (SET_ONLY) or work on all issues */
   setContributeFallback: ContributeSet;
   /** Sets one .github/gitranks.yml key on the maintainers page for a repository the token administers or maintains (checked with GitHub at each call); value null clears it. Answers every key of the repository and its rules after the change. FORBIDDEN when the token is not ADMIN or MAINTAIN there; NOT_FOUND when it cannot see the repository; BAD_USER_INPUT for a key the page does not set or a value outside the key's values; CONFLICT when the repository's .github/gitranks.yml sets the key (the file wins) */
@@ -3263,6 +3274,11 @@ export type MutationSendContributeFeedbackArgs = {
   context?: InputMaybe<ContributeFeedbackContextInput>;
   text: Scalars['String']['input'];
   topic: ContributeFeedbackTopic;
+};
+
+
+export type MutationSetContributeEmailArgs = {
+  on: Scalars['Boolean']['input'];
 };
 
 
@@ -3571,6 +3587,8 @@ export type Query = {
   contributeChanges?: Maybe<ContributeChanges>;
   /** My contributions: the viewer's PRs opened through Contribute, newest first, and their totals */
   contributeContributions?: Maybe<ContributeContributions>;
+  /** Whether GitRanks email is on for the viewer, and where it goes */
+  contributeEmail?: Maybe<ContributeEmail>;
   /** The shown issues as they are now, for the Issues list and Up next to drop a taken card while open (polled): up to 50 ids, in the order asked. Null when hidden */
   contributeIssueStatus?: Maybe<Array<ContributeIssueStatus>>;
   /** Issues for you: the recommended issues, best first, a page at a time. Null when hidden */

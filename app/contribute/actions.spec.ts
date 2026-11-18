@@ -26,6 +26,7 @@ const {
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
   RetryAttemptDocument,
+  SetContributeEmailDocument,
   DiscardAttemptDocument,
   RevokeMcpTokenDocument,
   SendBackToAgentDocument,
@@ -53,6 +54,7 @@ const CALLS: Record<string, unknown[]> = {
   deleteContributeData: [],
   revokeGithubGrant: [],
   pauseContributing: [],
+  setContributeEmail: [false],
   resumeContributing: [],
   skipIssue: ['I_1'],
   readIssueStatuses: [['I_1', 'I_2']],
@@ -187,6 +189,24 @@ describe('the Contribute server actions', () => {
     graphqlDirect.mockClear();
     await actions.readFeedComputedAt();
     expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
+  });
+
+  it('turns GitRanks email on or off with a plain boolean, and answers what the API saved', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    graphqlDirect.mockResolvedValueOnce({ setContributeEmail: { on: false, to: 'o•••@example.com' } });
+    await expect(actions.setContributeEmail(false)).resolves.toEqual({
+      ok: true,
+      data: { on: false, to: 'o•••@example.com' },
+    });
+    expect(graphqlDirect.mock.calls[0][0]).toBe(SetContributeEmailDocument);
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ on: false });
+
+    graphqlDirect.mockClear();
+    await actions.setContributeEmail('yes' as unknown as boolean);
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ on: false });
+
+    graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify([{ extensions: { code: 'NOT_FOUND' } }])));
+    await expect(actions.setContributeEmail(true)).resolves.toMatchObject({ ok: false, error: 'NOT_FOUND' });
   });
 
   it.each(SET_ACTIONS)('%s goes to the API for any signed-in login: the modes are open to everyone', async (name) => {

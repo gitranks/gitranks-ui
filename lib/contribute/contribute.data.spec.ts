@@ -11,6 +11,7 @@ const {
   loadAttempts,
   loadAttemptsIn,
   loadContribute,
+  loadContributeEmail,
   loadContributeSet,
   loadContributions,
   loadIssues,
@@ -57,6 +58,7 @@ const {
   ContributeProviderInterestsDocument,
   ContributeContributionsMovesDocument,
   ContributeContributionsFixesDocument,
+  ContributeEmailDocument,
 } = await import('./contribute.documents');
 
 /** Answers the overview with `overview`, the grant and the pause with nothing. */
@@ -1046,6 +1048,32 @@ describe('what the user works on', () => {
     expect(await loadContributeSet()).toBeNull();
     graphqlDirect.mockRejectedValueOnce(new Error('GraphQL error! 502'));
     expect(await loadContributeSet()).toBeUndefined();
+  });
+});
+
+describe('GitRanks email', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+  });
+
+  it('is not even asked when signed out', async () => {
+    auth.mockResolvedValue(null);
+    expect(await loadContributeEmail()).toBeNull();
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('is read as the signed-in user; null when hidden or not answered, so Settings leaves the row out', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    graphqlDirect.mockResolvedValueOnce({ contributeEmail: { on: true, to: 'o•••@example.com' } });
+    expect(await loadContributeEmail()).toEqual({ on: true, to: 'o•••@example.com' });
+    expect(graphqlDirect.mock.calls[0][0]).toBe(ContributeEmailDocument);
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr', githubLogin: 'octocat' });
+
+    graphqlDirect.mockResolvedValueOnce({ contributeEmail: null });
+    expect(await loadContributeEmail()).toBeNull();
+    graphqlDirect.mockRejectedValueOnce(new Error('[{"message":"Cannot query field \\"contributeEmail\\""}]'));
+    expect(await loadContributeEmail()).toBeNull();
   });
 });
 

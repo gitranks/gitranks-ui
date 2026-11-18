@@ -22,6 +22,8 @@ const ALLOWED = new Set([
   'app/api/follow/change/route.spec.ts',
   'app/api/follow/channels/route.ts',
   'app/api/follow/channels/route.spec.ts',
+  'app/api/follow/following/route.ts',
+  'app/api/follow/following/route.spec.ts',
   'app/api/follow/start/route.ts',
   'app/api/follow/start/route.spec.ts',
   'app/api/follow/state/route.ts',

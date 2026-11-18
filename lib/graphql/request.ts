@@ -9,7 +9,10 @@ export const BUILD_RETRIES = 3;
 /** The wait before each retry during the build: 0.5 s, 1 s, 2 s. */
 export const BUILD_RETRY_BASE_MS = 500;
 
-/** During `next build` only: an attempt that has not answered in this long is given up, and not asked again. */
+/**
+ * During `next build` only: an attempt not finished in this long (its answer, its body, any wait for Next's fetch cache)
+ * is given up, and not asked again.
+ */
 export const BUILD_ATTEMPT_TIMEOUT_MS = 10_000;
 
 const RETRIED_STATUSES = new Set([502, 503, 504]);

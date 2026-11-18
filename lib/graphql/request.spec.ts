@@ -129,6 +129,16 @@ describe('request', () => {
       expect(init.signal).toBeInstanceOf(AbortSignal);
     });
 
+    it('gives every attempt its own time limit', async () => {
+      answer(502, 'gateway', 'Bad Gateway');
+      answer(200, { data: { ok: true } });
+      await settle(request('{ ok }'));
+      const [first, second] = signedFetch.mock.calls.map(([, init]) => (init as RequestInit).signal);
+      expect(first).toBeInstanceOf(AbortSignal);
+      expect(second).toBeInstanceOf(AbortSignal);
+      expect(second).not.toBe(first);
+    });
+
     it('never asks again for other statuses or GraphQL errors', async () => {
       answer(500, 'oops', 'Internal Server Error');
       expect(((await settle(request('{ ok }'))) as { error?: Error }).error?.message).toBe(

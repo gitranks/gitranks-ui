@@ -44,11 +44,12 @@ export const runFlowOf = (run: Pick<ContributeAttemptDetail, 'checkStatus' | 're
   run.checkStatus !== undefined || hasOutcomes(run.replyDrafts);
 
 /** "Push 2 commits and post 5 replies", "Push 2 commits", "Post 5 replies": what approving a run does. */
-export function runReadyTitleOf(commits: number, replies: number): string {
+export function runReadyTitleOf(commits: number, replies: number, describes = false): string {
   if (commits && replies) return `Push ${plural(commits, 'commit')} and post ${plural(replies, 'reply', 'replies')}`;
   if (commits) return `Push ${plural(commits, 'commit')}`;
   if (replies) return `Post ${plural(replies, 'reply', 'replies')}`;
-  return 'Post the replies';
+  // A run whose only change is the pull request's new description.
+  return describes ? 'Update the description' : 'Post the replies';
 }
 
 /** The run's ready card: its variant (our checks, a push that came back, an older API) and words. */
@@ -91,7 +92,7 @@ export function runReadyOf(run: ContributeAttemptDetail, round: number | null): 
             ? commits
               ? 'Push the commits'
               : 'Finish the follow-up'
-            : runReadyTitleOf(commits, replies);
+            : runReadyTitleOf(commits, replies, !!run.prBodyUpdate);
   return {
     card: 'run-ready',
     kinds: ['run-ready'],

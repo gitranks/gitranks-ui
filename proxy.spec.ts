@@ -551,6 +551,21 @@ describe('proxy', () => {
     });
   });
 
+  describe('the admin pages', () => {
+    it.each(['/admin/unsung-hero', '/admin/unsung-hero/', '/admin'])(
+      '%s signed in: private, no-store, so the browser keeps no copy',
+      async (path) => {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+      },
+    );
+
+    it('a page whose name only starts with "admin" keeps private, no-cache', async () => {
+      const response = await proxy(request('authjs.session-token=t', '/administrators'), event);
+      expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+    });
+  });
+
   describe('Learn', () => {
     const CLOSED = [
       '/learn',

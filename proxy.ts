@@ -44,6 +44,9 @@ const RANK_CARD_PATH = '/api/me/rank-card';
 /** Matches no route, so a rewrite here renders `app/not-found.tsx` with a 404 status. */
 const NOT_FOUND_PATH = '/_404';
 
+/** The admin pages: answered per viewer, never stored. */
+const ADMIN_PATH = /^\/admin(?:\/|$)/;
+
 // `__Secure-` over HTTPS, bare in local dev; `.0`, `.1`… when the JWT is split across cookies.
 const SESSION_COOKIE = /^(__Secure-)?authjs\.session-token(\.\d+)?$/;
 
@@ -280,11 +283,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   const response = await withAuth(request, event);
   // The landing's rank card sets its own, always private: 5 minutes at the viewer's own `?login=`, never stored
   // otherwise. The proxy cannot tell which login the session holds, nor the route's status.
-  // A page a link in our email opens keeps its own `no-store`: it shows an address's follows.
+  // A page a link in our email opens keeps its own `no-store`: it shows an address's follows. An admin page is never
+  // stored either, so Back after a sign-out cannot show it again.
   if (request.nextUrl.pathname !== RANK_CARD_PATH) {
     response?.headers.set(
       'Cache-Control',
-      isLinkPagePath(pathname) ? LINK_PAGE_HEADERS['Cache-Control'] : 'private, no-cache',
+      isLinkPagePath(pathname) || ADMIN_PATH.test(pathname) ? LINK_PAGE_HEADERS['Cache-Control'] : 'private, no-cache',
     );
   }
   response?.headers.append('Set-Cookie', SESSION_HINT_SET);

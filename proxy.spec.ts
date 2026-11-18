@@ -20,6 +20,8 @@ vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: ledgerOpe
 const { lessonGate } = vi.hoisted(() => ({
   lessonGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
+// Learn is not open to everyone: a visitor's /learn stays a 404.
+vi.mock('./lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => false }));
 vi.mock('./lib/learn/lesson-gate', () => ({
   LESSON_MISSING_PATH: '/learn/lessons/_missing',
   lessonGateOf: lessonGate,

@@ -1,7 +1,7 @@
 import { type NextFetchEvent, NextRequest } from 'next/server';
 import { describe, expect, it, vi } from 'vitest';
 
-// The proxy with Learn's front door open to visitors: the switch on, everything else as it is.
+// The proxy with Learn open to everyone (the API's answer), everything else as it is.
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => vi.fn(() => new Response(null)) }) }));
 vi.mock('./lib/contribute/preview-gate', () => ({
   requestContributeAccess: async () => 'hidden',
@@ -16,10 +16,8 @@ vi.mock('./lib/learn/lesson-gate', () => ({
   LESSON_MISSING_PATH: '/learn/lessons/_missing',
   lessonGateOf: async () => ({ kind: 'page' }),
 }));
-vi.mock('./lib/learn/learn-path', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./lib/learn/learn-path')>()),
-  LEARN_OPEN_TO_VISITORS: true,
-}));
+const everyone = vi.hoisted(() => ({ open: true }));
+vi.mock('./lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
 
 const { default: proxy } = await import('./proxy');
 
@@ -33,8 +31,19 @@ describe('Learn open to visitors', () => {
   });
 
   it("keeps Learn's other closed pages from visitors", async () => {
-    for (const path of ['/learn/profile', '/learn/lessons', '/learn/attempts/A_1', '/learn/x']) {
+    for (const path of ['/learn/profile', '/learn/lessons', '/learn/attempts', '/learn/x']) {
       expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+    }
+  });
+
+  it('keeps the front door from visitors while Learn is not open to everyone', async () => {
+    everyone.open = false;
+    try {
+      for (const path of ['/learn', '/learn/']) {
+        expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+      }
+    } finally {
+      everyone.open = true;
     }
   });
 });

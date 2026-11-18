@@ -27,6 +27,11 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 /** Whether Learn is open to the signed-in viewer. */
 export const LearnOpenDocument = doc<{ learnOpen: boolean }>('query LearnOpen { learnOpen }');
 
+/** Whether Learn is open to every signed-in person: the same answer for everyone, asked without a viewer. */
+export const LearnOpenToEveryoneDocument = doc<{ learnOpenToEveryone: boolean }>(
+  'query LearnOpenToEveryone { learnOpenToEveryone }',
+);
+
 /** Whether the viewer's GitRanks account is still being set up (a new account), so Learn cannot answer for it yet. */
 export const LearnSetupDocument = doc<{ learnSetup: boolean }>('query LearnSetup { learnSetup }');
 

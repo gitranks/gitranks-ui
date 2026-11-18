@@ -2,6 +2,7 @@ import { cacheLife } from 'next/cache';
 
 import { fetchInsightsServer } from '@/graphql/helpers/fetch-insights-server';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { LearnOpenToEveryoneDocument } from '@/lib/learn/learn.documents';
 import {
   BadgeTiersDocument,
   GlobalRankingsDocument,
@@ -105,5 +106,23 @@ export const fetchTopRepos = async () => {
   } catch {
     cacheLife('minutes');
     return [];
+  }
+};
+
+/**
+ * Whether the home page shows Learn's section to visitors: once the API says Learn is open to everyone. Asked every
+ * few minutes, so opening Learn reaches the home page without a deploy; a failed read leaves the section out for a few
+ * minutes (an API without the field yet answers that way too).
+ */
+export const fetchLearnForVisitors = async (): Promise<boolean> => {
+  'use cache';
+  cacheLife({ stale: 60, revalidate: 300, expire: 86_400 });
+
+  try {
+    const { learnOpenToEveryone } = await graphqlDirect(LearnOpenToEveryoneDocument, undefined, { source: 'ssr' });
+    return learnOpenToEveryone === true;
+  } catch {
+    cacheLife('minutes');
+    return false;
   }
 };

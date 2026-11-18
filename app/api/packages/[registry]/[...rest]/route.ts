@@ -16,6 +16,7 @@ import { packageMarkdownOf, packageMarkdownPath } from '@/lib/packages/package-m
 import { packageCacheTag } from '@/lib/packages/package-paths';
 import { packagesPublic, requestMaySeePackages } from '@/lib/packages/packages-gate';
 import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
+import { SITE_URL } from '@/lib/seo/site';
 import { signedFetch } from '@/lib/signed-fetch';
 
 // A package's reads and its refresh, for its page in the browser: `/api/packages/<registry>/<name>/dependents` and
@@ -77,7 +78,8 @@ async function facts(req: NextRequest, { registry, name }: Target) {
   }
   // Another spelling of its name, read or not: its address, as the page does.
   if (pkg.name !== name) {
-    return NextResponse.redirect(new URL(packageMarkdownPath(pkg.name, registry), req.url), {
+    // The site's own address: behind the proxy a route handler's request URL is the server's bind address.
+    return NextResponse.redirect(new URL(packageMarkdownPath(pkg.name, registry), SITE_URL || req.url), {
       status: 308,
       headers: { 'Cache-Control': PRIVATE },
     });

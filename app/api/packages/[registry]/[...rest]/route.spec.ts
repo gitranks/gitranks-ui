@@ -31,6 +31,11 @@ const {
 type Handler = (req: NextRequest & { auth: Session | null }, context: unknown) => unknown;
 
 vi.mock('server-only', () => ({}));
+// The site's address; requests below come from the server's bind address, as behind the proxy.
+vi.mock('@/lib/seo/site', async (load) => ({
+  ...(await load<typeof import('@/lib/seo/site')>()),
+  SITE_URL: 'https://gitranks.com',
+}));
 vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic, requestMaySeePackages }));
 vi.mock('@/graphql/helpers/fetch-package', () => ({
   PACKAGE_UNAVAILABLE: 'unavailable',
@@ -55,7 +60,7 @@ const { resetPackageRefreshState } = await import('./refresh-status');
 
 const call = (method: 'GET' | 'POST', path: string, search = '') => {
   const [registry, ...rest] = path.split('/');
-  return route[method](new NextRequest(`https://gitranks.com/api/packages/${path}${search}`, { method }), {
+  return route[method](new NextRequest(`https://0.0.0.0:3000/api/packages/${path}${search}`, { method }), {
     params: Promise.resolve({ registry, rest }),
   });
 };

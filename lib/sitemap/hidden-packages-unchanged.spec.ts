@@ -1,12 +1,14 @@
 import { createHash } from 'node:crypto';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET as llmsTxt } from '@/app/llms.txt/route';
 import { GET as sitemapIndex } from '@/app/sitemap.xml/route';
 import { fetchOrgSitemapParts } from '@/graphql/helpers/fetch-org-sitemap-parts';
 import { fetchRepoSitemapParts } from '@/graphql/helpers/fetch-repo-sitemap-parts';
 import { contributeOpen } from '@/lib/contribute/preview-gate';
+import { packagesPublic } from '@/lib/packages/packages-gate';
+import * as packageSitemapData from '@/lib/sitemap/package-sitemap-data';
 
 vi.hoisted(() => {
   process.env.NEXT_PUBLIC_URI = 'https://example.test';
@@ -16,10 +18,18 @@ vi.mock('next/server', () => ({ connection: vi.fn(async () => undefined) }));
 vi.mock('@/graphql/helpers/fetch-repo-sitemap-parts', () => ({ fetchRepoSitemapParts: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-org-sitemap-parts', () => ({ fetchOrgSitemapParts: vi.fn() }));
 vi.mock('@/lib/contribute/preview-gate', () => ({ contributeOpen: vi.fn() }));
+vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic: vi.fn() }));
+vi.mock('@/lib/sitemap/package-sitemap-data', () => ({
+  fetchPackageSitemapParts: vi.fn(),
+  fetchPackagesForSitemap: vi.fn(),
+  fetchRepoTabSitemapParts: vi.fn(),
+  fetchRepoTabsForSitemap: vi.fn(),
+}));
 
 /**
  * The sitemap index and llms.txt, byte for byte and with their headers, as they were before package pages existed.
- * While package pages are not open to everyone, both must answer exactly this.
+ * While package pages are not open to everyone (hidden, or shown to a preview list alone), both must answer exactly
+ * this, and nothing about packages is read for them.
  */
 const answerOf = async (response: Response) => {
   const body = await response.text();
@@ -39,6 +49,18 @@ describe('while package pages are not open to everyone', () => {
     vi.mocked(fetchRepoSitemapParts).mockReset().mockResolvedValue(2);
     vi.mocked(fetchOrgSitemapParts).mockReset().mockResolvedValue(1);
     vi.mocked(contributeOpen).mockReset().mockResolvedValue(true);
+    vi.mocked(packagesPublic).mockReset().mockResolvedValue(false);
+    for (const read of Object.values(packageSitemapData)) {
+      vi.mocked(read).mockReset();
+    }
+  });
+
+  afterEach(() => {
+    expect(packagesPublic).toHaveBeenCalled();
+    for (const read of Object.values(packageSitemapData)) {
+      expect(read).not.toHaveBeenCalled();
+    }
+    vi.useRealTimers();
   });
 
   it('the sitemap index answers as before', async () => {

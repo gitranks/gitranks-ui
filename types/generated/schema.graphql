@@ -4312,6 +4312,8 @@ type Query {
   orgsForSitemap(part: Int!): [String!]!
   packageRankingFacts(registry: PackageRegistry!): PackageRankingFacts
   packageRankings(by: PackageRankingType!, limit: Int! = 100, offset: Int! = 0, registry: PackageRegistry!): [PackageRankRow!]
+  packageSitemapParts(registry: PackageRegistry!): Int
+  packagesForSitemap(part: Int!, registry: PackageRegistry!): [String!]
   profilesForSitemap: [ProfileForSitemap!]!
   rankTiersByName(name: String!): RankTier
   repo(name: String!, owner: String!): Repo
@@ -4319,6 +4321,8 @@ type Query {
   repoRankTiers(language: String, noLanguage: Boolean): RepoRankTiers
   repoRankings(language: String, limit: Int! = 100, noLanguage: Boolean, offset: Int! = 0): [RankRepo!]!
   repoSitemapParts: Int!
+  repoTabSitemapParts(tab: RepoSitemapTab!): Int
+  repoTabsForSitemap(part: Int!, tab: RepoSitemapTab!): [String!]
   reposForSitemap(part: Int!): [String!]!
 
   """
@@ -4630,6 +4634,11 @@ type RepoPulseFacts {
 type RepoRankTiers {
   repos: Int!
   tiers: [Tier!]!
+}
+
+enum RepoSitemapTab {
+  CONTRIBUTORS
+  USED_BY
 }
 
 type RepoSibling {

@@ -8,7 +8,8 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 /**
  * The only files that may import the packages gate. It decides before anything renders who a page is drawn for, so a
- * page or a layout never reads it: the proxy and route handlers do.
+ * page or a layout never reads it: the proxy and route handlers do. The sitemaps and llms.txt ask, through one module,
+ * only whether package pages are open to everyone.
  */
 const ALLOWED = new Set([
   'proxy.ts',
@@ -28,6 +29,9 @@ const ALLOWED = new Set([
   'lib/packages/packages-gate.ts',
   'lib/packages/packages-gate.spec.ts',
   'lib/packages/packages-gate.usage.spec.ts',
+  'lib/sitemap/packages-public.ts',
+  'lib/sitemap/packages-public.spec.ts',
+  'lib/sitemap/hidden-packages-unchanged.spec.ts',
 ]);
 
 /** A module specifier naming the gate, however it is reached: `@/lib/packages/packages-gate`, `./packages-gate`… */
@@ -46,7 +50,7 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe('the packages gate', () => {
-  it('is imported only by the proxy, its route handlers and its own specs', () => {
+  it('is imported only by the proxy, its route handlers, the sitemaps and llms.txt, and its own specs', () => {
     const importers = sourceFiles(ROOT)
       .filter((path) => GATE_SPECIFIER.test(readFileSync(path, 'utf8')))
       .map((path) => relative(ROOT, path).split(sep).join('/'));

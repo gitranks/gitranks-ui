@@ -6,7 +6,7 @@ import type { FC } from 'react';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { RepoPackages } from '@/graphql/repo-packages';
-import { packagePath } from '@/lib/packages/package-paths';
+import { packagePath } from '@/utils/package-paths';
 
 const formatCount = (value: number) => value.toLocaleString('en-US');
 

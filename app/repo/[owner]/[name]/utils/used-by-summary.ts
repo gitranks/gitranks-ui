@@ -1,7 +1,7 @@
 import type { SummaryPart } from '@/app/profile/[login]/utils/profile-summary';
 import type { QuestionItem } from '@/components/questions-block/questions-block';
 import type { RepoPackage, RepoPackages, RepoUsedByItem } from '@/graphql/repo-packages';
-import { packagePath } from '@/lib/packages/package-paths';
+import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
 const DATE_FORMAT = new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone: 'UTC' });

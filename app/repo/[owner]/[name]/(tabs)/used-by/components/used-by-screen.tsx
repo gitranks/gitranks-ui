@@ -21,7 +21,7 @@ import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { Button } from '@/components/ui/button';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages, RepoUsedBy } from '@/graphql/repo-packages';
-import { packagePath } from '@/lib/packages/package-paths';
+import { packagePath } from '@/utils/package-paths';
 
 type UsedByScreenProps = {
   nameWithOwner: string;

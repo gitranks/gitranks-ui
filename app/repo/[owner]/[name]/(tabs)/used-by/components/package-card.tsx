@@ -4,7 +4,7 @@ import NextLink from 'next/link';
 import type { FC } from 'react';
 
 import type { RepoPackage } from '@/graphql/repo-packages';
-import { packagePath } from '@/lib/packages/package-paths';
+import { packagePath } from '@/utils/package-paths';
 
 /** A card, as `ProfileCard` draws one, that is a link as a whole. */
 const CARD =

@@ -5,6 +5,7 @@ import { authModeOf, CONTRIBUTE_PROVIDER, IDENTITY_PROVIDER, TOKEN_PROVIDER } fr
 import { grantSignInAllowed } from './contribute/grant-adapter';
 import { dropExpiredMaintainerToken, lightSignInSession } from './contribute/maintainer-token';
 import { currentSessionToken } from './contribute/session-token';
+import { verifiedEmailOf } from './follow/verified-email';
 
 /** The store of sign-in accounts, as the callbacks use it: one row updated after a token refresh. */
 export type AuthAccounts = {
@@ -40,10 +41,15 @@ export const createAuthCallbacks = ({
     dropExpiredMaintainerToken(token);
 
     if (account && profile) {
+      // At every sign-in, whether GitHub marks the session's email verified now (the scope both sign-ins ask for). Kept
+      // as that address, so a session whose email changes later never counts as verified; unset when it is not.
+      const verifiedEmail = await verifiedEmailOf(token.email, account.access_token);
+
       if (account.provider === IDENTITY_PROVIDER) {
         // Who the user is, nothing to refresh: refreshes run on our token, once a day
         const identity: JWT = {
           ...token,
+          verifiedEmail,
           access_token: undefined,
           expires_at: undefined,
           refresh_token: undefined,
@@ -57,6 +63,7 @@ export const createAuthCallbacks = ({
       // First-time login, save the `access_token`, its expiry and the `refresh_token`
       return {
         ...token,
+        verifiedEmail,
         access_token: account.access_token,
         expires_at: account.expires_at,
         refresh_token: account.refresh_token,

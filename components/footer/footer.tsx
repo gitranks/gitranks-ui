@@ -1,9 +1,13 @@
+import { Fragment } from 'react';
 import { FaGithub } from 'react-icons/fa';
 import { FaBluesky, FaMastodon, FaXTwitter } from 'react-icons/fa6';
 
 import { Link } from '../link/link';
+import { PackageRankingsFooterLink } from './package-rankings-footer-link';
 import { contributeSource } from '@/lib/contribute/click-tracking';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
+
+const LINK_CLASS = 'text-muted-foreground hover:text-foreground no-underline hover:underline';
 
 const SITE_LINKS = [
   { href: '/by/stars/1', label: 'Developer Rankings' },
@@ -24,11 +28,14 @@ export const Footer = () => {
       <nav aria-label="Site">
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
           {SITE_LINKS.map(({ href, label }) => (
-            <li key={href}>
-              <Link href={href} className="text-muted-foreground hover:text-foreground no-underline hover:underline">
-                {label}
-              </Link>
-            </li>
+            <Fragment key={href}>
+              <li>
+                <Link href={href} className={LINK_CLASS}>
+                  {label}
+                </Link>
+              </li>
+              {href === '/repos/1' && <PackageRankingsFooterLink className={LINK_CLASS} />}
+            </Fragment>
           ))}
         </ul>
       </nav>

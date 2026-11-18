@@ -8,6 +8,8 @@ import type {
   FollowStartAnswer,
   FollowStartBody,
 } from './follow.types';
+import type { FollowingPress } from './following-session';
+import type { SettingsState } from '@/lib/link-token/follow-pages';
 
 // The browser's side of the follow routes. Each answers `{ ok: true, data }`, or `{ ok: false, failure }` for a refusal,
 // a network error or an answer of another shape: the dialog says what failed and never throws.
@@ -19,6 +21,7 @@ export const FOLLOW_ROUTES = {
   state: '/api/follow/state',
   start: '/api/follow/start',
   change: '/api/follow/change',
+  following: '/api/follow/following',
 } as const;
 
 const FAILURES: ReadonlySet<string> = new Set<FollowFailure>([
@@ -88,4 +91,19 @@ export function postFollowChange(body: FollowChangeBody): Promise<FollowCall<Fol
   return call(FOLLOW_ROUTES.change, post(body), (answer) =>
     isRecord(answer) && 'follow' in answer ? ((answer.follow ?? null) as FollowRow | null) : UNREAD,
   );
+}
+
+/** What a press on the signed-in settings page answers: the page, or that the session has ended (`signed-out`). */
+export type FollowingPressAnswer = SettingsState | { kind: 'signed-out' };
+
+/**
+ * A press on the signed-in settings page: the page as it now is; `signed-out` when the session ended, so only a new
+ * sign-in helps; `unavailable` for anything else (the feature closed to the viewer, or following not reached).
+ */
+export async function postFollowingPress(press: FollowingPress): Promise<FollowingPressAnswer> {
+  const answer = await call(FOLLOW_ROUTES.following, post(press), (body) =>
+    isRecord(body) && typeof body.kind === 'string' ? (body as SettingsState) : UNREAD,
+  );
+  if (answer.ok) return answer.data;
+  return answer.failure === 'sign_in' ? { kind: 'signed-out' } : { kind: 'unavailable' };
 }

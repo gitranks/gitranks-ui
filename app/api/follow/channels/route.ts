@@ -10,7 +10,8 @@ import { requestMaySeePackages } from '@/lib/packages/packages-gate';
 /**
  * The Follow dialog's channels, asked when it opens: `{ channels, dependents, notable, settingsLink }`. With
  * `?package=<name>` (one npm package) the answer also says how many repositories use it now. `settingsLink` says
- * whether this browser holds an email settings link's key, read here from its cookie; the key is never answered. Only
+ * whether Settings will open here: for a signed-in viewer, or a browser holding an email settings link's key (read here
+ * from its cookie; the key is never answered). Only
  * for a viewer who may see package pages.
  */
 export async function GET(req: NextRequest) {
@@ -21,7 +22,9 @@ export async function GET(req: NextRequest) {
   const packages = name === null ? null : packagesOf([{ registry: 'npm', name }]);
   if (name !== null && !packages) return followFailure('invalid');
 
-  const answer = await readFollowChannels(await followCallerOf(req), packages?.[0] ?? null);
-  const settingsLink = (await readLinkToken('settings')) !== null;
+  const caller = await followCallerOf(req);
+  const answer = await readFollowChannels(caller, packages?.[0] ?? null);
+  // Settings opens on a signed-in viewer's own list, or on an email settings link this browser holds.
+  const settingsLink = !!caller.githubLogin || (await readLinkToken('settings')) !== null;
   return followAnswer(answer, (data): FollowChannelsView => ({ ...data, settingsLink }));
 }

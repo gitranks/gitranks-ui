@@ -37,8 +37,9 @@ export type FollowChannels = {
 };
 
 /**
- * The channels as the site's route answers them: with whether this browser holds an email settings link's key now, so
- * the dialog offers Settings only when that page will open on it. The key itself never reaches the browser.
+ * The channels as the site's route answers them: with whether the settings page will open here (a signed-in viewer, or
+ * a browser holding an email settings link's key now), so the dialog offers Settings only then. The key itself never
+ * reaches the browser.
  */
 export type FollowChannelsView = FollowChannels & { settingsLink: boolean };
 

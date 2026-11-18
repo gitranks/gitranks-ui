@@ -1,5 +1,9 @@
 import { parse } from 'graphql';
 
+import type {
+  PackageFollow as SettingsFollow,
+  FollowSubscriber as SettingsSubscriber,
+} from '@/lib/link-token/follow-links.types';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
@@ -100,3 +104,43 @@ export const FollowChangeDocument = doc<
     }
   }`,
 );
+
+const SUBSCRIBER_FIELDS = `id channel addressHint paused follows { ${FOLLOW_FIELDS} }`;
+
+/**
+ * The signed-in viewer's settings page: every address of their account with its package follows, in the shape the
+ * settings page shows (enum values as the API spells them). Null when the feature is closed to the viewer.
+ */
+export const FollowingDocument = doc<{ following: SettingsSubscriber[] | null }>(
+  `query Following { following { ${SUBSCRIBER_FIELDS} } }`,
+);
+
+export type FollowingChangeVariables = {
+  followId?: string;
+  events?: { notable: boolean; digest: boolean; milestones: boolean };
+  remove?: boolean;
+  undo?: boolean;
+  resumeSubscriberId?: string;
+};
+
+/** A change on the signed-in settings page: a follow's switches, Unfollow, Undo, or sending to a paused address again. */
+export const FollowingChangeDocument = doc<
+  { followChange: { follow: SettingsFollow | null; subscriber: SettingsSubscriber | null } | null },
+  FollowingChangeVariables
+>(
+  `mutation FollowingChange(
+    $followId: ID
+    $events: FollowEventSwitchesInput
+    $remove: Boolean
+    $undo: Boolean
+    $resumeSubscriberId: ID
+  ) {
+    followChange(followId: $followId, events: $events, remove: $remove, undo: $undo, resumeSubscriberId: $resumeSubscriberId) {
+      follow { ${FOLLOW_FIELDS} }
+      subscriber { ${SUBSCRIBER_FIELDS} }
+    }
+  }`,
+);
+
+/** Unfollows every package of the signed-in viewer's account, on every channel: answers how many. */
+export const FollowStopAllDocument = doc<{ followStopAll: number | null }>('mutation FollowStopAll { followStopAll }');

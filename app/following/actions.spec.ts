@@ -92,7 +92,7 @@ describe("the settings page's presses", () => {
     expect(await changeFollowing(FOLLOW_ID, 'undo')).toEqual({
       kind: 'list',
       subscribers: [SUBSCRIBER],
-      notice: { kind: 'undo-refused', package: followOf().package },
+      notice: { kind: 'undo-refused', package: followOf().package, channel: 'EMAIL' },
     });
   });
 

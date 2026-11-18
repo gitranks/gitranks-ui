@@ -54,6 +54,11 @@ describe('GET /api/follow/channels', () => {
     expect(text).not.toContain(key);
   });
 
+  it('offers Settings to a signed-in viewer, whose own list it opens on', async () => {
+    sessionTokenOf.mockResolvedValue({ githubLogin: 'octocat' });
+    expect(await (await call()).json()).toEqual({ ...channels, settingsLink: true });
+  });
+
   it('refuses a name npm never takes', async () => {
     expect((await call('?package=..%2Fx')).status).toBe(400);
   });

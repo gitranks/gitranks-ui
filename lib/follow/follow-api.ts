@@ -6,8 +6,12 @@ import {
   type ApiFollow,
   FollowChangeDocument,
   FollowChannelsDocument,
+  FollowingChangeDocument,
+  type FollowingChangeVariables,
+  FollowingDocument,
   FollowPackagesDocument,
   FollowStateDocument,
+  FollowStopAllDocument,
 } from './follow.documents';
 import type {
   FollowChangeBody,
@@ -21,6 +25,7 @@ import type {
   FollowStartResult,
   FollowStatus,
 } from './follow.types';
+import type { FollowChangeByTokenAnswer, FollowSubscriber } from '@/lib/link-token/follow-links.types';
 import { signedFetch } from '@/lib/signed-fetch';
 import type DocumentNode from '@/types/typed-document-node';
 
@@ -193,4 +198,32 @@ export async function changeFollow(
   const changed = answer.data.followChange;
   if (!changed) return CLOSED;
   return { ok: true, data: changed.follow ? rowOf(changed.follow) : null };
+}
+
+// The signed-in settings page: the account's addresses and their follows, as the page shows them.
+
+/** Every address of the signed-in viewer's account with its package follows. */
+export async function readFollowing(caller: FollowCaller): Promise<FollowAnswer<FollowSubscriber[]>> {
+  const answer = await ask(FollowingDocument, {}, caller);
+  if (!answer.ok) return answer;
+  return answer.data.following ? { ok: true, data: answer.data.following } : CLOSED;
+}
+
+/** A change on the signed-in settings page: the follow, or for a resume the address, as it now is. */
+export async function changeFollowing(
+  caller: FollowCaller,
+  change: FollowingChangeVariables,
+): Promise<FollowAnswer<FollowChangeByTokenAnswer>> {
+  const answer = await ask(FollowingChangeDocument, change, caller);
+  if (!answer.ok) return answer;
+  const changed = answer.data.followChange;
+  return changed ? { ok: true, data: changed } : CLOSED;
+}
+
+/** Unfollows every package of the signed-in viewer's account, on every channel; answers how many. */
+export async function stopAllFollowing(caller: FollowCaller): Promise<FollowAnswer<number>> {
+  const answer = await ask(FollowStopAllDocument, {}, caller);
+  if (!answer.ok) return answer;
+  const removed = answer.data.followStopAll;
+  return removed === null ? CLOSED : { ok: true, data: removed };
 }

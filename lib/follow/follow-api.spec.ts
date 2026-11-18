@@ -3,7 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-const { changeFollow, readFollowChannels, readFollowState, startFollow } = await import('./follow-api');
+const {
+  changeFollow,
+  changeFollowing,
+  readFollowChannels,
+  readFollowing,
+  readFollowState,
+  startFollow,
+  stopAllFollowing,
+} = await import('./follow-api');
 
 const SECRET = 'test-secret';
 const visitor = { accountEmailVerified: false, visitorAddress: '203.0.113.7' };
@@ -213,5 +221,43 @@ describe('the follow API calls', () => {
 
     answer({ data: { followChange: { follow: null } } });
     expect(await changeFollow(verifiedViewer, { followId: 'f2', remove: true })).toEqual({ ok: true, data: null });
+  });
+
+  describe('for the signed-in settings page', () => {
+    const subscriber = {
+      id: 's1',
+      channel: 'TELEGRAM',
+      addressHint: '…1234',
+      paused: false,
+      follows: [
+        { id: 'f1', channel: 'TELEGRAM', status: 'ACTIVE', package: { registry: 'npm', name: 'x' }, events: ALL },
+      ],
+    };
+
+    it('read the account’s addresses as the page shows them, signed as the viewer', async () => {
+      answer({ data: { following: [subscriber] } });
+      expect(await readFollowing(verifiedViewer)).toEqual({ ok: true, data: [subscriber] });
+      expect(sent().body.query).toContain('following {');
+      expect(sent().claims).toMatchObject({ githubLogin: 'octocat' });
+
+      fetchMock.mockReset();
+      answer({ data: { following: null } });
+      expect(await readFollowing(verifiedViewer)).toEqual({ ok: false, failure: 'not_found' });
+    });
+
+    it('send a change and a stop by the session, with no link key', async () => {
+      answer({ data: { followChange: { follow: null, subscriber } } });
+      expect(await changeFollowing(verifiedViewer, { resumeSubscriberId: 's1' })).toEqual({
+        ok: true,
+        data: { follow: null, subscriber },
+      });
+      expect(sent().body.variables).toEqual({ resumeSubscriberId: 's1' });
+      expect(sent().body.query).not.toMatch(/manageToken|followToken/);
+
+      fetchMock.mockReset();
+      answer({ data: { followStopAll: 3 } });
+      expect(await stopAllFollowing(verifiedViewer)).toEqual({ ok: true, data: 3 });
+      expect(sent().body.query).toContain('followStopAll');
+    });
   });
 });

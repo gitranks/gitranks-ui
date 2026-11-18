@@ -35,7 +35,7 @@ export const FOLLOW_CARD_TEXT =
 export const FOLLOW_DIALOG_LEAD = 'We message you only when one of these happens.';
 /** The dialog's small print; "Settings" is a link where that page will open. */
 export const FOLLOW_DIALOG_NOTE = 'Unfollow any time from a message or from Settings. Anyone can follow any package.';
-/** The same, where Settings would not open: a browser with no email settings link opened lately. */
+/** The same, where Settings would not open: a visitor with no email settings link opened lately. */
 export const FOLLOW_DIALOG_NOTE_NO_SETTINGS = 'Unfollow any time from a message. Anyone can follow any package.';
 
 const formatCount = (value: number) => value.toLocaleString('en-US');

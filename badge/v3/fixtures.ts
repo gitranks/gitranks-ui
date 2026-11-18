@@ -144,6 +144,12 @@ export const repoUnranked: RepoFacts = {
   totals: { repos: 5_300_000, languageRepos: null },
 };
 
+/** 1k+ stars, and Unsung hero the week of Monday 2 November 2026: every repository badge has something to show. */
+export const repoHero: RepoFacts = {
+  ...repoBig,
+  unsungHero: { week: '2026-W45', startsAt: '2026-11-02T00:00:00.000Z' },
+};
+
 const ranks = (s: number | null, c: number | null, f: number | null) => ({
   s,
   c,

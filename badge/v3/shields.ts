@@ -26,6 +26,7 @@ import { goalAmount, goalText } from './goals';
 import type { BadgeParams } from './params';
 import { type RaceState, repoRace, userClimbRace, userStarsRace } from './race';
 import type { By, Segment, ShieldContent } from './types';
+import { UNSUNG_HERO_BADGE, unsungHeroMonth } from './unsung-hero-badge';
 import { REPO_TIER_NAMES, TIER_NAMES } from '@/app/app.consts';
 import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
 
@@ -152,6 +153,13 @@ function repoShield(repo: RepoFacts, badge: BadgeDefinition, params: BadgeParams
     }
     case 'contribute':
       return content(params, 'GitRanks Contribute', textSegment('help welcome'));
+    case UNSUNG_HERO_BADGE:
+      if (!repo.unsungHero) return null;
+      // "GitRanks | Unsung hero · Nov 2026": the month is part of the badge, not an extra to pick.
+      return {
+        ...content(params, 'GitRanks', textSegment('Unsung hero')),
+        extra: textSegment(unsungHeroMonth(repo.unsungHero)),
+      };
     default:
       return null;
   }

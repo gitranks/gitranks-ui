@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { prefixIds } from './auto-svg';
 import { type BadgeDefinition, badgesOf } from './catalogue';
 import type { EntityFacts } from './facts';
-import { NOW, orgBig, repoBig, repoMid, userBig } from './fixtures';
+import { NOW, orgBig, repoHero, repoMid, userBig } from './fixtures';
 import { resolveParams } from './params';
 import { renderBadge, toPng } from './render';
 import { MARK_SIZE } from './shield';
@@ -39,7 +39,7 @@ const shieldSchemes = (badge: BadgeDefinition) => [
 ];
 
 /** The entity each badge is drawn for: the fixture with every fact, as the API will serve them. */
-const ENTITIES: EntityFacts[] = [repoBig, userBig, orgBig];
+const ENTITIES: EntityFacts[] = [repoHero, userBig, orgBig];
 
 /** Extra variants of a shield: its default, none, and every other extra it allows. */
 function extrasOf(badge: BadgeDefinition): string[] {

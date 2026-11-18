@@ -215,7 +215,7 @@ describe('package badge paths', () => {
   });
 });
 
-const loadersOf = (pkg: EntityFacts | null | Error): BadgeLoaders => ({
+const loadersOf = (pkg: EntityFacts | 'not-read' | null | Error): BadgeLoaders => ({
   user: async () => null,
   org: async () => null,
   repo: async () => null,
@@ -316,7 +316,34 @@ describe('getBadgeResponse for a package', () => {
   });
 });
 
+describe('a package held and not read yet', () => {
+  it('has no image, and its miss is kept for minutes only, so a badge added before the first read shows soon', async () => {
+    const response = await answer(
+      ['fresh'],
+      'used-by.svg',
+      '/badge/package/npm/fresh/used-by.svg',
+      loadersOf('not-read'),
+    );
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Cache-Control')).toBe(BADGE_CACHE_HEADERS.provisional['Cache-Control']);
+    expect(response.headers.get('Cloudflare-CDN-Cache-Control')).toBeNull();
+  });
+
+  it('has no builder facts', async () => {
+    expect((await getEntityFactsResponse('package', ['npm', 'fresh'], loadersOf('not-read'))).status).toBe(404);
+  });
+});
+
 describe("a package's builder facts", () => {
+  it('are answered only at the address its badges spell, which is the one expired', async () => {
+    const at = (spelled: string, ...name: string[]) =>
+      getEntityFactsResponse('package', name, loadersOf(packageNew), spelled).then(({ status }) => status);
+    expect(await at('/api/badge/v3/package/npm/@nebula/ui', 'npm', '@nebula', 'ui')).toBe(200);
+    expect(await at('/api/badge/v3/package/npm/%40nebula/ui', 'npm', '@nebula', 'ui')).toBe(404);
+    expect(await at('/api/badge/v3/package/npm/@nebula%2Fui', 'npm', '@nebula/ui')).toBe(404);
+    expect(await at('/api/badge/v3/package/npm/@nebula/ui/extra', 'npm', '@nebula', 'ui')).toBe(404);
+  });
+
   it('are read by `npm/<name>`, a scoped name in two parts', async () => {
     const response = await getEntityFactsResponse('package', ['npm', '@nebula', 'ui'], loadersOf(packageNew));
     expect(response.status).toBe(200);

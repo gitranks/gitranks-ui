@@ -44,11 +44,19 @@ describe("a package's badge data", () => {
     expect(cacheLife).toHaveBeenCalledWith('hours');
   });
 
-  it('is none for a name not read yet, kept for minutes so its first read shows soon', async () => {
+  it('is "not read yet" for a name held and not read, kept for minutes so its first read shows soon', async () => {
     vi.mocked(graphqlDirect).mockResolvedValueOnce(read('NOT_READ'));
-
-    await expect(loadBadgePackage('react-tools')).resolves.toBeNull();
+    await expect(loadBadgePackage('react-tools')).resolves.toBe('not-read');
     expect(cacheLife).toHaveBeenCalledWith('minutes');
+
+    vi.mocked(graphqlDirect).mockResolvedValueOnce(read('NOT_READ'));
+    await expect(loadBadgePackageCard('react-tools')).resolves.toBeNull();
+  });
+
+  it('is none for a name the registry does not have, kept for hours', async () => {
+    vi.mocked(graphqlDirect).mockResolvedValueOnce({ package: null });
+    await expect(loadBadgePackage('react-tools')).resolves.toBeNull();
+    expect(cacheLife).toHaveBeenCalledWith('hours');
   });
 
   it('throws for the images and is none for the page while package data cannot be read, kept for minutes', async () => {

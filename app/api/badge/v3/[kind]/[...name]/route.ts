@@ -22,6 +22,11 @@ export async function GET(req: NextRequest, { params }: RouteContext<'/api/badge
   if (!open && !(await requestMaySeePackages(req))) {
     return hiddenPackageFacts();
   }
-  const response = await getEntityFactsResponse(kind, name, { ...LOADERS, package: loadBadgePackage });
+  const response = await getEntityFactsResponse(
+    kind,
+    name,
+    { ...LOADERS, package: loadBadgePackage },
+    req.nextUrl.pathname,
+  );
   return open ? response : privateAnswer(response);
 }

@@ -1,19 +1,21 @@
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { toOrgCardFacts, toRepoCardFacts, toUserCardFacts } from './card-facts';
-import type {
-  ContributorsWall,
-  ContributorsWalls,
-  EntityFacts,
-  OrgFacts,
-  PackageFacts,
-  PulseFacts,
-  RankGoal,
-  RepoFacts,
-  TierTable,
-  UserFacts,
-  UserRanks,
-  UserTierLists,
+import {
+  type ContributorsWall,
+  type ContributorsWalls,
+  type EntityFacts,
+  type OrgFacts,
+  PACKAGE_NOT_READ,
+  type PackageFacts,
+  type PackageNotRead,
+  type PulseFacts,
+  type RankGoal,
+  type RepoFacts,
+  type TierTable,
+  type UserFacts,
+  type UserRanks,
+  type UserTierLists,
 } from './facts';
 import { readsSoon } from './pending';
 import { BADGE_DEPENDENTS, BadgePackageDocument, type BadgePackageQuery } from '@/graphql/badge-package';
@@ -412,7 +414,7 @@ const isBuild = () => process.env.NEXT_PHASE === 'phase-production-build';
  * A name GitRanks has not read yet is kept for minutes, so its first read shows soon; so is "unavailable", the API's
  * answer while it cannot read package data.
  */
-async function readBadgePackage(name: string): Promise<PackageFacts | null | Unavailable> {
+async function readBadgePackage(name: string): Promise<PackageFacts | PackageNotRead | null | Unavailable> {
   'use cache';
   cacheTag(packageCacheTag(name));
   if (isBuild()) {
@@ -427,9 +429,9 @@ async function readBadgePackage(name: string): Promise<PackageFacts | null | Una
     );
     if (data?.package && data.package.state !== 'READ') {
       cacheLife('minutes');
-    } else {
-      cacheLife('hours');
+      return PACKAGE_NOT_READ;
     }
+    cacheLife('hours');
     return toPackageFacts(data ?? {});
   } catch (error) {
     if (!isPackagesUnavailable(error)) throw error;
@@ -438,8 +440,11 @@ async function readBadgePackage(name: string): Promise<PackageFacts | null | Una
   }
 }
 
-/** A package's badge data for its images and the builder; throws while package data cannot be read (a 503). */
-export async function loadBadgePackage(name: string): Promise<PackageFacts | null> {
+/**
+ * A package's badge data for its images and the builder: "not read yet" for a package held and not read, which has no
+ * badges until its first read; throws while package data cannot be read (a 503).
+ */
+export async function loadBadgePackage(name: string): Promise<PackageFacts | PackageNotRead | null> {
   const facts = await readBadgePackage(name);
   if (facts === UNAVAILABLE) {
     throw new Error('Package data is not available right now');
@@ -450,5 +455,5 @@ export async function loadBadgePackage(name: string): Promise<PackageFacts | nul
 /** A package's Badges card data; `null`, and no card, while package data cannot be read. */
 export async function loadBadgePackageCard(name: string): Promise<PackageFacts | null> {
   const facts = await readBadgePackage(name);
-  return facts === UNAVAILABLE ? null : facts;
+  return facts === UNAVAILABLE || facts === PACKAGE_NOT_READ ? null : facts;
 }

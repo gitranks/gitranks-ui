@@ -1,7 +1,7 @@
 import { USER_WALL_OFFERED } from './catalogue';
-import type { EntityFacts } from './facts';
+import { type EntityFacts, PACKAGE_NOT_READ, type PackageNotRead } from './facts';
 import { readsSoon } from './pending';
-import { type BadgeEntityRef, type BadgeLoaders, parseEntityRef, parsePackageRef } from './route';
+import { type BadgeEntityRef, type BadgeLoaders, PACKAGE_FACTS_BASE, parseEntityRef, parsePackageRef } from './route';
 import type { EntityKind } from './types';
 
 /**
@@ -17,19 +17,25 @@ export const FACTS_CACHE_CONTROL = {
 
 const KINDS: readonly EntityKind[] = ['user', 'org', 'repo', 'package'];
 
-/** The entity a facts path names: a login, `owner/name`, or `npm/<name>` (a scoped name in two parts). */
-function refOf(kind: EntityKind | undefined, name: string[]): BadgeEntityRef | null {
+/**
+ * The entity a facts path names: a login, `owner/name`, or `npm/<name>` (a scoped name in two parts), a package's only
+ * as its badges spell it (`spelled`, the path as asked), so every answer sits under the one address that is expired.
+ */
+function refOf(kind: EntityKind | undefined, name: string[], spelled?: string): BadgeEntityRef | null {
   switch (kind) {
     case undefined:
       return null;
     case 'repo':
       return name.length === 2 ? parseEntityRef('repo', { owner: name[0], name: name[1] }) : null;
     case 'package':
-      return name.length >= 2 ? parsePackageRef(name[0], name.slice(1)) : null;
+      if (name.length < 2) return null;
+      return refIfPlain(parsePackageRef(name[0], name.slice(1), spelled, PACKAGE_FACTS_BASE));
     default:
       return name.length === 1 ? parseEntityRef(kind, { login: name[0] }) : null;
   }
 }
+
+const refIfPlain = (ref: ReturnType<typeof parsePackageRef>) => (ref?.canonical ? ref : null);
 
 const json = (body: unknown, status: number, cacheControl: string) =>
   Response.json(body, { status, headers: { 'Cache-Control': cacheControl } });
@@ -37,18 +43,25 @@ const json = (body: unknown, status: number, cacheControl: string) =>
 /**
  * Answers `/api/badge/v3/{user|org|repo|package}/…` with the entity's badge facts as JSON, so the builder decides on
  * the page what is available, with the same rules as the images: 404 for an unknown entity or a name that cannot be
- * one, 503 when the data cannot be read.
+ * one (and a package's spelled otherwise than its badges spell it: `spelled`, the path as asked), 503 when the data
+ * cannot be read.
  */
-export async function getEntityFactsResponse(kind: string, name: string[], loaders: BadgeLoaders): Promise<Response> {
+export async function getEntityFactsResponse(
+  kind: string,
+  name: string[],
+  loaders: BadgeLoaders,
+  spelled?: string,
+): Promise<Response> {
   const ref = refOf(
     KINDS.find((known) => known === kind),
     name,
+    spelled,
   );
   if (!ref) {
     return json({ error: 'Not found' }, 404, FACTS_CACHE_CONTROL.notFound);
   }
 
-  let facts: EntityFacts | null;
+  let facts: EntityFacts | PackageNotRead | null;
   try {
     switch (ref.kind) {
       case 'repo':
@@ -64,7 +77,7 @@ export async function getEntityFactsResponse(kind: string, name: string[], loade
     console.error('Error reading badge facts:', error);
     return json({ error: 'Unavailable' }, 503, FACTS_CACHE_CONTROL.unavailable);
   }
-  if (!facts) {
+  if (!facts || facts === PACKAGE_NOT_READ) {
     return json({ error: 'Not found' }, 404, FACTS_CACHE_CONTROL.notFound);
   }
   return json(publicFacts(facts), 200, readsSoon(facts) ? FACTS_CACHE_CONTROL.awaitingRead : FACTS_CACHE_CONTROL.found);

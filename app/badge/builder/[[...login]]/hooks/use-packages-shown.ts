@@ -12,18 +12,19 @@ const gate = openInBrowserOf(PACKAGES_OPEN_PATH);
 const SIGNED_OUT = ':signed-out';
 
 /**
- * Whether packages are shown to this viewer: `undefined` until the browser knows (while the session loads, and until
- * the answer comes), then the answer, false on any failure. The builder waits on it only for a link that names a
- * package; anything else is drawn as today meanwhile.
+ * Whether packages are shown to this viewer: true once the browser knows they are, false until then and on any
+ * failure. With `ask` the answer is asked for (a builder link that names a package); without it nothing is asked, and
+ * an answer the page already has (the header asks for its menu) is read at each render. The builder is drawn as it
+ * always was meanwhile: a link that names a package then switches to it once the answer is in.
  */
-export function usePackagesAnswer(): boolean | undefined {
+export function usePackagesShown(ask: boolean): boolean {
   const { data: session, status } = useSession();
   const key =
     status === 'loading' ? null : (session && !session.error ? session.user?.githubLogin : null) || SIGNED_OUT;
   const [answer, setAnswer] = useState<{ key: string; open: boolean } | null>(null);
 
   useEffect(() => {
-    if (!key) return;
+    if (!key || !ask) return;
     let live = true;
     gate.ask(key).then((open) => {
       if (live) setAnswer({ key, open });
@@ -31,8 +32,8 @@ export function usePackagesAnswer(): boolean | undefined {
     return () => {
       live = false;
     };
-  }, [key]);
+  }, [key, ask]);
 
-  if (!key) return undefined;
-  return answer?.key === key ? answer.open : gate.known(key);
+  if (!key) return false;
+  return (answer?.key === key ? answer.open : gate.known(key)) === true;
 }

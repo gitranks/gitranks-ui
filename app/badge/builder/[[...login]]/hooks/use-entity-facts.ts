@@ -16,7 +16,12 @@ const requests = new Map<string, Promise<EntityFacts | null>>();
 
 const keyOf = (kind: EntityKind, name: string) => `${kind}:${name.toLowerCase()}`;
 
-const encodeName = (name: string) => name.split('/').map(encodeURIComponent).join('/');
+/** Each part encoded; a package's scope keeps its `@`, as the one address its facts are answered at. */
+const encodeName = (name: string, kind?: EntityKind) =>
+  name
+    .split('/')
+    .map((part) => (kind === 'package' ? encodeURIComponent(part).replace(/^%40/, '@') : encodeURIComponent(part)))
+    .join('/');
 
 /**
  * An entity's badge facts, `null` when GitRanks does not know it. A found entity is asked once per page view; a miss
@@ -32,7 +37,7 @@ export function fetchEntityFacts(
   const key = keyOf(kind, name);
   let request = fresh ? undefined : requests.get(key);
   if (!request) {
-    const path = `/api/badge/v3/${kind}/${encodeName(name)}`;
+    const path = `/api/badge/v3/${kind}/${encodeName(name, kind)}`;
     // The browser checks with the site every time; this page keeps what it found itself.
     request = fetch(fresh ? `${path}?fresh=${Date.now()}` : path, { cache: fresh ? 'no-store' : 'no-cache' }).then(
       async (response) => {

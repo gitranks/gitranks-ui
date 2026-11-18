@@ -5,6 +5,7 @@ import { type RefObject, useEffect, useId, useRef, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 
 import { fetchEntityFacts } from '../hooks/use-entity-facts';
+import { usePackagesShown } from '../hooks/use-packages-shown';
 import { entityName } from '../utils/badge-options';
 import { entityLabel, packageNameOf, searchLookups } from '../utils/builder-state';
 import { FORMAT_NAMES } from '../utils/builder-view';
@@ -107,13 +108,15 @@ const INVALID: Record<Scope, string> = {
 export function FindStep({
   headingRef,
   kind,
-  packages = false,
+  packages: packagesAsked = false,
   badge,
   initialQuery,
   notice,
   onPick,
   onAnyKind,
 }: Readonly<FindStepProps>) {
+  // Nothing is asked here: an answer the page already has is read at each render, so typing a search picks it up.
+  const packages = usePackagesShown(false) || packagesAsked;
   const scope: Scope = kind ?? (packages ? 'any-with-packages' : 'any');
   const [query, setQuery] = useState(initialQuery);
   const [lookup, setLookup] = useState<Lookup>({ status: 'idle' });

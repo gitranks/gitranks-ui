@@ -4,7 +4,7 @@ import { parseAsString, useQueryStates } from 'nuqs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { recheckEntityFacts, seedEntityFacts, useEntityFacts } from '../hooks/use-entity-facts';
-import { usePackagesAnswer } from '../hooks/use-packages-answer';
+import { usePackagesShown } from '../hooks/use-packages-shown';
 import { entityName, offeredBadges, settleStyle } from '../utils/badge-options';
 import {
   BUILDER_KEYS,
@@ -58,10 +58,9 @@ const RECHECK_EVERY = 10_000;
 /** The four steps of `/badge/builder`, all in the URL (see `builder-state.ts`). */
 export function BadgeBuilder() {
   const [query, setQuery] = useQueryStates(PARSERS);
-  // A package is a kind of its own only for a visitor packages are shown to; a link that names one waits for the answer.
-  const packagesAnswer = usePackagesAnswer();
-  const packages = packagesAnswer === true;
-  const waitsForPackages = packagesAnswer === undefined && namesPackage(query);
+  // A package is a kind of its own only for a visitor packages are shown to, asked only for a link that names one; the
+  // builder is today's until the answer says so.
+  const packages = usePackagesShown(namesPackage(query));
   const state: BuilderState = useMemo(() => parseBuilderQuery(query, { packages }), [query, packages]);
   const wellFormed = !state.kind || !state.name || isEntityName(state.kind, state.name);
   // Bumped by a pick in step 1, so the same entity is asked again after a failed lookup.
@@ -112,7 +111,7 @@ export function BadgeBuilder() {
   }, [facts, state.badge, state.embed, settled, settledDiffers, go]);
 
   const { step, notice } = builderView(state, { wellFormed, factsState, badgeAvailable });
-  const loading = waitsForPackages || (step !== 'find' && factsState.status !== 'found');
+  const loading = step !== 'find' && factsState.status !== 'found';
 
   // An entity waiting on a read for this badge (see `showsReadNote`): asked again on "Check again" and when the
   // visitor comes back to this page (from its page, where a refresh reads it), at most every `RECHECK_EVERY`.

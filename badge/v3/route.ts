@@ -1,5 +1,5 @@
 import { findBadge } from './catalogue';
-import { type EntityFacts, packageBadgeName } from './facts';
+import { type EntityFacts, PACKAGE_NOT_READ, type PackageNotRead, packageBadgeName } from './facts';
 import { type BadgeEntityPath, badgeNamePath } from './links';
 import { BadgeParamsError, resolveParams } from './params';
 import { renderBadge } from './render';
@@ -105,8 +105,11 @@ export type BadgeLoaders = {
   user: (login: string) => Promise<EntityFacts | null>;
   org: (login: string) => Promise<EntityFacts | null>;
   repo: (owner: string, name: string) => Promise<EntityFacts | null>;
-  /** An npm package by its exact name; left out, a package is never found. */
-  package?: (name: string) => Promise<EntityFacts | null>;
+  /**
+   * An npm package by its exact name; "not read yet" for one held and not read, which has no badges until its first
+   * read. Left out, a package is never found.
+   */
+  package?: (name: string) => Promise<EntityFacts | PackageNotRead | null>;
   /**
    * Told the repository's GitHub id once a Contribute badge is drawn. It must not delay or throw: the caller schedules
    * the work after the response. Left out, nothing is reported.
@@ -121,7 +124,7 @@ export type BadgeLoaders = {
 };
 
 /** The entity a ref names, by its kind's loader. */
-function loadEntity(ref: BadgeEntityRef, loaders: BadgeLoaders): Promise<EntityFacts | null> {
+function loadEntity(ref: BadgeEntityRef, loaders: BadgeLoaders): Promise<EntityFacts | PackageNotRead | null> {
   switch (ref.kind) {
     case 'repo':
       return loaders.repo(ref.owner, ref.name);
@@ -145,20 +148,28 @@ export function parseEntityRef(
   return login && isGithubLogin(login) ? { kind, login } : null;
 }
 
+/** Where a package's badge images start, and where its builder facts are. */
+export const PACKAGE_IMAGE_BASE = '/badge/package/';
+export const PACKAGE_FACTS_BASE = '/api/badge/v3/package/';
+
 /**
  * The package a badge path names: its registry and the name's one or two parts, decoded (as a route handler gets
  * them); `null` when they cannot name one. `spelled`, the path as it was asked for, tells whether it spelled the name
- * as the package's badges do; left out, it did.
+ * as the package's badges do (`@scope`, nothing else encoded), after `base`. Left out, it did.
  */
 export function parsePackageRef(
   registry: string,
   parts: readonly string[],
   spelled?: string,
+  base = PACKAGE_IMAGE_BASE,
 ): Extract<BadgeEntityRef, { kind: 'package' }> | null {
   const pkg = parseDecodedPackageParams(registry, parts);
   if (!pkg) return null;
-  const canonical = `/badge/package/${badgeNamePath({ kind: 'package', registry: pkg.registry, name: pkg.name })}/`;
-  return { kind: 'package', registry: pkg.registry, name: pkg.name, canonical: spelled?.startsWith(canonical) ?? true };
+  const plain = `${base}${badgeNamePath({ kind: 'package', registry: pkg.registry, name: pkg.name })}`;
+  // An image's path goes on to its file; the facts' path ends with the name.
+  const canonical =
+    spelled === undefined || (base === PACKAGE_FACTS_BASE ? spelled === plain : spelled.startsWith(`${plain}/`));
+  return { kind: 'package', registry: pkg.registry, name: pkg.name, canonical };
 }
 
 /**
@@ -189,12 +200,16 @@ export async function getBadgeResponse(
     throw error;
   }
 
-  let entity: EntityFacts | null;
+  let entity: EntityFacts | PackageNotRead | null;
   try {
     entity = await loadEntity(ref, loaders);
   } catch (error) {
     console.error('Error reading badge data:', error);
     return unavailable();
+  }
+  // A package held and not read yet has no badge; its first read comes soon, so the miss is kept for minutes only.
+  if (entity === PACKAGE_NOT_READ) {
+    return text('Badge not found', 404, BADGE_CACHE_HEADERS.provisional);
   }
   if (!entity) {
     return notFound();

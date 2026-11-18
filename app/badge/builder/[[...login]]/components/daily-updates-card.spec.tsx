@@ -170,6 +170,27 @@ describe('DailyUpdatesCard', () => {
     mount('user', 'mona');
     expect(text(container)).toContain('Check my badge');
   });
+  it('moves the focus to the answer when the press leaves no button: a package with no repository', async () => {
+    await act(() => root.render(<DailyUpdatesCard kind="package" name="npm/react" />));
+    answers.push({ body: { status: 'no_repository' } });
+    buttonNamed('Check my badge')?.focus();
+
+    await press('Check my badge');
+
+    expect(buttonNamed('Check my badge')).toBeUndefined();
+    expect(document.activeElement?.textContent).toBe(
+      'We could not find this package’s repository, so there is no README to check.',
+    );
+  });
+
+  it('moves the focus to the answer when the badge is found', async () => {
+    mount('repo', 'acme/fastqueue');
+    answers.push({ body: { status: 'found', until: iso(NOW + 7 * 24 * HOUR) } });
+
+    await press('Check my badge');
+
+    expect(document.activeElement?.textContent).toContain('Badge found in the README of acme/fastqueue.');
+  });
 });
 
 describe('the card in step 4', () => {

@@ -192,6 +192,13 @@ export type PackageFacts = {
 
 export type EntityFacts = RepoFacts | UserFacts | OrgFacts | PackageFacts;
 
+/**
+ * A package GitRanks holds and has not read yet: it has no badges until its first read, which comes soon, so its
+ * not-found answer is kept for minutes only.
+ */
+export const PACKAGE_NOT_READ = 'not-read';
+export type PackageNotRead = typeof PACKAGE_NOT_READ;
+
 /** How a package's badges name it in their URL, after the kind: `npm/<name>`. */
 export const packageBadgeName = (pkg: Pick<PackageFacts, 'registry' | 'name'>) => `${pkg.registry}/${pkg.name}`;
 

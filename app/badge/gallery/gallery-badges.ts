@@ -1,8 +1,8 @@
 import type { BadgeChoice } from '@/badge/v3/tiles';
-import type { EntityKind } from '@/badge/v3/types';
+import type { GithubEntityKind } from '@/badge/v3/types';
 
 /** The gallery's sections, in order. */
-export const GALLERY_SECTIONS: { kind: EntityKind; title: string; make: string; leader: string }[] = [
+export const GALLERY_SECTIONS: { kind: GithubEntityKind; title: string; make: string; leader: string }[] = [
   { kind: 'user', title: 'Developers', make: 'Make a developer badge', leader: 'the #1 developer by stars' },
   { kind: 'repo', title: 'Repositories', make: 'Make a repository badge', leader: 'the #1 repository' },
   { kind: 'org', title: 'Organizations', make: 'Make an organization badge', leader: 'the #1 organization' },
@@ -16,7 +16,7 @@ const WALL: BadgeChoice = { id: 'contributors-wall', query: { rows: '2' } };
  * today's #1. A badge the #1 does not have is left out, so no rank goal (a #1 has none). Tier badges stay in the
  * builder; the developer contributors wall is never shown.
  */
-export const GALLERY_BADGES: Record<EntityKind, BadgeChoice[]> = {
+export const GALLERY_BADGES: Record<GithubEntityKind, BadgeChoice[]> = {
   user: [
     { id: 'rank' },
     { id: 'rank', query: { scope: 'country' } },

@@ -1,8 +1,10 @@
 import { findBadge } from './catalogue';
-import type { EntityFacts } from './facts';
+import { type EntityFacts, packageBadgeName } from './facts';
+import { type BadgeEntityPath, badgeNamePath } from './links';
 import { BadgeParamsError, resolveParams } from './params';
 import { renderBadge } from './render';
 import type { EntityKind, ImageFormat } from './types';
+import { parseDecodedPackageParams } from '@/app/package/[registry]/[...name]/utils/package-params';
 import { isGithubLogin } from '@/utils/profile-refresh';
 import { parseRepoParams } from '@/utils/repo-paths';
 
@@ -50,23 +52,61 @@ const text = (body: string, status: number, cacheHeaders: Record<string, string>
 
 const notFound = () => text('Badge not found', 404, BADGE_CACHE_HEADERS.notFound);
 
-/** The entity a badge URL names, as the request spells it. */
-export type BadgeEntityRef = { kind: 'user' | 'org'; login: string } | { kind: 'repo'; owner: string; name: string };
+/**
+ * The entity a badge URL names, as the request spells it. A package's `canonical` says whether the path spelled its
+ * name as its badges do (`@scope`, not `%40scope`).
+ */
+export type BadgeEntityRef =
+  | { kind: 'user' | 'org'; login: string }
+  | { kind: 'repo'; owner: string; name: string }
+  | { kind: 'package'; registry: 'npm'; name: string; canonical: boolean };
+
+/** The entity's stored name in a badge path's terms. */
+function badgePathOf(entity: EntityFacts): BadgeEntityPath {
+  switch (entity.kind) {
+    case 'repo':
+      return { kind: 'repo', nameWithOwner: entity.nameWithOwner };
+    case 'package':
+      return { kind: 'package', registry: entity.registry, name: entity.name };
+    default:
+      return { kind: entity.kind, login: entity.login };
+  }
+}
 
 /** How the entity is spelled in a URL path, from its stored name. */
 function pathOf(kind: EntityKind, entity: EntityFacts): string {
-  const name = entity.kind === 'repo' ? entity.nameWithOwner : entity.login;
-  return `/badge/${kind}/${name.split('/').map(encodeURIComponent).join('/')}`;
+  return `/badge/${kind}/${badgeNamePath(badgePathOf(entity))}`;
+}
+
+/** The name the API is told and a badge is reported by: a login, `owner/name`, or `npm/<name>`. */
+function storedNameOf(entity: EntityFacts) {
+  switch (entity.kind) {
+    case 'repo':
+      return entity.nameWithOwner;
+    case 'package':
+      return packageBadgeName(entity);
+    default:
+      return entity.login;
+  }
 }
 
 function requestedName(ref: BadgeEntityRef) {
-  return ref.kind === 'repo' ? `${ref.owner}/${ref.name}` : ref.login;
+  switch (ref.kind) {
+    case 'repo':
+      return `${ref.owner}/${ref.name}`;
+    case 'package':
+      return packageBadgeName(ref);
+    default:
+      return ref.login;
+  }
 }
 
 export type BadgeLoaders = {
   user: (login: string) => Promise<EntityFacts | null>;
   org: (login: string) => Promise<EntityFacts | null>;
   repo: (owner: string, name: string) => Promise<EntityFacts | null>;
+  /** An npm package by its exact name; left out, a package is never found. */
+  package?: (name: string) => Promise<EntityFacts | null>;
   /**
    * Told the repository's GitHub id once a Contribute badge is drawn. It must not delay or throw: the caller schedules
    * the work after the response. Left out, nothing is reported.
@@ -77,12 +117,24 @@ export type BadgeLoaders = {
    * Contribute badge (it shows none of the repository's numbers), a redirect or an error answer. It must not delay or
    * throw: the caller schedules the work after the response. Left out, nothing is reported.
    */
-  onImageServed?: (kind: 'user' | 'repo', name: string) => void;
+  onImageServed?: (kind: 'user' | 'repo' | 'package', name: string) => void;
 };
+
+/** The entity a ref names, by its kind's loader. */
+function loadEntity(ref: BadgeEntityRef, loaders: BadgeLoaders): Promise<EntityFacts | null> {
+  switch (ref.kind) {
+    case 'repo':
+      return loaders.repo(ref.owner, ref.name);
+    case 'package':
+      return loaders.package ? loaders.package(ref.name) : Promise.resolve(null);
+    default:
+      return loaders[ref.kind](ref.login);
+  }
+}
 
 /** The entity a route's params name, decoded and checked; `null` when they cannot name one. */
 export function parseEntityRef(
-  kind: EntityKind,
+  kind: Exclude<EntityKind, 'package'>,
   params: { login?: string; owner?: string; name?: string },
 ): BadgeEntityRef | null {
   if (kind === 'repo') {
@@ -94,8 +146,25 @@ export function parseEntityRef(
 }
 
 /**
- * Answers `/badge/{user|org|repo}/…/{badge}.{svg|png}`: the image; a 308 to the stored spelling; a 400 for a bad
- * query; a 404 for an unknown entity or badge; a short-cached 503 when the data cannot be read or drawn.
+ * The package a badge path names: its registry and the name's one or two parts, decoded (as a route handler gets
+ * them); `null` when they cannot name one. `spelled`, the path as it was asked for, tells whether it spelled the name
+ * as the package's badges do; left out, it did.
+ */
+export function parsePackageRef(
+  registry: string,
+  parts: readonly string[],
+  spelled?: string,
+): Extract<BadgeEntityRef, { kind: 'package' }> | null {
+  const pkg = parseDecodedPackageParams(registry, parts);
+  if (!pkg) return null;
+  const canonical = `/badge/package/${badgeNamePath({ kind: 'package', registry: pkg.registry, name: pkg.name })}/`;
+  return { kind: 'package', registry: pkg.registry, name: pkg.name, canonical: spelled?.startsWith(canonical) ?? true };
+}
+
+/**
+ * Answers `/badge/{user|org|repo|package}/…/{badge}.{svg|png}`: the image; a 308 to the stored spelling (and for a
+ * package, to `@scope` from `%40scope`); a 400 for a bad query; a 404 for an unknown entity or badge; a short-cached
+ * 503 when the data cannot be read or drawn.
  */
 export async function getBadgeResponse(
   ref: BadgeEntityRef | null,
@@ -122,7 +191,7 @@ export async function getBadgeResponse(
 
   let entity: EntityFacts | null;
   try {
-    entity = ref.kind === 'repo' ? await loaders.repo(ref.owner, ref.name) : await loaders[ref.kind](ref.login);
+    entity = await loadEntity(ref, loaders);
   } catch (error) {
     console.error('Error reading badge data:', error);
     return unavailable();
@@ -132,8 +201,8 @@ export async function getBadgeResponse(
   }
 
   // Case variants and old names share the stored spelling's cache entry.
-  const stored = entity.kind === 'repo' ? entity.nameWithOwner : entity.login;
-  if (stored !== requestedName(ref)) {
+  const stored = storedNameOf(entity);
+  if (stored !== requestedName(ref) || (ref.kind === 'package' && !ref.canonical)) {
     const query = search.toString();
     return new Response(null, {
       status: 308,

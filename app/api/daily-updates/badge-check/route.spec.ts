@@ -1,9 +1,13 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { signedFetch } = vi.hoisted(() => ({ signedFetch: vi.fn() }));
+const { signedFetch, sessionTokenOf } = vi.hoisted(() => ({
+  signedFetch: vi.fn(),
+  sessionTokenOf: vi.fn<() => Promise<Record<string, unknown> | null>>(async () => null),
+}));
 
 vi.mock('@/lib/signed-fetch', () => ({ signedFetch }));
+vi.mock('@/lib/contribute/session-token', () => ({ sessionTokenOf }));
 
 const { POST } = await import('./route');
 
@@ -69,6 +73,9 @@ describe('/api/daily-updates/badge-check', () => {
     ['a name that is not a string', { kind: 'user', name: 42 }],
     ['a repository without a name', { kind: 'repo', name: 'acme' }],
     ['a repository with a path', { kind: 'repo', name: 'acme/fastqueue/extra' }],
+    ['a package without its registry', { kind: 'package', name: 'react' }],
+    ['a package of another registry', { kind: 'package', name: 'pypi/react' }],
+    ['a package name npm refuses', { kind: 'package', name: 'npm/.hidden' }],
     ['a body over the cap', { kind: 'user', name: 'octo-dev', padding: 'x'.repeat(600) }],
   ])('answers 400 and calls nothing for %s', async (_case, body) => {
     const response = await check(body);
@@ -111,9 +118,40 @@ describe('/api/daily-updates/badge-check', () => {
     expect(sent()).toMatchObject({ kind: 'repo', name: '-Jerry-/repo' });
   });
 
+  it('takes a package by `npm/<name>`, scoped too', async () => {
+    upstream(200, { status: 'not_found', checksLeft: 2 });
+    expect((await check({ kind: 'package', name: 'npm/@nebula/ui' })).status).toBe(200);
+    expect(sent()).toEqual({ kind: 'package', name: 'npm/@nebula/ui', ip: '' });
+  });
+
+  it('names a signed-in visitor by login and email, so the API can tell whether packages are shown to them', async () => {
+    sessionTokenOf.mockResolvedValueOnce({ githubLogin: 'octo-dev', email: ' octo@example.com ' });
+    upstream(200, { status: 'no_repository' });
+
+    const response = await check({ kind: 'package', name: 'npm/react' });
+
+    await expect(response.json()).resolves.toEqual({ status: 'no_repository' });
+    const [, , source, login, email] = signedFetch.mock.calls[0];
+    expect([source, login, email]).toEqual(['client', 'octo-dev', 'octo@example.com']);
+  });
+
+  it('names no one for a session that needs a new sign-in, and leaves out an email that is not one', async () => {
+    sessionTokenOf.mockResolvedValueOnce({ githubLogin: 'octo-dev', error: 'RefreshTokenError' });
+    upstream(200, { status: 'unknown' });
+    await check({ kind: 'user', name: 'octo-dev' });
+    expect(signedFetch.mock.calls[0]).toHaveLength(3);
+
+    signedFetch.mockReset();
+    sessionTokenOf.mockResolvedValueOnce({ githubLogin: 'octo-dev', email: 'not-an-email' });
+    upstream(200, { status: 'unknown' });
+    await check({ kind: 'user', name: 'octo-dev' });
+    expect(signedFetch.mock.calls[0].slice(2)).toEqual(['client', 'octo-dev']);
+  });
+
   it('passes every answer of the API through', async () => {
     for (const answer of [
       { status: 'found', until: '2026-11-22T10:00:00.000Z' },
+      { status: 'no_repository' },
       { status: 'limit', nextAt: '2026-11-16T00:00:00.000Z' },
       { status: 'unknown' },
       { status: 'unavailable' },

@@ -208,3 +208,19 @@ export function axisTicks(max: number): number[] {
   }
   return ticks;
 }
+
+/** A line and its area over a box, as path data. */
+export function sparkPaths(series: number[], width: number, height: number, inset = 2) {
+  const max = Math.max(...series);
+  const min = Math.min(...series);
+  const span = max - min || 1;
+  const step = series.length > 1 ? width / (series.length - 1) : width;
+  const coords = series.map((value, index) => {
+    const x = Math.round(index * step * 10) / 10;
+    const y = Math.round((inset + (1 - (value - min) / span) * (height - 2 * inset)) * 10) / 10;
+    return `${x} ${y}`;
+  });
+  if (coords.length === 1) coords.unshift(`0 ${coords[0].split(' ')[1]}`);
+  const line = `M${coords.join(' L')}`;
+  return { line, area: `${line} L${width} ${height} L0 ${height} Z` };
+}

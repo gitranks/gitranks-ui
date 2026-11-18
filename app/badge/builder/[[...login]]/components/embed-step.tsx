@@ -28,9 +28,9 @@ type EmbedStepProps = {
 };
 
 /**
- * Step 4: the code in three forms, Copy, Edit (back to step 3) and the gallery. Under it, for a profile's or a
- * repository's badge, "Get daily updates": not for the Contribute badge, which shows none of the repository's numbers
- * and so does not keep it on daily updates.
+ * Step 4: the code in three forms, Copy, Edit (back to step 3) and the gallery. Under it, for a profile's, a
+ * repository's or a package's badge, "Get daily updates": not for the Contribute badge, which shows none of the
+ * repository's numbers and so does not keep it on daily updates.
  */
 export function EmbedStep({ headingRef, facts, badge, style, now, editHref, onEdit }: Readonly<EmbedStepProps>) {
   const theme = usePageTheme();
@@ -164,7 +164,13 @@ export function EmbedStep({ headingRef, facts, badge, style, now, editHref, onEd
           {status}
         </p>
       </section>
-      {dailyUpdates && <DailyUpdatesCard kind={facts.kind} name={name} />}
+      {dailyUpdates && (
+        <DailyUpdatesCard
+          kind={facts.kind}
+          name={name}
+          repository={facts.kind === 'package' ? (facts.repo?.nameWithOwner ?? facts.repositoryName) : undefined}
+        />
+      )}
     </>
   );
 }

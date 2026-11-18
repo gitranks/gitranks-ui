@@ -1,8 +1,9 @@
 import { CONTRIBUTOR_KEYS, DEFAULT_CONTRIBUTOR_EXTRA, ORG_CONTRIBUTOR_KEYS } from './contributors';
-import { type EntityFacts, type OrgFacts, type RepoFacts, type UserFacts, wallOf } from './facts';
+import { type EntityFacts, type OrgFacts, type PackageFacts, type RepoFacts, type UserFacts, wallOf } from './facts';
 import type { BadgeParams } from './params';
 import { repoRace, userClimbRace, userStarsRace } from './race';
 import type { BadgeFormat, By, ContributorKey, EntityKind, Scheme } from './types';
+import { downloadsPerStar, yearOverYearChange } from '@/app/package/[registry]/[...name]/utils/package-downloads';
 import { isRankedIn } from '@/badge/utils/is-ranked-in';
 import { UserRankProp } from '@/types/ranking.types';
 
@@ -131,6 +132,17 @@ export const CATALOGUE = [
   panel('org', 'org-card', 'card', 'organization', { width: 400, height: 160 }),
   panel('org', 'contributors-chart', 'chart', 'active contributors per month', { width: 800, height: 300 }),
   panel('org', 'contributors-wall', 'chart', 'contributors', undefined, WALL_OPTIONS),
+  // npm packages
+  shield('package', 'used-by', 'used by', [], null),
+  shield('package', 'dependents-stars', 'used by', [], null),
+  shield('package', 'downloads', 'npm downloads', [], null),
+  shield('package', 'downloads-year', 'npm downloads', [], null),
+  shield('package', 'downloads-growth', 'downloads', [], null),
+  shield('package', 'downloads-per-star', 'per star', [], null),
+  panel('package', 'used-by-card', 'card', 'used by', { width: 400, height: 120 }),
+  panel('package', 'downloads-card', 'card', 'downloads', { width: 400, height: 120 }),
+  panel('package', 'package-card', 'card', 'package', { width: 400, height: 120 }),
+  panel('package', 'used-by-chart', 'chart', 'used by', { width: 1000, height: 400 }),
 ] as const satisfies readonly BadgeDefinition[];
 
 export function findBadge(entity: EntityKind, id: string): BadgeDefinition | null {
@@ -303,6 +315,42 @@ function orgAvailability(org: OrgFacts, id: string, params: BadgeParams): Availa
   }
 }
 
+/** Year over year needs the 52 weeks before the last 52. */
+export const packageGrowthOf = (pkg: PackageFacts): number | null =>
+  pkg.downloads ? yearOverYearChange(pkg.downloads) : null;
+
+/** Downloads a week per star needs a publishing repository with stars. */
+export const packagePerStarOf = (pkg: PackageFacts): number | null => downloadsPerStar(pkg.downloads, pkg.repo);
+
+/**
+ * A package's badges. Its dependents' badges never say 0: with no repository of 100+ stars using it yet they say "new"
+ * (neutral). Downloads are read soon after a package is: until then their badges are neutral too.
+ */
+function packageAvailability(pkg: PackageFacts, id: string): Availability {
+  const used = pkg.dependentsCount > 0;
+  switch (id) {
+    case 'used-by':
+    case 'dependents-stars':
+    case 'used-by-card':
+      return either(used, true);
+    case 'used-by-chart':
+      return either(used && pkg.dependents.length > 0, true);
+    case 'downloads':
+    case 'downloads-year':
+      return either(!!pkg.downloads, true);
+    case 'downloads-growth':
+      return either(packageGrowthOf(pkg) !== null, false);
+    case 'downloads-per-star':
+      return either(packagePerStarOf(pkg) !== null, false);
+    case 'downloads-card':
+      return either(!!pkg.downloads, false);
+    case 'package-card':
+      return 'available';
+    default:
+      return 'never';
+  }
+}
+
 export function availabilityOf(entity: EntityFacts, id: string, params: BadgeParams, now = new Date()): Availability {
   switch (entity.kind) {
     case 'repo':
@@ -311,6 +359,8 @@ export function availabilityOf(entity: EntityFacts, id: string, params: BadgePar
       return userAvailability(entity, id, params, now);
     case 'org':
       return orgAvailability(entity, id, params);
+    case 'package':
+      return packageAvailability(entity, id);
   }
 }
 

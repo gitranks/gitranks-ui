@@ -10,6 +10,13 @@ export const formatFull = (value: number) => full.format(value);
 /** "312k", "54.2k", "5.3M": thousands in lower case, as the designs write them. */
 export const formatCompact = (value: number) => compact.format(value).replace('K', 'k');
 
+/** A count of repositories: exact under 1,000 ("16", "999"), compact from 1,000 ("1.2k"), as `formatCompact` writes. */
+export const formatCount = (value: number) => (Math.abs(value) < 1_000 ? formatFull(value) : formatCompact(value));
+
+/** Weekly downloads per star: whole from 10 ("1,380"), one decimal below ("2.4"). */
+export const perStarText = (perStar: number) =>
+  perStar >= 10 ? formatFull(Math.round(perStar)) : formatFull(Math.round(perStar * 10) / 10);
+
 /** "top 1%", or `null` past the top half or without a total. */
 export function topShare(rank: number | null | undefined, total: number | null | undefined): string | null {
   if (!rank || !total) {

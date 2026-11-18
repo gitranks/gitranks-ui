@@ -23,6 +23,8 @@ vi.mock('@/graphql/helpers/fetch-package', () => ({
     pkg.state === 'NOT_READ' || pkg.refreshRunning === true,
 }));
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
+// The badges read their own data, as the images do: a spec of their own draws them.
+vi.mock('./components/package-badge-section', () => ({ PackageBadgeSection: () => null }));
 
 const params = (registry: string, ...name: string[]) =>
   ({ params: Promise.resolve({ registry, name }) }) as PageProps<'/package/[registry]/[...name]'>;

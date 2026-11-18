@@ -219,7 +219,7 @@ describe('the cache headers of each answer', () => {
 });
 
 describe("the report of GitHub's image proxy", () => {
-  const onImageServed = vi.fn<(kind: 'user' | 'repo', name: string) => void>();
+  const onImageServed = vi.fn<(kind: 'user' | 'repo' | 'package', name: string) => void>();
   const respond = (owner: string, name: string, file = 'star-history.svg') =>
     getStarHistoryBadgeResponse(owner, name, file, onImageServed);
 

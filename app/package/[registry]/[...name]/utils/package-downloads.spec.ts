@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { months, rankedPackage, weeks } from '../__fixtures__/package';
-import { changeText, monthPeriodOf, percentChange, weekPeriodOf, weeksRangeText } from './package-downloads';
+import {
+  changeText,
+  downloadsPerStar,
+  monthPeriodOf,
+  percentChange,
+  weekPeriodOf,
+  weeksRangeText,
+  yearOverYearChange,
+} from './package-downloads';
 
 const downloads = rankedPackage.downloads!;
 
@@ -49,5 +57,21 @@ describe('the downloads helper', () => {
   it('says the days the 52-week line covers', () => {
     expect(weeksRangeText(downloads)).toBe('Nov 17, 2025 – Nov 16, 2026');
     expect(weeksRangeText({ ...downloads, weeks: [] })).toBeNull();
+  });
+});
+
+describe('year over year and per star, as the page and the badges say them', () => {
+  it('sets the last 52 weeks against the 52 before, once the history reaches back that far', () => {
+    expect(yearOverYearChange({ last52Weeks: 116, previous52Weeks: 100 })).toBe(16);
+    expect(yearOverYearChange({ last52Weeks: 116, previous52Weeks: null })).toBeNull();
+    expect(yearOverYearChange({ last52Weeks: 116, previous52Weeks: 0 })).toBeNull();
+  });
+
+  it('gives downloads a week per star only with a repository that has stars', () => {
+    expect(downloadsPerStar({ perStar: 1380.2 }, { stars: 1302 })).toBe(1380.2);
+    expect(downloadsPerStar({ perStar: 1380.2 }, null)).toBeNull();
+    expect(downloadsPerStar({ perStar: 12 }, { stars: 0 })).toBeNull();
+    expect(downloadsPerStar({ perStar: null }, { stars: 10 })).toBeNull();
+    expect(downloadsPerStar(null, { stars: 10 })).toBeNull();
   });
 });

@@ -143,16 +143,66 @@ export type OrgFacts = {
   contributorsWall: ContributorsWalls;
 };
 
-export type EntityFacts = RepoFacts | UserFacts | OrgFacts;
+/** A repository with 100+ stars that depends on a package directly. */
+export type PackageDependentFacts = {
+  nameWithOwner: string;
+  ownerAvatarUrl: string | null;
+  stars: number;
+  archived: boolean;
+};
 
-/** The entity's wall in an order, if it has one. */
+/** One point of a package's weekly downloads: the week's Monday (UTC). */
+export type DownloadsPoint = { start: string; downloads: number };
+
+/**
+ * An npm package's downloads up to `through`, the last day counted: the last 7 days, the last 52 whole weeks and the
+ * 52 before (`null` until the history reaches back that far), downloads a week per star of its repository (`null`
+ * without one), and the weekly totals, oldest first.
+ */
+export type PackageDownloadsFacts = {
+  through: string;
+  lastWeek: number;
+  previousWeek: number;
+  last52Weeks: number;
+  previous52Weeks: number | null;
+  perStar: number | null;
+  weeks: DownloadsPoint[];
+};
+
+/**
+ * An npm package GitRanks has read. Its dependents are the repositories with 100+ stars that use it directly: their
+ * count, their stars added up, and the most-starred few.
+ */
+export type PackageFacts = {
+  kind: 'package';
+  registry: 'npm';
+  /** The registry's spelling: `x` or `@scope/x`. */
+  name: string;
+  /** The repository that publishes it, when GitRanks has its page. */
+  repo: { nameWithOwner: string; stars: number } | null;
+  /** `owner/name` of that repository when GitRanks has no page for it; `null` when the package names none. */
+  repositoryName: string | null;
+  dependentsCount: number;
+  dependentsStars: number;
+  /** The most-starred dependents, most-starred first. */
+  dependents: PackageDependentFacts[];
+  /** `null` before its downloads were first read. */
+  downloads: PackageDownloadsFacts | null;
+};
+
+export type EntityFacts = RepoFacts | UserFacts | OrgFacts | PackageFacts;
+
+/** How a package's badges name it in their URL, after the kind: `npm/<name>`. */
+export const packageBadgeName = (pkg: Pick<PackageFacts, 'registry' | 'name'>) => `${pkg.registry}/${pkg.name}`;
+
+/** The entity's wall in an order, if it has one; a package has none. */
 export const wallOf = (entity: EntityFacts, order: WallOrder): ContributorsWall | null =>
-  entity.contributorsWall[order] ?? null;
+  entity.kind === 'package' ? null : (entity.contributorsWall[order] ?? null);
 
 /**
  * Whether GitRanks has yet to read the entity from GitHub, so its badges have little or nothing to show until it
  * does: a repository whose star history was never read, or a developer without a single count (their first read is
- * still running). Organizations have no such state.
+ * still running). Organizations have no such state, nor packages: a package GitRanks has not read has no badges.
  */
 export function awaitsRead(entity: EntityFacts): boolean {
   switch (entity.kind) {
@@ -161,6 +211,7 @@ export function awaitsRead(entity: EntityFacts): boolean {
     case 'user':
       return entity.s === null && entity.c === null && entity.f === null;
     case 'org':
+    case 'package':
       return false;
   }
 }

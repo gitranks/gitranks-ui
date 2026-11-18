@@ -8,7 +8,7 @@ import {
   userLanguageOf,
 } from '@/badge/v3/catalogue';
 import { contributorCount } from '@/badge/v3/contributors';
-import { type EntityFacts, wallOf } from '@/badge/v3/facts';
+import { type EntityFacts, packageBadgeName, wallOf } from '@/badge/v3/facts';
 import { type BadgeParams, BadgeParamsError, resolveParams, schemesOf } from '@/badge/v3/params';
 import { shieldContent } from '@/badge/v3/shields';
 import type { BadgeFormat, By, ContributorKey, Scheme, Segment, WallOrder } from '@/badge/v3/types';
@@ -87,15 +87,16 @@ export function shieldText(entity: EntityFacts, badge: BadgeDefinition, params: 
   return `${content.label} ${segmentText(content.value)}${extra ? ` · ${extra}` : ''}`;
 }
 
-/** The entity's name as its URLs write it. */
-export const entityName = (entity: EntityFacts) => (entity.kind === 'repo' ? entity.nameWithOwner : entity.login);
+/** The entity's name as its URLs write it: a login, `owner/name`, or a package's `npm/<name>`. */
+export const entityName = (entity: EntityFacts) =>
+  entity.kind === 'repo' ? entity.nameWithOwner : entity.kind === 'package' ? packageBadgeName(entity) : entity.login;
 
 /** The image's alt text: the entity and the fact it shows; the Contribute badge's own name, as its page writes it. */
 export function badgeAlt(entity: EntityFacts, badge: BadgeDefinition, style: Style, now = new Date()): string {
   if (badge.id === 'contribute') return 'GitRanks Contribute';
   const params = paramsOf(badge, style);
   const fact = (params && badge.format === 'shield' && shieldText(entity, badge, params, now)) || badge.title;
-  return `${entityName(entity)} on GitRanks: ${fact}`;
+  return `${entity.kind === 'package' ? entity.name : entityName(entity)} on GitRanks: ${fact}`;
 }
 
 export const EXTRA_NAMES: Record<ExtraKey, string> = {
@@ -149,7 +150,7 @@ export function extraChoices(
 
 /** The contributor facts the entity has, for a contributors shield's value. */
 export function valueChoices(entity: EntityFacts, badge: BadgeDefinition): Choice<ContributorKey>[] {
-  if (!badge.values || entity.kind === 'user') return [];
+  if (!badge.values || entity.kind === 'user' || entity.kind === 'package') return [];
   return badge.values
     .filter((key) => contributorCount(entity, key) !== null)
     .map((key) => ({ value: key, name: CONTRIBUTOR_NAMES[key] }));

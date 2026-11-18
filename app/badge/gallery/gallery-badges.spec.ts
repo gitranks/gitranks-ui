@@ -6,9 +6,9 @@ import type { OrgFacts, RepoFacts, UserFacts } from '@/badge/v3/facts';
 import { NOW, orgBig, repoBig, userBig } from '@/badge/v3/fixtures';
 import { resolveParams } from '@/badge/v3/params';
 import { availableChoices, badgeTiles } from '@/badge/v3/tiles';
-import type { EntityKind } from '@/badge/v3/types';
+import type { GithubEntityKind } from '@/badge/v3/types';
 
-const KINDS: EntityKind[] = ['user', 'repo', 'org'];
+const KINDS: GithubEntityKind[] = ['user', 'repo', 'org'];
 
 /** Today's #1 of each ranking as the gallery draws it: rank 1, and so no rank goal. */
 const userTop: UserFacts = {

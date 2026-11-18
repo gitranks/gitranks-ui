@@ -3,15 +3,43 @@
 import type { MouseEvent } from 'react';
 
 import { entityName } from '../utils/badge-options';
+import { entityLabel } from '../utils/builder-state';
 import type { EntityFacts } from '@/badge/v3/facts';
+import { cn } from '@/lib/utils';
 
-export const KIND_LABELS = { user: 'developer', org: 'organization', repo: 'repository' } as const;
+export const KIND_LABELS = {
+  user: 'developer',
+  org: 'organization',
+  repo: 'repository',
+  package: 'npm package',
+} as const;
 
-/** The entity's avatar: its own, or the repository owner's. */
-export function avatarOf(facts: EntityFacts): string {
+const githubAvatar = (owner: string) => `https://avatars.githubusercontent.com/${encodeURIComponent(owner)}?s=64`;
+
+/**
+ * The entity's avatar: its own, or the repository owner's; a package's is its repository's owner's, and it has none
+ * without a repository.
+ */
+export function avatarOf(facts: EntityFacts): string | null {
+  if (facts.kind === 'package') {
+    const repository = facts.repo?.nameWithOwner ?? facts.repositoryName;
+    return repository ? githubAvatar(repository.split('/')[0]) : null;
+  }
   if (facts.kind !== 'repo' && facts.avatarUrl) return facts.avatarUrl;
-  const owner = entityName(facts).split('/')[0];
-  return `https://avatars.githubusercontent.com/${encodeURIComponent(owner)}?s=64`;
+  return githubAvatar(entityName(facts).split('/')[0]);
+}
+
+/** The entity's avatar, or a plain shape of the same size where it has none. */
+export function EntityAvatar({
+  facts,
+  size,
+  className,
+}: Readonly<{ facts: EntityFacts; size: number; className: string }>) {
+  const src = avatarOf(facts);
+  if (!src) {
+    return <span aria-hidden="true" className={cn('inline-block', className)} />;
+  }
+  return <img src={src} alt="" width={size} height={size} className={className} />;
 }
 
 /** Who the badge is for, with "Change" back to step 1. */
@@ -27,8 +55,12 @@ export function EntityChip({
   };
   return (
     <div className="flex w-fit max-w-full items-center gap-2 rounded-full border bg-card py-1 pr-3 pl-1 text-sm">
-      <img src={avatarOf(facts)} alt="" width={24} height={24} className="size-6 shrink-0 rounded-full bg-muted" />
-      <span className="min-w-0 truncate font-medium">{entityName(facts)}</span>
+      <EntityAvatar
+        facts={facts}
+        size={24}
+        className={`size-6 shrink-0 ${facts.kind === 'package' ? 'rounded-md' : 'rounded-full'} bg-muted`}
+      />
+      <span className="min-w-0 truncate font-medium">{entityLabel(facts.kind, entityName(facts))}</span>
       <span className="text-muted-foreground">· {KIND_LABELS[facts.kind]}</span>
       <a href={changeHref} onClick={change} className="ml-1 font-medium text-link underline-offset-2 hover:underline">
         Change<span className="sr-only"> who the badge is for</span>

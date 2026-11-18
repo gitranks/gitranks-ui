@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import type { EntityFacts } from '@/badge/v3/facts';
+import { type EntityFacts, packageBadgeName } from '@/badge/v3/facts';
 import type { EntityKind } from '@/badge/v3/types';
 
 export type FactsState =
@@ -51,7 +51,8 @@ export function fetchEntityFacts(
 
 /** Facts step 1 already holds, so the next step does not ask for them again. */
 export function seedEntityFacts(facts: EntityFacts): void {
-  const name = facts.kind === 'repo' ? facts.nameWithOwner : facts.login;
+  const name =
+    facts.kind === 'repo' ? facts.nameWithOwner : facts.kind === 'package' ? packageBadgeName(facts) : facts.login;
   requests.set(keyOf(facts.kind, name), Promise.resolve(facts));
 }
 

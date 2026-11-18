@@ -3,11 +3,11 @@ import { cacheLife } from 'next/cache';
 import { HOURLY } from './landing-data';
 import { type ReadmeContent, readmeContent } from './readme-badges';
 import { fetchShowcaseNames, loadShowcase } from '@/app/badge/gallery/gallery-showcase';
-import type { EntityKind } from '@/badge/v3/types';
+import type { GithubEntityKind } from '@/badge/v3/types';
 
-export type ReadmeShowcase = Record<EntityKind, ReadmeContent | null>;
+export type ReadmeShowcase = Record<GithubEntityKind, ReadmeContent | null>;
 
-const KINDS: readonly EntityKind[] = ['user', 'repo', 'org'];
+const KINDS: readonly GithubEntityKind[] = ['user', 'repo', 'org'];
 
 /**
  * The README mock's content for every visitor: today's #1 developer, repository and organization, as the badge

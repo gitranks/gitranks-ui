@@ -7,14 +7,14 @@ import {
   entityNameOf,
   type TileLink,
 } from '@/badge/v3/tiles';
-import type { EntityKind } from '@/badge/v3/types';
+import type { GithubEntityKind } from '@/badge/v3/types';
 
 /**
  * What the landing's README mock shows for each kind of entity, in order of preference: ranks, the monthly race, the
  * next goal, starred by and contributors, then a card for developers. No tier badge: the landing promotes none. A
  * badge the entity does not have is skipped, and the next one takes its place.
  */
-export const README_BADGES: Record<EntityKind, { shields: BadgeChoice[]; card: BadgeChoice | null }> = {
+export const README_BADGES: Record<GithubEntityKind, { shields: BadgeChoice[]; card: BadgeChoice | null }> = {
   user: {
     shields: [{ id: 'rank' }, { id: 'language-rank' }, { id: 'month' }, { id: 'goal' }],
     card: { id: 'profile-card' },
@@ -46,7 +46,7 @@ export const README_SHIELDS = 3;
 
 /** One entity's README: its name, its first available shields and, for a developer, a card. */
 export type ReadmeContent = {
-  kind: EntityKind;
+  kind: GithubEntityKind;
   /** The login or `owner/name`. */
   name: string;
   shields: BadgeTile[];
@@ -60,6 +60,9 @@ export type ReadmeContent = {
  * `embed` for the visitor's own profile, `find` for a showcase entity (make the same badge for one's own).
  */
 export function readmeContent(entity: EntityFacts, link: TileLink, now = new Date()): ReadmeContent | null {
+  if (entity.kind === 'package') {
+    return null;
+  }
   const { shields, card } = README_BADGES[entity.kind];
   const shieldTiles = badgeTiles(entity, availableChoices(entity, shields, now).slice(0, README_SHIELDS), now, link);
   if (!shieldTiles.length) {

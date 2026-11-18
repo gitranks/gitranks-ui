@@ -10,14 +10,14 @@ import type { ReadmeShowcase } from './readme-showcase';
 import { useEntityFacts } from '@/app/badge/builder/[[...login]]/hooks/use-entity-facts';
 import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
 import type { BadgeTile } from '@/badge/v3/tiles';
-import type { EntityKind } from '@/badge/v3/types';
+import type { GithubEntityKind } from '@/badge/v3/types';
 import { BadgeImages } from '@/components/badge-tiles/badge-tiles';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { hasSessionHint } from '@/lib/session-hint';
 import { cn } from '@/lib/utils';
 
-const TABS: { kind: EntityKind; label: string; short?: string }[] = [
+const TABS: { kind: GithubEntityKind; label: string; short?: string }[] = [
   { kind: 'user', label: 'Developer' },
   { kind: 'repo', label: 'Repository' },
   { kind: 'org', label: 'Organization', short: 'Org' },
@@ -149,7 +149,7 @@ export const ReadmeSection: FC<{ showcase: ReadmeShowcase }> = ({ showcase }) =>
   const login = (status === 'authenticated' && session?.user?.githubLogin) || null;
   const own = useEntityFacts(login ? 'user' : null, login);
   const ownContent = useMemo(() => (own.status === 'found' ? readmeContent(own.facts, 'embed') : null), [own]);
-  const [selected, setSelected] = useState<EntityKind>('user');
+  const [selected, setSelected] = useState<GithubEntityKind>('user');
 
   const hinted = useSessionHint();
 
@@ -158,7 +158,7 @@ export const ReadmeSection: FC<{ showcase: ReadmeShowcase }> = ({ showcase }) =>
   let user: ReadmeContent | 'loading' | null = showcase.user;
   if (waiting) user = 'loading';
   else if (ownContent) user = ownContent;
-  const contents: Record<EntityKind, ReadmeContent | 'loading' | null> = { ...showcase, user };
+  const contents: Record<GithubEntityKind, ReadmeContent | 'loading' | null> = { ...showcase, user };
 
   const tabs = TABS.filter(({ kind }) => contents[kind]);
   const active = tabs.find(({ kind }) => kind === selected) ?? tabs[0];

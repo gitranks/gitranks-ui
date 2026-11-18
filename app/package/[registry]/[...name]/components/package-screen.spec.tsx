@@ -18,6 +18,10 @@ vi.mock('./package-updates-button', () => ({
     />
   ),
 }));
+// The badges read their own data, as the images do: a spec of their own draws them.
+vi.mock('./package-badge-section', () => ({
+  PackageBadgeSection: (props: { name: string }) => <div data-badges={props.name} />,
+}));
 vi.mock('./downloads-chart', () => ({ default: (props: { label: string }) => <div data-chart={props.label} /> }));
 vi.mock('next/navigation', () => ({ usePathname: () => '/package/npm/x', useRouter: () => ({ push: vi.fn() }) }));
 

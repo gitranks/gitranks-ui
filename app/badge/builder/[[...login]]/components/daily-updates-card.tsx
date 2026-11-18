@@ -11,18 +11,21 @@ import type { BadgeCheckKind } from '@/types/daily-updates.types';
 
 type DailyUpdatesCardProps = {
   kind: BadgeCheckKind;
-  /** The profile's login or the repository's `owner/name`, as GitRanks stores it. */
+  /** The profile's login, the repository's `owner/name` or the package's `npm/<name>`, as GitRanks stores it. */
   name: string;
+  /** A package's publishing repository, whose README holds its badge, when known. */
+  repository?: string | null;
 };
 
 /**
  * "Get daily updates", under the badge's code: a profile or repository with a GitRanks badge in its README updates
- * every day, and "Check my badge" reads the README now instead of waiting for GitHub to load the badge. No sign-in.
+ * every day, and so does a package with its badge in its repository's README; "Check my badge" reads the README now
+ * instead of waiting for GitHub to load the badge. No sign-in.
  */
-export function DailyUpdatesCard({ kind, name }: Readonly<DailyUpdatesCardProps>) {
+export function DailyUpdatesCard({ kind, name, repository }: Readonly<DailyUpdatesCardProps>) {
   const headingId = useId();
   const { result, checking, check } = useBadgeCheck(kind, name);
-  const view = badgeCheckViewOf(kind, name, result);
+  const view = badgeCheckViewOf(kind, name, result, Date.now(), repository);
 
   return (
     <section className="flex flex-col gap-3 rounded-lg border bg-card p-4" aria-labelledby={headingId}>

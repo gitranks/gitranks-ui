@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 
 import { fetchAvatar, fetchAvatars } from './avatars';
-import { Avatar, axisTicks, CardFrame, Line, Num, Words } from './card-frame';
+import { Avatar, axisTicks, CardFrame, Line, Num, sparkPaths, Words } from './card-frame';
 import {
   COUNT_CHART_MIN_POINTS,
   countSeries,
@@ -12,11 +12,25 @@ import {
   userRanksIn,
 } from './catalogue';
 import { contributorCount } from './contributors';
-import { type ContributorsWall, type OrgFacts, type RepoFacts, type UserFacts, wallOf } from './facts';
+import {
+  type ContributorsWall,
+  type EntityFacts,
+  type OrgFacts,
+  type RepoFacts,
+  type UserFacts,
+  wallOf,
+} from './facts';
 import { formatCompact, formatFull, topShare } from './format';
 import { TierGlyph } from './glyphs';
 import { goalText } from './goals';
 import { monthKeysOf, monthLabelOf } from './month';
+import {
+  packageCard,
+  packageDownloadsCard,
+  packageFrameName,
+  packageUsedByCard,
+  packageUsedByChart,
+} from './package-cards';
 import type { BadgeParams } from './params';
 import { bestCompletedMonth } from './race';
 import { type CardPalette, tierColor, toneColor } from './schemes';
@@ -111,22 +125,6 @@ function lastYearSeries(repo: RepoFacts): number[] {
     .slice(-12)
     .map(({ stars }) => stars);
   return [...points, repo.history.current.stars];
-}
-
-/** A line and its area over a box, as path data. */
-function sparkPaths(series: number[], width: number, height: number, inset = 2) {
-  const max = Math.max(...series);
-  const min = Math.min(...series);
-  const span = max - min || 1;
-  const step = series.length > 1 ? width / (series.length - 1) : width;
-  const coords = series.map((value, index) => {
-    const x = Math.round(index * step * 10) / 10;
-    const y = Math.round((inset + (1 - (value - min) / span) * (height - 2 * inset)) * 10) / 10;
-    return `${x} ${y}`;
-  });
-  if (coords.length === 1) coords.unshift(`0 ${coords[0].split(' ')[1]}`);
-  const line = `M${coords.join(' L')}`;
-  return { line, area: `${line} L${width} ${height} L0 ${height} Z` };
 }
 
 function repoStarsCard(repo: RepoFacts, params: BadgeParams, now: Date): Drawing | null {
@@ -751,7 +749,7 @@ async function contributorsWall(
  * own renderer and never comes here.
  */
 export async function prepareDrawing(
-  entity: RepoFacts | UserFacts | OrgFacts,
+  entity: EntityFacts,
   id: string,
   params: BadgeParams,
   now = new Date(),
@@ -795,8 +793,24 @@ export async function prepareDrawing(
         return contributorsWall(entity, params);
     }
   }
+  if (entity.kind === 'package') {
+    switch (id) {
+      case 'used-by-card':
+        return packageUsedByCard(entity, params);
+      case 'downloads-card':
+        return packageDownloadsCard(entity, params);
+      case 'package-card':
+        return packageCard(entity, params);
+      case 'used-by-chart':
+        return packageUsedByChart(entity, params);
+    }
+  }
   return null;
 }
+
+/** The entity at the right of a card's eyebrow: a login, `owner/name`, or "npm · react". */
+export const frameNameOf = (entity: EntityFacts) =>
+  entity.kind === 'repo' ? entity.nameWithOwner : entity.kind === 'package' ? packageFrameName(entity) : entity.login;
 
 /** The drawing a card or chart shows where it has never applied: its frame and "not yet". */
 export function notYetDrawing(

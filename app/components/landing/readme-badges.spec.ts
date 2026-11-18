@@ -5,9 +5,9 @@ import { findBadge } from '@/badge/v3/catalogue';
 import type { OrgFacts, RepoFacts, UserFacts } from '@/badge/v3/facts';
 import { NOW, orgBig, repoBig, repoMid, userBig, userMid, userUnranked } from '@/badge/v3/fixtures';
 import { resolveParams } from '@/badge/v3/params';
-import type { EntityKind } from '@/badge/v3/types';
+import type { GithubEntityKind } from '@/badge/v3/types';
 
-const KINDS: EntityKind[] = ['user', 'repo', 'org'];
+const KINDS: GithubEntityKind[] = ['user', 'repo', 'org'];
 
 const decode = (value: string) => value.replaceAll('&amp;', '&');
 

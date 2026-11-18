@@ -1,5 +1,8 @@
-/** The three kinds of entity a badge can be made for, as the URL names them. */
-export type EntityKind = 'user' | 'org' | 'repo';
+/** The kinds of entity a badge can be made for, as the URL names them. */
+export type EntityKind = 'user' | 'org' | 'repo' | 'package';
+
+/** The kinds that are GitHub accounts or repositories: everything but a package. */
+export type GithubEntityKind = Exclude<EntityKind, 'package'>;
 
 /** Shields are 20px high; cards are small panels; charts are wide drawings. */
 export type BadgeFormat = 'shield' | 'card' | 'chart';
@@ -25,8 +28,11 @@ export type WallOrder = 'popular' | 'contributions' | 'newest';
 /** The colour role of a piece of text. */
 export type Tone = 'positive' | 'gold' | { tier: number };
 
-/** A piece of a segment's text. Numbers are set in the mono face. */
-export type Run = { text: string; mono?: boolean; tone?: Tone };
+/**
+ * A piece of a segment's text. Numbers are set in the mono face; `quiet` words follow a value in the extra's muted
+ * colour ("16 repos" then "with 100+ stars").
+ */
+export type Run = { text: string; mono?: boolean; tone?: Tone; quiet?: boolean };
 
 /** A glyph that leads a segment: a developer tier's insignia or a repository tier's Cosmic glyph. */
 export type SegmentIcon = { kind: 'user-tier' | 'repo-tier'; tier: number };

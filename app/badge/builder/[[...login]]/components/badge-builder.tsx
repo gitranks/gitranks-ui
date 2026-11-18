@@ -4,6 +4,7 @@ import { parseAsString, useQueryStates } from 'nuqs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { recheckEntityFacts, seedEntityFacts, useEntityFacts } from '../hooks/use-entity-facts';
+import { usePackagesAnswer } from '../hooks/use-packages-answer';
 import { entityName, offeredBadges, settleStyle } from '../utils/badge-options';
 import {
   BUILDER_KEYS,
@@ -12,7 +13,9 @@ import {
   type BuilderStep,
   builderHref,
   cleanStyle,
+  entityLabel,
   isEntityName,
+  namesPackage,
   parseBuilderQuery,
   pickTarget,
   type Style,
@@ -55,7 +58,11 @@ const RECHECK_EVERY = 10_000;
 /** The four steps of `/badge/builder`, all in the URL (see `builder-state.ts`). */
 export function BadgeBuilder() {
   const [query, setQuery] = useQueryStates(PARSERS);
-  const state: BuilderState = useMemo(() => parseBuilderQuery(query), [query]);
+  // A package is a kind of its own only for a visitor packages are shown to; a link that names one waits for the answer.
+  const packagesAnswer = usePackagesAnswer();
+  const packages = packagesAnswer === true;
+  const waitsForPackages = packagesAnswer === undefined && namesPackage(query);
+  const state: BuilderState = useMemo(() => parseBuilderQuery(query, { packages }), [query, packages]);
   const wellFormed = !state.kind || !state.name || isEntityName(state.kind, state.name);
   // Bumped by a pick in step 1, so the same entity is asked again after a failed lookup.
   const [attempt, setAttempt] = useState(0);
@@ -105,7 +112,7 @@ export function BadgeBuilder() {
   }, [facts, state.badge, state.embed, settled, settledDiffers, go]);
 
   const { step, notice } = builderView(state, { wellFormed, factsState, badgeAvailable });
-  const loading = step !== 'find' && factsState.status !== 'found';
+  const loading = waitsForPackages || (step !== 'find' && factsState.status !== 'found');
 
   // An entity waiting on a read for this badge (see `showsReadNote`): asked again on "Check again" and when the
   // visitor comes back to this page (from its page, where a refresh reads it), at most every `RECHECK_EVERY`.
@@ -222,8 +229,11 @@ export function BadgeBuilder() {
         <FindStep
           headingRef={headingRef}
           kind={state.kind}
+          packages={packages}
           badge={state.badge}
-          initialQuery={notice ? (state.name ?? '') : ''}
+          initialQuery={
+            notice ? (state.kind === 'package' ? entityLabel('package', state.name ?? '') : (state.name ?? '')) : ''
+          }
           notice={notice}
           onPick={(picked) => {
             seedEntityFacts(picked);

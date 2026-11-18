@@ -1,12 +1,17 @@
 import type { FactsState } from '../hooks/use-entity-facts';
 import { entityName } from './badge-options';
-import { type BuilderState, type BuilderStep, stepOf } from './builder-state';
+import { type BuilderState, type BuilderStep, entityLabel, stepOf } from './builder-state';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
 import { awaitsRead, type EntityFacts } from '@/badge/v3/facts';
 import { awaitsReadFor } from '@/badge/v3/pending';
 import type { EntityKind } from '@/badge/v3/types';
 
-const KIND_NAMES: Record<EntityKind, string> = { user: 'developer', org: 'organization', repo: 'repository' };
+const KIND_NAMES: Record<EntityKind, string> = {
+  user: 'developer',
+  org: 'organization',
+  repo: 'repository',
+  package: 'npm package',
+};
 
 /** What a badge is called by its format: "the “stars” card". */
 export const FORMAT_NAMES: Record<BadgeDefinition['format'], string> = {
@@ -37,7 +42,10 @@ export function builderView(
   const step = stepOf(state);
   if (step === 'find' || !state.kind || !state.name) return { step, notice: null };
   if (!wellFormed || factsState.status === 'missing') {
-    return { step: 'find', notice: `GitRanks has no ${KIND_NAMES[state.kind]} called “${state.name}” yet.` };
+    return {
+      step: 'find',
+      notice: `GitRanks has no ${KIND_NAMES[state.kind]} called “${entityLabel(state.kind, state.name)}” yet.`,
+    };
   }
   if (factsState.status === 'error') {
     return { step: 'find', notice: 'GitRanks could not look that up just now. Try again in a moment.' };
@@ -45,7 +53,7 @@ export function builderView(
   if (factsState.status === 'found' && state.badge && !badgeAvailable) {
     return {
       step: 'badge',
-      notice: `The “${state.badge.title}” ${FORMAT_NAMES[state.badge.format]} has nothing to show for ${entityName(factsState.facts)} right now. Pick another one.`,
+      notice: `The “${state.badge.title}” ${FORMAT_NAMES[state.badge.format]} has nothing to show for ${entityLabel(factsState.facts.kind, entityName(factsState.facts))} right now. Pick another one.`,
     };
   }
   return { step, notice: null };

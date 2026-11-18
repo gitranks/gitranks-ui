@@ -5,9 +5,10 @@ import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-stat
 import { MoreLink } from '@/app/profile/[login]/components/profile-card';
 import type { EntityFacts } from '@/badge/v3/facts';
 import { availableChoices, type BadgeTile, badgeTiles, entityNameOf } from '@/badge/v3/tiles';
-import type { EntityKind } from '@/badge/v3/types';
+import type { GithubEntityKind } from '@/badge/v3/types';
 import { BadgeTiles } from '@/components/badge-tiles/badge-tiles';
 import { Link } from '@/components/link/link';
+import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
 const pageOf = (entity: EntityFacts) => {
@@ -18,11 +19,13 @@ const pageOf = (entity: EntityFacts) => {
       return `/profile/${encodeURIComponent(entity.login)}`;
     case 'org':
       return `/org/${encodeURIComponent(entity.login)}`;
+    case 'package':
+      return packagePath(entity.name);
   }
 };
 
 /** A kind's gallery badges drawn for its #1; each leads to the builder's first step, to make it for one's own. */
-export const galleryTiles = (kind: EntityKind, entity: EntityFacts | null, now: Date): BadgeTile[] =>
+export const galleryTiles = (kind: GithubEntityKind, entity: EntityFacts | null, now: Date): BadgeTile[] =>
   entity ? badgeTiles(entity, availableChoices(entity, GALLERY_BADGES[kind], now), now, 'find') : [];
 
 type GallerySectionProps = (typeof GALLERY_SECTIONS)[number] & { entity: EntityFacts | null; now: Date };

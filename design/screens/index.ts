@@ -4,6 +4,7 @@ import { CONTRIBUTE_SCREENS } from './contribute';
 import { LANDING_SCREENS } from './landing';
 import { LEARN_SCREENS } from './learn';
 import { ORG_SCREENS } from './org';
+import { PACKAGE_SCREENS } from './package';
 import { PROFILE_SCREENS } from './profile';
 import { RANKINGS_SCREENS } from './rankings';
 import { REPO_SCREENS } from './repo';
@@ -13,6 +14,7 @@ export const SCREENS: Screen[] = [
   ...LANDING_SCREENS,
   ...PROFILE_SCREENS,
   ...REPO_SCREENS,
+  ...PACKAGE_SCREENS,
   ...ORG_SCREENS,
   ...RANKINGS_SCREENS,
   ...BADGES_SCREENS,

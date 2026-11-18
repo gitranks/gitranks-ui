@@ -12,6 +12,7 @@ import {
   learnStartFixAttemptOf,
   learnStartFixOf,
   learnStartIssueOf,
+  learnStartIssueUrlOf,
   learnStartLessonAttemptOf,
   learnStartNumberOf,
   learnStartPath,
@@ -21,7 +22,7 @@ import {
   learnStartStepsOpen,
   mcpClientOfName,
 } from './learn-start';
-import { LEARN_START_ASKS, type LearnStartTick, startLearnStartPoll } from './learn-start-poll';
+import { type LearnStartTick, startLearnStartPoll } from './learn-start-poll';
 import type { ContributeAttemptState, ContributeMcpToken } from '@/lib/contribute/contribute.types';
 
 describe("the start page's address", () => {
@@ -60,9 +61,21 @@ describe("the start page's address", () => {
   });
 
   it('gives the agent one prompt: the issue and GitRanks Learn', () => {
-    expect(learnStartPromptOf('driftwood-js/driftwood', 934)).toBe(
+    expect(learnStartPromptOf(learnStartIssueUrlOf(startViews.open))).toBe(
       'Fix https://github.com/driftwood-js/driftwood/issues/934 with GitRanks Learn and teach me',
     );
+  });
+
+  it("names the issue as GitHub's read spelled it, else as the address does", () => {
+    const typed = startViewOf({ repo: 'Driftwood-JS/Driftwood' });
+    expect(learnStartIssueUrlOf(typed)).toBe('https://github.com/driftwood-js/driftwood/issues/934');
+    expect(learnStartIssueUrlOf({ ...typed, start: { ...typed.start, issue: null } })).toBe(
+      'https://github.com/Driftwood-JS/Driftwood/issues/934',
+    );
+    const odd = startViewOf({ issue: { ...startViews.open.start.issue!, url: 'https://example.com/x' } });
+    expect(learnStartIssueUrlOf(odd)).toBe('https://github.com/driftwood-js/driftwood/issues/934');
+    const other = startViewOf({ issue: { ...startViews.open.start.issue!, number: 935 } });
+    expect(learnStartIssueUrlOf(other)).toBe('https://github.com/driftwood-js/driftwood/issues/934');
   });
 });
 
@@ -144,6 +157,7 @@ describe('step 3: a Fix attempt on the issue', () => {
         pickAnother: true,
       });
     }
+    expect(words('MERGED')).toEqual({ text: 'See where it is on its Contribute page.', pickAnother: false });
   });
 
   it('is the Fix attempt a YOURS answer names; a Learn attempt goes on to its page instead', () => {
@@ -193,6 +207,14 @@ describe('refusals', () => {
       { current: { attemptId: 'A_3', repo: 'fern-lang/fern', issueNumber: 212, title: null } },
     );
     expect(words(untitled)).toMatchObject({ text: expect.stringContaining('Your lesson on “fern-lang/fern#212”') });
+    const unnamed = startViewOf(
+      { refusal: 'OWN_IN_PROGRESS' },
+      { current: { attemptId: 'A_3', repo: null, issueNumber: 212, title: null } },
+    );
+    expect(words(unnamed)).toMatchObject({
+      text: expect.stringContaining('Another lesson of yours is in progress.'),
+      action: { href: '/learn/attempts/A_3', label: 'Back to your lesson' },
+    });
     expect(words(startViewOf({ refusal: 'OWN_IN_PROGRESS' }))).toMatchObject({
       text: expect.stringContaining('Another lesson of yours is in progress.'),
       action: { href: '/learn/lessons', label: 'My lessons' },
@@ -326,24 +348,43 @@ describe("step 3's poll", () => {
     poll.stop();
   });
 
-  it('times out once after 30 minutes of the page shown', async () => {
-    expect(LEARN_START_ASKS).toBe(360);
+  it('times out once after 30 minutes of the page shown, hidden time not counting', async () => {
     const ask = going();
     const onTimeout = vi.fn();
     const page = pageOf();
     startLearnStartPoll(ask, onTimeout, page.env);
-    // Hidden time does not count.
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
     page.hide();
     await vi.advanceTimersByTimeAsync(60 * 60_000);
     page.show();
-    await vi.advanceTimersByTimeAsync(30 * 60_000);
-    expect(ask).toHaveBeenCalledTimes(LEARN_START_ASKS);
+    await vi.advanceTimersByTimeAsync(20 * 60_000 - LEARN_START_POLL_MS);
+    expect(onTimeout).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(LEARN_START_POLL_MS);
     expect(onTimeout).toHaveBeenCalledTimes(1);
+    const asked = ask.mock.calls.length;
     await vi.advanceTimersByTimeAsync(10 * 60_000);
     page.hide();
     page.show();
     await vi.advanceTimersByTimeAsync(0);
-    expect(ask).toHaveBeenCalledTimes(LEARN_START_ASKS);
+    expect(ask).toHaveBeenCalledTimes(asked);
+    expect(onTimeout).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts the 30 minutes in time, not asks: slow answers do not stretch them', async () => {
+    const ask = vi.fn(() => new Promise<LearnStartTick>((resolve) => setTimeout(() => resolve('go'), 7_000)));
+    const onTimeout = vi.fn();
+    startLearnStartPoll(ask, onTimeout, pageOf().env);
+    await vi.advanceTimersByTimeAsync(30 * 60_000 + LEARN_START_POLL_MS);
+    expect(onTimeout).toHaveBeenCalledTimes(1);
+    expect(ask.mock.calls.length).toBeLessThan(360);
+  });
+
+  it('ends the wait as its 30 minutes would when an ask gives up', async () => {
+    const ask = vi.fn(async (): Promise<LearnStartTick> => 'give-up');
+    const onTimeout = vi.fn();
+    startLearnStartPoll(ask, onTimeout, pageOf().env);
+    await vi.advanceTimersByTimeAsync(LEARN_START_POLL_MS * 4);
+    expect(ask).toHaveBeenCalledTimes(1);
     expect(onTimeout).toHaveBeenCalledTimes(1);
   });
 });

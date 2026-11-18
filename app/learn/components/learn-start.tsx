@@ -44,7 +44,10 @@ export async function LearnStartView({ params }: { params: Promise<{ owner: stri
     contributeMcpSignIn(),
   ]);
   if (!answer.ok) {
-    if (answer.error === 'NOT_FOUND' || answer.error === 'SIGNED_OUT') notFound();
+    // Not open to the viewer, or an API that doesn't answer it yet: as Learn's other reads do, the page isn't there.
+    if (answer.error === 'NOT_FOUND' || answer.error === 'SIGNED_OUT' || answer.error === 'NOT_AVAILABLE_YET') {
+      notFound();
+    }
     if (answer.error !== 'INVALID') throw new ContributeUnavailableError();
   }
   const view = answer.ok ? answer.data : unavailable(issue.repo, issue.number);

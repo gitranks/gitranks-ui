@@ -104,6 +104,7 @@ describe('Start your own lesson', () => {
     expect(html).toContain('data-learn-start-issue="unread"');
     expect(plain).toContain('driftwood-js/driftwood#934');
     expect(plain).not.toContain('Size small');
+    expect(plain).toContain(PROMPT);
     expect(html).toContain('data-learn-start="waiting"');
   });
 
@@ -161,6 +162,9 @@ describe('Start your own lesson', () => {
     expect(open.plain).toContain("so it can't be a lesson. Pick another issue.");
     expect(open.plain).toContain('Pick another issue →');
     expect(open.html).toContain('href="/contribute/attempts/A_9"');
+    // No prompt to paste again for this issue.
+    expect(open.plain).not.toContain(PROMPT);
+    expect(open.plain).toContain('2 · Paste one prompt in your agent Not for this issue: pick another one.');
   });
 
   it('after 30 minutes: says so, and offers Check again', () => {
@@ -295,7 +299,7 @@ describe('the start page, read per request', () => {
     start.learnStartViewOf.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
     await expect(render()).rejects.toThrow();
     start.learnStartViewOf.mockResolvedValueOnce({ ok: false, error: 'NOT_AVAILABLE_YET' });
-    await expect(render()).rejects.toThrow();
+    await expect(render()).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
   it('a refusal comes with the issue it is about', async () => {

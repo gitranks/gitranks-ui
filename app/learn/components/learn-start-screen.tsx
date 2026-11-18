@@ -21,13 +21,13 @@ import { LEARN_PATH, learnAttemptPath } from '@/lib/learn/learn-path';
 import {
   agentNameOf,
   fixAttemptPath,
-  githubIssueUrlOf,
   LEARN_ISSUES_PATH,
   type LearnStartConnection,
   type LearnStartRefusalCopy,
   lastCallLabel,
   learnStartFixAttemptOf,
   learnStartFixOf,
+  learnStartIssueUrlOf,
   learnStartLessonAttemptOf,
   learnStartPromptOf,
   learnStartRefusalOf,
@@ -43,6 +43,8 @@ const idleCard = 'border';
 /** A step that comes later: its title and when it shows. */
 const laterCard = 'gap-2 border opacity-60';
 const link = 'font-semibold text-link hover:underline';
+/** A link on its own line: 44px tall on phones. */
+const phoneTarget = 'inline-flex items-center max-sm:min-h-11';
 
 /** "Small", "Medium": an issue's size as Contribute's rows word it; nothing for a size we don't know. */
 const sizeNameOf = (size: string | null): string | null =>
@@ -55,15 +57,16 @@ export type LearnStartStage = 'connect' | 'waiting' | 'fix' | 'timeout' | 'refus
 function IssueSummary({
   repo,
   number,
+  url,
   issue,
   goal,
 }: {
   repo: string;
   number: number;
+  url: string;
   issue: LearnStartIssueRow | null;
   goal: string;
 }) {
-  const url = githubIssueUrlOf(repo, number);
   const size = sizeNameOf(issue?.size ?? null);
   return (
     <div
@@ -74,7 +77,7 @@ function IssueSummary({
         <>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             <span className="font-mono break-all text-foreground/80">
-              {repo} · #{number}
+              {issue.repo} · #{issue.number}
             </span>
             {issue.language ? <span>{issue.language}</span> : null}
             {size ? <span>Size {size.toLowerCase()}</span> : null}
@@ -109,7 +112,7 @@ function Refusal({ copy, code }: { copy: LearnStartRefusalCopy; code: string }) 
     >
       <p className="max-w-prose text-sm font-medium">{copy.text}</p>
       {copy.action ? (
-        <Link href={copy.action.href} prefetch={false} className="text-sm font-semibold text-link">
+        <Link href={copy.action.href} prefetch={false} className={cn(link, 'text-sm', phoneTarget)}>
           {copy.action.label} →
         </Link>
       ) : null}
@@ -130,11 +133,11 @@ function FixMessage({ attempt }: { attempt: LearnStartAttempt }) {
       </p>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
         {pickAnother ? (
-          <Link href={LEARN_ISSUES_PATH} prefetch={false} className={link}>
+          <Link href={LEARN_ISSUES_PATH} prefetch={false} className={cn(link, phoneTarget)}>
             Pick another issue →
           </Link>
         ) : null}
-        <Link href={fixAttemptPath(attempt.id)} prefetch={false} className={link}>
+        <Link href={fixAttemptPath(attempt.id)} prefetch={false} className={cn(link, phoneTarget)}>
           Open it on Contribute →
         </Link>
       </div>
@@ -187,6 +190,9 @@ export function LearnStartScreen({
   const open = learnStartStepsOpen(view);
   const agent = agentNameOf(connection?.client);
   const waits = open && (!!connection || !!fix);
+  const issueUrl = learnStartIssueUrlOf(view);
+  // A Fix attempt whose pull request is open: no prompt to paste again for this issue.
+  const fixDone = !!fix && learnStartFixOf(fix.state).pickAnother;
   const stage: LearnStartStage = !open
     ? 'refused'
     : fix
@@ -199,7 +205,11 @@ export function LearnStartScreen({
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 sm:gap-5" data-learn-start={stage}>
-      <Link href={LEARN_PATH} prefetch={false} className="self-start text-sm font-semibold text-link max-sm:py-2.5">
+      <Link
+        href={LEARN_PATH}
+        prefetch={false}
+        className={cn('self-start text-sm font-semibold text-link', phoneTarget)}
+      >
         ← Issues for your own lesson
       </Link>
       <div className="flex flex-col gap-2 pb-1">
@@ -213,7 +223,7 @@ export function LearnStartScreen({
         </p>
       </div>
 
-      <IssueSummary repo={repo} number={number} issue={view.start.issue} goal={goal} />
+      <IssueSummary repo={repo} number={number} url={issueUrl} issue={view.start.issue} goal={goal} />
 
       {refusal ? <Refusal copy={refusal} code={view.start.refusal ?? ''} /> : null}
 
@@ -256,7 +266,7 @@ export function LearnStartScreen({
 
       {open ? (
         <>
-          {connection ? (
+          {connection && !fixDone ? (
             <section
               aria-labelledby={`${id}-s2`}
               className={cn(card, stage === 'waiting' ? activeCard : idleCard)}
@@ -269,7 +279,7 @@ export function LearnStartScreen({
                 In a terminal, in any folder. Your agent forks the project, fixes the issue and writes your lesson.
               </p>
               <CodeBlock label="Ask your agent" copyLabel="Copy the prompt" wrap copySource="learn_start_copy">
-                {learnStartPromptOf(repo, number)}
+                {learnStartPromptOf(issueUrl)}
               </CodeBlock>
             </section>
           ) : (
@@ -277,7 +287,9 @@ export function LearnStartScreen({
               <h2 id={`${id}-s2`} className={HEADING.card}>
                 2 · Paste one prompt in your agent
               </h2>
-              <p className="text-sm text-muted-foreground">Shows when your agent is connected.</p>
+              <p className="text-sm text-muted-foreground">
+                {fixDone ? 'Not for this issue: pick another one.' : 'Shows when your agent is connected.'}
+              </p>
             </section>
           )}
 
@@ -386,26 +398,27 @@ export function LearnStart({
   const [round, setRound] = useState(0);
   const [checking, startChecking] = useTransition();
   const gone = useRef(false);
+  // The router as of the last render: the poll keeps running across renders, whatever object it is.
+  const routerRef = useRef(router);
+  routerRef.current = router;
 
   useEffect(() => {
     reportLearnEvent({ kind: 'learn_view', event: 'learn_start_view', source: 'learn_start' });
   }, []);
 
-  const toLesson = useCallback(
-    (attemptId: string) => {
-      if (gone.current) return;
-      gone.current = true;
-      reportLearnEvent({ kind: 'learn_view', event: 'learn_start_claimed', source: 'learn_start' });
-      router.replace(learnAttemptPath(attemptId));
-    },
-    [router],
-  );
+  const toLesson = useCallback((attemptId: string) => {
+    if (gone.current) return;
+    gone.current = true;
+    reportLearnEvent({ kind: 'learn_view', event: 'learn_start_claimed', source: 'learn_start' });
+    routerRef.current.replace(learnAttemptPath(attemptId));
+  }, []);
 
   const askIssue = useCallback(
     () =>
       startChecking(async () => {
-        const result = await readLearnStartIssue(repo, number);
-        if (result.ok) {
+        // Offline, or a deploy under way: the page stays as it was, and the wait starts again.
+        const result = await readLearnStartIssue(repo, number).catch(() => null);
+        if (result?.ok) {
           const lesson = learnStartLessonAttemptOf(result.data);
           if (lesson) {
             toLesson(lesson.id);
@@ -428,15 +441,17 @@ export function LearnStart({
     [askIssue],
   );
 
-  const polls = learnStartStepsOpen(view) && (!!connection || !!fix) && !timedOut;
+  // Nothing to wait for once the agent's regular pull request is open: the page says to pick another issue.
+  const fixDone = !!fix && learnStartFixOf(fix.state).pickAnother;
+  const polls = learnStartStepsOpen(view) && (!!connection || !!fix) && !fixDone && !timedOut;
   // biome-ignore lint/correctness/useExhaustiveDependencies: `round` starts a new poll after each ask of the issue.
   useEffect(() => {
     if (!polls) return;
     const poll = startLearnStartPoll(
       async () => {
         const result = await readLearnStartAttempt(repo, number);
-        // Offline or a failed read: the next ask tries again. Signed out, or the API without it: nothing to wait for.
-        if (!result.ok) return result.error === 'FAILED' ? 'go' : 'stop';
+        // A failed read: the next ask tries again. Signed out, or the API without it: the wait ends with Check again.
+        if (!result.ok) return result.error === 'FAILED' ? 'go' : 'give-up';
         if (result.data?.mode === 'LEARN') {
           toLesson(result.data.id);
           return 'stop';

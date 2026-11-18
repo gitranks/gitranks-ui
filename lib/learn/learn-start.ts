@@ -61,9 +61,20 @@ export function learnStartPath(repo: string, number: number): Route {
 /** The issue on GitHub. */
 export const githubIssueUrlOf = (repo: string, number: number) => `https://github.com/${repo}/issues/${number}`;
 
+const GITHUB_ISSUE_URL =
+  /^https:\/\/github\.com\/[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}\/issues\/[1-9][0-9]{0,9}$/;
+
+/**
+ * The issue's address: as GitHub's read spelled it when there was one (its owner and name in their own case), else
+ * as the page's address names it.
+ */
+export const learnStartIssueUrlOf = ({ start }: Pick<LearnStartView, 'start'>) =>
+  start.issue?.url && GITHUB_ISSUE_URL.test(start.issue.url) && start.issue.number === start.number
+    ? start.issue.url
+    : githubIssueUrlOf(start.repo, start.number);
+
 /** The one prompt step 2 gives the agent: the issue's address and "GitRanks Learn", so it claims in Learn mode. */
-export const learnStartPromptOf = (repo: string, number: number) =>
-  `Fix ${githubIssueUrlOf(repo, number)} with GitRanks Learn and teach me`;
+export const learnStartPromptOf = (issueUrl: string) => `Fix ${issueUrl} with GitRanks Learn and teach me`;
 
 /** "TypeScript, Some": the saved goal and, for a language, its level. Null without a goal. */
 export function learnGoalLabelOf(profile: LearnProfile | null | undefined): string | null {
@@ -134,11 +145,16 @@ export function learnStartFixOf(state: ContributeAttemptState): { text: string; 
     case 'REVIEW':
     case 'PENDING_AUTOSUBMIT':
       return { text: 'Discard it on its Contribute page, then paste the prompt again.', pickAnother: false };
-    default:
+    case 'SUBMITTING':
+    case 'PR_OPEN':
+    case 'FOLLOW_UP':
       return {
         text: "Your agent opened a regular pull request for this issue, so it can't be a lesson. Pick another issue.",
         pickAnother: true,
       };
+    default:
+      // An ended attempt is never answered here; a state this page doesn't know is said plainly.
+      return { text: 'See where it is on its Contribute page.', pickAnother: false };
   }
 }
 
@@ -161,7 +177,7 @@ export function learnStartRefusalOf({ start, current, openPrs }: LearnStartView)
     case 'YOURS':
       return null;
     case 'OWN_IN_PROGRESS': {
-      const name = current ? (current.title ?? `${current.repo ?? 'Your issue'}#${current.issueNumber}`) : null;
+      const name = current?.title ?? (current?.repo ? `${current.repo}#${current.issueNumber}` : null);
       return notice(
         `${name ? `Your lesson on “${name}” is` : 'Another lesson of yours is'} in progress. One lesson of your own at a time: this one can start once that one is done.`,
         current

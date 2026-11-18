@@ -111,7 +111,7 @@ export const LEARN_START_SCREENS: Screen[] = [
         id: 'fix-pr-open',
         title: 'The agent opened a regular pull request for it: pick another issue',
         path: START_PATH,
-        height: 1100,
+        height: 1000,
         render: () => page({ fix: fixAttemptOf('PR_OPEN') }),
       },
       {
@@ -142,6 +142,20 @@ export const LEARN_START_SCREENS: Screen[] = [
         height: 960,
         render: () =>
           page({ view: startViews.taken, connection: null, connect: connectSteps({ stage: 'none', shown: null }) }),
+      },
+      {
+        id: 'untitled',
+        title: "GitHub's title not read: the issue as owner/repo#n, and the page goes on",
+        path: START_PATH,
+        height: 1080,
+        render: () => page({ view: startViews.untitled }),
+      },
+      {
+        id: 'refused-paused',
+        title: "A paused account: Contribute's paused notice",
+        path: START_PATH,
+        height: 760,
+        render: () => page({ view: startViews.paused }),
       },
       {
         id: 'unavailable-untitled',

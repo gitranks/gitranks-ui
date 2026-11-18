@@ -20,6 +20,7 @@ vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => 
 vi.mock('@/graphql/helpers/fetch-repo-sitemap-parts', () => ({ fetchRepoSitemapParts: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-org-sitemap-parts', () => ({ fetchOrgSitemapParts: vi.fn() }));
 vi.mock('@/lib/contribute/preview-gate', () => ({ contributeOpen: vi.fn() }));
+vi.mock('@/lib/contribute/pr-timeline-gate', () => ({ contributePrTimelineOpen: async () => false }));
 vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic: vi.fn() }));
 vi.mock('@/lib/learn/public-lessons.data', () => ({ readPublicLessons: vi.fn(async () => []) }));
 vi.mock('@/lib/sitemap/package-sitemap-data', () => ({
@@ -104,6 +105,10 @@ describe('while package pages are not open to everyone', () => {
           <lastmod>2026-11-01T00:00:00.000Z</lastmod>
         </sitemap>
         <sitemap>
+          <loc>https://example.test/sitemaps/contribute-prs/sitemap.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
           <loc>https://example.test/sitemaps/repos/sitemap/0.xml</loc>
           <lastmod>2026-11-01T00:00:00.000Z</lastmod>
         </sitemap>
@@ -119,7 +124,7 @@ describe('while package pages are not open to everyone', () => {
       ",
         "cacheControl": "public, max-age=3600, s-maxage=3600",
         "contentType": "application/xml; charset=utf-8",
-        "sha256": "67e67024c816b2fbc3cc52d8f27538a7bc0821887637cf52444c61ccf01e54c7",
+        "sha256": "f38b10261e32831f051dd546d67ef5cad200afd1a9611c7fed491b27aee8160a",
         "status": 200,
       }
     `);
@@ -165,11 +170,15 @@ describe('while package pages are not open to everyone', () => {
           <loc>https://example.test/sitemaps/learn/sitemap.xml</loc>
           <lastmod>2026-11-01T00:00:00.000Z</lastmod>
         </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/contribute-prs/sitemap.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
       </sitemapindex>
       ",
         "cacheControl": "public, max-age=3600, s-maxage=3600",
         "contentType": "application/xml; charset=utf-8",
-        "sha256": "888ecf32b2a5494aa07fb36a83631121c8c7bf1b2e662e5d8a17b2f2c6e2469c",
+        "sha256": "2cae5496fe8a0f89148ccd0cb76a9031f136fb9cd5639d2d7808fe3204e78a94",
         "status": 200,
       }
     `);

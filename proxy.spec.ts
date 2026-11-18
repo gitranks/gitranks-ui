@@ -511,6 +511,14 @@ describe('proxy', () => {
         expect(maySeeContribute).not.toHaveBeenCalled();
       });
 
+      it('public: a shown page says where its Markdown twin is', async () => {
+        timelineOpen.mockResolvedValue(true);
+        const response = await proxy(request(undefined, PAGE), event);
+        expect(response?.headers.get('link')).toBe(`<${PAGE}/timeline.md>; rel="alternate"; type="text/markdown"`);
+        const twin = await proxy(request(undefined, `${PAGE}/timeline.md`), event);
+        expect(twin?.headers.get('link')).toBeNull();
+      });
+
       it('public: a missing page is a 404, a moved one a 307 to its address now, neither kept', async () => {
         timelineOpen.mockResolvedValue(true);
         timelineGate.mockResolvedValueOnce({ kind: 'missing' });

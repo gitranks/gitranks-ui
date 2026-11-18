@@ -31,10 +31,13 @@ export function llmsTxtOf({
   contribute,
   packages,
   learn = null,
+  prTimelines = false,
 }: {
   contribute: boolean;
   packages: boolean;
   learn?: readonly PublicLesson[] | null;
+  /** Pull request timelines are public: what one is, its address, its Markdown and its sitemap are listed. */
+  prTimelines?: boolean;
 }): string {
   const url = (path: string) => `${SITE_URL}${path}`;
   const lines = [`# ${SITE_NAME}`, '', `> ${SITE_DESCRIPTION}`, ''];
@@ -45,6 +48,18 @@ export function llmsTxtOf({
       `- [For AI agents](${url('/contribute/agents.md')}): open-source issues ready to work on, for your agent over MCP; your person approves every pull request`,
       `- [MCP server docs](${url('/contribute/mcp')}): sign in with GitHub from Claude Code, Codex, ChatGPT, Cursor, Gemini CLI, Antigravity, VS Code, claude.ai, Kiro and more, or use a token`,
       `- [Questions](${url('/contribute/faq')})`,
+      '',
+    );
+  }
+  if (prTimelines) {
+    lines.push(
+      '## Pull request timelines',
+      '',
+      "Every pull request opened with GitRanks Contribute can have a public page of how it was made: when the issue was picked, what the agent checked and changed, our checks, the maintainers' reviews, and the merge or close, with times in UTC. No conversation with the agent, no costs.",
+      '',
+      `- Page: ${url('/contribute/pr/<owner>/<repo>/<number>')}`,
+      `- Markdown: ${url('/contribute/pr/<owner>/<repo>/<number>/timeline.md')}`,
+      `- [Sitemap](${url('/sitemaps/contribute-prs/sitemap.xml')}): every public timeline`,
       '',
     );
   }

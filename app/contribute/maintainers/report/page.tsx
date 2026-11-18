@@ -4,6 +4,7 @@ import { PrFeedbackScreen } from '../../components/pr-feedback-view';
 import { orgAccessOf } from '@/lib/contribute/org-access';
 import { prTargetOf } from '@/lib/contribute/pr-feedback';
 import { loadPrReport } from '@/lib/contribute/pr-feedback.data';
+import { publicTimelinePathOf } from '@/lib/contribute/pr-timeline.data';
 
 export const metadata: Metadata = {
   title: 'Tell us how a PR went',
@@ -20,12 +21,14 @@ export const instant = false;
 export default async function MaintainersReportPage({ searchParams }: PageProps<'/contribute/maintainers/report'>) {
   const { target, flow } = prTargetOf(await searchParams);
   const read = target ? await loadPrReport(target) : null;
+  const card = read && 'card' in read ? read.card : null;
   return (
     <PrFeedbackScreen
       target={target}
       flow={flow}
       read={read}
       orgAccessUrl={orgAccessOf(process.env.AUTH_GITHUB_BASIC_ID).url}
+      timelinePath={await publicTimelinePathOf(card?.attemptId)}
     />
   );
 }

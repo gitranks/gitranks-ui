@@ -1,19 +1,42 @@
 import type { PackageDependent, PackageDownloadsPoint, PackagePage } from '@/graphql/package-page';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 
-const WEEK = 7 * 86_400_000;
+const DAY = 86_400_000;
+const WEEK = 7 * DAY;
 
-/** 104 weekly points ending with the week of Nov 9, 2026, each 1,000 more than the one before, from 100,000. */
+/** The week before the last one and the last one, as npm counted them: up 6%. */
+const LAST_TWO_WEEKS = [1_700_000, 1_797_999];
+
+/**
+ * 104 weekly points ending with the week of Nov 9, 2026: 1,030,000 a week, 6,000 more each week, then the last two.
+ * 77.9 million in the last 52 weeks, 61.5 million in the 52 before.
+ */
 export const weeks: PackageDownloadsPoint[] = Array.from({ length: 104 }, (_, i) => ({
   start: new Date(Date.parse('2026-11-09T00:00:00Z') - (103 - i) * WEEK).toISOString(),
-  downloads: 100_000 + i * 1_000,
+  downloads: LAST_TWO_WEEKS[i - 102] ?? 1_030_000 + i * 6_000,
 }));
 
-/** 25 whole months, Oct 2024 – Oct 2026. */
-export const months: PackageDownloadsPoint[] = Array.from({ length: 25 }, (_, i) => ({
-  start: new Date(Date.UTC(2024, 9 + i, 1)).toISOString(),
-  downloads: 5_000_000 + i * 100_000,
+const sum = (points: readonly PackageDownloadsPoint[]) => points.reduce((total, { downloads }) => total + downloads, 0);
+
+/** Downloads on the days `from` (inclusive) to `to` (exclusive), each day a seventh of its week. */
+function downloadsBetween(from: number, to: number): number {
+  let total = 0;
+  for (const { start, downloads } of weeks) {
+    const weekStart = Date.parse(start);
+    const days = (Math.min(to, weekStart + WEEK) - Math.max(from, weekStart)) / DAY;
+    if (days > 0) total += (downloads * days) / 7;
+  }
+  return Math.round(total);
+}
+
+/** The whole months the weeks cover, from the same days: 23 of them, Dec 2024 – Oct 2026. */
+export const months: PackageDownloadsPoint[] = Array.from({ length: 23 }, (_, i) => ({
+  start: new Date(Date.UTC(2024, 11 + i, 1)).toISOString(),
+  downloads: downloadsBetween(Date.UTC(2024, 11 + i, 1), Date.UTC(2024, 12 + i, 1)),
 }));
+
+/** The day after the last week. */
+const WEEKS_END = Date.parse('2026-11-16T00:00:00Z');
 
 export const dependentRows: PackageDependent[] = [
   {
@@ -57,12 +80,12 @@ export const rankedPackage: PackagePage = {
   refreshedAt: null,
   downloads: {
     through: '2026-11-16T00:00:00.000Z',
-    lastWeek: 1_797_999,
-    previousWeek: 1_700_000,
-    last30Days: 7_000_000,
-    previous30Days: 6_800_000,
-    last52Weeks: 77_900_000,
-    previous52Weeks: 70_000_000,
+    lastWeek: LAST_TWO_WEEKS[1],
+    previousWeek: LAST_TWO_WEEKS[0],
+    last30Days: downloadsBetween(WEEKS_END - 30 * DAY, WEEKS_END),
+    previous30Days: downloadsBetween(WEEKS_END - 60 * DAY, WEEKS_END - 30 * DAY),
+    last52Weeks: sum(weeks.slice(52)),
+    previous52Weeks: sum(weeks.slice(0, 52)),
     perStar: 1381.1,
     weeks,
     months,

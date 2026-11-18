@@ -1,6 +1,6 @@
 import { parse } from 'graphql';
 
-import type { REGISTRIES, RegistryId } from '@/lib/packages/registries';
+import type { ListedApiRegistry } from '@/lib/packages/registries';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
@@ -12,7 +12,7 @@ const doc = <TData, TVariables extends Record<string, unknown>>(source: string) 
   parse(source) as DocumentNode<TData, TVariables>;
 
 /** The registries a package can be on, as the API names them: the site's registry table's. */
-export type PackageRegistry = (typeof REGISTRIES)[RegistryId]['api'];
+export type PackageRegistry = ListedApiRegistry;
 
 /** One package a repository publishes, with how many repositories of 100+ stars use it. */
 export type RepoPackage = {

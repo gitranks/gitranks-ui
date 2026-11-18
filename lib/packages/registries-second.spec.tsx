@@ -7,7 +7,9 @@ import { PackageBetaNotice } from '@/app/packages/components/package-beta-notice
 import { PackageRankingFrame } from '@/app/packages/components/package-ranking-view';
 import { packageRankingFirstOrder, packageRankingOrdersOf } from '@/app/packages/package-rankings';
 import { PackageCard } from '@/app/repo/[owner]/[name]/(tabs)/used-by/components/package-card';
+import { filterOptionsOf, followOf } from '@/app/repo/[owner]/[name]/(tabs)/used-by/components/used-by-list';
 import { spansRegistries } from '@/app/repo/[owner]/[name]/utils/repo-package-registry';
+import { noDependentsNote, usedByCardLine } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { availabilityOf, findBadge } from '@/badge/v3/catalogue';
 import { packageBig } from '@/badge/v3/fixtures';
 import { resolveParams } from '@/badge/v3/params';
@@ -118,6 +120,33 @@ describe('a second registry in the table', () => {
       'maven/org.slf4j:slf4j-api',
     );
     expect(parsePackageSearch('react')).toBe('npm/react');
+  });
+
+  it('keys the Used by filter and Follow by registry and name, so one name on two registries is two packages', () => {
+    const onBoth = [
+      { registry: 'NPM' as const, name: 'slf4j' },
+      { registry: 'MAVEN' as RepoPackage['registry'], name: 'slf4j' },
+    ];
+    expect(filterOptionsOf(onBoth)).toEqual([
+      { value: 'npm/slf4j', name: 'slf4j', registryLabel: 'npm' },
+      { value: 'maven/slf4j', name: 'slf4j', registryLabel: 'Maven Central' },
+    ]);
+    expect(followOf('acme/slf4j', onBoth, 2, 'maven/slf4j').packages).toEqual([{ registry: 'maven', name: 'slf4j' }]);
+    expect(filterOptionsOf([onBoth[0]])).toEqual([{ value: 'npm/slf4j', name: 'slf4j' }]);
+  });
+
+  it('says nothing about downloads on Used by for a registry without download counts', () => {
+    const pkg: RepoPackage = {
+      registry: 'MAVEN' as RepoPackage['registry'],
+      name: 'org.slf4j:slf4j-api',
+      dependents: 0,
+      downloadsLastWeek: 0,
+    };
+    const packages = { total: 1, items: [pkg], dependents: 0, dependentsArchived: 0, downloadsLastWeek: 0 };
+    expect(renderToStaticMarkup(<PackageCard pkg={pkg} wide />)).not.toContain('downloads');
+    expect(noDependentsNote(packages)).toBe('We read every repository with 100+ stars once a month.');
+    expect(usedByCardLine(packages)).toMatchObject({ downloads: null });
+    expect(usedByCardLine(packages).what).toMatch(/Maven Central package org\.slf4j:slf4j-api\.$/);
   });
 
   it("names each package's registry on a repository whose packages are on both", () => {

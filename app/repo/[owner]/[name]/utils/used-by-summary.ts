@@ -46,11 +46,15 @@ function packagesWord(packages: Pick<RepoPackages, 'items'>, one = false): strin
   return registry ? `${REGISTRIES[registry].label} ${word}` : word;
 }
 
-/** "a week on npm" on one registry, "a week" across several. */
-export function downloadsPer(packages: Pick<RepoPackages, 'items'>): string {
+/**
+ * "a week on npm" on one registry, "a week" across several (the counts are weekly); `null` on one registry that
+ * publishes no download counts, where nothing is said about downloads.
+ */
+export function downloadsPer(packages: Pick<RepoPackages, 'items'>): string | null {
   const registry = sharedRegistryOf(packages.items);
-  const unit = registry ? (REGISTRIES[registry].downloads ?? 'week') : 'week';
-  return registry ? `a ${unit} on ${REGISTRIES[registry].label}` : `a ${unit}`;
+  if (!registry) return 'a week';
+  const { downloads: unit, label } = REGISTRIES[registry];
+  return unit ? `a ${unit} on ${label}` : null;
 }
 const repoLink = (nameWithOwner: string): SummaryPart => ({ text: nameWithOwner, href: getRepoPath(nameWithOwner) });
 
@@ -82,10 +86,12 @@ function publishes(nameWithOwner: string, packages: RepoPackages): SummaryPart[]
 }
 
 function downloadsSentence(packages: RepoPackages): string {
+  const per = downloadsPer(packages);
+  if (!per) return '';
   const downloads = formatCount(packages.downloadsLastWeek);
   return packages.total === 1
-    ? ` It is downloaded ${downloads} times ${downloadsPer(packages)}.`
-    : ` Together ${packages.total <= 3 ? 'the packages are' : 'they are'} downloaded ${downloads} times ${downloadsPer(packages)}.`;
+    ? ` It is downloaded ${downloads} times ${per}.`
+    : ` Together ${packages.total <= 3 ? 'the packages are' : 'they are'} downloaded ${downloads} times ${per}.`;
 }
 
 /**
@@ -146,16 +152,20 @@ export function buildUsedBySummary(
   return parts;
 }
 
-/** The Overview card's line: "231 repositories with 100+ stars depend on its 3 npm packages, 527k downloads a week." */
-export function usedByCardLine(packages: RepoPackages): { dependents: string; what: string; downloads: string } {
+/**
+ * The Overview card's line: "231 repositories with 100+ stars depend on its 3 npm packages, 527k downloads a week."
+ * Without download counts the line ends after the packages, and `downloads` is `null`.
+ */
+export function usedByCardLine(packages: RepoPackages): { dependents: string; what: string; downloads: string | null } {
+  const hasDownloads = downloadsPer(packages) !== null;
   return {
     dependents: formatCount(packages.dependents),
     what: `${packages.dependents === 1 ? 'repository' : 'repositories'} with 100+ stars ${packages.dependents === 1 ? 'depends' : 'depend'} on ${
       packages.total === 1
         ? `its ${packagesWord(packages, true)} ${packages.items[0].name}`
         : `its ${formatCount(packages.total)} ${packagesWord(packages)}`
-    }, `,
-    downloads: formatDownloadsShort(packages.downloadsLastWeek),
+    }${hasDownloads ? ', ' : '.'}`,
+    downloads: hasDownloads ? formatDownloadsShort(packages.downloadsLastWeek) : null,
   };
 }
 

@@ -118,7 +118,7 @@ describe('the list', () => {
 
   it('follows the package the list is cut to, else the most used, else all of four or more', () => {
     const names = fivePackages.items;
-    expect(followOf('nebula/ui', names, 5, '@nebula/cli')).toEqual({
+    expect(followOf('nebula/ui', names, 5, 'npm/@nebula/cli')).toEqual({
       packages: [{ registry: 'npm', name: '@nebula/cli' }],
       label: '@nebula/cli',
     });

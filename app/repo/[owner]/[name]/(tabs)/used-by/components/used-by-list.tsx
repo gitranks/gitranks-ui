@@ -2,10 +2,11 @@
 
 import { type FC, type ReactNode, useRef, useState } from 'react';
 
-import { PackageFilter } from './package-filter';
+import { PackageFilter, type PackageFilterOption } from './package-filter';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import {
   registryOfRepoPackage,
+  repoPackageKeyOf,
   repoPackageRefOf,
   spansRegistries,
 } from '@/app/repo/[owner]/[name]/utils/repo-package-registry';
@@ -33,19 +34,21 @@ export function usedByRouteQuery(offset: number, pkg: string | null, hideArchive
   return search ? `?${search}` : '';
 }
 
-/** What one press of Follow covers: the package the list is cut to, else the tab's own choice. */
+type ListedPackage = Pick<RepoPackage, 'name' | 'registry'>;
+
+/**
+ * What one press of Follow covers: the package the list is cut to (by its `<registry>/<name>`), else the tab's own
+ * choice.
+ */
 export function followOf(
   nameWithOwner: string,
-  packages: readonly Pick<RepoPackage, 'name' | 'registry'>[],
+  packages: readonly ListedPackage[],
   total: number,
   filter: string | null,
 ): Pick<FollowSlotProps, 'packages' | 'label'> {
-  const one = (pkg: Pick<RepoPackage, 'name' | 'registry'>) => ({ packages: [repoPackageRefOf(pkg)], label: pkg.name });
-  // The list is cut by a package's name: the package of that name it lists, else one of that name on its first
-  // package's registry.
-  if (filter !== null) {
-    return one(packages.find(({ name }) => name === filter) ?? { name: filter, registry: packages[0].registry });
-  }
+  const one = (pkg: ListedPackage) => ({ packages: [repoPackageRefOf(pkg)], label: pkg.name });
+  const cut = filter === null ? undefined : packages.find((pkg) => repoPackageKeyOf(pkg) === filter);
+  if (cut) return one(cut);
   // Four or more: all of them at once; fewer: the most used.
   if (total >= 4) {
     return { packages: packages.map(repoPackageRefOf), label: `${nameWithOwner} packages` };
@@ -53,15 +56,22 @@ export function followOf(
   return one(packages[0]);
 }
 
-/** Each package's registry by its name, for the filter: only when the packages are on more than one registry. */
-const registryLabelsOf = (packages: readonly Pick<RepoPackage, 'name' | 'registry'>[]) =>
-  spansRegistries(packages)
-    ? Object.fromEntries(packages.map((pkg) => [pkg.name, REGISTRIES[registryOfRepoPackage(pkg)].label]))
-    : undefined;
+/**
+ * The filter's options, one per package by its `<registry>/<name>`: its name, and its registry when the packages are
+ * on more than one.
+ */
+export const filterOptionsOf = (packages: readonly ListedPackage[]): PackageFilterOption[] => {
+  const named = spansRegistries(packages);
+  return packages.map((pkg) => ({
+    value: repoPackageKeyOf(pkg),
+    name: pkg.name,
+    ...(named ? { registryLabel: REGISTRIES[registryOfRepoPackage(pkg)].label } : {}),
+  }));
+};
 
 type UsedByListProps = {
   nameWithOwner: string;
-  packages: Pick<RepoPackage, 'name' | 'registry'>[];
+  packages: ListedPackage[];
   /** How many packages it publishes. */
   total: number;
   /** The first page, unfiltered, as the page drew it. */
@@ -117,12 +127,14 @@ export const UsedByList: FC<UsedByListProps> = ({ nameWithOwner, packages, total
   // Only the latest read is shown: a slower earlier one is dropped.
   const latest = useRef(0);
 
+  // `pkg` is the package's `<registry>/<name>`; the rows are asked for by its name.
   const read = async (offset: number, pkg: string | null, hideArchived: boolean) => {
     const id = ++latest.current;
     setLoading(true);
     setError(null);
+    const name = pkg === null ? null : (packages.find((item) => repoPackageKeyOf(item) === pkg)?.name ?? null);
     try {
-      const response = await fetch(`${usedByRoutePath(nameWithOwner)}${usedByRouteQuery(offset, pkg, hideArchived)}`);
+      const response = await fetch(`${usedByRoutePath(nameWithOwner)}${usedByRouteQuery(offset, name, hideArchived)}`);
       const body = response.ok ? ((await response.json()) as { page?: RepoUsedBy | null }) : null;
       if (id !== latest.current) return;
       if (!body?.page) {
@@ -151,8 +163,7 @@ export const UsedByList: FC<UsedByListProps> = ({ nameWithOwner, packages, total
             <div className="flex flex-wrap items-center gap-2 p-4">
               {several && (
                 <PackageFilter
-                  names={packages.map(({ name }) => name)}
-                  registryLabels={registryLabelsOf(packages)}
+                  options={filterOptionsOf(packages)}
                   total={total}
                   value={shown.pkg}
                   onChange={(pkg) => read(0, pkg, shown.hideArchived)}

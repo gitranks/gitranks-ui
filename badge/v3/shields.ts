@@ -370,12 +370,8 @@ function packageShield(pkg: PackageFacts, badge: BadgeDefinition, params: BadgeP
         ),
       );
     case 'downloads':
-      if (!pkg.downloads) return content(params, downloadsLabel, DASH);
-      return content(
-        params,
-        downloadsLabel,
-        segment(mono(formatCompact(pkg.downloads.lastWeek)), quiet(`a ${unit ?? 'week'}`)),
-      );
+      if (!pkg.downloads || !unit) return content(params, downloadsLabel, DASH);
+      return content(params, downloadsLabel, segment(mono(formatCompact(pkg.downloads.lastWeek)), quiet(`a ${unit}`)));
     case 'downloads-year':
       if (!pkg.downloads) return content(params, downloadsLabel, DASH);
       return content(

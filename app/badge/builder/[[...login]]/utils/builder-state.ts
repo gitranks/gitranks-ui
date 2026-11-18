@@ -124,8 +124,10 @@ export const packageRefOf = (name: string): PackageRef | null => packageOfKey(na
  */
 export function anyPackageRefOf(name: string): PackageRef {
   const slash = name.indexOf('/');
-  const registry = name.slice(0, slash);
-  return isRegistryId(registry) ? { registry, name: name.slice(slash + 1) } : { registry: DEFAULT_REGISTRY, name };
+  const registry = name.slice(0, Math.max(slash, 0));
+  return slash > 0 && isRegistryId(registry)
+    ? { registry, name: name.slice(slash + 1) }
+    : { registry: DEFAULT_REGISTRY, name };
 }
 
 /** An entity's name as people read it: a package's own name, without its registry. */

@@ -21,7 +21,7 @@ export const RegistryChip: FC<{ label: string }> = ({ label }) => (
 
 /**
  * A package the repository publishes, linking to its page: how many repositories with 100+ stars use it and its
- * downloads. `wide` for a repository's only package, with its role spelled out and "Package page". `registryChip`
+ * downloads (none on a registry that publishes no download counts). `wide` for a repository's only package, with its role spelled out and "Package page". `registryChip`
  * names its registry, for a repository whose packages are on more than one.
  */
 export const PackageCard: FC<{ pkg: RepoPackage; wide?: boolean; registryChip?: boolean }> = ({
@@ -55,12 +55,14 @@ export const PackageCard: FC<{ pkg: RepoPackage; wide?: boolean; registryChip?: 
               </span>{' '}
               <span className="text-xs text-muted-foreground">repos with 100+ stars use it</span>
             </span>
-            <span>
-              <span className="font-mono text-xl font-semibold tabular-nums">
-                {pkg.downloadsLastWeek.toLocaleString('en-US')}
-              </span>{' '}
-              <span className="text-xs text-muted-foreground">{`downloads a ${unit ?? 'week'}`}</span>
-            </span>
+            {unit && (
+              <span>
+                <span className="font-mono text-xl font-semibold tabular-nums">
+                  {pkg.downloadsLastWeek.toLocaleString('en-US')}
+                </span>{' '}
+                <span className="text-xs text-muted-foreground">{`downloads a ${unit}`}</span>
+              </span>
+            )}
             <span className="inline-flex items-center gap-1 text-sm font-medium text-link">
               Package page
               <ArrowRight className="size-4" aria-hidden />
@@ -77,12 +79,14 @@ export const PackageCard: FC<{ pkg: RepoPackage; wide?: boolean; registryChip?: 
             {pkg.dependents.toLocaleString('en-US')}
           </span>
           <span className="text-xs text-muted-foreground">repos with 100+ stars use it</span>
-          <span className="text-xs text-muted-foreground">
-            <span className="font-mono tabular-nums text-foreground">
-              {pkg.downloadsLastWeek.toLocaleString('en-US')}
-            </span>{' '}
-            {`downloads a ${unit ?? 'week'}`}
-          </span>
+          {unit && (
+            <span className="text-xs text-muted-foreground">
+              <span className="font-mono tabular-nums text-foreground">
+                {pkg.downloadsLastWeek.toLocaleString('en-US')}
+              </span>{' '}
+              {`downloads a ${unit}`}
+            </span>
+          )}
         </>
       )}
     </NextLink>

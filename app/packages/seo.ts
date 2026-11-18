@@ -11,7 +11,7 @@ import {
 import type { QuestionItem } from '@/components/questions-block/questions-block';
 import { buildPackageRankingItemList } from '@/components/ranking-table/ranking-item-list';
 import type { PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
-import type { RegistryId } from '@/lib/packages/registries';
+import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { clipText } from '@/lib/seo/clip-text';
 import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
@@ -136,7 +136,7 @@ export function buildPackageRankingQuestions(
   items.push(
     {
       question: 'What counts as a dependent?',
-      answer: `A public repository with ${DEPENDENT_MIN_STARS}+ stars that lists the package in its own package.json. Lockfiles, forks and example, docs or test folders don't count, and neither does a package that only comes in through another package.`,
+      answer: `A public repository with ${DEPENDENT_MIN_STARS}+ stars that lists the package in its own ${REGISTRIES[registry].manifest}. Lockfiles, forks and example, docs or test folders don't count, and neither does a package that only comes in through another package.`,
     },
     {
       question: 'How often are package rankings updated?',

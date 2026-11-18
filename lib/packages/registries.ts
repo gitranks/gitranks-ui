@@ -1,20 +1,20 @@
 import { isNpmPackageName, NPM_NAME_MAX_LENGTH } from '@/lib/packages/npm-package-name';
 import type { PackageRegistry } from '@/types/generated/graphql';
 
-/** How often a registry counts its downloads, as the site says it: "downloads a week". */
-export type DownloadsUnit = 'week' | 'month';
+/**
+ * The period a registry's downloads are counted over, as the site says it: "downloads a week". Only weekly counts are
+ * read for now (a package's `lastWeek`), so a week is the only unit.
+ */
+export type DownloadsUnit = 'week';
 
 /**
  * How a registry's package names map to URL segments and back: a name takes `min` to `max` segments (`max: null` for
  * any number), joined by `join`. With `scope`, a name takes its extra segments only behind a scope that starts with
- * it (npm: `react`, or `@scope/name`).
+ * it (npm: `react`, or `@scope/name`), so a scope needs a highest count.
  */
-export type RegistryPath = {
-  min: number;
-  max: number | null;
-  join: '/' | ':';
-  scope?: string;
-};
+export type RegistryPath =
+  | { min: number; max: number; join: '/' | ':'; scope?: string }
+  | { min: number; max: null; join: '/' | ':'; scope?: never };
 
 /** What the site shows of a registry, and how its names are checked. */
 export type RegistryTraits = {
@@ -81,6 +81,17 @@ export function registryOfApi(api: string | null | undefined): RegistryId | null
   return REGISTRY_IDS.find((id) => REGISTRIES[id].api === api) ?? null;
 }
 
+/** A registry as the API names it, one the site lists: `NPM`. */
+export type ListedApiRegistry = (typeof REGISTRIES)[RegistryId]['api'];
+
+/** Whether the API names a registry the site lists. */
+export const isListedApiRegistry = (api: unknown): api is ListedApiRegistry =>
+  typeof api === 'string' && registryOfApi(api) !== null;
+
+/** The registry of a value already checked as one the site lists (`isListedApiRegistry`). */
+export const registryOfListedApi = (api: ListedApiRegistry): RegistryId =>
+  REGISTRY_IDS.find((id) => REGISTRIES[id].api === api) as RegistryId;
+
 /** The registry as the API names it, typed as the API's enum (the same string). */
 export const apiRegistryOf = (id: RegistryId) => REGISTRIES[id].api as PackageRegistry;
 
@@ -98,9 +109,10 @@ function isSegmentCountInRange(id: RegistryId, count: number): boolean {
  * behind an `@scope`. What decides which segments a path's file follows (`<name>/facts.md`).
  */
 export function isNameSegmentCount(id: RegistryId, segments: readonly string[]): boolean {
-  const { max, min, scope } = registryOf(id).path;
+  const path = registryOf(id).path;
   if (!isSegmentCountInRange(id, segments.length)) return false;
-  return scope === undefined || segments.length === (segments[0]?.startsWith(scope) ? max : min);
+  if (path.max === null || path.scope === undefined) return true;
+  return segments.length === (segments[0]?.startsWith(path.scope) ? path.max : path.min);
 }
 
 /**
@@ -150,10 +162,10 @@ export function packageOfKey(key: string): PackageRef | null {
 export const packageDisplayNameOf = ({ registry, name }: PackageRef) =>
   registry === DEFAULT_REGISTRY ? name : `${registry}/${name}`;
 
-/** "npm downloads a week": a registry's downloads in its own unit ("a week" where it publishes none). */
+/** "npm downloads a week": a registry's downloads in its own unit; "… downloads" alone where it has none. */
 export function registryDownloadsText(id: RegistryId) {
   const { label, downloads } = registryOf(id);
-  return `${label} downloads a ${downloads ?? 'week'}`;
+  return downloads ? `${label} downloads a ${downloads}` : `${label} downloads`;
 }
 
 /** "package.json", "package.json or pyproject.toml": the files the listed registries' packages are listed in. */

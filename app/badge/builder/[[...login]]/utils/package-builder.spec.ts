@@ -4,6 +4,7 @@ import { findHeading, missingHref } from '../components/find-step';
 import { BADGE_CHECK_COPY, badgeCheckViewOf, isBadgeCheckResult, readmeOf } from './badge-check';
 import { badgeAlt, entityName, offeredBadges } from './badge-options';
 import {
+  anyPackageRefOf,
   builderHref,
   entityLabel,
   isEntityName,
@@ -158,5 +159,14 @@ describe("a package's daily updates card", () => {
       action: null,
     });
     expect(isBadgeCheckResult({ status: 'no_repository' })).toBe(true);
+  });
+});
+
+describe('anyPackageRefOf', () => {
+  it('reads a registry only before a slash that is not the first character', () => {
+    expect(anyPackageRefOf('npm/@types/node')).toEqual({ registry: 'npm', name: '@types/node' });
+    expect(anyPackageRefOf('react')).toEqual({ registry: 'npm', name: 'react' });
+    expect(anyPackageRefOf('/npm')).toEqual({ registry: 'npm', name: '/npm' });
+    expect(anyPackageRefOf('pypi/x')).toEqual({ registry: 'npm', name: 'pypi/x' });
   });
 });

@@ -1,15 +1,27 @@
 import type { RepoPackage } from '@/graphql/repo-packages';
-import { DEFAULT_REGISTRY, type PackageRef, type RegistryId, registryOfApi } from '@/lib/packages/registries';
+import {
+  DEFAULT_REGISTRY,
+  type PackageRef,
+  packageKeyOf,
+  type RegistryId,
+  registryOfListedApi,
+} from '@/lib/packages/registries';
 
-/** The registry one of a repository's packages is on; the default one for a registry the site does not list. */
+// A repository's packages are read with only the registries the site lists kept (`fetchRepoPackages`), so each one's
+// registry is one of the table's.
+
+/** The registry one of a repository's packages is on. */
 export const registryOfRepoPackage = (pkg: Pick<RepoPackage, 'registry'>): RegistryId =>
-  registryOfApi(pkg.registry) ?? DEFAULT_REGISTRY;
+  registryOfListedApi(pkg.registry);
 
 /** One of a repository's packages, by its registry and name. */
 export const repoPackageRefOf = (pkg: Pick<RepoPackage, 'registry' | 'name'>): PackageRef => ({
   registry: registryOfRepoPackage(pkg),
   name: pkg.name,
 });
+
+/** One of a repository's packages as `<registry>/<name>`: one key per package, whatever registries share a name. */
+export const repoPackageKeyOf = (pkg: Pick<RepoPackage, 'registry' | 'name'>) => packageKeyOf(repoPackageRefOf(pkg));
 
 /** The one registry a repository's packages are on (the default one for none listed); `null` across several. */
 export function sharedRegistryOf(items: readonly Pick<RepoPackage, 'registry'>[]): RegistryId | null {

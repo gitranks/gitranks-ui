@@ -94,8 +94,8 @@ export const packagePickOf = (pkg: PackageRef): PickRef => ({ kind: 'package', n
 /** A pick as a list shows it: a repository's `owner/name`, a package's name as people know it. */
 export function pickDisplayName({ kind, name }: PickRef) {
   const slash = name.indexOf('/');
-  const registry = name.slice(0, slash);
-  return kind === 'package' && isRegistryId(registry)
+  const registry = name.slice(0, Math.max(slash, 0));
+  return kind === 'package' && slash > 0 && isRegistryId(registry)
     ? packageDisplayNameOf({ registry, name: name.slice(slash + 1) })
     : name;
 }

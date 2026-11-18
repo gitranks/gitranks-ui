@@ -53,6 +53,12 @@ function packageNames(packages: RepoPackages): string {
   return names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
+/** "527,312 downloads a week on npm."; nothing on a registry that publishes no download counts. */
+function downloadsLine(packages: RepoPackages): string | undefined {
+  const per = downloadsPer(packages);
+  return per ? `${formatCount(packages.downloadsLastWeek)} downloads ${per}.` : undefined;
+}
+
 /**
  * Metadata and JSON-LD of a repository's Used by tab. Kept out of search engines without a dependent and while
  * package data cannot be read.
@@ -92,7 +98,7 @@ export function buildUsedBySEO(
         ? `${plural(dependents, 'repository', 'repositories')} with 100+ stars ${dependents === 1 ? 'depends' : 'depend'} on ${packageNames(packages)}.`
         : `No repository with 100+ stars depends on ${packageNames(packages)} yet.`,
       first ? `The most-starred is ${first.nameWithOwner} (${plural(first.stars, 'star', 'stars')}).` : undefined,
-      `${formatCount(packages.downloadsLastWeek)} downloads ${downloadsPer(packages)}.`,
+      downloadsLine(packages),
     ]
       .filter(Boolean)
       .join(' '),

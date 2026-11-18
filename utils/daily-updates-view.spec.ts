@@ -5,7 +5,9 @@ import {
   type DailyUpdatesFacts,
   isPickKind,
   nextUpdateText,
+  packagePickOf,
   pickableUpdatesViewOf,
+  pickDisplayName,
   profileUpdatesViewOf,
   samePick,
   type ViewerFacts,
@@ -199,5 +201,18 @@ describe('nextUpdateText', () => {
     expect(nextUpdateText(null, NOW)).toBeNull();
     expect(nextUpdateText(undefined, NOW)).toBeNull();
     expect(nextUpdateText('not a date', NOW)).toBeNull();
+  });
+});
+
+describe('package picks', () => {
+  it('name a package `<registry>/<name>` and show it as people know it', () => {
+    expect(packagePickOf({ registry: 'npm', name: '@types/node' })).toEqual({
+      kind: 'package',
+      name: 'npm/@types/node',
+    });
+    expect(pickDisplayName({ kind: 'package', name: 'npm/@types/node' })).toBe('@types/node');
+    expect(pickDisplayName({ kind: 'package', name: '/npm' })).toBe('/npm');
+    expect(pickDisplayName({ kind: 'package', name: 'pypi/x' })).toBe('pypi/x');
+    expect(pickDisplayName({ kind: 'repo', name: 'npm/cli' })).toBe('npm/cli');
   });
 });

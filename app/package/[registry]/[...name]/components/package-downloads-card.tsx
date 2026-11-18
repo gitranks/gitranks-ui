@@ -61,7 +61,7 @@ const Period: FC<{ period: DownloadsPeriod }> = ({ period }) => (
  * period before and a year before, with a small line; and its downloads a week per star of its repository.
  */
 export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ registry, downloads, repo }) => {
-  const unit = REGISTRIES[registry].downloads ?? 'week';
+  const unit = REGISTRIES[registry].downloads;
   const month = monthPeriodOf(downloads);
   const [picked, setPicked] = useState<'week' | 'month'>('week');
   const view = picked === 'month' && month ? 'month' : 'week';
@@ -93,7 +93,7 @@ export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ registry, 
         )}
       </div>
       <Period period={period} />
-      {perStar !== null && repo && (
+      {perStar !== null && repo && unit && (
         <p className="text-xs text-muted-foreground">
           <span className="font-mono tabular-nums">{formatCount(Math.round(perStar))}</span>
           {` downloads a ${unit} per GitHub star (`}

@@ -27,7 +27,11 @@ export const UsedByCard: FC<UsedByCardProps> = ({ nameWithOwner, packages, rows 
           </ProfileCardHeader>
           <p className="text-sm text-muted-foreground">
             <span className="font-mono tabular-nums text-foreground">{line.dependents}</span> {line.what}
-            <span className="font-mono tabular-nums text-foreground">{line.downloads}</span> downloads a week.
+            {line.downloads !== null && (
+              <>
+                <span className="font-mono tabular-nums text-foreground">{line.downloads}</span> downloads a week.
+              </>
+            )}
           </p>
         </div>
         <MoreLink href={repoTabPath(nameWithOwner, 'used-by')} className="shrink-0">

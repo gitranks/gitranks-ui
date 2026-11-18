@@ -57,7 +57,8 @@ export async function publicPrTimeline(pr: PrRef): Promise<PrTimeline | null> {
 export async function readPublicPrTimelines(): Promise<PublicPrTimeline[] | null> {
   'use cache';
   const answer = await graphqlDirect(PublicPrTimelinesDocument, undefined, { source: 'ssr' }).catch(() => null);
-  if (answer) cacheLife('hours');
+  // An empty list (closed, or nothing shown yet) is asked again within minutes: opening reaches the sitemap soon.
+  if (answer?.publicPrTimelines.length) cacheLife('hours');
   else cacheLife('minutes');
   return answer?.publicPrTimelines ?? null;
 }

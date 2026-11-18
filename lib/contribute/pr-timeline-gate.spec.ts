@@ -36,13 +36,13 @@ describe('the PR timeline gate', () => {
 
   it('a page: shown, moved or missing; a failure leaves it to the page', async () => {
     api(true, { timeline: { partial: true }, movedTo: null, movedNumber: null });
-    expect(await prTimelineGateOf(PR)).toEqual({ kind: 'page', partial: true });
+    expect(await prTimelineGateOf(PR)).toEqual({ kind: 'page', partial: true, confirmed: true });
     api(true, { timeline: null, movedTo: 'acme/gadgets', movedNumber: 42 });
     expect(await prTimelineGateOf(PR)).toEqual({ kind: 'redirect', path: '/contribute/pr/acme/gadgets/42' });
     api(true, null);
     expect(await prTimelineGateOf(PR)).toEqual({ kind: 'missing' });
     graphqlDirect.mockRejectedValue(new Error('down'));
-    expect(await prTimelineGateOf(PR)).toEqual({ kind: 'page', partial: false });
+    expect(await prTimelineGateOf(PR)).toEqual({ kind: 'page', partial: false, confirmed: false });
   });
 
   it('the short address, public: the page when shown, else the maintainers page, asked signed out', async () => {

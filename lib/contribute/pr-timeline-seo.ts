@@ -45,7 +45,12 @@ export function prTimelineJsonLdOf(timeline: PrTimeline): unknown[] {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'GitRanks Contribute', item: absoluteUrl('/contribute') },
-        { '@type': 'ListItem', position: 2, name: timeline.nameWithOwner },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: timeline.nameWithOwner,
+          item: `https://github.com/${timeline.nameWithOwner}`,
+        },
         { '@type': 'ListItem', position: 3, name: `#${timeline.number}`, item: url },
       ],
     },

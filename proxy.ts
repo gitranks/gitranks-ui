@@ -173,6 +173,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // question to the API, and a signed-in one is rewritten to the page's per-request twin, which asks the API as them and
   // is never cached. The short address the footer links is its own route handler, outside every gate. The per-request
   // twin is reachable only through this rewrite. Rewritten before Auth.js, like the 404s above.
+  let shownTimeline = false;
   const timeline =
     request.method === 'GET' || request.method === 'HEAD' ? prTimelineRouteOf(request.nextUrl.pathname) : null;
   if (request.nextUrl.pathname.toLowerCase().startsWith(PR_TIMELINE_PREVIEW_ROOT)) {
@@ -183,6 +184,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   if (timeline && timeline.kind !== 'short') {
     if (await contributePrTimelineOpen()) {
       const gate = await prTimelineGateOf(timeline.pr);
+      shownTimeline = gate.kind === 'page' && gate.confirmed;
       if (gate.kind !== 'page') {
         const response =
           gate.kind === 'missing'
@@ -323,7 +325,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   }
   // A shown public timeline says where its Markdown twin is (an answer the gate above let through).
   const twinLink =
-    timeline?.kind === 'page'
+    shownTimeline && timeline?.kind === 'page'
       ? `<${prTimelineMarkdownPath(timeline.pr)}>; rel="alternate"; type="text/markdown"`
       : null;
   const served = <T>(response: T): T => {

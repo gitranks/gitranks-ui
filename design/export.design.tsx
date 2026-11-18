@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import type { ReactElement } from 'react';
@@ -46,6 +46,8 @@ it('exports the screens', async () => {
   const commit = execSync("git describe --always --dirty --abbrev=7 --exclude='*'").toString().trim();
   const boards: Record<string, Record<string, string | number>> = {};
   const images = new Set<string>();
+  // A fresh drawing: boards and images an earlier export wrote and this one no longer draws don't linger.
+  rmSync(join(OUT, 'project/current'), { recursive: true, force: true });
   for (const screen of SCREENS) {
     for (const state of screen.states) {
       const path = boardPathOf(screen, state);
@@ -62,6 +64,8 @@ it('exports the screens', async () => {
       });
       const drawn = await drawImages(await markupOf(state.render()), path);
       for (const [image, svg] of drawn.images) {
+        // Named by content: a board that shows an image another board showed points at the same file.
+        if (images.has(image)) continue;
         write(image, svg);
         images.add(image);
       }

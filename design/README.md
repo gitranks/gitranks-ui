@@ -34,8 +34,20 @@ Contribute, Learn), plus To review and Archive.
   - **Once approved**, the boards and notes move to the area's page, into its proposal column (the grey "Live boards"
     note names its x) beside the screen's row. When live rows move or widen, the redraw moves the proposal column's
     boards and notes with their row.
-- **Archive**: a shipped or dropped proposal moves there (its boards' `page` becomes `archive`), so the history stays
-  in one place. Older canvases from before this one are linked from there.
+- **Archive**: a shipped or dropped proposal moves there, so the history stays in one place. Its notes stay; its files
+  (boards, frozen badge images, stylesheet copies) leave the canvas, since the shipped screen is now a live board.
+  Older canvases from before this one are linked from there.
+
+### The file cap
+
+The canvas holds at most 512 files a version, besides its type's own. Live boards, their images and the stylesheet
+take most of them, so:
+
+- Live images are shared by content: each distinct image is one file, named by its hash, whichever boards show it.
+- When a proposal ships or is dropped (moves to Archive), its files are removed from the canvas and only its notes
+  stay; frozen badge images of archived proposals go with them.
+- Aim at 450 files or fewer after a redraw. `pnpm design:export` prints the live file count and
+  `scripts/design-canvas.mjs` the canvas's count after the publish; both warn above 450.
 
 ## The catalogue
 
@@ -56,16 +68,16 @@ How a state is drawn (`design/setup.tsx`, `design/images.ts`):
 - Loaders and server-only modules are mocked; nothing reads the API. A loader a screen calls in the browser is mocked
   to return its fixture.
 - Badge images are drawn from badge facts, the way the site's own route draws them, into `project/current/img/`. A
-  screen names the facts its badges show with `withBadgeFacts`. Each board's images are `img/<board>-<n>.svg`, so a
-  redraw replaces them in place. Avatars become identicons, since the fixtures' accounts are made up. Any other image
-  stops the export.
+  screen names the facts its badges show with `withBadgeFacts`. Each image is `img/<first 12 hex of its sha256>.svg`,
+  written once and shared by every board that shows it; a drawing that changed is a new file. Avatars become
+  identicons, since the fixtures' accounts are made up. Any other image stops the export.
 
 ## Commands
 
 | Command | Does |
 | --- | --- |
-| `pnpm design:export` | Renders every state to `.design/project/current/**`, with the badge images the boards show, and builds `gitranks.css` (a few seconds). |
-| `node scripts/design-canvas.mjs <canvas.json>` | Merges the export into the canvas's index as read from the canvas: replaces the live boards and their notes (ids starting `current-`), keeps proposals, other notes and pages. Writes `.design/project/canvas.json` and `.design/publish.json` (the files to send: boards, images, stylesheet). Runs only on a clean checkout of `origin/main`: live boards come from main. |
+| `pnpm design:export` | Renders every state to `.design/project/current/**`, with the badge images the boards show, and builds `gitranks.css` (a few seconds). Prints the live file count. |
+| `node scripts/design-canvas.mjs <canvas.json> <files.txt>` | Merges the export into the canvas's index as read from the canvas: replaces the live boards and their notes (ids starting `current-`), keeps proposals, other notes and pages. `files.txt` is the canvas's file listing (`Artifact list`, `scope: "files"`, saved as text): the index has no images, so live files the canvas holds that the export no longer draws are found there and removed. Writes `.design/project/canvas.json` and `.design/publish.json` (the files to send: boards, images, stylesheet, and `null` for each removal), and prints the canvas's file count after the publish. Runs only on a clean checkout of `origin/main`: live boards come from main. |
 | `node scripts/design-tokens.mjs <tokens.json>` | The design system's `tokens.json` with every colour from `app/globals.css`, keeping its usage notes and type scale. Writes `.design/system/project/tokens.json`. |
 
 `.design/` is not committed.

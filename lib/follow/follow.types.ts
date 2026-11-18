@@ -36,6 +36,12 @@ export type FollowChannels = {
   notable: number | null;
 };
 
+/**
+ * The channels as the site's route answers them: with whether this browser holds an email settings link's key now, so
+ * the dialog offers Settings only when that page will open on it. The key itself never reaches the browser.
+ */
+export type FollowChannelsView = FollowChannels & { settingsLink: boolean };
+
 export type FollowStatus = 'pending' | 'active' | 'removed';
 
 /** One package followed at one of the signed-in viewer's addresses. */

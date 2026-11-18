@@ -1,6 +1,7 @@
 import type {
   FollowChangeBody,
   FollowChannels,
+  FollowChannelsView,
   FollowFailure,
   FollowPackage,
   FollowRow,
@@ -58,11 +59,13 @@ const post = (body: unknown): RequestInit => ({
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** The dialog's channels; for one package, its dependents now too. */
-export function fetchFollowChannels(pkg: FollowPackage | null): Promise<FollowCall<FollowChannels>> {
+/** The dialog's channels; for one package, its dependents now too; and whether Settings will open here. */
+export function fetchFollowChannels(pkg: FollowPackage | null): Promise<FollowCall<FollowChannelsView>> {
   const query = pkg ? `?${new URLSearchParams({ package: pkg.name })}` : '';
   return call(`${FOLLOW_ROUTES.channels}${query}`, undefined, (body) =>
-    isRecord(body) && Array.isArray(body.channels) ? (body as FollowChannels) : UNREAD,
+    isRecord(body) && Array.isArray(body.channels)
+      ? { ...(body as FollowChannels), settingsLink: body.settingsLink === true }
+      : UNREAD,
   );
 }
 

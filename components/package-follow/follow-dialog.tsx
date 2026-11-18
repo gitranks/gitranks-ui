@@ -18,7 +18,7 @@ import {
   FOLLOW_CHANNELS,
   type FollowChannel,
   type FollowChannelOption,
-  type FollowChannels,
+  type FollowChannelsView,
   type FollowEvents,
   type FollowFailure,
   type FollowPackage,
@@ -31,6 +31,7 @@ import {
   eventSwitches,
   FOLLOW_DIALOG_LEAD,
   FOLLOW_DIALOG_NOTE,
+  FOLLOW_DIALOG_NOTE_NO_SETTINGS,
   type FollowNote,
   type FollowOutcomeView,
   failureView,
@@ -63,7 +64,7 @@ const CHANNEL_ICONS: Record<FollowChannel, ReactNode> = {
 /** Where Settings in the small print goes: the email settings page. */
 const SETTINGS_PATH = LINK_PAGES.settings;
 
-type Loaded = { ok: true; data: FollowChannels } | { ok: false; failure: FollowFailure } | null;
+type Loaded = { ok: true; data: FollowChannelsView } | { ok: false; failure: FollowFailure } | null;
 
 /** The channels a press of Follow starts on by default: email, and a chat the viewer's account already has. */
 function startingChannels(options: FollowChannelOption[], followed: (channel: FollowChannel) => boolean) {
@@ -278,11 +279,17 @@ export function FollowDialog({
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        {FOLLOW_DIALOG_NOTE.split('Settings')[0]}
-        <a href={SETTINGS_PATH} className="underline underline-offset-2">
-          Settings
-        </a>
-        {FOLLOW_DIALOG_NOTE.split('Settings')[1]}
+        {loaded?.ok && loaded.data.settingsLink ? (
+          <>
+            {FOLLOW_DIALOG_NOTE.split('Settings')[0]}
+            <a href={SETTINGS_PATH} className="underline underline-offset-2">
+              Settings
+            </a>
+            {FOLLOW_DIALOG_NOTE.split('Settings')[1]}
+          </>
+        ) : (
+          FOLLOW_DIALOG_NOTE_NO_SETTINGS
+        )}
       </p>
     </>
   );

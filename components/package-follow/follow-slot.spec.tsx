@@ -153,8 +153,14 @@ describe('FollowSlot', () => {
       expect(row('whatsapp')).toBeNull();
     });
 
-    it('links Settings to the email settings page, which the site has', async () => {
+    it('links Settings to the email settings page only when this browser holds a settings link', async () => {
       await render();
+      await openDialog();
+      expect(button('Settings', dialog() ?? document.body)).toBeUndefined();
+      expect(dialog()?.textContent).toContain('Unfollow any time from a message. Anyone can follow any package.');
+
+      await click(button('Cancel', dialog() ?? document.body));
+      routes['/api/follow/channels'] = () => ({ ...visitorChannels, settingsLink: true });
       await openDialog();
 
       const settings = button('Settings', dialog() ?? document.body) as HTMLAnchorElement;

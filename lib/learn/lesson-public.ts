@@ -124,6 +124,13 @@ export function askedByStepOf(asked: readonly LessonQuestionKeyed[]): Map<string
 export const isAuthorOf = (head: Pick<LessonHead, 'author'>, login: string) =>
   !!head.author.login && head.author.login.toLowerCase() === login.toLowerCase();
 
+/**
+ * Whether a result is its lesson's author's, the one the pull request links. The lesson keeps the author's login as it
+ * was when they submitted it, and the result page names the account's login now: either one matches.
+ */
+export const isAuthorResult = (result: Pick<LessonResultPage, 'head' | 'login' | 'loginAtPass'>) =>
+  isAuthorOf(result.head, result.login) || isAuthorOf(result.head, result.loginAtPass);
+
 /** "said it helped" / "said it did not help". */
 export const reactionWordsOf = (reaction: LessonReaction) =>
   reaction === 'YES' ? 'said it helped' : 'said it did not help';

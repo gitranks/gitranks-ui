@@ -190,7 +190,7 @@ describe('a result page', () => {
     expect(html).toContain('name="reaction" value="NO"');
     expect(html).toContain('name="login" value="octocat"');
     expect(text(html)).toContain(
-      'Sign in with GitHub to send your answer: it checks your role on driftwood-js/driftwood, and your answer appears here with your name.',
+      'Sign in with GitHub to send your answer: it checks your role on driftwood-js/driftwood. Answers from its maintainers and collaborators appear here with their names.',
     );
   });
 
@@ -214,6 +214,14 @@ describe('a result page', () => {
       expect(taker).not.toContain('data-result-reactions');
       expect(text(taker)).not.toMatch(/Did this help you review|Yes, it helped|This is your own result/);
     }
+
+    // The author renamed since: the lesson still names the login they had, and the box stays on their result.
+    const renamed = renderToStaticMarkup(
+      <LessonResultScreen result={result({ login: 'octo-new', loginAtPass: 'octocat' })} viewer={MAINTAINER} />,
+    );
+    expect(renamed).toContain('data-result-reactions');
+    expect(text(renamed)).toContain('Yes, it helped');
+    expect(text(renamed)).toContain('Before octo-new could submit it');
 
     const other = renderToStaticMarkup(<LessonResultScreen result={result()} viewer={MAINTAINER} />);
     expect(other).not.toContain('data-own-result');

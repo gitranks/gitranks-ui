@@ -143,6 +143,8 @@ export function LessonSummary({
   share?: SummaryShare;
 }) {
   const [worthIt, setWorthIt] = useState<boolean | null>(run.worthIt);
+  // Said once the pick is stored: a rating given before says so too; a failed save says to try again.
+  const [rated, setRated] = useState<'saved' | 'failed' | null>(run.worthIt === null ? null : 'saved');
   const summary = run.summary;
   const passed = run.steps.filter((result) => isStepDone(result)).length;
   const warmup = warmupCountOf(head?.kind);
@@ -150,7 +152,8 @@ export function LessonSummary({
 
   const rate = (value: boolean) => {
     setWorthIt(value);
-    void rateLesson(run.id, value);
+    setRated(null);
+    void rateLesson(run.id, value).then((result) => setRated(result.ok ? 'saved' : 'failed'));
   };
 
   return (
@@ -212,14 +215,17 @@ export function LessonSummary({
               </Button>
             ))}
           </fieldset>
-          {worthIt === null ? null : (
-            <span role="status" className="w-full text-right text-xs text-muted-foreground">
-              Thanks: that helps us write better lessons.
-            </span>
-          )}
+          <span
+            role="status"
+            aria-live="polite"
+            className="w-full text-right text-xs text-muted-foreground empty:hidden"
+          >
+            {rated === 'saved' ? 'Thanks: that helps us write better lessons.' : ''}
+            {rated === 'failed' ? 'That did not save. Try again.' : ''}
+          </span>
         </div>
         {share ? <ShareMyResult run={run} share={share} /> : null}
-        {share ? <NextLesson /> : null}
+        {share && !share.author ? <NextLesson /> : null}
       </section>
     </>
   );

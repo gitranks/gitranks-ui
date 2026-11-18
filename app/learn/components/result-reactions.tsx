@@ -199,8 +199,8 @@ export function ResultReactions({
           <input type="hidden" name="login" value={login} />
           <input type="hidden" name="reaction" value={prompt} />
           <span className="text-sm">
-            Sign in with GitHub to send your answer: it checks your role on {repo ?? 'the repository'}, and your answer
-            appears here with your name.
+            Sign in with GitHub to send your answer: it checks your role on {repo ?? 'the repository'}. Answers from its
+            maintainers and collaborators appear here with their names.
           </span>
           <Button type="submit" size="sm" className="h-8 gap-1.5 px-3 font-semibold max-sm:min-h-11">
             <FaGithub aria-hidden="true" className="size-4 shrink-0" />

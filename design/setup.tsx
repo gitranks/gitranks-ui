@@ -142,3 +142,24 @@ vi.mock('@/badge/v3/avatars', async (importOriginal) => ({
   fetchAvatar: async () => null,
   fetchAvatars: async (urls: unknown[]) => urls.map(() => null),
 }));
+// Whether package pages are open to the viewer is asked in the browser: the package boards draw it open, every other
+// board as the server sends it (closed).
+vi.mock('@/lib/packages/packages-open', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/packages/packages-open')>()),
+  usePackagesOpen: () => !!(globalThis as DesignGlobals).__designPackagesOpen,
+}));
+vi.mock('@/app/badge/builder/[[...login]]/hooks/use-packages-shown', () => ({
+  usePackagesShown: () => !!(globalThis as DesignGlobals).__designPackagesOpen,
+}));
+// A package page's Badges card reads its facts on the server: the fixtures the badge images are drawn from.
+vi.mock('@/badge/v3/load', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/badge/v3/load')>();
+  const { findBadgeFacts } = await import('./images');
+  return {
+    ...real,
+    loadBadgePackageCard: async (name: string) => {
+      const facts = findBadgeFacts('package', `npm/${name}`);
+      return facts?.kind === 'package' ? facts : null;
+    },
+  };
+});

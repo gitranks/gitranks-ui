@@ -20,8 +20,8 @@ export const metadata: Metadata = pageMetadata({
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
-/** The Privacy policy's own date: it changed after `LAST_UPDATED` (daily updates, 2026-11-15). */
-const PRIVACY_UPDATED = '2026-11-15';
+/** The Privacy policy's own date: it changed after `LAST_UPDATED` (following a package, 2026-11-18). */
+const PRIVACY_UPDATED = '2026-11-18';
 
 const sections: LegalSection[] = [
   {
@@ -219,6 +219,34 @@ const sections: LegalSection[] = [
     ),
   },
   {
+    id: 'following',
+    title: 'Following a package',
+    body: (
+      <>
+        <P>
+          When you follow a package, we store where to send its updates (your email address, or the Telegram or WhatsApp
+          chat you follow it from), the packages you follow and which updates you asked for about each one. An email
+          address gets nothing but our confirmation email until you confirm it, and an address never confirmed is
+          deleted after 7 days. We use what you gave us only to send the updates you asked for; every email lets you
+          unfollow, and so does the chat. A follow you unfollow is deleted 7 days later (until then you can undo it),
+          and an email address is deleted once it follows nothing. Basis: contract (Article 6(1)(b)), to provide what
+          you ask for.
+        </P>
+        <P>
+          If you follow while signed in, the follow also keeps your GitHub username and your account&apos;s email
+          address until it is confirmed. Once confirmed, an email address that is your account&apos;s own, and a chat
+          you choose to link, are tied to your GitRanks account, so you can see and manage those follows when signed in.
+        </P>
+        <P>
+          When we feature an open-source project, we may write to its maintainer at the email address their public
+          GitHub profile shows: one email before the feature and one after it. We use the address for nothing else. We
+          delete it 30 days after the second email, or 7 days after the maintainer opts out (the days let them undo it).
+          Basis: legitimate interests, in telling maintainers before we feature their project and letting them say no.
+        </P>
+      </>
+    ),
+  },
+  {
     id: 'visitors',
     title: 'Visiting the site',
     body: (
@@ -307,6 +335,9 @@ const sections: LegalSection[] = [
         <li>
           Sign-in data, tokens and refresh records: until you remove your data. Sign-in sessions last until they expire
           or you sign out.
+        </li>
+        <li>
+          Package follows: until you unfollow, as described under <A href="#following">Following a package</A>.
         </li>
         <li>
           Contribute data: what you give or create there, until you delete it or remove your data; other Contribute data

@@ -5,11 +5,16 @@
 //
 // Live boards come from main only: run it on a clean checkout of origin/main (`git fetch` first).
 //
-// node scripts/design-canvas.mjs <project/canvas.json read from the canvas>
+// The canvas's index lists boards but not images, so the script also takes the canvas's file listing: live files on
+// the canvas that this export no longer draws (images under old names, boards that left the catalogue) are removed.
+//
+// node scripts/design-canvas.mjs <project/canvas.json read from the canvas> <the canvas's file listing, as text>
 //   → .design/project/canvas.json, and .design/publish.json: the `files` to send with it.
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+import { FILES_AIM, FILES_CAP, filesAfter, projectPathsOf, staleLiveFilesOf } from './design-canvas-files.mjs';
 
 const OUT = join(process.cwd(), '.design');
 const git = (command) => execSync(`git ${command}`).toString().trim();
@@ -18,8 +23,11 @@ const fail = (message) => {
   process.exit(1);
 };
 
-const live = process.argv[2];
+const [live, listing] = process.argv.slice(2);
 if (!live || !existsSync(live)) fail('Pass the canvas.json read from the canvas (Artifact read, path project/canvas.json).');
+if (!listing || !existsSync(listing)) {
+  fail('Pass the canvas\'s file listing too (Artifact list with scope "files", saved as text): it names the images to remove.');
+}
 if (git('rev-parse HEAD') !== git('rev-parse origin/main') || git('status --porcelain')) {
   fail(
     'Live boards come from main only: run this on a clean checkout of origin/main. To design on an unmerged screen, ' +
@@ -141,15 +149,31 @@ writeFileSync(
   `${JSON.stringify({ ...canvas, pages, boards: placed, order, notes }, null, 1)}\n`,
 );
 
-const files = Object.fromEntries([
+const sent = Object.fromEntries([
   ['project/current/gitranks.css', 'project/current/gitranks.css'],
   ...listed.map((path) => [`project/${path}`, `project/${path}`]),
-  // The badges the boards show, named by their content: a drawing that changed is a new file.
+  // The badges the boards show, named by their content: boards showing the same image share one file.
   ...images.map((path) => [`project/${path}`, `project/${path}`]),
-  ...removed.map((path) => [`project/${path}`, null]),
 ]);
+const canvasFiles = projectPathsOf(readFileSync(listing, 'utf8'));
+// Removed: live boards the index has that left the catalogue, and every live file the canvas holds that this export
+// no longer draws (images under names an earlier export gave them).
+const gone = [
+  ...new Set([...removed.map((path) => `project/${path}`), ...staleLiveFilesOf(canvasFiles, sent)]),
+].sort();
+const files = { ...sent, ...Object.fromEntries(gone.map((path) => [path, null])) };
 writeFileSync(join(OUT, 'publish.json'), `${JSON.stringify(files, null, 1)}\n`);
+const total = filesAfter(canvasFiles, files);
 console.log(
-  `${listed.length} live boards and ${images.length} images, ${removed.length} removed; ${others.length} other boards kept.`,
+  `${listed.length} live boards and ${images.length} images, ${gone.length} files removed; ${others.length} other boards kept.`,
 );
+console.log(
+  `${Object.keys(sent).length} live files sent (boards, images, stylesheet); the canvas holds ${total} files after the ` +
+    `publish (its type's own not counted), at most ${FILES_CAP}.`,
+);
+if (Object.keys(sent).length > FILES_AIM || total > FILES_AIM) {
+  console.warn(
+    `Warning: above ${FILES_AIM} files. Remove the files of shipped proposals (in Archive): only their notes stay.`,
+  );
+}
 console.log('Publish: root .design, file_path .design/project/canvas.json, files from .design/publish.json.');

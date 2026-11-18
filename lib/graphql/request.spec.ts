@@ -91,6 +91,33 @@ describe('request', () => {
       expect(signedFetch).toHaveBeenCalledTimes(BUILD_RETRIES + 1);
     });
 
+    it('waits 0.5 s, 1 s and 2 s between attempts', async () => {
+      for (let at = 0; at < BUILD_RETRIES; at += 1) answer(503, 'busy', 'Service Unavailable');
+      answer(200, { data: { ok: true } });
+      const pending = request('{ ok }');
+      await vi.advanceTimersByTimeAsync(0);
+      expect(signedFetch).toHaveBeenCalledTimes(1);
+      for (const [step, calls] of [
+        [500, 2],
+        [1000, 3],
+        [2000, 4],
+      ]) {
+        await vi.advanceTimersByTimeAsync(step - 1);
+        expect(signedFetch).toHaveBeenCalledTimes(calls - 1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(signedFetch).toHaveBeenCalledTimes(calls);
+      }
+      await expect(pending).resolves.toEqual({ data: { ok: true }, status: 200 });
+    });
+
+    it('throws the last network error when every attempt fails', async () => {
+      for (let at = 0; at <= BUILD_RETRIES; at += 1)
+        signedFetch.mockRejectedValueOnce(new TypeError(`fetch failed ${at}`));
+      const result = (await settle(request('{ ok }'))) as { error?: Error };
+      expect(result.error?.message).toBe(`fetch failed ${BUILD_RETRIES}`);
+      expect(signedFetch).toHaveBeenCalledTimes(BUILD_RETRIES + 1);
+    });
+
     it('never asks again for other statuses or GraphQL errors', async () => {
       answer(500, 'oops', 'Internal Server Error');
       expect(((await settle(request('{ ok }'))) as { error?: Error }).error?.message).toBe(

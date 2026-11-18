@@ -26,6 +26,8 @@ async function withBuildRetries(send: () => Promise<Response>): Promise<Response
     try {
       const response = await send();
       if (last || !RETRIED_STATUSES.has(response.status)) return response;
+      // The dropped answer's body is let go at once, so its connection is free for the next attempt.
+      void response.body?.cancel().catch(() => undefined);
     } catch (error) {
       if (last) throw error;
     }

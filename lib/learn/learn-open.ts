@@ -1,7 +1,9 @@
 import { openInBrowserOf } from '@/lib/viewer-gate/open-in-browser';
 
-/** Where the browser asks whether Learn is open to the viewer: the signed-in one, or a visitor (open to everyone). */
+/** Where the browser asks whether Learn is open to the signed-in viewer. */
 export const LEARN_OPEN_PATH = '/api/me/learn/open';
+/** Where a visitor's browser asks whether Learn is open to everyone: the same answer for all, kept by shared caches. */
+export const LEARN_EVERYONE_PATH = '/api/learn/everyone';
 
 const learnOpen = openInBrowserOf(LEARN_OPEN_PATH);
 
@@ -24,7 +26,7 @@ export function learnOpenInBrowser(login: string | null | undefined): Promise<bo
  * any failure.
  */
 export function learnOpenToVisitorsInBrowser(): Promise<boolean> {
-  visitors ??= fetch(LEARN_OPEN_PATH)
+  visitors ??= fetch(LEARN_EVERYONE_PATH)
     .then(async (res) => (res.ok ? ((await res.json()) as { open?: unknown }).open === true : false))
     .catch(() => false)
     .then((open) => {

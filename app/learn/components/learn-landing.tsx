@@ -9,7 +9,7 @@ import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { buttonVariants } from '@/components/ui/button';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
-import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
+import { learnFrontDoorOpenToVisitor } from '@/lib/learn/learn-front-door';
 import { LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
 
@@ -230,10 +230,10 @@ export function LearnLanding({ viewer }: { viewer: LearnLandingViewer }) {
 
 /**
  * The front door, behind Learn's gate: not found for anyone Learn is not open to. A visitor gets this far only once the
- * API says Learn is open to everyone, and then reads its visitor version.
+ * API says Learn is open to everyone (the proxy decides), and then reads its visitor version.
  */
 export async function LearnHomeView() {
   if (await loadLearnOpen()) return <LearnLanding viewer="signed-in" />;
-  if ((await learnOpenToEveryone()) && !(await viewerLogin())) return <LearnLanding viewer="visitor" />;
+  if (!(await viewerLogin()) && (await learnFrontDoorOpenToVisitor())) return <LearnLanding viewer="visitor" />;
   notFound();
 }

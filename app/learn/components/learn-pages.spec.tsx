@@ -17,7 +17,7 @@ const { everyone, viewerLogin } = vi.hoisted(() => ({
   viewerLogin: vi.fn(async (): Promise<string | undefined> => undefined),
 }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), viewerLogin }));
-vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: everyone }));
+vi.mock('@/lib/learn/learn-front-door', () => ({ learnFrontDoorOpenToVisitor: everyone }));
 const data = vi.hoisted(() => ({
   loadLearnOpen: vi.fn(),
   loadLearnProfile: vi.fn(),

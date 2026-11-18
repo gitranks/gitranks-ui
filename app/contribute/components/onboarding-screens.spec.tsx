@@ -7,6 +7,7 @@ const data = vi.hoisted(() => ({
   viewerLogin: vi.fn(),
   loadIssues: vi.fn(),
   loadContributeSet: vi.fn(async () => null),
+  loadContributeEmail: vi.fn(async () => null),
   loadContributeActivity: vi.fn(async () => null),
   loadContributeVersion: vi.fn(async () => '4.2'),
   loadAttempt: vi.fn(),

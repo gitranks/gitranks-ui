@@ -50,7 +50,7 @@ import {
   stopped as stoppedAttempt,
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { issuePage, nowIdle, overviewData, replyWaiting } from '@/lib/contribute/__fixtures__/contribute-overview';
-import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
+import { contributor, email, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import { emptyLedger, ledger, publicLedger } from '@/lib/contribute/__fixtures__/ledger';
 import {
   allLiveFacts,
@@ -1533,17 +1533,30 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'app/contribute/components/settings-view.tsx',
       'app/contribute/components/settings-pages.tsx',
       'app/contribute/components/autopilot-section.tsx',
+      'app/contribute/components/email-section.tsx',
     ],
     states: [
       {
         id: 'summary',
         title: 'Summary',
         path: '/contribute/settings',
-        height: 1800,
+        height: 1900,
         render: () =>
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <SettingsScreen view={views.active} now={NOW} />
+              <SettingsScreen view={views.active} now={NOW} email={email.on} />
+            </main>,
+          ),
+      },
+      {
+        id: 'email-off',
+        title: 'Contribute email turned off',
+        path: '/contribute/settings#email',
+        height: 1900,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen view={views.active} now={NOW} email={email.off} />
             </main>,
           ),
       },

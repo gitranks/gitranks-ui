@@ -46,7 +46,7 @@ import { Pill } from '@/components/pill/pill';
 import { RepoLink } from '@/components/repo-link/repo-link';
 import { Button } from '@/components/ui/button';
 import type { PackagePage } from '@/graphql/package-page';
-import { REGISTRIES, type RegistryId, registryOf } from '@/lib/packages/registries';
+import { REGISTRIES, type RegistryId, registryOf, spelledNameOf } from '@/lib/packages/registries';
 import { PACKAGE_METHODOLOGY_PATH } from '@/utils/package-paths';
 
 type PackageScreenProps = {
@@ -195,11 +195,12 @@ const COUNTED =
 const UsedBy: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, pkg }) => {
   const { label, manifest, downloads: unit } = registryOf(registry);
   const { name, dependentsCount: count, dependentsStars: stars, dependents } = pkg;
+  const spelled = spelledNameOf(pkg);
   const read = shortDate(pkg.dependentsReadAt);
   const next = formatDay(pkg.nextDependentsReadAt);
   const intro =
     count > 0
-      ? `${formatCount(count)} ${count === 1 ? 'repository' : 'repositories'} with 100+ stars ${count === 1 ? 'lists' : 'list'} ${name} in their own ${manifest}.${count > 1 ? ` Together they have ${formatCount(stars)} stars.` : ''}`
+      ? `${formatCount(count)} ${count === 1 ? 'repository' : 'repositories'} with 100+ stars ${count === 1 ? 'lists' : 'list'} ${spelled} in their own ${manifest}.${count > 1 ? ` Together they have ${formatCount(stars)} stars.` : ''}`
       : undefined;
 
   return (
@@ -217,7 +218,7 @@ const UsedBy: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, pkg 
         </>
       ) : (
         <EmptyState
-          title={`No repository with 100+ stars uses ${name} directly yet`}
+          title={`No repository with 100+ stars uses ${spelled} directly yet`}
           text={[
             'We read every repository with 100+ stars once a month.',
             next ? ` The next read is on ${next}.` : '',
@@ -294,6 +295,7 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
     <PackageUpdatesButton
       registry={registry}
       name={pkg.name}
+      spelledName={spelledNameOf(pkg)}
       repository={pkg.repo?.nameWithOwner ?? pkg.repositoryName}
       dailyUpdates={pkg.dailyUpdates}
       refreshRunning={pkg.refreshRunning === true}
@@ -305,7 +307,7 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
       <Frame
         left={
           <>
-            <Head registry={registry} name={pkg.name} />
+            <Head registry={registry} name={spelledNameOf(pkg)} />
             <ActionsContainer>
               {button}
               <OpenOnRegistry registry={registry} name={pkg.name} />
@@ -324,9 +326,14 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
     <Frame
       left={
         <>
-          <Head registry={registry} name={pkg.name} description={pkg.description} deprecated={pkg.deprecated} />
+          <Head
+            registry={registry}
+            name={spelledNameOf(pkg)}
+            description={pkg.description}
+            deprecated={pkg.deprecated}
+          />
           <ActionsContainer>
-            <FollowSlot packages={[{ registry, name: pkg.name }]} label={pkg.name} placement="package-page" />
+            <FollowSlot packages={[{ registry, name: pkg.name }]} label={spelledNameOf(pkg)} placement="package-page" />
             {button}
             <OpenOnRegistry registry={registry} name={pkg.name} />
           </ActionsContainer>

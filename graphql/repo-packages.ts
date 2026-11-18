@@ -17,7 +17,10 @@ export type PackageRegistry = ListedApiRegistry;
 /** One package a repository publishes, with how many repositories of 100+ stars use it. */
 export type RepoPackage = {
   registry: PackageRegistry;
+  /** The name the package's address is built from. */
   name: string;
+  /** The name as the registry writes it; `null` where it is `name`. */
+  displayName?: string | null;
   /** Distinct repositories with 100+ stars that depend on it directly. */
   dependents: number;
   downloadsLastWeek: number;
@@ -50,6 +53,7 @@ export const RepoPackagesDocument = doc<RepoPackagesQuery, RepoPackagesQueryVari
         items {
           registry
           name
+          displayName
           dependents
           downloadsLastWeek
         }

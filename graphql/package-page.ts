@@ -79,8 +79,10 @@ export type PackageDailyUpdates = {
 /** Everything a package's page draws. */
 export type PackagePage = {
   registry: PackageRegistry;
-  /** The registry's spelling. */
+  /** The name the package's address is built from; the API answers it for any spelling the registry takes as the same. */
   name: string;
+  /** The name as the registry writes it (`zope.interface` for `zope-interface`); `null` where it is `name`. */
+  displayName?: string | null;
   state: PackageState;
   description?: string | null;
   /** The publishing repository, when this site has its page. */
@@ -124,6 +126,7 @@ export const PackagePageDocument = doc<PackagePageQuery, PackagePageQueryVariabl
     package(registry: $registry, name: $name) {
       registry
       name
+      displayName
       state
       description
       repo {

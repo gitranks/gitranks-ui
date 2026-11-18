@@ -15,7 +15,7 @@ import { accountEmailOf } from '@/lib/account-email';
 import { packageMarkdownOf, packageMarkdownPath } from '@/lib/packages/package-markdown';
 import { packageCacheTag } from '@/lib/packages/package-paths';
 import { packagesPublic, requestMaySeePackages } from '@/lib/packages/packages-gate';
-import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
+import { REGISTRIES, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
 import { signedFetch } from '@/lib/signed-fetch';
 
 // A package's reads and its refresh, for its page in the browser: `/api/packages/<registry>/<name>/dependents` and
@@ -56,8 +56,8 @@ const markdown = (body: string, status: number, cacheControl = PRIVATE) =>
   });
 
 /**
- * A package's facts in markdown. A name the registry does not have, and one nobody has read yet, answer 404; package
- * data that cannot be read now 503; the registry's own spelling, when it differs, a 308 to its address.
+ * A package's facts in markdown. Another spelling of its name answers a 308 to its address; a name the registry does
+ * not have, and one nobody has read yet, 404; package data that cannot be read now 503.
  */
 async function facts(req: NextRequest, { registry, name }: Target) {
   const { label } = REGISTRIES[registry];
@@ -75,14 +75,15 @@ async function facts(req: NextRequest, { registry, name }: Target) {
   if (!pkg) {
     return markdown(`${label} has no package named ${name}.\n`, 404);
   }
-  if (pkg.state === 'NOT_READ') {
-    return markdown(`The ${label} package ${name} has not been read here yet.\n`, 404);
-  }
+  // Another spelling of its name, read or not: its address, as the page does.
   if (pkg.name !== name) {
     return NextResponse.redirect(new URL(packageMarkdownPath(pkg.name, registry), req.url), {
       status: 308,
       headers: { 'Cache-Control': PRIVATE },
     });
+  }
+  if (pkg.state === 'NOT_READ') {
+    return markdown(`The ${label} package ${spelledNameOf(pkg)} has not been read here yet.\n`, 404);
   }
   return markdown(packageMarkdownOf(pkg, registry), 200, isPublic && !pkg.refreshRunning ? MARKDOWN_PUBLIC : PRIVATE);
 }

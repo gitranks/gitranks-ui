@@ -5,7 +5,7 @@ import type { FC } from 'react';
 
 import { registryOfRepoPackage } from '@/app/repo/[owner]/[name]/utils/repo-package-registry';
 import type { RepoPackage } from '@/graphql/repo-packages';
-import { REGISTRIES } from '@/lib/packages/registries';
+import { REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 /** A card, as `ProfileCard` draws one, that is a link as a whole. */
@@ -42,7 +42,7 @@ export const PackageCard: FC<{ pkg: RepoPackage; wide?: boolean; registryChip?: 
             </span>
             <span className="flex min-w-0 flex-col">
               <span className="font-mono font-medium [overflow-wrap:anywhere]">
-                {pkg.name}
+                {spelledNameOf(pkg)}
                 {chip}
               </span>
               <span className="text-xs text-muted-foreground">{`The ${label} package this repository publishes`}</span>
@@ -72,7 +72,7 @@ export const PackageCard: FC<{ pkg: RepoPackage; wide?: boolean; registryChip?: 
       ) : (
         <>
           <span className="font-mono text-sm font-medium [overflow-wrap:anywhere]">
-            {pkg.name}
+            {spelledNameOf(pkg)}
             {chip}
           </span>
           <span className="font-mono text-2xl font-semibold tabular-nums">

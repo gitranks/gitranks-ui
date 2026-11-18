@@ -134,5 +134,16 @@ export const notReadPackage: PackagePage = {
   refreshRunning: false,
 };
 
+/**
+ * A package the registry writes otherwise than its address: `zope.interface` at `zope-interface`, the address name the
+ * API answers for any spelling the registry takes as the same.
+ */
+export const spelledPackage: PackagePage = {
+  ...rankedPackage,
+  name: 'zope-interface',
+  displayName: 'zope.interface',
+  repo: { nameWithOwner: 'zopefoundation/zope.interface', stars: 360 },
+};
+
 /** On daily updates, kept on by a badge in its repository's README. */
 export const onBadge = { reasons: [DailyUpdateReason.Badge], nextUpdateAt: '2026-11-18T10:00:00.000Z' };

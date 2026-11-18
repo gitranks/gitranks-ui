@@ -5,7 +5,7 @@ import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { SOCIAL_CARD_SIZE, socialCardPath } from '@/badge/v3/links';
 import type { PackageDependent, PackagePage } from '@/graphql/package-page';
 import { packageMarkdownPath } from '@/lib/packages/package-markdown';
-import { DEFAULT_REGISTRY, REGISTRIES, type RegistryId } from '@/lib/packages/registries';
+import { DEFAULT_REGISTRY, REGISTRIES, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
 import { clipText } from '@/lib/seo/clip-text';
 import { buildRankingItemList } from '@/lib/seo/json-ld';
 import { type PreviewImage, pageMetadata } from '@/lib/seo/page-metadata';
@@ -79,7 +79,7 @@ function buildApplication(registry: RegistryId, pkg: PackagePage, url: string) {
   const source = pkg.repo?.nameWithOwner ?? pkg.repositoryName;
   return {
     '@type': 'SoftwareApplication',
-    name: pkg.name,
+    name: spelledNameOf(pkg),
     description: pkg.description || undefined,
     url,
     applicationCategory: 'DeveloperApplication',
@@ -98,23 +98,26 @@ function buildApplication(registry: RegistryId, pkg: PackagePage, url: string) {
 }
 
 /** The link preview: the package's card drawn at 1200×630, which every read package has. */
-function previewImages(registry: RegistryId, name: string): PreviewImage[] {
+function previewImages(registry: RegistryId, pkg: PackagePage): PreviewImage[] {
   return [
     {
-      url: absoluteUrl(socialCardPath({ kind: 'package', registry, name })),
+      url: absoluteUrl(socialCardPath({ kind: 'package', registry, name: pkg.name })),
       ...SOCIAL_CARD_SIZE,
-      alt: `${packageTitle(name, registry)} on GitRanks`,
+      alt: `${packageTitle(spelledNameOf(pkg), registry)} on GitRanks`,
     },
   ];
 }
 
 type SEO = { metadata: Metadata; jsonLd: object[] };
 
-/** A page kept out of search engines, with no structured data: not read yet, or no package data now. */
-function quietSEO(registry: RegistryId, name: string, description: string): SEO {
+/**
+ * A page kept out of search engines, with no structured data: not read yet, or no package data now. `spelled` is the
+ * name as the title writes it.
+ */
+function quietSEO(registry: RegistryId, name: string, description: string, spelled = name): SEO {
   return {
     metadata: {
-      ...pageMetadata({ title: packageTitle(name, registry), description, path: packagePath(name, registry) }),
+      ...pageMetadata({ title: packageTitle(spelled, registry), description, path: packagePath(name, registry) }),
       robots: NOT_INDEXED,
     },
     jsonLd: [],
@@ -136,20 +139,22 @@ export function buildPackageSEO(
     return quietSEO(registry, name, PACKAGE_UNAVAILABLE_TEXT);
   }
   if (pkg.state === 'NOT_READ') {
-    return quietSEO(registry, pkg.name, `We have not read the ${label} package ${pkg.name} yet.`);
+    const spelled = spelledNameOf(pkg);
+    return quietSEO(registry, pkg.name, `We have not read the ${label} package ${spelled} yet.`, spelled);
   }
 
+  const spelled = spelledNameOf(pkg);
   const path = packagePath(pkg.name, registry);
   const url = absoluteUrl(path);
-  const title = packageTitle(pkg.name, registry);
+  const title = packageTitle(spelled, registry);
   const description = buildDescription(registry, pkg);
   const itemList = buildRankingItemList(
-    `Repositories with 100+ stars that use ${pkg.name}`,
+    `Repositories with 100+ stars that use ${spelled}`,
     path,
     rows.map((row, i) => ({ position: i + 1, name: row.nameWithOwner, path: getRepoPath(row.nameWithOwner) })),
   );
 
-  const metadata = pageMetadata({ title, description, path, images: previewImages(registry, pkg.name) });
+  const metadata = pageMetadata({ title, description, path, images: previewImages(registry, pkg) });
   return {
     metadata: {
       ...metadata,
@@ -167,7 +172,7 @@ export function buildPackageSEO(
         mainEntity: buildApplication(registry, pkg, url),
       },
       ...(itemList ? [itemList] : []),
-      buildBreadcrumbs(registry, pkg.name, url),
+      buildBreadcrumbs(registry, spelled, url),
     ],
   };
 }

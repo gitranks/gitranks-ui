@@ -1,7 +1,7 @@
 import type { SummaryPart } from '@/app/profile/[login]/utils/profile-summary';
 import { formatCount, formatDay } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import type { PackageDependent, PackagePage } from '@/graphql/package-page';
-import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
+import { REGISTRIES, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
 import { getRepoPath } from '@/utils/repo-paths';
 
 const COMPACT_LONG = new Intl.NumberFormat('en-US', {
@@ -20,6 +20,7 @@ const repoLink = (nameWithOwner: string): SummaryPart => ({ text: nameWithOwner,
 type SummaryPackage = Pick<
   PackagePage,
   | 'name'
+  | 'displayName'
   | 'downloads'
   | 'dependentsCount'
   | 'dependentsStars'
@@ -30,8 +31,10 @@ type SummaryPackage = Pick<
   | 'dependentsReadAt'
 >;
 
-function downloadsSentence(registry: RegistryId, { name, downloads }: SummaryPackage): string {
+function downloadsSentence(registry: RegistryId, pkg: SummaryPackage): string {
   const { article, label } = REGISTRIES[registry];
+  const name = spelledNameOf(pkg);
+  const { downloads } = pkg;
   if (!downloads) {
     return `${name} is ${article} ${label} package.`;
   }

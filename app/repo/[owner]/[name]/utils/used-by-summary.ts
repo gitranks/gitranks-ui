@@ -2,7 +2,7 @@ import { registryOfRepoPackage, sharedRegistryOf } from './repo-package-registry
 import type { SummaryPart } from '@/app/profile/[login]/utils/profile-summary';
 import type { QuestionItem } from '@/components/questions-block/questions-block';
 import type { RepoPackage, RepoPackages, RepoUsedByItem } from '@/graphql/repo-packages';
-import { REGISTRIES, registryManifestList } from '@/lib/packages/registries';
+import { REGISTRIES, registryManifestList, spelledNameOf } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
@@ -34,8 +34,8 @@ function listParts(parts: SummaryPart[][]): SummaryPart[] {
 export const listText = (items: readonly string[]) =>
   items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
 
-const packageLink = (pkg: Pick<RepoPackage, 'name' | 'registry'>): SummaryPart => ({
-  text: pkg.name,
+const packageLink = (pkg: Pick<RepoPackage, 'name' | 'displayName' | 'registry'>): SummaryPart => ({
+  text: spelledNameOf(pkg),
   href: packagePath(pkg.name, registryOfRepoPackage(pkg)),
 });
 
@@ -162,7 +162,7 @@ export function usedByCardLine(packages: RepoPackages): { dependents: string; wh
     dependents: formatCount(packages.dependents),
     what: `${packages.dependents === 1 ? 'repository' : 'repositories'} with 100+ stars ${packages.dependents === 1 ? 'depends' : 'depend'} on ${
       packages.total === 1
-        ? `its ${packagesWord(packages, true)} ${packages.items[0].name}`
+        ? `its ${packagesWord(packages, true)} ${spelledNameOf(packages.items[0])}`
         : `its ${formatCount(packages.total)} ${packagesWord(packages)}`
     }${hasDownloads ? ', ' : '.'}`,
     downloads: hasDownloads ? formatDownloadsShort(packages.downloadsLastWeek) : null,
@@ -172,7 +172,7 @@ export function usedByCardLine(packages: RepoPackages): { dependents: string; wh
 /** The empty state's title: "No repository with 100+ stars uses @nebula/ui directly yet". */
 export const noDependentsTitle = (packages: RepoPackages) =>
   packages.total === 1
-    ? `No repository with 100+ stars uses ${packages.items[0].name} directly yet`
+    ? `No repository with 100+ stars uses ${spelledNameOf(packages.items[0])} directly yet`
     : 'No repository with 100+ stars uses its packages directly yet';
 
 /** The empty state's note: when the next read is, and the downloads. */
@@ -207,7 +207,7 @@ export function buildUsedByQuestions(
   const items: QuestionItem[] = [
     {
       question: `Who uses ${nameWithOwner}?`,
-      answer: `${dependents} with 100+ stars ${verb} on ${one ? `its package ${packages.items[0].name}` : 'its packages'} directly.${mostStarred}`,
+      answer: `${dependents} with 100+ stars ${verb} on ${one ? `its package ${spelledNameOf(packages.items[0])}` : 'its packages'} directly.${mostStarred}`,
     },
   ];
 
@@ -215,7 +215,7 @@ export function buildUsedByQuestions(
   if (!one && most && most.dependents > 0) {
     items.push({
       question: `Which ${nameWithOwner} package is used most?`,
-      answer: `${most.name}: ${plural(most.dependents, 'repository', 'repositories')} with 100+ stars and ${formatCount(most.downloadsLastWeek)} downloads a week.`,
+      answer: `${spelledNameOf(most)}: ${plural(most.dependents, 'repository', 'repositories')} with 100+ stars and ${formatCount(most.downloadsLastWeek)} downloads a week.`,
     });
   }
 

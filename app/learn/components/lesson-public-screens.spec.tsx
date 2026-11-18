@@ -14,6 +14,8 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/app/learn/actions', () => ({ signInToReact: vi.fn() }));
+// Whether Learn is open to everyone, as the API answers it: closed here.
+vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => false }));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({ viewerLogin: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(), loadLearnSetup: vi.fn() }));

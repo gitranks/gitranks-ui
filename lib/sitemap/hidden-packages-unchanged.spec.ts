@@ -15,6 +15,8 @@ vi.hoisted(() => {
 });
 
 vi.mock('next/server', () => ({ connection: vi.fn(async () => undefined) }));
+// Whether Learn is open to everyone, as the API answers it: closed here.
+vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => false }));
 vi.mock('@/graphql/helpers/fetch-repo-sitemap-parts', () => ({ fetchRepoSitemapParts: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-org-sitemap-parts', () => ({ fetchOrgSitemapParts: vi.fn() }));
 vi.mock('@/lib/contribute/preview-gate', () => ({ contributeOpen: vi.fn() }));

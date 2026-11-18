@@ -20,7 +20,6 @@ vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => 
 vi.mock('@/graphql/helpers/fetch-repo-sitemap-parts', () => ({ fetchRepoSitemapParts: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-org-sitemap-parts', () => ({ fetchOrgSitemapParts: vi.fn() }));
 vi.mock('@/lib/contribute/preview-gate', () => ({ contributeOpen: vi.fn() }));
-vi.mock('@/lib/contribute/pr-timeline-gate', () => ({ contributePrTimelineOpen: async () => false }));
 vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic: vi.fn() }));
 vi.mock('@/lib/learn/public-lessons.data', () => ({ readPublicLessons: vi.fn(async () => []) }));
 vi.mock('@/lib/sitemap/package-sitemap-data', () => ({
@@ -197,6 +196,14 @@ describe('while package pages are not open to everyone', () => {
       - [MCP server docs](https://example.test/contribute/mcp): sign in with GitHub from Claude Code, Codex, ChatGPT, Cursor, Gemini CLI, Antigravity, VS Code, claude.ai, Kiro and more, or use a token
       - [Questions](https://example.test/contribute/faq)
 
+      ## Pull request timelines
+
+      Every pull request opened with GitRanks Contribute can have a public page of how it was made: when the issue was picked, what the agent checked and changed, our checks, the maintainers' reviews, and the merge or close, with times in UTC. No conversation with the agent, no costs.
+
+      - Page: https://example.test/contribute/pr/<owner>/<repo>/<number>
+      - Markdown: https://example.test/contribute/pr/<owner>/<repo>/<number>/timeline.md
+      - [Sitemap](https://example.test/sitemaps/contribute-prs/sitemap.xml): every public timeline
+
       ## Rankings and badges
 
       - [Home](https://example.test/): GitHub developers ranked by stars, followers and contributions
@@ -207,7 +214,7 @@ describe('while package pages are not open to everyone', () => {
       ",
         "cacheControl": "public, max-age=300, s-maxage=300",
         "contentType": "text/plain; charset=utf-8",
-        "sha256": "910d1c6be76fa9b261f8fbb952ea28ccf8cb2d985cb38b0b74203e0521666002",
+        "sha256": "d1ca444379910dc37e332557e09433a946eb92b5d54ce9504a0d2c9952979c97",
         "status": 200,
       }
     `);

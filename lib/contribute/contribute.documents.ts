@@ -548,7 +548,7 @@ export const ContributeAttemptDisclosureDocument = doc<
 
 /**
  * A first attempt's public timeline: whether its PR can have one for the viewer and its switch, and the footer the
- * approval's checkbox gives while timelines are public. Read on its own, as the fields above.
+ * approval's checkbox gives. Read on its own, as the fields above.
  */
 export const ContributeAttemptTimelineDocument = doc<
   {

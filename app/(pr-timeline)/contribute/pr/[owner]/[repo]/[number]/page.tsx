@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     openGraphType: 'article',
     publishedTime: timeline.openedAt,
   });
-  // The page answers only once timelines are public (the proxy's gate): then it is indexed.
+  // Only a shown page answers (the proxy's gate): it is indexed.
   return {
     ...base,
     alternates: { ...base.alternates, types: { 'text/markdown': prTimelineMarkdownPath(timeline) } },

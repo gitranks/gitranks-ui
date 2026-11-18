@@ -92,11 +92,10 @@ describe('llms.txt', () => {
     expect(llmsTxtOf({ contribute: true, packages: true })).not.toMatch(/learn/i);
   });
 
-  it('lists pull request timelines only once they are public', () => {
-    expect(llmsTxtOf({ contribute: true, packages: false })).not.toContain('Pull request timelines');
-    const open = llmsTxtOf({ contribute: true, packages: false, prTimelines: true });
-    expect(open).toContain('## Pull request timelines');
-    expect(open).toContain('/contribute/pr/<owner>/<repo>/<number>/timeline.md');
-    expect(open).toContain('/sitemaps/contribute-prs/sitemap.xml');
+  it('lists pull request timelines: what one is, its addresses and its sitemap', () => {
+    const text = llmsTxtOf({ contribute: true, packages: false });
+    expect(text).toContain('## Pull request timelines');
+    expect(text).toContain('/contribute/pr/<owner>/<repo>/<number>/timeline.md');
+    expect(text).toContain('/sitemaps/contribute-prs/sitemap.xml');
   });
 });

@@ -3,12 +3,7 @@ import 'server-only';
 import { cacheLife, cacheTag } from 'next/cache';
 
 import type { PrRef } from './pr-feedback';
-import {
-  PrTimelineByAttemptDocument,
-  PrTimelineDocument,
-  PrTimelineOpenDocument,
-  PublicPrTimelinesDocument,
-} from './pr-timeline.documents';
+import { PrTimelineByAttemptDocument, PrTimelineDocument, PublicPrTimelinesDocument } from './pr-timeline.documents';
 import type { PrTimeline, PublicPrTimeline } from './pr-timeline.types';
 import { prTimelinePath } from './pr-timeline-path';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -67,16 +62,13 @@ const ATTEMPT_ID = /^[a-f\d]{24}$/;
 
 /**
  * A PR's public timeline address by its footer's id, for the links into it (the maintainers strip, the sent screens):
- * only once timelines are public and this one is shown; null otherwise or on a failed read. Asked signed out, kept
- * minutes.
+ * only when it is shown; null otherwise or on a failed read. Asked signed out, kept minutes.
  */
 export async function publicTimelinePathOf(attemptId: string | null | undefined): Promise<string | null> {
   'use cache';
   cacheLife('minutes');
   if (!attemptId || !ATTEMPT_ID.test(attemptId)) return null;
   try {
-    const { contributePrTimelineOpen } = await graphqlDirect(PrTimelineOpenDocument, undefined, { source: 'ssr' });
-    if (!contributePrTimelineOpen) return null;
     const { contributePrTimelineByAttempt } = await graphqlDirect(
       PrTimelineByAttemptDocument,
       { id: attemptId },

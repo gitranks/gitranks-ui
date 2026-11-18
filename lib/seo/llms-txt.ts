@@ -31,13 +31,10 @@ export function llmsTxtOf({
   contribute,
   packages,
   learn = null,
-  prTimelines = false,
 }: {
   contribute: boolean;
   packages: boolean;
   learn?: readonly PublicLesson[] | null;
-  /** Pull request timelines are public: what one is, its address, its Markdown and its sitemap are listed. */
-  prTimelines?: boolean;
 }): string {
   const url = (path: string) => `${SITE_URL}${path}`;
   const lines = [`# ${SITE_NAME}`, '', `> ${SITE_DESCRIPTION}`, ''];
@@ -50,8 +47,7 @@ export function llmsTxtOf({
       `- [Questions](${url('/contribute/faq')})`,
       '',
     );
-  }
-  if (prTimelines) {
+    // Its pull request timelines: what one is, its address, its Markdown and its sitemap.
     lines.push(
       '## Pull request timelines',
       '',

@@ -20,6 +20,7 @@ import type {
   ContributeContribution,
   ContributeContributions,
   ContributeDeleteDataResult,
+  ContributeEmail,
   ContributeFeedbackContext,
   ContributeFeedbackTopic,
   ContributeFollowUpRound,
@@ -455,6 +456,15 @@ export const PauseContributingDocument = doc<{ pauseContributing: boolean }>(
 
 export const ResumeContributingDocument = doc<{ resumeContributing: boolean }>(
   'mutation ResumeContributing { resumeContributing }',
+);
+
+/** GitRanks email: on or off, and where it goes. Null when the API hides Contribute from the user. */
+export const ContributeEmailDocument = doc<{ contributeEmail: ContributeEmail | null }>(
+  'query ContributeEmail { contributeEmail { on to } }',
+);
+
+export const SetContributeEmailDocument = doc<{ setContributeEmail: ContributeEmail }, { on: boolean }>(
+  'mutation SetContributeEmail($on: Boolean!) { setContributeEmail(on: $on) { on to } }',
 );
 
 export const SkipIssueDocument = doc<{ skipIssue: boolean }, { issueId: string }>(

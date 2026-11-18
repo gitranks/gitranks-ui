@@ -43,6 +43,7 @@ import {
   ContributeContributionsMovesDocument,
   ContributeContributionsOwnAgentDocument,
   ContributeContributionsProofDocument,
+  ContributeEmailDocument,
   ContributeGrantDocument,
   ContributeImpactDocument,
   ContributeImpactReposDocument,
@@ -74,6 +75,7 @@ import type {
   ContributeAutopilot,
   ContributeComingSoonProvider,
   ContributeContributions,
+  ContributeEmail,
   ContributeFollowUps,
   ContributeImpactTotals,
   ContributeIssuePage,
@@ -369,6 +371,25 @@ export const loadContributeSet = cache(async (): Promise<ContributeSet | null | 
     return contributeSet;
   } catch {
     return undefined;
+  }
+});
+
+/**
+ * GitRanks email for the signed-in user: on or off, and where it goes. Null when signed out, when the API hides it or
+ * does not answer: Settings shows no email row then. Read once per request.
+ */
+export const loadContributeEmail = cache(async (): Promise<ContributeEmail | null> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+
+  try {
+    const { contributeEmail } = await graphqlDirect(ContributeEmailDocument, undefined, {
+      source: 'ssr',
+      githubLogin,
+    });
+    return contributeEmail ?? null;
+  } catch {
+    return null;
   }
 });
 

@@ -1124,6 +1124,19 @@ enum ContributeEffort {
   XHIGH
 }
 
+"""
+GitRanks email for the viewer: review reminders and other updates from Contribute
+"""
+type ContributeEmail {
+  """
+  False once they unsubscribed, by an email’s one-click link or in Settings
+  """
+  on: Boolean!
+
+  """Where it goes, masked; null when no address is known"""
+  to: String
+}
+
 input ContributeFeedbackContextInput {
   """Left out: the viewer's own mode"""
   mode: ContributeSetMode
@@ -3910,6 +3923,11 @@ type Mutation {
   sendContributeFeedback(context: ContributeFeedbackContextInput, text: String!, topic: ContributeFeedbackTopic!): Boolean!
 
   """
+  Turns GitRanks email on or off for the viewer (the same switch as an email’s unsubscribe link)
+  """
+  setContributeEmail(on: Boolean!): ContributeEmail!
+
+  """
   A list mode's fallback: when its set has nothing ready, wait (SET_ONLY) or work on all issues
   """
   setContributeFallback(fallback: ContributeSetFallback!, mode: ContributeSetListMode!): ContributeSet!
@@ -4196,6 +4214,9 @@ type Query {
   My contributions: the viewer's PRs opened through Contribute, newest first, and their totals
   """
   contributeContributions(first: Int): ContributeContributions
+
+  """Whether GitRanks email is on for the viewer, and where it goes"""
+  contributeEmail: ContributeEmail
 
   """
   The shown issues as they are now, for the Issues list and Up next to drop a taken card while open (polled): up to 50 ids, in the order asked. Null when hidden

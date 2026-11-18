@@ -1,5 +1,6 @@
 import type {
   ContributeCredential,
+  ContributeEmail,
   ContributeGrant,
   ContributeLimits,
   ContributeMcpToken,
@@ -135,6 +136,12 @@ const notOnboarded = { onboardedAt: null, onboardedVia: null } as const;
 const connected: ContributeGrant = { connected: true, login: 'octocat' };
 
 /** One view for each state a Contribute page renders. */
+/** Contribute's email, on and off, as Settings' Email row shows it. */
+export const email = {
+  on: { on: true, to: 'o•••@example.com' },
+  off: { on: false, to: 'o•••@example.com' },
+} satisfies Record<string, ContributeEmail>;
+
 export const views = {
   newcomer: { contributor: null, grant: { connected: false, login: null }, paused: false, grantAvailable: true },
   noKey: {

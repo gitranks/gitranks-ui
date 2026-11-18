@@ -1291,6 +1291,14 @@ export type ContributeSet = {
   limits: ContributeSetLimits;
 };
 
+/** Contribute's email for the user: review reminders and other updates (not other GitRanks email). */
+export type ContributeEmail = {
+  /** False once they unsubscribed, by an email's one-click link or in Settings. */
+  on: boolean;
+  /** The address it goes to, masked ("o•••@example.com"); null when none is stored, so none is sent. */
+  to: string | null;
+};
+
 /** What one add did, and the set after it. */
 export type ContributeSetAddResult = {
   added: ContributeSetRepo[];

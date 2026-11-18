@@ -183,7 +183,10 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
           gate.kind === 'missing'
             ? NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url))
             : NextResponse.redirect(
-                new URL(`${gate.path}${timeline.kind === 'twin' ? '/timeline.md' : ''}`, request.url),
+                new URL(
+                  `${gate.path}${timeline.kind === 'twin' ? '/timeline.md' : ''}${request.nextUrl.search}`,
+                  request.url,
+                ),
                 307,
               );
         response.headers.set('Cache-Control', 'private, no-store');

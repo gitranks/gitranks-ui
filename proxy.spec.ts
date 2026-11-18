@@ -518,9 +518,11 @@ describe('proxy', () => {
         expect(missing?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
         expect(missing?.headers.get('cache-control')).toBe('private, no-store');
         timelineGate.mockResolvedValueOnce({ kind: 'redirect', path: '/contribute/pr/acme/gadgets/42' });
-        const moved = await proxy(request(undefined, `${PAGE}/timeline.md`), event);
+        const moved = await proxy(request(undefined, `${PAGE}/timeline.md?utm_source=x`), event);
         expect(moved?.status).toBe(307);
-        expect(moved?.headers.get('location')).toBe('https://gitranks.com/contribute/pr/acme/gadgets/42/timeline.md');
+        expect(moved?.headers.get('location')).toBe(
+          'https://gitranks.com/contribute/pr/acme/gadgets/42/timeline.md?utm_source=x',
+        );
       });
 
       it('the per-request page is never reached by its own address', async () => {

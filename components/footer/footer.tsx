@@ -4,6 +4,7 @@ import { FaBluesky, FaMastodon, FaXTwitter } from 'react-icons/fa6';
 import { Link } from '../link/link';
 import { contributeSource } from '@/lib/contribute/click-tracking';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
+import { packageRankingPath } from '@/utils/package-paths';
 
 const SITE_LINKS = [
   { href: '/by/stars/1', label: 'Developer Rankings' },
@@ -11,6 +12,7 @@ const SITE_LINKS = [
   { href: '/languages/global/score/1', label: 'Language Rankings' },
   { href: '/orgs/1', label: 'Org Rankings' },
   { href: '/repos/1', label: 'Repository Rankings' },
+  { href: packageRankingPath('downloads'), label: 'Package Rankings' },
   { href: '/insights', label: 'Insights' },
   { href: '/badge/gallery', label: 'Badges' },
   { href: '/methodology', label: 'How Rankings Work' },

@@ -3,6 +3,38 @@ import 'server-only';
 import { type RequestSource, signedFetch } from '../signed-fetch';
 import { ORIGINAL_USER_AGENT_HEADER } from '@/app/app.consts';
 
+/** During `next build` only: a gateway answer or a network error is asked again this many times. */
+export const BUILD_RETRIES = 3;
+
+/** The wait before each retry during the build: 0.5 s, 1 s, 2 s. */
+export const BUILD_RETRY_BASE_MS = 500;
+
+const RETRIED_STATUSES = new Set([502, 503, 504]);
+
+const isBuildPhase = () => process.env.NEXT_PHASE === 'phase-production-build';
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * A prerender reads hundreds of pages in a few minutes, and one passing gateway answer would fail the whole build.
+ * So during the build a 502, 503 or 504, or a network error, is asked again a bounded number of times with a short
+ * backoff; the last answer (or error) stands. At request time nothing is retried: a page keeps its own fallbacks.
+ */
+async function withBuildRetries(send: () => Promise<Response>): Promise<Response> {
+  for (let attempt = 0; ; attempt += 1) {
+    const last = attempt >= BUILD_RETRIES;
+    try {
+      const response = await send();
+      if (last || !RETRIED_STATUSES.has(response.status)) return response;
+      // The dropped answer's body is let go at once, so its connection is free for the next attempt.
+      void response.body?.cancel().catch(() => undefined);
+    } catch (error) {
+      if (last) throw error;
+    }
+    await wait(BUILD_RETRY_BASE_MS * 2 ** attempt);
+  }
+}
+
 type RequestOptions = {
   revalidate?: number;
   originalUserAgent?: string;
@@ -26,18 +58,20 @@ export async function request(
     headers[ORIGINAL_USER_AGENT_HEADER] = options.originalUserAgent;
   }
 
-  const response = await signedFetch(
-    '/graphql',
-    {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ query, variables }),
-      next: { revalidate: options?.revalidate },
-    },
-    options?.source,
-    options?.githubLogin,
-    options?.accountEmail,
-  );
+  const send = () =>
+    signedFetch(
+      '/graphql',
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ query, variables }),
+        next: { revalidate: options?.revalidate },
+      },
+      options?.source,
+      options?.githubLogin,
+      options?.accountEmail,
+    );
+  const response = isBuildPhase() ? await withBuildRetries(send) : await send();
 
   if (!response.ok) {
     // A query the API refuses (a field it does not know, a variable it cannot read) comes back as a 4xx with the

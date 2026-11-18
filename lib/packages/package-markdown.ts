@@ -1,6 +1,8 @@
-import { DEPENDENT_MIN_STARS, PACKAGE_RANKINGS, packageRankingPageOf } from '@/app/packages/package-rankings';
+import { ITEMS_PER_PAGE } from '@/app/app.consts';
+import { DEPENDENT_MIN_STARS, PACKAGE_RANKINGS } from '@/app/packages/package-rankings';
 import { formatCount, formatDay } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import type { PackagePage, PackageRanks } from '@/graphql/package-page';
+import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { absoluteUrl } from '@/lib/seo/site';
 import { PACKAGE_METHODOLOGY_PATH, packagePath, packageRankingPath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
@@ -13,16 +15,16 @@ const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
 
 const plural = (count: number, one: string, many: string) => `${formatCount(count)} ${count === 1 ? one : many}`;
 
-/** "#12 by downloads (page link)", for each rank the package has, in the rankings' order. */
+/** "#12 by weekly downloads: <its ranking page>", for each rank the package has, in the rankings' order; a rank past
+ * the pages a ranking lists has no link. */
 function rankLines(ranks: PackageRanks | null | undefined): string[] {
   const of = { downloads: ranks?.downloads, 'dependents-stars': ranks?.dependentsStars, dependents: ranks?.dependents };
-  return Object.entries(of).flatMap(([order, rank]) =>
-    rank
-      ? [
-          `- #${formatCount(rank.rank)} by ${PACKAGE_RANKINGS[order as keyof typeof of].metricInSentence}: ${absoluteUrl(packageRankingPath(order, packageRankingPageOf(rank.rank)))}`,
-        ]
-      : [],
-  );
+  return Object.entries(of).flatMap(([order, rank]) => {
+    if (!rank) return [];
+    const page = Math.ceil(rank.rank / ITEMS_PER_PAGE);
+    const link = page <= RANKING_MAX_PAGE.package ? `: ${absoluteUrl(packageRankingPath(order, page))}` : '';
+    return [`- #${formatCount(rank.rank)} by ${PACKAGE_RANKINGS[order as keyof typeof of].metricInSentence}${link}`];
+  });
 }
 
 /**

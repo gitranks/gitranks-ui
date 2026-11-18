@@ -64,6 +64,12 @@ How these numbers are counted: https://gitranks.com/methodology/packages
     expect(text).toContain('- Deprecated: Use something else\n');
   });
 
+  it('links a rank only to a ranking page that lists it', () => {
+    const text = packageMarkdownOf({ ...rankedPackage, ranks: { downloads: { rank: 48_000 } } });
+
+    expect(text).toContain('- #48,000 by weekly downloads\n');
+  });
+
   it('lives next to the page', () => {
     expect(packageMarkdownPath('react')).toBe('/package/npm/react/facts.md');
     expect(packageMarkdownPath('@types/node')).toBe('/package/npm/@types/node/facts.md');

@@ -1,4 +1,5 @@
 import { isNpmPackageName } from '@/lib/packages/npm-package-name';
+import { packageMarkdownNameOf } from '@/lib/packages/package-paths';
 import { isGithubLogin, PACKAGE_REGISTRIES } from '@/lib/routing/ranking-routes';
 
 /** A post's id as its links carry it: a 24-character hex object id. */
@@ -13,10 +14,13 @@ function packageNameOf(segments: string[]): string | null {
   }
 }
 
-/** `/package/<registry>/<name>`, where `<name>` is `x` or `@scope/x`: an unknown registry or a name npm never takes. */
-function isImpossiblePackagePath(registry: string, nameSegments: string[]): boolean {
+/**
+ * `/package/<registry>/<name>` or its facts in markdown, `/package/<registry>/<name>/facts.md`, where `<name>` is `x`
+ * or `@scope/x`: an unknown registry or a name npm never takes.
+ */
+function isImpossiblePackagePath(registry: string, segments: string[]): boolean {
   if (!PACKAGE_REGISTRIES.has(registry)) return true;
-  const name = packageNameOf(nameSegments);
+  const name = packageNameOf(packageMarkdownNameOf(segments) ?? segments);
   return name === null || !isNpmPackageName(name);
 }
 

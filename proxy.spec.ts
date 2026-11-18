@@ -141,6 +141,23 @@ describe('proxy', () => {
       expect(ranking?.headers.get('cache-control')).toBeNull();
     });
 
+    it("answers a package's facts in markdown from the packages API route, behind the same gate", async () => {
+      for (const path of ['/package/npm/react/facts.md', '/package/npm/@types/node/facts.md']) {
+        const closed = await proxy(request(undefined, path), event);
+        expect(closed?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+      }
+
+      packagesPublic.mockResolvedValue(true);
+      const open = await proxy(request(undefined, '/package/npm/@types/node/facts.md'), event);
+      expect(open?.headers.get('x-middleware-rewrite')).toBe(
+        'https://gitranks.com/api/packages/npm/@types/node/facts.md',
+      );
+      expect(withSession).not.toHaveBeenCalled();
+
+      const page = await proxy(request(undefined, '/package/npm/@acme/facts.md'), event);
+      expect(page?.headers.get('x-middleware-rewrite')).toBeNull();
+    });
+
     it('gates the spellings the router reads as a package page', async () => {
       for (const path of ['/%70ackage/npm/react', '//packages//npm', '/Methodology/Packages']) {
         const response = await proxy(request(undefined, path), event);

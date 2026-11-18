@@ -34,16 +34,29 @@ export function isPackagePath(pathname: string): boolean {
   return PAGE.test(decoded);
 }
 
-/** A package's facts in markdown as a visitor asks for them: `/package/<registry>/<name>/facts.md`. */
-const PACKAGE_MARKDOWN = /^\/package\/([^/]+)\/(.+)\/facts\.md$/;
+/** The last segment of a package's facts in markdown: `/package/<registry>/<name>/facts.md`. */
+const PACKAGE_MARKDOWN_FILE = 'facts.md';
+
+/**
+ * The name's segments of a path's package segments that ask for its facts in markdown (`x/facts.md`,
+ * `@scope/x/facts.md`), or `null` for any other: a scoped package named `facts.md` (`@scope/facts.md`) is a page.
+ */
+export function packageMarkdownNameOf(segments: readonly string[]): string[] | null {
+  if (segments.at(-1) !== PACKAGE_MARKDOWN_FILE) return null;
+  const name = segments.slice(0, -1);
+  const scoped = name[0]?.startsWith('@') ?? false;
+  return name.length === (scoped ? 2 : 1) ? name : null;
+}
 
 /**
  * Where the proxy answers a package's facts in markdown from: the packages API route's `facts.md` action, for
  * `/package/<registry>/<name>/facts.md`; `null` for any other path.
  */
 export function packageMarkdownRewriteOf(pathname: string): string | null {
-  const match = PACKAGE_MARKDOWN.exec(pathname);
-  return match ? `/api/packages/${match[1]}/${match[2]}/facts.md` : null;
+  const [section, registry, ...rest] = pathname.split('/').slice(1);
+  if (section !== 'package' || !registry) return null;
+  const name = packageMarkdownNameOf(rest);
+  return name ? `/api/packages/${registry}/${name.join('/')}/${PACKAGE_MARKDOWN_FILE}` : null;
 }
 
 /**

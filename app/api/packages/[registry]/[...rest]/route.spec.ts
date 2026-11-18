@@ -247,6 +247,15 @@ describe('package routes', () => {
       expect(unavailable.headers.get('Cache-Control')).toBe(PRIVATE);
     });
 
+    it('answers 502 in markdown when the read fails', async () => {
+      requestMaySeePackages.mockResolvedValue(true);
+      fetchPackage.mockRejectedValue(new Error('down'));
+      const response = await call('GET', 'npm/react/facts.md');
+
+      expect(response.status).toBe(502);
+      expect(response.headers.get('Content-Type')).toBe('text/markdown; charset=utf-8');
+    });
+
     it("sends the registry's own spelling to its address", async () => {
       requestMaySeePackages.mockResolvedValue(true);
       const response = await call('GET', 'npm/React-Resize-Detector/facts.md');

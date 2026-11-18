@@ -71,6 +71,9 @@ describe('packageMarkdownRewriteOf', () => {
     for (const path of [
       '/package/npm/react',
       '/package/npm/facts.md',
+      '/package/npm/@acme/facts.md',
+      '/package/npm/@acme/x/y/facts.md',
+      '/package/npm/react/facts.md/',
       '/package/npm/react/facts.md/x',
       '/package/npm/react/facts.mdx',
       '/packages/npm/react/facts.md',

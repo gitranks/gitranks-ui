@@ -59,13 +59,22 @@ const markdown = (body: string, status: number, cacheControl = PRIVATE) =>
  * data that cannot be read now 503; the registry's own spelling, when it differs, a 308 to its address.
  */
 async function facts(req: NextRequest, name: string) {
-  const isPublic = await packagesPublic();
-  const pkg = await fetchPackage(name);
+  let read: Awaited<ReturnType<typeof fetchPackage>>;
+  let isPublic: boolean;
+  try {
+    [isPublic, read] = await Promise.all([packagesPublic(), fetchPackage(name)]);
+  } catch {
+    return markdown('The package could not be read. Try again in a few minutes.\n', 502);
+  }
+  const pkg = read;
   if (pkg === PACKAGE_UNAVAILABLE) {
     return markdown('Package data is not available right now. Try again in a few minutes.\n', 503);
   }
-  if (!pkg || pkg.state === 'NOT_READ') {
-    return markdown(`No npm package ${name} has been read here yet.\n`, 404);
+  if (!pkg) {
+    return markdown(`npm has no package named ${name}.\n`, 404);
+  }
+  if (pkg.state === 'NOT_READ') {
+    return markdown(`The npm package ${name} has not been read here yet.\n`, 404);
   }
   if (pkg.name !== name) {
     return NextResponse.redirect(new URL(packageMarkdownPath(pkg.name), req.url), {

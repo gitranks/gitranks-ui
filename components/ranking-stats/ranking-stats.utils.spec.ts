@@ -132,7 +132,7 @@ describe('buildLanguageRankingStats', () => {
 describe('buildPackageRankingStats', () => {
   const input = {
     registry: 'npm',
-    registrySlug: 'npm',
+    registrySlug: 'npm' as const,
     metric: 'weekly downloads',
     minStars: 100,
     leaders: [

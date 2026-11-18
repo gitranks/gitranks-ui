@@ -3,10 +3,10 @@ import type { FC, ReactNode } from 'react';
 import {
   DEPENDENT_MIN_STARS,
   formatPackageDate,
-  PACKAGE_RANKING_ORDER_LIST,
   PACKAGE_RANKINGS,
   type PackageRankingOrder,
   packageRankingBasis,
+  packageRankingOrdersOf,
 } from '../package-rankings';
 import { buildPackageRankingJsonLd, buildPackageRankingQuestions } from '../seo';
 import { GoToPackageField } from './go-to-package-field';
@@ -23,11 +23,12 @@ import { RankingHeaderSection } from '@/components/ranking-header-section/rankin
 import { RankingStats } from '@/components/ranking-stats/ranking-stats';
 import { buildPackageRankingStats } from '@/components/ranking-stats/ranking-stats.utils';
 import type { PackageRankingFactsData, PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
+import { REGISTRIES, REGISTRY_IDS, type RegistryId } from '@/lib/packages/registries';
 import { packageRankingPath } from '@/utils/package-paths';
 
 type PackageRankingProps = {
   /** The registry's name in URLs, `npm`, and as written, `npm`. */
-  registry: string;
+  registry: RegistryId;
   registryLabel: string;
   order: PackageRankingOrder;
 };
@@ -39,8 +40,22 @@ type PackageRankingFrameProps = Omit<PackageRankingProps, 'registryLabel'> & {
 };
 
 /**
- * A package ranking's frame, as its layout draws it: the title with its Beta pill, "Rank by", what the rank is based
- * on, the "Go to a package" field and the Beta notice, around a page of the ranking.
+ * The registry switch beside "Rank by", with more than one registry listed (none with one): each registry's ranking in
+ * the same order when it has it, else by dependents' stars.
+ */
+function registrySwitches(registry: RegistryId, order: PackageRankingOrder) {
+  if (REGISTRY_IDS.length < 2) return [];
+  const options = REGISTRY_IDS.map((id) => ({
+    href: packageRankingPath(packageRankingOrdersOf(id).includes(order) ? order : 'dependents-stars', 1, id),
+    label: REGISTRIES[id].label,
+    active: id === registry,
+  }));
+  return [{ label: 'Registry:', options }];
+}
+
+/**
+ * A package ranking's frame, as its layout draws it: the title with its Beta pill, the registry (with more than one),
+ * "Rank by", what the rank is based on, the "Go to a package" field and the Beta notice, around a page of the ranking.
  */
 export const PackageRankingFrame: FC<PackageRankingFrameProps> = ({ registry, order, downloadsThrough, children }) => (
   <>
@@ -54,12 +69,13 @@ export const PackageRankingFrame: FC<PackageRankingFrameProps> = ({ registry, or
           </Pill>
         }
         optionsLabel="Rank by:"
-        options={PACKAGE_RANKING_ORDER_LIST.map((option) => ({
+        switches={registrySwitches(registry, order)}
+        options={packageRankingOrdersOf(registry).map((option) => ({
           href: packageRankingPath(option, 1, registry),
           label: PACKAGE_RANKINGS[option].label,
           active: option === order,
         }))}
-        subtitle={packageRankingBasis(order, formatPackageDate(downloadsThrough))}
+        subtitle={packageRankingBasis(order, formatPackageDate(downloadsThrough), registry)}
       />
       <GoToPackageField registry={registry} />
       <PackageBetaNotice />

@@ -8,6 +8,7 @@ import type {
   FollowSubscriber,
   PackageFollow,
 } from './follow-links.types';
+import { DEFAULT_REGISTRY } from '@/lib/packages/registries';
 
 /**
  * What a link's page can show when it cannot show its follows: the link's cookie is gone (`timed-out`), following
@@ -130,9 +131,9 @@ export function settingsStateOf(subscribers: FollowSubscriber[], notice?: Settin
   return { kind: 'list', subscribers, ...(notice ? { notice } : {}) };
 }
 
-/** A package's name as people know it: the name alone for npm, `<registry>/<name>` for another registry. */
+/** A package's name as people know it: the name alone on the default registry, `<registry>/<name>` on another. */
 export const packageLabelOf = ({ registry, name }: FollowPackage) =>
-  !registry || registry.toLowerCase() === 'npm' ? name : `${registry}/${name}`;
+  !registry || registry.toLowerCase() === DEFAULT_REGISTRY ? name : `${registry}/${name}`;
 
 /** "react-resize-detector", "react and vue", "react, vue and 3 more". */
 export function packagesLabelOf(packages: FollowPackage[]): string {

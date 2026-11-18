@@ -79,7 +79,7 @@ describe('PackageUpdatesButton', () => {
 
   const mount = async (props: Partial<Parameters<typeof PackageUpdatesButton>[0]> = {}) => {
     await act(async () => {
-      root.render(<PackageUpdatesButton name="left-pad" repository="stevemao/left-pad" {...props} />);
+      root.render(<PackageUpdatesButton registry="npm" name="left-pad" repository="stevemao/left-pad" {...props} />);
     });
     await act(async () => {});
     await act(async () => {});

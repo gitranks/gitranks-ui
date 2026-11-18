@@ -50,7 +50,7 @@ withBadgeFacts(packageBig);
 withBadgeFacts(badgeFactsOf(quietPackage));
 
 const page = (pkg: PackagePage | 'unavailable', name = rankedPackage.name) => (
-  <PackageScreen name={pkg === 'unavailable' ? name : pkg.name} pkg={pkg} />
+  <PackageScreen registry="npm" name={pkg === 'unavailable' ? name : pkg.name} pkg={pkg} />
 );
 
 /** Read and ranked, on daily updates because somebody added it. */
@@ -66,7 +66,7 @@ const yourPick = {
     state: 'on',
     until: '2026-11-04T12:00:00.000Z',
     manual: { available: true, nextAt: null },
-    picks: [{ ...packagePickOf(rankedPackage.name), pickedAt: '2026-10-28T09:00:00.000Z' }],
+    picks: [{ ...packagePickOf({ registry: 'npm', name: rankedPackage.name }), pickedAt: '2026-10-28T09:00:00.000Z' }],
     newPicksLeftToday: 2,
   } satisfies DailyUpdatesViewer,
 };

@@ -1,10 +1,24 @@
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from './site';
 import type { PublicLesson } from '@/lib/learn/learn.types';
 import { LEARN_MAINTAINERS_PATH, LEARN_PATH, lessonPath } from '@/lib/learn/learn-path';
+import { REGISTRIES, REGISTRY_IDS, type RegistryId, registryHasDownloads } from '@/lib/packages/registries';
 import { packageRankingPath } from '@/utils/package-paths';
 
 /** The most recent public lessons llms.txt names. */
 export const LLMS_TXT_LESSONS = 20;
+
+/** A registry's lines in the packages section: its rankings, the address of a package's page and of its facts. */
+function registryPackageLines(registry: RegistryId, url: (path: string) => string): string[] {
+  const { article, label } = REGISTRIES[registry];
+  const downloads = registryHasDownloads(registry);
+  const first = downloads ? 'downloads' : 'dependents-stars';
+  const rankedBy = `${downloads ? 'weekly downloads, by ' : ''}the stars of the repositories that use them, and by how many do`;
+  return [
+    `- [${label} package rankings](${url(packageRankingPath(first, 1, registry))}): ${label} packages ranked by ${rankedBy}. Beta.`,
+    `- Package page: ${url(`/package/${registry}/{name}`)} — who uses ${article} ${label} package: every repository with 100+ stars that depends on it directly, with ${downloads ? 'downloads and ' : ''}ranks.`,
+    `- Package facts in markdown: ${url(`/package/${registry}/{name}/facts.md`)} — the same as the package page, for agents: dependents${downloads ? ', downloads' : ''} and ranks, each with its link.`,
+  ];
+}
 
 /**
  * The site's llms.txt (llmstxt.org): an H1, a one-line summary, then link sections. Top-level pages alone, never a
@@ -63,9 +77,7 @@ export function llmsTxtOf({
     lines.push(
       '## Packages',
       '',
-      `- [npm package rankings](${url(packageRankingPath('downloads', 1))}): npm packages ranked by weekly downloads, by the stars of the repositories that use them, and by how many do. Beta.`,
-      `- Package page: ${url('/package/npm/{name}')} — who uses an npm package: every repository with 100+ stars that depends on it directly, with downloads and ranks.`,
-      `- Package facts in markdown: ${url('/package/npm/{name}/facts.md')} — the same as the package page, for agents: dependents, downloads and ranks, each with its link.`,
+      ...REGISTRY_IDS.flatMap((registry) => registryPackageLines(registry, url)),
       `- Repository "Used by": ${url('/repo/{owner}/{name}/used-by')} — the same for every package a repository publishes.`,
       `- [How package rankings work](${url('/methodology/packages')})`,
       `- [Unsung heroes](${url('/unsung-heroes')}): one open-source project a week that a lot of software runs on, and few people star`,

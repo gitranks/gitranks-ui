@@ -2,6 +2,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 
 import { type RepoPackages, RepoPackagesDocument, type RepoUsedBy, RepoUsedByDocument } from '@/graphql/repo-packages';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { isListedApiRegistry } from '@/lib/packages/registries';
 import { getRepoCacheTag } from '@/utils/repo-paths';
 
 /** The API's error code for package data it could not read just now (never an answer that there is none). */
@@ -46,13 +47,24 @@ const readPackages = async (owner: string, name: string) => {
 
   return readOrUnavailable(async () => {
     const { repo } = (await graphqlDirect(RepoPackagesDocument, { owner, name })) ?? {};
-    const packages = repo?.packages ?? null;
+    const packages = listedOnly(repo?.packages ?? null);
     return packages && packages.total > 0 && packages.items.length > 0 ? packages : null;
   });
 };
 
 /**
- * The npm packages a repository publishes: `null` when it publishes none, "unavailable" when the API could not read
+ * The packages on registries the site lists: a package on any other is left out, and out of the count, so nothing
+ * links it to a page the site does not draw.
+ */
+function listedOnly(packages: RepoPackages | null): RepoPackages | null {
+  if (!packages) return null;
+  const items = packages.items.filter(({ registry }) => isListedApiRegistry(registry));
+  const dropped = packages.items.length - items.length;
+  return dropped ? { ...packages, items, total: packages.total - dropped } : packages;
+}
+
+/**
+ * The packages a repository publishes: `null` when it publishes none, "unavailable" when the API could not read
  * them just now.
  */
 export const fetchRepoPackages = (owner: string, name: string): Promise<RepoPackages | null | Unavailable> =>

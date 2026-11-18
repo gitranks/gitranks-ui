@@ -5,12 +5,13 @@ import type { BadgeDefinition } from '@/badge/v3/catalogue';
 import { awaitsRead, type EntityFacts } from '@/badge/v3/facts';
 import { awaitsReadFor } from '@/badge/v3/pending';
 import type { EntityKind } from '@/badge/v3/types';
+import { anyRegistryPackageText } from '@/lib/packages/registries';
 
 const KIND_NAMES: Record<EntityKind, string> = {
   user: 'developer',
   org: 'organization',
   repo: 'repository',
-  package: 'npm package',
+  package: anyRegistryPackageText(),
 };
 
 /** What a badge is called by its format: "the “stars” card". */

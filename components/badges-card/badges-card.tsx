@@ -9,6 +9,7 @@ import { badgeImagePath } from '@/badge/v3/links';
 import { type PromotedBadge, promotedBadges } from '@/badge/v3/promotion';
 import { badgeTiles, entityLabelOf, entityNameOf, entityPathOf } from '@/badge/v3/tiles';
 import { BadgeTiles } from '@/components/badge-tiles/badge-tiles';
+import { REGISTRIES, REGISTRY_IDS } from '@/lib/packages/registries';
 import { absoluteUrl } from '@/lib/seo/site';
 import { packagePath } from '@/utils/package-paths';
 
@@ -40,9 +41,11 @@ type BadgesCardProps = {
   now?: Date;
 };
 
-/** "Used by", "npm downloads": the badge's name, as the Markdown's alt text. */
+/** "Used by", "npm downloads": the badge's name, as the Markdown's alt text; a registry's name is kept as it writes it. */
 const altOf = (title: string) =>
-  title.startsWith('npm') ? title : `${title.charAt(0).toUpperCase()}${title.slice(1)}`;
+  REGISTRY_IDS.some((id) => title.startsWith(REGISTRIES[id].label))
+    ? title
+    : `${title.charAt(0).toUpperCase()}${title.slice(1)}`;
 
 /** The Markdown of a package's first promoted badge, linked to its page: the code a README takes as it is. */
 function packageMarkdown(pkg: PackageFacts, first: PromotedBadge): string | null {

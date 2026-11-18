@@ -7,7 +7,8 @@ import { getBadgeResponse, parsePackageRef } from '@/badge/v3/route';
 import { packagesPublic, requestMaySeePackages } from '@/lib/packages/packages-gate';
 
 /**
- * A package's badge: `/badge/package/npm/<name>/<badge>.svg|png`, `<name>` being `x` or `@scope/x`. Only for a
+ * A package's badge: `/badge/package/<registry>/<name>/<badge>.svg|png`, `<name>` in the segments the registry's
+ * names take (npm: `x` or `@scope/x`). Only for a
  * visitor who may see packages; anyone else gets the not-found answer. Until packages are open to everyone, every
  * answer is private.
  */
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest, { params }: RouteContext<'/badge/pac
   }
 
   const { registry, rest } = await params;
-  // The name's one or two parts, then the file. Params arrive decoded; the path as asked tells its spelling.
+  // The name's parts, then the file. Params arrive decoded; the path as asked tells its spelling.
   const ref = rest.length >= 2 ? parsePackageRef(registry, rest.slice(0, -1), req.nextUrl.pathname) : null;
   const response = await getBadgeResponse(ref, rest.at(-1) ?? '', req.nextUrl.searchParams, {
     user: loadBadgeUser,

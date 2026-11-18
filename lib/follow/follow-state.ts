@@ -1,4 +1,5 @@
 import type { FollowChannel, FollowEvents, FollowPackage, FollowRow } from './follow.types';
+import { packageKeyOf } from '@/lib/packages/registries';
 
 // The signed-in viewer's follows as the slot and its dialog read them. Only an active follow counts: a pending one waits
 // for its confirmation, and a removed one is kept a while only for Undo.
@@ -7,8 +8,8 @@ import type { FollowChannel, FollowEvents, FollowPackage, FollowRow } from './fo
 export const ALL_EVENTS: FollowEvents = { notable: true, digest: true, milestones: true };
 
 const inSlot = (packages: readonly FollowPackage[]) => {
-  const names = new Set(packages.map(({ name }) => name));
-  return (row: FollowRow) => row.status === 'active' && row.package.registry === 'npm' && names.has(row.package.name);
+  const keys = new Set(packages.map(packageKeyOf));
+  return (row: FollowRow) => row.status === 'active' && keys.has(`${row.package.registry}/${row.package.name}`);
 };
 
 /** The active follows of the slot's packages. */

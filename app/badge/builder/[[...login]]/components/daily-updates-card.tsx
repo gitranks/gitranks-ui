@@ -11,7 +11,7 @@ import type { BadgeCheckKind } from '@/types/daily-updates.types';
 
 type DailyUpdatesCardProps = {
   kind: BadgeCheckKind;
-  /** The profile's login, the repository's `owner/name` or the package's `npm/<name>`, as GitRanks stores it. */
+  /** The profile's login, the repository's `owner/name` or the package's `<registry>/<name>`, as GitRanks stores it. */
   name: string;
   /** A package's publishing repository, whose README holds its badge, when known. */
   repository?: string | null;

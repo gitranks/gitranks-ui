@@ -35,6 +35,7 @@ import {
 } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
+import type { RegistryId } from '@/lib/packages/registries';
 import type { PickRefreshStatus } from '@/types/daily-updates.types';
 import {
   type DailyUpdatesFacts,
@@ -46,7 +47,9 @@ import {
 import { timeLeftUntil } from '@/utils/format-time-left';
 
 type PackageUpdatesButtonProps = {
-  /** The package's name: `x` or `@scope/x`. */
+  /** The registry the package is on. */
+  registry: RegistryId;
+  /** The package's name: on npm `x` or `@scope/x`. */
   name: string;
   /** `owner/name` of the repository that publishes it, for the deal's badge note; none when unknown. */
   repository?: string | null;
@@ -92,7 +95,7 @@ function landedSince(state: PackageRefreshStatus, waiting: Waiting): boolean {
 }
 
 /** The page's note key: a package's, never a repository's (no GitHub owner holds `:`). */
-const NOTE_OWNER = 'package:npm';
+const noteOwnerOf = (registry: RegistryId) => `package:${registry}`;
 
 /**
  * A package's one button, outlined (Follow is the page's one violet button), with the four states of daily updates:
@@ -105,6 +108,7 @@ const NOTE_OWNER = 'package:npm';
  * load, never from the cached page.
  */
 export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
+  registry,
   name,
   repository,
   dailyUpdates,
@@ -114,8 +118,8 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
   const login = status === 'authenticated' ? session?.user?.githubLogin : undefined;
   const { viewer, read, setViewer, reload } = useDailyUpdatesViewer(!!login);
   const copy = pickCopyOf(true, 'package');
-  const target = packagePickOf(name);
-  const url = packageApiPath(name, 'refresh');
+  const target = packagePickOf({ registry, name });
+  const url = packageApiPath(registry, name, 'refresh');
   const page = dealPageOf('package', target.name);
   const [dialog, setDialog] = useState<OpenDialog>(null);
   const [checking, setChecking] = useState(false);
@@ -159,8 +163,8 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
 
   // The note a refresh left before the reload stays until the visitor closes it.
   useEffect(() => {
-    showKeptPullNote(NOTE_OWNER, name, (note, options) => toast.success(note, options));
-  }, [name]);
+    showKeptPullNote(noteOwnerOf(registry), name, (note, options) => toast.success(note, options));
+  }, [registry, name]);
 
   // A refresh shown running on the page: anyone waits for it.
   useEffect(() => {
@@ -172,9 +176,9 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
   const reloadWithNote = useCallback(
     (note: string | null) => {
       setReloading(true);
-      reloadWithPullNote(NOTE_OWNER, name, note, () => window.location.reload());
+      reloadWithPullNote(noteOwnerOf(registry), name, note, () => window.location.reload());
     },
-    [name],
+    [registry, name],
   );
 
   // One check at a time, after a pause; an unmount or a move to another page aborts it, and nothing reloads after.

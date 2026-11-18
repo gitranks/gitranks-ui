@@ -23,6 +23,7 @@ import type { RepoUnsungHeroFacts } from './unsung-hero-badge';
 import { BADGE_DEPENDENTS, BadgePackageDocument, type BadgePackageQuery } from '@/graphql/badge-package';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { packageCacheTag } from '@/lib/packages/package-paths';
+import { REGISTRIES, type RegistryId, registryOfApi } from '@/lib/packages/registries';
 import { UNSUNG_HERO_CACHE_TAG } from '@/lib/unsung-hero/unsung-hero';
 import {
   BadgeOrgCardDocument,
@@ -412,15 +413,16 @@ export async function loadBadgeOrgCard(login: string): Promise<OrgFacts | null> 
 }
 
 /**
- * An npm package's badge facts; `null` for a name the registry does not have, and for one GitRanks has not read yet
- * (it has no badges until then, not even "new").
+ * A package's badge facts; `null` for a name the registry does not have, and for one GitRanks has not read yet (it has
+ * no badges until then, not even "new").
  */
 export function toPackageFacts({ package: pkg }: BadgePackageQuery): PackageFacts | null {
-  if (pkg?.state !== 'READ') return null;
+  const registry = registryOfApi(pkg?.registry);
+  if (pkg?.state !== 'READ' || !registry) return null;
   const downloads = pkg.downloads;
   return {
     kind: 'package',
-    registry: 'npm',
+    registry,
     name: pkg.name,
     repo: pkg.repo ? { nameWithOwner: pkg.repo.nameWithOwner, stars: pkg.repo.stars } : null,
     repositoryName: pkg.repo ? null : (pkg.repositoryName ?? null),
@@ -470,9 +472,12 @@ const isBuild = () => process.env.NEXT_PHASE === 'phase-production-build';
  * A name GitRanks has not read yet is kept for minutes, so its first read shows soon; so is "unavailable", the API's
  * answer while it cannot read package data.
  */
-async function readBadgePackage(name: string): Promise<PackageFacts | PackageNotRead | null | Unavailable> {
+async function readBadgePackage(
+  registry: RegistryId,
+  name: string,
+): Promise<PackageFacts | PackageNotRead | null | Unavailable> {
   'use cache';
-  cacheTag(packageCacheTag(name));
+  cacheTag(packageCacheTag(registry, name));
   if (isBuild()) {
     cacheLife('minutes');
     return UNAVAILABLE;
@@ -480,7 +485,7 @@ async function readBadgePackage(name: string): Promise<PackageFacts | PackageNot
   try {
     const data = await graphqlDirect(
       BadgePackageDocument,
-      { registry: 'NPM', name, limit: BADGE_DEPENDENTS },
+      { registry: REGISTRIES[registry].api, name, limit: BADGE_DEPENDENTS },
       { source: 'badge' },
     );
     if (data?.package && data.package.state !== 'READ') {
@@ -500,8 +505,11 @@ async function readBadgePackage(name: string): Promise<PackageFacts | PackageNot
  * A package's badge data for its images and the builder: "not read yet" for a package held and not read, which has no
  * badges until its first read; throws while package data cannot be read (a 503).
  */
-export async function loadBadgePackage(name: string): Promise<PackageFacts | PackageNotRead | null> {
-  const facts = await readBadgePackage(name);
+export async function loadBadgePackage(
+  registry: RegistryId,
+  name: string,
+): Promise<PackageFacts | PackageNotRead | null> {
+  const facts = await readBadgePackage(registry, name);
   if (facts === UNAVAILABLE) {
     throw new Error('Package data is not available right now');
   }
@@ -509,7 +517,7 @@ export async function loadBadgePackage(name: string): Promise<PackageFacts | Pac
 }
 
 /** A package's Badges card data; `null`, and no card, while package data cannot be read. */
-export async function loadBadgePackageCard(name: string): Promise<PackageFacts | null> {
-  const facts = await readBadgePackage(name);
+export async function loadBadgePackageCard(registry: RegistryId, name: string): Promise<PackageFacts | null> {
+  const facts = await readBadgePackage(registry, name);
   return facts === UNAVAILABLE || facts === PACKAGE_NOT_READ ? null : facts;
 }

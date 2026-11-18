@@ -2,7 +2,17 @@ import { type BadgeDefinition, findBadge } from '@/badge/v3/catalogue';
 import { DEFAULT_CONTRIBUTOR_VALUE } from '@/badge/v3/contributors';
 import { BadgeParamsError, cutLabel, resolveParams } from '@/badge/v3/params';
 import type { EntityKind } from '@/badge/v3/types';
-import { isNpmPackageName } from '@/lib/packages/npm-package-name';
+import {
+  DEFAULT_REGISTRY,
+  isPackageName,
+  isRegistryId,
+  type PackageRef,
+  packageKeyOf,
+  packageOfKey,
+  REGISTRIES,
+  REGISTRY_IDS,
+  type RegistryId,
+} from '@/lib/packages/registries';
 import { isGithubLogin, isRepoSlug } from '@/lib/routing/ranking-routes';
 
 /**
@@ -10,7 +20,8 @@ import { isGithubLogin, isRepoSlug } from '@/lib/routing/ranking-routes';
  *
  * `/badge/builder?{user|org|repo|package}={name}&badge={id}&{style…}&step=embed`
  *
- * A package is named as its badge URLs name it, `npm/<name>`; its key counts only for a visitor packages are shown to.
+ * A package is named as its badge URLs name it, `<registry>/<name>`; its key counts only for a visitor packages are
+ * shown to.
  *
  * - no entity key: step 1 (Find) for any kind; an empty one (`?repo=`) narrows step 1 to that kind;
  * - a filled entity: step 2 (Badge);
@@ -104,21 +115,29 @@ export function stepOf(state: Pick<BuilderState, 'name' | 'badge' | 'embed'>): B
   return state.embed ? 'embed' : 'style';
 }
 
-/** The npm package a builder name `npm/<name>` names: its name, or `null`. */
-export function packageNameOf(name: string): string | null {
-  const [registry, ...rest] = name.split('/');
-  const packageName = rest.join('/');
-  return registry === 'npm' && isNpmPackageName(packageName) ? packageName : null;
+/** The package a builder name `<registry>/<name>` names, or `null`. */
+export const packageRefOf = (name: string): PackageRef | null => packageOfKey(name);
+
+/**
+ * The package a builder name is about, even one no registry would take, for a link to its page: a known registry
+ * before the first `/`, else the default registry and the whole name.
+ */
+export function anyPackageRefOf(name: string): PackageRef {
+  const slash = name.indexOf('/');
+  const registry = name.slice(0, Math.max(slash, 0));
+  return slash > 0 && isRegistryId(registry)
+    ? { registry, name: name.slice(slash + 1) }
+    : { registry: DEFAULT_REGISTRY, name };
 }
 
 /** An entity's name as people read it: a package's own name, without its registry. */
 export const entityLabel = (kind: EntityKind, name: string) =>
-  kind === 'package' ? (packageNameOf(name) ?? name) : name;
+  kind === 'package' ? (packageRefOf(name)?.name ?? name) : name;
 
 /** Whether a name can name an entity of that kind at all; anything else is a miss without asking. */
 export function isEntityName(kind: EntityKind, name: string): boolean {
   if (kind === 'package') {
-    return packageNameOf(name) !== null;
+    return packageRefOf(name) !== null;
   }
   if (kind === 'repo') {
     const [owner, repo, ...rest] = name.split('/');
@@ -149,22 +168,36 @@ export function parseSearch(input: string): SearchTarget | null {
   return isGithubLogin(owner) ? { kind: 'login', name: owner } : null;
 }
 
-/** What may lead an npm package's name when a visitor pastes it: its page's address (`npmjs.com/package/`), `npm:`. */
-const NPM_PREFIX = /^(?:(?:https?:\/\/)?(?:www\.)?npmjs\.(?:com|org)\/package\/|npm:)/i;
+/**
+ * What may lead a package's name when a visitor pastes it, per registry: its page's address on the registry's site
+ * (`npmjs.com/package/`), or `<registry>:` (`npm:`).
+ */
+const REGISTRY_PREFIXES = REGISTRY_IDS.map((registry) => ({
+  registry,
+  prefix: new RegExp(`(?:${REGISTRIES[registry].pageUrlPrefix.source}|^${registry}:)`, 'i'),
+}));
+
+/** The registry a pasted search names by its page's address or `<registry>:`, and the text after it; `null` for none. */
+function prefixedRegistryOf(input: string): { registry: RegistryId; rest: string } | null {
+  for (const { registry, prefix } of REGISTRY_PREFIXES) {
+    const match = prefix.exec(input);
+    if (match?.index === 0) return { registry, rest: input.slice(match[0].length) };
+  }
+  return null;
+}
 
 /**
- * The npm package a Find search names, as the builder names it (`npm/<name>`); `null` when it cannot name one. Spaces
- * are dropped, and so are an npm page's address, `npm:` and a version after the name (`react@19`).
+ * The package a Find search names, as the builder names it (`<registry>/<name>`); `null` when it cannot name one.
+ * Spaces are dropped, and so are a registry page's address, `<registry>:` and a version after the name (`react@19`).
+ * A name with neither is looked for on the default registry.
  */
 export function parsePackageSearch(input: string): string | null {
-  const bare = input
-    .replace(/\s+/g, '')
-    .replace(NPM_PREFIX, '')
-    .replace(/[?#].*$/, '')
-    .replace(/\/+$/, '');
+  const trimmed = input.replace(/\s+/g, '');
+  const { registry, rest } = prefixedRegistryOf(trimmed) ?? { registry: DEFAULT_REGISTRY, rest: trimmed };
+  const bare = rest.replace(/[?#].*$/, '').replace(/\/+$/, '');
   // A version after the name, not a scope's own `@`.
   const name = bare.replace(/(?<=.)@[^/]*$/, '');
-  return isNpmPackageName(name) ? `npm/${name}` : null;
+  return isPackageName(registry, name) ? packageKeyOf({ registry, name }) : null;
 }
 
 /** What a search asks for: a kind and the name it is asked under. */
@@ -179,8 +212,8 @@ function githubKindsFor(target: SearchTarget, narrowed: EntityKind | null): Enti
 
 /**
  * What a Find search asks for. `owner/name` is a repository, a login a developer or an organization. Once packages
- * are shown (`packages`), a name is an npm package too, and a scoped name (`@scope/name`), an npm page's address or
- * `npm:name` a package only. Narrowed to packages, the search names one package; without `packages`, nothing.
+ * are shown (`packages`), a name is a package too, and a scoped name (`@scope/name`), a registry page's address or
+ * `<registry>:name` a package only. Narrowed to packages, the search names one package; without `packages`, nothing.
  */
 export function searchLookups(input: string, narrowed: EntityKind | null, packages = false): SearchLookup[] {
   if (narrowed === 'package') {
@@ -189,7 +222,7 @@ export function searchLookups(input: string, narrowed: EntityKind | null, packag
   }
   const pkg = packages && !narrowed ? parsePackageSearch(input) : null;
   const trimmed = input.replace(/\s+/g, '');
-  if (pkg && (trimmed.startsWith('@') || NPM_PREFIX.test(trimmed))) {
+  if (pkg && (trimmed.startsWith('@') || prefixedRegistryOf(trimmed) !== null)) {
     return [{ kind: 'package', name: pkg }];
   }
   const target = parseSearch(input);

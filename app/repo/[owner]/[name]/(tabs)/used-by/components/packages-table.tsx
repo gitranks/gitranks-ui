@@ -3,9 +3,12 @@ import type { Route } from 'next';
 import NextLink from 'next/link';
 import type { FC } from 'react';
 
+import { RegistryChip } from './package-card';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
+import { registryOfRepoPackage, spansRegistries } from '@/app/repo/[owner]/[name]/utils/repo-package-registry';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { RepoPackages } from '@/graphql/repo-packages';
+import { REGISTRIES } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 const formatCount = (value: number) => value.toLocaleString('en-US');
@@ -16,6 +19,8 @@ const formatCount = (value: number) => value.toLocaleString('en-US');
  */
 export const PackagesTable: FC<{ packages: Pick<RepoPackages, 'total' | 'items'> }> = ({ packages }) => {
   const more = packages.total - packages.items.length;
+  // Packages on more than one registry name each one's.
+  const registryChip = spansRegistries(packages.items);
 
   return (
     <ProfileCard className="gap-0 p-0">
@@ -33,15 +38,16 @@ export const PackagesTable: FC<{ packages: Pick<RepoPackages, 'total' | 'items'>
         </TableHeader>
         <TableBody>
           {packages.items.map((pkg) => (
-            <TableRow key={pkg.name}>
+            <TableRow key={`${pkg.registry}/${pkg.name}`}>
               <TableCell className="px-4 py-2.5 whitespace-normal">
                 <NextLink
-                  href={packagePath(pkg.name) as Route}
+                  href={packagePath(pkg.name, registryOfRepoPackage(pkg)) as Route}
                   prefetch={false}
                   className="flex items-center gap-2 font-mono font-medium [overflow-wrap:anywhere] hover:underline"
                 >
                   <Package className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                   {pkg.name}
+                  {registryChip && <RegistryChip label={REGISTRIES[registryOfRepoPackage(pkg)].label} />}
                 </NextLink>
               </TableCell>
               <TableCell className="px-2 py-2.5 text-right font-mono tabular-nums">

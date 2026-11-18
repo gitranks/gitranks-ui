@@ -10,6 +10,164 @@ vi.hoisted(() => {
 type Node = { '@type': string; [key: string]: unknown };
 
 describe('buildPackageSEO', () => {
+  it("pins an npm package page's metadata and JSON-LD, read or not", () => {
+    expect(buildPackageSEO(rankedPackage, rankedPackage.name, dependentRows)).toMatchInlineSnapshot(`
+      {
+        "jsonLd": [
+          {
+            "@context": "https://schema.org",
+            "@type": "ItemPage",
+            "description": "Used by 16 repositories with 100+ stars (16,429 stars between them). 1,797,999 downloads last week. npm rank #1,234 by downloads, #40 by dependents' stars,…",
+            "mainEntity": {
+              "@type": "SoftwareApplication",
+              "applicationCategory": "DeveloperApplication",
+              "codeRepository": "https://github.com/acme/react-resize-detector",
+              "description": "A Cross-Browser, Event-based, Element Resize Detection for React",
+              "interactionStatistic": {
+                "@type": "InteractionCounter",
+                "interactionType": "https://schema.org/DownloadAction",
+                "userInteractionCount": 1797999,
+              },
+              "license": "MIT",
+              "name": "react-resize-detector",
+              "sameAs": [
+                "https://www.npmjs.com/package/react-resize-detector",
+              ],
+              "softwareVersion": "12.3.0",
+              "url": "https://gitranks.com/package/npm/react-resize-detector",
+            },
+            "name": "react-resize-detector - npm package dependents, downloads and ranks",
+            "url": "https://gitranks.com/package/npm/react-resize-detector",
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "name": "kiali/kiali",
+                "position": 1,
+                "url": "https://gitranks.com/repo/kiali/kiali",
+              },
+              {
+                "@type": "ListItem",
+                "name": "notea-org/notea",
+                "position": 2,
+                "url": "https://gitranks.com/repo/notea-org/notea",
+              },
+            ],
+            "itemListOrder": "https://schema.org/ItemListOrderAscending",
+            "name": "Repositories with 100+ stars that use react-resize-detector",
+            "numberOfItems": 2,
+            "url": "https://gitranks.com/package/npm/react-resize-detector",
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "item": "https://gitranks.com/",
+                "name": "Home",
+                "position": 1,
+              },
+              {
+                "@type": "ListItem",
+                "item": "https://gitranks.com/packages/npm/downloads/1",
+                "name": "Package rankings",
+                "position": 2,
+              },
+              {
+                "@type": "ListItem",
+                "item": "https://gitranks.com/package/npm/react-resize-detector",
+                "name": "react-resize-detector",
+                "position": 3,
+              },
+            ],
+          },
+        ],
+        "metadata": {
+          "alternates": {
+            "canonical": "/package/npm/react-resize-detector",
+            "types": {
+              "text/markdown": "/package/npm/react-resize-detector/facts.md",
+            },
+          },
+          "description": "Used by 16 repositories with 100+ stars (16,429 stars between them). 1,797,999 downloads last week. npm rank #1,234 by downloads, #40 by dependents' stars,…",
+          "openGraph": {
+            "description": "Used by 16 repositories with 100+ stars (16,429 stars between them). 1,797,999 downloads last week. npm rank #1,234 by downloads, #40 by dependents' stars,…",
+            "images": [
+              {
+                "alt": "react-resize-detector - npm package dependents, downloads and ranks on GitRanks",
+                "height": 630,
+                "url": "https://gitranks.com/badge/package/npm/react-resize-detector/package-card.png?size=social",
+                "width": 1200,
+              },
+            ],
+            "locale": "en_US",
+            "siteName": "GitRanks",
+            "title": "react-resize-detector - npm package dependents, downloads and ranks",
+            "type": "website",
+            "url": "/package/npm/react-resize-detector",
+          },
+          "robots": {
+            "follow": true,
+            "index": true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+          "title": "react-resize-detector - npm package dependents, downloads and ranks",
+          "twitter": {
+            "card": "summary_large_image",
+            "description": "Used by 16 repositories with 100+ stars (16,429 stars between them). 1,797,999 downloads last week. npm rank #1,234 by downloads, #40 by dependents' stars,…",
+            "images": [
+              {
+                "alt": "react-resize-detector - npm package dependents, downloads and ranks on GitRanks",
+                "height": 630,
+                "url": "https://gitranks.com/badge/package/npm/react-resize-detector/package-card.png?size=social",
+                "width": 1200,
+              },
+            ],
+            "site": "@gitranks",
+            "title": "react-resize-detector - npm package dependents, downloads and ranks",
+          },
+        },
+      }
+    `);
+    expect(buildPackageSEO(notReadPackage, notReadPackage.name)).toMatchInlineSnapshot(`
+      {
+        "jsonLd": [],
+        "metadata": {
+          "alternates": {
+            "canonical": "/package/npm/left-pad-next",
+          },
+          "description": "We have not read the npm package left-pad-next yet.",
+          "openGraph": {
+            "description": "We have not read the npm package left-pad-next yet.",
+            "images": undefined,
+            "locale": "en_US",
+            "siteName": "GitRanks",
+            "title": "left-pad-next - npm package dependents, downloads and ranks",
+            "type": "website",
+            "url": "/package/npm/left-pad-next",
+          },
+          "robots": {
+            "index": false,
+          },
+          "title": "left-pad-next - npm package dependents, downloads and ranks",
+          "twitter": {
+            "card": "summary",
+            "description": "We have not read the npm package left-pad-next yet.",
+            "images": undefined,
+            "site": "@gitranks",
+            "title": "left-pad-next - npm package dependents, downloads and ranks",
+          },
+        },
+      }
+    `);
+  });
+
   it('titles, describes and indexes a package with dependents, with its JSON-LD', () => {
     const { metadata, jsonLd } = buildPackageSEO(rankedPackage, rankedPackage.name, dependentRows);
 

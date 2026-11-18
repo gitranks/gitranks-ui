@@ -37,6 +37,17 @@ describe('fetchRepoPackages and fetchRepoUsedBy', () => {
     expect(cacheLife).toHaveBeenLastCalledWith('hours');
   });
 
+  it('leave out a package on a registry the site does not list, and out of the count', async () => {
+    const other = { ...threePackages.items[0], registry: 'PYPI', name: 'nebula-ui' };
+    graphqlDirect.mockResolvedValue({
+      repo: { packages: { ...threePackages, total: 4, items: [...threePackages.items, other] } },
+    });
+    await expect(fetchRepoPackages('nebula', 'ui')).resolves.toEqual({ ...threePackages, total: 3 });
+
+    graphqlDirect.mockResolvedValue({ repo: { packages: { ...threePackages, total: 1, items: [other] } } });
+    await expect(fetchRepoPackages('nebula', 'ui-only-other')).resolves.toBeNull();
+  });
+
   it('read a repository that publishes nothing as null', async () => {
     graphqlDirect.mockResolvedValueOnce({ repo: { packages: null } });
     await expect(fetchRepoPackages('a', 'b')).resolves.toBeNull();

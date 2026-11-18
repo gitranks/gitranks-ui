@@ -6,10 +6,12 @@
 /** `never`: not started; `on`: the 7 days run; `lapsed`: started before, and the 7 days ran out. */
 export type DailyUpdatesState = 'never' | 'on' | 'lapsed';
 
-/** What a pick names: `repo`, a repository by `owner/name`; `package`, an npm package by `npm/<name>`. */
+/** What a pick names: `repo`, a repository by `owner/name`; `package`, a package by `<registry>/<name>`. */
 export type PickKind = 'repo' | 'package';
 
-/** A pick as the site names it: its kind and its name (a repository's `owner/name`, a package's `npm/<name>`). */
+/**
+ * A pick as the site names it: its kind and its name (a repository's `owner/name`, a package's `<registry>/<name>`).
+ */
 export type PickRef = { kind: PickKind; name: string };
 
 /** One of the visitor's picks: updated every day while their daily updates are on. */
@@ -64,7 +66,9 @@ export type DailyUpdatesPickResult =
 /** A pick's removal. */
 export type DailyUpdatesRemoveResult = { status: 'removed'; picks: DailyUpdatesPick[] };
 
-/** What "Check my badge" checks: a profile by login, a repository by `owner/name`, or a package by `npm/<name>`. */
+/**
+ * What "Check my badge" checks: a profile by login, a repository by `owner/name`, or a package by `<registry>/<name>`.
+ */
 export type BadgeCheckKind = 'user' | 'repo' | 'package';
 
 /**

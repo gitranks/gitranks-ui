@@ -5,6 +5,7 @@ import {
   REFRESH_TOASTS,
   type RefreshMessage,
 } from '@/components/refresh-dialogs/refresh-messages';
+import { anyRegistryPackageText } from '@/lib/packages/registries';
 import type { PickKind } from '@/types/daily-updates.types';
 
 /**
@@ -104,7 +105,10 @@ export const PICK_TOASTS = {
 } as const;
 
 /** The kind of each row of the list, once packages are shown: what each one is. */
-export const PICK_KIND_LABELS: Readonly<Record<PickKind, string>> = { repo: 'Repository', package: 'npm package' };
+export const PICK_KIND_LABELS: Readonly<Record<PickKind, string>> = {
+  repo: 'Repository',
+  package: anyRegistryPackageText(),
+};
 
 /** The muted last row of the list once packages are shown: "You can add 1 more repo or package." */
 const picksLeftWithPackages = (left: number) =>

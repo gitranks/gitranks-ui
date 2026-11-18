@@ -1,3 +1,5 @@
+import type { PackageRef } from '@/lib/packages/registries';
+
 /** Where a follower gets messages. */
 export const FOLLOW_CHANNELS = ['email', 'telegram', 'whatsapp'] as const;
 export type FollowChannel = (typeof FOLLOW_CHANNELS)[number];
@@ -7,8 +9,8 @@ export const FOLLOW_EVENTS = ['notable', 'digest', 'milestones'] as const;
 export type FollowEventName = (typeof FOLLOW_EVENTS)[number];
 export type FollowEvents = Record<FollowEventName, boolean>;
 
-/** A package one press follows. */
-export type FollowPackage = { registry: 'npm'; name: string };
+/** A package one press follows, by its registry and name. */
+export type FollowPackage = PackageRef;
 
 /** The most packages one press follows. */
 export const FOLLOW_PACKAGES_MAX = 50;

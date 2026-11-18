@@ -26,6 +26,7 @@ import type {
   FollowStatus,
 } from './follow.types';
 import type { FollowChangeByTokenAnswer, FollowSubscriber } from '@/lib/link-token/follow-links.types';
+import { REGISTRIES } from '@/lib/packages/registries';
 import { signedFetch } from '@/lib/signed-fetch';
 import type DocumentNode from '@/types/typed-document-node';
 
@@ -97,7 +98,7 @@ async function ask<TData, TVariables extends Record<string, unknown>>(
 
 const lower = <T extends string>(value: string) => value.toLowerCase() as T;
 
-const packageInputOf = ({ name }: FollowPackage) => ({ registry: 'NPM' as const, name });
+const packageInputOf = ({ registry, name }: FollowPackage) => ({ registry: REGISTRIES[registry].api, name });
 
 const rowOf = (follow: ApiFollow): FollowRow => ({
   id: follow.id,

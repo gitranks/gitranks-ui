@@ -1,27 +1,28 @@
-import { isNpmPackageName } from '@/lib/packages/npm-package-name';
 import { packageMarkdownNameOf } from '@/lib/packages/package-paths';
-import { isGithubLogin, PACKAGE_REGISTRIES } from '@/lib/routing/ranking-routes';
+import { isRegistryId, nameOfSegments } from '@/lib/packages/registries';
+import { isGithubLogin } from '@/lib/routing/ranking-routes';
 
 /** A post's id as its links carry it: a 24-character hex object id. */
 const INSIGHT_ID = /^[0-9a-f]{24}$/i;
 
-/** The segments of a package's name, decoded and joined as the name; null when one does not decode. */
-function packageNameOf(segments: string[]): string | null {
+/** The segments of a package's name, decoded; null when one does not decode. */
+function decodedSegmentsOf(segments: readonly string[]): string[] | null {
   try {
-    return segments.map((segment) => decodeURIComponent(segment)).join('/');
+    return segments.map((segment) => decodeURIComponent(segment));
   } catch {
     return null;
   }
 }
 
 /**
- * `/package/<registry>/<name>` or its facts in markdown, `/package/<registry>/<name>/facts.md`, where `<name>` is `x`
- * or `@scope/x`: an unknown registry or a name npm never takes.
+ * `/package/<registry>/<name>` or its facts in markdown, `/package/<registry>/<name>/facts.md`, where `<name>` takes
+ * the segments a name on the registry takes (npm: `x` or `@scope/x`): an unknown registry or a name the registry never
+ * takes.
  */
 function isImpossiblePackagePath(registry: string, segments: string[]): boolean {
-  if (!PACKAGE_REGISTRIES.has(registry)) return true;
-  const name = packageNameOf(packageMarkdownNameOf(segments) ?? segments);
-  return name === null || !isNpmPackageName(name);
+  if (!isRegistryId(registry)) return true;
+  const decoded = decodedSegmentsOf(packageMarkdownNameOf(registry, segments) ?? segments);
+  return decoded === null || nameOfSegments(registry, decoded) === null;
 }
 
 /**

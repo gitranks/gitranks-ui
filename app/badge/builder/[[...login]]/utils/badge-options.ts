@@ -94,7 +94,7 @@ export function shieldText(entity: EntityFacts, badge: BadgeDefinition, params: 
   return `${label}${segmentText(content.value)}${extra ? ` · ${extra}` : ''}`;
 }
 
-/** The entity's name as its URLs write it: a login, `owner/name`, or a package's `npm/<name>`. */
+/** The entity's name as its URLs write it: a login, `owner/name`, or a package's `<registry>/<name>`. */
 export const entityName = (entity: EntityFacts) =>
   entity.kind === 'repo' ? entity.nameWithOwner : entity.kind === 'package' ? packageBadgeName(entity) : entity.login;
 

@@ -8,6 +8,7 @@ import { shieldContent } from './shields';
 import type { BadgeFormat, By, Segment, Theme } from './types';
 import { wallLayout } from './wall-layout';
 import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
+import { registryDownloadsText } from '@/lib/packages/registries';
 
 /**
  * Live badges on pages: the Badges card on profile, repository and organization pages, and the gallery. Each badge is
@@ -102,7 +103,7 @@ function panelFact(entity: EntityFacts, badge: BadgeDefinition, params: BadgePar
       const used = count > 0 ? plural(count, 'repo with 100+ stars', 'repos with 100+ stars') : 'new';
       if (badge.id === 'used-by-card' || badge.id === 'used-by-chart') return `used by ${used}`;
       if (badge.id === 'downloads-card' && entity.downloads) {
-        return `${formatCompact(entity.downloads.lastWeek)} npm downloads a week`;
+        return `${formatCompact(entity.downloads.lastWeek)} ${registryDownloadsText(entity.registry)}`;
       }
       return badge.title;
     }

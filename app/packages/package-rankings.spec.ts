@@ -5,15 +5,25 @@ import {
   formatPackageDate,
   isPackageRankingOrder,
   PACKAGE_RANKING_ORDER_LIST,
-  PACKAGE_RANKING_REGISTRIES,
+  packageRankingFirstOrder,
+  packageRankingOrdersOf,
   packageRankingRegistryOf,
 } from './package-rankings';
+import { REGISTRY_IDS } from '@/lib/packages/registries';
 import { PACKAGE_RANKING_ORDERS, PACKAGE_REGISTRIES } from '@/lib/routing/ranking-routes';
+import { PackageRegistry } from '@/types/generated/graphql';
 
 describe('package rankings', () => {
   it('are the orders and registries the routing lets through', () => {
     expect([...PACKAGE_RANKING_ORDER_LIST].sort()).toEqual([...PACKAGE_RANKING_ORDERS].sort());
-    expect(Object.keys(PACKAGE_RANKING_REGISTRIES).sort()).toEqual([...PACKAGE_REGISTRIES].sort());
+    expect([...REGISTRY_IDS].sort()).toEqual([...PACKAGE_REGISTRIES].sort());
+  });
+
+  it('give npm its three rankings, opening on downloads, and name it as the API does', () => {
+    expect(packageRankingOrdersOf('npm')).toEqual(['downloads', 'dependents-stars', 'dependents']);
+    expect(packageRankingFirstOrder('npm')).toBe('downloads');
+    expect(packageRankingFirstOrder()).toBe('downloads');
+    expect(packageRankingRegistryOf('npm')).toEqual({ id: 'npm', registry: PackageRegistry.Npm, label: 'npm' });
   });
 
   it('take an order or a registry only as spelled, never one inherited from an object', () => {

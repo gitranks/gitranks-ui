@@ -5,7 +5,7 @@ import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { PackageRankingScreen } from '../../../components/package-ranking-view';
-import { isPackageRankingOrder, PACKAGE_RANKINGS, packageRankingRegistryOf } from '../../../package-rankings';
+import { isPackageRankingOrderOf, PACKAGE_RANKINGS, packageRankingRegistryOf } from '../../../package-rankings';
 import { buildPackageRankingMetadata } from '../../../seo';
 import { ITEMS_PER_PAGE } from '@/app/app.consts';
 import { fetchPackageRankingFacts, fetchPackageRankings } from '@/graphql/helpers/fetch-package-rankings';
@@ -21,11 +21,11 @@ async function rankingOf(params: PageProps<'/packages/[registry]/[by]/[page]'>['
   const registryInfo = packageRankingRegistryOf(registry);
   const page = parsePageParam(pageParam);
 
-  if (!registryInfo || !isPackageRankingOrder(by) || !page || page > RANKING_MAX_PAGE.package) {
+  if (!registryInfo || !isPackageRankingOrderOf(registryInfo.id, by) || !page || page > RANKING_MAX_PAGE.package) {
     return null;
   }
 
-  return { registry, registryInfo, order: by, page, offset: (page - 1) * ITEMS_PER_PAGE };
+  return { registry: registryInfo.id, registryInfo, order: by, page, offset: (page - 1) * ITEMS_PER_PAGE };
 }
 
 /** A page's rows, and on the first page the ranking's facts. */

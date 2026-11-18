@@ -17,7 +17,7 @@ const NO_STORE = 'private, no-store';
 /** The longest network address passed on, as the API takes it. */
 const ADDRESS_MAX = 64;
 
-/** The largest body taken: 50 package names of npm's longest, with room to spare. */
+/** The largest body taken: 50 package names of npm's longest (214), with room to spare. */
 export const FOLLOW_BODY_MAX = 16_000;
 
 const STATUS: Record<FollowFailure, number> = {

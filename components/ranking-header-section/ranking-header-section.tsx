@@ -17,16 +17,19 @@ type RankingHeaderSectionProps = {
   options: readonly RankingOption[];
   /** The words before the orders; the switcher's own when unset. */
   optionsLabel?: string;
+  /** More switches before the orders, each with its words (a package ranking's registry). */
+  switches?: readonly { label: string; options: readonly RankingOption[] }[];
   /** What the rank is based on, with a link after it. */
   subtitle: ReactNode;
 };
 
-/** A ranking's title, its "Rank by" switch, and the line on what the rank is based on. */
+/** A ranking's title, its "Rank by" switch (after any others), and the line on what the rank is based on. */
 export const RankingHeaderSection: FC<RankingHeaderSectionProps> = ({
   title,
   pill,
   options,
   optionsLabel,
+  switches = [],
   subtitle,
 }) => (
   <>
@@ -41,6 +44,9 @@ export const RankingHeaderSection: FC<RankingHeaderSectionProps> = ({
       )}
 
       <div className="flex gap-4">
+        {switches.map((switcher) => (
+          <RankingTypeSwitcher key={switcher.label} options={switcher.options} label={switcher.label} />
+        ))}
         <RankingTypeSwitcher options={options} label={optionsLabel} />
       </div>
     </div>

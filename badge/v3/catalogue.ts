@@ -6,6 +6,7 @@ import type { BadgeFormat, By, ContributorKey, EntityKind, Scheme } from './type
 import { UNSUNG_HERO_BADGE } from './unsung-hero-badge';
 import { downloadsPerStar, yearOverYearChange } from '@/app/package/[registry]/[...name]/utils/package-downloads';
 import { isRankedIn } from '@/badge/utils/is-ranked-in';
+import { registryHasDownloads } from '@/lib/packages/registries';
 import { UserRankProp } from '@/types/ranking.types';
 
 /** Extras a shield can show after its value (spec §3.1); contributor keys for the contributors shield. */
@@ -135,7 +136,7 @@ export const CATALOGUE = [
   panel('org', 'org-card', 'card', 'organization', { width: 400, height: 160 }),
   panel('org', 'contributors-chart', 'chart', 'active contributors per month', { width: 800, height: 300 }),
   panel('org', 'contributors-wall', 'chart', 'contributors', undefined, WALL_OPTIONS),
-  // npm packages
+  // Packages
   shield('package', 'used-by', 'used by', [], null),
   shield('package', 'dependents-stars', 'used by', [], null),
   shield('package', 'downloads', 'npm downloads', [], null),
@@ -327,12 +328,25 @@ export const packageGrowthOf = (pkg: PackageFacts): number | null =>
 /** Downloads a week per star needs a publishing repository with stars. */
 export const packagePerStarOf = (pkg: PackageFacts): number | null => downloadsPerStar(pkg.downloads, pkg.repo);
 
+/** The badges that read a package's downloads: never offered for a registry that publishes no download counts. */
+const PACKAGE_DOWNLOADS_BADGES: ReadonlySet<string> = new Set([
+  'downloads',
+  'downloads-year',
+  'downloads-growth',
+  'downloads-per-star',
+  'downloads-card',
+]);
+
 /**
  * A package's badges. Its dependents' badges never say 0: with no repository of 100+ stars using it yet they say "new"
- * (neutral). Downloads are read soon after a package is: until then their badges are neutral too.
+ * (neutral). Downloads are read soon after a package is: until then their badges are neutral too. A registry without
+ * download counts has no downloads badges at all.
  */
 function packageAvailability(pkg: PackageFacts, id: string): Availability {
   const used = pkg.dependentsCount > 0;
+  if (PACKAGE_DOWNLOADS_BADGES.has(id) && !registryHasDownloads(pkg.registry)) {
+    return 'never';
+  }
   switch (id) {
     case 'used-by':
     case 'dependents-stars':

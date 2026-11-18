@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
+import { REGISTRY_IDS, type RegistryId, registryOf } from '@/lib/packages/registries';
 import { UNSUNG_HERO_CACHE_TAG } from '@/lib/unsung-hero/unsung-hero';
 
 /** The one caller allowed to expire cached data: the API, which names itself in its token. */
@@ -10,11 +11,21 @@ const ALLOWED_SOURCE = 'gitranks';
 /** A repository's or a profile's cache tag, as `getRepoCacheTag` and `profileCacheTag` write them. */
 const TAG = /^(repo|profile):[a-z0-9._/-]{1,140}$/;
 
+/** The characters of a package's name in its cache tag, lower case (older npm names hold `~'!()*`). */
+const NAME_CHARACTERS = "a-z0-9@/._~'!()*";
+
+/** One registry's tags: its name in URLs, then a name of up to its longest, in the characters above and its `join`. */
+function registryTagOf(id: RegistryId) {
+  const { path, nameMaxLength } = registryOf(id);
+  const join = path.join === ':' ? ':' : '';
+  return `${id}\\/[${NAME_CHARACTERS}${join}-]{1,${nameMaxLength}}`;
+}
+
 /**
- * A package's cache tag, as `packageCacheTag` writes it: `package:npm/<name>`, lower case, a name of up to 214
- * characters, `@scope/name` included, in any character a registry name can hold (older names hold `~'!()*`).
+ * A package's cache tag, as `packageCacheTag` writes it: `package:<registry>/<name>`, lower case, for every registry
+ * the site lists (npm: a name of up to 214 characters, `@scope/name` included).
  */
-const PACKAGE_TAG = /^package:npm\/[a-z0-9@/._~'!()*-]{1,214}$/;
+const PACKAGE_TAG = new RegExp(`^package:(?:${REGISTRY_IDS.map(registryTagOf).join('|')})$`);
 
 /** Tags of one shared read each, named in full. */
 const PLAIN_TAGS: ReadonlySet<unknown> = new Set([UNSUNG_HERO_CACHE_TAG]);

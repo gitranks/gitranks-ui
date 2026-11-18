@@ -9,7 +9,7 @@ vi.hoisted(() => {
 
 describe('packageMarkdownOf', () => {
   it("writes a ranked package's facts, ranks and dependents, each with its link", () => {
-    expect(packageMarkdownOf(rankedPackage)).toBe(`# react-resize-detector (npm package)
+    expect(packageMarkdownOf(rankedPackage, 'npm')).toBe(`# react-resize-detector (npm package)
 
 > A Cross-Browser, Event-based, Element Resize Detection for React
 
@@ -42,7 +42,7 @@ How these numbers are counted: https://gitranks.com/methodology/packages
   });
 
   it('says when no repository with 100+ stars uses a package, with no ranks or list, its scope kept', () => {
-    const text = packageMarkdownOf(quietPackage);
+    const text = packageMarkdownOf(quietPackage, 'npm');
 
     expect(text).toContain('# @nebula/ui (npm package)');
     expect(text).toContain('- GitRanks page: https://gitranks.com/package/npm/@nebula/ui');
@@ -54,18 +54,21 @@ How these numbers are counted: https://gitranks.com/methodology/packages
   });
 
   it('keeps registry text on one line, so it cannot start a heading or a list', () => {
-    const text = packageMarkdownOf({
-      ...rankedPackage,
-      description: 'Line one\n# Not a heading\n- not a list',
-      deprecated: 'Use\n\nsomething else',
-    });
+    const text = packageMarkdownOf(
+      {
+        ...rankedPackage,
+        description: 'Line one\n# Not a heading\n- not a list',
+        deprecated: 'Use\n\nsomething else',
+      },
+      'npm',
+    );
 
     expect(text).toContain('> Line one # Not a heading - not a list\n');
     expect(text).toContain('- Deprecated: Use something else\n');
   });
 
   it('links a rank only to a ranking page that lists it', () => {
-    const text = packageMarkdownOf({ ...rankedPackage, ranks: { downloads: { rank: 48_000 } } });
+    const text = packageMarkdownOf({ ...rankedPackage, ranks: { downloads: { rank: 48_000 } } }, 'npm');
 
     expect(text).toContain('- #48,000 by weekly downloads\n');
   });

@@ -15,12 +15,13 @@ import { accountEmailOf } from '@/lib/account-email';
 import { packageMarkdownOf, packageMarkdownPath } from '@/lib/packages/package-markdown';
 import { packageCacheTag } from '@/lib/packages/package-paths';
 import { packagesPublic, requestMaySeePackages } from '@/lib/packages/packages-gate';
+import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { signedFetch } from '@/lib/signed-fetch';
 
-// A package's reads and its refresh, for its page in the browser: `/api/packages/npm/<name>/dependents` and
-// `/api/packages/npm/<name>/refresh`, `<name>` being `x` or `@scope/x` (no static segment may follow a catch-all, so
-// the action is the last segment); and its facts in markdown, `/api/packages/npm/<name>/facts.md`, which the proxy
-// answers `/package/npm/<name>/facts.md` with. Only for a visitor who may see package pages; anyone else gets the
+// A package's reads and its refresh, for its page in the browser: `/api/packages/<registry>/<name>/dependents` and
+// `/api/packages/<registry>/<name>/refresh`, `<name>` in the segments the registry's names take (npm: `x` or
+// `@scope/x`; no static segment may follow a catch-all, so the action is the last segment); and its facts in markdown,
+// `/api/packages/<registry>/<name>/facts.md`, which the proxy answers `/package/<registry>/<name>/facts.md` with. Only for a visitor who may see package pages; anyone else gets the
 // not-found answer.
 
 /** While package pages are not open to everyone, an answer is never kept by a shared cache: it was decided per viewer. */
@@ -58,11 +59,12 @@ const markdown = (body: string, status: number, cacheControl = PRIVATE) =>
  * A package's facts in markdown. A name the registry does not have, and one nobody has read yet, answer 404; package
  * data that cannot be read now 503; the registry's own spelling, when it differs, a 308 to its address.
  */
-async function facts(req: NextRequest, name: string) {
+async function facts(req: NextRequest, { registry, name }: Target) {
+  const { label } = REGISTRIES[registry];
   let read: Awaited<ReturnType<typeof fetchPackage>>;
   let isPublic: boolean;
   try {
-    [isPublic, read] = await Promise.all([packagesPublic(), fetchPackage(name)]);
+    [isPublic, read] = await Promise.all([packagesPublic(), fetchPackage(registry, name)]);
   } catch {
     return markdown('The package could not be read. Try again in a few minutes.\n', 502);
   }
@@ -71,22 +73,25 @@ async function facts(req: NextRequest, name: string) {
     return markdown('Package data is not available right now. Try again in a few minutes.\n', 503);
   }
   if (!pkg) {
-    return markdown(`npm has no package named ${name}.\n`, 404);
+    return markdown(`${label} has no package named ${name}.\n`, 404);
   }
   if (pkg.state === 'NOT_READ') {
-    return markdown(`The npm package ${name} has not been read here yet.\n`, 404);
+    return markdown(`The ${label} package ${name} has not been read here yet.\n`, 404);
   }
   if (pkg.name !== name) {
-    return NextResponse.redirect(new URL(packageMarkdownPath(pkg.name), req.url), {
+    return NextResponse.redirect(new URL(packageMarkdownPath(pkg.name, registry), req.url), {
       status: 308,
       headers: { 'Cache-Control': PRIVATE },
     });
   }
-  return markdown(packageMarkdownOf(pkg), 200, isPublic && !pkg.refreshRunning ? MARKDOWN_PUBLIC : PRIVATE);
+  return markdown(packageMarkdownOf(pkg, registry), 200, isPublic && !pkg.refreshRunning ? MARKDOWN_PUBLIC : PRIVATE);
 }
 
+/** A package the path names, by its registry and name. */
+type Target = { registry: RegistryId; name: string };
+
 /** The package and the action the path names; `null` for any other path. */
-async function targetOf(params: Promise<unknown> | undefined): Promise<{ name: string; action: Action } | null> {
+async function targetOf(params: Promise<unknown> | undefined): Promise<(Target & { action: Action }) | null> {
   const { registry, rest } = ((await params) ?? {}) as { registry?: unknown; rest?: unknown };
   if (typeof registry !== 'string' || !Array.isArray(rest) || rest.some((part) => typeof part !== 'string')) {
     return null;
@@ -97,7 +102,7 @@ async function targetOf(params: Promise<unknown> | undefined): Promise<{ name: s
   }
   // A route handler's params arrive decoded: they are taken as they are.
   const pkg = parseDecodedPackageParams(registry, rest.slice(0, -1));
-  return pkg && { name: pkg.name, action: action as Action };
+  return pkg && { registry: pkg.registry, name: pkg.name, action: action as Action };
 }
 
 /** The query of a read of dependents: `offset` (a multiple of the page size) and `archived=0`; `null` for anything else. */
@@ -112,14 +117,14 @@ function dependentsQueryOf(search: URLSearchParams): { offset: number; hideArchi
 }
 
 /** One page of the package's dependents, for "Show more" and "Hide archived": `{ page }`. */
-async function dependents(req: NextRequest, name: string) {
+async function dependents(req: NextRequest, { registry, name }: Target) {
   const isPublic = await packagesPublic();
   const query = dependentsQueryOf(req.nextUrl.searchParams);
   if (!query) {
     return answer({ message: 'Invalid query' }, 400);
   }
   try {
-    const page = await fetchPackageDependents(name, query);
+    const page = await fetchPackageDependents(registry, name, query);
     if (page === PACKAGE_UNAVAILABLE) {
       return answer({ message: 'Package data is not available right now' }, 503);
     }
@@ -133,9 +138,9 @@ async function dependents(req: NextRequest, name: string) {
  * The package's refresh as its row has it: `{ running, lastUpdatedAt, dependentsChecked }`. A refresh that landed
  * lately expires the cached page once, so the reload after it shows the new numbers.
  */
-async function refreshStatus(name: string) {
+async function refreshStatus({ registry, name }: Target) {
   const now = Date.now();
-  const read = await readStatus(name, now);
+  const read = await readStatus(registry, name, now);
   if (!read.ok) {
     return answer({ message: 'Failed to load the refresh' }, read.status === 404 ? 404 : 502);
   }
@@ -147,7 +152,7 @@ async function refreshStatus(name: string) {
     dependentsChecked: dependentsChecked !== false,
   };
   const landed = status.lastUpdatedAt ? new Date(status.lastUpdatedAt).getTime() : Number.NaN;
-  const tag = packageCacheTag(name);
+  const tag = packageCacheTag(registry, name);
   if (
     status.lastUpdatedAt &&
     !status.running &&
@@ -169,11 +174,11 @@ export async function GET(req: NextRequest, { params }: RouteContext<'/api/packa
   }
   switch (target.action) {
     case 'dependents':
-      return dependents(req, target.name);
+      return dependents(req, target);
     case 'facts.md':
-      return facts(req, target.name);
+      return facts(req, target);
     default:
-      return refreshStatus(target.name);
+      return refreshStatus(target);
   }
 }
 
@@ -195,7 +200,7 @@ export const POST = auth(async function POST(req: AuthRequest, { params }) {
   const init: RequestInit = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ registry: 'npm', name: target.name }),
+    body: JSON.stringify({ registry: target.registry, name: target.name }),
     cache: 'no-store',
   };
   const read = await readUpstream<PackageRefreshResult>(() =>
@@ -209,7 +214,7 @@ export const POST = auth(async function POST(req: AuthRequest, { params }) {
 
   // A refresh is under way now, or comes at the next round: a reload shows it instead of the cached page.
   if (read.body.status === 'started' || read.body.status === 'queued') {
-    revalidateTag(packageCacheTag(target.name), { expire: 0 });
+    revalidateTag(packageCacheTag(target.registry, target.name), { expire: 0 });
   }
   return answer(read.body, 200);
 });

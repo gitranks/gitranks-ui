@@ -1,3 +1,4 @@
+import { isNameSegmentCount, isRegistryId, type RegistryId } from '@/lib/packages/registries';
 import { REPO_TABS } from '@/lib/routing/ranking-routes';
 
 const SEP = '[/\\\\]+';
@@ -39,13 +40,13 @@ const PACKAGE_MARKDOWN_FILE = 'facts.md';
 
 /**
  * The name's segments of a path's package segments that ask for its facts in markdown (`x/facts.md`,
- * `@scope/x/facts.md`), or `null` for any other: a scoped package named `facts.md` (`@scope/facts.md`) is a page.
+ * `@scope/x/facts.md`), or `null` for any other: the segments before the file must be as many as a name on the
+ * registry takes, so a scoped npm package named `facts.md` (`@scope/facts.md`) is a page.
  */
-export function packageMarkdownNameOf(segments: readonly string[]): string[] | null {
+export function packageMarkdownNameOf(registry: RegistryId, segments: readonly string[]): string[] | null {
   if (segments.at(-1) !== PACKAGE_MARKDOWN_FILE) return null;
   const name = segments.slice(0, -1);
-  const scoped = name[0]?.startsWith('@') ?? false;
-  return name.length === (scoped ? 2 : 1) ? name : null;
+  return isNameSegmentCount(registry, name) ? name : null;
 }
 
 /**
@@ -54,15 +55,15 @@ export function packageMarkdownNameOf(segments: readonly string[]): string[] | n
  */
 export function packageMarkdownRewriteOf(pathname: string): string | null {
   const [section, registry, ...rest] = pathname.split('/').slice(1);
-  if (section !== 'package' || !registry) return null;
-  const name = packageMarkdownNameOf(rest);
+  if (section !== 'package' || !isRegistryId(registry)) return null;
+  const name = packageMarkdownNameOf(registry, rest);
   return name ? `/api/packages/${registry}/${name.join('/')}/${PACKAGE_MARKDOWN_FILE}` : null;
 }
 
 /**
- * One cache tag per npm package, lower case whatever the spelling: `package:npm/<name>`. Whatever sets or expires a
+ * One cache tag per package, lower case whatever the spelling: `package:<registry>/<name>`. Whatever sets or expires a
  * package's cache tag writes it with this.
  */
-export function packageCacheTag(name: string) {
-  return `package:npm/${name}`.toLowerCase();
+export function packageCacheTag(registry: RegistryId, name: string) {
+  return `package:${registry}/${name}`.toLowerCase();
 }

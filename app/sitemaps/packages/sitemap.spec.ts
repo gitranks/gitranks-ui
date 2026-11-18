@@ -31,6 +31,29 @@ describe('package-page sitemap', () => {
     expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Npm, 1);
   });
 
+  it('pins the entries of a part', async () => {
+    vi.useFakeTimers({ now: new Date('2026-11-18T12:00:00Z'), toFake: ['Date'] });
+    vi.mocked(fetchPackagesForSitemap).mockResolvedValue(['react', '@types/node']);
+
+    expect(await part('0')).toMatchInlineSnapshot(`
+      [
+        {
+          "changeFrequency": "monthly",
+          "lastModified": "2026-11-01T00:00:00.000Z",
+          "priority": 0.7,
+          "url": "https://example.test/package/npm/react",
+        },
+        {
+          "changeFrequency": "monthly",
+          "lastModified": "2026-11-01T00:00:00.000Z",
+          "priority": 0.7,
+          "url": "https://example.test/package/npm/@types/node",
+        },
+      ]
+    `);
+    vi.useRealTimers();
+  });
+
   it('answers 404 before reading anything while package pages are not open to everyone', async () => {
     vi.mocked(notFoundUnlessPackagesPublic).mockRejectedValue(new Error('NEXT_HTTP_ERROR_FALLBACK;404'));
 

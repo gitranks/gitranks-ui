@@ -9,6 +9,7 @@ import { DependentsTable } from '@/components/dependents/dependents-table';
 import { HideArchivedToggle } from '@/components/dependents/hide-archived-toggle';
 import { ShowMore } from '@/components/dependents/show-more';
 import type { PackageDependents } from '@/graphql/package-page';
+import type { RegistryId } from '@/lib/packages/registries';
 
 /** The query of one read: its offset, archived rows left out. */
 export function dependentsRouteQuery(offset: number, hideArchived: boolean): string {
@@ -57,7 +58,11 @@ const READ_FAILED = 'Could not load the repositories. Try again in a few minutes
  * declares the package and at which version, and "Show more". The toggle is this page's state, not its URL: the
  * cached page is one, and every change reads the rows from the route handler.
  */
-export const PackageDependentsList: FC<{ name: string; initial: PackageDependents }> = ({ name, initial }) => {
+export const PackageDependentsList: FC<{ registry: RegistryId; name: string; initial: PackageDependents }> = ({
+  registry,
+  name,
+  initial,
+}) => {
   const [shown, setShown] = useState<Shown>(() => shownAfter(null, initial, 0, false));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +75,7 @@ export const PackageDependentsList: FC<{ name: string; initial: PackageDependent
     setError(null);
     try {
       const response = await fetch(
-        `${packageApiPath(name, 'dependents')}${dependentsRouteQuery(offset, hideArchived)}`,
+        `${packageApiPath(registry, name, 'dependents')}${dependentsRouteQuery(offset, hideArchived)}`,
       );
       const body = response.ok ? ((await response.json()) as { page?: PackageDependents | null }) : null;
       if (id !== latest.current) return;

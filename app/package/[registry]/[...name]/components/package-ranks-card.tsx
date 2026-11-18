@@ -1,36 +1,45 @@
 import NextLink from 'next/link';
 import type { FC } from 'react';
 
-import { packageRankingPageOf } from '@/app/packages/package-rankings';
+import { packageRankingFirstOrder, packageRankingPageOf } from '@/app/packages/package-rankings';
 import { Eyebrow, MoreLink, ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { Pill } from '@/components/pill/pill';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import type { PackagePage, PackageRank } from '@/graphql/package-page';
+import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { packageRankingPath } from '@/utils/package-paths';
 
-type PackageRanksCardProps = Pick<PackagePage, 'dependentsCount' | 'dependentsStars' | 'ranks'>;
+type PackageRanksCardProps = Pick<PackagePage, 'dependentsCount' | 'dependentsStars' | 'ranks'> & {
+  registry: RegistryId;
+};
 
 /** The three rankings, in the menu's order: their order in the URL, and how a tile names them. */
-const RANK_TILES = [
-  { key: 'downloads', by: 'downloads', label: 'By downloads', title: 'Rank by npm downloads' },
+const rankTilesOf = (label: string) => [
+  { key: 'downloads', by: 'downloads', label: 'By downloads', title: `Rank by ${label} downloads` } as const,
   {
     key: 'dependentsStars',
     by: 'dependents-stars',
     label: 'By dependents’ stars',
     title: 'Rank by the stars of its dependents',
-  },
+  } as const,
   {
     key: 'dependents',
     by: 'dependents',
     label: 'By dependents',
     title: 'Rank by repositories with 100+ stars using it',
-  },
-] as const;
+  } as const,
+];
 
-const RankTile: FC<{ rank: PackageRank; by: string; label: string; title: string }> = ({ rank, by, label, title }) => (
+const RankTile: FC<{ registry: RegistryId; rank: PackageRank; by: string; label: string; title: string }> = ({
+  registry,
+  rank,
+  by,
+  label,
+  title,
+}) => (
   <NextLink
-    href={packageRankingPath(by, packageRankingPageOf(rank.rank))}
+    href={packageRankingPath(by, packageRankingPageOf(rank.rank), registry)}
     prefetch={false}
     title={title}
     className="flex flex-col gap-0.5 rounded-lg border bg-background p-3 no-underline transition-colors hover:border-primary/60"
@@ -47,8 +56,9 @@ const RankTile: FC<{ rank: PackageRank; by: string; label: string; title: string
  * "npm package ranks": how many repositories with 100+ stars use it and their stars, then a tile per ranking that ranks
  * it, each linking to the ranking's page it is on. Unranked: the sentence without tiles.
  */
-export const PackageRanksCard: FC<PackageRanksCardProps> = ({ dependentsCount, dependentsStars, ranks }) => {
-  const tiles = RANK_TILES.flatMap((tile) => {
+export const PackageRanksCard: FC<PackageRanksCardProps> = ({ registry, dependentsCount, dependentsStars, ranks }) => {
+  const { label } = REGISTRIES[registry];
+  const tiles = rankTilesOf(label).flatMap((tile) => {
     const rank = ranks?.[tile.key];
     return rank ? [{ ...tile, rank }] : [];
   });
@@ -56,7 +66,7 @@ export const PackageRanksCard: FC<PackageRanksCardProps> = ({ dependentsCount, d
   return (
     <ProfileCard className="gap-3">
       <div className="flex items-center gap-2">
-        <Eyebrow as="h2">npm package ranks</Eyebrow>
+        <Eyebrow as="h2">{`${label} package ranks`}</Eyebrow>
         <Pill tone="violet" size="small">
           Beta
         </Pill>
@@ -78,11 +88,18 @@ export const PackageRanksCard: FC<PackageRanksCardProps> = ({ dependentsCount, d
       {tiles.length > 0 && (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,110px),1fr))] gap-2">
           {tiles.map((tile) => (
-            <RankTile key={tile.key} rank={tile.rank} by={tile.by} label={tile.label} title={tile.title} />
+            <RankTile
+              key={tile.key}
+              registry={registry}
+              rank={tile.rank}
+              by={tile.by}
+              label={tile.label}
+              title={tile.title}
+            />
           ))}
         </div>
       )}
-      <MoreLink href={packageRankingPath('downloads')} className="mt-auto">
+      <MoreLink href={packageRankingPath(packageRankingFirstOrder(registry), 1, registry)} className="mt-auto">
         Explore ranks
       </MoreLink>
     </ProfileCard>

@@ -1,5 +1,6 @@
 import type { ImageFormat } from './types';
 import { isRankedIn, type RankingRanks, type RankingScores } from '@/badge/utils/is-ranked-in';
+import { type RegistryId, segmentsOfName } from '@/lib/packages/registries';
 import { UserRankProp } from '@/types/ranking.types';
 
 /**
@@ -11,7 +12,7 @@ import { UserRankProp } from '@/types/ranking.types';
 export type BadgeEntityPath =
   | { kind: 'user' | 'org'; login: string }
   | { kind: 'repo'; nameWithOwner: string }
-  | { kind: 'package'; registry: 'npm'; name: string };
+  | { kind: 'package'; registry: RegistryId; name: string };
 
 /** A part of a package's name in a URL: encoded, with a scope's `@` kept as it is, so a badge has one address. */
 const packagePart = (part: string) => encodeURIComponent(part).replace(/^%40/, '@');
@@ -22,7 +23,7 @@ export function badgeNamePath(entity: BadgeEntityPath): string {
     case 'repo':
       return entity.nameWithOwner.split('/').map(encodeURIComponent).join('/');
     case 'package':
-      return [entity.registry, ...entity.name.split('/')].map(packagePart).join('/');
+      return [entity.registry, ...segmentsOfName(entity.registry, entity.name)].map(packagePart).join('/');
     default:
       return encodeURIComponent(entity.login);
   }

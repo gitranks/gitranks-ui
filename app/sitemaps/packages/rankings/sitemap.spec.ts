@@ -30,6 +30,45 @@ describe('package rankings sitemap', () => {
     ]);
   });
 
+  it('pins the entries of the first two pages', async () => {
+    vi.mocked(fetchPackageRankingFacts).mockResolvedValue(facts(150));
+
+    expect(await sitemap()).toMatchInlineSnapshot(`
+      [
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/npm/downloads/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/npm/dependents-stars/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/npm/dependents/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/npm/downloads/2",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/npm/dependents-stars/2",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/npm/dependents/2",
+        },
+      ]
+    `);
+  });
+
   it('stops at 50 pages a ranking', async () => {
     vi.mocked(fetchPackageRankingFacts).mockResolvedValue(facts(1_000_000));
 

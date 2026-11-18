@@ -10,6 +10,7 @@ import type {
 } from './follow.types';
 import type { FollowingPress } from './following-session';
 import type { SettingsState } from '@/lib/link-token/follow-pages';
+import { DEFAULT_REGISTRY } from '@/lib/packages/registries';
 
 // The browser's side of the follow routes. Each answers `{ ok: true, data }`, or `{ ok: false, failure }` for a refusal,
 // a network error or an answer of another shape: the dialog says what failed and never throws.
@@ -62,9 +63,17 @@ const post = (body: unknown): RequestInit => ({
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/** `?package=<name>`, with `&registry=<registry>` only off the default registry, which the route takes by default. */
+function channelsQueryOf(pkg: FollowPackage | null): string {
+  if (!pkg) return '';
+  const params = new URLSearchParams({ package: pkg.name });
+  if (pkg.registry !== DEFAULT_REGISTRY) params.set('registry', pkg.registry);
+  return `?${params}`;
+}
+
 /** The dialog's channels; for one package, its dependents now too; and whether Settings will open here. */
 export function fetchFollowChannels(pkg: FollowPackage | null): Promise<FollowCall<FollowChannelsView>> {
-  const query = pkg ? `?${new URLSearchParams({ package: pkg.name })}` : '';
+  const query = channelsQueryOf(pkg);
   return call(`${FOLLOW_ROUTES.channels}${query}`, undefined, (body) =>
     isRecord(body) && Array.isArray(body.channels)
       ? { ...(body as FollowChannels), settingsLink: body.settingsLink === true }

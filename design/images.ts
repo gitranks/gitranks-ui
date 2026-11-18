@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { basename } from 'node:path';
 
 import type { EntityFacts } from '@/badge/v3/facts';
 import { type BadgeLoaders, getBadgeResponse, parseEntityRef, parsePackageRef } from '@/badge/v3/route';
@@ -7,11 +6,15 @@ import { entityNameOf } from '@/badge/v3/tiles';
 import type { EntityKind } from '@/badge/v3/types';
 import { SITE_URL } from '@/lib/seo/site';
 
-/**
- * Where the badges the boards show are written, under `project/`: `<board>-<n>.svg`, so a redraw replaces a board's
- * images in place rather than adding new files.
- */
+/** Where the badges the boards show are written, under `project/`. */
 const IMAGES = 'current/img';
+
+/**
+ * An image's path, named by its content: boards that show the same image share one file, and a drawing that changed
+ * is a new file. The canvas holds a limited number of files, so every distinct image is written once.
+ */
+export const imagePathOf = (content: string, extension: string) =>
+  `${IMAGES}/${createHash('sha256').update(content).digest('hex').slice(0, 12)}.${extension}`;
 
 const nameOf = (entity: EntityFacts) => entityNameOf(entity).toLowerCase();
 
@@ -120,7 +123,6 @@ export async function drawImages(
   const images = new Map<string, string>();
   const up = '../'.repeat(boardPath.split('/').length - 1);
   const sources = new Map<string, string>();
-  const board = basename(boardPath, '.dc.html');
 
   const resolve = async (src: string): Promise<string> => {
     if (src.startsWith('data:')) return src;
@@ -134,7 +136,7 @@ export async function drawImages(
     if (url.origin === SITE && url.pathname.startsWith('/badge/')) {
       const svg = await drawBadge(url);
       if (svg) {
-        const path = `${IMAGES}/${board}-${images.size}.svg`;
+        const path = imagePathOf(svg, 'svg');
         images.set(path, svg);
         return `${up}${path}`;
       }

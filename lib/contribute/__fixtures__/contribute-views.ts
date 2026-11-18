@@ -280,7 +280,7 @@ export const views = {
     contributor: contributor({
       autopilot: {
         unlocked: true,
-        mergedCount: 4,
+        mergedCount: 6,
         closedUnmergedStreak: 0,
         mergedToUnlock: 0,
         lockedAt: null,
@@ -297,7 +297,7 @@ export const views = {
     contributor: contributor({
       autopilot: {
         unlocked: false,
-        mergedCount: 2,
+        mergedCount: 4,
         closedUnmergedStreak: 1,
         mergedToUnlock: 1,
         lockedAt: null,
@@ -308,14 +308,14 @@ export const views = {
     paused: false,
     grantAvailable: true,
   },
-  /** Locked again by two pull requests closed without merging: three merged since then unlock it. */
+  /** Locked again by two pull requests closed without merging: five merged since then unlock it. */
   autopilotRelocked: {
     contributor: contributor({
       autopilot: {
         unlocked: false,
-        mergedCount: 5,
+        mergedCount: 6,
         closedUnmergedStreak: 0,
-        mergedToUnlock: 2,
+        mergedToUnlock: 4,
         lockedAt: '2026-10-20T08:00:00.000Z',
         available: true,
       },

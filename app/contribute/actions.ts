@@ -120,7 +120,7 @@ import {
   PR_FIX_KINDS,
 } from '@/lib/contribute/pr-conventions';
 import { objectIdOf, parsePrLink } from '@/lib/contribute/pr-feedback';
-import { prTimelineTagOf } from '@/lib/contribute/pr-timeline.data';
+import { prTimelineAttemptTagOf, prTimelineTagOf } from '@/lib/contribute/pr-timeline.data';
 import { SetPrTimelineDocument } from '@/lib/contribute/pr-timeline.documents';
 import { PROOF_NOTE_MAX, PROOF_REPLY_MAX } from '@/lib/contribute/proof';
 import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
@@ -392,8 +392,12 @@ export async function setPrTimeline(input: {
     { attemptId: String(input.attemptId), shown: input.shown === true },
     (data) => data.setContributePrTimeline,
   );
-  const pr = parsePrLink(`${input.nameWithOwner}#${input.number}`);
-  if (result.ok && pr) revalidateTag(prTimelineTagOf(pr), { expire: 0 });
+  if (result.ok) {
+    // The PR's own id, as the API answered it: the page is gone whatever address it was opened at.
+    if (result.data?.attemptId) revalidateTag(prTimelineAttemptTagOf(result.data.attemptId), { expire: 0 });
+    const pr = parsePrLink(`${input.nameWithOwner}#${input.number}`);
+    if (pr) revalidateTag(prTimelineTagOf(pr), { expire: 0 });
+  }
   return result;
 }
 

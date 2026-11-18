@@ -459,10 +459,10 @@ describe('the settings screen', () => {
     expect(html).not.toContain('data-notice="grant-missing"');
   });
 
-  it('locks autopilot until three merged pull requests, then lets the user turn it on', () => {
+  it('locks autopilot until five merged pull requests, then lets the user turn it on', () => {
     const locked = render(views.active);
     expect(locked).toContain('data-autopilot="locked"');
-    expect(text(locked)).toContain('1 of 3 merged PRs');
+    expect(text(locked)).toContain('1 of 5 merged PRs');
 
     const unlocked = render(views.autopilotUnlocked);
     expect(unlocked).toContain('data-autopilot="unlocked"');

@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import { MAINTAINERS_PATH, MCP_DOCS_PATH } from './contribute-path';
+import { AUTOPILOT_UNLOCK_AT } from './format';
 import { CONTACT_EMAIL } from '@/lib/legal';
 
 /** A question, its answer, and where to read more. The id is its anchor on the questions page. */
@@ -105,7 +106,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
       {
         id: 'autopilot',
         question: 'Is there an autopilot?',
-        answer: `Not yet. ${AUTOPILOT_LAUNCH_LINE} When it opens, it stays off until you turn it on, unlocks after three of your pull requests are merged through GitRanks, never submits on beginner issues or in repos that don't allow it, and emails you an hour before each submission so you can stop it.`,
+        answer: `Not yet. ${AUTOPILOT_LAUNCH_LINE} When it opens, it stays off until you turn it on, unlocks after ${AUTOPILOT_UNLOCK_AT} of your pull requests are merged through GitRanks, never submits on beginner issues or in repos that don't allow it, and emails you an hour before each submission so you can stop it.`,
       },
       GITHUB,
     ],

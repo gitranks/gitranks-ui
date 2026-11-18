@@ -51,6 +51,8 @@ type PackageUpdatesButtonProps = {
   registry: RegistryId;
   /** The package's name: on npm `x` or `@scope/x`. */
   name: string;
+  /** The name as the registry writes it, for the deal dialog's words; `name` when not given. */
+  spelledName?: string;
   /** `owner/name` of the repository that publishes it, for the deal's badge note; none when unknown. */
   repository?: string | null;
   /** The package's daily updates, as the page's data has them; `null` or missing while it is not on them. */
@@ -110,6 +112,7 @@ const noteOwnerOf = (registry: RegistryId) => `package:${registry}`;
 export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
   registry,
   name,
+  spelledName = name,
   repository,
   dailyUpdates,
   refreshRunning = false,
@@ -409,7 +412,7 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
           <RefreshDialog
             open
             onOpenChange={onOpenChange}
-            message={packageDealOf(name, repository)}
+            message={packageDealOf(spelledName, repository)}
             primary={{
               onClick: () => {
                 sendGAEvent('event', 'package_updates_dialog_cta', { kind: 'deal' });

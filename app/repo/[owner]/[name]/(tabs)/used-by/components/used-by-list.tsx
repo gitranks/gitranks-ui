@@ -15,8 +15,8 @@ import { DependentsTable } from '@/components/dependents/dependents-table';
 import { HideArchivedToggle } from '@/components/dependents/hide-archived-toggle';
 import { ShowMore } from '@/components/dependents/show-more';
 import { FollowSlot, type FollowSlotProps } from '@/components/package-follow/follow-slot';
-import type { RepoPackage, RepoUsedBy } from '@/graphql/repo-packages';
-import { REGISTRIES } from '@/lib/packages/registries';
+import type { RepoPackage, RepoUsedBy, RepoUsedByItem } from '@/graphql/repo-packages';
+import { REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
 
 /** Where the browser reads more rows of a repository's dependents. */
 export const usedByRoutePath = (nameWithOwner: string) => {
@@ -34,7 +34,7 @@ export function usedByRouteQuery(offset: number, pkg: string | null, hideArchive
   return search ? `?${search}` : '';
 }
 
-type ListedPackage = Pick<RepoPackage, 'name' | 'registry'>;
+type ListedPackage = Pick<RepoPackage, 'name' | 'displayName' | 'registry'>;
 
 /**
  * What one press of Follow covers: the package the list is cut to (by its `<registry>/<name>`), else the tab's own
@@ -46,7 +46,7 @@ export function followOf(
   total: number,
   filter: string | null,
 ): Pick<FollowSlotProps, 'packages' | 'label'> {
-  const one = (pkg: ListedPackage) => ({ packages: [repoPackageRefOf(pkg)], label: pkg.name });
+  const one = (pkg: ListedPackage) => ({ packages: [repoPackageRefOf(pkg)], label: spelledNameOf(pkg) });
   const cut = filter === null ? undefined : packages.find((pkg) => repoPackageKeyOf(pkg) === filter);
   if (cut) return one(cut);
   // Four or more: all of them at once; fewer: the most used.
@@ -64,10 +64,25 @@ export const filterOptionsOf = (packages: readonly ListedPackage[]): PackageFilt
   const named = spansRegistries(packages);
   return packages.map((pkg) => ({
     value: repoPackageKeyOf(pkg),
-    name: pkg.name,
+    name: spelledNameOf(pkg),
     ...(named ? { registryLabel: REGISTRIES[registryOfRepoPackage(pkg)].label } : {}),
   }));
 };
+
+/**
+ * The rows with the packages each one uses as the registry writes them. The rows name packages by name alone, so a
+ * name two of the repository's packages share is left as it is, and so is a package past the ones the tab lists.
+ */
+export function withSpelledUses<Row extends Pick<RepoUsedByItem, 'uses'>>(
+  rows: readonly Row[],
+  packages: readonly ListedPackage[],
+): Row[] {
+  const spelled = new Map<string, string | null>();
+  for (const pkg of packages) {
+    spelled.set(pkg.name, spelled.has(pkg.name) ? null : spelledNameOf(pkg));
+  }
+  return rows.map((row) => ({ ...row, uses: row.uses.map((name) => spelled.get(name) ?? name) }));
+}
 
 type UsedByListProps = {
   nameWithOwner: string;
@@ -181,7 +196,7 @@ export const UsedByList: FC<UsedByListProps> = ({ nameWithOwner, packages, total
               )}
             </div>
           )}
-          <DependentsTable rows={shown.items} showUses={several} />
+          <DependentsTable rows={several ? withSpelledUses(shown.items, packages) : shown.items} showUses={several} />
           <ShowMore
             shown={shown.items.length}
             total={shown.total}

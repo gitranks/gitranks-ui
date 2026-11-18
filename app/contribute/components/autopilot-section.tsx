@@ -224,7 +224,11 @@ export function AutopilotRecord({ autopilot }: { autopilot: ContributeAutopilot 
             </span>
             <span className="text-muted-foreground">unlocks at {AUTOPILOT_UNLOCK_AT}</span>
           </div>
-          <div aria-hidden="true" className="grid grid-cols-3 gap-1.5">
+          <div
+            aria-hidden="true"
+            className="grid gap-1.5"
+            style={{ gridTemplateColumns: `repeat(${AUTOPILOT_UNLOCK_AT}, minmax(0, 1fr))` }}
+          >
             {Array.from({ length: AUTOPILOT_UNLOCK_AT }, (_, index) => (
               <span key={index} className={cn('h-1.5 rounded-sm', index < progress ? 'bg-primary' : 'bg-border')} />
             ))}

@@ -1291,7 +1291,7 @@ export type ContributeSet = {
   limits: ContributeSetLimits;
 };
 
-/** GitRanks email for the user: review reminders and other updates from Contribute. */
+/** Contribute's email for the user: review reminders and other updates (not other GitRanks email). */
 export type ContributeEmail = {
   /** False once they unsubscribed, by an email's one-click link or in Settings. */
   on: boolean;

@@ -83,7 +83,7 @@ export function SettingsScreen({
   set?: ContributeSet | null;
   /** What the user works on did not load. */
   setFailed?: boolean;
-  /** GitRanks email; its row is left out when null (hidden, or not answered) or without an address to send to. */
+  /** Contribute's email; its group is left out when null (hidden, or not answered) or without an address to send to. */
   email?: ContributeEmail | null;
 }) {
   const { contributor } = view;
@@ -180,13 +180,7 @@ export function SettingsScreen({
         </SettingsList>
       </SettingsGroup>
 
-      {isShownEmail(email) ? (
-        <SettingsGroup id="settings-email" title="Email">
-          <SettingsList>
-            <EmailSection email={email} />
-          </SettingsList>
-        </SettingsGroup>
-      ) : null}
+      {isShownEmail(email) ? <EmailSection email={email} /> : null}
 
       <DeleteDataSection />
       <SettingsAnchors />

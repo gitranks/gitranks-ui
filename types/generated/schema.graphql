@@ -1128,7 +1128,9 @@ enum ContributeEffort {
 GitRanks email for the viewer: review reminders and other updates from Contribute
 """
 type ContributeEmail {
-  """False once they unsubscribed, by an email’s one-click link or in Settings"""
+  """
+  False once they unsubscribed, by an email’s one-click link or in Settings
+  """
   on: Boolean!
 
   """Where it goes, masked; null when no address is known"""

@@ -1,11 +1,28 @@
 import { describe, expect, it } from 'vitest';
 
 import { CONFIRM_TOKEN } from './__fixtures__/follow-links';
-import { isInvalidLinkQuery, isLinkToken, LINK_PAGES, linkCookie, linkKindOf, linkLandingOf } from './link-token';
+import { HERO_TOKEN } from './__fixtures__/hero-links';
+import {
+  isInvalidLinkQuery,
+  isLinkPagePath,
+  isLinkToken,
+  LINK_PAGE_SOURCES,
+  LINK_PAGES,
+  linkCookie,
+  linkKindOf,
+  linkLandingOf,
+} from './link-token';
 
 describe('link kinds and tokens', () => {
   it('knows each kind of link and its page, and nothing else', () => {
-    expect(LINK_PAGES).toEqual({ confirm: '/follow/confirm', unfollow: '/follow/unfollow', settings: '/following' });
+    expect(LINK_PAGES).toEqual({
+      confirm: '/follow/confirm',
+      unfollow: '/follow/unfollow',
+      settings: '/following',
+      'hero-preview': '/hero-link/preview',
+      'hero-opt-out': '/hero-link/opt-out',
+    });
+    expect(linkKindOf('hero-opt-out')).toBe('hero-opt-out');
     expect(linkKindOf('settings')).toBe('settings');
     for (const value of ['', 'toString', '__proto__', 'Confirm', undefined, 1]) expect(linkKindOf(value)).toBeNull();
   });
@@ -39,6 +56,29 @@ describe('link kinds and tokens', () => {
       const landing = linkLandingOf('unfollow', value);
       expect(landing).toEqual({ location: '/follow/unfollow?e=invalid', kind: 'unfollow', token: null });
     }
+  });
+
+  it('lands the Unsung hero links on their pages, each kind in its own cookie', () => {
+    expect(linkLandingOf('hero-preview', HERO_TOKEN)).toEqual({
+      location: '/hero-link/preview',
+      kind: 'hero-preview',
+      token: HERO_TOKEN,
+    });
+    expect(linkLandingOf('hero-opt-out', 'nope')).toEqual({
+      location: '/hero-link/opt-out?e=invalid',
+      kind: 'hero-opt-out',
+      token: null,
+    });
+    expect(linkCookie('hero-preview', true).name).toBe('__Host-gitranks-link-hero-preview');
+    expect(linkCookie('hero-opt-out', false).name).toBe('gitranks-link-hero-opt-out');
+  });
+
+  it('counts the Unsung hero pages among the pages a link opens, and nothing that only starts like them', () => {
+    for (const path of ['/hero-link/preview', '/hero-link/opt-out', '/hero-link/opt-out/', '/l/hero-opt-out']) {
+      expect(isLinkPagePath(path), path).toBe(true);
+    }
+    for (const path of ['/hero-linkx', '/unsung-heroes', '/hero']) expect(isLinkPagePath(path), path).toBe(false);
+    expect(LINK_PAGE_SOURCES).toContain('/hero-link/:path*');
   });
 
   it('reads ?e=invalid, and nothing else, as a link that held no usable token', () => {

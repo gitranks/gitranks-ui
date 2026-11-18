@@ -12,6 +12,7 @@ const PACKAGE_PAGES: readonly string[] = [
   `${SEP}packages`,
   `${SEP}methodology${SEP}packages`,
   `${SEP}repo${SEP}${SEGMENT}${SEP}${SEGMENT}${SEP}(?:${REPO_TABS.join('|')})`,
+  `${SEP}unsung-heroes`, // The Unsung heroes archive and its link preview image.
 ];
 
 /** A page or anything under it, in any letter case. */

@@ -2,23 +2,40 @@ import { NextRequest } from 'next/server';
 import type { Session } from 'next-auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { dependentRows } from '@/app/package/[registry]/[...name]/__fixtures__/package';
+import {
+  dependentRows,
+  notReadPackage,
+  quietPackage,
+  rankedPackage,
+} from '@/app/package/[registry]/[...name]/__fixtures__/package';
 
-const { packagesPublic, requestMaySeePackages, fetchPackageDependents, signedFetch, revalidateTag, current } =
-  vi.hoisted(() => ({
-    packagesPublic: vi.fn(async () => false),
-    requestMaySeePackages: vi.fn(async (_req: unknown) => false),
-    fetchPackageDependents: vi.fn(),
-    signedFetch: vi.fn(),
-    revalidateTag: vi.fn(),
-    current: { session: null as Session | null },
-  }));
+const {
+  packagesPublic,
+  requestMaySeePackages,
+  fetchPackage,
+  fetchPackageDependents,
+  signedFetch,
+  revalidateTag,
+  current,
+} = vi.hoisted(() => ({
+  packagesPublic: vi.fn(async () => false),
+  requestMaySeePackages: vi.fn(async (_req: unknown) => false),
+  fetchPackage: vi.fn(),
+  fetchPackageDependents: vi.fn(),
+  signedFetch: vi.fn(),
+  revalidateTag: vi.fn(),
+  current: { session: null as Session | null },
+}));
 
 type Handler = (req: NextRequest & { auth: Session | null }, context: unknown) => unknown;
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic, requestMaySeePackages }));
-vi.mock('@/graphql/helpers/fetch-package', () => ({ PACKAGE_UNAVAILABLE: 'unavailable', fetchPackageDependents }));
+vi.mock('@/graphql/helpers/fetch-package', () => ({
+  PACKAGE_UNAVAILABLE: 'unavailable',
+  fetchPackage,
+  fetchPackageDependents,
+}));
 vi.mock('@/lib/signed-fetch', () => ({ signedFetch }));
 vi.mock('next/cache', () => ({ revalidateTag }));
 vi.mock('@/auth', () => ({
@@ -51,6 +68,7 @@ describe('package routes', () => {
   beforeEach(() => {
     packagesPublic.mockReset().mockResolvedValue(false);
     requestMaySeePackages.mockReset().mockResolvedValue(false);
+    fetchPackage.mockReset().mockResolvedValue(rankedPackage);
     fetchPackageDependents.mockReset().mockResolvedValue(PAGE);
     signedFetch.mockReset();
     revalidateTag.mockReset();
@@ -63,6 +81,7 @@ describe('package routes', () => {
     for (const [method, path] of [
       ['GET', 'npm/react/dependents'],
       ['GET', 'npm/react/refresh'],
+      ['GET', 'npm/react/facts.md'],
       ['POST', 'npm/react/refresh'],
     ] as const) {
       const response = await call(method, path);
@@ -180,5 +199,60 @@ describe('package routes', () => {
 
     upstream(410, { message: 'gone' });
     expect((await call('POST', 'npm/react/refresh')).status).toBe(410);
+  });
+
+  describe('facts.md', () => {
+    it("answers a package's facts in markdown, never indexed, private until package pages are open to everyone", async () => {
+      requestMaySeePackages.mockResolvedValue(true);
+      const response = await call('GET', 'npm/react-resize-detector/facts.md');
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('text/markdown; charset=utf-8');
+      expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
+      expect(response.headers.get('Cache-Control')).toBe(PRIVATE);
+      expect(await response.text()).toMatch(/^# react-resize-detector \(npm package\)\n/);
+      expect(fetchPackage).toHaveBeenCalledWith('react-resize-detector');
+    });
+
+    it('may be kept by a shared cache once package pages are open to everyone, but not while a refresh runs', async () => {
+      packagesPublic.mockResolvedValue(true);
+      requestMaySeePackages.mockResolvedValue(true);
+      expect((await call('GET', 'npm/react-resize-detector/facts.md')).headers.get('Cache-Control')).toBe(
+        'public, max-age=300, s-maxage=3600',
+      );
+
+      fetchPackage.mockResolvedValue({ ...rankedPackage, refreshRunning: true });
+      expect((await call('GET', 'npm/react-resize-detector/facts.md')).headers.get('Cache-Control')).toBe(PRIVATE);
+    });
+
+    it('reads a scoped name', async () => {
+      requestMaySeePackages.mockResolvedValue(true);
+      fetchPackage.mockResolvedValue(quietPackage);
+
+      expect((await call('GET', 'npm/@nebula/ui/facts.md')).status).toBe(200);
+      expect(fetchPackage).toHaveBeenCalledWith('@nebula/ui');
+    });
+
+    it('answers 404 for a name nobody has read or the registry does not have, and 503 without package data', async () => {
+      requestMaySeePackages.mockResolvedValue(true);
+      fetchPackage
+        .mockResolvedValueOnce(notReadPackage)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce('unavailable');
+
+      expect((await call('GET', 'npm/left-pad-next/facts.md')).status).toBe(404);
+      expect((await call('GET', 'npm/nope/facts.md')).status).toBe(404);
+      const unavailable = await call('GET', 'npm/react/facts.md');
+      expect(unavailable.status).toBe(503);
+      expect(unavailable.headers.get('Cache-Control')).toBe(PRIVATE);
+    });
+
+    it("sends the registry's own spelling to its address", async () => {
+      requestMaySeePackages.mockResolvedValue(true);
+      const response = await call('GET', 'npm/React-Resize-Detector/facts.md');
+
+      expect(response.status).toBe(308);
+      expect(response.headers.get('Location')).toBe('https://gitranks.com/package/npm/react-resize-detector/facts.md');
+    });
   });
 });

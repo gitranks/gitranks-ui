@@ -19,6 +19,7 @@ describe('buildPackageSEO', () => {
     );
     expect((metadata.description ?? '').length).toBeLessThanOrEqual(158);
     expect(metadata.alternates?.canonical).toBe('/package/npm/react-resize-detector');
+    expect(metadata.alternates?.types).toEqual({ 'text/markdown': '/package/npm/react-resize-detector/facts.md' });
     expect(metadata.robots).toMatchObject({ index: true });
     expect((jsonLd as Node[]).map((node) => node['@type'])).toEqual(['ItemPage', 'ItemList', 'BreadcrumbList']);
 
@@ -63,6 +64,7 @@ describe('buildPackageSEO', () => {
     expect(notRead.metadata.robots).toEqual({ index: false });
     expect(notRead.jsonLd).toEqual([]);
     expect(notRead.metadata.openGraph?.images).toBeUndefined();
+    expect(notRead.metadata.alternates?.types).toBeUndefined();
 
     const unavailable = buildPackageSEO('unavailable', 'react');
     expect(unavailable.metadata.robots).toEqual({ index: false });

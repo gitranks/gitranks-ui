@@ -34,6 +34,18 @@ export function isPackagePath(pathname: string): boolean {
   return PAGE.test(decoded);
 }
 
+/** A package's facts in markdown as a visitor asks for them: `/package/<registry>/<name>/facts.md`. */
+const PACKAGE_MARKDOWN = /^\/package\/([^/]+)\/(.+)\/facts\.md$/;
+
+/**
+ * Where the proxy answers a package's facts in markdown from: the packages API route's `facts.md` action, for
+ * `/package/<registry>/<name>/facts.md`; `null` for any other path.
+ */
+export function packageMarkdownRewriteOf(pathname: string): string | null {
+  const match = PACKAGE_MARKDOWN.exec(pathname);
+  return match ? `/api/packages/${match[1]}/${match[2]}/facts.md` : null;
+}
+
 /**
  * One cache tag per npm package, lower case whatever the spelling: `package:npm/<name>`. Whatever sets or expires a
  * package's cache tag writes it with this.

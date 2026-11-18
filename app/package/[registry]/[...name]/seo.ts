@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { SOCIAL_CARD_SIZE, socialCardPath } from '@/badge/v3/links';
 import type { PackageDependent, PackagePage } from '@/graphql/package-page';
+import { packageMarkdownPath } from '@/lib/packages/package-markdown';
 import { clipText } from '@/lib/seo/clip-text';
 import { buildRankingItemList } from '@/lib/seo/json-ld';
 import { type PreviewImage, pageMetadata } from '@/lib/seo/page-metadata';
@@ -140,9 +141,12 @@ export function buildPackageSEO(
     rows.map((row, i) => ({ position: i + 1, name: row.nameWithOwner, path: getRepoPath(row.nameWithOwner) })),
   );
 
+  const metadata = pageMetadata({ title, description, path, images: previewImages(pkg.name) });
   return {
     metadata: {
-      ...pageMetadata({ title, description, path, images: previewImages(pkg.name) }),
+      ...metadata,
+      // The same facts in markdown, for AI agents.
+      alternates: { ...metadata.alternates, types: { 'text/markdown': packageMarkdownPath(pkg.name) } },
       robots: pkg.dependentsCount > 0 && rows.length > 0 ? INDEXED : NOT_INDEXED,
     },
     jsonLd: [

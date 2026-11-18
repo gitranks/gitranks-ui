@@ -93,6 +93,20 @@ describe('POST /api/cache/expire', () => {
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
   });
 
+  it("takes Unsung hero's tag, alone and beside a repository's", async () => {
+    const alone = await signed({ tags: ['unsung-hero'] });
+
+    expect(alone.status).toBe(200);
+    expect(await alone.json()).toEqual({ expired: 1 });
+    expect(revalidateTag.mock.calls).toEqual([['unsung-hero', { expire: 0 }]]);
+
+    revalidateTag.mockReset();
+    const beside = await signed({ tags: ['unsung-hero', 'repo:octo-labs/scroll-guard'] });
+
+    expect(beside.status).toBe(200);
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(['unsung-hero', 'repo:octo-labs/scroll-guard']);
+  });
+
   it.each([
     ['no token', undefined],
     ['a token that is not a bearer', `Basic ${tokenOf({ source: 'gitranks' })}`],
@@ -164,6 +178,9 @@ describe('POST /api/cache/expire', () => {
     ['a repository tag with an @', { tags: ['repo:@octo/x'] }],
     ['a profile tag with a ~', { tags: ['profile:octo~cat'] }],
     ['a repository tag over 140 characters, even under 214', { tags: [`repo:${'a'.repeat(141)}`] }],
+    ["Unsung hero's tag in capitals", { tags: ['Unsung-Hero'] }],
+    ["Unsung hero's tag with a suffix", { tags: ['unsung-hero:2026-W47'] }],
+    ['the plural of the hero tag', { tags: ['unsung-heroes'] }],
   ])('answers 400 for %s and expires nothing', async (_name, body) => {
     const response = await signed(body);
 

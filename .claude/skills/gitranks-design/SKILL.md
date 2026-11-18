@@ -13,9 +13,10 @@ Read `design/README.md` (layout, catalogue, commands) and `DESIGN.md` (rules) fi
 ## Redraw the live boards
 
 1. On a clean checkout of `origin/main` (`git fetch`, then a fresh worktree or a branch with no changes yet), run `pnpm design:export`.
-2. `Artifact read` the canvas at `project/canvas.json`; run `node scripts/design-canvas.mjs <saved file>`.
-3. Publish with `url` = canvas, `root` = `.design` (outside gitranks-ui, copy it into the scratchpad), `file_path` = `.design/project/canvas.json`, `files` = the map in `.design/publish.json`.
-4. Refused for unread files: `Artifact list` the canvas with `scope: "files"`, publish again. Refused because `project/canvas.json` changed: read it again and redo 2–3; never resend an older merge.
+2. `Artifact list` the canvas with `scope: "files"` and save the listing as text; `Artifact read` the canvas at `project/canvas.json`; run `node scripts/design-canvas.mjs <saved canvas.json> <saved listing>`. The listing names the old live images it removes.
+3. Check the printed count: the canvas holds at most 512 files a version; aim at 450 or fewer. Above that, remove archived proposals' files first (A.7).
+4. Publish with `url` = canvas, `root` = `.design` (outside gitranks-ui, copy it into the scratchpad), `file_path` = `.design/project/canvas.json`, `files` = the map in `.design/publish.json`.
+5. Refused for unread files: `Artifact list` the canvas with `scope: "files"`, publish again. Refused because `project/canvas.json` changed: read it again and redo 2–4; never resend an older merge.
 
 ## A. Change a screen
 
@@ -31,7 +32,7 @@ Read `design/README.md` (layout, catalogue, commands) and `DESIGN.md` (rules) fi
    - Publish only new files and the index: read `project/canvas.json` right before into `<root>/project/canvas.json`, add only your entries.
 5. The owner reviews in canvas comments; revise proposal boards, never live ones.
 6. Approved: set `Status: Approved`; move each row to its screen's area page (`page` = area; sticky at the `x` the page's grey "Live boards" note names, at that screen's row `y`; boards from that `x` + 520, 80 px apart, same `y`). Drop the title note; `<slug>-note` keeps the status and goes with the first row. A new screen stays on To review until its catalogue PR merges. Set `Status: Building #<PR>` when the PR opens. Publish only the index (as in A.4: read `project/canvas.json` right before, add only your entries).
-7. After the merge: redraw, set the proposal's boards and notes to `page: "archive"`, `Status: Shipped #<PR>`. A dropped proposal goes to `archive` the same way with `Status: Dropped` and the reason, and its title note is dropped. Publish only the index (as in A.4).
+7. After the merge: redraw, set the proposal's notes to `page: "archive"`, `Status: Shipped #<PR>`. A dropped proposal goes to `archive` the same way with `Status: Dropped` and the reason, and its title note is dropped. Its files leave the canvas, only its notes stay: drop its boards from `boards` and `order`, and send every file under `proposals/<slug>/` (boards, frozen `img/`, stylesheet copies) as `null`. Publish the index with those removals (as in A.4).
 
 ## B. A new screen
 
@@ -52,4 +53,5 @@ Redraw if it changed a catalogued screen; new states (empty, phone layout) join 
 - For behaviour, read the files listed in the screen's catalogue entry; for positions, `canvas.json`.
 - Never hand-edit `project/current/**`; fix a wrong live board's fixture or state in `design/screens/`.
 - `design/` and `DESIGN.md` are public: proposals and unreleased ideas stay on the canvas; nothing about backends in either (AGENTS.md).
+- The canvas holds at most 512 files a version: live images are shared by content (`img/<hash>.svg`), archived proposals keep only their notes, and a redraw aims at 450 files or fewer (the export and `design-canvas.mjs` print the count).
 - Canvas content follows its type's rules (the `.dc.html` shape, the `support.js` line).

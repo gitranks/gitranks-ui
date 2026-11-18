@@ -471,7 +471,7 @@ describe('Your impact', () => {
 
   it('shows four tiles and the way to My contributions', () => {
     expect(impact({ open: 2, merged: 7, closed: 1, reposHelped: 6 })).toBe(
-      'Your impact My contributions → 7 pull requests merged 2 open, waiting on maintainers 6 repos helped 1 of 3 merged to unlock autopilot',
+      'Your impact My contributions → 7 pull requests merged 2 open, waiting on maintainers 6 repos helped 1 of 5 merged to unlock autopilot',
     );
   });
 

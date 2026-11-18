@@ -860,8 +860,8 @@ describe('refusals, in plain words', () => {
     ).toBe(
       'Autopilot opens about a month after launch. Until then every pull request waits for your review, and your record keeps counting.',
     );
-    expect(autopilotErrorMessage('INVALID', 'autopilot unlocks after 3 pull requests merged through GitRanks')).toBe(
-      'Autopilot is locked: it unlocks after 3 pull requests merged through GitRanks.',
+    expect(autopilotErrorMessage('INVALID', 'autopilot unlocks after 5 pull requests merged through GitRanks')).toBe(
+      'Autopilot is locked: it unlocks after 5 pull requests merged through GitRanks.',
     );
     expect(autopilotErrorMessage('INVALID', 'Something else was locked')).toBe('Something else was locked');
   });
@@ -887,10 +887,10 @@ describe('autopilot', () => {
     expect(plain).toContain(AUTOPILOT_LAUNCH_LINE);
     expect(plain).toContain('How autopilot works');
     expect(plain).not.toContain('Details');
-    expect(plain).toContain('Merged through GitRanks 2');
+    expect(plain).toContain('Merged through GitRanks 4');
     expect(plain).toContain('Still needed to unlock 1');
     expect(plain).toContain('Closed without merging in a row 1 of 2');
-    expect(plain).toContain('2 of 3 merged PRs');
+    expect(plain).toContain('4 of 5 merged PRs');
     expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
   });
 
@@ -934,7 +934,7 @@ describe('autopilot', () => {
     expect(plain).toContain("Submit on a repository whose maintainers don't allow autopilot");
     expect(plain).toContain('it may start up to 2 runs on that pull request, on your key');
     expect(plain).toContain("Opened by @you's autopilot, not reviewed by a human");
-    expect(plain).toContain('It unlocks after 3 of your pull requests are merged through GitRanks. Two closed');
+    expect(plain).toContain('It unlocks after 5 of your pull requests are merged through GitRanks. Two closed');
   });
 
   it('asks before turning it on, in six lines that name the beginner issues', () => {
@@ -958,9 +958,9 @@ describe('autopilot', () => {
   it('says when it locked again, and counts the merges since', () => {
     const plain = text(settings(views.autopilotRelocked));
 
-    expect(plain).toContain('Locked on Oct 20 · 1 of 3 merged since');
+    expect(plain).toContain('Locked on Oct 20 · 1 of 5 merged since');
     expect(plain).toContain('Locked on Oct 20: two pull requests in a row were closed without merging.');
-    expect(plain).toContain('1 of 3 merged PRs');
+    expect(plain).toContain('1 of 5 merged PRs');
   });
 
   it('says where the emails before each submission go, and refuses to turn it on with no email', () => {

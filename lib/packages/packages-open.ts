@@ -15,14 +15,20 @@ const packagesOpen = openInBrowserOf(PACKAGES_OPEN_PATH);
  * Whether package pages are open to this viewer, signed in or not, for a client component: pages are cached for
  * everyone, so it is asked in the browser once the page is up, once per login (or once signed out) per page load. False
  * until the answer comes and on any failure; known at once after a first answer, so moving between pages does not flash
- * anything in.
+ * anything in. With `enabled` false nothing is asked (a page whose switched words are not on screen yet), and the
+ * answer is false unless one is in already.
  */
-export function usePackagesOpen(): boolean {
+export function usePackagesOpen(enabled = true): boolean {
   const { data: session } = useSession();
   const key = (session && !session.error ? session.user?.githubLogin : null) || SIGNED_OUT;
   const [open, setOpen] = useState(() => packagesOpen.known(key) === true);
 
   useEffect(() => {
+    // Not asked until the caller has something to show it for: an answer already in is still taken.
+    if (!enabled) {
+      setOpen(packagesOpen.known(key) === true);
+      return;
+    }
     let live = true;
     packagesOpen.ask(key).then((answer) => {
       if (live) setOpen(answer);
@@ -30,7 +36,7 @@ export function usePackagesOpen(): boolean {
     return () => {
       live = false;
     };
-  }, [key]);
+  }, [key, enabled]);
 
   return open;
 }

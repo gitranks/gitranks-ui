@@ -16,6 +16,7 @@ export const BLOCKING_ROUTES = [
   '/repos/language/[language]/[page]',
   '/repos/no-language/[page]',
   '/packages/[registry]/[by]/[page]',
+  '/package/[registry]/[...name]',
   // A repository's tabs.
   '/repo/[owner]/[name]/overview',
   '/repo/[owner]/[name]/used-by',

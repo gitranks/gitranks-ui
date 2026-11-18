@@ -48,7 +48,7 @@ export type ProfileUpdatesView =
 export type PickableUpdatesView = 'off' | 'your-pick' | 'on-badge' | 'on-pick';
 
 /** The kinds of pick this site knows. */
-const PICK_KINDS: readonly PickKind[] = ['repo'];
+const PICK_KINDS: readonly PickKind[] = ['repo', 'package'];
 
 export const isPickKind = (value: unknown): value is PickKind => PICK_KINDS.includes(value as PickKind);
 
@@ -86,6 +86,16 @@ export function profileUpdatesViewOf(
 
   return has(facts, DailyUpdateReason.Owner) ? 'visitor-on-owner' : 'visitor-off';
 }
+
+/** The prefix of a package pick's name: its registry. */
+const PACKAGE_PICK_PREFIX = 'npm/';
+
+/** A package's pick, by its name: `npm/<name>`. */
+export const packagePickOf = (name: string): PickRef => ({ kind: 'package', name: `${PACKAGE_PICK_PREFIX}${name}` });
+
+/** A pick as a list shows it: a repository's `owner/name`, a package's own name. */
+export const pickDisplayName = ({ kind, name }: PickRef) =>
+  kind === 'package' && name.startsWith(PACKAGE_PICK_PREFIX) ? name.slice(PACKAGE_PICK_PREFIX.length) : name;
 
 /** Whether two picks name the same thing; GitHub's names are not case-sensitive, so neither is a repository's. */
 export const samePick = (a: PickRef, b: PickRef) => a.kind === b.kind && a.name.toLowerCase() === b.name.toLowerCase();

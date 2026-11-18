@@ -244,6 +244,17 @@ describe('PullButton: one button', () => {
       expect(text()).toBe('Update daily Update up to 3 repos daily.');
     });
 
+    it('says repos or packages on the page drawn for visitors who see packages, asking nothing more', async () => {
+      answer(VIEWER, viewerOf({ state: 'never', picks: picked('octo/rocket'), newPicksLeftToday: 2 }));
+      await act(async () => {
+        root.render(<PullButton owner="acme" name="fastqueue" dailyUpdates={null} packages />);
+      });
+      await act(async () => {});
+
+      expect(text()).toBe('Update daily Update up to 3 repos or packages daily.');
+      expect(fetchMock.mock.calls.map(([url]) => url)).not.toContain('/api/me/packages/open');
+    });
+
     it.each([
       ['3 picks held', viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas'), newPicksLeftToday: 2 })],
       ['no new pick left today', viewerOf({ picks: picked('octo/rocket'), newPicksLeftToday: 0 })],

@@ -5,13 +5,19 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import type { DailyUpdatesViewerState } from './use-daily-updates-viewer';
-import { PICK_TOASTS, PICKS_MAX, type PickMessageKind } from '@/app/repo/[owner]/[name]/utils/pick-messages';
+import {
+  PICK_TOASTS,
+  PICKS_MAX,
+  type PickCopy,
+  type PickMessageKind,
+} from '@/app/repo/[owner]/[name]/utils/pick-messages';
 import { REFRESH_TOASTS } from '@/components/refresh-dialogs/refresh-messages';
 import type {
   DailyUpdatesPickResult,
   DailyUpdatesRemoveResult,
   DailyUpdatesViewer,
   PickRef,
+  PickRefreshStatus,
 } from '@/types/daily-updates.types';
 import { holdsPick, samePick } from '@/utils/daily-updates-view';
 
@@ -24,8 +30,10 @@ export type PickDialog =
 type UsePicksOptions = Pick<DailyUpdatesViewerState, 'viewer' | 'setViewer' | 'reload'> & {
   /** What this page picks. */
   target: PickRef;
-  /** Runs once the target is picked, after the press settles. */
-  onPicked: () => unknown;
+  /** Runs once the target is picked, after the press settles; a package's pick says what its refresh did. */
+  onPicked: (refresh?: PickRefreshStatus) => unknown;
+  /** The toasts' words: today's unless the page passes the words that name packages too. */
+  toasts?: PickCopy['toasts'];
   /** Closes the caller's own dialog: a pick's start, and an answer that daily updates are closed, close every one. */
   onCloseDialog?: () => void;
 };
@@ -60,8 +68,8 @@ const hasPickLeft = (viewer: DailyUpdatesViewer | null) =>
   !!viewer && viewer.picks.length < PICKS_MAX && viewer.newPicksLeftToday > 0;
 
 /** The toast for a refused pick call, by its HTTP status: a removed account, a name the API refuses, or a failure. */
-const refusedToast = (status: number, failed: string) =>
-  status === 410 ? REFRESH_TOASTS.removed : status === 400 ? PICK_TOASTS.notHeld : failed;
+const refusedToast = (status: number, failed: string, notHeld: string) =>
+  status === 410 ? REFRESH_TOASTS.removed : status === 400 ? notHeld : failed;
 
 const pickRequest = (method: 'POST' | 'DELETE', { kind, name }: PickRef) =>
   fetch(PICKS_URL, {
@@ -75,7 +83,15 @@ const pickRequest = (method: 'POST' | 'DELETE', { kind, name }: PickRef) =>
  * dialogs. Daily updates closed to the visitor since the page read them (403) drop the viewer, so the page shows
  * today's button again.
  */
-export function usePicks({ target, viewer, setViewer, reload, onPicked, onCloseDialog }: UsePicksOptions): PicksState {
+export function usePicks({
+  target,
+  viewer,
+  setViewer,
+  reload,
+  onPicked,
+  onCloseDialog,
+  toasts = PICK_TOASTS,
+}: UsePicksOptions): PicksState {
   const [dialog, setDialog] = useState<PickDialog | null>(null);
   const [picking, setPicking] = useState(false);
   const [removing, setRemoving] = useState<PickRef | null>(null);
@@ -103,6 +119,7 @@ export function usePicks({ target, viewer, setViewer, reload, onPicked, onCloseD
     closeAll();
     setPicking(true);
     let picked = false;
+    let refresh: PickRefreshStatus | undefined;
 
     try {
       const res = await pickRequest('POST', target);
@@ -110,7 +127,7 @@ export function usePicks({ target, viewer, setViewer, reload, onPicked, onCloseD
         return close();
       }
       if (!res.ok) {
-        toast.error(refusedToast(res.status, PICK_TOASTS.failed));
+        toast.error(refusedToast(res.status, toasts.failed, toasts.notHeld));
         return;
       }
 
@@ -130,6 +147,7 @@ export function usePicks({ target, viewer, setViewer, reload, onPicked, onCloseD
           );
           setRemovedHere(false);
           picked = true;
+          refresh = result.refresh;
           break;
         case 'full': {
           // The picks as they are now (another tab may have changed them). With no new pick left today, a removal
@@ -146,7 +164,7 @@ export function usePicks({ target, viewer, setViewer, reload, onPicked, onCloseD
           openDialog({ kind: 'dailyLimit', until: result.nextAt });
           break;
         case 'not_held':
-          toast.info(PICK_TOASTS.notHeld);
+          toast.info(toasts.notHeld);
           break;
         case 'not_starred':
           openDialog({ kind: 'pick', pick: 'starStep' });
@@ -155,17 +173,17 @@ export function usePicks({ target, viewer, setViewer, reload, onPicked, onCloseD
           openDialog({ kind: 'pick', pick: 'blocked', until: result.until });
           break;
         case 'busy':
-          toast.info(PICK_TOASTS.busy);
+          toast.info(toasts.busy);
           break;
       }
     } catch {
-      toast.error(PICK_TOASTS.failed);
+      toast.error(toasts.failed);
     } finally {
       setPicking(false);
     }
 
     if (picked) {
-      await onPicked();
+      await onPicked(refresh);
     }
   };
 
@@ -178,7 +196,7 @@ export function usePicks({ target, viewer, setViewer, reload, onPicked, onCloseD
         return close();
       }
       if (!res.ok) {
-        toast.error(refusedToast(res.status, PICK_TOASTS.removeFailed));
+        toast.error(refusedToast(res.status, toasts.removeFailed, toasts.notHeld));
         return;
       }
 
@@ -188,7 +206,7 @@ export function usePicks({ target, viewer, setViewer, reload, onPicked, onCloseD
         setRemovedHere(true);
       }
     } catch {
-      toast.error(PICK_TOASTS.removeFailed);
+      toast.error(toasts.removeFailed);
     } finally {
       setRemoving(null);
     }

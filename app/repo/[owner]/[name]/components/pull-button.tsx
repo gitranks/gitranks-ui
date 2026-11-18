@@ -8,13 +8,13 @@ import { ClipLoader } from 'react-spinners';
 import { toast } from 'sonner';
 
 import {
+  fillName,
   ON_DAILY_DIALOG,
-  PICK_DIALOGS,
   PICK_LABELS,
-  PICK_LINES,
   PICK_MESSAGES,
   PICKS_MAX,
   type PicksDialogCopy,
+  pickCopyOf,
   pickedOutcomeOf,
 } from '../utils/pick-messages';
 import {
@@ -59,6 +59,11 @@ type PullButtonProps = {
   pull?: { status: string; requestedAt?: unknown } | null;
   /** The repository's daily updates, as the page's data has them; `null` or missing while it is not on them. */
   dailyUpdates?: DailyUpdatesFacts;
+  /**
+   * Whether the page is the one drawn for visitors who see packages (the tabbed repository page): its words then say
+   * "repos or packages". Today's page, which everyone else gets, keeps today's words.
+   */
+  packages?: boolean;
 };
 
 /**
@@ -87,7 +92,7 @@ const sinceRequest = (requestedAt: unknown) =>
  * The visitor's own state is read after load, never from the cached page; until it is, the button is Refresh. While the
  * session loads, a press does nothing.
  */
-export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdates }) => {
+export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdates, packages = false }) => {
   const { data: session, status } = useSession();
   const mode = pullModeOf(session, status);
   const login = status === 'authenticated' ? session?.user?.githubLogin : undefined;
@@ -96,6 +101,8 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
   const target: PickRef = { kind: 'repo', name: nameWithOwner };
   const url = pullUrl(owner, name);
   const [dialog, setDialog] = useState<OpenDialog>(null);
+  // The words name packages too on the page drawn for visitors who see them; the proxy decided who that is.
+  const copy = pickCopyOf(packages, 'repo');
   const picks = usePicks({
     target,
     viewer,
@@ -103,6 +110,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
     reload,
     onPicked: () => refreshAfterPick(),
     onCloseDialog: () => setDialog(null),
+    toasts: copy.toasts,
   });
   const facts = picks.removedHere ? withoutPickReason(dailyUpdates) : dailyUpdates;
   const view = pickableUpdatesViewOf(facts, viewer, target);
@@ -290,7 +298,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
     setDialog(null);
     picks.closeDialog();
     setChecking(true);
-    const settle = (outcome: PullOutcome) => apply(afterPick ? pickedOutcomeOf(outcome) : outcome);
+    const settle = (outcome: PullOutcome) => apply(afterPick ? pickedOutcomeOf(outcome, copy.toasts) : outcome);
 
     try {
       const res = await fetch(url, { method: 'POST' });
@@ -318,7 +326,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
   /** Once picked: today's refresh now, unless it is known to be used; then the toast says the first update comes soon. */
   const refreshAfterPick = () => {
     if ((mode !== 'daily' && mode !== 'token') || refreshUsedUntil()) {
-      apply(pickedOutcomeOf(null));
+      apply(pickedOutcomeOf(null, copy.toasts));
       return;
     }
     return startPull(true);
@@ -426,8 +434,12 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
           <PicksDialog
             open
             onOpenChange={onPickOpenChange}
-            copy={PICK_DIALOGS.allPicksUsed}
+            copy={{
+              ...copy.dialogs.allPicksUsed,
+              paragraph: fillName(copy.dialogs.allPicksUsed.paragraph ?? '', nameWithOwner),
+            }}
             picks={picks.picks}
+            list={copy.list}
             onRemove={picks.remove}
             removing={picks.removing}
             // Once one is removed, "Done" picks this repository.
@@ -436,12 +448,12 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
           />
         );
       case 'dailyLimit': {
-        const copy = PICK_DIALOGS.dailyLimit;
+        const limit = copy.dialogs.dailyLimit;
         return (
           <PicksDialog
             open
             onOpenChange={onPickOpenChange}
-            copy={{ ...copy, paragraph: fillTime(copy.paragraph, timeLeftUntil(dialog.until)) }}
+            copy={{ ...limit, paragraph: fillTime(limit.paragraph ?? '', timeLeftUntil(dialog.until)) }}
             onPrimary={picks.closeDialog}
             onCloseAutoFocus={focusBack}
           />
@@ -470,23 +482,24 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
           />
         );
       case 'onDaily': {
-        const yours = PICK_DIALOGS.yourDailyUpdates;
+        const yours = copy.dialogs.yourDailyUpdates;
         const buttons = refreshAvailable
           ? { primary: ON_DAILY_DIALOG.refresh, secondary: ON_DAILY_DIALOG.close }
           : { primary: dialog.yours ? yours.primary : ON_DAILY_DIALOG.done };
-        const copy: PicksDialogCopy = dialog.yours
+        const onDailyCopy: PicksDialogCopy = dialog.yours
           ? { title: yours.title, paragraph: yours.paragraph, ...buttons }
-          : { title: ON_DAILY_DIALOG.title, ...buttons };
+          : { title: copy.onDailyTitle, ...buttons };
         return (
           <PicksDialog
             open
             onOpenChange={onOpenChange}
-            copy={copy}
+            copy={onDailyCopy}
             // When next, while it still updates every day: after its own pick is removed here, it may not.
             lead={onDaily ? nextUpdateText(facts?.nextUpdateAt, Date.now()) : null}
             {...(dialog.yours
               ? {
                   picks: picks.picks,
+                  list: copy.list,
                   profileLogin: login,
                   showLeft: true,
                   onRemove: picks.remove,
@@ -532,7 +545,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
       <DailyUpdatesLine
         lead={
           view === 'your-pick'
-            ? PICK_LINES.yourPick
+            ? copy.lines.yourPick
             : view === 'on-badge'
               ? DAILY_UPDATES_NOTES.byBadge
               : DAILY_UPDATES_NOTES.byPick
@@ -540,7 +553,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
         nextUpdateAt={facts?.nextUpdateAt}
       />
     ) : canPick ? (
-      <div className="text-xs text-muted-foreground">{PICK_LINES.off}</div>
+      <div className="text-xs text-muted-foreground">{copy.lines.off}</div>
     ) : null;
 
   return (

@@ -39,6 +39,8 @@ type RepoLayoutProps = {
   languageUrl?: string;
   /** Drawn at the end of the left column: the tabbed page's Badge row. */
   badgeRow?: ReactNode;
+  /** The tabbed page, drawn only for visitors who see packages: Refresh's words say "repos or packages". */
+  packages?: boolean;
   children: ReactNode;
 };
 
@@ -49,7 +51,7 @@ const AVATAR_SIZE = 288;
 const SHORT_DATE = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' });
 
 /** The repository page's frame, like a profile's: the repository on the left, its numbers on the right. */
-export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, badgeRow, children }) => {
+export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, badgeRow, packages = false, children }) => {
   const { owner, name, nameWithOwner, description, language, stars, gainedThisMonth, createdAt } = repo;
   const readAt = repo.history?.readAt;
   const ownerPath = getRepoOwnerPath(owner, repo.isInOrganization);
@@ -103,6 +105,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, badgeRow, c
             name={name}
             pull={repo.pull && { status: repo.pull.status, requestedAt: repo.pull.requestedAt }}
             dailyUpdates={repo.dailyUpdates}
+            packages={packages}
           />
           <Button size="sm" variant="outline" className="flex-grow" asChild>
             <Link href={`https://github.com/${nameWithOwner}`} target="_blank" rel="noopener noreferrer">

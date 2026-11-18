@@ -102,10 +102,28 @@ export function v2BuilderRedirect(url: URL): string | null {
   return `/badge/builder?${mapV2BuilderQuery(url.searchParams, login).toString()}`;
 }
 
+/** A package's scope spelled `%40`, in any letter case: `/package/<registry>/%40scope/…`. */
+const PACKAGE_SCOPE_ESCAPED = /^(\/package\/[^/]+\/)%40/i;
+
+/**
+ * A package page whose scope spells its `@` as `%40`, as the page's own path: `null` for any other path. The page
+ * cannot tell the two spellings apart (its params arrive encoded either way), so the one URL per package is kept here,
+ * on the path as it was asked for.
+ */
+export function packageScopeRedirectOf(pathname: string): string | null {
+  return PACKAGE_SCOPE_ESCAPED.test(pathname) ? pathname.replace(PACKAGE_SCOPE_ESCAPED, '$1@') : null;
+}
+
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
   const builder = v2BuilderRedirect(request.nextUrl);
   if (builder) {
     return NextResponse.redirect(new URL(builder, request.nextUrl), 308);
+  }
+
+  // Before the packages gate below: it is the same page under its own spelling, whoever asks.
+  const packagePage = packageScopeRedirectOf(request.nextUrl.pathname);
+  if (packagePage) {
+    return NextResponse.redirect(new URL(`${packagePage}${request.nextUrl.search}`, request.nextUrl), 308);
   }
 
   // Checked before Auth.js: its wrapper rebuilds the request on the configured auth URL's origin,

@@ -91,6 +91,7 @@ export const RepoFrame: FC<RepoFrameProps> = ({ repo, packages, contributors, ba
         repo={repo}
         languageUrl={rank?.language ? getRepoLanguageRankingPath(rank.language) : undefined}
         badgeRow={<RepoBadgeRow facts={badgeFacts} now={now} />}
+        packages
       >
         {children}
       </RepoLayout>

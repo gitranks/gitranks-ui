@@ -6,10 +6,10 @@
 /** `never`: not started; `on`: the 7 days run; `lapsed`: started before, and the 7 days ran out. */
 export type DailyUpdatesState = 'never' | 'on' | 'lapsed';
 
-/** What a pick names: `repo`, a repository by `owner/name`. */
-export type PickKind = 'repo';
+/** What a pick names: `repo`, a repository by `owner/name`; `package`, an npm package by `npm/<name>`. */
+export type PickKind = 'repo' | 'package';
 
-/** A pick as the site names it: its kind and its name (a repository's `owner/name`). */
+/** A pick as the site names it: its kind and its name (a repository's `owner/name`, a package's `npm/<name>`). */
 export type PickRef = { kind: PickKind; name: string };
 
 /** One of the visitor's picks: updated every day while their daily updates are on. */
@@ -47,9 +47,15 @@ export type DailyUpdatesVisitResult = {
   retry: boolean;
 };
 
-/** A pick of a repository. */
+/**
+ * What a new pick of a package started: a refresh now (`started`), one already under way (`running`), none since it was
+ * refreshed within the hour (`fresh`), or one at the next round of updates (`due`).
+ */
+export type PickRefreshStatus = 'started' | 'running' | 'fresh' | 'due';
+
+/** A pick of a repository or a package; a package's says what its refresh did. */
 export type DailyUpdatesPickResult =
-  | { status: 'picked'; picks: DailyUpdatesPick[]; newPicksLeftToday: number }
+  | { status: 'picked'; picks: DailyUpdatesPick[]; newPicksLeftToday: number; refresh?: PickRefreshStatus }
   | { status: 'full' }
   | { status: 'daily_limit'; nextAt: string }
   | { status: 'not_held' }

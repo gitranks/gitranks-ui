@@ -6,6 +6,7 @@ import {
   fillLogin,
   fillTime,
   GITHUB_AUTHORIZATIONS_URL,
+  packageDealOf,
   REFRESH_LABELS,
   REFRESH_MESSAGES,
   REFRESH_TOASTS,
@@ -206,5 +207,28 @@ describe('refresh messages', () => {
 
   it('never tells who picked a repository', () => {
     expect(DAILY_UPDATES_NOTES.byPick).not.toMatch(/@|pick|by /i);
+  });
+});
+
+describe("the package's deal", () => {
+  it('says what a refresh of the package does and where its badge goes', () => {
+    const deal = packageDealOf('react-resize-detector', 'acme/react-resize-detector');
+
+    expect(deal.title).toBe('Hi, I’m Vitalii 👋');
+    expect(deal.closing).toEqual([
+      'Then we refresh react-resize-detector now and every day for the next 7 days: downloads, releases, and the stars of the repositories that use it.',
+      'You can also update up to 3 repos or packages daily.',
+    ]);
+    expect(deal.note).toBe(
+      'Don’t want to star? Add a GitRanks badge to the README of acme/react-resize-detector. While the badge is there, we update this package every day. No sign-in, no 7-day limit.',
+    );
+    expect(deal.noteLinks).toEqual([{ text: 'GitRanks badge', href: '/badge/builder' }]);
+  });
+
+  it('leaves the badge note out without a repository', () => {
+    const deal = packageDealOf('left-pad', null);
+
+    expect(deal.note).toBeUndefined();
+    expect(deal.noteLinks).toBeUndefined();
   });
 });

@@ -70,7 +70,7 @@ describe('proxy', () => {
     const PACKAGE_PATHS = [
       '/package/npm/react',
       '/package/npm/@types/node',
-      '/package/npm/%40types/node',
+      // `/package/npm/%40types/node` is sent to the `@` spelling before the gate (proxy-packages-gate.spec.ts).
       '/packages',
       '/packages/npm',
       '/packages/npm/downloads/1',

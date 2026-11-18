@@ -79,3 +79,29 @@ describe('a repository page and the packages gate', () => {
     expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
   });
 });
+
+describe("a package page's %40 spelling", () => {
+  beforeEach(() => {
+    resetPackagesGate();
+    graphqlDirect.mockReset();
+    sessionTokenOf.mockReset();
+  });
+
+  it('redirects to the @ spelling with a 308, before the gate is asked', async () => {
+    for (const path of ['/package/npm/%40nebula/ui', '/package/npm/%40Nebula/ui']) {
+      const response = await proxy(new NextRequest(`https://gitranks.com${path}?x=1`), event);
+      expect(response?.status, path).toBe(308);
+      expect(response?.headers.get('location')).toBe(`https://gitranks.com${path.replace(/%40/i, '@')}?x=1`);
+    }
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('leaves the @ spelling, other paths and a %40 past the scope alone', async () => {
+    const { packageScopeRedirectOf } = await import('./proxy');
+    expect(packageScopeRedirectOf('/package/npm/@nebula/ui')).toBeNull();
+    expect(packageScopeRedirectOf('/package/npm/left-pad')).toBeNull();
+    expect(packageScopeRedirectOf('/packages/npm/%40x/1')).toBeNull();
+    expect(packageScopeRedirectOf('/package/npm/nebula%40ui')).toBeNull();
+    expect(packageScopeRedirectOf('/package/npm/%40nebula/ui')).toBe('/package/npm/@nebula/ui');
+  });
+});

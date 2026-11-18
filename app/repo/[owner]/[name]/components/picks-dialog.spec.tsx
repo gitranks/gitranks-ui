@@ -3,7 +3,7 @@ import { act, type ComponentProps } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PICK_DIALOGS } from '../utils/pick-messages';
+import { PICK_DIALOGS, pickCopyOf } from '../utils/pick-messages';
 import { PicksDialog } from './picks-dialog';
 import type { PickRef } from '@/types/daily-updates.types';
 
@@ -64,6 +64,19 @@ describe('PicksDialog', () => {
       'octo/rocket | Remove',
       'Octo/Lantern | Remove',
       'You can add 1 more repo.',
+    ]);
+    expect(buttonNamed('Remove')?.getAttribute('aria-label')).toBe('Remove octo/rocket');
+  });
+
+  it('says what each pick is once packages are shown, a package by its own name', () => {
+    const NEBULA: PickRef = { kind: 'package', name: 'npm/@nebula/ui' };
+    render({ picks: [ROCKET, NEBULA], profileLogin: 'Mona-Dev', showLeft: true, list: pickCopyOf(true).list });
+
+    expect(rows()).toEqual([
+      'Mona-Dev | Your profile',
+      'octo/rocketRepository | Remove',
+      '@nebula/uinpm package | Remove',
+      'You can add 1 more repo or package.',
     ]);
     expect(buttonNamed('Remove')?.getAttribute('aria-label')).toBe('Remove octo/rocket');
   });

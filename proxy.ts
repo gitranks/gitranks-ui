@@ -214,6 +214,14 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     response.headers.set('Cache-Control', 'private, no-store');
     return response;
   }
+  // The admin pages answer a visitor without a session with a real 404 here, before anything renders: the page reads
+  // the session, so it is sent behind a prerendered shell, and its own not-found would come after a 200. Nothing is
+  // asked about the visitor. A signed-in one goes on to the page, which shows only what the API answers them.
+  if (ADMIN_PATH.test(pathname) && !hasSession(request)) {
+    const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
+  }
   // The ledger has its own switch (ledger design §6): open, it goes on as any public page; closed, a visitor without a
   // session gets the 404 here, and a signed-in one goes on to the page, which asks the API whether they are on its list.
   if (isLedgerPath(pathname)) {

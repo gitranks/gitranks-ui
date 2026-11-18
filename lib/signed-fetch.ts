@@ -10,6 +10,8 @@ type InternalClaims = {
   githubLogin?: string;
   /** The signed-in person's email, sent beside `githubLogin` when the session holds a valid one. */
   accountEmail?: string;
+  /** Set, and only ever `true`, when GitHub marked `accountEmail` verified at the session's sign-in. */
+  accountEmailVerified?: true;
 };
 
 const isBuildPhase = () => process.env.NEXT_PHASE === 'phase-production-build';
@@ -23,12 +25,21 @@ const CF_BUILD_BYPASS_HEADER = 'x-gitranks-build';
  * on paths that run inside a "use cache" scope, which `cacheComponents` rejects.
  * Callers that have a request scope read the session there and pass it down.
  */
-const resolveClaims = (source: RequestSource, githubLogin?: string, accountEmail?: string): InternalClaims => {
+const resolveClaims = (
+  source: RequestSource,
+  githubLogin?: string,
+  accountEmail?: string,
+  accountEmailVerified?: boolean,
+): InternalClaims => {
   if (isBuildPhase()) {
     return { source: 'build' };
   }
   if (!githubLogin) return { source };
-  return accountEmail ? { source, githubLogin, accountEmail } : { source, githubLogin };
+  if (!accountEmail) return { source, githubLogin };
+  // The claim is left out, never sent false: the API takes the email as proof of the address only when it is there.
+  return accountEmailVerified === true
+    ? { source, githubLogin, accountEmail, accountEmailVerified: true }
+    : { source, githubLogin, accountEmail };
 };
 
 export async function signedFetch(
@@ -37,8 +48,10 @@ export async function signedFetch(
   source: RequestSource = 'ssr',
   githubLogin?: string,
   accountEmail?: string,
+  /** Whether GitHub marked `accountEmail` verified at the sign-in; only the routes that need it pass it. */
+  accountEmailVerified?: boolean,
 ) {
-  const claims = resolveClaims(source, githubLogin, accountEmail);
+  const claims = resolveClaims(source, githubLogin, accountEmail, accountEmailVerified);
   const token = jwt.sign(claims, process.env.INTERNAL_JWT_SECRET!, { expiresIn: '5m' });
 
   const headers = new Headers(init.headers);

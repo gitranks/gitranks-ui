@@ -40,6 +40,11 @@ describe('the Auth.js callbacks', () => {
     currentSessionToken.mockResolvedValue(null);
     lightSignInSession.mockClear();
     updateOne.mockClear();
+    // GitHub's email list, refused unless a test says otherwise: no spec reaches the network.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 401 })),
+    );
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -106,5 +111,102 @@ describe('the Auth.js callbacks', () => {
     expect(updateOne).toHaveBeenCalledOnce();
     expect(JSON.stringify(updateOne.mock.calls)).not.toContain(TOKEN);
     expect(JSON.stringify(updateOne.mock.calls)).not.toContain('maintainerToken');
+  });
+
+  describe("the session's verified email", () => {
+    const emails = (list: unknown, status = 200) => {
+      const fetchMock = vi.fn(async () => Response.json(list, { status }));
+      vi.stubGlobal('fetch', fetchMock);
+      return fetchMock;
+    };
+
+    it.each(['github-basic', 'github'])('is kept at a %s sign-in when GitHub marks it verified', async (provider) => {
+      const fetchMock = emails([
+        { email: 'other@example.com', verified: true, primary: false },
+        { email: 'Octo@Example.com', verified: true, primary: true },
+      ]);
+
+      const token = await callbacks.jwt(signInWith(provider));
+
+      expect(token.verifiedEmail).toBe('octo@example.com');
+      expect(fetchMock).toHaveBeenCalledOnce();
+      const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+      expect(url).toBe('https://api.github.com/user/emails');
+      expect(new Headers(init.headers).get('Authorization')).toBe(`Bearer ${provider}-access`);
+    });
+
+    it('is not kept when GitHub has it unverified, or only another address verified', async () => {
+      emails([
+        { email: 'octo@example.com', verified: false },
+        { email: 'other@example.com', verified: true },
+      ]);
+
+      expect((await callbacks.jwt(signInWith('github-basic'))).verifiedEmail).toBeUndefined();
+    });
+
+    it('is dropped at a later sign-in that no longer finds it verified', async () => {
+      emails([{ email: 'octo@example.com', verified: false }]);
+      const signIn = signInWith('github');
+
+      const token = await callbacks.jwt({ ...signIn, token: { ...signIn.token, verifiedEmail: 'octo@example.com' } });
+
+      expect(token.verifiedEmail).toBeUndefined();
+    });
+
+    it('never fails the sign-in: a refusal or a network error leaves it out', async () => {
+      emails({ message: 'Resource not accessible by integration' }, 403);
+      expect(await callbacks.jwt(signInWith('github-basic'))).toMatchObject({ githubLogin: 'octocat' });
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new Error('offline');
+        }),
+      );
+      const token = await callbacks.jwt(signInWith('github'));
+      expect(token).toMatchObject({ githubLogin: 'octocat', authMode: 'token' });
+      expect(token.verifiedEmail).toBeUndefined();
+    });
+
+    it.each([
+      ['unset', [{ email: 'octo@example.com', verified: false }], 'octo@example.com', undefined],
+      ['set', [{ email: 'octo@example.com', verified: true }], undefined, 'octo@example.com'],
+    ])(
+      'is %s on the session a maintainers page sign-in keeps, from this sign-in’s read',
+      async (_, list, before, after) => {
+        emails(list);
+        const kept: JWT = {
+          ...fresh(),
+          githubLogin: 'octocat',
+          authMode: 'identity',
+          ...(before ? { verifiedEmail: before } : {}),
+        };
+        lightSignInSession.mockResolvedValueOnce(kept);
+
+        const token = await callbacks.jwt(signInWith('github-basic'));
+
+        expect(token).toMatchObject({ githubLogin: 'octocat', authMode: 'identity' });
+        expect(token.verifiedEmail).toBe(after);
+      },
+    );
+
+    it('is not read again between sign-ins, nor given to the browser', async () => {
+      const fetchMock = emails([]);
+      const kept = {
+        ...fresh(),
+        githubLogin: 'octocat',
+        authMode: 'identity' as const,
+        verifiedEmail: 'octo@example.com',
+      };
+
+      expect(await callbacks.jwt({ token: kept })).toMatchObject({ verifiedEmail: 'octo@example.com' });
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      const session = await callbacks.session({
+        session: { user: {}, expires: '2099-01-01T00:00:00.000Z' },
+        token: kept,
+      });
+      expect(JSON.stringify(session)).not.toContain('verifiedEmail');
+    });
   });
 });

@@ -504,6 +504,28 @@ describe('proxy', () => {
     });
   });
 
+  describe('the pages a link in our email opens', () => {
+    const LINK_PAGES = ['/l/confirm', '/follow/confirm', '/follow/unfollow', '/following', '/following/'];
+
+    it.each(LINK_PAGES)('%s signed in: keeps private, no-store (not the signed-in no-cache)', async (path) => {
+      const response = await proxy(request('authjs.session-token=t', path), event);
+      expect(response?.headers.get('cache-control')).toBe('private, no-store');
+    });
+
+    it.each(LINK_PAGES)('%s signed out: leaves the page its own headers', async (path) => {
+      const response = await proxy(request(undefined, path), event);
+      expect(response?.headers.get('cache-control')).toBeNull();
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it('any other signed-in page keeps private, no-cache', async () => {
+      for (const path of ['/followers', '/following-x', '/lx', '/']) {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+      }
+    });
+  });
+
   describe('Learn', () => {
     const CLOSED = [
       '/learn',

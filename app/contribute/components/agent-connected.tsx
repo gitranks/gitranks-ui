@@ -7,12 +7,11 @@ import { ForgetWelcome } from './forget-welcome';
 import { PauseButton } from './pause-button';
 import { HEADING } from './primitives';
 import { StillRanking } from './still-ranking';
-import { AGENT_WORK_PROMPT } from '@/lib/contribute/agent-connect';
 import { githubUrlOf } from '@/lib/contribute/attempt-format';
 import type { ContributeIssue, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
 import { agentFirstRunStepOf } from '@/lib/contribute/first-run';
 import { KIND_ONE, LANGUAGES } from '@/lib/contribute/format';
-import { MCP_CLIENT_NAMES, type McpClient } from '@/lib/contribute/mcp-setup';
+import { AGENT_FIRST_PROMPT, MCP_CLIENT_NAMES, type McpClient } from '@/lib/contribute/mcp-setup';
 import { cn } from '@/lib/utils';
 
 const ISSUES_PATH: Route = '/contribute/issues';
@@ -210,7 +209,7 @@ export function AgentNextSteps({
       <div className="flex flex-col gap-2">
         <span className="text-sm font-semibold">Ask your agent, whenever you have a moment:</span>
         <CodeBlock label={`Prompt for ${agent}`} copyLabel="Copy the prompt" wrap>
-          {AGENT_WORK_PROMPT}
+          {AGENT_FIRST_PROMPT}
         </CodeBlock>
       </div>
       <ol className="grid grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] gap-3.5">

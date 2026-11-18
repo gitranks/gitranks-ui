@@ -10,6 +10,7 @@ import { IssueCardCompact } from '@/app/contribute/components/issue-card-compact
 import { buttonVariants } from '@/components/ui/button';
 import { contributeSource } from '@/lib/contribute/click-tracking';
 import type { ContributeIssue } from '@/lib/contribute/contribute.types';
+import { AGENT_FIRST_PROMPT } from '@/lib/contribute/mcp-setup';
 import { type ProfileIssuesAnswer, profileIssuesUrl } from '@/lib/contribute/profile-issues';
 import { cn } from '@/lib/utils';
 
@@ -93,7 +94,7 @@ export const EXAMPLE_PICKS: ContributeIssue[] = [
 ];
 
 const WAYS = [
-  { icon: SquareTerminal, title: 'Your own agent', text: 'Ask it to “Find me an issue on GitRanks”' },
+  { icon: SquareTerminal, title: 'Your own agent', text: `Ask it: “${AGENT_FIRST_PROMPT}”` },
   { icon: Package, title: 'Ours, on your Claude key', text: 'Runs in a sandbox and brings you a tested fix' },
 ];
 

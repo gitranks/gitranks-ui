@@ -307,7 +307,7 @@ describe('the connect page, reached from a proof card', () => {
     expect(waiting).toContain('3 · Run the proof prompt');
     expect(waiting).toContain('Prove openclaw/openclaw#190186 for GitRanks');
     expect(waiting).toContain('Prompt for your agent');
-    expect(waiting).not.toContain('Find me an issue on GitRanks');
+    expect(waiting).not.toContain('Find me an open-source issue to work on with GitRanks.');
 
     const done = text(renderToStaticMarkup(<AgentConnectView {...props} connected />));
     expect(done).toContain('Your agent is connected. Taking you back to PR #190186…');

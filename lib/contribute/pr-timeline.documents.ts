@@ -6,16 +6,6 @@ import type DocumentNode from '@/types/typed-document-node';
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
   parse(source) as DocumentNode<TData, TVariables>;
 
-/** Whether pull request timelines are public: the proxy's question, no viewer needed. */
-export const PrTimelineOpenDocument = doc<{ contributePrTimelineOpen: boolean }>(
-  'query PrTimelineOpen { contributePrTimelineOpen }',
-);
-
-/** Whether timelines are open to the signed-in viewer: the approval's checkbox. */
-export const PrTimelineViewerOpenDocument = doc<{ prTimelineOpen: boolean }>(
-  'query PrTimelineViewerOpen { prTimelineOpen }',
-);
-
 const TIMELINE = `
   attemptId nameWithOwner number url title state openedAt mergedAt closedAt contributorLogin reviewed agentPhrase
   ownAgent stopped helped partial modifiedAt

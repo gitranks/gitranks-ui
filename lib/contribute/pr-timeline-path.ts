@@ -6,12 +6,6 @@ import { type PrRef, parsePrLink } from './pr-feedback';
 /** Every pull request timeline lives under it. */
 export const PR_TIMELINE_ROOT = '/contribute/pr';
 
-/**
- * The page and its twin rendered per request for the people the API names, before the pages are public: reached only
- * by the proxy's rewrite (asked for by itself, it is a 404).
- */
-export const PR_TIMELINE_PREVIEW_ROOT = '/pr-timeline-preview';
-
 const ATTEMPT_ID = /^[a-f\d]{24}$/;
 
 /**

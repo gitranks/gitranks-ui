@@ -9,7 +9,6 @@ vi.mock('./lib/contribute/preview-gate', () => ({
 }));
 vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: async () => false }));
 vi.mock('./lib/contribute/pr-timeline-gate', () => ({
-  contributePrTimelineOpen: async () => false,
   prTimelineGateOf: async () => ({ kind: 'page', partial: false, confirmed: true }),
 }));
 vi.mock('./lib/packages/packages-gate', () => ({

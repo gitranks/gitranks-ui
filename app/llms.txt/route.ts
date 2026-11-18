@@ -1,6 +1,5 @@
 import { connection } from 'next/server';
 
-import { contributePrTimelineOpen } from '@/lib/contribute/pr-timeline-gate';
 import { contributeOpen } from '@/lib/contribute/preview-gate';
 import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
 import { readPublicLessons } from '@/lib/learn/public-lessons.data';
@@ -15,14 +14,13 @@ import { packagesPublicNow } from '@/lib/sitemap/packages-public';
  */
 export async function GET(): Promise<Response> {
   await connection();
-  const [contribute, packages, learnOpen, prTimelines] = await Promise.all([
+  const [contribute, packages, learnOpen] = await Promise.all([
     contributeOpen(),
     packagesPublicNow(),
     learnOpenToEveryone(),
-    contributePrTimelineOpen(),
   ]);
   const learn = learnOpen ? ((await readPublicLessons()) ?? []) : null;
-  return new Response(llmsTxtOf({ contribute, packages, learn, prTimelines }), {
+  return new Response(llmsTxtOf({ contribute, packages, learn }), {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'public, max-age=300, s-maxage=300',

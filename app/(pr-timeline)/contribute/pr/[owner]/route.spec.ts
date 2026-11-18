@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-const { target } = vi.hoisted(() => ({ target: vi.fn(async (_id: string, _req: unknown) => '/contribute/pr/a/b/1') }));
+const { target } = vi.hoisted(() => ({ target: vi.fn(async (_id: string) => '/contribute/pr/a/b/1') }));
 vi.mock('@/lib/contribute/pr-timeline-gate', () => ({ prTimelineShortTargetOf: target }));
 
 const { GET } = await import('./route');

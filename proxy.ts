@@ -16,13 +16,8 @@ import {
   settingUpHomeOf,
 } from './lib/contribute/contribute-path';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
-import { contributePrTimelineOpen, prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
-import {
-  isPrTimelinePath,
-  PR_TIMELINE_PREVIEW_ROOT,
-  prTimelineMarkdownPath,
-  prTimelineRouteOf,
-} from './lib/contribute/pr-timeline-path';
+import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
+import { isPrTimelinePath, prTimelineMarkdownPath, prTimelineRouteOf } from './lib/contribute/pr-timeline-path';
 import { contributeOpen, requestContributeAccess } from './lib/contribute/preview-gate';
 import { learnOpenToEveryone } from './lib/learn/learn-everyone';
 import {
@@ -167,47 +162,27 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     }
   }
 
-  // A pull request's timeline (its page and its Markdown twin). Public, the API is asked here before anything renders,
-  // signed out: shown goes on to the one cached page, a renamed repo gets a 307 to the address it has now, and anything
-  // else the 404, which no shared cache keeps. Before it is public, a visitor without a session gets that 404 without a
-  // question to the API, and a signed-in one is rewritten to the page's per-request twin, which asks the API as them and
-  // is never cached. The short address the footer links is its own route handler, outside every gate. The per-request
-  // twin is reachable only through this rewrite. Rewritten before Auth.js, like the 404s above.
+  // A pull request's timeline (its page and its Markdown twin): the API is asked here before anything renders, signed
+  // out. Shown goes on to the one cached page, a renamed repo gets a 307 to the address it has now, and anything else
+  // the 404, which no shared cache keeps. The short address the footer links is its own route handler, outside every
+  // gate. Asked before Auth.js, like the 404s above.
   let shownTimeline = false;
   const timeline =
     request.method === 'GET' || request.method === 'HEAD' ? prTimelineRouteOf(request.nextUrl.pathname) : null;
-  if (request.nextUrl.pathname.toLowerCase().startsWith(PR_TIMELINE_PREVIEW_ROOT)) {
-    const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
-    response.headers.set('Cache-Control', 'private, no-store');
-    return response;
-  }
   if (timeline && timeline.kind !== 'short') {
-    if (await contributePrTimelineOpen()) {
-      const gate = await prTimelineGateOf(timeline.pr);
-      shownTimeline = gate.kind === 'page' && gate.confirmed;
-      if (gate.kind !== 'page') {
-        const response =
-          gate.kind === 'missing'
-            ? NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url))
-            : NextResponse.redirect(
-                new URL(
-                  `${gate.path}${timeline.kind === 'twin' ? '/timeline.md' : ''}${request.nextUrl.search}`,
-                  request.url,
-                ),
-                307,
-              );
-        response.headers.set('Cache-Control', 'private, no-store');
-        return response;
-      }
-    } else {
-      const response = hasSession(request)
-        ? NextResponse.rewrite(
-            new URL(
-              `${PR_TIMELINE_PREVIEW_ROOT}/${timeline.pr.nameWithOwner}/${timeline.pr.number}${timeline.kind === 'twin' ? '/timeline.md' : ''}`,
-              request.url,
-            ),
-          )
-        : NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+    const gate = await prTimelineGateOf(timeline.pr);
+    shownTimeline = gate.kind === 'page' && gate.confirmed;
+    if (gate.kind !== 'page') {
+      const response =
+        gate.kind === 'missing'
+          ? NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url))
+          : NextResponse.redirect(
+              new URL(
+                `${gate.path}${timeline.kind === 'twin' ? '/timeline.md' : ''}${request.nextUrl.search}`,
+                request.url,
+              ),
+              307,
+            );
       response.headers.set('Cache-Control', 'private, no-store');
       return response;
     }

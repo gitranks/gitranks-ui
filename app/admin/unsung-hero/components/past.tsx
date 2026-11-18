@@ -20,7 +20,7 @@ export function PastTable({
 }: Readonly<{ past: HeroSlot[]; action?: PressAction; pending?: boolean }>) {
   if (!past.length) return <p className="p-4 text-sm text-muted-foreground">No past heroes yet.</p>;
   return (
-    <div className="overflow-x-auto rounded-xl border bg-card shadow-sm dark:shadow-none">
+    <div className="relative overflow-x-auto rounded-xl border bg-card shadow-sm dark:shadow-none">
       <table className="w-full text-sm">
         <thead className="text-xs text-muted-foreground">
           <tr className="border-b">
@@ -99,7 +99,7 @@ export function PastTable({
 export function OptOutsTable({ optOuts }: Readonly<{ optOuts: HeroOptOut[] }>) {
   if (!optOuts.length) return <p className="p-4 text-sm text-muted-foreground">Nobody has opted out.</p>;
   return (
-    <div className="overflow-x-auto rounded-xl border bg-card shadow-sm dark:shadow-none">
+    <div className="relative overflow-x-auto rounded-xl border bg-card shadow-sm dark:shadow-none">
       <table className="w-full text-sm">
         <thead className="text-xs text-muted-foreground">
           <tr className="border-b">

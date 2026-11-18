@@ -27,10 +27,10 @@ describe('the downloads helper', () => {
 
     expect(period.total).toBe(1_797_999);
     expect(period.label).toBe('in the week to Nov 16');
-    // A year before the week of Nov 9, 2026 is the week of Nov 10, 2025: 52 points earlier, 151,000.
+    // A year before the week of Nov 9, 2026 is the week of Nov 10, 2025: 52 points earlier, 1,336,000.
     expect(period.changes).toEqual([
       { change: 6, against: 'vs the week before' },
-      { change: Math.round(((1_797_999 - 151_000) / 151_000) * 100), against: 'vs a year before' },
+      { change: Math.round(((1_797_999 - 1_336_000) / 1_336_000) * 100), against: 'vs a year before' },
     ]);
     expect(period.series).toHaveLength(52);
   });
@@ -38,11 +38,11 @@ describe('the downloads helper', () => {
   it('sets the last whole month against the month before and the same month a year before', () => {
     const period = monthPeriodOf(downloads);
 
-    expect(period?.total).toBe(7_400_000);
+    expect(period?.total).toBe(7_195_429);
     expect(period?.label).toBe('in October');
     expect(period?.changes).toEqual([
-      { change: 1, against: 'vs Sep' },
-      { change: Math.round((1_200_000 / 6_200_000) * 100), against: 'vs Oct 2025' },
+      { change: Math.round(((7_195_429 - 6_852_000) / 6_852_000) * 100), against: 'vs Sep' },
+      { change: Math.round(((7_195_429 - 5_810_286) / 5_810_286) * 100), against: 'vs Oct 2025' },
     ]);
   });
 
@@ -50,7 +50,7 @@ describe('the downloads helper', () => {
     const young = { ...downloads, previousWeek: 0, weeks: weeks.slice(-4), months: months.slice(-2) };
 
     expect(weekPeriodOf(young).changes).toEqual([]);
-    expect(monthPeriodOf(young)?.changes).toEqual([{ change: 1, against: 'vs Sep' }]);
+    expect(monthPeriodOf(young)?.changes).toEqual([{ change: 5, against: 'vs Sep' }]);
     expect(monthPeriodOf({ ...young, months: [] })).toBeNull();
   });
 

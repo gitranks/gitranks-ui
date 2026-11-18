@@ -15,6 +15,7 @@ import {
   mcpTokenSaveOf,
 } from './mcp-setup';
 import { VS_CODE_SIGN_IN, VS_CODE_TOKEN_FILE, VS_CODE_TOKEN_LINES, VS_CODE_TOKEN_WHERE } from './own-agent-setups';
+import { settingsPathOf } from './settings-paths';
 
 /** What the docs put where a token goes: never a real one. The setup's own placeholder. */
 export const TOKEN_PLACEHOLDER = MCP_TOKEN_PLACEHOLDER;
@@ -334,18 +335,24 @@ export const MCP_DOC_LIMITS: readonly { what: string; limit: string }[] = [
 export const MCP_DOC_NEXT_STEPS: readonly string[] = [
   'Your agent shows you a few issues, and you choose one.',
   'It claims the issue, fixes it and submits the patch.',
-  'You review and approve the pull request at gitranks.com/contribute. Nothing reaches GitHub before you approve it.',
+  'You review and approve the pull request at gitranks.com/contribute. While autopilot is off, nothing reaches GitHub before you approve it.',
   'The first time you approve one, GitHub asks you for one permission.',
 ];
 
 /** One problem and what to do about it. */
 export type McpDocTrouble = { title: string; text: string };
 
-/** Each client the connect flow knows, and where it shows whether gitranks is connected: its sign-in setup's check. */
-export const MCP_DOC_CHECKS: readonly McpDocTrouble[] = MCP_CLIENTS.map((client) => ({
-  title: MCP_CLIENT_NAMES[client],
-  text: mcpSignInSetupOf(client, 'mac').check,
-}));
+/**
+ * Each client the connect flow knows, and where it shows whether gitranks is connected (its sign-in setup's check), then
+ * one line for every other client.
+ */
+export const MCP_DOC_CHECKS: readonly McpDocTrouble[] = [
+  ...MCP_CLIENTS.map((client) => ({ title: MCP_CLIENT_NAMES[client], text: mcpSignInSetupOf(client, 'mac').check })),
+  {
+    title: 'Other clients',
+    text: "In your client's MCP or connector settings, gitranks should show as connected. If it doesn't, sign in again from there.",
+  },
+];
 
 /** The problems every client can have, after each client's own check. */
 export const MCP_DOC_TROUBLES: readonly McpDocTrouble[] = [
@@ -355,6 +362,6 @@ export const MCP_DOC_TROUBLES: readonly McpDocTrouble[] = [
   },
   {
     title: 'Your agent finds no issues',
-    text: 'Widen your languages at gitranks.com/contribute/settings: issues are picked for the languages you chose.',
+    text: `Your first picks take a minute or two after you join. If you picked languages, widen them at gitranks.com${settingsPathOf('work')}.`,
   },
 ];

@@ -41,7 +41,7 @@ export function AuthorizeNextStep({ clientName }: { clientName?: string }) {
         {AGENT_FIRST_PROMPT}
       </CodeBlock>
       <p className="text-muted-foreground">
-        It shows you a few issues to choose from. Each pull request waits for your approval at{' '}
+        It shows you a few issues to choose from. While autopilot is off, each pull request waits for your approval at{' '}
         <Link href="/contribute" prefetch={false} className={LINK}>
           gitranks.com/contribute
         </Link>

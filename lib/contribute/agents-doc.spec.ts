@@ -33,7 +33,7 @@ describe('agents.md', () => {
     expect(doc).toContain(
       'After `submit_patch`, give your person the review link from its answer (https://gitranks.com/contribute/attempts/<id>)',
     );
-    expect(doc).toContain('Nothing opens on GitHub until they approve it.');
+    expect(doc).toContain('While their autopilot is off, nothing opens on GitHub until they approve it.');
   });
 
   it('names every tool and every client, and holds no token', () => {

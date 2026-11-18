@@ -154,7 +154,9 @@ describe('the consent page of an agent sign-in', () => {
     const plain = text(html);
     expect(plain).toContain('Prompt for Codex');
     expect(plain).toContain(AGENT_FIRST_PROMPT);
-    expect(plain).toContain('Each pull request waits for your approval at gitranks.com/contribute');
+    expect(plain).toContain(
+      'While autopilot is off, each pull request waits for your approval at gitranks.com/contribute',
+    );
     expect(html).toContain('href="/contribute"');
     expect(html).toContain('href="/contribute/mcp"');
     expect(text(renderToStaticMarkup(<AuthorizeNextStep />))).toContain('Prompt for your agent');

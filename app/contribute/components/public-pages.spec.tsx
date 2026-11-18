@@ -204,7 +204,7 @@ describe('the MCP docs', () => {
     expect(said).toContain(AGENT_FIRST_PROMPT);
     expect(said).toContain('What happens next');
     for (const step of MCP_DOC_NEXT_STEPS) expect(said).toContain(step);
-    expect(said).toContain('Nothing reaches GitHub before you approve it.');
+    expect(said).toContain('While autopilot is off, nothing reaches GitHub before you approve it.');
     expect(html).toContain('href="/contribute"');
     expect(html).toContain('href="/contribute?start=agent"');
     expect(said).toContain('Connect your agent');
@@ -214,13 +214,17 @@ describe('the MCP docs', () => {
     const html = renderToStaticMarkup(<McpDocsScreen />);
     // A linked address ends where its sentence goes on: the stripped tags leave a space before the stop.
     const said = text(html).replace(/ ([.:,])/g, '$1');
-    expect(MCP_DOC_CHECKS.map((check) => check.text)).toEqual(MCP_CLIENTS.map((c) => mcpSignInSetupOf(c, 'mac').check));
+    expect(MCP_DOC_CHECKS.slice(0, -1).map((check) => check.text)).toEqual(
+      MCP_CLIENTS.map((c) => mcpSignInSetupOf(c, 'mac').check),
+    );
+    expect(said).toContain("In your client's MCP or connector settings, gitranks should show as connected.");
+    expect(said).toContain('Your first picks take a minute or two after you join.');
     for (const { title, text: line } of [...MCP_DOC_CHECKS, ...MCP_DOC_TROUBLES]) {
       expect(said).toContain(title);
       expect(said).toContain(line);
     }
     expect(said).toContain('Reload or restart the client');
-    expect(html).toContain('href="/contribute/settings"');
+    expect(html).toContain('href="/contribute/settings#work"');
   });
 
   it('end with help: the contact address, the plugin issues and the questions', () => {

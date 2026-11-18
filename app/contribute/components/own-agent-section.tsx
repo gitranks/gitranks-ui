@@ -57,7 +57,7 @@ function AskYourAgent() {
         {AGENT_FIRST_PROMPT}
       </CodeBlock>
       <p className="text-sm text-muted-foreground">
-        It shows you a few issues to choose from. Each pull request waits for your approval on{' '}
+        It shows you a few issues to choose from. While autopilot is off, each pull request waits for your approval on{' '}
         <Link href="/contribute" prefetch={false} className="font-semibold text-link hover:underline">
           Contribute
         </Link>
@@ -376,7 +376,15 @@ export function OwnAgentSection({
         <>
           {signIn ? (
             <>
-              <TokenList tokens={signedIn} now={now} empty="No agent connected yet." />
+              <TokenList
+                tokens={signedIn}
+                now={now}
+                empty={
+                  connected
+                    ? 'No agent signed in. Yours connects with a personal token, listed below.'
+                    : 'No agent connected yet.'
+                }
+              />
               {connected ? <AskYourAgent /> : null}
               {heading('Set up your agent')}
               <SetupLines signIn />

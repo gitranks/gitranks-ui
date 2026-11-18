@@ -180,7 +180,7 @@ const NEVER_ASKED = [
 const LINK = 'font-semibold text-link hover:underline';
 
 /** An address on this site in the docs' text ("gitranks.com/contribute"), linked to its page. */
-const SITE_ADDRESS = /(gitranks\.com\/[a-z0-9/_-]*[a-z0-9])/i;
+const SITE_ADDRESS = /(gitranks\.com\/[a-z0-9/#_-]*[a-z0-9])/i;
 
 /** A line of the docs' data, its addresses on this site linked. */
 function SiteText({ text }: { text: string }) {

@@ -125,6 +125,17 @@ describe('Settings, your own agent, with agents that signed in', () => {
     };
     expect(asked({ ...withTokens, tokens: [SIGNED_IN], signIn: true })).toBe(true);
     expect(asked({ ...withTokens, tokens: [{ ...TOKEN, lastUsedAt: NOW.toISOString() }] })).toBe(true);
+    const tokenOnly = text(
+      renderToStaticMarkup(
+        <OwnAgentSection
+          ownAgent={{ ...withTokens, tokens: [{ ...TOKEN, lastUsedAt: NOW.toISOString() }], signIn: true }}
+          now={NOW}
+        />,
+      ),
+    );
+    expect(tokenOnly).toContain(AGENT_FIRST_PROMPT);
+    expect(tokenOnly).toContain('No agent signed in. Yours connects with a personal token, listed below.');
+    expect(tokenOnly).not.toContain('No agent connected yet.');
     expect(asked({ ...withTokens, tokens: [TOKEN], signIn: true })).toBe(false);
     expect(asked(withTokens)).toBe(false);
   });

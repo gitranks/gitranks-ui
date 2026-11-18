@@ -96,7 +96,7 @@ function previewImages(name: string): PreviewImage[] {
     {
       url: absoluteUrl(socialCardPath({ kind: 'package', registry: 'npm', name })),
       ...SOCIAL_CARD_SIZE,
-      alt: `${name} on GitRanks: npm package dependents, downloads and ranks`,
+      alt: `${packageTitle(name)} on GitRanks`,
     },
   ];
 }

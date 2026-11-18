@@ -37,7 +37,7 @@ describe('buildPackageSEO', () => {
         url: 'https://gitranks.com/badge/package/npm/react-resize-detector/package-card.png?size=social',
         width: 1200,
         height: 630,
-        alt: 'react-resize-detector on GitRanks: npm package dependents, downloads and ranks',
+        alt: 'react-resize-detector - npm package dependents, downloads and ranks on GitRanks',
       },
     ]);
     expect(metadata.twitter).toMatchObject({ card: 'summary_large_image' });

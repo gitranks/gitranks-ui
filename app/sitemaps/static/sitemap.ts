@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
+import { packageStaticSitemapEntries } from '@/lib/sitemap/package-static';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
-import { packageStaticSitemapEntries } from '@/lib/sitemap/unsung-heroes';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [

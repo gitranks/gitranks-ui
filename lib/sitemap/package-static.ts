@@ -1,9 +1,9 @@
 import type { MetadataRoute } from 'next';
 
-import { PACKAGE_METHODOLOGY_PATH } from '@/app/packages/components/package-beta-notice';
 import { packagesPublicNow } from '@/lib/sitemap/packages-public';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 import { UNSUNG_HEROES_PATH } from '@/lib/unsung-hero/unsung-hero';
+import { PACKAGE_METHODOLOGY_PATH } from '@/utils/package-paths';
 
 /**
  * The static sitemap's lines for the pages that open with the package pages: the Unsung heroes archive and how

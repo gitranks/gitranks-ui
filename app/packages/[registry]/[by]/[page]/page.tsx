@@ -43,8 +43,8 @@ export async function generateMetadata({ params }: PageProps<'/packages/[registr
   }
 
   const [rows, facts] = await readPage(ranking);
-  // Kept as long as the page it describes.
-  if (rows && facts !== undefined) {
+  // Kept as long as the page it describes: briefly while it cannot be read or nothing is ranked yet.
+  if (rows?.length && facts !== undefined) {
     cacheLife('hours');
   } else {
     cacheLife('minutes');
@@ -71,8 +71,9 @@ export default async function PackageRankingPage({ params }: PageProps<'/package
   }
 
   const [rows, facts] = await readPage(ranking);
-  // A ranking or its facts that could not be read may read soon: such a page is kept only briefly.
-  if (rows && facts !== undefined) {
+  // A ranking or its facts that could not be read, or a ranking with no package yet, may change soon: such a page is
+  // kept only briefly.
+  if (rows?.length && facts !== undefined) {
     cacheLife('hours');
   } else {
     cacheLife('minutes');

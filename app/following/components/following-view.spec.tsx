@@ -27,7 +27,7 @@ describe('/following for a signed-in viewer', () => {
     );
     expect(shown).toContain('Email Packages you follow At m•••@gmail.com.');
     expect(shown).toContain('Telegram Packages you follow In the Telegram chat …1234.');
-    expect(shown).toContain('We stopped sending to this chat: it blocked our bot.');
+    expect(shown).toContain('Paused: this chat blocked our bot. Unblock it or write to it and updates start again.');
     expect(shown).toContain('Stop all package messages Unfollows every package, on every channel.');
     expect(shown).not.toContain('Email settings');
   });
@@ -42,5 +42,39 @@ describe('/following for a signed-in viewer', () => {
     const shown = text(<FollowingView state={{ kind: 'list', subscribers: [subscriberOf()] }} />);
     expect(shown).toContain('Email settings Packages you follow At m•••@gmail.com.');
     expect(shown).toContain('Stop all package email Unfollows every package at this address.');
+  });
+
+  it('says why a WhatsApp number is paused', () => {
+    const whatsapp = subscriberOf({ channel: 'WHATSAPP', addressHint: '…5678', paused: true });
+    expect(text(<FollowingView session state={{ kind: 'list', subscribers: [whatsapp] }} />)).toContain(
+      "Paused: WhatsApp couldn't reach this number.",
+    );
+  });
+
+  it.each([
+    [{ kind: 'resumed', channel: 'TELEGRAM' }, 'We will send to this chat again.'],
+    [{ kind: 'resumed', channel: 'EMAIL' }, 'We will send to this address again.'],
+    [
+      { kind: 'undo-refused', package: { registry: 'npm', name: 'x' }, channel: 'WHATSAPP' },
+      'Could not follow x again: the chat may already follow',
+    ],
+    [{ kind: 'link-gone' }, 'That link no longer works; here is what your account follows.'],
+    [{ kind: 'failed' }, 'That did not go through.'],
+  ] as const)('says %o', (notice, words) => {
+    expect(text(<FollowingView session state={{ kind: 'list', subscribers: [subscriberOf()], notice }} />)).toContain(
+      words,
+    );
+  });
+
+  it('asks a viewer whose session ended to sign in again', () => {
+    const shown = renderToStaticMarkup(
+      <FollowingView
+        session
+        onSignIn={() => {}}
+        state={{ kind: 'list', subscribers: [subscriberOf()], notice: { kind: 'sign-in' } }}
+      />,
+    );
+    expect(shown).toContain('You are signed out. Sign in again to change what you follow.');
+    expect(shown).toContain('Sign in with GitHub');
   });
 });

@@ -1,5 +1,6 @@
 import type {
   FollowChangeByTokenAnswer,
+  FollowChannel,
   FollowConfirmAnswer,
   FollowConfirmPeekAnswer,
   FollowEvents,
@@ -38,11 +39,17 @@ export type UnfollowState =
   | LinkTrouble
   | { kind: 'follow'; follow: PackageFollow; addressHint: string; note?: UnfollowNote };
 
-/** What the last press on `/following` did, when the list alone does not say it. */
+/**
+ * What the last press on `/following` did, when the list alone does not say it. `channel` names where a resume or a
+ * refused Undo happened, so a chat is not called an address. `link-gone`: a signed-in viewer's own list, shown because
+ * the link they opened no longer works. `sign-in`: the session ended, so nothing can change until they sign in again.
+ */
 export type SettingsNotice =
   | { kind: 'stopped'; count: number }
-  | { kind: 'resumed' }
-  | { kind: 'undo-refused'; package: FollowPackage }
+  | { kind: 'resumed'; channel?: FollowChannel }
+  | { kind: 'undo-refused'; package: FollowPackage; channel?: FollowChannel }
+  | { kind: 'link-gone' }
+  | { kind: 'sign-in' }
   | { kind: 'failed' };
 
 /** `/following`: every follow of the address, by its settings link. */
@@ -113,7 +120,7 @@ export function settingsNoticeAfter(
   if (change.resumeSubscriberId) return answer.subscriber ? done : { kind: 'failed' };
   if (!answer.follow) return { kind: 'failed' };
   if (change.undo && answer.follow.status === 'REMOVED')
-    return { kind: 'undo-refused', package: answer.follow.package };
+    return { kind: 'undo-refused', package: answer.follow.package, channel: answer.follow.channel };
   return done;
 }
 

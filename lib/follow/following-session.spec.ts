@@ -90,12 +90,15 @@ describe('the signed-in settings page', () => {
       data: { follow: followOf({ status: 'REMOVED' }), subscriber: null },
     });
     expect(await pressSessionSettings(viewer, { action: 'undo', followId: FOLLOW_ID })).toMatchObject({
-      notice: { kind: 'undo-refused', package: followOf().package },
+      notice: { kind: 'undo-refused', package: followOf().package, channel: 'EMAIL' },
     });
 
-    changeFollowing.mockResolvedValueOnce({ ok: true, data: { follow: null, subscriber: SUBSCRIBER } });
+    changeFollowing.mockResolvedValueOnce({
+      ok: true,
+      data: { follow: null, subscriber: subscriberOf({ channel: 'TELEGRAM' }) },
+    });
     expect(await pressSessionSettings(viewer, { action: 'resume', subscriberId: SUBSCRIBER.id })).toMatchObject({
-      notice: { kind: 'resumed' },
+      notice: { kind: 'resumed', channel: 'TELEGRAM' },
     });
     expect(changeFollowing).toHaveBeenLastCalledWith(viewer, { resumeSubscriberId: SUBSCRIBER.id });
 
@@ -139,12 +142,27 @@ describe('the signed-in settings page', () => {
       });
     });
 
-    it('says the link timed out to a visitor, and that a bad link does not work to anyone', async () => {
+    it('says the link timed out to a visitor, and that a bad link does not work', async () => {
       caller.mockResolvedValueOnce(visitor);
       expect(await followingPageOf(false, caller)).toEqual({ state: { kind: 'timed-out' }, session: false });
 
       settingsPageState.mockResolvedValueOnce({ kind: 'unknown' });
+      caller.mockResolvedValueOnce(visitor);
       expect(await followingPageOf(true, caller)).toEqual({ state: { kind: 'unknown' }, session: false });
+      expect(readFollowing).not.toHaveBeenCalled();
+    });
+
+    it('shows a signed-in viewer their own list after a link that no longer works, saying so', async () => {
+      settingsPageState.mockResolvedValueOnce({ kind: 'unknown' });
+      expect(await followingPageOf(true, caller)).toEqual({
+        state: { kind: 'list', subscribers: [SUBSCRIBER], notice: { kind: 'link-gone' } },
+        session: true,
+      });
+    });
+
+    it('keeps "unavailable" from the link, without reading the session', async () => {
+      settingsPageState.mockResolvedValueOnce({ kind: 'unavailable' });
+      expect(await followingPageOf(false, caller)).toEqual({ state: { kind: 'unavailable' }, session: false });
       expect(readFollowing).not.toHaveBeenCalled();
     });
   });

@@ -16,6 +16,8 @@ export type FollowingHandlers = {
   onChange?: (followId: string, change: 'remove' | 'undo') => void;
   onResume?: (subscriberId: string) => void;
   onStopAll?: () => void;
+  /** A new sign-in, after the session ended. */
+  onSignIn?: () => void;
 };
 
 type FollowingViewProps = FollowingHandlers & {
@@ -35,6 +37,9 @@ const CHANNEL_NAMES: Record<FollowSubscriber['channel'], string> = {
 const placeOf = ({ channel, addressHint }: FollowSubscriber) =>
   channel === 'EMAIL' ? `At ${addressHint}` : `In the ${CHANNEL_NAMES[channel]} chat ${addressHint}`;
 
+/** What an address is called on its card and in a notice: an email address, or a chat. */
+const nounOf = (channel?: FollowSubscriber['channel']) => (channel && channel !== 'EMAIL' ? 'chat' : 'address');
+
 const NOTICE_TEXT = (notice: SettingsNotice): string => {
   switch (notice.kind) {
     case 'stopped':
@@ -42,12 +47,23 @@ const NOTICE_TEXT = (notice: SettingsNotice): string => {
         ? 'Unfollowed 1 package. You can undo it below for 7 days.'
         : `Unfollowed ${notice.count.toLocaleString('en-US')} packages. You can undo each one below for 7 days.`;
     case 'undo-refused':
-      return `Could not follow ${packageLabelOf(notice.package)} again: the address may already follow as many packages as it can, or the follow is gone. Follow it again from its page on GitRanks.`;
+      return `Could not follow ${packageLabelOf(notice.package)} again: the ${nounOf(notice.channel)} may already follow as many packages as it can, or the follow is gone. Follow it again from its page on GitRanks.`;
     case 'resumed':
-      return 'We will send to this address again.';
+      return `We will send to this ${nounOf(notice.channel)} again.`;
+    case 'link-gone':
+      return 'That link no longer works; here is what your account follows.';
+    case 'sign-in':
+      return 'You are signed out. Sign in again to change what you follow.';
     default:
       return 'That did not go through. Try again in a few minutes.';
   }
+};
+
+/** Why an address is paused, and what brings it back, by channel. */
+const PAUSED_TEXT: Record<FollowSubscriber['channel'], string> = {
+  EMAIL: 'We stopped sending to this address: it refused our email twice.',
+  TELEGRAM: 'Paused: this chat blocked our bot. Unblock it or write to it and updates start again.',
+  WHATSAPP: "Paused: WhatsApp couldn't reach this number.",
 };
 
 /**
@@ -70,12 +86,17 @@ export function FollowingView({ state, pending = false, session = false, ...hand
           role="status"
           className={cn(
             'rounded-xl border p-4 text-sm',
-            state.notice.kind === 'failed' || state.notice.kind === 'undo-refused'
+            state.notice.kind === 'failed' || state.notice.kind === 'undo-refused' || state.notice.kind === 'sign-in'
               ? 'border-destructive/40 text-destructive'
               : 'border-transparent bg-muted text-foreground',
           )}
         >
           {NOTICE_TEXT(state.notice)}
+          {state.notice.kind === 'sign-in' && handlers.onSignIn && (
+            <Button type="button" size="sm" onClick={handlers.onSignIn} className="mt-3 flex max-sm:min-h-11">
+              Sign in with GitHub
+            </Button>
+          )}
         </p>
       )}
       {state.subscribers.map((subscriber) => (
@@ -113,7 +134,6 @@ function SubscriberCard({
   session,
   ...handlers
 }: Readonly<FollowingHandlers & { subscriber: FollowSubscriber; pending: boolean; session: boolean }>) {
-  const email = subscriber.channel === 'EMAIL';
   return (
     <LinkCard>
       <LinkHead eyebrow={session ? CHANNEL_NAMES[subscriber.channel] : 'Email settings'} title="Packages you follow" />
@@ -122,11 +142,7 @@ function SubscriberCard({
       </p>
       {subscriber.paused && (
         <div className="flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm text-warning-soft-foreground">
-          <p>
-            {email
-              ? 'We stopped sending to this address: it refused our email twice.'
-              : 'We stopped sending to this chat: it blocked our bot.'}
-          </p>
+          <p>{PAUSED_TEXT[subscriber.channel]}</p>
           <Button
             type="button"
             variant="outline"

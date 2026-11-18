@@ -84,8 +84,13 @@ export async function pressSessionSettings(caller: FollowCaller, press: Followin
   } else {
     const change = changeOf(press);
     const answer = await changeFollowing(caller, change);
+    const resumed = answer.ok && answer.data.subscriber ? answer.data.subscriber.channel : undefined;
     notice = answer.ok
-      ? settingsNoticeAfter(change, answer.data, press.action === 'resume' ? { kind: 'resumed' } : undefined)
+      ? settingsNoticeAfter(
+          change,
+          answer.data,
+          press.action === 'resume' ? { kind: 'resumed', ...(resumed ? { channel: resumed } : {}) } : undefined,
+        )
       : { kind: 'failed' };
   }
   return sessionSettingsState(caller, notice);
@@ -93,15 +98,15 @@ export async function pressSessionSettings(caller: FollowCaller, press: Followin
 
 /**
  * What `/following` shows on load: by the email settings link this browser holds, as before; without one, a signed-in
- * viewer's own list (`session`); otherwise what the link pages say without their cookie. A link that held no usable
- * token (`invalid`) still says so, signed in or not.
+ * viewer's own list (`session`); otherwise what the link pages say without their cookie. A link that no longer works
+ * (`unknown`) shows a signed-in viewer their own list, saying so at the top; a visitor sees that it does not work.
  */
 export async function followingPageOf(
   invalid: boolean,
   caller: () => Promise<FollowCaller>,
 ): Promise<{ state: SettingsState; session: boolean }> {
   const state = await settingsPageState(invalid);
-  if (state.kind !== 'timed-out') return { state, session: false };
-  const own = await sessionSettingsState(await caller());
+  if (state.kind !== 'timed-out' && state.kind !== 'unknown') return { state, session: false };
+  const own = await sessionSettingsState(await caller(), state.kind === 'unknown' ? { kind: 'link-gone' } : undefined);
   return own ? { state: own, session: true } : { state, session: false };
 }

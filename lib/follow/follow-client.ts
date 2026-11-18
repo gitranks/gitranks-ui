@@ -93,10 +93,17 @@ export function postFollowChange(body: FollowChangeBody): Promise<FollowCall<Fol
   );
 }
 
-/** A press on the signed-in settings page: the page as it now is, or `unavailable` when it could not be reached. */
-export async function postFollowingPress(press: FollowingPress): Promise<SettingsState> {
+/** What a press on the signed-in settings page answers: the page, or that the session has ended (`signed-out`). */
+export type FollowingPressAnswer = SettingsState | { kind: 'signed-out' };
+
+/**
+ * A press on the signed-in settings page: the page as it now is; `signed-out` when the session ended, so only a new
+ * sign-in helps; `unavailable` for anything else (the feature closed to the viewer, or following not reached).
+ */
+export async function postFollowingPress(press: FollowingPress): Promise<FollowingPressAnswer> {
   const answer = await call(FOLLOW_ROUTES.following, post(press), (body) =>
     isRecord(body) && typeof body.kind === 'string' ? (body as SettingsState) : UNREAD,
   );
-  return answer.ok ? answer.data : { kind: 'unavailable' };
+  if (answer.ok) return answer.data;
+  return answer.failure === 'sign_in' ? { kind: 'signed-out' } : { kind: 'unavailable' };
 }

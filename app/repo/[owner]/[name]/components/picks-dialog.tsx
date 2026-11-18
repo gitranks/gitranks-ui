@@ -2,7 +2,7 @@
 
 import type { FC } from 'react';
 
-import { PICK_LIST, PICKS_MAX, type PicksDialogCopy, picksLeftText } from '../utils/pick-messages';
+import { PICK_LIST, PICKS_MAX, type PickListCopy, type PicksDialogCopy, picksLeftText } from '../utils/pick-messages';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { PickRef } from '@/types/daily-updates.types';
+import { pickDisplayName } from '@/utils/daily-updates-view';
 
 type PicksDialogProps = {
   open: boolean;
@@ -21,8 +22,13 @@ type PicksDialogProps = {
   copy: PicksDialogCopy;
   /** A line before the paragraph, such as when the next update comes. */
   lead?: string | null;
-  /** The visitor's picks, each drawn by its name (a repository's `owner/name`); none for a dialog without the list. */
+  /**
+   * The visitor's picks, each drawn by its name (a repository's `owner/name`, a package's own name); none for a dialog
+   * without the list.
+   */
   picks?: PickRef[];
+  /** The list's words: today's unless the page passes the words that say what each pick is. */
+  list?: PickListCopy;
   /** The visitor's own login, first in the list: their profile updates daily with their picks. */
   profileLogin?: string;
   /** The muted last row says how many picks are left. */
@@ -36,6 +42,9 @@ type PicksDialogProps = {
 
 const ROW = 'flex items-center justify-between gap-3 px-3 py-2';
 
+/** Today's words of the list. */
+const TODAYS_LIST: PickListCopy = { ...PICK_LIST, left: picksLeftText };
+
 /** The visitor's daily updates: their profile and their picks, each pick with Remove. Never anyone else's. */
 export const PicksDialog: FC<PicksDialogProps> = ({
   open,
@@ -43,6 +52,7 @@ export const PicksDialog: FC<PicksDialogProps> = ({
   copy,
   lead,
   picks,
+  list = TODAYS_LIST,
   profileLogin,
   showLeft = false,
   onRemove,
@@ -75,27 +85,40 @@ export const PicksDialog: FC<PicksDialogProps> = ({
               {profileLogin && (
                 <li className={ROW}>
                   <span translate="no">{profileLogin}</span>
-                  <span className="text-xs text-muted-foreground">{PICK_LIST.profile}</span>
+                  <span className="text-xs text-muted-foreground">{list.profile}</span>
                 </li>
               )}
-              {picks.map((pick) => (
-                <li key={`${pick.kind}:${pick.name}`} className={`${ROW} border-t first:border-t-0`}>
-                  <span className="min-w-0 [overflow-wrap:anywhere]" translate="no">
-                    {pick.name}
-                  </span>
-                  <button
-                    type="button"
-                    className="shrink-0 text-sm font-medium text-link underline-offset-2 hover:underline disabled:opacity-50 max-sm:min-h-11"
-                    disabled={removing !== null}
-                    aria-label={`${PICK_LIST.remove} ${pick.name}`}
-                    onClick={() => onRemove?.(pick)}
-                  >
-                    {PICK_LIST.remove}
-                  </button>
-                </li>
-              ))}
+              {picks.map((pick) => {
+                const name = pickDisplayName(pick);
+                const kind = list.kinds?.[pick.kind];
+                return (
+                  <li key={`${pick.kind}:${pick.name}`} className={`${ROW} border-t first:border-t-0`}>
+                    {kind ? (
+                      <span className="flex min-w-0 flex-col">
+                        <span className="[overflow-wrap:anywhere]" translate="no">
+                          {name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{kind}</span>
+                      </span>
+                    ) : (
+                      <span className="min-w-0 [overflow-wrap:anywhere]" translate="no">
+                        {name}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="shrink-0 text-sm font-medium text-link underline-offset-2 hover:underline disabled:opacity-50 max-sm:min-h-11"
+                      disabled={removing !== null}
+                      aria-label={`${list.remove} ${name}`}
+                      onClick={() => onRemove?.(pick)}
+                    >
+                      {list.remove}
+                    </button>
+                  </li>
+                );
+              })}
               {showLeft && left > 0 && (
-                <li className={`${ROW} border-t text-muted-foreground first:border-t-0`}>{picksLeftText(left)}</li>
+                <li className={`${ROW} border-t text-muted-foreground first:border-t-0`}>{list.left(left)}</li>
               )}
             </ul>
           )}

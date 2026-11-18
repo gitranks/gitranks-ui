@@ -48,6 +48,11 @@ const ROUTES = [
     params: ['page'],
   },
   {
+    segment: 'package/[registry]/[...name]',
+    module: () => import('@/app/package/[registry]/[...name]/page'),
+    params: ['registry', 'name'],
+  },
+  {
     segment: 'packages/[registry]/[by]/[page]',
     module: () => import('@/app/packages/[registry]/[by]/[page]/layout'),
     params: ['registry', 'by', 'page'],

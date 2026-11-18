@@ -13,8 +13,8 @@ const KEY = 'daily-updates-deal';
 /** How long a mark waits for the sign-in to come back; an older one is from an earlier visit and is dropped. */
 export const DEAL_SIGN_IN_TTL = 15 * 60_000;
 
-/** The page a mark names: `profile:octo-dev` or `repo:acme/fastqueue`, in any letter case. */
-export const dealPageOf = (kind: 'profile' | 'repo', name: string) => `${kind}:${name}`.toLowerCase();
+/** The page a mark names: `profile:octo-dev`, `repo:acme/fastqueue` or `package:npm/left-pad`, in any letter case. */
+export const dealPageOf = (kind: 'profile' | 'repo' | 'package', name: string) => `${kind}:${name}`.toLowerCase();
 
 /** Marks a sign-in from the deal on this page, just before it starts. */
 export function keepDealSignIn(page: string, storage: StorageOf = sessionStorageOf, now = Date.now()) {

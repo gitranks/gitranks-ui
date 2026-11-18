@@ -17,6 +17,8 @@ const ALLOWED = new Set([
   'proxy-packages-gate.spec.ts',
   'app/api/me/packages/open/route.ts',
   'app/api/me/packages/open/route.spec.ts',
+  'app/api/packages/[registry]/[...rest]/route.ts',
+  'app/api/packages/[registry]/[...rest]/route.spec.ts',
   'app/api/repo/[owner]/[name]/used-by/route.ts',
   'app/api/repo/[owner]/[name]/used-by/route.spec.ts',
   'lib/packages/packages-gate.ts',

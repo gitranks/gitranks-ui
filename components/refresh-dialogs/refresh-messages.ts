@@ -190,6 +190,52 @@ export const REFRESH_MESSAGES = {
 
 export type RefreshDialogKind = keyof typeof REFRESH_MESSAGES;
 
+/** The deal's line on what else can be updated daily, once packages are shown. */
+const DEAL_CLOSING_WITH_PACKAGES = 'You can also update up to 3 repos or packages daily.';
+
+/**
+ * The profile's messages for a visitor: today's, until packages are shown to them (`usePackagesOpen()`); then the
+ * deal says repos or packages. The one switch for it: once packages are shown to everyone, today's words and this
+ * function go.
+ */
+export function refreshCopyOf(packages: boolean): typeof REFRESH_MESSAGES {
+  if (!packages) {
+    return REFRESH_MESSAGES;
+  }
+  const { deal } = REFRESH_MESSAGES;
+  return {
+    ...REFRESH_MESSAGES,
+    deal: { ...deal, closing: [deal.closing[0], DEAL_CLOSING_WITH_PACKAGES] },
+  };
+}
+
+/**
+ * Not signed in, presses Refresh on a package: the deal in the profile's frame, with the package's own sentence and its
+ * badge note. `{name}` is the package; `{repository}` the repository that publishes it (the note is left out without
+ * one, see `packageDealOf`).
+ */
+export const PACKAGE_DEAL: RefreshMessage = {
+  ...REFRESH_MESSAGES.deal,
+  closing: [
+    'Then we refresh {name} now and every day for the next 7 days: downloads, releases, and the stars of the repositories that use it.',
+    DEAL_CLOSING_WITH_PACKAGES,
+  ],
+  note: 'Don’t want to star? Add a GitRanks badge to the README of {repository}. While the badge is there, we update this package every day. No sign-in, no 7-day limit.',
+  noteLinks: [{ text: 'GitRanks badge', href: '/badge/builder' }],
+};
+
+/** The package's deal for `name`, its badge note naming the repository that publishes it; without one, no note. */
+export function packageDealOf(name: string, repository: string | null | undefined): RefreshMessage {
+  const fill = (text: string) => text.replaceAll('{name}', name).replaceAll('{repository}', repository ?? '');
+  return {
+    ...PACKAGE_DEAL,
+    closing: PACKAGE_DEAL.closing?.map(fill),
+    ...(repository
+      ? { note: PACKAGE_DEAL.note && fill(PACKAGE_DEAL.note) }
+      : { note: undefined, noteLinks: undefined }),
+  };
+}
+
 export const REFRESH_LABELS = {
   /** The Refresh button while today's free refresh is unused: on the user's own profile, and on repository pages. */
   dailyAvailable: 'Refresh · 1 left',

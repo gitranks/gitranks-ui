@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FetchUserButtonForNotFoundPage, FetchUserButtonForProfilePage } from './fetch-user-button';
+import { resetPackagesOpen } from '@/lib/packages/packages-open';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 import type { DailyUpdatesFacts } from '@/utils/daily-updates-view';
@@ -91,6 +92,7 @@ describe('the deal on the profile', () => {
     vi.useFakeTimers({ toFake: ['Date'], now: NOW });
     answers = {};
     fetchMock.mockClear();
+    resetPackagesOpen();
     vi.stubGlobal('fetch', fetchMock);
     for (const fn of [toast.success, toast.error, toast.info, signIn]) fn.mockReset();
     sessionStorage.clear();
@@ -120,7 +122,20 @@ describe('the deal on the profile', () => {
     const builder = elementNamed('GitRanks badge');
     expect(builder?.getAttribute('href')).toBe('/badge/builder');
     expect(builder?.getAttribute('target')).toBeNull();
-    expect(fetchMock).not.toHaveBeenCalled();
+    // Only whether packages are shown to the visitor is asked, once the deal is open; closed, today's words stay.
+    expect(calls()).toEqual(['GET /api/me/packages/open']);
+    expect(dialogText()).toContain('You can also update up to 3 repos daily.');
+  });
+
+  it('says repos or packages in the deal once packages are shown to the visitor', async () => {
+    session.current = SIGNED_OUT;
+    answer('GET /api/me/packages/open', { open: true });
+    await mount();
+    expect(calls()).toEqual([]);
+    await press('Refresh');
+
+    expect(dialogText()).toContain('You can also update up to 3 repos or packages daily.');
+    expect(dialogText()).not.toContain('You can also update up to 3 repos daily.');
   });
 
   it('"Check my badge" checks the profile on screen, signed out, and says what it found', async () => {

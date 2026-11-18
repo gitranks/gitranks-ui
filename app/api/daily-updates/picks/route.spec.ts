@@ -177,3 +177,32 @@ describe('/api/daily-updates/picks', () => {
     expect((await call(POST, 'POST', ROCKET)).status).toBe(403);
   });
 });
+
+describe('/api/daily-updates/picks for a package', () => {
+  beforeEach(() => {
+    signedFetch.mockReset();
+    current.session = null;
+  });
+
+  it.each([
+    ['POST', POST, '/daily-updates/picks'],
+    ['DELETE', DELETE, '/daily-updates/picks/remove'],
+  ] as const)('%s hands a package, scoped or not, to the API by its npm/<name>', async (_, handler, path) => {
+    signIn();
+    for (const name of ['npm/left-pad', 'npm/@nebula/ui']) {
+      upstream(200, { status: 'picked', picks: [], newPicksLeftToday: 2, refresh: 'started' });
+      const response = await call(handler, _, { kind: 'package', name });
+      expect(response.status).toBe(200);
+      expect(JSON.parse(String(signedFetch.mock.lastCall?.[1]?.body))).toEqual({ kind: 'package', name });
+      expect(signedFetch.mock.lastCall?.[0]).toBe(path);
+    }
+  });
+
+  it('refuses a package of another registry or a name npm refuses', async () => {
+    signIn();
+    for (const name of ['pypi/left-pad', 'npm/.env', 'npm/nebula/ui', 'npm/', 'left-pad', 'npm/@nebula/ui/x']) {
+      expect((await call(POST, 'POST', { kind: 'package', name })).status, name).toBe(400);
+    }
+    expect(signedFetch).not.toHaveBeenCalled();
+  });
+});

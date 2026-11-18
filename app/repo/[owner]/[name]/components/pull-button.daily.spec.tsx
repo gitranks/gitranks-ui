@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PullButton } from './pull-button';
+import { resetPackagesOpen } from '@/lib/packages/packages-open';
 import type { DailyUpdatesPick, DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 import type { RepoPullAllowance } from '@/types/repo-pull.types';
@@ -126,6 +127,7 @@ describe('PullButton: one button', () => {
     answers = {};
     allowance = allowanceOf(true);
     fetchMock.mockClear();
+    resetPackagesOpen();
     vi.stubGlobal('fetch', fetchMock);
     vi.stubGlobal('scrollTo', vi.fn());
     for (const fn of Object.values(toast)) fn.mockReset();
@@ -242,6 +244,15 @@ describe('PullButton: one button', () => {
       await mount();
 
       expect(text()).toBe('Update daily Update up to 3 repos daily.');
+    });
+
+    it('says repos or packages once packages are shown to the visitor', async () => {
+      answer('GET /api/me/packages/open', { open: true });
+      answer(VIEWER, viewerOf({ state: 'never', picks: picked('octo/rocket'), newPicksLeftToday: 2 }));
+      await mount();
+      await act(async () => {});
+
+      expect(text()).toBe('Update daily Update up to 3 repos or packages daily.');
     });
 
     it.each([

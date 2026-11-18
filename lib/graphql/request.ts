@@ -9,7 +9,13 @@ export const BUILD_RETRIES = 3;
 /** The wait before each retry during the build: 0.5 s, 1 s, 2 s. */
 export const BUILD_RETRY_BASE_MS = 500;
 
+/** During `next build` only: an attempt that has not answered in this long is given up, and not asked again. */
+export const BUILD_ATTEMPT_TIMEOUT_MS = 10_000;
+
 const RETRIED_STATUSES = new Set([502, 503, 504]);
+
+/** An attempt given up for its time: the API is hung, so asking again would only make the build wait longer. */
+const isTimeout = (error: unknown) => error instanceof Error && error.name === 'TimeoutError';
 
 const isBuildPhase = () => process.env.NEXT_PHASE === 'phase-production-build';
 
@@ -18,18 +24,20 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /**
  * A prerender reads hundreds of pages in a few minutes, and one passing gateway answer would fail the whole build.
  * So during the build a 502, 503 or 504, or a network error, is asked again a bounded number of times with a short
- * backoff; the last answer (or error) stands. At request time nothing is retried: a page keeps its own fallbacks.
+ * backoff; the last answer (or error) stands. Each attempt is given `BUILD_ATTEMPT_TIMEOUT_MS`; one that runs out
+ * fails the read at once, so a hung API fails the build quickly. At request time nothing is retried or timed out
+ * here: a page keeps its own fallbacks.
  */
-async function withBuildRetries(send: () => Promise<Response>): Promise<Response> {
+async function withBuildRetries(send: (signal?: AbortSignal) => Promise<Response>): Promise<Response> {
   for (let attempt = 0; ; attempt += 1) {
     const last = attempt >= BUILD_RETRIES;
     try {
-      const response = await send();
+      const response = await send(AbortSignal.timeout(BUILD_ATTEMPT_TIMEOUT_MS));
       if (last || !RETRIED_STATUSES.has(response.status)) return response;
       // The dropped answer's body is let go at once, so its connection is free for the next attempt.
       void response.body?.cancel().catch(() => undefined);
     } catch (error) {
-      if (last) throw error;
+      if (last || isTimeout(error)) throw error;
     }
     await wait(BUILD_RETRY_BASE_MS * 2 ** attempt);
   }
@@ -58,7 +66,7 @@ export async function request(
     headers[ORIGINAL_USER_AGENT_HEADER] = options.originalUserAgent;
   }
 
-  const send = () =>
+  const send = (signal?: AbortSignal) =>
     signedFetch(
       '/graphql',
       {
@@ -66,6 +74,7 @@ export async function request(
         headers,
         body: JSON.stringify({ query, variables }),
         next: { revalidate: options?.revalidate },
+        ...(signal ? { signal } : {}),
       },
       options?.source,
       options?.githubLogin,

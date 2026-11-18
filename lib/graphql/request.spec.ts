@@ -4,7 +4,7 @@ const { signedFetch } = vi.hoisted(() => ({ signedFetch: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('../signed-fetch', () => ({ signedFetch }));
 
-const { BUILD_RETRIES, request } = await import('./request');
+const { BUILD_ATTEMPT_TIMEOUT_MS, BUILD_RETRIES, request } = await import('./request');
 
 const answer = (status: number, body: unknown, statusText = '') =>
   signedFetch.mockResolvedValueOnce(
@@ -118,6 +118,17 @@ describe('request', () => {
       expect(signedFetch).toHaveBeenCalledTimes(BUILD_RETRIES + 1);
     });
 
+    it(`gives each attempt ${BUILD_ATTEMPT_TIMEOUT_MS / 1000} s, and a timed-out attempt fails the read at once`, async () => {
+      signedFetch.mockRejectedValueOnce(
+        Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' }),
+      );
+      const result = (await settle(request('{ ok }'))) as { error?: Error };
+      expect(result.error?.name).toBe('TimeoutError');
+      expect(signedFetch).toHaveBeenCalledTimes(1);
+      const init = signedFetch.mock.calls[0][1] as RequestInit;
+      expect(init.signal).toBeInstanceOf(AbortSignal);
+    });
+
     it('never asks again for other statuses or GraphQL errors', async () => {
       answer(500, 'oops', 'Internal Server Error');
       expect(((await settle(request('{ ok }'))) as { error?: Error }).error?.message).toBe(
@@ -127,6 +138,12 @@ describe('request', () => {
       await settle(request('{ ok }'));
       expect(signedFetch).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('sets no time limit of its own at request time', async () => {
+    answer(200, { data: { ok: true } });
+    await request('{ ok }');
+    expect((signedFetch.mock.calls[0][1] as RequestInit).signal).toBeUndefined();
   });
 
   it('never asks again at request time', async () => {

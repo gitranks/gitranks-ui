@@ -147,6 +147,13 @@ export function anyRegistryPackageText(article = false): string {
 /** A package by its registry and its name as the registry writes it. */
 export type PackageRef = { registry: RegistryId; name: string };
 
+/**
+ * A package's name as a visitor reads it: the registry's own spelling (`zope.interface`) when the API answers one, else
+ * its name. Text only: addresses, keys and reads take `name`.
+ */
+export const spelledNameOf = ({ name, displayName }: { name: string; displayName?: string | null }) =>
+  displayName || name;
+
 /** A package as badge URLs, picks and follows name it: `<registry>/<name>` (`npm/react`, `npm/@types/node`). */
 export const packageKeyOf = ({ registry, name }: PackageRef) => `${registry}/${name}`;
 

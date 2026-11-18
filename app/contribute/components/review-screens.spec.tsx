@@ -1606,7 +1606,7 @@ describe('my contributions', () => {
     const html = render(contributions, list);
     const plain = text(html);
 
-    expect(plain).toContain('Merged 1 2 more unlock autopilot');
+    expect(plain).toContain('Merged 1 4 more unlock autopilot');
     expect(plain).toContain('Open 1 1 with changes requested');
     expect(plain).toContain('Closed 1 50% merged of those decided');
     expect(plain).toContain('Credits used $7.86 across 3 pull requests');

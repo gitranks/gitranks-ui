@@ -8,7 +8,7 @@ import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { registryOfRepoPackage, spansRegistries } from '@/app/repo/[owner]/[name]/utils/repo-package-registry';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { RepoPackages } from '@/graphql/repo-packages';
-import { REGISTRIES } from '@/lib/packages/registries';
+import { REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 const formatCount = (value: number) => value.toLocaleString('en-US');
@@ -46,7 +46,7 @@ export const PackagesTable: FC<{ packages: Pick<RepoPackages, 'total' | 'items'>
                   className="flex items-center gap-2 font-mono font-medium [overflow-wrap:anywhere] hover:underline"
                 >
                   <Package className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                  {pkg.name}
+                  {spelledNameOf(pkg)}
                   {registryChip && <RegistryChip label={REGISTRIES[registryOfRepoPackage(pkg)].label} />}
                 </NextLink>
               </TableCell>

@@ -39,6 +39,13 @@ describe('Learn pages for search engines', () => {
       publisher: { '@id': 'https://example.test/#organization' },
     });
     expect(lesson.description).toContain('driftwood-js/driftwood issue #871');
+    expect(lesson.author).toEqual({
+      '@type': 'Person',
+      name: 'octocat',
+      url: 'https://example.test/profile/octocat',
+      sameAs: 'https://github.com/octocat',
+    });
+    expect(lesson).not.toHaveProperty('teaches');
     expect(lesson.hasPart).toHaveLength(lessonPage.steps.length);
     expect((lesson.hasPart as { position: number }[])[0].position).toBe(1);
   });

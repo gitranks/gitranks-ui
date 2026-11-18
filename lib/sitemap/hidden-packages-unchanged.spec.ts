@@ -28,7 +28,7 @@ vi.mock('@/lib/sitemap/package-sitemap-data', () => ({
 }));
 
 /**
- * The sitemap index and llms.txt, byte for byte and with their headers, as they were before package pages existed.
+ * The sitemap index and llms.txt, byte for byte and with their headers, with nothing of package pages in them.
  * While package pages are not open to everyone (hidden, or shown to a preview list alone), both must answer exactly
  * this, and nothing about packages is read for them.
  */

@@ -92,8 +92,8 @@ export function learnHomeMetadata(open = LEARN_OPEN_TO_VISITORS): Metadata {
 }
 
 /**
- * A shared lesson's structured data: the lesson as a `LearningResource` (what it teaches, the repository and language
- * of the fix, the person it was made for, its steps), and where it sits on the site. Learn's front door is a crumb only
+ * A shared lesson's structured data: the lesson as a `LearningResource` (the repository and language of the fix, the
+ * person who made it with their agent, its steps: what the page shows), and where it sits on the site. Learn's front door is a crumb only
  * once it is open to visitors.
  */
 export function lessonJsonLd(page: LessonPage, { frontDoorOpen = LEARN_OPEN_TO_VISITORS } = {}): object[] {
@@ -118,7 +118,6 @@ export function lessonJsonLd(page: LessonPage, { frontDoorOpen = LEARN_OPEN_TO_V
       learningResourceType: 'Lesson',
       isAccessibleForFree: true,
       ...(head.publishedAt ? { datePublished: head.publishedAt } : {}),
-      ...(head.topics.length ? { teaches: head.topics } : {}),
       ...(repo
         ? {
             about: {
@@ -129,7 +128,16 @@ export function lessonJsonLd(page: LessonPage, { frontDoorOpen = LEARN_OPEN_TO_V
             },
           }
         : {}),
-      ...(login ? { author: { '@type': 'Person', name: login, url: `https://github.com/${login}` } } : {}),
+      ...(login
+        ? {
+            author: {
+              '@type': 'Person',
+              name: login,
+              url: absoluteUrl(`/profile/${encodeURIComponent(login)}`),
+              sameAs: `https://github.com/${encodeURIComponent(login)}`,
+            },
+          }
+        : {}),
       publisher: { '@id': ORGANIZATION_ID },
       hasPart: steps.map((step, index) => ({ '@type': 'CreativeWork', position: index + 1, name: step.title })),
     },

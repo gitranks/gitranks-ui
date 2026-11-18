@@ -44,7 +44,7 @@ export function llmsTxtOf({
         .slice(0, LLMS_TXT_LESSONS)
         .map(
           (lesson) =>
-            `- [${oneLine(lesson.title)}](${url(lessonPath(lesson.slug))}): a lesson on a fix${lesson.repo ? ` in ${lesson.repo}` : ''}${lesson.language ? ` (${lesson.language})` : ''}`,
+            `- [${oneLine(lesson.title)}](${url(lessonPath(lesson.slug))}): a lesson on a fix${lesson.repo ? ` in ${oneLine(lesson.repo)}` : ''}${lesson.language ? ` (${oneLine(lesson.language)})` : ''}`,
         ),
       '',
     );
@@ -74,7 +74,13 @@ export function llmsTxtOf({
   return lines.join('\n');
 }
 
-/** A title as one markdown link text: no line breaks, and no bracket that would end the link. */
+/**
+ * Text from a lesson as plain words on one line of markdown: no line break, and none of the characters that would end
+ * or escape a link, start an autolink or open code.
+ */
 function oneLine(text: string): string {
-  return text.replace(/\s+/g, ' ').replace(/[[\]]/g, '').trim();
+  return text
+    .replace(/\s+/g, ' ')
+    .replace(/[[\]\\<>`]/g, '')
+    .trim();
 }

@@ -68,6 +68,10 @@ describe('llms.txt', () => {
     );
     expect(open.match(/\/learn\/lessons\//g)).toHaveLength(20);
     expect(llmsTxtOf({ contribute: false, packages: false, learn: [] })).toContain('## Learn');
+    const odd = { ...lesson(1), title: 'A <https://x.test> `b` c\\', repo: 'o/<n>', language: 'Go`' };
+    expect(llmsTxtOf({ contribute: false, packages: false, learn: [odd] })).toContain(
+      '- [A https://x.test b c](https://example.test/learn/lessons/lesson-1-abcdef): a lesson on a fix in o/n (Go)\n',
+    );
     expect(llmsTxtOf({ contribute: true, packages: true })).not.toMatch(/learn/i);
   });
 });

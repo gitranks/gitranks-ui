@@ -32,6 +32,7 @@ describe('a result page as JSON', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('x-robots-tag')).toBe('noindex');
     const body = await response.json();
     expect(body).toMatchObject({
       login: 'octocat',

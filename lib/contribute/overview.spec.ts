@@ -162,7 +162,7 @@ describe('impactTilesOf', () => {
       { name: 'merged', value: '7', label: 'pull requests merged' },
       { name: 'open', value: '2', label: 'open, waiting on maintainers' },
       { name: 'repos', value: '6', label: 'repos helped' },
-      { name: 'autopilot', value: '1 of 3', label: 'merged to unlock autopilot' },
+      { name: 'autopilot', value: '1 of 5', label: 'merged to unlock autopilot' },
     ]);
   });
 
@@ -177,7 +177,7 @@ describe('impactTilesOf', () => {
 
   it("counts autopilot from the record's merged to unlock, and says when it is on", () => {
     const totals = { open: 0, merged: 5, closed: 0 };
-    expect(impactTilesOf(views.autopilotRelocked, totals)?.[3].value).toBe('1 of 3');
+    expect(impactTilesOf(views.autopilotRelocked, totals)?.[3].value).toBe('1 of 5');
     expect(impactTilesOf(views.autopilotUnlocked, totals)?.[3]).toEqual({
       name: 'autopilot',
       value: 'On',

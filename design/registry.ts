@@ -13,6 +13,7 @@ export const AREAS = {
   badges: 'Badges',
   contribute: 'Contribute',
   learn: 'Learn',
+  admin: 'Admin',
 } as const;
 
 export type Area = keyof typeof AREAS;

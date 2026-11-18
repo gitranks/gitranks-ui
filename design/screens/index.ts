@@ -1,4 +1,5 @@
 import type { Screen } from '../registry';
+import { ADMIN_SCREENS } from './admin';
 import { BADGES_SCREENS } from './badges';
 import { CONTRIBUTE_SCREENS } from './contribute';
 import { LANDING_SCREENS } from './landing';
@@ -20,4 +21,5 @@ export const SCREENS: Screen[] = [
   ...BADGES_SCREENS,
   ...CONTRIBUTE_SCREENS,
   ...LEARN_SCREENS,
+  ...ADMIN_SCREENS,
 ];

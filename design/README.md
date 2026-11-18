@@ -20,7 +20,7 @@ Both links are private to the owner.
 ## The canvas
 
 One canvas, one page per area (Landing, Developer profile, Repository, Package, Organization, Rankings, Badges,
-Contribute, Learn), plus To review and Archive.
+Contribute, Learn, Admin), plus To review and Archive.
 
 - **Live boards** (`project/current/<area>/<screen>--<state>.dc.html`) are drawn from this repo's code by
   `pnpm design:export`: the real components, rendered from fixtures, with the app's own stylesheet

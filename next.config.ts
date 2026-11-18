@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 import { HTML_LIMITED_BOT_UA_RE } from 'next/dist/shared/lib/router/utils/html-bots';
 
+import { LINK_PAGE_HEADERS, LINK_PAGE_SOURCES } from './lib/link-token/link-token';
+
 const isDev = process.env.NODE_ENV === 'development';
 
 // Bots on this list get metadata blocking in <head> instead of streamed into <body>. Setting the
@@ -78,6 +80,12 @@ const nextConfig: NextConfig = {
           ],
         }),
       ),
+      // The pages a link in our email opens: never indexed, never kept by a shared cache, and no address passed on to
+      // another site. Their token is in a cookie, never in the address (`lib/link-token/`).
+      ...LINK_PAGE_SOURCES.map((source) => ({
+        source,
+        headers: Object.entries(LINK_PAGE_HEADERS).map(([key, value]) => ({ key, value })),
+      })),
     ];
   },
   async redirects() {

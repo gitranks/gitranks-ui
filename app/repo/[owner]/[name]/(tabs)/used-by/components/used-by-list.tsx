@@ -4,7 +4,7 @@ import { type FC, type ReactNode, useRef, useState } from 'react';
 
 import { PackageFilter } from './package-filter';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
-import { DEPENDENTS_PAGE_SIZE } from '@/components/dependents/dependents.consts';
+import { DEPENDENTS_MAX_OFFSET, DEPENDENTS_PAGE_SIZE } from '@/components/dependents/dependents.consts';
 import { DependentsTable } from '@/components/dependents/dependents-table';
 import { HideArchivedToggle } from '@/components/dependents/hide-archived-toggle';
 import { ShowMore } from '@/components/dependents/show-more';
@@ -87,7 +87,7 @@ export function shownAfter(
     pkg,
     hideArchived,
     nextOffset,
-    more: page.items.length >= DEPENDENTS_PAGE_SIZE && nextOffset < page.total,
+    more: page.items.length >= DEPENDENTS_PAGE_SIZE && nextOffset < page.total && nextOffset <= DEPENDENTS_MAX_OFFSET,
   };
 }
 

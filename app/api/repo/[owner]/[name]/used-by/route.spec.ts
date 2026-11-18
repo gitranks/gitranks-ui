@@ -106,7 +106,7 @@ describe('repo used-by route', () => {
     expect((await call()).status).toBe(502);
   });
 
-  it.each(['?offset=3', '?offset=-25', '?offset=10025', '?offset=1e2', '?package=.env', '?archived=1', '?package='])(
+  it.each(['?offset=3', '?offset=-25', '?offset=5025', '?offset=1e2', '?package=.env', '?archived=1', '?package='])(
     'refuses %s',
     async (search) => {
       requestMaySeePackages.mockResolvedValue(true);
@@ -132,5 +132,10 @@ describe('parseUsedByQuery', () => {
       package: 'react',
       hideArchived: true,
     });
+  });
+
+  it('reads as far as offset 5000, the furthest page the API serves', () => {
+    expect(parseUsedByQuery(new URLSearchParams('offset=5000'))).toMatchObject({ offset: 5000 });
+    expect(parseUsedByQuery(new URLSearchParams('offset=5025'))).toBeNull();
   });
 });

@@ -1,8 +1,5 @@
-import { DEPENDENTS_PAGE_SIZE } from '@/components/dependents/dependents.consts';
+import { DEPENDENTS_MAX_OFFSET, DEPENDENTS_PAGE_SIZE } from '@/components/dependents/dependents.consts';
 import { isNpmPackageName } from '@/lib/packages/npm-package-name';
-
-/** The furthest a list is read: 400 presses of "Show more". */
-const MAX_OFFSET = 10_000;
 
 export type UsedByRouteQuery = { offset: number; package: string | null; hideArchived: boolean };
 
@@ -12,9 +9,9 @@ export type UsedByRouteQuery = { offset: number; package: string | null; hideArc
  */
 export function parseUsedByQuery(search: URLSearchParams): UsedByRouteQuery | null {
   const offsetParam = search.get('offset') ?? '0';
-  if (!/^\d{1,5}$/.test(offsetParam)) return null;
+  if (!/^\d{1,4}$/.test(offsetParam)) return null;
   const offset = Number(offsetParam);
-  if (offset > MAX_OFFSET || offset % DEPENDENTS_PAGE_SIZE !== 0) return null;
+  if (offset > DEPENDENTS_MAX_OFFSET || offset % DEPENDENTS_PAGE_SIZE !== 0) return null;
 
   const pkg = search.get('package');
   if (pkg !== null && !isNpmPackageName(pkg)) return null;

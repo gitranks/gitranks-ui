@@ -159,6 +159,13 @@ describe('Show more', () => {
     expect(new Set(last.items.map(({ nameWithOwner }) => nameWithOwner)).size).toBe(49);
   });
 
+  it('stops at offset 5000, the furthest page the API serves', () => {
+    const atLimit = shownAfter(null, page(4975, 25, 9000), 4975, null, false);
+    expect(atLimit).toMatchObject({ nextOffset: 5000, more: true });
+    const past = shownAfter(null, page(5000, 25, 9000), 5000, null, false);
+    expect(past).toMatchObject({ nextOffset: 5025, more: false });
+  });
+
   it('starts over on a new filter', () => {
     const full = shownAfter(null, page(0, 25), 0, null, false);
     expect(shownAfter(full, page(100, 3, 3), 0, '@nebula/tokens', true)).toMatchObject({

@@ -50,14 +50,14 @@ describe('fetchPackageRankingFacts', () => {
     vi.mocked(graphqlDirect).mockReset();
   });
 
-  it('answers the facts, or null before the first ranks, kept for hours', async () => {
+  it('answers the facts, kept for hours, or null, kept for minutes', async () => {
     vi.mocked(graphqlDirect).mockResolvedValueOnce({ packageRankingFacts });
     await expect(fetchPackageRankingFacts(PackageRegistry.Npm)).resolves.toBe(packageRankingFacts);
 
     vi.mocked(graphqlDirect).mockResolvedValueOnce({ packageRankingFacts: null });
     await expect(fetchPackageRankingFacts(PackageRegistry.Npm)).resolves.toBeNull();
 
-    expect(vi.mocked(cacheLife).mock.calls).toEqual([['hours'], ['hours']]);
+    expect(vi.mocked(cacheLife).mock.calls).toEqual([['hours'], ['minutes']]);
   });
 
   it('answers undefined for minutes when the read fails', async () => {

@@ -3,13 +3,23 @@
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { type ContributeSource, contributeSource } from '@/lib/contribute/click-tracking';
 import { cn } from '@/lib/utils';
 
 /**
  * A 44px copy icon: it shows a tick, and says "Copied" to a screen reader from beside it, for a moment. Its colours are
  * tokens, so it suits the surface it is on: inside a `CodeBlock` they are the dark theme's.
  */
-export function CopyIcon({ text, label }: { text: string; label: string }) {
+export function CopyIcon({
+  text,
+  label,
+  source,
+}: {
+  text: string;
+  label: string;
+  /** Counts each copy as a click from this place (`contributeSource`). */
+  source?: ContributeSource;
+}) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -32,6 +42,7 @@ export function CopyIcon({ text, label }: { text: string; label: string }) {
         onClick={copy}
         aria-label={label}
         className="flex size-11 flex-none items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+        {...(source ? contributeSource(source) : {})}
       >
         {copied ? (
           <Check aria-hidden="true" className="size-4" strokeWidth={2.4} />
@@ -60,6 +71,7 @@ export function CodeBlock({
   wrap = false,
   tall,
   className,
+  copySource,
 }: {
   /** Where it goes: a shell, a file's path, or the agent. */
   label: string;
@@ -74,12 +86,14 @@ export function CodeBlock({
    */
   tall?: string;
   className?: string;
+  /** Counts each copy as a click from this place (`contributeSource`). */
+  copySource?: ContributeSource;
 }) {
   return (
     <div className={cn('dark overflow-hidden rounded-xl bg-background text-foreground ring-1 ring-border', className)}>
       <div className="flex items-center justify-between gap-2 border-b pl-3.5">
         <span className={cn('min-w-0 truncate text-xs text-muted-foreground', file && 'font-mono')}>{label}</span>
-        <CopyIcon text={children} label={copyLabel} />
+        <CopyIcon text={children} label={copyLabel} source={copySource} />
       </div>
       <pre
         className={cn(

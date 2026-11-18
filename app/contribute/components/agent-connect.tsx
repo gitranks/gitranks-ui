@@ -19,6 +19,7 @@ import {
   replaceToken,
   unusedTokenOf,
 } from '@/lib/contribute/agent-connect';
+import type { ContributeSource } from '@/lib/contribute/click-tracking';
 import type { ContributeMcpToken } from '@/lib/contribute/contribute.types';
 import { CONNECT_KEY_PATH, MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
@@ -91,7 +92,15 @@ export type AgentConnectViewProps = {
    * under it, while no token is made or waiting on this page.
    */
   signIn?: boolean;
+  /**
+   * `learn`: the steps inside Learn's start page, under its own heading: the agent and its setup, then the wait for its
+   * first call. No title, no Claude key link and no first prompt of Contribute's: the page goes on to its own prompt.
+   */
+  mode?: AgentConnectMode;
 };
+
+/** Contribute's connect page, or Learn's start page. */
+export type AgentConnectMode = 'contribute' | 'learn';
 
 /** The proof the page was reached for: its contribution, its prompt and its pull request's number. */
 export type AgentConnectProof = { attemptId: string; prompt: string; prNumber: number };
@@ -127,18 +136,300 @@ export function AgentConnectView({
   focus = null,
   proof = null,
   signIn = false,
+  mode = 'contribute',
 }: AgentConnectViewProps) {
   const id = useId();
   const name = MCP_CLIENT_NAMES[client];
+  const learn = mode === 'learn';
   const added = stage === 'added' || connected;
   const signInSetup = signIn ? mcpSignInSetupOf(client, os) : null;
   const connectHeading = useRef<HTMLHeadingElement>(null);
   const helloHeading = useRef<HTMLHeadingElement>(null);
+  // In Learn the steps have no headings of their own: focus goes to the blocks.
+  const connectBlock = useRef<HTMLDivElement>(null);
+  const helloBlock = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (focus?.target === 'connect') connectHeading.current?.focus();
-    if (focus?.target === 'hello') helloHeading.current?.focus();
+    if (focus?.target === 'connect') (connectHeading.current ?? connectBlock.current)?.focus();
+    if (focus?.target === 'hello') (helloHeading.current ?? helloBlock.current)?.focus();
   }, [focus]);
+
+  const picker = (
+    <>
+      <fieldset className="flex flex-wrap gap-2">
+        <legend className="sr-only">Your agent</legend>
+        {MCP_CLIENTS.map((each) => (
+          <button
+            key={each}
+            type="button"
+            aria-pressed={each === client}
+            onClick={() => onClient(each)}
+            className={cn(
+              'min-h-11 rounded-lg px-4 text-sm font-semibold transition-colors',
+              each === client
+                ? 'border-2 border-primary bg-brand-soft'
+                : 'border border-input bg-background hover:bg-accent',
+            )}
+          >
+            {MCP_CLIENT_NAMES[each]}
+          </button>
+        ))}
+      </fieldset>
+      <Link
+        href={MCP_DOCS_PATH}
+        prefetch={false}
+        className="inline-flex items-center max-sm:min-h-11 self-start text-sm font-semibold text-link"
+      >
+        VS Code or another agent? The MCP docs →
+      </Link>
+    </>
+  );
+
+  const connectBody = unavailable ? (
+    <p className="text-sm text-muted-foreground">Not available yet. It is coming soon.</p>
+  ) : stage === 'token' && shown && !connected ? (
+    <TokenReady
+      token={shown}
+      client={client}
+      os={os}
+      detectedOs={detectedOs}
+      onOs={onOs}
+      onDone={onAdded}
+      onReplace={onReplace}
+      replacing={working}
+      replaced={replaced}
+      focusOnShow={focus?.target === 'token'}
+    />
+  ) : signInSetup && added ? (
+    <div className="flex flex-wrap items-center justify-between gap-3" data-agent-sign-in="added">
+      <span className="flex items-center gap-2.5 text-sm">
+        <CheckIcon aria-hidden="true" className="size-4.5 flex-none text-positive" strokeWidth={2.6} />
+        <span>
+          <span className="font-semibold">GitRanks added to {name}.</span> {signInSetup.added}
+        </span>
+      </span>
+      {connected ? null : (
+        <Button type="button" variant="outline" onClick={onReopen} className={plainButton}>
+          Show the setup again
+        </Button>
+      )}
+    </div>
+  ) : added ? (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="flex items-center gap-2.5 text-sm">
+          <CheckIcon aria-hidden="true" className="size-4.5 flex-none text-positive" strokeWidth={2.6} />
+          {shown || connected ? (
+            <span>
+              <span className="font-semibold">Token created</span> and GitRanks added to {name}
+            </span>
+          ) : (
+            <span>
+              <span className="font-semibold">Your token is live</span>
+              {pending ? (
+                <>
+                  {' '}
+                  ({pending.name}, <span className="font-mono">gr_…{pending.last4}</span>)
+                </>
+              ) : null}
+              , and your agent hasn&apos;t called with it yet
+            </span>
+          )}
+        </span>
+        {connected ? null : shown ? (
+          <Button type="button" variant="outline" onClick={onReopen} className={plainButton}>
+            Show the setup again
+          </Button>
+        ) : (
+          <MakeNewToken onReplace={onReplace} pending={working} />
+        )}
+      </div>
+      {shown || connected ? null : (
+        <span className="text-xs text-muted-foreground">We showed it only once. {REPLACE_NOTE}</span>
+      )}
+    </div>
+  ) : signInSetup ? (
+    <div className="flex flex-col gap-3" data-agent-sign-in="setup">
+      <p className="max-w-2xl text-sm text-foreground/80">
+        {name} signs in to GitRanks with your GitHub account, and you allow it in your browser. It can see the issues
+        picked for you and claim one, hand back changes for your review, and see your claims and pull requests. It
+        can&apos;t open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub access.
+        Disconnect it any time in Settings.
+      </p>
+      <p className="text-sm text-muted-foreground">{signInSetup.where}</p>
+      <CodeBlock label={signInSetup.label} file={signInSetup.file} copyLabel={`Copy the ${name} setup`}>
+        {signInSetup.lines}
+      </CodeBlock>
+      <Button
+        type="button"
+        size="lg"
+        onClick={onAdded}
+        className="min-h-12 flex-none self-start px-5.5 text-base font-semibold"
+      >
+        I added it
+      </Button>
+      <details className="text-sm" data-token-fold>
+        <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
+          {USE_A_TOKEN_INSTEAD}
+        </summary>
+        <div className="mt-2 flex flex-col items-start gap-3">
+          <Button type="button" variant="outline" onClick={onCreate} disabled={working || full} className={plainButton}>
+            {working ? 'Creating…' : 'Create a GitRanks token'}
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {full ? (
+              <>
+                You have {MCP_TOKENS_MAX} live tokens.{' '}
+                <Link href={settingsPathOf('own-agent')} prefetch={false} className="font-semibold text-link">
+                  Revoke one in Settings
+                </Link>{' '}
+                to create another.
+              </>
+            ) : (
+              <>
+                We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and show its setup here. For clients that
+                can&apos;t sign in, and for scripts.
+              </>
+            )}
+          </span>
+        </div>
+      </details>
+    </div>
+  ) : (
+    <div className="flex flex-col items-start gap-3">
+      <p className="max-w-2xl text-sm text-foreground/80">
+        Your agent connects to GitRanks with this token, as you: it finds issues, claims one, hands back the patch and
+        sees your contributions. It can&apos;t open a pull request or spend anything, and you can revoke it in Settings.
+      </p>
+      <Button
+        type="button"
+        size="lg"
+        onClick={onCreate}
+        disabled={working || full}
+        className="min-h-12 flex-none px-5.5 text-base font-semibold"
+      >
+        {working ? 'Creating…' : 'Create a GitRanks token'}
+      </Button>
+      <span className="text-xs text-muted-foreground">
+        {revokedOnly ? (
+          <>We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it in Settings.</>
+        ) : full ? (
+          <>
+            You have {MCP_TOKENS_MAX} live tokens.{' '}
+            <Link href={settingsPathOf('own-agent')} prefetch={false} className="font-semibold text-link">
+              Revoke one in Settings
+            </Link>{' '}
+            to create another.
+          </>
+        ) : (
+          <>
+            We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it in Settings. Creating a token never
+            revokes the others: up to {MCP_TOKENS_MAX} stay live.
+          </>
+        )}
+      </span>
+    </div>
+  );
+
+  const errorBlock = error ? (
+    <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1" data-agent-error>
+      <p className="text-sm font-medium text-destructive">
+        {revokedOnly ? `Your old token is revoked, and a new one wasn't made. ${error}` : error}
+      </p>
+      {revokedOnly ? (
+        <Button type="button" variant="outline" onClick={onCreate} disabled={working} className={plainButton}>
+          {working ? 'Creating…' : 'Try again'}
+        </Button>
+      ) : null}
+    </div>
+  ) : null;
+
+  // What starts the agent's first call: Contribute's prompt asks for one; in Learn, starting the agent (and signing it
+  // in) is the call, and the page's own prompt comes after.
+  const waitingText = learn ? (
+    <>
+      <span className="font-semibold">Waiting for {name} to call GitRanks…</span>{' '}
+      <span className="text-muted-foreground">
+        {signInSetup
+          ? `Start ${name} and sign it in. ${signInSetup.check}`
+          : `Start ${name}, or restart it if it is open: it calls GitRanks as it starts. This step closes by itself the moment it does.`}
+      </span>
+    </>
+  ) : (
+    <>
+      <span className="font-semibold">Waiting for your agent to connect…</span>{' '}
+      <span className="text-muted-foreground">This page moves on by itself the moment it calls.</span>
+    </>
+  );
+
+  const waitStatus = (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex flex-col gap-2.5 rounded-xl border border-dashed border-primary/40 bg-muted/40 px-4 py-3.5"
+    >
+      <div className="flex items-center gap-3.5">
+        <span aria-hidden="true" className="relative size-3 flex-none">
+          <span
+            className={cn(
+              'absolute inset-0 rounded-full bg-primary',
+              !connected && 'motion-safe:animate-contribute-pulse',
+            )}
+          />
+          <span className="absolute inset-0 rounded-full bg-primary" />
+        </span>
+        {connected ? (
+          <span className="text-sm font-semibold">
+            {proof
+              ? `Your agent is connected. Taking you back to PR #${proof.prNumber}…`
+              : learn
+                ? 'Your agent is connected.'
+                : 'Your agent is connected. Taking you on…'}
+          </span>
+        ) : (
+          <span className="text-sm">{waitingText}</span>
+        )}
+      </div>
+      {/* Learn's sign-in says how to check it already. */}
+      {hint && !connected && !(learn && signInSetup) ? (
+        // In the status region, so it is announced when it appears.
+        <span className="text-xs text-muted-foreground" data-agent-hint>
+          {signInSetup ? (
+            `Nothing yet? ${signInSetup.check}`
+          ) : tokenInConfigOf(client) ? (
+            `Nothing yet? Check that the gitranks entry in ${name}'s MCP config holds your latest token, then ${ANTIGRAVITY_RELOAD} and ask again.`
+          ) : (
+            <>
+              Nothing yet? The variable must be set where {name} runs. In that terminal,{' '}
+              <code className="font-mono">{mcpTokenCheckOf(os)}</code> should print your token. If it prints nothing,
+              open a new terminal, check again, and start {name} from there.{' '}
+              {client === 'claude-code'
+                ? 'If you made a new token since you added GitRanks, run the setup again: Claude Code keeps the token it read then.'
+                : `If you made a new token since, restart ${name}, so it reads the new one.`}
+            </>
+          )}
+        </span>
+      ) : null}
+    </div>
+  );
+
+  if (learn) {
+    // Inside Learn's start page, under its "Connect your agent": the agent, its setup, then the wait for its call.
+    return (
+      <div className="flex flex-col gap-3.5" data-connect-path="agent" data-connect-mode="learn">
+        {picker}
+        <div ref={connectBlock} tabIndex={-1} className="flex flex-col gap-3.5 outline-none" data-agent-stage={stage}>
+          {connectBody}
+          {errorBlock}
+        </div>
+        {added ? (
+          <div ref={helloBlock} tabIndex={-1} className="outline-none" data-agent-hello="waiting">
+            {waitStatus}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 sm:gap-5" data-connect-path="agent">
@@ -158,32 +449,7 @@ export function AgentConnectView({
         <h2 id={`${id}-a1`} className={cardTitle}>
           1 · Which agent do you use?
         </h2>
-        <fieldset className="flex flex-wrap gap-2">
-          <legend className="sr-only">Your agent</legend>
-          {MCP_CLIENTS.map((each) => (
-            <button
-              key={each}
-              type="button"
-              aria-pressed={each === client}
-              onClick={() => onClient(each)}
-              className={cn(
-                'min-h-11 rounded-lg px-4 text-sm font-semibold transition-colors',
-                each === client
-                  ? 'border-2 border-primary bg-brand-soft'
-                  : 'border border-input bg-background hover:bg-accent',
-              )}
-            >
-              {MCP_CLIENT_NAMES[each]}
-            </button>
-          ))}
-        </fieldset>
-        <Link
-          href={MCP_DOCS_PATH}
-          prefetch={false}
-          className="inline-flex items-center max-sm:min-h-11 self-start text-sm font-semibold text-link"
-        >
-          VS Code or another agent? The MCP docs →
-        </Link>
+        {picker}
       </section>
 
       <section
@@ -194,170 +460,8 @@ export function AgentConnectView({
         <h2 id={`${id}-a2`} ref={connectHeading} tabIndex={-1} className={cn(cardTitle, 'outline-none')}>
           2 · Connect GitRanks to {name}
         </h2>
-        {unavailable ? (
-          <p className="text-sm text-muted-foreground">Not available yet. It is coming soon.</p>
-        ) : stage === 'token' && shown && !connected ? (
-          <TokenReady
-            token={shown}
-            client={client}
-            os={os}
-            detectedOs={detectedOs}
-            onOs={onOs}
-            onDone={onAdded}
-            onReplace={onReplace}
-            replacing={working}
-            replaced={replaced}
-            focusOnShow={focus?.target === 'token'}
-          />
-        ) : signInSetup && added ? (
-          <div className="flex flex-wrap items-center justify-between gap-3" data-agent-sign-in="added">
-            <span className="flex items-center gap-2.5 text-sm">
-              <CheckIcon aria-hidden="true" className="size-4.5 flex-none text-positive" strokeWidth={2.6} />
-              <span>
-                <span className="font-semibold">GitRanks added to {name}.</span> {signInSetup.added}
-              </span>
-            </span>
-            {connected ? null : (
-              <Button type="button" variant="outline" onClick={onReopen} className={plainButton}>
-                Show the setup again
-              </Button>
-            )}
-          </div>
-        ) : added ? (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="flex items-center gap-2.5 text-sm">
-                <CheckIcon aria-hidden="true" className="size-4.5 flex-none text-positive" strokeWidth={2.6} />
-                {shown || connected ? (
-                  <span>
-                    <span className="font-semibold">Token created</span> and GitRanks added to {name}
-                  </span>
-                ) : (
-                  <span>
-                    <span className="font-semibold">Your token is live</span>
-                    {pending ? (
-                      <>
-                        {' '}
-                        ({pending.name}, <span className="font-mono">gr_…{pending.last4}</span>)
-                      </>
-                    ) : null}
-                    , and your agent hasn&apos;t called with it yet
-                  </span>
-                )}
-              </span>
-              {connected ? null : shown ? (
-                <Button type="button" variant="outline" onClick={onReopen} className={plainButton}>
-                  Show the setup again
-                </Button>
-              ) : (
-                <MakeNewToken onReplace={onReplace} pending={working} />
-              )}
-            </div>
-            {shown || connected ? null : (
-              <span className="text-xs text-muted-foreground">We showed it only once. {REPLACE_NOTE}</span>
-            )}
-          </div>
-        ) : signInSetup ? (
-          <div className="flex flex-col gap-3" data-agent-sign-in="setup">
-            <p className="max-w-2xl text-sm text-foreground/80">
-              {name} signs in to GitRanks with your GitHub account, and you allow it in your browser. It can see the
-              issues picked for you and claim one, hand back changes for your review, and see your claims and pull
-              requests. It can&apos;t open a pull request, push or post on GitHub, or see your Claude key, settings or
-              GitHub access. Disconnect it any time in Settings.
-            </p>
-            <p className="text-sm text-muted-foreground">{signInSetup.where}</p>
-            <CodeBlock label={signInSetup.label} file={signInSetup.file} copyLabel={`Copy the ${name} setup`}>
-              {signInSetup.lines}
-            </CodeBlock>
-            <Button
-              type="button"
-              size="lg"
-              onClick={onAdded}
-              className="min-h-12 flex-none self-start px-5.5 text-base font-semibold"
-            >
-              I added it
-            </Button>
-            <details className="text-sm" data-token-fold>
-              <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
-                {USE_A_TOKEN_INSTEAD}
-              </summary>
-              <div className="mt-2 flex flex-col items-start gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCreate}
-                  disabled={working || full}
-                  className={plainButton}
-                >
-                  {working ? 'Creating…' : 'Create a GitRanks token'}
-                </Button>
-                <span className="text-xs text-muted-foreground">
-                  {full ? (
-                    <>
-                      You have {MCP_TOKENS_MAX} live tokens.{' '}
-                      <Link href={settingsPathOf('own-agent')} prefetch={false} className="font-semibold text-link">
-                        Revoke one in Settings
-                      </Link>{' '}
-                      to create another.
-                    </>
-                  ) : (
-                    <>
-                      We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and show its setup here. For clients that
-                      can&apos;t sign in, and for scripts.
-                    </>
-                  )}
-                </span>
-              </div>
-            </details>
-          </div>
-        ) : (
-          <div className="flex flex-col items-start gap-3">
-            <p className="max-w-2xl text-sm text-foreground/80">
-              Your agent connects to GitRanks with this token, as you: it finds issues, claims one, hands back the patch
-              and sees your contributions. It can&apos;t open a pull request or spend anything, and you can revoke it in
-              Settings.
-            </p>
-            <Button
-              type="button"
-              size="lg"
-              onClick={onCreate}
-              disabled={working || full}
-              className="min-h-12 flex-none px-5.5 text-base font-semibold"
-            >
-              {working ? 'Creating…' : 'Create a GitRanks token'}
-            </Button>
-            <span className="text-xs text-muted-foreground">
-              {revokedOnly ? (
-                <>We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it in Settings.</>
-              ) : full ? (
-                <>
-                  You have {MCP_TOKENS_MAX} live tokens.{' '}
-                  <Link href={settingsPathOf('own-agent')} prefetch={false} className="font-semibold text-link">
-                    Revoke one in Settings
-                  </Link>{' '}
-                  to create another.
-                </>
-              ) : (
-                <>
-                  We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it in Settings. Creating a token never
-                  revokes the others: up to {MCP_TOKENS_MAX} stay live.
-                </>
-              )}
-            </span>
-          </div>
-        )}
-        {error ? (
-          <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1" data-agent-error>
-            <p className="text-sm font-medium text-destructive">
-              {revokedOnly ? `Your old token is revoked, and a new one wasn't made. ${error}` : error}
-            </p>
-            {revokedOnly ? (
-              <Button type="button" variant="outline" onClick={onCreate} disabled={working} className={plainButton}>
-                {working ? 'Creating…' : 'Try again'}
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
+        {connectBody}
+        {errorBlock}
       </section>
 
       <section
@@ -378,54 +482,7 @@ export function AgentConnectView({
             <CodeBlock label={proof ? 'Prompt for your agent' : `Prompt for ${name}`} copyLabel="Copy the prompt" wrap>
               {proof ? proof.prompt : AGENT_FIRST_PROMPT}
             </CodeBlock>
-            <div
-              role="status"
-              aria-live="polite"
-              className="flex flex-col gap-2.5 rounded-xl border border-dashed border-primary/40 bg-muted/40 px-4 py-3.5"
-            >
-              <div className="flex items-center gap-3.5">
-                <span aria-hidden="true" className="relative size-3 flex-none">
-                  <span
-                    className={cn(
-                      'absolute inset-0 rounded-full bg-primary',
-                      !connected && 'motion-safe:animate-contribute-pulse',
-                    )}
-                  />
-                  <span className="absolute inset-0 rounded-full bg-primary" />
-                </span>
-                {connected ? (
-                  <span className="text-sm font-semibold">
-                    {proof
-                      ? `Your agent is connected. Taking you back to PR #${proof.prNumber}…`
-                      : 'Your agent is connected. Taking you on…'}
-                  </span>
-                ) : (
-                  <span className="text-sm">
-                    <span className="font-semibold">Waiting for your agent to connect…</span>{' '}
-                    <span className="text-muted-foreground">This page moves on by itself the moment it calls.</span>
-                  </span>
-                )}
-              </div>
-              {hint && !connected ? (
-                // In the status region, so it is announced when it appears.
-                <span className="text-xs text-muted-foreground" data-agent-hint>
-                  {signInSetup ? (
-                    `Nothing yet? ${signInSetup.check}`
-                  ) : tokenInConfigOf(client) ? (
-                    `Nothing yet? Check that the gitranks entry in ${name}'s MCP config holds your latest token, then ${ANTIGRAVITY_RELOAD} and ask again.`
-                  ) : (
-                    <>
-                      Nothing yet? The variable must be set where {name} runs. In that terminal,{' '}
-                      <code className="font-mono">{mcpTokenCheckOf(os)}</code> should print your token. If it prints
-                      nothing, open a new terminal, check again, and start {name} from there.{' '}
-                      {client === 'claude-code'
-                        ? 'If you made a new token since you added GitRanks, run the setup again: Claude Code keeps the token it read then.'
-                        : `If you made a new token since, restart ${name}, so it reads the new one.`}
-                    </>
-                  )}
-                </span>
-              ) : null}
-            </div>
+            {waitStatus}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">Comes next, once GitRanks is added to {name}.</p>
@@ -439,7 +496,8 @@ export function AgentConnectView({
  * B1 with its state: the token lives in this component's memory alone, never in storage or the URL. While a token is
  * live and the page is shown, it asks every 3s whether the agent has called; once it has, the token is taken off the
  * page (which the router may keep, hidden) and the page goes on to B2 in its place, the layout read again for the tabs.
- * `tokens` is `undefined` while the API does not answer them.
+ * In Learn (`mode: 'learn'`) it tells `onConnected` instead, and the start page goes on in place. `tokens` is
+ * `undefined` while the API does not answer them.
  */
 export function AgentConnect({
   onboarded,
@@ -447,6 +505,9 @@ export function AgentConnect({
   proof = null,
   signIn = false,
   openedAt = null,
+  mode = 'contribute',
+  onConnected,
+  connectSource,
 }: {
   /** Onboarded already (a key, or another agent): the new token's first use is what the page waits for. */
   onboarded: boolean;
@@ -457,6 +518,12 @@ export function AgentConnect({
   signIn?: boolean;
   /** When the server rendered the page: a sign-in used after it is the agent calling, for a user onboarded before. */
   openedAt?: string | null;
+  /** `learn`: the steps inside Learn's start page, which `onConnected` hears from instead of a move to Contribute. */
+  mode?: AgentConnectMode;
+  /** Learn: the agent has called, with the client picked here (our guess: the call does not say which client made it). */
+  onConnected?: (client: McpClient) => void;
+  /** Where the connect is counted from, in place of the click that led here. */
+  connectSource?: ContributeSource;
 }) {
   const goTo = useOnboardedPush();
   // Mid-setup: the newest token the agent has not called with is the one the user came back to.
@@ -497,9 +564,13 @@ export function AgentConnect({
       setShown(null);
       setConnected(true);
     });
-    if (!proof) reportContributeConnect('agent');
+    if (!proof) reportContributeConnect('agent', connectSource);
+    if (mode === 'learn') {
+      onConnected?.(clientRef.current);
+      return;
+    }
     goTo(proof ? nextSessionPath(proof.attemptId) : agentWelcomeHref(clientRef.current), { replace: true });
-  }, [goTo, proof]);
+  }, [goTo, proof, mode, onConnected, connectSource]);
 
   useEffect(() => {
     const detected = mcpOsOf(typeof navigator === 'undefined' ? null : (navigator as NavigatorLike));
@@ -628,6 +699,7 @@ export function AgentConnect({
       focus={focus}
       proof={proof}
       signIn={viaSignIn}
+      mode={mode}
     />
   );
 }

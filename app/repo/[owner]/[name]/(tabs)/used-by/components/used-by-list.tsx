@@ -4,6 +4,7 @@ import { type FC, type ReactNode, useRef, useState } from 'react';
 
 import { PackageFilter } from './package-filter';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
+import { DEPENDENTS_PAGE_SIZE } from '@/components/dependents/dependents.consts';
 import { DependentsTable } from '@/components/dependents/dependents-table';
 import { HideArchivedToggle } from '@/components/dependents/hide-archived-toggle';
 import { ShowMore } from '@/components/dependents/show-more';
@@ -56,7 +57,39 @@ type UsedByListProps = {
   children?: ReactNode;
 };
 
-type Shown = RepoUsedBy & { pkg: string | null; hideArchived: boolean };
+type Shown = RepoUsedBy & {
+  pkg: string | null;
+  hideArchived: boolean;
+  /** Where the next read starts: one page size past the last read, whatever it held. */
+  nextOffset: number;
+  /** Whether a further read can hold rows. */
+  more: boolean;
+};
+
+/**
+ * The list after a read at `offset`. A page can hold fewer rows than its size (rows of removed accounts are left out
+ * but still counted), so the next read starts a page size on, not at the rows shown; a short page is the last one, and
+ * a row already shown is not added again.
+ */
+export function shownAfter(
+  before: Shown | null,
+  page: RepoUsedBy,
+  offset: number,
+  pkg: string | null,
+  hideArchived: boolean,
+): Shown {
+  const kept = offset > 0 && before ? before.items : [];
+  const seen = new Set(kept.map(({ nameWithOwner }) => nameWithOwner));
+  const nextOffset = offset + DEPENDENTS_PAGE_SIZE;
+  return {
+    ...page,
+    items: [...kept, ...page.items.filter(({ nameWithOwner }) => !seen.has(nameWithOwner))],
+    pkg,
+    hideArchived,
+    nextOffset,
+    more: page.items.length >= DEPENDENTS_PAGE_SIZE && nextOffset < page.total,
+  };
+}
 
 /**
  * A repository's dependents, a page at a time: the package filter (chips for two or three packages, a menu for more), the
@@ -65,7 +98,7 @@ type Shown = RepoUsedBy & { pkg: string | null; hideArchived: boolean };
  * from the route handler.
  */
 export const UsedByList: FC<UsedByListProps> = ({ nameWithOwner, packages, total, initial, children }) => {
-  const [shown, setShown] = useState<Shown>({ ...initial, pkg: null, hideArchived: false });
+  const [shown, setShown] = useState<Shown>(() => shownAfter(null, initial, 0, null, false));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Only the latest read is shown: a slower earlier one is dropped.
@@ -84,11 +117,7 @@ export const UsedByList: FC<UsedByListProps> = ({ nameWithOwner, packages, total
         return;
       }
       const page = body.page;
-      setShown((before) =>
-        offset > 0
-          ? { ...page, items: [...before.items, ...page.items], pkg, hideArchived }
-          : { ...page, pkg, hideArchived },
-      );
+      setShown((before) => shownAfter(before, page, offset, pkg, hideArchived));
     } catch {
       if (id === latest.current) setError('Could not load the repositories. Try again in a few minutes.');
     } finally {
@@ -102,38 +131,42 @@ export const UsedByList: FC<UsedByListProps> = ({ nameWithOwner, packages, total
 
   return (
     <>
-      <ProfileCard className="gap-0 p-0">
-        {(several || showToggle) && (
-          <div className="flex flex-wrap items-center gap-2 p-4">
-            {several && (
-              <PackageFilter
-                names={packages.map(({ name }) => name)}
-                total={total}
-                value={shown.pkg}
-                onChange={(pkg) => read(0, pkg, shown.hideArchived)}
-                variant={total >= 4 ? 'dropdown' : 'chips'}
-                disabled={loading}
-              />
-            )}
-            {showToggle && (
-              <HideArchivedToggle
-                className="ml-auto"
-                checked={shown.hideArchived}
-                disabled={loading}
-                onChange={(hide) => read(0, shown.pkg, hide)}
-              />
-            )}
-          </div>
-        )}
-        <DependentsTable rows={shown.items} showUses={several} />
-        <ShowMore
-          shown={shown.items.length}
-          total={shown.total}
-          loading={loading}
-          error={error}
-          onMore={() => read(shown.items.length, shown.pkg, shown.hideArchived)}
-        />
-      </ProfileCard>
+      {/* The rows change in place: busy while a read runs, and the count below is said when it changes. */}
+      <div aria-busy={loading}>
+        <ProfileCard className="gap-0 p-0">
+          {(several || showToggle) && (
+            <div className="flex flex-wrap items-center gap-2 p-4">
+              {several && (
+                <PackageFilter
+                  names={packages.map(({ name }) => name)}
+                  total={total}
+                  value={shown.pkg}
+                  onChange={(pkg) => read(0, pkg, shown.hideArchived)}
+                  variant={total >= 4 ? 'dropdown' : 'chips'}
+                  disabled={loading}
+                />
+              )}
+              {showToggle && (
+                <HideArchivedToggle
+                  className="ml-auto"
+                  checked={shown.hideArchived}
+                  disabled={loading}
+                  onChange={(hide) => read(0, shown.pkg, hide)}
+                />
+              )}
+            </div>
+          )}
+          <DependentsTable rows={shown.items} showUses={several} />
+          <ShowMore
+            shown={shown.items.length}
+            total={shown.total}
+            more={shown.more}
+            loading={loading}
+            error={error}
+            onMore={() => read(shown.nextOffset, shown.pkg, shown.hideArchived)}
+          />
+        </ProfileCard>
+      </div>
       {children}
       <FollowSlot packages={follow.packages} label={follow.label} placement="used-by" />
     </>

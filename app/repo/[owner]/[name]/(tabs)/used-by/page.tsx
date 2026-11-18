@@ -16,11 +16,21 @@ import {
 } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages } from '@/graphql/repo-packages';
 
-/** The first page of the tab's dependents, unfiltered: the one the page draws. */
-const firstPageOf = (owner: string, name: string, packages: RepoPackages | Unavailable | null) =>
-  packages && packages !== UNAVAILABLE && packages.dependents > 0
-    ? fetchRepoUsedBy(owner, name, { offset: 0, limit: DEPENDENTS_PAGE_SIZE, package: null, hideArchived: false })
-    : Promise.resolve(null);
+/**
+ * The first page of the tab's dependents, unfiltered: the one the page draws; `null` without a dependent. A publisher
+ * with dependents whose list answers nothing is read as package data that could not be read: kept for minutes, not
+ * indexed.
+ */
+async function firstPageOf(owner: string, name: string, packages: RepoPackages | Unavailable | null) {
+  if (!packages || packages === UNAVAILABLE || packages.dependents === 0) return null;
+  const page = await fetchRepoUsedBy(owner, name, {
+    offset: 0,
+    limit: DEPENDENTS_PAGE_SIZE,
+    package: null,
+    hideArchived: false,
+  });
+  return page ?? UNAVAILABLE;
+}
 
 export async function generateMetadata({ params }: PageProps<'/repo/[owner]/[name]/used-by'>): Promise<Metadata> {
   const { owner, name } = await params;

@@ -106,7 +106,11 @@ export function buildUsedBySEO(
   );
 
   return {
-    metadata: { ...pageMetadata({ title, description, path, images }), robots: dependents ? INDEXED : NOT_INDEXED },
+    // Indexed only with dependents to list: a count without its rows is a thin page.
+    metadata: {
+      ...pageMetadata({ title, description, path, images }),
+      robots: dependents > 0 && rows.length > 0 ? INDEXED : NOT_INDEXED,
+    },
     jsonLd: [...(itemList ? [itemList] : []), tabBreadcrumbs(repo.nameWithOwner, { name: 'Used by', path })],
   };
 }

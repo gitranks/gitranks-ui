@@ -19,8 +19,15 @@ const ALLOWED = new Set([
   'graphql/helpers/fetch-repo-packages.ts',
 ]);
 
-/** A runtime import of the reads or of their documents; a type-only import reads nothing. */
-const RUNTIME_IMPORT = /import\s+(?!type\s)[^;]*?from\s+['"][^'"]*(?:fetch-repo-packages|graphql\/repo-packages)['"]/;
+const MODULE = String.raw`['"\`][^'"\`]*(?:fetch-repo-packages|graphql\/repo-packages)(?:\.tsx?)?['"\`]`;
+
+/**
+ * A runtime use of the reads or of their documents: an import or a re-export from them, or a dynamic `import()`. A
+ * type-only import or re-export reads nothing.
+ */
+const RUNTIME_IMPORT = new RegExp(
+  [String.raw`(?:import|export)\s+(?!type\s)[^;]*?from\s+${MODULE}`, String.raw`import\s*\(\s*${MODULE}`].join('|'),
+);
 
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
 const TEST = /\.spec\.[jt]sx?$/;
@@ -64,5 +71,14 @@ describe("a repository's package reads", () => {
     expect(RUNTIME_IMPORT.test("import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';")).toBe(
       false,
     );
+    for (const line of [
+      "export { fetchRepoUsedBy } from '@/graphql/helpers/fetch-repo-packages';",
+      "export * from '@/graphql/repo-packages';",
+      "const reads = await import('@/graphql/helpers/fetch-repo-packages');",
+      'const reads = await import(`./fetch-repo-packages.ts`);',
+    ]) {
+      expect(RUNTIME_IMPORT.test(line), line).toBe(true);
+    }
+    expect(RUNTIME_IMPORT.test("export type { RepoPackages } from '@/graphql/repo-packages';")).toBe(false);
   });
 });

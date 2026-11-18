@@ -8,8 +8,8 @@ import { getRepoCacheTag, parseRepoParams } from '@/utils/repo-paths';
 /**
  * The repository a tab is drawn for, as today's repository page finds it: an impossible or missing repository is not
  * found; one found by an earlier name, or spelled in another letter case, redirects to the same tab at its stored name.
- * Tags the page with the repository and sets its cache life. For a page's own render: its `notFound()` and `permanentRedirect()` answer real statuses (the tabs have no loading
- * state above them).
+ * Tags the page with the repository and sets its cache life. For a page's own render: its `notFound()` and
+ * `permanentRedirect()` answer real statuses (the tabs have no loading state above them).
  */
 export async function repoForTab(ownerParam: string, nameParam: string, tab: RepoTab) {
   const repoParams = parseRepoParams(ownerParam, nameParam);

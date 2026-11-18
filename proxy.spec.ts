@@ -215,6 +215,33 @@ describe('proxy', () => {
         expect(withSession).not.toHaveBeenCalled();
       });
 
+      it("keeps an RSC or prefetch request's query on the rewrite", async () => {
+        maySeePackages.mockResolvedValue(true);
+        const rsc = new NextRequest('https://gitranks.com/repo/facebook/react?_rsc=1x2y3', {
+          headers: {
+            cookie: SIGNED_IN,
+            RSC: '1',
+            'Next-Router-Prefetch': '1',
+            'Next-Router-State-Tree': '%5B%22%22%5D',
+          },
+        });
+
+        const response = await proxy(rsc, event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe(`${OVERVIEW}?_rsc=1x2y3`);
+      });
+
+      it('sends a hidden visitor with an expired session through Auth.js, as today', async () => {
+        // The gate reads no valid session from the cookie: the visitor is not let in.
+        const response = await proxy(
+          request('authjs.session-token=expired; has-session=1', '/repo/facebook/react'),
+          event,
+        );
+
+        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(maySeePackages).toHaveBeenCalledOnce();
+        expect(withSession).toHaveBeenCalledOnce();
+      });
+
       it('rewrites only the repository page itself, never its tabs or an impossible name', async () => {
         packagesPublic.mockResolvedValue(true);
         for (const path of [

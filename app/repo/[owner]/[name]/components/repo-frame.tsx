@@ -71,20 +71,22 @@ export const RepoFrame: FC<RepoFrameProps> = ({ repo, packages, contributors, ba
   return (
     <>
       <Header />
-      <TabsBar className="mb-4">
-        {/* The page is drawn at the address the proxy sends Overview to, and shown at the repository's own. */}
-        <Tab href={overview} pathnames={[overview, `${overview}/`, `${overview}/${OVERVIEW_SEGMENT}`]}>
-          Overview
-        </Tab>
-        {packages !== null && (
-          <Tab href={repoTabPath(repo.nameWithOwner, 'used-by')} count={dependents}>
-            Used by
+      <nav aria-label="Repository">
+        <TabsBar className="mb-4">
+          {/* The page is drawn at the address the proxy sends Overview to, and shown at the repository's own. */}
+          <Tab href={overview} pathnames={[overview, `${overview}/`, `${overview}/${OVERVIEW_SEGMENT}`]}>
+            Overview
           </Tab>
-        )}
-        <Tab href={repoTabPath(repo.nameWithOwner, 'contributors')} count={contributors ?? undefined}>
-          Contributors
-        </Tab>
-      </TabsBar>
+          {packages !== null && (
+            <Tab href={repoTabPath(repo.nameWithOwner, 'used-by')} count={dependents}>
+              Used by
+            </Tab>
+          )}
+          <Tab href={repoTabPath(repo.nameWithOwner, 'contributors')} count={contributors ?? undefined}>
+            Contributors
+          </Tab>
+        </TabsBar>
+      </nav>
       <RepoLayout
         repo={repo}
         languageUrl={rank?.language ? getRepoLanguageRankingPath(rank.language) : undefined}

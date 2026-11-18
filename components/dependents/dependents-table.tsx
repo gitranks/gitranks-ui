@@ -41,7 +41,11 @@ export const DependentsTable: FC<DependentsTableProps> = ({ rows, offset = 0, sh
     </TableHeader>
     <TableBody>
       {rows.map((row, i) => (
-        <ClickableRow key={row.nameWithOwner} href={getRepoPath(row.nameWithOwner)} className="cursor-pointer">
+        <ClickableRow
+          key={`${offset + i}:${row.nameWithOwner}`}
+          href={getRepoPath(row.nameWithOwner)}
+          className="cursor-pointer"
+        >
           <TableCell className="px-4 py-2.5 align-top font-mono tabular-nums">{offset + i + 1}</TableCell>
           <TableCell className="px-2 py-2.5 whitespace-normal">
             <div className="flex min-w-0 flex-col gap-1">

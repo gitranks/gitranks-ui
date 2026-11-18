@@ -61,6 +61,10 @@ describe('RepoFrame', () => {
     expect(tabs(frame()).map(({ open }) => open)).toEqual([false, true, false]);
   });
 
+  it('puts the tabs in a navigation landmark named for the repository', () => {
+    expect(frame()).toMatch(/<nav aria-label="Repository"><div[^>]*><ul/);
+  });
+
   it('has no Used by tab for a repository that publishes no package', () => {
     expect(tabs(frame({ packages: null })).map(({ text: label }) => label)).toEqual(['Overview', 'Contributors 12']);
   });

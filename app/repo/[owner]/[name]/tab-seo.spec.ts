@@ -51,6 +51,8 @@ describe('buildUsedBySEO', () => {
     expect(none.metadata.robots).toEqual({ index: false });
     expect(none.metadata.title).toBe('Who uses nebula/ui: no repositories with 100+ stars yet');
 
+    expect(buildUsedBySEO(repo, threePackages, []).metadata.robots).toEqual({ index: false });
+
     const unavailable = buildUsedBySEO(repo, 'unavailable', []);
     expect(unavailable.metadata.robots).toEqual({ index: false });
     expect(unavailable.metadata.description).toBe(PACKAGES_UNAVAILABLE_TEXT);

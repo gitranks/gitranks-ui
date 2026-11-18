@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { followOf, usedByRouteQuery } from './used-by-list';
+import { followOf, shownAfter, usedByRouteQuery } from './used-by-list';
 import { UsedByScreen } from './used-by-screen';
 import {
   dependentRows,
@@ -47,7 +47,7 @@ describe('UsedByScreen', () => {
     expect(text(html)).toContain('All packages @nebula/ui @nebula/icons @nebula/tokens');
     expect(html).toContain('aria-pressed="true"');
     expect(headers(html)).toEqual(['#', 'Most-starred dependents', 'Uses', 'Stars']);
-    expect(text(html)).toContain('1–12 of 231 Show more');
+    expect(text(html)).toContain('1–12 of 231');
     expect(text(html)).toContain('Hide archived');
     expect(text(html)).toContain('quill-app/editor Archived');
     expect(html).toMatch(/<h2[^>]*>Questions<\/h2>[\s\S]*<dt[^>]*>Who uses nebula\/ui\?<\/dt>/);
@@ -127,5 +127,53 @@ describe('the list', () => {
       packages: names.map(({ name }) => ({ registry: 'npm', name })),
       label: 'nebula/ui packages',
     });
+  });
+});
+
+describe('Show more', () => {
+  const page = (from: number, count: number, total = 231) => ({
+    total,
+    archived: 0,
+    items: Array.from({ length: count }, (_, i) => ({ ...dependentRows[0], nameWithOwner: `o/r${from + i}` })),
+  });
+
+  it('reads on a page size past the last read, even when a page held fewer rows', () => {
+    // Rows of removed accounts are left out but counted: 23 rows in the first page of 25.
+    const first = shownAfter(null, page(0, 23), 0, null, false);
+    expect(first.nextOffset).toBe(25);
+    expect(first.more).toBe(false);
+
+    const full = shownAfter(null, page(0, 25), 0, null, false);
+    expect(full).toMatchObject({ nextOffset: 25, more: true });
+    const second = shownAfter(full, page(25, 25), 25, null, false);
+    expect(second).toMatchObject({ nextOffset: 50, more: true });
+    expect(second.items).toHaveLength(50);
+  });
+
+  it('hides the button once the next read would start past the total, and adds no row twice', () => {
+    const full = shownAfter(null, page(0, 25, 50), 0, null, false);
+    const last = shownAfter(full, { ...page(24, 25, 50) }, 25, null, false);
+
+    expect(last.more).toBe(false);
+    expect(last.items).toHaveLength(49);
+    expect(new Set(last.items.map(({ nameWithOwner }) => nameWithOwner)).size).toBe(49);
+  });
+
+  it('starts over on a new filter', () => {
+    const full = shownAfter(null, page(0, 25), 0, null, false);
+    expect(shownAfter(full, page(100, 3, 3), 0, '@nebula/tokens', true)).toMatchObject({
+      pkg: '@nebula/tokens',
+      hideArchived: true,
+      nextOffset: 25,
+      more: false,
+    });
+  });
+
+  it('marks the list busy while it reads and says its count politely', () => {
+    const html = screen();
+    expect(html).toContain('aria-busy="false"');
+    expect(html).toMatch(/<span class="font-mono tabular-nums" aria-live="polite">1–12 of 231<\/span>/);
+    // 12 rows of 231: a short first page, so no more to read.
+    expect(text(html)).not.toContain('Show more');
   });
 });

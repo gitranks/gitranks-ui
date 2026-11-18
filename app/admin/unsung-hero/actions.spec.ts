@@ -226,6 +226,18 @@ describe('a press that does not go through', () => {
     expect(state.notice).toMatchObject({ tone: 'failed' });
   });
 
+  it('a query the API cannot read is a plain failure, not a refusal of the viewer', async () => {
+    signedFetch.mockResolvedValue(
+      jsonResponse({ errors: [{ message: 'Cannot query field "unsungHeroCancel"' }] }, 400),
+    );
+    const state = await pressAdmin(BEFORE, cancel);
+    expect(state.notice).toEqual({
+      intent: 'cancel',
+      tone: 'failed',
+      text: 'Not done: the API could not take this request.',
+    });
+  });
+
   it('the API does not answer: says it may or may not have gone through', async () => {
     signedFetch.mockRejectedValue(new Error('down'));
     const state = await pressAdmin(BEFORE, cancel);

@@ -66,8 +66,20 @@ describe('/admin/unsung-hero for anyone the API does not answer the board to', (
     expect(await render()).toEqual({ digest: NOT_FOUND_DIGEST });
     signedFetch.mockResolvedValue(jsonResponse({ data: { unsungHeroAdmin: null } }));
     expect(await render()).toEqual({ digest: NOT_FOUND_DIGEST });
+  });
+
+  it('is a 404 for a query the API cannot read, logged as a failure (not taken for a refusal)', async () => {
+    auth.mockResolvedValue(ADMIN);
     signedFetch.mockResolvedValue(jsonResponse({ errors: [{ message: 'Cannot query field "unsungHeroAdmin"' }] }, 400));
     expect(await render()).toEqual({ digest: NOT_FOUND_DIGEST });
+    expect(console.error).toHaveBeenCalledWith('unsung hero admin: the board was not read (failed)');
+  });
+
+  it('logs nothing for the API’s own "not found"', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'someone' } });
+    signedFetch.mockResolvedValue(jsonResponse(NOT_FOUND_ANSWER));
+    await render();
+    expect(console.error).not.toHaveBeenCalled();
   });
 });
 
@@ -117,6 +129,18 @@ describe('/admin/unsung-hero for the admin', () => {
     for (const form of forms) expect(form).not.toMatch(/method="get"/i);
     expect(html).not.toMatch(/href="[^"]*intent=/);
     const intents = [...html.matchAll(/name="intent" value="([^"]+)"/g)].map(([, intent]) => intent);
-    expect(new Set(intents)).toEqual(new Set(['skip', 'cancel', 'mark-notified']));
+    expect(new Set(intents)).toEqual(new Set(['cancel']));
+  });
+
+  it('puts Skip and Mark notified behind a confirm step: their buttons on the board post nothing', async () => {
+    const { html } = (await render()) as { html: string };
+    for (const label of ['Skip', 'Mark notified']) {
+      const buttons = html.match(new RegExp(`<button[^>]*>${label}</button>`, 'g')) ?? [];
+      expect(buttons.length, label).toBeGreaterThan(0);
+      for (const button of buttons) {
+        expect(button).toContain('type="button"');
+        expect(button).toContain('aria-haspopup="dialog"');
+      }
+    }
   });
 });

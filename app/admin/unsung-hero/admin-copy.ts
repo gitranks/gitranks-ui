@@ -62,7 +62,7 @@ export function weekShort({ startsAt, endsAt }: Pick<HeroWeek, 'startsAt' | 'end
   return `${startMonth} ${start.getUTCDate()} – ${end}`;
 }
 
-/** The repository's own name: `theKashey/react-remove-scroll` → `react-remove-scroll`. */
+/** The repository's own name: `mona/scroll-guard` → `scroll-guard`. */
 export const repoNameOf = (nameWithOwner: string): string => nameWithOwner.slice(nameWithOwner.indexOf('/') + 1);
 
 /** What each refusal means, and what to do about it. */
@@ -190,3 +190,18 @@ export const markableOf = (slot: Pick<HeroSlot, 'status' | 'headsUp'>): boolean 
 
 /** `+318`; nothing when unknown. */
 export const gained = (n: number | null): string => (typeof n === 'number' ? `+${full(Math.max(0, n))}` : '—');
+
+/** The confirm step before Skip: a skip is kept for good, and this page cannot take it back. */
+export const skipConfirm = (nameWithOwner: string) => ({
+  title: `Skip ${nameWithOwner}?`,
+  description: 'It will not be listed again, on this shortlist or any later one. This cannot be undone from this page.',
+  confirm: 'Skip it',
+});
+
+/** The confirm step before Mark notified: the slot is then the maintainer's, and can no longer be cancelled. */
+export const markNotifiedConfirm = (nameWithOwner: string) => ({
+  title: `Mark the heads-up of ${nameWithOwner} as sent?`,
+  description:
+    'Check the mailbox’s Sent folder first. The slot becomes “Maintainer told” and can no longer be cancelled. This cannot be undone.',
+  confirm: 'Mark as sent',
+});

@@ -1,6 +1,7 @@
 import type { HeroCandidate, HeroMiss } from '../admin.types';
-import { compact, full, monthYear, refusalText, stamp } from '../admin-copy';
-import { type PressAction, PressButton } from './press';
+import { compact, full, monthYear, refusalText, skipConfirm, stamp } from '../admin-copy';
+import { ConfirmPress } from './confirm-press';
+import type { PressAction } from './press';
 import { Link } from '@/components/link/link';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
@@ -114,15 +115,15 @@ export function ShortlistTable({
                   <td className="whitespace-nowrap px-2 py-3 text-muted-foreground">{monthYear(candidate.pushedAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      <PressButton
+                      <ConfirmPress
                         action={action}
                         pending={pending}
                         intent="skip"
                         fields={{ repoGithubId: candidate.repo.githubId }}
                         variant="ghost"
-                      >
-                        Skip
-                      </PressButton>
+                        label="Skip"
+                        copy={skipConfirm(candidate.repo.nameWithOwner)}
+                      />
                       <Button
                         type="button"
                         variant="outline"

@@ -20,8 +20,8 @@ import type DocumentNode from '@/types/typed-document-node';
 export type AdminCaller = { githubLogin?: string; accountEmail?: string };
 
 /**
- * `not_found`: the API answered "not found" (not an admin, or a session without a login) or does not know the
- * operation; `unavailable`: it did not answer; `failed`: any other error.
+ * `not_found`: the API answered "not found" (not an admin, or a session without a login); `unavailable`: it did not
+ * answer; `failed`: any other error, a query it cannot read included.
  */
 export type AdminFailure = 'not_found' | 'unavailable' | 'failed';
 
@@ -30,7 +30,8 @@ export type AdminAnswer<T> = { ok: true; data: T } | { ok: false; failure: Admin
 /** The longest an admin call waits: a live check is one GitHub request and one package lookup. */
 const TIMEOUT_MS = 30_000;
 
-const NOT_FOUND = /not found|Cannot query field|Unknown type|Unknown argument/i;
+/** The API's own refusal of a viewer it does not let in. A query it cannot read is a plain failure, and is logged. */
+const NOT_FOUND = /^not found$/i;
 
 type GraphqlError = { message?: unknown; extensions?: { code?: unknown } };
 

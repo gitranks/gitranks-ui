@@ -1,5 +1,13 @@
 import type { HeroSlot } from '../admin.types';
-import { cancelStateOf, type MailLine, markableOf, STATUS_LABEL, STATUS_TONE } from '../admin-copy';
+import {
+  cancelStateOf,
+  type MailLine,
+  markableOf,
+  markNotifiedConfirm,
+  STATUS_LABEL,
+  STATUS_TONE,
+} from '../admin-copy';
+import { ConfirmPress } from './confirm-press';
 import { type PressAction, PressButton } from './press';
 import { Link } from '@/components/link/link';
 import { Pill } from '@/components/pill/pill';
@@ -59,9 +67,14 @@ export function SlotActions({
     <div className="flex flex-col items-end gap-1.5">
       <div className="flex flex-wrap justify-end gap-2">
         {markable && (
-          <PressButton action={action} pending={pending} intent="mark-notified" fields={{ id: slot.id }}>
-            Mark notified
-          </PressButton>
+          <ConfirmPress
+            action={action}
+            pending={pending}
+            intent="mark-notified"
+            fields={{ id: slot.id }}
+            label="Mark notified"
+            copy={markNotifiedConfirm(slot.repo.nameWithOwner)}
+          />
         )}
         {cancel.kind !== 'none' && (
           <PressButton

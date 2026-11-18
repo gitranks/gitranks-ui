@@ -8,8 +8,10 @@ import {
   cancelStateOf,
   headsUpLine,
   markableOf,
+  markNotifiedConfirm,
   REFUSAL_TEXT,
   recapLine,
+  skipConfirm,
   weekShort,
 } from './admin-copy';
 import { isoWeekOf, weekOptionsOf } from './admin-weeks';
@@ -146,6 +148,21 @@ describe('the board', () => {
     ]) {
       expect(page).toContain(words);
     }
+  });
+
+  it('asks before Skip and Mark notified, naming the repository and what cannot be undone', () => {
+    expect(skipConfirm('hubot/size-watch')).toEqual({
+      title: 'Skip hubot/size-watch?',
+      description:
+        'It will not be listed again, on this shortlist or any later one. This cannot be undone from this page.',
+      confirm: 'Skip it',
+    });
+    expect(markNotifiedConfirm('octo-dev/static-copy')).toEqual({
+      title: 'Mark the heads-up of octo-dev/static-copy as sent?',
+      description:
+        'Check the mailbox’s Sent folder first. The slot becomes “Maintainer told” and can no longer be cancelled. This cannot be undone.',
+      confirm: 'Mark as sent',
+    });
   });
 
   it('offers Mark notified on the heads-up with no receipt alone, and says why a locked slot cannot be cancelled', () => {

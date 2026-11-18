@@ -16,6 +16,10 @@ export const BLOCKING_ROUTES = [
   '/repos/language/[language]/[page]',
   '/repos/no-language/[page]',
   '/packages/[registry]/[by]/[page]',
+  // A repository's tabs.
+  '/repo/[owner]/[name]/overview',
+  '/repo/[owner]/[name]/used-by',
+  '/repo/[owner]/[name]/contributors',
 ];
 
 /** Static pages that must be prerendered with a 404 status: the proxy rewrites missing lessons and results there. */

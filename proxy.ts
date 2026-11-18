@@ -70,6 +70,19 @@ function withAgentsDocLink<T>(response: T): T {
 }
 export const ENTITY_PAGE_CACHE_CONTROL = 'private, no-cache, no-store, max-age=0, must-revalidate';
 
+/** `/repo/<owner>/<name>`, and that path with a trailing slash. */
+const REPO_PAGE = /^\/repo\/([^/]+)\/([^/]+)\/?$/;
+
+/**
+ * Where a repository's own page is drawn for a visitor who sees its tabs: `/repo/<owner>/<name>/overview`, a path that
+ * asked for by itself is a 404 for everyone. `null` for any other path. Only a path the 404 checks let through gets
+ * here, so owner and name are possible GitHub names.
+ */
+export function repoOverviewRewriteOf(pathname: string): string | null {
+  const match = REPO_PAGE.exec(pathname);
+  return match ? `/repo/${match[1]}/${match[2]}/overview` : null;
+}
+
 /**
  * An old builder link (its query names, or a login in the path) as the new builder's path and query, with its choices
  * mapped; `null` for any other request. The builder page is cached and never sees the query, so it happens here.
@@ -133,6 +146,28 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
     response.headers.set('Cache-Control', 'private, no-store');
     return response;
+  }
+
+  // A repository's own page, for a visitor who may see package pages, is its tabbed Overview: rewritten here, before
+  // Auth.js (its wrapper would make the rewrite an external one), so the response sets the headers the branches below
+  // would have. Anyone else goes on to today's page, untouched. Without a session nothing is asked about the visitor.
+  const overview = repoOverviewRewriteOf(pathname);
+  if (overview) {
+    const session = hasSession(request);
+    if (await (session ? requestMaySeePackages(request) : packagesPublic())) {
+      const response = NextResponse.rewrite(new URL(`${overview}${request.nextUrl.search}`, request.url));
+      if (session) {
+        // As any signed-in page; the session cookie is renewed by the next request that passes Auth.js.
+        response.headers.set('Cache-Control', 'private, no-cache');
+        response.headers.append('Set-Cookie', SESSION_HINT_SET);
+      } else if (request.cookies.has(SESSION_HINT_COOKIE)) {
+        response.headers.set('Cache-Control', 'private, no-store');
+        response.headers.append('Set-Cookie', SESSION_HINT_CLEAR);
+      } else {
+        response.headers.set('Cache-Control', ENTITY_PAGE_CACHE_CONTROL);
+      }
+      return response;
+    }
   }
 
   // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared

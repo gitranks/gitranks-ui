@@ -36,6 +36,12 @@ const ROUTES = [
     module: () => import('@/app/repos/language/[language]/[page]/layout'),
     params: ['language', 'page'],
   },
+  // A repository's tabs: their layout lists the params (the Overview's own address is reached only by the proxy).
+  ...(['overview', 'used-by', 'contributors'] as const).map((tab) => ({
+    segment: `repo/[owner]/[name]/${tab}`,
+    module: () => import('@/app/repo/[owner]/[name]/(tabs)/layout'),
+    params: ['owner', 'name'],
+  })),
   {
     segment: 'repos/no-language/[page]',
     module: () => import('@/app/repos/no-language/[page]/layout'),
@@ -68,6 +74,12 @@ describe('routes whose missing pages answer 404', () => {
     const parts = segment.split('/');
     for (let depth = 0; depth <= parts.length; depth++) {
       expect(existsSync(join(APP, ...parts.slice(0, depth), 'loading.tsx'))).toBe(false);
+    }
+  });
+
+  it("has no loading.tsx in the repository tabs' route group", () => {
+    for (const tab of ['', 'overview', 'used-by', 'contributors']) {
+      expect(existsSync(join(APP, 'repo/[owner]/[name]/(tabs)', tab, 'loading.tsx'))).toBe(false);
     }
   });
 

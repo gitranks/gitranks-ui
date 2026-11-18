@@ -25,6 +25,7 @@ import {
   LeftColumnContainer,
   PageContainer,
 } from '@/app/profile/[login]/components/profile-page-backbone';
+import { ArchivedChip } from '@/components/dependents/archived-chip';
 import { RepoTierChip } from '@/components/repo-tier-chip/repo-tier-chip';
 import { hasStarsNotCounted, StarCount, StarsNotCountedTag } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,8 @@ type RepoLayoutProps = {
   repo: NonNullable<PageRepoQuery['repo']>;
   /** Where the language links to: its repository ranking, when the repository is ranked. */
   languageUrl?: string;
+  /** Drawn at the end of the left column: the tabbed page's Badge row. */
+  badgeRow?: ReactNode;
   children: ReactNode;
 };
 
@@ -46,7 +49,7 @@ const AVATAR_SIZE = 288;
 const SHORT_DATE = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' });
 
 /** The repository page's frame, like a profile's: the repository on the left, its numbers on the right. */
-export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children }) => {
+export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, badgeRow, children }) => {
   const { owner, name, nameWithOwner, description, language, stars, gainedThisMonth, createdAt } = repo;
   const readAt = repo.history?.readAt;
   const ownerPath = getRepoOwnerPath(owner, repo.isInOrganization);
@@ -90,11 +93,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
                 <StarsNotCountedTag check={repo.starsCheck} />
               </div>
             ) : null}
-            {repo.isArchived && (
-              <span className="self-start rounded-sm bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-                Archived
-              </span>
-            )}
+            {repo.isArchived && <ArchivedChip className="self-start" />}
           </div>
         </AvatarAndNameContainer>
         {!!description && <p className="text-sm [overflow-wrap:anywhere]">{description}</p>}
@@ -156,6 +155,7 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, children })
             )}
           </div>
         </DetailsContainer>
+        {badgeRow}
       </LeftColumnContainer>
       <section className="flex min-w-0 flex-col gap-6">{children}</section>
     </PageContainer>

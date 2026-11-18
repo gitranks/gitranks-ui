@@ -168,6 +168,15 @@ describe('the question card', () => {
   });
 });
 
+describe('code in lesson text', () => {
+  it('keeps the spaces inside a code span, which can be the point of a question', async () => {
+    const { RichText } = await import('./lesson-block');
+    const html = renderToStaticMarkup(<RichText text="What does `'a  b'.replace(/ /g, '-')` return?" />);
+    expect(html.replaceAll('&#x27;', "'")).toContain("'a  b'.replace(/ /g, '-')");
+    expect(html).toMatch(/<code class="[^"]*whitespace-break-spaces/);
+  });
+});
+
 describe('a diagram', () => {
   it('draws a box per node and an arrow per edge, from the layout, with its own arrow head', () => {
     const block = STEPS[1].blocks[2];
@@ -223,7 +232,7 @@ describe("a Learn attempt's page", () => {
     const warmup = screen(lessons.warmup);
     expect(warmup).toContain('data-lesson-phase="warmup"');
     expect(text(warmup)).toContain('Warm-up 3 of 3');
-    expect(text(warmup)).toContain('Start the lesson');
+    expect(text(warmup)).toContain('Continue to the lesson');
 
     const step = screen(lessons.step);
     expect(step).toContain('data-lesson-phase="step"');

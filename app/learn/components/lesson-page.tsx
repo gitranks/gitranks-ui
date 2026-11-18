@@ -12,6 +12,7 @@ import { JsonLd } from '@/components/json-ld/json-ld';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { loadLearnOpen, loadLearnSetup } from '@/lib/learn/learn.data';
 import type { LessonPage, LessonRun } from '@/lib/learn/learn.types';
+import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
 import { lessonPath } from '@/lib/learn/learn-path';
 import { LEARN_SETTING_UP_TEXT } from '@/lib/learn/lesson-format';
 import { passesShown } from '@/lib/learn/lesson-public';
@@ -99,10 +100,11 @@ export async function LessonPageView({ slug }: { slug: string }) {
   const answer = await loadLessonPage(slug);
   if (!answer || (answer.kind === 'stub' && answer.visibility === 'HIDDEN')) notFound();
   if (answer.kind === 'stub') return <LessonStubScreen visibility={answer.visibility} />;
+  const [frontDoorOpen, viewer] = await Promise.all([learnOpenToEveryone(), lessonViewerOf(answer.value)]);
   return (
     <>
-      <JsonLd payloads={lessonJsonLd(answer.value)} />
-      <LessonPageScreen page={answer.value} viewer={await lessonViewerOf(answer.value)} />
+      <JsonLd payloads={lessonJsonLd(answer.value, { frontDoorOpen })} />
+      <LessonPageScreen page={answer.value} viewer={viewer} />
     </>
   );
 }

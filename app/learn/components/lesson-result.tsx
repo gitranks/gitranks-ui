@@ -27,7 +27,7 @@ import type {
 import { LEARN_MAINTAINERS_PATH, lessonPath, lessonResultPath, reactionParamOf } from '@/lib/learn/learn-path';
 import {
   askedByStepOf,
-  isAuthorOf,
+  isAuthorResult,
   isOwnResult,
   passesShown,
   pullRequestOf,
@@ -144,7 +144,7 @@ function LessonWithAnswers({ result }: { result: LessonResultPage }) {
 
 function WhatThisPageIs({ result }: { result: LessonResultPage }) {
   const pr = pullRequestOf(result.head);
-  const author = isAuthorOf(result.head, result.login);
+  const author = isAuthorResult(result);
   const fix = pr ? `the fix in pull request #${pr.number}` : 'the fix';
   return (
     <section className={CARD}>
@@ -239,19 +239,22 @@ export function LessonResultScreen({ result, viewer }: { result: LessonResultPag
           <LessonWithAnswers result={result} />
         </div>
         <aside className="flex min-w-0 flex-col gap-4">
-          <ResultReactions
-            slug={head.slug}
-            login={result.login}
-            repo={head.subject.repo}
-            pr={head.subject.pr}
-            reactions={result.reactions}
-            canReact={viewer.canReact}
-            mine={viewer.mine}
-            returned={viewer.returned}
-            prompt={viewer.prompt}
-            own={viewer.own}
-            author={isAuthorOf(head, result.login)}
-          />
+          {/* "Did this help you review the pull request?" fits the author's result alone: the pull request links it. */}
+          {isAuthorResult(result) ? (
+            <ResultReactions
+              slug={head.slug}
+              login={result.login}
+              repo={head.subject.repo}
+              pr={head.subject.pr}
+              reactions={result.reactions}
+              canReact={viewer.canReact}
+              mine={viewer.mine}
+              returned={viewer.returned}
+              prompt={viewer.prompt}
+              own={viewer.own}
+              author
+            />
+          ) : null}
           <WhatThisPageIs result={result} />
           <TakeItYourself result={result} />
         </aside>
@@ -280,6 +283,10 @@ export async function LessonResultView({
   const result = answer.value;
   if (result.login !== login) redirect(lessonResultPath(result.head.slug, result.login));
 
+  // Only the author's result asks for reactions (the pull request links it): nothing to read for another.
+  if (!isAuthorResult(result)) {
+    return <LessonResultScreen result={result} viewer={{ canReact: false, mine: null, returned: null, own: false }} />;
+  }
   // A pick back from the sign-in this browser started for this page; `?react=` on a link alone picks nothing.
   const pick = reactionParamOf(react);
   const returned = pick && (await hasReactionMark(result.head.slug, result.login, pick)) ? pick : null;

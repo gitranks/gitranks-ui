@@ -1,7 +1,7 @@
 import { connection } from 'next/server';
 
 import { contributeOpen } from '@/lib/contribute/preview-gate';
-import { LEARN_OPEN_TO_VISITORS } from '@/lib/learn/learn-path';
+import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
 import { readPublicLessons } from '@/lib/learn/public-lessons.data';
 import { llmsTxtOf } from '@/lib/seo/llms-txt';
 import { packagesPublicNow } from '@/lib/sitemap/packages-public';
@@ -14,12 +14,12 @@ import { packagesPublicNow } from '@/lib/sitemap/packages-public';
  */
 export async function GET(): Promise<Response> {
   await connection();
-  const [contribute, packages, lessons] = await Promise.all([
+  const [contribute, packages, learnOpen] = await Promise.all([
     contributeOpen(),
     packagesPublicNow(),
-    LEARN_OPEN_TO_VISITORS ? readPublicLessons() : null,
+    learnOpenToEveryone(),
   ]);
-  const learn = LEARN_OPEN_TO_VISITORS ? (lessons ?? []) : null;
+  const learn = learnOpen ? ((await readPublicLessons()) ?? []) : null;
   return new Response(llmsTxtOf({ contribute, packages, learn }), {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',

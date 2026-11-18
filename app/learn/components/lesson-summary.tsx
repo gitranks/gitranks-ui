@@ -11,8 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import type { LessonHead, LessonRun, LessonStep } from '@/lib/learn/learn.types';
-import { lessonResultPath } from '@/lib/learn/learn-path';
-import { warmupCountOf } from '@/lib/learn/lesson-format';
+import { lessonResultPath, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
+import { LEARN_AGENT_PROMPT, warmupCountOf } from '@/lib/learn/lesson-format';
 import { isStepDone } from '@/lib/learn/question';
 import { cn } from '@/lib/utils';
 
@@ -110,6 +110,22 @@ export function ShareMyResult({ run, share }: { run: LessonRun; share: SummarySh
   );
 }
 
+/** After a shared lesson: the next one is the user's own, on an issue their agent fixes. */
+function NextLesson() {
+  return (
+    <div className="flex flex-col gap-2 border-t pt-3" data-next-lesson="">
+      <h3 className="text-sm font-semibold">Next: a lesson on your own fix</h3>
+      <p className="text-sm text-muted-foreground">
+        Ask your agent: “{LEARN_AGENT_PROMPT}”. It fixes a real issue and writes the lesson, which shows in{' '}
+        <Link href={MY_LESSONS_PATH} prefetch={false} className="font-semibold text-link hover:underline">
+          My lessons
+        </Link>
+        .
+      </p>
+    </div>
+  );
+}
+
 /**
  * The lesson passed: what the user knew before, what they learned here and how long it took, the topics, and "Was this
  * lesson worth your time?". Then the page opens the pull request's form; a shared lesson has no pull request, and ends
@@ -127,6 +143,8 @@ export function LessonSummary({
   share?: SummaryShare;
 }) {
   const [worthIt, setWorthIt] = useState<boolean | null>(run.worthIt);
+  // Said once the pick is stored: a rating given before says so too; a failed save says to try again.
+  const [rated, setRated] = useState<'saved' | 'failed' | null>(run.worthIt === null ? null : 'saved');
   const summary = run.summary;
   const passed = run.steps.filter((result) => isStepDone(result)).length;
   const warmup = warmupCountOf(head?.kind);
@@ -134,7 +152,8 @@ export function LessonSummary({
 
   const rate = (value: boolean) => {
     setWorthIt(value);
-    void rateLesson(run.id, value);
+    setRated(null);
+    void rateLesson(run.id, value).then((result) => setRated(result.ok ? 'saved' : 'failed'));
   };
 
   return (
@@ -160,7 +179,7 @@ export function LessonSummary({
         </dl>
         {head?.topics.length ? (
           <div className="flex flex-col gap-2 border-t pt-3">
-            <h3 className="text-sm font-semibold">What you learned</h3>
+            <h3 className="text-sm font-semibold">What this lesson covers</h3>
             <div className="flex flex-wrap gap-1.5">
               {head.topics.map((topic) => (
                 <Badge key={topic} variant="outline">
@@ -196,8 +215,17 @@ export function LessonSummary({
               </Button>
             ))}
           </fieldset>
+          <span
+            role="status"
+            aria-live="polite"
+            className="w-full text-right text-xs text-muted-foreground empty:hidden"
+          >
+            {rated === 'saved' ? 'Thanks: that helps us write better lessons.' : ''}
+            {rated === 'failed' ? 'That did not save. Try again.' : ''}
+          </span>
         </div>
         {share ? <ShareMyResult run={run} share={share} /> : null}
+        {share && !share.author ? <NextLesson /> : null}
       </section>
     </>
   );

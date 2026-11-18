@@ -151,6 +151,11 @@ describe('My lessons', () => {
     expect(text(empty)).toContain('No lessons yet');
     expect(text(empty)).toContain('Find me an issue to learn from on GitRanks');
     expect(empty).toContain('href="/learn/profile"');
+    expect(text(empty)).toContain('Set your goal and level first');
+    // With a goal saved, the link changes it instead of asking for it first.
+    const withGoal = text(renderToStaticMarkup(<MyLessonsScreen lessons={[]} hasGoal />));
+    expect(withGoal).toContain('Change your goal and level');
+    expect(withGoal).not.toContain('Set your goal and level first');
     const failed = renderToStaticMarkup(<MyLessonsScreen lessons={undefined} />);
     expect(text(failed)).toContain('Your lessons are not available right now.');
   });

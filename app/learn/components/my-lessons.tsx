@@ -6,7 +6,7 @@ import { CodeBlock } from '@/app/contribute/components/code-block';
 import { ListRow, ListSection } from '@/app/contribute/components/contributions-view';
 import { PageTitle } from '@/app/contribute/components/primitives';
 import { Pill } from '@/components/pill/pill';
-import { loadLearnOpen, loadLearnSetup, loadMyLessons } from '@/lib/learn/learn.data';
+import { loadLearnOpen, loadLearnProfile, loadLearnSetup, loadMyLessons } from '@/lib/learn/learn.data';
 import type { MyLesson } from '@/lib/learn/learn.types';
 import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { LEARN_AGENT_PROMPT } from '@/lib/learn/lesson-format';
@@ -30,8 +30,8 @@ function Rows({ rows, quiet = false }: { rows: MyLessonRow[]; quiet?: boolean })
   ));
 }
 
-/** No lessons yet: how the first one starts. */
-function FirstLesson() {
+/** No lessons yet: how the first one starts, after the goal when it is not set yet. */
+function FirstLesson({ hasGoal }: { hasGoal: boolean }) {
   return (
     <section
       aria-labelledby="first-lesson"
@@ -51,7 +51,7 @@ function FirstLesson() {
         {LEARN_AGENT_PROMPT}
       </CodeBlock>
       <Link href={LEARN_PROFILE_PATH} prefetch={false} className="self-start text-sm font-semibold text-link">
-        Set your goal and level first →
+        {hasGoal ? 'Change your goal and level →' : 'Set your goal and level first →'}
       </Link>
     </section>
   );
@@ -65,8 +65,11 @@ function FirstLesson() {
 export function MyLessonsScreen({
   lessons,
   settingUp = false,
+  hasGoal = false,
 }: {
   lessons: MyLesson[] | undefined;
+  /** The viewer has a Learn goal: the empty state points to changing it, not setting it first. */
+  hasGoal?: boolean;
   /** The viewer's GitRanks account is still being set up: no lessons can be read yet. */
   settingUp?: boolean;
 }) {
@@ -96,7 +99,7 @@ export function MyLessonsScreen({
     return (
       <>
         {title}
-        <FirstLesson />
+        <FirstLesson hasGoal={hasGoal} />
       </>
     );
   }
@@ -122,6 +125,8 @@ export function MyLessonsScreen({
 export async function MyLessonsView() {
   const lessons = loadMyLessons();
   const settingUp = loadLearnSetup();
+  // A failed read of the goal only changes the empty state's link: never the page.
+  const profile = loadLearnProfile().catch(() => null);
   if (!(await loadLearnOpen())) notFound();
-  return <MyLessonsScreen lessons={await lessons} settingUp={await settingUp} />;
+  return <MyLessonsScreen lessons={await lessons} settingUp={await settingUp} hasGoal={!!(await profile)?.goalKind} />;
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 import type { LessonHead, LessonPage, LessonVisibility } from './learn.types';
-import { LEARN_MAINTAINERS_PATH, LEARN_OPEN_TO_VISITORS, LEARN_PATH, lessonPath, lessonResultPath } from './learn-path';
+import { LEARN_MAINTAINERS_PATH, LEARN_PATH, lessonPath, lessonResultPath } from './learn-path';
 import { type LessonPageAnswer, type LessonResultAnswer, resultFiguresOf, stubTextOf } from './lesson-public';
 import { clipText } from '@/lib/seo/clip-text';
 import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
@@ -80,8 +80,8 @@ export const LEARN_MAINTAINERS_METADATA: Metadata = pageMetadata({
   path: LEARN_MAINTAINERS_PATH,
 });
 
-/** Learn's front door: indexed once it is open to visitors (`LEARN_OPEN_TO_VISITORS`), not before. */
-export function learnHomeMetadata(open = LEARN_OPEN_TO_VISITORS): Metadata {
+/** Learn's front door: indexed once it is open to visitors (Learn open to everyone), not before. */
+export function learnHomeMetadata(open: boolean): Metadata {
   const metadata = pageMetadata({
     title: 'Learn from real open-source fixes',
     description:
@@ -96,7 +96,7 @@ export function learnHomeMetadata(open = LEARN_OPEN_TO_VISITORS): Metadata {
  * person who made it with their agent, its steps: what the page shows), and where it sits on the site. Learn's front door is a crumb only
  * once it is open to visitors.
  */
-export function lessonJsonLd(page: LessonPage, { frontDoorOpen = LEARN_OPEN_TO_VISITORS } = {}): object[] {
+export function lessonJsonLd(page: LessonPage, { frontDoorOpen }: { frontDoorOpen: boolean }): object[] {
   const { head, steps } = page;
   const url = absoluteUrl(lessonPath(head.slug));
   const { repo } = head.subject;

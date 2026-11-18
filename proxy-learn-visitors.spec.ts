@@ -31,7 +31,13 @@ describe('Learn open to visitors', () => {
   });
 
   it("keeps Learn's other closed pages from visitors", async () => {
-    for (const path of ['/learn/profile', '/learn/lessons', '/learn/attempts', '/learn/x']) {
+    for (const path of [
+      '/learn/profile',
+      '/learn/lessons',
+      '/learn/attempts',
+      '/learn/attempts/A_1/more',
+      '/learn/x',
+    ]) {
       expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
     }
   });

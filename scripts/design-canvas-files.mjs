@@ -6,8 +6,18 @@ export const FILES_AIM = 450;
 
 const CURRENT = 'project/current/';
 
-/** The canvas's own files a listing names (`Artifact list` with `scope: "files"`, as text): every `project/…` path. */
-export const projectPathsOf = (listing) => [...new Set(listing.match(/(?<![\w./-])project\/[^\s"'`,]+/g) ?? [])].sort();
+/**
+ * The canvas's own files a listing names (`Artifact list` with `scope: "files"`, as text): every quoted `project/…`
+ * path. The listing must be whole: when its header says how many files it holds, every one of them must be listed.
+ */
+export function projectPathsOf(listing) {
+  const quoted = [...listing.matchAll(/^- "([^"]+)"/gm)].map(([, path]) => path);
+  const said = listing.match(/(\d[\d,]*) files by path/);
+  if (said && Number(said[1].replace(/,/g, '')) !== quoted.length) {
+    throw new Error(`The listing names ${quoted.length} files but says it holds ${said[1]}: save the whole listing.`);
+  }
+  return [...new Set(quoted.filter((path) => path.startsWith('project/')))].sort();
+}
 
 /** Live files on the canvas the publish no longer sends: boards that left the catalogue, images no board shows. */
 export const staleLiveFilesOf = (listed, publish) =>

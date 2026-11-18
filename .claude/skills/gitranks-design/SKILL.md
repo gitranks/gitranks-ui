@@ -14,9 +14,10 @@ Read `design/README.md` (layout, catalogue, commands) and `DESIGN.md` (rules) fi
 
 1. On a clean checkout of `origin/main` (`git fetch`, then a fresh worktree or a branch with no changes yet), run `pnpm design:export`.
 2. `Artifact list` the canvas with `scope: "files"` and save the listing as text; `Artifact read` the canvas at `project/canvas.json`; run `node scripts/design-canvas.mjs <saved canvas.json> <saved listing>`. The listing names the old live images it removes.
-3. Check the printed count: the canvas holds at most 512 files a version; aim at 450 or fewer. Above that, remove archived proposals' files first (A.7).
-4. Publish with `url` = canvas, `root` = `.design` (outside gitranks-ui, copy it into the scratchpad), `file_path` = `.design/project/canvas.json`, `files` = the map in `.design/publish.json`.
-5. Refused for unread files: `Artifact list` the canvas with `scope: "files"`, publish again. Refused because `project/canvas.json` changed: read it again and redo 2–4; never resend an older merge.
+3. Before publishing, make sure no proposal board outside Archive points at `current/img/` (A.4 freezes its images); one that does loses them.
+4. Check the printed count: the canvas holds at most 512 files a version; aim at 450 or fewer. Above that, remove archived proposals' files first (A.7).
+5. Publish with `url` = canvas, `root` = `.design` (outside gitranks-ui, copy it into the scratchpad), `file_path` = `.design/project/canvas.json`, `files` = the map in `.design/publish.json`.
+6. Refused for unread files: `Artifact list` the canvas with `scope: "files"`, publish again. Refused because `project/canvas.json` changed: read it again and redo 2–5; never resend an older merge.
 
 ## A. Change a screen
 
@@ -25,7 +26,7 @@ Read `design/README.md` (layout, catalogue, commands) and `DESIGN.md` (rules) fi
 3. `Artifact read` only `project/current/<area>/<id>--<state>.dc.html` of the changed states.
 4. Propose by editing copies:
    - Copy each board to `<root>/project/proposals/<slug>/<name>.dc.html` (same depth, so the stylesheet link holds) and edit only what changes. Keep the app's classes; inline `style` is fine for new things. Options are extra boards (A, B).
-   - To freeze badge images (live `current/img/` changes on redraw) or for boards from your branch, copy the image files each board references into `proposals/<slug>/img/`, repoint `src`, publish them with the boards.
+   - Always freeze the images a copied board shows: copy each image file it references into `proposals/<slug>/img/`, repoint `src`, publish them with the boards. A redraw removes every live image no live board shows any more, so a proposal pointing at `current/img/` would lose its images.
    - Place boards on the To review page (`page: "review"`; if `pages` lacks it, add `{"id": "review", "name": "To review"}` before Archive). Title note `review-<slug>` at `x` 0, `y` = bottom of the lowest item + 300 (0 on an empty page), `kind: "title1"`, `maxW` = section width.
    - One row per changed screen, first at title `y` + 260: sticky at `x` 0, `w` 440; boards from `x` 520, 80 px apart, same `y`. Next row at row `y` + tallest board + 220.
    - First row's sticky `<slug>-note`: what changes, why, `Status: Proposed`. Other rows' stickies (`<slug>-note-2`, …) say what the row shows. Note ids never start with `current-`.

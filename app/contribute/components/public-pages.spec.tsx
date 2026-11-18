@@ -13,11 +13,20 @@ const { LaunchedMorePages } = await import('./launched-more-pages');
 const { contributeShown } = await import('@/lib/contribute/preview-gate');
 const { loadLearnOpen } = await import('@/lib/learn/learn.data');
 const { FAQ_GROUPS, LANDING_QUESTIONS } = await import('@/lib/contribute/faq');
-const { MCP_DOC_CLIENTS, MCP_DOC_MORE_CLIENTS, MCP_DOC_SAVES, MCP_DOC_TOOLS, MCP_PLUGIN_DOCS_SHOWN } = await import(
-  '@/lib/contribute/mcp-docs'
-);
+const {
+  MCP_DOC_CHECKS,
+  MCP_DOC_CLIENTS,
+  MCP_DOC_MORE_CLIENTS,
+  MCP_DOC_NEXT_STEPS,
+  MCP_DOC_SAVES,
+  MCP_DOC_TOOLS,
+  MCP_DOC_TROUBLES,
+  MCP_PLUGIN_DOCS_SHOWN,
+} = await import('@/lib/contribute/mcp-docs');
 const { MCP_INSTALL_LINKS } = await import('@/lib/contribute/mcp-install-links');
-const { MCP_CLIENTS, mcpSetupLinesOf } = await import('@/lib/contribute/mcp-setup');
+const { AGENT_FIRST_PROMPT, MCP_CLIENTS, mcpSetupLinesOf, mcpSignInSetupOf } = await import(
+  '@/lib/contribute/mcp-setup'
+);
 
 const text = (html: string) =>
   html
@@ -186,6 +195,44 @@ describe('the MCP docs', () => {
     expect(said).toContain('What is sent to mcp.gitranks.com');
     expect(said).toContain('What we never ask for');
     expect(said).not.toMatch(/official|partner|endorsed/i);
+  });
+
+  it('give the first prompt, what happens next and where pull requests wait, with Connect at the top', () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    // A linked address ends where its sentence goes on: the stripped tags leave a space before the stop.
+    const said = text(html).replace(/ ([.:,])/g, '$1');
+    expect(said).toContain(AGENT_FIRST_PROMPT);
+    expect(said).toContain('What happens next');
+    for (const step of MCP_DOC_NEXT_STEPS) expect(said).toContain(step);
+    expect(said).toContain('While autopilot is off, nothing reaches GitHub before you approve it.');
+    expect(html).toContain('href="/contribute"');
+    expect(html).toContain('href="/contribute?start=agent"');
+    expect(said).toContain('Connect your agent');
+  });
+
+  it("troubleshoot from each client's own check, then a stale connection and no issues", () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    // A linked address ends where its sentence goes on: the stripped tags leave a space before the stop.
+    const said = text(html).replace(/ ([.:,])/g, '$1');
+    expect(MCP_DOC_CHECKS.slice(0, -1).map((check) => check.text)).toEqual(
+      MCP_CLIENTS.map((c) => mcpSignInSetupOf(c, 'mac').check),
+    );
+    expect(said).toContain("In your client's MCP or connector settings, gitranks should show as connected.");
+    expect(said).toContain('Your first picks take a minute or two after you join.');
+    for (const { title, text: line } of [...MCP_DOC_CHECKS, ...MCP_DOC_TROUBLES]) {
+      expect(said).toContain(title);
+      expect(said).toContain(line);
+    }
+    expect(said).toContain('Reload or restart the client');
+    expect(html).toContain('href="/contribute/settings#work"');
+  });
+
+  it('end with help: the contact address, the plugin issues and the questions', () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    expect(html).toContain('id="help"');
+    expect(html).toContain('href="mailto:hello@gitranks.com"');
+    expect(html).toContain('href="https://github.com/gitranks/contribute/issues"');
+    expect(html).toContain('href="/contribute/faq"');
   });
 
   it('give Antigravity the placeholder in its config, say what replaces it, and skip the variable for it', () => {

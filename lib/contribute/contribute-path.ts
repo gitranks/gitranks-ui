@@ -85,6 +85,15 @@ export const ABOUT_PATH = '/contribute?about=1' as Route;
 /** Contribute's section of the Terms of service. */
 export const CONTRIBUTE_TERMS_PATH = '/terms#contribute' as Route;
 
+/**
+ * Whether the path is a contribution's or a lesson's own page (`/contribute/attempts/<id>`, a run under it,
+ * `/learn/attempts/<id>`), in any spelling the router reads as it: the review link an agent hands its person. A visitor
+ * without a session is let through to it, and the page asks them to sign in and comes back to itself; a signed-in user
+ * whose attempt it isn't still gets the 404.
+ */
+export const isAttemptPagePath = (pathname: string): boolean =>
+  decodedMatches(pathname, /^\/+(?:contribute|learn)\/+attempts\/+[^/]+(?:\/+runs\/+[^/]+)?\/?$/i);
+
 /** Matches the path, decoded as the router reads it, against `pattern`; a path that does not decode never matches. */
 function decodedMatches(pathname: string, pattern: RegExp): boolean {
   try {

@@ -13,7 +13,6 @@ import { HEADING, Meter } from './primitives';
 import { StillRanking } from './still-ranking';
 import { Pill } from '@/components/pill/pill';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AGENT_HELLO_PROMPT } from '@/lib/contribute/agent-connect';
 import { attemptTitleOf, repoOf, type Tone } from '@/lib/contribute/attempt-format';
 import type {
   ContributeActivity,
@@ -27,6 +26,7 @@ import type {
 import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, RUNS_PATH } from '@/lib/contribute/contribute-path';
 import { claudeKeyOf } from '@/lib/contribute/contribute-state';
 import { dayLabel, MODELS, maskedKey, planOf, relativeLabel, usd } from '@/lib/contribute/format';
+import { AGENT_FIRST_PROMPT } from '@/lib/contribute/mcp-setup';
 import { needsYouItemsOf, shownItemsOf } from '@/lib/contribute/needs-you';
 import {
   type HostedHold,
@@ -332,10 +332,10 @@ export function ownAgentCopyOf(state: OwnAgentState, now = new Date()): CardCopy
       return {
         label: 'Idle',
         title: 'No issue held',
-        text: `Ask it to "${AGENT_HELLO_PROMPT}".`,
+        text: `Ask it: "${AGENT_FIRST_PROMPT}"`,
       };
     case 'never-called':
-      return { label: 'Waiting', title: "Your agent hasn't called yet", text: `Ask it to "${AGENT_HELLO_PROMPT}".` };
+      return { label: 'Waiting', title: "Your agent hasn't called yet", text: `Ask it: "${AGENT_FIRST_PROMPT}"` };
     case 'paused':
       return {
         label: 'Paused',

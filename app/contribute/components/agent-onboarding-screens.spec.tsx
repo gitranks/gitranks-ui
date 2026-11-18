@@ -20,7 +20,7 @@ const { OverviewScreen, overviewSectionsOf } = await import('./overview-status')
 const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
 const { IssuesScreen } = await import('./issues-view');
 const { NOW, mcpToken, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { AGENT_HELLO_PROMPT, AGENT_WORK_PROMPT } = await import('@/lib/contribute/agent-connect');
+const { AGENT_FIRST_PROMPT } = await import('@/lib/contribute/mcp-setup');
 
 import type { ComponentProps } from 'react';
 
@@ -184,7 +184,7 @@ describe('B1, your own agent', () => {
     expect(plain).toContain('Token created and GitRanks added to Cursor');
     expect(plain).toContain('Show the setup again');
     expect(plain).toContain('Prompt for Cursor');
-    expect(plain).toContain(AGENT_HELLO_PROMPT);
+    expect(plain).toContain(AGENT_FIRST_PROMPT);
     expect(plain).toContain('Waiting for your agent to connect…');
     expect(plain).toContain('This page moves on by itself the moment it calls');
     // The token is not on the page once the setup is done.
@@ -316,7 +316,7 @@ describe('B2, your agent is connected', () => {
     expect(plain).toContain('Codex CLI called GitRanks a moment ago');
     expect(plain).toContain('What happens next');
     expect(plain).toContain('Prompt for Codex CLI');
-    expect(plain).toContain(AGENT_WORK_PROMPT);
+    expect(plain).toContain(AGENT_FIRST_PROMPT);
     expect(plain).toContain(
       "held for you 24 hours from your agent's last step, 48 hours without a patch that passes the checks, and 7 days at most",
     );

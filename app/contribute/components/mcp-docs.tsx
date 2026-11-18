@@ -8,7 +8,14 @@ import { OpenOnHash } from './open-on-hash';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
 import { SetupClip } from './setup-clip';
 import { Pill } from '@/components/pill/pill';
-import { ABOUT_PATH, AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
+import { buttonVariants } from '@/components/ui/button';
+import {
+  ABOUT_PATH,
+  AGENTS_DOC_PATH,
+  FAQ_PATH,
+  MAINTAINERS_PATH,
+  START_AGENT_PATH,
+} from '@/lib/contribute/contribute-path';
 import {
   EXAMPLE_BRIEF,
   EXAMPLE_BRIEF_CLAIMED_ON,
@@ -16,15 +23,20 @@ import {
   EXAMPLE_BRIEF_PR,
 } from '@/lib/contribute/example-brief';
 import {
+  AGENT_FIRST_PROMPT,
   CLAUDE_APP_DOC,
+  MCP_DOC_CHECKS,
   MCP_DOC_CLIENTS,
   MCP_DOC_LIMITS,
   MCP_DOC_MORE_CLIENTS,
+  MCP_DOC_NEXT_STEPS,
   MCP_DOC_PLUGINS,
   MCP_DOC_SAVES,
   MCP_DOC_SIGN_INS,
   MCP_DOC_TOOLS,
+  MCP_DOC_TROUBLES,
   MCP_PLUGIN_DOCS_SHOWN,
+  MCP_PLUGIN_ISSUES_URL,
   MCP_REMOTE_BRIDGE,
   MCP_TOKEN_ENV,
   MCP_TOKENS_MAX,
@@ -32,6 +44,7 @@ import {
   type McpDocClient,
   type McpDocPlugin,
   type McpDocSignIn,
+  type McpDocTrouble,
   OR_INSTALL_THE_PLUGIN,
   TOKEN_PLACEHOLDER,
 } from '@/lib/contribute/mcp-docs';
@@ -44,11 +57,13 @@ const SECTIONS = [
   { id: 'start', title: 'Before you start' },
   { id: 'setup', title: 'Add it to your agent' },
   { id: 'check', title: 'Check it works' },
+  { id: 'troubleshooting', title: 'Troubleshooting' },
   { id: 'tools', title: 'Tools' },
   { id: 'brief', title: 'What claim_issue answers' },
   { id: 'auth', title: 'Sign-in and tokens' },
   { id: 'limits', title: 'Limits' },
   { id: 'privacy', title: 'What is sent to mcp.gitranks.com' },
+  { id: 'help', title: 'Help' },
 ];
 
 const FACTS = [
@@ -164,6 +179,60 @@ const NEVER_ASKED = [
 
 const LINK = 'font-semibold text-link hover:underline';
 
+/** An address on this site in the docs' text ("gitranks.com/contribute"), linked to its page. */
+const SITE_ADDRESS = /(gitranks\.com\/[a-z0-9/#_-]*[a-z0-9])/i;
+
+/** A line of the docs' data, its addresses on this site linked. */
+function SiteText({ text }: { text: string }) {
+  return text.split(SITE_ADDRESS).map((part, index) =>
+    index % 2 ? (
+      <Link key={index} href={part.slice('gitranks.com'.length) as Route} prefetch={false} className={LINK}>
+        {part}
+      </Link>
+    ) : (
+      part
+    ),
+  );
+}
+
+/** Problems as a list of terms: what goes wrong, then what to do. */
+function Troubles({ troubles }: { troubles: readonly McpDocTrouble[] }) {
+  return (
+    <dl className="flex flex-col gap-3">
+      {troubles.map(({ title, text }) => (
+        <div key={title} className="flex flex-col gap-1">
+          <dt className="font-semibold">{title}</dt>
+          <dd className="text-muted-foreground">
+            <SiteText text={text} />
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** Where to go from the docs: connect (a visitor signs in first), and Contribute, where the reviews wait. */
+function DocActions() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2" data-docs-actions>
+      <Link
+        href={START_AGENT_PATH}
+        prefetch={false}
+        className={cn(buttonVariants({ size: 'lg' }), 'min-h-11 px-5 text-base font-semibold max-sm:w-full')}
+      >
+        Connect your agent
+      </Link>
+      <Link
+        href="/contribute"
+        prefetch={false}
+        className="inline-flex items-center font-semibold text-link hover:underline max-sm:min-h-11"
+      >
+        Review your pull requests on Contribute →
+      </Link>
+    </div>
+  );
+}
+
 /** The example's whole answer as JSON, the brief's text left out: the text follows in a block of its own. */
 const EXAMPLE_ANSWER = JSON.stringify(
   {
@@ -252,8 +321,8 @@ const MORE_CLIENT_NAMES = andList(MCP_DOC_MORE_CLIENTS.map(({ name }) => name));
 const INSTALL_LINK_NAMES = andList(MCP_INSTALL_LINKS.map(({ label }) => label.replace(/^Add to /, '')));
 
 /**
- * The public docs of the MCP server: setup per client, the tools, the sign-in and the token, the limits and what
- * reaches us. Agents sign in with GitHub, so each client's sign-in comes first and its token setup sits in a fold.
+ * The public docs of the MCP server: setup per client, the first prompt and what happens next, troubleshooting, the
+ * tools, the sign-in and the token, the limits, what reaches us and where to get help. Agents sign in with GitHub, so each client's sign-in comes first and its token setup sits in a fold.
  * `plugin`: show the plugin installs (`MCP_PLUGIN_DOCS_SHOWN`, on since the plugin's repository went public).
  */
 export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boolean } = {}) {
@@ -275,6 +344,8 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
           .
         </p>
       </PublicPageHead>
+
+      <DocActions />
 
       <SetupClip />
 
@@ -401,11 +472,31 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
         </DocSection>
 
         <DocSection id="check" title="Check it works">
+          <p>Start a new session and ask your agent:</p>
+          <CodeBlock label="Prompt for your agent" copyLabel="Copy the prompt" wrap>
+            {AGENT_FIRST_PROMPT}
+          </CodeBlock>
           <p>
-            Start a new session and ask your agent: &ldquo;Find me an open-source issue on GitRanks.&rdquo; It calls{' '}
-            <code className="font-mono text-sm">find_issues</code> and lists issues picked for you. When it hands a
-            change back, it appears on GitRanks for your review, with a link in its answer.
+            It calls <code className="font-mono text-sm">find_issues</code> and lists issues picked for you. When it
+            hands a change back, it appears on GitRanks for your review, with a link in its answer.
           </p>
+          <h3 className="text-base font-semibold">What happens next</h3>
+          <ol className="flex list-decimal flex-col gap-2 pl-5" data-next-steps>
+            {MCP_DOC_NEXT_STEPS.map((step) => (
+              <li key={step}>
+                <SiteText text={step} />
+              </li>
+            ))}
+          </ol>
+        </DocSection>
+
+        <DocSection
+          id="troubleshooting"
+          title="Troubleshooting"
+          text="Your agent hasn't connected, or doesn't list the gitranks tools? Check it in your client:"
+        >
+          <Troubles troubles={MCP_DOC_CHECKS} />
+          <Troubles troubles={MCP_DOC_TROUBLES} />
         </DocSection>
 
         <DocSection
@@ -546,6 +637,24 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
             ; maintainers, see{' '}
             <Link href={MAINTAINERS_PATH} prefetch={false} className={LINK}>
               the rules in your repo
+            </Link>
+            .
+          </p>
+        </DocSection>
+
+        <DocSection id="help" title="Help">
+          <p>
+            Stuck? Write to{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} className={LINK}>
+              {CONTACT_EMAIL}
+            </a>
+            , report a setup problem in the{' '}
+            <a href={MCP_PLUGIN_ISSUES_URL} className={LINK}>
+              plugin&apos;s issues
+            </a>{' '}
+            on GitHub, or read the{' '}
+            <Link href={FAQ_PATH} prefetch={false} className={LINK}>
+              questions
             </Link>
             .
           </p>

@@ -11,11 +11,6 @@ export const AGENT_POLL_MS = 3_000;
 /** Still no call after this: the page says where the variable must be. */
 export const AGENT_HINT_MS = 180_000;
 
-/** What the user asks their agent first, to make the call that connects it. */
-export const AGENT_HELLO_PROMPT = 'Find me an issue on GitRanks';
-/** What they ask it once it is connected, to start on an issue. */
-export const AGENT_WORK_PROMPT = 'Pick the best GitRanks issue for me, fix it, run the tests and submit the patch.';
-
 /** `?welcome=agent` on `/contribute`: the agent just connected. */
 export const AGENT_WELCOME = 'agent';
 

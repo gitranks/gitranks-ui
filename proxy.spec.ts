@@ -382,6 +382,31 @@ describe('proxy', () => {
       });
     });
 
+    it.each([
+      '/contribute/attempts/A_1',
+      '/contribute/attempts/A_1/',
+      '/contribute/attempts/A_1/runs/A_2',
+      '/Contribute//Attempts/A_1',
+      '/contribute%2Fattempts%2FA_1',
+    ])(
+      "lets a visitor without a session through to a contribution's own page %s, which asks them to sign in",
+      async (path) => {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(maySeeContribute).not.toHaveBeenCalled();
+        expect(withSession).not.toHaveBeenCalled();
+      },
+    );
+
+    it("keeps a contribution's page behind the gate for a signed-in user the API does not let in, and the rest for everyone", async () => {
+      const signedIn = await proxy(request('authjs.session-token=t', '/contribute/attempts/A_1'), event);
+      expect(signedIn?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+      for (const path of ['/contribute/attempts', '/contribute/attempts/A_1/files', '/contribute/attempts/A_1/runs']) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+      }
+    });
+
     it('once launched, keeps every other Contribute page for signed-in users the API lets in', async () => {
       open.mockResolvedValue(true);
       for (const path of ['/contribute/connect', '/contribute/issues', '/contribute/settings', '/contribute%2Fme']) {
@@ -533,10 +558,8 @@ describe('proxy', () => {
       '/learn/profile',
       '/learn/lessons',
       '/learn/lessons/',
-      '/learn/attempts/A_1',
-      '/Learn/Attempts/A_1',
-      '//learn//attempts//A_1',
-      '/learn%2Fattempts%2FA_1',
+      '/learn/attempts',
+      '/learn/attempts/A_1/more',
       '/learn/maintainers/x',
       '/learn/%E0%A4%A',
     ];
@@ -549,8 +572,17 @@ describe('proxy', () => {
       expect(withSession).not.toHaveBeenCalled();
     });
 
+    it.each(['/learn/attempts/A_1', '/Learn/Attempts/A_1', '//learn//attempts//A_1', '/learn%2Fattempts%2FA_1'])(
+      "lets a visitor without a session through to a lesson's own page %s, which asks them to sign in",
+      async (path) => {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(withSession).not.toHaveBeenCalled();
+      },
+    );
+
     it('lets a signed-in visitor through to the closed pages, which ask the API whether Learn is open to them', async () => {
-      for (const path of CLOSED.slice(0, 7)) {
+      for (const path of [...CLOSED.slice(0, 5), '/learn/attempts/A_1', '/Learn/Attempts/A_1']) {
         const response = await proxy(request('authjs.session-token=t', path), event);
         expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();
         expect(response?.headers.get('cache-control'), path).toBe('private, no-cache');

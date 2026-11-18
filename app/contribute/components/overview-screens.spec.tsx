@@ -430,7 +430,7 @@ describe('Right now', () => {
     ).toContain('Holding quill-rs/quill #1204 · sent back with your note');
 
     expect(text(now(views.agentOnboarded))).toContain(
-      'Your own agent Claude Code on macOS last call 55 minutes ago Idle No issue held Ask it to "Find me an issue on GitRanks".',
+      'Your own agent Claude Code on macOS last call 55 minutes ago Idle No issue held Ask it: "Find me an open-source issue to work on with GitRanks."',
     );
     const fresh = { ...views.agentOnboarded, ownAgent: { paths: { hosted: false, mcp: true }, tokens: [mcpToken()] } };
     expect(text(now(fresh))).toContain("Your own agent Waiting Your agent hasn't called yet");

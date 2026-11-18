@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
+import { packageStaticSitemapEntries } from '@/lib/sitemap/package-static';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
-import { unsungHeroesSitemapEntries } from '@/lib/sitemap/unsung-heroes';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
@@ -16,6 +16,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapEntry('/methodology', { priority: 0.6 }),
     sitemapEntry('/terms', { priority: 0.2 }),
     sitemapEntry('/privacy', { priority: 0.2 }),
-    ...(await unsungHeroesSitemapEntries()),
+    ...(await packageStaticSitemapEntries()),
   ];
 }

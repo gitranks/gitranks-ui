@@ -48,7 +48,7 @@ const ALLOWED = new Set([
   'lib/sitemap/packages-public.ts',
   'lib/sitemap/packages-public.spec.ts',
   'lib/sitemap/hidden-packages-unchanged.spec.ts',
-  'lib/sitemap/unsung-heroes.spec.ts',
+  'lib/sitemap/package-static.spec.ts',
 ]);
 
 /**
@@ -67,7 +67,7 @@ const PUBLIC_ALLOWED = new Set([
   'lib/sitemap/repo-tab-sitemap.spec.ts',
   'lib/sitemap/sitemap-index.ts',
   'lib/sitemap/sitemap-index.spec.ts',
-  'lib/sitemap/unsung-heroes.ts',
+  'lib/sitemap/package-static.ts',
 ]);
 
 /** A module specifier naming the sitemaps' question, however it is reached. */

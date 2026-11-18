@@ -24,7 +24,6 @@ import { PackageDependentsList } from './package-dependents-list';
 import { PackageDownloadsCard } from './package-downloads-card';
 import { PackageRanksCard } from './package-ranks-card';
 import { PackageUpdatesButton } from './package-updates-button';
-import { PACKAGE_METHODOLOGY_PATH } from '@/app/packages/components/package-beta-notice';
 import {
   ProfileCard,
   ProfileCardHeader,
@@ -47,6 +46,7 @@ import { Pill } from '@/components/pill/pill';
 import { RepoLink } from '@/components/repo-link/repo-link';
 import { Button } from '@/components/ui/button';
 import type { PackagePage } from '@/graphql/package-page';
+import { PACKAGE_METHODOLOGY_PATH } from '@/utils/package-paths';
 
 type PackageScreenProps = {
   /** The package's name as the URL names it: shown while its data cannot be read. */
@@ -206,7 +206,7 @@ const UsedBy: FC<{ pkg: PackagePage }> = ({ pkg }) => {
           <p className="text-xs text-muted-foreground">
             {COUNTED}
             {read ? `; last read ${read}.` : '.'}{' '}
-            <Link href={PACKAGE_METHODOLOGY_PATH as Route} prefetch={false} className="text-link underline">
+            <Link href={PACKAGE_METHODOLOGY_PATH} prefetch={false} className="text-link underline">
               How we count
             </Link>
           </p>

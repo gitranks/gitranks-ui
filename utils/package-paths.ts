@@ -9,6 +9,9 @@ export function packagePath(name: string, registry = 'npm') {
   return `/package/${encodeURIComponent(registry)}/${parts.join('/')}` as Route;
 }
 
+/** Where package numbers are explained. */
+export const PACKAGE_METHODOLOGY_PATH = '/methodology/packages' as Route;
+
 /** A page of a package ranking: `/packages/npm/downloads/1`. */
 export function packageRankingPath(by: string, page: number | string = 1, registry = 'npm') {
   return `/packages/${encodeURIComponent(registry)}/${encodeURIComponent(by)}/${page}` as Route;

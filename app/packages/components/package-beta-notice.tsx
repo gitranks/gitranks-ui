@@ -3,9 +3,7 @@ import type { FC } from 'react';
 import { DEPENDENT_MIN_STARS } from '../package-rankings';
 import { Link } from '@/components/link/link';
 import { Pill } from '@/components/pill/pill';
-
-/** Where package numbers are explained. */
-export const PACKAGE_METHODOLOGY_PATH = '/methodology/packages';
+import { PACKAGE_METHODOLOGY_PATH } from '@/utils/package-paths';
 
 /** What package rankings count for now, on every package ranking page. */
 export const PackageBetaNotice: FC = () => (

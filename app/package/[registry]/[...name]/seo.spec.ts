@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { dependentRows, notReadPackage, quietPackage, rankedPackage } from './__fixtures__/package';
 import { buildPackageSEO, PACKAGE_UNAVAILABLE_TEXT } from './seo';
+
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_URI = 'https://gitranks.com';
+});
 
 type Node = { '@type': string; [key: string]: unknown };
 
@@ -28,6 +32,15 @@ describe('buildPackageSEO', () => {
       codeRepository: 'https://github.com/acme/react-resize-detector',
       interactionStatistic: { '@type': 'InteractionCounter', userInteractionCount: 1_797_999 },
     });
+    expect(metadata.openGraph?.images).toEqual([
+      {
+        url: 'https://gitranks.com/badge/package/npm/react-resize-detector/package-card.png?size=social',
+        width: 1200,
+        height: 630,
+        alt: 'react-resize-detector - npm package dependents, downloads and ranks on GitRanks',
+      },
+    ]);
+    expect(metadata.twitter).toMatchObject({ card: 'summary_large_image' });
     const crumbs = (jsonLd[2] as { itemListElement: { name: string }[] }).itemListElement.map(({ name }) => name);
     expect(crumbs).toEqual(['Home', 'Package rankings', 'react-resize-detector']);
   });
@@ -38,6 +51,11 @@ describe('buildPackageSEO', () => {
     expect(metadata.robots).toEqual({ index: false });
     expect(metadata.alternates?.canonical).toBe('/package/npm/@nebula/ui');
     expect(metadata.description).toContain('No repository with 100+ stars uses it directly yet.');
+    expect(metadata.openGraph?.images).toEqual([
+      expect.objectContaining({
+        url: 'https://gitranks.com/badge/package/npm/@nebula/ui/package-card.png?size=social',
+      }),
+    ]);
   });
 
   it('keeps a package not read yet and the unavailable page out, with no JSON-LD', () => {

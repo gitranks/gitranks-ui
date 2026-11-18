@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { PublicLesson } from '@/lib/learn/learn.types';
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/learn/profile',
@@ -26,8 +28,12 @@ const data = vi.hoisted(() => ({
   loadOwnAgent: vi.fn(),
 }));
 vi.mock('@/lib/learn/learn.data', () => data);
+const recent = vi.hoisted(() => ({ readRecentLessons: vi.fn(async () => [] as PublicLesson[]) }));
+vi.mock('@/lib/learn/recent-lessons.data', () => recent);
 
 const { LearnHomeView, LearnLanding } = await import('./learn-landing');
+const { publishedDayOf } = await import('./recent-lessons');
+const { recentLessons } = await import('@/lib/learn/__fixtures__/recent-lessons');
 const { LearnMaintainers } = await import('./learn-maintainers');
 const { LearnProfileScreen, LearnProfileView } = await import('./learn-profile');
 const { MyLessonsScreen, MyLessonsView } = await import('./my-lessons');
@@ -65,6 +71,29 @@ describe("Learn's front door", () => {
     expect(html).toContain('href="/learn/maintainers"');
     // There are no domains to pick yet, so the front door does not offer one.
     expect(text(html)).not.toMatch(/domain/i);
+  });
+
+  it('lists the newest shared lessons, each a link to its page, with its repository, language and day', () => {
+    const html = renderToStaticMarkup(<LearnLanding viewer="visitor" lessons={recentLessons} />);
+    expect(html).toContain('data-recent-lessons');
+    expect(html.match(/href="\/learn\/lessons\/[^"]+"/g)).toEqual([
+      'href="/learn/lessons/why-1h30m-came-back-as-one-hour-p47ocg"',
+      'href="/learn/lessons/two-spellings-of-one-route-k2m9qa"',
+      'href="/learn/lessons/a-lesson-on-a-topic-z7x3wb"',
+    ]);
+    expect(text(html)).toContain('Why 1h30m came back as one hour spf13/cobra Go 14 Nov 2026');
+    // A topic lesson has no repository or language: its day alone.
+    expect(text(html)).toContain('Retries that waited for nothing 10 Nov 2026');
+  });
+
+  it('leaves the list out when no lesson is shared yet, or the API did not answer', () => {
+    expect(renderToStaticMarkup(<LearnLanding viewer="visitor" />)).not.toContain('Recent lessons');
+    expect(renderToStaticMarkup(<LearnLanding viewer="visitor" lessons={[]} />)).not.toContain('Recent lessons');
+  });
+
+  it("writes a lesson's day in UTC, and nothing for a date that does not parse", () => {
+    expect(publishedDayOf('2026-11-14T23:59:59.000Z')).toBe('14 Nov 2026');
+    expect(publishedDayOf('not a date')).toBe('');
   });
 });
 
@@ -215,7 +244,10 @@ describe("Learn's gate on its own pages", () => {
     data.loadLearnProfile.mockResolvedValue(filledProfile);
     data.loadMyLessons.mockResolvedValue(myLessons);
     data.loadOwnAgent.mockResolvedValue(views.agentOnboarded.ownAgent);
-    expect(renderToStaticMarkup(await LearnHomeView())).toContain('data-landing-viewer="signed-in"');
+    recent.readRecentLessons.mockResolvedValueOnce(recentLessons);
+    const home = renderToStaticMarkup(await LearnHomeView());
+    expect(home).toContain('data-landing-viewer="signed-in"');
+    expect(home).toContain('href="/learn/lessons/why-1h30m-came-back-as-one-hour-p47ocg"');
     expect(renderToStaticMarkup(await LearnProfileView())).toContain('data-learn-profile="filled"');
     expect(renderToStaticMarkup(await MyLessonsView())).toContain('data-lesson="A_3"');
   });

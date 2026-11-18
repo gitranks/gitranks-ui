@@ -4,13 +4,16 @@ import { FaGithub } from 'react-icons/fa';
 
 import { ExampleLessonCard } from './example-lesson-card';
 import { LearnSignInButton } from './learn-sign-in';
+import { RecentLessons } from './recent-lessons';
 import { H2, MUTED_SECTION, WIDTH } from '@/app/contribute/components/landing';
 import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { buttonVariants } from '@/components/ui/button';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
+import type { PublicLesson } from '@/lib/learn/learn.types';
 import { learnFrontDoorOpenToVisitor } from '@/lib/learn/learn-front-door';
 import { LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
+import { readRecentLessons } from '@/lib/learn/recent-lessons.data';
 import { cn } from '@/lib/utils';
 
 /** Who reads the front door: a visitor signs in first, a signed-in user goes straight to Goal and level. */
@@ -114,10 +117,11 @@ function FooterExample() {
 
 /**
  * Learn's front door: what a lesson is, with an example to try, the handoff between the terminal and the site, what
- * every lesson covers, what maintainers see, and the questions. Built from the Contribute landing's sections. The same
- * page for a visitor and a signed-in user; only "Start learning" changes.
+ * every lesson covers, the newest shared lessons (`lessons`, left out when none), what maintainers see, and the
+ * questions. Built from the Contribute landing's sections. The same page for a visitor and a signed-in user; only
+ * "Start learning" changes.
  */
-export function LearnLanding({ viewer }: { viewer: LearnLandingViewer }) {
+export function LearnLanding({ viewer, lessons = [] }: { viewer: LearnLandingViewer; lessons?: PublicLesson[] }) {
   return (
     <main className="flex flex-col" data-landing-viewer={viewer}>
       <section className={cn(WIDTH, 'flex flex-wrap items-center gap-9 pt-8 pb-11 sm:gap-14 sm:pt-14 sm:pb-16')}>
@@ -191,6 +195,8 @@ export function LearnLanding({ viewer }: { viewer: LearnLandingViewer }) {
         </ol>
       </section>
 
+      <RecentLessons lessons={lessons} />
+
       <section className={MUTED_SECTION}>
         <div
           className={cn(
@@ -233,7 +239,14 @@ export function LearnLanding({ viewer }: { viewer: LearnLandingViewer }) {
  * API says Learn is open to everyone (the proxy decides), and then reads its visitor version.
  */
 export async function LearnHomeView() {
-  if (await loadLearnOpen()) return <LearnLanding viewer="signed-in" />;
-  if (!(await viewerLogin()) && (await learnFrontDoorOpenToVisitor())) return <LearnLanding viewer="visitor" />;
-  notFound();
+  const viewer = await frontDoorViewer();
+  if (!viewer) notFound();
+  return <LearnLanding viewer={viewer} lessons={await readRecentLessons()} />;
+}
+
+/** Who reads the front door, or null when it is not open to them. */
+async function frontDoorViewer(): Promise<LearnLandingViewer | null> {
+  if (await loadLearnOpen()) return 'signed-in';
+  if (!(await viewerLogin()) && (await learnFrontDoorOpenToVisitor())) return 'visitor';
+  return null;
 }

@@ -4,8 +4,8 @@ import { packageRankingPath } from '@/utils/package-paths';
 /**
  * The site's llms.txt (llmstxt.org): an H1, a one-line summary, then link sections. Top-level pages alone, never a
  * per-profile URL. `contribute`: Contribute is launched, so its pages for agents are listed. `packages`: package pages
- * are open to everyone, so the package rankings and the address patterns of a package's page and a repository's Used by
- * tab are listed.
+ * are open to everyone, so the package rankings, the address patterns of a package's page and a repository's Used by
+ * tab, and the Unsung heroes archive are listed.
  */
 export function llmsTxtOf({ contribute, packages }: { contribute: boolean; packages: boolean }): string {
   const url = (path: string) => `${SITE_URL}${path}`;
@@ -38,6 +38,7 @@ export function llmsTxtOf({ contribute, packages }: { contribute: boolean; packa
       `- Package page: ${url('/package/npm/{name}')} — who uses an npm package: every repository with 100+ stars that depends on it directly, with downloads and ranks.`,
       `- Repository "Used by": ${url('/repo/{owner}/{name}/used-by')} — the same for every package a repository publishes.`,
       `- [How package rankings work](${url('/methodology/packages')})`,
+      `- [Unsung heroes](${url('/unsung-heroes')}): one open-source project a week that a lot of software runs on, and few people star`,
       '',
     );
   }

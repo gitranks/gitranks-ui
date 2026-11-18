@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { badgesOf } from './catalogue';
+import { badgesOf as allBadgesOf } from './catalogue';
 import type { EntityFacts } from './facts';
 import { getEntityFactsResponse } from './facts-route';
 import {
@@ -25,6 +25,7 @@ import { promotedBadges } from './promotion';
 import { type BadgeLoaders, getBadgeResponse, parseEntityRef } from './route';
 import { badgeTiles } from './tiles';
 import type { EntityKind } from './types';
+import { UNSUNG_HERO_BADGE } from './unsung-hero-badge';
 import { BadgesCard } from '@/components/badges-card/badges-card';
 
 // Avatars are never fetched here: every one draws as the grey disk.
@@ -40,6 +41,9 @@ vi.mock('./avatars', () => ({
  */
 
 const KINDS: readonly EntityKind[] = ['user', 'org', 'repo'];
+
+/** The badges pinned here: every one but those added since, which their own specs cover. */
+const badgesOf = (kind: EntityKind) => allBadgesOf(kind).filter(({ id }) => id !== UNSUNG_HERO_BADGE);
 
 const ENTITIES: Record<string, EntityFacts> = {
   repoSmall,

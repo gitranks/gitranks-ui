@@ -40,12 +40,15 @@ const ALLOWED = new Set([
   'app/api/unsung-hero/hit/route.spec.ts',
   'app/badge/package/[registry]/[...rest]/route.ts',
   'app/badge/package/[registry]/[...rest]/route.spec.ts',
+  'badge/v3/route.ts',
+  'badge/v3/unsung-hero-badge.spec.ts',
   'lib/packages/packages-gate.ts',
   'lib/packages/packages-gate.spec.ts',
   'lib/packages/packages-gate.usage.spec.ts',
   'lib/sitemap/packages-public.ts',
   'lib/sitemap/packages-public.spec.ts',
   'lib/sitemap/hidden-packages-unchanged.spec.ts',
+  'lib/sitemap/unsung-heroes.spec.ts',
 ]);
 
 /**
@@ -64,6 +67,7 @@ const PUBLIC_ALLOWED = new Set([
   'lib/sitemap/repo-tab-sitemap.spec.ts',
   'lib/sitemap/sitemap-index.ts',
   'lib/sitemap/sitemap-index.spec.ts',
+  'lib/sitemap/unsung-heroes.ts',
 ]);
 
 /** A module specifier naming the sitemaps' question, however it is reached. */

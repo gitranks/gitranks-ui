@@ -1,3 +1,4 @@
+import { parse } from 'graphql';
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { toOrgCardFacts, toRepoCardFacts, toUserCardFacts } from './card-facts';
@@ -18,9 +19,11 @@ import {
   type UserTierLists,
 } from './facts';
 import { readsSoon } from './pending';
+import type { RepoUnsungHeroFacts } from './unsung-hero-badge';
 import { BADGE_DEPENDENTS, BadgePackageDocument, type BadgePackageQuery } from '@/graphql/badge-package';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { packageCacheTag } from '@/lib/packages/package-paths';
+import { UNSUNG_HERO_CACHE_TAG } from '@/lib/unsung-hero/unsung-hero';
 import {
   BadgeOrgCardDocument,
   BadgeOrgDocument,
@@ -36,6 +39,7 @@ import {
   RankGoalScope,
   RankGoalUnit,
 } from '@/types/generated/graphql';
+import type DocumentNode from '@/types/typed-document-node';
 import { profileCacheTag } from '@/utils/profile-refresh';
 import { getRepoCacheTag } from '@/utils/repo-paths';
 
@@ -302,13 +306,65 @@ export function keepFor(facts: EntityFacts | null): void {
   }
 }
 
-/** A repository's badge data (see `keepFor`); `null` when the repository is unknown. */
-export async function loadBadgeRepo(owner: string, name: string): Promise<RepoFacts | null> {
+type BadgeRepoUnsungHeroQuery = { repo?: { unsungHero?: { week: string; startsAt: string } | null } | null };
+
+/**
+ * The repository's latest week as Unsung hero, for its badge. Written out here rather than in a `.gql` file: the field
+ * is newer than the generated schema, and asked on its own so its failure loses only that badge. The API answers
+ * `null` while Unsung hero is not open to everyone, and for a repository that never was a hero.
+ */
+const BadgeRepoUnsungHeroDocument = parse(`
+  query BadgeRepoUnsungHero($owner: String!, $name: String!) {
+    repo(owner: $owner, name: $name) {
+      unsungHero {
+        week
+        startsAt
+      }
+    }
+  }
+`) as DocumentNode<BadgeRepoUnsungHeroQuery, { owner: string; name: string }>;
+
+/** The week from the API's answer; `null` without one, or with a start that is not a date. */
+export function toRepoUnsungHero(data: BadgeRepoUnsungHeroQuery | null | undefined): RepoUnsungHeroFacts | null {
+  const hero = data?.repo?.unsungHero;
+  if (!hero?.week || Number.isNaN(new Date(hero.startsAt).getTime())) return null;
+  return { week: hero.week, startsAt: hero.startsAt };
+}
+
+/**
+ * The repository's latest week as Unsung hero; `null` when it never was one, or when the week could not be read (then
+ * kept for minutes only). Kept apart from the rest of its badge data, under the heroes' cache tag too, which every
+ * change of a hero's week, and the feature's opening, expires.
+ */
+async function readRepoUnsungHero(owner: string, name: string): Promise<RepoUnsungHeroFacts | null> {
+  'use cache';
+  cacheTag(getRepoCacheTag(owner, name), UNSUNG_HERO_CACHE_TAG);
+  try {
+    const hero = toRepoUnsungHero(
+      await graphqlDirect(BadgeRepoUnsungHeroDocument, { owner, name }, { source: 'badge' }),
+    );
+    cacheLife('hours');
+    return hero;
+  } catch (error) {
+    console.error('Error reading the Unsung hero week of a badge:', error);
+    cacheLife('minutes');
+    return null;
+  }
+}
+
+/** A repository's badge data without its Unsung hero week (see `keepFor`); `null` when the repository is unknown. */
+async function readBadgeRepo(owner: string, name: string): Promise<RepoFacts | null> {
   'use cache';
   cacheTag(getRepoCacheTag(owner, name));
   const facts = toRepoFacts(await graphqlDirect(BadgeRepoDocument, { owner, name }, { source: 'badge' }));
   keepFor(facts);
   return facts;
+}
+
+/** A repository's badge data, with its Unsung hero week when it was one; `null` when the repository is unknown. */
+export async function loadBadgeRepo(owner: string, name: string): Promise<RepoFacts | null> {
+  const [facts, hero] = await Promise.all([readBadgeRepo(owner, name), readRepoUnsungHero(owner, name)]);
+  return facts && hero ? { ...facts, unsungHero: hero } : facts;
 }
 
 /** A developer's badge data (see `keepFor`); `null` when the profile is unknown. */

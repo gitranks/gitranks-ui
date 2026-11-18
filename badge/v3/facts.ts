@@ -1,4 +1,5 @@
 import type { WallOrder } from './types';
+import type { RepoUnsungHeroFacts } from './unsung-hero-badge';
 
 /** What a badge knows about its entity: the API's answer, flattened. */
 
@@ -80,6 +81,8 @@ export type RepoFacts = {
   pulseSeries: PulseSeriesFacts | null;
   rankGoal: RankGoal | null;
   contributorsWall: ContributorsWalls;
+  /** Its latest week as Unsung hero; left out when it never was one, and while Unsung hero is not open to everyone. */
+  unsungHero?: RepoUnsungHeroFacts;
 };
 
 export type UserRanks = {

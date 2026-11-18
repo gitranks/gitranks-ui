@@ -3,6 +3,7 @@ import { type EntityFacts, type OrgFacts, type PackageFacts, type RepoFacts, typ
 import type { BadgeParams } from './params';
 import { repoRace, userClimbRace, userStarsRace } from './race';
 import type { BadgeFormat, By, ContributorKey, EntityKind, Scheme } from './types';
+import { UNSUNG_HERO_BADGE } from './unsung-hero-badge';
 import { downloadsPerStar, yearOverYearChange } from '@/app/package/[registry]/[...name]/utils/package-downloads';
 import { isRankedIn } from '@/badge/utils/is-ranked-in';
 import { UserRankProp } from '@/types/ranking.types';
@@ -97,6 +98,8 @@ export const CATALOGUE = [
   shield('repo', 'tier', 'gitranks', ['level'], null),
   // A maintainer's invitation to contributors, for any repository: no data, Night by default.
   { ...shield('repo', 'contribute', 'GitRanks Contribute', [], null), defaultScheme: 'night' },
+  // The repository's week as Unsung hero: only for a repository that was one.
+  shield('repo', UNSUNG_HERO_BADGE, 'Unsung hero', [], null),
   panel('repo', 'rank-card', 'card', 'rank', { width: 400, height: 120 }),
   panel('repo', 'stars-card', 'card', 'stars', { width: 400, height: 120 }),
   panel('repo', 'starred-by-card', 'card', 'starred by top developers', { width: 400, height: 140 }),
@@ -258,6 +261,8 @@ function repoAvailability(repo: RepoFacts, id: string, params: BadgeParams, now:
     case 'star-history':
     case 'contribute':
       return 'available';
+    case UNSUNG_HERO_BADGE:
+      return either(!!repo.unsungHero, false);
     case 'contributors-wall':
       return either(!!repo.pulse && (wallOf(repo, params.order)?.entries.length ?? 0) >= WALL_MIN_PEOPLE, false);
     default:

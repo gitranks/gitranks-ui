@@ -26,6 +26,17 @@ describe('llms.txt', () => {
     expect(llmsTxtOf({ contribute: true, packages: false })).not.toMatch(/package/i);
   });
 
+  it('lists the Unsung heroes archive once it is open to everyone, and never before', () => {
+    const line =
+      '- [Unsung heroes](https://example.test/unsung-heroes): one open-source project a week that a lot of software runs on, and few people star\n';
+
+    expect(llmsTxtOf({ contribute: true, packages: true })).toContain(line);
+    expect(llmsTxtOf({ contribute: false, packages: true })).toContain(line);
+    for (const contribute of [true, false]) {
+      expect(llmsTxtOf({ contribute, packages: false })).not.toMatch(/unsung|hero/i);
+    }
+  });
+
   it('adds the packages after everything else, which stays as it was', () => {
     const closed = llmsTxtOf({ contribute: true, packages: false });
 

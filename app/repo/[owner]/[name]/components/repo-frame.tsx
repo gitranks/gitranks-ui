@@ -15,6 +15,7 @@ import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages } from '@/graphql/repo-packages';
+import { HeroVisit } from '@/lib/unsung-hero/hero-visit';
 import type { PageRepoQuery } from '@/types/generated/graphql';
 import { getRepoLanguageRankingPath } from '@/utils/repo-paths';
 
@@ -71,6 +72,7 @@ export const RepoFrame: FC<RepoFrameProps> = ({ repo, packages, contributors, ba
   return (
     <>
       <Header />
+      <HeroVisit owner={repo.owner} name={repo.name} />
       <nav aria-label="Repository">
         <TabsBar className="mb-4">
           {/* The page is drawn at the address the proxy sends Overview to, and shown at the repository's own. */}

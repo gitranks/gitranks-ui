@@ -149,6 +149,15 @@ vi.mock('@/lib/packages/packages-open', async (importOriginal) => ({
   // As the real hook: with `enabled` false nothing is asked, so the answer stays closed.
   usePackagesOpen: (enabled = true) => enabled && !!(globalThis as DesignGlobals).__designPackagesOpen,
 }));
+// This week's Unsung hero is asked in the browser once the feature is open to the viewer: the boards drawn open show
+// the fixture's hero.
+vi.mock('@/lib/unsung-hero/use-unsung-hero', async (importOriginal) => {
+  const { unsungHero } = await import('@/lib/unsung-hero/__fixtures__/hero');
+  return {
+    ...(await importOriginal<typeof import('@/lib/unsung-hero/use-unsung-hero')>()),
+    useUnsungHero: (enabled: boolean) => (enabled ? unsungHero : null),
+  };
+});
 vi.mock('@/app/badge/builder/[[...login]]/hooks/use-packages-shown', () => ({
   usePackagesShown: () => !!(globalThis as DesignGlobals).__designPackagesOpen,
 }));

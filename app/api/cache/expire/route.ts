@@ -2,6 +2,8 @@ import jwt from 'jsonwebtoken';
 import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
+import { UNSUNG_HERO_CACHE_TAG } from '@/lib/unsung-hero/unsung-hero';
+
 /** The one caller allowed to expire cached data: the API, which names itself in its token. */
 const ALLOWED_SOURCE = 'gitranks';
 
@@ -14,7 +16,11 @@ const TAG = /^(repo|profile):[a-z0-9._/-]{1,140}$/;
  */
 const PACKAGE_TAG = /^package:npm\/[a-z0-9@/._~'!()*-]{1,214}$/;
 
-const isTag = (tag: unknown) => typeof tag === 'string' && (TAG.test(tag) || PACKAGE_TAG.test(tag));
+/** Tags of one shared read each, named in full. */
+const PLAIN_TAGS: ReadonlySet<unknown> = new Set([UNSUNG_HERO_CACHE_TAG]);
+
+const isTag = (tag: unknown) =>
+  typeof tag === 'string' && (TAG.test(tag) || PACKAGE_TAG.test(tag) || PLAIN_TAGS.has(tag));
 
 const MAX_TAGS = 100;
 
@@ -45,9 +51,10 @@ const isTagList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.length >= 1 && value.length <= MAX_TAGS && value.every(isTag);
 
 /**
- * Expires the cached data of repositories, profiles and packages whose data changed: `{ tags }`, 1 to `MAX_TAGS` tags
- * of a repository, a profile or a package. Only a call signed with the internal secret and naming the API as its
- * source is served; a visitor's own refresh goes through `/api/revalidate` instead.
+ * Expires the cached data of repositories, profiles and packages whose data changed, and of the Unsung heroes:
+ * `{ tags }`, 1 to `MAX_TAGS` tags of a repository, a profile or a package, or `unsung-hero`. Only a call signed with
+ * the internal secret and naming the API as its source is served; a visitor's own refresh goes through
+ * `/api/revalidate` instead.
  */
 export async function POST(request: NextRequest) {
   const claims = verifiedClaims(request);
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const tags: unknown = body?.tags;
   if (!isTagList(tags)) {
-    return refuse(400, `Expected 1 to ${MAX_TAGS} repository, profile or package tags`);
+    return refuse(400, `Expected 1 to ${MAX_TAGS} repository, profile, package or Unsung hero tags`);
   }
 
   // `expire: 0`: the next read gets the new data, never the stale copy served while a fresh one is made.

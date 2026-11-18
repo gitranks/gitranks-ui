@@ -233,10 +233,15 @@ const sections: LegalSection[] = [
           you ask for.
         </P>
         <P>
+          If you follow while signed in, the follow also keeps your GitHub username and your account&apos;s email
+          address until it is confirmed. Once confirmed, an email address that is your account&apos;s own, and a chat
+          you choose to link, are tied to your GitRanks account, so you can see and manage those follows when signed in.
+        </P>
+        <P>
           When we feature an open-source project, we may write to its maintainer at the email address their public
-          GitHub profile shows: one email before the feature and one after it. We use the address for nothing else and
-          delete it after the second email. Basis: legitimate interests, in telling maintainers before we feature their
-          project and letting them say no.
+          GitHub profile shows: one email before the feature and one after it. We use the address for nothing else. We
+          delete it 30 days after the second email, or 7 days after the maintainer opts out (the days let them undo it).
+          Basis: legitimate interests, in telling maintainers before we feature their project and letting them say no.
         </P>
       </>
     ),

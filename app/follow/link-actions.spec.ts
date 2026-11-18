@@ -8,7 +8,6 @@ import {
   followOf,
   MANAGE_TOKEN,
   RESIZE,
-  subscriberOf,
 } from '@/lib/link-token/__fixtures__/follow-links';
 import type { ConfirmState, UnfollowState } from '@/lib/link-token/follow-pages';
 
@@ -84,26 +83,49 @@ describe('Unfollow and Undo, the Unfollow page’s buttons', () => {
   beforeEach(() => cookies.values.set('gitranks-link-unfollow', FOLLOW_TOKEN));
   const before: UnfollowState = { kind: 'follow', follow: followOf(), addressHint: 'm•••@gmail.com' };
 
-  it("unfollows by the link's own token, then shows the follow as it now is", async () => {
+  const answers = (follow: unknown) =>
+    graphqlDirect.mockResolvedValue({ followChangeByToken: { follow, subscriber: null } });
+  const removedState = { ...before, follow: followOf({ status: 'REMOVED' }) } as const;
+
+  it("unfollows by the link's own token and shows the follow as the change answered it, with Undo", async () => {
     const removed = followOf({ status: 'REMOVED' });
-    graphqlDirect
-      .mockResolvedValueOnce({ followChangeByToken: { follow: removed, subscriber: null } })
-      .mockResolvedValueOnce({ followingByToken: [subscriberOf({ follows: [removed] })] });
+    answers(removed);
 
     expect(await changeFollow(before, form('remove'))).toEqual({ ...before, follow: removed });
-    expect(sent()).toEqual([
-      { name: 'FollowChangeByToken', variables: { followToken: FOLLOW_TOKEN, remove: true } },
-      { name: 'FollowingByToken', variables: { followToken: FOLLOW_TOKEN } },
-    ]);
+    expect(sent()).toEqual([{ name: 'FollowChangeByToken', variables: { followToken: FOLLOW_TOKEN, remove: true } }]);
     expect(cookies.sets.map(({ name }) => name)).toEqual(['gitranks-link-unfollow']);
   });
 
+  it('unfollowing a follow never confirmed: unfollowed, with nothing to undo (not a broken link)', async () => {
+    const pending: UnfollowState = { ...before, follow: followOf({ status: 'PENDING' }) };
+    answers(followOf({ status: 'REMOVED' }));
+    expect(await changeFollow(pending, form('remove'))).toEqual({
+      ...before,
+      follow: followOf({ status: 'REMOVED' }),
+      note: 'deleted',
+    });
+  });
+
   it('Undo follows it again', async () => {
-    graphqlDirect
-      .mockResolvedValueOnce({ followChangeByToken: { follow: followOf(), subscriber: null } })
-      .mockResolvedValueOnce({ followingByToken: [subscriberOf({ follows: [followOf()] })] });
-    expect(await changeFollow(before, form('undo'))).toEqual({ ...before, undone: true });
-    expect(sent()[0]).toEqual({ name: 'FollowChangeByToken', variables: { followToken: FOLLOW_TOKEN, undo: true } });
+    answers(followOf());
+    expect(await changeFollow(removedState, form('undo'))).toEqual({ ...before, note: 'undone' });
+    expect(sent()).toEqual([{ name: 'FollowChangeByToken', variables: { followToken: FOLLOW_TOKEN, undo: true } }]);
+  });
+
+  it('an Undo answered still unfollowed was refused, and says so', async () => {
+    answers(followOf({ status: 'REMOVED' }));
+    expect(await changeFollow(removedState, form('undo'))).toEqual({ ...removedState, note: 'undo-refused' });
+  });
+
+  it('a change that reached no follow is a link that does not work, not a success', async () => {
+    answers(null);
+    expect(await changeFollow(before, form('remove'))).toEqual({ kind: 'unknown' });
+    expect(await changeFollow(removedState, form('undo'))).toEqual({ kind: 'unknown' });
+  });
+
+  it('unavailable when the API cannot answer', async () => {
+    graphqlDirect.mockRejectedValue(new Error('down'));
+    expect(await changeFollow(before, form('remove'))).toEqual({ kind: 'unavailable' });
   });
 
   it('a press that names no button changes nothing; without the cookie it times out', async () => {

@@ -25,6 +25,7 @@ import {
   lessonRouteOf,
 } from './lib/learn/learn-path';
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
+import { isLinkPagePath, LINK_PAGE_HEADERS } from './lib/link-token/link-token';
 import { isPackagePath } from './lib/packages/package-paths';
 import { packagesPublic, requestMaySeePackages } from './lib/packages/packages-gate';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
@@ -274,8 +275,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   const response = await withAuth(request, event);
   // The landing's rank card sets its own, always private: 5 minutes at the viewer's own `?login=`, never stored
   // otherwise. The proxy cannot tell which login the session holds, nor the route's status.
+  // A page a link in our email opens keeps its own `no-store`: it shows an address's follows.
   if (request.nextUrl.pathname !== RANK_CARD_PATH) {
-    response?.headers.set('Cache-Control', 'private, no-cache');
+    response?.headers.set(
+      'Cache-Control',
+      isLinkPagePath(pathname) ? LINK_PAGE_HEADERS['Cache-Control'] : 'private, no-cache',
+    );
   }
   response?.headers.append('Set-Cookie', SESSION_HINT_SET);
   return served(response);

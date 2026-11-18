@@ -1,4 +1,5 @@
 import type {
+  FollowChangeByTokenAnswer,
   FollowConfirmAnswer,
   FollowConfirmPeekAnswer,
   FollowEvents,
@@ -25,13 +26,24 @@ export type ConfirmState =
   | { kind: 'already-confirmed'; packages: FollowPackage[] }
   | { kind: 'expired' };
 
-/** `/follow/unfollow`: the link's one follow, at its address. `undone`: Undo was just pressed. */
+/**
+ * What the last press on `/follow/unfollow` did, when the follow alone does not say it: Undo followed it again
+ * (`undone`), Undo was refused and it stays unfollowed (`undo-refused`), or the follow was never confirmed, so the
+ * Unfollow deleted it and there is nothing to undo (`deleted`).
+ */
+export type UnfollowNote = 'undone' | 'undo-refused' | 'deleted';
+
+/** `/follow/unfollow`: the link's one follow, at its address. */
 export type UnfollowState =
   | LinkTrouble
-  | { kind: 'follow'; follow: PackageFollow; addressHint: string; undone?: boolean };
+  | { kind: 'follow'; follow: PackageFollow; addressHint: string; note?: UnfollowNote };
 
 /** What the last press on `/following` did, when the list alone does not say it. */
-export type SettingsNotice = { kind: 'stopped'; count: number } | { kind: 'resumed' } | { kind: 'failed' };
+export type SettingsNotice =
+  | { kind: 'stopped'; count: number }
+  | { kind: 'resumed' }
+  | { kind: 'undo-refused'; package: FollowPackage }
+  | { kind: 'failed' };
 
 /** `/following`: every follow of the address, by its settings link. */
 export type SettingsState = LinkTrouble | { kind: 'list'; subscribers: FollowSubscriber[]; notice?: SettingsNotice };
@@ -65,11 +77,44 @@ export function confirmStateOfPress(answer: FollowConfirmAnswer, settings: boole
 }
 
 /** The Unfollow page from what its link reaches: one follow at one address, or nothing. */
-export function unfollowStateOf(subscribers: FollowSubscriber[], undone = false): UnfollowState {
+export function unfollowStateOf(subscribers: FollowSubscriber[]): UnfollowState {
   const subscriber = subscribers.find((each) => each.follows.length);
   const follow = subscriber?.follows[0];
   if (!subscriber || !follow) return UNKNOWN;
-  return { kind: 'follow', follow, addressHint: subscriber.addressHint, ...(undone ? { undone } : {}) };
+  return { kind: 'follow', follow, addressHint: subscriber.addressHint };
+}
+
+/**
+ * The Unfollow page after a press, from the follow as the change answered it. A change that reached no follow is a link
+ * that no longer works. An Undo answered still unfollowed was refused. Unfollowing a follow never confirmed deletes it,
+ * so it shows as unfollowed with no Undo.
+ */
+export function unfollowStateAfter(
+  previous: Extract<UnfollowState, { kind: 'follow' }>,
+  change: 'remove' | 'undo',
+  answer: FollowChangeByTokenAnswer,
+): UnfollowState {
+  const { follow } = answer;
+  if (!follow) return UNKNOWN;
+  const base = { kind: 'follow', follow, addressHint: previous.addressHint } as const;
+  if (change === 'undo') return { ...base, note: follow.status === 'REMOVED' ? 'undo-refused' : 'undone' };
+  return previous.follow.status === 'PENDING' && follow.status === 'REMOVED' ? { ...base, note: 'deleted' } : base;
+}
+
+/**
+ * What a change on the settings page says, from its answer: `failed` when it reached nothing, `undo-refused` when an
+ * Undo was answered still unfollowed, `done` (if any) otherwise.
+ */
+export function settingsNoticeAfter(
+  change: { undo?: boolean; resumeSubscriberId?: string },
+  answer: FollowChangeByTokenAnswer,
+  done?: SettingsNotice,
+): SettingsNotice | undefined {
+  if (change.resumeSubscriberId) return answer.subscriber ? done : { kind: 'failed' };
+  if (!answer.follow) return { kind: 'failed' };
+  if (change.undo && answer.follow.status === 'REMOVED')
+    return { kind: 'undo-refused', package: answer.follow.package };
+  return done;
 }
 
 /** The settings page from what its link reaches; no address at all is a link that reaches nothing. */

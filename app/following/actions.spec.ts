@@ -19,6 +19,8 @@ const sent = () =>
     variables,
   }));
 const FOLLOW_ID = followOf().id;
+/** What the next change answers: the follow as it now is, or the address after a resume. */
+const changed: { answer: { follow: unknown; subscriber: unknown } } = { answer: { follow: null, subscriber: null } };
 const SUBSCRIBER = subscriberOf();
 
 describe("the settings page's presses", () => {
@@ -26,10 +28,11 @@ describe("the settings page's presses", () => {
     graphqlDirect.mockReset();
     cookies.clear();
     cookies.values.set('gitranks-link-settings', MANAGE_TOKEN);
+    changed.answer = { follow: followOf(), subscriber: null };
     graphqlDirect.mockImplementation(async (document) => {
       const name = (document.definitions[0] as OperationDefinitionNode).name?.value;
       if (name === 'FollowStopAllByToken') return { followStopAllByToken: 2 };
-      if (name === 'FollowChangeByToken') return { followChangeByToken: { follow: followOf(), subscriber: null } };
+      if (name === 'FollowChangeByToken') return { followChangeByToken: changed.answer };
       return { followingByToken: [SUBSCRIBER] };
     });
   });
@@ -54,6 +57,7 @@ describe("the settings page's presses", () => {
   });
 
   it('sends to a paused address again', async () => {
+    changed.answer = { follow: null, subscriber: SUBSCRIBER };
     expect(await resumeAddress(SUBSCRIBER.id)).toEqual({
       kind: 'list',
       subscribers: [SUBSCRIBER],
@@ -62,6 +66,33 @@ describe("the settings page's presses", () => {
     expect(sent()[0]).toEqual({
       name: 'FollowChangeByToken',
       variables: { manageToken: MANAGE_TOKEN, resumeSubscriberId: SUBSCRIBER.id },
+    });
+  });
+
+  it('a resume that reached no address says it did not go through, not "we will send again"', async () => {
+    changed.answer = { follow: null, subscriber: null };
+    expect(await resumeAddress(SUBSCRIBER.id)).toEqual({
+      kind: 'list',
+      subscribers: [SUBSCRIBER],
+      notice: { kind: 'failed' },
+    });
+  });
+
+  it('a change that reached no follow says it did not go through', async () => {
+    changed.answer = { follow: null, subscriber: null };
+    expect(await changeFollowing(FOLLOW_ID, 'remove')).toEqual({
+      kind: 'list',
+      subscribers: [SUBSCRIBER],
+      notice: { kind: 'failed' },
+    });
+  });
+
+  it('an Undo answered still unfollowed was refused, and says so', async () => {
+    changed.answer = { follow: followOf({ status: 'REMOVED' }), subscriber: null };
+    expect(await changeFollowing(FOLLOW_ID, 'undo')).toEqual({
+      kind: 'list',
+      subscribers: [SUBSCRIBER],
+      notice: { kind: 'undo-refused', package: followOf().package },
     });
   });
 

@@ -2,7 +2,12 @@ import { LinkCard, LinkHead, LinkTroubleCard, PackageName } from '@/app/follow/c
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { FollowEvents, FollowSubscriber, PackageFollow } from '@/lib/link-token/follow-links.types';
-import { FOLLOW_EVENT_LINES, type SettingsNotice, type SettingsState } from '@/lib/link-token/follow-pages';
+import {
+  FOLLOW_EVENT_LINES,
+  packageLabelOf,
+  type SettingsNotice,
+  type SettingsState,
+} from '@/lib/link-token/follow-pages';
 import { cn } from '@/lib/utils';
 
 /** What the page's presses call; left out where nothing can be pressed (the catalogue, a spec). */
@@ -21,6 +26,8 @@ const NOTICE_TEXT = (notice: SettingsNotice): string => {
       return notice.count === 1
         ? 'Unfollowed 1 package. You can undo it below for 7 days.'
         : `Unfollowed ${notice.count.toLocaleString('en-US')} packages. You can undo each one below for 7 days.`;
+    case 'undo-refused':
+      return `Could not follow ${packageLabelOf(notice.package)} again: the address may already follow as many packages as it can, or the follow is gone. Follow it again from its page on GitRanks.`;
     case 'resumed':
       return 'We will send to this address again.';
     default:
@@ -48,7 +55,7 @@ export function FollowingView({ state, pending = false, ...handlers }: Readonly<
           role="status"
           className={cn(
             'rounded-xl border p-4 text-sm',
-            state.notice.kind === 'failed'
+            state.notice.kind === 'failed' || state.notice.kind === 'undo-refused'
               ? 'border-destructive/40 text-destructive'
               : 'border-transparent bg-muted text-foreground',
           )}

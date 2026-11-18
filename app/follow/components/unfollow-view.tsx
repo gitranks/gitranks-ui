@@ -30,31 +30,45 @@ export function UnfollowView({ state, action, pending = false }: Readonly<Unfoll
     return (
       <LinkCard>
         <LinkHead eyebrow="Unfollowed" title={`You unfollowed ${label}`} />
-        <p className="text-sm">
-          We will not email {addressHint} about <PackageName pkg={follow.package} /> again. Changed your mind? You can
-          undo this for 7 days.
-        </p>
-        <form action={action}>
-          <Button
-            type="submit"
-            name="change"
-            value="undo"
-            variant="outline"
-            disabled={pending}
-            className="max-sm:min-h-11"
+        {state.note === 'undo-refused' ? (
+          <p
+            role="status"
+            className="rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm text-warning-soft-foreground"
           >
-            Undo
-          </Button>
-        </form>
+            Could not follow {label} again: the address may already follow as many packages as it can, or the follow is
+            gone. Follow it again from its page on GitRanks.
+          </p>
+        ) : (
+          <p className="text-sm">
+            We will not email {addressHint} about <PackageName pkg={follow.package} /> again.
+            {state.note === 'deleted'
+              ? ' It was never confirmed, so there is nothing to undo.'
+              : ' Changed your mind? You can undo this for 7 days.'}
+          </p>
+        )}
+        {!state.note && (
+          <form action={action}>
+            <Button
+              type="submit"
+              name="change"
+              value="undo"
+              variant="outline"
+              disabled={pending}
+              className="max-sm:min-h-11"
+            >
+              Undo
+            </Button>
+          </form>
+        )}
       </LinkCard>
     );
   }
 
   return (
     <LinkCard>
-      <LinkHead eyebrow={state.undone ? 'Following again' : 'Unfollow'} title={`Unfollow ${label}?`} />
+      <LinkHead eyebrow={state.note === 'undone' ? 'Following again' : 'Unfollow'} title={`Unfollow ${label}?`} />
       <p className="text-sm">
-        {state.undone ? 'You follow it again. ' : ''}
+        {state.note === 'undone' ? 'You follow it again. ' : ''}
         {follow.status === 'PENDING'
           ? `This follow is waiting for its confirmation at ${addressHint}.`
           : `We email ${addressHint} about it.`}{' '}

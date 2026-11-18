@@ -8,15 +8,17 @@ import {
   FollowingByTokenDocument,
   FollowStopAllByTokenDocument,
 } from './follow-links.documents';
-import type { FollowConfirmAnswer, FollowSubscriber } from './follow-links.types';
+import type { FollowChangeByTokenAnswer, FollowConfirmAnswer, FollowSubscriber } from './follow-links.types';
 import {
   type ConfirmState,
   confirmStateOfPeek,
   type SettingsNotice,
   type SettingsState,
+  settingsNoticeAfter,
   settingsStateOf,
   UNAVAILABLE,
   type UnfollowState,
+  unfollowStateAfter,
   unfollowStateOf,
 } from './follow-pages';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -61,26 +63,32 @@ async function listBy(asker: Asker): Promise<FollowSubscriber[] | null> {
   }
 }
 
-/** A change by a link; false when following cannot be reached. */
-async function changeBy(variables: FollowChangeByTokenVariables): Promise<boolean> {
+/** A change by a link: the follow (or address) as it now is; null when following cannot be reached. */
+async function changeBy(variables: FollowChangeByTokenVariables): Promise<FollowChangeByTokenAnswer | null> {
   try {
-    await ask(FollowChangeByTokenDocument, variables);
-    return true;
+    return (await ask(FollowChangeByTokenDocument, variables)).followChangeByToken;
   } catch {
-    return false;
+    return null;
   }
 }
 
 /** The Unfollow page: the link's follow. */
-export async function unfollowPageOf(followToken: string, undone = false): Promise<UnfollowState> {
+export async function unfollowPageOf(followToken: string): Promise<UnfollowState> {
   const subscribers = await listBy({ followToken });
-  return subscribers ? unfollowStateOf(subscribers, undone) : UNAVAILABLE;
+  return subscribers ? unfollowStateOf(subscribers) : UNAVAILABLE;
 }
 
-/** Unfollows (`remove`) or follows again (`undo`) the link's follow, and answers the page as it now is. */
-export async function changeByFollowToken(followToken: string, change: 'remove' | 'undo'): Promise<UnfollowState> {
-  if (!(await changeBy({ followToken, [change]: true }))) return UNAVAILABLE;
-  return unfollowPageOf(followToken, change === 'undo');
+/**
+ * Unfollows (`remove`) or follows again (`undo`) the link's follow, and answers the page from the follow as the change
+ * left it.
+ */
+export async function changeByFollowToken(
+  followToken: string,
+  change: 'remove' | 'undo',
+  previous: Extract<UnfollowState, { kind: 'follow' }>,
+): Promise<UnfollowState> {
+  const answer = await changeBy({ followToken, [change]: true });
+  return answer ? unfollowStateAfter(previous, change, answer) : UNAVAILABLE;
 }
 
 /** The settings page: every follow of the link's address. */
@@ -95,8 +103,8 @@ export async function changeBySettings(
   change: Omit<FollowChangeByTokenVariables, 'manageToken' | 'followToken'>,
   done?: SettingsNotice,
 ): Promise<SettingsState> {
-  const changed = await changeBy({ manageToken, ...change });
-  return settingsPageOf(manageToken, changed ? done : { kind: 'failed' });
+  const answer = await changeBy({ manageToken, ...change });
+  return settingsPageOf(manageToken, answer ? settingsNoticeAfter(change, answer, done) : { kind: 'failed' });
 }
 
 /** "Stop all package email", and the page as it now is. */

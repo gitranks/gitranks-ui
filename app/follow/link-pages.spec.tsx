@@ -138,9 +138,31 @@ describe('/follow/unfollow', () => {
   });
 
   it('after Undo, following again', () => {
-    expect(render(<UnfollowView state={{ ...state, undone: true }} />)).toContain(
+    expect(render(<UnfollowView state={{ ...state, note: 'undone' }} />)).toContain(
       'Following again Unfollow react-resize-detector? You follow it again.',
     );
+  });
+
+  it('a refused Undo: its own notice, and no Undo button', () => {
+    const html = renderToStaticMarkup(
+      <UnfollowView state={{ ...state, follow: followOf({ status: 'REMOVED' }), note: 'undo-refused' }} />,
+    );
+    expect(text(html)).toBe(
+      'Unfollowed You unfollowed react-resize-detector Could not follow react-resize-detector again: the address may ' +
+        'already follow as many packages as it can, or the follow is gone. Follow it again from its page on GitRanks.',
+    );
+    expect(html).not.toContain('<button');
+  });
+
+  it('a follow never confirmed, unfollowed: nothing to undo', () => {
+    const html = renderToStaticMarkup(
+      <UnfollowView state={{ ...state, follow: followOf({ status: 'REMOVED' }), note: 'deleted' }} />,
+    );
+    expect(text(html)).toBe(
+      'Unfollowed You unfollowed react-resize-detector We will not email m•••@gmail.com about react-resize-detector ' +
+        'again. It was never confirmed, so there is nothing to undo.',
+    );
+    expect(html).not.toContain('<button');
   });
 
   it('a link that reaches no follow', () => {
@@ -188,6 +210,16 @@ describe('/following', () => {
     );
     expect(text(html)).toContain('You follow no packages at this address.');
     expect(text(html)).not.toContain('Stop all package email');
+  });
+
+  it('a refused Undo says so', () => {
+    expect(
+      render(
+        <FollowingView
+          state={{ kind: 'list', subscribers: [subscriberOf()], notice: { kind: 'undo-refused', package: DIALOG } }}
+        />,
+      ),
+    ).toContain('Could not follow @radix-ui/react-dialog again: the address may already follow as many packages');
   });
 
   it('a change that did not go through', () => {

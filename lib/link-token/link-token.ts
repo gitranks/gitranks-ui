@@ -52,6 +52,11 @@ export const LINK_PAGE_HEADERS = {
   'Cache-Control': 'private, no-store',
 } as const;
 
+/** `/l/<kind>` and the pages it opens: their answers are never kept, by a shared cache or by the browser. */
+const LINK_PATH = /^\/(?:l|follow)(?:\/|$)|^\/following\/?$/;
+
+export const isLinkPagePath = (pathname: string) => LINK_PATH.test(pathname);
+
 /** The pages a link opens, as `next.config.ts` matches them to send `LINK_PAGE_HEADERS`. */
 export const LINK_PAGE_SOURCES = ['/follow/:path*', '/following', '/following/'] as const;
 

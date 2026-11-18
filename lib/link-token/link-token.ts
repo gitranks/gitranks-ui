@@ -13,6 +13,10 @@ export const LINK_PAGES = {
   unfollow: '/follow/unfollow',
   /** An email's "Email settings": every follow of the address. */
   settings: '/following',
+  /** An Unsung hero heads-up's "Preview the block": the home card and the archive block as they will look. */
+  'hero-preview': '/hero-link/preview',
+  /** An Unsung hero heads-up's "No thanks, opt me out": one Opt out button, then Undo. */
+  'hero-opt-out': '/hero-link/opt-out',
 } as const;
 
 export type LinkKind = keyof typeof LINK_PAGES;
@@ -53,12 +57,12 @@ export const LINK_PAGE_HEADERS = {
 } as const;
 
 /** `/l/<kind>` and the pages it opens: their answers are never kept, by a shared cache or by the browser. */
-const LINK_PATH = /^\/(?:l|follow)(?:\/|$)|^\/following\/?$/;
+const LINK_PATH = /^\/(?:l|follow|hero-link)(?:\/|$)|^\/following\/?$/;
 
 export const isLinkPagePath = (pathname: string) => LINK_PATH.test(pathname);
 
 /** The pages a link opens, as `next.config.ts` matches them to send `LINK_PAGE_HEADERS`. */
-export const LINK_PAGE_SOURCES = ['/follow/:path*', '/following', '/following/'] as const;
+export const LINK_PAGE_SOURCES = ['/follow/:path*', '/following', '/following/', '/hero-link/:path*'] as const;
 
 /**
  * The query a link's page is sent to when its link held no usable token: `?e=invalid`. It says only that, never

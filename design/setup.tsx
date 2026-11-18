@@ -146,7 +146,8 @@ vi.mock('@/badge/v3/avatars', async (importOriginal) => ({
 // board as the server sends it (closed).
 vi.mock('@/lib/packages/packages-open', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/packages/packages-open')>()),
-  usePackagesOpen: () => !!(globalThis as DesignGlobals).__designPackagesOpen,
+  // As the real hook: with `enabled` false nothing is asked, so the answer stays closed.
+  usePackagesOpen: (enabled = true) => enabled && !!(globalThis as DesignGlobals).__designPackagesOpen,
 }));
 vi.mock('@/app/badge/builder/[[...login]]/hooks/use-packages-shown', () => ({
   usePackagesShown: () => !!(globalThis as DesignGlobals).__designPackagesOpen,

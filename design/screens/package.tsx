@@ -8,7 +8,8 @@ import {
   rankedPackage,
 } from '@/app/package/[registry]/[...name]/__fixtures__/package';
 import { PackageScreen } from '@/app/package/[registry]/[...name]/components/package-screen';
-import { packageBig, packageNew } from '@/badge/v3/fixtures';
+import type { PackageFacts } from '@/badge/v3/facts';
+import { packageBig } from '@/badge/v3/fixtures';
 import { packageDealOf } from '@/components/refresh-dialogs/refresh-messages';
 import type { PackagePage } from '@/graphql/package-page';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
@@ -16,9 +17,37 @@ import { DailyUpdateReason } from '@/types/generated/graphql';
 import { packagePickOf } from '@/utils/daily-updates-view';
 import { packagePath } from '@/utils/package-paths';
 
-// The Badges cards of the two read packages: `react-resize-detector` and `@nebula/ui`.
+/** A read package's badge data, from its page's: what its Badges card shows tells the page's own story. */
+const badgeFactsOf = (pkg: PackagePage): PackageFacts => ({
+  kind: 'package',
+  registry: 'npm',
+  name: pkg.name,
+  repo: pkg.repo ?? null,
+  repositoryName: pkg.repo ? null : (pkg.repositoryName ?? null),
+  dependentsCount: pkg.dependentsCount,
+  dependentsStars: pkg.dependentsStars,
+  dependents: (pkg.dependents?.items ?? []).map(({ nameWithOwner, ownerAvatarUrl, stars, archived }) => ({
+    nameWithOwner,
+    ownerAvatarUrl: ownerAvatarUrl ?? null,
+    stars,
+    archived,
+  })),
+  downloads: pkg.downloads
+    ? {
+        through: pkg.downloads.through,
+        lastWeek: pkg.downloads.lastWeek,
+        previousWeek: pkg.downloads.previousWeek,
+        last52Weeks: pkg.downloads.last52Weeks,
+        previous52Weeks: pkg.downloads.previous52Weeks ?? null,
+        perStar: pkg.downloads.perStar ?? null,
+        weeks: pkg.downloads.weeks ?? [],
+      }
+    : null,
+});
+
+// The Badges cards of the two read packages: `react-resize-detector` (the badge fixtures' own) and `@nebula/ui`.
 withBadgeFacts(packageBig);
-withBadgeFacts(packageNew);
+withBadgeFacts(badgeFactsOf(quietPackage));
 
 const page = (pkg: PackagePage | 'unavailable', name = rankedPackage.name) => (
   <PackageScreen name={pkg === 'unavailable' ? name : pkg.name} pkg={pkg} />

@@ -14,7 +14,8 @@ import { orgBig, packageBig, packageNew, repoBig, userBig } from '@/badge/v3/fix
 const leaders = [withBadgeFacts(userBig), withBadgeFacts(repoBig), withBadgeFacts(orgBig)];
 // Packages: one used by 16 repos with 100+ stars and published from a repository; one new, with no repository known.
 withBadgeFacts(packageBig);
-withBadgeFacts(packageNew);
+// The new package under a name of its own: `@nebula/ui` is the package page's.
+const newPackage = withBadgeFacts({ ...packageNew, name: '@tern/sparkline' });
 
 /** The builder at a URL: its steps live in the query, and its facts come from the fixtures (`design/images.ts`). */
 const builder = (path: string) => (
@@ -30,7 +31,7 @@ const card = findBadge('user', 'profile-card');
 const repo = { kind: 'repo', name: 'brightfern/tidepool' } as const;
 const contribute = findBadge('repo', 'contribute');
 const pkg = { kind: 'package', name: packageBadgeName(packageBig) } as const;
-const newPkg = { kind: 'package', name: packageBadgeName(packageNew) } as const;
+const newPkg = { kind: 'package', name: packageBadgeName(newPackage) } as const;
 const usedByCard = findBadge('package', 'used-by-card');
 const usedBy = findBadge('package', 'used-by');
 const BUILDER = {

@@ -94,12 +94,15 @@ const LANGUAGE_SOURCES = [
   'components/summary-ranking/share-bar.tsx',
 ];
 
-/** Page 1 of a package ranking, as its layout and page draw it: rows, none yet, or `undefined` when not readable. */
+/**
+ * Page 1 of a package ranking, as its layout and page draw it: rows, none yet, or `undefined` when not readable (then
+ * its facts are not either, and the header names no date).
+ */
 const packageRanking = (order: PackageRankingOrder, rows: PackageRankRows | undefined) => () => (
   <PackageRankingFrame
     registry="npm"
     order={order}
-    downloadsThrough={order === 'downloads' ? packageRankingFacts.downloadsThrough : undefined}
+    downloadsThrough={order === 'downloads' && rows ? packageRankingFacts.downloadsThrough : undefined}
   >
     <PackageRankingScreen
       registry="npm"
@@ -107,7 +110,7 @@ const packageRanking = (order: PackageRankingOrder, rows: PackageRankRows | unde
       order={order}
       page={1}
       rows={rows}
-      facts={packageRankingFacts}
+      facts={rows ? packageRankingFacts : undefined}
     />
   </PackageRankingFrame>
 );

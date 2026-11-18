@@ -104,6 +104,12 @@ describe('a package ranking page', () => {
     expect(vi.mocked(cacheLife).mock.calls).toEqual([['minutes']]);
   });
 
+  it('is not indexed while nothing is ranked yet', async () => {
+    vi.mocked(fetchPackageRankings).mockResolvedValue([]);
+
+    expect((await generateMetadata(params())).robots).toEqual({ index: false });
+  });
+
   it('keeps its metadata as long as the page', async () => {
     await generateMetadata(params());
     expect(vi.mocked(cacheLife).mock.calls).toEqual([['hours']]);

@@ -30,7 +30,7 @@ const BEFORE = [
   { url: 'https://example.test/privacy', changeFrequency: 'monthly', priority: 0.2 },
 ];
 
-describe('the static sitemap and the Unsung heroes archive', () => {
+describe('the static sitemap, the Unsung heroes archive and how package rankings work', () => {
   beforeEach(() => {
     graphqlDirect.mockReset();
     resetPackagesGate();
@@ -42,12 +42,13 @@ describe('the static sitemap and the Unsung heroes archive', () => {
     expect(await staticSitemap()).toEqual(BEFORE);
   });
 
-  it('adds the archive after everything else once it is open to everyone', async () => {
+  it('adds the archive and the package methodology after everything else once they are open to everyone', async () => {
     graphqlDirect.mockResolvedValue(gate(true));
 
     expect(await staticSitemap()).toEqual([
       ...BEFORE,
       { url: 'https://example.test/unsung-heroes', changeFrequency: 'weekly', priority: 0.6 },
+      { url: 'https://example.test/methodology/packages', changeFrequency: 'monthly', priority: 0.6 },
     ]);
   });
 
@@ -61,7 +62,7 @@ describe('the static sitemap and the Unsung heroes archive', () => {
     graphqlDirect.mockResolvedValue(gate(true));
 
     for (let request = 0; request < 5; request++) {
-      expect(await staticSitemap()).toHaveLength(BEFORE.length + 1);
+      expect(await staticSitemap()).toHaveLength(BEFORE.length + 2);
     }
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
   });

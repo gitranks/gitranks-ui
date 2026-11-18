@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 
 import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
+import { SOCIAL_CARD_SIZE, socialCardPath } from '@/badge/v3/links';
 import type { PackageDependent, PackagePage } from '@/graphql/package-page';
 import { clipText } from '@/lib/seo/clip-text';
 import { buildRankingItemList } from '@/lib/seo/json-ld';
-import { pageMetadata } from '@/lib/seo/page-metadata';
+import { type PreviewImage, pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 import { packagePath, packageRankingPath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
@@ -89,6 +90,17 @@ function buildApplication(pkg: PackagePage, url: string) {
   };
 }
 
+/** The link preview: the package's card drawn at 1200×630, which every read package has. */
+function previewImages(name: string): PreviewImage[] {
+  return [
+    {
+      url: absoluteUrl(socialCardPath({ kind: 'package', registry: 'npm', name })),
+      ...SOCIAL_CARD_SIZE,
+      alt: `${name} on GitRanks: npm package dependents, downloads and ranks`,
+    },
+  ];
+}
+
 type SEO = { metadata: Metadata; jsonLd: object[] };
 
 /** A page kept out of search engines, with no structured data: not read yet, or no package data now. */
@@ -130,7 +142,7 @@ export function buildPackageSEO(
 
   return {
     metadata: {
-      ...pageMetadata({ title, description, path }),
+      ...pageMetadata({ title, description, path, images: previewImages(pkg.name) }),
       robots: pkg.dependentsCount > 0 && rows.length > 0 ? INDEXED : NOT_INDEXED,
     },
     jsonLd: [

@@ -38,6 +38,7 @@ import {
 } from '@/lib/follow/follow-copy';
 import { EMAIL_MAX_LENGTH, isEmailShape } from '@/lib/follow/follow-request';
 import { activeFollowsOf, followsAll, sameEvents, startingEvents, withChanged } from '@/lib/follow/follow-state';
+import { LINK_PAGES } from '@/lib/link-token/link-token';
 
 export type FollowDialogProps = {
   open: boolean;
@@ -59,7 +60,8 @@ const CHANNEL_ICONS: Record<FollowChannel, ReactNode> = {
   whatsapp: <MessageCircle aria-hidden className="size-4" />,
 };
 
-const SETTINGS_PATH = '/following';
+/** Where Settings in the small print goes: the email settings page. */
+const SETTINGS_PATH = LINK_PAGES.settings;
 
 type Loaded = { ok: true; data: FollowChannels } | { ok: false; failure: FollowFailure } | null;
 

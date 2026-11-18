@@ -123,6 +123,7 @@ describe('the follow API calls', () => {
       events: ALL,
       channels: ['EMAIL', 'TELEGRAM'],
       email: 'me@example.com',
+      manageToken: null,
       visitorAddress: '203.0.113.7',
     });
     expect(read).toMatchObject({
@@ -135,6 +136,18 @@ describe('the follow API calls', () => {
         ],
       },
     });
+  });
+
+  it('pass the key of an address’s settings with a press when the route has one', async () => {
+    answer({ data: { followPackages: { refusal: null, notHeld: [], results: [] } } });
+    const key = 'k'.repeat(43);
+    await startFollow(
+      visitor,
+      { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'], email: 'me@example.com' },
+      key,
+    );
+    expect(sent().body.query).toContain('manageToken: $manageToken');
+    expect(sent().body.variables).toMatchObject({ manageToken: key });
   });
 
   it('read a refusal and the packages GitRanks does not hold', async () => {

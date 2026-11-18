@@ -139,10 +139,14 @@ export async function readFollowState(
   return follows ? { ok: true, data: follows.map(rowOf) } : CLOSED;
 }
 
-/** One press of Follow: every package on every channel named. */
+/**
+ * One press of Follow: every package on every channel named. `manageToken` is the key of an address's email settings,
+ * read by the route from the settings link's cookie: with it, an email follow at that confirmed address starts at once.
+ */
 export async function startFollow(
   caller: FollowCaller,
   body: FollowStartBody,
+  manageToken: string | null = null,
 ): Promise<FollowAnswer<FollowStartAnswer>> {
   const answer = await ask(
     FollowPackagesDocument,
@@ -151,6 +155,7 @@ export async function startFollow(
       events: body.events,
       channels: body.channels.map((channel) => channel.toUpperCase()),
       email: body.email ?? null,
+      manageToken,
       visitorAddress: caller.visitorAddress ?? null,
     },
     caller,

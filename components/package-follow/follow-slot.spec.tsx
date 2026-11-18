@@ -1,4 +1,7 @@
 // @vitest-environment jsdom
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +18,7 @@ vi.mock('next-auth/react', () => ({ useSession: () => session.current }));
 vi.mock('@/lib/packages/packages-open', () => ({ usePackagesOpen: () => gate.open }));
 
 const { FollowSlot } = await import('./follow-slot');
+const { LINK_PAGES } = await import('@/lib/link-token/link-token');
 
 const ALL = { notable: true, digest: true, milestones: true };
 const one: FollowSlotProps['packages'] = [{ registry: 'npm', name: 'react-resize-detector' }];
@@ -147,6 +151,15 @@ describe('FollowSlot', () => {
       expect(row('telegram')?.textContent).toContain('Not connected');
       // A closed channel is not drawn.
       expect(row('whatsapp')).toBeNull();
+    });
+
+    it('links Settings to the email settings page, which the site has', async () => {
+      await render();
+      await openDialog();
+
+      const settings = button('Settings', dialog() ?? document.body) as HTMLAnchorElement;
+      expect(settings.getAttribute('href')).toBe(LINK_PAGES.settings);
+      expect(existsSync(join(process.cwd(), 'app', LINK_PAGES.settings, 'page.tsx'))).toBe(true);
     });
 
     it('sends a visitor’s email follow and asks them to check their inbox', async () => {

@@ -63,6 +63,7 @@ export const FollowPackagesDocument = doc<
     events: ApiEvents;
     channels: string[];
     email: string | null;
+    manageToken: string | null;
     visitorAddress: string | null;
   }
 >(
@@ -71,6 +72,7 @@ export const FollowPackagesDocument = doc<
     $events: FollowEventSwitchesInput!
     $channels: [FollowChannelName!]!
     $email: String
+    $manageToken: String
     $visitorAddress: String
   ) {
     followPackages(
@@ -78,6 +80,7 @@ export const FollowPackagesDocument = doc<
       events: $events
       channels: $channels
       email: $email
+      manageToken: $manageToken
       visitorAddress: $visitorAddress
     ) {
       refusal

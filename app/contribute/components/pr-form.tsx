@@ -82,6 +82,10 @@ export type PrFormProps = {
   patch?: string | null;
   /** The description's pane it opens on; absent: Write. */
   defaultPane?: Pane;
+  /** The PR can have a public timeline for this viewer: the checkbox shows, ticked. */
+  timelineEligible?: boolean;
+  /** The footer the ticked checkbox gives (its brand words link the timeline); null or absent: `footer` either way. */
+  footerTimeline?: string | null;
 };
 
 type Pane = 'write' | 'preview';
@@ -256,6 +260,8 @@ export function PrForm({
   conventions = null,
   patch = null,
   defaultPane = 'write',
+  timelineEligible = false,
+  footerTimeline = null,
 }: PrFormProps) {
   const router = useRouter();
   const actions = useSessionActions();
@@ -264,6 +270,8 @@ export function PrForm({
   const [body, setBody] = useState(defaultBody);
   const [pane, setPane] = useState<Pane>(defaultPane);
   const [dco, setDco] = useState(false);
+  /** "Show how this PR was made": on by default (PR timelines), sent only where it shows. */
+  const [timeline, setTimeline] = useState(true);
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** On the way to GitHub, or back from it with the pull request opening. */
@@ -283,7 +291,9 @@ export function PrForm({
   }, [confirm]);
 
   const standing = dcoMode === 'STANDING';
-  const tail = footer ? footerPreviewOf(footer, body) : { text: prFooterText(login), sentence: false };
+  const shownFooter = timelineEligible && timeline && footerTimeline ? footerTimeline : footer;
+  const tail = shownFooter ? footerPreviewOf(shownFooter, body) : { text: prFooterText(login), sentence: false };
+  const timelineSent = timelineEligible ? { timeline } : {};
   const titleMissing = !title.trim();
   const signOff = signOffOf(dcoRequired, dcoMode, dco);
   // A repo that checks every commit fails an unsigned PR: the tick comes first (or Discard).
@@ -358,9 +368,31 @@ export function PrForm({
             ),
           };
 
+  const timelineRow: NeedRow | null = timelineEligible
+    ? {
+        key: 'timeline',
+        state: timeline ? 'ok' : 'info',
+        attrs: { 'data-timeline': timeline ? 'on' : 'off' },
+        label: 'Show how this PR was made: a public page with the timeline of this work.',
+        labelFor: `${id}-timeline`,
+        control: (
+          <Checkbox
+            id={`${id}-timeline`}
+            checked={timeline}
+            onCheckedChange={(checked) => setTimeline(checked === true)}
+            aria-describedby={`${id}-timeline-explained`}
+            className="mt-0.5"
+          />
+        ),
+        detailId: `${id}-timeline-explained`,
+        detail: 'No conversation, no costs. You can hide it at any time.',
+      }
+    : null;
+
   const rows: NeedRow[] = [
     ...(titleNeed ? [rowOf(titleNeed)] : []),
     ...(dcoRow ? [dcoRow] : []),
+    ...(timelineRow ? [timelineRow] : []),
     ...needs.filter((item) => item.key !== 'title').map(rowOf),
     {
       key: 'coauthor',
@@ -382,7 +414,7 @@ export function PrForm({
   ];
 
   /** Sends the approval through the session's actions (or on its own outside one); `then` once it went through. */
-  const send = (approval: { title: string; body: string; dco: boolean }, then: () => void) => {
+  const send = (approval: { title: string; body: string; dco: boolean; timeline?: boolean }, then: () => void) => {
     let ok = false;
     const call = async () => {
       const result = await approveAttempt({ id: attemptId, ...approval });
@@ -404,7 +436,7 @@ export function PrForm({
   const approve = () =>
     startTransition(async () => {
       setError(null);
-      await send({ title, body, dco: signOff }, () => {
+      await send({ title, body, dco: signOff, ...timelineSent }, () => {
         approved.current = true;
         setConfirm(false);
         scrollToProgress();
@@ -415,7 +447,7 @@ export function PrForm({
   const allowAndOpen = () => {
     setError(null);
     const nonce = nonceOf();
-    if (!savePendingApproval(tabStoreOf(window), { attemptId, title, body, dco: signOff, nonce })) {
+    if (!savePendingApproval(tabStoreOf(window), { attemptId, title, body, dco: signOff, nonce, ...timelineSent })) {
       fail('This browser keeps nothing for the way back. Allow GitHub access in Settings, then submit here.');
       return;
     }
@@ -444,9 +476,11 @@ export function PrForm({
     setTitle(approval.title);
     setBody(approval.body);
     setDco(approval.dco);
+    if (typeof approval.timeline === 'boolean') setTimeline(approval.timeline);
     setHandoff('opening');
     // The edits stay in the form's state: a refusal or a failed send gives the form back as the user left it.
-    void send({ title: approval.title, body: approval.body, dco: approval.dco }, () => {
+    const kept = typeof approval.timeline === 'boolean' ? { timeline: approval.timeline } : {};
+    void send({ title: approval.title, body: approval.body, dco: approval.dco, ...kept }, () => {
       scrollToProgress();
       focusProgress();
     }).then((ok) => {

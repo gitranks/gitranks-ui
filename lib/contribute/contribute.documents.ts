@@ -546,6 +546,23 @@ export const ContributeAttemptDisclosureDocument = doc<
   contributeAttempt(id: $id) { attemptId prFooter prCoAuthored }
 }`);
 
+/**
+ * A first attempt's public timeline: whether its PR can have one for the viewer and its switch, and the footer the
+ * approval's checkbox gives while timelines are public. Read on its own, as the fields above.
+ */
+export const ContributeAttemptTimelineDocument = doc<
+  {
+    contributeAttempt: {
+      attemptId: string;
+      prFooterTimeline: string | null;
+      timeline: { eligible: boolean; shown: boolean | null } | null;
+    } | null;
+  },
+  { id: string }
+>(`query ContributeAttemptTimeline($id: ID!) {
+  contributeAttempt(id: $id) { attemptId prFooterTimeline timeline { eligible shown } }
+}`);
+
 /** A no-go at the check's limit: read on its own, as the field above. */
 export const ContributeAttemptCheckStopDocument = doc<
   { contributeAttempt: { attemptId: string; checkLimit: ContributeCheckLimitView | null } | null },
@@ -845,6 +862,14 @@ export const ApproveAttemptDocument = doc<
   { id: string; title: string; body: string; dco: boolean }
 >(`mutation ApproveAttempt($id: ID!, $title: String!, $body: String!, $dco: Boolean!) {
   approveAttempt(id: $id, title: $title, body: $body, dco: $dco) { ${ATTEMPT} }
+}`);
+
+/** The approval with the PR timeline's checkbox: sent only when the form showed it. */
+export const ApproveAttemptWithTimelineDocument = doc<
+  { approveAttempt: ContributeAttempt },
+  { id: string; title: string; body: string; dco: boolean; timeline: boolean }
+>(`mutation ApproveAttemptWithTimeline($id: ID!, $title: String!, $body: String!, $dco: Boolean!, $timeline: Boolean) {
+  approveAttempt(id: $id, title: $title, body: $body, dco: $dco, timeline: $timeline) { ${ATTEMPT} }
 }`);
 
 export const RetryAttemptDocument = doc<{ retryAttempt: ContributeAttempt }, { id: string; note: string | null }>(

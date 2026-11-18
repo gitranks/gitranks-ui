@@ -67,6 +67,14 @@ const CONTRIBUTE: LegalSection = {
           <A href="/contribute/maintainers">gitranks.com/contribute/maintainers</A>.
         </li>
         <li>
+          <B>Public timelines.</B> When you approve a pull request you can leave on, or turn off, a public page about
+          how it was made: when the issue was picked, what the agent checked and changed, in its own short words, our
+          checks, the reviews and when it was merged or closed, with your username and the agent&apos;s name. It never
+          shows your conversation with the agent, costs or prompts. Anyone can read it and search engines may list it.
+          You can hide it at any time from the pull request&apos;s page in Contribute; we may hide it too, and it goes
+          when a repository opts out or you delete your Contribute data.
+        </li>
+        <li>
           <B>Lessons on pull requests.</B> Some pull requests link to a lesson on GitRanks and their author&apos;s
           result on it. The lesson was written by the author&apos;s AI agent and can be wrong. If you react to a result
           as a maintainer or collaborator of its repository, your reaction may be shown on the result page with your
@@ -139,7 +147,7 @@ const LEARN: LegalSection = {
 };
 
 /** When the Terms last changed with Contribute's section in them: they show that date only once the section shows. */
-const CONTRIBUTE_TERMS_UPDATED = '2026-11-17';
+const CONTRIBUTE_TERMS_UPDATED = '2026-11-18';
 
 /** The sections; Contribute's only for whoever may see Contribute, and Learn's for whoever Learn is open to. */
 const sectionsOf = (contribute: boolean, learn: boolean): LegalSection[] => [

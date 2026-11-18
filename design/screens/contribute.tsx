@@ -27,6 +27,7 @@ import { OverviewScreen, overviewSectionsOf } from '@/app/contribute/components/
 import { HelpedSent, ReportSent } from '@/app/contribute/components/pr-feedback-forms';
 import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
 import { PrForm, type PrFormProps } from '@/app/contribute/components/pr-form';
+import { PrTimelineScreen } from '@/app/contribute/components/pr-timeline-view';
 import { MorePages } from '@/app/contribute/components/public-pages';
 import { RulesOpen } from '@/app/contribute/components/repo-rules';
 import { prFormPropsOf, ReviewScreen } from '@/app/contribute/components/review-view';
@@ -74,6 +75,14 @@ import {
   signal,
 } from '@/lib/contribute/__fixtures__/needs-you';
 import {
+  autopilotTimeline,
+  closedTimeline,
+  mergedTimeline,
+  openTimeline,
+  ownAgentTimeline,
+  stoppedTimeline,
+} from '@/lib/contribute/__fixtures__/pr-timeline';
+import {
   attemptNoRules,
   attemptRules,
   issueRules,
@@ -95,6 +104,7 @@ import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { NeedsYouRead } from '@/lib/contribute/needs-you';
 import { type PrFeedbackFlow, prUrlOf } from '@/lib/contribute/pr-feedback';
 import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
+import type { PrTimeline } from '@/lib/contribute/pr-timeline.types';
 import { runsQueryOf } from '@/lib/contribute/runs';
 
 /** A made-up token of the real shape, as the connect page shows it once. */
@@ -451,6 +461,15 @@ const ledgerPage = (view: typeof ledger) => (
     <LedgerScreen ledger={view} />
   </>
 );
+
+/** A pull request's public timeline as its page draws it: the site header, no Contribute tabs. */
+const prTimelinePage = (timeline: PrTimeline) => (
+  <>
+    <Header section="contribute" />
+    <PrTimelineScreen timeline={timeline} />
+  </>
+);
+const PR_TIMELINE_PATH = '/contribute/pr/driftwood-js/driftwood/1419';
 
 /** A page open to everyone: the site header with no tabs, as a visitor sees it. */
 const publicPage = (page: ReactNode) => (
@@ -1876,6 +1895,76 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         width: 390,
         height: 1500,
         render: () => reportPage(found(), 'helped', { likes: ['SOLVED_WELL'] }),
+      },
+    ],
+  },
+  {
+    id: 'contribute-pr-timeline',
+    title: 'Pull request timeline',
+    area: 'contribute',
+    route: '/contribute/pr/[owner]/[repo]/[number]',
+    sources: [
+      'app/(pr-timeline)/contribute/pr/[owner]/[repo]/[number]/page.tsx',
+      'app/contribute/components/pr-timeline-view.tsx',
+      'lib/contribute/pr-timeline-words.ts',
+    ],
+    states: [
+      {
+        id: 'merged',
+        title: 'Merged after one review round',
+        path: PR_TIMELINE_PATH,
+        signedOut: true,
+        height: 1500,
+        render: () => prTimelinePage(mergedTimeline),
+      },
+      {
+        id: 'open',
+        title: 'Open',
+        path: PR_TIMELINE_PATH,
+        signedOut: true,
+        height: 1200,
+        render: () => prTimelinePage(openTimeline),
+      },
+      {
+        id: 'closed',
+        title: 'Closed by a maintainer',
+        path: PR_TIMELINE_PATH,
+        signedOut: true,
+        height: 1250,
+        render: () => prTimelinePage(closedTimeline),
+      },
+      {
+        id: 'stopped',
+        title: 'A maintainer stopped GitRanks work',
+        path: PR_TIMELINE_PATH,
+        signedOut: true,
+        height: 1250,
+        render: () => prTimelinePage(stoppedTimeline),
+      },
+      {
+        id: 'own-agent',
+        title: 'The contributor’s own agent',
+        path: PR_TIMELINE_PATH,
+        signedOut: true,
+        height: 1150,
+        render: () => prTimelinePage(ownAgentTimeline),
+      },
+      {
+        id: 'autopilot',
+        title: 'Autopilot, some checks failed',
+        path: PR_TIMELINE_PATH,
+        signedOut: true,
+        height: 1200,
+        render: () => prTimelinePage(autopilotTimeline),
+      },
+      {
+        id: 'phone',
+        title: 'Merged · phone',
+        path: PR_TIMELINE_PATH,
+        signedOut: true,
+        width: 390,
+        height: 3000,
+        render: () => prTimelinePage(mergedTimeline),
       },
     ],
   },

@@ -17,6 +17,14 @@ vi.mock('./lib/contribute/preview-gate', () => ({
 }));
 const { ledgerOpen } = vi.hoisted(() => ({ ledgerOpen: vi.fn(async () => false) }));
 vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: ledgerOpen }));
+const { timelineOpen, timelineGate } = vi.hoisted(() => ({
+  timelineOpen: vi.fn(async () => false),
+  timelineGate: vi.fn(async (_pr: unknown): Promise<unknown> => ({ kind: 'page', partial: false })),
+}));
+vi.mock('./lib/contribute/pr-timeline-gate', () => ({
+  contributePrTimelineOpen: timelineOpen,
+  prTimelineGateOf: timelineGate,
+}));
 const { lessonGate } = vi.hoisted(() => ({
   lessonGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
@@ -60,6 +68,10 @@ describe('proxy', () => {
     open.mockResolvedValue(false);
     ledgerOpen.mockReset();
     ledgerOpen.mockResolvedValue(false);
+    timelineOpen.mockReset();
+    timelineOpen.mockResolvedValue(false);
+    timelineGate.mockReset();
+    timelineGate.mockResolvedValue({ kind: 'page', partial: false });
     lessonGate.mockReset();
     lessonGate.mockResolvedValue({ kind: 'page' });
     packagesPublic.mockReset();
@@ -463,6 +475,66 @@ describe('proxy', () => {
       expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
       expect(withSession).toHaveBeenCalledOnce();
       expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+    });
+
+    describe('pull request timelines (their own switch)', () => {
+      const PAGE = '/contribute/pr/acme/widgets/42';
+
+      it('before they are public: a visitor without a session gets the 404 and the API is not asked', async () => {
+        for (const path of [PAGE, `${PAGE}/timeline.md`]) {
+          const response = await proxy(request(undefined, path), event);
+          expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+          expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        }
+        expect(timelineGate).not.toHaveBeenCalled();
+        expect(maySeeContribute).not.toHaveBeenCalled();
+      });
+
+      it('before they are public: a signed-in visitor goes to the per-request page, never cached', async () => {
+        const response = await proxy(request('authjs.session-token=t', PAGE), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/pr-timeline-preview/acme/widgets/42',
+        );
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        const twin = await proxy(request('authjs.session-token=t', `${PAGE}/timeline.md`), event);
+        expect(twin?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/pr-timeline-preview/acme/widgets/42/timeline.md',
+        );
+      });
+
+      it('public: a shown page goes on, signed out, past the Contribute gate', async () => {
+        timelineOpen.mockResolvedValue(true);
+        const response = await proxy(request(undefined, PAGE), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(response?.status).toBe(200);
+        expect(timelineGate).toHaveBeenCalledWith({ nameWithOwner: 'acme/widgets', number: 42 });
+        expect(maySeeContribute).not.toHaveBeenCalled();
+      });
+
+      it('public: a missing page is a 404, a moved one a 307 to its address now, neither kept', async () => {
+        timelineOpen.mockResolvedValue(true);
+        timelineGate.mockResolvedValueOnce({ kind: 'missing' });
+        const missing = await proxy(request(undefined, PAGE), event);
+        expect(missing?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+        expect(missing?.headers.get('cache-control')).toBe('private, no-store');
+        timelineGate.mockResolvedValueOnce({ kind: 'redirect', path: '/contribute/pr/acme/gadgets/42' });
+        const moved = await proxy(request(undefined, `${PAGE}/timeline.md`), event);
+        expect(moved?.status).toBe(307);
+        expect(moved?.headers.get('location')).toBe('https://gitranks.com/contribute/pr/acme/gadgets/42/timeline.md');
+      });
+
+      it('the per-request page is never reached by its own address', async () => {
+        timelineOpen.mockResolvedValue(true);
+        const response = await proxy(request('authjs.session-token=t', '/pr-timeline-preview/acme/widgets/42'), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+      });
+
+      it('the short address skips every gate: its route handler answers', async () => {
+        const response = await proxy(request(undefined, '/contribute/pr/6728f0c2a1b2c3d4e5f60718'), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(maySeeContribute).not.toHaveBeenCalled();
+        expect(timelineGate).not.toHaveBeenCalled();
+      });
     });
 
     describe('the ledger (its own switch)', () => {

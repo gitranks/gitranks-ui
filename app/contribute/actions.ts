@@ -1,11 +1,14 @@
 'use server';
 
+import { revalidateTag } from 'next/cache';
+
 import { agentConnectedOf } from '@/lib/contribute/agent-connect';
 import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/contribute/attempt-format';
 import { viewerEmail, viewerLogin } from '@/lib/contribute/contribute.data';
 import {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
+  ApproveAttemptWithTimelineDocument,
   ApproveContributeOAuthDocument,
   ApproveContributeProofDocument,
   ApproveFollowUpDocument,
@@ -116,7 +119,9 @@ import {
   type ContributePrFixKind,
   PR_FIX_KINDS,
 } from '@/lib/contribute/pr-conventions';
-import { objectIdOf } from '@/lib/contribute/pr-feedback';
+import { objectIdOf, parsePrLink } from '@/lib/contribute/pr-feedback';
+import { prTimelineTagOf } from '@/lib/contribute/pr-timeline.data';
+import { SetPrTimelineDocument } from '@/lib/contribute/pr-timeline.documents';
 import { PROOF_NOTE_MAX, PROOF_REPLY_MAX } from '@/lib/contribute/proof';
 import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -299,7 +304,14 @@ export async function readIssuesPage(
   return run(ContributeIssuesDocument, variables, (data) => data.contributeIssues);
 }
 
-export type ApproveAttemptInput = { id: string; title: string; body: string; dco: boolean };
+export type ApproveAttemptInput = {
+  id: string;
+  title: string;
+  body: string;
+  dco: boolean;
+  /** The PR timeline's checkbox, only when the form showed it. */
+  timeline?: boolean;
+};
 
 /** Approves an attempt in review with the pull request's title and body as edited: the submission starts. */
 export async function approveAttempt(input: ApproveAttemptInput): Promise<ContributeActionResult<ContributeAttempt>> {
@@ -316,11 +328,15 @@ export async function approveAttempt(input: ApproveAttemptInput): Promise<Contri
       message: `Keep the description under ${PR_BODY_MAX.toLocaleString('en-US')} characters.`,
     };
   }
-  return run(
-    ApproveAttemptDocument,
-    { id: String(input.id), title, body, dco: input.dco === true },
-    (data) => data.approveAttempt,
-  );
+  const approval = { id: String(input.id), title, body, dco: input.dco === true };
+  if (typeof input.timeline === 'boolean') {
+    return run(
+      ApproveAttemptWithTimelineDocument,
+      { ...approval, timeline: input.timeline },
+      (data) => data.approveAttempt,
+    );
+  }
+  return run(ApproveAttemptDocument, approval, (data) => data.approveAttempt);
 }
 
 /**
@@ -359,6 +375,26 @@ export async function retryAttempt(id: string, note?: string): Promise<Contribut
     };
   }
   return run(RetryAttemptDocument, { id: String(id), note: text || null }, (data) => data.retryAttempt);
+}
+
+/**
+ * Shows or hides the public timeline of the viewer's pull request (any attempt of it). A Hide takes the cached page
+ * down at once (its tag expires now, not after one more serving); the edge keeps its copy a few minutes more.
+ */
+export async function setPrTimeline(input: {
+  attemptId: string;
+  shown: boolean;
+  nameWithOwner: string;
+  number: number;
+}): Promise<ContributeActionResult<{ attemptId: string; shown: boolean }>> {
+  const result = await run(
+    SetPrTimelineDocument,
+    { attemptId: String(input.attemptId), shown: input.shown === true },
+    (data) => data.setContributePrTimeline,
+  );
+  const pr = parsePrLink(`${input.nameWithOwner}#${input.number}`);
+  if (result.ok && pr) revalidateTag(prTimelineTagOf(pr), { expire: 0 });
+  return result;
 }
 
 /** Discards an attempt in review (or queued): its issue goes back to the pool. */

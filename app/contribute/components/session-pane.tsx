@@ -13,6 +13,7 @@ import {
 import { CheckStatusNote } from './check-status-note';
 import { DiffViewer } from './diff-viewer';
 import { PrForm, type PrFormProps } from './pr-form';
+import { PrTimelineLine } from './pr-timeline-line';
 import { ReviewComments } from './review-comments';
 import { SessionActionsProvider, type SessionActionsSeed } from './session-actions';
 import { SessionHead } from './session-head';
@@ -79,6 +80,9 @@ export const prFormPropsOf = (view: ContributeView, attempt: ContributeAttemptDe
   grantConnected: view.grant?.connected === true,
   conventions: attempt.conventions,
   patch: attempt.patch,
+  // The PR timeline's checkbox: a first attempt's first approval only.
+  timelineEligible: attempt.kind !== 'FOLLOW_UP' && !attempt.approval && attempt.timeline?.eligible === true,
+  footerTimeline: attempt.prFooterTimeline ?? null,
 });
 
 /** What the details' Changes tab says when the session has no change to show. */
@@ -210,6 +214,14 @@ function SessionDetails({
       <AgentDidPanel attempt={attempt} />
       {/* In review the form holds the approved title and description already. */}
       {!followUp && attempt.approval && !inReview ? <ApprovalPanel attempt={attempt} /> : null}
+      {!followUp && attempt.pullRequest && attempt.nameWithOwner && attempt.timeline?.eligible ? (
+        <PrTimelineLine
+          attemptId={attempt.attemptId}
+          nameWithOwner={attempt.nameWithOwner}
+          number={attempt.pullRequest.number}
+          shown={attempt.timeline.shown}
+        />
+      ) : null}
       {inReview && !followUp ? (
         <SubmitPanel>
           <PrForm {...prFormPropsOf(view, attempt)} />

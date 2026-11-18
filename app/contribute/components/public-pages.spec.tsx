@@ -288,7 +288,7 @@ describe('the Terms', () => {
     const shown = text(renderToStaticMarkup(<TermsScreen contribute />));
     const hidden = text(renderToStaticMarkup(<TermsScreen contribute={false} />));
     expect(shown).toContain('GitRanks Contribute');
-    expect(shown).toContain('17 November 2026');
+    expect(shown).toContain('18 November 2026');
     expect(hidden).toContain('31 October 2026');
     expect(shown).toContain('not affiliated with or endorsed by Anthropic');
     expect(shown).toContain('gitranks.com/contribute/maintainers');
@@ -324,7 +324,7 @@ describe('the launch gate', () => {
     shown.mockResolvedValue(true);
     const open = renderToStaticMarkup(await LaunchedTerms());
     expect(open).toContain('id="contribute"');
-    expect(open).toContain('2026-11-17');
+    expect(open).toContain('2026-11-18');
     expect(open).toContain('data-scroll-to-hash');
 
     shown.mockResolvedValue(false);

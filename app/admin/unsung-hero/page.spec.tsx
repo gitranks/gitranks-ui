@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 
 describe('/admin/unsung-hero for anyone the API does not answer the board to', () => {
-  it('renders on request with no fallback shell, so its 404 is a real one', () => {
+  it('renders on request (the proxy gives a visitor without a session the 404 status)', () => {
     expect(instant).toBe(false);
   });
 

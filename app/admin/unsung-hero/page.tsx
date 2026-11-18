@@ -6,8 +6,9 @@ import { adminCaller, readAdminBoard } from './admin-api';
 import { AdminPanel } from './components/admin-panel';
 import { Header } from '@/components/header/header';
 
-// Rendered on request as a whole page before the response starts, with no fallback shell: anyone the API does not
-// answer the board to gets a real 404, and the page holds nothing of the board then.
+// Reads the session, so it renders on request. Behind the root layout's prerendered shell, its not-found comes after the
+// response started: a visitor without a session gets the real 404 from the proxy before this runs. To a signed-in
+// viewer the API does not answer the board to, the page holds nothing of the board, and Next marks it noindex.
 export const instant = false;
 
 /** The board, read once per request for the metadata and the page. */

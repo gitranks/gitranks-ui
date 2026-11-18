@@ -552,6 +552,32 @@ describe('proxy', () => {
   });
 
   describe('the admin pages', () => {
+    it.each(['/admin/unsung-hero', '/admin/unsung-hero/', '/admin', '/admin/anything'])(
+      '%s without a session: a real 404 nobody caches, asking nothing about the visitor',
+      async (path) => {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        expect(withSession).not.toHaveBeenCalled();
+      },
+    );
+
+    it('with only the session hint (signed out since): the same 404', async () => {
+      const response = await proxy(request('has-session=1', '/admin/unsung-hero'), event);
+      expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+    });
+
+    it('a signed-in visitor goes on to the page, which asks the API', async () => {
+      const response = await proxy(request('authjs.session-token=t', '/admin/unsung-hero'), event);
+      expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(withSession).toHaveBeenCalled();
+    });
+
+    it('a path that only starts with "admin" is not touched', async () => {
+      const response = await proxy(request(undefined, '/administrators'), event);
+      expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+    });
+
     it.each(['/admin/unsung-hero', '/admin/unsung-hero/', '/admin'])(
       '%s signed in: private, no-store, so the browser keeps no copy',
       async (path) => {

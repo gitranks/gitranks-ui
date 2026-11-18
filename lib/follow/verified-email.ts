@@ -3,8 +3,11 @@ import { accountEmailOf } from '@/lib/account-email';
 /** GitHub's list of the signed-in account's email addresses, each with whether GitHub has verified it. */
 export const GITHUB_EMAILS_URL = 'https://api.github.com/user/emails';
 
-/** The longest a sign-in waits on that list; past it, the session simply carries no verified address. */
-export const GITHUB_EMAILS_TIMEOUT_MS = 5_000;
+/**
+ * The longest a sign-in waits on that list, so a slow answer delays it by at most this; past it, the session simply
+ * carries no verified address.
+ */
+export const GITHUB_EMAILS_TIMEOUT_MS = 2_000;
 
 type GithubEmail = { email?: unknown; verified?: unknown };
 

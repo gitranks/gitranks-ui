@@ -168,6 +168,28 @@ describe('the Auth.js callbacks', () => {
       expect(token.verifiedEmail).toBeUndefined();
     });
 
+    it.each([
+      ['unset', [{ email: 'octo@example.com', verified: false }], 'octo@example.com', undefined],
+      ['set', [{ email: 'octo@example.com', verified: true }], undefined, 'octo@example.com'],
+    ])(
+      'is %s on the session a maintainers page sign-in keeps, from this sign-in’s read',
+      async (_, list, before, after) => {
+        emails(list);
+        const kept: JWT = {
+          ...fresh(),
+          githubLogin: 'octocat',
+          authMode: 'identity',
+          ...(before ? { verifiedEmail: before } : {}),
+        };
+        lightSignInSession.mockResolvedValueOnce(kept);
+
+        const token = await callbacks.jwt(signInWith('github-basic'));
+
+        expect(token).toMatchObject({ githubLogin: 'octocat', authMode: 'identity' });
+        expect(token.verifiedEmail).toBe(after);
+      },
+    );
+
     it('is not read again between sign-ins, nor given to the browser', async () => {
       const fetchMock = emails([]);
       const kept = {

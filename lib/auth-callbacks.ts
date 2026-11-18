@@ -57,7 +57,9 @@ export const createAuthCallbacks = ({
           authMode: 'identity',
         };
         // Started on the maintainers page, it keeps its GitHub token for that page alone, never in `session` below.
-        return lightSignInSession(identity, account);
+        // That sign-in may keep the session the person already had: this sign-in's read of the email replaces its own.
+        const signedIn = await lightSignInSession(identity, account);
+        return { ...signedIn, verifiedEmail };
       }
 
       // First-time login, save the `access_token`, its expiry and the `refresh_token`

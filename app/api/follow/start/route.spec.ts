@@ -61,21 +61,26 @@ describe('POST /api/follow/start', () => {
     );
   });
 
-  it('names the signed-in viewer from the session, whatever the body says', async () => {
-    sessionTokenOf.mockResolvedValue({
-      githubLogin: 'octocat',
-      email: 'octo@example.com',
-      verifiedEmail: 'octo@example.com',
-    });
+  it('names the viewer from the session alone, whatever the body says', async () => {
+    // A session whose email GitHub did not mark verified: the body cannot make it so.
+    sessionTokenOf.mockResolvedValue({ githubLogin: 'octocat', email: 'octo@example.com' });
     await call({ ...press, githubLogin: 'someone-else', accountEmailVerified: true });
-    expect(startFollow).toHaveBeenCalledWith(
+    expect(startFollow).toHaveBeenLastCalledWith(
       {
         githubLogin: 'octocat',
         accountEmail: 'octo@example.com',
-        accountEmailVerified: true,
+        accountEmailVerified: false,
         visitorAddress: '203.0.113.7',
       },
-      expect.not.objectContaining({ githubLogin: expect.anything() }),
+      { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'], email: 'me@example.com' },
+    );
+
+    // Signed out: a login in the body names nobody.
+    sessionTokenOf.mockResolvedValue(null);
+    await call({ ...press, githubLogin: 'octocat', accountEmail: 'octo@example.com', accountEmailVerified: true });
+    expect(startFollow).toHaveBeenLastCalledWith(
+      { accountEmailVerified: false, visitorAddress: '203.0.113.7' },
+      { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'], email: 'me@example.com' },
     );
   });
 

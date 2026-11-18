@@ -39,6 +39,14 @@ describe('POST /api/follow/change', () => {
     );
   });
 
+  it('answers the not-found answer to a viewer package pages are hidden from, asking nothing', async () => {
+    requestMaySeePackages.mockResolvedValue(false);
+    const response = await call({ followId: 'f1', remove: true });
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(changeFollow).not.toHaveBeenCalled();
+  });
+
   it('asks a visitor to sign in, and refuses another site and a body of another shape', async () => {
     expect((await call({ followId: 'f1', remove: true }, 'https://evil.example')).status).toBe(403);
     expect((await call({ followId: 'f1' })).status).toBe(400);

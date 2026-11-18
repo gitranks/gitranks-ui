@@ -11,8 +11,9 @@ export function RichText({ text }: { text: string }) {
     <>
       {codeSpansOf(text).map((part, index) =>
         part.code ? (
-          // Parts never move: the index is the part.
-          <code key={index} className="rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.85em]">
+          // Parts never move: the index is the part. Spaces in code mean something ('a  b' is not 'a b'): kept, and
+          // wrapped only where they are.
+          <code key={index} className="whitespace-break-spaces rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.85em]">
             {part.text}
           </code>
         ) : (

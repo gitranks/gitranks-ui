@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isPackagePath, packageCacheTag } from './package-paths';
+import { isPackagePath, packageCacheTag, packagePath } from './package-paths';
 
 describe('isPackagePath', () => {
   it.each([
@@ -55,5 +55,17 @@ describe('packageCacheTag', () => {
     expect(packageCacheTag('@types/node')).toBe('package:npm/@types/node');
     expect(packageCacheTag('JSONStream')).toBe(packageCacheTag('jsonstream'));
     expect(packageCacheTag("It's(OK)!*")).toBe("package:npm/it's(ok)!*");
+  });
+});
+
+describe('packagePath', () => {
+  it("is the package's page, a scope's @ written as it is", () => {
+    expect(packagePath('react')).toBe('/package/npm/react');
+    expect(packagePath('@types/node')).toBe('/package/npm/@types/node');
+    expect(packagePath("It's(OK)")).toBe("/package/npm/It's(OK)");
+  });
+
+  it('is a package path the proxy gates', () => {
+    expect(isPackagePath(packagePath('@nebula/ui'))).toBe(true);
   });
 });

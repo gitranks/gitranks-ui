@@ -1,3 +1,5 @@
+import type { Route } from 'next';
+
 import { REPO_TABS } from '@/lib/routing/ranking-routes';
 
 const SEP = '[/\\\\]+';
@@ -39,4 +41,13 @@ export function isPackagePath(pathname: string): boolean {
  */
 export function packageCacheTag(name: string) {
   return `package:npm/${name}`.toLowerCase();
+}
+
+/**
+ * An npm package's page: `/package/npm/react`, `/package/npm/@types/node`. Each part of the name is URL-safe already
+ * (see `isNpmPackageName`); the scope's `@` is written as it is.
+ */
+export function packagePath(name: string): Route {
+  const parts = name.split('/').map((part) => encodeURIComponent(part).replace(/^%40/, '@'));
+  return `/package/npm/${parts.join('/')}` as Route;
 }

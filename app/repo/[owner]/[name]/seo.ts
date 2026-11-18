@@ -122,16 +122,10 @@ function buildBreadcrumbs(repo: Repo, url: string) {
   };
 }
 
-/** Metadata for a repository page and the JSON-LD to render on it. */
-export function buildRepoSEO(repo: Repo): { metadata: Metadata; jsonLd: object[] } {
-  const ranked = isRepoRanked(repo);
-  const path = getRepoPath(repo.nameWithOwner);
-  const url = absoluteUrl(path);
-  const title = `${repo.nameWithOwner} - GitHub Repository Rank`;
-  const description = buildDescription(repo, ranked);
+/** The owner's avatar, which the page draws at its top, and the rank card when the repository has a rank. */
+export function repoImagesOf(repo: Pick<Repo, 'owner' | 'nameWithOwner' | 'rank'>, url: string): EntityImages {
   const rank = repo.rank?.s;
-  // The page draws the owner's avatar at its top.
-  const images: EntityImages = {
+  return {
     entityUrl: url,
     avatar: { url: absoluteUrl(avatarPath(repo.owner)), caption: repoOwnerAvatarAlt(repo.owner, repo.nameWithOwner) },
     card:
@@ -142,6 +136,16 @@ export function buildRepoSEO(repo: Repo): { metadata: Metadata; jsonLd: object[]
           }
         : null,
   };
+}
+
+/** Metadata for a repository page and the JSON-LD to render on it. */
+export function buildRepoSEO(repo: Repo): { metadata: Metadata; jsonLd: object[] } {
+  const ranked = isRepoRanked(repo);
+  const path = getRepoPath(repo.nameWithOwner);
+  const url = absoluteUrl(path);
+  const title = `${repo.nameWithOwner} - GitHub Repository Rank`;
+  const description = buildDescription(repo, ranked);
+  const images = repoImagesOf(repo, url);
 
   const metadata = pageMetadata({
     title,

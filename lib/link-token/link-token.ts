@@ -61,14 +61,28 @@ export const isLinkPagePath = (pathname: string) => LINK_PATH.test(pathname);
 export const LINK_PAGE_SOURCES = ['/follow/:path*', '/following', '/following/'] as const;
 
 /**
- * Where `/l/<kind>?t=<token>` sends the browser, and what it keeps: the token when it can be one, or nothing (and the
- * kind's cookie cleared, so an older link's token is not shown in its place). Null for a kind we do not have.
+ * The query a link's page is sent to when its link held no usable token: `?e=invalid`. It says only that, never
+ * anything of the token, so the page can tell a link that does not work from one whose cookie ran out.
+ */
+export const LINK_ERROR_PARAM = 'e';
+export const LINK_INVALID = 'invalid';
+
+/** Whether a page's `e` query says its link held no usable token. */
+export const isInvalidLinkQuery = (value: unknown) =>
+  value === LINK_INVALID || (Array.isArray(value) && value.includes(LINK_INVALID));
+
+/**
+ * Where `/l/<kind>?t=<token>` sends the browser, and what it keeps: the token when it can be one, and the clean page;
+ * or nothing (the kind's cookie cleared, so an older link's token is not shown in its place) and the page with
+ * `?e=invalid`. Null for a kind we do not have.
  */
 export function linkLandingOf(
   kindParam: unknown,
   tokenParam: unknown,
-): { page: (typeof LINK_PAGES)[LinkKind]; kind: LinkKind; token: string | null } | null {
+): { location: string; kind: LinkKind; token: string | null } | null {
   const kind = linkKindOf(kindParam);
   if (!kind) return null;
-  return { page: LINK_PAGES[kind], kind, token: isLinkToken(tokenParam) ? tokenParam : null };
+  const page = LINK_PAGES[kind];
+  if (!isLinkToken(tokenParam)) return { location: `${page}?${LINK_ERROR_PARAM}=${LINK_INVALID}`, kind, token: null };
+  return { location: page, kind, token: tokenParam };
 }

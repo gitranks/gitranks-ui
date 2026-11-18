@@ -62,6 +62,19 @@ describe('a link page on load', () => {
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
+  it('without the cookie, after a link that held no usable token (?e=invalid): the link does not work', async () => {
+    expect(await confirmPageState(true)).toEqual({ kind: 'unknown' });
+    expect(await unfollowPageState(true)).toEqual({ kind: 'unknown' });
+    expect(await settingsPageState(true)).toEqual({ kind: 'unknown' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('a cookie that is there wins over ?e=invalid', async () => {
+    cookies.values.set('gitranks-link-settings', MANAGE_TOKEN);
+    graphqlDirect.mockResolvedValue({ followingByToken: [subscriberOf()] });
+    expect(await settingsPageState(true)).toEqual({ kind: 'list', subscribers: [subscriberOf()] });
+  });
+
   it('a malformed cookie is no cookie', async () => {
     cookies.values.set('gitranks-link-confirm', 'not a token');
     expect(await confirmPageState()).toEqual({ kind: 'timed-out' });

@@ -50,11 +50,11 @@ describe('/l/<kind>, where a link in our email lands', () => {
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
-  it("without a usable token, clears the kind's cookie so an older link's is not shown", async () => {
-    for (const query of ['', '?t=short', `?t=${CONFIRM_TOKEN}%20x`]) {
+  it("without a usable token, clears the kind's cookie and says why in ?e=invalid, with nothing of the token", async () => {
+    for (const query of ['', '?t=short', `?t=${CONFIRM_TOKEN}%20x`, `?t=${CONFIRM_TOKEN.slice(0, 31)}`]) {
       const response = await land('confirm', query);
       expect(response.status).toBe(303);
-      expect(response.headers.get('location')).toBe('/follow/confirm');
+      expect(response.headers.get('location')).toBe('/follow/confirm?e=invalid');
       expect(response.headers.get('set-cookie')).toMatch(/gitranks-link-confirm=;.*Max-Age=0/i);
     }
   });

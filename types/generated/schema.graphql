@@ -4129,6 +4129,34 @@ type OrganizationBasic {
   starsNotCounted: StarsNotCounted
 }
 
+type PackageRankRow {
+  change: Float
+  description: String
+  name: String!
+  ownerAvatarUrl: String
+  previousRank: Int
+  rank: Int!
+  repo: Repo
+  repositoryName: String
+  value: Float!
+}
+
+type PackageRankingFacts {
+  dependentsReadAt: DateTime
+  ranked: Int!
+  ranksAt: DateTime
+}
+
+enum PackageRankingType {
+  DEPENDENTS
+  DEPENDENTS_STARS
+  DOWNLOADS
+}
+
+enum PackageRegistry {
+  NPM
+}
+
 type ProfileForSitemap {
   avatarUrl: String
   c: Int
@@ -4281,6 +4309,8 @@ type Query {
   orgSitemapParts: Int!
   organization(login: String!): Organization
   orgsForSitemap(part: Int!): [String!]!
+  packageRankingFacts(registry: PackageRegistry!): PackageRankingFacts
+  packageRankings(by: PackageRankingType!, limit: Int! = 100, offset: Int! = 0, registry: PackageRegistry!): [PackageRankRow!]
   profilesForSitemap: [ProfileForSitemap!]!
   rankTiersByName(name: String!): RankTier
   repo(name: String!, owner: String!): Repo

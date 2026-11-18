@@ -5,6 +5,7 @@ import { RankingTypeClient } from '@/types/ranking.types';
 import { countryInSentence } from '@/utils/country-in-sentence';
 import { formatSummaryDate } from '@/utils/format-summary-date';
 import { getLanguageRankingPath } from '@/utils/get-language-ranking-path';
+import { packagePath } from '@/utils/package-paths';
 
 /** Text, or a link. */
 export type StatsPart = string | { text: string; href: Route };
@@ -146,4 +147,73 @@ export function buildLanguageRankingStats({
   );
 
   return parts;
+}
+
+/** A package at the top of a package ranking, with its number in that ranking. */
+export type PackageRankingLeader = { name: string; value: number };
+
+type PackageRankingStatsInput = {
+  /** The registry, as written in text: `npm`. */
+  registry: string;
+  /** The registry's name in URLs: `npm`. */
+  registrySlug: string;
+  /** The ranking's metric in a sentence: "weekly downloads". */
+  metric: string;
+  /** The stars a repository needs for its use of a package to count. */
+  minStars: number;
+  /** How many packages are ranked, at the latest read; unknown when unset. */
+  ranked?: number | null;
+  /** When the dependents were last read, and when the ranks were last worked out, as written in text. */
+  readOn?: string | null;
+  ranksOn?: string | null;
+  leaders: PackageRankingLeader[];
+};
+
+const PACKAGE_METHODOLOGY: StatsPart = { text: 'How package rankings work', href: '/methodology/packages' as Route };
+
+/**
+ * Page-one facts for a package ranking, as sentences a reader can quote: how many packages are ranked, the top three,
+ * and what is counted, with the dates of the numbers. Facts without data are left out.
+ */
+export function buildPackageRankingStats({
+  registry,
+  registrySlug,
+  metric,
+  minStars,
+  ranked,
+  readOn,
+  ranksOn,
+  leaders,
+}: PackageRankingStatsInput): StatsPart[] {
+  const parts: StatsPart[] = [];
+
+  if (ranked) {
+    parts.push(
+      `At the latest monthly read, ${formatNumber(ranked)} ${registry} ${ranked === 1 ? 'package is' : 'packages are'} used directly by at least one repository with ${minStars}+ stars. `,
+    );
+  }
+
+  const top = leaders.slice(0, 3);
+
+  if (top.length) {
+    const lead = top.length === 1 ? 'the top package is ' : `the top ${top.length === 2 ? 'two' : 'three'} are `;
+    parts.push(
+      `By ${metric}, ${lead}`,
+      ...joinList(
+        top.map(({ name, value }) => [
+          { text: name, href: packagePath(name, registrySlug) },
+          ` (${formatNumber(Math.round(value))})`,
+        ]),
+      ),
+      '. ',
+    );
+  }
+
+  parts.push(`Only ${registry}, only direct dependents${readOn ? `, read ${readOn}` : ''}. `);
+
+  if (ranksOn) {
+    parts.push(`Ranks as of ${ranksOn}. `);
+  }
+
+  return [...parts, PACKAGE_METHODOLOGY, '.'];
 }

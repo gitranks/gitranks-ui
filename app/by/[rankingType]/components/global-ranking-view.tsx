@@ -5,7 +5,7 @@ import { Header } from '@/components/header/header';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { Page } from '@/components/page/page';
 import { Pagination } from '@/components/pagination/pagination';
-import { RankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
+import { DeveloperRankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
 import { RankingStats } from '@/components/ranking-stats/ranking-stats';
 import { buildRankingStats } from '@/components/ranking-stats/ranking-stats.utils';
 import { buildUserRankingItemList } from '@/components/ranking-table/ranking-item-list';
@@ -26,7 +26,7 @@ export const GlobalRankingFrame: FC<{ rankingType: RankingTypeClient; children: 
   <>
     <Header section="rankings" />
     <Page className="max-w-5xl gap-6">
-      <RankingHeaderSection rankingType={rankingType} />
+      <DeveloperRankingHeaderSection rankingType={rankingType} />
       {children}
     </Page>
   </>

@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 
 import { Header } from '@/components/header/header';
 import { Page } from '@/components/page/page';
-import { RankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
+import { DeveloperRankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
 import { fetchCountries } from '@/graphql/helpers/fetch-countries';
 import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { RankingTypeClient } from '@/types/ranking.types';
@@ -69,7 +69,7 @@ export default async function RankingListLayout({
     <>
       <Header section="rankings" />
       <Page className="max-w-5xl gap-6">
-        <RankingHeaderSection rankingType={rankingType} countryName={countryName} />
+        <DeveloperRankingHeaderSection rankingType={rankingType} countryName={countryName} />
         {children}
       </Page>
     </>

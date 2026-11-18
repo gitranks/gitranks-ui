@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), signOut: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/components/signin-button/signin-button', () => ({ default: () => <span data-sign-in-button /> }));
+const packagesOpen = vi.hoisted(() => ({ value: false }));
+vi.mock('@/lib/packages/packages-open', () => ({ usePackagesOpen: () => packagesOpen.value }));
 
 const { Header } = await import('./header');
 const { MainMenu } = await import('./components/main-menu');
@@ -30,6 +32,26 @@ describe('the main menu', () => {
     expect(html).toMatch(/<a [^>]*href="\/badge\/gallery">Badges<\/a>/);
     // Contribute is offered to everyone, in the server HTML.
     expect(html).toMatch(/<a [^>]*href="\/contribute"[^>]*>Contribute/);
+  });
+});
+
+describe('the Package Rankings menu entry', () => {
+  it('is not in the menu for a viewer package pages are not open to, nor while that is being asked', () => {
+    packagesOpen.value = false;
+    const html = renderToStaticMarkup(<MainMenu />);
+
+    expect(html).not.toContain('/packages/');
+    expect(html).not.toContain('Package Rankings');
+  });
+
+  it('comes after Repository Rankings for a viewer they are open to', () => {
+    packagesOpen.value = true;
+    const html = renderToStaticMarkup(<MainMenu />);
+    packagesOpen.value = false;
+
+    expect(html).toMatch(
+      /href="\/repos\/1".*Repository Rankings.*href="\/packages\/npm\/downloads\/1".*Package Rankings/s,
+    );
   });
 });
 

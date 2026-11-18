@@ -3,9 +3,11 @@ import type {
   CountryRankingsQuery,
   GlobalRankingsQuery,
   OrgRankingsQuery,
+  PackageRankingsQuery,
   RepoRankingsQuery,
 } from '@/types/generated/graphql';
 import { getRankingConfigByType } from '@/utils/get-ranking-config-by-type';
+import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
 type UserRows = GlobalRankingsQuery['globalRankings'] | CountryRankingsQuery['countryRankings'];
@@ -83,5 +85,19 @@ export function buildRepoRankingItemList(
           ]
         : [],
     ),
+  );
+}
+
+/** `ItemList` JSON-LD for the packages a `PackageRankingTable` shows, positioned by their rank. */
+export function buildPackageRankingItemList(
+  name: string,
+  path: string,
+  rows: NonNullable<PackageRankingsQuery['packageRankings']>,
+  registry = 'npm',
+) {
+  return buildRankingItemList(
+    name,
+    path,
+    rows.map((row) => ({ position: row.rank, name: row.name, path: packagePath(row.name, registry) })),
   );
 }

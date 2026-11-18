@@ -1,8 +1,7 @@
 'use client';
 
-import type { Route } from 'next';
 import Link from 'next/link';
-import { type FC, type ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FaRegBuilding, FaRegUser } from 'react-icons/fa';
 import { FaCode } from 'react-icons/fa6';
 import { GoRepo } from 'react-icons/go';
@@ -10,7 +9,9 @@ import { GrLocation } from 'react-icons/gr';
 
 import { ContributeMenuItem } from './contribute-menu-item';
 import { LearnMenuItem } from './learn-menu-item';
+import { ListItem } from './menu-list-item';
 import { mainMenuItemClass } from './menu-styles';
+import { PackageRankingsMenuItem } from './package-rankings-menu-item';
 import { PhoneMenu } from './phone-menu';
 import {
   NavigationMenuContent,
@@ -18,7 +19,6 @@ import {
   NavigationMenuLink,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
-import { cn } from '@/lib/utils';
 
 export type MenuSection = 'rankings' | 'badges' | 'contribute' | 'learn';
 
@@ -62,6 +62,7 @@ export function MainMenu({ className, section }: Readonly<{ className?: string; 
             <ListItem href="/repos/1">
               <GoRepo /> Repository Rankings
             </ListItem>
+            <PackageRankingsMenuItem />
           </ul>
         </NavigationMenuContent>
       </NavigationMenuItem>
@@ -78,28 +79,3 @@ export function MainMenu({ className, section }: Readonly<{ className?: string; 
     </PhoneMenu>
   );
 }
-
-type ListItemProps = {
-  className?: string;
-  href: string;
-  children: ReactNode;
-};
-
-const ListItem: FC<ListItemProps> = ({ className, children, href }) => {
-  return (
-    <li>
-      <NavigationMenuLink asChild>
-        <Link
-          className={cn(
-            'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
-            className,
-          )}
-          href={href as Route}
-          prefetch
-        >
-          <div className="flex gap-2 items-center">{children}</div>
-        </Link>
-      </NavigationMenuLink>
-    </li>
-  );
-};

@@ -41,6 +41,11 @@ const ROUTES = [
     module: () => import('@/app/repos/no-language/[page]/layout'),
     params: ['page'],
   },
+  {
+    segment: 'packages/[registry]/[by]/[page]',
+    module: () => import('@/app/packages/[registry]/[by]/[page]/layout'),
+    params: ['registry', 'by', 'page'],
+  },
 ];
 
 describe('routes whose missing pages answer 404', () => {

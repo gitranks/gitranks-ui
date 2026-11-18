@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { basename } from 'node:path';
 
 import type { EntityFacts } from '@/badge/v3/facts';
-import { type BadgeLoaders, getBadgeResponse, parseEntityRef } from '@/badge/v3/route';
+import { type BadgeLoaders, getBadgeResponse, parseEntityRef, parsePackageRef } from '@/badge/v3/route';
 import { entityNameOf } from '@/badge/v3/tiles';
 import type { EntityKind } from '@/badge/v3/types';
 import { SITE_URL } from '@/lib/seo/site';
@@ -37,6 +37,7 @@ const loaders: BadgeLoaders = {
   user: async (login) => findBadgeFacts('user', login),
   org: async (login) => findBadgeFacts('org', login),
   repo: async (owner, name) => findBadgeFacts('repo', `${owner}/${name}`),
+  package: async (name) => findBadgeFacts('package', `npm/${name}`),
 };
 
 /**
@@ -87,9 +88,13 @@ function avatarKey(url: URL): string | null {
 async function drawBadge(url: URL): Promise<string | null> {
   const [, , kind, ...rest] = url.pathname.split('/');
   const file = rest.pop();
-  if (!file || (kind !== 'user' && kind !== 'org' && kind !== 'repo')) return null;
+  if (!file || (kind !== 'user' && kind !== 'org' && kind !== 'repo' && kind !== 'package')) return null;
   const params = kind === 'repo' ? { owner: rest[0], name: rest[1] } : { login: rest[0] };
-  const response = await getBadgeResponse(parseEntityRef(kind, params), file, url.searchParams, loaders, new Date());
+  const ref =
+    kind === 'package'
+      ? parsePackageRef(rest[0], rest.slice(1).map(decodeURIComponent), url.pathname)
+      : parseEntityRef(kind, params);
+  const response = await getBadgeResponse(ref, file, url.searchParams, loaders, new Date());
   if (!response.ok) {
     throw new Error(
       `${url.pathname}: ${response.status} ${await response.text()}. Name its facts with withBadgeFacts (design/images.ts).`,

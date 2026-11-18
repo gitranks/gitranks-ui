@@ -4,6 +4,14 @@ import { CountryRankingScreen } from '@/app/countries/[orderBy]/[page]/component
 import { buildCountryRanking } from '@/app/countries/[orderBy]/[page]/country-ranking';
 import { LanguageRankingScreen } from '@/app/languages/[country]/[orderBy]/[page]/components/language-ranking-screen';
 import { buildLanguageRanking } from '@/app/languages/[country]/[orderBy]/[page]/language-ranking';
+import {
+  dependentsRanking,
+  dependentsStarsRanking,
+  downloadsRanking,
+  packageRankingFacts,
+} from '@/app/packages/__fixtures__/package-rankings';
+import { PackageRankingFrame, PackageRankingScreen } from '@/app/packages/components/package-ranking-view';
+import type { PackageRankingOrder } from '@/app/packages/package-rankings';
 import { repoRankingPage } from '@/app/repos/__fixtures__/repo-rankings';
 import { REPO_LANGUAGES_LINK, RepoRankingHeader } from '@/app/repos/components/repo-ranking-header';
 import { RepoRankingTable } from '@/app/repos/components/repo-ranking-table';
@@ -27,8 +35,10 @@ import {
   worldLanguagePage,
   worldLanguages,
 } from '@/components/summary-ranking/__fixtures__/summary-rankings';
+import type { PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
 import { CountrySummaryOrder, LanguageSummaryOrder } from '@/types/generated/graphql';
 import { RankingTypeClient } from '@/types/ranking.types';
+import { packageRankingPath } from '@/utils/package-paths';
 import { getRepoRankingPath } from '@/utils/repo-paths';
 
 const countryRanking = () => {
@@ -82,6 +92,36 @@ const LANGUAGE_SOURCES = [
   'app/languages/[country]/[orderBy]/[page]/components/language-ranking-screen.tsx',
   'app/languages/[country]/[orderBy]/[page]/components/language-scope-picker.tsx',
   'components/summary-ranking/share-bar.tsx',
+];
+
+/**
+ * Page 1 of a package ranking, as its layout and page draw it: rows, none yet, or `undefined` when not readable (then
+ * its facts are not either, and the header names no date).
+ */
+const packageRanking = (order: PackageRankingOrder, rows: PackageRankRows | undefined) => () => (
+  <PackageRankingFrame
+    registry="npm"
+    order={order}
+    downloadsThrough={order === 'downloads' && rows ? packageRankingFacts.downloadsThrough : undefined}
+  >
+    <PackageRankingScreen
+      registry="npm"
+      registryLabel="npm"
+      order={order}
+      page={1}
+      rows={rows}
+      facts={rows ? packageRankingFacts : undefined}
+    />
+  </PackageRankingFrame>
+);
+
+const PACKAGE_RANKING_SOURCES = [
+  'app/packages/[registry]/[by]/[page]/layout.tsx',
+  'app/packages/[registry]/[by]/[page]/page.tsx',
+  'app/packages/components/package-ranking-view.tsx',
+  'app/packages/components/package-ranking-table.tsx',
+  'app/packages/components/go-to-package-field.tsx',
+  'app/packages/components/package-beta-notice.tsx',
 ];
 
 export const RANKINGS_SCREENS: Screen[] = [
@@ -193,6 +233,64 @@ export const RANKINGS_SCREENS: Screen[] = [
         width: 390,
         height: 2000,
         render: languageRanking('Belgium'),
+      },
+    ],
+  },
+  {
+    id: 'package-ranking',
+    title: 'Package ranking',
+    area: 'rankings',
+    route: '/packages/[registry]/[by]/[page]',
+    sources: PACKAGE_RANKING_SOURCES,
+    states: [
+      {
+        id: 'downloads-1',
+        title: 'By downloads, page 1',
+        path: packageRankingPath('downloads'),
+        packagesOpen: true,
+        height: 1800,
+        render: packageRanking('downloads', downloadsRanking),
+      },
+      {
+        id: 'dependents-stars-1',
+        title: "By dependents' stars, page 1",
+        path: packageRankingPath('dependents-stars'),
+        packagesOpen: true,
+        height: 1200,
+        render: packageRanking('dependents-stars', dependentsStarsRanking),
+      },
+      {
+        id: 'dependents-1',
+        title: 'By dependents, page 1',
+        path: packageRankingPath('dependents'),
+        packagesOpen: true,
+        height: 1200,
+        render: packageRanking('dependents', dependentsRanking),
+      },
+      {
+        id: 'empty',
+        title: 'No package ranked yet',
+        path: packageRankingPath('downloads'),
+        packagesOpen: true,
+        height: 800,
+        render: packageRanking('downloads', []),
+      },
+      {
+        id: 'unavailable',
+        title: 'The ranking not available right now',
+        path: packageRankingPath('downloads'),
+        packagesOpen: true,
+        height: 800,
+        render: packageRanking('downloads', undefined),
+      },
+      {
+        id: 'downloads-1-phone',
+        title: 'By downloads, page 1 · phone',
+        path: packageRankingPath('downloads'),
+        packagesOpen: true,
+        width: 390,
+        height: 2400,
+        render: packageRanking('downloads', downloadsRanking),
       },
     ],
   },

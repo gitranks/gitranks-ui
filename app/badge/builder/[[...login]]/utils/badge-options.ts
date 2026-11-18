@@ -79,12 +79,19 @@ export const FORMAT_GROUPS: { format: BadgeFormat; name: string }[] = [
 export const segmentText = (segment: Segment | undefined | null) =>
   segment?.runs.map(({ text }) => text).join('') ?? '';
 
-/** What a shield says, in one line: "repo rank #41,206 · top 1%". */
+/** The site's name, as a shield's label may say it. */
+const SITE_NAME = 'GitRanks';
+
+/**
+ * What a shield says, in one line: "repo rank #41,206 · top 1%". A label that only names the site is left out
+ * ("GitRanks | Unsung hero · Nov 2026" reads "Unsung hero · Nov 2026"): the alt text names it already.
+ */
 export function shieldText(entity: EntityFacts, badge: BadgeDefinition, params: BadgeParams, now = new Date()) {
   const content = shieldContent(entity, badge, params, now);
   if (!content) return null;
   const extra = segmentText(content.extra);
-  return `${content.label} ${segmentText(content.value)}${extra ? ` · ${extra}` : ''}`;
+  const label = content.label === SITE_NAME ? '' : `${content.label} `;
+  return `${label}${segmentText(content.value)}${extra ? ` · ${extra}` : ''}`;
 }
 
 /** The entity's name as its URLs write it: a login, `owner/name`, or a package's `npm/<name>`. */

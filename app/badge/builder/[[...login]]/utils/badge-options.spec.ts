@@ -16,12 +16,14 @@ import {
 } from './badge-options';
 import { styleQuery } from './builder-state';
 import { badgeImageUrl, badgeLinkUrl, snippetOf } from './snippets';
-import { findBadge } from '@/badge/v3/catalogue';
+import { badgesOf, findBadge } from '@/badge/v3/catalogue';
 import {
   NOW,
   orgBig,
   orgUnranked,
+  packageBig,
   repoBig,
+  repoHero,
   repoMid,
   repoUnranked,
   userBig,
@@ -29,6 +31,8 @@ import {
   userSmall,
   userUnranked,
 } from '@/badge/v3/fixtures';
+import { resolveParams } from '@/badge/v3/params';
+import { shieldContent } from '@/badge/v3/shields';
 
 const badge = (kind: 'user' | 'org' | 'repo', id: string) => findBadge(kind, id)!;
 const ids = (entity: Parameters<typeof offeredBadges>[0]) => offeredBadges(entity, NOW).map(({ badge }) => badge.id);
@@ -189,6 +193,29 @@ describe('badgeAlt', () => {
     );
     expect(badgeAlt(repoBig, badge('repo', 'star-history'), {}, NOW)).toBe('nebula/ui on GitRanks: star history');
     expect(badgeAlt(userMid, badge('user', 'tier'), {}, NOW)).toMatch(/^octo-dev on GitRanks: gitranks \S+$/);
+  });
+
+  it('says the Unsung hero badge without naming the site twice', () => {
+    expect(badgeAlt(repoHero, badge('repo', 'unsung-hero'), {}, NOW)).toBe(
+      'nebula/ui on GitRanks: Unsung hero · Nov 2026',
+    );
+  });
+
+  it("keeps every other shield's label in its alt text", () => {
+    for (const entity of [repoHero, userBig, orgBig, packageBig]) {
+      const name =
+        entity.kind === 'package' ? entity.name : entity.kind === 'repo' ? entity.nameWithOwner : entity.login;
+      for (const each of badgesOf(entity.kind)) {
+        if (each.format !== 'shield' || each.id === 'contribute' || each.id === 'unsung-hero') continue;
+        const content = shieldContent(entity, each, resolveParams(each, new URLSearchParams()), NOW);
+        if (!content) continue;
+        const text = (segment: typeof content.value | undefined) => segment?.runs.map((run) => run.text).join('') ?? '';
+        const extra = text(content.extra);
+        expect(badgeAlt(entity, each, {}, NOW), `${entity.kind} ${each.id}`).toBe(
+          `${name} on GitRanks: ${content.label} ${text(content.value)}${extra ? ` · ${extra}` : ''}`,
+        );
+      }
+    }
   });
 });
 

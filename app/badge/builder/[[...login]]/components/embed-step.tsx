@@ -11,6 +11,7 @@ import { BadgeImage, usePageTheme } from './badge-image';
 import { DailyUpdatesCard } from './daily-updates-card';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
 import type { EntityFacts } from '@/badge/v3/facts';
+import { UNSUNG_HERO_BADGE } from '@/badge/v3/unsung-hero-badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SITE_URL } from '@/lib/seo/site';
@@ -96,7 +97,8 @@ export function EmbedStep({ headingRef, facts, badge, style, now, editHref, onEd
     onEdit();
   };
 
-  const dailyUpdates = facts.kind !== 'org' && badge.id !== 'contribute';
+  // Neither the Contribute badge nor the Unsung hero badge shows a number that changes day to day.
+  const dailyUpdates = facts.kind !== 'org' && badge.id !== 'contribute' && badge.id !== UNSUNG_HERO_BADGE;
 
   return (
     <>

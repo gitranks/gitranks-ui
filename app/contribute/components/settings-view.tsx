@@ -6,7 +6,7 @@ import { AutopilotSection } from './autopilot-section';
 import { ContributeNotices } from './contribute-notices';
 import { CycleSummary } from './cycle-summary';
 import { DeleteDataSection } from './delete-data-section';
-import { EmailSection, isShownEmail } from './email-section';
+import { EmailSection } from './email-section';
 import { PauseButton } from './pause-button';
 import { PreferencesSection } from './preferences-section';
 import { ReposAskLessNote } from './repo-rules';
@@ -180,7 +180,8 @@ export function SettingsScreen({
         </SettingsList>
       </SettingsGroup>
 
-      {isShownEmail(email) ? <EmailSection email={email} /> : null}
+      {/* Checked inline: a function from the client file can't be called here, on the server. */}
+      {email?.to ? <EmailSection email={{ ...email, to: email.to }} /> : null}
 
       <DeleteDataSection />
       <SettingsAnchors />

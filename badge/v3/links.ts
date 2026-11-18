@@ -7,13 +7,28 @@ import { UserRankProp } from '@/types/ranking.types';
  * without the drawing code.
  */
 
-/** The entity a badge URL names, by its stored spelling. */
-export type BadgeEntityPath = { kind: 'user' | 'org'; login: string } | { kind: 'repo'; nameWithOwner: string };
+/** The entity a badge URL names, by its stored spelling: a package by its registry and its registry name. */
+export type BadgeEntityPath =
+  | { kind: 'user' | 'org'; login: string }
+  | { kind: 'repo'; nameWithOwner: string }
+  | { kind: 'package'; registry: 'npm'; name: string };
 
-const segmentsOf = (entity: BadgeEntityPath) =>
-  (entity.kind === 'repo' ? entity.nameWithOwner.split('/') : [entity.login]).map(encodeURIComponent).join('/');
+/** A part of a package's name in a URL: encoded, with a scope's `@` kept as it is, so a badge has one address. */
+const packagePart = (part: string) => encodeURIComponent(part).replace(/^%40/, '@');
 
-/** `/badge/{user|org|repo}/{id}/{badge}.{svg|png}`, with the query, if any, in the order given. */
+/** The entity's part of a badge path: `torvalds`, `acme/fastqueue`, `npm/react` or `npm/@types/node`. */
+export function badgeNamePath(entity: BadgeEntityPath): string {
+  switch (entity.kind) {
+    case 'repo':
+      return entity.nameWithOwner.split('/').map(encodeURIComponent).join('/');
+    case 'package':
+      return [entity.registry, ...entity.name.split('/')].map(packagePart).join('/');
+    default:
+      return encodeURIComponent(entity.login);
+  }
+}
+
+/** `/badge/{user|org|repo|package}/{id}/{badge}.{svg|png}`, with the query, if any, in the order given. */
 export function badgeImagePath(
   entity: BadgeEntityPath,
   id: string,
@@ -21,11 +36,16 @@ export function badgeImagePath(
   query: Record<string, string> = {},
 ): string {
   const search = new URLSearchParams(query).toString();
-  return `/badge/${entity.kind}/${segmentsOf(entity)}/${id}.${format}${search ? `?${search}` : ''}`;
+  return `/badge/${entity.kind}/${badgeNamePath(entity)}/${id}.${format}${search ? `?${search}` : ''}`;
 }
 
 /** The card each entity's page shares as its link preview. */
-export const SOCIAL_CARD_ID = { user: 'profile-card', repo: 'rank-card', org: 'org-card' } as const;
+export const SOCIAL_CARD_ID = {
+  user: 'profile-card',
+  repo: 'rank-card',
+  org: 'org-card',
+  package: 'package-card',
+} as const;
 
 /** The size `?size=social` draws a card at. */
 export const SOCIAL_CARD_SIZE = { width: 1200, height: 630 } as const;

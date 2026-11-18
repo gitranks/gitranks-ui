@@ -18,6 +18,27 @@ export function percentChange(current: number, previous: number | null | undefin
   return Math.round(((current - previous) / previous) * 100);
 }
 
+/**
+ * Year over year, as the page and the badges say it: the last 52 whole weeks against the 52 before, in whole percent;
+ * `null` until the history reaches back that far.
+ */
+export const yearOverYearChange = (downloads: Pick<PackageDownloads, 'last52Weeks' | 'previous52Weeks'>) =>
+  percentChange(downloads.last52Weeks, downloads.previous52Weeks);
+
+/**
+ * Last week's downloads per GitHub star of the repository that publishes the package, as the page and the badges say
+ * it; `null` without a repository with stars.
+ */
+export function downloadsPerStar(
+  downloads: Pick<PackageDownloads, 'perStar'> | null | undefined,
+  repo: { stars: number } | null | undefined,
+): number | null {
+  const perStar = downloads?.perStar;
+  return perStar !== null && perStar !== undefined && Number.isFinite(perStar) && repo && repo.stars > 0
+    ? perStar
+    : null;
+}
+
 /** "↑16%", "↓3%", "0%". */
 export const changeText = (change: number) => (change > 0 ? `↑${change}%` : change < 0 ? `↓${-change}%` : '0%');
 

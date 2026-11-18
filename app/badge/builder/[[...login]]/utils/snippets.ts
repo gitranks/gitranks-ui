@@ -1,9 +1,16 @@
+import { packageNameOf } from './builder-state';
 import type { EntityKind, ImageFormat, Theme } from '@/badge/v3/types';
+import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
-/** `/badge/{kind}/{name}/{badge}.svg`, each part of the name encoded. */
+/**
+ * `/badge/{kind}/{name}/{badge}.svg`, each part of the name encoded; a package's scope keeps its `@`, as its badges'
+ * one address has it.
+ */
 export function badgePath(kind: EntityKind, name: string, badgeId: string, format: ImageFormat = 'svg'): string {
-  return `/badge/${kind}/${name.split('/').map(encodeURIComponent).join('/')}/${badgeId}.${format}`;
+  const parts = name.split('/').map(encodeURIComponent);
+  const path = kind === 'package' ? parts.map((part) => part.replace(/^%40/, '@')) : parts;
+  return `/badge/${kind}/${path.join('/')}/${badgeId}.${format}`;
 }
 
 /** A badge image URL: the path and the style query. */
@@ -32,6 +39,8 @@ export function entityPageUrl(origin: string, kind: EntityKind, name: string, sc
       return `${origin}/org/${encodeURIComponent(name)}`;
     case 'user':
       return `${origin}/profile/${encodeURIComponent(name)}${scope === 'country' ? '/country' : ''}`;
+    case 'package':
+      return `${origin}${packagePath(packageNameOf(name) ?? name.replace(/^npm\//, ''))}`;
   }
 }
 

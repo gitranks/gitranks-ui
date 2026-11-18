@@ -3,6 +3,7 @@ import { basename } from 'node:path';
 
 import type { EntityFacts } from '@/badge/v3/facts';
 import { type BadgeLoaders, getBadgeResponse, parseEntityRef } from '@/badge/v3/route';
+import { entityNameOf } from '@/badge/v3/tiles';
 import type { EntityKind } from '@/badge/v3/types';
 import { SITE_URL } from '@/lib/seo/site';
 
@@ -12,7 +13,7 @@ import { SITE_URL } from '@/lib/seo/site';
  */
 const IMAGES = 'current/img';
 
-const nameOf = (entity: EntityFacts) => (entity.kind === 'repo' ? entity.nameWithOwner : entity.login).toLowerCase();
+const nameOf = (entity: EntityFacts) => entityNameOf(entity).toLowerCase();
 
 /**
  * The badge data the boards' badge images and the builder read, by kind and name. The specs' fixtures share names

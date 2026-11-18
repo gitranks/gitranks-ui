@@ -3,10 +3,10 @@ import { cacheLife } from 'next/cache';
 import { fetchLeaderboards, fetchTopOrgs, fetchTopRepos } from '@/app/components/landing/landing-data';
 import type { EntityFacts } from '@/badge/v3/facts';
 import { loadBadgeOrg, loadBadgeRepo, loadBadgeUser } from '@/badge/v3/load';
-import type { EntityKind } from '@/badge/v3/types';
+import type { GithubEntityKind } from '@/badge/v3/types';
 
 /** The #1 of each ranking, by the name its badge URLs use; `null` where a ranking could not be read or is empty. */
-export type ShowcaseNames = Record<EntityKind, string | null>;
+export type ShowcaseNames = Record<GithubEntityKind, string | null>;
 
 /**
  * Today's #1 developer (by stars), repository and organization. It reads the rankings the landing page reads, and
@@ -34,7 +34,7 @@ export async function fetchShowcaseNames(): Promise<{ names: ShowcaseNames; ok: 
 
 /** The #1's badge data; `ok: false` when there is no #1 to show or its data could not be read. */
 export async function loadShowcase(
-  kind: EntityKind,
+  kind: GithubEntityKind,
   name: string | null,
 ): Promise<{ facts: EntityFacts | null; ok: boolean }> {
   if (!name) return { facts: null, ok: false };

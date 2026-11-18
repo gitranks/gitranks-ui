@@ -26,6 +26,7 @@ export function awaitingReadCopy(facts: EntityFacts): Copy | null {
         open: 'Open their page',
       };
     case 'org':
+    case 'package':
       return null;
   }
 }

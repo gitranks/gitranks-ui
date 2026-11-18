@@ -19,17 +19,23 @@ const INTER_LIFT = { position: 'relative', top: -1 } as const;
 
 export const MONO_FONT = 'JetBrains Mono';
 
+/** The extra's weight, and that of quiet words after a value. */
+const QUIET_WEIGHT = 500;
+
 /** A segment's glyph and text runs; `base` colours runs without a tone of their own. */
 function Runs({
   segment,
   base,
   tone,
   weight,
+  quiet,
 }: Readonly<{
   segment: Segment;
   base: string;
   tone: (value: Segment['tone'], fallback: string) => string;
   weight: number;
+  /** The colour of `quiet` runs: the extra's muted tone. */
+  quiet: string;
 }>) {
   const color = segment.tone ? tone(segment.tone, base) : base;
   return (
@@ -45,9 +51,9 @@ function Runs({
           style={{
             display: 'flex',
             whiteSpace: 'pre',
-            color: run.tone ? tone(run.tone, color) : color,
+            color: run.quiet ? quiet : run.tone ? tone(run.tone, color) : color,
             fontFamily: run.mono ? MONO_FONT : 'Inter',
-            fontWeight: run.mono ? 700 : weight,
+            fontWeight: run.mono ? 700 : run.quiet ? QUIET_WEIGHT : weight,
             ...(run.mono ? null : INTER_LIFT),
           }}
         >
@@ -113,7 +119,7 @@ export function Shield({
         <div style={{ display: 'flex', whiteSpace: 'pre', ...INTER_LIFT }}>{content.label}</div>
       </Block>
       <Block block={value}>
-        <Runs segment={content.value} base={value.text} tone={tone} weight={600} />
+        <Runs segment={content.value} base={value.text} tone={tone} weight={600} quiet={palette.muted} />
         {content.extra ? (
           <>
             <div
@@ -128,7 +134,13 @@ export function Shield({
             >
               {'· '}
             </div>
-            <Runs segment={content.extra} base={palette.muted} tone={tone} weight={500} />
+            <Runs
+              segment={content.extra}
+              base={palette.muted}
+              tone={tone}
+              weight={QUIET_WEIGHT}
+              quiet={palette.muted}
+            />
           </>
         ) : null}
       </Block>

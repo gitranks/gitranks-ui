@@ -2,8 +2,8 @@ import 'server-only';
 
 import { signedFetch } from '@/lib/signed-fetch';
 
-/** What a reported badge shows: a developer's numbers or a repository's. */
-export type BadgeSeenKind = 'user' | 'repo';
+/** What a reported badge shows: a developer's numbers, a repository's or a package's (named `npm/<name>`). */
+export type BadgeSeenKind = 'user' | 'repo' | 'package';
 
 /**
  * Tells the API a badge of this entity was fetched for a README on GitHub. A hit only asks the API to look at the

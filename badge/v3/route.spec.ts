@@ -443,7 +443,7 @@ describe('the cache headers of each answer', () => {
 });
 
 describe("the report of GitHub's image proxy", () => {
-  const onImageServed = vi.fn<(kind: 'user' | 'repo', name: string) => void>();
+  const onImageServed = vi.fn<(kind: 'user' | 'repo' | 'package', name: string) => void>();
   const withHook = { ...loaders, onImageServed };
   const respond = (ref: ReturnType<typeof parseEntityRef>, file: string, query = '') =>
     getBadgeResponse(ref, file, new URLSearchParams(query), withHook, NOW);

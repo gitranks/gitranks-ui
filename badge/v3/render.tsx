@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import satori from 'satori';
 
 import { joinAuto, shareImages } from './auto-svg';
-import { type Drawing, notYetDrawing, prepareDrawing } from './cards';
+import { type Drawing, frameNameOf, notYetDrawing, prepareDrawing } from './cards';
 import type { BadgeDefinition } from './catalogue';
 import type { EntityFacts } from './facts';
 import { SOCIAL_CARD_SIZE } from './links';
@@ -121,14 +121,10 @@ async function drawShield(
   return { state, svgs };
 }
 
-function entityName(entity: EntityFacts) {
-  return entity.kind === 'repo' ? entity.nameWithOwner : entity.login;
-}
-
 async function drawPanel(entity: EntityFacts, badge: BadgeDefinition, params: BadgeParams, themes: Theme[], now: Date) {
   const prepared = await prepareDrawing(entity, badge.id, params, now);
   const drawing =
-    prepared ?? notYetDrawing(badge.title, entityName(entity), badge.size ?? { width: 800, height: 200 }, params.logo);
+    prepared ?? notYetDrawing(badge.title, frameNameOf(entity), badge.size ?? { width: 800, height: 200 }, params.logo);
   const svgs = await Promise.all(
     themes.map(async (theme) => {
       const svg = await toSvg(drawing.draw(cardPalette(params, theme)), {

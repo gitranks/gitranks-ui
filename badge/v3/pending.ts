@@ -17,7 +17,8 @@ export const HISTORY_READ_STARS = 1_000;
 
 /**
  * Whether the badge waits on a read GitRanks has yet to make: a history badge of a repository without its star
- * history, or any badge of a developer whose first read is still running. Organizations have no such wait.
+ * history, or any badge of a developer whose first read is still running. Organizations and packages have no such
+ * wait.
  */
 export function awaitsReadFor(entity: EntityFacts, badgeId: string): boolean {
   switch (entity.kind) {
@@ -26,6 +27,7 @@ export function awaitsReadFor(entity: EntityFacts, badgeId: string): boolean {
     case 'user':
       return awaitsRead(entity);
     case 'org':
+    case 'package':
       return false;
   }
 }
@@ -54,6 +56,7 @@ export function readsSoon(entity: EntityFacts): boolean {
     case 'user':
       return awaitsRead(entity);
     case 'org':
+    case 'package':
       return false;
   }
 }

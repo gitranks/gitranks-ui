@@ -1,14 +1,27 @@
 import {
   type BadgeDefinition,
   isUserRankedIn,
+  packageGrowthOf,
+  packagePerStarOf,
   rankPropOf,
   repoLanguageOf,
   userLanguageOf,
   userRanksIn,
 } from './catalogue';
 import { contributorSegment } from './contributors';
-import type { OrgFacts, RankGoal, RepoFacts, UserFacts } from './facts';
-import { formatCompact, formatFull, mono, rankMoveSegment, rankSegment, segment, text, topShare } from './format';
+import type { EntityFacts, OrgFacts, PackageFacts, RankGoal, RepoFacts, UserFacts } from './facts';
+import {
+  formatCompact,
+  formatCount,
+  formatFull,
+  mono,
+  perStarText,
+  rankMoveSegment,
+  rankSegment,
+  segment,
+  text,
+  topShare,
+} from './format';
 import { goalAmount, goalText } from './goals';
 import type { BadgeParams } from './params';
 import { type RaceState, repoRace, userClimbRace, userStarsRace } from './race';
@@ -312,12 +325,70 @@ function orgShield(org: OrgFacts, badge: BadgeDefinition, params: BadgeParams): 
   }
 }
 
+/** Words after a value, in the extra's muted colour: " with 100+ stars". */
+const quiet = (value: string) => ({ text: ` ${value}`, quiet: true });
+
+/** "new": a package no repository with 100+ stars uses yet, never "0". */
+const NEW = segment(text('new'));
+
+/** "+16%" in the positive colour, "−3%", "0%". */
+function growthRun(change: number) {
+  if (change > 0) return mono(`+${formatFull(change)}%`, 'positive');
+  return mono(change < 0 ? `−${formatFull(-change)}%` : '0%');
+}
+
+function packageShield(pkg: PackageFacts, badge: BadgeDefinition, params: BadgeParams): ShieldContent | null {
+  const used = pkg.dependentsCount > 0;
+  const repos = (count: number) => (count === 1 ? 'repo' : 'repos');
+  switch (badge.id) {
+    case 'used-by':
+      if (!used) return content(params, 'used by', NEW);
+      return content(
+        params,
+        'used by',
+        segment(mono(`${formatCount(pkg.dependentsCount)} ${repos(pkg.dependentsCount)}`), quiet('with 100+ stars')),
+      );
+    case 'dependents-stars':
+      if (!used) return content(params, 'used by', NEW);
+      return content(
+        params,
+        'used by',
+        segment(
+          mono(`${formatCompact(pkg.dependentsStars)} ★`),
+          quiet(`across ${formatCount(pkg.dependentsCount)} ${repos(pkg.dependentsCount)}`),
+        ),
+      );
+    case 'downloads':
+      if (!pkg.downloads) return content(params, 'npm downloads', DASH);
+      return content(params, 'npm downloads', segment(mono(formatCompact(pkg.downloads.lastWeek)), quiet('a week')));
+    case 'downloads-year':
+      if (!pkg.downloads) return content(params, 'npm downloads', DASH);
+      return content(
+        params,
+        'npm downloads',
+        segment(mono(formatCompact(pkg.downloads.last52Weeks)), quiet('last 12 months')),
+      );
+    case 'downloads-growth': {
+      const change = packageGrowthOf(pkg);
+      if (change === null) return null;
+      return content(params, 'downloads', segment(growthRun(change), quiet('year over year')));
+    }
+    case 'downloads-per-star': {
+      const perStar = packagePerStarOf(pkg);
+      if (perStar === null) return null;
+      return content(params, 'per star', segment(mono(perStarText(perStar)), quiet('weekly downloads')));
+    }
+    default:
+      return null;
+  }
+}
+
 /**
  * What a shield says for an entity, or `null` when the badge has never applied to it ("not yet"). Volatile badges
  * with nothing to show keep their shape with a neutral value (spec §5.4).
  */
 export function shieldContent(
-  entity: RepoFacts | UserFacts | OrgFacts,
+  entity: EntityFacts,
   badge: BadgeDefinition,
   params: BadgeParams,
   now = new Date(),
@@ -329,6 +400,8 @@ export function shieldContent(
       return userShield(entity, badge, params, now);
     case 'org':
       return orgShield(entity, badge, params);
+    case 'package':
+      return packageShield(entity, badge, params);
   }
 }
 

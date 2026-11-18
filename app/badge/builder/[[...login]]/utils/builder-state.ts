@@ -2,12 +2,15 @@ import { type BadgeDefinition, findBadge } from '@/badge/v3/catalogue';
 import { DEFAULT_CONTRIBUTOR_VALUE } from '@/badge/v3/contributors';
 import { BadgeParamsError, cutLabel, resolveParams } from '@/badge/v3/params';
 import type { EntityKind } from '@/badge/v3/types';
+import { isNpmPackageName } from '@/lib/packages/npm-package-name';
 import { isGithubLogin, isRepoSlug } from '@/lib/routing/ranking-routes';
 
 /**
  * The builder's URL carries its whole state, so every step can be linked and Back works:
  *
- * `/badge/builder?{user|org|repo}={name}&badge={id}&{style…}&step=embed`
+ * `/badge/builder?{user|org|repo|package}={name}&badge={id}&{style…}&step=embed`
+ *
+ * A package is named as its badge URLs name it, `npm/<name>`; its key counts only for a visitor packages are shown to.
  *
  * - no entity key: step 1 (Find) for any kind; an empty one (`?repo=`) narrows step 1 to that kind;
  * - a filled entity: step 2 (Badge);
@@ -15,7 +18,7 @@ import { isGithubLogin, isRepoSlug } from '@/lib/routing/ranking-routes';
  * - `step=embed` as well: step 4 (Embed).
  */
 
-export const ENTITY_KEYS = ['user', 'org', 'repo'] as const satisfies readonly EntityKind[];
+export const ENTITY_KEYS = ['user', 'org', 'repo', 'package'] as const satisfies readonly EntityKind[];
 
 /** The badge query names the builder writes, in the order it writes them. */
 export const STYLE_KEYS = [
@@ -71,9 +74,18 @@ export function storedNameQuery(state: Pick<BuilderState, 'kind' | 'name'>, stor
   return state.kind && storedName !== state.name ? { [state.kind]: storedName } : null;
 }
 
-/** The builder's state from its query. Only the first entity key counts; style values are kept as written. */
-export function parseBuilderQuery(query: URLSearchParams | BuilderQuery): BuilderState {
-  const kind = ENTITY_KEYS.find((key) => read(query, key) !== null) ?? null;
+/** Whether the query names a package (`?package=…`), which counts only once packages are known to be shown. */
+export const namesPackage = (query: URLSearchParams | BuilderQuery) => read(query, 'package') !== null;
+
+/**
+ * The builder's state from its query. Only the first entity key counts; style values are kept as written. A package's
+ * key counts only with `packages` (packages are shown to the visitor); without it the builder is today's.
+ */
+export function parseBuilderQuery(
+  query: URLSearchParams | BuilderQuery,
+  { packages = false }: { packages?: boolean } = {},
+): BuilderState {
+  const kind = ENTITY_KEYS.find((key) => (packages || key !== 'package') && read(query, key) !== null) ?? null;
   const name = kind ? read(query, kind)?.trim() || null : null;
   const badgeId = read(query, 'badge');
   const badge = kind && badgeId ? findBadge(kind, badgeId) : null;
@@ -92,8 +104,22 @@ export function stepOf(state: Pick<BuilderState, 'name' | 'badge' | 'embed'>): B
   return state.embed ? 'embed' : 'style';
 }
 
+/** The npm package a builder name `npm/<name>` names: its name, or `null`. */
+export function packageNameOf(name: string): string | null {
+  const [registry, ...rest] = name.split('/');
+  const packageName = rest.join('/');
+  return registry === 'npm' && isNpmPackageName(packageName) ? packageName : null;
+}
+
+/** An entity's name as people read it: a package's own name, without its registry. */
+export const entityLabel = (kind: EntityKind, name: string) =>
+  kind === 'package' ? (packageNameOf(name) ?? name) : name;
+
 /** Whether a name can name an entity of that kind at all; anything else is a miss without asking. */
 export function isEntityName(kind: EntityKind, name: string): boolean {
+  if (kind === 'package') {
+    return packageNameOf(name) !== null;
+  }
   if (kind === 'repo') {
     const [owner, repo, ...rest] = name.split('/');
     return !rest.length && !!repo && isRepoSlug(owner, repo);
@@ -121,6 +147,54 @@ export function parseSearch(input: string): SearchTarget | null {
     return isRepoSlug(owner, name) ? { kind: 'repo', name: `${owner}/${name}` } : null;
   }
   return isGithubLogin(owner) ? { kind: 'login', name: owner } : null;
+}
+
+/** What may lead an npm package's name when a visitor pastes it: its page's address (`npmjs.com/package/`), `npm:`. */
+const NPM_PREFIX = /^(?:(?:https?:\/\/)?(?:www\.)?npmjs\.(?:com|org)\/package\/|npm:)/i;
+
+/**
+ * The npm package a Find search names, as the builder names it (`npm/<name>`); `null` when it cannot name one. Spaces
+ * are dropped, and so are an npm page's address, `npm:` and a version after the name (`react@19`).
+ */
+export function parsePackageSearch(input: string): string | null {
+  const bare = input
+    .replace(/\s+/g, '')
+    .replace(NPM_PREFIX, '')
+    .replace(/[?#].*$/, '')
+    .replace(/\/+$/, '');
+  // A version after the name, not a scope's own `@`.
+  const name = bare.replace(/(?<=.)@[^/]*$/, '');
+  return isNpmPackageName(name) ? `npm/${name}` : null;
+}
+
+/** What a search asks for: a kind and the name it is asked under. */
+export type SearchLookup = { kind: EntityKind; name: string };
+
+/** The GitHub kinds a GitHub search can be, in the order results are listed. */
+function githubKindsFor(target: SearchTarget, narrowed: EntityKind | null): EntityKind[] {
+  if (target.kind === 'repo') return narrowed && narrowed !== 'repo' ? [] : ['repo'];
+  if (narrowed === 'repo') return [];
+  return narrowed ? [narrowed] : ['user', 'org'];
+}
+
+/**
+ * What a Find search asks for. `owner/name` is a repository, a login a developer or an organization. Once packages
+ * are shown (`packages`), a name is an npm package too, and a scoped name (`@scope/name`), an npm page's address or
+ * `npm:name` a package only. Narrowed to packages, the search names one package; without `packages`, nothing.
+ */
+export function searchLookups(input: string, narrowed: EntityKind | null, packages = false): SearchLookup[] {
+  if (narrowed === 'package') {
+    const pkg = packages ? parsePackageSearch(input) : null;
+    return pkg ? [{ kind: 'package', name: pkg }] : [];
+  }
+  const pkg = packages && !narrowed ? parsePackageSearch(input) : null;
+  const trimmed = input.replace(/\s+/g, '');
+  if (pkg && (trimmed.startsWith('@') || NPM_PREFIX.test(trimmed))) {
+    return [{ kind: 'package', name: pkg }];
+  }
+  const target = parseSearch(input);
+  const github = target ? githubKindsFor(target, narrowed).map((kind) => ({ kind, name: target.name })) : [];
+  return pkg && target?.kind === 'login' ? [...github, { kind: 'package', name: pkg }] : github;
 }
 
 const DEFAULT_STYLE: Style = {

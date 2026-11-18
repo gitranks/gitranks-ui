@@ -20,14 +20,27 @@ export type BadgeChoice = { id: string; query?: Record<string, string> };
 
 /** The entity a badge URL names. */
 export function entityPathOf(entity: EntityFacts): BadgeEntityPath {
-  return entity.kind === 'repo'
-    ? { kind: 'repo', nameWithOwner: entity.nameWithOwner }
-    : { kind: entity.kind, login: entity.login };
+  switch (entity.kind) {
+    case 'repo':
+      return { kind: 'repo', nameWithOwner: entity.nameWithOwner };
+    case 'package':
+      return { kind: 'package', registry: entity.registry, name: entity.name };
+    default:
+      return { kind: entity.kind, login: entity.login };
+  }
 }
 
-/** "acme/fastqueue" or "octocat". */
+/** "acme/fastqueue" or "octocat"; a package as its badge URLs name it, after the kind: "npm/react". */
 export const entityNameOf = (entity: EntityFacts | BadgeEntityPath) =>
-  entity.kind === 'repo' ? entity.nameWithOwner : entity.login;
+  entity.kind === 'repo'
+    ? entity.nameWithOwner
+    : entity.kind === 'package'
+      ? `${entity.registry}/${entity.name}`
+      : entity.login;
+
+/** The entity as people read it: "acme/fastqueue", "octocat", or a package's own name, "react". */
+export const entityLabelOf = (entity: EntityFacts | BadgeEntityPath) =>
+  entity.kind === 'package' ? entity.name : entityNameOf(entity);
 
 const segmentText = (segment: Segment | undefined) => segment?.runs.map(({ text }) => text).join('') ?? '';
 
@@ -84,6 +97,15 @@ function panelFact(entity: EntityFacts, badge: BadgeDefinition, params: BadgePar
       }
       return badge.title;
     }
+    case 'package': {
+      const count = entity.dependentsCount;
+      const used = count > 0 ? plural(count, 'repo with 100+ stars', 'repos with 100+ stars') : 'new';
+      if (badge.id === 'used-by-card' || badge.id === 'used-by-chart') return `used by ${used}`;
+      if (badge.id === 'downloads-card' && entity.downloads) {
+        return `${formatCompact(entity.downloads.lastWeek)} npm downloads a week`;
+      }
+      return badge.title;
+    }
   }
 }
 
@@ -101,7 +123,7 @@ export function badgeAlt(entity: EntityFacts, badge: BadgeDefinition, params: Ba
   } else {
     fact = panelFact(entity, badge, params);
   }
-  return `${entityNameOf(entity)} on GitRanks: ${fact}`;
+  return `${entityLabelOf(entity)} on GitRanks: ${fact}`;
 }
 
 /** A badge ready to draw on a page. */

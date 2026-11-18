@@ -17,7 +17,7 @@ const UNBOUNDED = Number.POSITIVE_INFINITY;
 
 /**
  * What a page promotes by the entity's size (spec §3.9): repositories by stars, developers by stars on their own
- * repositories, organizations by stars. Each set in order; a page keeps the available ones.
+ * repositories, organizations by stars; every package alike. Each set in order; a page keeps the available ones.
  */
 export const PROMOTION: Record<EntityFacts['kind'], PromotionSet[]> = {
   repo: [
@@ -87,10 +87,29 @@ export const PROMOTION: Record<EntityFacts['kind'], PromotionSet[]> = {
       panels: [{ id: 'org-card' }, { id: 'contributors-chart' }],
     },
   ],
+  // One set for every package: who uses it, its downloads, and their stars.
+  package: [
+    {
+      bucket: 'all',
+      from: 0,
+      to: UNBOUNDED,
+      shields: [{ id: 'used-by' }, { id: 'downloads' }, { id: 'dependents-stars' }],
+      panels: [],
+    },
+  ],
 };
 
-/** The stars that size an entity. */
-const sizeOf = (entity: EntityFacts) => (entity.kind === 'repo' ? entity.stars : (entity.s ?? 0));
+/** The stars that size an entity; a package by its dependents' stars. */
+const sizeOf = (entity: EntityFacts) => {
+  switch (entity.kind) {
+    case 'repo':
+      return entity.stars;
+    case 'package':
+      return entity.dependentsStars;
+    default:
+      return entity.s ?? 0;
+  }
+};
 
 /** The set for an entity of a kind with these stars (for a developer, stars on their own repositories). */
 export function promotionSetFor(kind: EntityFacts['kind'], stars: number): PromotionSet {

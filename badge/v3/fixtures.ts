@@ -1,4 +1,4 @@
-import type { ContributorsWall, OrgFacts, RepoFacts, TierTable, UserFacts, UserTierLists } from './facts';
+import type { ContributorsWall, OrgFacts, PackageFacts, RepoFacts, TierTable, UserFacts, UserTierLists } from './facts';
 
 /** Made-up entities for the specs, one per size bucket (spec §3.9). Day 20 of October 2026. */
 export const NOW = new Date('2026-10-20T12:00:00Z');
@@ -288,3 +288,72 @@ export const orgBig: OrgFacts = {
 
 /** An organization with no ranked repositories. */
 export const orgUnranked: OrgFacts = { ...orgBase, s: 0, rank: null, topRepos: [] };
+
+/** 104 weekly downloads up to the week of Oct 12, 2026: the last 52 weeks some 18% above the 52 before. */
+const packageWeeks = Array.from({ length: 104 }, (_, index) => ({
+  start: new Date(Date.parse('2026-10-12T00:00:00Z') - (103 - index) * 7 * 86_400_000).toISOString(),
+  downloads: index < 52 ? 1_290_000 : 1_496_400 + (index % 5) * 10_000,
+}));
+
+const sum = (points: { downloads: number }[]) => points.reduce((total, { downloads }) => total + downloads, 0);
+
+const dependent = (nameWithOwner: string, stars: number, archived = false) => ({
+  nameWithOwner,
+  ownerAvatarUrl: null,
+  stars,
+  archived,
+});
+
+/** A package read from npm, published from a repository GitRanks has a page for, used by 16 repos with 100+ stars. */
+export const packageBig: PackageFacts = {
+  kind: 'package',
+  registry: 'npm',
+  name: 'react-resize-detector',
+  repo: { nameWithOwner: 'acme/react-resize-detector', stars: 1_302 },
+  repositoryName: null,
+  dependentsCount: 16,
+  dependentsStars: 16_429,
+  dependents: [
+    dependent('kiali/kiali', 3_649),
+    dependent('IceEnd/Yosoro', 2_651),
+    dependent('running-elephant/datart', 2_309),
+    dependent('notea-org/notea', 2_142, true),
+    dependent('getstation/desktop-app', 1_686),
+    dependent('xodio/xod', 934),
+    dependent('octarinesec/kube-scan', 801, true),
+    dependent('ananas-analytics/ananas-desktop', 582),
+  ],
+  downloads: {
+    through: '2026-10-18T00:00:00.000Z',
+    lastWeek: 1_797_000,
+    previousWeek: 1_760_000,
+    last52Weeks: sum(packageWeeks.slice(52)),
+    previous52Weeks: sum(packageWeeks.slice(0, 52)),
+    perStar: 1_380.2,
+    weeks: packageWeeks,
+  },
+};
+
+/** A scoped package with no repository known, no year of history yet, and no repository with 100+ stars using it. */
+export const packageNew: PackageFacts = {
+  kind: 'package',
+  registry: 'npm',
+  name: '@nebula/ui',
+  repo: null,
+  repositoryName: null,
+  dependentsCount: 0,
+  dependentsStars: 0,
+  dependents: [],
+  downloads: {
+    through: '2026-10-18T00:00:00.000Z',
+    lastWeek: 640,
+    previousWeek: 600,
+    last52Weeks: 9_100,
+    previous52Weeks: null,
+    perStar: null,
+    weeks: packageWeeks.slice(-20).map(({ start }, index) => ({ start, downloads: 300 + index * 20 })),
+  },
+};
+
+/** A package read from npm whose downloads were not read yet. */
+export const packageUnread: PackageFacts = { ...packageNew, name: 'fresh-pkg', downloads: null };

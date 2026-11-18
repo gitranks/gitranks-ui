@@ -2,7 +2,13 @@
 
 import { type FC, useState } from 'react';
 
-import { changeText, type DownloadsPeriod, monthPeriodOf, weekPeriodOf } from '../utils/package-downloads';
+import {
+  changeText,
+  type DownloadsPeriod,
+  downloadsPerStar,
+  monthPeriodOf,
+  weekPeriodOf,
+} from '../utils/package-downloads';
 import { Sparkline } from './sparkline';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
@@ -56,6 +62,7 @@ export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ downloads,
   const [picked, setPicked] = useState<'week' | 'month'>('week');
   const view = picked === 'month' && month ? 'month' : 'week';
   const period = view === 'month' && month ? month : weekPeriodOf(downloads);
+  const perStar = downloadsPerStar(downloads, repo);
 
   return (
     <ProfileCard className="@container gap-3">
@@ -82,11 +89,11 @@ export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ downloads,
         )}
       </div>
       <Period period={period} />
-      {downloads.perStar !== null && downloads.perStar !== undefined && repo && (
+      {perStar !== null && repo && (
         <p className="text-xs text-muted-foreground">
-          <span className="font-mono tabular-nums">{formatCount(Math.round(downloads.perStar))}</span> downloads a week
-          per GitHub star (<span className="font-mono tabular-nums">{formatCount(repo.stars)}</span> stars on{' '}
-          {repo.nameWithOwner}).
+          <span className="font-mono tabular-nums">{formatCount(Math.round(perStar))}</span> downloads a week per GitHub
+          star (<span className="font-mono tabular-nums">{formatCount(repo.stars)}</span> stars on {repo.nameWithOwner}
+          ).
         </p>
       )}
     </ProfileCard>

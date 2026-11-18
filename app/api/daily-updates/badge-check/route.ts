@@ -2,6 +2,9 @@ import type { NextRequest } from 'next/server';
 
 import { json } from '../api-call';
 import { isBadgeCheckResult } from '@/app/badge/builder/[[...login]]/utils/badge-check';
+import { packageNameOf } from '@/app/badge/builder/[[...login]]/utils/builder-state';
+import { accountEmailOf } from '@/lib/account-email';
+import { sessionTokenOf } from '@/lib/contribute/session-token';
 import { isRepoName } from '@/lib/routing/ranking-routes';
 import { signedFetch } from '@/lib/signed-fetch';
 import type { BadgeCheckKind, BadgeCheckResult } from '@/types/daily-updates.types';
@@ -16,7 +19,7 @@ const MAX_ADDRESS = 64;
 
 const UNAVAILABLE: BadgeCheckResult = { status: 'unavailable' };
 
-/** The entity to check, from the body: a profile's login or a repository's `owner/name`. */
+/** The entity to check, from the body: a profile's login, a repository's `owner/name` or a package's `npm/<name>`. */
 function entityOf(text: string): { kind: BadgeCheckKind; name: string } | null {
   let body: unknown;
   try {
@@ -36,13 +39,28 @@ function entityOf(text: string): { kind: BadgeCheckKind; name: string } | null {
     // The owner by the profile's own rule, which takes the logins from GitHub's early years that start or end with '-'.
     return rest.length === 0 && repo !== undefined && isGithubLogin(owner) && isRepoName(repo) ? { kind, name } : null;
   }
+  if (kind === 'package') {
+    return packageNameOf(name) !== null ? { kind, name } : null;
+  }
   return null;
 }
 
 /**
- * "Check my badge": asks the API to read the README of a profile or a repository now and say whether a GitRanks badge
- * of it is there. No sign-in. The visitor's address goes along only for the API's per-visitor limit; the site neither
- * logs nor keeps it, and the answer sets nothing in the browser. Any failure answers `unavailable`.
+ * The signed-in visitor, when there is one: their login, and their email when the session holds a valid one. The API
+ * shows a package only to those it lets see packages, and decides it by them; a check needs no sign-in otherwise.
+ */
+async function viewerOf(req: NextRequest): Promise<[githubLogin?: string, accountEmail?: string]> {
+  const token = await sessionTokenOf(req);
+  if (!token?.githubLogin || token.error) return [];
+  const accountEmail = accountEmailOf(token.email);
+  return accountEmail ? [token.githubLogin, accountEmail] : [token.githubLogin];
+}
+
+/**
+ * "Check my badge": asks the API to read the README of a profile or a repository (for a package, of the repository
+ * that publishes it) now and say whether a GitRanks badge of it is there. No sign-in; a signed-in visitor is named. The
+ * visitor's address goes along only for the API's per-visitor limit; the site neither logs nor keeps it, and the answer
+ * sets nothing in the browser. Any failure answers `unavailable`.
  */
 export async function POST(req: NextRequest) {
   // Refused by its stated size before it is read, and by its real size after.
@@ -53,6 +71,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '';
+  const viewer = await viewerOf(req);
 
   try {
     const response = await signedFetch(
@@ -65,6 +84,7 @@ export async function POST(req: NextRequest) {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       },
       'client',
+      ...viewer,
     );
     if (!response.ok) {
       return json(UNAVAILABLE);

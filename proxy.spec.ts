@@ -819,6 +819,13 @@ describe('proxy', () => {
       expect(matches(path)).toBe(false);
     });
 
+    it.each(['/badge/package/npm/react/used-by.svg', '/badge/package/npm/@types/node/downloads.png'])(
+      'leaves the package badge %s to its route, which decides who sees it',
+      (path) => {
+        expect(matches(path)).toBe(false);
+      },
+    );
+
     it('leaves the AI Catalog alone', () => {
       expect(matches('/.well-known/ai-catalog.json')).toBe(false);
     });

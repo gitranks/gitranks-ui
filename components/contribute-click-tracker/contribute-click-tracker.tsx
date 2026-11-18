@@ -7,6 +7,7 @@ import {
   type ClickReport,
   CONTRIBUTE_SOURCE_ATTR,
   type ConnectWay,
+  type ContributeSource,
   clickOf,
   type Entry,
   entryOf,
@@ -100,13 +101,14 @@ const entryNow = (): Entry => {
 
 /**
  * Tells us a key or an agent was just connected, with the click into Contribute this browser remembers, so the count
- * of clicks can say how many led somewhere.
+ * of clicks can say how many led somewhere. `from`: the place the connect was made, named in place of that click (a
+ * connect on Learn's start page, not the Start that led there).
  */
-export function reportContributeConnect(way: ConnectWay) {
-  let source: string | undefined;
+export function reportContributeConnect(way: ConnectWay, from?: ContributeSource) {
+  let source: string | undefined = from;
   let first: Entry | null = null;
   try {
-    source = lastClickOf(window.localStorage.getItem(LAST_CLICK_KEY), Date.now())?.source;
+    source ??= lastClickOf(window.localStorage.getItem(LAST_CLICK_KEY), Date.now())?.source;
     first = firstEntryOf(window.localStorage.getItem(FIRST_ENTRY_KEY), Date.now());
     window.localStorage.removeItem(LAST_CLICK_KEY);
     window.localStorage.removeItem(FIRST_ENTRY_KEY);

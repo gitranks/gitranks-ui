@@ -48,6 +48,8 @@ describe("Learn's paths", () => {
       '//learn//attempts/A_1',
       '/%6Cearn/lessons',
       '/learn%',
+      '/learn/start/driftwood-js/driftwood/934',
+      '/Learn//Start/acme/router/1',
     ]) {
       expect(isLearnPath(path), path).toBe(true);
     }
@@ -73,6 +75,7 @@ describe("Learn's paths", () => {
       '/learn/lessons//',
       '/learn/profile',
       '/learn/attempts/A_1',
+      '/learn/start/driftwood-js/driftwood/934',
       '/learn/maintainers/x',
       '/learn/maintainers%2F..%2Fprofile',
       '/learn/lessons/%E0%A4%A',

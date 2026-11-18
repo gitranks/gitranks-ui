@@ -677,6 +677,7 @@ describe('proxy', () => {
       '/learn/attempts/A_1/more',
       '/learn/maintainers/x',
       '/learn/%E0%A4%A',
+      '/learn/start/driftwood-js/driftwood/934',
     ];
 
     it.each(CLOSED)('answers %s with a 404 nobody caches, to a visitor without a session', async (path) => {
@@ -697,7 +698,12 @@ describe('proxy', () => {
     );
 
     it('lets a signed-in visitor through to the closed pages, which ask the API whether Learn is open to them', async () => {
-      for (const path of [...CLOSED.slice(0, 5), '/learn/attempts/A_1', '/Learn/Attempts/A_1']) {
+      for (const path of [
+        ...CLOSED.slice(0, 5),
+        '/learn/attempts/A_1',
+        '/Learn/Attempts/A_1',
+        '/learn/start/driftwood-js/driftwood/934',
+      ]) {
         const response = await proxy(request('authjs.session-token=t', path), event);
         expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();
         expect(response?.headers.get('cache-control'), path).toBe('private, no-cache');

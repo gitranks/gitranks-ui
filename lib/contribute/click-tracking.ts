@@ -31,6 +31,10 @@ export const CONTRIBUTE_SOURCES = [
   'learn_promo_signed_in',
   /** GitRanks Learn suggested on the signed-in user's own profile, in the Contribute block's place. */
   'learn_promo_profile',
+  /** GitRanks Learn's start page for one issue: a connect made there, and its views. */
+  'learn_start',
+  /** Copy the prompt, on Learn's start page. */
+  'learn_start_copy',
   /** A link to Contribute that carries no mark. */
   'other',
 ] as const;
@@ -62,7 +66,12 @@ export type LearnSource = Extract<ContributeSource, `learn_${string}`>;
  * (`learn_click`: a reaction, a suggestion followed or turned down), where (`source`), and one short detail (`yes`/`no`).
  */
 export type LearnEvent =
-  | { kind: 'learn_view'; event: 'lesson_opened' | 'result_opened' | 'promo_shown'; source: LearnSource }
+  | {
+      kind: 'learn_view';
+      /** `learn_start_view`: the start page shown; `learn_start_claimed`: it went on to the lesson page. */
+      event: 'lesson_opened' | 'result_opened' | 'promo_shown' | 'learn_start_view' | 'learn_start_claimed';
+      source: LearnSource;
+    }
   | {
       kind: 'learn_click';
       event: 'reaction_clicked' | 'promo_clicked' | 'promo_dismissed';

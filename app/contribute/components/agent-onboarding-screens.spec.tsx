@@ -271,6 +271,51 @@ describe('B1, your own agent', () => {
   });
 });
 
+describe("B1 in Learn's start page", () => {
+  it('keeps the agent and its setup, without the title, the Claude key link or the first prompt', () => {
+    const { html, plain } = b1({ mode: 'learn', stage: 'token', shown: TOKEN });
+    expect(html).toContain('data-connect-mode="learn"');
+    expect(html).not.toContain('<h1');
+    expect(html).not.toContain('<h2');
+    expect(plain).not.toContain('Connect your own agent');
+    expect(plain).not.toContain('Use your Claude key instead');
+    expect(plain).not.toContain(AGENT_FIRST_PROMPT);
+    expect(plain).toContain('Claude Code');
+    expect(plain).toContain('Your GitRanks token is ready.');
+    expect(plain).toContain(TOKEN);
+    expect(plain).toContain("I've added it");
+  });
+
+  it('once added, waits for the call that starting the agent makes, with no prompt to send', () => {
+    const { html, plain } = b1({ mode: 'learn', stage: 'added', shown: TOKEN });
+    expect(html).toContain('data-agent-hello="waiting"');
+    expect(plain).toContain('Waiting for Claude Code to call GitRanks…');
+    expect(plain).toContain('Start Claude Code, or restart it if it is open: it calls GitRanks as it starts.');
+    expect(plain).not.toContain(AGENT_FIRST_PROMPT);
+    expect(plain).not.toContain('Taking you on');
+  });
+
+  it("says how to sign the agent in while it waits, the hint's check not said twice", () => {
+    const { plain } = b1({ mode: 'learn', signIn: true, stage: 'added', hint: true });
+    expect(plain).toContain('Start Claude Code and sign it in. In Claude Code, type /mcp');
+    expect(plain.match(/type \/mcp/g)).toHaveLength(1);
+  });
+
+  it('shows nothing of the hello before the setup is added', () => {
+    const { html } = b1({ mode: 'learn' });
+    expect(html).not.toContain('data-agent-hello');
+    expect(html).toContain('data-agent-stage="none"');
+  });
+
+  it('starts on the same stage as on Contribute', () => {
+    const back = renderToStaticMarkup(
+      <AgentConnect mode="learn" onboarded={false} tokens={views.midSetup.ownAgent.tokens} />,
+    );
+    expect(back).toContain('data-agent-stage="added"');
+    expect(back).toContain('data-connect-mode="learn"');
+  });
+});
+
 const ISSUE = {
   issueId: 'I_1',
   repositoryId: 'R_1',

@@ -15,7 +15,7 @@ import { accountEmailOf } from '@/lib/account-email';
 import { packageMarkdownOf, packageMarkdownPath } from '@/lib/packages/package-markdown';
 import { packageCacheTag } from '@/lib/packages/package-paths';
 import { packagesPublic, requestMaySeePackages } from '@/lib/packages/packages-gate';
-import { REGISTRIES, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
+import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { signedFetch } from '@/lib/signed-fetch';
 
 // A package's reads and its refresh, for its page in the browser: `/api/packages/<registry>/<name>/dependents` and
@@ -83,7 +83,7 @@ async function facts(req: NextRequest, { registry, name }: Target) {
     });
   }
   if (pkg.state === 'NOT_READ') {
-    return markdown(`The ${label} package ${spelledNameOf(pkg)} has not been read here yet.\n`, 404);
+    return markdown(`The ${label} package ${name} has not been read here yet.\n`, 404);
   }
   return markdown(packageMarkdownOf(pkg, registry), 200, isPublic && !pkg.refreshRunning ? MARKDOWN_PUBLIC : PRIVATE);
 }

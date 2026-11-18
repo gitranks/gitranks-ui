@@ -135,8 +135,9 @@ export const notReadPackage: PackagePage = {
 };
 
 /**
- * A package the registry writes otherwise than its address: `zope.interface` at `zope-interface`, the address name the
- * API answers for any spelling the registry takes as the same.
+ * A package on a registry that folds names, written by it otherwise than its address: `zope.interface` at
+ * `zope-interface`, the address name the API answers for any spelling the registry takes as the same. npm stands in for
+ * that registry here, as the only one the site lists; npm itself folds no names.
  */
 export const spelledPackage: PackagePage = {
   ...rankedPackage,

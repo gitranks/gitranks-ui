@@ -71,7 +71,7 @@ export const filterOptionsOf = (packages: readonly ListedPackage[]): PackageFilt
 
 /**
  * The rows with the packages each one uses as the registry writes them. The rows name packages by name alone, so a
- * name two of the repository's packages share is left as it is.
+ * name two of the repository's packages share is left as it is, and so is a package past the ones the tab lists.
  */
 export function withSpelledUses<Row extends Pick<RepoUsedByItem, 'uses'>>(
   rows: readonly Row[],

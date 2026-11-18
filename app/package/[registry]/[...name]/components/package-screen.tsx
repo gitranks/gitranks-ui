@@ -291,11 +291,12 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
     );
   }
 
+  const spelled = spelledNameOf(pkg);
   const button = (
     <PackageUpdatesButton
       registry={registry}
       name={pkg.name}
-      spelledName={spelledNameOf(pkg)}
+      spelledName={spelled}
       repository={pkg.repo?.nameWithOwner ?? pkg.repositoryName}
       dailyUpdates={pkg.dailyUpdates}
       refreshRunning={pkg.refreshRunning === true}
@@ -307,7 +308,7 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
       <Frame
         left={
           <>
-            <Head registry={registry} name={spelledNameOf(pkg)} />
+            <Head registry={registry} name={spelled} />
             <ActionsContainer>
               {button}
               <OpenOnRegistry registry={registry} name={pkg.name} />
@@ -326,14 +327,9 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
     <Frame
       left={
         <>
-          <Head
-            registry={registry}
-            name={spelledNameOf(pkg)}
-            description={pkg.description}
-            deprecated={pkg.deprecated}
-          />
+          <Head registry={registry} name={spelled} description={pkg.description} deprecated={pkg.deprecated} />
           <ActionsContainer>
-            <FollowSlot packages={[{ registry, name: pkg.name }]} label={spelledNameOf(pkg)} placement="package-page" />
+            <FollowSlot packages={[{ registry, name: pkg.name }]} label={spelled} placement="package-page" />
             {button}
             <OpenOnRegistry registry={registry} name={pkg.name} />
           </ActionsContainer>

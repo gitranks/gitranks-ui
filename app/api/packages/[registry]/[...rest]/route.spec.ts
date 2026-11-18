@@ -260,7 +260,17 @@ describe('package routes', () => {
       expect(response.headers.get('Content-Type')).toBe('text/markdown; charset=utf-8');
     });
 
-    it('sends another spelling to the address the API answers, read or not, and keeps the address name', async () => {
+    it('keeps an npm name the API answers as written, capitals included, with no redirect', async () => {
+      requestMaySeePackages.mockResolvedValue(true);
+      fetchPackage.mockResolvedValue({ ...rankedPackage, name: 'React-Resize-Detector' });
+      const response = await call('GET', 'npm/React-Resize-Detector/facts.md');
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Location')).toBeNull();
+      expect(await response.text()).toMatch(/^# React-Resize-Detector \(npm package\)\n/);
+    });
+
+    it('sends another spelling, on a registry that folds names, to the address the API answers, read or not', async () => {
       requestMaySeePackages.mockResolvedValue(true);
       fetchPackage.mockResolvedValue(spelledPackage);
       const moved = await call('GET', 'npm/Zope_Interface/facts.md');

@@ -51,7 +51,7 @@ type PackageUpdatesButtonProps = {
   registry: RegistryId;
   /** The package's name: on npm `x` or `@scope/x`. */
   name: string;
-  /** The name as the registry writes it, for the dialogs' words; `name` when not given. */
+  /** The name as the registry writes it, for the deal dialog's words; `name` when not given. */
   spelledName?: string;
   /** `owner/name` of the repository that publishes it, for the deal's badge note; none when unknown. */
   repository?: string | null;
@@ -374,7 +374,7 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
           <PicksDialog
             open
             onOpenChange={onPickOpenChange}
-            copy={{ ...full, paragraph: fillName(full.paragraph ?? '', spelledName) }}
+            copy={{ ...full, paragraph: fillName(full.paragraph ?? '', name) }}
             picks={picks.picks}
             list={copy.list}
             onRemove={picks.remove}

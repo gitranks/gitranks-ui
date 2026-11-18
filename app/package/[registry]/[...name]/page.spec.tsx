@@ -80,7 +80,7 @@ describe('a package page', () => {
     await expect(render('npm', '%40Nebula', 'ui')).rejects.toThrow('NEXT_REDIRECT /package/npm/@nebula/ui');
   });
 
-  it('redirects another spelling of a name to the address the API answers, read or not', async () => {
+  it('redirects another spelling, on a registry that folds names, to the address the API answers, read or not', async () => {
     vi.mocked(fetchPackage).mockResolvedValue(spelledPackage);
     await expect(render('npm', 'Zope_Interface')).rejects.toThrow('NEXT_REDIRECT /package/npm/zope-interface');
     expect(fetchPackage).toHaveBeenCalledWith('npm', 'Zope_Interface');
@@ -90,7 +90,21 @@ describe('a package page', () => {
     await expect(render('npm', 'Left-Pad-Next')).rejects.toThrow('NEXT_REDIRECT /package/npm/left-pad-next');
   });
 
-  it('draws the address name with no redirect, titled with the name as the registry writes it', async () => {
+  it('keeps an npm name the API answers as written, capitals included, with no redirect', async () => {
+    const capitals = { ...rankedPackage, name: 'React-Resize-Detector', displayName: 'React-Resize-Detector' };
+    vi.mocked(fetchPackage).mockResolvedValue(capitals);
+
+    expect(await render('npm', 'React-Resize-Detector')).toMatchObject({
+      name: 'React-Resize-Detector',
+      pkg: capitals,
+    });
+    expect(permanentRedirect).not.toHaveBeenCalled();
+    expect((await generateMetadata(params('npm', 'React-Resize-Detector'))).alternates?.canonical).toBe(
+      '/package/npm/React-Resize-Detector',
+    );
+  });
+
+  it('draws the address name on a registry that folds names with no redirect, titled with its display name', async () => {
     vi.mocked(fetchPackage).mockResolvedValue(spelledPackage);
 
     expect(await render('npm', 'zope-interface')).toMatchObject({ name: 'zope-interface', pkg: spelledPackage });

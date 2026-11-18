@@ -52,7 +52,10 @@ const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map(([, hr
 const summaryText = (parts: readonly (string | { text: string })[]) =>
   parts.map((part) => (typeof part === 'string' ? part : part.text)).join('');
 
-/** One of a repository's packages, written otherwise by its registry than its address. */
+/**
+ * One of a repository's packages on a registry that folds names, written by it otherwise than its address. npm stands
+ * in for that registry, as the only one the site lists.
+ */
 const zope: RepoPackage = {
   registry: 'NPM',
   name: 'zope-interface',
@@ -86,7 +89,7 @@ describe("a package's name as the registry writes it", () => {
     );
   });
 
-  it("titles a package's page with its display name, and keeps its name for links, follows, refreshes and badges", () => {
+  it('titles the page of a package on a registry that folds names with its display name, and keeps its name for links, follows, refreshes and badges', () => {
     const html = renderToStaticMarkup(
       <PackageScreen registry="npm" name="zope-interface" pkg={spelledPackage} jsonLd={[{}]} />,
     );

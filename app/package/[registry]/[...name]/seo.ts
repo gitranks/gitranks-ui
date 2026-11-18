@@ -103,21 +103,18 @@ function previewImages(registry: RegistryId, pkg: PackagePage): PreviewImage[] {
     {
       url: absoluteUrl(socialCardPath({ kind: 'package', registry, name: pkg.name })),
       ...SOCIAL_CARD_SIZE,
-      alt: `${packageTitle(spelledNameOf(pkg), registry)} on GitRanks`,
+      alt: `${packageTitle(pkg.name, registry)} on GitRanks`,
     },
   ];
 }
 
 type SEO = { metadata: Metadata; jsonLd: object[] };
 
-/**
- * A page kept out of search engines, with no structured data: not read yet, or no package data now. `spelled` is the
- * name as the title writes it.
- */
-function quietSEO(registry: RegistryId, name: string, description: string, spelled = name): SEO {
+/** A page kept out of search engines, with no structured data: not read yet, or no package data now. */
+function quietSEO(registry: RegistryId, name: string, description: string): SEO {
   return {
     metadata: {
-      ...pageMetadata({ title: packageTitle(spelled, registry), description, path: packagePath(name, registry) }),
+      ...pageMetadata({ title: packageTitle(name, registry), description, path: packagePath(name, registry) }),
       robots: NOT_INDEXED,
     },
     jsonLd: [],
@@ -139,8 +136,7 @@ export function buildPackageSEO(
     return quietSEO(registry, name, PACKAGE_UNAVAILABLE_TEXT);
   }
   if (pkg.state === 'NOT_READ') {
-    const spelled = spelledNameOf(pkg);
-    return quietSEO(registry, pkg.name, `We have not read the ${label} package ${spelled} yet.`, spelled);
+    return quietSEO(registry, pkg.name, `We have not read the ${label} package ${pkg.name} yet.`);
   }
 
   const spelled = spelledNameOf(pkg);

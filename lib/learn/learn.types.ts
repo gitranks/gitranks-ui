@@ -99,6 +99,18 @@ export type LessonHead = {
   topics: string[];
 };
 
+/** A public lesson whose page is open, as its page shows it to anyone: the sitemaps' and the pages for agents' list. */
+export type PublicLesson = {
+  slug: string;
+  title: string;
+  language: string | null;
+  /** `owner/name` of the repository the fix is in. */
+  repo: string | null;
+  publishedAt: string;
+  /** When the page's content last changed. */
+  modifiedAt: string;
+};
+
 export type LessonStepResult = { stepId: string; state: LessonStepState; tries: number };
 export type LessonWhy = { optionId: string; correct: boolean; why: string };
 export type LessonRunQuestion = {

@@ -7,6 +7,7 @@ export const SITEMAP_SEGMENTS = [
   'profiles',
   'orgs',
   'insights',
+  'learn',
 ] as const;
 
 export type SitemapSegment = (typeof SITEMAP_SEGMENTS)[number];

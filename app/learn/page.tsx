@@ -3,11 +3,10 @@ import { Suspense } from 'react';
 
 import { ContributePageSkeleton } from '@/app/contribute/components/page-skeleton';
 import { LearnHomeView } from '@/app/learn/components/learn-landing';
+import { learnHomeMetadata } from '@/lib/learn/lesson-seo';
 
-export const metadata: Metadata = {
-  title: 'Learn from real open-source fixes',
-  robots: { index: false, follow: false },
-};
+/** Indexed once the front door is open to visitors (`LEARN_OPEN_TO_VISITORS`); until then a visitor gets the 404. */
+export const metadata: Metadata = learnHomeMetadata();
 
 /** Learn's front door. Behind Learn's gate: not found for anyone Learn is not open to. */
 export default function LearnHomePage() {

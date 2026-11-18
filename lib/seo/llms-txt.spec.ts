@@ -42,4 +42,32 @@ describe('llms.txt', () => {
 
     expect(llmsTxtOf({ contribute: true, packages: true }).startsWith(closed)).toBe(true);
   });
+
+  it('lists Learn and its recent public lessons once its front door is open, and never before', () => {
+    const lesson = (n: number) => ({
+      slug: `lesson-${n}-abcdef`,
+      title: `Lesson [${n}]\nsecond line`,
+      language: n === 1 ? 'Go' : null,
+      repo: n === 1 ? 'o/n' : null,
+      publishedAt: '2026-11-14T10:00:00.000Z',
+      modifiedAt: '2026-11-14T10:00:00.000Z',
+    });
+    const open = llmsTxtOf({
+      contribute: false,
+      packages: false,
+      learn: Array.from({ length: 25 }, (_, n) => lesson(n + 1)),
+    });
+
+    expect(open).toContain('\n## Learn\n\n- [GitRanks Learn](https://example.test/learn): ');
+    expect(open).toContain('- [For maintainers](https://example.test/learn/maintainers)');
+    expect(open).toContain(
+      '- [Lesson 1 second line](https://example.test/learn/lessons/lesson-1-abcdef): a lesson on a fix in o/n (Go)\n',
+    );
+    expect(open).toContain(
+      '- [Lesson 2 second line](https://example.test/learn/lessons/lesson-2-abcdef): a lesson on a fix\n',
+    );
+    expect(open.match(/\/learn\/lessons\//g)).toHaveLength(20);
+    expect(llmsTxtOf({ contribute: false, packages: false, learn: [] })).toContain('## Learn');
+    expect(llmsTxtOf({ contribute: true, packages: true })).not.toMatch(/learn/i);
+  });
 });

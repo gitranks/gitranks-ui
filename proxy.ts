@@ -27,7 +27,7 @@ import {
 } from './lib/learn/learn-path';
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
 import { isLinkPagePath, LINK_PAGE_HEADERS } from './lib/link-token/link-token';
-import { isPackagePath } from './lib/packages/package-paths';
+import { isPackagePath, packageMarkdownRewriteOf } from './lib/packages/package-paths';
 import { packagesPublic, requestMaySeePackages } from './lib/packages/packages-gate';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
@@ -169,6 +169,13 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
     response.headers.set('Cache-Control', 'private, no-store');
     return response;
+  }
+
+  // A package's facts in markdown, for an agent: answered by the packages API route, which sets its own headers.
+  // Rewritten here, before Auth.js, which would make the rewrite an external one.
+  const packageMarkdown = packageMarkdownRewriteOf(pathname);
+  if (packageMarkdown) {
+    return NextResponse.rewrite(new URL(packageMarkdown, request.url));
   }
 
   // A repository's own page, for a visitor who may see package pages, is its tabbed Overview: rewritten here, before

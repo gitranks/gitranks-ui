@@ -1,3 +1,5 @@
+import { ITEMS_PER_PAGE } from '@/app/app.consts';
+import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { PackageRankingType, PackageRegistry } from '@/types/generated/graphql';
 
 /** The stars a repository needs for its use of a package to count. */
@@ -114,4 +116,10 @@ export function formatPackageDate(value: unknown): string | null {
   if (typeof value !== 'string' && !(value instanceof Date)) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : DATE.format(date);
+}
+
+/** The ranking page a rank is listed on; the first page past the pages the rankings list. */
+export function packageRankingPageOf(rank: number) {
+  const page = Math.ceil(rank / ITEMS_PER_PAGE);
+  return page <= RANKING_MAX_PAGE.package ? page : 1;
 }

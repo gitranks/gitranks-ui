@@ -1,13 +1,12 @@
 import NextLink from 'next/link';
 import type { FC } from 'react';
 
-import { ITEMS_PER_PAGE } from '@/app/app.consts';
+import { packageRankingPageOf } from '@/app/packages/package-rankings';
 import { Eyebrow, MoreLink, ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { Pill } from '@/components/pill/pill';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import type { PackagePage, PackageRank } from '@/graphql/package-page';
-import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { packageRankingPath } from '@/utils/package-paths';
 
 type PackageRanksCardProps = Pick<PackagePage, 'dependentsCount' | 'dependentsStars' | 'ranks'>;
@@ -28,12 +27,6 @@ const RANK_TILES = [
     title: 'Rank by repositories with 100+ stars using it',
   },
 ] as const;
-
-/** The ranking page a rank is listed on; the first page past the pages the rankings list. */
-export function packageRankingPageOf(rank: number) {
-  const page = Math.ceil(rank / ITEMS_PER_PAGE);
-  return page <= RANKING_MAX_PAGE.package ? page : 1;
-}
 
 const RankTile: FC<{ rank: PackageRank; by: string; label: string; title: string }> = ({ rank, by, label, title }) => (
   <NextLink

@@ -21,6 +21,8 @@ describe('isImpossibleEntityPath', () => {
     '/package/npm/react/extra',
     '/package/npm/@types',
     '/package/npm/@types/node/extra',
+    '/package/npm/.env/facts.md',
+    '/package/npm/@types/facts.md/facts.md/x',
     '/package/npm/types/node',
     '/package/npm/%E0%A4%A',
     `/package/npm/${'x'.repeat(215)}`,
@@ -45,6 +47,9 @@ describe('isImpossibleEntityPath', () => {
     '/package/npm/lodash.debounce',
     '/package/npm/JSONStream',
     '/package/npm/@scope/_private',
+    '/package/npm/react/facts.md',
+    '/package/npm/@types/node/facts.md',
+    '/package/npm/@acme/facts.md',
     `/package/npm/${'x'.repeat(214)}`,
     '/packages/npm/downloads/1',
   ])('leaves %s to the routes', (path) => {

@@ -20,6 +20,7 @@ describe('llms.txt', () => {
     expect(open).toMatch(/\n## Rankings and badges\n[\s\S]+\n## Packages\n\n- \[npm package rankings\]\(/);
     expect(open).toContain('(https://example.test/packages/npm/downloads/1)');
     expect(open).toContain('- Package page: https://example.test/package/npm/{name} — who uses an npm package');
+    expect(open).toContain('- Package facts in markdown: https://example.test/package/npm/{name}/facts.md — the same');
     expect(open).toContain('- Repository "Used by": https://example.test/repo/{owner}/{name}/used-by — the same');
     expect(open).toContain('- [How package rankings work](https://example.test/methodology/packages)');
     expect(open.endsWith('\n')).toBe(true);

@@ -239,7 +239,10 @@ const Downloads: FC<{ downloads: NonNullable<PackagePage['downloads']> }> = ({ d
       </p>
       {(downloads.weeks?.length ?? 0) > 1 && (
         <div className="h-[220px]">
-          <DownloadsChart points={(downloads.weeks ?? []).slice(-52)} />
+          <DownloadsChart
+            points={(downloads.weeks ?? []).slice(-52)}
+            label={`Weekly downloads from npm${range ? `, ${range}` : ''}: ${formatCountLong(downloads.last52Weeks)} in the last 12 months`}
+          />
         </div>
       )}
       {range && <p className="text-xs text-muted-foreground">Weekly downloads from npm, {range}.</p>}

@@ -63,11 +63,33 @@ type OpenDialog =
   | { kind: 'onDaily'; yours: boolean }
   | null;
 
-/** A refresh being waited for: when the wait started, the last update it is set against, and who started it. */
-type Waiting = { since: number; lastUpdatedAt: string | null; startedHere: boolean };
+/**
+ * A refresh being waited for: when the wait started (the press, for one started here), the last update the page shows,
+ * who started it, and how many checks found it still under way.
+ */
+type Waiting = { since: number; lastUpdatedAt: string | null; startedHere: boolean; checks: number };
 
+/** Between checks of a refresh this visitor started. */
 const CHECK_INTERVAL = 10_000;
+/** Between checks of one only shown running: slower and slower, as nobody here waits for it. */
+const WATCH_INTERVALS = [10_000, 20_000, 40_000];
 const WAIT_TIMEOUT = 10 * 60 * 1_000;
+/** An update this long before the press still counts as its own: the browser's clock and the API's may differ. */
+const CLOCK_SLACK = 5 * 60_000;
+
+const delayOf = ({ startedHere, checks }: Waiting) =>
+  startedHere ? CHECK_INTERVAL : WATCH_INTERVALS[Math.min(checks, WATCH_INTERVALS.length - 1)];
+
+/**
+ * Whether the status shows a refresh landed since the wait began: an update other than the page's and, for one
+ * started here, one made after the press (an older one would be a refresh that failed today saying "Updated").
+ */
+function landedSince(state: PackageRefreshStatus, waiting: Waiting): boolean {
+  if (!state.lastUpdatedAt || state.lastUpdatedAt === waiting.lastUpdatedAt) {
+    return false;
+  }
+  return !waiting.startedHere || new Date(state.lastUpdatedAt).getTime() >= waiting.since - CLOCK_SLACK;
+}
 
 /** The page's note key: a package's, never a repository's (no GitHub owner holds `:`). */
 const NOTE_OWNER = 'package:npm';
@@ -101,12 +123,14 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
   const [reloading, setReloading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const followedUp = useRef(false);
-  const inFlight = useRef(false);
 
+  // A press while one is only watched makes it this visitor's: checked from the press, at the quick pace.
   const startWaiting = useCallback(
     (startedHere: boolean) =>
-      setWaiting(
-        (prev) => prev ?? { since: Date.now(), lastUpdatedAt: dailyUpdates?.lastUpdatedAt ?? null, startedHere },
+      setWaiting((prev) =>
+        prev && (prev.startedHere || !startedHere)
+          ? prev
+          : { since: Date.now(), lastUpdatedAt: dailyUpdates?.lastUpdatedAt ?? null, startedHere, checks: 0 },
       ),
     [dailyUpdates?.lastUpdatedAt],
   );
@@ -153,18 +177,37 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
     [name],
   );
 
-  const check = useCallback(async () => {
-    if (!waiting || inFlight.current) {
+  // One check at a time, after a pause; an unmount or a move to another page aborts it, and nothing reloads after.
+  useEffect(() => {
+    if (!waiting || reloading) {
       return;
     }
-    inFlight.current = true;
-    try {
-      const res = await fetch(url, { cache: 'no-store' });
-      const state = res.ok ? ((await res.json()) as PackageRefreshStatus) : null;
-      if (!state || state.running) {
+    let live = true;
+    const controller = new AbortController();
+
+    const check = async () => {
+      if (Date.now() - waiting.since >= WAIT_TIMEOUT) {
+        if (waiting.startedHere) {
+          toast.info(PACKAGE_REFRESH_TOASTS.timedOut);
+        }
+        setWaiting(null);
         return;
       }
-      if (state.lastUpdatedAt !== waiting.lastUpdatedAt) {
+      let state: PackageRefreshStatus | null = null;
+      try {
+        const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        state = res.ok ? ((await res.json()) as PackageRefreshStatus) : null;
+      } catch {
+        // Aborted, or asked again at the next check.
+      }
+      if (!live) {
+        return;
+      }
+      if (!state || state.running) {
+        setWaiting((current) => current && { ...current, checks: current.checks + 1 });
+        return;
+      }
+      if (landedSince(state, waiting)) {
         // The status read expired the cached page, so a reload shows the new numbers.
         const note = state.dependentsChecked
           ? PACKAGE_REFRESH_TOASTS.refreshed
@@ -173,38 +216,21 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
         return;
       }
       // Nothing runs and nothing landed: the refresh ended without an update. One this visitor started reloads the
-      // page once, so a name the registry turned out not to have shows as not found.
+      // page once, without a note, so a name the registry turned out not to have shows as not found.
       if (waiting.startedHere) {
         reloadWithNote(null);
         return;
       }
       setWaiting(null);
-    } catch {
-      // Asked again at the next check.
-    } finally {
-      inFlight.current = false;
-    }
-  }, [waiting, url, reloadWithNote]);
+    };
 
-  useEffect(() => {
-    if (!waiting || reloading) {
-      return;
-    }
-    if (Date.now() - waiting.since >= WAIT_TIMEOUT) {
-      toast.info(PACKAGE_REFRESH_TOASTS.timedOut);
-      setWaiting(null);
-      return;
-    }
-    const timer = setInterval(() => {
-      if (Date.now() - waiting.since >= WAIT_TIMEOUT) {
-        toast.info(PACKAGE_REFRESH_TOASTS.timedOut);
-        setWaiting(null);
-        return;
-      }
-      void check();
-    }, CHECK_INTERVAL);
-    return () => clearInterval(timer);
-  }, [waiting, reloading, check]);
+    const timer = setTimeout(() => void check(), delayOf(waiting));
+    return () => {
+      live = false;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [waiting, reloading, url, reloadWithNote]);
 
   const openDialog = (next: NonNullable<OpenDialog>) => {
     sendGAEvent('event', 'package_updates_dialog_open', { kind: next.kind === 'refresh' ? next.pick : next.kind });

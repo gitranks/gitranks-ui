@@ -62,12 +62,20 @@ describe('a package page', () => {
     await expect(render('npm', 'gone')).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
-  it('redirects a %40 and another spelling the registry names otherwise to the page’s own', async () => {
-    await expect(render('npm', '%40nebula', 'ui')).rejects.toThrow('NEXT_REDIRECT /package/npm/@nebula/ui');
-    expect(fetchPackage).not.toHaveBeenCalled();
-
+  it('draws a scoped package as Next hands its params, encoded for either spelling, with no redirect', async () => {
     vi.mocked(fetchPackage).mockResolvedValue(quietPackage);
-    await expect(render('npm', '@Nebula', 'ui')).rejects.toThrow('NEXT_REDIRECT /package/npm/@nebula/ui');
+
+    expect(await render('npm', '%40nebula', 'ui')).toMatchObject({ name: '@nebula/ui', pkg: quietPackage });
+    expect(fetchPackage).toHaveBeenCalledWith('@nebula/ui');
+    expect(permanentRedirect).not.toHaveBeenCalled();
+    expect((await generateMetadata(params('npm', '%40nebula', 'ui'))).alternates?.canonical).toBe(
+      '/package/npm/@nebula/ui',
+    );
+  });
+
+  it('redirects a spelling the registry names otherwise to the registry’s own', async () => {
+    vi.mocked(fetchPackage).mockResolvedValue(quietPackage);
+    await expect(render('npm', '%40Nebula', 'ui')).rejects.toThrow('NEXT_REDIRECT /package/npm/@nebula/ui');
   });
 
   it('answers 200 for a package not read yet and while package data is unavailable, each kept for minutes', async () => {

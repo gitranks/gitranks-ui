@@ -8,8 +8,6 @@ export type PackageParams = {
   registry: 'npm';
   /** The package's name: `x` or `@scope/x`. */
   name: string;
-  /** Whether the URL spells the `@` as it is; a `%40` for it redirects to the page's own spelling. */
-  canonical: boolean;
 };
 
 const decode = (value: string) => {
@@ -20,24 +18,31 @@ const decode = (value: string) => {
   }
 };
 
-/**
- * The package a page's params name, or `null` when they cannot name one: a registry other than `npm`, more than two
- * name segments, a scope without `@`, or a name npm's rules refuse.
- */
-export function parsePackageParams(registry: string, segments: readonly string[]): PackageParams | null {
-  if (!REGISTRIES.has(registry) || segments.length === 0 || segments.length > 2) {
-    return null;
-  }
-  const parts = segments.map(decode);
-  if (parts.some((part) => part === null)) {
+/** The package that a registry and the name's parts, as they are, name; `null` when they cannot name one. */
+function packageOf(registry: string, parts: readonly (string | null)[]): PackageParams | null {
+  if (!REGISTRIES.has(registry) || parts.length === 0 || parts.length > 2 || parts.some((part) => part === null)) {
     return null;
   }
   const name = parts.join('/');
-  if (!isNpmPackageName(name)) {
-    return null;
-  }
+  return isNpmPackageName(name) ? { registry: 'npm', name } : null;
+}
 
-  return { registry: 'npm', name, canonical: !/^%40/i.test(segments[0]) };
+/**
+ * The package a page's params name, or `null` when they cannot name one: a registry other than `npm`, more than two
+ * name segments, a scope without `@`, or a name npm's rules refuse. A page gets each segment percent-encoded whatever
+ * the URL spelled (`@scope` and `%40scope` both arrive as `%40scope`), so each is decoded once here; the `%40`
+ * spelling is sent to the plain one before the page, by the proxy.
+ */
+export function parsePackageParams(registry: string, segments: readonly string[]): PackageParams | null {
+  return packageOf(registry, segments.map(decode));
+}
+
+/**
+ * The same for a route handler, whose params arrive decoded already: decoding them again would take `%2540scope` as
+ * `@scope`.
+ */
+export function parseDecodedPackageParams(registry: string, segments: readonly string[]): PackageParams | null {
+  return packageOf(registry, segments);
 }
 
 /** Where the browser reads a package's dependents or its refresh: `/api/packages/npm/<name>/<action>`. */

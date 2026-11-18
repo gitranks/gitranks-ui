@@ -32,21 +32,17 @@ async function packageParamsOf(params: PageProps<'/package/[registry]/[...name]'
 }
 
 export async function generateMetadata({ params }: PageProps<'/package/[registry]/[...name]'>): Promise<Metadata> {
-  const { name, canonical } = await packageParamsOf(params);
+  const { name } = await packageParamsOf(params);
   const pkg = await fetchPackage(name);
-  if (!pkg || !canonical || (pkg !== PACKAGE_UNAVAILABLE && pkg.name !== name)) {
+  if (!pkg || (pkg !== PACKAGE_UNAVAILABLE && pkg.name !== name)) {
     return {};
   }
   return buildPackageSEO(pkg, name, pkg === PACKAGE_UNAVAILABLE ? [] : (pkg.dependents?.items ?? [])).metadata;
 }
 
 export default async function PackagePageRoute({ params }: PageProps<'/package/[registry]/[...name]'>) {
-  const { name, canonical } = await packageParamsOf(params);
-  // One URL per package: `%40` for the `@` redirects to the plain spelling.
-  if (!canonical) {
-    permanentRedirect(packagePath(name));
-  }
-
+  // A `%40` for the `@` never gets here: the proxy sends it to the plain spelling, which the page cannot tell apart.
+  const { name } = await packageParamsOf(params);
   cacheTag(packageCacheTag(name));
   const pkg = await fetchPackage(name);
   // No package data now, a refresh under way, or a name nobody has read yet: the page changes soon, so it is kept

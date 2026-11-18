@@ -41,7 +41,6 @@ import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-di
 import { fillTime, REFRESH_LABELS, STAR_REPO_URL } from '@/components/refresh-dialogs/refresh-messages';
 import { Button } from '@/components/ui/button';
 import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
-import { usePackagesOpen } from '@/lib/packages/packages-open';
 import type { PickRef } from '@/types/daily-updates.types';
 import type { RepoPullAllowance, RepoPullResult, RepoPullStatus } from '@/types/repo-pull.types';
 import {
@@ -60,6 +59,11 @@ type PullButtonProps = {
   pull?: { status: string; requestedAt?: unknown } | null;
   /** The repository's daily updates, as the page's data has them; `null` or missing while it is not on them. */
   dailyUpdates?: DailyUpdatesFacts;
+  /**
+   * Whether the page is the one drawn for visitors who see packages (the tabbed repository page): its words then say
+   * "repos or packages". Today's page, which everyone else gets, keeps today's words.
+   */
+  packages?: boolean;
 };
 
 /**
@@ -88,7 +92,7 @@ const sinceRequest = (requestedAt: unknown) =>
  * The visitor's own state is read after load, never from the cached page; until it is, the button is Refresh. While the
  * session loads, a press does nothing.
  */
-export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdates }) => {
+export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdates, packages = false }) => {
   const { data: session, status } = useSession();
   const mode = pullModeOf(session, status);
   const login = status === 'authenticated' ? session?.user?.githubLogin : undefined;
@@ -97,9 +101,8 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
   const target: PickRef = { kind: 'repo', name: nameWithOwner };
   const url = pullUrl(owner, name);
   const [dialog, setDialog] = useState<OpenDialog>(null);
-  // The words name packages too once packages are shown to this visitor; today's until then. Only a signed-in visitor
-  // sees any of them, so nobody else is asked about.
-  const copy = pickCopyOf(usePackagesOpen(!!login), 'repo');
+  // The words name packages too on the page drawn for visitors who see them; the proxy decided who that is.
+  const copy = pickCopyOf(packages, 'repo');
   const picks = usePicks({
     target,
     viewer,

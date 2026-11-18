@@ -18,7 +18,7 @@ vi.mock('./package-updates-button', () => ({
     />
   ),
 }));
-vi.mock('./downloads-chart', () => ({ default: () => <div data-chart /> }));
+vi.mock('./downloads-chart', () => ({ default: (props: { label: string }) => <div data-chart={props.label} /> }));
 vi.mock('next/navigation', () => ({ usePathname: () => '/package/npm/x', useRouter: () => ({ push: vi.fn() }) }));
 
 const text = (html: string) =>
@@ -77,7 +77,9 @@ describe('PackageScreen', () => {
         '/methodology/packages',
       ]),
     );
-    expect(html).toContain('data-chart');
+    expect(html).toContain(
+      'data-chart="Weekly downloads from npm, Nov 17, 2025 – Nov 16, 2026: 77.9 million in the last 12 months"',
+    );
     expect(html).toContain('application/ld+json');
   });
 

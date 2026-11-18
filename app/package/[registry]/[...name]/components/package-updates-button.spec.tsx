@@ -93,7 +93,7 @@ describe('PackageUpdatesButton', () => {
   };
 
   beforeEach(() => {
-    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'], now: NOW });
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], now: NOW });
     answers = {};
     fetchMock.mockClear();
     vi.stubGlobal('fetch', fetchMock);
@@ -229,20 +229,103 @@ describe('PackageUpdatesButton', () => {
     });
   });
 
-  it('waits for a refresh shown running, and reloads the page once it lands', async () => {
-    session.current = SIGNED_OUT;
+  describe('waiting for a refresh', () => {
     const reload = vi.fn();
-    vi.stubGlobal('location', { ...window.location, reload });
-    await mount({ refreshRunning: true, dailyUpdates: { reasons: [], nextUpdateAt: null, lastUpdatedAt: null } });
-    expect(text()).toBe('Refreshing…');
+    const NOTE = 'repo-pull-note:package:npm/left-pad';
+    const tick = async (ms: number) => {
+      await act(async () => vi.advanceTimersByTime(ms));
+      await act(async () => {});
+    };
 
-    answer(STATUS, { running: true, lastUpdatedAt: null, dependentsChecked: true });
-    await act(async () => vi.advanceTimersByTime(10_000));
-    expect(reload).not.toHaveBeenCalled();
+    beforeEach(() => {
+      reload.mockReset();
+      vi.stubGlobal('location', { ...window.location, reload });
+    });
 
-    answer(STATUS, { running: false, lastUpdatedAt: iso(NOW), dependentsChecked: true });
-    await act(async () => vi.advanceTimersByTime(10_000));
-    await act(async () => {});
-    expect(reload).toHaveBeenCalledOnce();
+    it('watches one shown running at 10, 20 then 40 s, and reloads once it lands, with no note', async () => {
+      session.current = SIGNED_OUT;
+      await mount({ refreshRunning: true, dailyUpdates: { reasons: [], nextUpdateAt: null, lastUpdatedAt: null } });
+      expect(text()).toBe('Refreshing…');
+
+      answer(STATUS, { running: true, lastUpdatedAt: null, dependentsChecked: true });
+      answer(STATUS, { running: true, lastUpdatedAt: null, dependentsChecked: true });
+      await tick(10_000);
+      expect(calls(STATUS)).toHaveLength(1);
+      await tick(19_000);
+      expect(calls(STATUS)).toHaveLength(1);
+      await tick(1_000);
+      expect(calls(STATUS)).toHaveLength(2);
+
+      answer(STATUS, { running: false, lastUpdatedAt: iso(NOW), dependentsChecked: true });
+      await tick(39_000);
+      expect(reload).not.toHaveBeenCalled();
+      await tick(1_000);
+      expect(reload).toHaveBeenCalledOnce();
+      expect(sessionStorage.getItem(NOTE)).toBeNull();
+    });
+
+    it('says nothing when one only watched takes long', async () => {
+      session.current = SIGNED_OUT;
+      await mount({ refreshRunning: true });
+      for (let i = 0; i < 20; i++) answer(STATUS, { running: true, lastUpdatedAt: null, dependentsChecked: true });
+      await tick(10_000);
+      await tick(20_000);
+      for (let i = 0; i < 16; i++) await tick(40_000);
+
+      expect(toast.info).not.toHaveBeenCalled();
+      expect(text()).toBe('Refresh');
+    });
+
+    it('a press that landed: reloads with the note; one whose update is older than the press: no “Updated”', async () => {
+      session.current = SIGNED_IN;
+      const yesterday = iso(NOW - 24 * HOUR);
+      answer(VIEWER, viewerOf());
+      await mount({ dailyUpdates: { reasons: [DailyUpdateReason.Badge], nextUpdateAt: null, lastUpdatedAt: null } });
+
+      answer(REFRESH, { status: 'started', nextAt: iso(NOW + 24 * HOUR) });
+      await press('Updates daily');
+      await press('Refresh now');
+      // A refresh that failed today: the row still names yesterday's update, which the cached page did not show.
+      answer(STATUS, { running: false, lastUpdatedAt: yesterday, dependentsChecked: true });
+      await tick(10_000);
+
+      expect(reload).toHaveBeenCalledOnce();
+      expect(sessionStorage.getItem(NOTE)).toBeNull();
+    });
+
+    it('reloads after a press with the partial note when the repositories were not all re-read', async () => {
+      session.current = SIGNED_IN;
+      answer(VIEWER, viewerOf());
+      await mount({ dailyUpdates: { reasons: [DailyUpdateReason.Badge], nextUpdateAt: null, lastUpdatedAt: null } });
+
+      answer(REFRESH, { status: 'started', nextAt: iso(NOW + 24 * HOUR) });
+      await press('Updates daily');
+      await press('Refresh now');
+      answer(STATUS, { running: false, lastUpdatedAt: iso(NOW + 5_000), dependentsChecked: false });
+      await tick(10_000);
+
+      expect(reload).toHaveBeenCalledOnce();
+      expect(JSON.parse(sessionStorage.getItem(NOTE) ?? '{}').note).toBe(
+        'Downloads and releases are updated. The repositories that use it are re-read tomorrow.',
+      );
+    });
+
+    it('aborts a check under way on unmount, and never reloads after it', async () => {
+      session.current = SIGNED_OUT;
+      let signal: AbortSignal | undefined;
+      fetchMock.mockImplementationOnce(async (_url: string, init?: RequestInit) => {
+        signal = init?.signal ?? undefined;
+        return new Promise<Response>(() => {});
+      });
+      await mount({ refreshRunning: true });
+      await tick(10_000);
+      expect(signal?.aborted).toBe(false);
+
+      act(() => root.unmount());
+      expect(signal?.aborted).toBe(true);
+      root = createRoot(container);
+      await tick(60_000);
+      expect(reload).not.toHaveBeenCalled();
+    });
   });
 });

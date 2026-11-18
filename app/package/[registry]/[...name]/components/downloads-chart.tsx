@@ -7,7 +7,11 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import type { PackageDownloadsPoint } from '@/graphql/package-page';
 import { formatNumberShort } from '@/utils/format-number-short';
 
-type DownloadsChartProps = { points: readonly PackageDownloadsPoint[] };
+type DownloadsChartProps = {
+  points: readonly PackageDownloadsPoint[];
+  /** What the chart shows, for assistive tech: its range and its total. */
+  label: string;
+};
 
 type ChartPoint = { time: number; downloads: number };
 
@@ -31,14 +35,18 @@ const DownloadsTooltip: FC<{ active?: boolean; payload?: Array<{ payload?: Chart
 };
 
 /** Weekly downloads as a line over the weeks given, drawn with the star history's chart parts. */
-const DownloadsChart: FC<DownloadsChartProps> = ({ points }) => {
+const DownloadsChart: FC<DownloadsChartProps> = ({ points, label }) => {
   const data: ChartPoint[] = points.map(({ start, downloads }) => ({ time: new Date(start).getTime(), downloads }));
   if (data.length < 2) {
     return null;
   }
 
   return (
-    <div className="[&_.recharts-surface:focus:not(:focus-visible)]:outline-none [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-offset-2 [&_.recharts-surface:focus-visible]:outline-ring">
+    <div
+      role="img"
+      aria-label={label}
+      className="[&_.recharts-surface:focus:not(:focus-visible)]:outline-none [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-offset-2 [&_.recharts-surface:focus-visible]:outline-ring"
+    >
       <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
           <defs>

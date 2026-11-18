@@ -1,8 +1,9 @@
 import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
+import { claimExpiry, readStatus, readUpstream } from './refresh-status';
 import type { AuthRequest } from '@/app/api/profile/[login]/route';
-import { parsePackageParams } from '@/app/package/[registry]/[...name]/utils/package-params';
+import { parseDecodedPackageParams } from '@/app/package/[registry]/[...name]/utils/package-params';
 import type {
   PackageRefreshResult,
   PackageRefreshStatus,
@@ -14,7 +15,6 @@ import { accountEmailOf } from '@/lib/account-email';
 import { packageCacheTag } from '@/lib/packages/package-paths';
 import { packagesPublic, requestMaySeePackages } from '@/lib/packages/packages-gate';
 import { signedFetch } from '@/lib/signed-fetch';
-import { ExpiredRefreshStates } from '@/utils/profile-refresh';
 
 // A package's reads and its refresh, for its page in the browser: `/api/packages/npm/<name>/dependents` and
 // `/api/packages/npm/<name>/refresh`, `<name>` being `x` or `@scope/x` (no static segment may follow a catch-all, so
@@ -27,8 +27,6 @@ const PUBLIC = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400
 
 /** A refresh that landed this long ago or less may not be on the cached page yet: its status expires it. */
 const LANDED_WINDOW_MS = 10 * 60_000;
-
-const expiredStates = new ExpiredRefreshStates();
 
 const answer = (body: unknown, status: number, cacheControl = PRIVATE) =>
   NextResponse.json(body, { status, headers: { 'Cache-Control': cacheControl } });
@@ -48,7 +46,8 @@ async function targetOf(params: Promise<unknown> | undefined): Promise<{ name: s
   if (!action || !ACTIONS.has(action)) {
     return null;
   }
-  const pkg = parsePackageParams(registry, rest.slice(0, -1));
+  // A route handler's params arrive decoded: they are taken as they are.
+  const pkg = parseDecodedPackageParams(registry, rest.slice(0, -1));
   return pkg && { name: pkg.name, action: action as Action };
 }
 
@@ -61,22 +60,6 @@ function dependentsQueryOf(search: URLSearchParams): { offset: number; hideArchi
   const archived = search.get('archived');
   if (archived !== null && archived !== '0') return null;
   return { offset, hideArchived: archived === '0' };
-}
-
-type Upstream<T> = { ok: true; body: T } | { ok: false; status: number };
-
-/** The upstream answer; one that throws or whose body is not a JSON object reads as a 502. */
-async function readUpstream<T>(call: () => Promise<Response>): Promise<Upstream<T>> {
-  try {
-    const response = await call();
-    if (!response.ok) {
-      return { ok: false, status: response.status };
-    }
-    const body: unknown = await response.json();
-    return body && typeof body === 'object' ? { ok: true, body: body as T } : { ok: false, status: 502 };
-  } catch {
-    return { ok: false, status: 502 };
-  }
 }
 
 /** One page of the package's dependents, for "Show more" and "Hide archived": `{ page }`. */
@@ -99,12 +82,11 @@ async function dependents(req: NextRequest, name: string) {
 
 /**
  * The package's refresh as its row has it: `{ running, lastUpdatedAt, dependentsChecked }`. A refresh that landed
- * lately expires the cached page, so the reload after it shows the new numbers.
+ * lately expires the cached page once, so the reload after it shows the new numbers.
  */
 async function refreshStatus(name: string) {
-  const read = await readUpstream<PackageRefreshStatus>(() =>
-    signedFetch(`/packages/refresh/status?${new URLSearchParams({ registry: 'npm', name })}`, { cache: 'no-store' }),
-  );
+  const now = Date.now();
+  const read = await readStatus(name, now);
   if (!read.ok) {
     return answer({ message: 'Failed to load the refresh' }, read.status === 404 ? 404 : 502);
   }
@@ -115,13 +97,13 @@ async function refreshStatus(name: string) {
     lastUpdatedAt: typeof lastUpdatedAt === 'string' ? lastUpdatedAt : null,
     dependentsChecked: dependentsChecked !== false,
   };
-  const now = Date.now();
   const landed = status.lastUpdatedAt ? new Date(status.lastUpdatedAt).getTime() : Number.NaN;
   const tag = packageCacheTag(name);
   if (
+    status.lastUpdatedAt &&
     !status.running &&
     now - landed <= LANDED_WINDOW_MS &&
-    expiredStates.claim(tag, status.lastUpdatedAt!, now, tag)
+    claimExpiry(tag, status.lastUpdatedAt)
   ) {
     revalidateTag(tag, { expire: 0 });
   }

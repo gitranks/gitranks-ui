@@ -16,6 +16,7 @@ const { packagesPublic, requestMaySeePackages, fetchPackageDependents, signedFet
 
 type Handler = (req: NextRequest & { auth: Session | null }, context: unknown) => unknown;
 
+vi.mock('server-only', () => ({}));
 vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic, requestMaySeePackages }));
 vi.mock('@/graphql/helpers/fetch-package', () => ({ PACKAGE_UNAVAILABLE: 'unavailable', fetchPackageDependents }));
 vi.mock('@/lib/signed-fetch', () => ({ signedFetch }));
@@ -31,6 +32,8 @@ const route = (await import('./route')) as unknown as {
   GET: (req: NextRequest, context: { params: Promise<{ registry: string; rest: string[] }> }) => Promise<Response>;
   POST: (req: NextRequest, context: { params: Promise<{ registry: string; rest: string[] }> }) => Promise<Response>;
 };
+
+const { resetPackageRefreshState } = await import('./refresh-status');
 
 const call = (method: 'GET' | 'POST', path: string, search = '') => {
   const [registry, ...rest] = path.split('/');
@@ -52,6 +55,8 @@ describe('package routes', () => {
     signedFetch.mockReset();
     revalidateTag.mockReset();
     current.session = null;
+    resetPackageRefreshState();
+    vi.useRealTimers();
   });
 
   it('answers the not-found answer, kept by no cache, to a visitor who may not see package pages', async () => {
@@ -100,7 +105,14 @@ describe('package routes', () => {
   it('refuses a path or a query that names nothing', async () => {
     requestMaySeePackages.mockResolvedValue(true);
 
-    for (const path of ['pypi/react/dependents', 'npm/react', 'npm/react/badge', 'npm/nebula/ui/dependents']) {
+    // Params arrive decoded: `%40` is taken as it is, never as a second spelling of `@`.
+    for (const path of [
+      'pypi/react/dependents',
+      'npm/react',
+      'npm/react/badge',
+      'npm/nebula/ui/dependents',
+      'npm/%40nebula/ui/dependents',
+    ]) {
       expect((await call('GET', path)).status, path).toBe(404);
     }
     for (const search of ['?offset=7', '?offset=99999', '?archived=1']) {
@@ -109,23 +121,39 @@ describe('package routes', () => {
     expect(fetchPackageDependents).not.toHaveBeenCalled();
   });
 
-  it("reads the refresh's status as the site, and expires the page after a refresh that landed lately", async () => {
+  it("reads the refresh's status as the site, one call per package a few seconds, and expires the page once per update", async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.parse('2026-11-17T12:00:00Z') });
     requestMaySeePackages.mockResolvedValue(true);
     const landed = new Date(Date.now() - 60_000).toISOString();
     upstream(200, { running: false, lastUpdatedAt: landed, dependentsChecked: false });
 
-    const response = await call('GET', 'npm/@nebula/ui/refresh');
+    const [first, second] = await Promise.all([
+      call('GET', 'npm/@nebula/ui/refresh'),
+      call('GET', 'npm/@nebula/ui/refresh'),
+    ]);
 
-    expect(await response.json()).toEqual({ running: false, lastUpdatedAt: landed, dependentsChecked: false });
+    expect(await first.json()).toEqual({ running: false, lastUpdatedAt: landed, dependentsChecked: false });
+    expect(await second.json()).toEqual({ running: false, lastUpdatedAt: landed, dependentsChecked: false });
     expect(signedFetch).toHaveBeenCalledExactlyOnceWith('/packages/refresh/status?registry=npm&name=%40nebula%2Fui', {
       cache: 'no-store',
     });
     expect(revalidateTag).toHaveBeenCalledExactlyOnceWith('package:npm/@nebula/ui', { expire: 0 });
 
-    // The same landing again expires nothing more.
+    // A few seconds on the API is asked again; the same update expires nothing more, a new one does.
+    vi.setSystemTime(Date.now() + 6_000);
     upstream(200, { running: false, lastUpdatedAt: landed, dependentsChecked: true });
     await call('GET', 'npm/@nebula/ui/refresh');
+    expect(signedFetch).toHaveBeenCalledTimes(2);
     expect(revalidateTag).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(Date.now() + 6_000);
+    upstream(200, {
+      running: false,
+      lastUpdatedAt: new Date(Date.now() - 1_000).toISOString(),
+      dependentsChecked: true,
+    });
+    await call('GET', 'npm/@nebula/ui/refresh');
+    expect(revalidateTag).toHaveBeenCalledTimes(2);
   });
 
   it('asks for "Refresh now" signed as the visitor, with their email, and expires the page once one starts', async () => {

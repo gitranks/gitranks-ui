@@ -492,6 +492,12 @@ describe('proxy', () => {
         expect(unconfirmed?.headers.get('link')).toBeNull();
       });
 
+      it('a signed-in visitor gets the same page, asked about signed out', async () => {
+        const response = await proxy(request('authjs.session-token=t', PAGE), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(timelineGate).toHaveBeenCalledWith({ nameWithOwner: 'acme/widgets', number: 42 });
+      });
+
       it('a missing page is a 404, a moved one a 307 to its address now, neither kept', async () => {
         timelineGate.mockResolvedValueOnce({ kind: 'missing' });
         const missing = await proxy(request(undefined, PAGE), event);
@@ -500,6 +506,7 @@ describe('proxy', () => {
         timelineGate.mockResolvedValueOnce({ kind: 'redirect', path: '/contribute/pr/acme/gadgets/42' });
         const moved = await proxy(request(undefined, `${PAGE}/timeline.md?utm_source=x`), event);
         expect(moved?.status).toBe(307);
+        expect(moved?.headers.get('cache-control')).toBe('private, no-store');
         expect(moved?.headers.get('location')).toBe(
           'https://gitranks.com/contribute/pr/acme/gadgets/42/timeline.md?utm_source=x',
         );

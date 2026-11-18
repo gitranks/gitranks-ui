@@ -46,13 +46,13 @@ export async function publicPrTimeline(pr: PrRef): Promise<PrTimeline | null> {
 }
 
 /**
- * The shown pages for the sitemap, newest first (empty until timelines are public). Kept an hour once it answers; a
- * failed read is null, kept minutes.
+ * The shown pages for the sitemap, newest first. Kept an hour once it lists any; an empty list or a
+ * failed read (null) is kept minutes.
  */
 export async function readPublicPrTimelines(): Promise<PublicPrTimeline[] | null> {
   'use cache';
   const answer = await graphqlDirect(PublicPrTimelinesDocument, undefined, { source: 'ssr' }).catch(() => null);
-  // An empty list (closed, or nothing shown yet) is asked again within minutes: opening reaches the sitemap soon.
+  // An empty list (nothing shown yet) is asked again within minutes: opening reaches the sitemap soon.
   if (answer?.publicPrTimelines.length) cacheLife('hours');
   else cacheLife('minutes');
   return answer?.publicPrTimelines ?? null;

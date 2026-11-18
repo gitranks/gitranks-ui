@@ -22,7 +22,7 @@ function registryPackageLines(registry: RegistryId, url: (path: string) => strin
 
 /**
  * The site's llms.txt (llmstxt.org): an H1, a one-line summary, then link sections. Top-level pages alone, never a
- * per-profile URL. `contribute`: Contribute is launched, so its pages for agents are listed. `packages`: package pages
+ * per-profile URL. `contribute`: Contribute is launched, so its pages for agents and its pull request timelines are listed. `packages`: package pages
  * are open to everyone, so the package rankings, the address patterns of a package's page and a repository's Used by
  * tab, and the Unsung heroes archive are listed. `learn`: Learn's front door is open to visitors, so Learn's pages and its
  * most recent public lessons (newest first, at most `LLMS_TXT_LESSONS`) are listed; null leaves Learn out.

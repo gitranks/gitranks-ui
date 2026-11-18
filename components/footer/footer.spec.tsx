@@ -1,46 +1,18 @@
-// @vitest-environment jsdom
-import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-
-const { open } = vi.hoisted(() => ({ open: { current: false } }));
-vi.mock('@/lib/packages/packages-open', () => ({ usePackagesOpen: () => open.current }));
-
-const { Footer } = await import('./footer');
-
-const siteLinks = (container: ParentNode) =>
-  [...container.querySelectorAll('nav[aria-label="Site"] a')].map((a) => [a.textContent, a.getAttribute('href')]);
+import { Footer } from './footer';
 
 describe('Footer', () => {
-  let container: HTMLDivElement;
-  let root: Root;
+  it('links the package rankings, right after the repository rankings, in the HTML every visitor is served', () => {
+    const html = renderToStaticMarkup(<Footer />);
+    const labels = [...html.matchAll(/<a [^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].map(([, href, label]) => [
+      label,
+      href,
+    ]);
+    const repos = labels.findIndex(([label]) => label === 'Repository Rankings');
 
-  beforeEach(() => {
-    open.current = false;
-    container = document.createElement('div');
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => root.unmount());
-  });
-
-  it('has no package link in the HTML every visitor is served, nor for a viewer packages are closed to', async () => {
-    expect(renderToStaticMarkup(<Footer />)).not.toContain('/packages/');
-
-    await act(async () => root.render(<Footer />));
-    expect(siteLinks(container).map(([label]) => label)).not.toContain('Package Rankings');
-  });
-
-  it('links the package rankings after the repository rankings for a viewer they are open to', async () => {
-    open.current = true;
-    await act(async () => root.render(<Footer />));
-
-    const links = siteLinks(container);
-    const repos = links.findIndex(([label]) => label === 'Repository Rankings');
-    expect(links[repos + 1]).toEqual(['Package Rankings', '/packages/npm/downloads/1']);
+    expect(repos).toBeGreaterThanOrEqual(0);
+    expect(labels[repos + 1]).toEqual(['Package Rankings', '/packages/npm/downloads/1']);
   });
 });

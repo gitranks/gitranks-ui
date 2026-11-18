@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { type ReactNode, Suspense } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
 import { ExampleLessonCard } from './example-lesson-card';
@@ -10,7 +11,6 @@ import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { buttonVariants } from '@/components/ui/button';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
-import type { PublicLesson } from '@/lib/learn/learn.types';
 import { learnFrontDoorOpenToVisitor } from '@/lib/learn/learn-front-door';
 import { LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { readRecentLessons } from '@/lib/learn/recent-lessons.data';
@@ -117,11 +117,11 @@ function FooterExample() {
 
 /**
  * Learn's front door: what a lesson is, with an example to try, the handoff between the terminal and the site, what
- * every lesson covers, the newest shared lessons (`lessons`, left out when none), what maintainers see, and the
+ * every lesson covers, the newest shared lessons (`recentLessons`, left out when not given), what maintainers see, and the
  * questions. Built from the Contribute landing's sections. The same page for a visitor and a signed-in user; only
  * "Start learning" changes.
  */
-export function LearnLanding({ viewer, lessons = [] }: { viewer: LearnLandingViewer; lessons?: PublicLesson[] }) {
+export function LearnLanding({ viewer, recentLessons }: { viewer: LearnLandingViewer; recentLessons?: ReactNode }) {
   return (
     <main className="flex flex-col" data-landing-viewer={viewer}>
       <section className={cn(WIDTH, 'flex flex-wrap items-center gap-9 pt-8 pb-11 sm:gap-14 sm:pt-14 sm:pb-16')}>
@@ -195,7 +195,7 @@ export function LearnLanding({ viewer, lessons = [] }: { viewer: LearnLandingVie
         </ol>
       </section>
 
-      <RecentLessons lessons={lessons} />
+      {recentLessons}
 
       <section className={MUTED_SECTION}>
         <div
@@ -241,7 +241,18 @@ export function LearnLanding({ viewer, lessons = [] }: { viewer: LearnLandingVie
 export async function LearnHomeView() {
   const viewer = await frontDoorViewer();
   if (!viewer) notFound();
-  return <LearnLanding viewer={viewer} lessons={await readRecentLessons()} />;
+  // In its own Suspense: a slow read leaves the list out for a moment, never the page.
+  const recent = (
+    <Suspense fallback={null}>
+      <LoadedRecentLessons />
+    </Suspense>
+  );
+  return <LearnLanding viewer={viewer} recentLessons={recent} />;
+}
+
+/** The front door's newest shared lessons, read once the page is open to its reader. */
+async function LoadedRecentLessons() {
+  return <RecentLessons lessons={await readRecentLessons()} />;
 }
 
 /** Who reads the front door, or null when it is not open to them. */

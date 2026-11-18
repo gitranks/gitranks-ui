@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,7 +33,7 @@ const recent = vi.hoisted(() => ({ readRecentLessons: vi.fn(async () => [] as Pu
 vi.mock('@/lib/learn/recent-lessons.data', () => recent);
 
 const { LearnHomeView, LearnLanding } = await import('./learn-landing');
-const { publishedDayOf } = await import('./recent-lessons');
+const { publishedDayOf, RecentLessons } = await import('./recent-lessons');
 const { recentLessons } = await import('@/lib/learn/__fixtures__/recent-lessons');
 const { LearnMaintainers } = await import('./learn-maintainers');
 const { LearnProfileScreen, LearnProfileView } = await import('./learn-profile');
@@ -40,6 +41,13 @@ const { MyLessonsScreen, MyLessonsView } = await import('./my-lessons');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { emptyProfile, filledProfile, myLessons } = await import('@/lib/learn/__fixtures__/profile');
 const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
+
+/** The front door's recent lessons, as `LearnHomeView` lazily reads them (inside their own Suspense), rendered. */
+async function recentOf(home: ReactElement<{ recentLessons?: ReactElement<{ children: ReactElement }> }>) {
+  const loaded = home.props.recentLessons?.props.children;
+  if (!loaded) return '';
+  return renderToStaticMarkup(await (loaded.type as () => Promise<ReactElement>)());
+}
 
 const text = (html: string) =>
   html
@@ -74,7 +82,9 @@ describe("Learn's front door", () => {
   });
 
   it('lists the newest shared lessons, each a link to its page, with its repository, language and day', () => {
-    const html = renderToStaticMarkup(<LearnLanding viewer="visitor" lessons={recentLessons} />);
+    const html = renderToStaticMarkup(
+      <LearnLanding viewer="visitor" recentLessons={<RecentLessons lessons={recentLessons} />} />,
+    );
     expect(html).toContain('data-recent-lessons');
     expect(html.match(/href="\/learn\/lessons\/[^"]+"/g)).toEqual([
       'href="/learn/lessons/why-1h30m-came-back-as-one-hour-p47ocg"',
@@ -88,11 +98,12 @@ describe("Learn's front door", () => {
 
   it('leaves the list out when no lesson is shared yet, or the API did not answer', () => {
     expect(renderToStaticMarkup(<LearnLanding viewer="visitor" />)).not.toContain('Recent lessons');
-    expect(renderToStaticMarkup(<LearnLanding viewer="visitor" lessons={[]} />)).not.toContain('Recent lessons');
+    expect(renderToStaticMarkup(<RecentLessons lessons={[]} />)).toBe('');
   });
 
   it("writes a lesson's day in UTC, and nothing for a date that does not parse", () => {
     expect(publishedDayOf('2026-11-14T23:59:59.000Z')).toBe('14 Nov 2026');
+    expect(publishedDayOf('2026-09-01T00:00:00.000Z')).toBe('1 Sep 2026');
     expect(publishedDayOf('not a date')).toBe('');
   });
 });
@@ -200,6 +211,7 @@ describe("Learn's gate on its own pages", () => {
 
   afterEach(() => {
     data.loadLearnSetup.mockReset();
+    recent.readRecentLessons.mockClear().mockResolvedValue([]);
   });
 
   it('answers not found to anyone Learn is not open to, whatever the other reads do', async () => {
@@ -208,6 +220,7 @@ describe("Learn's gate on its own pages", () => {
     await expect(LearnHomeView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(MyLessonsView()).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(recent.readRecentLessons).not.toHaveBeenCalled();
   });
 
   it("opens the front door's visitor version to a visitor once Learn is open to everyone, and nothing else", async () => {
@@ -215,7 +228,10 @@ describe("Learn's gate on its own pages", () => {
     data.loadLearnSetup.mockResolvedValue(false);
     everyone.mockResolvedValue(true);
     try {
-      expect(renderToStaticMarkup(await LearnHomeView())).toContain('data-landing-viewer="visitor"');
+      recent.readRecentLessons.mockResolvedValue(recentLessons);
+      const home = await LearnHomeView();
+      expect(renderToStaticMarkup(home)).toContain('data-landing-viewer="visitor"');
+      expect(await recentOf(home)).toContain('href="/learn/lessons/why-1h30m-came-back-as-one-hour-p47ocg"');
       await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
       await expect(MyLessonsView()).rejects.toThrow('NEXT_NOT_FOUND');
       // A signed-in person Learn is not open to still gets a 404 (the list, not everyone, decides for them).
@@ -244,10 +260,10 @@ describe("Learn's gate on its own pages", () => {
     data.loadLearnProfile.mockResolvedValue(filledProfile);
     data.loadMyLessons.mockResolvedValue(myLessons);
     data.loadOwnAgent.mockResolvedValue(views.agentOnboarded.ownAgent);
-    recent.readRecentLessons.mockResolvedValueOnce(recentLessons);
-    const home = renderToStaticMarkup(await LearnHomeView());
-    expect(home).toContain('data-landing-viewer="signed-in"');
-    expect(home).toContain('href="/learn/lessons/why-1h30m-came-back-as-one-hour-p47ocg"');
+    recent.readRecentLessons.mockResolvedValue(recentLessons);
+    const home = await LearnHomeView();
+    expect(renderToStaticMarkup(home)).toContain('data-landing-viewer="signed-in"');
+    expect(await recentOf(home)).toContain('data-recent-lessons');
     expect(renderToStaticMarkup(await LearnProfileView())).toContain('data-learn-profile="filled"');
     expect(renderToStaticMarkup(await MyLessonsView())).toContain('data-lesson="A_3"');
   });

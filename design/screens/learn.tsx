@@ -12,6 +12,7 @@ import { LessonPageScreen } from '@/app/learn/components/lesson-page';
 import { LessonResultScreen, type ResultViewer } from '@/app/learn/components/lesson-result';
 import { LessonStubScreen } from '@/app/learn/components/lesson-stub';
 import { MyLessonsScreen } from '@/app/learn/components/my-lessons';
+import { RecentLessons } from '@/app/learn/components/recent-lessons';
 import { Header } from '@/components/header/header';
 import { detail, pullRequest } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { views } from '@/lib/contribute/__fixtures__/contribute-views';
@@ -128,7 +129,11 @@ export const LEARN_SCREENS: Screen[] = [
         path: '/learn',
         signedOut: true,
         height: 2480,
-        render: () => bare(<LearnLanding viewer="visitor" lessons={recentLessons} />, <HeaderLine />),
+        render: () =>
+          bare(
+            <LearnLanding viewer="visitor" recentLessons={<RecentLessons lessons={recentLessons} />} />,
+            <HeaderLine />,
+          ),
       },
       {
         id: 'phone',
@@ -137,7 +142,11 @@ export const LEARN_SCREENS: Screen[] = [
         signedOut: true,
         width: 390,
         height: 4500,
-        render: () => bare(<LearnLanding viewer="visitor" lessons={recentLessons} />, <HeaderLine />),
+        render: () =>
+          bare(
+            <LearnLanding viewer="visitor" recentLessons={<RecentLessons lessons={recentLessons} />} />,
+            <HeaderLine />,
+          ),
       },
     ],
   },

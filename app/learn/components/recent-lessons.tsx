@@ -5,12 +5,13 @@ import type { PublicLesson } from '@/lib/learn/learn.types';
 import { lessonPath } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
 
-const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** A lesson's publishing day, as `18 Nov 2026`; empty for a date that does not parse. */
+/** A lesson's publishing day in UTC, as `18 Nov 2026` whatever the runtime's locale data; empty for a bad date. */
 export function publishedDayOf(iso: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : DAY.format(date);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
 /**
@@ -27,7 +28,7 @@ export function RecentLessons({ lessons }: { lessons: PublicLesson[] }) {
           Recent lessons
         </h2>
         <p className="max-w-prose text-muted-foreground">
-          Lessons from real fixes, shared by the people who passed them. Open one and read it, no sign-in needed.
+          Shared by the people who passed them. Open one and read it, no sign-in needed.
         </p>
       </div>
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))] gap-4" data-recent-lessons>

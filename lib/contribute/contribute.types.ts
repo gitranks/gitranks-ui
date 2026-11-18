@@ -756,6 +756,13 @@ export type ContributeAttemptDetail = ContributeAttempt & {
   /** The commits carry the gitranks bot's co-author: false on a repo that bans AI trailers; null before the approval. */
   prCoAuthored?: boolean | null;
   /**
+   * Before a first attempt's approval, while pull request timelines are public and this PR can have one: the footer its
+   * "Show how this PR was made" box gives. Null otherwise; `undefined` while the API does not answer it.
+   */
+  prFooterTimeline?: string | null;
+  /** A first attempt's public timeline: whether its PR can have one for the viewer, and its switch (null: never set). */
+  timeline?: { eligible: boolean; shown: boolean | null } | null;
+  /**
    * A follow-up run's new description for its pull request, as it will be set (footer included) before its replies are
    * posted: null when the run changes none or its push is over; `undefined` while the API does not answer it.
    */

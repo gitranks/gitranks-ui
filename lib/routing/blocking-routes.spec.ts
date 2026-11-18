@@ -32,6 +32,11 @@ const ROUTES = [
   { segment: 'org/[login]', module: () => import('@/app/org/[login]/layout'), params: ['login'] },
   { segment: 'insights/[id]', module: () => import('@/app/insights/[id]/page'), params: ['id'] },
   {
+    segment: 'contribute/pr/[owner]/[repo]/[number]',
+    module: () => import('@/app/(pr-timeline)/contribute/pr/[owner]/[repo]/[number]/page'),
+    params: ['owner', 'repo', 'number'],
+  },
+  {
     segment: 'repos/language/[language]/[page]',
     module: () => import('@/app/repos/language/[language]/[page]/layout'),
     params: ['language', 'page'],

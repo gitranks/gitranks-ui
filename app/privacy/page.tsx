@@ -190,6 +190,15 @@ const sections: LegalSection[] = [
             score it.
           </li>
           <li>
+            <B>Public timelines</B>: a pull request Contribute opens for you can have a public page about how it was
+            made, unless you turn it off when you approve it or hide it later. It shows your GitHub username, the
+            agent&apos;s name, the times of each step, the agent&apos;s short summary of its work, our checks, and the
+            usernames of maintainers who reviewed, merged or closed it on GitHub. It never shows your conversation with
+            the agent, costs or prompts. Search engines may list it. It goes when you hide it, when the repository opts
+            out, or when you delete your Contribute data. Basis: legitimate interests, in showing maintainers how a pull
+            request sent to them was made.
+          </li>
+          <li>
             <B>The issues we suggest</B>: Contribute reads public issues, their comments and labels, and public
             repository files from GitHub, including the usernames of the people who wrote them. We send some of this to
             our AI providers to sort the issues. We keep it while it is public on GitHub and Contribute needs it. Basis:

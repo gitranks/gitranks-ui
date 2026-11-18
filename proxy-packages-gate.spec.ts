@@ -12,6 +12,10 @@ vi.mock('./lib/contribute/preview-gate', () => ({
   contributeOpen: async () => false,
 }));
 vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: async () => false }));
+vi.mock('./lib/contribute/pr-timeline-gate', () => ({
+  contributePrTimelineOpen: async () => false,
+  prTimelineGateOf: async () => ({ kind: 'page', partial: false }),
+}));
 // Learn is not open to everyone: a visitor's /learn stays a 404.
 vi.mock('./lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => false }));
 vi.mock('./lib/learn/lesson-gate', () => ({

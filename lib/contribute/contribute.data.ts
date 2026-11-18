@@ -34,6 +34,7 @@ import {
   ContributeAttemptsInReviewAtDocument,
   ContributeAttemptsMovesDocument,
   ContributeAttemptsOwnAgentDocument,
+  ContributeAttemptTimelineDocument,
   ContributeAutopilotDocument,
   ContributeAutopilotNoticeDocument,
   ContributeChangesDocument,
@@ -654,6 +655,10 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   const bodyUpdate = Promise.resolve(graphqlDirect(ContributeAttemptBodyUpdateDocument, { id }, options)).catch(
     () => undefined,
   );
+  // A first attempt's public timeline and its footer; left out when not answered.
+  const timelineRead = Promise.resolve(graphqlDirect(ContributeAttemptTimelineDocument, { id }, options)).catch(
+    () => undefined,
+  );
   // A Learn attempt's mode and lesson state; left out when not answered.
   const learn = Promise.resolve(graphqlDirect(ContributeAttemptLearnDocument, { id }, options)).catch(() => undefined);
   try {
@@ -687,11 +692,16 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
       disclosureRead?.attemptId === contributeAttempt.attemptId && typeof disclosureRead.prFooter === 'string'
         ? { ...withDco, prFooter: disclosureRead.prFooter, prCoAuthored: disclosureRead.prCoAuthored ?? null }
         : withDco;
+    const timelineOwn = (await timelineRead)?.contributeAttempt;
+    const withTimeline =
+      timelineOwn?.attemptId === contributeAttempt.attemptId
+        ? { ...withDisclosure, prFooterTimeline: timelineOwn.prFooterTimeline, timeline: timelineOwn.timeline }
+        : withDisclosure;
     const stopRead = (await checkStop)?.contributeAttempt;
     const withStop =
       stopRead?.attemptId === contributeAttempt.attemptId && stopRead.checkLimit !== undefined
-        ? { ...withDisclosure, checkLimit: stopRead.checkLimit ?? null }
-        : withDisclosure;
+        ? { ...withTimeline, checkLimit: stopRead.checkLimit ?? null }
+        : withTimeline;
     const retryRead = (await retry)?.contributeAttempt;
     const retryOwn = retryRead?.attemptId === contributeAttempt.attemptId ? retryRead : undefined;
     const withRetry = retryOwn && retryOwn.retry !== undefined ? { ...withStop, retry: retryOwn.retry } : withStop;

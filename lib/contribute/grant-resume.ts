@@ -12,7 +12,15 @@ export const RESUME_PARAM = 'resume';
 const STORAGE_KEY = 'gitranks:contribute:pending-approval';
 
 /** The approval as the user left it: the title and body they may have edited, and their sign-off. */
-export type PendingApproval = { attemptId: string; title: string; body: string; dco: boolean; nonce: string };
+export type PendingApproval = {
+  attemptId: string;
+  title: string;
+  body: string;
+  dco: boolean;
+  nonce: string;
+  /** The PR timeline's checkbox, when the form showed it. */
+  timeline?: boolean;
+};
 
 type SessionStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
@@ -52,7 +60,8 @@ const isPending = (value: unknown): value is PendingApproval => {
     typeof row.body === 'string' &&
     typeof row.dco === 'boolean' &&
     typeof row.nonce === 'string' &&
-    row.nonce.length > 0
+    row.nonce.length > 0 &&
+    (row.timeline === undefined || typeof row.timeline === 'boolean')
   );
 };
 

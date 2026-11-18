@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { graphqlDirect, auth } = vi.hoisted(() => ({ graphqlDirect: vi.fn(), auth: vi.fn() }));
 vi.mock('server-only', () => ({}));
+// A server action's cache expiry needs a request; the actions are called here without one.
+vi.mock('next/cache', async (load) => ({ ...(await load<typeof import('next/cache')>()), revalidateTag: vi.fn() }));
 vi.mock('@/auth', () => ({ auth }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
@@ -62,6 +64,7 @@ const CALLS: Record<string, unknown[]> = {
   approveAttempt: [{ id: 'A_1', title: 'Fix it', body: 'Fixes #1', dco: true, githubLogin: 'mallory' }],
   discardAttempt: ['A_1'],
   retryAttempt: ['A_1'],
+  setPrTimeline: [{ attemptId: 'A_1', shown: false, nameWithOwner: 'acme/widgets', number: 42 }],
   startFollowUp: ['PR_1'],
   approveFollowUp: ['A_F1', 'Follow-up', [{ draftId: 'D_1', text: 'Renamed it.', send: true }]],
   setResolveHumanThreads: [true],

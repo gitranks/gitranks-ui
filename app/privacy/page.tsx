@@ -20,7 +20,7 @@ export const metadata: Metadata = pageMetadata({
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
-/** The Privacy policy's own date: it changed after `LAST_UPDATED` (following a package, 2026-11-18). */
+/** The Privacy policy's own date: it changed after `LAST_UPDATED` (GitRanks Learn and following a package, 2026-11-18). */
 const PRIVACY_UPDATED = '2026-11-18';
 
 const sections: LegalSection[] = [
@@ -101,7 +101,8 @@ const sections: LegalSection[] = [
         <li>
           <B>Sign in with GitHub</B>: we receive your GitHub username, account id, name, email address and avatar link.
           The basic sign-in lets us read your profile and email address when you sign in; we don&apos;t keep the access
-          it grants, except briefly for the maintainers page (see <A href="#contribute">GitRanks Contribute</A>).
+          it grants, except briefly for the maintainers page and lesson result pages (see{' '}
+          <A href="#contribute">GitRanks Contribute</A>).
         </li>
         <li>
           <B>Sign in with your own token</B>: if you choose it, GitHub gives us a token that can act on your behalf. We
@@ -197,15 +198,17 @@ const sections: LegalSection[] = [
           <li>
             <B>Maintainers</B>: the maintainers page has you sign in with GitHub to list the repositories you maintain
             and let you opt them out of Contribute. The token GitHub gives that sign-in is kept in your encrypted
-            sign-in cookie and used for up to one hour, on that page only. When you opt a repository out, we keep your
-            GitHub account id and username and when you did it, until the repository is opted back in. Basis: legitimate
-            interests, in respecting maintainers&apos; choices.
+            sign-in cookie and used for up to one hour, on that page only and, to store and show your reaction to a
+            lesson result, on lesson result pages (see <A href="#learn">GitRanks Learn</A>). When you opt a repository
+            out, we keep your GitHub account id and username and when you did it, until the repository is opted back in.
+            Basis: legitimate interests, in respecting maintainers&apos; choices.
           </li>
           <li>
             <B>Deleting it</B>: in Contribute&apos;s settings, choose <B>Delete all Contribute data</B>. It stops runs
             under way, deletes your key, settings, preferences, suggestions, runs and their history, drafted replies,
-            agent connections and tokens and feedback, and revokes the GitHub access. If GitHub can&apos;t be told,
-            revoke the access in your GitHub settings. Removing your data from GitRanks (see{' '}
+            agent connections and tokens and feedback, and your GitRanks Learn data (see{' '}
+            <A href="#learn">GitRanks Learn</A>), and revokes the GitHub access. If GitHub can&apos;t be told, revoke
+            the access in your GitHub settings. Removing your data from GitRanks (see{' '}
             <A href="#removal">Removing your data</A>) does the same. Forks, commits, pull requests and comments on
             GitHub stay there, as does your key at your AI provider, and so do the copies of your feedback we received
             as messages. We may keep records of the pull requests opened through Contribute and that they were
@@ -213,6 +216,75 @@ const sections: LegalSection[] = [
             account and flags about misuse, for up to 180 days after you delete (an open flag until 180 days after it is
             resolved), and checks we made of other GitHub accounts, for 30 days. Basis: legitimate interests, in keeping
             Contribute fair and safe.
+          </li>
+        </List>
+      </>
+    ),
+  },
+  {
+    id: 'learn',
+    title: 'GitRanks Learn',
+    body: (
+      <>
+        <P>
+          GitRanks Learn is a way of working with Contribute: your agent fixes an issue and writes a short lesson on its
+          fix, you take the lesson on GitRanks, and the pull request can be approved after you pass it. This section
+          covers what it adds to <A href="#contribute">GitRanks Contribute</A>. Basis: contract (Article 6(1)(b)), to
+          provide what you ask for, unless stated otherwise.
+        </P>
+        <List>
+          <li>
+            <B>Your Learn profile</B>: your goal (a language, a project or a domain, which you name), a level per
+            language (we suggest them from the languages GitRanks ranks you in, and you correct them) and what lessons
+            should focus on. Your agent receives it with each issue, to write the lesson for you.
+          </li>
+          <li>
+            <B>Lessons</B>: what your agent sends us for a lesson (its steps, text, diagrams, code and questions), with
+            your GitHub username and id and the agent and model that wrote it. We check each lesson with AI before you
+            see it, so we send it, with the change and the issue&apos;s address, to our AI providers.
+          </li>
+          <li>
+            <B>Taking a lesson</B>: your answers, tries, how each step went, when you started and passed, how long it
+            took, your rating, and your likes, dislikes and reports on questions. We also record events as you go (steps
+            shown, questions answered, hints shown, copying a step for your agent) to see which lessons and questions
+            work and to improve them. Basis for the events: legitimate interests, in lessons that teach. Reports from
+            two people close a lesson&apos;s page until a person reads them; we are told by a notification. We may also
+            hide a lesson ourselves, for example after abuse or a legal request.
+          </li>
+          <li>
+            <B>What becomes public</B>: when GitRanks opens a lesson&apos;s pull request, the lesson becomes public
+            under your GitHub username, with the issue, the pull request, the agent that wrote it, and the goal and
+            level it was written for. So does your result: how each step went, when you passed and how long it took, and
+            the questions you were asked with their right answers, never the options you got wrong. Its form for
+            machines also gives your GitHub account id. Anyone can read them, search engines may list them, and the pull
+            request links to your result. Your public results also show as a Learn record on your profile (lessons,
+            topics, and the Learn pull requests opened and merged). If you take someone else&apos;s lesson, your result
+            stays private unless you share it.
+          </li>
+          <li>
+            <B>Reactions</B>: anyone signed in with GitHub can say whether a lesson result helped review its pull
+            request. A reaction is stored with the person&apos;s GitHub username and id, their role on the repository
+            (read from GitHub with their sign-in) and when they reacted. Reactions from the repository&apos;s
+            maintainers and collaborators may be shown on the result page with their username, avatar and role; others
+            are never shown. A click on these buttons while signed out is counted as described under{' '}
+            <A href="#visitors">Visiting the site</A>, never shown. Basis: legitimate interests, in showing what
+            maintainers think of a lesson.
+          </li>
+          <li>
+            <B>Who is shown Learn</B>: to decide whether to show a signed-in person a block about Learn, we use what we
+            already know from their public work (a language they started recently, how old the account is, their tier,
+            whether their profile says they study) and whether they gave an issue back as too big. We record when you
+            close the block. Basis: legitimate interests, in telling likely learners about Learn.
+          </li>
+          <li>
+            <B>Taking a lesson down</B>: your lesson and every result on it stop being public. We keep them privately
+            for our own numbers until you delete your data.
+          </li>
+          <li>
+            <B>Deleting it</B>: <B>Delete all Contribute data</B> and removing your data from GitRanks also delete your
+            Learn profile, the lessons you wrote with every result, event and report on them (other people&apos;s
+            results on them included), your own results, answers, events, reports and reactions on other lessons, and
+            the reactions others left on your results. Pull requests and their links stay on GitHub.
           </li>
         </List>
       </>
@@ -272,6 +344,13 @@ const sections: LegalSection[] = [
           Your IP address and browser only tell one day&apos;s visitors apart, as a code that can no longer be traced
           back once the day is over; neither is stored. On your own profile, the profile is not kept. Basis: legitimate
           interests, in knowing which pages bring people to Contribute.
+        </li>
+        <li>
+          <B>Learn pages</B>: when a lesson or a result page is opened, or a block about Learn is shown, clicked or
+          closed, we count it with the page, the lesson, whether you were signed in and, for a reaction, the pick; your
+          IP address and browser are used as above and not stored. A reaction picked while signed out is counted, never
+          shown, and carried through the sign-in it starts (see <A href="#learn">GitRanks Learn</A>). Basis: legitimate
+          interests, in knowing how lessons are used.
         </li>
         <li>
           <B>Check my badge</B>: when you check a badge, we read the README of that profile or repository on GitHub.
@@ -343,10 +422,14 @@ const sections: LegalSection[] = [
           Contribute data: what you give or create there, until you delete it or remove your data; other Contribute data
           as described under <A href="#contribute">GitRanks Contribute</A>.
         </li>
+        <li>
+          Learn data: until you delete it or remove your data, a lesson you took down included (see{' '}
+          <A href="#learn">GitRanks Learn</A>).
+        </li>
         <li>Logs and security data: deleted automatically after a fixed rotation period.</li>
         <li>
           Analytics: as set in our Google Analytics settings. Clicks on links in our posts: until the statistics about
-          those posts no longer need them. Ways into Contribute: six months.
+          those posts no longer need them. Ways into Contribute and Learn pages: six months.
         </li>
         <li>
           Backups: deleted automatically at the end of a fixed rotation. Removed data leaves the backups when the last
@@ -380,9 +463,9 @@ const sections: LegalSection[] = [
         <P>
           A removal deletes your profile, your ranks and their history, the repositories you own, and your place in
           rankings, contributor tables and our posts on GitRanks. It also deletes your sign-in, your token, your refresh
-          records and your Contribute data (see <A href="#contribute">GitRanks Contribute</A>). Your badges stop
-          working. A removal can&apos;t be undone, and GitRanks won&apos;t list your account again, even if you sign in.
-          To be listed again, write to us.
+          records, your Contribute data (see <A href="#contribute">GitRanks Contribute</A>) and your Learn data (see{' '}
+          <A href="#learn">GitRanks Learn</A>). Your badges stop working. A removal can&apos;t be undone, and GitRanks
+          won&apos;t list your account again, even if you sign in. To be listed again, write to us.
         </P>
         <P>We keep only:</P>
         <List>
@@ -393,6 +476,10 @@ const sections: LegalSection[] = [
           <li>
             records of pull requests opened through Contribute and whether they were AI-assisted, and any repository
             opt-out you made as a maintainer, until it is lifted;
+          </li>
+          <li>
+            counts of visits to pages that name your account (your profile, or your result on a lesson), until they
+            expire after six months;
           </li>
           <li>
             records for stopping abuse of Contribute, for the periods given under{' '}
@@ -437,7 +524,8 @@ const sections: LegalSection[] = [
       <List>
         <li>
           <B>Needed for the site</B>: the sign-in session, a cookie that tells the page you&apos;re signed in,
-          short-lived security cookies during sign-in, and Cloudflare&apos;s security cookies.
+          short-lived security cookies during sign-in (including one, for 10 minutes, that carries a reaction to a
+          lesson result through the GitHub sign-in), and Cloudflare&apos;s security cookies.
         </li>
         <li>
           <B>Analytics</B>: Google Analytics cookies, which tell repeat visits apart.

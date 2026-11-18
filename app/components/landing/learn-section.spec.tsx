@@ -7,7 +7,6 @@ vi.mock('@/app/learn/actions', () => ({ dismissLearnPromo: vi.fn(async () => ({ 
 const { LearnSectionView } = await import('./learn-section');
 const { LandingPromos, LandingPromosView } = await import('./landing-promos');
 const { landingPromo } = await import('@/lib/learn/__fixtures__/promo');
-const { LEARN_OPEN_TO_VISITORS } = await import('@/lib/learn/learn-path');
 
 describe("the home page's Learn section", () => {
   it('shows a visitor the same pitch for everyone, into the front door, marked as the landing block', () => {
@@ -74,9 +73,5 @@ describe("the home page's one suggestion", () => {
       expect(html).toContain('aria-labelledby="contribute"');
       expect(html).not.toContain('data-learn-promo');
     }
-  });
-
-  it("leaves the visitors' section out while Learn is not open to visitors", () => {
-    expect(LEARN_OPEN_TO_VISITORS).toBe(false);
   });
 });

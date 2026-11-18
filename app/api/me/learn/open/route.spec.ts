@@ -16,9 +16,16 @@ vi.mock('@/auth', () => ({
   },
 }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
+vi.mock('server-only', () => ({}));
 
 const { GET } = (await import('./route')) as unknown as { GET: (req: NextRequest) => Promise<Response> };
-const { learnOpenInBrowser, learnOpenKnown, resetLearnOpenInBrowser } = await import('@/lib/learn/learn-open');
+const {
+  learnOpenInBrowser,
+  learnOpenKnown,
+  learnOpenToVisitorsInBrowser,
+  learnOpenToVisitorsKnown,
+  resetLearnOpenInBrowser,
+} = await import('@/lib/learn/learn-open');
 
 const get = () => GET(new NextRequest('https://gitranks.com/api/me/learn/open'));
 
@@ -59,6 +66,21 @@ describe('Learn open, in the browser', () => {
     expect(await Promise.all([learnOpenInBrowser('octocat'), learnOpenInBrowser('octocat')])).toEqual([true, true]);
     expect(fetch).toHaveBeenCalledOnce();
     expect(learnOpenKnown('octocat')).toBe(true);
+  });
+
+  it('asks once per page load for a visitor, and remembers the answer', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ open: true })));
+    vi.stubGlobal('fetch', fetch);
+    expect(learnOpenToVisitorsKnown()).toBeUndefined();
+    expect(await Promise.all([learnOpenToVisitorsInBrowser(), learnOpenToVisitorsInBrowser()])).toEqual([true, true]);
+    expect(fetch).toHaveBeenCalledExactlyOnceWith('/api/learn/everyone');
+    expect(learnOpenToVisitorsKnown()).toBe(true);
+    resetLearnOpenInBrowser();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('', { status: 500 })),
+    );
+    expect(await learnOpenToVisitorsInBrowser()).toBe(false);
   });
 
   it('is closed without a login, on an error answer and when the request fails', async () => {

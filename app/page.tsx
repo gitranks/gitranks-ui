@@ -5,6 +5,7 @@ import {
   fetchGlobalTiers,
   fetchLandingInsights,
   fetchLeaderboards,
+  fetchLearnForVisitors,
   fetchTopOrgs,
   fetchTopRepos,
 } from './components/landing/landing-data';
@@ -29,7 +30,7 @@ export const metadata: Metadata = pageMetadata({
 // badges, from the public badge data the builder reads, and, where Contribute is open to them,
 // their own top picks.
 export default async function Home() {
-  const [insights, leaderboards, tiers, orgs, featured, countries, languages, countryList, repos, showcase] =
+  const [insights, leaderboards, tiers, orgs, featured, countries, languages, countryList, repos, showcase, learn] =
     await Promise.all([
       fetchLandingInsights(),
       fetchLeaderboards(),
@@ -41,6 +42,7 @@ export default async function Home() {
       fetchCountries(),
       fetchTopRepos(),
       fetchReadmeShowcase(),
+      fetchLearnForVisitors(),
     ]);
 
   return (
@@ -55,6 +57,7 @@ export default async function Home() {
       countryList={countryList}
       repos={repos}
       showcase={showcase}
+      learn={{ forVisitors: learn }}
     />
   );
 }

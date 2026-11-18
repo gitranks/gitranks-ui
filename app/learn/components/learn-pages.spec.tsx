@@ -12,7 +12,12 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/app/learn/actions', () => ({ saveLearnProfile: vi.fn() }));
 vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn() }));
+const { everyone, viewerLogin } = vi.hoisted(() => ({
+  everyone: vi.fn(async () => false),
+  viewerLogin: vi.fn(async (): Promise<string | undefined> => undefined),
+}));
+vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), viewerLogin }));
+vi.mock('@/lib/learn/learn-front-door', () => ({ learnFrontDoorOpenToVisitor: everyone }));
 const data = vi.hoisted(() => ({
   loadLearnOpen: vi.fn(),
   loadLearnProfile: vi.fn(),
@@ -169,6 +174,22 @@ describe("Learn's gate on its own pages", () => {
     await expect(LearnHomeView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(MyLessonsView()).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it("opens the front door's visitor version to a visitor once Learn is open to everyone, and nothing else", async () => {
+    closed();
+    data.loadLearnSetup.mockResolvedValue(false);
+    everyone.mockResolvedValue(true);
+    try {
+      expect(renderToStaticMarkup(await LearnHomeView())).toContain('data-landing-viewer="visitor"');
+      await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
+      await expect(MyLessonsView()).rejects.toThrow('NEXT_NOT_FOUND');
+      // A signed-in person Learn is not open to still gets a 404 (the list, not everyone, decides for them).
+      viewerLogin.mockResolvedValueOnce('stranger');
+      await expect(LearnHomeView()).rejects.toThrow('NEXT_NOT_FOUND');
+    } finally {
+      everyone.mockResolvedValue(false);
+    }
   });
 
   it('says a new account is being set up, in place of the form and the list, with a refresh', async () => {

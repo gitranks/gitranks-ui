@@ -30,7 +30,6 @@ import { LearnSectionView } from './learn-section';
 import type { ReadmeShowcase } from './readme-showcase';
 import { ReposSection } from './repos-section';
 import { Header } from '@/components/header/header';
-import { LEARN_OPEN_TO_VISITORS } from '@/lib/learn/learn-path';
 import type { ShownPromo } from '@/lib/learn/learn-promo';
 import type { CountryQuery, CountrySummaryQuery, LanguageSummaryQuery } from '@/types/generated/graphql';
 
@@ -57,8 +56,9 @@ export type LandingData = {
 };
 
 /**
- * GitRanks Learn on the landing, for the design catalogue alone: `forVisitors` draws the visitors' section whatever the
- * switch says; `promo` draws the suggestion for a signed-in user Learn may suit, without asking for it.
+ * GitRanks Learn on the landing: `forVisitors` draws the visitors' section (the page passes whether the API says Learn
+ * is open to everyone; the design catalogue draws it anyway); `promo` draws the suggestion for a signed-in user Learn
+ * may suit, without asking for it (the design catalogue alone).
  */
 export type LandingLearn = { forVisitors?: boolean; promo?: ShownPromo };
 
@@ -144,12 +144,9 @@ export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
       <main>
         <Hero developersRanked={developersRanked} examples={examples} stats={stats} />
         <Container>
-          {/* One suggestion: Contribute's section, then Learn's once Learn is open to visitors (static, with the
+          {/* One suggestion: Contribute's section, then Learn's once Learn is open to everyone (static, with the
               page); for a signed-in user Learn may suit, Learn's own in their place, read in the browser. */}
-          <LandingPromos
-            learnForVisitors={(learn?.forVisitors ?? LEARN_OPEN_TO_VISITORS) ? <LearnSectionView /> : null}
-            promo={learn?.promo}
-          />
+          <LandingPromos learnForVisitors={learn?.forVisitors ? <LearnSectionView /> : null} promo={learn?.promo} />
           <LeaderboardSection boards={boards} />
           <InsightsSection insights={insights} />
           <OrganizationsSection orgs={orgs} flags={flags} featured={featured} />

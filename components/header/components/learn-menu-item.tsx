@@ -7,7 +7,12 @@ import { useEffect, useState } from 'react';
 import { mainMenuItemClass } from './menu-styles';
 import { Pill } from '@/components/pill/pill';
 import { NavigationMenuItem, NavigationMenuLink } from '@/components/ui/navigation-menu';
-import { learnOpenInBrowser, learnOpenKnown } from '@/lib/learn/learn-open';
+import {
+  learnOpenInBrowser,
+  learnOpenKnown,
+  learnOpenToVisitorsInBrowser,
+  learnOpenToVisitorsKnown,
+} from '@/lib/learn/learn-open';
 import { LEARN_PATH } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
 
@@ -28,24 +33,26 @@ export function LearnMenuLink({ active }: Readonly<{ active?: boolean }>) {
 }
 
 /**
- * "Learn · New", only for a signed-in viewer Learn is open to: asked in the browser once the page is up, as pages are
- * cached for everyone. Nothing until the answer comes, signed out, or closed.
+ * "Learn · New", for a signed-in viewer Learn is open to, and for a visitor once it is open to everyone: asked in the
+ * browser once the page is up, as pages are cached for everyone. Nothing until the answer comes, or closed.
  */
 export function LearnMenuItem({ active }: Readonly<{ active?: boolean }>) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const login = session && !session.error ? (session.user?.githubLogin ?? null) : null;
+  const visitor = status === 'unauthenticated' || Boolean(session?.error);
   // Known already after a first answer, so moving between pages does not flash it in.
-  const [open, setOpen] = useState(() => learnOpenKnown(login) === true);
+  const [open, setOpen] = useState(() => (login ? learnOpenKnown(login) : learnOpenToVisitorsKnown()) === true);
 
   useEffect(() => {
+    if (!login && !visitor) return;
     let live = true;
-    learnOpenInBrowser(login).then((answer) => {
+    (login ? learnOpenInBrowser(login) : learnOpenToVisitorsInBrowser()).then((answer) => {
       if (live) setOpen(answer);
     });
     return () => {
       live = false;
     };
-  }, [login]);
+  }, [login, visitor]);
 
-  return open && login ? <LearnMenuLink active={active} /> : null;
+  return open && (login || visitor) ? <LearnMenuLink active={active} /> : null;
 }

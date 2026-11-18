@@ -15,6 +15,7 @@ export const BLOCKING_ROUTES = [
   '/insights/[id]',
   '/repos/language/[language]/[page]',
   '/repos/no-language/[page]',
+  '/packages/[registry]/[by]/[page]',
 ];
 
 /** Static pages that must be prerendered with a 404 status: the proxy rewrites missing lessons and results there. */

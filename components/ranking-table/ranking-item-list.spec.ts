@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildRepoRankingItemList } from './ranking-item-list';
+import { buildPackageRankingItemList, buildRepoRankingItemList } from './ranking-item-list';
+import { downloadsRanking } from '@/app/packages/__fixtures__/package-rankings';
 import type { RepoRankingsQuery } from '@/types/generated/graphql';
 
 type Rows = RepoRankingsQuery['repoRankings'];
@@ -37,5 +38,21 @@ describe('buildRepoRankingItemList', () => {
       [2, 'a/b'],
     ]);
     expect(buildRepoRankingItemList('Repos', '/repos/1', 's', [row(null, 1)], 0)).toBeNull();
+  });
+});
+
+describe('buildPackageRankingItemList', () => {
+  it('positions each package by its rank and links its page, a scoped name as it is', () => {
+    const list = buildPackageRankingItemList('npm', '/packages/npm/downloads/1', downloadsRanking.slice(0, 2));
+
+    expect(list?.itemListElement.map(({ position, name }) => [position, name])).toEqual([
+      [1, 'moss-date'],
+      [2, '@orbit/fetch'],
+    ]);
+    expect(list?.itemListElement[1].url).toMatch(/\/package\/npm\/@orbit\/fetch$/);
+  });
+
+  it('is nothing for an empty page', () => {
+    expect(buildPackageRankingItemList('npm', '/packages/npm/downloads/1', [])).toBeNull();
   });
 });

@@ -1,0 +1,24 @@
+query PackageRankings($registry: PackageRegistry!, $by: PackageRankingType!, $offset: Int) {
+  packageRankings(registry: $registry, by: $by, offset: $offset) {
+    rank
+    previousRank
+    value
+    change
+    name
+    description
+    repositoryName
+    ownerAvatarUrl
+    repo {
+      nameWithOwner
+    }
+  }
+}
+
+query PackageRankingFacts($registry: PackageRegistry!) {
+  packageRankingFacts(registry: $registry) {
+    ranked
+    dependentsReadAt
+    downloadsThrough
+    ranksAt
+  }
+}

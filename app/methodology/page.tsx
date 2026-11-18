@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
+import { MethodologySection as Section } from './components/methodology-section';
 import { MIN_PROFILES_THRESHOLD, MIN_VALUE, TIER_FRACTIONS, TIER_NAMES } from '@/app/app.consts';
 import { RANK_NAME } from '@/badge/badge.consts';
 import { Header } from '@/components/header/header';
@@ -24,13 +25,6 @@ export const metadata: Metadata = pageMetadata({
 const formatNumber = (value: number) => value.toLocaleString('en-US');
 
 const formatShare = (fraction: number) => `${Math.round(fraction * 100)}%`;
-
-const Section = ({ id, title, children }: { id?: string; title: string; children: ReactNode }) => (
-  <section id={id} className="flex scroll-mt-20 flex-col gap-3">
-    <h2 className="text-xl font-semibold">{title}</h2>
-    {children}
-  </section>
-);
 
 const Table = ({ head, rows }: { head: string[]; rows: ReactNode[][] }) => (
   <div className="overflow-x-auto">

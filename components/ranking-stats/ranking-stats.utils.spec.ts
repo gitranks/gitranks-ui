@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildLanguageRankingStats, buildRankingStats, type StatsPart } from './ranking-stats.utils';
+import {
+  buildLanguageRankingStats,
+  buildPackageRankingStats,
+  buildRankingStats,
+  type StatsPart,
+} from './ranking-stats.utils';
 import { RankingTypeClient } from '@/types/ranking.types';
 
 const text = (parts: StatsPart[]) => parts.map((part) => (typeof part === 'string' ? part : part.text)).join('');
@@ -120,6 +125,59 @@ describe('buildLanguageRankingStats', () => {
 
     expect(text(buildLanguageRankingStats({ language: 'Go', summary: null, leaders: [] }))).toBe(
       'Developers who have Go among their top 5 languages are ranked by its share of the stars on repositories they own. How rankings work.',
+    );
+  });
+});
+
+describe('buildPackageRankingStats', () => {
+  const input = {
+    registry: 'npm',
+    registrySlug: 'npm',
+    metric: 'weekly downloads',
+    minStars: 100,
+    leaders: [
+      { name: 'moss-date', value: 5_806_310 },
+      { name: '@orbit/fetch', value: 3_120_664 },
+      { name: 'kite-router', value: 2_410_552.4 },
+      { name: 'cobalt-forms', value: 2_204_118 },
+    ],
+  };
+
+  it('states the ranked count, the top three, what is counted and the dates', () => {
+    const parts = buildPackageRankingStats({
+      ...input,
+      ranked: 41_870,
+      readOn: 'November 16, 2026',
+      ranksOn: 'November 17, 2026',
+    });
+
+    expect(text(parts)).toBe(
+      'At the latest monthly read, 41,870 npm packages are used directly by at least one repository with 100+ stars. ' +
+        'By weekly downloads, the top three are moss-date (5,806,310), @orbit/fetch (3,120,664) and kite-router (2,410,552). ' +
+        'Only npm, only direct dependents, read November 16, 2026. Ranks as of November 17, 2026. ' +
+        'How package rankings work.',
+    );
+    expect(links(parts)).toEqual([
+      '/package/npm/moss-date',
+      '/package/npm/@orbit/fetch',
+      '/package/npm/kite-router',
+      '/methodology/packages',
+    ]);
+  });
+
+  it("says a downloads ranking's last day in place of the read", () => {
+    expect(text(buildPackageRankingStats({ ...input, downloadsTo: 'November 15, 2026' }))).toContain(
+      'Only npm, only direct dependents, downloads to November 15, 2026. ',
+    );
+  });
+
+  it('leaves out the facts it has no data for', () => {
+    expect(text(buildPackageRankingStats({ ...input, leaders: input.leaders.slice(0, 1) }))).toBe(
+      'By weekly downloads, the top package is moss-date (5,806,310). Only npm, only direct dependents. How package rankings work.',
+    );
+    expect(text(buildPackageRankingStats({ ...input, ranked: 1, leaders: [] }))).toBe(
+      'At the latest monthly read, 1 npm package is used directly by at least one repository with 100+ stars. ' +
+        'Only npm, only direct dependents. How package rankings work.',
     );
   });
 });

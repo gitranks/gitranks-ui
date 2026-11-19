@@ -6,7 +6,7 @@ import { Handled, prOf } from './moves-pr';
 import { timeLabel } from '@/lib/workspace/attempt-format';
 import { repoOutTextOf, silentCloseDayOf, silentTextOf } from '@/lib/workspace/follow-up-format';
 import { relativeLabel, usd } from '@/lib/workspace/format';
-import { clipped } from '@/lib/workspace/needs-you';
+import { clipped } from '@/lib/workspace/pr-moves';
 
 /**
  * The next step's cards for what only the user can do on the open pull request: the DCO sign-off, what a review bot

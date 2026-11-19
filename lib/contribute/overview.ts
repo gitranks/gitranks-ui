@@ -13,33 +13,18 @@ import type {
 } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, isPaused } from '@/lib/workspace/contribute-state';
 import { AUTOPILOT_UNLOCK_AT } from '@/lib/workspace/format';
-import type { NeedsYouRead } from '@/lib/workspace/needs-you';
 
 /**
  * Overview, Contribute's home once the user is onboarded: what needs them, what runs right now, their impact, the ways
  * they contribute and what comes next. Each section is read on its own; these are its states, from what it read.
  */
 
-/**
- * The states of the attempts that wait for the user, and how many of them Overview reads: the API's largest page.
- * The API lists them newest first, and the oldest are the closest to letting go, so the page must hold them all to be
- * ordered here. It does: at most one first attempt per open PR (10 at the most) and one follow-up per open PR.
- */
-export const NEEDS_YOU_STATES: ContributeAttemptState[] = ['REVIEW', 'PENDING_AUTOSUBMIT'];
-export const NEEDS_YOU_READ = 50;
-
 /** The states of an attempt in flight, and how many of them Overview reads. */
 export const IN_FLIGHT_STATES: ContributeAttemptState[] = ['CLAIMING', 'RUNNING', 'CHECKS'];
 export const IN_FLIGHT_READ = 5;
 
-/** The rows "Needs you" shows at most, the runs under way after them; the rest are counted, in My contributions. */
-export const NEEDS_YOU_MAX = 5;
-
 /** The picks "Up next" shows. */
 export const UP_NEXT_PICKS = 3;
-
-/** What "Needs you" reads (`needs-you.ts`); a read the API does not answer is `undefined`. */
-export type OverviewNeedsRead = NeedsYouRead;
 
 /** What "Right now" reads beside the view and the feed; a read the API does not answer is `undefined`. */
 export type OverviewNowRead = {

@@ -16,7 +16,6 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadAttempt: vi.fn(),
   loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
-  loadContributions: vi.fn(),
   loadRepliesWaiting: vi.fn(),
 }));
 
@@ -26,11 +25,8 @@ const { OwnAgentSection, OWN_AGENT_SAFETY, SetupLines } = await import(
 const { AgentScreen } = await import('./settings-view');
 const { OwnAgentConnectScreen, ConnectScreen } = await import('@/components/workspace/agent/connect-view');
 const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
-const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
 const { NOW, views, contributor } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { attempt, contributions, detail, ownAgentAttempt } = await import(
-  '@/lib/contribute/__fixtures__/contribute-attempts'
-);
+const { detail, ownAgentAttempt } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { contributeNoticesOf } = await import('@/lib/workspace/contribute-state');
 const { AGENT_FIRST_PROMPT, MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/workspace/mcp-setup');
 const { OWN_AGENT_SETUPS } = await import('@/lib/workspace/own-agent-setups');
@@ -353,36 +349,5 @@ describe('the review of a change made by your own agent', () => {
     expect(html).toContain('data-panel="cost"');
     expect(html).not.toContain('data-own-agent');
     expect(text(html)).not.toContain('Send back to my agent');
-  });
-});
-
-describe('My contributions, with your own agent', () => {
-  it('shows who made each PR and the lease of the work in progress', () => {
-    const [first, ...rest] = contributions.items;
-    const html = renderToStaticMarkup(
-      <ContributionsScreen
-        view={views.active}
-        contributions={{
-          ...contributions,
-          items: [{ ...first, runner: 'MCP', agent: { name: 'CLAUDE_CODE', model: null }, openedBy: 'HAND' }, ...rest],
-        }}
-        attempts={[
-          attempt({
-            attemptId: 'A_W',
-            state: 'RUNNING',
-            runner: 'MCP',
-            agent: { name: 'CURSOR', model: null },
-            leaseUntil: '2026-10-29T12:00:00.000Z',
-          }),
-        ]}
-        now={NOW}
-      />,
-    );
-    const plain = text(html);
-    expect(plain).toContain('Claude Code');
-    expect(plain).toContain('opened by hand');
-    expect(plain).toContain('Cursor is on it');
-    expect(plain).toContain('held for it for another');
-    expect(plain).not.toContain('until in');
   });
 });

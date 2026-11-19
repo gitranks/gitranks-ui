@@ -3,11 +3,12 @@ import type { ReactNode } from 'react';
 
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
+import { LimitNotice } from '@/components/workspace/limit-notice';
 import { HEADING } from '@/components/workspace/primitives';
 import type { LearnGoalView, LearnIssue, LearnIssues, LearnRoom } from '@/lib/learn/learn.types';
 import { goalValueOf, issueSizeOf, roomWordsOf } from '@/lib/learn/learn-home';
 import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
-import { learnStartPath } from '@/lib/learn/learn-start';
+import { isOpenPrsLimit, learnStartPath } from '@/lib/learn/learn-start';
 import { cn } from '@/lib/utils';
 import { githubUrlOf } from '@/lib/workspace/attempt-format';
 import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
@@ -160,6 +161,13 @@ export function IssuesEmpty({ issues, goal }: { issues: LearnIssues | undefined;
 
 /** No room for a new lesson: the limit's words in place of the Start buttons. */
 export function RoomNote({ room }: { room: LearnRoom }) {
+  if (isOpenPrsLimit(room.limit)) {
+    return (
+      <div data-room={room.limit}>
+        <LimitNotice count={room.value} limit={room.value} />
+      </div>
+    );
+  }
   const words = roomWordsOf(room);
   return (
     <p

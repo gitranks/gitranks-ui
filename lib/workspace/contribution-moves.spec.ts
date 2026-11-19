@@ -9,8 +9,8 @@ import {
   headOf,
   type MovesInput,
 } from './contribution-moves';
-import { prItemOf } from './needs-you';
 import { contributionOf } from './next-step';
+import { candidatesOf } from './pr-moves';
 import {
   detail,
   feedbackThread,
@@ -528,11 +528,12 @@ describe('the order', () => {
     ];
     for (const page of pages) {
       const pr = contributionOf(page);
-      const item = pr ? prItemOf({ pr, drafts: [], runs: [], now: NOW }) : null;
+      const item = pr ? candidatesOf({ pr, drafts: [], runs: [], now: NOW })[0] : null;
       const moves = model(page, {
         view: { ...views.active, ownAgent: { paths: { hosted: true, mcp: true }, tokens: [] } },
       }).moves;
-      if (!item || item.working) continue;
+      // A proof at work, or posted and being read, waits on no one: it leads no move.
+      if (!item || item.kind === 'proof-working' || item.kind === 'proof-posted') continue;
       const lead = moves.find(({ kinds }) => !kinds.includes('threads') && !kinds.includes('run-recommended'));
       expect(lead?.kinds).toContain(item.kind === 'fix-failed' ? lead?.kinds[0] : item.kind);
     }

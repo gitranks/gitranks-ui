@@ -1,4 +1,3 @@
-import { CheckIcon } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -10,7 +9,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type LaneNote, LiveRunsLabel, RightNowLanes } from '@/components/workspace/agent/agent-runs';
 import { ComingSoon } from '@/components/workspace/agent/coming-soon';
 import { noticeCopyOf } from '@/components/workspace/contribute-notices';
-import { NeedsYouRow } from '@/components/workspace/needs-you-rows';
 import { PauseButton } from '@/components/workspace/pause-button';
 import { HEADING, Meter } from '@/components/workspace/primitives';
 import {
@@ -18,8 +16,6 @@ import {
   type HostedState,
   impactTilesOf,
   lastUsedTokenOf,
-  NEEDS_YOU_MAX,
-  type OverviewNeedsRead,
   type OverviewNowRead,
   type OwnAgentState,
   rankedOf,
@@ -40,7 +36,6 @@ import type {
 import { claudeKeyOf } from '@/lib/workspace/contribute-state';
 import { dayLabel, MODELS, maskedKey, planOf, relativeLabel, usd } from '@/lib/workspace/format';
 import { AGENT_FIRST_PROMPT } from '@/lib/workspace/mcp-setup';
-import { needsYouItemsOf, shownItemsOf } from '@/lib/workspace/needs-you';
 import {
   CONNECT_AGENT_PATH,
   CONNECT_KEY_PATH,
@@ -98,82 +93,6 @@ function SectionNote({ children, name }: { children: ReactNode; name: string }) 
     <div data-note={name} className="rounded-xl border border-dashed px-4.5 py-4 text-sm text-muted-foreground">
       {children}
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Needs you
-
-const UNCHECKED = (
-  <>
-    We couldn&apos;t check everything right now.{' '}
-    <Link href={ME_PATH} prefetch={false} className="font-semibold text-link">
-      My contributions →
-    </Link>
-  </>
-);
-
-/** "· 1 run working", beside the heading. */
-const workingText = (working: number) => (working === 1 ? '1 run working' : `${working} runs working`);
-
-/**
- * "Needs you": what waits for the user, each row with their move and the button that leads to it, at most five, the
- * runs they started after them (not counted). The all-clear only when every read answered; with one failed and no
- * rows, it says it could not check everything.
- */
-export function NeedsYouSection({ view, read, now }: { view: ContributeView; read: OverviewNeedsRead; now?: Date }) {
-  const { items, counted, working, complete } = needsYouItemsOf({ view, ...read, now });
-
-  if (!items.length) {
-    return (
-      <section
-        aria-labelledby="overview-needs"
-        data-needs={complete ? 'clear' : 'unchecked'}
-        className={cn('flex items-center gap-2.5 rounded-xl border px-4.5 py-4 text-sm text-foreground/80', RISE)}
-      >
-        <h2 id="overview-needs" className="sr-only">
-          Needs you
-        </h2>
-        {complete ? (
-          <>
-            <CheckIcon aria-hidden="true" strokeWidth={2.4} className="size-4.5 flex-none text-positive" />
-            <p>
-              <span className="font-semibold text-foreground">Nothing needs you right now.</span> A review or anything
-              on your pull requests shows up here and in My contributions the moment it&apos;s ready.
-            </p>
-          </>
-        ) : (
-          <p>{UNCHECKED}</p>
-        )}
-      </section>
-    );
-  }
-
-  const shown = shownItemsOf(items, NEEDS_YOU_MAX);
-  const hidden = counted - shown.filter((item) => !item.working).length;
-  return (
-    <section
-      aria-labelledby="overview-needs"
-      data-needs={counted}
-      data-needs-working={working || undefined}
-      className={cn('flex flex-col gap-3 rounded-xl border border-primary/20 bg-brand-soft p-4.5', RISE)}
-    >
-      <h2 id="overview-needs" className={HEADING.card}>
-        {counted === 1 ? '1 thing needs you' : counted ? `${counted} things need you` : 'Nothing needs you'}
-        {working ? <span className="text-sm font-normal text-muted-foreground"> · {workingText(working)}</span> : null}
-      </h2>
-      <ul className="flex flex-col gap-2">
-        {shown.map((item) => (
-          <NeedsYouRow key={item.key} item={item} look="overview" />
-        ))}
-      </ul>
-      {hidden > 0 ? (
-        <Link href={ME_PATH} prefetch={false} className={ACTION_LINK} data-needs-more={hidden}>
-          and {hidden} more in My contributions →
-        </Link>
-      ) : null}
-      {complete ? null : <p className="text-sm text-muted-foreground">{UNCHECKED}</p>}
-    </section>
   );
 }
 
@@ -539,7 +458,7 @@ export function ImpactSection({ view, totals }: { view: ContributeView; totals: 
   const tiles = impactTilesOf(view, totals);
   return (
     <section aria-labelledby="overview-impact" className={cn('flex flex-col gap-3', RISE, 'motion-safe:delay-200')}>
-      <SectionHeader id="overview-impact" title="Your impact" link={{ href: ME_PATH, label: 'My contributions →' }} />
+      <SectionHeader id="overview-impact" title="Your impact" link={{ href: ME_PATH, label: 'Pull requests →' }} />
       {tiles ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {tiles.map(({ name, value, label }) => (

@@ -2,6 +2,7 @@ import 'server-only';
 
 import { cache } from 'react';
 
+import type { ByAttemptRead } from './by-attempt';
 import {
   type CheckNotesRead,
   ContributeActivityDocument,
@@ -21,6 +22,7 @@ import {
   ContributeAttemptMovesDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptProofDocument,
+  ContributeAttemptRefDocument,
   ContributeAttemptRepliesPlanDocument,
   ContributeAttemptRepoRulesDocument,
   ContributeAttemptRetryDocument,
@@ -40,17 +42,12 @@ import {
   ContributeAutopilotDocument,
   ContributeAutopilotNoticeDocument,
   ContributeChangesDocument,
-  ContributeContributionsDocument,
-  ContributeContributionsFixesDocument,
-  ContributeContributionsFollowUpsDocument,
-  ContributeContributionsMovesDocument,
-  ContributeContributionsOwnAgentDocument,
-  ContributeContributionsProofDocument,
   ContributeEmailDocument,
   ContributeGrantDocument,
   ContributeLimitsDocument,
   ContributeMcpConnectionsDocument,
   ContributeNeedsYouCountDocument,
+  ContributeNeedsYouDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
@@ -58,11 +55,14 @@ import {
   ContributePrNotesDocument,
   ContributeProfileLanguagesDocument,
   ContributeProviderInterestsDocument,
+  ContributePullRequestsDocument,
   ContributeRepliesWaitingDocument,
   ContributeRepliesWaitingPlanDocument,
   ContributeResolveHumansDocument,
+  ContributeScheduleCountsDocument,
   ContributeSetDocument,
   ContributeSetupDocument,
+  ContributeSidesDocument,
   type FollowUpFlowRead,
   type NeedsYouMovesRow,
 } from './contribute.documents';
@@ -70,27 +70,32 @@ import type {
   ContributeActivity,
   ContributeAttempt,
   ContributeAttemptDetail,
+  ContributeAttemptMode,
   ContributeAttemptState,
   ContributeAutopilot,
   ContributeComingSoonProvider,
-  ContributeContributions,
   ContributeEmail,
   ContributeFollowUps,
   ContributeLimits,
   ContributeMcpToken,
   ContributeNeedsYou,
+  ContributeNeedsYouAnswer,
   ContributeOnboardedVia,
   ContributeOwnAgent,
   ContributePaths,
   ContributePrNotes,
+  ContributePullRequestsPage,
   ContributeReplyWaiting,
+  ContributeScheduleCounts,
   ContributeSet,
+  ContributeSides,
   ContributeView,
 } from './contribute.types';
 import { contributeErrorOf } from './errors';
 import { isGrantAvailable } from './grant-availability';
 import { contributeMcpSignIn } from './mcp-sign-in';
 import { withRepliesPlanOf, withReplyPlansOf } from './one-comment';
+import { PULL_REQUESTS_PAGE_SIZE } from './paths';
 import { auth } from '@/auth';
 import { accountEmailOf } from '@/lib/account-email';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -184,19 +189,31 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   await loadContributeVersion();
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [overview, grant, paused, autopilot, autopilotNotice, ownAgent, onboarding, limits, connections, signIn] =
-    await Promise.allSettled([
-      graphqlDirect(ContributeOverviewDocument, undefined, options),
-      graphqlDirect(ContributeGrantDocument, undefined, options),
-      graphqlDirect(ContributePausedDocument, undefined, options),
-      graphqlDirect(ContributeAutopilotDocument, undefined, options),
-      graphqlDirect(ContributeAutopilotNoticeDocument, undefined, options),
-      graphqlDirect(ContributeOwnAgentDocument, undefined, options),
-      graphqlDirect(ContributeOnboardingDocument, undefined, options),
-      graphqlDirect(ContributeLimitsDocument, undefined, options),
-      graphqlDirect(ContributeMcpConnectionsDocument, undefined, options),
-      contributeMcpSignIn(),
-    ]);
+  const [
+    overview,
+    grant,
+    paused,
+    autopilot,
+    autopilotNotice,
+    ownAgent,
+    onboarding,
+    limits,
+    connections,
+    signIn,
+    sides,
+  ] = await Promise.allSettled([
+    graphqlDirect(ContributeOverviewDocument, undefined, options),
+    graphqlDirect(ContributeGrantDocument, undefined, options),
+    graphqlDirect(ContributePausedDocument, undefined, options),
+    graphqlDirect(ContributeAutopilotDocument, undefined, options),
+    graphqlDirect(ContributeAutopilotNoticeDocument, undefined, options),
+    graphqlDirect(ContributeOwnAgentDocument, undefined, options),
+    graphqlDirect(ContributeOnboardingDocument, undefined, options),
+    graphqlDirect(ContributeLimitsDocument, undefined, options),
+    graphqlDirect(ContributeMcpConnectionsDocument, undefined, options),
+    contributeMcpSignIn(),
+    graphqlDirect(ContributeSidesDocument, undefined, options),
+  ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
   const { contribute } = overview.value;
@@ -224,6 +241,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
         }
       : withAutopilot,
     grant: settled(grant)?.contribute?.grant ?? undefined,
+    ...sidesOf(settled(sides)?.contribute?.sides),
     paused: typeof pausedField === 'boolean' ? pausedField : undefined,
     grantAvailable: isGrantAvailable(),
     ownAgent: ownAgentOf(
@@ -233,6 +251,11 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
     ),
   };
 });
+
+/** The sides as the API answered them; left out when it does not answer them (yet). */
+function sidesOf(sides: ContributeSides | null | undefined): { sides?: ContributeSides } {
+  return typeof sides?.contribute === 'boolean' && typeof sides.learn === 'boolean' ? { sides } : {};
+}
 
 /** The limits as the API answered them; `undefined` when it does not answer them (yet) or answers them partly. */
 function limitsOf(limits: ContributeLimits | null | undefined): ContributeLimits | undefined {
@@ -364,6 +387,86 @@ export const loadContributeActivity = cache(async (): Promise<ContributeActivity
     return contributeActivity;
   } catch {
     return null;
+  }
+});
+
+/**
+ * What waits on the signed-in user, in order, and the work in progress: the Pull requests tab's lists. Null when the
+ * API hides it or does not answer it yet; `undefined` when the read failed. Read once per request.
+ */
+export const loadNeedsYou = cache(async (): Promise<ContributeNeedsYouAnswer | null | undefined> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+  try {
+    const { contributeNeedsYou } = await graphqlDirect(ContributeNeedsYouDocument, undefined, {
+      source: 'ssr',
+      githubLogin,
+    });
+    return contributeNeedsYou ?? null;
+  } catch {
+    return undefined;
+  }
+});
+
+/**
+ * The attempt an address by attempt names, as far as it needs: a run or a first attempt, Fix or Learn, and its first
+ * attempt. Null signed out, when the API does not find it for the viewer, or on any failure.
+ */
+export async function loadAttemptRef(attemptId: string): Promise<ByAttemptRead | null> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin || !/^[\w-]{1,64}$/.test(attemptId)) return null;
+  try {
+    const { contributeAttempt } = await graphqlDirect(
+      ContributeAttemptRefDocument,
+      { id: attemptId },
+      { source: 'ssr', githubLogin },
+    );
+    return contributeAttempt ? { ...contributeAttempt, mode: contributeAttempt.mode ?? undefined } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * One page of the user's pull requests, newest first, under a state chip and a side ("Made with"); `undefined` when
+ * the API does not answer.
+ */
+export async function loadPullRequestsPage({
+  page,
+  state,
+  mode,
+}: {
+  page: number;
+  state: 'OPEN' | 'MERGED' | 'CLOSED' | null;
+  mode: ContributeAttemptMode | null;
+}): Promise<ContributePullRequestsPage | undefined> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+  try {
+    const { contributeContributions } = await graphqlDirect(
+      ContributePullRequestsDocument,
+      { first: PULL_REQUESTS_PAGE_SIZE, offset: (Math.max(1, page) - 1) * PULL_REQUESTS_PAGE_SIZE, state, mode },
+      { source: 'ssr', githubLogin },
+    );
+    return contributeContributions ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The scheduler's counts: the pull requests open or on their way (`prBound`); `undefined` when not answered. */
+export const loadScheduleCounts = cache(async (): Promise<ContributeScheduleCounts | undefined> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+  try {
+    const { contribute } = await graphqlDirect(ContributeScheduleCountsDocument, undefined, {
+      source: 'ssr',
+      githubLogin,
+    });
+    const counts = contribute?.contributor?.scheduleCounts;
+    return typeof counts?.prBound === 'number' && typeof counts.queued === 'number' ? counts : undefined;
+  } catch {
+    return undefined;
   }
 });
 
@@ -793,42 +896,4 @@ export async function loadResolveHumanThreads(): Promise<boolean | undefined> {
   } catch {
     return undefined;
   }
-}
-
-/** My contributions: the user's pull requests and their totals; `undefined` when the API does not answer them. */
-export async function loadContributions(first = 50): Promise<ContributeContributions | undefined> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-
-  const options = { source: 'ssr' as const, githubLogin };
-  const [main, followUps, ownAgent, moves, fixes, proofs] = await Promise.allSettled([
-    graphqlDirect(ContributeContributionsDocument, { first }, options),
-    graphqlDirect(ContributeContributionsFollowUpsDocument, { first }, options),
-    graphqlDirect(ContributeContributionsOwnAgentDocument, { first }, options),
-    graphqlDirect(ContributeContributionsMovesDocument, { first }, options),
-    graphqlDirect(ContributeContributionsFixesDocument, { first }, options),
-    graphqlDirect(ContributeContributionsProofDocument, { first }, options),
-  ]);
-  const contributions = settled(main)?.contributeContributions;
-  if (!contributions) return undefined;
-  const extras = byAttemptId(settled(followUps)?.contributeContributions?.items);
-  const agents = byAttemptId(settled(ownAgent)?.contributeContributions?.items);
-  const runs = byAttemptId(settled(moves)?.contributeContributions?.items);
-  const fixed = byAttemptId(settled(fixes)?.contributeContributions?.items);
-  const proved = byAttemptId(settled(proofs)?.contributeContributions?.items);
-  return {
-    ...contributions,
-    items: contributions.items.map((item) =>
-      withFields(
-        withFields(
-          withMovesOf(
-            withFields(withFields(item, extras.get(item.attemptId)), agents.get(item.attemptId)),
-            runs.get(item.attemptId),
-          ),
-          fixed.get(item.attemptId),
-        ),
-        proved.get(item.attemptId),
-      ),
-    ),
-  };
 }

@@ -1,6 +1,6 @@
 import { timeLabel } from './attempt-format';
 import type { ContributeSubmitError } from './contribute.types';
-import { clipped } from './needs-you';
+import { clipped } from './pr-moves';
 
 /**
  * A first attempt's submit that came back for approval, by the reason it came back: its tone, title, one sentence of

@@ -283,7 +283,7 @@ describe('the Agent and Settings tabs', () => {
     expect(text(settings)).toContain(
       'Autopilot, pause, the Claude key, budget and pull request limits are on the Agent tab →',
     );
-    expect(settings).toMatch(/data-moved-to-agent=""[^]*?href="\/my\/agent"/);
+    expect(settings).toMatch(/data-moved-to-agent=""[\s\S]*?href="\/my\/agent"/);
     const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
     for (const id of ['pause', 'autopilot', 'own-agent']) expect(agent).toContain(`id="${id}"`);
   });

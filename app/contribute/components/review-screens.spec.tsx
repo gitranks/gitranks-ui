@@ -17,7 +17,6 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadAttempt: vi.fn(),
   loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
-  loadContributions: vi.fn(),
 }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 
@@ -26,7 +25,6 @@ const { signOffOf, submitWaitsOf } = await import('@/components/workspace/pull-r
 const { DiffViewer, LARGE_FILE_LINES, MAX_FILE_LINES, MAX_TOTAL_LINES } = await import(
   '@/components/workspace/diff-viewer'
 );
-const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
 const { ReviewsReady } = await import('@/components/workspace/reviews-ready');
 const { IssuesScreen } = await import('./issues-view');
 const { NOW, views, settings } = await import('@/lib/contribute/__fixtures__/contribute-views');
@@ -34,7 +32,6 @@ const {
   PATCH,
   attempt,
   attempts,
-  contributions,
   decisionAttempts,
   detail,
   feedbackThread,
@@ -1582,97 +1579,6 @@ describe('the attempts waiting for review, on Issues for you and the overview', 
   });
 });
 
-describe('my contributions', () => {
-  const list = [
-    attempt(),
-    attempt({ attemptId: 'A_2', state: 'RUNNING', costUsd: 0.4 }),
-    attempt({
-      attemptId: 'A_3',
-      state: 'SUBMITTING',
-      submit: { step: 'WAITING_CAP', waitUntil: '2026-10-29T00:00:00.000Z', fork: null, branch: null, lastError: null },
-    }),
-    attempt({ attemptId: 'A_4', state: 'STOPPED', endReason: 'NO_GO', costUsd: 0.38 }),
-    attempt({ attemptId: 'A_5', state: 'MERGED' }),
-    attempt({
-      attemptId: 'A_6',
-      state: 'STOPPED',
-      endReason: 'NO_GO',
-      endDetail: "No verdict before the check's $1.00 budget ran out, after 19 min.",
-    }),
-  ];
-  const render = (
-    data: Parameters<typeof ContributionsScreen>[0]['contributions'],
-    items: Parameters<typeof ContributionsScreen>[0]['attempts'],
-  ) =>
-    renderToStaticMarkup(<ContributionsScreen view={views.active} contributions={data} attempts={items} now={NOW} />);
-
-  it('shows the totals: open, merged, closed and cost', () => {
-    const html = render(contributions, list);
-    const plain = text(html);
-
-    expect(plain).toContain('Merged 1 4 more unlock autopilot');
-    expect(plain).toContain('Open 1 1 with changes requested');
-    expect(plain).toContain('Closed 1 50% merged of those decided');
-    expect(plain).toContain('Credits used $7.86 across 3 pull requests');
-    expect(plain).toContain('This cycle: Oct 14 to Nov 14, $63.40 used');
-  });
-
-  it('lists the pull requests with repo, issue, state, dates and cost', () => {
-    const html = render(contributions, list);
-    const plain = text(html);
-
-    expect(plain).toContain('Keep trailing comments when formatting match arms');
-    expect(plain).toContain('fern-lang/fern · PR #2490 · issue #2481');
-    expect(plain).toContain('Opened Oct 20 Merged Oct 26');
-    expect(plain).toContain('Changes requested');
-    expect(plain).toContain('Fix for issue #91');
-    expect(plain).toContain('a repo · PR #92 · issue #91');
-    expect(plain).toContain('Closed Oct 19');
-    expect(plain).toContain('$1.84');
-    expect(html).toContain('href="/contribute/attempts/A_9"');
-    expect(html).toContain('href="https://github.com/fern-lang/fern/pull/2490"');
-  });
-
-  it('puts the attempts in review and in progress in their own sections', () => {
-    const html = render(contributions, list);
-    const plain = text(html);
-
-    expect(html).toContain('data-section="needs-you"');
-    expect(plain).toContain('Needs you · 1');
-    expect(html).toContain('data-row="review"');
-    expect(html).toContain('href="/contribute/attempts/A_1"');
-    expect(html).toContain('data-section="in-progress"');
-    expect(plain).toContain('In progress · 2');
-    expect(html).toMatch(/data-attempt="A_2" data-state="RUNNING"/);
-    expect(plain).toContain('Waiting for tomorrow: the pull requests for today are all open. It goes on in 12 hours.');
-    expect(html).not.toMatch(/data-attempt="A_4"/);
-  });
-
-  it('counts how the last attempts ended, with the reasons of the stops', () => {
-    const plain = text(render(contributions, list));
-
-    expect(plain).toContain('Your last 6 attempts');
-    expect(plain).toContain('Became pull requests 1');
-    expect(plain).toContain('Stopped at the go/no-go check 1');
-    expect(plain).toContain('Ran out while checking the issue 1');
-    expect(plain).toContain('Stopped for another reason 0');
-    expect(plain).toContain(END_REASONS.NO_GO);
-    expect(plain).toContain('Stopped: ran out of budget while checking the issue.');
-  });
-
-  it('says what is not available yet, and when there are no pull requests yet', () => {
-    const missing = text(render(undefined, undefined));
-    expect(missing).toContain('Your totals are not available yet.');
-    expect(missing).toContain('Your pull requests are not available yet.');
-    expect(missing).toContain('How attempts ended Not available yet.');
-
-    const empty = text(render({ items: [], totals: { open: 0, merged: 0, closed: 0, costUsd: 0 } }, []));
-    expect(empty).toContain('No pull requests yet.');
-    expect(empty).toContain('No attempts yet');
-    expect(empty).not.toContain('Needs you');
-  });
-});
-
 /** A one-file diff of `count` added lines. */
 const addedLines = (path: string, count: number) =>
   `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@ -0,0 +1,${count} @@\n${Array.from(
@@ -1757,67 +1663,9 @@ describe('values the UI does not know yet', () => {
     expect(text(review(pr))).toContain('Draft');
     expect(text(review(pr))).toContain('Skipped');
   });
-
-  it('lists attempts and pull requests in new states on My contributions', () => {
-    const html = renderToStaticMarkup(
-      <ContributionsScreen
-        view={views.active}
-        contributions={{
-          ...contributions,
-          items: [
-            {
-              ...contributions.items[0],
-              pullRequest: { ...contributions.items[0].pullRequest, state: unknown('DRAFT') },
-            },
-          ],
-        }}
-        attempts={[
-          attempt({ state: unknown('WAITING_ON_CI') }),
-          attempt({ attemptId: 'A_2', state: 'STOPPED', endReason: unknown('NEW') }),
-        ]}
-        now={NOW}
-      />,
-    );
-
-    expect(text(html)).toContain('Draft');
-    expect(text(html)).toContain('New ·');
-  });
 });
 
 describe('links the API gives', () => {
-  it('link to GitHub only, and read as plain text otherwise', () => {
-    const item = detail({
-      ...attempts.prOpen,
-      url: 'javascript:alert(1)',
-      pullRequest: { ...attempts.prOpen.pullRequest!, url: 'https://github.com.evil.example/x/pull/1' },
-    });
-    const html = review(item);
-
-    expect(html).not.toContain('javascript:');
-    expect(html).not.toContain('evil.example');
-    expect(text(html)).toContain('driftwood-js/driftwood · issue #871');
-    expect(text(html)).toContain('Pull request #1419');
-
-    const list = renderToStaticMarkup(
-      <ContributionsScreen
-        view={views.active}
-        contributions={{
-          ...contributions,
-          items: [
-            {
-              ...contributions.items[0],
-              pullRequest: { ...contributions.items[0].pullRequest, url: 'http://github.com/x' },
-            },
-          ],
-        }}
-        attempts={[]}
-        now={NOW}
-      />,
-    );
-    expect(list).not.toContain('http://github.com/x');
-    expect(text(list)).toContain('PR #2490');
-  });
-
   it('keep reading an attempt waiting for autopilot again and again, without a Stop the API does not answer yet', () => {
     expect(LIVE_STATES).toContain('PENDING_AUTOSUBMIT');
     const html = review(attempts.pendingAutosubmit);

@@ -31,18 +31,22 @@ import {
   AutopilotHowItWorks,
   AutopilotRecord,
 } from '@/components/workspace/autopilot-section';
-import { ContributionsScreen } from '@/components/workspace/contributions-view';
 import { HeaderLine } from '@/components/workspace/header-line';
+import { LearnPill } from '@/components/workspace/learn-pill';
+import { LimitNotice } from '@/components/workspace/limit-notice';
+import { Pagination } from '@/components/workspace/pagination';
 import { ChecksPanel, ReadinessPanel } from '@/components/workspace/pull-request/attempt-panels';
 import { PrForm, type PrFormProps } from '@/components/workspace/pull-request/pr-form';
 import { RulesOpen } from '@/components/workspace/pull-request/repo-rules';
 import { prFormPropsOf, ReviewScreen } from '@/components/workspace/pull-request/review-view';
+import { type PullRequestsData, PullRequestsScreen } from '@/components/workspace/pull-requests-screen';
+import { RefChips } from '@/components/workspace/ref-chips';
+import { ShowMore } from '@/components/workspace/show-more';
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 import {
   attempt,
   attempts,
-  contributions,
   decisionAttempts,
   detail,
   followUpAttempts,
@@ -63,16 +67,7 @@ import {
   prReportSent,
   prViewer,
 } from '@/lib/contribute/__fixtures__/maintainers';
-import {
-  needsReplies,
-  needsSome,
-  nextForAgreement,
-  nextForDco,
-  nextForProof,
-  openPr,
-  prsYours,
-  signal,
-} from '@/lib/contribute/__fixtures__/needs-you';
+import { nextForAgreement, nextForDco, nextForProof } from '@/lib/contribute/__fixtures__/needs-you';
 import {
   autopilotTimeline,
   closedTimeline,
@@ -80,6 +75,13 @@ import {
   ownAgentTimeline,
   stoppedTimeline,
 } from '@/lib/contribute/__fixtures__/pr-timeline';
+import {
+  boardItems,
+  emptyPage,
+  learnerPage,
+  needsYouAnswer,
+  pullRequestsPage,
+} from '@/lib/contribute/__fixtures__/pull-requests';
 import {
   attemptNoRules,
   attemptRules,
@@ -101,7 +103,7 @@ import type {
   ContributeSubmitError,
   ContributeView,
 } from '@/lib/workspace/contribute.types';
-import type { NeedsYouRead } from '@/lib/workspace/needs-you';
+import { pullRequestsPath } from '@/lib/workspace/paths';
 import { type PrFeedbackFlow, prUrlOf } from '@/lib/workspace/pr-feedback';
 import { runsQueryOf } from '@/lib/workspace/runs';
 
@@ -209,12 +211,7 @@ const rulesPage: ContributeIssuePage = {
   })),
 };
 
-const overview = (
-  view: ContributeView,
-  activity: ContributeActivity,
-  working: boolean,
-  needs: NeedsYouRead = overviewData().needs,
-) =>
+const overview = (view: ContributeView, activity: ContributeActivity, working: boolean) =>
   frame(
     <OverviewScreen
       view={view}
@@ -223,7 +220,6 @@ const overview = (
         view,
         {
           ...overviewData(),
-          needs,
           activity,
           now: working
             ? {
@@ -338,54 +334,24 @@ const repoAsks = detail({
 });
 const repoAsksProps: Partial<PrFormProps> = { dcoMode: 'STANDING' };
 
-/** My contributions with every reason a pull request needs the user, and the runs at work. */
-const mine = () => {
-  const { reviews, replies, contributions: prs, runs } = needsSome();
-  return frame(
-    <main className={MAIN}>
-      <ContributionsScreen
-        view={views.active}
-        contributions={{ ...contributions, items: [...(prs ?? []), contributions.items[0]] }}
-        attempts={[...(reviews ?? []), ...(runs ?? []), attempt({ attemptId: 'A_2', state: 'RUNNING', costUsd: 0.4 })]}
-        replies={replies}
-        now={NOW}
-      />
-    </main>,
-    busy,
-  );
-};
-
-/**
- * My contributions with the user's own two: a comment in the conversation, the checks only they can clear, and a review
- * comment held beside a conversation comment.
- */
-const mineYours = () =>
+/** The Pull requests tab, as the boards draw it. */
+const pullRequests = (data: Partial<PullRequestsData> = {}, activity: ContributeActivity = busy) =>
   frame(
     <main className={MAIN}>
-      <ContributionsScreen
-        view={views.active}
-        contributions={{
-          ...contributions,
-          items: [
-            prsYours.conversation,
-            prsYours.checkYours,
-            openPr({
-              needsYou: {
-                since: '2026-10-28T08:30:00.000Z',
-                signals: [
-                  signal('COMMENT', { at: '2026-10-28T08:30:00.000Z' }),
-                  signal('CONVERSATION', { at: '2026-10-28T09:00:00.000Z' }),
-                ],
-              },
-            }),
-          ],
-        }}
-        attempts={[]}
-        replies={[]}
+      <PullRequestsScreen
+        sides={{ contribute: true, learn: true }}
+        learnOpen
+        limit={{ count: 3, limit: 8, open: 3 }}
+        needsYou={needsYouAnswer()}
+        page={pullRequestsPage()}
+        filter={{}}
+        activity={activity}
         now={NOW}
+        {...data}
       />
     </main>,
-    busy,
+    activity,
+    3,
   );
 
 const ORG_ACCESS_URL = 'https://github.com/settings/applications';
@@ -519,10 +485,8 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     sources: [
       'app/contribute/components/overview-status.tsx',
       'app/contribute/components/overview-sections.tsx',
-      'app/contribute/components/needs-you-rows.tsx',
       'app/contribute/components/agent-runs.tsx',
       'lib/contribute/overview.ts',
-      'lib/contribute/needs-you.ts',
     ],
     states: [
       {
@@ -546,28 +510,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         width: 390,
         height: 3400,
         render: () => overview(both, busy, true),
-      },
-      {
-        id: 'needs-you',
-        title: 'Needs you: each move, a run working',
-        path: '/contribute',
-        height: 2100,
-        render: () => overview(both, busy, true, needsSome()),
-      },
-      {
-        id: 'needs-you-replies',
-        title: 'Needs you: replies kept out of their threads, held back, and a one comment that failed',
-        path: '/contribute',
-        height: 1900,
-        render: () => overview(both, activityOf(), false, needsReplies()),
-      },
-      {
-        id: 'needs-you-phone',
-        title: 'Needs you · phone',
-        path: '/contribute',
-        width: 390,
-        height: 4600,
-        render: () => overview(both, busy, true, needsSome()),
       },
       {
         id: 'follow-through',
@@ -1247,58 +1189,88 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
   },
   {
     id: 'contribute-me',
-    title: 'My contributions',
+    title: 'Pull requests',
     area: 'contribute',
     route: '/my/pull-requests',
     sources: [
-      'app/contribute/components/contributions-view.tsx',
-      'app/contribute/components/needs-you-rows.tsx',
-      'lib/contribute/needs-you.ts',
+      'components/workspace/pull-requests-screen.tsx',
+      'components/workspace/needs-you-row.tsx',
+      'lib/workspace/needs-you-words.ts',
     ],
     states: [
       {
         id: 'list',
-        title: 'Open, merged and stopped',
+        title: 'Needs you, in progress, and every pull request',
         path: '/my/pull-requests',
-        height: 1800,
+        height: 1500,
+        render: () => pullRequests(),
+      },
+      {
+        id: 'empty',
+        title: 'Nothing yet: two ways to send the first one',
+        path: '/my/pull-requests',
+        height: 520,
         render: () =>
-          frame(
-            <main className={MAIN}>
-              <ContributionsScreen
-                view={views.active}
-                contributions={contributions}
-                attempts={[
-                  attempt(),
-                  attempt({ attemptId: 'A_2', state: 'RUNNING', costUsd: 0.4 }),
-                  attempt({ attemptId: 'A_4', state: 'STOPPED', endReason: 'NO_GO', costUsd: 0.38 }),
-                  attempt({ attemptId: 'A_5', state: 'MERGED' }),
-                ]}
-                now={NOW}
-              />
-            </main>,
+          pullRequests(
+            { needsYou: needsYouAnswer({ items: [], inProgress: [], count: 0 }), page: emptyPage(), sides: null },
+            activityOf(),
           ),
       },
       {
-        id: 'needs-you',
-        title: 'Needs you: each move, a run working',
+        id: 'learner',
+        title: 'A learner: no "Made with", the lesson in the last column',
         path: '/my/pull-requests',
-        height: 2600,
-        render: () => mine(),
+        height: 900,
+        render: () =>
+          pullRequests(
+            {
+              sides: { contribute: false, learn: true },
+              limit: { count: 1, limit: 8, open: 1 },
+              needsYou: needsYouAnswer({ items: [boardItems()[1]], inProgress: [], count: 1 }),
+              page: learnerPage(),
+            },
+            activityOf(),
+          ),
       },
       {
-        id: 'needs-you-phone',
-        title: 'Needs you · phone',
+        id: 'phone',
+        title: 'Phone',
         path: '/my/pull-requests',
         width: 390,
-        height: 5200,
-        render: () => mine(),
+        height: 2300,
+        render: () => pullRequests(),
       },
+    ],
+  },
+  {
+    id: 'workspace-components',
+    title: 'Shared parts: references, the limit, pages, show more',
+    area: 'contribute',
+    route: '/my/pull-requests',
+    sources: [
+      'components/workspace/ref-chips.tsx',
+      'components/workspace/limit-notice.tsx',
+      'components/workspace/pagination.tsx',
+      'components/workspace/show-more.tsx',
+    ],
+    states: [
       {
-        id: 'needs-you-yours',
-        title: 'Needs you: a conversation comment, checks only you can clear, a review comment beside one',
+        id: 'all',
+        title: 'RefChips, LimitNotice (both wordings), Pagination, ShowMore',
         path: '/my/pull-requests',
-        height: 1300,
-        render: () => mineYours(),
+        height: 520,
+        render: () => (
+          <main className={MAIN}>
+            <RefChips repo="kelp-db/kelp" issue={1400} pr={{ number: 1419 }}>
+              <LearnPill />
+            </RefChips>
+            <RefChips repo={null} issue={57} />
+            <LimitNotice count={8} limit={8} open={8} />
+            <LimitNotice count={8} limit={8} open={6} />
+            <Pagination page={2} total={46} noun="pull request" hrefOf={(page) => pullRequestsPath({ page })} />
+            <ShowMore shown={10} total={38} noun="issue" onMore={noop} />
+          </main>
+        ),
       },
     ],
   },

@@ -1,5 +1,5 @@
 import type { ContributeCheckNote, ContributeCheckVerdict } from './contribute.types';
-import { bracketed, clipped } from './needs-you';
+import { bracketed, clipped } from './pr-moves';
 
 /**
  * The pull request's failing checks that call nobody, one line each under its checks, and a run's verdicts on the

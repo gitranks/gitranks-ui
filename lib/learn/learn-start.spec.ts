@@ -222,13 +222,11 @@ describe('refusals', () => {
   });
 
   it('words LIMIT_REACHED by the limit it hit', () => {
-    expect(words(startViews.limitPrs)).toEqual({
-      kind: 'notice',
-      text: '2 of your pull requests are waiting on maintainers. A new lesson can start when one is merged or closed.',
-      action: { href: '/learn/lessons', label: 'My lessons' },
-    });
-    expect(words(startViewOf({ refusal: 'LIMIT_REACHED', limit: 'open_prs_at_a_time' }))).toMatchObject({
-      text: 'Your open pull requests are waiting on maintainers. A new lesson can start when one is merged or closed.',
+    // The open pull request limit is said by `LimitNotice`, in its one wording.
+    expect(words(startViews.limitPrs)).toEqual({ kind: 'limit', count: 2 });
+    expect(words(startViewOf({ refusal: 'LIMIT_REACHED', limit: 'open_prs_at_a_time' }))).toEqual({
+      kind: 'limit',
+      count: 0,
     });
     expect(words(startViews.limitAttempts)).toEqual({
       kind: 'notice',

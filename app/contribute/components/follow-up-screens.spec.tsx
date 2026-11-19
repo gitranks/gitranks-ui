@@ -19,12 +19,10 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadAttempt: vi.fn(),
   loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
-  loadContributions: vi.fn(),
   loadRepliesWaiting: vi.fn(),
 }));
 
 const { ReviewScreen, grantNeededOf } = await import('@/components/workspace/pull-request/review-view');
-const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
 const { allKindsOf } = await import('@/components/workspace/pull-request/move-card');
 const { AgentScreen } = await import('./settings-view');
 const {
@@ -36,20 +34,8 @@ const {
   autopilotErrorMessage,
 } = await import('@/components/workspace/autopilot-section');
 const { NOW, views, settings: baseSettings } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const {
-  attempt,
-  contributions,
-  feedbackThread,
-  flowDraft,
-  followUpAttempts,
-  followUpOf,
-  followUpRun,
-  followUps,
-  needsYou,
-  noReplyDraft,
-  replyDraft,
-} = await import('@/lib/contribute/__fixtures__/contribute-attempts');
-const { replyWaiting } = await import('@/lib/contribute/__fixtures__/contribute-overview');
+const { feedbackThread, flowDraft, followUpAttempts, followUpOf, followUpRun, followUps, noReplyDraft, replyDraft } =
+  await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const {
   nextForAgreement,
   nextForChecks,
@@ -65,13 +51,7 @@ const { followUpErrorMessage, handledErrorMessage, replyRefusalOf, vetoErrorMess
   '@/lib/workspace/follow-up-format'
 );
 
-import type {
-  ContributeAttemptDetail,
-  ContributeContributions,
-  ContributeReplyDraft,
-  ContributeReplyWaiting,
-  ContributeView,
-} from '@/lib/workspace/contribute.types';
+import type { ContributeAttemptDetail, ContributeReplyDraft, ContributeView } from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html
@@ -87,107 +67,7 @@ const text = (html: string) =>
 const review = (item: ContributeAttemptDetail, view: ContributeView = views.active, next = false) =>
   renderToStaticMarkup(<ReviewScreen view={view} attempt={item} next={next} now={NOW} />);
 
-/** My contributions with the open pull request (`kelp-db/kelp` #1419) as `patch` makes it. */
-const mine = (
-  patch: Partial<ContributeContributions['items'][number]>,
-  replies: ContributeReplyWaiting[] = [],
-  attempts = [attempt({ attemptId: 'A_F1', kind: 'FOLLOW_UP', state: 'REVIEW' })],
-) =>
-  renderToStaticMarkup(
-    <ContributionsScreen
-      view={views.active}
-      contributions={{
-        ...contributions,
-        items: contributions.items.map((item) =>
-          item.attemptId === 'A_8' ? { ...item, pullRequest: { ...item.pullRequest, prId: 'PR_8' }, ...patch } : item,
-        ),
-      }}
-      attempts={attempts}
-      replies={replies}
-      now={NOW}
-    />,
-  );
-
 describe('a pull request that needs the user, on My contributions', () => {
-  it('says the move and its button, leading to the next step, and no follow-up controls', () => {
-    const html = mine({ needsYou: needsYou(), followUps: followUps() });
-    const plain = text(html);
-
-    expect(html).toContain('data-row="changes"');
-    expect(plain).toContain(
-      'kelp-db/kelp · PR #1419 Changes requested Add a --json flag to kelp status Your move: A reviewer asked for changes. Start run 1 on them. · and 2 more Start run 1',
-    );
-    expect(html).toContain('href="/contribute/attempts/A_8?session=next"');
-    expect(plain).toMatch(/Needs you · 2/);
-    // The owner, 2026-11-01: the follow-up management lives on the attempt page only.
-    expect(html).not.toContain('data-start-follow-up');
-    expect(html).not.toContain('data-follow-ups');
-  });
-
-  it('names each reason by the move it asks for, with the way to it', () => {
-    const one = (
-      kind: 'COMMENT' | 'CHECK_FAILED' | 'CLA' | 'BOT_BLOCKED' | 'TITLE' | 'DCO' | 'RUN_ENDED' | 'SILENT' | 'REPO_OUT',
-      detail: string | null = null,
-    ) => text(mine({ needsYou: { since: NOW.toISOString(), signals: [{ kind, at: NOW.toISOString(), detail }] } }));
-    expect(one('COMMENT')).toContain('Your move: Someone commented on it. Let run 1 answer, or reply on GitHub.');
-    expect(one('CHECK_FAILED')).toContain('Your move: A check fails on your pull request. Start run 1 to fix it.');
-    expect(one('CLA')).toContain(
-      'Your move: The repo merges code only from people who signed its CLA, and only you can sign it. Sign it on its page; this clears once the check passes. Sign the CLA ↗ I signed it',
-    );
-    expect(one('BOT_BLOCKED')).toContain(
-      'Your move: A review bot holds the merge until you do what it asks: "Blocked before merge" Read what it asks.',
-    );
-    expect(one('TITLE')).toContain(
-      'Your move: The repo sets a rule for pull request titles, and this one breaks it. Retitle the pull request on GitHub.',
-    );
-    expect(one('DCO')).toContain('Your move: The repo needs your Signed-off-by on every commit');
-    expect(one('RUN_ENDED')).toContain('Your move: The last run changed nothing: what is left is yours to do.');
-    expect(one('SILENT', '2026-11-12')).toContain(
-      "No answer in 30 days Add a --json flag to kelp status Your move: No one has looked at this PR for 30 days. We'll close it on Nov 12 to keep your profile tidy. Click Keep it open to keep it, or close it yourself on GitHub. See your options",
-    );
-    expect(one('SILENT', '2026-11-12')).toContain('Keep it open');
-    expect(one('REPO_OUT', 'hostile_close')).toContain(
-      'Repo out of Contribute Add a --json flag to kelp status Your move: This repo is out of Contribute: a maintainer asked us to stay away. You may want to close this PR. Close it on GitHub, or click Keep it open. See your options',
-    );
-  });
-
-  it('leaves a conversation comment and a check only the user can clear to them: no run in either row', () => {
-    const at = NOW.toISOString();
-    const row = (signals: { kind: 'COMMENT' | 'CONVERSATION' | 'CHECK_YOURS'; detail: string | null }[]) =>
-      mine({
-        needsYou: { since: at, signals: signals.map((signal) => ({ ...signal, at })) },
-        followUps: followUps(),
-      });
-
-    const talk = row([{ kind: 'CONVERSATION', detail: null }]);
-    expect(talk).toContain('data-row="conversation"');
-    expect(text(talk)).toContain(
-      "kelp-db/kelp · PR #1419 Conversation comment Add a --json flag to kelp status Your move: Someone commented in the pull request's conversation. Read it, and reply on GitHub if it asks for one. See the comment I've replied",
-    );
-    expect(talk).toContain('href="/contribute/attempts/A_8?session=next"');
-    expect(talk).toContain('data-kinds="CONVERSATION"');
-    expect(text(talk)).not.toMatch(/Start run|Answer with run|Something changed/);
-
-    const yours = row([{ kind: 'CHECK_YOURS', detail: 'deploy-preview: approve the preview for the fork' }]);
-    expect(yours).toContain('data-row="check-yours"');
-    expect(text(yours)).toContain(
-      "kelp-db/kelp · PR #1419 Check only you can clear Add a --json flag to kelp status Your move: deploy-preview: approve the preview for the fork. Open the pull request ↗ I've done it",
-    );
-    expect(yours).toContain('href="https://github.com/kelp-db/kelp/pull/1419"');
-    expect(yours).toContain('data-kinds="CHECK_YOURS"');
-    expect(text(yours)).not.toMatch(/Start run|Fix with run|Something changed/);
-
-    // A review comment and a conversation comment held at once: the review comment leads as before, the other counted.
-    const both = row([
-      { kind: 'COMMENT', detail: null },
-      { kind: 'CONVERSATION', detail: null },
-    ]);
-    expect(both).toContain('data-row="comment"');
-    expect(text(both)).toContain(
-      'New comment Add a --json flag to kelp status Your move: Someone commented on it. Let run 1 answer, or reply on GitHub. · and 1 more Answer with run 1',
-    );
-  });
-
   it('says why Mark as handled did not go through', () => {
     expect(handledErrorMessage('NOT_FOUND')).toContain('no longer yours');
     expect(handledErrorMessage('INVALID', 'the pull request is not open')).toContain('no longer open');
@@ -195,88 +75,6 @@ describe('a pull request that needs the user, on My contributions', () => {
       'changed just now',
     );
     expect(handledErrorMessage('INVALID', 'prId must match')).not.toContain('changed just now');
-  });
-
-  it('lists a follow-up ready once, as its Review row, and one under way in place, not counted nor in progress', () => {
-    const current = followUps({ used: 1, manualRuns: 1, currentAttemptId: 'A_F1' });
-    const ready = mine(
-      { needsYou: needsYou(), followUps: current },
-      [],
-      [attempt({ attemptId: 'A_F1', kind: 'FOLLOW_UP', state: 'REVIEW', followUpOf: { ...followUpOf, prId: 'PR_8' } })],
-    );
-    expect(ready.match(/data-row=/g)).toHaveLength(1);
-    expect(ready).toContain('data-row="run-ready"');
-    expect(ready).toContain('href="/contribute/attempts/A_1/runs/A_F1"');
-
-    const running = mine(
-      { needsYou: needsYou(), followUps: current },
-      [],
-      [
-        attempt({
-          attemptId: 'A_F1',
-          kind: 'FOLLOW_UP',
-          state: 'RUNNING',
-          followUpStep: 'fixing',
-          createdAt: '2026-10-28T11:30:00.000Z',
-        }),
-      ],
-    );
-    const plain = text(running);
-    expect(running).toContain('data-row="working"');
-    expect(plain).toContain('Needs you · 0 · 1 run working on it');
-    expect(plain).toContain('Run 1 working Add a --json flag to kelp status Fixing · started 30 minutes ago.');
-    expect(plain).toContain('Watch run 1');
-    expect(running).not.toContain('data-section="in-progress"');
-  });
-
-  it('leaves out a pull request with nothing new, and one that is not open', () => {
-    expect(mine({ needsYou: null, followUps: followUps() }, [], [])).not.toContain('data-row=');
-    const merged = renderToStaticMarkup(
-      <ContributionsScreen
-        view={views.active}
-        contributions={{
-          ...contributions,
-          items: [{ ...contributions.items[0], needsYou: needsYou(), followUps: followUps() }],
-        }}
-        attempts={[]}
-        now={NOW}
-      />,
-    );
-    expect(merged).not.toContain('data-row=');
-    // Without the newer fields at all, the page reads as it did.
-    expect(mine({}, [], [])).not.toContain('data-row=');
-  });
-
-  it('asks to approve the replies waiting, even with nothing new on GitHub, and keeps their text off the list', () => {
-    const html = mine({ needsYou: null, followUps: followUps({ used: 1, manualRuns: 1 }) }, [
-      replyWaiting({ prId: 'PR_8', attemptId: 'A_F1' }),
-    ]);
-
-    expect(html).toContain('data-row="replies"');
-    expect(text(html)).toContain(
-      'Your move: A run drafted 1 reply to @maintainer-mo. Read and post them. Approve the reply',
-    );
-    expect(html).not.toContain('data-reply-draft');
-  });
-
-  it('says when autopilot submits an attempt waiting for it, with the link to stop it', () => {
-    const html = renderToStaticMarkup(
-      <ContributionsScreen
-        view={views.active}
-        contributions={contributions}
-        attempts={[
-          attempt({ state: 'PENDING_AUTOSUBMIT', autosubmitAt: '2026-10-28T12:42:00.000Z', autopilot: true }),
-          attempt({ attemptId: 'A_F2', kind: 'FOLLOW_UP', state: 'DONE' }),
-        ]}
-        now={NOW}
-      />,
-    );
-
-    expect(text(html)).toContain(
-      'Autopilot · 42 min Nested layouts re-render on every navigation Your move: Autopilot opens this pull request in 42 minutes. Check it, or stop it. Check before it submits',
-    );
-    expect(html).toContain('href="/contribute/attempts/A_1"');
-    expect(text(html)).toContain('Follow-ups pushed 1');
   });
 });
 
@@ -1073,27 +871,6 @@ describe('autopilot', () => {
     expect(text(html)).toContain('It submits in 42 minutes, at Oct 28, 12:42 UTC');
     expect(html).toContain('data-stop-autopilot="A_1"');
     expect(text(html)).toContain('Stop and review');
-  });
-});
-
-describe('values the UI does not know yet', () => {
-  it('renders a new signal kind and a new reply state without failing', () => {
-    const html = mine({
-      needsYou: {
-        since: NOW.toISOString(),
-        signals: [{ kind: 'NEW_KIND' as never, at: NOW.toISOString(), detail: null }],
-      },
-      followUps: followUps(),
-    });
-    expect(html).toContain('data-row="other"');
-    expect(text(html)).toContain(
-      'Your move: Something changed on it. Start run 1 to look at it, or see what on GitHub.',
-    );
-
-    const draft = review({ ...followUpAttempts.done, replyDrafts: [replyDraft({ state: 'ARCHIVED' as never })] });
-    // A state it does not know sits in the closed Dismissed group, with no action.
-    expect(text(draft)).toContain('Dismissed · 1');
-    expect(draft).not.toContain('data-approve-reply');
   });
 });
 

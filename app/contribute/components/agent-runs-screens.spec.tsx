@@ -14,12 +14,9 @@ vi.mock('@/lib/workspace/contribute.data', () => ({}));
 const { LiveRunPhase, LiveRunsLabel, RightNowLanes, WorkingNowSection } = await import(
   '@/components/workspace/agent/agent-runs'
 );
-const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
 const { activityOf, FOLLOW_UP, QUEUED, READY, runOf, WORKING } = await import(
   '@/lib/contribute/__fixtures__/agent-runs'
 );
-const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { attempt, contributions } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { publishContributeActivity } = await import('@/lib/workspace/changes-bus');
 
 const text = (html: string) =>
@@ -135,23 +132,6 @@ describe('Working now on the runs page', () => {
 });
 
 describe('My contributions’ rows in progress', () => {
-  it('show the live phase of their run, the row’s own line without one', () => {
-    const html = renderToStaticMarkup(
-      <ContributionsScreen
-        view={views.active}
-        contributions={contributions}
-        attempts={[
-          attempt({ attemptId: 'att_working', state: 'RUNNING' }),
-          attempt({ attemptId: 'att_other', state: 'CHECKS' }),
-        ]}
-        activity={activityOf(WORKING)}
-      />,
-    );
-    expect(html).toContain('data-live-phase="WORKING"');
-    expect(text(html)).toContain('Working on a fix');
-    expect(html.match(/data-live-phase/g)).toHaveLength(1);
-  });
-
   it('follows the poll’s newer read', () => {
     const later = {
       ...activityOf(runOf({ phase: 'RUNNING_CHECKS', label: 'Running checks' })),

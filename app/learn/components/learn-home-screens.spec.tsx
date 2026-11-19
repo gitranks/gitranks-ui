@@ -165,7 +165,7 @@ describe('Learn home, goal set', () => {
     expect(full).not.toContain('href="/learn/start/');
     expect(full).toContain('data-room="open_prs_at_a_time"');
     expect(text(full)).toContain(
-      '2 of your pull requests are waiting on maintainers. A new lesson can start when one is merged or closed. My lessons',
+      '2 of your pull requests are waiting on maintainers. A new one can start when one is merged or closed. Pull requests · Change the limit in Settings',
     );
   });
 

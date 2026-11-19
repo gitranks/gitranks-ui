@@ -6,6 +6,7 @@ import type { LearnStartView } from './learn-start.types';
 import { LEVELS } from './profile-form';
 import type { ContributeAttemptState, ContributeMcpToken } from '@/lib/workspace/contribute.types';
 import { relativeLabel } from '@/lib/workspace/format';
+import { limitWordsOf } from '@/lib/workspace/limit-words';
 import { MCP_CLIENT_NAMES, MCP_CLIENTS, type McpClient } from '@/lib/workspace/mcp-setup';
 import { isSignedInAgent } from '@/lib/workspace/oauth-consent';
 import { learnAttemptPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -168,12 +169,10 @@ export function learnLimitWordsOf(
   limit: string | null | undefined,
   count?: number | null,
 ): { text: string; link: { href: Route; label: string } } {
-  if (limit?.toLowerCase() === 'open_prs_at_a_time') {
-    const who = count ? `${count} of your pull requests ${count === 1 ? 'is' : 'are'}` : 'Your open pull requests are';
-    return {
-      text: `${who} waiting on maintainers. A new lesson can start when one is merged or closed.`,
-      link: { href: MY_LESSONS_PATH, label: 'My lessons' },
-    };
+  if (isOpenPrsLimit(limit)) {
+    // The one wording of the limit (`LimitNotice`, which the pages draw in its place).
+    const { lead, rest } = limitWordsOf({ count: count ?? 0, limit: count ?? 0 });
+    return { text: `${lead} ${rest}`, link: { href: WORKSPACE_PATHS.pullRequests, label: 'Pull requests' } };
   }
   return {
     text: 'Your agent is working on another issue. A new lesson can start when that one is done.',
@@ -181,9 +180,17 @@ export function learnLimitWordsOf(
   };
 }
 
-/** A refusal's words and where it leads; `paused` uses Contribute's own notice. */
+/** Whether a refusal's limit is the one on open pull requests, which `LimitNotice` says. */
+export const isOpenPrsLimit = (limit: string | null | undefined): boolean =>
+  limit?.toLowerCase() === 'open_prs_at_a_time';
+
+/**
+ * A refusal's words and where it leads; `paused` uses Contribute's own notice, `limit` the open pull request limit's
+ * (`LimitNotice`, with what it counts when known).
+ */
 export type LearnStartRefusalCopy =
   | { kind: 'paused' }
+  | { kind: 'limit'; count: number }
   | { kind: 'notice'; text: string; action: { href: Route; label: string } | null };
 
 const BACK = { href: LEARN_ISSUES_PATH, label: 'Back to the issues' };
@@ -211,6 +218,7 @@ export function learnStartRefusalOf({ start, current, openPrs }: LearnStartView)
     case 'ACCOUNT_PAUSED':
       return { kind: 'paused' };
     case 'LIMIT_REACHED': {
+      if (isOpenPrsLimit(start.limit)) return { kind: 'limit', count: openPrs ?? 0 };
       const words = learnLimitWordsOf(start.limit, openPrs);
       return notice(words.text, words.link);
     }

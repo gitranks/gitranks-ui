@@ -11,7 +11,14 @@ const node = (id: string, extra: Partial<LessonDiagramNode> = {}): LessonDiagram
   mono: false,
   ...extra,
 });
-const edge = (from: string, to: string): LessonDiagramEdge => ({ from, to });
+const edge = (from: string, to: string, extra: Partial<LessonDiagramEdge> = {}): LessonDiagramEdge => ({
+  from,
+  to,
+  label: null,
+  reply: false,
+  tone: 'PLAIN',
+  ...extra,
+});
 
 const overlap = (a: DiagramBox, b: DiagramBox) =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
@@ -151,5 +158,79 @@ describe('a lesson diagram', () => {
     expect(a.w).toBeLessThanOrEqual(220);
     expect(a.w).toBeGreaterThan(200);
     expect(box(layout, 'b').title).toBeNull();
+  });
+
+  it("keeps an edge's label (trimmed, none when empty) and tone", () => {
+    const { edges } = cleanDiagram(
+      [node('a'), node('b'), node('c')],
+      [edge('a', 'b', { label: '  calls  ', tone: 'ACCENT' }), edge('b', 'c', { label: ' ' })],
+    );
+    expect(edges).toEqual([edge('a', 'b', { label: 'calls', tone: 'ACCENT' }), edge('b', 'c')]);
+  });
+
+  it("puts a label in a pill on its arrow's midpoint, with the arrow's tone", () => {
+    const layout = layoutDiagram([node('a'), node('b')], [edge('a', 'b', { label: 'route.path', tone: 'WARN' })]);
+    const [arrow] = layout.arrows;
+    expect(arrow.tone).toBe('WARN');
+    expect(arrow.label).toMatchObject({ text: 'route.path', title: null, h: 18 });
+    const a = box(layout, 'a');
+    const b = box(layout, 'b');
+    expect(arrow.label!.x).toBeCloseTo((a.x + a.w + b.x - 4) / 2, 0);
+    expect(arrow.label!.y).toBeCloseTo(a.y + a.h / 2, 0);
+    // The pill sits between the boxes, clear of both.
+    expect(arrow.label!.x - arrow.label!.w / 2).toBeGreaterThan(a.x + a.w);
+    expect(arrow.label!.x + arrow.label!.w / 2).toBeLessThan(b.x);
+    expect(layoutDiagram([node('a'), node('b')], [edge('a', 'b')]).arrows[0].label).toBeNull();
+  });
+
+  it('widens the gap between layers to fit the longest label, and cuts one too long for any pill', () => {
+    const nodes = [...'abcd'].map((id) => node(id, { label: `box ${id} with a long name` }));
+    const chain = [edge('a', 'b'), edge('b', 'c'), edge('c', 'd')];
+    const plain = layoutDiagram(nodes, chain);
+    const long = 'a label of forty characters, at the cap';
+    const labelled = layoutDiagram(nodes, [edge('a', 'b'), edge('b', 'c', { label: long }), edge('c', 'd')]);
+    const gap = (layout: ReturnType<typeof layoutDiagram>) =>
+      box(layout, 'c').x - (box(layout, 'b').x + box(layout, 'b').w);
+    expect(gap(labelled)).toBeGreaterThan(gap(plain));
+    const label = labelled.arrows[1].label!;
+    expect(label.text.endsWith('…')).toBe(true);
+    expect(label.title).toBe(long);
+    expect(gap(labelled)).toBeGreaterThanOrEqual(label.w + 2 * 14);
+    expect(labelled.width).toBeGreaterThan(DIAGRAM_WIDTH);
+    expectTidy(labelled);
+    // Every gap grows, so no label crowds a box.
+    expect(box(labelled, 'b').x - (box(labelled, 'a').x + box(labelled, 'a').w)).toBe(gap(labelled));
+  });
+
+  it("keeps the arrows in the edges' order, one per edge, so each is keyed by its index", () => {
+    const edges = [edge('b', 'c', { label: 'second' }), edge('a', 'b', { label: 'first' }), edge('a', 'c')];
+    const layout = layoutDiagram([node('a'), node('b'), node('c')], edges);
+    expect(layout.arrows.map(({ from, to, label }) => [from, to, label?.text ?? null])).toEqual([
+      ['b', 'c', 'second'],
+      ['a', 'b', 'first'],
+      ['a', 'c', null],
+    ]);
+  });
+
+  it('keeps a label on a loop inside the drawing', () => {
+    const layout = layoutDiagram(
+      [node('a'), node('b'), node('c')],
+      [edge('a', 'b'), edge('b', 'c'), edge('c', 'a', { label: 'retries' })],
+    );
+    const label = layout.arrows[2].label!;
+    expect(layout.arrows[2].back).toBe(true);
+    expect(label.y + label.h / 2).toBeLessThanOrEqual(layout.height);
+    expect(label.y).toBeGreaterThan(Math.max(...layout.boxes.map(({ y, h }) => y + h)));
+  });
+
+  it('draws narrower when asked, going down past the layers that fit across', () => {
+    const nodes = [node('a'), node('b'), node('c')];
+    const edges = [edge('a', 'b'), edge('b', 'c')];
+    expect(layoutDiagram(nodes, edges).direction).toBe('across');
+    const narrow = layoutDiagram(nodes, edges, { width: 360, maxColumns: 2 });
+    expect(narrow.direction).toBe('down');
+    expect(narrow.width).toBe(360);
+    expectTidy(narrow);
+    expect(layoutDiagram(nodes.slice(0, 2), edges.slice(0, 1), { width: 360, maxColumns: 2 }).direction).toBe('across');
   });
 });

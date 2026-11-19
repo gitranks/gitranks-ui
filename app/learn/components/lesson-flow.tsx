@@ -14,10 +14,11 @@ import {
   startLessonRun,
   startSharedLessonRun,
 } from '../actions';
-import { LessonBlock, RichText } from './lesson-block';
+import { LessonBlock } from './lesson-block';
 import { LESSON_GRID, LessonSteps, stepAnchorOf } from './lesson-steps';
 import { LessonSummary, type SummaryShare } from './lesson-summary';
 import { QuestionCard } from './question-card';
+import { RichText } from './rich-text';
 import { WrittenFor } from './written-for';
 import { CopyButton } from '@/app/contribute/components/copy-button';
 import { HEADING } from '@/app/contribute/components/primitives';

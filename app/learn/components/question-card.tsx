@@ -3,7 +3,7 @@
 import { ArrowRight, Flag, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
-import { RichText } from './lesson-block';
+import { RichText } from './rich-text';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';

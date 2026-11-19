@@ -58,10 +58,14 @@ const HEAD = `slug title kind version
   language publishedAt passes writtenFor topics
   writtenForGoal { kind value level }`;
 
+const NODES = 'nodes { id label sub tone mono } edges { from to label reply tone }';
+const SIDE = `${NODES} path fromLine toLine excerpt`;
 const BLOCK = `type text
-  nodes { id label sub tone mono } edges { from to } caption
+  ${NODES} caption layout
   file lines { kind text } mark
-  repo commit path fromLine toLine excerpt`;
+  repo commit path fromLine toLine excerpt
+  compareOf before { ${SIDE} } after { ${SIDE} }
+  columns rows ring`;
 
 const STEP = `id parts title blocks { ${BLOCK} }`;
 

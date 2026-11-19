@@ -4,7 +4,8 @@ import type { LessonDiagramEdge, LessonDiagramNode, LessonDiagramTone } from './
  * A lesson's diagram, laid out here: the lesson sends boxes and arrows (nodes and edges), never coordinates. Boxes go in
  * layers along the arrows (each box one layer after the furthest box that points to it), left to right, or top to
  * bottom when there are more layers than fit across. Inside a layer, boxes follow the boxes they come from, so arrows
- * cross as little as they can. An arrow that points back (a loop) runs around the outside.
+ * cross as little as they can. An arrow that points back (a loop) runs around the outside. An arrow's label sits in a pill
+ * at its midpoint; the gap between layers grows to fit the longest one.
  */
 
 export const DIAGRAM_MAX_NODES = 8;
@@ -31,10 +32,15 @@ const SIDE_GAP = 24;
 const LOOP_SWING = 36;
 /** Arrows stop short of a box, so the head is seen. */
 const ARROW_GAP = 4;
+/** An arrow's label: 11.5px Inter in a pill this high, at most this wide, clear of the boxes on each side. */
+const PILL_H = 18;
+const PILL_PAD_X = 7;
+const PILL_MAX_W = 196;
+const PILL_CLEAR = 14;
 
 /** Rough text widths at the diagram's sizes: label 12.5px mono or 13px Inter, the line under it 11.5px Inter. */
-const LABEL_CHAR = { mono: 7.6, sans: 7.2 } as const;
-const SUB_CHAR = 6.3;
+export const LABEL_CHAR = { mono: 7.6, sans: 7.2 } as const;
+export const SUB_CHAR = 6.3;
 
 export type DiagramBox = {
   id: string;
@@ -51,7 +57,20 @@ export type DiagramBox = {
   h: number;
 };
 
-export type DiagramArrow = { from: string; to: string; back: boolean; d: string };
+/** An arrow's label: its text (cut to fit), the text as sent when cut, and its pill, centred on the arrow's midpoint. */
+export type DiagramArrowLabel = { text: string; title: string | null; x: number; y: number; w: number; h: number };
+
+export type DiagramArrow = {
+  from: string;
+  to: string;
+  back: boolean;
+  d: string;
+  tone: LessonDiagramTone;
+  label: DiagramArrowLabel | null;
+};
+
+/** Where a diagram is drawn: its width (a wider one scales down) and how many layers go left to right at most. */
+export type DiagramOptions = { width?: number; maxColumns?: number };
 
 export type DiagramLayout = {
   direction: 'across' | 'down';
@@ -61,14 +80,26 @@ export type DiagramLayout = {
   arrows: DiagramArrow[];
 };
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-const round = (value: number) => Math.round(value * 10) / 10;
+export const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+export const round = (value: number) => Math.round(value * 10) / 10;
 
 /** The text cut to `chars` characters, with an ellipsis when it was longer. */
-const clip = (text: string, chars: number) =>
+export const clip = (text: string, chars: number) =>
   text.length > chars ? `${text.slice(0, Math.max(1, chars - 1))}…` : text;
 
-/** The nodes once each (the first of an id), at most 8, and the edges that join two of them once each, at most 10. */
+/** An edge as the layout reads it: its label trimmed (none when empty), PLAIN when it has no tone. */
+export const edgeOf = (edge: LessonDiagramEdge): LessonDiagramEdge => ({
+  from: edge.from,
+  to: edge.to,
+  label: edge.label?.trim() || null,
+  reply: edge.reply === true,
+  tone: edge.tone ?? 'PLAIN',
+});
+
+/**
+ * The nodes once each (the first of an id), at most 8, and the edges that join two of them once each, at most 10, with
+ * their labels and tones.
+ */
 export function cleanDiagram(
   nodes: readonly LessonDiagramNode[] | null | undefined,
   edges: readonly LessonDiagramEdge[] | null | undefined,
@@ -85,7 +116,7 @@ export function cleanDiagram(
     const key = `${edge.from}\u0000${edge.to}`;
     if (seen.has(key) || joined.length >= DIAGRAM_MAX_EDGES) continue;
     seen.add(key);
-    joined.push({ from: edge.from, to: edge.to });
+    joined.push(edgeOf(edge));
   }
   return { nodes: [...kept.values()], edges: joined };
 }
@@ -169,13 +200,25 @@ function sizeOf(node: LessonDiagramNode): Pick<DiagramBox, 'label' | 'sub' | 'ti
   };
 }
 
-/** Lays out a diagram's nodes and edges: where each box goes, and each arrow's path. */
+/** An arrow label's text, cut to the widest pill, and its pill's size. */
+function pillOf(label: string): Omit<DiagramArrowLabel, 'x' | 'y'> {
+  const text = clip(label, Math.floor((PILL_MAX_W - 2 * PILL_PAD_X) / SUB_CHAR));
+  return {
+    text,
+    title: text === label ? null : label,
+    w: Math.round(text.length * SUB_CHAR + 2 * PILL_PAD_X),
+    h: PILL_H,
+  };
+}
+
+/** Lays out a diagram's nodes and edges: where each box goes, and each arrow's path and label. */
 export function layoutDiagram(
   rawNodes: readonly LessonDiagramNode[] | null | undefined,
   rawEdges: readonly LessonDiagramEdge[] | null | undefined,
+  { width: minWidth = DIAGRAM_WIDTH, maxColumns = MAX_COLUMNS }: DiagramOptions = {},
 ): DiagramLayout {
   const { nodes, edges } = cleanDiagram(rawNodes, rawEdges);
-  if (!nodes.length) return { direction: 'across', width: DIAGRAM_WIDTH, height: 0, boxes: [], arrows: [] };
+  if (!nodes.length) return { direction: 'across', width: minWidth, height: 0, boxes: [], arrows: [] };
 
   const ids = nodes.map((node) => node.id);
   const back = backEdgesOf(ids, edges);
@@ -183,7 +226,10 @@ export function layoutDiagram(
   const layer = layersOf(ids, forward);
   const layers = orderOf(ids, layer, forward);
   // One layer (boxes with no arrows between them) is a row, as is a chain too long to go across.
-  const direction = layers.length > 1 && layers.length <= MAX_COLUMNS ? 'across' : 'down';
+  const direction = layers.length > 1 && layers.length <= maxColumns ? 'across' : 'down';
+  const pills = edges.map((edge) => (edge.label ? pillOf(edge.label) : null));
+  // The gap between layers, wide enough for the longest label and the arrow on each side of it.
+  const labelGap = Math.max(0, ...pills.map((pill) => (pill ? pill.w + 2 * PILL_CLEAR + ARROW_GAP : 0)));
 
   const sized = new Map(nodes.map((node) => [node.id, { node, ...sizeOf(node) }]));
   const boxes = new Map<string, DiagramBox>();
@@ -200,8 +246,8 @@ export function layoutDiagram(
       (column) => column.reduce((sum, id) => sum + sized.get(id)!.h, 0) + (column.length - 1) * STACK_GAP,
     );
     const used = columnW.reduce((sum, w) => sum + w, 0);
-    const gap = Math.max(LAYER_GAP, (DIAGRAM_WIDTH - 2 * PAD_X - used) / (layers.length - 1));
-    width = Math.max(DIAGRAM_WIDTH, used + gap * (layers.length - 1) + 2 * PAD_X);
+    const gap = Math.max(LAYER_GAP, labelGap, (minWidth - 2 * PAD_X - used) / (layers.length - 1));
+    width = Math.max(minWidth, used + gap * (layers.length - 1) + 2 * PAD_X);
     const tallest = Math.max(...stackH);
     height = tallest + 2 * PAD_Y;
     let x = PAD_X;
@@ -217,7 +263,7 @@ export function layoutDiagram(
   } else {
     const rowH = layers.map((row) => Math.max(...row.map((id) => sized.get(id)!.h)));
     const rowW = layers.map((row) => row.reduce((sum, id) => sum + sized.get(id)!.w, 0) + (row.length - 1) * SIDE_GAP);
-    width = Math.max(DIAGRAM_WIDTH, Math.max(...rowW) + 2 * PAD_X);
+    width = Math.max(minWidth, Math.max(...rowW) + 2 * PAD_X);
     height = rowH.reduce((sum, h) => sum + h, 0) + (layers.length - 1) * ROW_GAP + 2 * PAD_Y;
     let y = PAD_Y;
     layers.forEach((row, index) => {
@@ -231,37 +277,34 @@ export function layoutDiagram(
     });
   }
 
+  /** An arrow's path: a line, or a curve through two control points; its midpoint is where its label sits. */
+  const line = (sx: number, sy: number, ex: number, ey: number) => ({
+    d: `M${round(sx)} ${round(sy)} L${round(ex)} ${round(ey)}`,
+    mid: [(sx + ex) / 2, (sy + ey) / 2] as const,
+  });
+  const curve = (sx: number, sy: number, ax: number, ay: number, bx: number, by: number, ex: number, ey: number) => ({
+    d: `M${round(sx)} ${round(sy)} C${round(ax)} ${round(ay)} ${round(bx)} ${round(by)} ${round(ex)} ${round(ey)}`,
+    // A cubic curve's point at its middle.
+    mid: [(sx + 3 * ax + 3 * bx + ex) / 8, (sy + 3 * ay + 3 * by + ey) / 8] as const,
+  });
+
   const loops = edges.some((edge) => back.has(edge) || layer.get(edge.from) === layer.get(edge.to));
-  const arrows = edges.map((edge): DiagramArrow => {
+  const paths = edges.map((edge) => {
     const a = boxes.get(edge.from)!;
     const b = boxes.get(edge.to)!;
     const ahead = layer.get(edge.to)! > layer.get(edge.from)!;
     if (direction === 'across') {
-      if (ahead) {
-        const [sx, sy, ex, ey] = [a.x + a.w, a.y + a.h / 2, b.x - ARROW_GAP, b.y + b.h / 2];
-        return { ...edge, back: false, d: `M${round(sx)} ${round(sy)} L${round(ex)} ${round(ey)}` };
-      }
+      if (ahead) return { back: false, ...line(a.x + a.w, a.y + a.h / 2, b.x - ARROW_GAP, b.y + b.h / 2) };
       // Under the boxes, from one's bottom to the other's.
       const [sx, sy, ex, ey] = [a.x + a.w / 2, a.y + a.h, b.x + b.w / 2, b.y + b.h + ARROW_GAP];
       const low = Math.max(sy, ey) + LOOP_SWING;
-      return {
-        ...edge,
-        back: true,
-        d: `M${round(sx)} ${round(sy)} C${round(sx)} ${round(low)} ${round(ex)} ${round(low)} ${round(ex)} ${round(ey)}`,
-      };
+      return { back: true, ...curve(sx, sy, sx, low, ex, low, ex, ey) };
     }
-    if (ahead) {
-      const [sx, sy, ex, ey] = [a.x + a.w / 2, a.y + a.h, b.x + b.w / 2, b.y - ARROW_GAP];
-      return { ...edge, back: false, d: `M${round(sx)} ${round(sy)} L${round(ex)} ${round(ey)}` };
-    }
+    if (ahead) return { back: false, ...line(a.x + a.w / 2, a.y + a.h, b.x + b.w / 2, b.y - ARROW_GAP) };
     // Beside the boxes, from one's right side to the other's.
     const [sx, sy, ex, ey] = [a.x + a.w, a.y + a.h / 2, b.x + b.w + ARROW_GAP, b.y + b.h / 2];
     const side = Math.max(sx, ex) + LOOP_SWING;
-    return {
-      ...edge,
-      back: true,
-      d: `M${round(sx)} ${round(sy)} C${round(side)} ${round(sy)} ${round(side)} ${round(ey)} ${round(ex)} ${round(ey)}`,
-    };
+    return { back: true, ...curve(sx, sy, side, sy, side, ey, ex, ey) };
   });
 
   // Room for the loops' swing outside the boxes.
@@ -270,6 +313,26 @@ export function layoutDiagram(
     const right = Math.max(...[...boxes.values()].map((box) => box.x + box.w));
     width = Math.max(width, right + LOOP_SWING + PAD_X);
   }
+
+  // Arrows keep the edges' order: the index is the arrow. A label stays inside the drawing.
+  const arrows = edges.map((edge, index): DiagramArrow => {
+    const { back: isBack, d, mid } = paths[index];
+    const pill = pills[index];
+    return {
+      from: edge.from,
+      to: edge.to,
+      back: isBack,
+      d,
+      tone: edge.tone,
+      label: pill
+        ? {
+            ...pill,
+            x: round(clamp(mid[0], pill.w / 2 + 1, width - pill.w / 2 - 1)),
+            y: round(clamp(mid[1], pill.h / 2 + 1, height - pill.h / 2 - 1)),
+          }
+        : null,
+    };
+  });
 
   return {
     direction,

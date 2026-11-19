@@ -24,12 +24,14 @@ export const EXAMPLE_LESSON = {
       node('one', '"/docs/"', { mono: true, sub: 'entry 1: layouts built' }),
       node('two', '"/docs"', { mono: true, sub: 'no entry: built again', tone: 'WARN' }),
     ],
-    edges: [
-      { from: 'a', to: 'key' },
-      { from: 'b', to: 'key' },
-      { from: 'key', to: 'one' },
-      { from: 'key', to: 'two' },
-    ] satisfies LessonDiagramEdge[],
+    edges: (
+      [
+        ['a', 'key'],
+        ['b', 'key'],
+        ['key', 'one'],
+        ['key', 'two'],
+      ] as const
+    ).map(([from, to]): LessonDiagramEdge => ({ from, to, label: null, reply: false, tone: 'PLAIN' })),
     label: 'Two spellings of one route become two cache keys, so the second one misses and the layouts are built again',
   },
   question: {

@@ -8,7 +8,6 @@ import {
   StartPageCurrentDocument,
   StartPageIssueDocument,
   StartPageLimitsDocument,
-  StartPageListedDocument,
 } from './start-page.documents';
 import type {
   StartMode,
@@ -116,13 +115,18 @@ export async function startPageOnboarded(reader: Reader): Promise<boolean> {
   }
 }
 
-/** Lesson mode's restart sentence (`restartHintOf`); false when the connections can't be read. */
-export async function startPageRestartHintOf(reader: Reader, now = new Date()): Promise<boolean> {
+/**
+ * Whether the viewer has a contributor row: false when the API answers none (a Learn account that has not saved a goal
+ * or connected an agent yet), null when it can't be read.
+ */
+export async function loadStartPageContributor(): Promise<boolean | null> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
   try {
-    const { contribute } = await graphqlDirect(StartPageListedDocument, undefined, reader);
-    return restartHintOf(contribute?.mcpTokens, now);
+    const data = await graphqlDirect(ContributeOnboardingDocument, undefined, { source: 'ssr', githubLogin });
+    return !!data?.contribute?.contributor;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -153,12 +157,11 @@ export async function loadStartPageView(
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { kind: 'not-found' };
   const reader = { source: 'ssr' as const, githubLogin };
-  const [answer, ownAgent, onboarded, signIn, restartHint] = await Promise.all([
+  const [answer, ownAgent, onboarded, signIn] = await Promise.all([
     startPageViewOf(reader, ref.repo, ref.issue, mode),
     loadOwnAgent(),
     startPageOnboarded(reader),
     contributeMcpSignIn(),
-    mode === 'lesson' ? startPageRestartHintOf(reader) : false,
   ]);
   if (!answer.ok) {
     // Closed to the viewer in this mode, or an API that doesn't answer it yet: as Learn's other reads do, no page.
@@ -183,7 +186,7 @@ export async function loadStartPageView(
       connection: learnStartConnectionOf(tokens),
       agent: { onboarded, tokens, signIn },
       goal,
-      restartHint,
+      restartHint: mode === 'lesson' && restartHintOf(tokens),
       openedAt: new Date().toISOString(),
     },
   };

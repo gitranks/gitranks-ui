@@ -212,6 +212,8 @@ export type StartPageScreenProps = {
   onCheckAgain?: () => void;
   resuming?: boolean;
   onResume?: () => void;
+  /** Resume failed: why, under its button. */
+  resumeError?: string | null;
   /** Drawn before "Connect your agent"; the steps after it are then numbered from 2. */
   firstSection?: ReactNode;
   /** The steps after `firstSection` drawn dimmed and inert. */
@@ -242,6 +244,7 @@ export function StartPageScreen({
   onCheckAgain,
   resuming = false,
   onResume,
+  resumeError = null,
   firstSection,
   locked = false,
   back,
@@ -318,12 +321,8 @@ export function StartPageScreen({
                 {first + 1} · Paste this in {agent}
               </h2>
               <p className="text-sm text-muted-foreground">{words.prompt}</p>
-              <CodeBlock
-                label="Ask your agent"
-                copyLabel="Copy the prompt"
-                wrap
-                copySource={mode === 'lesson' ? 'learn_start_copy' : 'contribute_start_copy'}
-              >
+              {/* The page's one copy control is the button under it. */}
+              <CodeBlock label="Ask your agent" wrap>
                 {startPromptOf(issueUrl, mode)}
               </CodeBlock>
               <CopyButton
@@ -452,7 +451,13 @@ export function StartPageScreen({
       <IssueCard issueRef={issueRef} mode={mode} issue={issue} card={given} goal={goal} />
 
       {refusal ? (
-        <StartRefusal copy={refusal} code={issue?.start.refusal ?? ''} resuming={resuming} onResume={onResume} />
+        <StartRefusal
+          copy={refusal}
+          code={issue?.start.refusal ?? ''}
+          resuming={resuming}
+          onResume={onResume}
+          resumeError={resumeError}
+        />
       ) : null}
 
       {firstSection}

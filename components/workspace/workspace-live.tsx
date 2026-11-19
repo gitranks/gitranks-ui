@@ -4,9 +4,9 @@ import { ChangesProvider } from '@/components/workspace/changes-provider';
 import { loadContributeActivity, loadContributeVersion, loadNeedsYouCount } from '@/lib/workspace/contribute.data';
 
 /**
- * The workspace's one poll with nothing drawn, for a page shown without the tabs that still waits on the user's
- * attempts (Learn's start page before the account has entered). Mount it only where the tabs do not show: under the
- * tabs the poll runs already. The reads are the tabs' own, once per request.
+ * The workspace's one poll with nothing drawn, for a page that may show without the tabs and still waits on the user's
+ * attempts (Learn's start page). It stands by: it polls only while the tabs' poll does not run in the tab, so under the
+ * tabs the poll still runs once. The reads are the tabs' own, once per request.
  */
 export async function WorkspaceLive({ children }: { children: ReactNode }) {
   const [version, activity, needsYou] = await Promise.all([
@@ -15,7 +15,7 @@ export async function WorkspaceLive({ children }: { children: ReactNode }) {
     loadNeedsYouCount().catch(() => null),
   ]);
   return (
-    <ChangesProvider version={version} activity={activity} needsYou={needsYou}>
+    <ChangesProvider version={version} activity={activity} needsYou={needsYou} standby>
       {children}
     </ChangesProvider>
   );

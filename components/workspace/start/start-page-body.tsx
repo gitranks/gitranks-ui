@@ -8,6 +8,8 @@ import { reportLearnEvent } from '@/components/contribute-click-tracker/contribu
 import { AgentConnect } from '@/components/workspace/agent/agent-connect';
 import { type StartPageCard, StartPageScreen } from '@/components/workspace/start/start-page-screen';
 import { resumeContributing } from '@/lib/workspace/actions';
+import { changesPollRunning } from '@/lib/workspace/changes-bus';
+import { contributeErrorMessage } from '@/lib/workspace/errors';
 import type { McpClient } from '@/lib/workspace/mcp-setup';
 import {
   learnStartFixOf,
@@ -76,6 +78,9 @@ export function StartPageBody(props: StartPageBodyProps) {
   return <LiveStartPage {...props} view={view} />;
 }
 
+/** The refusals the viewer's own attempts clear, which the page asks about again as they move. */
+const clearsByItself = (refusal: string | null) => refusal === 'LIMIT_REACHED' || refusal === 'OWN_IN_PROGRESS';
+
 /** The events each mode reports: the page shown, and its move on to the issue's page. */
 const EVENTS = {
   fix: { source: 'contribute_start', view: 'contribute_start_view', claimed: 'contribute_start_claimed' },
@@ -105,6 +110,7 @@ function LiveStartPage({
   const [round, setRound] = useState(0);
   const [checking, startChecking] = useTransition();
   const [resuming, startResuming] = useTransition();
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const gone = useRef(false);
   // The issue as last read, for the repo's spelling in the pull request's address.
   const issueRead = useRef(issue);
@@ -167,8 +173,10 @@ function LiveStartPage({
   const onResume = useCallback(
     () =>
       startResuming(async () => {
+        setResumeError(null);
         const result = await resumeContributing().catch(() => null);
         if (result?.ok) askIssue();
+        else setResumeError(contributeErrorMessage(result?.error ?? 'FAILED', result?.message));
       }),
     [askIssue],
   );
@@ -178,10 +186,23 @@ function LiveStartPage({
   const waits = startStepsOpen(issue) && (!!connection || !!fix) && !fixDone && !timedOut;
   useFastChanges(waits);
   useChanges(['ATTEMPTS'], () => void askAttempt(), waits);
+  // A refusal the viewer's own attempts clear (a run ends, a lesson is done, a pull request closes): asked again on each
+  // change of their attempts, and the steps come back once it no longer holds.
+  useChanges(['ATTEMPTS'], askIssue, clearsByItself(issue.start.refusal));
   // biome-ignore lint/correctness/useExhaustiveDependencies: `round` starts a new wait after each ask of the issue.
   useEffect(() => {
     if (!waits) return;
-    const wait = startShownWait({ onTimeout: () => setTimedOut(true), onShown: () => void askAttempt() }, { document });
+    const wait = startShownWait(
+      {
+        onTimeout: () => setTimedOut(true),
+        onShown: () => void askAttempt(),
+        // No poll in this tab (a page reached from one without the tabs): the wait asks by itself.
+        onTick: () => {
+          if (!changesPollRunning()) void askAttempt();
+        },
+      },
+      { document },
+    );
     return wait.stop;
   }, [waits, round, askAttempt]);
 
@@ -213,6 +234,7 @@ function LiveStartPage({
       onCheckAgain={askIssue}
       resuming={resuming}
       onResume={onResume}
+      resumeError={resumeError}
       firstSection={firstSection}
       back={{ href: backHref, label: backLabel }}
       frame={frame}

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { START_WAIT_FOR_MS, startShownWait } from './start-watch';
+import { START_FALLBACK_ASK_MS, START_WAIT_FOR_MS, startShownWait } from './start-watch';
 
 /** A page whose shown state the test sets, firing `visibilitychange` as a browser does. */
 function pageOf(visible = true) {
@@ -62,6 +62,22 @@ describe("step 3's 30 minutes", () => {
     show(true);
     vi.advanceTimersByTime(START_WAIT_FOR_MS);
     expect(onTimeout).toHaveBeenCalledTimes(1);
+  });
+
+  it('ticks every 10 seconds while shown, never while hidden or after the 30 minutes', () => {
+    const { document, show } = pageOf();
+    const onTick = vi.fn();
+    startShownWait({ onTimeout: vi.fn(), onShown: vi.fn(), onTick }, { document });
+    vi.advanceTimersByTime(START_FALLBACK_ASK_MS * 2);
+    expect(onTick).toHaveBeenCalledTimes(2);
+    show(false);
+    vi.advanceTimersByTime(START_FALLBACK_ASK_MS * 2);
+    expect(onTick).toHaveBeenCalledTimes(2);
+    show(true);
+    vi.advanceTimersByTime(START_WAIT_FOR_MS * 2);
+    const ticked = onTick.mock.calls.length;
+    vi.advanceTimersByTime(START_FALLBACK_ASK_MS * 5);
+    expect(onTick).toHaveBeenCalledTimes(ticked);
   });
 
   it('does nothing more once stopped', () => {

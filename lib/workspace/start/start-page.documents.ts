@@ -53,8 +53,3 @@ export const StartPageLimitsDocument = doc<{
   scheduleCounts { prBound }
 } } }`,
 );
-
-/** Lesson mode's restart sentence: whether each connection's tool list was last seen holding GitRanks Learn. */
-export const StartPageListedDocument = doc<{
-  contribute: { mcpTokens: { id: string; lastUsedAt: string | null; learnListed: boolean | null }[] | null } | null;
-}>('query StartPageListed { contribute { mcpTokens { id lastUsedAt learnListed } } }');

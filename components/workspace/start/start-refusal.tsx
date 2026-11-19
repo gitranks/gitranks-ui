@@ -14,12 +14,15 @@ export function StartRefusal({
   code,
   resuming = false,
   onResume,
+  resumeError = null,
 }: {
   copy: StartRefusalCopy;
   /** The API's refusal, marked on the block. */
   code: string;
   resuming?: boolean;
   onResume?: () => void;
+  /** Resume failed: why. */
+  resumeError?: string | null;
 }) {
   if (copy.kind === 'limit') {
     return (
@@ -50,6 +53,11 @@ export function StartRefusal({
         <Link href={copy.action.href} prefetch={false} className={link}>
           {copy.action.label} →
         </Link>
+      ) : null}
+      {copy.kind === 'paused-by-you' && resumeError ? (
+        <p role="alert" className="w-full text-sm text-destructive">
+          {resumeError}
+        </p>
       ) : null}
     </div>
   );

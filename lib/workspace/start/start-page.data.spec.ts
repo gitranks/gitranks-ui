@@ -11,7 +11,7 @@ const contribute = vi.hoisted(() => ({
 vi.mock('@/lib/workspace/contribute.data', () => contribute);
 vi.mock('@/lib/workspace/mcp-sign-in', () => ({ contributeMcpSignIn: vi.fn(async () => true) }));
 
-const { loadStartPageView, startPageAttemptOf, startPageOnboarded, startPageRestartHintOf, startPageViewOf } =
+const { loadStartPageContributor, loadStartPageView, startPageAttemptOf, startPageOnboarded, startPageViewOf } =
   await import('./start-page.data');
 const { fixAttemptOf, startViews } = await import('./__fixtures__/start-page');
 const { mcpToken } = await import('@/lib/contribute/__fixtures__/contribute-views');
@@ -146,17 +146,6 @@ describe("the Start page's reads", () => {
     graphqlDirect.mockRejectedValueOnce(new Error('down'));
     expect(await startPageOnboarded(READER)).toBe(true);
   });
-
-  it('says to restart for a connection used lately whose tool list lacks Learn, never on a failed read', async () => {
-    const now = new Date('2026-10-28T12:00:00.000Z');
-    graphqlDirect.mockResolvedValueOnce({
-      contribute: { mcpTokens: [{ id: 'T_1', lastUsedAt: '2026-10-20T00:00:00.000Z', learnListed: false }] },
-    });
-    expect(await startPageRestartHintOf(READER, now)).toBe(true);
-    expect(asked()).toEqual(['StartPageListed']);
-    graphqlDirect.mockRejectedValueOnce(new Error('down'));
-    expect(await startPageRestartHintOf(READER, now)).toBe(false);
-  });
 });
 
 describe("the Start page's load", () => {
@@ -168,23 +157,19 @@ describe("the Start page's load", () => {
   const ref = { repo: REPO, issue: 934 };
   const onboarded = { contribute: { contributor: { onboardedAt: '2026-10-01T00:00:00.000Z', onboardedVia: 'MCP' } } };
 
-  it('reads the view: the issue, the agent, and the restart sentence in lesson mode alone', async () => {
-    answer({
-      StartPageIssue: { startPageIssue: startViews.open.start },
-      ContributeOnboarding: onboarded,
-      StartPageListed: { contribute: { mcpTokens: [] } },
-    });
+  it('reads the view: the issue and the agent, the restart sentence from the same connections, in lesson mode alone', async () => {
+    answer({ StartPageIssue: { startPageIssue: startViews.open.start }, ContributeOnboarding: onboarded });
+    const stale = mcpToken({ lastUsedAt: new Date().toISOString(), learnListed: false });
+    contribute.loadOwnAgent.mockResolvedValue({ paths: { hosted: false, mcp: true }, tokens: [stale] });
     const fix = await loadStartPageView(ref, 'fix', null);
     expect(fix).toMatchObject({
       kind: 'view',
       view: { issue: startViews.open, agent: { onboarded: true, signIn: true }, goal: null, restartHint: false },
     });
-    expect(asked()).not.toContain('StartPageListed');
-
-    graphqlDirect.mockClear();
     const lesson = await loadStartPageView(ref, 'lesson', 'TypeScript, Some');
-    expect(lesson).toMatchObject({ kind: 'view', view: { goal: 'TypeScript, Some' } });
-    expect(asked()).toContain('StartPageListed');
+    expect(lesson).toMatchObject({ kind: 'view', view: { goal: 'TypeScript, Some', restartHint: true } });
+    // One read of the connections: the agent's own.
+    expect(asked()).toEqual(['StartPageIssue', 'ContributeOnboarding', 'StartPageIssue', 'ContributeOnboarding']);
   });
 
   it("moves on to the viewer's own attempt, but words a Fix attempt in lesson mode", async () => {
@@ -193,11 +178,7 @@ describe("the Start page's load", () => {
       kind: 'claimed',
       href: '/my/pull-requests/driftwood-js/driftwood/934',
     });
-    answer({
-      StartPageIssue: { startPageIssue: startViews.yoursFix.start },
-      ContributeOnboarding: onboarded,
-      StartPageListed: { contribute: { mcpTokens: [] } },
-    });
+    answer({ StartPageIssue: { startPageIssue: startViews.yoursFix.start }, ContributeOnboarding: onboarded });
     expect(await loadStartPageView(ref, 'lesson', null)).toMatchObject({ kind: 'view' });
 
     answer({ StartPageIssue: { startPageIssue: startViews.yoursLesson.start }, ContributeOnboarding: onboarded });
@@ -228,5 +209,23 @@ describe("the Start page's load", () => {
 
     answer({ StartPageIssue: new Error('down'), ContributeOnboarding: onboarded });
     await expect(loadStartPageView(ref, 'fix', null)).rejects.toBeInstanceOf(contribute.ContributeUnavailableError);
+  });
+});
+
+describe('whether the viewer has a contributor row', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    contribute.viewerLogin.mockResolvedValue('octocat');
+  });
+
+  it('answers it, and nothing when it is not known', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contribute: { contributor: null } });
+    expect(await loadStartPageContributor()).toBe(false);
+    graphqlDirect.mockResolvedValueOnce({ contribute: { contributor: { onboardedAt: null, onboardedVia: null } } });
+    expect(await loadStartPageContributor()).toBe(true);
+    graphqlDirect.mockRejectedValueOnce(new Error('down'));
+    expect(await loadStartPageContributor()).toBeNull();
+    contribute.viewerLogin.mockResolvedValueOnce(null);
+    expect(await loadStartPageContributor()).toBeNull();
   });
 });

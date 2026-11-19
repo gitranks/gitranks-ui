@@ -31,8 +31,10 @@ vi.mock('@/components/workspace/agent/agent-connect', () => ({
 }));
 
 const { StartPageBody } = await import('./start-page-body');
-const { emitContributeChanges, fastChangesHeld } = await import('@/lib/workspace/changes-bus');
-const { START_WAIT_FOR_MS } = await import('@/lib/workspace/start/start-watch');
+const { clearChangesWake, emitContributeChanges, fastChangesHeld, setChangesWake } = await import(
+  '@/lib/workspace/changes-bus'
+);
+const { START_FALLBACK_ASK_MS, START_WAIT_FOR_MS } = await import('@/lib/workspace/start/start-watch');
 const { fixAttemptOf, lessonAttempt, START_REF, startPageViewOf, startViews } = await import(
   '@/lib/workspace/start/__fixtures__/start-page'
 );
@@ -43,6 +45,8 @@ import type { StartMode, StartPageView } from '@/lib/workspace/start/start-page.
 
 let container: HTMLDivElement;
 let root: Root;
+/** The workspace's poll, as the tabs run it: present unless a test takes it away. */
+const pollReadNow = () => {};
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -53,9 +57,11 @@ beforeEach(() => {
   actions.readStartPageAttempt.mockResolvedValue({ ok: true, data: null });
   actions.readStartPageIssue.mockResolvedValue({ ok: true, data: startViews.open });
   workspace.resumeContributing.mockResolvedValue({ ok: true, data: true });
+  setChangesWake(pollReadNow);
 });
 
 afterEach(() => {
+  clearChangesWake(pollReadNow);
   act(() => root.unmount());
   container.remove();
   vi.useRealTimers();
@@ -246,6 +252,79 @@ describe('the Start page, waiting for the agent', () => {
     expect(workspace.resumeContributing).toHaveBeenCalledTimes(1);
     expect(actions.readStartPageIssue).toHaveBeenCalledTimes(1);
     expect(stage()).toBe('waiting');
+  });
+
+  it('asks every 10 seconds by itself in a tab where no poll runs, within the same 30 minutes', async () => {
+    clearChangesWake(pollReadNow);
+    actions.readStartPageAttempt.mockResolvedValueOnce({ ok: true, data: null });
+    actions.readStartPageAttempt.mockResolvedValue({ ok: true, data: fixAttemptOf('RUNNING') });
+    await mount('fix');
+    await wait(START_FALLBACK_ASK_MS - 1);
+    expect(actions.readStartPageAttempt).not.toHaveBeenCalled();
+    await wait(1);
+    expect(actions.readStartPageAttempt).toHaveBeenCalledTimes(1);
+    expect(replace).not.toHaveBeenCalled();
+    await wait(START_FALLBACK_ASK_MS);
+    expect(replace).toHaveBeenCalledWith('/my/pull-requests/driftwood-js/driftwood/934');
+  });
+
+  it('asks nothing by itself while the poll runs, and nothing after the 30 minutes without one', async () => {
+    await mount('fix');
+    await wait(START_FALLBACK_ASK_MS * 3);
+    expect(actions.readStartPageAttempt).not.toHaveBeenCalled();
+
+    act(() => root.unmount());
+    root = createRoot(container);
+    clearChangesWake(pollReadNow);
+    await mount('fix');
+    await wait(START_WAIT_FOR_MS);
+    expect(stage()).toBe('timeout');
+    const asked = actions.readStartPageAttempt.mock.calls.length;
+    await wait(START_FALLBACK_ASK_MS * 3);
+    expect(actions.readStartPageAttempt).toHaveBeenCalledTimes(asked);
+  });
+
+  it.each([
+    ['attempts at a time', startViews.limitAttempts],
+    ['open pull requests', startViews.limitPrs],
+    ['a lesson in progress', startViews.ownInProgress],
+  ] as const)(
+    'asks the issue again on each change of attempts under a limit on %s, and the steps come back',
+    async (_name, refused) => {
+      actions.readStartPageIssue.mockResolvedValueOnce({ ok: true, data: refused });
+      actions.readStartPageIssue.mockResolvedValueOnce({ ok: true, data: startViews.open });
+      await mount('lesson', startPageViewOf({ issue: refused }));
+      expect(stage()).toBe('refused');
+      await poll('FEED');
+      expect(actions.readStartPageIssue).not.toHaveBeenCalled();
+      await poll('ATTEMPTS');
+      expect(actions.readStartPageIssue).toHaveBeenCalledTimes(1);
+      expect(stage()).toBe('refused');
+      await poll('ATTEMPTS');
+      expect(actions.readStartPageIssue).toHaveBeenCalledTimes(2);
+      expect(stage()).toBe('waiting');
+    },
+  );
+
+  it('does not ask the issue again under a refusal no attempt of the viewer clears', async () => {
+    await mount('fix', startPageViewOf({ issue: startViews.taken }));
+    await poll('ATTEMPTS');
+    expect(actions.readStartPageIssue).not.toHaveBeenCalled();
+  });
+
+  it('says why Resume failed, and keeps the refusal', async () => {
+    workspace.resumeContributing.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
+    await mount('fix', startPageViewOf({ issue: startViews.pausedByYou }));
+    await press('Resume');
+    expect(container.querySelector('[role="alert"]')?.textContent).toBeTruthy();
+    expect(actions.readStartPageIssue).not.toHaveBeenCalled();
+    expect(stage()).toBe('refused');
+    workspace.resumeContributing.mockRejectedValueOnce(new Error('offline'));
+    await press('Resume');
+    expect(container.querySelector('[role="alert"]')?.textContent).toBeTruthy();
+    // A Resume that goes through clears it.
+    await press('Resume');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 
   it('lets the poll go once the page is gone', async () => {

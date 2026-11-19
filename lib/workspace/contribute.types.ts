@@ -300,6 +300,8 @@ export type ContributeMcpToken = {
   clientWhere?: ContributeOAuthClientWhere | null;
   createdAt: string;
   lastUsedAt: string | null;
+  /** Whether its tool list was last seen holding GitRanks Learn: false for one that keeps a list from before. */
+  learnListed?: boolean;
 };
 
 export type ContributeOwnAgent = {

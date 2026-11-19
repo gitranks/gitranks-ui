@@ -123,7 +123,7 @@ const REPLY_BATCH = 'batchId part parts draftIds state url postedAt lastError { 
 export type ReplyPlanRow = Partial<ContributeReplyPlanFields> & { draftId: string };
 
 // The user's own agent: read in operations of their own too, so an API without them leaves the rest.
-const MCP_TOKEN = 'id name last4 createdAt lastUsedAt';
+const MCP_TOKEN = 'id name last4 createdAt lastUsedAt learnListed';
 const OWN_AGENT_FIELDS =
   'attemptId runner agent { name model } changesRequested { note at } leaseUntil sendBacksLeft openedBy';
 type OwnAgentRow = Partial<ContributeOwnAgentFields> & { attemptId: string };

@@ -129,13 +129,6 @@ export const LEARN_START_SCREENS: Screen[] = [
         render: () => page({ view: startViews.limitPrs }),
       },
       {
-        id: 'refused-in-progress',
-        title: 'Another lesson of your own is in progress: a link to it',
-        path: START_PATH,
-        height: 760,
-        render: () => page({ view: startViews.ownInProgress }),
-      },
-      {
         id: 'refused-taken',
         title: "Someone else's agent took it, before the agent is connected: step 1 stays",
         path: START_PATH,

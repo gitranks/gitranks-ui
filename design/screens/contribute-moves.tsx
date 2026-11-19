@@ -10,7 +10,6 @@ import {
   followUp,
   followUpAttempts,
   noReplyDraft,
-  ownAgentAttempt,
   replyDraft,
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { NOW, views } from '@/lib/contribute/__fixtures__/contribute-views';
@@ -41,7 +40,6 @@ import {
   oneCommentPlan,
   oneRefused,
   orgRefusedOneComment,
-  orgRefusedRun,
   postedInOneComment,
   proof,
   repoOut,
@@ -49,7 +47,6 @@ import {
   runDone,
   runEnded,
   runInReview,
-  runReadyBlocked,
   runReadyFirstInOrg,
   runs,
   severalMoves,
@@ -67,8 +64,6 @@ import { orgAccessOf } from '@/lib/contribute/org-access';
  */
 
 type Page = (children: ReactNode) => ReactElement;
-
-const A_DAY_ON = '2026-10-29T12:00:00.000Z';
 
 /** A run's page: the run, read beside its first attempt, with its waiting replies. */
 const runPage = (
@@ -128,13 +123,6 @@ const RUN = '/contribute/attempts/A_1/runs/A_F1';
 
 /** The session head's states: each status line, move card and variant. */
 export const sessionHeadStates = (page: Page): ScreenState[] => [
-  {
-    id: 'replies-refused-org',
-    title: 'Run 1 pushed; the organization refused its 7 replies: one card, rows say "Not posted"',
-    path: RUN,
-    height: 2200,
-    render: () => runPage(page, runDone(orgRefusedRun())),
-  },
   {
     id: 'replies-refused-mixed',
     title: 'Replies refused for two shared reasons, one retryable, and one alone',
@@ -209,13 +197,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     render: () => runPage(page, runDone(postedInOneComment(), { probeFirst: true })),
   },
   {
-    id: 'run-ready-org-blocks',
-    title: 'A run ready in an organization that refused thread replies: the first reply is tried in its thread',
-    path: RUN,
-    height: 2400,
-    render: () => runPage(page, runReadyBlocked()),
-  },
-  {
     id: 'run-ready-first-in-org',
     title: 'A run ready in an organization where no reply of GitRanks has posted yet',
     path: RUN,
@@ -256,13 +237,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     path: RUN,
     height: 2100,
     render: () => runPage(page, runs.grant, { view: noGrant }),
-  },
-  {
-    id: 'own-review-send-back',
-    title: 'Your own agent’s change: write the pull request, or send it back with a note',
-    path: FIRST,
-    height: 2000,
-    render: () => firstPage(page, { ...ownAgentAttempt, leaseUntil: A_DAY_ON, sendBacksLeft: 2 }),
   },
   {
     id: 'own-review-bounced',
@@ -340,13 +314,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     path: NEXT,
     height: 1500,
     render: () => firstPage(page, runEnded('STOPPED', 'It reached your $5 limit per run.'), { next: true }),
-  },
-  {
-    id: 'push-failed',
-    title: 'Run 1’s commits were not pushed',
-    path: NEXT,
-    height: 1500,
-    render: () => firstPage(page, runEnded('PUSH_FAILED', 'The branch moved while it worked.'), { next: true }),
   },
   {
     id: 'rules-several',
@@ -468,13 +435,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     render: () => firstPage(page, proof.posting, { next: true, view: connected }),
   },
   {
-    id: 'proof-ask-cleared',
-    title: 'The bot no longer asks for proof',
-    path: NEXT,
-    height: 1300,
-    render: () => firstPage(page, proof.askCleared, { next: true, view: connected }),
-  },
-  {
     id: 'claim-refused',
     title: 'The repo’s rules refused the claim',
     path: FIRST,
@@ -487,13 +447,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     path: FIRST,
     height: 1300,
     render: () => firstPage(page, firstAttempt.cancelled),
-  },
-  {
-    id: 'submit-pending',
-    title: 'Submitting from the form: the card’s Discard waits',
-    path: FIRST,
-    height: 2600,
-    render: () => firstPage(page, decisionAttempts.went, { seed: { pending: 'submit', formOpen: true } }),
   },
   {
     id: 'submit-error',
@@ -558,20 +511,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     path: FIRST,
     height: 1400,
     render: () => firstPage(page, decisionAttempts.ranOut),
-  },
-  {
-    id: 'nothing-waits',
-    title: 'The next step with nothing waiting: start a run anyway',
-    path: NEXT,
-    height: 1200,
-    render: () => firstPage(page, afterRun(), { next: true }),
-  },
-  {
-    id: 'move-elsewhere',
-    title: 'The first attempt: its line points at the move on the next step',
-    path: FIRST,
-    height: 1500,
-    render: () => firstPage(page, nextForYou),
   },
 ];
 
@@ -775,9 +714,8 @@ export const reviewCommentStates = (page: Page): ScreenState[] => [
   },
 ];
 
-/** Two states drawn anew: a run in review with a question and a bot's thread, and the waiting comments. */
+/** A state drawn anew: the waiting comments. */
 export const changedCommentStates = {
-  followUpRun: (page: Page) => runPage(page, { ...runInReview(), attemptId: 'A_F1' }),
   nextRound: (page: Page) =>
     firstPage(
       page,

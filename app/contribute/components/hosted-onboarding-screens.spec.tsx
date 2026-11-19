@@ -15,6 +15,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/issue-actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 

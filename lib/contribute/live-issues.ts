@@ -4,7 +4,7 @@ import type {
   ContributeIssuePage,
   ContributeIssueStatus,
 } from '@/lib/workspace/contribute.types';
-import { type ContributeActionResult, contributeErrorMessage } from '@/lib/workspace/errors';
+import type { ContributeActionResult } from '@/lib/workspace/errors';
 
 /** A page of the feed, as the Issues list reads it. */
 export const ISSUES_PAGE_SIZE = 20;
@@ -77,6 +77,11 @@ export type LiveFeed = {
   markTaken: (issueId: string) => void;
   /** A row that is settled here (the user skipped it): never asked about again. */
   forget: (issueId: string) => void;
+  /**
+   * A row its own action found gone (a Start refused: taken, closed, no longer available): it says why itself, so it
+   * keeps its status and only leaves, as a taken row does. Once.
+   */
+  fold: (issueId: string) => void;
   /** Called with a row's id just before it leaves the list, so the focus can move off it. */
   onBeforeRemove: (handler: ((issueId: string) => void) | null) => void;
   /**
@@ -245,6 +250,12 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
     forget: (issueId) => {
       settled.add(issueId);
     },
+    fold: (issueId) => {
+      // The row says why itself: no status of its own, it only leaves, once.
+      if (settled.has(issueId)) return;
+      settled.add(issueId);
+      scheduleExit(issueId);
+    },
     onBeforeRemove: (handler) => {
       beforeRemove = handler;
     },
@@ -293,16 +304,4 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
       timers.clear();
     },
   };
-}
-
-/**
- * What a Skip's answer does to its card: skipped; taken meanwhile (no error to show, the card turns taken and leaves);
- * or failed, with the message its dialog shows.
- */
-export function skipOutcomeOf(
-  result: ContributeActionResult<boolean>,
-): { kind: 'skipped' } | { kind: 'taken' } | { kind: 'failed'; message: string } {
-  if (result.ok) return { kind: 'skipped' };
-  if (result.error === 'ISSUE_TAKEN') return { kind: 'taken' };
-  return { kind: 'failed', message: contributeErrorMessage(result.error, result.message) };
 }

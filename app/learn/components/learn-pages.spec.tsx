@@ -20,6 +20,7 @@ vi.mock('@/lib/learn/actions', () => ({
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/issue-actions', () => ({}));
 const { everyone, viewerLogin } = vi.hoisted(() => ({
   everyone: vi.fn(async () => false),
   viewerLogin: vi.fn(async (): Promise<string | undefined> => undefined),

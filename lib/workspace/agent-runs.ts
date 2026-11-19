@@ -4,6 +4,7 @@ import { detailText, EVENT_LABELS } from './attempt-format';
 import type { ContributeActivity, ContributeAgentRun, ContributeAgentRunPhase } from './contribute.types';
 import { relativeLabel, usd } from './format';
 import { pullRequestByAttemptPath } from './paths';
+import { isWorkingPhase, stepNameOf } from './run-steps';
 
 /**
  * The user's agent runs as the activity read lists them (`runs`): the Agent tab's count, Right now's lanes, the runs
@@ -75,35 +76,16 @@ const SETTLED_TEXT: Record<SettledPhase, string> = {
   STOPPED: 'Stopped',
 };
 
-/** A run's few words of state, settled ones as the user acts on them. */
-export const phaseTextOf = (run: Pick<ContributeAgentRun, 'phase' | 'label'>) =>
-  isSettled(run) ? SETTLED_TEXT[run.phase as SettledPhase] : run.label;
-
-/** The steps a run walks, and the one it is on (0-based; past the last once it is done). */
-export function stepsOf(run: Pick<ContributeAgentRun, 'phase' | 'kind'>): { steps: string[]; at: number } {
-  const followUp = run.kind === 'FOLLOW_UP';
-  const steps = followUp
-    ? ['Queued', 'Addressing review', 'Checks', 'Ready', 'Pushed']
-    : ['Queued', 'Checking the issue', 'Working', 'Checks', 'Ready'];
-  const order: Partial<Record<ContributeAgentRunPhase, number>> = followUp
-    ? { QUEUED: 0, ADDRESSING_REVIEW: 1, RUNNING_CHECKS: 2, WAITING_FOR_YOU: 3, READY: 3, SUBMITTING: 4, DONE: 5 }
-    : {
-        QUEUED: 0,
-        CHECKING_ISSUE: 1,
-        WORKING: 2,
-        RUNNING_CHECKS: 3,
-        WAITING_FOR_YOU: 4,
-        READY: 4,
-        // Submitting comes after the review: the last step stays lit until the PR opens.
-        SUBMITTING: 4,
-        DONE: 5,
-      };
-  // A Learn run writes its lesson after the work: the step shows while it does (a run does not say its side).
-  if (!followUp && run.phase === 'WRITING_LESSON') {
-    return { steps: [...steps.slice(0, 3), 'Writing your lesson', ...steps.slice(3)], at: 3 };
-  }
-  return { steps, at: order[run.phase] ?? 0 };
-}
+/**
+ * A run's few words of state: settled ones as the user acts on them; one an agent works on by its step's name (the
+ * name its bars and their hover card say); queued, waiting and submitting ones as the API says.
+ */
+export const phaseTextOf = (run: Pick<ContributeAgentRun, 'phase' | 'label' | 'kind' | 'mode'>) =>
+  isSettled(run)
+    ? SETTLED_TEXT[run.phase as SettledPhase]
+    : isWorkingPhase(run)
+      ? (stepNameOf(run) ?? run.label)
+      : run.label;
 
 /** `42 s`, `12 min`, `1 h 05 min`. */
 export function durationLabel(seconds: number): string {

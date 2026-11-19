@@ -1,14 +1,25 @@
 import type { Route } from 'next';
 
+import { contributeErrorMessage } from './errors';
+import { dayLabel, usd } from './format';
+import type { IssueStart, IssueStartRefusal } from './issue-start';
 import type { LimitCounts } from './limit-words';
-import { pullRequestByAttemptPath, WORKSPACE_PATHS } from './paths';
+import {
+  CONNECT_KEY_PATH,
+  KEY_REPLACE_PATH,
+  pullRequestByAttemptPath,
+  RUNS_PATH,
+  WORKSPACE_ANCHORS,
+  WORKSPACE_PATHS,
+} from './paths';
 import { isOpenPrsLimit } from './start/start-page';
 import type { StartPageIssueView, StartPageRefusal } from './start/start-page.types';
 import { CONTACT_EMAIL } from '@/lib/legal';
 
 /**
  * Why an issue can't be started now, in one sentence with one next step: the texts the Start page says for each
- * refusal. The issue rows' Start says the same where the codes overlap.
+ * refusal (`startRefusalOf`) and those an issue row's hosted Start says (`issueStartRefusalOf`), the same where the
+ * codes overlap.
  */
 
 /**
@@ -83,5 +94,107 @@ export function startRefusalOf(
     default:
       // `UNAVAILABLE`, and a refusal this page doesn't know yet.
       return notice("This issue can't be started here.");
+  }
+}
+
+/** What a row's hosted Start leads to when it can't start: a page, or the same Start again. */
+export type IssueStartAction = StartRefusalAction | { retry: true; label: 'Try again' };
+
+/**
+ * A row's refusal: one sentence (or the limit's notice) and one next step, and what the row does then: stays, folds
+ * away as a taken row does, or stays without a control until the list is read again.
+ */
+export type IssueStartRefusalCopy = {
+  code: IssueStartRefusal | 'FAILED';
+  text: string | null;
+  /** `LIMIT_REACHED`: the limit's own notice in place of a sentence. */
+  limit: LimitCounts | null;
+  action: IssueStartAction | null;
+  row: 'stays' | 'folds' | 'no-control';
+};
+
+/** What the row knows besides the answer: the run's cap, and which way the key waits. */
+export type IssueStartFacts = { capUsd?: number | null; keyWaiting?: 'EXHAUSTED' | 'LIMIT_REACHED' | null };
+
+const TRY_AGAIN = { retry: true, label: 'Try again' } as const;
+const until = (iso: string | null) => (dayLabel(iso) ? ` until ${dayLabel(iso)}` : '');
+
+/** The words for a failed or timed-out Start whose run could not be found either. */
+export const ISSUE_START_FAILED: IssueStartRefusalCopy = {
+  code: 'FAILED',
+  text: contributeErrorMessage('FAILED'),
+  limit: null,
+  action: TRY_AGAIN,
+  row: 'stays',
+};
+
+/** What a row says when its hosted Start is refused; null when the answer refused nothing. */
+export function issueStartRefusalOf(answer: IssueStart, facts: IssueStartFacts = {}): IssueStartRefusalCopy | null {
+  const { refusal } = answer;
+  if (!refusal) return null;
+  const say = (
+    text: string,
+    action: IssueStartAction | null = null,
+    row: IssueStartRefusalCopy['row'] = 'stays',
+  ): IssueStartRefusalCopy => ({ code: refusal, text, limit: null, action, row });
+  switch (refusal) {
+    case 'AGENT_BUSY':
+      return say(
+        busyText(answer.value),
+        answer.holder
+          ? { href: pullRequestByAttemptPath(answer.holder.id), label: 'See the run' }
+          : { href: RUNS_PATH, label: 'All runs' },
+      );
+    case 'CLAIM_PENDING':
+      return say('Your last Start is still being checked. Try again in a minute.', TRY_AGAIN);
+    case 'LIMIT_REACHED': {
+      const value = answer.value ?? 0;
+      return { code: refusal, text: null, limit: { count: value, limit: value }, action: null, row: 'stays' };
+    }
+    case 'BUDGET': {
+      const cap =
+        typeof facts.capUsd === 'number' && facts.capUsd > 0 ? ` A run can cost up to ${usd(facts.capUsd)}.` : '';
+      return say(`Your budget leaves no room for one more run${until(answer.until)}.${cap}`, {
+        href: WORKSPACE_ANCHORS.agentBudget,
+        label: 'Budget and pacing',
+      });
+    }
+    case 'DAILY_LIMIT':
+      return say("You've started as many issues as one day allows. You can start more after 00:00 UTC.");
+    case 'PLATFORM_FULL':
+      return say('GitRanks has started as many runs as it can today. You can start one after 00:00 UTC.');
+    case 'TRY_LATER':
+      return say("GitRanks can't start a run right now. Try again in a few minutes.", TRY_AGAIN);
+    case 'KEY_INVALID':
+      return say('Your Claude key stopped working. Nothing can start on it.', {
+        href: KEY_REPLACE_PATH,
+        label: 'Replace the key',
+      });
+    case 'KEY_WAITING':
+      return say(
+        facts.keyWaiting === 'LIMIT_REACHED'
+          ? `Your Claude workspace reached its spend limit${until(answer.until)}.`
+          : facts.keyWaiting === 'EXHAUSTED'
+            ? `Your Claude credits are used up${until(answer.until)}.`
+            : `Your Claude key can't be used${until(answer.until)}.`,
+        { href: WORKSPACE_PATHS.agent, label: 'Agent' },
+      );
+    case 'NO_KEY':
+      return say('The hosted agent needs a Claude key.', { href: CONNECT_KEY_PATH, label: 'Add a key' });
+    case 'TAKEN':
+      return say("Someone else's agent took this issue.", null, 'folds');
+    case 'CLOSED':
+      return say('This issue was closed meanwhile.', null, 'folds');
+    case 'REPO_UNAVAILABLE':
+      return say("This project can't take a pull request from us right now.", null, 'no-control');
+    case 'ACCOUNT_PAUSED':
+      return say("This account can't start issues right now.", {
+        href: `mailto:${CONTACT_EMAIL}`,
+        label: 'Write to us',
+        external: true,
+      });
+    default:
+      // `UNAVAILABLE`, and a refusal this row doesn't know yet.
+      return say("This issue can't be started any more.", null, 'folds');
   }
 }

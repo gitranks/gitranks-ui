@@ -87,7 +87,9 @@ describe('a run’s row', () => {
     const words = text(html);
     expect(words).toContain('acme/widgets#42');
     expect(words).toContain('Crash on empty input');
-    expect(words).toContain('Working on a fix');
+    // While an agent works, the status is the step's name, the one its bars say.
+    expect(words).toContain('Working Step 3 of 5: Working');
+    expect(words).not.toContain('Working on a fix');
     expect(words).toContain('Step 3 of 5: Working');
     expect(words).toContain('12 min · $0.42 of $2');
     expect(words).toContain('go: budget raised to $1.80, the work sent');

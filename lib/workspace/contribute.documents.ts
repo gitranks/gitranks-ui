@@ -1060,7 +1060,7 @@ export const ContributeActivityDocument = doc<{ contributeActivity: ContributeAc
   `query ContributeActivity { contributeActivity {
     items { kind tabs label done total startedAt expectedAt repos { repositoryId nameWithOwner stage } }
     runs {
-      attemptId nameWithOwner number title kind runner state phase label active queuedAt startedAt settledAt
+      attemptId nameWithOwner number title kind runner state phase mode label active queuedAt startedAt settledAt
       elapsedSeconds spendUsd budgetUsd latestEvent { state detail at } queuePosition lastCallAt autosubmitAt endReason
       prUrl
     }

@@ -10,7 +10,6 @@ import {
   runLinkOf,
   runsTabMarkOf,
   spendLabelOf,
-  stepsOf,
 } from './agent-runs';
 import { activityOf, FOLLOW_UP, QUEUED, READY, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 
@@ -52,19 +51,6 @@ describe('the agent runs', () => {
     expect(phaseTextOf(READY)).toBe('Ready for you');
     expect(phaseTextOf(runOf({ phase: 'STOPPED', label: 'Stopped' }))).toBe('Stopped');
     expect(phaseTextOf(QUEUED)).toBe('Queued, 1st in line');
-  });
-
-  it('places each phase on its kind’s steps', () => {
-    expect(stepsOf(WORKING)).toEqual({ steps: ['Queued', 'Checking the issue', 'Working', 'Checks', 'Ready'], at: 2 });
-    expect(stepsOf(runOf({ phase: 'RUNNING_CHECKS' })).at).toBe(3);
-    expect(stepsOf(READY).at).toBe(4);
-    expect(stepsOf(FOLLOW_UP)).toEqual({ steps: ['Queued', 'Addressing review', 'Checks', 'Ready', 'Pushed'], at: 1 });
-    expect(stepsOf(runOf({ kind: 'FOLLOW_UP', phase: 'SUBMITTING' })).at).toBe(4);
-    expect(stepsOf(runOf({ phase: 'SUBMITTING' })).at).toBe(4);
-    expect(stepsOf(runOf({ phase: 'WRITING_LESSON' }))).toEqual({
-      steps: ['Queued', 'Checking the issue', 'Working', 'Writing your lesson', 'Checks', 'Ready'],
-      at: 3,
-    });
   });
 
   it('says how long in a few words', () => {

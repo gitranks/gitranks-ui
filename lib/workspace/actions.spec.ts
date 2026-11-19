@@ -7,7 +7,11 @@ vi.mock('next/cache', async (load) => ({ ...(await load<typeof import('next/cach
 vi.mock('@/auth', () => ({ auth }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
-const actions = { ...(await import('./actions')), ...(await import('@/lib/contribute/actions')) };
+const actions = {
+  ...(await import('./actions')),
+  ...(await import('./issue-actions')),
+  ...(await import('@/lib/contribute/actions')),
+};
 const {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
@@ -59,6 +63,7 @@ const CALLS: Record<string, unknown[]> = {
   setContributeEmail: [false],
   resumeContributing: [],
   skipIssue: ['I_1'],
+  startIssue: ['I_1'],
   readIssueStatuses: [['I_1', 'I_2']],
   readIssuesPage: [{ after: 'c2', first: 2, filter: { languages: ['RUST'] }, githubLogin: 'mallory' }],
   approveAttempt: [{ id: 'A_1', title: 'Fix it', body: 'Fixes #1', dco: true, githubLogin: 'mallory' }],

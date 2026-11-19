@@ -6,6 +6,7 @@ import { type ReactNode, useSyncExternalStore } from 'react';
 
 import { Pill } from '@/components/pill/pill';
 import { LiveDot } from '@/components/workspace/primitives';
+import { RunSteps } from '@/components/workspace/run-steps';
 
 export { LiveDot };
 
@@ -25,7 +26,6 @@ import {
   runsTabMarkOf,
   runTitleOf,
   spendLabelOf,
-  stepsOf,
 } from '@/lib/workspace/agent-runs';
 import { contributeActivitySnapshot, onContributeActivity } from '@/lib/workspace/changes-bus';
 import type { ContributeActivity, ContributeAgentRun } from '@/lib/workspace/contribute.types';
@@ -37,33 +37,6 @@ import type { ContributeActivity, ContributeAgentRun } from '@/lib/workspace/con
 export function useLiveActivity(page: ContributeActivity | null | undefined): ContributeActivity | null {
   const polled = useSyncExternalStore(onContributeActivity, contributeActivitySnapshot, () => null);
   return newerActivity(page, polled);
-}
-
-/** The steps a run walks, the one it is on lit: a hint, not a promise of time. */
-export function RunSteps({ run }: { run: Pick<ContributeAgentRun, 'phase' | 'kind' | 'active'> }) {
-  const { steps, at } = stepsOf(run);
-  const current = Math.min(at, steps.length - 1);
-  return (
-    <span className="flex items-center gap-1" data-run-steps={`${Math.min(at + 1, steps.length)}/${steps.length}`}>
-      <span className="sr-only">
-        {at >= steps.length ? 'All steps done' : `Step ${at + 1} of ${steps.length}: ${steps[current]}`}
-      </span>
-      {steps.map((step, index) => (
-        <span
-          key={step}
-          aria-hidden="true"
-          className={cn(
-            'h-1 w-4 rounded-full',
-            index < at
-              ? 'bg-primary'
-              : index === at
-                ? cn('bg-primary/50', run.active && 'motion-safe:animate-pulse')
-                : 'bg-muted',
-          )}
-        />
-      ))}
-    </span>
-  );
 }
 
 const SETTLED_TONE = { READY: 'violet', DONE: 'green', STOPPED: 'neutral' } as const;

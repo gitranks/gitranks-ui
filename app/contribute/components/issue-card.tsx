@@ -2,17 +2,23 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 
-import { GONE, type IssueLive, IssueLiveStatus, isGone, useFocusOnGone } from './issue-live-status';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/workspace/confirm-dialog';
+import {
+  GONE,
+  type IssueLive,
+  IssueLiveStatus,
+  isGone,
+  useFocusOnGone,
+} from '@/components/workspace/issue-live-status';
 import { IssueRepoRules } from '@/components/workspace/pull-request/issue-repo-rules';
-import { skipIssue } from '@/lib/contribute/actions';
-import { skipOutcomeOf } from '@/lib/contribute/live-issues';
 import { cn } from '@/lib/utils';
 import { githubUrlOf } from '@/lib/workspace/attempt-format';
 import type { ContributeIssue } from '@/lib/workspace/contribute.types';
 import { GOOD_FIRST_LABEL, LANGUAGES, SIZES } from '@/lib/workspace/format';
+import { skipIssue } from '@/lib/workspace/issue-actions';
+import { skipOutcomeOf } from '@/lib/workspace/issue-row';
 
 /** The one GitHub label shown: a beginner-friendly one where there is one, else the first. */
 const labelOf = (labels: string[]) => labels.find((label) => GOOD_FIRST_LABEL.test(label)) ?? labels[0];

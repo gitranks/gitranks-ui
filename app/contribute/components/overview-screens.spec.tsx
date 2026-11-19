@@ -8,6 +8,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/issue-actions', () => ({}));
 
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
 const { RightNowSection, ImpactSection, WaysSection, UpNextSection } = await import('./overview-sections');
@@ -475,7 +476,7 @@ describe('Up next', () => {
     expect(taken).toContain('data-gone="true"');
     expect(taken).not.toContain(`href="${pick.url}"`);
     expect(taken).toMatch(/<a target="_blank" rel="noopener noreferrer" class="[^"]*opacity-60">/);
-    expect(text(yours)).toContain('Your agent is on this · View');
+    expect(text(yours)).toContain('Your agent is on this · See the run');
     expect(yours).toContain('href="/my/pull-requests/by-attempt/A_7"');
     expect(yours).not.toContain(`href="${pick.url}"`);
     // A free pick, and the profile block's card (not live), have no status line.

@@ -1,16 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { issue } from './__fixtures__/contribute-overview';
-import {
-  createLiveFeed,
-  FILL_READS_MAX,
-  LIVE_EXIT_AFTER_MS,
-  LIVE_LEAVE_MS,
-  type LiveFeedOptions,
-  skipOutcomeOf,
-} from './live-issues';
+import { createLiveFeed, FILL_READS_MAX, LIVE_EXIT_AFTER_MS, LIVE_LEAVE_MS, type LiveFeedOptions } from './live-issues';
 import type { ContributeIssue, ContributeIssuePage, ContributeIssueStatus } from '@/lib/workspace/contribute.types';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
+import { skipOutcomeOf } from '@/lib/workspace/issue-row';
 
 type StatusRead = ContributeActionResult<ContributeIssueStatus[] | null>;
 
@@ -86,6 +80,20 @@ describe('a live list of issues', () => {
 
     await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS + LIVE_LEAVE_MS);
     expect(ids(feed)).not.toContain('I_3');
+  });
+
+  it('lets a row its Start found gone leave once, its status kept and asked about no more', async () => {
+    const readStatus = vi.fn(async (_ids: string[]): Promise<StatusRead> => ({ ok: true, data: [] }));
+    const feed = feedOf({ readStatus, limit: 4 });
+    feed.fold('I_2');
+    feed.fold('I_2');
+    expect(rowOf(feed, 'I_2')?.status).toBe('AVAILABLE');
+    expect(readStatus).not.toHaveBeenCalled();
+    await feed.poll();
+    expect(readStatus.mock.calls[0][0]).not.toContain('I_2');
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS + LIVE_LEAVE_MS);
+    expect(ids(feed)).not.toContain('I_2');
+    expect(feed.getSnapshot().total).toBe(41);
   });
 
   it("turns a Skip refused as taken into a taken row, and then the user's own claim if a read says so", async () => {

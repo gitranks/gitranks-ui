@@ -10,6 +10,7 @@ import { PROFILE_SCREENS } from './profile';
 import { RANKINGS_SCREENS } from './rankings';
 import { REPO_SCREENS } from './repo';
 import { START_SCREENS } from './start';
+import { WORKSPACE_PART_SCREENS } from './workspace-parts';
 
 /** Every screen in the catalogue, by area, in the order of `AREAS`. */
 export const SCREENS: Screen[] = [
@@ -23,5 +24,6 @@ export const SCREENS: Screen[] = [
   ...CONTRIBUTE_SCREENS,
   ...LEARN_SCREENS,
   ...START_SCREENS,
+  ...WORKSPACE_PART_SCREENS,
   ...ADMIN_SCREENS,
 ];

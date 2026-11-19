@@ -26,9 +26,9 @@ import { lessonJsonLd } from '@/lib/learn/lesson-seo';
 export const LESSON_MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
 
 /**
- * Who looks at a shared lesson: a visitor (reads it, signs in to answer), a signed-in reader Learn is not open to yet
- * (reads it), a taker whose new GitRanks account is still being set up (reads it, refreshes), or a taker (answers it,
- * in their own run).
+ * Who looks at a shared lesson: a visitor once Learn is open to everyone (reads it, signs in to answer), a guest (a
+ * visitor before then: reads it, asked nothing), a signed-in reader Learn is not open to (reads it), a taker whose new
+ * GitRanks account is still being set up (reads it, refreshes), or a taker (answers it, in their own run).
  */
 export type LessonViewer =
   | { kind: 'visitor' }
@@ -57,7 +57,8 @@ const INTRO_TEXT: Record<Exclude<LessonViewer['kind'], 'taker'>, string> = {
 /**
  * A shared lesson (`/learn/lessons/<slug>`): its title, who created it with which agent, the issue and the pull
  * request, the language and how many passed it (from 2), then the lesson. Anyone reads every step; answering needs the
- * GitHub sign-in, and Learn open to the viewer. To a learner who did not write it, it is a practice lesson: the way back
+ * GitHub sign-in, and Learn open to the viewer, and a visitor is offered the sign-in only once Learn is open to
+ * everyone. To a learner who did not write it, it is a practice lesson: the way back
  * to Learn home, its context (the issue, who it was made for, when, what it teaches), an intro that leads past it to
  * their own issue, and, once passed, their own lesson next.
  */

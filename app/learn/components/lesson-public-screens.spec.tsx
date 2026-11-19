@@ -15,7 +15,8 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/app/learn/actions', () => ({ signInToReact: vi.fn(), readPracticeNext: vi.fn() }));
 // Whether Learn is open to everyone, as the API answers it: closed here.
-vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => false }));
+const everyone = vi.hoisted(() => ({ open: false }));
+vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({ viewerLogin: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({
@@ -143,10 +144,18 @@ describe('a shared lesson', () => {
   it('reads the lesson as anyone would, and the run only for a viewer Learn is open to', async () => {
     vi.mocked(data.loadLessonPage).mockResolvedValue({ kind: 'found', value: lessonPage });
     vi.mocked(viewerLogin).mockResolvedValue(null);
-    // Learn is not open to everyone here: a visitor is a guest, asked nothing.
+    // Learn is not open to everyone here: a visitor is a guest, asked nothing; once it is, a visitor asked to sign in.
     expect(renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' }))).toContain(
       'data-viewer="guest"',
     );
+    everyone.open = true;
+    try {
+      const open = renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' }));
+      expect(open).toContain('data-viewer="visitor"');
+      expect(text(open)).toContain('Reading is free. Answering needs a GitHub account');
+    } finally {
+      everyone.open = false;
+    }
 
     vi.mocked(viewerLogin).mockResolvedValue('mona');
     vi.mocked(loadLearnOpen).mockResolvedValue(false);
@@ -307,6 +316,18 @@ describe('a practice lesson', () => {
 });
 
 describe('a result page', () => {
+  it('offers the sign-in to take the lesson only once Learn is open to everyone', async () => {
+    // One pass: the card's sentence, not the count.
+    const one = result({ head: { ...result().head, passes: 1 } });
+    const closed = text(
+      renderToStaticMarkup(<LessonResultScreen result={one} viewer={MAINTAINER} answerable={false} />),
+    );
+    expect(closed).toContain('Read the lesson Anyone can read every step.');
+    expect(closed).not.toMatch(/Take it yourself|Sign in with GitHub to answer/);
+    const open = text(renderToStaticMarkup(<LessonResultScreen result={one} viewer={MAINTAINER} />));
+    expect(open).toContain('Take it yourself Anyone can read every step. Sign in with GitHub to answer.');
+  });
+
   it('shows the result per step and the questions that run was asked with their key, never a pick', () => {
     const html = renderToStaticMarkup(<LessonResultScreen result={result()} viewer={MAINTAINER} />);
     const words = text(html);

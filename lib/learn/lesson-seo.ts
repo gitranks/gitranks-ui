@@ -25,19 +25,23 @@ function fixOf(head: Pick<LessonHead, 'subject'>): string {
   return repo ? `a fix in ${repo}` : 'a fix';
 }
 
-/** A shared lesson's description: the page's, its link preview's and its structured data's. */
-function lessonDescriptionOf({ head, steps }: LessonPage): string {
+/**
+ * A shared lesson's description: the page's, its link preview's and its structured data's. It invites the reader to
+ * sign in and take it only once Learn is open to everyone (`frontDoorOpen`).
+ */
+function lessonDescriptionOf({ head, steps }: LessonPage, frontDoorOpen: boolean): string {
+  const take = frontDoorOpen ? ' Read it, then sign in with GitHub to take it.' : '';
   return clipText(
-    `A short lesson on ${fixOf(head)}, written by ${head.author.agentName}: ${steps.length} steps with a question each. Read it, then sign in with GitHub to take it. Made with GitRanks Learn.`,
+    `A short lesson on ${fixOf(head)}, written by ${head.author.agentName}: ${steps.length} steps with a question each.${take} Made with GitRanks Learn.`,
     158,
   );
 }
 
 /** A shared lesson's title, description and link preview; a stub's title, not indexed. */
-export function lessonPageMetadata(answer: LessonPageAnswer): Metadata {
+export function lessonPageMetadata(answer: LessonPageAnswer, { frontDoorOpen }: { frontDoorOpen: boolean }): Metadata {
   if (answer?.kind !== 'found') return stubMetadata(answer?.visibility ?? null);
   const { head } = answer.value;
-  const description = lessonDescriptionOf(answer.value);
+  const description = lessonDescriptionOf(answer.value, frontDoorOpen);
   const path = lessonPath(head.slug);
   return head.publishedAt
     ? pageMetadata({ title: head.title, description, path, openGraphType: 'article', publishedTime: head.publishedAt })
@@ -127,7 +131,7 @@ export function lessonJsonLd(page: LessonPage, { frontDoorOpen }: { frontDoorOpe
       '@id': `${url}#lesson`,
       url,
       name: head.title,
-      description: lessonDescriptionOf(page),
+      description: lessonDescriptionOf(page, frontDoorOpen),
       inLanguage: 'en',
       learningResourceType: 'Lesson',
       isAccessibleForFree: true,

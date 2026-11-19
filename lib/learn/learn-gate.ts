@@ -22,8 +22,22 @@ export async function learnOpenFor(githubLogin: string | null | undefined): Prom
  */
 export type LearnAccess = 'open' | 'closed' | 'signed-out';
 
-export async function requestLearnAccess(req: { headers: Headers }): Promise<LearnAccess> {
+/** The longest the proxy waits for `learnOpen`; no answer by then lets the request on to the page, which asks again. */
+export const LEARN_ACCESS_TIMEOUT_MS = 2000;
+
+export async function requestLearnAccess(
+  req: { headers: Headers },
+  timeoutMs = LEARN_ACCESS_TIMEOUT_MS,
+): Promise<LearnAccess> {
   const token = await sessionTokenOf(req);
   if (!token?.githubLogin || token.error) return 'signed-out';
-  return (await learnOpenFor(token.githubLogin)) ? 'open' : 'closed';
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => resolve(true), timeoutMs);
+  });
+  try {
+    return (await Promise.race([learnOpenFor(token.githubLogin), late])) ? 'open' : 'closed';
+  } finally {
+    clearTimeout(timer);
+  }
 }

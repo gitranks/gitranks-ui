@@ -720,6 +720,22 @@ describe('proxy', () => {
       }
     });
 
+    it("asks nothing for a page's own actions (a POST): the API checks those itself", async () => {
+      learnAccess.mockClear();
+      learnAccess.mockResolvedValue('closed');
+      try {
+        const post = new NextRequest('https://gitranks.com/learn/attempts/A_1', {
+          method: 'POST',
+          headers: { cookie: 'authjs.session-token=t' },
+        });
+        const response = await proxy(post, event);
+        expect(response?.headers.get('x-middleware-rewrite')).not.toBe('https://gitranks.com/_404');
+        expect(learnAccess).not.toHaveBeenCalled();
+      } finally {
+        learnAccess.mockResolvedValue('open');
+      }
+    });
+
     it("treats a session the server cannot read as a visitor's: only a lesson's own page lets it through", async () => {
       learnAccess.mockResolvedValue('signed-out');
       try {

@@ -445,8 +445,8 @@ describe('a closed lesson', () => {
     expect(html).not.toContain('driftwood');
   });
 
-  it('names nothing of Learn when told not to: the 404 while Learn is not open to everyone', () => {
-    const html = renderToStaticMarkup(<LessonStubScreen visibility="MISSING" named={false} />);
+  it('names nothing at an address that opens nothing, not even GitRanks Learn', () => {
+    const html = renderToStaticMarkup(<LessonStubScreen visibility="MISSING" />);
     expect(text(html)).toContain('This page is not available');
     expect(text(html)).not.toMatch(/learn|lesson/i);
     expect(html).not.toContain('/learn/maintainers');

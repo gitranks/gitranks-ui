@@ -104,4 +104,10 @@ describe("Learn's paths", () => {
     graphqlDirect.mockResolvedValueOnce({ learnOpen: false });
     expect(await requestLearnAccess(req)).toBe('closed');
   });
+
+  it('lets the request on (open) when the API does not answer in time: the page asks again', async () => {
+    sessionTokenOf.mockResolvedValue({ githubLogin: 'octocat' });
+    graphqlDirect.mockReturnValueOnce(new Promise(() => undefined));
+    expect(await requestLearnAccess({ headers: new Headers() }, 10)).toBe('open');
+  });
 });

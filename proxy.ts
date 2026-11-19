@@ -242,11 +242,17 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // A request with a session is asked here too, before anything renders: an account Learn is not open to gets the
   // real 404, not Learn's shell (its header, tabs and titles) streamed ahead of the page's own not-found. A session the
   // server cannot read (expired) is a visitor's.
+  // Only a page view is asked (GET, HEAD): a page's own actions are checked by the API itself. An ask that takes too
+  // long lets the request on, to the page's own check.
   if (isLearnPath(pathname) && !isLearnOpenPath(pathname)) {
-    const access = hasSession(request) ? await requestLearnAccess(request) : 'signed-out';
-    const visitorLetThrough =
+    const access = !hasSession(request)
+      ? 'signed-out'
+      : request.method === 'GET' || request.method === 'HEAD'
+        ? await requestLearnAccess(request)
+        : 'open';
+    const visitorLetThrough = async () =>
       isAttemptPagePath(pathname) || (isLearnHomePath(pathname) && (await learnOpenToEveryone()));
-    if (access === 'closed' || (access === 'signed-out' && !visitorLetThrough)) {
+    if (access === 'closed' || (access === 'signed-out' && !(await visitorLetThrough()))) {
       const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
       response.headers.set('Cache-Control', 'private, no-store');
       return response;

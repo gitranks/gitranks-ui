@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 /** The same title and robots as a lesson page's own 404. */
-export const metadata: Metadata = { title: 'Lesson not found', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: 'Page not found', robots: { index: false, follow: false } };
 
 /**
  * `/learn/lessons/_missing`, where the proxy sends a lesson or result that is not there (`lib/learn/lesson-gate.ts`): a

@@ -21,8 +21,9 @@ vi.mock('./lib/learn/lesson-gate', () => ({
 }));
 const everyone = vi.hoisted(() => ({ open: true }));
 vi.mock('./lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
-// With Learn open to everyone, every signed-in viewer is one it is open to.
-vi.mock('./lib/learn/learn-gate', () => ({ requestLearnAccess: async () => 'open' }));
+// With Learn open to everyone, every signed-in viewer is one it is open to; a session the server cannot read is none.
+const access = vi.hoisted(() => ({ value: 'open' as 'open' | 'signed-out' }));
+vi.mock('./lib/learn/learn-gate', () => ({ requestLearnAccess: async () => access.value }));
 
 const { default: proxy } = await import('./proxy');
 
@@ -68,6 +69,22 @@ describe('Learn open to visitors', () => {
       }
     } finally {
       everyone.open = true;
+    }
+  });
+
+  it('lets a session the server cannot read through to the front door, as a visitor', async () => {
+    access.value = 'signed-out';
+    try {
+      const request = new NextRequest('https://gitranks.com/learn', { headers: { cookie: 'authjs.session-token=t' } });
+      expect((await proxy(request, {} as NextFetchEvent))?.headers.get('x-middleware-rewrite')).toBeNull();
+      const profile = new NextRequest('https://gitranks.com/learn/profile', {
+        headers: { cookie: 'authjs.session-token=t' },
+      });
+      expect((await proxy(profile, {} as NextFetchEvent))?.headers.get('x-middleware-rewrite')).toBe(
+        'https://gitranks.com/_404',
+      );
+    } finally {
+      access.value = 'open';
     }
   });
 });

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { AttemptStageWatch } from './attempt-stage-watch';
 import { LearnSettingUp } from './learn-setting-up';
+import { LearnTabs } from './learn-tabs';
 import { LessonFlow, type LessonFlowStart, StepArticle } from './lesson-flow';
 import { LessonShare } from './lesson-share';
 import { LESSON_GRID } from './lesson-steps';
@@ -20,6 +21,7 @@ import {
   YourNotePanel,
 } from '@/app/contribute/components/attempt-panels';
 import { AttemptSignIn } from '@/app/contribute/components/attempt-sign-in';
+import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { DiffViewer } from '@/app/contribute/components/diff-viewer';
 import { CardError, DiscardAttemptButton } from '@/app/contribute/components/head-actions';
 import { PrForm } from '@/app/contribute/components/pr-form';
@@ -385,6 +387,20 @@ export function LearnAttemptScreen({
       <StageStrip stage={lesson.stage} />
       {content}
     </div>
+  );
+}
+
+/**
+ * Above an attempt's page: Learn's tabs for a signed-in viewer, the header's line for a visitor (the sign-in, which
+ * names nothing of Learn while it is not open to everyone). Decided on the server, so the tabs never pop in.
+ */
+export async function LearnAttemptFrame({ children }: { children: ReactNode }) {
+  const signedIn = Boolean(await viewerLogin());
+  return (
+    <>
+      {signedIn ? <LearnTabs inPage /> : <HeaderLine />}
+      {children}
+    </>
   );
 }
 

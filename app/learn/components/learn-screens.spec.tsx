@@ -30,7 +30,8 @@ vi.mock('@/lib/learn/learn.data', () => ({
 }));
 
 const { QuestionCard } = await import('./question-card');
-const { LearnAttemptScreen, LearnAttemptView } = await import('./learn-attempt');
+const { LearnAttemptFrame, LearnAttemptScreen, LearnAttemptView } = await import('./learn-attempt');
+const { generateMetadata: attemptMetadata } = await import('@/app/learn/attempts/[id]/page');
 const learnData = await import('@/lib/learn/learn.data');
 const { phaseOf } = await import('./lesson-flow');
 const { Diagram } = await import('./diagram');
@@ -385,6 +386,18 @@ describe("a Learn attempt's page while the account is being set up", () => {
     expect(html).toContain('data-attempt-sign-in="lesson"');
     expect(text(html)).toContain('Sign in to see this lesson');
     expect(learnData.loadLearnOpen).not.toHaveBeenCalled();
+  });
+
+  it("draws Learn's tabs above the page for a signed-in viewer only, and titles a visitor's tab Sign in", async () => {
+    const data = await import('@/lib/contribute/contribute.data');
+    vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
+    const visitor = renderToStaticMarkup(await LearnAttemptFrame({ children: <p>page</p> }));
+    expect(text(visitor)).toBe('page');
+    vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
+    expect((await attemptMetadata()).title).toBe('Sign in');
+    const owner = renderToStaticMarkup(await LearnAttemptFrame({ children: <p>page</p> }));
+    expect(text(owner)).toContain('My lessons');
+    expect((await attemptMetadata()).title).toBe('A lesson');
   });
 
   it('names nothing of Learn to that visitor while Learn is not open to everyone', async () => {

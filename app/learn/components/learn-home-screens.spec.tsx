@@ -10,8 +10,7 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-const auth = vi.hoisted(() => ({ status: 'authenticated' }));
-vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null, status: auth.status }) }));
+vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/app/learn/actions', () => ({
   saveLearnProfile: vi.fn(),
   readMyLearnAttempts: vi.fn(),
@@ -374,17 +373,13 @@ describe("Learn's tabs", () => {
     for (const path of ['/learn', '/learn/about', '/learn/start/a/b/1']) {
       expect(tabs(path), path).toMatch(/aria-current="page"[^>]*href="\/learn">Learn home/);
     }
-    expect(tabs('/learn/attempts/A_1')).toMatch(/aria-current="page"[^>]*href="\/learn\/lessons"/);
     nav.pathname = '/learn';
   });
 
-  it("are not drawn on an attempt's page for a visitor, who is asked to sign in there", () => {
-    auth.status = 'unauthenticated';
-    try {
-      expect(text(tabs('/learn/attempts/A_1'))).not.toMatch(/learn|lesson/i);
-    } finally {
-      auth.status = 'authenticated';
-      nav.pathname = '/learn';
-    }
+  it("leave an attempt's page to draw its own (the page knows who is there): nothing from the layout", () => {
+    expect(tabs('/learn/attempts/A_1')).toBe('');
+    nav.pathname = '/learn/attempts/A_1';
+    expect(renderToStaticMarkup(<LearnTabs inPage />)).toMatch(/aria-current="page"[^>]*href="\/learn\/lessons"/);
+    nav.pathname = '/learn';
   });
 });

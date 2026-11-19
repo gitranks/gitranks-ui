@@ -93,6 +93,22 @@ describe('the Pull requests tab', () => {
     expect(html).toContain('href="/my/pull-requests/by-attempt/A_DRIFT"');
   });
 
+  it('opens the page from each row title, by attempt, and says a pull request opened by hand', () => {
+    const html = screen({
+      page: {
+        ...pullRequestsPage(),
+        items: pullRequestsPage().items.map((row) =>
+          row.attemptId === 'A_NIMBUS' ? { ...row, openedBy: 'HAND' as const } : row,
+        ),
+      },
+    });
+    expect(html).toMatch(
+      /<a [^>]*href="\/my\/pull-requests\/by-attempt\/A_KELP"[^>]*>Add a --json flag to kelp status<\/a>/,
+    );
+    expect(html).toMatch(/<a [^>]*href="\/my\/pull-requests\/by-attempt\/A_871"[^>]*>Nested layouts re-render/);
+    expect(text(html)).toContain('Your own agent opened by hand');
+  });
+
   it('pages 20 at a time, the page in the address and the filters kept', () => {
     const html = screen({ filter: { state: 'merged', page: 2 }, page: { ...pullRequestsPage(), total: 46 } });
     expect(text(html)).toContain('21–40 of 46 pull requests');
@@ -130,6 +146,8 @@ describe("the tab's states", () => {
       page: learnerPage(),
     });
     expect(html).not.toContain('aria-label="Made with"');
+    // Every row is a Learn one: no pill says so.
+    expect(html).not.toMatch(/data-section="needs-you"[\s\S]*?>Learn</);
     expect(text(html)).toContain('Pull request State Dates Lesson');
     expect(text(html)).toContain('Passed 5 of 5 Lesson');
   });
@@ -162,6 +180,16 @@ describe("the tab's states", () => {
     expect(text(html)).toContain("Some of what waits for you didn't load. Reload to see the rest.");
     const none = screen({ needsYou: needsYouAnswer({ items: [], count: 0, complete: false }) });
     expect(none).toContain('data-needs-incomplete');
+  });
+
+  it('Needs you did not load: says so in its place, never "nothing yet", the table as usual', () => {
+    const html = screen({ needsYou: undefined });
+    expect(html).toContain('data-section="needs-you"');
+    expect(text(html)).toContain("Needs you Some of what waits for you didn't load. Reload to see the rest.");
+    expect(html).toContain('<table');
+    const empty = screen({ needsYou: undefined, page: emptyPage() });
+    expect(empty).not.toContain('data-section="empty"');
+    expect(empty).toContain('data-needs-incomplete');
   });
 
   it('Needs you not answered by the API: no block, the table as usual', () => {

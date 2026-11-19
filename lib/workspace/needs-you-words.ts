@@ -198,6 +198,10 @@ function attemptProgressOf(entry: NeedsYouEntry, progress: ContributeNeedsYouPro
     return `${SUBMIT_STEP_TEXT[progress.submitStep]}${wait}`;
   }
   if (entry.runner === 'MCP') {
+    // The user's own agent holds the issue on a lease while it works; before that it is checking it on GitHub.
+    if (entry.kind === 'attempt-working' && !progress.leaseUntil) {
+      return 'Your own agent claimed it: checking the issue on GitHub.';
+    }
     const agent = progress.agentName ?? 'Your own agent';
     const left = timeLeftLabel(progress.leaseUntil, now);
     const held = left ? ` · held for it for another ${left}` : '';
@@ -230,14 +234,18 @@ export function buttonOf(entry: NeedsYouEntry, label: string): NeedsYouButton | 
   if (action.kind === 'AGENT') {
     return { label, href: action.target === 'CONNECT' ? CONNECT_AGENT_PATH : KEY_REPLACE_PATH, aria };
   }
+  const move: Record<string, string> = action.move ? { move: action.move } : {};
+  // A run's own page: the address by attempt finds its first attempt (replies on a pull request the list does not hold
+  // come with the run alone).
+  if (action.view === 'RUN') {
+    const run = entry.sessionAttemptId ?? entry.attemptId;
+    return run ? { label, href: pullRequestByAttemptPath(run, { query: move }), aria } : null;
+  }
   const first = entry.attemptId;
   if (!first) return null;
-  const move: Record<string, string> = action.move ? { move: action.move } : {};
   switch (action.view) {
     case 'LESSON':
       return { label, href: pullRequestByAttemptPath(first, { view: 'lesson' }), aria };
-    case 'RUN':
-      return { label, href: pullRequestByAttemptPath(entry.sessionAttemptId ?? first, { query: move }), aria };
     case 'NEXT':
       return { label, href: pullRequestByAttemptPath(first, { query: { session: 'next', ...move } }), aria };
     default:

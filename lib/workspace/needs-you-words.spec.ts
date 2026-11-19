@@ -55,6 +55,19 @@ describe('the buttons: where each leads, always by attempt', () => {
     });
   });
 
+  it("leads a run's item to the run alone when it names no first attempt (replies on a pull request not listed)", () => {
+    expect(
+      words({
+        kind: 'REPLIES',
+        attemptId: null,
+        sessionAttemptId: 'A_F2',
+        action: page('RUN'),
+        facts: facts({ drafts: 2 }),
+      }).action,
+    ).toMatchObject({ label: 'Approve replies', href: '/my/pull-requests/by-attempt/A_F2' });
+    expect(words({ attemptId: null, sessionAttemptId: null, action: page('RUN') }).action).toBeNull();
+  });
+
   it('opens GitHub in a new tab, copying the comment to post first', () => {
     const agreement = words({
       kind: 'AGREEMENT',
@@ -353,6 +366,10 @@ describe('the work in progress', () => {
         }),
       }).move,
     ).toBe('Claude Code is on it · held for it for another 3 hours · sent back with your note');
+    // No lease yet: the user's own agent has claimed it and checks the issue.
+    expect(
+      said({ kind: 'ATTEMPT_WORKING', runner: 'MCP', progress: progress({ agentName: 'Claude Code' }) }).move,
+    ).toBe('Your own agent claimed it: checking the issue on GitHub.');
     expect(said({ kind: 'ATTEMPT_SUBMITTING', progress: progress({ submitStep: 'PUSH' }) }).move).toBe(
       'Pushing the change to a branch on your fork.',
     );

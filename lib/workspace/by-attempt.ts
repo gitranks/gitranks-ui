@@ -23,7 +23,8 @@ function queryOf(search: URLSearchParams): string {
  * - a follow-up run: its session, under its first attempt;
  * - a Fix attempt: Contribute's attempt page;
  * - a Learn attempt: its lesson's page, unless the link asks for the pull request's next step (`?session=next`) or a
- *   move (`?move=`), which Contribute's attempt page shows; `?view=lesson` always asks for the lesson.
+ *   move (`?move=`), which Contribute's attempt page shows on its next step only (so a move gets `session=next`);
+ *   `?view=lesson` always asks for the lesson.
  * Unread (signed out, not found, the API down): Contribute's attempt page, which asks a visitor to sign in and
  * answers anyone else with what it finds.
  */
@@ -36,6 +37,12 @@ export function byAttemptTargetOf(attemptId: string, attempt: ByAttemptRead | nu
   }
   if (attempt.mode !== 'LEARN') return to(attemptPath(attempt.attemptId));
   const lesson = search.get('view') === 'lesson';
-  const onPage = search.get('session') === 'next' || search.has('move');
-  return to(!lesson && onPage ? attemptPath(attempt.attemptId) : learnAttemptPath(attempt.attemptId));
+  if (lesson || (search.get('session') !== 'next' && !search.has('move'))) {
+    return to(learnAttemptPath(attempt.attemptId));
+  }
+  // Contribute's page shows a Learn pull request's moves only on its next step: a move asks for it.
+  const next = new URLSearchParams(search);
+  next.delete('view');
+  next.set('session', 'next');
+  return `${attemptPath(attempt.attemptId)}?${next.toString()}` as Route;
 }

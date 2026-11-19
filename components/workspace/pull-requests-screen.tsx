@@ -134,8 +134,19 @@ function Empty({ learnOpen, sides }: { learnOpen: boolean; sides: ContributeSide
   );
 }
 
+/** What waits on the user when its read failed: no row, and the line to reload. */
+const UNREAD: ContributeNeedsYouAnswer = { count: 0, items: [], inProgress: [], complete: false };
+
 /** What waits on the user: one row per item, the first row's button the view's one primary. */
-function NeedsYouBlock({ answer, now }: { answer: ContributeNeedsYouAnswer; now?: Date }) {
+function NeedsYouBlock({
+  answer,
+  learnPill,
+  now,
+}: {
+  answer: ContributeNeedsYouAnswer;
+  learnPill: boolean;
+  now?: Date;
+}) {
   const entries = answer.items.map(needsYouEntryOf);
   if (!entries.length && answer.complete) return null;
   return (
@@ -156,7 +167,13 @@ function NeedsYouBlock({ answer, now }: { answer: ContributeNeedsYouAnswer; now?
       {entries.length ? (
         <ul>
           {entries.map((entry, index) => (
-            <NeedsYouRow key={entry.key} entry={entry} words={needsYouWordsOf(entry, now)} primary={index === 0} />
+            <NeedsYouRow
+              key={entry.key}
+              entry={entry}
+              words={needsYouWordsOf(entry, now)}
+              primary={index === 0}
+              learnPill={learnPill}
+            />
           ))}
         </ul>
       ) : null}
@@ -172,10 +189,12 @@ function NeedsYouBlock({ answer, now }: { answer: ContributeNeedsYouAnswer; now?
 /** The work under way: not counted, never paged. */
 function InProgressBlock({
   answer,
+  learnPill,
   activity,
   now,
 }: {
   answer: ContributeNeedsYouAnswer;
+  learnPill: boolean;
   activity?: ContributeActivity | null;
   now?: Date;
 }) {
@@ -184,7 +203,13 @@ function InProgressBlock({
   return (
     <ListSection id="in-progress" title="In progress" count={entries.length}>
       {entries.map((entry) => (
-        <InProgressRow key={entry.key} entry={entry} words={needsYouWordsOf(entry, now)} activity={activity} />
+        <InProgressRow
+          key={entry.key}
+          entry={entry}
+          words={needsYouWordsOf(entry, now)}
+          activity={activity}
+          learnPill={learnPill}
+        />
       ))}
     </ListSection>
   );
@@ -302,12 +327,24 @@ function MadeWithCell({ row }: { row: Row }) {
       </span>
     );
   }
-  if (isOwnAgent(row)) return <span className="text-muted-foreground">Your own agent</span>;
+  // A pull request opened by hand takes no run: the line says why.
+  const byHand = row.openedBy === 'HAND' ? <div className="text-muted-foreground">opened by hand</div> : null;
+  if (isOwnAgent(row)) {
+    return (
+      <>
+        <span className="text-muted-foreground">Your own agent</span>
+        {byHand}
+      </>
+    );
+  }
   return (
-    <span className="font-mono">
-      <span className="font-sans text-muted-foreground">Hosted agent · </span>
-      {costOrAgentOf(row, usd)}
-    </span>
+    <>
+      <span className="font-mono">
+        <span className="font-sans text-muted-foreground">Hosted agent · </span>
+        {costOrAgentOf(row, usd)}
+      </span>
+      {byHand}
+    </>
   );
 }
 
@@ -413,6 +450,8 @@ export function PullRequestsScreen({
   now,
 }: PullRequestsData) {
   const audience = audienceOf(sides, learnOpen);
+  // Someone who only learns sees no Learn pill: every row is one.
+  const learnPill = audience !== 'learner';
   const nothingWaits = !needsYou || (!needsYou.items.length && !needsYou.inProgress.length);
   const filtered = !!filter.state || !!filter.made;
   if (
@@ -421,6 +460,8 @@ export function PullRequestsScreen({
     !filtered &&
     (filter.page ?? 1) === 1 &&
     nothingWaits &&
+    // Only a complete answer may say nothing waits: an unread one never shows the first-time cards.
+    needsYou !== undefined &&
     needsYou?.complete !== false
   ) {
     return (
@@ -435,8 +476,14 @@ export function PullRequestsScreen({
   return (
     <>
       <Head limit={limit} />
-      {needsYou ? <NeedsYouBlock answer={needsYou} now={now} /> : null}
-      {needsYou ? <InProgressBlock answer={needsYou} activity={activity} now={now} /> : null}
+      {needsYou === undefined ? (
+        <NeedsYouBlock answer={UNREAD} learnPill={learnPill} now={now} />
+      ) : needsYou ? (
+        <>
+          <NeedsYouBlock answer={needsYou} learnPill={learnPill} now={now} />
+          <InProgressBlock answer={needsYou} learnPill={learnPill} activity={activity} now={now} />
+        </>
+      ) : null}
       <div className="flex flex-col gap-3">
         {page ? <Filters page={page} filter={filter} sideFilter={audience === 'both'} /> : null}
         {!page ? (

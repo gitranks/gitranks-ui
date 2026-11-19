@@ -13,6 +13,7 @@ import {
   type NeedsYouEntry,
   type NeedsYouWords,
 } from '@/lib/workspace/needs-you-words';
+import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 /** The row's button: full width under the row on a phone; one primary per view, the others outline. */
 const ROW_ACTION =
@@ -79,12 +80,15 @@ function RowActions({ words, primary }: { words: NeedsYouWords; primary: boolean
   );
 }
 
-/** What a row is about: the repo and the chips to GitHub, the Learn pill on a Learn item, then its own pill. */
-function RowRefs({ entry, words }: { entry: NeedsYouEntry; words: NeedsYouWords }) {
+/**
+ * What a row is about: the repo and the chips to GitHub, the Learn pill on a Learn item (`learnPill`: not for someone
+ * who only learns, as every row is theirs), then its own pill.
+ */
+function RowRefs({ entry, words, learnPill }: { entry: NeedsYouEntry; words: NeedsYouWords; learnPill: boolean }) {
   const where = keyWhereOf(entry);
   const pills = (
     <>
-      {entry.side === 'learn' ? <LearnPill /> : null}
+      {learnPill && entry.side === 'learn' ? <LearnPill /> : null}
       <Pill tone={words.tone}>{words.pill}</Pill>
     </>
   );
@@ -103,6 +107,18 @@ function RowRefs({ entry, words }: { entry: NeedsYouEntry; words: NeedsYouWords 
   );
 }
 
+/** The issue's title: it opens the pull request's page, by attempt. */
+function RowTitle({ entry }: { entry: NeedsYouEntry }) {
+  if (!entry.title) return null;
+  const id = entry.attemptId ?? entry.sessionAttemptId;
+  if (!id) return <span className="font-medium">{entry.title}</span>;
+  return (
+    <Link href={pullRequestByAttemptPath(id)} prefetch={false} className="font-medium text-foreground hover:underline">
+      {entry.title}
+    </Link>
+  );
+}
+
 /**
  * One row of Needs you: what it is about, the issue's title, "Your move:" and one sentence, and one button (`primary`
  * for the first row of the view). "and 2 more" when more wait on the same pull request. Stacked on a phone, the button
@@ -112,10 +128,12 @@ export function NeedsYouRow({
   entry,
   words,
   primary,
+  learnPill = true,
 }: {
   entry: NeedsYouEntry;
   words: NeedsYouWords;
   primary: boolean;
+  learnPill?: boolean;
 }) {
   return (
     <li
@@ -124,8 +142,8 @@ export function NeedsYouRow({
       className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 last:border-b-0"
     >
       <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-1">
-        <RowRefs entry={entry} words={words} />
-        {entry.title ? <span className="font-medium">{entry.title}</span> : null}
+        <RowRefs entry={entry} words={words} learnPill={learnPill} />
+        <RowTitle entry={entry} />
         <span className="text-sm break-words text-foreground/80">
           <span className="font-semibold text-foreground">Your move: </span>
           {words.move}
@@ -145,10 +163,12 @@ export function InProgressRow({
   entry,
   words,
   activity,
+  learnPill = true,
 }: {
   entry: NeedsYouEntry;
   words: NeedsYouWords;
   activity?: ContributeActivity | null;
+  learnPill?: boolean;
 }) {
   const line = <span className="text-xs text-muted-foreground">{words.move}</span>;
   return (
@@ -158,8 +178,8 @@ export function InProgressRow({
       className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 last:border-b-0"
     >
       <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-1">
-        <RowRefs entry={entry} words={words} />
-        {entry.title ? <span className="font-medium">{entry.title}</span> : null}
+        <RowRefs entry={entry} words={words} learnPill={learnPill} />
+        <RowTitle entry={entry} />
         {entry.kind === 'attempt-working' && entry.attemptId ? (
           <span className="text-xs text-muted-foreground">
             <LiveRunPhase attemptId={entry.attemptId} activity={activity}>

@@ -30,10 +30,23 @@ describe('the address by attempt, until the pull request has a page of its own',
     expect(at(learn)).toBe('/learn/attempts/A_1');
     expect(at(learn, 'resume=n0nce')).toBe('/learn/attempts/A_1?resume=n0nce');
     expect(at(learn, 'session=next')).toBe('/contribute/attempts/A_1?session=next');
-    expect(at(learn, 'move=changes')).toBe('/contribute/attempts/A_1?move=changes');
+    // Contribute's page shows a Learn pull request's moves on its next step alone, and sends the rest to the lesson:
+    // a move is asked for there, so it lands on the move and not back on the lesson.
+    expect(at(learn, 'move=changes')).toBe('/contribute/attempts/A_1?move=changes&session=next');
+    expect(at(learn, 'resume=n0nce&move=changes')).toBe(
+      '/contribute/attempts/A_1?resume=n0nce&move=changes&session=next',
+    );
     // The lesson asked for by name: view= is the address's own word, dropped on the way.
     expect(at(learn, 'view=lesson')).toBe('/learn/attempts/A_1');
     expect(at(learn, 'view=lesson&session=next')).toBe('/learn/attempts/A_1?session=next');
+  });
+
+  it("never sends a Learn first attempt to Contribute's page without the next step, where that page would send it back", () => {
+    const learn = read({ mode: 'LEARN' });
+    for (const query of ['', 'resume=n0nce', 'session=next', 'move=changes', 'view=lesson', 'move=x&view=lesson']) {
+      const target = at(learn, query);
+      if (target.startsWith('/contribute/attempts/')) expect(target, query).toMatch(/[?&]session=next(?:&|$)/);
+    }
   });
 
   it("sends what it could not read to Contribute's attempt page, which signs in or answers the 404", () => {

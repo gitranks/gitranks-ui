@@ -32,7 +32,6 @@ const repo = { kind: 'repo', name: 'brightfern/tidepool' } as const;
 const contribute = findBadge('repo', 'contribute');
 const pkg = { kind: 'package', name: packageBadgeName(packageBig) } as const;
 const newPkg = { kind: 'package', name: packageBadgeName(newPackage) } as const;
-const usedByCard = findBadge('package', 'used-by-card');
 const usedBy = findBadge('package', 'used-by');
 const BUILDER = {
   find: builderHref({ kind: null }),
@@ -42,10 +41,8 @@ const BUILDER = {
   embed: builderHref({ ...user, badge: card, embed: true }),
   contributeStyle: builderHref({ ...repo, badge: contribute }),
   contributeEmbed: builderHref({ ...repo, badge: contribute, embed: true }),
-  repoEmbed: builderHref({ ...repo, badge: findBadge('repo', 'rank'), embed: true }),
   packageBadge: builderHref(pkg),
   newPackageBadge: builderHref(newPkg),
-  packageStyle: builderHref({ ...pkg, badge: usedByCard }),
   packageEmbed: builderHref({ ...pkg, badge: usedBy, embed: true }),
   newPackageEmbed: builderHref({ ...newPkg, badge: findBadge('package', 'downloads'), embed: true }),
 };
@@ -108,13 +105,6 @@ export const BADGES_SCREENS: Screen[] = [
         render: () => builder(BUILDER.embed),
       },
       {
-        id: 'embed-repo',
-        title: '4 · Embed, for a repository',
-        path: BUILDER.repoEmbed,
-        height: 1000,
-        render: () => builder(BUILDER.repoEmbed),
-      },
-      {
         id: 'badge-repo',
         title: '2 · Pick a badge, for a repository',
         path: BUILDER.repoBadge,
@@ -136,14 +126,6 @@ export const BADGES_SCREENS: Screen[] = [
         render: () => builder(BUILDER.contributeEmbed),
       },
       {
-        id: 'find-packages',
-        title: '1 · Find, packages shown',
-        path: BUILDER.find,
-        packagesOpen: true,
-        height: 800,
-        render: () => builder(BUILDER.find),
-      },
-      {
         id: 'badge-package',
         title: '2 · Pick a badge, for a package',
         path: BUILDER.packageBadge,
@@ -160,28 +142,11 @@ export const BADGES_SCREENS: Screen[] = [
         render: () => builder(BUILDER.newPackageBadge),
       },
       {
-        id: 'style-package',
-        title: '3 · Style, a package card',
-        path: BUILDER.packageStyle,
-        packagesOpen: true,
-        height: 800,
-        render: () => builder(BUILDER.packageStyle),
-      },
-      {
         id: 'embed-package',
         title: '4 · Embed, for a package',
         path: BUILDER.packageEmbed,
         packagesOpen: true,
         height: 800,
-        render: () => builder(BUILDER.packageEmbed),
-      },
-      {
-        id: 'embed-package-check-found',
-        title: '4 · Embed, for a package, badge found',
-        path: BUILDER.packageEmbed,
-        packagesOpen: true,
-        height: 800,
-        badgeCheck: { status: 'found', until: '2026-11-04T12:00:00.000Z' },
         render: () => builder(BUILDER.packageEmbed),
       },
       {

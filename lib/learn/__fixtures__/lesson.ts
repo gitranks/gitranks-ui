@@ -406,7 +406,6 @@ export const lesson = (stage: LearnStage, patch: Partial<LearnAttemptLesson> = {
 /** The lesson at every stage of an attempt. */
 export const lessons = {
   working: lesson('AGENT_WORKING'),
-  rewriting: lesson('AGENT_REWRITING'),
   warmup: lesson('WARMUP', { run: runs.warmup }),
   step: lesson('LESSON', { run: runs.step }),
   askAgain: lesson('LESSON', { run: runs.askAgain }),

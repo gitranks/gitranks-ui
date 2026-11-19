@@ -234,13 +234,6 @@ export const LEARN_SCREENS: Screen[] = [
         render: () => home(myLearnAttempts.merged),
       },
       {
-        id: 'pr-closed',
-        title: 'Your pull request was closed: the lesson stays yours',
-        path: '/learn',
-        height: 1880,
-        render: () => home(myLearnAttempts.closed),
-      },
-      {
         id: 'no-room',
         title: 'No room for a new lesson: the issues stay, Start gives way to why',
         path: '/learn',
@@ -347,14 +340,6 @@ export const LEARN_SCREENS: Screen[] = [
             <HeaderLine />,
           ),
       },
-      {
-        id: 'about',
-        title: 'How Learn works, signed in (/learn/about): Start learning leads to Learn home',
-        path: '/learn/about',
-        height: 2480,
-        render: () =>
-          bare(<LearnLanding viewer="signed-in" recentLessons={<RecentLessons lessons={recentLessons} />} />),
-      },
     ],
   },
   {
@@ -393,13 +378,6 @@ export const LEARN_SCREENS: Screen[] = [
         path: '/learn/profile',
         height: 1170,
         render: () => frame(<LearnProfileScreen profile={emptyProfile} ownAgent={views.onboardedNoPath.ownAgent} />),
-      },
-      {
-        id: 'filled',
-        title: 'Saved: learn TypeScript, a level set, two focus picks, the agent connected',
-        path: '/learn/profile',
-        height: 1220,
-        render: () => frame(<LearnProfileScreen profile={filledProfile} ownAgent={views.agentOnboarded.ownAgent} />),
       },
       {
         id: 'saved',
@@ -472,28 +450,6 @@ export const LEARN_SCREENS: Screen[] = [
         render: () => frame(<MyLessonsScreen lessons={[]} hasGoal />),
       },
       {
-        id: 'just-claimed',
-        title: 'A claimed issue with no lesson yet: in progress, named owner/repo#n until its title is stored',
-        path: '/learn/lessons',
-        height: 820,
-        render: () =>
-          frame(
-            <MyLessonsScreen
-              lessons={[
-                {
-                  slug: null,
-                  attemptId: 'A_4',
-                  title: 'tidewave/tide#958',
-                  repo: 'tidewave/tide',
-                  state: 'IN_PROGRESS',
-                  passedAt: null,
-                },
-                ...myLessons.slice(1),
-              ]}
-            />,
-          ),
-      },
-      {
         id: 'filled',
         title: 'In progress, then done: own attempts and a shared lesson passed',
         path: '/learn/lessons',
@@ -530,13 +486,6 @@ export const LEARN_SCREENS: Screen[] = [
         path: PATH,
         height: 1340,
         render: () => page(lessons.working, working, undefined, practiceLessons()),
-      },
-      {
-        id: 'rewriting',
-        title: 'Sent back: the agent writes a new fix or lesson',
-        path: PATH,
-        height: 1340,
-        render: () => page(lessons.rewriting, working, undefined, practiceLessons()),
       },
       {
         id: 'warm-up',
@@ -647,22 +596,6 @@ export const LEARN_SCREENS: Screen[] = [
             learnAttempt({ state: 'DISCARDED', endReason: 'USER', endDetail: null, checksPassed: true }),
           ),
       },
-      {
-        id: 'ended-claim-lost',
-        title: 'Ended before the agent could start: the issue changed',
-        path: PATH,
-        height: 900,
-        render: () =>
-          page(lessons.ended, learnAttempt({ state: 'STOPPED', endReason: 'CLAIM_LOST', endDetail: 'claim_lost' })),
-      },
-      {
-        id: 'ended-released',
-        title: 'Ended: the agent gave the issue back',
-        path: PATH,
-        height: 900,
-        render: () =>
-          page(lessons.ended, learnAttempt({ state: 'STOPPED', endReason: 'RELEASED', endDetail: 'released' })),
-      },
     ],
   },
   {
@@ -742,19 +675,6 @@ export const LEARN_SCREENS: Screen[] = [
               page={lessonPage}
               viewer={{ kind: 'taker', login: 'mona', run: sharedRuns.step }}
               start={{ picked: ['q2a2'] }}
-            />,
-          ),
-      },
-      {
-        id: 'passed',
-        title: 'A practice lesson passed: the summary, Share my result, then Now your own lesson with two issues',
-        path: LESSON_PATH,
-        height: 1560,
-        render: () =>
-          open(
-            <LessonPageScreen
-              page={lessonPage}
-              viewer={{ kind: 'taker', login: 'mona', run: sharedRuns.passed, goal: MONA_GOAL, next: practiceNext.own }}
             />,
           ),
       },
@@ -860,36 +780,12 @@ export const LEARN_SCREENS: Screen[] = [
         render: () => resultPage(),
       },
       {
-        id: 'no-reactions',
-        title: 'No reaction yet',
-        path: RESULT_PATH,
-        signedOut: true,
-        height: 4700,
-        render: () => resultPage(result({ reactions: [] })),
-      },
-      {
         id: 'sign-in',
         title: 'After a click on “Yes, it helped”, signed out: the GitHub sign-in',
         path: RESULT_PATH,
         signedOut: true,
         height: 4700,
         render: () => resultPage(result(), { ...MAINTAINER, prompt: 'YES' }),
-      },
-      {
-        id: 'reacted',
-        title: 'Back from the sign-in: the reaction stored, with the name',
-        path: RESULT_PATH,
-        height: 4700,
-        render: () =>
-          resultPage(
-            result({
-              reactions: [
-                { login: 'mona', role: 'maintainer', reaction: 'YES' },
-                { login: 'hubot', role: 'collaborator', reaction: 'YES' },
-              ],
-            }),
-            { canReact: true, mine: 'YES', returned: null },
-          ),
       },
       {
         id: 'own',

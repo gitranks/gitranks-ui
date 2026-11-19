@@ -47,27 +47,17 @@ const youngOnDailyUpdates = (reason: DailyUpdateReason) =>
     },
   });
 
-const pickOf = (name: string) => ({ kind: 'repo' as const, name, pickedAt: '2026-10-28T09:00:00.000Z' });
-
-/**
- * A signed-in visitor's own daily updates, as the browser reads them: with this repository picked, with none, or with
- * all 3 picks on other repositories.
- */
-const picker = (picks: 'this' | 'none' | 'full') => ({
+/** A signed-in visitor's own daily updates, as the browser reads them: no repository picked, 3 left to add today. */
+const picker = {
   dailyUpdates: {
     open: true,
     state: 'on',
     until: '2026-11-04T12:00:00.000Z',
     manual: { available: true, nextAt: null },
-    picks:
-      picks === 'this'
-        ? [pickOf(youngRepo.nameWithOwner)]
-        : picks === 'full'
-          ? [pickOf('quiet/atlas'), pickOf('octo/rocket'), pickOf('octo/lantern')]
-          : [],
-    newPicksLeftToday: picks === 'none' ? 3 : 2,
+    picks: [],
+    newPicksLeftToday: 3,
   } satisfies DailyUpdatesViewer,
-});
+};
 
 /** The tabbed page of `nebula/ui` around a tab: its packages decide the Used by tab and its count. */
 const bigFrame = (packages: RepoPackages | Unavailable | null, tab: ReactElement) => (
@@ -182,42 +172,11 @@ export const REPO_SCREENS: Screen[] = [
         render: () => youngOnDailyUpdates(DailyUpdateReason.Badge),
       },
       {
-        id: 'young-daily-pick',
-        title: 'On daily updates, added by someone: nobody is named',
-        path: `/repo/${youngRepo.nameWithOwner}`,
-        height: 2000,
-        render: () => youngOnDailyUpdates(DailyUpdateReason.Pick),
-      },
-      {
         id: 'young-pick-off',
         title: 'Signed in, can add a repo: “Update daily”',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 2000,
-        viewer: picker('none'),
-        render: () => young(),
-      },
-      {
-        id: 'young-your-pick',
-        title: 'On your daily updates',
-        path: `/repo/${youngRepo.nameWithOwner}`,
-        height: 2000,
-        viewer: picker('this'),
-        render: () => youngOnDailyUpdates(DailyUpdateReason.Pick),
-      },
-      {
-        id: 'young-picks-full',
-        title: 'Signed in, 3 repos on daily updates already: Refresh',
-        path: `/repo/${youngRepo.nameWithOwner}`,
-        height: 2000,
-        viewer: picker('full'),
-        render: () => young(),
-      },
-      {
-        id: 'young-signed-out',
-        title: 'Signed out: Refresh',
-        path: `/repo/${youngRepo.nameWithOwner}`,
-        height: 2000,
-        signedOut: true,
+        viewer: picker,
         render: () => young(),
       },
       {

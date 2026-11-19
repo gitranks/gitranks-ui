@@ -119,13 +119,6 @@ export const PROFILE_SCREENS: Screen[] = [
         render: () => overview(onDailyUpdates(DailyUpdateReason.Owner), strongBadges),
       },
       {
-        id: 'daily-by-badge',
-        title: 'On daily updates, kept on by a badge',
-        path: `/profile/${strongProfile.login}`,
-        height: 3000,
-        render: () => overview(onDailyUpdates(DailyUpdateReason.Badge), strongBadges),
-      },
-      {
         id: 'daily-owner-off',
         title: 'Your profile, daily updates off',
         path: `/profile/${strongProfile.login}`,
@@ -140,22 +133,6 @@ export const PROFILE_SCREENS: Screen[] = [
         height: 3000,
         viewer: ownerViewer({}),
         render: () => overview(onDailyUpdates(DailyUpdateReason.Owner), strongBadges),
-      },
-      {
-        id: 'daily-owner-used',
-        title: 'Your profile, manual refresh used',
-        path: `/profile/${strongProfile.login}`,
-        height: 3000,
-        viewer: ownerViewer({ manual: { available: false, nextAt: '2026-10-29T11:10:00.000Z' } }),
-        render: () => overview(onDailyUpdates(DailyUpdateReason.Owner), strongBadges),
-      },
-      {
-        id: 'daily-owner-badge',
-        title: 'Your profile, on by your badge, no star',
-        path: `/profile/${strongProfile.login}`,
-        height: 3000,
-        viewer: ownerViewer({ state: 'never', until: null }),
-        render: () => overview(onDailyUpdates(DailyUpdateReason.Badge), strongBadges),
       },
       {
         id: 'daily-deal',

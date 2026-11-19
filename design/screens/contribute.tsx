@@ -68,8 +68,6 @@ import {
   nextForAgreement,
   nextForDco,
   nextForProof,
-  nextForRun,
-  nextForYou,
   openPr,
   prsYours,
   signal,
@@ -78,7 +76,6 @@ import {
   autopilotTimeline,
   closedTimeline,
   mergedTimeline,
-  openTimeline,
   ownAgentTimeline,
   stoppedTimeline,
 } from '@/lib/contribute/__fixtures__/pr-timeline';
@@ -672,28 +669,11 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           }),
       },
       {
-        id: 'notes-all-hidden',
-        title: 'Notes from the maintainers, every one hidden',
-        path: '/contribute/attempts/A_1',
-        height: 1200,
-        render: () =>
-          contributionPage(attempts.prOpen, {
-            notes: prNotes({ notes: prNotes().notes.map((note) => ({ ...note, hidden: true })) }),
-          }),
-      },
-      {
         id: 'account-new',
         title: 'A new account: its smaller limits in one line',
         path: '/contribute/attempts/A_1',
         height: 1300,
         render: () => contributionPage(attempts.prOpen, { view: views.newAccount }),
-      },
-      {
-        id: 'account-reduced',
-        title: 'Lower limits after claims ran out, in one line',
-        path: '/contribute/attempts/A_1',
-        height: 1300,
-        render: () => contributionPage(attempts.prOpen, { view: views.followThrough }),
       },
       {
         id: 'account-suspended',
@@ -708,20 +688,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/contribute/attempts/A_1',
         height: 1200,
         render: () => contributionPage(prOpenWith({ checks: 'PENDING' })),
-      },
-      {
-        id: 'pr-changes-requested',
-        title: 'Pull request open, changes requested',
-        path: '/contribute/attempts/A_1',
-        height: 1200,
-        render: () => contributionPage(prOpenWith({ reviewDecision: 'CHANGES_REQUESTED' })),
-      },
-      {
-        id: 'pr-checks-failed',
-        title: 'Pull request open, checks failed',
-        path: '/contribute/attempts/A_1',
-        height: 1200,
-        render: () => contributionPage(prOpenWith({ checks: 'FAILURE' })),
       },
       {
         id: 'pr-approved',
@@ -813,21 +779,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           ),
       },
       {
-        id: 'repo-rules-org-kept',
-        title: 'Repo rules: the organization’s refusal of thread replies, as GitRanks keeps it for every run',
-        path: '/contribute/attempts/A_1',
-        height: 1300,
-        render: () =>
-          contributionPage(
-            {
-              ...attempts.prOpen,
-              repoRules: attemptRules(),
-              threadRepliesBlocked: { org: 'driftwood-js', since: NOW.toISOString(), lastRefusedAt: NOW.toISOString() },
-            },
-            { rulesOpen: true },
-          ),
-      },
-      {
         id: 'repo-rules-submit-org',
         title: 'Repo rules: the organization blocked the submit',
         path: '/contribute/attempts/A_1',
@@ -865,37 +816,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           ),
       },
       {
-        id: 'no-go',
-        title: 'First attempt, the agent said no-go',
-        path: '/contribute/attempts/A_1',
-        height: 1300,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <ReviewScreen view={views.active} attempt={decisionAttempts.noGo} now={NOW} />
-            </main>,
-          ),
-      },
-      {
-        id: 'check-ran-out',
-        title: 'First attempt, the check ran out',
-        path: '/contribute/attempts/A_1',
-        height: 1300,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <ReviewScreen view={views.active} attempt={decisionAttempts.ranOut} now={NOW} />
-            </main>,
-          ),
-      },
-      {
-        id: 'follow-up-run',
-        title: "A follow-up run, ready for review: a question for you and a bot's thread",
-        path: '/contribute/attempts/A_1/runs/A_F1',
-        height: 2600,
-        render: () => changedCommentStates.followUpRun(page),
-      },
-      {
         id: 'pr-open',
         title: 'Pull request open, comments waiting',
         path: '/contribute/attempts/A_1',
@@ -913,20 +833,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/contribute/attempts/A_1?session=next',
         height: 1900,
         render: () => changedCommentStates.nextRound(page),
-      },
-      {
-        id: 'next-run',
-        title: 'Next step: a run can do it',
-        path: '/contribute/attempts/A_8?session=next',
-        height: 1900,
-        render: () => attemptPage(nextForRun, true),
-      },
-      {
-        id: 'next-only-you',
-        title: 'Next step: only you can do it, after run 1',
-        path: '/contribute/attempts/A_OC?session=next',
-        height: 1700,
-        render: () => attemptPage(nextForYou, true),
       },
       {
         id: 'proof-not-connected',
@@ -1012,21 +918,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           ),
       },
       {
-        id: 'partial',
-        title: 'First attempt, partly done, medium risk, worth a look',
-        path: '/contribute/attempts/A_1',
-        height: 2000,
-        render: () =>
-          sessionPage({
-            ...decisionAttempts.went,
-            result: decisionAttempts.went.result && {
-              ...decisionAttempts.went.result,
-              verdict: 'PARTIAL',
-              risk: 'MEDIUM',
-            },
-          }),
-      },
-      {
         id: 'decided-at-limit',
         title: "First attempt, a no-go decided at the check's cap",
         path: '/contribute/attempts/A_1',
@@ -1039,25 +930,11 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           }),
       },
       {
-        id: 'working',
-        title: 'First attempt, the agent working',
-        path: '/contribute/attempts/A_1',
-        height: 1300,
-        render: () => sessionPage(attempts.running),
-      },
-      {
         id: 'working-go',
         title: 'First attempt working, the go decided',
         path: '/contribute/attempts/A_1',
         height: 1300,
         render: () => sessionPage({ ...attempts.running, goNoGo: wentGo }),
-      },
-      {
-        id: 'go-then-stopped',
-        title: 'First attempt, the agent said go, then hit your limit',
-        path: '/contribute/attempts/A_1',
-        height: 1300,
-        render: () => sessionPage({ ...stoppedAttempt('BUDGET'), goNoGo: wentGo, brief: null }),
       },
       {
         id: 'brief-only',
@@ -1066,13 +943,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         height: 1300,
         render: () =>
           sessionPage({ ...stoppedAttempt('BUDGET'), goNoGo: wentGo, brief: decisionAttempts.went.brief ?? null }),
-      },
-      {
-        id: 'bounced',
-        title: 'Back for your approval: the form opened with the approved text',
-        path: '/contribute/attempts/A_1',
-        height: 2600,
-        render: () => sessionPage(attempts.bounced),
       },
       {
         id: 'own-agent-review',
@@ -1242,13 +1112,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/contribute/attempts/A_1',
         height: 1100,
         render: () => prFormPage(attempts.review, { grantNeeded: true, again: false }),
-      },
-      {
-        id: 'grant-again',
-        title: 'GitHub access asked again',
-        path: '/contribute/attempts/A_1',
-        height: 1100,
-        render: () => prFormPage(attempts.review, { grantNeeded: true, again: true }),
       },
       {
         id: 'preview',
@@ -1460,28 +1323,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           ),
       },
       {
-        id: 'first-timers',
-        title: 'A first-timers-only issue says so',
-        path: '/contribute/issues',
-        height: 1800,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <IssuesScreen
-                view={views.active}
-                page={{
-                  ...issuePage,
-                  items: issuePage.items.map((item, index) =>
-                    index === 0 ? { ...item, labels: ['first-timers-only'], forNewcomers: true } : item,
-                  ),
-                }}
-                query={{}}
-                now={NOW}
-              />
-            </main>,
-          ),
-      },
-      {
         id: 'repo-rules',
         title: 'Each repo’s rules on its card, closed; a repo with none says so',
         path: '/contribute/issues',
@@ -1564,18 +1405,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
               <SettingsScreen view={views.active} now={NOW} email={email.on} />
-            </main>,
-          ),
-      },
-      {
-        id: 'email-off',
-        title: 'Contribute email turned off',
-        path: '/contribute/settings#email',
-        height: 1900,
-        render: () =>
-          frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <SettingsScreen view={views.active} now={NOW} email={email.off} />
             </main>,
           ),
       },
@@ -1683,14 +1512,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'app/contribute/components/maintainer-repo-settings.tsx',
     ],
     states: [
-      {
-        id: 'signed-out',
-        title: 'Signed out',
-        path: '/contribute/maintainers',
-        signedOut: true,
-        height: 1300,
-        render: () => maintainersPage({ state: 'signed-out' }),
-      },
       {
         id: 'signed-out-shown',
         title: 'Signed out, once Contribute is open',
@@ -1918,14 +1739,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () => prTimelinePage(mergedTimeline),
       },
       {
-        id: 'open',
-        title: 'Open',
-        path: PR_TIMELINE_PATH,
-        signedOut: true,
-        height: 1200,
-        render: () => prTimelinePage(openTimeline),
-      },
-      {
         id: 'closed',
         title: 'Closed by a maintainer',
         path: PR_TIMELINE_PATH,
@@ -1981,14 +1794,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/contribute/ledger',
         height: 2400,
         render: () => ledgerPage(ledger),
-      },
-      {
-        id: 'public',
-        title: 'Public, signed out',
-        path: '/contribute/ledger',
-        signedOut: true,
-        height: 2200,
-        render: () => ledgerPage(publicLedger),
       },
       {
         id: 'public-phone',

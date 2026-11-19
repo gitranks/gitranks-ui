@@ -172,8 +172,8 @@ vi.mock('@/badge/v3/load', async (importOriginal) => {
   const { findBadgeFacts } = await import('./images');
   return {
     ...real,
-    loadBadgePackageCard: async (name: string) => {
-      const facts = findBadgeFacts('package', `npm/${name}`);
+    loadBadgePackageCard: async (registry: string, name: string) => {
+      const facts = findBadgeFacts('package', `${registry}/${name}`);
       return facts?.kind === 'package' ? facts : null;
     },
   };

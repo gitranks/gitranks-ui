@@ -4,6 +4,8 @@ const { graphqlDirect } = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
+const everyone = vi.hoisted(() => ({ open: true }));
+vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
 
 const { GET } = await import('./route');
 const { LearnRecordDocument } = await import('@/lib/learn/learn.documents');
@@ -37,5 +39,17 @@ describe("the route for a login's Learn record", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ record: null });
     expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('answers none, without asking, while Learn is not open to everyone', async () => {
+    everyone.open = false;
+    try {
+      const response = await get('octocat');
+      expect(await response.json()).toEqual({ record: null });
+      expect(response.headers.get('cache-control')).toBe('public, max-age=60');
+      expect(graphqlDirect).not.toHaveBeenCalled();
+    } finally {
+      everyone.open = true;
+    }
   });
 });

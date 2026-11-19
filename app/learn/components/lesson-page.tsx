@@ -32,6 +32,8 @@ export const LESSON_MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt
  */
 export type LessonViewer =
   | { kind: 'visitor' }
+  /** A visitor while Learn is not open to everyone: reads it, and is asked nothing. */
+  | { kind: 'guest' }
   | { kind: 'reader'; login: string }
   | { kind: 'setup'; login: string }
   | {
@@ -46,7 +48,9 @@ export type LessonViewer =
 
 const INTRO_TEXT: Record<Exclude<LessonViewer['kind'], 'taker'>, string> = {
   visitor: 'Reading is free. Answering needs a GitHub account, so a pass counts a real person.',
-  reader: 'Reading is open to everyone. Answering is not open to your account yet.',
+  guest: 'Reading is open to everyone.',
+  // An account Learn is not open to (only while it is not open to everyone): told nothing of Learn's list.
+  reader: 'Reading is open to everyone.',
   setup: LEARN_SETTING_UP_TEXT,
 };
 
@@ -139,7 +143,8 @@ export async function LessonPageView({ slug }: { slug: string }) {
   const answer = await loadLessonPage(slug);
   if (!answer || (answer.kind === 'stub' && answer.visibility === 'HIDDEN')) notFound();
   if (answer.kind === 'stub') return <LessonStubScreen visibility={answer.visibility} />;
-  const [frontDoorOpen, viewer] = await Promise.all([learnOpenToEveryone(), lessonViewerOf(answer.value)]);
+  const frontDoorOpen = await learnOpenToEveryone();
+  const viewer = await lessonViewerOf(answer.value, frontDoorOpen);
   return (
     <>
       <JsonLd payloads={lessonJsonLd(answer.value, { frontDoorOpen })} />
@@ -148,10 +153,13 @@ export async function LessonPageView({ slug }: { slug: string }) {
   );
 }
 
-/** Who looks at the lesson: signed out, Learn not open to them, their account being set up, or a taker and their run. */
-async function lessonViewerOf(page: LessonPage): Promise<LessonViewer> {
+/**
+ * Who looks at the lesson: signed out (asked to sign in to answer only once Learn is open to everyone), Learn not open
+ * to them, their account being set up, or a taker and their run.
+ */
+async function lessonViewerOf(page: LessonPage, openToEveryone: boolean): Promise<LessonViewer> {
   const login = await viewerLogin();
-  if (!login) return { kind: 'visitor' };
+  if (!login) return openToEveryone ? { kind: 'visitor' } : { kind: 'guest' };
   if (!(await loadLearnOpen())) return { kind: 'reader', login };
   // The taker's goal says whether the lesson's was the same ("also"); the author's own page needs none.
   const [settingUp, run, profile] = await Promise.all([

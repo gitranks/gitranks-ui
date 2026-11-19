@@ -77,8 +77,16 @@ describe('a shared lesson', () => {
     const html = renderToStaticMarkup(
       <LessonPageScreen page={lessonPage} viewer={{ kind: 'reader', login: 'mona' }} />,
     );
-    expect(text(html)).toContain('Answering is not open to your account yet.');
+    expect(text(html)).toContain('Reading is open to everyone.');
+    expect(text(html)).not.toMatch(/not open to your account/);
     expect(html).not.toMatch(/Sign in to|Start the lesson|data-sign-in-to-answer/);
+  });
+
+  it('asks a visitor nothing while Learn is not open to everyone: no sign-in to take it or to answer', () => {
+    const html = renderToStaticMarkup(<LessonPageScreen page={lessonPage} viewer={{ kind: 'guest' }} />);
+    for (const step of STEPS) expect(html).toContain(`data-step-article="${step.id}"`);
+    expect(text(html)).toContain('Reading is open to everyone.');
+    expect(html).not.toMatch(/Sign in|Start the lesson|data-sign-in-to-answer|GitHub account/);
   });
 
   it('offers a taker without a run to start one, and runs the lesson from their run', () => {
@@ -135,8 +143,9 @@ describe('a shared lesson', () => {
   it('reads the lesson as anyone would, and the run only for a viewer Learn is open to', async () => {
     vi.mocked(data.loadLessonPage).mockResolvedValue({ kind: 'found', value: lessonPage });
     vi.mocked(viewerLogin).mockResolvedValue(null);
+    // Learn is not open to everyone here: a visitor is a guest, asked nothing.
     expect(renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' }))).toContain(
-      'data-viewer="visitor"',
+      'data-viewer="guest"',
     );
 
     vi.mocked(viewerLogin).mockResolvedValue('mona');

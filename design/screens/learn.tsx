@@ -192,13 +192,6 @@ export const LEARN_SCREENS: Screen[] = [
         render: () => home(myLearnAttempts.working),
       },
       {
-        id: 'working-no-title',
-        title: 'Just claimed: the issue named as owner/repo#n until the agent stores its title',
-        path: '/learn',
-        height: 1440,
-        render: () => home(myLearnAttempts.noTitle),
-      },
-      {
         id: 'lesson-ready',
         title: 'Your lesson is ready: take it',
         path: '/learn',
@@ -537,13 +530,6 @@ export const LEARN_SCREENS: Screen[] = [
         path: PATH,
         height: 1340,
         render: () => page(lessons.working, working, undefined, practiceLessons()),
-      },
-      {
-        id: 'wait-no-practice',
-        title: 'The agent is working, no practice lesson for the goal: the section is left out',
-        path: PATH,
-        height: 1040,
-        render: () => page(lessons.working, working),
       },
       {
         id: 'rewriting',

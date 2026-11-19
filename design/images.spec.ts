@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { drawImages, imagePathOf, withBadgeFacts } from './images';
-import { userBig } from '@/badge/v3/fixtures';
+import { packageBig, userBig } from '@/badge/v3/fixtures';
 
 withBadgeFacts(userBig);
+withBadgeFacts(packageBig);
 
 const badge = `<img src="/badge/user/${userBig.login}/profile-card.svg" alt="">`;
 
@@ -23,5 +24,11 @@ describe('the boards images', () => {
     expect(first.markup).toBe(`<img src="../../${path}" alt="">`);
     expect(second.markup).toBe(`<p><img src="../../${path}" alt=""></p>`);
     // Drawing a badge loads its fonts first: past vitest's 5 seconds on a busy machine.
+  }, 60_000);
+
+  it("finds a package's badge facts by its registry and name", async () => {
+    const src = `/badge/package/${packageBig.registry}/${packageBig.name}/used-by.svg`;
+    const drawn = await drawImages(`<img src="${src}" alt="">`, 'current/package/package-page--a.dc.html');
+    expect(drawn.images.size).toBe(1);
   }, 60_000);
 });

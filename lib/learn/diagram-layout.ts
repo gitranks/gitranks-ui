@@ -4,8 +4,12 @@ import type { LessonDiagramEdge, LessonDiagramNode, LessonDiagramTone } from './
  * A lesson's diagram, laid out here: the lesson sends boxes and arrows (nodes and edges), never coordinates. Boxes go in
  * layers along the arrows (each box one layer after the furthest box that points to it), left to right, or top to
  * bottom when there are more layers than fit across. Inside a layer, boxes follow the boxes they come from, so arrows
- * cross as little as they can. An arrow that points back (a loop) runs around the outside. An arrow's label sits in a pill
- * at its midpoint; the gap between layers grows to fit the longest one.
+ * cross as little as they can. An arrow that points back (a loop) runs around the outside.
+ *
+ * An arrow's label sits in a pill on the arrow, in the gap just before its target (so one that skips a layer never sits
+ * on a skipped box), labels in one gap stacked apart. Each gap grows to fit its own labels; when labels would make the
+ * drawing wider than its width, it goes top to bottom instead, where each gap between rows grows to stack its labels.
+ * A loop's label sits outside the boxes, beside its curve.
  */
 
 export const DIAGRAM_MAX_NODES = 8;
@@ -37,6 +41,9 @@ const PILL_H = 18;
 const PILL_PAD_X = 7;
 const PILL_MAX_W = 196;
 const PILL_CLEAR = 14;
+/** Between two labels stacked in one gap, and above and below them in a gap between rows. */
+const PILL_STACK = 6;
+const PILL_CLEAR_Y = 10;
 
 /** Rough text widths at the diagram's sizes: label 12.5px mono or 13px Inter, the line under it 11.5px Inter. */
 export const LABEL_CHAR = { mono: 7.6, sans: 7.2 } as const;
@@ -225,13 +232,29 @@ export function layoutDiagram(
   const forward = edges.filter((edge) => !back.has(edge));
   const layer = layersOf(ids, forward);
   const layers = orderOf(ids, layer, forward);
-  // One layer (boxes with no arrows between them) is a row, as is a chain too long to go across.
-  const direction = layers.length > 1 && layers.length <= maxColumns ? 'across' : 'down';
-  const pills = edges.map((edge) => (edge.label ? pillOf(edge.label) : null));
-  // The gap between layers, wide enough for the longest label and the arrow on each side of it.
-  const labelGap = Math.max(0, ...pills.map((pill) => (pill ? pill.w + 2 * PILL_CLEAR + ARROW_GAP : 0)));
-
   const sized = new Map(nodes.map((node) => [node.id, { node, ...sizeOf(node) }]));
+  const pills = edges.map((edge) => (edge.label ? pillOf(edge.label) : null));
+  /** The gap a forward arrow's label sits in: the last one before its target. None for a loop. */
+  const gapOf = (edge: LessonDiagramEdge) =>
+    layer.get(edge.to)! > layer.get(edge.from)! ? layer.get(edge.to)! - 1 : null;
+  const gapCount = Math.max(0, layers.length - 1);
+  const labelsIn = Array.from({ length: gapCount }, (_, gap) =>
+    edges.flatMap((edge, index) => (pills[index] && gapOf(edge) === gap ? [index] : [])),
+  );
+
+  // Across: each gap wide enough for its own labels and the arrow on each side of them.
+  const columnW = layers.map((column) => Math.max(...column.map((id) => sized.get(id)!.w)));
+  const used = columnW.reduce((sum, w) => sum + w, 0);
+  const gapNeed = labelsIn.map((inGap) =>
+    Math.max(LAYER_GAP, ...inGap.map((index) => pills[index]!.w + 2 * PILL_CLEAR + ARROW_GAP)),
+  );
+  const acrossW = used + gapNeed.reduce((sum, gap) => sum + gap, 0) + 2 * PAD_X;
+  const labelled = labelsIn.some((inGap) => inGap.length > 0);
+  // One layer (boxes with no arrows between them) is a row, as is a chain too long to go across, or one its labels would
+  // make wider than the drawing.
+  const direction =
+    layers.length > 1 && layers.length <= maxColumns && !(labelled && acrossW > minWidth) ? 'across' : 'down';
+
   const boxes = new Map<string, DiagramBox>();
   const place = (id: string, x: number, y: number) => {
     const { node, label, sub, title, w, h } = sized.get(id)!;
@@ -240,14 +263,15 @@ export function layoutDiagram(
 
   let width: number;
   let height: number;
+  /** Each gap's span along the layers: x from the end of one column to the start of the next, or y between rows. */
+  const gapSpan: [number, number][] = [];
   if (direction === 'across') {
-    const columnW = layers.map((column) => Math.max(...column.map((id) => sized.get(id)!.w)));
     const stackH = layers.map(
       (column) => column.reduce((sum, id) => sum + sized.get(id)!.h, 0) + (column.length - 1) * STACK_GAP,
     );
-    const used = columnW.reduce((sum, w) => sum + w, 0);
-    const gap = Math.max(LAYER_GAP, labelGap, (minWidth - 2 * PAD_X - used) / (layers.length - 1));
-    width = Math.max(minWidth, used + gap * (layers.length - 1) + 2 * PAD_X);
+    // Room left over is shared by every gap.
+    const spare = Math.max(0, minWidth - acrossW) / gapCount;
+    width = Math.max(minWidth, acrossW);
     const tallest = Math.max(...stackH);
     height = tallest + 2 * PAD_Y;
     let x = PAD_X;
@@ -258,13 +282,21 @@ export function layoutDiagram(
         place(id, x + (columnW[index] - w) / 2, y);
         y += h + STACK_GAP;
       }
-      x += columnW[index] + gap;
+      x += columnW[index];
+      if (index < gapCount) {
+        gapSpan.push([x, x + gapNeed[index] + spare]);
+        x += gapNeed[index] + spare;
+      }
     });
   } else {
     const rowH = layers.map((row) => Math.max(...row.map((id) => sized.get(id)!.h)));
     const rowW = layers.map((row) => row.reduce((sum, id) => sum + sized.get(id)!.w, 0) + (row.length - 1) * SIDE_GAP);
+    // Each gap between rows tall enough to stack its labels.
+    const rowGap = labelsIn.map((inGap) =>
+      Math.max(ROW_GAP, inGap.length * (PILL_H + PILL_STACK) - PILL_STACK + 2 * PILL_CLEAR_Y),
+    );
     width = Math.max(minWidth, Math.max(...rowW) + 2 * PAD_X);
-    height = rowH.reduce((sum, h) => sum + h, 0) + (layers.length - 1) * ROW_GAP + 2 * PAD_Y;
+    height = rowH.reduce((sum, h) => sum + h, 0) + rowGap.reduce((sum, gap) => sum + gap, 0) + 2 * PAD_Y;
     let y = PAD_Y;
     layers.forEach((row, index) => {
       let x = (width - rowW[index]) / 2;
@@ -273,17 +305,23 @@ export function layoutDiagram(
         place(id, x, y + (rowH[index] - h) / 2);
         x += w + SIDE_GAP;
       }
-      y += rowH[index] + ROW_GAP;
+      y += rowH[index];
+      if (index < gapCount) {
+        gapSpan.push([y, y + rowGap[index]]);
+        y += rowGap[index];
+      }
     });
   }
 
-  /** An arrow's path: a line, or a curve through two control points; its midpoint is where its label sits. */
+  /** An arrow's path: a line (its two ends kept, for where its label goes), or a curve with its midpoint. */
   const line = (sx: number, sy: number, ex: number, ey: number) => ({
     d: `M${round(sx)} ${round(sy)} L${round(ex)} ${round(ey)}`,
+    ends: [sx, sy, ex, ey] as const,
     mid: [(sx + ex) / 2, (sy + ey) / 2] as const,
   });
   const curve = (sx: number, sy: number, ax: number, ay: number, bx: number, by: number, ex: number, ey: number) => ({
     d: `M${round(sx)} ${round(sy)} C${round(ax)} ${round(ay)} ${round(bx)} ${round(by)} ${round(ex)} ${round(ey)}`,
+    ends: null,
     // A cubic curve's point at its middle.
     mid: [(sx + 3 * ax + 3 * bx + ex) / 8, (sy + 3 * ay + 3 * by + ey) / 8] as const,
   });
@@ -314,10 +352,60 @@ export function layoutDiagram(
     width = Math.max(width, right + LOOP_SWING + PAD_X);
   }
 
+  // Where each label sits: [x, y], its pill's centre.
+  const at: ([number, number] | null)[] = edges.map(() => null);
+  labelsIn.forEach((inGap, gap) => {
+    const [from, to] = gapSpan[gap];
+    // The point on an arrow at a place along the layers: x across, y down.
+    const on = (index: number, along: number) => {
+      const [sx, sy, ex, ey] = paths[index].ends!;
+      if (direction === 'across') return ex === sx ? sy : sy + ((ey - sy) * (along - sx)) / (ex - sx);
+      return ey === sy ? sx : sx + ((ex - sx) * (along - sy)) / (ey - sy);
+    };
+    const middle = (from + to) / 2;
+    const order = [...inGap].sort((a, b) => on(a, middle) - on(b, middle));
+    if (direction === 'across') {
+      // At the gap's middle on each arrow, pushed apart down the gap where two would touch, then kept inside.
+      let below = -Infinity;
+      const ys = order.map((index) => {
+        below = Math.max(on(index, middle), below + PILL_H + PILL_STACK);
+        return below;
+      });
+      const over = Math.max(0, ys.at(-1)! + PILL_H / 2 + 1 - height);
+      order.forEach((index, n) => {
+        at[index] = [middle, ys[n] - over];
+      });
+    } else {
+      // Stacked down the gap between rows, each on its own arrow.
+      const top = middle - (order.length * (PILL_H + PILL_STACK) - PILL_STACK) / 2;
+      order.forEach((index, n) => {
+        const y = top + n * (PILL_H + PILL_STACK) + PILL_H / 2;
+        at[index] = [on(index, y), y];
+      });
+    }
+  });
+  // A loop's label sits beside its curve, outside every box: under them across, to their right down.
+  const lowest = Math.max(...[...boxes.values()].map((box) => box.y + box.h));
+  const rightmost = Math.max(...[...boxes.values()].map((box) => box.x + box.w));
+  pills.forEach((pill, index) => {
+    if (!pill || at[index]) return;
+    const [mx, my] = paths[index].mid;
+    if (direction === 'across') {
+      const y = Math.max(my, lowest + PILL_STACK + pill.h / 2);
+      height = Math.max(height, y + pill.h / 2 + PILL_STACK);
+      at[index] = [mx, y];
+    } else {
+      const x = Math.max(mx, rightmost + PILL_STACK + pill.w / 2);
+      width = Math.max(width, x + pill.w / 2 + PAD_X);
+      at[index] = [x, my];
+    }
+  });
+
   // Arrows keep the edges' order: the index is the arrow. A label stays inside the drawing.
   const arrows = edges.map((edge, index): DiagramArrow => {
-    const { back: isBack, d, mid } = paths[index];
+    const { back: isBack, d } = paths[index];
     const pill = pills[index];
+    const [x, y] = at[index] ?? [0, 0];
     return {
       from: edge.from,
       to: edge.to,
@@ -327,8 +415,8 @@ export function layoutDiagram(
       label: pill
         ? {
             ...pill,
-            x: round(clamp(mid[0], pill.w / 2 + 1, width - pill.w / 2 - 1)),
-            y: round(clamp(mid[1], pill.h / 2 + 1, height - pill.h / 2 - 1)),
+            x: round(clamp(x, pill.w / 2 + 1, width - pill.w / 2 - 1)),
+            y: round(clamp(y, pill.h / 2 + 1, height - pill.h / 2 - 1)),
           }
         : null,
     };

@@ -73,7 +73,10 @@ export const contributor = (patch: Partial<Contributor> = {}): Contributor => ({
   ...patch,
 });
 
-/** The limits at each access level: a new account's, after claims ran out, and suspended (nothing new starts). */
+/**
+ * The limits at each access level: a new account's, after claims ran out, and suspended (nothing new starts); and at
+ * the standard level with an open pull request limit set for the account, over the setting.
+ */
 export const limits = {
   standard: {
     level: 'STANDARD',
@@ -106,6 +109,16 @@ export const limits = {
     openPrsAtATime: 2,
     claimsPerDay: 0,
     revealsPerDay: 0,
+  },
+  openPrsSet: {
+    level: 'STANDARD',
+    reason: null,
+    attemptsAtATime: 3,
+    openPrsAtATime: 10,
+    openPrsEffective: 16,
+    openPrsOverride: 16,
+    claimsPerDay: 10,
+    revealsPerDay: 150,
   },
 } satisfies Record<string, ContributeLimits>;
 

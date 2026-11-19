@@ -173,8 +173,15 @@ export type ContributeLimits = {
   reason: ContributeAccessReason | null;
   /** The most attempts at a time that hold now: the settings field's maximum. */
   attemptsAtATime: number;
-  /** The most open pull requests at a time that hold now: the settings field's maximum. */
+  /** The most open pull requests at a time the level allows: the settings field's maximum, not the limit that holds. */
   openPrsAtATime: number;
+  /**
+   * The open pull requests at a time that hold now: the setting under the level's maximum, or the limit set for the
+   * account. Left out (or null) while the API does not answer it: `effectiveSettingOf` then works it out.
+   */
+  openPrsEffective?: number | null;
+  /** The open pull request limit set for the account, which holds over the setting; null with none. */
+  openPrsOverride?: number | null;
   /** New claims a day, every runner together. */
   claimsPerDay: number;
   /** Newly shown issues a day. */

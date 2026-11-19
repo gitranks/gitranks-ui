@@ -1260,8 +1260,12 @@ export type ContributeLimits = {
   /** New claims a day, every runner together */
   claimsPerDay: Scalars['Int']['output'];
   level: ContributeAccessLevel;
-  /** The most open pull requests at a time that hold now: the settings field’s maximum */
+  /** The most open pull requests at a time the access level allows: the settings field’s maximum. Not the limit that holds: openPrsEffective */
   openPrsAtATime: Scalars['Int']['output'];
+  /** The open pull request limit that holds now, the one number to show and compare against: the limit set for the account when there is one, else the smaller of the setting and openPrsAtATime */
+  openPrsEffective?: Maybe<Scalars['Int']['output']>;
+  /** The open pull request limit set for this account by GitRanks, over the setting; null when none is set */
+  openPrsOverride?: Maybe<Scalars['Int']['output']>;
   /** Why REDUCED; null at any other level */
   reason?: Maybe<ContributeAccessReason>;
   /** Newly shown issues a day */

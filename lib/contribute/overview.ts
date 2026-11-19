@@ -1,4 +1,4 @@
-import { effectiveSettingOf } from './access-limits';
+import { effectiveSettingOf, openPrsOverrideOf } from './access-limits';
 import { AGENT_NAMES } from './attempt-format';
 import type {
   ContributeAttempt,
@@ -127,7 +127,8 @@ function hostedHoldOf(
   if (VIEW_BLOCKS.has(step.kind)) return step;
 
   const settings = view.contributor?.settings;
-  // The slots and the open PRs cap as they hold now: the access level may hold them below the settings.
+  // The slots and the open PRs cap as they hold now: the access level may hold them below the settings, and a limit
+  // set for the account replaces the open PRs one.
   const limits = view.contributor?.limits;
   const slots = settings ? effectiveSettingOf(settings, limits, 'attemptsAtATime') : 0;
   const prCap = settings ? effectiveSettingOf(settings, limits, 'openPrsAtATime') : 0;
@@ -137,7 +138,9 @@ function hostedHoldOf(
     return { kind: working ? 'slots-busy' : 'slots-taken', slots, ...limited };
   }
   if (counts && settings && counts.prBound >= prCap) {
-    const limited = prCap < settings.openPrsAtATime ? ({ limited: true } as const) : {};
+    // Settings shows a limit set for the account, so its link stays; a level's cap below the setting it cannot lift.
+    const held = openPrsOverrideOf(limits) === null && prCap < settings.openPrsAtATime;
+    const limited = held ? ({ limited: true } as const) : {};
     return { kind: 'pr-cap', prBound: counts.prBound, cap: prCap, ...limited };
   }
   if (counts && settings?.pace === 'QUEUED' && counts.queued === 0) return { kind: 'nothing-queued' };

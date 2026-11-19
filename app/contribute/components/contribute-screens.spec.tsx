@@ -936,6 +936,15 @@ describe('the access level', () => {
     expect(standard).not.toContain('data-cap-hint');
   });
 
+  it('shows an open PRs limit set for the account in place of the setting, not to be edited', () => {
+    const view = { ...views.active, contributor: { ...views.active.contributor, limits: limits.openPrsSet } };
+    const agent = renderToStaticMarkup(<FormSettingsScreen page="agent" view={view} />);
+    expect(text(agent)).toContain('Open PRs at a time Set for your account by GitRanks.');
+    expect(agent).toMatch(/readOnly=""[^>]*value="16"|value="16"[^>]*readOnly=""/);
+    expect(agent).toMatch(/aria-describedby="([^"]*openPrsAtATime-hint)"[^>]*>.*id="\1"/s);
+    expect(text(agent)).not.toContain('Up to');
+  });
+
   it('refuses a value typed above the cap on save, and keeps the stored one', async () => {
     const { pagePatchOf } = await import('./settings-form');
     const draft = {

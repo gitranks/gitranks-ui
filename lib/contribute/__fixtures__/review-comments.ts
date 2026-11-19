@@ -1,6 +1,6 @@
-import type { CommentActionsInit } from '../comment-actions';
-import type { ContributeFeedbackThread, ContributeReplyDraft } from '../contribute.types';
 import { feedbackThread, flowDraft } from './contribute-attempts';
+import type { CommentActionsInit } from '@/lib/workspace/comment-actions';
+import type { ContributeFeedbackThread, ContributeReplyDraft } from '@/lib/workspace/contribute.types';
 
 /**
  * Review comments in every state the list draws (made-up repos, accounts and text): replies refused for one reason

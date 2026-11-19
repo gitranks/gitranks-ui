@@ -1,6 +1,6 @@
 /** GitRanks Learn, as the API answers it: a lesson on a fix the user's own agent made, and the user's run through it. */
 
-import type { ContributeAttemptEvent, ContributeAttemptState } from '@/lib/contribute/contribute.types';
+import type { ContributeAttemptEvent, ContributeAttemptState } from '@/lib/workspace/contribute.types';
 
 export type LessonVisibility = 'PRIVATE' | 'PUBLIC' | 'REMOVED' | 'HIDDEN' | 'HELD';
 export type LessonStepState = 'OPEN' | 'KNEW' | 'FIRST_TRY' | 'TRY_N' | 'REPORTED';
@@ -15,7 +15,6 @@ export type LessonDiagramLayout = 'FLOW' | 'SEQUENCE';
 /** What the two sides of a before-and-after are: small diagrams, or code excerpts. */
 export type LessonCompareOf = 'DIAGRAM' | 'CODE';
 export type LessonReportReason = 'WRONG_KEY' | 'UNCLEAR' | 'OFF_TOPIC' | 'TWO_FIT';
-export type ContributeAttemptMode = 'FIX' | 'LEARN';
 
 /** Where a Learn attempt is, from the claim to the pull request. */
 export type LearnStage =

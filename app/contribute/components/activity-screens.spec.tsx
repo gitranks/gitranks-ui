@@ -7,13 +7,13 @@ vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock('@/app/contribute/actions', () => ({ readContributeChanges: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({ readContributeChanges: vi.fn() }));
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({ useReportPendingNavigation: () => {} }));
 
-const { ActivityBarView } = await import('./activity');
+const { ActivityBarView } = await import('@/components/workspace/activity');
 const { ContributeTabsNav } = await import('./contribute-tabs-nav');
 
-import type { ContributeActivity, ContributeActivityItem } from '@/lib/contribute/contribute.types';
+import type { ContributeActivity, ContributeActivityItem } from '@/lib/workspace/contribute.types';
 
 const NOW = new Date('2026-10-31T12:04:00.000Z');
 const text = (html: string) =>

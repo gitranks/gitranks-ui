@@ -1,23 +1,23 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
-import { AccessSection } from './access-section';
-import { ContributeNotices } from './contribute-notices';
-import { ModeSwitch } from './mode-switch';
-import { OwnAgentSection } from './own-agent-section';
-import { Panel, PanelTitle } from './primitives';
-import { ScrollToHash } from './scroll-to-hash';
-import { SetListScreen } from './set-list-screen';
-import { SettingsForm, type SettingsFormPage } from './settings-form';
-import { SettingsPageHead } from './settings-rows';
 import { loadSettingsView } from './settings-view';
-import { loadContributeSet } from '@/lib/contribute/contribute.data';
-import type { ContributeSet, ContributeSetListMode, ContributeView } from '@/lib/contribute/contribute.types';
-import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, settingsOf } from '@/lib/contribute/contribute-state';
-import { type GrantRefusal, grantRefusalOf } from '@/lib/contribute/grant-refusal';
-import { ownAgentTextOf } from '@/lib/contribute/mcp-setup';
+import { ModeSwitch } from '@/components/contribute/mode-switch';
+import { SetListScreen } from '@/components/contribute/set-list-screen';
+import { AccessSection } from '@/components/workspace/agent/access-section';
+import { OwnAgentSection } from '@/components/workspace/agent/own-agent-section';
+import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { Panel, PanelTitle } from '@/components/workspace/primitives';
+import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
+import { SettingsForm, type SettingsFormPage } from '@/components/workspace/settings/settings-form';
+import { SettingsPageHead } from '@/components/workspace/settings-rows';
 import { MODES, modeTitleOf } from '@/lib/contribute/set-format';
-import { SETTINGS_PATHS, switchModeOf } from '@/lib/contribute/settings-paths';
+import { loadContributeSet } from '@/lib/workspace/contribute.data';
+import type { ContributeSet, ContributeSetListMode, ContributeView } from '@/lib/workspace/contribute.types';
+import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, settingsOf } from '@/lib/workspace/contribute-state';
+import { type GrantRefusal, grantRefusalOf } from '@/lib/workspace/grant-refusal';
+import { ownAgentTextOf } from '@/lib/workspace/mcp-setup';
+import { SETTINGS_PATHS, switchModeOf } from '@/lib/workspace/paths';
 
 export async function WorkSettingsView() {
   const [, set] = await Promise.all([loadSettingsView(), loadContributeSet()]);

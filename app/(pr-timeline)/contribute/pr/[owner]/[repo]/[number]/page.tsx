@@ -4,11 +4,11 @@ import { notFound } from 'next/navigation';
 import { PrTimelineScreen } from '@/app/contribute/components/pr-timeline-view';
 import { Header } from '@/components/header/header';
 import { JsonLd } from '@/components/json-ld/json-ld';
-import { parsePrLink } from '@/lib/contribute/pr-feedback';
 import { NO_PR, publicPrTimeline } from '@/lib/contribute/pr-timeline.data';
-import { prTimelineMarkdownPath, prTimelinePath } from '@/lib/contribute/pr-timeline-path';
 import { prTimelineDescriptionOf, prTimelineJsonLdOf, prTimelineTitleOf } from '@/lib/contribute/pr-timeline-seo';
 import { pageMetadata } from '@/lib/seo/page-metadata';
+import { parsePrLink } from '@/lib/workspace/pr-feedback';
+import { prTimelineMarkdownPath, prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 // No PR is known at build time: generateStaticParams lists one no repository has, so every real page renders on
 // request as a whole page before the response starts, then is kept for its cache life. The proxy has asked the API

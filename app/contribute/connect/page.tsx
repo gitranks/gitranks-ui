@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { ConnectView } from '../components/connect-view';
-import { ContributePageSkeleton } from '../components/page-skeleton';
+import { ConnectView } from '@/components/workspace/agent/connect-view';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'Connect Claude' };
 

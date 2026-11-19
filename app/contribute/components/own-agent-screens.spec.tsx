@@ -9,8 +9,9 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
   loadResolveHumanThreads: vi.fn(async () => undefined),
@@ -19,21 +20,23 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadRepliesWaiting: vi.fn(),
 }));
 
-const { OwnAgentSection, OWN_AGENT_SAFETY, SetupLines } = await import('./own-agent-section');
+const { OwnAgentSection, OWN_AGENT_SAFETY, SetupLines } = await import(
+  '@/components/workspace/agent/own-agent-section'
+);
 const { SettingsScreen } = await import('./settings-view');
 const { OwnAgentSettingsScreen } = await import('./settings-pages');
-const { OwnAgentConnectScreen, ConnectScreen } = await import('./connect-view');
-const { ReviewScreen } = await import('./review-view');
-const { ContributionsScreen } = await import('./contributions-view');
+const { OwnAgentConnectScreen, ConnectScreen } = await import('@/components/workspace/agent/connect-view');
+const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
+const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
 const { NOW, views, contributor } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { attempt, contributions, detail, ownAgentAttempt } = await import(
   '@/lib/contribute/__fixtures__/contribute-attempts'
 );
-const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
-const { AGENT_FIRST_PROMPT, MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/contribute/mcp-setup');
-const { OWN_AGENT_SETUPS } = await import('@/lib/contribute/own-agent-setups');
+const { contributeNoticesOf } = await import('@/lib/workspace/contribute-state');
+const { AGENT_FIRST_PROMPT, MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/workspace/mcp-setup');
+const { OWN_AGENT_SETUPS } = await import('@/lib/workspace/own-agent-setups');
 
-import type { ContributeOwnAgent, ContributeView } from '@/lib/contribute/contribute.types';
+import type { ContributeOwnAgent, ContributeView } from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html

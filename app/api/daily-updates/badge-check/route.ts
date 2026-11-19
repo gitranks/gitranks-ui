@@ -4,9 +4,9 @@ import { json } from '../api-call';
 import { isBadgeCheckResult } from '@/app/badge/builder/[[...login]]/utils/badge-check';
 import { packageRefOf } from '@/app/badge/builder/[[...login]]/utils/builder-state';
 import { accountEmailOf } from '@/lib/account-email';
-import { sessionTokenOf } from '@/lib/contribute/session-token';
 import { isRepoName } from '@/lib/routing/ranking-routes';
 import { signedFetch } from '@/lib/signed-fetch';
+import { sessionTokenOf } from '@/lib/workspace/session-token';
 import type { BadgeCheckKind, BadgeCheckResult } from '@/types/daily-updates.types';
 import { isGithubLogin } from '@/utils/profile-refresh';
 

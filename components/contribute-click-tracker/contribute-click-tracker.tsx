@@ -16,7 +16,7 @@ import {
   type LearnEvent,
   lastClickOf,
   namesChannel,
-} from '@/lib/contribute/click-tracking';
+} from '@/lib/workspace/click-tracking';
 
 /** This tab's entry (campaign tags, referrer), kept for the tab so later clicks carry it. */
 const ENTRY_KEY = 'contribute_entry_v1';

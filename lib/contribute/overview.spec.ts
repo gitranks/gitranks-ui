@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { attempt } from './__fixtures__/contribute-attempts';
 import { issuePage, nowIdle } from './__fixtures__/contribute-overview';
 import { contributor, firstSpend, limits, mcpToken, NOW, settings, views } from './__fixtures__/contribute-views';
-import type { ContributeAttempt, ContributeView } from './contribute.types';
 import { impactTilesOf, lastUsedTokenOf, rankedOf, rightNowOf } from './overview';
+import type { ContributeAttempt, ContributeView } from '@/lib/workspace/contribute.types';
 
 /** Both ways set up: a key and a live token the agent has called with. */
 const both: ContributeView = {

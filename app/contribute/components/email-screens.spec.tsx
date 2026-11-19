@@ -13,14 +13,17 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-vi.mock('@/app/contribute/actions', () => ({ setContributeEmail }));
-vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({ setContributeEmail }));
+vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 
-const { EMAIL_AUTOPILOT_NOTE, EMAIL_OFF, EMAIL_TITLE, EmailSection } = await import('./email-section');
+const { EMAIL_AUTOPILOT_NOTE, EMAIL_OFF, EMAIL_TITLE, EmailSection } = await import(
+  '@/components/workspace/settings/email-section'
+);
 const { SettingsScreen } = await import('./settings-view');
 const { NOW, email: fixture, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 
-import type { ContributeEmail } from '@/lib/contribute/contribute.types';
+import type { ContributeEmail } from '@/lib/workspace/contribute.types';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

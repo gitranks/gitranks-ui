@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { ContributionsView } from '../components/contributions-view';
-import { ContributePageSkeleton } from '../components/page-skeleton';
+import { ContributionsView } from '@/components/workspace/contributions-view';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'My contributions' };
 

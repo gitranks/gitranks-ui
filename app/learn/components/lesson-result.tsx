@@ -3,20 +3,18 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { LearnViewReport } from './learn-view-report';
-import { StepArticle } from './lesson-flow';
 import { avatarOf, LessonEyebrow, LessonMeta } from './lesson-header';
 import { LESSON_MAIN } from './lesson-page';
 import { LessonStubScreen } from './lesson-stub';
-import { Figure } from './lesson-summary';
-import { QuestionCard } from './question-card';
 import { ResultReactions } from './result-reactions';
 import { GithubAvatar } from '@/app/components/landing/landing-ui';
-import { HEADING } from '@/app/contribute/components/primitives';
+import { StepArticle } from '@/components/learn/lesson-flow';
+import { Figure } from '@/components/learn/lesson-summary';
+import { QuestionCard } from '@/components/learn/question-card';
 import { Pill } from '@/components/pill/pill';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
-import { viewerLogin } from '@/lib/contribute/contribute.data';
-import { fullDayLabel } from '@/lib/contribute/maintainers-format';
+import { HEADING } from '@/components/workspace/primitives';
 import type {
   LessonQuestion,
   LessonQuestionKeyed,
@@ -38,6 +36,8 @@ import {
 import { loadLessonResult, loadMyResultReaction } from '@/lib/learn/lesson-public.data';
 import { stepResultLabel } from '@/lib/learn/question';
 import { hasReactionMark } from '@/lib/learn/react-mark';
+import { viewerLogin } from '@/lib/workspace/contribute.data';
+import { fullDayLabel } from '@/lib/workspace/maintainers-format';
 
 const CARD = 'flex flex-col gap-2 rounded-xl border bg-card p-4.5';
 

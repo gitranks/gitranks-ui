@@ -3,8 +3,8 @@ import type {
   ContributeIssue,
   ContributeIssuePage,
   ContributeIssueStatus,
-} from './contribute.types';
-import { type ContributeActionResult, contributeErrorMessage } from './errors';
+} from '@/lib/workspace/contribute.types';
+import { type ContributeActionResult, contributeErrorMessage } from '@/lib/workspace/errors';
 
 /** A page of the feed, as the Issues list reads it. */
 export const ISSUES_PAGE_SIZE = 20;

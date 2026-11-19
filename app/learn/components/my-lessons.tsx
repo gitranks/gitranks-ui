@@ -3,10 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { LearnSettingUp } from './learn-setting-up';
-import { ListRow, ListSection } from '@/app/contribute/components/contributions-view';
-import { HEADING, PageTitle } from '@/app/contribute/components/primitives';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
+import { ListRow, ListSection } from '@/components/workspace/contributions-view';
+import { HEADING, PageTitle } from '@/components/workspace/primitives';
 import { loadLearnOpen, loadLearnProfile, loadLearnSetup, loadMyLessons } from '@/lib/learn/learn.data';
 import type { MyLesson } from '@/lib/learn/learn.types';
 import { LEARN_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';

@@ -1,8 +1,8 @@
 import type { Route } from 'next';
 
-import { MAINTAINERS_PATH, MCP_DOCS_PATH } from './contribute-path';
-import { AUTOPILOT_UNLOCK_AT } from './format';
 import { CONTACT_EMAIL } from '@/lib/legal';
+import { AUTOPILOT_UNLOCK_AT } from '@/lib/workspace/format';
+import { MAINTAINERS_PATH, MCP_DOCS_PATH } from '@/lib/workspace/paths';
 
 /** A question, its answer, and where to read more. The id is its anchor on the questions page. */
 export type FaqEntry = { id: string; question: string; answer: string; more?: { href: Route; label: string } };

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { fullReposSet, resolve, setRepo, stackSet } from './__fixtures__/contribute-sets';
-import type { ContributeSetReason } from './contribute.types';
 import {
   addNoticeOf,
   addTargetOf,
@@ -15,6 +14,7 @@ import {
   tiersOf,
   viaGroupsOf,
 } from './set-format';
+import type { ContributeSetReason } from '@/lib/workspace/contribute.types';
 
 const noSkips = { ignored: 0, duplicate: 0, unsupported: [], failed: [] };
 

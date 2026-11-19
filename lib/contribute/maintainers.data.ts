@@ -1,10 +1,10 @@
 import 'server-only';
 
-import { MaintainerReposDocument, MaintainerReposWithRulesDocument } from './contribute.documents';
-import type { ContributeMaintainerRepos } from './contribute.types';
-import { type MaintainerErrorCode, maintainerErrorOf } from './errors';
 import { currentMaintainerToken } from './maintainer-token';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { MaintainerReposDocument, MaintainerReposWithRulesDocument } from '@/lib/workspace/contribute.documents';
+import type { ContributeMaintainerRepos } from '@/lib/workspace/contribute.types';
+import { type MaintainerErrorCode, maintainerErrorOf } from '@/lib/workspace/errors';
 
 /** What the maintainers page shows below its explanation. */
 export type MaintainerReposView =

@@ -1,0 +1,1133 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { graphqlDirect, auth } = vi.hoisted(() => ({ graphqlDirect: vi.fn(), auth: vi.fn() }));
+vi.mock('server-only', () => ({}));
+// A server action's cache expiry needs a request; the actions are called here without one.
+vi.mock('next/cache', async (load) => ({ ...(await load<typeof import('next/cache')>()), revalidateTag: vi.fn() }));
+vi.mock('@/auth', () => ({ auth }));
+vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
+
+const actions = { ...(await import('./actions')), ...(await import('@/lib/contribute/actions')) };
+const {
+  AddToContributeSetDocument,
+  ApproveAttemptDocument,
+  ApproveContributeOAuthDocument,
+  ApproveFollowUpDocument,
+  ApproveRepliesAsOneCommentDocument,
+  ApproveReplyDocument,
+  ConnectClaudeKeyDocument,
+  ConnectClaudeKeyWithLimitsDocument,
+  ContributeAttemptLiveBareDocument,
+  ContributeAttemptLiveDocument,
+  ContributeIssueStatusDocument,
+  ContributeIssuesDocument,
+  ContributeIssuesWithRulesDocument,
+  ContributeMcpConnectionsUsedDocument,
+  ContributeOnboardingDocument,
+  DismissReplyDocument,
+  ContributeOwnAgentDocument,
+  CreateMcpTokenDocument,
+  RetryAttemptDocument,
+  SetContributeEmailDocument,
+  DiscardAttemptDocument,
+  RevokeMcpTokenDocument,
+  SendBackToAgentDocument,
+  SendContributeFeedbackDocument,
+  StartFollowUpDocument,
+  StartFollowUpOnDocument,
+  FixContributePullRequestDocument,
+  IgnoreReviewThreadsDocument,
+  MarkNeedsYouHandledDocument,
+  MarkNeedsYouHandledKindsDocument,
+  VetoAutopilotDocument,
+} = await import('@/lib/workspace/contribute.documents');
+
+type Action = (...args: never[]) => Promise<{ ok: boolean; error?: string; message?: string }>;
+
+/** Every server action, with arguments that name another user wherever an argument could. */
+const CALLS: Record<string, unknown[]> = {
+  connectClaudeKey: [{ key: 'sk-ant-x', plan: 'MAX_5X', renewalDay: 14, confirmedLimit: true, githubLogin: 'mallory' }],
+  readFeedComputedAt: [],
+  removeClaudeKey: [],
+  saveContributeSettings: [{ cycleCapUsd: 10, githubLogin: 'mallory' }],
+  savePreferences: [{ languages: ['GO'], githubLogin: 'mallory' }],
+  noteProviderInterest: ['OPENAI'],
+  withdrawProviderInterest: ['OPENAI'],
+  deleteContributeData: [],
+  revokeGithubGrant: [],
+  pauseContributing: [],
+  setContributeEmail: [false],
+  resumeContributing: [],
+  skipIssue: ['I_1'],
+  readIssueStatuses: [['I_1', 'I_2']],
+  readIssuesPage: [{ after: 'c2', first: 2, filter: { languages: ['RUST'] }, githubLogin: 'mallory' }],
+  approveAttempt: [{ id: 'A_1', title: 'Fix it', body: 'Fixes #1', dco: true, githubLogin: 'mallory' }],
+  discardAttempt: ['A_1'],
+  retryAttempt: ['A_1'],
+  setPrTimeline: [{ attemptId: 'A_1', shown: false, nameWithOwner: 'acme/widgets', number: 42 }],
+  startFollowUp: ['PR_1'],
+  approveFollowUp: ['A_F1', 'Follow-up', [{ draftId: 'D_1', text: 'Renamed it.', send: true }]],
+  setResolveHumanThreads: [true],
+  vetoAutopilot: ['A_1'],
+  hidePrNote: ['6650a1b2c3d4e5f6a7b8c9d0', true],
+  fixPullRequest: [{ attemptId: 'A_1', kind: 'TITLE', title: 'fix: x', githubLogin: 'mallory' }],
+  markNeedsYouHandled: ['PR_1'],
+  ignoreReviewThreads: ['PR_1', ['C_1']],
+  approveReply: ['D_1'],
+  approveRepliesAsOneComment: ['A_F1', { draftIds: ['D_1', 'D_2'] }, 'key-0123456789'],
+  dismissReply: ['D_1', 'NOT_NEEDED'],
+  createMcpToken: ['laptop'],
+  revokeMcpToken: ['T_1'],
+  readAgentConnected: [{ tokenId: 'T_1', onboarded: true, githubLogin: 'mallory' }],
+  approveContributeOAuth: ['aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789-_abcde'],
+  sendBackToAgent: ['A_1', 'Add a test for tabs'],
+  setContributeMode: ['STACK'],
+  setContributeFallback: ['REPOS', 'SET_ONLY'],
+  addToContributeSet: ['REPOS', 'vercel'],
+  removeFromContributeSet: ['REPOS', ['R_1']],
+  ignoreContributeRepo: ['R_1'],
+  unignoreContributeRepo: ['R_1'],
+  resolveContributeStack: [],
+  readAttemptLive: ['A_1'],
+  readContributeChanges: ['3.1', false],
+  sendContributeFeedback: ['GATES', 'lodash is left out', { mode: 'STACK', githubLogin: 'mallory' }],
+  approveContributeProof: ['PF_1', true],
+  sendBackContributeProof: ['PF_1', 'Capture the log too'],
+  discardContributeProof: ['PF_1'],
+  takeBackContributeProof: ['PF_1'],
+  postContributeProofReply: ['PF_1', 'Thanks for the review.'],
+  retryContributeProof: ['PF_1'],
+  readRunsPage: [{ href: '/contribute/runs', after: 'c1' }],
+};
+
+/** The actions about what the user works on: open to every signed-in login. */
+const SET_ACTIONS = [
+  'setContributeMode',
+  'setContributeFallback',
+  'addToContributeSet',
+  'removeFromContributeSet',
+  'ignoreContributeRepo',
+  'unignoreContributeRepo',
+  'resolveContributeStack',
+  'sendContributeFeedback',
+];
+const loginOf = (name: string) => (SET_ACTIONS.includes(name) ? 'maslianok' : 'octocat');
+
+const exported = Object.entries(actions).filter(([, value]) => typeof value === 'function') as [string, Action][];
+
+describe('the Contribute server actions', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    graphqlDirect.mockResolvedValue({});
+    auth.mockReset();
+  });
+
+  it('are all covered here', () => {
+    expect(exported.map(([name]) => name).sort()).toEqual(Object.keys(CALLS).sort());
+  });
+
+  it("reads a submitting attempt again with its steps' clock, and without it from an API that lacks it", async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    const live = { attemptId: 'A_1', state: 'SUBMITTING', updatedAt: 'x', submit: null, pullRequest: null };
+    graphqlDirect.mockResolvedValueOnce({ contributeAttempt: live });
+    const read = await actions.readAttemptLive('A_1');
+    expect(read).toMatchObject({ ok: true, data: { attempt: live, clock: true } });
+    expect(read.ok && Number.isNaN(Date.parse(read.data.readAt))).toBe(false);
+    expect(graphqlDirect.mock.calls[0][0]).toBe(ContributeAttemptLiveDocument);
+
+    graphqlDirect.mockReset();
+    graphqlDirect
+      .mockRejectedValueOnce(new Error(JSON.stringify([{ message: 'Cannot query field "steps" on type "X".' }])))
+      .mockResolvedValueOnce({ contributeAttempt: live });
+    await expect(actions.readAttemptLive('A_1')).resolves.toMatchObject({
+      ok: true,
+      data: { attempt: live, clock: false },
+    });
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
+      ContributeAttemptLiveDocument,
+      ContributeAttemptLiveBareDocument,
+    ]);
+    // Told so, the stepper asks without the clock: one read, not two.
+    graphqlDirect.mockReset();
+    graphqlDirect.mockResolvedValueOnce({ contributeAttempt: live });
+    await expect(actions.readAttemptLive('A_1', false)).resolves.toMatchObject({ ok: true, data: { clock: false } });
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([ContributeAttemptLiveBareDocument]);
+
+    // Not the viewer's: no second read.
+    graphqlDirect.mockReset();
+    graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify([{ extensions: { code: 'NOT_FOUND' } }])));
+    await expect(actions.readAttemptLive('A_1')).resolves.toMatchObject({ ok: false, error: 'NOT_FOUND' });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(Object.keys(CALLS))('%s runs as the signed-in user, never one named in its arguments', async (name) => {
+    auth.mockResolvedValue({ user: { githubLogin: loginOf(name) }, expires: '2099-01-01' });
+    const action = (actions as unknown as Record<string, Action>)[name];
+
+    await action(...(CALLS[name] as never[]));
+
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'client', githubLogin: loginOf(name) });
+  });
+
+  it("sends the session's email with a write, so Notify me's email has an address; never a malformed one", async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat', email: ' octo@example.com ' }, expires: '2099-01-01' });
+    await actions.noteProviderInterest('CHATGPT');
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({
+      source: 'client',
+      githubLogin: 'octocat',
+      accountEmail: 'octo@example.com',
+    });
+
+    graphqlDirect.mockClear();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat', email: 'not an address' }, expires: '2099-01-01' });
+    await actions.noteProviderInterest('CHATGPT');
+    expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
+  });
+
+  it('sends the email with a set write too, and never with a read or a poll', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'maslianok', email: 'm@example.com' }, expires: '2099-01-01' });
+    await actions.setContributeMode('STACK');
+    expect(graphqlDirect.mock.calls[0][2]).toMatchObject({ accountEmail: 'm@example.com' });
+
+    graphqlDirect.mockClear();
+    await actions.readFeedComputedAt();
+    expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
+  });
+
+  it('turns GitRanks email on or off with a plain boolean, and answers what the API saved', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    graphqlDirect.mockResolvedValueOnce({ setContributeEmail: { on: false, to: 'o•••@example.com' } });
+    await expect(actions.setContributeEmail(false)).resolves.toEqual({
+      ok: true,
+      data: { on: false, to: 'o•••@example.com' },
+    });
+    expect(graphqlDirect.mock.calls[0][0]).toBe(SetContributeEmailDocument);
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ on: false });
+
+    graphqlDirect.mockClear();
+    await actions.setContributeEmail('yes' as unknown as boolean);
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ on: false });
+
+    graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify([{ extensions: { code: 'NOT_FOUND' } }])));
+    await expect(actions.setContributeEmail(true)).resolves.toMatchObject({ ok: false, error: 'NOT_FOUND' });
+  });
+
+  it.each(SET_ACTIONS)('%s goes to the API for any signed-in login: the modes are open to everyone', async (name) => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    const action = (actions as unknown as Record<string, Action>)[name];
+
+    await action(...(CALLS[name] as never[]));
+    expect(graphqlDirect).toHaveBeenCalled();
+    expect(graphqlDirect.mock.calls[0][2]).toMatchObject({ source: 'client', githubLogin: 'octocat' });
+  });
+
+  it.each(Object.keys(CALLS))(
+    '%s calls nothing without a session, or with one that needs a new sign-in',
+    async (name) => {
+      const action = (actions as unknown as Record<string, Action>)[name];
+
+      auth.mockResolvedValueOnce(null);
+      expect(await action(...(CALLS[name] as never[]))).toEqual({ ok: false, error: 'SIGNED_OUT' });
+      auth.mockResolvedValueOnce({
+        user: { githubLogin: 'octocat' },
+        error: 'RefreshTokenError',
+        expires: '2099-01-01',
+      });
+      expect(await action(...(CALLS[name] as never[]))).toEqual({ ok: false, error: 'SIGNED_OUT' });
+
+      expect(graphqlDirect).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe('connectClaudeKey', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    graphqlDirect.mockResolvedValue({
+      connectClaudeKey: { result: 'CONNECTED', retryAfterSec: null, credential: null },
+    });
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const input = { key: ' sk-ant-x ', plan: 'MAX_5X' as const, renewalDay: 14.6, confirmedLimit: true };
+
+  it('connects from a plan without asking for limits, so an API without them still takes it', async () => {
+    await actions.connectClaudeKey(input);
+
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ConnectClaudeKeyDocument,
+      { key: 'sk-ant-x', plan: 'MAX_5X', renewalDay: 14, confirmedLimit: true },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
+
+  it('sends the limits the user set, a week or day cap left empty as none, and nothing else', async () => {
+    await actions.connectClaudeKey({
+      ...input,
+      plan: 'CREDITS',
+      cycleCapUsd: 50,
+      limits: { weekCapUsd: null, dayCapUsd: 10, attemptCapUsd: 5, pace: 'FAST', extra: 1 } as never,
+    });
+
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ConnectClaudeKeyWithLimitsDocument,
+      {
+        key: 'sk-ant-x',
+        plan: 'CREDITS',
+        renewalDay: 14,
+        confirmedLimit: true,
+        cycleCapUsd: 50,
+        limits: { weekCapUsd: null, dayCapUsd: 10, attemptCapUsd: 5, pace: 'FAST' },
+      },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
+});
+
+describe('approveAttempt and discardAttempt', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it('sends the trimmed title and body, and the sign-off only when it is ticked', async () => {
+    graphqlDirect.mockResolvedValue({ approveAttempt: { attemptId: 'A_1', state: 'SUBMITTING' } });
+
+    const result = await actions.approveAttempt({
+      id: 'A_1',
+      title: '  Fix it ',
+      body: ' Body\n',
+      dco: 'yes' as never,
+    });
+
+    expect(result).toEqual({ ok: true, data: { attemptId: 'A_1', state: 'SUBMITTING' } });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ApproveAttemptDocument,
+      { id: 'A_1', title: 'Fix it', body: 'Body', dco: false },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
+
+  it('refuses an empty or too long title, and a too long body, without calling the API', async () => {
+    expect(await actions.approveAttempt({ id: 'A_1', title: ' ', body: '', dco: false })).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(await actions.approveAttempt({ id: 'A_1', title: 'x'.repeat(257), body: '', dco: false })).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(
+      await actions.approveAttempt({ id: 'A_1', title: 'Fix', body: 'x'.repeat(60_001), dco: false }),
+    ).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it("passes on the API's refusal of an attempt that is not in review any more", async () => {
+    graphqlDirect.mockRejectedValue(
+      new Error(JSON.stringify([{ message: 'The attempt is not in review', extensions: { code: 'CONFLICT' } }])),
+    );
+
+    expect(await actions.discardAttempt('A_1')).toEqual({
+      ok: false,
+      error: 'INVALID',
+      message: 'The attempt is not in review',
+    });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      DiscardAttemptDocument,
+      { id: 'A_1' },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
+
+  it('says an attempt that is not the user’s was not found', async () => {
+    graphqlDirect.mockRejectedValue(
+      new Error(JSON.stringify([{ message: 'nope', extensions: { code: 'NOT_FOUND' } }])),
+    );
+
+    expect(await actions.discardAttempt('A_2')).toEqual({ ok: false, error: 'NOT_FOUND' });
+  });
+});
+
+describe('the open pull request fixes', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it('sends one fix as the signed-in user, and refuses a kind or a title we do not send', async () => {
+    graphqlDirect.mockResolvedValue({ fixContributePullRequest: { attemptId: 'A_1' } });
+    await expect(actions.fixPullRequest({ attemptId: 'A_1', kind: 'TITLE', title: '  fix: x  ' })).resolves.toEqual({
+      ok: true,
+      data: { attemptId: 'A_1' },
+    });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      FixContributePullRequestDocument,
+      { attemptId: 'A_1', kind: 'TITLE', title: 'fix: x', body: undefined },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    await actions.fixPullRequest({ attemptId: 'A_1', kind: 'CHANGELOG' });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      FixContributePullRequestDocument,
+      { attemptId: 'A_1', kind: 'CHANGELOG', title: undefined, body: undefined },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    graphqlDirect.mockClear();
+    expect(await actions.fixPullRequest({ attemptId: 'A_1', kind: 'MERGE' as never })).toMatchObject({
+      error: 'INVALID',
+    });
+    expect(await actions.fixPullRequest({ attemptId: 'A_1', kind: 'TITLE', title: ' ' })).toMatchObject({
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+});
+
+describe('the follow-up actions', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it.each([
+    ['startFollowUp', StartFollowUpDocument, 'PR_1', { prId: 'PR_1' }, 'startFollowUp'],
+    ['vetoAutopilot', VetoAutopilotDocument, 'A_1', { attemptId: 'A_1' }, 'vetoAutopilot'],
+    ['markNeedsYouHandled', MarkNeedsYouHandledDocument, 'PR_1', { prId: 'PR_1' }, 'markNeedsYouHandled'],
+    ['approveReply', ApproveReplyDocument, 'D_1', { draftId: 'D_1' }, 'approveReply'],
+  ] as const)(
+    '%s sends its one id, as the signed-in user, and answers what the API did',
+    async (name, document, id, variables, field) => {
+      graphqlDirect.mockResolvedValue({ [field]: { ok: id } });
+      const action = (actions as unknown as Record<string, (value: string) => Promise<unknown>>)[name];
+
+      expect(await action(id)).toEqual({ ok: true, data: { ok: id } });
+      expect(graphqlDirect).toHaveBeenCalledWith(document, variables, { source: 'client', githubLogin: 'octocat' });
+    },
+  );
+
+  it('approves a refused thread reply as a comment, and dismisses a reply with its reason', async () => {
+    graphqlDirect.mockResolvedValue({ approveReply: { ok: 'D_1' } });
+    expect(await actions.approveReply('D_1', true)).toEqual({ ok: true, data: { ok: 'D_1' } });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ApproveReplyDocument,
+      { draftId: 'D_1', asComment: true },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+
+    graphqlDirect.mockResolvedValue({ dismissReply: { ok: 'D_1' } });
+    expect(await actions.dismissReply('D_1', 'POSTED_BY_HAND')).toEqual({ ok: true, data: { ok: 'D_1' } });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      DismissReplyDocument,
+      { draftId: 'D_1', reason: 'POSTED_BY_HAND' },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    graphqlDirect.mockClear();
+    // The two reasons the API alone gives are never the user's to send.
+    for (const reason of ['THREAD_RESOLVED', 'NO_REPLY']) {
+      expect(await actions.dismissReply('D_1', reason as never)).toMatchObject({ ok: false, error: 'INVALID' });
+    }
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('marks the kinds a row names as handled, the two the user alone acts on among them', async () => {
+    graphqlDirect.mockResolvedValue({ markNeedsYouHandled: { ok: 'PR_1' } });
+    for (const kinds of [['CHECK_YOURS'], ['CONVERSATION'], ['CONVERSATION', 'CHECK_YOURS']] as const) {
+      expect(await actions.markNeedsYouHandled('PR_1', [...kinds])).toEqual({ ok: true, data: { ok: 'PR_1' } });
+      expect(graphqlDirect).toHaveBeenLastCalledWith(
+        MarkNeedsYouHandledKindsDocument,
+        { prId: 'PR_1', kinds: [...kinds] },
+        { source: 'client', githubLogin: 'octocat' },
+      );
+    }
+    // A kind this UI does not know is never sent; with none left, nothing is.
+    graphqlDirect.mockClear();
+    expect(await actions.markNeedsYouHandled('PR_1', ['SOMETHING_NEW' as never])).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('posts replies as one comment, or tries a failed comment again, with the click’s key', async () => {
+    graphqlDirect.mockResolvedValue({ approveRepliesAsOneComment: { batches: [], drafts: [] } });
+    expect(await actions.approveRepliesAsOneComment('A_F1', { draftIds: ['D_1', 'D_2'] }, 'key-0123456789')).toEqual({
+      ok: true,
+      data: { batches: [], drafts: [] },
+    });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      ApproveRepliesAsOneCommentDocument,
+      { attemptId: 'A_F1', requestId: 'key-0123456789', draftIds: ['D_1', 'D_2'] },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    await actions.approveRepliesAsOneComment('A_F1', { batchId: 'B_1' }, 'key-0123456789');
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      ApproveRepliesAsOneCommentDocument,
+      { attemptId: 'A_F1', requestId: 'key-0123456789', batchId: 'B_1' },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    // The API's refusal comes back with its words: the card says them.
+    graphqlDirect.mockRejectedValueOnce(
+      new Error(
+        JSON.stringify([
+          {
+            message: 'This request was already used for other replies. Reload the page.',
+            extensions: { code: 'CONFLICT' },
+          },
+        ]),
+      ),
+    );
+    expect(await actions.approveRepliesAsOneComment('A_F1', { draftIds: ['D_1'] }, 'key-0123456789')).toEqual({
+      ok: false,
+      error: 'INVALID',
+      message: 'This request was already used for other replies. Reload the page.',
+    });
+
+    // A key not of the API's shape, no reply, too many, or both a batch and replies: refused here, nothing sent.
+    graphqlDirect.mockClear();
+    for (const [target, key] of [
+      [{ draftIds: ['D_1'] }, 'short'],
+      [{ draftIds: ['D_1'] }, 'has spaces in it'],
+      [{ draftIds: [] }, 'key-0123456789'],
+      [{ draftIds: Array.from({ length: 31 }, (_, index) => `D_${index}`) }, 'key-0123456789'],
+      [{ draftIds: ['D_1'], batchId: 'B_1' }, 'key-0123456789'],
+      [{}, 'key-0123456789'],
+    ] as const) {
+      expect(await actions.approveRepliesAsOneComment('A_F1', target as never, key)).toMatchObject({
+        ok: false,
+        error: 'INVALID',
+      });
+    }
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('ignores review comments, or brings them back, and refuses an empty choice', async () => {
+    graphqlDirect.mockResolvedValue({ ignoreReviewThreads: ['C_1'] });
+    expect(await actions.ignoreReviewThreads('PR_1', ['C_1'])).toEqual({ ok: true, data: ['C_1'] });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      IgnoreReviewThreadsDocument,
+      { prId: 'PR_1', commentIds: ['C_1'], ignore: true },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    graphqlDirect.mockResolvedValue({ ignoreReviewThreads: [] });
+    await actions.ignoreReviewThreads('PR_1', ['C_1'], false);
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      IgnoreReviewThreadsDocument,
+      { prId: 'PR_1', commentIds: ['C_1'], ignore: false },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    graphqlDirect.mockReset();
+    expect(await actions.ignoreReviewThreads('PR_1', [])).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('passes on a refusal in its own words, for the page to put plainly', async () => {
+    graphqlDirect.mockRejectedValue(
+      new Error(
+        JSON.stringify([
+          { message: 'A follow-up is already under way on this pull request', extensions: { code: 'CONFLICT' } },
+        ]),
+      ),
+    );
+
+    expect(await actions.startFollowUp('PR_1')).toEqual({
+      ok: false,
+      error: 'INVALID',
+      message: 'A follow-up is already under way on this pull request',
+    });
+  });
+
+  it("approves a follow-up with the title the API needs, an empty body and no sign-off of the user's own", async () => {
+    graphqlDirect.mockResolvedValue({ approveAttempt: { attemptId: 'A_F1', state: 'SUBMITTING' } });
+
+    await actions.approveAttempt({ id: 'A_F1', title: 'Follow-up on pull request #1419', body: '', dco: false });
+
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ApproveAttemptDocument,
+      { id: 'A_F1', title: 'Follow-up on pull request #1419', body: '', dco: false },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
+});
+
+describe('the follow-up flow’s actions', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+  const as = { source: 'client', githubLogin: 'octocat' };
+
+  it('starts a follow-up on the comments chosen, and refuses none chosen before asking', async () => {
+    graphqlDirect.mockResolvedValue({ startFollowUp: { attemptId: 'A_F2' } });
+    await actions.startFollowUp('PR_1', ['C_1', 'C_2']);
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      StartFollowUpOnDocument,
+      { prId: 'PR_1', commentIds: ['C_1', 'C_2'] },
+      as,
+    );
+
+    graphqlDirect.mockReset();
+    expect(await actions.startFollowUp('PR_1', [])).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('sends the user’s note to the agent trimmed, leaves an empty one out, and refuses one too long', async () => {
+    graphqlDirect.mockResolvedValue({ startFollowUp: { attemptId: 'A_F3' } });
+    await actions.startFollowUp('PR_1', undefined, '  The lint rule is wrong here.  ');
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      StartFollowUpDocument,
+      { prId: 'PR_1', reason: 'The lint rule is wrong here.' },
+      as,
+    );
+    // The review feedback card's start: the comments chosen and the note, together.
+    await actions.startFollowUp('PR_1', ['C_1'], ' Also the flaky test. ');
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      StartFollowUpOnDocument,
+      { prId: 'PR_1', commentIds: ['C_1'], reason: 'Also the flaky test.' },
+      as,
+    );
+
+    graphqlDirect.mockClear();
+    await actions.startFollowUp('PR_1', undefined, '   ');
+    await actions.startFollowUp('PR_1', ['C_1'], '');
+    expect(graphqlDirect.mock.calls.map(([document, variables]) => [document, variables])).toEqual([
+      [StartFollowUpDocument, { prId: 'PR_1' }],
+      [StartFollowUpOnDocument, { prId: 'PR_1', commentIds: ['C_1'] }],
+    ]);
+
+    graphqlDirect.mockClear();
+    expect(await actions.startFollowUp('PR_1', undefined, 'x'.repeat(2_001))).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('tries a stop again with the user’s note trimmed, null when empty, and refuses one too long', async () => {
+    graphqlDirect.mockResolvedValue({ retryAttempt: { attemptId: 'A_2' } });
+    expect(await actions.retryAttempt('A_1', '  The maintainer invited anyone.  ')).toEqual({
+      ok: true,
+      data: { attemptId: 'A_2' },
+    });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      RetryAttemptDocument,
+      { id: 'A_1', note: 'The maintainer invited anyone.' },
+      as,
+    );
+
+    graphqlDirect.mockClear();
+    await actions.retryAttempt('A_1', '   ');
+    await actions.retryAttempt('A_1');
+    expect(graphqlDirect.mock.calls.map(([document, variables]) => [document, variables])).toEqual([
+      [RetryAttemptDocument, { id: 'A_1', note: null }],
+      [RetryAttemptDocument, { id: 'A_1', note: null }],
+    ]);
+
+    graphqlDirect.mockClear();
+    expect(await actions.retryAttempt('A_1', 'x'.repeat(2_001))).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('approves a follow-up with its replies trimmed, and refuses a reply to post with no text', async () => {
+    graphqlDirect.mockResolvedValue({ approveAttempt: { attemptId: 'A_F1', state: 'SUBMITTING' } });
+    await actions.approveFollowUp('A_F1', 'Follow-up on pull request #1419', [
+      { draftId: 'D_1', text: '  Renamed it.  ', send: true },
+      { draftId: 'D_2', text: '', send: false },
+    ]);
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ApproveFollowUpDocument,
+      {
+        id: 'A_F1',
+        title: 'Follow-up on pull request #1419',
+        replies: [
+          { draftId: 'D_1', text: 'Renamed it.', send: true },
+          { draftId: 'D_2', text: '', send: false },
+        ],
+      },
+      as,
+    );
+
+    graphqlDirect.mockReset();
+    const empty = await actions.approveFollowUp('A_F1', 't', [{ draftId: 'D_1', text: ' ', send: true }]);
+    expect(empty).toMatchObject({ ok: false, error: 'INVALID', message: expect.stringContaining('no text') });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("the own agent's actions", () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+  const as = { source: 'client', githubLogin: 'octocat' };
+
+  it('creates a token under its trimmed name, and answers the token the API gave once', async () => {
+    const created = {
+      token: 'gr_x',
+      mcpToken: { id: 'T_1', name: 'laptop', last4: 'x', createdAt: '', lastUsedAt: null },
+    };
+    graphqlDirect.mockResolvedValue({ createMcpToken: created });
+
+    expect(await actions.createMcpToken('  laptop ')).toEqual({ ok: true, data: created });
+    expect(graphqlDirect).toHaveBeenCalledWith(CreateMcpTokenDocument, { name: 'laptop' }, as);
+  });
+
+  it('refuses a blank or too long name before asking anything', async () => {
+    expect(await actions.createMcpToken('  ')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.createMcpToken('x'.repeat(41))).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('revokes a token by its id', async () => {
+    graphqlDirect.mockResolvedValue({ revokeMcpToken: true });
+    expect(await actions.revokeMcpToken('T_1')).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).toHaveBeenCalledWith(RevokeMcpTokenDocument, { id: 'T_1' }, as);
+  });
+
+  it('sends a change back to the agent with the trimmed note, and refuses an empty one', async () => {
+    graphqlDirect.mockResolvedValue({ sendBackToAgent: { attemptId: 'A_1', state: 'RUNNING' } });
+    expect(await actions.sendBackToAgent('A_1', ' Add a test ')).toEqual({
+      ok: true,
+      data: { attemptId: 'A_1', state: 'RUNNING' },
+    });
+    expect(graphqlDirect).toHaveBeenCalledWith(SendBackToAgentDocument, { attemptId: 'A_1', note: 'Add a test' }, as);
+    expect(await actions.sendBackToAgent('A_1', ' ')).toMatchObject({ ok: false, error: 'INVALID' });
+  });
+});
+
+describe('readAgentConnected', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+  const as = { source: 'client', githubLogin: 'octocat' };
+  const tokens = (lastUsedAt: string | null) => ({
+    contribute: {
+      contributor: { paths: { hosted: false, mcp: true } },
+      mcpTokens: [{ id: 'T_1', name: 'Claude Code on macOS', last4: 'Qx9z', createdAt: '', lastUsedAt }],
+    },
+  });
+
+  it('reads the onboarded stamp alone for a user not onboarded yet', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contribute: { contributor: { onboardedAt: '2026-10-28T12:00:00Z' } } });
+
+    expect(await actions.readAgentConnected({ tokenId: 'T_1', onboarded: false })).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    expect(graphqlDirect).toHaveBeenCalledWith(ContributeOnboardingDocument, undefined, as);
+  });
+
+  it('answers not yet while the stamp is unset, without reading the tokens', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contribute: { contributor: { onboardedAt: null } } });
+
+    expect(await actions.readAgentConnected({ tokenId: 'T_1', onboarded: false })).toEqual({ ok: true, data: false });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back on the token's first use when the API does not answer the stamp", async () => {
+    graphqlDirect.mockRejectedValueOnce(new Error('[{"message":"Cannot query field \\"onboardedAt\\""}]'));
+    graphqlDirect.mockResolvedValueOnce(tokens('2026-10-28T12:00:00Z'));
+
+    expect(await actions.readAgentConnected({ tokenId: 'T_1', onboarded: false })).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(ContributeOwnAgentDocument, undefined, as);
+  });
+
+  it('waits for the new token to be used by a user onboarded already', async () => {
+    graphqlDirect.mockResolvedValueOnce(tokens(null));
+    expect(await actions.readAgentConnected({ tokenId: 'T_1', onboarded: true })).toEqual({ ok: true, data: false });
+    graphqlDirect.mockResolvedValueOnce(tokens('2026-10-28T12:00:00Z'));
+    expect(await actions.readAgentConnected({ tokenId: 'T_1', onboarded: true })).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).not.toHaveBeenCalledWith(ContributeOnboardingDocument, undefined, as);
+  });
+
+  it('asks nothing of the tokens without one to watch', async () => {
+    expect(await actions.readAgentConnected({ tokenId: null, onboarded: true })).toEqual({ ok: true, data: false });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('takes an agent that signed in and was used since the page opened as connected, for a user onboarded already', async () => {
+    const since = '2026-11-12T10:00:00.000Z';
+    const used = (rows: { kind: 'PERSONAL' | 'OAUTH'; lastUsedAt: string }[]) => ({
+      contribute: { mcpTokens: rows.map((row, at) => ({ id: `T_${at}`, ...row })) },
+    });
+    // A token used since, or a sign-in used before, is not it.
+    graphqlDirect.mockResolvedValueOnce(
+      used([
+        { kind: 'PERSONAL', lastUsedAt: '2026-11-12T10:05:00.000Z' },
+        { kind: 'OAUTH', lastUsedAt: '2026-11-12T09:59:00.000Z' },
+      ]),
+    );
+    expect(await actions.readAgentConnected({ tokenId: null, onboarded: true, since })).toEqual({
+      ok: true,
+      data: false,
+    });
+    graphqlDirect.mockResolvedValueOnce(used([{ kind: 'OAUTH', lastUsedAt: '2026-11-12T10:01:00.000Z' }]));
+    expect(await actions.readAgentConnected({ tokenId: null, onboarded: true, since })).toEqual({
+      ok: true,
+      data: true,
+    });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(ContributeMcpConnectionsUsedDocument, undefined, as);
+  });
+
+  it('reads the onboarded stamp alone for an agent signing in for a user not onboarded yet', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contribute: { contributor: { onboardedAt: '2026-11-12T10:01:00Z' } } });
+    expect(
+      await actions.readAgentConnected({ tokenId: null, onboarded: false, since: '2026-11-12T10:00:00.000Z' }),
+    ).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('approveContributeOAuth', () => {
+  const REQUEST_ID = 'aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789-_abcde';
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it("answers the agent's redirect when it is one the browser may go to", async () => {
+    for (const redirectTo of [
+      'http://127.0.0.1:53682/callback?code=c&state=s',
+      'http://localhost:3000/cb?code=c',
+      'https://claude.ai/api/mcp/auth_callback?code=c&state=s',
+      'cursor://anysphere.cursor-mcp/oauth/callback?code=c',
+    ]) {
+      graphqlDirect.mockResolvedValueOnce({ approveContributeOAuth: { redirectTo } });
+      expect(await actions.approveContributeOAuth(REQUEST_ID)).toEqual({ ok: true, data: { redirectTo } });
+    }
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ApproveContributeOAuthDocument,
+      { requestId: REQUEST_ID },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
+
+  it('never answers a script, a file or a web address over plain http', async () => {
+    for (const redirectTo of [
+      'javascript:alert(1)',
+      'data:text/html,hi',
+      'file:///etc/passwd',
+      'http://evil.example/cb',
+      'not a url',
+    ]) {
+      graphqlDirect.mockResolvedValueOnce({ approveContributeOAuth: { redirectTo } });
+      expect(await actions.approveContributeOAuth(REQUEST_ID), redirectTo).toMatchObject({
+        ok: false,
+        error: 'FAILED',
+      });
+    }
+  });
+
+  it("says Contribute isn't open for the account when Allow is refused for the preview", async () => {
+    for (const code of ['FORBIDDEN', 'NOT_FOUND']) {
+      graphqlDirect.mockRejectedValueOnce(
+        new Error(JSON.stringify([{ message: 'Contribute is in preview', extensions: { code } }])),
+      );
+      expect(await actions.approveContributeOAuth(REQUEST_ID), code).toEqual({
+        ok: false,
+        error: 'NOT_FOUND',
+        message: "Contribute isn't open for your account yet.",
+      });
+    }
+  });
+
+  it('is EXPIRED for an expired sign-in, and for an id the server could not have made, without asking', async () => {
+    graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify([{ extensions: { code: 'EXPIRED' } }])));
+    expect(await actions.approveContributeOAuth(REQUEST_ID)).toEqual({ ok: false, error: 'EXPIRED' });
+    graphqlDirect.mockClear();
+    expect(await actions.approveContributeOAuth('../x')).toEqual({ ok: false, error: 'EXPIRED' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+});
+
+describe('the actions about what the user works on', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'maslianok' }, expires: '2099-01-01' });
+  });
+
+  it('refuse a mode, list or fallback that is not one, and an empty or long add, before calling', async () => {
+    expect(await actions.setContributeMode('NONE' as never)).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.setContributeFallback('ALL' as never, 'SET_ONLY')).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(await actions.addToContributeSet('TARGETS' as never, 'vercel')).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(await actions.addToContributeSet('REPOS', '   ')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.addToContributeSet('REPOS', 'x'.repeat(201))).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.removeFromContributeSet('REPOS', [])).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('send an add trimmed', async () => {
+    graphqlDirect.mockResolvedValue({ addToContributeSet: { added: [] } });
+    await actions.addToContributeSet('SOURCES', '  @me ');
+
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      AddToContributeSetDocument,
+      { list: 'SOURCES', input: '@me' },
+      { source: 'client', githubLogin: 'maslianok' },
+    );
+  });
+
+  it('read a day limit as RATE_LIMITED, and a full ignore list as LIST_FULL', async () => {
+    graphqlDirect.mockRejectedValueOnce(
+      new Error(JSON.stringify([{ message: 'x', extensions: { code: 'RATE_LIMITED' } }])),
+    );
+    expect(await actions.resolveContributeStack()).toEqual({ ok: false, error: 'RATE_LIMITED' });
+    graphqlDirect.mockRejectedValueOnce(
+      new Error(JSON.stringify([{ message: 'x', extensions: { code: 'LIST_FULL' } }])),
+    );
+    expect(await actions.ignoreContributeRepo('R_1')).toEqual({ ok: false, error: 'LIST_FULL' });
+  });
+
+  it('send feedback trimmed, within its limit, with only the known parts of its context', async () => {
+    expect(await actions.sendContributeFeedback('GATES', '  ')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.sendContributeFeedback('GATES', 'x'.repeat(2001))).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+      message: 'Keep it to 2,000 characters at most.',
+    });
+    expect(await actions.sendContributeFeedback('PRAISE' as never, 'hi')).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    graphqlDirect.mockResolvedValue({ sendContributeFeedback: true });
+    expect(
+      await actions.sendContributeFeedback('GATES', ' lodash is left out ', {
+        mode: 'STACK',
+        repo: ' lodash/lodash ',
+        reasons: ['OUTSIDE_MERGES', 'NOT_A_REASON' as never],
+        githubLogin: 'mallory',
+      } as never),
+    ).toEqual({ ok: true, data: true });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      SendContributeFeedbackDocument,
+      {
+        topic: 'GATES',
+        text: 'lodash is left out',
+        context: { mode: 'STACK', repo: 'lodash/lodash', reasons: ['OUTSIDE_MERGES'] },
+      },
+      { source: 'client', githubLogin: 'maslianok' },
+    );
+
+    graphqlDirect.mockClear();
+    await actions.sendContributeFeedback('OTHER', 'hello', { mode: 'NOPE' as never });
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ topic: 'OTHER', text: 'hello' });
+  });
+});
+
+describe('readIssueStatuses and readIssuesPage', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it('asks about at most 50 ids, in order, and nothing for none', async () => {
+    graphqlDirect.mockResolvedValue({ contributeIssueStatus: [] });
+    const ids = Array.from({ length: 60 }, (_, at) => `I_${at}`);
+
+    await actions.readIssueStatuses(['', ...ids] as string[]);
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ContributeIssueStatusDocument,
+      { issueIds: ids.slice(0, 50) },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+
+    graphqlDirect.mockClear();
+    expect(await actions.readIssueStatuses([])).toEqual({ ok: true, data: [] });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('answers null when the API hides the statuses', async () => {
+    graphqlDirect.mockResolvedValue({ contributeIssueStatus: null });
+
+    expect(await actions.readIssueStatuses(['I_1'])).toEqual({ ok: true, data: null });
+  });
+
+  it('reads the next issues after the cursor, a page at most, under the known filters alone', async () => {
+    graphqlDirect.mockResolvedValue({ contributeIssues: { items: [], next: null, total: 0, computedAt: null } });
+
+    await actions.readIssuesPage({
+      after: 'c2',
+      first: 99,
+      filter: { languages: ['RUST', 'COBOL' as never], kinds: 'BUG' as never, maxSize: 'M' },
+    });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      ContributeIssuesWithRulesDocument,
+      { first: 20, after: 'c2', filter: { languages: ['RUST'], maxSize: 'M' } },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+
+    graphqlDirect.mockClear();
+    await actions.readIssuesPage({ after: 'c3', first: 0 });
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ first: 1, after: 'c3' });
+
+    graphqlDirect.mockClear();
+    expect(await actions.readIssuesPage({ after: '', first: 2 })).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("readIssuesPage on an API without the repos' rules", () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it('reads the page as it was when the API does not know the rules, and only then', async () => {
+    const page = { items: [], next: null, total: 0, computedAt: null };
+    const unknown = new Error(
+      JSON.stringify([{ message: 'Cannot query field "repoRules" on type "ContributeIssue".' }]),
+    );
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeIssuesWithRulesDocument) throw unknown;
+      return { contributeIssues: page };
+    });
+
+    expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toEqual({ ok: true, data: page });
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
+      ContributeIssuesWithRulesDocument,
+      ContributeIssuesDocument,
+    ]);
+
+    graphqlDirect.mockReset();
+    graphqlDirect.mockRejectedValue(new Error('down'));
+    expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toMatchObject({ ok: false, error: 'FAILED' });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('readContributeChanges', () => {
+  const CHANGES = { version: '4.2', activity: false, changed: [] };
+  const ACTIVITY = { items: [], runs: [], readAt: '2026-10-31T21:00:00.000Z' };
+  const as = (githubLogin: string) => auth.mockResolvedValue({ user: { githubLogin }, expires: '2099-01-01' });
+
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    as('maslianok');
+  });
+
+  it('reads what moved since the version held, and nothing more when nothing runs', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: CHANGES });
+
+    expect(await actions.readContributeChanges('3.2', false)).toEqual({ ok: true, data: { changes: CHANGES } });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ since: '3.2' });
+  });
+
+  it('sends no version it could not have had from a read', async () => {
+    graphqlDirect.mockResolvedValue({ contributeChanges: CHANGES });
+
+    await actions.readContributeChanges('3', false);
+    await actions.readContributeChanges({ since: '1.1' } as never, false);
+    expect(graphqlDirect.mock.calls.map(([, variables]) => variables)).toEqual([{ since: null }, { since: null }]);
+  });
+
+  it.each([
+    ['asked', { ...CHANGES }, true],
+    ['running', { ...CHANGES, activity: true }, false],
+    ['the list moved', { ...CHANGES, changed: ['SET'] }, false],
+    ['work started or ended', { ...CHANGES, changed: ['ACTIVITY'] }, false],
+  ])('reads the work in progress in the same call when %s', async (_why, changes, withActivity) => {
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: changes }).mockResolvedValueOnce({
+      contributeActivity: ACTIVITY,
+    });
+
+    expect(await actions.readContributeChanges('3.2', withActivity as boolean)).toEqual({
+      ok: true,
+      data: { changes, activity: ACTIVITY },
+    });
+  });
+
+  it('reads the whole work in progress for any login; leaves the activity out when it fails', async () => {
+    as('octocat');
+    const changes = { ...CHANGES, activity: true, changed: ['SET'] };
+    const reads = { kind: 'FIRST_READS', label: 'Reading issues from 1 of 2 repos' };
+    const run = { attemptId: 'a1', phase: 'WORKING', active: true };
+    const activity = { ...ACTIVITY, items: [reads], runs: [run] };
+    graphqlDirect
+      .mockResolvedValueOnce({ contributeChanges: changes })
+      .mockResolvedValueOnce({ contributeActivity: activity });
+    expect(await actions.readContributeChanges('3.2', true)).toEqual({ ok: true, data: { changes, activity } });
+
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: changes }).mockRejectedValueOnce(new Error('down'));
+    expect(await actions.readContributeChanges('3.2', true)).toEqual({ ok: true, data: { changes } });
+  });
+
+  it('answers null when the API hides Contribute, and an error when it fails', async () => {
+    graphqlDirect.mockResolvedValueOnce({ contributeChanges: null });
+    expect(await actions.readContributeChanges(null, true)).toEqual({ ok: true, data: null });
+
+    graphqlDirect.mockRejectedValueOnce(new Error('down'));
+    expect(await actions.readContributeChanges(null, false)).toMatchObject({ ok: false });
+  });
+});
+
+describe('the proof actions', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  const session = { id: 'PF_1', state: 'POSTING', round: 1 };
+
+  it('posts nothing until the user ticked that nothing private is left', async () => {
+    expect(await actions.approveContributeProof('PF_1', false)).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    graphqlDirect.mockResolvedValue({ approveContributeProof: session });
+    expect(await actions.approveContributeProof('PF_1', true)).toEqual({
+      ok: true,
+      data: { id: 'PF_1', state: 'POSTING' },
+    });
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ id: 'PF_1', checked: true });
+  });
+
+  it('sends a note back trimmed, never an empty or a long one', async () => {
+    expect(await actions.sendBackContributeProof('PF_1', '   ')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.sendBackContributeProof('PF_1', 'x'.repeat(2_001))).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    graphqlDirect.mockResolvedValue({ sendBackContributeProof: { ...session, state: 'WAITING' } });
+    await actions.sendBackContributeProof('PF_1', '  Capture the log too  ');
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ id: 'PF_1', note: 'Capture the log too' });
+  });
+
+  it('posts a reply trimmed, never an empty or a long one', async () => {
+    expect(await actions.postContributeProofReply('PF_1', '')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await actions.postContributeProofReply('PF_1', 'x'.repeat(4_001))).toMatchObject({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    graphqlDirect.mockResolvedValue({ postContributeProofReply: session });
+    await actions.postContributeProofReply('PF_1', ' Thanks. ');
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ id: 'PF_1', text: 'Thanks.' });
+  });
+});

@@ -2,19 +2,15 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 
-import { ActivityBar, ActivityDot } from './activity';
-import { AgentRunsTab } from './agent-runs';
-import { ChangesProvider } from './live-changes';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
-import type { ContributeActivity } from '@/lib/contribute/contribute.types';
-import { isTablessPath } from '@/lib/contribute/contribute-path';
-import { isAsVisitor } from '@/lib/contribute/contribute-state';
-
-/** The line under the header where there are no tabs, across the page as the home page draws one. */
-export function HeaderLine() {
-  return <div className="border-b" />;
-}
+import { ActivityBar, ActivityDot } from '@/components/workspace/activity';
+import { AgentRunsTab } from '@/components/workspace/agent/agent-runs';
+import { HeaderLine } from '@/components/workspace/header-line';
+import { ChangesProvider } from '@/components/workspace/live-changes';
+import type { ContributeActivity } from '@/lib/workspace/contribute.types';
+import { isAsVisitor } from '@/lib/workspace/contribute-state';
+import { isTablessPath } from '@/lib/workspace/paths';
 
 /**
  * Whether Contribute's tabs show: only to an onboarded user. Not on the pages about Contribute (for maintainers, the

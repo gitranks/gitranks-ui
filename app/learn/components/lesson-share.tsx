@@ -3,14 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
-import { removeLesson } from '../actions';
-import { Figure } from './lesson-summary';
-import { ConfirmDialog } from '@/app/contribute/components/confirm-dialog';
-import { CopyButton } from '@/app/contribute/components/copy-button';
-import { HEADING } from '@/app/contribute/components/primitives';
+import { Figure } from '@/components/learn/lesson-summary';
 import { Button } from '@/components/ui/button';
-import { contributeErrorMessage } from '@/lib/contribute/errors';
+import { ConfirmDialog } from '@/components/workspace/confirm-dialog';
+import { CopyButton } from '@/components/workspace/copy-button';
+import { HEADING } from '@/components/workspace/primitives';
+import { removeLesson } from '@/lib/learn/actions';
 import type { LessonCounts } from '@/lib/learn/learn.types';
+import { contributeErrorMessage } from '@/lib/workspace/errors';
 
 /** An address as the card shows it: without its scheme. */
 const shownUrl = (url: string) => url.replace(/^https?:\/\//, '');

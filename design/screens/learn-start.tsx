@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
-import { AgentConnectView, type AgentConnectViewProps } from '@/app/contribute/components/agent-connect';
 import { LearnStartScreen, type LearnStartScreenProps } from '@/app/learn/components/learn-start-screen';
 import { LearnTabs } from '@/app/learn/components/learn-tabs';
 import { Header } from '@/components/header/header';
+import { AgentConnectView, type AgentConnectViewProps } from '@/components/workspace/agent/agent-connect';
 import {
   fixAttemptOf,
   START_GOAL,

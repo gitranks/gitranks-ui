@@ -5,22 +5,22 @@ import { Suspense } from 'react';
 import { Landing } from './components/landing';
 import { overviewReadSectionsOf } from './components/overview-home';
 import { OverviewScreen } from './components/overview-status';
-import { ContributePageSkeleton } from './components/page-skeleton';
-import { ContributeNoProfile, ContributeSettingUp } from './components/setting-up';
-import { isAgentWelcome } from '@/lib/contribute/agent-connect';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
+import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
+import { loadIssues } from '@/lib/contribute/contribute.data';
+import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
+import { isAgentWelcome } from '@/lib/workspace/agent-connect';
 import {
   loadAttempts,
   loadContribute,
   loadContributeSetup,
-  loadIssues,
   loadProviderInterests,
   viewerLogin,
-} from '@/lib/contribute/contribute.data';
-import { AGENTS_DOC_PATH, CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from '@/lib/contribute/contribute-path';
-import { contributeHomeOf, isOwnAgentOnly } from '@/lib/contribute/contribute-state';
-import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
-import { contributeOpen } from '@/lib/contribute/preview-gate';
+} from '@/lib/workspace/contribute.data';
+import { contributeHomeOf, isOwnAgentOnly } from '@/lib/workspace/contribute-state';
+import { AGENTS_DOC_PATH, CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from '@/lib/workspace/paths';
+import { contributeOpen } from '@/lib/workspace/preview-gate';
 
 /** The landing's markdown, for agents: named in the head, and served on `Accept: text/markdown`. */
 export const metadata: Metadata = { alternates: { types: { 'text/markdown': AGENTS_DOC_PATH } } };

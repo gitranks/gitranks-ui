@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { ContributePageSkeleton } from '../components/page-skeleton';
-import { RunsView } from '../components/runs-view';
+import { RunsView } from '@/components/workspace/agent/runs-view';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'Agent runs' };
 

@@ -1,15 +1,3 @@
-import type {
-  ContributeAttemptDetail,
-  ContributeContribution,
-  ContributeNeedsYou,
-  ContributeProof,
-  ContributeProofAsk,
-  ContributeProofResult,
-  ContributeProofSession,
-  ContributePrSignal,
-  ContributeReplyWaiting,
-} from '../contribute.types';
-import type { NeedsYouRead } from '../needs-you';
 import {
   attempt,
   detail,
@@ -20,6 +8,18 @@ import {
   pullRequest,
 } from './contribute-attempts';
 import { replyWaiting } from './contribute-overview';
+import type {
+  ContributeAttemptDetail,
+  ContributeContribution,
+  ContributeNeedsYou,
+  ContributeProof,
+  ContributeProofAsk,
+  ContributeProofResult,
+  ContributeProofSession,
+  ContributePrSignal,
+  ContributeReplyWaiting,
+} from '@/lib/workspace/contribute.types';
+import type { NeedsYouRead } from '@/lib/workspace/needs-you';
 
 /** Signals as the reads raise them, at an hour each before `NOW` (12:00). */
 export const signal = (

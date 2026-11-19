@@ -10,7 +10,7 @@ const actions = vi.hoisted(() => ({
   readPracticeLessons: vi.fn(),
   readAttemptStage: vi.fn(),
 }));
-vi.mock('../actions', () => actions);
+vi.mock('@/lib/learn/actions', () => actions);
 
 const { LearnHomeLive } = await import('./learn-home-live');
 const { PracticeSection } = await import('./practice-lessons');

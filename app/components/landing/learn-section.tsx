@@ -7,10 +7,10 @@ import type { FC } from 'react';
 import { ExampleLessonCard } from '@/app/learn/components/example-lesson-card';
 import { type PromoSource, reportPromo, usePromoShown } from '@/app/learn/components/use-promo-report';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { contributeSource } from '@/lib/contribute/click-tracking';
 import { LEARN_PATH } from '@/lib/learn/learn-path';
 import { promoTitleOf, reasonLineOf, type ShownPromo } from '@/lib/learn/learn-promo';
 import { cn } from '@/lib/utils';
+import { contributeSource } from '@/lib/workspace/click-tracking';
 
 const POINTS = [
   { icon: Target, title: 'Starts from your goal', text: 'A language or one project, at your level.' },

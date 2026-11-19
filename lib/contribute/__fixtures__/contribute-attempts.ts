@@ -9,8 +9,8 @@ import type {
   ContributeFollowUps,
   ContributeNeedsYou,
   ContributeReplyDraft,
-} from '../contribute.types';
-import type { ContributeRepoConventions } from '../pr-conventions';
+} from '@/lib/workspace/contribute.types';
+import type { ContributeRepoConventions } from '@/lib/workspace/pr-conventions';
 
 /** A two-commit format-patch: a changed file, a new one, and the mail headers and signature around them. */
 export const PATCH = `From 3f1c2a9d0b7e Mon Sep 17 00:00:00 2001

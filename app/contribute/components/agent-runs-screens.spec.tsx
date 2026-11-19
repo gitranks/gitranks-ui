@@ -7,21 +7,21 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/contribute/issues',
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock('@/app/contribute/actions', () => ({ readContributeChanges: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({ readContributeChanges: vi.fn() }));
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({ useReportPendingNavigation: () => {} }));
-vi.mock('@/lib/contribute/contribute.data', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({}));
 
 const { AgentRunsTabLabel, LiveRunPhase, LiveRunsLabel, RightNowLanes, WorkingNowSection } = await import(
-  './agent-runs'
+  '@/components/workspace/agent/agent-runs'
 );
 const { ContributeTabsNav } = await import('./contribute-tabs-nav');
-const { ContributionsScreen } = await import('./contributions-view');
+const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
 const { activityOf, FOLLOW_UP, QUEUED, READY, runOf, WORKING } = await import(
   '@/lib/contribute/__fixtures__/agent-runs'
 );
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { attempt, contributions } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
-const { publishContributeActivity } = await import('@/lib/contribute/changes-bus');
+const { publishContributeActivity } = await import('@/lib/workspace/changes-bus');
 
 const text = (html: string) =>
   html

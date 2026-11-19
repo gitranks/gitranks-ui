@@ -19,12 +19,12 @@ import type {
   MyLesson,
   PracticeLessons,
 } from './learn.types';
-import { learnOpenFor } from './learn-gate';
-import { ContributeUnavailableError, ownAgentOf, viewerLogin } from '@/lib/contribute/contribute.data';
-import { ContributeMcpConnectionsDocument, ContributeOwnAgentDocument } from '@/lib/contribute/contribute.documents';
-import type { ContributeOwnAgent } from '@/lib/contribute/contribute.types';
-import { contributeErrorOf } from '@/lib/contribute/errors';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { ContributeUnavailableError, ownAgentOf, viewerLogin } from '@/lib/workspace/contribute.data';
+import { ContributeMcpConnectionsDocument, ContributeOwnAgentDocument } from '@/lib/workspace/contribute.documents';
+import type { ContributeOwnAgent } from '@/lib/workspace/contribute.types';
+import { contributeErrorOf } from '@/lib/workspace/errors';
+import { learnOpenFor } from '@/lib/workspace/gate';
 
 /** Whether Learn is open to the signed-in viewer; closed signed out. Read once per request. */
 export const loadLearnOpen = cache(async (): Promise<boolean> => learnOpenFor(await viewerLogin()));

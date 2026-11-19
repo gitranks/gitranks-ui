@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const withSession = vi.fn(() => new Response(null));
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/contribute/preview-gate', () => ({
+vi.mock('@/lib/workspace/preview-gate', () => ({
   requestContributeAccess: async () => 'hidden',
   contributeOpen: async () => false,
 }));
@@ -21,7 +21,7 @@ vi.mock('@/lib/learn/lesson-gate', () => ({
 }));
 const { graphqlDirect, sessionTokenOf } = vi.hoisted(() => ({ graphqlDirect: vi.fn(), sessionTokenOf: vi.fn() }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
-vi.mock('@/lib/contribute/session-token', () => ({ sessionTokenOf }));
+vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 
 const event = {} as NextFetchEvent;
 const SIGNED_IN = 'authjs.session-token=t';

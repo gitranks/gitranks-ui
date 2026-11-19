@@ -5,19 +5,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState, useTransition } from 'react';
 
-import { AgentConnect } from '@/app/contribute/components/agent-connect';
-import { CodeBlock } from '@/app/contribute/components/code-block';
-import { ContributeNotices } from '@/app/contribute/components/contribute-notices';
-import { HEADING } from '@/app/contribute/components/primitives';
-import { readLearnStartAttempt, readLearnStartIssue } from '@/app/learn/start/actions';
 import { reportLearnEvent } from '@/components/contribute-click-tracker/contribute-click-tracker';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
-import type { ContributeIssueSize, ContributeMcpToken } from '@/lib/contribute/contribute.types';
-import { SIZES } from '@/lib/contribute/format';
-import type { McpClient } from '@/lib/contribute/mcp-setup';
-import { settingsPathOf } from '@/lib/contribute/settings-paths';
-import { LEARN_PATH, learnAttemptPath } from '@/lib/learn/learn-path';
+import { AgentConnect } from '@/components/workspace/agent/agent-connect';
+import { CodeBlock } from '@/components/workspace/code-block';
+import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { HEADING } from '@/components/workspace/primitives';
+import { readLearnStartAttempt, readLearnStartIssue } from '@/lib/learn/actions';
+import { LEARN_PATH } from '@/lib/learn/learn-path';
 import {
   agentNameOf,
   fixAttemptPath,
@@ -36,6 +32,10 @@ import {
 import type { LearnStartAttempt, LearnStartIssueRow, LearnStartView } from '@/lib/learn/learn-start.types';
 import { startLearnStartPoll } from '@/lib/learn/learn-start-poll';
 import { cn } from '@/lib/utils';
+import type { ContributeIssueSize, ContributeMcpToken } from '@/lib/workspace/contribute.types';
+import { SIZES } from '@/lib/workspace/format';
+import type { McpClient } from '@/lib/workspace/mcp-setup';
+import { learnAttemptPath, settingsPathOf } from '@/lib/workspace/paths';
 
 const card = 'flex flex-col gap-3.5 rounded-2xl bg-card p-4.5 sm:p-5.5';
 const activeCard = 'border-2 border-primary';

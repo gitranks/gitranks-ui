@@ -11,9 +11,10 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-vi.mock('@/app/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
 // A marker where the page reads itself again, so the static markup shows it.
-vi.mock('@/lib/contribute/contribute.data', () => ({
+vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
   loadResolveHumanThreads: vi.fn(async () => undefined),
@@ -22,9 +23,9 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadRepliesWaiting: vi.fn(),
 }));
 
-const { ReviewScreen, grantNeededOf } = await import('./review-view');
-const { ContributionsScreen } = await import('./contributions-view');
-const { allKindsOf } = await import('./move-card');
+const { ReviewScreen, grantNeededOf } = await import('@/components/workspace/pull-request/review-view');
+const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
+const { allKindsOf } = await import('@/components/workspace/pull-request/move-card');
 const { SettingsScreen } = await import('./settings-view');
 const {
   AUTOPILOT_CONFIRM_LINES,
@@ -33,7 +34,7 @@ const {
   AutopilotHowItWorks,
   AutopilotRecord,
   autopilotErrorMessage,
-} = await import('./autopilot-section');
+} = await import('@/components/workspace/autopilot-section');
 const { NOW, views, settings: baseSettings } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const {
   attempt,
@@ -61,7 +62,7 @@ const {
   nextForYou,
 } = await import('@/lib/contribute/__fixtures__/needs-you');
 const { followUpErrorMessage, handledErrorMessage, replyRefusalOf, vetoErrorMessage } = await import(
-  '@/lib/contribute/follow-up-format'
+  '@/lib/workspace/follow-up-format'
 );
 
 import type {
@@ -70,7 +71,7 @@ import type {
   ContributeReplyDraft,
   ContributeReplyWaiting,
   ContributeView,
-} from '@/lib/contribute/contribute.types';
+} from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html
@@ -747,7 +748,10 @@ describe('a run’s replies on its page', () => {
   });
 
   it('asks before posting: only the confirm posts', () => {
-    const source = readFileSync(new URL('./approve-reply-button.tsx', import.meta.url), 'utf8');
+    const source = readFileSync(
+      new URL('../../../components/workspace/pull-request/approve-reply-button.tsx', import.meta.url),
+      'utf8',
+    );
     expect(source.match(/approveReply\(/g)).toHaveLength(1);
     const approve = source.slice(source.indexOf('const approve = '), source.indexOf('return ('));
     expect(approve).toContain('approveReply(draftId, asComment)');

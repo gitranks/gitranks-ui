@@ -6,7 +6,7 @@
  * launch week, then Contribute's own bar again.
  */
 
-import { isContributePath } from '@/lib/contribute/contribute-path';
+import { isContributePath } from '@/lib/workspace/paths';
 
 /** The bars, in the order they run. */
 export type LaunchBarId = 'ph-soon' | 'ph-live' | 'contribute';

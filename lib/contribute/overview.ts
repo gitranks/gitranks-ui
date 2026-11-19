@@ -1,5 +1,6 @@
-import { effectiveSettingOf, openPrsOverrideOf } from './access-limits';
-import { AGENT_NAMES } from './attempt-format';
+import { type FirstRunStep, firstRunStepOf, isAgentAttempt } from './first-run';
+import { effectiveSettingOf, openPrsOverrideOf } from '@/lib/workspace/access-limits';
+import { AGENT_NAMES } from '@/lib/workspace/attempt-format';
 import type {
   ContributeAttempt,
   ContributeAttemptState,
@@ -9,11 +10,10 @@ import type {
   ContributeMcpToken,
   ContributeScheduleCounts,
   ContributeView,
-} from './contribute.types';
-import { claudeKeyOf, isPaused } from './contribute-state';
-import { type FirstRunStep, firstRunStepOf, isAgentAttempt } from './first-run';
-import { AUTOPILOT_UNLOCK_AT } from './format';
-import type { NeedsYouRead } from './needs-you';
+} from '@/lib/workspace/contribute.types';
+import { claudeKeyOf, isPaused } from '@/lib/workspace/contribute-state';
+import { AUTOPILOT_UNLOCK_AT } from '@/lib/workspace/format';
+import type { NeedsYouRead } from '@/lib/workspace/needs-you';
 
 /**
  * Overview, Contribute's home once the user is onboarded: what needs them, what runs right now, their impact, the ways

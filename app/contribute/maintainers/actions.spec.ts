@@ -8,7 +8,7 @@ const { signedFetch, currentSessionToken, signIn, jar } = vi.hoisted(() => ({
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/signed-fetch', () => ({ signedFetch }));
-vi.mock('@/lib/contribute/session-token', () => ({ currentSessionToken }));
+vi.mock('@/lib/workspace/session-token', () => ({ currentSessionToken }));
 vi.mock('next/headers', () => ({ cookies: async () => jar }));
 vi.mock('@/auth', () => ({ signIn }));
 

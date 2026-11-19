@@ -20,13 +20,13 @@ vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({ cookies: async () => jar }));
 vi.mock('@/auth', () => ({ auth: vi.fn(), signIn }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
-vi.mock('@/lib/contribute/session-token', () => ({ currentSessionToken: vi.fn() }));
+vi.mock('@/lib/workspace/session-token', () => ({ currentSessionToken: vi.fn() }));
 vi.mock('@/lib/contribute/maintainer-token', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/contribute/maintainer-token')>()),
   currentMaintainerToken: token,
 }));
 
-const { reactOnReturn, reactToLessonResult, signInToReact } = await import('./actions');
+const { reactOnReturn, reactToLessonResult, signInToReact } = await import('@/lib/learn/actions');
 const { ReactToResultDocument } = await import('@/lib/learn/learn.documents');
 const { reactMarkCookie } = await import('@/lib/learn/react-mark');
 

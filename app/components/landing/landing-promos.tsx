@@ -5,8 +5,8 @@ import { type FC, type ReactNode, useEffect, useState } from 'react';
 
 import { ContributeSection } from './contribute-section';
 import { LearnSectionView } from './learn-section';
-import { dismissLearnPromo } from '@/app/learn/actions';
 import { reportPromo } from '@/app/learn/components/use-promo-report';
+import { dismissLearnPromo } from '@/lib/learn/actions';
 import type { ShownPromo } from '@/lib/learn/learn-promo';
 import { readLearnPromo } from '@/lib/learn/learn-promo-read';
 

@@ -9,27 +9,29 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadContributeSet: vi.fn(),
   loadIssues: vi.fn(),
 }));
+vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 
 const { SettingsScreen } = await import('./settings-view');
 const { SwitchSettingsScreen, WorkSettingsScreen } = await import('./settings-pages');
-const { SwitchReview } = await import('./mode-switch');
-const { IgnoredList, RulesContent } = await import('./set-panels');
+const { SwitchReview } = await import('@/components/contribute/mode-switch');
+const { IgnoredList, RulesContent } = await import('@/components/contribute/set-panels');
 const { IssuesScreen } = await import('./issues-view');
-const { FeedbackForm } = await import('./feedback-dialog');
+const { FeedbackForm } = await import('@/components/contribute/feedback-dialog');
 const { Dialog } = await import('@/components/ui/dialog');
-const { ContributeIssuesDocument, IssuesForProfileDocument } = await import('@/lib/contribute/contribute.documents');
+const { ContributeIssuesDocument, IssuesForProfileDocument } = await import('@/lib/workspace/contribute.documents');
 const { NOW, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { fullReposSet, resolve, smallReposSet, stackSet } = await import(
   '@/lib/contribute/__fixtures__/contribute-sets'
 );
 
-import type { ContributeIssue, ContributeSet } from '@/lib/contribute/contribute.types';
+import type { ContributeIssue, ContributeSet } from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html

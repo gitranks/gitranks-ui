@@ -1,9 +1,9 @@
 import type { ReactElement, ReactNode } from 'react';
 
 import type { ScreenState } from '../registry';
-import { ReviewComments } from '@/app/contribute/components/review-comments';
-import { ReviewScreen } from '@/app/contribute/components/review-view';
-import { SessionActionsProvider, type SessionActionsSeed } from '@/app/contribute/components/session-actions';
+import { ReviewComments } from '@/components/workspace/pull-request/review-comments';
+import { ReviewScreen } from '@/components/workspace/pull-request/review-view';
+import { SessionActionsProvider, type SessionActionsSeed } from '@/components/workspace/pull-request/session-actions';
 import {
   decisionAttempts,
   flowDraft,
@@ -55,8 +55,8 @@ import {
   waitingForProbe,
   waitingOf,
 } from '@/lib/contribute/__fixtures__/session-head';
-import type { ContributeAttemptDetail, ContributeReplyDraft, ContributeView } from '@/lib/contribute/contribute.types';
-import { orgAccessOf } from '@/lib/contribute/org-access';
+import type { ContributeAttemptDetail, ContributeReplyDraft, ContributeView } from '@/lib/workspace/contribute.types';
+import { orgAccessOf } from '@/lib/workspace/org-access';
 
 /**
  * The contribution page's session head (a status line, or one move card with Also waiting) and its review comments, in

@@ -9,8 +9,9 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadIssues: vi.fn(),
   loadAttempt: vi.fn(),
@@ -18,12 +19,15 @@ vi.mock('@/lib/contribute/contribute.data', () => ({
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),
 }));
+vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 
-const { ReviewScreen } = await import('./review-view');
-const { signOffOf, submitWaitsOf } = await import('./pr-form');
-const { DiffViewer, LARGE_FILE_LINES, MAX_FILE_LINES, MAX_TOTAL_LINES } = await import('./diff-viewer');
-const { ContributionsScreen } = await import('./contributions-view');
-const { ReviewsReady } = await import('./reviews-ready');
+const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
+const { signOffOf, submitWaitsOf } = await import('@/components/workspace/pull-request/pr-form');
+const { DiffViewer, LARGE_FILE_LINES, MAX_FILE_LINES, MAX_TOTAL_LINES } = await import(
+  '@/components/workspace/diff-viewer'
+);
+const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
+const { ReviewsReady } = await import('@/components/workspace/reviews-ready');
 const { IssuesScreen } = await import('./issues-view');
 const { NOW, views, settings } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const {
@@ -40,15 +44,15 @@ const {
   repoConventions,
   stopped,
 } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
-const { END_REASONS, LIVE_STATES } = await import('@/lib/contribute/attempt-format');
-const { settingsPathOf } = await import('@/lib/contribute/settings-paths');
+const { END_REASONS, LIVE_STATES } = await import('@/lib/workspace/attempt-format');
+const { settingsPathOf } = await import('@/lib/workspace/paths');
 const { attemptRules } = await import('@/lib/contribute/__fixtures__/repo-rules');
 
 import type {
   ContributeAttemptDetail,
   ContributeAttemptEndReason,
   ContributeView,
-} from '@/lib/contribute/contribute.types';
+} from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html

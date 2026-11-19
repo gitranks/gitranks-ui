@@ -9,7 +9,7 @@ import { type IssuesQuery, issuesHref } from './issues-filter';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
+import { KINDS, LANGUAGES, SIZES } from '@/lib/workspace/format';
 
 /** The "All …" item: Radix takes no empty value, so no filter is this, and back to `undefined` on change. */
 export const ALL = 'all';

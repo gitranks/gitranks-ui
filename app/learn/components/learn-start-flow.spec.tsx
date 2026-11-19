@@ -3,16 +3,16 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { McpClient } from '@/lib/contribute/mcp-setup';
+import type { McpClient } from '@/lib/workspace/mcp-setup';
 
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace, push: vi.fn(), refresh: vi.fn() }) }));
 const actions = vi.hoisted(() => ({ readLearnStartIssue: vi.fn(), readLearnStartAttempt: vi.fn() }));
-vi.mock('@/app/learn/start/actions', () => actions);
+vi.mock('@/lib/learn/actions', () => actions);
 const tracker = vi.hoisted(() => ({ reportLearnEvent: vi.fn(), reportContributeConnect: vi.fn() }));
 vi.mock('@/components/contribute-click-tracker/contribute-click-tracker', () => tracker);
 // Step 1's connect steps, as a button that says the agent has called.
-vi.mock('@/app/contribute/components/agent-connect', () => ({
+vi.mock('@/components/workspace/agent/agent-connect', () => ({
   AgentConnect: ({ onConnected, mode }: { onConnected: (client: McpClient) => void; mode: string }) => (
     <button type="button" data-fake-connect={mode} onClick={() => onConnected('codex')}>
       Agent called

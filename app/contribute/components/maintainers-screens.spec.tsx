@@ -9,13 +9,13 @@ vi.mock('@/app/contribute/maintainers/actions', () => ({
   sendPrHelped: vi.fn(),
   undoPrAction: vi.fn(),
 }));
-vi.mock('@/app/contribute/actions', () => ({ hidePrNote: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({ hidePrNote: vi.fn() }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/contribute/attempts/A_1',
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock('@/lib/contribute/contribute.data', () => ({
+vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
   loadResolveHumanThreads: vi.fn(async () => undefined),
@@ -25,8 +25,8 @@ const { MaintainerReposLoading, MaintainerReposPanel, MaintainersScreen, PrStrip
 const { OptOutResults } = await import('./maintainer-repos-form');
 const { PrFeedbackScreen } = await import('./pr-feedback-view');
 const { HelpedSent, ReportSent } = await import('./pr-feedback-forms');
-const { PrNotesPanel } = await import('./pr-notes');
-const { ReviewScreen } = await import('./review-view');
+const { PrNotesPanel } = await import('@/components/workspace/pull-request/pr-notes');
+const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
 const { attempts, followUpAttempts } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { NOW, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { attemptRules } = await import('@/lib/contribute/__fixtures__/repo-rules');
@@ -40,13 +40,13 @@ import {
   prReportSent,
   prViewer,
 } from '@/lib/contribute/__fixtures__/maintainers';
+import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
+import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
 import type {
   ContributeMaintainerFacts,
   ContributeOptOutResult,
   ContributePrViewer,
-} from '@/lib/contribute/contribute.types';
-import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
-import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
+} from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html
@@ -540,7 +540,7 @@ describe('the maintainers’ say on the contributor’s page', () => {
 describe('the controls that write to a stopped PR', () => {
   it('are not drawn under a stop, with no line per control: the header says it once', async () => {
     const { nextForRun } = await import('@/lib/contribute/__fixtures__/needs-you');
-    const { hardStopOf } = await import('@/lib/contribute/hard-stop');
+    const { hardStopOf } = await import('@/lib/workspace/hard-stop');
     const stopped = prNotes({ stopped: { login: 'sam-w', at: '2026-10-28T11:04:00Z' } });
     expect(hardStopOf({ first: nextForRun, prNotes: stopped })?.blocked.has('start_run')).toBe(true);
 

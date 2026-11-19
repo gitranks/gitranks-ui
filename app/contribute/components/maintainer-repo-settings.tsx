@@ -3,18 +3,20 @@
 import { type KeyboardEvent, useId, useRef, useState } from 'react';
 
 import { setMaintainerConfig } from '../maintainers/actions';
-import { RadioPills, useSettledPick } from './radio-pills';
-import { RuleSource } from './repo-rules';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RuleSource } from '@/components/workspace/pull-request/repo-rules';
+import { RadioPills, useSettledPick } from '@/components/workspace/settings/radio-pills';
+import { CONTACT_EMAIL } from '@/lib/legal';
+import { cn } from '@/lib/utils';
 import type {
   ContributeConfigKey,
   ContributeMaintainerConfigValue,
   ContributeMaintainerRepo,
   ContributeMaintainerRepoRules,
-} from '@/lib/contribute/contribute.types';
-import { CONFIG_FILE } from '@/lib/contribute/maintainer-config';
-import { fullDayLabel } from '@/lib/contribute/maintainers-format';
+} from '@/lib/workspace/contribute.types';
+import { CONFIG_FILE } from '@/lib/workspace/maintainer-config';
+import { fullDayLabel } from '@/lib/workspace/maintainers-format';
 import {
   type ConfigControl,
   configNoteOf,
@@ -26,9 +28,7 @@ import {
   type SaveOutcome,
   typedCommitOf,
   UNSET,
-} from '@/lib/contribute/repo-rules';
-import { CONTACT_EMAIL } from '@/lib/legal';
-import { cn } from '@/lib/utils';
+} from '@/lib/workspace/repo-rules';
 
 const H3 = 'text-sm font-semibold';
 const SMALL = 'text-xs text-muted-foreground';

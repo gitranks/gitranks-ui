@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
 import { AuthorizeScreen, type AuthorizeState, authorizeStateFor } from '../components/authorize-view';
-import { viewerLogin } from '@/lib/contribute/contribute.data';
-import { ContributeOAuthRequestDocument } from '@/lib/contribute/contribute.documents';
-import { REVIEW_SIGN_IN_SHOWN, requestIdOf } from '@/lib/contribute/oauth-consent';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { viewerLogin } from '@/lib/workspace/contribute.data';
+import { ContributeOAuthRequestDocument } from '@/lib/workspace/contribute.documents';
+import { REVIEW_SIGN_IN_SHOWN, requestIdOf } from '@/lib/workspace/oauth-consent';
 
 export const metadata: Metadata = {
   title: 'Connect your agent',

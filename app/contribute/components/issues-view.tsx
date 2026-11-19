@@ -3,34 +3,16 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { AgentNextSteps } from './agent-connected';
-import { ContributeNotices } from './contribute-notices';
 import { FirstRunGuide } from './first-run-guide';
 import { filterOf, type IssuesQuery, issuesQueryOf } from './issues-filter';
 import { IssuesFilters } from './issues-filters';
 import { ModeSwitcher, SetOnlyEmpty } from './issues-mode';
 import { DailyCapEnd, LiveIssues, LiveIssuesFeed, LiveIssuesTotal } from './live-issues';
-import { HEADING, Meter } from './primitives';
-import { ReviewsReady } from './reviews-ready';
 import { StillRanking } from './still-ranking';
-import {
-  loadAttempts,
-  loadContribute,
-  loadContributeSet,
-  loadContributeSetup,
-  loadIssues,
-} from '@/lib/contribute/contribute.data';
-import type {
-  ContributeAttempt,
-  ContributeIssuePage,
-  ContributeSet,
-  ContributeView,
-} from '@/lib/contribute/contribute.types';
-import {
-  contributeNoticesOf,
-  isContributePageOpen,
-  isOwnAgentOnly,
-  isSuspended,
-} from '@/lib/contribute/contribute-state';
+import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { HEADING, Meter } from '@/components/workspace/primitives';
+import { ReviewsReady } from '@/components/workspace/reviews-ready';
+import { loadIssues } from '@/lib/contribute/contribute.data';
 import {
   agentFirstRunStepOf,
   firstRunNoticesOf,
@@ -38,9 +20,22 @@ import {
   isAgentFirstRun,
   isFirstRun,
 } from '@/lib/contribute/first-run';
-import { dayLabel, relativeLabel, usd } from '@/lib/contribute/format';
-import { contributeHidden } from '@/lib/contribute/setting-up';
-import { settingsPathOf } from '@/lib/contribute/settings-paths';
+import { loadAttempts, loadContribute, loadContributeSet, loadContributeSetup } from '@/lib/workspace/contribute.data';
+import type {
+  ContributeAttempt,
+  ContributeIssuePage,
+  ContributeSet,
+  ContributeView,
+} from '@/lib/workspace/contribute.types';
+import {
+  contributeNoticesOf,
+  isContributePageOpen,
+  isOwnAgentOnly,
+  isSuspended,
+} from '@/lib/workspace/contribute-state';
+import { dayLabel, relativeLabel, usd } from '@/lib/workspace/format';
+import { settingsPathOf } from '@/lib/workspace/paths';
+import { contributeHidden } from '@/lib/workspace/setting-up';
 
 export async function IssuesView({
   searchParams,

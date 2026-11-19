@@ -1,4 +1,4 @@
-import { MCP_URL } from './mcp-setup';
+import { MCP_URL } from '@/lib/workspace/mcp-setup';
 
 /**
  * The AI Catalog (SEP-2127) for gitranks.com: domain-level discovery starts from the domain a client sees, and it

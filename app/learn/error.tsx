@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 
-import { HEADING } from '@/app/contribute/components/primitives';
 import { Button } from '@/components/ui/button';
+import { HEADING } from '@/components/workspace/primitives';
 
 /** A Learn page that could not load its data: an outage, never "not found". */
 export default function LearnError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {

@@ -5,10 +5,10 @@ import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 import authConfig from './auth.config';
 import { createAuthCallbacks } from './lib/auth-callbacks';
 import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from './lib/auth-providers';
-import { askFirstFetch } from './lib/contribute/first-fetch';
-import { type RemoveOtherGrants, withContributeGrant } from './lib/contribute/grant-adapter';
-import { currentSessionToken } from './lib/contribute/session-token';
 import mongoClientPromise from './lib/mongo-client';
+import { askFirstFetch } from './lib/workspace/first-fetch';
+import { type RemoveOtherGrants, withContributeGrant } from './lib/workspace/grant-adapter';
+import { currentSessionToken } from './lib/workspace/session-token';
 
 const baseAdapter = MongoDBAdapter(mongoClientPromise);
 

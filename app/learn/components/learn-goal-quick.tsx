@@ -4,17 +4,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition } from 'react';
 
-import { HEADING } from '@/app/contribute/components/primitives';
-import { saveLearnProfile } from '@/app/learn/actions';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { contributeSource } from '@/lib/contribute/click-tracking';
-import { contributeErrorMessage } from '@/lib/contribute/errors';
+import { HEADING } from '@/components/workspace/primitives';
+import { saveLearnProfile } from '@/lib/learn/actions';
 import type { LearnProfile, LearnProfileInput } from '@/lib/learn/learn.types';
 import { LEARN_GOAL_LANGUAGES, levelFor } from '@/lib/learn/learn-home';
 import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { formOf, inputOf, LEVELS, withLevel } from '@/lib/learn/profile-form';
 import { cn } from '@/lib/utils';
+import { contributeSource } from '@/lib/workspace/click-tracking';
+import { contributeErrorMessage } from '@/lib/workspace/errors';
 
 /**
  * What the quick goal saves: the language as the goal and its level, every other saved level and the focus kept as

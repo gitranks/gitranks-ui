@@ -3,7 +3,6 @@
 import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import { sendPrHelped, sendPrReport, signInAsMaintainer, undoPrAction } from '../maintainers/actions';
-import { PrCard } from './pr-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { PrCard } from '@/components/workspace/pull-request/pr-card';
+import { cn } from '@/lib/utils';
 import type {
   ContributeHelpedLike,
   ContributePrAction,
@@ -20,8 +21,8 @@ import type {
   ContributePrFeedbackResult,
   ContributePrViewer,
   ContributeReportReason,
-} from '@/lib/contribute/contribute.types';
-import { isRetryablePrFeedbackError, type PrFeedbackErrorCode, prFeedbackErrorMessage } from '@/lib/contribute/errors';
+} from '@/lib/workspace/contribute.types';
+import { isRetryablePrFeedbackError, type PrFeedbackErrorCode, prFeedbackErrorMessage } from '@/lib/workspace/errors';
 import {
   actionChoicesOf,
   appliedActionText,
@@ -36,8 +37,7 @@ import {
   REPORT_REASONS,
   reportErrorsOf,
   undoneActionText,
-} from '@/lib/contribute/pr-feedback';
-import { cn } from '@/lib/utils';
+} from '@/lib/workspace/pr-feedback';
 
 const TITLE = 'text-2xl font-semibold tracking-tight text-balance md:text-[32px] md:leading-tight';
 const OPTIONAL = <span className="font-normal text-muted-foreground">optional</span>;

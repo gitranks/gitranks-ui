@@ -1,23 +1,22 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
-import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { LearnAttemptScreen } from '@/app/learn/components/learn-attempt';
 import { LearnHomeScreen } from '@/app/learn/components/learn-home';
 import { LearnLanding } from '@/app/learn/components/learn-landing';
 import { LearnMaintainers } from '@/app/learn/components/learn-maintainers';
 import { LearnProfileScreen } from '@/app/learn/components/learn-profile';
 import { LearnTabs } from '@/app/learn/components/learn-tabs';
-import type { LessonFlowStart } from '@/app/learn/components/lesson-flow';
 import { LessonPageScreen } from '@/app/learn/components/lesson-page';
 import { LessonResultScreen, type ResultViewer } from '@/app/learn/components/lesson-result';
 import { LessonStubScreen } from '@/app/learn/components/lesson-stub';
 import { MyLessonsScreen } from '@/app/learn/components/my-lessons';
 import { RecentLessons } from '@/app/learn/components/recent-lessons';
 import { Header } from '@/components/header/header';
+import type { LessonFlowStart } from '@/components/learn/lesson-flow';
+import { HeaderLine } from '@/components/workspace/header-line';
 import { detail, pullRequest } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { views } from '@/lib/contribute/__fixtures__/contribute-views';
-import type { ContributeAttemptDetail } from '@/lib/contribute/contribute.types';
 import {
   emptyIssues,
   learnIssues,
@@ -40,6 +39,7 @@ import type {
 } from '@/lib/learn/learn.types';
 import { learnHomeStateOf } from '@/lib/learn/learn-home';
 import { DONT_KNOW } from '@/lib/learn/question';
+import type { ContributeAttemptDetail } from '@/lib/workspace/contribute.types';
 
 /** A page's own container, as its `page.tsx` draws it. */
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';

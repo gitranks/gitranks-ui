@@ -1,7 +1,6 @@
 import { parse } from 'graphql';
 
 import type {
-  ContributeAttemptMode,
   LearnAttemptLesson,
   LearnIssues,
   LearnProfile,
@@ -27,9 +26,6 @@ import type DocumentNode from '@/types/typed-document-node';
 
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
   parse(source) as DocumentNode<TData, TVariables>;
-
-/** Whether Learn is open to the signed-in viewer. */
-export const LearnOpenDocument = doc<{ learnOpen: boolean }>('query LearnOpen { learnOpen }');
 
 /** Whether Learn is open to every signed-in person: the same answer for everyone, asked without a viewer. */
 export const LearnOpenToEveryoneDocument = doc<{ learnOpenToEveryone: boolean }>(
@@ -88,38 +84,6 @@ export const LearnAttemptStageDocument = doc<
   { learnAttemptLesson: Pick<LearnAttemptLesson, 'stage'> | null },
   { attemptId: string }
 >('query LearnAttemptStage($attemptId: ID!) { learnAttemptLesson(attemptId: $attemptId) { stage } }');
-
-/** A Learn attempt's own fields, read beside the attempt so an API without them leaves it as it was. */
-export const ContributeAttemptLearnDocument = doc<
-  {
-    contributeAttempt: {
-      attemptId: string;
-      mode: ContributeAttemptMode;
-      learnActiveAt: string | null;
-      learnGatePassed: boolean | null;
-    } | null;
-  },
-  { id: string }
->(`query ContributeAttemptLearn($id: ID!) {
-  contributeAttempt(id: $id) { attemptId mode learnActiveAt learnGatePassed }
-}`);
-
-type LearnRow = { attemptId: string; mode: ContributeAttemptMode; learnActiveAt: string | null };
-
-/** The attempts' Learn fields, read beside a list of attempts. */
-export const ContributeAttemptsLearnDocument = doc<
-  { contributeAttempts: LearnRow[] | null },
-  { state?: string; first?: number }
->(`query ContributeAttemptsLearn($state: ContributeAttemptState, $first: Int) {
-  contributeAttempts(state: $state, first: $first) { attemptId mode learnActiveAt }
-}`);
-
-export const ContributeAttemptsInLearnDocument = doc<
-  { contributeAttempts: LearnRow[] | null },
-  { states: string[]; first?: number }
->(`query ContributeAttemptsInLearn($states: [ContributeAttemptState!], $first: Int) {
-  contributeAttempts(states: $states, first: $first) { attemptId mode learnActiveAt }
-}`);
 
 export const StartLessonRunDocument = doc<{ startLessonRun: LessonRun }, { attemptId: string }>(
   `mutation StartLessonRun($attemptId: ID!) { startLessonRun(attemptId: $attemptId) { ${RUN} } }`,

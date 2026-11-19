@@ -2,8 +2,8 @@ import 'server-only';
 
 import { PackagesGateDocument } from './packages.documents';
 import { accountEmailOf } from '@/lib/account-email';
-import { sessionTokenOf } from '@/lib/contribute/session-token';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { sessionTokenOf } from '@/lib/workspace/session-token';
 
 // Who may see package pages, decided before anything renders: by the proxy and route handlers only, never by a page or
 // a layout (a usage spec keeps it so). A cached page then reads its data the same way for everyone it is shown to.

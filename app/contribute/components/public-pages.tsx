@@ -2,15 +2,9 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { Eyebrow } from './primitives';
-import {
-  ABOUT_PATH,
-  CONTRIBUTE_TERMS_PATH,
-  FAQ_PATH,
-  MAINTAINERS_PATH,
-  MCP_DOCS_PATH,
-} from '@/lib/contribute/contribute-path';
+import { Eyebrow } from '@/components/workspace/primitives';
 import { cn } from '@/lib/utils';
+import { ABOUT_PATH, CONTRIBUTE_TERMS_PATH, FAQ_PATH, MAINTAINERS_PATH, MCP_DOCS_PATH } from '@/lib/workspace/paths';
 
 /** Contribute's pages open to every visitor, linked from each other's foot. */
 export type PublicPage = 'landing' | 'maintainers' | 'mcp' | 'faq' | 'terms';

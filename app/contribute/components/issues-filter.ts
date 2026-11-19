@@ -3,8 +3,8 @@ import type {
   ContributeIssueSize,
   ContributeIssuesFilter,
   ContributeLanguage,
-} from '@/lib/contribute/contribute.types';
-import { KINDS, LANGUAGES, SIZES } from '@/lib/contribute/format';
+} from '@/lib/workspace/contribute.types';
+import { KINDS, LANGUAGES, SIZES } from '@/lib/workspace/format';
 
 type Params = Record<string, string | string[] | undefined>;
 

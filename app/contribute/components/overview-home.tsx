@@ -9,14 +9,9 @@ import {
   WaysSection,
 } from './overview-sections';
 import type { OverviewSections } from './overview-status';
-import {
-  loadContributeActivity,
-  loadOverviewImpact,
-  loadOverviewNeeds,
-  loadOverviewNow,
-  loadProviderInterests,
-} from '@/lib/contribute/contribute.data';
-import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
+import { loadOverviewImpact, loadOverviewNeeds, loadOverviewNow } from '@/lib/contribute/contribute.data';
+import { loadContributeActivity, loadProviderInterests } from '@/lib/workspace/contribute.data';
+import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
 
 type Feed = Promise<ContributeIssuePage | null | undefined>;
 

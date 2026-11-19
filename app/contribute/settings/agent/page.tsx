@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { ContributePageSkeleton } from '../../components/page-skeleton';
 import { FormSettingsView } from '../../components/settings-pages';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'Agent and pull requests' };
 

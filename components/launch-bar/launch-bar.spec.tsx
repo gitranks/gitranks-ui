@@ -13,7 +13,7 @@ import {
   PRODUCT_HUNT_END_AT,
   PRODUCT_HUNT_LIVE_AT,
 } from './launch-bar.consts';
-import { isContributePath } from '@/lib/contribute/contribute-path';
+import { isContributePath } from '@/lib/workspace/paths';
 
 vi.mock('@next/third-parties/google', () => ({ sendGAEvent: vi.fn() }));
 

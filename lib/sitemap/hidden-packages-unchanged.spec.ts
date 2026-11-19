@@ -6,9 +6,9 @@ import { GET as llmsTxt } from '@/app/llms.txt/route';
 import { GET as sitemapIndex } from '@/app/sitemap.xml/route';
 import { fetchOrgSitemapParts } from '@/graphql/helpers/fetch-org-sitemap-parts';
 import { fetchRepoSitemapParts } from '@/graphql/helpers/fetch-repo-sitemap-parts';
-import { contributeOpen } from '@/lib/contribute/preview-gate';
 import { packagesPublic } from '@/lib/packages/packages-gate';
 import * as packageSitemapData from '@/lib/sitemap/package-sitemap-data';
+import { contributeOpen } from '@/lib/workspace/preview-gate';
 
 vi.hoisted(() => {
   process.env.NEXT_PUBLIC_URI = 'https://example.test';
@@ -19,7 +19,7 @@ vi.mock('next/server', () => ({ connection: vi.fn(async () => undefined) }));
 vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => false }));
 vi.mock('@/graphql/helpers/fetch-repo-sitemap-parts', () => ({ fetchRepoSitemapParts: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-org-sitemap-parts', () => ({ fetchOrgSitemapParts: vi.fn() }));
-vi.mock('@/lib/contribute/preview-gate', () => ({ contributeOpen: vi.fn() }));
+vi.mock('@/lib/workspace/preview-gate', () => ({ contributeOpen: vi.fn() }));
 vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic: vi.fn() }));
 vi.mock('@/lib/learn/public-lessons.data', () => ({ readPublicLessons: vi.fn(async () => []) }));
 vi.mock('@/lib/sitemap/package-sitemap-data', () => ({

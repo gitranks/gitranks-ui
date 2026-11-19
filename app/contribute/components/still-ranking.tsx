@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { changesPollRunning, holdFastChanges } from '@/lib/contribute/changes-bus';
+import { changesPollRunning, holdFastChanges } from '@/lib/workspace/changes-bus';
 
 /** How often the wait looks again while the first picks are ranked, and for how long before it stops. */
 export const RANKING_REFRESH_SECONDS = 5;

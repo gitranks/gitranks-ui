@@ -1,5 +1,11 @@
-import type { ContributeAttempt, ContributeIssuePage, ContributeView } from './contribute.types';
-import { type ContributeNotice, claudeKeyOf, isOnboarded, isPaused, isSuspended } from './contribute-state';
+import type { ContributeAttempt, ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
+import {
+  type ContributeNotice,
+  claudeKeyOf,
+  isOnboarded,
+  isPaused,
+  isSuspended,
+} from '@/lib/workspace/contribute-state';
 
 /**
  * The first-run guide ("You're in. Here's what happens next") opens Issues and Overview for a contributor with a

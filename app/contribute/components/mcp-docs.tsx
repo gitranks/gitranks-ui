@@ -2,20 +2,13 @@ import { ChevronRight } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 
-import { CodeBlock } from './code-block';
-import { InstallButton } from './install-button';
-import { OpenOnHash } from './open-on-hash';
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
-import { SetupClip } from './setup-clip';
 import { Pill } from '@/components/pill/pill';
 import { buttonVariants } from '@/components/ui/button';
-import {
-  ABOUT_PATH,
-  AGENTS_DOC_PATH,
-  FAQ_PATH,
-  MAINTAINERS_PATH,
-  START_AGENT_PATH,
-} from '@/lib/contribute/contribute-path';
+import { SetupClip } from '@/components/workspace/agent/setup-clip';
+import { CodeBlock } from '@/components/workspace/code-block';
+import { InstallButton } from '@/components/workspace/install-button';
+import { OpenOnHash } from '@/components/workspace/open-on-hash';
 import {
   EXAMPLE_BRIEF,
   EXAMPLE_BRIEF_CLAIMED_ON,
@@ -48,10 +41,11 @@ import {
   OR_INSTALL_THE_PLUGIN,
   TOKEN_PLACEHOLDER,
 } from '@/lib/contribute/mcp-docs';
-import { MCP_INSTALL_LINKS, mcpInstallLinkOf } from '@/lib/contribute/mcp-install-links';
-import { USE_A_TOKEN_INSTEAD } from '@/lib/contribute/mcp-setup';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
+import { MCP_INSTALL_LINKS, mcpInstallLinkOf } from '@/lib/workspace/mcp-install-links';
+import { USE_A_TOKEN_INSTEAD } from '@/lib/workspace/mcp-setup';
+import { ABOUT_PATH, AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH, START_AGENT_PATH } from '@/lib/workspace/paths';
 
 const SECTIONS = [
   { id: 'start', title: 'Before you start' },

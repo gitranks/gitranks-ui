@@ -2,12 +2,12 @@ import 'server-only';
 
 import { cacheLife } from 'next/cache';
 
-import { ContributeMaintainerFactsDocument, ContributePrCardDocument } from './contribute.documents';
-import type { ContributeMaintainerFacts, ContributePrCard, ContributePrViewer } from './contribute.types';
-import { type PrFeedbackErrorCode, prFeedbackErrorOf } from './errors';
 import { currentMaintainerToken } from './maintainer-token';
-import { attemptIdOf, type PrTarget, prRefText } from './pr-feedback';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { ContributeMaintainerFactsDocument, ContributePrCardDocument } from '@/lib/workspace/contribute.documents';
+import type { ContributeMaintainerFacts, ContributePrCard, ContributePrViewer } from '@/lib/workspace/contribute.types';
+import { type PrFeedbackErrorCode, prFeedbackErrorOf } from '@/lib/workspace/errors';
+import { attemptIdOf, type PrTarget, prRefText } from '@/lib/workspace/pr-feedback';
 
 /** A PR's public card changes when its repo is renamed, at most. */
 const STRIP_REVALIDATE_SEC = 5 * 60;

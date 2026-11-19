@@ -8,12 +8,12 @@ const { approve, approveAsReviewer } = vi.hoisted(() => ({ approve: vi.fn(), app
 
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock('@/app/contribute/actions', () => ({ approveContributeOAuth: approve }));
-vi.mock('@/app/contribute/review-sign-in.actions', () => ({ approveContributeOAuthAsReviewer: approveAsReviewer }));
+vi.mock('@/lib/workspace/actions', () => ({ approveContributeOAuth: approve }));
+vi.mock('@/lib/workspace/review-sign-in.actions', () => ({ approveContributeOAuthAsReviewer: approveAsReviewer }));
 
 const { AuthorizeActions, AuthorizeReviewSignIn } = await import('./authorize-actions');
 const { AuthorizeScreen } = await import('./authorize-view');
-const { AGENT_FIRST_PROMPT } = await import('@/lib/contribute/mcp-setup');
+const { AGENT_FIRST_PROMPT } = await import('@/lib/workspace/mcp-setup');
 const { CONTACT_EMAIL } = await import('@/lib/legal');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

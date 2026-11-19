@@ -11,7 +11,7 @@ import type {
 } from './learn.types';
 import { lessonPath, lessonResultPath } from './learn-path';
 import { isStepDone, partsLabelOf } from './question';
-import type { PrFeedbackErrorCode } from '@/lib/contribute/errors';
+import type { PrFeedbackErrorCode } from '@/lib/workspace/errors';
 
 /** A public read as the pages use it: the lesson (or result), a stub naming why it is closed, or nothing (a 404). */
 export type PublicAnswer<T> = { kind: 'found'; value: T } | { kind: 'stub'; visibility: LessonVisibility } | null;

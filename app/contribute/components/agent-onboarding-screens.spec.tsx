@@ -12,19 +12,21 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
+vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 
-const { AgentConnect, AgentConnectView } = await import('./agent-connect');
+const { AgentConnect, AgentConnectView } = await import('@/components/workspace/agent/agent-connect');
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
 const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
 const { IssuesScreen } = await import('./issues-view');
 const { NOW, mcpToken, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { AGENT_FIRST_PROMPT } = await import('@/lib/contribute/mcp-setup');
+const { AGENT_FIRST_PROMPT } = await import('@/lib/workspace/mcp-setup');
 
 import type { ComponentProps } from 'react';
 
-import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
+import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html

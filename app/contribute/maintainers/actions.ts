@@ -2,6 +2,8 @@
 
 import { signIn } from '@/auth';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
+import { currentMaintainerToken, markMaintainerSignIn } from '@/lib/contribute/maintainer-token';
+import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import {
   ContributePrHelpedDocument,
   OptInReposDocument,
@@ -9,7 +11,7 @@ import {
   ReportContributePrDocument,
   SetContributeMaintainerConfigDocument,
   UndoContributePrActionDocument,
-} from '@/lib/contribute/contribute.documents';
+} from '@/lib/workspace/contribute.documents';
 import type {
   ContributeHelpedLike,
   ContributeMaintainerRepoConfig,
@@ -18,7 +20,7 @@ import type {
   ContributePrFeedbackResult,
   ContributePrUndoResult,
   ContributeReportReason,
-} from '@/lib/contribute/contribute.types';
+} from '@/lib/workspace/contribute.types';
 import {
   type MaintainerConfigError,
   type MaintainerErrorCode,
@@ -26,8 +28,7 @@ import {
   maintainerErrorOf,
   type PrFeedbackErrorCode,
   prFeedbackErrorOf,
-} from '@/lib/contribute/errors';
-import { currentMaintainerToken, markMaintainerSignIn } from '@/lib/contribute/maintainer-token';
+} from '@/lib/workspace/errors';
 import {
   attemptIdOf,
   HELPED_LIKES,
@@ -39,8 +40,7 @@ import {
   REPORT_REASONS,
   reportErrorsOf,
   textOrNull,
-} from '@/lib/contribute/pr-feedback';
-import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+} from '@/lib/workspace/pr-feedback';
 
 /** The API changes at most this many repositories a call; a larger choice goes in turns. */
 const IDS_PER_CALL = 100;

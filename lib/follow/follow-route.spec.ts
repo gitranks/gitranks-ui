@@ -6,7 +6,7 @@ const { sessionTokenOf, maySee } = vi.hoisted(() => ({
   maySee: vi.fn(async (_req: unknown) => true),
 }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/contribute/session-token', () => ({ sessionTokenOf }));
+vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 
 const { FOLLOW_BODY_MAX, followBodyOf, followCallerOf, followRefusalOf } = await import('./follow-route');
 

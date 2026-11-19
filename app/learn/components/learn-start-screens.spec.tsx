@@ -14,14 +14,14 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/app/learn/start/actions', () => ({ readLearnStartIssue: vi.fn(), readLearnStartAttempt: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/learn/actions', () => ({ readLearnStartIssue: vi.fn(), readLearnStartAttempt: vi.fn() }));
 const { viewerLogin } = vi.hoisted(() => ({ viewerLogin: vi.fn(async (): Promise<string | null> => 'octocat') }));
-vi.mock('@/lib/contribute/contribute.data', () => ({
+vi.mock('@/lib/workspace/contribute.data', () => ({
   viewerLogin,
   ContributeUnavailableError: class ContributeUnavailableError extends Error {},
 }));
-vi.mock('@/lib/contribute/mcp-sign-in', () => ({ contributeMcpSignIn: vi.fn(async () => false) }));
+vi.mock('@/lib/workspace/mcp-sign-in', () => ({ contributeMcpSignIn: vi.fn(async () => false) }));
 const data = vi.hoisted(() => ({ loadLearnOpen: vi.fn(), loadLearnProfile: vi.fn(), loadOwnAgent: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => data);
 const start = vi.hoisted(() => ({ learnStartViewOf: vi.fn(), learnStartOnboarded: vi.fn(async () => false) }));
@@ -29,10 +29,10 @@ vi.mock('@/lib/learn/learn-start.data', () => start);
 
 const { LearnStartScreen } = await import('./learn-start-screen');
 const { LearnStartView } = await import('./learn-start');
-const { AgentConnectView } = await import('@/app/contribute/components/agent-connect');
+const { AgentConnectView } = await import('@/components/workspace/agent/agent-connect');
 const { filledProfile, emptyProfile } = await import('@/lib/learn/__fixtures__/profile');
 const { mcpToken } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { AGENT_FIRST_PROMPT } = await import('@/lib/contribute/mcp-setup');
+const { AGENT_FIRST_PROMPT } = await import('@/lib/workspace/mcp-setup');
 const { fixAttemptOf, START_GOAL, START_NUMBER, START_REPO, startConnection, startViewOf, startViews } = await import(
   '@/lib/learn/__fixtures__/learn-start'
 );

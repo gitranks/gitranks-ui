@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 const { useSession } = vi.hoisted(() => ({ useSession: vi.fn() }));
 vi.mock('next-auth/react', () => ({ useSession }));
 // Learn's "Not for me" is a server action: nothing here calls it.
-vi.mock('@/app/learn/actions', () => ({ dismissLearnPromo: async () => ({ ok: true, data: true }) }));
+vi.mock('@/lib/learn/actions', () => ({ dismissLearnPromo: async () => ({ ok: true, data: true }) }));
 
 const { ProfileContribute, ProfileContributeView, ownProfileBlockUrl } = await import('./profile-contribute');
 

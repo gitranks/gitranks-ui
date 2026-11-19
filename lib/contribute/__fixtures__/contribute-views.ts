@@ -8,7 +8,7 @@ import type {
   ContributeSpend,
   ContributeView,
   Contributor,
-} from '../contribute.types';
+} from '@/lib/workspace/contribute.types';
 
 export const NOW = new Date('2026-10-28T12:00:00.000Z');
 

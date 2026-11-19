@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { ContributePageSkeleton } from '@/app/contribute/components/page-skeleton';
 import { LearnHomeView } from '@/app/learn/components/learn-landing';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { learnOpenToEveryoneCached } from '@/lib/learn/learn-everyone-cached';
 import { learnHomeMetadata } from '@/lib/learn/lesson-seo';
 

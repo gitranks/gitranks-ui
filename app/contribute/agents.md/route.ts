@@ -2,7 +2,7 @@ import { connection } from 'next/server';
 
 import { loadAgentPage } from '@/lib/contribute/agent-page';
 import { agentsDocOf } from '@/lib/contribute/agents-doc';
-import { contributeOpen, contributeShown } from '@/lib/contribute/preview-gate';
+import { contributeOpen, contributeShown } from '@/lib/workspace/preview-gate';
 
 /**
  * GitRanks Contribute for an AI agent, in markdown: what it gets, the one human step, how to connect, the day's

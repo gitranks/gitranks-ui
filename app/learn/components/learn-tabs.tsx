@@ -2,9 +2,9 @@
 
 import { usePathname } from 'next/navigation';
 
-import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
+import { HeaderLine } from '@/components/workspace/header-line';
 import {
   isLearnTablessPath,
   LEARN_ABOUT_PATH,

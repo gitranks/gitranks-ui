@@ -3,9 +3,9 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import type { JWT } from 'next-auth/jwt';
 
-import { MAINTAINER_RETURN_PATHS, MAINTAINERS_PATH } from './contribute-path';
-import { currentSessionToken } from './session-token';
 import { isLessonResultPath, REACT_PARAM, reactionParamOf } from '@/lib/learn/learn-path';
+import { MAINTAINER_RETURN_PATHS, MAINTAINERS_PATH } from '@/lib/workspace/paths';
+import { currentSessionToken } from '@/lib/workspace/session-token';
 
 /**
  * The maintainers page lists a visitor's repositories with the GitHub token of their light sign-in, which the site

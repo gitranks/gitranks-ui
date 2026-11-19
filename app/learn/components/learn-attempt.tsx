@@ -6,38 +6,32 @@ import type { ReactNode } from 'react';
 import { AttemptStageWatch } from './attempt-stage-watch';
 import { LearnSettingUp } from './learn-setting-up';
 import { LearnTabs } from './learn-tabs';
-import { LessonFlow, type LessonFlowStart, StepArticle } from './lesson-flow';
 import { LessonShare } from './lesson-share';
-import { LESSON_GRID } from './lesson-steps';
 import { CHANGED_YOUR_MIND } from './own-lesson-card';
 import { PracticeRows } from './practice-lessons';
 import { StageStrip } from './stage-strip';
-import { WrittenFor } from './written-for';
+import { LessonFlow, type LessonFlowStart, StepArticle } from '@/components/learn/lesson-flow';
+import { LESSON_GRID } from '@/components/learn/lesson-steps';
+import { WrittenFor } from '@/components/learn/written-for';
+import { Button } from '@/components/ui/button';
+import { DiffViewer } from '@/components/workspace/diff-viewer';
+import { HeaderLine } from '@/components/workspace/header-line';
+import { HEADING, PageTitle } from '@/components/workspace/primitives';
 import {
   ChecksPanel,
   CostPanel,
   ReadinessPanel,
   TimelinePanel,
   YourNotePanel,
-} from '@/app/contribute/components/attempt-panels';
-import { AttemptSignIn } from '@/app/contribute/components/attempt-sign-in';
-import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
-import { DiffViewer } from '@/app/contribute/components/diff-viewer';
-import { CardError, DiscardAttemptButton } from '@/app/contribute/components/head-actions';
-import { PrForm } from '@/app/contribute/components/pr-form';
-import { HEADING, PageTitle } from '@/app/contribute/components/primitives';
-import { prFormPropsOf, withQuery } from '@/app/contribute/components/review-view';
-import { SendBackForm } from '@/app/contribute/components/send-back-form';
-import { SessionActionsProvider } from '@/app/contribute/components/session-actions';
-import { type SessionTab, SessionTabs } from '@/app/contribute/components/session-tabs';
-import { Box } from '@/app/contribute/components/status-box';
-import { Button } from '@/components/ui/button';
-import { isOwnAgent } from '@/lib/contribute/attempt-format';
-import type { CommentActionsInit } from '@/lib/contribute/comment-actions';
-import { loadAttempt, loadContribute, viewerLogin } from '@/lib/contribute/contribute.data';
-import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
-import { parsePatch } from '@/lib/contribute/patch';
-import { attemptPath } from '@/lib/contribute/sessions';
+} from '@/components/workspace/pull-request/attempt-panels';
+import { AttemptSignIn } from '@/components/workspace/pull-request/attempt-sign-in';
+import { CardError, DiscardAttemptButton } from '@/components/workspace/pull-request/head-actions';
+import { PrForm } from '@/components/workspace/pull-request/pr-form';
+import { prFormPropsOf, withQuery } from '@/components/workspace/pull-request/review-view';
+import { SendBackForm } from '@/components/workspace/pull-request/send-back-form';
+import { SessionActionsProvider } from '@/components/workspace/pull-request/session-actions';
+import { type SessionTab, SessionTabs } from '@/components/workspace/session-tabs';
+import { Box } from '@/components/workspace/status-box';
 import { loadAttemptLesson, loadLearnOpen, loadLearnSetup, loadPracticeLessons } from '@/lib/learn/learn.data';
 import type { LearnAttemptLesson, LessonStep, PracticeLessons } from '@/lib/learn/learn.types';
 import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
@@ -45,6 +39,12 @@ import { endedReasonOf, WAIT_PRACTICE } from '@/lib/learn/learn-home';
 import { LEARN_PRACTICE_PATH, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
 import { LEARN_ISSUES_PATH } from '@/lib/learn/learn-start';
 import { subjectLineOf } from '@/lib/learn/lesson-format';
+import { isOwnAgent } from '@/lib/workspace/attempt-format';
+import type { CommentActionsInit } from '@/lib/workspace/comment-actions';
+import { loadAttempt, loadContribute, viewerLogin } from '@/lib/workspace/contribute.data';
+import type { ContributeAttemptDetail, ContributeView } from '@/lib/workspace/contribute.types';
+import { parsePatch } from '@/lib/workspace/patch';
+import { attemptPath } from '@/lib/workspace/sessions';
 
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 

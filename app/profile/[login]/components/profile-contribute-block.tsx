@@ -4,8 +4,8 @@ import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
 
 import { buttonVariants } from '@/components/ui/button';
-import { contributeSource } from '@/lib/contribute/click-tracking';
 import { cn } from '@/lib/utils';
+import { contributeSource } from '@/lib/workspace/click-tracking';
 
 /** One issue as the owner's block shows it: where, what, the repository's language, and why it is a good one. */
 export type OwnerIssue = {

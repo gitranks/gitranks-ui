@@ -4,14 +4,13 @@ import { Check } from 'lucide-react';
 import { type ReactNode, useId, useRef, useState } from 'react';
 
 import { GoalSavedNext } from './goal-saved-next';
-import { readLearnIssueCount, readMyLearnAttempts, saveLearnProfile } from '@/app/learn/actions';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { contributeErrorMessage } from '@/lib/contribute/errors';
+import { readLearnIssueCount, readMyLearnAttempts, saveLearnProfile } from '@/lib/learn/actions';
 import type { LearnGoalKind, LearnProfile, PracticeNext } from '@/lib/learn/learn.types';
 import { currentOf } from '@/lib/learn/learn-home';
 import {
@@ -29,6 +28,7 @@ import {
   withLevel,
 } from '@/lib/learn/profile-form';
 import { cn } from '@/lib/utils';
+import { contributeErrorMessage } from '@/lib/workspace/errors';
 
 const CARD = 'flex flex-col gap-3 rounded-xl border bg-card p-5';
 const PICKED = 'border-primary bg-brand-soft/40';

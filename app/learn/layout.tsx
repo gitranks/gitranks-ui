@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { type ReactNode, Suspense } from 'react';
 
-import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { LearnTabs } from '@/app/learn/components/learn-tabs';
 import { Header } from '@/components/header/header';
+import { HeaderLine } from '@/components/workspace/header-line';
 
 export const metadata: Metadata = { title: 'Learn' };
 

@@ -10,11 +10,11 @@ const actions = vi.hoisted(() => ({
   readLearnIssueCount: vi.fn(),
   readPracticeNext: vi.fn(),
 }));
-vi.mock('@/app/learn/actions', () => actions);
-vi.mock('../actions', () => actions);
+vi.mock('@/lib/learn/actions', () => actions);
+vi.mock('@/lib/learn/actions', () => actions);
 
 const { LearnProfileForm } = await import('./learn-profile-form');
-const { PracticeNextCard } = await import('./practice-next');
+const { PracticeNextCard } = await import('@/components/learn/practice-next');
 const { filledProfile } = await import('@/lib/learn/__fixtures__/profile');
 const { learnIssues, myLearnAttempts, practiceNext } = await import('@/lib/learn/__fixtures__/home');
 

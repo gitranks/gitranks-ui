@@ -4,21 +4,21 @@ import { signIn } from 'next-auth/react';
 import { useState, useTransition } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
-import { approveContributeOAuth } from '../actions';
-import { approveContributeOAuthAsReviewer } from '../review-sign-in.actions';
 import { AuthorizeNextStep } from './authorize-next-step';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
-import { contributeErrorMessage } from '@/lib/contribute/errors';
+import { approveContributeOAuth } from '@/lib/workspace/actions';
+import { contributeErrorMessage } from '@/lib/workspace/errors';
 import {
   authorizeCancelHrefOf,
   authorizeHrefOf,
   isSafeRedirect,
   REVIEW_PASSWORD_MAX,
   REVIEW_USERNAME_MAX,
-} from '@/lib/contribute/oauth-consent';
+} from '@/lib/workspace/oauth-consent';
+import { approveContributeOAuthAsReviewer } from '@/lib/workspace/review-sign-in.actions';
 
 const ACTION = 'min-h-11 px-5 font-semibold';
 

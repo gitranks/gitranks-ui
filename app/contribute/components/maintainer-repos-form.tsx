@@ -5,23 +5,23 @@ import { useState, useTransition } from 'react';
 import { optInMaintainerRepos, optOutMaintainerRepos, signInAsMaintainer } from '../maintainers/actions';
 import { MaintainerRepoActions } from './maintainer-repo-actions';
 import { MaintainerRepoExtras } from './maintainer-repo-extras';
-import { PanelTitle } from './primitives';
 import { Pill } from '@/components/pill/pill';
 import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
+import { PanelTitle } from '@/components/workspace/primitives';
 import type {
   ContributeConfigKey,
   ContributeMaintainerRepo,
   ContributeOptOutResult,
-} from '@/lib/contribute/contribute.types';
-import { type MaintainerErrorCode, maintainerErrorMessage } from '@/lib/contribute/errors';
+} from '@/lib/workspace/contribute.types';
+import { type MaintainerErrorCode, maintainerErrorMessage } from '@/lib/workspace/errors';
 import {
   fullDayLabel,
   type OptOutChange,
   optOutResultText,
   roleWordOf,
   withOptOutResults,
-} from '@/lib/contribute/maintainers-format';
+} from '@/lib/workspace/maintainers-format';
 
 type Outcome = { change: OptOutChange; results: ContributeOptOutResult[] };
 

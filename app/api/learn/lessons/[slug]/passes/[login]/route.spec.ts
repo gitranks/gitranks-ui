@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { graphqlDirect } = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
-vi.mock('@/lib/contribute/contribute.data', () => ({
+vi.mock('@/lib/workspace/contribute.data', () => ({
   ContributeUnavailableError: class extends Error {},
   viewerLogin: vi.fn(),
 }));

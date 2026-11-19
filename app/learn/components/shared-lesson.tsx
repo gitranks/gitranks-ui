@@ -4,13 +4,13 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
-import { LessonFlow, type LessonFlowStart } from './lesson-flow';
-import { INTRO_BUTTON, LessonIntro, ReadLesson } from './lesson-read';
+import { LessonFlow, type LessonFlowStart } from '@/components/learn/lesson-flow';
+import { INTRO_BUTTON, LessonIntro, ReadLesson } from '@/components/learn/lesson-read';
 import { Button } from '@/components/ui/button';
-import { contributeSource } from '@/lib/contribute/click-tracking';
 import type { LessonHead, LessonRun, LessonStep, PracticeNext } from '@/lib/learn/learn.types';
 import { LEARN_ISSUES_PATH } from '@/lib/learn/learn-start';
 import { isAuthorOf } from '@/lib/learn/lesson-public';
+import { contributeSource } from '@/lib/workspace/click-tracking';
 
 /** A practice lesson's intro: what it is for, and the way past it to the learner's own issue. */
 function PracticeIntroText() {

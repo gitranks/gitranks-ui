@@ -13,17 +13,18 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
-vi.mock('@/app/learn/actions', () => ({
+vi.mock('@/lib/learn/actions', () => ({
   saveLearnProfile: vi.fn(),
   readMyLearnAttempts: vi.fn(),
   readLearnIssueCount: vi.fn(),
 }));
-vi.mock('@/app/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
 const { everyone, viewerLogin } = vi.hoisted(() => ({
   everyone: vi.fn(async () => false),
   viewerLogin: vi.fn(async (): Promise<string | undefined> => undefined),
 }));
-vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), viewerLogin }));
+vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), viewerLogin }));
 vi.mock('@/lib/learn/learn-front-door', () => ({ learnFrontDoorOpenToVisitor: everyone }));
 const data = vi.hoisted(() => ({
   loadLearnOpen: vi.fn(),

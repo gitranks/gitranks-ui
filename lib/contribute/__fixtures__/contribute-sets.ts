@@ -3,7 +3,7 @@ import type {
   ContributeSetRepo,
   ContributeStackResolve,
   ContributeStackTarget,
-} from '../contribute.types';
+} from '@/lib/workspace/contribute.types';
 
 export const setRepo = (patch: Partial<ContributeSetRepo> = {}): ContributeSetRepo => ({
   repositoryId: `R_${patch.nameWithOwner ?? 'octocat/hello'}`,

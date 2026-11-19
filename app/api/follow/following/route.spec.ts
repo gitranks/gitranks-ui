@@ -11,7 +11,7 @@ const { requestMaySeePackages, sessionTokenOf, pressSessionSettings, readLinkTok
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/packages/packages-gate', () => ({ requestMaySeePackages }));
-vi.mock('@/lib/contribute/session-token', () => ({ sessionTokenOf }));
+vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 vi.mock('@/lib/link-token/link-cookie', () => ({ readLinkToken }));
 vi.mock('@/lib/follow/following-session', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/follow/following-session')>()),

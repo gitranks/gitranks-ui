@@ -7,10 +7,10 @@ import type { FC } from 'react';
 import { OwnerIssueRow } from './profile-contribute-block';
 import { reportPromo, usePromoShown } from '@/app/learn/components/use-promo-report';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { contributeSource } from '@/lib/contribute/click-tracking';
 import { LEARN_PATH } from '@/lib/learn/learn-path';
 import { ownerIssueOf, promoTitleOf, reasonLineOf, type ShownPromo } from '@/lib/learn/learn-promo';
 import { cn } from '@/lib/utils';
+import { contributeSource } from '@/lib/workspace/click-tracking';
 
 /**
  * GitRanks Learn suggested on the signed-in owner's own profile, in the Contribute block's place and frame ("only you

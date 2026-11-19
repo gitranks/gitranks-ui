@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { SITE_URL } from '@/lib/seo/site';
 import { byAttemptTargetOf } from '@/lib/workspace/by-attempt';
 import { loadAttemptRef } from '@/lib/workspace/contribute.data';
 
@@ -12,7 +13,8 @@ export async function GET(request: Request, { params }: RouteContext<'/my/pull-r
   const { attemptId } = await params;
   const url = new URL(request.url);
   const target = byAttemptTargetOf(attemptId, await loadAttemptRef(attemptId), url.searchParams);
-  const response = NextResponse.redirect(new URL(target, url), 307);
+  // The site's own address: behind the proxy a route handler's request URL is the server's bind address.
+  const response = NextResponse.redirect(new URL(target, SITE_URL || url), 307);
   response.headers.set('Cache-Control', 'private, no-store');
   return response;
 }

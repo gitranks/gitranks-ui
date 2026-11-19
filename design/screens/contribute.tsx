@@ -690,6 +690,13 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () => contributionPage(prOpenWith({ checks: 'PENDING' })),
       },
       {
+        id: 'pr-approved',
+        title: 'Pull request approved',
+        path: '/contribute/attempts/A_1',
+        height: 1200,
+        render: () => contributionPage(prOpenWith({ reviewDecision: 'APPROVED' })),
+      },
+      {
         id: 'pr-merged',
         title: 'Pull request merged',
         path: '/contribute/attempts/A_1',

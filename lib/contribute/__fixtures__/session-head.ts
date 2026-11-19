@@ -216,14 +216,6 @@ export const proof = {
       }),
     },
   }),
-  askCleared: detail({
-    ...nextForProof.review,
-    needsYou: null,
-    proof: {
-      ask: null,
-      session: proofSession({ state: 'DISCARDED', stateAt: '2026-10-28T11:00:00.000Z', endedReason: 'ASK_CLEARED' }),
-    },
-  }),
 };
 
 /** Several moves at once on the next step: the proof, a title rule, and review comments. */

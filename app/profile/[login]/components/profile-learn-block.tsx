@@ -8,7 +8,7 @@ import { OwnerIssueRow } from './profile-contribute-block';
 import { reportPromo, usePromoShown } from '@/app/learn/components/use-promo-report';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { contributeSource } from '@/lib/contribute/click-tracking';
-import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
+import { LEARN_PATH } from '@/lib/learn/learn-path';
 import { ownerIssueOf, promoTitleOf, reasonLineOf, type ShownPromo } from '@/lib/learn/learn-promo';
 import { cn } from '@/lib/utils';
 
@@ -61,7 +61,7 @@ export const ProfileLearnBlock: FC<{
             Not for me
           </Button>
           <Link
-            href={LEARN_PROFILE_PATH}
+            href={LEARN_PATH}
             prefetch={false}
             onClick={() => reportPromo('promo_clicked', 'learn_promo_profile')}
             className={cn(buttonVariants({ size: 'sm' }), 'shrink-0 font-semibold max-sm:min-h-11 max-sm:flex-1')}

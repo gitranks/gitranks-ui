@@ -31,6 +31,15 @@ export const CONTRIBUTE_SOURCES = [
   'learn_promo_signed_in',
   /** GitRanks Learn suggested on the signed-in user's own profile, in the Contribute block's place. */
   'learn_promo_profile',
+  /** "Learn" in the header menu. */
+  'learn_menu',
+  /** Learn home: Show my issues (the goal question), Start on an issue, Take this lesson on a practice card. */
+  'learn_home_goal',
+  'learn_home_issue',
+  'learn_home_practice',
+  /** A practice lesson: Skip it, pick your issue; Start on an issue once it is passed. */
+  'learn_practice_skip',
+  'learn_practice_passed_issue',
   /** GitRanks Learn's start page for one issue: a connect made there, and its views. */
   'learn_start',
   /** Copy the prompt, on Learn's start page. */
@@ -49,8 +58,11 @@ export const CONTRIBUTE_SOURCE_ATTR = 'data-contribute-source';
  */
 export const contributeSource = (source: ContributeSource) => ({ [CONTRIBUTE_SOURCE_ATTR]: source }) as const;
 
-/** Sources whose links sit on Contribute's own pages; any other click there is moving around inside it. */
-const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>(['contribute_landing']);
+/**
+ * Sources whose links sit on Contribute's own pages (its landing's buttons, and the header's Learn on every page); any
+ * other click there is moving around inside it.
+ */
+const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>(['contribute_landing', 'learn_menu']);
 
 export const CLICK_REPORT_PATH = '/api/contribute/click';
 

@@ -1,8 +1,9 @@
-import { GitPullRequest, GraduationCap, Lock, type LucideIcon, Terminal } from 'lucide-react';
+import { BookOpen, GitPullRequest, GraduationCap, Lock, type LucideIcon, Terminal } from 'lucide-react';
 
 import { Pill } from '@/components/pill/pill';
 import type { LearnStage } from '@/lib/learn/learn.types';
-import { STAGES, type StageMark, stageMarksOf } from '@/lib/learn/lesson-format';
+import type { PathMark } from '@/lib/learn/learn-home';
+import { STAGES, stageMarksOf } from '@/lib/learn/lesson-format';
 import { cn } from '@/lib/utils';
 
 const ICONS: Record<(typeof STAGES)[number]['key'], LucideIcon> = {
@@ -11,9 +12,10 @@ const ICONS: Record<(typeof STAGES)[number]['key'], LucideIcon> = {
   approve: GitPullRequest,
 };
 
-function Mark({ mark }: { mark: StageMark }) {
+function Mark({ mark }: { mark: PathMark }) {
   if (mark === 'done') return <Pill tone="green">Done</Pill>;
   if (mark === 'now') return <Pill tone="violet">Now</Pill>;
+  if (mark === 'working') return <Pill tone="violet">Working</Pill>;
   return (
     <span className="flex items-center gap-1 text-xs text-muted-foreground">
       <Lock aria-hidden="true" className="size-3.5 shrink-0" />
@@ -22,22 +24,31 @@ function Mark({ mark }: { mark: StageMark }) {
   );
 }
 
+/** One step of a strip: where it happens, what happens, its icon. */
+export type StripStep = { key: string; where: string; title: string; Icon: LucideIcon };
+
 /**
- * Where the user is in a Learn attempt: the agent fixes the issue (in their terminal), they take the lesson, they
- * approve the pull request. On a phone only the stage they are at shows; up to `lg` the stages stack, since three
- * columns leave too little room for their lines. The lines wrap, never cut off. Nothing for an attempt that left the
- * flow.
+ * Steps in a row, each with its mark: done, the one now (or the agent working on it), or next. On a phone only the
+ * step the user is at shows; up to `lg` the steps stack, since three columns leave too little room for their lines.
+ * The lines wrap, never cut off.
  */
-export function StageStrip({ stage }: { stage: LearnStage }) {
-  const marks = stageMarksOf(stage);
-  if (!marks) return null;
+export function StepStrip({
+  steps,
+  marks,
+  label,
+}: {
+  steps: readonly StripStep[];
+  marks: readonly PathMark[];
+  label?: string;
+}) {
+  const current = (mark: PathMark) => mark === 'now' || mark === 'working';
   return (
-    <ol aria-label="Where you are" className="grid gap-2 lg:grid-cols-3">
-      {STAGES.map((item, index) => {
-        const Icon = ICONS[item.key];
-        const now = marks[index] === 'now';
-        // On a phone the current stage alone; once all are done, the last.
-        const shownOnPhone = now || (!marks.includes('now') && index === STAGES.length - 1);
+    <ol aria-label={label} className="grid gap-2 lg:grid-cols-3">
+      {steps.map((item, index) => {
+        const { Icon } = item;
+        const now = current(marks[index]);
+        // On a phone the current step alone; once all are done, the last.
+        const shownOnPhone = now || (!marks.some(current) && index === steps.length - 1);
         return (
           <li
             key={item.key}
@@ -66,3 +77,22 @@ export function StageStrip({ stage }: { stage: LearnStage }) {
     </ol>
   );
 }
+
+const ATTEMPT_STEPS: StripStep[] = STAGES.map((stage) => ({ ...stage, Icon: ICONS[stage.key] }));
+
+/**
+ * Where the user is in a Learn attempt: the agent fixes the issue (in their terminal), they take the lesson, they
+ * approve the pull request. Nothing for an attempt that left the flow.
+ */
+export function StageStrip({ stage }: { stage: LearnStage }) {
+  const marks = stageMarksOf(stage);
+  if (!marks) return null;
+  return <StepStrip steps={ATTEMPT_STEPS} marks={marks} label="Where you are" />;
+}
+
+/** The icons of Learn home's path: the goal, the agent's fix, the pass and the pull request. */
+export const PATH_ICONS: Record<'goal' | 'agent' | 'pass', LucideIcon> = {
+  goal: BookOpen,
+  agent: Terminal,
+  pass: GitPullRequest,
+};

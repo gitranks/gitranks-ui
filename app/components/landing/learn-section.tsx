@@ -8,7 +8,7 @@ import { ExampleLessonCard } from '@/app/learn/components/example-lesson-card';
 import { type PromoSource, reportPromo, usePromoShown } from '@/app/learn/components/use-promo-report';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { contributeSource } from '@/lib/contribute/click-tracking';
-import { LEARN_PATH, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
+import { LEARN_PATH } from '@/lib/learn/learn-path';
 import { promoTitleOf, reasonLineOf, type ShownPromo } from '@/lib/learn/learn-promo';
 import { cn } from '@/lib/utils';
 
@@ -86,7 +86,7 @@ export const LearnSectionView: FC<{ promo?: ShownPromo; onDismiss?: () => void }
         <div className="flex flex-col items-start gap-2">
           {promo ? (
             <div className="flex w-full flex-wrap items-center gap-3">
-              <Link href={LEARN_PROFILE_PATH} prefetch={false} className={ACTION_CLASS} onClick={clicked}>
+              <Link href={LEARN_PATH} prefetch={false} className={ACTION_CLASS} onClick={clicked}>
                 Set my goal
                 <ArrowRight aria-hidden />
               </Link>

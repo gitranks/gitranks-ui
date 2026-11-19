@@ -92,6 +92,20 @@ export function learnHomeMetadata(open: boolean): Metadata {
 }
 
 /**
+ * `/learn/about`, the front door as a signed-in user reads it: its canonical address is `/learn`, and it is never
+ * indexed, so search engines see one front door.
+ */
+export const LEARN_ABOUT_METADATA: Metadata = {
+  ...pageMetadata({
+    title: 'How Learn works',
+    description:
+      'Your coding agent fixes a real open-source issue. You get a 10-minute lesson on what was wrong and why the fix works. Pass the check, and the pull request opens in your name.',
+    path: LEARN_PATH,
+  }),
+  robots: NO_INDEX,
+};
+
+/**
  * A shared lesson's structured data: the lesson as a `LearningResource` (the repository and language of the fix, the
  * person who made it with their agent, its steps: what the page shows), and where it sits on the site. Learn's front door is a crumb only
  * once it is open to visitors.

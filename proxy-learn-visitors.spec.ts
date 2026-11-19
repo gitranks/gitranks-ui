@@ -39,9 +39,22 @@ describe('Learn open to visitors', () => {
       '/learn/lessons',
       '/learn/attempts',
       '/learn/attempts/A_1/more',
+      '/learn/about',
+      '/learn/start/driftwood-js/driftwood/934',
       '/learn/x',
     ]) {
       expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+    }
+  });
+
+  it('never lets a shared cache keep a signed-in /learn: Learn home is drawn for each viewer', async () => {
+    for (const path of ['/learn', '/learn/', '/learn/about']) {
+      const request = new NextRequest(`https://gitranks.com${path}`, {
+        headers: { cookie: 'authjs.session-token=t' },
+      });
+      const cache = (await proxy(request, {} as NextFetchEvent))?.headers.get('cache-control');
+      expect(cache, path).toBe('private, no-cache');
+      expect(cache, path).not.toContain('s-maxage');
     }
   });
 

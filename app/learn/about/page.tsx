@@ -1,0 +1,24 @@
+import type { Metadata } from 'next';
+import { Suspense } from 'react';
+
+import { ContributePageSkeleton } from '@/app/contribute/components/page-skeleton';
+import { LearnAboutView } from '@/app/learn/components/learn-landing';
+import { LEARN_ABOUT_METADATA } from '@/lib/learn/lesson-seo';
+
+/** One front door for search engines: this copy points at `/learn` and is not indexed. */
+export const metadata: Metadata = LEARN_ABOUT_METADATA;
+
+/** How Learn works, for a signed-in user: the front door visitors read at `/learn`. */
+export default function LearnAboutPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto w-full max-w-7xl px-4 pt-8 pb-16">
+          <ContributePageSkeleton />
+        </main>
+      }
+    >
+      <LearnAboutView />
+    </Suspense>
+  );
+}

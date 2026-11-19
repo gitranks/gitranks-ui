@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { mainMenuItemClass } from './menu-styles';
 import { Pill } from '@/components/pill/pill';
 import { NavigationMenuItem, NavigationMenuLink } from '@/components/ui/navigation-menu';
+import { contributeSource } from '@/lib/contribute/click-tracking';
 import {
   learnOpenInBrowser,
   learnOpenKnown,
@@ -21,7 +22,7 @@ export function LearnMenuLink({ active }: Readonly<{ active?: boolean }>) {
   return (
     <NavigationMenuItem>
       <NavigationMenuLink className={cn(mainMenuItemClass, 'gap-1.5')} active={active} asChild>
-        <Link href={LEARN_PATH} prefetch={false}>
+        <Link href={LEARN_PATH} prefetch={false} {...contributeSource('learn_menu')}>
           Learn
           <Pill tone="violet" size="small">
             New

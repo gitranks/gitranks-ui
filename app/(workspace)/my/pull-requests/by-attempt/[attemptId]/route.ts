@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 
+import { loadAttemptLesson } from '@/lib/learn/learn.data';
+import { type LearnView, learnViewOf } from '@/lib/learn/learn-view';
 import { SITE_URL } from '@/lib/seo/site';
 import { sessionClearsOf } from '@/lib/session-hint';
-import { byAttemptTargetOf } from '@/lib/workspace/by-attempt';
+import { type ByAttemptRead, byAttemptTargetOf } from '@/lib/workspace/by-attempt';
 import { BY_ATTEMPT_HEADERS, byAttemptPageOf } from '@/lib/workspace/by-attempt-answer';
 import { loadAttemptRef, loadIssueAttempt, viewerLogin } from '@/lib/workspace/contribute.data';
+import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import { ATTEMPT_ID } from '@/lib/workspace/paths';
 
 /** A 307 on the site's own address: behind the proxy a route handler's request URL is the server's bind address. */
@@ -18,6 +21,17 @@ function redirectTo(target: string, url: URL, cookies: string[] = []) {
 /** Nowhere to send the browser: the page that says why, with the way back. */
 const pageOf = (status: 404 | 503) =>
   new NextResponse(byAttemptPageOf(status), { status, headers: BY_ATTEMPT_HEADERS });
+
+/**
+ * A Learn first attempt's view, by its lesson's stage: the Lesson view until its pull request opens. Null for anything
+ * else, for Learn closed to the viewer (the Pull request view alone), and while the lesson is not answered (the Pull
+ * request view, whose header leads to the lesson).
+ */
+async function learnViewFor(attempt: ByAttemptRead): Promise<LearnView | null> {
+  if (attempt.kind !== 'FIRST' || attempt.mode !== 'LEARN' || !(await loadLearnOpen())) return null;
+  const lesson = await loadAttemptLesson(attempt.attemptId).catch(() => null);
+  return lesson ? learnViewOf(lesson.stage, !!attempt.pullRequest) : 'pr';
+}
 
 /** The names of the cookies the request carries. */
 const cookieNamesOf = (request: Request) =>
@@ -47,8 +61,8 @@ export async function GET(request: Request, { params }: RouteContext<'/my/pull-r
   if (attempt === undefined) return pageOf(503);
   if (!attempt?.nameWithOwner) return pageOf(404);
   const [owner = '', repo = ''] = attempt.nameWithOwner.split('/');
-  const issue = await loadIssueAttempt(owner, repo, attempt.number);
+  const [issue, learnView] = await Promise.all([loadIssueAttempt(owner, repo, attempt.number), learnViewFor(attempt)]);
   if (issue === undefined) return pageOf(503);
-  const target = byAttemptTargetOf(attempt, issue, url.searchParams);
+  const target = byAttemptTargetOf(attempt, issue, url.searchParams, learnView);
   return target ? redirectTo(target, url) : pageOf(404);
 }

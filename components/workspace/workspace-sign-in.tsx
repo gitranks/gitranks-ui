@@ -10,15 +10,12 @@ import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 
 const COPY = {
   contribution: { eyebrow: 'GitRanks Contribute', title: 'Sign in to see this contribution' },
-  lesson: { eyebrow: 'GitRanks Learn', title: 'Sign in to see this lesson' },
-  // A lesson's page while Learn is not open to everyone: the page names nothing of it to a visitor.
-  page: { eyebrow: 'GitRanks', title: 'Sign in to see this page' },
   // A workspace page under `/my`: what an email or an agent links. Nothing of the address's content is named.
   workspace: { eyebrow: 'GitRanks', title: 'Sign in to GitRanks to open this page' },
 };
 
 /**
- * A workspace page for a visitor without a session: a contribution's or a lesson's page (`isAttemptPagePath`), the
+ * A workspace page for a visitor without a session: a pull request's or a lesson's page, the
  * link an agent hands its person, and every page under `/my`, which emails and agents link; often opened in another
  * browser. The GitHub sign-in, back to this very address with its query and hash; then the page shows the user's own,
  * and a 404 to anyone it is not open to.

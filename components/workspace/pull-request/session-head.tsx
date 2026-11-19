@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { type AlsoRow, AlsoWaiting, HeadSwitch, HeldCard, StartAnyway } from './also-waiting';
 import { StartRun } from './head-actions';
+import { LearnPromptCard } from './learn-prompt-card';
 import type { CardProps } from './move-props';
 import { AutopilotCard, GrantCard, RetryCard, ReviewCard } from './moves-first';
 import { AgreementCard, NextRunCard, RulesCard } from './moves-pr';
@@ -30,7 +31,13 @@ import {
   runRoundOf,
 } from '@/lib/workspace/contribution-moves';
 import type { OrgAccess } from '@/lib/workspace/org-access';
-import { firstStatusOf, nextStatusOf, runStatusOf, type SessionStatus } from '@/lib/workspace/session-status';
+import {
+  firstStatusOf,
+  nextStatusOf,
+  runStatusOf,
+  type SessionStatus,
+  line as statusLine,
+} from '@/lib/workspace/session-status';
 import { nextSessionPath, type PageAt, pageAtOf, sessionPath, waitingThreadsOf } from '@/lib/workspace/sessions';
 
 /** The proof's stages that wait for nobody: a status line, or one line under the card. */
@@ -69,7 +76,12 @@ function Card(props: CardProps) {
     case 'replies':
       return <RepliesCard {...props} />;
     case 'next-run':
-      return <NextRunCard {...props} />;
+      // A Learn pull request's change is its own agent's: the prompt to give it, never a run of ours.
+      return props.first?.mode === 'LEARN' && props.move.data.card === 'next-run' && !props.move.data.noRun ? (
+        <LearnPromptCard {...props} round={props.model.nextRound} />
+      ) : (
+        <NextRunCard {...props} />
+      );
     case 'agreement':
       return <AgreementCard {...props} />;
     case 'rules':
@@ -129,6 +141,8 @@ export type SessionHeadProps = {
   orgAccess: OrgAccess;
   /** The page's address (by repo and issue, or an earlier attempt's); else the issue's, from the first attempt. */
   base?: Route;
+  /** A Learn attempt whose Lesson view the viewer has. */
+  lessonView?: boolean;
 };
 
 /**
@@ -147,6 +161,7 @@ export function SessionHead({
   now,
   orgAccess,
   base,
+  lessonView = false,
 }: SessionHeadProps) {
   const head = headOf(model, pane, move);
   const blocked = model.hardStop?.blocked ?? new Set();
@@ -257,6 +272,20 @@ export function SessionHead({
       />
     </div>
   );
+
+  // A Learn attempt before its pull request, with its Lesson view: the lesson leads, and its summary and submit are
+  // there (the model leaves its first session's moves to that view, so no card comes before this). Without one (Learn
+  // closed to the account), the first attempt's pane as a contribution's.
+  if (lessonView && pane === 'first' && shown.kind === 'FIRST' && shown.mode === 'LEARN' && !shown.pullRequest) {
+    return line(
+      statusLine({
+        name: 'LEARN_LESSON',
+        title: 'This pull request opens from its lesson',
+        fact: 'The lesson, its summary and the submit are on the Lesson view. The change and its checks are below.',
+        link: { href: `${at.base}/lesson`, label: 'Open the lesson →', external: false },
+      }),
+    );
+  }
 
   if (pane === 'next' && first) {
     const pr = first.pullRequest;

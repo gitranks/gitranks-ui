@@ -182,7 +182,7 @@ describe('Goal and level', () => {
     expect(text(lesson)).toContain(
       'Your next lesson can start once “Route params lose their type after a redirect” is done.',
     );
-    expect(lesson).toMatch(/href="\/learn\/attempts\/A_1"[^>]*>Back to your lesson/);
+    expect(lesson).toMatch(/href="\/my\/pull-requests\/by-attempt\/A_1"[^>]*>Back to your lesson/);
 
     const unsupported = saved(practiceNext.unsupported, { ...filledProfile, goalValue: 'C++' });
     expect(text(unsupported)).toContain(
@@ -234,7 +234,7 @@ describe('My lessons', () => {
     const html = renderToStaticMarkup(<MyLessonsScreen lessons={myLessons} />);
     expect(text(html)).toContain('In progress · 1');
     expect(text(html)).toContain('Done · 3');
-    expect(html).toContain('href="/learn/attempts/A_3"');
+    expect(html).toContain('href="/my/pull-requests/by-attempt/A_3"');
     expect(html).toContain('href="/learn/lessons/retry-backoff-jitter-2m9q"');
     expect(html.indexOf('lessons-going')).toBeLessThan(html.indexOf('lessons-done'));
     expect(html.match(/data-variant="outline"/g)).toHaveLength(3);

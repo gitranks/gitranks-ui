@@ -64,6 +64,7 @@ export function prCardsOf({
   blocked,
   signingOff,
   round,
+  learn = false,
 }: {
   first: ContributeAttemptDetail;
   view: ContributeView;
@@ -73,6 +74,8 @@ export function prCardsOf({
   blocked: ReadonlySet<ActionId>;
   signingOff: boolean;
   round: number;
+  /** A Learn pull request: what a run would take is the own agent's, and no card starts a run of ours. */
+  learn?: boolean;
 }): { cards: PrCard[]; replySlot: number } {
   const pr = contributionOf(first);
   if (!pr) return { cards: [], replySlot: 0 };
@@ -115,25 +118,28 @@ export function prCardsOf({
     const runSignals = step.run.signals;
     const check = signals.find(({ kind }) => kind === 'CHECK_FAILED')?.detail?.trim() || 'A check';
     const checks = check.includes(', ') ? 'checks' : 'check';
-    const title = github
-      ? lead === 'changes'
-        ? 'Make the requested changes on GitHub'
-        : lead === 'comment'
-          ? 'Reply to the new comment on GitHub'
-          : lead === 'check'
-            ? `Fix ${check} on your branch`
-            : 'See what changed on GitHub'
-      : lead === 'changes' || lead === 'threads'
-        ? threads
-          ? addressTitleOf(waitingThreadsOf(first))
-          : `Start run ${round} on the requested changes`
-        : lead === 'comment'
-          ? `Start run ${round} on the new comment`
-          : lead === 'check'
-            ? `Start run ${round} on the failing ${checks}`
-            : lead === 'other'
-              ? `Start run ${round} to look at it`
-              : `Start run ${round}`;
+    const title =
+      learn && !github
+        ? 'Ask your agent to make the change'
+        : github
+          ? lead === 'changes'
+            ? 'Make the requested changes on GitHub'
+            : lead === 'comment'
+              ? 'Reply to the new comment on GitHub'
+              : lead === 'check'
+                ? `Fix ${check} on your branch`
+                : 'See what changed on GitHub'
+          : lead === 'changes' || lead === 'threads'
+            ? threads
+              ? addressTitleOf(waitingThreadsOf(first))
+              : `Start run ${round} on the requested changes`
+            : lead === 'comment'
+              ? `Start run ${round} on the new comment`
+              : lead === 'check'
+                ? `Start run ${round} on the failing ${checks}`
+                : lead === 'other'
+                  ? `Start run ${round} to look at it`
+                  : `Start run ${round}`;
     cards.push({
       slot,
       move: {
@@ -144,7 +150,7 @@ export function prCardsOf({
         kindLine: PILLS[lead] ?? 'Next run',
         title,
         chip: nextChip,
-        actions: github ? [] : ['start_run'],
+        actions: github || learn ? [] : ['start_run'],
         data: {
           card: 'next-run',
           round,
@@ -297,7 +303,7 @@ export function prCardsOf({
           title: PROOF_TITLES[proof.stage] ?? 'Prove the fix on your machine',
           chip: 'Proof',
           actions: ['post_proof', 'retry_proof', 'proof_reply', 'proof_fix'],
-          data: { ...proof, card: 'proof', round, mayStart },
+          data: { ...proof, card: 'proof', round, mayStart: mayStart && !learn },
         },
       });
     }
@@ -349,8 +355,13 @@ export function prCardsOf({
             : 'Run stopped',
         title: unpushed ? `${name}'s commits weren't pushed` : `${name} stopped`,
         chip: nextChip,
-        actions: ['start_run'],
-        data: { ...stopped, card: 'stopped', round, noRun: mayStart ? null : (noRun ?? 'stopped') },
+        actions: learn ? [] : ['start_run'],
+        data: {
+          ...stopped,
+          card: 'stopped',
+          round,
+          noRun: learn ? 'learn' : mayStart ? null : (noRun ?? 'stopped'),
+        },
       },
     });
   }

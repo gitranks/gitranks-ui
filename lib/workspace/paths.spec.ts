@@ -4,7 +4,6 @@ import {
   CONNECT_AGENT_PATH,
   CONNECT_KEY_PATH,
   GITHUB_ACCESS_PATH,
-  isAttemptPagePath,
   isByAttemptPath,
   isInsidePath,
   isMyPath,
@@ -195,12 +194,6 @@ describe("the pull request's page, by repo and issue", () => {
     ]) {
       expect(isByAttemptPath(path), path).toBe(false);
     }
-  });
-
-  it("lets a visitor through to a lesson's own page only: a contribution's old address redirects first", () => {
-    expect(isAttemptPagePath('/learn/attempts/A_1')).toBe(true);
-    expect(isAttemptPagePath('/contribute/attempts/A_1')).toBe(false);
-    expect(isAttemptPagePath('/learn/attempts/A_1/runs/A_2')).toBe(false);
   });
 
   it("picks another issue on the attempt's side", () => {

@@ -24,7 +24,6 @@ import { SESSION_COOKIE, SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_S
 import { requestLearnAccess } from './lib/workspace/gate';
 import {
   AGENTS_DOC_PATH,
-  isAttemptPagePath,
   isAuthorizePath,
   isByAttemptPath,
   isContributePath,
@@ -238,9 +237,8 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // Learn is behind its own list of people, which the API answers: a closed Learn page answers a visitor without a
   // session, and a signed-in viewer Learn is not open to, with the 404 here; a signed-in one it is open to goes on. A shared lesson, its result pages and the page for maintainers are open to everyone; the front door too once
   // the API says Learn is open to everyone (the home page's Learn section links there and follows the same answer,
-  // asked once a minute per server, only for a visitor's `/learn`). A contribution's or a
-  // lesson's own page lets a visitor without a session through: it is the link an agent hands its person, and the page
-  // asks them to sign in and comes back to itself (`isAttemptPagePath`).
+  // asked once a minute per server, only for a visitor's `/learn`). A contribution's or a lesson's old address
+  // redirects before this, to the pull request's page under `/my`, which asks a visitor to sign in.
   // A request with a session is asked here too, before anything renders: an account Learn is not open to gets the
   // real 404, not Learn's shell (its header, tabs and titles) streamed ahead of the page's own not-found. A session the
   // server cannot read (expired) is a visitor's.
@@ -252,8 +250,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
       : request.method === 'GET' || request.method === 'HEAD'
         ? await requestLearnAccess(request)
         : 'open';
-    const visitorLetThrough = async () =>
-      isAttemptPagePath(pathname) || (isLearnHomePath(pathname) && (await learnOpenToEveryone()));
+    const visitorLetThrough = async () => isLearnHomePath(pathname) && (await learnOpenToEveryone());
     if (access === 'closed' || (access === 'signed-out' && !(await visitorLetThrough()))) {
       const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
       response.headers.set('Cache-Control', 'private, no-store');
@@ -281,7 +278,6 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     !isPrTimelinePath(pathname) &&
     !isMaintainersPath(pathname) &&
     !isAuthorizePath(pathname) &&
-    !(isAttemptPagePath(pathname) && !hasSession(request)) &&
     !(isOpenAtLaunchPath(pathname) && (await contributeOpen()))
   ) {
     const access = await requestContributeAccess(request);

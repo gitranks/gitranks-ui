@@ -357,17 +357,40 @@ export function firstStatusOf(
         });
       }
       if (elsewhere) return line({ name: 'PR_OPEN', title: 'Your pull request is open' });
+      const nextLesson =
+        first.mode === 'LEARN'
+          ? { href: WORKSPACE_PATHS.learn, label: 'Start the next lesson →', external: false }
+          : null;
       if (justOpened(pr, now))
-        return line({ name: 'PR_OPENED', lead: { kind: 'check' }, title: 'Your pull request is open' });
+        return line({
+          name: 'PR_OPENED',
+          lead: { kind: 'check' },
+          title: 'Your pull request is open',
+          link: nextLesson,
+        });
       if (pr?.reviewDecision === 'APPROVED')
-        return line({ name: 'PR_APPROVED', title: 'Approved, waiting for a merge' });
+        return line({ name: 'PR_APPROVED', title: 'Approved, waiting for a merge', link: nextLesson });
       return line({
         name: 'PR_OPEN',
         title: 'Waiting for the maintainers',
-        fact: 'GitRanks keeps reading the PR and brings you back when something needs you.',
+        fact:
+          first.mode === 'LEARN'
+            ? 'Nothing to do now. GitRanks keeps reading the PR and brings you back when something needs you.'
+            : 'GitRanks keeps reading the PR and brings you back when something needs you.',
+        link: nextLesson,
       });
     }
     case 'MERGED':
+      if (first.mode === 'LEARN') {
+        return line({
+          name: 'MERGED',
+          lead: { kind: 'check' },
+          title: 'Merged',
+          fact: `Your code is in ${first.nameWithOwner ?? 'the repo'}. It counts toward your contribution stars. Your lesson stays public, so others can keep learning from this fix.`,
+          link: { href: WORKSPACE_PATHS.learn, label: 'Start the next lesson →', external: false },
+          more: base ? { href: `${base}/lesson`, label: 'See the lesson →', external: false } : null,
+        });
+      }
       return line({
         name: 'MERGED',
         lead: { kind: 'check' },
@@ -376,10 +399,13 @@ export function firstStatusOf(
       });
     case 'CLOSED': {
       const url = githubUrlOf(pr?.url);
+      const learn = first.mode === 'LEARN';
       return line({
         name: 'CLOSED',
         title: 'Closed without merging',
+        fact: learn ? 'Your lesson stays public. You can take it down on the Lesson view.' : null,
         link: url ? { href: url, label: 'See why on GitHub ↗', external: true } : null,
+        more: learn ? { href: PICK_ISSUE_PATHS.learn, label: 'Pick another issue →', external: false } : null,
       });
     }
     case 'STOPPED':

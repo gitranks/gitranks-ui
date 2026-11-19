@@ -9,6 +9,9 @@ import { NoticeLine } from '@/components/workspace/contribute-notices';
 import { LearnPill } from '@/components/workspace/learn-pill';
 import { HEADING } from '@/components/workspace/primitives';
 import { RefChips } from '@/components/workspace/ref-chips';
+import { ViewTabs } from '@/components/workspace/view-tabs';
+import type { LearnAttemptLesson } from '@/lib/learn/learn.types';
+import { type LessonLine, lessonLineOf } from '@/lib/learn/learn-view';
 import {
   AGENT_NAMES,
   attemptTitleOf,
@@ -209,6 +212,22 @@ export function agentLineOf(attempt: Pick<ContributeAttemptDetail, 'runner' | 'a
   return model ? `Hosted agent · ${model}` : 'Hosted agent';
 }
 
+/** "Lesson", its pill, then a few facts: the step, whom it was written for, when it passed, whether it is public. */
+function LessonLineView({ line }: { line: LessonLine }) {
+  return (
+    <div data-lesson-line={line.pill.label} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground uppercase">Lesson</span>
+      <Pill tone={line.pill.tone}>{line.pill.label}</Pill>
+      {line.facts.length ? (
+        <>
+          <Dot />
+          <Muted>{line.facts.join(' · ')}</Muted>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 /** The pill and words where the pull request's line goes, while no pull request exists. */
 function StageStatus({ line }: { line: StageLine }) {
   return (
@@ -232,6 +251,8 @@ export function PullRequestHeader({
   first,
   prNotes,
   earlier,
+  lesson,
+  base,
   now,
 }: {
   /** Names the issue: the first attempt, or a run (`first` then is its first attempt). */
@@ -241,6 +262,10 @@ export function PullRequestHeader({
   prNotes?: ContributePrNotes;
   /** An earlier attempt on the issue: the address of the latest, for the line above. */
   earlier?: { latest: Route } | null;
+  /** A Learn attempt's lesson, while Learn is open to the viewer: the lesson line and the two views. */
+  lesson?: LearnAttemptLesson | null;
+  /** The page's address, for the two views' links. */
+  base?: Route;
   now?: Date;
 }) {
   const repo = repoOf(attempt);
@@ -248,7 +273,8 @@ export function PullRequestHeader({
   const pr = named?.pullRequest ?? null;
   const stop = hardStopOf({ first, prNotes });
   const stopped = stop?.kind === 'maintainer_stopped' ? prNotes?.stopped : null;
-  const stage = named && !pr ? stageLineOf(named, now) : null;
+  const stage = named && !pr ? stageLineOf(named, now, lesson?.stage) : null;
+  const lessonLine = lesson ? lessonLineOf(lesson) : null;
 
   return (
     <header className="flex flex-col gap-2" data-pr-header="">
@@ -277,6 +303,17 @@ export function PullRequestHeader({
       ) : null}
       {stopped ? (
         <MaintainerStoppedLine stopped={stopped} repo={repo} url={githubUrlOf(pr?.url)} number={pr?.number} />
+      ) : null}
+      {lessonLine ? <LessonLineView line={lessonLine} /> : null}
+      {lesson && base ? (
+        <ViewTabs
+          label="Views of this pull request"
+          className="mt-2"
+          tabs={[
+            { key: 'pr', label: 'Pull request', href: base },
+            { key: 'lesson', label: 'Lesson', href: `${base}/lesson` as Route, pathEnds: '/lesson' },
+          ]}
+        />
       ) : null}
     </header>
   );

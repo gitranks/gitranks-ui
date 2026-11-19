@@ -1,46 +1,40 @@
 import { ArrowRight, GitPullRequest, GraduationCap, type LucideIcon, Terminal } from 'lucide-react';
+import type { Route } from 'next';
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { LearnSettingUp } from './learn-setting-up';
 import { LessonShare } from './lesson-share';
+import { MoveOnOnceOpen, WatchingOpen } from './opening-move-on';
 import { CHANGED_YOUR_MIND } from './own-lesson-card';
 import { PracticeRows } from './practice-lessons';
-import { StageStrip } from './stage-strip';
-import { LessonFlow, type LessonFlowStart, StepArticle } from '@/components/learn/lesson-flow';
+import { LessonFlow, type LessonFlowStart } from '@/components/learn/lesson-flow';
 import { LESSON_GRID } from '@/components/learn/lesson-steps';
 import { WrittenFor } from '@/components/learn/written-for';
 import { Button } from '@/components/ui/button';
-import { DiffViewer } from '@/components/workspace/diff-viewer';
-import { HEADING, PageTitle } from '@/components/workspace/primitives';
-import {
-  ChecksPanel,
-  CostPanel,
-  ReadinessPanel,
-  TimelinePanel,
-  YourNotePanel,
-} from '@/components/workspace/pull-request/attempt-panels';
+import { HEADING } from '@/components/workspace/primitives';
+import { TimelinePanel } from '@/components/workspace/pull-request/attempt-panels';
 import { CardError, DiscardAttemptButton } from '@/components/workspace/pull-request/head-actions';
 import { PrForm } from '@/components/workspace/pull-request/pr-form';
-import { prFormPropsOf, withQuery } from '@/components/workspace/pull-request/review-view';
+import {
+  LessonUnavailable,
+  lessonPageOf,
+  type PageParams,
+  prFormPropsOf,
+} from '@/components/workspace/pull-request/review-view';
 import { SendBackForm } from '@/components/workspace/pull-request/send-back-form';
 import { SessionActionsProvider } from '@/components/workspace/pull-request/session-actions';
-import { type SessionTab, SessionTabs } from '@/components/workspace/session-tabs';
+import { LiveSubmit } from '@/components/workspace/pull-request/submit-stepper';
 import { Box } from '@/components/workspace/status-box';
-import { WorkspaceSignIn } from '@/components/workspace/workspace-sign-in';
-import { loadAttemptLesson, loadLearnOpen, loadLearnSetup, loadPracticeLessons } from '@/lib/learn/learn.data';
-import type { LearnAttemptLesson, LessonStep, PracticeLessons } from '@/lib/learn/learn.types';
-import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
+import { loadLearnOpen, loadLearnSetup, loadPracticeLessons } from '@/lib/learn/learn.data';
+import type { LearnAttemptLesson, PracticeLessons } from '@/lib/learn/learn.types';
 import { endedReasonOf, WAIT_PRACTICE } from '@/lib/learn/learn-home';
-import { LEARN_PRACTICE_PATH, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
-import { subjectLineOf } from '@/lib/learn/lesson-format';
+import { LEARN_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
 import { isOwnAgent } from '@/lib/workspace/attempt-format';
 import type { CommentActionsInit } from '@/lib/workspace/comment-actions';
-import { loadAttempt, loadContribute, viewerLogin } from '@/lib/workspace/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/workspace/contribute.types';
 import { parsePatch } from '@/lib/workspace/patch';
-import { PICK_ISSUE_PATHS, pullRequestByAttemptPath } from '@/lib/workspace/paths';
+import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
@@ -110,7 +104,7 @@ function Waiting({
       <div className="flex min-w-0 flex-col gap-4">
         <Box state={lesson.stage}>
           <h2 className={HEADING.card}>
-            {rewriting ? 'Your agent is working on what you sent back' : 'Your agent is fixing this issue'}
+            {rewriting ? 'Your agent is working on what you sent back' : 'Your agent is writing your lesson'}
           </h2>
           <Text>
             {rewriting
@@ -143,55 +137,6 @@ function Waiting({
   );
 }
 
-/** The attempt's details below the lesson, a tab each: the change, its checks, its activity, and the lesson to read again. */
-function Details({ attempt, steps }: { attempt: ContributeAttemptDetail; steps: readonly LessonStep[] }) {
-  const files = parsePatch(attempt.patch).files.length;
-  const checks = attempt.checksPassed === true ? '✓' : attempt.checksPassed === false ? '✗' : undefined;
-  const tabs: SessionTab[] = [
-    {
-      value: 'changes',
-      label: 'Changes',
-      badge: files ? `${files} ${files === 1 ? 'file' : 'files'}` : undefined,
-      content: <DiffViewer patch={attempt.patch} />,
-    },
-    {
-      value: 'checks',
-      label: 'Checks',
-      badge: checks,
-      content: (
-        <>
-          <ChecksPanel attempt={attempt} />
-          <ReadinessPanel attempt={attempt} />
-        </>
-      ),
-    },
-    {
-      value: 'activity',
-      label: 'Activity',
-      content: (
-        <>
-          <CostPanel attempt={attempt} />
-          <TimelinePanel attempt={attempt} />
-          <YourNotePanel attempt={attempt} />
-        </>
-      ),
-    },
-    ...(steps.length
-      ? [
-          {
-            value: 'lesson',
-            label: 'Lesson',
-            badge: `${steps.length} ${steps.length === 1 ? 'step' : 'steps'}`,
-            content: steps.map((step, index) => (
-              <StepArticle key={step.id} step={step} index={index} count={steps.length} copy="tab-" />
-            )),
-          },
-        ]
-      : []),
-  ];
-  return <SessionTabs tabs={tabs} defaultValue="changes" label="This lesson's attempt" />;
-}
-
 /** The session's actions for a lesson's attempt in review: its submit and its Discard, nothing of a run. */
 const reviewInitOf = (attempt: ContributeAttemptDetail): CommentActionsInit => ({
   session: 'first',
@@ -210,9 +155,73 @@ const reviewInitOf = (attempt: ContributeAttemptDetail): CommentActionsInit => (
   canStart: false,
 });
 
-/** What the page adds under the lesson at its stage: the send-back, the pull request's form, the share card. */
-function paneOf(view: ContributeView, attempt: ContributeAttemptDetail, lesson: LearnAttemptLesson): ReactNode {
-  const steps = lesson.steps ?? [];
+/** "Read the changes →": the Pull request view, where the change and its checks are. */
+function ChangesLine({ attempt, base }: { attempt: ContributeAttemptDetail; base: Route }) {
+  const files = parsePatch(attempt.patch).files.length;
+  return (
+    <p data-changes-line="" className="text-sm text-muted-foreground">
+      {files ? `The change: ${files} ${files === 1 ? 'file' : 'files'}.` : 'The change.'}{' '}
+      <Link href={base} prefetch={false} className="font-semibold text-link">
+        Read the changes →
+      </Link>
+    </p>
+  );
+}
+
+/** The pull request on its way to GitHub: the stepper, or the wait for tomorrow's slot. The page moves on by itself. */
+function Opening({ attempt, now }: { attempt: ContributeAttemptDetail; now?: Date }) {
+  const tomorrow = attempt.submit?.step === 'WAITING_CAP';
+  return (
+    <Box state={tomorrow ? 'LEARN_OPENING_TOMORROW' : 'LEARN_OPENING'}>
+      <h2 className={HEADING.card}>Opening your pull request…</h2>
+      <Text>
+        {tomorrow
+          ? "It opens after 00:00 UTC: today's limit of new pull requests is reached."
+          : 'This page moves on by itself. It usually takes under a minute.'}
+      </Text>
+      <WatchingOpen attemptId={attempt.attemptId} />
+      {tomorrow ? null : (
+        <LiveSubmit
+          attempt={{
+            attemptId: attempt.attemptId,
+            state: attempt.state,
+            updatedAt: attempt.updatedAt,
+            submit: attempt.submit,
+            pullRequest: attempt.pullRequest,
+          }}
+          now={now}
+        />
+      )}
+    </Box>
+  );
+}
+
+/** The share card's title by the pull request's state: the lesson stays `PR_OPEN` after a merge or a close. */
+function prTitleOf(pr: number | null, state: string): string {
+  const name = pr ? `Pull request #${pr}` : 'Your pull request';
+  if (state === 'MERGED') return `${name} was merged, and your lesson is public`;
+  if (state === 'CLOSED') return `${name} was closed without merging`;
+  return `${name} is open, and your lesson is public`;
+}
+
+/** Where the learner goes next once the pull request is open: the next lesson, on Learn. */
+const NextLesson = () => (
+  <Link href={LEARN_PATH} prefetch={false} className="self-start text-sm font-semibold text-link">
+    Start the next lesson →
+  </Link>
+);
+
+/**
+ * What the Lesson view adds under the lesson at its stage (W1 §8.6): the send-back; once passed, the changes in one line,
+ * the pull request's form and what happens after; while it opens, the stepper; once open, the share card.
+ */
+function paneOf(
+  view: ContributeView,
+  attempt: ContributeAttemptDetail,
+  lesson: LearnAttemptLesson,
+  base: Route,
+  now?: Date,
+): ReactNode {
   const inReview = attempt.state === 'REVIEW';
   const sendBack =
     inReview && isOwnAgent(attempt) ? (
@@ -224,8 +233,10 @@ function paneOf(view: ContributeView, attempt: ContributeAttemptDetail, lesson: 
     case 'BLOCKED':
       return sendBack;
     case 'READY_TO_APPROVE':
+      if (attempt.state === 'SUBMITTING') return <Opening attempt={attempt} now={now} />;
       return (
         <>
+          <ChangesLine attempt={attempt} base={base} />
           <section className="flex flex-col gap-2 rounded-xl border bg-card p-4.5">
             <h2 className={HEADING.block}>This lesson goes public when the pull request opens</h2>
             <Text>
@@ -244,13 +255,15 @@ function paneOf(view: ContributeView, attempt: ContributeAttemptDetail, lesson: 
             </SessionActionsProvider>
           ) : null}
           {sendBack}
-          <Details attempt={attempt} steps={steps} />
         </>
       );
     case 'PR_OPEN': {
       const visibility = lesson.visibility;
+      const prState = attempt.pullRequest?.state ?? 'OPEN';
       return (
         <>
+          {/* A tab that watched the pull request open here goes on to it. */}
+          <MoveOnOnceOpen attemptId={attempt.attemptId} to={base} />
           {visibility === 'REMOVED' ? (
             <Box state="LEARN_REMOVED" tone="muted">
               <h2 className={HEADING.card}>You took this lesson down</h2>
@@ -263,14 +276,14 @@ function paneOf(view: ContributeView, attempt: ContributeAttemptDetail, lesson: 
             </Box>
           ) : (
             <>
-              <Box state="LEARN_PR_OPEN">
-                <h2 className={HEADING.card}>
-                  {pr ? `Pull request #${pr} is open, and your lesson is public` : 'Your pull request is open'}
-                </h2>
+              <Box state={`LEARN_PR_${prState}`}>
+                <h2 className={HEADING.card}>{prTitleOf(pr, prState)}</h2>
                 <Text>
                   {visibility === 'HELD'
                     ? 'The lesson page is paused while we read reports on its questions. Your result, which the pull request links to, stays up.'
-                    : 'The pull request links to your result. Anyone with the lesson link can take it.'}
+                    : prState === 'CLOSED'
+                      ? 'Your lesson stays public: the pull request still links to your result. You can take it down below.'
+                      : 'The pull request links to your result. Anyone with the lesson link can take it.'}
                 </Text>
               </Box>
               {lesson.head ? (
@@ -283,22 +296,19 @@ function paneOf(view: ContributeView, attempt: ContributeAttemptDetail, lesson: 
               ) : null}
             </>
           )}
-          <Details attempt={attempt} steps={steps} />
+          <NextLesson />
         </>
       );
     }
     case 'HAND_PR':
       return (
-        <>
-          <Box state="LEARN_HAND_PR" tone="muted">
-            <h2 className={HEADING.card}>You opened the pull request yourself</h2>
-            <Text>
-              It is yours alone: it carries no GitRanks Learn footer, and the lesson stays private. You can still read
-              the lesson below.
-            </Text>
-          </Box>
-          <Details attempt={attempt} steps={steps} />
-        </>
+        <Box state="LEARN_HAND_PR" tone="muted">
+          <h2 className={HEADING.card}>You opened the pull request yourself</h2>
+          <Text>
+            It is yours alone: it carries no GitRanks Learn footer, and the lesson stays private. You can still read the
+            lesson below.
+          </Text>
+        </Box>
       );
     default:
       return null;
@@ -306,27 +316,31 @@ function paneOf(view: ContributeView, attempt: ContributeAttemptDetail, lesson: 
 }
 
 /**
- * A Learn attempt's page (`/learn/attempts/<id>`): the issue, where the user is (the agent's fix, the lesson, the
- * approval), and the stage's own part: what happens next while the agent works, the lesson and its questions, the
- * summary and the pull request's form once passed, the share card once the pull request is open.
+ * The Lesson view of a Learn pull request (`…/lesson`, W1 §8.6), under the page's header and its two views: while the
+ * agent works, what happens next; the lesson and its questions; the summary and the pull request's form once passed; the
+ * stepper while it opens; the share card once it is open; why an attempt ended. The Pull request view holds the change,
+ * its checks and its activity.
  */
-export function LearnAttemptScreen({
+export function LessonViewScreen({
   view,
   attempt,
   lesson,
+  base,
   start,
   practice,
+  now,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail;
   lesson: LearnAttemptLesson;
+  /** The pull request's page: its Pull request view. */
+  base: Route;
   /** The catalogue's boards: a flow drawn part-way. */
   start?: LessonFlowStart;
   /** Practice lessons for the learner's goal, read while the agent works. */
   practice?: PracticeLessons;
+  now?: Date;
 }) {
-  const subject = subjectLineOf(lesson.head, { repo: attempt.nameWithOwner, number: attempt.number });
-  const title = attempt.title ?? lesson.head?.subject.issueTitle ?? lesson.head?.title ?? `Issue #${attempt.number}`;
   const waiting = lesson.stage === 'AGENT_WORKING' || lesson.stage === 'AGENT_REWRITING';
 
   let content: ReactNode;
@@ -334,19 +348,16 @@ export function LearnAttemptScreen({
     content = <Waiting attempt={attempt} lesson={lesson} practice={practice} />;
   } else if (lesson.stage === 'ENDED') {
     content = (
-      <>
-        <Box state="LEARN_ENDED" tone="muted">
-          <h2 className={HEADING.card}>This attempt ended</h2>
-          <Text>{endedReasonOf(attempt.endReason)} No pull request opens from it, and its lesson stays private.</Text>
-          <Button asChild className="min-h-11 self-start px-5 font-semibold max-sm:w-full">
-            <Link href={PICK_ISSUE_PATHS.learn} prefetch={false}>
-              Pick another issue
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-        </Box>
-        <Details attempt={attempt} steps={[]} />
-      </>
+      <Box state="LEARN_ENDED" tone="muted">
+        <h2 className={HEADING.card}>This attempt ended</h2>
+        <Text>{endedReasonOf(attempt.endReason)} No pull request opens from it, and its lesson stays private.</Text>
+        <Button asChild className="min-h-11 self-start px-5 font-semibold max-sm:w-full">
+          <Link href={PICK_ISSUE_PATHS.learn} prefetch={false}>
+            Pick another issue
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </Button>
+      </Box>
     );
   } else {
     content = (
@@ -358,7 +369,7 @@ export function LearnAttemptScreen({
         head={lesson.head}
         steps={lesson.steps ?? []}
         run={lesson.run}
-        pane={paneOf(view, attempt, lesson)}
+        pane={paneOf(view, attempt, lesson, base, now)}
         start={start}
       />
     );
@@ -366,63 +377,30 @@ export function LearnAttemptScreen({
 
   return (
     <div className="flex flex-col gap-5" data-learn-attempt={attempt.attemptId} data-stage={lesson.stage}>
-      <header className="flex flex-col gap-2">
-        <Link href={MY_LESSONS_PATH} prefetch={false} className="self-start text-sm font-semibold text-link">
-          ← My lessons
-        </Link>
-        {subject ? (
-          <span className="flex flex-wrap items-center gap-2.5 font-mono text-sm text-muted-foreground">
-            <a href={subject.href} target="_blank" rel="noreferrer" className="hover:underline">
-              {subject.text} ↗<span className="sr-only"> (opens in a new tab)</span>
-            </a>
-          </span>
-        ) : null}
-        <h1 className={HEADING.page}>{title}</h1>
-      </header>
-      <StageStrip stage={lesson.stage} />
       {content}
     </div>
   );
 }
 
 /**
- * The page's reads: Learn open to the viewer, their attempt, and its lesson. Anything else is a 404; a Fix attempt goes
- * to its Contribute page.
+ * The Lesson view's page: the reads, then the screen. While the agent works, practice lessons for the learner's goal;
+ * never read once the lesson is there. A new account still being set up says so.
  */
-export async function LearnAttemptView({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const [{ id }, query] = await Promise.all([params, searchParams ?? Promise.resolve({})]);
-  // Signed out: the link an agent hands its person, opened where they are not signed in. The sign-in, back here.
-  // While Learn is not open to everyone it names nothing of Learn.
-  if (!(await viewerLogin())) return <WorkspaceSignIn what={(await learnOpenToEveryone()) ? 'lesson' : 'page'} />;
-  const [open, settingUp, view, attempt, lesson] = await Promise.all([
-    loadLearnOpen(),
-    loadLearnSetup(),
-    loadContribute(),
-    loadAttempt(id),
-    loadAttemptLesson(id),
-  ]);
-  // A new account's GitRanks account is still being set up: no attempt of theirs can be read until it is.
-  if (open && settingUp) {
-    return (
-      <>
-        <PageTitle title="Your lesson" />
-        <LearnSettingUp />
-      </>
-    );
-  }
-  if (!open || !view || !attempt) notFound();
-  if (attempt.mode === 'FIX' || !lesson) {
-    if (attempt.mode === 'FIX') redirect(withQuery(pullRequestByAttemptPath(attempt.attemptId), query));
-    notFound();
-  }
-  // While the agent works, practice lessons for the learner's goal; never read once the lesson is there.
-  const waiting = lesson.stage === 'AGENT_WORKING' || lesson.stage === 'AGENT_REWRITING';
+export async function LessonView({ params }: { params: Promise<PageParams> }) {
+  const read = await lessonPageOf(params);
+  if (!read) return null;
+  if (read === 'unread') return <LessonUnavailable />;
+  if ((await loadLearnOpen()) && (await loadLearnSetup())) return <LearnSettingUp />;
+  const waiting = read.lesson.stage === 'AGENT_WORKING' || read.lesson.stage === 'AGENT_REWRITING';
   const practice = waiting ? await loadPracticeLessons(WAIT_PRACTICE) : undefined;
-  return <LearnAttemptScreen view={view} attempt={attempt} lesson={lesson} practice={practice} />;
+  return (
+    <LessonViewScreen
+      view={read.view}
+      attempt={read.first}
+      lesson={read.lesson}
+      base={read.base}
+      practice={practice}
+      now={new Date()}
+    />
+  );
 }

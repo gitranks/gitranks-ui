@@ -16,7 +16,7 @@ const lesson = (patch: Partial<MyLesson>): MyLesson => ({
 
 describe('My lessons', () => {
   it("leads the user's own lesson to its attempt, and a shared one to the lesson's page", () => {
-    expect(myLessonRowOf(lesson({ attemptId: 'A/1', slug: 'abc' })).href).toBe('/learn/attempts/A%2F1');
+    expect(myLessonRowOf(lesson({ attemptId: 'A/1', slug: 'abc' })).href).toBe('/my/pull-requests/by-attempt/A%2F1');
     const shared = myLessonRowOf(lesson({ attemptId: null, slug: 'retry jitter', state: 'PASSED' }));
     expect(shared.href).toBe(lessonPagePath('retry jitter'));
     expect(shared.href).toBe('/learn/lessons/retry%20jitter');
@@ -26,7 +26,7 @@ describe('My lessons', () => {
 
   it('has nowhere to go for a shared lesson taken down', () => {
     expect(myLessonRowOf(lesson({ attemptId: null, slug: 's', state: 'REMOVED' })).href).toBeNull();
-    expect(myLessonRowOf(lesson({ state: 'REMOVED' })).href).toBe('/learn/attempts/A_9');
+    expect(myLessonRowOf(lesson({ state: 'REMOVED' })).href).toBe('/my/pull-requests/by-attempt/A_9');
   });
 
   it('says what happened last and what the button does, per state', () => {

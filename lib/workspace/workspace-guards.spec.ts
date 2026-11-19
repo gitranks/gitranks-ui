@@ -33,16 +33,10 @@ const codeLines = (path: string) =>
 describe("the workspace's addresses are built in one place", () => {
   /** The moved pages' old addresses, written as a string or the start of a template. */
   const OLD = /['"`]\/contribute\/(?:me|settings|connect|runs)(?=[/'"`?#]|\$\{)/;
-  /** A lesson's own page until it becomes a view of its pull request. */
-  const LESSON_PAGE = /['"`]\/learn\/attempts(?=[/'"`?#]|\$\{)/;
+  /** A contribution's and a lesson's old pages: the pull request's page by repo and issue now. */
+  const ATTEMPT_PAGE = /['"`]\/(?:contribute|learn)\/attempts(?=[/'"`?#]|\$\{)/;
   /** Where the addresses are built, and where the old ones are sent on. */
   const BUILDERS = ['lib/workspace/paths.ts', 'lib/workspace/old-addresses.ts'];
-  /** Where a lesson's page is matched by its path, not linked: its own route, the tab it lights, the poll's table. */
-  const LESSON_PAGE_MATCHERS = [
-    'app/(workspace)/learn/attempts/[id]/page.tsx',
-    'lib/workspace/workspace-tabs.ts',
-    'lib/workspace/changes-poll.ts',
-  ];
 
   it('links no moved page by its old address outside the paths and the redirects', () => {
     const found = sourcesUnder('app', 'components', 'lib', 'design')
@@ -55,12 +49,12 @@ describe("the workspace's addresses are built in one place", () => {
     expect(found).toEqual([]);
   });
 
-  it("links a lesson's page through the paths alone", () => {
+  it("links a contribution's or a lesson's page through the paths alone, never by its old address", () => {
     const found = sourcesUnder('app', 'components', 'lib')
-      .filter((path) => !BUILDERS.includes(path) && !LESSON_PAGE_MATCHERS.includes(path))
+      .filter((path) => !BUILDERS.includes(path))
       .flatMap((path) =>
         codeLines(path)
-          .filter(({ line }) => LESSON_PAGE.test(line))
+          .filter(({ line }) => ATTEMPT_PAGE.test(line))
           .map(({ number, line }) => `${path}:${number}: ${line.trim()}`),
       );
     expect(found).toEqual([]);

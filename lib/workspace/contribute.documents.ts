@@ -1103,11 +1103,12 @@ export const ContributeAttemptRefDocument = doc<
       nameWithOwner: string | null;
       number: number;
       followUpOf: { attemptId: string } | null;
+      pullRequest: { prId: string } | null;
     } | null;
   },
   { id: string }
 >(
-  'query ContributeAttemptRef($id: ID!) { contributeAttempt(id: $id) { attemptId kind mode nameWithOwner number followUpOf { attemptId } } }',
+  'query ContributeAttemptRef($id: ID!) { contributeAttempt(id: $id) { attemptId kind mode nameWithOwner number followUpOf { attemptId } pullRequest { prId } } }',
 );
 
 /** The viewer's newest first attempt on an issue, the repo's current name, and the earlier ones (the page's address). */

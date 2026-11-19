@@ -11,7 +11,7 @@ import { readPracticeNext } from '@/lib/learn/actions';
 import type { PracticeNext } from '@/lib/learn/learn.types';
 import { attemptTitleOf, goalValueOf } from '@/lib/learn/learn-home';
 import { LEARN_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
-import { learnAttemptPath, PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
+import { PICK_ISSUE_PATHS, pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 const CARD = 'flex flex-col gap-3 rounded-xl border-2 border-primary bg-card p-5';
 const BUTTON = 'min-h-11 self-start px-5 font-semibold max-sm:w-full';
@@ -75,7 +75,7 @@ export function PracticeNextCard({ next: given }: { next?: PracticeNext | null }
           Your own lesson on “{attemptTitleOf(next.current)}” is in progress. Practice lessons don’t touch it.
         </p>
         <Button asChild className={BUTTON}>
-          <Link href={learnAttemptPath(next.current.attemptId)} prefetch={false}>
+          <Link href={pullRequestByAttemptPath(next.current.attemptId)} prefetch={false}>
             Back to your lesson
             <ArrowRight aria-hidden="true" />
           </Link>

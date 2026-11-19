@@ -142,7 +142,7 @@ describe('the tab bar', () => {
     ['/my/pull-requests/acme/widgets/42', '', 'pull-requests'],
     ['/my/pull-requests/acme/widgets/42/runs/R_1', '', 'pull-requests'],
     ['/my/pull-requests/acme/widgets/42/earlier/A_0', '', 'pull-requests'],
-    ['/learn/attempts/A_1', '', 'pull-requests'],
+    ['/my/pull-requests/acme/widgets/42/lesson', '', 'pull-requests'],
     ['/my/agent', '', 'agent'],
     ['/my/agent/connect', '', 'agent'],
     ['/my/agent/key', '', 'agent'],

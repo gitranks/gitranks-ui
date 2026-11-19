@@ -4,6 +4,7 @@ import { cache, type ReactNode } from 'react';
 
 import { SessionsList } from './attempt-sessions';
 import { PrNotesPanel } from './pr-notes';
+import { PullRequestBody } from './pull-request-body';
 import { BackLink, PullRequestHeader } from './pull-request-header';
 import { AttemptRepoRules } from './repo-rules';
 import type { SessionActionsSeed } from './session-actions';
@@ -11,6 +12,7 @@ import { SessionPane } from './session-pane';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { HEADING } from '@/components/workspace/primitives';
 import { WorkspaceSignIn } from '@/components/workspace/workspace-sign-in';
+import type { LearnAttemptLesson } from '@/lib/learn/learn.types';
 import {
   loadAttempt,
   loadContribute,
@@ -31,12 +33,13 @@ import { accessNoticesOf, isContributePageOpen, settingsOf } from '@/lib/workspa
 import { type ContributionMoves, contributionMovesOf, onPane } from '@/lib/workspace/contribution-moves';
 import { RESUME_PARAM } from '@/lib/workspace/grant-resume';
 import { orgAccessOf, orgRestrictionOf, threadsBlockedOf } from '@/lib/workspace/org-access';
-import { type IssueRef, learnAttemptPath, pullRequestByAttemptPath, pullRequestPath } from '@/lib/workspace/paths';
+import { type IssueRef, pullRequestByAttemptPath, pullRequestPath } from '@/lib/workspace/paths';
 import { isFinishedAttempt } from '@/lib/workspace/repo-rules';
 import {
   NEXT_SESSION,
   pageAtOf,
   runsLabelOf,
+  sessionNamesOf,
   sessionPath,
   sessionsOf,
   waitingThreadsOf,
@@ -164,9 +167,9 @@ export async function ContributionLayout({ params, children }: { params: Promise
   if (page.kind !== 'page') return children;
   const { view } = gated;
   const { first, base, earlier } = page;
-  const { current, prNotes, replies } = await contributionOf(first);
+  const [{ current, prNotes, replies }, lesson] = await Promise.all([contributionOf(first), lessonOf(first)]);
   const now = new Date();
-  const model = contributionMovesOf({ view, first, current, replies, prNotes, now });
+  const model = contributionMovesOf({ view, first, current, replies, prNotes, now, lessonView: !!lesson });
   return (
     <ContributionShell
       view={view}
@@ -179,14 +182,53 @@ export async function ContributionLayout({ params, children }: { params: Promise
       now={now}
       base={base}
       earlier={earlier}
+      lesson={lesson}
     >
       {children}
     </ContributionShell>
   );
 }
 
+/**
+ * A Learn attempt's lesson, while Learn is open to the viewer: the header's lesson line and its two views. Null for a
+ * Fix attempt, for Learn closed to the account (the pull request's view alone), and while the API does not answer it.
+ */
+async function lessonOf(first: ContributeAttemptDetail): Promise<LearnAttemptLesson | null> {
+  if (first.mode !== 'LEARN') return null;
+  const { loadLearnOpen, loadAttemptLesson } = await learnReads();
+  if (!(await loadLearnOpen())) return null;
+  return loadAttemptLesson(first.attemptId).catch(() => null);
+}
+
+/** Learn's reads, loaded only for a Learn attempt's page: a Fix attempt's never asks Learn anything. */
+const learnReads = () => import('@/lib/learn/learn.data');
+
+/**
+ * The Lesson view's reads (`…/lesson`): the page's first attempt and its lesson. A Fix attempt's goes to its page; an
+ * address in another spelling to the current one; Learn closed to the viewer, or no lesson, is the 404. Null signed out
+ * (the layout asks to sign in); `unread` while the API does not answer.
+ */
+export async function lessonPageOf(params: Promise<PageParams>) {
+  const gated = await gate();
+  if (!gated) return null;
+  const page = await pageOf(params);
+  if (page.kind === 'unread') return 'unread' as const;
+  if (page.kind === 'move') redirect(`${pullRequestPath(page.ref)}/lesson` as Route);
+  const { first, base } = page;
+  if (first.mode !== 'LEARN') redirect(base);
+  const { loadLearnOpen, loadAttemptLesson } = await learnReads();
+  if (!(await loadLearnOpen())) notFound();
+  const lesson = await loadAttemptLesson(first.attemptId).catch(() => undefined);
+  if (lesson === undefined) return 'unread' as const;
+  if (!lesson) notFound();
+  return { view: gated.view, first, lesson, base };
+}
+
+/** The Lesson view while the API does not answer: the same screen as the pull request's. */
+export const LessonUnavailable = () => <Unavailable />;
+
 /** The address with the query it came with (a grant's resume, the move named), `session` aside unless `keep`. */
-export function withQuery(path: Route, query: Query, { keep = false }: { keep?: boolean } = {}): Route {
+function withQuery(path: Route, query: Query, { keep = false }: { keep?: boolean } = {}): Route {
   const params = new URLSearchParams(path.includes('?') ? path.slice(path.indexOf('?') + 1) : '');
   for (const [key, value] of Object.entries(query)) {
     if (key === 'session' && !keep) continue;
@@ -220,8 +262,8 @@ function Unavailable() {
 
 /**
  * The first attempt's session, the page itself, or the next step (`?session=next`). The next step goes to the run
- * under way while there is one, and to the first attempt when it would show nothing. A Learn attempt's page is its
- * lesson for now: only its next step (follow-ups on its pull request) and its runs show here.
+ * under way while there is one, and to the first attempt when it would show nothing. A Learn attempt's Pull request
+ * view is this one too; its lesson is the other view, `…/lesson`.
  */
 export async function FirstSessionView({
   params,
@@ -239,11 +281,19 @@ export async function FirstSessionView({
   const { first: attempt, base } = page;
   const at = { firstId: attempt.attemptId, base };
   const next = paramOf(query, 'session') === NEXT_SESSION;
-  // The query goes along: back from GitHub's access screen, the grant's resume opens the pull request there.
-  if (attempt.mode === 'LEARN' && !next) redirect(withQuery(learnAttemptPath(attempt.attemptId), query));
-  const { current, prNotes, replies } = await contributionOf(attempt);
+  const [{ current, prNotes, replies }, lesson] = await Promise.all([contributionOf(attempt), lessonOf(attempt)]);
+  const lessonView = !!lesson;
   const now = new Date();
-  const model = contributionMovesOf({ view, first: attempt, current, shown: attempt, replies, prNotes, now });
+  const model = contributionMovesOf({
+    view,
+    first: attempt,
+    current,
+    shown: attempt,
+    replies,
+    prNotes,
+    now,
+    lessonView,
+  });
   if (next) {
     const underWay = attempt.followUps?.currentAttemptId;
     if (underWay) redirect(withQuery(sessionPath(at, underWay), query));
@@ -262,6 +312,7 @@ export async function FirstSessionView({
       now={now}
       resolveHumans={resolveHumans}
       base={base}
+      lessonView={lessonView}
     />
   );
 }
@@ -348,6 +399,7 @@ export function ContributionShell({
   model,
   base,
   earlier,
+  lesson,
   children,
 }: {
   view: ContributeView;
@@ -355,6 +407,8 @@ export function ContributionShell({
   first?: ContributeAttemptDetail;
   run?: ContributeAttemptDetail;
   shown?: string;
+  /** A Learn attempt's lesson, while Learn is open to the viewer: the header's lesson line and its two views. */
+  lesson?: LearnAttemptLesson | null;
   /** The page's address its sessions sit under; else the issue's, from the first attempt. */
   base?: Route;
   /** On an earlier attempt's page: the latest's address. */
@@ -367,7 +421,8 @@ export function ContributionShell({
   model: ContributionMoves;
   children: ReactNode;
 }) {
-  const cards = first ? sessionsOf(first, run, model, pageAtOf(first, base).base) : null;
+  const pageBase = first ? pageAtOf(first, base).base : base;
+  const cards = first && pageBase ? sessionsOf(first, run, model, pageBase, sessionNamesOf(first.mode)) : null;
   const session = first
     ? { firstId: first.attemptId, nextShown: !!model.nextTileTitle || !!model.proofStage, shown }
     : null;
@@ -376,30 +431,47 @@ export function ContributionShell({
     <div className="flex flex-col gap-5" data-contribution={first?.attemptId ?? attempt.attemptId}>
       {/* The access level holds every attempt and run; the key's trouble is Needs you's to say. */}
       <ContributeNotices notices={accessNoticesOf(view)} variant="line" />
-      <PullRequestHeader attempt={attempt} first={first} prNotes={prNotes} earlier={earlier} now={now} />
+      <PullRequestHeader
+        attempt={attempt}
+        first={first}
+        prNotes={prNotes}
+        earlier={earlier}
+        lesson={lesson}
+        base={pageBase}
+        now={now}
+      />
 
-      <div className={cards ? RAIL_GRID : PANE_GRID}>
-        {cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null}
-        <div className={cards ? '[grid-area:pane] min-w-0 mt-5 lg:mt-0' : '[grid-area:pane] min-w-0'}>{children}</div>
-        {cards && first ? (
-          <AttemptRepoRules
-            rules={first.repoRules}
-            settings={railSettingsOf(view)}
-            finished={isFinishedAttempt(first.state)}
-            // Never the session shown: the layout stays as the user moves between them.
-            access={orgRestrictionOf({ first, current: run, replies })}
-            threadsBlocked={!!threadsBlockedOf({ first, current: run })}
-            org={orgOf(first)}
-            orgAccess={orgAccessOf()}
-          />
-        ) : null}
-        {prNotes ? (
-          <PrNotesPanel
-            notes={prNotes}
-            className={cards ? '[grid-area:notes] mt-5 lg:mt-4' : '[grid-area:notes] mt-5'}
-          />
-        ) : null}
-      </div>
+      <PullRequestBody
+        grid={cards ? RAIL_GRID : PANE_GRID}
+        paneClass={cards ? '[grid-area:pane] min-w-0 mt-5 lg:mt-0' : '[grid-area:pane] min-w-0'}
+        sessions={
+          cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null
+        }
+        rules={
+          cards && first ? (
+            <AttemptRepoRules
+              rules={first.repoRules}
+              settings={railSettingsOf(view)}
+              finished={isFinishedAttempt(first.state)}
+              // Never the session shown: the layout stays as the user moves between them.
+              access={orgRestrictionOf({ first, current: run, replies })}
+              threadsBlocked={!!threadsBlockedOf({ first, current: run })}
+              org={orgOf(first)}
+              orgAccess={orgAccessOf()}
+            />
+          ) : null
+        }
+        notes={
+          prNotes ? (
+            <PrNotesPanel
+              notes={prNotes}
+              className={cards ? '[grid-area:notes] mt-5 lg:mt-4' : '[grid-area:notes] mt-5'}
+            />
+          ) : null
+        }
+      >
+        {children}
+      </PullRequestBody>
     </div>
   );
 }
@@ -425,6 +497,7 @@ export function ReviewScreen({
   resumed = false,
   base,
   earlier,
+  lesson,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail | undefined;
@@ -444,6 +517,8 @@ export function ReviewScreen({
   base?: Route;
   /** On an earlier attempt's page: the latest's address. */
   earlier?: { latest: Route } | null;
+  /** A Learn attempt's lesson: the header's lesson line and its two views. */
+  lesson?: LearnAttemptLesson | null;
 }) {
   if (!attempt) return <Unavailable />;
 
@@ -453,7 +528,16 @@ export function ReviewScreen({
   const underWay = first?.followUps?.currentAttemptId;
   const run = current ?? (followUp && attempt.attemptId === underWay ? attempt : undefined);
   const waiting = replies?.filter(({ prId }) => prId === first?.pullRequest?.prId);
-  const model = contributionMovesOf({ view, first, current: run, shown: attempt, replies: waiting, prNotes, now });
+  const model = contributionMovesOf({
+    view,
+    first,
+    current: run,
+    shown: attempt,
+    replies: waiting,
+    prNotes,
+    now,
+    lessonView: !!lesson,
+  });
   const showNext = !!first && next && !underWay && first.pullRequest?.state === 'OPEN' && nextPaneShows(model, first);
 
   return (
@@ -469,6 +553,7 @@ export function ReviewScreen({
       model={model}
       base={base}
       earlier={earlier}
+      lesson={lesson}
     >
       <SessionPane
         view={view}
@@ -483,6 +568,7 @@ export function ReviewScreen({
         now={now}
         resolveHumans={resolveHumans}
         base={base}
+        lessonView={!!lesson}
       />
     </ContributionShell>
   );

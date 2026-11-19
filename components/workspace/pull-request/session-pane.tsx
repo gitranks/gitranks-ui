@@ -131,10 +131,13 @@ function SessionDetails({
   attempt,
   view,
   context,
+  lessonView = false,
 }: {
   attempt: ContributeAttemptDetail;
   view: ContributeView;
   context: CommentsContext;
+  /** A Learn attempt with its Lesson view: its pull request's form is that view's, never a second one here. */
+  lessonView?: boolean;
 }) {
   const inReview = attempt.state === 'REVIEW';
   const followUp = attempt.kind === 'FOLLOW_UP';
@@ -223,7 +226,7 @@ function SessionDetails({
           shown={attempt.timeline.shown}
         />
       ) : null}
-      {inReview && !followUp ? (
+      {inReview && !followUp && !(lessonView && attempt.mode === 'LEARN') ? (
         <SubmitPanel>
           <PrForm {...prFormPropsOf(view, attempt)} />
         </SubmitPanel>
@@ -271,6 +274,7 @@ export function SessionPane({
   now = new Date(),
   resolveHumans,
   base,
+  lessonView = false,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail;
@@ -279,6 +283,8 @@ export function SessionPane({
   model: ContributionMoves;
   /** The page's address its sessions sit under; else the issue's, from the first attempt. */
   base?: Route;
+  /** A Learn attempt whose Lesson view the viewer has: before its pull request, the pane leads there. */
+  lessonView?: boolean;
   next?: boolean;
   /** `?move=`: the held card to show. */
   move?: string | null;
@@ -314,7 +320,8 @@ export function SessionPane({
     threads,
     resolveHumans,
     blocked,
-    canStart: first ? nextRoundOpen(first) : false,
+    // A Learn pull request's change is the own agent's: no run of ours starts from it.
+    canStart: first && first.mode !== 'LEARN' ? nextRoundOpen(first) : false,
   };
   const form =
     !showNext && !followUp && attempt.state === 'REVIEW' ? !!attempt.submit?.lastError || resumed : undefined;
@@ -340,6 +347,7 @@ export function SessionPane({
           now={now}
           orgAccess={orgAccessOf()}
           base={base}
+          lessonView={lessonView}
         />
         {showNext ? (
           threads.length ? (
@@ -351,7 +359,7 @@ export function SessionPane({
             />
           ) : null
         ) : (
-          <SessionDetails attempt={attempt} view={view} context={context} />
+          <SessionDetails attempt={attempt} view={view} context={context} lessonView={lessonView} />
         )}
       </SessionActionsProvider>
     </div>

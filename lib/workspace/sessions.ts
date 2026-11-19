@@ -64,6 +64,16 @@ export const pageAtOf = (
  */
 export const pageBaseOf = (pathname: string) => pathname.replace(/\/runs\/[^/]+\/?$/, '').replace(/\/$/, '') as Route;
 
+/** What the sessions are called: a Contribute pull request's first attempt and runs, or a Learn one's. */
+export type SessionNames = { first: string; run: (round: number) => string };
+
+const CONTRIBUTE_NAMES: SessionNames = { first: 'First attempt', run: (round) => `Run ${round}` };
+const LEARN_NAMES: SessionNames = { first: 'Lesson and first fix', run: (round) => `Change ${round}` };
+
+/** The sessions' names by the first attempt's side: "Lesson and first fix", "Change 1" on a Learn pull request. */
+export const sessionNamesOf = (mode: ContributeAttemptDetail['mode'] | null | undefined): SessionNames =>
+  mode === 'LEARN' ? LEARN_NAMES : CONTRIBUTE_NAMES;
+
 export type SessionCard = {
   key: string;
   /** Where its card leads. */
@@ -107,12 +117,12 @@ export const waitingThreadsOf = (first: ContributeAttemptDetail) =>
   first.pullRequest?.state === 'OPEN' ? (first.reviewFeedback?.threads ?? []).filter(({ ignored }) => !ignored) : [];
 
 /** The first attempt's card: its pill from the contribution's model (its pull request's state, or where it stands). */
-function firstCardOf(first: ContributeAttemptDetail, model: TileModel, at: PageAt): SessionCard {
+function firstCardOf(first: ContributeAttemptDetail, model: TileModel, at: PageAt, names: SessionNames): SessionCard {
   const own = isOwnAgent(first);
   return {
     key: first.attemptId,
     href: at.base,
-    title: 'First attempt',
+    title: names.first,
     pill: model.sessions.first?.pill ?? ATTEMPT_STATES[first.state] ?? null,
     meta: [dayLabel(first.createdAt), own ? 'your own agent' : usd(first.costUsd)].filter(Boolean).join(' · '),
   };
@@ -136,9 +146,10 @@ export function sessionsOf(
   round: ContributeAttemptDetail | undefined,
   model: TileModel,
   base: Route,
+  names: SessionNames = CONTRIBUTE_NAMES,
 ): SessionCard[] {
   const at: PageAt = { firstId: first.attemptId, base };
-  const cards = [firstCardOf(first, model, at)];
+  const cards = [firstCardOf(first, model, at, names)];
   const history = [...(first.followUps?.history ?? [])];
   // Without the history, a run added here is the latest one: its number is the runs used.
   const numberOf = () => (first.followUps?.history ? history.length + 1 : first.followUps?.used || history.length + 1);
@@ -182,7 +193,7 @@ export function sessionsOf(
     cards.push({
       key: entry.attemptId,
       href: sessionPath(at, entry.attemptId),
-      title: `Run ${entry.round}`,
+      title: names.run(entry.round),
       pill: model.sessions[`run:${entry.attemptId}`]?.pill ?? null,
       meta: [dayLabel(entry.at), entry.costUsd > 0 ? usd(entry.costUsd) : null, byAutopilot ? 'by autopilot' : null]
         .filter(Boolean)
@@ -216,7 +227,8 @@ export function sessionsOf(
       // Beside a proof's tile (which takes the next step's mark), the run's own key.
       key: stage ? NEXT_RUN_TILE : NEXT_SESSION,
       href: withMove(moveOf(['next'], 'next-run')?.kinds[0]),
-      title: model.nextTileTitle,
+      // "Run N" while a run may start; a Learn pull request calls it a change.
+      title: model.nextTileTitle.replace(/^Run (\d+)$/, (_, round) => names.run(Number(round))),
       pill: model.sessions.next?.pill ?? { label: 'Not started', tone: 'neutral' },
       meta: waiting
         ? `${waiting} ${waiting === 1 ? 'comment waits' : 'comments wait'}`

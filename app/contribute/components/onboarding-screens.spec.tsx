@@ -45,6 +45,7 @@ vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => data);
 vi.mock('@/lib/contribute/contribute.data', () => data);
 vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
+vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false), loadAttemptLesson: vi.fn() }));
 
 const { Landing } = await import('./landing');
 const { SignInButton, SignInPanel, signInRouteOf, startSignIn } = await import('@/components/workspace/sign-in-dialog');
@@ -282,14 +283,12 @@ describe('the pages that wait for onboarding', () => {
     await expect(ContributionLayout({ params, children: null })).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
-  it("sends a Learn attempt's page to its lesson, and keeps its next step (follow-ups) here", async () => {
+  it("draws a Learn attempt's Pull request view here, as a Fix attempt's", async () => {
     data.viewerLogin.mockResolvedValue('octocat');
     const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
     data.loadContribute.mockResolvedValue(views.active);
     data.loadAttempt.mockResolvedValue(detail({ mode: 'LEARN' }));
-    await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).rejects.toThrow(
-      'NEXT_REDIRECT /learn/attempts/A_1',
-    );
+    await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).resolves.toBeTruthy();
     data.loadAttempt.mockResolvedValue(detail({ mode: 'FIX' }));
     await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).resolves.toBeTruthy();
   });

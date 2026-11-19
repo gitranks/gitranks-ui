@@ -767,15 +767,6 @@ describe('proxy', () => {
       expect(withSession).not.toHaveBeenCalled();
     });
 
-    it.each(['/learn/attempts/A_1', '/Learn/Attempts/A_1', '//learn//attempts//A_1', '/learn%2Fattempts%2FA_1'])(
-      "lets a visitor without a session through to a lesson's own page %s, which asks them to sign in",
-      async (path) => {
-        const response = await proxy(request(undefined, path), event);
-        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
-        expect(withSession).not.toHaveBeenCalled();
-      },
-    );
-
     it('answers a signed-in viewer Learn is not open to with a 404 nobody caches, before any page renders', async () => {
       learnAccess.mockResolvedValue('closed');
       try {
@@ -810,15 +801,13 @@ describe('proxy', () => {
       }
     });
 
-    it("treats a session the server cannot read as a visitor's: only a lesson's own page lets it through", async () => {
+    it("treats a session the server cannot read as a visitor's (a lesson's old address redirects before this)", async () => {
       learnAccess.mockResolvedValue('signed-out');
       try {
-        for (const path of ['/learn', '/learn/profile', '/learn/lessons']) {
+        for (const path of ['/learn', '/learn/profile', '/learn/lessons', '/learn/attempts/A_1']) {
           const response = await proxy(request('authjs.session-token=t', path), event);
           expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
         }
-        const attempt = await proxy(request('authjs.session-token=t', '/learn/attempts/A_1'), event);
-        expect(attempt?.headers.get('x-middleware-rewrite')).toBeNull();
       } finally {
         learnAccess.mockResolvedValue('open');
       }

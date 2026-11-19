@@ -169,7 +169,8 @@ export function roundLeadOf(entry: ContributeFollowUpRound): string {
 }
 
 /** Why no run can start on the waiting comments, by its cause: the next pane's line when comments wait. */
-export function noRunWhyOf(cause: 'hand' | 'said-no' | 'stopped'): string {
+export function noRunWhyOf(cause: 'hand' | 'said-no' | 'stopped' | 'learn'): string {
+  if (cause === 'learn') return 'Your agent makes the changes on this pull request: ask it, then read them and push.';
   if (cause === 'said-no') {
     return 'The repo said no to AI-made pull requests, so no run adds to this one: answer these on GitHub.';
   }
@@ -191,7 +192,7 @@ export function nextStatusOf({
   /** Review threads waiting for an answer. */
   waiting: number;
   /** Why no run can take them, or null when a run may start. */
-  noRun: 'hand' | 'said-no' | 'stopped' | null;
+  noRun: 'hand' | 'said-no' | 'stopped' | 'learn' | null;
   signingOff: boolean;
 }): SessionStatus {
   if (signingOff) {

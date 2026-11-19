@@ -1,3 +1,4 @@
+import type { LearnStage } from '@/lib/learn/learn.types';
 import type { Tone } from '@/lib/workspace/attempt-format';
 import { endReasonLabelOf } from '@/lib/workspace/attempt-format';
 import type { ContributeAttemptDetail } from '@/lib/workspace/contribute.types';
@@ -34,8 +35,51 @@ const notYetOf = (attempt: Pick<ContributeAttemptDetail, 'mode'>) =>
 /** A sentence from a short reason: "the agent said no-go" → "The agent said no-go." */
 const sentenceOf = (text: string) => `${text.charAt(0).toUpperCase()}${text.slice(1)}${/[.!?]$/.test(text) ? '' : '.'}`;
 
-export function stageLineOf(attempt: StageInput, now = new Date()): StageLine | null {
+/** A Learn attempt's line, by its lesson's stage (W1 §8.6); null where the attempt's own state says it. */
+function learnLineOf(attempt: StageInput, stage: LearnStage): StageLine | null {
+  const notYet = notYetOf(attempt);
+  switch (stage) {
+    case 'AGENT_WORKING':
+    case 'AGENT_REWRITING':
+      return { name: 'working', pill: { label: 'Agent working', tone: 'violet' }, text: notYet };
+    case 'WARMUP':
+    case 'LESSON':
+    case 'BLOCKED':
+      return { name: 'lesson-ready', pill: { label: 'Lesson ready', tone: 'violet' }, text: notYet };
+    case 'READY_TO_APPROVE':
+      if (attempt.state === 'SUBMITTING') return null;
+      return attempt.submit?.lastError
+        ? {
+            name: 'not-opened',
+            pill: { label: 'Not opened', tone: 'red' },
+            text: 'The pull request did not open: see what to do below',
+          }
+        : {
+            name: 'lesson-passed',
+            pill: { label: 'Lesson passed', tone: 'green' },
+            text: 'The pull request is not open yet: read it and submit it below',
+          };
+    case 'ENDED':
+      return { name: 'ended', pill: { label: 'Ended', tone: 'neutral' }, text: null };
+    case 'HAND_PR':
+      return {
+        name: 'hand-pr',
+        pill: { label: 'Opened by hand', tone: 'neutral' },
+        text: 'You opened the pull request yourself',
+      };
+    default:
+      return null;
+  }
+}
+
+/**
+ * `lessonStage`: a Learn attempt's lesson stage, when it is read; its line then follows the lesson (written, taken,
+ * passed, ended).
+ */
+export function stageLineOf(attempt: StageInput, now = new Date(), lessonStage?: LearnStage | null): StageLine | null {
   if (attempt.pullRequest) return null;
+  const learn = attempt.mode === 'LEARN' && lessonStage ? learnLineOf(attempt, lessonStage) : null;
+  if (learn) return learn;
   switch (attempt.state) {
     case 'QUEUED':
     case 'CLAIMING':

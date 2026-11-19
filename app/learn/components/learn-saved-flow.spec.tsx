@@ -70,7 +70,7 @@ describe('Goal and level, saved', () => {
     await act(async () => root.render(<LearnProfileForm profile={filledProfile} />));
     await submit();
     expect(container.querySelector('[data-saved-next]')?.getAttribute('data-saved-next')).toBe('lesson');
-    expect(container.querySelector('a[href="/learn/attempts/A_1"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/my/pull-requests/by-attempt/A_1"]')).not.toBeNull();
   });
 
   it('falls back to Learn home when neither read answers, and hides the panel on the next edit', async () => {

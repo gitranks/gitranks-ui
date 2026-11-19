@@ -3,7 +3,7 @@ import type { Route } from 'next';
 import type { MyLesson, MyLessonState } from './learn.types';
 import type { Tone } from '@/lib/workspace/attempt-format';
 import { dayLabel } from '@/lib/workspace/format';
-import { learnAttemptPath } from '@/lib/workspace/paths';
+import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 /** Each state's pill. */
 export const MY_LESSON_STATES: Record<MyLessonState, { label: string; tone: Tone }> = {
@@ -35,7 +35,7 @@ export type MyLessonRow = {
 export function myLessonRowOf(lesson: MyLesson): MyLessonRow {
   const own = !!lesson.attemptId;
   const href = lesson.attemptId
-    ? learnAttemptPath(lesson.attemptId)
+    ? pullRequestByAttemptPath(lesson.attemptId)
     : lesson.slug && lesson.state !== 'REMOVED'
       ? lessonPagePath(lesson.slug)
       : null;

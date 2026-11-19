@@ -209,7 +209,7 @@ describe("Learn home, the viewer's own lesson", () => {
       'Your lesson opens on its page when the fix passes our checks. Your agent tells you in the terminal too.',
     );
     expect(text(html)).not.toMatch(/email/i);
-    expect(html).toContain('href="/learn/attempts/A_1"');
+    expect(html).toContain('href="/my/pull-requests/by-attempt/A_1"');
     expect(text(html)).toContain('Open your lesson page');
     expect(text(html)).toContain(
       'Changed your mind? Ask your agent to release the issue. If your agent stops, the claim ends by itself within 24 hours.',
@@ -249,7 +249,7 @@ describe("Learn home, the viewer's own lesson", () => {
 
     const submitting = home(myLearnAttempts.submitting);
     expect(text(submitting)).toContain('Opening your pull request…');
-    expect(submitting).not.toContain('href="/learn/attempts/A_1"');
+    expect(submitting).not.toContain('href="/my/pull-requests/by-attempt/A_1"');
   });
 });
 
